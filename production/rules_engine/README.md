@@ -1,5 +1,5 @@
-# GaiaPlatform
-GaiaPlatform - Main repository
+# rules_engine
+This is a folder for the rules engine code.
 
 The following folder structure is recommended for C++ projects:
 

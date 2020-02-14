@@ -1,5 +1,5 @@
-# GaiaPlatform
-GaiaPlatform - Main repository
+# scratch
+This is a scratch folder for non-production code. Experiments go here. 
 
 The following folder structure is recommended for C++ projects:
 

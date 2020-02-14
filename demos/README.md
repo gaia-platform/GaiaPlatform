@@ -1,5 +1,5 @@
-# GaiaPlatform
-GaiaPlatform - Main repository
+# demos
+This is a folder for demo code.
 
 The following folder structure is recommended for C++ projects:
 

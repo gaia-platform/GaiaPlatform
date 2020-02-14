@@ -1,5 +1,5 @@
-# GaiaPlatform
-GaiaPlatform - Main repository
+# production
+This is a folder for production code. Only code that is meant to be shipped should be placed here. 
 
 The following folder structure is recommended for C++ projects:
 
