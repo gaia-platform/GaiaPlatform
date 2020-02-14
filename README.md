@@ -31,4 +31,8 @@ Use the following copyright note with your code. Several language specific versi
 // All rights reserved.
 /////////////////////////////////////////////
 
+---------------------------------------------
+-- Copyright (c) Gaia Platform LLC
+-- All rights reserved.
+---------------------------------------------
 ```
