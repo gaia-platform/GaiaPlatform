@@ -21,10 +21,10 @@ The following folder structure is recommended for C++ projects:
 Use the following copyright note with your code. Several language specific versions are provided below.
 
 ```
-\#############################################
-\# Copyright (c) Gaia Platform LLC
-\# All rights reserved.
-\#############################################
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
 
 /////////////////////////////////////////////
 // Copyright (c) Gaia Platform LLC
