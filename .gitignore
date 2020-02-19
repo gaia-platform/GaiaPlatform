@@ -1,0 +1,15 @@
+# Editor files.
+/.vscode
+
+# Build files.
+build/
+
+# Emacs backups.
+*~
+
+# Compiled python files.
+*pyc
+
+# Python packaging folders.
+*.egg-info/
+dist/
