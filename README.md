@@ -1,6 +1,13 @@
 # GaiaPlatform
 GaiaPlatform - Main repository
 
+## Environment requirements
+
+This repository is meant to be built with clang-8. To ensure clang-8 use, add the following lines to your .bashrc.
+
+* ```export CC=/usr/bin/clang-8```
+* ```export CXX=/usr/bin/clang++-8```
+
 ## Folder structuring
 
 The following folder structure is recommended for C++ projects:
