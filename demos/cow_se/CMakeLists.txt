@@ -35,7 +35,6 @@ configure_file(src/__init__.py . COPYONLY)
 
 # Python wrapper unit test.
 configure_file(tests/test_cow_se.py . COPYONLY)
-#set_test(${PYTHON_EXECUTABLE} test_cow_se.py ${TEST_SUCCESS})
 add_test(NAME test_cow_se_py COMMAND ${PYTHON_EXECUTABLE} test_cow_se.py)
 set_tests_properties(test_cow_se_py PROPERTIES PASS_REGULAR_EXPRESSION ${TEST_SUCCESS})
 
