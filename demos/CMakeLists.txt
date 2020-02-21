@@ -33,3 +33,10 @@ find_program(PYTHON "python")
 # Add prototype folders.
 add_subdirectory(cow_se)
 
+# Add custom targets.
+if (PYTHON)
+  add_custom_target(airport sudo ${PYTHON} ../airport/setup/setup.py install)
+  add_custom_target(airport-clean sudo rm -fr build sudo rm -fr dist sudo rm -fr airport.egg-info)
+  add_custom_target(gaia-init ${PYTHON} ../airport/setup/gaia_init.py)
+endif()
+

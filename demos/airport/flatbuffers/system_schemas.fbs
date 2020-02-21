@@ -1,0 +1,36 @@
+namespace GaiaPlatform.TrueGraphDB;
+
+// Flatbuffer defines the objects in gaia db, which are nodes and edges of a graph that
+// also can be thought of as relational objects.
+//
+// Graph Ids are also called slot ids. Using int64 for them currently.
+//
+// Todo - int128s not supported in protobuffers and flat buffers, could use array of ubyte.
+
+// The object stored at id 0 is the database version object which points to the catalog.
+table DatabaseVersion {
+    version:uint64 = 1; // start at version 1.
+    otherInfo:string;
+    catalogHeadSlot:uint64;
+    firstNoncatalogSlot:uint64;
+}
+
+// Catalog entries:
+// Every (owner, schema, tablename) combination must be unique. dups not allowed.
+// restrictions on owner, tablename and schema tbd, but can't contain backticks or periods.
+// They are utf8. Thus schema.tablename should be unique, <owner>.<schema>.<tablename> can't be the name
+// of an owner or schema or table, it must be a combination of them with the periods.
+table CatalogEntry {
+    owner:string;
+    schema:string;
+    name:string;
+    head:uint64;
+}
+
+table CatalogEntries {
+//     entrynames:[string]; // how to make name/obj pairs
+    entries:[CatalogEntry];
+    next:uint64; // next slot
+}
+
+root_type CatalogEntry;

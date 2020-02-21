@@ -1,0 +1,44 @@
+include "gaia_baseclasses.fbs";
+
+namespace GaiaExamples;
+
+/********************************
+   Edges
+ ********************************/
+table Person {
+  name: string (required);
+  birthdate: string;
+  n: GaiaPlatform.Node (required); // required properties in nodes;
+}
+
+// A second node type for planets.
+table PlanetaryBodies {
+  name: string (required);
+  orbits: string; // should be a relationship eventually
+  mass: double;
+  diameter: double;
+  avg_sun_distance: double;
+  n: GaiaPlatform.Node (required);
+}
+
+/********************************
+  Nodes
+ ********************************/
+// edges or relationships between one node to another.
+// lower case for edges
+table child {
+  e: GaiaPlatform.Edge (required);
+}
+table married {
+  date: string;
+  e: GaiaPlatform.Edge (required);
+}
+// significant other
+table so {
+  e: GaiaPlatform.Edge (required);
+}
+table hasPet {
+  name: string (required);
+  kind: string (required);
+  e: GaiaPlatform.Edge (required);
+}
