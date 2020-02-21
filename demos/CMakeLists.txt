@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 3.10)
 enable_testing()
 
 # Set the project name.
-project(prototypes)
+project(demos)
 
 # Specify the C++ standard.
 set(CMAKE_CXX_STANDARD 11)
@@ -30,13 +30,14 @@ set(TEST_SUCCESS "All tests passed!")
 
 find_program(PYTHON "python")
 
-# Add prototype folders.
-add_subdirectory(cow_se)
-
-# Add custom targets.
+# Add custom targets for airport demo.
 if (PYTHON)
   add_custom_target(airport sudo ${PYTHON} ../airport/setup/setup.py install)
   add_custom_target(airport-clean sudo rm -fr build sudo rm -fr dist sudo rm -fr airport.egg-info)
   add_custom_target(gaia-init ${PYTHON} ../airport/setup/gaia_init.py)
 endif()
+
+# Add project folders.
+add_subdirectory(cow_se)
+
 

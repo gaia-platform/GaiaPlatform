@@ -1,4 +1,4 @@
-# Airport data - reduced dataset
+# Airport data - smaller Seattle dataset
 
-This data is cutdown to just Seattle airports.
+This data is cutdown to just Seattle-related airports, airlines, and routes.
 
