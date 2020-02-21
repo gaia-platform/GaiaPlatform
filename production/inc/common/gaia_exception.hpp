@@ -17,11 +17,13 @@ namespace common
 
 class gaia_exception : public exception
 {
-    public:
+    private:
 
     string m_message;
 
-    gaia_exception(string message)
+    public:
+
+    gaia_exception(const string& message)
     {
         m_message = message;
     }
