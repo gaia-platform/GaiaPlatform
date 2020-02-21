@@ -12,3 +12,4 @@ drop server gaia_server_alq;
 drop server gaia_server_rq;
 
 drop extension multicorn cascade;
+

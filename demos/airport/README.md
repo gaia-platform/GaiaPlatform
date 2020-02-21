@@ -26,8 +26,8 @@ The flatbuffer definitions exactly match table specifications. There are extra c
      * ```cmake ..```
      * ```make```
 
-2. **cow.so** - Python wrapper over the COW prototype storage engine.
-   * Build with regular cmake steps from the repo root (not from the cow-test folder).
+2. **cow_se.so** - Python wrapper over the COW prototype storage engine.
+   * Build with regular cmake steps under demos/build.
 
 3. **Flatbuffers**
    * Get the repository: ```git clone https://github.com/google/flatbuffers.git```, then build with regular cmake steps.
@@ -49,22 +49,21 @@ The flatbuffer definitions exactly match table specifications. There are extra c
    * On ubuntu, there are already available multicorn packages: *postgresql-10-python-multicorn* and *python-multicorn*. If you have these available, you don’t need to clone and build multicorn manually. (note that you may need the *python-psutil* package if it’s not installed already).
    * Otherwise, get source code (```git clone git://github.com/Kozea/Multicorn.git```, ```cd Multicorn```; ```make```)
      * Install multicorn extension.
-   * Test using command: ```sudo -u postgres psql -f test_multicorn.sql```.
 
 6. **Airport FDW package**
-   * From the repository build folder, execute ```make airport```.
+   * In demos/build folder, execute ```make airport```.
    * Old instructions
-     * Start in TrueGraphDb/demos/airport.
+     * Start in demos/airport/setup.
      * Install to postgres with ```sudo python setup.py install```. (for uninstalling, you can execute: ```sudo pip uninstall airport``` - *airport* is the package name.
-       * Note that this package will also include the **cow.so** library.
-     * Test package using command: ```sudo -u postgres psql -f test_airportdemo.sql```.
+       * Note that this package will also include the **cow_se.so** library.
+     * Test package using command: ```sudo -u postgres psql -f test_airportdemo.sql``` in demos/airport/tests.
 
 7. **Airport demo setup**
-   * Go to demos/airport/data folder and do the following steps:
+   * Go to data/internal/airport/seattle_only folder and do the following steps:
      * Copy airport data files to tmp folder: ```cp *.txt /tmp```. Note that these only contain the subset of airports and routes that connect directly to SeaTac.
-     * Initialize gaia storage: ```python ../gaia_init.py```. You can redo this whenever you want to reset the storage.
-       * This step can also be executed via ```make gaia-init``` from the repository build folder.
-     * Connect to postgres: ```sudo -u postgres psql```.
+     * Initialize gaia storage: ```python gaia_init.py``` in demos/airport/setup. You can redo this whenever you want to reset the storage.
+       * This step can also be executed via ```make gaia-init``` in the demos/build folder.
+     * Connect to postgres while in demos/airport/setup folder: ```sudo -u postgres psql```.
      * Load airport data into postgres tables (our storage is not persistent yet): ```\i airportdemo_setup.sql```. You only need to do this once - the *rawdata* tables created by this step can be later reused.
        * If you want a fuller experience, you can load the full airport data using *airport_demo_setup_all.sql* script. Follow the instructions from the script itself.
      * You can now create gaia tables and load them up with the data from the Postgres rawdata tables: ```\i airportdemo_gaia_tables_setup.sql```.

@@ -23,8 +23,8 @@ create table rawdata_routes(
 
 create unique index rawdata_route_uidx on rawdata_routes(al_id, src_ap_id, dst_ap_id); -- data is unique in this system airline to 2 airports
 
--- loads data into tables from csv files in /tmp
--- Tables must already be created
+-- Loads data into tables from csv files in /tmp.
+-- Tables must already be created.
 -- Data comes from openflights.com which has an open database license, free to use; this is a subset of rows focused on SeaTac.
 
 -- You'll need to edit an airlines.dat line to change \\'\\ into \\'
@@ -32,7 +32,7 @@ create unique index rawdata_route_uidx on rawdata_routes(al_id, src_ap_id, dst_a
 -- ---
 -- > 13394,"Jayrow","","\\'","\\'","","Australia","Y"
 
--- copy data to /tmp:
+-- Copy data to /tmp:
 --      cp airports.dat /tmp
 --      cp airlines.dat /tmp
 --      cp routes.dat /tmp
@@ -52,3 +52,4 @@ copy rawdata_routes(
         airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment)
     from '/tmp/routes.dat'
         delimiter ',' csv quote as '"' null as '\N';
+

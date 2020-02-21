@@ -18,3 +18,4 @@ setup(
     package_data={'gaia': ['cow_se.so']},
     zip_safe=False
 )
+

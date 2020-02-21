@@ -7,8 +7,6 @@
 
 \i gaia_tables_setup.sql;
 
--- TODO: enable commented statements once we can handle bigint values.
-
 insert into airports(
         ap_id, name, city, country, iata, icao, latitude, longitude, altitude, timezone,
         dst, tztext, type, source)
@@ -72,3 +70,4 @@ insert into routes(
     from intermediate_routes;
 
 drop table intermediate_routes;
+

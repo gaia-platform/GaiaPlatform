@@ -29,3 +29,4 @@ create foreign table routes(
     src_ap varchar(4), src_ap_id int, dst_ap varchar(4), dst_ap_id int,
     codeshare char(1), stops int, equipment text)
     server gaia_server_rq;
+

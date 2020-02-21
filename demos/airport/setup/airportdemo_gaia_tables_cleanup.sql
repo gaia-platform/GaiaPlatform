@@ -6,3 +6,4 @@
 \c airportdemo;
 
 \i gaia_tables_cleanup.sql;
+
