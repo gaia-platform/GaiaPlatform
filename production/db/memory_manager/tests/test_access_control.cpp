@@ -14,16 +14,16 @@ using namespace std;
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;
 
-void TestAccessControl();
+void test_access_control();
 
 int main()
 {
-    TestAccessControl();
+    test_access_control();
 
     cout << endl << c_all_tests_passed << endl;
 }
 
-void TestAccessControl()
+void test_access_control()
 {
     cout << endl << c_debug_output_separator_line_start << endl;
     cout << ">>> EAccessControl tests started <<<" << endl;

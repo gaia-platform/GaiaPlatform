@@ -16,24 +16,24 @@ using namespace std;
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;
 
-void TestMemoryManagerBasicOperation();
-void TestMemoryManagerAdvancedOperation();
+void test_memory_manager_basic_operation();
+void test_memory_manager_advanced_operation();
 
 int main()
 {
-    TestMemoryManagerBasicOperation();
+    test_memory_manager_basic_operation();
 
-    TestMemoryManagerAdvancedOperation();
+    test_memory_manager_advanced_operation();
 
     cout << endl << c_all_tests_passed << endl;
 }
 
-void OutputAllocationInformation(size_t size, ADDRESS_OFFSET offset)
+void output_allocation_information(size_t size, ADDRESS_OFFSET offset)
 {
     cout << endl << size << " bytes were allocated at offset " << offset << "." << endl;
 }
 
-void TestMemoryManagerBasicOperation()
+void test_memory_manager_basic_operation()
 {
     cout << endl << c_debug_output_separator_line_start << endl;
     cout << "*** MemoryManager basic operation tests started ***" << endl;
@@ -64,12 +64,12 @@ void TestMemoryManagerBasicOperation()
     ADDRESS_OFFSET firstAllocationOffset = 0;
     errorCode = memoryManager.Allocate(firstAllocationSize, firstAllocationOffset);
     retail_assert(errorCode == mmec_Success, "First allocation has failed!");
-    OutputAllocationInformation(firstAllocationSize, firstAllocationOffset);
+    output_allocation_information(firstAllocationSize, firstAllocationOffset);
 
     ADDRESS_OFFSET secondAllocationOffset = 0;
     errorCode = memoryManager.Allocate(secondAllocationSize, secondAllocationOffset);
     retail_assert(errorCode == mmec_Success, "Second allocation has failed!");
-    OutputAllocationInformation(secondAllocationSize, secondAllocationOffset);
+    output_allocation_information(secondAllocationSize, secondAllocationOffset);
 
     retail_assert(
         secondAllocationOffset == firstAllocationOffset + firstAllocationSize + sizeof(MemoryAllocationMetadata), 
@@ -78,7 +78,7 @@ void TestMemoryManagerBasicOperation()
     ADDRESS_OFFSET thirdAllocationOffset = 0;
     errorCode = memoryManager.Allocate(thirdAllocationSize, thirdAllocationOffset);
     retail_assert(errorCode == mmec_Success, "Third allocation has failed!");
-    OutputAllocationInformation(thirdAllocationSize, thirdAllocationOffset);
+    output_allocation_information(thirdAllocationSize, thirdAllocationOffset);
 
     retail_assert(
         thirdAllocationOffset == secondAllocationOffset + secondAllocationSize + sizeof(MemoryAllocationMetadata), 
@@ -89,7 +89,7 @@ void TestMemoryManagerBasicOperation()
     cout << c_debug_output_separator_line_end << endl;
 }
 
-void TestMemoryManagerAdvancedOperation()
+void test_memory_manager_advanced_operation()
 {
     cout << endl << c_debug_output_separator_line_start << endl;
     cout << "*** MemoryManager advanced operation tests started ***" << endl;
@@ -127,12 +127,12 @@ void TestMemoryManagerAdvancedOperation()
     ADDRESS_OFFSET firstAllocationOffset = 0;
     errorCode = pStackAllocator->Allocate(0, 0, firstAllocationSize, firstAllocationOffset);
     retail_assert(errorCode == mmec_Success, "First allocation has failed!");
-    OutputAllocationInformation(firstAllocationSize, firstAllocationOffset);
+    output_allocation_information(firstAllocationSize, firstAllocationOffset);
 
     ADDRESS_OFFSET secondAllocationOffset = 0;
     errorCode = pStackAllocator->Allocate(0, 0, secondAllocationSize, secondAllocationOffset);
     retail_assert(errorCode == mmec_Success, "Second allocation has failed!");
-    OutputAllocationInformation(secondAllocationSize, secondAllocationOffset);
+    output_allocation_information(secondAllocationSize, secondAllocationOffset);
 
     retail_assert(
         secondAllocationOffset == firstAllocationOffset + firstAllocationSize + sizeof(MemoryAllocationMetadata),
@@ -141,7 +141,7 @@ void TestMemoryManagerAdvancedOperation()
     ADDRESS_OFFSET thirdAllocationOffset = 0;
     errorCode = pStackAllocator->Allocate(0, 0, thirdAllocationSize, thirdAllocationOffset);
     retail_assert(errorCode == mmec_Success, "Third allocation has failed!");
-    OutputAllocationInformation(thirdAllocationSize, thirdAllocationOffset);
+    output_allocation_information(thirdAllocationSize, thirdAllocationOffset);
 
     retail_assert(
         thirdAllocationOffset == secondAllocationOffset + secondAllocationSize + sizeof(MemoryAllocationMetadata),
@@ -172,12 +172,12 @@ void TestMemoryManagerAdvancedOperation()
     ADDRESS_OFFSET fourthAllocationOffset = 0;
     errorCode = pStackAllocator->Allocate(0, secondAllocationOffset, fourthAllocationSize, fourthAllocationOffset);
     retail_assert(errorCode == mmec_Success, "Fourth allocation has failed!");
-    OutputAllocationInformation(fourthAllocationSize, fourthAllocationOffset);
+    output_allocation_information(fourthAllocationSize, fourthAllocationOffset);
 
     ADDRESS_OFFSET fifthAllocationOffset = 0;
     errorCode = pStackAllocator->Allocate(0, firstAllocationOffset, fifthAllocationSize, fifthAllocationOffset);
     retail_assert(errorCode == mmec_Success, "Fifth allocation has failed!");
-    OutputAllocationInformation(fifthAllocationSize, fifthAllocationOffset);
+    output_allocation_information(fifthAllocationSize, fifthAllocationOffset);
 
     retail_assert(
         fourthAllocationOffset + fourthAllocationSize + sizeof(MemoryAllocationMetadata) == fifthAllocationOffset,
@@ -228,13 +228,13 @@ void TestMemoryManagerAdvancedOperation()
     ADDRESS_OFFSET offsetFirstFreeAllocation = 0;
     errorCode = memoryManager.Allocate(secondAllocationSize, offsetFirstFreeAllocation);
     retail_assert(errorCode == mmec_Success, "First free allocation has failed!");
-    OutputAllocationInformation(secondAllocationSize, offsetFirstFreeAllocation);
+    output_allocation_information(secondAllocationSize, offsetFirstFreeAllocation);
 
     // Second, we reclaim a part of a freed block.
     ADDRESS_OFFSET offsetSecondFreeAllocation = 0;
     errorCode = memoryManager.Allocate(thirdAllocationSize, offsetSecondFreeAllocation);
     retail_assert(errorCode == mmec_Success, "First free allocation has failed!");
-    OutputAllocationInformation(thirdAllocationSize, offsetSecondFreeAllocation);
+    output_allocation_information(thirdAllocationSize, offsetSecondFreeAllocation);
 
     cout << endl << c_debug_output_separator_line_start << endl;
     cout << "*** MemoryManager advanced operation tests ended ***" << endl;

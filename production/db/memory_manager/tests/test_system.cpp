@@ -15,18 +15,18 @@ using namespace std;
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;
 
-void OutputStructSizes();
-void TestPointerArithmetic();
+void output_struct_sizes();
+void test_pointer_arithmetic();
 
 int main()
 {
-    OutputStructSizes();
-    TestPointerArithmetic();
+    output_struct_sizes();
+    test_pointer_arithmetic();
 
     cout << endl << c_all_tests_passed << endl;
 }
 
-void OutputStructSizes()
+void output_struct_sizes()
 {
     cout << endl << c_debug_output_separator_line_start << endl;
     cout << "*** StructSizes tests started ***" << endl;
@@ -41,7 +41,7 @@ void OutputStructSizes()
     cout << c_debug_output_separator_line_end << endl;
 }
 
-void TestPointerArithmetic()
+void test_pointer_arithmetic()
 {
     struct SmallIntegers
     {

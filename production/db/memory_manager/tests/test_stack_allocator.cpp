@@ -16,21 +16,21 @@ using namespace std;
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;
 
-void TestStackAllocator();
+void test_stack_allocator();
 
 int main()
 {
-    TestStackAllocator();
+    test_stack_allocator();
 
     cout << endl << c_all_tests_passed << endl;
 }
 
-void OutputAllocationInformation(size_t size, ADDRESS_OFFSET offset)
+void output_allocation_information(size_t size, ADDRESS_OFFSET offset)
 {
     cout << endl << size << " bytes were allocated at offset " << offset << "." << endl;
 }
 
-void ValidateAllocationRecord(
+void validate_allocation_record(
     CStackAllocator* pStackAllocator,
     size_t allocationNumber,
     SLOT_ID expectedSlotId,
@@ -43,7 +43,7 @@ void ValidateAllocationRecord(
     retail_assert(pStackAllocationRecord->oldMemoryOffset == expectedOldMemoryOffset, "Allocation record has incorrect old allocation offset!");
 }
 
-void TestStackAllocator()
+void test_stack_allocator()
 {
     cout << endl << c_debug_output_separator_line_start << endl;
     cout << "*** StackAllocator tests started ***" << endl;
@@ -96,14 +96,14 @@ void TestStackAllocator()
     ADDRESS_OFFSET firstAllocationOffset = 0;
     errorCode = pStackAllocator->Allocate(firstSlotId, firstOldOffset, firstAllocationSize, firstAllocationOffset);
     retail_assert(errorCode == mmec_Success, "First allocation has failed!");
-    OutputAllocationInformation(firstAllocationSize, firstAllocationOffset);
-    ValidateAllocationRecord(pStackAllocator, 1, firstSlotId, firstAllocationOffset, firstOldOffset);
+    output_allocation_information(firstAllocationSize, firstAllocationOffset);
+    validate_allocation_record(pStackAllocator, 1, firstSlotId, firstAllocationOffset, firstOldOffset);
 
     ADDRESS_OFFSET secondAllocationOffset = 0;
     errorCode = pStackAllocator->Allocate(secondSlotId, secondOldOffset, secondAllocationSize, secondAllocationOffset);
     retail_assert(errorCode == mmec_Success, "Second allocation has failed!");
-    OutputAllocationInformation(secondAllocationSize, secondAllocationOffset);
-    ValidateAllocationRecord(pStackAllocator, 2, secondSlotId, secondAllocationOffset, secondOldOffset);
+    output_allocation_information(secondAllocationSize, secondAllocationOffset);
+    validate_allocation_record(pStackAllocator, 2, secondSlotId, secondAllocationOffset, secondOldOffset);
 
     retail_assert(
         secondAllocationOffset == firstAllocationOffset + firstAllocationSize + sizeof(MemoryAllocationMetadata),
@@ -112,8 +112,8 @@ void TestStackAllocator()
     ADDRESS_OFFSET thirdAllocationOffset = 0;
     errorCode = pStackAllocator->Allocate(thirdSlotId, thirdOldOffset, thirdAllocationSize, thirdAllocationOffset);
     retail_assert(errorCode == mmec_Success, "Third allocation has failed!");
-    OutputAllocationInformation(thirdAllocationSize, thirdAllocationOffset);
-    ValidateAllocationRecord(pStackAllocator, 3, thirdSlotId, thirdAllocationOffset, thirdOldOffset);
+    output_allocation_information(thirdAllocationSize, thirdAllocationOffset);
+    validate_allocation_record(pStackAllocator, 3, thirdSlotId, thirdAllocationOffset, thirdOldOffset);
 
     retail_assert(
         thirdAllocationOffset == secondAllocationOffset + secondAllocationSize + sizeof(MemoryAllocationMetadata),
@@ -130,8 +130,8 @@ void TestStackAllocator()
     ADDRESS_OFFSET fourthAllocationOffset = 0;
     errorCode = pStackAllocator->Allocate(fourthSlotId, fourthOldOffset, fourthAllocationSize, fourthAllocationOffset);
     retail_assert(errorCode == mmec_Success, "Fourth allocation has failed!");
-    OutputAllocationInformation(fourthAllocationSize, fourthAllocationOffset);
-    ValidateAllocationRecord(pStackAllocator, 2, fourthSlotId, fourthAllocationOffset, fourthOldOffset);
+    output_allocation_information(fourthAllocationSize, fourthAllocationOffset);
+    validate_allocation_record(pStackAllocator, 2, fourthSlotId, fourthAllocationOffset, fourthOldOffset);
 
     retail_assert(
         fourthAllocationOffset == firstAllocationOffset + firstAllocationSize + sizeof(MemoryAllocationMetadata),
@@ -140,7 +140,7 @@ void TestStackAllocator()
     retail_assert(pStackAllocator->GetAllocationCount() == 2, "Allocation count is not the expected 2!");
 
     pStackAllocator->Delete(deletedSlotId, deletedOldOffset);
-    ValidateAllocationRecord(pStackAllocator, 3, deletedSlotId, 0, deletedOldOffset);
+    validate_allocation_record(pStackAllocator, 3, deletedSlotId, 0, deletedOldOffset);
 
     retail_assert(pStackAllocator->GetAllocationCount() == 3, "Allocation count is not the expected 3!");
 
@@ -153,8 +153,8 @@ void TestStackAllocator()
     ADDRESS_OFFSET fifthAllocationOffset = 0;
     pStackAllocator->Allocate(fifthSlotId, fifthOldOffset, fifthAllocationSize, fifthAllocationOffset);
     retail_assert(errorCode == mmec_Success, "Fifth allocation has failed!");
-    OutputAllocationInformation(fifthAllocationSize, fifthAllocationOffset);
-    ValidateAllocationRecord(pStackAllocator, 1, fifthSlotId, fifthAllocationOffset, fifthOldOffset);
+    output_allocation_information(fifthAllocationSize, fifthAllocationOffset);
+    validate_allocation_record(pStackAllocator, 1, fifthSlotId, fifthAllocationOffset, fifthOldOffset);
 
     retail_assert(
         fifthAllocationOffset == firstAllocationOffset,
