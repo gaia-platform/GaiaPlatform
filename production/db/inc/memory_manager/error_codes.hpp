@@ -14,26 +14,27 @@ namespace memory_manager
 
 enum EMemoryManagerErrorCode
 {
-    mmec_NotSet = -1,
-    mmec_Success = 0,
+    not_set = -1,
 
-    mmec_MemoryAddressNotAligned = 1,
-    mmec_MemoryOffsetNotAligned = 2,
-    mmec_MemorySizeNotAligned = 3,
+    success = 0,
 
-    mmec_MemorySizeCannotBeZero = 4,
-    mmec_MemorySizeTooLarge = 5,
+    memory_address_not_aligned = 1,
+    memory_offset_not_aligned = 2,
+    memory_size_not_aligned = 3,
 
-    mmec_MemoryAddressOutOfRange = 6,
-    mmec_MemoryOffsetOutOfRange = 7,
+    memory_size_cannot_be_zero = 4,
+    memory_size_too_large = 5,
 
-    mmec_InsufficientMemorySize = 10,
+    memory_address_out_of_range = 6,
+    memory_offset_out_of_range = 7,
 
-    mmec_NotInitialized = 100,
-    mmec_AlreadyInitialized = 101,
-    mmec_AllocationCountTooLarge = 102,
-    mmec_InvalidArgumentValue = 103,
-    mmec_OperationAvailableOnlyToMasterManager = 104,
+    insufficient_memory_size = 10,
+
+    not_initialized = 100,
+    already_initialized = 101,
+    allocation_count_too_large = 102,
+    invalid_argument_value = 103,
+    operation_available_only_to_master_manager = 104,
 };
 
 }

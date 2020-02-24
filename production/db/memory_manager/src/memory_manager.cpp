@@ -52,23 +52,23 @@ EMemoryManagerErrorCode CMemoryManager::manage(
     // Sanity checks.
     if (pMemoryAddress == nullptr || memorySize == 0)
     {
-        return mmec_InvalidArgumentValue;
+        return invalid_argument_value;
     }
 
     if (!validate_address_alignment(pMemoryAddress))
     {
-        return mmec_MemoryAddressNotAligned;
+        return memory_address_not_aligned;
     }
 
     if (!validate_size_alignment(memorySize))
     {
-        return mmec_MemorySizeNotAligned;
+        return memory_size_not_aligned;
     }
 
     if (memorySize < sizeof(Metadata) + mainMemorySystemReservedSize
         || sizeof(Metadata) + mainMemorySystemReservedSize < mainMemorySystemReservedSize)
     {
-        return mmec_InsufficientMemorySize;
+        return insufficient_memory_size;
     }
 
     // Save our parameters.
@@ -98,7 +98,7 @@ EMemoryManagerErrorCode CMemoryManager::manage(
     // The master manager is the one that initializes the memory.
     m_isMasterManager = initialize;
 
-    return mmec_Success;
+    return success;
 }
 
 EMemoryManagerErrorCode CMemoryManager::allocate(
@@ -109,11 +109,11 @@ EMemoryManagerErrorCode CMemoryManager::allocate(
 
     if (m_pMetadata == nullptr)
     {
-        return mmec_NotInitialized;
+        return not_initialized;
     }
 
     EMemoryManagerErrorCode errorCode = validate_size(memorySize);
-    if (errorCode != mmec_Success)
+    if (errorCode != success)
     {
         return errorCode;
     }
@@ -136,10 +136,10 @@ EMemoryManagerErrorCode CMemoryManager::allocate(
 
     if (allocatedMemoryOffset == 0)
     {
-        return mmec_InsufficientMemorySize;
+        return insufficient_memory_size;
     }
 
-    return mmec_Success;
+    return success;
 }
 
 EMemoryManagerErrorCode CMemoryManager::create_stack_allocator(
@@ -150,12 +150,12 @@ EMemoryManagerErrorCode CMemoryManager::create_stack_allocator(
 
     if (m_pMetadata == nullptr)
     {
-        return mmec_NotInitialized;
+        return not_initialized;
     }
 
     ADDRESS_OFFSET memoryOffset = 0;
     EMemoryManagerErrorCode errorCode = allocate(memorySize, memoryOffset);
-    if (errorCode != mmec_Success)
+    if (errorCode != success)
     {
         return errorCode;
     }
@@ -165,7 +165,7 @@ EMemoryManagerErrorCode CMemoryManager::create_stack_allocator(
     pStackAllocator->set_execution_flags(m_executionFlags);
 
     errorCode = pStackAllocator->initialize(m_pBaseMemoryAddress, memoryOffset, memorySize);
-    if (errorCode != mmec_Success)
+    if (errorCode != success)
     {
         delete pStackAllocator;
         pStackAllocator = nullptr;
@@ -180,12 +180,12 @@ EMemoryManagerErrorCode CMemoryManager::commit_stack_allocator(
 {
     if (m_pMetadata == nullptr)
     {
-        return mmec_NotInitialized;
+        return not_initialized;
     }
 
     if (pStackAllocator == nullptr)
     {
-        return mmec_InvalidArgumentValue;
+        return invalid_argument_value;
     }
 
     // Ensure that the stack allocator memory gets reclaimed.
@@ -225,7 +225,7 @@ EMemoryManagerErrorCode CMemoryManager::commit_stack_allocator(
             = get_free_memory_record(firstStackAllocationMetadataOffset, pFirstStackAllocationMetadata->allocationSize);
         if (pFreeMemoryRecord == nullptr)
         {
-            return mmec_InsufficientMemorySize;
+            return insufficient_memory_size;
         }
         else
         {
@@ -256,7 +256,7 @@ EMemoryManagerErrorCode CMemoryManager::commit_stack_allocator(
                 if (pFreeMemoryRecord == nullptr)
                 {
                     reclaim_records(argFreeMemoryRecords.get(), countAllocations);
-                    return mmec_InsufficientMemorySize;
+                    return insufficient_memory_size;
                 }
                 else
                 {
@@ -270,7 +270,7 @@ EMemoryManagerErrorCode CMemoryManager::commit_stack_allocator(
         // If we fail, reclaim all the records that we have collected so far.
         // But if we succeed, then we can insert all our collected records into the list of free memory records.
         EMemoryManagerErrorCode errorCode = track_stack_allocator_metadata_for_serialization(pStackAllocatorMetadata);
-        if (errorCode != mmec_Success)
+        if (errorCode != success)
         {
             reclaim_records(argFreeMemoryRecords.get(), countAllocations);
             return errorCode;
@@ -294,21 +294,21 @@ EMemoryManagerErrorCode CMemoryManager::commit_stack_allocator(
         pStackAllocator->output_debugging_information("CommitStackAllocator");
     }
 
-    return mmec_Success;
+    return success;
 }
 
 EMemoryManagerErrorCode CMemoryManager::get_unserialized_allocations_list_head(MemoryListNode*& pListHead) const
 {
     if (m_pMetadata == nullptr)
     {
-        return mmec_NotInitialized;
+        return not_initialized;
     }
 
     // Serializing allocations should only be performed by the database engine
     // through its master manager instance.
     if (!m_isMasterManager)
     {
-        return mmec_OperationAvailableOnlyToMasterManager;
+        return operation_available_only_to_master_manager;
     }
 
     if (m_executionFlags.enableConsoleOutput)
@@ -318,7 +318,7 @@ EMemoryManagerErrorCode CMemoryManager::get_unserialized_allocations_list_head(M
 
     pListHead = &m_pMetadata->unserializedAllocationsListHead;
 
-    return mmec_Success;
+    return success;
 }
 
 EMemoryManagerErrorCode CMemoryManager::update_unserialized_allocations_list_head(
@@ -326,21 +326,21 @@ EMemoryManagerErrorCode CMemoryManager::update_unserialized_allocations_list_hea
 {
     if (m_pMetadata == nullptr)
     {
-        return mmec_NotInitialized;
+        return not_initialized;
     }
 
     // We require an offset because the end of the list may not be safe to process,
     // due to other threads making insertions.
     if (nextUnserializedAllocationRecordOffset == 0)
     {
-        return mmec_InvalidArgumentValue;
+        return invalid_argument_value;
     }
 
     // Serializing allocations should only be performed by the database engine
     // through its master manager instance.
     if (!m_isMasterManager)
     {
-        return mmec_OperationAvailableOnlyToMasterManager;
+        return operation_available_only_to_master_manager;
     }
 
     ADDRESS_OFFSET currentRecordOffset = m_pMetadata->unserializedAllocationsListHead.next;
@@ -362,8 +362,8 @@ EMemoryManagerErrorCode CMemoryManager::update_unserialized_allocations_list_hea
         // Determine the boundaries of the memory block that we can free from the StackAllocator.
         ADDRESS_OFFSET startMemoryOffset = pCurrentMetadata->nextAllocationOffset;
         ADDRESS_OFFSET endMemoryOffset = currentMetadataOffset + sizeof(StackAllocatorMetadata);
-        retail_assert(validate_offset(startMemoryOffset) == mmec_Success, "Calculated start memory offset is invalid");
-        retail_assert(validate_offset(endMemoryOffset) == mmec_Success, "Calculated end memory offset is invalid");
+        retail_assert(validate_offset(startMemoryOffset) == success, "Calculated start memory offset is invalid");
+        retail_assert(validate_offset(endMemoryOffset) == success, "Calculated end memory offset is invalid");
 
         size_t memorySize = endMemoryOffset - startMemoryOffset;
 
@@ -394,7 +394,7 @@ EMemoryManagerErrorCode CMemoryManager::update_unserialized_allocations_list_hea
         output_debugging_information("UpdateUnserializedAllocationsListHead");
     }
 
-    return mmec_Success;
+    return success;
 }
 
 size_t CMemoryManager::get_main_memory_available_size(bool includeSystemReservedSize) const
@@ -536,8 +536,8 @@ ADDRESS_OFFSET CMemoryManager::allocate_from_freed_memory(size_t sizeToAllocate)
             // because another thread may have managed to update it before we could lock it. 
             if (context.pCurrentRecord->memorySize == sizeToAllocate)
             {
-                if (try_to_lock_access(context, alt_UpdateRemove)
-                    && context.autoAccessCurrentRecord.try_to_lock_access(alt_Remove)
+                if (try_to_lock_access(context, EAccessLockType::update_remove)
+                    && context.autoAccessCurrentRecord.try_to_lock_access(EAccessLockType::remove)
                     && context.pCurrentRecord->memorySize == sizeToAllocate)
                 {
 
@@ -558,7 +558,7 @@ ADDRESS_OFFSET CMemoryManager::allocate_from_freed_memory(size_t sizeToAllocate)
             }
             else
             {
-                if (try_to_lock_access(context, alt_Update)
+                if (try_to_lock_access(context, EAccessLockType::update)
                     && context.pCurrentRecord->memorySize > sizeToAllocate)
                 {
                     retail_assert(
@@ -614,8 +614,8 @@ MemoryRecord* CMemoryManager::get_memory_record() const
         "The readers count of a new memory record should be 0!");
     retail_assert(
         pFreeMemoryRecord == nullptr
-        || pFreeMemoryRecord->accessControl.accessLock == alt_None,
-        "The access lock of a new memory record should be None!");
+        || pFreeMemoryRecord->accessControl.accessLock == EAccessLockType::none,
+        "The access lock of a new memory record should be none!");
 
     return pFreeMemoryRecord;
 }
@@ -686,8 +686,8 @@ MemoryRecord* CMemoryManager::get_reclaimed_memory_record() const
         // enough nodes will get inserted into this list that we'll succeed easily to remove one.
         //
         // We'll try to lock each node one after the other.
-        if (try_to_lock_access(context, alt_UpdateRemove)
-            && context.autoAccessCurrentRecord.try_to_lock_access(alt_Remove))
+        if (try_to_lock_access(context, EAccessLockType::update_remove)
+            && context.autoAccessCurrentRecord.try_to_lock_access(EAccessLockType::remove))
         {
             remove(context);
 
@@ -731,7 +731,7 @@ void CMemoryManager::insert_reclaimed_memory_record(MemoryRecord* pReclaimedMemo
     // We'll keep trying to insert at the beginning of the list.
     while (true)
     {
-        if (try_to_lock_access(context, alt_Insert))
+        if (try_to_lock_access(context, EAccessLockType::insert))
         {
             insert(context, pReclaimedMemoryRecord);
 
@@ -806,7 +806,7 @@ EMemoryManagerErrorCode CMemoryManager::track_stack_allocator_metadata_for_seria
 
     if (pMemoryRecord == nullptr)
     {
-        return mmec_InsufficientMemorySize;
+        return insufficient_memory_size;
     }
 
     uint8_t* pMetadataAddress = reinterpret_cast<uint8_t*>(pStackAllocatorMetadata);
@@ -821,7 +821,7 @@ EMemoryManagerErrorCode CMemoryManager::track_stack_allocator_metadata_for_seria
 
     insert_unserialized_allocations_record(pMemoryRecord);
 
-    return mmec_Success;
+    return success;
 }
 
 void CMemoryManager::output_debugging_information(const string& contextDescription) const

@@ -15,13 +15,13 @@ namespace memory_manager
 // Values that can indicate the access desired for resources.
 enum EAccessLockType
 {
-    alt_None = 0,
+    none = 0,
 
-    alt_Read = 1,
-    alt_Insert = 2,
-    alt_Update = 3,
-    alt_UpdateRemove = 4,
-    alt_Remove = 5,
+    read = 1,
+    insert = 2,
+    update = 3,
+    update_remove = 4,
+    remove = 5,
 };
 
 struct AccessControl
@@ -37,7 +37,7 @@ struct AccessControl
     void clear()
     {
         readersCount = 0;
-        accessLock = alt_None;
+        accessLock = none;
     }
 };
 

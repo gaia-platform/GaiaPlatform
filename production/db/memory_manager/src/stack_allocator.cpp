@@ -29,27 +29,27 @@ EMemoryManagerErrorCode CStackAllocator::initialize(
 {
     if (pBaseMemoryAddress == nullptr || memoryOffset == 0 || memorySize == 0)
     {
-        return mmec_InvalidArgumentValue;
+        return invalid_argument_value;
     }
 
     if (!validate_address_alignment(pBaseMemoryAddress))
     {
-        return mmec_MemoryAddressNotAligned;
+        return memory_address_not_aligned;
     }
 
     if (!validate_offset_alignment(memoryOffset))
     {
-        return mmec_MemoryOffsetNotAligned;
+        return memory_offset_not_aligned;
     }
 
     if (!validate_size_alignment(memorySize))
     {
-        return mmec_MemorySizeNotAligned;
+        return memory_size_not_aligned;
     }
 
     if (memorySize < sizeof(StackAllocatorMetadata))
     {
-        return mmec_InsufficientMemorySize;
+        return insufficient_memory_size;
     }
 
     // Save our parameters.
@@ -69,7 +69,7 @@ EMemoryManagerErrorCode CStackAllocator::initialize(
         output_debugging_information("Initialize");
     }
 
-    return mmec_Success;
+    return success;
 }
 
 EMemoryManagerErrorCode CStackAllocator::allocate(
@@ -82,19 +82,19 @@ EMemoryManagerErrorCode CStackAllocator::allocate(
 
     if (m_pMetadata == nullptr)
     {
-        return mmec_NotInitialized;
+        return not_initialized;
     }
 
     // A memorySize of 0 indicates a deletion - handle specially.
     EMemoryManagerErrorCode errorCode = validate_size(memorySize);
-    if (memorySize != 0 && errorCode != mmec_Success)
+    if (memorySize != 0 && errorCode != success)
     {
         return errorCode;
     }
 
     if (!validate_offset_alignment(oldSlotOffset))
     {
-        return mmec_MemoryOffsetNotAligned;
+        return memory_offset_not_aligned;
     }
 
     // For all but the first allocation, we will prefix a memory allocation metadata block.
@@ -114,7 +114,7 @@ EMemoryManagerErrorCode CStackAllocator::allocate(
     if (nextAllocationOffset + sizeToAllocate
         > metadataOffset - (countAllocations + 1) * sizeof(StackAllocatorAllocation))
     {
-        return mmec_InsufficientMemorySize;
+        return insufficient_memory_size;
     }
 
     if (sizeToAllocate > 0)
@@ -168,7 +168,7 @@ EMemoryManagerErrorCode CStackAllocator::allocate(
 
     allocatedMemoryOffset = pAllocationRecord->memoryOffset;
     
-    return mmec_Success;
+    return success;
 }
 
 EMemoryManagerErrorCode CStackAllocator::deallocate(SLOT_ID slotId, ADDRESS_OFFSET slotOffset) const
@@ -186,12 +186,12 @@ EMemoryManagerErrorCode CStackAllocator::deallocate(size_t countAllocationsToKee
 {
     if (m_pMetadata == nullptr)
     {
-        return mmec_NotInitialized;
+        return not_initialized;
     }
 
     if (countAllocationsToKeep > m_pMetadata->countAllocations)
     {
-        return mmec_AllocationCountTooLarge;
+        return allocation_count_too_large;
     }
 
     m_pMetadata->countAllocations = countAllocationsToKeep;
@@ -210,7 +210,7 @@ EMemoryManagerErrorCode CStackAllocator::deallocate(size_t countAllocationsToKee
         output_debugging_information("Deallocate");
     }
 
-    return mmec_Success;
+    return success;
 }
 
 StackAllocatorMetadata* CStackAllocator::get_metadata() const

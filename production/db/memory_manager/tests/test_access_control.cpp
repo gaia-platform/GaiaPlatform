@@ -39,22 +39,22 @@ void test_access_control()
         CAutoAccessControl autoAccess;
 
         retail_assert(
-            autoAccess.try_to_lock_access(&accessControl, alt_Remove),
+            autoAccess.try_to_lock_access(&accessControl, EAccessLockType::remove),
             "ERROR: Auto accessor failed to acquire available access!");
         retail_assert(
-            accessControl.accessLock == alt_Remove,
-            "ERROR: Access control does not indicate expected alt_Remove value!");
+            accessControl.accessLock == EAccessLockType::remove,
+            "ERROR: Access control does not indicate expected remove value!");
         retail_assert(
             accessControl.readersCount == 1,
             "ERROR: Access control does not indicate expected reader count value of 1!");
         cout << "PASSED: First call of TryToLockAccess() has succeeded as expected!" << endl;
 
         retail_assert(
-            autoAccess.try_to_lock_access(&accessControl, alt_Update),
+            autoAccess.try_to_lock_access(&accessControl, EAccessLockType::update),
             "ERROR: Auto accessor failed to release and reacquire available access!");
         retail_assert(
-            accessControl.accessLock == alt_Update,
-            "ERROR: Access control does not indicate expected alt_Update value!");
+            accessControl.accessLock == EAccessLockType::update,
+            "ERROR: Access control does not indicate expected update value!");
         retail_assert(
             accessControl.readersCount == 1,
             "ERROR: Access control does not indicate expected reader count value of 1!");
@@ -63,24 +63,24 @@ void test_access_control()
         CAutoAccessControl secondAutoAccess;
 
         retail_assert(
-            !secondAutoAccess.try_to_lock_access(&accessControl, alt_Remove, existingAccess),
+            !secondAutoAccess.try_to_lock_access(&accessControl, EAccessLockType::remove, existingAccess),
             "ERROR: Auto accessor managed to acquire already granted access!");
         retail_assert(
-            existingAccess == alt_Update,
+            existingAccess == EAccessLockType::update,
             "ERROR: Unexpected existing access was returned!");
         cout << "PASSED: Cannot re-lock existing locked access!" << endl;
 
         retail_assert(
-            secondAutoAccess.try_to_lock_access(&secondAccessControl, alt_Remove, existingAccess),
+            secondAutoAccess.try_to_lock_access(&secondAccessControl, EAccessLockType::remove, existingAccess),
             "ERROR: Auto accessor failed to acquire available access!");
         retail_assert(
-            secondAccessControl.accessLock == alt_Remove,
-            "ERROR: Access control does not indicate expected alt_Remove value!");
+            secondAccessControl.accessLock == EAccessLockType::remove,
+            "ERROR: Access control does not indicate expected remove value!");
         retail_assert(
             secondAccessControl.readersCount == 1,
             "ERROR: Access control does not indicate expected reader count value of 1!");
         retail_assert(
-            existingAccess == alt_None,
+            existingAccess == none,
             "ERROR: Unexpected existing access was returned!");
         cout << "PASSED: Can lock different unlocked access!" << endl;
 
@@ -103,14 +103,14 @@ void test_access_control()
     }
 
     retail_assert(
-        accessControl.accessLock == alt_None,
-        "ERROR: Access control has not reverted to expected alt_None value!");
+        accessControl.accessLock == none,
+        "ERROR: Access control has not reverted to expected none value!");
     retail_assert(
         accessControl.readersCount == 0,
         "ERROR: Access control does not indicate expected reader count value of 0!");
     retail_assert(
-        secondAccessControl.accessLock == alt_None,
-        "ERROR: Access control has not reverted to expected alt_None value!");
+        secondAccessControl.accessLock == none,
+        "ERROR: Access control has not reverted to expected none value!");
     retail_assert(
         accessControl.readersCount == 0,
         "ERROR: Access control does not indicate expected reader count value of 0!");
@@ -120,19 +120,19 @@ void test_access_control()
 
         autoAccess.mark_access(&accessControl);
         retail_assert(
-            accessControl.accessLock == alt_None,
-            "ERROR: Access control does not indicate expected alt_None value!");
+            accessControl.accessLock == none,
+            "ERROR: Access control does not indicate expected none value!");
         retail_assert(
             accessControl.readersCount == 1,
             "ERROR: Access control does not indicate expected reader count value of 1!");
         cout << "PASSED: MarkAccess() has succeeded as expected!" << endl;
 
         retail_assert(
-            autoAccess.try_to_lock_access(alt_Remove),
+            autoAccess.try_to_lock_access(EAccessLockType::remove),
             "ERROR: Auto accessor failed to acquire available access!");
         retail_assert(
-            accessControl.accessLock == alt_Remove,
-            "ERROR: Access control does not indicate expected alt_Remove value!");
+            accessControl.accessLock == EAccessLockType::remove,
+            "ERROR: Access control does not indicate expected remove value!");
         retail_assert(
             accessControl.readersCount == 1,
             "ERROR: Access control does not indicate expected reader count value of 1!");
@@ -140,8 +140,8 @@ void test_access_control()
 
         autoAccess.release_access();
         retail_assert(
-            accessControl.accessLock == alt_None,
-            "ERROR: Access control does not indicate expected alt_None value!");
+            accessControl.accessLock == none,
+            "ERROR: Access control does not indicate expected none value!");
         retail_assert(
             accessControl.readersCount == 0,
             "ERROR: Access control does not indicate expected reader count value of 0!");
@@ -149,11 +149,11 @@ void test_access_control()
 
         // Re-acquire access lock so we can test releasing lock only.
         retail_assert(
-            autoAccess.try_to_lock_access(&accessControl, alt_Remove),
+            autoAccess.try_to_lock_access(&accessControl, EAccessLockType::remove),
             "ERROR: Auto accessor failed to acquire available access!");
         retail_assert(
-            accessControl.accessLock == alt_Remove,
-            "ERROR: Access control does not indicate expected alt_Remove value!");
+            accessControl.accessLock == EAccessLockType::remove,
+            "ERROR: Access control does not indicate expected remove value!");
         retail_assert(
             accessControl.readersCount == 1,
             "ERROR: Access control does not indicate expected reader count value of 1!");
@@ -161,8 +161,8 @@ void test_access_control()
 
         autoAccess.release_access_lock();
         retail_assert(
-            accessControl.accessLock == alt_None,
-            "ERROR: Access control does not indicate expected alt_None value!");
+            accessControl.accessLock == EAccessLockType::none,
+            "ERROR: Access control does not indicate expected none value!");
         retail_assert(
             accessControl.readersCount == 1,
             "ERROR: Access control does not indicate expected reader count value of 1!");
@@ -170,8 +170,8 @@ void test_access_control()
     }
 
     retail_assert(
-        accessControl.accessLock == alt_None,
-        "ERROR: Access control has not reverted to expected alt_None value!");
+        accessControl.accessLock == EAccessLockType::none,
+        "ERROR: Access control has not reverted to expected none value!");
     retail_assert(
         accessControl.readersCount == 0,
         "ERROR: Access control does not indicate expected reader count value of 0!");

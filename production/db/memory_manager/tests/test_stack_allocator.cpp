@@ -55,7 +55,7 @@ void test_stack_allocator()
 
     CMemoryManager memoryManager;
 
-    EMemoryManagerErrorCode errorCode = mmec_NotSet;
+    EMemoryManagerErrorCode errorCode = not_set;
 
     ExecutionFlags executionFlags;
     executionFlags.enableExtraValidations = true;
@@ -63,14 +63,14 @@ void test_stack_allocator()
 
     memoryManager.set_execution_flags(executionFlags);
     errorCode = memoryManager.manage(memory, memorySize, minimumMainMemoryAvailableSize, true);
-    retail_assert(errorCode == mmec_Success, "Manager initialization has failed!");
+    retail_assert(errorCode == success, "Manager initialization has failed!");
     cout << "PASSED: Manager initialization was successful!" << endl;
 
     size_t stackAllocatorMemorySize = 2000;
 
     CStackAllocator* pStackAllocator = nullptr;
     errorCode = memoryManager.create_stack_allocator(stackAllocatorMemorySize, pStackAllocator);
-    retail_assert(errorCode == mmec_Success, "Stack allocator creation has failed!");
+    retail_assert(errorCode == success, "Stack allocator creation has failed!");
 
     size_t firstAllocationSize = 64;
     size_t secondAllocationSize = 256;
@@ -95,13 +95,13 @@ void test_stack_allocator()
 
     ADDRESS_OFFSET firstAllocationOffset = 0;
     errorCode = pStackAllocator->allocate(firstSlotId, firstOldOffset, firstAllocationSize, firstAllocationOffset);
-    retail_assert(errorCode == mmec_Success, "First allocation has failed!");
+    retail_assert(errorCode == success, "First allocation has failed!");
     output_allocation_information(firstAllocationSize, firstAllocationOffset);
     validate_allocation_record(pStackAllocator, 1, firstSlotId, firstAllocationOffset, firstOldOffset);
 
     ADDRESS_OFFSET secondAllocationOffset = 0;
     errorCode = pStackAllocator->allocate(secondSlotId, secondOldOffset, secondAllocationSize, secondAllocationOffset);
-    retail_assert(errorCode == mmec_Success, "Second allocation has failed!");
+    retail_assert(errorCode == success, "Second allocation has failed!");
     output_allocation_information(secondAllocationSize, secondAllocationOffset);
     validate_allocation_record(pStackAllocator, 2, secondSlotId, secondAllocationOffset, secondOldOffset);
 
@@ -111,7 +111,7 @@ void test_stack_allocator()
 
     ADDRESS_OFFSET thirdAllocationOffset = 0;
     errorCode = pStackAllocator->allocate(thirdSlotId, thirdOldOffset, thirdAllocationSize, thirdAllocationOffset);
-    retail_assert(errorCode == mmec_Success, "Third allocation has failed!");
+    retail_assert(errorCode == success, "Third allocation has failed!");
     output_allocation_information(thirdAllocationSize, thirdAllocationOffset);
     validate_allocation_record(pStackAllocator, 3, thirdSlotId, thirdAllocationOffset, thirdOldOffset);
 
@@ -122,14 +122,14 @@ void test_stack_allocator()
     retail_assert(pStackAllocator->get_allocation_count() == 3, "Allocation count is not the expected 3!");
 
     errorCode = pStackAllocator->deallocate(1);
-    retail_assert(errorCode == mmec_Success, "First deallocation has failed!");
+    retail_assert(errorCode == success, "First deallocation has failed!");
     cout << endl << "Deallocate all but the first allocation." << endl;
 
     retail_assert(pStackAllocator->get_allocation_count() == 1, "Allocation count is not the expected 1!");
 
     ADDRESS_OFFSET fourthAllocationOffset = 0;
     errorCode = pStackAllocator->allocate(fourthSlotId, fourthOldOffset, fourthAllocationSize, fourthAllocationOffset);
-    retail_assert(errorCode == mmec_Success, "Fourth allocation has failed!");
+    retail_assert(errorCode == success, "Fourth allocation has failed!");
     output_allocation_information(fourthAllocationSize, fourthAllocationOffset);
     validate_allocation_record(pStackAllocator, 2, fourthSlotId, fourthAllocationOffset, fourthOldOffset);
 
@@ -145,14 +145,14 @@ void test_stack_allocator()
     retail_assert(pStackAllocator->get_allocation_count() == 3, "Allocation count is not the expected 3!");
 
     pStackAllocator->deallocate(0);
-    retail_assert(errorCode == mmec_Success, "Second deallocation has failed!");
+    retail_assert(errorCode == success, "Second deallocation has failed!");
     cout << endl << "Deallocate all allocations." << endl;
 
     retail_assert(pStackAllocator->get_allocation_count() == 0, "Allocation count is not the expected 0!");
 
     ADDRESS_OFFSET fifthAllocationOffset = 0;
     pStackAllocator->allocate(fifthSlotId, fifthOldOffset, fifthAllocationSize, fifthAllocationOffset);
-    retail_assert(errorCode == mmec_Success, "Fifth allocation has failed!");
+    retail_assert(errorCode == success, "Fifth allocation has failed!");
     output_allocation_information(fifthAllocationSize, fifthAllocationOffset);
     validate_allocation_record(pStackAllocator, 1, fifthSlotId, fifthAllocationOffset, fifthOldOffset);
 

@@ -25,7 +25,7 @@ CAutoAccessControl::~CAutoAccessControl()
 void CAutoAccessControl::clear()
 {
     m_pAccessControl = nullptr;
-    m_lockedAccess = alt_None;
+    m_lockedAccess = none;
     m_hasMarkedAccess = false;
     m_hasLockedAccess = false;
 }
@@ -48,13 +48,13 @@ bool CAutoAccessControl::try_to_lock_access(
     EAccessLockType wantedAccess,
     EAccessLockType& existingAccess)
 {
-    retail_assert(wantedAccess != alt_None, "Invalid wanted access!");
+    retail_assert(wantedAccess != EAccessLockType::none, "Invalid wanted access!");
 
     mark_access(pAccessControl);
 
     m_lockedAccess = wantedAccess;
-    existingAccess = __sync_val_compare_and_swap(&m_pAccessControl->accessLock, alt_None, m_lockedAccess);
-    m_hasLockedAccess = (existingAccess == alt_None);
+    existingAccess = __sync_val_compare_and_swap(&m_pAccessControl->accessLock, EAccessLockType::none, m_lockedAccess);
+    m_hasLockedAccess = (existingAccess == EAccessLockType::none);
 
     return m_hasLockedAccess;
 }
@@ -71,7 +71,7 @@ bool CAutoAccessControl::try_to_lock_access(
     EAccessLockType& existingAccess)
 {
     retail_assert(m_pAccessControl != nullptr, "Invalid call, no access control available!");
-    retail_assert(wantedAccess != alt_None, "Invalid wanted access!");
+    retail_assert(wantedAccess != EAccessLockType::none, "Invalid wanted access!");
 
     if (m_hasLockedAccess)
     {
@@ -79,8 +79,8 @@ bool CAutoAccessControl::try_to_lock_access(
     }
 
     m_lockedAccess = wantedAccess;
-    existingAccess = __sync_val_compare_and_swap(&m_pAccessControl->accessLock, alt_None, m_lockedAccess);
-    m_hasLockedAccess = (existingAccess == alt_None);
+    existingAccess = __sync_val_compare_and_swap(&m_pAccessControl->accessLock, EAccessLockType::none, m_lockedAccess);
+    m_hasLockedAccess = (existingAccess == EAccessLockType::none);
 
     return m_hasLockedAccess;
 }
@@ -120,10 +120,10 @@ void CAutoAccessControl::release_access_lock()
     if (m_hasLockedAccess)
     {
         retail_assert(
-            __sync_bool_compare_and_swap(&m_pAccessControl->accessLock, m_lockedAccess, alt_None),
+            __sync_bool_compare_and_swap(&m_pAccessControl->accessLock, m_lockedAccess, EAccessLockType::none),
             "Failed to release access lock!");
         m_hasLockedAccess = false;
     }
 
-    m_lockedAccess = alt_None;
+    m_lockedAccess = EAccessLockType::none;
 }

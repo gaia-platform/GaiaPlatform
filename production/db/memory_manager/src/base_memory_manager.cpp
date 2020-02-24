@@ -38,58 +38,58 @@ EMemoryManagerErrorCode CBaseMemoryManager::validate_address(const uint8_t* cons
 {
     if (!validate_address_alignment(pMemoryAddress))
     {
-        return mmec_MemoryAddressNotAligned;
+        return memory_address_not_aligned;
     }
 
     if (pMemoryAddress < m_pBaseMemoryAddress + m_baseMemoryOffset
         || pMemoryAddress > m_pBaseMemoryAddress + m_baseMemoryOffset + m_totalMemorySize)
     {
-        return mmec_MemoryAddressOutOfRange;
+        return memory_address_out_of_range;
     }
 
-    return mmec_Success;
+    return success;
 }
 
 EMemoryManagerErrorCode CBaseMemoryManager::validate_offset(ADDRESS_OFFSET memoryOffset) const
 {
     if (!validate_offset_alignment(memoryOffset))
     {
-        return mmec_MemoryOffsetNotAligned;
+        return memory_offset_not_aligned;
     }
 
     if (memoryOffset < m_baseMemoryOffset
         || memoryOffset > m_baseMemoryOffset + m_totalMemorySize)
     {
-        return mmec_MemoryOffsetOutOfRange;
+        return memory_offset_out_of_range;
     }
 
-    return mmec_Success;
+    return success;
 }
 
 EMemoryManagerErrorCode CBaseMemoryManager::validate_size(size_t memorySize) const
 {
     if (!validate_size_alignment(memorySize))
     {
-        return mmec_MemorySizeNotAligned;
+        return memory_size_not_aligned;
     }
 
     if (memorySize == 0)
     {
-        return mmec_MemorySizeCannotBeZero;
+        return memory_size_cannot_be_zero;
     }
 
     if (memorySize > m_totalMemorySize)
     {
-        return mmec_MemorySizeTooLarge;
+        return memory_size_too_large;
     }
 
-    return mmec_Success;
+    return success;
 }
 
 ADDRESS_OFFSET CBaseMemoryManager::get_offset(const uint8_t* const pMemoryAddress) const
 {
     retail_assert(
-        validate_address(pMemoryAddress) == mmec_Success,
+        validate_address(pMemoryAddress) == success,
         "GetOffset() was called with an invalid address!");
 
     size_t offset = pMemoryAddress - m_pBaseMemoryAddress;
@@ -100,7 +100,7 @@ ADDRESS_OFFSET CBaseMemoryManager::get_offset(const uint8_t* const pMemoryAddres
 uint8_t* CBaseMemoryManager::get_address(ADDRESS_OFFSET memoryOffset) const
 {
     retail_assert(
-        validate_offset(memoryOffset) == mmec_Success,
+        validate_offset(memoryOffset) == success,
         "GetAddress() was called with an invalid offset!");
 
     uint8_t* pMemoryAddress = m_pBaseMemoryAddress + memoryOffset;
@@ -111,7 +111,7 @@ uint8_t* CBaseMemoryManager::get_address(ADDRESS_OFFSET memoryOffset) const
 MemoryAllocationMetadata* CBaseMemoryManager::read_allocation_metadata(ADDRESS_OFFSET memoryOffset) const
 {
     retail_assert(
-        validate_offset(memoryOffset) == mmec_Success,
+        validate_offset(memoryOffset) == success,
         "GetAllocationMetadata() was called with an invalid offset!");
 
     retail_assert(
@@ -129,7 +129,7 @@ MemoryAllocationMetadata* CBaseMemoryManager::read_allocation_metadata(ADDRESS_O
 MemoryRecord* CBaseMemoryManager::read_memory_record(ADDRESS_OFFSET recordOffset) const
 {
     retail_assert(
-        validate_offset(recordOffset) == mmec_Success,
+        validate_offset(recordOffset) == success,
         "GetFreeMemoryRecord was called with an invalid offset!");
 
     retail_assert(
@@ -232,7 +232,7 @@ void CBaseMemoryManager::reset_current(IterationContext& context) const
 
 bool CBaseMemoryManager::try_to_lock_access(IterationContext& context, EAccessLockType wantedAccess, EAccessLockType& existingAccess) const
 {
-    retail_assert(wantedAccess != alt_Remove, "A Remove lock should never be taken on previous record - use UpdateRemove instead!");
+    retail_assert(wantedAccess != EAccessLockType::remove, "A Remove lock should never be taken on previous record - use UpdateRemove instead!");
     retail_assert(context.pPreviousRecord != nullptr, "Previous record cannot be null!");
     retail_assert(context.autoAccessPreviousRecord.has_marked_access(), "Access to previous record has not been marked yet!");
     retail_assert(!context.autoAccessPreviousRecord.has_locked_access(), "Access to previous record has been locked already!");
@@ -246,7 +246,7 @@ bool CBaseMemoryManager::try_to_lock_access(IterationContext& context, EAccessLo
     // so we need to check if the link between the two records still holds.
     // If the link is broken, there is no point in maintaining the lock further,
     // but we'll leave the access mark because that is managed by our caller.
-    if (wantedAccess != alt_Insert
+    if (wantedAccess != EAccessLockType::insert
         && context.pCurrentRecord != read_memory_record(context.pPreviousRecord->next))
     {
         context.autoAccessPreviousRecord.release_access_lock();
@@ -322,7 +322,7 @@ void CBaseMemoryManager::insert_memory_record(MemoryRecord* pListHead, MemoryRec
         IterationContext context;
         start(pListHead, context);
         bool foundInsertionPlace = false;
-        EAccessLockType existingAccess = alt_None;
+        EAccessLockType existingAccess = EAccessLockType::none;
 
         // Insert free memory record in its proper place in the free memory list,
         // based on either its size or offset value, as requested by the caller.
@@ -337,14 +337,14 @@ void CBaseMemoryManager::insert_memory_record(MemoryRecord* pListHead, MemoryRec
             {
                 foundInsertionPlace = true;
 
-                if (try_to_lock_access(context, alt_Insert, existingAccess))
+                if (try_to_lock_access(context, EAccessLockType::insert, existingAccess))
                 {
                     insert(context, pMemoryRecord);
 
                     // We're done!
                     return;
                 }
-                else if (existingAccess == alt_Remove)
+                else if (existingAccess == EAccessLockType::remove)
                 {
                     // We have to restart from the beginning of the list
                     // because our previous record is being deleted.
