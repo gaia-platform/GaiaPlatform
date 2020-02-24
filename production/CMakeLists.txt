@@ -39,7 +39,7 @@ target_sources(common INTERFACE ${PROJECT_SOURCE_DIR}/inc/common/constants.hpp $
 add_subdirectory(db)
 
 # Tests.
-add_executable(test_retail_assert ${PROJECT_SOURCE_DIR}/tests/test_retail_assert.cpp)
+add_executable(test_retail_assert tests/test_retail_assert.cpp)
 target_include_directories(test_retail_assert PRIVATE "${GAIA_INC}/common")
 set_test(test_retail_assert 0 ${TEST_SUCCESS})
 

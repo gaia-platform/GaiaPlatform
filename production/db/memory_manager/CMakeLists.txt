@@ -12,25 +12,25 @@ set(GAIA_MEMORY_MANAGER_INCLUDES "${GAIA_INC}/common;${GAIA_DB_INC}/memory_manag
 message(STATUS "GAIA_MEMORY_MANAGER_INCLUDES=${GAIA_MEMORY_MANAGER_INCLUDES}")
 
 # Our main target.
-add_library(memory_manager SHARED ${PROJECT_SOURCE_DIR}/src/access_control.cpp ${PROJECT_SOURCE_DIR}/src/base_memory_manager.cpp ${PROJECT_SOURCE_DIR}/src/memory_manager.cpp ${PROJECT_SOURCE_DIR}/src/stack_allocator.cpp)
+add_library(memory_manager SHARED src/access_control.cpp src/base_memory_manager.cpp src/memory_manager.cpp src/stack_allocator.cpp)
 target_include_directories(memory_manager PUBLIC ${GAIA_MEMORY_MANAGER_INCLUDES})
 set_target_properties(memory_manager PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 target_link_libraries(memory_manager PRIVATE common)
 
 # Our unit tests.
-add_executable(test_system ${PROJECT_SOURCE_DIR}/tests/test_system.cpp)
+add_executable(test_system tests/test_system.cpp)
 target_include_directories(test_system PRIVATE ${GAIA_MEMORY_MANAGER_INCLUDES})
 set_test(test_system 0 ${TEST_SUCCESS})
 
-add_executable(test_access_control ${PROJECT_SOURCE_DIR}/tests/test_access_control.cpp)
+add_executable(test_access_control tests/test_access_control.cpp)
 target_include_directories(test_access_control PRIVATE ${GAIA_MEMORY_MANAGER_INCLUDES})
 target_link_libraries(test_access_control PRIVATE common memory_manager)
 set_test(test_access_control 0 ${TEST_SUCCESS})
 
-add_executable(test_memory_manager ${PROJECT_SOURCE_DIR}/tests/test_memory_manager.cpp)
+add_executable(test_memory_manager tests/test_memory_manager.cpp)
 target_link_libraries(test_memory_manager PRIVATE common memory_manager)
 set_test(test_memory_manager 0 ${TEST_SUCCESS})
 
-add_executable(test_stack_allocator ${PROJECT_SOURCE_DIR}/tests/test_stack_allocator.cpp)
+add_executable(test_stack_allocator tests/test_stack_allocator.cpp)
 target_link_libraries(test_stack_allocator PRIVATE common memory_manager)
 set_test(test_stack_allocator 0 ${TEST_SUCCESS})
