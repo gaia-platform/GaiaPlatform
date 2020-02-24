@@ -17,7 +17,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # Set some global variables.
 set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
 set(GAIA_LINK_FLAGS "-ggdb -pthread")
-set(GAIA_INCLUDES "${PROJECT_SOURCE_DIR}/inc")
 
 # Helper function for setting up our tests.
 function(set_test target arg result)

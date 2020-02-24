@@ -17,12 +17,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # Set some global variables.
 set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
 set(GAIA_LINK_FLAGS "-ggdb -pthread")
-set(GAIA_INCLUDES "${PROJECT_SOURCE_DIR}/inc/")
+set(GAIA_INC "${PROJECT_SOURCE_DIR}/inc")
+message(STATUS "GAIA_INC=${GAIA_INC}")
 
 # Helper function for setting up our tests.
 function(set_test target arg result)
-  add_test(NAME Test_${target}_${arg} COMMAND ${target} ${arg})
-  set_tests_properties(Test_${target}_${arg} PROPERTIES PASS_REGULAR_EXPRESSION ${result})
+  add_test(NAME ${target}_${arg} COMMAND ${target} ${arg})
+  set_tests_properties(${target}_${arg} PROPERTIES PASS_REGULAR_EXPRESSION ${result})
 endfunction(set_test)
 
 # Set tests.
@@ -30,14 +31,15 @@ set(TEST_SUCCESS "All tests passed!")
 
 find_program(PYTHON "python")
 
-# Add individual component folders.
-
 # Common code - currently, a headers-only library.
 add_library(common INTERFACE)
-target_sources(common INTERFACE inc/common/constants.hpp inc/common/gaia_exception.hpp inc/common/retail_assert.hpp)
+target_sources(common INTERFACE ${PROJECT_SOURCE_DIR}/inc/common/constants.hpp ${PROJECT_SOURCE_DIR}/inc/common/gaia_exception.hpp ${PROJECT_SOURCE_DIR}/inc/common/retail_assert.hpp)
+
+# Add individual component folders.
+add_subdirectory(db)
 
 # Tests.
-add_executable(test_retail_assert tests/test_retail_assert.cpp)
-target_include_directories(test_retail_assert PRIVATE "${GAIA_INCLUDES}/common")
+add_executable(test_retail_assert ${PROJECT_SOURCE_DIR}/tests/test_retail_assert.cpp)
+target_include_directories(test_retail_assert PRIVATE "${GAIA_INC}/common")
 set_test(test_retail_assert 0 ${TEST_SUCCESS})
 
