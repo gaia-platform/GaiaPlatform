@@ -17,12 +17,12 @@ CStackAllocator::CStackAllocator() : CBaseMemoryManager()
     m_pMetadata = nullptr;
 }
 
-void CStackAllocator::SetExecutionFlags(const ExecutionFlags& executionFlags)
+void CStackAllocator::set_execution_flags(const ExecutionFlags& executionFlags)
 {
     m_executionFlags = executionFlags;
 }
 
-EMemoryManagerErrorCode CStackAllocator::Initialize(
+EMemoryManagerErrorCode CStackAllocator::initialize(
     uint8_t* pBaseMemoryAddress,
     ADDRESS_OFFSET memoryOffset,
     size_t memorySize)
@@ -32,17 +32,17 @@ EMemoryManagerErrorCode CStackAllocator::Initialize(
         return mmec_InvalidArgumentValue;
     }
 
-    if (!ValidateAddressAlignment(pBaseMemoryAddress))
+    if (!validate_address_alignment(pBaseMemoryAddress))
     {
         return mmec_MemoryAddressNotAligned;
     }
 
-    if (!ValidateOffsetAlignment(memoryOffset))
+    if (!validate_offset_alignment(memoryOffset))
     {
         return mmec_MemoryOffsetNotAligned;
     }
 
-    if (!ValidateSizeAlignment(memorySize))
+    if (!validate_size_alignment(memorySize))
     {
         return mmec_MemorySizeNotAligned;
     }
@@ -61,18 +61,18 @@ EMemoryManagerErrorCode CStackAllocator::Initialize(
     uint8_t* pMetadataAddress
         = m_pBaseMemoryAddress + m_baseMemoryOffset + m_totalMemorySize - sizeof(StackAllocatorMetadata);
     m_pMetadata = reinterpret_cast<StackAllocatorMetadata*>(pMetadataAddress);
-    m_pMetadata->Clear();
+    m_pMetadata->clear();
     m_pMetadata->nextAllocationOffset = m_baseMemoryOffset;
 
     if (m_executionFlags.enableConsoleOutput)
     {
-        OutputDebuggingInformation("Initialize");
+        output_debugging_information("Initialize");
     }
 
     return mmec_Success;
 }
 
-EMemoryManagerErrorCode CStackAllocator::Allocate(
+EMemoryManagerErrorCode CStackAllocator::allocate(
     SLOT_ID slotId,
     ADDRESS_OFFSET oldSlotOffset,
     size_t memorySize,
@@ -86,13 +86,13 @@ EMemoryManagerErrorCode CStackAllocator::Allocate(
     }
 
     // A memorySize of 0 indicates a deletion - handle specially.
-    EMemoryManagerErrorCode errorCode = ValidateSize(memorySize);
+    EMemoryManagerErrorCode errorCode = validate_size(memorySize);
     if (memorySize != 0 && errorCode != mmec_Success)
     {
         return errorCode;
     }
 
-    if (!ValidateOffsetAlignment(oldSlotOffset))
+    if (!validate_offset_alignment(oldSlotOffset))
     {
         return mmec_MemoryOffsetNotAligned;
     }
@@ -108,7 +108,7 @@ EMemoryManagerErrorCode CStackAllocator::Allocate(
     }
 
     ADDRESS_OFFSET nextAllocationOffset = m_pMetadata->nextAllocationOffset;
-    ADDRESS_OFFSET metadataOffset = GetOffset(reinterpret_cast<uint8_t*>(m_pMetadata));
+    ADDRESS_OFFSET metadataOffset = get_offset(reinterpret_cast<uint8_t*>(m_pMetadata));
 
     // Now we can do a more accurate check about whether this allocation fits in our memory.
     if (nextAllocationOffset + sizeToAllocate
@@ -126,7 +126,7 @@ EMemoryManagerErrorCode CStackAllocator::Allocate(
         }
         else
         {
-            uint8_t* pNextAllocationAddress = GetAddress(nextAllocationOffset);
+            uint8_t* pNextAllocationAddress = get_address(nextAllocationOffset);
             MemoryAllocationMetadata* pNextAllocationMetadata
                 = reinterpret_cast<MemoryAllocationMetadata*>(pNextAllocationAddress);
             pNextAllocationMetadata->allocationSize = sizeToAllocate;
@@ -136,8 +136,8 @@ EMemoryManagerErrorCode CStackAllocator::Allocate(
     m_pMetadata->countAllocations++;
 
     // Record allocation information.
-    StackAllocatorAllocation* pAllocationRecord = GetAllocationRecord(m_pMetadata->countAllocations);
-    pAllocationRecord->Clear();
+    StackAllocatorAllocation* pAllocationRecord = get_allocation_record(m_pMetadata->countAllocations);
+    pAllocationRecord->clear();
 
     pAllocationRecord->slotId = slotId;
     pAllocationRecord->oldMemoryOffset = oldSlotOffset;
@@ -163,7 +163,7 @@ EMemoryManagerErrorCode CStackAllocator::Allocate(
     if (m_executionFlags.enableConsoleOutput)
     {
         string context = (sizeToAllocate > 0) ? "Allocate" : "Delete";
-        OutputDebuggingInformation(context);
+        output_debugging_information(context);
     }
 
     allocatedMemoryOffset = pAllocationRecord->memoryOffset;
@@ -171,18 +171,18 @@ EMemoryManagerErrorCode CStackAllocator::Allocate(
     return mmec_Success;
 }
 
-EMemoryManagerErrorCode CStackAllocator::Delete(SLOT_ID slotId, ADDRESS_OFFSET slotOffset) const
+EMemoryManagerErrorCode CStackAllocator::deallocate(SLOT_ID slotId, ADDRESS_OFFSET slotOffset) const
 {
     ADDRESS_OFFSET allocatedOffset;
 
-    EMemoryManagerErrorCode errorCode = Allocate(slotId, slotOffset, 0, allocatedOffset);
+    EMemoryManagerErrorCode errorCode = allocate(slotId, slotOffset, 0, allocatedOffset);
 
     retail_assert(allocatedOffset == 0, "Allocate(0) should have returned a 0 offset!");
 
     return errorCode;
 }
 
-EMemoryManagerErrorCode CStackAllocator::Deallocate(size_t countAllocationsToKeep) const
+EMemoryManagerErrorCode CStackAllocator::deallocate(size_t countAllocationsToKeep) const
 {
     if (m_pMetadata == nullptr)
     {
@@ -203,22 +203,22 @@ EMemoryManagerErrorCode CStackAllocator::Deallocate(size_t countAllocationsToKee
     }
 
     // Recalculate the next offset at which we can allocate memory.
-    m_pMetadata->nextAllocationOffset = GetNextAllocationOffset();
+    m_pMetadata->nextAllocationOffset = get_next_allocation_offset();
 
     if (m_executionFlags.enableConsoleOutput)
     {
-        OutputDebuggingInformation("Deallocate");
+        output_debugging_information("Deallocate");
     }
 
     return mmec_Success;
 }
 
-StackAllocatorMetadata* CStackAllocator::GetMetadata() const
+StackAllocatorMetadata* CStackAllocator::get_metadata() const
 {
     return m_pMetadata;
 }
 
-size_t CStackAllocator::GetAllocationCount() const
+size_t CStackAllocator::get_allocation_count() const
 {
     if (m_pMetadata == nullptr)
     {
@@ -228,7 +228,7 @@ size_t CStackAllocator::GetAllocationCount() const
     return m_pMetadata->countAllocations;
 }
 
-StackAllocatorAllocation* CStackAllocator::GetAllocationRecord(size_t allocationNumber) const
+StackAllocatorAllocation* CStackAllocator::get_allocation_record(size_t allocationNumber) const
 {
     if (m_pMetadata == nullptr)
     {
@@ -240,14 +240,14 @@ StackAllocatorAllocation* CStackAllocator::GetAllocationRecord(size_t allocation
         return nullptr;
     }
 
-    ADDRESS_OFFSET metadataOffset = GetOffset(reinterpret_cast<uint8_t*>(m_pMetadata));
+    ADDRESS_OFFSET metadataOffset = get_offset(reinterpret_cast<uint8_t*>(m_pMetadata));
     ADDRESS_OFFSET allocationRecordOffset = metadataOffset - allocationNumber * sizeof(StackAllocatorAllocation);
-    uint8_t* pAllocationRecordAddress = GetAddress(allocationRecordOffset);
+    uint8_t* pAllocationRecordAddress = get_address(allocationRecordOffset);
     StackAllocatorAllocation* pAllocationRecord = reinterpret_cast<StackAllocatorAllocation*>(pAllocationRecordAddress);
     return pAllocationRecord;
 }
 
-ADDRESS_OFFSET CStackAllocator::GetNextAllocationOffset() const
+ADDRESS_OFFSET CStackAllocator::get_next_allocation_offset() const
 {
     if (m_pMetadata == nullptr)
     {
@@ -263,7 +263,7 @@ ADDRESS_OFFSET CStackAllocator::GetNextAllocationOffset() const
     for (size_t allocationNumber = 2; allocationNumber <= countAllocations; allocationNumber++)
     {
         // Get allocation information object.
-        StackAllocatorAllocation* pAllocationRecord = GetAllocationRecord(allocationNumber);
+        StackAllocatorAllocation* pAllocationRecord = get_allocation_record(allocationNumber);
 
         // Get actual allocation offset.
         ADDRESS_OFFSET allocationOffset = pAllocationRecord->memoryOffset;
@@ -275,7 +275,7 @@ ADDRESS_OFFSET CStackAllocator::GetNextAllocationOffset() const
         }
 
         // Get allocation prefix pointer, to get the allocation size.
-        MemoryAllocationMetadata* pAllocationMetadata = ReadAllocationMetadata(allocationOffset);
+        MemoryAllocationMetadata* pAllocationMetadata = read_allocation_metadata(allocationOffset);
 
         // Add allocation size.
         nextAllocationOffset += pAllocationMetadata->allocationSize;
@@ -284,7 +284,7 @@ ADDRESS_OFFSET CStackAllocator::GetNextAllocationOffset() const
     return nextAllocationOffset;
 }
 
-void CStackAllocator::OutputDebuggingInformation(const string& contextDescription) const
+void CStackAllocator::output_debugging_information(const string& contextDescription) const
 {
     cout << endl << c_debug_output_separator_line_start << endl;
     cout << "  Stack allocator information for context: " << contextDescription << ":" << endl;

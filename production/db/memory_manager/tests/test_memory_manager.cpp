@@ -52,8 +52,8 @@ void test_memory_manager_basic_operation()
     executionFlags.enableExtraValidations = true;
     executionFlags.enableConsoleOutput = true;
 
-    memoryManager.SetExecutionFlags(executionFlags);
-    errorCode = memoryManager.Manage(memory, memorySize, mainMemorySystemReservedSize, true);
+    memoryManager.set_execution_flags(executionFlags);
+    errorCode = memoryManager.manage(memory, memorySize, mainMemorySystemReservedSize, true);
     retail_assert(errorCode == mmec_Success, "Manager initialization has failed!");
     cout << "PASSED: Manager initialization was successful!" << endl;
 
@@ -62,12 +62,12 @@ void test_memory_manager_basic_operation()
     size_t thirdAllocationSize = 128;
 
     ADDRESS_OFFSET firstAllocationOffset = 0;
-    errorCode = memoryManager.Allocate(firstAllocationSize, firstAllocationOffset);
+    errorCode = memoryManager.allocate(firstAllocationSize, firstAllocationOffset);
     retail_assert(errorCode == mmec_Success, "First allocation has failed!");
     output_allocation_information(firstAllocationSize, firstAllocationOffset);
 
     ADDRESS_OFFSET secondAllocationOffset = 0;
-    errorCode = memoryManager.Allocate(secondAllocationSize, secondAllocationOffset);
+    errorCode = memoryManager.allocate(secondAllocationSize, secondAllocationOffset);
     retail_assert(errorCode == mmec_Success, "Second allocation has failed!");
     output_allocation_information(secondAllocationSize, secondAllocationOffset);
 
@@ -76,7 +76,7 @@ void test_memory_manager_basic_operation()
         "Second allocation offset is not the expected value.");
 
     ADDRESS_OFFSET thirdAllocationOffset = 0;
-    errorCode = memoryManager.Allocate(thirdAllocationSize, thirdAllocationOffset);
+    errorCode = memoryManager.allocate(thirdAllocationSize, thirdAllocationOffset);
     retail_assert(errorCode == mmec_Success, "Third allocation has failed!");
     output_allocation_information(thirdAllocationSize, thirdAllocationOffset);
 
@@ -108,8 +108,8 @@ void test_memory_manager_advanced_operation()
     executionFlags.enableExtraValidations = true;
     executionFlags.enableConsoleOutput = true;
 
-    memoryManager.SetExecutionFlags(executionFlags);
-    errorCode = memoryManager.Manage(memory, memorySize, mainMemorySystemReservedSize, true);
+    memoryManager.set_execution_flags(executionFlags);
+    errorCode = memoryManager.manage(memory, memorySize, mainMemorySystemReservedSize, true);
     retail_assert(errorCode == mmec_Success, "Manager initialization has failed!");
     cout << "PASSED: Manager initialization was successful!" << endl;
 
@@ -117,7 +117,7 @@ void test_memory_manager_advanced_operation()
 
     // Make 3 allocations using a StackAllocator.
     CStackAllocator* pStackAllocator = nullptr;
-    errorCode = memoryManager.CreateStackAllocator(stackAllocatorMemorySize, pStackAllocator);
+    errorCode = memoryManager.create_stack_allocator(stackAllocatorMemorySize, pStackAllocator);
     retail_assert(errorCode == mmec_Success, "First stack allocator creation has failed!");
 
     size_t firstAllocationSize = 64;
@@ -125,12 +125,12 @@ void test_memory_manager_advanced_operation()
     size_t thirdAllocationSize = 128;
 
     ADDRESS_OFFSET firstAllocationOffset = 0;
-    errorCode = pStackAllocator->Allocate(0, 0, firstAllocationSize, firstAllocationOffset);
+    errorCode = pStackAllocator->allocate(0, 0, firstAllocationSize, firstAllocationOffset);
     retail_assert(errorCode == mmec_Success, "First allocation has failed!");
     output_allocation_information(firstAllocationSize, firstAllocationOffset);
 
     ADDRESS_OFFSET secondAllocationOffset = 0;
-    errorCode = pStackAllocator->Allocate(0, 0, secondAllocationSize, secondAllocationOffset);
+    errorCode = pStackAllocator->allocate(0, 0, secondAllocationSize, secondAllocationOffset);
     retail_assert(errorCode == mmec_Success, "Second allocation has failed!");
     output_allocation_information(secondAllocationSize, secondAllocationOffset);
 
@@ -139,7 +139,7 @@ void test_memory_manager_advanced_operation()
         "Second allocation offset does not have expected value.");
 
     ADDRESS_OFFSET thirdAllocationOffset = 0;
-    errorCode = pStackAllocator->Allocate(0, 0, thirdAllocationSize, thirdAllocationOffset);
+    errorCode = pStackAllocator->allocate(0, 0, thirdAllocationSize, thirdAllocationOffset);
     retail_assert(errorCode == mmec_Success, "Third allocation has failed!");
     output_allocation_information(thirdAllocationSize, thirdAllocationOffset);
 
@@ -147,35 +147,35 @@ void test_memory_manager_advanced_operation()
         thirdAllocationOffset == secondAllocationOffset + secondAllocationSize + sizeof(MemoryAllocationMetadata),
         "Third allocation offset does not have expected value.");
 
-    retail_assert(pStackAllocator->GetAllocationCount() == 3, "Allocation count is not the expected 3!");
+    retail_assert(pStackAllocator->get_allocation_count() == 3, "Allocation count is not the expected 3!");
 
     // Commit stack allocator.
     size_t serializationNumber = 331;
     cout << endl << "Commit first stack allocator with serialization number " << serializationNumber << "..." << endl;
-    errorCode = memoryManager.CommitStackAllocator(pStackAllocator, serializationNumber);
+    errorCode = memoryManager.commit_stack_allocator(pStackAllocator, serializationNumber);
     retail_assert(errorCode == mmec_Success, "First sta>ck allocator commit has failed!");
 
     MemoryListNode* pFirstReadListHead = nullptr;
-    errorCode = memoryManager.GetUnserializedAllocationsListHead(pFirstReadListHead);
+    errorCode = memoryManager.get_unserialized_allocations_list_head(pFirstReadListHead);
     retail_assert(errorCode == mmec_Success, "Failed first call to get unserialized allocations list head!");
     retail_assert(pFirstReadListHead != nullptr, "Failed the first attempt to retrieve a valid unserialized allocations list head.");
 
     // Make 2 more allocations using a new StackAllocator.
     // Both allocations will replace earlier allocations (4th replaces 2nd and 5th replaces 1st),
     // which will get garbage collected at commit time.
-    errorCode = memoryManager.CreateStackAllocator(stackAllocatorMemorySize, pStackAllocator);
+    errorCode = memoryManager.create_stack_allocator(stackAllocatorMemorySize, pStackAllocator);
     retail_assert(errorCode == mmec_Success, "Second stack allocator creation has failed!");
 
     size_t fourthAllocationSize = 256;
     size_t fifthAllocationSize = 64;
 
     ADDRESS_OFFSET fourthAllocationOffset = 0;
-    errorCode = pStackAllocator->Allocate(0, secondAllocationOffset, fourthAllocationSize, fourthAllocationOffset);
+    errorCode = pStackAllocator->allocate(0, secondAllocationOffset, fourthAllocationSize, fourthAllocationOffset);
     retail_assert(errorCode == mmec_Success, "Fourth allocation has failed!");
     output_allocation_information(fourthAllocationSize, fourthAllocationOffset);
 
     ADDRESS_OFFSET fifthAllocationOffset = 0;
-    errorCode = pStackAllocator->Allocate(0, firstAllocationOffset, fifthAllocationSize, fifthAllocationOffset);
+    errorCode = pStackAllocator->allocate(0, firstAllocationOffset, fifthAllocationSize, fifthAllocationOffset);
     retail_assert(errorCode == mmec_Success, "Fifth allocation has failed!");
     output_allocation_information(fifthAllocationSize, fifthAllocationOffset);
 
@@ -186,11 +186,11 @@ void test_memory_manager_advanced_operation()
     // Commit stack allocator.
     serializationNumber = 332;
     cout << endl << "Commit second stack allocator with serialization number " << serializationNumber << "..." << endl;
-    errorCode = memoryManager.CommitStackAllocator(pStackAllocator, serializationNumber);
+    errorCode = memoryManager.commit_stack_allocator(pStackAllocator, serializationNumber);
     retail_assert(errorCode == mmec_Success, "Second stack allocator commit has failed!");
 
     MemoryListNode* pSecondReadListHead = nullptr;
-    errorCode = memoryManager.GetUnserializedAllocationsListHead(pSecondReadListHead);
+    errorCode = memoryManager.get_unserialized_allocations_list_head(pSecondReadListHead);
     retail_assert(errorCode == mmec_Success, "Failed second call to get unserialized allocations list head!");
     retail_assert(pSecondReadListHead != nullptr, "Failed the second attempt to retrieve a valid unserialized allocations list head.");
 
@@ -202,7 +202,7 @@ void test_memory_manager_advanced_operation()
     retail_assert(
         pSecondReadListHead->next != 0,
         "The unserialized allocations list should contain a first entry!");
-    MemoryRecord* pFirstUnserializedRecord = memoryManager.ReadMemoryRecord(pSecondReadListHead->next);
+    MemoryRecord* pFirstUnserializedRecord = memoryManager.read_memory_record(pSecondReadListHead->next);
     retail_assert(
         pFirstUnserializedRecord->next != 0,
         "The unserialized allocations list should contain a second entry!");
@@ -211,11 +211,11 @@ void test_memory_manager_advanced_operation()
     // Update unserialized allocations list.
     cout << endl << "Calling UpdateUnserializedAllocationsListHead() with parameter: ";
     cout << secondUnserializedRecordOffset << "." << endl;
-    errorCode = memoryManager.UpdateUnserializedAllocationsListHead(pFirstUnserializedRecord->next);
+    errorCode = memoryManager.update_unserialized_allocations_list_head(pFirstUnserializedRecord->next);
     retail_assert(errorCode == mmec_Success, "Failed first call to UpdateUnserializedAllocationsListHead()!");
 
     MemoryListNode* pThirdReadListHead = nullptr;
-    errorCode = memoryManager.GetUnserializedAllocationsListHead(pThirdReadListHead);
+    errorCode = memoryManager.get_unserialized_allocations_list_head(pThirdReadListHead);
     retail_assert(errorCode == mmec_Success, "Failed third call to get unserialized allocations list head!");
     retail_assert(pThirdReadListHead != nullptr, "Failed the third attempt to retrieve a valid unserialized allocations list head.");
 
@@ -226,13 +226,13 @@ void test_memory_manager_advanced_operation()
     // Test allocating from freed memory.
     // First, we reclaim a full freed block.
     ADDRESS_OFFSET offsetFirstFreeAllocation = 0;
-    errorCode = memoryManager.Allocate(secondAllocationSize, offsetFirstFreeAllocation);
+    errorCode = memoryManager.allocate(secondAllocationSize, offsetFirstFreeAllocation);
     retail_assert(errorCode == mmec_Success, "First free allocation has failed!");
     output_allocation_information(secondAllocationSize, offsetFirstFreeAllocation);
 
     // Second, we reclaim a part of a freed block.
     ADDRESS_OFFSET offsetSecondFreeAllocation = 0;
-    errorCode = memoryManager.Allocate(thirdAllocationSize, offsetSecondFreeAllocation);
+    errorCode = memoryManager.allocate(thirdAllocationSize, offsetSecondFreeAllocation);
     retail_assert(errorCode == mmec_Success, "First free allocation has failed!");
     output_allocation_information(thirdAllocationSize, offsetSecondFreeAllocation);
 

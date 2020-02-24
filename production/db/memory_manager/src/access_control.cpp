@@ -14,15 +14,15 @@ using namespace gaia::db::memory_manager;
 
 CAutoAccessControl::CAutoAccessControl()
 {
-    Clear();
+    clear();
 }
 
 CAutoAccessControl::~CAutoAccessControl()
 {
-    ReleaseAccess();
+    release_access();
 }
 
-void CAutoAccessControl::Clear()
+void CAutoAccessControl::clear()
 {
     m_pAccessControl = nullptr;
     m_lockedAccess = alt_None;
@@ -30,12 +30,12 @@ void CAutoAccessControl::Clear()
     m_hasLockedAccess = false;
 }
 
-void CAutoAccessControl::MarkAccess(AccessControl* pAccessControl)
+void CAutoAccessControl::mark_access(AccessControl* pAccessControl)
 {
     retail_assert(pAccessControl != nullptr, "No access control was provided!");
     retail_assert(pAccessControl->readersCount != UINT32_MAX, "Readers count has maxed up and will overflow!");
 
-    ReleaseAccess();
+    release_access();
 
     m_pAccessControl = pAccessControl;
 
@@ -43,14 +43,14 @@ void CAutoAccessControl::MarkAccess(AccessControl* pAccessControl)
     m_hasMarkedAccess = true;
 }
 
-bool CAutoAccessControl::TryToLockAccess(
+bool CAutoAccessControl::try_to_lock_access(
     AccessControl* pAccessControl,
     EAccessLockType wantedAccess,
     EAccessLockType& existingAccess)
 {
     retail_assert(wantedAccess != alt_None, "Invalid wanted access!");
 
-    MarkAccess(pAccessControl);
+    mark_access(pAccessControl);
 
     m_lockedAccess = wantedAccess;
     existingAccess = __sync_val_compare_and_swap(&m_pAccessControl->accessLock, alt_None, m_lockedAccess);
@@ -59,14 +59,14 @@ bool CAutoAccessControl::TryToLockAccess(
     return m_hasLockedAccess;
 }
 
-bool CAutoAccessControl::TryToLockAccess(AccessControl* pAccessControl, EAccessLockType wantedAccess)
+bool CAutoAccessControl::try_to_lock_access(AccessControl* pAccessControl, EAccessLockType wantedAccess)
 {
     EAccessLockType existingAccess;
 
-    return TryToLockAccess(pAccessControl, wantedAccess, existingAccess);
+    return try_to_lock_access(pAccessControl, wantedAccess, existingAccess);
 }
 
-bool CAutoAccessControl::TryToLockAccess(
+bool CAutoAccessControl::try_to_lock_access(
     EAccessLockType wantedAccess,
     EAccessLockType& existingAccess)
 {
@@ -85,21 +85,21 @@ bool CAutoAccessControl::TryToLockAccess(
     return m_hasLockedAccess;
 }
 
-bool CAutoAccessControl::TryToLockAccess(EAccessLockType wantedAccess)
+bool CAutoAccessControl::try_to_lock_access(EAccessLockType wantedAccess)
 {
     EAccessLockType existingAccess;
 
-    return TryToLockAccess(wantedAccess, existingAccess);
+    return try_to_lock_access(wantedAccess, existingAccess);
 }
 
-void CAutoAccessControl::ReleaseAccess()
+void CAutoAccessControl::release_access()
 {
     if (m_pAccessControl == nullptr)
     {
         return;
     }
 
-    ReleaseAccessLock();
+    release_access_lock();
 
     if (m_hasMarkedAccess)
     {
@@ -110,7 +110,7 @@ void CAutoAccessControl::ReleaseAccess()
     m_pAccessControl = nullptr;
 }
 
-void CAutoAccessControl::ReleaseAccessLock()
+void CAutoAccessControl::release_access_lock()
 {
     if (m_pAccessControl == nullptr)
     {

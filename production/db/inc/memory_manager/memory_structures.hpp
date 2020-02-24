@@ -32,10 +32,10 @@ struct MemoryListNode
     ADDRESS_OFFSET next;
     AccessControl accessControl;
 
-    void Clear()
+    void clear()
     {
         next = 0;
-        accessControl.Clear();
+        accessControl.clear();
     }
 };
 
@@ -46,9 +46,9 @@ struct MemoryRecord : MemoryListNode
     ADDRESS_OFFSET memoryOffset;
     size_t memorySize;
 
-    void Clear()
+    void clear()
     {
-        MemoryListNode::Clear();
+        MemoryListNode::clear();
 
         memoryOffset = 0;
         memorySize = 0;
@@ -71,7 +71,7 @@ struct StackAllocatorMetadata
     // Serialization number associated with this allocator; this will be set late.
     SERIALIZATION_NUMBER serializationNumber;
 
-    void Clear()
+    void clear()
     {
         countAllocations = 0;
         firstAllocationSize = 0;
@@ -94,7 +94,7 @@ struct StackAllocatorAllocation
     // The offset of the old allocation made for the previous copy of the object.
     ADDRESS_OFFSET oldMemoryOffset;
 
-    void Clear()
+    void clear()
     {
         slotId = 0;
         memoryOffset = 0;

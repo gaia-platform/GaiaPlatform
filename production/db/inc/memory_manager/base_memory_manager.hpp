@@ -27,41 +27,41 @@ class CBaseMemoryManager
     CBaseMemoryManager();
 
     // Sanity checks.
-    bool ValidateAddressAlignment(const uint8_t* const pMemoryAddress) const;
-    bool ValidateOffsetAlignment(ADDRESS_OFFSET memoryOffset) const;
-    bool ValidateSizeAlignment(size_t memorySize) const;
+    bool validate_address_alignment(const uint8_t* const pMemoryAddress) const;
+    bool validate_offset_alignment(ADDRESS_OFFSET memoryOffset) const;
+    bool validate_size_alignment(size_t memorySize) const;
 
-    EMemoryManagerErrorCode ValidateAddress(const uint8_t* const pMemoryAddress) const;
-    EMemoryManagerErrorCode ValidateOffset(ADDRESS_OFFSET memoryOffset) const;
-    EMemoryManagerErrorCode ValidateSize(size_t memorySize) const;
+    EMemoryManagerErrorCode validate_address(const uint8_t* const pMemoryAddress) const;
+    EMemoryManagerErrorCode validate_offset(ADDRESS_OFFSET memoryOffset) const;
+    EMemoryManagerErrorCode validate_size(size_t memorySize) const;
 
     // Gets the offset corresponding to a memory address.
-    ADDRESS_OFFSET GetOffset(const uint8_t* const pMemoryAddress) const;
+    ADDRESS_OFFSET get_offset(const uint8_t* const pMemoryAddress) const;
 
     // Gets the memory address corresponding to an offset.
-    uint8_t* GetAddress(ADDRESS_OFFSET memoryOffset) const;
+    uint8_t* get_address(ADDRESS_OFFSET memoryOffset) const;
 
     // Gets the allocation metadata record given the base address of the allocation.
-    MemoryAllocationMetadata* ReadAllocationMetadata(ADDRESS_OFFSET memoryOffset) const;
+    MemoryAllocationMetadata* read_allocation_metadata(ADDRESS_OFFSET memoryOffset) const;
 
     // Get the record corresponding to an offset.
-    MemoryRecord* ReadMemoryRecord(ADDRESS_OFFSET recordOffset) const;
+    MemoryRecord* read_memory_record(ADDRESS_OFFSET recordOffset) const;
 
     // Sets up two references for traversing the given list.
     // If list is empty, pCurrentRecord will be set to nullptr,
     // otherwise it will be set to the list's first node.
-    void Start(MemoryRecord* pListHead, IterationContext& context) const;
+    void start(MemoryRecord* pListHead, IterationContext& context) const;
 
     // Basic iteration method over a MemoryRecord list, using two references.
     // It ensures a safe traversal of the list in a multi-threaded context
     // in which other threads may insert or remove nodes from the list.
     //
     // Returns true if a next node was found and false if we reached the end of the list.
-    bool MoveNext(IterationContext& context) const;
+    bool move_next(IterationContext& context) const;
 
     // In some situations, we need to reset the current node
     // and advance it again from the previous node.
-    void ResetCurrent(IterationContext& context) const;
+    void reset_current(IterationContext& context) const;
 
     // Attempts to lock the wanted access on the previous record.
     //
@@ -77,9 +77,9 @@ class CBaseMemoryManager
     // because the operation impacts two links.
     //
     // Returns true if access was acquired and false otherwise.
-    bool TryToLockAccess(IterationContext& context, EAccessLockType wantedAccess, EAccessLockType& existingAccess) const;
+    bool try_to_lock_access(IterationContext& context, EAccessLockType wantedAccess, EAccessLockType& existingAccess) const;
 
-    bool TryToLockAccess(IterationContext& context, EAccessLockType wantedAccess) const;
+    bool try_to_lock_access(IterationContext& context, EAccessLockType wantedAccess) const;
 
     // Removes the current record from the list.
     // Assumes that both records have already had their access locked.
@@ -87,15 +87,15 @@ class CBaseMemoryManager
     // until all readers have moved past the current record.
     // This and the held locks ensure that the next link of the current node
     // is safe to pursue and still points to a node in our list.
-    void Remove(IterationContext& context) const;
+    void remove(IterationContext& context) const;
 
     // Inserts a record after the previous record specified in the context.
     // Safety of this operation also relies on the calling party
     // locking access to the record after which we insert.
-    void Insert(IterationContext& context, MemoryRecord*& pRecord) const;
+    void insert(IterationContext& context, MemoryRecord*& pRecord) const;
 
     // Inserts a memory record in order by either offset or size value.
-    void InsertMemoryRecord(MemoryRecord* pListHead, MemoryRecord* pMemoryRecord, bool sortByOffset) const;
+    void insert_memory_record(MemoryRecord* pListHead, MemoryRecord* pMemoryRecord, bool sortByOffset) const;
 
     protected:
 
@@ -113,7 +113,7 @@ class CBaseMemoryManager
     // Helper function that attempts to advance the current record past the previous one.
     //
     // Returns true if it succeeds and false otherwise.
-    bool TryToAdvanceCurrentRecord(IterationContext& context) const;
+    bool try_to_advance_current_record(IterationContext& context) const;
 };
 
 }

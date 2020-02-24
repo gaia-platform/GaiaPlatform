@@ -18,25 +18,25 @@ CBaseMemoryManager::CBaseMemoryManager()
     m_totalMemorySize = 0;
 }
 
-bool CBaseMemoryManager::ValidateAddressAlignment(const uint8_t* const pMemoryAddress) const
+bool CBaseMemoryManager::validate_address_alignment(const uint8_t* const pMemoryAddress) const
 {
     size_t memoryAddressAsInteger = reinterpret_cast<size_t>(pMemoryAddress);
     return (memoryAddressAsInteger % MEMORY_ALIGNMENT == 0);
 }
 
-bool CBaseMemoryManager::ValidateOffsetAlignment(ADDRESS_OFFSET memoryOffset) const
+bool CBaseMemoryManager::validate_offset_alignment(ADDRESS_OFFSET memoryOffset) const
 {
     return (memoryOffset % MEMORY_ALIGNMENT == 0);
 }
 
-bool CBaseMemoryManager::ValidateSizeAlignment(size_t memorySize) const
+bool CBaseMemoryManager::validate_size_alignment(size_t memorySize) const
 {
     return (memorySize % MEMORY_ALIGNMENT == 0);
 }
 
-EMemoryManagerErrorCode CBaseMemoryManager::ValidateAddress(const uint8_t* const pMemoryAddress) const
+EMemoryManagerErrorCode CBaseMemoryManager::validate_address(const uint8_t* const pMemoryAddress) const
 {
-    if (!ValidateAddressAlignment(pMemoryAddress))
+    if (!validate_address_alignment(pMemoryAddress))
     {
         return mmec_MemoryAddressNotAligned;
     }
@@ -50,9 +50,9 @@ EMemoryManagerErrorCode CBaseMemoryManager::ValidateAddress(const uint8_t* const
     return mmec_Success;
 }
 
-EMemoryManagerErrorCode CBaseMemoryManager::ValidateOffset(ADDRESS_OFFSET memoryOffset) const
+EMemoryManagerErrorCode CBaseMemoryManager::validate_offset(ADDRESS_OFFSET memoryOffset) const
 {
-    if (!ValidateOffsetAlignment(memoryOffset))
+    if (!validate_offset_alignment(memoryOffset))
     {
         return mmec_MemoryOffsetNotAligned;
     }
@@ -66,9 +66,9 @@ EMemoryManagerErrorCode CBaseMemoryManager::ValidateOffset(ADDRESS_OFFSET memory
     return mmec_Success;
 }
 
-EMemoryManagerErrorCode CBaseMemoryManager::ValidateSize(size_t memorySize) const
+EMemoryManagerErrorCode CBaseMemoryManager::validate_size(size_t memorySize) const
 {
-    if (!ValidateSizeAlignment(memorySize))
+    if (!validate_size_alignment(memorySize))
     {
         return mmec_MemorySizeNotAligned;
     }
@@ -86,10 +86,10 @@ EMemoryManagerErrorCode CBaseMemoryManager::ValidateSize(size_t memorySize) cons
     return mmec_Success;
 }
 
-ADDRESS_OFFSET CBaseMemoryManager::GetOffset(const uint8_t* const pMemoryAddress) const
+ADDRESS_OFFSET CBaseMemoryManager::get_offset(const uint8_t* const pMemoryAddress) const
 {
     retail_assert(
-        ValidateAddress(pMemoryAddress) == mmec_Success,
+        validate_address(pMemoryAddress) == mmec_Success,
         "GetOffset() was called with an invalid address!");
 
     size_t offset = pMemoryAddress - m_pBaseMemoryAddress;
@@ -97,10 +97,10 @@ ADDRESS_OFFSET CBaseMemoryManager::GetOffset(const uint8_t* const pMemoryAddress
     return offset;
 }
 
-uint8_t* CBaseMemoryManager::GetAddress(ADDRESS_OFFSET memoryOffset) const
+uint8_t* CBaseMemoryManager::get_address(ADDRESS_OFFSET memoryOffset) const
 {
     retail_assert(
-        ValidateOffset(memoryOffset) == mmec_Success,
+        validate_offset(memoryOffset) == mmec_Success,
         "GetAddress() was called with an invalid offset!");
 
     uint8_t* pMemoryAddress = m_pBaseMemoryAddress + memoryOffset;
@@ -108,10 +108,10 @@ uint8_t* CBaseMemoryManager::GetAddress(ADDRESS_OFFSET memoryOffset) const
     return pMemoryAddress;
 }
 
-MemoryAllocationMetadata* CBaseMemoryManager::ReadAllocationMetadata(ADDRESS_OFFSET memoryOffset) const
+MemoryAllocationMetadata* CBaseMemoryManager::read_allocation_metadata(ADDRESS_OFFSET memoryOffset) const
 {
     retail_assert(
-        ValidateOffset(memoryOffset) == mmec_Success,
+        validate_offset(memoryOffset) == mmec_Success,
         "GetAllocationMetadata() was called with an invalid offset!");
 
     retail_assert(
@@ -119,30 +119,30 @@ MemoryAllocationMetadata* CBaseMemoryManager::ReadAllocationMetadata(ADDRESS_OFF
         "GetAllocationMetadata() was called with an offset that is too small!");
 
     ADDRESS_OFFSET allocationMetadataOffset = memoryOffset - sizeof(MemoryAllocationMetadata);
-    uint8_t* pAllocationMetadataAddress = GetAddress(allocationMetadataOffset);
+    uint8_t* pAllocationMetadataAddress = get_address(allocationMetadataOffset);
     MemoryAllocationMetadata* pAllocationMetadata
         = reinterpret_cast<MemoryAllocationMetadata*>(pAllocationMetadataAddress);
 
     return pAllocationMetadata;
 }
 
-MemoryRecord* CBaseMemoryManager::ReadMemoryRecord(ADDRESS_OFFSET recordOffset) const
+MemoryRecord* CBaseMemoryManager::read_memory_record(ADDRESS_OFFSET recordOffset) const
 {
     retail_assert(
-        ValidateOffset(recordOffset) == mmec_Success,
+        validate_offset(recordOffset) == mmec_Success,
         "GetFreeMemoryRecord was called with an invalid offset!");
 
     retail_assert(
         recordOffset > 0,
         "GetFreeMemoryRecord was called with a zero offset!");
 
-    uint8_t* pRecordAddress = GetAddress(recordOffset);
+    uint8_t* pRecordAddress = get_address(recordOffset);
     MemoryRecord* pRecord = reinterpret_cast<MemoryRecord*>(pRecordAddress);
 
     return pRecord;
 }
 
-bool CBaseMemoryManager::TryToAdvanceCurrentRecord(IterationContext& context) const
+bool CBaseMemoryManager::try_to_advance_current_record(IterationContext& context) const
 {
     retail_assert(context.pPreviousRecord != nullptr, "Previous record cannot be null!");
 
@@ -151,13 +151,13 @@ bool CBaseMemoryManager::TryToAdvanceCurrentRecord(IterationContext& context) co
     if (currentRecordOffset == 0)
     {
         context.pCurrentRecord = nullptr;
-        context.autoAccessCurrentRecord.ReleaseAccess();
+        context.autoAccessCurrentRecord.release_access();
 
         return true;
     }
 
-    context.pCurrentRecord = ReadMemoryRecord(currentRecordOffset);
-    context.autoAccessCurrentRecord.MarkAccess(&context.pCurrentRecord->accessControl);
+    context.pCurrentRecord = read_memory_record(currentRecordOffset);
+    context.autoAccessCurrentRecord.mark_access(&context.pCurrentRecord->accessControl);
 
     // Now that we marked our access, we need to check
     // whether pCurrentRecord still belongs in our list,
@@ -170,45 +170,45 @@ bool CBaseMemoryManager::TryToAdvanceCurrentRecord(IterationContext& context) co
     }
 
     // We failed, so we should release the access that we marked.
-    context.autoAccessCurrentRecord.ReleaseAccess();
+    context.autoAccessCurrentRecord.release_access();
 
     return false;
 }
 
-void CBaseMemoryManager::Start(MemoryRecord* pListHead, IterationContext& context) const
+void CBaseMemoryManager::start(MemoryRecord* pListHead, IterationContext& context) const
 {
     retail_assert(pListHead != nullptr, "Null list head was passed to CBaseMemoryManager::Start()!");
 
     context.pPreviousRecord = pListHead;
-    context.autoAccessPreviousRecord.MarkAccess(&context.pPreviousRecord->accessControl);
+    context.autoAccessPreviousRecord.mark_access(&context.pPreviousRecord->accessControl);
 
     // Keep trying to advance current record until we succeed.
-    while (!TryToAdvanceCurrentRecord(context))
+    while (!try_to_advance_current_record(context))
     {
     }
 }
 
-bool CBaseMemoryManager::MoveNext(IterationContext& context) const
+bool CBaseMemoryManager::move_next(IterationContext& context) const
 {
     retail_assert(context.pPreviousRecord != nullptr, "Previous record cannot be null!");
-    retail_assert(context.autoAccessPreviousRecord.HasMarkedAccess(), "Access to previous record has not been marked yet!");
+    retail_assert(context.autoAccessPreviousRecord.has_marked_access(), "Access to previous record has not been marked yet!");
 
     if (context.pCurrentRecord == nullptr)
     {
         return false;
     }
 
-    retail_assert(context.autoAccessCurrentRecord.HasMarkedAccess(), "Access to current record has not been marked yet!");
+    retail_assert(context.autoAccessCurrentRecord.has_marked_access(), "Access to current record has not been marked yet!");
 
     // Advance previous reference first, so that we maintain the access mark on the current one.
     // This ensures (due to how record removal is implemented)
     // that the current record cannot be fully removed from the list,
     // so we can use its next link to continue the traversal.
     context.pPreviousRecord = context.pCurrentRecord;
-    context.autoAccessPreviousRecord.MarkAccess(&context.pPreviousRecord->accessControl);
+    context.autoAccessPreviousRecord.mark_access(&context.pPreviousRecord->accessControl);
 
     // Keep trying to advance current record until we succeed.
-    while (!TryToAdvanceCurrentRecord(context))
+    while (!try_to_advance_current_record(context))
     {
     }
 
@@ -216,28 +216,28 @@ bool CBaseMemoryManager::MoveNext(IterationContext& context) const
     return (context.pCurrentRecord != nullptr);
 }
 
-void CBaseMemoryManager::ResetCurrent(IterationContext& context) const
+void CBaseMemoryManager::reset_current(IterationContext& context) const
 {
     retail_assert(context.pPreviousRecord != nullptr, "Previous record cannot be null!");
-    retail_assert(context.autoAccessPreviousRecord.HasMarkedAccess(), "Access to previous record has not been marked yet!");
-    retail_assert(context.autoAccessCurrentRecord.HasMarkedAccess(), "Access to current record has not been marked yet!");
+    retail_assert(context.autoAccessPreviousRecord.has_marked_access(), "Access to previous record has not been marked yet!");
+    retail_assert(context.autoAccessCurrentRecord.has_marked_access(), "Access to current record has not been marked yet!");
 
-    context.autoAccessCurrentRecord.ReleaseAccess();
+    context.autoAccessCurrentRecord.release_access();
 
     // Keep trying to advance current record until we succeed.
-    while (!TryToAdvanceCurrentRecord(context))
+    while (!try_to_advance_current_record(context))
     {
     }
 }
 
-bool CBaseMemoryManager::TryToLockAccess(IterationContext& context, EAccessLockType wantedAccess, EAccessLockType& existingAccess) const
+bool CBaseMemoryManager::try_to_lock_access(IterationContext& context, EAccessLockType wantedAccess, EAccessLockType& existingAccess) const
 {
     retail_assert(wantedAccess != alt_Remove, "A Remove lock should never be taken on previous record - use UpdateRemove instead!");
     retail_assert(context.pPreviousRecord != nullptr, "Previous record cannot be null!");
-    retail_assert(context.autoAccessPreviousRecord.HasMarkedAccess(), "Access to previous record has not been marked yet!");
-    retail_assert(!context.autoAccessPreviousRecord.HasLockedAccess(), "Access to previous record has been locked already!");
+    retail_assert(context.autoAccessPreviousRecord.has_marked_access(), "Access to previous record has not been marked yet!");
+    retail_assert(!context.autoAccessPreviousRecord.has_locked_access(), "Access to previous record has been locked already!");
 
-    if (!context.autoAccessPreviousRecord.TryToLockAccess(wantedAccess, existingAccess))
+    if (!context.autoAccessPreviousRecord.try_to_lock_access(wantedAccess, existingAccess))
     {
         return false;
     }
@@ -247,31 +247,31 @@ bool CBaseMemoryManager::TryToLockAccess(IterationContext& context, EAccessLockT
     // If the link is broken, there is no point in maintaining the lock further,
     // but we'll leave the access mark because that is managed by our caller.
     if (wantedAccess != alt_Insert
-        && context.pCurrentRecord != ReadMemoryRecord(context.pPreviousRecord->next))
+        && context.pCurrentRecord != read_memory_record(context.pPreviousRecord->next))
     {
-        context.autoAccessPreviousRecord.ReleaseAccessLock();
+        context.autoAccessPreviousRecord.release_access_lock();
         return false;
     }
 
     return true;
 }
 
-bool CBaseMemoryManager::TryToLockAccess(IterationContext& context, EAccessLockType wantedAccess) const
+bool CBaseMemoryManager::try_to_lock_access(IterationContext& context, EAccessLockType wantedAccess) const
 {
     EAccessLockType existingAccess;
 
-    return TryToLockAccess(context, wantedAccess, existingAccess);
+    return try_to_lock_access(context, wantedAccess, existingAccess);
 }
 
 
-void CBaseMemoryManager::Remove(IterationContext& context) const
+void CBaseMemoryManager::remove(IterationContext& context) const
 {
     retail_assert(context.pPreviousRecord != nullptr, "Previous record cannot be null!");
     retail_assert(context.pCurrentRecord != nullptr, "Current record cannot be null!");
-    retail_assert(context.autoAccessPreviousRecord.HasLockedAccess(), "Access to previous record has not been locked yet!");
-    retail_assert(context.autoAccessCurrentRecord.HasLockedAccess(), "Access to current record has not been locked yet!");
+    retail_assert(context.autoAccessPreviousRecord.has_locked_access(), "Access to previous record has not been locked yet!");
+    retail_assert(context.autoAccessCurrentRecord.has_locked_access(), "Access to current record has not been locked yet!");
     retail_assert(
-        context.pCurrentRecord == ReadMemoryRecord(context.pPreviousRecord->next),
+        context.pCurrentRecord == read_memory_record(context.pPreviousRecord->next),
         "Previous record pointer does not precede the current record pointer!");
 
     // Remove the current record from the list.
@@ -291,27 +291,27 @@ void CBaseMemoryManager::Remove(IterationContext& context) const
     context.pCurrentRecord->next = 0;
 
     // We're done! Release all access immediately.
-    context.autoAccessPreviousRecord.ReleaseAccess();
-    context.autoAccessCurrentRecord.ReleaseAccess();
+    context.autoAccessPreviousRecord.release_access();
+    context.autoAccessCurrentRecord.release_access();
 }
 
-void CBaseMemoryManager::Insert(IterationContext& context, MemoryRecord*& pRecord) const
+void CBaseMemoryManager::insert(IterationContext& context, MemoryRecord*& pRecord) const
 {
     retail_assert(context.pPreviousRecord != nullptr, "Record cannot be null!");
-    retail_assert(context.autoAccessPreviousRecord.HasLockedAccess(), "Access to previous record has not been locked yet!");
+    retail_assert(context.autoAccessPreviousRecord.has_locked_access(), "Access to previous record has not been locked yet!");
 
     pRecord->next = context.pPreviousRecord->next;
 
     uint8_t* pRecordAddress = reinterpret_cast<uint8_t*>(pRecord);
-    ADDRESS_OFFSET recordOffset = GetOffset(pRecordAddress);
+    ADDRESS_OFFSET recordOffset = get_offset(pRecordAddress);
 
     context.pPreviousRecord->next = recordOffset;
 
     // We're done! Release all access immediately.
-    context.autoAccessPreviousRecord.ReleaseAccess();
+    context.autoAccessPreviousRecord.release_access();
 }
 
-void CBaseMemoryManager::InsertMemoryRecord(MemoryRecord* pListHead, MemoryRecord* pMemoryRecord, bool sortByOffset) const
+void CBaseMemoryManager::insert_memory_record(MemoryRecord* pListHead, MemoryRecord* pMemoryRecord, bool sortByOffset) const
 {
     retail_assert(pListHead != nullptr, "Null list head was passed to InsertMemoryRecord()!");
     retail_assert(pMemoryRecord != nullptr, "InsertMemoryRecord() was called with a null parameter!");
@@ -320,7 +320,7 @@ void CBaseMemoryManager::InsertMemoryRecord(MemoryRecord* pListHead, MemoryRecor
     while (true)
     {
         IterationContext context;
-        Start(pListHead, context);
+        start(pListHead, context);
         bool foundInsertionPlace = false;
         EAccessLockType existingAccess = alt_None;
 
@@ -337,9 +337,9 @@ void CBaseMemoryManager::InsertMemoryRecord(MemoryRecord* pListHead, MemoryRecor
             {
                 foundInsertionPlace = true;
 
-                if (TryToLockAccess(context, alt_Insert, existingAccess))
+                if (try_to_lock_access(context, alt_Insert, existingAccess))
                 {
-                    Insert(context, pMemoryRecord);
+                    insert(context, pMemoryRecord);
 
                     // We're done!
                     return;
@@ -356,14 +356,14 @@ void CBaseMemoryManager::InsertMemoryRecord(MemoryRecord* pListHead, MemoryRecor
                     // so we'll have to re-examine if this is the right place to insert.
                     foundInsertionPlace = false;
                     usleep(1);
-                    ResetCurrent(context);
+                    reset_current(context);
                     continue;
                 }
             }
 
             retail_assert(!foundInsertionPlace, "We should not reach this code if we already found the insertion place!");
 
-            MoveNext(context);
+            move_next(context);
         }
     }
 }

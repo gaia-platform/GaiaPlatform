@@ -22,7 +22,7 @@ class CMemoryManager : public CBaseMemoryManager
     CMemoryManager();
 
     // Sets CMemoryManager execution flags.
-    void SetExecutionFlags(const ExecutionFlags& executionFlags);
+    void set_execution_flags(const ExecutionFlags& executionFlags);
 
     // Tells the memory manager which memory area it should manage.
     //
@@ -35,7 +35,7 @@ class CMemoryManager : public CBaseMemoryManager
     // - this means that parts of it are already allocated and in use.
     //
     // All addresses will be offsets relative to the beginning of this block, represented as ADDRESS_OFFSET.
-    EMemoryManagerErrorCode Manage(
+    EMemoryManagerErrorCode manage(
         uint8_t* pMemoryAddress,
         size_t memorySize,
         size_t mainMemorySystemReservedSize,
@@ -44,23 +44,23 @@ class CMemoryManager : public CBaseMemoryManager
     // Allocates a new block of memory.
     // This interface is meant to be used when the size of the block is known in advance,
     // such as in the case when we load the database objects from disk.
-    EMemoryManagerErrorCode Allocate(size_t memorySize, ADDRESS_OFFSET& allocatedMemoryOffset) const;
+    EMemoryManagerErrorCode allocate(size_t memorySize, ADDRESS_OFFSET& allocatedMemoryOffset) const;
 
     // Creates a StackAllocator object that will be used with transactions.
     // This interface will be used to allocate memory during regular database operation.
-    EMemoryManagerErrorCode CreateStackAllocator(size_t memorySize, CStackAllocator*& pStackAllocator) const;
+    EMemoryManagerErrorCode create_stack_allocator(size_t memorySize, CStackAllocator*& pStackAllocator) const;
 
     // Once a transaction commits, calling this method will achieve several goals:
     // (i) it will insert the block into a linked list of allocations
     // that is sorted by the associated serialization number.
     // (ii) it will add all old memory locations to the list of free memory.
-    EMemoryManagerErrorCode CommitStackAllocator(
+    EMemoryManagerErrorCode commit_stack_allocator(
         CStackAllocator* pStackAllocator,
         SERIALIZATION_NUMBER serializationNumber) const;
 
     // This method should be called by the database engine serialization code.
     // This method exposes the list of allocations that is yet to be serialized to disk.
-    EMemoryManagerErrorCode GetUnserializedAllocationsListHead(MemoryListNode*& pListHead) const;
+    EMemoryManagerErrorCode get_unserialized_allocations_list_head(MemoryListNode*& pListHead) const;
 
     // This method should be called by the database engine serialization code.
     // This method updates the next unserialized allocation at the end of a serialization.
@@ -68,7 +68,7 @@ class CMemoryManager : public CBaseMemoryManager
     //
     // This method is not thread-safe! It assumes it is called from a single thread.
     // The method is thread-safe only with respect to the other memory manager operations.
-    EMemoryManagerErrorCode UpdateUnserializedAllocationsListHead(
+    EMemoryManagerErrorCode update_unserialized_allocations_list_head(
         ADDRESS_OFFSET nextUnserializedAllocationRecordOffset) const;
 
     private:
@@ -91,9 +91,9 @@ class CMemoryManager : public CBaseMemoryManager
             startMainAvailableMemory = low;
             lowestMetadataMemoryUse = high;
 
-            freeMemoryListHead.Clear();
-            reclaimedRecordsListHead.Clear();
-            unserializedAllocationsListHead.Clear();
+            freeMemoryListHead.clear();
+            reclaimedRecordsListHead.clear();
+            unserializedAllocationsListHead.clear();
         }
     };
 
@@ -114,67 +114,67 @@ class CMemoryManager : public CBaseMemoryManager
 
     private:
 
-    size_t GetMainMemoryAvailableSize(bool includeSystemReservedSize) const;
+    size_t get_main_memory_available_size(bool includeSystemReservedSize) const;
 
-    bool IsMainMemoryExhausted(
+    bool is_main_memory_exhausted(
         ADDRESS_OFFSET startMemoryOffset,
         ADDRESS_OFFSET endMemoryOffset,
         bool includeSystemReservedSize) const;
 
-    bool IsMainMemoryExhausted(
+    bool is_main_memory_exhausted(
         ADDRESS_OFFSET startMemoryOffset,
         ADDRESS_OFFSET endMemoryOffset,
         bool includeSystemReservedSize,
         size_t& availableSize) const;
 
     // Given an allocation offset, set up the allocation metadata and returns the offset past it.
-    ADDRESS_OFFSET ProcessAllocation(ADDRESS_OFFSET allocationOffset, size_t sizeToAllocate) const;
+    ADDRESS_OFFSET process_allocation(ADDRESS_OFFSET allocationOffset, size_t sizeToAllocate) const;
 
     // Attempt to allocate from our main memory block.
-    ADDRESS_OFFSET AllocateFromMainMemory(size_t sizeToAllocate) const;
+    ADDRESS_OFFSET allocate_from_main_memory(size_t sizeToAllocate) const;
 
     // Attempt to allocate from one of the already allocated and freed memory blocks.
-    ADDRESS_OFFSET AllocateFromFreedMemory(size_t sizeToAllocate) const;
+    ADDRESS_OFFSET allocate_from_freed_memory(size_t sizeToAllocate) const;
 
     // Get a memory record.
-    MemoryRecord* GetMemoryRecord() const;
+    MemoryRecord* get_memory_record() const;
 
     // Attempt to allocate a new record from our main memory block.
-    MemoryRecord* GetNewMemoryRecord() const;
+    MemoryRecord* get_new_memory_record() const;
 
     // Attempt to allocate from one of the previously allocated memory records.
-    MemoryRecord* GetReclaimedMemoryRecord() const;
+    MemoryRecord* get_reclaimed_memory_record() const;
 
     // Insert free memory record in its proper place in the list of free memory records.
-    void InsertFreeMemoryRecord(MemoryRecord* pFreeMemoryRecord) const;
+    void insert_free_memory_record(MemoryRecord* pFreeMemoryRecord) const;
 
     // Insert memory record in the list of reclaimed memory records.
-    void InsertReclaimedMemoryRecord(MemoryRecord* pReclaimedMemoryRecord) const;
+    void insert_reclaimed_memory_record(MemoryRecord* pReclaimedMemoryRecord) const;
 
     // Insert unserialized allocations record in the list of unserialized allocations.
-    void InsertUnserializedAllocationsRecord(MemoryRecord* pUnserializedAllocationsRecord) const;
+    void insert_unserialized_allocations_record(MemoryRecord* pUnserializedAllocationsRecord) const;
 
     // Mark memory as free by setting up a free memory record to track it.
-    MemoryRecord* GetFreeMemoryRecord(ADDRESS_OFFSET memoryOffset, size_t memorySize) const;
+    MemoryRecord* get_free_memory_record(ADDRESS_OFFSET memoryOffset, size_t memorySize) const;
 
     // Process a list of records by either adding its elements to the list of free memory records
     // or by reclaiming them.
     // This is only meant to be used by the following two methods - call them instead of this.
-    void ProcessFreeMemoryRecords(MemoryRecord** freeMemoryRecords, size_t size, bool markAsFree) const;
+    void process_free_memory_records(MemoryRecord** freeMemoryRecords, size_t size, bool markAsFree) const;
 
     // Insert records in the list of free memory records.
-    void InsertFreeMemoryRecords(MemoryRecord** freeMemoryRecords, size_t size) const;
+    void insert_free_memory_records(MemoryRecord** freeMemoryRecords, size_t size) const;
 
     // Insert records in the list of reclaimed memory records.
-    void ReclaimRecords(MemoryRecord** freeMemoryRecords, size_t size) const;
+    void reclaim_records(MemoryRecord** freeMemoryRecords, size_t size) const;
 
     // Track the StackAllocator metadata for future serialization.
-    EMemoryManagerErrorCode TrackStackAllocatorMetadataForSerialization(
+    EMemoryManagerErrorCode track_stack_allocator_metadata_for_serialization(
         StackAllocatorMetadata* pStackAllocatorMetadata) const;
 
-    void OutputDebuggingInformation(const string& contextDescription) const;
+    void output_debugging_information(const string& contextDescription) const;
 
-    void OutputListContent(MemoryRecord listHead) const;
+    void output_list_content(MemoryRecord listHead) const;
 };
 
 }

@@ -31,10 +31,10 @@ struct AccessControl
 
     AccessControl()
     {
-        Clear();
+        clear();
     }
 
-    void Clear()
+    void clear()
     {
         readersCount = 0;
         accessLock = alt_None;
@@ -68,32 +68,32 @@ class CAutoAccessControl
     CAutoAccessControl();
     ~CAutoAccessControl();
 
-    void MarkAccess(AccessControl* pAccessControl);
+    void mark_access(AccessControl* pAccessControl);
 
-    bool TryToLockAccess(AccessControl* pAccessControl, EAccessLockType wantedAccess, EAccessLockType& existingAccess);
-    bool TryToLockAccess(AccessControl* pAccessControl, EAccessLockType wantedAccess);
+    bool try_to_lock_access(AccessControl* pAccessControl, EAccessLockType wantedAccess, EAccessLockType& existingAccess);
+    bool try_to_lock_access(AccessControl* pAccessControl, EAccessLockType wantedAccess);
 
     // These versions can be called after an initial MarkAccess call.
-    bool TryToLockAccess(EAccessLockType wantedAccess, EAccessLockType& existingAccess);
-    bool TryToLockAccess(EAccessLockType wantedAccess);
+    bool try_to_lock_access(EAccessLockType wantedAccess, EAccessLockType& existingAccess);
+    bool try_to_lock_access(EAccessLockType wantedAccess);
 
     // Methods for releasing all access or just the access lock.
-    void ReleaseAccess();
-    void ReleaseAccessLock();
+    void release_access();
+    void release_access_lock();
 
-    bool HasMarkedAccess()
+    bool has_marked_access()
     {
         return m_hasMarkedAccess;
     }
 
-    bool HasLockedAccess()
+    bool has_locked_access()
     {
         return m_hasLockedAccess;
     }
 
     private:
 
-    void Clear();
+    void clear();
 };
 
 }
