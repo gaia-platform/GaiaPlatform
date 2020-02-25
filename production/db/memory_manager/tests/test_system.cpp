@@ -29,15 +29,15 @@ int main()
 void output_struct_sizes()
 {
     cout << endl << c_debug_output_separator_line_start << endl;
-    cout << "*** StructSizes tests started ***" << endl;
+    cout << "*** Struct sizes tests started ***" << endl;
     cout << c_debug_output_separator_line_end << endl;
 
-    cout << "sizeof(MemoryAllocationMetadata) = " << sizeof(memory_allocation_metadata_t) << endl;
-    cout << "sizeof(StackAllocatorMetadata) = " << sizeof(stack_allocator_metadata_t) << endl;
-    cout << "sizeof(StackAllocatorAllocation) = " << sizeof(stack_allocator_allocation_t) << endl;
+    cout << "sizeof(memory_allocation_metadata_t) = " << sizeof(memory_allocation_metadata_t) << endl;
+    cout << "sizeof(stack_allocator_metadata_t) = " << sizeof(stack_allocator_metadata_t) << endl;
+    cout << "sizeof(stack_allocator_allocation_t) = " << sizeof(stack_allocator_allocation_t) << endl;
 
     cout << endl << c_debug_output_separator_line_start << endl;
-    cout << "*** StructSizes tests ended ***" << endl;
+    cout << "*** Struct sizes tests ended ***" << endl;
     cout << c_debug_output_separator_line_end << endl;
 }
 
@@ -59,7 +59,7 @@ void test_pointer_arithmetic()
     integers integers;
 
     cout << endl << c_debug_output_separator_line_start << endl;
-    cout << "*** PointerArithmetic tests started ***" << endl;
+    cout << "*** Pointer arithmetic tests started ***" << endl;
     cout << c_debug_output_separator_line_end << endl;
 
     cout << "address(integers) = " << &integers << " = " << (size_t)&integers << endl;
@@ -71,7 +71,7 @@ void test_pointer_arithmetic()
         << " = " << (size_t)&integers.small_integers.uint32 << endl;
     cout << "address(uint64) = " << &integers.uint64 << " = " << (size_t)&integers.uint64 << endl;
 
-    cout << endl << "sizeof(SmallIntegers) = " << sizeof(small_integers) << endl;
+    cout << endl << "sizeof(small_integers) = " << sizeof(small_integers) << endl;
     cout << "&integers.uint64 - &integers = " << (uint8_t*)&integers.uint64 - (uint8_t*)&integers << endl;
     cout << "&integers.uint64 - &integers.smallIntegers.uint8 = "
         << (uint8_t*)&integers.uint64 - (uint8_t*)&integers.small_integers.uint8 << endl;
@@ -94,6 +94,6 @@ void test_pointer_arithmetic()
         "Addition did not overflow!");
 
     cout << endl << c_debug_output_separator_line_start << endl;
-    cout << "*** PointerArithmetic tests ended ***" << endl;
+    cout << "*** Pointer arithmetic tests ended ***" << endl;
     cout << c_debug_output_separator_line_end << endl;
 }

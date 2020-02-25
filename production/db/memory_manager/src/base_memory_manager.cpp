@@ -18,31 +18,31 @@ base_memory_manager_t::base_memory_manager_t()
     m_total_memory_size = 0;
 }
 
-bool base_memory_manager_t::validate_address_alignment(const uint8_t* const pMemoryAddress) const
+bool base_memory_manager_t::validate_address_alignment(const uint8_t* const memory_address) const
 {
-    size_t memoryAddressAsInteger = reinterpret_cast<size_t>(pMemoryAddress);
+    size_t memoryAddressAsInteger = reinterpret_cast<size_t>(memory_address);
     return (memoryAddressAsInteger % c_memory_alignment == 0);
 }
 
-bool base_memory_manager_t::validate_offset_alignment(address_offset_t memoryOffset) const
+bool base_memory_manager_t::validate_offset_alignment(address_offset_t memory_offset) const
 {
-    return (memoryOffset % c_memory_alignment == 0);
+    return (memory_offset % c_memory_alignment == 0);
 }
 
-bool base_memory_manager_t::validate_size_alignment(size_t memorySize) const
+bool base_memory_manager_t::validate_size_alignment(size_t memory_size) const
 {
-    return (memorySize % c_memory_alignment == 0);
+    return (memory_size % c_memory_alignment == 0);
 }
 
-gaia::db::memory_manager::error_code_t base_memory_manager_t::validate_address(const uint8_t* const pMemoryAddress) const
+error_code_t base_memory_manager_t::validate_address(const uint8_t* const memory_address) const
 {
-    if (!validate_address_alignment(pMemoryAddress))
+    if (!validate_address_alignment(memory_address))
     {
         return memory_address_not_aligned;
     }
 
-    if (pMemoryAddress < m_base_memory_address + m_base_memory_offset
-        || pMemoryAddress > m_base_memory_address + m_base_memory_offset + m_total_memory_size)
+    if (memory_address < m_base_memory_address + m_base_memory_offset
+        || memory_address > m_base_memory_address + m_base_memory_offset + m_total_memory_size)
     {
         return memory_address_out_of_range;
     }
@@ -50,15 +50,15 @@ gaia::db::memory_manager::error_code_t base_memory_manager_t::validate_address(c
     return success;
 }
 
-gaia::db::memory_manager::error_code_t base_memory_manager_t::validate_offset(address_offset_t memoryOffset) const
+error_code_t base_memory_manager_t::validate_offset(address_offset_t memory_offset) const
 {
-    if (!validate_offset_alignment(memoryOffset))
+    if (!validate_offset_alignment(memory_offset))
     {
         return memory_offset_not_aligned;
     }
 
-    if (memoryOffset < m_base_memory_offset
-        || memoryOffset > m_base_memory_offset + m_total_memory_size)
+    if (memory_offset < m_base_memory_offset
+        || memory_offset > m_base_memory_offset + m_total_memory_size)
     {
         return memory_offset_out_of_range;
     }
@@ -66,19 +66,19 @@ gaia::db::memory_manager::error_code_t base_memory_manager_t::validate_offset(ad
     return success;
 }
 
-gaia::db::memory_manager::error_code_t base_memory_manager_t::validate_size(size_t memorySize) const
+error_code_t base_memory_manager_t::validate_size(size_t memory_size) const
 {
-    if (!validate_size_alignment(memorySize))
+    if (!validate_size_alignment(memory_size))
     {
         return memory_size_not_aligned;
     }
 
-    if (memorySize == 0)
+    if (memory_size == 0)
     {
         return memory_size_cannot_be_zero;
     }
 
-    if (memorySize > m_total_memory_size)
+    if (memory_size > m_total_memory_size)
     {
         return memory_size_too_large;
     }
@@ -86,69 +86,69 @@ gaia::db::memory_manager::error_code_t base_memory_manager_t::validate_size(size
     return success;
 }
 
-address_offset_t base_memory_manager_t::get_offset(const uint8_t* const pMemoryAddress) const
+address_offset_t base_memory_manager_t::get_offset(const uint8_t* const memory_address) const
 {
     retail_assert(
-        validate_address(pMemoryAddress) == success,
-        "GetOffset() was called with an invalid address!");
+        validate_address(memory_address) == success,
+        "get_offset() was called with an invalid address!");
 
-    size_t offset = pMemoryAddress - m_base_memory_address;
+    size_t offset = memory_address - m_base_memory_address;
 
     return offset;
 }
 
-uint8_t* base_memory_manager_t::get_address(address_offset_t memoryOffset) const
+uint8_t* base_memory_manager_t::get_address(address_offset_t memory_offset) const
 {
     retail_assert(
-        validate_offset(memoryOffset) == success,
-        "GetAddress() was called with an invalid offset!");
+        validate_offset(memory_offset) == success,
+        "get_address() was called with an invalid offset!");
 
-    uint8_t* pMemoryAddress = m_base_memory_address + memoryOffset;
+    uint8_t* memory_address = m_base_memory_address + memory_offset;
 
-    return pMemoryAddress;
+    return memory_address;
 }
 
-memory_allocation_metadata_t* base_memory_manager_t::read_allocation_metadata(address_offset_t memoryOffset) const
+memory_allocation_metadata_t* base_memory_manager_t::read_allocation_metadata(address_offset_t memory_offset) const
 {
     retail_assert(
-        validate_offset(memoryOffset) == success,
-        "GetAllocationMetadata() was called with an invalid offset!");
+        validate_offset(memory_offset) == success,
+        "read_allocation_metadata() was called with an invalid offset!");
 
     retail_assert(
-        memoryOffset >= sizeof(memory_allocation_metadata_t),
-        "GetAllocationMetadata() was called with an offset that is too small!");
+        memory_offset >= sizeof(memory_allocation_metadata_t),
+        "read_allocation_metadata() was called with an offset that is too small!");
 
-    address_offset_t allocationMetadataOffset = memoryOffset - sizeof(memory_allocation_metadata_t);
-    uint8_t* pAllocationMetadataAddress = get_address(allocationMetadataOffset);
-    memory_allocation_metadata_t* pAllocationMetadata
-        = reinterpret_cast<memory_allocation_metadata_t*>(pAllocationMetadataAddress);
+    address_offset_t allocation_metadata_offset = memory_offset - sizeof(memory_allocation_metadata_t);
+    uint8_t* allocation_metadata_address = get_address(allocation_metadata_offset);
+    memory_allocation_metadata_t* allocation_metadata
+        = reinterpret_cast<memory_allocation_metadata_t*>(allocation_metadata_address);
 
-    return pAllocationMetadata;
+    return allocation_metadata;
 }
 
-memory_record_t* base_memory_manager_t::read_memory_record(address_offset_t recordOffset) const
+memory_record_t* base_memory_manager_t::read_memory_record(address_offset_t record_offset) const
 {
     retail_assert(
-        validate_offset(recordOffset) == success,
-        "GetFreeMemoryRecord was called with an invalid offset!");
+        validate_offset(record_offset) == success,
+        "read_memory_record() was called with an invalid offset!");
 
     retail_assert(
-        recordOffset > 0,
-        "GetFreeMemoryRecord was called with a zero offset!");
+        record_offset > 0,
+        "read_memory_record() was called with a zero offset!");
 
-    uint8_t* pRecordAddress = get_address(recordOffset);
-    memory_record_t* pRecord = reinterpret_cast<memory_record_t*>(pRecordAddress);
+    uint8_t* record_address = get_address(record_offset);
+    memory_record_t* record = reinterpret_cast<memory_record_t*>(record_address);
 
-    return pRecord;
+    return record;
 }
 
 bool base_memory_manager_t::try_to_advance_current_record(iteration_context_t& context) const
 {
     retail_assert(context.previous_record != nullptr, "Previous record cannot be null!");
 
-    address_offset_t currentRecordOffset = context.previous_record->next;
+    address_offset_t current_record_offset = context.previous_record->next;
 
-    if (currentRecordOffset == 0)
+    if (current_record_offset == 0)
     {
         context.current_record = nullptr;
         context.auto_access_current_record.release_access();
@@ -156,14 +156,14 @@ bool base_memory_manager_t::try_to_advance_current_record(iteration_context_t& c
         return true;
     }
 
-    context.current_record = read_memory_record(currentRecordOffset);
-    context.auto_access_current_record.mark_access(&context.current_record->accessControl);
+    context.current_record = read_memory_record(current_record_offset);
+    context.auto_access_current_record.mark_access(&context.current_record->access_control);
 
     // Now that we marked our access, we need to check
-    // whether pCurrentRecord still belongs in our list,
+    // whether current_record still belongs in our list,
     // because another thread may have removed it
     // before we got to mark our access.
-    if (context.previous_record->next == currentRecordOffset)
+    if (context.previous_record->next == current_record_offset)
     {
         // All looks good, so we're done here.
         return true;
@@ -175,12 +175,12 @@ bool base_memory_manager_t::try_to_advance_current_record(iteration_context_t& c
     return false;
 }
 
-void base_memory_manager_t::start(memory_record_t* pListHead, iteration_context_t& context) const
+void base_memory_manager_t::start(memory_record_t* list_head, iteration_context_t& context) const
 {
-    retail_assert(pListHead != nullptr, "Null list head was passed to CBaseMemoryManager::Start()!");
+    retail_assert(list_head != nullptr, "Null list head was passed to base_memory_manager_t::start()!");
 
-    context.previous_record = pListHead;
-    context.auto_access_previous_record.mark_access(&context.previous_record->accessControl);
+    context.previous_record = list_head;
+    context.auto_access_previous_record.mark_access(&context.previous_record->access_control);
 
     // Keep trying to advance current record until we succeed.
     while (!try_to_advance_current_record(context))
@@ -205,7 +205,7 @@ bool base_memory_manager_t::move_next(iteration_context_t& context) const
     // that the current record cannot be fully removed from the list,
     // so we can use its next link to continue the traversal.
     context.previous_record = context.current_record;
-    context.auto_access_previous_record.mark_access(&context.previous_record->accessControl);
+    context.auto_access_previous_record.mark_access(&context.previous_record->access_control);
 
     // Keep trying to advance current record until we succeed.
     while (!try_to_advance_current_record(context))
@@ -230,14 +230,14 @@ void base_memory_manager_t::reset_current(iteration_context_t& context) const
     }
 }
 
-bool base_memory_manager_t::try_to_lock_access(iteration_context_t& context, access_lock_type_t wantedAccess, access_lock_type_t& existingAccess) const
+bool base_memory_manager_t::try_to_lock_access(iteration_context_t& context, access_lock_type_t wanted_access, access_lock_type_t& existing_access) const
 {
-    retail_assert(wantedAccess != access_lock_type_t::remove, "A Remove lock should never be taken on previous record - use UpdateRemove instead!");
+    retail_assert(wanted_access != access_lock_type_t::remove, "A remove lock should never be taken on previous record - use update_remove instead!");
     retail_assert(context.previous_record != nullptr, "Previous record cannot be null!");
     retail_assert(context.auto_access_previous_record.has_marked_access(), "Access to previous record has not been marked yet!");
     retail_assert(!context.auto_access_previous_record.has_locked_access(), "Access to previous record has been locked already!");
 
-    if (!context.auto_access_previous_record.try_to_lock_access(wantedAccess, existingAccess))
+    if (!context.auto_access_previous_record.try_to_lock_access(wanted_access, existing_access))
     {
         return false;
     }
@@ -246,7 +246,7 @@ bool base_memory_manager_t::try_to_lock_access(iteration_context_t& context, acc
     // so we need to check if the link between the two records still holds.
     // If the link is broken, there is no point in maintaining the lock further,
     // but we'll leave the access mark because that is managed by our caller.
-    if (wantedAccess != access_lock_type_t::insert
+    if (wanted_access != access_lock_type_t::insert
         && context.current_record != read_memory_record(context.previous_record->next))
     {
         context.auto_access_previous_record.release_access_lock();
@@ -256,11 +256,11 @@ bool base_memory_manager_t::try_to_lock_access(iteration_context_t& context, acc
     return true;
 }
 
-bool base_memory_manager_t::try_to_lock_access(iteration_context_t& context, access_lock_type_t wantedAccess) const
+bool base_memory_manager_t::try_to_lock_access(iteration_context_t& context, access_lock_type_t wanted_access) const
 {
-    access_lock_type_t existingAccess;
+    access_lock_type_t existing_access;
 
-    return try_to_lock_access(context, wantedAccess, existingAccess);
+    return try_to_lock_access(context, wanted_access, existing_access);
 }
 
 
@@ -281,7 +281,7 @@ void base_memory_manager_t::remove(iteration_context_t& context) const
     // No new readers can appear, because we removed the record from the list.
     // This wait, coupled with the lock maintained on the previous record,
     // guarantees that pCurrentRecord->next can be safely followed by any suspended readers.
-    while (context.current_record->accessControl.readers_count > 1)
+    while (context.current_record->access_control.readers_count > 1)
     {
         // Give other threads a chance to release read marks.
         usleep(1);
@@ -295,34 +295,34 @@ void base_memory_manager_t::remove(iteration_context_t& context) const
     context.auto_access_current_record.release_access();
 }
 
-void base_memory_manager_t::insert(iteration_context_t& context, memory_record_t*& pRecord) const
+void base_memory_manager_t::insert(iteration_context_t& context, memory_record_t*& record) const
 {
     retail_assert(context.previous_record != nullptr, "Record cannot be null!");
     retail_assert(context.auto_access_previous_record.has_locked_access(), "Access to previous record has not been locked yet!");
 
-    pRecord->next = context.previous_record->next;
+    record->next = context.previous_record->next;
 
-    uint8_t* pRecordAddress = reinterpret_cast<uint8_t*>(pRecord);
-    address_offset_t recordOffset = get_offset(pRecordAddress);
+    uint8_t* record_address = reinterpret_cast<uint8_t*>(record);
+    address_offset_t record_offset = get_offset(record_address);
 
-    context.previous_record->next = recordOffset;
+    context.previous_record->next = record_offset;
 
     // We're done! Release all access immediately.
     context.auto_access_previous_record.release_access();
 }
 
-void base_memory_manager_t::insert_memory_record(memory_record_t* pListHead, memory_record_t* pMemoryRecord, bool sortByOffset) const
+void base_memory_manager_t::insert_memory_record(memory_record_t* list_head, memory_record_t* memory_record, bool sort_by_offset) const
 {
-    retail_assert(pListHead != nullptr, "Null list head was passed to InsertMemoryRecord()!");
-    retail_assert(pMemoryRecord != nullptr, "InsertMemoryRecord() was called with a null parameter!");
+    retail_assert(list_head != nullptr, "Null list head was passed to insert_memory_record()!");
+    retail_assert(memory_record != nullptr, "insert_memory_record() was called with a null parameter!");
 
     // We need an extra loop to restart the insertion from scratch in a special case.
     while (true)
     {
         iteration_context_t context;
-        start(pListHead, context);
-        bool foundInsertionPlace = false;
-        access_lock_type_t existingAccess = access_lock_type_t::none;
+        start(list_head, context);
+        bool found_insertion_place = false;
+        access_lock_type_t existing_access = access_lock_type_t::none;
 
         // Insert free memory record in its proper place in the free memory list,
         // based on either its size or offset value, as requested by the caller.
@@ -331,20 +331,20 @@ void base_memory_manager_t::insert_memory_record(memory_record_t* pListHead, mem
             // Check if this is the right place to insert our record.
             // If we reached the end of the list, then that is the right place.
             if (context.current_record == nullptr
-                || (sortByOffset
-                    ? context.current_record->memory_offset > pMemoryRecord->memory_offset
-                    : context.current_record->memory_size > pMemoryRecord->memory_size))
+                || (sort_by_offset
+                    ? context.current_record->memory_offset > memory_record->memory_offset
+                    : context.current_record->memory_size > memory_record->memory_size))
             {
-                foundInsertionPlace = true;
+                found_insertion_place = true;
 
-                if (try_to_lock_access(context, access_lock_type_t::insert, existingAccess))
+                if (try_to_lock_access(context, access_lock_type_t::insert, existing_access))
                 {
-                    insert(context, pMemoryRecord);
+                    insert(context, memory_record);
 
                     // We're done!
                     return;
                 }
-                else if (existingAccess == access_lock_type_t::remove)
+                else if (existing_access == access_lock_type_t::remove)
                 {
                     // We have to restart from the beginning of the list
                     // because our previous record is being deleted.
@@ -354,14 +354,14 @@ void base_memory_manager_t::insert_memory_record(memory_record_t* pListHead, mem
                 {
                     // Some other operation is taking place,
                     // so we'll have to re-examine if this is the right place to insert.
-                    foundInsertionPlace = false;
+                    found_insertion_place = false;
                     usleep(1);
                     reset_current(context);
                     continue;
                 }
             }
 
-            retail_assert(!foundInsertionPlace, "We should not reach this code if we already found the insertion place!");
+            retail_assert(!found_insertion_place, "We should not reach this code if we already found the insertion place!");
 
             move_next(context);
         }

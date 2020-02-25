@@ -36,207 +36,207 @@ void output_allocation_information(size_t size, address_offset_t offset)
 void test_memory_manager_basic_operation()
 {
     cout << endl << c_debug_output_separator_line_start << endl;
-    cout << "*** MemoryManager basic operation tests started ***" << endl;
+    cout << "*** memory_manager_t basic operation tests started ***" << endl;
     cout << c_debug_output_separator_line_end << endl;
 
-    const size_t memorySize = 8000;
-    const size_t mainMemorySystemReservedSize = 1000;
-    uint8_t memory[memorySize];
+    const size_t memory_size = 8000;
+    const size_t main_memory_system_reserved_size = 1000;
+    uint8_t memory[memory_size];
 
-    memory_manager_t memoryManager;
+    memory_manager_t memory_manager;
 
-    execution_flags_t executionFlags;
+    execution_flags_t execution_flags;
 
-    gaia::db::memory_manager::error_code_t errorCode = not_set;
+    gaia::db::memory_manager::error_code_t error_code = not_set;
 
-    executionFlags.enable_extra_validations = true;
-    executionFlags.enable_console_output = true;
+    execution_flags.enable_extra_validations = true;
+    execution_flags.enable_console_output = true;
 
-    memoryManager.set_execution_flags(executionFlags);
-    errorCode = memoryManager.manage(memory, memorySize, mainMemorySystemReservedSize, true);
-    retail_assert(errorCode == success, "Manager initialization has failed!");
+    memory_manager.set_execution_flags(execution_flags);
+    error_code = memory_manager.manage(memory, memory_size, main_memory_system_reserved_size, true);
+    retail_assert(error_code == success, "Manager initialization has failed!");
     cout << "PASSED: Manager initialization was successful!" << endl;
 
-    size_t firstAllocationSize = 64;
-    size_t secondAllocationSize = 256;
-    size_t thirdAllocationSize = 128;
+    size_t first_allocation_size = 64;
+    size_t second_allocation_size = 256;
+    size_t third_allocation_size = 128;
 
-    address_offset_t firstAllocationOffset = 0;
-    errorCode = memoryManager.allocate(firstAllocationSize, firstAllocationOffset);
-    retail_assert(errorCode == success, "First allocation has failed!");
-    output_allocation_information(firstAllocationSize, firstAllocationOffset);
+    address_offset_t first_allocation_offset = 0;
+    error_code = memory_manager.allocate(first_allocation_size, first_allocation_offset);
+    retail_assert(error_code == success, "First allocation has failed!");
+    output_allocation_information(first_allocation_size, first_allocation_offset);
 
-    address_offset_t secondAllocationOffset = 0;
-    errorCode = memoryManager.allocate(secondAllocationSize, secondAllocationOffset);
-    retail_assert(errorCode == success, "Second allocation has failed!");
-    output_allocation_information(secondAllocationSize, secondAllocationOffset);
+    address_offset_t second_allocation_offset = 0;
+    error_code = memory_manager.allocate(second_allocation_size, second_allocation_offset);
+    retail_assert(error_code == success, "Second allocation has failed!");
+    output_allocation_information(second_allocation_size, second_allocation_offset);
 
     retail_assert(
-        secondAllocationOffset == firstAllocationOffset + firstAllocationSize + sizeof(memory_allocation_metadata_t), 
+        second_allocation_offset == first_allocation_offset + first_allocation_size + sizeof(memory_allocation_metadata_t), 
         "Second allocation offset is not the expected value.");
 
-    address_offset_t thirdAllocationOffset = 0;
-    errorCode = memoryManager.allocate(thirdAllocationSize, thirdAllocationOffset);
-    retail_assert(errorCode == success, "Third allocation has failed!");
-    output_allocation_information(thirdAllocationSize, thirdAllocationOffset);
+    address_offset_t third_allocation_offset = 0;
+    error_code = memory_manager.allocate(third_allocation_size, third_allocation_offset);
+    retail_assert(error_code == success, "Third allocation has failed!");
+    output_allocation_information(third_allocation_size, third_allocation_offset);
 
     retail_assert(
-        thirdAllocationOffset == secondAllocationOffset + secondAllocationSize + sizeof(memory_allocation_metadata_t), 
+        third_allocation_offset == second_allocation_offset + second_allocation_size + sizeof(memory_allocation_metadata_t), 
         "Third allocation offset is not the expected value.");
 
     cout << endl << c_debug_output_separator_line_start << endl;
-    cout << "*** MemoryManager basic operation tests ended ***" << endl;
+    cout << "*** memory_manager_t basic operation tests ended ***" << endl;
     cout << c_debug_output_separator_line_end << endl;
 }
 
 void test_memory_manager_advanced_operation()
 {
     cout << endl << c_debug_output_separator_line_start << endl;
-    cout << "*** MemoryManager advanced operation tests started ***" << endl;
+    cout << "*** memory_manager_t advanced operation tests started ***" << endl;
     cout << c_debug_output_separator_line_end << endl;
 
-    const size_t memorySize = 8000;
-    const size_t mainMemorySystemReservedSize = 1000;
-    uint8_t memory[memorySize];
+    const size_t memory_size = 8000;
+    const size_t main_memory_system_reserved_size = 1000;
+    uint8_t memory[memory_size];
 
-    memory_manager_t memoryManager;
+    memory_manager_t memory_manager;
 
-    execution_flags_t executionFlags;
+    execution_flags_t execution_flags;
 
-    gaia::db::memory_manager::error_code_t errorCode = not_set;
+    gaia::db::memory_manager::error_code_t error_code = not_set;
 
-    executionFlags.enable_extra_validations = true;
-    executionFlags.enable_console_output = true;
+    execution_flags.enable_extra_validations = true;
+    execution_flags.enable_console_output = true;
 
-    memoryManager.set_execution_flags(executionFlags);
-    errorCode = memoryManager.manage(memory, memorySize, mainMemorySystemReservedSize, true);
-    retail_assert(errorCode == success, "Manager initialization has failed!");
+    memory_manager.set_execution_flags(execution_flags);
+    error_code = memory_manager.manage(memory, memory_size, main_memory_system_reserved_size, true);
+    retail_assert(error_code == success, "Manager initialization has failed!");
     cout << "PASSED: Manager initialization was successful!" << endl;
 
-    size_t stackAllocatorMemorySize = 2000;
+    size_t stack_allocator_memory_size = 2000;
 
-    // Make 3 allocations using a StackAllocator.
-    stack_allocator_t* pStackAllocator = nullptr;
-    errorCode = memoryManager.create_stack_allocator(stackAllocatorMemorySize, pStackAllocator);
-    retail_assert(errorCode == success, "First stack allocator creation has failed!");
+    // Make 3 allocations using a stack_allocator_t.
+    stack_allocator_t* stack_allocator = nullptr;
+    error_code = memory_manager.create_stack_allocator(stack_allocator_memory_size, stack_allocator);
+    retail_assert(error_code == success, "First stack allocator creation has failed!");
 
-    size_t firstAllocationSize = 64;
-    size_t secondAllocationSize = 256;
-    size_t thirdAllocationSize = 128;
+    size_t first_allocation_size = 64;
+    size_t second_allocation_size = 256;
+    size_t third_allocation_size = 128;
 
-    address_offset_t firstAllocationOffset = 0;
-    errorCode = pStackAllocator->allocate(0, 0, firstAllocationSize, firstAllocationOffset);
-    retail_assert(errorCode == success, "First allocation has failed!");
-    output_allocation_information(firstAllocationSize, firstAllocationOffset);
+    address_offset_t first_allocation_offset = 0;
+    error_code = stack_allocator->allocate(0, 0, first_allocation_size, first_allocation_offset);
+    retail_assert(error_code == success, "First allocation has failed!");
+    output_allocation_information(first_allocation_size, first_allocation_offset);
 
-    address_offset_t secondAllocationOffset = 0;
-    errorCode = pStackAllocator->allocate(0, 0, secondAllocationSize, secondAllocationOffset);
-    retail_assert(errorCode == success, "Second allocation has failed!");
-    output_allocation_information(secondAllocationSize, secondAllocationOffset);
+    address_offset_t second_allocation_offset = 0;
+    error_code = stack_allocator->allocate(0, 0, second_allocation_size, second_allocation_offset);
+    retail_assert(error_code == success, "Second allocation has failed!");
+    output_allocation_information(second_allocation_size, second_allocation_offset);
 
     retail_assert(
-        secondAllocationOffset == firstAllocationOffset + firstAllocationSize + sizeof(memory_allocation_metadata_t),
+        second_allocation_offset == first_allocation_offset + first_allocation_size + sizeof(memory_allocation_metadata_t),
         "Second allocation offset does not have expected value.");
 
-    address_offset_t thirdAllocationOffset = 0;
-    errorCode = pStackAllocator->allocate(0, 0, thirdAllocationSize, thirdAllocationOffset);
-    retail_assert(errorCode == success, "Third allocation has failed!");
-    output_allocation_information(thirdAllocationSize, thirdAllocationOffset);
+    address_offset_t third_allocation_offset = 0;
+    error_code = stack_allocator->allocate(0, 0, third_allocation_size, third_allocation_offset);
+    retail_assert(error_code == success, "Third allocation has failed!");
+    output_allocation_information(third_allocation_size, third_allocation_offset);
 
     retail_assert(
-        thirdAllocationOffset == secondAllocationOffset + secondAllocationSize + sizeof(memory_allocation_metadata_t),
+        third_allocation_offset == second_allocation_offset + second_allocation_size + sizeof(memory_allocation_metadata_t),
         "Third allocation offset does not have expected value.");
 
-    retail_assert(pStackAllocator->get_allocation_count() == 3, "Allocation count is not the expected 3!");
+    retail_assert(stack_allocator->get_allocation_count() == 3, "Allocation count is not the expected 3!");
 
     // Commit stack allocator.
-    size_t serializationNumber = 331;
-    cout << endl << "Commit first stack allocator with serialization number " << serializationNumber << "..." << endl;
-    errorCode = memoryManager.commit_stack_allocator(pStackAllocator, serializationNumber);
-    retail_assert(errorCode == success, "First sta>ck allocator commit has failed!");
+    size_t serialization_number = 331;
+    cout << endl << "Commit first stack allocator with serialization number " << serialization_number << "..." << endl;
+    error_code = memory_manager.commit_stack_allocator(stack_allocator, serialization_number);
+    retail_assert(error_code == success, "First sta>ck allocator commit has failed!");
 
-    memory_list_node_t* pFirstReadListHead = nullptr;
-    errorCode = memoryManager.get_unserialized_allocations_list_head(pFirstReadListHead);
-    retail_assert(errorCode == success, "Failed first call to get unserialized allocations list head!");
-    retail_assert(pFirstReadListHead != nullptr, "Failed the first attempt to retrieve a valid unserialized allocations list head.");
+    memory_list_node_t* first_read_of_list_head = nullptr;
+    error_code = memory_manager.get_unserialized_allocations_list_head(first_read_of_list_head);
+    retail_assert(error_code == success, "Failed first call to get unserialized allocations list head!");
+    retail_assert(first_read_of_list_head != nullptr, "Failed the first attempt to retrieve a valid unserialized allocations list head.");
 
-    // Make 2 more allocations using a new StackAllocator.
+    // Make 2 more allocations using a new stack_allocator_t.
     // Both allocations will replace earlier allocations (4th replaces 2nd and 5th replaces 1st),
     // which will get garbage collected at commit time.
-    errorCode = memoryManager.create_stack_allocator(stackAllocatorMemorySize, pStackAllocator);
-    retail_assert(errorCode == success, "Second stack allocator creation has failed!");
+    error_code = memory_manager.create_stack_allocator(stack_allocator_memory_size, stack_allocator);
+    retail_assert(error_code == success, "Second stack allocator creation has failed!");
 
-    size_t fourthAllocationSize = 256;
-    size_t fifthAllocationSize = 64;
+    size_t fourth_allocation_size = 256;
+    size_t fifth_allocation_size = 64;
 
-    address_offset_t fourthAllocationOffset = 0;
-    errorCode = pStackAllocator->allocate(0, secondAllocationOffset, fourthAllocationSize, fourthAllocationOffset);
-    retail_assert(errorCode == success, "Fourth allocation has failed!");
-    output_allocation_information(fourthAllocationSize, fourthAllocationOffset);
+    address_offset_t fourth_allocation_offset = 0;
+    error_code = stack_allocator->allocate(0, second_allocation_offset, fourth_allocation_size, fourth_allocation_offset);
+    retail_assert(error_code == success, "Fourth allocation has failed!");
+    output_allocation_information(fourth_allocation_size, fourth_allocation_offset);
 
-    address_offset_t fifthAllocationOffset = 0;
-    errorCode = pStackAllocator->allocate(0, firstAllocationOffset, fifthAllocationSize, fifthAllocationOffset);
-    retail_assert(errorCode == success, "Fifth allocation has failed!");
-    output_allocation_information(fifthAllocationSize, fifthAllocationOffset);
+    address_offset_t fifth_allocation_offset = 0;
+    error_code = stack_allocator->allocate(0, first_allocation_offset, fifth_allocation_size, fifth_allocation_offset);
+    retail_assert(error_code == success, "Fifth allocation has failed!");
+    output_allocation_information(fifth_allocation_size, fifth_allocation_offset);
 
     retail_assert(
-        fourthAllocationOffset + fourthAllocationSize + sizeof(memory_allocation_metadata_t) == fifthAllocationOffset,
+        fourth_allocation_offset + fourth_allocation_size + sizeof(memory_allocation_metadata_t) == fifth_allocation_offset,
         "Second allocation offset does not have expected value.");
 
     // Commit stack allocator.
-    serializationNumber = 332;
-    cout << endl << "Commit second stack allocator with serialization number " << serializationNumber << "..." << endl;
-    errorCode = memoryManager.commit_stack_allocator(pStackAllocator, serializationNumber);
-    retail_assert(errorCode == success, "Second stack allocator commit has failed!");
+    serialization_number = 332;
+    cout << endl << "Commit second stack allocator with serialization number " << serialization_number << "..." << endl;
+    error_code = memory_manager.commit_stack_allocator(stack_allocator, serialization_number);
+    retail_assert(error_code == success, "Second stack allocator commit has failed!");
 
-    memory_list_node_t* pSecondReadListHead = nullptr;
-    errorCode = memoryManager.get_unserialized_allocations_list_head(pSecondReadListHead);
-    retail_assert(errorCode == success, "Failed second call to get unserialized allocations list head!");
-    retail_assert(pSecondReadListHead != nullptr, "Failed the second attempt to retrieve a valid unserialized allocations list head.");
+    memory_list_node_t* second_read_of_list_head = nullptr;
+    error_code = memory_manager.get_unserialized_allocations_list_head(second_read_of_list_head);
+    retail_assert(error_code == success, "Failed second call to get unserialized allocations list head!");
+    retail_assert(second_read_of_list_head != nullptr, "Failed the second attempt to retrieve a valid unserialized allocations list head.");
 
     retail_assert(
-        pSecondReadListHead->next == pFirstReadListHead->next,
+        second_read_of_list_head->next == first_read_of_list_head->next,
         "First node in unserialized allocations list should not have changed!");
 
     // Validate content of unserialized allocations list.
     retail_assert(
-        pSecondReadListHead->next != 0,
+        second_read_of_list_head->next != 0,
         "The unserialized allocations list should contain a first entry!");
-    memory_record_t* pFirstUnserializedRecord = memoryManager.read_memory_record(pSecondReadListHead->next);
+    memory_record_t* first_unserialized_record = memory_manager.read_memory_record(second_read_of_list_head->next);
     retail_assert(
-        pFirstUnserializedRecord->next != 0,
+        first_unserialized_record->next != 0,
         "The unserialized allocations list should contain a second entry!");
-    address_offset_t secondUnserializedRecordOffset = pFirstUnserializedRecord->next;
+    address_offset_t second_unserialized_record_offset = first_unserialized_record->next;
 
     // Update unserialized allocations list.
     cout << endl << "Calling UpdateUnserializedAllocationsListHead() with parameter: ";
-    cout << secondUnserializedRecordOffset << "." << endl;
-    errorCode = memoryManager.update_unserialized_allocations_list_head(pFirstUnserializedRecord->next);
-    retail_assert(errorCode == success, "Failed first call to UpdateUnserializedAllocationsListHead()!");
+    cout << second_unserialized_record_offset << "." << endl;
+    error_code = memory_manager.update_unserialized_allocations_list_head(first_unserialized_record->next);
+    retail_assert(error_code == success, "Failed first call to UpdateUnserializedAllocationsListHead()!");
 
-    memory_list_node_t* pThirdReadListHead = nullptr;
-    errorCode = memoryManager.get_unserialized_allocations_list_head(pThirdReadListHead);
-    retail_assert(errorCode == success, "Failed third call to get unserialized allocations list head!");
-    retail_assert(pThirdReadListHead != nullptr, "Failed the third attempt to retrieve a valid unserialized allocations list head.");
+    memory_list_node_t* third_read_of_list_head = nullptr;
+    error_code = memory_manager.get_unserialized_allocations_list_head(third_read_of_list_head);
+    retail_assert(error_code == success, "Failed third call to get unserialized allocations list head!");
+    retail_assert(third_read_of_list_head != nullptr, "Failed the third attempt to retrieve a valid unserialized allocations list head.");
 
     retail_assert(
-        pThirdReadListHead->next == secondUnserializedRecordOffset,
+        third_read_of_list_head->next == second_unserialized_record_offset,
         "The value of the first node of the unserialized allocations list is not the expected one!");
 
     // Test allocating from freed memory.
     // First, we reclaim a full freed block.
-    address_offset_t offsetFirstFreeAllocation = 0;
-    errorCode = memoryManager.allocate(secondAllocationSize, offsetFirstFreeAllocation);
-    retail_assert(errorCode == success, "First free allocation has failed!");
-    output_allocation_information(secondAllocationSize, offsetFirstFreeAllocation);
+    address_offset_t offset_first_free_allocation = 0;
+    error_code = memory_manager.allocate(second_allocation_size, offset_first_free_allocation);
+    retail_assert(error_code == success, "First free allocation has failed!");
+    output_allocation_information(second_allocation_size, offset_first_free_allocation);
 
     // Second, we reclaim a part of a freed block.
-    address_offset_t offsetSecondFreeAllocation = 0;
-    errorCode = memoryManager.allocate(thirdAllocationSize, offsetSecondFreeAllocation);
-    retail_assert(errorCode == success, "First free allocation has failed!");
-    output_allocation_information(thirdAllocationSize, offsetSecondFreeAllocation);
+    address_offset_t offset_second_free_allocation = 0;
+    error_code = memory_manager.allocate(third_allocation_size, offset_second_free_allocation);
+    retail_assert(error_code == success, "First free allocation has failed!");
+    output_allocation_information(third_allocation_size, offset_second_free_allocation);
 
     cout << endl << c_debug_output_separator_line_start << endl;
-    cout << "*** MemoryManager advanced operation tests ended ***" << endl;
+    cout << "*** memory_manager_t advanced operation tests ended ***" << endl;
     cout << c_debug_output_separator_line_end << endl;
 }

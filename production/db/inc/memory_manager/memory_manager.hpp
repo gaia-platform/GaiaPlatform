@@ -21,7 +21,7 @@ class memory_manager_t : public base_memory_manager_t
 
     memory_manager_t();
 
-    // Sets CMemoryManager execution flags.
+    // Sets memory_manager_t execution flags.
     void set_execution_flags(const execution_flags_t& execution_flags);
 
     // Tells the memory manager which memory area it should manage.
@@ -34,7 +34,7 @@ class memory_manager_t : public base_memory_manager_t
     // if not, then the manager will deal with it as if it was already initialized by another memory manager
     // - this means that parts of it are already allocated and in use.
     //
-    // All addresses will be offsets relative to the beginning of this block, represented as ADDRESS_OFFSET.
+    // All addresses will be offsets relative to the beginning of this block, represented as address_offset_t.
     error_code_t manage(
         uint8_t* memory_address,
         size_t memory_size,
@@ -46,7 +46,7 @@ class memory_manager_t : public base_memory_manager_t
     // such as in the case when we load the database objects from disk.
     error_code_t allocate(size_t memory_size, address_offset_t& allocated_memory_offset) const;
 
-    // Creates a StackAllocator object that will be used with transactions.
+    // Creates a stack_allocator_t object that will be used with transactions.
     // This interface will be used to allocate memory during regular database operation.
     error_code_t create_stack_allocator(size_t memory_size, stack_allocator_t*& stack_allocator) const;
 
@@ -86,7 +86,7 @@ class memory_manager_t : public base_memory_manager_t
         memory_record_t reclaimed_records_list_head;
         memory_record_t unserialized_allocations_list_head;
 
-        void Clear(address_offset_t low, address_offset_t high)
+        void clear(address_offset_t low, address_offset_t high)
         {
             start_main_available_memory = low;
             lowest_metadata_memory_use = high;

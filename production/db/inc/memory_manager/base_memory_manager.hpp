@@ -52,7 +52,7 @@ class base_memory_manager_t
     // otherwise it will be set to the list's first node.
     void start(memory_record_t* list_head, iteration_context_t& context) const;
 
-    // Basic iteration method over a MemoryRecord list, using two references.
+    // Basic iteration method over a memory_record list, using two references.
     // It ensures a safe traversal of the list in a multi-threaded context
     // in which other threads may insert or remove nodes from the list.
     //
@@ -72,8 +72,8 @@ class base_memory_manager_t
     // is still part of our list, but does not prevent that link from changing.
     // An access lock ensures that the 'next' link cannot be changed by another thread.
     //
-    // For Insert/Update, we only need to acquire a lock on pPreviousRecord, to "freeze its next link".
-    // For Delete, we need to acquire locks on both pPreviousRecord and pCurrentRecord,
+    // For Insert/Update, we only need to acquire a lock on previousRecord, to "freeze its next link".
+    // For Delete, we need to acquire locks on both previousRecord and currentRecord,
     // because the operation impacts two links.
     //
     // Returns true if access was acquired and false otherwise.

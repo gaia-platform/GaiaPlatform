@@ -26,21 +26,21 @@ struct memory_allocation_metadata_t
 };
 
 // Common structure of an in-memory linked list node
-// that includes an AccessControl field for synchronization.
+// that includes an access_control_t field for synchronization.
 struct memory_list_node_t
 {
     address_offset_t next;
-    access_control_t accessControl;
+    access_control_t access_control;
 
     void clear()
     {
         next = 0;
-        accessControl.clear();
+        access_control.clear();
     }
 };
 
 // Generic structure meant for tracking various memory objects,
-// such as freed memory blocks or StackAllocator metadata records.
+// such as freed memory blocks or stack_allocator_t metadata records.
 struct memory_record_t : memory_list_node_t
 {
     address_offset_t memory_offset;
@@ -55,7 +55,7 @@ struct memory_record_t : memory_list_node_t
     }
 };
 
-// A StackAllocator's metadata information.
+// A stack_allocator_t's metadata information.
 struct stack_allocator_metadata_t
 {
     // Total allocation count.
@@ -80,13 +80,13 @@ struct stack_allocator_metadata_t
     }
 };
 
-// The information about a StackAllocator allocation.
+// The information about a stack_allocator_t allocation.
 struct stack_allocator_allocation_t
 {
-    // The slotId associated to this object.
+    // The slot_id_t associated to this object.
     // This is an opaque value for us that we just store here,
     // for the serialization code to read later.
-    slot_id_t slotId;
+    slot_id_t slot_id;
 
     // The offset of the allocation.
     address_offset_t memory_offset;
@@ -96,7 +96,7 @@ struct stack_allocator_allocation_t
 
     void clear()
     {
-        slotId = 0;
+        slot_id = 0;
         memory_offset = 0;
         old_memory_offset = 0;
     }
