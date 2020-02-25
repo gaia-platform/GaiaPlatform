@@ -12,17 +12,17 @@
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;
 
-CAutoAccessControl::CAutoAccessControl()
+auto_access_control::auto_access_control()
 {
     clear();
 }
 
-CAutoAccessControl::~CAutoAccessControl()
+auto_access_control::~auto_access_control()
 {
     release_access();
 }
 
-void CAutoAccessControl::clear()
+void auto_access_control::clear()
 {
     m_access_control = nullptr;
     m_locked_access = none;
@@ -30,7 +30,7 @@ void CAutoAccessControl::clear()
     m_has_locked_access = false;
 }
 
-void CAutoAccessControl::mark_access(AccessControl* pAccessControl)
+void auto_access_control::mark_access(access_control* pAccessControl)
 {
     retail_assert(pAccessControl != nullptr, "No access control was provided!");
     retail_assert(pAccessControl->readers_count != UINT32_MAX, "Readers count has maxed up and will overflow!");
@@ -43,35 +43,35 @@ void CAutoAccessControl::mark_access(AccessControl* pAccessControl)
     m_has_marked_access = true;
 }
 
-bool CAutoAccessControl::try_to_lock_access(
-    AccessControl* pAccessControl,
-    EAccessLockType wantedAccess,
-    EAccessLockType& existingAccess)
+bool auto_access_control::try_to_lock_access(
+    access_control* pAccessControl,
+    access_lock_type wantedAccess,
+    access_lock_type& existingAccess)
 {
-    retail_assert(wantedAccess != EAccessLockType::none, "Invalid wanted access!");
+    retail_assert(wantedAccess != access_lock_type::none, "Invalid wanted access!");
 
     mark_access(pAccessControl);
 
     m_locked_access = wantedAccess;
-    existingAccess = __sync_val_compare_and_swap(&m_access_control->access_lock, EAccessLockType::none, m_locked_access);
-    m_has_locked_access = (existingAccess == EAccessLockType::none);
+    existingAccess = __sync_val_compare_and_swap(&m_access_control->access_lock, access_lock_type::none, m_locked_access);
+    m_has_locked_access = (existingAccess == access_lock_type::none);
 
     return m_has_locked_access;
 }
 
-bool CAutoAccessControl::try_to_lock_access(AccessControl* pAccessControl, EAccessLockType wantedAccess)
+bool auto_access_control::try_to_lock_access(access_control* pAccessControl, access_lock_type wantedAccess)
 {
-    EAccessLockType existingAccess;
+    access_lock_type existingAccess;
 
     return try_to_lock_access(pAccessControl, wantedAccess, existingAccess);
 }
 
-bool CAutoAccessControl::try_to_lock_access(
-    EAccessLockType wantedAccess,
-    EAccessLockType& existingAccess)
+bool auto_access_control::try_to_lock_access(
+    access_lock_type wantedAccess,
+    access_lock_type& existingAccess)
 {
     retail_assert(m_access_control != nullptr, "Invalid call, no access control available!");
-    retail_assert(wantedAccess != EAccessLockType::none, "Invalid wanted access!");
+    retail_assert(wantedAccess != access_lock_type::none, "Invalid wanted access!");
 
     if (m_has_locked_access)
     {
@@ -79,20 +79,20 @@ bool CAutoAccessControl::try_to_lock_access(
     }
 
     m_locked_access = wantedAccess;
-    existingAccess = __sync_val_compare_and_swap(&m_access_control->access_lock, EAccessLockType::none, m_locked_access);
-    m_has_locked_access = (existingAccess == EAccessLockType::none);
+    existingAccess = __sync_val_compare_and_swap(&m_access_control->access_lock, access_lock_type::none, m_locked_access);
+    m_has_locked_access = (existingAccess == access_lock_type::none);
 
     return m_has_locked_access;
 }
 
-bool CAutoAccessControl::try_to_lock_access(EAccessLockType wantedAccess)
+bool auto_access_control::try_to_lock_access(access_lock_type wantedAccess)
 {
-    EAccessLockType existingAccess;
+    access_lock_type existingAccess;
 
     return try_to_lock_access(wantedAccess, existingAccess);
 }
 
-void CAutoAccessControl::release_access()
+void auto_access_control::release_access()
 {
     if (m_access_control == nullptr)
     {
@@ -110,7 +110,7 @@ void CAutoAccessControl::release_access()
     m_access_control = nullptr;
 }
 
-void CAutoAccessControl::release_access_lock()
+void auto_access_control::release_access_lock()
 {
     if (m_access_control == nullptr)
     {
@@ -120,10 +120,10 @@ void CAutoAccessControl::release_access_lock()
     if (m_has_locked_access)
     {
         retail_assert(
-            __sync_bool_compare_and_swap(&m_access_control->access_lock, m_locked_access, EAccessLockType::none),
+            __sync_bool_compare_and_swap(&m_access_control->access_lock, m_locked_access, access_lock_type::none),
             "Failed to release access lock!");
         m_has_locked_access = false;
     }
 
-    m_locked_access = EAccessLockType::none;
+    m_locked_access = access_lock_type::none;
 }

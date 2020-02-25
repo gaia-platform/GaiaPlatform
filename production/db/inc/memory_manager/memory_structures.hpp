@@ -19,7 +19,7 @@ namespace memory_manager
 {
 
 // Each memory allocation will be prefixed by such a metadata block.
-struct MemoryAllocationMetadata
+struct memory_allocation_metadata
 {
     // Size of memory allocation block, including this metadata.
     uint64_t allocation_size;
@@ -27,10 +27,10 @@ struct MemoryAllocationMetadata
 
 // Common structure of an in-memory linked list node
 // that includes an AccessControl field for synchronization.
-struct MemoryListNode
+struct memory_list_node
 {
     ADDRESS_OFFSET next;
-    AccessControl accessControl;
+    access_control accessControl;
 
     void clear()
     {
@@ -41,14 +41,14 @@ struct MemoryListNode
 
 // Generic structure meant for tracking various memory objects,
 // such as freed memory blocks or StackAllocator metadata records.
-struct MemoryRecord : MemoryListNode
+struct memory_record : memory_list_node
 {
     ADDRESS_OFFSET memory_offset;
     size_t memory_size;
 
     void clear()
     {
-        MemoryListNode::clear();
+        memory_list_node::clear();
 
         memory_offset = 0;
         memory_size = 0;
@@ -56,7 +56,7 @@ struct MemoryRecord : MemoryListNode
 };
 
 // A StackAllocator's metadata information.
-struct StackAllocatorMetadata
+struct stack_allocator_metadata
 {
     // Total allocation count.
     size_t count_allocations;
@@ -81,7 +81,7 @@ struct StackAllocatorMetadata
 };
 
 // The information about a StackAllocator allocation.
-struct StackAllocatorAllocation
+struct stack_allocator_allocation
 {
     // The slotId associated to this object.
     // This is an opaque value for us that we just store here,

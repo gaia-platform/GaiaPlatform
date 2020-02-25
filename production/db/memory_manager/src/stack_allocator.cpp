@@ -12,17 +12,17 @@
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;
 
-CStackAllocator::CStackAllocator() : CBaseMemoryManager()
+stack_allocator::stack_allocator() : base_memory_manager()
 {
     m_metadata = nullptr;
 }
 
-void CStackAllocator::set_execution_flags(const ExecutionFlags& executionFlags)
+void stack_allocator::set_execution_flags(const execution_flags& executionFlags)
 {
     m_execution_flags = executionFlags;
 }
 
-EMemoryManagerErrorCode CStackAllocator::initialize(
+gaia::db::memory_manager::error_code stack_allocator::initialize(
     uint8_t* pBaseMemoryAddress,
     ADDRESS_OFFSET memoryOffset,
     size_t memorySize)
@@ -47,7 +47,7 @@ EMemoryManagerErrorCode CStackAllocator::initialize(
         return memory_size_not_aligned;
     }
 
-    if (memorySize < sizeof(StackAllocatorMetadata))
+    if (memorySize < sizeof(stack_allocator_metadata))
     {
         return insufficient_memory_size;
     }
@@ -59,8 +59,8 @@ EMemoryManagerErrorCode CStackAllocator::initialize(
 
     // Map the metadata information for quick reference.
     uint8_t* pMetadataAddress
-        = m_base_memory_address + m_base_memory_offset + m_total_memory_size - sizeof(StackAllocatorMetadata);
-    m_metadata = reinterpret_cast<StackAllocatorMetadata*>(pMetadataAddress);
+        = m_base_memory_address + m_base_memory_offset + m_total_memory_size - sizeof(stack_allocator_metadata);
+    m_metadata = reinterpret_cast<stack_allocator_metadata*>(pMetadataAddress);
     m_metadata->clear();
     m_metadata->next_allocation_offset = m_base_memory_offset;
 
@@ -72,7 +72,7 @@ EMemoryManagerErrorCode CStackAllocator::initialize(
     return success;
 }
 
-EMemoryManagerErrorCode CStackAllocator::allocate(
+gaia::db::memory_manager::error_code stack_allocator::allocate(
     SLOT_ID slotId,
     ADDRESS_OFFSET oldSlotOffset,
     size_t memorySize,
@@ -86,7 +86,7 @@ EMemoryManagerErrorCode CStackAllocator::allocate(
     }
 
     // A memorySize of 0 indicates a deletion - handle specially.
-    EMemoryManagerErrorCode errorCode = validate_size(memorySize);
+    error_code errorCode = validate_size(memorySize);
     if (memorySize != 0 && errorCode != success)
     {
         return errorCode;
@@ -104,7 +104,7 @@ EMemoryManagerErrorCode CStackAllocator::allocate(
     size_t countAllocations = m_metadata->count_allocations;
     if (sizeToAllocate > 0 && countAllocations > 0)
     {
-        sizeToAllocate += sizeof(MemoryAllocationMetadata);
+        sizeToAllocate += sizeof(memory_allocation_metadata);
     }
 
     ADDRESS_OFFSET nextAllocationOffset = m_metadata->next_allocation_offset;
@@ -112,7 +112,7 @@ EMemoryManagerErrorCode CStackAllocator::allocate(
 
     // Now we can do a more accurate check about whether this allocation fits in our memory.
     if (nextAllocationOffset + sizeToAllocate
-        > metadataOffset - (countAllocations + 1) * sizeof(StackAllocatorAllocation))
+        > metadataOffset - (countAllocations + 1) * sizeof(stack_allocator_allocation))
     {
         return insufficient_memory_size;
     }
@@ -127,8 +127,8 @@ EMemoryManagerErrorCode CStackAllocator::allocate(
         else
         {
             uint8_t* pNextAllocationAddress = get_address(nextAllocationOffset);
-            MemoryAllocationMetadata* pNextAllocationMetadata
-                = reinterpret_cast<MemoryAllocationMetadata*>(pNextAllocationAddress);
+            memory_allocation_metadata* pNextAllocationMetadata
+                = reinterpret_cast<memory_allocation_metadata*>(pNextAllocationAddress);
             pNextAllocationMetadata->allocation_size = sizeToAllocate;
         }
     }
@@ -136,7 +136,7 @@ EMemoryManagerErrorCode CStackAllocator::allocate(
     m_metadata->count_allocations++;
 
     // Record allocation information.
-    StackAllocatorAllocation* pAllocationRecord = get_allocation_record(m_metadata->count_allocations);
+    stack_allocator_allocation* pAllocationRecord = get_allocation_record(m_metadata->count_allocations);
     pAllocationRecord->clear();
 
     pAllocationRecord->slotId = slotId;
@@ -154,7 +154,7 @@ EMemoryManagerErrorCode CStackAllocator::allocate(
         }
         else
         {
-            pAllocationRecord->memory_offset = nextAllocationOffset + sizeof(MemoryAllocationMetadata);
+            pAllocationRecord->memory_offset = nextAllocationOffset + sizeof(memory_allocation_metadata);
         }
     }
 
@@ -171,18 +171,18 @@ EMemoryManagerErrorCode CStackAllocator::allocate(
     return success;
 }
 
-EMemoryManagerErrorCode CStackAllocator::deallocate(SLOT_ID slotId, ADDRESS_OFFSET slotOffset) const
+gaia::db::memory_manager::error_code stack_allocator::deallocate(SLOT_ID slotId, ADDRESS_OFFSET slotOffset) const
 {
     ADDRESS_OFFSET allocatedOffset;
 
-    EMemoryManagerErrorCode errorCode = allocate(slotId, slotOffset, 0, allocatedOffset);
+    error_code errorCode = allocate(slotId, slotOffset, 0, allocatedOffset);
 
     retail_assert(allocatedOffset == 0, "Allocate(0) should have returned a 0 offset!");
 
     return errorCode;
 }
 
-EMemoryManagerErrorCode CStackAllocator::deallocate(size_t countAllocationsToKeep) const
+gaia::db::memory_manager::error_code stack_allocator::deallocate(size_t countAllocationsToKeep) const
 {
     if (m_metadata == nullptr)
     {
@@ -213,12 +213,12 @@ EMemoryManagerErrorCode CStackAllocator::deallocate(size_t countAllocationsToKee
     return success;
 }
 
-StackAllocatorMetadata* CStackAllocator::get_metadata() const
+stack_allocator_metadata* stack_allocator::get_metadata() const
 {
     return m_metadata;
 }
 
-size_t CStackAllocator::get_allocation_count() const
+size_t stack_allocator::get_allocation_count() const
 {
     if (m_metadata == nullptr)
     {
@@ -228,7 +228,7 @@ size_t CStackAllocator::get_allocation_count() const
     return m_metadata->count_allocations;
 }
 
-StackAllocatorAllocation* CStackAllocator::get_allocation_record(size_t allocationNumber) const
+stack_allocator_allocation* stack_allocator::get_allocation_record(size_t allocationNumber) const
 {
     if (m_metadata == nullptr)
     {
@@ -241,13 +241,13 @@ StackAllocatorAllocation* CStackAllocator::get_allocation_record(size_t allocati
     }
 
     ADDRESS_OFFSET metadataOffset = get_offset(reinterpret_cast<uint8_t*>(m_metadata));
-    ADDRESS_OFFSET allocationRecordOffset = metadataOffset - allocationNumber * sizeof(StackAllocatorAllocation);
+    ADDRESS_OFFSET allocationRecordOffset = metadataOffset - allocationNumber * sizeof(stack_allocator_allocation);
     uint8_t* pAllocationRecordAddress = get_address(allocationRecordOffset);
-    StackAllocatorAllocation* pAllocationRecord = reinterpret_cast<StackAllocatorAllocation*>(pAllocationRecordAddress);
+    stack_allocator_allocation* pAllocationRecord = reinterpret_cast<stack_allocator_allocation*>(pAllocationRecordAddress);
     return pAllocationRecord;
 }
 
-ADDRESS_OFFSET CStackAllocator::get_next_allocation_offset() const
+ADDRESS_OFFSET stack_allocator::get_next_allocation_offset() const
 {
     if (m_metadata == nullptr)
     {
@@ -263,7 +263,7 @@ ADDRESS_OFFSET CStackAllocator::get_next_allocation_offset() const
     for (size_t allocationNumber = 2; allocationNumber <= countAllocations; allocationNumber++)
     {
         // Get allocation information object.
-        StackAllocatorAllocation* pAllocationRecord = get_allocation_record(allocationNumber);
+        stack_allocator_allocation* pAllocationRecord = get_allocation_record(allocationNumber);
 
         // Get actual allocation offset.
         ADDRESS_OFFSET allocationOffset = pAllocationRecord->memory_offset;
@@ -275,7 +275,7 @@ ADDRESS_OFFSET CStackAllocator::get_next_allocation_offset() const
         }
 
         // Get allocation prefix pointer, to get the allocation size.
-        MemoryAllocationMetadata* pAllocationMetadata = read_allocation_metadata(allocationOffset);
+        memory_allocation_metadata* pAllocationMetadata = read_allocation_metadata(allocationOffset);
 
         // Add allocation size.
         nextAllocationOffset += pAllocationMetadata->allocation_size;
@@ -284,7 +284,7 @@ ADDRESS_OFFSET CStackAllocator::get_next_allocation_offset() const
     return nextAllocationOffset;
 }
 
-void CStackAllocator::output_debugging_information(const string& contextDescription) const
+void stack_allocator::output_debugging_information(const string& contextDescription) const
 {
     cout << endl << c_debug_output_separator_line_start << endl;
     cout << "  Stack allocator information for context: " << contextDescription << ":" << endl;

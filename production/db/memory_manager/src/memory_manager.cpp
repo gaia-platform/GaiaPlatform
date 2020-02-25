@@ -21,7 +21,7 @@ using namespace std;
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;
 
-CMemoryManager::CMemoryManager() : CBaseMemoryManager()
+memory_manager::memory_manager() : base_memory_manager()
 {
     m_metadata = nullptr;
 
@@ -31,19 +31,19 @@ CMemoryManager::CMemoryManager() : CBaseMemoryManager()
 
     messageStream
      << "Metadata information structure representation does not have the expected size on this system: "
-     << sizeof(Metadata) << "!";
+     << sizeof(metadata) << "!";
 
     retail_assert(
-        sizeof(Metadata) == expectedMetadataSizeInBytes,
+        sizeof(metadata) == expectedMetadataSizeInBytes,
         messageStream.str());
 }
 
-void CMemoryManager::set_execution_flags(const ExecutionFlags& executionFlags)
+void memory_manager::set_execution_flags(const execution_flags& executionFlags)
 {
     m_execution_flags = executionFlags;
 }
 
-EMemoryManagerErrorCode CMemoryManager::manage(
+gaia::db::memory_manager::error_code memory_manager::manage(
     uint8_t* pMemoryAddress,
     size_t memorySize,
     size_t mainMemorySystemReservedSize,
@@ -65,8 +65,8 @@ EMemoryManagerErrorCode CMemoryManager::manage(
         return memory_size_not_aligned;
     }
 
-    if (memorySize < sizeof(Metadata) + mainMemorySystemReservedSize
-        || sizeof(Metadata) + mainMemorySystemReservedSize < mainMemorySystemReservedSize)
+    if (memorySize < sizeof(metadata) + mainMemorySystemReservedSize
+        || sizeof(metadata) + mainMemorySystemReservedSize < mainMemorySystemReservedSize)
     {
         return insufficient_memory_size;
     }
@@ -77,13 +77,13 @@ EMemoryManagerErrorCode CMemoryManager::manage(
     m_main_memory_system_reserved_size = mainMemorySystemReservedSize;
 
     // Map the metadata information for quick reference.
-    m_metadata = reinterpret_cast<Metadata*>(m_base_memory_address);
+    m_metadata = reinterpret_cast<metadata*>(m_base_memory_address);
 
     // If necessary, initialize our metadata.
     if (initialize)
     {
         m_metadata->Clear(
-            sizeof(Metadata),
+            sizeof(metadata),
             m_total_memory_size);
     }
 
@@ -101,7 +101,7 @@ EMemoryManagerErrorCode CMemoryManager::manage(
     return success;
 }
 
-EMemoryManagerErrorCode CMemoryManager::allocate(
+gaia::db::memory_manager::error_code memory_manager::allocate(
     size_t memorySize,
     ADDRESS_OFFSET& allocatedMemoryOffset) const
 {
@@ -112,13 +112,13 @@ EMemoryManagerErrorCode CMemoryManager::allocate(
         return not_initialized;
     }
 
-    EMemoryManagerErrorCode errorCode = validate_size(memorySize);
+    error_code errorCode = validate_size(memorySize);
     if (errorCode != success)
     {
         return errorCode;
     }
 
-    size_t sizeToAllocate = memorySize + sizeof(MemoryAllocationMetadata);
+    size_t sizeToAllocate = memorySize + sizeof(memory_allocation_metadata);
 
     // First, attempt to reuse freed memory blocks, if possible.
     allocatedMemoryOffset = allocate_from_freed_memory(sizeToAllocate);
@@ -142,9 +142,9 @@ EMemoryManagerErrorCode CMemoryManager::allocate(
     return success;
 }
 
-EMemoryManagerErrorCode CMemoryManager::create_stack_allocator(
+gaia::db::memory_manager::error_code memory_manager::create_stack_allocator(
     size_t memorySize,
-    CStackAllocator*& pStackAllocator) const
+    stack_allocator*& pStackAllocator) const
 {
     pStackAllocator = nullptr;
 
@@ -154,13 +154,13 @@ EMemoryManagerErrorCode CMemoryManager::create_stack_allocator(
     }
 
     ADDRESS_OFFSET memoryOffset = 0;
-    EMemoryManagerErrorCode errorCode = allocate(memorySize, memoryOffset);
+    error_code errorCode = allocate(memorySize, memoryOffset);
     if (errorCode != success)
     {
         return errorCode;
     }
 
-    pStackAllocator = new CStackAllocator();
+    pStackAllocator = new stack_allocator();
 
     pStackAllocator->set_execution_flags(m_execution_flags);
 
@@ -174,8 +174,8 @@ EMemoryManagerErrorCode CMemoryManager::create_stack_allocator(
     return errorCode;
 }
 
-EMemoryManagerErrorCode CMemoryManager::commit_stack_allocator(
-    CStackAllocator* pStackAllocator,
+gaia::db::memory_manager::error_code memory_manager::commit_stack_allocator(
+    stack_allocator* pStackAllocator,
     SERIALIZATION_NUMBER serializationNumber) const
 {
     if (m_metadata == nullptr)
@@ -189,17 +189,17 @@ EMemoryManagerErrorCode CMemoryManager::commit_stack_allocator(
     }
 
     // Ensure that the stack allocator memory gets reclaimed.
-    unique_ptr<CStackAllocator> apStackAllocator(pStackAllocator);
+    unique_ptr<stack_allocator> apStackAllocator(pStackAllocator);
 
     size_t countAllocations = pStackAllocator->get_allocation_count();
 
     // Get metadata record for the entire stack allocator memory block.
-    MemoryAllocationMetadata* pFirstStackAllocationMetadata = read_allocation_metadata(pStackAllocator->m_base_memory_offset);
+    memory_allocation_metadata* pFirstStackAllocationMetadata = read_allocation_metadata(pStackAllocator->m_base_memory_offset);
     ADDRESS_OFFSET firstStackAllocationMetadataOffset
         = get_offset(reinterpret_cast<uint8_t *>(pFirstStackAllocationMetadata));
 
     // Get metadata for the stack allocator.
-    StackAllocatorMetadata* pStackAllocatorMetadata = pStackAllocator->get_metadata();
+    stack_allocator_metadata* pStackAllocatorMetadata = pStackAllocator->get_metadata();
     retail_assert(pStackAllocatorMetadata != nullptr, "An unexpected null metadata record was retrieved!");
 
     // Write serialization number.
@@ -212,16 +212,16 @@ EMemoryManagerErrorCode CMemoryManager::commit_stack_allocator(
         {
             retail_assert(
                 firstStackAllocationMetadataOffset
-                == pStackAllocator->m_base_memory_offset - sizeof(MemoryAllocationMetadata),
+                == pStackAllocator->m_base_memory_offset - sizeof(memory_allocation_metadata),
                 "Allocation metadata offset does not match manually computed size!");
             retail_assert(
                 pFirstStackAllocationMetadata->allocation_size
-                == pStackAllocator->m_total_memory_size + sizeof(MemoryAllocationMetadata),
+                == pStackAllocator->m_total_memory_size + sizeof(memory_allocation_metadata),
                 "Allocation metadata size does not match manually computed size!");
         }
 
         // Try to mark memory as free. This operation can only fail if we run out of memory.
-        MemoryRecord* pFreeMemoryRecord
+        memory_record* pFreeMemoryRecord
             = get_free_memory_record(firstStackAllocationMetadataOffset, pFirstStackAllocationMetadata->allocation_size);
         if (pFreeMemoryRecord == nullptr)
         {
@@ -237,21 +237,21 @@ EMemoryManagerErrorCode CMemoryManager::commit_stack_allocator(
         // Iterate over all StackAllocator allocations and collect old memory offsets in free memory records.
         // However, we will not insert any of these records into the free memory list
         // until we know that our processing can no longer fail.
-        unique_ptr<MemoryRecord*[]> argFreeMemoryRecords(new MemoryRecord*[countAllocations]());
+        unique_ptr<memory_record*[]> argFreeMemoryRecords(new memory_record*[countAllocations]());
         for (size_t allocationNumber = 1; allocationNumber <= countAllocations; allocationNumber++)
         {
-            StackAllocatorAllocation* pAllocationRecord = pStackAllocator->get_allocation_record(allocationNumber);
+            stack_allocator_allocation* pAllocationRecord = pStackAllocator->get_allocation_record(allocationNumber);
             retail_assert(pAllocationRecord != nullptr, "An unexpected null allocation record was retrieved!");
 
             if (pAllocationRecord->old_memory_offset != 0)
             {
-                MemoryAllocationMetadata* pAllocationMetadata = read_allocation_metadata(pAllocationRecord->old_memory_offset);
+                memory_allocation_metadata* pAllocationMetadata = read_allocation_metadata(pAllocationRecord->old_memory_offset);
                 ADDRESS_OFFSET allocationMetadataOffset = get_offset(reinterpret_cast<uint8_t*>(pAllocationMetadata));
 
                 // Mark memory block as free.
                 // If we cannot do this, then we ran out of memory;
                 // in that case we'll just reclaim all records we collected so far.
-                MemoryRecord* pFreeMemoryRecord
+                memory_record* pFreeMemoryRecord
                     = get_free_memory_record(allocationMetadataOffset, pAllocationMetadata->allocation_size);
                 if (pFreeMemoryRecord == nullptr)
                 {
@@ -269,7 +269,7 @@ EMemoryManagerErrorCode CMemoryManager::commit_stack_allocator(
         // Insert metadata block in the unserialized allocation list.
         // If we fail, reclaim all the records that we have collected so far.
         // But if we succeed, then we can insert all our collected records into the list of free memory records.
-        EMemoryManagerErrorCode errorCode = track_stack_allocator_metadata_for_serialization(pStackAllocatorMetadata);
+        error_code errorCode = track_stack_allocator_metadata_for_serialization(pStackAllocatorMetadata);
         if (errorCode != success)
         {
             reclaim_records(argFreeMemoryRecords.get(), countAllocations);
@@ -285,7 +285,7 @@ EMemoryManagerErrorCode CMemoryManager::commit_stack_allocator(
         // because the stack allocator metadata is still needed until then
         // and is now tracked by the unserialized allocation list.
         pFirstStackAllocationMetadata->allocation_size
-            = pStackAllocatorMetadata->first_allocation_size + sizeof(MemoryAllocationMetadata);
+            = pStackAllocatorMetadata->first_allocation_size + sizeof(memory_allocation_metadata);
     }
 
     if (m_execution_flags.enable_console_output)
@@ -297,7 +297,7 @@ EMemoryManagerErrorCode CMemoryManager::commit_stack_allocator(
     return success;
 }
 
-EMemoryManagerErrorCode CMemoryManager::get_unserialized_allocations_list_head(MemoryListNode*& pListHead) const
+gaia::db::memory_manager::error_code memory_manager::get_unserialized_allocations_list_head(memory_list_node*& pListHead) const
 {
     if (m_metadata == nullptr)
     {
@@ -321,7 +321,7 @@ EMemoryManagerErrorCode CMemoryManager::get_unserialized_allocations_list_head(M
     return success;
 }
 
-EMemoryManagerErrorCode CMemoryManager::update_unserialized_allocations_list_head(
+gaia::db::memory_manager::error_code memory_manager::update_unserialized_allocations_list_head(
         ADDRESS_OFFSET nextUnserializedAllocationRecordOffset) const
 {
     if (m_metadata == nullptr)
@@ -352,16 +352,16 @@ EMemoryManagerErrorCode CMemoryManager::update_unserialized_allocations_list_hea
     while (currentRecordOffset != nextUnserializedAllocationRecordOffset)
     {
         // Get the actual record.
-        MemoryRecord* pCurrentRecord = CBaseMemoryManager::read_memory_record(currentRecordOffset);
+        memory_record* pCurrentRecord = base_memory_manager::read_memory_record(currentRecordOffset);
 
         // Get the StackAllocator metadata.
         ADDRESS_OFFSET currentMetadataOffset = pCurrentRecord->memory_offset;
         uint8_t* pCurrentMetadataAddress = get_address(currentMetadataOffset);
-        StackAllocatorMetadata* pCurrentMetadata = reinterpret_cast<StackAllocatorMetadata*>(pCurrentMetadataAddress);
+        stack_allocator_metadata* pCurrentMetadata = reinterpret_cast<stack_allocator_metadata*>(pCurrentMetadataAddress);
 
         // Determine the boundaries of the memory block that we can free from the StackAllocator.
         ADDRESS_OFFSET startMemoryOffset = pCurrentMetadata->next_allocation_offset;
-        ADDRESS_OFFSET endMemoryOffset = currentMetadataOffset + sizeof(StackAllocatorMetadata);
+        ADDRESS_OFFSET endMemoryOffset = currentMetadataOffset + sizeof(stack_allocator_metadata);
         retail_assert(validate_offset(startMemoryOffset) == success, "Calculated start memory offset is invalid");
         retail_assert(validate_offset(endMemoryOffset) == success, "Calculated end memory offset is invalid");
 
@@ -397,7 +397,7 @@ EMemoryManagerErrorCode CMemoryManager::update_unserialized_allocations_list_hea
     return success;
 }
 
-size_t CMemoryManager::get_main_memory_available_size(bool includeSystemReservedSize) const
+size_t memory_manager::get_main_memory_available_size(bool includeSystemReservedSize) const
 {
     size_t availableSize = 0;
 
@@ -411,7 +411,7 @@ size_t CMemoryManager::get_main_memory_available_size(bool includeSystemReserved
     return availableSize;
 }
 
-bool CMemoryManager::is_main_memory_exhausted(
+bool memory_manager::is_main_memory_exhausted(
     ADDRESS_OFFSET startMemoryOffset,
     ADDRESS_OFFSET endMemoryOffset,
     bool includeSystemReservedSize) const
@@ -425,7 +425,7 @@ bool CMemoryManager::is_main_memory_exhausted(
         availableSize);
 }
 
-bool CMemoryManager::is_main_memory_exhausted(
+bool memory_manager::is_main_memory_exhausted(
     ADDRESS_OFFSET startMemoryOffset,
     ADDRESS_OFFSET endMemoryOffset,
     bool includeSystemReservedSize,
@@ -448,22 +448,22 @@ bool CMemoryManager::is_main_memory_exhausted(
     return false;
 }
 
-ADDRESS_OFFSET CMemoryManager::process_allocation(ADDRESS_OFFSET allocationOffset, size_t sizeToAllocate) const
+ADDRESS_OFFSET memory_manager::process_allocation(ADDRESS_OFFSET allocationOffset, size_t sizeToAllocate) const
 {
     retail_assert(allocationOffset != 0, "ProcessAllocation() was called for an empty allocation!");
 
     // Write the allocation metadata.
     uint8_t* pAllocationMetadataAddress = get_address(allocationOffset);
-    MemoryAllocationMetadata* pAllocationMetadata
-        = reinterpret_cast<MemoryAllocationMetadata*>(pAllocationMetadataAddress);
+    memory_allocation_metadata* pAllocationMetadata
+        = reinterpret_cast<memory_allocation_metadata*>(pAllocationMetadataAddress);
     pAllocationMetadata->allocation_size = sizeToAllocate;
 
     // We return the offset past the metadata.
-    allocationOffset += sizeof(MemoryAllocationMetadata);
+    allocationOffset += sizeof(memory_allocation_metadata);
     return allocationOffset;
 }
 
-ADDRESS_OFFSET CMemoryManager::allocate_from_main_memory(size_t sizeToAllocate) const
+ADDRESS_OFFSET memory_manager::allocate_from_main_memory(size_t sizeToAllocate) const
 {
     retail_assert(m_metadata != nullptr, "Memory manager has not been initialized!");
 
@@ -518,11 +518,11 @@ ADDRESS_OFFSET CMemoryManager::allocate_from_main_memory(size_t sizeToAllocate) 
     return adjustedAllocationOffset;
 }
 
-ADDRESS_OFFSET CMemoryManager::allocate_from_freed_memory(size_t sizeToAllocate) const
+ADDRESS_OFFSET memory_manager::allocate_from_freed_memory(size_t sizeToAllocate) const
 {
     retail_assert(m_metadata != nullptr, "Memory manager has not been initialized!");
 
-    IterationContext context;
+    iteration_context context;
     start(&m_metadata->free_memory_list_head, context);
     ADDRESS_OFFSET allocationOffset = 0;
 
@@ -536,8 +536,8 @@ ADDRESS_OFFSET CMemoryManager::allocate_from_freed_memory(size_t sizeToAllocate)
             // because another thread may have managed to update it before we could lock it. 
             if (context.current_record->memory_size == sizeToAllocate)
             {
-                if (try_to_lock_access(context, EAccessLockType::update_remove)
-                    && context.auto_access_current_record.try_to_lock_access(EAccessLockType::remove)
+                if (try_to_lock_access(context, access_lock_type::update_remove)
+                    && context.auto_access_current_record.try_to_lock_access(access_lock_type::remove)
                     && context.current_record->memory_size == sizeToAllocate)
                 {
 
@@ -558,7 +558,7 @@ ADDRESS_OFFSET CMemoryManager::allocate_from_freed_memory(size_t sizeToAllocate)
             }
             else
             {
-                if (try_to_lock_access(context, EAccessLockType::update)
+                if (try_to_lock_access(context, access_lock_type::update)
                     && context.current_record->memory_size > sizeToAllocate)
                 {
                     retail_assert(
@@ -596,11 +596,11 @@ ADDRESS_OFFSET CMemoryManager::allocate_from_freed_memory(size_t sizeToAllocate)
     return adjustedAllocationOffset;
 }
 
-MemoryRecord* CMemoryManager::get_memory_record() const
+memory_record* memory_manager::get_memory_record() const
 {
     retail_assert(m_metadata != nullptr, "Memory manager has not been initialized!");
 
-    MemoryRecord* pFreeMemoryRecord = get_reclaimed_memory_record();
+    memory_record* pFreeMemoryRecord = get_reclaimed_memory_record();
 
     if (pFreeMemoryRecord == nullptr)
     {
@@ -614,13 +614,13 @@ MemoryRecord* CMemoryManager::get_memory_record() const
         "The readers count of a new memory record should be 0!");
     retail_assert(
         pFreeMemoryRecord == nullptr
-        || pFreeMemoryRecord->accessControl.access_lock == EAccessLockType::none,
+        || pFreeMemoryRecord->accessControl.access_lock == access_lock_type::none,
         "The access lock of a new memory record should be none!");
 
     return pFreeMemoryRecord;
 }
 
-MemoryRecord* CMemoryManager::get_new_memory_record() const
+memory_record* memory_manager::get_new_memory_record() const
 {
     retail_assert(m_metadata != nullptr, "Memory manager has not been initialized!");
 
@@ -628,7 +628,7 @@ MemoryRecord* CMemoryManager::get_new_memory_record() const
     bool includeSystemReservedSize = true;
 
     // If the allocation exhausts our memory, we cannot perform it.
-    if (get_main_memory_available_size(includeSystemReservedSize) < sizeof(MemoryRecord))
+    if (get_main_memory_available_size(includeSystemReservedSize) < sizeof(memory_record))
     {
         return nullptr;
     }
@@ -636,8 +636,8 @@ MemoryRecord* CMemoryManager::get_new_memory_record() const
     // Claim the space.
     ADDRESS_OFFSET oldlowest_metadata_memory_use = __sync_fetch_and_sub(
         &m_metadata->lowest_metadata_memory_use,
-        sizeof(MemoryRecord));
-    ADDRESS_OFFSET newlowest_metadata_memory_use = oldlowest_metadata_memory_use - sizeof(MemoryRecord);
+        sizeof(memory_record));
+    ADDRESS_OFFSET newlowest_metadata_memory_use = oldlowest_metadata_memory_use - sizeof(memory_record);
 
     // Check again if our memory got exhausted by this allocation,
     // which can happen if someone else got the space before us.
@@ -662,7 +662,7 @@ MemoryRecord* CMemoryManager::get_new_memory_record() const
         cout << endl << "Allocated offset " << recordOffset << " for a new memory record." << endl;
     }
 
-    MemoryRecord* pFreeMemoryRecord = CBaseMemoryManager::read_memory_record(recordOffset);
+    memory_record* pFreeMemoryRecord = base_memory_manager::read_memory_record(recordOffset);
 
     // This is uninitialized memory, so we need to explicitly clear it.
     pFreeMemoryRecord->clear();
@@ -670,13 +670,13 @@ MemoryRecord* CMemoryManager::get_new_memory_record() const
     return pFreeMemoryRecord;
 }
 
-MemoryRecord* CMemoryManager::get_reclaimed_memory_record() const
+memory_record* memory_manager::get_reclaimed_memory_record() const
 {
     retail_assert(m_metadata != nullptr, "Memory manager has not been initialized!");
 
-    IterationContext context;
+    iteration_context context;
     start(&m_metadata->reclaimed_records_list_head, context);
-    MemoryRecord* pReclaimedRecord = nullptr;
+    memory_record* pReclaimedRecord = nullptr;
 
     // Iterate through the list of reclaimed records and attempt to extract one.
     while (context.current_record != nullptr)
@@ -686,8 +686,8 @@ MemoryRecord* CMemoryManager::get_reclaimed_memory_record() const
         // enough nodes will get inserted into this list that we'll succeed easily to remove one.
         //
         // We'll try to lock each node one after the other.
-        if (try_to_lock_access(context, EAccessLockType::update_remove)
-            && context.auto_access_current_record.try_to_lock_access(EAccessLockType::remove))
+        if (try_to_lock_access(context, access_lock_type::update_remove)
+            && context.auto_access_current_record.try_to_lock_access(access_lock_type::remove))
         {
             remove(context);
 
@@ -711,7 +711,7 @@ MemoryRecord* CMemoryManager::get_reclaimed_memory_record() const
     return pReclaimedRecord;
 }
 
-void CMemoryManager::insert_free_memory_record(MemoryRecord* pFreeMemoryRecord) const
+void memory_manager::insert_free_memory_record(memory_record* pFreeMemoryRecord) const
 {
     retail_assert(m_metadata != nullptr, "Memory manager has not been initialized!");
     retail_assert(pFreeMemoryRecord != nullptr, "InsertFreeMemoryRecord() was called with a null parameter!");
@@ -720,18 +720,18 @@ void CMemoryManager::insert_free_memory_record(MemoryRecord* pFreeMemoryRecord) 
     insert_memory_record(&m_metadata->free_memory_list_head, pFreeMemoryRecord, sortByOffset);
 }
 
-void CMemoryManager::insert_reclaimed_memory_record(MemoryRecord* pReclaimedMemoryRecord) const
+void memory_manager::insert_reclaimed_memory_record(memory_record* pReclaimedMemoryRecord) const
 {
     retail_assert(m_metadata != nullptr, "Memory manager has not been initialized!");
     retail_assert(pReclaimedMemoryRecord != nullptr, "InsertReclaimedMemoryRecord() was called with a null parameter!");
 
-    IterationContext context;
+    iteration_context context;
     start(&m_metadata->reclaimed_records_list_head, context);
 
     // We'll keep trying to insert at the beginning of the list.
     while (true)
     {
-        if (try_to_lock_access(context, EAccessLockType::insert))
+        if (try_to_lock_access(context, access_lock_type::insert))
         {
             insert(context, pReclaimedMemoryRecord);
 
@@ -740,7 +740,7 @@ void CMemoryManager::insert_reclaimed_memory_record(MemoryRecord* pReclaimedMemo
     }
 }
 
-void CMemoryManager::insert_unserialized_allocations_record(MemoryRecord* pUnserializedAllocationsRecord) const
+void memory_manager::insert_unserialized_allocations_record(memory_record* pUnserializedAllocationsRecord) const
 {
     retail_assert(m_metadata != nullptr, "Memory manager has not been initialized!");
     retail_assert(pUnserializedAllocationsRecord != nullptr, "InsertUnserializedAllocationsRecord() was called with a null parameter!");
@@ -750,11 +750,11 @@ void CMemoryManager::insert_unserialized_allocations_record(MemoryRecord* pUnser
     insert_memory_record(&m_metadata->unserialized_allocations_list_head, pUnserializedAllocationsRecord, sortByOffset);
 }
 
-MemoryRecord* CMemoryManager::get_free_memory_record(ADDRESS_OFFSET memoryOffset, size_t memorySize) const
+memory_record* memory_manager::get_free_memory_record(ADDRESS_OFFSET memoryOffset, size_t memorySize) const
 {
     retail_assert(m_metadata != nullptr, "Memory manager has not been initialized!");
 
-    MemoryRecord* pFreeMemoryRecord = get_memory_record();
+    memory_record* pFreeMemoryRecord = get_memory_record();
 
     if (pFreeMemoryRecord == nullptr)
     {
@@ -767,7 +767,7 @@ MemoryRecord* CMemoryManager::get_free_memory_record(ADDRESS_OFFSET memoryOffset
     return pFreeMemoryRecord;
 }
 
-void CMemoryManager::process_free_memory_records(MemoryRecord** freeMemoryRecords, size_t size, bool markAsFree) const
+void memory_manager::process_free_memory_records(memory_record** freeMemoryRecords, size_t size, bool markAsFree) const
 {
     retail_assert(freeMemoryRecords != nullptr, "InsertFreeMemoryRecords() has been called with a null parameter!");
 
@@ -787,22 +787,22 @@ void CMemoryManager::process_free_memory_records(MemoryRecord** freeMemoryRecord
     }
 }
 
-void CMemoryManager::insert_free_memory_records(MemoryRecord** freeMemoryRecords, size_t size) const
+void memory_manager::insert_free_memory_records(memory_record** freeMemoryRecords, size_t size) const
 {
     return process_free_memory_records(freeMemoryRecords, size, true);
 }
 
-void CMemoryManager::reclaim_records(MemoryRecord** freeMemoryRecords, size_t size) const
+void memory_manager::reclaim_records(memory_record** freeMemoryRecords, size_t size) const
 {
     return process_free_memory_records(freeMemoryRecords, size, false);
 }
 
-EMemoryManagerErrorCode CMemoryManager::track_stack_allocator_metadata_for_serialization(
-    StackAllocatorMetadata* pStackAllocatorMetadata) const
+gaia::db::memory_manager::error_code memory_manager::track_stack_allocator_metadata_for_serialization(
+    stack_allocator_metadata* pStackAllocatorMetadata) const
 {
     retail_assert(m_metadata != nullptr, "Memory manager has not been initialized!");
 
-    MemoryRecord* pMemoryRecord = get_memory_record();
+    memory_record* pMemoryRecord = get_memory_record();
 
     if (pMemoryRecord == nullptr)
     {
@@ -824,7 +824,7 @@ EMemoryManagerErrorCode CMemoryManager::track_stack_allocator_metadata_for_seria
     return success;
 }
 
-void CMemoryManager::output_debugging_information(const string& contextDescription) const
+void memory_manager::output_debugging_information(const string& contextDescription) const
 {
     cout << endl << c_debug_output_separator_line_start << endl;
     cout << "Debugging output for context: " << contextDescription << ":" << endl;
@@ -847,7 +847,7 @@ void CMemoryManager::output_debugging_information(const string& contextDescripti
     cout << c_debug_output_separator_line_end << endl;
 }
 
-void CMemoryManager::output_list_content(MemoryRecord listHead) const
+void memory_manager::output_list_content(memory_record listHead) const
 {
     size_t recordCount = 0;
     ADDRESS_OFFSET currentRecordOffset = listHead.next;
@@ -855,7 +855,7 @@ void CMemoryManager::output_list_content(MemoryRecord listHead) const
     {
         recordCount++;
 
-        MemoryRecord* pCurrentRecord = read_memory_record(currentRecordOffset);
+        memory_record* pCurrentRecord = read_memory_record(currentRecordOffset);
 
         cout << "    Record[" << recordCount << "] at offset " << currentRecordOffset << ":" << endl;
         cout << "      offset = " << pCurrentRecord->memory_offset;

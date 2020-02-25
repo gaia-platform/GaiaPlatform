@@ -13,7 +13,7 @@ namespace memory_manager
 {
 
 // Values that can indicate the access desired for resources.
-enum EAccessLockType
+enum access_lock_type
 {
     none = 0,
 
@@ -24,12 +24,12 @@ enum EAccessLockType
     remove = 5,
 };
 
-struct AccessControl
+struct access_control
 {
     uint32_t readers_count;
-    EAccessLockType access_lock;
+    access_lock_type access_lock;
 
-    AccessControl()
+    access_control()
     {
         clear();
     }
@@ -54,28 +54,28 @@ struct AccessControl
 // (ii) Locking access - this is an exclusive lock that prevents other threads
 // from operating on the resource.
 //
-class CAutoAccessControl
+class auto_access_control
 {
     private:
 
-    AccessControl* m_access_control;
-    EAccessLockType m_locked_access;
+    access_control* m_access_control;
+    access_lock_type m_locked_access;
     bool m_has_marked_access;
     bool m_has_locked_access;
 
     public:
     
-    CAutoAccessControl();
-    ~CAutoAccessControl();
+    auto_access_control();
+    ~auto_access_control();
 
-    void mark_access(AccessControl* pAccessControl);
+    void mark_access(access_control* pAccessControl);
 
-    bool try_to_lock_access(AccessControl* pAccessControl, EAccessLockType wantedAccess, EAccessLockType& existingAccess);
-    bool try_to_lock_access(AccessControl* pAccessControl, EAccessLockType wantedAccess);
+    bool try_to_lock_access(access_control* pAccessControl, access_lock_type wantedAccess, access_lock_type& existingAccess);
+    bool try_to_lock_access(access_control* pAccessControl, access_lock_type wantedAccess);
 
     // These versions can be called after an initial MarkAccess call.
-    bool try_to_lock_access(EAccessLockType wantedAccess, EAccessLockType& existingAccess);
-    bool try_to_lock_access(EAccessLockType wantedAccess);
+    bool try_to_lock_access(access_lock_type wantedAccess, access_lock_type& existingAccess);
+    bool try_to_lock_access(access_lock_type wantedAccess);
 
     // Methods for releasing all access or just the access lock.
     void release_access();

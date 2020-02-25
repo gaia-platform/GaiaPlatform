@@ -31,13 +31,13 @@ void output_allocation_information(size_t size, ADDRESS_OFFSET offset)
 }
 
 void validate_allocation_record(
-    CStackAllocator* pStackAllocator,
+    stack_allocator* pStackAllocator,
     size_t allocationNumber,
     SLOT_ID expectedSlotId,
     ADDRESS_OFFSET expectedMemoryOffset,
     ADDRESS_OFFSET expectedOldMemoryOffset)
 {
-    StackAllocatorAllocation* pStackAllocationRecord = pStackAllocator->get_allocation_record(allocationNumber);
+    stack_allocator_allocation* pStackAllocationRecord = pStackAllocator->get_allocation_record(allocationNumber);
     retail_assert(pStackAllocationRecord->slotId == expectedSlotId, "Allocation record has incorrect slot id!");
     retail_assert(pStackAllocationRecord->memory_offset == expectedMemoryOffset, "Allocation record has incorrect allocation offset!");
     retail_assert(pStackAllocationRecord->old_memory_offset == expectedOldMemoryOffset, "Allocation record has incorrect old allocation offset!");
@@ -53,11 +53,11 @@ void test_stack_allocator()
     const size_t minimumMainMemoryAvailableSize = 1000;
     uint8_t memory[memorySize];
 
-    CMemoryManager memoryManager;
+    memory_manager memoryManager;
 
-    EMemoryManagerErrorCode errorCode = not_set;
+    gaia::db::memory_manager::error_code errorCode = not_set;
 
-    ExecutionFlags executionFlags;
+    execution_flags executionFlags;
     executionFlags.enable_extra_validations = true;
     executionFlags.enable_console_output = true;
 
@@ -68,7 +68,7 @@ void test_stack_allocator()
 
     size_t stackAllocatorMemorySize = 2000;
 
-    CStackAllocator* pStackAllocator = nullptr;
+    stack_allocator* pStackAllocator = nullptr;
     errorCode = memoryManager.create_stack_allocator(stackAllocatorMemorySize, pStackAllocator);
     retail_assert(errorCode == success, "Stack allocator creation has failed!");
 
@@ -106,7 +106,7 @@ void test_stack_allocator()
     validate_allocation_record(pStackAllocator, 2, secondSlotId, secondAllocationOffset, secondOldOffset);
 
     retail_assert(
-        secondAllocationOffset == firstAllocationOffset + firstAllocationSize + sizeof(MemoryAllocationMetadata),
+        secondAllocationOffset == firstAllocationOffset + firstAllocationSize + sizeof(memory_allocation_metadata),
         "Second allocation offset does not have expected value.");
 
     ADDRESS_OFFSET thirdAllocationOffset = 0;
@@ -116,7 +116,7 @@ void test_stack_allocator()
     validate_allocation_record(pStackAllocator, 3, thirdSlotId, thirdAllocationOffset, thirdOldOffset);
 
     retail_assert(
-        thirdAllocationOffset == secondAllocationOffset + secondAllocationSize + sizeof(MemoryAllocationMetadata),
+        thirdAllocationOffset == secondAllocationOffset + secondAllocationSize + sizeof(memory_allocation_metadata),
         "Third allocation offset does not have expected value.");
 
     retail_assert(pStackAllocator->get_allocation_count() == 3, "Allocation count is not the expected 3!");
@@ -134,7 +134,7 @@ void test_stack_allocator()
     validate_allocation_record(pStackAllocator, 2, fourthSlotId, fourthAllocationOffset, fourthOldOffset);
 
     retail_assert(
-        fourthAllocationOffset == firstAllocationOffset + firstAllocationSize + sizeof(MemoryAllocationMetadata),
+        fourthAllocationOffset == firstAllocationOffset + firstAllocationSize + sizeof(memory_allocation_metadata),
         "Fourth allocation offset does not have expected value.");
 
     retail_assert(pStackAllocator->get_allocation_count() == 2, "Allocation count is not the expected 2!");

@@ -32,9 +32,9 @@ void output_struct_sizes()
     cout << "*** StructSizes tests started ***" << endl;
     cout << c_debug_output_separator_line_end << endl;
 
-    cout << "sizeof(MemoryAllocationMetadata) = " << sizeof(MemoryAllocationMetadata) << endl;
-    cout << "sizeof(StackAllocatorMetadata) = " << sizeof(StackAllocatorMetadata) << endl;
-    cout << "sizeof(StackAllocatorAllocation) = " << sizeof(StackAllocatorAllocation) << endl;
+    cout << "sizeof(MemoryAllocationMetadata) = " << sizeof(memory_allocation_metadata) << endl;
+    cout << "sizeof(StackAllocatorMetadata) = " << sizeof(stack_allocator_metadata) << endl;
+    cout << "sizeof(StackAllocatorAllocation) = " << sizeof(stack_allocator_allocation) << endl;
 
     cout << endl << c_debug_output_separator_line_start << endl;
     cout << "*** StructSizes tests ended ***" << endl;
@@ -43,44 +43,44 @@ void output_struct_sizes()
 
 void test_pointer_arithmetic()
 {
-    struct SmallIntegers
+    struct small_integers
     {
         uint8_t uint8;
         uint16_t uint16;
         uint32_t uint32;
     };
 
-    struct Integers
+    struct integers
     {
-        SmallIntegers smallIntegers;
+        small_integers small_integers;
         uint64_t uint64;
     };
 
-    Integers integers;
+    integers integers;
 
     cout << endl << c_debug_output_separator_line_start << endl;
     cout << "*** PointerArithmetic tests started ***" << endl;
     cout << c_debug_output_separator_line_end << endl;
 
     cout << "address(integers) = " << &integers << " = " << (size_t)&integers << endl;
-    cout << "address(uint8) = " << &integers.smallIntegers.uint8
-        << " = " << (size_t)&integers.smallIntegers.uint8 << endl;
-    cout << "address(uint16) = " << &integers.smallIntegers.uint16
-        << " = " << (size_t)&integers.smallIntegers.uint16 << endl;
-    cout << "address(uint32) = " << &integers.smallIntegers.uint32
-        << " = " << (size_t)&integers.smallIntegers.uint32 << endl;
+    cout << "address(uint8) = " << &integers.small_integers.uint8
+        << " = " << (size_t)&integers.small_integers.uint8 << endl;
+    cout << "address(uint16) = " << &integers.small_integers.uint16
+        << " = " << (size_t)&integers.small_integers.uint16 << endl;
+    cout << "address(uint32) = " << &integers.small_integers.uint32
+        << " = " << (size_t)&integers.small_integers.uint32 << endl;
     cout << "address(uint64) = " << &integers.uint64 << " = " << (size_t)&integers.uint64 << endl;
 
-    cout << endl << "sizeof(SmallIntegers) = " << sizeof(SmallIntegers) << endl;
+    cout << endl << "sizeof(SmallIntegers) = " << sizeof(small_integers) << endl;
     cout << "&integers.uint64 - &integers = " << (uint8_t*)&integers.uint64 - (uint8_t*)&integers << endl;
     cout << "&integers.uint64 - &integers.smallIntegers.uint8 = "
-        << (uint8_t*)&integers.uint64 - (uint8_t*)&integers.smallIntegers.uint8 << endl;
+        << (uint8_t*)&integers.uint64 - (uint8_t*)&integers.small_integers.uint8 << endl;
 
     retail_assert(
-        (uint8_t*)&integers.uint64 - (uint8_t*)&integers == sizeof(SmallIntegers),
+        (uint8_t*)&integers.uint64 - (uint8_t*)&integers == sizeof(small_integers),
         "Pointer difference didn't result in structure size!");
     retail_assert(
-        (uint8_t*)&integers + sizeof(SmallIntegers) == (uint8_t*)&integers.uint64,
+        (uint8_t*)&integers + sizeof(small_integers) == (uint8_t*)&integers.uint64,
         "Pointer addition didn't result in field address!");
 
     cout << endl << "Test integer overflow:" << endl;
