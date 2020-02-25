@@ -3,11 +3,10 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <iostream>
+#include "stack_allocator.hpp"
 
 #include "constants.hpp"
 #include "retail_assert.hpp"
-#include "stack_allocator.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;
@@ -99,7 +98,7 @@ error_code_t stack_allocator_t::allocate(
 
     // For all but the first allocation, we will prefix a memory allocation metadata block.
     // The first allocation will eventually reuse the memory allocation metadata block
-    // that is currently tracking the entire memory of the StackAllocator.
+    // that is currently tracking the entire memory of the stack allocator.
     size_t size_to_allocate = memory_size;
     size_t count_allocations = m_metadata->count_allocations;
     if (size_to_allocate > 0 && count_allocations > 0)

@@ -3,10 +3,11 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "base_memory_manager.hpp"
+
 #include <unistd.h>
 
 #include "retail_assert.hpp"
-#include "base_memory_manager.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;
@@ -92,9 +93,9 @@ address_offset_t base_memory_manager_t::get_offset(const uint8_t* const memory_a
         validate_address(memory_address) == success,
         "get_offset() was called with an invalid address!");
 
-    size_t offset = memory_address - m_base_memory_address;
+    size_t memory_offset = memory_address - m_base_memory_address;
 
-    return offset;
+    return memory_offset;
 }
 
 uint8_t* base_memory_manager_t::get_address(address_offset_t memory_offset) const
@@ -242,7 +243,7 @@ bool base_memory_manager_t::try_to_lock_access(iteration_context_t& context, acc
         return false;
     }
 
-    // Operations other than Insert need to work with the current record,
+    // Operations other than insert need to work with the current record,
     // so we need to check if the link between the two records still holds.
     // If the link is broken, there is no point in maintaining the lock further,
     // but we'll leave the access mark because that is managed by our caller.
@@ -280,7 +281,7 @@ void base_memory_manager_t::remove(iteration_context_t& context) const
     // Wait for all other readers of current record to move away from it.
     // No new readers can appear, because we removed the record from the list.
     // This wait, coupled with the lock maintained on the previous record,
-    // guarantees that pCurrentRecord->next can be safely followed by any suspended readers.
+    // guarantees that current_record->next can be safely followed by any suspended readers.
     while (context.current_record->access_control.readers_count > 1)
     {
         // Give other threads a chance to release read marks.

@@ -8,6 +8,7 @@
 
 #include "constants.hpp"
 #include "retail_assert.hpp"
+
 #include "stack_allocator.hpp"
 #include "memory_manager.hpp"
 
@@ -153,7 +154,7 @@ void test_memory_manager_advanced_operation()
     size_t serialization_number = 331;
     cout << endl << "Commit first stack allocator with serialization number " << serialization_number << "..." << endl;
     error_code = memory_manager.commit_stack_allocator(stack_allocator, serialization_number);
-    retail_assert(error_code == success, "First sta>ck allocator commit has failed!");
+    retail_assert(error_code == success, "First stack allocator commit has failed!");
 
     memory_list_node_t* first_read_of_list_head = nullptr;
     error_code = memory_manager.get_unserialized_allocations_list_head(first_read_of_list_head);
@@ -209,10 +210,10 @@ void test_memory_manager_advanced_operation()
     address_offset_t second_unserialized_record_offset = first_unserialized_record->next;
 
     // Update unserialized allocations list.
-    cout << endl << "Calling UpdateUnserializedAllocationsListHead() with parameter: ";
+    cout << endl << "Calling update_unserialized_allocations_list_head() with parameter: ";
     cout << second_unserialized_record_offset << "." << endl;
     error_code = memory_manager.update_unserialized_allocations_list_head(first_unserialized_record->next);
-    retail_assert(error_code == success, "Failed first call to UpdateUnserializedAllocationsListHead()!");
+    retail_assert(error_code == success, "Failed first call to update_unserialized_allocations_list_head()!");
 
     memory_list_node_t* third_read_of_list_head = nullptr;
     error_code = memory_manager.get_unserialized_allocations_list_head(third_read_of_list_head);
@@ -233,7 +234,7 @@ void test_memory_manager_advanced_operation()
     // Second, we reclaim a part of a freed block.
     address_offset_t offset_second_free_allocation = 0;
     error_code = memory_manager.allocate(third_allocation_size, offset_second_free_allocation);
-    retail_assert(error_code == success, "First free allocation has failed!");
+    retail_assert(error_code == success, "Second free allocation has failed!");
     output_allocation_information(third_allocation_size, offset_second_free_allocation);
 
     cout << endl << c_debug_output_separator_line_start << endl;

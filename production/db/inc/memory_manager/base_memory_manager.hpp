@@ -48,7 +48,7 @@ class base_memory_manager_t
     memory_record_t* read_memory_record(address_offset_t record_offset) const;
 
     // Sets up two references for traversing the given list.
-    // If list is empty, pCurrentRecord will be set to nullptr,
+    // If list is empty, current_record will be set to nullptr,
     // otherwise it will be set to the list's first node.
     void start(memory_record_t* list_head, iteration_context_t& context) const;
 
@@ -72,8 +72,8 @@ class base_memory_manager_t
     // is still part of our list, but does not prevent that link from changing.
     // An access lock ensures that the 'next' link cannot be changed by another thread.
     //
-    // For Insert/Update, we only need to acquire a lock on previousRecord, to "freeze its next link".
-    // For Delete, we need to acquire locks on both previousRecord and currentRecord,
+    // For Insert/Update, we only need to acquire a lock on previous_record, to "freeze its next link".
+    // For Delete, we need to acquire locks on both previous_record and current_record,
     // because the operation impacts two links.
     //
     // Returns true if access was acquired and false otherwise.

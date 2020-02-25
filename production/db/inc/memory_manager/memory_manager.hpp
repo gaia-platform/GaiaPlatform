@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <iostream>
+
 #include "base_memory_manager.hpp"
 #include "stack_allocator.hpp"
 
@@ -34,7 +36,7 @@ class memory_manager_t : public base_memory_manager_t
     // if not, then the manager will deal with it as if it was already initialized by another memory manager
     // - this means that parts of it are already allocated and in use.
     //
-    // All addresses will be offsets relative to the beginning of this block, represented as address_offset_t.
+    // All addresses will be offsets relative to the beginning of this block and will be represented as address_offset_t.
     error_code_t manage(
         uint8_t* memory_address,
         size_t memory_size,
@@ -106,7 +108,7 @@ class memory_manager_t : public base_memory_manager_t
     // Some functionality is restricted to this instance.
     bool m_is_master_manager;
 
-    // See Manage() comment.
+    // See manage() comment.
     size_t m_main_memory_system_reserved_size;
 
     // Our execution flags.
@@ -168,11 +170,11 @@ class memory_manager_t : public base_memory_manager_t
     // Insert records in the list of reclaimed memory records.
     void reclaim_records(memory_record_t** free_memory_records, size_t size) const;
 
-    // Track the StackAllocator metadata for future serialization.
+    // Track the stack allocator metadata for future serialization.
     error_code_t track_stack_allocator_metadata_for_serialization(
         stack_allocator_metadata_t* stack_allocator_metadata) const;
 
-    void output_debugging_information(const string& context_description) const;
+    void output_debugging_information(const std::string& context_description) const;
 
     void output_list_content(memory_record_t list_head) const;
 };

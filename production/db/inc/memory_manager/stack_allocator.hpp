@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <iostream>
+
 #include "base_memory_manager.hpp"
 
 namespace gaia
@@ -64,8 +66,8 @@ class stack_allocator_t : public base_memory_manager_t
     private:
 
     // A pointer to our metadata information, stored in the same memory that we manage.
-    // Unlike the MemoryManager, which stores its metadata at the start of the buffer,
-    // the StackAllocator stores it at the end.
+    // Unlike the memory manager, which stores its metadata at the start of the buffer,
+    // the stack allocator stores it at the end.
     stack_allocator_metadata_t* m_metadata;
 
     // Our execution flags.
@@ -73,7 +75,7 @@ class stack_allocator_t : public base_memory_manager_t
 
     private:
 
-    void output_debugging_information(const string& context_description) const;
+    void output_debugging_information(const std::string& context_description) const;
 };
 
 }

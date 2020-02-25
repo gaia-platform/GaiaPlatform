@@ -3,18 +3,18 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "memory_manager.hpp"
+
 #include <unistd.h>
 
-#include <iostream>
 #include <sstream>
 #include <memory>
 
 #include "constants.hpp"
 #include "retail_assert.hpp"
+
 #include "types.hpp"
 #include "access_control.hpp"
-#include "stack_allocator.hpp"
-#include "memory_manager.hpp"
 
 using namespace std;
 
@@ -26,7 +26,7 @@ memory_manager_t::memory_manager_t() : base_memory_manager_t()
     m_metadata = nullptr;
 
     // Sanity check.
-    const size_t expected_metadata_size_in_bytes = 112;
+    const size_t c_expected_metadata_size_in_bytes = 112;
     std::stringstream message_stream;
 
     message_stream
@@ -34,7 +34,7 @@ memory_manager_t::memory_manager_t() : base_memory_manager_t()
      << sizeof(metadata_t) << "!";
 
     retail_assert(
-        sizeof(metadata_t) == expected_metadata_size_in_bytes,
+        sizeof(metadata_t) == c_expected_metadata_size_in_bytes,
         message_stream.str());
 }
 
@@ -540,7 +540,6 @@ address_offset_t memory_manager_t::allocate_from_freed_memory(size_t size_to_all
                     && context.auto_access_current_record.try_to_lock_access(access_lock_type_t::remove)
                     && context.current_record->memory_size == size_to_allocate)
                 {
-
                     retail_assert(
                         context.current_record->memory_size == size_to_allocate,
                         "Internal error - we are attempting to allocate from a block that is too small!");
@@ -860,8 +859,8 @@ void memory_manager_t::output_list_content(memory_record_t list_head) const
         cout << "    Record[" << record_count << "] at offset " << current_record_offset << ":" << endl;
         cout << "      offset = " << current_record->memory_offset;
         cout << " size = " << current_record->memory_size;
-        cout << " readersCount = " << current_record->access_control.readers_count;
-        cout << " accessLock = " << current_record->access_control.access_lock;
+        cout << " readers_count = " << current_record->access_control.readers_count;
+        cout << " access_lock = " << current_record->access_control.access_lock;
         cout << " next = " << current_record->next << endl;
 
         current_record_offset = current_record->next;

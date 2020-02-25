@@ -8,6 +8,7 @@
 
 #include "constants.hpp"
 #include "retail_assert.hpp"
+
 #include "memory_structures.hpp"
 
 using namespace std;
@@ -43,20 +44,20 @@ void output_struct_sizes()
 
 void test_pointer_arithmetic()
 {
-    struct small_integers
+    struct small_integers_t
     {
         uint8_t uint8;
         uint16_t uint16;
         uint32_t uint32;
     };
 
-    struct integers
+    struct integers_t
     {
-        small_integers small_integers;
+        small_integers_t small_integers;
         uint64_t uint64;
     };
 
-    integers integers;
+    integers_t integers;
 
     cout << endl << c_debug_output_separator_line_start << endl;
     cout << "*** Pointer arithmetic tests started ***" << endl;
@@ -71,16 +72,16 @@ void test_pointer_arithmetic()
         << " = " << (size_t)&integers.small_integers.uint32 << endl;
     cout << "address(uint64) = " << &integers.uint64 << " = " << (size_t)&integers.uint64 << endl;
 
-    cout << endl << "sizeof(small_integers) = " << sizeof(small_integers) << endl;
+    cout << endl << "sizeof(small_integers_t) = " << sizeof(small_integers_t) << endl;
     cout << "&integers.uint64 - &integers = " << (uint8_t*)&integers.uint64 - (uint8_t*)&integers << endl;
-    cout << "&integers.uint64 - &integers.smallIntegers.uint8 = "
+    cout << "&integers.uint64 - &integers.small_integers.uint8 = "
         << (uint8_t*)&integers.uint64 - (uint8_t*)&integers.small_integers.uint8 << endl;
 
     retail_assert(
-        (uint8_t*)&integers.uint64 - (uint8_t*)&integers == sizeof(small_integers),
+        (uint8_t*)&integers.uint64 - (uint8_t*)&integers == sizeof(small_integers_t),
         "Pointer difference didn't result in structure size!");
     retail_assert(
-        (uint8_t*)&integers + sizeof(small_integers) == (uint8_t*)&integers.uint64,
+        (uint8_t*)&integers + sizeof(small_integers_t) == (uint8_t*)&integers.uint64,
         "Pointer addition didn't result in field address!");
 
     cout << endl << "Test integer overflow:" << endl;

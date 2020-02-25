@@ -8,6 +8,7 @@
 
 #include "constants.hpp"
 #include "retail_assert.hpp"
+
 #include "stack_allocator.hpp"
 #include "memory_manager.hpp"
 
@@ -37,10 +38,10 @@ void validate_allocation_record(
     address_offset_t expected_memory_offset,
     address_offset_t expected_old_memory_offset)
 {
-    stack_allocator_allocation_t* pStackAllocationRecord = stack_allocator->get_allocation_record(allocation_number);
-    retail_assert(pStackAllocationRecord->slot_id == expected_slot_id, "Allocation record has incorrect slot id!");
-    retail_assert(pStackAllocationRecord->memory_offset == expected_memory_offset, "Allocation record has incorrect allocation offset!");
-    retail_assert(pStackAllocationRecord->old_memory_offset == expected_old_memory_offset, "Allocation record has incorrect old allocation offset!");
+    stack_allocator_allocation_t* stack_allocation_record = stack_allocator->get_allocation_record(allocation_number);
+    retail_assert(stack_allocation_record->slot_id == expected_slot_id, "Allocation record has incorrect slot id!");
+    retail_assert(stack_allocation_record->memory_offset == expected_memory_offset, "Allocation record has incorrect allocation offset!");
+    retail_assert(stack_allocation_record->old_memory_offset == expected_old_memory_offset, "Allocation record has incorrect old allocation offset!");
 }
 
 void test_stack_allocator()

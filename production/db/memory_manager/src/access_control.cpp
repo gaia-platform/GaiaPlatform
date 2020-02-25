@@ -3,11 +3,9 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <stddef.h>
-#include <stdint.h>
+#include "access_control.hpp"
 
 #include "retail_assert.hpp"
-#include "access_control.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;
