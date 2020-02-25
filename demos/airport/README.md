@@ -15,6 +15,8 @@ The flatbuffer definitions exactly match table specifications. There are extra c
    * Pip installer is required for installing/removing Python packages. The ubuntu package name is *python-pip*.
    * Python 2.7 - multicorn requires this version.
      * You will need the *python-dev* package in addition to the main package.
+   * Pybind11 - needed for wrapping cow_se.
+     * Install packages *pybind11-dev* and *python-pybind11*.
    * Clang-8
      * Install packages *clang-8*, *libclang-8-dev*, *libclang-common-8-dev*, *libclang1-8*, *python-clang-8*.
      * Add these lines to your .bashrc:
