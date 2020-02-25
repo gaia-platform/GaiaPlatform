@@ -11,30 +11,30 @@
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;
 
-base_memory_manager::base_memory_manager()
+base_memory_manager_t::base_memory_manager_t()
 {
     m_base_memory_address = nullptr;
     m_base_memory_offset = 0;
     m_total_memory_size = 0;
 }
 
-bool base_memory_manager::validate_address_alignment(const uint8_t* const pMemoryAddress) const
+bool base_memory_manager_t::validate_address_alignment(const uint8_t* const pMemoryAddress) const
 {
     size_t memoryAddressAsInteger = reinterpret_cast<size_t>(pMemoryAddress);
     return (memoryAddressAsInteger % c_memory_alignment == 0);
 }
 
-bool base_memory_manager::validate_offset_alignment(ADDRESS_OFFSET memoryOffset) const
+bool base_memory_manager_t::validate_offset_alignment(address_offset_t memoryOffset) const
 {
     return (memoryOffset % c_memory_alignment == 0);
 }
 
-bool base_memory_manager::validate_size_alignment(size_t memorySize) const
+bool base_memory_manager_t::validate_size_alignment(size_t memorySize) const
 {
     return (memorySize % c_memory_alignment == 0);
 }
 
-gaia::db::memory_manager::error_code base_memory_manager::validate_address(const uint8_t* const pMemoryAddress) const
+gaia::db::memory_manager::error_code_t base_memory_manager_t::validate_address(const uint8_t* const pMemoryAddress) const
 {
     if (!validate_address_alignment(pMemoryAddress))
     {
@@ -50,7 +50,7 @@ gaia::db::memory_manager::error_code base_memory_manager::validate_address(const
     return success;
 }
 
-gaia::db::memory_manager::error_code base_memory_manager::validate_offset(ADDRESS_OFFSET memoryOffset) const
+gaia::db::memory_manager::error_code_t base_memory_manager_t::validate_offset(address_offset_t memoryOffset) const
 {
     if (!validate_offset_alignment(memoryOffset))
     {
@@ -66,7 +66,7 @@ gaia::db::memory_manager::error_code base_memory_manager::validate_offset(ADDRES
     return success;
 }
 
-gaia::db::memory_manager::error_code base_memory_manager::validate_size(size_t memorySize) const
+gaia::db::memory_manager::error_code_t base_memory_manager_t::validate_size(size_t memorySize) const
 {
     if (!validate_size_alignment(memorySize))
     {
@@ -86,7 +86,7 @@ gaia::db::memory_manager::error_code base_memory_manager::validate_size(size_t m
     return success;
 }
 
-ADDRESS_OFFSET base_memory_manager::get_offset(const uint8_t* const pMemoryAddress) const
+address_offset_t base_memory_manager_t::get_offset(const uint8_t* const pMemoryAddress) const
 {
     retail_assert(
         validate_address(pMemoryAddress) == success,
@@ -97,7 +97,7 @@ ADDRESS_OFFSET base_memory_manager::get_offset(const uint8_t* const pMemoryAddre
     return offset;
 }
 
-uint8_t* base_memory_manager::get_address(ADDRESS_OFFSET memoryOffset) const
+uint8_t* base_memory_manager_t::get_address(address_offset_t memoryOffset) const
 {
     retail_assert(
         validate_offset(memoryOffset) == success,
@@ -108,25 +108,25 @@ uint8_t* base_memory_manager::get_address(ADDRESS_OFFSET memoryOffset) const
     return pMemoryAddress;
 }
 
-memory_allocation_metadata* base_memory_manager::read_allocation_metadata(ADDRESS_OFFSET memoryOffset) const
+memory_allocation_metadata_t* base_memory_manager_t::read_allocation_metadata(address_offset_t memoryOffset) const
 {
     retail_assert(
         validate_offset(memoryOffset) == success,
         "GetAllocationMetadata() was called with an invalid offset!");
 
     retail_assert(
-        memoryOffset >= sizeof(memory_allocation_metadata),
+        memoryOffset >= sizeof(memory_allocation_metadata_t),
         "GetAllocationMetadata() was called with an offset that is too small!");
 
-    ADDRESS_OFFSET allocationMetadataOffset = memoryOffset - sizeof(memory_allocation_metadata);
+    address_offset_t allocationMetadataOffset = memoryOffset - sizeof(memory_allocation_metadata_t);
     uint8_t* pAllocationMetadataAddress = get_address(allocationMetadataOffset);
-    memory_allocation_metadata* pAllocationMetadata
-        = reinterpret_cast<memory_allocation_metadata*>(pAllocationMetadataAddress);
+    memory_allocation_metadata_t* pAllocationMetadata
+        = reinterpret_cast<memory_allocation_metadata_t*>(pAllocationMetadataAddress);
 
     return pAllocationMetadata;
 }
 
-memory_record* base_memory_manager::read_memory_record(ADDRESS_OFFSET recordOffset) const
+memory_record_t* base_memory_manager_t::read_memory_record(address_offset_t recordOffset) const
 {
     retail_assert(
         validate_offset(recordOffset) == success,
@@ -137,16 +137,16 @@ memory_record* base_memory_manager::read_memory_record(ADDRESS_OFFSET recordOffs
         "GetFreeMemoryRecord was called with a zero offset!");
 
     uint8_t* pRecordAddress = get_address(recordOffset);
-    memory_record* pRecord = reinterpret_cast<memory_record*>(pRecordAddress);
+    memory_record_t* pRecord = reinterpret_cast<memory_record_t*>(pRecordAddress);
 
     return pRecord;
 }
 
-bool base_memory_manager::try_to_advance_current_record(iteration_context& context) const
+bool base_memory_manager_t::try_to_advance_current_record(iteration_context_t& context) const
 {
     retail_assert(context.previous_record != nullptr, "Previous record cannot be null!");
 
-    ADDRESS_OFFSET currentRecordOffset = context.previous_record->next;
+    address_offset_t currentRecordOffset = context.previous_record->next;
 
     if (currentRecordOffset == 0)
     {
@@ -175,7 +175,7 @@ bool base_memory_manager::try_to_advance_current_record(iteration_context& conte
     return false;
 }
 
-void base_memory_manager::start(memory_record* pListHead, iteration_context& context) const
+void base_memory_manager_t::start(memory_record_t* pListHead, iteration_context_t& context) const
 {
     retail_assert(pListHead != nullptr, "Null list head was passed to CBaseMemoryManager::Start()!");
 
@@ -188,7 +188,7 @@ void base_memory_manager::start(memory_record* pListHead, iteration_context& con
     }
 }
 
-bool base_memory_manager::move_next(iteration_context& context) const
+bool base_memory_manager_t::move_next(iteration_context_t& context) const
 {
     retail_assert(context.previous_record != nullptr, "Previous record cannot be null!");
     retail_assert(context.auto_access_previous_record.has_marked_access(), "Access to previous record has not been marked yet!");
@@ -216,7 +216,7 @@ bool base_memory_manager::move_next(iteration_context& context) const
     return (context.current_record != nullptr);
 }
 
-void base_memory_manager::reset_current(iteration_context& context) const
+void base_memory_manager_t::reset_current(iteration_context_t& context) const
 {
     retail_assert(context.previous_record != nullptr, "Previous record cannot be null!");
     retail_assert(context.auto_access_previous_record.has_marked_access(), "Access to previous record has not been marked yet!");
@@ -230,9 +230,9 @@ void base_memory_manager::reset_current(iteration_context& context) const
     }
 }
 
-bool base_memory_manager::try_to_lock_access(iteration_context& context, access_lock_type wantedAccess, access_lock_type& existingAccess) const
+bool base_memory_manager_t::try_to_lock_access(iteration_context_t& context, access_lock_type_t wantedAccess, access_lock_type_t& existingAccess) const
 {
-    retail_assert(wantedAccess != access_lock_type::remove, "A Remove lock should never be taken on previous record - use UpdateRemove instead!");
+    retail_assert(wantedAccess != access_lock_type_t::remove, "A Remove lock should never be taken on previous record - use UpdateRemove instead!");
     retail_assert(context.previous_record != nullptr, "Previous record cannot be null!");
     retail_assert(context.auto_access_previous_record.has_marked_access(), "Access to previous record has not been marked yet!");
     retail_assert(!context.auto_access_previous_record.has_locked_access(), "Access to previous record has been locked already!");
@@ -246,7 +246,7 @@ bool base_memory_manager::try_to_lock_access(iteration_context& context, access_
     // so we need to check if the link between the two records still holds.
     // If the link is broken, there is no point in maintaining the lock further,
     // but we'll leave the access mark because that is managed by our caller.
-    if (wantedAccess != access_lock_type::insert
+    if (wantedAccess != access_lock_type_t::insert
         && context.current_record != read_memory_record(context.previous_record->next))
     {
         context.auto_access_previous_record.release_access_lock();
@@ -256,15 +256,15 @@ bool base_memory_manager::try_to_lock_access(iteration_context& context, access_
     return true;
 }
 
-bool base_memory_manager::try_to_lock_access(iteration_context& context, access_lock_type wantedAccess) const
+bool base_memory_manager_t::try_to_lock_access(iteration_context_t& context, access_lock_type_t wantedAccess) const
 {
-    access_lock_type existingAccess;
+    access_lock_type_t existingAccess;
 
     return try_to_lock_access(context, wantedAccess, existingAccess);
 }
 
 
-void base_memory_manager::remove(iteration_context& context) const
+void base_memory_manager_t::remove(iteration_context_t& context) const
 {
     retail_assert(context.previous_record != nullptr, "Previous record cannot be null!");
     retail_assert(context.current_record != nullptr, "Current record cannot be null!");
@@ -295,7 +295,7 @@ void base_memory_manager::remove(iteration_context& context) const
     context.auto_access_current_record.release_access();
 }
 
-void base_memory_manager::insert(iteration_context& context, memory_record*& pRecord) const
+void base_memory_manager_t::insert(iteration_context_t& context, memory_record_t*& pRecord) const
 {
     retail_assert(context.previous_record != nullptr, "Record cannot be null!");
     retail_assert(context.auto_access_previous_record.has_locked_access(), "Access to previous record has not been locked yet!");
@@ -303,7 +303,7 @@ void base_memory_manager::insert(iteration_context& context, memory_record*& pRe
     pRecord->next = context.previous_record->next;
 
     uint8_t* pRecordAddress = reinterpret_cast<uint8_t*>(pRecord);
-    ADDRESS_OFFSET recordOffset = get_offset(pRecordAddress);
+    address_offset_t recordOffset = get_offset(pRecordAddress);
 
     context.previous_record->next = recordOffset;
 
@@ -311,7 +311,7 @@ void base_memory_manager::insert(iteration_context& context, memory_record*& pRe
     context.auto_access_previous_record.release_access();
 }
 
-void base_memory_manager::insert_memory_record(memory_record* pListHead, memory_record* pMemoryRecord, bool sortByOffset) const
+void base_memory_manager_t::insert_memory_record(memory_record_t* pListHead, memory_record_t* pMemoryRecord, bool sortByOffset) const
 {
     retail_assert(pListHead != nullptr, "Null list head was passed to InsertMemoryRecord()!");
     retail_assert(pMemoryRecord != nullptr, "InsertMemoryRecord() was called with a null parameter!");
@@ -319,10 +319,10 @@ void base_memory_manager::insert_memory_record(memory_record* pListHead, memory_
     // We need an extra loop to restart the insertion from scratch in a special case.
     while (true)
     {
-        iteration_context context;
+        iteration_context_t context;
         start(pListHead, context);
         bool foundInsertionPlace = false;
-        access_lock_type existingAccess = access_lock_type::none;
+        access_lock_type_t existingAccess = access_lock_type_t::none;
 
         // Insert free memory record in its proper place in the free memory list,
         // based on either its size or offset value, as requested by the caller.
@@ -337,14 +337,14 @@ void base_memory_manager::insert_memory_record(memory_record* pListHead, memory_
             {
                 foundInsertionPlace = true;
 
-                if (try_to_lock_access(context, access_lock_type::insert, existingAccess))
+                if (try_to_lock_access(context, access_lock_type_t::insert, existingAccess))
                 {
                     insert(context, pMemoryRecord);
 
                     // We're done!
                     return;
                 }
-                else if (existingAccess == access_lock_type::remove)
+                else if (existingAccess == access_lock_type_t::remove)
                 {
                     // We have to restart from the beginning of the list
                     // because our previous record is being deleted.

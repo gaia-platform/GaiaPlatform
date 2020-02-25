@@ -14,13 +14,12 @@ namespace db
 namespace memory_manager
 {
 
-typedef size_t SLOT_ID;
+typedef size_t slot_id_t;
 
-typedef size_t ADDRESS_OFFSET;
+typedef size_t address_offset_t;
 
-typedef size_t SERIALIZATION_NUMBER;
+typedef size_t serialization_number_t;
 
 }
 }
 }
-

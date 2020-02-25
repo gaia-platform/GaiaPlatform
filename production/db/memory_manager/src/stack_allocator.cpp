@@ -12,19 +12,19 @@
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;
 
-stack_allocator::stack_allocator() : base_memory_manager()
+stack_allocator_t::stack_allocator_t() : base_memory_manager_t()
 {
     m_metadata = nullptr;
 }
 
-void stack_allocator::set_execution_flags(const execution_flags& executionFlags)
+void stack_allocator_t::set_execution_flags(const execution_flags_t& executionFlags)
 {
     m_execution_flags = executionFlags;
 }
 
-gaia::db::memory_manager::error_code stack_allocator::initialize(
+gaia::db::memory_manager::error_code_t stack_allocator_t::initialize(
     uint8_t* pBaseMemoryAddress,
-    ADDRESS_OFFSET memoryOffset,
+    address_offset_t memoryOffset,
     size_t memorySize)
 {
     if (pBaseMemoryAddress == nullptr || memoryOffset == 0 || memorySize == 0)
@@ -47,7 +47,7 @@ gaia::db::memory_manager::error_code stack_allocator::initialize(
         return memory_size_not_aligned;
     }
 
-    if (memorySize < sizeof(stack_allocator_metadata))
+    if (memorySize < sizeof(stack_allocator_metadata_t))
     {
         return insufficient_memory_size;
     }
@@ -59,8 +59,8 @@ gaia::db::memory_manager::error_code stack_allocator::initialize(
 
     // Map the metadata information for quick reference.
     uint8_t* pMetadataAddress
-        = m_base_memory_address + m_base_memory_offset + m_total_memory_size - sizeof(stack_allocator_metadata);
-    m_metadata = reinterpret_cast<stack_allocator_metadata*>(pMetadataAddress);
+        = m_base_memory_address + m_base_memory_offset + m_total_memory_size - sizeof(stack_allocator_metadata_t);
+    m_metadata = reinterpret_cast<stack_allocator_metadata_t*>(pMetadataAddress);
     m_metadata->clear();
     m_metadata->next_allocation_offset = m_base_memory_offset;
 
@@ -72,11 +72,11 @@ gaia::db::memory_manager::error_code stack_allocator::initialize(
     return success;
 }
 
-gaia::db::memory_manager::error_code stack_allocator::allocate(
-    SLOT_ID slotId,
-    ADDRESS_OFFSET oldSlotOffset,
+gaia::db::memory_manager::error_code_t stack_allocator_t::allocate(
+    slot_id_t slotId,
+    address_offset_t oldSlotOffset,
     size_t memorySize,
-    ADDRESS_OFFSET& allocatedMemoryOffset) const
+    address_offset_t& allocatedMemoryOffset) const
 {
     allocatedMemoryOffset = 0;
 
@@ -86,7 +86,7 @@ gaia::db::memory_manager::error_code stack_allocator::allocate(
     }
 
     // A memorySize of 0 indicates a deletion - handle specially.
-    error_code errorCode = validate_size(memorySize);
+    error_code_t errorCode = validate_size(memorySize);
     if (memorySize != 0 && errorCode != success)
     {
         return errorCode;
@@ -104,15 +104,15 @@ gaia::db::memory_manager::error_code stack_allocator::allocate(
     size_t countAllocations = m_metadata->count_allocations;
     if (sizeToAllocate > 0 && countAllocations > 0)
     {
-        sizeToAllocate += sizeof(memory_allocation_metadata);
+        sizeToAllocate += sizeof(memory_allocation_metadata_t);
     }
 
-    ADDRESS_OFFSET nextAllocationOffset = m_metadata->next_allocation_offset;
-    ADDRESS_OFFSET metadataOffset = get_offset(reinterpret_cast<uint8_t*>(m_metadata));
+    address_offset_t nextAllocationOffset = m_metadata->next_allocation_offset;
+    address_offset_t metadataOffset = get_offset(reinterpret_cast<uint8_t*>(m_metadata));
 
     // Now we can do a more accurate check about whether this allocation fits in our memory.
     if (nextAllocationOffset + sizeToAllocate
-        > metadataOffset - (countAllocations + 1) * sizeof(stack_allocator_allocation))
+        > metadataOffset - (countAllocations + 1) * sizeof(stack_allocator_allocation_t))
     {
         return insufficient_memory_size;
     }
@@ -127,8 +127,8 @@ gaia::db::memory_manager::error_code stack_allocator::allocate(
         else
         {
             uint8_t* pNextAllocationAddress = get_address(nextAllocationOffset);
-            memory_allocation_metadata* pNextAllocationMetadata
-                = reinterpret_cast<memory_allocation_metadata*>(pNextAllocationAddress);
+            memory_allocation_metadata_t* pNextAllocationMetadata
+                = reinterpret_cast<memory_allocation_metadata_t*>(pNextAllocationAddress);
             pNextAllocationMetadata->allocation_size = sizeToAllocate;
         }
     }
@@ -136,7 +136,7 @@ gaia::db::memory_manager::error_code stack_allocator::allocate(
     m_metadata->count_allocations++;
 
     // Record allocation information.
-    stack_allocator_allocation* pAllocationRecord = get_allocation_record(m_metadata->count_allocations);
+    stack_allocator_allocation_t* pAllocationRecord = get_allocation_record(m_metadata->count_allocations);
     pAllocationRecord->clear();
 
     pAllocationRecord->slotId = slotId;
@@ -154,7 +154,7 @@ gaia::db::memory_manager::error_code stack_allocator::allocate(
         }
         else
         {
-            pAllocationRecord->memory_offset = nextAllocationOffset + sizeof(memory_allocation_metadata);
+            pAllocationRecord->memory_offset = nextAllocationOffset + sizeof(memory_allocation_metadata_t);
         }
     }
 
@@ -171,18 +171,18 @@ gaia::db::memory_manager::error_code stack_allocator::allocate(
     return success;
 }
 
-gaia::db::memory_manager::error_code stack_allocator::deallocate(SLOT_ID slotId, ADDRESS_OFFSET slotOffset) const
+gaia::db::memory_manager::error_code_t stack_allocator_t::deallocate(slot_id_t slotId, address_offset_t slotOffset) const
 {
-    ADDRESS_OFFSET allocatedOffset;
+    address_offset_t allocatedOffset;
 
-    error_code errorCode = allocate(slotId, slotOffset, 0, allocatedOffset);
+    error_code_t errorCode = allocate(slotId, slotOffset, 0, allocatedOffset);
 
     retail_assert(allocatedOffset == 0, "Allocate(0) should have returned a 0 offset!");
 
     return errorCode;
 }
 
-gaia::db::memory_manager::error_code stack_allocator::deallocate(size_t countAllocationsToKeep) const
+gaia::db::memory_manager::error_code_t stack_allocator_t::deallocate(size_t countAllocationsToKeep) const
 {
     if (m_metadata == nullptr)
     {
@@ -213,12 +213,12 @@ gaia::db::memory_manager::error_code stack_allocator::deallocate(size_t countAll
     return success;
 }
 
-stack_allocator_metadata* stack_allocator::get_metadata() const
+stack_allocator_metadata_t* stack_allocator_t::get_metadata() const
 {
     return m_metadata;
 }
 
-size_t stack_allocator::get_allocation_count() const
+size_t stack_allocator_t::get_allocation_count() const
 {
     if (m_metadata == nullptr)
     {
@@ -228,7 +228,7 @@ size_t stack_allocator::get_allocation_count() const
     return m_metadata->count_allocations;
 }
 
-stack_allocator_allocation* stack_allocator::get_allocation_record(size_t allocationNumber) const
+stack_allocator_allocation_t* stack_allocator_t::get_allocation_record(size_t allocationNumber) const
 {
     if (m_metadata == nullptr)
     {
@@ -240,14 +240,14 @@ stack_allocator_allocation* stack_allocator::get_allocation_record(size_t alloca
         return nullptr;
     }
 
-    ADDRESS_OFFSET metadataOffset = get_offset(reinterpret_cast<uint8_t*>(m_metadata));
-    ADDRESS_OFFSET allocationRecordOffset = metadataOffset - allocationNumber * sizeof(stack_allocator_allocation);
+    address_offset_t metadataOffset = get_offset(reinterpret_cast<uint8_t*>(m_metadata));
+    address_offset_t allocationRecordOffset = metadataOffset - allocationNumber * sizeof(stack_allocator_allocation_t);
     uint8_t* pAllocationRecordAddress = get_address(allocationRecordOffset);
-    stack_allocator_allocation* pAllocationRecord = reinterpret_cast<stack_allocator_allocation*>(pAllocationRecordAddress);
+    stack_allocator_allocation_t* pAllocationRecord = reinterpret_cast<stack_allocator_allocation_t*>(pAllocationRecordAddress);
     return pAllocationRecord;
 }
 
-ADDRESS_OFFSET stack_allocator::get_next_allocation_offset() const
+address_offset_t stack_allocator_t::get_next_allocation_offset() const
 {
     if (m_metadata == nullptr)
     {
@@ -259,14 +259,14 @@ ADDRESS_OFFSET stack_allocator::get_next_allocation_offset() const
     // Iterate over our allocation entries
     // and find out the offset at which we can next allocate memory.
     // We skip the first record because its size is stored differently.
-    ADDRESS_OFFSET nextAllocationOffset = m_base_memory_offset + m_metadata->first_allocation_size;
+    address_offset_t nextAllocationOffset = m_base_memory_offset + m_metadata->first_allocation_size;
     for (size_t allocationNumber = 2; allocationNumber <= countAllocations; allocationNumber++)
     {
         // Get allocation information object.
-        stack_allocator_allocation* pAllocationRecord = get_allocation_record(allocationNumber);
+        stack_allocator_allocation_t* pAllocationRecord = get_allocation_record(allocationNumber);
 
         // Get actual allocation offset.
-        ADDRESS_OFFSET allocationOffset = pAllocationRecord->memory_offset;
+        address_offset_t allocationOffset = pAllocationRecord->memory_offset;
 
         // Skip allocation records that indicate deletes.
         if (allocationOffset == 0)
@@ -275,7 +275,7 @@ ADDRESS_OFFSET stack_allocator::get_next_allocation_offset() const
         }
 
         // Get allocation prefix pointer, to get the allocation size.
-        memory_allocation_metadata* pAllocationMetadata = read_allocation_metadata(allocationOffset);
+        memory_allocation_metadata_t* pAllocationMetadata = read_allocation_metadata(allocationOffset);
 
         // Add allocation size.
         nextAllocationOffset += pAllocationMetadata->allocation_size;
@@ -284,7 +284,7 @@ ADDRESS_OFFSET stack_allocator::get_next_allocation_offset() const
     return nextAllocationOffset;
 }
 
-void stack_allocator::output_debugging_information(const string& contextDescription) const
+void stack_allocator_t::output_debugging_information(const string& contextDescription) const
 {
     cout << endl << c_debug_output_separator_line_start << endl;
     cout << "  Stack allocator information for context: " << contextDescription << ":" << endl;

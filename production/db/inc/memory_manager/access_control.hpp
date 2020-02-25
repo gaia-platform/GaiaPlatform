@@ -13,7 +13,7 @@ namespace memory_manager
 {
 
 // Values that can indicate the access desired for resources.
-enum access_lock_type
+enum access_lock_type_t
 {
     none = 0,
 
@@ -24,12 +24,12 @@ enum access_lock_type
     remove = 5,
 };
 
-struct access_control
+struct access_control_t
 {
     uint32_t readers_count;
-    access_lock_type access_lock;
+    access_lock_type_t access_lock;
 
-    access_control()
+    access_control_t()
     {
         clear();
     }
@@ -54,28 +54,28 @@ struct access_control
 // (ii) Locking access - this is an exclusive lock that prevents other threads
 // from operating on the resource.
 //
-class auto_access_control
+class auto_access_control_t
 {
     private:
 
-    access_control* m_access_control;
-    access_lock_type m_locked_access;
+    access_control_t* m_access_control;
+    access_lock_type_t m_locked_access;
     bool m_has_marked_access;
     bool m_has_locked_access;
 
     public:
     
-    auto_access_control();
-    ~auto_access_control();
+    auto_access_control_t();
+    ~auto_access_control_t();
 
-    void mark_access(access_control* pAccessControl);
+    void mark_access(access_control_t* access_control);
 
-    bool try_to_lock_access(access_control* pAccessControl, access_lock_type wantedAccess, access_lock_type& existingAccess);
-    bool try_to_lock_access(access_control* pAccessControl, access_lock_type wantedAccess);
+    bool try_to_lock_access(access_control_t* access_control, access_lock_type_t wanted_access, access_lock_type_t& existing_access);
+    bool try_to_lock_access(access_control_t* access_control, access_lock_type_t wanted_access);
 
     // These versions can be called after an initial MarkAccess call.
-    bool try_to_lock_access(access_lock_type wantedAccess, access_lock_type& existingAccess);
-    bool try_to_lock_access(access_lock_type wantedAccess);
+    bool try_to_lock_access(access_lock_type_t wanted_access, access_lock_type_t& existing_access);
+    bool try_to_lock_access(access_lock_type_t wanted_access);
 
     // Methods for releasing all access or just the access lock.
     void release_access();
@@ -99,4 +99,3 @@ class auto_access_control
 }
 }
 }
-

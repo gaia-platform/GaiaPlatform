@@ -19,7 +19,7 @@ namespace memory_manager
 {
 
 // Each memory allocation will be prefixed by such a metadata block.
-struct memory_allocation_metadata
+struct memory_allocation_metadata_t
 {
     // Size of memory allocation block, including this metadata.
     uint64_t allocation_size;
@@ -27,10 +27,10 @@ struct memory_allocation_metadata
 
 // Common structure of an in-memory linked list node
 // that includes an AccessControl field for synchronization.
-struct memory_list_node
+struct memory_list_node_t
 {
-    ADDRESS_OFFSET next;
-    access_control accessControl;
+    address_offset_t next;
+    access_control_t accessControl;
 
     void clear()
     {
@@ -41,14 +41,14 @@ struct memory_list_node
 
 // Generic structure meant for tracking various memory objects,
 // such as freed memory blocks or StackAllocator metadata records.
-struct memory_record : memory_list_node
+struct memory_record_t : memory_list_node_t
 {
-    ADDRESS_OFFSET memory_offset;
+    address_offset_t memory_offset;
     size_t memory_size;
 
     void clear()
     {
-        memory_list_node::clear();
+        memory_list_node_t::clear();
 
         memory_offset = 0;
         memory_size = 0;
@@ -56,7 +56,7 @@ struct memory_record : memory_list_node
 };
 
 // A StackAllocator's metadata information.
-struct stack_allocator_metadata
+struct stack_allocator_metadata_t
 {
     // Total allocation count.
     size_t count_allocations;
@@ -66,10 +66,10 @@ struct stack_allocator_metadata
     size_t first_allocation_size;
 
     // Offset where we can make the next allocation.
-    ADDRESS_OFFSET next_allocation_offset;
+    address_offset_t next_allocation_offset;
 
     // Serialization number associated with this allocator; this will be set late.
-    SERIALIZATION_NUMBER serialization_number;
+    serialization_number_t serialization_number;
 
     void clear()
     {
@@ -81,18 +81,18 @@ struct stack_allocator_metadata
 };
 
 // The information about a StackAllocator allocation.
-struct stack_allocator_allocation
+struct stack_allocator_allocation_t
 {
     // The slotId associated to this object.
     // This is an opaque value for us that we just store here,
     // for the serialization code to read later.
-    SLOT_ID slotId;
+    slot_id_t slotId;
 
     // The offset of the allocation.
-    ADDRESS_OFFSET memory_offset;
+    address_offset_t memory_offset;
 
     // The offset of the old allocation made for the previous copy of the object.
-    ADDRESS_OFFSET old_memory_offset;
+    address_offset_t old_memory_offset;
 
     void clear()
     {
@@ -105,4 +105,3 @@ struct stack_allocator_allocation
 }
 }
 }
-

@@ -15,15 +15,15 @@ namespace memory_manager
 {
 
 // Encapsulates the set of variables needed for iterating over a memory list.
-struct iteration_context
+struct iteration_context_t
 {
-    memory_record* previous_record;
-    auto_access_control auto_access_previous_record;
+    memory_record_t* previous_record;
+    auto_access_control_t auto_access_previous_record;
 
-    memory_record* current_record;
-    auto_access_control auto_access_current_record;
+    memory_record_t* current_record;
+    auto_access_control_t auto_access_current_record;
 
-    iteration_context()
+    iteration_context_t()
     {
         previous_record = nullptr;
         current_record = nullptr;
@@ -31,7 +31,7 @@ struct iteration_context
 };
 
 // A collection of execution flags.
-struct execution_flags
+struct execution_flags_t
 {
     // Requests execution status to be output to console.
     bool enable_console_output;
@@ -39,7 +39,7 @@ struct execution_flags
     // Requests additional validations to be performed during execution.
     bool enable_extra_validations;
 
-    execution_flags()
+    execution_flags_t()
     {
         enable_console_output = false;
         enable_extra_validations = false;
@@ -49,4 +49,3 @@ struct execution_flags
 }
 }
 }
-

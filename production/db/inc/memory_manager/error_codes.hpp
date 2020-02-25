@@ -12,7 +12,7 @@ namespace db
 namespace memory_manager
 {
 
-enum error_code
+enum error_code_t
 {
     not_set = -1,
 
@@ -40,4 +40,3 @@ enum error_code
 }
 }
 }
-

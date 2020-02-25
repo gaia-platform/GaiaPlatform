@@ -32,9 +32,9 @@ void output_struct_sizes()
     cout << "*** StructSizes tests started ***" << endl;
     cout << c_debug_output_separator_line_end << endl;
 
-    cout << "sizeof(MemoryAllocationMetadata) = " << sizeof(memory_allocation_metadata) << endl;
-    cout << "sizeof(StackAllocatorMetadata) = " << sizeof(stack_allocator_metadata) << endl;
-    cout << "sizeof(StackAllocatorAllocation) = " << sizeof(stack_allocator_allocation) << endl;
+    cout << "sizeof(MemoryAllocationMetadata) = " << sizeof(memory_allocation_metadata_t) << endl;
+    cout << "sizeof(StackAllocatorMetadata) = " << sizeof(stack_allocator_metadata_t) << endl;
+    cout << "sizeof(StackAllocatorAllocation) = " << sizeof(stack_allocator_allocation_t) << endl;
 
     cout << endl << c_debug_output_separator_line_start << endl;
     cout << "*** StructSizes tests ended ***" << endl;

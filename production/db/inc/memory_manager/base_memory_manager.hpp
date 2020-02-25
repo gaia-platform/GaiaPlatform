@@ -16,7 +16,7 @@ namespace db
 namespace memory_manager
 {
 
-class base_memory_manager
+class base_memory_manager_t
 {
     public:
 
@@ -24,44 +24,44 @@ class base_memory_manager
 
     public:
 
-    base_memory_manager();
+    base_memory_manager_t();
 
     // Sanity checks.
-    bool validate_address_alignment(const uint8_t* const pMemoryAddress) const;
-    bool validate_offset_alignment(ADDRESS_OFFSET memoryOffset) const;
-    bool validate_size_alignment(size_t memorySize) const;
+    bool validate_address_alignment(const uint8_t* const memory_address) const;
+    bool validate_offset_alignment(address_offset_t memory_offset) const;
+    bool validate_size_alignment(size_t memory_size) const;
 
-    error_code validate_address(const uint8_t* const pMemoryAddress) const;
-    error_code validate_offset(ADDRESS_OFFSET memoryOffset) const;
-    error_code validate_size(size_t memorySize) const;
+    error_code_t validate_address(const uint8_t* const memory_address) const;
+    error_code_t validate_offset(address_offset_t memory_offset) const;
+    error_code_t validate_size(size_t memory_size) const;
 
     // Gets the offset corresponding to a memory address.
-    ADDRESS_OFFSET get_offset(const uint8_t* const pMemoryAddress) const;
+    address_offset_t get_offset(const uint8_t* const memory_address) const;
 
     // Gets the memory address corresponding to an offset.
-    uint8_t* get_address(ADDRESS_OFFSET memoryOffset) const;
+    uint8_t* get_address(address_offset_t memory_offset) const;
 
     // Gets the allocation metadata record given the base address of the allocation.
-    memory_allocation_metadata* read_allocation_metadata(ADDRESS_OFFSET memoryOffset) const;
+    memory_allocation_metadata_t* read_allocation_metadata(address_offset_t memory_offset) const;
 
     // Get the record corresponding to an offset.
-    memory_record* read_memory_record(ADDRESS_OFFSET recordOffset) const;
+    memory_record_t* read_memory_record(address_offset_t record_offset) const;
 
     // Sets up two references for traversing the given list.
     // If list is empty, pCurrentRecord will be set to nullptr,
     // otherwise it will be set to the list's first node.
-    void start(memory_record* pListHead, iteration_context& context) const;
+    void start(memory_record_t* list_head, iteration_context_t& context) const;
 
     // Basic iteration method over a MemoryRecord list, using two references.
     // It ensures a safe traversal of the list in a multi-threaded context
     // in which other threads may insert or remove nodes from the list.
     //
     // Returns true if a next node was found and false if we reached the end of the list.
-    bool move_next(iteration_context& context) const;
+    bool move_next(iteration_context_t& context) const;
 
     // In some situations, we need to reset the current node
     // and advance it again from the previous node.
-    void reset_current(iteration_context& context) const;
+    void reset_current(iteration_context_t& context) const;
 
     // Attempts to lock the wanted access on the previous record.
     //
@@ -77,9 +77,9 @@ class base_memory_manager
     // because the operation impacts two links.
     //
     // Returns true if access was acquired and false otherwise.
-    bool try_to_lock_access(iteration_context& context, access_lock_type wantedAccess, access_lock_type& existingAccess) const;
+    bool try_to_lock_access(iteration_context_t& context, access_lock_type_t wanted_access, access_lock_type_t& existing_access) const;
 
-    bool try_to_lock_access(iteration_context& context, access_lock_type wantedAccess) const;
+    bool try_to_lock_access(iteration_context_t& context, access_lock_type_t wanted_access) const;
 
     // Removes the current record from the list.
     // Assumes that both records have already had their access locked.
@@ -87,15 +87,15 @@ class base_memory_manager
     // until all readers have moved past the current record.
     // This and the held locks ensure that the next link of the current node
     // is safe to pursue and still points to a node in our list.
-    void remove(iteration_context& context) const;
+    void remove(iteration_context_t& context) const;
 
     // Inserts a record after the previous record specified in the context.
     // Safety of this operation also relies on the calling party
     // locking access to the record after which we insert.
-    void insert(iteration_context& context, memory_record*& pRecord) const;
+    void insert(iteration_context_t& context, memory_record_t*& record) const;
 
     // Inserts a memory record in order by either offset or size value.
-    void insert_memory_record(memory_record* pListHead, memory_record* pMemoryRecord, bool sortByOffset) const;
+    void insert_memory_record(memory_record_t* list_head, memory_record_t* memory_record, bool sort_by_offset) const;
 
     protected:
 
@@ -103,7 +103,7 @@ class base_memory_manager
     uint8_t* m_base_memory_address;
 
     // The base memory offset at which our buffer starts (in case we only own a window into a larger memory block).
-    ADDRESS_OFFSET m_base_memory_offset;
+    address_offset_t m_base_memory_offset;
 
     // The total size of the memory segment in which we operate.
     size_t m_total_memory_size;
@@ -113,10 +113,9 @@ class base_memory_manager
     // Helper function that attempts to advance the current record past the previous one.
     //
     // Returns true if it succeeds and false otherwise.
-    bool try_to_advance_current_record(iteration_context& context) const;
+    bool try_to_advance_current_record(iteration_context_t& context) const;
 };
 
 }
 }
 }
-
