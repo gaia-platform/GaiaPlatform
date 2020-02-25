@@ -20,7 +20,7 @@ class CBaseMemoryManager
 {
     public:
 
-    static const size_t MEMORY_ALIGNMENT = sizeof(uint64_t);
+    static const size_t c_memory_alignment = sizeof(uint64_t);
 
     public:
 
@@ -100,13 +100,13 @@ class CBaseMemoryManager
     protected:
 
     // The base memory address relative to which we compute our offsets.
-    uint8_t* m_pBaseMemoryAddress;
+    uint8_t* m_base_memory_address;
 
     // The base memory offset at which our buffer starts (in case we only own a window into a larger memory block).
-    ADDRESS_OFFSET m_baseMemoryOffset;
+    ADDRESS_OFFSET m_base_memory_offset;
 
     // The total size of the memory segment in which we operate.
-    size_t m_totalMemorySize;
+    size_t m_total_memory_size;
 
     protected:
 

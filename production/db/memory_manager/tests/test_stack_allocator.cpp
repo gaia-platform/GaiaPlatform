@@ -39,8 +39,8 @@ void validate_allocation_record(
 {
     StackAllocatorAllocation* pStackAllocationRecord = pStackAllocator->get_allocation_record(allocationNumber);
     retail_assert(pStackAllocationRecord->slotId == expectedSlotId, "Allocation record has incorrect slot id!");
-    retail_assert(pStackAllocationRecord->memoryOffset == expectedMemoryOffset, "Allocation record has incorrect allocation offset!");
-    retail_assert(pStackAllocationRecord->oldMemoryOffset == expectedOldMemoryOffset, "Allocation record has incorrect old allocation offset!");
+    retail_assert(pStackAllocationRecord->memory_offset == expectedMemoryOffset, "Allocation record has incorrect allocation offset!");
+    retail_assert(pStackAllocationRecord->old_memory_offset == expectedOldMemoryOffset, "Allocation record has incorrect old allocation offset!");
 }
 
 void test_stack_allocator()
@@ -58,8 +58,8 @@ void test_stack_allocator()
     EMemoryManagerErrorCode errorCode = not_set;
 
     ExecutionFlags executionFlags;
-    executionFlags.enableExtraValidations = true;
-    executionFlags.enableConsoleOutput = true;
+    executionFlags.enable_extra_validations = true;
+    executionFlags.enable_console_output = true;
 
     memoryManager.set_execution_flags(executionFlags);
     errorCode = memoryManager.manage(memory, memorySize, minimumMainMemoryAvailableSize, true);

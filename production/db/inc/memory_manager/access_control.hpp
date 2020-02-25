@@ -26,8 +26,8 @@ enum EAccessLockType
 
 struct AccessControl
 {
-    uint32_t readersCount;
-    EAccessLockType accessLock;
+    uint32_t readers_count;
+    EAccessLockType access_lock;
 
     AccessControl()
     {
@@ -36,8 +36,8 @@ struct AccessControl
 
     void clear()
     {
-        readersCount = 0;
-        accessLock = none;
+        readers_count = 0;
+        access_lock = none;
     }
 };
 
@@ -58,10 +58,10 @@ class CAutoAccessControl
 {
     private:
 
-    AccessControl* m_pAccessControl;
-    EAccessLockType m_lockedAccess;
-    bool m_hasMarkedAccess;
-    bool m_hasLockedAccess;
+    AccessControl* m_access_control;
+    EAccessLockType m_locked_access;
+    bool m_has_marked_access;
+    bool m_has_locked_access;
 
     public:
     
@@ -83,12 +83,12 @@ class CAutoAccessControl
 
     bool has_marked_access()
     {
-        return m_hasMarkedAccess;
+        return m_has_marked_access;
     }
 
     bool has_locked_access()
     {
-        return m_hasLockedAccess;
+        return m_has_locked_access;
     }
 
     private:

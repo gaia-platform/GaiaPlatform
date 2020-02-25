@@ -66,10 +66,10 @@ class CStackAllocator : public CBaseMemoryManager
     // A pointer to our metadata information, stored in the same memory that we manage.
     // Unlike the MemoryManager, which stores its metadata at the start of the buffer,
     // the StackAllocator stores it at the end.
-    StackAllocatorMetadata* m_pMetadata;
+    StackAllocatorMetadata* m_metadata;
 
     // Our execution flags.
-    ExecutionFlags m_executionFlags;
+    ExecutionFlags m_execution_flags;
 
     private:
 

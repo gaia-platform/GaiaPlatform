@@ -49,8 +49,8 @@ void test_memory_manager_basic_operation()
 
     EMemoryManagerErrorCode errorCode = not_set;
 
-    executionFlags.enableExtraValidations = true;
-    executionFlags.enableConsoleOutput = true;
+    executionFlags.enable_extra_validations = true;
+    executionFlags.enable_console_output = true;
 
     memoryManager.set_execution_flags(executionFlags);
     errorCode = memoryManager.manage(memory, memorySize, mainMemorySystemReservedSize, true);
@@ -105,8 +105,8 @@ void test_memory_manager_advanced_operation()
 
     EMemoryManagerErrorCode errorCode = not_set;
 
-    executionFlags.enableExtraValidations = true;
-    executionFlags.enableConsoleOutput = true;
+    executionFlags.enable_extra_validations = true;
+    executionFlags.enable_console_output = true;
 
     memoryManager.set_execution_flags(executionFlags);
     errorCode = memoryManager.manage(memory, memorySize, mainMemorySystemReservedSize, true);

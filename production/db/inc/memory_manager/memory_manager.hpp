@@ -79,38 +79,38 @@ class CMemoryManager : public CBaseMemoryManager
     // Also, because the metadata structure is located at offset 0, that offset can be considered to be invalid.
     struct Metadata
     {
-        ADDRESS_OFFSET startMainAvailableMemory;
-        ADDRESS_OFFSET lowestMetadataMemoryUse;
+        ADDRESS_OFFSET start_main_available_memory;
+        ADDRESS_OFFSET lowest_metadata_memory_use;
 
-        MemoryRecord freeMemoryListHead;
-        MemoryRecord reclaimedRecordsListHead;
-        MemoryRecord unserializedAllocationsListHead;
+        MemoryRecord free_memory_list_head;
+        MemoryRecord reclaimed_records_list_head;
+        MemoryRecord unserialized_allocations_list_head;
 
         void Clear(ADDRESS_OFFSET low, ADDRESS_OFFSET high)
         {
-            startMainAvailableMemory = low;
-            lowestMetadataMemoryUse = high;
+            start_main_available_memory = low;
+            lowest_metadata_memory_use = high;
 
-            freeMemoryListHead.clear();
-            reclaimedRecordsListHead.clear();
-            unserializedAllocationsListHead.clear();
+            free_memory_list_head.clear();
+            reclaimed_records_list_head.clear();
+            unserialized_allocations_list_head.clear();
         }
     };
 
     private:
 
     // A pointer to our metadata information, stored in the same memory that we manage.
-    Metadata* m_pMetadata;
+    Metadata* m_metadata;
 
     // There should be a single master manager called by the database engine.
     // Some functionality is restricted to this instance.
-    bool m_isMasterManager;
+    bool m_is_master_manager;
 
     // See Manage() comment.
-    size_t m_mainMemorySystemReservedSize;
+    size_t m_main_memory_system_reserved_size;
 
     // Our execution flags.
-    ExecutionFlags m_executionFlags;
+    ExecutionFlags m_execution_flags;
 
     private:
 

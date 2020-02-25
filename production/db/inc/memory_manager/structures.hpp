@@ -17,16 +17,16 @@ namespace memory_manager
 // Encapsulates the set of variables needed for iterating over a memory list.
 struct IterationContext
 {
-    MemoryRecord* pPreviousRecord;
-    CAutoAccessControl autoAccessPreviousRecord;
+    MemoryRecord* previous_record;
+    CAutoAccessControl auto_access_previous_record;
 
-    MemoryRecord* pCurrentRecord;
-    CAutoAccessControl autoAccessCurrentRecord;
+    MemoryRecord* current_record;
+    CAutoAccessControl auto_access_current_record;
 
     IterationContext()
     {
-        pPreviousRecord = nullptr;
-        pCurrentRecord = nullptr;
+        previous_record = nullptr;
+        current_record = nullptr;
     }
 };
 
@@ -34,15 +34,15 @@ struct IterationContext
 struct ExecutionFlags
 {
     // Requests execution status to be output to console.
-    bool enableConsoleOutput;
+    bool enable_console_output;
 
     // Requests additional validations to be performed during execution.
-    bool enableExtraValidations;
+    bool enable_extra_validations;
 
     ExecutionFlags()
     {
-        enableConsoleOutput = false;
-        enableExtraValidations = false;
+        enable_console_output = false;
+        enable_extra_validations = false;
     }
 };
 
