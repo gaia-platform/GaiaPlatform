@@ -65,6 +65,8 @@ bool auto_access_control_t::try_to_lock_access(
     retail_assert(m_access_control != nullptr, "Invalid call, no access control available!");
     retail_assert(wanted_access != access_lock_type_t::none, "Invalid wanted access!");
 
+    existing_access = m_access_control->access_lock;
+
     if (m_has_locked_access)
     {
         return m_locked_access == wanted_access;

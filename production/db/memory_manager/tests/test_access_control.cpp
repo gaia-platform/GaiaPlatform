@@ -177,6 +177,55 @@ void test_access_control()
         access_control.readers_count == 0,
         "ERROR: Access control does not indicate expected reader count value of 0!");
 
+    {
+        auto_access_control_t auto_access;
+
+        retail_assert(
+            auto_access.try_to_lock_access(&access_control, access_lock_type_t::remove),
+            "ERROR: Auto accessor failed to acquire available access!");
+        cout << "PASSED: First call of try_to_lock_access() has succeeded as expected!" << endl;
+
+        auto_access_control_t second_auto_access;
+
+        retail_assert(
+            !second_auto_access.try_to_lock_access(&access_control, access_lock_type_t::insert, existing_access),
+            "ERROR: Auto accessor managed to acquire already granted access!");
+        retail_assert(
+            existing_access == access_lock_type_t::remove,
+            "ERROR: Unexpected existing access was returned!");
+        cout << "PASSED: Cannot re-lock existing locked access!" << endl;
+
+        auto_access.release_access();
+
+        retail_assert(
+            second_auto_access.try_to_lock_access(&access_control, access_lock_type_t::update, existing_access),
+            "ERROR: Auto accessor failed to acquire available access!");
+        retail_assert(
+            existing_access == access_lock_type_t::none,
+            "ERROR: Unexpected existing access was returned!");
+        retail_assert(
+            access_control.access_lock == access_lock_type_t::update,
+            "ERROR: Access control does not indicate expected remove value!");
+        retail_assert(
+            access_control.readers_count == 1,
+            "ERROR: Access control does not indicate expected reader count value of 1!");
+        cout << "PASSED: Can lock released access!" << endl;
+
+        retail_assert(
+            second_auto_access.try_to_lock_access(access_lock_type_t::update, existing_access),
+            "ERROR: Auto accessor failed to acquire already-acquired access!");
+        retail_assert(
+            existing_access == access_lock_type_t::update,
+            "ERROR: Unexpected existing access was returned!");
+        retail_assert(
+            access_control.access_lock == access_lock_type_t::update,
+            "ERROR: Access control does not indicate expected remove value!");
+        retail_assert(
+            access_control.readers_count == 1,
+            "ERROR: Access control does not indicate expected reader count value of 1!");
+        cout << "PASSED: Can lock already-acquired access!" << endl;
+    }
+
     cout << endl << c_debug_output_separator_line_start << endl;
     cout << "*** access_control_t tests ended ***" << endl;
     cout << c_debug_output_separator_line_end << endl;
