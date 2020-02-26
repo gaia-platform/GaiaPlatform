@@ -15,7 +15,7 @@ namespace memory_manager
 {
 
 // Values that can indicate the access desired for resources.
-enum class access_lock_type_t
+enum class access_lock_type_t: int8_t
 {
     none = 0,
 
