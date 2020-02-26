@@ -81,7 +81,7 @@ void test_access_control()
             second_access_control.readers_count == 1,
             "ERROR: Access control does not indicate expected reader count value of 1!");
         retail_assert(
-            existing_access == none,
+            existing_access == access_lock_type_t::none,
             "ERROR: Unexpected existing access was returned!");
         cout << "PASSED: Can lock different unlocked access!" << endl;
 
@@ -104,13 +104,13 @@ void test_access_control()
     }
 
     retail_assert(
-        access_control.access_lock == none,
+        access_control.access_lock == access_lock_type_t::none,
         "ERROR: Access control has not reverted to expected none value!");
     retail_assert(
         access_control.readers_count == 0,
         "ERROR: Access control does not indicate expected reader count value of 0!");
     retail_assert(
-        second_access_control.access_lock == none,
+        second_access_control.access_lock == access_lock_type_t::none,
         "ERROR: Access control has not reverted to expected none value!");
     retail_assert(
         access_control.readers_count == 0,
@@ -121,7 +121,7 @@ void test_access_control()
 
         auto_access.mark_access(&access_control);
         retail_assert(
-            access_control.access_lock == none,
+            access_control.access_lock == access_lock_type_t::none,
             "ERROR: Access control does not indicate expected none value!");
         retail_assert(
             access_control.readers_count == 1,
@@ -141,7 +141,7 @@ void test_access_control()
 
         auto_access.release_access();
         retail_assert(
-            access_control.access_lock == none,
+            access_control.access_lock == access_lock_type_t::none,
             "ERROR: Access control does not indicate expected none value!");
         retail_assert(
             access_control.readers_count == 0,
