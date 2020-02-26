@@ -11,7 +11,7 @@
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;
 
-stack_allocator_t::stack_allocator_t() : base_memory_manager_t()
+stack_allocator_t::stack_allocator_t()
 {
     m_metadata = nullptr;
 }
@@ -28,27 +28,27 @@ error_code_t stack_allocator_t::initialize(
 {
     if (base_memory_address == nullptr || memory_offset == 0 || memory_size == 0)
     {
-        return invalid_argument_value;
+        return error_code_t::invalid_argument_value;
     }
 
     if (!validate_address_alignment(base_memory_address))
     {
-        return memory_address_not_aligned;
+        return error_code_t::memory_address_not_aligned;
     }
 
     if (!validate_offset_alignment(memory_offset))
     {
-        return memory_offset_not_aligned;
+        return error_code_t::memory_offset_not_aligned;
     }
 
     if (!validate_size_alignment(memory_size))
     {
-        return memory_size_not_aligned;
+        return error_code_t::memory_size_not_aligned;
     }
 
     if (memory_size < sizeof(stack_allocator_metadata_t))
     {
-        return insufficient_memory_size;
+        return error_code_t::insufficient_memory_size;
     }
 
     // Save our parameters.
@@ -68,7 +68,7 @@ error_code_t stack_allocator_t::initialize(
         output_debugging_information("initialize");
     }
 
-    return success;
+    return error_code_t::success;
 }
 
 error_code_t stack_allocator_t::allocate(
@@ -81,19 +81,19 @@ error_code_t stack_allocator_t::allocate(
 
     if (m_metadata == nullptr)
     {
-        return not_initialized;
+        return error_code_t::not_initialized;
     }
 
     // A memory_size of 0 indicates a deletion - handle specially.
     error_code_t error_code = validate_size(memory_size);
-    if (memory_size != 0 && error_code != success)
+    if (memory_size != 0 && error_code != error_code_t::success)
     {
         return error_code;
     }
 
     if (!validate_offset_alignment(old_slot_offset))
     {
-        return memory_offset_not_aligned;
+        return error_code_t::memory_offset_not_aligned;
     }
 
     // For all but the first allocation, we will prefix a memory allocation metadata block.
@@ -113,7 +113,7 @@ error_code_t stack_allocator_t::allocate(
     if (next_allocation_offset + size_to_allocate
         > metadata_offset - (count_allocations + 1) * sizeof(stack_allocator_allocation_t))
     {
-        return insufficient_memory_size;
+        return error_code_t::insufficient_memory_size;
     }
 
     if (size_to_allocate > 0)
@@ -167,7 +167,7 @@ error_code_t stack_allocator_t::allocate(
 
     allocated_memory_offset = allocation_record->memory_offset;
     
-    return success;
+    return error_code_t::success;
 }
 
 error_code_t stack_allocator_t::deallocate(slot_id_t slot_id, address_offset_t slot_offset) const
@@ -185,12 +185,12 @@ error_code_t stack_allocator_t::deallocate(size_t count_allocations_to_keep) con
 {
     if (m_metadata == nullptr)
     {
-        return not_initialized;
+        return error_code_t::not_initialized;
     }
 
     if (count_allocations_to_keep > m_metadata->count_allocations)
     {
-        return allocation_count_too_large;
+        return error_code_t::allocation_count_too_large;
     }
 
     m_metadata->count_allocations = count_allocations_to_keep;
@@ -209,7 +209,7 @@ error_code_t stack_allocator_t::deallocate(size_t count_allocations_to_keep) con
         output_debugging_information("deallocate");
     }
 
-    return success;
+    return error_code_t::success;
 }
 
 stack_allocator_metadata_t* stack_allocator_t::get_metadata() const

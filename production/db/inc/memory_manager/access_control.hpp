@@ -15,7 +15,7 @@ namespace memory_manager
 {
 
 // Values that can indicate the access desired for resources.
-enum access_lock_type_t
+enum class access_lock_type_t
 {
     none = 0,
 
@@ -39,7 +39,7 @@ struct access_control_t
     void clear()
     {
         readers_count = 0;
-        access_lock = none;
+        access_lock = access_lock_type_t::none;
     }
 };
 

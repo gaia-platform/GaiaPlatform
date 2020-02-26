@@ -5,7 +5,7 @@ This is a folder for the database engine memory manager code.
 
 ### Use cases
 
-The Memory Manager contains two main components: the memmory manager itself and a stack allocator:
+The Memory Manager contains two main components: the memory manager itself and a stack allocator:
 
 * Memory manager (MM) component:
   * This is used to initialize a memory range for use, as well as for the initial population of this region with data.

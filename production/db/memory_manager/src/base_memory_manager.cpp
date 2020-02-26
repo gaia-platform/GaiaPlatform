@@ -39,58 +39,58 @@ error_code_t base_memory_manager_t::validate_address(const uint8_t* const memory
 {
     if (!validate_address_alignment(memory_address))
     {
-        return memory_address_not_aligned;
+        return error_code_t::memory_address_not_aligned;
     }
 
     if (memory_address < m_base_memory_address + m_base_memory_offset
         || memory_address > m_base_memory_address + m_base_memory_offset + m_total_memory_size)
     {
-        return memory_address_out_of_range;
+        return error_code_t::memory_address_out_of_range;
     }
 
-    return success;
+    return error_code_t::success;
 }
 
 error_code_t base_memory_manager_t::validate_offset(address_offset_t memory_offset) const
 {
     if (!validate_offset_alignment(memory_offset))
     {
-        return memory_offset_not_aligned;
+        return error_code_t::memory_offset_not_aligned;
     }
 
     if (memory_offset < m_base_memory_offset
         || memory_offset > m_base_memory_offset + m_total_memory_size)
     {
-        return memory_offset_out_of_range;
+        return error_code_t::memory_offset_out_of_range;
     }
 
-    return success;
+    return error_code_t::success;
 }
 
 error_code_t base_memory_manager_t::validate_size(size_t memory_size) const
 {
     if (!validate_size_alignment(memory_size))
     {
-        return memory_size_not_aligned;
+        return error_code_t::memory_size_not_aligned;
     }
 
     if (memory_size == 0)
     {
-        return memory_size_cannot_be_zero;
+        return error_code_t::memory_size_cannot_be_zero;
     }
 
     if (memory_size > m_total_memory_size)
     {
-        return memory_size_too_large;
+        return error_code_t::memory_size_too_large;
     }
 
-    return success;
+    return error_code_t::success;
 }
 
 address_offset_t base_memory_manager_t::get_offset(const uint8_t* const memory_address) const
 {
     retail_assert(
-        validate_address(memory_address) == success,
+        validate_address(memory_address) == error_code_t::success,
         "get_offset() was called with an invalid address!");
 
     size_t memory_offset = memory_address - m_base_memory_address;
@@ -101,7 +101,7 @@ address_offset_t base_memory_manager_t::get_offset(const uint8_t* const memory_a
 uint8_t* base_memory_manager_t::get_address(address_offset_t memory_offset) const
 {
     retail_assert(
-        validate_offset(memory_offset) == success,
+        validate_offset(memory_offset) == error_code_t::success,
         "get_address() was called with an invalid offset!");
 
     uint8_t* memory_address = m_base_memory_address + memory_offset;
@@ -112,7 +112,7 @@ uint8_t* base_memory_manager_t::get_address(address_offset_t memory_offset) cons
 memory_allocation_metadata_t* base_memory_manager_t::read_allocation_metadata(address_offset_t memory_offset) const
 {
     retail_assert(
-        validate_offset(memory_offset) == success,
+        validate_offset(memory_offset) == error_code_t::success,
         "read_allocation_metadata() was called with an invalid offset!");
 
     retail_assert(
@@ -130,7 +130,7 @@ memory_allocation_metadata_t* base_memory_manager_t::read_allocation_metadata(ad
 memory_record_t* base_memory_manager_t::read_memory_record(address_offset_t record_offset) const
 {
     retail_assert(
-        validate_offset(record_offset) == success,
+        validate_offset(record_offset) == error_code_t::success,
         "read_memory_record() was called with an invalid offset!");
 
     retail_assert(

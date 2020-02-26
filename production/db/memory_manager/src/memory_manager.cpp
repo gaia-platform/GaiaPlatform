@@ -21,7 +21,7 @@ using namespace std;
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;
 
-memory_manager_t::memory_manager_t() : base_memory_manager_t()
+memory_manager_t::memory_manager_t()
 {
     m_metadata = nullptr;
 
@@ -52,23 +52,23 @@ error_code_t memory_manager_t::manage(
     // Sanity checks.
     if (memory_address == nullptr || memory_size == 0)
     {
-        return invalid_argument_value;
+        return error_code_t::invalid_argument_value;
     }
 
     if (!validate_address_alignment(memory_address))
     {
-        return memory_address_not_aligned;
+        return error_code_t::memory_address_not_aligned;
     }
 
     if (!validate_size_alignment(memory_size))
     {
-        return memory_size_not_aligned;
+        return error_code_t::memory_size_not_aligned;
     }
 
     if (memory_size < sizeof(metadata_t) + main_memory_system_reserved_size
         || sizeof(metadata_t) + main_memory_system_reserved_size < main_memory_system_reserved_size)
     {
-        return insufficient_memory_size;
+        return error_code_t::insufficient_memory_size;
     }
 
     // Save our parameters.
@@ -98,7 +98,7 @@ error_code_t memory_manager_t::manage(
     // The master manager is the one that initializes the memory.
     m_is_master_manager = initialize;
 
-    return success;
+    return error_code_t::success;
 }
 
 error_code_t memory_manager_t::allocate(
@@ -109,11 +109,11 @@ error_code_t memory_manager_t::allocate(
 
     if (m_metadata == nullptr)
     {
-        return not_initialized;
+        return error_code_t::not_initialized;
     }
 
     error_code_t error_code = validate_size(memory_size);
-    if (error_code != success)
+    if (error_code != error_code_t::success)
     {
         return error_code;
     }
@@ -136,10 +136,10 @@ error_code_t memory_manager_t::allocate(
 
     if (allocated_memory_offset == 0)
     {
-        return insufficient_memory_size;
+        return error_code_t::insufficient_memory_size;
     }
 
-    return success;
+    return error_code_t::success;
 }
 
 error_code_t memory_manager_t::create_stack_allocator(
@@ -150,12 +150,12 @@ error_code_t memory_manager_t::create_stack_allocator(
 
     if (m_metadata == nullptr)
     {
-        return not_initialized;
+        return error_code_t::not_initialized;
     }
 
     address_offset_t memory_offset = 0;
     error_code_t error_code = allocate(memory_size, memory_offset);
-    if (error_code != success)
+    if (error_code != error_code_t::success)
     {
         return error_code;
     }
@@ -165,7 +165,7 @@ error_code_t memory_manager_t::create_stack_allocator(
     stack_allocator->set_execution_flags(m_execution_flags);
 
     error_code = stack_allocator->initialize(m_base_memory_address, memory_offset, memory_size);
-    if (error_code != success)
+    if (error_code != error_code_t::success)
     {
         delete stack_allocator;
         stack_allocator = nullptr;
@@ -180,12 +180,12 @@ error_code_t memory_manager_t::commit_stack_allocator(
 {
     if (m_metadata == nullptr)
     {
-        return not_initialized;
+        return error_code_t::not_initialized;
     }
 
     if (stack_allocator == nullptr)
     {
-        return invalid_argument_value;
+        return error_code_t::invalid_argument_value;
     }
 
     // Ensure that the stack allocator memory gets reclaimed.
@@ -225,7 +225,7 @@ error_code_t memory_manager_t::commit_stack_allocator(
             = get_free_memory_record(first_stack_allocation_metadata_offset, first_stack_allocation_metadata->allocation_size);
         if (free_memory_record == nullptr)
         {
-            return insufficient_memory_size;
+            return error_code_t::insufficient_memory_size;
         }
         else
         {
@@ -256,7 +256,7 @@ error_code_t memory_manager_t::commit_stack_allocator(
                 if (free_memory_record == nullptr)
                 {
                     reclaim_records(free_memory_records.get(), count_allocations);
-                    return insufficient_memory_size;
+                    return error_code_t::insufficient_memory_size;
                 }
                 else
                 {
@@ -270,7 +270,7 @@ error_code_t memory_manager_t::commit_stack_allocator(
         // If we fail, reclaim all the records that we have collected so far.
         // But if we succeed, then we can insert all our collected records into the list of free memory records.
         error_code_t error_code = track_stack_allocator_metadata_for_serialization(stack_allocator_metadata);
-        if (error_code != success)
+        if (error_code != error_code_t::success)
         {
             reclaim_records(free_memory_records.get(), count_allocations);
             return error_code;
@@ -294,21 +294,21 @@ error_code_t memory_manager_t::commit_stack_allocator(
         stack_allocator->output_debugging_information("commit_stack_allocator");
     }
 
-    return success;
+    return error_code_t::success;
 }
 
 error_code_t memory_manager_t::get_unserialized_allocations_list_head(memory_list_node_t*& list_head) const
 {
     if (m_metadata == nullptr)
     {
-        return not_initialized;
+        return error_code_t::not_initialized;
     }
 
     // Serializing allocations should only be performed by the database engine
     // through its master manager instance.
     if (!m_is_master_manager)
     {
-        return operation_available_only_to_master_manager;
+        return error_code_t::operation_available_only_to_master_manager;
     }
 
     if (m_execution_flags.enable_console_output)
@@ -318,7 +318,7 @@ error_code_t memory_manager_t::get_unserialized_allocations_list_head(memory_lis
 
     list_head = &m_metadata->unserialized_allocations_list_head;
 
-    return success;
+    return error_code_t::success;
 }
 
 error_code_t memory_manager_t::update_unserialized_allocations_list_head(
@@ -326,21 +326,21 @@ error_code_t memory_manager_t::update_unserialized_allocations_list_head(
 {
     if (m_metadata == nullptr)
     {
-        return not_initialized;
+        return error_code_t::not_initialized;
     }
 
     // We require an offset because the end of the list may not be safe to process,
     // due to other threads making insertions.
     if (next_unserialized_allocation_record_offset == 0)
     {
-        return invalid_argument_value;
+        return error_code_t::invalid_argument_value;
     }
 
     // Serializing allocations should only be performed by the database engine
     // through its master manager instance.
     if (!m_is_master_manager)
     {
-        return operation_available_only_to_master_manager;
+        return error_code_t::operation_available_only_to_master_manager;
     }
 
     address_offset_t current_record_offset = m_metadata->unserialized_allocations_list_head.next;
@@ -362,8 +362,8 @@ error_code_t memory_manager_t::update_unserialized_allocations_list_head(
         // Determine the boundaries of the memory block that we can free from the stack_allocator_t.
         address_offset_t start_memory_offset = current_metadata->next_allocation_offset;
         address_offset_t end_memory_offset = current_metadata_offset + sizeof(stack_allocator_metadata_t);
-        retail_assert(validate_offset(start_memory_offset) == success, "Calculated start memory offset is invalid");
-        retail_assert(validate_offset(end_memory_offset) == success, "Calculated end memory offset is invalid");
+        retail_assert(validate_offset(start_memory_offset) == error_code_t::success, "Calculated start memory offset is invalid");
+        retail_assert(validate_offset(end_memory_offset) == error_code_t::success, "Calculated end memory offset is invalid");
 
         size_t memory_size = end_memory_offset - start_memory_offset;
 
@@ -394,7 +394,7 @@ error_code_t memory_manager_t::update_unserialized_allocations_list_head(
         output_debugging_information("update_unserialized_allocations_list_head");
     }
 
-    return success;
+    return error_code_t::success;
 }
 
 size_t memory_manager_t::get_main_memory_available_size(bool include_system_reserved_size) const
@@ -805,7 +805,7 @@ error_code_t memory_manager_t::track_stack_allocator_metadata_for_serialization(
 
     if (memory_record == nullptr)
     {
-        return insufficient_memory_size;
+        return error_code_t::insufficient_memory_size;
     }
 
     uint8_t* metadata_address = reinterpret_cast<uint8_t*>(stack_allocator_metadata);
@@ -820,7 +820,7 @@ error_code_t memory_manager_t::track_stack_allocator_metadata_for_serialization(
 
     insert_unserialized_allocations_record(memory_record);
 
-    return success;
+    return error_code_t::success;
 }
 
 void memory_manager_t::output_debugging_information(const string& context_description) const
@@ -860,7 +860,7 @@ void memory_manager_t::output_list_content(memory_record_t list_head) const
         cout << "      offset = " << current_record->memory_offset;
         cout << " size = " << current_record->memory_size;
         cout << " readers_count = " << current_record->access_control.readers_count;
-        cout << " access_lock = " << current_record->access_control.access_lock;
+        cout << " access_lock = " << static_cast<int8_t>(current_record->access_control.access_lock);
         cout << " next = " << current_record->next << endl;
 
         current_record_offset = current_record->next;

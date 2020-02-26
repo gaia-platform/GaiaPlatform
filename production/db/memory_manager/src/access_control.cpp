@@ -23,7 +23,7 @@ auto_access_control_t::~auto_access_control_t()
 void auto_access_control_t::clear()
 {
     m_access_control = nullptr;
-    m_locked_access = none;
+    m_locked_access = access_lock_type_t::none;
     m_has_marked_access = false;
     m_has_locked_access = false;
 }
@@ -46,15 +46,9 @@ bool auto_access_control_t::try_to_lock_access(
     access_lock_type_t wanted_access,
     access_lock_type_t& existing_access)
 {
-    retail_assert(wanted_access != access_lock_type_t::none, "Invalid wanted access!");
-
     mark_access(access_control);
 
-    m_locked_access = wanted_access;
-    existing_access = __sync_val_compare_and_swap(&m_access_control->access_lock, access_lock_type_t::none, m_locked_access);
-    m_has_locked_access = (existing_access == access_lock_type_t::none);
-
-    return m_has_locked_access;
+    return try_to_lock_access(wanted_access, existing_access);
 }
 
 bool auto_access_control_t::try_to_lock_access(access_control_t* access_control, access_lock_type_t wanted_access)
@@ -76,9 +70,15 @@ bool auto_access_control_t::try_to_lock_access(
         return m_locked_access == wanted_access;
     }
 
-    m_locked_access = wanted_access;
-    existing_access = __sync_val_compare_and_swap(&m_access_control->access_lock, access_lock_type_t::none, m_locked_access);
+    existing_access = static_cast<access_lock_type_t>(__sync_val_compare_and_swap(
+        reinterpret_cast<int8_t*>(&m_access_control->access_lock),
+        static_cast<int8_t>(access_lock_type_t::none),
+        static_cast<int8_t>(wanted_access)));
     m_has_locked_access = (existing_access == access_lock_type_t::none);
+    if (m_has_locked_access)
+    {
+        m_locked_access = wanted_access;
+    }
 
     return m_has_locked_access;
 }
@@ -118,7 +118,10 @@ void auto_access_control_t::release_access_lock()
     if (m_has_locked_access)
     {
         retail_assert(
-            __sync_bool_compare_and_swap(&m_access_control->access_lock, m_locked_access, access_lock_type_t::none),
+            __sync_bool_compare_and_swap(
+                reinterpret_cast<int8_t*>(&m_access_control->access_lock),
+                static_cast<int8_t>(m_locked_access),
+                static_cast<int8_t>(access_lock_type_t::none)),
             "Failed to release access lock!");
         m_has_locked_access = false;
     }
