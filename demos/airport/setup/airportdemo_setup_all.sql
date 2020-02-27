@@ -27,11 +27,6 @@ create unique index rawdata_route_uidx on rawdata_routes(al_id, src_ap_id, dst_a
 -- Tables must already be created.
 -- Data comes from openflights.com which has an open database license, free to use; this is a subset of rows focused on SeaTac.
 
--- You'll need to edit an airlines.dat line to change \\'\\ into \\'
--- < 13394,"Jayrow","","\\'","\\'\\","","Australia","Y"
--- ---
--- > 13394,"Jayrow","","\\'","\\'","","Australia","Y"
-
 -- Copy data to /tmp:
 --      cp airports.dat /tmp
 --      cp airlines.dat /tmp
