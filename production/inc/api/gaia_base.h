@@ -20,6 +20,7 @@ typedef uint64_t gaia_type_t; // temporary place for gaia type indicator
  */
 class gaia_base 
 {
+public:
     virtual ~gaia_base() = default;
 };
 

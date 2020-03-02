@@ -37,6 +37,7 @@ target_sources(common INTERFACE ${PROJECT_SOURCE_DIR}/inc/common/constants.hpp $
 
 # Add individual component folders.
 add_subdirectory(db)
+add_subdirectory(rules)
 
 # Tests.
 add_executable(test_retail_assert tests/test_retail_assert.cpp)
