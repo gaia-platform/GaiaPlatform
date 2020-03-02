@@ -8,6 +8,17 @@ This repository is meant to be built with clang-8. To ensure clang-8 use, add th
 * ```export CC=/usr/bin/clang-8```
 * ```export CXX=/usr/bin/clang++-8```
 
+## flatbuffers build
+The `flatc` (flatbuffer compiler) utility must be built to create headers for some of our programs.
+```
+cd GaiaPlatform/external/flatbuffers
+mkdir build
+cd build
+cmake ..
+make -j 4
+sudo make install
+```
+
 ## Folder structuring
 
 The following folder structure is recommended for C++ projects:
