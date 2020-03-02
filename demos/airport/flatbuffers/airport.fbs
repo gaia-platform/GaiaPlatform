@@ -1,6 +1,9 @@
-// -*- mode: java -*- // Java mode works for emacs to edit flatbuffers.
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
 
-include "gaia_baseclasses.fbs";
+// -*- mode: java -*- // Java mode works for emacs to edit flatbuffers.
 
 // Types to match the demo data from the openflights.com data; data from there is free to use, open database license.
 namespace AirportDemo;
@@ -10,6 +13,8 @@ namespace AirportDemo;
 table airports {
     // Later:    gaia_n: GaiaPlatform.NodeFields (required);
     Gaia_id: int64;
+    Gaia_Next_id: int64;
+    Gaia_Prev_id: int64;
 
     // rawdata_airports fields
     ap_id: int32;
@@ -32,6 +37,8 @@ table airports {
 table airlines {
     // Later:    gaia_n: GaiaPlatform.NodeFields (required);
     Gaia_id: int64;
+    Gaia_Next_id: int64;
+    Gaia_Prev_id: int64;
 
     // regular arline fields
     al_id: int32;
@@ -48,6 +55,9 @@ table airlines {
 table routes {
     // Later: gaia_e: GaiaPlatform.EdgeFields (required);
     Gaia_id: int64;
+    Gaia_Next_id: int64;
+    Gaia_Prev_id: int64;
+    Gaia_Al_id:   int64;
     Gaia_Src_id:  int64;
     Gaia_Dst_id:  int64;
 
