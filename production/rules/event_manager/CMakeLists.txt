@@ -9,31 +9,19 @@ enable_testing()
 # Set the project name.
 project(event_manager)
 
-#list(APPEND CMAKE_MODULE_PATH "/home/dax/git/GaiaPlatform/production/cmake")
-message(STATUS ${PROJECT_SOURCE_DIR})
-#message(STATUS ${CMAKE_MODULE_PATH})
+set(GAIA_EVENT_MANAGER_INCLUDES  "${GAIA_INC}/api;${GAIA_INC}/common;${GAIA_RULES_INC};${PROJECT_SOURCE_DIR}/inc;")
+message(STATUS "GAIA_EVENT_MANAGER_INCLUDES=${GAIA_EVENT_MANAGER_INCLUDES}")
 
-#find_package(GaiaPlatform REQUIRED)
-
-#include(GaiaPlatform)
-
-
-set(GAIA_EVENT_MANAGER_INCLUDES "../../inc/api;../inc;./inc;")
-message(STATUS ${PROJECT_SOURCE_DIR})
-
+# main target
 add_library(event_manager SHARED
     src/event_manager.cpp
 )
 
-target_include_directories(event_manager PRIVATE ${GAIA_EVENT_MANAGER_INCLUDES})
-    
-#message(STATUS "GAIA_MEMORY_MANAGER_INCLUDES=${GAIA_MEMORY_MANAGER_INCLUDES}")
+target_include_directories(event_manager PRIVATE ${GAIA_EVENT_MANAGER_INCLUDES})  
 
-# Our unit tests.
-#add_executable(test_event_manager tests/test_event_manager.cpp)
-#target_include_directories(test_event_manager PRIVATE 
-#    ${GAIA_EVENT_MANAGER_INCLUDES},
-#    )
-#target_link_libraries(test_event_manager PRIVATE event_manager)
-#set_test(test_event_manager 0 ${TEST_SUCCESS})
+# unit tests
+add_executable(test_event_manager tests/test_event_manager.cpp)
+target_include_directories(test_event_manager PRIVATE ${GAIA_EVENT_MANAGER_INCLUDES})
+target_link_libraries(test_event_manager PRIVATE event_manager)
+set_test(test_event_manager 0 ${TEST_SUCCESS})
 

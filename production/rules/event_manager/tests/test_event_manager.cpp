@@ -4,23 +4,21 @@
 /////////////////////////////////////////////
 
 #include <iostream>
-//#include <memory>
-
-#include "constants.hpp"
 
 // do not include event_manager.hpp to ensure that
 // we don't have a dependency on the internal implementation
 #include "rules.hpp"
-
+#include "constants.hpp"
+#include "retail_assert.hpp"
 
 using namespace std;
-
 using namespace gaia::events;
 using namespace gaia::rules;
 using namespace gaia::api;
+using namespace gaia::common;
 
 // our row context
-class TestGaia : pubilic gaia_base
+class TestGaia : public gaia_base
 {
 public:
     static uint64_t gaia_type;
@@ -49,10 +47,12 @@ void test_event_api()
 
     // table event
     TestGaia tg;
-    retail_assert(false == log_table_event(&tg, event_type::col_change, event_mode::deferred);
+    retail_assert(false == log_table_event(&tg, event_type::col_change, event_mode::deferred),
+        "ERROR: log_table_event API failed.");
 
     // transaction event
-    retail_assert(false == log_transaction_event(event_type::transaction_commit, event_mode::deferred);
+    retail_assert(false == log_transaction_event(event_type::transaction_commit, event_mode::deferred),
+        "ERROR: log_transaction_event API failed.");
 
     cout << "PASSED: Event Manager events api tests passed" << endl;
     cout << endl << c_debug_output_separator_line_start << endl;

@@ -18,6 +18,14 @@ event_manager_t& event_manager_t::get()
     return s_instance;
 }
 
+event_manager_t::event_manager_t() 
+{
+}
+
+event_manager_t::~event_manager_t()
+{
+}
+
 bool event_manager_t::log_event(event_type type, event_mode mode) 
 {
     return false;
