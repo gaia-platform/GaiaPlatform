@@ -158,7 +158,6 @@ bool unsubscribe_transaction_rule(gaia::events::event_type type, const rule_bind
  *      will be ignored.
  * @param rule_names Caller provided vector to hold the results.  This method will clear any existing
  *      entries before adding new ones.
- 
  *      
  */
 void list_subscribed_rules(const char * ruleset_name, const gaia::api::gaia_type_t * gaia_type, const gaia::events::event_type * type,

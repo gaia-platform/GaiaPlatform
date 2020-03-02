@@ -107,10 +107,10 @@ bool gaia::rules::unsubscribe_transaction_rule(event_type type,
     return event_manager_t::get().unsubscribe_rule(type, rule_binding);
 }
     
-void list_subscribed_rules(const char * ruleset_name, 
+void gaia::rules::list_subscribed_rules(const char * ruleset_name, 
     const gaia::api::gaia_type_t * gaia_type, const event_type * type, 
     std::vector<const char *>& rule_names)
 {
-    return event_manager_t::get().list_subscribed_rules(ruleset_name, gaia_type,
+    event_manager_t::get().list_subscribed_rules(ruleset_name, gaia_type,
         type, rule_names);
 }
