@@ -9,9 +9,9 @@
 #include <map>
 #include <fstream>
 #include <uuid/uuid.h>
+#include "NullableString.h"
 #include "addr_book_generated.h" // include both flatbuffer types and object API for testing 
 #include "GaiaObj.h"
-#include "NullableString.h"
 #include "PerfTimer.h"
 #include "CSVRow.h"
 

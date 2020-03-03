@@ -7,10 +7,10 @@
 #include <cstdint>
 #include <list>
 #include <map>
+#include "NullableString.h"
 #include "airport_generated.h" // include both flatbuffer types and object API for testing 
 #include "GaiaObj.h"
 #include "AirportTypes.h"
-#include "NullableString.h"
 #include "PerfTimer.h"
 
 using namespace std;

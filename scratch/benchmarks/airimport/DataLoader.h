@@ -9,6 +9,7 @@
 #include <cassert>
 #include <map>
 #include <uuid/uuid.h>
+#include "NullableString.h"
 #include "airport_generated.h" // include both flatbuffer types and object API for testing 
 #include "cow_se.h"
 #include "AirportTypes.h"

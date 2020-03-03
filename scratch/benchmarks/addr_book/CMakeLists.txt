@@ -13,7 +13,7 @@ include_directories(../../../third_party/production/flatbuffers/include ../../..
 
 add_custom_command(
     OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/addr_book_generated.h"
-    COMMAND flatc --cpp --gen-object-api  -o ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/addr_book.fbs
+    COMMAND flatc --cpp --gen-object-api --cpp-str-type gaia::string --cpp-str-flex-ctor -o ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/addr_book.fbs
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/addr_book.fbs
     COMMENT "Compiling addr_book.fbs"
 )

@@ -7,3 +7,5 @@ In alphabetical order:
 
 * **airport** - airport, airlines and routes information from openflights.com.
 
+* **addresses** - used by addr_book benchmark. Contains 2000 name/address/phone/e-mail rows for testing.
+

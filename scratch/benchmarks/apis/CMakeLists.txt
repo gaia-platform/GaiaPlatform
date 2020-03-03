@@ -18,7 +18,7 @@ include_directories(
 
 add_custom_command(
     OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/airport_generated.h"
-    COMMAND flatc --cpp --gen-object-api  -o ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../../../demos/airport/flatbuffers/airport.fbs
+    COMMAND flatc --cpp --gen-object-api --cpp-str-type gaia::string --cpp-str-flex-ctor -o ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../../../demos/airport/flatbuffers/airport.fbs
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../../../demos/airport/flatbuffers/airport.fbs
     COMMENT "Compiling airport.fbs"
 )
