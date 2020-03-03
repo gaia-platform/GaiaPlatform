@@ -4,9 +4,9 @@
 /////////////////////////////////////////////
 #pragma once
 
-#include "events.hpp"
-
 #include <vector>
+
+#include "events.hpp"
 
 namespace gaia 
 {
