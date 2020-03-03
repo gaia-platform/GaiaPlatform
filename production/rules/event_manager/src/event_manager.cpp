@@ -36,7 +36,8 @@ bool event_manager_t::log_event(gaia_base * row, event_type type, event_mode mod
 }
 
 bool event_manager_t::subscribe_rule(gaia::api::gaia_type_t gaia_type, 
-    event_type type, gaia::rules::rule_binding_t& rule_binding)
+                                     event_type type, 
+                                    gaia::rules::rule_binding_t& rule_binding)
 {
     return false;
 }
@@ -58,8 +59,8 @@ bool event_manager_t::unsubscribe_rule(event_type type,
     return false;
 }
 
-void event_manager_t::list_subscribed_rules(const char * ruleset_name, 
-    const gaia::api::gaia_type_t * gaia_type, const event_type * type,
+void event_manager_t::list_subscribed_rules(const char* ruleset_name, 
+    const gaia::api::gaia_type_t* gaia_type, const event_type* type,
     std::vector<const char *>& rule_names)
 {
 }
@@ -104,8 +105,8 @@ bool gaia::rules::unsubscribe_transaction_rule(event_type type,
     return event_manager_t::get().unsubscribe_rule(type, rule_binding);
 }
     
-void gaia::rules::list_subscribed_rules(const char * ruleset_name, 
-    const gaia::api::gaia_type_t * gaia_type, const event_type * type, 
+void gaia::rules::list_subscribed_rules(const char* ruleset_name, 
+    const gaia::api::gaia_type_t* gaia_type, const event_type* type, 
     std::vector<const char *>& rule_names)
 {
     event_manager_t::get().list_subscribed_rules(ruleset_name, gaia_type,

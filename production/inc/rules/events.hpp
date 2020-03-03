@@ -30,7 +30,7 @@ namespace events
   */
 enum class event_mode {
     immediate, /**<execute the rule when the event is logged */
-    deferred /**<execute the event at later time */
+    deferred, /**<execute the event at later time */
 };
 
 /**
@@ -44,7 +44,7 @@ enum class event_type {
     col_change,
     row_update,
     row_insert,
-    row_delete
+    row_delete,
 };
 
 /**

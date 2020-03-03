@@ -17,24 +17,21 @@ using namespace gaia::rules;
 using namespace gaia::api;
 using namespace gaia::common;
 
-// our row context
+// Our test row context.
 class TestGaia : public gaia_base
 {
 public:
-    static gaia_type_t gaia_type;
+    static const gaia_type_t gaia_type = 333;
     int32_t i = 20;
 };
 
-// our rule in Test_Set_1;
+// Our rule in Test_Set_1;
 void rule_1_abcdefg(const context_base_t * context)
 {
     const table_context_t * t = static_cast<const table_context_t *>(context);
     TestGaia * row = static_cast<TestGaia *>(t->row);
     retail_assert(20 == row->i, "Did not get correct row context!");
 }
-
-uint64_t TestGaia::gaia_type = 333;
-
 
 void test_events_api();
 void test_rules_api();
@@ -62,9 +59,8 @@ void test_events_api()
     retail_assert(false == log_transaction_event(event_type::transaction_commit, event_mode::deferred),
         "ERROR: log_transaction_event API failed.");
 
-    cout << "PASSED: Event Manager events api tests passed" << endl;
     cout << endl << c_debug_output_separator_line_start << endl;
-    cout << "*** event_manager_t basic api tests ended ***" << endl;
+    cout << "*** event_manager_t event API tests ended ***" << endl;
     cout << c_debug_output_separator_line_end << endl;
 }
 
@@ -99,8 +95,7 @@ void test_rules_api()
     event_type et = event_type::col_change;
     list_subscribed_rules(rb.ruleset_name, &t, &et, rule_names);
 
-    cout << "PASSED: Event Manager events api tests passed" << endl;
     cout << endl << c_debug_output_separator_line_start << endl;
-    cout << "*** event_manager_t basic api tests ended ***" << endl;
+    cout << "*** event_manager_t rule API tests ended ***" << endl;
     cout << c_debug_output_separator_line_end << endl;
 }
