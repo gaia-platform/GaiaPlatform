@@ -9,12 +9,14 @@ The flatbuffer definitions exactly match table specifications. There are extra c
 
 ## Instructions
 
+The demo was originally developed on Ubuntu 18.04, but has also been verified to work with 19.10.
+
 1. **Basic tools**:
    * Synaptic Package Manager (SPM) - on Ubuntu, this will allow you to install many of the following dependencies.
      * An alternative to Synaptic Package Manager is apt-get, which can be used like this: ```sudo apt-get install <package_name>```.
    * Pip installer is required for installing/removing Python packages. The ubuntu package name is *python-pip*.
    * Python 2.7 - multicorn requires this version.
-     * You will need the *python-dev* package in addition to the main package.
+     * You may need the *python-dev* package in addition to the main package.
    * Pybind11 - needed for wrapping cow_se.
      * Install packages *pybind11-dev* and *python-pybind11*.
    * Clang-8
@@ -32,13 +34,13 @@ The flatbuffer definitions exactly match table specifications. There are extra c
    * Build with regular cmake steps under demos/build.
 
 3. **Flatbuffers**
-   * Install python flatbuffers package via: ```sudo pip install flatbuffers```. If it complains that you already installed it locally, you have to ```pip uninstall flatbuffers```, then do the sudo install.
+   * Install python flatbuffers package from third_party/production/flatbuffers/python using command ```sudo python setup.py install```.
    * For getting flatc compiler and working with flatbuffers in C++ (these steps are not required for the airport demo):
-     * Get the repository: ```git clone https://github.com/google/flatbuffers.git```, then build with regular cmake steps.
+     * Go to third_party/production/flatbuffers/, then build with regular cmake steps.
      * To install flatc compiler and flatbuffers headers and library, execute the following command from the build folder: ```sudo make install```.
 
-4. **Postgres 10.9** (latest 10). This was default on ubuntu 18.
-   * On ubuntu, just install *postgresql-10* and *postgresql-server-dev-10* packages using SPM.
+4. **Postgres 10.9** (latest 10). This was default on ubuntu 18. On ubuntu 19 this is not available, so just use version 11.
+   * Install *postgresql-10* and *postgresql-server-dev-10* packages using SPM.
    * Start postgres service using: ```sudo service postgresql start```.
    * Test by executing: ```sudo -u postgres psql -c "SELECT version();"```.
    * Helpful Postgres commands:
@@ -48,7 +50,7 @@ The flatbuffer definitions exactly match table specifications. There are extra c
      * ```\dES+``` - list foreign tables in current database.
 
 5. **Multicorn**
-   * On ubuntu, there are already available multicorn packages: *postgresql-10-python-multicorn* and *python-multicorn*. You may also need the *python-psutil* package if it’s not installed already.
+   * On ubuntu, there are already available multicorn packages: *postgresql-10-python-multicorn* and *python-multicorn*.
 
 6. **Airport FDW package**
    * Go to demos/build folder and execute ```make airport```.
