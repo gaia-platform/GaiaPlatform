@@ -646,7 +646,7 @@ namespace gaia_se
 
             return ptr;
         }
-    
+
         gaia_ptr<T> find_next()
         {
             if (gaia_ptr<T>::row_id)
@@ -704,6 +704,7 @@ namespace gaia_se
 
         void find_next(gaia_type_t type)
         {
+            // search for rows of this type within the range of used slots
             while (++row_id && row_id < gaia_mem_base::s_data->row_id_count+1)
             {
                 if (is (type))
