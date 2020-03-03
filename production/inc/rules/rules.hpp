@@ -86,8 +86,8 @@ public:
 class table_context_t : public context_base_t
 {
 public:
-    table_context_t(rule_binding_t& binding, events::event_type type
-        ,gaia::api::gaia_base* row)
+    table_context_t(rule_binding_t& binding, events::event_type type,
+                    gaia::api::gaia_base* row)
     : context_base_t(binding, type), row(row) {}
     
     gaia::api::gaia_base* row;
