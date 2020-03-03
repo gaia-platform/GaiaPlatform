@@ -11,7 +11,7 @@ This repository is meant to be built with clang-8. To ensure clang-8 use, add th
 ## flatbuffers build
 The `flatc` (flatbuffer compiler) utility must be built to create headers for some of our programs.
 ```
-cd GaiaPlatform/external/flatbuffers
+cd GaiaPlatform/third_party/production/flatbuffers
 mkdir build
 cd build
 cmake ..

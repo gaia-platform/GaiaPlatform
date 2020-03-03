@@ -9,7 +9,7 @@ project(addr_book)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED_ON)
 
-include_directories(../../../external/flatbuffers/include ../../../demos/cow_se/inc ../inc ../perftimer)
+include_directories(../../../third_party/production/flatbuffers/include ../../../demos/cow_se/inc ../inc ../perftimer)
 
 add_custom_command(
     OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/addr_book_generated.h"

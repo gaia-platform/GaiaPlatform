@@ -10,7 +10,7 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED_ON)
 
 include_directories(
-    ../../../external/flatbuffers/include
+    ../../../third_party/production/flatbuffers/include 
     ../../../demos/cow_se/inc 
     ../inc
   ../perftimer
