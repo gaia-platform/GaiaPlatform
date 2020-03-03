@@ -48,10 +48,17 @@ struct rule_binding_t {
 };
 
 /**
- * Rule contexts map 1:1 to each rule that is bound to an event.  A single
- * event may be bound to multiple rules.  Rules may also be invoked
- * both synchronously or asynchronously.  For this reason,
- * events and rules are decoupled in the system.
+ * The rule context wraps the event (or data) context (the data upon which 
+ * the rule code operates) as well as information about the event and rule 
+ * metadata.  In the future the rule context may also maintain the error 
+ * state of the rule invocation.  Therefore, the rule contexts map 1:1 to 
+ * each rule that is bound to an event.  Data contexts may apply to more
+ * than one rule. 
+ * 
+ * Note:  A single event may be bound to multiple rules or a rule may be bound
+ * to multiple events. Rules may also be invoked both synchronously or 
+ * asynchronously.  For this reason,events and rules are decoupled in 
+ * the system.
  * 
  * The rule binding is included for debugging and may be removed in a later
  * iteration.

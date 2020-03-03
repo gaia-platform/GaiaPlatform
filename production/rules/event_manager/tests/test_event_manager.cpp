@@ -77,7 +77,6 @@ void test_rules_api()
 
     retail_assert(false == subscribe_table_rule(TestGaia::gaia_type, event_type::col_change, rb),
         "ERROR:  subscribe_table_rule API failed.");
-
     
     retail_assert(false == subscribe_transaction_rule(event_type::transaction_commit, rb),
         "ERROR:  subscribe_table_rule API failed.");
