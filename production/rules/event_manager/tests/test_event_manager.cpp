@@ -51,8 +51,8 @@ void test_events_api()
     cout << c_debug_output_separator_line_end << endl;
 
     // table event
-    TestGaia tg;
-    retail_assert(false == log_table_event(&tg, event_type::col_change, event_mode::deferred),
+    TestGaia row;
+    retail_assert(false == log_table_event(&row, event_type::col_change, event_mode::deferred),
         "ERROR: log_table_event API failed.");
 
     // transaction event
