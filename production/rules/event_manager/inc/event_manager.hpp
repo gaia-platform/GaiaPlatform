@@ -37,22 +37,22 @@ public:
     /**
      * Event APIs
      */
-    bool log_event(gaia::api::gaia_base * row, event_type type, event_mode mode);
+    bool log_event(gaia::common::gaia_base * row, event_type type, event_mode mode);
     bool log_event(event_type type, event_mode mode);
     
     /**
      * Rule APIs
      */ 
-    bool subscribe_rule(gaia::api::gaia_type_t gaia_type, event_type type, 
+    bool subscribe_rule(gaia::common::gaia_type_t gaia_type, event_type type, 
                         gaia::rules::rule_binding_t& rule_binding);
     bool subscribe_rule(event_type type, 
                         gaia::rules::rule_binding_t& rule_binding);
-    bool unsubscribe_rule(gaia::api::gaia_type_t gaia_type, event_type type, 
+    bool unsubscribe_rule(gaia::common::gaia_type_t gaia_type, event_type type, 
                           const gaia::rules::rule_binding_t& rule_binding);
     bool unsubscribe_rule(event_type type, 
                           const gaia::rules::rule_binding_t& rule_binding);
     void list_subscribed_rules(const char* ruleset_name, 
-                               const gaia::api::gaia_type_t* gaia_type, 
+                               const gaia::common::gaia_type_t* gaia_type, 
                                const event_type* type,
                                std::vector<const char *>& rule_names);
 

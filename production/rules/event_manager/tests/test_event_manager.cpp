@@ -14,7 +14,6 @@
 using namespace std;
 using namespace gaia::events;
 using namespace gaia::rules;
-using namespace gaia::api;
 using namespace gaia::common;
 
 // Our test row context.

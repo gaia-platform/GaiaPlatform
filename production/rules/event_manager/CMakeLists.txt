@@ -9,7 +9,7 @@ enable_testing()
 # Set the project name.
 project(event_manager)
 
-set(GAIA_EVENT_MANAGER_INCLUDES  "${GAIA_INC}/api;${GAIA_INC}/common;${GAIA_INC}/rules;${GAIA_RULES_INC};${PROJECT_SOURCE_DIR}/inc;")
+set(GAIA_EVENT_MANAGER_INCLUDES "${GAIA_INC}/api;${GAIA_INC}/api/common;${GAIA_INC}/common;${GAIA_INC}/api/rules;${GAIA_RULES_INC};${PROJECT_SOURCE_DIR}/inc;")
 message(STATUS "GAIA_EVENT_MANAGER_INCLUDES=${GAIA_EVENT_MANAGER_INCLUDES}")
 
 # main target

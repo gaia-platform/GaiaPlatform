@@ -60,7 +60,7 @@ enum class event_type {
  *      type of the event is not one of event_type::[col_change, row_update,
  *      row_insert, row_delete]
  */
-bool log_table_event(api::gaia_base* row, event_type type, event_mode mode);
+bool log_table_event(common::gaia_base* row, event_type type, event_mode mode);
 
 /**
  * Writes a transaction event to the event log.  If the mode is
