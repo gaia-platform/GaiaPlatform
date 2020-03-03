@@ -6,30 +6,36 @@
 
 #include "gaia_base.h"
 
-/**
- * Public interface to log and register events
- * 
- */
 namespace gaia 
 {
+
+/**
+ * \addtogroup Gaia
+ * @{
+ */
 
 namespace events
 {
 
 /**
- * Immediate and deferred specify when the rules
- * associated with the event should be executed.
+ * \addtogroup Events
+ * @{
  * 
+ * Provides facilities for logging events to the system.
  */
+ 
+ /**
+  * Immediate and deferred specify when the rules
+  * associated with the event should be executed.
+  */
 enum class event_mode {
-    immediate,
-    deferred
+    immediate, /**<execute the rule when the event is logged */
+    deferred /**<execute the event at later time */
 };
 
 /**
  * Every event in the system has an event type.  The type
  * is scoped to an object type.
- * 
  */
 enum class event_type {
     transaction_begin,
@@ -53,7 +59,6 @@ enum class event_type {
  * @return true if succesful, failure if a row is not provided or the 
  *      type of the event is not one of event_type::[col_change, row_update,
  *      row_insert, row_delete]
- * 
  */
 bool log_table_event(api::gaia_base* row, event_type type, event_mode mode);
 
@@ -68,9 +73,10 @@ bool log_table_event(api::gaia_base* row, event_type type, event_mode mode);
  * @return true if succesful, failure if the type is not one of
  *      event_type::[transaction_begin, transaction_commit,
  *      transaction_rollback]
- * 
  */
 bool log_transaction_event(event_type type, event_mode mode);
 
+/*@}*/
 }
+/*@}*/
 }

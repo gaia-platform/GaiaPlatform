@@ -10,7 +10,6 @@ using namespace gaia::api;
 
 /**
  * class implementation
- * 
  */
 event_manager_t& event_manager_t::get()
 {
@@ -67,7 +66,6 @@ void event_manager_t::list_subscribed_rules(const char * ruleset_name,
 
 /**
  * Public event API implementation
- * 
  */
 bool gaia::events::log_transaction_event(event_type type, event_mode mode)
 {
@@ -81,7 +79,6 @@ bool gaia::events::log_table_event(gaia_base * row, event_type type, event_mode 
 
 /**
  * Public rules API implementation
- * 
  */
 bool gaia::rules::subscribe_table_rule(gaia_type_t gaia_type, event_type type, 
     rule_binding_t& rule_binding)
