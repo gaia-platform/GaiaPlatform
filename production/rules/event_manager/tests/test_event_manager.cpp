@@ -49,7 +49,7 @@ TEST(EventManagerTest, RuleApi) {
     rb.rule = rule_1_abcdefg;
 
     EXPECT_EQ(false, subscribe_table_rule(TestGaia::gaia_type, event_type::col_change, rb));
-    EXPECT_EQ(true, subscribe_transaction_rule(event_type::transaction_commit, rb));
+    EXPECT_EQ(false, subscribe_transaction_rule(event_type::transaction_commit, rb));
     EXPECT_EQ(false, unsubscribe_table_rule(TestGaia::gaia_type, event_type::col_change, rb));
     EXPECT_EQ(false, unsubscribe_transaction_rule(event_type::col_change, rb));
 
