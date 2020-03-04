@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 3.10)
 # Set the project name.
 project(memory_manager)
 
-set(GAIA_MEMORY_MANAGER_INCLUDES "${GAIA_INC}/common;${GAIA_DB_INC}/memory_manager")
+set(GAIA_MEMORY_MANAGER_INCLUDES "${GAIA_INC}/internal/common;${GAIA_DB_INC}/memory_manager")
 message(STATUS "GAIA_MEMORY_MANAGER_INCLUDES=${GAIA_MEMORY_MANAGER_INCLUDES}")
 
 # Our main target.

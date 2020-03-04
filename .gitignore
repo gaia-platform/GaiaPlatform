@@ -13,3 +13,6 @@ build/
 # Python packaging folders.
 *.egg-info/
 dist/
+
+# Generated header files
+*_generated.h

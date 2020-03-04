@@ -154,7 +154,7 @@ namespace gaia_se
             if (!s_fd_data)
             {
                 s_fd_data = shm_open(SCH_MEM_DATA, OPEN_FLAGS, S_RWALL);
-                if (s_fd_offsets < 0)
+                if (s_fd_data < 0)
                 {
                     throw std::runtime_error("shm_open failed");
                 }
@@ -179,11 +179,6 @@ namespace gaia_se
 
         static void tx_begin()
         {
-            if (s_trx_nesting_count++)
-            {
-                return;
-            }
-
             s_data = (data*)mmap (nullptr, sizeof(data),
                                             PROT_READ|PROT_WRITE, MAP_SHARED, s_fd_data, 0);
 
@@ -232,11 +227,6 @@ namespace gaia_se
 
         static void tx_commit()
         {
-            if (--s_trx_nesting_count)
-            {
-                return;
-            }
-
             remap_offsets_shared();
 
             std::set<int64_t> row_ids;
@@ -316,7 +306,6 @@ namespace gaia_se
         static data *s_data;
         static log *s_log;
         static bool s_engine;
-        static int s_trx_nesting_count;
 
         static void remap_offsets_shared()
         {
@@ -425,7 +414,6 @@ namespace gaia_se
     int gaia_mem_base::s_fd_offsets = 0;
     int gaia_mem_base::s_fd_data = 0;
     bool gaia_mem_base::s_engine = false;
-    int gaia_mem_base::s_trx_nesting_count = 0;
 
     class gaia_hash_map: public gaia_mem_base
     {
@@ -540,11 +528,6 @@ namespace gaia_se
 
     inline void gaia_mem_base::tx_rollback()
     {
-        if (--s_trx_nesting_count)
-        {
-            return;
-        }
-
         for (auto i = 0; i < s_log->count; i++)
         {
             auto lr = s_log->log_records + i;
@@ -721,7 +704,8 @@ namespace gaia_se
 
         void find_next(gaia_type_t type)
         {
-            while (++row_id && row_id < gaia_mem_base::MAX_RIDS)
+            // search for rows of this type within the range of used slots
+            while (++row_id && row_id < gaia_mem_base::s_data->row_id_count+1)
             {
                 if (is (type))
                 {
