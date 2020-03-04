@@ -1,11 +1,10 @@
 # production/inc
-This folder contains the public internal and external interfaces of our production components.
-Internal interfaces should reside directly under the component name:
+This folder contains the public and internal interfaces of our production components.
 ```
-inc/db/my_internal_db_header.hpp
+inc/internal/<component_name> // internal headers
 ```
 
-External interfaces should reside under **api** and then the component name:
+External interfaces should reside under **public** and then the component name:
 ```
-inc/api/db/my_external_db_header.hpp
+inc/public/<component_name> // public headers
 ```

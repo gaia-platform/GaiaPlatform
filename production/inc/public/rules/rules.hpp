@@ -93,8 +93,10 @@ public:
 class table_context_t : public context_base_t
 {
 public:
-    table_context_t(rule_binding_t& binding, events::event_type type,
-                    gaia::common::gaia_base* row)
+    table_context_t(
+        rule_binding_t& binding, 
+        events::event_type type,
+        gaia::common::gaia_base* row)
     : context_base_t(binding, type), row(row) {}
     
     gaia::common::gaia_base* row;
@@ -116,9 +118,10 @@ public:
  *      duplicate rule_binding (if the ruleset_name/rule_name pair already has been subscribed
  *      to the event on the same gaia_type)
  */
-bool subscribe_table_rule(gaia::common::gaia_type_t gaia_type, 
-                          gaia::events::event_type type, 
-                          rule_binding_t& rule_binding);
+bool subscribe_table_rule(
+    gaia::common::gaia_type_t gaia_type, 
+    gaia::events::event_type type, 
+    rule_binding_t& rule_binding);
 
 
 /**
@@ -135,8 +138,9 @@ bool subscribe_table_rule(gaia::common::gaia_type_t gaia_type,
  *      duplicate rule_binding (if the ruleset_name/rule_name pair already has been subscribed
  *      to the transaction event)
  */
-bool subscribe_transaction_rule(gaia::events::event_type type, 
-                                rule_binding_t& rule_binding);
+bool subscribe_transaction_rule(
+    gaia::events::event_type type, 
+    rule_binding_t& rule_binding);
 
 
 /**
@@ -150,9 +154,10 @@ bool subscribe_transaction_rule(gaia::events::event_type type,
  *      invalid rule_binding (no ruleset_name or no rule_name)
  *      rule was never subscribed
  */
-bool unsubscribe_table_rule(gaia::common::gaia_type_t gaia_type, 
-                            gaia::events::event_type type, 
-                            const rule_binding_t& rule_binding);
+bool unsubscribe_table_rule(
+    gaia::common::gaia_type_t gaia_type, 
+    gaia::events::event_type type, 
+    const rule_binding_t& rule_binding);
 
 /**
  * Unsubscribes this rule from the specified transaction event.  
@@ -165,8 +170,8 @@ bool unsubscribe_table_rule(gaia::common::gaia_type_t gaia_type,
  *      duplicate rule_binding (if the ruleset_name/rule_name pair already has been subscribed
  *      to the transaction event)
  */
-bool unsubscribe_transaction_rule(gaia::events::event_type type, 
-                                  const rule_binding_t& rule_binding);
+bool unsubscribe_transaction_rule(gaia::events::event_type type,
+    const rule_binding_t& rule_binding);
 
 /**
  * List all rules already subscribed to events.  
@@ -180,10 +185,11 @@ bool unsubscribe_transaction_rule(gaia::events::event_type type,
  * @param rule_names Caller provided vector to hold the results.  This method will clear any existing
  *      entries before adding new ones.
  */
-void list_subscribed_rules(const char* ruleset_name, 
-                           const gaia::common::gaia_type_t* gaia_type, 
-                           const gaia::events::event_type* type,
-                           std::vector<const char *>& rule_names);
+void list_subscribed_rules(
+    const char* ruleset_name, 
+    const gaia::common::gaia_type_t* gaia_type, 
+    const gaia::events::event_type* type, 
+    std::vector<const char *>& rule_names);
 
 /*@}*/
 }
