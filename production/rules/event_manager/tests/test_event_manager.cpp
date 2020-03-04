@@ -5,11 +5,11 @@
 
 #include <iostream>
 
+#include "gtest/gtest.h"
+
 // do not include event_manager.hpp to ensure that
 // we don't have a dependency on the internal implementation
 #include "rules.hpp"
-
-#include "gtest/gtest.h"
 
 using namespace std;
 using namespace gaia::events;
