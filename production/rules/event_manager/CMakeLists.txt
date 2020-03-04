@@ -28,7 +28,14 @@ target_include_directories(event_manager PRIVATE ${GAIA_EVENT_MANAGER_INCLUDES})
 
 # unit tests
 add_executable(test_event_manager tests/test_event_manager.cpp)
-target_include_directories(test_event_manager PRIVATE ${GAIA_EVENT_MANAGER_INCLUDES})
-target_link_libraries(test_event_manager PRIVATE event_manager)
-set_test(test_event_manager 0 ${TEST_SUCCESS})
+target_include_directories(test_event_manager PRIVATE 
+    ${GAIA_EVENT_MANAGER_INCLUDES}
+    ${GOOGLE_TEST_INC}
+)
 
+target_link_libraries(test_event_manager PRIVATE 
+    event_manager
+    gtest_main
+)
+
+gtest_discover_tests(test_event_manager)

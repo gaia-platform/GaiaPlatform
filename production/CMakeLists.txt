@@ -9,6 +9,7 @@ enable_testing()
 
 # Set the project name.
 project(production)
+include(GoogleTest)
 
 # Specify the C++ standard.
 set(CMAKE_CXX_STANDARD 11)
@@ -18,6 +19,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
 set(GAIA_LINK_FLAGS "-ggdb -pthread")
 set(GAIA_INC "${PROJECT_SOURCE_DIR}/inc")
+set(GOOGLE_TEST "../third_party/production/googletest")
+set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")
 message(STATUS "GAIA_INC=${GAIA_INC}")
 
 # Helper function for setting up our tests.
@@ -42,6 +45,9 @@ target_sources(common INTERFACE
 # Add individual component folders.
 add_subdirectory(db)
 add_subdirectory(rules)
+
+# Add googletest
+add_subdirectory(${GOOGLE_TEST} googletest)
 
 # Tests.
 add_executable(test_retail_assert tests/test_retail_assert.cpp)
