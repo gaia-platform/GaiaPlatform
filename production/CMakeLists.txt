@@ -33,13 +33,18 @@ find_program(PYTHON "python")
 
 # Common code - currently, a headers-only library.
 add_library(common INTERFACE)
-target_sources(common INTERFACE ${PROJECT_SOURCE_DIR}/inc/common/constants.hpp ${PROJECT_SOURCE_DIR}/inc/common/gaia_exception.hpp ${PROJECT_SOURCE_DIR}/inc/common/retail_assert.hpp)
+target_sources(common INTERFACE 
+  ${PROJECT_SOURCE_DIR}/inc/internal/common/constants.hpp 
+  ${PROJECT_SOURCE_DIR}/inc/internal/common/gaia_exception.hpp 
+  ${PROJECT_SOURCE_DIR}/inc/internal/common/retail_assert.hpp
+)
 
 # Add individual component folders.
 add_subdirectory(db)
+add_subdirectory(rules)
 
 # Tests.
 add_executable(test_retail_assert tests/test_retail_assert.cpp)
-target_include_directories(test_retail_assert PRIVATE "${GAIA_INC}/common")
+target_include_directories(test_retail_assert PRIVATE "${GAIA_INC}/internal/common")
 set_test(test_retail_assert 0 ${TEST_SUCCESS})
 
