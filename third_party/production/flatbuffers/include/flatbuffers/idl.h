@@ -562,6 +562,7 @@ struct IDLOptions {
   std::string proto_namespace_suffix;
   std::string filename_suffix;
   std::string filename_extension;
+  bool gen_events;
 
   // Possible options for the more general generator below.
   enum Language {
@@ -582,6 +583,7 @@ struct IDLOptions {
     kRust = 1 << 14,
     kKotlin = 1 << 15,
     kSwift = 1 << 16,
+    kGaia = 1 << 17,
     kMAX
   };
 
@@ -1132,6 +1134,21 @@ bool GeneratePythonGRPC(const Parser &parser, const std::string &path,
 // See idl_gen_grpc.cpp.
 extern bool GenerateSwiftGRPC(const Parser &parser, const std::string &path,
                               const std::string &file_name);
+
+// Generate a Gaia C++ header from the definitions in the Parser object.
+// See idl_gen_gaia_cpp.
+extern bool GenerateGaiaCPP(const Parser &parser, const std::string &path,
+                        const std::string &file_name);
+
+// Generate a make rule for the generated C++ header.
+// See idl_gen_gaia_cpp.cpp.
+extern std::string GaiaCPPMakeRule(const Parser &parser, const std::string &path,
+                               const std::string &file_name);
+
+// Generate GRPC Cpp interfaces.
+// See idl_gen_grpc.cpp.
+bool GenerateGaiaCppGRPC(const Parser &parser, const std::string &path,
+                     const std::string &file_name);
 
 }  // namespace flatbuffers
 

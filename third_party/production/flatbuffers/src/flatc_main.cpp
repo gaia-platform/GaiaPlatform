@@ -110,6 +110,9 @@ int main(int argc, const char *argv[]) {
     { flatbuffers::GenerateSwift, nullptr, "--swift", "swift", true,
       flatbuffers::GenerateSwiftGRPC, flatbuffers::IDLOptions::kSwift,
       "Generate Swift files for tables/structs", nullptr },
+       { flatbuffers::GenerateGaiaCPP, "-gc", "--gaiacpp", "C++", true,
+      flatbuffers::GenerateGaiaCppGRPC, flatbuffers::IDLOptions::kGaia,
+      "Generate C++ headers for tables/structs With Gaia Enhancements", flatbuffers::GaiaCPPMakeRule },
   };
 
   flatbuffers::FlatCompiler::InitParams params;

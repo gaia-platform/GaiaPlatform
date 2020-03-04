@@ -342,6 +342,14 @@ bool GenerateCppGRPC(const Parser &parser, const std::string &path,
                                source_code, false);
 }
 
+bool GenerateGaiaCppGRPC(const Parser &parser, const std::string &path,
+                     const std::string &file_name) {
+  (void)(parser);
+  (void)(path);
+  (void)(file_name);
+  return true;
+}
+
 class JavaGRPCGenerator : public flatbuffers::BaseGenerator {
  public:
   JavaGRPCGenerator(const Parser &parser, const std::string &path,
@@ -447,6 +455,8 @@ bool GenerateSwiftGRPC(const Parser &parser, const std::string &path,
   if (!nservices) return true;
   return SwiftGRPCGenerator(parser, path, file_name).generate();
 }
+
+
 
 }  // namespace flatbuffers
 
