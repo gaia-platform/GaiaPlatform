@@ -86,7 +86,7 @@ class GaiaCppGenerator : public BaseGenerator {
  public:
   GaiaCppGenerator(const Parser &parser, const std::string &path,
                const std::string &file_name, IDLOptions opts)
-      : BaseGenerator(parser, path, file_name, "", "::"),
+      : BaseGenerator(parser, path, file_name, "", "::", "h"),
         cur_name_space_(nullptr),
         opts_(opts) {
     static const char *const keywords[] = {
@@ -258,7 +258,7 @@ class GaiaCppGenerator : public BaseGenerator {
     // Close the include guard.
     code_ += "#endif  // " + include_guard;
 
-    const auto file_path = GeneratedFileName(path_, file_name_);
+    const auto file_path = GeneratedFileName(path_, file_name_, opts_);
     const auto final_code = code_.ToString();
 
     // Save the file and optionally generate the binary schema code.

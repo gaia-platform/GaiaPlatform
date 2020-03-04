@@ -363,6 +363,7 @@ template<typename T, typename U> class pointer_inside_vector {
   }
   T *operator->() const { return operator*(); }
   void operator=(const pointer_inside_vector &piv);
+  pointer_inside_vector(const pointer_inside_vector&) = default;
 
  private:
   size_t offset_;

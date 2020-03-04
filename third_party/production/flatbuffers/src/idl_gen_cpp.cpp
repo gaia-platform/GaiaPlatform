@@ -2217,6 +2217,10 @@ class CppGenerator : public BaseGenerator {
         "  {{STRUCT_NAME}}Builder &operator="
         "(const {{STRUCT_NAME}}Builder &);";
 
+    //explicit copy constructor to make clang happy
+    code_ +=
+        "  {{STRUCT_NAME}}Builder (const {{STRUCT_NAME}}Builder &) = default;";
+
     // Finish() function.
     code_ += "  flatbuffers::Offset<{{STRUCT_NAME}}> Finish() {";
     code_ += "    const auto end = fbb_.EndTable(start_);";
