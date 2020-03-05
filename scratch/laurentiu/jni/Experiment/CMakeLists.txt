@@ -9,9 +9,16 @@ cmake_minimum_required(VERSION 3.10)
 project(Experiment)
 
 # Add custom target for generating JNI C++ header files.
+#add_custom_command(
+#  OUTPUT DataContainer.class
+#  COMMAND ${Java_JAVAC_EXECUTABLE} -d . ${PROJECT_SOURCE_DIR}/DataContainer.java
+#  DEPENDS ${PROJECT_SOURCE_DIR}/DataContainer.java)
+
+#add_custom_target(data_container DEPENDS DataContainer.class)
+
 add_custom_command(
   OUTPUT Experiment.h
-  COMMAND ${Java_JAVAC_EXECUTABLE} -d . -h ${PROJECT_BINARY_DIR} ${PROJECT_SOURCE_DIR}/Experiment.java
+  COMMAND ${Java_JAVAC_EXECUTABLE} -d . -h ${PROJECT_BINARY_DIR} ${PROJECT_SOURCE_DIR}/Experiment.java ${PROJECT_SOURCE_DIR}/DataContainer.java
   DEPENDS ${PROJECT_SOURCE_DIR}/Experiment.java)
 
 add_custom_target(experiment_jni_headers DEPENDS Experiment.h)

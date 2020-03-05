@@ -32,3 +32,29 @@ JNIEXPORT jstring JNICALL Java_Experiment_formalizeName(
     std::string fullName = title + nameCharPointer;
     return env->NewStringUTF(fullName.c_str());
 }
+
+JNIEXPORT jobject JNICALL Java_Experiment_getDataContainer(
+    JNIEnv* env, jobject, jstring name, jdouble value)
+{
+    jclass dataContainerClass = env->FindClass("DataContainer");
+    jobject newDataContainer = env->AllocObject(dataContainerClass);
+     
+    jfieldID nameField = env->GetFieldID(dataContainerClass , "name", "Ljava/lang/String;");
+    jfieldID valueField = env->GetFieldID(dataContainerClass , "value", "D");
+     
+    env->SetObjectField(newDataContainer, nameField, name);
+    env->SetDoubleField(newDataContainer, valueField, value);
+     
+    return newDataContainer;
+}
+ 
+JNIEXPORT jstring JNICALL Java_Experiment_getContainerData(
+    JNIEnv* env, jobject, jobject dataContainer)
+{
+    jclass dataContainerClass = env->GetObjectClass(dataContainer);
+    jmethodID methodId = env->GetMethodID(dataContainerClass, "getData", "()Ljava/lang/String;");
+
+    jstring result = (jstring)env->CallObjectMethod(dataContainer, methodId);
+
+    return result;
+}
