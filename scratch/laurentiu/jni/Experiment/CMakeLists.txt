@@ -24,4 +24,4 @@ set_target_properties(native_experiment PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE
 set_target_properties(native_experiment PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 
 # Add a test that executes the Java program.
-add_test(NAME test_experiment COMMAND ${Java_JAVA_EXECUTABLE} -Djava.library.path=. -cp ${EXPERIMENT_JAR} Experiment)
+add_test(NAME test_jni_experiment COMMAND ${Java_JAVA_EXECUTABLE} -Djava.library.path=. -cp ${EXPERIMENT_JAR} Experiment)

@@ -20,4 +20,4 @@ set_target_properties(native_hello_world PROPERTIES COMPILE_FLAGS "${GAIA_COMPIL
 set_target_properties(native_hello_world PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 
 # Add a test that executes the Java program.
-add_test(NAME test_hello_world COMMAND ${Java_JAVA_EXECUTABLE} -Djava.library.path=. -cp ${HELLO_WORLD_JAR} HelloWorld)
+add_test(NAME test_jni_hello_world COMMAND ${Java_JAVA_EXECUTABLE} -Djava.library.path=. -cp ${HELLO_WORLD_JAR} HelloWorld)
