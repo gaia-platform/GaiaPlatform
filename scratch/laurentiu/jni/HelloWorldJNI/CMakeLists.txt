@@ -16,7 +16,12 @@ if (JAVA_FOUND)
     message (STATUS "Java_JAVA_EXECUTABLE=${Java_JAVA_EXECUTABLE}")
 
   # Add custom targets for HelloWorldJNI test.
-  add_custom_target(jni_headers ${Java_JAVAC_EXECUTABLE} -d . -h ${PROJECT_BINARY_DIR} ${PROJECT_SOURCE_DIR}/HelloWorldJNI.java)
+  add_custom_command(
+    OUTPUT HelloWorldJNI.h
+    COMMAND ${Java_JAVAC_EXECUTABLE} -d . -h ${PROJECT_BINARY_DIR} ${PROJECT_SOURCE_DIR}/HelloWorldJNI.java
+    DEPENDS ${PROJECT_SOURCE_DIR}/HelloWorldJNI.java)
+
+  add_custom_target(jni_headers DEPENDS HelloWorldJNI.h)
 
   add_custom_target(HelloWorldJNI ${Java_JAVA_EXECUTABLE} -Djava.library.path=. HelloWorldJNI)
 endif()
