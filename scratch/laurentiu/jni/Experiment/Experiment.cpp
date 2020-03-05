@@ -30,6 +30,7 @@ JNIEXPORT jstring JNICALL Java_Experiment_formalizeName(
  
     std::string fullName = title + nameCharacters;
 
+    // We need to call this after we're done using nameCharacters.
     env->ReleaseStringUTFChars(name, nameCharacters);
 
     return env->NewStringUTF(fullName.c_str());
@@ -62,6 +63,7 @@ JNIEXPORT jdoubleArray JNICALL Java_Experiment_addAndAverageIntegers(
     }
     double average = ((double)sum) / countValues;
 
+    // We need to call this after we're done using intArray.
     env->ReleaseIntArrayElements(values, intArray, 0);
 
     jdouble results[] = { (double)sum, average };

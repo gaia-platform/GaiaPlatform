@@ -56,6 +56,8 @@ public class Experiment
         System.out.println("Hello " + name + "!\n");
     }
 
+    // The native methods that we call via JNI.
+    //
     private native String formalizeName(String name, boolean isFemale);
 
     private native long addIntegers(int first, int second);
