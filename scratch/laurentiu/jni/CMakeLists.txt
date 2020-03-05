@@ -5,6 +5,8 @@
 
 cmake_minimum_required(VERSION 3.10)
 
+include(UseJava)
+
 find_package(Java)
 find_package(JNI)
 
