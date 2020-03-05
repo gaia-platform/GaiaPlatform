@@ -10,6 +10,6 @@ public class DataContainer
      
     public String getData()
     {
-        return "name = " + name + "; [value] = " + value;
+        return "Container contains: name = " + name + "; value = " + value;
     }
 }

@@ -10,16 +10,19 @@
 JNIEXPORT jlong JNICALL Java_Experiment_addIntegers(
     JNIEnv*, jobject, jint first, jint second)
 {
-    std::cout << "C++ addIntegers(): Received values " << first << " and " << second << "." << std::endl;
+    std::cout << "C++ addIntegers(): Received values: " << first << " and " << second << "." << std::endl;
+
     return (long)first + (long)second;
 }
 
 JNIEXPORT jstring JNICALL Java_Experiment_formalizeName(
     JNIEnv* env, jobject, jstring name, jboolean isFemale)
 {
-    const char* nameCharPointer = env->GetStringUTFChars(name, NULL);
-    std::string title;
+    std::cout << "C++ formalizeName(): Received values: " << name << " and " << (int)isFemale << "." << std::endl;
 
+    const char* nameCharacters = env->GetStringUTFChars(name, NULL);
+ 
+    std::string title;
     if (isFemale)
     {
         title = "Ms. ";
@@ -29,13 +32,18 @@ JNIEXPORT jstring JNICALL Java_Experiment_formalizeName(
         title = "Mr. ";
     }
  
-    std::string fullName = title + nameCharPointer;
+    std::string fullName = title + nameCharacters;
+
+    env->ReleaseStringUTFChars(name, nameCharacters);
+
     return env->NewStringUTF(fullName.c_str());
 }
 
 JNIEXPORT jobject JNICALL Java_Experiment_getDataContainer(
     JNIEnv* env, jobject, jstring name, jdouble value)
 {
+    std::cout << "C++ getDataContainer(): Received values: " << name << " and " << value << "." << std::endl;
+
     jclass dataContainerClass = env->FindClass("DataContainer");
     jobject newDataContainer = env->AllocObject(dataContainerClass);
      
@@ -51,6 +59,8 @@ JNIEXPORT jobject JNICALL Java_Experiment_getDataContainer(
 JNIEXPORT jstring JNICALL Java_Experiment_getContainerData(
     JNIEnv* env, jobject, jobject dataContainer)
 {
+    std::cout << "C++ getContainerData(): Received value: " << dataContainer << "." << std::endl;
+
     jclass dataContainerClass = env->GetObjectClass(dataContainer);
     jmethodID methodId = env->GetMethodID(dataContainerClass, "getData", "()Ljava/lang/String;");
 

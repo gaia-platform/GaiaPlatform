@@ -21,7 +21,7 @@ public class Experiment
         sayHelloToMyLittleFriend(bob);
 
         long sum = experiment.addIntegers(2, 40);
-        System.out.println("The answer is: " + sum);
+        System.out.println("The answer is: " + sum + ".\n");
 
         DataContainer dataContainer = experiment.getDataContainer("Pi", 3.1415);
         String data = experiment.getContainerData(dataContainer);
@@ -30,7 +30,7 @@ public class Experiment
  
     private static void sayHelloToMyLittleFriend(String name)
     {
-        System.out.println("Hello " + name + "!");
+        System.out.println("Hello " + name + "!\n");
     }
 
     private native long addIntegers(int first, int second);

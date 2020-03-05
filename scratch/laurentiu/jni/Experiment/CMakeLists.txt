@@ -19,7 +19,7 @@ project(Experiment)
 add_custom_command(
   OUTPUT Experiment.h
   COMMAND ${Java_JAVAC_EXECUTABLE} -d . -h ${PROJECT_BINARY_DIR} ${PROJECT_SOURCE_DIR}/Experiment.java ${PROJECT_SOURCE_DIR}/DataContainer.java
-  DEPENDS ${PROJECT_SOURCE_DIR}/Experiment.java)
+  DEPENDS ${PROJECT_SOURCE_DIR}/Experiment.java ${PROJECT_SOURCE_DIR}/DataContainer.java)
 
 add_custom_target(experiment_jni_headers DEPENDS Experiment.h)
 
