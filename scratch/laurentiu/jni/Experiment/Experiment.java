@@ -24,8 +24,12 @@ public class Experiment
         System.out.println("The answer is: " + sum + ".\n");
 
         DataContainer dataContainer = experiment.getDataContainer("Pi", 3.1415);
+        System.out.println("");
+
         String data = experiment.getContainerData(dataContainer);
         System.out.println(data);
+
+        System.out.println("\nAll experiments were completed!");
     }
  
     private static void sayHelloToMyLittleFriend(String name)
@@ -33,10 +37,10 @@ public class Experiment
         System.out.println("Hello " + name + "!\n");
     }
 
-    private native long addIntegers(int first, int second);
-     
     private native String formalizeName(String name, boolean isFemale);
 
+    private native long addIntegers(int first, int second);
+     
     private native DataContainer getDataContainer(String name, double value);
      
     private native String getContainerData(DataContainer dataContainer);

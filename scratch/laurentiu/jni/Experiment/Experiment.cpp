@@ -7,14 +7,6 @@
 
 #include <iostream>
 
-JNIEXPORT jlong JNICALL Java_Experiment_addIntegers(
-    JNIEnv*, jobject, jint first, jint second)
-{
-    std::cout << "C++ addIntegers(): Received values: " << first << " and " << second << "." << std::endl;
-
-    return (long)first + (long)second;
-}
-
 JNIEXPORT jstring JNICALL Java_Experiment_formalizeName(
     JNIEnv* env, jobject, jstring name, jboolean isFemale)
 {
@@ -37,6 +29,14 @@ JNIEXPORT jstring JNICALL Java_Experiment_formalizeName(
     env->ReleaseStringUTFChars(name, nameCharacters);
 
     return env->NewStringUTF(fullName.c_str());
+}
+
+JNIEXPORT jlong JNICALL Java_Experiment_addIntegers(
+    JNIEnv*, jobject, jint first, jint second)
+{
+    std::cout << "C++ addIntegers(): Received values: " << first << " and " << second << "." << std::endl;
+
+    return (long)first + (long)second;
 }
 
 JNIEXPORT jobject JNICALL Java_Experiment_getDataContainer(
