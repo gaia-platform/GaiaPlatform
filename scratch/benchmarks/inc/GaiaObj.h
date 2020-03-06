@@ -34,7 +34,7 @@ public:
 
     virtual ~GaiaObj() { reset(); }
 
-    GaiaObj() : _copy(nullptr), _fb(nullptr), _fbb(nullptr) {}
+    GaiaObj() : _fb(nullptr), _copy(nullptr), _fbb(nullptr) {}
 
     #define get(field) (_copy ? (_copy->field) : (_fb->field()))
     #define get_str(field) (_copy ? _copy->field.c_str() : _fb->field() ? _fb->field()->c_str() : nullptr)

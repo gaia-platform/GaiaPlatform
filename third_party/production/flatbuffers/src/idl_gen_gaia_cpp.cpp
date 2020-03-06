@@ -27,26 +27,30 @@
 #include "flatbuffers/idl.h"
 #include "flatbuffers/util.h"
 
-namespace flatbuffers {
+namespace flatbuffers 
+{
 
 // Pedantic warning free version of toupper().
-inline char ToUpper(char c) {
+inline char ToUpper(char c) 
+{
   return static_cast<char>(::toupper(static_cast<unsigned char>(c)));
 }
 
 static std::string GeneratedFileName(const std::string &path,
-                                     const std::string &file_name) {
+                                     const std::string &file_name) 
+{
   return path + file_name + "_gaia_generated.h";
 }
 
-static std::string GeneratedCPPFileName(const std::string &path,
-                                     const std::string &file_name) {
-  return path + file_name + "_generated.h";
+static std::string GeneratedCPPFileName(const std::string &file_name) 
+{
+  return file_name + "_generated.h";
 }
 
 static std::string GenIncludeGuard(const std::string &file_name,
                                    const Namespace &name_space,
-                                   const std::string &postfix= "")  {
+                                   const std::string &postfix= "")  
+{
     // Generate include guard.
     std::string guard = file_name;
     // Remove any non-alpha-numeric characters that may appear in a filename.
@@ -79,10 +83,12 @@ static std::string CapitalizeString(const std::string &str)
 }
 
 
-namespace gaiacpp {
+namespace gaiacpp 
+{
 
 
-class GaiaCppGenerator : public BaseGenerator {
+class GaiaCppGenerator : public BaseGenerator 
+{
  public:
   GaiaCppGenerator(const Parser &parser, const std::string &path,
                const std::string &file_name, IDLOptions opts)
@@ -187,35 +193,46 @@ class GaiaCppGenerator : public BaseGenerator {
       "xor_eq",
       nullptr,
     };
-    for (auto kw = keywords; *kw; kw++) keywords_.insert(*kw);
+    for (auto kw = keywords; *kw; kw++) 
+      keywords_.insert(*kw);
   }
 
   
-  const std::string EscapeKeyword(const std::string &name) const {
+  const std::string EscapeKeyword(const std::string &name) const 
+  {
     return keywords_.find(name) == keywords_.end() ? name : name + "_";
   }
 
-  const std::string Name(const Definition &def) const {
+  const std::string Name(const Definition &def) const 
+  {
     return EscapeKeyword(def.name);
   }
 
-  const std::string Name(const EnumVal &ev) const { return EscapeKeyword(ev.name); }
+  const std::string Name(const EnumVal &ev) const 
+  { 
+    return EscapeKeyword(ev.name); 
+  }
 
 
   // Iterate through all definitions we haven't generate code for (enums,
   // structs, and tables) and output them to a single file.
-  bool generate() {
+  bool generate() 
+  {
     code_.Clear();
     code_ += "// " + std::string(FlatBuffersGeneratedWarning()) + "\n\n";
 
-    const auto include_guard = GenIncludeGuard(file_name_, *parser_.current_namespace_);
+    const auto include_guard = GenIncludeGuard(file_name_, 
+          *parser_.current_namespace_);
     code_ += "#ifndef " + include_guard;
     code_ += "#define " + include_guard;
     code_ += "";
 
-    code_ += "#include \"" + GeneratedCPPFileName(path_, file_name_) + "\"";
+    code_ += "#include \"" + GeneratedCPPFileName(file_name_) + "\"";
     code_ += "#include \"GaiaObj.h\"";
-    if (opts_.gen_events)
+    if (opts_.gen_setters 
+        && (opts_.gen_col_events 
+        || opts_.gen_transaction_events 
+        || opts_.gen_table_events))
     {
         code_ += "include \"events.hpp \"";
     }
@@ -232,9 +249,11 @@ class GaiaCppGenerator : public BaseGenerator {
     int currentObjectTypeValue = 1;
     //generate Object Type enum
     for (auto it = parser_.structs_.vec.begin();
-      it != parser_.structs_.vec.end(); ++it) {
+      it != parser_.structs_.vec.end(); ++it) 
+    {
         const auto &struct_def = **it;
-        if (!struct_def.fixed && !struct_def.generated) {
+        if (!struct_def.fixed && !struct_def.generated) 
+        {
           SetNameSpace(struct_def.defined_namespace);
           GenObjectTypeValues(struct_def, currentObjectTypeValue);
           currentObjectTypeValue ++;
@@ -244,21 +263,24 @@ class GaiaCppGenerator : public BaseGenerator {
 
     //generate class
     for (auto it = parser_.structs_.vec.begin();
-      it != parser_.structs_.vec.end(); ++it) {
+      it != parser_.structs_.vec.end(); ++it) 
+      {
         const auto &struct_def = **it;
-        if (!struct_def.fixed && !struct_def.generated) {
+        if (!struct_def.fixed && !struct_def.generated) 
+        {
           SetNameSpace(struct_def.defined_namespace);
-          GenClass(struct_def);
+          GenClass(struct_def);          
           code_ += "";
         }
     }
 
-    if (cur_name_space_) SetNameSpace(nullptr);
+    if (cur_name_space_) 
+      SetNameSpace(nullptr);
     
     // Close the include guard.
     code_ += "#endif  // " + include_guard;
 
-    const auto file_path = GeneratedFileName(path_, file_name_, opts_);
+    const auto file_path = flatbuffers::GeneratedFileName(path_, file_name_);
     const auto final_code = code_.ToString();
 
     // Save the file and optionally generate the binary schema code.
@@ -286,7 +308,8 @@ class GaiaCppGenerator : public BaseGenerator {
     
     // open namespace parts to reach the ns namespace
     // in the previous example, E, then F, then G are opened
-    for (unsigned long j = 0; j != ns->components.size(); ++j) {
+    for (unsigned long j = 0; j != ns->components.size(); ++j) 
+    {
       if (!retVal.empty())
       {
         retVal += "::";
@@ -297,112 +320,156 @@ class GaiaCppGenerator : public BaseGenerator {
     return retVal;
   }
 
-  const Namespace *CurrentNameSpace() const { return cur_name_space_; }
+  const Namespace *CurrentNameSpace() const 
+  { 
+    return cur_name_space_; 
+  }
 
-  void GenComment(const std::vector<std::string> &dc, const char *prefix = "") {
+  void GenComment(const std::vector<std::string> &dc, 
+        const char *prefix = "") 
+  {
     std::string text;
     ::flatbuffers::GenComment(dc, &text, nullptr, prefix);
     code_ += text + "\\";
   }
 
   // Return a C++ type from the table in idl.h
-  const std::string GenTypeBasic(const Type &type, bool user_facing_type) const {
+  const std::string GenTypeBasic(const Type &type, bool user_facing_type) const 
+  {
     // clang-format off
-    static const char *const ctypename[] = {
+    static const char *const ctypename[] = 
+    {
       #define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, ...) \
         #CTYPE,
         FLATBUFFERS_GEN_TYPES(FLATBUFFERS_TD)
       #undef FLATBUFFERS_TD
     };
     // clang-format on
-    if (user_facing_type) {
-      if (type.enum_def) return WrapInNameSpace(*type.enum_def);
-      if (type.base_type == BASE_TYPE_BOOL) return "bool";
+    if (user_facing_type) 
+    {
+      if (type.enum_def) 
+        return WrapInNameSpace(*type.enum_def);
+      if (type.base_type == BASE_TYPE_BOOL) 
+        return "bool";
     }
     return ctypename[type.base_type];
   }
 
   static std::string NativeName(const std::string &name, const StructDef *sd,
-                                const IDLOptions &opts) {
+                                const IDLOptions &opts) 
+  {
     return sd && !sd->fixed ? opts.object_prefix + name + opts.object_suffix
                             : name;
   }
 
-  const std::string &PtrType(const FieldDef *field) const {
+  const std::string &PtrType(const FieldDef *field) const 
+  {
     auto attr = field ? field->attributes.Lookup("cpp_ptr_type") : nullptr;
     return attr ? attr->constant : opts_.cpp_object_api_pointer_type;
   }
 
-  const std::string NativeString() const {
+  const std::string NativeString() const 
+  {
      return "const char *";
   }
 
-    std::string GenTypeNativePtr(const std::string &type, const FieldDef *field,
-                               bool is_constructor) const {
+  std::string GenTypeNativePtr(const std::string &type, const FieldDef *field,
+                               bool is_constructor) const 
+  {
     auto &ptr_type = PtrType(field);
-    if (ptr_type != "naked") {
+    if (ptr_type != "naked") 
+    {
       return (ptr_type != "default_ptr_type"
                   ? ptr_type
                   : opts_.cpp_object_api_pointer_type) +
              "<" + type + ">";
-    } else if (is_constructor) {
-      return "";
-    } else {
-      return type + " *";
+    }
+    else
+    { 
+      if (is_constructor) 
+      {
+        return "";
+      } 
+      else 
+      {
+        return type + " *";
+      }
     }
   }
 
   const std::string GenTypeNative(const Type &type, bool invector,
-                            const FieldDef &field) const {
-    switch (type.base_type) {
-      case BASE_TYPE_STRING: {
+                            const FieldDef &field) const 
+  {
+    switch (type.base_type) 
+    {
+      case BASE_TYPE_STRING: 
+      {
         return NativeString();
       }
-      case BASE_TYPE_VECTOR: {
+      case BASE_TYPE_VECTOR: 
+      {
         const auto type_name = GenTypeNative(type.VectorType(), true, field);
         if (type.struct_def &&
-            type.struct_def->attributes.Lookup("native_custom_alloc")) {
+            type.struct_def->attributes.Lookup("native_custom_alloc")) 
+        {
           auto native_custom_alloc =
               type.struct_def->attributes.Lookup("native_custom_alloc");
           return "std::vector<" + type_name + "," +
                  native_custom_alloc->constant + "<" + type_name + ">>";
-        } else
+        } 
+        else
           return "std::vector<" + type_name + ">";
       }
-      case BASE_TYPE_STRUCT: {
+      case BASE_TYPE_STRUCT: 
+      {
         auto type_name = WrapInNameSpace(*type.struct_def);
-        if (IsStruct(type)) {
+        if (IsStruct(type)) 
+        {
           auto native_type = type.struct_def->attributes.Lookup("native_type");
-          if (native_type) { type_name = native_type->constant; }
-          if (invector || field.native_inline) {
+          if (native_type) 
+          { 
+            type_name = native_type->constant; 
+          }
+          if (invector || field.native_inline) 
+          {
             return type_name;
-          } else {
+          }
+          else 
+          {
             return GenTypeNativePtr(type_name, &field, false);
           }
-        } else {
+        } 
+        else
+        {
           return GenTypeNativePtr(NativeName(type_name, type.struct_def, opts_),
                                   &field, false);
         }
       }
-      case BASE_TYPE_UNION: {
+      case BASE_TYPE_UNION: 
+      {
         auto type_name = WrapInNameSpace(*type.enum_def);
         return type_name + "Union";
       }
-      default: {
+      default: 
+      {
         return GenTypeBasic(type, true);
       }
     }
   }
    
   //generate values for class type
-  void GenObjectTypeValues(const StructDef &struct_def, int currentObjectTypeValue)
+  void GenObjectTypeValues(const StructDef &struct_def, 
+        int currentObjectTypeValue)
   {
     code_.SetValue("CONST_NAME", "k" + CapitalizeString(Name(struct_def)) + "Type");
-    code_ += "static const gaia_se::gaia_type_t {{CONST_NAME}} = " + NumToString(currentObjectTypeValue) + ";";
+    code_ += 
+      "static const gaia_se::gaia_type_t {{CONST_NAME}} = " + 
+      NumToString(currentObjectTypeValue) + ";";
   }
 
-  // Generate a Zero Copy class
-  void GenClass(const StructDef &struct_def) {
+  // Generate a Zero Copy class with Setters
+  void GenClass(const StructDef &struct_def) 
+  {
 
     // Generate an accessor struct, with methods of the form:
     // type name() const { return GetField<type>(offset, defaultval); }
@@ -410,7 +477,8 @@ class GaiaCppGenerator : public BaseGenerator {
 
     code_.SetValue("STRUCT_NAME", Name(struct_def));
     code_.SetValue("CLASS_NAME", CapitalizeString(Name(struct_def)));
-    code_ += "struct {{CLASS_NAME}} : public GaiaObj<" + CurrentNamespaceString() +  "::k{{CLASS_NAME}}Type,{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>{";
+    code_ += "struct {{CLASS_NAME}} : public GaiaObj<" + CurrentNamespaceString() +  
+      "::k{{CLASS_NAME}}Type,{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>{";
     
 
      std::string params = "";
@@ -418,9 +486,11 @@ class GaiaCppGenerator : public BaseGenerator {
         
     // Generate the accessors.
     for (auto it = struct_def.fields.vec.begin();
-         it != struct_def.fields.vec.end(); ++it) {
+         it != struct_def.fields.vec.end(); ++it) 
+    {
       const auto &field = **it;
-      if (field.deprecated) {
+      if (field.deprecated) 
+      {
         // Deprecated fields won't be accessible.
         continue;
       }
@@ -434,7 +504,8 @@ class GaiaCppGenerator : public BaseGenerator {
         param_Values += ", ";
       }
 
-      params += GenTypeNative(field.value.type,false, field) + " " +  Name(field) + "_val";
+      params += GenTypeNative(field.value.type,false, field) + " " +
+        Name(field) + "_val";
       param_Values  += Name(field) + "_val";
 
       code_.SetValue("FIELD_NAME", Name(field));
@@ -443,45 +514,130 @@ class GaiaCppGenerator : public BaseGenerator {
       if (field.value.type.base_type == BASE_TYPE_STRING)
       {
         code_ += 
-        "    {{FIELD_TYPE}} {{FIELD_NAME}} () const { return get_str({{FIELD_NAME}}) ;}";
+        "    {{FIELD_TYPE}} {{FIELD_NAME}} () const { return get_str({{FIELD_NAME}});}";
+        if (opts_.gen_setters && (opts_.gen_col_events || opts_.gen_table_events))
+        {
+          code_ += 
+        "    {{FIELD_TYPE}} {{FIELD_NAME}}_original () const { return get_original_str({{FIELD_NAME}});}";
+        }
       }
       else
       {
         code_ += 
         "    {{FIELD_TYPE}} {{FIELD_NAME}} () const { return get({{FIELD_NAME}});}";
+        if (opts_.gen_setters && (opts_.gen_col_events || opts_.gen_table_events))
+        {
+          code_ += 
+        "    {{FIELD_TYPE}} {{FIELD_NAME}}_original () const { return get_original({{FIELD_NAME}});}";
+        }
       }
-      if (opts_.gen_events)
+   
+      if (opts_.gen_setters)
       {
         code_ +=
           "    void set_{{FIELD_NAME}}({{FIELD_TYPE}} val)\n"
           "    {\n"
-          "        set({{FIELD_NAME}}, val);\n"
-          "        gaia::events::log_table_event(this,gaia::events::col_change, gaia::events::immediate);\n"
-          "    }\n"; 
+          "        set({{FIELD_NAME}}, val);";
+        if (opts_.gen_col_events || opts_.gen_table_events)
+        {
+          code_ += "        _fields.emplace(\"{{FIELD_NAME}}\");";
+      
+          if (opts_.gen_col_events)
+          {
+            code_ += "        gaia::events::log_table_event(this,gaia::events::col_change, gaia::events::immediate);";
+          }
+        }
+        code_ += "    }\n"; 
       }
-      else
-      {            
-        code_ +=
-          "    void set_{{FIELD_NAME}}({{FIELD_TYPE}} val) { set({{FIELD_NAME}}, val);}";     
-      } 
     }
 
-    code_ += "    void Create{{CLASS_NAME}} (gaia_id_t nodeId, " + params + "){\n"
+    if (opts_.gen_setters && (opts_.gen_col_events || opts_.gen_table_events))
+    {
+      code_ += "const std::unordered_set<std::string>& getChangedFields() { return _fields;} ";
+    }
+
+    code_ += "    static void Create{{CLASS_NAME}} (gaia_id_t nodeId, " + params + "){\n"
       "        flatbuffers::FlatBufferBuilder b(128);\n"
-      "        b.Finish(Create{{STRUCT_NAME}}Direct(b, nodeId, " + param_Values + "));\n"
-      "        gaia_se_node::create(nodeId, " + CurrentNamespaceString() +  "::k{{CLASS_NAME}}Type, b.GetSize(), b.GetBufferPointer());\n"
-      "    }\n"
-      "}";
+      "        b.Finish(Create{{STRUCT_NAME}}Direct(b," + param_Values + "));\n"
+      "        gaia_se_node::create(nodeId, " + CurrentNamespaceString() +
+      "::k{{CLASS_NAME}}Type, b.GetSize(), b.GetBufferPointer());\n"
+      "    }";
+
+    // Update function
+    code_ += "    void Update(){\n"
+            "         GaiaObj::Update();";
+    if (opts_.gen_table_events)
+    {
+        code_+="         gaia::events::log_table_event(this,gaia::events::row_update, gaia::events::immediate);";
+    }
+    code_ += "    }";
+/*
+    // Insert function
+    code_ += "    void Insert(){\n"
+            "         GaiaObj::Insert();";
+    if (opts_.gen_table_events)
+    {
+        code_+="         gaia::events::log_table_event(this,gaia::events::row_insert, gaia::events::immediate);";
+    }
+    code_ += "    }";
+
+    // Delete function
+    code_ += "    void Delete(){\n"
+            "         GaiaObj::Delete();";
+    if (opts_.gen_table_events)
+    {
+        code_+="         gaia::events::log_table_event(this,gaia::events::row_delete, gaia::events::immediate);";
+    }
+    code_ += "    }";
+
+    // BeginTransaction function
+    code_ += "    void beginTransaction(){\n"
+            "         GaiaObj::beginTransaction();";
+    if (opts_.gen_transaction_events)
+    {
+        code_+="         gaia::events::log_table_event(gaia::events::transaction_begin, gaia::events::immediate);";
+    }
+    code_ += "    }";
+
+    // CommitTransaction function
+    code_ += "    void commitTransaction(){\n"
+            "         GaiaObj::commitTransaction();";
+    if (opts_.gen_transaction_events)
+    {
+        code_+="         gaia::events::log_table_event(gaia::events::transaction_commit, gaia::events::immediate);";
+    }
+    code_ += "    }";
+
+    // RollbackTransaction function
+    code_ += "    void rollbackTransaction(){\n"
+            "         GaiaObj::rollbackTransaction();";
+    if (opts_.gen_table_events)
+    {
+        code_+="         gaia::events::log_table_event(gaia::events::transaction_rollback, gaia::events::immediate);";
+    }
+    code_ += "    }";
+*/
+
+    if (opts_.gen_setters && (opts_.gen_col_events || opts_.gen_table_events))
+    {
+      code_ += "private:\n"
+        "    std::unordered_set<std::string> _fields;";
+    }
+
+    code_ += "};";      
   }
 
-     
   // Set up the correct namespace. Only open a namespace if the existing one is
   // different (closing/opening only what is necessary).
   //
   // The file must start and end with an empty (or null) namespace so that
   // namespaces are properly opened and closed.
-  void SetNameSpace(const Namespace *ns) {
-    if (cur_name_space_ == ns) { return; }
+  void SetNameSpace(const Namespace *ns) 
+  {
+    if (cur_name_space_ == ns) 
+    { 
+      return; 
+    }
 
     // Compute the size of the longest common namespace prefix.
     // If cur_name_space is A::B::C::D and ns is A::B::E::F::G,
@@ -493,43 +649,56 @@ class GaiaCppGenerator : public BaseGenerator {
     size_t common_prefix_size = 0;
     while (common_prefix_size < old_size && common_prefix_size < new_size &&
            ns->components[common_prefix_size] ==
-               cur_name_space_->components[common_prefix_size]) {
+               cur_name_space_->components[common_prefix_size]) 
+    {
       common_prefix_size++;
     }
 
     // Close cur_name_space in reverse order to reach the common prefix.
     // In the previous example, D then C are closed.
-    for (size_t j = old_size; j > common_prefix_size; --j) {
+    for (size_t j = old_size; j > common_prefix_size; --j) 
+    {
       code_ += "}  // namespace " + cur_name_space_->components[j - 1];
     }
-    if (old_size != common_prefix_size) { code_ += ""; }
+
+    if (old_size != common_prefix_size) 
+    { 
+      code_ += ""; 
+    }
 
     // open namespace parts to reach the ns namespace
     // in the previous example, E, then F, then G are opened
-    for (auto j = common_prefix_size; j != new_size; ++j) {
+    for (auto j = common_prefix_size; j != new_size; ++j) 
+    {
       code_ += "namespace " + ns->components[j] + " {";
     }
-    if (new_size != common_prefix_size) { code_ += ""; }
+    if (new_size != common_prefix_size) 
+    { 
+      code_ += ""; 
+    }
 
     cur_name_space_ = ns;
   }
 };
 
-}  // namespace cpp
+}  // namespace gaiacpp
 
 bool GenerateGaiaCPP(const Parser &parser, const std::string &path,
-                 const std::string &file_name) {
+                 const std::string &file_name) 
+{  
   gaiacpp::GaiaCppGenerator generator(parser, path, file_name, parser.opts);
   return generator.generate();
 }
 
 std::string GaiaCPPMakeRule(const Parser &parser, const std::string &path,
-                        const std::string &file_name) {
+                        const std::string &file_name) 
+{
   const auto filebase =
       flatbuffers::StripPath(flatbuffers::StripExtension(file_name));
   const auto included_files = parser.GetIncludedFilesRecursive(file_name);
   std::string make_rule = GeneratedFileName(path, filebase) + ": ";
-  for (auto it = included_files.begin(); it != included_files.end(); ++it) {
+  for (auto it = included_files.begin(); it != included_files.end(); ++it) 
+  {
     make_rule += " " + *it;
   }
   return make_rule;

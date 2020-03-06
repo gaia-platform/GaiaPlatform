@@ -131,6 +131,7 @@ set(FlatBuffers_Tests_SRCS
   ${FlatBuffers_Library_SRCS}
   src/idl_gen_fbs.cpp
   tests/test.cpp
+  tests/testgaia.cpp
   tests/test_assert.h
   tests/test_assert.cpp
   tests/test_builder.h
@@ -154,6 +155,10 @@ set(FlatBuffers_Tests_SRCS
   ${CMAKE_CURRENT_BINARY_DIR}/tests/monster_extra_generated.h
   # file generate by running compiler on tests/monster_test.fbs
   ${CMAKE_CURRENT_BINARY_DIR}/tests/monster_test_bfbs_generated.h
+  # file generate by running compiler on tests/addr_book.fbs
+  ${CMAKE_CURRENT_BINARY_DIR}/tests/addr_book_generated.h
+  # file generate by running compiler on tests/addr_book.fbs
+  ${CMAKE_CURRENT_BINARY_DIR}/tests/addr_book_gaia_generated.h
 )
 
 set(FlatBuffers_Tests_CPP17_SRCS
@@ -393,6 +398,23 @@ function(compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT)
   register_generated_output(${GEN_HEADER})
 endfunction()
 
+function(compile_flatbuffers_schema_to_gaiacpp_opt SRC_FBS OPT)
+  message(STATUS "`${SRC_FBS}`: add generation of Gaia C++ code with '${OPT}'")
+  get_filename_component(SRC_FBS_DIR ${SRC_FBS} PATH)
+  string(REGEX REPLACE "\\.fbs$" "_gaia_generated.h" GEN_HEADER_GAIA ${SRC_FBS})
+  add_custom_command(
+    OUTPUT ${GEN_HEADER_GAIA}
+    COMMAND "${FLATBUFFERS_FLATC_EXECUTABLE}"
+            --gaiacpp
+            ${OPT}
+            -I "${CMAKE_CURRENT_SOURCE_DIR}/tests/include_test"
+            -o "${SRC_FBS_DIR}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}"
+    DEPENDS flatc
+    COMMENT "Run generation: '${GEN_HEADER_GAIA}'")
+  register_generated_output(${GEN_HEADER_GAIA})
+endfunction()
+
 function(compile_flatbuffers_schema_to_cpp SRC_FBS)
   compile_flatbuffers_schema_to_cpp_opt(${SRC_FBS} "--no-includes;--gen-compare")
 endfunction()
@@ -453,10 +475,14 @@ if(FLATBUFFERS_BUILD_TESTS)
   compile_flatbuffers_schema_to_cpp_opt(tests/arrays_test.fbs "--scoped-enums;--gen-compare")
   compile_flatbuffers_schema_to_binary(tests/arrays_test.fbs)
   compile_flatbuffers_schema_to_embedded_binary(tests/monster_test.fbs "--no-includes;--gen-compare")
+  compile_flatbuffers_schema_to_cpp(tests/addr_book.fbs "")
+  compile_flatbuffers_schema_to_gaiacpp_opt(tests/addr_book.fbs "")
   if(NOT (MSVC AND (MSVC_VERSION LESS 1900)))
     compile_flatbuffers_schema_to_cpp(tests/monster_extra.fbs) # Test floating-point NAN/INF.
   endif()
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/tests)
+  include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../../scratch/benchmarks/inc)
+  include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../../demos/cow_se/inc)
   add_executable(flattests ${FlatBuffers_Tests_SRCS})
   add_dependencies(flattests generated_code)
   set_property(TARGET flattests
@@ -465,6 +491,7 @@ if(FLATBUFFERS_BUILD_TESTS)
   if(FLATBUFFERS_CODE_SANITIZE)
     add_fsanitize_to_target(flattests ${FLATBUFFERS_CODE_SANITIZE})
   endif()
+  target_link_libraries(flattests PRIVATE rt)
 
   compile_flatbuffers_schema_to_cpp(samples/monster.fbs)
   compile_flatbuffers_schema_to_binary(samples/monster.fbs)

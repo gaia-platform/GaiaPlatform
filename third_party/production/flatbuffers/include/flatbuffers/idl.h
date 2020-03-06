@@ -562,7 +562,10 @@ struct IDLOptions {
   std::string proto_namespace_suffix;
   std::string filename_suffix;
   std::string filename_extension;
-  bool gen_events;
+  bool gen_col_events;
+  bool gen_table_events;
+  bool gen_transaction_events;
+  bool gen_setters;
 
   // Possible options for the more general generator below.
   enum Language {
@@ -649,6 +652,10 @@ struct IDLOptions {
         cs_gen_json_serializer(false),
         filename_suffix("_generated"),
         filename_extension(),
+        gen_col_events(false),
+        gen_table_events(false),
+        gen_transaction_events(false),
+        gen_setters(false),
         lang(IDLOptions::kJava),
         mini_reflect(IDLOptions::kNone),
         lang_to_generate(0),

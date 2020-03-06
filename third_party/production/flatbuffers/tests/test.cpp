@@ -47,6 +47,7 @@
 #include "flatbuffers/flexbuffers.h"
 #include "monster_test_bfbs_generated.h"  // Generated using --bfbs-comments --bfbs-builtins --cpp --bfbs-gen-embed
 
+
 // clang-format off
 // Check that char* and uint8_t* are interoperable types.
 // The reinterpret_cast<> between the pointers are used to simplify data loading.
@@ -69,6 +70,7 @@ static const auto infinityd = std::numeric_limits<double>::infinity();
 using namespace MyGame::Example;
 
 void FlatBufferBuilderTest();
+void GaiaFlatBufferTests();
 
 // Include simple random number generator to ensure results will be the
 // same cross platform.
@@ -3450,6 +3452,7 @@ int main(int /*argc*/, const char * /*argv*/[]) {
 
   FlatBufferTests();
   FlatBufferBuilderTest();
+  GaiaFlatBufferTests();
 
   if (!testing_fails) {
     TEST_OUTPUT_LINE("ALL TESTS PASSED");

@@ -734,7 +734,7 @@ namespace gaia_se
         gaia_id_t id;
         gaia_type_t type;
         size_t payload_size;
-        char payload[0];
+        char payload[1];
 
         static gaia_ptr<gaia_se_node> create (
             gaia_id_t id,
@@ -744,7 +744,7 @@ namespace gaia_se
         )
         {
             check_id(id);
-            gaia_ptr<gaia_se_node> node(id, payload_size + sizeof(gaia_se_node));
+            gaia_ptr<gaia_se_node> node(id, payload_size + sizeof(gaia_se_node) -1);
 
             node->id = id;
             node->type = type;
@@ -774,7 +774,7 @@ namespace gaia_se
         gaia_id_t first;
         gaia_id_t second;
         size_t payload_size;
-        char payload[0];
+        char payload[1];
 
         static gaia_ptr<gaia_se_edge> create (
             gaia_id_t id,
@@ -800,7 +800,7 @@ namespace gaia_se
 
             check_id(id);;
             gaia_ptr<gaia_se_edge> edge(id | 0x8000000000000000, 
-                                            payload_size + sizeof(gaia_se_edge));
+                                            payload_size + sizeof(gaia_se_edge) - 1);
 
             edge->id = id;
             edge->type = type;
