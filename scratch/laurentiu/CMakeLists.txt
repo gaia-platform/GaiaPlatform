@@ -20,4 +20,4 @@ set(GAIA_LINK_FLAGS "-ggdb -pthread")
 
 # Add individual folders.
 add_subdirectory(flatbuffers)
-
+add_subdirectory(jni)
