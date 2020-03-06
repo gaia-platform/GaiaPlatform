@@ -16,6 +16,9 @@ namespace db
 namespace memory_manager
 {
 
+const char* const c_debug_output_separator_line_start = ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
+const char* const c_debug_output_separator_line_end = "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
+
 class base_memory_manager_t
 {
     public:
