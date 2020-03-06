@@ -68,13 +68,16 @@ public:
     {
         // create the node
         // add to cache
+        gaia_ptr<gaia_se_node> node_ptr;
         if (_copy != nullptr) {
             auto u = T_fb::Pack(*_fbb, _copy);
             _fbb->Finish(u);
-            gaia_se_node::create(_id, T_gaia_type, _fbb->GetSize(), _fbb->GetBufferPointer());
+            node_ptr = gaia_se_node::create(_id, T_gaia_type, _fbb->GetSize(), _fbb->GetBufferPointer());
         } else {
-            gaia_se_node::create(_id, T_gaia_type, 0, nullptr);
+            node_ptr = gaia_se_node::create(_id, T_gaia_type, 0, nullptr);
         }
+        // s_gaia_cache.insert(pair<gaia_id_t, GaiaBase *>(node_ptr->id, this));
+        s_gaia_cache[node_ptr->id] = this;
         return;
     }
 

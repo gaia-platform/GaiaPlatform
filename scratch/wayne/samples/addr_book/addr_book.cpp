@@ -61,6 +61,8 @@ struct Employee : public GaiaObj<AddrBook::kEmployeeType, Employee, employee, em
 
 struct Phone : public GaiaObj<AddrBook::kPhoneType, Phone, phone, phoneT>
 {
+    Phone(gaia_id_t id) : GaiaObj(id) {}
+    Phone() {}
     gaia_id_t Gaia_id() const { return get(Gaia_id); }
     gaia_id_t Gaia_NextPhone_id() const { return get(Gaia_NextPhone_id); }
     const char * phone_number() const { return get_str(phone_number); }
@@ -76,6 +78,8 @@ struct Phone : public GaiaObj<AddrBook::kPhoneType, Phone, phone, phoneT>
 
 struct Address : public GaiaObj<AddrBook::kAddressType, Address, address, addressT>
 {
+    Address(gaia_id_t id) : GaiaObj(id) {}
+    Address() {}
     gaia_id_t Gaia_id() const { return get(Gaia_id); }
     gaia_id_t Gaia_NextAddr_id() const { return get(Gaia_NextAddr_id); }
     gaia_id_t Gaia_NextState_id() const { return get(Gaia_NextState_id); }
@@ -98,18 +102,6 @@ struct Address : public GaiaObj<AddrBook::kAddressType, Address, address, addres
     void set_country(const char * s) { set(country, s); }
     void set_current(uint32_t i) { set(current, i); }
 }; // Address
-
-class GaiaTx
-{
-public:
-    GaiaTx(std::function<bool ()> fn) {
-        gaia_se::begin_transaction();
-        if (fn())
-            gaia_se::commit_transaction();
-        else
-            gaia_se::rollback_transaction();
-    }
-};
 
 uint32_t traverse_employees()
 {
@@ -238,6 +230,7 @@ uint32_t delete_employees()
         delete ep;
         i++;
     }
+    GaiaBase::commit_transaction();
     return i;
 }
 
@@ -249,18 +242,13 @@ istream& operator>>(istream& str, CSVRow& data)
 
 void employee_loader(CSVRow& row)
 {
-    flatbuffers::FlatBufferBuilder b(128);
     gaia_id_t empl_node_id = get_next_id();
     gaia_id_t ph1_node_id = get_next_id();
     gaia_id_t ph2_node_id = get_next_id();
     gaia_id_t addr_node_id = get_next_id();
 
-    // printf("%s, %s %s, %s\n", row[2].col.c_str(), row[1].col.c_str(), row[10].col.c_str(), row[11].col.c_str());
-    // printf("   %s\n   %s, %s  %s\n   %s\n", row[4].col.c_str(), row[5].col.c_str(), row[6].col.c_str(), row[7].col.c_str(), row[0].col.c_str());
-    // printf("   %s (Mobile), %s (Home)\n", row[8].col.c_str(), row[9].col.c_str());
-
     // employee row
-    Employee * e = new Employee(empl_node_id);
+    auto e = new Employee(empl_node_id);
     e->set_Gaia_id(empl_node_id);
     e->set_Gaia_FirstAddr_id(addr_node_id);
     e->set_Gaia_FirstPhone_id(ph1_node_id);
@@ -273,42 +261,39 @@ void employee_loader(CSVRow& row)
     if (!row[11].is_null)
         e->set_web(row[11].col.c_str());
     e->Insert();
-    // b.Finish(CreateemployeeDirect(b, empl_node_id, 
-    //     0,                                               // Gaia_Mgr_id
-    //     addr_node_id,                                    // Gaia_FirstAddr_id
-    //     ph1_node_id,                                     // Gaia_FirstPhone_id
-    //     0,                                               // Gaia_FirstProvision_id
-    //     0,                                               // Gaia_FirstSalary
-    //     row[1].is_null ? nullptr : row[1].col.c_str(),   // name_first
-    //     row[2].is_null ? nullptr : row[2].col.c_str(),   // name_last
-    //     nullptr,                                         // ssn
-    //     0,                                               // hire_date
-    //     row[10].is_null ? nullptr : row[10].col.c_str(), // email
-    //     row[11].is_null ? nullptr : row[11].col.c_str()  // web
-    // ));
-    // gaia_se_node::create(empl_node_id, AddrBook::kEmployeeType, b.GetSize(), b.GetBufferPointer());
-    // b.Clear();
 
-    b.Finish(CreatephoneDirect(b, ph1_node_id, ph2_node_id, row[8].col.c_str(), "Mobile", true));
-    gaia_se_node::create(ph1_node_id, AddrBook::kPhoneType, b.GetSize(), b.GetBufferPointer());
-    b.Clear();
+    // primary phone row
+    auto p = new Phone(ph1_node_id);
+    p->set_Gaia_id(ph1_node_id);
+    p->set_NextPhone_id(ph2_node_id);
+    p->set_phone_number(row[8].col.c_str());
+    p->set_type("Mobile");
+    p->set_primary(true);
+    p->Insert();
 
-    b.Finish(CreatephoneDirect(b, ph2_node_id, 0, row[9].col.c_str(), "Home", false));
-    gaia_se_node::create(ph2_node_id, AddrBook::kPhoneType, b.GetSize(), b.GetBufferPointer());
-    b.Clear();
-    
-    b.Finish(CreateaddressDirect(b, addr_node_id, 0, 0,
-        row[4].is_null ? nullptr : row[4].col.c_str(), // street
-        nullptr,                                       // apt_suite
-        row[5].is_null ? nullptr : row[5].col.c_str(), // city
-        row[6].is_null ? nullptr : row[6].col.c_str(), // state
-        row[7].is_null ? nullptr : row[7].col.c_str(), // postal
-        row[0].is_null ? nullptr : row[0].col.c_str(), // country
-        true                                           // primary
-    ));
-    gaia_se_node::create(addr_node_id, AddrBook::kAddressType, b.GetSize(), b.GetBufferPointer());
+    // second phone row
+    p = new Phone(ph2_node_id);
+    p->set_Gaia_id(ph2_node_id);
+    p->set_phone_number(row[9].col.c_str());
+    p->set_type("Home");
+    p->set_primary(false);
+    p->Insert();
 
-    b.Clear();
+    // current address row
+    auto a = new Address(addr_node_id);
+    a->set_Gaia_id(addr_node_id);
+    if (!row[4].is_null)
+        a->set_street(row[4].col.c_str());
+    if (!row[5].is_null)
+        a->set_city(row[5].col.c_str());
+    if (!row[6].is_null)
+        a->set_state(row[6].col.c_str());
+    if (!row[7].is_null)
+        a->set_postal(row[7].col.c_str());
+    if (!row[0].is_null)
+        a->set_country(row[0].col.c_str());
+    a->set_current(true);
+    a->Insert();
 }
 
 uint32_t loader(const char * fname)
