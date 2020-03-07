@@ -2,7 +2,7 @@
 #include <random>
 #include "addr_book_gaia_generated.h"
 #include "test_assert.h"
-
+#include "events.hpp"
 
 
 gaia_id_t get_next_id()
@@ -24,6 +24,27 @@ public:
             gaia_se::rollback_transaction();
     }
 };
+
+gaia::events::event_type eventType;
+gaia::events::event_mode eventMode;
+
+namespace gaia 
+{
+  namespace events
+  {
+    bool log_table_event(common::gaia_base* row, event_type type, event_mode mode)
+    {
+      eventType = type;
+      eventMode = mode;
+      return true;
+    }
+
+    bool log_transaction_event(event_type type, event_mode mode)
+    {
+      return true;
+    }
+  }
+}
 
 void GaiaGetTest()
 {
@@ -72,6 +93,49 @@ void GaiaGetTest()
 
 
 }
+void GaiaSetTest()
+{
+  GaiaTx([&]() {
+        gaia_id_t empl_node_id = get_next_id();
+        int64_t manager_id = get_next_id();
+        int64_t first_address_id = get_next_id();
+        int64_t first_phone_id = get_next_id();
+        int64_t first_provision_id = get_next_id();
+        int64_t first_salary_id = get_next_id();
+        int64_t hire_date = get_next_id();
+        
+
+        AddrBook::Employee::CreateEmployee(empl_node_id
+          ,empl_node_id
+          ,manager_id
+          ,first_address_id
+          ,first_phone_id
+          ,first_provision_id
+          ,first_salary_id
+          ,"testFirst"
+          ,"testLast"
+          ,"testSSN"
+          ,hire_date
+          ,"testEmail"
+          ,"testWeb"
+           );
+
+        AddrBook::Employee *pEmployee = AddrBook::Employee::GetRowById(empl_node_id);
+
+        pEmployee->set_ssn("test");
+        TEST_EQ_STR("test",pEmployee->ssn());
+        TEST_EQ(eventType,gaia::events::event_type::col_change);
+        TEST_EQ(eventMode,gaia::events::event_mode::immediate);
+        TEST_ASSERT(pEmployee->getChangedFields().find("ssn") != pEmployee->getChangedFields().end());
+
+        return true;
+    });
+
+
+
+}
+
+
 
 
 
@@ -79,4 +143,5 @@ void GaiaFlatBufferTests()
 {
     gaia_mem_base::init(true);
     GaiaGetTest();
+    GaiaSetTest();
 }

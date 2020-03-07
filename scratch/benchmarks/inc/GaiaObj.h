@@ -9,6 +9,7 @@
 #include <map>
 #include "NullableString.h"
 #include "cow_se.h"
+#include "gaia_base.hpp"
 
 using namespace std;
 using namespace gaia_se;
@@ -18,7 +19,7 @@ using namespace gaia_se;
 // might be attractive because it's more easily translatable
 // to C
 //
-struct GaiaBase
+struct GaiaBase : gaia::common::gaia_base
 {
     static map<gaia_id_t, GaiaBase *> s_gaia_cache;
     virtual ~GaiaBase() = default;

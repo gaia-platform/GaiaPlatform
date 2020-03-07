@@ -234,7 +234,8 @@ class GaiaCppGenerator : public BaseGenerator
         || opts_.gen_transaction_events 
         || opts_.gen_table_events))
     {
-        code_ += "include \"events.hpp \"";
+        code_ += "#include \"events.hpp\"";
+        code_ += "#include <unordered_set>";
     }
 
     code_ += "";
@@ -517,8 +518,8 @@ class GaiaCppGenerator : public BaseGenerator
         "    {{FIELD_TYPE}} {{FIELD_NAME}} () const { return get_str({{FIELD_NAME}});}";
         if (opts_.gen_setters && (opts_.gen_col_events || opts_.gen_table_events))
         {
-          code_ += 
-        "    {{FIELD_TYPE}} {{FIELD_NAME}}_original () const { return get_original_str({{FIELD_NAME}});}";
+          /*code_ += 
+        "    {{FIELD_TYPE}} {{FIELD_NAME}}_original () const { return get_original_str({{FIELD_NAME}});}";*/
         }
       }
       else
@@ -527,8 +528,8 @@ class GaiaCppGenerator : public BaseGenerator
         "    {{FIELD_TYPE}} {{FIELD_NAME}} () const { return get({{FIELD_NAME}});}";
         if (opts_.gen_setters && (opts_.gen_col_events || opts_.gen_table_events))
         {
-          code_ += 
-        "    {{FIELD_TYPE}} {{FIELD_NAME}}_original () const { return get_original({{FIELD_NAME}});}";
+          /*code_ += 
+        "    {{FIELD_TYPE}} {{FIELD_NAME}}_original () const { return get_original({{FIELD_NAME}});}";*/
         }
       }
    
@@ -544,7 +545,7 @@ class GaiaCppGenerator : public BaseGenerator
       
           if (opts_.gen_col_events)
           {
-            code_ += "        gaia::events::log_table_event(this,gaia::events::col_change, gaia::events::immediate);";
+            code_ += "        gaia::events::log_table_event(this,gaia::events::event_type::col_change, gaia::events::event_mode::immediate);";
           }
         }
         code_ += "    }\n"; 
@@ -553,7 +554,7 @@ class GaiaCppGenerator : public BaseGenerator
 
     if (opts_.gen_setters && (opts_.gen_col_events || opts_.gen_table_events))
     {
-      code_ += "const std::unordered_set<std::string>& getChangedFields() { return _fields;} ";
+      code_ += "    const std::unordered_set<std::string>& getChangedFields() { return _fields;} ";
     }
 
     code_ += "    static void Create{{CLASS_NAME}} (gaia_id_t nodeId, " + params + "){\n"
@@ -568,7 +569,7 @@ class GaiaCppGenerator : public BaseGenerator
             "         GaiaObj::Update();";
     if (opts_.gen_table_events)
     {
-        code_+="         gaia::events::log_table_event(this,gaia::events::row_update, gaia::events::immediate);";
+        code_+="         gaia::events::log_table_event(this,gaia::events::event_type::row_update, gaia::events::event_mode::immediate);";
     }
     code_ += "    }";
 /*
@@ -577,7 +578,7 @@ class GaiaCppGenerator : public BaseGenerator
             "         GaiaObj::Insert();";
     if (opts_.gen_table_events)
     {
-        code_+="         gaia::events::log_table_event(this,gaia::events::row_insert, gaia::events::immediate);";
+        code_+="         gaia::events::log_table_event(this,gaia::events::event_type::row_insert, gaia::events::event_mode::immediate);";
     }
     code_ += "    }";
 
@@ -586,7 +587,7 @@ class GaiaCppGenerator : public BaseGenerator
             "         GaiaObj::Delete();";
     if (opts_.gen_table_events)
     {
-        code_+="         gaia::events::log_table_event(this,gaia::events::row_delete, gaia::events::immediate);";
+        code_+="         gaia::events::log_table_event(this,gaia::events::event_type::row_delete, gaia::events::event_mode::immediate);";
     }
     code_ += "    }";
 
@@ -595,7 +596,7 @@ class GaiaCppGenerator : public BaseGenerator
             "         GaiaObj::beginTransaction();";
     if (opts_.gen_transaction_events)
     {
-        code_+="         gaia::events::log_table_event(gaia::events::transaction_begin, gaia::events::immediate);";
+        code_+="         gaia::events::log_table_event(gaia::events::event_type::transaction_begin, gaia::events::event_mode::immediate);";
     }
     code_ += "    }";
 
@@ -604,7 +605,7 @@ class GaiaCppGenerator : public BaseGenerator
             "         GaiaObj::commitTransaction();";
     if (opts_.gen_transaction_events)
     {
-        code_+="         gaia::events::log_table_event(gaia::events::transaction_commit, gaia::events::immediate);";
+        code_+="         gaia::events::log_table_event(gaia::events::event_type::transaction_commit, gaia::events::event_mode::immediate);";
     }
     code_ += "    }";
 
@@ -613,7 +614,7 @@ class GaiaCppGenerator : public BaseGenerator
             "         GaiaObj::rollbackTransaction();";
     if (opts_.gen_table_events)
     {
-        code_+="         gaia::events::log_table_event(gaia::events::transaction_rollback, gaia::events::immediate);";
+        code_+="         gaia::events::log_table_event(gaia::events::event_type::transaction_rollback, gaia::events::event_mode::immediate);";
     }
     code_ += "    }";
 */
