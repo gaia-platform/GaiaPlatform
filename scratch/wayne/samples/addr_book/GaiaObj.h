@@ -54,7 +54,8 @@ public:
     }
 
     static T_gaia * GetRowById(gaia_id_t id) {
-        return GetObject(id);
+        auto node_ptr = gaia_se_node::open(id);
+        return GetObject(node_ptr);
     }
 
     // allow client to send in pointer (instead of always allocating)
@@ -73,10 +74,10 @@ public:
             auto u = T_fb::Pack(*_fbb, _copy);
             _fbb->Finish(u);
             node_ptr = gaia_se_node::create(_id, T_gaia_type, _fbb->GetSize(), _fbb->GetBufferPointer());
+            _fbb->Clear();
         } else {
             node_ptr = gaia_se_node::create(_id, T_gaia_type, 0, nullptr);
         }
-        // s_gaia_cache.insert(pair<gaia_id_t, GaiaBase *>(node_ptr->id, this));
         s_gaia_cache[node_ptr->id] = this;
         return;
     }
@@ -139,32 +140,12 @@ private:
             if (obj->_fb == nullptr) {
                 auto fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);
                 obj->_fb = fb;
+                obj->_id = node_ptr->id;
             }
         }
         return obj;
     }
 
-    static T_gaia * GetObject(gaia_id_t id)
-    {
-        T_gaia * obj = nullptr;
-        if (id != 0) {
-            auto it = s_gaia_cache.find(id);
-            if (it != s_gaia_cache.end()) {
-                obj = dynamic_cast<T_gaia *>(it->second);
-            }
-            else {
-                obj = new T_gaia();
-                s_gaia_cache.insert(pair<gaia_id_t, GaiaBase *>(id, obj));
-            }
-            if (obj->_fb == nullptr) {
-                auto node_ptr = gaia_se_node::open(id);
-                auto fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);
-                obj->_fb = fb;
-            }
-        }
-        return obj;
-    }
-    
     void reset()
     {
         if (_copy) {
