@@ -16,6 +16,7 @@ get_target_property(HELLO_WORLD_JAR HelloWorld JAR_FILE)
 add_library(native_hello_world SHARED HelloWorld.cpp)
 target_include_directories(native_hello_world PRIVATE ${PROJECT_BINARY_DIR})
 target_include_directories(native_hello_world PRIVATE ${JNI_INCLUDE_DIRS})
+target_link_libraries(native_hello_world PRIVATE hello_world_jni_headers)
 set_target_properties(native_hello_world PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(native_hello_world PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 

@@ -20,6 +20,7 @@ get_target_property(EXPERIMENT_JAR Experiment JAR_FILE)
 add_library(native_experiment SHARED Experiment.cpp)
 target_include_directories(native_experiment PRIVATE ${PROJECT_BINARY_DIR})
 target_include_directories(native_experiment PRIVATE ${JNI_INCLUDE_DIRS})
+target_link_libraries(native_experiment PRIVATE experiment_jni_headers)
 set_target_properties(native_experiment PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(native_experiment PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 
