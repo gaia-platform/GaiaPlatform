@@ -269,9 +269,6 @@ gaia::common::error_code_t event_manager_t::remove_rule(
     rule_list_t& rules,
     const rule_binding_t& binding)
 {
-    // Don't allow adding a rule that has the same
-    // key as another rule but is bound to a different
-    // rule function
     const _rule_binding_t * rule_ptr = find_rule(binding);
     if (rule_ptr == nullptr) {
         return error_code_t::rule_not_found;
