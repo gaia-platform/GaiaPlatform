@@ -23,11 +23,14 @@ message(STATUS "GAIA_EVENT_MANAGER_INCLUDES=${GAIA_EVENT_MANAGER_INCLUDES}")
 add_library(event_manager SHARED
     src/event_manager.cpp
 )
+set_target_properties(event_manager PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 
 target_include_directories(event_manager PRIVATE ${GAIA_EVENT_MANAGER_INCLUDES})  
 
 # unit tests
 add_executable(test_event_manager tests/test_event_manager.cpp)
+set_target_properties(test_event_manager PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+
 target_include_directories(test_event_manager PRIVATE 
     ${GAIA_EVENT_MANAGER_INCLUDES}
     ${GOOGLE_TEST_INC}

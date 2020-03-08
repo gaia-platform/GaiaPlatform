@@ -23,8 +23,11 @@ sudo make install
 
 The following folder structure is recommended for C++ projects:
 
-* inc (public facing interfaces)
-  * component_name
+* inc
+  * public
+    * component_name (public nterfaces)
+  * internal
+    * component_name (internal interfaces)
 * component_name
   * inc (interfaces that are external for subcomponents, but not for component)
     * sub\_component\_name

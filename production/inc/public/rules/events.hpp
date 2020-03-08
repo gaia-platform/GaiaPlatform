@@ -60,7 +60,11 @@ enum class event_type {
  *      type of the event is not one of event_type::[col_change, row_update,
  *      row_insert, row_delete]
  */
-bool log_table_event(common::gaia_base* row, event_type type, event_mode mode);
+gaia::common::error_code_t log_table_event(
+    common::gaia_base* row, 
+    common::gaia_type_t gaia_type,
+    event_type type, 
+    event_mode mode);
 
 /**
  * Writes a transaction event to the event log.  If the mode is
@@ -74,7 +78,7 @@ bool log_table_event(common::gaia_base* row, event_type type, event_mode mode);
  *      event_type::[transaction_begin, transaction_commit,
  *      transaction_rollback]
  */
-bool log_transaction_event(event_type type, event_mode mode);
+gaia::common::error_code_t log_transaction_event(event_type type, event_mode mode);
 
 /*@}*/
 }
