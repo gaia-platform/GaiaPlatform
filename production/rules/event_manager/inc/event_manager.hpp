@@ -87,22 +87,8 @@ private:
       rules::gaia_rule_fn rule;
     };
 
-
     // only internal static creation is allowed
     event_manager_t();
-
-    //
-    // UNDONE: remove the rule_name from the rule_binding
-    // make an internal rule_binding class that is copy constructible
-    // can get rid of m_rule_names (just hold in internal rule binding class)
-    // unsubscribe has to go by function pointer address ...
-    // will still generate an internal rule name; this all gets easier
-    // when we generate the function dynamically
-    // NEW RULES:  caller must supply name rule name and rule fn pointer together
-    // there is a 1:1 mapping between ruleset_name::rule_name and the function pointer
-    // we have a global map and then the event lists point into this global registry.
-    // it's possible to have many references to the same rule (i.e., same rule bound to multiple events)
-    //  
 
     // Hash table of all rules registered with the system
     // the key is the rulset_name::rule_name.
@@ -122,11 +108,6 @@ private:
     // Transaction events are not bound to any specific type.
     events_map_t m_transaction_subscriptions;
 
-    //std::unordered_set<const char *> m_rule_names;
-
-    // first element of pair is whether the element was found or not
-    // second elemment of pair, if first element is true, is whether
-    // a different rule is bound to the same key.
     const _rule_binding_t* find_rule(const rules::rule_binding_t& binding);
     gaia::common::error_code_t add_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     gaia::common::error_code_t remove_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
