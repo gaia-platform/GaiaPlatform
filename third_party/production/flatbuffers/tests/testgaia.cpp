@@ -89,10 +89,8 @@ void GaiaGetTest()
 
         return true;
     });
-
-
-
 }
+
 void GaiaSetTest()
 {
   GaiaTx([&]() {
@@ -130,11 +128,51 @@ void GaiaSetTest()
 
         return true;
     });
-
-
-
 }
 
+void GaiaUpdateTest()
+{
+  GaiaTx([&]() {
+        gaia_id_t empl_node_id = get_next_id();
+        int64_t manager_id = get_next_id();
+        int64_t first_address_id = get_next_id();
+        int64_t first_phone_id = get_next_id();
+        int64_t first_provision_id = get_next_id();
+        int64_t first_salary_id = get_next_id();
+        int64_t hire_date = get_next_id();
+        
+
+        AddrBook::Employee::CreateEmployee(empl_node_id
+          ,empl_node_id
+          ,manager_id
+          ,first_address_id
+          ,first_phone_id
+          ,first_provision_id
+          ,first_salary_id
+          ,"testFirst"
+          ,"testLast"
+          ,"testSSN"
+          ,hire_date
+          ,"testEmail"
+          ,"testWeb"
+           );
+
+        AddrBook::Employee *pEmployee = AddrBook::Employee::GetRowById(empl_node_id);
+
+        pEmployee->set_ssn("test");
+        TEST_EQ_STR("test",pEmployee->ssn());
+        TEST_EQ(eventType,gaia::events::event_type::col_change);
+        TEST_EQ(eventMode,gaia::events::event_mode::immediate);
+        TEST_ASSERT(pEmployee->getChangedFields().find("ssn") != pEmployee->getChangedFields().end());
+        pEmployee->Update();
+        TEST_EQ(eventType,gaia::events::event_type::row_update);
+        TEST_EQ(eventMode,gaia::events::event_mode::immediate);
+        AddrBook::Employee *pEmployee1 = AddrBook::Employee::GetRowById(empl_node_id);
+        TEST_EQ_STR("test",pEmployee1->ssn());
+
+        return true;
+    });
+}
 
 
 
@@ -144,4 +182,5 @@ void GaiaFlatBufferTests()
     gaia_mem_base::init(true);
     GaiaGetTest();
     GaiaSetTest();
+    GaiaUpdateTest();
 }
