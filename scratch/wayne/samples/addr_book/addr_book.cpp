@@ -38,6 +38,14 @@ struct Employee : public GaiaObj<AddrBook::kEmployeeType, Employee, employee, em
     gaia_id_t Gaia_FirstPhone_id() const { return get(Gaia_FirstPhone_id); }
     gaia_id_t Gaia_FirstProvision_id() const { return get(Gaia_FirstProvision_id); }
     gaia_id_t Gaia_FirstSalary_id() const { return get(Gaia_FirstSalary_id); }
+    
+    gaia_id_t Gaia_id_original() const { return get(Gaia_id); }
+    gaia_id_t Gaia_Mgr_id_original() const { return get_original(Gaia_Mgr_id); }
+    gaia_id_t Gaia_FirstAddr_id_original() const { return get(Gaia_FirstAddr_id); }
+    gaia_id_t Gaia_FirstPhone_id_original() const { return get(Gaia_FirstPhone_id); }
+    gaia_id_t Gaia_FirstProvision_id_original() const { return get(Gaia_FirstProvision_id); }
+    gaia_id_t Gaia_FirstSalary_id_original() const { return get(Gaia_FirstSalary_id); }
+
     const char * name_first() const { return get_str(name_first); }
     const char * name_last() const { return get_str(name_last); }
     const char * ssn() const { return get_str(ssn); }

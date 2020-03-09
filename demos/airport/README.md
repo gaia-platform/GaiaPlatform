@@ -19,6 +19,8 @@ The demo was originally developed on Ubuntu 18.04, but has also been verified to
      * You may need the *python-dev* package in addition to the main package.
    * Pybind11 - needed for wrapping cow_se.
      * Install packages *pybind11-dev* and *python-pybind11*.
+   * Uuid library - C library able to generate 128-bit UUIDs. Used in some examples/benchmarks.
+     * sudo apt-get install uuid-dev
    * Clang-8
      * Install packages *clang-8*, *libclang-8-dev*, *libclang-common-8-dev*, *libclang1-8*, *python-clang-8*.
      * Add these lines to your .bashrc:
