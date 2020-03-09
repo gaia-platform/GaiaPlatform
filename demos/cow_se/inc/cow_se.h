@@ -670,6 +670,11 @@ namespace gaia_se
             return row_id == 0;
         }
 
+        int64_t get_row_id() const
+        {
+            return row_id;
+        }
+
         static void remove (gaia_ptr<T>&);
 
     protected:
