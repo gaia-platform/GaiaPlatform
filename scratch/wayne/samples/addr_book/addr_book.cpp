@@ -38,20 +38,25 @@ struct Employee : public GaiaObj<AddrBook::kEmployeeType, Employee, employee, em
     gaia_id_t Gaia_FirstPhone_id() const { return get(Gaia_FirstPhone_id); }
     gaia_id_t Gaia_FirstProvision_id() const { return get(Gaia_FirstProvision_id); }
     gaia_id_t Gaia_FirstSalary_id() const { return get(Gaia_FirstSalary_id); }
-    
-    gaia_id_t Gaia_id_original() const { return get(Gaia_id); }
-    gaia_id_t Gaia_Mgr_id_original() const { return get_original(Gaia_Mgr_id); }
-    gaia_id_t Gaia_FirstAddr_id_original() const { return get(Gaia_FirstAddr_id); }
-    gaia_id_t Gaia_FirstPhone_id_original() const { return get(Gaia_FirstPhone_id); }
-    gaia_id_t Gaia_FirstProvision_id_original() const { return get(Gaia_FirstProvision_id); }
-    gaia_id_t Gaia_FirstSalary_id_original() const { return get(Gaia_FirstSalary_id); }
-
     const char * name_first() const { return get_str(name_first); }
     const char * name_last() const { return get_str(name_last); }
     const char * ssn() const { return get_str(ssn); }
     gaia_id_t hire_date() const { return get(hire_date); }
     const char *  email() const { return get_str(email); }
     const char *  web() const { return get_str(web); }
+
+    gaia_id_t Gaia_id_original() const { return get(Gaia_id); }
+    gaia_id_t Gaia_Mgr_id_original() const { return get_original(Gaia_Mgr_id); }
+    gaia_id_t Gaia_FirstAddr_id_original() const { return get(Gaia_FirstAddr_id); }
+    gaia_id_t Gaia_FirstPhone_id_original() const { return get(Gaia_FirstPhone_id); }
+    gaia_id_t Gaia_FirstProvision_id_original() const { return get(Gaia_FirstProvision_id); }
+    gaia_id_t Gaia_FirstSalary_id_original() const { return get(Gaia_FirstSalary_id); }
+    const char * name_first_original() const { return get_str_original(name_first); }
+    const char * name_last_original() const { return get_str_original(name_last); }
+    const char * ssn_original() const { return get_str_original(ssn); }
+    gaia_id_t hire_date_original() const { return get_original(hire_date); }
+    const char *  email_original() const { return get_str_original(email); }
+    const char *  web_original() const { return get_str_original(web); }
 
     void set_Gaia_id(gaia_id_t i) { set(Gaia_id, i); }
     void set_Gaia_Mgr_id(gaia_id_t i) { set(Gaia_Mgr_id, i); }
@@ -77,6 +82,12 @@ struct Phone : public GaiaObj<AddrBook::kPhoneType, Phone, phone, phoneT>
     const char * type() const { return get_str(type); }
     int32_t primary() const { return get(primary); }
 
+    gaia_id_t Gaia_id_original() const { return get_original(Gaia_id); }
+    gaia_id_t Gaia_NextPhone_id_original() const { return get_original(Gaia_NextPhone_id); }
+    const char * phone_number_original() const { return get_str_original(phone_number); }
+    const char * type_original() const { return get_str_original(type); }
+    int32_t primary_original() const { return get_original(primary); }
+
     void set_Gaia_id(gaia_id_t i) { set(Gaia_id, i); }
     void set_NextPhone_id(gaia_id_t i) { set(Gaia_NextPhone_id, i); }
     void set_phone_number(const char * s) { set(phone_number, s); }
@@ -98,6 +109,17 @@ struct Address : public GaiaObj<AddrBook::kAddressType, Address, address, addres
     const char * postal() const { return get_str(postal); }
     const char * country() const { return get_str(country); }
     int32_t current() const { return get(current); }
+
+    gaia_id_t Gaia_id_original() const { return get_original(Gaia_id); }
+    gaia_id_t Gaia_NextAddr_id_original() const { return get_original(Gaia_NextAddr_id); }
+    gaia_id_t Gaia_NextState_id_original() const { return get_original(Gaia_NextState_id); }
+    const char * street_original() const { return get_str_original(street); }
+    const char * apt_suite_original() const { return get_str_original(apt_suite); }
+    const char * city_original() const { return get_str_original(city); }
+    const char * state_original() const { return get_str_original(state); }
+    const char * postal_original() const { return get_str_original(postal); }
+    const char * country_original() const { return get_str_original(country); }
+    int32_t current_original() const { return get_original(current); }
 
     void set_Gaia_id(gaia_id_t i) { set(Gaia_id, i); }
     void set_Gaia_NextAddr_id(gaia_id_t i) { set(Gaia_NextAddr_id, i); }

@@ -46,7 +46,8 @@ public:
 
     #define get(field) (_copy ? (_copy->field) : (_fb->field()))
     // NOTE: either _fb or _copy should exist, but we have no NULL value to return
-    #define get_original(field) (_fb ? _fb->field() : (_copy? _copy->field : 0))
+    #define get_original(field)     (_fb ? _fb->field() : (_copy ? _copy->field : 0))
+    #define get_str_original(field) (_fb ? _fb->field()->c_str() : (_copy ? _copy->field.c_str() : nullptr))
     #define get_str(field) (_copy ? _copy->field.c_str() : _fb->field() ? _fb->field()->c_str() : nullptr)
     #define set(field, value) (copy_write()->field = value)
 
