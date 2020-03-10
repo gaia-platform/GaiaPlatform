@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <list>
 #include <map>
-#include "NullableString.h"
+#include "NullableString.hpp"
 #include "cow_se.h"
 
 using namespace std;
@@ -38,7 +38,10 @@ struct gaia_obj : gaia_base
 public:
     // virtual gaia_id_t Gaia_id() const = 0;
 
-    virtual ~gaia_obj() { reset(); }
+    virtual ~gaia_obj() { 
+        s_gaia_cache.erase(_id);
+        reset();
+    }
 
     gaia_obj() : _copy(nullptr), _fb(nullptr), _fbb(nullptr) {
         _id = get_next_id();
@@ -52,38 +55,29 @@ public:
     #define get_str(field) (_copy ? _copy->field.c_str() : _fb->field() ? _fb->field()->c_str() : nullptr)
     #define set(field, value) (copy_write()->field = value)
 
-    gaia_id_t get_next_id() {
-        uuid_t uuid;
-        gaia_id_t _node_id;
-        uuid_generate(uuid);
-        memcpy(&_node_id, uuid, sizeof(gaia_id_t));
-        _node_id &= ~0x8000000000000000;
-        return _node_id;
-    }
-
-    static T_gaia * GetFirst() {
+    static T_gaia * get_first() {
         auto node_ptr = gaia_ptr<gaia_se_node>::find_first(T_gaia_type);
-        return GetObject(node_ptr);
-    }
-
-    static T_gaia * GetRowById(gaia_id_t id) {
-        auto node_ptr = gaia_se_node::open(id);
-        return GetObject(node_ptr);
+        return get_object(node_ptr);
     }
 
     // allow client to send in pointer (instead of always allocating)
-    T_gaia * GetNext() {
-        auto current_ptr = gaia_se_node::open(this->Gaia_id());
+    T_gaia * get_next() {
+        auto current_ptr = gaia_se_node::open(_id);
         auto next_ptr = current_ptr.find_next();
-        return GetObject(next_ptr);
+        return get_object(next_ptr);
     }
 
-    gaia_id_t Gaia_id()
+    static T_gaia * get_row_by_id(gaia_id_t id) {
+        auto node_ptr = gaia_se_node::open(id);
+        return get_object(node_ptr);
+    }
+
+    gaia_id_t gaia_id()
     {
         return _id;
     }
 
-    void Insert()
+    void insert_row()
     {
         // create the node
         // add to cache
@@ -100,13 +94,13 @@ public:
         return;
     }
 
-    void Update()
+    void update_row()
     {
         if (_copy) {
             // assert _fbb
             auto u = T_fb::Pack(*_fbb, _copy);
             _fbb->Finish(u);
-            auto node_ptr = gaia_se_node::open(this->Gaia_id());
+            auto node_ptr = gaia_se_node::open(_id);
             node_ptr.update_payload(_fbb->GetSize(), _fbb->GetBufferPointer());
             _fbb->Clear();
             // the following code will point _fb at the new values
@@ -116,11 +110,10 @@ public:
         }
     } 
 
-    void Delete()
+    void delete_row()
     {
         auto node_ptr = gaia_se_node::open(_id);
         gaia_ptr<gaia_se_node>::remove(node_ptr);
-        s_gaia_cache.erase(_id);
         reset();
     }
 
@@ -143,7 +136,16 @@ protected:
     gaia_id_t _id;
 
 private:
-    static T_gaia * GetObject(gaia_ptr<gaia_se_node>& node_ptr) 
+    gaia_id_t get_next_id() {
+        uuid_t uuid;
+        gaia_id_t _node_id;
+        uuid_generate(uuid);
+        memcpy(&_node_id, uuid, sizeof(gaia_id_t));
+        _node_id &= ~0x8000000000000000;
+        return _node_id;
+    }
+
+    static T_gaia * get_object(gaia_ptr<gaia_se_node>& node_ptr) 
     {
         T_gaia * obj = nullptr;
         if (node_ptr != nullptr) {

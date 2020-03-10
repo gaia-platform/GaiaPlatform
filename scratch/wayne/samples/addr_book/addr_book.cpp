@@ -125,24 +125,24 @@ uint32_t traverse_employees()
     uint32_t i = 0;
     Employee * ep;
     gaia_base::begin_transaction();
-    for(ep = Employee::GetFirst();
+    for(ep = Employee::get_first();
         ep;
-        ep = ep->GetNext())
+        ep = ep->get_next())
     {
         if (print)
             printf("%s, %s %s, %s\n", ep->name_first(), ep->name_last(), ep->email(), ep->web());
         Phone * pp;
-        for (pp = Phone::GetRowById(ep->Gaia_FirstPhone_id());
+        for (pp = Phone::get_row_by_id(ep->Gaia_FirstPhone_id());
              pp;
-             pp = Phone::GetRowById(pp->Gaia_NextPhone_id()))
+             pp = Phone::get_row_by_id(pp->Gaia_NextPhone_id()))
         {
             if (print)
                 printf("   %s (%s)\n", pp->phone_number(), pp->type());
         }
         Address * ap;
-        for (ap = Address::GetRowById(ep->Gaia_FirstAddr_id());
+        for (ap = Address::get_row_by_id(ep->Gaia_FirstAddr_id());
              ap;
-             ap = Address::GetRowById(ap->Gaia_NextAddr_id()))
+             ap = Address::get_row_by_id(ap->Gaia_NextAddr_id()))
         {
             if (print)
                 printf("   %s\n   %s, %s  %s\n   %s\n", ap->street(), ap->city(), ap->state(),
@@ -160,25 +160,25 @@ uint32_t build_state_map(bool print, int32_t* states)
     *states = 0;
     Employee * ep;
     gaia_base::begin_transaction();
-    for(ep = Employee::GetFirst();
+    for(ep = Employee::get_first();
         ep;
-        ep = ep->GetNext())
+        ep = ep->get_next())
     {
         Address * ap;
-        for (ap = Address::GetRowById(ep->Gaia_FirstAddr_id());
+        for (ap = Address::get_row_by_id(ep->Gaia_FirstAddr_id());
              ap;
-             ap = Address::GetRowById(ap->Gaia_NextAddr_id()))
+             ap = Address::get_row_by_id(ap->Gaia_NextAddr_id()))
         {
             auto it = state_map.find(ap->state());
-            auto id = ap->Gaia_id();
+            auto id = ap->gaia_id();
             gaia_id_t head_id;
             if (it != state_map.end()) {
                 head_id = it->second;
                 // new row becomes new head
-                auto head_ap = Address::GetRowById(head_id);
+                auto head_ap = Address::get_row_by_id(head_id);
                 ap->set_Gaia_NextState_id(head_id);
-                ap->Update();
-                head_ap->Update();
+                ap->update_row();
+                head_ap->update_row();
             }
             else {
                 if (print)
@@ -206,11 +206,11 @@ uint32_t traverse_state_map(bool print, int32_t* states)
             printf("====State Addresses for %s====\n", it->first.c_str());
         auto head_id = it->second;
         Address * ap;
-        for (ap = Address::GetRowById(head_id);
+        for (ap = Address::get_row_by_id(head_id);
              ap;
-             ap = Address::GetRowById(ap->Gaia_NextState_id()))
+             ap = Address::get_row_by_id(ap->Gaia_NextState_id()))
         {
-            auto ap_id = ap->Gaia_id();
+            auto ap_id = ap->gaia_id();
             ap_id++;
             i++;
             if (print)
@@ -228,12 +228,46 @@ uint32_t delete_employees()
     uint32_t i = 0;
     Employee * ep;
     gaia_base::begin_transaction();
-    for(ep = Employee::GetFirst();
+    for(ep = Employee::get_first();
         ep;
-        ep = Employee::GetFirst())
+        ep = Employee::get_first())
     {
-        ep->Delete();
+        ep->delete_row();
         delete ep;
+        i++;
+    }
+    gaia_base::commit_transaction();
+    return i;
+}
+
+uint32_t delete_addresses()
+{
+    uint32_t i = 0;
+    Address * ap;
+    gaia_base::begin_transaction();
+    for(ap = Address::get_first();
+        ap;
+        ap = Address::get_first())
+    {
+        ap->delete_row();
+        delete ap;
+        i++;
+    }
+    gaia_base::commit_transaction();
+    return i;
+}
+
+uint32_t delete_phones()
+{
+    uint32_t i = 0;
+    Phone * pp;
+    gaia_base::begin_transaction();
+    for(pp = Phone::get_first();
+        pp;
+        pp = Phone::get_first())
+    {
+        pp->delete_row();
+        delete pp;
         i++;
     }
     gaia_base::commit_transaction();
@@ -250,7 +284,7 @@ void employee_loader(CSVRow& row)
 {
     // current address row
     auto a = new Address();
-    auto addr_node_id = a->Gaia_id();
+    auto addr_node_id = a->gaia_id();
     if (!row[4].is_null)
         a->set_street(row[4].col.c_str());
     if (!row[5].is_null)
@@ -262,28 +296,28 @@ void employee_loader(CSVRow& row)
     if (!row[0].is_null)
         a->set_country(row[0].col.c_str());
     a->set_current(true);
-    a->Insert();
+    a->insert_row();
 
     // second phone row
     auto p = new Phone();
-    auto ph2_node_id = p->Gaia_id();
+    auto ph2_node_id = p->gaia_id();
     p->set_phone_number(row[9].col.c_str());
     p->set_type("Home");
     p->set_primary(false);
-    p->Insert();
+    p->insert_row();
 
     // primary phone row
     p = new Phone();
-    auto ph1_node_id = p->Gaia_id();
+    auto ph1_node_id = p->gaia_id();
     p->set_NextPhone_id(ph2_node_id);
     p->set_phone_number(row[8].col.c_str());
     p->set_type("Mobile");
     p->set_primary(true);
-    p->Insert();
+    p->insert_row();
 
     // employee row
     auto e = new Employee();
-    auto empl_node_id = e->Gaia_id();
+    auto empl_node_id = e->gaia_id();
     e->set_Gaia_FirstAddr_id(addr_node_id);
     e->set_Gaia_FirstPhone_id(ph1_node_id);
     if (!row[1].is_null)
@@ -294,7 +328,7 @@ void employee_loader(CSVRow& row)
         e->set_email(row[10].col.c_str());
     if (!row[11].is_null)
         e->set_web(row[11].col.c_str());
-    e->Insert();
+    e->insert_row();
 }
 
 uint32_t loader(const char * fname)
@@ -384,19 +418,19 @@ int main (int argc, const char ** argv)
     });
     printf("delete_employees: deleted %u employees at %.0f rows/sec\n", rows, rows/PerfTimer::ns_s(ns));
 
+    PerfTimer(ns, [&]() {
+        rows = delete_phones();
+    });
+    printf("delete_employees: deleted %u phones at %.0f rows/sec\n", rows, rows/PerfTimer::ns_s(ns));
+
+    PerfTimer(ns, [&]() {
+        rows = delete_addresses();
+    });
+    printf("delete_employees: deleted %u addresses at %.0f rows/sec\n", rows, rows/PerfTimer::ns_s(ns));
+
     printf("----Traverse Employees----\n");
     PerfTimer(ns, [&]() {
         rows = traverse_employees();
     });
     printf("traverse_employees: read %u rows at %.0f rows/sec\n", rows, rows/PerfTimer::ns_s(ns));
-
-    // PerfTimer(ns, [&]() {
-    //     rows = delete_phones();
-    // });
-    // printf("delete_employees: deleted %u phones at %.0f rows/sec\n", rows, rows/PerfTimer::ns_s(ns));
-
-    // PerfTimer(ns, [&]() {
-    //     rows = delete_addresses();
-    // });
-    // printf("delete_employees: deleted %u addresses at %.0f rows/sec\n", rows, rows/PerfTimer::ns_s(ns));
 }
