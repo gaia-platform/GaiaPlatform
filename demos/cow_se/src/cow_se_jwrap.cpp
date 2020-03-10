@@ -162,7 +162,7 @@ JNIEXPORT void JNICALL Java_CowStorageEngine_updateNode(
         return;
     }
  
-    gaia_ptr<gaia_se_node> node(id);
+    gaia_ptr<gaia_se_node> node = gaia_se_node::open(id);
     if (node)
     {
         node.update_payload(payload_size, payload_characters);
@@ -175,7 +175,7 @@ JNIEXPORT void JNICALL Java_CowStorageEngine_updateNode(
 JNIEXPORT void JNICALL Java_CowStorageEngine_removeNode(
     JNIEnv* env, jobject, jlong id)
 {
-    gaia_ptr<gaia_se_node> node(id);
+    gaia_ptr<gaia_se_node> node = gaia_se_node::open(id);
     if (node)
     {
         gaia_ptr<gaia_se_node>::remove(node);
@@ -185,7 +185,7 @@ JNIEXPORT void JNICALL Java_CowStorageEngine_removeNode(
 JNIEXPORT void JNICALL Java_CowStorageEngine_printNode(
     JNIEnv* env, jobject, jlong id)
 {
-    gaia_ptr<gaia_se_node> node(id);
+    gaia_ptr<gaia_se_node> node = gaia_se_node::open(id);
     print_node(node, false);
     cout << endl;
 }
@@ -205,7 +205,7 @@ JNIEXPORT jlong JNICALL Java_CowStorageEngine_findFirstNode(
 JNIEXPORT jlong JNICALL Java_CowStorageEngine_findNextNode(
     JNIEnv* env, jobject, jlong id)
 {
-    gaia_ptr<gaia_se_node> node(id);
+    gaia_ptr<gaia_se_node> node = gaia_se_node::open(id);
     if (!node)
     {
         return NULL;
@@ -249,7 +249,7 @@ JNIEXPORT void JNICALL Java_CowStorageEngine_updateEdge(
         return;
     }
  
-    gaia_ptr<gaia_se_edge> edge(id);
+    gaia_ptr<gaia_se_edge> edge = gaia_se_edge::open(id);
     if (edge)
     {
         edge.update_payload(payload_size, payload_characters);
@@ -262,7 +262,7 @@ JNIEXPORT void JNICALL Java_CowStorageEngine_updateEdge(
 JNIEXPORT void JNICALL Java_CowStorageEngine_removeEdge(
     JNIEnv* env, jobject, jlong id)
 {
-    gaia_ptr<gaia_se_edge> edge(id);
+    gaia_ptr<gaia_se_edge> edge = gaia_se_edge::open(id);
     if (edge)
     {
         gaia_ptr<gaia_se_edge>::remove(edge);
@@ -272,7 +272,7 @@ JNIEXPORT void JNICALL Java_CowStorageEngine_removeEdge(
 JNIEXPORT void JNICALL Java_CowStorageEngine_printEdge(
     JNIEnv* env, jobject, jlong id)
 {
-    gaia_ptr<gaia_se_edge> edge(id);
+    gaia_ptr<gaia_se_edge> edge = gaia_se_edge::open(id);
     print_edge(edge, false);
     cout << endl;
 }
@@ -292,7 +292,7 @@ JNIEXPORT jlong JNICALL Java_CowStorageEngine_findFirstEdge(
 JNIEXPORT jlong JNICALL Java_CowStorageEngine_findNextEdge(
     JNIEnv* env, jobject, jlong id)
 {
-    gaia_ptr<gaia_se_edge> edge(id);
+    gaia_ptr<gaia_se_edge> edge = gaia_se_edge::open(id);
     if (!edge)
     {
         return NULL;

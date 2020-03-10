@@ -106,7 +106,7 @@ public class CowStorageEngine
         cow.removeEdge(8);
         
         System.out.println("Deleting node 2...");
-        //cow.removeNode(2);
+        cow.removeNode(2);
         System.out.println("");
         
         System.out.println("Iterating through nodes of type 1: ");
