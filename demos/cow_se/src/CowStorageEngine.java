@@ -143,8 +143,7 @@ public class CowStorageEngine
         System.out.println("All tests passed!");
     }
  
-    private native void helloCow();
-
+    // Native interface.
     private native void initialize();
 
     private native void beginTransaction();
@@ -165,5 +164,4 @@ public class CowStorageEngine
 
     private native long findFirstEdge(long type);
     private native long findNextEdge(long id);
-
 }
