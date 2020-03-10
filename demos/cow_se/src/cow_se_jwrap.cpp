@@ -146,7 +146,7 @@ JNIEXPORT jlong JNICALL Java_CowStorageEngine_createNode(
     gaia_ptr<gaia_se_node> node = gaia_se_node::create(
         id, type, payload_size, payload_characters);
 
-    // We need to call this after we're done using nameCharacters.
+    // We need to call this after we're done using payload_characters.
     env->ReleaseStringUTFChars(payload, payload_characters);
 
     return node.get_row_id();
@@ -168,7 +168,7 @@ JNIEXPORT void JNICALL Java_CowStorageEngine_updateNode(
         node.update_payload(payload_size, payload_characters);
     }
 
-    // We need to call this after we're done using nameCharacters.
+    // We need to call this after we're done using payload_characters.
     env->ReleaseStringUTFChars(payload, payload_characters);
 }
 
@@ -233,7 +233,7 @@ JNIEXPORT jlong JNICALL Java_CowStorageEngine_createEdge(
     gaia_ptr<gaia_se_edge> edge = gaia_se_edge::create(
         id, type, idFirstNode, idSecondNode, payload_size, payload_characters);
 
-    // We need to call this after we're done using nameCharacters.
+    // We need to call this after we're done using payload_characters.
     env->ReleaseStringUTFChars(payload, payload_characters);
 
     return edge.get_row_id();
@@ -255,7 +255,7 @@ JNIEXPORT void JNICALL Java_CowStorageEngine_updateEdge(
         edge.update_payload(payload_size, payload_characters);
     }
 
-    // We need to call this after we're done using nameCharacters.
+    // We need to call this after we're done using payload_characters.
     env->ReleaseStringUTFChars(payload, payload_characters);
 }
 
