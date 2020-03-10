@@ -38,4 +38,24 @@ configure_file(tests/test_cow_se.py . COPYONLY)
 add_test(NAME test_cow_se_py COMMAND ${PYTHON_EXECUTABLE} test_cow_se.py)
 set_tests_properties(test_cow_se_py PROPERTIES PASS_REGULAR_EXPRESSION ${TEST_SUCCESS})
 
+# Java wrapper code. This generates native headers for the native wrapper.
+add_jar(CowStorageEngine
+    src/CowStorageEngine.java
+  GENERATE_NATIVE_HEADERS cow_se_jni_headers
+  DESTINATION ${PROJECT_BINARY_DIR})
+get_target_property(COW_SE_JAR CowStorageEngine JAR_FILE)
+
+# Configure build of native C++ wrapper library.
+add_library(native_cow_se SHARED src/cow_se_jwrap.cpp)
+target_include_directories(native_cow_se PRIVATE inc/)
+target_include_directories(native_cow_se PRIVATE ${PROJECT_BINARY_DIR})
+target_include_directories(native_cow_se PRIVATE ${JNI_INCLUDE_DIRS})
+target_link_libraries(native_cow_se PRIVATE
+    rt
+    cow_se_jni_headers)
+set_target_properties(native_cow_se PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
+set_target_properties(native_cow_se PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+
+# Add a test that executes the Java program.
+add_test(NAME test_cow_se_jni COMMAND ${Java_JAVA_EXECUTABLE} -Djava.library.path=. -cp ${COW_SE_JAR} CowStorageEngine)
 
