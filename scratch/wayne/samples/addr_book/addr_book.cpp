@@ -8,45 +8,45 @@
 #include <list>
 #include <map>
 #include <fstream>
-#include <uuid/uuid.h>
-#include "NullableString.h"
+#include "NullableString.hpp"
 #include "addr_book_generated.h" // include both flatbuffer types and object API for testing 
 #include "gaia_obj.hpp"
 #include "PerfTimer.h"
 #include "CSVRow.h"
 
 using namespace std;
-using namespace gaia_se;
+using namespace gaia::db;
+using namespace gaia::common;
 using namespace AddrBook;
 
 bool print;
 map<string, gaia_id_t> state_map;
 
 namespace AddrBook {
-    static const gaia_se::gaia_type_t kEmployeeType = 4;
-    static const gaia_se::gaia_type_t kPhoneType = 5;
-    static const gaia_se::gaia_type_t kAddressType = 6;
+    static const gaia::db::gaia_type_t kEmployeeType = 4;
+    static const gaia::db::gaia_type_t kPhoneType = 5;
+    static const gaia::db::gaia_type_t kAddressType = 6;
 };
 
 struct Employee : public gaia_obj<AddrBook::kEmployeeType, Employee, employee, employeeT>
 {
-    gaia_id_t Gaia_Mgr_id() const { return get(Gaia_Mgr_id); }
-    gaia_id_t Gaia_FirstAddr_id() const { return get(Gaia_FirstAddr_id); }
-    gaia_id_t Gaia_FirstPhone_id() const { return get(Gaia_FirstPhone_id); }
-    gaia_id_t Gaia_FirstProvision_id() const { return get(Gaia_FirstProvision_id); }
-    gaia_id_t Gaia_FirstSalary_id() const { return get(Gaia_FirstSalary_id); }
+    gaia_id_t Gaia_Mgr_id() const { return get_current(Gaia_Mgr_id); }
+    gaia_id_t Gaia_FirstAddr_id() const { return get_current(Gaia_FirstAddr_id); }
+    gaia_id_t Gaia_FirstPhone_id() const { return get_current(Gaia_FirstPhone_id); }
+    gaia_id_t Gaia_FirstProvision_id() const { return get_current(Gaia_FirstProvision_id); }
+    gaia_id_t Gaia_FirstSalary_id() const { return get_current(Gaia_FirstSalary_id); }
     const char * name_first() const { return get_str(name_first); }
     const char * name_last() const { return get_str(name_last); }
     const char * ssn() const { return get_str(ssn); }
-    gaia_id_t hire_date() const { return get(hire_date); }
+    gaia_id_t hire_date() const { return get_current(hire_date); }
     const char *  email() const { return get_str(email); }
     const char *  web() const { return get_str(web); }
 
     gaia_id_t Gaia_Mgr_id_original() const { return get_original(Gaia_Mgr_id); }
-    gaia_id_t Gaia_FirstAddr_id_original() const { return get(Gaia_FirstAddr_id); }
-    gaia_id_t Gaia_FirstPhone_id_original() const { return get(Gaia_FirstPhone_id); }
-    gaia_id_t Gaia_FirstProvision_id_original() const { return get(Gaia_FirstProvision_id); }
-    gaia_id_t Gaia_FirstSalary_id_original() const { return get(Gaia_FirstSalary_id); }
+    gaia_id_t Gaia_FirstAddr_id_original() const { return get_current(Gaia_FirstAddr_id); }
+    gaia_id_t Gaia_FirstPhone_id_original() const { return get_current(Gaia_FirstPhone_id); }
+    gaia_id_t Gaia_FirstProvision_id_original() const { return get_current(Gaia_FirstProvision_id); }
+    gaia_id_t Gaia_FirstSalary_id_original() const { return get_current(Gaia_FirstSalary_id); }
     const char * name_first_original() const { return get_str_original(name_first); }
     const char * name_last_original() const { return get_str_original(name_last); }
     const char * ssn_original() const { return get_str_original(ssn); }
@@ -69,11 +69,10 @@ struct Employee : public gaia_obj<AddrBook::kEmployeeType, Employee, employee, e
 
 struct Phone : public gaia_obj<AddrBook::kPhoneType, Phone, phone, phoneT>
 {
-    Phone() {}
-    gaia_id_t Gaia_NextPhone_id() const { return get(Gaia_NextPhone_id); }
+    gaia_id_t Gaia_NextPhone_id() const { return get_current(Gaia_NextPhone_id); }
     const char * phone_number() const { return get_str(phone_number); }
     const char * type() const { return get_str(type); }
-    int32_t primary() const { return get(primary); }
+    int32_t primary() const { return get_current(primary); }
 
     gaia_id_t Gaia_NextPhone_id_original() const { return get_original(Gaia_NextPhone_id); }
     const char * phone_number_original() const { return get_str_original(phone_number); }
@@ -88,16 +87,15 @@ struct Phone : public gaia_obj<AddrBook::kPhoneType, Phone, phone, phoneT>
 
 struct Address : public gaia_obj<AddrBook::kAddressType, Address, address, addressT>
 {
-    Address() {}
-    gaia_id_t Gaia_NextAddr_id() const { return get(Gaia_NextAddr_id); }
-    gaia_id_t Gaia_NextState_id() const { return get(Gaia_NextState_id); }
+    gaia_id_t Gaia_NextAddr_id() const { return get_current(Gaia_NextAddr_id); }
+    gaia_id_t Gaia_NextState_id() const { return get_current(Gaia_NextState_id); }
     const char * street() const { return get_str(street); }
     const char * apt_suite() const { return get_str(apt_suite); }
     const char * city() const { return get_str(city); }
     const char * state() const { return get_str(state); }
     const char * postal() const { return get_str(postal); }
     const char * country() const { return get_str(country); }
-    int32_t current() const { return get(current); }
+    int32_t current() const { return get_current(current); }
 
     gaia_id_t Gaia_NextAddr_id_original() const { return get_original(Gaia_NextAddr_id); }
     gaia_id_t Gaia_NextState_id_original() const { return get_original(Gaia_NextState_id); }

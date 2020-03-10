@@ -119,7 +119,7 @@ public:
  *      to the event on the same gaia_type)
  */
 bool subscribe_table_rule(
-    gaia::common::gaia_type_t gaia_type, 
+    gaia::db::gaia_type_t gaia_type, 
     gaia::events::event_type type, 
     rule_binding_t& rule_binding);
 
@@ -155,7 +155,7 @@ bool subscribe_transaction_rule(
  *      rule was never subscribed
  */
 bool unsubscribe_table_rule(
-    gaia::common::gaia_type_t gaia_type, 
+    gaia::db::gaia_type_t gaia_type, 
     gaia::events::event_type type, 
     const rule_binding_t& rule_binding);
 
@@ -187,7 +187,7 @@ bool unsubscribe_transaction_rule(gaia::events::event_type type,
  */
 void list_subscribed_rules(
     const char* ruleset_name, 
-    const gaia::common::gaia_type_t* gaia_type, 
+    const gaia::db::gaia_type_t* gaia_type, 
     const gaia::events::event_type* type, 
     std::vector<const char *>& rule_names);
 

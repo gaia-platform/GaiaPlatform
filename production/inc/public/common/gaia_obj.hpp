@@ -7,11 +7,16 @@
 #include <cstdint>
 #include <list>
 #include <map>
+#include <uuid/uuid.h>
 #include "NullableString.hpp"
-#include "cow_se.h"
+#include "se.hpp"
+#include "flatbuffers/flatbuffers.h"
 
 using namespace std;
-using namespace gaia_se;
+using namespace gaia::db;
+
+namespace gaia {
+namespace common {
 
 //
 // API outside of object instead of a base class
@@ -23,16 +28,16 @@ struct gaia_base
     static map<gaia_id_t, gaia_base *> s_gaia_cache;
 
     // pass through to storage engine
-    static void begin_transaction() {gaia_se::begin_transaction();}
-    static void commit_transaction() {gaia_se::commit_transaction();}
-    static void rollback_transaction() {gaia_se::rollback_transaction();}
+    static void begin_transaction() {gaia::db::begin_transaction();}
+    static void commit_transaction() {gaia::db::commit_transaction();}
+    static void rollback_transaction() {gaia::db::rollback_transaction();}
 
     virtual ~gaia_base() = default;
 };
 map<gaia_id_t, gaia_base *> gaia_base::s_gaia_cache;
 
 // think about a non-template solution
-template <gaia_se::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
+template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
 struct gaia_obj : gaia_base
 {
 public:
@@ -48,7 +53,7 @@ public:
         s_gaia_cache[_id] = this;
     }
 
-    #define get(field) (_copy ? (_copy->field) : (_fb->field()))
+    #define get_current(field) (_copy ? (_copy->field) : (_fb->field()))
     // NOTE: either _fb or _copy should exist
     #define get_original(field) (_fb ? _fb->field() : _copy->field)
     #define get_str_original(field) (_fb ? _fb->field()->c_str() : _copy->field.c_str())
@@ -179,3 +184,5 @@ private:
     }
 
 };
+} // common
+} // gaia

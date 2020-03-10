@@ -12,7 +12,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED_ON)
 include_directories(
     ../../../../third_party/production/flatbuffers/include
     ../../../../production/inc/public/common/
-    ../../../../demos/cow_se/inc
+    ../../../../production/inc/public/db/
     ./
 )
 

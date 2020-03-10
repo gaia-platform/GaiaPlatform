@@ -11,10 +11,12 @@ project(event_manager)
 
 set(GAIA_EVENT_MANAGER_INCLUDES 
     ${GAIA_INC}/public/common
+    ${GAIA_INC}/public/db
     ${GAIA_INC}/internal/common
     ${GAIA_INC}/public/rules
     ${GAIA_RULES_INC}
     ${PROJECT_SOURCE_DIR}/inc
+    ${PROJECT_SOURCE_DIR}/../third_party/production/flatbuffers
 )
 
 message(STATUS "GAIA_EVENT_MANAGER_INCLUDES=${GAIA_EVENT_MANAGER_INCLUDES}")
