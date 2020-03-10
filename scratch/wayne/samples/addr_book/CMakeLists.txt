@@ -11,7 +11,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED_ON)
 
 include_directories(
     ../../../../third_party/production/flatbuffers/include
+    ../../../../production/inc/public/common/
     ../../../../demos/cow_se/inc
+    ./
 )
 
 add_custom_command(

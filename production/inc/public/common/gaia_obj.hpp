@@ -18,38 +18,48 @@ using namespace gaia_se;
 // might be attractive because it's more easily translatable
 // to C
 //
-struct GaiaBase
+struct gaia_base
 {
-    static map<gaia_id_t, GaiaBase *> s_gaia_cache;
+    static map<gaia_id_t, gaia_base *> s_gaia_cache;
 
     // pass through to storage engine
     static void begin_transaction() {gaia_se::begin_transaction();}
     static void commit_transaction() {gaia_se::commit_transaction();}
     static void rollback_transaction() {gaia_se::rollback_transaction();}
 
-    virtual ~GaiaBase() = default;
+    virtual ~gaia_base() = default;
 };
-map<gaia_id_t, GaiaBase *> GaiaBase::s_gaia_cache;
+map<gaia_id_t, gaia_base *> gaia_base::s_gaia_cache;
 
 // think about a non-template solution
 template <gaia_se::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
-struct GaiaObj : GaiaBase
+struct gaia_obj : gaia_base
 {
 public:
-    virtual gaia_id_t Gaia_id() const = 0;
+    // virtual gaia_id_t Gaia_id() const = 0;
 
-    virtual ~GaiaObj() { reset(); }
+    virtual ~gaia_obj() { reset(); }
 
-    GaiaObj() : _copy(nullptr), _fb(nullptr), _fbb(nullptr) {}
-
-    GaiaObj(gaia_id_t id) : _copy(nullptr), _fb(nullptr), _fbb(nullptr), _id(id) {}
+    gaia_obj() : _copy(nullptr), _fb(nullptr), _fbb(nullptr) {
+        _id = get_next_id();
+        s_gaia_cache[_id] = this;
+    }
 
     #define get(field) (_copy ? (_copy->field) : (_fb->field()))
-    // NOTE: either _fb or _copy should exist, but we have no NULL value to return
-    #define get_original(field)     (_fb ? _fb->field() : (_copy ? _copy->field : 0))
-    #define get_str_original(field) (_fb ? _fb->field()->c_str() : (_copy ? _copy->field.c_str() : nullptr))
+    // NOTE: either _fb or _copy should exist
+    #define get_original(field) (_fb ? _fb->field() : _copy->field)
+    #define get_str_original(field) (_fb ? _fb->field()->c_str() : _copy->field.c_str())
     #define get_str(field) (_copy ? _copy->field.c_str() : _fb->field() ? _fb->field()->c_str() : nullptr)
     #define set(field, value) (copy_write()->field = value)
+
+    gaia_id_t get_next_id() {
+        uuid_t uuid;
+        gaia_id_t _node_id;
+        uuid_generate(uuid);
+        memcpy(&_node_id, uuid, sizeof(gaia_id_t));
+        _node_id &= ~0x8000000000000000;
+        return _node_id;
+    }
 
     static T_gaia * GetFirst() {
         auto node_ptr = gaia_ptr<gaia_se_node>::find_first(T_gaia_type);
@@ -66,6 +76,11 @@ public:
         auto current_ptr = gaia_se_node::open(this->Gaia_id());
         auto next_ptr = current_ptr.find_next();
         return GetObject(next_ptr);
+    }
+
+    gaia_id_t Gaia_id()
+    {
+        return _id;
     }
 
     void Insert()
@@ -138,7 +153,7 @@ private:
             }
             else {
                 obj = new T_gaia();
-                s_gaia_cache.insert(pair<gaia_id_t, GaiaBase *>(node_ptr->id, obj));
+                s_gaia_cache.insert(pair<gaia_id_t, gaia_base *>(node_ptr->id, obj));
             }
             if (obj->_fb == nullptr) {
                 auto fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);

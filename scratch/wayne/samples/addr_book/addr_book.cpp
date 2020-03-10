@@ -11,7 +11,7 @@
 #include <uuid/uuid.h>
 #include "NullableString.h"
 #include "addr_book_generated.h" // include both flatbuffer types and object API for testing 
-#include "GaiaObj.h"
+#include "gaia_obj.hpp"
 #include "PerfTimer.h"
 #include "CSVRow.h"
 
@@ -28,11 +28,8 @@ namespace AddrBook {
     static const gaia_se::gaia_type_t kAddressType = 6;
 };
 
-struct Employee : public GaiaObj<AddrBook::kEmployeeType, Employee, employee, employeeT>
+struct Employee : public gaia_obj<AddrBook::kEmployeeType, Employee, employee, employeeT>
 {
-    Employee(gaia_id_t id) : GaiaObj(id) {}
-    Employee() {}
-    gaia_id_t Gaia_id() const { return get(Gaia_id); }
     gaia_id_t Gaia_Mgr_id() const { return get(Gaia_Mgr_id); }
     gaia_id_t Gaia_FirstAddr_id() const { return get(Gaia_FirstAddr_id); }
     gaia_id_t Gaia_FirstPhone_id() const { return get(Gaia_FirstPhone_id); }
@@ -45,7 +42,6 @@ struct Employee : public GaiaObj<AddrBook::kEmployeeType, Employee, employee, em
     const char *  email() const { return get_str(email); }
     const char *  web() const { return get_str(web); }
 
-    gaia_id_t Gaia_id_original() const { return get(Gaia_id); }
     gaia_id_t Gaia_Mgr_id_original() const { return get_original(Gaia_Mgr_id); }
     gaia_id_t Gaia_FirstAddr_id_original() const { return get(Gaia_FirstAddr_id); }
     gaia_id_t Gaia_FirstPhone_id_original() const { return get(Gaia_FirstPhone_id); }
@@ -58,7 +54,6 @@ struct Employee : public GaiaObj<AddrBook::kEmployeeType, Employee, employee, em
     const char *  email_original() const { return get_str_original(email); }
     const char *  web_original() const { return get_str_original(web); }
 
-    void set_Gaia_id(gaia_id_t i) { set(Gaia_id, i); }
     void set_Gaia_Mgr_id(gaia_id_t i) { set(Gaia_Mgr_id, i); }
     void set_Gaia_FirstAddr_id(gaia_id_t i) { set(Gaia_FirstAddr_id, i); }
     void set_Gaia_FirstPhone_id(gaia_id_t i) { set(Gaia_FirstPhone_id, i); }
@@ -72,34 +67,28 @@ struct Employee : public GaiaObj<AddrBook::kEmployeeType, Employee, employee, em
     void set_web(const char * s) { set(web, s); }
 }; // Employee 
 
-struct Phone : public GaiaObj<AddrBook::kPhoneType, Phone, phone, phoneT>
+struct Phone : public gaia_obj<AddrBook::kPhoneType, Phone, phone, phoneT>
 {
-    Phone(gaia_id_t id) : GaiaObj(id) {}
     Phone() {}
-    gaia_id_t Gaia_id() const { return get(Gaia_id); }
     gaia_id_t Gaia_NextPhone_id() const { return get(Gaia_NextPhone_id); }
     const char * phone_number() const { return get_str(phone_number); }
     const char * type() const { return get_str(type); }
     int32_t primary() const { return get(primary); }
 
-    gaia_id_t Gaia_id_original() const { return get_original(Gaia_id); }
     gaia_id_t Gaia_NextPhone_id_original() const { return get_original(Gaia_NextPhone_id); }
     const char * phone_number_original() const { return get_str_original(phone_number); }
     const char * type_original() const { return get_str_original(type); }
     int32_t primary_original() const { return get_original(primary); }
 
-    void set_Gaia_id(gaia_id_t i) { set(Gaia_id, i); }
     void set_NextPhone_id(gaia_id_t i) { set(Gaia_NextPhone_id, i); }
     void set_phone_number(const char * s) { set(phone_number, s); }
     void set_type(const char * s) { set(type, s); }
     void set_primary(uint32_t i) { set(primary, i); }
 }; // Phone
 
-struct Address : public GaiaObj<AddrBook::kAddressType, Address, address, addressT>
+struct Address : public gaia_obj<AddrBook::kAddressType, Address, address, addressT>
 {
-    Address(gaia_id_t id) : GaiaObj(id) {}
     Address() {}
-    gaia_id_t Gaia_id() const { return get(Gaia_id); }
     gaia_id_t Gaia_NextAddr_id() const { return get(Gaia_NextAddr_id); }
     gaia_id_t Gaia_NextState_id() const { return get(Gaia_NextState_id); }
     const char * street() const { return get_str(street); }
@@ -110,7 +99,6 @@ struct Address : public GaiaObj<AddrBook::kAddressType, Address, address, addres
     const char * country() const { return get_str(country); }
     int32_t current() const { return get(current); }
 
-    gaia_id_t Gaia_id_original() const { return get_original(Gaia_id); }
     gaia_id_t Gaia_NextAddr_id_original() const { return get_original(Gaia_NextAddr_id); }
     gaia_id_t Gaia_NextState_id_original() const { return get_original(Gaia_NextState_id); }
     const char * street_original() const { return get_str_original(street); }
@@ -121,7 +109,6 @@ struct Address : public GaiaObj<AddrBook::kAddressType, Address, address, addres
     const char * country_original() const { return get_str_original(country); }
     int32_t current_original() const { return get_original(current); }
 
-    void set_Gaia_id(gaia_id_t i) { set(Gaia_id, i); }
     void set_Gaia_NextAddr_id(gaia_id_t i) { set(Gaia_NextAddr_id, i); }
     void set_Gaia_NextState_id(gaia_id_t i) { set(Gaia_NextState_id, i); }
     void set_street(const char * s) { set(street, s); }
@@ -137,7 +124,7 @@ uint32_t traverse_employees()
 {
     uint32_t i = 0;
     Employee * ep;
-    GaiaBase::begin_transaction();
+    gaia_base::begin_transaction();
     for(ep = Employee::GetFirst();
         ep;
         ep = ep->GetNext())
@@ -163,19 +150,8 @@ uint32_t traverse_employees()
         }
         i++;
     }
-    GaiaBase::commit_transaction();
+    gaia_base::commit_transaction();
     return i;
-}
-
-gaia_id_t get_next_id()
-{
-    // return ++_node_id;
-    uuid_t uuid;
-    gaia_id_t _node_id;
-    uuid_generate(uuid);
-    memcpy(&_node_id, uuid, sizeof(gaia_id_t));
-    _node_id &= ~0x8000000000000000;
-    return _node_id;
 }
 
 uint32_t build_state_map(bool print, int32_t* states)
@@ -183,7 +159,7 @@ uint32_t build_state_map(bool print, int32_t* states)
     uint32_t i = 0;
     *states = 0;
     Employee * ep;
-    GaiaBase::begin_transaction();
+    gaia_base::begin_transaction();
     for(ep = Employee::GetFirst();
         ep;
         ep = ep->GetNext())
@@ -213,7 +189,7 @@ uint32_t build_state_map(bool print, int32_t* states)
             i++;
         }
     }
-    GaiaBase::commit_transaction();
+    gaia_base::commit_transaction();
     return i;
 }
 
@@ -221,7 +197,7 @@ uint32_t traverse_state_map(bool print, int32_t* states)
 {
     uint32_t i = 0;
     *states = 0;
-    GaiaBase::begin_transaction();
+    gaia_base::begin_transaction();
     for (map<string, gaia_id_t>::iterator it = state_map.begin();
          it != state_map.end();
          ++it)
@@ -243,7 +219,7 @@ uint32_t traverse_state_map(bool print, int32_t* states)
         }
         (*states)++;
     }
-    GaiaBase::commit_transaction();
+    gaia_base::commit_transaction();
     return i;
 }
 
@@ -251,7 +227,7 @@ uint32_t delete_employees()
 {
     uint32_t i = 0;
     Employee * ep;
-    GaiaBase::begin_transaction();
+    gaia_base::begin_transaction();
     for(ep = Employee::GetFirst();
         ep;
         ep = Employee::GetFirst())
@@ -260,7 +236,7 @@ uint32_t delete_employees()
         delete ep;
         i++;
     }
-    GaiaBase::commit_transaction();
+    gaia_base::commit_transaction();
     return i;
 }
 
@@ -272,46 +248,9 @@ istream& operator>>(istream& str, CSVRow& data)
 
 void employee_loader(CSVRow& row)
 {
-    gaia_id_t empl_node_id = get_next_id();
-    gaia_id_t ph1_node_id = get_next_id();
-    gaia_id_t ph2_node_id = get_next_id();
-    gaia_id_t addr_node_id = get_next_id();
-
-    // employee row
-    auto e = new Employee(empl_node_id);
-    e->set_Gaia_id(empl_node_id);
-    e->set_Gaia_FirstAddr_id(addr_node_id);
-    e->set_Gaia_FirstPhone_id(ph1_node_id);
-    if (!row[1].is_null)
-        e->set_name_first(row[1].col.c_str());
-    if (!row[2].is_null)
-        e->set_name_last(row[2].col.c_str());
-    if (!row[10].is_null)
-        e->set_email(row[10].col.c_str());
-    if (!row[11].is_null)
-        e->set_web(row[11].col.c_str());
-    e->Insert();
-
-    // primary phone row
-    auto p = new Phone(ph1_node_id);
-    p->set_Gaia_id(ph1_node_id);
-    p->set_NextPhone_id(ph2_node_id);
-    p->set_phone_number(row[8].col.c_str());
-    p->set_type("Mobile");
-    p->set_primary(true);
-    p->Insert();
-
-    // second phone row
-    p = new Phone(ph2_node_id);
-    p->set_Gaia_id(ph2_node_id);
-    p->set_phone_number(row[9].col.c_str());
-    p->set_type("Home");
-    p->set_primary(false);
-    p->Insert();
-
     // current address row
-    auto a = new Address(addr_node_id);
-    a->set_Gaia_id(addr_node_id);
+    auto a = new Address();
+    auto addr_node_id = a->Gaia_id();
     if (!row[4].is_null)
         a->set_street(row[4].col.c_str());
     if (!row[5].is_null)
@@ -324,6 +263,38 @@ void employee_loader(CSVRow& row)
         a->set_country(row[0].col.c_str());
     a->set_current(true);
     a->Insert();
+
+    // second phone row
+    auto p = new Phone();
+    auto ph2_node_id = p->Gaia_id();
+    p->set_phone_number(row[9].col.c_str());
+    p->set_type("Home");
+    p->set_primary(false);
+    p->Insert();
+
+    // primary phone row
+    p = new Phone();
+    auto ph1_node_id = p->Gaia_id();
+    p->set_NextPhone_id(ph2_node_id);
+    p->set_phone_number(row[8].col.c_str());
+    p->set_type("Mobile");
+    p->set_primary(true);
+    p->Insert();
+
+    // employee row
+    auto e = new Employee();
+    auto empl_node_id = e->Gaia_id();
+    e->set_Gaia_FirstAddr_id(addr_node_id);
+    e->set_Gaia_FirstPhone_id(ph1_node_id);
+    if (!row[1].is_null)
+        e->set_name_first(row[1].col.c_str());
+    if (!row[2].is_null)
+        e->set_name_last(row[2].col.c_str());
+    if (!row[10].is_null)
+        e->set_email(row[10].col.c_str());
+    if (!row[11].is_null)
+        e->set_web(row[11].col.c_str());
+    e->Insert();
 }
 
 uint32_t loader(const char * fname)
@@ -337,12 +308,12 @@ uint32_t loader(const char * fname)
     // load employees
     CSVRow row;
     uint32_t i = 0;
-    GaiaBase::begin_transaction();
+    gaia_base::begin_transaction();
     while (f >> row) {
         employee_loader(row);
         i++;
     }
-    GaiaBase::commit_transaction();
+    gaia_base::commit_transaction();
     return i;
 }
     
@@ -388,7 +359,7 @@ int main (int argc, const char ** argv)
     // *************************************************
     // update tests
     // *************************************************
-    GaiaBase::s_gaia_cache.clear();
+    gaia_base::s_gaia_cache.clear();
     printf("clear cache\n");
     int32_t states;
     PerfTimer(ns, [&]() {
@@ -396,7 +367,7 @@ int main (int argc, const char ** argv)
     });
     printf("build_state_map: found %u states at %.0f rows/sec\n", states, rows/PerfTimer::ns_s(ns));
 
-    GaiaBase::s_gaia_cache.clear();
+    gaia_base::s_gaia_cache.clear();
     printf("clear cache\n");
     PerfTimer(ns, [&]() {
         rows = traverse_state_map(print,&states);
