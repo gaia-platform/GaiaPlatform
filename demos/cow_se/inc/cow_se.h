@@ -539,25 +539,16 @@ namespace gaia_se
     template <typename T>
     class gaia_ptr
     {
+        // These two structs need to access the gaia_ptr protected constructors.
+        friend struct gaia_se_node;
+        friend struct gaia_se_edge;
+
     public:
         gaia_ptr (const std::nullptr_t null = nullptr)
             :row_id(0) {}
 
-        gaia_ptr (const gaia_id_t id)
-            :row_id(gaia_hash_map::find(id)) {}
-
         gaia_ptr (const gaia_ptr& other)
             :row_id (other.row_id) {}
-
-        gaia_ptr (const gaia_id_t id, const size_t size)
-            :row_id(0)
-        {
-            gaia_hash_map::hash_node* hash_node = gaia_hash_map::insert (id);
-            hash_node->row_id = row_id = gaia_mem_base::allocate_row_id();
-            gaia_mem_base::allocate_object(row_id, size);
-
-            gaia_mem_base::tx_log (row_id, 0, to_offset());
-        }
 
         operator T* () const
         {
@@ -678,6 +669,37 @@ namespace gaia_se
         static void remove (gaia_ptr<T>&);
 
     protected:
+        gaia_ptr (const gaia_id_t id, bool is_edge = false)
+        {
+            gaia_id_t id_copy = preprocess_id(id, is_edge);
+
+            row_id = gaia_hash_map::find(id_copy);
+        }
+
+        gaia_ptr (const gaia_id_t id, const size_t size, bool is_edge = false)
+            :row_id(0)
+        {
+            gaia_id_t id_copy = preprocess_id(id, is_edge);
+
+            gaia_hash_map::hash_node* hash_node = gaia_hash_map::insert (id_copy);
+            hash_node->row_id = row_id = gaia_mem_base::allocate_row_id();
+            gaia_mem_base::allocate_object(row_id, size);
+
+            gaia_mem_base::tx_log (row_id, 0, to_offset());
+        }
+
+        gaia_id_t preprocess_id(const gaia_id_t& id, bool is_edge = false)
+        {
+            check_id(id);
+
+            gaia_id_t id_copy = id;
+            if (is_edge)
+            {
+                id_copy = id_copy | 0x8000000000000000;
+            }
+            return id_copy;
+        }
+
         void allocate (const size_t size)
         {
             gaia_mem_base::allocate_object(row_id, size);
@@ -748,7 +770,6 @@ namespace gaia_se
             const void* payload
         )
         {
-            check_id(id);
             gaia_ptr<gaia_se_node> node(id, payload_size + sizeof(gaia_se_node));
 
             node->id = id;
@@ -762,7 +783,6 @@ namespace gaia_se
             gaia_id_t id
         )
         {
-            check_id(id);
             return gaia_ptr<gaia_se_node>(id);
         }
     };
@@ -790,8 +810,8 @@ namespace gaia_se
             const void* payload
         )
         {
-            gaia_ptr<gaia_se_node> node_first (first);
-            gaia_ptr<gaia_se_node> node_second (second);
+            gaia_ptr<gaia_se_node> node_first = gaia_se_node::open(first);
+            gaia_ptr<gaia_se_node> node_second = gaia_se_node::open(second);
 
             if (!node_first)
             {
@@ -803,9 +823,7 @@ namespace gaia_se
                 throw invalid_node_id(second);
             }
 
-            check_id(id);;
-            gaia_ptr<gaia_se_edge> edge(id | 0x8000000000000000, 
-                                            payload_size + sizeof(gaia_se_edge));
+            gaia_ptr<gaia_se_edge> edge(id, payload_size + sizeof(gaia_se_edge), true);
 
             edge->id = id;
             edge->type = type;
@@ -832,8 +850,7 @@ namespace gaia_se
             gaia_id_t id
         )
         {
-            check_id(id);
-            return gaia_ptr<gaia_se_edge>(id | 0x8000000000000000);
+            return gaia_ptr<gaia_se_edge>(id, true);
         }
     };
 
