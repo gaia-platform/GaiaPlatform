@@ -648,7 +648,7 @@ TEST_F(EventManagerTest, LogEventSuccessMultiRuleMultiEventAllTypes)
 TEST_F(EventManagerTest, ListRulesNone) 
 {
     list_subscriptions_t rules;
-    rules.push_back(unique_ptr<subscription_t>(new subscription_t("a", "b", 0, event_type::row_update)));
+    rules.push_back(unique_ptr<subscription_t>(new subscription_t({"a", "b", 0, event_type::row_update})));
     EXPECT_EQ(1, rules.size());
 
     list_subscribed_rules(nullptr, nullptr, nullptr, rules);

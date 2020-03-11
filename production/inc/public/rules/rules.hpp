@@ -65,15 +65,6 @@ struct rule_binding_t {
  * the list_rules api is called
  */ 
 struct subscription_t {
-    subscription_t(const char * a_ruleset_name,
-        const char * a_rule_name,
-        gaia::common::gaia_type_t a_gaia_type,
-        gaia::events::event_type a_type)
-    : ruleset_name(a_ruleset_name)
-    , rule_name(a_rule_name)
-    , gaia_type(a_gaia_type)
-    , type(a_type) {}
-
     const char * ruleset_name;
     const char * rule_name;
     gaia::common::gaia_type_t gaia_type;

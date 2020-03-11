@@ -256,10 +256,10 @@ void event_manager_t::add_subscriptions(list_subscriptions_t& subscriptions,
                 continue;
             }
 
-            subscriptions.push_back(unique_ptr<subscription_t>(new subscription_t(
+            subscriptions.push_back(unique_ptr<subscription_t>(new subscription_t({
                 rule->ruleset_name.c_str(),
                 rule->ruleset_name.c_str(),
-                gaia_type, event_it.first)));
+                gaia_type, event_it.first})));
         }
     }
 }
