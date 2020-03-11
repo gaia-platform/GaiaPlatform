@@ -70,11 +70,13 @@ public:
       event_type type, 
       const gaia::rules::rule_binding_t& rule_binding);
 
+    void unsubscribe_rules();
+
     void list_subscribed_rules(
       const char* ruleset_name, 
       const gaia::common::gaia_type_t* gaia_type, 
       const event_type* type,
-      std::vector<const char *>& rule_names);
+      gaia::rules::list_subscriptions_t& subscriptions);
 
 private:
     // internal rule binding
@@ -101,7 +103,6 @@ private:
     // Associates a particular event type to its list of rules.
     typedef std::unordered_map<events::event_type, rule_list_t> events_map_t;
 
-
     // Associates events with a specifc type.
     std::unordered_map<common::gaia_type_t, events_map_t> m_table_subscriptions;
 
@@ -118,6 +119,12 @@ private:
     static std::string make_rule_key(const rules::rule_binding_t& binding);
     static events_map_t create_table_event_map();
     static void insert_transaction_events(events_map_t& transaction_map);
+
+    static void add_subscriptions(rules::list_subscriptions_t& subscriptions, 
+      const events_map_t& events, 
+      gaia::common::gaia_type_t gaia_type,
+      const char * ruleset_filter, 
+      const event_type * event_filter);
 };
 
 }

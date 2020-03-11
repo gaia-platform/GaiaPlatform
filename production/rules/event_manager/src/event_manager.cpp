@@ -10,6 +10,8 @@ using namespace gaia::rules;
 using namespace gaia::common;
 using namespace std;
 
+#include <cstring>
+
 /**
  * Class implementation
  */
@@ -37,10 +39,10 @@ gaia::common::error_code_t event_manager_t::log_event(event_type type, event_mod
 
     // invoke all rules immediately
     rule_list_t& rules = m_transaction_subscriptions[type];
-    for (auto rules_it = rules.begin(); rules_it != rules.end(); rules_it++){
+    for (auto rules_it = rules.begin(); rules_it != rules.end(); rules_it++) {
             const _rule_binding_t * rule_ptr = *rules_it;
-            transaction_context_t tc({rule_ptr->ruleset_name.c_str(), 
-                rule_ptr->rule_name.c_str(), rule_ptr->rule},
+            transaction_context_t tc(
+                {rule_ptr->ruleset_name.c_str(), rule_ptr->rule_name.c_str(), rule_ptr->rule},
                 type);
 
             rule_ptr->rule(&tc);
@@ -70,12 +72,13 @@ gaia::common::error_code_t event_manager_t::log_event(
     events_map_t& events = type_it->second;
     rule_list_t& rules = events[type];
 
-    for (auto rules_it = rules.begin(); rules_it != rules.end(); rules_it++){
+    for (auto rules_it = rules.begin(); rules_it != rules.end(); rules_it++) {
             const _rule_binding_t * rule_ptr = *rules_it;
-            table_context_t tc({rule_ptr->ruleset_name.c_str(), 
-                rule_ptr->rule_name.c_str(), rule_ptr->rule},
-                type, row);
-
+            table_context_t tc(
+                {rule_ptr->ruleset_name.c_str(), rule_ptr->rule_name.c_str(), rule_ptr->rule},
+                type, 
+                gaia_type, 
+                row);
             rule_ptr->rule(&tc);
     }
 
@@ -87,8 +90,6 @@ error_code_t event_manager_t::subscribe_rule(
     event_type type, 
     const rule_binding_t& rule_binding)
 {
-    error_code_t result = error_code_t::success;
-
     // we only support table events scoped to a gaia_type for now
     if (!is_valid_table_event(type)) {
         return error_code_t::invalid_event_type;
@@ -194,12 +195,73 @@ error_code_t event_manager_t::unsubscribe_rule(
     return remove_rule(rules, rule_binding);
 }
 
+void event_manager_t::unsubscribe_rules()
+{
+    m_transaction_subscriptions.clear();
+    m_table_subscriptions.clear();
+    m_rules.clear();
+}
+
+
 void event_manager_t::list_subscribed_rules(
     const char* ruleset_name, 
-    const gaia_type_t* gaia_type, 
-    const event_type* type,
-    std::vector<const char *>& rule_names)
+    const gaia_type_t* gaia_type_ptr, 
+    const event_type* type_ptr,
+    list_subscriptions_t& subscriptions)
 {
+    subscriptions.clear();
+
+    // filter first by gaia_type, then by event_type, then by ruleset_name
+    for (auto table_it : m_table_subscriptions)
+    {
+        if (gaia_type_ptr != nullptr && table_it.first != *gaia_type_ptr)
+        {
+            continue;
+        }
+
+        auto events = table_it.second;
+        add_subscriptions(subscriptions, events, table_it.first, ruleset_name, type_ptr);
+    }
+
+    // If the user didn't specify a gaia_type filter then
+    // add transaction event subscriptions.  Again, filter
+    // by event_type then by ruleset_name
+    if (gaia_type_ptr == nullptr)
+    {
+        add_subscriptions(subscriptions, m_transaction_subscriptions, 
+            0, ruleset_name, type_ptr);
+    }
+}
+
+void event_manager_t::add_subscriptions(list_subscriptions_t& subscriptions, 
+    const events_map_t& events, 
+    gaia_type_t gaia_type,
+    const char * ruleset_filter, 
+    const event_type * event_filter)
+{
+    for (auto event_it : events)
+    {
+        if (event_filter != nullptr 
+            && event_it.first != *event_filter) 
+        {
+            continue;
+        }
+
+        const rule_list_t& rules = event_it.second;
+        for (auto rule : rules) 
+        {
+            if (nullptr != ruleset_filter
+                && (0 != strcmp(ruleset_filter, rule->ruleset_name.c_str())))
+            {
+                continue;
+            }
+
+            subscriptions.push_back(unique_ptr<subscription_t>(new subscription_t(
+                rule->ruleset_name.c_str(),
+                rule->ruleset_name.c_str(),
+                gaia_type, event_it.first)));
+        }
+    }
 }
 
 bool event_manager_t::is_valid_table_event(event_type type) 
@@ -380,13 +442,18 @@ error_code_t gaia::rules::unsubscribe_transaction_rule(
 {
     return event_manager_t::get().unsubscribe_rule(type, rule_binding);
 }
+
+void gaia::rules::unsubscribe_rules()
+{
+    return event_manager_t::get().unsubscribe_rules();
+}
     
 void gaia::rules::list_subscribed_rules(
     const char* ruleset_name, 
     const gaia_type_t* gaia_type, 
     const event_type* type, 
-    std::vector<const char *>& rule_names)
+    list_subscriptions_t& subscriptions)
 {
     event_manager_t::get().list_subscribed_rules(ruleset_name, gaia_type,
-        type, rule_names);
+        type, subscriptions);
 }

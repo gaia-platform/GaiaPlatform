@@ -61,6 +61,32 @@ struct rule_binding_t {
 };
 
 /**
+ * This type is returned in a caller-supplied vector when
+ * the list_rules api is called
+ */ 
+struct subscription_t {
+    subscription_t(const char * a_ruleset_name,
+        const char * a_rule_name,
+        gaia::common::gaia_type_t a_gaia_type,
+        gaia::events::event_type a_type)
+    : ruleset_name(a_ruleset_name)
+    , rule_name(a_rule_name)
+    , gaia_type(a_gaia_type)
+    , type(a_type) {}
+
+    const char * ruleset_name;
+    const char * rule_name;
+    gaia::common::gaia_type_t gaia_type;
+    gaia::events::event_type type;
+};
+
+/**
+ * caller must provide this type when using the list_subscribed_rules
+ * method below
+ */
+typedef std::vector<std::unique_ptr<subscription_t>> list_subscriptions_t;
+
+/**
  * The rule context wraps the event (or data) context (the data upon which 
  * the rule code operates) as well as information about the event and rule 
  * metadata.  In the future the rule context may also maintain the error 
@@ -108,10 +134,14 @@ class table_context_t : public context_base_t
 public:
     table_context_t(
         const rule_binding_t& binding, 
-        events::event_type type,
-        gaia::common::gaia_base* row)
-    : context_base_t(binding, type), row(row) {}
-    
+        events::event_type a_type,
+        gaia::common::gaia_type_t a_gaia_type,
+        gaia::common::gaia_base* a_row)
+    : context_base_t(binding, a_type)
+    , gaia_type(a_gaia_type)
+    , row(a_row) {}
+
+    gaia::common::gaia_type_t gaia_type;    
     gaia::common::gaia_base* row;
 };
 
@@ -125,7 +155,7 @@ public:
  * @param gaia_type table type to bind the rule to
  * @param type the event type to bind this rule to
  * @param rule_binding caller-supplied rule information; this call will populate rule_name
-  * @return error_code_t::success, Or:
+ * @return error_code_t::success, Or:
  *      error_code_t::invalid_event_type (must be a transaction event)
  *      error_code_t::invalid_rule_binding (no ruleset_name, no rule)
  *      error_code_t::duplicate_rule (if the ruleset_name/rule_name pair already has been subscribed
@@ -187,22 +217,27 @@ gaia::common::error_code_t unsubscribe_transaction_rule(gaia::events::event_type
     const rule_binding_t& rule_binding);
 
 /**
+ * Unsubscribes all rules that were subscribed from the system.  May be called
+ * even if no rules have been subscribed.
+ */
+void unsubscribe_rules();    
+
+/**
  * List all rules already subscribed to events.  
  * 
  * Enable filtering on ruleset name, gaia_type, and event_type.
  * 
  * @param ruleset_name Scope returned rules to specified rulset if provided.  May be null.
  * @param gaia_type Filter results by the object they refer to.  May be null.
- * @param type Filter by event_type.  May be null.  If a transaction event type then the gaia_type filter
- *      will be ignored.
- * @param rule_names Caller provided vector to hold the results.  This method will clear any existing
+ * @param type Filter by event_type.  May be null. 
+ * @param subscriptions Caller provided vector to hold the results.  This method will clear any existing
  *      entries before adding new ones.
  */
 void list_subscribed_rules(
     const char* ruleset_name, 
     const gaia::common::gaia_type_t* gaia_type, 
     const gaia::events::event_type* type, 
-    std::vector<const char *>& rule_names);
+    list_subscriptions_t& subscriptions);
 
 /*@}*/
 }

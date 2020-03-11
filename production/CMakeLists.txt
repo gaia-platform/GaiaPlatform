@@ -9,6 +9,10 @@ enable_testing()
 
 # Set the project name.
 project(production)
+
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
+
+include(gaia)
 include(GoogleTest)
 
 # Specify the C++ standard.
@@ -19,15 +23,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
 set(GAIA_LINK_FLAGS "-ggdb -pthread")
 set(GAIA_INC "${PROJECT_SOURCE_DIR}/inc")
-set(GOOGLE_TEST "../third_party/production/googletest")
-set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")
 message(STATUS "GAIA_INC=${GAIA_INC}")
 
-# Helper function for setting up our tests.
-function(set_test target arg result)
-  add_test(NAME ${target}_${arg} COMMAND ${target} ${arg})
-  set_tests_properties(${target}_${arg} PROPERTIES PASS_REGULAR_EXPRESSION ${result})
-endfunction(set_test)
+get_repo_root(${PROJECT_SOURCE_DIR} "GaiaPlatform" GAIA_REPO)
+message(STATUS "GAIA_REPO=${GAIA_REPO}")
+
+set(GOOGLE_TEST "${GAIA_REPO}/third_party/production/googletest")
+set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include;${GOOGLE_TEST}/googlemock/include")
 
 # Set tests.
 set(TEST_SUCCESS "All tests passed!")
@@ -53,4 +55,3 @@ add_subdirectory(${GOOGLE_TEST} googletest)
 add_executable(test_retail_assert tests/test_retail_assert.cpp)
 target_include_directories(test_retail_assert PRIVATE "${GAIA_INC}/internal/common")
 set_test(test_retail_assert 0 ${TEST_SUCCESS})
-
