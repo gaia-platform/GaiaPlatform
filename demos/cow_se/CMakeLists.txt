@@ -39,8 +39,11 @@ add_test(NAME test_cow_se_py COMMAND ${PYTHON_EXECUTABLE} test_cow_se.py)
 set_tests_properties(test_cow_se_py PROPERTIES PASS_REGULAR_EXPRESSION ${TEST_SUCCESS})
 
 if (JAVA_FOUND AND JNI_FOUND)
+  set(CMAKE_JAVA_INCLUDE_PATH ${GREMLIN_CONSOLE_PATH}/lib/*)
+
   # Java wrapper code. This generates native headers for the native wrapper.
   add_jar(CowStorageEngine
+    SOURCES
       src/java/com/gaiaplatform/truegraphdb/CowStorageEngine.java
     GENERATE_NATIVE_HEADERS cow_se_jni_headers
     DESTINATION ${PROJECT_BINARY_DIR})
