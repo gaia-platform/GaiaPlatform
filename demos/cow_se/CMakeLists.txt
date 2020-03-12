@@ -41,7 +41,7 @@ set_tests_properties(test_cow_se_py PROPERTIES PASS_REGULAR_EXPRESSION ${TEST_SU
 if (JAVA_FOUND AND JNI_FOUND)
   # Java wrapper code. This generates native headers for the native wrapper.
   add_jar(CowStorageEngine
-      src/CowStorageEngine.java
+      src/java/com/gaiaplatform/truegraphdb/CowStorageEngine.java
     GENERATE_NATIVE_HEADERS cow_se_jni_headers
     DESTINATION ${PROJECT_BINARY_DIR})
   get_target_property(COW_SE_JAR CowStorageEngine JAR_FILE)
@@ -58,5 +58,5 @@ if (JAVA_FOUND AND JNI_FOUND)
   set_target_properties(native_cow_se PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 
   # Add a test that executes the Java program.
-  add_test(NAME test_cow_se_jni COMMAND ${Java_JAVA_EXECUTABLE} -Djava.library.path=. -cp ${COW_SE_JAR} CowStorageEngine)
+  add_test(NAME test_cow_se_jni COMMAND ${Java_JAVA_EXECUTABLE} -Djava.library.path=. -cp ${COW_SE_JAR} com.gaiaplatform.truegraphdb.CowStorageEngine)
 endif()

@@ -3,6 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+package com.gaiaplatform.truegraphdb;
+
 public class CowStorageEngine
 {
     static
