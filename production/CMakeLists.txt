@@ -10,6 +10,9 @@ enable_testing()
 # Set the project name.
 project(production)
 
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
+
+include(gaia)
 include(GoogleTest)
 
 # Specify the C++ standard.
@@ -17,19 +20,16 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # Set some global variables.
+get_repo_root(${PROJECT_SOURCE_DIR} GAIA_REPO)
 set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
 set(GAIA_LINK_FLAGS "-ggdb -pthread")
 set(GAIA_INC "${PROJECT_SOURCE_DIR}/inc")
-set(GOOGLE_TEST "../third_party/production/googletest")
+set(GOOGLE_TEST "${GAIA_REPO}/third_party/production/googletest")
 set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")
+set(FLATBUFFERS "${GAIA_REPO}/third_party/production/flatbuffers")
+set(FLATBUFFERS_INC "${FLATBUFFERS}/include")
 
 message(STATUS "GAIA_INC=${GAIA_INC}")
-
-# Helper function for setting up our tests.
-function(set_test target arg result)
-  add_test(NAME ${target}_${arg} COMMAND ${target} ${arg})
-  set_tests_properties(${target}_${arg} PROPERTIES PASS_REGULAR_EXPRESSION ${result})
-endfunction(set_test)
 
 # Set tests.
 set(TEST_SUCCESS "All tests passed!")
