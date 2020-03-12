@@ -282,7 +282,6 @@ void employee_loader(CSVRow& row)
 {
     // current address row
     auto a = new Address();
-    auto addr_node_id = a->gaia_id();
     if (!row[4].is_null)
         a->set_street(row[4].col.c_str());
     if (!row[5].is_null)
@@ -295,27 +294,27 @@ void employee_loader(CSVRow& row)
         a->set_country(row[0].col.c_str());
     a->set_current(true);
     a->insert_row();
+    auto addr_node_id = a->gaia_id();
 
     // second phone row
     auto p = new Phone();
-    auto ph2_node_id = p->gaia_id();
     p->set_phone_number(row[9].col.c_str());
     p->set_type("Home");
     p->set_primary(false);
     p->insert_row();
+    auto ph2_node_id = p->gaia_id();
 
     // primary phone row
     p = new Phone();
-    auto ph1_node_id = p->gaia_id();
     p->set_NextPhone_id(ph2_node_id);
     p->set_phone_number(row[8].col.c_str());
     p->set_type("Mobile");
     p->set_primary(true);
     p->insert_row();
+    auto ph1_node_id = p->gaia_id();
 
     // employee row
     auto e = new Employee();
-    auto empl_node_id = e->gaia_id();
     e->set_Gaia_FirstAddr_id(addr_node_id);
     e->set_Gaia_FirstPhone_id(ph1_node_id);
     if (!row[1].is_null)

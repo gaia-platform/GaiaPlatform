@@ -19,6 +19,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/file.h>
+#include <uuid/uuid.h>
 
 namespace gaia {
 namespace db {
@@ -255,10 +256,19 @@ namespace db {
 
         static inline void tx_rollback();
 
-    template <typename T>
-    friend class gaia_ptr;
-    template <typename T>
-    friend class gaia_iterator;
+        static gaia_id_t get_next_id() {
+            uuid_t uuid;
+            gaia_id_t _node_id;
+            uuid_generate(uuid);
+            memcpy(&_node_id, uuid, sizeof(gaia_id_t));
+            _node_id &= ~0x8000000000000000;
+            return _node_id;
+        }
+
+        template <typename T>
+        friend class gaia_ptr;
+        template <typename T>
+        friend class gaia_iterator;
 
     protected:
         const static char* SCH_MEM_OFFSETS;
@@ -737,13 +747,12 @@ namespace db {
         char payload[0];
 
         static gaia_ptr<gaia_se_node> create (
-            gaia_id_t id,
             gaia_type_t type,
             size_t payload_size,
             const void* payload
         )
         {
-            check_id(id);
+            auto id = gaia_mem_base::get_next_id();
             gaia_ptr<gaia_se_node> node(id, payload_size + sizeof(gaia_se_node));
 
             node->id = id;
@@ -759,6 +768,11 @@ namespace db {
         {
             check_id(id);
             return gaia_ptr<gaia_se_node>(id);
+        }
+
+        gaia_id_t gaia_id()
+        {
+            return id;
         }
     };
 
@@ -777,7 +791,6 @@ namespace db {
         char payload[0];
 
         static gaia_ptr<gaia_se_edge> create (
-            gaia_id_t id,
             gaia_type_t type,
             gaia_id_t first,
             gaia_id_t second,
@@ -798,7 +811,7 @@ namespace db {
                 throw invalid_node_id(second);
             }
 
-            check_id(id);;
+            auto id = gaia_mem_base::get_next_id();
             gaia_ptr<gaia_se_edge> edge(id | 0x8000000000000000, 
                                             payload_size + sizeof(gaia_se_edge));
 
@@ -829,6 +842,11 @@ namespace db {
         {
             check_id(id);
             return gaia_ptr<gaia_se_edge>(id | 0x8000000000000000);
+        }
+
+        gaia_id_t gaia_id()
+        {
+            return id;
         }
     };
 

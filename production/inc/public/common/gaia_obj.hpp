@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include <uuid/uuid.h>
 #include <cstring>
 #include <cstdint>
 #include <list>
@@ -41,10 +40,7 @@ public:
         reset();
     }
 
-    gaia_obj_t() : _copy(nullptr), m_fb(nullptr), m_fbb(nullptr) {
-        m_id = get_next_id();
-        s_gaia_cache[m_id] = this;
-    }
+    gaia_obj_t() : _copy(nullptr), m_fb(nullptr), m_fbb(nullptr), m_id(0) {}
 
     #define get_current(field) (_copy ? (_copy->field) : (m_fb->field()))
     // NOTE: Either m_fb or _copy should exist.
@@ -80,11 +76,13 @@ public:
         if (_copy != nullptr) {
             auto u = T_fb::Pack(*m_fbb, _copy);
             m_fbb->Finish(u);
-            node_ptr = gaia_se_node::create(m_id, T_gaia_type, m_fbb->GetSize(), m_fbb->GetBufferPointer());
+            node_ptr = gaia_se_node::create(T_gaia_type, m_fbb->GetSize(), m_fbb->GetBufferPointer());
             m_fbb->Clear();
         } else {
-            node_ptr = gaia_se_node::create(m_id, T_gaia_type, 0, nullptr);
+            node_ptr = gaia_se_node::create(T_gaia_type, 0, nullptr);
         }
+        m_id = node_ptr->gaia_id();
+        s_gaia_cache[m_id] = this;
         return;
     }
 
@@ -121,20 +119,11 @@ public:
 protected:
     
     const T_fb* m_fb; // flat buffer
-    T_obj*    _copy; // copy data changes
+    T_obj*     _copy; // copy data changes
     gaia_id_t   m_id; // The gaia_id assigned to the row.
     flatbuffers::FlatBufferBuilder* m_fbb; // cached flat buffer builder for reuse
 
 private:
-    gaia_id_t get_next_id() {
-        uuid_t uuid;
-        gaia_id_t _node_id;
-        uuid_generate(uuid);
-        memcpy(&_node_id, uuid, sizeof(gaia_id_t));
-        _node_id &= ~0x8000000000000000;
-        return _node_id;
-    }
-
     static T_gaia* get_object(gaia_ptr<gaia_se_node>& node_ptr) 
     {
         T_gaia* obj = nullptr;
