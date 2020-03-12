@@ -25,7 +25,7 @@ set(GAIA_LINK_FLAGS "-ggdb -pthread")
 set(GAIA_INC "${PROJECT_SOURCE_DIR}/inc")
 message(STATUS "GAIA_INC=${GAIA_INC}")
 
-message(STATUS "teamcity agent work dir=${teamcity.agent.work.dir}")
+message(STATUS "teamcity agent work dir=${teamcity_agent_work_dir}")
 
 get_repo_root(${PROJECT_SOURCE_DIR} "GaiaPlatform" GAIA_REPO)
 message(STATUS "GAIA_REPO=${GAIA_REPO}")
