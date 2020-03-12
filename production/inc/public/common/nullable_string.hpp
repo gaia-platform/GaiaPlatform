@@ -8,14 +8,15 @@
 #include <string>
 
 namespace gaia {
+namespace common {
 
-struct string : std::string
+struct nullable_string_t : std::string
 {
-    string() 
+    nullable_string_t()
     : is_null(true)
     {}
 
-    string(const char * c_str, uint32_t size)
+    nullable_string_t(const char * c_str, uint32_t size)
     : std::string(c_str), is_null(c_str == nullptr)
     { (void)size;}
 
@@ -27,7 +28,7 @@ struct string : std::string
         return std::string::c_str();
     }
 
-    string& operator=(const string& nstr)
+    nullable_string_t& operator=(const nullable_string_t& nstr)
     {
         is_null = nstr.is_null;
         if (!nstr.is_null) {
@@ -36,14 +37,14 @@ struct string : std::string
         return *this;
     }
 
-    string& operator=(const std::string& str)
+    nullable_string_t& operator=(const std::string& str)
     {
         is_null = false;
         std::string::operator=(str);
         return *this;
     }
 
-    string& operator=(const char * c_str)
+    nullable_string_t& operator=(const char * c_str)
     {
         is_null = (c_str == nullptr);
         if (c_str) {
@@ -53,9 +54,9 @@ struct string : std::string
         return *this;
     }
 
-    // when a flatbuffer is created, it will call the empty() method.  Default behavior
-    // is to set a nullptr if the string is zero-length.  We will only return true
-    // if the string is null
+    // When a flatbuffer is created, it will call the empty() method.  Default behavior
+    // is to set a nullptr if the nullable_string_t is zero-length.  We will only return true
+    // if the nullable_string_t is null
     bool empty() const
     {
         return is_null;
@@ -66,3 +67,4 @@ private:
 };
 
 } // gaia
+} // common
