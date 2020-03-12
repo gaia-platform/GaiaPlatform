@@ -5,7 +5,7 @@ This is a folder for demo or prototype code.
 
 Implements a prototype database engine that offers snapshot isolation.
 
-Building this project requires installing the Java SDK. Install package ```default-jdk```.
+Building this project requires installing the Java SDK. Install package *openjdk-8-jdk*.
 
 ## airport demo
 
