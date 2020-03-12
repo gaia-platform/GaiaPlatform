@@ -31,9 +31,6 @@ set(FLATBUFFERS_INC "${FLATBUFFERS}/include")
 
 message(STATUS "GAIA_INC=${GAIA_INC}")
 
-# Set tests.
-set(TEST_SUCCESS "All tests passed!")
-
 find_program(PYTHON "python")
 
 # Common code - currently, a headers-only library.
