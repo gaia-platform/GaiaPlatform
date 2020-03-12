@@ -4,14 +4,14 @@
 #############################################
 
 # Helper function to return the absolute path of the 
-# repo root directory of the given repo name.  We 
-# use this to build absolute include paths to
-# code stored in the third-party directory.  
-function(get_repo_root project_source_dir repo_name repo_dir)
-  string(FIND ${project_source_dir} ${repo_name} repo_path_start REVERSE)
-  string(LENGTH ${repo_name} repo_name_len)
-  math(EXPR repo_path_len "${repo_path_start} + ${repo_name_len}")
-  string(SUBSTRING ${project_source_dir} 0 ${repo_path_len} project_repo)
+# repo root directory.  We use this to build absolute 
+# include paths to code stored in the third-party 
+# directory.  Note that this code assumes that the
+# function is invoked from a directoy directly below
+# the repo root (i.e. production or demos).
+function(get_repo_root project_source_dir repo_dir)
+  string(FIND ${project_source_dir} "/" repo_root_path REVERSE)
+  string(SUBSTRING ${project_source_dir} 0 ${repo_root_path} project_repo)
   set(${repo_dir} "${project_repo}" PARENT_SCOPE)
 endfunction()
 
