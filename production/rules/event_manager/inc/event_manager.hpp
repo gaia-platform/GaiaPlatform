@@ -16,7 +16,6 @@ namespace gaia
 namespace events 
 {
 
-
 /**
  * Implementation class for event and rule APIs defined
  * in events.hpp and rules.hpp respectively.  See documentation
@@ -28,14 +27,11 @@ public:
     ~event_manager_t();
 
     /**
+     * Event manager scaffolding to ensure we have one global static instance.
      * Do not allow assignment or copying; this class is a singleton.
      */
     event_manager_t(event_manager_t&) = delete;
     void operator=(event_manager_t const&) = delete;
-
-    /**
-     * Return the singleton static instance.
-     */
     static event_manager_t& get();
     
     /**
@@ -79,7 +75,9 @@ public:
       gaia::rules::list_subscriptions_t& subscriptions);
 
 private:
-    // internal rule binding
+    // Internal rule binding to copy the callers
+    // rule data and hold on to it.  This will be
+    // required for deferred rules later.
     struct _rule_binding_t
     {
       _rule_binding_t(const rules::rule_binding_t& binding);
@@ -92,34 +90,35 @@ private:
     // only internal static creation is allowed
     event_manager_t();
 
-    // Hash table of all rules registered with the system
-    // the key is the rulset_name::rule_name.
+    // Hash table of all rules registered with the system.
+    // The key is the rulset_name::rule_name.
     std::unordered_map<std::string, std::unique_ptr<_rule_binding_t>> m_rules;
 
-    // List of rules associated with an event.  An event
-    // may have multiple rules bound to it.
+    // List of rules that are invoked when an event is logged.
     typedef std::list<const _rule_binding_t *> rule_list_t;
 
-    // Associates a particular event type to its list of rules.
+    // Associates a particular event type to its list of rules.  This means
+    // that an event may fire moree than one rule.
     typedef std::unordered_map<events::event_type, rule_list_t> events_map_t;
 
-    // Associates events with a specifc type.
+    // List of all rule subscriptions for tables.  This holds the rules bound
+    // to events on each different Gaia type registered in the system.
     std::unordered_map<common::gaia_type_t, events_map_t> m_table_subscriptions;
 
-    // Transaction events are not bound to any specific type.
+    // Unlike table events, transaction events are not scoped by any
+    // Gaia type.  They are top level
     events_map_t m_transaction_subscriptions;
 
     const _rule_binding_t* find_rule(const rules::rule_binding_t& binding);
     gaia::common::error_code_t add_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     gaia::common::error_code_t remove_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
-    
+
     static bool is_valid_table_event(event_type type);
     static bool is_valid_transaction_event(event_type type);
     static bool is_valid_rule_binding(const rules::rule_binding_t& binding);
     static std::string make_rule_key(const rules::rule_binding_t& binding);
     static events_map_t create_table_event_map();
     static void insert_transaction_events(events_map_t& transaction_map);
-
     static void add_subscriptions(rules::list_subscriptions_t& subscriptions, 
       const events_map_t& events, 
       gaia::common::gaia_type_t gaia_type,
@@ -127,5 +126,5 @@ private:
       const event_type * event_filter);
 };
 
-}
-}
+} // namespace events
+} // namespace gaia

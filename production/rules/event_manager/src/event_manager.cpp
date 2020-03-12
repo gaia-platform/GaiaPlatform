@@ -40,7 +40,7 @@ gaia::common::error_code_t event_manager_t::log_event(event_type type, event_mod
     // invoke all rules immediately
     rule_list_t& rules = m_transaction_subscriptions[type];
     for (auto rules_it = rules.begin(); rules_it != rules.end(); rules_it++) {
-            const _rule_binding_t * rule_ptr = *rules_it;
+            const _rule_binding_t * rule_ptr = (*rules_it);
             transaction_context_t tc(
                 {rule_ptr->ruleset_name.c_str(), rule_ptr->rule_name.c_str(), rule_ptr->rule},
                 type);
@@ -258,7 +258,7 @@ void event_manager_t::add_subscriptions(list_subscriptions_t& subscriptions,
 
             subscriptions.push_back(unique_ptr<subscription_t>(new subscription_t({
                 rule->ruleset_name.c_str(),
-                rule->ruleset_name.c_str(),
+                rule->rule_name.c_str(),
                 gaia_type, event_it.first})));
         }
     }
@@ -308,7 +308,7 @@ gaia::common::error_code_t event_manager_t::add_rule(
         }
     }
 
-    // If we already anave seen this rule, then
+    // If we already have seen this rule, then
     // add it to the list.  Otherwise, create a new 
     // rule binding entry and put it in our global list.
     _rule_binding_t * this_rule = nullptr;
@@ -382,7 +382,7 @@ void event_manager_t::insert_transaction_events(event_manager_t::events_map_t& t
     transaction_map.insert(make_pair(event_type::transaction_rollback, list<const _rule_binding_t*>()));
 }
 
-// allow conversion from rule_binding_t -> internal_rules_binding_t
+// Enable conversion from rule_binding_t -> internal_rules_binding_t.
 event_manager_t::_rule_binding_t::_rule_binding_t(
     const rule_binding_t& binding)
 {
