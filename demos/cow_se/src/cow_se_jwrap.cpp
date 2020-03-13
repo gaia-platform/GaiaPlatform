@@ -3,11 +3,11 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "com_gaiaplatform_truegraphdb_CowStorageEngine.h"
-
 #include <iostream>
 
 #include "cow_se.h"
+
+#include "com_gaiaplatform_truegraphdb_CowStorageEngine.h"
 
 using namespace std;
 using namespace gaia_se;
