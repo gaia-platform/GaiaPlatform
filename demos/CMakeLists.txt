@@ -5,6 +5,8 @@
 
 cmake_minimum_required(VERSION 3.10)
 
+include(UseJava)
+
 enable_testing()
 
 # Set the project name.
@@ -34,6 +36,19 @@ if (PYTHON)
   add_custom_target(airport sudo ${PYTHON} ../airport/setup/setup.py install)
   add_custom_target(airport-clean sudo rm -fr build sudo rm -fr dist sudo rm -fr airport.egg-info)
   add_custom_target(gaia-init ${PYTHON} ../airport/setup/gaia_init.py)
+endif()
+
+find_package(Java)
+find_package(JNI)
+
+if (JAVA_FOUND)
+    message (STATUS "Java_JAVAC_EXECUTABLE=${Java_JAVAC_EXECUTABLE}")
+    message (STATUS "Java_JAVA_EXECUTABLE=${Java_JAVA_EXECUTABLE}")
+endif()
+
+if (JNI_FOUND)
+    message (STATUS "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
+    message (STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
 endif()
 
 # Add project folders.
