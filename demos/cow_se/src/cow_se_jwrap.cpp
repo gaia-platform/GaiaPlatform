@@ -416,7 +416,7 @@ JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_findF
 JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_findNextEdge(
     JNIEnv*, jobject, jlong id)
 {
-    return find_first<gaia_se_edge>(id);
+    return find_next<gaia_se_edge>(id);
 }
 
 JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_getEdgeType(
