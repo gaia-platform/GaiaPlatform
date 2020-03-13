@@ -15,6 +15,7 @@ set(GAIA_EVENT_MANAGER_INCLUDES
     ${GAIA_INC}/internal/common
     ${GAIA_INC}/public/rules
     ${GAIA_RULES_INC}
+    ${FLATBUFFERS_INC}
     ${PROJECT_SOURCE_DIR}/inc
     ${PROJECT_SOURCE_DIR}/../third_party/production/flatbuffers
 )

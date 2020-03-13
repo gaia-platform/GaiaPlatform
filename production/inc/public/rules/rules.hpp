@@ -96,10 +96,10 @@ public:
     table_context_t(
         rule_binding_t& binding, 
         events::event_type type,
-        gaia::common::gaia_base* row)
+        gaia::common::gaia_base_t* row)
     : context_base_t(binding, type), row(row) {}
     
-    gaia::common::gaia_base* row;
+    gaia::common::gaia_base_t* row;
 };
 
 

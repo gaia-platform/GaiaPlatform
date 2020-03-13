@@ -12,8 +12,8 @@ JNIEXPORT jstring JNICALL Java_Experiment_formalizeName(
 {
     std::cout << "C++ formalizeName(): Received values: " << name << " and " << (int)isFemale << "." << std::endl;
 
-    const char* nameCharacters = env->GetStringUTFChars(name, NULL);
-    if (nameCharacters == NULL)
+    const char* name_characters = env->GetStringUTFChars(name, NULL);
+    if (name_characters == NULL)
     {
         return NULL;
     }
@@ -28,12 +28,12 @@ JNIEXPORT jstring JNICALL Java_Experiment_formalizeName(
         title = "Mr. ";
     }
  
-    std::string fullName = title + nameCharacters;
+    std::string full_name = title + name_characters;
 
-    // We need to call this after we're done using nameCharacters.
-    env->ReleaseStringUTFChars(name, nameCharacters);
+    // We need to call this after we're done using name_characters.
+    env->ReleaseStringUTFChars(name, name_characters);
 
-    return env->NewStringUTF(fullName.c_str());
+    return env->NewStringUTF(full_name.c_str());
 }
 
 JNIEXPORT jlong JNICALL Java_Experiment_addIntegers(
@@ -49,30 +49,30 @@ JNIEXPORT jdoubleArray JNICALL Java_Experiment_addAndAverageIntegers(
 {
     std::cout << "C++ addAndAverageIntegers(): Received value: " << values << "." << std::endl;
 
-    jint* intArray = env->GetIntArrayElements(values, NULL);
-    if (intArray == NULL)
+    jint* int_array = env->GetIntArrayElements(values, NULL);
+    if (int_array == NULL)
     {
         return NULL;
     }
-    jsize countValues = env->GetArrayLength(values);
+    jsize count_values = env->GetArrayLength(values);
 
     long sum = 0;
-    for (int i = 0; i < countValues; i++)
+    for (int i = 0; i < count_values; i++)
     {
-        sum += intArray[i];
+        sum += int_array[i];
     }
-    double average = ((double)sum) / countValues;
+    double average = ((double)sum) / count_values;
 
-    // We need to call this after we're done using intArray.
-    env->ReleaseIntArrayElements(values, intArray, 0);
+    // We need to call this after we're done using int_array.
+    env->ReleaseIntArrayElements(values, int_array, 0);
 
     jdouble results[] = { (double)sum, average };
 
     // Copy results into an array that we can return.
-    jdoubleArray outputResults = env->NewDoubleArray(2);
-    env->SetDoubleArrayRegion(outputResults, 0 , 2, results);
+    jdoubleArray output_results = env->NewDoubleArray(2);
+    env->SetDoubleArrayRegion(output_results, 0 , 2, results);
 
-    return outputResults;
+    return output_results;
 }
 
 JNIEXPORT jobject JNICALL Java_Experiment_getDataContainer(
@@ -80,16 +80,16 @@ JNIEXPORT jobject JNICALL Java_Experiment_getDataContainer(
 {
     std::cout << "C++ getDataContainer(): Received values: " << name << " and " << value << "." << std::endl;
 
-    jclass dataContainerClass = env->FindClass("DataContainer");
-    jobject newDataContainer = env->AllocObject(dataContainerClass);
+    jclass data_container_class = env->FindClass("DataContainer");
+    jobject new_data_container = env->AllocObject(data_container_class);
 
-    jfieldID nameField = env->GetFieldID(dataContainerClass , "name", "Ljava/lang/String;");
-    jfieldID valueField = env->GetFieldID(dataContainerClass , "value", "D");
+    jfieldID name_field = env->GetFieldID(data_container_class , "name", "Ljava/lang/String;");
+    jfieldID value_field = env->GetFieldID(data_container_class , "value", "D");
 
-    env->SetObjectField(newDataContainer, nameField, name);
-    env->SetDoubleField(newDataContainer, valueField, value);
+    env->SetObjectField(new_data_container, name_field, name);
+    env->SetDoubleField(new_data_container, value_field, value);
 
-    return newDataContainer;
+    return new_data_container;
 }
  
 JNIEXPORT jstring JNICALL Java_Experiment_getContainerData(
@@ -97,10 +97,10 @@ JNIEXPORT jstring JNICALL Java_Experiment_getContainerData(
 {
     std::cout << "C++ getContainerData(): Received value: " << dataContainer << "." << std::endl;
 
-    jclass dataContainerClass = env->GetObjectClass(dataContainer);
-    jmethodID methodId = env->GetMethodID(dataContainerClass, "getData", "()Ljava/lang/String;");
+    jclass data_container_class = env->GetObjectClass(dataContainer);
+    jmethodID method_id = env->GetMethodID(data_container_class, "getData", "()Ljava/lang/String;");
 
-    jstring result = (jstring)env->CallObjectMethod(dataContainer, methodId);
+    jstring result = (jstring)env->CallObjectMethod(dataContainer, method_id);
 
     return result;
 }
@@ -110,9 +110,9 @@ JNIEXPORT void JNICALL Java_Experiment_throwException(
 {
     std::cout << "C++ throwException()." << std::endl;
 
-    jclass exceptionClass = env->FindClass("java/lang/IllegalArgumentException");
-    if (exceptionClass != NULL)
+    jclass exception_class = env->FindClass("java/lang/IllegalArgumentException");
+    if (exception_class != NULL)
     {
-        env->ThrowNew(exceptionClass, "This exception was thrown from C++ code via JNI.");
+        env->ThrowNew(exception_class, "This exception was thrown from C++ code via JNI.");
     }
 }
