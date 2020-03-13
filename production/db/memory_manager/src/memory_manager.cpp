@@ -10,7 +10,6 @@
 #include <sstream>
 #include <memory>
 
-#include "constants.hpp"
 #include "retail_assert.hpp"
 
 #include "types.hpp"

@@ -5,7 +5,6 @@
 
 #include "stack_allocator.hpp"
 
-#include "constants.hpp"
 #include "retail_assert.hpp"
 
 using namespace gaia::common;

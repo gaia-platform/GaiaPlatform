@@ -48,6 +48,11 @@ else()
     configure_file(generated/blobv1_data.bin . COPYONLY)
     configure_file(generated/blobv2_data1.bin . COPYONLY)
     configure_file(generated/blobv2_data2.bin . COPYONLY)
+
+    add_test(NAME test_flatbuffers_tutorial COMMAND Tutorial)
+    add_test(NAME test_flatbuffers_access COMMAND TestAccess)
+    add_test(NAME test_flatbuffers_versions COMMAND TestVersions)
+    add_test(NAME test_flatbuffers_advanced COMMAND TestAdvanced)
 endif ()
 
 find_library(FLATCCRT_LIB flatccrt)
@@ -62,6 +67,8 @@ else()
     target_link_libraries(Tutorial_C PRIVATE rt flatccrt)
     set_target_properties(Tutorial_C PROPERTIES COMPILE_FLAGS ${GAIA_COMPILE_FLAGS})
     set_target_properties(Tutorial_C PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
+
+    add_test(NAME test_flatbuffers_tutorial_c COMMAND Tutorial_C)
 endif ()
 
 
