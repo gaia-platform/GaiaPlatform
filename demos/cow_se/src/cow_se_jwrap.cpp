@@ -12,6 +12,7 @@
 using namespace std;
 using namespace gaia_se;
 
+// Exposes to C++ the content of a jstring and automatically releases allocated memory.
 class payload_t
 {
 protected:
@@ -71,6 +72,9 @@ public:
         return m_characters;
     }
 };
+
+// Template functions that avoid duplicating code
+// that is similar for gaia_node_se and gaia_edge_se types.
 
 template <typename T> void update_payload(JNIEnv* env, jlong id, jstring& payload)
 {
@@ -180,7 +184,7 @@ template <typename T> jlong get_next_edge_second(jlong id)
     return next_edge_second.get_id();
 }
 
-// JNI Implementation starts here.
+// JNI implementation starts here.
 
 JNIEXPORT void JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_initialize(JNIEnv*, jobject)
 {
