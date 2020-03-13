@@ -116,6 +116,66 @@ void print_node(const gaia_ptr<gaia_se_node>& node, const bool indent)
     cout << endl;
 }
 
+class payload_t
+{
+protected:
+
+    JNIEnv* m_env;
+    jstring* m_payload;
+
+    jsize m_size;
+    const char* m_characters;
+
+    void clear()
+    {
+        m_env = NULL;
+        m_payload = NULL;
+
+        m_size = 0;
+        m_characters = NULL;
+    }
+
+public:
+
+    payload_t()
+    {
+        clear();
+    }
+
+    payload_t(JNIEnv* env, jstring& payload)
+    {
+        set(env, payload);
+    }
+
+    void set(JNIEnv* env, jstring& payload)
+    {
+        m_env = env;
+        m_payload = &payload;
+
+        m_size = m_env->GetStringUTFLength(*m_payload);
+        m_characters = m_env->GetStringUTFChars(*m_payload, NULL);
+    }
+
+    ~payload_t()
+    {
+        if (m_env != NULL && m_characters != NULL)
+        {
+            m_env->ReleaseStringUTFChars(*m_payload, m_characters);
+            clear();
+        }
+    }
+
+    jsize size()
+    {
+        return m_size;
+    }
+
+    const char* c_str()
+    {
+        return m_characters;
+    }
+};
+
 // JNI Implementation starts here.
 
 JNIEXPORT void JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_initialize(JNIEnv*, jobject)
@@ -136,18 +196,14 @@ JNIEXPORT void JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_commit
 JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_createNode(
     JNIEnv* env, jobject, jlong id, jlong type, jstring payload)
 {
-    jsize payload_size = env->GetStringUTFLength(payload);
-    const char* payload_characters = env->GetStringUTFChars(payload, NULL);
-    if (payload_characters == NULL)
+    payload_t payload_holder(env, payload);
+    if (payload_holder.c_str() == NULL)
     {
         return NULL;
     }
  
     gaia_ptr<gaia_se_node> node = gaia_se_node::create(
-        id, type, payload_size, payload_characters);
-
-    // We need to call this after we're done using payload_characters.
-    env->ReleaseStringUTFChars(payload, payload_characters);
+        id, type, payload_holder.size(), payload_holder.c_str());
 
     return node.get_id();
 }
@@ -155,9 +211,8 @@ JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_creat
 JNIEXPORT void JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_updateNodePayload(
     JNIEnv* env, jobject, jlong id, jstring payload)
 {
-    jsize payload_size = env->GetStringUTFLength(payload);
-    const char* payload_characters = env->GetStringUTFChars(payload, NULL);
-    if (payload_characters == NULL)
+    payload_t payload_holder(env, payload);
+    if (payload_holder.c_str() == NULL)
     {
         return;
     }
@@ -165,11 +220,8 @@ JNIEXPORT void JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_update
     gaia_ptr<gaia_se_node> node = gaia_se_node::open(id);
     if (node)
     {
-        node.update_payload(payload_size, payload_characters);
+        node.update_payload(payload_holder.size(), payload_holder.c_str());
     }
-
-    // We need to call this after we're done using payload_characters.
-    env->ReleaseStringUTFChars(payload, payload_characters);
 }
 
 JNIEXPORT void JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_removeNode(
@@ -283,18 +335,14 @@ JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_getNe
 JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_createEdge(
     JNIEnv* env, jobject, jlong id, jlong type, jlong idFirstNode, jlong idSecondNode, jstring payload)
 {
-    jsize payload_size = env->GetStringUTFLength(payload);
-    const char* payload_characters = env->GetStringUTFChars(payload, NULL);
-    if (payload_characters == NULL)
+    payload_t payload_holder(env, payload);
+    if (payload_holder.c_str() == NULL)
     {
         return NULL;
     }
  
     gaia_ptr<gaia_se_edge> edge = gaia_se_edge::create(
-        id, type, idFirstNode, idSecondNode, payload_size, payload_characters);
-
-    // We need to call this after we're done using payload_characters.
-    env->ReleaseStringUTFChars(payload, payload_characters);
+        id, type, idFirstNode, idSecondNode, payload_holder.size(), payload_holder.c_str());
 
     return edge.get_id();
 }
@@ -302,9 +350,8 @@ JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_creat
 JNIEXPORT void JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_updateEdgePayload(
     JNIEnv* env, jobject, jlong id, jstring payload)
 {
-    jsize payload_size = env->GetStringUTFLength(payload);
-    const char* payload_characters = env->GetStringUTFChars(payload, NULL);
-    if (payload_characters == NULL)
+    payload_t payload_holder(env, payload);
+    if (payload_holder.c_str() == NULL)
     {
         return;
     }
@@ -312,11 +359,8 @@ JNIEXPORT void JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_update
     gaia_ptr<gaia_se_edge> edge = gaia_se_edge::open(id);
     if (edge)
     {
-        edge.update_payload(payload_size, payload_characters);
+        edge.update_payload(payload_holder.size(), payload_holder.c_str());
     }
-
-    // We need to call this after we're done using payload_characters.
-    env->ReleaseStringUTFChars(payload, payload_characters);
 }
 
 JNIEXPORT void JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_removeEdge(
