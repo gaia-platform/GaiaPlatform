@@ -661,7 +661,7 @@ namespace gaia_se
             return row_id == 0;
         }
 
-        int64_t get_row_id() const
+        int64_t get_id() const
         {
             return row_id;
         }

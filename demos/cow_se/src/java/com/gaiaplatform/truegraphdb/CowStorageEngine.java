@@ -32,7 +32,7 @@ public class CowStorageEngine
         cow.printNode(idNode4);
         System.out.println("");
 
-        cow.updateNode(idNode1, ">n1 v2<");
+        cow.updateNodePayload(idNode1, ">n1 v2<");
         cow.printNode(idNode1);
         System.out.println("");
 
@@ -52,7 +52,7 @@ public class CowStorageEngine
         cow.printEdge(idEdge4);
         System.out.println("");
         
-        cow.updateEdge(idEdge1, ">e5=n1->n2 v2<");
+        cow.updateEdgePayload(idEdge1, ">e5=n1->n2 v2<");
         cow.printEdge(idEdge1);
         System.out.println("");
         
@@ -61,7 +61,7 @@ public class CowStorageEngine
         // Third transaction.
         cow.beginTransaction();
         
-        cow.updateNode(idNode1, ">n1 v3<");
+        cow.updateNodePayload(idNode1, ">n1 v3<");
         
         cow.printNode(idNode1);
         cow.printNode(idNode2);
@@ -69,7 +69,7 @@ public class CowStorageEngine
         cow.printNode(idNode4);
         System.out.println("");
         
-        cow.updateEdge(idEdge1, ">e5=n1->n2 v3");
+        cow.updateEdgePayload(idEdge1, ">e5=n1->n2 v3");
         
         cow.printEdge(idEdge1);
         cow.printEdge(idEdge2);
@@ -152,18 +152,32 @@ public class CowStorageEngine
     private native void commitTransaction();
 
     private native long createNode(long id, long type, String payload);
-    private native void updateNode(long id, String payload);
+    private native void updateNodePayload(long id, String payload);
     private native void removeNode(long id);
     private native void printNode(long id);
 
     private native long findFirstNode(long type);
     private native long findNextNode(long id);
 
+    private native long getNodeType(long id);
+    private native String getNodePayload(long id);
+
+    private native long getNextEdgeWithNodeAsFirst(long id);
+    private native long getNextEdgeWithNodeAsSecond(long id);
+
     private native long createEdge(long id, long type, long idFirstNode, long idSecondNode, String payload);
-    private native void updateEdge(long id, String payload);
+    private native void updateEdgePayload(long id, String payload);
     private native void removeEdge(long id);
     private native void printEdge(long id);
 
     private native long findFirstEdge(long type);
     private native long findNextEdge(long id);
+
+    private native long getEdgeType(long id);
+    private native long getEdgeFirstNode(long id);
+    private native long getEdgeSecondNode(long id);
+    private native String getEdgePayload(long id);
+
+    private native long getNextEdgeWithSameFirstNode(long id);
+    private native long getNextEdgeWithSameSecondNode(long id);
 }
