@@ -28,14 +28,12 @@ struct gaia_base_t
     static void begin_transaction()
     {
         // the first order of business is to clean out old values
-        // fprintf(stderr, "resetting [");
         for (ID_CACHE::iterator it = s_gaia_tx.begin();
              it != s_gaia_tx.end();
              it++)
         {
             it->second->reset(true);
         }
-        // fprintf(stderr, "]\n");
         s_gaia_tx.clear();
 
         gaia::db::begin_transaction();
@@ -110,10 +108,7 @@ public:
         }
         m_id = node_ptr->gaia_id();
         s_gaia_cache[m_id] = this;
-        if (s_gaia_tx.find(m_id) == s_gaia_tx.end()) {
-            // fprintf(stderr, "adding %ld\n", m_id);
-            s_gaia_tx[m_id] = this;
-        }
+        s_gaia_tx[m_id] = this;
         return;
     }
 
@@ -171,10 +166,7 @@ private:
                 auto fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);
                 obj->m_fb = fb;
                 obj->m_id = node_ptr->id;
-                if (s_gaia_tx.find(obj->m_id) == s_gaia_tx.end()) {
-                    // fprintf(stderr, "adding %ld\n", obj->m_id);
-                    s_gaia_tx[obj->m_id] = obj;
-                }
+                s_gaia_tx[obj->m_id] = obj;
             }
         }
         return obj;
@@ -182,7 +174,6 @@ private:
 
     void reset(bool full)
     {
-        // fprintf(stderr, "%ld ", m_id);
         if (m_copy) {
             delete m_copy;
         }
