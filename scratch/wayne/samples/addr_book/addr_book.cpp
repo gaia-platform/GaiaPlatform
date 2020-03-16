@@ -122,7 +122,7 @@ uint32_t traverse_employees()
 {
     uint32_t i = 0;
     Employee* ep;
-    gaia::db::begin_transaction();
+    gaia_base_t::begin_transaction();
     for(ep = Employee::get_first();
         ep;
         ep = ep->get_next())
@@ -148,7 +148,7 @@ uint32_t traverse_employees()
         }
         i++;
     }
-    gaia::db::commit_transaction();
+    gaia_base_t::commit_transaction();
     return i;
 }
 
@@ -157,7 +157,7 @@ uint32_t build_state_map(bool print, int32_t* states)
     uint32_t i = 0;
     *states = 0;
     Employee* ep;
-    gaia::db::begin_transaction();
+    gaia_base_t::begin_transaction();
     for(ep = Employee::get_first();
         ep;
         ep = ep->get_next())
@@ -187,7 +187,7 @@ uint32_t build_state_map(bool print, int32_t* states)
             i++;
         }
     }
-    gaia::db::commit_transaction();
+    gaia_base_t::commit_transaction();
     return i;
 }
 
@@ -195,7 +195,7 @@ uint32_t traverse_state_map(bool print, int32_t* states)
 {
     uint32_t i = 0;
     *states = 0;
-    gaia::db::begin_transaction();
+    gaia_base_t::begin_transaction();
     for (map<std::string, gaia_id_t>::iterator it = state_map.begin();
          it != state_map.end();
          ++it)
@@ -208,8 +208,6 @@ uint32_t traverse_state_map(bool print, int32_t* states)
              ap;
              ap = Address::get_row_by_id(ap->Gaia_NextState_id()))
         {
-            auto ap_id = ap->gaia_id();
-            ap_id++;
             i++;
             if (print)
                 printf("   ---\n   %s\n   %s, %s  %s\n   %s\n", ap->street(), ap->city(), ap->state(),
@@ -217,7 +215,7 @@ uint32_t traverse_state_map(bool print, int32_t* states)
         }
         (*states)++;
     }
-    gaia::db::commit_transaction();
+    gaia_base_t::commit_transaction();
     return i;
 }
 
@@ -225,7 +223,7 @@ uint32_t delete_employees()
 {
     uint32_t i = 0;
     Employee* ep;
-    gaia::db::begin_transaction();
+    gaia_base_t::begin_transaction();
     for(ep = Employee::get_first();
         ep;
         ep = Employee::get_first())
@@ -234,7 +232,7 @@ uint32_t delete_employees()
         delete ep;
         i++;
     }
-    gaia::db::commit_transaction();
+    gaia_base_t::commit_transaction();
     return i;
 }
 
@@ -242,7 +240,7 @@ uint32_t delete_addresses()
 {
     uint32_t i = 0;
     Address* ap;
-    gaia::db::begin_transaction();
+    gaia_base_t::begin_transaction();
     for(ap = Address::get_first();
         ap;
         ap = Address::get_first())
@@ -251,7 +249,7 @@ uint32_t delete_addresses()
         delete ap;
         i++;
     }
-    gaia::db::commit_transaction();
+    gaia_base_t::commit_transaction();
     return i;
 }
 
@@ -259,7 +257,7 @@ uint32_t delete_phones()
 {
     uint32_t i = 0;
     Phone* pp;
-    gaia::db::begin_transaction();
+    gaia_base_t::begin_transaction();
     for(pp = Phone::get_first();
         pp;
         pp = Phone::get_first())
@@ -268,7 +266,7 @@ uint32_t delete_phones()
         delete pp;
         i++;
     }
-    gaia::db::commit_transaction();
+    gaia_base_t::commit_transaction();
     return i;
 }
 
@@ -339,12 +337,12 @@ uint32_t loader(const char* fname)
     // load employees
     CSVRow row;
     uint32_t i = 0;
-    gaia::db::begin_transaction();
+    gaia_base_t::begin_transaction();
     while (f >> row) {
         employee_loader(row);
         i++;
     }
-    gaia::db::commit_transaction();
+    gaia_base_t::commit_transaction();
     return i;
 }
     
@@ -353,7 +351,7 @@ int main (int argc, const char ** argv)
     print = argc >= 3;
 
     if (argc < 2) {
-        fprintf(stderr, "usage: addr_book <CSVFile> <print>\n");
+        printf("usage: addr_book <CSVFile> <print>\n");
         exit(1);
     }
 

@@ -21,11 +21,37 @@ namespace common {
 
 struct gaia_base_t
 {
-    static map<gaia_id_t, gaia_base_t *> s_gaia_cache;
+    typedef map<gaia_id_t, gaia_base_t *> ID_CACHE;
+    static ID_CACHE s_gaia_cache;
+    static ID_CACHE s_gaia_tx;
+
+    static void begin_transaction()
+    {
+        // the first order of business is to clean out old values
+        // fprintf(stderr, "resetting [");
+        for (ID_CACHE::iterator it = s_gaia_tx.begin();
+             it != s_gaia_tx.end();
+             it++)
+        {
+            it->second->reset(true);
+        }
+        // fprintf(stderr, "]\n");
+        s_gaia_tx.clear();
+
+        gaia::db::begin_transaction();
+    }
+
+    static void commit_transaction()   { gaia::db::commit_transaction(); }
+    static void rollback_transaction() { gaia::db::rollback_transaction(); }
 
     virtual ~gaia_base_t() = default;
+
+private:
+    virtual void reset(bool) {}
+
 };
-map<gaia_id_t, gaia_base_t *> gaia_base_t::s_gaia_cache;
+gaia_base_t::ID_CACHE gaia_base_t::s_gaia_cache;
+gaia_base_t::ID_CACHE gaia_base_t::s_gaia_tx;
 
 // T_gaia_type - an integer (gaia_type_t) uniquely identifying the flatbuffer table type
 // T_gaia      - the subclass type derived from this template
@@ -37,16 +63,17 @@ struct gaia_obj_t : gaia_base_t
 public:
     virtual ~gaia_obj_t() { 
         s_gaia_cache.erase(m_id);
-        reset();
+        s_gaia_tx.erase(m_id);
+        reset(true);
     }
 
-    gaia_obj_t() : _copy(nullptr), m_fb(nullptr), m_fbb(nullptr), m_id(0) {}
+    gaia_obj_t() : m_copy(nullptr), m_fb(nullptr), m_fbb(nullptr) {}
 
-    #define get_current(field) (_copy ? (_copy->field) : (m_fb->field()))
-    // NOTE: Either m_fb or _copy should exist.
-    #define get_original(field) (m_fb ? m_fb->field() : _copy->field)
-    #define get_str_original(field) (m_fb ? m_fb->field()->c_str() : _copy->field.c_str())
-    #define get_str(field) (_copy ? _copy->field.c_str() : m_fb->field() ? m_fb->field()->c_str() : nullptr)
+    #define get_current(field) (m_copy ? (m_copy->field) : (m_fb->field()))
+    // NOTE: Either m_fb or m_copy should exist.
+    #define get_original(field) (m_fb ? m_fb->field() : m_copy->field)
+    #define get_str_original(field) (m_fb ? m_fb->field()->c_str() : m_copy->field.c_str())
+    #define get_str(field) (m_copy ? m_copy->field.c_str() : m_fb->field() ? m_fb->field()->c_str() : nullptr)
     #define set(field, value) (copy_write()->field = value)
 
     static T_gaia* get_first() {
@@ -73,8 +100,8 @@ public:
     {
         // Create the node and add to the cache.
         gaia_ptr<gaia_se_node> node_ptr;
-        if (_copy != nullptr) {
-            auto u = T_fb::Pack(*m_fbb, _copy);
+        if (m_copy != nullptr) {
+            auto u = T_fb::Pack(*m_fbb, m_copy);
             m_fbb->Finish(u);
             node_ptr = gaia_se_node::create(T_gaia_type, m_fbb->GetSize(), m_fbb->GetBufferPointer());
             m_fbb->Clear();
@@ -83,14 +110,18 @@ public:
         }
         m_id = node_ptr->gaia_id();
         s_gaia_cache[m_id] = this;
+        if (s_gaia_tx.find(m_id) == s_gaia_tx.end()) {
+            // fprintf(stderr, "adding %ld\n", m_id);
+            s_gaia_tx[m_id] = this;
+        }
         return;
     }
 
     void update_row()
     {
-        if (_copy) {
+        if (m_copy) {
             // assert m_fbb
-            auto u = T_fb::Pack(*m_fbb, _copy);
+            auto u = T_fb::Pack(*m_fbb, m_copy);
             m_fbb->Finish(u);
             auto node_ptr = gaia_se_node::open(m_id);
             node_ptr.update_payload(m_fbb->GetSize(), m_fbb->GetBufferPointer());
@@ -102,29 +133,29 @@ public:
     {
         auto node_ptr = gaia_se_node::open(m_id);
         gaia_ptr<gaia_se_node>::remove(node_ptr);
-        reset();
+        reset(false);
     }
 
     T_obj* copy_write() {
-        if (_copy == nullptr) {
+        if (m_copy == nullptr) {
             T_obj* copy = new T_obj();
             if (m_fb)
                 m_fb->UnPackTo(copy);
-            _copy = copy;
+            m_copy = copy;
             m_fbb = new flatbuffers::FlatBufferBuilder();
         }
-        return _copy;
+        return m_copy;
     }
 
 protected:
     
-    const T_fb* m_fb; // flat buffer
-    T_obj*     _copy; // copy data changes
-    gaia_id_t   m_id; // The gaia_id assigned to the row.
     flatbuffers::FlatBufferBuilder* m_fbb; // cached flat buffer builder for reuse
+    const T_fb* m_fb;  // flat buffer, referencing SE memory
+    T_obj*    m_copy;  // private mutable flatbuffer copy of field changes
+    gaia_id_t   m_id;  // gaia_id assigned to this row
 
 private:
-    static T_gaia* get_object(gaia_ptr<gaia_se_node>& node_ptr) 
+    static T_gaia* get_object(gaia_ptr<gaia_se_node>& node_ptr)
     {
         T_gaia* obj = nullptr;
         if (node_ptr != nullptr) {
@@ -140,21 +171,29 @@ private:
                 auto fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);
                 obj->m_fb = fb;
                 obj->m_id = node_ptr->id;
+                if (s_gaia_tx.find(obj->m_id) == s_gaia_tx.end()) {
+                    // fprintf(stderr, "adding %ld\n", obj->m_id);
+                    s_gaia_tx[obj->m_id] = obj;
+                }
             }
         }
         return obj;
     }
 
-    void reset()
+    void reset(bool full)
     {
-        if (_copy) {
-            delete _copy;
+        // fprintf(stderr, "%ld ", m_id);
+        if (m_copy) {
+            delete m_copy;
         }
         if (m_fbb) {
             delete m_fbb;
         }
-        _copy = nullptr;
+        m_copy = nullptr;
         m_fbb = nullptr;
+        if (full) {
+            m_fb = nullptr;
+        }
     }
 };
 } // common
