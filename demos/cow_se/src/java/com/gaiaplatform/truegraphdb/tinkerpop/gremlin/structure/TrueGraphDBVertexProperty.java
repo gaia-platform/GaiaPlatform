@@ -36,10 +36,6 @@ public final class TrueGraphDBVertexProperty<V> extends TrueGraphDBElement imple
         return null;
     }
 
-    public void remove()
-    {
-    }
-
     public <U> Property<U> property(final String key, final U value)
     {
         return null;

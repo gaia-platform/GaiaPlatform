@@ -18,6 +18,11 @@ public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
 {
     public Iterator<Vertex> vertices(final Direction direction)
     {
+        if (removed)
+        {
+            return Collections.emptyIterator();
+        }
+        
         return Collections.emptyIterator();
     }
 

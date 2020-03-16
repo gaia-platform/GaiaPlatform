@@ -10,6 +10,7 @@ import java.util.Iterator;
 
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
@@ -17,6 +18,11 @@ public final class TrueGraphDBVertex extends TrueGraphDBElement implements Verte
 {
     public Edge addEdge(final String label, final Vertex inVertex, final Object... keyValues)
     {
+        if (inVertex == null)
+        {
+            throw Graph.Exceptions.argumentCanNotBeNull("inVertex");
+        }
+
         return null;
     }
 
@@ -41,6 +47,11 @@ public final class TrueGraphDBVertex extends TrueGraphDBElement implements Verte
 
     public <V> Iterator<VertexProperty<V>> properties(final String... propertyKeys)
     {
+        if (removed)
+        {
+            return Collections.emptyIterator();
+        }
+
         return Collections.emptyIterator();
     }
 }

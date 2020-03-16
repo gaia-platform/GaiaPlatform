@@ -28,7 +28,7 @@ public final class TrueGraphDBGraph implements Graph
     public <C extends GraphComputer> C compute(final Class<C> graphComputerClass)
     throws IllegalArgumentException
     {
-        return null;
+        throw Graph.Exceptions.graphDoesNotSupportProvidedGraphComputer(graphComputerClass);
     }
 
     public GraphComputer compute()
@@ -49,7 +49,7 @@ public final class TrueGraphDBGraph implements Graph
 
     public Transaction tx()
     {
-        return null;
+        throw Exceptions.transactionsNotSupported();
     }
 
     public void close()

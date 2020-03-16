@@ -15,6 +15,8 @@ import org.apache.tinkerpop.gremlin.structure.Property;
 
 public abstract class TrueGraphDBElement implements Element
 {
+    protected boolean removed = false;
+
     public Graph graph()
     {
         return null;
@@ -32,5 +34,6 @@ public abstract class TrueGraphDBElement implements Element
 
     public void remove()
     {
+        removed = true;
     }
 }
