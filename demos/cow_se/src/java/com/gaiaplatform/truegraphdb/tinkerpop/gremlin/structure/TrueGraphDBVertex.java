@@ -16,6 +16,11 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
 public final class TrueGraphDBVertex extends TrueGraphDBElement implements Vertex
 {
+    protected TrueGraphDBVertex(final Graph graph, final Object id, final String label)
+    {
+        super(graph, id, label);
+    }
+
     public Edge addEdge(final String label, final Vertex inVertex, final Object... keyValues)
     {
         if (inVertex == null)
@@ -53,5 +58,10 @@ public final class TrueGraphDBVertex extends TrueGraphDBElement implements Verte
         }
 
         return Collections.emptyIterator();
+    }
+
+    public void remove()
+    {
+        this.removed = true;
     }
 }

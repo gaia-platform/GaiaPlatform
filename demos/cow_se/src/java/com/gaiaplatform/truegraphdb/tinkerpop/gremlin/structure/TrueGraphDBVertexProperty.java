@@ -6,43 +6,96 @@
 package com.gaiaplatform.truegraphdb.tinkerpop.gremlin.structure;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
+import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
+
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 public final class TrueGraphDBVertexProperty<V> extends TrueGraphDBElement implements VertexProperty<V>
 {
+    private final TrueGraphDBVertex vertex;
+    protected final String key;
+    protected final V value;
+    protected Map<String, Property> properties;
+
+    protected TrueGraphDBVertexProperty(final TrueGraphDBVertex vertex,
+        final String key, final V value, final Object... propertyKeyValues)
+    {
+        super(vertex.graph(), null, key);
+
+        this.vertex = vertex;
+        this.key = key;
+        this.value = value;
+
+        ElementHelper.legalPropertyKeyValueArray(propertyKeyValues);
+        ElementHelper.attachProperties(this, propertyKeyValues);
+    }
+
     public String key()
     {
-        return null;
+        return this.key;
     }
 
     public V value()
-    throws NoSuchElementException
     {
-        return null;
+        return this.value;
     }
 
     public boolean isPresent()
     {
-        return false;
+        return true;
     }
 
     public Vertex element()
     {
-        return null;
+        return this.vertex;
     }
 
     public <U> Property<U> property(final String key, final U value)
     {
-        return null;
+        final Property<U> newProperty = new TrueGraphDBProperty<>(this, key, value);
+
+        if (this.properties == null)
+        {
+            this.properties = new HashMap<>();
+        }
+
+        this.properties.put(key, newProperty);
+
+        return newProperty;
     }
 
     public <U> Iterator<Property<U>> properties(final String... propertyKeys)
     {
-        return Collections.emptyIterator();
+        if (this.properties == null)
+        {
+            return Collections.emptyIterator();
+        }
+
+        if (propertyKeys.length == 1)
+        {
+            final Property<U> property = this.properties.get(propertyKeys[0]);
+            return null == property ? Collections.emptyIterator() : IteratorUtils.of(property);
+        }
+        else
+        {
+            return (Iterator) this.properties.entrySet().stream()
+                .filter(entry -> ElementHelper.keyExists(entry.getKey(), propertyKeys))
+                .map(entry -> entry.getValue()).collect(Collectors.toList()).iterator();
+        }
+    }
+
+    public void remove()
+    {
+        this.removed = true;
     }
 }
