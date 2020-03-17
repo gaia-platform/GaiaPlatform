@@ -83,6 +83,7 @@ static std::string CapitalizeString(const std::string &str)
 }
 
 
+
 namespace gaiacpp 
 {
 
@@ -211,6 +212,13 @@ class GaiaCppGenerator : public BaseGenerator
   const std::string Name(const EnumVal &ev) const 
   { 
     return EscapeKeyword(ev.name); 
+  }
+
+  std::string GenFieldOffsetName(const FieldDef &field) 
+  {
+    std::string uname = Name(field);
+    std::transform(uname.begin(), uname.end(), uname.begin(), ToUpper);
+    return "VT_" + uname;
   }
 
 
@@ -511,6 +519,7 @@ class GaiaCppGenerator : public BaseGenerator
 
       code_.SetValue("FIELD_NAME", Name(field));
       code_.SetValue("FIELD_TYPE", GenTypeNative(field.value.type,false, field));
+      code_.SetValue("OFFSET", GenFieldOffsetName(field));
      
       if (field.value.type.base_type == BASE_TYPE_STRING)
       {
@@ -542,6 +551,7 @@ class GaiaCppGenerator : public BaseGenerator
         if (opts_.gen_col_events || opts_.gen_table_events)
         {
           code_ += "        _fields.emplace(\"{{FIELD_NAME}}\");";
+          code_ += "        _fieldOffsets.emplace({{STRUCT_NAME}}::{{OFFSET}});";
       
           if (opts_.gen_col_events)
           {
@@ -554,7 +564,8 @@ class GaiaCppGenerator : public BaseGenerator
 
     if (opts_.gen_setters && (opts_.gen_col_events || opts_.gen_table_events))
     {
-      code_ += "    const std::unordered_set<std::string>& getChangedFields() { return _fields;} ";
+      code_ += "    const std::unordered_set<std::string>& getChangedFields() { return _fields;}";
+      code_ += "    const std::unordered_set<flatbuffers::voffset_t>& getChangedFieldsOffsets() { return _fieldOffsets;}";
     }
 
     code_ += "    static void Create{{CLASS_NAME}} (gaia_id_t nodeId, " + params + "){\n"
@@ -592,7 +603,7 @@ class GaiaCppGenerator : public BaseGenerator
     code_ += "    }";
 
     // BeginTransaction function
-    code_ += "    void beginTransaction(){\n"
+    code_ += "    static void beginTransaction(){\n"
             "         GaiaObj::beginTransaction();";
     if (opts_.gen_transaction_events)
     {
@@ -601,7 +612,7 @@ class GaiaCppGenerator : public BaseGenerator
     code_ += "    }";
 
     // CommitTransaction function
-    code_ += "    void commitTransaction(){\n"
+    code_ += "    static void commitTransaction(){\n"
             "         GaiaObj::commitTransaction();";
     if (opts_.gen_transaction_events)
     {
@@ -610,7 +621,7 @@ class GaiaCppGenerator : public BaseGenerator
     code_ += "    }";
 
     // RollbackTransaction function
-    code_ += "    void rollbackTransaction(){\n"
+    code_ += "    static void rollbackTransaction(){\n"
             "         GaiaObj::rollbackTransaction();";
     if (opts_.gen_table_events)
     {
@@ -621,8 +632,9 @@ class GaiaCppGenerator : public BaseGenerator
 
     if (opts_.gen_setters && (opts_.gen_col_events || opts_.gen_table_events))
     {
-      code_ += "private:\n"
-        "    std::unordered_set<std::string> _fields;";
+      code_ += "private:";
+      code_ += "    std::unordered_set<std::string> _fields;";
+      code_ += "    std::unordered_set<flatbuffers::voffset_t> _fieldOffsets;";
     }
 
     code_ += "};";      
