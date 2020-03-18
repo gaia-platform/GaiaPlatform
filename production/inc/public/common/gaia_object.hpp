@@ -22,33 +22,38 @@ namespace common {
 struct gaia_base_t
 {
     // object caches
-    // s_gaia_cache - Track every gaia_base_t object by the gaia_id. Since
-    //                each object may contain a pointer to the flatbuffer
-    //                payload in the SE memory, or a local, mutable copy
-    //                of the flatbuffer, these objects will be frequently
-    //                referenced by their gaia_id and require quick access
-    //                to their contents.
-    // s_gaia_tx - Track every gaia_base_t object that has been used in
-    //             the current transaction. Used to clear the field
-    //             values referenced in the objects at transaction commit
-    //             because they become stale. This map is cleared before
-    //             every transaction begins. By waiting until the next
-    //             transaction begins, program references to fields will
-    //             not cause crashes, even though the data is invalid.
+    // s_gaia_cache - Track every gaia_base_t object by the gaia_id. If the same
+    //                gaia_id is accessed multiple times, this cache will find
+    //                the same object containing any local transactional changes.
+    //                Since each object may contain a pointer to the flatbuffer
+    //                payload in the SE memory, or a local, mutable copy of the
+    //                flatbuffer, these objects will be frequently referenced by
+    //                their gaia_id and require quick access to their contents.
+    // s_gaia_tx_cache - Track every gaia_base_t object that has been used in
+    //                   the current transaction. Used to clear the field
+    //                   values referenced in the objects at transaction commit
+    //                   because they become stale. This separage cache is
+    //                   maintained as a smaller subset of s_gaia_cache so that
+    //                   the whole cache doesn't have to be searched for contents
+    //                   to be cleared. This map is cleared before every
+    //                   transaction begins. By waiting until the next transaction
+    //                   begins, program references to fields will not cause
+    //                   crashes, even though the data is invalid.
     typedef map<gaia_id_t, gaia_base_t *> id_cache_t;
     static id_cache_t s_gaia_cache;
-    static id_cache_t s_gaia_tx;
+    static id_cache_t s_gaia_tx_cache;
 
     static void begin_transaction()
     {
-        // The first order of business is to clean out old values. The objects
-        // will not be deleted, as they will be continue to be tracked in
-        // the s_gaia_cache.
-        for (auto it = s_gaia_tx.begin();it != s_gaia_tx.end(); ++it)
+        // The s_gaia_tx_cache is a list of objects containing stale data that
+        // must be refreshed if a new transaction begins. Scan these objects to
+        // clean out old values. The objects will not be deleted, as they will
+        // be continue to be tracked in the s_gaia_cache.
+        for (auto it = s_gaia_tx_cache.begin();it != s_gaia_tx_cache.end(); ++it)
         {
             it->second->reset(true);
         }
-        s_gaia_tx.clear();
+        s_gaia_tx_cache.clear();
 
         gaia::db::begin_transaction();
     }
@@ -64,23 +69,23 @@ private:
 };
 
 gaia_base_t::id_cache_t gaia_base_t::s_gaia_cache;
-gaia_base_t::id_cache_t gaia_base_t::s_gaia_tx;
+gaia_base_t::id_cache_t gaia_base_t::s_gaia_tx_cache;
 
 // T_gaia_type - an integer (gaia_type_t) uniquely identifying the flatbuffer table type
 // T_gaia      - the subclass type derived from this template
 // T_fb        - the flatbuffer table type to be implemented
 // T_obj       - the mutable flatbuffer type to be implemented
 template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
-struct gaia_obj_t : gaia_base_t
+struct gaia_object_t : gaia_base_t
 {
 public:
-    virtual ~gaia_obj_t() { 
+    virtual ~gaia_object_t() {
         s_gaia_cache.erase(m_id);
-        s_gaia_tx.erase(m_id);
+        s_gaia_tx_cache.erase(m_id);
         reset(true);
     }
 
-    gaia_obj_t() : m_copy(nullptr), m_fb(nullptr), m_fbb(nullptr) {}
+    gaia_object_t() : m_copy(nullptr), m_fb(nullptr), m_fbb(nullptr) {}
 
     #define get_current(field) (m_copy ? (m_copy->field) : (m_fb->field()))
     // NOTE: Either m_fb or m_copy should exist.
@@ -123,7 +128,7 @@ public:
         }
         m_id = node_ptr->gaia_id();
         s_gaia_cache[m_id] = this;
-        s_gaia_tx[m_id] = this;
+        s_gaia_tx_cache[m_id] = this;
         return;
     }
 
@@ -184,7 +189,7 @@ private:
                 auto fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);
                 obj->m_fb = fb;
                 obj->m_id = node_ptr->id;
-                s_gaia_tx[obj->m_id] = obj;
+                s_gaia_tx_cache[obj->m_id] = obj;
             }
         }
         return obj;

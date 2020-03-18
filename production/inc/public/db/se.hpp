@@ -22,9 +22,13 @@
 #include <uuid/uuid.h>
 
 namespace gaia {
-namespace db {
-    typedef uint64_t gaia_id_t;
+namespace common {
     typedef uint64_t gaia_type_t;
+}
+namespace db {
+    using namespace common;
+
+    typedef uint64_t gaia_id_t;
     typedef uint64_t gaia_edge_type_t;
 
     // highest order bit to indicate the object is an edge

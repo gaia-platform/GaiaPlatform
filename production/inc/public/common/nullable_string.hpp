@@ -10,13 +10,12 @@
 namespace gaia {
 namespace common {
 
-// The C++ object api --gen-object-api represents strings as std::string by default.
-// On deserialization, null pointers in the database get converted to zero-lengh
-// strings. On serialization, zero-length strings get converted back to null pointers.
-// In order to be able to differentiate between zero-length strings and null strings,
-// this class is used. This class is used by passing the class name
-// (gaia::common::nullable_string_t) to the flatc compiler option --cpp-str-type
-// to use this type instead of std::string.
+// This class has been introduced to enable us to differentiate between
+// zero-length strings and null strings.  The C++ object api --gen-object-api
+// represents strings as std::string by default and represents zero-length 
+// strings as null values.  To use this type instead of std::string, we pass
+// the class name (gaia::common::nullable_string_t) to the flatc compiler via
+// the option --cpp-str-type.
 struct nullable_string_t : std::string
 {
     nullable_string_t()
@@ -30,7 +29,7 @@ struct nullable_string_t : std::string
         (void)size;
     }
 
-    const char *c_str() const
+    const char* c_str() const
     {
         if (is_null) {
             return nullptr;
@@ -54,7 +53,7 @@ struct nullable_string_t : std::string
         return *this;
     }
 
-    nullable_string_t& operator=(const char * c_str)
+    nullable_string_t& operator=(const char* c_str)
     {
         is_null = (c_str == nullptr);
         if (c_str) {
