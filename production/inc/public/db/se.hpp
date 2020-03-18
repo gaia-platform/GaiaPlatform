@@ -27,6 +27,9 @@ namespace db {
     typedef uint64_t gaia_type_t;
     typedef uint64_t gaia_edge_type_t;
 
+    // highest order bit to indicate the object is an edge
+    const gaia_id_t c_edge_flag = 0x8000000000000000;
+    
     struct gaia_se_node;
     struct gaia_se_edge;
     class gaia_ptr_base;
@@ -95,7 +98,7 @@ namespace db {
 
     inline void check_id(gaia_id_t id)
     {
-        if (id & 0x8000000000000000)
+        if (id & c_edge_flag)
         {
             throw std::invalid_argument("ID must be less than 2^63");
         }
@@ -261,7 +264,7 @@ namespace db {
             gaia_id_t _node_id;
             uuid_generate(uuid);
             memcpy(&_node_id, uuid, sizeof(gaia_id_t));
-            _node_id &= ~0x8000000000000000;
+            _node_id &= ~c_edge_flag;
             return _node_id;
         }
 
@@ -549,25 +552,16 @@ namespace db {
     template <typename T>
     class gaia_ptr
     {
+        // These two structs need to access the gaia_ptr protected constructors.
+        friend struct gaia_se_node;
+        friend struct gaia_se_edge;
+
     public:
         gaia_ptr (const std::nullptr_t null = nullptr)
             :row_id(0) {}
 
-        gaia_ptr (const gaia_id_t id)
-            :row_id(gaia_hash_map::find(id)) {}
-
         gaia_ptr (const gaia_ptr& other)
             :row_id (other.row_id) {}
-
-        gaia_ptr (const gaia_id_t id, const size_t size)
-            :row_id(0)
-        {
-            gaia_hash_map::hash_node* hash_node = gaia_hash_map::insert (id);
-            hash_node->row_id = row_id = gaia_mem_base::allocate_row_id();
-            gaia_mem_base::allocate_object(row_id, size);
-
-            gaia_mem_base::tx_log (row_id, 0, to_offset());
-        }
 
         operator T* () const
         {
@@ -680,9 +674,45 @@ namespace db {
             return row_id == 0;
         }
 
+        int64_t get_id() const
+        {
+            return row_id;
+        }
+
         static void remove (gaia_ptr<T>&);
 
     protected:
+        gaia_ptr (const gaia_id_t id, bool is_edge = false)
+        {
+            gaia_id_t id_copy = preprocess_id(id, is_edge);
+
+            row_id = gaia_hash_map::find(id_copy);
+        }
+
+        gaia_ptr (const gaia_id_t id, const size_t size, bool is_edge = false)
+            :row_id(0)
+        {
+            gaia_id_t id_copy = preprocess_id(id, is_edge);
+
+            gaia_hash_map::hash_node* hash_node = gaia_hash_map::insert (id_copy);
+            hash_node->row_id = row_id = gaia_mem_base::allocate_row_id();
+            gaia_mem_base::allocate_object(row_id, size);
+
+            gaia_mem_base::tx_log (row_id, 0, to_offset());
+        }
+
+        gaia_id_t preprocess_id(const gaia_id_t& id, bool is_edge = false)
+        {
+            check_id(id);
+
+            gaia_id_t id_copy = id;
+            if (is_edge)
+            {
+                id_copy = id_copy | c_edge_flag;
+            }
+            return id_copy;
+        }
+
         void allocate (const size_t size)
         {
             gaia_mem_base::allocate_object(row_id, size);
@@ -812,8 +842,7 @@ namespace db {
             }
 
             auto id = gaia_mem_base::get_next_id();
-            gaia_ptr<gaia_se_edge> edge(id | 0x8000000000000000, 
-                                            payload_size + sizeof(gaia_se_edge));
+            gaia_ptr<gaia_se_edge> edge(id | c_edge_flag, payload_size + sizeof(gaia_se_edge));
 
             edge->id = id;
             edge->type = type;
@@ -841,7 +870,7 @@ namespace db {
         )
         {
             check_id(id);
-            return gaia_ptr<gaia_se_edge>(id | 0x8000000000000000);
+            return gaia_ptr<gaia_se_edge>(id | c_edge_flag);
         }
 
         gaia_id_t gaia_id()

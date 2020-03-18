@@ -21,16 +21,30 @@ namespace common {
 
 struct gaia_base_t
 {
-    typedef map<gaia_id_t, gaia_base_t *> ID_CACHE;
-    static ID_CACHE s_gaia_cache;
-    static ID_CACHE s_gaia_tx;
+    // object caches
+    // s_gaia_cache - Track every gaia_base_t object by the gaia_id. Since
+    //                each object may contain a pointer to the flatbuffer
+    //                payload in the SE memory, or a local, mutable copy
+    //                of the flatbuffer, these objects will be frequently
+    //                referenced by their gaia_id and require quick access
+    //                to their contents.
+    // s_gaia_tx - Track every gaia_base_t object that has been used in
+    //             the current transaction. Used to clear the field
+    //             values referenced in the objects at transaction commit
+    //             because they become stale. This map is cleared before
+    //             every transaction begins. By waiting until the next
+    //             transaction begins, program references to fields will
+    //             not cause crashes, even though the data is invalid.
+    typedef map<gaia_id_t, gaia_base_t *> id_cache_t;
+    static id_cache_t s_gaia_cache;
+    static id_cache_t s_gaia_tx;
 
     static void begin_transaction()
     {
-        // the first order of business is to clean out old values
-        for (ID_CACHE::iterator it = s_gaia_tx.begin();
-             it != s_gaia_tx.end();
-             it++)
+        // The first order of business is to clean out old values. The objects
+        // will not be deleted, as they will be continue to be tracked in
+        // the s_gaia_cache.
+        for (auto it = s_gaia_tx.begin();it != s_gaia_tx.end(); ++it)
         {
             it->second->reset(true);
         }
@@ -48,8 +62,9 @@ private:
     virtual void reset(bool) {}
 
 };
-gaia_base_t::ID_CACHE gaia_base_t::s_gaia_cache;
-gaia_base_t::ID_CACHE gaia_base_t::s_gaia_tx;
+
+gaia_base_t::id_cache_t gaia_base_t::s_gaia_cache;
+gaia_base_t::id_cache_t gaia_base_t::s_gaia_tx;
 
 // T_gaia_type - an integer (gaia_type_t) uniquely identifying the flatbuffer table type
 // T_gaia      - the subclass type derived from this template
@@ -128,14 +143,17 @@ public:
     {
         auto node_ptr = gaia_se_node::open(m_id);
         gaia_ptr<gaia_se_node>::remove(node_ptr);
+        // A partial reset leaves m_fb alone. If program incorrectly references
+        // fields in this deleted object, it will not crash.
         reset(false);
     }
 
     T_obj* copy_write() {
         if (m_copy == nullptr) {
             T_obj* copy = new T_obj();
-            if (m_fb)
+            if (m_fb) {
                 m_fb->UnPackTo(copy);
+            }
             m_copy = copy;
             m_fbb = new flatbuffers::FlatBufferBuilder();
         }
@@ -182,7 +200,10 @@ private:
         }
         m_copy = nullptr;
         m_fbb = nullptr;
+        // A full reset clears m_fb so that it will be read afresh the next
+        // time the object is located.
         if (full) {
+            // This object is not ours to delete.
             m_fb = nullptr;
         }
     }
