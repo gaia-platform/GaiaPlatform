@@ -19,13 +19,17 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/file.h>
-#include <uuid/uuid.h>
 
-namespace gaia {
-namespace common {
+namespace gaia 
+{
+
+namespace common 
+{
     typedef uint64_t gaia_type_t;
 }
-namespace db {
+
+namespace db 
+{
     using namespace common;
 
     typedef uint64_t gaia_id_t;
@@ -261,16 +265,19 @@ namespace db {
             unmap();
         }
 
-        static inline void tx_rollback();
-
-        static gaia_id_t get_next_id() {
-            uuid_t uuid;
-            gaia_id_t _node_id;
-            uuid_generate(uuid);
-            memcpy(&_node_id, uuid, sizeof(gaia_id_t));
-            _node_id &= ~c_edge_flag;
-            return _node_id;
+        // The real implementation will need
+        // to do something better than increment
+        // a counter.  It will need to guarantee
+        // that the generated id is not in use
+        // alreaady by a database that is
+        // restored.
+        static gaia_id_t generate_id() 
+        {
+            gaia_id_t id = __sync_fetch_and_add(&s_next_id, 1);
+            return id;
         }
+
+        static inline void tx_rollback();
 
         template <typename T>
         friend class gaia_ptr;
@@ -289,6 +296,7 @@ namespace db {
         static const auto HASH_LIST_ELEMENTS = MAX_RIDS;
         static const auto MAX_LOG_RECS = 1000000;
         static const auto MAX_OBJECTS = MAX_RIDS * 8;
+        static gaia_id_t s_next_id;
 
         typedef int64_t offsets[MAX_RIDS];
 
@@ -430,6 +438,7 @@ namespace db {
     const char* gaia_mem_base::SCH_MEM_DATA = "gaia_mem_data";
     int gaia_mem_base::s_fd_offsets = 0;
     int gaia_mem_base::s_fd_data = 0;
+    gaia_id_t gaia_mem_base::s_next_id = 0;
     bool gaia_mem_base::s_engine = false;
 
     class gaia_hash_map: public gaia_mem_base
@@ -780,13 +789,18 @@ namespace db {
         size_t payload_size;
         char payload[0];
 
+        static gaia_id_t generate_id()
+        {
+            return gaia_mem_base::generate_id();
+        }
+
         static gaia_ptr<gaia_se_node> create (
+            gaia_id_t id,
             gaia_type_t type,
             size_t payload_size,
             const void* payload
         )
         {
-            auto id = gaia_mem_base::get_next_id();
             gaia_ptr<gaia_se_node> node(id, payload_size + sizeof(gaia_se_node));
 
             node->id = id;
@@ -800,13 +814,7 @@ namespace db {
             gaia_id_t id
         )
         {
-            check_id(id);
             return gaia_ptr<gaia_se_node>(id);
-        }
-
-        gaia_id_t gaia_id()
-        {
-            return id;
         }
     };
 
@@ -825,6 +833,7 @@ namespace db {
         char payload[0];
 
         static gaia_ptr<gaia_se_edge> create (
+            gaia_id_t id,
             gaia_type_t type,
             gaia_id_t first,
             gaia_id_t second,
@@ -845,8 +854,7 @@ namespace db {
                 throw invalid_node_id(second);
             }
 
-            auto id = gaia_mem_base::get_next_id();
-            gaia_ptr<gaia_se_edge> edge(id | c_edge_flag, payload_size + sizeof(gaia_se_edge));
+            gaia_ptr<gaia_se_edge> edge(id, payload_size + sizeof(gaia_se_edge), true);
 
             edge->id = id;
             edge->type = type;
@@ -873,13 +881,7 @@ namespace db {
             gaia_id_t id
         )
         {
-            check_id(id);
-            return gaia_ptr<gaia_se_edge>(id | c_edge_flag);
-        }
-
-        gaia_id_t gaia_id()
-        {
-            return id;
+            return gaia_ptr<gaia_se_edge>(id, true);
         }
     };
 

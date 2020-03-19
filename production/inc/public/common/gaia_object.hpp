@@ -79,13 +79,34 @@ template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typ
 struct gaia_object_t : gaia_base_t
 {
 public:
-    virtual ~gaia_object_t() {
+    virtual ~gaia_object_t() 
+    {
         s_gaia_cache.erase(m_id);
         s_gaia_tx_cache.erase(m_id);
         reset(true);
     }
 
-    gaia_object_t() : m_copy(nullptr), m_fb(nullptr), m_fbb(nullptr) {}
+    // This constructor supports completely new objects
+    // that the database has not seen yet by creating
+    // a copy buffer immediately.
+    gaia_object_t() : 
+        m_copy(nullptr),
+        m_fb(nullptr), 
+        m_fbb(nullptr),
+        m_id(0) 
+    {
+        copy_write();
+    }
+
+    // This constructor supports creating new objects from existing
+    // nodes in the database.  It is called by our get_object below.
+    gaia_object_t(gaia_id_t id) : 
+        m_copy(nullptr), 
+        m_fb(nullptr), 
+        m_fbb(nullptr),
+        m_id(id)
+    {
+    }
 
     #define get_current(field) (m_copy ? (m_copy->field) : (m_fb->field()))
     // NOTE: Either m_fb or m_copy should exist.
@@ -118,15 +139,18 @@ public:
     {
         // Create the node and add to the cache.
         gaia_ptr<gaia_se_node> node_ptr;
+
+        if (0 == m_id) {
+            m_id = gaia_se_node::generate_id();
+        }
         if (m_copy != nullptr) {
             auto u = T_fb::Pack(*m_fbb, m_copy);
             m_fbb->Finish(u);
-            node_ptr = gaia_se_node::create(T_gaia_type, m_fbb->GetSize(), m_fbb->GetBufferPointer());
+            node_ptr = gaia_se_node::create(m_id, T_gaia_type, m_fbb->GetSize(), m_fbb->GetBufferPointer());
             m_fbb->Clear();
         } else {
-            node_ptr = gaia_se_node::create(T_gaia_type, 0, nullptr);
+            node_ptr = gaia_se_node::create(m_id, T_gaia_type, 0, nullptr);
         }
-        m_id = node_ptr->gaia_id();
         s_gaia_cache[m_id] = this;
         s_gaia_tx_cache[m_id] = this;
         return;
@@ -139,6 +163,9 @@ public:
             auto u = T_fb::Pack(*m_fbb, m_copy);
             m_fbb->Finish(u);
             auto node_ptr = gaia_se_node::open(m_id);
+            if (nullptr == node_ptr) {
+                throw invalid_node_id(0);
+            }
             node_ptr.update_payload(m_fbb->GetSize(), m_fbb->GetBufferPointer());
             m_fbb->Clear();
         }
@@ -147,10 +174,14 @@ public:
     void delete_row()
     {
         auto node_ptr = gaia_se_node::open(m_id);
+        if (nullptr == node_ptr) {
+            throw invalid_node_id(0);
+        }
+        
         gaia_ptr<gaia_se_node>::remove(node_ptr);
         // A partial reset leaves m_fb alone. If program incorrectly references
         // fields in this deleted object, it will not crash.
-        reset(false);
+        reset();
     }
 
     T_obj* copy_write() {
@@ -168,9 +199,9 @@ public:
 protected:
     
     flatbuffers::FlatBufferBuilder* m_fbb; // cached flat buffer builder for reuse
-    const T_fb* m_fb;  // flat buffer, referencing SE memory
-    T_obj*    m_copy;  // private mutable flatbuffer copy of field changes
-    gaia_id_t   m_id;  // gaia_id assigned to this row
+    const T_fb* m_fb;   // flat buffer, referencing SE memory
+    T_obj* m_copy;      // private mutable flatbuffer copy of field changes
+    gaia_id_t m_id;     // gaia_id assigned to this row
 
 private:
     static T_gaia* get_object(gaia_ptr<gaia_se_node>& node_ptr)
@@ -182,7 +213,7 @@ private:
                 obj = dynamic_cast<T_gaia *>(it->second);
             }
             else {
-                obj = new T_gaia();
+                obj = new T_gaia(node_ptr->id);
                 s_gaia_cache.insert(pair<gaia_id_t, gaia_base_t *>(node_ptr->id, obj));
             }
             if (obj->m_fb == nullptr) {
@@ -195,7 +226,7 @@ private:
         return obj;
     }
 
-    void reset(bool full)
+    void reset(bool clear_flatbuffer = false)
     {
         if (m_copy) {
             delete m_copy;
@@ -207,7 +238,7 @@ private:
         m_fbb = nullptr;
         // A full reset clears m_fb so that it will be read afresh the next
         // time the object is located.
-        if (full) {
+        if (clear_flatbuffer) {
             // This object is not ours to delete.
             m_fb = nullptr;
         }
