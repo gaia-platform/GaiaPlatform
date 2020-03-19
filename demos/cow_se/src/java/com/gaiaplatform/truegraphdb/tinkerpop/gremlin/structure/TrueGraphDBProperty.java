@@ -9,6 +9,8 @@ import java.util.NoSuchElementException;
 
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
+import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
+import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 public final class TrueGraphDBProperty<V> implements Property<V>
 {
@@ -21,6 +23,11 @@ public final class TrueGraphDBProperty<V> implements Property<V>
         this.element = element;
         this.key = key;
         this.value = value;
+    }
+
+    public Element element()
+    {
+        return this.element;
     }
 
     public String key()
@@ -38,12 +45,23 @@ public final class TrueGraphDBProperty<V> implements Property<V>
         return true;
     }
 
-    public Element element()
-    {
-        return this.element;
-    }
-
     public void remove()
     {
     }
+
+    public String toString()
+    {
+        return StringFactory.propertyString(this);
+    }
+
+    public int hashCode()
+    {
+        return ElementHelper.hashCode(this);
+    }
+
+    public boolean equals(final Object object)
+    {
+        return ElementHelper.areEqual(this, object);
+    }
+
 }

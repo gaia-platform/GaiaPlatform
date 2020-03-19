@@ -14,13 +14,17 @@ package com.gaiaplatform.truegraphdb.tinkerpop.gremlin.structure;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
+import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.commons.configuration.Configuration;
 
+import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -28,8 +32,8 @@ import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
-
-import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
+import org.apache.tinkerpop.gremlin.structure.util.GraphVariableHelper;
+import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 //@Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_STANDARD)
 //@Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_INTEGRATE)
@@ -37,11 +41,18 @@ import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 //@Graph.OptIn(Graph.OptIn.SUITE_PROCESS_COMPUTER)
 public final class TrueGraphDBGraph implements Graph
 {
+    private static final Configuration EMPTY_CONFIGURATION = new BaseConfiguration()
+    {{
+        this.setProperty(Graph.GRAPH, TrueGraphDBGraph.class.getName());
+    }};
+
     public static final String TRUEGRAPHDB_VERTEX_ID_MANAGER = "truegraphdb.vertexIdManager";
     public static final String TRUEGRAPHDB_EDGE_ID_MANAGER = "truegraphdb.edgeIdManager";
     public static final String TRUEGRAPHDB_VERTEX_PROPERTY_ID_MANAGER = "truegraphdb.vertexPropertyIdManager";
 
     private final TrueGraphDBFeatures features = new TrueGraphDBFeatures();
+
+    protected TrueGraphDBVariables variables = null;
 
     protected AtomicLong currentId = new AtomicLong(-1L);
     protected final IdManager<?> vertexIdManager;
@@ -63,6 +74,16 @@ public final class TrueGraphDBGraph implements Graph
             configuration, TRUEGRAPHDB_EDGE_ID_MANAGER, Edge.class);
         this.vertexPropertyIdManager = selectIdManager(
             configuration, TRUEGRAPHDB_VERTEX_PROPERTY_ID_MANAGER, VertexProperty.class);
+    }
+
+    public static TrueGraphDBGraph open()
+    {
+        return open(EMPTY_CONFIGURATION);
+    }
+
+    public static TrueGraphDBGraph open(final Configuration configuration)
+    {
+        return new TrueGraphDBGraph(configuration);
     }
 
     public Vertex addVertex(final Object... keyValues)
@@ -101,7 +122,7 @@ public final class TrueGraphDBGraph implements Graph
     public GraphComputer compute()
     throws IllegalArgumentException
     {
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     public Iterator<Vertex> vertices(final Object... vertexIds)
@@ -121,12 +142,17 @@ public final class TrueGraphDBGraph implements Graph
 
     public void close()
     {
-        // Nothing to do yet.
+        // Nothing to do here yet.
     }
 
     public Graph.Variables variables()
     {
-        return null;
+        if (this.variables == null)
+        {
+            this.variables = new TrueGraphDBVariables();
+        }
+
+        return this.variables;
     }
 
     public Configuration configuration()
@@ -137,6 +163,48 @@ public final class TrueGraphDBGraph implements Graph
     public Features features()
     {
         return this.features;
+    }
+
+    public String toString()
+    {
+        return StringFactory.graphString(
+            this, "vertices:" + this.vertices.size() + " edges:" + this.edges.size());
+    }
+
+    public final class TrueGraphDBVariables implements Graph.Variables
+    {
+        private final Map<String, Object> variables = new ConcurrentHashMap<>();
+    
+        public TrueGraphDBVariables()
+        {
+        }
+    
+        public Set<String> keys()
+        {
+            return this.variables.keySet();
+        }
+    
+        public <R> Optional<R> get(final String key)
+        {
+            return Optional.ofNullable((R)this.variables.get(key));
+        }
+    
+        public void remove(final String key)
+        {
+            this.variables.remove(key);
+        }
+    
+        public void set(final String key, final Object value)
+        {
+            GraphVariableHelper.validateVariable(key, value);
+
+            this.variables.put(key, value);
+        }
+    
+        public String toString()
+        {
+            return StringFactory.graphVariablesString(this);
+        }
     }
 
     public class TrueGraphDBFeatures implements Features

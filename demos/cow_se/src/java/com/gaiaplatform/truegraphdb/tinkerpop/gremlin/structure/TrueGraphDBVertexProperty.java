@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -17,7 +18,7 @@ import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
-
+import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 public final class TrueGraphDBVertexProperty<V> extends TrueGraphDBElement implements VertexProperty<V>
@@ -25,6 +26,7 @@ public final class TrueGraphDBVertexProperty<V> extends TrueGraphDBElement imple
     private final TrueGraphDBVertex vertex;
     protected final String key;
     protected final V value;
+
     protected Map<String, Property> properties;
 
     protected TrueGraphDBVertexProperty(final TrueGraphDBVertex vertex,
@@ -38,6 +40,11 @@ public final class TrueGraphDBVertexProperty<V> extends TrueGraphDBElement imple
 
         ElementHelper.legalPropertyKeyValueArray(propertyKeyValues);
         ElementHelper.attachProperties(this, propertyKeyValues);
+    }
+
+    public Vertex element()
+    {
+        return this.vertex;
     }
 
     public String key()
@@ -55,13 +62,15 @@ public final class TrueGraphDBVertexProperty<V> extends TrueGraphDBElement imple
         return true;
     }
 
-    public Vertex element()
+    public Set<String> keys()
     {
-        return this.vertex;
+        return (this.properties == null) ? Collections.emptySet() : this.properties.keySet();
     }
 
     public <U> Property<U> property(final String key, final U value)
     {
+        ElementHelper.validateProperty(key, value);
+
         final Property<U> newProperty = new TrueGraphDBProperty<>(this, key, value);
 
         if (this.properties == null)
@@ -97,5 +106,10 @@ public final class TrueGraphDBVertexProperty<V> extends TrueGraphDBElement imple
     public void remove()
     {
         this.removed = true;
+    }
+
+    public String toString()
+    {
+        return StringFactory.propertyString(this);
     }
 }

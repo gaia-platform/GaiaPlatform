@@ -13,10 +13,11 @@ import java.util.StringTokenizer;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Property;
+import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
 public abstract class TrueGraphDBElement implements Element
 {
-    protected final Graph graph;
+    protected final TrueGraphDBGraph graph;
     protected final Object id;
     protected final String label;
     protected String payload;
@@ -24,14 +25,14 @@ public abstract class TrueGraphDBElement implements Element
 
     protected TrueGraphDBElement(final Graph graph, final Object id, final String label)
     {
-        this.graph = graph;
+        this.graph = (TrueGraphDBGraph)graph;
         this.id = id;
         this.label = label;
     }
 
     public Graph graph()
     {
-        return null;
+        return this.graph;
     }
 
     public Object id()
@@ -42,5 +43,15 @@ public abstract class TrueGraphDBElement implements Element
     public String label()
     {
         return this.label;
+    }
+
+    public int hashCode()
+    {
+        return ElementHelper.hashCode(this);
+    }
+
+    public boolean equals(final Object object)
+    {
+        return ElementHelper.areEqual(this, object);
     }
 }

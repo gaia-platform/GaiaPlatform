@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.tinkerpop.gremlin.structure.Direction;
@@ -17,13 +18,14 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
-
+import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
 {
     protected final Vertex inVertex;
     protected final Vertex outVertex;
+
     protected Map<String, Property> properties;
 
     protected TrueGraphDBEdge(final Object id, final String label,
@@ -33,6 +35,16 @@ public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
 
         this.inVertex = inVertex;
         this.outVertex = outVertex;
+    }
+
+    public Vertex inVertex()
+    {
+        return this.inVertex;
+    }
+
+    public Vertex outVertex()
+    {
+        return this.outVertex;
     }
 
     public Iterator<Vertex> vertices(final Direction direction)
@@ -55,6 +67,11 @@ public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
         }
     }
 
+    public Set<String> keys()
+    {
+        return (this.properties == null) ? Collections.emptySet() : this.properties.keySet();
+    }
+
     public <V> Property<V> property(final String key, final V value)
     {
         ElementHelper.validateProperty(key, value);
@@ -69,6 +86,13 @@ public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
         this.properties.put(key, newProperty);
 
         return newProperty;
+    }
+
+    public <V> Property<V> property(final String key)
+    {
+        return (this.properties == null)
+            ? Property.<V>empty()
+            : this.properties.getOrDefault(key, Property.<V>empty());
     }
 
     public <V> Iterator<Property<V>> properties(final String... propertyKeys)
@@ -94,5 +118,10 @@ public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
     public void remove()
     {
         this.removed = true;
+    }
+
+    public String toString()
+    {
+        return StringFactory.edgeString(this);
     }
 }
