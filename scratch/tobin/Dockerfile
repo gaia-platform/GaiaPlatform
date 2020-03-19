@@ -48,7 +48,7 @@ ENV LC_CTYPE=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
 ENV LANG=en_US.UTF-8
 RUN locale-gen en_US.UTF-8 && \
-# add a user (--disabled-password: the usedr won't be able to use the account until the password is set)
+# add a user (--disabled-password: the user won't be able to use the account until the password is set)
 adduser --quiet --disabled-password --shell /bin/zsh --home /home/$USER_NAME --gecos "User" $USER_NAME && \
 # update the password
 echo "${USER_NAME}:${USER_PASSWORD}" | chpasswd && usermod -aG sudo $USER_NAME && \
@@ -60,11 +60,11 @@ RUN curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
 echo "deb http://apt.postgresql.org/pub/repos/apt/ `lsb_release -cs`-pgdg main" | tee /etc/apt/sources.list.d/pgdg.list && \
 apt-get -y update
 RUN apt-get -y install \
-postgresql-12 \
-postgresql-client-12 \
-postgresql-contrib-12 \
-postgresql-server-dev-12 \
-libpq-dev
+    postgresql-12 \
+    postgresql-client-12 \
+    postgresql-contrib-12 \
+    postgresql-server-dev-12 \
+    libpq-dev
 
 # install python postgres client
 RUN pip3 install psycopg2
