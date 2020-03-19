@@ -11,7 +11,7 @@
 #include <map>
 #include "flatbuffers/flatbuffers.h"
 #include "nullable_string.hpp"
-#include "se.hpp"
+#include "storage_engine.hpp"
 
 using namespace std;
 using namespace gaia::db;
