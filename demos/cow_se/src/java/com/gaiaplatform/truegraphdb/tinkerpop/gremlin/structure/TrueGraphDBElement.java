@@ -20,7 +20,6 @@ public abstract class TrueGraphDBElement implements Element
     protected final TrueGraphDBGraph graph;
     protected final Object id;
     protected final String label;
-    protected String payload;
     protected boolean removed = false;
 
     protected TrueGraphDBElement(final Graph graph, final Object id, final String label)

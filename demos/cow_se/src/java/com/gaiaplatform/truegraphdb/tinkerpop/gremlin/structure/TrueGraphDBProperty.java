@@ -7,6 +7,7 @@ package com.gaiaplatform.truegraphdb.tinkerpop.gremlin.structure;
 
 import java.util.NoSuchElementException;
 
+import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
@@ -47,6 +48,14 @@ public final class TrueGraphDBProperty<V> implements Property<V>
 
     public void remove()
     {
+        if (this.element instanceof Edge)
+        {
+            ((TrueGraphDBEdge)this.element).properties.remove(this.key);
+        }
+        else
+        {
+            ((TrueGraphDBVertexProperty)this.element).properties.remove(this.key);
+        }
     }
 
     public String toString()
@@ -63,5 +72,4 @@ public final class TrueGraphDBProperty<V> implements Property<V>
     {
         return ElementHelper.areEqual(this, object);
     }
-
 }

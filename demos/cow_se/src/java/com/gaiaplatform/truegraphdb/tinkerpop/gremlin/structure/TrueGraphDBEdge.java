@@ -28,7 +28,9 @@ public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
 
     protected Map<String, Property> properties;
 
-    protected TrueGraphDBEdge(final Object id, final String label,
+    protected TrueGraphDBEdge(
+        final Object id,
+        final String label,
         final Vertex inVertex, final Vertex outVertex)
     {
         super(inVertex.graph(), id, label);
@@ -85,6 +87,8 @@ public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
 
         this.properties.put(key, newProperty);
 
+        // TODO: Update edge payload in COW.
+
         return newProperty;
     }
 
@@ -117,6 +121,11 @@ public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
 
     public void remove()
     {
+        // TODO: Remove the edge from COW.
+
+        this.graph.edges.remove(this.id());
+
+        this.properties = null;
         this.removed = true;
     }
 

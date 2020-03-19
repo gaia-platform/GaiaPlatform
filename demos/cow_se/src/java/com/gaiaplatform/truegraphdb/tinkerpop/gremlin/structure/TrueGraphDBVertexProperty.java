@@ -29,10 +29,25 @@ public final class TrueGraphDBVertexProperty<V> extends TrueGraphDBElement imple
 
     protected Map<String, Property> properties;
 
-    protected TrueGraphDBVertexProperty(final TrueGraphDBVertex vertex,
-        final String key, final V value, final Object... propertyKeyValues)
+    protected TrueGraphDBVertexProperty(
+        final TrueGraphDBVertex vertex,
+        final String key, final V value,
+        final Object... propertyKeyValues)
     {
-        super(vertex.graph(), null, key);
+        this(
+            vertex.graph.vertexPropertyIdManager.getNextId(vertex.graph),
+            vertex,
+            key, value,
+            propertyKeyValues);
+    }
+
+    public TrueGraphDBVertexProperty(
+        final Object id,
+        final TrueGraphDBVertex vertex,
+        final String key, final V value,
+        final Object... propertyKeyValues)
+    {
+        super(vertex.graph, id, key);
 
         this.vertex = vertex;
         this.key = key;
@@ -105,6 +120,18 @@ public final class TrueGraphDBVertexProperty<V> extends TrueGraphDBElement imple
 
     public void remove()
     {
+        if (this.vertex.properties != null && this.vertex.properties.containsKey(this.key))
+        {
+            this.vertex.properties.get(this.key).remove(this);
+            if (this.vertex.properties.get(this.key).size() == 0)
+            {
+                this.vertex.properties.remove(this.key);
+            }
+        }        
+
+        // TODO: Update node payload in COW.
+
+        this.properties = null;
         this.removed = true;
     }
 

@@ -48,6 +48,7 @@ if (JAVA_FOUND AND JNI_FOUND)
       src/java/com/gaiaplatform/truegraphdb/tinkerpop/gremlin/structure/TrueGraphDBEdge.java
       src/java/com/gaiaplatform/truegraphdb/tinkerpop/gremlin/structure/TrueGraphDBElement.java
       src/java/com/gaiaplatform/truegraphdb/tinkerpop/gremlin/structure/TrueGraphDBGraph.java
+      src/java/com/gaiaplatform/truegraphdb/tinkerpop/gremlin/structure/TrueGraphDBHelper.java
       src/java/com/gaiaplatform/truegraphdb/tinkerpop/gremlin/structure/TrueGraphDBProperty.java
       src/java/com/gaiaplatform/truegraphdb/tinkerpop/gremlin/structure/TrueGraphDBVertex.java
       src/java/com/gaiaplatform/truegraphdb/tinkerpop/gremlin/structure/TrueGraphDBVertexProperty.java

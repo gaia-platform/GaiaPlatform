@@ -105,6 +105,8 @@ public final class TrueGraphDBGraph implements Graph
             idValue = this.vertexIdManager.getNextId(this);
         }
 
+        // TODO: Create database vertex in COW.
+
         final Vertex vertex = new TrueGraphDBVertex(this, idValue, label);
         this.vertices.put(vertex.id(), vertex);
 
@@ -127,11 +129,15 @@ public final class TrueGraphDBGraph implements Graph
 
     public Iterator<Vertex> vertices(final Object... vertexIds)
     {
+        // TODO: Add implementation.
+
         return Collections.emptyIterator();
     }
 
     public Iterator<Edge> edges(final Object... edgeIds)
     {
+        // TODO: Add implementation.
+
         return Collections.emptyIterator();
     }
 

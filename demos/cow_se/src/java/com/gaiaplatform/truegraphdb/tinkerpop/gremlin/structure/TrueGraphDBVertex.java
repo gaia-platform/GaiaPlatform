@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -21,6 +22,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 public final class TrueGraphDBVertex extends TrueGraphDBElement implements Vertex
 {
@@ -41,6 +43,8 @@ public final class TrueGraphDBVertex extends TrueGraphDBElement implements Verte
         ElementHelper.validateLabel(label);
 		ElementHelper.legalPropertyKeyValueArray(keyValues);
         
+        // TODO: Add implementation and create edge in COW.
+
         return null;
     }
 
@@ -67,12 +71,11 @@ public final class TrueGraphDBVertex extends TrueGraphDBElement implements Verte
             return optionalVertexProperty.get();
         }
 
-        TrueGraphDBGraph graph = (TrueGraphDBGraph)graph();
         final Object idValue = optionalId.isPresent()
-            ? graph.vertexPropertyIdManager.convert(optionalId.get())
-            : graph.vertexPropertyIdManager.getNextId(graph);
+            ? this.graph.vertexPropertyIdManager.convert(optionalId.get())
+            : this.graph.vertexPropertyIdManager.getNextId(graph);
 
-        final VertexProperty<V> newVertexProperty = new TrueGraphDBVertexProperty<V>(this, key, value, idValue);
+        final VertexProperty<V> newVertexProperty = new TrueGraphDBVertexProperty<V>(idValue, this, key, value);
 
         if (this.properties == null)
         {
@@ -85,31 +88,73 @@ public final class TrueGraphDBVertex extends TrueGraphDBElement implements Verte
 
         ElementHelper.attachProperties(newVertexProperty, keyValues);
 
-        return newVertexProperty;
-    }
+        // TODO: Update node payload in COW.
 
-    public Iterator<Edge> edges(final Direction direction, final String... edgeLabels)
-    {
-        return Collections.emptyIterator();
+        return newVertexProperty;
     }
 
     public Iterator<Vertex> vertices(final Direction direction, final String... edgeLabels)
     {
+        // TODO: Add implementation.
+
+        return Collections.emptyIterator();
+    }
+
+    public Iterator<Edge> edges(final Direction direction, final String... edgeLabels)
+    {
+        // TODO: Add implementation.
+
         return Collections.emptyIterator();
     }
 
     public <V> Iterator<VertexProperty<V>> properties(final String... propertyKeys)
     {
-        if (removed)
+        if (removed || this.properties == null)
         {
             return Collections.emptyIterator();
         }
 
-        return Collections.emptyIterator();
+        if (propertyKeys.length == 1)
+        {
+            final List<VertexProperty> properties = this.properties.getOrDefault(
+                propertyKeys[0], Collections.emptyList());
+
+            if (properties.size() == 1)
+            {
+                return IteratorUtils.of(properties.get(0));
+            }
+            else if (properties.isEmpty())
+            {
+                return Collections.emptyIterator();
+            }
+            else
+            {
+                return (Iterator)new ArrayList<>(properties).iterator();
+            }
+        }
+        else
+        {
+            return (Iterator)(this.properties.entrySet().stream()
+                .filter(entry -> ElementHelper.keyExists(entry.getKey(), propertyKeys))
+                .flatMap(entry -> entry.getValue().stream())
+                .collect(Collectors.toList()).iterator());
+        }
     }
 
     public void remove()
     {
+        // First remove all edges related to this node.
+        // This will also remove the edges from COW.
+        final List<Edge> edges = new ArrayList<>();
+        this.edges(Direction.BOTH).forEachRemaining(edges::add);
+        edges.stream().filter(edge -> !((TrueGraphDBEdge)edge).removed).forEach(Edge::remove);
+
+        // TODO: Remove the node from COW.
+
+        // Then remove the node.
+        this.graph.vertices.remove(this.id);
+
+        this.properties = null;
         this.removed = true;
     }
 
