@@ -10,8 +10,8 @@ enable_testing()
 project(event_manager)
 
 set(GAIA_EVENT_MANAGER_INCLUDES 
+    ${GAIA_REPO}/production/db/storage_engine/mock
     ${GAIA_INC}/public/common
-    ${GAIA_INC}/public/db
     ${GAIA_INC}/internal/common
     ${GAIA_INC}/public/rules
     ${GAIA_RULES_INC}
