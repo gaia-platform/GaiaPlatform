@@ -18,12 +18,13 @@ RUN apt-get -y install \
     libclang-8-dev \
     libclang-common-8-dev \
     libclang1-8 \
-    cmake \
+    uuid-dev \
     git \
     curl \
     ca-certificates \
     gnupg \
     lsb-release \
+    software-properties-common \
     locales
 
 # use clang not gcc
@@ -43,6 +44,12 @@ RUN apt-get -y install \
     python-pybind11 \
     pybind11-dev
 
+# install latest cmake
+RUN curl https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | sudo apt-key add - && \
+apt-add-repository "deb https://apt.kitware.com/ubuntu/ `lsb_release -cs` main" && \
+apt-get -y update && \
+apt-get -y install cmake
+
 # set locale properly for zsh and postgres
 ENV LC_CTYPE=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
@@ -58,8 +65,8 @@ echo "${USER_NAME} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 # install postgres 12
 RUN curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
 echo "deb http://apt.postgresql.org/pub/repos/apt/ `lsb_release -cs`-pgdg main" | tee /etc/apt/sources.list.d/pgdg.list && \
-apt-get -y update
-RUN apt-get -y install \
+apt-get -y update && \
+apt-get -y install \
     postgresql-12 \
     postgresql-client-12 \
     postgresql-contrib-12 \
