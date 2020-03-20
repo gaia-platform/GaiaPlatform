@@ -5,7 +5,7 @@
 
 /////////////////////////////////////////////
 // Portions of this code are derived
-// from TrueGraphDBGraph project.
+// from TinkerGraph project.
 // Used under Apache License 2.0
 /////////////////////////////////////////////
 

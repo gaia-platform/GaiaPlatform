@@ -5,7 +5,7 @@
 
 /////////////////////////////////////////////
 // Portions of this code are derived
-// from TrueGraphDBGraph project.
+// from TinkerGraph project.
 // Used under Apache License 2.0
 /////////////////////////////////////////////
 
@@ -22,6 +22,10 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 public final class TrueGraphDBHelper
 {
+    private TrueGraphDBHelper()
+    {
+    }
+
     protected static Edge addEdge(
         final TrueGraphDBGraph graph,
         final TrueGraphDBVertex inVertex, final TrueGraphDBVertex outVertex,
