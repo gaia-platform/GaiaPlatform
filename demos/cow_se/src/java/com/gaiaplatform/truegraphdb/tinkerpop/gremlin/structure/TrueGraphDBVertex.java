@@ -92,6 +92,7 @@ public final class TrueGraphDBVertex extends TrueGraphDBElement implements Verte
         ElementHelper.attachProperties(newVertexProperty, keyValues);
 
         // TODO: Update node payload in COW.
+        // No plans to support vertex property properties in COW for now.
 
         return newVertexProperty;
     }

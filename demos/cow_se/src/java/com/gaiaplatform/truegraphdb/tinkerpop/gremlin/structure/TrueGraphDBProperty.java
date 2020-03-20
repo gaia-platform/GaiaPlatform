@@ -51,10 +51,14 @@ public final class TrueGraphDBProperty<V> implements Property<V>
         if (this.element instanceof Edge)
         {
             ((TrueGraphDBEdge)this.element).properties.remove(this.key);
+
+            // TODO: Update edge payload in COW.
         }
         else
         {
             ((TrueGraphDBVertexProperty)this.element).properties.remove(this.key);
+
+            // No plans to support vertex property properties in COW for now.
         }
     }
 

@@ -98,6 +98,8 @@ public final class TrueGraphDBVertexProperty<V> extends TrueGraphDBElement imple
 
         this.properties.put(key, newProperty);
 
+        // TODO: Update node payload in COW.
+
         return newProperty;
     }
 

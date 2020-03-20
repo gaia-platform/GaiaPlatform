@@ -112,7 +112,7 @@ public final class TrueGraphDBGraph implements Graph
             idValue = this.vertexIdManager.getNextId(this);
         }
 
-        // TODO: Create vertex in COW.
+        // TODO: Create node in COW.
 
         final Vertex vertex = new TrueGraphDBVertex(this, idValue, label);
         this.vertices.put(vertex.id(), vertex);
