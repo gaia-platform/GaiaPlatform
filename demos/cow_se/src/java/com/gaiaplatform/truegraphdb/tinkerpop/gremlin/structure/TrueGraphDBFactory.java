@@ -207,4 +207,25 @@ public final class TrueGraphDBFactory {
             .addE("link").from("a").to("b").property(T.id, 2002)
             .addE("link").from("a").to("a").property(T.id, 2003).iterate();
     }
+
+    // COW data set.
+    public static TrueGraphDBGraph createCOW()
+    {
+        final TrueGraphDBGraph graph = getTrueGraphDBGraphWithNumberManager();
+        generateCOW(graph);
+        return graph;
+    }
+
+    public static void generateCOW(final TrueGraphDBGraph graph)
+    {
+        final Vertex node1 = graph.addVertex(T.id, 1, T.label, "1", "payload", "n1");
+        final Vertex node2 = graph.addVertex(T.id, 2, T.label, "1", "payload", "n2");
+        final Vertex node3 = graph.addVertex(T.id, 3, T.label, "2", "payload", "n3");
+        final Vertex node4 = graph.addVertex(T.id, 4, T.label, "2", "payload", "n4");
+
+        node1.addEdge("3", node2, T.id, 5, "payload", "e5=n1->n2");
+        node1.addEdge("3", node3, T.id, 6, "payload", "e6=n1->n3");
+        node4.addEdge("4", node1, T.id, 7, "payload", "e7=n4->n1");
+        node2.addEdge("4", node3, T.id, 8, "payload", "e8=n2->n3");
+    }
 }
