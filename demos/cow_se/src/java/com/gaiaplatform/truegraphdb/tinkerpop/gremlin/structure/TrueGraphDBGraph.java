@@ -4,19 +4,14 @@
 /////////////////////////////////////////////
 
 /////////////////////////////////////////////
-// Portions of this code are copied
+// Portions of this code are derived
 // from TrueGraphDBGraph project.
 // Used under Apache License 2.0
 /////////////////////////////////////////////
 
 package com.gaiaplatform.truegraphdb.tinkerpop.gremlin.structure;
 
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
@@ -25,15 +20,13 @@ import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.commons.configuration.Configuration;
 
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Element;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.Transaction;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.GraphVariableHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraphIterator;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraphVariables;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 //@Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_STANDARD)
 //@Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_INTEGRATE)
@@ -46,18 +39,26 @@ public final class TrueGraphDBGraph implements Graph
         this.setProperty(Graph.GRAPH, TrueGraphDBGraph.class.getName());
     }};
 
-    public static final String TRUEGRAPHDB_VERTEX_ID_MANAGER = "truegraphdb.vertexIdManager";
-    public static final String TRUEGRAPHDB_EDGE_ID_MANAGER = "truegraphdb.edgeIdManager";
-    public static final String TRUEGRAPHDB_VERTEX_PROPERTY_ID_MANAGER = "truegraphdb.vertexPropertyIdManager";
+    public static final String TRUEGRAPHDB_VERTEX_ID_MANAGER
+        = "truegraphdb.vertexIdManager";
+    public static final String TRUEGRAPHDB_EDGE_ID_MANAGER
+        = "truegraphdb.edgeIdManager";
+    public static final String TRUEGRAPHDB_VERTEX_PROPERTY_ID_MANAGER
+        = "truegraphdb.vertexPropertyIdManager";
+    public static final String TRUEGRAPHDB_DEFAULT_VERTEX_PROPERTY_CARDINALITY
+        = "truegraphdb.defaultVertexPropertyCardinality";
 
     private final TrueGraphDBFeatures features = new TrueGraphDBFeatures();
 
-    protected TrueGraphDBVariables variables = null;
+    // Reuse TinkerGraph's Graph.Variables implementation.
+    protected TinkerGraphVariables variables = null;
 
     protected AtomicLong currentId = new AtomicLong(-1L);
     protected final IdManager<?> vertexIdManager;
     protected final IdManager<?> edgeIdManager;
     protected final IdManager<?> vertexPropertyIdManager;
+
+    protected final VertexProperty.Cardinality defaultVertexPropertyCardinality;
 
     private final Configuration configuration;
 
@@ -74,6 +75,12 @@ public final class TrueGraphDBGraph implements Graph
             configuration, TRUEGRAPHDB_EDGE_ID_MANAGER, Edge.class);
         this.vertexPropertyIdManager = selectIdManager(
             configuration, TRUEGRAPHDB_VERTEX_PROPERTY_ID_MANAGER, VertexProperty.class);
+
+        this.defaultVertexPropertyCardinality = VertexProperty.Cardinality.valueOf(
+            configuration.getString(TRUEGRAPHDB_DEFAULT_VERTEX_PROPERTY_CARDINALITY,
+            VertexProperty.Cardinality.single.name()));
+
+        // TODO: Initialize COW.
     }
 
     public static TrueGraphDBGraph open()
@@ -105,7 +112,7 @@ public final class TrueGraphDBGraph implements Graph
             idValue = this.vertexIdManager.getNextId(this);
         }
 
-        // TODO: Create database vertex in COW.
+        // TODO: Create vertex in COW.
 
         final Vertex vertex = new TrueGraphDBVertex(this, idValue, label);
         this.vertices.put(vertex.id(), vertex);
@@ -127,18 +134,24 @@ public final class TrueGraphDBGraph implements Graph
         throw new UnsupportedOperationException();
     }
 
+    public Graph.Variables variables()
+    {
+        if (this.variables == null)
+        {
+            this.variables = new TinkerGraphVariables();
+        }
+
+        return this.variables;
+    }
+
     public Iterator<Vertex> vertices(final Object... vertexIds)
     {
-        // TODO: Add implementation.
-
-        return Collections.emptyIterator();
+        return createElementIterator(Vertex.class, vertices, vertexIdManager, vertexIds);
     }
 
     public Iterator<Edge> edges(final Object... edgeIds)
     {
-        // TODO: Add implementation.
-
-        return Collections.emptyIterator();
+        return createElementIterator(Edge.class, edges, edgeIdManager, edgeIds);
     }
 
     public Transaction tx()
@@ -149,16 +162,6 @@ public final class TrueGraphDBGraph implements Graph
     public void close()
     {
         // Nothing to do here yet.
-    }
-
-    public Graph.Variables variables()
-    {
-        if (this.variables == null)
-        {
-            this.variables = new TrueGraphDBVariables();
-        }
-
-        return this.variables;
     }
 
     public Configuration configuration()
@@ -177,39 +180,49 @@ public final class TrueGraphDBGraph implements Graph
             this, "vertices:" + this.vertices.size() + " edges:" + this.edges.size());
     }
 
-    public final class TrueGraphDBVariables implements Graph.Variables
+    private <T extends Element> Iterator<T> createElementIterator(
+        final Class<T> clazz,
+        final Map<Object, T> elements,
+        final IdManager idManager,
+        final Object... ids)
     {
-        private final Map<String, Object> variables = new ConcurrentHashMap<>();
-    
-        public TrueGraphDBVariables()
+        if (ids.length == 0)
         {
+            return new TinkerGraphIterator<T>(elements.values().iterator());
         }
-    
-        public Set<String> keys()
+        else
         {
-            return this.variables.keySet();
-        }
-    
-        public <R> Optional<R> get(final String key)
-        {
-            return Optional.ofNullable((R)this.variables.get(key));
-        }
-    
-        public void remove(final String key)
-        {
-            this.variables.remove(key);
-        }
-    
-        public void set(final String key, final Object value)
-        {
-            GraphVariableHelper.validateVariable(key, value);
+            final List<Object> idList = Arrays.asList(ids);
+            validateHomogenousIds(idList);
 
-            this.variables.put(key, value);
+            return clazz.isAssignableFrom(ids[0].getClass())
+                ? new TinkerGraphIterator<T>(IteratorUtils.filter(
+                    IteratorUtils.map(idList, id -> elements.get(clazz.cast(id).id())).iterator(),
+                    Objects::nonNull))
+                : new TinkerGraphIterator<T>(IteratorUtils.filter(
+                    IteratorUtils.map(idList, id -> elements.get(idManager.convert(id))).iterator(),
+                    Objects::nonNull));
         }
-    
-        public String toString()
+    }
+
+    private void validateHomogenousIds(final List<Object> ids)
+    {
+        final Iterator<Object> iterator = ids.iterator();
+
+        Object id = iterator.next();
+        if (id == null)
         {
-            return StringFactory.graphVariablesString(this);
+            throw Graph.Exceptions.idArgsMustBeEitherIdOrElement();
+        }
+        final Class firstIdClass = id.getClass();
+
+        while (iterator.hasNext())
+        {
+            id = iterator.next();
+            if (id == null || !id.getClass().equals(firstIdClass))
+            {
+                throw Graph.Exceptions.idArgsMustBeEitherIdOrElement();
+            }
         }
     }
 
@@ -285,7 +298,7 @@ public final class TrueGraphDBGraph implements Graph
 
         public VertexProperty.Cardinality getCardinality(final String key)
         {
-            return VertexProperty.Cardinality.list;
+            return defaultVertexPropertyCardinality;
         }
     }
 

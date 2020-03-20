@@ -3,29 +3,27 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+/////////////////////////////////////////////
+// Portions of this code are derived
+// from TrueGraphDBGraph project.
+// Used under Apache License 2.0
+/////////////////////////////////////////////
+
 package com.gaiaplatform.truegraphdb.tinkerpop.gremlin.structure;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
-import org.apache.tinkerpop.gremlin.structure.Direction;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 public final class TrueGraphDBVertex extends TrueGraphDBElement implements Vertex
 {
+    protected Map<String, Set<Edge>> inEdges;
+    protected Map<String, Set<Edge>> outEdges;
+
     protected Map<String, List<VertexProperty>> properties;
 
     protected TrueGraphDBVertex(final Graph graph, final Object id, final String label)
@@ -35,17 +33,17 @@ public final class TrueGraphDBVertex extends TrueGraphDBElement implements Verte
 
     public Edge addEdge(final String label, final Vertex inVertex, final Object... keyValues)
     {
+        if (this.removed)
+        {
+            throw elementAlreadyRemoved(Vertex.class, this.id);
+        }
+
         if (inVertex == null)
         {
             throw Graph.Exceptions.argumentCanNotBeNull("inVertex");
         }
 
-        ElementHelper.validateLabel(label);
-		ElementHelper.legalPropertyKeyValueArray(keyValues);
-        
-        // TODO: Add implementation and create edge in COW.
-
-        return null;
+        return TrueGraphDBHelper.addEdge(this.graph, (TrueGraphDBVertex)inVertex, this, label, keyValues);
     }
 
     public Set<String> keys()
@@ -59,6 +57,11 @@ public final class TrueGraphDBVertex extends TrueGraphDBElement implements Verte
         final V value,
         final Object... keyValues)
     {
+        if (this.removed)
+        {
+            throw elementAlreadyRemoved(Vertex.class, id);
+        }
+
         ElementHelper.validateProperty(key, value);
         ElementHelper.legalPropertyKeyValueArray(keyValues);
 
@@ -93,20 +96,6 @@ public final class TrueGraphDBVertex extends TrueGraphDBElement implements Verte
         return newVertexProperty;
     }
 
-    public Iterator<Vertex> vertices(final Direction direction, final String... edgeLabels)
-    {
-        // TODO: Add implementation.
-
-        return Collections.emptyIterator();
-    }
-
-    public Iterator<Edge> edges(final Direction direction, final String... edgeLabels)
-    {
-        // TODO: Add implementation.
-
-        return Collections.emptyIterator();
-    }
-
     public <V> Iterator<VertexProperty<V>> properties(final String... propertyKeys)
     {
         if (removed || this.properties == null)
@@ -139,6 +128,16 @@ public final class TrueGraphDBVertex extends TrueGraphDBElement implements Verte
                 .flatMap(entry -> entry.getValue().stream())
                 .collect(Collectors.toList()).iterator());
         }
+    }
+
+    public Iterator<Vertex> vertices(final Direction direction, final String... edgeLabels)
+    {
+        return (Iterator)TrueGraphDBHelper.getVertices(this, direction, edgeLabels);
+    }
+
+    public Iterator<Edge> edges(final Direction direction, final String... edgeLabels)
+    {
+        return (Iterator)TrueGraphDBHelper.getEdges(this, direction, edgeLabels);
     }
 
     public void remove()

@@ -3,20 +3,18 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+/////////////////////////////////////////////
+// Portions of this code are derived
+// from TrueGraphDBGraph project.
+// Used under Apache License 2.0
+/////////////////////////////////////////////
+
 package com.gaiaplatform.truegraphdb.tinkerpop.gremlin.structure;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
-import org.apache.tinkerpop.gremlin.structure.Direction;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.Property;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
@@ -76,6 +74,11 @@ public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
 
     public <V> Property<V> property(final String key, final V value)
     {
+        if (this.removed)
+        {
+            throw elementAlreadyRemoved(Edge.class, this.id);
+        }
+
         ElementHelper.validateProperty(key, value);
 
         final Property<V> newProperty = new TrueGraphDBProperty<>(this, key, value);
@@ -123,7 +126,28 @@ public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
     {
         // TODO: Remove the edge from COW.
 
-        this.graph.edges.remove(this.id());
+        final TrueGraphDBVertex inVertex = (TrueGraphDBVertex)this.inVertex;
+        final TrueGraphDBVertex outVertex = (TrueGraphDBVertex)this.outVertex;
+
+        if (inVertex != null && inVertex.inEdges != null)
+        {
+            final Set<Edge> edges = inVertex.inEdges.get(this.label);
+            if (edges != null)
+            {
+                edges.remove(this);
+            }
+        }
+
+        if (outVertex != null && outVertex.outEdges != null)
+        {
+            final Set<Edge> edges = outVertex.outEdges.get(this.label);
+            if (edges != null)
+            {
+                edges.remove(this);
+            }
+        }
+
+        this.graph.edges.remove(this.id);
 
         this.properties = null;
         this.removed = true;

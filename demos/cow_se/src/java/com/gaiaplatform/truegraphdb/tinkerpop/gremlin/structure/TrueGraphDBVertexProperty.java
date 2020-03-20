@@ -3,20 +3,18 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+/////////////////////////////////////////////
+// Portions of this code are derived
+// from TrueGraphDBGraph project.
+// Used under Apache License 2.0
+/////////////////////////////////////////////
+
 package com.gaiaplatform.truegraphdb.tinkerpop.gremlin.structure;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
-import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.Property;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
@@ -84,6 +82,11 @@ public final class TrueGraphDBVertexProperty<V> extends TrueGraphDBElement imple
 
     public <U> Property<U> property(final String key, final U value)
     {
+        if (this.removed)
+        {
+            throw elementAlreadyRemoved(VertexProperty.class, this.id);
+        }
+
         ElementHelper.validateProperty(key, value);
 
         final Property<U> newProperty = new TrueGraphDBProperty<>(this, key, value);
@@ -108,7 +111,7 @@ public final class TrueGraphDBVertexProperty<V> extends TrueGraphDBElement imple
         if (propertyKeys.length == 1)
         {
             final Property<U> property = this.properties.get(propertyKeys[0]);
-            return null == property ? Collections.emptyIterator() : IteratorUtils.of(property);
+            return (property == null) ? Collections.emptyIterator() : IteratorUtils.of(property);
         }
         else
         {

@@ -5,10 +5,7 @@
 
 package com.gaiaplatform.truegraphdb.tinkerpop.gremlin.structure;
 
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.StringTokenizer;
+import java.util.*;
 
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -52,5 +49,12 @@ public abstract class TrueGraphDBElement implements Element
     public boolean equals(final Object object)
     {
         return ElementHelper.areEqual(this, object);
+    }
+
+    protected static IllegalStateException elementAlreadyRemoved(
+        final Class<? extends Element> clazz, final Object id)
+    {
+        return new IllegalStateException(
+            String.format("%s with id %s was already removed.", clazz.getSimpleName(), id));
     }
 }
