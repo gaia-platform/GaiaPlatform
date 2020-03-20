@@ -211,8 +211,17 @@ JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_creat
         return NULL;
     }
  
-    gaia_ptr<gaia_se_node> node = gaia_se_node::create(
-        id, type, payload_holder.size(), payload_holder.c_str());
+    gaia_ptr<gaia_se_node> node;
+
+    try
+    {
+        node = gaia_se_node::create(
+            id, type, payload_holder.size(), payload_holder.c_str());
+    }
+    catch(const std::exception& e)
+    {
+        return NULL;
+    }
 
     return node.get_id();
 }
@@ -274,8 +283,17 @@ JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_creat
         return NULL;
     }
  
-    gaia_ptr<gaia_se_edge> edge = gaia_se_edge::create(
-        id, type, idFirstNode, idSecondNode, payload_holder.size(), payload_holder.c_str());
+    gaia_ptr<gaia_se_edge> edge;
+    
+    try
+    {
+        edge = gaia_se_edge::create(
+            id, type, idFirstNode, idSecondNode, payload_holder.size(), payload_holder.c_str());
+    }
+    catch(const std::exception& e)
+    {
+        return NULL;
+    }
 
     return edge.get_id();
 }
