@@ -20,6 +20,7 @@ RUN apt-get -y install \
     libclang1-8 \
     uuid-dev \
     git \
+    ack-grep \
     curl \
     ca-certificates \
     gnupg \
