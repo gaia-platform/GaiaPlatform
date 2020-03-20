@@ -68,7 +68,7 @@ struct subscription_t {
     const char * ruleset_name;
     const char * rule_name;
     gaia::common::gaia_type_t gaia_type;
-    gaia::events::event_type type;
+    event_type_t type;
 };
 
 /**
@@ -96,13 +96,13 @@ typedef std::vector<std::unique_ptr<subscription_t>> list_subscriptions_t;
 class context_base_t 
 {
 public:            
-    context_base_t(const rule_binding_t& binding, events::event_type type) 
+    context_base_t(const rule_binding_t& binding, event_type_t type) 
     : event_type(type), rule_binding(binding) {}
     virtual ~context_base_t() = default;
 
     context_base_t() = delete;
 
-    const events::event_type event_type;
+    const event_type_t event_type;
     const rule_binding_t& rule_binding;
 };
 
@@ -113,7 +113,7 @@ public:
 class transaction_context_t : public context_base_t
 {
 public:
-    transaction_context_t(const rule_binding_t& binding, events::event_type type) 
+    transaction_context_t(const rule_binding_t& binding, event_type_t type) 
     : context_base_t(binding, type) {}
 };
 
@@ -125,7 +125,7 @@ class table_context_t : public context_base_t
 public:
     table_context_t(
         const rule_binding_t& binding, 
-        events::event_type a_type,
+        event_type_t a_type,
         gaia::common::gaia_type_t a_gaia_type,
         gaia::common::gaia_base* a_row)
     : context_base_t(binding, a_type)
@@ -154,7 +154,7 @@ public:
  */
 gaia::common::error_code_t subscribe_table_rule(
     gaia::common::gaia_type_t gaia_type, 
-    gaia::events::event_type type, 
+    event_type_t type, 
     const rule_binding_t& rule_binding);
 
 
@@ -173,7 +173,7 @@ gaia::common::error_code_t subscribe_table_rule(
  *      to the transaction event)
  */
 gaia::common::error_code_t subscribe_transaction_rule(
-    gaia::events::event_type type, 
+    event_type_t type, 
     const rule_binding_t& rule_binding);
 
 
@@ -190,7 +190,7 @@ gaia::common::error_code_t subscribe_transaction_rule(
  */
 gaia::common::error_code_t unsubscribe_table_rule(
     gaia::common::gaia_type_t gaia_type, 
-    gaia::events::event_type type, 
+    event_type_t type, 
     const rule_binding_t& rule_binding);
 
 /**
@@ -204,7 +204,7 @@ gaia::common::error_code_t unsubscribe_table_rule(
  *      duplicate rule_binding (if the ruleset_name/rule_name pair already has been subscribed
  *      to the transaction event)
  */
-gaia::common::error_code_t unsubscribe_transaction_rule(gaia::events::event_type type,
+gaia::common::error_code_t unsubscribe_transaction_rule(event_type_t type,
     const rule_binding_t& rule_binding);
 
 /**
@@ -227,7 +227,7 @@ void unsubscribe_rules();
 void list_subscribed_rules(
     const char* ruleset_name, 
     const gaia::common::gaia_type_t* gaia_type, 
-    const gaia::events::event_type* type, 
+    const event_type_t* type, 
     list_subscriptions_t& subscriptions);
 
 /*@}*/

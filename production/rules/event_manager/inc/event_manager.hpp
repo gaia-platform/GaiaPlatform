@@ -13,7 +13,7 @@
 
 namespace gaia 
 {
-namespace events 
+namespace rules
 {
 
 /**
@@ -40,39 +40,39 @@ public:
     gaia::common::error_code_t log_event(
       gaia::common::gaia_base * row, 
       gaia::common::gaia_type_t gaia_type,
-      event_type type, 
+      event_type_t type, 
       event_mode mode);
 
-    gaia::common::error_code_t log_event(event_type type, event_mode mode);
+    gaia::common::error_code_t log_event(event_type_t type, event_mode mode);
     
     /**
      * Rule APIs
      */ 
     gaia::common::error_code_t subscribe_rule(
       gaia::common::gaia_type_t gaia_type, 
-      event_type type, 
-      const gaia::rules::rule_binding_t& rule_binding);
+      event_type_t type, 
+      const rule_binding_t& rule_binding);
 
     gaia::common::error_code_t subscribe_rule(
-      event_type type, 
-      const gaia::rules::rule_binding_t& rule_binding);
+      event_type_t type, 
+      const rule_binding_t& rule_binding);
 
     gaia::common::error_code_t unsubscribe_rule(
       gaia::common::gaia_type_t gaia_type, 
-      event_type type, 
-      const gaia::rules::rule_binding_t& rule_binding);
+      event_type_t type, 
+      const rule_binding_t& rule_binding);
 
     gaia::common::error_code_t unsubscribe_rule(
-      event_type type, 
-      const gaia::rules::rule_binding_t& rule_binding);
+      event_type_t type, 
+      const rule_binding_t& rule_binding);
 
     void unsubscribe_rules();
 
     void list_subscribed_rules(
       const char* ruleset_name, 
       const gaia::common::gaia_type_t* gaia_type, 
-      const event_type* type,
-      gaia::rules::list_subscriptions_t& subscriptions);
+      const event_type_t* type,
+      list_subscriptions_t& subscriptions);
 
 private:
     // Internal rule binding to copy the callers
@@ -99,7 +99,7 @@ private:
 
     // Associates a particular event type to its list of rules.  This means
     // that an event may fire moree than one rule.
-    typedef std::unordered_map<events::event_type, rule_list_t> events_map_t;
+    typedef std::unordered_map<event_type_t, rule_list_t> events_map_t;
 
     // List of all rule subscriptions for tables.  This holds the rules bound
     // to events on each different Gaia type registered in the system.
@@ -113,8 +113,8 @@ private:
     gaia::common::error_code_t add_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     gaia::common::error_code_t remove_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
 
-    static bool is_valid_table_event(event_type type);
-    static bool is_valid_transaction_event(event_type type);
+    static bool is_valid_table_event(event_type_t type);
+    static bool is_valid_transaction_event(event_type_t type);
     static bool is_valid_rule_binding(const rules::rule_binding_t& binding);
     static std::string make_rule_key(const rules::rule_binding_t& binding);
     static events_map_t create_table_event_map();
@@ -123,7 +123,7 @@ private:
       const events_map_t& events, 
       gaia::common::gaia_type_t gaia_type,
       const char * ruleset_filter, 
-      const event_type * event_filter);
+      const event_type_t * event_filter);
 };
 
 } // namespace events

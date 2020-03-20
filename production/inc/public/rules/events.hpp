@@ -14,11 +14,11 @@ namespace gaia
  * @{
  */
 
-namespace events
+namespace rules
 {
 
 /**
- * \addtogroup Events
+ * \addtogroup Rules
  * @{
  * 
  * Provides facilities for logging events to the system.
@@ -37,7 +37,7 @@ enum class event_mode {
  * Every event in the system has an event type.  The type
  * is scoped to an object type.
  */
-enum class event_type {
+enum class event_type_t {
     transaction_begin,
     transaction_commit,
     transaction_rollback,
@@ -63,7 +63,7 @@ enum class event_type {
 gaia::common::error_code_t log_table_event(
     common::gaia_base* row, 
     common::gaia_type_t gaia_type,
-    event_type type, 
+    event_type_t type, 
     event_mode mode);
 
 /**
@@ -78,7 +78,7 @@ gaia::common::error_code_t log_table_event(
  *      event_type::[transaction_begin, transaction_commit,
  *      transaction_rollback]
  */
-gaia::common::error_code_t log_transaction_event(event_type type, event_mode mode);
+gaia::common::error_code_t log_transaction_event(event_type_t type, event_mode mode);
 
 /*@}*/
 }
