@@ -186,9 +186,10 @@ template <typename T> jlong get_next_edge_second(jlong id)
 
 // JNI implementation starts here.
 
-JNIEXPORT void JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_initialize(JNIEnv*, jobject)
+JNIEXPORT void JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_initialize(
+    JNIEnv*, jobject, jboolean cleanMemory)
 {
-    gaia_mem_base::init(true);
+    gaia_mem_base::init(cleanMemory);
 }
 
 JNIEXPORT void JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_beginTransaction(JNIEnv*, jobject)

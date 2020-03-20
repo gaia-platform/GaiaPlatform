@@ -16,7 +16,7 @@ public class CowStorageEngine
     {
         CowStorageEngine cow = new CowStorageEngine();
 
-        cow.initialize();
+        cow.initialize(true);
 
         // First transaction.
         cow.beginTransaction();
@@ -229,7 +229,7 @@ public class CowStorageEngine
     }
     
     // Native interface.
-    private native void initialize();
+    private native void initialize(boolean cleanMemory);
 
     private native void beginTransaction();
     private native void commitTransaction();
