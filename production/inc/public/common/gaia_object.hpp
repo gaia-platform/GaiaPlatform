@@ -159,13 +159,12 @@ public:
     void update_row()
     {
         if (m_copy) {
-            // assert m_fbb
-            auto u = T_fb::Pack(*m_fbb, m_copy);
-            m_fbb->Finish(u);
             auto node_ptr = gaia_se_node::open(m_id);
             if (nullptr == node_ptr) {
                 throw invalid_node_id(0);
             }
+            auto u = T_fb::Pack(*m_fbb, m_copy);
+            m_fbb->Finish(u);
             node_ptr.update_payload(m_fbb->GetSize(), m_fbb->GetBufferPointer());
             m_fbb->Clear();
         }
@@ -184,7 +183,15 @@ public:
         reset();
     }
 
-    T_obj* copy_write() {
+protected:
+    
+    flatbuffers::FlatBufferBuilder* m_fbb; // cached flat buffer builder for reuse
+    const T_fb* m_fb;   // flat buffer, referencing SE memory
+    T_obj* m_copy;      // private mutable flatbuffer copy of field changes
+    gaia_id_t m_id;     // gaia_id assigned to this row
+
+    T_obj* copy_write() 
+    {
         if (m_copy == nullptr) {
             T_obj* copy = new T_obj();
             if (m_fb) {
@@ -195,13 +202,6 @@ public:
         }
         return m_copy;
     }
-
-protected:
-    
-    flatbuffers::FlatBufferBuilder* m_fbb; // cached flat buffer builder for reuse
-    const T_fb* m_fb;   // flat buffer, referencing SE memory
-    T_obj* m_copy;      // private mutable flatbuffer copy of field changes
-    gaia_id_t m_id;     // gaia_id assigned to this row
 
 private:
     static T_gaia* get_object(gaia_ptr<gaia_se_node>& node_ptr)
@@ -230,16 +230,18 @@ private:
     {
         if (m_copy) {
             delete m_copy;
+            m_copy = nullptr;
         }
         if (m_fbb) {
             delete m_fbb;
+            m_fbb = nullptr;
         }
-        m_copy = nullptr;
-        m_fbb = nullptr;
+        
         // A full reset clears m_fb so that it will be read afresh the next
-        // time the object is located.
+        // time the object is located.  We do not own the flatbuffer so
+        // don't delete it.
         if (clear_flatbuffer) {
-            // This object is not ours to delete.
+
             m_fb = nullptr;
         }
     }
