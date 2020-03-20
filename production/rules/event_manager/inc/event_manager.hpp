@@ -41,9 +41,9 @@ public:
       gaia::common::gaia_base * row, 
       gaia::common::gaia_type_t gaia_type,
       event_type_t type, 
-      event_mode mode);
+      event_mode_t mode);
 
-    gaia::common::error_code_t log_event(event_type_t type, event_mode mode);
+    gaia::common::error_code_t log_event(event_type_t type, event_mode_t mode);
     
     /**
      * Rule APIs

@@ -473,13 +473,13 @@ protected:
 TEST_F(EventManagerTest, LogEventEventModeNotSupported) 
 {
     // For Q1, only support immediate mode events.
-    EXPECT_EQ(error_code_t::event_mode_not_supported, log_transaction_event(event_type_t::transaction_commit, event_mode::deferred));
-    EXPECT_EQ(error_code_t::event_mode_not_supported, log_table_event(nullptr, TestGaia2::s_gaia_type, event_type_t::col_change, event_mode::deferred));
+    EXPECT_EQ(error_code_t::event_mode_not_supported, log_transaction_event(event_type_t::transaction_commit, event_mode_t::deferred));
+    EXPECT_EQ(error_code_t::event_mode_not_supported, log_table_event(nullptr, TestGaia2::s_gaia_type, event_type_t::col_change, event_mode_t::deferred));
 }
 
 TEST_F(EventManagerTest, LogEventEventSuccessNoRules) 
 {
-    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::col_change, event_mode::immediate));
+    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::col_change, event_mode_t::immediate));
     validate_table_rule_not_called();
 }
 
@@ -490,11 +490,11 @@ TEST_F(EventManagerTest, LogEventSuccessSingleRuleSingleEvent) {
     EXPECT_EQ(error_code_t::success, subscribe_table_rule(TestGaia::s_gaia_type, event_type_t::row_update, m_rule1));
 
     // Log insert; verify the rule was not fired because it is bound to update, not insert.
-    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_insert, event_mode::immediate));
+    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_insert, event_mode_t::immediate));
     validate_table_rule_not_called();
 
     // Log update
-    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_update, event_mode::immediate));
+    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_update, event_mode_t::immediate));
     validate_table_rule(expected_value, ruleset1_name, rule1_name, rule1_add_1, event_type_t::row_update, TestGaia::s_gaia_type, &m_row);
 }
 
@@ -507,16 +507,16 @@ TEST_F(EventManagerTest, LogTableEventSuccessSingleRuleMultiEvent)
     EXPECT_EQ(error_code_t::success, subscribe_table_rule(TestGaia::s_gaia_type, event_type_t::row_insert, m_rule1));
 
     // Log delete; verify no rules fired.
-    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_delete, event_mode::immediate));
+    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_delete, event_mode_t::immediate));
     validate_table_rule_not_called();
     
     // Log update followed by insert and verify the rule gets called twice.
     expected_value += rule1_adder;
-    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_update, event_mode::immediate));
+    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_update, event_mode_t::immediate));
     validate_table_rule(expected_value, ruleset1_name, rule1_name, rule1_add_1, event_type_t::row_update, TestGaia::s_gaia_type, &m_row);
 
     expected_value += rule1_adder;
-    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_insert, event_mode::immediate));
+    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_insert, event_mode_t::immediate));
     validate_table_rule(expected_value, ruleset1_name, rule1_name, rule1_add_1, event_type_t::row_insert, TestGaia::s_gaia_type, &m_row);
 }
 
@@ -529,16 +529,16 @@ TEST_F(EventManagerTest, LogTransactionEventSuccessSingleRuleMultiEvent)
     EXPECT_EQ(error_code_t::success, subscribe_transaction_rule(event_type_t::transaction_rollback, m_rule4));
     
     // Log begin; verify no rules fired.
-    EXPECT_EQ(error_code_t::success, log_transaction_event(event_type_t::transaction_begin, event_mode::immediate));
+    EXPECT_EQ(error_code_t::success, log_transaction_event(event_type_t::transaction_begin, event_mode_t::immediate));
     validate_transaction_rule_not_called();
     
     // Log commit and update; verify rule gets called twice.
     expected_value += rule4_adder;
-    EXPECT_EQ(error_code_t::success, log_transaction_event(event_type_t::transaction_commit, event_mode::immediate));
+    EXPECT_EQ(error_code_t::success, log_transaction_event(event_type_t::transaction_commit, event_mode_t::immediate));
     validate_transaction_rule(expected_value, ruleset2_name, rule4_name, rule4_add_10000, event_type_t::transaction_commit);
 
     expected_value += rule4_adder;
-    EXPECT_EQ(error_code_t::success, log_transaction_event(event_type_t::transaction_rollback, event_mode::immediate));
+    EXPECT_EQ(error_code_t::success, log_transaction_event(event_type_t::transaction_rollback, event_mode_t::immediate));
     validate_transaction_rule(expected_value, ruleset2_name, rule4_name, rule4_add_10000, event_type_t::transaction_rollback);
 }
 
@@ -549,12 +549,12 @@ TEST_F(EventManagerTest, LogEventSuccessMultiRuleSingleEvent)
     EXPECT_EQ(error_code_t::success, subscribe_table_rule(TestGaia::s_gaia_type, event_type_t::row_delete, m_rule2));
 
     // Log a col_change event.  Verify no rules fired.
-    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::col_change, event_mode::immediate));
+    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::col_change, event_mode_t::immediate));
     validate_table_rule_not_called();
 
     // Verify logging a delete event fires both rules.
     int32_t expected_value = m_row.data + (rule1_adder + rule2_adder);
-    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_delete, event_mode::immediate));
+    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_delete, event_mode_t::immediate));
     EXPECT_EQ(m_row.data, expected_value);
 }
 
@@ -569,43 +569,43 @@ TEST_F(EventManagerTest, LogEventSuccessMultiRuleMultiEvent)
     validate_transaction_rule_not_called();
 
     // Log event for TestGaia::col_change.
-    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::col_change, event_mode::immediate));
+    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::col_change, event_mode_t::immediate));
     validate_table_rule_not_called();
 
     // Log event TestGaia::delete to invoke rule1 and rule2.
     int32_t expected_value = m_row.data + (rule1_adder + rule2_adder);
-    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_delete, event_mode::immediate));
+    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_delete, event_mode_t::immediate));
     EXPECT_EQ(m_row.data, expected_value);
 
     // Unsubscribe rule1 from delete now; log delete; verify only rule2 gets fired.
     expected_value += rule2_adder;
     EXPECT_EQ(error_code_t::success, unsubscribe_table_rule(TestGaia::s_gaia_type, event_type_t::row_delete, m_rule1));
-    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_delete, event_mode::immediate));
+    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_delete, event_mode_t::immediate));
     validate_table_rule(expected_value, ruleset1_name, rule2_name, rule2_add_100, event_type_t::row_delete, TestGaia::s_gaia_type, &m_row);
 
     // Insert should invoke rule2.
     expected_value += rule2_adder;
-    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_insert, event_mode::immediate));
+    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_insert, event_mode_t::immediate));
     validate_table_rule(expected_value, ruleset1_name, rule2_name, rule2_add_100, event_type_t::row_insert, TestGaia::s_gaia_type, &m_row);
 
     // Update should invoke rule1.
     expected_value += rule1_adder;
-    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_update, event_mode::immediate));
+    EXPECT_EQ(error_code_t::success, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_update, event_mode_t::immediate));
     validate_table_rule(expected_value, ruleset1_name, rule1_name, rule1_add_1, event_type_t::row_update, TestGaia::s_gaia_type, &m_row);
 
     // Rollback should invoke rule3, rule4.
     int32_t expected_tx_value = g_tx_data + (rule3_adder + rule4_adder);
-    EXPECT_EQ(error_code_t::success, log_transaction_event(event_type_t::transaction_rollback, event_mode::immediate));
+    EXPECT_EQ(error_code_t::success, log_transaction_event(event_type_t::transaction_rollback, event_mode_t::immediate));
     EXPECT_EQ(g_tx_data, expected_tx_value);
 
     // Begin should invoke rule3 only.
     expected_tx_value += rule3_adder;
-    EXPECT_EQ(error_code_t::success, log_transaction_event(event_type_t::transaction_begin, event_mode::immediate));
+    EXPECT_EQ(error_code_t::success, log_transaction_event(event_type_t::transaction_begin, event_mode_t::immediate));
     validate_transaction_rule(expected_tx_value, ruleset2_name, rule3_name, rule3_add_1000, event_type_t::transaction_begin);
    
     // commit should invoke rule3, rule4
     expected_tx_value += (rule3_adder + rule4_adder);
-    EXPECT_EQ(error_code_t::success, log_transaction_event(event_type_t::transaction_commit, event_mode::immediate));
+    EXPECT_EQ(error_code_t::success, log_transaction_event(event_type_t::transaction_commit, event_mode_t::immediate));
     EXPECT_EQ(g_tx_data, expected_tx_value);
 }
 

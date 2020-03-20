@@ -28,11 +28,11 @@ event_manager_t::~event_manager_t()
 {
 }
 
-gaia::common::error_code_t event_manager_t::log_event(event_type_t type, event_mode mode)
+gaia::common::error_code_t event_manager_t::log_event(event_type_t type, event_mode_t mode)
 {
     // todo: log the event in a table
 
-    if (event_mode::deferred == mode) {
+    if (event_mode_t::deferred == mode) {
         return error_code_t::event_mode_not_supported;
     }
 
@@ -54,11 +54,11 @@ gaia::common::error_code_t event_manager_t::log_event(
     gaia_base * row, 
     gaia_type_t gaia_type,
     event_type_t type, 
-    event_mode mode)
+    event_mode_t mode)
 {
     // todo: log the event in a table
 
-    if (event_mode::deferred == mode) {
+    if (event_mode_t::deferred == mode) {
         return error_code_t::event_mode_not_supported;
     }
 
@@ -395,7 +395,7 @@ event_manager_t::_rule_binding_t::_rule_binding_t(
 /**
  * Public event API implementation
  */
-gaia::common::error_code_t gaia::rules::log_transaction_event(event_type_t type, event_mode mode)
+gaia::common::error_code_t gaia::rules::log_transaction_event(event_type_t type, event_mode_t mode)
 {
     return event_manager_t::get().log_event(type, mode);
 }
@@ -404,7 +404,7 @@ error_code_t gaia::rules::log_table_event(
     gaia_base * row, 
     gaia_type_t gaia_type,
     event_type_t type, 
-    event_mode mode)
+    event_mode_t mode)
 {
     return event_manager_t::get().log_event(row, gaia_type, type, mode);
 }
