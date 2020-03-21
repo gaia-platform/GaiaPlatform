@@ -22,8 +22,53 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 public final class TrueGraphDBHelper
 {
+    protected final static String propertyDelimiter = "|";
+    protected final static String keyValueDelimiter = "=";
+
     private TrueGraphDBHelper()
     {
+    }
+
+    protected static void packProperty(StringBuilder payload, String key, String value)
+    {
+        if (payload.length() > 0)
+        {
+            payload.append(propertyDelimiter);
+        }
+
+        payload.append(key);
+        payload.append(keyValueDelimiter);
+        payload.append(value);
+    }
+
+    protected static String packProperties(Map<String, Property> properties)
+    {
+        StringBuilder payload = new StringBuilder();
+
+        properties.forEach((key, property) -> packProperty(payload, key, property.value().toString()));
+
+        return payload.toString();
+    }
+
+    protected static String packPropertyLists(Map<String, List<VertexProperty>> properties)
+    {
+        StringBuilder payload = new StringBuilder();
+
+        properties.forEach((key, list) -> packProperty(payload, key, list.get(0).value().toString()));
+
+        return payload.toString();
+    }
+
+    protected static void createNode(
+        TrueGraphDBGraph graph, Object idValue, String label, TrueGraphDBVertex vertex)
+    {
+        long id = Long.parseLong((String)idValue);
+        long type = Long.parseLong((String)label);
+        String payload = packPropertyLists(vertex.properties);
+
+        graph.cow.beginTransaction();
+        graph.cow.createNode(id, type, payload);
+        graph.cow.commitTransaction();
     }
 
     protected static Edge addEdge(
