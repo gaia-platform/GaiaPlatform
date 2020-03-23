@@ -175,6 +175,21 @@ public:
 int32_t g_tx_data = 0;
 
 /**
+ * Applications must provide an implementation for initialize_rules().
+ * This function is called on construction of the singleton event
+ * manager instance.  If this function is not called then every test
+ * will fail below because the condition is checked on TearDown() of
+ * ever test case in the test fixture.
+ */
+ uint32_t g_initialize_rules_called = 0;
+
+ extern "C"
+ void initialize_rules()
+ {
+     ++g_initialize_rules_called;
+ }
+ 
+/**
  * Table Rule functions.
  * 
  * Make sure the rule operations are commutative since we don't guarantee
@@ -240,9 +255,10 @@ static constexpr char rule3_name[] = "rule3_add_1000";
 static constexpr char rule4_name[] = "rule4_add_10000";
 
 /**
- * This type enables subscription_t as well as rule_biding_t
+ * This type enables subscription_t as well as rule_binding_t
  * to be built off of it.  It is used to provide expected results
- * to validation functions of the test fixture.
+ * to validation functions of the test fixture and enable a table
+ * driven testing approach.
  */ 
 struct rule_decl_t{
     subscription_t sub;
@@ -303,6 +319,11 @@ protected:
         unsubscribe_rules();
         g_table_checker.reset();
         g_transaction_checker.reset();
+
+        // This expectation verifies that the caller provided
+        // initialize_rules function was called exactly once by
+        // the event_manager_t singleton.
+        EXPECT_EQ(1, g_initialize_rules_called);
     }
 
     void validate_table_rule(
@@ -468,7 +489,6 @@ protected:
     rule_binding_t m_rule3{ruleset2_name, rule3_name, rule3_add_1000};
     rule_binding_t m_rule4{ruleset2_name, rule4_name, rule4_add_10000};
 };
-
 
 TEST_F(event_manager_test, log_event_mode_not_supported) 
 {

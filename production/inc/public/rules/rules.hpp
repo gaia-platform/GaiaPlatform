@@ -36,6 +36,12 @@ class context_base_t;
 typedef void (* gaia_rule_fn)(const context_base_t * context);
 
 /**
+ * The application must provide an implementation of initialize_rules().  This
+ * function is invoked when the event manager singleton is created.
+ */ 
+extern "C" void initialize_rules();
+
+/**
  * The caller supplies a rule_binding to subscribe/unsubscribe rules to/from events.
  * The caller must supply the ruleset_name, rule_name, and the function pointer for the rule.
  * The ruleset_name and the rule_name must uniquely identify the rule.
@@ -71,7 +77,7 @@ struct subscription_t {
 };
 
 /**
- * caller must provide this type when using the list_subscribed_rules
+ * Caller must provide an instance of this type when using the list_subscribed_rules
  * method below
  */
 typedef std::vector<std::unique_ptr<subscription_t>> list_subscriptions_t;
