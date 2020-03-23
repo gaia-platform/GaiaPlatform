@@ -6,7 +6,6 @@
 
 #include <vector>
 
-#include "error_codes.hpp"
 #include "events.hpp"
 
 namespace gaia 
@@ -136,6 +135,59 @@ public:
     gaia::common::gaia_base* row;
 };
 
+/**
+ * Thrown when the caller provides an incomplete rule_binding_t structure.
+ * 
+ * The system needs the function pointer, rule_name, and ruleset_name to
+ * be provided by the caller.
+ */ 
+class invalid_rule_binding: public gaia::common::gaia_exception
+{
+public:
+    invalid_rule_binding()
+    {
+        m_message = "Invalid rule binding. "
+            "Verify that the ruleset_name, rule_name and rule are provided.";
+    }
+};
+
+/**
+ * Thrown under two circumstances.  
+ * 
+ * First, the ruleset_name and rule_name must be unique across the system.  
+ * If a caller submits a rule_binding that generates the same key but has 
+ * a different rule definition then this exception is thrown.  
+ * 
+ * Second, if a user attempts to subscribe the same rule to the same 
+ * gaia type and event  type then this event is thrown.  
+ */ 
+class duplicate_rule: public gaia::common::gaia_exception
+{
+public:
+    duplicate_rule(const rule_binding_t& binding, bool duplicate_key)
+    {
+        std::stringstream strs;
+        m_message = strs.str();
+
+        if (duplicate_key)
+        {
+            strs << binding.ruleset_name << "::"
+                << binding.rule_name 
+                << " already subscribed with the same key "
+                "but diffrent rule function.";
+        }
+        else
+        {
+            strs << binding.ruleset_name << "::"
+                << binding.rule_name 
+                << " already subscribed to the same rule list.";
+        }
+
+        m_message = strs.str();
+        
+    }
+};
+
 
 /**
  * Subscribes this rule to the specified table event scoped to the gaia_type. 
@@ -144,19 +196,16 @@ public:
  * It is also valid to bind the same rule to multiple different events.
  * 
  * @param gaia_type table type to bind the rule to
- * @param type the event type to bind this rule to
+ * @param event_type the table event type to bind this rule to
  * @param rule_binding caller-supplied rule information; this call will populate rule_name
- * @return error_code_t::success, Or:
- *      error_code_t::invalid_event_type (must be a transaction event)
- *      error_code_t::invalid_rule_binding (no ruleset_name, no rule)
- *      error_code_t::duplicate_rule (if the ruleset_name/rule_name pair already has been subscribed
- *      to the transaction event)
+ * @throw invalid_event_type
+ * @throw invalid_rule_binding
+ * @throw duplicate_rule
  */
-gaia::common::error_code_t subscribe_table_rule(
+void subscribe_table_rule(
     gaia::common::gaia_type_t gaia_type, 
-    event_type_t type, 
+    event_type_t event_type, 
     const rule_binding_t& rule_binding);
-
 
 /**
  * Subscribes this rule to the specified transaction event.  
@@ -166,16 +215,13 @@ gaia::common::error_code_t subscribe_table_rule(
  * 
  * @param type the transaction event type to bind this rule to
  * @param rule_binding caller-supplied rule information; this call will populate rule_name
- * @return error_code_t::success, Or:
- *      error_code_t::invalid_event_type (must be a transaction event)
- *      error_code_t::invalid_rule_binding (no ruleset_name, no rule)
- *      error_code_t::duplicate_rule (if the ruleset_name/rule_name pair already has been subscribed
- *      to the transaction event)
+ * @throw invalid_event_type
+ * @throw invalid_rule_binding
+ * @throw duplicate_rule
  */
-gaia::common::error_code_t subscribe_transaction_rule(
+void subscribe_transaction_rule(
     event_type_t type, 
     const rule_binding_t& rule_binding);
-
 
 /**
  * Unsubscribes this rule from the specified table event scoped by the gaia_type.
@@ -183,12 +229,11 @@ gaia::common::error_code_t subscribe_transaction_rule(
  * @param gaia_type table type to bind the rule to
  * @param type the event type to bind this rule to
  * @param rule_binding caller-supplied rule information
- * @return error_code_t::success, or:
- *      error_code_t::invalid_event_type (must be a table event)
- *      error_code_t::invalid_rule_binding (no ruleset_name or no rule_name)
- *      error_code_t::rule_not_found
+ * @return true if the rule was unsubscribed; false otherwise.
+ * @throw invalid_event_type
+ * @throw invalid_rule_binding
  */
-gaia::common::error_code_t unsubscribe_table_rule(
+bool unsubscribe_table_rule(
     gaia::common::gaia_type_t gaia_type, 
     event_type_t type, 
     const rule_binding_t& rule_binding);
@@ -198,13 +243,11 @@ gaia::common::error_code_t unsubscribe_table_rule(
  * 
  * @param type the transaction event type to bind this rule to
  * @param rule_binding caller-supplied rule information
- * @return true on success, false on failure. Failure can occure for the following reasons:
- *      invalid event type (must be a transaction event)
- *      invalid rule_binding (no ruleset_name, no rule)
- *      duplicate rule_binding (if the ruleset_name/rule_name pair already has been subscribed
- *      to the transaction event)
+ * @return true if the rule was unsubscribed; false otherwise.
+ * @throw invalid_event_type
+ * @throw invalid_rule_binding
  */
-gaia::common::error_code_t unsubscribe_transaction_rule(event_type_t type,
+bool unsubscribe_transaction_rule(event_type_t type,
     const rule_binding_t& rule_binding);
 
 /**
