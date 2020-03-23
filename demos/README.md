@@ -21,7 +21,7 @@ The flatbuffer definitions exactly match table specifications. There are extra c
 
 The demo was originally developed on Ubuntu 18.04, but has also been verified to work with 19.10.
 
-1. **Basic tools**:
+1. **Basic tools**
    * Synaptic Package Manager (SPM) - on Ubuntu, this will allow you to install many of the following dependencies.
      * An alternative to Synaptic Package Manager is apt-get, which can be used like this: ```sudo apt-get install <package_name>```.
    * Pip installer is required for installing/removing Python packages. The ubuntu package name is *python-pip*.
@@ -49,7 +49,7 @@ The demo was originally developed on Ubuntu 18.04, but has also been verified to
      * Go to third_party/production/flatbuffers/, then build with regular cmake steps.
      * To install flatc compiler and flatbuffers headers and library, execute the following command from the build folder: ```sudo make install```.
 
-4. **Postgres 10.9** (latest 10). This was default on ubuntu 18. On ubuntu 19 this is not available, so just use version 11.
+4. **Postgres 10.9** (latest 10). This was the default on ubuntu 18. On ubuntu 19 version 10 is not available, so just use version 11.
    * Install *postgresql-10* and *postgresql-server-dev-10* packages using SPM.
    * Start postgres service using: ```sudo service postgresql start```.
    * Test by executing: ```sudo -u postgres psql -c "SELECT version();"```.
@@ -86,3 +86,20 @@ The demo was originally developed on Ubuntu 18.04, but has also been verified to
        * ```select distinct al.name from routes r, airlines al where r.src_ap = 'SEA' and r.airline = al.iata;```
    * Cleanup gaia tables: ```\i airportdemo_gaia_tables_cleanup.sql```.
 
+## Gremlin cow_se wrapper
+
+Implements a Tinkerpop provider that allows cow_se to be modified through Gremlin tools.
+
+The provider is written in Java and packaged as a JAR file - TrueGraphDB.jar. To build it, you need the following:
+
+1. **Java** - Install package *openjdk-8-jdk*. Version 8 is recommended to avoid running into several warnings due to deprecated features.
+
+2. **Gremlin console and server** - These tools are distributed as zip files and can be downloaded from http://tinkerpop.apache.org/. They should be unzipped under **/usr/local/share/** and the resulting folder names should be renamed to **gremlin-console** and **gremlin-server**. The cmake files expect to find the console and server binaries in these locations.
+
+3. **TrueGraphDB.jar** - after the previous 2 steps are performed, the TrueGraphDB JAR can be produced by building the **demos/** folder. You will find the JAR file under the **build/cow_se/** folder.
+
+4. **Setting up the Tinkerpop provider** - To use TrueGraphDB with the Gremlin console and server, you need to create the following folder paths under both console and server folders: **ext/truegraphdb/lib/** and **ext/truegraphdb/plugin/**. Then copy the JAR file to all of these locations (to all 4 of them).
+  * For the client, you can use the command ```import com.gaiaplatform.truegraphdb.tinkerpop.gremlin.structure.TrueGraphDBGraph``` and then execute ```graph = TrueGraphDBGraph.open()```.
+  * For the server, you can execute ```graph = com.gaiaplatform.truegraphdb.tinkerpop.gremlin.structure.TrueGraphDBGraph.open()``` (no import command appears to be available for this scenario).
+  * You can also similarly use the TrueGraphDBFactory class and its createCOW() method to initialize a graph with the structure used in the Python demo: ```graph = TrueGraphDBFactory.createCOW()```.
+  * Once you create the graph, use the following command to start querying the graph: ```g = graph.traversal()```. For example, enter ```g.V()``` to list all the vertexes of the graph. Use the command ```:exit``` to exit the Gremlin console.
