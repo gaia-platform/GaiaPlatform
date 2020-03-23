@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.10)
 
 
 list(APPEND CMAKE_MODULE_PATH 
-  "/usr/local/lib/cmake/llvm"
-  "/usr/local/lib/cmake/clang"
+  "/usr/lib/llvm-8/lib/cmake/clang"
+  "/usr/lib/llvm-8/lib/cmake/llvm"
  )
 
 include(AddLLVM)
@@ -16,8 +16,8 @@ endmacro(add_clang_executable)
 add_clang_executable(RuleSubscriber RuleSubscriber.cpp)
 
 set(search_paths
-  /usr/local/lib/cmake/llvm
-  /usr/local/lib/cmake/clang
+  /usr/lib/llvm-8/lib/cmake/clang
+  /usr/lib/llvm-8/lib/cmake/llvm
 )
 
 find_package(LLVM REQUIRED CONFIG
@@ -32,8 +32,8 @@ find_package(Clang REQUIRED CONFIG
 
 include_directories(
   ..
-  ${/usr/local/include/clang}
-  ${/usr/local/lib}
+  ${/usr/lib/llvm-8/include/clang}
+  ${/usr/lib/llvm-8/lib}
 )
 
 llvm_map_components_to_libnames(LLVM_LIBS
