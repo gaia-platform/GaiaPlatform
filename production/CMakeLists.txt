@@ -21,8 +21,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # Set some global variables.
 get_repo_root(${PROJECT_SOURCE_DIR} GAIA_REPO)
-set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
-set(GAIA_LINK_FLAGS "-ggdb -pthread")
+set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -g -O0")
+set(GAIA_LINK_FLAGS "-g -pthread")
 set(GAIA_INC "${PROJECT_SOURCE_DIR}/inc")
 set(GOOGLE_TEST "${GAIA_REPO}/third_party/production/googletest")
 set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")
@@ -43,14 +43,7 @@ target_sources(common INTERFACE
 # Add individual component folders.
 add_subdirectory(db)
 add_subdirectory(rules)
+add_subdirectory(tests)
 
 # Add googletest
 add_subdirectory(${GOOGLE_TEST} googletest)
-
-# Tests.
-add_executable(test_retail_assert tests/test_retail_assert.cpp)
-target_include_directories(test_retail_assert PRIVATE
-  "${GAIA_INC}/internal/common"
-  ${GOOGLE_TEST_INC})
-target_link_libraries(test_retail_assert PRIVATE gtest_main)
-gtest_discover_tests(test_retail_assert)

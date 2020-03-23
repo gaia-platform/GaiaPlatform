@@ -125,18 +125,14 @@ namespace db
     public:
         static void init(bool engine = false)
         {
-            if (s_data ||
-                s_log ||
-                s_offsets)
+            if (s_data || s_log || s_offsets)
             {
                 std::cerr
                     << "Warning: function sequencing error - calling init when there is an open transaction"
                     << std::endl;
             }
 
-            if (s_engine ||
-                s_fd_data ||
-                s_fd_offsets)
+            if (s_engine || s_fd_data || s_fd_offsets)
             {
                 std::cerr
                     << "Warning: function sequencing error - calling init more than once"
@@ -189,6 +185,28 @@ namespace db
             }
         }
 
+        static void reset_engine()
+        {
+            if (shm_unlink(SCH_MEM_DATA) == -1)
+            {
+                std::cerr
+                    << "Warning: unable to shm_unlink SCH_MEM_DATA"
+                    << std::endl;
+                return;
+            }
+
+            if (shm_unlink(SCH_MEM_OFFSETS) == -1)
+            {
+                std::cerr
+                    << "Warning: unable to shm_unlink SCH_MEM_OFFSETS"
+                    << std::endl;
+                return;
+            }
+
+            s_fd_offsets = s_fd_data = 0;
+            s_engine = false;
+        }
+            
         static void tx_begin()
         {
             s_data = (data*)mmap (nullptr, sizeof(data),
@@ -438,7 +456,7 @@ namespace db
     const char* gaia_mem_base::SCH_MEM_DATA = "gaia_mem_data";
     int gaia_mem_base::s_fd_offsets = 0;
     int gaia_mem_base::s_fd_data = 0;
-    gaia_id_t gaia_mem_base::s_next_id = 0;
+    gaia_id_t gaia_mem_base::s_next_id = 1000;  // not starting at 0
     bool gaia_mem_base::s_engine = false;
 
     class gaia_hash_map: public gaia_mem_base
