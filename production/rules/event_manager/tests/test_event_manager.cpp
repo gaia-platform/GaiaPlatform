@@ -35,8 +35,8 @@ public:
             context.rule_binding.rule, context.event_type);
     }
 
-    void set(const char * a_ruleset_name,
-        const char * a_rule_name,
+    void set(const char* a_ruleset_name,
+        const char* a_rule_name,
         gaia_rule_fn a_rule,
         event_type_t a_type)
     {
@@ -47,8 +47,8 @@ public:
     }
 
     void validate(
-        const char * a_ruleset_name,
-        const char * a_rule_name,
+        const char* a_ruleset_name,
+        const char* a_rule_name,
         gaia_rule_fn a_rule,
         event_type_t a_type)
     { 
@@ -80,15 +80,15 @@ public:
 
     // These fields are passed context
     // for both table and transaction events.
-    const char * ruleset_name;
-    const char * rule_name;
+    const char* ruleset_name;
+    const char* rule_name;
     gaia_rule_fn rule;
     event_type_t type;
 };
 TransactionContextChecker g_transaction_checker;
 
 /**
- * The TableContextChecker adds validation of the gaia_type and gaia_base *
+ * The TableContextChecker adds validation of the gaia_type and gaia_base*
  * that are passed as part of the table context to rule invocations.
  */ 
 class TableContextChecker : public TransactionContextChecker
@@ -108,12 +108,12 @@ public:
         row = context.row;
     }
     void validate(
-        const char * a_ruleset_name,
-        const char * a_rule_name,
+        const char* a_ruleset_name,
+        const char* a_rule_name,
         gaia_rule_fn a_rule,
         event_type_t a_type,
         gaia_type_t a_gaia_type,
-        gaia_base * a_row) 
+        gaia_base* a_row) 
     {
         TransactionContextChecker::validate(a_ruleset_name, a_rule_name, a_rule, a_type);
         EXPECT_EQ(gaia_type, a_gaia_type);
@@ -140,7 +140,7 @@ public:
     // Additional data for table context objects over and above
     // context for transaction objects.
     gaia_type_t gaia_type;
-    gaia_base * row;
+    gaia_base* row;
 };
 TableContextChecker g_table_checker;
 
@@ -197,9 +197,9 @@ int32_t g_tx_data = 0;
  * data.
  */
 const int32_t rule1_adder = 1;
-void rule1_add_1(const context_base_t * context)
+void rule1_add_1(const context_base_t* context)
 {
-    const table_context_t * t = static_cast<const table_context_t *>(context);
+    const table_context_t* t = static_cast<const table_context_t*>(context);
     TestGaia * row = static_cast<TestGaia *>(t->row);
     // write date into the class
     row->data += rule1_adder;
@@ -208,9 +208,9 @@ void rule1_add_1(const context_base_t * context)
 }
 
 const int32_t rule2_adder = 100;
-void rule2_add_100(const context_base_t * context)
+void rule2_add_100(const context_base_t* context)
 {
-    const table_context_t * t = static_cast<const table_context_t *>(context);
+    const table_context_t* t = static_cast<const table_context_t*>(context);
     TestGaia * row = static_cast<TestGaia *>(t->row);
     row->data += rule2_adder;
     // record the context that was passed to this rule
@@ -225,17 +225,17 @@ void rule2_add_100(const context_base_t * context)
  * associated context so they write to a global variable.
  */
 const int32_t rule3_adder = 1000;
-void rule3_add_1000(const context_base_t * context)
+void rule3_add_1000(const context_base_t* context)
 {
-    const transaction_context_t * t = static_cast<const transaction_context_t *>(context);
+    const transaction_context_t* t = static_cast<const transaction_context_t*>(context);
     g_tx_data += rule3_adder;
     g_transaction_checker.set(*t);
 }
 
 const int32_t rule4_adder = 10000;
-void rule4_add_10000(const context_base_t * context)
+void rule4_add_10000(const context_base_t* context)
 {
-    const transaction_context_t * t = static_cast<const transaction_context_t *>(context);
+    const transaction_context_t* t = static_cast<const transaction_context_t*>(context);
     g_tx_data += rule4_adder;
     g_transaction_checker.set(*t);
 }
@@ -328,12 +328,12 @@ protected:
 
     void validate_table_rule(
         int32_t value,
-        const char * ruleset_name,
-        const char * rule_name,
+        const char* ruleset_name,
+        const char* rule_name,
         gaia_rule_fn rule,
         event_type_t type,
         gaia_type_t gaia_type,
-        gaia_base * row) 
+        gaia_base* row) 
 
     {
         EXPECT_EQ(m_row.data, value);
@@ -349,8 +349,8 @@ protected:
     // transaction rule validator (note no gaia_type or row)
     void validate_transaction_rule(
         int32_t value,
-        const char * ruleset_name,
-        const char * rule_name,
+        const char* ruleset_name,
+        const char* rule_name,
         gaia_rule_fn rule,
         event_type_t type) 
     {
@@ -359,9 +359,9 @@ protected:
     }
 
     map_subscriptions_t get_expected_subscriptions(
-        const char * ruleset_filter,
-        const gaia_type_t * gaia_type_filter,
-        const event_type_t * event_type_filter)
+        const char* ruleset_filter,
+        const gaia_type_t* gaia_type_filter,
+        const event_type_t* event_type_filter)
     {
         map_subscriptions_t expected_subscriptions;
 
@@ -462,7 +462,7 @@ protected:
     // For debugging only; don't clutter up test output.
     void dump_rules(const list_subscriptions_t& subscriptions)
     {
-        static const char * s_event_name[] = {
+        static const char* s_event_name[] = {
             "transaction_begin",
             "transaction_commit",
             "tranasction_rollback",
@@ -499,7 +499,6 @@ TEST_F(event_manager_test, log_event_mode_not_supported)
 
 TEST_F(event_manager_test, invalid_event_type) 
 {
-    // For Q1, only support immediate mode events.
     EXPECT_THROW(log_transaction_event(event_type_t::row_insert, event_mode_t::immediate), invalid_event_type);
     EXPECT_THROW(log_table_event(nullptr, TestGaia2::s_gaia_type, event_type_t::transaction_rollback, event_mode_t::immediate), invalid_event_type);
 }
@@ -820,7 +819,7 @@ TEST_F(event_manager_test, ListRulesRulesetFilter)
     list_subscriptions_t rules;
     setup_all_rules();
 
-    const char * ruleset_filter = ruleset1_name;
+    const char* ruleset_filter = ruleset1_name;
     list_subscribed_rules(ruleset_filter, nullptr, nullptr, rules);
     validate_rule_list(rules, get_expected_subscriptions(ruleset_filter, nullptr, nullptr));
 
@@ -864,7 +863,7 @@ TEST_F(event_manager_test, ListRulesAllFilters)
     list_subscriptions_t rules;
     setup_all_rules();
 
-    const char * ruleset_filter = ruleset1_name;
+    const char* ruleset_filter = ruleset1_name;
     gaia_type_t gaia_type_filter = TestGaia::s_gaia_type;
     event_type_t event_filter = event_type_t::row_delete;
     list_subscribed_rules(ruleset_filter, &gaia_type_filter, &event_filter, rules);

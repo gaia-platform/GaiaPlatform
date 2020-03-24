@@ -38,12 +38,12 @@ public:
      * Event APIs
      */
     bool log_event(
-      gaia::common::gaia_base * row, 
+      gaia::common::gaia_base* row, 
       gaia::common::gaia_type_t gaia_type,
-      event_type_t type, 
+      event_type_t event_type, 
       event_mode_t mode);
 
-    bool log_event(event_type_t type, event_mode_t mode);
+    bool log_event(event_type_t event_type, event_mode_t mode);
     
     /**
      * Rule APIs
@@ -95,7 +95,7 @@ private:
     std::unordered_map<std::string, std::unique_ptr<_rule_binding_t>> m_rules;
 
     // List of rules that are invoked when an event is logged.
-    typedef std::list<const _rule_binding_t *> rule_list_t;
+    typedef std::list<const _rule_binding_t*> rule_list_t;
 
     // Associates a particular event type to its list of rules.  This means
     // that an event may fire more than one rule.
@@ -116,41 +116,41 @@ private:
 
     static inline void check_mode(event_mode_t mode)
     {
-      if (event_mode_t::deferred == mode) 
-      {
-        throw mode_not_supported(mode);
-      }
+        if (event_mode_t::deferred == mode) 
+        {
+            throw mode_not_supported(mode);
+        }
     }
 
     static inline void check_table_event(event_type_t type)
     {
-      if (!(type == event_type_t::col_change 
-        || type == event_type_t::row_delete 
-        || type == event_type_t::row_insert 
-        || type == event_type_t::row_update))
-      {
-        throw invalid_event_type(type);
-      }
+        if (!(type == event_type_t::col_change 
+            || type == event_type_t::row_delete 
+            || type == event_type_t::row_insert 
+            || type == event_type_t::row_update))
+        {
+            throw invalid_event_type(type);
+        }
     }
 
     static inline void check_transaction_event(event_type_t type)
     {
-      if (!(type == event_type_t::transaction_begin
-        || type == event_type_t::transaction_commit
-        || type == event_type_t::transaction_rollback))
-      {
-        throw invalid_event_type(type);
-      }
+        if (!(type == event_type_t::transaction_begin
+          || type == event_type_t::transaction_commit
+          || type == event_type_t::transaction_rollback))
+        {
+            throw invalid_event_type(type);
+        }
     }
 
     static inline void check_rule_binding(const rule_binding_t& binding)
     {
-      if (nullptr == binding.rule 
-        || nullptr == binding.rule_name
-        || nullptr == binding.ruleset_name)
-      {
-        throw invalid_rule_binding();        
-      }
+        if (nullptr == binding.rule 
+            || nullptr == binding.rule_name
+            || nullptr == binding.ruleset_name)
+        {
+            throw invalid_rule_binding();
+        }
     }
 
     static bool is_valid_transaction_event(event_type_t type);
@@ -159,10 +159,10 @@ private:
     static events_map_t create_table_event_map();
     static void insert_transaction_events(events_map_t& transaction_map);
     static void add_subscriptions(rules::list_subscriptions_t& subscriptions, 
-      const events_map_t& events, 
-      gaia::common::gaia_type_t gaia_type,
-      const char * ruleset_filter, 
-      const event_type_t * event_filter);
+        const events_map_t& events, 
+        gaia::common::gaia_type_t gaia_type,
+        const char* ruleset_filter, 
+        const event_type_t* event_filter);
 };
 
 } // namespace events

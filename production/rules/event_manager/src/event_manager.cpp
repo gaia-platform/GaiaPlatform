@@ -47,7 +47,7 @@ bool event_manager_t::log_event(event_type_t type, event_mode_t mode)
     bool rules_fired = rules.size() > 0;
     for (auto rules_it = rules.begin(); rules_it != rules.end(); rules_it++) 
     {
-        const _rule_binding_t * rule_ptr = (*rules_it);
+        const _rule_binding_t* rule_ptr = (*rules_it);
         transaction_context_t tc(
             {rule_ptr->ruleset_name.c_str(), rule_ptr->rule_name.c_str(), rule_ptr->rule},
             type);
@@ -81,7 +81,7 @@ bool event_manager_t::log_event(
 
         for (auto rules_it = rules.begin(); rules_it != rules.end(); rules_it++) 
         {
-            const _rule_binding_t * rule_ptr = *rules_it;
+            const _rule_binding_t* rule_ptr = *rules_it;
             table_context_t tc(
                 {rule_ptr->ruleset_name.c_str(), rule_ptr->rule_name.c_str(), rule_ptr->rule},
                 type, 
@@ -219,8 +219,8 @@ void event_manager_t::list_subscribed_rules(
 void event_manager_t::add_subscriptions(list_subscriptions_t& subscriptions, 
     const events_map_t& events, 
     gaia_type_t gaia_type,
-    const char * ruleset_filter, 
-    const event_type_t * event_filter)
+    const char* ruleset_filter, 
+    const event_type_t* event_filter)
 {
     for (auto event_it : events)
     {
@@ -253,7 +253,7 @@ void event_manager_t::add_rule(
     // Don't allow adding a rule that has the same
     // key as another rule but is bound to a different
     // rule function
-    const _rule_binding_t * rule_ptr = find_rule(binding);
+    const _rule_binding_t* rule_ptr = find_rule(binding);
     if (rule_ptr != nullptr && rule_ptr->rule != binding.rule) 
     {
         throw duplicate_rule(binding, true /*dup key*/);
@@ -272,7 +272,7 @@ void event_manager_t::add_rule(
     // If we already have seen this rule, then
     // add it to the list.  Otherwise, create a new 
     // rule binding entry and put it in our global list.
-    _rule_binding_t * this_rule = nullptr;
+    _rule_binding_t* this_rule = nullptr;
     if (rule_ptr == nullptr) 
     {
         const string& key = make_rule_key(binding);
@@ -281,7 +281,7 @@ void event_manager_t::add_rule(
     }
     else 
     {
-        this_rule = const_cast<_rule_binding_t *>(rule_ptr);
+        this_rule = const_cast<_rule_binding_t*>(rule_ptr);
     }
 
     // Add the rule to the subscription list.
@@ -293,12 +293,12 @@ bool event_manager_t::remove_rule(
     const rule_binding_t& binding)
 {
     bool removed_rule = false;
-    const _rule_binding_t * rule_ptr = find_rule(binding);
+    const _rule_binding_t* rule_ptr = find_rule(binding);
 
     if (rule_ptr)
     {
         auto size = rules.size();
-        rules.remove_if([&] (const _rule_binding_t * ptr)
+        rules.remove_if([&] (const _rule_binding_t* ptr)
         {
             return (ptr == rule_ptr);
         });
@@ -308,7 +308,7 @@ bool event_manager_t::remove_rule(
     return removed_rule;
 }
 
-const event_manager_t::_rule_binding_t * event_manager_t::find_rule(const rule_binding_t& binding)
+const event_manager_t::_rule_binding_t* event_manager_t::find_rule(const rule_binding_t& binding)
 {
     auto rule_it = m_rules.find(make_rule_key(binding));
     if (rule_it != m_rules.end()){
