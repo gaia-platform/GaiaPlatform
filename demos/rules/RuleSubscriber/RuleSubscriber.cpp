@@ -7,7 +7,6 @@
 #include "clang/Frontend/FrontendAction.h"
 #include "clang/Tooling/Tooling.h"
 #include "clang/Tooling/CommonOptionsParser.h"
-#include "clang/Rewrite/Core/Rewriter.h"
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -19,19 +18,18 @@ using namespace clang::driver;
 using namespace clang::tooling;
 using namespace llvm;
 
-
 cl::OptionCategory RuleSubscriberCategory("Use Rule Subscriber options");
-cl::opt<string> RuleSubscriberOption("output",cl::init(""), cl::desc("output file name"), cl::cat(RuleSubscriberCategory));
-
+cl::opt<string> RuleSubscriberOption("output", cl::init(""), 
+    cl::desc("output file name"), cl::cat(RuleSubscriberCategory));
 
 struct rule_data
 {
     string ruleset;
-    string rulename;
+    string rule_name;
     string rule;
-    string eventType;
-    string gaiaType;
-    bool isTransactionRule;
+    string event_type;
+    string gaia_type;
+    bool is_transaction_rule;
 };
 
 vector<rule_data> rules;
@@ -41,178 +39,194 @@ class RuleSubscriberVisitor
   : public RecursiveASTVisitor<RuleSubscriberVisitor> 
 {
 public:
-  explicit RuleSubscriberVisitor(ASTContext *Context)
-    : Context(Context) {}
-
-    virtual bool VisitNamespaceDecl(clang::NamespaceDecl* d)
+    explicit RuleSubscriberVisitor(ASTContext *context)
     {
-      ASTContext& ctx = d->getASTContext();
-      const RawComment* rc = ctx.getRawCommentForDeclNoCache(d);
-      if (rc)
-      {
-        const string prefix = "ruleset";
-        string comment = rc->getBriefText(ctx);
-        if (comment.compare(0, prefix.size(), prefix) == 0)
-        {
-          currentRuleset = d->getNameAsString();
-        }
-        else
-        {
-         currentRuleset = "";
-        }
-      }
-      else
-      {
-        currentRuleset = "";
-      }
-      
-      return true;
+
     }
 
-    virtual bool VisitFunctionDecl(FunctionDecl *d)
+    // Parse Comments for namespace.
+    virtual bool VisitNamespaceDecl(clang::NamespaceDecl* d)
     {
-      ASTContext& ctx = d->getASTContext();
-      const RawComment* rc = ctx.getRawCommentForDeclNoCache(d);
-      if (rc)
-      {
-        const string prefix = "rule";
-        string comment = rc->getBriefText(ctx);
-        if (comment.compare(0, prefix.size(), prefix) == 0)
+        const ASTContext& context = d->getASTContext();
+        const RawComment* rawComment = context.getRawCommentForDeclNoCache(d);
+        
+        if (rawComment)
         {
-          if (!currentRuleset.empty())
-          {
-            vector<string> params = split(comment, ',');
-            if (params.size() >= 4 )
+            const string prefix = "ruleset";
+            string comment = rawComment->getBriefText(context);
+            if (comment.compare(0, prefix.size(), prefix) == 0)
             {
-              string ruleName = trim(params[1]);
-              string gaiaType = trim(params[2]);
-              if (!ruleName.empty())
-              {
-                for (int idx = 3; idx < params.size(); idx++)
-                {
-                  rule_data ruleData;
-                  string eventType = params[idx];
-                  ruleData.ruleset = currentRuleset;
-                  ruleData.rulename = trim(params[1]);
-                  ruleData.isTransactionRule = eventType.find("transaction_") != string::npos;
-                  ruleData.gaiaType = gaiaType;
-                  ruleData.rule = d->getQualifiedNameAsString();
-
-                  if (!eventType.empty() && !(!ruleData.isTransactionRule && gaiaType.empty()) )
-                  {
-                      ruleData.eventType = eventType;
-                      rules.push_back(ruleData);
-                  }
-                  else
-                  {
-                      llvm::errs() << "The rule configuration is invalid: Incorrect event type\n";
-                  }
-                }
-              }
-              else
-              {
-                llvm::errs() << "The rule configuration is invalid: Incorrect rule name\n";
-              }
-              
+                currentRuleset = d->getNameAsString();
             }
             else
             {
-              llvm::errs() << "The rule configuration is invalid: Not enough parameters\n";
+                currentRuleset = "";
             }
-            
-          }
-          else
-          {
-            llvm::errs() << "No ruleset was defined\n";
-          }
         }
-      }
-      return true;
+        else
+        {
+            currentRuleset = "";
+        }
+      
+        return true;
     }
 
+    // Parse comments for function declaration
+    virtual bool VisitFunctionDecl(FunctionDecl *d)
+    {
+        const int rule_name_index = 1;
+        const int gaia_type_index = 2;
+        const int event_type_start_index = 3;
+        const int minimal_valid_rule_annotation_size = 4;
+        const ASTContext& context = d->getASTContext();
+        const RawComment* rawComment = context.getRawCommentForDeclNoCache(d);
+        
+        if (!rawComment)
+        {
+            return true;
+        }
+        
+        const string prefix = "rule";
+        string comment = rawComment->getBriefText(context);
+        // Check if first word of a comment is rule, if not it is not a rule annotation.
+        if (comment.compare(0, prefix.size(), prefix) != 0)
+        {
+            return true;
+        }
+        
+        if (!currentRuleset.empty())
+        {
+            // Split the comments into words to get rule subscription parameters
+            vector<string> params = split(comment, ',');
+            if (params.size() >= minimal_valid_rule_annotation_size )
+            {
+                string rule_name = trim(params[rule_name_index]);
+                string gaia_type = trim(params[gaia_type_index]);
+                if (!rule_name.empty())
+                {
+                    for (int idx = event_type_start_index; idx < params.size(); idx++)
+                    {
+                        rule_data ruleData;
+                        string event_type = params[idx];
+                        ruleData.ruleset = currentRuleset;
+                        ruleData.rule_name = rule_name;
+                        ruleData.is_transaction_rule = event_type.find("transaction_") != string::npos;
+                        ruleData.gaia_type = gaia_type;
+                        ruleData.rule = d->getQualifiedNameAsString();
 
-    
+                        // Check if event_type is valid i.e.
+                        //  1. event_type is not empty and 
+                        //  2. if rule is table rule then gaia_type is not empty      
+                        if (!event_type.empty() && !(!ruleData.is_transaction_rule && gaia_type.empty()))
+                        {
+                            if (ruleData.is_transaction_rule || !gaia_type.empty())
+                            {
+                                ruleData.event_type = event_type;
+                                rules.push_back(ruleData);
+                            }
+                            else
+                            {
+                                llvm::errs() << "The rule configuration is invalid: Empty gaia type for table event\n";
+                            }                           
+                        }
+                        else
+                        {
+                            llvm::errs() << "The rule configuration is invalid: Incorrect event type\n";
+                        }
+                    }
+                }
+                else
+                {
+                    llvm::errs() << "The rule configuration is invalid: Incorrect rule name\n";
+                }             
+            }
+            else
+            {
+                llvm::errs() << "The rule configuration is invalid: Not enough parameters\n";
+            }
+        }
+        else
+        {
+            llvm::errs() << "No ruleset was defined\n";
+        }
+
+        return true;
+    }
 
 private:
 
-  vector<string> split(const string &text, char sep) 
-  {
-    vector<string> tokens;
-    size_t start = 0, end = 0;
-    while ((end = text.find(sep, start)) != string::npos) 
-    {      
-        tokens.push_back(text.substr(start, end - start));
-        start = end + 1;
+    vector<string> split(const string &text, char separator) 
+    {
+        vector<string> tokens;
+        size_t start = 0, end = 0;
+        
+        while ((end = text.find(separator, start)) != string::npos) 
+        {      
+            tokens.push_back(text.substr(start, end - start));
+            start = end + 1;
+        }
+        
+        tokens.push_back(text.substr(start));
+        return tokens;
     }
-    tokens.push_back(text.substr(start));
-    return tokens;
-  }
 
-  string &ltrim(string &s) 
-  {
-    s.erase(s.begin(), find_if(s.begin(), s.end(),
+    //Trim from start.
+    string &ltrim(string &s) 
+    {
+        s.erase(s.begin(), find_if(s.begin(), s.end(),
             not1(ptr_fun<int, int>(isspace))));
-    return s;
-  }
+        return s;
+    }
 
-// trim from end
-string &rtrim(string &s) 
-{
-    s.erase(find_if(s.rbegin(), s.rend(),
+    // Trim from end.
+    string &rtrim(string &s) 
+    {
+        s.erase(find_if(s.rbegin(), s.rend(),
             not1(ptr_fun<int, int>(isspace))).base(), s.end());
-    return s;
-}
+        return s;
+    }
 
-// trim from both ends
-string &trim(string &s) {
-    return ltrim(rtrim(s));
-}
+    // Trim from both ends.
+    string &trim(string &s) 
+    {
+        return ltrim(rtrim(s));
+    }
+};
 
-  ASTContext *Context;
-};
-/*class MyDiagnosticConsumer : public clang::DiagnosticConsumer {
-public:
-  void HandleDiagnostic(clang::DiagnosticsEngine::Level DiagLevel,
-                        const clang::Diagnostic& Info) override {
-    llvm::SmallVector<char, 128> message;
-    Info.FormatDiagnostic(message);
-    llvm::errs() << DiagLevel << "  " << message << '\n';
-  }
-};
-*/
 class RuleSubscriberConsumer : public clang::ASTConsumer 
 {
 public:
-  explicit RuleSubscriberConsumer(ASTContext *Context)
-    : Visitor(Context) {}
+    explicit RuleSubscriberConsumer(ASTContext *context)
+        : visitor(context) {}
 
-  virtual void HandleTranslationUnit(clang::ASTContext &Context) 
-  {
-    Visitor.TraverseDecl(Context.getTranslationUnitDecl());
-  }
+    virtual void HandleTranslationUnit(clang::ASTContext &context) 
+    {
+        visitor.TraverseDecl(context.getTranslationUnitDecl());
+    }
 private:
-  RuleSubscriberVisitor Visitor;
+    RuleSubscriberVisitor visitor;
 };
 
 class RuleSubscriberAction : public clang::ASTFrontendAction 
 {
 public:
-  virtual std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
-    clang::CompilerInstance &Compiler, llvm::StringRef InFile) 
-  {
-//    auto& DE = Compiler.getASTContext().getDiagnostics();
-//    DE.setClient(new MyDiagnosticConsumer(), /*ShouldOwnClient=*/true);
-    return std::unique_ptr<clang::ASTConsumer>(
-        new RuleSubscriberConsumer(&Compiler.getASTContext()));
-  }
+    virtual std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
+        clang::CompilerInstance &compiler, llvm::StringRef inFile) 
+    {
+        return std::unique_ptr<clang::ASTConsumer>(
+            new RuleSubscriberConsumer(&compiler.getASTContext()));
+    }
 };
 
-bool SaveFile(const char *name, const stringstream & buf) 
+bool SaveFile(const char *name, const stringstream& buf) 
 {
-  std::ofstream ofs(name, std::ofstream::out);
-  if (!ofs.is_open()) return false;
-  ofs << buf.str();
-  return !ofs.bad();
+    std::ofstream ofs(name, std::ofstream::out);
+    if (!ofs.is_open())
+    {
+        return false;
+    }
+    ofs << buf.str();
+    return !ofs.bad();
 }
 
 void generateCode(const char * fileName, const vector<rule_data>& rules)
@@ -220,64 +234,55 @@ void generateCode(const char * fileName, const vector<rule_data>& rules)
     unordered_set<string> declarations;
     
     stringstream code;
-    code <<"#include \"rules.hpp\"" << endl;
+    code << "#include \"rules.hpp\"" << endl;
     code << "using namespace gaia::rules;" << endl; 
     
     
-    //generate rules forward declarations
-    for (vector<rule_data>::const_iterator it = rules.cbegin();
-             it != rules.cend();
-             ++it)
+    //Generate rules forward declarations.
+    for (auto it = rules.cbegin(); it != rules.cend(); ++it)
     {
       declarations.emplace( "void " + it->rule + "(const context_base_t * context);");        
     }
-    for (unordered_set<string>::const_iterator it = declarations.cbegin();
-      it != declarations.cend();
-      ++it)
+
+    for (auto it = declarations.cbegin(); it != declarations.cend(); ++it)
     {
-      code << *it << endl;   
+        code << *it << endl;   
     }
 
     declarations.clear();
 
-    code << "gaia::common::error_code_t gaia_init_rules()" <<endl;
+    code << "extern \"C\" void initialize_rules()" << endl;
     code << "{" << endl;
-    //generate rule binding structure
-    for (vector<rule_data>::const_iterator it = rules.cbegin();
-             it != rules.cend();
-             ++it)
+    //Generate rule binding structure.
+    for (auto it = rules.cbegin(); it != rules.cend(); ++it)
     {
-      declarations.emplace("    rule_binding_t  " + it->ruleset + "_" + it->rule + "(\"" + it->ruleset +  "\",\"" + it->rulename + "\"," + it->rule + ");");        
+        declarations.emplace("    rule_binding_t  " + it->ruleset + "_" + it->rule + "(\"" + 
+            it->ruleset +  "\",\"" + it->rule_name + "\"," + it->rule + ");");        
     }
 
-    for (unordered_set<string>::const_iterator it = declarations.cbegin();
-      it != declarations.cend();
-      ++it)
+    for (auto it = declarations.cbegin(); it != declarations.cend(); ++it)
     {
-      code << *it << endl;   
+        code << *it << endl;   
     }
     
-    code << "    gaia::common::error_code_t retVal;" << endl;
-
-    //generate subscription code
-    for (vector<rule_data>::const_iterator it = rules.cbegin();
-             it != rules.cend();
-             ++it)
+     //Generate subscription code.
+    for (auto it = rules.cbegin(); it != rules.cend(); ++it)
     {
-        if (it->isTransactionRule)
+        if (it->is_transaction_rule)
         {
-            code << "    retVal = subscribe_transaction_rule(" << it->eventType << "," << it->ruleset << "_" << it->rule << ");" << endl;
+            code << "    subscribe_transaction_rule(" << it->event_type << "," << 
+                it->ruleset << "_" << it->rule << ");" << endl;
         }
         else
         {
-            code << "    retVal = subscribe_table_rule(" << it->gaiaType << "," << it->eventType << "," << it->ruleset << "_" << it->rule << ");" << endl;
+            code << "    subscribe_table_rule(" << it->gaia_type << "," << 
+                it->event_type << "," << it->ruleset << "_" << it->rule << ");" << endl;
         }
 
-        code << "    if (retVal != error_code_t::success) return retVal;" << endl;
     }
 
-    code << "    return retVal;" << endl;
     code << "}";
+
     SaveFile(fileName, code);
 }
 
@@ -285,10 +290,11 @@ void generateCode(const char * fileName, const vector<rule_data>& rules)
 int main(int argc, const char **argv) 
 {
 
-  // parse the command-line args passed to your code
-  CommonOptionsParser op(argc, argv, RuleSubscriberCategory);        
-  // create a new Clang Tool instance (a LibTooling environment)
-  ClangTool Tool(op.getCompilations(), op.getSourcePathList());
-  Tool.run(newFrontendActionFactory<RuleSubscriberAction>().get());
-  generateCode(RuleSubscriberOption.c_str(), rules);  
+    // Parse the command-line args passed to your code.
+    CommonOptionsParser op(argc, argv, RuleSubscriberCategory);        
+    // Create a new Clang Tool instance (a LibTooling environment).
+    ClangTool tool(op.getCompilations(), op.getSourcePathList());
+    tool.run(newFrontendActionFactory<RuleSubscriberAction>().get());
+    generateCode(RuleSubscriberOption.c_str(), rules);  
+
 }
