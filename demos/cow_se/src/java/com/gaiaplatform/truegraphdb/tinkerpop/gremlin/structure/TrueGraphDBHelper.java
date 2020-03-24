@@ -94,6 +94,16 @@ public final class TrueGraphDBHelper
         return handleTransaction(graph, graph.cow.removeNode(id));
     }
 
+    protected static boolean updateNodePayload(TrueGraphDBVertex vertex)
+    {
+        TrueGraphDBGraph graph = vertex.graph;
+        long id = Long.parseLong((String)vertex.id);
+        String payload = packPropertyLists(vertex.properties);
+
+        graph.cow.beginTransaction();
+        return handleTransaction(graph, graph.cow.updateNodePayload(id, payload));
+    }
+
     protected static boolean createEdge(TrueGraphDBEdge edge)
     {
         TrueGraphDBGraph graph = edge.graph;
@@ -115,6 +125,16 @@ public final class TrueGraphDBHelper
 
         graph.cow.beginTransaction();
         return handleTransaction(graph, graph.cow.removeEdge(id));
+    }
+
+    protected static boolean updateEdgePayload(TrueGraphDBEdge edge)
+    {
+        TrueGraphDBGraph graph = edge.graph;
+        long id = Long.parseLong((String)edge.id);
+        String payload = packProperties(edge.properties);
+
+        graph.cow.beginTransaction();
+        return handleTransaction(graph, graph.cow.updateEdgePayload(id, payload));
     }
 
     protected static Edge addEdge(

@@ -76,19 +76,28 @@ public:
 // Template functions that avoid duplicating code
 // that is similar for gaia_node_se and gaia_edge_se types.
 
-template <typename T> void update_payload(JNIEnv* env, jlong id, jstring& payload)
+template <typename T> jboolean update_payload(JNIEnv* env, jlong id, jstring& payload)
 {
-    payload_t payload_holder(env, payload);
-    if (payload_holder.c_str() == NULL)
+    try
     {
-        return;
+        payload_t payload_holder(env, payload);
+        if (payload_holder.c_str() == NULL)
+        {
+            return false;
+        }
+    
+        gaia_ptr<T> t = T::open(id);
+        if (t)
+        {
+            t.update_payload(payload_holder.size(), payload_holder.c_str());
+        }
     }
- 
-    gaia_ptr<T> t = T::open(id);
-    if (t)
+    catch(const std::exception&)
     {
-        t.update_payload(payload_holder.size(), payload_holder.c_str());
+        return false;
     }
+
+    return true;
 }
 
 template <typename T> jboolean remove(jlong id)
@@ -244,10 +253,10 @@ JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_creat
     return node.get_id();
 }
 
-JNIEXPORT void JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_updateNodePayload(
+JNIEXPORT jboolean JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_updateNodePayload(
     JNIEnv* env, jobject, jlong id, jstring payload)
 {
-    update_payload<gaia_se_node>(env, id, payload);
+    return update_payload<gaia_se_node>(env, id, payload);
 }
 
 JNIEXPORT jboolean JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_removeNode(
@@ -316,10 +325,10 @@ JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_creat
     return edge.get_id();
 }
 
-JNIEXPORT void JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_updateEdgePayload(
+JNIEXPORT jboolean JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_updateEdgePayload(
     JNIEnv* env, jobject, jlong id, jstring payload)
 {
-    update_payload<gaia_se_edge>(env, id, payload);
+    return update_payload<gaia_se_edge>(env, id, payload);
 }
 
 JNIEXPORT jboolean JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_removeEdge(

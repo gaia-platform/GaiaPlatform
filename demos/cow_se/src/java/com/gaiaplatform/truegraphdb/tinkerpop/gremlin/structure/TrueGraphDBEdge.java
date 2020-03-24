@@ -90,7 +90,11 @@ public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
 
         this.properties.put(key, newProperty);
 
-        // TODO: Update edge payload in COW.
+        // Update edge payload in COW.
+        if (!TrueGraphDBHelper.updateEdgePayload(this))
+        {
+            throw new UnsupportedOperationException("COW edge update failed!");
+        }
 
         return newProperty;
     }
