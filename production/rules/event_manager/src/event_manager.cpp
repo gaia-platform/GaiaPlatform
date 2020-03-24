@@ -37,8 +37,6 @@ event_manager_t::~event_manager_t()
 
 bool event_manager_t::log_event(event_type_t type, event_mode_t mode)
 {
-    bool rules_fired = false;
-
     // todo: log the event in a table
 
     check_mode(mode);
@@ -46,7 +44,7 @@ bool event_manager_t::log_event(event_type_t type, event_mode_t mode)
 
     // invoke all rules immediately
     rule_list_t& rules = m_transaction_subscriptions[type];
-    rules_fired = rules.size() > 0;
+    bool rules_fired = rules.size() > 0;
     for (auto rules_it = rules.begin(); rules_it != rules.end(); rules_it++) 
     {
         const _rule_binding_t * rule_ptr = (*rules_it);
