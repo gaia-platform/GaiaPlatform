@@ -16,8 +16,6 @@ using namespace AddrBook;
 
 namespace AddrBook {
     static const gaia_type_t kEmployeeType = 4;
-    static const gaia_type_t kPhoneType = 5;
-    static const gaia_type_t kAddressType = 6;
 };
 
 struct Employee : public gaia_object_t<AddrBook::kEmployeeType, Employee, employee, employeeT>
@@ -153,7 +151,7 @@ TEST_F(gaia_object_test, NewSetGet) {
 TEST_F(gaia_object_test, ReadOriginalFromCopy) {
     gaia_base_t::begin_transaction();
     auto e = get_field("Zachary");
-    auto name = e->name_first_original();
+    EXPECT_STREQ("Zachary", e->name_first_original());
     EXPECT_STREQ("Zachary", e->name_first());
     gaia_base_t::commit_transaction();
 }
@@ -204,6 +202,10 @@ TEST_F(gaia_object_test, ReadBackID) {
     EXPECT_STREQ("Howard", e->name_first_original());
     e = Employee::get_row_by_id(eid2);
     EXPECT_STREQ("Henry", e->name_first());
+    EXPECT_STREQ("Henry", e->name_first_original());
+    // change the field and verify that original value is intact
+    e->set_name_first("Heinrich");
+    EXPECT_STREQ("Heinrich", e->name_first());
     EXPECT_STREQ("Henry", e->name_first_original());
     gaia_base_t::commit_transaction();
 }
