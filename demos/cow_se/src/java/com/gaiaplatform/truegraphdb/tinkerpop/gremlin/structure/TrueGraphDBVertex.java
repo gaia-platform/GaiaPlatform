@@ -149,7 +149,11 @@ public final class TrueGraphDBVertex extends TrueGraphDBElement implements Verte
         this.edges(Direction.BOTH).forEachRemaining(edges::add);
         edges.stream().filter(edge -> !((TrueGraphDBEdge)edge).removed).forEach(Edge::remove);
 
-        // TODO: Remove the node from COW.
+        // Remove the node from COW.
+        if (!TrueGraphDBHelper.removeNode(this))
+        {
+            throw new UnsupportedOperationException("COW node deletion failed!");
+        }
 
         // Then remove the node.
         this.graph.vertices.remove(this.id);

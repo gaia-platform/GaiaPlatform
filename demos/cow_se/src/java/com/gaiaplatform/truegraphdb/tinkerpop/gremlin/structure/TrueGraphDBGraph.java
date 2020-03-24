@@ -118,12 +118,15 @@ public final class TrueGraphDBGraph implements Graph
         }
 
         final Vertex vertex = new TrueGraphDBVertex(this, idValue, label);
-        this.vertices.put(vertex.id(), vertex);
-
         ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
 
         // Create node in COW.
-        TrueGraphDBHelper.createNode(this, idValue, label, (TrueGraphDBVertex)vertex);
+        if (!TrueGraphDBHelper.createNode((TrueGraphDBVertex)vertex))
+        {
+            throw new UnsupportedOperationException("COW node creation failed!");
+        }
+
+        this.vertices.put(vertex.id(), vertex);
 
         return vertex;
     }

@@ -21,8 +21,8 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
 {
-    protected final Vertex inVertex;
-    protected final Vertex outVertex;
+    protected final TrueGraphDBVertex inVertex;
+    protected final TrueGraphDBVertex outVertex;
 
     protected Map<String, Property> properties;
 
@@ -33,8 +33,8 @@ public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
     {
         super(inVertex.graph(), id, label);
 
-        this.inVertex = inVertex;
-        this.outVertex = outVertex;
+        this.inVertex = (TrueGraphDBVertex)inVertex;
+        this.outVertex = (TrueGraphDBVertex)outVertex;
     }
 
     public Vertex inVertex()
@@ -124,7 +124,11 @@ public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
 
     public void remove()
     {
-        // TODO: Remove the edge from COW.
+        // Remove the edge from COW.
+        if (!TrueGraphDBHelper.removeEdge(this))
+        {
+            throw new UnsupportedOperationException("COW edge deletion failed!");
+        }
 
         final TrueGraphDBVertex inVertex = (TrueGraphDBVertex)this.inVertex;
         final TrueGraphDBVertex outVertex = (TrueGraphDBVertex)this.outVertex;

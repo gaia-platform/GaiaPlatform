@@ -91,13 +91,26 @@ template <typename T> void update_payload(JNIEnv* env, jlong id, jstring& payloa
     }
 }
 
-template <typename T> void remove(jlong id)
+template <typename T> jboolean remove(jlong id)
 {
-    gaia_ptr<T> t = T::open(id);
-    if (t)
+    try
     {
-        gaia_ptr<T>::remove(t);
+        gaia_ptr<T> t = T::open(id);
+        if (t)
+        {
+            gaia_ptr<T>::remove(t);
+        }
+        else
+        {
+            return false;
+        }
     }
+    catch(const std::exception&)
+    {
+        return false;
+    }
+
+    return true;
 }
 
 template <typename T> jlong find_first(jlong type)
@@ -202,6 +215,11 @@ JNIEXPORT void JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_commit
     commit_transaction();
 }
 
+JNIEXPORT void JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_rollbackTransaction(JNIEnv*, jobject)
+{
+    rollback_transaction();
+}
+
 JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_createNode(
     JNIEnv* env, jobject, jlong id, jlong type, jstring payload)
 {
@@ -232,10 +250,10 @@ JNIEXPORT void JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_update
     update_payload<gaia_se_node>(env, id, payload);
 }
 
-JNIEXPORT void JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_removeNode(
+JNIEXPORT jboolean JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_removeNode(
     JNIEnv*, jobject, jlong id)
 {
-    remove<gaia_se_node>(id);
+    return remove<gaia_se_node>(id);
 }
 
 JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_findFirstNode(
@@ -304,10 +322,10 @@ JNIEXPORT void JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_update
     update_payload<gaia_se_edge>(env, id, payload);
 }
 
-JNIEXPORT void JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_removeEdge(
+JNIEXPORT jboolean JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_removeEdge(
     JNIEnv*, jobject, jlong id)
 {
-    remove<gaia_se_edge>(id);
+    return remove<gaia_se_edge>(id);
 }
 
 JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_findFirstEdge(

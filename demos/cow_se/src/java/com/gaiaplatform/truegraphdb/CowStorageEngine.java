@@ -233,10 +233,11 @@ public class CowStorageEngine
 
     public native void beginTransaction();
     public native void commitTransaction();
+    public native void rollbackTransaction();
 
     public native long createNode(long id, long type, String payload);
     public native void updateNodePayload(long id, String payload);
-    public native void removeNode(long id);
+    public native boolean removeNode(long id);
 
     public native long findFirstNode(long type);
     public native long findNextNode(long id);
@@ -249,7 +250,7 @@ public class CowStorageEngine
 
     public native long createEdge(long id, long type, long idFirstNode, long idSecondNode, String payload);
     public native void updateEdgePayload(long id, String payload);
-    public native void removeEdge(long id);
+    public native boolean removeEdge(long id);
 
     public native long findFirstEdge(long type);
     public native long findNextEdge(long id);

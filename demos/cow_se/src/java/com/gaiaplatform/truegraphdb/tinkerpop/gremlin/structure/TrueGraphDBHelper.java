@@ -29,7 +29,7 @@ public final class TrueGraphDBHelper
     {
     }
 
-    protected static void packProperty(StringBuilder payload, String key, String value)
+    private static void packProperty(StringBuilder payload, String key, String value)
     {
         if (payload.length() > 0)
         {
@@ -41,7 +41,7 @@ public final class TrueGraphDBHelper
         payload.append(value);
     }
 
-    protected static String packProperties(Map<String, Property> properties)
+    private static String packProperties(Map<String, Property> properties)
     {
         StringBuilder payload = new StringBuilder();
 
@@ -50,7 +50,7 @@ public final class TrueGraphDBHelper
         return payload.toString();
     }
 
-    protected static String packPropertyLists(Map<String, List<VertexProperty>> properties)
+    private static String packPropertyLists(Map<String, List<VertexProperty>> properties)
     {
         StringBuilder payload = new StringBuilder();
 
@@ -59,16 +59,62 @@ public final class TrueGraphDBHelper
         return payload.toString();
     }
 
-    protected static void createNode(
-        TrueGraphDBGraph graph, Object idValue, String label, TrueGraphDBVertex vertex)
+    private static boolean handleTransaction(TrueGraphDBGraph graph, boolean operationResult)
     {
-        long id = Long.parseLong((String)idValue);
-        long type = Long.parseLong((String)label);
+        if (operationResult)
+        {
+            graph.cow.commitTransaction();
+        }
+        else
+        {
+            graph.cow.rollbackTransaction();
+        }
+
+        return operationResult;
+    }
+
+    protected static boolean createNode(TrueGraphDBVertex vertex)
+    {
+        TrueGraphDBGraph graph = vertex.graph;
+        long id = Long.parseLong((String)vertex.id);
+        long type = Long.parseLong((String)vertex.label);
         String payload = packPropertyLists(vertex.properties);
 
         graph.cow.beginTransaction();
-        graph.cow.createNode(id, type, payload);
-        graph.cow.commitTransaction();
+        long idNode = graph.cow.createNode(id, type, payload);
+        return handleTransaction(graph, idNode != 0);
+    }
+
+    protected static boolean removeNode(TrueGraphDBVertex vertex)
+    {
+        TrueGraphDBGraph graph = vertex.graph;
+        long id = Long.parseLong((String)vertex.id);
+
+        graph.cow.beginTransaction();
+        return handleTransaction(graph, graph.cow.removeNode(id));
+    }
+
+    protected static boolean createEdge(TrueGraphDBEdge edge)
+    {
+        TrueGraphDBGraph graph = edge.graph;
+        long id = Long.parseLong((String)edge.id);
+        long type = Long.parseLong((String)edge.label);
+        String payload = packProperties(edge.properties);
+        long idIn = Long.parseLong((String)edge.inVertex.id);
+        long idOut = Long.parseLong((String)edge.outVertex.id);
+
+        graph.cow.beginTransaction();
+        long idEdge = graph.cow.createEdge(id, type, idIn, idOut, payload);
+        return handleTransaction(graph, idEdge != 0);
+    }
+
+    protected static boolean removeEdge(TrueGraphDBEdge edge)
+    {
+        TrueGraphDBGraph graph = edge.graph;
+        long id = Long.parseLong((String)edge.id);
+
+        graph.cow.beginTransaction();
+        return handleTransaction(graph, graph.cow.removeEdge(id));
     }
 
     protected static Edge addEdge(
@@ -93,12 +139,16 @@ public final class TrueGraphDBHelper
             idValue = graph.edgeIdManager.getNextId(graph);
         }
 
-        // TODO: Create edge in COW.
-
         final Edge edge = new TrueGraphDBEdge(idValue, label, inVertex, outVertex);
         ElementHelper.attachProperties(edge, keyValues);
-        graph.edges.put(edge.id(), edge);
 
+        // Create edge in COW.
+        if (!createEdge((TrueGraphDBEdge)edge))
+        {
+            throw new UnsupportedOperationException("COW edge creation failed!");
+        }
+
+        graph.edges.put(edge.id(), edge);
         TrueGraphDBHelper.addInEdge(inVertex, label, edge);
         TrueGraphDBHelper.addOutEdge(outVertex, label, edge);
 
