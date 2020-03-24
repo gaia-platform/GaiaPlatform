@@ -66,9 +66,9 @@ public:
 };
 
 /**
- * Thrown when a specified mode is not supported
- * for a log event call.  For example, if a table event type type
- * is sent in for transaction log event call, then this exception
+ * Thrown when a specified event_type does not match the
+ * log event call.  For example, if a table event type
+ * is passed in for transaction log event call, then this exception
  * is thrown.
  */
 class invalid_event_type: public gaia::common::gaia_exception
