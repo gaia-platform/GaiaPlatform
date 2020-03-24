@@ -3,7 +3,7 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.11)
 
 # Set the project name.
 project(cow_se)
@@ -38,13 +38,24 @@ configure_file(tests/test_cow_se.py . COPYONLY)
 add_test(NAME test_cow_se_py COMMAND ${PYTHON_EXECUTABLE} test_cow_se.py)
 set_tests_properties(test_cow_se_py PROPERTIES PASS_REGULAR_EXPRESSION ${TEST_SUCCESS})
 
-if (JAVA_FOUND AND JNI_FOUND)
+if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
+  set(CMAKE_JAVA_INCLUDE_PATH ${GREMLIN_CONSOLE_PATH}/lib/*:${GREMLIN_CONSOLE_PATH}/ext/tinkergraph-gremlin/lib/*)
+
   # Java wrapper code. This generates native headers for the native wrapper.
-  add_jar(CowStorageEngine
+  add_jar(TrueGraphDB
+    SOURCES
       src/java/com/gaiaplatform/truegraphdb/CowStorageEngine.java
+      src/java/com/gaiaplatform/truegraphdb/tinkerpop/gremlin/structure/TrueGraphDBEdge.java
+      src/java/com/gaiaplatform/truegraphdb/tinkerpop/gremlin/structure/TrueGraphDBElement.java
+      src/java/com/gaiaplatform/truegraphdb/tinkerpop/gremlin/structure/TrueGraphDBFactory.java
+      src/java/com/gaiaplatform/truegraphdb/tinkerpop/gremlin/structure/TrueGraphDBGraph.java
+      src/java/com/gaiaplatform/truegraphdb/tinkerpop/gremlin/structure/TrueGraphDBHelper.java
+      src/java/com/gaiaplatform/truegraphdb/tinkerpop/gremlin/structure/TrueGraphDBProperty.java
+      src/java/com/gaiaplatform/truegraphdb/tinkerpop/gremlin/structure/TrueGraphDBVertex.java
+      src/java/com/gaiaplatform/truegraphdb/tinkerpop/gremlin/structure/TrueGraphDBVertexProperty.java
     GENERATE_NATIVE_HEADERS cow_se_jni_headers
     DESTINATION ${PROJECT_BINARY_DIR})
-  get_target_property(COW_SE_JAR CowStorageEngine JAR_FILE)
+  get_target_property(COW_SE_JAR TrueGraphDB JAR_FILE)
 
   # Configure build of native C++ wrapper library.
   add_library(native_cow_se SHARED src/cow_se_jwrap.cpp)
