@@ -588,7 +588,7 @@ namespace db
         friend struct gaia_se_edge;
 
     public:
-        gaia_ptr (const std::nullptr_t null = nullptr)
+        gaia_ptr (const std::nullptr_t = nullptr)
             :row_id(0) {}
 
         gaia_ptr (const gaia_ptr& other)
@@ -614,12 +614,12 @@ namespace db
             return row_id == other.row_id;
         }
 
-        bool operator == (const std::nullptr_t null) const
+        bool operator == (const std::nullptr_t) const
         {
             return to_ptr() == nullptr;
         }
 
-        bool operator != (const std::nullptr_t null) const
+        bool operator != (const std::nullptr_t) const
         {
             return to_ptr() != nullptr;
         }
