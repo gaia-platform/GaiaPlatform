@@ -49,7 +49,7 @@ struct gaia_base_t
         // must be refreshed if a new transaction begins. Scan these objects to
         // clean out old values. The objects will not be deleted, as they will
         // be continue to be tracked in the s_gaia_cache.
-        for (auto it = s_gaia_tx_cache.begin();it != s_gaia_tx_cache.end(); ++it)
+        for (auto it = s_gaia_tx_cache.begin(); it != s_gaia_tx_cache.end(); ++it)
         {
             it->second->reset(true);
         }
@@ -79,7 +79,7 @@ template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typ
 struct gaia_object_t : gaia_base_t
 {
 public:
-    virtual ~gaia_object_t() 
+    virtual ~gaia_object_t()
     {
         s_gaia_cache.erase(m_id);
         s_gaia_tx_cache.erase(m_id);
@@ -89,20 +89,20 @@ public:
     // This constructor supports completely new objects
     // that the database has not seen yet by creating
     // a copy buffer immediately.
-    gaia_object_t() : 
+    gaia_object_t() :
         m_copy(nullptr),
-        m_fb(nullptr), 
+        m_fb(nullptr),
         m_fbb(nullptr),
-        m_id(0) 
+        m_id(0)
     {
         copy_write();
     }
 
     // This constructor supports creating new objects from existing
     // nodes in the database.  It is called by our get_object below.
-    gaia_object_t(gaia_id_t id) : 
-        m_copy(nullptr), 
-        m_fb(nullptr), 
+    gaia_object_t(gaia_id_t id) :
+        m_copy(nullptr),
+        m_fb(nullptr),
         m_fbb(nullptr),
         m_id(id)
     {
@@ -149,6 +149,9 @@ public:
             node_ptr = gaia_se_node::create(m_id, T_gaia_type, m_fbb->GetSize(), m_fbb->GetBufferPointer());
             m_fbb->Clear();
         } else {
+            // This situation only happens if a deleted row is inserted.
+            // By giving it a m_copy, it can be re-used
+            copy_write();
             node_ptr = gaia_se_node::create(m_id, T_gaia_type, 0, nullptr);
         }
         s_gaia_cache[m_id] = this;
@@ -168,7 +171,7 @@ public:
             node_ptr.update_payload(m_fbb->GetSize(), m_fbb->GetBufferPointer());
             m_fbb->Clear();
         }
-    } 
+    }
 
     void delete_row()
     {
@@ -176,7 +179,7 @@ public:
         if (nullptr == node_ptr) {
             throw invalid_node_id(0);
         }
-        
+
         gaia_ptr<gaia_se_node>::remove(node_ptr);
         // A partial reset leaves m_fb alone. If program incorrectly references
         // fields in this deleted object, it will not crash.
@@ -184,13 +187,13 @@ public:
     }
 
 protected:
-    
+
     flatbuffers::FlatBufferBuilder* m_fbb; // cached flat buffer builder for reuse
     const T_fb* m_fb;   // flat buffer, referencing SE memory
     T_obj* m_copy;      // private mutable flatbuffer copy of field changes
     gaia_id_t m_id;     // gaia_id assigned to this row
 
-    T_obj* copy_write() 
+    T_obj* copy_write()
     {
         if (m_copy == nullptr) {
             T_obj* copy = new T_obj();
@@ -236,7 +239,7 @@ private:
             delete m_fbb;
             m_fbb = nullptr;
         }
-        
+
         // A full reset clears m_fb so that it will be read afresh the next
         // time the object is located.  We do not own the flatbuffer so
         // don't delete it.

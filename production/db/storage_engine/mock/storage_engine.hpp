@@ -185,7 +185,7 @@ namespace db
             }
         }
 
-        static void reset_engine()
+        static void reset()
         {
             if (shm_unlink(SCH_MEM_DATA) == -1)
             {

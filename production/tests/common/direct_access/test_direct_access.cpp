@@ -46,7 +46,7 @@ struct Employee : public gaia_object_t<AddrBook::kEmployeeType, Employee, employ
     void set_web(const char* s) { set(web, s); }
 }; // Employee 
 
-class GaiaObjectTest : public ::testing::Test {
+class gaia_object_test : public ::testing::Test {
 protected:
     void delete_employees() {
         Employee* e;
@@ -68,7 +68,7 @@ protected:
     void TearDown() override {
         delete_employees();
         // Delete the shared memory segments.
-        gaia_mem_base::reset_engine();
+        gaia_mem_base::reset();
     }
 };
 
@@ -113,14 +113,14 @@ Employee* get_field(const char* name) {
 // ================================
 
 // Create, write & read, one row
-TEST_F(GaiaObjectTest, GetField) {
+TEST_F(gaia_object_test, GetField) {
     gaia_base_t::begin_transaction();
     get_field("Harold");
     gaia_base_t::commit_transaction();
 }
 
 // Delete one row
-TEST_F(GaiaObjectTest, GetFieldDelete) {
+TEST_F(gaia_object_test, GetFieldDelete) {
     gaia_base_t::begin_transaction();
     auto e = get_field("Jameson");
     e->delete_row();
@@ -129,7 +129,7 @@ TEST_F(GaiaObjectTest, GetFieldDelete) {
 }
 
 // Scan multiple rows
-TEST_F(GaiaObjectTest, NewSetIns) {
+TEST_F(gaia_object_test, NewSetIns) {
     gaia_base_t::begin_transaction();
     get_field("Harold");
     get_field("Jameson");
@@ -138,7 +138,7 @@ TEST_F(GaiaObjectTest, NewSetIns) {
 }
 
 // Read back from new, unsaved object
-TEST_F(GaiaObjectTest, NewSetGet) {
+TEST_F(gaia_object_test, NewSetGet) {
     gaia_base_t::begin_transaction();
     auto e = new Employee();
     e->set_name_last("Smith");
@@ -150,8 +150,7 @@ TEST_F(GaiaObjectTest, NewSetGet) {
 }
 
 // Attempt to read original value from new object
-TEST_F(GaiaObjectTest, ReadOriginalFromCopy) {
-    bool exception = false;
+TEST_F(gaia_object_test, ReadOriginalFromCopy) {
     gaia_base_t::begin_transaction();
     auto e = get_field("Zachary");
     auto name = e->name_first_original();
@@ -160,7 +159,7 @@ TEST_F(GaiaObjectTest, ReadOriginalFromCopy) {
 }
 
 // Insert a row with no field values
-TEST_F(GaiaObjectTest, NewInsGet) {
+TEST_F(gaia_object_test, NewInsGet) {
     gaia_base_t::begin_transaction();
     
     auto e = new Employee();
@@ -175,7 +174,7 @@ TEST_F(GaiaObjectTest, NewInsGet) {
 }
 
 // Delete an un-inserted object with field values
-TEST_F(GaiaObjectTest, NewGet) {
+TEST_F(gaia_object_test, NewGet) {
     gaia_base_t::begin_transaction();
     
     auto e = new Employee();
@@ -193,7 +192,7 @@ TEST_F(GaiaObjectTest, NewGet) {
 // ====================================
 
 // Create, write two rows, read back by ID and verify
-TEST_F(GaiaObjectTest, ReadBackID) {
+TEST_F(gaia_object_test, ReadBackID) {
     gaia_base_t::begin_transaction();
     auto eid = get_field("Howard")->gaia_id();
     auto eid2 = get_field("Henry")->gaia_id();
@@ -210,7 +209,7 @@ TEST_F(GaiaObjectTest, ReadBackID) {
 }
 
 // Create, write two rows, read back by scan and verify
-TEST_F(GaiaObjectTest, ReadBackScan) {
+TEST_F(gaia_object_test, ReadBackScan) {
     gaia_base_t::begin_transaction();
     auto eid = get_field("Howard")->gaia_id();
     auto eid2 = get_field("Henry")->gaia_id();
@@ -239,13 +238,15 @@ void UpdateReadBack(bool update_flag) {
     auto e = Employee::get_first();
     e->set_name_first("Herald");
     e->set_name_last("Hollman");
-    if (update_flag)
+    if (update_flag) {
         e->update_row();
+    }
     e = e->get_next();
     e->set_name_first("Gerald");
     e->set_name_last("Glickman");
-    if (update_flag)
+    if (update_flag) {
         e->update_row();
+    }
     gaia_base_t::commit_transaction();
 
     gaia_base_t::begin_transaction();
@@ -271,85 +272,111 @@ void UpdateReadBack(bool update_flag) {
 }
 
 // Create, write two rows, set fields, update, read, verify
-TEST_F(GaiaObjectTest, UpdateReadBack) {
+TEST_F(gaia_object_test, UpdateReadBack) {
     UpdateReadBack(true);
 }
 
 // Create, write two rows, set fields, update, read, verify
-TEST_F(GaiaObjectTest, NoUpdateReadBack) {
+TEST_F(gaia_object_test, NoUpdateReadBack) {
     UpdateReadBack(false);
+}
+
+// Delete an inserted object then insert after, it's good again
+TEST_F(gaia_object_test, NewDelIns) {
+    gaia_base_t::begin_transaction();
+    auto e = get_field("Hector");
+    e->delete_row();
+    e->insert_row();
+    e->set_name_first("Hudson");
+    if (e != nullptr) {
+        delete e;
+    }
+    gaia_base_t::commit_transaction();
+
+}
+
+// Delete a found object then insert after, it's good again
+TEST_F(gaia_object_test, FoundDelIns) {
+    gaia_base_t::begin_transaction();
+    auto e = get_field("Hector");
+    e->delete_row();
+    e->insert_row();
+    auto eid = e->gaia_id();
+    gaia_base_t::commit_transaction();
+
+    gaia_base_t::begin_transaction();
+    e = Employee::get_row_by_id(eid);
+    e->set_name_first("Hudson");
+    if (e != nullptr) {
+        delete e;
+    }
+    gaia_base_t::commit_transaction();
+
 }
 
 // EXCEPTION conditions
 // ====================
 
 // Attempt to insert one row twice
-TEST_F(GaiaObjectTest, InsertX2) {
-    bool exception = false;
+TEST_F(gaia_object_test, InsertX2) {
     gaia_base_t::begin_transaction();
     auto e = get_field("Zachary");
-    try {
-        e->insert_row();
-    }
-    catch (duplicate_id& e) {
-        exception = true;
-    }
+    EXPECT_THROW(e->insert_row(), duplicate_id);
     gaia_base_t::commit_transaction();
-
-    EXPECT_EQ(true, exception) << "duplicate_id exception not thrown";
 }
 
-TEST_F(GaiaObjectTest, NoTx) {
-    bool exception = false;
-    Employee* emp = nullptr;
-    try {
-        emp = get_field("Harold");
-    }
-    catch (tx_not_open& e) {
-        exception = true;
-    }
-    if (emp != nullptr)
-        delete emp;
+// Create, then get by ID, insert
+// Used twice, below
+void InsertIdX2(bool insert_flag) {
+    gaia_base_t::begin_transaction();
+    auto eid = get_field("Zachary")->gaia_id();
+    gaia_base_t::commit_transaction();
 
-    EXPECT_EQ(true, exception) << "tx_not_open exception not thrown";
+    gaia_base_t::begin_transaction();
+    auto e = Employee::get_row_by_id(eid);
+    if (insert_flag) {
+        e->set_name_first("Zerubbabel");
+    }
+    EXPECT_THROW(e->insert_row(), duplicate_id);
+    gaia_base_t::commit_transaction();
+}
+
+// Attempt to insert a row found by ID
+TEST_F(gaia_object_test, InsertIdX2) {
+    InsertIdX2(false);
+}
+
+// Attempt to insert a row found by ID after setting field value
+TEST_F(gaia_object_test, SetInsertIdX2) {
+    InsertIdX2(true);
+}
+
+// Attempt to create a row outside of a transaction
+TEST_F(gaia_object_test, NoTx) {
+    EXPECT_THROW(get_field("Harold"), tx_not_open);
+    // NOTE: the Employee object is leaked here
 }
 
 // Attempt to update an un-inserted object
-TEST_F(GaiaObjectTest, NewUpd) {
+TEST_F(gaia_object_test, NewUpd) {
     gaia_base_t::begin_transaction();
-    bool exception = false;
     Employee* emp = new Employee();
-    try {
-        emp->set_name_first("Judith");
-        emp->update_row();
-    }
-    catch (invalid_node_id& e) {
-        exception = true;
-    }
-    if (emp != nullptr)
+    emp->set_name_first("Judith");
+    EXPECT_THROW(emp->update_row(), invalid_node_id);
+    if (emp != nullptr) {
         delete emp;
-
-    EXPECT_EQ(true, exception) << "invalid_node_id exception not thrown";
-
+    }
     gaia_base_t::commit_transaction();
 }
 
 // Delete an un-inserted object
-TEST_F(GaiaObjectTest, NewDel) {
+TEST_F(gaia_object_test, NewDel) {
     gaia_base_t::begin_transaction();
-
-    bool exception = false;
     auto e = new Employee();
-    try {
-        e->delete_row();
+    EXPECT_THROW(e->delete_row(), invalid_node_id);
+    if (e != nullptr) {
+        delete e;
     }
-    catch (invalid_node_id& e) {
-        exception = true;
-    }
-
-    EXPECT_EQ(true, exception) << "invalid_node_id exception not thrown";
-    delete e;
-
     gaia_base_t::commit_transaction();
 }
 
