@@ -22,7 +22,6 @@ namespace AddrBook {
 
 struct Employee : public gaia_object_t<AddrBook::kEmployeeType, Employee, employee, employeeT>
 {
-    Employee(gaia_id_t id) : gaia_object_t(id) {}
     Employee() = default;
     const char* name_first() const { return get_str(name_first); }
     const char* name_last() const { return get_str(name_last); }
@@ -44,6 +43,9 @@ struct Employee : public gaia_object_t<AddrBook::kEmployeeType, Employee, employ
     void set_hire_date(gaia_id_t i) { set(hire_date, i); }
     void set_email(const char* s) { set(email, s); }
     void set_web(const char* s) { set(web, s); }
+private:
+    friend class gaia_object_t<AddrBook::kEmployeeType, Employee, employee, employeeT>;
+    Employee(gaia_id_t id) : gaia_object_t(id) {}
 }; // Employee 
 
 class gaia_object_test : public ::testing::Test {
@@ -298,6 +300,7 @@ TEST_F(gaia_object_test, NewDelIns) {
 // Delete a found object then insert after, it's good again
 TEST_F(gaia_object_test, FoundDelIns) {
     gaia_base_t::begin_transaction();
+    
     auto e = get_field("Hector");
     e->delete_row();
     e->insert_row();
@@ -366,6 +369,8 @@ TEST_F(gaia_object_test, NewUpd) {
     if (emp != nullptr) {
         delete emp;
     }
+    //Employee* emp2 = new Employee(0);
+    //printf("%s\n", emp2->name_first());
     gaia_base_t::commit_transaction();
 }
 

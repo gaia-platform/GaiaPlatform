@@ -98,16 +98,6 @@ public:
         copy_write();
     }
 
-    // This constructor supports creating new objects from existing
-    // nodes in the database.  It is called by our get_object below.
-    gaia_object_t(gaia_id_t id) :
-        m_copy(nullptr),
-        m_fb(nullptr),
-        m_fbb(nullptr),
-        m_id(id)
-    {
-    }
-
     #define get_current(field) (m_copy ? (m_copy->field) : (m_fb->field()))
     // NOTE: Either m_fb or m_copy should exist.
     #define get_original(field) (m_fb ? m_fb->field() : m_copy->field)
@@ -187,6 +177,15 @@ public:
     }
 
 protected:
+    // This constructor supports creating new objects from existing
+    // nodes in the database.  It is called by our get_object below.
+    gaia_object_t(gaia_id_t id) :
+        m_copy(nullptr),
+        m_fb(nullptr),
+        m_fbb(nullptr),
+        m_id(id)
+    {
+    }
 
     flatbuffers::FlatBufferBuilder* m_fbb; // cached flat buffer builder for reuse
     const T_fb* m_fb;   // flat buffer, referencing SE memory
