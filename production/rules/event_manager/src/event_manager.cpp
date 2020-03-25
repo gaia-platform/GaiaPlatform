@@ -47,12 +47,16 @@ bool event_manager_t::log_event(event_type_t type, event_mode_t mode)
     bool rules_fired = rules.size() > 0;
     for (auto rules_it = rules.begin(); rules_it != rules.end(); rules_it++) 
     {
-        const _rule_binding_t* rule_ptr = (*rules_it);
-        transaction_context_t tc(
-            {rule_ptr->ruleset_name.c_str(), rule_ptr->rule_name.c_str(), rule_ptr->rule},
-            type);
-
-        rule_ptr->rule(&tc);
+        _rule_binding_t* rule_ptr = const_cast<_rule_binding_t*>(*rules_it);
+        if (!rule_ptr->executing)
+        {
+            _execution_context_t context(rule_ptr->executing);
+            rules_fired = true;
+            transaction_context_t tc(
+                {rule_ptr->ruleset_name.c_str(), rule_ptr->rule_name.c_str(), rule_ptr->rule},
+                type);
+            rule_ptr->rule(&tc);
+        }
     }
 
     return rules_fired;
@@ -70,7 +74,6 @@ bool event_manager_t::log_event(
 
     check_mode(mode);
     check_table_event(type);
-   
 
     // Invoke all rules bound to this gaia_type and event_type immediately.
     auto type_it = m_table_subscriptions.find(gaia_type);
@@ -81,16 +84,19 @@ bool event_manager_t::log_event(
 
         for (auto rules_it = rules.begin(); rules_it != rules.end(); rules_it++) 
         {
-            const _rule_binding_t* rule_ptr = *rules_it;
-            table_context_t tc(
-                {rule_ptr->ruleset_name.c_str(), rule_ptr->rule_name.c_str(), rule_ptr->rule},
-                type, 
-                gaia_type, 
-                row);
-            rule_ptr->rule(&tc);
+            _rule_binding_t* rule_ptr = const_cast<_rule_binding_t*>(*rules_it);
+            if (!rule_ptr->executing)
+            {
+                _execution_context_t context(rule_ptr->executing);
+                rules_fired = true;
+                table_context_t tc(
+                    {rule_ptr->ruleset_name.c_str(), rule_ptr->rule_name.c_str(), rule_ptr->rule},
+                    type, 
+                    gaia_type, 
+                    row);
+                rule_ptr->rule(&tc);
+            }
         }
-
-        rules_fired = rules.size() > 0;
     }
 
     return rules_fired;
@@ -350,6 +356,7 @@ event_manager_t::_rule_binding_t::_rule_binding_t(
     {
         rule_name = binding.rule_name;
     }
+    executing = false;
 }
 
 /**

@@ -77,14 +77,42 @@ public:
 private:
     // Internal rule binding to copy the callers
     // rule data and hold on to it.  This will be
-    // required for deferred rules later.
+    // required for deferred rules later.  For Q1
+    // we don't allow recursion of rules so keep
+    // the execution state for this.
     struct _rule_binding_t
     {
-      _rule_binding_t(const rules::rule_binding_t& binding);
+        _rule_binding_t() = delete;
+        _rule_binding_t(const rules::rule_binding_t& binding);
 
-      std::string ruleset_name;
-      std::string rule_name;
-      rules::gaia_rule_fn rule;
+        std::string ruleset_name;
+        std::string rule_name;
+        rules::gaia_rule_fn rule;
+        bool executing;
+    };
+
+    // Ensures that we can clean up executing
+    // rule state if this class leaves scope either
+    // because it exits normally or an exception
+    // is thrown.  Currently the execution state
+    // only tracks whether the current rule is executing.
+    class _execution_context_t
+    {
+    public:
+        _execution_context_t() = delete;
+        _execution_context_t(bool& is_executing)
+        : m_is_executing(is_executing)
+        {
+            m_is_executing = true;
+        }
+
+        ~_execution_context_t()
+        {
+            m_is_executing = false;
+        }
+
+    private:
+        bool& m_is_executing;
     };
 
     // only internal static creation is allowed

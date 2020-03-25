@@ -201,10 +201,15 @@ void rule1_add_1(const context_base_t* context)
 {
     const table_context_t* t = static_cast<const table_context_t*>(context);
     TestGaia * row = static_cast<TestGaia *>(t->row);
+
     // write date into the class
     row->data += rule1_adder;
     // record the context that was passed to this rule
     g_table_checker.set(*t);
+
+    // make sure we dont' allow recursion by calling the exact same
+    // event that fired the rule
+    log_table_event(row, t->gaia_type, t->event_type, event_mode_t::immediate);
 }
 
 const int32_t rule2_adder = 100;
@@ -578,8 +583,9 @@ TEST_F(event_manager_test, log_table_event_multi_rule_single_event)
     EXPECT_EQ(false, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::col_change, event_mode_t::immediate));
     validate_table_rule_not_called();
 
-    // Verify logging a delete event fires both rules.
-    int32_t expected_value = m_row.data + (rule1_adder + rule2_adder);
+    // Verify logging a delete event fires both rules.  And since rule_1 actually calls log_event again,
+    // we will fire rule2 twice
+    int32_t expected_value = m_row.data + (rule1_adder + rule2_adder + rule2_adder);
     EXPECT_EQ(true, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_delete, event_mode_t::immediate));
     EXPECT_EQ(m_row.data, expected_value);
 }
@@ -598,8 +604,9 @@ TEST_F(event_manager_test, log_event_multi_rule_multi_event)
     EXPECT_EQ(false, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::col_change, event_mode_t::immediate));
     validate_table_rule_not_called();
 
-    // Log event TestGaia::delete to invoke rule1 and rule2.
-    int32_t expected_value = m_row.data + (rule1_adder + rule2_adder);
+    // Log event TestGaia::delete to invoke rule1 and rule2.  Remember that rule1 calls log event again
+    // with the same type so rule2_adder gets called twice
+    int32_t expected_value = m_row.data + (rule1_adder + rule2_adder + rule2_adder);
     EXPECT_EQ(true, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_delete, event_mode_t::immediate));
     EXPECT_EQ(m_row.data, expected_value);
 
