@@ -154,7 +154,7 @@ public:
         if (m_copy) {
             auto node_ptr = gaia_se_node::open(m_id);
             if (nullptr == node_ptr) {
-                throw invalid_node_id(0);
+                throw invalid_node_id(m_id);
             }
             auto u = T_fb::Pack(*m_fbb, m_copy.get());
             m_fbb->Finish(u);
@@ -167,7 +167,7 @@ public:
     {
         auto node_ptr = gaia_se_node::open(m_id);
         if (nullptr == node_ptr) {
-            throw invalid_node_id(0);
+            throw invalid_node_id(m_id);
         }
 
         gaia_ptr<gaia_se_node>::remove(node_ptr);

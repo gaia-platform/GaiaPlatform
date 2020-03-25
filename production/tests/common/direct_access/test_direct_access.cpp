@@ -113,14 +113,14 @@ Employee* get_field(const char* name) {
 // ================================
 
 // Create, write & read, one row
-TEST_F(gaia_object_test, GetField) {
+TEST_F(gaia_object_test, get_field) {
     gaia_base_t::begin_transaction();
     get_field("Harold");
     gaia_base_t::commit_transaction();
 }
 
 // Delete one row
-TEST_F(gaia_object_test, GetFieldDelete) {
+TEST_F(gaia_object_test, get_field_delete) {
     gaia_base_t::begin_transaction();
     auto e = get_field("Jameson");
     e->delete_row();
@@ -129,7 +129,7 @@ TEST_F(gaia_object_test, GetFieldDelete) {
 }
 
 // Scan multiple rows
-TEST_F(gaia_object_test, NewSetIns) {
+TEST_F(gaia_object_test, new_set_ins) {
     gaia_base_t::begin_transaction();
     get_field("Harold");
     get_field("Jameson");
@@ -138,7 +138,7 @@ TEST_F(gaia_object_test, NewSetIns) {
 }
 
 // Read back from new, unsaved object
-TEST_F(gaia_object_test, NewSetGet) {
+TEST_F(gaia_object_test, net_set_get) {
     gaia_base_t::begin_transaction();
     auto e = new Employee();
     e->set_name_last("Smith");
@@ -150,7 +150,7 @@ TEST_F(gaia_object_test, NewSetGet) {
 }
 
 // Attempt to read original value from new object
-TEST_F(gaia_object_test, ReadOriginalFromCopy) {
+TEST_F(gaia_object_test, read_original_from_copy) {
     gaia_base_t::begin_transaction();
     auto e = get_field("Zachary");
     EXPECT_STREQ("Zachary", e->name_first_original());
@@ -159,7 +159,7 @@ TEST_F(gaia_object_test, ReadOriginalFromCopy) {
 }
 
 // Insert a row with no field values
-TEST_F(gaia_object_test, NewInsGet) {
+TEST_F(gaia_object_test, new_ins_get) {
     gaia_base_t::begin_transaction();
     
     auto e = new Employee();
@@ -174,7 +174,7 @@ TEST_F(gaia_object_test, NewInsGet) {
 }
 
 // Delete an un-inserted object with field values
-TEST_F(gaia_object_test, NewGet) {
+TEST_F(gaia_object_test, new_get) {
     gaia_base_t::begin_transaction();
     
     auto e = new Employee();
@@ -192,7 +192,7 @@ TEST_F(gaia_object_test, NewGet) {
 // ====================================
 
 // Create, write two rows, read back by ID and verify
-TEST_F(gaia_object_test, ReadBackID) {
+TEST_F(gaia_object_test, read_back_id) {
     gaia_base_t::begin_transaction();
     auto eid = get_field("Howard")->gaia_id();
     auto eid2 = get_field("Henry")->gaia_id();
@@ -226,10 +226,12 @@ TEST_F(gaia_object_test, ReadBackID) {
     // Finally, deleting this should be invalid
     EXPECT_THROW(e->delete_row(), invalid_node_id);
     gaia_base_t::commit_transaction();
+    // Since e was deleted, this will not be cleaned up in TearDown
+    delete e;
 }
 
 // Create, write two rows, read back by scan and verify
-TEST_F(gaia_object_test, ReadBackScan) {
+TEST_F(gaia_object_test, read_back_scan) {
     gaia_base_t::begin_transaction();
     auto eid = get_field("Howard")->gaia_id();
     auto eid2 = get_field("Henry")->gaia_id();
@@ -292,17 +294,17 @@ void UpdateReadBack(bool update_flag) {
 }
 
 // Create, write two rows, set fields, update, read, verify
-TEST_F(gaia_object_test, UpdateReadBack) {
+TEST_F(gaia_object_test, update_read_back) {
     UpdateReadBack(true);
 }
 
 // Create, write two rows, set fields, update, read, verify
-TEST_F(gaia_object_test, NoUpdateReadBack) {
+TEST_F(gaia_object_test, no_update_read_back) {
     UpdateReadBack(false);
 }
 
 // Delete an inserted object then insert after, it's good again
-TEST_F(gaia_object_test, NewDelIns) {
+TEST_F(gaia_object_test, new_del_ins) {
     gaia_base_t::begin_transaction();
     auto e = get_field("Hector");
     e->delete_row();
@@ -315,16 +317,17 @@ TEST_F(gaia_object_test, NewDelIns) {
 }
 
 // Delete a found object then update
-TEST_F(gaia_object_test, NewDelUpd) {
+TEST_F(gaia_object_test, new_del_upd) {
     gaia_base_t::begin_transaction();
     auto e = get_field("Hector");
     e->delete_row();
     e->update_row();
     gaia_base_t::commit_transaction();
+    delete e;
 }
 
 // Delete a found object then insert after, it's good again
-TEST_F(gaia_object_test, FoundDelIns) {
+TEST_F(gaia_object_test, found_del_ins) {
     gaia_base_t::begin_transaction();
     
     auto e = get_field("Hector");
@@ -344,7 +347,7 @@ TEST_F(gaia_object_test, FoundDelIns) {
 }
 
 // Delete an inserted object then set field after, it's good again
-TEST_F(gaia_object_test, NewDelSet) {
+TEST_F(gaia_object_test, new_del_set) {
     gaia_base_t::begin_transaction();
     auto e = get_field("Hector");
     e->delete_row();
@@ -357,7 +360,7 @@ TEST_F(gaia_object_test, NewDelSet) {
 }
 
 // Delete a found object then update
-TEST_F(gaia_object_test, FoundDelUpd) {
+TEST_F(gaia_object_test, found_del_upd) {
     gaia_base_t::begin_transaction();
     auto e = get_field("Hector");
     auto eid = e->gaia_id();
@@ -378,7 +381,7 @@ TEST_F(gaia_object_test, FoundDelUpd) {
 // ====================
 
 // Attempt to insert one row twice
-TEST_F(gaia_object_test, InsertX2) {
+TEST_F(gaia_object_test, insert_x2) {
     gaia_base_t::begin_transaction();
     auto e = get_field("Zachary");
     EXPECT_THROW(e->insert_row(), duplicate_id);
@@ -402,23 +405,23 @@ void InsertIdX2(bool insert_flag) {
 }
 
 // Attempt to insert a row found by ID
-TEST_F(gaia_object_test, InsertIdX2) {
+TEST_F(gaia_object_test, insert_id_x2) {
     InsertIdX2(false);
 }
 
 // Attempt to insert a row found by ID after setting field value
-TEST_F(gaia_object_test, SetInsertIdX2) {
+TEST_F(gaia_object_test, set_insert_id_x2) {
     InsertIdX2(true);
 }
 
 // Attempt to create a row outside of a transaction
-TEST_F(gaia_object_test, NoTx) {
+TEST_F(gaia_object_test, no_tx) {
     EXPECT_THROW(get_field("Harold"), tx_not_open);
     // NOTE: the Employee object is leaked here
 }
 
 // Attempt to update an un-inserted object
-TEST_F(gaia_object_test, NewUpd) {
+TEST_F(gaia_object_test, new_upd) {
     gaia_base_t::begin_transaction();
     Employee* emp = new Employee();
     emp->set_name_first("Judith");
@@ -432,7 +435,7 @@ TEST_F(gaia_object_test, NewUpd) {
 }
 
 // Delete an un-inserted object
-TEST_F(gaia_object_test, NewDel) {
+TEST_F(gaia_object_test, new_del) {
     gaia_base_t::begin_transaction();
     auto e = new Employee();
     EXPECT_THROW(e->delete_row(), invalid_node_id);
@@ -443,7 +446,7 @@ TEST_F(gaia_object_test, NewDel) {
 }
 
 // Delete a row twice
-TEST_F(gaia_object_test, NewDelDel) {
+TEST_F(gaia_object_test, new_del_del) {
     gaia_base_t::begin_transaction();
     auto e = get_field("Hugo");
     // the first delete succeeds
@@ -451,4 +454,5 @@ TEST_F(gaia_object_test, NewDelDel) {
     // second one fails
     EXPECT_THROW(e->delete_row(), invalid_node_id);
     gaia_base_t::commit_transaction();
+    delete e;
 }
