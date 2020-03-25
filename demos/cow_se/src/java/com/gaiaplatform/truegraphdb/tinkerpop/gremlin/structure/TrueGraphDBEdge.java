@@ -21,30 +21,31 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
 {
-    protected final TrueGraphDBVertex inVertex;
+    // Our edge goes from outVertex to inVertex.
     protected final TrueGraphDBVertex outVertex;
+    protected final TrueGraphDBVertex inVertex;
 
     protected Map<String, Property> properties;
 
     protected TrueGraphDBEdge(
         final Object id,
         final String label,
-        final Vertex inVertex, final Vertex outVertex)
+        final Vertex outVertex, final Vertex inVertex)
     {
         super(inVertex.graph(), id, label);
 
-        this.inVertex = (TrueGraphDBVertex)inVertex;
         this.outVertex = (TrueGraphDBVertex)outVertex;
-    }
-
-    public Vertex inVertex()
-    {
-        return this.inVertex;
+        this.inVertex = (TrueGraphDBVertex)inVertex;
     }
 
     public Vertex outVertex()
     {
         return this.outVertex;
+    }
+
+    public Vertex inVertex()
+    {
+        return this.inVertex;
     }
 
     public Iterator<Vertex> vertices(final Direction direction)
@@ -134,21 +135,20 @@ public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
             throw new UnsupportedOperationException("COW edge deletion failed!");
         }
 
-        final TrueGraphDBVertex inVertex = (TrueGraphDBVertex)this.inVertex;
         final TrueGraphDBVertex outVertex = (TrueGraphDBVertex)this.outVertex;
-
-        if (inVertex != null && inVertex.inEdges != null)
+        if (outVertex != null && outVertex.outEdges != null)
         {
-            final Set<Edge> edges = inVertex.inEdges.get(this.label);
+            final Set<Edge> edges = outVertex.outEdges.get(this.label);
             if (edges != null)
             {
                 edges.remove(this);
             }
         }
 
-        if (outVertex != null && outVertex.outEdges != null)
+        final TrueGraphDBVertex inVertex = (TrueGraphDBVertex)this.inVertex;
+        if (inVertex != null && inVertex.inEdges != null)
         {
-            final Set<Edge> edges = outVertex.outEdges.get(this.label);
+            final Set<Edge> edges = inVertex.inEdges.get(this.label);
             if (edges != null)
             {
                 edges.remove(this);

@@ -76,8 +76,8 @@ public final class TrueGraphDBHelper
     protected static boolean createNode(TrueGraphDBVertex vertex)
     {
         TrueGraphDBGraph graph = vertex.graph;
-        long id = Long.parseLong((String)vertex.id);
-        long type = Long.parseLong((String)vertex.label);
+        long id = Long.parseLong(vertex.id.toString());
+        long type = Long.parseLong(vertex.label.toString());
         String payload = packPropertyLists(vertex.properties);
 
         graph.cow.beginTransaction();
@@ -88,7 +88,7 @@ public final class TrueGraphDBHelper
     protected static boolean removeNode(TrueGraphDBVertex vertex)
     {
         TrueGraphDBGraph graph = vertex.graph;
-        long id = Long.parseLong((String)vertex.id);
+        long id = Long.parseLong(vertex.id.toString());
 
         graph.cow.beginTransaction();
         return handleTransaction(graph, graph.cow.removeNode(id));
@@ -97,7 +97,7 @@ public final class TrueGraphDBHelper
     protected static boolean updateNodePayload(TrueGraphDBVertex vertex)
     {
         TrueGraphDBGraph graph = vertex.graph;
-        long id = Long.parseLong((String)vertex.id);
+        long id = Long.parseLong(vertex.id.toString());
         String payload = packPropertyLists(vertex.properties);
 
         graph.cow.beginTransaction();
@@ -107,21 +107,21 @@ public final class TrueGraphDBHelper
     protected static boolean createEdge(TrueGraphDBEdge edge)
     {
         TrueGraphDBGraph graph = edge.graph;
-        long id = Long.parseLong((String)edge.id);
-        long type = Long.parseLong((String)edge.label);
+        long id = Long.parseLong(edge.id.toString());
+        long type = Long.parseLong(edge.label.toString());
         String payload = packProperties(edge.properties);
-        long idIn = Long.parseLong((String)edge.inVertex.id);
-        long idOut = Long.parseLong((String)edge.outVertex.id);
+        long idFirstNode = Long.parseLong(edge.outVertex.id.toString());
+        long idSecondNode = Long.parseLong(edge.inVertex.id.toString());
 
         graph.cow.beginTransaction();
-        long idEdge = graph.cow.createEdge(id, type, idIn, idOut, payload);
+        long idEdge = graph.cow.createEdge(id, type, idFirstNode, idSecondNode, payload);
         return handleTransaction(graph, idEdge != 0);
     }
 
     protected static boolean removeEdge(TrueGraphDBEdge edge)
     {
         TrueGraphDBGraph graph = edge.graph;
-        long id = Long.parseLong((String)edge.id);
+        long id = Long.parseLong(edge.id.toString());
 
         graph.cow.beginTransaction();
         return handleTransaction(graph, graph.cow.removeEdge(id));
@@ -130,7 +130,7 @@ public final class TrueGraphDBHelper
     protected static boolean updateEdgePayload(TrueGraphDBEdge edge)
     {
         TrueGraphDBGraph graph = edge.graph;
-        long id = Long.parseLong((String)edge.id);
+        long id = Long.parseLong(edge.id.toString());
         String payload = packProperties(edge.properties);
 
         graph.cow.beginTransaction();
@@ -139,7 +139,7 @@ public final class TrueGraphDBHelper
 
     protected static Edge addEdge(
         final TrueGraphDBGraph graph,
-        final TrueGraphDBVertex inVertex, final TrueGraphDBVertex outVertex,
+        final TrueGraphDBVertex outVertex, final TrueGraphDBVertex inVertex,
         final String label,
         final Object... keyValues)
     {
@@ -159,7 +159,7 @@ public final class TrueGraphDBHelper
             idValue = graph.edgeIdManager.getNextId(graph);
         }
 
-        final Edge edge = new TrueGraphDBEdge(idValue, label, inVertex, outVertex);
+        final Edge edge = new TrueGraphDBEdge(idValue, label, outVertex, inVertex);
         ElementHelper.attachProperties(edge, keyValues);
 
         // Create edge in COW.
@@ -169,28 +169,10 @@ public final class TrueGraphDBHelper
         }
 
         graph.edges.put(edge.id(), edge);
-        TrueGraphDBHelper.addInEdge(inVertex, label, edge);
         TrueGraphDBHelper.addOutEdge(outVertex, label, edge);
+        TrueGraphDBHelper.addInEdge(inVertex, label, edge);
 
         return edge;
-    }
-
-    protected static void addInEdge(
-        final TrueGraphDBVertex vertex, final String label, final Edge edge)
-    {
-        if (vertex.inEdges == null)
-        {
-            vertex.inEdges = new HashMap<>();   
-        }
-
-        Set<Edge> edges = vertex.inEdges.get(label);
-        if (edges == null)
-        {
-            edges = new HashSet<>();
-            vertex.inEdges.put(label, edges);
-        }
-
-        edges.add(edge);
     }
 
     protected static void addOutEdge(
@@ -206,6 +188,24 @@ public final class TrueGraphDBHelper
         {
             edges = new HashSet<>();
             vertex.outEdges.put(label, edges);
+        }
+
+        edges.add(edge);
+    }
+
+    protected static void addInEdge(
+        final TrueGraphDBVertex vertex, final String label, final Edge edge)
+    {
+        if (vertex.inEdges == null)
+        {
+            vertex.inEdges = new HashMap<>();   
+        }
+
+        Set<Edge> edges = vertex.inEdges.get(label);
+        if (edges == null)
+        {
+            edges = new HashSet<>();
+            vertex.inEdges.put(label, edges);
         }
 
         edges.add(edge);

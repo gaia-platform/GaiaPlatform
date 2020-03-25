@@ -21,8 +21,10 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 public final class TrueGraphDBVertex extends TrueGraphDBElement implements Vertex
 {
-    protected Map<String, Set<Edge>> inEdges;
+    // outEdges are the outgoing edges.
     protected Map<String, Set<Edge>> outEdges;
+    // inEdges are the incoming edges.
+    protected Map<String, Set<Edge>> inEdges;
 
     protected Map<String, List<VertexProperty>> properties;
 
@@ -43,7 +45,7 @@ public final class TrueGraphDBVertex extends TrueGraphDBElement implements Verte
             throw Graph.Exceptions.argumentCanNotBeNull("inVertex");
         }
 
-        return TrueGraphDBHelper.addEdge(this.graph, (TrueGraphDBVertex)inVertex, this, label, keyValues);
+        return TrueGraphDBHelper.addEdge(this.graph, this, (TrueGraphDBVertex)inVertex, label, keyValues);
     }
 
     public Set<String> keys()

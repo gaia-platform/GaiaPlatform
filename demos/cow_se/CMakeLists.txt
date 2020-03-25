@@ -68,6 +68,8 @@ if (JAVA_FOUND AND JNI_FOUND)
   set_target_properties(native_cow_se PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
   set_target_properties(native_cow_se PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 
+  configure_file(src/dump_cow_se.py . COPYONLY)
+
   # Add a test that executes the Java program.
   add_test(NAME test_cow_se_jni COMMAND ${Java_JAVA_EXECUTABLE} -Djava.library.path=. -cp ${COW_SE_JAR} com.gaiaplatform.truegraphdb.CowStorageEngine)
 endif()
