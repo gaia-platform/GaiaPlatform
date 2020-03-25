@@ -16,8 +16,6 @@ using namespace AddrBook;
 
 namespace AddrBook {
     static const gaia_type_t kEmployeeType = 4;
-    static const gaia_type_t kPhoneType = 5;
-    static const gaia_type_t kAddressType = 6;
 };
 
 struct Employee : public gaia_object_t<AddrBook::kEmployeeType, Employee, employee, employeeT>
@@ -44,7 +42,7 @@ struct Employee : public gaia_object_t<AddrBook::kEmployeeType, Employee, employ
     void set_email(const char* s) { set(email, s); }
     void set_web(const char* s) { set(web, s); }
 private:
-    friend class gaia_object_t<AddrBook::kEmployeeType, Employee, employee, employeeT>;
+    friend struct gaia_object_t<AddrBook::kEmployeeType, Employee, employee, employeeT>;
     Employee(gaia_id_t id) : gaia_object_t(id) {}
 }; // Employee 
 
@@ -155,7 +153,7 @@ TEST_F(gaia_object_test, NewSetGet) {
 TEST_F(gaia_object_test, ReadOriginalFromCopy) {
     gaia_base_t::begin_transaction();
     auto e = get_field("Zachary");
-    auto name = e->name_first_original();
+    EXPECT_STREQ("Zachary", e->name_first_original());
     EXPECT_STREQ("Zachary", e->name_first());
     gaia_base_t::commit_transaction();
 }
@@ -207,6 +205,26 @@ TEST_F(gaia_object_test, ReadBackID) {
     e = Employee::get_row_by_id(eid2);
     EXPECT_STREQ("Henry", e->name_first());
     EXPECT_STREQ("Henry", e->name_first_original());
+    // Change the field and verify that original value is intact
+    e->set_name_first("Heinrich");
+    EXPECT_STREQ("Heinrich", e->name_first());
+    EXPECT_STREQ("Henry", e->name_first_original());
+    // While we have the original and modified values, update
+    e->update_row();
+    EXPECT_STREQ("Heinrich", e->name_first());
+    EXPECT_STREQ("Henry", e->name_first_original());
+    // Setting a field value after the update
+    e->set_name_first("Hank");
+    EXPECT_STREQ("Hank", e->name_first());
+    EXPECT_STREQ("Henry", e->name_first_original());
+    // Delete this object with original and modified fields
+    e->delete_row();
+    // The get, get_original and set should all success on this
+    EXPECT_STREQ("Henry", e->name_first());
+    EXPECT_STREQ("Henry", e->name_first_original());
+    e->set_name_first("Harvey");
+    // Finally, deleting this should be invalid
+    EXPECT_THROW(e->delete_row(), invalid_node_id);
     gaia_base_t::commit_transaction();
 }
 
@@ -294,7 +312,15 @@ TEST_F(gaia_object_test, NewDelIns) {
         delete e;
     }
     gaia_base_t::commit_transaction();
+}
 
+// Delete a found object then update
+TEST_F(gaia_object_test, NewDelUpd) {
+    gaia_base_t::begin_transaction();
+    auto e = get_field("Hector");
+    e->delete_row();
+    e->update_row();
+    gaia_base_t::commit_transaction();
 }
 
 // Delete a found object then insert after, it's good again
@@ -310,6 +336,37 @@ TEST_F(gaia_object_test, FoundDelIns) {
     gaia_base_t::begin_transaction();
     e = Employee::get_row_by_id(eid);
     e->set_name_first("Hudson");
+    if (e != nullptr) {
+        delete e;
+    }
+    gaia_base_t::commit_transaction();
+
+}
+
+// Delete an inserted object then set field after, it's good again
+TEST_F(gaia_object_test, NewDelSet) {
+    gaia_base_t::begin_transaction();
+    auto e = get_field("Hector");
+    e->delete_row();
+    e->set_name_first("Howard");
+    if (e != nullptr) {
+        delete e;
+    }
+    gaia_base_t::commit_transaction();
+
+}
+
+// Delete a found object then update
+TEST_F(gaia_object_test, FoundDelUpd) {
+    gaia_base_t::begin_transaction();
+    auto e = get_field("Hector");
+    auto eid = e->gaia_id();
+    gaia_base_t::commit_transaction();
+
+    gaia_base_t::begin_transaction();
+    e = Employee::get_row_by_id(eid);
+    e->delete_row();
+    e->update_row();
     if (e != nullptr) {
         delete e;
     }
@@ -385,3 +442,13 @@ TEST_F(gaia_object_test, NewDel) {
     gaia_base_t::commit_transaction();
 }
 
+// Delete a row twice
+TEST_F(gaia_object_test, NewDelDel) {
+    gaia_base_t::begin_transaction();
+    auto e = get_field("Hugo");
+    // the first delete succeeds
+    e->delete_row();
+    // second one fails
+    EXPECT_THROW(e->delete_row(), invalid_node_id);
+    gaia_base_t::commit_transaction();
+}
