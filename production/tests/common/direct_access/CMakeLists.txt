@@ -43,18 +43,21 @@ function(compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT)
   message(STATUS "`${SRC_FBS}`: add generation of C++ code with '${OPT}'")
   get_filename_component(SRC_FBS_DIR ${SRC_FBS} PATH)
   string(REGEX REPLACE "\\.fbs$" "_generated.h" GEN_HEADER ${SRC_FBS})
+  
   add_custom_command(
-    OUTPUT ${GEN_HEADER}
+    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${GEN_HEADER}
     COMMAND "${GAIA_REPO}/production/build/flatbuffers/flatc"
             --cpp --gen-mutable --gen-object-api --reflect-names
             --cpp-ptr-type flatbuffers::unique_ptr # Used to test with C++98 STLs
             --cpp-str-type gaia::common::nullable_string_t
             ${OPT}
-            -I "${CMAKE_CURRENT_SOURCE_DIR}"
-            -o "${CMAKE_CURRENT_SOURCE_DIR}"
-            "${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}"
-    DEPENDS flatc
-    COMMENT "Run generation: '${GEN_HEADER}'")
+            -I ${CMAKE_CURRENT_SOURCE_DIR}
+            -o ${CMAKE_CURRENT_SOURCE_DIR}
+            ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
+    DEPENDS flatc 
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
+    COMMENT "Run generation: '${GEN_HEADER}'"
+    VERBATIM)
     register_generated_output(${GEN_HEADER})
 endfunction()
 
