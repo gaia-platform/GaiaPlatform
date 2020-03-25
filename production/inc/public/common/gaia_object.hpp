@@ -90,8 +90,6 @@ public:
     // that the database has not seen yet by creating
     // a copy buffer immediately.
     gaia_object_t() :
-        m_fbb(nullptr),
-        m_copy(nullptr),
         m_fb(nullptr),
         m_id(0)
     {
@@ -133,7 +131,7 @@ public:
         if (0 == m_id) {
             m_id = gaia_se_node::generate_id();
         }
-        if (m_copy != nullptr) {
+        if (m_copy) {
             auto u = T_fb::Pack(*m_fbb, m_copy.get());
             m_fbb->Finish(u);
             node_ptr = gaia_se_node::create(m_id, T_gaia_type, m_fbb->GetSize(), m_fbb->GetBufferPointer());
@@ -180,8 +178,6 @@ protected:
     // This constructor supports creating new objects from existing
     // nodes in the database.  It is called by our get_object below.
     gaia_object_t(gaia_id_t id) :
-        m_fbb(nullptr),
-        m_copy(nullptr),
         m_fb(nullptr),
         m_id(id)
     {
