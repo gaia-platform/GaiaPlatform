@@ -28,6 +28,8 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraphIterator;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraphVariables;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
+import com.gaiaplatform.truegraphdb.CowStorageEngine;
+
 //@Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_STANDARD)
 //@Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_INTEGRATE)
 //@Graph.OptIn(Graph.OptIn.SUITE_PROCESS_STANDARD)
@@ -65,6 +67,8 @@ public final class TrueGraphDBGraph implements Graph
     protected Map<Object, Vertex> vertices = new ConcurrentHashMap<>();
     protected Map<Object, Edge> edges = new ConcurrentHashMap<>();
 
+    protected CowStorageEngine cow = new CowStorageEngine(); 
+
     private TrueGraphDBGraph(final Configuration configuration)
     {
         this.configuration = configuration;
@@ -80,7 +84,8 @@ public final class TrueGraphDBGraph implements Graph
             configuration.getString(TRUEGRAPHDB_DEFAULT_VERTEX_PROPERTY_CARDINALITY,
             VertexProperty.Cardinality.single.name()));
 
-        // TODO: Initialize COW.
+        // Initialize the COW storage engine.
+        cow.initialize(true);
     }
 
     public static TrueGraphDBGraph open()
@@ -112,12 +117,16 @@ public final class TrueGraphDBGraph implements Graph
             idValue = this.vertexIdManager.getNextId(this);
         }
 
-        // TODO: Create node in COW.
-
         final Vertex vertex = new TrueGraphDBVertex(this, idValue, label);
-        this.vertices.put(vertex.id(), vertex);
-
         ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
+
+        // Create node in COW.
+        if (!TrueGraphDBHelper.createNode((TrueGraphDBVertex)vertex))
+        {
+            throw new UnsupportedOperationException("COW node creation failed!");
+        }
+
+        this.vertices.put(vertex.id(), vertex);
 
         return vertex;
     }

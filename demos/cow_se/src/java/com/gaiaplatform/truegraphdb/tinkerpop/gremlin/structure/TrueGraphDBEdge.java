@@ -5,7 +5,7 @@
 
 /////////////////////////////////////////////
 // Portions of this code are derived
-// from TrueGraphDBGraph project.
+// from TinkerGraph project.
 // Used under Apache License 2.0
 /////////////////////////////////////////////
 
@@ -21,30 +21,31 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
 {
-    protected final Vertex inVertex;
-    protected final Vertex outVertex;
+    // Our edge goes from outVertex to inVertex.
+    protected final TrueGraphDBVertex outVertex;
+    protected final TrueGraphDBVertex inVertex;
 
     protected Map<String, Property> properties;
 
     protected TrueGraphDBEdge(
         final Object id,
         final String label,
-        final Vertex inVertex, final Vertex outVertex)
+        final Vertex outVertex, final Vertex inVertex)
     {
         super(inVertex.graph(), id, label);
 
-        this.inVertex = inVertex;
-        this.outVertex = outVertex;
-    }
-
-    public Vertex inVertex()
-    {
-        return this.inVertex;
+        this.outVertex = (TrueGraphDBVertex)outVertex;
+        this.inVertex = (TrueGraphDBVertex)inVertex;
     }
 
     public Vertex outVertex()
     {
         return this.outVertex;
+    }
+
+    public Vertex inVertex()
+    {
+        return this.inVertex;
     }
 
     public Iterator<Vertex> vertices(final Direction direction)
@@ -90,7 +91,11 @@ public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
 
         this.properties.put(key, newProperty);
 
-        // TODO: Update edge payload in COW.
+        // Update edge payload in COW.
+        if (!TrueGraphDBHelper.updateEdgePayload(this))
+        {
+            throw new UnsupportedOperationException("COW edge update failed!");
+        }
 
         return newProperty;
     }
@@ -124,23 +129,26 @@ public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
 
     public void remove()
     {
-        // TODO: Remove the edge from COW.
-
-        final TrueGraphDBVertex inVertex = (TrueGraphDBVertex)this.inVertex;
-        final TrueGraphDBVertex outVertex = (TrueGraphDBVertex)this.outVertex;
-
-        if (inVertex != null && inVertex.inEdges != null)
+        // Remove the edge from COW.
+        if (!TrueGraphDBHelper.removeEdge(this))
         {
-            final Set<Edge> edges = inVertex.inEdges.get(this.label);
+            throw new UnsupportedOperationException("COW edge deletion failed!");
+        }
+
+        final TrueGraphDBVertex outVertex = (TrueGraphDBVertex)this.outVertex;
+        if (outVertex != null && outVertex.outEdges != null)
+        {
+            final Set<Edge> edges = outVertex.outEdges.get(this.label);
             if (edges != null)
             {
                 edges.remove(this);
             }
         }
 
-        if (outVertex != null && outVertex.outEdges != null)
+        final TrueGraphDBVertex inVertex = (TrueGraphDBVertex)this.inVertex;
+        if (inVertex != null && inVertex.inEdges != null)
         {
-            final Set<Edge> edges = outVertex.outEdges.get(this.label);
+            final Set<Edge> edges = inVertex.inEdges.get(this.label);
             if (edges != null)
             {
                 edges.remove(this);

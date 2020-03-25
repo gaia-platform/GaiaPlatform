@@ -98,7 +98,8 @@ public final class TrueGraphDBVertexProperty<V> extends TrueGraphDBElement imple
 
         this.properties.put(key, newProperty);
 
-        // TODO: Update node payload in COW.
+        // No plans to support vertex property properties in COW for now.
+        // When we will, we will also need to update the node payload in COW here.
 
         return newProperty;
     }
@@ -134,7 +135,11 @@ public final class TrueGraphDBVertexProperty<V> extends TrueGraphDBElement imple
             }
         }        
 
-        // TODO: Update node payload in COW.
+        // Update node payload in COW.
+        if (!TrueGraphDBHelper.updateNodePayload(this.vertex))
+        {
+            throw new UnsupportedOperationException("COW node update failed!");
+        }
 
         this.properties = null;
         this.removed = true;
