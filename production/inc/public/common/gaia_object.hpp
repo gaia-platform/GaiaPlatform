@@ -91,8 +91,8 @@ public:
     // a copy buffer immediately.
     gaia_object_t() :
         m_fbb(nullptr),
-        m_fb(nullptr),
         m_copy(nullptr),
+        m_fb(nullptr),
         m_id(0)
     {
         copy_write();
@@ -134,7 +134,7 @@ public:
             m_id = gaia_se_node::generate_id();
         }
         if (m_copy != nullptr) {
-            auto u = T_fb::Pack(*m_fbb, m_copy);
+            auto u = T_fb::Pack(*m_fbb, m_copy.get());
             m_fbb->Finish(u);
             node_ptr = gaia_se_node::create(m_id, T_gaia_type, m_fbb->GetSize(), m_fbb->GetBufferPointer());
             m_fbb->Clear();
@@ -156,7 +156,7 @@ public:
             if (nullptr == node_ptr) {
                 throw invalid_node_id(0);
             }
-            auto u = T_fb::Pack(*m_fbb, m_copy);
+            auto u = T_fb::Pack(*m_fbb, m_copy.get());
             m_fbb->Finish(u);
             node_ptr.update_payload(m_fbb->GetSize(), m_fbb->GetBufferPointer());
             m_fbb->Clear();
@@ -181,28 +181,27 @@ protected:
     // nodes in the database.  It is called by our get_object below.
     gaia_object_t(gaia_id_t id) :
         m_fbb(nullptr),
-        m_fb(nullptr),
         m_copy(nullptr),
+        m_fb(nullptr),
         m_id(id)
     {
     }
 
-    flatbuffers::FlatBufferBuilder* m_fbb; // cached flat buffer builder for reuse
-    const T_fb* m_fb;   // flat buffer, referencing SE memory
-    T_obj* m_copy;      // private mutable flatbuffer copy of field changes
-    gaia_id_t m_id;     // gaia_id assigned to this row
+    unique_ptr<flatbuffers::FlatBufferBuilder> m_fbb; // cached flat buffer builder for reuse
+    unique_ptr<T_obj> m_copy;   // private mutable flatbuffer copy of field changes
+    const T_fb* m_fb;           // flat buffer, referencing SE memory
+    gaia_id_t m_id;             // gaia_id assigned to this row
 
     T_obj* copy_write()
     {
         if (m_copy == nullptr) {
-            T_obj* copy = new T_obj();
+            m_copy.reset(new T_obj());
             if (m_fb) {
-                m_fb->UnPackTo(copy);
+                m_fb->UnPackTo(m_copy.get());
             }
-            m_copy = copy;
-            m_fbb = new flatbuffers::FlatBufferBuilder();
+            m_fbb.reset(new flatbuffers::FlatBufferBuilder());
         }
-        return m_copy;
+        return m_copy.get();
     }
 
 private:
@@ -230,14 +229,8 @@ private:
 
     void reset(bool clear_flatbuffer = false)
     {
-        if (m_copy) {
-            delete m_copy;
-            m_copy = nullptr;
-        }
-        if (m_fbb) {
-            delete m_fbb;
-            m_fbb = nullptr;
-        }
+        m_copy.reset();
+        m_fbb.reset();
 
         // A full reset clears m_fb so that it will be read afresh the next
         // time the object is located.  We do not own the flatbuffer so
