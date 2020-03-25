@@ -25,8 +25,8 @@ while not(done):
     while node_iter.get() != None:
         print_node(node_iter, False);
         node_iter = node_iter.find_next();
-
     print ("");
+
     print("Iterating through edges of type " + str(type) + "...");
     edge_iter = gaia_se_edge_ptr.find_first(type);
 
