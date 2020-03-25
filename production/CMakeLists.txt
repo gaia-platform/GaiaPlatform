@@ -40,10 +40,15 @@ target_sources(common INTERFACE
   ${PROJECT_SOURCE_DIR}/inc/internal/common/retail_assert.hpp
 )
 
+# Add flatbuffers
+add_subdirectory("../third_party/production/flatbuffers" flatbuffers)
+
 # Add individual component folders.
 add_subdirectory(db)
 add_subdirectory(rules)
 add_subdirectory(tests)
+
+
 
 # Add googletest
 add_subdirectory(${GOOGLE_TEST} googletest)
