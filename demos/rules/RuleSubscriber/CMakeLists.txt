@@ -15,7 +15,7 @@ macro(add_clang_executable name)
 endmacro(add_clang_executable)
 
 
-add_clang_executable(rulec RuleSubscriber.cpp)
+add_clang_executable(rule_subscriber RuleSubscriber.cpp)
 
 set(search_paths
   ${LLVM_LIB_PATH}/lib/cmake/clang
@@ -38,7 +38,7 @@ include_directories(
   ${LLVM_LIB_PATH}/lib
 )
 
-target_link_libraries(rulec
+target_link_libraries(rule_subscriber
   PRIVATE
   clangTooling
 )

@@ -33,13 +33,13 @@ struct rule_data
 };
 
 vector<rule_data> rules;
-string currentRuleset;
+string current_ruleset;
 
-class RuleSubscriberVisitor
-  : public RecursiveASTVisitor<RuleSubscriberVisitor> 
+class Rule_Subscriber_Visitor
+  : public RecursiveASTVisitor<Rule_Subscriber_Visitor> 
 {
 public:
-    explicit RuleSubscriberVisitor(ASTContext *context)
+    explicit Rule_Subscriber_Visitor(ASTContext *context)
     {
 
     }
@@ -56,16 +56,16 @@ public:
             string comment = rawComment->getBriefText(context);
             if (comment.compare(0, prefix.size(), prefix) == 0)
             {
-                currentRuleset = d->getNameAsString();
+                current_ruleset = d->getNameAsString();
             }
             else
             {
-                currentRuleset = "";
+                current_ruleset = "";
             }
         }
         else
         {
-            currentRuleset = "";
+            current_ruleset = "";
         }
       
         return true;
@@ -94,7 +94,7 @@ public:
             return true;
         }
         
-        if (!currentRuleset.empty())
+        if (!current_ruleset.empty())
         {
             // Split the comments into words to get rule subscription parameters
             vector<string> params = split(comment, ',');
@@ -104,11 +104,11 @@ public:
                 string gaia_type = trim(params[gaia_type_index]);
                 if (!rule_name.empty())
                 {
-                    for (int idx = event_type_start_index; idx < params.size(); idx++)
+                    for (int i = event_type_start_index; i < params.size(); i++)
                     {
                         rule_data ruleData;
-                        string event_type = params[idx];
-                        ruleData.ruleset = currentRuleset;
+                        string event_type = params[i];
+                        ruleData.ruleset = current_ruleset;
                         ruleData.rule_name = rule_name;
                         ruleData.is_transaction_rule = event_type.find("transaction_") != string::npos;
                         ruleData.gaia_type = gaia_type;
@@ -170,19 +170,19 @@ private:
         return tokens;
     }
 
-    //Trim from start.
+    // Trim from start.
     string &ltrim(string &s) 
     {
-        s.erase(s.begin(), find_if(s.begin(), s.end(),
-            not1(ptr_fun<int, int>(isspace))));
+        s.erase(s.begin(), 
+            find_if(s.begin(), s.end(), not1(ptr_fun<int, int>(isspace))));
         return s;
     }
 
     // Trim from end.
     string &rtrim(string &s) 
     {
-        s.erase(find_if(s.rbegin(), s.rend(),
-            not1(ptr_fun<int, int>(isspace))).base(), s.end());
+        s.erase(
+            find_if(s.rbegin(), s.rend(), not1(ptr_fun<int, int>(isspace))).base(), s.end());
         return s;
     }
 
@@ -193,10 +193,10 @@ private:
     }
 };
 
-class RuleSubscriberConsumer : public clang::ASTConsumer 
+class Rule_Subscriber_Consumer : public clang::ASTConsumer 
 {
 public:
-    explicit RuleSubscriberConsumer(ASTContext *context)
+    explicit Rule_Subscriber_Consumer(ASTContext *context)
         : visitor(context) {}
 
     virtual void HandleTranslationUnit(clang::ASTContext &context) 
@@ -204,17 +204,17 @@ public:
         visitor.TraverseDecl(context.getTranslationUnitDecl());
     }
 private:
-    RuleSubscriberVisitor visitor;
+    Rule_Subscriber_Visitor visitor;
 };
 
-class RuleSubscriberAction : public clang::ASTFrontendAction 
+class Rule_Subscriber_Action : public clang::ASTFrontendAction 
 {
 public:
     virtual std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
         clang::CompilerInstance &compiler, llvm::StringRef inFile) 
     {
         return std::unique_ptr<clang::ASTConsumer>(
-            new RuleSubscriberConsumer(&compiler.getASTContext()));
+            new Rule_Subscriber_Consumer(&compiler.getASTContext()));
     }
 };
 
@@ -229,7 +229,7 @@ bool SaveFile(const char *name, const stringstream& buf)
     return !ofs.bad();
 }
 
-void generateCode(const char * fileName, const vector<rule_data>& rules)
+void generateCode(const char *fileName, const vector<rule_data>& rules)
 {
     unordered_set<string> declarations;
     
@@ -237,11 +237,10 @@ void generateCode(const char * fileName, const vector<rule_data>& rules)
     code << "#include \"rules.hpp\"" << endl;
     code << "using namespace gaia::rules;" << endl; 
     
-    
     //Generate rules forward declarations.
     for (auto it = rules.cbegin(); it != rules.cend(); ++it)
     {
-      declarations.emplace( "void " + it->rule + "(const context_base_t * context);");        
+      declarations.emplace( "void " + it->rule + "(const context_base_t *context);");        
     }
 
     for (auto it = declarations.cbegin(); it != declarations.cend(); ++it)
@@ -253,11 +252,11 @@ void generateCode(const char * fileName, const vector<rule_data>& rules)
 
     code << "extern \"C\" void initialize_rules()" << endl;
     code << "{" << endl;
-    //Generate rule binding structure.
+    // Generate rule binding structure.
     for (auto it = rules.cbegin(); it != rules.cend(); ++it)
     {
-        declarations.emplace("    rule_binding_t  " + it->ruleset + "_" + it->rule + "(\"" + 
-            it->ruleset +  "\",\"" + it->rule_name + "\"," + it->rule + ");");        
+        declarations.emplace("    rule_binding_t  " + it->ruleset + "_" + it->rule + "(\"" 
+            + it->ruleset +  "\",\"" + it->rule_name + "\"," + it->rule + ");");        
     }
 
     for (auto it = declarations.cbegin(); it != declarations.cend(); ++it)
@@ -265,18 +264,18 @@ void generateCode(const char * fileName, const vector<rule_data>& rules)
         code << *it << endl;   
     }
     
-     //Generate subscription code.
+    // Generate subscription code.
     for (auto it = rules.cbegin(); it != rules.cend(); ++it)
     {
         if (it->is_transaction_rule)
         {
-            code << "    subscribe_transaction_rule(" << it->event_type << "," << 
-                it->ruleset << "_" << it->rule << ");" << endl;
+            code << "    subscribe_transaction_rule(" << it->event_type << "," 
+                << it->ruleset << "_" << it->rule << ");" << endl;
         }
         else
         {
-            code << "    subscribe_table_rule(" << it->gaia_type << "," << 
-                it->event_type << "," << it->ruleset << "_" << it->rule << ");" << endl;
+            code << "    subscribe_table_rule(" << it->gaia_type << "," 
+                << it->event_type << "," << it->ruleset << "_" << it->rule << ");" << endl;
         }
 
     }
@@ -294,7 +293,7 @@ int main(int argc, const char **argv)
     CommonOptionsParser op(argc, argv, RuleSubscriberCategory);        
     // Create a new Clang Tool instance (a LibTooling environment).
     ClangTool tool(op.getCompilations(), op.getSourcePathList());
-    tool.run(newFrontendActionFactory<RuleSubscriberAction>().get());
+    tool.run(newFrontendActionFactory<Rule_Subscriber_Action>().get());
     generateCode(RuleSubscriberOption.c_str(), rules);  
 
 }
