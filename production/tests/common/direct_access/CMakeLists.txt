@@ -46,7 +46,7 @@ function(compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT)
   
   add_custom_command(
     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${GEN_HEADER}
-    COMMAND "${GAIA_REPO}/production/build/flatbuffers/flatc"
+    COMMAND "${CMAKE_BINARY_DIR}/flatbuffers/flatc"
             --cpp --gen-mutable --gen-object-api --reflect-names
             --cpp-ptr-type flatbuffers::unique_ptr # Used to test with C++98 STLs
             --cpp-str-type gaia::common::nullable_string_t
