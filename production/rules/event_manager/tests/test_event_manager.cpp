@@ -799,7 +799,7 @@ TEST_F(event_manager_test, subscribe_transaction_rule_duplicate_rule)
 }
 
 
-TEST_F(event_manager_test, ListRulesNone) 
+TEST_F(event_manager_test, list_rules_none) 
 {
     list_subscriptions_t rules;
 
@@ -812,7 +812,7 @@ TEST_F(event_manager_test, ListRulesNone)
     EXPECT_EQ(0, rules.size());
 }
 
-TEST_F(event_manager_test, ListRulesNoFilters) 
+TEST_F(event_manager_test, list_rules_no_filters) 
 {
     list_subscriptions_t rules;
     setup_all_rules();
@@ -821,7 +821,7 @@ TEST_F(event_manager_test, ListRulesNoFilters)
     validate_rule_list(rules, get_expected_subscriptions(nullptr, nullptr, nullptr));
 }
 
-TEST_F(event_manager_test, ListRulesRulesetFilter) 
+TEST_F(event_manager_test, list_rules_ruleset_filter) 
 {
     list_subscriptions_t rules;
     setup_all_rules();
@@ -835,7 +835,7 @@ TEST_F(event_manager_test, ListRulesRulesetFilter)
     validate_rule_list(rules, get_expected_subscriptions(ruleset_filter, nullptr, nullptr));
 }
 
-TEST_F(event_manager_test, ListRulesEventTypeFilter) 
+TEST_F(event_manager_test, list_rules_event_type_filter) 
 {
     list_subscriptions_t rules;
     setup_all_rules();
@@ -849,7 +849,7 @@ TEST_F(event_manager_test, ListRulesEventTypeFilter)
     validate_rule_list(rules, get_expected_subscriptions(nullptr, nullptr, &event_filter));
 }
 
-TEST_F(event_manager_test, ListRulesGaiaTypeFilter) 
+TEST_F(event_manager_test, list_rules_gaia_type_filter) 
 {
     list_subscriptions_t rules;
     setup_all_rules();
@@ -865,7 +865,7 @@ TEST_F(event_manager_test, ListRulesGaiaTypeFilter)
         nullptr, &gaia_type_filter, nullptr));
 }
 
-TEST_F(event_manager_test, ListRulesAllFilters) 
+TEST_F(event_manager_test, list_rules_all_filters) 
 {
     list_subscriptions_t rules;
     setup_all_rules();
