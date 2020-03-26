@@ -17,7 +17,7 @@ using namespace gaia::rules;
 using namespace gaia::common;
 
 // Our test row context.
-class TestGaia : public gaia_base
+class TestGaia : public gaia_base_t
 {
 public:
     static const gaia_type_t gaia_type = 333;

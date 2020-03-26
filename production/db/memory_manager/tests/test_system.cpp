@@ -6,43 +6,23 @@
 #include <iostream>
 #include <memory>
 
-#include "constants.hpp"
-#include "retail_assert.hpp"
+#include "gtest/gtest.h"
 
+#include "base_memory_manager.hpp"
 #include "memory_structures.hpp"
 
 using namespace std;
 
-using namespace gaia::common;
 using namespace gaia::db::memory_manager;
 
-void output_struct_sizes();
-void test_pointer_arithmetic();
-
-int main()
+TEST(memory_manager, struct_sizes)
 {
-    output_struct_sizes();
-    test_pointer_arithmetic();
-
-    cout << endl << c_all_tests_passed << endl;
-}
-
-void output_struct_sizes()
-{
-    cout << endl << c_debug_output_separator_line_start << endl;
-    cout << "*** Struct sizes tests started ***" << endl;
-    cout << c_debug_output_separator_line_end << endl;
-
     cout << "sizeof(memory_allocation_metadata_t) = " << sizeof(memory_allocation_metadata_t) << endl;
     cout << "sizeof(stack_allocator_metadata_t) = " << sizeof(stack_allocator_metadata_t) << endl;
     cout << "sizeof(stack_allocator_allocation_t) = " << sizeof(stack_allocator_allocation_t) << endl;
-
-    cout << endl << c_debug_output_separator_line_start << endl;
-    cout << "*** Struct sizes tests ended ***" << endl;
-    cout << c_debug_output_separator_line_end << endl;
 }
 
-void test_pointer_arithmetic()
+TEST(system, pointer_arithmetic)
 {
     struct small_integers_t
     {
@@ -59,10 +39,6 @@ void test_pointer_arithmetic()
 
     integers_t integers;
 
-    cout << endl << c_debug_output_separator_line_start << endl;
-    cout << "*** Pointer arithmetic tests started ***" << endl;
-    cout << c_debug_output_separator_line_end << endl;
-
     cout << "address(integers) = " << &integers << " = " << (size_t)&integers << endl;
     cout << "address(uint8) = " << &integers.small_integers.uint8
         << " = " << (size_t)&integers.small_integers.uint8 << endl;
@@ -77,12 +53,8 @@ void test_pointer_arithmetic()
     cout << "&integers.uint64 - &integers.small_integers.uint8 = "
         << (uint8_t*)&integers.uint64 - (uint8_t*)&integers.small_integers.uint8 << endl;
 
-    retail_assert(
-        (uint8_t*)&integers.uint64 - (uint8_t*)&integers == sizeof(small_integers_t),
-        "Pointer difference didn't result in structure size!");
-    retail_assert(
-        (uint8_t*)&integers + sizeof(small_integers_t) == (uint8_t*)&integers.uint64,
-        "Pointer addition didn't result in field address!");
+    ASSERT_EQ(sizeof(small_integers_t), (uint8_t*)&integers.uint64 - (uint8_t*)&integers);
+    ASSERT_EQ((uint8_t*)&integers.uint64, (uint8_t*)&integers + sizeof(small_integers_t));
 
     cout << endl << "Test integer overflow:" << endl;
     size_t value = -8;
@@ -90,11 +62,5 @@ void test_pointer_arithmetic()
     value += 20;
     cout << " + 20 = " << value << endl;
 
-    retail_assert(
-        value == 12,
-        "Addition did not overflow!");
-
-    cout << endl << c_debug_output_separator_line_start << endl;
-    cout << "*** Pointer arithmetic tests ended ***" << endl;
-    cout << c_debug_output_separator_line_end << endl;
+    ASSERT_EQ(12, value);
 }

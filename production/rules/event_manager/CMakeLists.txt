@@ -3,17 +3,19 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.11)
 enable_testing()
 
 # Set the project name.
 project(event_manager)
 
 set(GAIA_EVENT_MANAGER_INCLUDES 
+    ${GAIA_REPO}/production/db/storage_engine/mock
     ${GAIA_INC}/public/common
     ${GAIA_INC}/internal/common
     ${GAIA_INC}/public/rules
     ${GAIA_RULES_INC}
+    ${FLATBUFFERS_INC}
     ${PROJECT_SOURCE_DIR}/inc
 )
 

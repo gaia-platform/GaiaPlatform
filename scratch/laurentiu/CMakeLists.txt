@@ -3,7 +3,7 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.11)
 
 enable_testing()
 
@@ -20,4 +20,4 @@ set(GAIA_LINK_FLAGS "-ggdb -pthread")
 
 # Add individual folders.
 add_subdirectory(flatbuffers)
-
+add_subdirectory(jni)
