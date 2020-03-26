@@ -48,9 +48,9 @@ bool event_manager_t::log_event(event_type_t type, event_mode_t mode)
     for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it) 
     {
         _rule_binding_t* rule_ptr = const_cast<_rule_binding_t*>(*rules_it);
-        if (!rule_ptr->executing)
+        if (!rule_ptr->is_executing)
         {
-            _exec_guard_t guard(rule_ptr->executing);
+            _exec_guard_t guard(rule_ptr->is_executing);
             rules_fired = true;
             transaction_context_t context(
                 {rule_ptr->ruleset_name.c_str(), rule_ptr->rule_name.c_str(), rule_ptr->rule},
@@ -85,9 +85,9 @@ bool event_manager_t::log_event(
         for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it) 
         {
             _rule_binding_t* rule_ptr = const_cast<_rule_binding_t*>(*rules_it);
-            if (!rule_ptr->executing)
+            if (!rule_ptr->is_executing)
             {
-                _exec_guard_t guard(rule_ptr->executing);
+                _exec_guard_t guard(rule_ptr->is_executing);
                 rules_fired = true;
                 table_context_t context(
                     {rule_ptr->ruleset_name.c_str(), rule_ptr->rule_name.c_str(), rule_ptr->rule},
@@ -356,7 +356,7 @@ event_manager_t::_rule_binding_t::_rule_binding_t(
     {
         rule_name = binding.rule_name;
     }
-    executing = false;
+    is_executing = false;
 }
 
 /**

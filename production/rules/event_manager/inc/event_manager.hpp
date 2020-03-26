@@ -79,7 +79,7 @@ private:
     // rule data and hold on to it.  This will be
     // required for deferred rules later.  For Q1
     // we don't allow recursion of rules so keep
-    // the execution state for this.
+    // the execution state for the rule invocation.
     struct _rule_binding_t
     {
         _rule_binding_t() = delete;
@@ -88,7 +88,7 @@ private:
         std::string ruleset_name;
         std::string rule_name;
         rules::gaia_rule_fn rule;
-        bool executing;
+        bool is_executing;
     };
 
     // Ensures that we can clean up executing
