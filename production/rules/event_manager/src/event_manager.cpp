@@ -50,12 +50,12 @@ bool event_manager_t::log_event(event_type_t type, event_mode_t mode)
         _rule_binding_t* rule_ptr = const_cast<_rule_binding_t*>(*rules_it);
         if (!rule_ptr->executing)
         {
-            _execution_context_t exec_context(rule_ptr->executing);
+            _exec_guard_t guard(rule_ptr->executing);
             rules_fired = true;
-            transaction_context_t transaction_context(
+            transaction_context_t context(
                 {rule_ptr->ruleset_name.c_str(), rule_ptr->rule_name.c_str(), rule_ptr->rule},
                 type);
-            rule_ptr->rule(&transaction_context);
+            rule_ptr->rule(&context);
         }
     }
 
@@ -87,14 +87,14 @@ bool event_manager_t::log_event(
             _rule_binding_t* rule_ptr = const_cast<_rule_binding_t*>(*rules_it);
             if (!rule_ptr->executing)
             {
-                _execution_context_t exec_context(rule_ptr->executing);
+                _exec_guard_t guard(rule_ptr->executing);
                 rules_fired = true;
-                table_context_t table_context(
+                table_context_t context(
                     {rule_ptr->ruleset_name.c_str(), rule_ptr->rule_name.c_str(), rule_ptr->rule},
                     type, 
                     gaia_type, 
                     row);
-                rule_ptr->rule(&table_context);
+                rule_ptr->rule(&context);
             }
         }
     }

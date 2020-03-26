@@ -96,17 +96,17 @@ private:
     // because it exits normally or an exception
     // is thrown.  Currently the execution state
     // only tracks whether the current rule is executing.
-    class _execution_context_t
+    class _exec_guard_t
     {
     public:
-        _execution_context_t() = delete;
-        _execution_context_t(bool& is_executing)
+        _exec_guard_t() = delete;
+        _exec_guard_t(bool& is_executing)
         : m_is_executing(is_executing)
         {
             m_is_executing = true;
         }
 
-        ~_execution_context_t()
+        ~_exec_guard_t()
         {
             m_is_executing = false;
         }
