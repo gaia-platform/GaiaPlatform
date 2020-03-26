@@ -23,10 +23,9 @@ struct nullable_string_t : std::string
     {
     }
 
-    nullable_string_t(const char *c_str, uint32_t size)
+    nullable_string_t(const char *c_str, uint32_t)
         : std::string(c_str), is_null(c_str == nullptr)
     {
-        (void)size;
     }
 
     const char* c_str() const
@@ -40,7 +39,10 @@ struct nullable_string_t : std::string
     nullable_string_t &operator=(const nullable_string_t &nullable_string)
     {
         is_null = nullable_string.is_null;
-        if (!nullable_string.is_null) {
+        if (is_null) {
+            clear();
+        }
+        else {
             std::string::operator=(nullable_string);
         }
         return *this;
@@ -56,7 +58,10 @@ struct nullable_string_t : std::string
     nullable_string_t& operator=(const char* c_str)
     {
         is_null = (c_str == nullptr);
-        if (c_str) {
+        if (is_null) {
+            clear();
+        }
+        else {
             std::string::operator=(c_str);
         }
 
@@ -65,7 +70,7 @@ struct nullable_string_t : std::string
 
     // When a flatbuffer is created, it will call the empty() method.  Default behavior
     // is to set a nullptr if the nullable_string_t is zero-length.  We will only return true
-    // if the nullable_string_t is null
+    // if the nullable_string_t is null.
     bool empty() const
     {
         return is_null;

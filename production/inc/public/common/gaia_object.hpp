@@ -32,8 +32,8 @@ struct gaia_base_t
     // s_gaia_tx_cache - Track every gaia_base_t object that has been used in
     //                   the current transaction. Used to clear the field
     //                   values referenced in the objects at transaction commit
-    //                   because they become stale. This separage cache is
-    //                   maintained as a smaller subset of s_gaia_cache so that
+    //                   because they become stale. This separate cache is
+    //                   maintained as a smaller subset of the s_gaia_cache so that
     //                   the whole cache doesn't have to be searched for contents
     //                   to be cleared. This map is cleared before every
     //                   transaction begins. By waiting until the next transaction
@@ -48,7 +48,7 @@ struct gaia_base_t
         // The s_gaia_tx_cache is a list of objects containing stale data that
         // must be refreshed if a new transaction begins. Scan these objects to
         // clean out old values. The objects will not be deleted, as they will
-        // be continue to be tracked in the s_gaia_cache.
+        // continue to be tracked in the s_gaia_cache.
         for (auto it = s_gaia_tx_cache.begin(); it != s_gaia_tx_cache.end(); ++it)
         {
             it->second->reset(true);
@@ -96,12 +96,11 @@ public:
         copy_write();
     }
 
-    #define get_current(field) (m_copy ? (m_copy->field) : (m_fb->field()))
-    // NOTE: Either m_fb or m_copy should exist.
-    #define get_original(field) (m_fb ? m_fb->field() : m_copy->field)
-    #define get_str_original(field) (m_fb ? m_fb->field()->c_str() : m_copy->field.c_str())
-    #define get_str(field) (m_copy ? m_copy->field.c_str() : m_fb->field() ? m_fb->field()->c_str() : nullptr)
-    #define set(field, value) (copy_write()->field = value)
+    #define GET_CURRENT(field) (m_copy ? (m_copy->field) : (m_fb->field()))
+    #define GET_ORIGINAL(field) (m_fb ? m_fb->field() : m_copy->field)
+    #define GET_STR_ORIGINAL(field) (m_fb ? m_fb->field()->c_str() : m_copy->field.c_str())
+    #define GET_STR(field) (m_copy ? m_copy->field.c_str() : m_fb->field() ? m_fb->field()->c_str() : nullptr)
+    #define SET(field, value) (copy_write()->field = value)
 
     static T_gaia* get_first() {
         auto node_ptr = gaia_ptr<gaia_se_node>::find_first(T_gaia_type);
@@ -137,8 +136,9 @@ public:
             node_ptr = gaia_se_node::create(m_id, T_gaia_type, m_fbb->GetSize(), m_fbb->GetBufferPointer());
             m_fbb->Clear();
         } else {
-            // This situation only happens if a deleted row is inserted.
-            // By giving it a m_copy, it can be re-used
+            // This situation only happens if an object representing
+            // a deleted row is reused.  By giving the object a copy buffer, 
+            // the object can be used to insert new values.
             copy_write();
             node_ptr = gaia_se_node::create(m_id, T_gaia_type, 0, nullptr);
         }
@@ -183,10 +183,15 @@ protected:
     {
     }
 
-    unique_ptr<flatbuffers::FlatBufferBuilder> m_fbb; // cached flat buffer builder for reuse
-    unique_ptr<T_obj> m_copy;   // private mutable flatbuffer copy of field changes
-    const T_fb* m_fb;           // flat buffer, referencing SE memory
-    gaia_id_t m_id;             // gaia_id assigned to this row
+    // Cached flatbuffer builder for reuse when inserting
+    // or modifying rows.
+    unique_ptr<flatbuffers::FlatBufferBuilder> m_fbb; 
+    // Mutable flatbuffer copy of field changes.
+    unique_ptr<T_obj> m_copy;   
+    // Flatbuffer referencing SE memory.
+    const T_fb* m_fb;
+    // The gaia_id assigned to this row.
+    gaia_id_t m_id;
 
     T_obj* copy_write()
     {
