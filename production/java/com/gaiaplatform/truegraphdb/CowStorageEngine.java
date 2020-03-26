@@ -9,7 +9,7 @@ public class CowStorageEngine
 {
     static
     {
-        System.loadLibrary("native_cow_se");
+        System.loadLibrary("native_se_mock");
     }
      
     public static void main(String[] args)

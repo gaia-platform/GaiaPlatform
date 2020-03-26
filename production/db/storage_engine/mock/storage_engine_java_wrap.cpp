@@ -5,12 +5,12 @@
 
 #include <iostream>
 
-#include "cow_se.h"
+#include "storage_engine.hpp"
 
 #include "com_gaiaplatform_truegraphdb_CowStorageEngine.h"
 
 using namespace std;
-using namespace gaia_se;
+using namespace gaia::db;
 
 // Exposes to C++ the content of a jstring and automatically releases allocated memory.
 class payload_t
