@@ -67,7 +67,7 @@ bool event_manager_t::log_event(event_type_t event_type, event_mode_t mode)
 }
 
 bool event_manager_t::log_event(
-    gaia_base * row, 
+    gaia_base_t * row, 
     gaia_type_t gaia_type,
     event_type_t event_type, 
     event_mode_t mode)
@@ -374,7 +374,7 @@ bool gaia::rules::log_transaction_event(event_type_t type, event_mode_t mode)
 }
 
 bool gaia::rules::log_table_event(
-    gaia_base * row, 
+    gaia_base_t* row, 
     gaia_type_t gaia_type,
     event_type_t type, 
     event_mode_t mode)

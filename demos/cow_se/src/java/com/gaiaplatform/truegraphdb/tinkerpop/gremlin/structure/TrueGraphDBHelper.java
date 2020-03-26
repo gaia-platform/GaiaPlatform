@@ -11,24 +11,164 @@
 
 package com.gaiaplatform.truegraphdb.tinkerpop.gremlin.structure;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.tinkerpop.gremlin.structure.*;
+import org.apache.tinkerpop.gremlin.structure.Direction;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.Property;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 public final class TrueGraphDBHelper
 {
+    private final static String propertyDelimiter = "|";
+    private final static String keyValueDelimiter = "=";
+
+    private static AtomicLong lastType = new AtomicLong();
+    private static Map<String, Long> mapLabelsToTypes = new ConcurrentHashMap<>();
+
     private TrueGraphDBHelper()
     {
     }
 
+    private static void packProperty(StringBuilder payload, String key, String value)
+    {
+        if (payload.length() > 0)
+        {
+            payload.append(propertyDelimiter);
+        }
+
+        payload.append(key);
+        payload.append(keyValueDelimiter);
+        payload.append(value);
+    }
+
+    private static String packProperties(Map<String, Property> properties)
+    {
+        StringBuilder payload = new StringBuilder();
+
+        properties.forEach((key, property) -> packProperty(payload, key, property.value().toString()));
+
+        return payload.toString();
+    }
+
+    private static String packPropertyLists(Map<String, List<VertexProperty>> properties)
+    {
+        StringBuilder payload = new StringBuilder();
+
+        properties.forEach((key, list) -> packProperty(payload, key, list.get(0).value().toString()));
+
+        return payload.toString();
+    }
+
+    private static long getTypeForLabel(String label)
+    {
+        if (mapLabelsToTypes.containsKey(label))
+        {
+            return mapLabelsToTypes.get(label).longValue();
+        }
+
+        long nextType = lastType.incrementAndGet();
+        mapLabelsToTypes.put(label, nextType);
+        return nextType;
+    }
+
+    private static boolean handleTransaction(TrueGraphDBGraph graph, boolean operationResult)
+    {
+        if (operationResult)
+        {
+            graph.cow.commitTransaction();
+        }
+        else
+        {
+            graph.cow.rollbackTransaction();
+        }
+
+        return operationResult;
+    }
+
+    protected static boolean createNode(TrueGraphDBVertex vertex)
+    {
+        TrueGraphDBGraph graph = vertex.graph;
+        long id = Long.parseLong(vertex.id.toString());
+        long type = getTypeForLabel(vertex.label);
+        String payload = packPropertyLists(vertex.properties);
+
+        graph.cow.beginTransaction();
+        long idNode = graph.cow.createNode(id, type, payload);
+        return handleTransaction(graph, idNode != 0);
+    }
+
+    protected static boolean removeNode(TrueGraphDBVertex vertex)
+    {
+        TrueGraphDBGraph graph = vertex.graph;
+        long id = Long.parseLong(vertex.id.toString());
+
+        graph.cow.beginTransaction();
+        return handleTransaction(graph, graph.cow.removeNode(id));
+    }
+
+    protected static boolean updateNodePayload(TrueGraphDBVertex vertex)
+    {
+        TrueGraphDBGraph graph = vertex.graph;
+        long id = Long.parseLong(vertex.id.toString());
+        String payload = packPropertyLists(vertex.properties);
+
+        graph.cow.beginTransaction();
+        return handleTransaction(graph, graph.cow.updateNodePayload(id, payload));
+    }
+
+    protected static boolean createEdge(TrueGraphDBEdge edge)
+    {
+        TrueGraphDBGraph graph = edge.graph;
+        long id = Long.parseLong(edge.id.toString());
+        long type = getTypeForLabel(edge.label);
+        String payload = packProperties(edge.properties);
+        long idFirstNode = Long.parseLong(edge.outVertex.id.toString());
+        long idSecondNode = Long.parseLong(edge.inVertex.id.toString());
+
+        graph.cow.beginTransaction();
+        long idEdge = graph.cow.createEdge(id, type, idFirstNode, idSecondNode, payload);
+        return handleTransaction(graph, idEdge != 0);
+    }
+
+    protected static boolean removeEdge(TrueGraphDBEdge edge)
+    {
+        TrueGraphDBGraph graph = edge.graph;
+        long id = Long.parseLong(edge.id.toString());
+
+        graph.cow.beginTransaction();
+        return handleTransaction(graph, graph.cow.removeEdge(id));
+    }
+
+    protected static boolean updateEdgePayload(TrueGraphDBEdge edge)
+    {
+        TrueGraphDBGraph graph = edge.graph;
+        long id = Long.parseLong(edge.id.toString());
+        String payload = packProperties(edge.properties);
+
+        graph.cow.beginTransaction();
+        return handleTransaction(graph, graph.cow.updateEdgePayload(id, payload));
+    }
+
     protected static Edge addEdge(
         final TrueGraphDBGraph graph,
-        final TrueGraphDBVertex inVertex, final TrueGraphDBVertex outVertex,
+        final TrueGraphDBVertex outVertex, final TrueGraphDBVertex inVertex,
         final String label,
         final Object... keyValues)
     {
@@ -48,34 +188,20 @@ public final class TrueGraphDBHelper
             idValue = graph.edgeIdManager.getNextId(graph);
         }
 
-        // TODO: Create edge in COW.
-
-        final Edge edge = new TrueGraphDBEdge(idValue, label, inVertex, outVertex);
+        final Edge edge = new TrueGraphDBEdge(idValue, label, outVertex, inVertex);
         ElementHelper.attachProperties(edge, keyValues);
-        graph.edges.put(edge.id(), edge);
 
-        TrueGraphDBHelper.addInEdge(inVertex, label, edge);
+        // Create edge in COW.
+        if (!createEdge((TrueGraphDBEdge)edge))
+        {
+            throw new UnsupportedOperationException("COW edge creation failed!");
+        }
+
+        graph.edges.put(edge.id(), edge);
         TrueGraphDBHelper.addOutEdge(outVertex, label, edge);
+        TrueGraphDBHelper.addInEdge(inVertex, label, edge);
 
         return edge;
-    }
-
-    protected static void addInEdge(
-        final TrueGraphDBVertex vertex, final String label, final Edge edge)
-    {
-        if (vertex.inEdges == null)
-        {
-            vertex.inEdges = new HashMap<>();   
-        }
-
-        Set<Edge> edges = vertex.inEdges.get(label);
-        if (edges == null)
-        {
-            edges = new HashSet<>();
-            vertex.inEdges.put(label, edges);
-        }
-
-        edges.add(edge);
     }
 
     protected static void addOutEdge(
@@ -83,7 +209,7 @@ public final class TrueGraphDBHelper
     {
         if (vertex.outEdges == null)
         {
-            vertex.outEdges = new HashMap<>();
+            vertex.outEdges = new ConcurrentHashMap<>();
         }
 
         Set<Edge> edges = vertex.outEdges.get(label);
@@ -91,6 +217,24 @@ public final class TrueGraphDBHelper
         {
             edges = new HashSet<>();
             vertex.outEdges.put(label, edges);
+        }
+
+        edges.add(edge);
+    }
+
+    protected static void addInEdge(
+        final TrueGraphDBVertex vertex, final String label, final Edge edge)
+    {
+        if (vertex.inEdges == null)
+        {
+            vertex.inEdges = new ConcurrentHashMap<>();   
+        }
+
+        Set<Edge> edges = vertex.inEdges.get(label);
+        if (edges == null)
+        {
+            edges = new HashSet<>();
+            vertex.inEdges.put(label, edges);
         }
 
         edges.add(edge);

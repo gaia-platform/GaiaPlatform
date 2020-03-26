@@ -38,7 +38,7 @@ public:
      * Event APIs
      */
     bool log_event(
-      gaia::common::gaia_base* row, 
+      gaia::common::gaia_base_t* row, 
       gaia::common::gaia_type_t gaia_type,
       event_type_t event_type, 
       event_mode_t mode);

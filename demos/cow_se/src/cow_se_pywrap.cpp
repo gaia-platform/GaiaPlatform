@@ -108,7 +108,7 @@ void print_node(const gaia_ptr<gaia_se_node>& node, const bool indent)
         print_edge(edge, true);
     }
 
-    for (auto edge = node->next_edge_second; edge; edge = edge->next_edge_first)
+    for (auto edge = node->next_edge_second; edge; edge = edge->next_edge_second)
     {
         print_edge(edge, true);
     }

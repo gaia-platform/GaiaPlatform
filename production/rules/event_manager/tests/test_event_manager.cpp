@@ -113,7 +113,7 @@ public:
         gaia_rule_fn a_rule,
         event_type_t a_type,
         gaia_type_t a_gaia_type,
-        gaia_base* a_row) 
+        gaia_base_t* a_row) 
     {
         transaction_context_checker_t::validate(a_ruleset_name, a_rule_name, a_rule, a_type);
         EXPECT_EQ(gaia_type, a_gaia_type);
@@ -140,7 +140,7 @@ public:
     // Additional data for table context objects over and above
     // context for transaction objects.
     gaia_type_t gaia_type;
-    gaia_base* row;
+    gaia_base_t* row;
 };
 table_context_checker_t g_table_checker;
 
@@ -148,7 +148,7 @@ table_context_checker_t g_table_checker;
  * Our test object that will serve as the
  * row context sent to table events.
  */ 
-class TestGaia : public gaia_base
+class TestGaia : public gaia_base_t
 {
 public:
     TestGaia() : data(0) {}
@@ -162,7 +162,7 @@ const gaia_type_t TestGaia::s_gaia_type = 333;
 
 // Only to test gaia type filters on the
 // list_subscribed_rules api.
-class TestGaia2 : public gaia_base
+class TestGaia2 : public gaia_base_t
 {
 public:
     TestGaia2() : data(0) {}
@@ -486,7 +486,7 @@ protected:
         gaia_rule_fn rule,
         event_type_t type,
         gaia_type_t gaia_type,
-        gaia_base* row) 
+        gaia_base_t* row) 
 
     {
         EXPECT_EQ(m_row.data, value);

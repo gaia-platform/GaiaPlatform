@@ -11,7 +11,12 @@
 
 package com.gaiaplatform.truegraphdb.tinkerpop.gremlin.structure;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
@@ -20,13 +25,21 @@ import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.commons.configuration.Configuration;
 
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
-import org.apache.tinkerpop.gremlin.structure.*;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Element;
+import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.Property;
+import org.apache.tinkerpop.gremlin.structure.Transaction;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.GraphVariableHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraphIterator;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraphVariables;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+
+import com.gaiaplatform.truegraphdb.CowStorageEngine;
 
 //@Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_STANDARD)
 //@Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_INTEGRATE)
@@ -53,7 +66,7 @@ public final class TrueGraphDBGraph implements Graph
     // Reuse TinkerGraph's Graph.Variables implementation.
     protected TinkerGraphVariables variables = null;
 
-    protected AtomicLong currentId = new AtomicLong(-1L);
+    protected AtomicLong lastId = new AtomicLong();
     protected final IdManager<?> vertexIdManager;
     protected final IdManager<?> edgeIdManager;
     protected final IdManager<?> vertexPropertyIdManager;
@@ -64,6 +77,8 @@ public final class TrueGraphDBGraph implements Graph
 
     protected Map<Object, Vertex> vertices = new ConcurrentHashMap<>();
     protected Map<Object, Edge> edges = new ConcurrentHashMap<>();
+
+    protected CowStorageEngine cow = new CowStorageEngine(); 
 
     private TrueGraphDBGraph(final Configuration configuration)
     {
@@ -80,7 +95,8 @@ public final class TrueGraphDBGraph implements Graph
             configuration.getString(TRUEGRAPHDB_DEFAULT_VERTEX_PROPERTY_CARDINALITY,
             VertexProperty.Cardinality.single.name()));
 
-        // TODO: Initialize COW.
+        // Initialize the COW storage engine.
+        cow.initialize(true);
     }
 
     public static TrueGraphDBGraph open()
@@ -112,12 +128,16 @@ public final class TrueGraphDBGraph implements Graph
             idValue = this.vertexIdManager.getNextId(this);
         }
 
-        // TODO: Create node in COW.
-
         final Vertex vertex = new TrueGraphDBVertex(this, idValue, label);
-        this.vertices.put(vertex.id(), vertex);
-
         ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
+
+        // Create node in COW.
+        if (!TrueGraphDBHelper.createNode((TrueGraphDBVertex)vertex))
+        {
+            throw new UnsupportedOperationException("COW node creation failed!");
+        }
+
+        this.vertices.put(vertex.id(), vertex);
 
         return vertex;
     }
@@ -436,7 +456,7 @@ public final class TrueGraphDBGraph implements Graph
         {
             public Long getNextId(final TrueGraphDBGraph graph)
             {
-                return Stream.generate(() -> (graph.currentId.incrementAndGet()))
+                return Stream.generate(() -> (graph.lastId.incrementAndGet()))
                     .filter(id -> !graph.vertices.containsKey(id) && !graph.edges.containsKey(id))
                     .findAny().get();
             }
@@ -482,7 +502,7 @@ public final class TrueGraphDBGraph implements Graph
         {
             public Integer getNextId(final TrueGraphDBGraph graph)
             {
-                return Stream.generate(() -> (graph.currentId.incrementAndGet()))
+                return Stream.generate(() -> (graph.lastId.incrementAndGet()))
                     .map(Long::intValue)
                     .filter(id -> !graph.vertices.containsKey(id) && !graph.edges.containsKey(id))
                     .findAny().get();
@@ -569,7 +589,7 @@ public final class TrueGraphDBGraph implements Graph
         {
             public Long getNextId(final TrueGraphDBGraph graph)
             {
-                return Stream.generate(() -> (graph.currentId.incrementAndGet()))
+                return Stream.generate(() -> (graph.lastId.incrementAndGet()))
                     .filter(id -> !graph.vertices.containsKey(id) && !graph.edges.containsKey(id))
                     .findAny().get();
             }

@@ -132,13 +132,13 @@ public:
         const rule_binding_t& binding, 
         event_type_t a_type,
         gaia::common::gaia_type_t a_gaia_type,
-        gaia::common::gaia_base* a_row)
+        gaia::common::gaia_base_t* a_row)
     : context_base_t(binding, a_type)
     , gaia_type(a_gaia_type)
     , row(a_row) {}
 
     gaia::common::gaia_type_t gaia_type;    
-    gaia::common::gaia_base* row;
+    gaia::common::gaia_base_t* row;
 };
 
 /**

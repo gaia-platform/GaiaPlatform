@@ -5,9 +5,8 @@
 #pragma once
 
 #include <sstream>
-
-#include "gaia_base.hpp"
 #include "gaia_exception.hpp"
+#include "gaia_object.hpp"
 
 namespace gaia 
 {
@@ -102,7 +101,7 @@ public:
  * @throw invalid_event_type
  */
 bool log_table_event(
-    common::gaia_base* row, 
+    common::gaia_base_t* row, 
     common::gaia_type_t gaia_type,
     event_type_t event_type, 
     event_mode_t mode);

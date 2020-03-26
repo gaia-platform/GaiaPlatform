@@ -229,36 +229,37 @@ public class CowStorageEngine
     }
     
     // Native interface.
-    private native void initialize(boolean cleanMemory);
+    public native void initialize(boolean cleanMemory);
 
-    private native void beginTransaction();
-    private native void commitTransaction();
+    public native void beginTransaction();
+    public native void commitTransaction();
+    public native void rollbackTransaction();
 
-    private native long createNode(long id, long type, String payload);
-    private native void updateNodePayload(long id, String payload);
-    private native void removeNode(long id);
+    public native long createNode(long id, long type, String payload);
+    public native boolean updateNodePayload(long id, String payload);
+    public native boolean removeNode(long id);
 
-    private native long findFirstNode(long type);
-    private native long findNextNode(long id);
+    public native long findFirstNode(long type);
+    public native long findNextNode(long id);
 
-    private native long getNodeType(long id);
-    private native String getNodePayload(long id);
+    public native long getNodeType(long id);
+    public native String getNodePayload(long id);
 
-    private native long getNextEdgeWithNodeAsFirst(long id);
-    private native long getNextEdgeWithNodeAsSecond(long id);
+    public native long getNextEdgeWithNodeAsFirst(long id);
+    public native long getNextEdgeWithNodeAsSecond(long id);
 
-    private native long createEdge(long id, long type, long idFirstNode, long idSecondNode, String payload);
-    private native void updateEdgePayload(long id, String payload);
-    private native void removeEdge(long id);
+    public native long createEdge(long id, long type, long idFirstNode, long idSecondNode, String payload);
+    public native boolean updateEdgePayload(long id, String payload);
+    public native boolean removeEdge(long id);
 
-    private native long findFirstEdge(long type);
-    private native long findNextEdge(long id);
+    public native long findFirstEdge(long type);
+    public native long findNextEdge(long id);
 
-    private native long getEdgeType(long id);
-    private native long getEdgeFirstNode(long id);
-    private native long getEdgeSecondNode(long id);
-    private native String getEdgePayload(long id);
+    public native long getEdgeType(long id);
+    public native long getEdgeFirstNode(long id);
+    public native long getEdgeSecondNode(long id);
+    public native String getEdgePayload(long id);
 
-    private native long getNextEdgeWithSameFirstNode(long id);
-    private native long getNextEdgeWithSameSecondNode(long id);
+    public native long getNextEdgeWithSameFirstNode(long id);
+    public native long getNextEdgeWithSameSecondNode(long id);
 }
