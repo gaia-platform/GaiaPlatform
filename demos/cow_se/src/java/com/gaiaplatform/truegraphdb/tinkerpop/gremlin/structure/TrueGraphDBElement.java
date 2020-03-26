@@ -5,8 +5,6 @@
 
 package com.gaiaplatform.truegraphdb.tinkerpop.gremlin.structure;
 
-import java.util.*;
-
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Property;
