@@ -53,8 +53,8 @@ struct rule_binding_t {
         rule(nullptr) {}
     
     rule_binding_t(
-        const char *a_ruleset_name, 
-        const char * a_rule_name, 
+        const char* a_ruleset_name, 
+        const char* a_rule_name, 
         gaia_rule_fn a_rule)
         : ruleset_name(a_ruleset_name)
         , rule_name(a_rule_name)
@@ -70,8 +70,8 @@ struct rule_binding_t {
  * the list_rules api is called
  */ 
 struct subscription_t {
-    const char * ruleset_name;
-    const char * rule_name;
+    const char* ruleset_name;
+    const char* rule_name;
     gaia::common::gaia_type_t gaia_type;
     event_type_t type;
 };
@@ -170,27 +170,24 @@ public:
 class duplicate_rule: public gaia::common::gaia_exception
 {
 public:
-    duplicate_rule(const rule_binding_t& binding, bool duplicate_key)
+    duplicate_rule(const rule_binding_t& binding, bool duplicate_key_found)
     {
-        std::stringstream strs;
-        m_message = strs.str();
-
-        if (duplicate_key)
+        std::stringstream message;
+        if (duplicate_key_found)
         {
-            strs << binding.ruleset_name << "::"
+            message << binding.ruleset_name << "::"
                 << binding.rule_name 
                 << " already subscribed with the same key "
-                "but diffrent rule function.";
+                "but different rule function.";
         }
         else
         {
-            strs << binding.ruleset_name << "::"
+            message << binding.ruleset_name << "::"
                 << binding.rule_name 
                 << " already subscribed to the same rule list.";
         }
 
-        m_message = strs.str();
-        
+        m_message = message.str();
     }
 };
 

@@ -59,9 +59,9 @@ class mode_not_supported: public gaia::common::gaia_exception
 public:
     mode_not_supported(event_mode_t mode)
     {
-        std::stringstream strs;
-        strs << "Invalid mode: " << (uint8_t)mode;
-        m_message = strs.str();
+        std::stringstream message;
+        message << "Invalid mode: " << (uint8_t)mode;
+        m_message = message.str();
     }
 };
 
@@ -76,9 +76,9 @@ class invalid_event_type: public gaia::common::gaia_exception
 public:
     invalid_event_type(event_type_t event_type)
     {
-        std::stringstream strs;
-        strs << "Invalid event type for operation: " << (uint8_t)event_type;
-        m_message = strs.str();
+        std::stringstream message;
+        message << "Invalid event type for operation: " << (uint8_t)event_type;
+        m_message = message.str();
     }
 };
 

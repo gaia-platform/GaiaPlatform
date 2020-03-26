@@ -42,20 +42,20 @@ bool event_manager_t::log_event(event_type_t type, event_mode_t mode)
     check_mode(mode);
     check_transaction_event(type);
 
-    // invoke all rules immediately
+    // Invoke all rules immediately.
     rule_list_t& rules = m_transaction_subscriptions[type];
     bool rules_fired = rules.size() > 0;
-    for (auto rules_it = rules.begin(); rules_it != rules.end(); rules_it++) 
+    for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it) 
     {
         _rule_binding_t* rule_ptr = const_cast<_rule_binding_t*>(*rules_it);
         if (!rule_ptr->executing)
         {
-            _execution_context_t context(rule_ptr->executing);
+            _execution_context_t exec_context(rule_ptr->executing);
             rules_fired = true;
-            transaction_context_t tc(
+            transaction_context_t transaction_context(
                 {rule_ptr->ruleset_name.c_str(), rule_ptr->rule_name.c_str(), rule_ptr->rule},
                 type);
-            rule_ptr->rule(&tc);
+            rule_ptr->rule(&transaction_context);
         }
     }
 
@@ -82,19 +82,19 @@ bool event_manager_t::log_event(
         events_map_t& events = type_it->second;
         rule_list_t& rules = events[type];
 
-        for (auto rules_it = rules.begin(); rules_it != rules.end(); rules_it++) 
+        for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it) 
         {
             _rule_binding_t* rule_ptr = const_cast<_rule_binding_t*>(*rules_it);
             if (!rule_ptr->executing)
             {
-                _execution_context_t context(rule_ptr->executing);
+                _execution_context_t exec_context(rule_ptr->executing);
                 rules_fired = true;
-                table_context_t tc(
+                table_context_t table_context(
                     {rule_ptr->ruleset_name.c_str(), rule_ptr->rule_name.c_str(), rule_ptr->rule},
                     type, 
                     gaia_type, 
                     row);
-                rule_ptr->rule(&tc);
+                rule_ptr->rule(&table_context);
             }
         }
     }
@@ -107,7 +107,7 @@ void event_manager_t::subscribe_rule(
     event_type_t event_type, 
     const rule_binding_t& rule_binding)
 {
-    // we only support table events scoped to a gaia_type for now
+    // We only support table events scoped to a gaia_type for now.
     check_table_event(event_type);
     check_rule_binding(rule_binding);
 
@@ -258,16 +258,16 @@ void event_manager_t::add_rule(
 {
     // Don't allow adding a rule that has the same
     // key as another rule but is bound to a different
-    // rule function
+    // rule function.
     const _rule_binding_t* rule_ptr = find_rule(binding);
     if (rule_ptr != nullptr && rule_ptr->rule != binding.rule) 
     {
-        throw duplicate_rule(binding, true /*dup key*/);
+        throw duplicate_rule(binding, true);
     }
 
     // Dont' allow the caller to bind the same rule to the same rule list.  
     // This is most likely a programming error.
-    for (auto rules_it = rules.begin(); rules_it != rules.end(); rules_it++)
+    for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it)
     {
         if (*rules_it == rule_ptr) 
         {

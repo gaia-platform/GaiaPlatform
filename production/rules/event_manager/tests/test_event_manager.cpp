@@ -19,12 +19,12 @@ using namespace gaia::common;
 
 /**
  * Checkers validate whether the rule was passed the correct context information
- * on invocation
+ * on invocation.
  */ 
-class TransactionContextChecker
+class transaction_context_checker_t
 {
 public:    
-    TransactionContextChecker()
+    transaction_context_checker_t()
     {
         reset();
     }
@@ -85,23 +85,23 @@ public:
     gaia_rule_fn rule;
     event_type_t type;
 };
-TransactionContextChecker g_transaction_checker;
+transaction_context_checker_t g_transaction_checker;
 
 /**
- * The TableContextChecker adds validation of the gaia_type and gaia_base*
+ * The table_context_checker_t adds validation of the gaia_type and gaia_base*
  * that are passed as part of the table context to rule invocations.
  */ 
-class TableContextChecker : public TransactionContextChecker
+class table_context_checker_t : public transaction_context_checker_t
 {
 public:
-    TableContextChecker()
+    table_context_checker_t()
     {
         reset();
     }
 
     void set(const table_context_t& context)
     {
-        TransactionContextChecker::set(context.rule_binding.ruleset_name, 
+        transaction_context_checker_t::set(context.rule_binding.ruleset_name, 
             context.rule_binding.rule_name, context.rule_binding.rule, context.event_type);
 
         gaia_type = context.gaia_type;
@@ -115,7 +115,7 @@ public:
         gaia_type_t a_gaia_type,
         gaia_base* a_row) 
     {
-        TransactionContextChecker::validate(a_ruleset_name, a_rule_name, a_rule, a_type);
+        transaction_context_checker_t::validate(a_ruleset_name, a_rule_name, a_rule, a_type);
         EXPECT_EQ(gaia_type, a_gaia_type);
         EXPECT_EQ(row, a_row);
         reset();
@@ -123,7 +123,7 @@ public:
 
     void validate_not_called()
     {
-        TransactionContextChecker::validate_not_called(event_type_t::transaction_rollback);
+        transaction_context_checker_t::validate_not_called(event_type_t::transaction_rollback);
         EXPECT_EQ(gaia_type, 0);
         EXPECT_EQ(row, nullptr);
     }
@@ -132,7 +132,7 @@ public:
     {
         // Set the invalid event_type to be a transaction event since that will be invalid
         // for all table contexts.
-        TransactionContextChecker::reset(event_type_t::transaction_rollback);
+        transaction_context_checker_t::reset(event_type_t::transaction_rollback);
         gaia_type = 0;
         row = nullptr;
     }
@@ -142,7 +142,7 @@ public:
     gaia_type_t gaia_type;
     gaia_base* row;
 };
-TableContextChecker g_table_checker;
+table_context_checker_t g_table_checker;
 
 /**
  * Our test object that will serve as the
