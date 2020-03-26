@@ -38,16 +38,17 @@ enum class event_mode_t : uint8_t {
 
 /**
  * Every event in the system has an event type.  The type
- * is scoped to an object type.
+ * is scoped to an object type. Note that values must
+ * be powers of 2.
  */
-enum class event_type_t : uint8_t {
-    transaction_begin,
-    transaction_commit,
-    transaction_rollback,
-    col_change,
-    row_update,
-    row_insert,
-    row_delete,
+enum class event_type_t : uint32_t {
+    transaction_begin = 0x1,
+    transaction_commit = 0x2,
+    transaction_rollback = 0x4,
+    col_change = 0x8,
+    row_update = 0x10,
+    row_insert = 0x20,
+    row_delete = 0x40,
 };
 
 /**

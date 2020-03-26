@@ -153,19 +153,25 @@ class TestGaia : public gaia_base
 public:
     TestGaia() : data(0) {}
 
-    static const gaia_type_t s_gaia_type = 333;
+    static const gaia_type_t s_gaia_type;
 
     // rule will set this
     int32_t data;
 };
+const gaia_type_t TestGaia::s_gaia_type = 333;
 
 // Only to test gaia type filters on the
 // list_subscribed_rules api.
 class TestGaia2 : public gaia_base
 {
-public:    
-    static const gaia_type_t s_gaia_type = 444;
+public:
+    TestGaia2() : data(0) {}
+    static const gaia_type_t s_gaia_type;
+
+    // rule will set this
+    int32_t data;
 };
+const gaia_type_t TestGaia2::s_gaia_type = 444;
 
 /**
  * Transaction events have no row context so we'll use a global
@@ -188,6 +194,24 @@ int32_t g_tx_data = 0;
  {
      ++g_initialize_rules_called;
  }
+
+ /**
+ * Following constructs are used to verify the list_subscribed_rules API
+ * returns the correct rules based on the filter criteria to the API.  It
+ * also is used to do table-driven tests on differetn rule binding configurations.
+ */ 
+typedef std::unordered_map<string, subscription_t> map_subscriptions_t;
+static constexpr char ruleset1_name[] = "Ruleset_1";
+static constexpr char ruleset2_name[] = "Ruleset_2";
+static constexpr char ruleset3_name[] = "Ruleset_3";
+static constexpr char rule1_name[] = "rule1_add_1";
+static constexpr char rule2_name[] = "rule2_add_100";
+static constexpr char rule3_name[] = "rule3_add_1000";
+static constexpr char rule4_name[] = "rule4_add_10000";
+static constexpr char rule5_name[] = "rule5_add_100000";
+static constexpr char rule6_name[] = "rule6_add_1000000";
+static constexpr char rule7_name[] = "rule7_add_10000000";
+static constexpr char rule8_name[] = "rule8_add_100000000";
  
 /**
  * Table Rule functions.
@@ -206,10 +230,6 @@ void rule1_add_1(const context_base_t* context)
     row->data += rule1_adder;
     // record the context that was passed to this rule
     g_table_checker.set(*t);
-
-    // make sure we dont' allow recursion by calling the exact same
-    // event that fired the rule
-    log_table_event(row, t->gaia_type, t->event_type, event_mode_t::immediate);
 }
 
 const int32_t rule2_adder = 100;
@@ -246,18 +266,146 @@ void rule4_add_10000(const context_base_t* context)
 }
 
 /**
- * Following constructs are used to verify the list_subscribed_rules API
- * returns the correct rules based on the filter criteria to the API.  It
- * also is used to do table-driven tests on differetn rule binding configurations.
- */ 
-typedef std::unordered_map<string, subscription_t> map_subscriptions_t;
+ * Setup for forward chaining Rule functions.  Separated from above tests
+ * to increase clarity.  Forward chaining is a feature
+ * that allows a rule to do an action that results in the
+ * firing of another rule.  In Q1 we only allow forward
+ * chaining to different events and prevent recursion (either
+ * immediate or in a cycle).
+ */
 
-static constexpr char ruleset1_name[] = "Ruleset_1";
-static constexpr char ruleset2_name[] = "Ruleset_2";
-static constexpr char rule1_name[] = "rule1_add_1";
-static constexpr char rule2_name[] = "rule2_add_100";
-static constexpr char rule3_name[] = "rule3_add_1000";
-static constexpr char rule4_name[] = "rule4_add_10000";
+bool is_rule_subscribed(
+    const char* ruleset_filter, 
+    const gaia_type_t gaia_type, 
+    const event_type_t event_type)
+{
+    list_subscriptions_t subscriptions;
+    gaia_type_t gaia_type_filter = gaia_type;
+    event_type_t event_type_filter = event_type;
+
+    list_subscribed_rules(ruleset_filter, &gaia_type_filter, &event_type_filter, subscriptions);
+
+    return (subscriptions.size() == 1);
+}
+
+/**
+ * Cheater variable to ensure our reentrancy logic
+ * correctly deals with cycles.
+ */
+bool g_forward_chain_cycle = false;
+const int32_t rule5_adder = 100000;
+const int32_t rule6_adder = 1000000;
+const int32_t rule7_adder = 10000000;
+const int32_t rule8_adder = 100000000;
+
+/**
+ * Rule 5 handles an TestGaia::update event
+ * Attempts to forward chain to TestGaia::update (disallowed: same gaia_type and event_type)
+ * [Rule 6] Forward chains to TestGaia2::update (allowed: different gaia_type)
+ * [Rule 7] Forward chains to TestGaia::insert (allowed: different event_type)
+ */
+void rule5_add_100000(const context_base_t* context)
+{
+    const table_context_t* t = static_cast<const table_context_t*>(context);
+    TestGaia * row = static_cast<TestGaia *>(t->row);
+    row->data += rule5_adder;
+    g_table_checker.set(*t);
+
+    // Verify this rule is bound to the correct type and event.
+    EXPECT_EQ(TestGaia::s_gaia_type, t->gaia_type);
+    EXPECT_EQ(event_type_t::row_update, t->event_type);
+
+    // Disallow reentrant event call.
+    EXPECT_EQ(false, log_table_event(row, t->gaia_type, t->event_type, event_mode_t::immediate));
+
+    // Allow event call on different gaia_type.
+    TestGaia2 obj2;
+    int32_t expected_value = obj2.data + rule6_adder;
+    bool expect_rule_fired = is_rule_subscribed(ruleset3_name, TestGaia2::s_gaia_type, t->event_type);    
+    EXPECT_EQ(expect_rule_fired, log_table_event(&obj2, TestGaia2::s_gaia_type, t->event_type, event_mode_t::immediate));
+    if (expect_rule_fired)
+    {
+        EXPECT_EQ(obj2.data, expected_value);
+    }
+
+    // Allow event call on different event_type.
+    expected_value = row->data + rule7_adder;
+    expect_rule_fired = is_rule_subscribed(ruleset3_name, TestGaia::s_gaia_type, event_type_t::row_insert);    
+    EXPECT_EQ(expect_rule_fired, log_table_event(row, TestGaia::s_gaia_type, event_type_t::row_insert, event_mode_t::immediate));
+    if (expect_rule_fired)
+    {
+        EXPECT_EQ(row->data, expected_value);
+    }
+}
+
+/**
+ * Rule 6 handles TestGaia2::update
+ * [Rule 8] Forward chains to Transaction::commit event (allowed: different event class)
+ */ 
+void rule6_add_1000000(const context_base_t* context)
+{
+    const table_context_t* t = static_cast<const table_context_t*>(context);
+    TestGaia2 * row = static_cast<TestGaia2 *>(t->row);
+    row->data += rule6_adder;
+    g_table_checker.set(*t);
+
+    // Verify this rule is bound to the correct type and event.
+    EXPECT_EQ(TestGaia2::s_gaia_type, t->gaia_type);
+    EXPECT_EQ(event_type_t::row_update, t->event_type);
+
+    // Allow different event class (transaction event, not table event)
+    EXPECT_EQ(true, log_transaction_event(event_type_t::transaction_commit, event_mode_t::immediate));
+}
+
+/**
+ * Rule 7 handles TestGaia::insert
+ */
+void rule7_add_10000000(const context_base_t* context)
+{
+    const table_context_t* t = static_cast<const table_context_t*>(context);
+    TestGaia * row = static_cast<TestGaia *>(t->row);
+    row->data += rule7_adder;
+    g_table_checker.set(*t);
+
+    // Verify this rule is bound to the correct type and event.
+    EXPECT_EQ(TestGaia::s_gaia_type, t->gaia_type);
+    EXPECT_EQ(event_type_t::row_insert, t->event_type);
+}
+
+/**
+ * Rule 8 handles Transaction::commit
+ * Attempts to forward chain to 
+ * [Rule 5] TestGaia::Update 
+ * 
+ * Disallowed if following forward chain exists:
+ * [Rule 5] TestGaia::Update -> 
+ * [Rule 6] TestGaia2::Update -> 
+ * [Rule 8] Transaction::Commit -> 
+ * [Rule 5] TestGaia::Update
+ * 
+ * Allowed otherwise (TestGaia::Update event not in the call
+ * hierarchy).
+ */
+void rule8_add_100000000(const context_base_t* context)
+{
+    const transaction_context_t* t = static_cast<const transaction_context_t*>(context);
+    g_tx_data += rule8_adder;
+    g_transaction_checker.set(*t);
+
+    // Verify this rule is bound to the correct event.
+    EXPECT_EQ(event_type_t::transaction_commit, t->event_type);
+
+    TestGaia row;
+
+    // We expect the rule to be fired only if it is subscribed
+    // and we are not in a forward chain cycle.
+    bool expect_rule_fired = is_rule_subscribed(ruleset3_name, TestGaia::s_gaia_type, event_type_t::row_update);
+    if (g_forward_chain_cycle)
+    {
+        expect_rule_fired = false;
+    }
+    EXPECT_EQ(expect_rule_fired, log_table_event(&row, TestGaia::s_gaia_type, event_type_t::row_update, event_mode_t::immediate));
+}
 
 /**
  * This type enables subscription_t as well as rule_binding_t
@@ -493,6 +641,10 @@ protected:
     rule_binding_t m_rule2{ruleset1_name, rule2_name, rule2_add_100};
     rule_binding_t m_rule3{ruleset2_name, rule3_name, rule3_add_1000};
     rule_binding_t m_rule4{ruleset2_name, rule4_name, rule4_add_10000};
+    rule_binding_t m_rule5{ruleset3_name, rule5_name, rule5_add_100000};
+    rule_binding_t m_rule6{ruleset3_name, rule6_name, rule6_add_1000000};
+    rule_binding_t m_rule7{ruleset3_name, rule7_name, rule7_add_10000000};
+    rule_binding_t m_rule8{ruleset3_name, rule8_name, rule8_add_100000000};
 };
 
 TEST_F(event_manager_test, log_event_mode_not_supported) 
@@ -583,9 +735,8 @@ TEST_F(event_manager_test, log_table_event_multi_rule_single_event)
     EXPECT_EQ(false, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::col_change, event_mode_t::immediate));
     validate_table_rule_not_called();
 
-    // Verify logging a delete event fires both rules.  And since rule_1 actually calls log_event again,
-    // we will fire rule2 twice
-    int32_t expected_value = m_row.data + (rule1_adder + rule2_adder + rule2_adder);
+    // Verify logging a delete event fires both rules.
+    int32_t expected_value = m_row.data + (rule1_adder + rule2_adder);
     EXPECT_EQ(true, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_delete, event_mode_t::immediate));
     EXPECT_EQ(m_row.data, expected_value);
 }
@@ -604,9 +755,8 @@ TEST_F(event_manager_test, log_event_multi_rule_multi_event)
     EXPECT_EQ(false, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::col_change, event_mode_t::immediate));
     validate_table_rule_not_called();
 
-    // Log event TestGaia::delete to invoke rule1 and rule2.  Remember that rule1 calls log event again
-    // with the same type so rule2_adder gets called twice
-    int32_t expected_value = m_row.data + (rule1_adder + rule2_adder + rule2_adder);
+    // Log event TestGaia::delete to invoke rule1 and rule2.
+    int32_t expected_value = m_row.data + (rule1_adder + rule2_adder);
     EXPECT_EQ(true, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_delete, event_mode_t::immediate));
     EXPECT_EQ(m_row.data, expected_value);
 
@@ -883,4 +1033,72 @@ TEST_F(event_manager_test, list_rules_all_filters)
     list_subscribed_rules(ruleset_filter, &gaia_type_filter, &event_filter, rules);
     validate_rule_list(rules, get_expected_subscriptions(ruleset_filter, 
         &gaia_type_filter, &event_filter));
+}
+
+TEST_F(event_manager_test, forward_chain_not_subscribed)
+{
+    subscribe_transaction_rule(event_type_t::transaction_commit, m_rule8);
+
+    int32_t expected_value = g_tx_data + rule8_adder;
+    EXPECT_EQ(true, log_transaction_event(event_type_t::transaction_commit, event_mode_t::immediate));
+    validate_transaction_rule(expected_value, ruleset3_name, rule8_name, rule8_add_100000000, event_type_t::transaction_commit);
+}
+
+TEST_F(event_manager_test, forward_chain_transaction_table)
+{
+    subscribe_transaction_rule(event_type_t::transaction_commit, m_rule8);
+    subscribe_table_rule(TestGaia::s_gaia_type, event_type_t::row_update, m_rule5);
+
+    int32_t expected_value = g_tx_data + rule8_adder;
+    EXPECT_EQ(true, log_transaction_event(event_type_t::transaction_commit, event_mode_t::immediate));
+    validate_transaction_rule(expected_value, ruleset3_name, rule8_name, rule8_add_100000000, event_type_t::transaction_commit);
+}
+
+TEST_F(event_manager_test, forward_chain_table_transaction)
+{
+    subscribe_table_rule(TestGaia2::s_gaia_type, event_type_t::row_update, m_rule6);
+    subscribe_transaction_rule(event_type_t::transaction_commit, m_rule8);
+    
+    int32_t expected_table_value = m_row.data + rule6_adder;
+    int32_t expected_transaction_value = g_tx_data + rule8_adder;
+
+    // Because of forward chaining, we expect the table event
+    // and the transaction event to be called even though
+    // we only logged the table event here.
+    EXPECT_EQ(true, log_table_event(&m_row, TestGaia2::s_gaia_type, event_type_t::row_update, event_mode_t::immediate));
+
+    validate_table_rule(expected_table_value, 
+        ruleset3_name, rule6_name, rule6_add_1000000, event_type_t::row_update, TestGaia2::s_gaia_type, &m_row);
+    validate_transaction_rule(expected_transaction_value, 
+        ruleset3_name, rule8_name, rule8_add_100000000, event_type_t::transaction_commit);
+}
+
+TEST_F(event_manager_test, forward_chain_disallow_reentrant)
+{
+    // See section where rules are defined for the rule heirarchy.
+    subscribe_table_rule(TestGaia::s_gaia_type, event_type_t::row_update, m_rule5);
+
+    int32_t expected_value = m_row.data + rule5_adder;
+    EXPECT_EQ(true, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_update, event_mode_t::immediate));
+    validate_table_rule(expected_value, 
+        ruleset3_name, rule5_name, rule5_add_100000, event_type_t::row_update, TestGaia::s_gaia_type, &m_row);
+}
+
+TEST_F(event_manager_test, forward_chain_disallow_cycle)
+{
+    // See section where rules are defined for the rule heirarchy.
+    // This test creates a cycle whe all the rules are subscribed:
+    // rule5 -> rule6 -> rule8 -> rule5.
+    subscribe_table_rule(TestGaia::s_gaia_type, event_type_t::row_update, m_rule5);
+    subscribe_table_rule(TestGaia2::s_gaia_type, event_type_t::row_update, m_rule6);
+    subscribe_table_rule(TestGaia::s_gaia_type, event_type_t::row_insert, m_rule7);
+    subscribe_transaction_rule(event_type_t::transaction_commit, m_rule8);
+    g_forward_chain_cycle = true;
+
+    int32_t expected_table_value = m_row.data + rule5_adder + rule7_adder;
+    int32_t expected_transaction_value = g_tx_data + rule8_adder;
+    EXPECT_EQ(true, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_update, event_mode_t::immediate));
+    EXPECT_EQ(expected_table_value, m_row.data);
+    validate_transaction_rule(expected_transaction_value, 
+        ruleset3_name, rule8_name, rule8_add_100000000, event_type_t::transaction_commit);
 }

@@ -186,7 +186,6 @@ public:
                 << binding.rule_name 
                 << " already subscribed to the same rule list.";
         }
-
         m_message = message.str();
     }
 };

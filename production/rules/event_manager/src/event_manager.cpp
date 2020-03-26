@@ -35,28 +35,32 @@ event_manager_t::~event_manager_t()
 {
 }
 
-bool event_manager_t::log_event(event_type_t type, event_mode_t mode)
+bool event_manager_t::log_event(event_type_t event_type, event_mode_t mode)
 {
+    bool rules_fired = false;
     // todo: log the event in a table
 
     check_mode(mode);
-    check_transaction_event(type);
+    check_transaction_event(event_type);
+
+    // Don't allow reentrant log_event calls.
+    _event_guard_t guard(m_executing_events, 0, event_type);
+    if (guard.is_executing())
+    {
+        return rules_fired;
+    }
 
     // Invoke all rules immediately.
-    rule_list_t& rules = m_transaction_subscriptions[type];
-    bool rules_fired = rules.size() > 0;
+    rule_list_t& rules = m_transaction_subscriptions[event_type];
+    rules_fired = rules.size() > 0;
+
     for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it) 
     {
         _rule_binding_t* rule_ptr = const_cast<_rule_binding_t*>(*rules_it);
-        if (!rule_ptr->is_executing)
-        {
-            _exec_guard_t guard(rule_ptr->is_executing);
-            rules_fired = true;
-            transaction_context_t context(
-                {rule_ptr->ruleset_name.c_str(), rule_ptr->rule_name.c_str(), rule_ptr->rule},
-                type);
-            rule_ptr->rule(&context);
-        }
+        transaction_context_t context(
+            {rule_ptr->ruleset_name.c_str(), rule_ptr->rule_name.c_str(), rule_ptr->rule},
+            event_type);
+        rule_ptr->rule(&context);
     }
 
     return rules_fired;
@@ -65,7 +69,7 @@ bool event_manager_t::log_event(event_type_t type, event_mode_t mode)
 bool event_manager_t::log_event(
     gaia_base * row, 
     gaia_type_t gaia_type,
-    event_type_t type, 
+    event_type_t event_type, 
     event_mode_t mode)
 {
     bool rules_fired = false;
@@ -73,29 +77,32 @@ bool event_manager_t::log_event(
     // todo: log the event in a table
 
     check_mode(mode);
-    check_table_event(type);
+    check_table_event(event_type);
+
+    // Don't allow reentrant log_event calls.
+    _event_guard_t guard(m_executing_events, gaia_type, event_type);
+    if (guard.is_executing())
+    {
+        return rules_fired;
+    }
 
     // Invoke all rules bound to this gaia_type and event_type immediately.
     auto type_it = m_table_subscriptions.find(gaia_type);
     if (type_it != m_table_subscriptions.end()) 
     {
         events_map_t& events = type_it->second;
-        rule_list_t& rules = events[type];
+        rule_list_t& rules = events[event_type];
+        rules_fired = rules.size() > 0;
 
         for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it) 
         {
             _rule_binding_t* rule_ptr = const_cast<_rule_binding_t*>(*rules_it);
-            if (!rule_ptr->is_executing)
-            {
-                _exec_guard_t guard(rule_ptr->is_executing);
-                rules_fired = true;
-                table_context_t context(
-                    {rule_ptr->ruleset_name.c_str(), rule_ptr->rule_name.c_str(), rule_ptr->rule},
-                    type, 
-                    gaia_type, 
-                    row);
-                rule_ptr->rule(&context);
-            }
+            table_context_t context(
+                {rule_ptr->ruleset_name.c_str(), rule_ptr->rule_name.c_str(), rule_ptr->rule},
+                event_type, 
+                gaia_type, 
+                row);
+            rule_ptr->rule(&context);
         }
     }
 
@@ -356,7 +363,6 @@ event_manager_t::_rule_binding_t::_rule_binding_t(
     {
         rule_name = binding.rule_name;
     }
-    is_executing = false;
 }
 
 /**
