@@ -55,7 +55,7 @@ public final class TrueGraphDBGraph implements Graph
     // Reuse TinkerGraph's Graph.Variables implementation.
     protected TinkerGraphVariables variables = null;
 
-    protected AtomicLong currentId = new AtomicLong(-1L);
+    protected AtomicLong lastId = new AtomicLong();
     protected final IdManager<?> vertexIdManager;
     protected final IdManager<?> edgeIdManager;
     protected final IdManager<?> vertexPropertyIdManager;
@@ -445,7 +445,7 @@ public final class TrueGraphDBGraph implements Graph
         {
             public Long getNextId(final TrueGraphDBGraph graph)
             {
-                return Stream.generate(() -> (graph.currentId.incrementAndGet()))
+                return Stream.generate(() -> (graph.lastId.incrementAndGet()))
                     .filter(id -> !graph.vertices.containsKey(id) && !graph.edges.containsKey(id))
                     .findAny().get();
             }
@@ -491,7 +491,7 @@ public final class TrueGraphDBGraph implements Graph
         {
             public Integer getNextId(final TrueGraphDBGraph graph)
             {
-                return Stream.generate(() -> (graph.currentId.incrementAndGet()))
+                return Stream.generate(() -> (graph.lastId.incrementAndGet()))
                     .map(Long::intValue)
                     .filter(id -> !graph.vertices.containsKey(id) && !graph.edges.containsKey(id))
                     .findAny().get();
@@ -578,7 +578,7 @@ public final class TrueGraphDBGraph implements Graph
         {
             public Long getNextId(final TrueGraphDBGraph graph)
             {
-                return Stream.generate(() -> (graph.currentId.incrementAndGet()))
+                return Stream.generate(() -> (graph.lastId.incrementAndGet()))
                     .filter(id -> !graph.vertices.containsKey(id) && !graph.edges.containsKey(id))
                     .findAny().get();
             }

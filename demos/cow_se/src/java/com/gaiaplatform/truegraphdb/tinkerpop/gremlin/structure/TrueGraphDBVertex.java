@@ -12,6 +12,7 @@
 package com.gaiaplatform.truegraphdb.tinkerpop.gremlin.structure;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.apache.tinkerpop.gremlin.structure.*;
@@ -84,7 +85,7 @@ public final class TrueGraphDBVertex extends TrueGraphDBElement implements Verte
 
         if (this.properties == null)
         {
-            this.properties = new HashMap<>();
+            this.properties = new ConcurrentHashMap<>();
         } 
 
         final List<VertexProperty> list = this.properties.getOrDefault(key, new ArrayList<>());

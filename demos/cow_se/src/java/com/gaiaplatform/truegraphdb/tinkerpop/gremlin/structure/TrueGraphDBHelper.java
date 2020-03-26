@@ -12,6 +12,8 @@
 package com.gaiaplatform.truegraphdb.tinkerpop.gremlin.structure;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -22,8 +24,11 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 public final class TrueGraphDBHelper
 {
-    protected final static String propertyDelimiter = "|";
-    protected final static String keyValueDelimiter = "=";
+    private final static String propertyDelimiter = "|";
+    private final static String keyValueDelimiter = "=";
+
+    private static AtomicLong lastType = new AtomicLong();
+    private static Map<String, Long> mapLabelsToTypes = new ConcurrentHashMap<>();
 
     private TrueGraphDBHelper()
     {
@@ -59,6 +64,18 @@ public final class TrueGraphDBHelper
         return payload.toString();
     }
 
+    private static long getTypeForLabel(String label)
+    {
+        if (mapLabelsToTypes.containsKey(label))
+        {
+            return mapLabelsToTypes.get(label).longValue();
+        }
+
+        long nextType = lastType.incrementAndGet();
+        mapLabelsToTypes.put(label, nextType);
+        return nextType;
+    }
+
     private static boolean handleTransaction(TrueGraphDBGraph graph, boolean operationResult)
     {
         if (operationResult)
@@ -77,7 +94,7 @@ public final class TrueGraphDBHelper
     {
         TrueGraphDBGraph graph = vertex.graph;
         long id = Long.parseLong(vertex.id.toString());
-        long type = Long.parseLong(vertex.label.toString());
+        long type = getTypeForLabel(vertex.label);
         String payload = packPropertyLists(vertex.properties);
 
         graph.cow.beginTransaction();
@@ -108,7 +125,7 @@ public final class TrueGraphDBHelper
     {
         TrueGraphDBGraph graph = edge.graph;
         long id = Long.parseLong(edge.id.toString());
-        long type = Long.parseLong(edge.label.toString());
+        long type = getTypeForLabel(edge.label);
         String payload = packProperties(edge.properties);
         long idFirstNode = Long.parseLong(edge.outVertex.id.toString());
         long idSecondNode = Long.parseLong(edge.inVertex.id.toString());
