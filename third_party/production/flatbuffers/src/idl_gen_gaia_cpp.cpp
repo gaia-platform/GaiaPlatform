@@ -490,8 +490,11 @@ class GaiaCppGenerator : public BaseGenerator
       "::k{{CLASS_NAME}}Type,{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>{";
     
 
-     std::string params = "";
-     std::string param_Values = "";
+    //generate constructors 
+    code_ += "    {{CLASS_NAME}}() = default;";
+    
+    std::string params = "";
+    std::string param_Values = "";
         
     // Generate the accessors.
     for (auto it = struct_def.fields.vec.begin();
@@ -633,6 +636,9 @@ class GaiaCppGenerator : public BaseGenerator
     if (opts_.gen_setters && (opts_.gen_col_events || opts_.gen_table_events))
     {
       code_ += "private:";
+      code_ += "    friend class gaia_object<" + CurrentNamespaceString() +  
+        "::k{{CLASS_NAME}}Type,{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>";
+      code_ += "    {{CLASS_NAME}}(gaia_id_t id) : gaia_object_t(id) {}";
       code_ += "    std::unordered_set<std::string> _fields;";
       code_ += "    std::unordered_set<flatbuffers::voffset_t> _fieldOffsets;";
     }
