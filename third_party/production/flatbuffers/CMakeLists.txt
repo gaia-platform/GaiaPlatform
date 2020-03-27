@@ -387,15 +387,16 @@ function(compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT)
   get_filename_component(SRC_FBS_DIR ${SRC_FBS} PATH)
   string(REGEX REPLACE "\\.fbs$" "_generated.h" GEN_HEADER ${SRC_FBS})
   add_custom_command(
-    OUTPUT ${GEN_HEADER}
-    COMMAND "${FLATBUFFERS_FLATC_EXECUTABLE}"
+    OUTPUT ${SRC_FBS_DIR}/../${GEN_HEADER}
+    COMMAND ${FLATBUFFERS_FLATC_EXECUTABLE}
             --cpp --gen-mutable --gen-object-api --reflect-names
             --cpp-ptr-type flatbuffers::unique_ptr # Used to test with C++98 STLs
             ${OPT}
-            -I "${CMAKE_CURRENT_SOURCE_DIR}/tests/include_test"
-            -o "${SRC_FBS_DIR}"
-            "${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}"
-    DEPENDS flatc
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/tests/include_test
+            -o ${SRC_FBS_DIR}
+            ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
+    DEPENDS ${FLATBUFFERS_FLATC_EXECUTABLE}
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
     COMMENT "Run generation: '${GEN_HEADER}'")
   register_generated_output(${GEN_HEADER})
 endfunction()
@@ -405,14 +406,15 @@ function(compile_flatbuffers_schema_to_gaiacpp_opt SRC_FBS OPT)
   get_filename_component(SRC_FBS_DIR ${SRC_FBS} PATH)
   string(REGEX REPLACE "\\.fbs$" "_gaia_generated.h" GEN_HEADER_GAIA ${SRC_FBS})
   add_custom_command(
-    OUTPUT ${GEN_HEADER_GAIA}
-    COMMAND "${FLATBUFFERS_FLATC_EXECUTABLE}"
+    OUTPUT ${SRC_FBS_DIR}/../${GEN_HEADER_GAIA}
+    COMMAND ${FLATBUFFERS_FLATC_EXECUTABLE}
             --gaiacpp
             ${OPT}
-            -I "${CMAKE_CURRENT_SOURCE_DIR}/tests/include_test"
-            -o "${SRC_FBS_DIR}"
-            "${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}"
-    DEPENDS flatc
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/tests/include_test
+            -o ${SRC_FBS_DIR}
+            ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
+    DEPENDS ${FLATBUFFERS_FLATC_EXECUTABLE}
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
     COMMENT "Run generation: '${GEN_HEADER_GAIA}'")
   register_generated_output(${GEN_HEADER_GAIA})
 endfunction()
@@ -427,13 +429,14 @@ function(compile_flatbuffers_schema_to_binary SRC_FBS)
   string(REGEX REPLACE "\\.fbs$" ".bfbs" GEN_BINARY_SCHEMA ${SRC_FBS})
   # For details about flags see generate_code.bat(sh)
   add_custom_command(
-    OUTPUT ${GEN_BINARY_SCHEMA}
-    COMMAND "${FLATBUFFERS_FLATC_EXECUTABLE}"
+    OUTPUT ${SRC_FBS_DIR}/${GEN_BINARY_SCHEMA}
+    COMMAND ${FLATBUFFERS_FLATC_EXECUTABLE}
             -b --schema --bfbs-comments --bfbs-builtins
-            -I "${CMAKE_CURRENT_SOURCE_DIR}/tests/include_test"
-            -o "${SRC_FBS_DIR}"
-            "${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}"
-    DEPENDS flatc
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/tests/include_test
+            -o ${SRC_FBS_DIR}
+            ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
+    DEPENDS ${FLATBUFFERS_FLATC_EXECUTABLE}
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
     COMMENT "Run generation: '${GEN_BINARY_SCHEMA}'")
   register_generated_output(${GEN_BINARY_SCHEMA})
 endfunction()
@@ -458,7 +461,7 @@ function(compile_flatbuffers_schema_to_embedded_binary SRC_FBS OPT)
           -I "${CMAKE_CURRENT_SOURCE_DIR}/tests/include_test"
           -o "${SRC_FBS_DIR}"
           "${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}"
-          DEPENDS flatc
+          DEPENDS ${CMAKE_BINARY_DIR}/flatbuffers/flatc
           COMMENT "Run generation: '${GEN_BFBS_HEADER}'")
   register_generated_output(${GEN_BFBS_HEADER})
 endfunction()
@@ -487,6 +490,7 @@ if(FLATBUFFERS_BUILD_TESTS)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../demos/cow_se/inc)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/inc/public/rules)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/inc/public/common)
+  include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/db/storage_engine/mock)
   add_executable(flattests ${FlatBuffers_Tests_SRCS})
   add_dependencies(flattests generated_code)
   set_property(TARGET flattests
@@ -496,6 +500,14 @@ if(FLATBUFFERS_BUILD_TESTS)
     add_fsanitize_to_target(flattests ${FLATBUFFERS_CODE_SANITIZE})
   endif()
   target_link_libraries(flattests PRIVATE rt)
+  
+  set(UNIT_TEST flattests)
+  add_custom_command(
+     TARGET ${UNIT_TEST}
+     COMMENT "Run tests"
+     POST_BUILD 
+     COMMAND ${UNIT_TEST}
+  )
 
   compile_flatbuffers_schema_to_cpp(samples/monster.fbs)
   compile_flatbuffers_schema_to_binary(samples/monster.fbs)

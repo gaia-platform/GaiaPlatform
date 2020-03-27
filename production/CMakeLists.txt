@@ -49,13 +49,5 @@ add_subdirectory(rules)
 add_subdirectory(tests)
 
 
-# Add flatbuffers
-add_subdirectory("../third_party/production/flatbuffers" flatbuffers)
-
-# Tests.
-add_executable(test_retail_assert tests/test_retail_assert.cpp)
-target_include_directories(test_retail_assert PRIVATE "${GAIA_INC}/internal/common")
-set_test(test_retail_assert 0 ${TEST_SUCCESS})
-
 # Add googletest
 add_subdirectory(${GOOGLE_TEST} googletest)
