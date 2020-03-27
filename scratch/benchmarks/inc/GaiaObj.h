@@ -9,7 +9,6 @@
 #include <map>
 #include "NullableString.h"
 #include "cow_se.h"
-#include "gaia_base.hpp"
 
 using namespace std;
 using namespace gaia_se;
@@ -19,7 +18,7 @@ using namespace gaia_se;
 // might be attractive because it's more easily translatable
 // to C
 //
-struct GaiaBase : gaia::common::gaia_base
+struct GaiaBase
 {
     static map<gaia_id_t, GaiaBase *> s_gaia_cache;
     virtual ~GaiaBase() = default;
@@ -35,7 +34,7 @@ public:
 
     virtual ~GaiaObj() { reset(); }
 
-    GaiaObj() : _fb(nullptr), _copy(nullptr), _fbb(nullptr) {}
+    GaiaObj() : _copy(nullptr), _fb(nullptr), _fbb(nullptr) {}
 
     #define get(field) (_copy ? (_copy->field) : (_fb->field()))
     #define get_str(field) (_copy ? _copy->field.c_str() : _fb->field() ? _fb->field()->c_str() : nullptr)

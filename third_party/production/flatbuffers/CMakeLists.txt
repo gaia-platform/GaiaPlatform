@@ -486,7 +486,6 @@ if(FLATBUFFERS_BUILD_TESTS)
     compile_flatbuffers_schema_to_cpp(tests/monster_extra.fbs) # Test floating-point NAN/INF.
   endif()
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/tests)
-  include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../scratch/benchmarks/inc)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../demos/cow_se/inc)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/inc/public/rules)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/inc/public/common)
