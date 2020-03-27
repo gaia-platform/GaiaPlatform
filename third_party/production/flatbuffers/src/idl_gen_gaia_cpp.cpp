@@ -560,7 +560,8 @@ namespace flatbuffers
       
                             if (opts_.gen_col_events)
                             {
-                                code_ += "gaia::events::log_table_event(this,gaia::events::event_type::col_change, gaia::events::event_mode::immediate);";
+                                code_ += "gaia::rules::log_table_event(this, " + CurrentNamespaceString() +  
+                                    "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::col_change, gaia::rules::event_mode_t::immediate);";
                             }
                         }
                         code_ += "}"; 
@@ -580,7 +581,8 @@ namespace flatbuffers
                     "gaia_object_t::update_row();";
                 if (opts_.gen_table_events)
                 {
-                    code_+="gaia::events::log_table_event(this,gaia::events::event_type::row_update, gaia::events::event_mode::immediate);";
+                    code_+="gaia::rules::log_table_event(this, " + CurrentNamespaceString() +  
+                        "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::row_update, gaia::rules::event_mode_t::immediate);";
                 }
                 code_ += "}";
 
@@ -590,7 +592,8 @@ namespace flatbuffers
                     "gaia_object_t::insert_row();";
                 if (opts_.gen_table_events)
                 {
-                    code_+="gaia::events::log_table_event(this,gaia::events::event_type::row_insert, gaia::events::event_mode::immediate);";
+                    code_+="gaia::rules::log_table_event(this, " + CurrentNamespaceString() +  
+                        "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::row_insert, gaia::rules::event_mode_t::immediate);";
                 }
                 code_ += "}";
 
@@ -601,7 +604,8 @@ namespace flatbuffers
                 
                 if (opts_.gen_table_events)
                 {
-                    code_+="gaia::events::log_table_event(this,gaia::events::event_type::row_delete, gaia::events::event_mode::immediate);";
+                    code_+="gaia::rules::log_table_event(this, " + CurrentNamespaceString() +  
+                        "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::row_delete, gaia::rules::event_mode_t::immediate);";
                 }
                 code_ += "}";
 
@@ -611,7 +615,7 @@ namespace flatbuffers
                     "gaia_object_t::begin_transaction();";
                 if (opts_.gen_transaction_events)
                 {
-                    code_+="gaia::events::log_transaction_event(gaia::events::event_type::transaction_begin, gaia::events::event_mode::immediate);";
+                    code_+="gaia::rules::log_transaction_event(gaia::rules::event_type_t::transaction_begin, gaia::rules::event_mode_t::immediate);";
                 }
                 code_ += "}";
 
@@ -621,7 +625,7 @@ namespace flatbuffers
                     "gaia_object_t::commit_transaction();";
                 if (opts_.gen_transaction_events)
                 {
-                    code_+="gaia::events::log_transaction_event(gaia::events::event_type::transaction_commit, gaia::events::event_mode::immediate);";
+                    code_+="gaia::rules::log_transaction_event(gaia::rules::event_type_t::transaction_commit, gaia::rules::event_mode_t::immediate);";
                 }
                 code_ += "}";
 
@@ -631,7 +635,7 @@ namespace flatbuffers
                     "gaia_object_t::rollback_transaction();";
                 if (opts_.gen_table_events)
                 {
-                    code_+="gaia::events::log_transaction_event(gaia::events::event_type::transaction_rollback, gaia::events::event_mode::immediate);";
+                    code_+="gaia::rules::log_transaction_event(gaia::rules::event_type_t::transaction_rollback, gaia::rules::event_mode_t::immediate);";
                 }
                 code_ += "}";
 

@@ -491,6 +491,7 @@ if(FLATBUFFERS_BUILD_TESTS)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/inc/public/rules)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/inc/public/common)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/db/storage_engine/mock)
+  include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/inc/internal/common)
   add_executable(flattests ${FlatBuffers_Tests_SRCS})
   add_dependencies(flattests generated_code)
   set_property(TARGET flattests

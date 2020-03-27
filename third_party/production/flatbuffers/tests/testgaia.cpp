@@ -13,21 +13,22 @@ gaia_id_t get_next_id()
     return dis(gen);
 }
 
-gaia::events::event_type eventType;
-gaia::events::event_mode eventMode;
-
+gaia::rules::event_type_t event_type;
+gaia::rules::event_mode_t event_mode;
+gaia::common::gaia_type_t gaia_type;
 namespace gaia 
 {
-    namespace events
+    namespace rules
     {
-        bool log_table_event(common::gaia_base_t *row, event_type type, event_mode mode)
+        bool log_table_event(common::gaia_base_t *row, common::gaia_type_t gaia_type, event_type_t type, event_mode_t mode)
         {
-            eventType = type;
-            eventMode = mode;
+            event_type = type;
+            event_mode = mode;
+            ::gaia_type = gaia_type;
             return true;
         }
 
-        bool log_transaction_event(event_type type, event_mode mode)
+        bool log_transaction_event(event_type_t type, event_mode_t mode)
         {
             return true;
         }
@@ -124,8 +125,9 @@ void GaiaSetTest()
 
     pEmployee->set_ssn("test");
     TEST_EQ_STR("test",pEmployee->ssn());
-    TEST_EQ(eventType,gaia::events::event_type::col_change);
-    TEST_EQ(eventMode,gaia::events::event_mode::immediate);
+    TEST_EQ(event_type,gaia::rules::event_type_t::col_change);
+    TEST_EQ(event_mode,gaia::rules::event_mode_t::immediate);
+    TEST_EQ(gaia_type, AddrBook::kEmployeeType);
     TEST_ASSERT(pEmployee->get_changed_fields().find("ssn") != pEmployee->get_changed_fields().end());
 
     AddrBook::Employee::commit_transaction();
@@ -159,12 +161,14 @@ void GaiaUpdateTest()
 
     pEmployee->set_ssn("test");
     TEST_EQ_STR("test",pEmployee->ssn());
-    TEST_EQ(eventType,gaia::events::event_type::col_change);
-    TEST_EQ(eventMode,gaia::events::event_mode::immediate);
+    TEST_EQ(event_type,gaia::rules::event_type_t::col_change);
+    TEST_EQ(event_mode,gaia::rules::event_mode_t::immediate);
+    TEST_EQ(gaia_type, AddrBook::kEmployeeType);
     TEST_ASSERT(pEmployee->get_changed_fields().find("ssn") != pEmployee->get_changed_fields().end());
     pEmployee->update_row();
-    TEST_EQ(eventType,gaia::events::event_type::row_update);
-    TEST_EQ(eventMode,gaia::events::event_mode::immediate);
+    TEST_EQ(event_type,gaia::rules::event_type_t::row_update);
+    TEST_EQ(event_mode,gaia::rules::event_mode_t::immediate);
+    TEST_EQ(gaia_type, AddrBook::kEmployeeType);
     AddrBook::Employee *pEmployee1 = AddrBook::Employee::get_row_by_id(empl_node_id);
     TEST_EQ_STR("test",pEmployee1->ssn());
 
