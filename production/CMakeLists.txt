@@ -30,6 +30,7 @@ set(GOOGLE_TEST "${GAIA_REPO}/third_party/production/googletest")
 set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")
 set(FLATBUFFERS "${GAIA_REPO}/third_party/production/flatbuffers")
 set(FLATBUFFERS_INC "${FLATBUFFERS}/include")
+set(PYBIND_PATH "${GAIA_REPO}/third_party/production/pybind11")
 set(GREMLIN_CONSOLE_PATH "/usr/local/share/gremlin-console")
 set(GREMLIN_SERVER_PATH "/usr/local/share/gremlin-server")
 
@@ -72,9 +73,9 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
 
   # Add a test that executes the Java program.
   add_test(
-    NAME test_jni_cow
+    NAME test_se_mock_jni
     COMMAND ${Java_JAVA_EXECUTABLE}
-      -Djava.library.path=./db/storage_engine/mock
+      -Djava.library.path=./db/storage_engine
       -cp ${GAIA_TINKERPOP_JAR} com.gaiaplatform.database.CowStorageEngine)
 endif()
 
