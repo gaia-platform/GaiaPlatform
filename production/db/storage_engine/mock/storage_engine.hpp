@@ -185,9 +185,9 @@ namespace db
             }
         }
 
-        static void reset()
+        static void reset(bool silent = false)
         {
-            if (shm_unlink(SCH_MEM_DATA) == -1)
+            if (shm_unlink(SCH_MEM_DATA) == -1 && !silent)
             {
                 std::cerr
                     << "Warning: unable to shm_unlink SCH_MEM_DATA"
@@ -195,7 +195,7 @@ namespace db
                 return;
             }
 
-            if (shm_unlink(SCH_MEM_OFFSETS) == -1)
+            if (shm_unlink(SCH_MEM_OFFSETS) == -1 && !silent)
             {
                 std::cerr
                     << "Warning: unable to shm_unlink SCH_MEM_OFFSETS"

@@ -211,6 +211,8 @@ template <typename T> jlong get_next_edge_second(jlong id)
 JNIEXPORT void JNICALL Java_com_gaiaplatform_database_CowStorageEngine_initialize(
     JNIEnv*, jobject, jboolean cleanMemory)
 {
+    bool silent = true;
+    gaia_mem_base::reset(silent);
     gaia_mem_base::init(cleanMemory);
 }
 
