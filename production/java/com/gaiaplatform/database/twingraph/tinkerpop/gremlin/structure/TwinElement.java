@@ -3,23 +3,23 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-package com.gaiaplatform.truegraphdb.tinkerpop.gremlin.structure;
+package com.gaiaplatform.database.twingraph.tinkerpop.gremlin.structure;
 
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
-public abstract class TrueGraphDBElement implements Element
+public abstract class TwinElement implements Element
 {
-    protected final TrueGraphDBGraph graph;
+    protected final TwinGraph graph;
     protected final Object id;
     protected final String label;
     protected boolean removed = false;
 
-    protected TrueGraphDBElement(final Graph graph, final Object id, final String label)
+    protected TwinElement(final Graph graph, final Object id, final String label)
     {
-        this.graph = (TrueGraphDBGraph)graph;
+        this.graph = (TwinGraph)graph;
         this.id = id;
         this.label = label;
     }

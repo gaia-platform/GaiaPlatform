@@ -3,13 +3,13 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-package com.gaiaplatform.truegraphdb;
+package com.gaiaplatform.database;
 
 public class CowStorageEngine
 {
     static
     {
-        System.loadLibrary("native_se_mock");
+        System.loadLibrary("jni_se_mock");
     }
      
     public static void main(String[] args)

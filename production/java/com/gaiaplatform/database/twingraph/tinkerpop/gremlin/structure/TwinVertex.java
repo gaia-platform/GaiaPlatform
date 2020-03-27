@@ -9,7 +9,7 @@
 // Used under Apache License 2.0
 /////////////////////////////////////////////
 
-package com.gaiaplatform.truegraphdb.tinkerpop.gremlin.structure;
+package com.gaiaplatform.database.twingraph.tinkerpop.gremlin.structure;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,7 +30,7 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
-public final class TrueGraphDBVertex extends TrueGraphDBElement implements Vertex
+public final class TwinVertex extends TwinElement implements Vertex
 {
     // outEdges are the outgoing edges.
     protected Map<String, Set<Edge>> outEdges;
@@ -39,7 +39,7 @@ public final class TrueGraphDBVertex extends TrueGraphDBElement implements Verte
 
     protected Map<String, List<VertexProperty>> properties;
 
-    protected TrueGraphDBVertex(final Graph graph, final Object id, final String label)
+    protected TwinVertex(final Graph graph, final Object id, final String label)
     {
         super(graph, id, label);
     }
@@ -56,7 +56,7 @@ public final class TrueGraphDBVertex extends TrueGraphDBElement implements Verte
             throw Graph.Exceptions.argumentCanNotBeNull("inVertex");
         }
 
-        return TrueGraphDBHelper.addEdge(this.graph, this, (TrueGraphDBVertex)inVertex, label, keyValues);
+        return TwinHelper.addEdge(this.graph, this, (TwinVertex)inVertex, label, keyValues);
     }
 
     public Set<String> keys()
@@ -91,7 +91,7 @@ public final class TrueGraphDBVertex extends TrueGraphDBElement implements Verte
             ? this.graph.vertexPropertyIdManager.convert(optionalId.get())
             : this.graph.vertexPropertyIdManager.getNextId(graph);
 
-        final VertexProperty<V> newVertexProperty = new TrueGraphDBVertexProperty<V>(idValue, this, key, value);
+        final VertexProperty<V> newVertexProperty = new TwinVertexProperty<V>(idValue, this, key, value);
 
         if (this.properties == null)
         {
@@ -106,7 +106,7 @@ public final class TrueGraphDBVertex extends TrueGraphDBElement implements Verte
 
         // Update node payload in COW.
         // No plans to support vertex property properties in COW for now.
-        if (!TrueGraphDBHelper.updateNodePayload(this))
+        if (!TwinHelper.updateNodePayload(this))
         {
             throw new UnsupportedOperationException("COW node update failed!");
         }
@@ -150,12 +150,12 @@ public final class TrueGraphDBVertex extends TrueGraphDBElement implements Verte
 
     public Iterator<Vertex> vertices(final Direction direction, final String... edgeLabels)
     {
-        return (Iterator)TrueGraphDBHelper.getVertices(this, direction, edgeLabels);
+        return (Iterator)TwinHelper.getVertices(this, direction, edgeLabels);
     }
 
     public Iterator<Edge> edges(final Direction direction, final String... edgeLabels)
     {
-        return (Iterator)TrueGraphDBHelper.getEdges(this, direction, edgeLabels);
+        return (Iterator)TwinHelper.getEdges(this, direction, edgeLabels);
     }
 
     public void remove()
@@ -164,10 +164,10 @@ public final class TrueGraphDBVertex extends TrueGraphDBElement implements Verte
         // This will also remove the edges from COW.
         final List<Edge> edges = new ArrayList<>();
         this.edges(Direction.BOTH).forEachRemaining(edges::add);
-        edges.stream().filter(edge -> !((TrueGraphDBEdge)edge).removed).forEach(Edge::remove);
+        edges.stream().filter(edge -> !((TwinEdge)edge).removed).forEach(Edge::remove);
 
         // Remove the node from COW.
-        if (!TrueGraphDBHelper.removeNode(this))
+        if (!TwinHelper.removeNode(this))
         {
             throw new UnsupportedOperationException("COW node deletion failed!");
         }

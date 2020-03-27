@@ -7,7 +7,7 @@
 
 #include "storage_engine.hpp"
 
-#include "com_gaiaplatform_truegraphdb_CowStorageEngine.h"
+#include "com_gaiaplatform_database_CowStorageEngine.h"
 
 using namespace std;
 using namespace gaia::db;
@@ -208,28 +208,32 @@ template <typename T> jlong get_next_edge_second(jlong id)
 
 // JNI implementation starts here.
 
-JNIEXPORT void JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_initialize(
+JNIEXPORT void JNICALL Java_com_gaiaplatform_database_CowStorageEngine_initialize(
     JNIEnv*, jobject, jboolean cleanMemory)
 {
+    // We want to allow repeated initializations,
+    // but init() cannot be called twice,
+    // so we need to call reset() first.
+    gaia_mem_base::reset();
     gaia_mem_base::init(cleanMemory);
 }
 
-JNIEXPORT void JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_beginTransaction(JNIEnv*, jobject)
+JNIEXPORT void JNICALL Java_com_gaiaplatform_database_CowStorageEngine_beginTransaction(JNIEnv*, jobject)
 {
     begin_transaction();
 }
 
-JNIEXPORT void JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_commitTransaction(JNIEnv*, jobject)
+JNIEXPORT void JNICALL Java_com_gaiaplatform_database_CowStorageEngine_commitTransaction(JNIEnv*, jobject)
 {
     commit_transaction();
 }
 
-JNIEXPORT void JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_rollbackTransaction(JNIEnv*, jobject)
+JNIEXPORT void JNICALL Java_com_gaiaplatform_database_CowStorageEngine_rollbackTransaction(JNIEnv*, jobject)
 {
     rollback_transaction();
 }
 
-JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_createNode(
+JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_createNode(
     JNIEnv* env, jobject, jlong id, jlong type, jstring payload)
 {
     payload_t payload_holder(env, payload);
@@ -253,55 +257,55 @@ JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_creat
     return node.get_id();
 }
 
-JNIEXPORT jboolean JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_updateNodePayload(
+JNIEXPORT jboolean JNICALL Java_com_gaiaplatform_database_CowStorageEngine_updateNodePayload(
     JNIEnv* env, jobject, jlong id, jstring payload)
 {
     return update_payload<gaia_se_node>(env, id, payload);
 }
 
-JNIEXPORT jboolean JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_removeNode(
+JNIEXPORT jboolean JNICALL Java_com_gaiaplatform_database_CowStorageEngine_removeNode(
     JNIEnv*, jobject, jlong id)
 {
     return remove<gaia_se_node>(id);
 }
 
-JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_findFirstNode(
+JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_findFirstNode(
     JNIEnv*, jobject, jlong type)
 {
     return find_first<gaia_se_node>(type);
 }
 
-JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_findNextNode(
+JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_findNextNode(
     JNIEnv*, jobject, jlong id)
 {
     return find_next<gaia_se_node>(id);
 }
 
-JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_getNodeType(
+JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_getNodeType(
     JNIEnv*, jobject, jlong id)
 {
     return get_type<gaia_se_node>(id);
 }
 
-JNIEXPORT jstring JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_getNodePayload(
+JNIEXPORT jstring JNICALL Java_com_gaiaplatform_database_CowStorageEngine_getNodePayload(
     JNIEnv* env, jobject, jlong id)
 {
     return get_payload<gaia_se_node>(env, id);
 }
 
-JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_getNextEdgeWithNodeAsFirst(
+JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_getNextEdgeWithNodeAsFirst(
     JNIEnv*, jobject, jlong id)
 {
     return get_next_edge_first<gaia_se_node>(id);
 }
 
-JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_getNextEdgeWithNodeAsSecond(
+JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_getNextEdgeWithNodeAsSecond(
     JNIEnv*, jobject, jlong id)
 {
     return get_next_edge_second<gaia_se_node>(id);
 }
 
-JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_createEdge(
+JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_createEdge(
     JNIEnv* env, jobject, jlong id, jlong type, jlong idFirstNode, jlong idSecondNode, jstring payload)
 {
     payload_t payload_holder(env, payload);
@@ -325,37 +329,37 @@ JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_creat
     return edge.get_id();
 }
 
-JNIEXPORT jboolean JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_updateEdgePayload(
+JNIEXPORT jboolean JNICALL Java_com_gaiaplatform_database_CowStorageEngine_updateEdgePayload(
     JNIEnv* env, jobject, jlong id, jstring payload)
 {
     return update_payload<gaia_se_edge>(env, id, payload);
 }
 
-JNIEXPORT jboolean JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_removeEdge(
+JNIEXPORT jboolean JNICALL Java_com_gaiaplatform_database_CowStorageEngine_removeEdge(
     JNIEnv*, jobject, jlong id)
 {
     return remove<gaia_se_edge>(id);
 }
 
-JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_findFirstEdge(
+JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_findFirstEdge(
     JNIEnv*, jobject, jlong type)
 {
     return find_first<gaia_se_edge>(type);
 }
 
-JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_findNextEdge(
+JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_findNextEdge(
     JNIEnv*, jobject, jlong id)
 {
     return find_next<gaia_se_edge>(id);
 }
 
-JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_getEdgeType(
+JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_getEdgeType(
     JNIEnv*, jobject, jlong id)
 {
     return get_type<gaia_se_edge>(id);
 }
 
-JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_getEdgeFirstNode(
+JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_getEdgeFirstNode(
     JNIEnv*, jobject, jlong id)
 {
     gaia_ptr<gaia_se_edge> edge = gaia_se_edge::open(id);
@@ -367,7 +371,7 @@ JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_getEd
     return edge->first;
 }
 
-JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_getEdgeSecondNode(
+JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_getEdgeSecondNode(
     JNIEnv*, jobject, jlong id)
 {
     gaia_ptr<gaia_se_edge> edge = gaia_se_edge::open(id);
@@ -379,19 +383,19 @@ JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_getEd
     return edge->second;
 }
 
-JNIEXPORT jstring JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_getEdgePayload(
+JNIEXPORT jstring JNICALL Java_com_gaiaplatform_database_CowStorageEngine_getEdgePayload(
     JNIEnv* env, jobject, jlong id)
 {
     return get_payload<gaia_se_edge>(env, id);
 }
 
-JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_getNextEdgeWithSameFirstNode(
+JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_getNextEdgeWithSameFirstNode(
     JNIEnv*, jobject, jlong id)
 {
     return get_next_edge_first<gaia_se_edge>(id);
 }
 
-JNIEXPORT jlong JNICALL Java_com_gaiaplatform_truegraphdb_CowStorageEngine_getNextEdgeWithSameSecondNode(
+JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_getNextEdgeWithSameSecondNode(
     JNIEnv*, jobject, jlong id)
 {
     return get_next_edge_second<gaia_se_edge>(id);

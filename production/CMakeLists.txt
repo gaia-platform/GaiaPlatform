@@ -55,27 +55,27 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   set(CMAKE_JAVA_INCLUDE_PATH ${GREMLIN_CONSOLE_PATH}/lib/*:${GREMLIN_CONSOLE_PATH}/ext/tinkergraph-gremlin/lib/*)
 
   # Java wrapper code. This generates native headers for the native wrapper.
-  add_jar(TrueGraphDB
+  add_jar(GaiaTinkerpop
     SOURCES
-      java/com/gaiaplatform/truegraphdb/CowStorageEngine.java
-      java/com/gaiaplatform/truegraphdb/tinkerpop/gremlin/structure/TrueGraphDBEdge.java
-      java/com/gaiaplatform/truegraphdb/tinkerpop/gremlin/structure/TrueGraphDBElement.java
-      java/com/gaiaplatform/truegraphdb/tinkerpop/gremlin/structure/TrueGraphDBFactory.java
-      java/com/gaiaplatform/truegraphdb/tinkerpop/gremlin/structure/TrueGraphDBGraph.java
-      java/com/gaiaplatform/truegraphdb/tinkerpop/gremlin/structure/TrueGraphDBHelper.java
-      java/com/gaiaplatform/truegraphdb/tinkerpop/gremlin/structure/TrueGraphDBProperty.java
-      java/com/gaiaplatform/truegraphdb/tinkerpop/gremlin/structure/TrueGraphDBVertex.java
-      java/com/gaiaplatform/truegraphdb/tinkerpop/gremlin/structure/TrueGraphDBVertexProperty.java
+      java/com/gaiaplatform/database/CowStorageEngine.java
+      java/com/gaiaplatform/database/twingraph/tinkerpop/gremlin/structure/TwinEdge.java
+      java/com/gaiaplatform/database/twingraph/tinkerpop/gremlin/structure/TwinElement.java
+      java/com/gaiaplatform/database/twingraph/tinkerpop/gremlin/structure/TwinFactory.java
+      java/com/gaiaplatform/database/twingraph/tinkerpop/gremlin/structure/TwinGraph.java
+      java/com/gaiaplatform/database/twingraph/tinkerpop/gremlin/structure/TwinHelper.java
+      java/com/gaiaplatform/database/twingraph/tinkerpop/gremlin/structure/TwinProperty.java
+      java/com/gaiaplatform/database/twingraph/tinkerpop/gremlin/structure/TwinVertex.java
+      java/com/gaiaplatform/database/twingraph/tinkerpop/gremlin/structure/TwinVertexProperty.java
     GENERATE_NATIVE_HEADERS storage_engine_mock_jni_headers
     DESTINATION ${PROJECT_BINARY_DIR}/db/storage_engine/mock)
-  get_target_property(COW_SE_JAR TrueGraphDB JAR_FILE)
+  get_target_property(GAIA_TINKERPOP_JAR GaiaTinkerpop JAR_FILE)
 
   # Add a test that executes the Java program.
   add_test(
-    NAME test_storage_engine_mock_jni
+    NAME test_jni_cow
     COMMAND ${Java_JAVA_EXECUTABLE}
       -Djava.library.path=./db/storage_engine/mock
-      -cp ${COW_SE_JAR} com.gaiaplatform.truegraphdb.CowStorageEngine)
+      -cp ${GAIA_TINKERPOP_JAR} com.gaiaplatform.database.CowStorageEngine)
 endif()
 
 # Common code - currently, a headers-only library.

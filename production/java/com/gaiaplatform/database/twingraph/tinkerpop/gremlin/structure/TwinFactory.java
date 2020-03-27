@@ -9,7 +9,7 @@
 // Used under Apache License 2.0
 /////////////////////////////////////////////
 
-package com.gaiaplatform.truegraphdb.tinkerpop.gremlin.structure;
+package com.gaiaplatform.database.twingraph.tinkerpop.gremlin.structure;
 
 import java.io.File;
 import java.io.InputStream;
@@ -26,16 +26,16 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
 import static org.apache.tinkerpop.gremlin.structure.io.IoCore.gryo;
 
-public final class TrueGraphDBFactory {
+public final class TwinFactory {
 
-    private TrueGraphDBFactory()
+    private TwinFactory()
     {
     }
 
-    private static TrueGraphDBGraph getTrueGraphDBGraphWithNumberManager()
+    private static TwinGraph getTwinGraphWithNumberManager()
     {
         final Configuration configuration = getNumberIdManagerConfiguration();
-        return TrueGraphDBGraph.open(configuration);
+        return TwinGraph.open(configuration);
     }
 
     private static Configuration getNumberIdManagerConfiguration()
@@ -43,41 +43,41 @@ public final class TrueGraphDBFactory {
         final Configuration configuration = new BaseConfiguration();
 
         configuration.setProperty(
-            TrueGraphDBGraph.TRUEGRAPHDB_VERTEX_ID_MANAGER,
-            TrueGraphDBGraph.DefaultIdManager.INTEGER.name());
+            TwinGraph.TWINGRAPH_VERTEX_ID_MANAGER,
+            TwinGraph.DefaultIdManager.INTEGER.name());
         configuration.setProperty(
-            TrueGraphDBGraph.TRUEGRAPHDB_EDGE_ID_MANAGER,
-            TrueGraphDBGraph.DefaultIdManager.INTEGER.name());
+            TwinGraph.TWINGRAPH_EDGE_ID_MANAGER,
+            TwinGraph.DefaultIdManager.INTEGER.name());
         configuration.setProperty(
-            TrueGraphDBGraph.TRUEGRAPHDB_VERTEX_PROPERTY_ID_MANAGER,
-            TrueGraphDBGraph.DefaultIdManager.LONG.name());
+            TwinGraph.TWINGRAPH_VERTEX_PROPERTY_ID_MANAGER,
+            TwinGraph.DefaultIdManager.LONG.name());
         
         return configuration;
     }
 
     // Classic graph data set.
-    public static TrueGraphDBGraph createClassic()
+    public static TwinGraph createClassic()
     {
         final Configuration configuration = new BaseConfiguration();
    
         configuration.setProperty(
-            TrueGraphDBGraph.TRUEGRAPHDB_VERTEX_ID_MANAGER,
-            TrueGraphDBGraph.DefaultIdManager.INTEGER.name());
+            TwinGraph.TWINGRAPH_VERTEX_ID_MANAGER,
+            TwinGraph.DefaultIdManager.INTEGER.name());
         configuration.setProperty(
-            TrueGraphDBGraph.TRUEGRAPHDB_EDGE_ID_MANAGER,
-            TrueGraphDBGraph.DefaultIdManager.INTEGER.name());
+            TwinGraph.TWINGRAPH_EDGE_ID_MANAGER,
+            TwinGraph.DefaultIdManager.INTEGER.name());
         configuration.setProperty(
-            TrueGraphDBGraph.TRUEGRAPHDB_VERTEX_PROPERTY_ID_MANAGER,
-            TrueGraphDBGraph.DefaultIdManager.INTEGER.name());
+            TwinGraph.TWINGRAPH_VERTEX_PROPERTY_ID_MANAGER,
+            TwinGraph.DefaultIdManager.INTEGER.name());
    
-        final TrueGraphDBGraph graph = TrueGraphDBGraph.open(configuration);
+        final TwinGraph graph = TwinGraph.open(configuration);
 
         generateClassic(graph);
    
         return graph;
     }
 
-    public static void generateClassic(final TrueGraphDBGraph graph)
+    public static void generateClassic(final TwinGraph graph)
     {
         final Vertex marko = graph.addVertex(T.id, 1, "name", "marko", "age", 29);
         final Vertex vadas = graph.addVertex(T.id, 2, "name", "vadas", "age", 27);
@@ -95,14 +95,14 @@ public final class TrueGraphDBFactory {
     }
 
     // Modern graph data set.
-    public static TrueGraphDBGraph createModern()
+    public static TwinGraph createModern()
     {
-        final TrueGraphDBGraph graph = getTrueGraphDBGraphWithNumberManager();
+        final TwinGraph graph = getTwinGraphWithNumberManager();
         generateModern(graph);
         return graph;
     }
 
-    public static void generateModern(final TrueGraphDBGraph graph)
+    public static void generateModern(final TwinGraph graph)
     {
         final Vertex marko = graph.addVertex(T.id, 1, T.label, "person", "name", "marko", "age", 29);
         final Vertex vadas = graph.addVertex(T.id, 2, T.label, "person", "name", "vadas", "age", 27);
@@ -120,22 +120,22 @@ public final class TrueGraphDBFactory {
     }
 
     // The Crew data set.
-    public static TrueGraphDBGraph createTheCrew()
+    public static TwinGraph createTheCrew()
     {
         final Configuration configuration = getNumberIdManagerConfiguration();
 
         configuration.setProperty(
-            TrueGraphDBGraph.TRUEGRAPHDB_DEFAULT_VERTEX_PROPERTY_CARDINALITY,
+            TwinGraph.TWINGRAPH_DEFAULT_VERTEX_PROPERTY_CARDINALITY,
             VertexProperty.Cardinality.list.name());
 
-        final TrueGraphDBGraph graph = TrueGraphDBGraph.open(configuration);
+        final TwinGraph graph = TwinGraph.open(configuration);
 
         generateTheCrew(graph);
 
         return graph;
     }
 
-    public static void generateTheCrew(final TrueGraphDBGraph graph)
+    public static void generateTheCrew(final TwinGraph graph)
     {
         final Vertex marko = graph.addVertex(T.id, 1, T.label, "person", "name", "marko");
         final Vertex stephen = graph.addVertex(T.id, 7, T.label, "person", "name", "stephen");
@@ -187,14 +187,14 @@ public final class TrueGraphDBFactory {
     }
 
     // Kitchen Sink data set.
-    public static TrueGraphDBGraph createKitchenSink()
+    public static TwinGraph createKitchenSink()
     {
-        final TrueGraphDBGraph graph = getTrueGraphDBGraphWithNumberManager();
+        final TwinGraph graph = getTwinGraphWithNumberManager();
         generateKitchenSink(graph);
         return graph;
     }
 
-    public static void generateKitchenSink(final TrueGraphDBGraph graph)
+    public static void generateKitchenSink(final TwinGraph graph)
     {
         final GraphTraversalSource g = graph.traversal();
 
@@ -209,14 +209,14 @@ public final class TrueGraphDBFactory {
     }
 
     // COW data set.
-    public static TrueGraphDBGraph createCOW()
+    public static TwinGraph createCOW()
     {
-        final TrueGraphDBGraph graph = getTrueGraphDBGraphWithNumberManager();
+        final TwinGraph graph = getTwinGraphWithNumberManager();
         generateCOW(graph);
         return graph;
     }
 
-    public static void generateCOW(final TrueGraphDBGraph graph)
+    public static void generateCOW(final TwinGraph graph)
     {
         final Vertex node1 = graph.addVertex(T.id, 1, T.label, "1", "payload", "n1");
         final Vertex node2 = graph.addVertex(T.id, 2, T.label, "1", "payload", "n2");

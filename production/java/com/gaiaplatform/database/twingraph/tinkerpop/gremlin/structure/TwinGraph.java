@@ -9,7 +9,7 @@
 // Used under Apache License 2.0
 /////////////////////////////////////////////
 
-package com.gaiaplatform.truegraphdb.tinkerpop.gremlin.structure;
+package com.gaiaplatform.database.twingraph.tinkerpop.gremlin.structure;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -39,29 +39,29 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraphIterator;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraphVariables;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
-import com.gaiaplatform.truegraphdb.CowStorageEngine;
+import com.gaiaplatform.database.CowStorageEngine;
 
 //@Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_STANDARD)
 //@Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_INTEGRATE)
 //@Graph.OptIn(Graph.OptIn.SUITE_PROCESS_STANDARD)
 //@Graph.OptIn(Graph.OptIn.SUITE_PROCESS_COMPUTER)
-public final class TrueGraphDBGraph implements Graph
+public final class TwinGraph implements Graph
 {
     private static final Configuration EMPTY_CONFIGURATION = new BaseConfiguration()
     {{
-        this.setProperty(Graph.GRAPH, TrueGraphDBGraph.class.getName());
+        this.setProperty(Graph.GRAPH, TwinGraph.class.getName());
     }};
 
-    public static final String TRUEGRAPHDB_VERTEX_ID_MANAGER
+    public static final String TWINGRAPH_VERTEX_ID_MANAGER
         = "truegraphdb.vertexIdManager";
-    public static final String TRUEGRAPHDB_EDGE_ID_MANAGER
+    public static final String TWINGRAPH_EDGE_ID_MANAGER
         = "truegraphdb.edgeIdManager";
-    public static final String TRUEGRAPHDB_VERTEX_PROPERTY_ID_MANAGER
+    public static final String TWINGRAPH_VERTEX_PROPERTY_ID_MANAGER
         = "truegraphdb.vertexPropertyIdManager";
-    public static final String TRUEGRAPHDB_DEFAULT_VERTEX_PROPERTY_CARDINALITY
+    public static final String TWINGRAPH_DEFAULT_VERTEX_PROPERTY_CARDINALITY
         = "truegraphdb.defaultVertexPropertyCardinality";
 
-    private final TrueGraphDBFeatures features = new TrueGraphDBFeatures();
+    private final TwinFeatures features = new TwinFeatures();
 
     // Reuse TinkerGraph's Graph.Variables implementation.
     protected TinkerGraphVariables variables = null;
@@ -80,33 +80,33 @@ public final class TrueGraphDBGraph implements Graph
 
     protected CowStorageEngine cow = new CowStorageEngine(); 
 
-    private TrueGraphDBGraph(final Configuration configuration)
+    private TwinGraph(final Configuration configuration)
     {
         this.configuration = configuration;
 
         this.vertexIdManager = selectIdManager(
-            configuration, TRUEGRAPHDB_VERTEX_ID_MANAGER, Vertex.class);
+            configuration, TWINGRAPH_VERTEX_ID_MANAGER, Vertex.class);
         this.edgeIdManager = selectIdManager(
-            configuration, TRUEGRAPHDB_EDGE_ID_MANAGER, Edge.class);
+            configuration, TWINGRAPH_EDGE_ID_MANAGER, Edge.class);
         this.vertexPropertyIdManager = selectIdManager(
-            configuration, TRUEGRAPHDB_VERTEX_PROPERTY_ID_MANAGER, VertexProperty.class);
+            configuration, TWINGRAPH_VERTEX_PROPERTY_ID_MANAGER, VertexProperty.class);
 
         this.defaultVertexPropertyCardinality = VertexProperty.Cardinality.valueOf(
-            configuration.getString(TRUEGRAPHDB_DEFAULT_VERTEX_PROPERTY_CARDINALITY,
+            configuration.getString(TWINGRAPH_DEFAULT_VERTEX_PROPERTY_CARDINALITY,
             VertexProperty.Cardinality.single.name()));
 
         // Initialize the COW storage engine.
         cow.initialize(true);
     }
 
-    public static TrueGraphDBGraph open()
+    public static TwinGraph open()
     {
         return open(EMPTY_CONFIGURATION);
     }
 
-    public static TrueGraphDBGraph open(final Configuration configuration)
+    public static TwinGraph open(final Configuration configuration)
     {
-        return new TrueGraphDBGraph(configuration);
+        return new TwinGraph(configuration);
     }
 
     public Vertex addVertex(final Object... keyValues)
@@ -128,11 +128,11 @@ public final class TrueGraphDBGraph implements Graph
             idValue = this.vertexIdManager.getNextId(this);
         }
 
-        final Vertex vertex = new TrueGraphDBVertex(this, idValue, label);
+        final Vertex vertex = new TwinVertex(this, idValue, label);
         ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
 
         // Create node in COW.
-        if (!TrueGraphDBHelper.createNode((TrueGraphDBVertex)vertex))
+        if (!TwinHelper.createNode((TwinVertex)vertex))
         {
             throw new UnsupportedOperationException("COW node creation failed!");
         }
@@ -246,13 +246,13 @@ public final class TrueGraphDBGraph implements Graph
         }
     }
 
-    public class TrueGraphDBFeatures implements Features
+    public class TwinFeatures implements Features
     {
-        private final TrueGraphDBGraphFeatures graphFeatures = new TrueGraphDBGraphFeatures();
-        private final TrueGraphDBEdgeFeatures edgeFeatures = new TrueGraphDBEdgeFeatures();
-        private final TrueGraphDBVertexFeatures vertexFeatures = new TrueGraphDBVertexFeatures();
+        private final TwinGraphFeatures graphFeatures = new TwinGraphFeatures();
+        private final TwinEdgeFeatures edgeFeatures = new TwinEdgeFeatures();
+        private final TwinVertexFeatures vertexFeatures = new TwinVertexFeatures();
 
-        private TrueGraphDBFeatures()
+        private TwinFeatures()
         {
         }
 
@@ -272,12 +272,12 @@ public final class TrueGraphDBGraph implements Graph
         }
     }
 
-    public class TrueGraphDBVertexFeatures implements Features.VertexFeatures
+    public class TwinVertexFeatures implements Features.VertexFeatures
     {
-        private final TrueGraphDBVertexPropertyFeatures vertexPropertyFeatures
-            = new TrueGraphDBVertexPropertyFeatures();
+        private final TwinVertexPropertyFeatures vertexPropertyFeatures
+            = new TwinVertexPropertyFeatures();
 
-        private TrueGraphDBVertexFeatures()
+        private TwinVertexFeatures()
         {
         }
 
@@ -322,9 +322,9 @@ public final class TrueGraphDBGraph implements Graph
         }
     }
 
-    public class TrueGraphDBEdgeFeatures implements Features.EdgeFeatures
+    public class TwinEdgeFeatures implements Features.EdgeFeatures
     {
-        private TrueGraphDBEdgeFeatures()
+        private TwinEdgeFeatures()
         {
         }
 
@@ -349,9 +349,9 @@ public final class TrueGraphDBGraph implements Graph
         }
     }
 
-    public class TrueGraphDBGraphFeatures implements Features.GraphFeatures
+    public class TwinGraphFeatures implements Features.GraphFeatures
     {
-        private TrueGraphDBGraphFeatures()
+        private TwinGraphFeatures()
         {
         }
 
@@ -391,9 +391,9 @@ public final class TrueGraphDBGraph implements Graph
         }
 }
 
-    public class TrueGraphDBVertexPropertyFeatures implements Features.VertexPropertyFeatures
+    public class TwinVertexPropertyFeatures implements Features.VertexPropertyFeatures
     {
-        private TrueGraphDBVertexPropertyFeatures()
+        private TwinVertexPropertyFeatures()
         {
         }
 
@@ -434,7 +434,7 @@ public final class TrueGraphDBGraph implements Graph
             catch (Exception e)
             {
                 throw new IllegalStateException(String.format(
-                    "Could not configure TrueGraphDBGraph %s id manager with %s",
+                    "Could not configure TwinGraph %s id manager with %s",
                     clazz.getSimpleName(),
                     idManagerConfigValue));
             }
@@ -443,7 +443,7 @@ public final class TrueGraphDBGraph implements Graph
 
     public interface IdManager<T>
     {
-        T getNextId(final TrueGraphDBGraph graph);
+        T getNextId(final TwinGraph graph);
 
         T convert(final Object id);
 
@@ -454,7 +454,7 @@ public final class TrueGraphDBGraph implements Graph
     {
         LONG
         {
-            public Long getNextId(final TrueGraphDBGraph graph)
+            public Long getNextId(final TwinGraph graph)
             {
                 return Stream.generate(() -> (graph.lastId.incrementAndGet()))
                     .filter(id -> !graph.vertices.containsKey(id) && !graph.edges.containsKey(id))
@@ -500,7 +500,7 @@ public final class TrueGraphDBGraph implements Graph
 
         INTEGER
         {
-            public Integer getNextId(final TrueGraphDBGraph graph)
+            public Integer getNextId(final TwinGraph graph)
             {
                 return Stream.generate(() -> (graph.lastId.incrementAndGet()))
                     .map(Long::intValue)
@@ -547,7 +547,7 @@ public final class TrueGraphDBGraph implements Graph
 
         UUID
         {
-            public UUID getNextId(final TrueGraphDBGraph graph)
+            public UUID getNextId(final TwinGraph graph)
             {
                 return java.util.UUID.randomUUID();
             }
@@ -587,7 +587,7 @@ public final class TrueGraphDBGraph implements Graph
 
         ANY
         {
-            public Long getNextId(final TrueGraphDBGraph graph)
+            public Long getNextId(final TwinGraph graph)
             {
                 return Stream.generate(() -> (graph.lastId.incrementAndGet()))
                     .filter(id -> !graph.vertices.containsKey(id) && !graph.edges.containsKey(id))
