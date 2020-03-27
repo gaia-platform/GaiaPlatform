@@ -85,21 +85,3 @@ The demo was originally developed on Ubuntu 18.04, but has also been verified to
        * ```select distinct ap.name from routes r, airports ap where r.src_ap = 'SEA' and r.dst_ap = ap.iata;```
        * ```select distinct al.name from routes r, airlines al where r.src_ap = 'SEA' and r.airline = al.iata;```
    * Cleanup gaia tables: ```\i airportdemo_gaia_tables_cleanup.sql```.
-
-## Gremlin cow_se wrapper
-
-Implements a Tinkerpop provider that allows cow_se to be modified through Gremlin tools.
-
-The provider is written in Java and packaged as a JAR file - TrueGraphDB.jar. To build it, you need the following:
-
-1. **Java** - Install package *openjdk-8-jdk*. Version 8 is recommended to avoid running into several warnings due to deprecated features.
-
-2. **Gremlin console and server** - These tools are distributed as zip files and can be downloaded from http://tinkerpop.apache.org/. They should be unzipped under **/usr/local/share/** and the resulting folder names should be renamed to **gremlin-console** and **gremlin-server**. The cmake files expect to find the console and server binaries in these locations.
-
-3. **TrueGraphDB.jar** - after the previous 2 steps are performed, the TrueGraphDB JAR can be produced by building the **demos/** folder. You will find the JAR file under the **build/cow_se/** folder.
-
-4. **Setting up the Tinkerpop provider** - To use TrueGraphDB with the Gremlin console and server, you need to create the following folder paths under both console and server folders: **ext/truegraphdb/lib/** and **ext/truegraphdb/plugin/**. Then copy the JAR file to all of these locations (to all 4 of them). You will also need to enable Java to find the native library that wraps cow_se by setting the LD_LIBRARY_PATH environment variable to point to its location using a command like: ```export LD_LIBRARY_PATH=~/GitHub/GaiaPlatform/demos/build/cow_se/```.
-  * For the client, you can use the command ```import com.gaiaplatform.truegraphdb.tinkerpop.gremlin.structure.TrueGraphDBGraph``` and then execute ```graph = TrueGraphDBGraph.open()```.
-  * For the server, you can execute ```graph = com.gaiaplatform.truegraphdb.tinkerpop.gremlin.structure.TrueGraphDBGraph.open()``` (no import command appears to be available for this scenario).
-  * You can also similarly use the TrueGraphDBFactory class and its createCOW() method to initialize a graph with the structure used in the Python demo: ```graph = TrueGraphDBFactory.createCOW()```.
-  * Once you create the graph, use the following command to start querying the graph: ```g = graph.traversal()```. For example, enter ```g.V()``` to list all the vertexes of the graph. Use the command ```:exit``` to exit the Gremlin console.

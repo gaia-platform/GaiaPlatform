@@ -9,7 +9,7 @@
 // Used under Apache License 2.0
 /////////////////////////////////////////////
 
-package com.gaiaplatform.truegraphdb.tinkerpop.gremlin.structure;
+package com.gaiaplatform.database.cachegraph.tinkerpop.gremlin.structure;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,7 +34,7 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
-public final class TrueGraphDBHelper
+public final class CacheHelper
 {
     private final static String propertyDelimiter = "|";
     private final static String keyValueDelimiter = "=";
@@ -42,7 +42,7 @@ public final class TrueGraphDBHelper
     private static AtomicLong lastType = new AtomicLong();
     private static Map<String, Long> mapLabelsToTypes = new ConcurrentHashMap<>();
 
-    private TrueGraphDBHelper()
+    private CacheHelper()
     {
     }
 
@@ -88,7 +88,7 @@ public final class TrueGraphDBHelper
         return nextType;
     }
 
-    private static boolean handleTransaction(TrueGraphDBGraph graph, boolean operationResult)
+    private static boolean handleTransaction(CacheGraph graph, boolean operationResult)
     {
         if (operationResult)
         {
@@ -102,9 +102,9 @@ public final class TrueGraphDBHelper
         return operationResult;
     }
 
-    protected static boolean createNode(TrueGraphDBVertex vertex)
+    protected static boolean createNode(CacheVertex vertex)
     {
-        TrueGraphDBGraph graph = vertex.graph;
+        CacheGraph graph = vertex.graph;
         long id = Long.parseLong(vertex.id.toString());
         long type = getTypeForLabel(vertex.label);
         String payload = packPropertyLists(vertex.properties);
@@ -114,18 +114,18 @@ public final class TrueGraphDBHelper
         return handleTransaction(graph, idNode != 0);
     }
 
-    protected static boolean removeNode(TrueGraphDBVertex vertex)
+    protected static boolean removeNode(CacheVertex vertex)
     {
-        TrueGraphDBGraph graph = vertex.graph;
+        CacheGraph graph = vertex.graph;
         long id = Long.parseLong(vertex.id.toString());
 
         graph.cow.beginTransaction();
         return handleTransaction(graph, graph.cow.removeNode(id));
     }
 
-    protected static boolean updateNodePayload(TrueGraphDBVertex vertex)
+    protected static boolean updateNodePayload(CacheVertex vertex)
     {
-        TrueGraphDBGraph graph = vertex.graph;
+        CacheGraph graph = vertex.graph;
         long id = Long.parseLong(vertex.id.toString());
         String payload = packPropertyLists(vertex.properties);
 
@@ -133,9 +133,9 @@ public final class TrueGraphDBHelper
         return handleTransaction(graph, graph.cow.updateNodePayload(id, payload));
     }
 
-    protected static boolean createEdge(TrueGraphDBEdge edge)
+    protected static boolean createEdge(CacheEdge edge)
     {
-        TrueGraphDBGraph graph = edge.graph;
+        CacheGraph graph = edge.graph;
         long id = Long.parseLong(edge.id.toString());
         long type = getTypeForLabel(edge.label);
         String payload = packProperties(edge.properties);
@@ -147,18 +147,18 @@ public final class TrueGraphDBHelper
         return handleTransaction(graph, idEdge != 0);
     }
 
-    protected static boolean removeEdge(TrueGraphDBEdge edge)
+    protected static boolean removeEdge(CacheEdge edge)
     {
-        TrueGraphDBGraph graph = edge.graph;
+        CacheGraph graph = edge.graph;
         long id = Long.parseLong(edge.id.toString());
 
         graph.cow.beginTransaction();
         return handleTransaction(graph, graph.cow.removeEdge(id));
     }
 
-    protected static boolean updateEdgePayload(TrueGraphDBEdge edge)
+    protected static boolean updateEdgePayload(CacheEdge edge)
     {
-        TrueGraphDBGraph graph = edge.graph;
+        CacheGraph graph = edge.graph;
         long id = Long.parseLong(edge.id.toString());
         String payload = packProperties(edge.properties);
 
@@ -167,8 +167,8 @@ public final class TrueGraphDBHelper
     }
 
     protected static Edge addEdge(
-        final TrueGraphDBGraph graph,
-        final TrueGraphDBVertex outVertex, final TrueGraphDBVertex inVertex,
+        final CacheGraph graph,
+        final CacheVertex outVertex, final CacheVertex inVertex,
         final String label,
         final Object... keyValues)
     {
@@ -188,24 +188,24 @@ public final class TrueGraphDBHelper
             idValue = graph.edgeIdManager.getNextId(graph);
         }
 
-        final Edge edge = new TrueGraphDBEdge(idValue, label, outVertex, inVertex);
+        final Edge edge = new CacheEdge(idValue, label, outVertex, inVertex);
         ElementHelper.attachProperties(edge, keyValues);
 
         // Create edge in COW.
-        if (!createEdge((TrueGraphDBEdge)edge))
+        if (!createEdge((CacheEdge)edge))
         {
             throw new UnsupportedOperationException("COW edge creation failed!");
         }
 
         graph.edges.put(edge.id(), edge);
-        TrueGraphDBHelper.addOutEdge(outVertex, label, edge);
-        TrueGraphDBHelper.addInEdge(inVertex, label, edge);
+        CacheHelper.addOutEdge(outVertex, label, edge);
+        CacheHelper.addInEdge(inVertex, label, edge);
 
         return edge;
     }
 
     protected static void addOutEdge(
-        final TrueGraphDBVertex vertex, final String label, final Edge edge)
+        final CacheVertex vertex, final String label, final Edge edge)
     {
         if (vertex.outEdges == null)
         {
@@ -223,7 +223,7 @@ public final class TrueGraphDBHelper
     }
 
     protected static void addInEdge(
-        final TrueGraphDBVertex vertex, final String label, final Edge edge)
+        final CacheVertex vertex, final String label, final Edge edge)
     {
         if (vertex.inEdges == null)
         {
@@ -240,8 +240,8 @@ public final class TrueGraphDBHelper
         edges.add(edge);
     }
 
-    protected static Iterator<TrueGraphDBVertex> getVertices(
-        final TrueGraphDBVertex vertex, final Direction direction, final String... edgeLabels)
+    protected static Iterator<CacheVertex> getVertices(
+        final CacheVertex vertex, final Direction direction, final String... edgeLabels)
     {
         final List<Vertex> vertices = new ArrayList<>();
 
@@ -252,19 +252,19 @@ public final class TrueGraphDBHelper
                 if (edgeLabels.length == 0)
                 {
                     vertex.outEdges.values().forEach(set -> set
-                        .forEach(edge -> vertices.add(((TrueGraphDBEdge)edge).inVertex)));
+                        .forEach(edge -> vertices.add(((CacheEdge)edge).inVertex)));
                 }
                 else if (edgeLabels.length == 1)
                 {
                     vertex.outEdges.getOrDefault(edgeLabels[0], Collections.emptySet())
-                        .forEach(edge -> vertices.add(((TrueGraphDBEdge)edge).inVertex));
+                        .forEach(edge -> vertices.add(((CacheEdge)edge).inVertex));
                 }
                 else
                 {
                     Stream.of(edgeLabels).map(vertex.outEdges::get)
                         .filter(Objects::nonNull)
                         .flatMap(Set::stream)
-                        .forEach(edge -> vertices.add(((TrueGraphDBEdge)edge).inVertex));
+                        .forEach(edge -> vertices.add(((CacheEdge)edge).inVertex));
                 }
             }
         }
@@ -276,19 +276,19 @@ public final class TrueGraphDBHelper
                 if (edgeLabels.length == 0)
                 {
                     vertex.inEdges.values().forEach(set -> set
-                        .forEach(edge -> vertices.add(((TrueGraphDBEdge)edge).outVertex)));
+                        .forEach(edge -> vertices.add(((CacheEdge)edge).outVertex)));
                 }
                 else if (edgeLabels.length == 1)
                 {
                     vertex.inEdges.getOrDefault(edgeLabels[0], Collections.emptySet())
-                        .forEach(edge -> vertices.add(((TrueGraphDBEdge)edge).outVertex));
+                        .forEach(edge -> vertices.add(((CacheEdge)edge).outVertex));
                 }
                 else
                 {
                     Stream.of(edgeLabels).map(vertex.inEdges::get)
                         .filter(Objects::nonNull)
                         .flatMap(Set::stream)
-                        .forEach(edge -> vertices.add(((TrueGraphDBEdge)edge).outVertex));
+                        .forEach(edge -> vertices.add(((CacheEdge)edge).outVertex));
                 }
             }
         }
@@ -296,8 +296,8 @@ public final class TrueGraphDBHelper
         return (Iterator) vertices.iterator();
     }
 
-    protected static Iterator<TrueGraphDBEdge> getEdges(
-        final TrueGraphDBVertex vertex, final Direction direction, final String... edgeLabels)
+    protected static Iterator<CacheEdge> getEdges(
+        final CacheVertex vertex, final Direction direction, final String... edgeLabels)
     {
         final List<Edge> edges = new ArrayList<>();
 
