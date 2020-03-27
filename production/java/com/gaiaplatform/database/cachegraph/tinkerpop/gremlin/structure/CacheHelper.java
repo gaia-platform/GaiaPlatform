@@ -94,24 +94,6 @@ public final class CacheHelper
             return mapLabelsToTypes.get(label).longValue();
         }
 
-        try
-        {
-            long type = Long.parseLong(label);
-
-            // If the type value has not been used already for a different label,
-            // then we will assign it for its string representation and use it.
-            if (!mapLabelsToTypes.containsValue(type))
-            {
-                mapLabelsToTypes.put(label, type);
-                return type;
-            }
-        }
-        catch (NumberFormatException e)
-        {
-            // The label is not a long value;
-            // proceed with mapping it to an integer value.
-        }
-
         long nextType = lastType.incrementAndGet();
         mapLabelsToTypes.put(label, nextType);
         return nextType;
