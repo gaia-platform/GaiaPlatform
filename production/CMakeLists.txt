@@ -40,17 +40,15 @@ target_sources(common INTERFACE
   ${PROJECT_SOURCE_DIR}/inc/internal/common/retail_assert.hpp
 )
 
+# Add flatbuffers
+add_subdirectory("../third_party/production/flatbuffers" flatbuffers)
+
 # Add individual component folders.
 add_subdirectory(db)
 add_subdirectory(rules)
+add_subdirectory(tests)
+
+
 
 # Add googletest
 add_subdirectory(${GOOGLE_TEST} googletest)
-
-# Tests.
-add_executable(test_retail_assert tests/test_retail_assert.cpp)
-target_include_directories(test_retail_assert PRIVATE
-  "${GAIA_INC}/internal/common"
-  ${GOOGLE_TEST_INC})
-target_link_libraries(test_retail_assert PRIVATE gtest_main)
-gtest_discover_tests(test_retail_assert)

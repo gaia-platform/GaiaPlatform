@@ -52,7 +52,11 @@ public final class TrueGraphDBProperty<V> implements Property<V>
         {
             ((TrueGraphDBEdge)this.element).properties.remove(this.key);
 
-            // TODO: Update edge payload in COW.
+            // Update edge payload in COW.
+            if (!TrueGraphDBHelper.updateEdgePayload((TrueGraphDBEdge)this.element))
+            {
+                throw new UnsupportedOperationException("COW edge update failed!");
+            }
         }
         else
         {

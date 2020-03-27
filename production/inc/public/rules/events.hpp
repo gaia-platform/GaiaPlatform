@@ -4,7 +4,9 @@
 /////////////////////////////////////////////
 #pragma once
 
-#include "gaia_base.hpp"
+#include <sstream>
+#include "gaia_exception.hpp"
+#include "gaia_object.hpp"
 
 namespace gaia 
 {
@@ -14,11 +16,11 @@ namespace gaia
  * @{
  */
 
-namespace events
+namespace rules
 {
 
 /**
- * \addtogroup Events
+ * \addtogroup Rules
  * @{
  * 
  * Provides facilities for logging events to the system.
@@ -28,53 +30,98 @@ namespace events
   * Immediate and deferred specify when the rules
   * associated with the event should be executed.
   */
-enum class event_mode {
+enum class event_mode_t : uint8_t {
     immediate, /**<execute the rule when the event is logged */
     deferred, /**<execute the event at later time */
 };
 
 /**
  * Every event in the system has an event type.  The type
- * is scoped to an object type.
+ * is scoped to an object type. Note that values must
+ * be powers of 2.
  */
-enum class event_type {
-    transaction_begin,
-    transaction_commit,
-    transaction_rollback,
-    col_change,
-    row_update,
-    row_insert,
-    row_delete,
+enum class event_type_t : uint32_t {
+    transaction_begin = 0x1,
+    transaction_commit = 0x2,
+    transaction_rollback = 0x4,
+    col_change = 0x8,
+    row_update = 0x10,
+    row_insert = 0x20,
+    row_delete = 0x40,
+};
+
+/**
+ * Thrown when a specified mode is not supported
+ * for a log event call.
+ */
+class mode_not_supported: public gaia::common::gaia_exception
+{
+public:
+    mode_not_supported(event_mode_t mode)
+    {
+        std::stringstream message;
+        message << "Invalid mode: " << (uint8_t)mode;
+        m_message = message.str();
+    }
+};
+
+/**
+ * Thrown when a specified event_type does not match the
+ * log event call.  For example, if a table event type
+ * is passed in for transaction log event call, then this exception
+ * is thrown.
+ */
+class invalid_event_type: public gaia::common::gaia_exception
+{
+public:
+    invalid_event_type(event_type_t event_type)
+    {
+        std::stringstream message;
+        message << "Invalid event type for operation: " << (uint8_t)event_type;
+        m_message = message.str();
+    }
 };
 
 /**
  * Writes a table event to the event log.  If the mode is
- * event_mode::immediate, then the rules associated with this
+ * event_mode_t::immediate, then the rules associated with this
  * table event are executed.  All interaction with the underlying
- * database occurs in the callers transaction.
+ * database occurs in the caller's transaction.
  * 
  * @param row current row context of this event
- * @param type the type of table event that has occurred
- * @param mode deferred or immediate rule execution
- * @return true if succesful, failure if a row is not provided or the 
- *      type of the event is not one of event_type::[col_change, row_update,
- *      row_insert, row_delete]
+ * @param gaia_type type of the table the event is scoped to
+ * @param event_type the type of table event that has occurred. Must be one of:
+ *  (col_change, row_update, row_insert, row_delete)
+ * @param mode deferred or immediate rule execution.  Only immedate rule execution
+ *  is supported at this time.
+ * @return true if at least one rule wwas fired due to this event; false otherwise.  
+ *  Note that returning a false does not indicate an error because a rule may have 
+ *  been unsubscribed from this event at runtime.
+ * @throw mode_not_supported 
+ * @throw invalid_event_type
  */
-bool log_table_event(common::gaia_base* row, event_type type, event_mode mode);
+bool log_table_event(
+    common::gaia_base_t* row, 
+    common::gaia_type_t gaia_type,
+    event_type_t event_type, 
+    event_mode_t mode);
 
 /**
  * Writes a transaction event to the event log.  If the mode is
- * event_mode::immediate, then the rules associated with this
+ * event_mode_t::immediate, then the rules associated with this
  * transaction event are executed.  All interaction with the underlying
- * database occurs in the callers transaction.
+ * database occurs in the caller's transaction.
  * 
- * @param type the type of transcation event that has occurred
- * @param mode event_mode for deferred or immediate rule execution
- * @return true if succesful, failure if the type is not one of
- *      event_type::[transaction_begin, transaction_commit,
- *      transaction_rollback]
+ * @param event_type the type of transcation event that has occurred.  Must be one of:
+ *  (transaction_begin, transaction_commit, transactinon_rollback).
+ * @param mode event_mode_t for deferred or immediate rule execution
+ * @return true if at least one rule was fired due to this event; false otherwise.
+ *  Note that returning a false does not indicate an error because a rule may have
+ *  been unsubscribed from this event at runtime.
+ * @throw mode_not_supported 
+ * @throw invalid_event_type
  */
-bool log_transaction_event(event_type type, event_mode mode);
+bool log_transaction_event(event_type_t event_type, event_mode_t mode);
 
 /*@}*/
 }

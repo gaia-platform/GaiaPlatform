@@ -241,7 +241,8 @@ elseif(CMAKE_COMPILER_IS_GNUCXX)
 
 elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
   set(CMAKE_CXX_FLAGS
-      "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -pedantic -Werror -Wextra -Wno-unused-parameter")
+      "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -Wextra -ggdb -Wno-unused-parameter")
+  set(CMAKE_EXE_LINKER_FLAGS "-ggdb -pthread")
   set(FLATBUFFERS_PRIVATE_CXX_FLAGS "-Wold-style-cast")
   if(NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 3.8)
     list(APPEND FLATBUFFERS_PRIVATE_CXX_FLAGS "-Wimplicit-fallthrough" "-Wextra-semi" "-Werror=unused-private-field") # enable warning
@@ -456,6 +457,10 @@ if(FLATBUFFERS_BUILD_TESTS)
     compile_flatbuffers_schema_to_cpp(tests/monster_extra.fbs) # Test floating-point NAN/INF.
   endif()
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/tests)
+  include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../scratch/benchmarks/inc)
+  include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../demos/cow_se/inc)
+  include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/inc/public/rules)
+  include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/inc/public/common)
   add_executable(flattests ${FlatBuffers_Tests_SRCS})
   add_dependencies(flattests generated_code)
   set_property(TARGET flattests
