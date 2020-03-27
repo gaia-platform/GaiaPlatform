@@ -38,6 +38,7 @@ public final class CacheHelper
 {
     private final static String propertyDelimiter = "|";
     private final static String keyValueDelimiter = "=";
+    private final static String emptyString = "";
 
     private static AtomicLong lastType = new AtomicLong();
     private static Map<String, Long> mapLabelsToTypes = new ConcurrentHashMap<>();
@@ -60,6 +61,11 @@ public final class CacheHelper
 
     private static String packProperties(Map<String, Property> properties)
     {
+        if (properties == null)
+        {
+            return emptyString;
+        }
+
         StringBuilder payload = new StringBuilder();
 
         properties.forEach((key, property) -> packProperty(payload, key, property.value().toString()));
@@ -69,6 +75,11 @@ public final class CacheHelper
 
     private static String packPropertyLists(Map<String, List<VertexProperty>> properties)
     {
+        if (properties == null)
+        {
+            return emptyString;
+        }
+
         StringBuilder payload = new StringBuilder();
 
         properties.forEach((key, list) -> packProperty(payload, key, list.get(0).value().toString()));

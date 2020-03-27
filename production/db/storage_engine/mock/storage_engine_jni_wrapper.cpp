@@ -208,10 +208,30 @@ template <typename T> jlong get_next_edge_second(jlong id)
 
 // JNI implementation starts here.
 
-JNIEXPORT void JNICALL Java_com_gaiaplatform_database_CowStorageEngine_initialize(
-    JNIEnv*, jobject, jboolean cleanMemory)
+JNIEXPORT jboolean JNICALL Java_com_gaiaplatform_database_CowStorageEngine_create(
+    JNIEnv*, jobject)
 {
-    gaia_mem_base::init(cleanMemory);
+    try
+    {
+        // We want to be able to call create repeatedly,
+        // to allow the creation of multiple graphs in Gremlin console.
+        //
+        // init() cannot be called repeatedly, so we have to call reset() first.
+        // However, the reset() call will fail for the first time,
+        // so we want to silence its warnings.
+        bool silent = true;
+        gaia_mem_base::reset(silent);
+
+        // To obtain a clear instance, we need to clear the shared memory.
+        bool clearMemory = true;
+        gaia_mem_base::init(clearMemory);
+
+        return true;
+    }
+    catch(const std::exception&)
+    {
+        return false;
+    }
 }
 
 JNIEXPORT void JNICALL Java_com_gaiaplatform_database_CowStorageEngine_beginTransaction(JNIEnv*, jobject)
@@ -245,7 +265,7 @@ JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_createNo
         node = gaia_se_node::create(
             id, type, payload_holder.size(), payload_holder.c_str());
     }
-    catch(const std::exception& e)
+    catch(const std::exception&)
     {
         return NULL;
     }
@@ -317,7 +337,7 @@ JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_createEd
         edge = gaia_se_edge::create(
             id, type, idFirstNode, idSecondNode, payload_holder.size(), payload_holder.c_str());
     }
-    catch(const std::exception& e)
+    catch(const std::exception&)
     {
         return NULL;
     }

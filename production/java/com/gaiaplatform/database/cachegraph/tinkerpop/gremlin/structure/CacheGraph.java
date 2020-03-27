@@ -95,8 +95,12 @@ public final class CacheGraph implements Graph
             configuration.getString(CACHEGRAPH_DEFAULT_VERTEX_PROPERTY_CARDINALITY,
             VertexProperty.Cardinality.single.name()));
 
-        // Initialize the COW storage engine.
-        cow.initialize(true);
+        // COW only supports a single instance with no persistence,
+        // so for now we always create it for each CacheGraph.
+        if (!cow.create())
+        {
+            throw new UnsupportedOperationException("COW initialization failed!");
+        }
     }
 
     public static CacheGraph open()
