@@ -13,4 +13,4 @@ message(STATUS "GAIA_DB_INC=${GAIA_DB_INC}")
 
 # Add individual component folders.
 add_subdirectory(memory_manager)
-add_subdirectory("../../third_party/production/rocksdb" rocksdb)
+
