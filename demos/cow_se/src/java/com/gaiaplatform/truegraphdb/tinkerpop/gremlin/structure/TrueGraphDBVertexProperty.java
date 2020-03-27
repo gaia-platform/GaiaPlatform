@@ -11,10 +11,16 @@
 
 package com.gaiaplatform.truegraphdb.tinkerpop.gremlin.structure;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import org.apache.tinkerpop.gremlin.structure.*;
+import org.apache.tinkerpop.gremlin.structure.Property;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
@@ -93,7 +99,7 @@ public final class TrueGraphDBVertexProperty<V> extends TrueGraphDBElement imple
 
         if (this.properties == null)
         {
-            this.properties = new HashMap<>();
+            this.properties = new ConcurrentHashMap<>();
         }
 
         this.properties.put(key, newProperty);
