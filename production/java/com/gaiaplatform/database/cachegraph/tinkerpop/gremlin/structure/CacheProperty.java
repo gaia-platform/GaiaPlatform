@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-package com.gaiaplatform.database.twingraph.tinkerpop.gremlin.structure;
+package com.gaiaplatform.database.cachegraph.tinkerpop.gremlin.structure;
 
 import java.util.NoSuchElementException;
 
@@ -13,13 +13,13 @@ import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
-public final class TwinProperty<V> implements Property<V>
+public final class CacheProperty<V> implements Property<V>
 {
     protected final Element element;
     protected final String key;
     protected final V value;
 
-    public TwinProperty(Element element, String key, V value)
+    public CacheProperty(Element element, String key, V value)
     {
         this.element = element;
         this.key = key;
@@ -50,17 +50,17 @@ public final class TwinProperty<V> implements Property<V>
     {
         if (this.element instanceof Edge)
         {
-            ((TwinEdge)this.element).properties.remove(this.key);
+            ((CacheEdge)this.element).properties.remove(this.key);
 
             // Update edge payload in COW.
-            if (!TwinHelper.updateEdgePayload((TwinEdge)this.element))
+            if (!CacheHelper.updateEdgePayload((CacheEdge)this.element))
             {
                 throw new UnsupportedOperationException("COW edge update failed!");
             }
         }
         else
         {
-            ((TwinVertexProperty)this.element).properties.remove(this.key);
+            ((CacheVertexProperty)this.element).properties.remove(this.key);
 
             // No plans to support vertex property properties in COW for now.
         }

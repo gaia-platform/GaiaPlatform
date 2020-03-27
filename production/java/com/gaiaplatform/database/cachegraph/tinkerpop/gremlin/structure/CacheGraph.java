@@ -9,7 +9,7 @@
 // Used under Apache License 2.0
 /////////////////////////////////////////////
 
-package com.gaiaplatform.database.twingraph.tinkerpop.gremlin.structure;
+package com.gaiaplatform.database.cachegraph.tinkerpop.gremlin.structure;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -45,23 +45,23 @@ import com.gaiaplatform.database.CowStorageEngine;
 //@Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_INTEGRATE)
 //@Graph.OptIn(Graph.OptIn.SUITE_PROCESS_STANDARD)
 //@Graph.OptIn(Graph.OptIn.SUITE_PROCESS_COMPUTER)
-public final class TwinGraph implements Graph
+public final class CacheGraph implements Graph
 {
     private static final Configuration EMPTY_CONFIGURATION = new BaseConfiguration()
     {{
-        this.setProperty(Graph.GRAPH, TwinGraph.class.getName());
+        this.setProperty(Graph.GRAPH, CacheGraph.class.getName());
     }};
 
-    public static final String TWINGRAPH_VERTEX_ID_MANAGER
+    public static final String CACHEGRAPH_VERTEX_ID_MANAGER
         = "truegraphdb.vertexIdManager";
-    public static final String TWINGRAPH_EDGE_ID_MANAGER
+    public static final String CACHEGRAPH_EDGE_ID_MANAGER
         = "truegraphdb.edgeIdManager";
-    public static final String TWINGRAPH_VERTEX_PROPERTY_ID_MANAGER
+    public static final String CACHEGRAPH_VERTEX_PROPERTY_ID_MANAGER
         = "truegraphdb.vertexPropertyIdManager";
-    public static final String TWINGRAPH_DEFAULT_VERTEX_PROPERTY_CARDINALITY
+    public static final String CACHEGRAPH_DEFAULT_VERTEX_PROPERTY_CARDINALITY
         = "truegraphdb.defaultVertexPropertyCardinality";
 
-    private final TwinFeatures features = new TwinFeatures();
+    private final CacheFeatures features = new CacheFeatures();
 
     // Reuse TinkerGraph's Graph.Variables implementation.
     protected TinkerGraphVariables variables = null;
@@ -80,33 +80,33 @@ public final class TwinGraph implements Graph
 
     protected CowStorageEngine cow = new CowStorageEngine(); 
 
-    private TwinGraph(final Configuration configuration)
+    private CacheGraph(final Configuration configuration)
     {
         this.configuration = configuration;
 
         this.vertexIdManager = selectIdManager(
-            configuration, TWINGRAPH_VERTEX_ID_MANAGER, Vertex.class);
+            configuration, CACHEGRAPH_VERTEX_ID_MANAGER, Vertex.class);
         this.edgeIdManager = selectIdManager(
-            configuration, TWINGRAPH_EDGE_ID_MANAGER, Edge.class);
+            configuration, CACHEGRAPH_EDGE_ID_MANAGER, Edge.class);
         this.vertexPropertyIdManager = selectIdManager(
-            configuration, TWINGRAPH_VERTEX_PROPERTY_ID_MANAGER, VertexProperty.class);
+            configuration, CACHEGRAPH_VERTEX_PROPERTY_ID_MANAGER, VertexProperty.class);
 
         this.defaultVertexPropertyCardinality = VertexProperty.Cardinality.valueOf(
-            configuration.getString(TWINGRAPH_DEFAULT_VERTEX_PROPERTY_CARDINALITY,
+            configuration.getString(CACHEGRAPH_DEFAULT_VERTEX_PROPERTY_CARDINALITY,
             VertexProperty.Cardinality.single.name()));
 
         // Initialize the COW storage engine.
         cow.initialize(true);
     }
 
-    public static TwinGraph open()
+    public static CacheGraph open()
     {
         return open(EMPTY_CONFIGURATION);
     }
 
-    public static TwinGraph open(final Configuration configuration)
+    public static CacheGraph open(final Configuration configuration)
     {
-        return new TwinGraph(configuration);
+        return new CacheGraph(configuration);
     }
 
     public Vertex addVertex(final Object... keyValues)
@@ -128,11 +128,11 @@ public final class TwinGraph implements Graph
             idValue = this.vertexIdManager.getNextId(this);
         }
 
-        final Vertex vertex = new TwinVertex(this, idValue, label);
+        final Vertex vertex = new CacheVertex(this, idValue, label);
         ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
 
         // Create node in COW.
-        if (!TwinHelper.createNode((TwinVertex)vertex))
+        if (!CacheHelper.createNode((CacheVertex)vertex))
         {
             throw new UnsupportedOperationException("COW node creation failed!");
         }
@@ -246,13 +246,13 @@ public final class TwinGraph implements Graph
         }
     }
 
-    public class TwinFeatures implements Features
+    public class CacheFeatures implements Features
     {
-        private final TwinGraphFeatures graphFeatures = new TwinGraphFeatures();
-        private final TwinEdgeFeatures edgeFeatures = new TwinEdgeFeatures();
-        private final TwinVertexFeatures vertexFeatures = new TwinVertexFeatures();
+        private final CacheGraphFeatures graphFeatures = new CacheGraphFeatures();
+        private final CacheEdgeFeatures edgeFeatures = new CacheEdgeFeatures();
+        private final CacheVertexFeatures vertexFeatures = new CacheVertexFeatures();
 
-        private TwinFeatures()
+        private CacheFeatures()
         {
         }
 
@@ -272,12 +272,12 @@ public final class TwinGraph implements Graph
         }
     }
 
-    public class TwinVertexFeatures implements Features.VertexFeatures
+    public class CacheVertexFeatures implements Features.VertexFeatures
     {
-        private final TwinVertexPropertyFeatures vertexPropertyFeatures
-            = new TwinVertexPropertyFeatures();
+        private final CacheVertexPropertyFeatures vertexPropertyFeatures
+            = new CacheVertexPropertyFeatures();
 
-        private TwinVertexFeatures()
+        private CacheVertexFeatures()
         {
         }
 
@@ -322,9 +322,9 @@ public final class TwinGraph implements Graph
         }
     }
 
-    public class TwinEdgeFeatures implements Features.EdgeFeatures
+    public class CacheEdgeFeatures implements Features.EdgeFeatures
     {
-        private TwinEdgeFeatures()
+        private CacheEdgeFeatures()
         {
         }
 
@@ -349,9 +349,9 @@ public final class TwinGraph implements Graph
         }
     }
 
-    public class TwinGraphFeatures implements Features.GraphFeatures
+    public class CacheGraphFeatures implements Features.GraphFeatures
     {
-        private TwinGraphFeatures()
+        private CacheGraphFeatures()
         {
         }
 
@@ -391,9 +391,9 @@ public final class TwinGraph implements Graph
         }
 }
 
-    public class TwinVertexPropertyFeatures implements Features.VertexPropertyFeatures
+    public class CacheVertexPropertyFeatures implements Features.VertexPropertyFeatures
     {
-        private TwinVertexPropertyFeatures()
+        private CacheVertexPropertyFeatures()
         {
         }
 
@@ -434,7 +434,7 @@ public final class TwinGraph implements Graph
             catch (Exception e)
             {
                 throw new IllegalStateException(String.format(
-                    "Could not configure TwinGraph %s id manager with %s",
+                    "Could not configure CacheGraph %s id manager with %s",
                     clazz.getSimpleName(),
                     idManagerConfigValue));
             }
@@ -443,7 +443,7 @@ public final class TwinGraph implements Graph
 
     public interface IdManager<T>
     {
-        T getNextId(final TwinGraph graph);
+        T getNextId(final CacheGraph graph);
 
         T convert(final Object id);
 
@@ -454,7 +454,7 @@ public final class TwinGraph implements Graph
     {
         LONG
         {
-            public Long getNextId(final TwinGraph graph)
+            public Long getNextId(final CacheGraph graph)
             {
                 return Stream.generate(() -> (graph.lastId.incrementAndGet()))
                     .filter(id -> !graph.vertices.containsKey(id) && !graph.edges.containsKey(id))
@@ -500,7 +500,7 @@ public final class TwinGraph implements Graph
 
         INTEGER
         {
-            public Integer getNextId(final TwinGraph graph)
+            public Integer getNextId(final CacheGraph graph)
             {
                 return Stream.generate(() -> (graph.lastId.incrementAndGet()))
                     .map(Long::intValue)
@@ -547,7 +547,7 @@ public final class TwinGraph implements Graph
 
         UUID
         {
-            public UUID getNextId(final TwinGraph graph)
+            public UUID getNextId(final CacheGraph graph)
             {
                 return java.util.UUID.randomUUID();
             }
@@ -587,7 +587,7 @@ public final class TwinGraph implements Graph
 
         ANY
         {
-            public Long getNextId(final TwinGraph graph)
+            public Long getNextId(final CacheGraph graph)
             {
                 return Stream.generate(() -> (graph.lastId.incrementAndGet()))
                     .filter(id -> !graph.vertices.containsKey(id) && !graph.edges.containsKey(id))

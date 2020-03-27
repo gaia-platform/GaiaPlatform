@@ -9,7 +9,7 @@
 // Used under Apache License 2.0
 /////////////////////////////////////////////
 
-package com.gaiaplatform.database.twingraph.tinkerpop.gremlin.structure;
+package com.gaiaplatform.database.cachegraph.tinkerpop.gremlin.structure;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,7 +34,7 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
-public final class TwinHelper
+public final class CacheHelper
 {
     private final static String propertyDelimiter = "|";
     private final static String keyValueDelimiter = "=";
@@ -42,7 +42,7 @@ public final class TwinHelper
     private static AtomicLong lastType = new AtomicLong();
     private static Map<String, Long> mapLabelsToTypes = new ConcurrentHashMap<>();
 
-    private TwinHelper()
+    private CacheHelper()
     {
     }
 
@@ -88,7 +88,7 @@ public final class TwinHelper
         return nextType;
     }
 
-    private static boolean handleTransaction(TwinGraph graph, boolean operationResult)
+    private static boolean handleTransaction(CacheGraph graph, boolean operationResult)
     {
         if (operationResult)
         {
@@ -102,9 +102,9 @@ public final class TwinHelper
         return operationResult;
     }
 
-    protected static boolean createNode(TwinVertex vertex)
+    protected static boolean createNode(CacheVertex vertex)
     {
-        TwinGraph graph = vertex.graph;
+        CacheGraph graph = vertex.graph;
         long id = Long.parseLong(vertex.id.toString());
         long type = getTypeForLabel(vertex.label);
         String payload = packPropertyLists(vertex.properties);
@@ -114,18 +114,18 @@ public final class TwinHelper
         return handleTransaction(graph, idNode != 0);
     }
 
-    protected static boolean removeNode(TwinVertex vertex)
+    protected static boolean removeNode(CacheVertex vertex)
     {
-        TwinGraph graph = vertex.graph;
+        CacheGraph graph = vertex.graph;
         long id = Long.parseLong(vertex.id.toString());
 
         graph.cow.beginTransaction();
         return handleTransaction(graph, graph.cow.removeNode(id));
     }
 
-    protected static boolean updateNodePayload(TwinVertex vertex)
+    protected static boolean updateNodePayload(CacheVertex vertex)
     {
-        TwinGraph graph = vertex.graph;
+        CacheGraph graph = vertex.graph;
         long id = Long.parseLong(vertex.id.toString());
         String payload = packPropertyLists(vertex.properties);
 
@@ -133,9 +133,9 @@ public final class TwinHelper
         return handleTransaction(graph, graph.cow.updateNodePayload(id, payload));
     }
 
-    protected static boolean createEdge(TwinEdge edge)
+    protected static boolean createEdge(CacheEdge edge)
     {
-        TwinGraph graph = edge.graph;
+        CacheGraph graph = edge.graph;
         long id = Long.parseLong(edge.id.toString());
         long type = getTypeForLabel(edge.label);
         String payload = packProperties(edge.properties);
@@ -147,18 +147,18 @@ public final class TwinHelper
         return handleTransaction(graph, idEdge != 0);
     }
 
-    protected static boolean removeEdge(TwinEdge edge)
+    protected static boolean removeEdge(CacheEdge edge)
     {
-        TwinGraph graph = edge.graph;
+        CacheGraph graph = edge.graph;
         long id = Long.parseLong(edge.id.toString());
 
         graph.cow.beginTransaction();
         return handleTransaction(graph, graph.cow.removeEdge(id));
     }
 
-    protected static boolean updateEdgePayload(TwinEdge edge)
+    protected static boolean updateEdgePayload(CacheEdge edge)
     {
-        TwinGraph graph = edge.graph;
+        CacheGraph graph = edge.graph;
         long id = Long.parseLong(edge.id.toString());
         String payload = packProperties(edge.properties);
 
@@ -167,8 +167,8 @@ public final class TwinHelper
     }
 
     protected static Edge addEdge(
-        final TwinGraph graph,
-        final TwinVertex outVertex, final TwinVertex inVertex,
+        final CacheGraph graph,
+        final CacheVertex outVertex, final CacheVertex inVertex,
         final String label,
         final Object... keyValues)
     {
@@ -188,24 +188,24 @@ public final class TwinHelper
             idValue = graph.edgeIdManager.getNextId(graph);
         }
 
-        final Edge edge = new TwinEdge(idValue, label, outVertex, inVertex);
+        final Edge edge = new CacheEdge(idValue, label, outVertex, inVertex);
         ElementHelper.attachProperties(edge, keyValues);
 
         // Create edge in COW.
-        if (!createEdge((TwinEdge)edge))
+        if (!createEdge((CacheEdge)edge))
         {
             throw new UnsupportedOperationException("COW edge creation failed!");
         }
 
         graph.edges.put(edge.id(), edge);
-        TwinHelper.addOutEdge(outVertex, label, edge);
-        TwinHelper.addInEdge(inVertex, label, edge);
+        CacheHelper.addOutEdge(outVertex, label, edge);
+        CacheHelper.addInEdge(inVertex, label, edge);
 
         return edge;
     }
 
     protected static void addOutEdge(
-        final TwinVertex vertex, final String label, final Edge edge)
+        final CacheVertex vertex, final String label, final Edge edge)
     {
         if (vertex.outEdges == null)
         {
@@ -223,7 +223,7 @@ public final class TwinHelper
     }
 
     protected static void addInEdge(
-        final TwinVertex vertex, final String label, final Edge edge)
+        final CacheVertex vertex, final String label, final Edge edge)
     {
         if (vertex.inEdges == null)
         {
@@ -240,8 +240,8 @@ public final class TwinHelper
         edges.add(edge);
     }
 
-    protected static Iterator<TwinVertex> getVertices(
-        final TwinVertex vertex, final Direction direction, final String... edgeLabels)
+    protected static Iterator<CacheVertex> getVertices(
+        final CacheVertex vertex, final Direction direction, final String... edgeLabels)
     {
         final List<Vertex> vertices = new ArrayList<>();
 
@@ -252,19 +252,19 @@ public final class TwinHelper
                 if (edgeLabels.length == 0)
                 {
                     vertex.outEdges.values().forEach(set -> set
-                        .forEach(edge -> vertices.add(((TwinEdge)edge).inVertex)));
+                        .forEach(edge -> vertices.add(((CacheEdge)edge).inVertex)));
                 }
                 else if (edgeLabels.length == 1)
                 {
                     vertex.outEdges.getOrDefault(edgeLabels[0], Collections.emptySet())
-                        .forEach(edge -> vertices.add(((TwinEdge)edge).inVertex));
+                        .forEach(edge -> vertices.add(((CacheEdge)edge).inVertex));
                 }
                 else
                 {
                     Stream.of(edgeLabels).map(vertex.outEdges::get)
                         .filter(Objects::nonNull)
                         .flatMap(Set::stream)
-                        .forEach(edge -> vertices.add(((TwinEdge)edge).inVertex));
+                        .forEach(edge -> vertices.add(((CacheEdge)edge).inVertex));
                 }
             }
         }
@@ -276,19 +276,19 @@ public final class TwinHelper
                 if (edgeLabels.length == 0)
                 {
                     vertex.inEdges.values().forEach(set -> set
-                        .forEach(edge -> vertices.add(((TwinEdge)edge).outVertex)));
+                        .forEach(edge -> vertices.add(((CacheEdge)edge).outVertex)));
                 }
                 else if (edgeLabels.length == 1)
                 {
                     vertex.inEdges.getOrDefault(edgeLabels[0], Collections.emptySet())
-                        .forEach(edge -> vertices.add(((TwinEdge)edge).outVertex));
+                        .forEach(edge -> vertices.add(((CacheEdge)edge).outVertex));
                 }
                 else
                 {
                     Stream.of(edgeLabels).map(vertex.inEdges::get)
                         .filter(Objects::nonNull)
                         .flatMap(Set::stream)
-                        .forEach(edge -> vertices.add(((TwinEdge)edge).outVertex));
+                        .forEach(edge -> vertices.add(((CacheEdge)edge).outVertex));
                 }
             }
         }
@@ -296,8 +296,8 @@ public final class TwinHelper
         return (Iterator) vertices.iterator();
     }
 
-    protected static Iterator<TwinEdge> getEdges(
-        final TwinVertex vertex, final Direction direction, final String... edgeLabels)
+    protected static Iterator<CacheEdge> getEdges(
+        final CacheVertex vertex, final Direction direction, final String... edgeLabels)
     {
         final List<Edge> edges = new ArrayList<>();
 

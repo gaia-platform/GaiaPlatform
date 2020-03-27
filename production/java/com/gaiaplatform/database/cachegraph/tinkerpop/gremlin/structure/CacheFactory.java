@@ -9,7 +9,7 @@
 // Used under Apache License 2.0
 /////////////////////////////////////////////
 
-package com.gaiaplatform.database.twingraph.tinkerpop.gremlin.structure;
+package com.gaiaplatform.database.cachegraph.tinkerpop.gremlin.structure;
 
 import java.io.File;
 import java.io.InputStream;
@@ -26,16 +26,16 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
 import static org.apache.tinkerpop.gremlin.structure.io.IoCore.gryo;
 
-public final class TwinFactory {
+public final class CacheFactory {
 
-    private TwinFactory()
+    private CacheFactory()
     {
     }
 
-    private static TwinGraph getTwinGraphWithNumberManager()
+    private static CacheGraph getCacheGraphWithNumberManager()
     {
         final Configuration configuration = getNumberIdManagerConfiguration();
-        return TwinGraph.open(configuration);
+        return CacheGraph.open(configuration);
     }
 
     private static Configuration getNumberIdManagerConfiguration()
@@ -43,41 +43,41 @@ public final class TwinFactory {
         final Configuration configuration = new BaseConfiguration();
 
         configuration.setProperty(
-            TwinGraph.TWINGRAPH_VERTEX_ID_MANAGER,
-            TwinGraph.DefaultIdManager.INTEGER.name());
+            CacheGraph.CACHEGRAPH_VERTEX_ID_MANAGER,
+            CacheGraph.DefaultIdManager.INTEGER.name());
         configuration.setProperty(
-            TwinGraph.TWINGRAPH_EDGE_ID_MANAGER,
-            TwinGraph.DefaultIdManager.INTEGER.name());
+            CacheGraph.CACHEGRAPH_EDGE_ID_MANAGER,
+            CacheGraph.DefaultIdManager.INTEGER.name());
         configuration.setProperty(
-            TwinGraph.TWINGRAPH_VERTEX_PROPERTY_ID_MANAGER,
-            TwinGraph.DefaultIdManager.LONG.name());
+            CacheGraph.CACHEGRAPH_VERTEX_PROPERTY_ID_MANAGER,
+            CacheGraph.DefaultIdManager.LONG.name());
         
         return configuration;
     }
 
     // Classic graph data set.
-    public static TwinGraph createClassic()
+    public static CacheGraph createClassic()
     {
         final Configuration configuration = new BaseConfiguration();
    
         configuration.setProperty(
-            TwinGraph.TWINGRAPH_VERTEX_ID_MANAGER,
-            TwinGraph.DefaultIdManager.INTEGER.name());
+            CacheGraph.CACHEGRAPH_VERTEX_ID_MANAGER,
+            CacheGraph.DefaultIdManager.INTEGER.name());
         configuration.setProperty(
-            TwinGraph.TWINGRAPH_EDGE_ID_MANAGER,
-            TwinGraph.DefaultIdManager.INTEGER.name());
+            CacheGraph.CACHEGRAPH_EDGE_ID_MANAGER,
+            CacheGraph.DefaultIdManager.INTEGER.name());
         configuration.setProperty(
-            TwinGraph.TWINGRAPH_VERTEX_PROPERTY_ID_MANAGER,
-            TwinGraph.DefaultIdManager.INTEGER.name());
+            CacheGraph.CACHEGRAPH_VERTEX_PROPERTY_ID_MANAGER,
+            CacheGraph.DefaultIdManager.INTEGER.name());
    
-        final TwinGraph graph = TwinGraph.open(configuration);
+        final CacheGraph graph = CacheGraph.open(configuration);
 
         generateClassic(graph);
    
         return graph;
     }
 
-    public static void generateClassic(final TwinGraph graph)
+    public static void generateClassic(final CacheGraph graph)
     {
         final Vertex marko = graph.addVertex(T.id, 1, "name", "marko", "age", 29);
         final Vertex vadas = graph.addVertex(T.id, 2, "name", "vadas", "age", 27);
@@ -95,14 +95,14 @@ public final class TwinFactory {
     }
 
     // Modern graph data set.
-    public static TwinGraph createModern()
+    public static CacheGraph createModern()
     {
-        final TwinGraph graph = getTwinGraphWithNumberManager();
+        final CacheGraph graph = getCacheGraphWithNumberManager();
         generateModern(graph);
         return graph;
     }
 
-    public static void generateModern(final TwinGraph graph)
+    public static void generateModern(final CacheGraph graph)
     {
         final Vertex marko = graph.addVertex(T.id, 1, T.label, "person", "name", "marko", "age", 29);
         final Vertex vadas = graph.addVertex(T.id, 2, T.label, "person", "name", "vadas", "age", 27);
@@ -120,22 +120,22 @@ public final class TwinFactory {
     }
 
     // The Crew data set.
-    public static TwinGraph createTheCrew()
+    public static CacheGraph createTheCrew()
     {
         final Configuration configuration = getNumberIdManagerConfiguration();
 
         configuration.setProperty(
-            TwinGraph.TWINGRAPH_DEFAULT_VERTEX_PROPERTY_CARDINALITY,
+            CacheGraph.CACHEGRAPH_DEFAULT_VERTEX_PROPERTY_CARDINALITY,
             VertexProperty.Cardinality.list.name());
 
-        final TwinGraph graph = TwinGraph.open(configuration);
+        final CacheGraph graph = CacheGraph.open(configuration);
 
         generateTheCrew(graph);
 
         return graph;
     }
 
-    public static void generateTheCrew(final TwinGraph graph)
+    public static void generateTheCrew(final CacheGraph graph)
     {
         final Vertex marko = graph.addVertex(T.id, 1, T.label, "person", "name", "marko");
         final Vertex stephen = graph.addVertex(T.id, 7, T.label, "person", "name", "stephen");
@@ -187,14 +187,14 @@ public final class TwinFactory {
     }
 
     // Kitchen Sink data set.
-    public static TwinGraph createKitchenSink()
+    public static CacheGraph createKitchenSink()
     {
-        final TwinGraph graph = getTwinGraphWithNumberManager();
+        final CacheGraph graph = getCacheGraphWithNumberManager();
         generateKitchenSink(graph);
         return graph;
     }
 
-    public static void generateKitchenSink(final TwinGraph graph)
+    public static void generateKitchenSink(final CacheGraph graph)
     {
         final GraphTraversalSource g = graph.traversal();
 
@@ -209,14 +209,14 @@ public final class TwinFactory {
     }
 
     // COW data set.
-    public static TwinGraph createCOW()
+    public static CacheGraph createCOW()
     {
-        final TwinGraph graph = getTwinGraphWithNumberManager();
+        final CacheGraph graph = getCacheGraphWithNumberManager();
         generateCOW(graph);
         return graph;
     }
 
-    public static void generateCOW(final TwinGraph graph)
+    public static void generateCOW(final CacheGraph graph)
     {
         final Vertex node1 = graph.addVertex(T.id, 1, T.label, "1", "payload", "n1");
         final Vertex node2 = graph.addVertex(T.id, 2, T.label, "1", "payload", "n2");

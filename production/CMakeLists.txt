@@ -58,14 +58,14 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   add_jar(GaiaTinkerpop
     SOURCES
       java/com/gaiaplatform/database/CowStorageEngine.java
-      java/com/gaiaplatform/database/twingraph/tinkerpop/gremlin/structure/TwinEdge.java
-      java/com/gaiaplatform/database/twingraph/tinkerpop/gremlin/structure/TwinElement.java
-      java/com/gaiaplatform/database/twingraph/tinkerpop/gremlin/structure/TwinFactory.java
-      java/com/gaiaplatform/database/twingraph/tinkerpop/gremlin/structure/TwinGraph.java
-      java/com/gaiaplatform/database/twingraph/tinkerpop/gremlin/structure/TwinHelper.java
-      java/com/gaiaplatform/database/twingraph/tinkerpop/gremlin/structure/TwinProperty.java
-      java/com/gaiaplatform/database/twingraph/tinkerpop/gremlin/structure/TwinVertex.java
-      java/com/gaiaplatform/database/twingraph/tinkerpop/gremlin/structure/TwinVertexProperty.java
+      java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheEdge.java
+      java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheElement.java
+      java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheFactory.java
+      java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheGraph.java
+      java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheHelper.java
+      java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheProperty.java
+      java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheVertex.java
+      java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheVertexProperty.java
     GENERATE_NATIVE_HEADERS storage_engine_mock_jni_headers
     DESTINATION ${PROJECT_BINARY_DIR}/db/storage_engine/mock)
   get_target_property(GAIA_TINKERPOP_JAR GaiaTinkerpop JAR_FILE)

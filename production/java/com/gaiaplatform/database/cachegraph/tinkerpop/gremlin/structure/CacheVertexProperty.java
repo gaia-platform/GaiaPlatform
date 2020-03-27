@@ -9,7 +9,7 @@
 // Used under Apache License 2.0
 /////////////////////////////////////////////
 
-package com.gaiaplatform.database.twingraph.tinkerpop.gremlin.structure;
+package com.gaiaplatform.database.cachegraph.tinkerpop.gremlin.structure;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -25,16 +25,16 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
-public final class TwinVertexProperty<V> extends TwinElement implements VertexProperty<V>
+public final class CacheVertexProperty<V> extends CacheElement implements VertexProperty<V>
 {
-    private final TwinVertex vertex;
+    private final CacheVertex vertex;
     protected final String key;
     protected final V value;
 
     protected Map<String, Property> properties;
 
-    protected TwinVertexProperty(
-        final TwinVertex vertex,
+    protected CacheVertexProperty(
+        final CacheVertex vertex,
         final String key, final V value,
         final Object... propertyKeyValues)
     {
@@ -45,9 +45,9 @@ public final class TwinVertexProperty<V> extends TwinElement implements VertexPr
             propertyKeyValues);
     }
 
-    public TwinVertexProperty(
+    public CacheVertexProperty(
         final Object id,
-        final TwinVertex vertex,
+        final CacheVertex vertex,
         final String key, final V value,
         final Object... propertyKeyValues)
     {
@@ -95,7 +95,7 @@ public final class TwinVertexProperty<V> extends TwinElement implements VertexPr
 
         ElementHelper.validateProperty(key, value);
 
-        final Property<U> newProperty = new TwinProperty<>(this, key, value);
+        final Property<U> newProperty = new CacheProperty<>(this, key, value);
 
         if (this.properties == null)
         {
@@ -142,7 +142,7 @@ public final class TwinVertexProperty<V> extends TwinElement implements VertexPr
         }        
 
         // Update node payload in COW.
-        if (!TwinHelper.updateNodePayload(this.vertex))
+        if (!CacheHelper.updateNodePayload(this.vertex))
         {
             throw new UnsupportedOperationException("COW node update failed!");
         }

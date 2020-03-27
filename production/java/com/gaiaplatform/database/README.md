@@ -1,7 +1,7 @@
 # java/com/gaiaplatform/database
 This is a folder for GaiaPlatform database-related Java code.
 
-## Tinkerpop provider
+## Tinkerpop CacheGraph provider
 
 Implements a Tinkerpop provider that allows the mock storage engine to be modified through Gremlin tools.
 
@@ -14,7 +14,7 @@ The provider is written in Java and packaged as a JAR file - GaiaTinkerpop.jar. 
 3. **GaiaTinkerpop.jar** - after the previous 2 steps are performed, the GaiaTinkerpop JAR can be produced by building the **production/** folder. You will find the JAR file under the **build/** folder.
 
 4. **Setting up the Tinkerpop provider** - To use the Tinkerpop provider with the Gremlin console and server, you need to create the following folder paths under both console and server folders: **ext/gaia-tinkerpop/lib/** and **ext/gaia-tinkerpop/plugin/**. Then copy the JAR file to all of these locations (to all 4 of them). You will also need to enable Java to find the native library that wraps the mock storage engine by setting the LD_LIBRARY_PATH environment variable to point to its location using a command like: ```export LD_LIBRARY_PATH=~/GitHub/GaiaPlatform/production/build/db/storage_engine/mock```.
-  * For the client, you can use the command ```import com.gaiaplatform.database.twingraph.tinkerpop.gremlin.structure.TwinGraph``` and then execute ```graph = TwinGraph.open()```.
-  * For the server, you can execute ```graph = com.gaiaplatform.database.twingraph.tinkerpop.gremlin.structure.TwinGraph.open()``` (no import command appears to be available for this scenario).
-  * You can also similarly use the TwinFactory class and its createCOW() method to initialize a graph with the structure used in the Python demo: ```graph = TwinFactory.createCOW()```.
+  * For the client, you can use the command ```import com.gaiaplatform.database.twingraph.tinkerpop.gremlin.structure.CacheGraph``` and then execute ```graph = CacheGraph.open()```.
+  * For the server, you can execute ```graph = com.gaiaplatform.database.twingraph.tinkerpop.gremlin.structure.CacheGraph.open()``` (no import command appears to be available for this scenario).
+  * You can also similarly use the CacheFactory class and its createCOW() method to initialize a graph with the structure used in the Python demo: ```graph = CacheFactory.createCOW()```.
   * Once you create the graph, use the following command to start querying the graph: ```g = graph.traversal()```. For example, enter ```g.E()``` to list all the edges of the graph. Use the command ```:exit``` to exit the Gremlin console.

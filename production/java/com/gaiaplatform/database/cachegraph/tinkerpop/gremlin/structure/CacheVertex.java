@@ -9,7 +9,7 @@
 // Used under Apache License 2.0
 /////////////////////////////////////////////
 
-package com.gaiaplatform.database.twingraph.tinkerpop.gremlin.structure;
+package com.gaiaplatform.database.cachegraph.tinkerpop.gremlin.structure;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,7 +30,7 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
-public final class TwinVertex extends TwinElement implements Vertex
+public final class CacheVertex extends CacheElement implements Vertex
 {
     // outEdges are the outgoing edges.
     protected Map<String, Set<Edge>> outEdges;
@@ -39,7 +39,7 @@ public final class TwinVertex extends TwinElement implements Vertex
 
     protected Map<String, List<VertexProperty>> properties;
 
-    protected TwinVertex(final Graph graph, final Object id, final String label)
+    protected CacheVertex(final Graph graph, final Object id, final String label)
     {
         super(graph, id, label);
     }
@@ -56,7 +56,7 @@ public final class TwinVertex extends TwinElement implements Vertex
             throw Graph.Exceptions.argumentCanNotBeNull("inVertex");
         }
 
-        return TwinHelper.addEdge(this.graph, this, (TwinVertex)inVertex, label, keyValues);
+        return CacheHelper.addEdge(this.graph, this, (CacheVertex)inVertex, label, keyValues);
     }
 
     public Set<String> keys()
@@ -91,7 +91,7 @@ public final class TwinVertex extends TwinElement implements Vertex
             ? this.graph.vertexPropertyIdManager.convert(optionalId.get())
             : this.graph.vertexPropertyIdManager.getNextId(graph);
 
-        final VertexProperty<V> newVertexProperty = new TwinVertexProperty<V>(idValue, this, key, value);
+        final VertexProperty<V> newVertexProperty = new CacheVertexProperty<V>(idValue, this, key, value);
 
         if (this.properties == null)
         {
@@ -106,7 +106,7 @@ public final class TwinVertex extends TwinElement implements Vertex
 
         // Update node payload in COW.
         // No plans to support vertex property properties in COW for now.
-        if (!TwinHelper.updateNodePayload(this))
+        if (!CacheHelper.updateNodePayload(this))
         {
             throw new UnsupportedOperationException("COW node update failed!");
         }
@@ -150,12 +150,12 @@ public final class TwinVertex extends TwinElement implements Vertex
 
     public Iterator<Vertex> vertices(final Direction direction, final String... edgeLabels)
     {
-        return (Iterator)TwinHelper.getVertices(this, direction, edgeLabels);
+        return (Iterator)CacheHelper.getVertices(this, direction, edgeLabels);
     }
 
     public Iterator<Edge> edges(final Direction direction, final String... edgeLabels)
     {
-        return (Iterator)TwinHelper.getEdges(this, direction, edgeLabels);
+        return (Iterator)CacheHelper.getEdges(this, direction, edgeLabels);
     }
 
     public void remove()
@@ -164,10 +164,10 @@ public final class TwinVertex extends TwinElement implements Vertex
         // This will also remove the edges from COW.
         final List<Edge> edges = new ArrayList<>();
         this.edges(Direction.BOTH).forEachRemaining(edges::add);
-        edges.stream().filter(edge -> !((TwinEdge)edge).removed).forEach(Edge::remove);
+        edges.stream().filter(edge -> !((CacheEdge)edge).removed).forEach(Edge::remove);
 
         // Remove the node from COW.
-        if (!TwinHelper.removeNode(this))
+        if (!CacheHelper.removeNode(this))
         {
             throw new UnsupportedOperationException("COW node deletion failed!");
         }
