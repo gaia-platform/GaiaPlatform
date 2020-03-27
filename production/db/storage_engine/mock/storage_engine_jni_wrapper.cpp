@@ -211,10 +211,6 @@ template <typename T> jlong get_next_edge_second(jlong id)
 JNIEXPORT void JNICALL Java_com_gaiaplatform_database_CowStorageEngine_initialize(
     JNIEnv*, jobject, jboolean cleanMemory)
 {
-    // We want to allow repeated initializations,
-    // but init() cannot be called twice,
-    // so we need to call reset() first.
-    gaia_mem_base::reset();
     gaia_mem_base::init(cleanMemory);
 }
 
