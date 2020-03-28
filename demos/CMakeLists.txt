@@ -55,10 +55,5 @@ endif()
 
 # Add project folders.
 add_subdirectory(cow_se)
-if (EXISTS /usr/lib/llvm-8/lib)
-    add_subdirectory(rules/RuleSubscriber)
-else()
-    message(STATUS "To build rule subscriber libclang-8-dev should be installed")
-endif()
-
+add_subdirectory(rules)
 
