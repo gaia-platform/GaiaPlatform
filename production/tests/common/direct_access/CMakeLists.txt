@@ -50,6 +50,7 @@ function(compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT)
             --cpp --gen-mutable --gen-object-api --reflect-names
             --cpp-ptr-type flatbuffers::unique_ptr # Used to test with C++98 STLs
             --cpp-str-type gaia::common::nullable_string_t
+            --gaiacpp --gen-setters
             ${OPT}
             -I ${CMAKE_CURRENT_SOURCE_DIR}
             -o ${CMAKE_CURRENT_SOURCE_DIR}
