@@ -35,7 +35,7 @@ namespace gaia
     }
 }
 
-int64_t create_emloyee(int64_t Gaia_Mgr_id_val, int64_t Gaia_FirstAddr_id_val, int64_t Gaia_FirstPhone_id_val, 
+int64_t create_employee(int64_t Gaia_Mgr_id_val, int64_t Gaia_FirstAddr_id_val, int64_t Gaia_FirstPhone_id_val, 
     int64_t Gaia_FirstProvision_id_val, int64_t Gaia_FirstSalary_id_val, const char *name_first_val, 
     const char *name_last_val, const char *ssn_val, int64_t hire_date_val, const char *email_val, 
     const char *web_val)
@@ -67,7 +67,7 @@ void GaiaGetTest()
     int64_t first_salary_id = get_next_id();
     int64_t hire_date = get_next_id();
         
-    int64_t empl_node_id = create_emloyee(manager_id
+    int64_t empl_node_id = create_employee(manager_id
         ,first_address_id
         ,first_phone_id
         ,first_provision_id
@@ -108,7 +108,7 @@ void GaiaSetTest()
     int64_t first_salary_id = get_next_id();
     int64_t hire_date = get_next_id();
         
-    int64_t empl_node_id = create_emloyee(manager_id
+    int64_t empl_node_id = create_employee(manager_id
         ,first_address_id
         ,first_phone_id
         ,first_provision_id
@@ -144,7 +144,7 @@ void GaiaUpdateTest()
     int64_t first_salary_id = get_next_id();
     int64_t hire_date = get_next_id();
         
-    int64_t empl_node_id = create_emloyee(manager_id
+    int64_t empl_node_id = create_employee(manager_id
         ,first_address_id
         ,first_phone_id
         ,first_provision_id

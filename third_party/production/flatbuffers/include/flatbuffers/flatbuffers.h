@@ -1794,12 +1794,9 @@ class FlatBufferBuilder {
     bool operator()(const T &a, const T &b) const {
       return a.KeyCompareLessThan(&b);
     }
-    StructKeyComparator<T>() = default;
-    StructKeyComparator<T>(const StructKeyComparator &) = default;
 
    private:
     StructKeyComparator &operator=(const StructKeyComparator &);
-    
   };
   /// @endcond
 

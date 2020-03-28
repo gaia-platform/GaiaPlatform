@@ -131,7 +131,7 @@ set(FlatBuffers_Tests_SRCS
   ${FlatBuffers_Library_SRCS}
   src/idl_gen_fbs.cpp
   tests/test.cpp
-  tests/testgaia.cpp
+  tests/test_gaia.cpp
   tests/test_assert.h
   tests/test_assert.cpp
   tests/test_builder.h
@@ -481,7 +481,7 @@ if(FLATBUFFERS_BUILD_TESTS)
   compile_flatbuffers_schema_to_binary(tests/arrays_test.fbs)
   compile_flatbuffers_schema_to_embedded_binary(tests/monster_test.fbs "--no-includes;--gen-compare")
   compile_flatbuffers_schema_to_cpp(tests/addr_book.fbs "")
-  compile_flatbuffers_schema_to_gaiacpp_opt(tests/addr_book.fbs "--gen_setters;--gen_transaction_events;--gen_table_events;--gen_col_events")
+  compile_flatbuffers_schema_to_gaiacpp_opt(tests/addr_book.fbs "--gen-setters;--gen-transaction-events;--gen-table-events;--gen-col-events")
   if(NOT (MSVC AND (MSVC_VERSION LESS 1900)))
     compile_flatbuffers_schema_to_cpp(tests/monster_extra.fbs) # Test floating-point NAN/INF.
   endif()

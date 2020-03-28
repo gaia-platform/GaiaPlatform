@@ -13,12 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-// independent from idl_parser, since this code is not needed for most clients
 /////////////////////////////////////////////
-// Copyright (c) Gaia Platform LLC
+// Modifications Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+// independent from idl_parser, since this code is not needed for most clients
 #include <unordered_set>
 
 #include "flatbuffers/code_generators.h"
@@ -84,9 +83,9 @@ namespace flatbuffers
 
     static std::string CapitalizeString(const std::string &str)
     {
-        std::string retVal = str;
-        std::transform(retVal.begin(),++retVal.begin(),retVal.begin(),ToUpper);
-        return retVal;
+        std::string result = str;
+        std::transform(result.begin(),++result.begin(),result.begin(),ToUpper);
+        return result;
     }
 
     namespace gaiacpp 
@@ -244,10 +243,10 @@ namespace flatbuffers
                 code_ += "#include \"" + GeneratedCPPFileName(file_name_) + "\"";
                 code_ += "#include \"gaia_object.hpp\"";
 
-                if (opts_.gen_setters 
-                    && (opts_.gen_col_events 
-                    || opts_.gen_transaction_events 
-                    || opts_.gen_table_events))
+                if (opts_.generate_setters 
+                    && (opts_.generate_column_change_events 
+                    || opts_.generate_transaction_events 
+                    || opts_.generate_table_change_events))
                 {
                     code_ += "#include \"events.hpp\"";
                     code_ += "#include <unordered_set>";
@@ -321,23 +320,23 @@ namespace flatbuffers
             const std::string CurrentNamespaceString() const
             {
                 const Namespace *ns = CurrentNameSpace();
-                std::string retVal = "";
+                std::string result = "";
                 if (ns == nullptr)
                 {
-                    return retVal;
+                    return result;
                 }
     
                 // Open namespace parts to reach the ns namespace               
                 for (unsigned long j = 0; j != ns->components.size(); ++j) 
                 {
-                    if (!retVal.empty())
+                    if (!result.empty())
                     {
-                        retVal += "::";
+                        result += "::";
                     }
-                    retVal += ns->components[j];
+                    result += ns->components[j];
                 }
 
-                return retVal;
+                return result;
             }
 
             const Namespace *CurrentNameSpace() const 
@@ -529,7 +528,7 @@ namespace flatbuffers
                     {
                         code_ += 
                             "{{FIELD_TYPE}} {{FIELD_NAME}} () const { return GET_STR({{FIELD_NAME}});}";
-                        if (opts_.gen_setters && (opts_.gen_col_events || opts_.gen_table_events))
+                        if (opts_.generate_setters && (opts_.generate_column_change_events || opts_.generate_table_change_events))
                         {
                             code_ += 
                                 "{{FIELD_TYPE}} {{FIELD_NAME}}_original () const { return GET_STR_ORIGINAL({{FIELD_NAME}});}";
@@ -539,26 +538,26 @@ namespace flatbuffers
                     {
                         code_ += 
                             "{{FIELD_TYPE}} {{FIELD_NAME}} () const { return GET_CURRENT({{FIELD_NAME}});}";
-                        if (opts_.gen_setters && (opts_.gen_col_events || opts_.gen_table_events))
+                        if (opts_.generate_setters && (opts_.generate_column_change_events || opts_.generate_table_change_events))
                         {
                             code_ += 
                                 "{{FIELD_TYPE}} {{FIELD_NAME}}_original () const { return GET_ORIGINAL({{FIELD_NAME}});}";
                         }
                     }
    
-                    if (opts_.gen_setters)
+                    if (opts_.generate_setters)
                     {
                         code_ +=
                             "void set_{{FIELD_NAME}}({{FIELD_TYPE}} val)\n"
                             "{\n"
                             "SET({{FIELD_NAME}}, val);";
-                        if (opts_.gen_col_events || opts_.gen_table_events)
+                        if (opts_.generate_column_change_events || opts_.generate_table_change_events)
                         {
                             code_ += 
                                 "_fields.emplace(\"{{FIELD_NAME}}\");\n"
                                 "_fieldOffsets.emplace({{STRUCT_NAME}}::{{OFFSET}});";
       
-                            if (opts_.gen_col_events)
+                            if (opts_.generate_column_change_events)
                             {
                                 code_ += "gaia::rules::log_table_event(this, " + CurrentNamespaceString() +  
                                     "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::col_change, gaia::rules::event_mode_t::immediate);";
@@ -568,52 +567,52 @@ namespace flatbuffers
                     }
                 }
 
-                if (opts_.gen_setters && (opts_.gen_col_events || opts_.gen_table_events))
+                if (opts_.generate_setters && (opts_.generate_column_change_events || opts_.generate_table_change_events))
                 {
                     code_ += 
                         "const std::unordered_set<std::string>& get_changed_fields() { return _fields;}\n"
                         "const std::unordered_set<flatbuffers::voffset_t>& get_changed_fields_offsets() { return _fieldOffsets;}";
                 }
-
-                // Update function
-                code_ += 
-                    "void update_row(){\n"
-                    "gaia_object_t::update_row();";
-                if (opts_.gen_table_events)
+   
+                if (opts_.generate_setters)
                 {
-                    code_+="gaia::rules::log_table_event(this, " + CurrentNamespaceString() +  
-                        "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::row_update, gaia::rules::event_mode_t::immediate);";
-                }
-                code_ += "}";
+                    // Update function
+                    code_ += "void update_row(){";
+                    if (opts_.generate_table_change_events)
+                    {
+                        code_+="gaia::rules::log_table_event(this, " + CurrentNamespaceString() +  
+                            "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::row_update, gaia::rules::event_mode_t::immediate);";
+                    }
+                    code_ += "gaia_object_t::update_row();";
+                    code_ += "}";
 
-                // Insert function
-                code_ += 
-                    "void insert_row(){\n"
-                    "gaia_object_t::insert_row();";
-                if (opts_.gen_table_events)
-                {
-                    code_+="gaia::rules::log_table_event(this, " + CurrentNamespaceString() +  
-                        "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::row_insert, gaia::rules::event_mode_t::immediate);";
-                }
-                code_ += "}";
+                    // Insert function
+                    code_ += "void insert_row(){";
+                    if (opts_.generate_table_change_events)
+                    {
+                        code_+="gaia::rules::log_table_event(this, " + CurrentNamespaceString() +  
+                            "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::row_insert, gaia::rules::event_mode_t::immediate);";
+                    }
+                    code_ += "gaia_object_t::insert_row();";
+                    code_ += "}";
 
-                // Delete function
-                code_ += 
-                    "void delete_row(){\n"
-                    "gaia_object_t::delete_row();";
+                    // Delete function
+                    code_ += "void delete_row(){";
                 
-                if (opts_.gen_table_events)
-                {
-                    code_+="gaia::rules::log_table_event(this, " + CurrentNamespaceString() +  
-                        "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::row_delete, gaia::rules::event_mode_t::immediate);";
+                    if (opts_.generate_table_change_events)
+                    {
+                        code_+="gaia::rules::log_table_event(this, " + CurrentNamespaceString() +  
+                            "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::row_delete, gaia::rules::event_mode_t::immediate);";
+                    }
+                    code_ += "gaia_object_t::delete_row();";
+                    code_ += "}";
                 }
-                code_ += "}";
 
                 // BeginTransaction function
                 code_ += 
                     "static void begin_transaction(){\n"
                     "gaia_object_t::begin_transaction();";
-                if (opts_.gen_transaction_events)
+                if (opts_.generate_transaction_events)
                 {
                     code_+="gaia::rules::log_transaction_event(gaia::rules::event_type_t::transaction_begin, gaia::rules::event_mode_t::immediate);";
                 }
@@ -623,7 +622,7 @@ namespace flatbuffers
                 code_ += 
                     "static void commit_transaction(){\n"
                     "gaia_object_t::commit_transaction();";
-                if (opts_.gen_transaction_events)
+                if (opts_.generate_transaction_events)
                 {
                     code_+="gaia::rules::log_transaction_event(gaia::rules::event_type_t::transaction_commit, gaia::rules::event_mode_t::immediate);";
                 }
@@ -633,13 +632,13 @@ namespace flatbuffers
                 code_ += 
                     "static void rollback_transaction(){\n"
                     "gaia_object_t::rollback_transaction();";
-                if (opts_.gen_table_events)
+                if (opts_.generate_table_change_events)
                 {
                     code_+="gaia::rules::log_transaction_event(gaia::rules::event_type_t::transaction_rollback, gaia::rules::event_mode_t::immediate);";
                 }
                 code_ += "}";
 
-                if (opts_.gen_setters && (opts_.gen_col_events || opts_.gen_table_events))
+                if (opts_.generate_setters && (opts_.generate_column_change_events || opts_.generate_table_change_events))
                 {
                     code_ += "private:";
                     code_ += "friend struct gaia_object_t<" + CurrentNamespaceString() +  

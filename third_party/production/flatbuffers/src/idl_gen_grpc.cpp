@@ -13,6 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/////////////////////////////////////////////
+// Modifications Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
 
 // independent from idl_parser, since this code is not needed for most clients
 
@@ -342,13 +346,8 @@ bool GenerateCppGRPC(const Parser &parser, const std::string &path,
                                source_code, false);
 }
 
-bool GenerateGaiaCppGRPC(const Parser &parser, const std::string &path,
-                     const std::string &file_name) {
-  (void)(parser);
-  (void)(path);
-  (void)(file_name);
-  return true;
-}
+bool GenerateGaiaCppGRPC(const Parser &, const std::string &,
+                     const std::string &) { return true;}
 
 class JavaGRPCGenerator : public flatbuffers::BaseGenerator {
  public:

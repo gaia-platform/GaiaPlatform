@@ -13,7 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+/////////////////////////////////////////////
+// Modifications Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
 #include "flatbuffers/flatc.h"
 
 #include <list>
@@ -124,10 +127,10 @@ std::string FlatCompiler::GetUsageString(const char *program_name) const {
     "                             * 'c++0x' - generate code compatible with old compilers;\n"
     "                             * 'c++11' - use C++11 code generator (default);\n"
     "                             * 'c++17' - use C++17 features in generated code (experimental).\n"
-    "  --gen_col_events         generate code in Gaia Wrapper to invoke event manager on column change.\n"
-    "  --gen_table_events       generate code in Gaia Wrapper to invoke event manager on table change.\n"
-    "  --gen_transaction_events generate code in Gaia Wrapper to invoke event manager on transaction.\n"
-    "  --gen_setters            generate code in Gaia Wrapper to generate setters for class data.\n"
+    "  --gen-col-events         generate code in Gaia Wrapper to invoke event manager on column change.\n"
+    "  --gen-table-events       generate code in Gaia Wrapper to invoke event manager on table change.\n"
+    "  --gen-transaction-events generate code in Gaia Wrapper to invoke event manager on transaction.\n"
+    "  --gen-setters            generate code in Gaia Wrapper to generate setters for class data.\n"
     "  --object-prefix          Customise class prefix for C++ object-based API.\n"
     "  --object-suffix          Customise class suffix for C++ object-based API.\n"
     "                           Default value is \"T\".\n"
@@ -366,14 +369,14 @@ int FlatCompiler::Compile(int argc, const char **argv) {
         opts.cs_gen_json_serializer = true;
       } else if (arg == "--flexbuffers") {
         opts.use_flexbuffers = true;
-      } else if (arg == "--gen_col_events") {
-        opts.gen_col_events = true;
-      } else if (arg == "--gen_table_events") {
-        opts.gen_table_events = true;
-      } else if (arg == "--gen_transaction_events") {
-        opts.gen_transaction_events = true;
-      } else if (arg == "--gen_setters") {
-        opts.gen_setters = true;
+      } else if (arg == "--gen-col-events") {
+        opts.generate_column_change_events = true;
+      } else if (arg == "--gen-table-events") {
+        opts.generate_table_change_events = true;
+      } else if (arg == "--gen-transaction-events") {
+        opts.generate_transaction_events = true;
+      } else if (arg == "--gen-setters") {
+        opts.generate_setters = true;
       } else if (arg == "--cpp-std") {
         if (++argi >= argc)
           Error("missing C++ standard specification" + arg, true);
