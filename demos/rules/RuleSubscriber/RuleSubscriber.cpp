@@ -74,10 +74,10 @@ public:
     // Parse comments for function declaration
     virtual bool VisitFunctionDecl(FunctionDecl *d)
     {
-        const int rule_name_index = 1;
-        const int gaia_type_index = 2;
-        const int event_type_start_index = 3;
-        const int minimal_valid_rule_annotation_size = 4;
+        const std::size_t rule_name_index = 1;
+        const std::size_t gaia_type_index = 2;
+        const std::size_t event_type_start_index = 3;
+        const std::size_t minimal_valid_rule_annotation_size = 4;
         const ASTContext& context = d->getASTContext();
         const RawComment* rawComment = context.getRawCommentForDeclNoCache(d);
         
@@ -104,7 +104,7 @@ public:
                 string gaia_type = trim(params[gaia_type_index]);
                 if (!rule_name.empty())
                 {
-                    for (int i = event_type_start_index; i < params.size(); i++)
+                    for (std::size_t i = event_type_start_index; i < params.size(); i++)
                     {
                         rule_data ruleData;
                         string event_type = params[i];
@@ -255,7 +255,7 @@ void generateCode(const char *fileName, const vector<rule_data>& rules)
     // Generate rule binding structure.
     for (auto it = rules.cbegin(); it != rules.cend(); ++it)
     {
-        declarations.emplace("    rule_binding_t  " + it->ruleset + "_" + it->rule + "(\"" 
+        declarations.emplace("    rule_binding_t  " + it->rule + "(\"" 
             + it->ruleset +  "\",\"" + it->rule_name + "\"," + it->rule + ");");        
     }
 
@@ -270,12 +270,12 @@ void generateCode(const char *fileName, const vector<rule_data>& rules)
         if (it->is_transaction_rule)
         {
             code << "    subscribe_transaction_rule(" << it->event_type << "," 
-                << it->ruleset << "_" << it->rule << ");" << endl;
+                << it->rule << ");" << endl;
         }
         else
         {
             code << "    subscribe_table_rule(" << it->gaia_type << "," 
-                << it->event_type << "," << it->ruleset << "_" << it->rule << ");" << endl;
+                << it->event_type << "," << it->rule << ");" << endl;
         }
 
     }

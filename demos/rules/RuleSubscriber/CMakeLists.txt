@@ -7,20 +7,17 @@ list(APPEND CMAKE_MODULE_PATH
   ${LLVM_LIB_PATH}/lib/cmake/llvm
  )
 
-include(AddLLVM)
+set(CMAKE_CXX_FLAGS
+      "-std=c++0x -Wall -Wextra -ggdb -Wno-unused-parameter -fno-rtti -DLLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING=1")
+set(CMAKE_EXE_LINKER_FLAGS "-ggdb -pthread")
 
-macro(add_clang_executable name)
-  add_llvm_executable( ${name} ${ARGN} )
-  set_target_properties(${name} PROPERTIES FOLDER "Clang executables")
-endmacro(add_clang_executable)
-
-
-add_clang_executable(rule_subscriber RuleSubscriber.cpp)
+add_executable(rule_subscriber RuleSubscriber.cpp)
 
 set(search_paths
   ${LLVM_LIB_PATH}/lib/cmake/clang
   ${LLVM_LIB_PATH}/lib/cmake/llvm
 )
+
 
 find_package(LLVM REQUIRED CONFIG
   PATHS ${search_paths}
@@ -34,7 +31,7 @@ find_package(Clang REQUIRED CONFIG
 
 include_directories(
   ..
-  ${LLVM_LIB_PATH}/include/clang
+  ${LLVM_LIB_PATH}/include
   ${LLVM_LIB_PATH}/lib
 )
 
@@ -42,3 +39,4 @@ target_link_libraries(rule_subscriber
   PRIVATE
   clangTooling
 )
+
