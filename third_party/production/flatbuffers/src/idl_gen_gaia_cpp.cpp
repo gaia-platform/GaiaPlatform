@@ -528,7 +528,7 @@ namespace flatbuffers
                     {
                         code_ += 
                             "{{FIELD_TYPE}} {{FIELD_NAME}} () const { return GET_STR({{FIELD_NAME}});}";
-                        if (opts_.generate_setters && (opts_.generate_column_change_events || opts_.generate_table_change_events))
+                        if (opts_.generate_setters)
                         {
                             code_ += 
                                 "{{FIELD_TYPE}} {{FIELD_NAME}}_original () const { return GET_STR_ORIGINAL({{FIELD_NAME}});}";
@@ -538,7 +538,7 @@ namespace flatbuffers
                     {
                         code_ += 
                             "{{FIELD_TYPE}} {{FIELD_NAME}} () const { return GET_CURRENT({{FIELD_NAME}});}";
-                        if (opts_.generate_setters && (opts_.generate_column_change_events || opts_.generate_table_change_events))
+                        if (opts_.generate_setters)
                         {
                             code_ += 
                                 "{{FIELD_TYPE}} {{FIELD_NAME}}_original () const { return GET_ORIGINAL({{FIELD_NAME}});}";
@@ -551,29 +551,16 @@ namespace flatbuffers
                             "void set_{{FIELD_NAME}}({{FIELD_TYPE}} val)\n"
                             "{\n"
                             "SET({{FIELD_NAME}}, val);";
-                        if (opts_.generate_column_change_events || opts_.generate_table_change_events)
+    
+                        if (opts_.generate_column_change_events)
                         {
-                            code_ += 
-                                "_fields.emplace(\"{{FIELD_NAME}}\");\n"
-                                "_fieldOffsets.emplace({{STRUCT_NAME}}::{{OFFSET}});";
-      
-                            if (opts_.generate_column_change_events)
-                            {
-                                code_ += "gaia::rules::log_table_event(this, " + CurrentNamespaceString() +  
-                                    "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::col_change, gaia::rules::event_mode_t::immediate);";
-                            }
+                            code_ += "gaia::rules::log_table_event(this, " + CurrentNamespaceString() +  
+                                "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::col_change, gaia::rules::event_mode_t::immediate);";
                         }
                         code_ += "}"; 
                     }
                 }
 
-                if (opts_.generate_setters && (opts_.generate_column_change_events || opts_.generate_table_change_events))
-                {
-                    code_ += 
-                        "const std::unordered_set<std::string>& get_changed_fields() { return _fields;}\n"
-                        "const std::unordered_set<flatbuffers::voffset_t>& get_changed_fields_offsets() { return _fieldOffsets;}";
-                }
-   
                 if (opts_.generate_setters)
                 {
                     // Update function
@@ -638,15 +625,10 @@ namespace flatbuffers
                 }
                 code_ += "}";
 
-                if (opts_.generate_setters && (opts_.generate_column_change_events || opts_.generate_table_change_events))
-                {
-                    code_ += "private:";
-                    code_ += "friend struct gaia_object_t<" + CurrentNamespaceString() +  
-                        "::k{{CLASS_NAME}}Type,{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>;";
-                    code_ += "{{CLASS_NAME}}(gaia_id_t id) : gaia_object_t(id) {}";
-                    code_ += "std::unordered_set<std::string> _fields;";
-                    code_ += "std::unordered_set<flatbuffers::voffset_t> _fieldOffsets;";
-                }
+                code_ += "private:";
+                code_ += "friend struct gaia_object_t<" + CurrentNamespaceString() +  
+                    "::k{{CLASS_NAME}}Type,{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>;";
+                code_ += "{{CLASS_NAME}}(gaia_id_t id) : gaia_object_t(id) {}";
 
                 code_ += "};";      
             }

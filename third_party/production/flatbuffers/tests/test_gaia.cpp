@@ -13,23 +13,27 @@ gaia_id_t get_next_id()
     return dis(gen);
 }
 
-gaia::rules::event_type_t event_type;
-gaia::rules::event_mode_t event_mode;
-gaia::common::gaia_type_t gaia_type;
+gaia::rules::event_type_t g_event_type;
+gaia::rules::event_mode_t g_event_mode;
+gaia::common::gaia_type_t g_gaia_type;
+gaia::common::gaia_base_t *g_table_context;
 namespace gaia 
 {
     namespace rules
     {
         bool log_table_event(common::gaia_base_t *row, common::gaia_type_t gaia_type, event_type_t type, event_mode_t mode)
         {
-            event_type = type;
-            event_mode = mode;
-            ::gaia_type = gaia_type;
+            g_event_type = type;
+            g_event_mode = mode;
+            g_gaia_type = gaia_type;
+            g_table_context = row;
             return true;
         }
 
         bool log_transaction_event(event_type_t type, event_mode_t mode)
         {
+            g_event_type = type;
+            g_event_mode = mode;
             return true;
         }
     }
@@ -59,7 +63,8 @@ int64_t create_employee(int64_t Gaia_Mgr_id_val, int64_t Gaia_FirstAddr_id_val, 
 void GaiaGetTest()
 {
     AddrBook::Employee::begin_transaction();
-    
+    TEST_EQ(g_event_type,gaia::rules::event_type_t::transaction_begin);
+    TEST_EQ(g_event_mode,gaia::rules::event_mode_t::immediate);
     int64_t manager_id = get_next_id();
     int64_t first_address_id = get_next_id();
     int64_t first_phone_id = get_next_id();
@@ -95,12 +100,17 @@ void GaiaGetTest()
     TEST_EQ_STR("testWeb",pEmployee->web());
 
     AddrBook::Employee::commit_transaction();
+    TEST_EQ(g_event_type,gaia::rules::event_type_t::transaction_commit);
+    TEST_EQ(g_event_mode,gaia::rules::event_mode_t::immediate);
 }
 
 void GaiaSetTest()
 {
     AddrBook::Employee::begin_transaction();
 
+    TEST_EQ(g_event_type,gaia::rules::event_type_t::transaction_begin);
+    TEST_EQ(g_event_mode,gaia::rules::event_mode_t::immediate);
+
     int64_t manager_id = get_next_id();
     int64_t first_address_id = get_next_id();
     int64_t first_phone_id = get_next_id();
@@ -125,18 +135,23 @@ void GaiaSetTest()
 
     pEmployee->set_ssn("test");
     TEST_EQ_STR("test",pEmployee->ssn());
-    TEST_EQ(event_type,gaia::rules::event_type_t::col_change);
-    TEST_EQ(event_mode,gaia::rules::event_mode_t::immediate);
-    TEST_EQ(gaia_type, AddrBook::kEmployeeType);
-    TEST_ASSERT(pEmployee->get_changed_fields().find("ssn") != pEmployee->get_changed_fields().end());
-
+    TEST_EQ(g_event_type,gaia::rules::event_type_t::col_change);
+    TEST_EQ(g_event_mode,gaia::rules::event_mode_t::immediate);
+    TEST_EQ(g_gaia_type, AddrBook::kEmployeeType);
+    TEST_EQ(g_table_context, pEmployee);
+    
     AddrBook::Employee::commit_transaction();
+    TEST_EQ(g_event_type,gaia::rules::event_type_t::transaction_commit);
+    TEST_EQ(g_event_mode,gaia::rules::event_mode_t::immediate);
 }
 
 void GaiaUpdateTest()
 {
     AddrBook::Employee::begin_transaction();
 
+    TEST_EQ(g_event_type,gaia::rules::event_type_t::transaction_begin);
+    TEST_EQ(g_event_mode,gaia::rules::event_mode_t::immediate);
+
     int64_t manager_id = get_next_id();
     int64_t first_address_id = get_next_id();
     int64_t first_phone_id = get_next_id();
@@ -161,18 +176,23 @@ void GaiaUpdateTest()
 
     pEmployee->set_ssn("test");
     TEST_EQ_STR("test",pEmployee->ssn());
-    TEST_EQ(event_type,gaia::rules::event_type_t::col_change);
-    TEST_EQ(event_mode,gaia::rules::event_mode_t::immediate);
-    TEST_EQ(gaia_type, AddrBook::kEmployeeType);
-    TEST_ASSERT(pEmployee->get_changed_fields().find("ssn") != pEmployee->get_changed_fields().end());
+    TEST_EQ(g_event_type,gaia::rules::event_type_t::col_change);
+    TEST_EQ(g_event_mode,gaia::rules::event_mode_t::immediate);
+    TEST_EQ(g_gaia_type, AddrBook::kEmployeeType);
+    TEST_EQ(g_table_context, pEmployee);
+    
     pEmployee->update_row();
-    TEST_EQ(event_type,gaia::rules::event_type_t::row_update);
-    TEST_EQ(event_mode,gaia::rules::event_mode_t::immediate);
-    TEST_EQ(gaia_type, AddrBook::kEmployeeType);
+    TEST_EQ(g_event_type,gaia::rules::event_type_t::row_update);
+    TEST_EQ(g_event_mode,gaia::rules::event_mode_t::immediate);
+    TEST_EQ(g_gaia_type, AddrBook::kEmployeeType);
+    TEST_EQ(g_table_context, pEmployee);
     AddrBook::Employee *pEmployee1 = AddrBook::Employee::get_row_by_id(empl_node_id);
     TEST_EQ_STR("test",pEmployee1->ssn());
 
     AddrBook::Employee::commit_transaction();
+
+    TEST_EQ(g_event_type,gaia::rules::event_type_t::transaction_commit);
+    TEST_EQ(g_event_mode,gaia::rules::event_mode_t::immediate);
 }
 
 void GaiaFlatBufferTests()
