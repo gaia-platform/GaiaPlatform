@@ -30,17 +30,28 @@ set_target_properties(event_manager PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLA
 target_include_directories(event_manager PRIVATE ${GAIA_EVENT_MANAGER_INCLUDES})  
 
 # unit tests
+
+#test_event_guard
+add_executable(test_event_guard tests/test_event_guard.cpp)
+set_target_properties(test_event_guard PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+target_include_directories(test_event_guard PRIVATE 
+    ${GAIA_EVENT_MANAGER_INCLUDES}
+    ${GOOGLE_TEST_INC}
+)
+target_link_libraries(test_event_guard PRIVATE 
+    gtest_main
+)
+gtest_discover_tests(test_event_guard)
+
+#test_event_manager
 add_executable(test_event_manager tests/test_event_manager.cpp)
 set_target_properties(test_event_manager PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
-
 target_include_directories(test_event_manager PRIVATE 
     ${GAIA_EVENT_MANAGER_INCLUDES}
     ${GOOGLE_TEST_INC}
 )
-
 target_link_libraries(test_event_manager PRIVATE 
     event_manager
     gtest_main
 )
-
 gtest_discover_tests(test_event_manager)

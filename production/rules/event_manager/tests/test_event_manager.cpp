@@ -3,13 +3,10 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <iostream>
-
-
 // Do not include event_manager.hpp to ensure that
 // we don't have a dependency on the internal implementation.
-#include <unordered_map>
 
+#include <unordered_map>
 #include "gtest/gtest.h"
 #include "rules.hpp"
 
@@ -198,7 +195,7 @@ int32_t g_tx_data = 0;
  /**
  * Following constructs are used to verify the list_subscribed_rules API
  * returns the correct rules based on the filter criteria to the API.  It
- * also is used to do table-driven tests on differetn rule binding configurations.
+ * also is used to do table-driven tests on different rule binding configurations.
  */ 
 typedef std::unordered_map<string, subscription_t> map_subscriptions_t;
 static constexpr char ruleset1_name[] = "Ruleset_1";

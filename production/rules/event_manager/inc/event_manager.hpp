@@ -4,11 +4,7 @@
 /////////////////////////////////////////////
 #pragma once
 
-#include <vector>
-#include <list>
 #include <unordered_map>
-#include <memory>
-
 #include "rules.hpp"
 
 namespace gaia 
@@ -75,6 +71,9 @@ public:
       list_subscriptions_t& subscriptions);
 
 private:
+    // only internal static creation is allowed
+    event_manager_t();
+
     // Internal rule binding to copy the callers
     // rule data and hold on to it.  This will be
     // required for deferred rules later.
@@ -88,72 +87,15 @@ private:
         rules::gaia_rule_fn rule;
     };
 
-    // Ensures that we can clean up executing
-    // rule state if this class leaves scope either
-    // because it exits normally or an exception
-    // is thrown.  Currently the execution state
-    // only tracks whether the current rule is executing.
-    typedef std::unordered_map<common::gaia_type_t, uint32_t> executing_event_map_t;
-    class _event_guard_t
-    {
-    public:
-        _event_guard_t() = delete;
-        _event_guard_t(
-            executing_event_map_t& events,
-            const common::gaia_type_t& gaia_type,
-            const event_type_t& event_type)
-            : m_events(events)
-            , m_gaia_type(gaia_type)
-            , m_already_executing(false)
-        {
-            // Check whether the event is already running.
-            // If not, put it in the running state by
-            // setting this event's bit.
-            m_event_bit = (uint32_t) event_type;
-            if (m_event_bit == (m_events[m_gaia_type] & m_event_bit))
-            {
-                m_already_executing = true;
-            }
-            else
-            {
-                m_events[m_gaia_type] |= m_event_bit;
-            }
-        }
-
-        bool is_executing()
-        {
-            return m_already_executing;
-        }
-
-        ~_event_guard_t()
-        {
-            // Clear the running bit for
-            // this event if we set it.
-            if (!m_already_executing)
-            {
-                m_events[m_gaia_type] &= (~m_event_bit);
-            }
-        }
-
-    private:
-        executing_event_map_t& m_events;
-        const common::gaia_type_t& m_gaia_type;
-        uint32_t m_event_bit;
-        bool m_already_executing;
-    };
-
-    // only internal static creation is allowed
-    event_manager_t();
-
     // Hash table of all rules registered with the system.
     // The key is the rulset_name::rule_name.
     std::unordered_map<std::string, std::unique_ptr<_rule_binding_t>> m_rules;
 
-    // Table of all currently executing events.  In Q1 we have the
-    // restriction that we don't allow reentrancy.  That is, we
-    // prevent calling log_event while in a call for log_event
-    // for the same event.
-    executing_event_map_t m_executing_events;
+    // Track the state of all currently executing log event calls.  
+    // In Q1 we don't allow reentrancy.  This can happen if a rule 
+    // calls the same log_event while handling the log_event that 
+    // invoked the rule.
+    std::unordered_map<common::gaia_type_t, uint32_t> m_log_events;
 
     // List of rules that are invoked when an event is logged.
     typedef std::list<const _rule_binding_t*> rule_list_t;
@@ -226,5 +168,5 @@ private:
         const event_type_t* event_filter);
 };
 
-} // namespace events
+} // namespace rules
 } // namespace gaia
