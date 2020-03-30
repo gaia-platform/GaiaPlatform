@@ -11,11 +11,9 @@ namespace gaia
 namespace rules
 {
 
-// Guards against reentrant log_event
-// calls.  Ensures that we can clean up 
-// executing rule state if this class leaves 
-// scope either because it exits normally or 
-// an exception is thrown.
+// Guards against reentrant log_event.  Ensures that we can clean up 
+// executing rule state if this class leaves scope either because it 
+// exits normally or an exception is thrown.
 class event_guard_t
 {
 public:

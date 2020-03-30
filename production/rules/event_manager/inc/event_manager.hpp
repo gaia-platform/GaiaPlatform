@@ -127,7 +127,7 @@ private:
 
     static inline void check_table_event(event_type_t type)
     {
-        if (!(type == event_type_t::col_change 
+        if (!(type == event_type_t::column_change 
             || type == event_type_t::row_delete 
             || type == event_type_t::row_insert 
             || type == event_type_t::row_update))

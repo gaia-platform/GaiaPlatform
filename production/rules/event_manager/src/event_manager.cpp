@@ -341,7 +341,7 @@ std::string event_manager_t::make_rule_key(const rule_binding_t& binding)
 
 event_manager_t::events_map_t event_manager_t::create_table_event_map() {
     return {
-        make_pair(event_type_t::col_change, list<const _rule_binding_t*>()),
+        make_pair(event_type_t::column_change, list<const _rule_binding_t*>()),
         make_pair(event_type_t::row_insert, list<const _rule_binding_t*>()),
         make_pair(event_type_t::row_update, list<const _rule_binding_t*>()),
         make_pair(event_type_t::row_delete, list<const _rule_binding_t*>())

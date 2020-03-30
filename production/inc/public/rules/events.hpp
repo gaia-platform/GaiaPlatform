@@ -44,7 +44,7 @@ enum class event_type_t : uint32_t {
     transaction_begin = 1 << 0,
     transaction_commit = 1 << 1,
     transaction_rollback = 1 << 2,
-    col_change = 1 << 3,
+    column_change = 1 << 3,
     row_update = 1 << 4,
     row_insert = 1 << 5,
     row_delete = 1 << 6,
