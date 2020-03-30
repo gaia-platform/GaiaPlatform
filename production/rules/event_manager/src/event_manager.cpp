@@ -5,11 +5,12 @@
 
 #include "event_manager.hpp"
 
+#include <cstring>
+#include "event_guard.hpp"
+
 using namespace gaia::rules;
 using namespace gaia::common;
 using namespace std;
-
-#include <cstring>
 
 /**
  * Class implementation
@@ -44,8 +45,8 @@ bool event_manager_t::log_event(event_type_t event_type, event_mode_t mode)
     check_transaction_event(event_type);
 
     // Don't allow reentrant log_event calls.
-    _event_guard_t guard(m_executing_events, 0, event_type);
-    if (guard.is_executing())
+    event_guard_t guard(m_log_events[0], event_type);
+    if (guard.is_blocked())
     {
         return rules_fired;
     }
@@ -80,12 +81,12 @@ bool event_manager_t::log_event(
     check_table_event(event_type);
 
     // Don't allow reentrant log_event calls.
-    _event_guard_t guard(m_executing_events, gaia_type, event_type);
-    if (guard.is_executing())
+    event_guard_t guard(m_log_events[gaia_type], event_type);
+    if (guard.is_blocked())
     {
         return rules_fired;
     }
-
+    
     // Invoke all rules bound to this gaia_type and event_type immediately.
     auto type_it = m_table_subscriptions.find(gaia_type);
     if (type_it != m_table_subscriptions.end()) 
@@ -340,7 +341,7 @@ std::string event_manager_t::make_rule_key(const rule_binding_t& binding)
 
 event_manager_t::events_map_t event_manager_t::create_table_event_map() {
     return {
-        make_pair(event_type_t::col_change, list<const _rule_binding_t*>()),
+        make_pair(event_type_t::column_change, list<const _rule_binding_t*>()),
         make_pair(event_type_t::row_insert, list<const _rule_binding_t*>()),
         make_pair(event_type_t::row_update, list<const _rule_binding_t*>()),
         make_pair(event_type_t::row_delete, list<const _rule_binding_t*>())

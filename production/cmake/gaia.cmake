@@ -22,3 +22,20 @@ function(set_test target arg result)
   add_test(NAME ${target}_${arg} COMMAND ${target} ${arg})
   set_tests_properties(${target}_${arg} PROPERTIES PASS_REGULAR_EXPRESSION ${result})
 endfunction(set_test)
+
+# Helper function for setting up google tests.
+# Assumes you want to link in the gtest provided
+# main function
+function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
+  add_executable(${TARGET} ${SOURCES})
+  target_include_directories(${TARGET} PRIVATE 
+    ${INCLUDES}
+    ${GOOGLE_TEST_INC}
+  )
+  target_link_libraries(${TARGET} PRIVATE 
+    ${LIBRARIES}
+    gtest_main
+  )
+  set_target_properties(${TARGET} PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+  gtest_discover_tests(${TARGET})
+endfunction(add_gtest)

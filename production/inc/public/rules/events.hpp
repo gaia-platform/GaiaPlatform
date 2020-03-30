@@ -41,13 +41,13 @@ enum class event_mode_t : uint8_t {
  * be powers of 2.
  */
 enum class event_type_t : uint32_t {
-    transaction_begin = 0x1,
-    transaction_commit = 0x2,
-    transaction_rollback = 0x4,
-    col_change = 0x8,
-    row_update = 0x10,
-    row_insert = 0x20,
-    row_delete = 0x40,
+    transaction_begin = 1 << 0,
+    transaction_commit = 1 << 1,
+    transaction_rollback = 1 << 2,
+    column_change = 1 << 3,
+    row_update = 1 << 4,
+    row_insert = 1 << 5,
+    row_delete = 1 << 6,
 };
 
 /**
