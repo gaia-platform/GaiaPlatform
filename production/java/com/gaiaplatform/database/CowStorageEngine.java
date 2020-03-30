@@ -235,6 +235,7 @@ public class CowStorageEngine
     
     // Native interface.
     public native boolean create();
+    public native boolean open();
 
     public native void beginTransaction();
     public native void commitTransaction();

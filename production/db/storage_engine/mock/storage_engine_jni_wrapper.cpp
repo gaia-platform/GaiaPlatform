@@ -234,6 +234,23 @@ JNIEXPORT jboolean JNICALL Java_com_gaiaplatform_database_CowStorageEngine_creat
     }
 }
 
+JNIEXPORT jboolean JNICALL Java_com_gaiaplatform_database_CowStorageEngine_open(
+    JNIEnv*, jobject)
+{
+    try
+    {
+        // To obtain an existing instance, we need to not clear the shared memory.
+        bool clearMemory = false;
+        gaia_mem_base::init(clearMemory);
+
+        return true;
+    }
+    catch(const std::exception&)
+    {
+        return false;
+    }
+}
+
 JNIEXPORT void JNICALL Java_com_gaiaplatform_database_CowStorageEngine_beginTransaction(JNIEnv*, jobject)
 {
     begin_transaction();
