@@ -570,6 +570,7 @@ struct IDLOptions {
   bool generate_table_change_events;
   bool generate_transaction_events;
   bool generate_setters;
+  uint64_t gaia_type_initial_value;
 
   // Possible options for the more general generator below.
   enum Language {
@@ -660,6 +661,7 @@ struct IDLOptions {
         generate_table_change_events(false),
         generate_transaction_events(false),
         generate_setters(false),
+        gaia_type_initial_value(1),
         lang(IDLOptions::kJava),
         mini_reflect(IDLOptions::kNone),
         lang_to_generate(0),

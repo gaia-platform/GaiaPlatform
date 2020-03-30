@@ -249,7 +249,6 @@ namespace flatbuffers
                     || opts_.generate_table_change_events))
                 {
                     code_ += "#include \"events.hpp\"";
-                    code_ += "#include <unordered_set>";
                 }
 
                 code_ += "";
@@ -259,7 +258,7 @@ namespace flatbuffers
                 code_ += "using namespace gaia::common;";
                 code_ += "";
 
-                int currentObjectTypeValue = 1;
+                uint64_t currentObjectTypeValue = opts_.gaia_type_initial_value;
 
                 // Generate Object Type enum.
                 for (auto it = parser_.structs_.vec.begin();
@@ -486,7 +485,7 @@ namespace flatbuffers
    
             // Generate values for class type
             void GenObjectTypeValues(const StructDef &struct_def, 
-                int currentObjectTypeValue)
+                uint64_t currentObjectTypeValue)
             {
                 code_.SetValue("CONST_NAME", "k" + CapitalizeString(Name(struct_def)) + "Type");
                 code_ += 
