@@ -13,6 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/////////////////////////////////////////////
+// Modifications Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
 
 #ifndef FLATBUFFERS_IDL_H_
 #define FLATBUFFERS_IDL_H_
@@ -562,6 +566,11 @@ struct IDLOptions {
   std::string proto_namespace_suffix;
   std::string filename_suffix;
   std::string filename_extension;
+  bool generate_column_change_events;
+  bool generate_table_change_events;
+  bool generate_transaction_events;
+  bool generate_setters;
+  uint64_t gaia_type_initial_value;
 
   // Possible options for the more general generator below.
   enum Language {
@@ -582,6 +591,7 @@ struct IDLOptions {
     kRust = 1 << 14,
     kKotlin = 1 << 15,
     kSwift = 1 << 16,
+    kGaia = 1 << 17,
     kMAX
   };
 
@@ -647,6 +657,11 @@ struct IDLOptions {
         cs_gen_json_serializer(false),
         filename_suffix("_generated"),
         filename_extension(),
+        generate_column_change_events(false),
+        generate_table_change_events(false),
+        generate_transaction_events(false),
+        generate_setters(false),
+        gaia_type_initial_value(1),
         lang(IDLOptions::kJava),
         mini_reflect(IDLOptions::kNone),
         lang_to_generate(0),
@@ -1132,6 +1147,21 @@ bool GeneratePythonGRPC(const Parser &parser, const std::string &path,
 // See idl_gen_grpc.cpp.
 extern bool GenerateSwiftGRPC(const Parser &parser, const std::string &path,
                               const std::string &file_name);
+
+// Generate a Gaia C++ header from the definitions in the Parser object.
+// See idl_gen_gaia_cpp.
+extern bool GenerateGaiaCPP(const Parser &parser, const std::string &path,
+                        const std::string &file_name);
+
+// Generate a make rule for the generated C++ header.
+// See idl_gen_gaia_cpp.cpp.
+extern std::string GaiaCPPMakeRule(const Parser &parser, const std::string &path,
+                               const std::string &file_name);
+
+// Generate GRPC Cpp interfaces.
+// See idl_gen_grpc.cpp.
+bool GenerateGaiaCppGRPC(const Parser &parser, const std::string &path,
+                     const std::string &file_name);
 
 }  // namespace flatbuffers
 

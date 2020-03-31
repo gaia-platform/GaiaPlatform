@@ -7,44 +7,12 @@
 
 #include "gtest/gtest.h"
 #include "gaia_object.hpp"
-#include "addr_book_generated.h"
+#include "addr_book_gaia_generated.h"
 
 using namespace std;
 using namespace gaia::db;
 using namespace gaia::common;
 using namespace AddrBook;
-
-namespace AddrBook {
-    static const gaia_type_t kEmployeeType = 4;
-};
-
-struct Employee : public gaia_object_t<AddrBook::kEmployeeType, Employee, employee, employeeT>
-{
-    Employee() = default;
-    const char* name_first() const { return GET_STR(name_first); }
-    const char* name_last() const { return GET_STR(name_last); }
-    const char* ssn() const { return GET_STR(ssn); }
-    gaia_id_t hire_date() const { return GET_CURRENT(hire_date); }
-    const char*  email() const { return GET_STR(email); }
-    const char*  web() const { return GET_STR(web); }
-
-    const char* name_first_original() const { return GET_STR_ORIGINAL(name_first); }
-    const char* name_last_original() const { return GET_STR_ORIGINAL(name_last); }
-    const char* ssn_original() const { return GET_STR_ORIGINAL(ssn); }
-    gaia_id_t hire_date_original() const { return GET_ORIGINAL(hire_date); }
-    const char*  email_original() const { return GET_STR_ORIGINAL(email); }
-    const char*  web_original() const { return GET_STR_ORIGINAL(web); }
-
-    void set_name_first(const char* s) { SET(name_first, s); }
-    void set_name_last(const char* s) { SET(name_last, s); }
-    void set_ssn(const char* s) { SET(ssn, s); }
-    void set_hire_date(gaia_id_t i) { SET(hire_date, i); }
-    void set_email(const char* s) { SET(email, s); }
-    void set_web(const char* s) { SET(web, s); }
-private:
-    friend struct gaia_object_t<AddrBook::kEmployeeType, Employee, employee, employeeT>;
-    Employee(gaia_id_t id) : gaia_object_t(id) {}
-}; // Employee 
 
 class gaia_object_test : public ::testing::Test {
 protected:
