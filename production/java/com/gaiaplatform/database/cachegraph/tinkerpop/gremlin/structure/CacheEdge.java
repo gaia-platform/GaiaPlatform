@@ -9,7 +9,7 @@
 // Used under Apache License 2.0
 /////////////////////////////////////////////
 
-package com.gaiaplatform.truegraphdb.tinkerpop.gremlin.structure;
+package com.gaiaplatform.database.cachegraph.tinkerpop.gremlin.structure;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -26,23 +26,23 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
-public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
+public final class CacheEdge extends CacheElement implements Edge
 {
     // Our edge goes from outVertex to inVertex.
-    protected final TrueGraphDBVertex outVertex;
-    protected final TrueGraphDBVertex inVertex;
+    protected final CacheVertex outVertex;
+    protected final CacheVertex inVertex;
 
     protected Map<String, Property> properties;
 
-    protected TrueGraphDBEdge(
+    protected CacheEdge(
         final Object id,
         final String label,
         final Vertex outVertex, final Vertex inVertex)
     {
         super(inVertex.graph(), id, label);
 
-        this.outVertex = (TrueGraphDBVertex)outVertex;
-        this.inVertex = (TrueGraphDBVertex)inVertex;
+        this.outVertex = (CacheVertex)outVertex;
+        this.inVertex = (CacheVertex)inVertex;
     }
 
     public Vertex outVertex()
@@ -89,7 +89,7 @@ public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
 
         ElementHelper.validateProperty(key, value);
 
-        final Property<V> newProperty = new TrueGraphDBProperty<>(this, key, value);
+        final Property<V> newProperty = new CacheProperty<>(this, key, value);
 
         if (this.properties == null)
         {
@@ -99,7 +99,7 @@ public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
         this.properties.put(key, newProperty);
 
         // Update edge payload in COW.
-        if (!TrueGraphDBHelper.updateEdgePayload(this))
+        if (!CacheHelper.updateEdgePayload(this))
         {
             throw new UnsupportedOperationException("COW edge update failed!");
         }
@@ -137,12 +137,12 @@ public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
     public void remove()
     {
         // Remove the edge from COW.
-        if (!TrueGraphDBHelper.removeEdge(this))
+        if (!CacheHelper.removeEdge(this))
         {
             throw new UnsupportedOperationException("COW edge deletion failed!");
         }
 
-        final TrueGraphDBVertex outVertex = (TrueGraphDBVertex)this.outVertex;
+        final CacheVertex outVertex = (CacheVertex)this.outVertex;
         if (outVertex != null && outVertex.outEdges != null)
         {
             final Set<Edge> edges = outVertex.outEdges.get(this.label);
@@ -152,7 +152,7 @@ public final class TrueGraphDBEdge extends TrueGraphDBElement implements Edge
             }
         }
 
-        final TrueGraphDBVertex inVertex = (TrueGraphDBVertex)this.inVertex;
+        final CacheVertex inVertex = (CacheVertex)this.inVertex;
         if (inVertex != null && inVertex.inEdges != null)
         {
             final Set<Edge> edges = inVertex.inEdges.get(this.label);

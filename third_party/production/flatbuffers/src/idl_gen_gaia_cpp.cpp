@@ -554,7 +554,7 @@ namespace flatbuffers
                         if (opts_.generate_column_change_events)
                         {
                             code_ += "gaia::rules::log_table_event(this, " + CurrentNamespaceString() +  
-                                "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::col_change, gaia::rules::event_mode_t::immediate);";
+                                "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::column_change, gaia::rules::event_mode_t::immediate);";
                         }
                         code_ += "}"; 
                     }

@@ -82,13 +82,13 @@ void GaiaNoTableTxEventsTest()
 
     pEmployee->set_ssn("test");
     TEST_EQ_STR("test",pEmployee->ssn());
-    TEST_EQ(g_event_type,gaia::rules::event_type_t::col_change);
+    TEST_EQ(g_event_type,gaia::rules::event_type_t::column_change);
     TEST_EQ(g_event_mode,gaia::rules::event_mode_t::immediate);
     TEST_EQ(g_gaia_type, AddrBook::kEmployeeType);
     TEST_EQ(g_table_context, pEmployee);
     
     AddrBook::Employee::commit_transaction();
-    TEST_EQ(g_event_type,gaia::rules::event_type_t::col_change);
+    TEST_EQ(g_event_type,gaia::rules::event_type_t::column_change);
     TEST_EQ(g_event_mode,gaia::rules::event_mode_t::immediate);
 }
 
