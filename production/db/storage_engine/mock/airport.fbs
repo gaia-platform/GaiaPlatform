@@ -3,6 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+// -*- mode: java -*- // Java mode works for emacs to edit flatbuffers.
+
 namespace gaia.airport;
 
 // Payload for COW node type 1, loaded from airports.dat.
