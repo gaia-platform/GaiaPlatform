@@ -41,9 +41,9 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.gaiaplatform.database.CowStorageEngine;
 
-//@Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_STANDARD)
-//@Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_INTEGRATE)
-//@Graph.OptIn(Graph.OptIn.SUITE_PROCESS_STANDARD)
+@Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_STANDARD)
+@Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_INTEGRATE)
+@Graph.OptIn(Graph.OptIn.SUITE_PROCESS_STANDARD)
 //@Graph.OptIn(Graph.OptIn.SUITE_PROCESS_COMPUTER)
 public final class CacheGraph implements Graph
 {

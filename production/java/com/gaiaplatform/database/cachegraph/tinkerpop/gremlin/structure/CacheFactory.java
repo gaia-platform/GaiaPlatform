@@ -228,4 +228,160 @@ public final class CacheFactory {
         node4.addEdge("4", node1, T.id, 7, "payload", "e7=n4->n1");
         node2.addEdge("4", node3, T.id, 8, "payload", "e8=n2->n3");
     }
+
+    // Tiny airport data set.
+    public static CacheGraph createTinyAirport()
+    {
+        final CacheGraph graph = getCacheGraphWithNumberManager();
+        generateTinyAirport(graph);
+        return graph;
+    }
+
+    public static void generateTinyAirport(final CacheGraph graph)
+    {
+        final Vertex ams = graph.addVertex(T.label, "airport",
+            "code", "580", "iata", "AMS", "name", "Amsterdam Airport Schiphol", "city", "Amsterdam", "country", "NLD");
+        final Vertex cdg = graph.addVertex(T.label, "airport",
+            "code", "1382", "iata", "CDG", "name", "Charles de Gaulle International Airport", "city", "Paris", "country", "FRA");
+        final Vertex jfk = graph.addVertex(T.label, "airport",
+            "code", "3797", "iata", "JFK", "name", "John F Kennedy International Airport", "city", "New York", "country", "USA");
+        final Vertex otp = graph.addVertex(T.label, "airport",
+            "code", "1657", "iata", "OTP", "name", "Henri Coandă International Airport", "city", "Bucharest", "country", "ROU");
+        final Vertex sea = graph.addVertex(T.label, "airport",
+            "code", "3577", "iata", "SEA", "name", "Seattle Tacoma International Airport", "city", "Seattle", "country", "USA");
+
+        final Vertex aal = graph.addVertex(T.label, "airline",
+            "code", "24", "icao", "AAL", "name", "American Airlines");
+        final Vertex afr = graph.addVertex(T.label, "airline",
+            "code", "137", "icao", "AFR", "name", "Air France");
+        final Vertex dal = graph.addVertex(T.label, "airline",
+            "code", "2009", "icao", "DAL", "name", "Delta Air Lines");
+        final Vertex klm = graph.addVertex(T.label, "airline",
+            "code", "3090", "icao", "KLM", "name", "KLM Royal Dutch Airlines");
+
+        final Vertex aal_cdg_jfk = graph.addVertex(T.label, "flight", "equipment", "767-300 757");
+        final Vertex aal_jfk_cdg = graph.addVertex(T.label, "flight", "equipment", "767-300 757");
+        final Vertex aal_jfk_sea = graph.addVertex(T.label, "flight", "equipment", "737-800");
+        final Vertex aal_sea_jfk = graph.addVertex(T.label, "flight", "equipment", "737-800");
+
+        final Vertex afr_ams_cdg = graph.addVertex(T.label, "flight", "equipment", "A321 A320 A319 A318 A320(s)");
+        final Vertex afr_cdg_ams = graph.addVertex(T.label, "flight", "equipment", "A321 A320 A319 A318 A320(s)");
+        final Vertex afr_cdg_jfk = graph.addVertex(T.label, "flight", "equipment", "A330-200 777-200 A380-800 A340-300");
+        final Vertex afr_cdg_otp = graph.addVertex(T.label, "flight", "equipment", "A321 A320 A319");
+        final Vertex afr_cdg_sea = graph.addVertex(T.label, "flight", "equipment", "A330-200");
+        final Vertex afr_jfk_cdg = graph.addVertex(T.label, "flight", "equipment", "A330-200 777-200 A380-800 A340-300");
+        final Vertex afr_otp_cdg = graph.addVertex(T.label, "flight", "equipment", "A321 A320 A319");
+        final Vertex afr_sea_cdg = graph.addVertex(T.label, "flight", "equipment", "A330-200");
+
+        final Vertex dal_ams_jfk = graph.addVertex(T.label, "flight", "equipment", "767-300(w)");
+        final Vertex dal_ams_sea = graph.addVertex(T.label, "flight", "equipment", "A330-300");
+        final Vertex dal_cdg_jfk = graph.addVertex(T.label, "flight", "equipment", "A330-200 777-200 A380-800 A340-300");
+        final Vertex dal_cdg_sea = graph.addVertex(T.label, "flight", "equipment", "A330-200");
+        final Vertex dal_jfk_ams = graph.addVertex(T.label, "flight", "equipment", "767-300(w)");
+        final Vertex dal_jfk_cdg = graph.addVertex(T.label, "flight", "equipment", "A330-200 777-200 A380-800 A340-300");
+        final Vertex dal_jfk_sea = graph.addVertex(T.label, "flight", "equipment", "757-200 757");
+        final Vertex dal_sea_ams = graph.addVertex(T.label, "flight", "equipment", "A330-300");
+        final Vertex dal_sea_cdg = graph.addVertex(T.label, "flight", "equipment", "A330-200");
+        final Vertex dal_sea_jfk = graph.addVertex(T.label, "flight", "equipment", "757-200 757");
+
+        final Vertex klm_ams_cdg = graph.addVertex(T.label, "flight", "equipment", "737");
+        final Vertex klm_ams_jfk = graph.addVertex(T.label, "flight", "equipment", "A330 777 747(Combi) 747");
+        final Vertex klm_ams_otp = graph.addVertex(T.label, "flight", "equipment", "737");
+        final Vertex klm_ams_sea = graph.addVertex(T.label, "flight", "equipment", "A330");
+        final Vertex klm_cdg_ams = graph.addVertex(T.label, "flight", "equipment", "737");
+        final Vertex klm_jfk_ams = graph.addVertex(T.label, "flight", "equipment", "A330 777 747(Combi) 747");
+        final Vertex klm_otp_ams = graph.addVertex(T.label, "flight", "equipment", "737");
+        final Vertex klm_sea_ams = graph.addVertex(T.label, "flight", "equipment", "A330");
+
+        aal_cdg_jfk.addEdge("departs_from", cdg);
+        aal_cdg_jfk.addEdge("goes_to", jfk);
+        aal_cdg_jfk.addEdge("operated_by", aal);
+        aal_jfk_sea.addEdge("departs_from", jfk);
+        aal_jfk_sea.addEdge("goes_to", sea);
+        aal_jfk_sea.addEdge("operated_by", aal);
+        aal_sea_jfk.addEdge("departs_from", sea);
+        aal_sea_jfk.addEdge("goes_to", jfk);
+        aal_sea_jfk.addEdge("operated_by", aal);
+
+        afr_ams_cdg.addEdge("departs_from", ams);
+        afr_ams_cdg.addEdge("goes_to", cdg);
+        afr_ams_cdg.addEdge("operated_by", afr);
+        afr_cdg_ams.addEdge("departs_from", cdg);
+        afr_cdg_ams.addEdge("goes_to", ams);
+        afr_cdg_ams.addEdge("operated_by", afr);
+        afr_cdg_jfk.addEdge("departs_from", cdg);
+        afr_cdg_jfk.addEdge("goes_to", jfk);
+        afr_cdg_jfk.addEdge("operated_by", afr);
+        afr_cdg_otp.addEdge("departs_from", cdg);
+        afr_cdg_otp.addEdge("goes_to", otp);
+        afr_cdg_otp.addEdge("operated_by", afr);
+        afr_cdg_sea.addEdge("departs_from", cdg);
+        afr_cdg_sea.addEdge("goes_to", sea);
+        afr_cdg_sea.addEdge("operated_by", afr);
+        afr_jfk_cdg.addEdge("departs_from", jfk);
+        afr_jfk_cdg.addEdge("goes_to", cdg);
+        afr_jfk_cdg.addEdge("operated_by", afr);
+        afr_otp_cdg.addEdge("departs_from", otp);
+        afr_otp_cdg.addEdge("goes_to", cdg);
+        afr_otp_cdg.addEdge("operated_by", afr);
+        afr_sea_cdg.addEdge("departs_from", sea);
+        afr_sea_cdg.addEdge("goes_to", cdg);
+        afr_sea_cdg.addEdge("operated_by", afr);
+
+        dal_ams_jfk.addEdge("departs_from", ams);
+        dal_ams_jfk.addEdge("goes_to", jfk);
+        dal_ams_jfk.addEdge("operated_by", dal);
+        dal_ams_sea.addEdge("departs_from", ams);
+        dal_ams_sea.addEdge("goes_to", sea);
+        dal_ams_sea.addEdge("operated_by", dal);
+        dal_cdg_jfk.addEdge("departs_from", cdg);
+        dal_cdg_jfk.addEdge("goes_to", jfk);
+        dal_cdg_jfk.addEdge("operated_by", dal);
+        dal_cdg_sea.addEdge("departs_from", cdg);
+        dal_cdg_sea.addEdge("goes_to", sea);
+        dal_cdg_sea.addEdge("operated_by", dal);
+        dal_jfk_ams.addEdge("departs_from", jfk);
+        dal_jfk_ams.addEdge("goes_to", ams);
+        dal_jfk_ams.addEdge("operated_by", dal);
+        dal_jfk_cdg.addEdge("departs_from", jfk);
+        dal_jfk_cdg.addEdge("goes_to", cdg);
+        dal_jfk_cdg.addEdge("operated_by", dal);
+        dal_jfk_sea.addEdge("departs_from", jfk);
+        dal_jfk_sea.addEdge("goes_to", sea);
+        dal_jfk_sea.addEdge("operated_by", dal);
+        dal_sea_ams.addEdge("departs_from", sea);
+        dal_sea_ams.addEdge("goes_to", ams);
+        dal_sea_ams.addEdge("operated_by", dal);
+        dal_sea_cdg.addEdge("departs_from", sea);
+        dal_sea_cdg.addEdge("goes_to", cdg);
+        dal_sea_cdg.addEdge("operated_by", dal);
+        dal_sea_jfk.addEdge("departs_from", sea);
+        dal_sea_jfk.addEdge("goes_to", jfk);
+        dal_sea_jfk.addEdge("operated_by", dal);
+
+        klm_ams_cdg.addEdge("departs_from", ams);
+        klm_ams_cdg.addEdge("goes_to", cdg);
+        klm_ams_cdg.addEdge("operated_by", klm);
+        klm_ams_jfk.addEdge("departs_from", ams);
+        klm_ams_jfk.addEdge("goes_to", jfk);
+        klm_ams_jfk.addEdge("operated_by", klm);
+        klm_ams_otp.addEdge("departs_from", ams);
+        klm_ams_otp.addEdge("goes_to", otp);
+        klm_ams_otp.addEdge("operated_by", klm);
+        klm_ams_sea.addEdge("departs_from", ams);
+        klm_ams_sea.addEdge("goes_to", sea);
+        klm_ams_sea.addEdge("operated_by", klm);
+        klm_cdg_ams.addEdge("departs_from", cdg);
+        klm_cdg_ams.addEdge("goes_to", ams);
+        klm_cdg_ams.addEdge("operated_by", klm);
+        klm_jfk_ams.addEdge("departs_from", jfk);
+        klm_jfk_ams.addEdge("goes_to", ams);
+        klm_jfk_ams.addEdge("operated_by", klm);
+        klm_otp_ams.addEdge("departs_from", otp);
+        klm_otp_ams.addEdge("goes_to", ams);
+        klm_otp_ams.addEdge("operated_by", klm);
+        klm_sea_ams.addEdge("departs_from", sea);
+        klm_sea_ams.addEdge("goes_to", ams);
+        klm_sea_ams.addEdge("operated_by", klm);
+    }
 }
