@@ -618,7 +618,7 @@ namespace flatbuffers
                 code_ += 
                     "static void rollback_transaction(){\n"
                     "gaia_object_t::rollback_transaction();";
-                if (opts_.generate_table_change_events)
+                if (opts_.generate_transaction_events)
                 {
                     code_+="gaia::rules::log_transaction_event(gaia::rules::event_type_t::transaction_rollback, gaia::rules::event_mode_t::immediate);";
                 }

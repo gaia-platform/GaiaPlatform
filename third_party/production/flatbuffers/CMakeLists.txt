@@ -131,7 +131,6 @@ set(FlatBuffers_Tests_SRCS
   ${FlatBuffers_Library_SRCS}
   src/idl_gen_fbs.cpp
   tests/test.cpp
-  tests/test_gaia.cpp
   tests/test_assert.h
   tests/test_assert.cpp
   tests/test_builder.h
@@ -157,9 +156,44 @@ set(FlatBuffers_Tests_SRCS
   ${CMAKE_CURRENT_BINARY_DIR}/tests/monster_test_bfbs_generated.h
   # file generate by running compiler on tests/addr_book.fbs
   ${CMAKE_CURRENT_BINARY_DIR}/tests/addr_book_generated.h
-  # file generate by running compiler on tests/addr_book.fbs
-  ${CMAKE_CURRENT_BINARY_DIR}/tests/addr_book_gaia_generated.h
 )
+
+set(FlatBuffersGaiaAllEvents_Tests_SRCS
+  ${FlatBuffers_Library_SRCS}
+  tests/test_all_events_gaia.cpp
+  tests/test_assert.h
+  tests/test_assert.cpp
+  # file generate by running compiler on tests/addr_book.fbs
+  ${CMAKE_CURRENT_BINARY_DIR}/tests/AllEventsGaiaTests/tests/addr_book_gaia_generated.h
+)
+
+set(FlatBuffersGaiaNoColEvents_Tests_SRCS
+  ${FlatBuffers_Library_SRCS}
+  tests/test_no_col_events_gaia.cpp
+  tests/test_assert.h
+  tests/test_assert.cpp
+  # file generate by running compiler on tests/addr_book.fbs
+  ${CMAKE_CURRENT_BINARY_DIR}/tests/NoColEventsGaiaTests/tests/addr_book_gaia_generated.h
+)
+
+set(FlatBuffersGaiaNoIUDEvents_Tests_SRCS
+  ${FlatBuffers_Library_SRCS}
+  tests/test_no_iud_events_gaia.cpp
+  tests/test_assert.h
+  tests/test_assert.cpp
+  # file generate by running compiler on tests/addr_book.fbs
+  ${CMAKE_CURRENT_BINARY_DIR}/tests/NoIUDEventsGaiaTests/tests/addr_book_gaia_generated.h
+)
+
+set(FlatBuffersGaiaNoTableTxEvents_Tests_SRCS
+  ${FlatBuffers_Library_SRCS}
+  tests/test_no_table_tx_events_gaia.cpp
+  tests/test_assert.h
+  tests/test_assert.cpp
+  # file generate by running compiler on tests/addr_book.fbs
+  ${CMAKE_CURRENT_BINARY_DIR}/tests/NoTableTxEventsGaiaTests/tests/addr_book_gaia_generated.h
+)
+
 
 set(FlatBuffers_Tests_CPP17_SRCS
   ${FlatBuffers_Library_SRCS}
@@ -401,22 +435,22 @@ function(compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT)
   register_generated_output(${GEN_HEADER})
 endfunction()
 
-function(compile_flatbuffers_schema_to_gaiacpp_opt SRC_FBS OPT)
+function(compile_flatbuffers_schema_to_gaiacpp_opt SRC_FBS OPT OUTPUTFOLDER)
   message(STATUS "`${SRC_FBS}`: add generation of Gaia C++ code with '${OPT}'")
   get_filename_component(SRC_FBS_DIR ${SRC_FBS} PATH)
   string(REGEX REPLACE "\\.fbs$" "_gaia_generated.h" GEN_HEADER_GAIA ${SRC_FBS})
   add_custom_command(
-    OUTPUT ${SRC_FBS_DIR}/../${GEN_HEADER_GAIA}
+    OUTPUT ${SRC_FBS_DIR}/${OUTPUTFOLDER}/${GEN_HEADER_GAIA}
     COMMAND ${FLATBUFFERS_FLATC_EXECUTABLE}
-            --gaiacpp
+            --cpp --gen-mutable --gen-object-api --reflect-names
+            --cpp-ptr-type flatbuffers::unique_ptr --gaiacpp
             ${OPT}
             -I ${CMAKE_CURRENT_SOURCE_DIR}/tests/include_test
-            -o ${SRC_FBS_DIR}
+            -o ${SRC_FBS_DIR}/${OUTPUTFOLDER}/tests
             ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
     DEPENDS ${FLATBUFFERS_FLATC_EXECUTABLE}
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
     COMMENT "Run generation: '${GEN_HEADER_GAIA}'")
-  register_generated_output(${GEN_HEADER_GAIA})
 endfunction()
 
 function(compile_flatbuffers_schema_to_cpp SRC_FBS)
@@ -429,7 +463,7 @@ function(compile_flatbuffers_schema_to_binary SRC_FBS)
   string(REGEX REPLACE "\\.fbs$" ".bfbs" GEN_BINARY_SCHEMA ${SRC_FBS})
   # For details about flags see generate_code.bat(sh)
   add_custom_command(
-    OUTPUT ${SRC_FBS_DIR}/${GEN_BINARY_SCHEMA}
+    OUTPUT ${SRC_FBS_DIR}/../${GEN_BINARY_SCHEMA}
     COMMAND ${FLATBUFFERS_FLATC_EXECUTABLE}
             -b --schema --bfbs-comments --bfbs-builtins
             -I ${CMAKE_CURRENT_SOURCE_DIR}/tests/include_test
@@ -481,13 +515,10 @@ if(FLATBUFFERS_BUILD_TESTS)
   compile_flatbuffers_schema_to_binary(tests/arrays_test.fbs)
   compile_flatbuffers_schema_to_embedded_binary(tests/monster_test.fbs "--no-includes;--gen-compare")
   compile_flatbuffers_schema_to_cpp(tests/addr_book.fbs "")
-  compile_flatbuffers_schema_to_cpp(tests/addr_book_col_events_no_iud_events.fbs "")
-  compile_flatbuffers_schema_to_cpp(tests/addr_book_no_col_events.fbs "")
-  compile_flatbuffers_schema_to_cpp(tests/addr_book_no_table_events_tx_event.fbs "")
-  compile_flatbuffers_schema_to_gaiacpp_opt(tests/addr_book.fbs "--gen-setters;--gen-transaction-events;--gen-table-events;--gen-col-events")
-  compile_flatbuffers_schema_to_gaiacpp_opt(tests/addr_book_col_events_no_iud_events.fbs "--gen-setters;--gen-transaction-events;--gen-col-events;--gaia_type_initial_value;5")
-  compile_flatbuffers_schema_to_gaiacpp_opt(tests/addr_book_no_col_events.fbs "--gen-setters;--gen-transaction-events;--gen-table-events;--gaia_type_initial_value;10")
-  compile_flatbuffers_schema_to_gaiacpp_opt(tests/addr_book_no_table_events_tx_event.fbs "--gen-setters;--gen-table-events;--gen-col-events;--gaia_type_initial_value;15")
+  compile_flatbuffers_schema_to_gaiacpp_opt(tests/addr_book.fbs "--gen-setters;--gen-transaction-events;--gen-table-events;--gen-col-events" "AllEventsGaiaTests")
+  compile_flatbuffers_schema_to_gaiacpp_opt(tests/addr_book.fbs "--gen-setters;--gen-transaction-events;--gen-col-events;--gaia_type_initial_value;5" "NoIUDEventsGaiaTests")
+  compile_flatbuffers_schema_to_gaiacpp_opt(tests/addr_book.fbs "--gen-setters;--gen-transaction-events;--gen-table-events;--gaia_type_initial_value;10" "NoColEventsGaiaTests")
+  compile_flatbuffers_schema_to_gaiacpp_opt(tests/addr_book.fbs "--gen-setters;--gen-table-events;--gen-col-events;--gaia_type_initial_value;15" "NoTableTxEventsGaiaTests")
   if(NOT (MSVC AND (MSVC_VERSION LESS 1900)))
     compile_flatbuffers_schema_to_cpp(tests/monster_extra.fbs) # Test floating-point NAN/INF.
   endif()
@@ -498,21 +529,74 @@ if(FLATBUFFERS_BUILD_TESTS)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/db/storage_engine/mock)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/inc/internal/common)
   add_executable(flattests ${FlatBuffers_Tests_SRCS})
+  add_executable(gaiaalleventstests ${FlatBuffersGaiaAllEvents_Tests_SRCS})
+  add_executable(gaianocoltests ${FlatBuffersGaiaNoColEvents_Tests_SRCS})
+  add_executable(gaianoiudtests ${FlatBuffersGaiaNoIUDEvents_Tests_SRCS})
+  add_executable(gaianotabletxtests ${FlatBuffersGaiaNoTableTxEvents_Tests_SRCS})
   add_dependencies(flattests generated_code)
   set_property(TARGET flattests
     PROPERTY COMPILE_DEFINITIONS FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
     FLATBUFFERS_DEBUG_VERIFICATION_FAILURE=1)
+  set_property(TARGET gaiaalleventstests
+    PROPERTY COMPILE_DEFINITIONS FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
+    FLATBUFFERS_DEBUG_VERIFICATION_FAILURE=1)
+  set_property(TARGET gaianocoltests
+    PROPERTY COMPILE_DEFINITIONS FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
+    FLATBUFFERS_DEBUG_VERIFICATION_FAILURE=1)
+  set_property(TARGET gaianoiudtests
+    PROPERTY COMPILE_DEFINITIONS FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
+    FLATBUFFERS_DEBUG_VERIFICATION_FAILURE=1)
+  set_property(TARGET gaianotabletxtests
+    PROPERTY COMPILE_DEFINITIONS FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
+    FLATBUFFERS_DEBUG_VERIFICATION_FAILURE=1)
+
   if(FLATBUFFERS_CODE_SANITIZE)
     add_fsanitize_to_target(flattests ${FLATBUFFERS_CODE_SANITIZE})
   endif()
   target_link_libraries(flattests PRIVATE rt)
+  target_link_libraries(gaiaalleventstests PRIVATE rt)
+  target_link_libraries(gaianocoltests PRIVATE rt)
+  target_link_libraries(gaianoiudtests PRIVATE rt)
+  target_link_libraries(gaianotabletxtests PRIVATE rt)
   
-  set(UNIT_TEST flattests)
+  set(FLATBUFFERS_UNIT_TEST flattests)
   add_custom_command(
-     TARGET ${UNIT_TEST}
-     COMMENT "Run tests"
+     TARGET ${FLATBUFFERS_UNIT_TEST}
+     COMMENT "Run flatbuffer tests"
      POST_BUILD 
-     COMMAND ${UNIT_TEST}
+     COMMAND ${FLATBUFFERS_UNIT_TEST}
+  )
+
+  set(GAIA_ALL_EVENTS_UNIT_TEST gaiaalleventstests)
+  add_custom_command(
+     TARGET ${GAIA_ALL_EVENTS_UNIT_TEST}
+     COMMENT "Run Gaia all events tests"
+     POST_BUILD 
+     COMMAND ${GAIA_ALL_EVENTS_UNIT_TEST}
+  )
+
+  set(GAIA_NO_COL_EVENTS_UNIT_TEST gaianocoltests)
+  add_custom_command(
+     TARGET ${GAIA_NO_COL_EVENTS_UNIT_TEST}
+     COMMENT "Run Gaia No Col events tests"
+     POST_BUILD 
+     COMMAND ${GAIA_NO_COL_EVENTS_UNIT_TEST}
+  )
+
+  set(GAIA_NO_IUD_EVENTS_UNIT_TEST gaianoiudtests)
+  add_custom_command(
+     TARGET ${GAIA_NO_IUD_EVENTS_UNIT_TEST}
+     COMMENT "Run Gaia no IUD events tests"
+     POST_BUILD 
+     COMMAND ${GAIA_NO_IUD_EVENTS_UNIT_TEST}
+  )
+
+  set(GAIA_NO_TABLE_TX_EVENTS_UNIT_TEST gaianotabletxtests)
+  add_custom_command(
+     TARGET ${GAIA_NO_TABLE_TX_EVENTS_UNIT_TEST}
+     COMMENT "Run Gaia No Table TX events tests"
+     POST_BUILD 
+     COMMAND ${GAIA_NO_TABLE_TX_EVENTS_UNIT_TEST}
   )
 
   compile_flatbuffers_schema_to_cpp(samples/monster.fbs)

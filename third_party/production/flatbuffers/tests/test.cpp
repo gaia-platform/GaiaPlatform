@@ -74,7 +74,7 @@ static const auto infinityd = std::numeric_limits<double>::infinity();
 using namespace MyGame::Example;
 
 void FlatBufferBuilderTest();
-void GaiaFlatBufferTests();
+
 
 // Include simple random number generator to ensure results will be the
 // same cross platform.
@@ -3456,7 +3456,6 @@ int main(int /*argc*/, const char * /*argv*/[]) {
 
   FlatBufferTests();
   FlatBufferBuilderTest();
-  GaiaFlatBufferTests();
 
   if (!testing_fails) {
     TEST_OUTPUT_LINE("ALL TESTS PASSED");
