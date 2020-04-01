@@ -15,18 +15,7 @@ Last pulled on 02/27/2020, hash c9a30c9c.
 
 This is the google flatbuffers serialization library.
 
-For installing C++ headers and library, do a regular cmake and then execute ```sudo make install``` from the build folder.
-
-Detailed steps for installation of flatc compiler and C++ headers and libraries:
-
-```
-cd GaiaPlatform/third_party/production/flatbuffers
-mkdir build
-cd build
-cmake ..
-make -j 4
-sudo make install
-```
+No install is needed because we user our cmake process to build flatbuffers when needed.
 
 For installing the python libraries, go to python subfolder and execute ```sudo python setup.py install```.
 
