@@ -62,6 +62,8 @@ public final class CacheGraph implements Graph
         = "truegraphdb.defaultVertexPropertyCardinality";
     public static final String CACHEGRAPH_CREATE_ON_START
         = "truegraphdb.createOnStart";
+    public static final String CACHEGRAPH_ENABLE_COW_WRITES
+        = "truegraphdb.enableCowWrites";
     public static final String CACHEGRAPH_ENABLE_AIRPORT_CODE
         = "truegraphdb.enableAirportCode";
 
@@ -84,6 +86,7 @@ public final class CacheGraph implements Graph
 
     protected CowStorageEngine cow = new CowStorageEngine();
 
+    protected boolean enableCowWrites;
     protected boolean enableAirportCode;
 
     private CacheGraph(final Configuration configuration)
@@ -106,6 +109,8 @@ public final class CacheGraph implements Graph
         boolean createOnStart = configuration.getBoolean(
             CACHEGRAPH_CREATE_ON_START, true);
 
+        this.enableCowWrites = configuration.getBoolean(
+            CACHEGRAPH_ENABLE_COW_WRITES, true);
         this.enableAirportCode = configuration.getBoolean(
             CACHEGRAPH_ENABLE_AIRPORT_CODE, false);
 

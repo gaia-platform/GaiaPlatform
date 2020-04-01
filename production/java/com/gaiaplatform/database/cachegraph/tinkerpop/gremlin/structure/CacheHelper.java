@@ -115,6 +115,11 @@ public final class CacheHelper
 
     protected static boolean createNode(CacheVertex vertex)
     {
+        if (!vertex.graph.enableCowWrites)
+        {
+            return true;
+        }
+
         if (vertex.graph.enableAirportCode)
         {
             return createAirportNode(vertex);
@@ -127,6 +132,11 @@ public final class CacheHelper
 
     protected static boolean removeNode(CacheVertex vertex)
     {
+        if (!vertex.graph.enableCowWrites)
+        {
+            return true;
+        }
+
         CacheGraph graph = vertex.graph;
         long id = Long.parseLong(vertex.id.toString());
 
@@ -136,6 +146,11 @@ public final class CacheHelper
 
     protected static boolean updateNodePayload(CacheVertex vertex)
     {
+        if (!vertex.graph.enableCowWrites)
+        {
+            return true;
+        }
+
         if (vertex.graph.enableAirportCode)
         {
             return updateAirportNodePayload(vertex);
@@ -148,6 +163,11 @@ public final class CacheHelper
 
     protected static boolean createEdge(CacheEdge edge)
     {
+        if (!edge.graph.enableCowWrites)
+        {
+            return true;
+        }
+
         if (edge.graph.enableAirportCode)
         {
             return createAirportEdge(edge);
@@ -160,6 +180,11 @@ public final class CacheHelper
 
     protected static boolean removeEdge(CacheEdge edge)
     {
+        if (!edge.graph.enableCowWrites)
+        {
+            return true;
+        }
+
         CacheGraph graph = edge.graph;
         long id = Long.parseLong(edge.id.toString());
 
@@ -169,6 +194,11 @@ public final class CacheHelper
 
     protected static boolean updateEdgePayload(CacheEdge edge)
     {
+        if (!edge.graph.enableCowWrites)
+        {
+            return true;
+        }
+
         if (edge.graph.enableAirportCode)
         {
             return updateAirportEdgePayload(edge);
