@@ -36,9 +36,9 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 public final class CacheHelper
 {
-    private final static String propertyDelimiter = "|";
-    private final static String keyValueDelimiter = "=";
-    private final static String emptyString = "";
+    private final static String PROPERTY_DELIMITER = "|";
+    private final static String KEY_VALUE_DELIMITER = "=";
+    private final static String EMPTY_STRING = "";
 
     private static AtomicLong lastType = new AtomicLong();
     private static Map<String, Long> mapLabelsToTypes = new ConcurrentHashMap<>();
@@ -51,11 +51,11 @@ public final class CacheHelper
     {
         if (payload.length() > 0)
         {
-            payload.append(propertyDelimiter);
+            payload.append(PROPERTY_DELIMITER);
         }
 
         payload.append(key);
-        payload.append(keyValueDelimiter);
+        payload.append(KEY_VALUE_DELIMITER);
         payload.append(value);
     }
 
@@ -63,7 +63,7 @@ public final class CacheHelper
     {
         if (properties == null)
         {
-            return emptyString;
+            return EMPTY_STRING;
         }
 
         StringBuilder payload = new StringBuilder();
@@ -77,7 +77,7 @@ public final class CacheHelper
     {
         if (properties == null)
         {
-            return emptyString;
+            return EMPTY_STRING;
         }
 
         StringBuilder payload = new StringBuilder();
