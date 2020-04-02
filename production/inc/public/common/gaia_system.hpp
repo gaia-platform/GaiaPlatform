@@ -13,11 +13,20 @@ namespace gaia
  */
 namespace system
 {
-    /**
-     *  Initializes the Gaia sub systems
-     */ 
-    void initialize(bool is_engine);
-}
+/**
+ * \addtogroup System
+ * @{
+ * 
+ * Provides system wide facilities for the Gaia Platform
+ */
 
+/**
+ *  Initialize the Gaia sub systems
+ */ 
+void initialize(bool is_engine);
+
+/*@}*/
+}
+/*@}*/
 }
 
