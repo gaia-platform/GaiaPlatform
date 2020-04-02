@@ -6,6 +6,7 @@
 
 #include <unordered_map>
 #include "rules.hpp"
+#include "event_log_gaia_generated.h"
 
 namespace gaia 
 {
@@ -69,6 +70,7 @@ public:
       const gaia::common::gaia_type_t* gaia_type, 
       const event_type_t* type,
       list_subscriptions_t& subscriptions);
+
 
 private:
     // only internal static creation is allowed
@@ -154,6 +156,18 @@ private:
         {
             throw invalid_rule_binding();
         }
+    }
+
+    static inline void log_to_db(gaia_type_t gaia_type, 
+        event_type_t event_type, 
+        event_mode_t event_mode,
+        bool rules_fired)
+    {
+        static_assert(sizeof(uint32_t) == sizeof(event_type_t), 
+            "event_type_t needs to be sizeof uint32_t");
+        static_assert(sizeof(uint8_t) == sizeof(event_mode_t), 
+            "event_mode_t needs to be sizeof uint8_t");
+        Event_log::insert_row(0, (uint64_t)gaia_type, (uint32_t)event_type, (uint8_t) event_mode, rules_fired);
     }
 
     static bool is_valid_transaction_event(event_type_t type);

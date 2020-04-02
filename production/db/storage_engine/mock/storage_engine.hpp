@@ -452,13 +452,6 @@ namespace db
         }
     };
 
-    const char* gaia_mem_base::SCH_MEM_OFFSETS = "gaia_mem_offsets";
-    const char* gaia_mem_base::SCH_MEM_DATA = "gaia_mem_data";
-    int gaia_mem_base::s_fd_offsets = 0;
-    int gaia_mem_base::s_fd_data = 0;
-    gaia_id_t gaia_mem_base::s_next_id = 1000;  // not starting at 0
-    bool gaia_mem_base::s_engine = false;
-
     class gaia_hash_map: public gaia_mem_base
     {
     public:
@@ -994,9 +987,5 @@ namespace db
     {
         gaia_mem_base::tx_rollback();
     }
-
-    gaia_mem_base::offsets *gaia_mem_base::s_offsets = nullptr;
-    gaia_mem_base::data *gaia_mem_base::s_data = nullptr;
-    gaia_mem_base::log *gaia_mem_base::s_log = nullptr;
 } // db
 } // gaia

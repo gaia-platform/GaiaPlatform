@@ -68,9 +68,6 @@ private:
 
 };
 
-gaia_base_t::id_cache_t gaia_base_t::s_gaia_cache;
-gaia_base_t::id_cache_t gaia_base_t::s_gaia_tx_cache;
-
 // T_gaia_type - an integer (gaia_type_t) uniquely identifying the flatbuffer table type
 // T_gaia      - the subclass type derived from this template
 // T_fb        - the flatbuffer table type to be implemented
@@ -105,6 +102,12 @@ public:
     static T_gaia* get_first() {
         auto node_ptr = gaia_ptr<gaia_se_node>::find_first(T_gaia_type);
         return get_object(node_ptr);
+    }
+
+    static void insert_row(flatbuffers::FlatBufferBuilder& fbb)
+    {
+        gaia_id_t id = gaia_se_node::generate_id();
+        gaia_se_node::create(id, T_gaia_type, fbb.GetSize(), fbb.GetBufferPointer());
     }
 
     T_gaia* get_next() {
@@ -146,6 +149,7 @@ public:
         s_gaia_tx_cache[m_id] = this;
         return;
     }
+
 
     void update_row()
     {

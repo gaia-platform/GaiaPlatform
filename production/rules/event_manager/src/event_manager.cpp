@@ -39,7 +39,6 @@ event_manager_t::~event_manager_t()
 bool event_manager_t::log_event(event_type_t event_type, event_mode_t mode)
 {
     bool rules_fired = false;
-    // todo: log the event in a table
 
     check_mode(mode);
     check_transaction_event(event_type);
@@ -55,6 +54,9 @@ bool event_manager_t::log_event(event_type_t event_type, event_mode_t mode)
     rule_list_t& rules = m_transaction_subscriptions[event_type];
     rules_fired = rules.size() > 0;
 
+    // Log the event to the database
+    log_to_db(0, event_type, mode, rules_fired);
+    
     for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it) 
     {
         _rule_binding_t* rule_ptr = const_cast<_rule_binding_t*>(*rules_it);
@@ -75,8 +77,6 @@ bool event_manager_t::log_event(
 {
     bool rules_fired = false;
 
-    // todo: log the event in a table
-
     check_mode(mode);
     check_table_event(event_type);
 
@@ -95,6 +95,8 @@ bool event_manager_t::log_event(
         rule_list_t& rules = events[event_type];
         rules_fired = rules.size() > 0;
 
+        log_to_db(gaia_type, event_type, mode, rules_fired);
+
         for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it) 
         {
             _rule_binding_t* rule_ptr = const_cast<_rule_binding_t*>(*rules_it);
@@ -105,6 +107,10 @@ bool event_manager_t::log_event(
                 row);
             rule_ptr->rule(&context);
         }
+    }
+    else 
+    {
+        log_to_db(gaia_type, event_type, mode, rules_fired);
     }
 
     return rules_fired;

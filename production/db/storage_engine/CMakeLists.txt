@@ -24,7 +24,7 @@ find_package(pybind11)
 pybind11_add_module(se_mock mock/storage_engine_pybind_wrapper.cpp)
 target_include_directories(se_mock PRIVATE ${PYBIND_PATH})
 target_include_directories(se_mock PRIVATE ${PROJECT_SOURCE_DIR})
-target_link_libraries(se_mock PRIVATE rt)
+target_link_libraries(se_mock PRIVATE rt gaia)
 set_target_properties(se_mock PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
 set_target_properties(se_mock PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
 

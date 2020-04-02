@@ -90,6 +90,7 @@ target_sources(common INTERFACE
 add_subdirectory("../third_party/production/flatbuffers" flatbuffers)
 
 # Add individual component folders.
+add_subdirectory(system)
 add_subdirectory(db)
 add_subdirectory(rules)
 add_subdirectory(tests)

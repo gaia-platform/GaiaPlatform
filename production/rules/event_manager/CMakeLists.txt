@@ -30,4 +30,4 @@ target_include_directories(event_manager PRIVATE ${GAIA_EVENT_MANAGER_INCLUDES})
 
 # unit tests
 add_gtest(test_event_guard "tests/test_event_guard.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "")
-add_gtest(test_event_manager "tests/test_event_manager.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "event_manager")
+add_gtest_no_main(test_event_manager "tests/test_event_manager.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "gaia;event_manager;rt")

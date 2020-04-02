@@ -27,15 +27,30 @@ endfunction(set_test)
 # Assumes you want to link in the gtest provided
 # main function
 function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
+  _add_gtest("${TARGET}" "${SOURCES}" "${INCLUDES}" "${LIBRARIES}" "gtest_main")
+endfunction(add_gtest)
+
+function(add_gtest_no_main TARGET SOURCES INCLUDES LIBRARIES)
+  _add_gtest("${TARGET}" "${SOURCES}" "${INCLUDES}" "${LIBRARIES}" "gtest")
+endfunction(add_gtest_no_main)
+
+function(_add_gtest TARGET SOURCES INCLUDES LIBRARIES GTEST_LIB)
+#  message(STATUS "TARGET = ${TARGET}")
+#  message(STATUS "SOURCES = ${SOURCES}")
+#  message(STATUS "INCLUDES = ${INCLUDES}")
+#  message(STATUS "LIBRARIES = ${LIBRARIES}")
+#  message(STATUS "GTEST_LIB = ${GTEST_LIB}")
+
   add_executable(${TARGET} ${SOURCES})
   target_include_directories(${TARGET} PRIVATE 
     ${INCLUDES}
     ${GOOGLE_TEST_INC}
   )
+  
   target_link_libraries(${TARGET} PRIVATE 
     ${LIBRARIES}
-    gtest_main
+    ${GTEST_LIB}
   )
   set_target_properties(${TARGET} PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
   gtest_discover_tests(${TARGET})
-endfunction(add_gtest)
+endfunction(_add_gtest)

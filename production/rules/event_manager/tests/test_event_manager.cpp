@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include "gtest/gtest.h"
 #include "rules.hpp"
+#include "gaia_system.hpp"
 
 using namespace std;
 using namespace gaia::rules;
@@ -460,12 +461,14 @@ class event_manager_test : public ::testing::Test
 protected:
     virtual void SetUp()
     {
+        gaia_base_t::begin_transaction();        
         m_row.data = c_initial;
         g_tx_data = c_initial;
     }
 
     virtual void TearDown()
     {
+        gaia_base_t::commit_transaction();
         unsubscribe_rules();
         g_table_checker.reset();
         g_transaction_checker.reset();
@@ -1098,4 +1101,11 @@ TEST_F(event_manager_test, forward_chain_disallow_cycle)
     EXPECT_EQ(expected_table_value, m_row.data);
     validate_transaction_rule(expected_transaction_value, 
         ruleset3_name, rule8_name, rule8_add_100000000, event_type_t::transaction_commit);
+}
+
+int main(int argc, char **argv) {
+  ::testing::InitGoogleTest(&argc, argv);
+  bool init_engine = true;
+  gaia::system::initialize(init_engine);
+  return RUN_ALL_TESTS();
 }
