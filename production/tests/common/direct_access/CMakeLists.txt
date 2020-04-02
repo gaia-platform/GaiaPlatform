@@ -59,7 +59,7 @@ function(compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT)
     DEPENDS ${CMAKE_BINARY_DIR}/flatbuffers/flatc 
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
     COMMENT "Run generation: '${GEN_HEADER}'"
-    VERBATIM)
+    )
     register_generated_output(${GEN_HEADER})
 endfunction()
 

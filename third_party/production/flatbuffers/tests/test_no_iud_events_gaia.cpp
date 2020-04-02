@@ -55,7 +55,7 @@ void GaiaNoIUDEventsTest()
     int64_t first_salary_id = get_next_id();
     int64_t hire_date = get_next_id();
         
-    int64_t empl_node_id = AddrBook::Employee::CreateEmployee(manager_id
+    int64_t empl_node_id = AddrBook::Employee::insert_row(manager_id
         ,first_address_id
         ,first_phone_id
         ,first_provision_id

@@ -240,9 +240,9 @@ namespace flatbuffers
                 code_ += "#define " + include_guard;
                 code_ += "";
 
-                code_ += "#include \"" + GeneratedCPPFileName(file_name_) + "\"";
                 code_ += "#include \"gaia_object.hpp\"";
-
+                code_ += "#include \"" + GeneratedCPPFileName(file_name_) + "\"";
+                
                 if (opts_.generate_setters 
                     && (opts_.generate_column_change_events 
                     || opts_.generate_transaction_events 
@@ -606,6 +606,13 @@ namespace flatbuffers
                     "gaia_object_t::delete_row();\n"
                     "}";
                 }
+                else
+                {
+                    code_ += 
+                        "using gaia_object_t::insert_row;\n"
+                        "using gaia_object_t::update_row;\n"
+                        "using gaia_object_t::delete_row;";
+                }
 
                 if (opts_.generate_transaction_events)
                 {
@@ -630,7 +637,7 @@ namespace flatbuffers
                     "}";
                 }
                 
-                code_ += "gaia_id_t static Create{{CLASS_NAME}} (" + params + "){\n"
+                code_ += "static gaia_id_t insert_row (" + params + "){\n"
                     "flatbuffers::FlatBufferBuilder b(128);\n"
                     "b.Finish(Create{{STRUCT_NAME}}Direct(b, " + param_Values + "));\n"
                     "return gaia_object_t::insert_row("+ CurrentNamespaceString() +  "::k{{CLASS_NAME}}Type, b);\n"
