@@ -42,6 +42,7 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   target_include_directories(jni_se_mock PRIVATE ${JNI_INCLUDE_DIRS})
   target_link_libraries(jni_se_mock PRIVATE
     rt
+    gaia
     storage_engine_mock_jni_headers)
   set_target_properties(jni_se_mock PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
   set_target_properties(jni_se_mock PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
