@@ -19,6 +19,7 @@ public class CsvParser
     protected static final String COLUMN_SEPARATOR = ",";
     protected static final String QUOTE = "\"";
     protected static final String DOUBLE_QUOTE = "\"\"";
+    protected static final String NULL_VALUE = "\\N";
 
     protected BufferedReader reader;
     protected int lineCount;
@@ -88,7 +89,7 @@ public class CsvParser
         {
             errorMessage.append("\n>>> Exception message: ");
             errorMessage.append(e.getMessage());
-    
+
             // Parse exceptions contain additional information.
             if (e instanceof ParseException)
             {
@@ -123,7 +124,7 @@ public class CsvParser
 
                 if (columns[i].endsWith(QUOTE))
                 {
-                    fixedColumns.add(unquoteColumn(columns[i]));
+                    fixedColumns.add(decodeColumnValue(columns[i]));
                 }
                 else
                 {
@@ -137,7 +138,7 @@ public class CsvParser
                 fixedColumnBuilder.append(columns[i]);
                 if (columns[i].endsWith(QUOTE))
                 {
-                    fixedColumns.add(unquoteColumn(fixedColumnBuilder.toString()));
+                    fixedColumns.add(decodeColumnValue(fixedColumnBuilder.toString()));
                     fixedColumnBuilder = null;
                 }
                 else
@@ -155,7 +156,7 @@ public class CsvParser
                     throw new ParseException(errorMessage.toString(), columns[i].length() - 1);
                 }
 
-                fixedColumns.add(columns[i]);
+                fixedColumns.add(decodeColumnValue(columns[i]));
             }
         }
 
@@ -167,7 +168,7 @@ public class CsvParser
         return fixedColumns.toArray(new String[fixedColumns.size()]);
     }
 
-    protected static String unquoteColumn(String column) throws ParseException
+    protected static String decodeColumnValue(String column) throws ParseException
     {
         String newColumn = column;
 
@@ -189,8 +190,14 @@ public class CsvParser
             }
         }
 
-        // Also remove the escaping of quotes inside the string.
+        // Remove the escaping of quotes inside the string.
         newColumn = newColumn.replaceAll(DOUBLE_QUOTE, QUOTE);
+
+        // Process null values as empty strings - works for our case.
+        if (newColumn.equals(NULL_VALUE))
+        {
+            newColumn = EMPTY_STRING;
+        }
 
         return newColumn;
     }
