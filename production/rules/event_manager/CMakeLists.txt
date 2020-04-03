@@ -18,7 +18,6 @@ set(GAIA_EVENT_MANAGER_INCLUDES
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc
 )
-
 message(STATUS "GAIA_EVENT_MANAGER_INCLUDES=${GAIA_EVENT_MANAGER_INCLUDES}")
 
 # main target
@@ -29,5 +28,5 @@ set_target_properties(event_manager PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLA
 target_include_directories(event_manager PRIVATE ${GAIA_EVENT_MANAGER_INCLUDES})  
 
 # unit tests
-add_gtest(test_event_guard "tests/test_event_guard.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "")
-add_gtest(test_event_manager "tests/test_event_manager.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "event_manager")
+add_gtest(test_event_guard "tests/test_event_guard.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "" "")
+add_gtest(test_event_manager "tests/test_event_manager.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "event_manager;rt" "")
