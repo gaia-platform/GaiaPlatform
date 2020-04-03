@@ -154,8 +154,6 @@ set(FlatBuffers_Tests_SRCS
   ${CMAKE_CURRENT_BINARY_DIR}/tests/monster_extra_generated.h
   # file generate by running compiler on tests/monster_test.fbs
   ${CMAKE_CURRENT_BINARY_DIR}/tests/monster_test_bfbs_generated.h
-  # file generate by running compiler on tests/addr_book.fbs
-  ${CMAKE_CURRENT_BINARY_DIR}/tests/addr_book_generated.h
 )
 
 set(FlatBuffersGaiaAllEvents_Tests_SRCS
@@ -417,7 +415,7 @@ function(compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT)
   else()
     # --cpp-std is defined by flatc default settings.
   endif()
-  message(STATUS "`${SRC_FBS}`: add generation of C++ code with '${OPT}'")
+  #message(STATUS "`${SRC_FBS}`: add generation of C++ code with '${OPT}'")
   get_filename_component(SRC_FBS_DIR ${SRC_FBS} PATH)
   string(REGEX REPLACE "\\.fbs$" "_generated.h" GEN_HEADER ${SRC_FBS})
   add_custom_command(
@@ -436,7 +434,7 @@ function(compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT)
 endfunction()
 
 function(compile_flatbuffers_schema_to_gaiacpp_opt SRC_FBS OPT OUTPUTFOLDER)
-  message(STATUS "`${SRC_FBS}`: add generation of Gaia C++ code with '${OPT}'")
+  #message(STATUS "`${SRC_FBS}`: add generation of Gaia C++ code with '${OPT}'")
   get_filename_component(SRC_FBS_DIR ${SRC_FBS} PATH)
   string(REGEX REPLACE "\\.fbs$" "_gaia_generated.h" GEN_HEADER_GAIA ${SRC_FBS})
   add_custom_command(
@@ -458,7 +456,7 @@ function(compile_flatbuffers_schema_to_cpp SRC_FBS)
 endfunction()
 
 function(compile_flatbuffers_schema_to_binary SRC_FBS)
-  message(STATUS "`${SRC_FBS}`: add generation of binary (.bfbs) schema")
+  #message(STATUS "`${SRC_FBS}`: add generation of binary (.bfbs) schema")
   get_filename_component(SRC_FBS_DIR ${SRC_FBS} PATH)
   string(REGEX REPLACE "\\.fbs$" ".bfbs" GEN_BINARY_SCHEMA ${SRC_FBS})
   # For details about flags see generate_code.bat(sh)
@@ -481,7 +479,7 @@ function(compile_flatbuffers_schema_to_embedded_binary SRC_FBS OPT)
   else()
     # --cpp-std is defined by flatc default settings.
   endif()
-  message(STATUS "`${SRC_FBS}`: add generation of C++ embedded binary schema code with '${OPT}'")
+  #message(STATUS "`${SRC_FBS}`: add generation of C++ embedded binary schema code with '${OPT}'")
   get_filename_component(SRC_FBS_DIR ${SRC_FBS} PATH)
   string(REGEX REPLACE "\\.fbs$" "_bfbs_generated.h" GEN_BFBS_HEADER ${SRC_FBS})
   # For details about flags see generate_code.bat(sh)
@@ -514,7 +512,6 @@ if(FLATBUFFERS_BUILD_TESTS)
   compile_flatbuffers_schema_to_cpp_opt(tests/arrays_test.fbs "--scoped-enums;--gen-compare")
   compile_flatbuffers_schema_to_binary(tests/arrays_test.fbs)
   compile_flatbuffers_schema_to_embedded_binary(tests/monster_test.fbs "--no-includes;--gen-compare")
-  compile_flatbuffers_schema_to_cpp(tests/addr_book.fbs "")
   compile_flatbuffers_schema_to_gaiacpp_opt(tests/addr_book.fbs "--gen-setters;--gen-transaction-events;--gen-table-events;--gen-col-events" "AllEventsGaiaTests")
   compile_flatbuffers_schema_to_gaiacpp_opt(tests/addr_book.fbs "--gen-setters;--gen-transaction-events;--gen-col-events;--gaia_type_initial_value;5" "NoIUDEventsGaiaTests")
   compile_flatbuffers_schema_to_gaiacpp_opt(tests/addr_book.fbs "--gen-setters;--gen-transaction-events;--gen-table-events;--gaia_type_initial_value;10" "NoColEventsGaiaTests")
@@ -648,7 +645,7 @@ if(FLATBUFFERS_BUILD_GRPCTEST)
   endif()
 endif()
 
-include(CMake/Version.cmake)
+#include(CMake/Version.cmake)
 
 if(FLATBUFFERS_INSTALL)
   include(GNUInstallDirs)
@@ -751,7 +748,7 @@ if(fbs_generated)
     COMMENT "All generated files were updated.")
 endif()
 
-include(CMake/BuildFlatBuffers.cmake)
+#include(CMake/BuildFlatBuffers.cmake)
 
 if(UNIX)
     # Use of CPack only supported on Linux systems.
