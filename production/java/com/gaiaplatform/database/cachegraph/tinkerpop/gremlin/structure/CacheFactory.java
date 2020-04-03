@@ -24,7 +24,7 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
-import static org.apache.tinkerpop.gremlin.structure.io.IoCore.gryo;
+import static org.apache.tinkerpop.gremlin.structure.io.IoCore.graphml;
 
 public final class CacheFactory {
 
@@ -334,10 +334,26 @@ public final class CacheFactory {
         setFlightEdges(klm, sea, ams, klm_sea_ams);
     }
 
+    // Open CacheGraph instance without COW writing.
+    // This is useful for testing the in-memory graph part only.
+    public static CacheGraph openWithoutCOW()
+    {
+        final Configuration configuration = getNumberIdManagerConfiguration();
+
+        // Disable writing to COW.
+        configuration.setProperty(
+            CacheGraph.CACHEGRAPH_ENABLE_COW_WRITES,
+            false);
+
+        final CacheGraph graph = CacheGraph.open(configuration);
+
+        return graph;
+    }
+
     // Full airport data set.
     public static CacheGraph createFullAirport()
     {
-        final CacheGraph graph = getCacheGraphWithNumberManager();
+        final CacheGraph graph = openWithoutCOW);
         generateFullAirport(graph);
         return graph;
     }
@@ -354,5 +370,29 @@ public final class CacheFactory {
                 "An error happened while attempting to load gaia-airport.graphml: "
                 + e.getMessage());
         }
+    }
+
+    // A method for loading airport data from COW.
+    public static CacheGraph loadAirportGraph()
+    {
+        final Configuration configuration = getNumberIdManagerConfiguration();
+
+        // We need to load data, so do not initialize COW.
+        configuration.setProperty(
+            CacheGraph.CACHEGRAPH_CREATE_ON_START,
+            false);
+        // We read from COW to write into cached graph,
+        // so we don't need to write back into COW.
+        configuration.setProperty(
+            CacheGraph.CACHEGRAPH_ENABLE_COW_WRITES,
+            false);
+        // We need to enable airport data serialization code.
+        configuration.setProperty(
+            CacheGraph.CACHEGRAPH_ENABLE_AIRPORT_CODE,
+            true);
+                   
+        final CacheGraph graph = CacheGraph.open(configuration);
+
+        return graph;
     }
 }

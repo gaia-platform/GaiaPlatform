@@ -123,6 +123,11 @@ public final class CacheGraph implements Graph
         }
         else
         {
+            if (!enableAirportCode)
+            {
+                throw new UnsupportedOperationException("Opening of COW is only supported for airport data!");
+            }
+
             if (!cow.open())
             {
                 throw new UnsupportedOperationException("Opening of COW failed!");
