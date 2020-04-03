@@ -333,4 +333,26 @@ public final class CacheFactory {
         setFlightEdges(klm, otp, ams, klm_otp_ams);
         setFlightEdges(klm, sea, ams, klm_sea_ams);
     }
+
+    // Full airport data set.
+    public static CacheGraph createFullAirport()
+    {
+        final CacheGraph graph = getCacheGraphWithNumberManager();
+        generateFullAirport(graph);
+        return graph;
+    }
+
+    public static void generateFullAirport(final CacheGraph graph)
+    {
+        try
+        {
+            graph.io(graphml()).readGraph("gaia-airport.graphml");
+        }
+        catch (Exception e)
+        {
+            System.out.println(
+                "An error happened while attempting to load gaia-airport.graphml: "
+                + e.getMessage());
+        }
+    }
 }
