@@ -91,7 +91,9 @@ add_subdirectory("../third_party/production/flatbuffers" flatbuffers)
 
 # Add individual component folders.
 add_subdirectory(db)
+add_subdirectory(direct_access)
 add_subdirectory(rules)
+add_subdirectory(system)
 add_subdirectory(tests)
 
 # Add googletest

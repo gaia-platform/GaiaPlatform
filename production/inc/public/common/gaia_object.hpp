@@ -68,9 +68,6 @@ private:
 
 };
 
-gaia_base_t::id_cache_t gaia_base_t::s_gaia_cache;
-gaia_base_t::id_cache_t gaia_base_t::s_gaia_tx_cache;
-
 // T_gaia_type - an integer (gaia_type_t) uniquely identifying the flatbuffer table type
 // T_gaia      - the subclass type derived from this template
 // T_fb        - the flatbuffer table type to be implemented

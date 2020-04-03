@@ -95,6 +95,7 @@ target_include_directories(test_direct_access PRIVATE
 target_link_libraries(test_direct_access PRIVATE 
     gtest_main
     rt
+    gaia
 )
 
 gtest_discover_tests(test_direct_access)
