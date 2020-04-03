@@ -14,6 +14,9 @@ message(STATUS "GAIA_STORAGE_ENGINE_INCLUDES=${GAIA_STORAGE_ENGINE_INCLUDES}")
 ###############################################
 # Storage engine mock-related code begins here.
 ###############################################
+add_library(gaia_semock STATIC mock/storage_engine.cpp)
+target_include_directories(gaia_semock PRIVATE ${GAIA_STORAGE_ENGINE_INCLUDES})
+set_target_properties(gaia_semock PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 
 # Specify pybind11 location.
 set(pybind11_DIR ${PYBIND_PATH})
@@ -24,7 +27,7 @@ find_package(pybind11)
 pybind11_add_module(se_mock mock/storage_engine_pybind_wrapper.cpp)
 target_include_directories(se_mock PRIVATE ${PYBIND_PATH})
 target_include_directories(se_mock PRIVATE ${PROJECT_SOURCE_DIR})
-target_link_libraries(se_mock PRIVATE rt)
+target_link_libraries(se_mock PRIVATE rt gaia_semock)
 set_target_properties(se_mock PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
 set_target_properties(se_mock PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
 
@@ -42,6 +45,7 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   target_include_directories(jni_se_mock PRIVATE ${JNI_INCLUDE_DIRS})
   target_link_libraries(jni_se_mock PRIVATE
     rt
+    gaia_semock
     storage_engine_mock_jni_headers)
   set_target_properties(jni_se_mock PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
   set_target_properties(jni_se_mock PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")

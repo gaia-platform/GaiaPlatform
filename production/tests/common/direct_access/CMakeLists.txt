@@ -35,4 +35,4 @@ set (DIRECT_ACCESS_TEST_INCLUDES
     ${GAIA_TEST_COMMON_INCLUDES}
     ${GAIA_REPO}/production/db/storage_engine/mock
 )
-add_gtest(test_direct_access test_direct_access.cpp "${DIRECT_ACCESS_TEST_INCLUDES}" "rt" "test_generated_code")
+add_gtest(test_direct_access test_direct_access.cpp "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia" "test_generated_code")
