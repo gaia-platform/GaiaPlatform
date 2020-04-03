@@ -353,7 +353,7 @@ public final class CacheFactory {
     // Full airport data set.
     public static CacheGraph createFullAirport()
     {
-        final CacheGraph graph = openWithoutCOW());
+        final CacheGraph graph = openWithoutCOW();
         generateFullAirport(graph);
         return graph;
     }
