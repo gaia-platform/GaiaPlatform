@@ -132,6 +132,8 @@ public final class CacheGraph implements Graph
             {
                 throw new UnsupportedOperationException("Opening of COW failed!");
             }
+
+            CacheHelper.loadAirportGraphFromCow(this);
         }
     }
 

@@ -145,7 +145,7 @@ namespace db
 
             if (umask(0) != 0)
             {
-                throw std::runtime_error("unable to set the seurity mask to 0");
+                throw std::runtime_error("unable to set the security mask to 0");
             }
 
             const auto OPEN_FLAGS = engine ? O_CREAT | O_RDWR : O_RDWR;

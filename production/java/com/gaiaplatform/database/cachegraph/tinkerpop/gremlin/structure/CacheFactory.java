@@ -350,30 +350,27 @@ public final class CacheFactory {
         return graph;
     }
 
-    // Full airport data set.
-    public static CacheGraph createFullAirport()
+    // Load a graphml file.
+    public static CacheGraph loadGraphml(String filename)
     {
-        final CacheGraph graph = openWithoutCOW();
-        generateFullAirport(graph);
-        return graph;
-    }
+        final CacheGraph graph = getCacheGraphWithNumberManager();
 
-    public static void generateFullAirport(final CacheGraph graph)
-    {
         try
         {
-            graph.io(graphml()).readGraph("gaia-airport.graphml");
+            graph.io(graphml()).readGraph(filename);
         }
         catch (Exception e)
         {
             System.out.println(
-                "An error happened while attempting to load gaia-airport.graphml: "
+                "An error happened while attempting to load " + filename + ": "
                 + e.getMessage());
         }
+
+        return graph;
     }
 
     // A method for loading airport data from COW.
-    public static CacheGraph loadAirportGraph()
+    public static CacheGraph loadAirportGraphFromCow()
     {
         final Configuration configuration = getNumberIdManagerConfiguration();
 
@@ -381,11 +378,13 @@ public final class CacheFactory {
         configuration.setProperty(
             CacheGraph.CACHEGRAPH_CREATE_ON_START,
             false);
+
         // We read from COW to write into cached graph,
         // so we don't need to write back into COW.
         configuration.setProperty(
             CacheGraph.CACHEGRAPH_ENABLE_COW_WRITES,
             false);
+
         // We need to enable airport data serialization code.
         configuration.setProperty(
             CacheGraph.CACHEGRAPH_ENABLE_AIRPORT_CODE,

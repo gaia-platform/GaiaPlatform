@@ -34,17 +34,83 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
+import com.gaiaplatform.database.CowStorageEngine;
+
 public final class CacheHelper
 {
     private final static String PROPERTY_DELIMITER = "|";
     private final static String KEY_VALUE_DELIMITER = "=";
     private final static String EMPTY_STRING = "";
 
+    private final static long AIRPORT_NODE_TYPE = 1;
+    private final static long AIRLINE_NODE_TYPE = 2;
+    private final static long FLIGHT_NODE_TYPE = 3;
+    private final static long DEPARTURE_EDGE_TYPE = 4;
+    private final static long ARRIVES_AT_EDGE_TYPE = 5;
+    private final static long OPERATED_BY_EDGE_TYPE = 6;
+
+
     private static AtomicLong lastType = new AtomicLong();
     private static Map<String, Long> mapLabelsToTypes = new ConcurrentHashMap<>();
 
     private CacheHelper()
     {
+    }
+
+    protected static void loadAirportGraphFromCow(CacheGraph graph)
+    {
+        graph.cow.beginTransaction();
+
+        // Scan airport nodes.
+        long currentNodeId = graph.cow.findFirstNode(AIRPORT_NODE_TYPE);
+        while (currentNodeId != 0)
+        {
+            graph.cow.printNode(currentNodeId);
+            currentNodeId = graph.cow.findNextNode(currentNodeId);
+        }
+
+        // Scan airline nodes.
+        currentNodeId = graph.cow.findFirstNode(AIRLINE_NODE_TYPE);
+        while (currentNodeId != 0)
+        {
+            graph.cow.printNode(currentNodeId);
+            currentNodeId = graph.cow.findNextNode(currentNodeId);
+        }
+
+        // Scan flight nodes.
+        currentNodeId = graph.cow.findFirstNode(FLIGHT_NODE_TYPE);
+        while (currentNodeId != 0)
+        {
+            graph.cow.printNode(currentNodeId);
+            currentNodeId = graph.cow.findNextNode(currentNodeId);
+        }
+
+        // Scan departure edges.
+        long currentEdgeId = graph.cow.findFirstEdge(DEPARTURE_EDGE_TYPE);
+        while (currentEdgeId != 0)
+        {
+            graph.cow.printEdge(currentEdgeId);
+            currentEdgeId = graph.cow.findNextEdge(currentEdgeId);
+        }
+
+        // Scan arrives_at edges.
+        currentEdgeId = graph.cow.findFirstEdge(ARRIVES_AT_EDGE_TYPE);
+        while (currentEdgeId != 0)
+        {
+            graph.cow.printEdge(currentEdgeId);
+            currentEdgeId = graph.cow.findNextEdge(currentEdgeId);
+        }
+
+        // Scan operated_by edges.
+        currentEdgeId = graph.cow.findFirstEdge(OPERATED_BY_EDGE_TYPE);
+        while (currentEdgeId != 0)
+        {
+            graph.cow.printEdge(currentEdgeId);
+            currentEdgeId = graph.cow.findNextEdge(currentEdgeId);
+        }
+
+        // We're not making any changes to COW, so we can just rollback.
+        graph.cow.rollbackTransaction();
     }
 
     private static void packProperty(StringBuilder payload, String key, String value)
