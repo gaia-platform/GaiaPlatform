@@ -40,27 +40,6 @@ namespace gaia
     }
 }
 
-int64_t create_employee(int64_t Gaia_Mgr_id_val, int64_t Gaia_FirstAddr_id_val, int64_t Gaia_FirstPhone_id_val, 
-    int64_t Gaia_FirstProvision_id_val, int64_t Gaia_FirstSalary_id_val, const char *name_first_val, 
-    const char *name_last_val, const char *ssn_val, int64_t hire_date_val, const char *email_val, 
-    const char *web_val)
-{
-    auto employee = new AddrBook::Employee();
-    employee->set_Gaia_Mgr_id(Gaia_Mgr_id_val);
-    employee->set_Gaia_FirstAddr_id(Gaia_FirstAddr_id_val);
-    employee->set_Gaia_FirstPhone_id(Gaia_FirstPhone_id_val);
-    employee->set_Gaia_FirstProvision_id(Gaia_FirstProvision_id_val);
-    employee->set_Gaia_FirstSalary_id(Gaia_FirstSalary_id_val);
-    employee->set_name_first(name_first_val);
-    employee->set_name_last(name_last_val);
-    employee->set_ssn(ssn_val);
-    employee->set_hire_date(hire_date_val);
-    employee->set_email(email_val);
-    employee->set_web(web_val);
-    employee->insert_row();
-    return employee->gaia_id();
-}
-
 
 
 void GaiaGetTest()
@@ -75,7 +54,7 @@ void GaiaGetTest()
     int64_t first_salary_id = get_next_id();
     int64_t hire_date = get_next_id();
         
-    int64_t empl_node_id = create_employee(manager_id
+    int64_t empl_node_id = AddrBook::Employee::insert_row(manager_id
         ,first_address_id
         ,first_phone_id
         ,first_provision_id
@@ -121,7 +100,7 @@ void GaiaSetTest()
     int64_t first_salary_id = get_next_id();
     int64_t hire_date = get_next_id();
         
-    int64_t empl_node_id = create_employee(manager_id
+    int64_t empl_node_id = AddrBook::Employee::insert_row(manager_id
         ,first_address_id
         ,first_phone_id
         ,first_provision_id
@@ -162,7 +141,7 @@ void GaiaUpdateTest()
     int64_t first_salary_id = get_next_id();
     int64_t hire_date = get_next_id();
         
-    int64_t empl_node_id = create_employee(manager_id
+    int64_t empl_node_id = AddrBook::Employee::insert_row(manager_id
         ,first_address_id
         ,first_phone_id
         ,first_provision_id
