@@ -8,6 +8,7 @@ import java.io.IOException;
 
 import java.text.ParseException;
 
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 
 public class AirportDataProcessor
@@ -98,8 +99,11 @@ public class AirportDataProcessor
         output.write("<?xml version='1.0' ?>\n");
         output.write("\n");
         output.write("<!--airport data in graphml format-->\n");
+        output.write("\n");
         output.write("<!--Copyright (c) Gaia Platform LLC-->\n");
         output.write("<!--All rights reserved.-->\n");
+        output.write("\n");
+        output.write("<!--Generated on: " + ZonedDateTime.now() + ".-->\n");
         output.write("\n");
         output.write("<graphml xmlns='http://graphml.graphdrawing.org/xmlns'>\n");
         output.write("  <key id='ap_id' for='node' attr.name='ap_id' attr.type='int'/>\n");
@@ -194,6 +198,50 @@ public class AirportDataProcessor
         }    
     }
 
+    protected static String cleanupString(String data)
+    {
+        if (data.isEmpty())
+        {
+            return data;
+        }
+
+        String newData = data;
+
+        // Some strings contain control characters
+        // that don't work well with XML.
+        // As we don't have an encoding method,
+        // we'll just have to look them up and remove them.
+        if (data.length() != data.getBytes().length)
+        {
+            StringBuilder newString = new StringBuilder();
+
+            for (int i = 0; i < data.length(); i++)
+            {
+                char character = data.charAt(i);
+                if (Character.isISOControl(character))
+                {
+                    // Skip the control character as well as the next two characters.
+                    i += 2;
+                    continue;
+                }
+                
+                newString.append(character);
+            }
+    
+            newData = newString.toString();
+        }
+
+        // We also need to escape ampersands.
+        newData = newData.replace("&", "&amp;");
+
+        if (!newData.equals(data) && printDebuggingOutput)
+        {
+            System.out.println("Changed [" + data + "] to [" + newData + "].");
+        }
+
+        return newData;
+    }
+
     // Map IATA and record id to an entity id
     // so we can later look them up to generate the edge information.
     protected static int mapIdentifiers(
@@ -212,7 +260,7 @@ public class AirportDataProcessor
                 entityId = iataMap.get(iata);
 
                 System.out.println(
-                    "A duplicate IATA [" + iata
+                    "WARNING: A duplicate IATA [" + iata
                     + "] was found on line " + lineCount
                     + "! Will try to map the numerical id of this record to the previously assigned entity id: "
                     + entityId + ".");
@@ -234,7 +282,7 @@ public class AirportDataProcessor
         catch (Exception e)
         {
             System.out.println(
-                "An invalid id [" + id
+                "WARNING: An invalid id [" + id
                 + "] was found on line " + lineCount
                 + "! Will use IATA mapping or will skip this record if IATA could not be mapped.");
 
@@ -244,7 +292,7 @@ public class AirportDataProcessor
         if (idMap.containsKey(integerId))
         {
             System.out.println(
-                "A duplicate id [" + id
+                "WARNING: A duplicate id [" + id
                 + "] was found on line " + lineCount
                 + "! Will use IATA mapping or will skip this record if IATA could not be mapped.");
 
@@ -309,14 +357,14 @@ public class AirportDataProcessor
             if (!columns[AirportIndex.TYPE].equals("airport"))
             {
                 System.out.println(
-                    "Unexpected airport type [" + columns[AirportIndex.TYPE]
+                    "WARNING: An unexpected airport type [" + columns[AirportIndex.TYPE]
                     + "] was encountered on line " + parser.getLineCount() + "!");
             }
 
             output.write("  <node id='" + airportNodeId + "'>\n");
             output.write("    <data key='labelV'>airport</data>\n");
             outputData(columns[AirportIndex.ID], "ap_id", DataType.INTEGER);
-            outputData(columns[AirportIndex.NAME], "name");
+            outputData(cleanupString(columns[AirportIndex.NAME]), "name");
             outputData(columns[AirportIndex.CITY], "city");
             outputData(columns[AirportIndex.COUNTRY], "country");
             outputData(columns[AirportIndex.IATA], "iata");
@@ -367,12 +415,12 @@ public class AirportDataProcessor
 
             output.write("  <node id='" + airlineNodeId + "'>\n");
             output.write("    <data key='labelV'>airline</data>\n");
-            outputData(columns[AirlineIndex.ID], "ap_id", DataType.INTEGER);
-            outputData(columns[AirlineIndex.NAME], "name");
+            outputData(columns[AirlineIndex.ID], "al_id", DataType.INTEGER);
+            outputData(cleanupString(columns[AirlineIndex.NAME]), "name");
             outputData(columns[AirlineIndex.ALIAS], "alias");
-            outputData(columns[AirlineIndex.IATA], "iata");
-            outputData(columns[AirlineIndex.ICAO], "icao");
-            outputData(columns[AirlineIndex.CALLSIGN], "callsign");
+            outputData(cleanupString(columns[AirlineIndex.IATA]), "iata");
+            outputData(cleanupString(columns[AirlineIndex.ICAO]), "icao");
+            outputData(cleanupString(columns[AirlineIndex.CALLSIGN]), "callsign");
             outputData(columns[AirlineIndex.COUNTRY], "country");
             outputData(columns[AirlineIndex.ACTIVE], "active");
             output.write("  </node>\n");
@@ -398,14 +446,6 @@ public class AirportDataProcessor
 
         while ((columns = parser.getNextColumns()) != null)
         {
-            if (printDebuggingOutput)
-            {
-                System.out.println(
-                    "flight record: airline=" + columns[RouteIndex.AIRLINE_ID]
-                    + " departureAirport=" + columns[RouteIndex.DEPARTURE_AIRPORT_ID]
-                    + " arrivalAirport=" + columns[RouteIndex.ARRIVAL_AIRPORT_ID]);
-            }
-
             String airlineIata = columns[RouteIndex.AIRLINE_IATA];
             String departureAirportIata = columns[RouteIndex.DEPARTURE_AIRPORT_IATA];
             String arrivalAirportIata = columns[RouteIndex.ARRIVAL_AIRPORT_IATA];
@@ -413,6 +453,14 @@ public class AirportDataProcessor
             String airlineId = columns[RouteIndex.AIRLINE_ID];
             String departureAirportId = columns[RouteIndex.DEPARTURE_AIRPORT_ID];
             String arrivalAirportId = columns[RouteIndex.ARRIVAL_AIRPORT_ID];
+
+            if (printDebuggingOutput)
+            {
+                System.out.println(
+                    "flight record: airline = " + airlineIata + "(" + airlineId + ")"
+                    + " departure airport = " + departureAirportIata + "(" + departureAirportId + ")"
+                    + " arrival airport = " + arrivalAirportIata + "(" + arrivalAirportId + ").");
+            }
 
             int airlineNodeId = lookupIdentifiers(
                 airlineIata, airlineIataMap, airlineId, airlineIdMap);
@@ -424,7 +472,7 @@ public class AirportDataProcessor
             if (airlineNodeId == 0)
             {
                 System.out.println(
-                    "Could not resolve airline ["
+                    "WARNING: Could not resolve airline ["
                     + airlineIata + "(" + airlineId + ")]"
                     + " on line " + parser.getLineCount() + "! Will skip record.");
                 continue;
@@ -432,7 +480,7 @@ public class AirportDataProcessor
             if (departureAirportNodeId == 0)
             {
                 System.out.println(
-                    "Could not resolve departure airport ["
+                    "WARNING: Could not resolve departure airport ["
                     + departureAirportIata + "(" + departureAirportId + ")]"
                     + " on line " + parser.getLineCount() + "! Will skip record.");
                 continue;
@@ -440,7 +488,7 @@ public class AirportDataProcessor
             if (arrivalAirportNodeId == 0)
             {
                 System.out.println(
-                    "Could not resolve arrival airport ["
+                    "WARNING: Could not resolve arrival airport ["
                     + arrivalAirportIata + "(" + arrivalAirportId + ")]"
                     + " on line " + parser.getLineCount() + "! Will skip record.");
                 continue;
@@ -481,7 +529,7 @@ public class AirportDataProcessor
 
             output.write(
                 "  <edge id='" + operatedByEdgeId
-                + "' source='" + departureAirportNodeId + "' target = '" + flightNodeId + "'>\n");
+                + "' source='" + flightNodeId + "' target = '" + airlineNodeId + "'>\n");
             output.write("    <data key='labelE'>operated_by</data>\n");
             output.write("  </edge>\n");
 
