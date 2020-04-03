@@ -16,3 +16,7 @@ dist/
 
 # Generated header files
 *_generated.h
+
+# Java class files
+*.class
+
