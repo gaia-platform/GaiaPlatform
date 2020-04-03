@@ -1,6 +1,8 @@
 # Fullsized airport data, from  openflights.com
 
-Uncompress with ```gzip -dk <filename.dat.gz>```
+Original data is in *dat.gz* files. You can decompress them using the following command: ```gzip -dk <filename.dat.gz>```.
+
+The file *gaia-airport.graphml* was built from this data using the Java tool from scratch/laurentiu/airport-graphml. It only contains routes that could properly be resolved to airports and airlines. A bit over 1000 routes from the original dataset could not be resolved and were dropped. This file was tested to load into TinkerGraph using the command: ```graph.io(graphml()).readGraph('gaia-airport.graphml')```.
 
 Data is denormalized.
 

@@ -14,9 +14,4 @@ project(tests)
 add_subdirectory(common)
 
 # Tests.
-add_executable(test_retail_assert test_retail_assert.cpp)
-target_include_directories(test_retail_assert PRIVATE
-  "${GAIA_INC}/internal/common"
-  ${GOOGLE_TEST_INC})
-target_link_libraries(test_retail_assert PRIVATE gtest_main)
-gtest_discover_tests(test_retail_assert)
+add_gtest(test_retail_assert test_retail_assert.cpp "${GAIA_INC}/internal/common" "")

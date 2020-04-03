@@ -29,4 +29,3 @@ void initialize(bool is_engine);
 }
 /*@}*/
 }
-

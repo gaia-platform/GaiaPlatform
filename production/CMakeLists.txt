@@ -80,8 +80,8 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
 endif()
 
 # Common code - currently, a headers-only library.
-add_library(common INTERFACE)
-target_sources(common INTERFACE 
+add_library(gaia_common INTERFACE)
+target_sources(gaia_common INTERFACE 
   ${PROJECT_SOURCE_DIR}/inc/internal/common/gaia_exception.hpp 
   ${PROJECT_SOURCE_DIR}/inc/internal/common/retail_assert.hpp
 )
@@ -90,9 +90,10 @@ target_sources(common INTERFACE
 add_subdirectory("../third_party/production/flatbuffers" flatbuffers)
 
 # Add individual component folders.
-add_subdirectory(system)
 add_subdirectory(db)
+add_subdirectory(direct_access)
 add_subdirectory(rules)
+add_subdirectory(system)
 add_subdirectory(tests)
 
 # Add googletest

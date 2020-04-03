@@ -4,9 +4,7 @@
 /////////////////////////////////////////////
 
 #include <iostream>
-
 #include "gtest/gtest.h"
-#include "gaia_object.hpp"
 #include "addr_book_gaia_generated.h"
 
 using namespace std;

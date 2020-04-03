@@ -178,6 +178,13 @@ public:
         reset();
     }
 
+    static gaia_id_t insert_row(gaia::common::gaia_type_t type, flatbuffers::FlatBufferBuilder& fbb)
+    {
+        gaia_id_t nodeId = gaia_se_node::generate_id();
+        gaia_se_node::create(nodeId, type, fbb.GetSize(), fbb.GetBufferPointer());
+        return nodeId;
+    }
+
 protected:
     // This constructor supports creating new objects from existing
     // nodes in the database.  It is called by our get_object below.

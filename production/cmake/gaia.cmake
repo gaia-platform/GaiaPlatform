@@ -24,33 +24,68 @@ function(set_test target arg result)
 endfunction(set_test)
 
 # Helper function for setting up google tests.
-# Assumes you want to link in the gtest provided
-# main function
+# The named arguments are required:  TARGET, SOURCES, INCLUDES, LIBRARIES
+# Two optional arguments are after this: 
+# [DEPENDENCIES] - for add_dependencies used for generation of flatbuffer files.  Defaults to ""
+# [HAS_MAIN] - "{TRUE, 1, ON, YES, Y} indicates the test provides its own main function.  Defaults to "" (FALSE).
 function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
-  _add_gtest("${TARGET}" "${SOURCES}" "${INCLUDES}" "${LIBRARIES}" "gtest_main")
-endfunction(add_gtest)
-
-function(add_gtest_no_main TARGET SOURCES INCLUDES LIBRARIES)
-  _add_gtest("${TARGET}" "${SOURCES}" "${INCLUDES}" "${LIBRARIES}" "gtest")
-endfunction(add_gtest_no_main)
-
-function(_add_gtest TARGET SOURCES INCLUDES LIBRARIES GTEST_LIB)
 #  message(STATUS "TARGET = ${TARGET}")
 #  message(STATUS "SOURCES = ${SOURCES}")
 #  message(STATUS "INCLUDES = ${INCLUDES}")
 #  message(STATUS "LIBRARIES = ${LIBRARIES}")
-#  message(STATUS "GTEST_LIB = ${GTEST_LIB}")
+#  message(STATUS "ARGV0 = ${ARGV0}")
+#  message(STATUS "ARGV1 = ${ARGV1}")
+#  message(STATUS "ARGV2 = ${ARGV2}")
+#  message(STATUS "ARGV3 = ${ARGV3}")
+#  message(STATUS "ARGV4 = ${ARGV4}")
+#  message(STATUS "ARGV5 = ${ARGV5}")
 
   add_executable(${TARGET} ${SOURCES})
-  target_include_directories(${TARGET} PRIVATE 
-    ${INCLUDES}
-    ${GOOGLE_TEST_INC}
-  )
-  
-  target_link_libraries(${TARGET} PRIVATE 
-    ${LIBRARIES}
-    ${GTEST_LIB}
-  )
+
+  if (NOT ("${ARGV4}" STREQUAL ""))
+    add_dependencies(${TARGET} ${ARGV4})
+  endif()
+
+  target_include_directories(${TARGET} PRIVATE ${INCLUDES} ${GOOGLE_TEST_INC})
+  if("${ARGV5}")
+    set(GTEST_LIB "gtest")
+  else()
+    set(GTEST_LIB "gtest_main")
+  endif()
+  target_link_libraries(${TARGET} PRIVATE ${LIBRARIES} ${GTEST_LIB})
+
   set_target_properties(${TARGET} PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
   gtest_discover_tests(${TARGET})
-endfunction(_add_gtest)
+endfunction(add_gtest)
+
+# Gaia specific flatc helpers for generating headers
+function(gaia_compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT)
+  if(FLATBUFFERS_BUILD_LEGACY)
+    set(OPT ${OPT};--cpp-std c++0x)
+  else()
+    # --cpp-std is defined by flatc default settings.
+  endif()
+  message(STATUS "`${SRC_FBS}`: add generation of C++ code with '${OPT}'")
+  get_filename_component(SRC_FBS_DIR ${SRC_FBS} PATH)
+  string(REGEX REPLACE "\\.fbs$" "_generated.h" GEN_HEADER ${SRC_FBS})
+  add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${GEN_HEADER}
+    COMMAND "${CMAKE_BINARY_DIR}/flatbuffers/flatc"
+            --cpp --gen-mutable --gen-object-api --reflect-names
+            --cpp-ptr-type flatbuffers::unique_ptr # Used to test with C++98 STLs
+            --cpp-str-type gaia::common::nullable_string_t
+            --gaiacpp --gen-setters
+            ${OPT}
+            -I ${CMAKE_CURRENT_SOURCE_DIR}
+            -o ${CMAKE_CURRENT_SOURCE_DIR}
+            ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
+    DEPENDS ${CMAKE_BINARY_DIR}/flatbuffers/flatc 
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
+    COMMENT "Run generation: '${GEN_HEADER}'"
+    VERBATIM)
+    register_generated_output(${GEN_HEADER})
+endfunction()
+
+function(gaia_compile_flatbuffers_schema_to_cpp SRC_FBS)
+  gaia_compile_flatbuffers_schema_to_cpp_opt(${SRC_FBS} "--no-includes;--gen-compare")
+endfunction()

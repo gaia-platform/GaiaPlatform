@@ -18,10 +18,7 @@ set(GAIA_SYSTEM_INCLUDES
 message(STATUS "GAIA_SYSTEM_INCLUDES=${GAIA_SYSTEM_INCLUDES}")
 
 # Our main target.
-add_library(gaia STATIC 
-    src/gaia_system.cpp
-    src/gaia_object_defs.cpp
-    src/storage_engine_defs.cpp
-)
+add_library(gaia STATIC src/gaia_system.cpp)
 target_include_directories(gaia PRIVATE ${GAIA_SYSTEM_INCLUDES})
+target_link_libraries(gaia gaia_semock gaia_direct)
 set_target_properties(gaia PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
