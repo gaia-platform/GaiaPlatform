@@ -514,6 +514,8 @@ namespace flatbuffers
                 std::string param_Values = "";
                 //generate constructors 
                 code_ += "{{CLASS_NAME}}() = default;";
+
+                bool has_string_or_vector_fields = false;
            
                 // Generate the accessors.
                 for (auto it = struct_def.fields.vec.begin();
@@ -524,6 +526,12 @@ namespace flatbuffers
                     {
                         // Deprecated fields won't be accessible.
                         continue;
+                    }
+
+                    if (field.value.type.base_type == BASE_TYPE_STRING || 
+                        field.value.type.base_type == BASE_TYPE_VECTOR) 
+                    { 
+                        has_string_or_vector_fields = true; 
                     }
 
                     if (!params.empty())
@@ -638,9 +646,17 @@ namespace flatbuffers
                 }
                 
                 code_ += "static gaia_id_t insert_row (" + params + "){\n"
-                    "flatbuffers::FlatBufferBuilder b(128);\n"
-                    "b.Finish(Create{{STRUCT_NAME}}Direct(b, " + param_Values + "));\n"
-                    "return gaia_object_t::insert_row("+ CurrentNamespaceString() +  "::k{{CLASS_NAME}}Type, b);\n"
+                    "flatbuffers::FlatBufferBuilder b(128);";
+                if (has_string_or_vector_fields)
+                {
+                    code_ += "b.Finish(Create{{STRUCT_NAME}}Direct(b, " + param_Values + "));";
+                }
+                else
+                {
+                    code_ += "b.Finish(Create{{STRUCT_NAME}}(b, " + param_Values + "));";
+                }
+                
+                code_ += "return gaia_object_t::insert_row("+ CurrentNamespaceString() +  "::k{{CLASS_NAME}}Type, b);\n"
                     "}";
 
                 if (opts_.generate_setters && opts_.generate_column_change_events)

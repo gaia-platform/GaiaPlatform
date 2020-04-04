@@ -45,3 +45,8 @@ table phone {
     type: string;
     primary: bool;
 }
+
+table salary {
+    Gaia_NextSalary_id: int64;
+    yearly_salary: int64;
+}
