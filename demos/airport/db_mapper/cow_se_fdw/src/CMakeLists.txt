@@ -6,17 +6,11 @@
 # compile config
 
 set (COW_SE_SOURCES
-  cow_se_fdw.c
-)
-
-set (COW_SE_HEADERS
-  cow_se_fdw.h
+  cow_se_fdw.cpp
 )
 
 set(CMAKE_C_FLAGS "${PGSQL_CPPFLAGS}")
 set(CMAKE_SHARED_LINKER_FLAGS "${PGSQL_LDFLAGS}")
-
-include_directories ("${PGSQL_INCLUDEDIR_SERVER}")
 
 add_library (cow_se_fdw SHARED ${COW_SE_SOURCES} ${COW_SE_HEADERS})
 
@@ -24,6 +18,14 @@ set_target_properties (cow_se_fdw PROPERTIES
   OUTPUT_NAME "cow_se_fdw-${PGCOW_SE_VERSION_MAJOR}"
   PREFIX ""
 )
+
+target_include_directories(cow_se_fdw PRIVATE "${PROJECT_SOURCE_DIR}")
+# for COW-SE
+target_include_directories(cow_se_fdw PRIVATE "../../../../cow_se/inc")
+# for postgres
+target_include_directories (cow_se_fdw SYSTEM PRIVATE "${PGSQL_INCLUDEDIR_SERVER}")
+# for flatcc
+#target_include_directories (cow_se_fdw SYSTEM PRIVATE "/usr/local/include")
 
 target_link_libraries(cow_se_fdw m)
 
