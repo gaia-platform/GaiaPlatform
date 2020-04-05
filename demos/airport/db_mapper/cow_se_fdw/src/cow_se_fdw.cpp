@@ -5,172 +5,21 @@
 
 #include "cow_se_fdw.h"
 
-PG_MODULE_MAGIC;
+using namespace std;
+using namespace gaia_se;
+
+// magic block for extension library
+extern "C" {
+    PG_MODULE_MAGIC;
+}
 
 /*
- * SQL functions
- */
-extern Datum cow_se_fdw_handler(PG_FUNCTION_ARGS);
-extern Datum cow_se_fdw_validator(PG_FUNCTION_ARGS);
-
-PG_FUNCTION_INFO_V1(cow_se_fdw_handler);
-PG_FUNCTION_INFO_V1(cow_se_fdw_validator);
-
-/*
- * FDW callback routines
- */
-static void cow_seGetForeignRelSize(PlannerInfo *root,
-                                      RelOptInfo *baserel,
-                                      Oid foreigntableid);
-static void cow_seGetForeignPaths(PlannerInfo *root,
-                                    RelOptInfo *baserel,
-                                    Oid foreigntableid);
-static ForeignScan *cow_seGetForeignPlan(PlannerInfo *root,
-                                           RelOptInfo *foreignrel,
-                                           Oid foreigntableid,
-                                           ForeignPath *best_path,
-                                           List *tlist,
-                                           List *scan_clauses,
-                                           Plan *outer_plan);
-static void cow_seBeginForeignScan(ForeignScanState *node, int eflags);
-static TupleTableSlot *cow_seIterateForeignScan(ForeignScanState *node);
-static void cow_seReScanForeignScan(ForeignScanState *node);
-static void cow_seEndForeignScan(ForeignScanState *node);
-static void cow_seAddForeignUpdateTargets(Query *parsetree,
-                                            RangeTblEntry *target_rte,
-                                            Relation target_relation);
-static List *cow_sePlanForeignModify(PlannerInfo *root,
-                                       ModifyTable *plan,
-                                       Index resultRelation,
-                                       int subplan_index);
-static void cow_seBeginForeignModify(ModifyTableState *mtstate,
-                                       ResultRelInfo *resultRelInfo,
-                                       List *fdw_private,
-                                       int subplan_index,
-                                       int eflags);
-static TupleTableSlot *cow_seExecForeignInsert(EState *estate,
-                                                 ResultRelInfo *resultRelInfo,
-                                                 TupleTableSlot *slot,
-                                                 TupleTableSlot *planSlot);
-static TupleTableSlot *cow_seExecForeignUpdate(EState *estate,
-                                                 ResultRelInfo *resultRelInfo,
-                                                 TupleTableSlot *slot,
-                                                 TupleTableSlot *planSlot);
-static TupleTableSlot *cow_seExecForeignDelete(EState *estate,
-                                                 ResultRelInfo *resultRelInfo,
-                                                 TupleTableSlot *slot,
-                                                 TupleTableSlot *planSlot);
-static void cow_seEndForeignModify(EState *estate,
-                                     ResultRelInfo *resultRelInfo);
-static void cow_seBeginForeignInsert(ModifyTableState *mtstate,
-                                       ResultRelInfo *resultRelInfo);
-static void cow_seEndForeignInsert(EState *estate,
-                                     ResultRelInfo *resultRelInfo);
-static int  cow_seIsForeignRelUpdatable(Relation rel);
-static bool cow_sePlanDirectModify(PlannerInfo *root,
-                                     ModifyTable *plan,
-                                     Index resultRelation,
-                                     int subplan_index);
-static void cow_seBeginDirectModify(ForeignScanState *node, int eflags);
-static TupleTableSlot *cow_seIterateDirectModify(ForeignScanState *node);
-static void cow_seEndDirectModify(ForeignScanState *node);
-static void cow_seExplainForeignScan(ForeignScanState *node,
-                                       struct ExplainState *es);
-static void cow_seExplainForeignModify(ModifyTableState *mtstate,
-                                         ResultRelInfo *rinfo,
-                                         List *fdw_private,
-                                         int subplan_index,
-                                         struct ExplainState *es);
-static void cow_seExplainDirectModify(ForeignScanState *node,
-                                        struct ExplainState *es);
-static bool cow_seAnalyzeForeignTable(Relation relation,
-                                        AcquireSampleRowsFunc *func,
-                                        BlockNumber *totalpages);
-static List *cow_seImportForeignSchema(ImportForeignSchemaStmt *stmt,
-                                         Oid serverOid);
-static void cow_seGetForeignJoinPaths(PlannerInfo *root,
-                                        RelOptInfo *joinrel,
-                                        RelOptInfo *outerrel,
-                                        RelOptInfo *innerrel,
-                                        JoinType jointype,
-                                        JoinPathExtraData *extra);
-static bool cow_seRecheckForeignScan(ForeignScanState *node,
-                                       TupleTableSlot *slot);
-static void cow_seGetForeignUpperPaths(PlannerInfo *root,
-                                         UpperRelationKind stage,
-                                         RelOptInfo *input_rel,
-                                         RelOptInfo *output_rel,
-                                         void *extra);
-static bool cow_seRecheckForeignScan(ForeignScanState *node,
-                                       TupleTableSlot *slot);
-static RowMarkType cow_seGetForeignRowMarkType(RangeTblEntry *rte,
-                                               LockClauseStrength strength);
-static void cow_seRefetchForeignRow(EState *estate,
-                                      ExecRowMark *erm,
-                                      Datum rowid,
-                                      TupleTableSlot *slot,
-                                      bool *updated);
-
-
-/*
- * structures used by the FDW
- *
- * These next structures are not actually used by cow_se,but something like
- * them will be needed by anything more complicated that does actual work.
- */
-
-/*
- * Describes the valid options for objects that use this wrapper.
- */
-struct cow_seFdwOption
-{
-    const char *optname;
-    Oid         optcontext;     /* Oid of catalog in which option may appear */
-};
-
-/*
- * The plan state is set up in cow_seGetForeignRelSize and stashed away in
- * baserel->fdw_private and fetched in cow_seGetForeignPaths.
- */
-typedef struct
-{
-    char       *foo;
-    int         bar;
-} cow_seFdwPlanState;
-
-/*
- * The scan state is for maintaining state for a scan, eiher for a
- * SELECT or UPDATE or DELETE.
- *
- * It is set up in cow_seBeginForeignScan and stashed in node->fdw_state
- * and subsequently used in cow_seIterateForeignScan,
- * cow_seEndForeignScan and cow_seReScanForeignScan.
- */
-typedef struct
-{
-    char       *baz;
-    int         blurfl;
-} cow_seFdwScanState;
-
-/*
- * The modify state is for maintaining state of modify operations.
- *
- * It is set up in cow_seBeginForeignModify and stashed in
- * rinfo->ri_FdwState and subsequently used in cow_seExecForeignInsert,
- * cow_seExecForeignUpdate, cow_seExecForeignDelete and
- * cow_seEndForeignModify.
- */
-typedef struct
-{
-    char       *chimp;
-    int         chump;
-} cow_seFdwModifyState;
-
-
-/*
- * Foreign-data wrapper handler function: return a struct with pointers
- * to my callback routines.
- */
+ * The FDW handler function returns a palloc'd FdwRoutine struct containing
+ * pointers to the callback functions that will be called by the planner,
+ * executor, and various maintenance commands. The scan-related functions are
+ * required, the rest are optional.
+*/
+extern "C"
 Datum
 cow_se_fdw_handler(PG_FUNCTION_ARGS)
 {
@@ -187,54 +36,66 @@ cow_se_fdw_handler(PG_FUNCTION_ARGS)
     routine->ReScanForeignScan = cow_seReScanForeignScan;
     routine->EndForeignScan = cow_seEndForeignScan;
 
-    /* Functions for updating foreign tables */
-    routine->AddForeignUpdateTargets = cow_seAddForeignUpdateTargets;
-    routine->PlanForeignModify = cow_sePlanForeignModify;
-    routine->BeginForeignModify = cow_seBeginForeignModify;
-    routine->ExecForeignInsert = cow_seExecForeignInsert;
-    routine->ExecForeignUpdate = cow_seExecForeignUpdate;
-    routine->ExecForeignDelete = cow_seExecForeignDelete;
-    routine->EndForeignModify = cow_seEndForeignModify;
-    routine->BeginForeignInsert = cow_seBeginForeignInsert;
-    routine->EndForeignInsert = cow_seEndForeignInsert;
-    routine->IsForeignRelUpdatable = cow_seIsForeignRelUpdatable;
-    routine->PlanDirectModify = cow_sePlanDirectModify;
-    routine->BeginDirectModify = cow_seBeginDirectModify;
-    routine->IterateDirectModify = cow_seIterateDirectModify;
-    routine->EndDirectModify = cow_seEndDirectModify;
+    // /* Functions for updating foreign tables */
+    // routine->AddForeignUpdateTargets = cow_seAddForeignUpdateTargets;
+    // routine->PlanForeignModify = cow_sePlanForeignModify;
+    // routine->BeginForeignModify = cow_seBeginForeignModify;
+    // routine->ExecForeignInsert = cow_seExecForeignInsert;
+    // routine->ExecForeignUpdate = cow_seExecForeignUpdate;
+    // routine->ExecForeignDelete = cow_seExecForeignDelete;
+    // routine->EndForeignModify = cow_seEndForeignModify;
+    // routine->BeginForeignInsert = cow_seBeginForeignInsert;
+    // routine->EndForeignInsert = cow_seEndForeignInsert;
+    // routine->IsForeignRelUpdatable = cow_seIsForeignRelUpdatable;
+    // routine->PlanDirectModify = cow_sePlanDirectModify;
+    // routine->BeginDirectModify = cow_seBeginDirectModify;
+    // routine->IterateDirectModify = cow_seIterateDirectModify;
+    // routine->EndDirectModify = cow_seEndDirectModify;
 
-    /* Function for EvalPlanQual rechecks */
-    routine->RecheckForeignScan = cow_seRecheckForeignScan;
-    /* Support functions for EXPLAIN */
-    routine->ExplainForeignScan = cow_seExplainForeignScan;
-    routine->ExplainForeignModify = cow_seExplainForeignModify;
-    routine->ExplainDirectModify = cow_seExplainDirectModify;
+    // /* Function for EvalPlanQual rechecks */
+    // routine->RecheckForeignScan = cow_seRecheckForeignScan;
+    // /* Support functions for EXPLAIN */
+    // routine->ExplainForeignScan = cow_seExplainForeignScan;
+    // routine->ExplainForeignModify = cow_seExplainForeignModify;
+    // routine->ExplainDirectModify = cow_seExplainDirectModify;
 
-    /* Support functions for ANALYZE */
-    routine->AnalyzeForeignTable = cow_seAnalyzeForeignTable;
+    // /* Support functions for ANALYZE */
+    // routine->AnalyzeForeignTable = cow_seAnalyzeForeignTable;
 
-    /* Support functions for IMPORT FOREIGN SCHEMA */
-    routine->ImportForeignSchema = cow_seImportForeignSchema;
+    // /* Support functions for IMPORT FOREIGN SCHEMA */
+    // routine->ImportForeignSchema = cow_seImportForeignSchema;
 
-    /* Support functions for join push-down */
-    routine->GetForeignJoinPaths = cow_seGetForeignJoinPaths;
+    // /* Support functions for join push-down */
+    // routine->GetForeignJoinPaths = cow_seGetForeignJoinPaths;
 
-    /* Support functions for upper relation push-down */
-    routine->GetForeignUpperPaths = cow_seGetForeignUpperPaths;
+    // /* Support functions for upper relation push-down */
+    // routine->GetForeignUpperPaths = cow_seGetForeignUpperPaths;
 
-    /* Support functions for late row locking */
-    routine->RecheckForeignScan = cow_seRecheckForeignScan;
-    routine->GetForeignRowMarkType = cow_seGetForeignRowMarkType;
-    routine->RefetchForeignRow = cow_seRefetchForeignRow;
+    // /* Support functions for late row locking */
+    // routine->RecheckForeignScan = cow_seRecheckForeignScan;
+    // routine->GetForeignRowMarkType = cow_seGetForeignRowMarkType;
+    // routine->RefetchForeignRow = cow_seRefetchForeignRow;
 
     PG_RETURN_POINTER(routine);
 }
 
-
+/*
+ * The validator function is responsible for validating options given in CREATE
+ * and ALTER commands for its foreign data wrapper, as well as foreign servers,
+ * user mappings, and foreign tables using the wrapper. The validator function
+ * must be registered as taking two arguments, a text array containing the
+ * options to be validated, and an OID representing the type of object the
+ * options are associated with (in the form of the OID of the system catalog
+ * the object would be stored in, either ForeignDataWrapperRelationId,
+ * ForeignServerRelationId, UserMappingRelationId, or ForeignTableRelationId).
+ * If no validator function is supplied, options are not checked at object
+ * creation time or object alteration time.
+ */
+extern "C"
 Datum
 cow_se_fdw_validator(PG_FUNCTION_ARGS)
 {
-    List       *options_list = untransformRelOptions(PG_GETARG_DATUM(0));
+    List *options_list = untransformRelOptions(PG_GETARG_DATUM(0));
 
     elog(DEBUG1, "entering function %s", __func__);
 
@@ -251,8 +112,46 @@ cow_se_fdw_validator(PG_FUNCTION_ARGS)
     PG_RETURN_VOID();
 }
 
-
+// from https://github.com/adjust/parquet_fdw/blob/master/parquet_impl.cpp
 static void
+get_table_options(Oid relid, cow_seFdwPlanState *fdw_private)
+{
+    ListCell     *lc;
+
+    foreach(lc, fdw_private->table->options)
+    {
+        DefElem    *def = (DefElem *) lfirst(lc);
+
+    //     if (strcmp(def->defname, "filename") == 0)
+    //         fdw_private->filename = defGetString(def);
+    //     else if (strcmp(def->defname, "sorted") == 0)
+    //     {
+    //         fdw_private->attrs_sorted =
+    //             parse_attributes_list(defGetString(def), relid);
+    //     }
+    //     else if (strcmp(def->defname, "use_mmap") == 0)
+    //     { 
+    //         if (!parse_bool(defGetString(def), &fdw_private->use_mmap))
+    //             ereport(ERROR,
+    //                     (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+    //                      errmsg("invalid value for boolean option \"%s\": %s",
+    //                             def->defname, defGetString(def))));
+    //     }
+    //     else if (strcmp(def->defname, "use_threads") == 0)
+    //     {
+    //         if (!parse_bool(defGetString(def), &fdw_private->use_threads))
+    //             ereport(ERROR,
+    //                     (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+    //                      errmsg("invalid value for boolean option \"%s\": %s",
+    //                             def->defname, defGetString(def))));
+    //     }
+    //     else
+        elog(ERROR, "unknown option '%s'", def->defname);
+    }
+}
+
+extern "C"
+void
 cow_seGetForeignRelSize(PlannerInfo *root,
                            RelOptInfo *baserel,
                            Oid foreigntableid)
@@ -274,21 +173,59 @@ cow_seGetForeignRelSize(PlannerInfo *root,
      * can compute a better estimate of the average result row width.
      */
 
-    cow_seFdwPlanState *plan_state;
-
     elog(DEBUG1, "entering function %s", __func__);
 
     baserel->rows = 0;
 
-    plan_state = palloc0(sizeof(cow_seFdwPlanState));
+    // we allocate the whole plan state here but only fill in the base state
+    cow_seFdwPlanState *plan_state = (cow_seFdwPlanState *) palloc0(sizeof(cow_seFdwPlanState));
     baserel->fdw_private = (void *) plan_state;
 
-    /* initialize required state in plan_state */
+    // initialize required state in plan_state
+    plan_state->table = GetForeignTable(foreigntableid);
+    plan_state->server = GetForeignServer(plan_state->table->serverid);
+
+    // // cache conds in plan_state for later analysis
+    // plan_state->conds = baserel->baserestrictinfo;
+    // foreach(lc, baserel->baserestrictinfo)
+    // {
+    //     RestrictInfo *ri = (RestrictInfo *) lfirst(lc);
+    //     plan_state->conds = lappend(plan_state->conds, ri);
+    // }
+
+    get_table_options(foreigntableid, plan_state);
 
 }
 
-
+// from https://github.com/adjust/parquet_fdw/blob/master/parquet_impl.cpp
 static void
+extract_used_attributes(RelOptInfo *baserel)
+{
+    cow_seFdwPlanState *fdw_private = (cow_seFdwPlanState *) baserel->fdw_private;
+    ListCell *lc;
+
+    pull_varattnos((Node *) baserel->reltarget->exprs,
+                   baserel->relid,
+                   &fdw_private->attrs_used);
+
+    foreach(lc, baserel->baserestrictinfo)
+    {
+        RestrictInfo *rinfo = (RestrictInfo *) lfirst(lc);
+
+        pull_varattnos((Node *) rinfo->clause,
+                       baserel->relid,
+                       &fdw_private->attrs_used);
+    }
+
+    if (bms_is_empty(fdw_private->attrs_used))
+    {
+        bms_free(fdw_private->attrs_used);
+        fdw_private->attrs_used = bms_make_singleton(1 - FirstLowInvalidHeapAttributeNumber);
+    }
+}
+
+extern "C"
+void
 cow_seGetForeignPaths(PlannerInfo *root,
                          RelOptInfo *baserel,
                          Oid foreigntableid)
@@ -307,18 +244,17 @@ cow_seGetForeignPaths(PlannerInfo *root,
      * contain cost estimates, and can contain any FDW-private information
      * that is needed to identify the specific scan method intended.
      */
-
-    /*
-     * cow_seFdwPlanState *plan_state = baserel->fdw_private;
-     */
-
-    Cost        startup_cost,
-                total_cost;
+    
+    cow_seFdwPlanState *plan_state = (cow_seFdwPlanState *) baserel->fdw_private;
+    Cost startup_cost, total_cost;
 
     elog(DEBUG1, "entering function %s", __func__);
 
     startup_cost = 0;
     total_cost = startup_cost + baserel->rows;
+
+    /* Collect used attributes to reduce number of read columns during scan */
+    extract_used_attributes(baserel);
 
     /* Create a ForeignPath node and add it as only possible path */
     add_path(baserel, (Path *)
@@ -330,11 +266,39 @@ cow_seGetForeignPaths(PlannerInfo *root,
                                      NIL,       /* no pathkeys */
                                      NULL,      /* no outer rel either */
                                      NULL,      /* no extra plan */
-                                     NIL));     /* no fdw_private data */
+                                     NULL));    /* no per-path private info */
 }
 
 
-static ForeignScan *
+// from https://github.com/pgspider/sqlite_fdw/blob/master/deparse.c
+// static List *
+// build_remote_tlist(RelOptInfo *foreignrel)
+// {
+//     List *tlist = NIL;
+//     cow_seFdwPlanState *plan_state = (cow_seFdwPlanState *) baserel->fdw_private;
+//     ListCell   *lc;
+
+//     /*
+//      * We require columns specified in foreignrel->reltarget->exprs and those
+//      * required for evaluating the local conditions.
+//      */
+//     tlist = add_to_flat_tlist(tlist,
+//                               pull_var_clause((Node *) foreignrel->reltarget->exprs,
+//                                               PVC_RECURSE_PLACEHOLDERS));
+//     foreach(lc, plan_state->local_conds)
+//     {
+//         RestrictInfo *rinfo = lfirst_node(RestrictInfo, lc);
+
+//         tlist = add_to_flat_tlist(tlist,
+//                                   pull_var_clause((Node *) rinfo->clause,
+//                                                   PVC_RECURSE_PLACEHOLDERS));
+//     }
+
+//     return tlist;
+// }
+
+extern "C"
+ForeignScan *
 cow_seGetForeignPlan(PlannerInfo *root,
                         RelOptInfo *baserel,
                         Oid foreigntableid,
@@ -354,12 +318,11 @@ cow_seGetForeignPlan(PlannerInfo *root,
      * recommended to use make_foreignscan to build the ForeignScan node.
      *
      */
-
-    /*
-     * cow_seFdwPlanState *plan_state = baserel->fdw_private;
-     */
-
-    Index       scan_relid = baserel->relid;
+    
+    Index scan_relid = baserel->relid;
+    cow_seFdwPlanState *plan_state = (cow_seFdwPlanState *) baserel->fdw_private;
+    
+    elog(DEBUG1, "entering function %s", __func__);
 
     /*
      * We have no native ability to evaluate restriction clauses, so we just
@@ -368,24 +331,44 @@ cow_seGetForeignPlan(PlannerInfo *root,
      * nodes from the clauses and ignore pseudoconstants (which will be
      * handled elsewhere).
      */
-
-    elog(DEBUG1, "entering function %s", __func__);
-
     scan_clauses = extract_actual_clauses(scan_clauses, false);
+
+    /*
+     * We can't just pass arbitrary structure into make_foreignscan() because
+     * in some cases (i.e. plan caching) postgres may want to make a copy of
+     * the plan and it can only make copy of something it knows of, namely
+     * Nodes. So we need to convert everything in nodes and store it in a List.
+     */
+    List *attrs_used = NIL;
+    int col = -1;
+    while ((col = bms_next_member(plan_state->attrs_used, col)) >= 0) {
+        /* bit numbers are offset by FirstLowInvalidHeapAttributeNumber */
+        AttrNumber attno = col + FirstLowInvalidHeapAttributeNumber;
+        if (attno <= InvalidAttrNumber) { /* shouldn't happen */
+            elog(ERROR, "system-column update is not supported");
+        }
+        attrs_used = lappend_int(attrs_used, attno);
+    }
+
+    // NB: it's probably conceptually cleaner to use a custom tlist rather than passing down attrs_used to the plan,
+    // (we don't need to fill in unused columns with NULL), but building a custom tlist seems like a huge pain.
+    // See build_remote_tlist() for one approach.
+    List *params = list_make2(makeString(get_rel_name(plan_state->table->relid)),
+                        attrs_used);
 
     /* Create the ForeignScan node */
     return make_foreignscan(tlist,
                             scan_clauses,
                             scan_relid,
                             NIL,    /* no expressions to evaluate */
-                            NIL,    /* no private state either */
+                            params,    /* we don't use this now but might later */
                             NIL,    /* no custom tlist */
                             NIL,    /* no remote quals */
                             outer_plan);
 }
 
-
-static void
+extern "C"
+void
 cow_seBeginForeignScan(ForeignScanState *node,
                           int eflags)
 {
@@ -408,15 +391,64 @@ cow_seBeginForeignScan(ForeignScanState *node,
      *
      */
 
-    cow_seFdwScanState * scan_state = palloc0(sizeof(cow_seFdwScanState));
-    node->fdw_state = scan_state;
-
     elog(DEBUG1, "entering function %s", __func__);
 
+    ForeignScan *plan = (ForeignScan *) node->ss.ps.plan;
+    List *fdw_private = plan->fdw_private;
+
+    /* Unwrap fdw_private */
+    char *table_name = strVal((Value *) linitial(fdw_private));
+    List *attrs_used_list = (List *) lsecond(fdw_private);
+
+    RelationAttributeMapping mapping;
+    if (strcmp(table_name, "airports") == 0) {
+        mapping = AIRPORT_MAPPING;
+    } else if (strcmp(table_name, "airlines") == 0) {
+        mapping = AIRLINE_MAPPING;
+    } else if (strcmp(table_name, "routes") == 0) {
+        mapping = ROUTE_MAPPING;
+    } else {
+        elog(ERROR, "unknown table name '%s'", table_name);
+    }
+
+    // AttrNumber attnum;
+    // foreach (lc, attrs_used_list) {
+    //     attnum = lfirst_int(lc);
+    // }
+
+    cow_seFdwScanState *scan_state = (cow_seFdwScanState *) palloc0(sizeof(cow_seFdwScanState));
+    node->fdw_state = scan_state;
+
+    scan_state->deserializer = mapping.deserializer;
+    // flatbuffer accessor functions indexed by attrnum
+    AttributeAccessor *indexed_accessors;
+
+    TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
+    TupleDesc tupleDesc = slot->tts_tupleDescriptor;
+
+    assert(tupleDesc->natts == mapping.num_attrs);
+    indexed_accessors = (AttributeAccessor *) palloc0(sizeof(AttributeAccessor) * tupleDesc->natts);
+    scan_state->indexed_accessors = indexed_accessors;
+
+    // set up mapping of attnos to flatbuffer accessor functions
+    for (int i = 0; i < tupleDesc->natts; i++) {
+        // user attributes are indexed starting from 1
+        // AttrNumber attnum = i + 1;
+        char *attr_name = NameStr(TupleDescAttr(tupleDesc, i)->attname);
+        for (int j = 0; i < mapping.num_attrs; j++) {
+            if (strcmp(attr_name, mapping.attrs_with_accessors[j].attr_name) == 0) {
+                indexed_accessors[i] = mapping.attrs_with_accessors[j].attr_accessor;
+                break;
+            }
+        }
+    }
+
+    // retrieve the first node of the requested type
+    scan_state->cur_node = gaia_ptr<gaia_se_node>::find_first(mapping.gaia_type_id);
 }
 
-
-static TupleTableSlot *
+extern "C"
+TupleTableSlot *
 cow_seIterateForeignScan(ForeignScanState *node)
 {
     /*
@@ -443,27 +475,41 @@ cow_seIterateForeignScan(ForeignScanState *node)
      * (just as you would need to do in the case of a data type mismatch).
      */
 
-
-    /* ----
-     * cow_seFdwScanState *scan_state =
-     *   (cow_seFdwScanState *) node->fdw_state;
-     * ----
-     */
-
+    cow_seFdwScanState *scan_state = (cow_seFdwScanState *) node->fdw_state;
     TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
 
     elog(DEBUG1, "entering function %s", __func__);
 
+    // return NULL if we reach the end of iteration
+    if (!scan_state->cur_node) {
+        return NULL;
+    }
+
+    /* mark the slot empty */
     ExecClearTuple(slot);
 
     /* get the next record, if any, and fill in the slot */
+    const void *obj_buf = scan_state->cur_node->payload;
+    const void *obj_root = scan_state->deserializer(obj_buf);
+    for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; attr_idx++) {
+        AttributeAccessor accessor = scan_state->indexed_accessors[attr_idx];
+        Datum attr_val = accessor(obj_root);
+        slot->tts_values[attr_idx] = attr_val;
+        slot->tts_isnull[attr_idx] = false;
+    }
 
-    /* then return the slot */
+    /* mark the slot as containing a virtual tuple */
+    ExecStoreVirtualTuple(slot);
+
+    /* now advance the current node to the next node in the iteration */
+    scan_state->cur_node = scan_state->cur_node.find_next();
+
+    /* return the slot */
     return slot;
 }
 
-
-static void
+extern "C"
+void
 cow_seReScanForeignScan(ForeignScanState *node)
 {
     /*
@@ -472,18 +518,12 @@ cow_seReScanForeignScan(ForeignScanState *node)
      * return exactly the same rows.
      */
 
-    /* ----
-     * cow_seFdwScanState *scan_state =
-     *   (cow_seFdwScanState *) node->fdw_state;
-     * ----
-     */
-
     elog(DEBUG1, "entering function %s", __func__);
 
 }
 
-
-static void
+extern "C"
+void
 cow_seEndForeignScan(ForeignScanState *node)
 {
     /*
@@ -492,18 +532,16 @@ cow_seEndForeignScan(ForeignScanState *node)
      * remote servers should be cleaned up.
      */
 
-    /* ----
-     * cow_seFdwScanState *scan_state =
-     *   (cow_seFdwScanState *) node->fdw_state;
-     * ----
-     */
+    cow_seFdwScanState *scan_state = (cow_seFdwScanState *) node->fdw_state;
+    // we should have reached the end of iteration
+    assert(!scan_state->cur_node);
 
     elog(DEBUG1, "entering function %s", __func__);
 
 }
 
-
-static void
+extern "C"
+void
 cow_seAddForeignUpdateTargets(Query *parsetree,
                                  RangeTblEntry *target_rte,
                                  Relation target_relation)
@@ -539,8 +577,8 @@ cow_seAddForeignUpdateTargets(Query *parsetree,
 
 }
 
-
-static List *
+extern "C"
+List *
 cow_sePlanForeignModify(PlannerInfo *root,
                            ModifyTable *plan,
                            Index resultRelation,
@@ -571,8 +609,8 @@ cow_sePlanForeignModify(PlannerInfo *root,
     return NULL;
 }
 
-
-static void
+extern "C"
+void
 cow_seBeginForeignModify(ModifyTableState *mtstate,
                             ResultRelInfo *rinfo,
                             List *fdw_private,
@@ -605,16 +643,15 @@ cow_seBeginForeignModify(ModifyTableState *mtstate,
      * during executor startup.
      */
 
-    cow_seFdwModifyState *modify_state =
-        palloc0(sizeof(cow_seFdwModifyState));
+    cow_seFdwModifyState *modify_state = (cow_seFdwModifyState *) palloc0(sizeof(cow_seFdwModifyState));
     rinfo->ri_FdwState = modify_state;
 
     elog(DEBUG1, "entering function %s", __func__);
 
 }
 
-
-static TupleTableSlot *
+extern "C"
+TupleTableSlot *
 cow_seExecForeignInsert(EState *estate,
                            ResultRelInfo *rinfo,
                            TupleTableSlot *slot,
@@ -658,8 +695,8 @@ cow_seExecForeignInsert(EState *estate,
     return slot;
 }
 
-
-static TupleTableSlot *
+extern "C"
+TupleTableSlot *
 cow_seExecForeignUpdate(EState *estate,
                            ResultRelInfo *rinfo,
                            TupleTableSlot *slot,
@@ -703,8 +740,8 @@ cow_seExecForeignUpdate(EState *estate,
     return slot;
 }
 
-
-static TupleTableSlot *
+extern "C"
+TupleTableSlot *
 cow_seExecForeignDelete(EState *estate,
                            ResultRelInfo *rinfo,
                            TupleTableSlot *slot,
@@ -745,8 +782,8 @@ cow_seExecForeignDelete(EState *estate,
     return slot;
 }
 
-
-static void
+extern "C"
+void
 cow_seEndForeignModify(EState *estate,
                           ResultRelInfo *rinfo)
 {
@@ -769,22 +806,24 @@ cow_seEndForeignModify(EState *estate,
 
 }
 
-
-static void cow_seBeginForeignInsert(ModifyTableState *mtstate,
+extern "C"
+void
+cow_seBeginForeignInsert(ModifyTableState *mtstate,
                                        ResultRelInfo *resultRelInfo)
 {
     elog(DEBUG1, "entering function %s", __func__);
 }
 
-
-static void cow_seEndForeignInsert(EState *estate,
+extern "C"
+void
+cow_seEndForeignInsert(EState *estate,
                                      ResultRelInfo *resultRelInfo)
 {
     elog(DEBUG1, "entering function %s", __func__);
 }
 
-
-static int
+extern "C"
+int
 cow_seIsForeignRelUpdatable(Relation rel)
 {
     /*
@@ -809,8 +848,8 @@ cow_seIsForeignRelUpdatable(Relation rel)
     return (1 << CMD_UPDATE) | (1 << CMD_INSERT) | (1 << CMD_DELETE);
 }
 
-
-static bool
+extern "C"
+bool
 cow_sePlanDirectModify(PlannerInfo *root,
                                      ModifyTable *plan,
                                      Index resultRelation,
@@ -821,30 +860,30 @@ cow_sePlanDirectModify(PlannerInfo *root,
     return false;
 }
 
-
-static void
+extern "C"
+void
 cow_seBeginDirectModify(ForeignScanState *node, int eflags)
 {
     elog(DEBUG1, "entering function %s", __func__);
 }
 
-
-static TupleTableSlot *
+extern "C"
+TupleTableSlot *
 cow_seIterateDirectModify(ForeignScanState *node)
 {
     elog(DEBUG1, "entering function %s", __func__);
     return NULL;
 }
 
-
-static void
+extern "C"
+void
 cow_seEndDirectModify(ForeignScanState *node)
 {
     elog(DEBUG1, "entering function %s", __func__);
 }
 
-
-static void
+extern "C"
+void
 cow_seExplainForeignScan(ForeignScanState *node,
                             struct ExplainState *es)
 {
@@ -863,8 +902,8 @@ cow_seExplainForeignScan(ForeignScanState *node,
 
 }
 
-
-static void
+extern "C"
+void
 cow_seExplainForeignModify(ModifyTableState *mtstate,
                               ResultRelInfo *rinfo,
                               List *fdw_private,
@@ -893,15 +932,16 @@ cow_seExplainForeignModify(ModifyTableState *mtstate,
 
 }
 
-
-static void cow_seExplainDirectModify(ForeignScanState *node,
+extern "C"
+void
+cow_seExplainDirectModify(ForeignScanState *node,
                                         struct ExplainState *es)
 {
     elog(DEBUG1, "entering function %s", __func__);
 }
 
-
-static bool
+extern "C"
+bool
 cow_seAnalyzeForeignTable(Relation relation,
                              AcquireSampleRowsFunc *func,
                              BlockNumber *totalpages)
@@ -938,8 +978,8 @@ cow_seAnalyzeForeignTable(Relation relation,
     return false;
 }
 
-
-static void
+extern "C"
+void
 cow_seGetForeignJoinPaths(PlannerInfo *root,
                              RelOptInfo *joinrel,
                              RelOptInfo *outerrel,
@@ -981,8 +1021,8 @@ cow_seGetForeignJoinPaths(PlannerInfo *root,
 
 }
 
-
-static void
+extern "C"
+void
 cow_seGetForeignUpperPaths(PlannerInfo *root,
                              UpperRelationKind stage,
                              RelOptInfo *input_rel,
@@ -992,8 +1032,8 @@ cow_seGetForeignUpperPaths(PlannerInfo *root,
     elog(DEBUG1, "entering function %s", __func__);
 }
 
-
-static bool
+extern "C"
+bool
 cow_seRecheckForeignScan(ForeignScanState *node,
                                        TupleTableSlot *slot)
 {
@@ -1002,8 +1042,8 @@ cow_seRecheckForeignScan(ForeignScanState *node,
     return false;
 }
 
-
-static RowMarkType
+extern "C"
+RowMarkType
 cow_seGetForeignRowMarkType(RangeTblEntry *rte,
                                LockClauseStrength strength)
 {
@@ -1028,8 +1068,8 @@ cow_seGetForeignRowMarkType(RangeTblEntry *rte,
 
 }
 
-
-static void
+extern "C"
+void
 cow_seRefetchForeignRow(EState *estate,
                           ExecRowMark *erm,
                           Datum rowid,
@@ -1072,7 +1112,10 @@ cow_seRefetchForeignRow(EState *estate,
 }
 
 
-static List *
+// we may want to use IMPORT FOREIGN SCHEMA to automatically create the foreign
+// tables corresponding to registered types in the storage engine.
+extern "C"
+List *
 cow_seImportForeignSchema(ImportForeignSchemaStmt *stmt,
                              Oid serverOid)
 {
@@ -1113,4 +1156,19 @@ cow_seImportForeignSchema(ImportForeignSchemaStmt *stmt,
     elog(DEBUG1, "entering function %s", __func__);
 
     return NULL;
+}
+
+// Perform all module-level initialization here
+extern "C"
+void
+_PG_init() {
+    // initialize COW-SE
+    gaia_mem_base::init(true);
+}
+
+// Perform all module-level finalization here
+extern "C"
+void
+_PG_fini() {
+    // any SE cleanup required?
 }

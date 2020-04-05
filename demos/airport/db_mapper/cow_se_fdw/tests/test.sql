@@ -1,7 +1,7 @@
 CREATE EXTENSION cow_se_fdw;
 
 CREATE SERVER cow_se
-	FOREIGN DATA WRAPPER cow_se_fdw;
+    FOREIGN DATA WRAPPER cow_se_fdw;
 
 CREATE FOREIGN TABLE films (
     code        char(5) NOT NULL,
