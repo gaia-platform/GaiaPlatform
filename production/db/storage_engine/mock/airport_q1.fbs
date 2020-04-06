@@ -7,14 +7,22 @@
 
 namespace gaia.airport;
 
-// Payload for COW node type 1, loaded from airports.dat.
+// Payload for COW node type 1, loaded from airlines.dat.
+table airlines
+{
+    al_id: int32;
+    name: string;
+    alias: string;
+    iata: string;
+    icao: string;
+    callsign: string;
+    country: string;
+    active: string;
+}
+
+// Payload for COW node type 2, loaded from airports.dat.
 table airports
 {
-    Gaia_id: int64;
-    Gaia_Next_id: int64;
-    Gaia_Prev_id: int64;
-
-    // rawdata_airports fields
     ap_id: int32;
     name: string;
     city: string;
@@ -31,38 +39,12 @@ table airports
     source: string;
 }
 
-// Payload for COW node type 2, loaded from airlines.dat.
-table airlines
-{
-    Gaia_id: int64;
-    Gaia_Next_id: int64;
-    Gaia_Prev_id: int64;
-
-    // regular arline fields
-    al_id: int32;
-    name: string;
-    alias: string;
-    iata: string;
-    icao: string;
-    callsign: string;
-    country: string;
-    active: string;
-}
-
 // Payload for COW edge type 3, loaded from routes.dat.
 // Edge points from source airport to destination airport.
 // I.e. edge.node_first = source aiport node
 // and edge.node_second = destination airport node.
 table routes
 {
-    Gaia_id: int64;
-    Gaia_Next_id: int64;
-    Gaia_Prev_id: int64;
-    Gaia_Al_id:   int64;
-    Gaia_Src_id:  int64;
-    Gaia_Dst_id:  int64;
-
-    // rawdata_routes fields
     airline: string;
     al_id: int32 ;
     src_ap: string;
