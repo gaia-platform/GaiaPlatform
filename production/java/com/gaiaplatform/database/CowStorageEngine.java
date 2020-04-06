@@ -211,19 +211,19 @@ public class CowStorageEngine
         System.out.print(" Payload: " + getNodePayload(nodeId));
 
         if (indent
-            || (getNextEdgeWithNodeAsFirst(nodeId) == 0 && getNextEdgeWithNodeAsSecond(nodeId) == 0))
+            || (getFirstEdgeWithNodeAsFirst(nodeId) == 0 && getFirstEdgeWithNodeAsSecond(nodeId) == 0))
         {
             return;
         }
 
-        for (long edgeId = getNextEdgeWithNodeAsFirst(nodeId);
+        for (long edgeId = getFirstEdgeWithNodeAsFirst(nodeId);
             edgeId != 0;
             edgeId = getNextEdgeWithSameFirstNode(edgeId))
         {
             printEdge(edgeId, true);
         }
 
-        for (long edgeId = getNextEdgeWithNodeAsSecond(nodeId);
+        for (long edgeId = getFirstEdgeWithNodeAsSecond(nodeId);
             edgeId != 0;
             edgeId = getNextEdgeWithSameSecondNode(edgeId))
         {
@@ -251,8 +251,8 @@ public class CowStorageEngine
     public native long getNodeType(long id);
     public native String getNodePayload(long id);
 
-    public native long getNextEdgeWithNodeAsFirst(long id);
-    public native long getNextEdgeWithNodeAsSecond(long id);
+    public native long getFirstEdgeWithNodeAsFirst(long id);
+    public native long getFirstEdgeWithNodeAsSecond(long id);
 
     public native long createEdge(long id, long type, long idFirstNode, long idSecondNode, String payload);
     public native boolean updateEdgePayload(long id, String payload);

@@ -328,13 +328,13 @@ JNIEXPORT jstring JNICALL Java_com_gaiaplatform_database_CowStorageEngine_getNod
     return get_payload<gaia_se_node>(env, id);
 }
 
-JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_getNextEdgeWithNodeAsFirst(
+JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_getFirstEdgeWithNodeAsFirst(
     JNIEnv*, jobject, jlong id)
 {
     return get_next_edge_first<gaia_se_node>(id);
 }
 
-JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_getNextEdgeWithNodeAsSecond(
+JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_getFirstEdgeWithNodeAsSecond(
     JNIEnv*, jobject, jlong id)
 {
     return get_next_edge_second<gaia_se_node>(id);
