@@ -323,51 +323,21 @@ public final class CacheHelper
 
     protected static boolean createAirportNode(CacheVertex vertex)
     {
-        // CacheGraph graph = vertex.graph;
-        // long id = Long.parseLong(vertex.id.toString());
-        // long type = getTypeForLabel(vertex.label);
-        // String payload = packPropertyLists(vertex.properties);
-
-        // graph.cow.beginTransaction();
-        // long idNode = graph.cow.createNode(id, type, payload);
-        // return handleTransaction(graph, idNode != 0);
         return false;
     }
 
     protected static boolean updateAirportNodePayload(CacheVertex vertex)
     {
-        // CacheGraph graph = vertex.graph;
-        // long id = Long.parseLong(vertex.id.toString());
-        // String payload = packPropertyLists(vertex.properties);
-
-        // graph.cow.beginTransaction();
-        // return handleTransaction(graph, graph.cow.updateNodePayload(id, payload));
         return false;
     }
 
     protected static boolean createAirportEdge(CacheEdge edge)
     {
-        // CacheGraph graph = edge.graph;
-        // long id = Long.parseLong(edge.id.toString());
-        // long type = getTypeForLabel(edge.label);
-        // String payload = packProperties(edge.properties);
-        // long idFirstNode = Long.parseLong(edge.outVertex.id.toString());
-        // long idSecondNode = Long.parseLong(edge.inVertex.id.toString());
-
-        // graph.cow.beginTransaction();
-        // long idEdge = graph.cow.createEdge(id, type, idFirstNode, idSecondNode, payload);
-        // return handleTransaction(graph, idEdge != 0);
         return false;
     }
 
     protected static boolean updateAirportEdgePayload(CacheEdge edge)
     {
-        // CacheGraph graph = edge.graph;
-        // long id = Long.parseLong(edge.id.toString());
-        // String payload = packProperties(edge.properties);
-
-        // graph.cow.beginTransaction();
-        // return handleTransaction(graph, graph.cow.updateEdgePayload(id, payload));
         return false;
     }
 
