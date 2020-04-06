@@ -15,7 +15,7 @@ option(FLATBUFFERS_BUILD_FLATC "Enable the build of the flatbuffers compiler"
        ON)
 option(FLATBUFFERS_STATIC_FLATC "Build flatbuffers compiler with -static flag"
        OFF)
-option(FLATBUFFERS_BUILD_FLATHASH "Enable the build of flathash" ON)
+option(FLATBUFFERS_BUILD_FLATHASH "Enable the build of flathash" OFF)
 option(FLATBUFFERS_BUILD_GRPCTEST "Enable the build of grpctest" OFF)
 option(FLATBUFFERS_BUILD_SHAREDLIB
        "Enable the build of the flatbuffers shared library"
@@ -522,24 +522,24 @@ if(FLATBUFFERS_BUILD_TESTS)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/db/storage_engine/mock)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/inc/internal/common)
   add_executable(flattests ${FlatBuffers_Tests_SRCS})
-  add_executable(gaiaalleventstests ${FlatBuffersGaiaAllEvents_Tests_SRCS})
-  add_executable(gaianocoltests ${FlatBuffersGaiaNoColEvents_Tests_SRCS})
-  add_executable(gaianoiudtests ${FlatBuffersGaiaNoIUDEvents_Tests_SRCS})
-  add_executable(gaianotabletxtests ${FlatBuffersGaiaNoTableTxEvents_Tests_SRCS})
+  add_executable(gaia_all_events_tests ${FlatBuffersGaiaAllEvents_Tests_SRCS})
+  add_executable(gaia_no_col_tests ${FlatBuffersGaiaNoColEvents_Tests_SRCS})
+  add_executable(gaia_no_iud_tests ${FlatBuffersGaiaNoIUDEvents_Tests_SRCS})
+  add_executable(gaia_no_table_tx_tests ${FlatBuffersGaiaNoTableTxEvents_Tests_SRCS})
   add_dependencies(flattests generated_code)
   set_property(TARGET flattests
     PROPERTY COMPILE_DEFINITIONS FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
     FLATBUFFERS_DEBUG_VERIFICATION_FAILURE=1)
-  set_property(TARGET gaiaalleventstests
+  set_property(TARGET gaia_all_events_tests
     PROPERTY COMPILE_DEFINITIONS FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
     FLATBUFFERS_DEBUG_VERIFICATION_FAILURE=1)
-  set_property(TARGET gaianocoltests
+  set_property(TARGET gaia_no_col_tests
     PROPERTY COMPILE_DEFINITIONS FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
     FLATBUFFERS_DEBUG_VERIFICATION_FAILURE=1)
-  set_property(TARGET gaianoiudtests
+  set_property(TARGET gaia_no_iud_tests
     PROPERTY COMPILE_DEFINITIONS FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
     FLATBUFFERS_DEBUG_VERIFICATION_FAILURE=1)
-  set_property(TARGET gaianotabletxtests
+  set_property(TARGET gaia_no_table_tx_tests
     PROPERTY COMPILE_DEFINITIONS FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
     FLATBUFFERS_DEBUG_VERIFICATION_FAILURE=1)
 
@@ -547,10 +547,10 @@ if(FLATBUFFERS_BUILD_TESTS)
     add_fsanitize_to_target(flattests ${FLATBUFFERS_CODE_SANITIZE})
   endif()
   target_link_libraries(flattests PRIVATE rt)
-  target_link_libraries(gaiaalleventstests PRIVATE rt)
-  target_link_libraries(gaianocoltests PRIVATE rt)
-  target_link_libraries(gaianoiudtests PRIVATE rt)
-  target_link_libraries(gaianotabletxtests PRIVATE rt)
+  target_link_libraries(gaia_all_events_tests PRIVATE rt)
+  target_link_libraries(gaia_no_col_tests PRIVATE rt)
+  target_link_libraries(gaia_no_iud_tests PRIVATE rt)
+  target_link_libraries(gaia_no_table_tx_tests PRIVATE rt)
   
   set(FLATBUFFERS_UNIT_TEST flattests)
   add_custom_command(
@@ -560,7 +560,7 @@ if(FLATBUFFERS_BUILD_TESTS)
      COMMAND ${FLATBUFFERS_UNIT_TEST}
   )
 
-  set(GAIA_ALL_EVENTS_UNIT_TEST gaiaalleventstests)
+  set(GAIA_ALL_EVENTS_UNIT_TEST gaia_all_events_tests)
   add_custom_command(
      TARGET ${GAIA_ALL_EVENTS_UNIT_TEST}
      COMMENT "Run Gaia all events tests"
@@ -568,7 +568,7 @@ if(FLATBUFFERS_BUILD_TESTS)
      COMMAND ${GAIA_ALL_EVENTS_UNIT_TEST}
   )
 
-  set(GAIA_NO_COL_EVENTS_UNIT_TEST gaianocoltests)
+  set(GAIA_NO_COL_EVENTS_UNIT_TEST gaia_no_col_tests)
   add_custom_command(
      TARGET ${GAIA_NO_COL_EVENTS_UNIT_TEST}
      COMMENT "Run Gaia No Col events tests"
@@ -576,7 +576,7 @@ if(FLATBUFFERS_BUILD_TESTS)
      COMMAND ${GAIA_NO_COL_EVENTS_UNIT_TEST}
   )
 
-  set(GAIA_NO_IUD_EVENTS_UNIT_TEST gaianoiudtests)
+  set(GAIA_NO_IUD_EVENTS_UNIT_TEST gaia_no_iud_tests)
   add_custom_command(
      TARGET ${GAIA_NO_IUD_EVENTS_UNIT_TEST}
      COMMENT "Run Gaia no IUD events tests"
@@ -584,7 +584,7 @@ if(FLATBUFFERS_BUILD_TESTS)
      COMMAND ${GAIA_NO_IUD_EVENTS_UNIT_TEST}
   )
 
-  set(GAIA_NO_TABLE_TX_EVENTS_UNIT_TEST gaianotabletxtests)
+  set(GAIA_NO_TABLE_TX_EVENTS_UNIT_TEST gaia_no_table_tx_tests)
   add_custom_command(
      TARGET ${GAIA_NO_TABLE_TX_EVENTS_UNIT_TEST}
      COMMENT "Run Gaia No Table TX events tests"
@@ -720,10 +720,10 @@ if(FLATBUFFERS_BUILD_TESTS)
   enable_testing()
 
   add_test(NAME flattests COMMAND flattests)
-  add_test(NAME gaia_all_events_tests COMMAND gaiaalleventstests)
-  add_test(NAME gaia_no_column_event_tests COMMAND gaianocoltests)
-  add_test(NAME gaia_no_table_event_tests COMMAND gaianoiudtests)
-  add_test(NAME gaia_tx_event_tests COMMAND gaianotabletxtests)
+  add_test(NAME gaia_all_events_tests COMMAND gaia_all_events_tests)
+  add_test(NAME gaia_no_column_event_tests COMMAND gaia_no_col_tests)
+  add_test(NAME gaia_no_table_event_tests COMMAND gaia_no_iud_tests)
+  add_test(NAME gaia_tx_event_tests COMMAND gaia_no_table_tx_tests)
   if(FLATBUFFERS_BUILD_CPP17)
     add_test(NAME flattests_cpp17 COMMAND flattests_cpp17)
   endif()
