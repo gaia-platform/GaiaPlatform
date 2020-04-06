@@ -547,11 +547,11 @@ if(FLATBUFFERS_BUILD_TESTS)
     add_fsanitize_to_target(flattests ${FLATBUFFERS_CODE_SANITIZE})
   endif()
   target_link_libraries(flattests PRIVATE rt)
-  target_link_libraries(gaia_all_events_tests PRIVATE rt)
-  target_link_libraries(gaia_no_col_tests PRIVATE rt)
-  target_link_libraries(gaia_no_iud_tests PRIVATE rt)
-  target_link_libraries(gaia_no_table_tx_tests PRIVATE rt)
-  
+  target_link_libraries(gaia_all_events_tests PRIVATE rt gaia)
+  target_link_libraries(gaia_no_col_tests PRIVATE rt gaia)
+  target_link_libraries(gaia_no_iud_tests PRIVATE rt gaia)
+  target_link_libraries(gaia_no_table_tx_tests PRIVATE rt gaia)
+
   set(FLATBUFFERS_UNIT_TEST flattests)
   add_custom_command(
      TARGET ${FLATBUFFERS_UNIT_TEST}

@@ -24,33 +24,39 @@ function(set_test target arg result)
 endfunction(set_test)
 
 # Helper function for setting up google tests.
-# Assumes you want to link in the gtest provided
-# main function
-function(add_gtest TARGET SOURCES INCLUDES LIBRARIES DEPENDENCIES)
-  _add_gtest("${TARGET}" "${SOURCES}" "${INCLUDES}" "${LIBRARIES}" "${DEPENDENCIES}" "gtest_main")
-endfunction(add_gtest)
-
-function(add_gtest_no_main TARGET SOURCES INCLUDES LIBRARIES DEPENDENCIES)
-  _add_gtest("${TARGET}" "${SOURCES}" "${INCLUDES}" "${LIBRARIES}" "${DEPENDENCIES}" "gtest")
-endfunction(add_gtest_no_main)
-
-function(_add_gtest TARGET SOURCES INCLUDES LIBRARIES DEPENDENCIES GTEST_LIB)
+# The named arguments are required:  TARGET, SOURCES, INCLUDES, LIBRARIES
+# Two optional arguments are after this: 
+# [DEPENDENCIES] - for add_dependencies used for generation of flatbuffer files.  Defaults to ""
+# [HAS_MAIN] - "{TRUE, 1, ON, YES, Y} indicates the test provides its own main function.  Defaults to "" (FALSE).
+function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
 #  message(STATUS "TARGET = ${TARGET}")
 #  message(STATUS "SOURCES = ${SOURCES}")
 #  message(STATUS "INCLUDES = ${INCLUDES}")
 #  message(STATUS "LIBRARIES = ${LIBRARIES}")
-#  message(STATUS "DEPENDENCIES = ${DEPENDENCIES}")
-#  message(STATUS "GTEST_LIB = ${GTEST_LIB}")
+#  message(STATUS "ARGV0 = ${ARGV0}")
+#  message(STATUS "ARGV1 = ${ARGV1}")
+#  message(STATUS "ARGV2 = ${ARGV2}")
+#  message(STATUS "ARGV3 = ${ARGV3}")
+#  message(STATUS "ARGV4 = ${ARGV4}")
+#  message(STATUS "ARGV5 = ${ARGV5}")
 
   add_executable(${TARGET} ${SOURCES})
-  if (NOT ("${DEPENDENCIES}" STREQUAL ""))
-    add_dependencies(${TARGET} ${DEPENDENCIES})
-  endif()  
+
+  if (NOT ("${ARGV4}" STREQUAL ""))
+    add_dependencies(${TARGET} ${ARGV4})
+  endif()
+
   target_include_directories(${TARGET} PRIVATE ${INCLUDES} ${GOOGLE_TEST_INC})
+  if("${ARGV5}")
+    set(GTEST_LIB "gtest")
+  else()
+    set(GTEST_LIB "gtest_main")
+  endif()
   target_link_libraries(${TARGET} PRIVATE ${LIBRARIES} ${GTEST_LIB})
+
   set_target_properties(${TARGET} PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
   gtest_discover_tests(${TARGET})
-endfunction(_add_gtest)
+endfunction(add_gtest)
 
 # Gaia specific flatc helpers for generating headers
 function(gaia_compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT)

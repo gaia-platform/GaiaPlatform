@@ -6,6 +6,9 @@ ARG USER_PASSWORD=dev
 ENV USER_NAME=$USER_NAME
 ENV USER_PASSWORD=$USER_PASSWORD
 
+# for zsh customization
+ARG ZSH_THEME=pure
+
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get -y update && apt-get -y upgrade
@@ -15,18 +18,25 @@ RUN apt-get -y install \
     sudo \
     build-essential \
     clang-8 \
+    clang-format-8 \
     libclang-8-dev \
     libclang-common-8-dev \
     libclang1-8 \
     uuid-dev \
     git \
     ack-grep \
+    emacs \
     curl \
     ca-certificates \
     gnupg \
     lsb-release \
     software-properties-common \
     locales
+
+# alias clang to clang-8
+RUN ln -s /usr/bin/clang-8 /usr/local/bin/clang && \
+    ln -s /usr/bin/clang++-8 /usr/local/bin/clang++ && \
+    ln -s /usr/bin/clang-format-8 /usr/local/bin/clang-format
 
 # use clang not gcc
 ENV CC=/usr/bin/clang-8
@@ -82,19 +92,38 @@ RUN apt-add-repository ppa:hnakamur/flatbuffers && \
     apt-get -y update && \
     apt-get -y install flatbuffers-compiler>=1.11
 
+# install flatcc (C flatbuffers support)
+RUN apt-get -y install ninja-build
+RUN git clone https://github.com/dvidelabs/flatcc.git && \
+    cd /flatcc && \
+    scripts/build.sh && \
+    cp bin/flatcc /usr/local/bin/flatcc && \
+    cp -r include/flatcc /usr/local/include/flatcc && \
+    cp lib/*.a /usr/local/lib/
+
 # install python flatbuffers package
 RUN pip3 install flatbuffers==1.11
 
-# TODO: replace oh-my-zsh with prezto for perf?
 # install zsh
 RUN apt-get -y install zsh
 # now switch to the user for customization
 USER $USER_NAME
 # terminal colors with xterm
 ENV TERM xterm
+
+# Get prezto
+RUN git clone --recursive https://github.com/sorin-ionescu/prezto.git ~/.zprezto
+# Remove old zsh config
+RUN rm -f ~/.zshrc
+# Create links to zsh config files
+RUN ln -s ~/.zprezto/runcoms/zlogin ~/.zlogin && \
+    ln -s ~/.zprezto/runcoms/zlogout ~/.zlogout && \
+    ln -s ~/.zprezto/runcoms/zpreztorc ~/.zpreztorc && \
+    ln -s ~/.zprezto/runcoms/zprofile ~/.zprofile && \
+    ln -s ~/.zprezto/runcoms/zshenv ~/.zshenv && \
+    ln -s ~/.zprezto/runcoms/zshrc ~/.zshrc
 # set the zsh theme
-ENV ZSH_THEME agnoster
-# install oh-my-zsh for this user
-RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+RUN echo "zstyle ':prezto:module:prompt' theme '$ZSH_THEME'" >> ~/.zpreztorc
+
 # start zsh
 CMD ["zsh"]
