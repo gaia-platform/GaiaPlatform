@@ -92,8 +92,9 @@ template <typename T> jboolean update_payload(JNIEnv* env, jlong id, jstring& pa
             t.update_payload(payload_holder.size(), payload_holder.c_str());
         }
     }
-    catch(const std::exception&)
+    catch(const std::exception& e)
     {
+        cerr << "A COW exception occurred during an update_payload() call: " << e.what() << endl;
         return false;
     }
 
@@ -213,12 +214,10 @@ JNIEXPORT jboolean JNICALL Java_com_gaiaplatform_database_CowStorageEngine_creat
 {
     try
     {
-        // We want to be able to call create repeatedly,
-        // to allow the creation of multiple graphs in Gremlin console.
-        //
-        // init() cannot be called repeatedly, so we have to call reset() first.
-        // However, the reset() call will fail for the first time,
-        // so we want to silence its warnings.
+        // Before calling init(), we must ensure that COW is not already open
+        // from a previous call, so we'll call reset() which plays the role of a close() call.
+        // However, reset() can print some error messages if COW is not open,
+        // so we need to silence those.
         bool silent = true;
         gaia_mem_base::reset(silent);
 
@@ -228,8 +227,27 @@ JNIEXPORT jboolean JNICALL Java_com_gaiaplatform_database_CowStorageEngine_creat
 
         return true;
     }
-    catch(const std::exception&)
+    catch(const std::exception& e)
     {
+        cerr << "A COW exception occurred during a create() call: " << e.what() << endl;
+        return false;
+    }
+}
+
+JNIEXPORT jboolean JNICALL Java_com_gaiaplatform_database_CowStorageEngine_open(
+    JNIEnv*, jobject)
+{
+    try
+    {
+        // To obtain an existing instance, we need to not clear the shared memory.
+        bool clearMemory = false;
+        gaia_mem_base::init(clearMemory);
+
+        return true;
+    }
+    catch(const std::exception& e)
+    {
+        cerr << "A COW exception occurred during an open() call: " << e.what() << endl;
         return false;
     }
 }
@@ -265,9 +283,10 @@ JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_createNo
         node = gaia_se_node::create(
             id, type, payload_holder.size(), payload_holder.c_str());
     }
-    catch(const std::exception&)
+    catch(const std::exception& e)
     {
-        return NULL;
+        cerr << "A COW exception occurred during a createNode() call: " << e.what() << endl;
+        return false;
     }
 
     return node.get_id();
@@ -309,13 +328,13 @@ JNIEXPORT jstring JNICALL Java_com_gaiaplatform_database_CowStorageEngine_getNod
     return get_payload<gaia_se_node>(env, id);
 }
 
-JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_getNextEdgeWithNodeAsFirst(
+JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_getFirstEdgeWithNodeAsFirst(
     JNIEnv*, jobject, jlong id)
 {
     return get_next_edge_first<gaia_se_node>(id);
 }
 
-JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_getNextEdgeWithNodeAsSecond(
+JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_getFirstEdgeWithNodeAsSecond(
     JNIEnv*, jobject, jlong id)
 {
     return get_next_edge_second<gaia_se_node>(id);
@@ -337,9 +356,10 @@ JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_CowStorageEngine_createEd
         edge = gaia_se_edge::create(
             id, type, idFirstNode, idSecondNode, payload_holder.size(), payload_holder.c_str());
     }
-    catch(const std::exception&)
+    catch(const std::exception& e)
     {
-        return NULL;
+        cerr << "A COW exception occurred during a createEdge() call: " << e.what() << endl;
+        return false;
     }
 
     return edge.get_id();

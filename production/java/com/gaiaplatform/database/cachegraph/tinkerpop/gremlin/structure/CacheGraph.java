@@ -41,9 +41,9 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.gaiaplatform.database.CowStorageEngine;
 
-//@Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_STANDARD)
-//@Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_INTEGRATE)
-//@Graph.OptIn(Graph.OptIn.SUITE_PROCESS_STANDARD)
+@Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_STANDARD)
+@Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_INTEGRATE)
+@Graph.OptIn(Graph.OptIn.SUITE_PROCESS_STANDARD)
 //@Graph.OptIn(Graph.OptIn.SUITE_PROCESS_COMPUTER)
 public final class CacheGraph implements Graph
 {
@@ -60,6 +60,12 @@ public final class CacheGraph implements Graph
         = "truegraphdb.vertexPropertyIdManager";
     public static final String CACHEGRAPH_DEFAULT_VERTEX_PROPERTY_CARDINALITY
         = "truegraphdb.defaultVertexPropertyCardinality";
+    public static final String CACHEGRAPH_CREATE_ON_START
+        = "truegraphdb.createOnStart";
+    public static final String CACHEGRAPH_ENABLE_COW_WRITES
+        = "truegraphdb.enableCowWrites";
+    public static final String CACHEGRAPH_ENABLE_AIRPORT_CODE
+        = "truegraphdb.enableAirportCode";
 
     private final CacheFeatures features = new CacheFeatures();
 
@@ -78,7 +84,10 @@ public final class CacheGraph implements Graph
     protected Map<Object, Vertex> vertices = new ConcurrentHashMap<>();
     protected Map<Object, Edge> edges = new ConcurrentHashMap<>();
 
-    protected CowStorageEngine cow = new CowStorageEngine(); 
+    protected CowStorageEngine cow = new CowStorageEngine();
+
+    protected boolean enableCowWrites;
+    protected boolean enableAirportCode;
 
     private CacheGraph(final Configuration configuration)
     {
@@ -91,15 +100,40 @@ public final class CacheGraph implements Graph
         this.vertexPropertyIdManager = selectIdManager(
             configuration, CACHEGRAPH_VERTEX_PROPERTY_ID_MANAGER, VertexProperty.class);
 
+        String cardinalitySetting = configuration.getString(
+            CACHEGRAPH_DEFAULT_VERTEX_PROPERTY_CARDINALITY,
+            VertexProperty.Cardinality.single.name());
         this.defaultVertexPropertyCardinality = VertexProperty.Cardinality.valueOf(
-            configuration.getString(CACHEGRAPH_DEFAULT_VERTEX_PROPERTY_CARDINALITY,
-            VertexProperty.Cardinality.single.name()));
+            cardinalitySetting);
 
-        // COW only supports a single instance with no persistence,
-        // so for now we always create it for each CacheGraph.
-        if (!cow.create())
+        boolean createOnStart = configuration.getBoolean(
+            CACHEGRAPH_CREATE_ON_START, true);
+
+        this.enableCowWrites = configuration.getBoolean(
+            CACHEGRAPH_ENABLE_COW_WRITES, true);
+        this.enableAirportCode = configuration.getBoolean(
+            CACHEGRAPH_ENABLE_AIRPORT_CODE, false);
+
+        if (createOnStart)
         {
-            throw new UnsupportedOperationException("COW initialization failed!");
+            if (!cow.create())
+            {
+                throw new UnsupportedOperationException("COW initialization failed!");
+            }
+        }
+        else
+        {
+            if (!enableAirportCode)
+            {
+                throw new UnsupportedOperationException("Opening of COW is only supported for airport data!");
+            }
+
+            if (!cow.open())
+            {
+                throw new UnsupportedOperationException("Opening of COW failed!");
+            }
+
+            CacheHelper.loadAirportGraphFromCow(this);
         }
     }
 

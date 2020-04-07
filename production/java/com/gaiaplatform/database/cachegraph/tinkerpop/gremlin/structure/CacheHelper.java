@@ -34,11 +34,21 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
+import com.gaiaplatform.database.CowStorageEngine;
+
 public final class CacheHelper
 {
-    private final static String propertyDelimiter = "|";
-    private final static String keyValueDelimiter = "=";
-    private final static String emptyString = "";
+    private final static String PROPERTY_DELIMITER = "|";
+    private final static String KEY_VALUE_DELIMITER = "=";
+    private final static String EMPTY_STRING = "";
+
+    private final static long AIRPORT_NODE_TYPE = 1;
+    private final static long AIRLINE_NODE_TYPE = 2;
+    private final static long FLIGHT_NODE_TYPE = 3;
+    private final static long DEPARTURE_EDGE_TYPE = 4;
+    private final static long ARRIVES_AT_EDGE_TYPE = 5;
+    private final static long OPERATED_BY_EDGE_TYPE = 6;
+
 
     private static AtomicLong lastType = new AtomicLong();
     private static Map<String, Long> mapLabelsToTypes = new ConcurrentHashMap<>();
@@ -47,15 +57,71 @@ public final class CacheHelper
     {
     }
 
+    protected static void loadAirportGraphFromCow(CacheGraph graph)
+    {
+        graph.cow.beginTransaction();
+
+        // Scan airport nodes.
+        long currentNodeId = graph.cow.findFirstNode(AIRPORT_NODE_TYPE);
+        while (currentNodeId != 0)
+        {
+            graph.cow.printNode(currentNodeId);
+            currentNodeId = graph.cow.findNextNode(currentNodeId);
+        }
+
+        // Scan airline nodes.
+        currentNodeId = graph.cow.findFirstNode(AIRLINE_NODE_TYPE);
+        while (currentNodeId != 0)
+        {
+            graph.cow.printNode(currentNodeId);
+            currentNodeId = graph.cow.findNextNode(currentNodeId);
+        }
+
+        // Scan flight nodes.
+        currentNodeId = graph.cow.findFirstNode(FLIGHT_NODE_TYPE);
+        while (currentNodeId != 0)
+        {
+            graph.cow.printNode(currentNodeId);
+            currentNodeId = graph.cow.findNextNode(currentNodeId);
+        }
+
+        // Scan departure edges.
+        long currentEdgeId = graph.cow.findFirstEdge(DEPARTURE_EDGE_TYPE);
+        while (currentEdgeId != 0)
+        {
+            graph.cow.printEdge(currentEdgeId);
+            currentEdgeId = graph.cow.findNextEdge(currentEdgeId);
+        }
+
+        // Scan arrives_at edges.
+        currentEdgeId = graph.cow.findFirstEdge(ARRIVES_AT_EDGE_TYPE);
+        while (currentEdgeId != 0)
+        {
+            graph.cow.printEdge(currentEdgeId);
+            currentEdgeId = graph.cow.findNextEdge(currentEdgeId);
+        }
+
+        // Scan operated_by edges.
+        currentEdgeId = graph.cow.findFirstEdge(OPERATED_BY_EDGE_TYPE);
+        while (currentEdgeId != 0)
+        {
+            graph.cow.printEdge(currentEdgeId);
+            currentEdgeId = graph.cow.findNextEdge(currentEdgeId);
+        }
+
+        // We're not making any changes to COW, so we can just rollback.
+        graph.cow.rollbackTransaction();
+    }
+
     private static void packProperty(StringBuilder payload, String key, String value)
     {
         if (payload.length() > 0)
         {
-            payload.append(propertyDelimiter);
+            payload.append(PROPERTY_DELIMITER);
         }
 
         payload.append(key);
-        payload.append(keyValueDelimiter);
+        payload.append(KEY_VALUE_DELIMITER);
         payload.append(value);
     }
 
@@ -63,7 +129,7 @@ public final class CacheHelper
     {
         if (properties == null)
         {
-            return emptyString;
+            return EMPTY_STRING;
         }
 
         StringBuilder payload = new StringBuilder();
@@ -77,7 +143,7 @@ public final class CacheHelper
     {
         if (properties == null)
         {
-            return emptyString;
+            return EMPTY_STRING;
         }
 
         StringBuilder payload = new StringBuilder();
@@ -115,6 +181,102 @@ public final class CacheHelper
 
     protected static boolean createNode(CacheVertex vertex)
     {
+        if (!vertex.graph.enableCowWrites)
+        {
+            return true;
+        }
+
+        if (vertex.graph.enableAirportCode)
+        {
+            return createAirportNode(vertex);
+        }
+        else
+        {
+            return createGenericNode(vertex);
+        }
+    }
+
+    protected static boolean removeNode(CacheVertex vertex)
+    {
+        if (!vertex.graph.enableCowWrites)
+        {
+            return true;
+        }
+
+        CacheGraph graph = vertex.graph;
+        long id = Long.parseLong(vertex.id.toString());
+
+        graph.cow.beginTransaction();
+        return handleTransaction(graph, graph.cow.removeNode(id));
+    }
+
+    protected static boolean updateNodePayload(CacheVertex vertex)
+    {
+        if (!vertex.graph.enableCowWrites)
+        {
+            return true;
+        }
+
+        if (vertex.graph.enableAirportCode)
+        {
+            return updateAirportNodePayload(vertex);
+        }
+        else
+        {
+            return updateGenericNodePayload(vertex);
+        }
+    }
+
+    protected static boolean createEdge(CacheEdge edge)
+    {
+        if (!edge.graph.enableCowWrites)
+        {
+            return true;
+        }
+
+        if (edge.graph.enableAirportCode)
+        {
+            return createAirportEdge(edge);
+        }
+        else
+        {
+            return createGenericEdge(edge);
+        }
+    }
+
+    protected static boolean removeEdge(CacheEdge edge)
+    {
+        if (!edge.graph.enableCowWrites)
+        {
+            return true;
+        }
+
+        CacheGraph graph = edge.graph;
+        long id = Long.parseLong(edge.id.toString());
+
+        graph.cow.beginTransaction();
+        return handleTransaction(graph, graph.cow.removeEdge(id));
+    }
+
+    protected static boolean updateEdgePayload(CacheEdge edge)
+    {
+        if (!edge.graph.enableCowWrites)
+        {
+            return true;
+        }
+
+        if (edge.graph.enableAirportCode)
+        {
+            return updateAirportEdgePayload(edge);
+        }
+        else
+        {
+            return updateGenericEdgePayload(edge);
+        }
+    }
+
+    protected static boolean createGenericNode(CacheVertex vertex)
+    {
         CacheGraph graph = vertex.graph;
         long id = Long.parseLong(vertex.id.toString());
         long type = getTypeForLabel(vertex.label);
@@ -125,16 +287,7 @@ public final class CacheHelper
         return handleTransaction(graph, idNode != 0);
     }
 
-    protected static boolean removeNode(CacheVertex vertex)
-    {
-        CacheGraph graph = vertex.graph;
-        long id = Long.parseLong(vertex.id.toString());
-
-        graph.cow.beginTransaction();
-        return handleTransaction(graph, graph.cow.removeNode(id));
-    }
-
-    protected static boolean updateNodePayload(CacheVertex vertex)
+    protected static boolean updateGenericNodePayload(CacheVertex vertex)
     {
         CacheGraph graph = vertex.graph;
         long id = Long.parseLong(vertex.id.toString());
@@ -144,7 +297,7 @@ public final class CacheHelper
         return handleTransaction(graph, graph.cow.updateNodePayload(id, payload));
     }
 
-    protected static boolean createEdge(CacheEdge edge)
+    protected static boolean createGenericEdge(CacheEdge edge)
     {
         CacheGraph graph = edge.graph;
         long id = Long.parseLong(edge.id.toString());
@@ -158,16 +311,7 @@ public final class CacheHelper
         return handleTransaction(graph, idEdge != 0);
     }
 
-    protected static boolean removeEdge(CacheEdge edge)
-    {
-        CacheGraph graph = edge.graph;
-        long id = Long.parseLong(edge.id.toString());
-
-        graph.cow.beginTransaction();
-        return handleTransaction(graph, graph.cow.removeEdge(id));
-    }
-
-    protected static boolean updateEdgePayload(CacheEdge edge)
+    protected static boolean updateGenericEdgePayload(CacheEdge edge)
     {
         CacheGraph graph = edge.graph;
         long id = Long.parseLong(edge.id.toString());
@@ -175,6 +319,26 @@ public final class CacheHelper
 
         graph.cow.beginTransaction();
         return handleTransaction(graph, graph.cow.updateEdgePayload(id, payload));
+    }
+
+    protected static boolean createAirportNode(CacheVertex vertex)
+    {
+        return false;
+    }
+
+    protected static boolean updateAirportNodePayload(CacheVertex vertex)
+    {
+        return false;
+    }
+
+    protected static boolean createAirportEdge(CacheEdge edge)
+    {
+        return false;
+    }
+
+    protected static boolean updateAirportEdgePayload(CacheEdge edge)
+    {
+        return false;
     }
 
     protected static Edge addEdge(
