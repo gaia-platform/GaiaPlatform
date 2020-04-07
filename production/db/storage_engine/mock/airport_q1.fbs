@@ -11,8 +11,6 @@ namespace gaia.airport;
 table airlines
 {
     Gaia_id: int64;
-    Gaia_Next_id: int64;
-    Gaia_Prev_id: int64;
 
     // Original airline fields.
     al_id: int32;
@@ -29,8 +27,6 @@ table airlines
 table airports
 {
     Gaia_id: int64;
-    Gaia_Next_id: int64;
-    Gaia_Prev_id: int64;
 
     // Original airports fields.
     ap_id: int32;
@@ -56,8 +52,6 @@ table airports
 table routes
 {
     Gaia_id: int64;
-    Gaia_Next_id: int64;
-    Gaia_Prev_id: int64;
     Gaia_Al_id:   int64;
     Gaia_Src_id:  int64;
     Gaia_Dst_id:  int64;
