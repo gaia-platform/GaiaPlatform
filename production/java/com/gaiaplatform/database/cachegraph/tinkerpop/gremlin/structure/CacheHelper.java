@@ -415,14 +415,122 @@ public final class CacheHelper
         if (type == AIRLINE_NODE_TYPE)
         {
             Airline.startAirline(builder);
-
+            if (properties.containsKey(PROPERTY_AL_ID))
+            {
+                int alId = Integer.parseInt(properties.get(PROPERTY_AL_ID).get(0).value().toString());
+                Airline.addAlId(builder, alId);
+            }
+            if (properties.containsKey(PROPERTY_NAME))
+            {
+                int nameOffset = builder.createString(properties.get(PROPERTY_NAME).get(0).value().toString());
+                Airline.addName(builder, nameOffset);
+            }
+            if (properties.containsKey(PROPERTY_ALIAS))
+            {
+                int aliasOffset = builder.createString(properties.get(PROPERTY_ALIAS).get(0).value().toString());
+                Airline.addAlias(builder, aliasOffset);
+            }
+            if (properties.containsKey(PROPERTY_IATA))
+            {
+                int iataOffset = builder.createString(properties.get(PROPERTY_IATA).get(0).value().toString());
+                Airline.addIata(builder, iataOffset);
+            }
+            if (properties.containsKey(PROPERTY_ICAO))
+            {
+                int icaoOffset = builder.createString(properties.get(PROPERTY_ICAO).get(0).value().toString());
+                Airline.addIcao(builder, icaoOffset);
+            }
+            if (properties.containsKey(PROPERTY_CALLSIGN))
+            {
+                int callsignOffset = builder.createString(properties.get(PROPERTY_CALLSIGN).get(0).value().toString());
+                Airline.addCallsign(builder, callsignOffset);
+            }
+            if (properties.containsKey(PROPERTY_COUNTRY))
+            {
+                int countryOffset = builder.createString(properties.get(PROPERTY_COUNTRY).get(0).value().toString());
+                Airline.addCountry(builder, countryOffset);
+            }
+            if (properties.containsKey(PROPERTY_ACTIVE))
+            {
+                int activeOffset = builder.createString(properties.get(PROPERTY_ACTIVE).get(0).value().toString());
+                Airline.addName(builder, activeOffset);
+            }
             int airlineOffset = Airline.endAirline(builder);
             builder.finish(airlineOffset);
         }
         else if (type == AIRPORT_NODE_TYPE)
         {
             Airport.startAirport(builder);
-
+            if (properties.containsKey(PROPERTY_AP_ID))
+            {
+                int apId = Integer.parseInt(properties.get(PROPERTY_AP_ID).get(0).value().toString());
+                Airport.addApId(builder, apId);
+            }
+            if (properties.containsKey(PROPERTY_NAME))
+            {
+                int nameOffset = builder.createString(properties.get(PROPERTY_NAME).get(0).value().toString());
+                Airport.addName(builder, nameOffset);
+            }
+            if (properties.containsKey(PROPERTY_CITY))
+            {
+                int cityOffset = builder.createString(properties.get(PROPERTY_CITY).get(0).value().toString());
+                Airport.addCity(builder, cityOffset);
+            }
+            if (properties.containsKey(PROPERTY_COUNTRY))
+            {
+                int countryOffset = builder.createString(properties.get(PROPERTY_COUNTRY).get(0).value().toString());
+                Airport.addCountry(builder, countryOffset);
+            }
+            if (properties.containsKey(PROPERTY_IATA))
+            {
+                int iataOffset = builder.createString(properties.get(PROPERTY_IATA).get(0).value().toString());
+                Airport.addIata(builder, iataOffset);
+            }
+            if (properties.containsKey(PROPERTY_ICAO))
+            {
+                int icaoOffset = builder.createString(properties.get(PROPERTY_ICAO).get(0).value().toString());
+                Airport.addIcao(builder, icaoOffset);
+            }
+            if (properties.containsKey(PROPERTY_LATITUDE))
+            {
+                double latitude = Double.parseDouble(properties.get(PROPERTY_LATITUDE).get(0).value().toString());
+                Airport.addLatitude(builder, latitude);
+            }
+            if (properties.containsKey(PROPERTY_LONGITUDE))
+            {
+                double longitude = Double.parseDouble(properties.get(PROPERTY_LONGITUDE).get(0).value().toString());
+                Airport.addLongitude(builder, longitude);
+            }
+            if (properties.containsKey(PROPERTY_ALTITUDE))
+            {
+                int altitude = Integer.parseInt(properties.get(PROPERTY_ALTITUDE).get(0).value().toString());
+                Airport.addAltitude(builder, altitude);
+            }
+            if (properties.containsKey(PROPERTY_TIMEZONE))
+            {
+                float timezone = Float.parseFloat(properties.get(PROPERTY_TIMEZONE).get(0).value().toString());
+                Airport.addTimezone(builder, timezone);
+            }
+            if (properties.containsKey(PROPERTY_DST))
+            {
+                int dstOffset = builder.createString(properties.get(PROPERTY_DST).get(0).value().toString());
+                Airport.addDst(builder, dstOffset);
+            }
+            if (properties.containsKey(PROPERTY_TZTEXT))
+            {
+                int tztextOffset = builder.createString(properties.get(PROPERTY_TZTEXT).get(0).value().toString());
+                Airport.addTztext(builder, tztextOffset);
+            }
+            if (properties.containsKey(PROPERTY_TYPE))
+            {
+                int typeOffset = builder.createString(properties.get(PROPERTY_TYPE).get(0).value().toString());
+                Airport.addType(builder, typeOffset);
+            }
+            if (properties.containsKey(PROPERTY_SOURCE))
+            {
+                int sourceOffset = builder.createString(properties.get(PROPERTY_SOURCE).get(0).value().toString());
+                Airport.addSource(builder, sourceOffset);
+            }
             int airportOffset = Airport.endAirport(builder);
             builder.finish(airportOffset);
         }
