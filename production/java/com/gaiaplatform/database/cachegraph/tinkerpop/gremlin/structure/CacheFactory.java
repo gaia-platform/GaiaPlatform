@@ -26,7 +26,22 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
 import static org.apache.tinkerpop.gremlin.structure.io.IoCore.graphml;
 
-public final class CacheFactory {
+public final class CacheFactory
+{
+    private final static String LABEL_AIRPORT = "airport";
+    private final static String LABEL_AIRLINE = "airline";
+    private final static String LABEL_FLIGHT = "flight";
+    private final static String LABEL_DEPARTURE = "departure";
+    private final static String LABEL_ARRIVES_AT = "arrives_at";
+    private final static String LABEL_OPERATED_BY = "operated_by";
+    private final static String LABEL_ROUTE = "route";
+
+
+    private final static String LABEL_KNOWS = "knows";
+    private final static String LABEL_CREATED = "created";
+    private final static String LABEL_DEVELOPS = "develops";
+    private final static String LABEL_USES = "uses";
+    private final static String LABEL_TRAVERSES = "traverses";
 
     private CacheFactory()
     {
@@ -80,12 +95,12 @@ public final class CacheFactory {
         final Vertex ripple = graph.addVertex(T.id, 5, "name", "ripple", "lang", "java");
         final Vertex peter = graph.addVertex(T.id, 6, "name", "peter", "age", 35);
 
-        marko.addEdge("knows", vadas, T.id, 7, "weight", 0.5f);
-        marko.addEdge("knows", josh, T.id, 8, "weight", 1.0f);
-        marko.addEdge("created", lop, T.id, 9, "weight", 0.4f);
-        josh.addEdge("created", ripple, T.id, 10, "weight", 1.0f);
-        josh.addEdge("created", lop, T.id, 11, "weight", 0.4f);
-        peter.addEdge("created", lop, T.id, 12, "weight", 0.2f);
+        marko.addEdge(LABEL_KNOWS, vadas, T.id, 7, "weight", 0.5f);
+        marko.addEdge(LABEL_KNOWS, josh, T.id, 8, "weight", 1.0f);
+        marko.addEdge(LABEL_CREATED, lop, T.id, 9, "weight", 0.4f);
+        josh.addEdge(LABEL_CREATED, ripple, T.id, 10, "weight", 1.0f);
+        josh.addEdge(LABEL_CREATED, lop, T.id, 11, "weight", 0.4f);
+        peter.addEdge(LABEL_CREATED, lop, T.id, 12, "weight", 0.2f);
     }
 
     // Modern graph data set.
@@ -105,12 +120,12 @@ public final class CacheFactory {
         final Vertex ripple = graph.addVertex(T.id, 5, T.label, "software", "name", "ripple", "lang", "java");
         final Vertex peter = graph.addVertex(T.id, 6, T.label, "person", "name", "peter", "age", 35);
 
-        marko.addEdge("knows", vadas, T.id, 7, "weight", 0.5d);
-        marko.addEdge("knows", josh, T.id, 8, "weight", 1.0d);
-        marko.addEdge("created", lop, T.id, 9, "weight", 0.4d);
-        josh.addEdge("created", ripple, T.id, 10, "weight", 1.0d);
-        josh.addEdge("created", lop, T.id, 11, "weight", 0.4d);
-        peter.addEdge("created", lop, T.id, 12, "weight", 0.2d);
+        marko.addEdge(LABEL_KNOWS, vadas, T.id, 7, "weight", 0.5d);
+        marko.addEdge(LABEL_KNOWS, josh, T.id, 8, "weight", 1.0d);
+        marko.addEdge(LABEL_CREATED, lop, T.id, 9, "weight", 0.4d);
+        josh.addEdge(LABEL_CREATED, ripple, T.id, 10, "weight", 1.0d);
+        josh.addEdge(LABEL_CREATED, lop, T.id, 11, "weight", 0.4d);
+        peter.addEdge(LABEL_CREATED, lop, T.id, 12, "weight", 0.2d);
     }
 
     // The Crew data set.
@@ -156,24 +171,24 @@ public final class CacheFactory {
         daniel.property(VertexProperty.Cardinality.list, "location", "kaiserslautern", "startTime", 2005, "endTime", 2009);
         daniel.property(VertexProperty.Cardinality.list, "location", "aachen", "startTime", 2009);
 
-        marko.addEdge("develops", gremlin, T.id, 13, "since", 2009);
-        marko.addEdge("develops", tinkergraph, T.id, 14, "since", 2010);
-        marko.addEdge("uses", gremlin, T.id, 15, "skill", 4);
-        marko.addEdge("uses", tinkergraph, T.id, 16, "skill", 5);
+        marko.addEdge(LABEL_DEVELOPS, gremlin, T.id, 13, "since", 2009);
+        marko.addEdge(LABEL_DEVELOPS, tinkergraph, T.id, 14, "since", 2010);
+        marko.addEdge(LABEL_USES, gremlin, T.id, 15, "skill", 4);
+        marko.addEdge(LABEL_USES, tinkergraph, T.id, 16, "skill", 5);
 
-        stephen.addEdge("develops", gremlin, T.id, 17, "since", 2010);
-        stephen.addEdge("develops", tinkergraph, T.id, 18, "since", 2011);
-        stephen.addEdge("uses", gremlin, T.id, 19, "skill", 5);
-        stephen.addEdge("uses", tinkergraph, T.id, 20, "skill", 4);
+        stephen.addEdge(LABEL_DEVELOPS, gremlin, T.id, 17, "since", 2010);
+        stephen.addEdge(LABEL_DEVELOPS, tinkergraph, T.id, 18, "since", 2011);
+        stephen.addEdge(LABEL_USES, gremlin, T.id, 19, "skill", 5);
+        stephen.addEdge(LABEL_USES, tinkergraph, T.id, 20, "skill", 4);
 
-        matthias.addEdge("develops", gremlin, T.id, 21, "since", 2012);
-        matthias.addEdge("uses", gremlin, T.id, 22, "skill", 3);
-        matthias.addEdge("uses", tinkergraph, T.id, 23, "skill", 3);
+        matthias.addEdge(LABEL_DEVELOPS, gremlin, T.id, 21, "since", 2012);
+        matthias.addEdge(LABEL_USES, gremlin, T.id, 22, "skill", 3);
+        matthias.addEdge(LABEL_USES, tinkergraph, T.id, 23, "skill", 3);
 
-        daniel.addEdge("uses", gremlin, T.id, 24, "skill", 5);
-        daniel.addEdge("uses", tinkergraph, T.id, 25, "skill", 3);
+        daniel.addEdge(LABEL_USES, gremlin, T.id, 24, "skill", 5);
+        daniel.addEdge(LABEL_USES, tinkergraph, T.id, 25, "skill", 3);
 
-        gremlin.addEdge("traverses", tinkergraph, T.id, 26);
+        gremlin.addEdge(LABEL_TRAVERSES, tinkergraph, T.id, 26);
 
         graph.variables().set("creator", "marko");
         graph.variables().set("lastModified", 2014);
@@ -233,66 +248,66 @@ public final class CacheFactory {
 
     private static void setFlightEdges(Vertex airline, Vertex departureAirport, Vertex arrivalAirport, Vertex flight)
     {
-        departureAirport.addEdge("departure", flight);
-        flight.addEdge("arrives_at", arrivalAirport);
-        flight.addEdge("operated_by", airline);
+        departureAirport.addEdge(LABEL_DEPARTURE, flight);
+        flight.addEdge(LABEL_ARRIVES_AT, arrivalAirport);
+        flight.addEdge(LABEL_OPERATED_BY, airline);
     }
 
     public static void generateTinyAirport(final CacheGraph graph)
     {
-        final Vertex ams = graph.addVertex(T.label, "airport",
+        final Vertex ams = graph.addVertex(T.label, LABEL_AIRPORT,
             "code", "580", "iata", "AMS", "name", "Amsterdam Airport Schiphol", "city", "Amsterdam", "country", "NLD");
-        final Vertex cdg = graph.addVertex(T.label, "airport",
+        final Vertex cdg = graph.addVertex(T.label, LABEL_AIRPORT,
             "code", "1382", "iata", "CDG", "name", "Charles de Gaulle International Airport", "city", "Paris", "country", "FRA");
-        final Vertex jfk = graph.addVertex(T.label, "airport",
+        final Vertex jfk = graph.addVertex(T.label, LABEL_AIRPORT,
             "code", "3797", "iata", "JFK", "name", "John F Kennedy International Airport", "city", "New York", "country", "USA");
-        final Vertex otp = graph.addVertex(T.label, "airport",
+        final Vertex otp = graph.addVertex(T.label, LABEL_AIRPORT,
             "code", "1657", "iata", "OTP", "name", "Henri Coandă International Airport", "city", "Bucharest", "country", "ROU");
-        final Vertex sea = graph.addVertex(T.label, "airport",
+        final Vertex sea = graph.addVertex(T.label, LABEL_AIRPORT,
             "code", "3577", "iata", "SEA", "name", "Seattle Tacoma International Airport", "city", "Seattle", "country", "USA");
 
-        final Vertex aal = graph.addVertex(T.label, "airline",
+        final Vertex aal = graph.addVertex(T.label, LABEL_AIRLINE,
             "code", "24", "icao", "AAL", "name", "American Airlines");
-        final Vertex afr = graph.addVertex(T.label, "airline",
+        final Vertex afr = graph.addVertex(T.label, LABEL_AIRLINE,
             "code", "137", "icao", "AFR", "name", "Air France");
-        final Vertex dal = graph.addVertex(T.label, "airline",
+        final Vertex dal = graph.addVertex(T.label, LABEL_AIRLINE,
             "code", "2009", "icao", "DAL", "name", "Delta Air Lines");
-        final Vertex klm = graph.addVertex(T.label, "airline",
+        final Vertex klm = graph.addVertex(T.label, LABEL_AIRLINE,
             "code", "3090", "icao", "KLM", "name", "KLM Royal Dutch Airlines");
 
-        final Vertex aal_cdg_jfk = graph.addVertex(T.label, "flight", "equipment", "767-300 757");
-        final Vertex aal_jfk_cdg = graph.addVertex(T.label, "flight", "equipment", "767-300 757");
-        final Vertex aal_jfk_sea = graph.addVertex(T.label, "flight", "equipment", "737-800");
-        final Vertex aal_sea_jfk = graph.addVertex(T.label, "flight", "equipment", "737-800");
+        final Vertex aal_cdg_jfk = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "767-300 757");
+        final Vertex aal_jfk_cdg = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "767-300 757");
+        final Vertex aal_jfk_sea = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "737-800");
+        final Vertex aal_sea_jfk = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "737-800");
 
-        final Vertex afr_ams_cdg = graph.addVertex(T.label, "flight", "equipment", "A321 A320 A319 A318 A320(s)");
-        final Vertex afr_cdg_ams = graph.addVertex(T.label, "flight", "equipment", "A321 A320 A319 A318 A320(s)");
-        final Vertex afr_cdg_jfk = graph.addVertex(T.label, "flight", "equipment", "A330-200 777-200 A380-800 A340-300");
-        final Vertex afr_cdg_otp = graph.addVertex(T.label, "flight", "equipment", "A321 A320 A319");
-        final Vertex afr_cdg_sea = graph.addVertex(T.label, "flight", "equipment", "A330-200");
-        final Vertex afr_jfk_cdg = graph.addVertex(T.label, "flight", "equipment", "A330-200 777-200 A380-800 A340-300");
-        final Vertex afr_otp_cdg = graph.addVertex(T.label, "flight", "equipment", "A321 A320 A319");
-        final Vertex afr_sea_cdg = graph.addVertex(T.label, "flight", "equipment", "A330-200");
+        final Vertex afr_ams_cdg = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "A321 A320 A319 A318 A320(s)");
+        final Vertex afr_cdg_ams = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "A321 A320 A319 A318 A320(s)");
+        final Vertex afr_cdg_jfk = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "A330-200 777-200 A380-800 A340-300");
+        final Vertex afr_cdg_otp = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "A321 A320 A319");
+        final Vertex afr_cdg_sea = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "A330-200");
+        final Vertex afr_jfk_cdg = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "A330-200 777-200 A380-800 A340-300");
+        final Vertex afr_otp_cdg = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "A321 A320 A319");
+        final Vertex afr_sea_cdg = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "A330-200");
 
-        final Vertex dal_ams_jfk = graph.addVertex(T.label, "flight", "equipment", "767-300(w)");
-        final Vertex dal_ams_sea = graph.addVertex(T.label, "flight", "equipment", "A330-300");
-        final Vertex dal_cdg_jfk = graph.addVertex(T.label, "flight", "equipment", "A330-200 777-200 A380-800 A340-300");
-        final Vertex dal_cdg_sea = graph.addVertex(T.label, "flight", "equipment", "A330-200");
-        final Vertex dal_jfk_ams = graph.addVertex(T.label, "flight", "equipment", "767-300(w)");
-        final Vertex dal_jfk_cdg = graph.addVertex(T.label, "flight", "equipment", "A330-200 777-200 A380-800 A340-300");
-        final Vertex dal_jfk_sea = graph.addVertex(T.label, "flight", "equipment", "757-200 757");
-        final Vertex dal_sea_ams = graph.addVertex(T.label, "flight", "equipment", "A330-300");
-        final Vertex dal_sea_cdg = graph.addVertex(T.label, "flight", "equipment", "A330-200");
-        final Vertex dal_sea_jfk = graph.addVertex(T.label, "flight", "equipment", "757-200 757");
+        final Vertex dal_ams_jfk = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "767-300(w)");
+        final Vertex dal_ams_sea = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "A330-300");
+        final Vertex dal_cdg_jfk = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "A330-200 777-200 A380-800 A340-300");
+        final Vertex dal_cdg_sea = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "A330-200");
+        final Vertex dal_jfk_ams = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "767-300(w)");
+        final Vertex dal_jfk_cdg = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "A330-200 777-200 A380-800 A340-300");
+        final Vertex dal_jfk_sea = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "757-200 757");
+        final Vertex dal_sea_ams = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "A330-300");
+        final Vertex dal_sea_cdg = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "A330-200");
+        final Vertex dal_sea_jfk = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "757-200 757");
 
-        final Vertex klm_ams_cdg = graph.addVertex(T.label, "flight", "equipment", "737");
-        final Vertex klm_ams_jfk = graph.addVertex(T.label, "flight", "equipment", "A330 777 747(Combi) 747");
-        final Vertex klm_ams_otp = graph.addVertex(T.label, "flight", "equipment", "737");
-        final Vertex klm_ams_sea = graph.addVertex(T.label, "flight", "equipment", "A330");
-        final Vertex klm_cdg_ams = graph.addVertex(T.label, "flight", "equipment", "737");
-        final Vertex klm_jfk_ams = graph.addVertex(T.label, "flight", "equipment", "A330 777 747(Combi) 747");
-        final Vertex klm_otp_ams = graph.addVertex(T.label, "flight", "equipment", "737");
-        final Vertex klm_sea_ams = graph.addVertex(T.label, "flight", "equipment", "A330");
+        final Vertex klm_ams_cdg = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "737");
+        final Vertex klm_ams_jfk = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "A330 777 747(Combi) 747");
+        final Vertex klm_ams_otp = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "737");
+        final Vertex klm_ams_sea = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "A330");
+        final Vertex klm_cdg_ams = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "737");
+        final Vertex klm_jfk_ams = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "A330 777 747(Combi) 747");
+        final Vertex klm_otp_ams = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "737");
+        final Vertex klm_sea_ams = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "A330");
 
         setFlightEdges(aal, cdg, jfk, aal_cdg_jfk);
         setFlightEdges(aal, jfk, sea, aal_jfk_sea);
@@ -326,6 +341,63 @@ public final class CacheFactory {
         setFlightEdges(klm, jfk, ams, klm_jfk_ams);
         setFlightEdges(klm, otp, ams, klm_otp_ams);
         setFlightEdges(klm, sea, ams, klm_sea_ams);
+    }
+
+    // Tiny airport data set with Q1 schema.
+    public static CacheGraph createTinyQ1Airport()
+    {
+        final CacheGraph graph = getDefaultCacheGraph();
+        generateTinyQ1Airport(graph);
+        return graph;
+    }
+
+    private static void setRouteEdge(Vertex departureAirport, Vertex arrivalAirport, String equipment)
+    {
+        departureAirport.addEdge(LABEL_ROUTE, arrivalAirport, "equipment", equipment);
+        arrivalAirport.addEdge(LABEL_ROUTE, departureAirport, "equipment", equipment);
+    }
+
+    public static void generateTinyQ1Airport(final CacheGraph graph)
+    {
+        final Vertex aal = graph.addVertex(T.label, LABEL_AIRLINE,
+            "code", "24", "icao", "AAL", "name", "American Airlines");
+        final Vertex afr = graph.addVertex(T.label, LABEL_AIRLINE,
+            "code", "137", "icao", "AFR", "name", "Air France");
+        final Vertex dal = graph.addVertex(T.label, LABEL_AIRLINE,
+            "code", "2009", "icao", "DAL", "name", "Delta Air Lines");
+        final Vertex klm = graph.addVertex(T.label, LABEL_AIRLINE,
+            "code", "3090", "icao", "KLM", "name", "KLM Royal Dutch Airlines");
+
+        final Vertex ams = graph.addVertex(T.label, LABEL_AIRPORT,
+            "code", "580", "iata", "AMS", "name", "Amsterdam Airport Schiphol", "city", "Amsterdam", "country", "NLD");
+        final Vertex cdg = graph.addVertex(T.label, LABEL_AIRPORT,
+            "code", "1382", "iata", "CDG", "name", "Charles de Gaulle International Airport", "city", "Paris", "country", "FRA");
+        final Vertex jfk = graph.addVertex(T.label, LABEL_AIRPORT,
+            "code", "3797", "iata", "JFK", "name", "John F Kennedy International Airport", "city", "New York", "country", "USA");
+        final Vertex otp = graph.addVertex(T.label, LABEL_AIRPORT,
+            "code", "1657", "iata", "OTP", "name", "Henri Coandă International Airport", "city", "Bucharest", "country", "ROU");
+        final Vertex sea = graph.addVertex(T.label, LABEL_AIRPORT,
+            "code", "3577", "iata", "SEA", "name", "Seattle Tacoma International Airport", "city", "Seattle", "country", "USA");
+
+        setRouteEdge(cdg, jfk, "767-300 757");
+        setRouteEdge(jfk, sea, "737-800");
+
+        setRouteEdge(ams, cdg, "A321 A320 A319 A318 A320(s)");
+        setRouteEdge(cdg, jfk, "A330-200 777-200 A380-800 A340-300");
+        setRouteEdge(cdg, otp, "A321 A320 A319");
+        setRouteEdge(cdg, sea, "A330-200");
+
+        setRouteEdge(ams, jfk, "767-300(w)");
+        setRouteEdge(ams, sea, "A330-300");
+        setRouteEdge(cdg, jfk, "A330-200 777-200 A380-800 A340-300");
+        setRouteEdge(cdg, sea, "A330-200");
+        setRouteEdge(jfk, sea, "757-200 757");
+        setRouteEdge(ams, jfk, "767-300(w)");
+
+        setRouteEdge(ams, cdg, "737");
+        setRouteEdge(ams, jfk, "A330 777 747(Combi) 747");
+        setRouteEdge(ams, otp, "737");
+        setRouteEdge(ams, sea, "A330");
     }
 
     // Open CacheGraph instance without COW writing.

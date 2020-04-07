@@ -34,7 +34,12 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
+import com.google.flatbuffers.FlatBufferBuilder;
+
 import com.gaiaplatform.database.CowStorageEngine;
+import com.gaiaplatform.database.Airline;
+import com.gaiaplatform.database.Airport;
+import com.gaiaplatform.database.Route;
 
 public final class CacheHelper
 {
@@ -43,13 +48,36 @@ public final class CacheHelper
     private final static String PROPERTY_DELIMITER = "|";
     private final static String KEY_VALUE_DELIMITER = "=";
 
-    private final static long AIRPORT_NODE_TYPE = 1;
-    private final static long AIRLINE_NODE_TYPE = 2;
-    private final static long FLIGHT_NODE_TYPE = 3;
-    private final static long DEPARTURE_EDGE_TYPE = 4;
-    private final static long ARRIVES_AT_EDGE_TYPE = 5;
-    private final static long OPERATED_BY_EDGE_TYPE = 6;
+    private final static String PROPERTY_AL_ID = "al_id";
+    private final static String PROPERTY_NAME = "name";
+    private final static String PROPERTY_ALIAS = "alias";
+    private final static String PROPERTY_IATA = "iata";
+    private final static String PROPERTY_ICAO = "icao";
+    private final static String PROPERTY_CALLSIGN = "callsign";
+    private final static String PROPERTY_COUNTRY = "country";
+    private final static String PROPERTY_ACTIVE = "active";
+    private final static String PROPERTY_AP_ID = "ap_id";
+    private final static String PROPERTY_CITY = "city";
+    private final static String PROPERTY_LATITUDE = "latitude";
+    private final static String PROPERTY_LONGITUDE = "longitude";
+    private final static String PROPERTY_ALTITUDE = "altitude";
+    private final static String PROPERTY_TIMEZONE = "timezone";
+    private final static String PROPERTY_DST = "dst";
+    private final static String PROPERTY_TZTEXT = "tztext";
+    private final static String PROPERTY_TYPE = "type";
+    private final static String PROPERTY_SOURCE = "source";
+    private final static String PROPERTY_AIRLINE = "airline";
+    private final static String PROPERTY_SRC_AP = "src_ap";
+    private final static String PROPERTY_SRC_AP_ID = "src_ap_id";
+    private final static String PROPERTY_DST_AP = "dst_ap";
+    private final static String PROPERTY_DST_AP_ID = "dst_ap_id";
+    private final static String PROPERTY_CODESHARE = "codeshare";
+    private final static String PROPERTY_STOPS = "stops";
+    private final static String PROPERTY_EQUIPMENT = "equipment";
 
+    private final static long AIRLINE_NODE_TYPE = 1;
+    private final static long AIRPORT_NODE_TYPE = 2;
+    private final static long ROUTE_EDGE_TYPE = 3;
 
     private static AtomicLong lastType = new AtomicLong();
     private static Map<String, Long> mapLabelsToTypes = new ConcurrentHashMap<>();
@@ -61,54 +89,31 @@ public final class CacheHelper
     protected static void reset()
     {
         lastType.set(0);
+        mapLabelsToTypes.clear();
     }
 
     protected static void loadAirportGraphFromCow(CacheGraph graph)
     {
         graph.cow.beginTransaction();
 
-        // Scan airport nodes.
-        long currentNodeId = graph.cow.findFirstNode(AIRPORT_NODE_TYPE);
-        while (currentNodeId != 0)
-        {
-            graph.cow.printNode(currentNodeId);
-            currentNodeId = graph.cow.findNextNode(currentNodeId);
-        }
-
         // Scan airline nodes.
-        currentNodeId = graph.cow.findFirstNode(AIRLINE_NODE_TYPE);
+        long currentNodeId = graph.cow.findFirstNode(AIRLINE_NODE_TYPE);
         while (currentNodeId != 0)
         {
             graph.cow.printNode(currentNodeId);
             currentNodeId = graph.cow.findNextNode(currentNodeId);
         }
 
-        // Scan flight nodes.
-        currentNodeId = graph.cow.findFirstNode(FLIGHT_NODE_TYPE);
+        // Scan airport nodes.
+        currentNodeId = graph.cow.findFirstNode(AIRPORT_NODE_TYPE);
         while (currentNodeId != 0)
         {
             graph.cow.printNode(currentNodeId);
             currentNodeId = graph.cow.findNextNode(currentNodeId);
         }
 
-        // Scan departure edges.
-        long currentEdgeId = graph.cow.findFirstEdge(DEPARTURE_EDGE_TYPE);
-        while (currentEdgeId != 0)
-        {
-            graph.cow.printEdge(currentEdgeId);
-            currentEdgeId = graph.cow.findNextEdge(currentEdgeId);
-        }
-
-        // Scan arrives_at edges.
-        currentEdgeId = graph.cow.findFirstEdge(ARRIVES_AT_EDGE_TYPE);
-        while (currentEdgeId != 0)
-        {
-            graph.cow.printEdge(currentEdgeId);
-            currentEdgeId = graph.cow.findNextEdge(currentEdgeId);
-        }
-
-        // Scan operated_by edges.
-        currentEdgeId = graph.cow.findFirstEdge(OPERATED_BY_EDGE_TYPE);
+        // Scan route edges.
+        long currentEdgeId = graph.cow.findFirstEdge(ROUTE_EDGE_TYPE);
         while (currentEdgeId != 0)
         {
             graph.cow.printEdge(currentEdgeId);
@@ -131,7 +136,7 @@ public final class CacheHelper
         payload.append(value);
     }
 
-    private static String packProperties(Map<String, Property> properties)
+    private static String packEdgeProperties(Map<String, Property> properties)
     {
         if (properties == null)
         {
@@ -145,7 +150,7 @@ public final class CacheHelper
         return payload.toString();
     }
 
-    private static String packPropertyLists(Map<String, List<VertexProperty>> properties)
+    private static String packNodeProperties(Map<String, List<VertexProperty>> properties)
     {
         if (properties == null)
         {
@@ -168,6 +173,9 @@ public final class CacheHelper
 
         long nextType = lastType.incrementAndGet();
         mapLabelsToTypes.put(label, nextType);
+
+        System.out.println("Mapped label [" + label + "] to type [" + nextType + "].");
+
         return nextType;
     }
 
@@ -286,7 +294,7 @@ public final class CacheHelper
         CacheGraph graph = vertex.graph;
         long id = Long.parseLong(vertex.id.toString());
         long type = getTypeForLabel(vertex.label);
-        String payload = packPropertyLists(vertex.properties);
+        String payload = packNodeProperties(vertex.properties);
 
         graph.cow.beginTransaction();
         long idNode = graph.cow.createNode(id, type, payload);
@@ -297,7 +305,7 @@ public final class CacheHelper
     {
         CacheGraph graph = vertex.graph;
         long id = Long.parseLong(vertex.id.toString());
-        String payload = packPropertyLists(vertex.properties);
+        String payload = packNodeProperties(vertex.properties);
 
         graph.cow.beginTransaction();
         return handleTransaction(graph, graph.cow.updateNodePayload(id, payload));
@@ -308,7 +316,7 @@ public final class CacheHelper
         CacheGraph graph = edge.graph;
         long id = Long.parseLong(edge.id.toString());
         long type = getTypeForLabel(edge.label);
-        String payload = packProperties(edge.properties);
+        String payload = packEdgeProperties(edge.properties);
         long idFirstNode = Long.parseLong(edge.outVertex.id.toString());
         long idSecondNode = Long.parseLong(edge.inVertex.id.toString());
 
@@ -321,10 +329,109 @@ public final class CacheHelper
     {
         CacheGraph graph = edge.graph;
         long id = Long.parseLong(edge.id.toString());
-        String payload = packProperties(edge.properties);
+        String payload = packEdgeProperties(edge.properties);
 
         graph.cow.beginTransaction();
         return handleTransaction(graph, graph.cow.updateEdgePayload(id, payload));
+    }
+
+    private static byte[] packAirportEdgeProperties(long type, Map<String, Property> properties)
+    {
+        if (properties == null)
+        {
+            return null;
+        }
+
+        FlatBufferBuilder builder = new FlatBufferBuilder();
+
+        if (type == ROUTE_EDGE_TYPE)
+        {
+            Route.startRoute(builder);
+            if (properties.containsKey(PROPERTY_AIRLINE))
+            {
+                int airlineOffset = builder.createString(properties.get(PROPERTY_AIRLINE).value().toString());
+                Route.addAirline(builder, airlineOffset);
+            }
+            if (properties.containsKey(PROPERTY_AL_ID))
+            {
+                int alId = Integer.parseInt(properties.get(PROPERTY_AL_ID).value().toString());
+                Route.addAlId(builder, alId);
+            }
+            if (properties.containsKey(PROPERTY_SRC_AP))
+            {
+                int srcApOffset = builder.createString(properties.get(PROPERTY_SRC_AP).value().toString());
+                Route.addSrcAp(builder, srcApOffset);
+            }
+            if (properties.containsKey(PROPERTY_SRC_AP_ID))
+            {
+                int srcApId = Integer.parseInt(properties.get(PROPERTY_SRC_AP_ID).value().toString());
+                Route.addSrcApId(builder, srcApId);
+            }
+            if (properties.containsKey(PROPERTY_DST_AP))
+            {
+                int dstApOffset = builder.createString(properties.get(PROPERTY_DST_AP).value().toString());
+                Route.addSrcAp(builder, dstApOffset);
+            }
+            if (properties.containsKey(PROPERTY_DST_AP_ID))
+            {
+                int dstApId = Integer.parseInt(properties.get(PROPERTY_DST_AP_ID).value().toString());
+                Route.addSrcApId(builder, dstApId);
+            }
+            if (properties.containsKey(PROPERTY_CODESHARE))
+            {
+                int codeshareOffset = builder.createString(properties.get(PROPERTY_CODESHARE).value().toString());
+                Route.addCodeshare(builder, codeshareOffset);
+            }
+            if (properties.containsKey(PROPERTY_STOPS))
+            {
+                int stops = Integer.parseInt(properties.get(PROPERTY_STOPS).value().toString());
+                Route.addStops(builder, stops);
+            }
+            if (properties.containsKey(PROPERTY_EQUIPMENT))
+            {
+                int equipmentOffset = builder.createString(properties.get(PROPERTY_EQUIPMENT).value().toString());
+                Route.addEquipment(builder, equipmentOffset);
+            }
+            int routeOffset = Route.endRoute(builder);
+            builder.finish(routeOffset);
+        }
+        else
+        {
+            return null;
+        }
+    
+        return builder.sizedByteArray();
+    }
+
+    private static byte[] packAirportNodeProperties(long type, Map<String, List<VertexProperty>> properties)
+    {
+        if (properties == null)
+        {
+            return null;
+        }
+
+        FlatBufferBuilder builder = new FlatBufferBuilder();
+
+        if (type == AIRLINE_NODE_TYPE)
+        {
+            Airline.startAirline(builder);
+
+            int airlineOffset = Airline.endAirline(builder);
+            builder.finish(airlineOffset);
+        }
+        else if (type == AIRPORT_NODE_TYPE)
+        {
+            Airport.startAirport(builder);
+
+            int airportOffset = Airport.endAirport(builder);
+            builder.finish(airportOffset);
+        }
+        else
+        {
+            return null;
+        }
+    
+        return builder.sizedByteArray();
     }
 
     protected static boolean createAirportNode(CacheVertex vertex)
