@@ -38,9 +38,10 @@ import com.gaiaplatform.database.CowStorageEngine;
 
 public final class CacheHelper
 {
+    public final static String EMPTY_STRING = "";
+
     private final static String PROPERTY_DELIMITER = "|";
     private final static String KEY_VALUE_DELIMITER = "=";
-    private final static String EMPTY_STRING = "";
 
     private final static long AIRPORT_NODE_TYPE = 1;
     private final static long AIRLINE_NODE_TYPE = 2;
@@ -55,6 +56,11 @@ public final class CacheHelper
 
     private CacheHelper()
     {
+    }
+
+    protected static void reset()
+    {
+        lastType.set(0);
     }
 
     protected static void loadAirportGraphFromCow(CacheGraph graph)

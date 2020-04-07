@@ -116,6 +116,8 @@ public final class CacheGraph implements Graph
 
         if (createOnStart)
         {
+            CacheHelper.reset();
+            
             if (!cow.create())
             {
                 throw new UnsupportedOperationException("COW initialization failed!");

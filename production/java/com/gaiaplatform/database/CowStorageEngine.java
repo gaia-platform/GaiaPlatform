@@ -14,6 +14,79 @@ public class CowStorageEngine
      
     public static void main(String[] args)
     {
+        if (args.length == 0)
+        {
+            runCowTest();
+        }
+        else if (args[0] != null && args[0].toLowerCase().equals("dump"))
+        {
+            dumpCow();
+        }
+        else
+        {
+            System.out.println("The only valid argument is 'dump'!");
+        }
+    }
+
+    public static void dumpCow()
+    {
+        CowStorageEngine cow = new CowStorageEngine();
+
+        cow.open();
+
+        cow.beginTransaction();
+
+        long currentType = 1;
+        while (true)
+        {
+            System.out.println("\n>>> Looking for entities of type " + currentType + "...");
+
+            boolean hasFoundNode = false;
+            boolean hasFoundEdge = false;
+
+            long currentNodeId = cow.findFirstNode(currentType);
+            while (currentNodeId != 0)
+            {
+                if (!hasFoundNode)
+                {
+                    hasFoundNode = true;
+                    System.out.println(">>> Found nodes:");
+                }
+
+                cow.printNode(currentNodeId);
+                currentNodeId = cow.findNextNode(currentNodeId);
+            }
+    
+            long currentEdgeId = cow.findFirstEdge(currentType);
+            while (currentEdgeId != 0)
+            {
+                if (!hasFoundEdge)
+                {
+                    hasFoundEdge = true;
+                    System.out.println(">>> Found edges:");
+                }
+
+                cow.printEdge(currentEdgeId);
+                currentEdgeId = cow.findNextEdge(currentEdgeId);
+            }
+
+            if (!hasFoundNode && !hasFoundEdge)
+            {
+                System.out.println(
+                    ">>> Could not find a node or edge of type " + currentType
+                    + "! Will conclude storage scan.");
+                break;
+            }
+
+            ++currentType;
+        }
+
+        // We're not making any changes to COW, so we can just rollback.
+        cow.rollbackTransaction();
+    }
+
+    private static void runCowTest()
+    {
         CowStorageEngine cow = new CowStorageEngine();
 
         cow.create();
@@ -172,7 +245,11 @@ public class CowStorageEngine
 
         System.out.print("Edge id:" + edgeId + ", type:" + getEdgeType(edgeId));
 
-        System.out.print(" Payload: " + getEdgePayload(edgeId));
+        String payload = getEdgePayload(edgeId);
+        if (payload != null)
+        {
+            System.out.print(" Payload: " + payload);
+        }
 
         if (!indent) 
         {

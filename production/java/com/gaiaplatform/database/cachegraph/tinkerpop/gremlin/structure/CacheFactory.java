@@ -32,13 +32,13 @@ public final class CacheFactory {
     {
     }
 
-    private static CacheGraph getCacheGraphWithNumberManager()
+    private static CacheGraph getDefaultCacheGraph()
     {
-        final Configuration configuration = getNumberIdManagerConfiguration();
+        final Configuration configuration = getDefaultConfiguration();
         return CacheGraph.open(configuration);
     }
 
-    private static Configuration getNumberIdManagerConfiguration()
+    private static Configuration getDefaultConfiguration()
     {
         final Configuration configuration = new BaseConfiguration();
 
@@ -58,14 +58,8 @@ public final class CacheFactory {
     // Classic graph data set.
     public static CacheGraph createClassic()
     {
-        final Configuration configuration = new BaseConfiguration();
-   
-        configuration.setProperty(
-            CacheGraph.CACHEGRAPH_VERTEX_ID_MANAGER,
-            CacheGraph.DefaultIdManager.INTEGER.name());
-        configuration.setProperty(
-            CacheGraph.CACHEGRAPH_EDGE_ID_MANAGER,
-            CacheGraph.DefaultIdManager.INTEGER.name());
+        final Configuration configuration = getDefaultConfiguration();
+
         configuration.setProperty(
             CacheGraph.CACHEGRAPH_VERTEX_PROPERTY_ID_MANAGER,
             CacheGraph.DefaultIdManager.INTEGER.name());
@@ -97,7 +91,7 @@ public final class CacheFactory {
     // Modern graph data set.
     public static CacheGraph createModern()
     {
-        final CacheGraph graph = getCacheGraphWithNumberManager();
+        final CacheGraph graph = getDefaultCacheGraph();
         generateModern(graph);
         return graph;
     }
@@ -122,7 +116,7 @@ public final class CacheFactory {
     // The Crew data set.
     public static CacheGraph createTheCrew()
     {
-        final Configuration configuration = getNumberIdManagerConfiguration();
+        final Configuration configuration = getDefaultConfiguration();
 
         configuration.setProperty(
             CacheGraph.CACHEGRAPH_DEFAULT_VERTEX_PROPERTY_CARDINALITY,
@@ -189,7 +183,7 @@ public final class CacheFactory {
     // Kitchen Sink data set.
     public static CacheGraph createKitchenSink()
     {
-        final CacheGraph graph = getCacheGraphWithNumberManager();
+        final CacheGraph graph = getDefaultCacheGraph();
         generateKitchenSink(graph);
         return graph;
     }
@@ -209,14 +203,14 @@ public final class CacheFactory {
     }
 
     // COW data set.
-    public static CacheGraph createCOW()
+    public static CacheGraph createCowSample()
     {
-        final CacheGraph graph = getCacheGraphWithNumberManager();
-        generateCOW(graph);
+        final CacheGraph graph = getDefaultCacheGraph();
+        generateCowSample(graph);
         return graph;
     }
 
-    public static void generateCOW(final CacheGraph graph)
+    public static void generateCowSample(final CacheGraph graph)
     {
         final Vertex node1 = graph.addVertex(T.id, 1, T.label, "1", "payload", "n1");
         final Vertex node2 = graph.addVertex(T.id, 2, T.label, "1", "payload", "n2");
@@ -232,7 +226,7 @@ public final class CacheFactory {
     // Tiny airport data set.
     public static CacheGraph createTinyAirport()
     {
-        final CacheGraph graph = getCacheGraphWithNumberManager();
+        final CacheGraph graph = getDefaultCacheGraph();
         generateTinyAirport(graph);
         return graph;
     }
@@ -338,7 +332,7 @@ public final class CacheFactory {
     // This is useful for testing the in-memory graph part only.
     public static CacheGraph openWithoutCOW()
     {
-        final Configuration configuration = getNumberIdManagerConfiguration();
+        final Configuration configuration = getDefaultConfiguration();
 
         // Disable writing to COW.
         configuration.setProperty(
@@ -353,7 +347,7 @@ public final class CacheFactory {
     // Load a graphml file.
     public static CacheGraph loadGraphml(String filename)
     {
-        final CacheGraph graph = getCacheGraphWithNumberManager();
+        final CacheGraph graph = getDefaultCacheGraph();
 
         try
         {
@@ -372,7 +366,7 @@ public final class CacheFactory {
     // A method for loading airport data from COW.
     public static CacheGraph loadAirportGraphFromCow()
     {
-        final Configuration configuration = getNumberIdManagerConfiguration();
+        final Configuration configuration = getDefaultConfiguration();
 
         // We need to load data, so do not initialize COW.
         configuration.setProperty(

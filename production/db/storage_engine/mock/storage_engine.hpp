@@ -681,6 +681,7 @@ namespace db
             {
                 find_next(gaia_ptr<T>::to_ptr()->type);
             }
+  
             return *this;
         }
 
@@ -700,7 +701,7 @@ namespace db
 
         int64_t get_id() const
         {
-            return row_id;
+            return to_ptr()->id;
         }
 
         static void remove (gaia_ptr<T>&);

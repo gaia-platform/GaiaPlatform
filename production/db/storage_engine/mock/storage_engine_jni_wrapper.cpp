@@ -165,7 +165,7 @@ template <typename T> jlong get_type(jlong id)
 template <typename T> jstring get_payload(JNIEnv* env, jlong id)
 {
     gaia_ptr<T> t = T::open(id);
-    if (!t)
+    if (!t || t->payload_size == 0)
     {
         return NULL;
     }
