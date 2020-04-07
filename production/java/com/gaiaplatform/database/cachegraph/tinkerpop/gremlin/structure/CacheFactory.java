@@ -24,7 +24,7 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
-import static org.apache.tinkerpop.gremlin.structure.io.IoCore.gryo;
+import static org.apache.tinkerpop.gremlin.structure.io.IoCore.graphml;
 
 public final class CacheFactory {
 
@@ -227,5 +227,171 @@ public final class CacheFactory {
         node1.addEdge("3", node3, T.id, 6, "payload", "e6=n1->n3");
         node4.addEdge("4", node1, T.id, 7, "payload", "e7=n4->n1");
         node2.addEdge("4", node3, T.id, 8, "payload", "e8=n2->n3");
+    }
+
+    // Tiny airport data set.
+    public static CacheGraph createTinyAirport()
+    {
+        final CacheGraph graph = getCacheGraphWithNumberManager();
+        generateTinyAirport(graph);
+        return graph;
+    }
+
+    private static void setFlightEdges(Vertex airline, Vertex departureAirport, Vertex arrivalAirport, Vertex flight)
+    {
+        departureAirport.addEdge("departure", flight);
+        flight.addEdge("arrives_at", arrivalAirport);
+        flight.addEdge("operated_by", airline);
+    }
+
+    public static void generateTinyAirport(final CacheGraph graph)
+    {
+        final Vertex ams = graph.addVertex(T.label, "airport",
+            "code", "580", "iata", "AMS", "name", "Amsterdam Airport Schiphol", "city", "Amsterdam", "country", "NLD");
+        final Vertex cdg = graph.addVertex(T.label, "airport",
+            "code", "1382", "iata", "CDG", "name", "Charles de Gaulle International Airport", "city", "Paris", "country", "FRA");
+        final Vertex jfk = graph.addVertex(T.label, "airport",
+            "code", "3797", "iata", "JFK", "name", "John F Kennedy International Airport", "city", "New York", "country", "USA");
+        final Vertex otp = graph.addVertex(T.label, "airport",
+            "code", "1657", "iata", "OTP", "name", "Henri Coandă International Airport", "city", "Bucharest", "country", "ROU");
+        final Vertex sea = graph.addVertex(T.label, "airport",
+            "code", "3577", "iata", "SEA", "name", "Seattle Tacoma International Airport", "city", "Seattle", "country", "USA");
+
+        final Vertex aal = graph.addVertex(T.label, "airline",
+            "code", "24", "icao", "AAL", "name", "American Airlines");
+        final Vertex afr = graph.addVertex(T.label, "airline",
+            "code", "137", "icao", "AFR", "name", "Air France");
+        final Vertex dal = graph.addVertex(T.label, "airline",
+            "code", "2009", "icao", "DAL", "name", "Delta Air Lines");
+        final Vertex klm = graph.addVertex(T.label, "airline",
+            "code", "3090", "icao", "KLM", "name", "KLM Royal Dutch Airlines");
+
+        final Vertex aal_cdg_jfk = graph.addVertex(T.label, "flight", "equipment", "767-300 757");
+        final Vertex aal_jfk_cdg = graph.addVertex(T.label, "flight", "equipment", "767-300 757");
+        final Vertex aal_jfk_sea = graph.addVertex(T.label, "flight", "equipment", "737-800");
+        final Vertex aal_sea_jfk = graph.addVertex(T.label, "flight", "equipment", "737-800");
+
+        final Vertex afr_ams_cdg = graph.addVertex(T.label, "flight", "equipment", "A321 A320 A319 A318 A320(s)");
+        final Vertex afr_cdg_ams = graph.addVertex(T.label, "flight", "equipment", "A321 A320 A319 A318 A320(s)");
+        final Vertex afr_cdg_jfk = graph.addVertex(T.label, "flight", "equipment", "A330-200 777-200 A380-800 A340-300");
+        final Vertex afr_cdg_otp = graph.addVertex(T.label, "flight", "equipment", "A321 A320 A319");
+        final Vertex afr_cdg_sea = graph.addVertex(T.label, "flight", "equipment", "A330-200");
+        final Vertex afr_jfk_cdg = graph.addVertex(T.label, "flight", "equipment", "A330-200 777-200 A380-800 A340-300");
+        final Vertex afr_otp_cdg = graph.addVertex(T.label, "flight", "equipment", "A321 A320 A319");
+        final Vertex afr_sea_cdg = graph.addVertex(T.label, "flight", "equipment", "A330-200");
+
+        final Vertex dal_ams_jfk = graph.addVertex(T.label, "flight", "equipment", "767-300(w)");
+        final Vertex dal_ams_sea = graph.addVertex(T.label, "flight", "equipment", "A330-300");
+        final Vertex dal_cdg_jfk = graph.addVertex(T.label, "flight", "equipment", "A330-200 777-200 A380-800 A340-300");
+        final Vertex dal_cdg_sea = graph.addVertex(T.label, "flight", "equipment", "A330-200");
+        final Vertex dal_jfk_ams = graph.addVertex(T.label, "flight", "equipment", "767-300(w)");
+        final Vertex dal_jfk_cdg = graph.addVertex(T.label, "flight", "equipment", "A330-200 777-200 A380-800 A340-300");
+        final Vertex dal_jfk_sea = graph.addVertex(T.label, "flight", "equipment", "757-200 757");
+        final Vertex dal_sea_ams = graph.addVertex(T.label, "flight", "equipment", "A330-300");
+        final Vertex dal_sea_cdg = graph.addVertex(T.label, "flight", "equipment", "A330-200");
+        final Vertex dal_sea_jfk = graph.addVertex(T.label, "flight", "equipment", "757-200 757");
+
+        final Vertex klm_ams_cdg = graph.addVertex(T.label, "flight", "equipment", "737");
+        final Vertex klm_ams_jfk = graph.addVertex(T.label, "flight", "equipment", "A330 777 747(Combi) 747");
+        final Vertex klm_ams_otp = graph.addVertex(T.label, "flight", "equipment", "737");
+        final Vertex klm_ams_sea = graph.addVertex(T.label, "flight", "equipment", "A330");
+        final Vertex klm_cdg_ams = graph.addVertex(T.label, "flight", "equipment", "737");
+        final Vertex klm_jfk_ams = graph.addVertex(T.label, "flight", "equipment", "A330 777 747(Combi) 747");
+        final Vertex klm_otp_ams = graph.addVertex(T.label, "flight", "equipment", "737");
+        final Vertex klm_sea_ams = graph.addVertex(T.label, "flight", "equipment", "A330");
+
+        setFlightEdges(aal, cdg, jfk, aal_cdg_jfk);
+        setFlightEdges(aal, jfk, sea, aal_jfk_sea);
+        setFlightEdges(aal, sea, jfk, aal_sea_jfk);
+
+        setFlightEdges(afr, ams, cdg, afr_ams_cdg);
+        setFlightEdges(afr, cdg, ams, afr_cdg_ams);
+        setFlightEdges(afr, cdg, jfk, afr_cdg_jfk);
+        setFlightEdges(afr, cdg, otp, afr_cdg_otp);
+        setFlightEdges(afr, cdg, sea, afr_cdg_sea);
+        setFlightEdges(afr, jfk, cdg, afr_jfk_cdg);
+        setFlightEdges(afr, otp, cdg, afr_otp_cdg);
+        setFlightEdges(afr, sea, cdg, afr_sea_cdg);
+
+        setFlightEdges(dal, ams, jfk, dal_ams_jfk);
+        setFlightEdges(dal, ams, sea, dal_ams_sea);
+        setFlightEdges(dal, cdg, jfk, dal_cdg_jfk);
+        setFlightEdges(dal, cdg, sea, dal_cdg_sea);
+        setFlightEdges(dal, jfk, ams, dal_jfk_ams);
+        setFlightEdges(dal, jfk, cdg, dal_jfk_cdg);
+        setFlightEdges(dal, jfk, sea, dal_jfk_sea);
+        setFlightEdges(dal, sea, ams, dal_sea_ams);
+        setFlightEdges(dal, sea, cdg, dal_sea_cdg);
+        setFlightEdges(dal, sea, jfk, dal_sea_jfk);
+
+        setFlightEdges(klm, ams, cdg, klm_ams_cdg);
+        setFlightEdges(klm, ams, jfk, klm_ams_jfk);
+        setFlightEdges(klm, ams, otp, klm_ams_otp);
+        setFlightEdges(klm, ams, sea, klm_ams_sea);
+        setFlightEdges(klm, cdg, ams, klm_cdg_ams);
+        setFlightEdges(klm, jfk, ams, klm_jfk_ams);
+        setFlightEdges(klm, otp, ams, klm_otp_ams);
+        setFlightEdges(klm, sea, ams, klm_sea_ams);
+    }
+
+    // Open CacheGraph instance without COW writing.
+    // This is useful for testing the in-memory graph part only.
+    public static CacheGraph openWithoutCOW()
+    {
+        final Configuration configuration = getNumberIdManagerConfiguration();
+
+        // Disable writing to COW.
+        configuration.setProperty(
+            CacheGraph.CACHEGRAPH_ENABLE_COW_WRITES,
+            false);
+
+        final CacheGraph graph = CacheGraph.open(configuration);
+
+        return graph;
+    }
+
+    // Load a graphml file.
+    public static CacheGraph loadGraphml(String filename)
+    {
+        final CacheGraph graph = getCacheGraphWithNumberManager();
+
+        try
+        {
+            graph.io(graphml()).readGraph(filename);
+        }
+        catch (Exception e)
+        {
+            System.out.println(
+                "An error happened while attempting to load " + filename + ": "
+                + e.getMessage());
+        }
+
+        return graph;
+    }
+
+    // A method for loading airport data from COW.
+    public static CacheGraph loadAirportGraphFromCow()
+    {
+        final Configuration configuration = getNumberIdManagerConfiguration();
+
+        // We need to load data, so do not initialize COW.
+        configuration.setProperty(
+            CacheGraph.CACHEGRAPH_CREATE_ON_START,
+            false);
+
+        // We read from COW to write into cached graph,
+        // so we don't need to write back into COW.
+        configuration.setProperty(
+            CacheGraph.CACHEGRAPH_ENABLE_COW_WRITES,
+            false);
+
+        // We need to enable airport data serialization code.
+        configuration.setProperty(
+            CacheGraph.CACHEGRAPH_ENABLE_AIRPORT_CODE,
+            true);
+                   
+        final CacheGraph graph = CacheGraph.open(configuration);
+
+        return graph;
     }
 }
