@@ -192,7 +192,7 @@ public:
 
 /**
  * Thrown when the caller either does not initialize the event manager
- * or attempt to initialize an already initialized event manager.
+ * or attempts to initialize an already initialized event manager.
  */ 
 class initialization_error : public gaia::common::gaia_exception
 {

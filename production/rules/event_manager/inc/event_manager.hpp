@@ -21,8 +21,6 @@ namespace rules
 class event_manager_t
 {
 public:
-    ~event_manager_t();
-
     /**
      * Event manager scaffolding to ensure we have one global static instance.
      * Do not allow assignment or copying; this class is a singleton.

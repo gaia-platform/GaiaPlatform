@@ -40,10 +40,6 @@ event_manager_t::event_manager_t()
 {
 }
 
-event_manager_t::~event_manager_t()
-{
-}
-
 void event_manager_t::init()
 {
     s_log_entry_id = get_last_log_id() + 1;
@@ -478,7 +474,7 @@ uint64_t event_manager_t::get_last_log_id()
     uint64_t max_id = 0;
     
     gaia_base_t::begin_transaction();
-    Event_log * entry = Event_log::get_first();
+    unique_ptr<Event_log> entry(Event_log::get_first());
     while (entry)
     {
         if (entry->id() > max_id)
@@ -486,9 +482,7 @@ uint64_t event_manager_t::get_last_log_id()
             max_id = entry->id();
         }
 
-        Event_log * to_del = entry;
-        entry = entry->get_next();
-        delete to_del;
+        entry.reset(entry->get_next());
     }
     gaia_base_t::commit_transaction();
     return max_id;

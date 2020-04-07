@@ -144,7 +144,6 @@ public:
         return;
     }
 
-
     void update_row()
     {
         if (m_copy) {
