@@ -15,14 +15,39 @@ using namespace std;
 /**
  * Class implementation
  */
-event_manager_t& event_manager_t::get()
+event_manager_t& event_manager_t::get(bool pre_init)
 {
     static event_manager_t s_instance;
+
+    // Initialize errors can happen for two reasons:
+    //
+    // If we call initialize_rules(), then the pre_init flag is true so we
+    // expect that the instance has not already been initialized.
+    //
+    // All other rule APIs require that the instance be initialized.  So
+    // if the pre_init flag is false, we require that the instance already
+    // be initialized. 
+    if (pre_init == s_instance.m_is_initialized)
+    {
+        throw initialization_error(pre_init);
+    }
     return s_instance;
 }
 
+uint64_t event_manager_t::s_log_entry_id = 0;
+
 event_manager_t::event_manager_t() 
 {
+}
+
+event_manager_t::~event_manager_t()
+{
+}
+
+void event_manager_t::init()
+{
+    s_log_entry_id = get_last_log_id() + 1;
+    
     /**
      * This function must be provided by the 
      * rules application.  This function is
@@ -30,11 +55,11 @@ event_manager_t::event_manager_t()
      * behalf of the user.
      */
     initialize_rules();
+
+    m_is_initialized = true;
 }
 
-event_manager_t::~event_manager_t()
-{
-}
+
 
 bool event_manager_t::log_event(event_type_t event_type, event_mode_t mode)
 {
@@ -392,6 +417,13 @@ bool gaia::rules::log_table_event(
 /**
  * Public rules API implementation
  */
+
+void gaia::rules::initialize_rules_engine()
+{
+    bool pre_init = true;
+    event_manager_t::get(pre_init).init();
+}
+
 void gaia::rules::subscribe_table_rule(
     gaia_type_t gaia_type, 
     event_type_t type, 
@@ -435,4 +467,29 @@ void gaia::rules::list_subscribed_rules(
 {
     event_manager_t::get().list_subscribed_rules(ruleset_name, gaia_type,
         type, subscriptions);
+}
+
+uint64_t event_manager_t::get_last_log_id()
+{
+    /**
+     * Should be a better way to intialize our
+     * s_log_entry_id.
+     */
+    uint64_t max_id = 0;
+    
+    gaia_base_t::begin_transaction();
+    Event_log * entry = Event_log::get_first();
+    while (entry)
+    {
+        if (entry->id() > max_id)
+        {
+            max_id = entry->id();
+        }
+
+        Event_log * to_del = entry;
+        entry = entry->get_next();
+        delete to_del;
+    }
+    gaia_base_t::commit_transaction();
+    return max_id;
 }

@@ -14,11 +14,13 @@ set(GAIA_SYSTEM_INCLUDES
     "${GAIA_INC}/internal/common"
     "${FLATBUFFERS_INC}"
     "${GAIA_REPO}/production/db/storage_engine/mock"
-    "${GAIA_REPO}/production/rules/event_manager/inc")
+    "${GAIA_REPO}/production/rules/event_manager/inc"
+    "${CMAKE_BINARY_DIR}/rules/event_manager/generated"
+)
 message(STATUS "GAIA_SYSTEM_INCLUDES=${GAIA_SYSTEM_INCLUDES}")
 
 # Our main target.
 add_library(gaia STATIC src/gaia_system.cpp)
 target_include_directories(gaia PRIVATE ${GAIA_SYSTEM_INCLUDES})
-target_link_libraries(gaia gaia_semock gaia_direct)
+target_link_libraries(gaia gaia_semock gaia_direct gaia_rules)
 set_target_properties(gaia PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")

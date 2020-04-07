@@ -59,12 +59,13 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
 endfunction(add_gtest)
 
 # Gaia specific flatc helpers for generating headers
-function(gaia_compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT)
+function(gaia_compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT OUTPUT_DIR)
   if(FLATBUFFERS_BUILD_LEGACY)
     set(OPT ${OPT};--cpp-std c++0x)
   else()
     # --cpp-std is defined by flatc default settings.
   endif()
+
   message(STATUS "`${SRC_FBS}`: add generation of C++ code with '${OPT}'")
   get_filename_component(SRC_FBS_DIR ${SRC_FBS} PATH)
   string(REGEX REPLACE "\\.fbs$" "_generated.h" GEN_HEADER ${SRC_FBS})
@@ -74,10 +75,11 @@ function(gaia_compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT)
             --cpp --gen-mutable --gen-object-api --reflect-names
             --cpp-ptr-type flatbuffers::unique_ptr # Used to test with C++98 STLs
             --cpp-str-type gaia::common::nullable_string_t
+            --cpp-str-flex-ctor
             --gaiacpp --gen-setters
             ${OPT}
             -I ${CMAKE_CURRENT_SOURCE_DIR}
-            -o ${CMAKE_CURRENT_SOURCE_DIR}
+            -o ${OUTPUT_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
     DEPENDS ${CMAKE_BINARY_DIR}/flatbuffers/flatc 
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
@@ -86,6 +88,16 @@ function(gaia_compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT)
     register_generated_output(${GEN_HEADER})
 endfunction()
 
+# Gaia specific flatc helpers for generating headers
+# Optional parameter [OUTPUT_DIR], default is ${CMAKE_CURRENT_SOURCE_DIR}
 function(gaia_compile_flatbuffers_schema_to_cpp SRC_FBS)
-  gaia_compile_flatbuffers_schema_to_cpp_opt(${SRC_FBS} "--no-includes;--gen-compare")
+  message(STATUS "ARGV1=${ARGV1}")
+  if (NOT ("${ARGV1}" STREQUAL ""))
+    set(OUTPUT_DIR "${ARGV1}")
+  else()
+    set(OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+  endif()
+  message(STATUS "OUTPUT_DIR = ${OUTPUT_DIR}")
+
+  gaia_compile_flatbuffers_schema_to_cpp_opt(${SRC_FBS} "--no-includes;--gen-compare" ${OUTPUT_DIR})
 endfunction()

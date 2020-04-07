@@ -9,6 +9,8 @@ enable_testing()
 # Set the project name.
 project(event_manager)
 
+set(GENERATED_OUTPUTS "${CMAKE_BINARY_DIR}/rules/event_manager/generated")
+
 set(GAIA_EVENT_MANAGER_INCLUDES 
   ${GAIA_REPO}/production/db/storage_engine/mock
   ${GAIA_INC}/public/common
@@ -17,16 +19,31 @@ set(GAIA_EVENT_MANAGER_INCLUDES
   ${GAIA_RULES_INC}
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc
+  ${GENERATED_OUTPUTS}
 )
 message(STATUS "GAIA_EVENT_MANAGER_INCLUDES=${GAIA_EVENT_MANAGER_INCLUDES}")
 
+# Generate the event log headers from the flatbuffer schema.
+set_property(GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
+gaia_compile_flatbuffers_schema_to_cpp(flatbuffers/event_log.fbs "${GENERATED_OUTPUTS}")
+get_generated_output(fbs_generated)
+if(fbs_generated)
+  # message(STATUS "Add generated_code target with files:${fbs_generated}")
+  add_custom_target(generate_event_logs
+    DEPENDS ${fbs_generated}
+    COMMENT "All generated files were updated.")
+endif()
+
 # main target
-add_library(event_manager SHARED
+add_library(gaia_rules STATIC
   src/event_manager.cpp
 )
-set_target_properties(event_manager PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
-target_include_directories(event_manager PRIVATE ${GAIA_EVENT_MANAGER_INCLUDES})  
+add_dependencies(gaia_rules generate_event_logs)
+set_target_properties(gaia_rules PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+target_include_directories(gaia_rules PRIVATE ${GAIA_EVENT_MANAGER_INCLUDES})  
 
 # unit tests
 add_gtest(test_event_guard "tests/test_event_guard.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "")
-add_gtest(test_event_manager "tests/test_event_manager.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "event_manager;rt;gaia")
+add_gtest(test_event_manager "tests/test_event_manager.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
+add_gtest(test_system_init "tests/test_system_init.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
+add_gtest(test_component_init "tests/test_component_init.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_rules;gaia_direct;gaia_semock")

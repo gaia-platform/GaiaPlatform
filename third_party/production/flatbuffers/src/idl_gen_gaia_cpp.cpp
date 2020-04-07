@@ -514,6 +514,8 @@ namespace flatbuffers
                 std::string param_Values = "";
                 //generate constructors 
                 code_ += "{{CLASS_NAME}}() = default;";
+
+                bool has_string_or_vector_fields = false;
            
                 // Generate the accessors.
                 for (auto it = struct_def.fields.vec.begin();
@@ -525,6 +527,15 @@ namespace flatbuffers
                         // Deprecated fields won't be accessible.
                         continue;
                     }
+
+                    // Track whether any field has a string or vector type
+                    // to generate the correct Create{{STRUCT_NAME}} call below.
+                    if (field.value.type.base_type == BASE_TYPE_STRING 
+                        || field.value.type.base_type == BASE_TYPE_VECTOR)
+                    {
+                        has_string_or_vector_fields = true;
+                    }
+
 
                     if (!params.empty())
                     {
@@ -636,11 +647,16 @@ namespace flatbuffers
                     "gaia::rules::log_transaction_event(gaia::rules::event_type_t::transaction_rollback, gaia::rules::event_mode_t::immediate);\n"
                     "}";
                 }
-                
+
+                // If the flatbuffer has a string or vector column then generate a call to
+                // Create{{STRUCT_NAME}}Direct.  Otherwise just generate 
+                // Create{{STRUCT_NAME}}.
+                code_.SetValue("CREATE_SUFFIX", 
+                    has_string_or_vector_fields ? "Direct" : "");
                 code_ += "static gaia_id_t insert_row (" + params + "){\n"
                     "flatbuffers::FlatBufferBuilder b(128);\n"
-                    "b.Finish(Create{{STRUCT_NAME}}Direct(b, " + param_Values + "));\n"
-                    "return gaia_object_t::insert_row("+ CurrentNamespaceString() +  "::k{{CLASS_NAME}}Type, b);\n"
+                    "b.Finish(Create{{STRUCT_NAME}}{{CREATE_SUFFIX}}(b, " + param_Values + "));\n"
+                    "return gaia_object_t::insert_row(b);\n"
                     "}";
 
                 if (opts_.generate_setters && opts_.generate_column_change_events)

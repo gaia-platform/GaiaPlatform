@@ -10,6 +10,7 @@
 #include "gtest/gtest.h"
 #include "rules.hpp"
 #include "gaia_system.hpp"
+#include "event_log_gaia_generated.h"
 
 using namespace std;
 using namespace gaia::rules;
@@ -461,7 +462,7 @@ class event_manager_test : public ::testing::Test
 protected:
     virtual void SetUp()
     {
-        gaia_base_t::begin_transaction();        
+        gaia_base_t::begin_transaction();
         m_row.data = c_initial;
         g_tx_data = c_initial;
     }
@@ -612,25 +613,31 @@ protected:
         }
     }
 
-    // For debugging only; don't clutter up test output.
-    void dump_rules(const list_subscriptions_t& subscriptions)
+    // event log table helpers
+    typedef unique_ptr<Event_log> log_entry_t;
+    uint64_t clear_event_log()
     {
-        static const char* s_event_name[] = {
-            "transaction_begin",
-            "transaction_commit",
-            "tranasction_rollback",
-            "column_change",
-            "row_update",
-            "row_insert",
-            "row_delete"
-        };
+      uint64_t rows_cleared = 0;
+      log_entry_t entry(Event_log::get_first());
+      while(entry)
+      {
+          entry->delete_row();
+          entry.reset(Event_log::get_first());
+          rows_cleared++;
+      }
 
-        for(auto sub_it = subscriptions.begin(); sub_it != subscriptions.end(); ++sub_it)
-        {
-            printf("%s::%s, %lu, %s\n",(*sub_it)->ruleset_name, (*sub_it)->rule_name, (*sub_it)->gaia_type, 
-                s_event_name[(int)(*sub_it)->type]);
-        }
+      return rows_cleared;
     }
+
+    void verify_event_log_row(const Event_log& row, uint64_t gaia_type, 
+        event_type_t event_type, event_mode_t event_mode, bool rules_fired)
+    {
+        EXPECT_EQ(row.gaia_type(), gaia_type);
+        EXPECT_EQ(row.event_type(), (uint32_t) event_type);
+        EXPECT_EQ(row.event_mode(), (uint8_t) event_mode);
+        EXPECT_EQ(row.rules_fired(), rules_fired);
+    }
+
 
     // Table context has data within the Gaia "object".
     TestGaia m_row;
@@ -1101,6 +1108,53 @@ TEST_F(event_manager_test, forward_chain_disallow_cycle)
     EXPECT_EQ(expected_table_value, m_row.data);
     validate_transaction_rule(expected_transaction_value, 
         ruleset3_name, rule8_name, rule8_add_100000000, event_type_t::transaction_commit);
+}
+
+TEST_F(event_manager_test, event_logging_no_subscriptions)
+{
+    clear_event_log();
+
+    // Ensure the event was logged even if it had no subscribers.
+    EXPECT_EQ(false, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::column_change, event_mode_t::immediate));
+    EXPECT_EQ(false, log_transaction_event(event_type_t::transaction_commit, event_mode_t::immediate));
+    
+    log_entry_t entry(Event_log::get_first());
+    verify_event_log_row(*entry, TestGaia::s_gaia_type, 
+        event_type_t::column_change, event_mode_t::immediate, false); 
+    
+    entry.reset(entry->get_next());
+    verify_event_log_row(*entry, 0, 
+        event_type_t::transaction_commit, event_mode_t::immediate, false); 
+
+    // Verify we only have two entries in the table.
+    entry.reset();
+    EXPECT_EQ(2, clear_event_log());
+}
+
+TEST_F(event_manager_test, event_logging_subscriptions)
+{
+    clear_event_log();
+    setup_all_rules();
+
+    // Log events with subscriptions and ensure the table is populated.
+    EXPECT_EQ(false, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::column_change, event_mode_t::immediate));
+    EXPECT_EQ(true, log_table_event(&m_row, TestGaia2::s_gaia_type, event_type_t::row_insert, event_mode_t::immediate));
+    EXPECT_EQ(true, log_transaction_event(event_type_t::transaction_begin, event_mode_t::immediate));
+
+    log_entry_t entry(Event_log::get_first());
+    verify_event_log_row(*entry, TestGaia::s_gaia_type, 
+        event_type_t::column_change, event_mode_t::immediate, false); 
+
+    entry.reset(entry->get_next());
+    verify_event_log_row(*entry, TestGaia2::s_gaia_type, 
+        event_type_t::row_insert, event_mode_t::immediate, true); 
+
+    entry.reset(entry->get_next());
+    verify_event_log_row(*entry, 0, 
+        event_type_t::transaction_begin, event_mode_t::immediate, true); 
+
+    entry.reset();
+    EXPECT_EQ(3, clear_event_log());
 }
 
 int main(int argc, char **argv) {
