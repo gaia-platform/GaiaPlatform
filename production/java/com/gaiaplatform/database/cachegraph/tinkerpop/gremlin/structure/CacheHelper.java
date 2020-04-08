@@ -28,6 +28,7 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Property;
+import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
@@ -92,78 +93,327 @@ public final class CacheHelper
         mapLabelsToTypes.clear();
     }
 
+    // This makes CacheGraph load its status from the underlying store,
+    // whose schema is expected to follow a specific implementation.
     protected static void loadAirportGraphFromCow(CacheGraph graph)
     {
+        if (graph.enableCowWrites)
+        {
+            System.out.println("COW writes need to be disabled while data is loaded from it. Aborting load!");
+            return;
+        }
+
+        if (!graph.enableAirportCode)
+        {
+            System.out.println("COW airport code should be enabled. Aborting load!");
+            return;
+        }
+
+        reset();
+
         graph.cow.beginTransaction();
 
         // Scan airline nodes.
         long currentNodeId = graph.cow.findFirstNode(AIRLINE_NODE_TYPE);
-        while (currentNodeId != 0)
+        int count = 0;
+        for (count = 0;
+            currentNodeId != 0;
+            currentNodeId = graph.cow.findNextNode(currentNodeId), ++count)
         {
-            graph.cow.printNode(currentNodeId);
-            currentNodeId = graph.cow.findNextNode(currentNodeId);
+            System.out.print("Loading airline node " + currentNodeId + "...");
+            loadAirlineNode(graph, currentNodeId);
+            System.out.println("done!");
         }
+
+        System.out.println("" + count + " airline nodes have been loaded!\n");
 
         // Scan airport nodes.
         currentNodeId = graph.cow.findFirstNode(AIRPORT_NODE_TYPE);
-        while (currentNodeId != 0)
+        for (count = 0;
+            currentNodeId != 0;
+            currentNodeId = graph.cow.findNextNode(currentNodeId), ++count)
         {
-            graph.cow.printNode(currentNodeId);
-            currentNodeId = graph.cow.findNextNode(currentNodeId);
+            System.out.print("Loading airport node " + currentNodeId + "...");
+            loadAirportNode(graph, currentNodeId);
+            System.out.println("done!");
         }
+
+        System.out.println("" + count + " airport nodes have been loaded!\n");
 
         // Scan route edges.
         long currentEdgeId = graph.cow.findFirstEdge(ROUTE_EDGE_TYPE);
-        while (currentEdgeId != 0)
+        for (count = 0;
+            currentEdgeId != 0;
+            currentEdgeId = graph.cow.findNextEdge(currentEdgeId), ++count)
         {
-            graph.cow.printEdge(currentEdgeId);
-            currentEdgeId = graph.cow.findNextEdge(currentEdgeId);
+            System.out.print("Loading route edge " + currentEdgeId + "...");
+            loadRouteEdge(graph, currentEdgeId);
+            System.out.println("done!");
         }
+
+        System.out.println("" + count + " route edges have been loaded!\n");
 
         // We're not making any changes to COW, so we can just rollback.
         graph.cow.rollbackTransaction();
+
+        graph.enableCowWrites = true;
     }
 
-    private static void packProperty(StringBuilder payload, String key, String value)
+    private static void loadAirlineNode(CacheGraph graph, long nodeId)
     {
-        if (payload.length() > 0)
+        List<Object> keyValues = new ArrayList<>();
+        keyValues.add(T.id);
+        keyValues.add(nodeId);
+        keyValues.add(T.label);
+        keyValues.add("airline");
+
+        byte[] payload = graph.cow.getNodePayload(nodeId);
+        if (payload != null)
         {
-            payload.append(PROPERTY_DELIMITER);
+            java.nio.ByteBuffer byteBuffer = java.nio.ByteBuffer.wrap(payload);
+
+            Airline airline = null;
+            try
+            {
+                airline = Airline.getRootAsAirline(byteBuffer);
+            }
+            catch (Exception e)
+            {
+                System.out.println("Flatbuffers deserialization failed! Will ignore payload data.");
+            }
+
+            if (airline != null)
+            {
+                if (airline.alId() != 0)
+                {
+                    keyValues.add(PROPERTY_AL_ID);
+                    keyValues.add(airline.alId());
+                }
+                if (airline.name() != null)
+                {
+                    keyValues.add(PROPERTY_NAME);
+                    keyValues.add(airline.name());
+                }
+                if (airline.alias() != null)
+                {
+                    keyValues.add(PROPERTY_ALIAS);
+                    keyValues.add(airline.alias());
+                }
+                if (airline.iata() != null)
+                {
+                    keyValues.add(PROPERTY_IATA);
+                    keyValues.add(airline.iata());
+                }
+                if (airline.icao() != null)
+                {
+                    keyValues.add(PROPERTY_ICAO);
+                    keyValues.add(airline.icao());
+                }
+                if (airline.callsign() != null)
+                {
+                    keyValues.add(PROPERTY_CALLSIGN);
+                    keyValues.add(airline.callsign());
+                }
+                if (airline.country() != null)
+                {
+                    keyValues.add(PROPERTY_COUNTRY);
+                    keyValues.add(airline.country());
+                }
+                if (airline.active() != null)
+                {
+                    keyValues.add(PROPERTY_ACTIVE);
+                    keyValues.add(airline.active());
+                }
+            }
         }
 
-        payload.append(key);
-        payload.append(KEY_VALUE_DELIMITER);
-        payload.append(value);
+        graph.addVertex(keyValues.toArray());
     }
 
-    private static String packEdgeProperties(Map<String, Property> properties)
+    private static void loadAirportNode(CacheGraph graph, long nodeId)
     {
-        if (properties == null)
+        List<Object> keyValues = new ArrayList<>();
+        keyValues.add(T.id);
+        keyValues.add(nodeId);
+        keyValues.add(T.label);
+        keyValues.add("airport");
+
+        byte[] payload = graph.cow.getNodePayload(nodeId);
+        if (payload != null)
         {
-            return EMPTY_STRING;
+            java.nio.ByteBuffer byteBuffer = java.nio.ByteBuffer.wrap(payload);
+
+            Airport airport = null;
+            try
+            {
+                airport = Airport.getRootAsAirport(byteBuffer);
+            }
+            catch (Exception e)
+            {
+                System.out.println("Flatbuffers deserialization failed! Will ignore payload data.");
+            }
+
+            if (airport != null)
+            {
+                if (airport.apId() != 0)
+                {
+                    keyValues.add(PROPERTY_AP_ID);
+                    keyValues.add(airport.apId());
+                }
+                if (airport.name() != null)
+                {
+                    keyValues.add(PROPERTY_NAME);
+                    keyValues.add(airport.name());
+                }
+                if (airport.city() != null)
+                {
+                    keyValues.add(PROPERTY_CITY);
+                    keyValues.add(airport.city());
+                }
+                if (airport.country() != null)
+                {
+                    keyValues.add(PROPERTY_COUNTRY);
+                    keyValues.add(airport.country());
+                }
+                if (airport.iata() != null)
+                {
+                    keyValues.add(PROPERTY_IATA);
+                    keyValues.add(airport.iata());
+                }
+                if (airport.icao() != null)
+                {
+                    keyValues.add(PROPERTY_ICAO);
+                    keyValues.add(airport.icao());
+                }
+                if (airport.latitude() != 0)
+                {
+                    keyValues.add(PROPERTY_LATITUDE);
+                    keyValues.add(airport.latitude());
+                }
+                if (airport.longitude() != 0)
+                {
+                    keyValues.add(PROPERTY_LONGITUDE);
+                    keyValues.add(airport.longitude());
+                }
+                keyValues.add(PROPERTY_ALTITUDE);
+                keyValues.add(airport.altitude());
+                keyValues.add(PROPERTY_TIMEZONE);
+                keyValues.add(airport.timezone());
+                if (airport.dst() != null)
+                {
+                    keyValues.add(PROPERTY_DST);
+                    keyValues.add(airport.dst());
+                }
+                if (airport.tztext() != null)
+                {
+                    keyValues.add(PROPERTY_TZTEXT);
+                    keyValues.add(airport.tztext());
+                }
+                if (airport.type() != null)
+                {
+                    keyValues.add(PROPERTY_TYPE);
+                    keyValues.add(airport.type());
+                }
+                if (airport.source() != null)
+                {
+                    keyValues.add(PROPERTY_SOURCE);
+                    keyValues.add(airport.source());
+                }
+            }
+        }
+    
+        graph.addVertex(keyValues.toArray());
+    }
+
+    private static void loadRouteEdge(CacheGraph graph, long edgeId)
+    {
+        List<Object> keyValues = new ArrayList<>();
+        keyValues.add(T.id);
+        keyValues.add(edgeId);
+
+        byte[] payload = graph.cow.getEdgePayload(edgeId);
+        if (payload != null)
+        {
+            java.nio.ByteBuffer byteBuffer = java.nio.ByteBuffer.wrap(payload);
+
+            Route route = null;
+            try
+            {
+                route = Route.getRootAsRoute(byteBuffer);
+            }
+            catch (Exception e)
+            {
+                System.out.println("Flatbuffers deserialization failed! Will ignore payload data.");
+            }
+
+            if (route != null)
+            {
+                if (route.airline() != null)
+                {
+                    keyValues.add(PROPERTY_AIRLINE);
+                    keyValues.add(route.airline());
+                }
+                if (route.alId() != 0)
+                {
+                    keyValues.add(PROPERTY_AL_ID);
+                    keyValues.add(route.alId());
+                }
+                if (route.srcAp() != null)
+                {
+                    keyValues.add(PROPERTY_SRC_AP);
+                    keyValues.add(route.srcAp());
+                }
+                if (route.srcApId() != 0)
+                {
+                    keyValues.add(PROPERTY_SRC_AP_ID);
+                    keyValues.add(route.srcApId());
+                }
+                if (route.dstAp() != null)
+                {
+                    keyValues.add(PROPERTY_DST_AP);
+                    keyValues.add(route.dstAp());
+                }
+                if (route.dstApId() != 0)
+                {
+                    keyValues.add(PROPERTY_DST_AP_ID);
+                    keyValues.add(route.dstApId());
+                }
+                if (route.codeshare() != null)
+                {
+                    keyValues.add(PROPERTY_CODESHARE);
+                    keyValues.add(route.codeshare());
+                }
+                keyValues.add(PROPERTY_STOPS);
+                keyValues.add(route.stops());
+                if (route.equipment() != null)
+                {
+                    keyValues.add(PROPERTY_EQUIPMENT);
+                    keyValues.add(route.equipment());
+                }
+            }
         }
 
-        StringBuilder payload = new StringBuilder();
+        long idFirstNode = graph.cow.getEdgeFirstNode(edgeId);
+        long idSecondNode = graph.cow.getEdgeSecondNode(edgeId);
 
-        properties.forEach((key, property) -> packProperty(payload, key, property.value().toString()));
-
-        return payload.toString();
-    }
-
-    private static String packNodeProperties(Map<String, List<VertexProperty>> properties)
-    {
-        if (properties == null)
+        if (idFirstNode == 0
+            || idSecondNode == 0
+            || !graph.vertices.containsKey(idFirstNode)
+            || !graph.vertices.containsKey(idSecondNode))
         {
-            return EMPTY_STRING;
+            System.out.println(
+                "Cannot resolve edge node ids: first=" + idFirstNode
+                + ", second=" + idSecondNode + ". Will skip route edge!");
         }
 
-        StringBuilder payload = new StringBuilder();
+        Vertex outVertex = graph.vertices.get(idFirstNode);
+        Vertex inVertex = graph.vertices.get(idSecondNode);
 
-        properties.forEach((key, list) -> packProperty(payload, key, list.get(0).value().toString()));
-
-        return payload.toString();
+        outVertex.addEdge("route", inVertex, keyValues.toArray());
     }
 
+    // Because the underlying store does not support string labels or metadata,
+    // we need to map strings to integer values for operations with the underlying store.
     private static long getTypeForLabel(String label)
     {
         if (mapLabelsToTypes.containsKey(label))
@@ -193,6 +443,9 @@ public final class CacheHelper
         return operationResult;
     }
 
+    // Underlying store helpers.
+    // These are called through the in-memory graph update operations
+    // and they update the underlying store.
     protected static boolean createNode(CacheVertex vertex)
     {
         if (!vertex.graph.enableCowWrites)
@@ -289,6 +542,47 @@ public final class CacheHelper
         }
     }
 
+    // Generic graph helpers that do a simple string serialization of properties.
+    private static void packProperty(StringBuilder payload, String key, String value)
+    {
+        if (payload.length() > 0)
+        {
+            payload.append(PROPERTY_DELIMITER);
+        }
+
+        payload.append(key);
+        payload.append(KEY_VALUE_DELIMITER);
+        payload.append(value);
+    }
+
+    private static String packNodeProperties(Map<String, List<VertexProperty>> properties)
+    {
+        if (properties == null)
+        {
+            return EMPTY_STRING;
+        }
+
+        StringBuilder payload = new StringBuilder();
+
+        properties.forEach((key, list) -> packProperty(payload, key, list.get(0).value().toString()));
+
+        return payload.toString();
+    }
+
+    private static String packEdgeProperties(Map<String, Property> properties)
+    {
+        if (properties == null)
+        {
+            return EMPTY_STRING;
+        }
+
+        StringBuilder payload = new StringBuilder();
+
+        properties.forEach((key, property) -> packProperty(payload, key, property.value().toString()));
+
+        return payload.toString();
+    }
+
     protected static boolean createGenericNode(CacheVertex vertex)
     {
         CacheGraph graph = vertex.graph;
@@ -335,74 +629,7 @@ public final class CacheHelper
         return handleTransaction(graph, graph.cow.updateEdgePayload(id, payload));
     }
 
-    private static byte[] packAirportEdgeProperties(long type, Map<String, Property> properties)
-    {
-        if (properties == null)
-        {
-            return null;
-        }
-
-        FlatBufferBuilder builder = new FlatBufferBuilder();
-
-        if (type == ROUTE_EDGE_TYPE)
-        {
-            Route.startRoute(builder);
-            if (properties.containsKey(PROPERTY_AIRLINE))
-            {
-                int airlineOffset = builder.createString(properties.get(PROPERTY_AIRLINE).value().toString());
-                Route.addAirline(builder, airlineOffset);
-            }
-            if (properties.containsKey(PROPERTY_AL_ID))
-            {
-                int alId = Integer.parseInt(properties.get(PROPERTY_AL_ID).value().toString());
-                Route.addAlId(builder, alId);
-            }
-            if (properties.containsKey(PROPERTY_SRC_AP))
-            {
-                int srcApOffset = builder.createString(properties.get(PROPERTY_SRC_AP).value().toString());
-                Route.addSrcAp(builder, srcApOffset);
-            }
-            if (properties.containsKey(PROPERTY_SRC_AP_ID))
-            {
-                int srcApId = Integer.parseInt(properties.get(PROPERTY_SRC_AP_ID).value().toString());
-                Route.addSrcApId(builder, srcApId);
-            }
-            if (properties.containsKey(PROPERTY_DST_AP))
-            {
-                int dstApOffset = builder.createString(properties.get(PROPERTY_DST_AP).value().toString());
-                Route.addSrcAp(builder, dstApOffset);
-            }
-            if (properties.containsKey(PROPERTY_DST_AP_ID))
-            {
-                int dstApId = Integer.parseInt(properties.get(PROPERTY_DST_AP_ID).value().toString());
-                Route.addSrcApId(builder, dstApId);
-            }
-            if (properties.containsKey(PROPERTY_CODESHARE))
-            {
-                int codeshareOffset = builder.createString(properties.get(PROPERTY_CODESHARE).value().toString());
-                Route.addCodeshare(builder, codeshareOffset);
-            }
-            if (properties.containsKey(PROPERTY_STOPS))
-            {
-                int stops = Integer.parseInt(properties.get(PROPERTY_STOPS).value().toString());
-                Route.addStops(builder, stops);
-            }
-            if (properties.containsKey(PROPERTY_EQUIPMENT))
-            {
-                int equipmentOffset = builder.createString(properties.get(PROPERTY_EQUIPMENT).value().toString());
-                Route.addEquipment(builder, equipmentOffset);
-            }
-            int routeOffset = Route.endRoute(builder);
-            builder.finish(routeOffset);
-        }
-        else
-        {
-            return null;
-        }
-    
-        return builder.sizedByteArray();
-    }
-
+    // Airport graph helpers that do a custom flatbuffers serialization of properties.
     private static byte[] packAirportNodeProperties(long type, Map<String, List<VertexProperty>> properties)
     {
         if (properties == null)
@@ -412,9 +639,53 @@ public final class CacheHelper
 
         FlatBufferBuilder builder = new FlatBufferBuilder();
 
+        int nameOffset = 0;
+        int aliasOffset = 0;
+        int iataOffset = 0;
+        int icaoOffset = 0;
+        int callsignOffset = 0;
+        int countryOffset = 0;
+        int activeOffset = 0;
+        int cityOffset = 0;
+        int dstOffset = 0;
+        int tztextOffset = 0;
+        int typeOffset = 0;
+        int sourceOffset = 0;
+
         if (type == AIRLINE_NODE_TYPE)
         {
+            // Serialize string fields before serializing the entire object.
+            if (properties.containsKey(PROPERTY_NAME))
+            {
+                nameOffset = builder.createString(properties.get(PROPERTY_NAME).get(0).value().toString());
+            }
+            if (properties.containsKey(PROPERTY_ALIAS))
+            {
+                aliasOffset = builder.createString(properties.get(PROPERTY_ALIAS).get(0).value().toString());
+            }
+            if (properties.containsKey(PROPERTY_IATA))
+            {
+                iataOffset = builder.createString(properties.get(PROPERTY_IATA).get(0).value().toString());
+            }
+            if (properties.containsKey(PROPERTY_ICAO))
+            {
+                icaoOffset = builder.createString(properties.get(PROPERTY_ICAO).get(0).value().toString());
+            }
+            if (properties.containsKey(PROPERTY_CALLSIGN))
+            {
+                callsignOffset = builder.createString(properties.get(PROPERTY_CALLSIGN).get(0).value().toString());
+            }
+            if (properties.containsKey(PROPERTY_COUNTRY))
+            {
+                countryOffset = builder.createString(properties.get(PROPERTY_COUNTRY).get(0).value().toString());
+            }
+            if (properties.containsKey(PROPERTY_ACTIVE))
+            {
+                activeOffset = builder.createString(properties.get(PROPERTY_ACTIVE).get(0).value().toString());
+            }
+
             Airline.startAirline(builder);
+
             if (properties.containsKey(PROPERTY_AL_ID))
             {
                 int alId = Integer.parseInt(properties.get(PROPERTY_AL_ID).get(0).value().toString());
@@ -422,45 +693,78 @@ public final class CacheHelper
             }
             if (properties.containsKey(PROPERTY_NAME))
             {
-                int nameOffset = builder.createString(properties.get(PROPERTY_NAME).get(0).value().toString());
                 Airline.addName(builder, nameOffset);
             }
             if (properties.containsKey(PROPERTY_ALIAS))
             {
-                int aliasOffset = builder.createString(properties.get(PROPERTY_ALIAS).get(0).value().toString());
                 Airline.addAlias(builder, aliasOffset);
             }
             if (properties.containsKey(PROPERTY_IATA))
             {
-                int iataOffset = builder.createString(properties.get(PROPERTY_IATA).get(0).value().toString());
                 Airline.addIata(builder, iataOffset);
             }
             if (properties.containsKey(PROPERTY_ICAO))
             {
-                int icaoOffset = builder.createString(properties.get(PROPERTY_ICAO).get(0).value().toString());
                 Airline.addIcao(builder, icaoOffset);
             }
             if (properties.containsKey(PROPERTY_CALLSIGN))
             {
-                int callsignOffset = builder.createString(properties.get(PROPERTY_CALLSIGN).get(0).value().toString());
                 Airline.addCallsign(builder, callsignOffset);
             }
             if (properties.containsKey(PROPERTY_COUNTRY))
             {
-                int countryOffset = builder.createString(properties.get(PROPERTY_COUNTRY).get(0).value().toString());
                 Airline.addCountry(builder, countryOffset);
             }
             if (properties.containsKey(PROPERTY_ACTIVE))
             {
-                int activeOffset = builder.createString(properties.get(PROPERTY_ACTIVE).get(0).value().toString());
                 Airline.addName(builder, activeOffset);
             }
+
             int airlineOffset = Airline.endAirline(builder);
             builder.finish(airlineOffset);
         }
         else if (type == AIRPORT_NODE_TYPE)
         {
+            // Serialize string fields before serializing the entire object.
+            if (properties.containsKey(PROPERTY_NAME))
+            {
+                nameOffset = builder.createString(properties.get(PROPERTY_NAME).get(0).value().toString());
+            }
+            if (properties.containsKey(PROPERTY_CITY))
+            {
+                cityOffset = builder.createString(properties.get(PROPERTY_CITY).get(0).value().toString());
+            }
+            if (properties.containsKey(PROPERTY_COUNTRY))
+            {
+                countryOffset = builder.createString(properties.get(PROPERTY_COUNTRY).get(0).value().toString());
+            }
+            if (properties.containsKey(PROPERTY_IATA))
+            {
+                iataOffset = builder.createString(properties.get(PROPERTY_IATA).get(0).value().toString());
+            }
+            if (properties.containsKey(PROPERTY_ICAO))
+            {
+                icaoOffset = builder.createString(properties.get(PROPERTY_ICAO).get(0).value().toString());
+            }
+            if (properties.containsKey(PROPERTY_DST))
+            {
+                dstOffset = builder.createString(properties.get(PROPERTY_DST).get(0).value().toString());
+            }
+            if (properties.containsKey(PROPERTY_TZTEXT))
+            {
+                tztextOffset = builder.createString(properties.get(PROPERTY_TZTEXT).get(0).value().toString());
+            }
+            if (properties.containsKey(PROPERTY_TYPE))
+            {
+                typeOffset = builder.createString(properties.get(PROPERTY_TYPE).get(0).value().toString());
+            }
+            if (properties.containsKey(PROPERTY_SOURCE))
+            {
+                sourceOffset = builder.createString(properties.get(PROPERTY_SOURCE).get(0).value().toString());
+            }
+
             Airport.startAirport(builder);
+
             if (properties.containsKey(PROPERTY_AP_ID))
             {
                 int apId = Integer.parseInt(properties.get(PROPERTY_AP_ID).get(0).value().toString());
@@ -468,27 +772,22 @@ public final class CacheHelper
             }
             if (properties.containsKey(PROPERTY_NAME))
             {
-                int nameOffset = builder.createString(properties.get(PROPERTY_NAME).get(0).value().toString());
                 Airport.addName(builder, nameOffset);
             }
             if (properties.containsKey(PROPERTY_CITY))
             {
-                int cityOffset = builder.createString(properties.get(PROPERTY_CITY).get(0).value().toString());
                 Airport.addCity(builder, cityOffset);
             }
             if (properties.containsKey(PROPERTY_COUNTRY))
             {
-                int countryOffset = builder.createString(properties.get(PROPERTY_COUNTRY).get(0).value().toString());
                 Airport.addCountry(builder, countryOffset);
             }
             if (properties.containsKey(PROPERTY_IATA))
             {
-                int iataOffset = builder.createString(properties.get(PROPERTY_IATA).get(0).value().toString());
                 Airport.addIata(builder, iataOffset);
             }
             if (properties.containsKey(PROPERTY_ICAO))
             {
-                int icaoOffset = builder.createString(properties.get(PROPERTY_ICAO).get(0).value().toString());
                 Airport.addIcao(builder, icaoOffset);
             }
             if (properties.containsKey(PROPERTY_LATITUDE))
@@ -513,24 +812,21 @@ public final class CacheHelper
             }
             if (properties.containsKey(PROPERTY_DST))
             {
-                int dstOffset = builder.createString(properties.get(PROPERTY_DST).get(0).value().toString());
                 Airport.addDst(builder, dstOffset);
             }
             if (properties.containsKey(PROPERTY_TZTEXT))
             {
-                int tztextOffset = builder.createString(properties.get(PROPERTY_TZTEXT).get(0).value().toString());
                 Airport.addTztext(builder, tztextOffset);
             }
             if (properties.containsKey(PROPERTY_TYPE))
             {
-                int typeOffset = builder.createString(properties.get(PROPERTY_TYPE).get(0).value().toString());
                 Airport.addType(builder, typeOffset);
             }
             if (properties.containsKey(PROPERTY_SOURCE))
             {
-                int sourceOffset = builder.createString(properties.get(PROPERTY_SOURCE).get(0).value().toString());
                 Airport.addSource(builder, sourceOffset);
             }
+
             int airportOffset = Airport.endAirport(builder);
             builder.finish(airportOffset);
         }
@@ -542,26 +838,148 @@ public final class CacheHelper
         return builder.sizedByteArray();
     }
 
+    private static byte[] packAirportEdgeProperties(long type, Map<String, Property> properties)
+    {
+        if (properties == null)
+        {
+            return null;
+        }
+
+        FlatBufferBuilder builder = new FlatBufferBuilder();
+
+        int airlineOffset = 0;
+        int srcApOffset = 0;
+        int dstApOffset = 0;
+        int codeshareOffset = 0;
+        int equipmentOffset = 0;
+
+        if (type == ROUTE_EDGE_TYPE)
+        {
+            // Serialize string fields before serializing the entire object.
+            if (properties.containsKey(PROPERTY_AIRLINE))
+            {
+                airlineOffset = builder.createString(properties.get(PROPERTY_AIRLINE).value().toString());
+            }
+            if (properties.containsKey(PROPERTY_SRC_AP))
+            {
+                srcApOffset = builder.createString(properties.get(PROPERTY_SRC_AP).value().toString());
+            }
+            if (properties.containsKey(PROPERTY_DST_AP))
+            {
+                dstApOffset = builder.createString(properties.get(PROPERTY_DST_AP).value().toString());
+            }
+            if (properties.containsKey(PROPERTY_CODESHARE))
+            {
+                codeshareOffset = builder.createString(properties.get(PROPERTY_CODESHARE).value().toString());
+            }
+            if (properties.containsKey(PROPERTY_EQUIPMENT))
+            {
+                equipmentOffset = builder.createString(properties.get(PROPERTY_EQUIPMENT).value().toString());
+            }
+
+            Route.startRoute(builder);
+
+            if (properties.containsKey(PROPERTY_AIRLINE))
+            {
+                Route.addAirline(builder, airlineOffset);
+            }
+            if (properties.containsKey(PROPERTY_AL_ID))
+            {
+                int alId = Integer.parseInt(properties.get(PROPERTY_AL_ID).value().toString());
+                Route.addAlId(builder, alId);
+            }
+            if (properties.containsKey(PROPERTY_SRC_AP))
+            {
+                Route.addSrcAp(builder, srcApOffset);
+            }
+            if (properties.containsKey(PROPERTY_SRC_AP_ID))
+            {
+                int srcApId = Integer.parseInt(properties.get(PROPERTY_SRC_AP_ID).value().toString());
+                Route.addSrcApId(builder, srcApId);
+            }
+            if (properties.containsKey(PROPERTY_DST_AP))
+            {
+                Route.addSrcAp(builder, dstApOffset);
+            }
+            if (properties.containsKey(PROPERTY_DST_AP_ID))
+            {
+                int dstApId = Integer.parseInt(properties.get(PROPERTY_DST_AP_ID).value().toString());
+                Route.addSrcApId(builder, dstApId);
+            }
+            if (properties.containsKey(PROPERTY_CODESHARE))
+            {
+                Route.addCodeshare(builder, codeshareOffset);
+            }
+            if (properties.containsKey(PROPERTY_STOPS))
+            {
+                int stops = Integer.parseInt(properties.get(PROPERTY_STOPS).value().toString());
+                Route.addStops(builder, stops);
+            }
+            if (properties.containsKey(PROPERTY_EQUIPMENT))
+            {
+                Route.addEquipment(builder, equipmentOffset);
+            }
+
+            int routeOffset = Route.endRoute(builder);
+            builder.finish(routeOffset);
+        }
+        else
+        {
+            return null;
+        }
+    
+        return builder.sizedByteArray();
+    }
+
     protected static boolean createAirportNode(CacheVertex vertex)
     {
-        return false;
+        CacheGraph graph = vertex.graph;
+        long id = Long.parseLong(vertex.id.toString());
+        long type = getTypeForLabel(vertex.label);
+        byte[] payload = packAirportNodeProperties(type, vertex.properties);
+
+        graph.cow.beginTransaction();
+        long idNode = graph.cow.createNode(id, type, payload);
+        return handleTransaction(graph, idNode != 0);
     }
 
     protected static boolean updateAirportNodePayload(CacheVertex vertex)
     {
-        return false;
+        CacheGraph graph = vertex.graph;
+        long id = Long.parseLong(vertex.id.toString());
+        long type = getTypeForLabel(vertex.label);
+        byte[] payload = packAirportNodeProperties(type, vertex.properties);
+
+        graph.cow.beginTransaction();
+        return handleTransaction(graph, graph.cow.updateNodePayload(id, payload));
     }
 
     protected static boolean createAirportEdge(CacheEdge edge)
     {
-        return false;
+        CacheGraph graph = edge.graph;
+        long id = Long.parseLong(edge.id.toString());
+        long type = getTypeForLabel(edge.label);
+        byte[] payload = packAirportEdgeProperties(type, edge.properties);
+        long idFirstNode = Long.parseLong(edge.outVertex.id.toString());
+        long idSecondNode = Long.parseLong(edge.inVertex.id.toString());
+
+        graph.cow.beginTransaction();
+        long idEdge = graph.cow.createEdge(id, type, idFirstNode, idSecondNode, payload);
+        return handleTransaction(graph, idEdge != 0);
     }
 
     protected static boolean updateAirportEdgePayload(CacheEdge edge)
     {
-        return false;
+        CacheGraph graph = edge.graph;
+        long id = Long.parseLong(edge.id.toString());
+        long type = getTypeForLabel(edge.label);
+        byte[] payload = packAirportEdgeProperties(type, edge.properties);
+
+        graph.cow.beginTransaction();
+        return handleTransaction(graph, graph.cow.updateEdgePayload(id, payload));
     }
 
+    // In-memory graph helpers.
     protected static Edge addEdge(
         final CacheGraph graph,
         final CacheVertex outVertex, final CacheVertex inVertex,

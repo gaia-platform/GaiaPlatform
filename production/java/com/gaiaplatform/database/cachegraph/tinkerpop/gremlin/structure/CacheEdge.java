@@ -99,7 +99,9 @@ public final class CacheEdge extends CacheElement implements Edge
         this.properties.put(key, newProperty);
 
         // Update edge payload in COW.
-        if (!CacheHelper.updateEdgePayload(this))
+        // We don't have to do this if the edge is being created,
+        // which we detect by checking if it's been added to the graph.edges map.
+        if (this.graph.edges.containsKey(id) && !CacheHelper.updateEdgePayload(this))
         {
             throw new UnsupportedOperationException("COW edge update failed!");
         }

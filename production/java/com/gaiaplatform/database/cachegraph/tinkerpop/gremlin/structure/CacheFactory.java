@@ -256,24 +256,24 @@ public final class CacheFactory
     public static void generateTinyAirport(final CacheGraph graph)
     {
         final Vertex ams = graph.addVertex(T.label, LABEL_AIRPORT,
-            "code", "580", "iata", "AMS", "name", "Amsterdam Airport Schiphol", "city", "Amsterdam", "country", "NLD");
+            "id", "580", "iata", "AMS", "name", "Amsterdam Airport Schiphol", "city", "Amsterdam", "country", "NLD");
         final Vertex cdg = graph.addVertex(T.label, LABEL_AIRPORT,
-            "code", "1382", "iata", "CDG", "name", "Charles de Gaulle International Airport", "city", "Paris", "country", "FRA");
+            "id", "1382", "iata", "CDG", "name", "Charles de Gaulle International Airport", "city", "Paris", "country", "FRA");
         final Vertex jfk = graph.addVertex(T.label, LABEL_AIRPORT,
-            "code", "3797", "iata", "JFK", "name", "John F Kennedy International Airport", "city", "New York", "country", "USA");
+            "id", "3797", "iata", "JFK", "name", "John F Kennedy International Airport", "city", "New York", "country", "USA");
         final Vertex otp = graph.addVertex(T.label, LABEL_AIRPORT,
-            "code", "1657", "iata", "OTP", "name", "Henri Coandă International Airport", "city", "Bucharest", "country", "ROU");
+            "id", "1657", "iata", "OTP", "name", "Henri Coandă International Airport", "city", "Bucharest", "country", "ROU");
         final Vertex sea = graph.addVertex(T.label, LABEL_AIRPORT,
-            "code", "3577", "iata", "SEA", "name", "Seattle Tacoma International Airport", "city", "Seattle", "country", "USA");
+            "id", "3577", "iata", "SEA", "name", "Seattle Tacoma International Airport", "city", "Seattle", "country", "USA");
 
         final Vertex aal = graph.addVertex(T.label, LABEL_AIRLINE,
-            "code", "24", "icao", "AAL", "name", "American Airlines");
+            "id", "24", "icao", "AAL", "name", "American Airlines");
         final Vertex afr = graph.addVertex(T.label, LABEL_AIRLINE,
-            "code", "137", "icao", "AFR", "name", "Air France");
+            "id", "137", "icao", "AFR", "name", "Air France");
         final Vertex dal = graph.addVertex(T.label, LABEL_AIRLINE,
-            "code", "2009", "icao", "DAL", "name", "Delta Air Lines");
+            "id", "2009", "icao", "DAL", "name", "Delta Air Lines");
         final Vertex klm = graph.addVertex(T.label, LABEL_AIRLINE,
-            "code", "3090", "icao", "KLM", "name", "KLM Royal Dutch Airlines");
+            "id", "3090", "icao", "KLM", "name", "KLM Royal Dutch Airlines");
 
         final Vertex aal_cdg_jfk = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "767-300 757");
         final Vertex aal_jfk_cdg = graph.addVertex(T.label, LABEL_FLIGHT, "equipment", "767-300 757");
@@ -346,7 +346,15 @@ public final class CacheFactory
     // Tiny airport data set with Q1 schema.
     public static CacheGraph createTinyQ1Airport()
     {
-        final CacheGraph graph = getDefaultCacheGraph();
+        final Configuration configuration = getDefaultConfiguration();
+
+        // Enable airport data serialization code.
+        configuration.setProperty(
+            CacheGraph.CACHEGRAPH_ENABLE_AIRPORT_CODE,
+            true);
+                   
+        final CacheGraph graph = CacheGraph.open(configuration);
+
         generateTinyQ1Airport(graph);
         return graph;
     }
@@ -360,24 +368,24 @@ public final class CacheFactory
     public static void generateTinyQ1Airport(final CacheGraph graph)
     {
         final Vertex aal = graph.addVertex(T.label, LABEL_AIRLINE,
-            "code", "24", "icao", "AAL", "name", "American Airlines");
+            "al_id", "24", "icao", "AAL", "name", "American Airlines");
         final Vertex afr = graph.addVertex(T.label, LABEL_AIRLINE,
-            "code", "137", "icao", "AFR", "name", "Air France");
+            "al_id", "137", "icao", "AFR", "name", "Air France");
         final Vertex dal = graph.addVertex(T.label, LABEL_AIRLINE,
-            "code", "2009", "icao", "DAL", "name", "Delta Air Lines");
+            "al_id", "2009", "icao", "DAL", "name", "Delta Air Lines");
         final Vertex klm = graph.addVertex(T.label, LABEL_AIRLINE,
-            "code", "3090", "icao", "KLM", "name", "KLM Royal Dutch Airlines");
+            "al_id", "3090", "icao", "KLM", "name", "KLM Royal Dutch Airlines");
 
         final Vertex ams = graph.addVertex(T.label, LABEL_AIRPORT,
-            "code", "580", "iata", "AMS", "name", "Amsterdam Airport Schiphol", "city", "Amsterdam", "country", "NLD");
+            "ap_id", "580", "iata", "AMS", "name", "Amsterdam Airport Schiphol", "city", "Amsterdam", "country", "NLD");
         final Vertex cdg = graph.addVertex(T.label, LABEL_AIRPORT,
-            "code", "1382", "iata", "CDG", "name", "Charles de Gaulle International Airport", "city", "Paris", "country", "FRA");
+            "ap_id", "1382", "iata", "CDG", "name", "Charles de Gaulle International Airport", "city", "Paris", "country", "FRA");
         final Vertex jfk = graph.addVertex(T.label, LABEL_AIRPORT,
-            "code", "3797", "iata", "JFK", "name", "John F Kennedy International Airport", "city", "New York", "country", "USA");
+            "ap_id", "3797", "iata", "JFK", "name", "John F Kennedy International Airport", "city", "New York", "country", "USA");
         final Vertex otp = graph.addVertex(T.label, LABEL_AIRPORT,
-            "code", "1657", "iata", "OTP", "name", "Henri Coandă International Airport", "city", "Bucharest", "country", "ROU");
+            "ap_id", "1657", "iata", "OTP", "name", "Henri Coandă International Airport", "city", "Bucharest", "country", "ROU");
         final Vertex sea = graph.addVertex(T.label, LABEL_AIRPORT,
-            "code", "3577", "iata", "SEA", "name", "Seattle Tacoma International Airport", "city", "Seattle", "country", "USA");
+            "ap_id", "3577", "iata", "SEA", "name", "Seattle Tacoma International Airport", "city", "Seattle", "country", "USA");
 
         setRouteEdge(cdg, jfk, "767-300 757");
         setRouteEdge(jfk, sea, "737-800");
