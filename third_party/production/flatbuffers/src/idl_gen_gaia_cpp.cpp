@@ -513,7 +513,7 @@ namespace flatbuffers
                 std::string params = "";
                 std::string param_Values = "";
                 //generate constructors 
-                code_ += "{{CLASS_NAME}}() = default;";
+                code_ += "{{CLASS_NAME}}() : gaia_object_t(\"{{CLASS_NAME}}\") {};";
 
                 bool has_string_or_vector_fields = false;
            
@@ -669,7 +669,7 @@ namespace flatbuffers
                 code_ += "private:";
                 code_ += "friend struct gaia_object_t<" + CurrentNamespaceString() +  
                     "::k{{CLASS_NAME}}Type,{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>;";
-                code_ += "{{CLASS_NAME}}(gaia_id_t id) : gaia_object_t(id) {}";
+                code_ += "{{CLASS_NAME}}(gaia_id_t id) : gaia_object_t(id, \"{{CLASS_NAME}}\") {}";
                 
                 if (opts_.generate_setters && opts_.generate_column_change_events)
                 {

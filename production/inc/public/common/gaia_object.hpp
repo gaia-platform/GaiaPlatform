@@ -43,6 +43,14 @@ struct gaia_base_t
     static id_cache_t s_gaia_cache;
     static id_cache_t s_gaia_tx_cache;
 
+    gaia_base_t() = delete;
+
+    gaia_base_t(const char* gaia_typename)
+    : m_id(0)
+    , m_typename(gaia_typename)
+    {
+    }
+
     static void begin_transaction()
     {
         // The s_gaia_tx_cache is a list of objects containing stale data that
@@ -61,7 +69,28 @@ struct gaia_base_t
     static void commit_transaction()   { gaia::db::commit_transaction(); }
     static void rollback_transaction() { gaia::db::rollback_transaction(); }
 
+    gaia_id_t gaia_id() {
+        return m_id;
+    }
+    
+    const char* gaia_typename()
+    {
+        return m_typename;
+    }
+
     virtual ~gaia_base_t() = default;
+
+protected:
+    gaia_base_t(gaia_id_t id, const char * gaia_typename)
+    : m_id(id)
+    , m_typename(gaia_typename)
+    {
+    }
+
+    // The gaia_id assigned to this row.
+    gaia_id_t m_id;
+    // The typename for this gaia type
+    const char * m_typename;
 
 private:
     virtual void reset(bool) {}
@@ -82,13 +111,14 @@ public:
         s_gaia_tx_cache.erase(m_id);
         reset(true);
     }
+    gaia_object_t() = delete;
 
     // This constructor supports completely new objects
     // that the database has not seen yet by creating
     // a copy buffer immediately.
-    gaia_object_t() :
-        m_fb(nullptr),
-        m_id(0)
+    gaia_object_t(const char * gaia_typename) 
+    : gaia_base_t(gaia_typename)
+    , m_fb(nullptr)
     {
         copy_write();
     }
@@ -113,10 +143,6 @@ public:
     static T_gaia* get_row_by_id(gaia_id_t id) {
         auto node_ptr = gaia_se_node::open(id);
         return get_object(node_ptr);
-    }
-
-    gaia_id_t gaia_id() {
-        return m_id;
     }
 
     void insert_row()
@@ -181,9 +207,9 @@ public:
 protected:
     // This constructor supports creating new objects from existing
     // nodes in the database.  It is called by our get_object below.
-    gaia_object_t(gaia_id_t id) :
-        m_fb(nullptr),
-        m_id(id)
+    gaia_object_t(gaia_id_t id, const char * gaia_typename) 
+    : gaia_base_t(id, gaia_typename)
+    , m_fb(nullptr)
     {
     }
 
@@ -194,8 +220,6 @@ protected:
     unique_ptr<T_obj> m_copy;   
     // Flatbuffer referencing SE memory.
     const T_fb* m_fb;
-    // The gaia_id assigned to this row.
-    gaia_id_t m_id;
 
     T_obj* copy_write()
     {

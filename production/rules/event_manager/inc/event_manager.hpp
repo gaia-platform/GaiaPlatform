@@ -89,10 +89,6 @@ private:
         rules::gaia_rule_fn rule;
     };
 
-    // When we have persistence we need to get the last value from the database
-    // unless the storage engine offers auto-increment columns.
-    static uint64_t s_log_entry_id;
-
     // The rules engine must be initialized through an explicit call
     // to gaia::rules::initialize_rules_engine(). If this method
     // is not called then all APIs will fail with a gaia::exception.
@@ -167,20 +163,11 @@ private:
         }
     }
 
-    static inline void log_to_db(gaia_type_t gaia_type, 
+    static void log_to_db(gaia_type_t gaia_type, 
         event_type_t event_type, 
         event_mode_t event_mode,
-        bool rules_fired)
-    {
-        static_assert(sizeof(uint32_t) == sizeof(event_type_t), 
-            "event_type_t needs to be sizeof uint32_t");
-        static_assert(sizeof(uint8_t) == sizeof(event_mode_t), 
-            "event_mode_t needs to be sizeof uint8_t");
-        uint64_t timestamp = (uint64_t)time(NULL);
-        Event_log::insert_row(s_log_entry_id++, (uint64_t)gaia_type, (uint32_t)event_type, 
-            (uint8_t) event_mode, timestamp, rules_fired);
-    }
-
+        gaia_base_t * context,
+        bool rules_fired);
     static bool is_valid_transaction_event(event_type_t type);
     static bool is_valid_rule_binding(const rules::rule_binding_t& binding);
     static std::string make_rule_key(const rules::rule_binding_t& binding);
@@ -191,7 +178,6 @@ private:
         gaia::common::gaia_type_t gaia_type,
         const char* ruleset_filter, 
         const event_type_t* event_filter);
-    static uint64_t get_last_log_id();
 };
 
 } // namespace rules

@@ -34,16 +34,12 @@ event_manager_t& event_manager_t::get(bool pre_init)
     return s_instance;
 }
 
-uint64_t event_manager_t::s_log_entry_id = 0;
-
 event_manager_t::event_manager_t() 
 {
 }
 
 void event_manager_t::init()
 {
-    s_log_entry_id = get_last_log_id() + 1;
-    
     /**
      * This function must be provided by the 
      * rules application.  This function is
@@ -51,7 +47,6 @@ void event_manager_t::init()
      * behalf of the user.
      */
     initialize_rules();
-
     m_is_initialized = true;
 }
 
@@ -76,7 +71,7 @@ bool event_manager_t::log_event(event_type_t event_type, event_mode_t mode)
     rules_fired = rules.size() > 0;
 
     // Log the event to the database
-    log_to_db(0, event_type, mode, rules_fired);
+    log_to_db(0, event_type, mode, nullptr, rules_fired);
     
     for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it) 
     {
@@ -116,7 +111,7 @@ bool event_manager_t::log_event(
         rule_list_t& rules = events[event_type];
         rules_fired = rules.size() > 0;
 
-        log_to_db(gaia_type, event_type, mode, rules_fired);
+        log_to_db(gaia_type, event_type, mode, row, rules_fired);
 
         for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it) 
         {
@@ -131,7 +126,7 @@ bool event_manager_t::log_event(
     }
     else 
     {
-        log_to_db(gaia_type, event_type, mode, rules_fired);
+        log_to_db(gaia_type, event_type, mode, row, rules_fired);
     }
 
     return rules_fired;
@@ -375,6 +370,30 @@ event_manager_t::events_map_t event_manager_t::create_table_event_map() {
     };
 }
 
+void event_manager_t::log_to_db(gaia_type_t gaia_type, 
+    event_type_t event_type, 
+    event_mode_t event_mode,
+    gaia_base_t * context,
+    bool rules_fired)
+{
+    static_assert(sizeof(uint32_t) == sizeof(event_type_t), 
+        "event_type_t needs to be sizeof uint32_t");
+    static_assert(sizeof(uint8_t) == sizeof(event_mode_t), 
+        "event_mode_t needs to be sizeof uint8_t");
+
+    uint64_t timestamp = (uint64_t)time(NULL);
+    const char * event_source = "";
+    gaia_id_t context_id = 0;
+    
+    if (context)
+    {
+        event_source = context->gaia_typename();
+        context_id = context->gaia_id();
+    }
+    Event_log::insert_row((uint64_t)gaia_type, (uint32_t)event_type, 
+        (uint8_t) event_mode, event_source, timestamp, context_id, rules_fired);
+}
+
 void event_manager_t::insert_transaction_events(event_manager_t::events_map_t& transaction_map) {
     transaction_map.insert(make_pair(event_type_t::transaction_begin, list<const _rule_binding_t*>()));
     transaction_map.insert(make_pair(event_type_t::transaction_commit, list<const _rule_binding_t*>()));
@@ -463,27 +482,4 @@ void gaia::rules::list_subscribed_rules(
 {
     event_manager_t::get().list_subscribed_rules(ruleset_name, gaia_type,
         type, subscriptions);
-}
-
-uint64_t event_manager_t::get_last_log_id()
-{
-    /**
-     * Should be a better way to intialize our
-     * s_log_entry_id.
-     */
-    uint64_t max_id = 0;
-    
-    gaia_base_t::begin_transaction();
-    unique_ptr<Event_log> entry(Event_log::get_first());
-    while (entry)
-    {
-        if (entry->id() > max_id)
-        {
-            max_id = entry->id();
-        }
-
-        entry.reset(entry->get_next());
-    }
-    gaia_base_t::commit_transaction();
-    return max_id;
 }

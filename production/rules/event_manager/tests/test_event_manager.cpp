@@ -150,7 +150,9 @@ table_context_checker_t g_table_checker;
 class TestGaia : public gaia_base_t
 {
 public:
-    TestGaia() : data(0) {}
+    TestGaia() 
+    : gaia_base_t("TestGaia")
+    , data(0) {}
 
     static const gaia_type_t s_gaia_type;
 
@@ -164,7 +166,9 @@ const gaia_type_t TestGaia::s_gaia_type = 333;
 class TestGaia2 : public gaia_base_t
 {
 public:
-    TestGaia2() : data(0) {}
+    TestGaia2() 
+    : gaia_base_t("TestGaia2")
+    , data(0) {}
     static const gaia_type_t s_gaia_type;
 
     // rule will set this
@@ -630,17 +634,22 @@ protected:
     }
 
     void verify_event_log_row(const Event_log& row, uint64_t gaia_type, 
-        event_type_t event_type, event_mode_t event_mode, bool rules_fired)
+        event_type_t event_type, event_mode_t event_mode, const char * event_source, gaia_id_t id, bool rules_fired)
     {
         EXPECT_EQ(row.gaia_type(), gaia_type);
         EXPECT_EQ(row.event_type(), (uint32_t) event_type);
         EXPECT_EQ(row.event_mode(), (uint8_t) event_mode);
+        EXPECT_STREQ(row.event_source(), event_source);
+        EXPECT_EQ(row.context_id(), id);
         EXPECT_EQ(row.rules_fired(), rules_fired);
     }
 
 
     // Table context has data within the Gaia "object".
     TestGaia m_row;
+    // Table context has data within the Gaia2 "object".
+    TestGaia2 m_row2;
+
     const int32_t c_initial = 20;
 
     // Rule bindings for use in the test.
@@ -1120,11 +1129,11 @@ TEST_F(event_manager_test, event_logging_no_subscriptions)
     
     log_entry_t entry(Event_log::get_first());
     verify_event_log_row(*entry, TestGaia::s_gaia_type, 
-        event_type_t::column_change, event_mode_t::immediate, false); 
+        event_type_t::column_change, event_mode_t::immediate, "TestGaia", 0, false); 
     
     entry.reset(entry->get_next());
     verify_event_log_row(*entry, 0, 
-        event_type_t::transaction_commit, event_mode_t::immediate, false); 
+        event_type_t::transaction_commit, event_mode_t::immediate, "", 0, false); 
 
     // Verify we only have two entries in the table.
     entry.reset();
@@ -1138,20 +1147,20 @@ TEST_F(event_manager_test, event_logging_subscriptions)
 
     // Log events with subscriptions and ensure the table is populated.
     EXPECT_EQ(false, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::column_change, event_mode_t::immediate));
-    EXPECT_EQ(true, log_table_event(&m_row, TestGaia2::s_gaia_type, event_type_t::row_insert, event_mode_t::immediate));
+    EXPECT_EQ(true, log_table_event(&m_row2, TestGaia2::s_gaia_type, event_type_t::row_insert, event_mode_t::immediate));
     EXPECT_EQ(true, log_transaction_event(event_type_t::transaction_begin, event_mode_t::immediate));
 
     log_entry_t entry(Event_log::get_first());
     verify_event_log_row(*entry, TestGaia::s_gaia_type, 
-        event_type_t::column_change, event_mode_t::immediate, false); 
+        event_type_t::column_change, event_mode_t::immediate, "TestGaia", 0, false); 
 
     entry.reset(entry->get_next());
     verify_event_log_row(*entry, TestGaia2::s_gaia_type, 
-        event_type_t::row_insert, event_mode_t::immediate, true); 
+        event_type_t::row_insert, event_mode_t::immediate, "TestGaia2", 0, true); 
 
     entry.reset(entry->get_next());
     verify_event_log_row(*entry, 0, 
-        event_type_t::transaction_begin, event_mode_t::immediate, true); 
+        event_type_t::transaction_begin, event_mode_t::immediate, "", 0, true); 
 
     entry.reset();
     EXPECT_EQ(3, clear_event_log());
