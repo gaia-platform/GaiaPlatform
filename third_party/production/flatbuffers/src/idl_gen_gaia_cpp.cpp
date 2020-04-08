@@ -648,9 +648,9 @@ namespace flatbuffers
                     "}";
                 }
 
-                // If the flatbuffer has a string or vector column then generate a call to
-                // Create{{STRUCT_NAME}}Direct.  Otherwise just generate 
-                // Create{{STRUCT_NAME}}.
+                // If the flatbuffer has a string or vector column then 
+                // generate a call to Create{{STRUCT_NAME}}Direct.  Otherwise 
+                // just generate Create{{STRUCT_NAME}}.
                 code_.SetValue("CREATE_SUFFIX", 
                     has_string_or_vector_fields ? "Direct" : "");
                 code_ += "static gaia_id_t insert_row (" + params + "){\n"
