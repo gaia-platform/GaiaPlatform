@@ -115,6 +115,15 @@ void GaiaSetTest()
 
     AddrBook::Employee *pEmployee = AddrBook::Employee::get_row_by_id(empl_node_id);
 
+    // Verify we can use the generated optimized insert_row function that 
+    // calls the correct flatbuffer Create<type> API.  For types that have
+    // a string or vector field, insert_row will call Create<type>Direct.
+    // For types without a string or vector field, insert_row will call
+    // Create<type> since the Create<type>Direct call is not generated.
+    int64_t birthdate_id = AddrBook::Birthdate::insert_row(1971, 7, 20);
+    AddrBook::Birthdate * pBirthdate = AddrBook::Birthdate::get_row_by_id(birthdate_id);
+    TEST_EQ(1971, pBirthdate->year());
+
     pEmployee->set_ssn("test");
     TEST_EQ_STR("test",pEmployee->ssn());
     TEST_EQ(g_event_type,gaia::rules::event_type_t::column_change);
