@@ -359,10 +359,10 @@ public final class CacheFactory
         return graph;
     }
 
-    private static void setRouteEdge(Vertex departureAirport, Vertex arrivalAirport, String equipment)
+    private static void setRouteEdge(Vertex departureAirport, Vertex arrivalAirport, String icao, String equipment)
     {
-        departureAirport.addEdge(LABEL_ROUTE, arrivalAirport, "equipment", equipment);
-        arrivalAirport.addEdge(LABEL_ROUTE, departureAirport, "equipment", equipment);
+        departureAirport.addEdge(LABEL_ROUTE, arrivalAirport, "icao", icao, "equipment", equipment);
+        arrivalAirport.addEdge(LABEL_ROUTE, departureAirport, "icao", icao, "equipment", equipment);
     }
 
     public static void generateTinyQ1Airport(final CacheGraph graph)
@@ -387,25 +387,25 @@ public final class CacheFactory
         final Vertex sea = graph.addVertex(T.label, LABEL_AIRPORT,
             "ap_id", "3577", "iata", "SEA", "name", "Seattle Tacoma International Airport", "city", "Seattle", "country", "USA");
 
-        setRouteEdge(cdg, jfk, "767-300 757");
-        setRouteEdge(jfk, sea, "737-800");
+        setRouteEdge(cdg, jfk, "AAL", "767-300 757");
+        setRouteEdge(jfk, sea, "AAL", "737-800");
 
-        setRouteEdge(ams, cdg, "A321 A320 A319 A318 A320(s)");
-        setRouteEdge(cdg, jfk, "A330-200 777-200 A380-800 A340-300");
-        setRouteEdge(cdg, otp, "A321 A320 A319");
-        setRouteEdge(cdg, sea, "A330-200");
+        setRouteEdge(ams, cdg, "AFR", "A321 A320 A319 A318 A320(s)");
+        setRouteEdge(cdg, jfk, "AFR", "A330-200 777-200 A380-800 A340-300");
+        setRouteEdge(cdg, otp, "AFR", "A321 A320 A319");
+        setRouteEdge(cdg, sea, "AFR", "A330-200");
 
-        setRouteEdge(ams, jfk, "767-300(w)");
-        setRouteEdge(ams, sea, "A330-300");
-        setRouteEdge(cdg, jfk, "A330-200 777-200 A380-800 A340-300");
-        setRouteEdge(cdg, sea, "A330-200");
-        setRouteEdge(jfk, sea, "757-200 757");
-        setRouteEdge(ams, jfk, "767-300(w)");
+        setRouteEdge(ams, jfk, "DAL", "767-300(w)");
+        setRouteEdge(ams, sea, "DAL", "A330-300");
+        setRouteEdge(cdg, jfk, "DAL", "A330-200 777-200 A380-800 A340-300");
+        setRouteEdge(cdg, sea, "DAL", "A330-200");
+        setRouteEdge(jfk, sea, "DAL", "757-200 757");
+        setRouteEdge(ams, jfk, "DAL", "767-300(w)");
 
-        setRouteEdge(ams, cdg, "737");
-        setRouteEdge(ams, jfk, "A330 777 747(Combi) 747");
-        setRouteEdge(ams, otp, "737");
-        setRouteEdge(ams, sea, "A330");
+        setRouteEdge(ams, cdg, "KLM", "737");
+        setRouteEdge(ams, jfk, "KLM", "A330 777 747(Combi) 747");
+        setRouteEdge(ams, otp, "KLM", "737");
+        setRouteEdge(ams, sea, "KLM", "A330");
     }
 
     // Open CacheGraph instance without COW writing.
