@@ -105,8 +105,10 @@ public final class CacheVertex extends CacheElement implements Vertex
         ElementHelper.attachProperties(newVertexProperty, keyValues);
 
         // Update node payload in COW.
+        // We don't have to do this if the node is being created,
+        // which we detect by checking if it's been added to the graph.vertices map.
         // No plans to support vertex property properties in COW for now.
-        if (!CacheHelper.updateNodePayload(this))
+        if (this.graph.vertices.containsKey(id) && !CacheHelper.updateNodePayload(this))
         {
             throw new UnsupportedOperationException("COW node update failed!");
         }
