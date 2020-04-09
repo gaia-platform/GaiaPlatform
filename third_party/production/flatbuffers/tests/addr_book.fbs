@@ -46,7 +46,7 @@ table phone {
     primary: bool;
 }
 
-// table without any string or vector fields
+// Create a table without any string or vector fields.
 table birthdate {
     year : uint;
     month : ubyte;

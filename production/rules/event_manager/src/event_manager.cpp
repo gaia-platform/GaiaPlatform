@@ -15,21 +15,21 @@ using namespace std;
 /**
  * Class implementation
  */
-event_manager_t& event_manager_t::get(bool pre_init)
+event_manager_t& event_manager_t::get(bool is_initializing)
 {
     static event_manager_t s_instance;
 
     // Initialize errors can happen for two reasons:
+    // 
+    // If we are currently trying to initialize then is_initializing 
+    // will be true. At this point, we don't expect the instance to be 
+    // initialized yet.
     //
-    // If we call initialize_rules(), then the pre_init flag is true so we
-    // expect that the instance has not already been initialized.
-    //
-    // All other rule APIs require that the instance be initialized.  So
-    // if the pre_init flag is false, we require that the instance already
-    // be initialized. 
-    if (pre_init == s_instance.m_is_initialized)
+    // If we are not intializing then we expect the instance to already be
+    // initialized
+    if (is_initializing == s_instance.m_is_initialized)
     {
-        throw initialization_error(pre_init);
+        throw initialization_error(is_initializing);
     }
     return s_instance;
 }
@@ -384,7 +384,7 @@ void event_manager_t::log_to_db(gaia_type_t gaia_type,
     uint64_t timestamp = (uint64_t)time(NULL);
     const char * event_source = "";
     gaia_id_t context_id = 0;
-    
+
     if (context)
     {
         event_source = context->gaia_typename();
@@ -435,8 +435,8 @@ bool gaia::rules::log_table_event(
 
 void gaia::rules::initialize_rules_engine()
 {
-    bool pre_init = true;
-    event_manager_t::get(pre_init).init();
+    bool is_initializing = true;
+    event_manager_t::get(is_initializing).init();
 }
 
 void gaia::rules::subscribe_table_rule(

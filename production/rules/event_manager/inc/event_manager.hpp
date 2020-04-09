@@ -27,7 +27,7 @@ public:
      */
     event_manager_t(event_manager_t&) = delete;
     void operator=(event_manager_t const&) = delete;
-    static event_manager_t& get(bool pre_init = false);
+    static event_manager_t& get(bool is_initializing = false);
     
     /**
      * Event APIs

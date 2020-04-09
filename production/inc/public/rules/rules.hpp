@@ -201,7 +201,7 @@ public:
     {
         if (is_already_initialized)
         {
-            m_message = "The event manager had already been initialized.";
+            m_message = "The event manager has already been initialized.";
         }
         else
         {
