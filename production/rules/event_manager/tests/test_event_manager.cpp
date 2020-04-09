@@ -183,21 +183,6 @@ const gaia_type_t TestGaia2::s_gaia_type = 444;
  */ 
 int32_t g_tx_data = 0;
 
-/**
- * Applications must provide an implementation for initialize_rules().
- * This function is called on construction of the singleton event
- * manager instance.  If this function is not called then every test
- * will fail below because the condition is checked on TearDown() of
- * ever test case in the test fixture.
- */
- uint32_t g_initialize_rules_called = 0;
-
- extern "C"
- void initialize_rules()
- {
-     ++g_initialize_rules_called;
- }
-
  /**
  * Following constructs are used to verify the list_subscribed_rules API
  * returns the correct rules based on the filter criteria to the API.  It
@@ -267,6 +252,26 @@ void rule4_add_10000(const context_base_t* context)
     g_tx_data += rule4_adder;
     g_transaction_checker.set(*t);
 }
+
+/**
+ * Applications must provide an implementation for initialize_rules().
+ * This function is called on initialization of the singleton event
+ * manager instance and is used to regisgter rules with the system.  
+ * If this function is not called then every test will fail below 
+ * because the condition is checked on TearDown() of
+ * ever test case in the test fixture.  In addition, verify that we
+ * actually can subscribe a rule in this intialize_rules function.  
+ */
+ uint32_t g_initialize_rules_called = 0;
+
+ extern "C"
+ void initialize_rules()
+ {
+     ++g_initialize_rules_called;
+     rule_binding_t binding("test", "test", rule1_add_1);
+     subscribe_table_rule(TestGaia2::s_gaia_type, event_type_t::row_delete, binding);
+     unsubscribe_rules();
+ }
 
 /**
  * Setup for forward chaining Rule functions.  Separated from above tests
