@@ -34,11 +34,12 @@ include_directories(
   ${CMAKE_BINARY_DIR}/../../../../third_party/production/flatbuffers/include 
   ${CMAKE_BINARY_DIR}/../../../../production/db/storage_engine/mock
   ${CMAKE_BINARY_DIR}/../../../../production/rules/event_manager/inc 
+  ${CMAKE_BINARY_DIR}/../../../../production/build/rules/event_manager/generated 
 )
 
 target_link_libraries(camera_demo
   PRIVATE
-  event_manager
+  gaia_rules
   gaia_semock
   gaia
   gaia_direct
