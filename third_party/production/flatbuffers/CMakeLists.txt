@@ -192,7 +192,6 @@ set(FlatBuffersGaiaNoTableTxEvents_Tests_SRCS
   ${CMAKE_CURRENT_BINARY_DIR}/tests/NoTableTxEventsGaiaTests/tests/addr_book_gaia_generated.h
 )
 
-
 set(FlatBuffers_Tests_CPP17_SRCS
   ${FlatBuffers_Library_SRCS}
   tests/test_assert.h
@@ -512,6 +511,7 @@ if(FLATBUFFERS_BUILD_TESTS)
   compile_flatbuffers_schema_to_gaiacpp_opt(tests/addr_book.fbs "--gen-setters;--gen-transaction-events;--gen-col-events;--gaia_type_initial_value;5" "NoIUDEventsGaiaTests")
   compile_flatbuffers_schema_to_gaiacpp_opt(tests/addr_book.fbs "--gen-setters;--gen-transaction-events;--gen-table-events;--gaia_type_initial_value;10" "NoColEventsGaiaTests")
   compile_flatbuffers_schema_to_gaiacpp_opt(tests/addr_book.fbs "--gen-setters;--gen-table-events;--gen-col-events;--gaia_type_initial_value;15" "NoTableTxEventsGaiaTests")
+  compile_flatbuffers_schema_to_gaiacpp_opt(tests/addr_book.fbs "--gaia_type_initial_value;15" "InsertRowGaiaTests")
   if(NOT (MSVC AND (MSVC_VERSION LESS 1900)))
     compile_flatbuffers_schema_to_cpp(tests/monster_extra.fbs) # Test floating-point NAN/INF.
   endif()
@@ -526,6 +526,7 @@ if(FLATBUFFERS_BUILD_TESTS)
   add_executable(gaia_no_col_tests ${FlatBuffersGaiaNoColEvents_Tests_SRCS})
   add_executable(gaia_no_iud_tests ${FlatBuffersGaiaNoIUDEvents_Tests_SRCS})
   add_executable(gaia_no_table_tx_tests ${FlatBuffersGaiaNoTableTxEvents_Tests_SRCS})
+  
   add_dependencies(flattests generated_code)
   set_property(TARGET flattests
     PROPERTY COMPILE_DEFINITIONS FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
@@ -724,6 +725,7 @@ if(FLATBUFFERS_BUILD_TESTS)
   add_test(NAME gaia_no_column_event_tests COMMAND gaia_no_col_tests)
   add_test(NAME gaia_no_table_event_tests COMMAND gaia_no_iud_tests)
   add_test(NAME gaia_tx_event_tests COMMAND gaia_no_table_tx_tests)
+  
   if(FLATBUFFERS_BUILD_CPP17)
     add_test(NAME flattests_cpp17 COMMAND flattests_cpp17)
   endif()

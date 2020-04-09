@@ -15,13 +15,30 @@ using namespace std;
 /**
  * Class implementation
  */
-event_manager_t& event_manager_t::get()
+event_manager_t& event_manager_t::get(bool is_initializing)
 {
     static event_manager_t s_instance;
+
+    // Initialize errors can happen for two reasons:
+    // 
+    // If we are currently trying to initialize then is_initializing 
+    // will be true. At this point, we don't expect the instance to be 
+    // initialized yet.
+    //
+    // If we are not intializing then we expect the instance to already be
+    // initialized
+    if (is_initializing == s_instance.m_is_initialized)
+    {
+        throw initialization_error(is_initializing);
+    }
     return s_instance;
 }
 
 event_manager_t::event_manager_t() 
+{
+}
+
+void event_manager_t::init()
 {
     /**
      * This function must be provided by the 
@@ -30,16 +47,14 @@ event_manager_t::event_manager_t()
      * behalf of the user.
      */
     initialize_rules();
+    m_is_initialized = true;
 }
 
-event_manager_t::~event_manager_t()
-{
-}
+
 
 bool event_manager_t::log_event(event_type_t event_type, event_mode_t mode)
 {
     bool rules_fired = false;
-    // todo: log the event in a table
 
     check_mode(mode);
     check_transaction_event(event_type);
@@ -55,6 +70,9 @@ bool event_manager_t::log_event(event_type_t event_type, event_mode_t mode)
     rule_list_t& rules = m_transaction_subscriptions[event_type];
     rules_fired = rules.size() > 0;
 
+    // Log the event to the database
+    log_to_db(0, event_type, mode, nullptr, rules_fired);
+    
     for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it) 
     {
         _rule_binding_t* rule_ptr = const_cast<_rule_binding_t*>(*rules_it);
@@ -75,8 +93,6 @@ bool event_manager_t::log_event(
 {
     bool rules_fired = false;
 
-    // todo: log the event in a table
-
     check_mode(mode);
     check_table_event(event_type);
 
@@ -95,6 +111,8 @@ bool event_manager_t::log_event(
         rule_list_t& rules = events[event_type];
         rules_fired = rules.size() > 0;
 
+        log_to_db(gaia_type, event_type, mode, row, rules_fired);
+
         for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it) 
         {
             _rule_binding_t* rule_ptr = const_cast<_rule_binding_t*>(*rules_it);
@@ -105,6 +123,10 @@ bool event_manager_t::log_event(
                 row);
             rule_ptr->rule(&context);
         }
+    }
+    else 
+    {
+        log_to_db(gaia_type, event_type, mode, row, rules_fired);
     }
 
     return rules_fired;
@@ -348,6 +370,30 @@ event_manager_t::events_map_t event_manager_t::create_table_event_map() {
     };
 }
 
+void event_manager_t::log_to_db(gaia_type_t gaia_type, 
+    event_type_t event_type, 
+    event_mode_t event_mode,
+    gaia_base_t * context,
+    bool rules_fired)
+{
+    static_assert(sizeof(uint32_t) == sizeof(event_type_t), 
+        "event_type_t needs to be sizeof uint32_t");
+    static_assert(sizeof(uint8_t) == sizeof(event_mode_t), 
+        "event_mode_t needs to be sizeof uint8_t");
+
+    uint64_t timestamp = (uint64_t)time(NULL);
+    const char * event_source = "";
+    gaia_id_t context_id = 0;
+
+    if (context)
+    {
+        event_source = context->gaia_typename();
+        context_id = context->gaia_id();
+    }
+    Event_log::insert_row((uint64_t)gaia_type, (uint32_t)event_type, 
+        (uint8_t) event_mode, event_source, timestamp, context_id, rules_fired);
+}
+
 void event_manager_t::insert_transaction_events(event_manager_t::events_map_t& transaction_map) {
     transaction_map.insert(make_pair(event_type_t::transaction_begin, list<const _rule_binding_t*>()));
     transaction_map.insert(make_pair(event_type_t::transaction_commit, list<const _rule_binding_t*>()));
@@ -386,6 +432,13 @@ bool gaia::rules::log_table_event(
 /**
  * Public rules API implementation
  */
+
+void gaia::rules::initialize_rules_engine()
+{
+    bool is_initializing = true;
+    event_manager_t::get(is_initializing).init();
+}
+
 void gaia::rules::subscribe_table_rule(
     gaia_type_t gaia_type, 
     event_type_t type, 

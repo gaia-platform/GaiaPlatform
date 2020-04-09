@@ -45,3 +45,10 @@ table phone {
     type: string;
     primary: bool;
 }
+
+// Create a table without any string or vector fields.
+table birthdate {
+    year : uint;
+    month : ubyte;
+    day : ubyte;
+}

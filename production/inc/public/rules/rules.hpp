@@ -190,6 +190,34 @@ public:
     }
 };
 
+/**
+ * Thrown when the caller either does not initialize the event manager
+ * or attempts to initialize an already initialized event manager.
+ */ 
+class initialization_error : public gaia::common::gaia_exception
+{
+public:
+    initialization_error(bool is_already_initialized)
+    {
+        if (is_already_initialized)
+        {
+            m_message = "The event manager has already been initialized.";
+        }
+        else
+        {
+            m_message = "The event manager has not been initialized yet.";
+        }
+    }
+};
+
+/**
+ * Initializes the rules engine.  Should only be called once
+ * per process.
+ * 
+ * @throw initialization_error
+ */
+void initialize_rules_engine();
+
 
 /**
  * Subscribes this rule to the specified table event scoped to the gaia_type. 
@@ -203,6 +231,7 @@ public:
  * @throw invalid_event_type
  * @throw invalid_rule_binding
  * @throw duplicate_rule
+ * @throw initialization_error
  */
 void subscribe_table_rule(
     gaia::common::gaia_type_t gaia_type, 
@@ -220,6 +249,7 @@ void subscribe_table_rule(
  * @throw invalid_event_type
  * @throw invalid_rule_binding
  * @throw duplicate_rule
+ * @throw initialization_error
  */
 void subscribe_transaction_rule(
     event_type_t type, 
@@ -234,6 +264,7 @@ void subscribe_transaction_rule(
  * @return true if the rule was unsubscribed; false otherwise.
  * @throw invalid_event_type
  * @throw invalid_rule_binding
+ * @throw initialization_error
  */
 bool unsubscribe_table_rule(
     gaia::common::gaia_type_t gaia_type, 
@@ -248,6 +279,7 @@ bool unsubscribe_table_rule(
  * @return true if the rule was unsubscribed; false otherwise.
  * @throw invalid_event_type
  * @throw invalid_rule_binding
+ * @throw initialization_error
  */
 bool unsubscribe_transaction_rule(event_type_t type,
     const rule_binding_t& rule_binding);
@@ -255,6 +287,7 @@ bool unsubscribe_transaction_rule(event_type_t type,
 /**
  * Unsubscribes all rules that were subscribed from the system.  May be called
  * even if no rules have been subscribed.
+ * @throw initialization_error
  */
 void unsubscribe_rules();    
 
@@ -268,6 +301,7 @@ void unsubscribe_rules();
  * @param type Filter by event_type.  May be null. 
  * @param subscriptions Caller provided vector to hold the results.  This method will clear any existing
  *      entries before adding new ones.
+ * @throw initialization_error
  */
 void list_subscribed_rules(
     const char* ruleset_name, 

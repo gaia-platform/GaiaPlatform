@@ -99,6 +99,7 @@ public:
  *  been unsubscribed from this event at runtime.
  * @throw mode_not_supported 
  * @throw invalid_event_type
+ * @throw initialization_error
  */
 bool log_table_event(
     common::gaia_base_t* row, 
@@ -120,6 +121,7 @@ bool log_table_event(
  *  been unsubscribed from this event at runtime.
  * @throw mode_not_supported 
  * @throw invalid_event_type
+ * @throw initialization_error
  */
 bool log_transaction_event(event_type_t event_type, event_mode_t mode);
 

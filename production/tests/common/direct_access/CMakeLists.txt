@@ -17,11 +17,11 @@ set(GAIA_TEST_COMMON_INCLUDES
     ${PROJECT_SOURCE_DIR}/inc
     ${FLATBUFFERS_INC}
 )
-
-set_property(GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
 message(STATUS "GAIA_TEST_COMMON_INCLUDES=${GAIA_TEST_COMMON_INCLUDES}")
 
-gaia_compile_flatbuffers_schema_to_cpp(addr_book.fbs "")
+# generate the headers from the flatbuffer
+set_property(GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
+gaia_compile_flatbuffers_schema_to_cpp(addr_book.fbs)
 get_generated_output(fbs_generated)
 if(fbs_generated)
   # message(STATUS "Add generated_code target with files:${fbs_generated}")

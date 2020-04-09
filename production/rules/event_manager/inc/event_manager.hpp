@@ -6,6 +6,7 @@
 
 #include <unordered_map>
 #include "rules.hpp"
+#include "event_log_gaia_generated.h"
 
 namespace gaia 
 {
@@ -20,15 +21,13 @@ namespace rules
 class event_manager_t
 {
 public:
-    ~event_manager_t();
-
     /**
      * Event manager scaffolding to ensure we have one global static instance.
      * Do not allow assignment or copying; this class is a singleton.
      */
     event_manager_t(event_manager_t&) = delete;
     void operator=(event_manager_t const&) = delete;
-    static event_manager_t& get();
+    static event_manager_t& get(bool is_initializing = false);
     
     /**
      * Event APIs
@@ -44,6 +43,8 @@ public:
     /**
      * Rule APIs
      */ 
+    void init();
+
     void subscribe_rule(
       gaia::common::gaia_type_t gaia_type, 
       event_type_t event_type, 
@@ -70,6 +71,7 @@ public:
       const event_type_t* type,
       list_subscriptions_t& subscriptions);
 
+
 private:
     // only internal static creation is allowed
     event_manager_t();
@@ -86,6 +88,11 @@ private:
         std::string rule_name;
         rules::gaia_rule_fn rule;
     };
+
+    // The rules engine must be initialized through an explicit call
+    // to gaia::rules::initialize_rules_engine(). If this method
+    // is not called then all APIs will fail with a gaia::exception.
+    bool m_is_initialized = false;
 
     // Hash table of all rules registered with the system.
     // The key is the rulset_name::rule_name.
@@ -156,6 +163,11 @@ private:
         }
     }
 
+    static void log_to_db(gaia_type_t gaia_type, 
+        event_type_t event_type, 
+        event_mode_t event_mode,
+        gaia_base_t * context,
+        bool rules_fired);
     static bool is_valid_transaction_event(event_type_t type);
     static bool is_valid_rule_binding(const rules::rule_binding_t& binding);
     static std::string make_rule_key(const rules::rule_binding_t& binding);
