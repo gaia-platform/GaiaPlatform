@@ -359,22 +359,22 @@ public final class CacheFactory
         return graph;
     }
 
-    private static void setRouteEdge(Vertex departureAirport, Vertex arrivalAirport, String icao, String equipment)
+    private static void setRouteEdge(Vertex departureAirport, Vertex arrivalAirport, String airline, String equipment)
     {
-        departureAirport.addEdge(LABEL_ROUTE, arrivalAirport, "icao", icao, "equipment", equipment);
-        arrivalAirport.addEdge(LABEL_ROUTE, departureAirport, "icao", icao, "equipment", equipment);
+        departureAirport.addEdge(LABEL_ROUTE, arrivalAirport, "airline", airline, "equipment", equipment);
+        arrivalAirport.addEdge(LABEL_ROUTE, departureAirport, "airline", airline, "equipment", equipment);
     }
 
     public static void generateTinyQ1Airport(final CacheGraph graph)
     {
         final Vertex aal = graph.addVertex(T.label, LABEL_AIRLINE,
-            "al_id", "24", "icao", "AAL", "name", "American Airlines");
+            "al_id", "24", "iata", "AA", "icao", "AAL", "name", "American Airlines");
         final Vertex afr = graph.addVertex(T.label, LABEL_AIRLINE,
-            "al_id", "137", "icao", "AFR", "name", "Air France");
+            "al_id", "137", "iata", "AF", "icao", "AFR", "name", "Air France");
         final Vertex dal = graph.addVertex(T.label, LABEL_AIRLINE,
-            "al_id", "2009", "icao", "DAL", "name", "Delta Air Lines");
+            "al_id", "2009", "iata", "DL", "icao", "DAL", "name", "Delta Air Lines");
         final Vertex klm = graph.addVertex(T.label, LABEL_AIRLINE,
-            "al_id", "3090", "icao", "KLM", "name", "KLM Royal Dutch Airlines");
+            "al_id", "3090", "iata", "KL", "icao", "KLM", "name", "KLM Royal Dutch Airlines");
 
         final Vertex ams = graph.addVertex(T.label, LABEL_AIRPORT,
             "ap_id", "580", "iata", "AMS", "name", "Amsterdam Airport Schiphol", "city", "Amsterdam", "country", "NLD");
@@ -387,25 +387,25 @@ public final class CacheFactory
         final Vertex sea = graph.addVertex(T.label, LABEL_AIRPORT,
             "ap_id", "3577", "iata", "SEA", "name", "Seattle Tacoma International Airport", "city", "Seattle", "country", "USA");
 
-        setRouteEdge(cdg, jfk, "AAL", "767-300 757");
-        setRouteEdge(jfk, sea, "AAL", "737-800");
+        setRouteEdge(cdg, jfk, "AA", "767-300 757");
+        setRouteEdge(jfk, sea, "AA", "737-800");
 
-        setRouteEdge(ams, cdg, "AFR", "A321 A320 A319 A318 A320(s)");
-        setRouteEdge(cdg, jfk, "AFR", "A330-200 777-200 A380-800 A340-300");
-        setRouteEdge(cdg, otp, "AFR", "A321 A320 A319");
-        setRouteEdge(cdg, sea, "AFR", "A330-200");
+        setRouteEdge(ams, cdg, "AF", "A321 A320 A319 A318 A320(s)");
+        setRouteEdge(cdg, jfk, "AF", "A330-200 777-200 A380-800 A340-300");
+        setRouteEdge(cdg, otp, "AF", "A321 A320 A319");
+        setRouteEdge(cdg, sea, "AF", "A330-200");
 
-        setRouteEdge(ams, jfk, "DAL", "767-300(w)");
-        setRouteEdge(ams, sea, "DAL", "A330-300");
-        setRouteEdge(cdg, jfk, "DAL", "A330-200 777-200 A380-800 A340-300");
-        setRouteEdge(cdg, sea, "DAL", "A330-200");
-        setRouteEdge(jfk, sea, "DAL", "757-200 757");
-        setRouteEdge(ams, jfk, "DAL", "767-300(w)");
+        setRouteEdge(ams, jfk, "DL", "767-300(w)");
+        setRouteEdge(ams, sea, "DL", "A330-300");
+        setRouteEdge(cdg, jfk, "DL", "A330-200 777-200 A380-800 A340-300");
+        setRouteEdge(cdg, sea, "DL", "A330-200");
+        setRouteEdge(jfk, sea, "DL", "757-200 757");
+        setRouteEdge(ams, jfk, "DL", "767-300(w)");
 
-        setRouteEdge(ams, cdg, "KLM", "737");
-        setRouteEdge(ams, jfk, "KLM", "A330 777 747(Combi) 747");
-        setRouteEdge(ams, otp, "KLM", "737");
-        setRouteEdge(ams, sea, "KLM", "A330");
+        setRouteEdge(ams, cdg, "KL", "737");
+        setRouteEdge(ams, jfk, "KL", "A330 777 747(Combi) 747");
+        setRouteEdge(ams, otp, "KL", "737");
+        setRouteEdge(ams, sea, "KL", "A330");
     }
 
     // Open CacheGraph instance without COW writing.

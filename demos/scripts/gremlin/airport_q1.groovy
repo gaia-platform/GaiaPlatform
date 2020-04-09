@@ -26,5 +26,5 @@ g.V().has('iata', 'SEA').out().has('iata', 'OTP').hasNext()
 g.V().has('iata', 'SEA').repeat(out().as('hop')).times(2).has('iata', 'OTP').select(first, 'hop').dedup().values('name')
 
 // Describe the 1 hop routes between SEA and OTP.
-g.V().has('iata', 'SEA').repeat(outE().inV()).times(2).has('iata', 'OTP').path().by('iata').by('icao')
+g.V().has('iata', 'SEA').repeat(outE().inV()).times(2).has('iata', 'OTP').path().by('iata').by('airline')
 
