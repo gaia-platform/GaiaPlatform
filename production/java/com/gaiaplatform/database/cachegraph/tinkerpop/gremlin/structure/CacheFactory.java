@@ -429,6 +429,13 @@ public final class CacheFactory
     {
         final CacheGraph graph = getDefaultCacheGraph();
 
+        loadGraphml(graph, filename);
+
+        return graph;
+    }
+
+    public static void loadGraphml(final CacheGraph graph, String filename)
+    {
         try
         {
             graph.io(graphml()).readGraph(filename);
@@ -439,8 +446,6 @@ public final class CacheFactory
                 "An error happened while attempting to load " + filename + ": "
                 + e.getMessage());
         }
-
-        return graph;
     }
 
     // A method for loading airport data from COW.
