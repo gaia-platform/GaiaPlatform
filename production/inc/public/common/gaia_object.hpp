@@ -123,9 +123,9 @@ public:
         copy_write();
     }
 
-    #define GET_CURRENT(field) (m_copy ? (m_copy->field) : (m_fb->field()))
-    #define GET_ORIGINAL(field) (m_fb ? m_fb->field() : m_copy->field)
-    #define GET_STR_ORIGINAL(field) (m_fb ? m_fb->field()->c_str() : m_copy->field.c_str())
+    #define GET_CURRENT(field) (m_copy ? (m_copy->field) : (m_fb ? m_fb->field() : 0))
+    #define GET_ORIGINAL(field) (m_fb ? m_fb->field() : (m_copy ? m_copy->field : 0))
+    #define GET_STR_ORIGINAL(field) (m_fb ? m_fb->field()->c_str() : (m_copy ? m_copy->field.c_str() : nullptr))
     #define GET_STR(field) (m_copy ? m_copy->field.c_str() : m_fb ? (m_fb->field()? m_fb->field()->c_str() : nullptr) : nullptr)
     #define SET(field, value) (copy_write()->field = value)
 
