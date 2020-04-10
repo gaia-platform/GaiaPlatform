@@ -7,6 +7,9 @@
 
 // COW-SE implementation
 #include "cow_se.h"
+// airport demo data loader
+#include "data_loader.h"
+#include "helpers.h"
 
 // all Postgres headers and function declarations must have C linkage
 extern "C" {
@@ -16,6 +19,8 @@ extern "C" {
 #include "postgres.h"
 
 #include "access/reloptions.h"
+#include "catalog/pg_foreign_server.h"
+#include "commands/defrem.h"
 #include "foreign/fdwapi.h"
 // for FDW helpers: https://www.postgresql.org/docs/devel/fdw-helpers.html
 #include "foreign/foreign.h"
@@ -140,9 +145,6 @@ void cow_seRefetchForeignRow(EState *estate,
 
 /*
  * structures used by the FDW
- *
- * These next structures are not actually used by cow_se,but something like
- * them will be needed by anything more complicated that does actual work.
  */
 
 /*
@@ -150,8 +152,19 @@ void cow_seRefetchForeignRow(EState *estate,
  */
 typedef struct {
     const char *optname;
-    Oid         optcontext;     /* Oid of catalog in which option may appear */
+    Oid optcontext;     /* Oid of catalog in which option may appear */
 } cow_seFdwOption;
+
+/*
+ * Valid options for cow_se_fdw.
+ */
+static const cow_seFdwOption valid_options[] = {
+	/* Data source options */
+	{ "data_dir", ForeignServerRelationId },
+    /* Sentinel */
+	{ NULL, InvalidOid }
+};
+
 /*
  * The plan state is set up in cow_seGetForeignRelSize and stashed away in
  * baserel->fdw_private and fetched in cow_seGetForeignPaths.
@@ -160,7 +173,9 @@ typedef struct {
     ForeignTable *table;
     ForeignServer *server;
     Bitmapset *attrs_used;
+    const char *data_dir;
 } cow_seFdwPlanState;
+
 /*
  * The plan state is set up in cow_seBeginForeignScan and stashed away in
  * node->fdw_private and fetched in cow_seIterateForeignScan.

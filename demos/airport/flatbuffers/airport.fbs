@@ -5,18 +5,30 @@
 
 // -*- mode: java -*- // Java mode works for emacs to edit flatbuffers.
 
-// Types to match the demo data from the openflights.com data; data from there is free to use, open database license.
-namespace AirportDemo;
+namespace gaia.airport;
 
-// Node type
-// The fields in rawdata_airports, plus node fields
-table airports {
-    // Later:    gaia_n: GaiaPlatform.NodeFields (required);
-    Gaia_id: int64;
-    Gaia_Next_id: int64;
-    Gaia_Prev_id: int64;
+// Payload for COW node type 1, loaded from airlines.dat.
+table airlines
+{
+    gaia_id: int64;
 
-    // rawdata_airports fields
+    // Original airline fields.
+    al_id: int32;
+    name: string;
+    alias: string;
+    iata: string;
+    icao: string;
+    callsign: string;
+    country: string;
+    active: string;
+}
+
+// Payload for COW node type 2, loaded from airports.dat.
+table airports
+{
+    gaia_id: int64;
+
+    // Original airports fields.
     ap_id: int32;
     name: string;
     city: string;
@@ -33,35 +45,18 @@ table airports {
     source: string;
 }
 
-// Node type
-table airlines {
-    // Later:    gaia_n: GaiaPlatform.NodeFields (required);
-    Gaia_id: int64;
-    Gaia_Next_id: int64;
-    Gaia_Prev_id: int64;
+// Payload for COW edge type 3, loaded from routes.dat.
+// Edge points from source airport to destination airport.
+// I.e. edge.node_first = source aiport node
+// and edge.node_second = destination airport node.
+table routes
+{
+    gaia_id: int64;
+    gaia_al_id:   int64;
+    gaia_src_id:  int64;
+    gaia_dst_id:  int64;    
 
-    // regular arline fields
-    al_id: int32;
-    name: string;
-    alias: string;
-    iata: string;
-    icao: string;
-    callsign: string;
-    country: string;
-    active: string;
-}
-
-// Link type
-table routes {
-    // Later: gaia_e: GaiaPlatform.EdgeFields (required);
-    Gaia_id: int64;
-    Gaia_Next_id: int64;
-    Gaia_Prev_id: int64;
-    Gaia_Al_id:   int64;
-    Gaia_Src_id:  int64;
-    Gaia_Dst_id:  int64;
-
-    // rawdata_routes fields
+    // Original routes fields.
     airline: string;
     al_id: int32 ;
     src_ap: string;

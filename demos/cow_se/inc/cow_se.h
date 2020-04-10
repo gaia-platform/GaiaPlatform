@@ -255,6 +255,13 @@ namespace gaia_se
 
         static inline void tx_rollback();
 
+        // purely for statistics, not guaranteed to be monotonic across threads
+        static int64_t row_id_count()
+        {
+            verify_tx_active();
+            return s_data->row_id_count;
+        }
+
     template <typename T>
     friend class gaia_ptr;
     template <typename T>
