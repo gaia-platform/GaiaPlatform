@@ -11,12 +11,18 @@ ARG ZSH_THEME=pure
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get -y update && apt-get -y upgrade
+RUN apt-get -y update && \
+    apt-get -y install ubuntu-dbgsym-keyring && \
+    apt-get -y update && \
+    apt-get -y upgrade
 
 # install prerequisites
 RUN apt-get -y install \
     sudo \
     build-essential \
+    libc6-dbg \
+    gdb \
+    valgrind \
     clang-8 \
     clang-format-8 \
     libclang-8-dev \
@@ -41,6 +47,9 @@ RUN ln -s /usr/bin/clang-8 /usr/local/bin/clang && \
 # use clang not gcc
 ENV CC=/usr/bin/clang-8
 ENV CXX=/usr/bin/clang++-8
+
+# install script to list Ubuntu debug symbols packages for a binary (for debugging Postgres extensions)
+RUN curl 'https://wiki.ubuntu.com/DebuggingProgramCrash?action=AttachFile&do=get&target=list-symbols-packages-v2.sh' > /usr/local/bin/list-symbols-packages && chmod +x /usr/local/bin/list-symbols-packages
 
 # install python3
 RUN apt-get -y install \
@@ -79,7 +88,9 @@ RUN curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
     apt-get -y update && \
     apt-get -y install \
         postgresql-12 \
+        postgresql-12-dbgsym \
         postgresql-client-12 \
+        postgresql-client-12-dbgsym \
         postgresql-contrib-12 \
         postgresql-server-dev-12 \
         libpq-dev
@@ -90,7 +101,8 @@ RUN pip3 install psycopg2
 # install preferred flatbuffers version
 RUN apt-add-repository ppa:hnakamur/flatbuffers && \
     apt-get -y update && \
-    apt-get -y install flatbuffers-compiler>=1.11
+    apt-get -y install flatbuffers-compiler>=1.11 && \
+    apt-get -y install libflatbuffers-dev>=1.11
 
 # install flatcc (C flatbuffers support)
 RUN apt-get -y install ninja-build
