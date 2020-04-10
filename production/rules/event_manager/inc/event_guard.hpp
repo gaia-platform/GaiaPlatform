@@ -4,6 +4,7 @@
 /////////////////////////////////////////////
 #pragma once
 
+#include <unordered_map>
 #include "rules.hpp"
 
 namespace gaia 
@@ -39,8 +40,8 @@ public:
     // <const char*, uint32_t> entry will also be inserted in the field_event_bitmap.
     event_guard_t(field_event_guard_t& field_event_guard, 
         gaia_type_t gaia_type,
-        event_type_t event_type,
-        const char* field)
+        const char* field,
+        event_type_t event_type)
     : m_event_bitmap(field_event_guard[gaia_type][field])
     {
         set_enter_state(event_type);

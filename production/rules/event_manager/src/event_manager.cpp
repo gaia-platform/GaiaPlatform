@@ -105,7 +105,7 @@ bool event_manager_t::log_event(
     check_field_event(event_type);
 
     // Don't allow reentrant log_event calls.
-    event_guard_t guard(m_field_event_guard, gaia_type, event_type, field);
+    event_guard_t guard(m_field_event_guard, gaia_type, field, event_type);
     if (guard.is_blocked())
     {
         return false;
