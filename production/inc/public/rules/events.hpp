@@ -44,10 +44,13 @@ enum class event_type_t : uint32_t {
     transaction_begin = 1 << 0,
     transaction_commit = 1 << 1,
     transaction_rollback = 1 << 2,
-    column_change = 1 << 3,
-    row_update = 1 << 4,
-    row_insert = 1 << 5,
-    row_delete = 1 << 6,
+    row_update = 1 << 3,
+    row_insert = 1 << 4,
+    row_delete = 1 << 5,
+    field_read = 1 << 6,
+    field_write = 1 << 7,
+    last_database_event = row_delete,
+    first_field_event = field_read
 };
 
 /**
@@ -67,8 +70,8 @@ public:
 
 /**
  * Thrown when a specified event_type does not match the
- * log event call.  For example, if a table event type
- * is passed in for transaction log event call, then this exception
+ * log event call.  For example, if a field event type
+ * is passed in for database log event call, then this exception
  * is thrown.
  */
 class invalid_event_type: public gaia::common::gaia_exception
@@ -77,21 +80,44 @@ public:
     invalid_event_type(event_type_t event_type)
     {
         std::stringstream message;
-        message << "Invalid event type for operation: " << (uint8_t)event_type;
+        message << "Invalid event type for operation: " << (uint32_t)event_type;
         m_message = message.str();
     }
 };
 
 /**
- * Writes a table event to the event log.  If the mode is
+ * Writes a database event to the event log.  If the mode is
  * event_mode_t::immediate, then the rules associated with this
- * table event are executed.  All interaction with the underlying
+ * database event are executed.  All interaction with the underlying
  * database occurs in the caller's transaction.
  * 
- * @param row current row context of this event
- * @param gaia_type type of the table the event is scoped to
- * @param event_type the type of table event that has occurred. Must be one of:
- *  (col_change, row_update, row_insert, row_delete)
+ * @param row Current row context of this event.  May be null.
+ * @param gaia_type Type of the table the event is scoped to
+ * @param event_type The type of table event that has occurred.
+ * @param mode deferred or immediate rule execution.  Only immedate rule execution
+ *  is supported at this time.
+ * @return true if at least one rule wwas fired due to this event; false otherwise.  
+ *  Note that returning a false does not indicate an error because a rule may have 
+ *  been unsubscribed from this event at runtime.
+ * @throw mode_not_supported 
+ * @throw initialization_error
+ */
+bool log_database_event(
+    common::gaia_base_t* row, 
+    common::gaia_type_t gaia_type,
+    event_type_t event_type, 
+    event_mode_t mode);
+
+/**
+ * Writes a field event to the event log.  If the mode is
+ * event_mode_t::immediate, then the rules associated with this
+ * field event are executed.  All interaction with the underlying
+ * database occurs in the caller's transaction.
+ * 
+ * @param row Current row context of this event.
+ * @param field The field that is the source of this event
+ * @param gaia_type Type of the table the event is scoped to
+ * @param event_type The type of table event that has occurred.
  * @param mode deferred or immediate rule execution.  Only immedate rule execution
  *  is supported at this time.
  * @return true if at least one rule wwas fired due to this event; false otherwise.  
@@ -101,29 +127,12 @@ public:
  * @throw invalid_event_type
  * @throw initialization_error
  */
-bool log_table_event(
-    common::gaia_base_t* row, 
+bool log_field_event(
+    common::gaia_base_t* row,
+    const char* field,
     common::gaia_type_t gaia_type,
     event_type_t event_type, 
     event_mode_t mode);
-
-/**
- * Writes a transaction event to the event log.  If the mode is
- * event_mode_t::immediate, then the rules associated with this
- * transaction event are executed.  All interaction with the underlying
- * database occurs in the caller's transaction.
- * 
- * @param event_type the type of transcation event that has occurred.  Must be one of:
- *  (transaction_begin, transaction_commit, transactinon_rollback).
- * @param mode event_mode_t for deferred or immediate rule execution
- * @return true if at least one rule was fired due to this event; false otherwise.
- *  Note that returning a false does not indicate an error because a rule may have
- *  been unsubscribed from this event at runtime.
- * @throw mode_not_supported 
- * @throw invalid_event_type
- * @throw initialization_error
- */
-bool log_transaction_event(event_type_t event_type, event_mode_t mode);
 
 /*@}*/
 }

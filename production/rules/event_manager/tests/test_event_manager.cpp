@@ -282,7 +282,7 @@ bool is_rule_subscribed(
     const gaia_type_t gaia_type, 
     const event_type_t event_type)
 {
-    list_subscriptions_t subscriptions;
+    subscription_list_t subscriptions;
     gaia_type_t gaia_type_filter = gaia_type;
     event_type_t event_type_filter = event_type;
 
@@ -429,6 +429,8 @@ struct rule_decl_t{
  * row_delete: rule1, rule2
  * row_insert: rule2
  * row_update: rule1
+ * field_change [last_name]: rule1
+ * field_change [first_name] : rule2
  *        
  * <TestGaia2 Object Type>
  * column_change: rule1, rule2
@@ -568,7 +570,7 @@ protected:
         g_transaction_checker.validate_not_called();
     }
 
-    void validate_rule_list(const list_subscriptions_t& subscriptions, 
+    void validate_rule_list(const subscription_list_t& subscriptions, 
         const map_subscriptions_t& expected_subscriptions)
     {
         EXPECT_EQ(subscriptions.size(), expected_subscriptions.size());
@@ -688,6 +690,8 @@ TEST_F(event_manager_test, log_table_event_single_event_single_rule) {
     // Subscribe to update.
     subscribe_table_rule(TestGaia::s_gaia_type, event_type_t::row_update, m_rule1);
 
+    log_field_event()
+
     // Log insert; verify the rule was not fired because it is bound to update, not insert.
     EXPECT_EQ(false, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_insert, event_mode_t::immediate));
     validate_table_rule_not_called();
@@ -695,6 +699,31 @@ TEST_F(event_manager_test, log_table_event_single_event_single_rule) {
     // Log update
     EXPECT_EQ(true, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_update, event_mode_t::immediate));
     validate_table_rule(expected_value, ruleset1_name, rule1_name, rule1_add_1, event_type_t::row_update, TestGaia::s_gaia_type, &m_row);
+}
+
+
+TEST_F(event_manager_test, log_colummn_event_single_event_single_rule) {
+    field_list_t fields;
+
+    // binding to an empty field list will fire the rule for all
+    // columns in the table
+    subscribe_field_rule(TestGaia::s_gaia_type, fields, m_rule1);
+
+/*    
+    int32_t expected_value = m_row.data + rule1_adder;
+
+    // Subscribe to update.
+    subscribe_table_rule(TestGaia::s_gaia_type, event_type_t::row_update, m_rule1);
+    subscribe_column_rule(TestGaia::s_gaia_type, event_type_t::column_change, )
+
+    // Log insert; verify the rule was not fired because it is bound to update, not insert.
+    EXPECT_EQ(false, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_insert, event_mode_t::immediate));
+    validate_table_rule_not_called();
+
+    // Log update
+    EXPECT_EQ(true, log_table_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_update, event_mode_t::immediate));
+    validate_table_rule(expected_value, ruleset1_name, rule1_name, rule1_add_1, event_type_t::row_update, TestGaia::s_gaia_type, &m_row);
+*/    
 }
 
 TEST_F(event_manager_test, log_table_event_single_rule_multi_event) 
@@ -967,7 +996,7 @@ TEST_F(event_manager_test, subscribe_transaction_rule_duplicate_rule)
 
 TEST_F(event_manager_test, list_rules_none) 
 {
-    list_subscriptions_t rules;
+    subscription_list_t rules;
 
     // Verify that the list_subscribed_rules api clears the subscription list the caller
     // passes in.
@@ -980,7 +1009,7 @@ TEST_F(event_manager_test, list_rules_none)
 
 TEST_F(event_manager_test, list_rules_no_filters) 
 {
-    list_subscriptions_t rules;
+    subscription_list_t rules;
     setup_all_rules();
 
     list_subscribed_rules(nullptr, nullptr, nullptr, rules);
@@ -989,7 +1018,7 @@ TEST_F(event_manager_test, list_rules_no_filters)
 
 TEST_F(event_manager_test, list_rules_ruleset_filter) 
 {
-    list_subscriptions_t rules;
+    subscription_list_t rules;
     setup_all_rules();
 
     const char* ruleset_filter = ruleset1_name;
@@ -1003,7 +1032,7 @@ TEST_F(event_manager_test, list_rules_ruleset_filter)
 
 TEST_F(event_manager_test, list_rules_event_type_filter) 
 {
-    list_subscriptions_t rules;
+    subscription_list_t rules;
     setup_all_rules();
 
     event_type_t event_filter = event_type_t::transaction_begin;
@@ -1017,7 +1046,7 @@ TEST_F(event_manager_test, list_rules_event_type_filter)
 
 TEST_F(event_manager_test, list_rules_gaia_type_filter) 
 {
-    list_subscriptions_t rules;
+    subscription_list_t rules;
     setup_all_rules();
 
     gaia_type_t gaia_type_filter = TestGaia2::s_gaia_type;
@@ -1033,7 +1062,7 @@ TEST_F(event_manager_test, list_rules_gaia_type_filter)
 
 TEST_F(event_manager_test, list_rules_all_filters) 
 {
-    list_subscriptions_t rules;
+    subscription_list_t rules;
     setup_all_rules();
 
     const char* ruleset_filter = ruleset1_name;

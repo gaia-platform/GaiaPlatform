@@ -17,12 +17,13 @@ gaia::rules::event_type_t g_event_type;
 gaia::rules::event_mode_t g_event_mode;
 gaia::common::gaia_type_t g_gaia_type;
 gaia::common::gaia_base_t *g_table_context;
+const char* g_field;
 
 namespace gaia 
 {
     namespace rules
     {
-         bool log_table_event(common::gaia_base_t *row, common::gaia_type_t gaia_type, event_type_t type, event_mode_t mode)
+        bool log_database_event(common::gaia_base_t *row, common::gaia_type_t gaia_type, event_type_t type, event_mode_t mode)
         {
             g_event_type = type;
             g_event_mode = mode;
@@ -30,7 +31,34 @@ namespace gaia
             g_table_context = row;
             return true;
         }
+
+        bool log_field_event(common::gaia_base_t* row, const char* field, common::gaia_type_t gaia_type, event_type_t type, event_mode_t mode)
+        {
+            g_event_type = type;
+            g_event_mode = mode;
+            g_gaia_type = gaia_type;
+            g_table_context = row;
+            g_field = field;
+            return true;
+        }
+
     }
+}
+
+void verify_database_event(gaia::common::gaia_base_t* table_context, gaia::common::gaia_type_t gaia_type, 
+    gaia::rules::event_type_t event_type, gaia::rules::event_mode_t mode)
+{
+    TEST_EQ(g_event_type, event_type);
+    TEST_EQ(g_event_mode, mode);
+    TEST_EQ(g_gaia_type, gaia_type);
+    TEST_EQ(g_table_context, table_context);
+}
+
+void verify_field_event(gaia::common::gaia_base_t* table_context, const char* field, gaia::common::gaia_type_t gaia_type, 
+    gaia::rules::event_type_t event_type, gaia::rules::event_mode_t mode)
+{
+    verify_database_event(table_context, gaia_type, event_type, mode);
+    TEST_EQ_STR(g_field, field);
 }
 
 void GaiaNoTableTxEventsTest()
@@ -61,14 +89,11 @@ void GaiaNoTableTxEventsTest()
 
     pEmployee->set_ssn("test");
     TEST_EQ_STR("test",pEmployee->ssn());
-    TEST_EQ(g_event_type,gaia::rules::event_type_t::column_change);
-    TEST_EQ(g_event_mode,gaia::rules::event_mode_t::immediate);
-    TEST_EQ(g_gaia_type, AddrBook::kEmployeeType);
-    TEST_EQ(g_table_context, pEmployee);
+    verify_field_event(pEmployee, "ssn", AddrBook::kEmployeeType, gaia::rules::event_type_t::field_write, gaia::rules::event_mode_t::immediate);
     
     AddrBook::Employee::commit_transaction();
-    TEST_EQ(g_event_type,gaia::rules::event_type_t::column_change);
-    TEST_EQ(g_event_mode,gaia::rules::event_mode_t::immediate);
+    // No transactino events so globals should be the same values as they were when the field event occurred.
+    verify_field_event(pEmployee, "ssn", AddrBook::kEmployeeType, gaia::rules::event_type_t::field_write, gaia::rules::event_mode_t::immediate);
 }
 
 

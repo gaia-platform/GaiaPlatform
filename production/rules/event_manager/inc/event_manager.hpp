@@ -6,6 +6,7 @@
 
 #include <unordered_map>
 #include "rules.hpp"
+#include "event_guard.hpp"
 #include "event_log_gaia_generated.h"
 
 namespace gaia 
@@ -38,7 +39,12 @@ public:
       event_type_t event_type, 
       event_mode_t mode);
 
-    bool log_event(event_type_t event_type, event_mode_t mode);
+    bool log_event(
+      gaia::common::gaia_base_t* row,
+      const char* field,
+      gaia::common::gaia_type_t gaia_type,
+      event_type_t event_type, 
+      event_mode_t mode);
     
     /**
      * Rule APIs
@@ -46,13 +52,15 @@ public:
     void init();
 
     void subscribe_rule(
-      gaia::common::gaia_type_t gaia_type, 
-      event_type_t event_type, 
-      const rule_binding_t& rule_binding);
+        gaia::common::gaia_type_t gaia_type,
+        event_type_t event_type, 
+        const rule_binding_t& rule_binding);
 
     void subscribe_rule(
-      event_type_t event_type, 
-      const rule_binding_t& rule_binding);
+        gaia::common::gaia_type_t gaia_type,
+        event_type_t event_type,
+        const field_list_t& fields,
+        const rule_binding_t& rule_binding);
 
     bool unsubscribe_rule(
       gaia::common::gaia_type_t gaia_type, 
@@ -60,7 +68,9 @@ public:
       const rule_binding_t& rule_binding);
 
     bool unsubscribe_rule(
-      event_type_t event_type, 
+      gaia::common::gaia_type_t gaia_type, 
+      event_type_t event_type,
+      const field_list_t& fields,
       const rule_binding_t& rule_binding);
 
     void unsubscribe_rules();
@@ -68,8 +78,9 @@ public:
     void list_subscribed_rules(
       const char* ruleset_name, 
       const gaia::common::gaia_type_t* gaia_type, 
-      const event_type_t* type,
-      list_subscriptions_t& subscriptions);
+      const event_type_t* event_type,
+      const char* field_name,
+      subscription_list_t& subscriptions);
 
 
 private:
@@ -102,7 +113,8 @@ private:
     // In Q1 we don't allow reentrancy.  This can happen if a rule 
     // calls the same log_event while handling the log_event that 
     // invoked the rule.
-    std::unordered_map<common::gaia_type_t, uint32_t> m_log_events;
+    database_event_guard_t m_database_event_guard;
+    field_event_guard_t m_field_event_guard;
 
     // List of rules that are invoked when an event is logged.
     typedef std::list<const _rule_binding_t*> rule_list_t;
@@ -111,16 +123,17 @@ private:
     // that an event may fire more than one rule.
     typedef std::unordered_map<event_type_t, rule_list_t> events_map_t;
 
-    // List of all rule subscriptions for tables.  This holds the rules bound
-    // to events on each different Gaia type registered in the system.
-    std::unordered_map<common::gaia_type_t, events_map_t> m_table_subscriptions;
+    // Field events are scoped to indvidual fields for a given gaia_type_t.
+    // Field subscriptions are looked up:
+    // gaia_type ->column->event_type.
+    typedef std::unordered_map<std::string, events_map_t> fields_map_t;
+    std::unordered_map<common::gaia_type_t, fields_map_t> m_field_subscriptions;
 
-    // Unlike table events, transaction events are not scoped by any
-    // Gaia type.  They are top level so no map from gaia_type_t to 
-    // events_map_t is required.
-    events_map_t m_transaction_subscriptions;
+    // Database events do not have column scope so they can be represented
+    // more simply as gaia_type->event_type
+    std::unordered_map<common::gaia_type_t, events_map_t> m_database_subscriptions;
 
-    const _rule_binding_t* find_rule(const rules::rule_binding_t& binding);
+    const _rule_binding_t* find_rule(const rules::rule_binding_t& binding); 
     void add_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     bool remove_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
 
@@ -132,22 +145,17 @@ private:
         }
     }
 
-    static inline void check_table_event(event_type_t type)
+    static inline void check_database_event(event_type_t type)
     {
-        if (!(type == event_type_t::column_change 
-            || type == event_type_t::row_delete 
-            || type == event_type_t::row_insert 
-            || type == event_type_t::row_update))
+        if (type > event_type_t::last_database_event) 
         {
             throw invalid_event_type(type);
         }
     }
 
-    static inline void check_transaction_event(event_type_t type)
+    static inline void check_field_event(event_type_t type)
     {
-        if (!(type == event_type_t::transaction_begin
-          || type == event_type_t::transaction_commit
-          || type == event_type_t::transaction_rollback))
+        if (type < event_type_t::first_field_event)
         {
             throw invalid_event_type(type);
         }
@@ -163,21 +171,21 @@ private:
         }
     }
 
+    static bool is_valid_rule_binding(const rules::rule_binding_t& binding);
+    static std::string make_rule_key(const rules::rule_binding_t& binding);
+    static events_map_t create_database_event_map();
+    static events_map_t create_field_event_map();
+    static void add_subscriptions(rules::subscription_list_t& subscriptions, 
+        const events_map_t& events, 
+        gaia::common::gaia_type_t gaia_type,
+        const char * field_name,
+        const char* ruleset_filter, 
+        const event_type_t* event_filter);
     static void log_to_db(gaia_type_t gaia_type, 
         event_type_t event_type, 
         event_mode_t event_mode,
         gaia_base_t * context,
         bool rules_fired);
-    static bool is_valid_transaction_event(event_type_t type);
-    static bool is_valid_rule_binding(const rules::rule_binding_t& binding);
-    static std::string make_rule_key(const rules::rule_binding_t& binding);
-    static events_map_t create_table_event_map();
-    static void insert_transaction_events(events_map_t& transaction_map);
-    static void add_subscriptions(rules::list_subscriptions_t& subscriptions, 
-        const events_map_t& events, 
-        gaia::common::gaia_type_t gaia_type,
-        const char* ruleset_filter, 
-        const event_type_t* event_filter);
 };
 
 } // namespace rules
