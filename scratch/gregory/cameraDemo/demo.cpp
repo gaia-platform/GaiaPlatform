@@ -1,8 +1,13 @@
 #include <random>
 #include <string>
-#include "event_manager.hpp"
+#include "rules.hpp"
 #include "cameraDemo_gaia_generated.h"
-extern "C" void initialize_rules();
+#include "opencv2/objdetect.hpp"
+#include "opencv2/highgui.hpp"
+#include "opencv2/imgproc.hpp"
+#include "opencv2/videoio.hpp"
+
+
 std::string random_string(std::string::size_type length)
 {
    const char chrs[] = "0123456789"
@@ -26,24 +31,46 @@ int main( int argc, const char** argv )
 {
     gaia_mem_base::init(true);
     gaia::rules::initialize_rules_engine();
-gaia::rules::list_subscriptions_t rules;
-    //gaia::common::gaia_type_t t = CameraDemo::kCameraImageType;
-    //gaia::rules::event_type_t et = gaia::rules::event_type_t::row_insert;
-    gaia::rules::list_subscribed_rules(nullptr,nullptr,nullptr,rules);
-    for (auto it = rules.begin(); it != rules.end(); ++it)
+
+    cv::VideoCapture capture;
+    cv::Mat frame, image;
+    if(!capture.open(0))
     {
-        cerr << (*it)->ruleset_name << " " << (*it)->rule_name << " " << (int)((*it)->gaia_type) << " " << (int)((*it)->type) << endl;
+        cout << "Capture from camera #  0 didn't work" << endl;
+        return 1;
     }
-    cerr << rules.size() << endl;
-    cerr << "01" << endl;
-    CameraDemo::CameraImage::begin_transaction();
-    cerr << "2" << endl;
-    CameraDemo::CameraImage image;
-    image.set_fileName("sfsdfsdf");
-    cerr << "3" << endl;
-    image.insert_row();
-    cerr << "4" << endl;
-    CameraDemo::CameraImage::commit_transaction();
-    cerr << "5" << endl;
+    if( capture.isOpened() )
+    {
+        cout << "Video capturing has been started ..." << endl;
+
+        for(;;)
+        {
+            capture >> frame;
+            if( frame.empty() )
+                break;
+    
+            cv::Mat frame1 = frame.clone();
+
+            std::string file_name = random_string(10) + ".tiff";
+
+	        imwrite(file_name.c_str(), frame1);
+
+            CameraDemo::CameraImage::begin_transaction();
+            CameraDemo::CameraImage image;
+            image.set_fileName(file_name.c_str());
+            image.insert_row();
+            CameraDemo::CameraImage::commit_transaction();
+           
+
+            char c = (char)cv::waitKey(1000);
+            if( c == 27 || c == 'q' || c == 'Q' )
+                break;
+        }
+    }
+    else
+    {
+        cerr << "capture is not opened" << endl;
+    }
+
     return 0;
 }

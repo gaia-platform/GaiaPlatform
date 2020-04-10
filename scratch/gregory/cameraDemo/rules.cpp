@@ -1,5 +1,6 @@
 #include "rules.hpp"
 #include "cameraDemo_gaia_generated.h"
+#include <stdio.h>
 using namespace gaia::rules;
 
 /** ruleset*/
@@ -9,11 +10,15 @@ namespace cameraDemo
  rule, image_create,CameraDemo::kCameraImageType=1,  event_type_t::row_insert
 */
     void ImageCreate_handler(const context_base_t *context)
-    {
-        cerr << "q" << endl;
+    {        
         const table_context_t* t = static_cast<const table_context_t*>(context);
         CameraDemo::CameraImage * row = static_cast<CameraDemo::CameraImage *>(t->row);
         cerr << "IMAGE Created " << row->fileName() <<  endl;
+        CameraDemo::Object obj;
+        obj.set_class_("qq");
+        obj.insert_row();
+        row->delete_row();
+        
     }
 
 /**
@@ -21,7 +26,10 @@ namespace cameraDemo
 */
     void ImageDelete_handler(const context_base_t *context)
     {
-        cerr << "IMAGE deleted" << endl;
+        const table_context_t* t = static_cast<const table_context_t*>(context);
+        CameraDemo::CameraImage * row = static_cast<CameraDemo::CameraImage *>(t->row);
+        remove(row->fileName());
+        cerr << "IMAGE deleted " <<  row->fileName() << endl;
     }
 
 /**
@@ -29,6 +37,8 @@ namespace cameraDemo
 */
     void ObjectClassify_handler(const context_base_t *context)
     {
-        cerr << "OBJECT CLASSIFIED" << endl;
+        const table_context_t* t = static_cast<const table_context_t*>(context);
+        CameraDemo::Object * row = static_cast<CameraDemo::Object *>(t->row);
+        cerr << "OBJECT CLASSIFIED " << row->class_() << endl;
     }
 } 
