@@ -346,15 +346,7 @@ public final class CacheFactory
     // Tiny airport data set with Q1 schema.
     public static CacheGraph createTinyQ1Airport()
     {
-        final Configuration configuration = getDefaultConfiguration();
-
-        // Enable airport data serialization code.
-        configuration.setProperty(
-            CacheGraph.CACHEGRAPH_ENABLE_AIRPORT_CODE,
-            true);
-                   
-        final CacheGraph graph = CacheGraph.open(configuration);
-
+        final CacheGraph graph = getDefaultCacheGraph();
         generateTinyQ1Airport(graph);
         return graph;
     }
@@ -408,29 +400,11 @@ public final class CacheFactory
         setRouteEdge(ams, sea, "KL", "A330");
     }
 
-    // Open CacheGraph instance without COW writing.
-    // This is useful for testing the in-memory graph part only.
-    public static CacheGraph openWithoutCOW()
-    {
-        final Configuration configuration = getDefaultConfiguration();
-
-        // Disable writing to COW.
-        configuration.setProperty(
-            CacheGraph.CACHEGRAPH_ENABLE_COW_WRITES,
-            false);
-
-        final CacheGraph graph = CacheGraph.open(configuration);
-
-        return graph;
-    }
-
     // Load a graphml file.
     public static CacheGraph loadGraphml(String filename)
     {
         final CacheGraph graph = getDefaultCacheGraph();
-
         loadGraphml(graph, filename);
-
         return graph;
     }
 
@@ -446,6 +420,38 @@ public final class CacheFactory
                 "An error happened while attempting to load " + filename + ": "
                 + e.getMessage());
         }
+    }
+
+    // Open CacheGraph instance without COW writing.
+    // This is useful for testing the in-memory graph part only.
+    public static CacheGraph openWithoutCow()
+    {
+        final Configuration configuration = getDefaultConfiguration();
+
+        // Disable writing to COW.
+        configuration.setProperty(
+            CacheGraph.CACHEGRAPH_ENABLE_COW_WRITES,
+            false);
+
+        final CacheGraph graph = CacheGraph.open(configuration);
+
+        return graph;
+    }
+
+    // Open CacheGraph instance with airport serialization to COW.
+    // This is useful for testing airport data serialization to COW.
+    public static CacheGraph openWithAirportSupport()
+    {
+        final Configuration configuration = getDefaultConfiguration();
+
+        // Enable airport data serialization code.
+        configuration.setProperty(
+            CacheGraph.CACHEGRAPH_ENABLE_AIRPORT_CODE,
+            true);
+                   
+        final CacheGraph graph = CacheGraph.open(configuration);
+
+        return graph;
     }
 
     // A method for loading airport data from COW.

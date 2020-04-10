@@ -1,5 +1,10 @@
+import com.gaiaplatform.database.cachegraph.tinkerpop.gremlin.structure.CacheGraph
+import com.gaiaplatform.database.cachegraph.tinkerpop.gremlin.structure.CacheFactory
+
 // Create tiny airport graph.
-graph = com.gaiaplatform.database.cachegraph.tinkerpop.gremlin.structure.CacheFactory.createTinyAirport()
+graph = CacheGraph.open()
+CacheFactory.generateTinyAirport(graph)
+// CacheFactory.loadGraphml(graph, "gaia-airport.graphml")
 g = graph.traversal()
 
 // Group airports by number of outgoing flights.
