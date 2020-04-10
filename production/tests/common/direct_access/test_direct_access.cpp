@@ -154,6 +154,19 @@ TEST_F(gaia_object_test, new_get) {
     gaia_base_t::commit_transaction();
 }
 
+TEST_F(gaia_object_test, new_del_field_ref) {
+    // create GAIA-64 scenario
+    gaia_base_t::begin_transaction();
+
+    auto e = new Employee();
+    e->insert_row();
+    e->delete_row();
+    auto name = e->name_first();
+    EXPECT_EQ(name, nullptr);
+
+    gaia_base_t::commit_transaction();
+}
+
 // Test on existing objects found by ID
 // ====================================
 
