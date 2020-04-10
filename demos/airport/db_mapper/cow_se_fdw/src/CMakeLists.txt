@@ -22,6 +22,8 @@ set_target_properties (cow_se_fdw PROPERTIES
 target_include_directories(cow_se_fdw PRIVATE "${PROJECT_SOURCE_DIR}")
 # for COW-SE
 target_include_directories(cow_se_fdw PRIVATE "../../../../cow_se/inc")
+# for flatbuffers generated code
+target_include_directories(cow_se_fdw PRIVATE "../../../flatbuffers")
 # for postgres
 target_include_directories (cow_se_fdw SYSTEM PRIVATE "${PGSQL_INCLUDEDIR_SERVER}")
 # for flatcc

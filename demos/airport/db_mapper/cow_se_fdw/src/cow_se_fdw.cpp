@@ -63,7 +63,7 @@ cow_se_fdw_handler(PG_FUNCTION_ARGS)
     // routine->AnalyzeForeignTable = cow_seAnalyzeForeignTable;
 
     // /* Support functions for IMPORT FOREIGN SCHEMA */
-    // routine->ImportForeignSchema = cow_seImportForeignSchema;
+    routine->ImportForeignSchema = cow_seImportForeignSchema;
 
     // /* Support functions for join push-down */
     // routine->GetForeignJoinPaths = cow_seGetForeignJoinPaths;
@@ -77,6 +77,22 @@ cow_se_fdw_handler(PG_FUNCTION_ARGS)
     // routine->RefetchForeignRow = cow_seRefetchForeignRow;
 
     PG_RETURN_POINTER(routine);
+}
+
+/*
+ * Check if the provided option is one of the valid options.
+ * context is the Oid of the catalog holding the object the option is for.
+ */
+static bool
+is_valid_option(const char *option, Oid context)
+{
+	const cow_seFdwOption *opt;
+	for (opt = valid_options; opt->optname; opt++)
+	{
+		if (context == opt->optcontext && strcmp(opt->optname, option) == 0)
+			return true;
+	}
+	return false;
 }
 
 /*
@@ -95,58 +111,60 @@ extern "C"
 Datum
 cow_se_fdw_validator(PG_FUNCTION_ARGS)
 {
-    List *options_list = untransformRelOptions(PG_GETARG_DATUM(0));
-
     elog(DEBUG1, "entering function %s", __func__);
-
-    /* make sure the options are valid */
-
-    /* no options are supported */
-
-    if (list_length(options_list) > 0)
+    List *options_list = untransformRelOptions(PG_GETARG_DATUM(0));
+    if (list_length(options_list) > 1) {
         ereport(ERROR,
                 (errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
-                 errmsg("invalid options"),
-                 errhint("cow_se FDW does not support any options")));
-
+                    errmsg("invalid options"),
+                    errhint("cow_se FDW supports only the `data_dir` option")));
+        PG_RETURN_VOID();
+    }
+    Oid catalog = PG_GETARG_OID(1);
+    ListCell *cell;
+    foreach(cell, options_list) {
+		DefElem *def = (DefElem *) lfirst(cell);
+        elog(DEBUG1, "option name: %s, option value: %s", def->defname, defGetString(def));
+		if (!is_valid_option(def->defname, catalog)) {
+			const cow_seFdwOption *opt;
+			StringInfoData buf;
+			/*
+			 * Unknown option specified, complain about it. Provide a hint
+			 * with list of valid options for the object.
+			 */
+			initStringInfo(&buf);
+			for (opt = valid_options; opt->optname; opt++) {
+				if (catalog == opt->optcontext) {
+					appendStringInfo(&buf, "%s%s", (buf.len > 0) ? ", " : "",
+									 opt->optname);
+                }
+			}
+			ereport(ERROR,
+					(errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
+					 errmsg("invalid option \"%s\"", def->defname),
+					 buf.len > 0
+					 ? errhint("Valid options in this context are: %s",
+							   buf.data)
+					 : errhint("There are no valid options in this context.")));
+            PG_RETURN_VOID();
+		}
+    }
     PG_RETURN_VOID();
 }
 
 // from https://github.com/adjust/parquet_fdw/blob/master/parquet_impl.cpp
 static void
-get_table_options(Oid relid, cow_seFdwPlanState *fdw_private)
+get_options(cow_seFdwPlanState *fdw_private)
 {
-    ListCell     *lc;
-
-    foreach(lc, fdw_private->table->options)
-    {
-        DefElem    *def = (DefElem *) lfirst(lc);
-
-    //     if (strcmp(def->defname, "filename") == 0)
-    //         fdw_private->filename = defGetString(def);
-    //     else if (strcmp(def->defname, "sorted") == 0)
-    //     {
-    //         fdw_private->attrs_sorted =
-    //             parse_attributes_list(defGetString(def), relid);
-    //     }
-    //     else if (strcmp(def->defname, "use_mmap") == 0)
-    //     { 
-    //         if (!parse_bool(defGetString(def), &fdw_private->use_mmap))
-    //             ereport(ERROR,
-    //                     (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-    //                      errmsg("invalid value for boolean option \"%s\": %s",
-    //                             def->defname, defGetString(def))));
-    //     }
-    //     else if (strcmp(def->defname, "use_threads") == 0)
-    //     {
-    //         if (!parse_bool(defGetString(def), &fdw_private->use_threads))
-    //             ereport(ERROR,
-    //                     (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-    //                      errmsg("invalid value for boolean option \"%s\": %s",
-    //                             def->defname, defGetString(def))));
-    //     }
-    //     else
-        elog(ERROR, "unknown option '%s'", def->defname);
+    // we only enumerate server options for now, add wrapper/table/attrs options later
+    ListCell *cell;
+    foreach(cell, fdw_private->server->options) {
+        DefElem *def = (DefElem *) lfirst(cell);
+        if (strcmp(def->defname, "data_dir") == 0) {
+            fdw_private->data_dir = defGetString(def);
+        } else {
+            elog(ERROR, "unknown option '%s'", def->defname);
+        }
     }
 }
 
@@ -175,7 +193,11 @@ cow_seGetForeignRelSize(PlannerInfo *root,
 
     elog(DEBUG1, "entering function %s", __func__);
 
-    baserel->rows = 0;
+    // FIXME: total hack, I added this method ad-hoc to cow_se.h and this doesn't even get a per-type count
+    // NB: we have to do this in a txn or we'll segfault because the mapping doesn't exist
+    gaia_se::begin_transaction();
+    baserel->rows = gaia_mem_base::row_id_count();
+    gaia_se::commit_transaction();
 
     // we allocate the whole plan state here but only fill in the base state
     cow_seFdwPlanState *plan_state = (cow_seFdwPlanState *) palloc0(sizeof(cow_seFdwPlanState));
@@ -193,8 +215,7 @@ cow_seGetForeignRelSize(PlannerInfo *root,
     //     plan_state->conds = lappend(plan_state->conds, ri);
     // }
 
-    get_table_options(foreigntableid, plan_state);
-
+    get_options(plan_state);
 }
 
 // from https://github.com/adjust/parquet_fdw/blob/master/parquet_impl.cpp
@@ -418,16 +439,14 @@ cow_seBeginForeignScan(ForeignScanState *node,
 
     cow_seFdwScanState *scan_state = (cow_seFdwScanState *) palloc0(sizeof(cow_seFdwScanState));
     node->fdw_state = scan_state;
-
     scan_state->deserializer = mapping.deserializer;
-    // flatbuffer accessor functions indexed by attrnum
-    AttributeAccessor *indexed_accessors;
-
+    
     TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
     TupleDesc tupleDesc = slot->tts_tupleDescriptor;
 
     assert(tupleDesc->natts == mapping.num_attrs);
-    indexed_accessors = (AttributeAccessor *) palloc0(sizeof(AttributeAccessor) * tupleDesc->natts);
+    // flatbuffer accessor functions indexed by attrnum
+    AttributeAccessor *indexed_accessors = (AttributeAccessor *) palloc0(sizeof(AttributeAccessor) * tupleDesc->natts);
     scan_state->indexed_accessors = indexed_accessors;
 
     // set up mapping of attnos to flatbuffer accessor functions
@@ -435,7 +454,7 @@ cow_seBeginForeignScan(ForeignScanState *node,
         // user attributes are indexed starting from 1
         // AttrNumber attnum = i + 1;
         char *attr_name = NameStr(TupleDescAttr(tupleDesc, i)->attname);
-        for (int j = 0; i < mapping.num_attrs; j++) {
+        for (int j = 0; j < mapping.num_attrs; j++) {
             if (strcmp(attr_name, mapping.attrs_with_accessors[j].attr_name) == 0) {
                 indexed_accessors[i] = mapping.attrs_with_accessors[j].attr_accessor;
                 break;
@@ -443,6 +462,8 @@ cow_seBeginForeignScan(ForeignScanState *node,
         }
     }
 
+    // begin read transaction
+    gaia_se::begin_transaction();
     // retrieve the first node of the requested type
     scan_state->cur_node = gaia_ptr<gaia_se_node>::find_first(mapping.gaia_type_id);
 }
@@ -532,12 +553,13 @@ cow_seEndForeignScan(ForeignScanState *node)
      * remote servers should be cleaned up.
      */
 
+    elog(DEBUG1, "entering function %s", __func__);
+
     cow_seFdwScanState *scan_state = (cow_seFdwScanState *) node->fdw_state;
     // we should have reached the end of iteration
     assert(!scan_state->cur_node);
-
-    elog(DEBUG1, "entering function %s", __func__);
-
+    // commit read transaction
+    gaia_se::commit_transaction();
 }
 
 extern "C"
@@ -1154,14 +1176,28 @@ cow_seImportForeignSchema(ImportForeignSchemaStmt *stmt,
      */
 
     elog(DEBUG1, "entering function %s", __func__);
-
-    return NULL;
+    ForeignServer *server = GetForeignServer(serverOid);
+    const char* serverName = server->servername;
+    List *commands = NIL;
+    const char *ddl_stmt_fmts[] = { AIRPORT_DDL_STMT_FMT, AIRLINE_DDL_STMT_FMT, ROUTE_DDL_STMT_FMT };
+    for (int i = 0; i < ARRAY_SIZE(ddl_stmt_fmts); i++) {
+        // length of format string + length of server name - 2 chars for format specifier + 1 char for null terminator
+        size_t stmt_len = strlen(ddl_stmt_fmts[i]) + strlen(serverName) - 2 + 1;
+        char *stmt_buf = (char *) palloc(stmt_len);
+        // sprintf returns number of chars written, not including null terminator
+        if (sprintf(stmt_buf, ddl_stmt_fmts[i], serverName) < stmt_len - 1) {
+            elog(ERROR, "failed to format statement '%s' with server name '%s'", ddl_stmt_fmts[i], serverName);
+        }
+        commands = lappend(commands, stmt_buf);
+    }
+    return commands;
 }
 
 // Perform all module-level initialization here
 extern "C"
 void
 _PG_init() {
+    elog(DEBUG1, "entering function %s", __func__);
     // initialize COW-SE
     gaia_mem_base::init(true);
 }
@@ -1170,5 +1206,6 @@ _PG_init() {
 extern "C"
 void
 _PG_fini() {
+    elog(DEBUG1, "entering function %s", __func__);
     // any SE cleanup required?
 }
