@@ -37,6 +37,10 @@ g.V().has('iata', 'SEA').repeat(out().as('hop')).times(2).has('iata', 'OTP')
 g.V().has('iata', 'SEA').repeat(outE().inV()).times(2).has('iata', 'OTP')
   .path().by('iata').by('airline')
 
+// Find all routes between SEA and OTP.
+g.V().has('iata', 'SEA').repeat(outE().inV()).until(has('iata', 'OTP'))
+  .path().by('iata').by('airline').limit(24)
+
 // Describe 1 stop routes between SEA and OTP that do not stop in UK.
 g.V().has('iata', 'SEA').outE().inV().has('country', neq('United Kingdom'))
   .outE().inV().has('iata', 'OTP')
