@@ -170,22 +170,6 @@ cow_se_fdw_validator(PG_FUNCTION_ARGS)
     PG_RETURN_VOID();
 }
 
-// from https://github.com/adjust/parquet_fdw/blob/master/parquet_impl.cpp
-static void
-get_options(cow_seFdwPlanState *fdw_private)
-{
-    // we only enumerate server options for now, add wrapper/table/attrs options later
-    ListCell *cell;
-    foreach(cell, fdw_private->server->options) {
-        DefElem *def = (DefElem *) lfirst(cell);
-        if (strcmp(def->defname, "data_dir") == 0) {
-            fdw_private->data_dir = defGetString(def);
-        } else {
-            elog(ERROR, "unknown option '%s'", def->defname);
-        }
-    }
-}
-
 extern "C"
 void
 cow_seGetForeignRelSize(PlannerInfo *root,
@@ -216,50 +200,6 @@ cow_seGetForeignRelSize(PlannerInfo *root,
     gaia_se::begin_transaction();
     baserel->rows = gaia_mem_base::row_id_count();
     gaia_se::commit_transaction();
-
-    // we allocate the whole plan state here but only fill in the base state
-    cow_seFdwPlanState *plan_state = (cow_seFdwPlanState *) palloc0(sizeof(cow_seFdwPlanState));
-    baserel->fdw_private = (void *) plan_state;
-
-    // initialize required state in plan_state
-    plan_state->table = GetForeignTable(foreigntableid);
-    plan_state->server = GetForeignServer(plan_state->table->serverid);
-
-    // // cache conds in plan_state for later analysis
-    // plan_state->conds = baserel->baserestrictinfo;
-    // foreach(lc, baserel->baserestrictinfo)
-    // {
-    //     RestrictInfo *ri = (RestrictInfo *) lfirst(lc);
-    //     plan_state->conds = lappend(plan_state->conds, ri);
-    // }
-    get_options(plan_state);
-}
-
-// from https://github.com/adjust/parquet_fdw/blob/master/parquet_impl.cpp
-static void
-extract_used_attributes(RelOptInfo *baserel)
-{
-    cow_seFdwPlanState *fdw_private = (cow_seFdwPlanState *) baserel->fdw_private;
-    ListCell *lc;
-
-    pull_varattnos((Node *) baserel->reltarget->exprs,
-                   baserel->relid,
-                   &fdw_private->attrs_used);
-
-    foreach(lc, baserel->baserestrictinfo)
-    {
-        RestrictInfo *rinfo = (RestrictInfo *) lfirst(lc);
-
-        pull_varattnos((Node *) rinfo->clause,
-                       baserel->relid,
-                       &fdw_private->attrs_used);
-    }
-
-    if (bms_is_empty(fdw_private->attrs_used))
-    {
-        bms_free(fdw_private->attrs_used);
-        fdw_private->attrs_used = bms_make_singleton(1 - FirstLowInvalidHeapAttributeNumber);
-    }
 }
 
 extern "C"
@@ -283,16 +223,10 @@ cow_seGetForeignPaths(PlannerInfo *root,
      * that is needed to identify the specific scan method intended.
      */
 
-    cow_seFdwPlanState *plan_state = (cow_seFdwPlanState *) baserel->fdw_private;
-    Cost startup_cost, total_cost;
-
     elog(DEBUG1, "entering function %s", __func__);
 
-    startup_cost = 0;
-    total_cost = startup_cost + baserel->rows;
-
-    /* Collect used attributes to reduce number of read columns during scan */
-    extract_used_attributes(baserel);
+    Cost startup_cost = 0;
+    Cost total_cost = startup_cost + baserel->rows;
 
     /* Create a ForeignPath node and add it as only possible path */
     add_path(baserel, (Path *)
@@ -306,34 +240,6 @@ cow_seGetForeignPaths(PlannerInfo *root,
                                      NULL,      /* no extra plan */
                                      NULL));    /* no per-path private info */
 }
-
-
-// from https://github.com/pgspider/sqlite_fdw/blob/master/deparse.c
-// static List *
-// build_remote_tlist(RelOptInfo *foreignrel)
-// {
-//     List *tlist = NIL;
-//     cow_seFdwPlanState *plan_state = (cow_seFdwPlanState *) baserel->fdw_private;
-//     ListCell   *lc;
-
-//     /*
-//      * We require columns specified in foreignrel->reltarget->exprs and those
-//      * required for evaluating the local conditions.
-//      */
-//     tlist = add_to_flat_tlist(tlist,
-//                               pull_var_clause((Node *) foreignrel->reltarget->exprs,
-//                                               PVC_RECURSE_PLACEHOLDERS));
-//     foreach(lc, plan_state->local_conds)
-//     {
-//         RestrictInfo *rinfo = lfirst_node(RestrictInfo, lc);
-
-//         tlist = add_to_flat_tlist(tlist,
-//                                   pull_var_clause((Node *) rinfo->clause,
-//                                                   PVC_RECURSE_PLACEHOLDERS));
-//     }
-
-//     return tlist;
-// }
 
 extern "C"
 ForeignScan *
@@ -356,12 +262,9 @@ cow_seGetForeignPlan(PlannerInfo *root,
      * recommended to use make_foreignscan to build the ForeignScan node.
      *
      */
-
-    Index scan_relid = baserel->relid;
-    cow_seFdwPlanState *plan_state = (cow_seFdwPlanState *) baserel->fdw_private;
-
     elog(DEBUG1, "entering function %s", __func__);
 
+    Index scan_relid = baserel->relid;
     /*
      * We have no native ability to evaluate restriction clauses, so we just
      * put all the scan_clauses into the plan node's qual list for the
@@ -371,35 +274,12 @@ cow_seGetForeignPlan(PlannerInfo *root,
      */
     scan_clauses = extract_actual_clauses(scan_clauses, false);
 
-    /*
-     * We can't just pass arbitrary structure into make_foreignscan() because
-     * in some cases (i.e. plan caching) postgres may want to make a copy of
-     * the plan and it can only make copy of something it knows of, namely
-     * Nodes. So we need to convert everything in nodes and store it in a List.
-     */
-    List *attrs_used = NIL;
-    int col = -1;
-    while ((col = bms_next_member(plan_state->attrs_used, col)) >= 0) {
-        /* bit numbers are offset by FirstLowInvalidHeapAttributeNumber */
-        AttrNumber attno = col + FirstLowInvalidHeapAttributeNumber;
-        if (attno <= InvalidAttrNumber) { /* shouldn't happen */
-            elog(ERROR, "system-column update is not supported");
-        }
-        attrs_used = lappend_int(attrs_used, attno);
-    }
-
-    // NB: it's probably conceptually cleaner to use a custom tlist rather than passing down attrs_used to the plan,
-    // (we don't need to fill in unused columns with NULL), but building a custom tlist seems like a huge pain.
-    // See build_remote_tlist() for one approach.
-    List *params = list_make2(makeString(get_rel_name(plan_state->table->relid)),
-                        attrs_used);
-
     /* Create the ForeignScan node */
     return make_foreignscan(tlist,
                             scan_clauses,
                             scan_relid,
                             NIL,    /* no expressions to evaluate */
-                            params,    /* we don't use this now but might later */
+                            NIL,    /* no private data */
                             NIL,    /* no custom tlist */
                             NIL,    /* no remote quals */
                             outer_plan);
@@ -432,11 +312,10 @@ cow_seBeginForeignScan(ForeignScanState *node,
     elog(DEBUG1, "entering function %s", __func__);
 
     ForeignScan *plan = (ForeignScan *) node->ss.ps.plan;
-    List *fdw_private = plan->fdw_private;
-
-    /* Unwrap fdw_private */
-    char *table_name = strVal((Value *) linitial(fdw_private));
-    List *attrs_used_list = (List *) lsecond(fdw_private);
+    EState *estate = node->ss.ps.state;
+    Index rtindex = plan->scan.scanrelid;
+    RangeTblEntry *rte = exec_rt_fetch(rtindex, estate);
+    char *table_name = get_rel_name(rte->relid);
 
     RelationAttributeMapping mapping;
     if (strcmp(table_name, "airports") == 0) {
@@ -450,11 +329,6 @@ cow_seBeginForeignScan(ForeignScanState *node,
     } else {
         elog(ERROR, "unknown table name '%s'", table_name);
     }
-
-    // AttrNumber attnum;
-    // foreach (lc, attrs_used_list) {
-    //     attnum = lfirst_int(lc);
-    // }
 
     cow_seFdwScanState *scan_state = (cow_seFdwScanState *) palloc0(sizeof(cow_seFdwScanState));
     node->fdw_state = scan_state;

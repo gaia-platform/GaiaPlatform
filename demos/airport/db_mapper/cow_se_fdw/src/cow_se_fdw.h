@@ -22,6 +22,7 @@ extern "C" {
 #include "access/reloptions.h"
 #include "catalog/pg_foreign_server.h"
 #include "commands/defrem.h"
+#include "executor/executor.h"
 #include "foreign/fdwapi.h"
 // for FDW helpers: https://www.postgresql.org/docs/devel/fdw-helpers.html
 #include "foreign/foreign.h"
@@ -171,18 +172,7 @@ static const cow_seFdwOption valid_options[] = {
 };
 
 /*
- * The plan state is set up in cow_seGetForeignRelSize and stashed away in
- * baserel->fdw_private and fetched in cow_seGetForeignPaths.
- */
-typedef struct {
-    ForeignTable *table;
-    ForeignServer *server;
-    Bitmapset *attrs_used;
-    const char *data_dir;
-} cow_seFdwPlanState;
-
-/*
- * The plan state is set up in cow_seBeginForeignScan and stashed away in
+ * The scan state is set up in cow_seBeginForeignScan and stashed away in
  * node->fdw_private and fetched in cow_seIterateForeignScan.
  */
 typedef struct {
