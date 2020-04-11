@@ -174,10 +174,10 @@ public class CowStorageEngine
         printEmptyLine();
         
         printEmptyLine();
-        System.out.println("Deleting edge 1...");
+        System.out.println("Deleting edge 5...");
         cow.removeEdge(5);
         
-        System.out.println("Deleting edge 4...");
+        System.out.println("Deleting edge 8...");
         cow.removeEdge(8);
         
         System.out.println("Deleting node 2...");
