@@ -125,7 +125,7 @@ public:
 
     #define GET_CURRENT(field) (m_copy ? (m_copy->field) : (m_fb ? m_fb->field() : 0))
     #define GET_ORIGINAL(field) (m_fb ? m_fb->field() : (m_copy ? m_copy->field : 0))
-    #define GET_STR_ORIGINAL(field) (m_fb ? m_fb->field()->c_str() : (m_copy ? m_copy->field.c_str() : nullptr))
+    #define GET_STR_ORIGINAL(field) (m_fb ? (m_fb->field() ? m_fb->field()->c_str() : nullptr) : (m_copy ? m_copy->field.c_str() : nullptr))
     #define GET_STR(field) (m_copy ? m_copy->field.c_str() : m_fb ? (m_fb->field()? m_fb->field()->c_str() : nullptr) : nullptr)
     #define SET(field, value) (copy_write()->field = value)
 
@@ -158,6 +158,7 @@ public:
             m_fbb->Finish(u);
             node_ptr = gaia_se_node::create(m_id, T_gaia_type, m_fbb->GetSize(), m_fbb->GetBufferPointer());
             m_fbb->Clear();
+            m_fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);
         } else {
             // This situation only happens if an object representing
             // a deleted row is reused.  By giving the object a copy buffer, 
