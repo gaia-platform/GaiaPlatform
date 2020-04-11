@@ -1,3 +1,5 @@
+select pg_backend_pid();
+
 CREATE EXTENSION cow_se_fdw;
 
 CREATE SERVER cow_se

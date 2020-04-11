@@ -12,7 +12,19 @@ set (COW_SE_SOURCES
 set(CMAKE_C_FLAGS "${PGSQL_CPPFLAGS}")
 set(CMAKE_SHARED_LINKER_FLAGS "${PGSQL_LDFLAGS}")
 
-add_library (cow_se_fdw SHARED ${COW_SE_SOURCES} ${COW_SE_HEADERS})
+add_executable (data_loader data_loader.cpp)
+#set_target_properties(data_loader PROPERTIES
+#  RUNTIME_OUTPUT_DIRECTORY "/usr/local/bin"
+#)
+target_include_directories(data_loader PRIVATE "${PROJECT_SOURCE_DIR}")
+# for COW-SE
+target_include_directories(data_loader PRIVATE "../../../../cow_se/inc")
+# for flatbuffers generated code
+target_include_directories(data_loader PRIVATE "../../../flatbuffers")
+# for POSIX shared memory API
+target_link_libraries(data_loader rt)
+
+add_library (cow_se_fdw SHARED ${COW_SE_SOURCES})
 
 set_target_properties (cow_se_fdw PROPERTIES
   OUTPUT_NAME "cow_se_fdw-${PGCOW_SE_VERSION_MAJOR}"
@@ -58,4 +70,9 @@ install (
 install (
   FILES ${COW_SE_INSTALL_EXTENSIONS}
   DESTINATION "${PGSQL_SHAREDIR}/extension"
+)
+
+install (
+  TARGETS data_loader
+  DESTINATION "/usr/local/bin"
 )
