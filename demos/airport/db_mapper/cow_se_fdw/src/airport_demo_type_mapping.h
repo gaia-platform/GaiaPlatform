@@ -31,6 +31,7 @@ typedef struct {
 typedef struct {
     const char *rel_name;
     gaia_se::gaia_type_t gaia_type_id;
+    bool gaia_type_is_edge;
     RootObjectDeserializer deserializer;
     const AttributeWithAccessor *attrs_with_accessors;
     size_t num_attrs;
@@ -320,6 +321,7 @@ static const AttributeWithAccessor ROUTE_ATTRS[] = {
 RelationAttributeMapping AIRPORT_MAPPING = {
     "airports",
     airport_demo_types::kAirportsType,
+    false,
     (RootObjectDeserializer) gaia_airport_airports_as_root,
     AIRPORT_ATTRS,
     ARRAY_SIZE(AIRPORT_ATTRS),
@@ -328,6 +330,7 @@ RelationAttributeMapping AIRPORT_MAPPING = {
 RelationAttributeMapping AIRLINE_MAPPING = {
     "airlines",
     airport_demo_types::kAirlinesType,
+    false,
     (RootObjectDeserializer) gaia_airport_airlines_as_root,
     AIRLINE_ATTRS,
     ARRAY_SIZE(AIRLINE_ATTRS),
@@ -336,6 +339,7 @@ RelationAttributeMapping AIRLINE_MAPPING = {
 RelationAttributeMapping ROUTE_MAPPING = {
     "routes",
     airport_demo_types::kRoutesType,
+    true,
     (RootObjectDeserializer) gaia_airport_routes_as_root,
     ROUTE_ATTRS,
     ARRAY_SIZE(ROUTE_ATTRS),

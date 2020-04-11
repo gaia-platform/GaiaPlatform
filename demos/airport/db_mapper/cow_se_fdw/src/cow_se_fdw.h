@@ -188,8 +188,13 @@ typedef struct {
     RootObjectDeserializer deserializer;
     // flatbuffer accessor functions indexed by attrnum
     AttributeAccessor *indexed_accessors;
-    // the COW-SE node we are currently iterating over
-    gaia_se::gaia_ptr<gaia_se::gaia_se_node> cur_node;
+    // discriminant for the following union
+    bool gaia_type_is_edge;
+    // the COW-SE smart ptr we are currently iterating over
+    union {
+        gaia_se::gaia_ptr<gaia_se::gaia_se_node> cur_node;
+        gaia_se::gaia_ptr<gaia_se::gaia_se_edge> cur_edge;
+    };
 } cow_seFdwScanState;
 
 /*

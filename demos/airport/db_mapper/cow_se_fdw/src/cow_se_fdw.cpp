@@ -108,7 +108,7 @@ handleDataDir(const char *name, const char *value, Oid context)
     assert(strcmp(name, "data_dir") == 0);
     assert(context == ForeignServerRelationId);
     AirportData data_loader;
-    data_loader.init(value, false);
+    data_loader.init(value, true);
 }
 
 /*
@@ -457,6 +457,7 @@ cow_seBeginForeignScan(ForeignScanState *node,
     cow_seFdwScanState *scan_state = (cow_seFdwScanState *) palloc0(sizeof(cow_seFdwScanState));
     node->fdw_state = scan_state;
     scan_state->deserializer = mapping.deserializer;
+    scan_state->gaia_type_is_edge = mapping.gaia_type_is_edge;
 
     TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
     TupleDesc tupleDesc = slot->tts_tupleDescriptor;
@@ -482,7 +483,13 @@ cow_seBeginForeignScan(ForeignScanState *node,
     // begin read transaction
     gaia_se::begin_transaction();
     // retrieve the first node of the requested type
-    scan_state->cur_node = gaia_ptr<gaia_se_node>::find_first(mapping.gaia_type_id);
+    if (scan_state->gaia_type_is_edge) {
+        scan_state->cur_edge = gaia_ptr<gaia_se_edge>::find_first(mapping.gaia_type_id);
+    } else {
+        scan_state->cur_node = gaia_ptr<gaia_se_node>::find_first(mapping.gaia_type_id);
+    }
+
+    elog(DEBUG1, "entering function %s", __func__);
 }
 
 extern "C"
@@ -519,15 +526,26 @@ cow_seIterateForeignScan(ForeignScanState *node)
     elog(DEBUG1, "entering function %s", __func__);
 
     // return NULL if we reach the end of iteration
-    if (!scan_state->cur_node) {
-        return NULL;
+    if (scan_state->gaia_type_is_edge) {
+        if (!scan_state->cur_edge) {
+            return NULL;
+        }
+    } else {
+        if (!scan_state->cur_node) {
+            return NULL;
+        }
     }
 
     /* mark the slot empty */
     ExecClearTuple(slot);
 
     /* get the next record, if any, and fill in the slot */
-    const void *obj_buf = scan_state->cur_node->payload;
+    const void *obj_buf;
+    if (scan_state->gaia_type_is_edge) {
+        obj_buf = scan_state->cur_edge->payload;
+    } else {
+        obj_buf = scan_state->cur_node->payload;
+    }
     const void *obj_root = scan_state->deserializer(obj_buf);
     for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; attr_idx++) {
         AttributeAccessor accessor = scan_state->indexed_accessors[attr_idx];
@@ -540,7 +558,11 @@ cow_seIterateForeignScan(ForeignScanState *node)
     ExecStoreVirtualTuple(slot);
 
     /* now advance the current node to the next node in the iteration */
-    scan_state->cur_node = scan_state->cur_node.find_next();
+    if (scan_state->gaia_type_is_edge) {
+        scan_state->cur_edge = scan_state->cur_edge.find_next();
+    } else {
+        scan_state->cur_node = scan_state->cur_node.find_next();
+    }
 
     /* return the slot */
     return slot;
@@ -574,7 +596,11 @@ cow_seEndForeignScan(ForeignScanState *node)
 
     cow_seFdwScanState *scan_state = (cow_seFdwScanState *) node->fdw_state;
     // we should have reached the end of iteration
-    assert(!scan_state->cur_node);
+    if (scan_state->gaia_type_is_edge) {
+        assert(!scan_state->cur_edge);
+    } else {
+        assert(!scan_state->cur_node);
+    }
     // commit read transaction
     gaia_se::commit_transaction();
 }
