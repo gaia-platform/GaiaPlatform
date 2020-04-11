@@ -19,7 +19,7 @@ SELECT * FROM airport_demo.airlines;
 SELECT * FROM airport_demo.routes;
 SELECT * FROM airport_demo.event_log;
 
-SELECT column_name, data_type, is_nullable, column_default
+SELECT table_name, column_name, data_type, is_nullable, column_default
   FROM information_schema.columns
-  WHERE table_name = 'event_log'
-  AND table_schema = 'airport_demo';
+  WHERE table_schema = 'airport_demo'
+  ORDER BY table_name, ordinal_position;
