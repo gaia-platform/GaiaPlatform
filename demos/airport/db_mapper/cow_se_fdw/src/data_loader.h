@@ -8,6 +8,7 @@
 // #include "PerfTimer.h"
 #include <cassert>
 #include <map>
+#include "flatbuffers/flatbuffers.h"
 #include "airport_generated.h" // include both flatbuffer types and object API for testing
 #include "airport_types.h"
 #include "cow_se.h"
@@ -137,7 +138,7 @@ class AirportData
                 _data_path.push_back('/');
             }
             load();
-
+            check();
             return true;
         }
 
@@ -319,6 +320,40 @@ class AirportData
             );
 
             return true;
+        }
+
+        bool check()
+        {
+            begin_transaction();
+            _check_airlines();
+            _check_airports();
+            _check_routes();
+            commit_transaction();
+            return true;
+        }
+
+        void _check_airlines()
+        {
+            auto first_airline_node = gaia_ptr<gaia_se_node>::find_first(airport_demo_types::kAirlinesType);
+            const airlines *airline = flatbuffers::GetRoot<airlines>(first_airline_node->payload);
+            printf("first airline object: gaia_id=%ld, al_id=%d, name=%s\n",
+                airline->gaia_id(), airline->al_id(), airline->name()->c_str());
+        }
+
+        void _check_airports()
+        {
+            auto first_airport_node = gaia_ptr<gaia_se_node>::find_first(airport_demo_types::kAirportsType);
+            const airports *airport = flatbuffers::GetRoot<airports>(first_airport_node->payload);
+            printf("first airport object: gaia_id=%ld, ap_id=%d, name=%s\n",
+                airport->gaia_id(), airport->ap_id(), airport->name()->c_str());
+        }
+
+        void _check_routes()
+        {
+            auto first_route_node = gaia_ptr<gaia_se_edge>::find_first(airport_demo_types::kRoutesType);
+            const routes *route = flatbuffers::GetRoot<routes>(first_route_node->payload);
+            printf("first route object: gaia_id=%ld, airline=%s, src_ap=%s, dst_ap=%s\n",
+                route->gaia_id(), route->airline()->c_str(), route->src_ap()->c_str(), route->dst_ap()->c_str());
         }
 
         gaia_id_t get_next_id()

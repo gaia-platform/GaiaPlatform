@@ -20,7 +20,9 @@ target_include_directories(data_loader PRIVATE "${PROJECT_SOURCE_DIR}")
 # for COW-SE
 target_include_directories(data_loader PRIVATE "../../../../cow_se/inc")
 # for flatbuffers generated code
-target_include_directories(data_loader PRIVATE "../../../flatbuffers")
+target_include_directories(data_loader SYSTEM PRIVATE "../../../flatbuffers")
+# for flatbuffers headers
+target_include_directories(data_loader SYSTEM PRIVATE "/usr/include")
 # for POSIX shared memory API
 target_link_libraries(data_loader rt)
 
@@ -35,7 +37,7 @@ target_include_directories(cow_se_fdw PRIVATE "${PROJECT_SOURCE_DIR}")
 # for COW-SE
 target_include_directories(cow_se_fdw PRIVATE "../../../../cow_se/inc")
 # for flatbuffers generated code
-target_include_directories(cow_se_fdw PRIVATE "../../../flatbuffers")
+target_include_directories(cow_se_fdw SYSTEM PRIVATE "../../../flatbuffers")
 # for postgres
 target_include_directories (cow_se_fdw SYSTEM PRIVATE "${PGSQL_INCLUDEDIR_SERVER}")
 # for flatcc
