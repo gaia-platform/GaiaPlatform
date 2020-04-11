@@ -12,6 +12,7 @@ set(camera_demo_SRCS
   ../ruleInit.cpp
   ../rules.cpp
   ../demo.cpp
+  ../cv.cpp
 )
 
 set(CMAKE_CXX_FLAGS

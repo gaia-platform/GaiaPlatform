@@ -3,6 +3,8 @@
 #include <stdio.h>
 using namespace gaia::rules;
 
+std::vector<string> processImage(const char *fileName);
+
 /** ruleset*/
 namespace cameraDemo
 {
@@ -12,13 +14,23 @@ namespace cameraDemo
     void ImageCreate_handler(const context_base_t *context)
     {        
         const table_context_t* t = static_cast<const table_context_t*>(context);
-        CameraDemo::CameraImage * row = static_cast<CameraDemo::CameraImage *>(t->row);
-        cerr << "IMAGE Created " << row->fileName() <<  endl;
-        CameraDemo::Object obj;
-        obj.set_class_("qq");
-        obj.insert_row();
-        row->delete_row();
-        
+        CameraDemo::CameraImage * row = static_cast<CameraDemo::CameraImage*>(t->row);
+        cerr << "IMAGE Captured " << row->fileName() <<  endl;
+
+        std::vector<string> detectedClasses(processImage(row->fileName()));
+        if (detectedClasses.empty())
+        {
+            row->delete_row();
+        }
+        else
+        {
+            for (auto it = detectedClasses.cbegin(); it != detectedClasses.cend(); ++it)
+            {
+                CameraDemo::Object obj;
+                obj.set_class_(it->c_str());
+                obj.insert_row();
+            }
+        }        
     }
 
 /**
@@ -27,7 +39,7 @@ namespace cameraDemo
     void ImageDelete_handler(const context_base_t *context)
     {
         const table_context_t* t = static_cast<const table_context_t*>(context);
-        CameraDemo::CameraImage * row = static_cast<CameraDemo::CameraImage *>(t->row);
+        CameraDemo::CameraImage * row = static_cast<CameraDemo::CameraImage*>(t->row);
         remove(row->fileName());
         cerr << "IMAGE deleted " <<  row->fileName() << endl;
     }
@@ -38,7 +50,7 @@ namespace cameraDemo
     void ObjectClassify_handler(const context_base_t *context)
     {
         const table_context_t* t = static_cast<const table_context_t*>(context);
-        CameraDemo::Object * row = static_cast<CameraDemo::Object *>(t->row);
+        CameraDemo::Object * row = static_cast<CameraDemo::Object*>(t->row);
         cerr << "OBJECT CLASSIFIED " << row->class_() << endl;
     }
 } 

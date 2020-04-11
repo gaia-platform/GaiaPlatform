@@ -2,7 +2,7 @@
 #include <string>
 #include "rules.hpp"
 #include "cameraDemo_gaia_generated.h"
-#include "opencv2/objdetect.hpp"
+
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
 #include "opencv2/videoio.hpp"
@@ -49,18 +49,15 @@ int main( int argc, const char** argv )
             if( frame.empty() )
                 break;
     
-            cv::Mat frame1 = frame.clone();
-
             std::string file_name = random_string(10) + ".tiff";
 
-	        imwrite(file_name.c_str(), frame1);
+	        imwrite(file_name.c_str(), frame);
 
             CameraDemo::CameraImage::begin_transaction();
             CameraDemo::CameraImage image;
             image.set_fileName(file_name.c_str());
             image.insert_row();
             CameraDemo::CameraImage::commit_transaction();
-           
 
             char c = (char)cv::waitKey(1000);
             if( c == 27 || c == 'q' || c == 'Q' )
