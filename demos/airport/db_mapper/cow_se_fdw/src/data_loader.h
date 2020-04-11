@@ -10,7 +10,7 @@
 #include <map>
 #include "flatbuffers/flatbuffers.h"
 #include "airport_generated.h" // include both flatbuffer types and object API for testing
-#include "airport_types.h"
+#include "airport_demo_types.h"
 #include "cow_se.h"
 #include <fstream>
 using namespace std;

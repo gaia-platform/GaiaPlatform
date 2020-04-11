@@ -1,4 +1,4 @@
-select pg_backend_pid();
+SELECT pg_backend_pid();
 
 CREATE EXTENSION cow_se_fdw;
 
@@ -14,6 +14,12 @@ IMPORT FOREIGN SCHEMA airport_demo
 SELECT * FROM information_schema.tables 
 WHERE table_schema = 'airport_demo';
 
-select * from airport_demo.airports;
-select * from airport_demo.airlines;
-select * from airport_demo.routes;
+SELECT * FROM airport_demo.airports;
+SELECT * FROM airport_demo.airlines;
+SELECT * FROM airport_demo.routes;
+SELECT * FROM airport_demo.event_log;
+
+SELECT column_name, data_type, is_nullable, column_default
+  FROM information_schema.columns
+  WHERE table_name = 'event_log'
+  AND table_schema = 'airport_demo';

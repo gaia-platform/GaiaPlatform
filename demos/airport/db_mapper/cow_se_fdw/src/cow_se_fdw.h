@@ -15,6 +15,7 @@
 extern "C" {
 
 #include "airport_demo_type_mapping.h"
+#include "system_catalog_type_mapping.h"
 
 #include "postgres.h"
 

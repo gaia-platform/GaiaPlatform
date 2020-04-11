@@ -445,6 +445,8 @@ cow_seBeginForeignScan(ForeignScanState *node,
         mapping = AIRLINE_MAPPING;
     } else if (strcmp(table_name, "routes") == 0) {
         mapping = ROUTE_MAPPING;
+    } else if (strcmp(table_name, "event_log") == 0) {
+        mapping = EVENT_LOG_MAPPING;
     } else {
         elog(ERROR, "unknown table name '%s'", table_name);
     }
@@ -1222,7 +1224,10 @@ cow_seImportForeignSchema(ImportForeignSchemaStmt *stmt,
     ForeignServer *server = GetForeignServer(serverOid);
     const char* serverName = server->servername;
     List *commands = NIL;
-    const char *ddl_stmt_fmts[] = { AIRPORT_DDL_STMT_FMT, AIRLINE_DDL_STMT_FMT, ROUTE_DDL_STMT_FMT };
+    const char *ddl_stmt_fmts[] = {
+        AIRPORT_DDL_STMT_FMT, AIRLINE_DDL_STMT_FMT,
+        ROUTE_DDL_STMT_FMT, EVENT_LOG_DDL_STMT_FMT,
+    };
     for (int i = 0; i < ARRAY_SIZE(ddl_stmt_fmts); i++) {
         // length of format string + length of server name - 2 chars for format specifier + 1 char for null terminator
         size_t stmt_len = strlen(ddl_stmt_fmts[i]) + strlen(serverName) - 2 + 1;
