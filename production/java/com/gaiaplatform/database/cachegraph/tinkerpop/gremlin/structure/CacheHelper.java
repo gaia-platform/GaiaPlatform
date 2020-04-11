@@ -156,6 +156,8 @@ public final class CacheHelper
         // We're not making any changes to COW, so we can just rollback.
         graph.cow.rollbackTransaction();
 
+        // We're done loading data into in-memory cache,
+        // so we can re-enable writes to our store.
         graph.enableCowWrites = true;
     }
 
