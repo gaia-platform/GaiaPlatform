@@ -84,15 +84,31 @@ cow_se_fdw_handler(PG_FUNCTION_ARGS)
  * context is the Oid of the catalog holding the object the option is for.
  */
 static bool
-is_valid_option(const char *option, Oid context)
+is_valid_option(const char *option, const char *value, Oid context)
 {
-	const cow_seFdwOption *opt;
-	for (opt = valid_options; opt->optname; opt++)
-	{
-		if (context == opt->optcontext && strcmp(opt->optname, option) == 0)
-			return true;
-	}
-	return false;
+    const cow_seFdwOption *opt;
+    for (opt = valid_options; opt->optname; opt++)
+    {
+        if (context == opt->optcontext && strcmp(opt->optname, option) == 0) {
+            // invoke option handler callback
+            opt->opthandler(option, value, context);
+            return true;
+        }
+    }
+    return false;
+}
+
+/*
+ * Preload all the data corresponding to the demo schema, whenever the server is created.
+ */
+extern "C"
+void
+handleDataDir(const char *name, const char *value, Oid context)
+{
+    assert(strcmp(name, "data_dir") == 0);
+    assert(context == ForeignServerRelationId);
+    AirportData data_loader;
+    data_loader.init(value, false);
 }
 
 /*
@@ -123,31 +139,33 @@ cow_se_fdw_validator(PG_FUNCTION_ARGS)
     Oid catalog = PG_GETARG_OID(1);
     ListCell *cell;
     foreach(cell, options_list) {
-		DefElem *def = (DefElem *) lfirst(cell);
-        elog(DEBUG1, "option name: %s, option value: %s", def->defname, defGetString(def));
-		if (!is_valid_option(def->defname, catalog)) {
-			const cow_seFdwOption *opt;
-			StringInfoData buf;
-			/*
-			 * Unknown option specified, complain about it. Provide a hint
-			 * with list of valid options for the object.
-			 */
-			initStringInfo(&buf);
-			for (opt = valid_options; opt->optname; opt++) {
-				if (catalog == opt->optcontext) {
-					appendStringInfo(&buf, "%s%s", (buf.len > 0) ? ", " : "",
-									 opt->optname);
+        DefElem *def = (DefElem *) lfirst(cell);
+        char *opt_name = def->defname;
+        char *opt_val = defGetString(def);
+        elog(DEBUG1, "option name: %s, option value: %s", opt_name, opt_val);
+        if (!is_valid_option(opt_name, opt_val, catalog)) {
+            const cow_seFdwOption *opt;
+            StringInfoData buf;
+            /*
+             * Unknown option specified, complain about it. Provide a hint
+             * with list of valid options for the object.
+             */
+            initStringInfo(&buf);
+            for (opt = valid_options; opt->optname; opt++) {
+                if (catalog == opt->optcontext) {
+                    appendStringInfo(&buf, "%s%s", (buf.len > 0) ? ", " : "",
+                                     opt->optname);
                 }
-			}
-			ereport(ERROR,
-					(errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
-					 errmsg("invalid option \"%s\"", def->defname),
-					 buf.len > 0
-					 ? errhint("Valid options in this context are: %s",
-							   buf.data)
-					 : errhint("There are no valid options in this context.")));
+            }
+            ereport(ERROR,
+                    (errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
+                     errmsg("invalid option \"%s\"", opt_name),
+                     buf.len > 0
+                     ? errhint("Valid options in this context are: %s",
+                               buf.data)
+                     : errhint("There are no valid options in this context.")));
             PG_RETURN_VOID();
-		}
+        }
     }
     PG_RETURN_VOID();
 }
@@ -214,7 +232,6 @@ cow_seGetForeignRelSize(PlannerInfo *root,
     //     RestrictInfo *ri = (RestrictInfo *) lfirst(lc);
     //     plan_state->conds = lappend(plan_state->conds, ri);
     // }
-
     get_options(plan_state);
 }
 
@@ -265,7 +282,7 @@ cow_seGetForeignPaths(PlannerInfo *root,
      * contain cost estimates, and can contain any FDW-private information
      * that is needed to identify the specific scan method intended.
      */
-    
+
     cow_seFdwPlanState *plan_state = (cow_seFdwPlanState *) baserel->fdw_private;
     Cost startup_cost, total_cost;
 
@@ -339,10 +356,10 @@ cow_seGetForeignPlan(PlannerInfo *root,
      * recommended to use make_foreignscan to build the ForeignScan node.
      *
      */
-    
+
     Index scan_relid = baserel->relid;
     cow_seFdwPlanState *plan_state = (cow_seFdwPlanState *) baserel->fdw_private;
-    
+
     elog(DEBUG1, "entering function %s", __func__);
 
     /*
@@ -440,7 +457,7 @@ cow_seBeginForeignScan(ForeignScanState *node,
     cow_seFdwScanState *scan_state = (cow_seFdwScanState *) palloc0(sizeof(cow_seFdwScanState));
     node->fdw_state = scan_state;
     scan_state->deserializer = mapping.deserializer;
-    
+
     TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
     TupleDesc tupleDesc = slot->tts_tupleDescriptor;
 
@@ -1185,7 +1202,7 @@ cow_seImportForeignSchema(ImportForeignSchemaStmt *stmt,
         size_t stmt_len = strlen(ddl_stmt_fmts[i]) + strlen(serverName) - 2 + 1;
         char *stmt_buf = (char *) palloc(stmt_len);
         // sprintf returns number of chars written, not including null terminator
-        if (sprintf(stmt_buf, ddl_stmt_fmts[i], serverName) < stmt_len - 1) {
+        if (sprintf(stmt_buf, ddl_stmt_fmts[i], serverName) != stmt_len - 1) {
             elog(ERROR, "failed to format statement '%s' with server name '%s'", ddl_stmt_fmts[i], serverName);
         }
         commands = lappend(commands, stmt_buf);

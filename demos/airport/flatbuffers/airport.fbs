@@ -54,11 +54,11 @@ table routes
     gaia_id: int64;
     gaia_al_id:   int64;
     gaia_src_id:  int64;
-    gaia_dst_id:  int64;    
+    gaia_dst_id:  int64;
 
     // Original routes fields.
     airline: string;
-    al_id: int32 ;
+    al_id: int32;
     src_ap: string;
     src_ap_id: int32;
     dst_ap: string;

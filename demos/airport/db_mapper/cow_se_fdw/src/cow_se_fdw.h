@@ -147,22 +147,26 @@ void cow_seRefetchForeignRow(EState *estate,
  * structures used by the FDW
  */
 
+typedef void (*OptionHandler)(const char *name, const char *value, Oid context);
 /*
  * Describes the valid options for objects that use this wrapper.
  */
 typedef struct {
     const char *optname;
     Oid optcontext;     /* Oid of catalog in which option may appear */
+    OptionHandler opthandler; 
 } cow_seFdwOption;
+
+static void handleDataDir(const char *name, const char *value, Oid context);
 
 /*
  * Valid options for cow_se_fdw.
  */
 static const cow_seFdwOption valid_options[] = {
 	/* Data source options */
-	{ "data_dir", ForeignServerRelationId },
+	{ "data_dir", ForeignServerRelationId, handleDataDir },
     /* Sentinel */
-	{ NULL, InvalidOid }
+	{ NULL, InvalidOid, NULL }
 };
 
 /*
