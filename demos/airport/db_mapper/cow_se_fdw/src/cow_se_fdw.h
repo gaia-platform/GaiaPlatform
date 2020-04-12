@@ -26,11 +26,13 @@ extern "C" {
 #include "foreign/fdwapi.h"
 // for FDW helpers: https://www.postgresql.org/docs/devel/fdw-helpers.html
 #include "foreign/foreign.h"
+#include "nodes/makefuncs.h"
 #include "optimizer/optimizer.h"
 #include "optimizer/pathnode.h"
 #include "optimizer/planmain.h"
 #include "optimizer/restrictinfo.h"
 #include "utils/lsyscache.h"
+#include "utils/rel.h"
 
 /*
  * Module initialization function
@@ -196,9 +198,17 @@ typedef struct {
  * cow_seExecForeignUpdate, cow_seExecForeignDelete and
  * cow_seEndForeignModify.
  */
-typedef struct
-{
-    gaia_se::gaia_ptr<gaia_se::gaia_se_node> target_node;
+typedef struct {
+    RootObjectDeserializer deserializer;
+    // accessor for gaia_id
+    AttributeAccessor primarykey_accessor;
+    // discriminant for the following union
+    bool gaia_type_is_edge;
+    // the COW-SE smart ptr that is the target of our update
+    union {
+        gaia_se::gaia_ptr<gaia_se::gaia_se_node> target_node;
+        gaia_se::gaia_ptr<gaia_se::gaia_se_edge> target_edge;
+    };
 } cow_seFdwModifyState;
 
 } // extern "C"

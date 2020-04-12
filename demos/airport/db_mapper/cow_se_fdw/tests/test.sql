@@ -1,4 +1,6 @@
 SELECT pg_backend_pid();
+SET log_min_messages = 'DEBUG1';
+DROP EXTENSION cow_se_fdw CASCADE;
 
 CREATE EXTENSION cow_se_fdw;
 
@@ -14,12 +16,14 @@ IMPORT FOREIGN SCHEMA airport_demo
 SELECT * FROM information_schema.tables 
 WHERE table_schema = 'airport_demo';
 
+SELECT table_name, column_name, data_type, is_nullable, column_default
+  FROM information_schema.columns
+  WHERE table_schema = 'airport_demo'
+  ORDER BY table_name, ordinal_position;
+
 SELECT * FROM airport_demo.airports;
 SELECT * FROM airport_demo.airlines;
 SELECT * FROM airport_demo.routes;
 SELECT * FROM airport_demo.event_log;
 
-SELECT table_name, column_name, data_type, is_nullable, column_default
-  FROM information_schema.columns
-  WHERE table_schema = 'airport_demo'
-  ORDER BY table_name, ordinal_position;
+DELETE FROM airport_demo.airlines a WHERE a.gaia_id=0;

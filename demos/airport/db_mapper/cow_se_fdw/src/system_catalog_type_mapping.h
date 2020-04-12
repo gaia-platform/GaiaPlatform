@@ -20,8 +20,8 @@ extern "C" {
 // type-specific extractors
 static inline Datum event_log_get_gaia_id(const void *rootObject) {
     gaia_rules_event_log_table_t event = (gaia_rules_event_log_table_t) rootObject;
-    int64_t gaia_id = gaia_rules_event_log_gaia_id(event);
-    return Int64GetDatum(gaia_id);
+    uint64_t gaia_id = gaia_rules_event_log_gaia_id(event);
+    return UInt64GetDatum(gaia_id);
 }
 
 static inline Datum event_log_get_gaia_type(const void *rootObject) {

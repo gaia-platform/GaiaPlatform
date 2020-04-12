@@ -9,7 +9,7 @@ namespace gaia.rules;
 
 table event_log {
     // system fields
-    gaia_id: int64;
+    gaia_id: uint64;
     // domain fields
     gaia_type : ulong;
     event_type : uint;

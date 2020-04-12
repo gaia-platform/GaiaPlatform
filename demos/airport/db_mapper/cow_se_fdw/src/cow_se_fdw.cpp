@@ -13,6 +13,43 @@ extern "C" {
     PG_MODULE_MAGIC;
 }
 
+// HACKHACK: global counter to simulate nested transactions. since e.g. a DELETE plan
+// is nested within a scan, committing the write txn will invalidate the read txn.
+// We get around this by using a refcount to track the txn nesting state, so we only
+// open a txn when the counter is initially incremented from 0 and only commit a txn
+// when the counter is decremented to 0.
+// An unsynchronized global counter is ok since there's no concurrency within a postgres backend.
+static int gaia_txn_ref_count = 0; // use signed int so we can assert it is non-negative
+
+static bool is_gaia_txn_open() {
+    assert(gaia_txn_ref_count >= 0);
+    return gaia_txn_ref_count > 0;
+}
+
+static bool begin_gaia_txn() {
+    bool txn_opened = false;
+    assert(gaia_txn_ref_count >= 0);
+    int old_count = gaia_txn_ref_count++;
+    if (old_count == 0) {
+        txn_opened = true;
+        gaia_se::begin_transaction();
+    }
+    elog(DEBUG1, "txn actually opened: %s", txn_opened ? "true" : "false");
+    return txn_opened;
+}
+
+static bool commit_gaia_txn() {
+    bool txn_closed = false;
+    assert(gaia_txn_ref_count > 0);
+    int old_count = gaia_txn_ref_count--;
+    if (old_count == 1) {
+        txn_closed = true;
+        gaia_se::commit_transaction();
+    }
+    elog(DEBUG1, "txn actually closed: %s", txn_closed ? "true" : "false");
+    return txn_closed;
+}
+
 /*
  * The FDW handler function returns a palloc'd FdwRoutine struct containing
  * pointers to the callback functions that will be called by the planner,
@@ -36,21 +73,21 @@ cow_se_fdw_handler(PG_FUNCTION_ARGS)
     routine->ReScanForeignScan = cow_seReScanForeignScan;
     routine->EndForeignScan = cow_seEndForeignScan;
 
-    // /* Functions for updating foreign tables */
-    // routine->AddForeignUpdateTargets = cow_seAddForeignUpdateTargets;
-    // routine->PlanForeignModify = cow_sePlanForeignModify;
-    // routine->BeginForeignModify = cow_seBeginForeignModify;
-    // routine->ExecForeignInsert = cow_seExecForeignInsert;
-    // routine->ExecForeignUpdate = cow_seExecForeignUpdate;
-    // routine->ExecForeignDelete = cow_seExecForeignDelete;
-    // routine->EndForeignModify = cow_seEndForeignModify;
-    // routine->BeginForeignInsert = cow_seBeginForeignInsert;
-    // routine->EndForeignInsert = cow_seEndForeignInsert;
-    // routine->IsForeignRelUpdatable = cow_seIsForeignRelUpdatable;
-    // routine->PlanDirectModify = cow_sePlanDirectModify;
-    // routine->BeginDirectModify = cow_seBeginDirectModify;
-    // routine->IterateDirectModify = cow_seIterateDirectModify;
-    // routine->EndDirectModify = cow_seEndDirectModify;
+    /* Functions for updating foreign tables */
+    routine->AddForeignUpdateTargets = cow_seAddForeignUpdateTargets;
+    routine->PlanForeignModify = cow_sePlanForeignModify;
+    routine->BeginForeignModify = cow_seBeginForeignModify;
+    routine->ExecForeignInsert = cow_seExecForeignInsert;
+    routine->ExecForeignUpdate = cow_seExecForeignUpdate;
+    routine->ExecForeignDelete = cow_seExecForeignDelete;
+    routine->EndForeignModify = cow_seEndForeignModify;
+    routine->BeginForeignInsert = cow_seBeginForeignInsert;
+    routine->EndForeignInsert = cow_seEndForeignInsert;
+    routine->IsForeignRelUpdatable = cow_seIsForeignRelUpdatable;
+    routine->PlanDirectModify = cow_sePlanDirectModify;
+    routine->BeginDirectModify = cow_seBeginDirectModify;
+    routine->IterateDirectModify = cow_seIterateDirectModify;
+    routine->EndDirectModify = cow_seEndDirectModify;
 
     // /* Function for EvalPlanQual rechecks */
     // routine->RecheckForeignScan = cow_seRecheckForeignScan;
@@ -197,9 +234,11 @@ cow_seGetForeignRelSize(PlannerInfo *root,
 
     // FIXME: total hack, I added this method ad-hoc to cow_se.h and this doesn't even get a per-type count
     // NB: we have to do this in a txn or we'll segfault because the mapping doesn't exist
-    gaia_se::begin_transaction();
+    elog(DEBUG1, "opening COW-SE transaction...");
+    begin_gaia_txn();
     baserel->rows = gaia_mem_base::row_id_count();
-    gaia_se::commit_transaction();
+    elog(DEBUG1, "committing COW-SE transaction...");
+    commit_gaia_txn();
 }
 
 extern "C"
@@ -357,15 +396,14 @@ cow_seBeginForeignScan(ForeignScanState *node,
     }
 
     // begin read transaction
-    gaia_se::begin_transaction();
+    elog(DEBUG1, "opening COW-SE transaction...");
+    bool opened = begin_gaia_txn();
     // retrieve the first node of the requested type
     if (scan_state->gaia_type_is_edge) {
         scan_state->cur_edge = gaia_ptr<gaia_se_edge>::find_first(mapping.gaia_type_id);
     } else {
         scan_state->cur_node = gaia_ptr<gaia_se_node>::find_first(mapping.gaia_type_id);
     }
-
-    elog(DEBUG1, "entering function %s", __func__);
 }
 
 extern "C"
@@ -399,7 +437,7 @@ cow_seIterateForeignScan(ForeignScanState *node)
     cow_seFdwScanState *scan_state = (cow_seFdwScanState *) node->fdw_state;
     TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
 
-    elog(DEBUG1, "entering function %s", __func__);
+    // elog(DEBUG1, "entering function %s", __func__);
 
     // return NULL if we reach the end of iteration
     if (scan_state->gaia_type_is_edge) {
@@ -478,7 +516,8 @@ cow_seEndForeignScan(ForeignScanState *node)
         assert(!scan_state->cur_node);
     }
     // commit read transaction
-    gaia_se::commit_transaction();
+    elog(DEBUG1, "committing COW-SE transaction...");
+    commit_gaia_txn();
 }
 
 extern "C"
@@ -516,6 +555,33 @@ cow_seAddForeignUpdateTargets(Query *parsetree,
 
     elog(DEBUG1, "entering function %s", __func__);
 
+    TupleDesc tupleDesc = target_relation->rd_att;
+    // FIXME: we really shouldn't hardcode the primary key like this,
+    // instead check the attribute-level CREATE FOREIGN TABLE options
+    // for KEY=true (which should be set in IMPORT FOREIGN SCHEMA).
+    /* loop through all columns of the foreign table */
+    bool key_found = false;
+    for (int i = 0; i < tupleDesc->natts; i++) {
+        Form_pg_attribute attr = TupleDescAttr(tupleDesc, i);
+        char *attr_name = NameStr(attr->attname);
+        /* if primary key, add a resjunk for this column */
+        if (strcmp("gaia_id", attr_name) == 0) {
+            key_found = true;
+            /* Make a Var representing the desired value */
+            Var *var = makeVar(parsetree->resultRelation, attr->attnum,
+                attr->atttypid, attr->atttypmod, attr->attcollation, 0);
+            /* Wrap it in a resjunk TLE with the right name ... */
+            TargetEntry *tle = makeTargetEntry((Expr *) var,
+                list_length(parsetree->targetList) + 1,
+                pstrdup(NameStr(attr->attname)), true);
+            /* ... and add it to the query's targetlist */
+            parsetree->targetList = lappend(parsetree->targetList, tle);
+            break;
+        }
+    }
+    if (!key_found) {
+        elog(ERROR, "could not find 'gaia_id' column in table '%s'", RelationGetRelationName(target_relation));
+    }
 }
 
 extern "C"
@@ -547,6 +613,10 @@ cow_sePlanForeignModify(PlannerInfo *root,
 
     elog(DEBUG1, "entering function %s", __func__);
 
+    CmdType operation = plan->operation;
+    if (operation != CMD_DELETE) {
+        elog(ERROR, "Only DELETE is supported.");
+    }
     return NULL;
 }
 
@@ -584,11 +654,41 @@ cow_seBeginForeignModify(ModifyTableState *mtstate,
      * during executor startup.
      */
 
+    elog(DEBUG1, "entering function %s", __func__);
+
     cow_seFdwModifyState *modify_state = (cow_seFdwModifyState *) palloc0(sizeof(cow_seFdwModifyState));
     rinfo->ri_FdwState = modify_state;
 
-    elog(DEBUG1, "entering function %s", __func__);
+    RangeTblEntry *rte = exec_rt_fetch(rinfo->ri_RangeTableIndex, mtstate->ps.state);
+    char *table_name = get_rel_name(rte->relid);
 
+    RelationAttributeMapping mapping;
+    if (strcmp(table_name, "airports") == 0) {
+        mapping = AIRPORT_MAPPING;
+    } else if (strcmp(table_name, "airlines") == 0) {
+        mapping = AIRLINE_MAPPING;
+    } else if (strcmp(table_name, "routes") == 0) {
+        mapping = ROUTE_MAPPING;
+    } else if (strcmp(table_name, "event_log") == 0) {
+        mapping = EVENT_LOG_MAPPING;
+    } else {
+        elog(ERROR, "unknown table name '%s'", table_name);
+    }
+
+    modify_state->gaia_type_is_edge = mapping.gaia_type_is_edge;
+
+    // for DELETE, this seems to always be called after BeginForeignScan, and we can't
+    // open a transaction twice, so omit txn open for now.
+    elog(DEBUG1, "opening COW-SE transaction...");
+    bool opened = begin_gaia_txn();
+
+    // find gaia_id accessor for this type
+    // for (int i = 0; i < mapping.num_attrs; i++) {
+    //     if (strcmp("gaia_id", mapping.attrs_with_accessors[i].attr_name) == 0) {
+    //         modify_state->primarykey_accessor = mapping.attrs_with_accessors[i].attr_accessor;
+    //         break;
+    //     }
+    // }
 }
 
 extern "C"
@@ -625,11 +725,7 @@ cow_seExecForeignInsert(EState *estate,
      *
      */
 
-    /* ----
-     * cow_seFdwModifyState *modify_state =
-     *   (cow_seFdwModifyState *) rinfo->ri_FdwState;
-     * ----
-     */
+    cow_seFdwModifyState *modify_state = (cow_seFdwModifyState *) rinfo->ri_FdwState;
 
     elog(DEBUG1, "entering function %s", __func__);
 
@@ -712,15 +808,45 @@ cow_seExecForeignDelete(EState *estate,
      * from the foreign table will fail with an error message.
      */
 
-    /* ----
-     * cow_seFdwModifyState *modify_state =
-     *   (cow_seFdwModifyState *) rinfo->ri_FdwState;
-     * ----
-     */
-
     elog(DEBUG1, "entering function %s", __func__);
 
-    return slot;
+    TupleTableSlot *retSlot = slot;
+    cow_seFdwModifyState *modify_state = (cow_seFdwModifyState *) rinfo->ri_FdwState;
+    // Relation rel = rinfo->ri_RelationDesc;
+    // Oid foreignTableId = RelationGetRelid(rel);
+
+    // get primary key (gaia_id) from plan slot
+    TupleDesc tupleDesc = planSlot->tts_tupleDescriptor;
+    // planSlot should have only 1 attr (gaia_id)
+    assert(tupleDesc->natts == 1);
+    Form_pg_attribute attr = TupleDescAttr(tupleDesc, 0);
+    AttrNumber attnum = attr->attnum;
+    char *attr_name = NameStr(attr->attname);
+    assert(strcmp("gaia_id", attr_name) == 0);
+    bool is_null;
+    Datum pk_val = slot_getattr(planSlot, attnum, &is_null);
+    assert(!is_null);
+    uint64_t gaia_id = DatumGetUInt64(pk_val);
+    if (modify_state->gaia_type_is_edge) {
+        modify_state->target_edge = gaia_se_edge::open(gaia_id);
+        if (modify_state->target_edge) {
+            elog(DEBUG1, "calling remove() on edge for gaia_id %d", gaia_id);
+            gaia_ptr<gaia_se_edge>::remove(modify_state->target_edge);
+        } else {
+            elog(DEBUG1, "edge for gaia_id %d is invalid", gaia_id);
+            retSlot = NULL;
+        }
+    } else {
+        modify_state->target_node = gaia_se_node::open(gaia_id);
+        if (modify_state->target_node) {
+            elog(DEBUG1, "calling remove() on node for gaia_id %d", gaia_id);
+            gaia_ptr<gaia_se_node>::remove(modify_state->target_node);
+        } else {
+            elog(DEBUG1, "node for gaia_id %d is invalid", gaia_id);
+            retSlot = NULL;
+        }
+    }
+    return retSlot;
 }
 
 extern "C"
@@ -745,6 +871,9 @@ cow_seEndForeignModify(EState *estate,
 
     elog(DEBUG1, "entering function %s", __func__);
 
+    // for DELETE, this seems to always be called before EndForeignScan
+    elog(DEBUG1, "committing COW-SE transaction...");
+    commit_gaia_txn();
 }
 
 extern "C"
