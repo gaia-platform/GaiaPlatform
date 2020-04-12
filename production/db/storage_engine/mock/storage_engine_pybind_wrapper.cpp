@@ -253,7 +253,8 @@ PYBIND11_MODULE(se_mock, m)
 
     class_<gaia_mem_base>(m, "gaia_mem_base")
         .def(init())
-        .def_static("init", &gaia_mem_base::init)
+        .def_static("init", (void (*)(bool))&gaia_mem_base::init)
+        .def_static("init", (void (*)(const char*, bool))&gaia_mem_base::init)
     ;
     class_<gaia_se_node>(m, "gaia_se_node")
         .def_static("open", &gaia_se_node::open)

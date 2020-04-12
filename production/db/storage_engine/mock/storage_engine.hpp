@@ -123,6 +123,17 @@ namespace db
         }
 
     public:
+        // Allow the caller to provide their own shared memory file prefix
+        // so that multiple tests can run concurrently against unique
+        // shared memory segments
+        static void init(const char* prefix, bool engine = false)
+        {
+            
+            SCH_MEM_DATA = make_shm_name(s_sch_mem_data, prefix, SCH_MEM_DATA);
+            SCH_MEM_OFFSETS = make_shm_name(s_sch_mem_offsets, prefix, SCH_MEM_OFFSETS);
+            init(engine);
+        }
+
         static void init(bool engine = false)
         {
             if (s_data || s_log || s_offsets)
@@ -308,6 +319,8 @@ namespace db
         const static char* COMMIT_SEM;
         static int s_fd_offsets;
         static int s_fd_data;
+        static std::string s_sch_mem_offsets;
+        static std::string s_sch_mem_data;
 
         auto static const MAX_RIDS = 32 * 128L * 1024L;
         static const auto HASH_BUCKETS = 12289;
@@ -449,6 +462,11 @@ namespace db
             }
 
             return iptr - (*gaia_mem_base::s_offsets);
+        }
+
+        static const char * make_shm_name(std::string& s, const char* prefix, const char* shm_name)
+        {
+            return s.append(prefix).append("_").append(shm_name).c_str();
         }
     };
 
