@@ -20,8 +20,8 @@ extern "C" {
 // type-specific extractors
 static inline Datum airport_get_gaia_id(const void *rootObject) {
     gaia_airport_airports_table_t airport = (gaia_airport_airports_table_t) rootObject;
-    int64_t gaia_id = gaia_airport_airports_gaia_id(airport);
-    return Int64GetDatum(gaia_id);
+    uint64_t gaia_id = gaia_airport_airports_gaia_id(airport);
+    return UInt64GetDatum(gaia_id);
 }
 
 static inline Datum airport_get_ap_id(const void *rootObject) {
@@ -110,8 +110,8 @@ static inline Datum airport_get_source(const void *rootObject) {
 
 static inline Datum airline_get_gaia_id(const void *rootObject) {
     gaia_airport_airlines_table_t airline = (gaia_airport_airlines_table_t) rootObject;
-    int64_t gaia_id = gaia_airport_airlines_gaia_id(airline);
-    return Int64GetDatum(gaia_id);
+    uint64_t gaia_id = gaia_airport_airlines_gaia_id(airline);
+    return UInt64GetDatum(gaia_id);
 }
 
 static inline Datum airline_get_al_id(const void *rootObject) {
@@ -164,26 +164,26 @@ static inline Datum airline_get_active(const void *rootObject) {
 
 static inline Datum route_get_gaia_id(const void *rootObject) {
     gaia_airport_routes_table_t route = (gaia_airport_routes_table_t) rootObject;
-    int64_t gaia_id = gaia_airport_routes_gaia_id(route);
-    return Int64GetDatum(gaia_id);
+    uint64_t gaia_id = gaia_airport_routes_gaia_id(route);
+    return UInt64GetDatum(gaia_id);
 }
 
 static inline Datum route_get_gaia_al_id(const void *rootObject) {
     gaia_airport_routes_table_t route = (gaia_airport_routes_table_t) rootObject;
-    int64_t gaia_al_id = gaia_airport_routes_gaia_al_id(route);
-    return Int64GetDatum(gaia_al_id);
+    uint64_t gaia_al_id = gaia_airport_routes_gaia_al_id(route);
+    return UInt64GetDatum(gaia_al_id);
 }
 
 static inline Datum route_get_gaia_src_id(const void *rootObject) {
     gaia_airport_routes_table_t route = (gaia_airport_routes_table_t) rootObject;
-    int64_t gaia_src_id = gaia_airport_routes_gaia_src_id(route);
-    return Int64GetDatum(gaia_src_id);
+    uint64_t gaia_src_id = gaia_airport_routes_gaia_src_id(route);
+    return UInt64GetDatum(gaia_src_id);
 }
 
 static inline Datum route_get_gaia_dst_id(const void *rootObject) {
     gaia_airport_routes_table_t route = (gaia_airport_routes_table_t) rootObject;
-    int64_t gaia_dst_id = gaia_airport_routes_gaia_dst_id(route);
-    return Int64GetDatum(gaia_dst_id);
+    uint64_t gaia_dst_id = gaia_airport_routes_gaia_dst_id(route);
+    return UInt64GetDatum(gaia_dst_id);
 }
 
 static inline Datum route_get_airline(const void *rootObject) {
