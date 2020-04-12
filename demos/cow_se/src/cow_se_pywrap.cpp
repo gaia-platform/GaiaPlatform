@@ -118,7 +118,7 @@ void print_node(const gaia_ptr<gaia_se_node>& node, const bool indent)
 
 pybind11::bytes get_bytes(const pybind11::object& o)
 {
-    if (!PyBytes_Check(o.ptr()) && !PyString_Check(o.ptr()) && !PyByteArray_Check(o.ptr()))
+    if (!PyBytes_Check(o.ptr()) && !PyUnicode_Check(o.ptr()) && !PyByteArray_Check(o.ptr()))
     {
         throw invalid_argument("Expected a string, bytes, or bytearray argument!");
     }
