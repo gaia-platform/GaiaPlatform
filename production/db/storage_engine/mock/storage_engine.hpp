@@ -128,8 +128,11 @@ namespace db
         // shared memory segments.
         static void init(const char* prefix, bool engine = false)
         {
-            SCH_MEM_DATA = make_shm_name(s_sch_mem_data, prefix, SCH_MEM_DATA);
-            SCH_MEM_OFFSETS = make_shm_name(s_sch_mem_offsets, prefix, SCH_MEM_OFFSETS);
+            if (prefix)
+            {
+                SCH_MEM_DATA = make_shm_name(s_sch_mem_data, prefix, SCH_MEM_DATA);
+                SCH_MEM_OFFSETS = make_shm_name(s_sch_mem_offsets, prefix, SCH_MEM_OFFSETS);
+            }
             init(engine);
         }
 
