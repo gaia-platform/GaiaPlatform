@@ -47,13 +47,13 @@ public final class CacheFactory
     {
     }
 
-    private static CacheGraph getDefaultCacheGraph()
+    private static CacheGraph getTinkerpopDefaultCacheGraph()
     {
-        final Configuration configuration = getDefaultConfiguration();
+        final Configuration configuration = getTinkerpopDefaultConfiguration();
         return CacheGraph.open(configuration);
     }
 
-    private static Configuration getDefaultConfiguration()
+    private static Configuration getTinkerpopDefaultConfiguration()
     {
         final Configuration configuration = new BaseConfiguration();
 
@@ -73,7 +73,7 @@ public final class CacheFactory
     // Classic graph data set.
     public static CacheGraph createClassic()
     {
-        final Configuration configuration = getDefaultConfiguration();
+        final Configuration configuration = getTinkerpopDefaultConfiguration();
 
         configuration.setProperty(
             CacheGraph.CACHEGRAPH_VERTEX_PROPERTY_ID_MANAGER,
@@ -106,7 +106,7 @@ public final class CacheFactory
     // Modern graph data set.
     public static CacheGraph createModern()
     {
-        final CacheGraph graph = getDefaultCacheGraph();
+        final CacheGraph graph = getTinkerpopDefaultCacheGraph();
         generateModern(graph);
         return graph;
     }
@@ -131,7 +131,7 @@ public final class CacheFactory
     // The Crew data set.
     public static CacheGraph createTheCrew()
     {
-        final Configuration configuration = getDefaultConfiguration();
+        final Configuration configuration = getTinkerpopDefaultConfiguration();
 
         configuration.setProperty(
             CacheGraph.CACHEGRAPH_DEFAULT_VERTEX_PROPERTY_CARDINALITY,
@@ -198,7 +198,7 @@ public final class CacheFactory
     // Kitchen Sink data set.
     public static CacheGraph createKitchenSink()
     {
-        final CacheGraph graph = getDefaultCacheGraph();
+        final CacheGraph graph = getTinkerpopDefaultCacheGraph();
         generateKitchenSink(graph);
         return graph;
     }
@@ -217,13 +217,13 @@ public final class CacheFactory
             .addE("link").from("a").to("a").property(T.id, 2003).iterate();
     }
 
-    private static CacheGraph getGaiaStandardCacheGraph()
+    private static CacheGraph getDefaultCacheGraph()
     {
-        final Configuration configuration = getGaiaStandardConfiguration();
+        final Configuration configuration = getDefaultConfiguration();
         return CacheGraph.open(configuration);
     }
 
-    private static Configuration getGaiaStandardConfiguration()
+    private static Configuration getDefaultConfiguration()
     {
         final Configuration configuration = new BaseConfiguration();
 
@@ -243,7 +243,7 @@ public final class CacheFactory
     // COW data set.
     public static CacheGraph createCowSample()
     {
-        final CacheGraph graph = getGaiaStandardCacheGraph();
+        final CacheGraph graph = getDefaultCacheGraph();
         generateCowSample(graph);
         return graph;
     }
@@ -264,7 +264,7 @@ public final class CacheFactory
     // Tiny airport data set.
     public static CacheGraph createTinyAirport()
     {
-        final CacheGraph graph = getGaiaStandardCacheGraph();
+        final CacheGraph graph = getDefaultCacheGraph();
         generateTinyAirport(graph);
         return graph;
     }
@@ -369,7 +369,7 @@ public final class CacheFactory
     // Tiny airport data set with Q1 schema.
     public static CacheGraph createTinyQ1Airport()
     {
-        final CacheGraph graph = getGaiaStandardCacheGraph();
+        final CacheGraph graph = getDefaultCacheGraph();
         generateTinyQ1Airport(graph);
         return graph;
     }
@@ -426,7 +426,7 @@ public final class CacheFactory
     // Load a graphml file.
     public static CacheGraph loadGraphml(String filename)
     {
-        final CacheGraph graph = getGaiaStandardCacheGraph();
+        final CacheGraph graph = getDefaultCacheGraph();
         loadGraphml(graph, filename);
         return graph;
     }
@@ -449,7 +449,7 @@ public final class CacheFactory
     // This is useful for testing the in-memory graph part only.
     public static CacheGraph openWithoutCow()
     {
-        final Configuration configuration = getGaiaStandardConfiguration();
+        final Configuration configuration = getDefaultConfiguration();
 
         // Disable writing to COW.
         configuration.setProperty(
@@ -465,7 +465,7 @@ public final class CacheFactory
     // This is useful for testing airport data serialization to COW.
     public static CacheGraph openWithAirportSupport()
     {
-        final Configuration configuration = getGaiaStandardConfiguration();
+        final Configuration configuration = getDefaultConfiguration();
 
         // Enable airport data serialization code.
         configuration.setProperty(
@@ -480,7 +480,7 @@ public final class CacheFactory
     // A method for loading airport data from COW.
     public static CacheGraph loadAirportGraphFromCow()
     {
-        final Configuration configuration = getGaiaStandardConfiguration();
+        final Configuration configuration = getDefaultConfiguration();
 
         // We need to load data, so do not initialize COW.
         configuration.setProperty(
