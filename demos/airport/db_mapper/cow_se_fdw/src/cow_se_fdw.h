@@ -17,6 +17,8 @@ extern "C" {
 #include "airport_demo_type_mapping.h"
 #include "system_catalog_type_mapping.h"
 
+#include "flatbuffers_common_builder.h"
+
 #include "postgres.h"
 
 #include "access/reloptions.h"
@@ -199,9 +201,19 @@ typedef struct {
  * cow_seEndForeignModify.
  */
 typedef struct {
-    RootObjectDeserializer deserializer;
-    // accessor for gaia_id
-    AttributeAccessor primarykey_accessor;
+    BuilderInitializer initializer;
+    BuilderFinalizer finalizer;
+    // flatbuffer attribute builder functions indexed by attrnum
+    AttributeBuilder *indexed_builders;
+    // flatbuffers builder for INSERT and UPDATE
+    flatcc_builder_t builder;
+    // 0-based index of gaia_id attribute in tuple descriptor
+    int pk_attr_idx;
+    // 0-based index of gaia_src_id attribute in tuple descriptor (edge types only)
+    int src_attr_idx;
+    // 0-based index of gaia_dst_id attribute in tuple descriptor (edge types only)
+    int dst_attr_idx;
+    gaia_type_t gaia_type_id;
     // discriminant for the following union
     bool gaia_type_is_edge;
     // the COW-SE smart ptr that is the target of our update

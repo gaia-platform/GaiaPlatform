@@ -26,4 +26,11 @@ SELECT * FROM airport_demo.airlines;
 SELECT * FROM airport_demo.routes;
 SELECT * FROM airport_demo.event_log;
 
-DELETE FROM airport_demo.airlines a WHERE a.gaia_id=0;
+SELECT FROM airport_demo.airlines a WHERE a.gaia_id=1;
+
+DELETE FROM airport_demo.airlines a WHERE a.gaia_id=1;
+
+INSERT INTO airport_demo.airlines (gaia_id, al_id, name, alias, iata, icao, callsign, country, active)
+VALUES (1, 3, '1Time Airline', '', '1T', 'RNX', 'NEXTIME', 'South Africa', 'Y');
+
+SELECT FROM airport_demo.airlines a WHERE a.gaia_id=1;

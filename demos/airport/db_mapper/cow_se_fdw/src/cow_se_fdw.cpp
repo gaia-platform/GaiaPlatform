@@ -27,6 +27,7 @@ static bool is_gaia_txn_open() {
 }
 
 static bool begin_gaia_txn() {
+    elog(DEBUG1, "opening COW-SE transaction...");
     bool txn_opened = false;
     assert(gaia_txn_ref_count >= 0);
     int old_count = gaia_txn_ref_count++;
@@ -39,6 +40,7 @@ static bool begin_gaia_txn() {
 }
 
 static bool commit_gaia_txn() {
+    elog(DEBUG1, "closing COW-SE transaction...");
     bool txn_closed = false;
     assert(gaia_txn_ref_count > 0);
     int old_count = gaia_txn_ref_count--;
@@ -234,10 +236,8 @@ cow_seGetForeignRelSize(PlannerInfo *root,
 
     // FIXME: total hack, I added this method ad-hoc to cow_se.h and this doesn't even get a per-type count
     // NB: we have to do this in a txn or we'll segfault because the mapping doesn't exist
-    elog(DEBUG1, "opening COW-SE transaction...");
     begin_gaia_txn();
     baserel->rows = gaia_mem_base::row_id_count();
-    elog(DEBUG1, "committing COW-SE transaction...");
     commit_gaia_txn();
 }
 
@@ -388,16 +388,15 @@ cow_seBeginForeignScan(ForeignScanState *node,
         // AttrNumber attnum = i + 1;
         char *attr_name = NameStr(TupleDescAttr(tupleDesc, i)->attname);
         for (int j = 0; j < mapping.num_attrs; j++) {
-            if (strcmp(attr_name, mapping.attrs_with_accessors[j].attr_name) == 0) {
-                indexed_accessors[i] = mapping.attrs_with_accessors[j].attr_accessor;
+            if (strcmp(attr_name, mapping.attr_methods[j].attr_name) == 0) {
+                indexed_accessors[i] = mapping.attr_methods[j].attr_accessor;
                 break;
             }
         }
     }
 
     // begin read transaction
-    elog(DEBUG1, "opening COW-SE transaction...");
-    bool opened = begin_gaia_txn();
+    begin_gaia_txn();
     // retrieve the first node of the requested type
     if (scan_state->gaia_type_is_edge) {
         scan_state->cur_edge = gaia_ptr<gaia_se_edge>::find_first(mapping.gaia_type_id);
@@ -516,7 +515,6 @@ cow_seEndForeignScan(ForeignScanState *node)
         assert(!scan_state->cur_node);
     }
     // commit read transaction
-    elog(DEBUG1, "committing COW-SE transaction...");
     commit_gaia_txn();
 }
 
@@ -614,8 +612,8 @@ cow_sePlanForeignModify(PlannerInfo *root,
     elog(DEBUG1, "entering function %s", __func__);
 
     CmdType operation = plan->operation;
-    if (operation != CMD_DELETE) {
-        elog(ERROR, "Only DELETE is supported.");
+    if (operation != CMD_DELETE && operation != CMD_INSERT) {
+        elog(ERROR, "Only DELETE and INSERT are supported.");
     }
     return NULL;
 }
@@ -657,8 +655,11 @@ cow_seBeginForeignModify(ModifyTableState *mtstate,
     elog(DEBUG1, "entering function %s", __func__);
 
     cow_seFdwModifyState *modify_state = (cow_seFdwModifyState *) palloc0(sizeof(cow_seFdwModifyState));
+    // set invalid values
+    modify_state->pk_attr_idx = modify_state->src_attr_idx = modify_state->dst_attr_idx = -1;
     rinfo->ri_FdwState = modify_state;
 
+    TupleDesc tupleDesc = rinfo->ri_RelationDesc->rd_att;
     RangeTblEntry *rte = exec_rt_fetch(rinfo->ri_RangeTableIndex, mtstate->ps.state);
     char *table_name = get_rel_name(rte->relid);
 
@@ -675,20 +676,47 @@ cow_seBeginForeignModify(ModifyTableState *mtstate,
         elog(ERROR, "unknown table name '%s'", table_name);
     }
 
+    modify_state->gaia_type_id = mapping.gaia_type_id;
     modify_state->gaia_type_is_edge = mapping.gaia_type_is_edge;
+    modify_state->initializer = mapping.initializer;
+    modify_state->finalizer = mapping.finalizer;
+    flatcc_builder_init(&modify_state->builder);
 
-    // for DELETE, this seems to always be called after BeginForeignScan, and we can't
-    // open a transaction twice, so omit txn open for now.
-    elog(DEBUG1, "opening COW-SE transaction...");
-    bool opened = begin_gaia_txn();
+    assert(tupleDesc->natts == mapping.num_attrs);
+    // flatbuffer accessor functions indexed by attrnum
+    AttributeBuilder *indexed_builders = (AttributeBuilder *) palloc0(sizeof(AttributeBuilder) * tupleDesc->natts);
+    modify_state->indexed_builders = indexed_builders;
 
-    // find gaia_id accessor for this type
-    // for (int i = 0; i < mapping.num_attrs; i++) {
-    //     if (strcmp("gaia_id", mapping.attrs_with_accessors[i].attr_name) == 0) {
-    //         modify_state->primarykey_accessor = mapping.attrs_with_accessors[i].attr_accessor;
-    //         break;
-    //     }
-    // }
+    // set up mapping of attnos to flatbuffer attribute builder functions
+    for (int i = 0; i < tupleDesc->natts; i++) {
+        // user attributes are indexed starting from 1
+        // AttrNumber attnum = i + 1;
+        char *attr_name = NameStr(TupleDescAttr(tupleDesc, i)->attname);
+        if (strcmp(attr_name, "gaia_id") == 0) {
+            modify_state->pk_attr_idx = i;
+        }
+        if (strcmp(attr_name, "gaia_src_id") == 0) {
+            modify_state->src_attr_idx = i;
+        }
+        if (strcmp(attr_name, "gaia_dst_id") == 0) {
+            modify_state->dst_attr_idx = i;
+        }
+        for (int j = 0; j < mapping.num_attrs; j++) {
+            if (strcmp(attr_name, mapping.attr_methods[j].attr_name) == 0) {
+                indexed_builders[i] = mapping.attr_methods[j].attr_builder;
+                break;
+            }
+        }
+    }
+
+    // check invariants
+    assert(modify_state->pk_attr_idx > -1);
+    if (modify_state->gaia_type_is_edge) {
+        assert(modify_state->src_attr_idx > -1);
+        assert(modify_state->dst_attr_idx > -1);
+    }
+
+    begin_gaia_txn();
 }
 
 extern "C"
@@ -725,9 +753,52 @@ cow_seExecForeignInsert(EState *estate,
      *
      */
 
-    cow_seFdwModifyState *modify_state = (cow_seFdwModifyState *) rinfo->ri_FdwState;
-
     elog(DEBUG1, "entering function %s", __func__);
+
+    cow_seFdwModifyState *modify_state = (cow_seFdwModifyState *) rinfo->ri_FdwState;
+    flatcc_builder_t *builder = &modify_state->builder;
+    modify_state->initializer(builder);
+    uint64_t gaia_id, gaia_src_id, gaia_dst_id;
+    // slot_getallattrs() is necessary beginning in Postgres 12 (the slot will be empty!)
+    // TODO: use slot_getattr()?
+    slot_getallattrs(slot);
+    for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; attr_idx++) {
+        if (!(slot->tts_isnull[attr_idx])) {
+            AttributeBuilder attr_builder = modify_state->indexed_builders[attr_idx];
+            Datum attr_val = slot->tts_values[attr_idx];
+            if (attr_idx == modify_state->pk_attr_idx) {
+                gaia_id = DatumGetUInt64(attr_val);
+            }
+            if (modify_state->gaia_type_is_edge && attr_idx == modify_state->src_attr_idx) {
+                gaia_src_id = DatumGetUInt64(attr_val);
+            }
+            if (modify_state->gaia_type_is_edge && attr_idx == modify_state->dst_attr_idx) {
+                gaia_dst_id = DatumGetUInt64(attr_val);
+            }
+            attr_builder(builder, attr_val);
+        }
+    }
+    modify_state->finalizer(builder);
+    size_t size;
+    const void *buffer = flatcc_builder_get_direct_buffer(builder, &size);
+
+    if (modify_state->gaia_type_is_edge) {
+        gaia_se_edge::create(
+            gaia_id,
+            modify_state->gaia_type_id,
+            gaia_src_id,
+            gaia_dst_id,
+            size,
+            buffer);
+    } else {
+        gaia_se_node::create(
+            gaia_id,
+            modify_state->gaia_type_id,
+            size,
+            buffer);
+    }
+
+    flatcc_builder_reset(builder);
 
     return slot;
 }
@@ -863,16 +934,12 @@ cow_seEndForeignModify(EState *estate,
      * during executor shutdown.
      */
 
-    /* ----
-     * cow_seFdwModifyState *modify_state =
-     *   (cow_seFdwModifyState *) rinfo->ri_FdwState;
-     * ----
-     */
-
     elog(DEBUG1, "entering function %s", __func__);
 
+    cow_seFdwModifyState *modify_state = (cow_seFdwModifyState *) rinfo->ri_FdwState;
+    flatcc_builder_clear(&modify_state->builder);
+
     // for DELETE, this seems to always be called before EndForeignScan
-    elog(DEBUG1, "committing COW-SE transaction...");
     commit_gaia_txn();
 }
 
