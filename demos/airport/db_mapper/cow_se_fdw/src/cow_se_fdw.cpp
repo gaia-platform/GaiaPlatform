@@ -611,10 +611,6 @@ cow_sePlanForeignModify(PlannerInfo *root,
 
     elog(DEBUG1, "entering function %s", __func__);
 
-    CmdType operation = plan->operation;
-    if (operation != CMD_DELETE && operation != CMD_INSERT) {
-        elog(ERROR, "Only DELETE and INSERT are supported.");
-    }
     return NULL;
 }
 
@@ -758,7 +754,10 @@ cow_seExecForeignInsert(EState *estate,
     cow_seFdwModifyState *modify_state = (cow_seFdwModifyState *) rinfo->ri_FdwState;
     flatcc_builder_t *builder = &modify_state->builder;
     modify_state->initializer(builder);
+
     uint64_t gaia_id, gaia_src_id, gaia_dst_id;
+    // TODO: if gaia_id could not be 0 then we could use that as a sentinel instead
+    bool found_gaia_id = false, found_gaia_src_id = false, found_gaia_dst_id = false;
     // slot_getallattrs() is necessary beginning in Postgres 12 (the slot will be empty!)
     // TODO: use slot_getattr()?
     slot_getallattrs(slot);
@@ -767,17 +766,25 @@ cow_seExecForeignInsert(EState *estate,
             AttributeBuilder attr_builder = modify_state->indexed_builders[attr_idx];
             Datum attr_val = slot->tts_values[attr_idx];
             if (attr_idx == modify_state->pk_attr_idx) {
+                found_gaia_id = true;
                 gaia_id = DatumGetUInt64(attr_val);
             }
             if (modify_state->gaia_type_is_edge && attr_idx == modify_state->src_attr_idx) {
+                found_gaia_src_id = true;
                 gaia_src_id = DatumGetUInt64(attr_val);
             }
             if (modify_state->gaia_type_is_edge && attr_idx == modify_state->dst_attr_idx) {
+                found_gaia_dst_id = true;
                 gaia_dst_id = DatumGetUInt64(attr_val);
             }
             attr_builder(builder, attr_val);
         }
     }
+    assert(found_gaia_id);
+    if (modify_state->gaia_type_is_edge) {
+        assert(found_gaia_src_id && found_gaia_dst_id);
+    }
+
     modify_state->finalizer(builder);
     size_t size;
     const void *buffer = flatcc_builder_get_direct_buffer(builder, &size);
@@ -837,13 +844,44 @@ cow_seExecForeignUpdate(EState *estate,
      *
      */
 
-    /* ----
-     * cow_seFdwModifyState *modify_state =
-     *   (cow_seFdwModifyState *) rinfo->ri_FdwState;
-     * ----
-     */
-
     elog(DEBUG1, "entering function %s", __func__);
+
+    cow_seFdwModifyState *modify_state = (cow_seFdwModifyState *) rinfo->ri_FdwState;
+    flatcc_builder_t *builder = &modify_state->builder;
+    modify_state->initializer(builder);
+
+    uint64_t gaia_id;
+    // TODO: if gaia_id could not be 0 then we could use that as a sentinel instead
+    bool found_gaia_id = false;
+    // slot_getallattrs() is necessary beginning in Postgres 12 (the slot will be empty!)
+    // TODO: use slot_getattr()?
+    slot_getallattrs(slot);
+    for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; attr_idx++) {
+        if (!(slot->tts_isnull[attr_idx])) {
+            AttributeBuilder attr_builder = modify_state->indexed_builders[attr_idx];
+            Datum attr_val = slot->tts_values[attr_idx];
+            if (attr_idx == modify_state->pk_attr_idx) {
+                found_gaia_id = true;
+                gaia_id = DatumGetUInt64(attr_val);
+            }
+            attr_builder(builder, attr_val);
+        }
+    }
+    assert(found_gaia_id);
+
+    modify_state->finalizer(builder);
+    size_t size;
+    const void *buffer = flatcc_builder_get_direct_buffer(builder, &size);
+
+    if (modify_state->gaia_type_is_edge) {
+        auto edge = gaia_se_edge::open(gaia_id);
+        edge.update_payload(size, buffer);
+    } else {
+        auto node = gaia_se_node::open(gaia_id);
+        node.update_payload(size, buffer);
+    }
+
+    flatcc_builder_reset(builder);
 
     return slot;
 }
