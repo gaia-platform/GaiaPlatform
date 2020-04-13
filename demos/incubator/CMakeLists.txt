@@ -22,7 +22,9 @@ message(STATUS "GAIA_INCUBATOR_DEMO_INCLUDES=${GAIA_INCUBATOR_DEMO_INCLUDES}")
 
 # Generate the data class headers from the flatbuffer schema.
 set_property(GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
-gaia_compile_flatbuffers_schema_to_cpp(barn_storage.fbs)
+set(OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+gaia_compile_flatbuffers_schema_to_cpp_opt(barn_storage.fbs
+  "--no-includes;--gen-compare;--gen-table-events;--gen-transaction-events;--gen-col-events;--gaia_type_initial_value;2" ${OUTPUT_DIR})
 get_generated_output(fbs_generated)
 if(fbs_generated)
   # message(STATUS "Add generated_code target with files:${fbs_generated}")
