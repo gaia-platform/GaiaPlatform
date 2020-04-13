@@ -111,11 +111,12 @@ public:
         const rule_binding_t& a_binding, 
         gaia::common::gaia_type_t a_gaia_type,
         event_type_t a_event_type,
-        gaia::common::gaia_base_t * a_row
+        gaia::common::gaia_base_t * a_row,
+        const char* a_field
     );
 
     rule_context_t() = delete;
-    const rule_binding_t& rule_binding;
+    const rule_binding_t rule_binding;
     gaia::common::gaia_type_t gaia_type;
     event_type_t event_type;
     gaia::common::gaia_base_t* event_context;

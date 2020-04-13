@@ -147,9 +147,26 @@ private:
 
     static inline void check_database_event(event_type_t type)
     {
-        if (type > event_type_t::last_database_event) 
+        if (type >= event_type_t::first_field_event) 
         {
             throw invalid_event_type(type);
+        }
+    }
+
+    static inline void check_database_event(event_type_t type, const gaia_base_t* row)
+    {
+        check_database_event(type);
+
+        // Transaction events should have no context supplied.
+        if((type < event_type_t::first_row_event) && row)
+        {
+            throw invalid_context();
+        }
+
+        // Row events must have a row context.
+        if ((type >= event_type_t::first_row_event) && !row)
+        {
+            throw invalid_context(row);
         }
     }
 
@@ -158,6 +175,17 @@ private:
         if (type < event_type_t::first_field_event)
         {
             throw invalid_event_type(type);
+        }
+    }
+    
+    static inline void check_field_event(event_type_t type, const gaia_base_t* row, const char* field)
+    {
+        check_field_event(type);
+
+        // Field events must have both a row context and field.
+        if (!row || !field)
+        {
+            throw invalid_context(row, field);
         }
     }
 
@@ -171,6 +199,21 @@ private:
         }
     }
 
+    static inline rule_context_t create_rule_context(const _rule_binding_t* binding, 
+        gaia_type_t gaia_type, 
+        event_type_t event_type,
+        gaia_base_t * event_context,
+        const char* field)
+    {
+        return { 
+            {binding->ruleset_name.c_str(), binding->rule_name.c_str(), binding->rule},
+            gaia_type,
+            event_type,
+            event_context,
+            field
+        };
+    }
+
     static bool is_valid_rule_binding(const rules::rule_binding_t& binding);
     static std::string make_rule_key(const rules::rule_binding_t& binding);
     static events_map_t create_database_event_map();
@@ -181,10 +224,24 @@ private:
         const char * field_name,
         const char* ruleset_filter, 
         const event_type_t* event_filter);
+
+    // Overload to log database events to the database.
+    static inline void log_to_db(gaia_type_t gaia_type, 
+        event_type_t event_type, 
+        event_mode_t event_mode,
+        gaia_base_t* context,
+        bool rules_fired)
+    {
+        log_to_db(gaia_type, event_type, event_mode, context, nullptr, rules_fired);
+    }
+
+    // Overload to log fields events to the database which have 
+    // an extra field name argument.
     static void log_to_db(gaia_type_t gaia_type, 
         event_type_t event_type, 
         event_mode_t event_mode,
-        gaia_base_t * context,
+        gaia_base_t* context,
+        const char* field,
         bool rules_fired);
 };
 

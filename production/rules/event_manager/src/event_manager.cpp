@@ -3,6 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "retail_assert.hpp"
 #include "event_manager.hpp"
 
 #include <cstring>
@@ -56,7 +57,7 @@ bool event_manager_t::log_event(
     event_mode_t mode)
 {
     check_mode(mode);
-    check_database_event(event_type);
+    check_database_event(event_type, row);
 
     // Don't allow reentrant log_event calls.
     event_guard_t guard(m_database_event_guard, gaia_type, event_type);
@@ -81,13 +82,8 @@ bool event_manager_t::log_event(
 
     for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it) 
     {
-        _rule_binding_t* rule_ptr = const_cast<_rule_binding_t*>(*rules_it);
-        rule_context_t context(
-            {rule_ptr->ruleset_name.c_str(), rule_ptr->rule_name.c_str(), rule_ptr->rule},
-            gaia_type,
-            event_type,
-            row
-        );
+        const _rule_binding_t* rule_ptr = (*rules_it);
+        rule_context_t context = create_rule_context(rule_ptr, gaia_type, event_type, row, nullptr);
         rule_ptr->rule(&context);
     }
 
@@ -102,7 +98,7 @@ bool event_manager_t::log_event(
     event_mode_t mode)
 {
     check_mode(mode);
-    check_field_event(event_type);
+    check_field_event(event_type, row, field);
 
     // Don't allow reentrant log_event calls.
     event_guard_t guard(m_field_event_guard, gaia_type, field, event_type);
@@ -115,7 +111,7 @@ bool event_manager_t::log_event(
     auto type_it = m_field_subscriptions.find(gaia_type);
     if (type_it == m_field_subscriptions.end())
     {
-        log_to_db(gaia_type, event_type, mode, row, false);
+        log_to_db(gaia_type, event_type, mode, row, field, false);
         return false;
     }
 
@@ -123,7 +119,7 @@ bool event_manager_t::log_event(
     auto field_it = fields.find(field);
     if (field_it == fields.end())
     {
-        log_to_db(gaia_type, event_type, mode, row, false);
+        log_to_db(gaia_type, event_type, mode, row, field, false);
         return false;
     }
 
@@ -131,17 +127,12 @@ bool event_manager_t::log_event(
     rule_list_t& rules = events[event_type];
     bool rules_fired = rules.size() > 0;
 
-    log_to_db(gaia_type, event_type, mode, row, rules_fired);
+    log_to_db(gaia_type, event_type, mode, row, field, rules_fired);
 
     for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it) 
     {
-        _rule_binding_t* rule_ptr = const_cast<_rule_binding_t*>(*rules_it);
-        rule_context_t context(
-            {rule_ptr->ruleset_name.c_str(), rule_ptr->rule_name.c_str(), rule_ptr->rule},
-            gaia_type,
-            event_type,
-            row
-        );
+        const _rule_binding_t* rule_ptr = *rules_it;
+        rule_context_t context = create_rule_context(rule_ptr, gaia_type, event_type, row, field);
         rule_ptr->rule(&context);
     }
 
@@ -470,6 +461,7 @@ void event_manager_t::log_to_db(gaia_type_t gaia_type,
     event_type_t event_type, 
     event_mode_t event_mode,
     gaia_base_t* context,
+    const char * field,
     bool rules_fired)
 {
     static_assert(sizeof(uint32_t) == sizeof(event_type_t), 
@@ -481,9 +473,13 @@ void event_manager_t::log_to_db(gaia_type_t gaia_type,
     const char * event_source = "";
     gaia_id_t context_id = 0;
 
+    // The event source is either the field name for field events
+    // or the name of the Gaia table type for database events.
+    // In case there is no context supplied (begin/commit/rollback)
+    // events, for example, there is no source or context id.
     if (context)
     {
-        event_source = context->gaia_typename();
+        event_source = field ? field : context->gaia_typename();
         context_id = context->gaia_id();
     }
     Event_log::insert_row((uint64_t)gaia_type, (uint32_t)event_type, 
@@ -507,13 +503,23 @@ gaia::rules::rule_context_t::rule_context_t(
     const rule_binding_t& a_binding, 
     gaia::common::gaia_type_t a_gaia_type,
     event_type_t a_event_type,
-    gaia::common::gaia_base_t * a_row
+    gaia::common::gaia_base_t * a_row,
+    const char* a_field
 )
     : rule_binding(a_binding)
     , gaia_type(a_gaia_type)
     , event_type(a_event_type)
     , event_context(a_row)
 {
+    // The event source is either the column name (for a field event)
+    // or the type name (for a database event).  If the database event
+    // is not scoped to a type (begin/commit/rollback transaction events)
+    // then the source field is emtpy.
+    if (a_field)
+    {
+        event_source = a_field;
+    }
+    else
     if (a_row)
     {
         event_source = a_row->gaia_typename();
