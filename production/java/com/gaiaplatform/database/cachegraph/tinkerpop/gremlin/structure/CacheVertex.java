@@ -122,7 +122,7 @@ public final class CacheVertex extends CacheElement implements Vertex
 
     public <V> Iterator<VertexProperty<V>> properties(final String... propertyKeys)
     {
-        if (removed || this.properties == null)
+        if (this.removed || this.properties == null)
         {
             return Collections.emptyIterator();
         }

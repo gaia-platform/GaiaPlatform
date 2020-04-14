@@ -71,7 +71,7 @@ public final class CacheGraph implements Graph
 
     private final CacheFeatures features = new CacheFeatures();
 
-    private CacheTransaction transaction;
+    private CacheTransaction transaction = new CacheTransaction(this);
 
     // Reuse TinkerGraph's Graph.Variables implementation.
     protected TinkerGraphVariables variables = null;
@@ -97,8 +97,6 @@ public final class CacheGraph implements Graph
     private CacheGraph(final Configuration configuration)
     {
         this.configuration = configuration;
-
-        this.transaction = new CacheTransaction(this);
 
         this.vertexIdManager = selectIdManager(
             configuration, CACHEGRAPH_VERTEX_ID_MANAGER, Vertex.class);
@@ -127,19 +125,19 @@ public final class CacheGraph implements Graph
         {
             CacheHelper.reset();
             
-            if (!cow.create())
+            if (!this.cow.create())
             {
                 throw new UnsupportedOperationException("COW initialization failed!");
             }
         }
         else
         {
-            if (!enableAirportCode)
+            if (!this.enableAirportCode)
             {
                 throw new UnsupportedOperationException("Opening of COW is only supported for airport data!");
             }
 
-            if (!cow.open())
+            if (!this.cow.open())
             {
                 throw new UnsupportedOperationException("Opening of COW failed!");
             }
@@ -237,7 +235,7 @@ public final class CacheGraph implements Graph
 
     public Configuration configuration()
     {
-        return configuration;
+        return this.configuration;
     }
 
     public Features features()

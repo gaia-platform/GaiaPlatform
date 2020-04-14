@@ -27,7 +27,7 @@ public final class CacheTransaction extends AbstractThreadedTransaction
             throw new UnsupportedOperationException("CacheTransaction can only be used with CacheGraph.");
         }
 
-        graph = (CacheGraph)g;
+        this.graph = (CacheGraph)g;
     }
 
     public boolean isOpen()
