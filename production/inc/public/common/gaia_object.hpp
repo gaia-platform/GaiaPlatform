@@ -145,6 +145,11 @@ public:
         return get_object(node_ptr);
     }
 
+    static gaia::db::gaia_type_t gaia_type_id()
+    {
+        return T_gaia_type;
+    }
+
     void insert_row()
     {
         // Create the node and add to the cache.

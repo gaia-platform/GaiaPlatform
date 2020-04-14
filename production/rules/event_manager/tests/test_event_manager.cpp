@@ -230,13 +230,14 @@ void rule4_add_10000(const rule_context_t* context)
 bool is_rule_subscribed(
     const char* ruleset_filter, 
     const gaia_type_t gaia_type, 
-    const event_type_t event_type)
+    const event_type_t event_type,
+    const char* field_filter)
 {
     subscription_list_t subscriptions;
     gaia_type_t gaia_type_filter = gaia_type;
     event_type_t event_type_filter = event_type;
 
-    list_subscribed_rules(ruleset_filter, &gaia_type_filter, &event_type_filter, nullptr, subscriptions);
+    list_subscribed_rules(ruleset_filter, &gaia_type_filter, &event_type_filter, field_filter, subscriptions);
 
     return (subscriptions.size() == 1);
 }
@@ -273,7 +274,7 @@ void rule5_add_100000(const rule_context_t* context)
     // Allow event call on different gaia_type.
     TestGaia2 obj2;
     int32_t expected_value = obj2.data + rule6_adder;
-    bool expect_rule_fired = is_rule_subscribed(ruleset3_name, TestGaia2::s_gaia_type, context->event_type);
+    bool expect_rule_fired = is_rule_subscribed(ruleset3_name, TestGaia2::s_gaia_type, context->event_type, nullptr);
     EXPECT_EQ(expect_rule_fired, log_database_event(&obj2, TestGaia2::s_gaia_type, context->event_type, event_mode_t::immediate));
     if (expect_rule_fired)
     {
@@ -282,7 +283,7 @@ void rule5_add_100000(const rule_context_t* context)
 
     // Allow event call on different event_type.
     expected_value = row->data + rule7_adder;
-    expect_rule_fired = is_rule_subscribed(ruleset3_name, TestGaia::s_gaia_type, event_type_t::row_insert);
+    expect_rule_fired = is_rule_subscribed(ruleset3_name, TestGaia::s_gaia_type, event_type_t::row_insert, nullptr);
     EXPECT_EQ(expect_rule_fired, log_database_event(row, TestGaia::s_gaia_type, event_type_t::row_insert, event_mode_t::immediate));
     if (expect_rule_fired)
     {
@@ -348,7 +349,7 @@ void rule8_add_100000000(const rule_context_t* context)
 
     // We expect the rule to be fired only if it is subscribed
     // and we are not in a forward chain cycle.
-    bool expect_rule_fired = is_rule_subscribed(ruleset3_name, TestGaia::s_gaia_type, event_type_t::row_update);
+    bool expect_rule_fired = is_rule_subscribed(ruleset3_name, TestGaia::s_gaia_type, event_type_t::row_update, nullptr);
     if (g_forward_chain_cycle)
     {
         expect_rule_fired = false;
@@ -644,32 +645,70 @@ TEST_F(event_manager_test, log_database_event_single_event_single_rule) {
         event_type_t::row_update, TestGaia::s_gaia_type, &m_row, m_row.gaia_typename());
 }
 
-/*        
-TEST_F(event_manager_test, log_colummn_event_single_event_single_rule) {
 
-
+TEST_F(event_manager_test, log_field_event_single_event_single_rule) {
+    // Ensure we have field level granularity.
     field_list_t fields;
-    // binding to an empty field list will fire the rule for all
-    // columns in the table
-    subscribe_field_rule(TestGaia::s_gaia_type, fields, m_rule1);
 
+    // Binding to an empty field list won't fire any rules.
+    subscribe_field_rule(TestGaia::s_gaia_type, event_type_t::field_write, fields, m_rule1);
+    EXPECT_EQ(false, log_field_event(&m_row, "last_name", TestGaia::s_gaia_type, event_type_t::field_write, event_mode_t::immediate));
+    validate_rule_not_called();
+    // Verify that no rules were subscribed for an emtpy field list.
+    EXPECT_EQ(false, unsubscribe_field_rule(TestGaia::s_gaia_type, event_type_t::field_write, fields, m_rule1));
+
+    fields.insert("last_name");
+    subscribe_field_rule(TestGaia::s_gaia_type, event_type_t::field_write, fields, m_rule1);
+    
+    int32_t expected_value = m_row.data + rule1_adder;
+    EXPECT_EQ(true, log_field_event(&m_row, "last_name", TestGaia::s_gaia_type, event_type_t::field_write, event_mode_t::immediate));
+    validate_rule(expected_value, ruleset1_name, rule1_name, rule1_add_1, 
+        event_type_t::field_write, TestGaia::s_gaia_type, &m_row, "last_name");
+}
+
+TEST_F(event_manager_test, log_field_event_multi_event_single_rule) {
+    // Ensure we have field level granularity.
+    field_list_t fields;
+
+    // Rule 1 will fire on any writes to "last_name" or "first_name"
+    fields.insert("last_name");
+    fields.insert("first_name");
+    subscribe_field_rule(TestGaia::s_gaia_type, event_type_t::field_write, fields, m_rule1);
 
     int32_t expected_value = m_row.data + rule1_adder;
+    EXPECT_EQ(true, log_field_event(&m_row, "last_name", TestGaia::s_gaia_type, event_type_t::field_write, event_mode_t::immediate));
+    validate_rule(expected_value, ruleset1_name, rule1_name, rule1_add_1, 
+        event_type_t::field_write, TestGaia::s_gaia_type, &m_row, "last_name");
 
-    // Subscribe to update.
-    subscribe_database_rule(TestGaia::s_gaia_type, event_type_t::row_update, m_rule1);
-    subscribe_column_rule(TestGaia::s_gaia_type, event_type_t::field_write, )
-
-    // Log insert; verify the rule was not fired because it is bound to update, not insert.
-    EXPECT_EQ(false, log_database_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_insert, event_mode_t::immediate));
-    validate_rule_not_called();
-
-    // Log update
-    EXPECT_EQ(true, log_database_event(&m_row, TestGaia::s_gaia_type, event_type_t::row_update, event_mode_t::immediate));
-    validate_rule(expected_value, ruleset1_name, rule1_name, rule1_add_1, event_type_t::row_update, TestGaia::s_gaia_type, &m_row);
-
+    expected_value += rule1_adder;
+    EXPECT_EQ(true, log_field_event(&m_row, "first_name", TestGaia::s_gaia_type, event_type_t::field_write, event_mode_t::immediate));        
+    validate_rule(expected_value, ruleset1_name, rule1_name, rule1_add_1, 
+        event_type_t::field_write, TestGaia::s_gaia_type, &m_row, "first_name");
 }
-*/
+
+TEST_F(event_manager_test, log_field_event_multi_event_multi_rule) {
+    // Ensure we have field level granularity.
+    field_list_t fields;
+
+    // Rule 1 will fire on write to "last_name".
+    fields.insert("last_name");
+    subscribe_field_rule(TestGaia::s_gaia_type, event_type_t::field_write, fields, m_rule1);
+
+    // Rule 2 will fire on write to "first_name".
+    fields.clear();
+    fields.insert("first_name");
+    subscribe_field_rule(TestGaia::s_gaia_type, event_type_t::field_write, fields, m_rule2);
+
+    int32_t expected_value = m_row.data + rule1_adder;
+    EXPECT_EQ(true, log_field_event(&m_row, "last_name", TestGaia::s_gaia_type, event_type_t::field_write, event_mode_t::immediate));
+    validate_rule(expected_value, ruleset1_name, rule1_name, rule1_add_1, 
+        event_type_t::field_write, TestGaia::s_gaia_type, &m_row, "last_name");
+
+    expected_value += rule2_adder;
+    EXPECT_EQ(true, log_field_event(&m_row, "first_name", TestGaia::s_gaia_type, event_type_t::field_write, event_mode_t::immediate));        
+    validate_rule(expected_value, ruleset1_name, rule2_name, rule2_add_100, 
+        event_type_t::field_write, TestGaia::s_gaia_type, &m_row, "first_name");
+}
 
 TEST_F(event_manager_test, log_database_event_single_rule_multi_event) 
 {

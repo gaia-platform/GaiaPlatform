@@ -161,9 +161,9 @@ void event_manager_t::subscribe_rule(
     }
 
     // Now we have a pointer to the fields map corresponding to the
-    // gaia type.  Now search this map for each field in the 
-    // passed in field list.  If the field is not found in the field
-    // map then add it and its associated event map.
+    // gaia type.  Search this map for each field in the passed in 
+    // field list.  If the field is not found in the field map then 
+    // add it and its associated event map.
     fields_map_t& subscribed_fields = field_map_it->second;
     for (const string& field_name : fields)
     {

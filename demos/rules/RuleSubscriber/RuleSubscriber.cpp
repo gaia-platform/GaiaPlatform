@@ -19,21 +19,24 @@ using namespace clang::tooling;
 using namespace llvm;
 
 cl::OptionCategory RuleSubscriberCategory("Use Rule Subscriber options");
-cl::opt<string> RuleSubscriberOption("output", cl::init(""), 
+cl::opt<string> RuleSubscriberOutputOption("output", cl::init(""), 
     cl::desc("output file name"), cl::cat(RuleSubscriberCategory));
+cl::opt<bool> RuleSubscriberVerboseOption("v",
+    cl::desc("print parse tokens"), cl::cat(RuleSubscriberCategory));
 
-struct rule_data
+struct rule_data_t
 {
     string ruleset;
     string rule_name;
     string rule;
     string event_type;
     string gaia_type;
-    bool is_transaction_rule;
+    string field;
 };
 
-vector<rule_data> rules;
-string current_ruleset;
+vector<rule_data_t> g_rules;
+string g_current_ruleset;
+bool g_verbose = false;
 
 class Rule_Subscriber_Visitor
   : public RecursiveASTVisitor<Rule_Subscriber_Visitor> 
@@ -56,16 +59,16 @@ public:
             string comment = rawComment->getBriefText(context);
             if (comment.compare(0, prefix.size(), prefix) == 0)
             {
-                current_ruleset = d->getNameAsString();
+                g_current_ruleset = d->getNameAsString();
             }
             else
             {
-                current_ruleset = "";
+                g_current_ruleset = "";
             }
         }
         else
         {
-            current_ruleset = "";
+            g_current_ruleset = "";
         }
       
         return true;
@@ -74,19 +77,21 @@ public:
     // Parse comments for function declaration
     virtual bool VisitFunctionDecl(FunctionDecl *d)
     {
+        /*
         const std::size_t rule_name_index = 1;
         const std::size_t gaia_type_index = 2;
         const std::size_t event_type_start_index = 3;
         const std::size_t minimal_valid_rule_annotation_size = 4;
+        */
         const ASTContext& context = d->getASTContext();
         const RawComment* rawComment = context.getRawCommentForDeclNoCache(d);
-        
+
         if (!rawComment)
         {
             return true;
         }
-        
-        const string prefix = "rule";
+
+        const string prefix = "rule-";
         string comment = rawComment->getBriefText(context);
         // Check if first word of a comment is rule, if not it is not a rule annotation.
         if (comment.compare(0, prefix.size(), prefix) != 0)
@@ -94,55 +99,85 @@ public:
             return true;
         }
         
-        if (!current_ruleset.empty())
+        if (!g_current_ruleset.empty())
         {
-            // Split the comments into words to get rule subscription parameters
-            vector<string> params = split(comment, ',');
-            if (params.size() >= minimal_valid_rule_annotation_size )
-            {
-                string rule_name = trim(params[rule_name_index]);
-                string gaia_type = trim(params[gaia_type_index]);
-                if (!rule_name.empty())
-                {
-                    for (std::size_t i = event_type_start_index; i < params.size(); i++)
-                    {
-                        rule_data ruleData;
-                        string event_type = params[i];
-                        ruleData.ruleset = current_ruleset;
-                        ruleData.rule_name = rule_name;
-                        ruleData.is_transaction_rule = event_type.find("transaction_") != string::npos;
-                        ruleData.gaia_type = gaia_type;
-                        ruleData.rule = d->getQualifiedNameAsString();
+            rule_data_t rule_data;
+            rule_data.ruleset = g_current_ruleset;
+            rule_data.rule = d->getQualifiedNameAsString();
 
-                        // Check if event_type is valid i.e.
-                        //  1. event_type is not empty and 
-                        //  2. if rule is table rule then gaia_type is not empty      
-                        if (!event_type.empty() && !(!ruleData.is_transaction_rule && gaia_type.empty()))
-                        {
-                            if (ruleData.is_transaction_rule || !gaia_type.empty())
-                            {
-                                ruleData.event_type = event_type;
-                                rules.push_back(ruleData);
-                            }
-                            else
-                            {
-                                llvm::errs() << "The rule configuration is invalid: Empty gaia type for table event\n";
-                            }                           
-                        }
-                        else
-                        {
-                            llvm::errs() << "The rule configuration is invalid: Incorrect event type\n";
-                        }
-                    }
-                }
-                else
-                {
-                    llvm::errs() << "The rule configuration is invalid: Incorrect rule name\n";
-                }             
-            }
-            else
+            if (!parse_rule_name(comment, rule_data.rule_name))
             {
-                llvm::errs() << "The rule configuration is invalid: Not enough parameters\n";
+                llvm::errs() << "The rule configuration is invalid: Incorrect rule name\n";
+                return true;
+            }
+
+            // Parse rule declarations.  A declaration is composed of a source
+            // followed by a list of events.  A single function can be 
+            // bound to multiple rule declarations.  Declaratiosn are separated
+            // by semi-colons.
+            vector<string> declarations;
+            if (!parse_declarations(comment, declarations))
+            {
+                llvm::errs() << "The rule configuration is invalid: No declarations found.\n";
+                return true;
+            }
+
+            for (auto decl : declarations)
+            {
+                if (!parse_source(decl, rule_data.gaia_type, rule_data.field))
+                {
+                    llvm::errs() << "The rule configuration is invalid: Invalid event source\n";
+                    continue;
+                }
+
+                vector<string> events;
+                if (!parse_events(decl, events))
+                {
+                    llvm::errs() << "The rule configuration is invalid: Invalid event list\n";
+                    continue;
+                }
+                for (auto event : events)
+                {
+                    string qualifier = "event_type_t::";
+
+                    // Fully qualify and validate our events.
+                    if (is_transaction_event(event))
+                    {
+                        if (!rule_data.gaia_type.empty() || !rule_data.field.empty())
+                        {
+                            llvm::errs() << "The rule configuration is invalid: Transaction events must not specify a source\n";
+                            continue;
+                        }
+                        rule_data.event_type = qualifier + "transaction_" + event;
+                    }
+                    else
+                    if (is_table_event(event))
+                    {
+                        if (rule_data.gaia_type.empty() || !rule_data.field.empty())
+                        {
+                            llvm::errs() << "The rule configuration is invalid: Table events must only specify a [gaia_type] source\n";
+                            continue;
+                        }
+                        rule_data.event_type = qualifier + "row_" + event;
+                    }
+                    else
+                    if (is_field_event(event))
+                    {
+                        if (rule_data.gaia_type.empty() || rule_data.field.empty())
+                        {
+                            llvm::errs() << "The rule configuration is invalid: Field events must specify a qualified "
+                                "[gaia_type.field] source\n";
+                            continue;
+                        }
+                        rule_data.event_type = qualifier + "field_" + event;
+                    }
+                    else
+                    {
+                        llvm::errs() << "The rule configuration is invalid: Invalid valid event type\n";
+                        continue;
+                    }
+                    g_rules.push_back(rule_data);
+                }
             }
         }
         else
@@ -154,20 +189,126 @@ public:
     }
 
 private:
-
-    vector<string> split(const string &text, char separator) 
+    void log(const char* message, std::string& value)
     {
-        vector<string> tokens;
-        size_t start = 0, end = 0;
-        
-        while ((end = text.find(separator, start)) != string::npos) 
-        {      
-            tokens.push_back(text.substr(start, end - start));
-            start = end + 1;
+        if (g_verbose)
+        {
+            printf(message, value.c_str());
+        }
+    }
+
+    bool is_transaction_event(const string& event)
+    {
+        return (0 == event.compare("begin"))
+            || (0 == event.compare("rollback"))
+            || (0 == event.compare("commit"));
+    }
+
+    bool is_table_event(const string& event)
+    {
+        return (0 == event.compare("update"))
+            || (0 == event.compare("insert"))
+            || (0 == event.compare("delete"));
+    }
+
+    bool is_field_event(const string& event)
+    {
+        return (0 == event.compare("read"))
+            || (0 == event.compare("write"));
+    }
+
+    bool parse_declarations(const string& text, vector<string>& declarations)
+    {
+        size_t start = text.find('[');
+        if (start == string::npos)
+        {
+            return false;
+        }
+        string declarations_list = text.substr(start);
+        split(declarations_list, declarations, ';');
+        return true;
+    }
+
+    bool parse_rule_name(const string& text, string& name)
+    {
+        size_t end = text.find(':');
+        if (end == string::npos) {
+            return false;
+        }
+        name = text.substr(0, end);
+        log("rule_name: %s\n", name);
+        return true;
+    }
+
+    bool parse_source(const string& text, string& gaia_type, string& field)
+    {
+        gaia_type.clear();
+        field.clear();
+
+        size_t start = text.find('[');
+        if (start == string::npos)
+        {
+            return false;
         }
         
-        tokens.push_back(text.substr(start));
-        return tokens;
+        size_t end = text.find(']');
+        if (end == string::npos)
+        {
+            return false;
+        }
+        
+        start++;
+        size_t dot = text.find('.');
+        if (dot == string::npos)
+        {
+            gaia_type = text.substr(start, end - start);
+        }
+        else
+        {
+            gaia_type = text.substr(start, dot - start);
+            ++dot;
+            field = text.substr(dot, end - dot);
+        }
+
+        log("gaia_type: %s\n", gaia_type);
+        log("field: %s\n", field);
+        return true;
+    }
+
+    bool parse_events(const string& text, vector<string>& events)
+    {
+        size_t start = text.find('(');
+        if (start == string::npos)
+        {
+            return false;
+        }
+        start++;
+
+        size_t end = text.find(')', start);
+        if (end == string::npos)
+        {
+            return false;
+        }
+        string event_list = text.substr(start, end-start);
+        split(event_list, events, ',');
+        return true;
+    }
+
+    void split(const string &text, vector<string>& tokens, char separator) 
+    {
+        size_t start = 0, end = 0;
+        string token;
+        
+        while ((end = text.find(separator, start)) != string::npos) 
+        {
+            token = text.substr(start, end - start);
+            tokens.push_back(trim(token));
+            log("token: %s\n", tokens.back());
+            start = end + 1;
+        }
+        token  = text.substr(start);
+        tokens.push_back(trim(token));
+        log("token: %s\n", tokens.back());
     }
 
     // Trim from start.
@@ -229,7 +370,7 @@ bool SaveFile(const char *name, const stringstream& buf)
     return !ofs.bad();
 }
 
-void generateCode(const char *fileName, const vector<rule_data>& rules)
+void generateCode(const char *fileName, const vector<rule_data_t>& rules)
 {
     unordered_set<string> declarations;
     
@@ -240,7 +381,7 @@ void generateCode(const char *fileName, const vector<rule_data>& rules)
     //Generate rules forward declarations.
     for (auto it = rules.cbegin(); it != rules.cend(); ++it)
     {
-      declarations.emplace( "void " + it->rule + "(const context_base_t *context);");        
+      declarations.emplace( "void " + it->rule + "(const rule_context_t *context);");        
     }
 
     for (auto it = declarations.cbegin(); it != declarations.cend(); ++it)
@@ -256,31 +397,44 @@ void generateCode(const char *fileName, const vector<rule_data>& rules)
     for (auto it = rules.cbegin(); it != rules.cend(); ++it)
     {
         declarations.emplace("    rule_binding_t  " + it->rule + "(\"" 
-            + it->ruleset +  "\",\"" + it->rule_name + "\"," + it->rule + ");");        
+            + it->ruleset +  "\",\"" + it->rule_name + "\"," + it->rule + ");");
     }
 
     for (auto it = declarations.cbegin(); it != declarations.cend(); ++it)
     {
-        code << *it << endl;   
+        code << *it << endl;
     }
+    code << endl;
     
     // Generate subscription code.
+    uint32_t field_list_decl = 1;
     for (auto it = rules.cbegin(); it != rules.cend(); ++it)
     {
-        if (it->is_transaction_rule)
+        // If not type is given (transaction events, for example) then
+        // Just use 0 as the gaia type.  Otherwise, call type gaia_type_id()
+        // method to get this at runtime.
+        string gaia_type = it->gaia_type.empty() ? "0" : 
+            (it->gaia_type + "::gaia_type_id()");
+
+        if (it->field.empty())
         {
-            code << "    subscribe_transaction_rule(" << it->event_type << "," 
-                << it->rule << ");" << endl;
+            code << "    subscribe_database_rule(" << gaia_type << ", " 
+                << it->event_type << ", " << it->rule << ");" << endl;
         }
         else
         {
-            code << "    subscribe_table_rule(" << it->gaia_type << "," 
-                << it->event_type << "," << it->rule << ");" << endl;
+            string field_list = "fields_" + to_string(field_list_decl);
+            code << "    field_list_t " << field_list << ";" << endl;
+            code << "    " << field_list << ".insert(\"" << it->field << "\");" << endl;
+            code << "    subscribe_field_rule(" << gaia_type << ", " 
+                << it->event_type << ", " << field_list << ", " << it->rule << ");" << endl;
+            field_list_decl++;
         }
 
+        code << endl;
     }
 
-    code << "}";
+    code << "}" << endl;
 
     SaveFile(fileName, code);
 }
@@ -290,10 +444,14 @@ int main(int argc, const char **argv)
 {
 
     // Parse the command-line args passed to your code.
-    CommonOptionsParser op(argc, argv, RuleSubscriberCategory);        
+    CommonOptionsParser op(argc, argv, RuleSubscriberCategory);
+    if (RuleSubscriberVerboseOption)
+    {
+        g_verbose = true;
+    }
     // Create a new Clang Tool instance (a LibTooling environment).
     ClangTool tool(op.getCompilations(), op.getSourcePathList());
     tool.run(newFrontendActionFactory<Rule_Subscriber_Action>().get());
-    generateCode(RuleSubscriberOption.c_str(), rules);  
+    generateCode(RuleSubscriberOutputOption.c_str(), g_rules);
 
 }
