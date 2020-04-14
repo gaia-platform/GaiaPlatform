@@ -29,6 +29,7 @@ struct rule_data_t
     string ruleset;
     string rule_name;
     string rule;
+    string qualified_rule;
     string event_type;
     string gaia_type;
     string field;
@@ -38,6 +39,53 @@ vector<rule_data_t> g_rules;
 string g_current_ruleset;
 bool g_verbose = false;
 
+void log(const char* message, std::string& value)
+{
+    if (g_verbose)
+    {
+        printf(message, value.c_str());
+    }
+}
+
+// Trim from start.
+string &ltrim(string &s) 
+{
+    s.erase(s.begin(), 
+        find_if(s.begin(), s.end(), not1(ptr_fun<int, int>(isspace))));
+    return s;
+}
+
+// Trim from end.
+string &rtrim(string &s) 
+{
+    s.erase(
+        find_if(s.rbegin(), s.rend(), not1(ptr_fun<int, int>(isspace))).base(), s.end());
+    return s;
+}
+
+// Trim from both ends.
+string &trim(string &s) 
+{
+    return ltrim(rtrim(s));
+}
+
+void split(const string &text, vector<string>& tokens, char separator) 
+{
+    size_t start = 0, end = 0;
+    string token;
+    
+    while ((end = text.find(separator, start)) != string::npos) 
+    {
+        token = text.substr(start, end - start);
+        tokens.push_back(trim(token));
+        log("token: %s\n", tokens.back());
+        start = end + 1;
+    }
+    token  = text.substr(start);
+    tokens.push_back(trim(token));
+    log("token: %s\n", tokens.back());
+}
+
 class Rule_Subscriber_Visitor
   : public RecursiveASTVisitor<Rule_Subscriber_Visitor> 
 {
@@ -46,6 +94,12 @@ public:
     {
 
     }
+
+/*
+     bool VisitCXXRecordDecl(CXXRecordDecl *Declaration) 
+     {
+     }
+*/     
 
     // Parse Comments for namespace.
     virtual bool VisitNamespaceDecl(clang::NamespaceDecl* d)
@@ -103,7 +157,8 @@ public:
         {
             rule_data_t rule_data;
             rule_data.ruleset = g_current_ruleset;
-            rule_data.rule = d->getQualifiedNameAsString();
+            rule_data.rule = d->getNameAsString();
+            rule_data.qualified_rule = d->getQualifiedNameAsString();
 
             if (!parse_rule_name(comment, rule_data.rule_name))
             {
@@ -189,13 +244,6 @@ public:
     }
 
 private:
-    void log(const char* message, std::string& value)
-    {
-        if (g_verbose)
-        {
-            printf(message, value.c_str());
-        }
-    }
 
     bool is_transaction_event(const string& event)
     {
@@ -293,45 +341,6 @@ private:
         split(event_list, events, ',');
         return true;
     }
-
-    void split(const string &text, vector<string>& tokens, char separator) 
-    {
-        size_t start = 0, end = 0;
-        string token;
-        
-        while ((end = text.find(separator, start)) != string::npos) 
-        {
-            token = text.substr(start, end - start);
-            tokens.push_back(trim(token));
-            log("token: %s\n", tokens.back());
-            start = end + 1;
-        }
-        token  = text.substr(start);
-        tokens.push_back(trim(token));
-        log("token: %s\n", tokens.back());
-    }
-
-    // Trim from start.
-    string &ltrim(string &s) 
-    {
-        s.erase(s.begin(), 
-            find_if(s.begin(), s.end(), not1(ptr_fun<int, int>(isspace))));
-        return s;
-    }
-
-    // Trim from end.
-    string &rtrim(string &s) 
-    {
-        s.erase(
-            find_if(s.rbegin(), s.rend(), not1(ptr_fun<int, int>(isspace))).base(), s.end());
-        return s;
-    }
-
-    // Trim from both ends.
-    string &trim(string &s) 
-    {
-        return ltrim(rtrim(s));
-    }
 };
 
 class Rule_Subscriber_Consumer : public clang::ASTConsumer 
@@ -381,12 +390,27 @@ void generateCode(const char *fileName, const vector<rule_data_t>& rules)
     //Generate rules forward declarations.
     for (auto it = rules.cbegin(); it != rules.cend(); ++it)
     {
-      declarations.emplace( "void " + it->rule + "(const rule_context_t *context);");        
+        declarations.emplace(it->qualified_rule);
     }
 
     for (auto it = declarations.cbegin(); it != declarations.cend(); ++it)
     {
-        code << *it << endl;   
+        vector<string> namespaces;
+        split(*it, namespaces, ':');
+        int namespace_count = 0;
+        for (auto namespace_iterator = namespaces.cbegin(); namespace_iterator != namespaces.cend() - 1; ++namespace_iterator)
+        {
+            if (!namespace_iterator->empty())
+            {
+                code << "namespace " << *namespace_iterator << "{" << endl;
+                namespace_count ++;
+            }
+        }
+        code << "void " << *(namespaces.cend() - 1) << "(const rule_context_t* context);" << endl;
+        for (int namespace_count_idx = 0; namespace_count_idx < namespace_count; ++ namespace_count_idx)
+        {
+            code << "}" << endl;
+        }
     }
 
     declarations.clear();
@@ -397,7 +421,7 @@ void generateCode(const char *fileName, const vector<rule_data_t>& rules)
     for (auto it = rules.cbegin(); it != rules.cend(); ++it)
     {
         declarations.emplace("    rule_binding_t  " + it->rule + "(\"" 
-            + it->ruleset +  "\",\"" + it->rule_name + "\"," + it->rule + ");");
+            + it->ruleset +  "\",\"" + it->rule_name + "\"," + it->qualified_rule + ");");
     }
 
     for (auto it = declarations.cbegin(); it != declarations.cend(); ++it)
