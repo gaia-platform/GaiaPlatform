@@ -11,14 +11,14 @@ using namespace std;
 const float confThreshold = 0.5, nmsThreshold = 0.4;
 static std::vector<std::string> classes;
 
-const char * model_prototxt = "/home/gregory/src/opencv/opencv_extra/testdata/dnn/ssd_mobilenet_v1_coco_2017_11_17.pbtxt";
-const char * model_binary = "/home/gregory/src/opencv/opencv_extra/testdata/dnn/ssd_mobilenet_v1_coco_2017_11_17.pb";
-const char * class_names = "/home/gregory/src/opencv/opencv/samples/data/dnn/object_detection_classes_coco.txt";
-const float scale = 1.0;
+const char * model_prototxt = "/home/gregory/src/opencv/opencv_extra/testdata/dnn/yolov3.cfg";
+const char * model_binary = "/home/gregory/src/opencv/opencv_extra/testdata/dnn/yolov3.weights";
+const char * class_names = "/home/gregory/src/opencv/opencv/samples/data/dnn/object_detection_classes_yolov3.txt";
+const float scale = 0.00392;
 const Scalar mean = {0,0,0};
 const bool swapRB = true;
-const int inpWidth = 300;
-const int inpHeight = 300;        
+const int inpWidth = 416;
+const int inpHeight = 416;        
 
 static cv::dnn::Net net = cv::dnn::readNet(model_binary,model_prototxt);
 static std::vector<String> outNames = net.getUnconnectedOutLayersNames();
@@ -184,14 +184,14 @@ std::vector<std::string> processImage(const char *fileName)
     std::vector<Mat> outs;
     net.forward(outs, outNames);
 
-    std::vector<std::string> detectedObjects(postprocess(img, outs, net));
+    std::vector<std::string> detectedObjects = postprocess(img, outs, net);
 
-    // Put efficiency information.
+    /*// Put efficiency information.
     std::vector<double> layersTimes;
     double freq = getTickFrequency() / 1000;
     double t = net.getPerfProfile(layersTimes) / freq;
     std::string label = format("Inference time: %.2f ms", t);
-    putText(img, label, Point(0, 15), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
+    putText(img, label, Point(0, 15), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));*/
 
     imshow("GaiaDemo", img);
     return detectedObjects;

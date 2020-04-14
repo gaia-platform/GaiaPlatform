@@ -17,7 +17,7 @@ namespace cameraDemo
         CameraDemo::CameraImage * row = static_cast<CameraDemo::CameraImage*>(t->row);
         cerr << "IMAGE Captured " << row->fileName() <<  endl;
 
-        std::vector<string> detectedClasses(processImage(row->fileName()));
+        std::vector<string> detectedClasses  = processImage(row->fileName());
         if (detectedClasses.empty())
         {
             row->delete_row();

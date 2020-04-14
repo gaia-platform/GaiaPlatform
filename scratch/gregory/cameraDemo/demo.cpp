@@ -59,7 +59,7 @@ int main( int argc, const char** argv )
             image.insert_row();
             CameraDemo::CameraImage::commit_transaction();
 
-            char c = (char)cv::waitKey(1000);
+            char c = (char)cv::waitKey(100);
             if( c == 27 || c == 'q' || c == 'Q' )
                 break;
         }
