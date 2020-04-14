@@ -46,6 +46,8 @@ public final class CacheVertex extends CacheElement implements Vertex
 
     public Edge addEdge(final String label, final Vertex inVertex, final Object... keyValues)
     {
+        CacheHelper.debugPrint(this.graph, "vertex::addEdge()");
+
         if (this.removed)
         {
             throw elementAlreadyRemoved(Vertex.class, this.id);
@@ -70,6 +72,8 @@ public final class CacheVertex extends CacheElement implements Vertex
         final V value,
         final Object... keyValues)
     {
+        CacheHelper.debugPrint(this.graph, "vertex::property()");
+
         if (this.removed)
         {
             throw elementAlreadyRemoved(Vertex.class, id);
@@ -162,6 +166,8 @@ public final class CacheVertex extends CacheElement implements Vertex
 
     public void remove()
     {
+        CacheHelper.debugPrint(this.graph, "vertex::remove()");
+
         // First remove all edges related to this node.
         // This will also remove the edges from COW.
         final List<Edge> edges = new ArrayList<>();

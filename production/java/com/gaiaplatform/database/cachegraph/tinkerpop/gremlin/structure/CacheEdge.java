@@ -82,6 +82,8 @@ public final class CacheEdge extends CacheElement implements Edge
 
     public <V> Property<V> property(final String key, final V value)
     {
+        CacheHelper.debugPrint(this.graph, "edge::property()");
+
         if (this.removed)
         {
             throw elementAlreadyRemoved(Edge.class, this.id);
@@ -138,6 +140,8 @@ public final class CacheEdge extends CacheElement implements Edge
 
     public void remove()
     {
+        CacheHelper.debugPrint(this.graph, "edge::remove()");
+
         // Remove the edge from COW.
         if (!CacheHelper.removeEdge(this))
         {

@@ -62,12 +62,16 @@ public final class CacheGraph implements Graph
         = "truegraphdb.defaultVertexPropertyCardinality";
     public static final String CACHEGRAPH_CREATE_ON_START
         = "truegraphdb.createOnStart";
-    public static final String CACHEGRAPH_ENABLE_COW_WRITES
-        = "truegraphdb.enableCowWrites";
+    public static final String CACHEGRAPH_ENABLE_COW_OPERATIONS
+        = "truegraphdb.enableCowOperations";
     public static final String CACHEGRAPH_ENABLE_AIRPORT_CODE
         = "truegraphdb.enableAirportCode";
+    public static final String CACHEGRAPH_ENABLE_DEBUG_MESSAGES
+        = "truegraphdb.enableDebugMessages";
 
     private final CacheFeatures features = new CacheFeatures();
+
+    private CacheTransaction transaction;
 
     // Reuse TinkerGraph's Graph.Variables implementation.
     protected TinkerGraphVariables variables = null;
@@ -86,12 +90,15 @@ public final class CacheGraph implements Graph
 
     protected CowStorageEngine cow = new CowStorageEngine();
 
-    protected boolean enableCowWrites;
+    protected boolean enableCowOperations;
     protected boolean enableAirportCode;
+    protected boolean enableDebugMessages;
 
     private CacheGraph(final Configuration configuration)
     {
         this.configuration = configuration;
+
+        this.transaction = new CacheTransaction(this);
 
         this.vertexIdManager = selectIdManager(
             configuration, CACHEGRAPH_VERTEX_ID_MANAGER, Vertex.class);
@@ -109,11 +116,13 @@ public final class CacheGraph implements Graph
         boolean createOnStart = configuration.getBoolean(
             CACHEGRAPH_CREATE_ON_START, true);
 
-        this.enableCowWrites = configuration.getBoolean(
-            CACHEGRAPH_ENABLE_COW_WRITES, true);
+        this.enableCowOperations = configuration.getBoolean(
+            CACHEGRAPH_ENABLE_COW_OPERATIONS, true);
         this.enableAirportCode = configuration.getBoolean(
             CACHEGRAPH_ENABLE_AIRPORT_CODE, false);
-
+        this.enableDebugMessages = configuration.getBoolean(
+            CACHEGRAPH_ENABLE_DEBUG_MESSAGES, false);
+    
         if (createOnStart)
         {
             CacheHelper.reset();
@@ -151,6 +160,8 @@ public final class CacheGraph implements Graph
 
     public Vertex addVertex(final Object... keyValues)
     {
+        CacheHelper.debugPrint(this, "graph::addVertex()");
+
         ElementHelper.legalPropertyKeyValueArray(keyValues);
 
         Object idValue = ElementHelper.getIdValue(keyValues).orElse(null);
@@ -191,7 +202,7 @@ public final class CacheGraph implements Graph
     public GraphComputer compute()
     throws IllegalArgumentException
     {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("CacheGraph does not support Tinkerpop OLAP interfaces.");
     }
 
     public Graph.Variables variables()
@@ -216,7 +227,7 @@ public final class CacheGraph implements Graph
 
     public Transaction tx()
     {
-        throw Exceptions.transactionsNotSupported();
+        return this.transaction;
     }
 
     public void close()
@@ -412,6 +423,8 @@ public final class CacheGraph implements Graph
 
         public boolean supportsTransactions()
         {
+            // CacheTransaction only handles COW transactions,
+            // so we can't declare support yet.
             return false;
         }
 

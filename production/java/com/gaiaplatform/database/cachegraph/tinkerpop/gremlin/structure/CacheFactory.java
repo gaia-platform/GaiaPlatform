@@ -423,6 +423,11 @@ public final class CacheFactory
         setRouteEdge(ams, sea, "KL", "A330");
     }
 
+    public static void enableDebuggingMessages(final CacheGraph graph, boolean enabled)
+    {
+        graph.enableDebugMessages = enabled;
+    }
+
     // Load a graphml file.
     public static CacheGraph loadGraphml(String filename)
     {
@@ -433,12 +438,21 @@ public final class CacheFactory
 
     public static void loadGraphml(final CacheGraph graph, String filename)
     {
+        // If transactions are advertised to be supported (via Graph.Features)
+        // then readGraph() will call commit() and rollback() itself,
+        // but it still expects open() to have been called already.
+        //
+        // readGraph() may also fail if it attempts to batch transactions,
+        // because it doesn't re-open a transaction after a commit.
+        graph.tx().open();
         try
         {
             graph.io(graphml()).readGraph(filename);
+            graph.tx().commit();
         }
         catch (Exception e)
         {
+            graph.tx().rollback();
             System.out.println(
                 "An error happened while attempting to load " + filename + ": "
                 + e.getMessage());
@@ -451,9 +465,9 @@ public final class CacheFactory
     {
         final Configuration configuration = getDefaultConfiguration();
 
-        // Disable writing to COW.
+        // Disable COW operations.
         configuration.setProperty(
-            CacheGraph.CACHEGRAPH_ENABLE_COW_WRITES,
+            CacheGraph.CACHEGRAPH_ENABLE_COW_OPERATIONS,
             false);
 
         final CacheGraph graph = CacheGraph.open(configuration);
@@ -490,7 +504,7 @@ public final class CacheFactory
         // We read from COW to write into cached graph,
         // so we don't need to write back into COW.
         configuration.setProperty(
-            CacheGraph.CACHEGRAPH_ENABLE_COW_WRITES,
+            CacheGraph.CACHEGRAPH_ENABLE_COW_OPERATIONS,
             false);
 
         // We need to enable airport data serialization code.
