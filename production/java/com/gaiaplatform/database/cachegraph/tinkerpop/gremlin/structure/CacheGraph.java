@@ -162,7 +162,8 @@ public final class CacheGraph implements Graph
 
         ElementHelper.legalPropertyKeyValueArray(keyValues);
 
-        Object idValue = ElementHelper.getIdValue(keyValues).orElse(null);
+        Object idValue = this.vertexIdManager.convert(
+            ElementHelper.getIdValue(keyValues).orElse(null));
         final String label = ElementHelper.getLabelValue(keyValues).orElse(Vertex.DEFAULT_LABEL);
 
         if (idValue != null)
