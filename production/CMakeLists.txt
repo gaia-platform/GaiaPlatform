@@ -68,6 +68,7 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
       java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheGraph.java
       java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheHelper.java
       java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheProperty.java
+      java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheTransaction.java
       java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheVertex.java
       java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheVertexProperty.java
       ${FLATBUFFERS}/java/com/google/flatbuffers/ArrayReadWriteBuf.java
