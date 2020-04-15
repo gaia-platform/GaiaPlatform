@@ -14,9 +14,9 @@ set (CMAKE_SHARED_LINKER_FLAGS "${PGSQL_LDFLAGS}")
 
 add_executable (data_loader data_loader.cpp)
 # for COW-SE
-target_include_directories (data_loader PRIVATE "../../../../cow_se/inc")
+target_include_directories (data_loader PRIVATE "${PROJECT_SOURCE_DIR}/../../../cow_se/inc")
 # for flatbuffers generated code
-target_include_directories (data_loader SYSTEM PRIVATE "../../../flatbuffers")
+target_include_directories (data_loader SYSTEM PRIVATE "${PROJECT_SOURCE_DIR}/../../flatbuffers")
 # for POSIX shared memory API
 target_link_libraries (data_loader rt)
 
@@ -28,9 +28,9 @@ set_target_properties (cow_se_fdw PROPERTIES
 )
 
 # for COW-SE
-target_include_directories (cow_se_fdw PRIVATE "../../../../cow_se/inc")
+target_include_directories (cow_se_fdw PRIVATE "${PROJECT_SOURCE_DIR}/../../../cow_se/inc")
 # for flatbuffers generated code
-target_include_directories (cow_se_fdw SYSTEM PRIVATE "../../../flatbuffers")
+target_include_directories (cow_se_fdw SYSTEM PRIVATE "${PROJECT_SOURCE_DIR}/../../flatbuffers")
 # for postgres
 target_include_directories (cow_se_fdw SYSTEM PRIVATE "${PGSQL_INCLUDEDIR_SERVER}")
 # for flatbuffers C builder support
