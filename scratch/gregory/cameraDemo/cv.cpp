@@ -20,7 +20,7 @@ const bool swapRB = true;
 const int inpWidth = 416;
 const int inpHeight = 416;        
 
-static cv::dnn::Net net = cv::dnn::readNet(model_binary,model_prototxt);
+static cv::dnn::Net net = cv::dnn::readNet(model_binary, model_prototxt);
 static std::vector<String> outNames = net.getUnconnectedOutLayersNames();
 
 void loadClassNames()
@@ -35,14 +35,12 @@ void loadClassNames()
     }
 }
 
-
 void drawPred(int classId, float conf, int left, int top, int right, int bottom, Mat& frame)
 {
     rectangle(frame, Point(left, top), Point(right, bottom), Scalar(0, 255, 0));
 
     std::string label = format("%.2f", conf);
     
-
     if (!classes.empty())
     {
         CV_Assert(classId < (int)classes.size());
@@ -54,12 +52,12 @@ void drawPred(int classId, float conf, int left, int top, int right, int bottom,
 
     top = max(top, labelSize.height);
     rectangle(frame, Point(left, top - labelSize.height),
-              Point(left + labelSize.width, top + baseLine), Scalar::all(255), FILLED);
+        Point(left + labelSize.width, top + baseLine), Scalar::all(255), FILLED);
     putText(frame, label, Point(left, top), FONT_HERSHEY_SIMPLEX, 0.5, Scalar());
 }
 
 inline void preprocess(const Mat& frame, Net& net, Size inpSize, float scale,
-                       const Scalar& mean, bool swapRB)
+    const Scalar& mean, bool swapRB)
 {
     
     static Mat blob;

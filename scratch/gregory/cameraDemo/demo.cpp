@@ -22,7 +22,9 @@ std::string random_string(std::string::size_type length)
     s.reserve(length);
 
     while(length--)
+    {
         s += chrs[dis(gen)%(sizeof(chrs) - 1)];
+    }
 
     return s;
 }
@@ -34,7 +36,7 @@ int main( int argc, const char** argv )
 
     cv::VideoCapture capture;
     cv::Mat frame, image;
-    if(!capture.open(0))
+    if (!capture.open(0))
     {
         cout << "Capture from camera #  0 didn't work" << endl;
         return 1;
@@ -53,11 +55,11 @@ int main( int argc, const char** argv )
 
 	        imwrite(file_name.c_str(), frame);
 
-            CameraDemo::CameraImage::begin_transaction();
-            CameraDemo::CameraImage image;
-            image.set_fileName(file_name.c_str());
+            CameraDemo::Camera_image::begin_transaction();
+            CameraDemo::Camera_image image;
+            image.set_file_name(file_name.c_str());
             image.insert_row();
-            CameraDemo::CameraImage::commit_transaction();
+            CameraDemo::Camera_image::commit_transaction();
 
             char c = (char)cv::waitKey(100);
             if( c == 27 || c == 'q' || c == 'Q' )

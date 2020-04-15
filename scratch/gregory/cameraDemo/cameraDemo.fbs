@@ -7,8 +7,8 @@
 
 namespace CameraDemo;
 
-table cameraImage {   
-    fileName: string;
+table camera_image {   
+    file_name: string;
 }
 
 table object {

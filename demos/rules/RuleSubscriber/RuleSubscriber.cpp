@@ -248,7 +248,7 @@ void generateCode(const char *fileName, const vector<rule_data>& rules)
 
     for (auto it = declarations.cbegin(); it != declarations.cend(); ++it)
     {
-        vector<string> namespaces = split(*it,':');
+        vector<string> namespaces = split(*it, ':');
         int namespace_count = 0;
         for (auto namespace_iterator = namespaces.cbegin(); namespace_iterator != namespaces.cend() - 1; ++namespace_iterator)
         {
@@ -259,7 +259,7 @@ void generateCode(const char *fileName, const vector<rule_data>& rules)
             }
         }
         code << "void " << *(namespaces.cend() - 1) << "(const context_base_t *context);" << endl;
-        for (int namespace_count_idx = 0; namespace_count_idx < namespace_count; ++ namespace_count_idx)
+        for (int namespace_count_idx = 0; namespace_count_idx < namespace_count; ++namespace_count_idx)
         {
             code << "}" << endl;
         }   
@@ -302,7 +302,7 @@ void generateCode(const char *fileName, const vector<rule_data>& rules)
     for (auto it = rules.cbegin(); it != rules.cend(); ++it)
     {
         declarations.emplace("    rule_binding_t  " + it->rule + "(\"" 
-            + it->ruleset +  "\",\"" + it->rule_name + "\"," + it->qualified_rule + ");");        
+            + it->ruleset +  "\", \"" + it->rule_name + "\", " + it->qualified_rule + ");");        
     }
 
     for (auto it = declarations.cbegin(); it != declarations.cend(); ++it)
@@ -315,13 +315,13 @@ void generateCode(const char *fileName, const vector<rule_data>& rules)
     {
         if (it->is_transaction_rule)
         {
-            code << "    subscribe_transaction_rule(" << it->event_type << "," 
+            code << "    subscribe_transaction_rule(" << it->event_type << ", " 
                 << it->rule << ");" << endl;
         }
         else
         {
-            code << "    subscribe_table_rule(" << it->gaia_type << "," 
-                << it->event_type << "," << it->rule << ");" << endl;
+            code << "    subscribe_table_rule(" << it->gaia_type << ", " 
+                << it->event_type << ", " << it->rule << ");" << endl;
         }
 
     }

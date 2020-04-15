@@ -9,15 +9,15 @@ std::vector<string> processImage(const char *fileName);
 namespace cameraDemo
 {
 /**
- rule, image_create,CameraDemo::kCameraImageType=1,  event_type_t::row_insert
+ rule, image_create, CameraDemo::kCameraImageType = 1, event_type_t::row_insert
 */
     void ImageCreate_handler(const context_base_t *context)
     {        
         const table_context_t* t = static_cast<const table_context_t*>(context);
-        CameraDemo::CameraImage * row = static_cast<CameraDemo::CameraImage*>(t->row);
-        cerr << "IMAGE Captured " << row->fileName() <<  endl;
+        CameraDemo::Camera_image * row = static_cast<CameraDemo::Camera_image*>(t->row);
+        cerr << "IMAGE Captured " << row->file_name() <<  endl;
 
-        std::vector<string> detectedClasses  = processImage(row->fileName());
+        std::vector<string> detectedClasses  = processImage(row->file_name());
         if (detectedClasses.empty())
         {
             row->delete_row();
@@ -34,18 +34,18 @@ namespace cameraDemo
     }
 
 /**
- rule, image_delete,CameraDemo::kCameraImageType=1,  event_type_t::row_delete
+ rule, image_delete, CameraDemo::kCameraImageType = 1, event_type_t::row_delete
 */
     void ImageDelete_handler(const context_base_t *context)
     {
         const table_context_t* t = static_cast<const table_context_t*>(context);
-        CameraDemo::CameraImage * row = static_cast<CameraDemo::CameraImage*>(t->row);
-        remove(row->fileName());
-        cerr << "IMAGE deleted " <<  row->fileName() << endl;
+        CameraDemo::Camera_image * row = static_cast<CameraDemo::Camera_image*>(t->row);
+        ::remove(row->file_name());
+        cerr << "IMAGE deleted " <<  row->file_name() << endl;
     }
 
 /**
- rule, object_class,CameraDemo::kObjectType=2,  event_type_t::row_insert
+ rule, object_class, CameraDemo::kObjectType = 2, event_type_t::row_insert
 */
     void ObjectClassify_handler(const context_base_t *context)
     {
