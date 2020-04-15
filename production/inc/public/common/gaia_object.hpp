@@ -105,6 +105,11 @@ template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typ
 struct gaia_object_t : gaia_base_t
 {
 public:
+    enum class edge_orientation_t {
+        to,
+        from
+    };
+
     virtual ~gaia_object_t()
     {
         s_gaia_cache.erase(m_id);
@@ -131,18 +136,81 @@ public:
 
     static T_gaia* get_first() {
         auto node_ptr = gaia_ptr<gaia_se_node>::find_first(T_gaia_type);
-        return get_object(node_ptr);
+        return get_object<gaia_ptr<gaia_se_node>>(node_ptr);
     }
 
     T_gaia* get_next() {
         auto current_ptr = gaia_se_node::open(m_id);
         auto next_ptr = current_ptr.find_next();
-        return get_object(next_ptr);
+        return get_object<gaia_ptr<gaia_se_node>>(next_ptr);
     }
 
     static T_gaia* get_row_by_id(gaia_id_t id) {
         auto node_ptr = gaia_se_node::open(id);
-        return get_object(node_ptr);
+        return get_object<gaia_ptr<gaia_se_node>>(node_ptr);
+    }
+
+    static T_gaia* get_edge_by_id(gaia_id_t id) {
+        auto node_ptr = gaia_se_edge::open(id);
+        return get_object<gaia_ptr<gaia_se_edge>>(node_ptr);
+    }
+
+    T_gaia* get_first_node(gaia_type_t edge_type, edge_orientation_t edge_orientation) {
+        auto node_ptr = gaia_se_node::open(m_id);
+        gaia_ptr<gaia_se_edge> edge;
+        if (edge_orientation == edge_orientation_t::to) {
+            edge = node_ptr->next_edge_first;
+            while (edge != nullptr && edge->type != edge_type) {
+                edge = edge->next_edge_first;
+            }
+        }
+        else {
+            edge = node_ptr->next_edge_second;
+            while (edge != nullptr && edge->type != edge_type) {
+                edge = edge->next_edge_second;
+            }
+        }
+        if (edge == nullptr) {
+            m_next_edge = nullptr;
+            return nullptr;
+        }
+        // there will be a node at the other end of this edge
+        auto next_node = edge_orientation == edge_orientation_t::to ? edge->node_second : edge->node_first;
+        m_next_edge = edge;
+        m_edge_orientation = edge_orientation;
+        m_edge_type = edge_type;
+        return get_object<gaia_ptr<gaia_se_node>>(next_node);
+    }
+
+    T_gaia* get_next_node() {
+        if (m_next_edge == nullptr) {
+            return nullptr;
+        }
+        if (m_edge_orientation == edge_orientation_t::to) {
+            m_next_edge = m_next_edge->next_edge_first;
+            while (m_next_edge != nullptr && m_next_edge->type != m_edge_type) {
+                m_next_edge = m_next_edge->next_edge_first;
+            }
+        }
+        else {
+            m_next_edge = m_next_edge->next_edge_second;
+            while (m_next_edge != nullptr && m_next_edge->type != m_edge_type) {
+                m_next_edge = m_next_edge->next_edge_second;
+            }
+        }
+        if (m_next_edge == nullptr) {
+            return nullptr;
+        }
+        // there will be a node at the other end of this edge
+        auto next_node = m_edge_orientation == edge_orientation_t::to ? m_next_edge->node_second : m_next_edge->node_first;
+        return get_object<gaia_ptr<gaia_se_node>>(next_node);
+    }
+
+    gaia_id_t gaia_edge_id() {
+        if (m_next_edge != nullptr) {
+            return m_next_edge->id;
+        }
+        return 0;
     }
 
     void insert_row()
@@ -221,6 +289,12 @@ protected:
     unique_ptr<T_obj> m_copy;   
     // Flatbuffer referencing SE memory.
     const T_fb* m_fb;
+    // Drection of edge traversal.
+    edge_orientation_t m_edge_orientation;
+    // Type of edge being traversed.
+    gaia_type_t m_edge_type;
+    // Current edge in a traversal.
+    gaia_ptr<gaia_se_edge> m_next_edge;
 
     T_obj* copy_write()
     {
@@ -235,7 +309,8 @@ protected:
     }
 
 private:
-    static T_gaia* get_object(gaia_ptr<gaia_se_node>& node_ptr)
+    template<typename T_se_object>
+    static T_gaia* get_object(T_se_object& node_ptr)
     {
         T_gaia* obj = nullptr;
         if (node_ptr != nullptr) {
