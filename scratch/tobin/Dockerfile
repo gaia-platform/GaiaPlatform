@@ -108,7 +108,8 @@ RUN apt-add-repository ppa:hnakamur/flatbuffers && \
 RUN apt-get -y install ninja-build
 RUN git clone https://github.com/dvidelabs/flatcc.git && \
     cd /flatcc && \
-    echo "\n\nset_property(TARGET flatccrt PROPERTY POSITION_INDEPENDENT_CODE ON)\n" >> src/runtime/CMakeLists.txt && \
+    # we have to compile flatcc builder runtime static lib with -fPIC so it can be linked with a shared lib
+    echo "\n\nset_property (TARGET flatccrt PROPERTY POSITION_INDEPENDENT_CODE ON)\n" >> src/runtime/CMakeLists.txt && \
     scripts/build.sh && \
     cp bin/flatcc /usr/local/bin/flatcc && \
     cp -r include/flatcc /usr/local/include/flatcc && \
