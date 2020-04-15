@@ -62,12 +62,16 @@ public final class CacheGraph implements Graph
         = "truegraphdb.defaultVertexPropertyCardinality";
     public static final String CACHEGRAPH_CREATE_ON_START
         = "truegraphdb.createOnStart";
-    public static final String CACHEGRAPH_ENABLE_COW_WRITES
-        = "truegraphdb.enableCowWrites";
+    public static final String CACHEGRAPH_ENABLE_COW_OPERATIONS
+        = "truegraphdb.enableCowOperations";
     public static final String CACHEGRAPH_ENABLE_AIRPORT_CODE
         = "truegraphdb.enableAirportCode";
+    public static final String CACHEGRAPH_ENABLE_DEBUG_MESSAGES
+        = "truegraphdb.enableDebugMessages";
 
     private final CacheFeatures features = new CacheFeatures();
+
+    private CacheTransaction transaction = new CacheTransaction(this);
 
     // Reuse TinkerGraph's Graph.Variables implementation.
     protected TinkerGraphVariables variables = null;
@@ -86,8 +90,9 @@ public final class CacheGraph implements Graph
 
     protected CowStorageEngine cow = new CowStorageEngine();
 
-    protected boolean enableCowWrites;
+    protected boolean enableCowOperations;
     protected boolean enableAirportCode;
+    protected boolean enableDebugMessages;
 
     private CacheGraph(final Configuration configuration)
     {
@@ -109,28 +114,30 @@ public final class CacheGraph implements Graph
         boolean createOnStart = configuration.getBoolean(
             CACHEGRAPH_CREATE_ON_START, true);
 
-        this.enableCowWrites = configuration.getBoolean(
-            CACHEGRAPH_ENABLE_COW_WRITES, true);
+        this.enableCowOperations = configuration.getBoolean(
+            CACHEGRAPH_ENABLE_COW_OPERATIONS, true);
         this.enableAirportCode = configuration.getBoolean(
             CACHEGRAPH_ENABLE_AIRPORT_CODE, false);
-
+        this.enableDebugMessages = configuration.getBoolean(
+            CACHEGRAPH_ENABLE_DEBUG_MESSAGES, false);
+    
         if (createOnStart)
         {
             CacheHelper.reset();
             
-            if (!cow.create())
+            if (!this.cow.create())
             {
                 throw new UnsupportedOperationException("COW initialization failed!");
             }
         }
         else
         {
-            if (!enableAirportCode)
+            if (!this.enableAirportCode)
             {
                 throw new UnsupportedOperationException("Opening of COW is only supported for airport data!");
             }
 
-            if (!cow.open())
+            if (!this.cow.open())
             {
                 throw new UnsupportedOperationException("Opening of COW failed!");
             }
@@ -151,9 +158,12 @@ public final class CacheGraph implements Graph
 
     public Vertex addVertex(final Object... keyValues)
     {
+        CacheHelper.debugPrint(this, "graph::addVertex()");
+
         ElementHelper.legalPropertyKeyValueArray(keyValues);
 
-        Object idValue = ElementHelper.getIdValue(keyValues).orElse(null);
+        Object idValue = this.vertexIdManager.convert(
+            ElementHelper.getIdValue(keyValues).orElse(null));
         final String label = ElementHelper.getLabelValue(keyValues).orElse(Vertex.DEFAULT_LABEL);
 
         if (idValue != null)
@@ -191,7 +201,7 @@ public final class CacheGraph implements Graph
     public GraphComputer compute()
     throws IllegalArgumentException
     {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("CacheGraph does not support Tinkerpop OLAP interfaces.");
     }
 
     public Graph.Variables variables()
@@ -216,7 +226,7 @@ public final class CacheGraph implements Graph
 
     public Transaction tx()
     {
-        throw Exceptions.transactionsNotSupported();
+        return this.transaction;
     }
 
     public void close()
@@ -226,7 +236,7 @@ public final class CacheGraph implements Graph
 
     public Configuration configuration()
     {
-        return configuration;
+        return this.configuration;
     }
 
     public Features features()
@@ -412,6 +422,8 @@ public final class CacheGraph implements Graph
 
         public boolean supportsTransactions()
         {
+            // CacheTransaction only handles COW transactions,
+            // so we can't declare support yet.
             return false;
         }
 

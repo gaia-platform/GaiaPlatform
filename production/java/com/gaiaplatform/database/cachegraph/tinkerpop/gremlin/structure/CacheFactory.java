@@ -47,13 +47,13 @@ public final class CacheFactory
     {
     }
 
-    private static CacheGraph getDefaultCacheGraph()
+    private static CacheGraph getTinkerpopDefaultCacheGraph()
     {
-        final Configuration configuration = getDefaultConfiguration();
+        final Configuration configuration = getTinkerpopDefaultConfiguration();
         return CacheGraph.open(configuration);
     }
 
-    private static Configuration getDefaultConfiguration()
+    private static Configuration getTinkerpopDefaultConfiguration()
     {
         final Configuration configuration = new BaseConfiguration();
 
@@ -73,7 +73,7 @@ public final class CacheFactory
     // Classic graph data set.
     public static CacheGraph createClassic()
     {
-        final Configuration configuration = getDefaultConfiguration();
+        final Configuration configuration = getTinkerpopDefaultConfiguration();
 
         configuration.setProperty(
             CacheGraph.CACHEGRAPH_VERTEX_PROPERTY_ID_MANAGER,
@@ -106,7 +106,7 @@ public final class CacheFactory
     // Modern graph data set.
     public static CacheGraph createModern()
     {
-        final CacheGraph graph = getDefaultCacheGraph();
+        final CacheGraph graph = getTinkerpopDefaultCacheGraph();
         generateModern(graph);
         return graph;
     }
@@ -131,7 +131,7 @@ public final class CacheFactory
     // The Crew data set.
     public static CacheGraph createTheCrew()
     {
-        final Configuration configuration = getDefaultConfiguration();
+        final Configuration configuration = getTinkerpopDefaultConfiguration();
 
         configuration.setProperty(
             CacheGraph.CACHEGRAPH_DEFAULT_VERTEX_PROPERTY_CARDINALITY,
@@ -198,7 +198,7 @@ public final class CacheFactory
     // Kitchen Sink data set.
     public static CacheGraph createKitchenSink()
     {
-        final CacheGraph graph = getDefaultCacheGraph();
+        final CacheGraph graph = getTinkerpopDefaultCacheGraph();
         generateKitchenSink(graph);
         return graph;
     }
@@ -215,6 +215,29 @@ public final class CacheFactory
             .addV("message").property(T.id, 2001).property("name", "b").as("b")
             .addE("link").from("a").to("b").property(T.id, 2002)
             .addE("link").from("a").to("a").property(T.id, 2003).iterate();
+    }
+
+    private static CacheGraph getDefaultCacheGraph()
+    {
+        final Configuration configuration = getDefaultConfiguration();
+        return CacheGraph.open(configuration);
+    }
+
+    private static Configuration getDefaultConfiguration()
+    {
+        final Configuration configuration = new BaseConfiguration();
+
+        configuration.setProperty(
+            CacheGraph.CACHEGRAPH_VERTEX_ID_MANAGER,
+            CacheGraph.DefaultIdManager.LONG.name());
+        configuration.setProperty(
+            CacheGraph.CACHEGRAPH_EDGE_ID_MANAGER,
+            CacheGraph.DefaultIdManager.LONG.name());
+        configuration.setProperty(
+            CacheGraph.CACHEGRAPH_VERTEX_PROPERTY_ID_MANAGER,
+            CacheGraph.DefaultIdManager.LONG.name());
+        
+        return configuration;
     }
 
     // COW data set.
@@ -400,6 +423,11 @@ public final class CacheFactory
         setRouteEdge(ams, sea, "KL", "A330");
     }
 
+    public static void enableDebuggingMessages(final CacheGraph graph, boolean enabled)
+    {
+        graph.enableDebugMessages = enabled;
+    }
+
     // Load a graphml file.
     public static CacheGraph loadGraphml(String filename)
     {
@@ -410,12 +438,21 @@ public final class CacheFactory
 
     public static void loadGraphml(final CacheGraph graph, String filename)
     {
+        // If transactions are advertised to be supported (via Graph.Features)
+        // then readGraph() will call commit() and rollback() itself,
+        // but it still expects open() to have been called already.
+        //
+        // readGraph() may also fail if it attempts to batch transactions,
+        // because it doesn't re-open a transaction after a commit.
+        graph.tx().open();
         try
         {
             graph.io(graphml()).readGraph(filename);
+            graph.tx().commit();
         }
         catch (Exception e)
         {
+            graph.tx().rollback();
             System.out.println(
                 "An error happened while attempting to load " + filename + ": "
                 + e.getMessage());
@@ -428,9 +465,9 @@ public final class CacheFactory
     {
         final Configuration configuration = getDefaultConfiguration();
 
-        // Disable writing to COW.
+        // Disable COW operations.
         configuration.setProperty(
-            CacheGraph.CACHEGRAPH_ENABLE_COW_WRITES,
+            CacheGraph.CACHEGRAPH_ENABLE_COW_OPERATIONS,
             false);
 
         final CacheGraph graph = CacheGraph.open(configuration);
@@ -467,7 +504,7 @@ public final class CacheFactory
         // We read from COW to write into cached graph,
         // so we don't need to write back into COW.
         configuration.setProperty(
-            CacheGraph.CACHEGRAPH_ENABLE_COW_WRITES,
+            CacheGraph.CACHEGRAPH_ENABLE_COW_OPERATIONS,
             false);
 
         // We need to enable airport data serialization code.
