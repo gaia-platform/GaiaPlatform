@@ -38,13 +38,19 @@ struct rule_data_t
 vector<rule_data_t> g_rules;
 string g_current_ruleset;
 bool g_verbose = false;
+unordered_map<string, string> g_includes;
 
-void log(const char* message, std::string& value)
+void log(const char* message, const char* value)
 {
     if (g_verbose)
     {
-        printf(message, value.c_str());
+        printf(message, value);
     }
+}
+
+void log(const char* message, const std::string& value)
+{
+    log(message, value.c_str());
 }
 
 // Trim from start.
@@ -90,16 +96,48 @@ class Rule_Subscriber_Visitor
   : public RecursiveASTVisitor<Rule_Subscriber_Visitor> 
 {
 public:
+
     explicit Rule_Subscriber_Visitor(ASTContext *context)
     {
-
+        m_context = context;
     }
 
-/*
-     bool VisitCXXRecordDecl(CXXRecordDecl *Declaration) 
-     {
-     }
-*/     
+    // Find all the gaia types we care about.  Gaia types inherit
+    // from gaia::common::gaia_object_t.
+    virtual bool VisitCXXRecordDecl(CXXRecordDecl *Declaration) 
+    {
+        if (!(Declaration->hasDefinition()))
+        {
+            return true;
+        }
+
+        for (auto base_it : Declaration->bases())
+        {
+            auto  baseDecl = base_it.getType()->getAsCXXRecordDecl();
+
+            if (!baseDecl)
+            {
+                continue;
+            }
+            
+            string baseQualifiedName = baseDecl->getQualifiedNameAsString();
+            if (0 == baseQualifiedName.compare("gaia::common::gaia_object_t"))
+            {
+                // We care about this object.  Add the name
+                // and fully qualified name to map this symbol
+                // to the include.
+                string include_file;
+                get_include_file(Declaration, include_file);
+                g_includes.insert(
+                    make_pair(Declaration->getNameAsString(), include_file));
+                g_includes.insert(
+                    make_pair(Declaration->getQualifiedNameAsString(),include_file));
+                break;
+            }
+        }
+
+        return true;
+    }
 
     // Parse Comments for namespace.
     virtual bool VisitNamespaceDecl(clang::NamespaceDecl* d)
@@ -152,7 +190,7 @@ public:
         {
             return true;
         }
-        
+
         if (!g_current_ruleset.empty())
         {
             rule_data_t rule_data;
@@ -244,6 +282,22 @@ public:
     }
 
 private:
+
+    void get_include_file(CXXRecordDecl * decl, string& filename)
+    {
+        FullSourceLoc loc = m_context->getFullLoc(decl->getBeginLoc());
+        string full_path = loc.getFileEntry()->getName();
+        size_t pos = full_path.find_last_of('/');
+        if (pos == string::npos) 
+        {
+            filename = full_path;
+        }
+        else
+        {
+            pos++;
+            filename = full_path.substr(pos, full_path.length() - pos);
+        }
+    }
 
     bool is_transaction_event(const string& event)
     {
@@ -341,6 +395,8 @@ private:
         split(event_list, events, ',');
         return true;
     }
+
+    ASTContext * m_context;
 };
 
 class Rule_Subscriber_Consumer : public clang::ASTConsumer 
@@ -382,16 +438,37 @@ bool SaveFile(const char *name, const stringstream& buf)
 void generateCode(const char *fileName, const vector<rule_data_t>& rules)
 {
     unordered_set<string> declarations;
-    
-    stringstream code;
-    code << "#include \"rules.hpp\"" << endl;
-    code << "using namespace gaia::rules;" << endl; 
-    
-    //Generate rules forward declarations.
+    unordered_set<string> includes;    
+
+    // Generate rules forward declarations and gather includes
     for (auto it = rules.cbegin(); it != rules.cend(); ++it)
     {
         declarations.emplace(it->qualified_rule);
+        if (!it->gaia_type.empty())
+        {
+            auto inc_it = g_includes.find(it->gaia_type);
+            if (inc_it != g_includes.end())
+            {
+                includes.insert(inc_it->second);
+            }
+            else
+            {
+                log("Didn't find header for gaia_type '%s'\n", it->gaia_type);
+            }
+        }
     }
+
+    // Generate includes
+    stringstream code;
+    code << "#include \"rules.hpp\"" << endl;
+    for (auto include : includes)
+    {
+        code << "#include \"" << include << "\"" << endl;
+    }
+    code << endl;
+
+    code << "using namespace gaia::rules;" << endl; 
+    code << endl;
 
     for (auto it = declarations.cbegin(); it != declarations.cend(); ++it)
     {
@@ -412,6 +489,7 @@ void generateCode(const char *fileName, const vector<rule_data_t>& rules)
             code << "}" << endl;
         }
     }
+    code << endl;
 
     declarations.clear();
 
