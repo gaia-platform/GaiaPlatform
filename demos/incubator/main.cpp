@@ -1,4 +1,6 @@
 #include "barn_storage_gaia_generated.h"
+#include "events.hpp"
+#include "gaia_system.hpp"
 #include "rules.hpp"
 #include <algorithm>
 #include <cstring>
@@ -138,7 +140,7 @@ void decrease_fans(Incubator *incubator) {
   }
 }
 
-void increase_fans(Incubator* incubator) {
+void increase_fans(Incubator *incubator) {
   printf("%s called for %s incubator.\n", __func__, incubator->name());
   for (auto a = Actuator::get_first(); a != nullptr; a = a->get_next()) {
     if (a->incubator_id() == incubator->id()) {
@@ -153,8 +155,8 @@ void on_sensor_changed(const context_base_t *context) {
   const table_context_t *t = static_cast<const table_context_t *>(context);
   Sensor *s = static_cast<Sensor *>(t->row);
   Incubator *i = select_incubator_by_id(s->incubator_id());
-  printf("%s fired for %s sensor of %s incubator\n",
-         __func__, s->name(), i->name());
+  printf("%s fired for %s sensor of %s incubator\n", __func__, s->name(),
+         i->name());
 
   double cur_temp = s->value();
   if (cur_temp < i->min_temp()) {
@@ -185,12 +187,9 @@ int main(int argc, const char **argv) {
     return EXIT_SUCCESS;
   }
 
-  gaia_mem_base::init(true);
+  gaia::system::initialize(true);
   init_storage();
   dump_db();
-
-  initialize_rules_engine();
-
   simulation();
   return EXIT_SUCCESS;
 }
