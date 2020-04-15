@@ -17,7 +17,6 @@ set(FLATBUFFERS "${GAIA_REPO}/third_party/production/flatbuffers")
 set(FLATBUFFERS_INC "${FLATBUFFERS}/include")
 
 set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
-set(GAIA_LINK_FLAGS "-ggdb -pthread")
 
 set(GAIA_INCUBATOR_DEMO_INCLUDES
   ${GAIA_PROD}/db/storage_engine/mock
@@ -66,7 +65,7 @@ add_executable(incubator main.cpp)
 add_dependencies(incubator generate_barn_storage)
 set_target_properties(incubator PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 target_include_directories(incubator PRIVATE ${GAIA_INCUBATOR_DEMO_INCLUDES})
-target_link_libraries(incubator PRIVATE rt gaia gaia_semock gaia_rules gaia_direct)
+target_link_libraries(incubator PRIVATE rt pthread gaia gaia_semock gaia_rules gaia_direct)
 
 add_executable(rules rules.cpp)
 add_dependencies(rules generate_barn_storage)

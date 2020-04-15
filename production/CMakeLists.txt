@@ -23,7 +23,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # Set some global variables.
 get_repo_root(${PROJECT_SOURCE_DIR} GAIA_REPO)
-set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
+set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb -fPIC")
 set(GAIA_LINK_FLAGS "-ggdb -pthread")
 set(GAIA_INC "${PROJECT_SOURCE_DIR}/inc")
 set(GOOGLE_TEST "${GAIA_REPO}/third_party/production/googletest")

@@ -3,9 +3,12 @@
 #include "gaia_system.hpp"
 #include "rules.hpp"
 #include <algorithm>
+#include <atomic>
 #include <cstring>
 #include <ctime>
 #include <iostream>
+#include <string>
+#include <thread>
 
 using namespace std;
 using namespace gaia::common;
@@ -23,6 +26,7 @@ const char SENSOR_C_NAME[] = "Temp C";
 const char ACTUATOR_A_NAME[] = "Fan A";
 const char ACTUATOR_B_NAME[] = "Fan B";
 const char ACTUATOR_C_NAME[] = "Fan C";
+atomic<bool> IN_SIMULATION{false};
 
 void init_storage() {
   gaia_base_t::begin_transaction();
@@ -43,29 +47,32 @@ void init_storage() {
 void dump_db() {
   gaia_base_t::begin_transaction();
   printf("\n");
-  printf("> SELECT * FROM incubator, sensor WHERE incubator.id = "
-         "sensor.incubator_id\n");
-  printf("  UNION\n");
-  printf("  SELECT * FROM incubator, actuator WHERE incubator.id = "
-         "actuator.incubator_id;\n\n");
 
-  printf("  name  | min_temp | max_temp | name | time | value \n");
-  printf("------------------------------------------------------\n");
+  printf("[Incubators]\n");
   for (auto i = Incubator::get_first(); i != nullptr; i = i->get_next()) {
+    printf("  name  | min_temp | max_temp \n");
+    printf("------------------------------\n");
+    printf("%-8s|%10.1lf|%10.1lf\n", i->name(), i->min_temp(), i->max_temp());
+    printf("\n");
+    printf("  [Sensors]\n");
+    printf("   name | time | value \n");
+    printf("  ---------------------\n");
     for (auto s = Sensor::get_first(); s != nullptr; s = s->get_next()) {
       if (s->incubator_id() == i->id()) {
-        printf("%8s|%10.1lf|%10.1lf|%7s|%6ld|%7.1lf\n", i->name(),
-               i->min_temp(), i->max_temp(), s->name(), s->timestamp(),
-               s->value());
+        printf("  %-6s|%6ld|%7.1lf\n", s->name(), s->timestamp(), s->value());
       }
     }
+    printf("\n");
+    printf("  [Actuators]\n");
+    printf("   name | time | value \n");
+    printf("  ---------------------\n");
     for (auto a = Actuator::get_first(); a != nullptr; a = a->get_next()) {
       if (a->incubator_id() == i->id()) {
-        printf("%8s|%10.1lf|%10.1lf|%7s|%6ld|%7.1lf\n", i->name(),
-               i->min_temp(), i->max_temp(), a->name(), a->timestamp(),
-               a->value());
+        printf("  %-6s|%6ld|%7.1lf\n", a->name(), a->timestamp(), a->value());
       }
     }
+    printf("\n");
+    printf("\n");
   }
   gaia_base_t::commit_transaction();
 }
@@ -82,7 +89,7 @@ double calc_new_temp(float curr_temp, float fan_speed) {
 void simulation() {
   time_t start, cur;
   time(&start);
-  while (true) {
+  while (IN_SIMULATION) {
     sleep(1);
     gaia_base_t::begin_transaction();
     double new_temp, fa_v, fb_v, fc_v;
@@ -129,8 +136,8 @@ Incubator *select_incubator_by_id(ulong id) {
   return nullptr;
 }
 
-void decrease_fans(Incubator *incubator) {
-  printf("%s called for %s incubator.\n", __func__, incubator->name());
+void decrease_fans(Incubator *incubator, FILE *log) {
+  fprintf(log, "%s called for %s incubator.\n", __func__, incubator->name());
   for (auto a = Actuator::get_first(); a != nullptr; a = a->get_next()) {
     if (a->incubator_id() == incubator->id()) {
       a->set_value(max(0.0, a->value() - 500.0));
@@ -140,8 +147,8 @@ void decrease_fans(Incubator *incubator) {
   }
 }
 
-void increase_fans(Incubator *incubator) {
-  printf("%s called for %s incubator.\n", __func__, incubator->name());
+void increase_fans(Incubator *incubator, FILE *log) {
+  fprintf(log, "%s called for %s incubator.\n", __func__, incubator->name());
   for (auto a = Actuator::get_first(); a != nullptr; a = a->get_next()) {
     if (a->incubator_id() == incubator->id()) {
       a->set_value(min(FAN_SPEED_LIMIT, a->value() + 500.0));
@@ -155,21 +162,39 @@ void on_sensor_changed(const context_base_t *context) {
   const table_context_t *t = static_cast<const table_context_t *>(context);
   Sensor *s = static_cast<Sensor *>(t->row);
   Incubator *i = select_incubator_by_id(s->incubator_id());
-  printf("%s fired for %s sensor of %s incubator\n", __func__, s->name(),
-         i->name());
+  FILE *log = fopen("message.log", "a");
+  fprintf(log, "%s fired for %s sensor of %s incubator\n", __func__, s->name(),
+          i->name());
 
   double cur_temp = s->value();
   if (cur_temp < i->min_temp()) {
-    decrease_fans(i);
+    decrease_fans(i, log);
   } else if (cur_temp > i->max_temp()) {
-    increase_fans(i);
+    increase_fans(i, log);
+  }
+  fclose(log);
+}
+
+void add_fan_control_rule() {
+  gaia_base_t::begin_transaction();
+  rule_binding_t fan_control("Incubator", "Fan control", on_sensor_changed);
+  subscribe_table_rule(kSensorType, event_type_t::row_update, fan_control);
+  gaia_base_t::commit_transaction();
+}
+
+void list_rules() {
+  list_subscriptions_t subs;
+  gaia_type_t gaia_type_filter{kSensorType};
+  event_type_t event_type_filter{event_type_t::row_update};
+  list_subscribed_rules("Incubator", &gaia_type_filter, &event_type_filter,
+                        subs);
+  printf("Number of rules for incubator: %ld\n", subs.size());
+  for (auto &s : subs) {
+    printf("%s\n", s->rule_name);
   }
 }
 
-extern "C" void initialize_rules() {
-  rule_binding_t fan_control("Incubator", "Fan control", on_sensor_changed);
-  subscribe_table_rule(kSensorType, event_type_t::row_update, fan_control);
-}
+extern "C" void initialize_rules() {}
 
 int main(int argc, const char **argv) {
   bool is_sim = false;
@@ -187,9 +212,61 @@ int main(int argc, const char **argv) {
     return EXIT_SUCCESS;
   }
 
+  printf("Incubator simulation...\n");
   gaia::system::initialize(true);
   init_storage();
   dump_db();
-  simulation();
+  string input;
+  thread simulation_thread[1];
+  while (true) {
+    printf("(s)tart / s(t)op / (l)ist rules / (a)dd fan control rule / "
+           "(c)lear rules / (e)xit: ");
+    getline(cin, input);
+    if (input.size() == 1) {
+      switch (input[0]) {
+      case 's':
+        if (!IN_SIMULATION) {
+          IN_SIMULATION = true;
+          simulation_thread[0] = thread(simulation);
+          printf("Simulation started...\n");
+        } else {
+          printf("Simulation is already running.\n");
+        }
+        break;
+      case 't':
+        if (IN_SIMULATION) {
+          IN_SIMULATION = false;
+          simulation_thread[0].join();
+          printf("Simulation stopped...\n");
+        } else {
+          printf("Simulatin is not started.\n");
+        }
+        break;
+      case 'l':
+        list_rules();
+        break;
+      case 'a':
+        add_fan_control_rule();
+        break;
+      case 'c':
+        unsubscribe_rules();
+        break;
+      case 'e':
+        if (IN_SIMULATION) {
+          printf("Stopping simulation...\n");
+          IN_SIMULATION = false;
+          simulation_thread[0].join();
+          printf("Simulation stopped...\n");
+        }
+        printf("Exiting...");
+        return EXIT_SUCCESS;
+        break;
+      default:
+        printf("Wrong input.");
+        break;
+      }
+    }
+  }
+
   return EXIT_SUCCESS;
 }

@@ -20,8 +20,8 @@ Incubator *select_incubator_by_id(ulong id) {
   return nullptr;
 }
 
-void decrease_fans(Incubator *incubator) {
-  printf("%s called for %s incubator.\n", __func__, incubator->name());
+void decrease_fans(Incubator *incubator, FILE *log) {
+  fprintf(log, "%s called for %s incubator.\n", __func__, incubator->name());
   for (auto a = Actuator::get_first(); a != nullptr; a = a->get_next()) {
     if (a->incubator_id() == incubator->id()) {
       a->set_value(max(0.0, a->value() - 500.0));
@@ -31,8 +31,8 @@ void decrease_fans(Incubator *incubator) {
   }
 }
 
-void increase_fans(Incubator *incubator) {
-  printf("%s called for %s incubator.\n", __func__, incubator->name());
+void increase_fans(Incubator *incubator, FILE *log) {
+  fprintf(log, "%s called for %s incubator.\n", __func__, incubator->name());
   for (auto a = Actuator::get_first(); a != nullptr; a = a->get_next()) {
     if (a->incubator_id() == incubator->id()) {
       a->set_value(min(FAN_SPEED_LIMIT, a->value() + 500.0));
@@ -43,23 +43,23 @@ void increase_fans(Incubator *incubator) {
 }
 
 void on_sensor_changed(const context_base_t *context) {
-  const table_context_t *t =
-      static_cast<const table_context_t *>(context);
+  const table_context_t *t = static_cast<const table_context_t *>(context);
   Sensor *s = static_cast<Sensor *>(t->row);
   Incubator *i = select_incubator_by_id(s->incubator_id());
-  printf("%s fired for %s sensor of %s incubator\n", __func__, s->name(),
-         i->name());
+  FILE *log = fopen("message.log", "a");
+  fprintf(log, "%s fired for %s sensor of %s incubator\n", __func__, s->name(),
+          i->name());
 
   double cur_temp = s->value();
   if (cur_temp < i->min_temp()) {
-    decrease_fans(i);
+    decrease_fans(i, log);
   } else if (cur_temp > i->max_temp()) {
-    increase_fans(i);
+    increase_fans(i, log);
   }
+  fclose(log);
 }
 
-extern "C" void initialize_rules() {
-}
+extern "C" void initialize_rules() {}
 
 void usage(const char *command) {
   printf("Usage: %s [list|show|add]\n", command);
@@ -69,14 +69,15 @@ void usage(const char *command) {
 }
 
 void list_rules() {
-    gaia::rules::list_subscriptions_t subs;
-    gaia_type_t gaia_type_filter{kSensorType};
-    event_type_t event_type_filter{event_type_t::row_update};
-    list_subscribed_rules("Incubator", &gaia_type_filter, &event_type_filter, subs);
-    printf("Number of rules for incubator: %ld\n", subs.size());
-    for (auto& s : subs) {
-        printf("%s\n", s->rule_name);
-    }
+  gaia::rules::list_subscriptions_t subs;
+  gaia_type_t gaia_type_filter{kSensorType};
+  event_type_t event_type_filter{event_type_t::row_update};
+  list_subscribed_rules("Incubator", &gaia_type_filter, &event_type_filter,
+                        subs);
+  printf("Number of rules for incubator: %ld\n", subs.size());
+  for (auto &s : subs) {
+    printf("%s\n", s->rule_name);
+  }
 }
 
 int main(int argc, const char **argv) {
@@ -93,15 +94,15 @@ int main(int argc, const char **argv) {
     return EXIT_FAILURE;
   }
   if (mode == LIST) {
-      gaia::system::initialize(false);
-      list_rules();
+    gaia::system::initialize(false);
+    list_rules();
   } else if (mode == ADD) {
-      gaia::system::initialize(true);
-      gaia_base_t::begin_transaction();
-      rule_binding_t fan_control("Incubator", "Fan control", on_sensor_changed);
-      subscribe_table_rule(kSensorType, event_type_t::row_update, fan_control);
-      gaia_base_t::commit_transaction();
-      list_rules();
+    gaia::system::initialize(false);
+    gaia_base_t::begin_transaction();
+    rule_binding_t fan_control("Incubator", "Fan control", on_sensor_changed);
+    subscribe_table_rule(kSensorType, event_type_t::row_update, fan_control);
+    gaia_base_t::commit_transaction();
+    list_rules();
   }
   return EXIT_SUCCESS;
 }
