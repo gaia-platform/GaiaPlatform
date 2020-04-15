@@ -110,7 +110,8 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
     NAME test_se_mock_jni
     COMMAND ${Java_JAVA_EXECUTABLE}
       -Djava.library.path=${PROJECT_BINARY_DIR}/db/storage_engine
-      -cp ${GAIA_TINKERPOP_JAR} com.gaiaplatform.database.CowStorageEngine)
+      -cp ${GAIA_TINKERPOP_JAR}
+      com.gaiaplatform.database.CowStorageEngine)
 
   # Add CacheGraph tests.
   add_test(
