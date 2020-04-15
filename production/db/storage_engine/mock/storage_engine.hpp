@@ -734,7 +734,7 @@ namespace db
             row_id = gaia_hash_map::find(id_copy);
         }
 
-        gaia_ptr (const gaia_id_t id, const size_t size, bool is_edge = false)
+        gaia_ptr (const gaia_id_t id, const size_t size, bool is_edge = false, bool log_updates = true)
             :row_id(0)
         {
             gaia_id_t id_copy = preprocess_id(id, is_edge);
@@ -743,7 +743,10 @@ namespace db
             hash_node->row_id = row_id = gaia_mem_base::allocate_row_id();
             gaia_mem_base::allocate_object(row_id, size);
 
-            gaia_mem_base::tx_log (row_id, 0, to_offset());
+            // writing to log will be skipped for recovery
+            if (log_updates) {
+                gaia_mem_base::tx_log (row_id, 0, to_offset());
+            }
         }
 
         gaia_id_t preprocess_id(const gaia_id_t& id, bool is_edge = false)
@@ -830,10 +833,11 @@ namespace db
             gaia_id_t id,
             gaia_type_t type,
             size_t payload_size,
-            const void* payload
+            const void* payload,
+            bool log_updates = true
         )
         {
-            gaia_ptr<gaia_se_node> node(id, payload_size + sizeof(gaia_se_node));
+            gaia_ptr<gaia_se_node> node(id, payload_size + sizeof(gaia_se_node), false, log_updates);
 
             node->id = id;
             node->type = type;
@@ -870,7 +874,8 @@ namespace db
             gaia_id_t first,
             gaia_id_t second,
             size_t payload_size,
-            const void* payload
+            const void* payload, 
+            bool log_updates = true
         )
         {
             gaia_ptr<gaia_se_node> node_first (first);
@@ -886,7 +891,7 @@ namespace db
                 throw invalid_node_id(second);
             }
 
-            gaia_ptr<gaia_se_edge> edge(id, payload_size + sizeof(gaia_se_edge), true);
+            gaia_ptr<gaia_se_edge> edge(id, payload_size + sizeof(gaia_se_edge), true, log_updates);
 
             edge->id = id;
             edge->type = type;
