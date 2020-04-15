@@ -18,7 +18,6 @@ using namespace BarnStorage;
 
 enum { chicken_incubator_id = 1, puppy_incubator_id = 2 };
 
-int TIMESTAMP = 0;
 const double FAN_SPEED_LIMIT = 3500.0;
 const char SENSOR_A_NAME[] = "Temp A";
 const char SENSOR_B_NAME[] = "Temp B";
@@ -27,6 +26,7 @@ const char ACTUATOR_A_NAME[] = "Fan A";
 const char ACTUATOR_B_NAME[] = "Fan B";
 const char ACTUATOR_C_NAME[] = "Fan C";
 atomic<bool> IN_SIMULATION{false};
+atomic<int> TIMESTAMP{0};
 
 void init_storage() {
   gaia_base_t::begin_transaction();
@@ -176,10 +176,12 @@ void on_sensor_changed(const context_base_t *context) {
 }
 
 void add_fan_control_rule() {
-  gaia_base_t::begin_transaction();
-  rule_binding_t fan_control("Incubator", "Fan control", on_sensor_changed);
-  subscribe_table_rule(kSensorType, event_type_t::row_update, fan_control);
-  gaia_base_t::commit_transaction();
+  try {
+    rule_binding_t fan_control("Incubator", "Fan control", on_sensor_changed);
+    subscribe_table_rule(kSensorType, event_type_t::row_update, fan_control);
+  } catch (duplicate_rule) {
+    printf("The rule has already been added.\n");
+  }
 }
 
 void list_rules() {
@@ -189,9 +191,19 @@ void list_rules() {
   list_subscribed_rules("Incubator", &gaia_type_filter, &event_type_filter,
                         subs);
   printf("Number of rules for incubator: %ld\n", subs.size());
-  for (auto &s : subs) {
-    printf("%s\n", s->rule_name);
+  if (subs.size() > 0) {
+    printf("\n");
+    printf(" rule set | rule name | event \n");
+    printf("------------------------------\n");
   }
+  map<event_type_t, const char *> event_names;
+  event_names[event_type_t::row_update] = "Row update";
+  event_names[event_type_t::row_insert] = "Row insert";
+  for (auto &s : subs) {
+    printf("%-10s|%-11s|%-7s\n", s->ruleset_name, s->rule_name,
+           event_names[s->type]);
+  }
+  printf("\n");
 }
 
 extern "C" void initialize_rules() {}
