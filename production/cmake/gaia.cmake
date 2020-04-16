@@ -66,9 +66,10 @@ function(gaia_compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT OUTPUT_DIR)
     # --cpp-std is defined by flatc default settings.
   endif()
   get_filename_component(SRC_FBS_DIR ${SRC_FBS} PATH)
-  string(REGEX REPLACE "\\.fbs$" "_generated.h" GEN_HEADER ${SRC_FBS})
+  get_filename_component(SRC_FBS_FILE ${SRC_FBS} NAME)
+  string(REGEX REPLACE "\\.fbs$" "_generated.h" GEN_HEADER ${SRC_FBS_FILE})
   add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${GEN_HEADER}
+    OUTPUT ${OUTPUT_DIR}/${GEN_HEADER}
     COMMAND "${CMAKE_BINARY_DIR}/flatbuffers/flatc"
             --cpp --gen-mutable --gen-object-api --reflect-names
             --cpp-ptr-type flatbuffers::unique_ptr # Used to test with C++98 STLs
@@ -83,7 +84,7 @@ function(gaia_compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT OUTPUT_DIR)
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
     COMMENT "Run generation: '${GEN_HEADER}'"
     VERBATIM)
-    register_generated_output(${GEN_HEADER})
+    register_generated_output(${OUTPUT_DIR}/${GEN_HEADER})
 endfunction()
 
 # Gaia specific flatc helpers for generating headers
