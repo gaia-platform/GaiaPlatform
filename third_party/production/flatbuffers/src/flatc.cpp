@@ -131,7 +131,7 @@ std::string FlatCompiler::GetUsageString(const char *program_name) const {
     "  --gen-table-events       generate code in Gaia Wrapper to invoke event manager on table change.\n"
     "  --gen-transaction-events generate code in Gaia Wrapper to invoke event manager on transaction.\n"
     "  --gen-setters            generate code in Gaia Wrapper to generate setters for class data.\n"
-    "  --gaia_type_initial_value sets an initial value while generating Gaia type.\n"
+    "  --gaia-type-initial-value sets an initial value while generating Gaia type.\n"
     "  --object-prefix          Customise class prefix for C++ object-based API.\n"
     "  --object-suffix          Customise class suffix for C++ object-based API.\n"
     "                           Default value is \"T\".\n"
@@ -297,8 +297,8 @@ int FlatCompiler::Compile(int argc, const char **argv) {
       } else if (arg == "--object-prefix") {
         if (++argi >= argc) Error("missing prefix following: " + arg, true);
         opts.object_prefix = argv[argi];        
-      } else if (arg == "--gaia_type_initial_value") {
-        if (++argi >= argc) Error("missing prefix following: " + arg, true);
+      } else if (arg == "--gaia-type-initial-value") {
+        if (++argi >= argc) Error("missing value following: " + arg, true);
         opts.gaia_type_initial_value = StringToUInt(argv[argi]);
       } else if (arg == "--object-suffix") {
         if (++argi >= argc) Error("missing suffix following: " + arg, true);
