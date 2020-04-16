@@ -1,3 +1,8 @@
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
 cmake_minimum_required(VERSION 3.11)
 
 set(LLVM_LIB_PATH "/usr/lib/llvm-8")

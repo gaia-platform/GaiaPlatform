@@ -1,3 +1,14 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <unordered_set>
+
 #include "clang/Driver/Options.h"
 #include "clang/AST/AST.h"
 #include "clang/AST/ASTContext.h"
@@ -7,11 +18,7 @@
 #include "clang/Frontend/FrontendAction.h"
 #include "clang/Tooling/Tooling.h"
 #include "clang/Tooling/CommonOptionsParser.h"
-#include <string>
-#include <fstream>
-#include <sstream>
-#include <vector>
-#include <unordered_set>
+
 using namespace std;
 using namespace clang;
 using namespace clang::driver;

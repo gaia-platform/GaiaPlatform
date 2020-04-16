@@ -96,11 +96,11 @@ while edge_iter.get() != None:
 print ('');
 
 print ('');
-print("Deleting edge 1...");
+print("Deleting edge 5...");
 edge1 = gaia_se_edge.open(5);
 gaia_se_edge_ptr.remove(edge1);
 
-print("Deleting edge 4...");
+print("Deleting edge 8...");
 edge4 = gaia_se_edge.open(8);
 gaia_se_edge_ptr.remove(edge4);
 
