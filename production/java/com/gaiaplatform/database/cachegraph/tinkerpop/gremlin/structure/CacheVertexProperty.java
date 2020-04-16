@@ -139,7 +139,7 @@ public final class CacheVertexProperty<V> extends CacheElement implements Vertex
             {
                 this.vertex.properties.remove(this.key);
             }
-        }        
+        }
 
         // Update node payload in COW.
         if (!CacheHelper.updateNodePayload(this.vertex))

@@ -62,4 +62,3 @@ g.V().has('iata', 'SEA').out().as('a').outE().has('airline', 'RO').inV().has('ia
 // What are the flights from SEA to OTP that avoid flying with RO.
 g.V().has('iata', 'SEA').repeat(outE().not(has('airline', 'RO')).inV()).times(2).has('iata', 'OTP').
   path().by('iata').by('airline')
-  
