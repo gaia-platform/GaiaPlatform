@@ -166,7 +166,7 @@ int32_t query_airline_to_Tarom_connection(vector<string> req)
     return i;
 }
 
-// Query $5: Describe the 1 hop routes between SEA and OTP that avoid Tarom to OTP.
+// Query #5: Describe the 1 hop routes between SEA and OTP that avoid Tarom to OTP.
 int32_t query_SEA_to_OTP_no_Tarom()
 {
     uint32_t i = 0;
@@ -184,10 +184,10 @@ int32_t query_SEA_to_OTP_no_Tarom()
                     final_ap = next_ap->get_next_node())
                 {
                     if (final_ap->iata() != nullptr && strcmp("OTP", final_ap->iata()) == 0) {
-                        auto ap_edge_id = ap->gaia_edge_id();
-                        auto ap_edge = Routes::get_edge_by_id(ap_edge_id);
                         auto next_ap_edge_id = next_ap->gaia_edge_id();
                         auto next_ap_edge = Routes::get_edge_by_id(next_ap_edge_id);
+                            auto ap_edge_id = ap->gaia_edge_id();
+                            auto ap_edge = Routes::get_edge_by_id(ap_edge_id);
                         if (strcmp(next_ap_edge->airline(), "RO") != 0) {
                             printf("==>%s on %s to %s on %s to %s\n", ap->iata(), ap_edge->airline(),
                                 next_ap->iata(), next_ap_edge->airline(), final_ap->iata());
@@ -196,6 +196,7 @@ int32_t query_SEA_to_OTP_no_Tarom()
                     }
                 }
             }
+            break;
         }
     }
     commit_transaction();

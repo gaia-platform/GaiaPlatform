@@ -171,44 +171,44 @@ public:
             }
         }
         if (edge == nullptr) {
-            m_next_edge = nullptr;
+            m_current_edge = nullptr;
             return nullptr;
         }
-        // there will be a node at the other end of this edge
+        // There will be a node at the other end of this edge.
         auto next_node = edge_orientation == edge_orientation_t::to ? edge->node_second : edge->node_first;
-        m_next_edge = edge;
+        m_current_edge = edge;
         m_edge_orientation = edge_orientation;
         m_edge_type = edge_type;
         return get_object<gaia_ptr<gaia_se_node>>(next_node);
     }
 
     T_gaia* get_next_node() {
-        if (m_next_edge == nullptr) {
+        if (m_current_edge == nullptr) {
             return nullptr;
         }
         if (m_edge_orientation == edge_orientation_t::to) {
-            m_next_edge = m_next_edge->next_edge_first;
-            while (m_next_edge != nullptr && m_next_edge->type != m_edge_type) {
-                m_next_edge = m_next_edge->next_edge_first;
+            m_current_edge = m_current_edge->next_edge_first;
+            while (m_current_edge != nullptr && m_current_edge->type != m_edge_type) {
+                m_current_edge = m_current_edge->next_edge_first;
             }
         }
         else {
-            m_next_edge = m_next_edge->next_edge_second;
-            while (m_next_edge != nullptr && m_next_edge->type != m_edge_type) {
-                m_next_edge = m_next_edge->next_edge_second;
+            m_current_edge = m_current_edge->next_edge_second;
+            while (m_current_edge != nullptr && m_current_edge->type != m_edge_type) {
+                m_current_edge = m_current_edge->next_edge_second;
             }
         }
-        if (m_next_edge == nullptr) {
+        if (m_current_edge == nullptr) {
             return nullptr;
         }
         // there will be a node at the other end of this edge
-        auto next_node = m_edge_orientation == edge_orientation_t::to ? m_next_edge->node_second : m_next_edge->node_first;
+        auto next_node = m_edge_orientation == edge_orientation_t::to ? m_current_edge->node_second : m_current_edge->node_first;
         return get_object<gaia_ptr<gaia_se_node>>(next_node);
     }
 
     gaia_id_t gaia_edge_id() {
-        if (m_next_edge != nullptr) {
-            return m_next_edge->id;
+        if (m_current_edge != nullptr) {
+            return m_current_edge->id;
         }
         return 0;
     }
@@ -289,12 +289,12 @@ protected:
     unique_ptr<T_obj> m_copy;   
     // Flatbuffer referencing SE memory.
     const T_fb* m_fb;
-    // Drection of edge traversal.
+    // Direction of edge traversal.
     edge_orientation_t m_edge_orientation;
     // Type of edge being traversed.
     gaia_type_t m_edge_type;
     // Current edge in a traversal.
-    gaia_ptr<gaia_se_edge> m_next_edge;
+    gaia_ptr<gaia_se_edge> m_current_edge;
 
     T_obj* copy_write()
     {
