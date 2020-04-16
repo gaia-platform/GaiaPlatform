@@ -60,16 +60,44 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   add_jar(GaiaTinkerpop
     SOURCES
       java/com/gaiaplatform/database/CowStorageEngine.java
+      java/com/gaiaplatform/database/Airline.java
+      java/com/gaiaplatform/database/Airport.java
+      java/com/gaiaplatform/database/Route.java
       java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheEdge.java
       java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheElement.java
       java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheFactory.java
       java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheGraph.java
       java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheHelper.java
       java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheProperty.java
+      java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheTransaction.java
       java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheVertex.java
       java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheVertexProperty.java
+      ${FLATBUFFERS}/java/com/google/flatbuffers/ArrayReadWriteBuf.java
+      ${FLATBUFFERS}/java/com/google/flatbuffers/BaseVector.java
+      ${FLATBUFFERS}/java/com/google/flatbuffers/BooleanVector.java
+      ${FLATBUFFERS}/java/com/google/flatbuffers/ByteBufferReadWriteBuf.java
+      ${FLATBUFFERS}/java/com/google/flatbuffers/ByteBufferUtil.java
+      ${FLATBUFFERS}/java/com/google/flatbuffers/ByteVector.java
+      ${FLATBUFFERS}/java/com/google/flatbuffers/Constants.java
+      ${FLATBUFFERS}/java/com/google/flatbuffers/DoubleVector.java
+      ${FLATBUFFERS}/java/com/google/flatbuffers/FlatBufferBuilder.java
+      ${FLATBUFFERS}/java/com/google/flatbuffers/FlexBuffers.java
+      ${FLATBUFFERS}/java/com/google/flatbuffers/FlexBuffersBuilder.java
+      ${FLATBUFFERS}/java/com/google/flatbuffers/FloatVector.java
+      ${FLATBUFFERS}/java/com/google/flatbuffers/IntVector.java
+      ${FLATBUFFERS}/java/com/google/flatbuffers/LongVector.java
+      ${FLATBUFFERS}/java/com/google/flatbuffers/ReadBuf.java
+      ${FLATBUFFERS}/java/com/google/flatbuffers/ReadWriteBuf.java
+      ${FLATBUFFERS}/java/com/google/flatbuffers/ShortVector.java
+      ${FLATBUFFERS}/java/com/google/flatbuffers/StringVector.java
+      ${FLATBUFFERS}/java/com/google/flatbuffers/Struct.java
+      ${FLATBUFFERS}/java/com/google/flatbuffers/Table.java
+      ${FLATBUFFERS}/java/com/google/flatbuffers/UnionVector.java
+      ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8.java
+      ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8Old.java
+      ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8Safe.java
     GENERATE_NATIVE_HEADERS storage_engine_mock_jni_headers
-    DESTINATION ${PROJECT_BINARY_DIR}/db/storage_engine/mock)
+      DESTINATION ${PROJECT_BINARY_DIR}/db/storage_engine/mock)
   get_target_property(GAIA_TINKERPOP_JAR GaiaTinkerpop JAR_FILE)
 
   # Add a test that executes the Java program.
@@ -88,7 +116,7 @@ target_sources(gaia_common INTERFACE
 )
 
 # Add flatbuffers
-add_subdirectory("../third_party/production/flatbuffers" flatbuffers)
+add_subdirectory(${FLATBUFFERS} flatbuffers)
 
 # Add individual component folders.
 add_subdirectory(db)

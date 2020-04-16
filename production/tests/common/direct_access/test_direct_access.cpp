@@ -154,6 +154,37 @@ TEST_F(gaia_object_test, new_get) {
     gaia_base_t::commit_transaction();
 }
 
+TEST_F(gaia_object_test, new_del_field_ref) {
+    // create GAIA-64 scenario
+    gaia_base_t::begin_transaction();
+
+    auto e = new Employee();
+    e->insert_row();
+    e->delete_row();
+    auto name = e->name_first();
+    EXPECT_EQ(name, nullptr);
+    auto hire_date = e->hire_date();
+    EXPECT_EQ(hire_date, 0);
+    e->set_name_last("Hendricks");
+
+    gaia_base_t::commit_transaction();
+}
+
+TEST_F(gaia_object_test, new_del_original_field_ref) {
+    // create GAIA-64 scenario
+    gaia_base_t::begin_transaction();
+
+    auto e = new Employee();
+    e->insert_row();
+    e->delete_row();
+    auto name = e->name_first_original();
+    EXPECT_EQ(name, nullptr);
+    auto hire_date = e->hire_date_original();
+    EXPECT_EQ(hire_date, 0);
+
+    gaia_base_t::commit_transaction();
+}
+
 // Test on existing objects found by ID
 // ====================================
 

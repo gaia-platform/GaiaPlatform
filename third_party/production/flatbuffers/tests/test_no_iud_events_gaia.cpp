@@ -108,7 +108,7 @@ int main(int /*argc*/, const char * /*argv*/[])
         TEST_OUTPUT_LINE("The global C-locale changed: %s", the_locale.c_str());
     }
 
-    gaia_mem_base::init(true);
+    gaia_mem_base::init("no_iud_events", true);
     GaiaNoIUDEventsTest();
 
     if (!testing_fails) 

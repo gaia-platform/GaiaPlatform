@@ -46,6 +46,8 @@ public final class CacheVertex extends CacheElement implements Vertex
 
     public Edge addEdge(final String label, final Vertex inVertex, final Object... keyValues)
     {
+        CacheHelper.debugPrint(this.graph, "vertex::addEdge()");
+
         if (this.removed)
         {
             throw elementAlreadyRemoved(Vertex.class, this.id);
@@ -70,6 +72,8 @@ public final class CacheVertex extends CacheElement implements Vertex
         final V value,
         final Object... keyValues)
     {
+        CacheHelper.debugPrint(this.graph, "vertex::property()");
+
         if (this.removed)
         {
             throw elementAlreadyRemoved(Vertex.class, id);
@@ -105,8 +109,10 @@ public final class CacheVertex extends CacheElement implements Vertex
         ElementHelper.attachProperties(newVertexProperty, keyValues);
 
         // Update node payload in COW.
+        // We don't have to do this if the node is being created,
+        // which we detect by checking if it's been added to the graph.vertices map.
         // No plans to support vertex property properties in COW for now.
-        if (!CacheHelper.updateNodePayload(this))
+        if (this.graph.vertices.containsKey(id) && !CacheHelper.updateNodePayload(this))
         {
             throw new UnsupportedOperationException("COW node update failed!");
         }
@@ -116,7 +122,7 @@ public final class CacheVertex extends CacheElement implements Vertex
 
     public <V> Iterator<VertexProperty<V>> properties(final String... propertyKeys)
     {
-        if (removed || this.properties == null)
+        if (this.removed || this.properties == null)
         {
             return Collections.emptyIterator();
         }
@@ -160,6 +166,8 @@ public final class CacheVertex extends CacheElement implements Vertex
 
     public void remove()
     {
+        CacheHelper.debugPrint(this.graph, "vertex::remove()");
+
         // First remove all edges related to this node.
         // This will also remove the edges from COW.
         final List<Edge> edges = new ArrayList<>();

@@ -498,9 +498,7 @@ function(compile_flatbuffers_schema_to_embedded_binary SRC_FBS OPT)
 endfunction()
 
 if(FLATBUFFERS_BUILD_TESTS)
-#  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/tests" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
-#  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
-  
+ 
   file(GLOB FLATC_TESTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/*)
   foreach(CurrentTestFile IN LISTS FLATC_TESTS)
     add_custom_command(

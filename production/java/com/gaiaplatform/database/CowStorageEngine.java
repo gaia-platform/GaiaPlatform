@@ -14,6 +14,79 @@ public class CowStorageEngine
      
     public static void main(String[] args)
     {
+        if (args.length == 0)
+        {
+            runCowTest();
+        }
+        else if (args[0] != null && args[0].toLowerCase().equals("dump"))
+        {
+            dumpCow();
+        }
+        else
+        {
+            System.out.println("The only valid argument is 'dump'!");
+        }
+    }
+
+    public static void dumpCow()
+    {
+        CowStorageEngine cow = new CowStorageEngine();
+
+        cow.open();
+
+        cow.beginTransaction();
+
+        long currentType = 1;
+        while (true)
+        {
+            System.out.println("\n>>> Looking for entities of type " + currentType + "...");
+
+            boolean hasFoundNode = false;
+            boolean hasFoundEdge = false;
+
+            long currentNodeId = cow.findFirstNode(currentType);
+            while (currentNodeId != 0)
+            {
+                if (!hasFoundNode)
+                {
+                    hasFoundNode = true;
+                    System.out.println(">>> Found nodes:");
+                }
+
+                cow.printNode(currentNodeId);
+                currentNodeId = cow.findNextNode(currentNodeId);
+            }
+    
+            long currentEdgeId = cow.findFirstEdge(currentType);
+            while (currentEdgeId != 0)
+            {
+                if (!hasFoundEdge)
+                {
+                    hasFoundEdge = true;
+                    System.out.println(">>> Found edges:");
+                }
+
+                cow.printEdge(currentEdgeId);
+                currentEdgeId = cow.findNextEdge(currentEdgeId);
+            }
+
+            if (!hasFoundNode && !hasFoundEdge)
+            {
+                System.out.println(
+                    ">>> Could not find a node or edge of type " + currentType
+                    + "! Will conclude storage scan.");
+                break;
+            }
+
+            ++currentType;
+        }
+
+        // We're not making any changes to COW, so we can just rollback.
+        cow.rollbackTransaction();
+    }
+
+    private static void runCowTest()
+    {
         CowStorageEngine cow = new CowStorageEngine();
 
         cow.create();
@@ -101,10 +174,10 @@ public class CowStorageEngine
         printEmptyLine();
         
         printEmptyLine();
-        System.out.println("Deleting edge 1...");
+        System.out.println("Deleting edge 5...");
         cow.removeEdge(5);
         
-        System.out.println("Deleting edge 4...");
+        System.out.println("Deleting edge 8...");
         cow.removeEdge(8);
         
         System.out.println("Deleting node 2...");
@@ -150,6 +223,31 @@ public class CowStorageEngine
         System.out.println("");
     }
 
+    private static void printPayload(byte[] payload)
+    {
+        if (payload.length == 0)
+        {
+            return;
+        }
+
+        final char LOWEST_PRINTABLE_CHARACTER = 32;
+        final char HIGHEST_PRINTABLE_CHARACTER = 126;
+
+        System.out.print(" Payload: ");
+        for (int i = 0; i < payload.length; i++)
+        {
+            char character = (char)payload[i];
+            if (character >= LOWEST_PRINTABLE_CHARACTER && character <= HIGHEST_PRINTABLE_CHARACTER)
+            {
+                System.out.print(character);
+            }
+            else
+            {
+                System.out.print(".");
+            }
+        }
+    }
+
     public void printEdge(long edgeId)
     {
         printEdge(edgeId, false);
@@ -172,7 +270,7 @@ public class CowStorageEngine
 
         System.out.print("Edge id:" + edgeId + ", type:" + getEdgeType(edgeId));
 
-        System.out.print(" Payload: " + getEdgePayload(edgeId));
+        printPayload(getEdgePayload(edgeId));
 
         if (!indent) 
         {
@@ -208,7 +306,7 @@ public class CowStorageEngine
 
         System.out.print("Node id:" + nodeId + ", type:" + getNodeType(nodeId));
 
-        System.out.print(" Payload: " + getNodePayload(nodeId));
+        printPayload(getNodePayload(nodeId));
 
         if (indent
             || (getFirstEdgeWithNodeAsFirst(nodeId) == 0 && getFirstEdgeWithNodeAsSecond(nodeId) == 0))
@@ -232,6 +330,26 @@ public class CowStorageEngine
 
         printEmptyLine();
     }
+
+    public long createNode(long id, long type, String payload)
+    {
+        return createNode(id, type, payload.getBytes());
+    }
+
+    public boolean updateNodePayload(long id, String payload)
+    {
+        return updateNodePayload(id, payload.getBytes());
+    }
+
+    public long createEdge(long id, long type, long idFirstNode, long idSecondNode, String payload)
+    {
+        return createEdge(id, type, idFirstNode, idSecondNode, payload.getBytes());
+    }
+
+    public boolean updateEdgePayload(long id, String payload)
+    {
+        return updateEdgePayload(id, payload.getBytes());
+    }
     
     // Native interface.
     public native boolean create();
@@ -241,21 +359,21 @@ public class CowStorageEngine
     public native void commitTransaction();
     public native void rollbackTransaction();
 
-    public native long createNode(long id, long type, String payload);
-    public native boolean updateNodePayload(long id, String payload);
+    public native long createNode(long id, long type, byte[] payload);
+    public native boolean updateNodePayload(long id, byte[] payload);
     public native boolean removeNode(long id);
 
     public native long findFirstNode(long type);
     public native long findNextNode(long id);
 
     public native long getNodeType(long id);
-    public native String getNodePayload(long id);
+    public native byte[] getNodePayload(long id);
 
     public native long getFirstEdgeWithNodeAsFirst(long id);
     public native long getFirstEdgeWithNodeAsSecond(long id);
 
-    public native long createEdge(long id, long type, long idFirstNode, long idSecondNode, String payload);
-    public native boolean updateEdgePayload(long id, String payload);
+    public native long createEdge(long id, long type, long idFirstNode, long idSecondNode, byte[] payload);
+    public native boolean updateEdgePayload(long id, byte[] payload);
     public native boolean removeEdge(long id);
 
     public native long findFirstEdge(long type);
@@ -264,7 +382,7 @@ public class CowStorageEngine
     public native long getEdgeType(long id);
     public native long getEdgeFirstNode(long id);
     public native long getEdgeSecondNode(long id);
-    public native String getEdgePayload(long id);
+    public native byte[] getEdgePayload(long id);
 
     public native long getNextEdgeWithSameFirstNode(long id);
     public native long getNextEdgeWithSameSecondNode(long id);

@@ -68,6 +68,7 @@ function(gaia_compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT OUTPUT_DIR)
   get_filename_component(SRC_FBS_DIR ${SRC_FBS} PATH)
   get_filename_component(SRC_FBS_FILE ${SRC_FBS} NAME)
   string(REGEX REPLACE "\\.fbs$" "_generated.h" GEN_HEADER ${SRC_FBS_FILE})
+
   add_custom_command(
     OUTPUT ${OUTPUT_DIR}/${GEN_HEADER}
     COMMAND "${CMAKE_BINARY_DIR}/flatbuffers/flatc"
