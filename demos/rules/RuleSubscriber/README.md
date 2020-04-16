@@ -25,7 +25,7 @@ using namespace gaia::rules;
 namespace ruleset_1
 {
 /**
- rule, rule_obj,TestGaia::gaia_type,  event_type::row_update, event_type::col_change, event_type::transaction_rollback
+ rule, rule_obj, TestGaia::gaia_type = 3, event_type::row_update, event_type::col_change, event_type::transaction_rollback
 */
     void ObjectRule_handler(const context_base_t *context)
     {
