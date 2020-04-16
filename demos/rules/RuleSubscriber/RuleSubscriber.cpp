@@ -34,53 +34,13 @@ struct rule_data
     string ruleset;
     string rule_name;
     string rule;
-    string qualified_rule;
     string event_type;
     string gaia_type;
     bool is_transaction_rule;
 };
 
 vector<rule_data> rules;
-
-vector<string> split(const string &text, char separator) 
-    {
-        vector<string> tokens;
-        size_t start = 0, end = 0;
-        
-        while ((end = text.find(separator, start)) != string::npos) 
-        {      
-            tokens.push_back(text.substr(start, end - start));
-            start = end + 1;
-        }
-        
-        tokens.push_back(text.substr(start));
-        return tokens;
-    }
-
-    // Trim from start.
-    string &ltrim(string &s) 
-    {
-        s.erase(s.begin(), 
-            find_if(s.begin(), s.end(), not1(ptr_fun<int, int>(isspace))));
-        return s;
-    }
-
-    // Trim from end.
-    string &rtrim(string &s) 
-    {
-        s.erase(
-            find_if(s.rbegin(), s.rend(), not1(ptr_fun<int, int>(isspace))).base(), s.end());
-        return s;
-    }
-
-    // Trim from both ends.
-    string &trim(string &s) 
-    {
-        return ltrim(rtrim(s));
-    }
 string current_ruleset;
-
-
 
 class Rule_Subscriber_Visitor
   : public RecursiveASTVisitor<Rule_Subscriber_Visitor> 
@@ -159,9 +119,7 @@ public:
                         ruleData.rule_name = rule_name;
                         ruleData.is_transaction_rule = event_type.find("transaction_") != string::npos;
                         ruleData.gaia_type = gaia_type;
-                        ruleData.rule = d->getNameAsString();
-                        ruleData.qualified_rule = d->getQualifiedNameAsString();
-                        
+                        ruleData.rule = d->getQualifiedNameAsString();
 
                         // Check if event_type is valid i.e.
                         //  1. event_type is not empty and 
@@ -200,6 +158,45 @@ public:
         }
 
         return true;
+    }
+
+private:
+
+    vector<string> split(const string &text, char separator) 
+    {
+        vector<string> tokens;
+        size_t start = 0, end = 0;
+        
+        while ((end = text.find(separator, start)) != string::npos) 
+        {      
+            tokens.push_back(text.substr(start, end - start));
+            start = end + 1;
+        }
+        
+        tokens.push_back(text.substr(start));
+        return tokens;
+    }
+
+    // Trim from start.
+    string &ltrim(string &s) 
+    {
+        s.erase(s.begin(), 
+            find_if(s.begin(), s.end(), not1(ptr_fun<int, int>(isspace))));
+        return s;
+    }
+
+    // Trim from end.
+    string &rtrim(string &s) 
+    {
+        s.erase(
+            find_if(s.rbegin(), s.rend(), not1(ptr_fun<int, int>(isspace))).base(), s.end());
+        return s;
+    }
+
+    // Trim from both ends.
+    string &trim(string &s) 
+    {
+        return ltrim(rtrim(s));
     }
 };
 
@@ -250,55 +247,12 @@ void generateCode(const char *fileName, const vector<rule_data>& rules)
     //Generate rules forward declarations.
     for (auto it = rules.cbegin(); it != rules.cend(); ++it)
     {
-      declarations.emplace(it->qualified_rule);        
+      declarations.emplace( "void " + it->rule + "(const context_base_t *context);");        
     }
 
     for (auto it = declarations.cbegin(); it != declarations.cend(); ++it)
     {
-        vector<string> namespaces = split(*it, ':');
-        int namespace_count = 0;
-        for (auto namespace_iterator = namespaces.cbegin(); namespace_iterator != namespaces.cend() - 1; ++namespace_iterator)
-        {
-            if (!namespace_iterator->empty())
-            {
-                code << "namespace " << *namespace_iterator << "{" << endl;
-                namespace_count ++;
-            }
-        }
-        code << "void " << *(namespaces.cend() - 1) << "(const context_base_t *context);" << endl;
-        for (int namespace_count_idx = 0; namespace_count_idx < namespace_count; ++namespace_count_idx)
-        {
-            code << "}" << endl;
-        }   
-    }
-
-    declarations.clear();
-
-    for (auto it = rules.cbegin(); it != rules.cend(); ++it)
-    {
-        if (!it->is_transaction_rule)
-        {
-            declarations.emplace( it->gaia_type);  
-        }      
-    }
-
-    for (auto it = declarations.cbegin(); it != declarations.cend(); ++it)
-    {
-        vector<string> namespaces = split(*it,':');
-        int namespace_count = 0;
-        for (auto namespace_iterator = namespaces.cbegin(); namespace_iterator != namespaces.cend() - 1; ++namespace_iterator)
-        {
-            if (!namespace_iterator->empty())
-            {
-                code << "namespace " << *namespace_iterator << "{" << endl;
-                namespace_count ++;
-            }
-        }
-        code << "gaia::common::gaia_type_t " << *(namespaces.cend() - 1) << ";" << endl;
-        for (int namespace_count_idx = 0; namespace_count_idx < namespace_count; ++ namespace_count_idx)
-        {
-            code << "}" << endl;
-        }
+        code << *it << endl;   
     }
 
     declarations.clear();
@@ -309,7 +263,7 @@ void generateCode(const char *fileName, const vector<rule_data>& rules)
     for (auto it = rules.cbegin(); it != rules.cend(); ++it)
     {
         declarations.emplace("    rule_binding_t  " + it->rule + "(\"" 
-            + it->ruleset +  "\", \"" + it->rule_name + "\", " + it->qualified_rule + ");");        
+            + it->ruleset +  "\",\"" + it->rule_name + "\"," + it->rule + ");");        
     }
 
     for (auto it = declarations.cbegin(); it != declarations.cend(); ++it)
@@ -322,13 +276,13 @@ void generateCode(const char *fileName, const vector<rule_data>& rules)
     {
         if (it->is_transaction_rule)
         {
-            code << "    subscribe_transaction_rule(" << it->event_type << ", " 
+            code << "    subscribe_transaction_rule(" << it->event_type << "," 
                 << it->rule << ");" << endl;
         }
         else
         {
-            code << "    subscribe_table_rule(" << it->gaia_type << ", " 
-                << it->event_type << ", " << it->rule << ");" << endl;
+            code << "    subscribe_table_rule(" << it->gaia_type << "," 
+                << it->event_type << "," << it->rule << ");" << endl;
         }
 
     }
