@@ -100,7 +100,7 @@ public final class CacheVertex extends CacheElement implements Vertex
         if (this.properties == null)
         {
             this.properties = new ConcurrentHashMap<>();
-        } 
+        }
 
         final List<VertexProperty> list = this.properties.getOrDefault(key, new ArrayList<>());
         list.add(newVertexProperty);

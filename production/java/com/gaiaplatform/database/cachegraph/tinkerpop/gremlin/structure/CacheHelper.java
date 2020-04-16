@@ -345,7 +345,7 @@ public final class CacheHelper
                 }
             }
         }
-    
+
         graph.addVertex(keyValues.toArray());
     }
 
@@ -460,7 +460,7 @@ public final class CacheHelper
         {
             return false;
         }
-        
+
         graph.tx().open();
         return true;
     }
@@ -887,7 +887,7 @@ public final class CacheHelper
         {
             return null;
         }
-    
+
         return builder.sizedByteArray();
     }
 
@@ -980,7 +980,7 @@ public final class CacheHelper
         {
             return null;
         }
-    
+
         return builder.sizedByteArray();
     }
 
@@ -1094,7 +1094,7 @@ public final class CacheHelper
     {
         if (vertex.inEdges == null)
         {
-            vertex.inEdges = new ConcurrentHashMap<>();   
+            vertex.inEdges = new ConcurrentHashMap<>();
         }
 
         Set<Edge> edges = vertex.inEdges.get(label);

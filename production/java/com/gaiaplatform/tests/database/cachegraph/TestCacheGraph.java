@@ -158,11 +158,11 @@ public final class TestCacheGraph
         assert g.V().has("iata", "OTP").hasNext() == true;
 
         // Which airports are directly reachable from SEA?
-        // There should be 3: AMS, CDG, and JFK. 
+        // There should be 3: AMS, CDG, and JFK.
         List<Object> airports = g.V().has("iata", "SEA").out().out("arrives_at").dedup().values("iata").fold().next();
         assert airports.size() == 3;
-        assert airports.get(0).equals("AMS") || airports.get(0).equals("CDG") || airports.get(0).equals("JFK"); 
-        assert airports.get(1).equals("AMS") || airports.get(1).equals("CDG") || airports.get(1).equals("JFK"); 
-        assert airports.get(2).equals("AMS") || airports.get(2).equals("CDG") || airports.get(2).equals("JFK"); 
+        assert airports.get(0).equals("AMS") || airports.get(0).equals("CDG") || airports.get(0).equals("JFK");
+        assert airports.get(1).equals("AMS") || airports.get(1).equals("CDG") || airports.get(1).equals("JFK");
+        assert airports.get(2).equals("AMS") || airports.get(2).equals("CDG") || airports.get(2).equals("JFK");
     }
 }

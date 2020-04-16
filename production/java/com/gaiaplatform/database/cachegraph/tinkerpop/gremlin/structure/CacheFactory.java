@@ -66,7 +66,7 @@ public final class CacheFactory
         configuration.setProperty(
             CacheGraph.CACHEGRAPH_VERTEX_PROPERTY_ID_MANAGER,
             CacheGraph.DefaultIdManager.LONG.name());
-        
+
         return configuration;
     }
 
@@ -78,11 +78,11 @@ public final class CacheFactory
         configuration.setProperty(
             CacheGraph.CACHEGRAPH_VERTEX_PROPERTY_ID_MANAGER,
             CacheGraph.DefaultIdManager.INTEGER.name());
-   
+
         final CacheGraph graph = CacheGraph.open(configuration);
 
         generateClassic(graph);
-   
+
         return graph;
     }
 
@@ -252,7 +252,7 @@ public final class CacheFactory
         configuration.setProperty(
             CacheGraph.CACHEGRAPH_VERTEX_PROPERTY_ID_MANAGER,
             CacheGraph.DefaultIdManager.LONG.name());
-        
+
         return configuration;
     }
 
@@ -513,7 +513,7 @@ public final class CacheFactory
         configuration.setProperty(
             CacheGraph.CACHEGRAPH_ENABLE_AIRPORT_CODE,
             true);
-                   
+
         final CacheGraph graph = CacheGraph.open(configuration);
 
         return graph;
@@ -539,7 +539,7 @@ public final class CacheFactory
         configuration.setProperty(
             CacheGraph.CACHEGRAPH_ENABLE_AIRPORT_CODE,
             true);
-                   
+
         final CacheGraph graph = CacheGraph.open(configuration);
 
         return graph;
