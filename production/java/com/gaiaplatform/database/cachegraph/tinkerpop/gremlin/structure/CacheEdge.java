@@ -61,7 +61,7 @@ public final class CacheEdge extends CacheElement implements Edge
         {
             return Collections.emptyIterator();
         }
-        
+
         switch (direction)
         {
             case OUT:

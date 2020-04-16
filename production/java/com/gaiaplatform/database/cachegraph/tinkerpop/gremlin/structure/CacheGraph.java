@@ -120,11 +120,11 @@ public final class CacheGraph implements Graph
             CACHEGRAPH_ENABLE_AIRPORT_CODE, false);
         this.enableDebugMessages = configuration.getBoolean(
             CACHEGRAPH_ENABLE_DEBUG_MESSAGES, false);
-    
+
         if (createOnStart)
         {
             CacheHelper.reset();
-            
+
             if (!this.cow.create())
             {
                 throw new UnsupportedOperationException("COW initialization failed!");
@@ -463,7 +463,7 @@ public final class CacheGraph implements Graph
         {
             return true;
         }
-    }    
+    }
 
     private static IdManager<?> selectIdManager(
         final Configuration configuration,
@@ -472,7 +472,7 @@ public final class CacheGraph implements Graph
     {
         final String idManagerConfigValue = configuration.getString(
             configurationKey, DefaultIdManager.ANY.name());
-        
+
         try
         {
             return DefaultIdManager.valueOf(idManagerConfigValue);
@@ -665,5 +665,5 @@ public final class CacheGraph implements Graph
                 id.getClass(),
                 id);
         }
-    }    
+    }
 }

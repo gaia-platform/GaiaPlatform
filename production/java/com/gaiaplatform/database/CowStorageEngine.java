@@ -11,7 +11,7 @@ public class CowStorageEngine
     {
         System.loadLibrary("jni_se_mock");
     }
-     
+
     public static void main(String[] args)
     {
         if (args.length == 0)
@@ -56,7 +56,7 @@ public class CowStorageEngine
                 cow.printNode(currentNodeId);
                 currentNodeId = cow.findNextNode(currentNodeId);
             }
-    
+
             long currentEdgeId = cow.findFirstEdge(currentType);
             while (currentEdgeId != 0)
             {
@@ -113,48 +113,48 @@ public class CowStorageEngine
 
         // Second transaction.
         cow.beginTransaction();
-        
+
         long edgeId1 = cow.createEdge(5, 3, 1, 2, "e5=n1->n2");
         long edgeId2 = cow.createEdge(6, 3, 1, 3, "e6=n1->n3");
         long edgeId3 = cow.createEdge(7, 4, 4, 1, "e7=n4->n1");
         long edgeId4 = cow.createEdge(8, 4, 2, 3, "e8=n2->n3");
-        
+
         cow.printEdge(edgeId1);
         cow.printEdge(edgeId2);
         cow.printEdge(edgeId3);
         cow.printEdge(edgeId4);
         printEmptyLine();
-        
+
         cow.updateEdgePayload(edgeId1, ">e5=n1->n2 v2<");
         cow.printEdge(edgeId1);
         printEmptyLine();
-        
+
         cow.commitTransaction();
-        
+
         // Third transaction.
         cow.beginTransaction();
-        
+
         cow.updateNodePayload(nodeId1, ">n1 v3<");
-        
+
         cow.printNode(nodeId1);
         cow.printNode(nodeId2);
         cow.printNode(nodeId3);
         cow.printNode(nodeId4);
         printEmptyLine();
-        
+
         cow.updateEdgePayload(edgeId1, ">e5=n1->n2 v3");
-        
+
         cow.printEdge(edgeId1);
         cow.printEdge(edgeId2);
         cow.printEdge(edgeId3);
         cow.printEdge(edgeId4);
         printEmptyLine();
-        
+
         cow.commitTransaction();
-        
+
         // Fourth transaction.
         cow.beginTransaction();
-        
+
         System.out.println("Iterating through nodes of type 1: ");
         long currentNodeId = cow.findFirstNode(1);
         while (currentNodeId != 0)
@@ -163,7 +163,7 @@ public class CowStorageEngine
             currentNodeId = cow.findNextNode(currentNodeId);
         }
         printEmptyLine();
-        
+
         System.out.println("Iterating through edges of type 4: ");
         long currentEdgeId = cow.findFirstEdge(4);
         while (currentEdgeId != 0)
@@ -172,18 +172,18 @@ public class CowStorageEngine
             currentEdgeId = cow.findNextEdge(currentEdgeId);
         }
         printEmptyLine();
-        
+
         printEmptyLine();
         System.out.println("Deleting edge 5...");
         cow.removeEdge(5);
-        
+
         System.out.println("Deleting edge 8...");
         cow.removeEdge(8);
-        
+
         System.out.println("Deleting node 2...");
         cow.removeNode(2);
         printEmptyLine();
-        
+
         System.out.println("Iterating through nodes of type 1: ");
         currentNodeId = cow.findFirstNode(1);
         while (currentNodeId != 0)
@@ -192,7 +192,7 @@ public class CowStorageEngine
             currentNodeId = cow.findNextNode(currentNodeId);
         }
         printEmptyLine();
-        
+
         printEmptyLine();
         System.out.println("Iterating through edges of type 3: ");
         currentEdgeId = cow.findFirstEdge(3);
@@ -202,7 +202,7 @@ public class CowStorageEngine
             currentEdgeId = cow.findNextEdge(currentEdgeId);
         }
         printEmptyLine();
-    
+
         printEmptyLine();
         System.out.println("Iterating through edges of type 4: ");
         currentEdgeId = cow.findFirstEdge(4);
@@ -212,9 +212,9 @@ public class CowStorageEngine
             currentEdgeId = cow.findNextEdge(currentEdgeId);
         }
         printEmptyLine();
-        
+
         cow.commitTransaction();
-        
+
         System.out.println("All tests passed!");
     }
 
@@ -252,7 +252,7 @@ public class CowStorageEngine
     {
         printEdge(edgeId, false);
     }
- 
+
     public void printEdge(long edgeId, boolean indent)
     {
         printEmptyLine();
@@ -272,7 +272,7 @@ public class CowStorageEngine
 
         printPayload(getEdgePayload(edgeId));
 
-        if (!indent) 
+        if (!indent)
         {
             printNode(getEdgeFirstNode(edgeId), true);
             printNode(getEdgeSecondNode(edgeId), true);
@@ -283,12 +283,12 @@ public class CowStorageEngine
             System.out.print(" first: " + getEdgeFirstNode(edgeId) + " second: " + getEdgeSecondNode(edgeId));
         }
     }
-    
+
     public void printNode(long nodeId)
     {
         printNode(nodeId, false);
     }
- 
+
     public void printNode(long nodeId, boolean indent)
     {
         printEmptyLine();
@@ -350,7 +350,7 @@ public class CowStorageEngine
     {
         return updateEdgePayload(id, payload.getBytes());
     }
-    
+
     // Native interface.
     public native boolean create();
     public native boolean open();
