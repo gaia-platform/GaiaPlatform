@@ -30,15 +30,15 @@ public final class TestCacheGraph
     {
         if (args[0].equals(BASIC))
         {
-            TestBasicGraphOperations();
+            testBasicGraphOperations();
         }
         else if (args[0].equals(FACTORY))
         {
-            TestFactoryOperations();
+            testFactoryOperations();
         }
         else if (args[0].equals(GRAPHML))
         {
-            TestGraphmlLoad();
+            testGraphmlLoad();
         }
         else
         {
@@ -49,7 +49,13 @@ public final class TestCacheGraph
         System.exit(0);
     }
 
-    public static void TestBasicGraphOperations()
+    protected static void checkGraphSize(GraphTraversalSource g, final long countVertices, final long countEdges)
+    {
+        assert g.V().count().next() == countVertices;
+        assert g.E().count().next() == countEdges;
+    }
+
+    public static void testBasicGraphOperations()
     {
         CacheGraph graph = CacheGraph.open();
 
@@ -66,8 +72,7 @@ public final class TestCacheGraph
 
         GraphTraversalSource g = graph.traversal();
 
-        assert g.V().count().next() == 4;
-        assert g.E().count().next() == 3;
+        checkGraphSize(g, 4, 3);
 
         assert g.V(1).values("name").next().equals("Alice");
         assert g.V(2).values("name").next().equals("Bob");
@@ -80,44 +85,53 @@ public final class TestCacheGraph
 
         g.E(13).next().remove();
 
-        assert g.V().count().next() == 4;
-        assert g.E().count().next() == 2;
+        checkGraphSize(g, 4, 2);
 
         assert g.V(4).both().count().next() == 0;
 
         g.V(4).next().remove();
 
-        assert g.V().count().next() == 3;
-        assert g.E().count().next() == 2;
+        checkGraphSize(g, 3, 2);
 
         g.V(1).next().remove();
 
-        assert g.V().count().next() == 2;
-        assert g.E().count().next() == 0;
+        checkGraphSize(g, 2, 0);
     }
 
-    public static void TestFactoryOperations()
+    public static void testFactoryOperations()
     {
         // Create all the Tinkerpop sample graphs.
         CacheGraph graph = CacheFactory.createClassic();
-        assert graph != null;
+        GraphTraversalSource g = graph.traversal();
+        checkGraphSize(g, 6, 6);
+
         graph = CacheFactory.createModern();
-        assert graph != null;
+        g = graph.traversal();
+        checkGraphSize(g, 6, 6);
+
         graph = CacheFactory.createTheCrew();
-        assert graph != null;
+        g = graph.traversal();
+        checkGraphSize(g, 6, 14);
+
         graph = CacheFactory.createKitchenSink();
-        assert graph != null;
+        g = graph.traversal();
+        checkGraphSize(g, 3, 3);
 
         // Create all Gaia sample graphs.
         graph = CacheFactory.createCowSample();
-        assert graph != null;
+        g = graph.traversal();
+        checkGraphSize(g, 4, 4);
+
         graph = CacheFactory.createTinyAirport();
-        assert graph != null;
+        g = graph.traversal();
+        checkGraphSize(g, 39, 87);
+
         graph = CacheFactory.createTinyQ1Airport();
-        assert graph != null;
+        g = graph.traversal();
+        checkGraphSize(g, 9, 32);
     }
 
-    public static void TestGraphmlLoad()
+    public static void testGraphmlLoad()
     {
         CacheGraph graph = CacheGraph.open();
 
@@ -136,6 +150,8 @@ public final class TestCacheGraph
         }
 
         GraphTraversalSource g = graph.traversal();
+
+        checkGraphSize(g, 44, 102);
 
         // Check absence and presence of some airports.
         assert g.V().has("iata", "AUS").hasNext() == false;
