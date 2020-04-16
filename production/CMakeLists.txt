@@ -102,7 +102,8 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   # Java tests.
   add_jar(GaiaTests
     SOURCES
-      java/com/gaiaplatform/tests/database/cachegraph/TestCacheGraph.java)
+      java/com/gaiaplatform/tests/database/cachegraph/TestCacheGraph.java
+    INCLUDE_JARS GaiaTinkerpop)
   get_target_property(GAIA_TESTS_JAR GaiaTests JAR_FILE)
 
   # Add JNI test.
