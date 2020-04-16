@@ -18,7 +18,7 @@ set(GAIA_COMMON_INCLUDES
     ${GAIA_INC}/internal/common
     # ${GAIA_INC}/public/rules
     # ${GAIA_RULES_INC}
-    ${PROJECT_SOURCE_DIR}/../inc
+    ${GAIA_REPO}/scratch/benchmarks/inc
     ${GAIA_REPO}/third_party/production/flatbuffers/include
 )
 message(STATUS "GAIA_COMMON_INCLUDES=${GAIA_COMMON_INCLUDES}")
@@ -30,6 +30,15 @@ set (AIRIMPORT_INCLUDES
 include_directories(${AIRIMPORT_INCLUDES})
 
 add_executable(airimport DataLoader.cpp)
+
+target_link_directories(airimport
+  PRIVATE
+  ${CMAKE_BINARY_DIR}/../../../../../production/build/direct_access
+  ${CMAKE_BINARY_DIR}/../../../../../production/build/rules/event_manager
+  ${CMAKE_BINARY_DIR}/../../../../../production/build/db/storage_engine
+  ${CMAKE_BINARY_DIR}/../../../../../production/build/system
+)
+
 target_link_libraries(airimport PRIVATE rt gaia gaia_direct gaia_semock)
 
 set_target_properties(airimport PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
