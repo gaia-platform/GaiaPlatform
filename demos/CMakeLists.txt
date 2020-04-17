@@ -39,4 +39,3 @@ endif()
 # Add project folders.
 add_subdirectory(cow_se)
 add_subdirectory(rules)
-

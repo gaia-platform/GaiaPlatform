@@ -1,6 +1,10 @@
 # demos
 This is a folder for demo or prototype code.
 
+To build this folder, create a subfolder **build\** and then execute the following commands in it:
+* ```cmake ..``
+* ```make```
+
 ## cow_se prototype
 
 Implements a prototype database engine that offers snapshot isolation.
@@ -83,3 +87,7 @@ The demo was originally developed on Ubuntu 18.04, but has also been verified to
        * ```select distinct ap.name from routes r, airports ap where r.src_ap = 'SEA' and r.dst_ap = ap.iata;```
        * ```select distinct al.name from routes r, airlines al where r.src_ap = 'SEA' and r.airline = al.iata;```
    * Cleanup gaia tables: ```\i airportdemo_gaia_tables_cleanup.sql```.
+
+## scripts
+
+This folder is meant for storing various demo-related scripts.
