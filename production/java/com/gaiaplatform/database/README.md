@@ -5,7 +5,7 @@ This is a folder for GaiaPlatform database-related Java code.
 
 Implements a Tinkerpop provider that allows the mock storage engine to be modified through Gremlin tools.
 
-The provider is written in Java and packaged as a JAR file - GaiaTinkerpop.jar. To build it, you need the following:
+The provider is written in Java and packaged as a JAR file - *GaiaTinkerpop.jar*. To build it, you need the following:
 
 1. **Java** - Install package *openjdk-8-jdk*. Version 8 is recommended to avoid running into several warnings due to deprecated features.
 
