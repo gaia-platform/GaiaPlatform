@@ -28,4 +28,3 @@ inline void retail_assert(bool condition, string message)
 
 }
 }
-

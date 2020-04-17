@@ -26,4 +26,3 @@ add_gtest(test_system tests/test_system.cpp "${GAIA_MEMORY_MANAGER_INCLUDES}" "g
 add_gtest(test_access_control tests/test_access_control.cpp "${GAIA_MEMORY_MANAGER_INCLUDES}" "gaia_common;gaia_memorymanager")
 add_gtest(test_memory_manager tests/test_memory_manager.cpp "" "gaia_common;gaia_memorymanager")
 add_gtest(test_stack_allocator tests/test_stack_allocator.cpp "" "gaia_common;gaia_memorymanager")
-
