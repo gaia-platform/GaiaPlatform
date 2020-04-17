@@ -84,7 +84,7 @@ else()
 endif()
 
 include(CMakeDependentOption)
-CMAKE_DEPENDENT_OPTION(WITH_GFLAGS "build with GFlags" ON
+CMAKE_DEPENDENT_OPTION(WITH_GFLAGS "build with GFlags" OFF
   "NOT MSVC;NOT MINGW" OFF)
 
 if(MSVC)
