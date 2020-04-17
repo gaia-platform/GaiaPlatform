@@ -66,7 +66,7 @@ class auto_access_control_t
     bool m_has_locked_access;
 
     public:
-    
+
     auto_access_control_t();
     ~auto_access_control_t();
 
