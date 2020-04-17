@@ -52,7 +52,7 @@ Data is denormalized.
 
 These files contain airport data in graphml format. This can be processed with Gremlin and other tools.
 
-* The file *gaia-airport.graphml* was built from this data using the Java tool from scratch/laurentiu/airport-graphml. It only contains routes that could properly be resolved to airports and airlines. A bit over 1000 routes from the original dataset could not be resolved and were dropped. This file was tested to load into TinkerGraph using the command: ```graph.io(graphml()).readGraph('gaia-airport.graphml')```.
+* The file *gaia-airport.graphml* was built from this data using the Java tool from *scratch/laurentiu/airport-graphml*. It only contains routes that could properly be resolved to airports and airlines. A bit over 1000 routes from the original dataset could not be resolved and were dropped. This file was tested to load into TinkerGraph using the command: ```graph.io(graphml()).readGraph('gaia-airport.graphml')```. It can be loaded into CacheGraph using the command ```graph = CacheFactory.loadGraphml('gaia-airport.graphml')``` or into an existing CacheGraph instance using the command ```CacheFactory.loadGraphml(graph, 'gaia-airport.graphml')```.
 
 * *gaia-airport-tiny.graphml* uses the same graph schema as *gaia-airport.graphml*, but only includes data related to 5 airlines and 5 airports. This dataset is primarily meant to be used for testing, but can also be used for demos or for demonstrating Gremlin features.
 
