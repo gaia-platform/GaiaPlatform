@@ -3,4 +3,4 @@ This is a folder for production code. Only code that is meant to be shipped shou
 
 To build this folder, create a subfolder **build\** and then execute the following commands in it:
 * ```cmake ..``
-* ```make```
+* ```make -j<number of CPUs>```
