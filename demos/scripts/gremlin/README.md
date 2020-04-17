@@ -8,7 +8,7 @@ These queries are meant to be used with graph data from gaia-airport-one-edge.gr
 
 This is a schema in which airline nodes are not connected and there is just one type of edge: routes, which connect airport nodes.
 
-airport-->route-->airport
+* airport-->route-->airport
 
 ## airport.groovy
 
@@ -16,6 +16,8 @@ These queries are meant to be used with graph data from gaia-airport.graphml.
 
 This is a more complex schema, with connected airline nodes and three types of edges:
 
-airport-->departure->flight
-flight-->arrives_at-->airport
-flight-->operated_by-->airline
+* airport-->departure->flight
+
+* flight-->arrives_at-->airport
+
+* flight-->operated_by-->airline
