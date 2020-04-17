@@ -499,44 +499,15 @@ endfunction()
 
 if(FLATBUFFERS_BUILD_TESTS)
  
-  file(GLOB FLATC_TESTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/*)
-  foreach(CurrentTestFile IN LISTS FLATC_TESTS)
-    add_custom_command(
-      TARGET flattests PRE_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CurrentTestFile} ${CMAKE_CURRENT_BINARY_DIR})
-    add_custom_command(
-      TARGET gaia_all_events_tests PRE_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CurrentTestFile} ${CMAKE_CURRENT_BINARY_DIR})
-    add_custom_command(
-      TARGET gaia_no_col_tests PRE_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CurrentTestFile} ${CMAKE_CURRENT_BINARY_DIR})
-    add_custom_command(
-      TARGET gaia_no_iud_tests PRE_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CurrentTestFile} ${CMAKE_CURRENT_BINARY_DIR})
-    add_custom_command(
-      TARGET gaia_no_table_tx_tests PRE_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CurrentTestFile} ${CMAKE_CURRENT_BINARY_DIR})
-  endforeach()
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/tests" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
-  file(GLOB FLATC_SAMPLES ${CMAKE_CURRENT_SOURCE_DIR}/samples/*)
-  foreach(CurrentSampleFile IN LISTS FLATC_SAMPLES)
-    add_custom_command(
-      TARGET flattests PRE_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CurrentSampleFile} ${CMAKE_CURRENT_BINARY_DIR})
-    add_custom_command(
-      TARGET gaia_all_events_tests PRE_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CurrentSampleFile} ${CMAKE_CURRENT_BINARY_DIR})
-    add_custom_command(
-      TARGET gaia_no_col_tests PRE_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CurrentSampleFile} ${CMAKE_CURRENT_BINARY_DIR})
-    add_custom_command(
-      TARGET gaia_no_iud_tests PRE_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CurrentSampleFile} ${CMAKE_CURRENT_BINARY_DIR})
-    add_custom_command(
-      TARGET gaia_no_table_tx_tests PRE_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CurrentSampleFile} ${CMAKE_CURRENT_BINARY_DIR})
-  endforeach()
-
+  add_executable(flattests ${FlatBuffers_Tests_SRCS})
+  add_executable(gaia_all_events_tests ${FlatBuffersGaiaAllEvents_Tests_SRCS})
+  add_executable(gaia_no_col_tests ${FlatBuffersGaiaNoColEvents_Tests_SRCS})
+  add_executable(gaia_no_iud_tests ${FlatBuffersGaiaNoIUDEvents_Tests_SRCS})
+  add_executable(gaia_no_table_tx_tests ${FlatBuffersGaiaNoTableTxEvents_Tests_SRCS})
+  
   # TODO Add (monster_test.fbs monsterdata_test.json)->monsterdata_test.mon
   compile_flatbuffers_schema_to_cpp(tests/monster_test.fbs)
   compile_flatbuffers_schema_to_binary(tests/monster_test.fbs)
@@ -561,12 +532,7 @@ if(FLATBUFFERS_BUILD_TESTS)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/inc/public/common)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/db/storage_engine/mock)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/inc/internal/common)
-  add_executable(flattests ${FlatBuffers_Tests_SRCS})
-  add_executable(gaia_all_events_tests ${FlatBuffersGaiaAllEvents_Tests_SRCS})
-  add_executable(gaia_no_col_tests ${FlatBuffersGaiaNoColEvents_Tests_SRCS})
-  add_executable(gaia_no_iud_tests ${FlatBuffersGaiaNoIUDEvents_Tests_SRCS})
-  add_executable(gaia_no_table_tx_tests ${FlatBuffersGaiaNoTableTxEvents_Tests_SRCS})
-  
+
   add_dependencies(flattests generated_code)
   set_property(TARGET flattests
     PROPERTY COMPILE_DEFINITIONS FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
