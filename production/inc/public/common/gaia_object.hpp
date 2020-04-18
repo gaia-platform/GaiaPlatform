@@ -79,7 +79,7 @@ struct gaia_base_t
         return m_typename;
     }
 
-    virtual gaia_type_t gaia_type_id() = 0;
+    virtual gaia_type_t gaia_type() = 0;
 
     virtual ~gaia_base_t() = default;
 
@@ -136,11 +136,11 @@ public:
 
     // This can be used for subscribing to rules when you don't
     // have a specific instance of the type.
-    static gaia::db::gaia_type_t s_gaia_type_id;
+    static gaia::db::gaia_type_t s_gaia_type;
 
     // This can be used when you are passed a gaia_base_t
     // object and want to know the type at runtime.
-    gaia::db::gaia_type_t gaia_type_id() override
+    gaia::db::gaia_type_t gaia_type() override
     {
         return T_gaia_type;
     }
@@ -287,8 +287,8 @@ private:
     }
 };
 
-// Static definition of the gaia_type_id in gaia_object_t class above.
+// Static definition of the gaia_type in gaia_object_t class above.
 template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
-    gaia::db::gaia_type_t gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::s_gaia_type_id = T_gaia_type;
+    gaia::db::gaia_type_t gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::s_gaia_type = T_gaia_type;
 } // common
 } // gaia

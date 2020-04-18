@@ -50,7 +50,7 @@ bool event_manager_t::log_event(
 {
     check_mode(mode);
     check_database_event(event_type, row);
-    gaia_type_t gaia_type = row ? row->gaia_type_id() : 0;
+    gaia_type_t gaia_type = row ? row->gaia_type() : 0;
 
     // Don't allow reentrant log_event calls.
 
@@ -92,7 +92,7 @@ bool event_manager_t::log_event(
 {
     check_mode(mode);
     check_field_event(event_type, row, field);
-    gaia_type_t gaia_type = row ? row->gaia_type_id() : 0;
+    gaia_type_t gaia_type = row ? row->gaia_type() : 0;
 
     // Don't allow reentrant log_event calls.
     event_guard_t guard(m_field_event_guard, gaia_type, field, event_type);

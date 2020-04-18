@@ -51,13 +51,13 @@ public:
     row_context_t() : gaia_base_t("TestGaia") {}
     void reset(bool) override {}
     
-    static gaia_type_t s_gaia_type_id;
-    gaia_type_t gaia_type_id() override
+    static gaia_type_t s_gaia_type;
+    gaia_type_t gaia_type() override
     {
-        return s_gaia_type_id;
+        return s_gaia_type;
     }
 };
-gaia_type_t row_context_t::s_gaia_type_id = 2;
+gaia_type_t row_context_t::s_gaia_type = 2;
 
 TEST(event_manager_component_init, component_initialized)
 {
@@ -76,8 +76,8 @@ TEST(event_manager_component_init, component_initialized)
     EXPECT_EQ(false, log_field_event(&row, "first_name", event_type_t::field_write, event_mode_t::immediate));
     subscribe_field_rule(2, event_type_t::field_write, fields, binding);
     subscribe_database_rule(2, event_type_t::row_insert, binding);
-    EXPECT_EQ(true, unsubscribe_database_rule(row_context_t::s_gaia_type_id, event_type_t::row_insert, binding));
-    EXPECT_EQ(true, unsubscribe_field_rule(row_context_t::s_gaia_type_id, event_type_t::field_write, fields, binding));
+    EXPECT_EQ(true, unsubscribe_database_rule(row_context_t::s_gaia_type, event_type_t::row_insert, binding));
+    EXPECT_EQ(true, unsubscribe_field_rule(row_context_t::s_gaia_type, event_type_t::field_write, fields, binding));
     unsubscribe_rules();
     list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subscriptions);
     gaia_base_t::rollback_transaction();    

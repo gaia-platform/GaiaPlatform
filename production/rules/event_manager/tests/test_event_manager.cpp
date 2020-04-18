@@ -109,7 +109,7 @@ public:
     , data(0) {}
 
     static const gaia_type_t s_gaia_type;
-    gaia_type_t gaia_type_id() override
+    gaia_type_t gaia_type() override
     {
         return s_gaia_type;
     }
@@ -131,7 +131,7 @@ public:
     , data(0) {}
 
     static const gaia_type_t s_gaia_type;
-    gaia_type_t gaia_type_id() override
+    gaia_type_t gaia_type() override
     {
         return s_gaia_type;
     }
@@ -585,11 +585,11 @@ protected:
     void verify_event_log_row(const Event_log& row, uint64_t gaia_type, 
         event_type_t event_type, event_mode_t event_mode, const char * event_source, gaia_id_t id, bool rules_fired)
     {
-        EXPECT_EQ(row.gaia_type(), gaia_type);
+        EXPECT_EQ(row.gaia_type_id(), gaia_type);
         EXPECT_EQ(row.event_type(), (uint32_t) event_type);
         EXPECT_EQ(row.event_mode(), (uint8_t) event_mode);
         EXPECT_STREQ(row.event_source(), event_source);
-        EXPECT_EQ(row.context_id(), id);
+        EXPECT_EQ(row.gaia_id(), id);
         EXPECT_EQ(row.rules_fired(), rules_fired);
     }
 

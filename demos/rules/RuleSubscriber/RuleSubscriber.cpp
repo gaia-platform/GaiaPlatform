@@ -519,7 +519,7 @@ void generateCode(const char *fileName, const vector<rule_data_t>& rules)
         // Just use 0 as the gaia type.  Otherwise, use the static id built
         // off the member.
         string gaia_type = it->gaia_type.empty() ? "0" : 
-            (it->gaia_type + "::s_gaia_type_id");
+            (it->gaia_type + "::s_gaia_type");
 
         if (it->field.empty())
         {
