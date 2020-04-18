@@ -24,9 +24,9 @@ TEST(event_manager_system_init, system_not_initialized_error)
     subscription_list_t still_dont_care;
     field_list_t ignore;
 
-    EXPECT_THROW(log_database_event(nullptr, 0, event_type_t::row_insert, event_mode_t::immediate),
+    EXPECT_THROW(log_database_event(nullptr, event_type_t::row_insert, event_mode_t::immediate),
         initialization_error);
-    EXPECT_THROW(log_field_event(nullptr, nullptr, 0, event_type_t::field_write, event_mode_t::immediate),
+    EXPECT_THROW(log_field_event(nullptr, nullptr, event_type_t::field_write, event_mode_t::immediate),
         initialization_error);
     EXPECT_THROW(subscribe_field_rule(0, event_type_t::field_write, ignore, dont_care),
         initialization_error);
@@ -50,7 +50,15 @@ class row_context_t : public gaia_base_t
 {
 public:
     row_context_t() : gaia_base_t("TestGaia") {}
+    void reset(bool) override {}
+
+    static gaia_type_t s_gaia_type_id;
+    gaia_type_t gaia_type_id() override
+    {
+        return s_gaia_type_id;
+    }
 };
+gaia_type_t row_context_t::s_gaia_type_id = 1;
 
 TEST(event_manager_system_init, system_initialized)
 {
@@ -63,10 +71,10 @@ TEST(event_manager_system_init, system_initialized)
     gaia::system::initialize(true);
 
     gaia_base_t::begin_transaction();
-    EXPECT_EQ(false, log_database_event(&row, 1, event_type_t::row_insert, event_mode_t::immediate));
-    EXPECT_EQ(false, log_field_event(&row, "last_name", 1, event_type_t::field_write, event_mode_t::immediate));
-    subscribe_field_rule(1, event_type_t::field_write, fields, binding);
-    subscribe_database_rule(1, event_type_t::row_insert, binding);
+    EXPECT_EQ(false, log_database_event(&row, event_type_t::row_insert, event_mode_t::immediate));
+    EXPECT_EQ(false, log_field_event(&row, "last_name", event_type_t::field_write, event_mode_t::immediate));
+    subscribe_field_rule(row_context_t::s_gaia_type_id, event_type_t::field_write, fields, binding);
+    subscribe_database_rule(row_context_t::s_gaia_type_id, event_type_t::row_insert, binding);
     EXPECT_EQ(true, unsubscribe_database_rule(1, event_type_t::row_insert, binding));
     EXPECT_EQ(true, unsubscribe_field_rule(1, event_type_t::field_write, fields, binding));
     unsubscribe_rules();

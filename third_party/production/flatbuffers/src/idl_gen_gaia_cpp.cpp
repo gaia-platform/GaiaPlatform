@@ -587,8 +587,7 @@ namespace flatbuffers
                             code_ += 
                                 "_fields.emplace(\"{{FIELD_NAME}}\");\n"
                                 "_fieldOffsets.emplace({{STRUCT_NAME}}::{{OFFSET}});";
-                            code_ += "gaia::rules::log_field_event(this, \"{{FIELD_NAME}}\", " + CurrentNamespaceString() +  
-                                "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::field_write, gaia::rules::event_mode_t::immediate);";
+                            code_ += "gaia::rules::log_field_event(this, \"{{FIELD_NAME}}\", gaia::rules::event_type_t::field_write, gaia::rules::event_mode_t::immediate);";
                         }
                         code_ += "}"; 
                     }
@@ -598,22 +597,19 @@ namespace flatbuffers
                 {
                     // Update function
                     code_ += "void update_row(){\n"
-                    "gaia::rules::log_database_event(this, " + CurrentNamespaceString() +  
-                    "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::row_update, gaia::rules::event_mode_t::immediate);\n"
+                    "gaia::rules::log_database_event(this, gaia::rules::event_type_t::row_update, gaia::rules::event_mode_t::immediate);\n"
                     "gaia_object_t::update_row();\n"
                     "}\n"
 
                     // Insert function
                     "void insert_row(){\n"
-                    "gaia::rules::log_database_event(this, " + CurrentNamespaceString() +  
-                    "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::row_insert, gaia::rules::event_mode_t::immediate);\n"
+                    "gaia::rules::log_database_event(this, gaia::rules::event_type_t::row_insert, gaia::rules::event_mode_t::immediate);\n"
                     "gaia_object_t::insert_row();\n"
                     "}\n"
 
                     // Delete function
                     "void delete_row(){\n"
-                    "gaia::rules::log_database_event(this, " + CurrentNamespaceString() +  
-                    "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::row_delete, gaia::rules::event_mode_t::immediate);\n"
+                    "gaia::rules::log_database_event(this, gaia::rules::event_type_t::row_delete, gaia::rules::event_mode_t::immediate);\n"
                     "gaia_object_t::delete_row();\n"
                     "}";
                 }
@@ -631,20 +627,20 @@ namespace flatbuffers
                     code_ += 
                     "static void begin_transaction(){\n"
                     "gaia_object_t::begin_transaction();\n"
-                    "gaia::rules::log_database_event(nullptr, 0, gaia::rules::event_type_t::transaction_begin, gaia::rules::event_mode_t::immediate);\n"
+                    "gaia::rules::log_database_event(nullptr, gaia::rules::event_type_t::transaction_begin, gaia::rules::event_mode_t::immediate);\n"
                     "}\n"
 
                 // CommitTransaction function
                     "static void commit_transaction(){\n"
                     "gaia_object_t::commit_transaction();\n"
-                    "gaia::rules::log_database_event(nullptr, 0, gaia::rules::event_type_t::transaction_commit, gaia::rules::event_mode_t::immediate);\n"
+                    "gaia::rules::log_database_event(nullptr, gaia::rules::event_type_t::transaction_commit, gaia::rules::event_mode_t::immediate);\n"
                     "}\n"
 
                 // RollbackTransaction function
                 
                     "static void rollback_transaction(){\n"
                     "gaia_object_t::rollback_transaction();\n"
-                    "gaia::rules::log_database_event(nullptr, 0, gaia::rules::event_type_t::transaction_rollback, gaia::rules::event_mode_t::immediate);\n"
+                    "gaia::rules::log_database_event(nullptr, gaia::rules::event_type_t::transaction_rollback, gaia::rules::event_mode_t::immediate);\n"
                     "}";
                 }
 

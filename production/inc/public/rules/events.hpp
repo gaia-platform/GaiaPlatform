@@ -120,8 +120,7 @@ public:
  * database occurs in the caller's transaction.
  * 
  * @param row Current row context of this event.  May be null.
- * @param gaia_type Type of the table the event is scoped to
- * @param event_type The type of table event that has occurred.
+  * @param event_type The type of table event that has occurred.
  * @param mode deferred or immediate rule execution.  Only immedate rule execution
  *  is supported at this time.
  * @return true if at least one rule wwas fired due to this event; false otherwise.  
@@ -132,7 +131,6 @@ public:
  */
 bool log_database_event(
     common::gaia_base_t* row, 
-    common::gaia_type_t gaia_type,
     event_type_t event_type, 
     event_mode_t mode);
 
@@ -144,7 +142,6 @@ bool log_database_event(
  * 
  * @param row Current row context of this event.
  * @param field The field that is the source of this event
- * @param gaia_type Type of the table the event is scoped to
  * @param event_type The type of table event that has occurred.
  * @param mode deferred or immediate rule execution.  Only immedate rule execution
  *  is supported at this time.
@@ -158,7 +155,6 @@ bool log_database_event(
 bool log_field_event(
     common::gaia_base_t* row,
     const char* field,
-    common::gaia_type_t gaia_type,
     event_type_t event_type, 
     event_mode_t mode);
 

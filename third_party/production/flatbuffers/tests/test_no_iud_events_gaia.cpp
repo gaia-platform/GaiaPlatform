@@ -15,7 +15,6 @@ gaia_id_t get_next_id()
 
 gaia::rules::event_type_t g_event_type;
 gaia::rules::event_mode_t g_event_mode;
-gaia::common::gaia_type_t g_gaia_type;
 gaia::common::gaia_base_t *g_table_context;
 const char* g_field;
 
@@ -23,20 +22,18 @@ namespace gaia
 {
     namespace rules
     {
-        bool log_database_event(common::gaia_base_t *row, common::gaia_type_t gaia_type, event_type_t type, event_mode_t mode)
+        bool log_database_event(common::gaia_base_t *row, event_type_t type, event_mode_t mode)
         {
             g_event_type = type;
             g_event_mode = mode;
-            g_gaia_type = gaia_type;
             g_table_context = row;
             return true;
         }
 
-        bool log_field_event(common::gaia_base_t* row, const char* field, common::gaia_type_t gaia_type, event_type_t type, event_mode_t mode)
+        bool log_field_event(common::gaia_base_t* row, const char* field, event_type_t type, event_mode_t mode)
         {
             g_event_type = type;
             g_event_mode = mode;
-            g_gaia_type = gaia_type;
             g_table_context = row;
             g_field = field;
             return true;
@@ -49,7 +46,6 @@ void verify_database_event(gaia::common::gaia_base_t* table_context, gaia::commo
 {
     TEST_EQ(g_event_type, event_type);
     TEST_EQ(g_event_mode, mode);
-    TEST_EQ(g_gaia_type, gaia_type);
     TEST_EQ(g_table_context, table_context);
 }
 

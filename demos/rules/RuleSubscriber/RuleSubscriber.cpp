@@ -132,6 +132,9 @@ public:
                     make_pair(Declaration->getNameAsString(), include_file));
                 g_includes.insert(
                     make_pair(Declaration->getQualifiedNameAsString(),include_file));
+
+                log("Found gaia type '%s'", Declaration->getQualifiedNameAsString());
+                log(" in header '%s'\n", include_file);
                 break;
             }
         }
@@ -513,10 +516,10 @@ void generateCode(const char *fileName, const vector<rule_data_t>& rules)
     for (auto it = rules.cbegin(); it != rules.cend(); ++it)
     {
         // If not type is given (transaction events, for example) then
-        // Just use 0 as the gaia type.  Otherwise, call type gaia_type_id()
-        // method to get this at runtime.
+        // Just use 0 as the gaia type.  Otherwise, use the static id built
+        // off the member.
         string gaia_type = it->gaia_type.empty() ? "0" : 
-            (it->gaia_type + "::gaia_type_id()");
+            (it->gaia_type + "::s_gaia_type_id");
 
         if (it->field.empty())
         {
