@@ -82,6 +82,7 @@ public final class CacheGraph implements Graph
     protected final IdManager<?> vertexPropertyIdManager;
 
     protected final VertexProperty.Cardinality defaultVertexPropertyCardinality;
+    protected final boolean supportsNullPropertyValues;
 
     private final Configuration configuration;
 
@@ -110,6 +111,8 @@ public final class CacheGraph implements Graph
             VertexProperty.Cardinality.single.name());
         this.defaultVertexPropertyCardinality = VertexProperty.Cardinality.valueOf(
             cardinalitySetting);
+        // Current implementation does not support null values.
+        this.supportsNullPropertyValues = false;
 
         boolean createOnStart = configuration.getBoolean(
             CACHEGRAPH_CREATE_ON_START, true);
