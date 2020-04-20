@@ -14,7 +14,7 @@ namespace cameraDemo
     void ImageCreate_handler(const context_base_t *context)
     {        
         const table_context_t* t = static_cast<const table_context_t*>(context);
-        CameraDemo::Camera_image * row = static_cast<CameraDemo::Camera_image*>(t->row);
+        CameraDemo::Camera_image* row = static_cast<CameraDemo::Camera_image*>(t->row);
         cerr << "IMAGE Captured " << row->file_name() <<  endl;
 
         std::vector<string> detectedClasses  = processImage(row->file_name());
@@ -39,7 +39,7 @@ namespace cameraDemo
     void ImageDelete_handler(const context_base_t *context)
     {
         const table_context_t* t = static_cast<const table_context_t*>(context);
-        CameraDemo::Camera_image * row = static_cast<CameraDemo::Camera_image*>(t->row);
+        CameraDemo::Camera_image* row = static_cast<CameraDemo::Camera_image*>(t->row);
         ::remove(row->file_name());
         cerr << "IMAGE deleted " <<  row->file_name() << endl;
     }
@@ -50,7 +50,7 @@ namespace cameraDemo
     void ObjectClassify_handler(const context_base_t *context)
     {
         const table_context_t* t = static_cast<const table_context_t*>(context);
-        CameraDemo::Object * row = static_cast<CameraDemo::Object*>(t->row);
+        CameraDemo::Object* row = static_cast<CameraDemo::Object*>(t->row);
         cerr << "OBJECT CLASSIFIED " << row->class_() << endl;
     }
 } 

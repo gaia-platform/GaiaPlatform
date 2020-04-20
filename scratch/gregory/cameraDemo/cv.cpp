@@ -11,9 +11,9 @@ using namespace std;
 const float confThreshold = 0.5, nmsThreshold = 0.4;
 static std::vector<std::string> classes;
 
-const char * model_prototxt = "/home/gregory/src/opencv/opencv_extra/testdata/dnn/yolov3.cfg";
-const char * model_binary = "/home/gregory/src/opencv/opencv_extra/testdata/dnn/yolov3.weights";
-const char * class_names = "/home/gregory/src/opencv/opencv/samples/data/dnn/object_detection_classes_yolov3.txt";
+const char * model_prototxt = "yolov3.cfg";
+const char * model_binary = "yolov3.weights";
+const char * class_names = "object_detection_classes_yolov3.txt";
 const float scale = 0.00392;
 const Scalar mean = {0,0,0};
 const bool swapRB = true;
