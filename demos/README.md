@@ -2,14 +2,20 @@
 This is a folder for demo or prototype code.
 
 To build this folder, create a subfolder **build\** and then execute the following commands in it:
-* ```cmake ..``
-* ```make```
+* `cmake ..`
+* `make`
 
 ## cow_se prototype
 
 Implements a prototype database engine that offers snapshot isolation.
 
 Building this project requires installing the Java SDK. Install package *openjdk-8-jdk*.
+
+## airport Q1 demo
+
+Thi `airport_q1` subdirectory contains two C++ programs:
+* airimport - loads the airport database into the storage engine for use by other database processors: direct access, SQL, or Gremlin.
+* airqueries - queries the airport database. The pre-programmed queries match the Gremlin used in the Q1.
 
 ## airport demo
 
