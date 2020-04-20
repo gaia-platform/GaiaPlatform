@@ -5,11 +5,11 @@
 
 #pragma once
 
-#include "PerfTimer.h"
+#include "performance_timer.hpp"
 #include <cassert>
 #include <map>
 #include <fstream>
-#include "NullableString.h"
+#include "nullable_string.hpp"
 #include "airport_q1_gaia_generated.h" // include both flatbuffer types and object API for testing 
 using namespace std;
 using namespace gaia::db;
@@ -18,18 +18,18 @@ using namespace gaia::airport;
 // provide an option for shared memory file name
 // have the client
 
-class CSVRow
+class csv_row_t
 {
     public:
-        struct CSVCol
+        struct csv_col_t
         {
-            CSVCol(const string& col, bool is_null) : col(col), is_null(is_null) {}
+            csv_col_t(const string& col, bool is_null) : col(col), is_null(is_null) {}
             bool is_null;
             string col;
         };
 
-        CSVRow(){};
-        CSVCol const& operator[](size_t index) const
+        csv_row_t(){};
+        csv_col_t const& operator[](size_t index) const
         {
             return _row[index];
         }
@@ -95,7 +95,7 @@ class CSVRow
                 else
                 if (c == ',' && !in_quote)
                 {
-                    _row.push_back(CSVCol(token, is_null));
+                    _row.push_back(csv_col_t(token, is_null));
                     token.clear();
                     is_null = false;
                 }
@@ -110,14 +110,14 @@ class CSVRow
                 }
             }
             // get our last column
-            _row.push_back(CSVCol(token, is_null));
+            _row.push_back(csv_col_t(token, is_null));
         }
 
     private:
-        vector<CSVCol> _row;
+        vector<csv_col_t> _row;
 };
 
-istream& operator>>(istream& str, CSVRow& data)
+istream& operator>>(istream& str, csv_row_t& data)
 {
     data.read_next(str);
     return str;
@@ -152,7 +152,7 @@ class AirportData
         // void return type is fine
 
         bool _load(const char * filename, 
-            function<void (CSVRow &)> loader)
+            function<void (csv_row_t &)> loader)
         {
             ifstream f(filename);
             if (f.fail()) {
@@ -160,11 +160,11 @@ class AirportData
                 return false;
             }
             
-            CSVRow row;
+            csv_row_t row;
             uint32_t rows = 0;
 
             int64_t ns;
-            PerfTimer(ns, [&]() {
+            performance_timer(ns, [&]() {
                 begin_transaction();
                 while (f >> row)
                 {
@@ -181,14 +181,14 @@ class AirportData
                 }
                 commit_transaction();
             });
-            printf("Added %d rows from %s in %.2f ms\n", rows, filename, PerfTimer::ns_ms(ns));
+            printf("Added %d rows from %s in %.2f ms\n", rows, filename, performance_timer::ns_ms(ns));
             return true;
         }
 
         bool load_airlines()
         {
             _load(string(_data_path).append("airlines.dat").c_str(),
-                [&](CSVRow& row)
+                [&](csv_row_t& row)
                 {
                     // cannot have a null here
                     int32_t al_id = stoi(row[0].col);
@@ -213,7 +213,7 @@ class AirportData
         bool load_airports()
         {
             _load(string(_data_path).append("airports.dat").c_str(), 
-                [&](CSVRow& row)
+                [&](csv_row_t& row)
                 {
                     // cannot have a null here
                     int32_t ap_id = stoi(row[0].col);
@@ -247,7 +247,7 @@ class AirportData
                 // The routes get created as edges between the source
                 // and destination airports.
                 _load(string(_data_path).append("routes.dat").c_str(), 
-                [&](CSVRow& row)
+                [&](csv_row_t& row)
                 {
                     int32_t src_ap_id = 0;
                     int32_t dst_ap_id = 0;

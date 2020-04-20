@@ -7,10 +7,10 @@
 #include <functional>
 #include <chrono>
 
-class PerfTimer
+class performance_timer
 {
 public:
-    PerfTimer(int64_t& result_in_ns, 
+    performance_timer(int64_t& result_in_ns, 
         std::function<void ()> fn)
     {
         auto t1 = std::chrono::high_resolution_clock::now();

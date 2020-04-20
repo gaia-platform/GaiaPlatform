@@ -10,5 +10,5 @@ make
 ```
 ## execute
 ```
-airimport ../../../../data/intermal/airport
+airimport ../../../../data/internal/airport
 ```

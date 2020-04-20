@@ -3,11 +3,11 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "PerfTimer.h"
+#include "performance_timer.hpp"
 #include <cassert>
 #include <map>
 #include <fstream>
-#include "NullableString.h"
+#include "nullable_string.hpp"
 #include "airport_q1_gaia_generated.h"
 using namespace std;
 using namespace gaia::db;
@@ -234,51 +234,51 @@ int main ()
         }
         switch (req[0][0]) {
             case '1':
-            PerfTimer(ns, [&]() {
+            performance_timer(ns, [&]() {
                 rows = query_change_airport_SEA_to_OTP(req, [&](Airports* ap) {
                     printf("==>%s\n", ap->name());
                 });
             });
-            printf("query_change_airport_SEA_to_OTP, airport name: produced %u rows in %.2f msec\n", rows, PerfTimer::ns_ms(ns));
+            printf("query_change_airport_SEA_to_OTP, airport name: produced %u rows in %.2f msec\n", rows, performance_timer::ns_ms(ns));
             total_ns += ns;
             break;
 
             case '2':
-            PerfTimer(ns, [&]() {
+            performance_timer(ns, [&]() {
                 rows = query_SEA_to_OTP_1_layover(req);
             });
-            printf("query_SEA_to_OTP_1_layover: produced %u rows in %.2f msec\n", rows, PerfTimer::ns_ms(ns));
+            printf("query_SEA_to_OTP_1_layover: produced %u rows in %.2f msec\n", rows, performance_timer::ns_ms(ns));
             total_ns += ns;
             break;
 
             case '3':
-            PerfTimer(ns, [&]() {
+            performance_timer(ns, [&]() {
                 rows = query_airline_to_Tarom_connection(req);
             });
-            printf("query_airline_to_Tarom_connection: produced %u rows in %.2f msec\n", rows, PerfTimer::ns_ms(ns));
+            printf("query_airline_to_Tarom_connection: produced %u rows in %.2f msec\n", rows, performance_timer::ns_ms(ns));
             total_ns += ns;
             break;
             
             case '4':
-            PerfTimer(ns, [&]() {
+            performance_timer(ns, [&]() {
                 rows = query_change_airport_SEA_to_OTP(req, [&](Airports* ap) {
                     printf("==>%s\n", ap->city());
                 });
             });
-            printf("query_change_airport_SEA_to_OTP, airport city: produced %u rows in %.2f msec\n", rows, PerfTimer::ns_ms(ns));
+            printf("query_change_airport_SEA_to_OTP, airport city: produced %u rows in %.2f msec\n", rows, performance_timer::ns_ms(ns));
             total_ns += ns;
             break;
 
             case '5':
-            PerfTimer(ns, [&]() {
+            performance_timer(ns, [&]() {
                 rows = query_SEA_to_OTP_no_Tarom();
             });
-            printf("query_SEA_to_OTP_no_Tarom: produced %u rows in %.2f msec\n", rows, PerfTimer::ns_ms(ns));
+            printf("query_SEA_to_OTP_no_Tarom: produced %u rows in %.2f msec\n", rows, performance_timer::ns_ms(ns));
             total_ns += ns;
             break;
 
             case 'q':
-            printf("completed, total query time %.2f\n", PerfTimer::ns_ms(total_ns));
+            printf("completed, total query time %.2f\n", performance_timer::ns_ms(total_ns));
             exit(0);
 
             default:
@@ -287,5 +287,5 @@ int main ()
         }
     }
 
-    printf("TOTAL TIME: %.2f msec\n", PerfTimer::ns_ms(total_ns));
+    printf("TOTAL TIME: %.2f msec\n", performance_timer::ns_ms(total_ns));
 }

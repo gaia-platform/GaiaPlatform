@@ -15,11 +15,11 @@ struct string : std::string
     : is_null(true)
     {}
 
-    string(const char * c_str, uint32_t size)
+    string(const char* c_str, uint32_t size)
     : std::string(c_str), is_null(c_str == nullptr)
     { (void)size;}
 
-    const char * c_str() const
+    const char* c_str() const
     {
         if (is_null) {
             return nullptr;
@@ -43,7 +43,7 @@ struct string : std::string
         return *this;
     }
 
-    string& operator=(const char * c_str)
+    string& operator=(const char* c_str)
     {
         is_null = (c_str == nullptr);
         if (c_str) {

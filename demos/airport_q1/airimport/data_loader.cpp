@@ -3,10 +3,10 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "DataLoader.h"
+#include "data_loader.hpp"
 int main (int argc, const char ** argv)
 {
-    // first arg is the path to the data files
+    // The first arg is the path to the data files.
     if (argc < 2) {
         printf("Please provide a path to the airport demo data files: i.e. /home/dax/git/benchmarks/airimport/data/\n");
         return 0;
