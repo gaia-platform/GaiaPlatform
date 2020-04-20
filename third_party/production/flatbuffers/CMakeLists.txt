@@ -429,7 +429,7 @@ function(compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT)
     DEPENDS ${FLATBUFFERS_FLATC_EXECUTABLE}
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
     COMMENT "Run generation: '${GEN_HEADER}'")
-  register_generated_output(${SRC_FBS_DIR}/${GEN_HEADER})
+    register_generated_output(${SRC_FBS_DIR}/${GEN_HEADER})
 endfunction()
 
 function(compile_flatbuffers_schema_to_gaiacpp_opt SRC_FBS OPT OUTPUTFOLDER)
@@ -455,10 +455,11 @@ endfunction()
 
 function(compile_flatbuffers_schema_to_binary SRC_FBS)
   get_filename_component(SRC_FBS_DIR ${SRC_FBS} PATH)
-  string(REGEX REPLACE "\\.fbs$" ".bfbs" GEN_BINARY_SCHEMA ${SRC_FBS})
+  get_filename_component(SRC_FBS_FILE ${SRC_FBS} NAME)
+  string(REGEX REPLACE "\\.fbs$" ".bfbs" GEN_BINARY_SCHEMA ${SRC_FBS_FILE})
   # For details about flags see generate_code.bat(sh)
   add_custom_command(
-    OUTPUT ${SRC_FBS_DIR}/../${GEN_BINARY_SCHEMA}
+    OUTPUT ${SRC_FBS_DIR}/${GEN_BINARY_SCHEMA}
     COMMAND ${FLATBUFFERS_FLATC_EXECUTABLE}
             -b --schema --bfbs-comments --bfbs-builtins
             -I ${CMAKE_CURRENT_SOURCE_DIR}/tests/include_test
@@ -467,7 +468,7 @@ function(compile_flatbuffers_schema_to_binary SRC_FBS)
     DEPENDS ${FLATBUFFERS_FLATC_EXECUTABLE}
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
     COMMENT "Run generation: '${GEN_BINARY_SCHEMA}'")
-  register_generated_output(${GEN_BINARY_SCHEMA})
+  register_generated_output(${SRC_FBS_DIR}/${GEN_BINARY_SCHEMA})
 endfunction()
 
 function(compile_flatbuffers_schema_to_embedded_binary SRC_FBS OPT)
@@ -477,10 +478,11 @@ function(compile_flatbuffers_schema_to_embedded_binary SRC_FBS OPT)
     # --cpp-std is defined by flatc default settings.
   endif()
   get_filename_component(SRC_FBS_DIR ${SRC_FBS} PATH)
-  string(REGEX REPLACE "\\.fbs$" "_bfbs_generated.h" GEN_BFBS_HEADER ${SRC_FBS})
+  get_filename_component(SRC_FBS_FILE ${SRC_FBS} NAME)
+  string(REGEX REPLACE "\\.fbs$" "_bfbs_generated.h" GEN_BFBS_HEADER ${SRC_FBS_FILE})
   # For details about flags see generate_code.bat(sh)
   add_custom_command(
-          OUTPUT ${GEN_BFBS_HEADER}
+          OUTPUT ${SRC_FBS_DIR}/${GEN_BFBS_HEADER}
           COMMAND "${FLATBUFFERS_FLATC_EXECUTABLE}"
           --cpp --gen-mutable --gen-object-api --reflect-names
           --cpp-ptr-type flatbuffers::unique_ptr # Used to test with C++98 STLs
@@ -490,14 +492,22 @@ function(compile_flatbuffers_schema_to_embedded_binary SRC_FBS OPT)
           -o "${SRC_FBS_DIR}"
           "${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}"
           DEPENDS ${CMAKE_BINARY_DIR}/flatbuffers/flatc
+	  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
           COMMENT "Run generation: '${GEN_BFBS_HEADER}'")
-  register_generated_output(${GEN_BFBS_HEADER})
+  register_generated_output(${SRC_FBS_DIR}/${GEN_BFBS_HEADER})
 endfunction()
 
 if(FLATBUFFERS_BUILD_TESTS)
+ 
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/tests" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
+  add_executable(flattests ${FlatBuffers_Tests_SRCS})
+  add_executable(gaia_all_events_tests ${FlatBuffersGaiaAllEvents_Tests_SRCS})
+  add_executable(gaia_no_col_tests ${FlatBuffersGaiaNoColEvents_Tests_SRCS})
+  add_executable(gaia_no_iud_tests ${FlatBuffersGaiaNoIUDEvents_Tests_SRCS})
+  add_executable(gaia_no_table_tx_tests ${FlatBuffersGaiaNoTableTxEvents_Tests_SRCS})
+  
   # TODO Add (monster_test.fbs monsterdata_test.json)->monsterdata_test.mon
   compile_flatbuffers_schema_to_cpp(tests/monster_test.fbs)
   compile_flatbuffers_schema_to_binary(tests/monster_test.fbs)
@@ -522,12 +532,7 @@ if(FLATBUFFERS_BUILD_TESTS)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/inc/public/common)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/db/storage_engine/mock)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/inc/internal/common)
-  add_executable(flattests ${FlatBuffers_Tests_SRCS})
-  add_executable(gaia_all_events_tests ${FlatBuffersGaiaAllEvents_Tests_SRCS})
-  add_executable(gaia_no_col_tests ${FlatBuffersGaiaNoColEvents_Tests_SRCS})
-  add_executable(gaia_no_iud_tests ${FlatBuffersGaiaNoIUDEvents_Tests_SRCS})
-  add_executable(gaia_no_table_tx_tests ${FlatBuffersGaiaNoTableTxEvents_Tests_SRCS})
-  
+
   add_dependencies(flattests generated_code)
   set_property(TARGET flattests
     PROPERTY COMPILE_DEFINITIONS FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
