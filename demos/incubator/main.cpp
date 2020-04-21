@@ -16,8 +16,6 @@ using namespace gaia::db;
 using namespace gaia::rules;
 using namespace BarnStorage;
 
-enum { chicken_incubator_id = 1, puppy_incubator_id = 2 };
-
 const double FAN_SPEED_LIMIT = 3500.0;
 const char SENSOR_A_NAME[] = "Temp A";
 const char SENSOR_B_NAME[] = "Temp B";
@@ -31,15 +29,17 @@ atomic<int> TIMESTAMP{0};
 void init_storage() {
   gaia_base_t::begin_transaction();
 
-  Incubator::insert_row(chicken_incubator_id, "Chicken", 99.0, 102.0);
-  Sensor::insert_row(chicken_incubator_id, SENSOR_A_NAME, 0, 99.0);
-  Sensor::insert_row(chicken_incubator_id, SENSOR_C_NAME, 0, 99.0);
-  Actuator::insert_row(chicken_incubator_id, ACTUATOR_A_NAME, 0, 0.0);
+  ulong gaia_id;
 
-  Incubator::insert_row(puppy_incubator_id, "Puppy", 85.0, 90.0);
-  Sensor::insert_row(puppy_incubator_id, SENSOR_B_NAME, 0, 85.0);
-  Actuator::insert_row(puppy_incubator_id, ACTUATOR_B_NAME, 0, 0.0);
-  Actuator::insert_row(puppy_incubator_id, ACTUATOR_C_NAME, 0, 0.0);
+  gaia_id = Incubator::insert_row("Chicken", 99.0, 102.0);
+  Sensor::insert_row(gaia_id, SENSOR_A_NAME, 0, 99.0);
+  Sensor::insert_row(gaia_id, SENSOR_C_NAME, 0, 99.0);
+  Actuator::insert_row(gaia_id, ACTUATOR_A_NAME, 0, 0.0);
+
+  gaia_id = Incubator::insert_row("Puppy", 85.0, 90.0);
+  Sensor::insert_row(gaia_id, SENSOR_B_NAME, 0, 85.0);
+  Actuator::insert_row(gaia_id, ACTUATOR_B_NAME, 0, 0.0);
+  Actuator::insert_row(gaia_id, ACTUATOR_C_NAME, 0, 0.0);
 
   gaia_base_t::commit_transaction();
 }
@@ -49,7 +49,7 @@ void dump_db() {
   printf("\n");
 
   printf("[Incubators]\n");
-  for (auto i = Incubator::get_first(); i != nullptr; i = i->get_next()) {
+  for (unique_ptr<Incubator> i{Incubator::get_first()}; i; i.reset(i->get_next())) {
     printf("  name  | min_temp | max_temp \n");
     printf("------------------------------\n");
     printf("%-8s|%10.1lf|%10.1lf\n", i->name(), i->min_temp(), i->max_temp());
@@ -57,8 +57,8 @@ void dump_db() {
     printf("  [Sensors]\n");
     printf("   name | time | value \n");
     printf("  ---------------------\n");
-    for (auto s = Sensor::get_first(); s != nullptr; s = s->get_next()) {
-      if (s->incubator_id() == i->id()) {
+    for (unique_ptr<Sensor> s{Sensor::get_first()}; s; s.reset(s->get_next())) {
+      if (s->incubator_id() == i->gaia_id()) {
         printf("  %-6s|%6ld|%7.1lf\n", s->name(), s->timestamp(), s->value());
       }
     }
@@ -66,8 +66,8 @@ void dump_db() {
     printf("  [Actuators]\n");
     printf("   name | time | value \n");
     printf("  ---------------------\n");
-    for (auto a = Actuator::get_first(); a != nullptr; a = a->get_next()) {
-      if (a->incubator_id() == i->id()) {
+    for (unique_ptr<Actuator> a{Actuator::get_first()}; a; a.reset(a->get_next())) {
+      if (a->incubator_id() == i->gaia_id()) {
         printf("  %-6s|%6ld|%7.1lf\n", a->name(), a->timestamp(), a->value());
       }
     }
@@ -93,7 +93,7 @@ void simulation() {
     sleep(1);
     gaia_base_t::begin_transaction();
     double new_temp, fa_v, fb_v, fc_v;
-    for (auto a = Actuator::get_first(); a != nullptr; a = a->get_next()) {
+    for (unique_ptr<Actuator> a{Actuator::get_first()}; a; a.reset(a->get_next())) {
       if (strcmp(a->name(), ACTUATOR_A_NAME) == 0) {
         fa_v = a->value();
       } else if (strcmp(a->name(), ACTUATOR_B_NAME) == 0) {
@@ -104,7 +104,7 @@ void simulation() {
     }
     time(&cur);
     TIMESTAMP = difftime(cur, start);
-    for (auto s = Sensor::get_first(); s != nullptr; s = s->get_next()) {
+    for (unique_ptr<Sensor> s{Sensor::get_first()}; s; s.reset(s->get_next())) {
       if (strcmp(s->name(), SENSOR_A_NAME) == 0) {
         new_temp = calc_new_temp(s->value(), fa_v);
         s->set_value(new_temp);
@@ -127,19 +127,10 @@ void simulation() {
   }
 }
 
-Incubator *select_incubator_by_id(ulong id) {
-  for (auto i = Incubator::get_first(); i != nullptr; i = i->get_next()) {
-    if (i->id() == id) {
-      return i;
-    }
-  }
-  return nullptr;
-}
-
 void decrease_fans(Incubator *incubator, FILE *log) {
   fprintf(log, "%s called for %s incubator.\n", __func__, incubator->name());
-  for (auto a = Actuator::get_first(); a != nullptr; a = a->get_next()) {
-    if (a->incubator_id() == incubator->id()) {
+  for (unique_ptr<Actuator> a{Actuator::get_first()}; a; a.reset(a->get_next())) {
+    if (a->incubator_id() == incubator->gaia_id()) {
       a->set_value(max(0.0, a->value() - 500.0));
       a->set_timestamp(TIMESTAMP);
       a->update_row();
@@ -149,8 +140,8 @@ void decrease_fans(Incubator *incubator, FILE *log) {
 
 void increase_fans(Incubator *incubator, FILE *log) {
   fprintf(log, "%s called for %s incubator.\n", __func__, incubator->name());
-  for (auto a = Actuator::get_first(); a != nullptr; a = a->get_next()) {
-    if (a->incubator_id() == incubator->id()) {
+  for (unique_ptr<Actuator> a{Actuator::get_first()}; a; a.reset(a->get_next())) {
+    if (a->incubator_id() == incubator->gaia_id()) {
       a->set_value(min(FAN_SPEED_LIMIT, a->value() + 500.0));
       a->set_timestamp(TIMESTAMP);
       a->update_row();
@@ -161,7 +152,7 @@ void increase_fans(Incubator *incubator, FILE *log) {
 void on_sensor_changed(const context_base_t *context) {
   const table_context_t *t = static_cast<const table_context_t *>(context);
   Sensor *s = static_cast<Sensor *>(t->row);
-  Incubator *i = select_incubator_by_id(s->incubator_id());
+  Incubator *i = Incubator::get_row_by_id(s->incubator_id());
   FILE *log = fopen("message.log", "a");
   fprintf(log, "%s fired for %s sensor of %s incubator\n", __func__, s->name(),
           i->name());
@@ -186,10 +177,7 @@ void add_fan_control_rule() {
 
 void list_rules() {
   list_subscriptions_t subs;
-  gaia_type_t gaia_type_filter{kSensorType};
-  event_type_t event_type_filter{event_type_t::row_update};
-  list_subscribed_rules("Incubator", &gaia_type_filter, &event_type_filter,
-                        subs);
+  list_subscribed_rules(nullptr, nullptr, nullptr, subs);
   printf("Number of rules for incubator: %ld\n", subs.size());
   if (subs.size() > 0) {
     printf("\n");
@@ -206,6 +194,13 @@ void list_rules() {
   printf("\n");
 }
 
+void usage(const char *command) {
+  printf("Usage: %s [sim|show|help]\n", command);
+  printf(" sim: run the incubator simulation.\n");
+  printf(" show: dump the tables in storage.\n");
+  printf(" help: print this message.\n");
+}
+
 extern "C" void initialize_rules() {}
 
 int main(int argc, const char **argv) {
@@ -213,8 +208,14 @@ int main(int argc, const char **argv) {
 
   if (argc == 2 && strncmp(argv[1], "sim", 3) == 0) {
     is_sim = true;
-  } else if (argc != 1) {
+  } else if (argc == 2 && strncmp(argv[1], "show", 3) == 0) {
+    is_sim = false;
+  } else if (argc == 2 && strncmp(argv[1], "help", 3) == 0) {
+    usage(argv[0]);
+    return EXIT_SUCCESS;
+  } else {
     cout << "Wrong arguments." << endl;
+    usage(argv[0]);
     return EXIT_FAILURE;
   }
 

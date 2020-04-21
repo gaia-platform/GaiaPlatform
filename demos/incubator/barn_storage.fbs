@@ -1,5 +1,11 @@
 namespace BarnStorage;
 
+table incubator {
+      name: string;
+      min_temp: float;
+      max_temp: float;
+}
+
 table sensor {
       incubator_id: ulong;
       name: string;
@@ -14,9 +20,3 @@ table actuator {
       value: float;
 }
 
-table incubator {
-      id: ulong;
-      name: string;
-      min_temp: float;
-      max_temp: float;
-}
