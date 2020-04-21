@@ -1055,10 +1055,10 @@ TEST_F(event_manager_test, forward_chain_not_subscribed)
     subscribe_database_rule(0, event_type_t::transaction_commit, m_rule8);
     
     rule_context_sequence_t expected;
-    g_context_checker.add_context_sequence(expected, 0, event_type_t::transaction_commit, nullptr);
+    add_context_sequence(expected, 0, event_type_t::transaction_commit, nullptr);
 
     EXPECT_EQ(true, log_database_event(nullptr, event_type_t::transaction_commit, event_mode_t::immediate));
-    g_context_checker.validate_rule_sequence(expected);
+    validate_rule_sequence(expected);
 }
 
 TEST_F(event_manager_test, forward_chain_transaction_table)
@@ -1067,11 +1067,11 @@ TEST_F(event_manager_test, forward_chain_transaction_table)
     subscribe_database_rule(TestGaia::s_gaia_type, event_type_t::row_update, m_rule5);
 
     rule_context_sequence_t expected;
-    g_context_checker.add_context_sequence(expected, 0, event_type_t::transaction_commit, nullptr);
-    g_context_checker.add_context_sequence(expected, m_row.gaia_type(), event_type_t::row_update, m_row.gaia_typename());
+    add_context_sequence(expected, 0, event_type_t::transaction_commit, nullptr);
+    add_context_sequence(expected, m_row.gaia_type(), event_type_t::row_update, m_row.gaia_typename());
 
     EXPECT_EQ(true, log_database_event(nullptr, event_type_t::transaction_commit, event_mode_t::immediate));
-    g_context_checker.validate_rule_sequence(expected);
+    validate_rule_sequence(expected);
 }
 
 TEST_F(event_manager_test, forward_chain_table_transaction)
@@ -1083,11 +1083,11 @@ TEST_F(event_manager_test, forward_chain_table_transaction)
     // and the transaction event to be called even though
     // we only logged the table event here.
     rule_context_sequence_t expected;
-    g_context_checker.add_context_sequence(expected, m_row2.gaia_type(), event_type_t::row_update, m_row2.gaia_typename());
-    g_context_checker.add_context_sequence(expected, 0, event_type_t::transaction_commit, nullptr);
+    add_context_sequence(expected, m_row2.gaia_type(), event_type_t::row_update, m_row2.gaia_typename());
+    add_context_sequence(expected, 0, event_type_t::transaction_commit, nullptr);
 
     EXPECT_EQ(true, log_database_event(&m_row2, event_type_t::row_update, event_mode_t::immediate));
-    g_context_checker.validate_rule_sequence(expected);
+    validate_rule_sequence(expected);
 }
 
 TEST_F(event_manager_test, forward_chain_disallow_reentrant)
@@ -1096,10 +1096,10 @@ TEST_F(event_manager_test, forward_chain_disallow_reentrant)
     subscribe_database_rule(TestGaia::s_gaia_type, event_type_t::row_update, m_rule5);
 
     rule_context_sequence_t expected;
-    g_context_checker.add_context_sequence(expected, m_row.gaia_type(), event_type_t::row_update, m_row.gaia_typename());
+    add_context_sequence(expected, m_row.gaia_type(), event_type_t::row_update, m_row.gaia_typename());
 
     EXPECT_EQ(true, log_database_event(&m_row, event_type_t::row_update, event_mode_t::immediate));
-    g_context_checker.validate_rule_sequence(expected);
+    validate_rule_sequence(expected);
 }
 
 TEST_F(event_manager_test, forward_chain_disallow_cycle)
@@ -1113,13 +1113,13 @@ TEST_F(event_manager_test, forward_chain_disallow_cycle)
     subscribe_database_rule(0, event_type_t::transaction_commit, m_rule8);
 
     rule_context_sequence_t expected;
-    g_context_checker.add_context_sequence(expected, m_row.gaia_type(), event_type_t::row_update, m_row.gaia_typename());
-    g_context_checker.add_context_sequence(expected, m_row2.gaia_type(), event_type_t::row_update, m_row2.gaia_typename());
-    g_context_checker.add_context_sequence(expected, 0, event_type_t::transaction_commit, nullptr);
-    g_context_checker.add_context_sequence(expected, m_row.gaia_type(), event_type_t::row_insert, m_row.gaia_typename());
+    add_context_sequence(expected, m_row.gaia_type(), event_type_t::row_update, m_row.gaia_typename());
+    add_context_sequence(expected, m_row2.gaia_type(), event_type_t::row_update, m_row2.gaia_typename());
+    add_context_sequence(expected, 0, event_type_t::transaction_commit, nullptr);
+    add_context_sequence(expected, m_row.gaia_type(), event_type_t::row_insert, m_row.gaia_typename());
 
     EXPECT_EQ(true, log_database_event(&m_row, event_type_t::row_update, event_mode_t::immediate));
-    g_context_checker.validate_rule_sequence(expected);
+    validate_rule_sequence(expected);
 }
 
 TEST_F(event_manager_test, forward_chain_field_not_subscribed)
@@ -1130,10 +1130,10 @@ TEST_F(event_manager_test, forward_chain_field_not_subscribed)
 
     // expect the following calls
     rule_context_sequence_t expected;
-    g_context_checker.add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_read, "TestGaia.timestamp");
+    add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_read, "TestGaia.timestamp");
 
     EXPECT_EQ(true, log_field_event(&m_row, "timestamp", event_type_t::field_read, event_mode_t::immediate));
-    g_context_checker.validate_rule_sequence(expected);
+    validate_rule_sequence(expected);
 }
 
 TEST_F(event_manager_test, forward_chain_field_self_subscribed)
@@ -1148,17 +1148,17 @@ TEST_F(event_manager_test, forward_chain_field_self_subscribed)
 
     // Expect the following sequence of calls.
     rule_context_sequence_t expected;
-    g_context_checker.add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_read, "TestGaia.timestamp");
-    g_context_checker.add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_write, "TestGaia.value");
+    add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_read, "TestGaia.timestamp");
+    add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_write, "TestGaia.value");
 
     EXPECT_EQ(true, log_field_event(&m_row, "timestamp", event_type_t::field_read, event_mode_t::immediate));
-    g_context_checker.validate_rule_sequence(expected);
+    validate_rule_sequence(expected);
 
-    g_context_checker.add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_write, "TestGaia.value");
-    g_context_checker.add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_read, "TestGaia.timestamp");
+    add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_write, "TestGaia.value");
+    add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_read, "TestGaia.timestamp");
     
     EXPECT_EQ(true, log_field_event(&m_row, "value", event_type_t::field_write, event_mode_t::immediate));
-    g_context_checker.validate_rule_sequence(expected);        
+    validate_rule_sequence(expected);        
 }
 
 TEST_F(event_manager_test, forward_chain_field_multi_subscribed)
@@ -1179,22 +1179,22 @@ TEST_F(event_manager_test, forward_chain_field_multi_subscribed)
     // Expect the following sequence of calls.  Note that the same rule handles both timestamp read
     // and value write so we actually do re-enter the rule which leads to this call chain.
     rule_context_sequence_t expected;
-    g_context_checker.add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_read, "TestGaia.timestamp");
-    g_context_checker.add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_write, "TestGaia.value");
-    g_context_checker.add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_read, "TestGaia.id");
-    g_context_checker.add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_read, "TestGaia.id");
-    g_context_checker.add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_write, "TestGaia.value");
+    add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_read, "TestGaia.timestamp");
+    add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_write, "TestGaia.value");
+    add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_read, "TestGaia.id");
+    add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_read, "TestGaia.id");
+    add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_write, "TestGaia.value");
 
 
     EXPECT_EQ(true, log_field_event(&m_row, "timestamp", event_type_t::field_read, event_mode_t::immediate));
-    g_context_checker.validate_rule_sequence(expected);
+    validate_rule_sequence(expected);
 
-    g_context_checker.add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_read, "TestGaia.id");
-    g_context_checker.add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_write, "TestGaia.value");
-    g_context_checker.add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_read, "TestGaia.timestamp");
+    add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_read, "TestGaia.id");
+    add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_write, "TestGaia.value");
+    add_context_sequence(expected, m_row.gaia_type(), event_type_t::field_read, "TestGaia.timestamp");
 
     EXPECT_EQ(true, log_field_event(&m_row, "id", event_type_t::field_read, event_mode_t::immediate));
-    g_context_checker.validate_rule_sequence(expected);
+    validate_rule_sequence(expected);
 }
 
 
