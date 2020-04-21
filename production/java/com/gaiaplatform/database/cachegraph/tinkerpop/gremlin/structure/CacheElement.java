@@ -15,6 +15,9 @@ public abstract class CacheElement implements Element
     protected final CacheGraph graph;
     protected final Object id;
     protected final String label;
+
+    protected boolean supportsNullPropertyValues;
+
     protected boolean removed = false;
 
     protected CacheElement(final Graph graph, final Object id, final String label)

@@ -472,6 +472,9 @@ public final class CacheFactory
         //
         // readGraph() may also fail if it attempts to batch transactions,
         // because it doesn't re-open a transaction after a commit.
+        //
+        // For now, we don't advertise transaction support,
+        // so we have to call commit() and rollback() ourselves.
         graph.tx().open();
         try
         {
@@ -481,6 +484,28 @@ public final class CacheFactory
         catch (Exception e)
         {
             graph.tx().rollback();
+            System.out.println(
+                "An error happened while attempting to load " + filename + ": "
+                + e.getMessage());
+        }
+    }
+
+    // Write graph data to a graphml file.
+    public static void writeGraphml(final CacheGraph graph, String filename)
+    {
+        try
+        {
+            final File file = new File(filename);
+            final File parentFile = file.getParentFile();
+            if (parentFile != null && !parentFile.exists())
+            {
+                parentFile.mkdirs();
+            }
+
+            graph.io(graphml()).writeGraph(filename);
+        }
+        catch (Exception e)
+        {
             System.out.println(
                 "An error happened while attempting to load " + filename + ": "
                 + e.getMessage());

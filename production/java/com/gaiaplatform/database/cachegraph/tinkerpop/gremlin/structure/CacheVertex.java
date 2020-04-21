@@ -42,6 +42,8 @@ public final class CacheVertex extends CacheElement implements Vertex
     protected CacheVertex(final Graph graph, final Object id, final String label)
     {
         super(graph, id, label);
+
+        this.supportsNullPropertyValues = this.graph.supportsNullPropertyValues;
     }
 
     public Edge addEdge(final String label, final Vertex inVertex, final Object... keyValues)
@@ -81,6 +83,25 @@ public final class CacheVertex extends CacheElement implements Vertex
 
         ElementHelper.validateProperty(key, value);
         ElementHelper.legalPropertyKeyValueArray(keyValues);
+
+        // If we don't support null property values and the value is null,
+        // then the key can be removed, but only if the cardinality is single.
+        // If it is list/set, then we can just ignore the null.
+        if (!this.supportsNullPropertyValues && value == null)
+        {
+            if (this.properties != null)
+            {
+                final VertexProperty.Cardinality propertyCardinality = (cardinality == null)
+                    ? this.graph.features().vertex().getCardinality(key) : cardinality;
+
+                if (propertyCardinality == VertexProperty.Cardinality.single)
+                {
+                    this.properties(key).forEachRemaining(VertexProperty::remove);
+                }
+            }
+
+            return VertexProperty.empty();
+        }
 
         final Optional<Object> optionalId = ElementHelper.getIdValue(keyValues);
         final Optional<VertexProperty<V>> optionalVertexProperty = ElementHelper.stageVertexProperty(

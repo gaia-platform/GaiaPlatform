@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
@@ -43,6 +44,8 @@ public final class CacheEdge extends CacheElement implements Edge
 
         this.outVertex = (CacheVertex)outVertex;
         this.inVertex = (CacheVertex)inVertex;
+
+        this.supportsNullPropertyValues = this.graph.supportsNullPropertyValues;
     }
 
     public Vertex outVertex()
@@ -90,6 +93,18 @@ public final class CacheEdge extends CacheElement implements Edge
         }
 
         ElementHelper.validateProperty(key, value);
+
+        // If we don't support null property values and the value is null,
+        // then the key can be removed.
+        if (!this.supportsNullPropertyValues && value == null)
+        {
+            if (this.properties != null)
+            {
+                this.properties(key).forEachRemaining(Property::remove);
+            }
+
+            return Property.empty();
+        }
 
         final Property<V> newProperty = new CacheProperty<>(this, key, value);
 
