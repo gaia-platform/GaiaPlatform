@@ -62,18 +62,6 @@ public:
         reset();
     }
 
-    void validate_not_called(event_type_t invalid_type = event_type_t::field_read)
-    {
-        EXPECT_STREQ(ruleset_name, nullptr);
-        EXPECT_STREQ(rule_name, nullptr);
-        EXPECT_EQ(rule, nullptr);
-        EXPECT_EQ(event_type, invalid_type);
-        EXPECT_EQ(gaia_type, 0);
-        EXPECT_EQ(row, nullptr);
-        EXPECT_EQ(true, event_source.empty());
-    }
-
-        
     // Set the invalid event_type to be a field event since that will be invalid
     // for all database contexts.
     void reset(bool reset_sequence = false) 
