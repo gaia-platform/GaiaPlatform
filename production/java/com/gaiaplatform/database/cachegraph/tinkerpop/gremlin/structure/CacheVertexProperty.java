@@ -18,6 +18,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
@@ -52,6 +53,12 @@ public final class CacheVertexProperty<V> extends CacheElement implements Vertex
         final Object... propertyKeyValues)
     {
         super(vertex.graph, id, key);
+
+        this.supportsNullPropertyValues = this.graph.supportsNullPropertyValues;
+        if (!this.supportsNullPropertyValues && value == null)
+        {
+            throw new IllegalArgumentException("value cannot be null when feature supportsNullPropertyValues is false");
+        }
 
         this.vertex = vertex;
         this.key = key;
@@ -94,6 +101,18 @@ public final class CacheVertexProperty<V> extends CacheElement implements Vertex
         }
 
         ElementHelper.validateProperty(key, value);
+
+        // If we don't support null property values and the value is null,
+        // then the key can be removed.
+        if ((!this.supportsNullPropertyValues && value == null))
+        {
+            if (this.properties != null)
+            {
+                this.properties(key).forEachRemaining(Property::remove);
+            }
+
+            return Property.empty();
+        }
 
         final Property<U> newProperty = new CacheProperty<>(this, key, value);
 
@@ -139,7 +158,7 @@ public final class CacheVertexProperty<V> extends CacheElement implements Vertex
             {
                 this.vertex.properties.remove(this.key);
             }
-        }        
+        }
 
         // Update node payload in COW.
         if (!CacheHelper.updateNodePayload(this.vertex))

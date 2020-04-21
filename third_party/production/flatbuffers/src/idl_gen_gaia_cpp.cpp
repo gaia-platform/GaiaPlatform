@@ -574,14 +574,14 @@ namespace flatbuffers
                 {
                     // Update function
                     code_ += "void update_row(){\n"
-                    "gaia::rules::log_database_event(this, gaia::rules::event_type_t::row_update, gaia::rules::event_mode_t::immediate);\n"
                     "gaia_object_t::update_row();\n"
+                    "gaia::rules::log_database_event(this, gaia::rules::event_type_t::row_update, gaia::rules::event_mode_t::immediate);\n"
                     "}\n"
 
                     // Insert function
                     "void insert_row(){\n"
-                    "gaia::rules::log_database_event(this, gaia::rules::event_type_t::row_insert, gaia::rules::event_mode_t::immediate);\n"
                     "gaia_object_t::insert_row();\n"
+                    "gaia::rules::log_database_event(this, gaia::rules::event_type_t::row_insert, gaia::rules::event_mode_t::immediate);\n"
                     "}\n"
 
                     // Delete function

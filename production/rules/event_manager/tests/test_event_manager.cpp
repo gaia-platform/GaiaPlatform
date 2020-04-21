@@ -181,20 +181,6 @@ public:
 const gaia_type_t TestGaia2::s_gaia_type = 444;
 
 
-/**
- * Applications must provide an implementation for initialize_rules().
- * This function is called on construction of the singleton event
- * manager instance.  If this function is not called then every test
- * will fail below because the condition is checked on TearDown() of
- * ever test case in the test fixture.
- */
- uint32_t g_initialize_rules_called = 0;
- extern "C"
- void initialize_rules()
- {
-     ++g_initialize_rules_called;
- }
-
  /**
  * Following constructs are used to verify the list_subscribed_rules API
  * returns the correct rules based on the filter criteria to the API.  It
@@ -397,6 +383,25 @@ static constexpr rule_decl_t s_rule_decl[] = {
 };
 static constexpr int s_rule_decl_len = sizeof(s_rule_decl)/sizeof(s_rule_decl[0]);
 
+ /**
+ * Applications must provide an implementation for initialize_rules().
+ * This function is called on initialization of the singleton event
+ * manager instance and is used to regisgter rules with the system.  
+ * If this function is not called then every test will fail below 
+ * because the condition is checked on TearDown() of
+ * ever test case in the test fixture.  In addition, verify that we
+ * actually can subscribe a rule in this intialize_rules function.  
+ */
+ uint32_t g_initialize_rules_called = 0;
+
+ extern "C"
+ void initialize_rules()
+ {
+     ++g_initialize_rules_called;
+     rule_binding_t binding("test", "test", rule1);
+     subscribe_database_rule(TestGaia2::s_gaia_type, event_type_t::row_delete, binding);
+     unsubscribe_rules();
+ }
 
 /**
  * Google test fixture object.  This class is used by each

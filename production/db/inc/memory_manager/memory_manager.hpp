@@ -76,7 +76,7 @@ class memory_manager_t : public base_memory_manager_t
     private:
 
     // All data tracked by the memory manager can be accessed from here.
-    // The metadata information structure is stored at the beginning of the managed memory, 
+    // The metadata information structure is stored at the beginning of the managed memory,
     // but its lists are allocated at the end of it, so they will grow towards the beginning.
     // Also, because the metadata structure is located at offset 0, that offset can be considered to be invalid.
     struct metadata_t

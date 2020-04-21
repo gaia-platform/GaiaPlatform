@@ -42,10 +42,14 @@ public final class CacheVertex extends CacheElement implements Vertex
     protected CacheVertex(final Graph graph, final Object id, final String label)
     {
         super(graph, id, label);
+
+        this.supportsNullPropertyValues = this.graph.supportsNullPropertyValues;
     }
 
     public Edge addEdge(final String label, final Vertex inVertex, final Object... keyValues)
     {
+        CacheHelper.debugPrint(this.graph, "vertex::addEdge()");
+
         if (this.removed)
         {
             throw elementAlreadyRemoved(Vertex.class, this.id);
@@ -70,6 +74,8 @@ public final class CacheVertex extends CacheElement implements Vertex
         final V value,
         final Object... keyValues)
     {
+        CacheHelper.debugPrint(this.graph, "vertex::property()");
+
         if (this.removed)
         {
             throw elementAlreadyRemoved(Vertex.class, id);
@@ -77,6 +83,25 @@ public final class CacheVertex extends CacheElement implements Vertex
 
         ElementHelper.validateProperty(key, value);
         ElementHelper.legalPropertyKeyValueArray(keyValues);
+
+        // If we don't support null property values and the value is null,
+        // then the key can be removed, but only if the cardinality is single.
+        // If it is list/set, then we can just ignore the null.
+        if (!this.supportsNullPropertyValues && value == null)
+        {
+            if (this.properties != null)
+            {
+                final VertexProperty.Cardinality propertyCardinality = (cardinality == null)
+                    ? this.graph.features().vertex().getCardinality(key) : cardinality;
+
+                if (propertyCardinality == VertexProperty.Cardinality.single)
+                {
+                    this.properties(key).forEachRemaining(VertexProperty::remove);
+                }
+            }
+
+            return VertexProperty.empty();
+        }
 
         final Optional<Object> optionalId = ElementHelper.getIdValue(keyValues);
         final Optional<VertexProperty<V>> optionalVertexProperty = ElementHelper.stageVertexProperty(
@@ -96,7 +121,7 @@ public final class CacheVertex extends CacheElement implements Vertex
         if (this.properties == null)
         {
             this.properties = new ConcurrentHashMap<>();
-        } 
+        }
 
         final List<VertexProperty> list = this.properties.getOrDefault(key, new ArrayList<>());
         list.add(newVertexProperty);
@@ -105,8 +130,10 @@ public final class CacheVertex extends CacheElement implements Vertex
         ElementHelper.attachProperties(newVertexProperty, keyValues);
 
         // Update node payload in COW.
+        // We don't have to do this if the node is being created,
+        // which we detect by checking if it's been added to the graph.vertices map.
         // No plans to support vertex property properties in COW for now.
-        if (!CacheHelper.updateNodePayload(this))
+        if (this.graph.vertices.containsKey(id) && !CacheHelper.updateNodePayload(this))
         {
             throw new UnsupportedOperationException("COW node update failed!");
         }
@@ -116,7 +143,7 @@ public final class CacheVertex extends CacheElement implements Vertex
 
     public <V> Iterator<VertexProperty<V>> properties(final String... propertyKeys)
     {
-        if (removed || this.properties == null)
+        if (this.removed || this.properties == null)
         {
             return Collections.emptyIterator();
         }
@@ -160,6 +187,8 @@ public final class CacheVertex extends CacheElement implements Vertex
 
     public void remove()
     {
+        CacheHelper.debugPrint(this.graph, "vertex::remove()");
+
         // First remove all edges related to this node.
         // This will also remove the edges from COW.
         final List<Edge> edges = new ArrayList<>();

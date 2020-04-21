@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
@@ -43,6 +44,8 @@ public final class CacheEdge extends CacheElement implements Edge
 
         this.outVertex = (CacheVertex)outVertex;
         this.inVertex = (CacheVertex)inVertex;
+
+        this.supportsNullPropertyValues = this.graph.supportsNullPropertyValues;
     }
 
     public Vertex outVertex()
@@ -61,7 +64,7 @@ public final class CacheEdge extends CacheElement implements Edge
         {
             return Collections.emptyIterator();
         }
-        
+
         switch (direction)
         {
             case OUT:
@@ -82,12 +85,26 @@ public final class CacheEdge extends CacheElement implements Edge
 
     public <V> Property<V> property(final String key, final V value)
     {
+        CacheHelper.debugPrint(this.graph, "edge::property()");
+
         if (this.removed)
         {
             throw elementAlreadyRemoved(Edge.class, this.id);
         }
 
         ElementHelper.validateProperty(key, value);
+
+        // If we don't support null property values and the value is null,
+        // then the key can be removed.
+        if (!this.supportsNullPropertyValues && value == null)
+        {
+            if (this.properties != null)
+            {
+                this.properties(key).forEachRemaining(Property::remove);
+            }
+
+            return Property.empty();
+        }
 
         final Property<V> newProperty = new CacheProperty<>(this, key, value);
 
@@ -99,7 +116,9 @@ public final class CacheEdge extends CacheElement implements Edge
         this.properties.put(key, newProperty);
 
         // Update edge payload in COW.
-        if (!CacheHelper.updateEdgePayload(this))
+        // We don't have to do this if the edge is being created,
+        // which we detect by checking if it's been added to the graph.edges map.
+        if (this.graph.edges.containsKey(id) && !CacheHelper.updateEdgePayload(this))
         {
             throw new UnsupportedOperationException("COW edge update failed!");
         }
@@ -136,6 +155,8 @@ public final class CacheEdge extends CacheElement implements Edge
 
     public void remove()
     {
+        CacheHelper.debugPrint(this.graph, "edge::remove()");
+
         // Remove the edge from COW.
         if (!CacheHelper.removeEdge(this))
         {
@@ -143,9 +164,9 @@ public final class CacheEdge extends CacheElement implements Edge
         }
 
         final CacheVertex outVertex = (CacheVertex)this.outVertex;
-        if (outVertex != null && outVertex.outEdges != null)
+        if (this.outVertex != null && this.outVertex.outEdges != null)
         {
-            final Set<Edge> edges = outVertex.outEdges.get(this.label);
+            final Set<Edge> edges = this.outVertex.outEdges.get(this.label);
             if (edges != null)
             {
                 edges.remove(this);
@@ -153,9 +174,9 @@ public final class CacheEdge extends CacheElement implements Edge
         }
 
         final CacheVertex inVertex = (CacheVertex)this.inVertex;
-        if (inVertex != null && inVertex.inEdges != null)
+        if (this.inVertex != null && this.inVertex.inEdges != null)
         {
-            final Set<Edge> edges = inVertex.inEdges.get(this.label);
+            final Set<Edge> edges = this.inVertex.inEdges.get(this.label);
             if (edges != null)
             {
                 edges.remove(this);

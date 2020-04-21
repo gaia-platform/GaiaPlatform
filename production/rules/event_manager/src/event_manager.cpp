@@ -562,7 +562,6 @@ void gaia::rules::initialize_rules_engine()
      * behalf of the user.
      */
     initialize_rules();
-
 }
 
 void gaia::rules::subscribe_database_rule(

@@ -53,7 +53,7 @@ error_code_t stack_allocator_t::initialize(
     // Save our parameters.
     m_base_memory_address = base_memory_address;
     m_base_memory_offset = memory_offset;
-    m_total_memory_size = memory_size;   
+    m_total_memory_size = memory_size;
 
     // Map the metadata information for quick reference.
     uint8_t* metadata_address
@@ -165,7 +165,7 @@ error_code_t stack_allocator_t::allocate(
     }
 
     allocated_memory_offset = allocation_record->memory_offset;
-    
+
     return error_code_t::success;
 }
 
