@@ -41,7 +41,7 @@ namespace gaia
     }
 }
 
-void verify_database_event(gaia::common::gaia_base_t* table_context, gaia::common::gaia_type_t gaia_type, 
+void verify_database_event(gaia::common::gaia_base_t* table_context,
     gaia::rules::event_type_t event_type, gaia::rules::event_mode_t mode)
 {
     TEST_EQ(g_event_type, event_type);
@@ -49,17 +49,17 @@ void verify_database_event(gaia::common::gaia_base_t* table_context, gaia::commo
     TEST_EQ(g_table_context, table_context);
 }
 
-void verify_field_event(gaia::common::gaia_base_t* table_context, const char* field, gaia::common::gaia_type_t gaia_type, 
+void verify_field_event(gaia::common::gaia_base_t* table_context, const char* field,
     gaia::rules::event_type_t event_type, gaia::rules::event_mode_t mode)
 {
-    verify_database_event(table_context, gaia_type, event_type, mode);
+    verify_database_event(table_context, event_type, mode);
     TEST_EQ_STR(g_field, field);
 }
 
 void GaiaNoIUDEventsTest()
 {
     AddrBook::Employee::begin_transaction();
-    verify_database_event(nullptr, 0, gaia::rules::event_type_t::transaction_begin, gaia::rules::event_mode_t::immediate);
+    verify_database_event(nullptr, gaia::rules::event_type_t::transaction_begin, gaia::rules::event_mode_t::immediate);
 
     int64_t manager_id = get_next_id();
     int64_t first_address_id = get_next_id();
@@ -85,16 +85,16 @@ void GaiaNoIUDEventsTest()
 
     pEmployee->set_ssn("test");
     TEST_EQ_STR("test",pEmployee->ssn());
-    verify_field_event(pEmployee, "ssn", AddrBook::kEmployeeType, gaia::rules::event_type_t::field_write, gaia::rules::event_mode_t::immediate);
+    verify_field_event(pEmployee, "ssn", gaia::rules::event_type_t::field_write, gaia::rules::event_mode_t::immediate);
     
     pEmployee->update_row();
     // No database update event so we should have same global values that were set by the field set event above.
-    verify_field_event(pEmployee, "ssn", AddrBook::kEmployeeType, gaia::rules::event_type_t::field_write, gaia::rules::event_mode_t::immediate);
+    verify_field_event(pEmployee, "ssn", gaia::rules::event_type_t::field_write, gaia::rules::event_mode_t::immediate);
     AddrBook::Employee *pEmployee1 = AddrBook::Employee::get_row_by_id(empl_node_id);
     TEST_EQ_STR("test",pEmployee1->ssn());
 
     AddrBook::Employee::commit_transaction();
-    verify_database_event(nullptr, 0, gaia::rules::event_type_t::transaction_commit, gaia::rules::event_mode_t::immediate);
+    verify_database_event(nullptr, gaia::rules::event_type_t::transaction_commit, gaia::rules::event_mode_t::immediate);
 }
 
 int main(int /*argc*/, const char * /*argv*/[]) 

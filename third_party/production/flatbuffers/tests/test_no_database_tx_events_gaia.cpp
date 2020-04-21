@@ -50,7 +50,7 @@ void verify_database_event(gaia::common::gaia_base_t* table_context,
     TEST_EQ(g_table_context, table_context);
 }
 
-void verify_field_event(gaia::common::gaia_base_t* table_context, const char* field, gaia::common::gaia_type_t gaia_type, 
+void verify_field_event(gaia::common::gaia_base_t* table_context, const char* field, 
     gaia::rules::event_type_t event_type, gaia::rules::event_mode_t mode)
 {
     verify_database_event(table_context, event_type, mode);
@@ -85,11 +85,11 @@ void GaiaNoTableTxEventsTest()
 
     pEmployee->set_ssn("test");
     TEST_EQ_STR("test",pEmployee->ssn());
-    verify_field_event(pEmployee, "ssn", AddrBook::kEmployeeType, gaia::rules::event_type_t::field_write, gaia::rules::event_mode_t::immediate);
+    verify_field_event(pEmployee, "ssn", gaia::rules::event_type_t::field_write, gaia::rules::event_mode_t::immediate);
     
     AddrBook::Employee::commit_transaction();
     // No transactino events so globals should be the same values as they were when the field event occurred.
-    verify_field_event(pEmployee, "ssn", AddrBook::kEmployeeType, gaia::rules::event_type_t::field_write, gaia::rules::event_mode_t::immediate);
+    verify_field_event(pEmployee, "ssn", gaia::rules::event_type_t::field_write, gaia::rules::event_mode_t::immediate);
 }
 
 
