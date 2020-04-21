@@ -61,7 +61,7 @@ public final class CacheEdge extends CacheElement implements Edge
         {
             return Collections.emptyIterator();
         }
-        
+
         switch (direction)
         {
             case OUT:
@@ -82,6 +82,8 @@ public final class CacheEdge extends CacheElement implements Edge
 
     public <V> Property<V> property(final String key, final V value)
     {
+        CacheHelper.debugPrint(this.graph, "edge::property()");
+
         if (this.removed)
         {
             throw elementAlreadyRemoved(Edge.class, this.id);
@@ -138,6 +140,8 @@ public final class CacheEdge extends CacheElement implements Edge
 
     public void remove()
     {
+        CacheHelper.debugPrint(this.graph, "edge::remove()");
+
         // Remove the edge from COW.
         if (!CacheHelper.removeEdge(this))
         {
@@ -145,9 +149,9 @@ public final class CacheEdge extends CacheElement implements Edge
         }
 
         final CacheVertex outVertex = (CacheVertex)this.outVertex;
-        if (outVertex != null && outVertex.outEdges != null)
+        if (this.outVertex != null && this.outVertex.outEdges != null)
         {
-            final Set<Edge> edges = outVertex.outEdges.get(this.label);
+            final Set<Edge> edges = this.outVertex.outEdges.get(this.label);
             if (edges != null)
             {
                 edges.remove(this);
@@ -155,9 +159,9 @@ public final class CacheEdge extends CacheElement implements Edge
         }
 
         final CacheVertex inVertex = (CacheVertex)this.inVertex;
-        if (inVertex != null && inVertex.inEdges != null)
+        if (this.inVertex != null && this.inVertex.inEdges != null)
         {
-            final Set<Edge> edges = inVertex.inEdges.get(this.label);
+            final Set<Edge> edges = this.inVertex.inEdges.get(this.label);
             if (edges != null)
             {
                 edges.remove(this);

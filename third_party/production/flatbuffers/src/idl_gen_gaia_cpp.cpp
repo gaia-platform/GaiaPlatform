@@ -597,24 +597,24 @@ namespace flatbuffers
                 if (opts_.generate_setters && opts_.generate_table_change_events)
                 {
                     // Update function
-                    code_ += "void update_row(){\n"
+                    code_ += "void update_row(){\n"                    
+                    "gaia_object_t::update_row();\n"
                     "gaia::rules::log_table_event(this, " + CurrentNamespaceString() +  
                     "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::row_update, gaia::rules::event_mode_t::immediate);\n"
-                    "gaia_object_t::update_row();\n"
                     "}\n"
 
                     // Insert function
-                    "void insert_row(){\n"
+                    "void insert_row(){\n"                    
+                    "gaia_object_t::insert_row();\n"
                     "gaia::rules::log_table_event(this, " + CurrentNamespaceString() +  
                     "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::row_insert, gaia::rules::event_mode_t::immediate);\n"
-                    "gaia_object_t::insert_row();\n"
                     "}\n"
 
                     // Delete function
-                    "void delete_row(){\n"
+                    "void delete_row(){\n"                    
                     "gaia::rules::log_table_event(this, " + CurrentNamespaceString() +  
                     "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::row_delete, gaia::rules::event_mode_t::immediate);\n"
-                    "gaia_object_t::delete_row();\n"
+                    "gaia_object_t::delete_row();\n"                    
                     "}";
                 }
                 else

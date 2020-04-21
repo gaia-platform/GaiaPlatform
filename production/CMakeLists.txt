@@ -5,6 +5,7 @@
 
 cmake_minimum_required(VERSION 3.11)
 
+
 include(UseJava)
 
 enable_testing()
@@ -30,6 +31,8 @@ set(GOOGLE_TEST "${GAIA_REPO}/third_party/production/googletest")
 set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")
 set(FLATBUFFERS "${GAIA_REPO}/third_party/production/flatbuffers")
 set(FLATBUFFERS_INC "${FLATBUFFERS}/include")
+set(ROCKSDB "${GAIA_REPO}/third_party/production/rocksdb")
+set(ROCSKDB_INC "${ROCKSDB}/include")
 set(PYBIND_PATH "${GAIA_REPO}/third_party/production/pybind11")
 set(GREMLIN_CONSOLE_PATH "/usr/local/share/gremlin-console")
 set(GREMLIN_SERVER_PATH "/usr/local/share/gremlin-server")
@@ -53,9 +56,9 @@ endif()
 
 # Java Tinkerpop project.
 if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
-  set(CMAKE_JAVA_INCLUDE_PATH ${GREMLIN_CONSOLE_PATH}/lib/*:${GREMLIN_CONSOLE_PATH}/ext/tinkergraph-gremlin/lib/*)
+  set(CMAKE_JAVA_INCLUDE_PATH ${GREMLIN_CONSOLE_PATH}/lib/*:${GREMLIN_CONSOLE_PATH}/ext/tinkergraph-gremlin/lib/*:${PROJECT_BINARY_DIR}/*)
 
-  # Java wrapper code. This generates native headers for the native wrapper.
+  # Java Tinkerpop graph provider implementation. This also generates native headers for the COW wrapper.
   add_jar(GaiaTinkerpop
     SOURCES
       java/com/gaiaplatform/database/CowStorageEngine.java
@@ -68,6 +71,7 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
       java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheGraph.java
       java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheHelper.java
       java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheProperty.java
+      java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheTransaction.java
       java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheVertex.java
       java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheVertexProperty.java
       ${FLATBUFFERS}/java/com/google/flatbuffers/ArrayReadWriteBuf.java
@@ -98,18 +102,46 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
       DESTINATION ${PROJECT_BINARY_DIR}/db/storage_engine/mock)
   get_target_property(GAIA_TINKERPOP_JAR GaiaTinkerpop JAR_FILE)
 
-  # Add a test that executes the Java program.
+  # Java tests.
+  add_jar(GaiaTests
+    SOURCES
+      java/com/gaiaplatform/tests/database/cachegraph/TestCacheGraph.java
+    INCLUDE_JARS GaiaTinkerpop)
+  get_target_property(GAIA_TESTS_JAR GaiaTests JAR_FILE)
+
+  # Add JNI test.
   add_test(
     NAME test_se_mock_jni
     COMMAND ${Java_JAVA_EXECUTABLE}
-      -Djava.library.path=./db/storage_engine
-      -cp ${GAIA_TINKERPOP_JAR} com.gaiaplatform.database.CowStorageEngine)
+      -Djava.library.path=${PROJECT_BINARY_DIR}/db/storage_engine
+      -cp ${GAIA_TINKERPOP_JAR}
+      com.gaiaplatform.database.CowStorageEngine)
+
+  # Add CacheGraph tests.
+  add_test(
+    NAME test_cachegraph_basic
+    COMMAND ${Java_JAVA_EXECUTABLE} -ea
+      -Djava.library.path=${PROJECT_BINARY_DIR}/db/storage_engine
+      -cp ${CMAKE_JAVA_INCLUDE_PATH}:${GAIA_TINKERPOP_JAR}:${GAIA_TESTS_JAR}
+      com.gaiaplatform.tests.database.cachegraph.TestCacheGraph basic)
+  add_test(
+    NAME test_cachegraph_factory
+    COMMAND ${Java_JAVA_EXECUTABLE} -ea
+      -Djava.library.path=${PROJECT_BINARY_DIR}/db/storage_engine
+      -cp ${CMAKE_JAVA_INCLUDE_PATH}:${GAIA_TINKERPOP_JAR}:${GAIA_TESTS_JAR}
+      com.gaiaplatform.tests.database.cachegraph.TestCacheGraph factory)
+  add_test(
+    NAME test_cachegraph_graphml
+    COMMAND ${Java_JAVA_EXECUTABLE} -ea
+      -Djava.library.path=${PROJECT_BINARY_DIR}/db/storage_engine
+      -cp ${CMAKE_JAVA_INCLUDE_PATH}:${GAIA_TINKERPOP_JAR}:${GAIA_TESTS_JAR}
+      com.gaiaplatform.tests.database.cachegraph.TestCacheGraph graphml)
 endif()
 
 # Common code - currently, a headers-only library.
 add_library(gaia_common INTERFACE)
-target_sources(gaia_common INTERFACE 
-  ${PROJECT_SOURCE_DIR}/inc/internal/common/gaia_exception.hpp 
+target_sources(gaia_common INTERFACE
+  ${PROJECT_SOURCE_DIR}/inc/internal/common/gaia_exception.hpp
   ${PROJECT_SOURCE_DIR}/inc/internal/common/retail_assert.hpp
 )
 

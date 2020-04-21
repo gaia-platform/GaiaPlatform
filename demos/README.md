@@ -1,11 +1,21 @@
 # demos
 This is a folder for demo or prototype code.
 
+To build this folder, create a subfolder **build\** and then execute the following commands in it:
+* `cmake ..`
+* `make`
+
 ## cow_se prototype
 
 Implements a prototype database engine that offers snapshot isolation.
 
 Building this project requires installing the Java SDK. Install package *openjdk-8-jdk*.
+
+## airport Q1 demo
+
+Thi `airport_q1` subdirectory contains two C++ programs:
+* airimport - loads the airport database into the storage engine for use by other database processors: direct access, SQL, or Gremlin.
+* airqueries - queries the airport database. The pre-programmed queries match the Gremlin used in the Q1.
 
 ## airport demo
 
@@ -41,12 +51,12 @@ The demo was originally developed on Ubuntu 18.04, but has also been verified to
      * ```make```
 
 2. **cow_se.so** - Python wrapper over the COW prototype storage engine.
-   * Build with regular cmake steps under demos/build.
+   * Build with regular cmake steps under **demos/build/**.
 
 3. **Flatbuffers**
-   * Install python flatbuffers package from third_party/production/flatbuffers/python using command ```sudo python setup.py install```.
+   * Install python flatbuffers package from **third_party/production/flatbuffers/python/** using command ```sudo python setup.py install```.
    * For getting flatc compiler and working with flatbuffers in C++ (these steps are not required for the airport demo):
-     * Go to third_party/production/flatbuffers/, then build with regular cmake steps.
+     * Go to **third_party/production/flatbuffers/**, then build with regular cmake steps.
      * To install flatc compiler and flatbuffers headers and library, execute the following command from the build folder: ```sudo make install```.
 
 4. **Postgres 10.9** (latest 10). This was the default on ubuntu 18. On ubuntu 19 version 10 is not available, so just use version 11.
@@ -63,17 +73,15 @@ The demo was originally developed on Ubuntu 18.04, but has also been verified to
    * On ubuntu, there are already available multicorn packages: *postgresql-10-python-multicorn* and *python-multicorn*.
 
 6. **Airport FDW package**
-   * Go to demos/build folder and execute ```make airport```.
-   * To quickly test package, go to demos/airport/tests and execute command: ```sudo -u postgres psql -f test_airportdemo.sql```.
+   * Go to **demos/build/ folder** and execute ```make airport```.
+   * To quickly test package, go to **demos/airport/tests/** and execute command: ```sudo -u postgres psql -f test_airportdemo.sql```.
 
 7. **Airport demo setup**
-   * Copy the data files from data/airport/seattle-only to tmp folder: ```cp *.txt /tmp```. These files only contain the subset of airports and routes that connect directly to SeaTac.
-     * If you want to use the full airport data, decompress the gzip files from airport folder and execute ```cp *.dat /tmp```. Note that these will make queries slower due to lack of indexing.
-   * Go to demos/airport/setup and initialize gaia storage with the command: ```python gaia_init.py```. You have to do this whenever you need to reset the storage.
-     * This step can also be executed via ```make gaia-init``` in the demos/build folder.
-   * Connect to postgres while in demos/airport/setup folder: ```sudo -u postgres psql```.
+   * Decompress and copy the CSV data files from **data/internal/airport/** to tmp folder: ```cp *.dat /tmp```.
+   * Go to **demos/airport/setup/** and initialize gaia storage with the command: ```python gaia_init.py```. You have to do this whenever you need to reset the storage.
+     * This step can also be executed via ```make gaia-init``` in the **demos/build/** folder.
+   * Connect to postgres while in **demos/airport/setup/** folder: ```sudo -u postgres psql```.
    * Load airport data into postgres tables (our storage is not persistent yet): ```\i airportdemo_setup.sql```. You only need to do this once - the *rawdata* tables created by this step can be later reused.
-     * For loading the full airport data use the *airport_demo_setup_all.sql* script instead.
    * You can now create gaia tables and load them up with the data from the Postgres rawdata tables: ```\i airportdemo_gaia_tables_setup.sql```.
    * Play with the data - select from the airports/airlines/routes tables.
      * Sample queries:
@@ -85,3 +93,7 @@ The demo was originally developed on Ubuntu 18.04, but has also been verified to
        * ```select distinct ap.name from routes r, airports ap where r.src_ap = 'SEA' and r.dst_ap = ap.iata;```
        * ```select distinct al.name from routes r, airlines al where r.src_ap = 'SEA' and r.airline = al.iata;```
    * Cleanup gaia tables: ```\i airportdemo_gaia_tables_cleanup.sql```.
+
+## scripts
+
+This folder is meant for storing various demo-related scripts.

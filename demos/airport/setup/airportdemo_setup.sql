@@ -28,30 +28,23 @@ create unique index rawdata_route_uidx on rawdata_routes(al_id, src_ap_id, dst_a
 -- Data comes from openflights.com which has an open database license, free to use; this is a subset of rows focused on SeaTac.
 
 -- Copy data to /tmp:
---      cp seattle-connected-airports.txt /tmp
---      cp seattle-airport.txt /tmp
---      cp good-airlines.txt /tmp
---      cp seattle-routes.txt /tmp
+--      cp airports.dat /tmp
+--      cp airlines.dat /tmp
+--      cp routes.dat /tmp
 
 copy rawdata_airports(
         ap_id, name, city, country, iata, icao, latitude, longitude, altitude, timezone,
         dst, tztext, type, source)
-    from '/tmp/seattle-connected-airports.txt'
-        delimiter ',' csv quote as '"' null as '\N';
-
-copy rawdata_airports(
-        ap_id, name, city, country, iata, icao, latitude, longitude, altitude, timezone,
-        dst, tztext, type, source)
-    from '/tmp/seattle-airport.txt'
+    from '/tmp/airports.dat'
         delimiter ',' csv quote as '"' null as '\N';
 
 copy rawdata_airlines(
         al_id, name, alias, iata, icao, callsign, country, active)
-    from '/tmp/good-airlines.txt'
+    from '/tmp/airlines.dat'
         delimiter ',' csv quote as '"' null as '\N';
 
 copy rawdata_routes(
         airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment)
-    from '/tmp/seattle-routes.txt'
+    from '/tmp/routes.dat'
         delimiter ',' csv quote as '"' null as '\N';
 

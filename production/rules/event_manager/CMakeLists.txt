@@ -25,7 +25,7 @@ message(STATUS "GAIA_EVENT_MANAGER_INCLUDES=${GAIA_EVENT_MANAGER_INCLUDES}")
 
 # Generate the event log headers from the flatbuffer schema.
 set_property(GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
-gaia_compile_flatbuffers_schema_to_cpp(flatbuffers/event_log.fbs "${GENERATED_OUTPUTS}")
+gaia_compile_flatbuffers_schema_to_cpp_opt(flatbuffers/event_log.fbs "--no-includes;--gen-compare;--gaia-type-initial-value;6" "${GENERATED_OUTPUTS}")
 get_generated_output(fbs_generated)
 if(fbs_generated)
   # message(STATUS "Add generated_code target with files:${fbs_generated}")

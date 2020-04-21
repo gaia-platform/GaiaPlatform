@@ -261,7 +261,6 @@ error_code_t memory_manager_t::commit_stack_allocator(
                 {
                     free_memory_records[allocation_number - 1] = free_memory_record;
                 }
-                
             }
         }
 
@@ -532,7 +531,7 @@ address_offset_t memory_manager_t::allocate_from_freed_memory(size_t size_to_all
         {
             // We have 2 situations: the memory block is exactly our required size or it is larger.
             // In both cases, we need to check the size of the block again after acquiring the locks,
-            // because another thread may have managed to update it before we could lock it. 
+            // because another thread may have managed to update it before we could lock it.
             if (context.current_record->memory_size == size_to_allocate)
             {
                 if (try_to_lock_access(context, access_lock_type_t::update_remove)
@@ -839,7 +838,7 @@ void memory_manager_t::output_debugging_information(const string& context_descri
     cout << "  Free memory list: " << endl;
     output_list_content(m_metadata->free_memory_list_head);
     cout << "  Reclaimed records list: " << endl;
-    output_list_content(m_metadata->reclaimed_records_list_head); 
+    output_list_content(m_metadata->reclaimed_records_list_head);
     cout << "  Unserialized allocations list: " << endl;
     output_list_content(m_metadata->unserialized_allocations_list_head);
     cout << c_debug_output_separator_line_end << endl;

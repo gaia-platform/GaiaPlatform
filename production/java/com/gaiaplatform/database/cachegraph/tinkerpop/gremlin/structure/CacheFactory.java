@@ -47,13 +47,13 @@ public final class CacheFactory
     {
     }
 
-    private static CacheGraph getDefaultCacheGraph()
+    private static CacheGraph getTinkerpopDefaultCacheGraph()
     {
-        final Configuration configuration = getDefaultConfiguration();
+        final Configuration configuration = getTinkerpopDefaultConfiguration();
         return CacheGraph.open(configuration);
     }
 
-    private static Configuration getDefaultConfiguration()
+    private static Configuration getTinkerpopDefaultConfiguration()
     {
         final Configuration configuration = new BaseConfiguration();
 
@@ -66,28 +66,30 @@ public final class CacheFactory
         configuration.setProperty(
             CacheGraph.CACHEGRAPH_VERTEX_PROPERTY_ID_MANAGER,
             CacheGraph.DefaultIdManager.LONG.name());
-        
+
         return configuration;
     }
 
     // Classic graph data set.
     public static CacheGraph createClassic()
     {
-        final Configuration configuration = getDefaultConfiguration();
+        final Configuration configuration = getTinkerpopDefaultConfiguration();
 
         configuration.setProperty(
             CacheGraph.CACHEGRAPH_VERTEX_PROPERTY_ID_MANAGER,
             CacheGraph.DefaultIdManager.INTEGER.name());
-   
+
         final CacheGraph graph = CacheGraph.open(configuration);
 
         generateClassic(graph);
-   
+
         return graph;
     }
 
     public static void generateClassic(final CacheGraph graph)
     {
+        graph.tx().open();
+
         final Vertex marko = graph.addVertex(T.id, 1, "name", "marko", "age", 29);
         final Vertex vadas = graph.addVertex(T.id, 2, "name", "vadas", "age", 27);
         final Vertex lop = graph.addVertex(T.id, 3, "name", "lop", "lang", "java");
@@ -101,18 +103,22 @@ public final class CacheFactory
         josh.addEdge(LABEL_CREATED, ripple, T.id, 10, "weight", 1.0f);
         josh.addEdge(LABEL_CREATED, lop, T.id, 11, "weight", 0.4f);
         peter.addEdge(LABEL_CREATED, lop, T.id, 12, "weight", 0.2f);
+
+        graph.tx().commit();
     }
 
     // Modern graph data set.
     public static CacheGraph createModern()
     {
-        final CacheGraph graph = getDefaultCacheGraph();
+        final CacheGraph graph = getTinkerpopDefaultCacheGraph();
         generateModern(graph);
         return graph;
     }
 
     public static void generateModern(final CacheGraph graph)
     {
+        graph.tx().open();
+
         final Vertex marko = graph.addVertex(T.id, 1, T.label, "person", "name", "marko", "age", 29);
         final Vertex vadas = graph.addVertex(T.id, 2, T.label, "person", "name", "vadas", "age", 27);
         final Vertex lop = graph.addVertex(T.id, 3, T.label, "software", "name", "lop", "lang", "java");
@@ -126,12 +132,14 @@ public final class CacheFactory
         josh.addEdge(LABEL_CREATED, ripple, T.id, 10, "weight", 1.0d);
         josh.addEdge(LABEL_CREATED, lop, T.id, 11, "weight", 0.4d);
         peter.addEdge(LABEL_CREATED, lop, T.id, 12, "weight", 0.2d);
+
+        graph.tx().commit();
     }
 
     // The Crew data set.
     public static CacheGraph createTheCrew()
     {
-        final Configuration configuration = getDefaultConfiguration();
+        final Configuration configuration = getTinkerpopDefaultConfiguration();
 
         configuration.setProperty(
             CacheGraph.CACHEGRAPH_DEFAULT_VERTEX_PROPERTY_CARDINALITY,
@@ -146,6 +154,8 @@ public final class CacheFactory
 
     public static void generateTheCrew(final CacheGraph graph)
     {
+        graph.tx().open();
+
         final Vertex marko = graph.addVertex(T.id, 1, T.label, "person", "name", "marko");
         final Vertex stephen = graph.addVertex(T.id, 7, T.label, "person", "name", "stephen");
         final Vertex matthias = graph.addVertex(T.id, 8, T.label, "person", "name", "matthias");
@@ -193,18 +203,22 @@ public final class CacheFactory
         graph.variables().set("creator", "marko");
         graph.variables().set("lastModified", 2014);
         graph.variables().set("comment", "this graph was created to provide examples and test coverage for tinkerpop3 api advances");
+
+        graph.tx().commit();
     }
 
     // Kitchen Sink data set.
     public static CacheGraph createKitchenSink()
     {
-        final CacheGraph graph = getDefaultCacheGraph();
+        final CacheGraph graph = getTinkerpopDefaultCacheGraph();
         generateKitchenSink(graph);
         return graph;
     }
 
     public static void generateKitchenSink(final CacheGraph graph)
     {
+        graph.tx().open();
+
         final GraphTraversalSource g = graph.traversal();
 
         g.addV("loops").property(T.id, 1000).property("name", "loop").as("me")
@@ -215,6 +229,31 @@ public final class CacheFactory
             .addV("message").property(T.id, 2001).property("name", "b").as("b")
             .addE("link").from("a").to("b").property(T.id, 2002)
             .addE("link").from("a").to("a").property(T.id, 2003).iterate();
+
+        graph.tx().commit();
+    }
+
+    private static CacheGraph getDefaultCacheGraph()
+    {
+        final Configuration configuration = getDefaultConfiguration();
+        return CacheGraph.open(configuration);
+    }
+
+    private static Configuration getDefaultConfiguration()
+    {
+        final Configuration configuration = new BaseConfiguration();
+
+        configuration.setProperty(
+            CacheGraph.CACHEGRAPH_VERTEX_ID_MANAGER,
+            CacheGraph.DefaultIdManager.LONG.name());
+        configuration.setProperty(
+            CacheGraph.CACHEGRAPH_EDGE_ID_MANAGER,
+            CacheGraph.DefaultIdManager.LONG.name());
+        configuration.setProperty(
+            CacheGraph.CACHEGRAPH_VERTEX_PROPERTY_ID_MANAGER,
+            CacheGraph.DefaultIdManager.LONG.name());
+
+        return configuration;
     }
 
     // COW data set.
@@ -227,6 +266,8 @@ public final class CacheFactory
 
     public static void generateCowSample(final CacheGraph graph)
     {
+        graph.tx().open();
+
         final Vertex node1 = graph.addVertex(T.id, 1, T.label, "1", "payload", "n1");
         final Vertex node2 = graph.addVertex(T.id, 2, T.label, "1", "payload", "n2");
         final Vertex node3 = graph.addVertex(T.id, 3, T.label, "2", "payload", "n3");
@@ -236,6 +277,8 @@ public final class CacheFactory
         node1.addEdge("3", node3, T.id, 6, "payload", "e6=n1->n3");
         node4.addEdge("4", node1, T.id, 7, "payload", "e7=n4->n1");
         node2.addEdge("4", node3, T.id, 8, "payload", "e8=n2->n3");
+
+        graph.tx().commit();
     }
 
     // Tiny airport data set.
@@ -255,6 +298,8 @@ public final class CacheFactory
 
     public static void generateTinyAirport(final CacheGraph graph)
     {
+        graph.tx().open();
+
         final Vertex ams = graph.addVertex(T.label, LABEL_AIRPORT,
             "id", "580", "iata", "AMS", "name", "Amsterdam Airport Schiphol", "city", "Amsterdam", "country", "NLD");
         final Vertex cdg = graph.addVertex(T.label, LABEL_AIRPORT,
@@ -341,6 +386,8 @@ public final class CacheFactory
         setFlightEdges(klm, jfk, ams, klm_jfk_ams);
         setFlightEdges(klm, otp, ams, klm_otp_ams);
         setFlightEdges(klm, sea, ams, klm_sea_ams);
+
+        graph.tx().commit();
     }
 
     // Tiny airport data set with Q1 schema.
@@ -359,6 +406,8 @@ public final class CacheFactory
 
     public static void generateTinyQ1Airport(final CacheGraph graph)
     {
+        graph.tx().open();
+
         final Vertex aal = graph.addVertex(T.label, LABEL_AIRLINE,
             "al_id", "24", "iata", "AA", "icao", "AAL", "name", "American Airlines");
         final Vertex afr = graph.addVertex(T.label, LABEL_AIRLINE,
@@ -398,6 +447,13 @@ public final class CacheFactory
         setRouteEdge(ams, jfk, "KL", "A330 777 747(Combi) 747");
         setRouteEdge(ams, otp, "KL", "737");
         setRouteEdge(ams, sea, "KL", "A330");
+
+        graph.tx().commit();
+    }
+
+    public static void enableDebuggingMessages(final CacheGraph graph, boolean enabled)
+    {
+        graph.enableDebugMessages = enabled;
     }
 
     // Load a graphml file.
@@ -410,12 +466,21 @@ public final class CacheFactory
 
     public static void loadGraphml(final CacheGraph graph, String filename)
     {
+        // If transactions are advertised to be supported (via Graph.Features)
+        // then readGraph() will call commit() and rollback() itself,
+        // but it still expects open() to have been called already.
+        //
+        // readGraph() may also fail if it attempts to batch transactions,
+        // because it doesn't re-open a transaction after a commit.
+        graph.tx().open();
         try
         {
             graph.io(graphml()).readGraph(filename);
+            graph.tx().commit();
         }
         catch (Exception e)
         {
+            graph.tx().rollback();
             System.out.println(
                 "An error happened while attempting to load " + filename + ": "
                 + e.getMessage());
@@ -428,9 +493,9 @@ public final class CacheFactory
     {
         final Configuration configuration = getDefaultConfiguration();
 
-        // Disable writing to COW.
+        // Disable COW operations.
         configuration.setProperty(
-            CacheGraph.CACHEGRAPH_ENABLE_COW_WRITES,
+            CacheGraph.CACHEGRAPH_ENABLE_COW_OPERATIONS,
             false);
 
         final CacheGraph graph = CacheGraph.open(configuration);
@@ -448,7 +513,7 @@ public final class CacheFactory
         configuration.setProperty(
             CacheGraph.CACHEGRAPH_ENABLE_AIRPORT_CODE,
             true);
-                   
+
         final CacheGraph graph = CacheGraph.open(configuration);
 
         return graph;
@@ -467,14 +532,14 @@ public final class CacheFactory
         // We read from COW to write into cached graph,
         // so we don't need to write back into COW.
         configuration.setProperty(
-            CacheGraph.CACHEGRAPH_ENABLE_COW_WRITES,
+            CacheGraph.CACHEGRAPH_ENABLE_COW_OPERATIONS,
             false);
 
         // We need to enable airport data serialization code.
         configuration.setProperty(
             CacheGraph.CACHEGRAPH_ENABLE_AIRPORT_CODE,
             true);
-                   
+
         final CacheGraph graph = CacheGraph.open(configuration);
 
         return graph;

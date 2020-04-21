@@ -93,11 +93,32 @@ public final class CacheHelper
         mapLabelsToTypes.clear();
     }
 
+    protected static void debugPrint(CacheGraph graph, String message)
+    {
+        if (graph.enableDebugMessages)
+        {
+            System.out.println(message);
+        }
+    }
+
+    public static void printStackTrace()
+    {
+        System.out.println("\n>>> BEGIN STACK TRACE:\n");
+
+        StackTraceElement[] stackElements = Thread.currentThread().getStackTrace();
+        for (int i = 1; i < stackElements.length; i++)
+        {
+            System.out.println("--> " + stackElements[i]);
+        }
+
+        System.out.println("\n<<< END STACK TRACE\n");
+    }
+
     // This makes CacheGraph load its status from the underlying store,
     // whose schema is expected to follow a specific implementation.
     protected static void loadAirportGraphFromCow(CacheGraph graph)
     {
-        if (graph.enableCowWrites)
+        if (graph.enableCowOperations)
         {
             System.out.println("COW writes need to be disabled while data is loaded from it. Aborting load!");
             return;
@@ -111,6 +132,7 @@ public final class CacheHelper
 
         reset();
 
+        // COW operations are disabled, so we need to manually create the transaction.
         graph.cow.beginTransaction();
 
         // Scan airline nodes.
@@ -158,7 +180,7 @@ public final class CacheHelper
 
         // We're done loading data into in-memory cache,
         // so we can re-enable writes to our store.
-        graph.enableCowWrites = true;
+        graph.enableCowOperations = true;
     }
 
     private static void loadAirlineNode(CacheGraph graph, long nodeId)
@@ -323,7 +345,7 @@ public final class CacheHelper
                 }
             }
         }
-    
+
         graph.addVertex(keyValues.toArray());
     }
 
@@ -431,15 +453,32 @@ public final class CacheHelper
         return nextType;
     }
 
-    private static boolean handleTransaction(CacheGraph graph, boolean operationResult)
+    // Returns true if we started a transaction and false if one was already started.
+    private static boolean startTransaction(CacheGraph graph)
     {
-        if (operationResult)
+        if (graph.tx().isOpen())
         {
-            graph.cow.commitTransaction();
+            return false;
         }
-        else
+
+        graph.tx().open();
+        return true;
+    }
+
+    // Performs a commit or rollback, according to the operation result
+    // and to whether we were the ones to open the transaction.
+    private static boolean handleTransaction(CacheGraph graph, boolean operationResult, boolean ownTransaction)
+    {
+        if (ownTransaction)
         {
-            graph.cow.rollbackTransaction();
+            if (operationResult)
+            {
+                graph.tx().commit();
+            }
+            else
+            {
+                graph.tx().rollback();
+            }
         }
 
         return operationResult;
@@ -450,7 +489,9 @@ public final class CacheHelper
     // and they update the underlying store.
     protected static boolean createNode(CacheVertex vertex)
     {
-        if (!vertex.graph.enableCowWrites)
+        debugPrint(vertex.graph, "helper::createNode(" + vertex.id + ")");
+
+        if (!vertex.graph.enableCowOperations)
         {
             return true;
         }
@@ -467,7 +508,9 @@ public final class CacheHelper
 
     protected static boolean removeNode(CacheVertex vertex)
     {
-        if (!vertex.graph.enableCowWrites)
+        debugPrint(vertex.graph, "helper::removeNode(" + vertex.id + ")");
+
+        if (!vertex.graph.enableCowOperations)
         {
             return true;
         }
@@ -475,13 +518,15 @@ public final class CacheHelper
         CacheGraph graph = vertex.graph;
         long id = Long.parseLong(vertex.id.toString());
 
-        graph.cow.beginTransaction();
-        return handleTransaction(graph, graph.cow.removeNode(id));
+        boolean ownTransaction = startTransaction(graph);
+        return handleTransaction(graph, graph.cow.removeNode(id), ownTransaction);
     }
 
     protected static boolean updateNodePayload(CacheVertex vertex)
     {
-        if (!vertex.graph.enableCowWrites)
+        debugPrint(vertex.graph, "helper::updateNodePayload(" + vertex.id + ")");
+
+        if (!vertex.graph.enableCowOperations)
         {
             return true;
         }
@@ -498,7 +543,9 @@ public final class CacheHelper
 
     protected static boolean createEdge(CacheEdge edge)
     {
-        if (!edge.graph.enableCowWrites)
+        debugPrint(edge.graph, "helper::createEdge(" + edge.id + ")");
+
+        if (!edge.graph.enableCowOperations)
         {
             return true;
         }
@@ -515,7 +562,9 @@ public final class CacheHelper
 
     protected static boolean removeEdge(CacheEdge edge)
     {
-        if (!edge.graph.enableCowWrites)
+        debugPrint(edge.graph, "helper::removeEdge(" + edge.id + ")");
+
+        if (!edge.graph.enableCowOperations)
         {
             return true;
         }
@@ -523,13 +572,15 @@ public final class CacheHelper
         CacheGraph graph = edge.graph;
         long id = Long.parseLong(edge.id.toString());
 
-        graph.cow.beginTransaction();
-        return handleTransaction(graph, graph.cow.removeEdge(id));
+        boolean ownTransaction = startTransaction(graph);
+        return handleTransaction(graph, graph.cow.removeEdge(id), ownTransaction);
     }
 
     protected static boolean updateEdgePayload(CacheEdge edge)
     {
-        if (!edge.graph.enableCowWrites)
+        debugPrint(edge.graph, "helper::updateEdgePayload(" + edge.id + ")");
+
+        if (!edge.graph.enableCowOperations)
         {
             return true;
         }
@@ -592,9 +643,9 @@ public final class CacheHelper
         long type = getTypeForLabel(vertex.label);
         String payload = packNodeProperties(vertex.properties);
 
-        graph.cow.beginTransaction();
+        boolean ownTransaction = startTransaction(graph);
         long idNode = graph.cow.createNode(id, type, payload);
-        return handleTransaction(graph, idNode != 0);
+        return handleTransaction(graph, idNode != 0, ownTransaction);
     }
 
     protected static boolean updateGenericNodePayload(CacheVertex vertex)
@@ -603,8 +654,8 @@ public final class CacheHelper
         long id = Long.parseLong(vertex.id.toString());
         String payload = packNodeProperties(vertex.properties);
 
-        graph.cow.beginTransaction();
-        return handleTransaction(graph, graph.cow.updateNodePayload(id, payload));
+        boolean ownTransaction = startTransaction(graph);
+        return handleTransaction(graph, graph.cow.updateNodePayload(id, payload), ownTransaction);
     }
 
     protected static boolean createGenericEdge(CacheEdge edge)
@@ -616,9 +667,9 @@ public final class CacheHelper
         long idFirstNode = Long.parseLong(edge.outVertex.id.toString());
         long idSecondNode = Long.parseLong(edge.inVertex.id.toString());
 
-        graph.cow.beginTransaction();
+        boolean ownTransaction = startTransaction(graph);
         long idEdge = graph.cow.createEdge(id, type, idFirstNode, idSecondNode, payload);
-        return handleTransaction(graph, idEdge != 0);
+        return handleTransaction(graph, idEdge != 0, ownTransaction);
     }
 
     protected static boolean updateGenericEdgePayload(CacheEdge edge)
@@ -627,8 +678,8 @@ public final class CacheHelper
         long id = Long.parseLong(edge.id.toString());
         String payload = packEdgeProperties(edge.properties);
 
-        graph.cow.beginTransaction();
-        return handleTransaction(graph, graph.cow.updateEdgePayload(id, payload));
+        boolean ownTransaction = startTransaction(graph);
+        return handleTransaction(graph, graph.cow.updateEdgePayload(id, payload), ownTransaction);
     }
 
     // Airport graph helpers that do a custom flatbuffers serialization of properties.
@@ -836,7 +887,7 @@ public final class CacheHelper
         {
             return null;
         }
-    
+
         return builder.sizedByteArray();
     }
 
@@ -929,7 +980,7 @@ public final class CacheHelper
         {
             return null;
         }
-    
+
         return builder.sizedByteArray();
     }
 
@@ -940,9 +991,9 @@ public final class CacheHelper
         long type = getTypeForLabel(vertex.label);
         byte[] payload = packAirportNodeProperties(type, vertex.properties);
 
-        graph.cow.beginTransaction();
+        boolean ownTransaction = startTransaction(graph);
         long idNode = graph.cow.createNode(id, type, payload);
-        return handleTransaction(graph, idNode != 0);
+        return handleTransaction(graph, idNode != 0, ownTransaction);
     }
 
     protected static boolean updateAirportNodePayload(CacheVertex vertex)
@@ -952,8 +1003,8 @@ public final class CacheHelper
         long type = getTypeForLabel(vertex.label);
         byte[] payload = packAirportNodeProperties(type, vertex.properties);
 
-        graph.cow.beginTransaction();
-        return handleTransaction(graph, graph.cow.updateNodePayload(id, payload));
+        boolean ownTransaction = startTransaction(graph);
+        return handleTransaction(graph, graph.cow.updateNodePayload(id, payload), ownTransaction);
     }
 
     protected static boolean createAirportEdge(CacheEdge edge)
@@ -965,9 +1016,9 @@ public final class CacheHelper
         long idFirstNode = Long.parseLong(edge.outVertex.id.toString());
         long idSecondNode = Long.parseLong(edge.inVertex.id.toString());
 
-        graph.cow.beginTransaction();
+        boolean ownTransaction = startTransaction(graph);
         long idEdge = graph.cow.createEdge(id, type, idFirstNode, idSecondNode, payload);
-        return handleTransaction(graph, idEdge != 0);
+        return handleTransaction(graph, idEdge != 0, ownTransaction);
     }
 
     protected static boolean updateAirportEdgePayload(CacheEdge edge)
@@ -977,8 +1028,8 @@ public final class CacheHelper
         long type = getTypeForLabel(edge.label);
         byte[] payload = packAirportEdgeProperties(type, edge.properties);
 
-        graph.cow.beginTransaction();
-        return handleTransaction(graph, graph.cow.updateEdgePayload(id, payload));
+        boolean ownTransaction = startTransaction(graph);
+        return handleTransaction(graph, graph.cow.updateEdgePayload(id, payload), ownTransaction);
     }
 
     // In-memory graph helpers.
@@ -1043,7 +1094,7 @@ public final class CacheHelper
     {
         if (vertex.inEdges == null)
         {
-            vertex.inEdges = new ConcurrentHashMap<>();   
+            vertex.inEdges = new ConcurrentHashMap<>();
         }
 
         Set<Edge> edges = vertex.inEdges.get(label);

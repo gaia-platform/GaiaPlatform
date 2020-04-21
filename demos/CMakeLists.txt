@@ -39,7 +39,6 @@ endif()
 # Add project folders.
 add_subdirectory(cow_se)
 add_subdirectory(rules)
-
 if (DEFINED GAIA_PROD_BUILD AND EXISTS ${GAIA_PROD_BUILD})
   # Convert relative path to absolute path so custom commands will work if given a relative path
   get_filename_component(GAIA_PROD_BUILD "${GAIA_PROD_BUILD}" REALPATH BASE_DIR "${CMAKE_BINARY_DIR}")
