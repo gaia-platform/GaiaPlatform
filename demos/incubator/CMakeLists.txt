@@ -36,7 +36,7 @@ add_custom_command(
             --gaiacpp --gen-setters
             --no-includes --gen-compare
             --gen-table-events --gen-transaction-events --gen-col-events
-            --gaia_type_initial_value 1000
+            --gaia-type-initial-value 1000
             -I ${CMAKE_CURRENT_SOURCE_DIR}
             -o ${CMAKE_CURRENT_SOURCE_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR}/barn_storage.fbs

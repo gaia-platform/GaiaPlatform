@@ -20,49 +20,65 @@ extern "C" void initialize_rules()
 TEST(event_manager_component_init, component_not_initialized_error)
 {
     rule_binding_t dont_care;
-    list_subscriptions_t still_dont_care;
+    subscription_list_t still_dont_care;
+    field_list_t ignore;
 
-    EXPECT_THROW(log_table_event(nullptr, 0, event_type_t::row_insert, event_mode_t::immediate),
+    EXPECT_THROW(log_database_event(nullptr, event_type_t::row_insert, event_mode_t::immediate),
         initialization_error);
-    EXPECT_THROW(log_transaction_event(event_type_t::transaction_begin, event_mode_t::immediate),
+    EXPECT_THROW(log_field_event(nullptr, nullptr, event_type_t::field_write, event_mode_t::immediate),
         initialization_error);
-    EXPECT_THROW(subscribe_table_rule(0, event_type_t::row_insert, dont_care),
+    EXPECT_THROW(subscribe_field_rule(0, event_type_t::field_write, ignore, dont_care),
+        initialization_error);
+    EXPECT_THROW(subscribe_database_rule(0, event_type_t::row_insert, dont_care),
         initialization_error);        
-    EXPECT_THROW(subscribe_transaction_rule(event_type_t::transaction_rollback, dont_care),
+    EXPECT_THROW(unsubscribe_field_rule(0, event_type_t::field_write, ignore, dont_care),
         initialization_error);
-    EXPECT_THROW(unsubscribe_table_rule(0, event_type_t::row_insert, dont_care),
-        initialization_error);
-    EXPECT_THROW(unsubscribe_transaction_rule(event_type_t::transaction_commit, dont_care),
+    EXPECT_THROW(unsubscribe_database_rule(0, event_type_t::row_insert, dont_care),
         initialization_error);
     EXPECT_THROW(unsubscribe_rules(),
         initialization_error);
-    EXPECT_THROW(list_subscribed_rules(nullptr, nullptr, nullptr, still_dont_care),
+    EXPECT_THROW(list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, still_dont_care),
         initialization_error);
 }
 
-void rule(const context_base_t*)
+void rule(const rule_context_t*)
 {
 }
+
+class row_context_t : public gaia_base_t
+{
+public:
+    row_context_t() : gaia_base_t("TestGaia") {}
+    void reset(bool) override {}
+    
+    static gaia_type_t s_gaia_type;
+    gaia_type_t gaia_type() override
+    {
+        return s_gaia_type;
+    }
+};
+gaia_type_t row_context_t::s_gaia_type = 2;
 
 TEST(event_manager_component_init, component_initialized)
 {
     rule_binding_t binding("ruleset", "rulename", rule);
-    list_subscriptions_t subscriptions;
+    subscription_list_t subscriptions;
+    field_list_t fields;
+    fields.insert("last_name");
+    row_context_t row;
 
     gaia_mem_base::init(true);
     gaia::rules::initialize_rules_engine();
 
-    EXPECT_THROW(gaia::rules::initialize_rules_engine(), 
-        initialization_error);
 
     gaia_base_t::begin_transaction();
-    EXPECT_EQ(false, log_table_event(nullptr, 0, event_type_t::row_insert, event_mode_t::immediate));
-    EXPECT_EQ(false, log_transaction_event(event_type_t::transaction_begin, event_mode_t::immediate));
-    subscribe_table_rule(0, event_type_t::row_insert, binding);
-    subscribe_transaction_rule(event_type_t::transaction_begin, binding);
-    EXPECT_EQ(true, unsubscribe_transaction_rule(event_type_t::transaction_begin, binding));
-    EXPECT_EQ(true, unsubscribe_table_rule(0, event_type_t::row_insert, binding));
+    EXPECT_EQ(false, log_database_event(&row, event_type_t::row_insert, event_mode_t::immediate));
+    EXPECT_EQ(false, log_field_event(&row, "first_name", event_type_t::field_write, event_mode_t::immediate));
+    subscribe_field_rule(2, event_type_t::field_write, fields, binding);
+    subscribe_database_rule(2, event_type_t::row_insert, binding);
+    EXPECT_EQ(true, unsubscribe_database_rule(row_context_t::s_gaia_type, event_type_t::row_insert, binding));
+    EXPECT_EQ(true, unsubscribe_field_rule(row_context_t::s_gaia_type, event_type_t::field_write, fields, binding));
     unsubscribe_rules();
-    list_subscribed_rules(nullptr, nullptr, nullptr, subscriptions);
-    gaia_base_t::rollback_transaction();
+    list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subscriptions);
+    gaia_base_t::rollback_transaction();    
 }
