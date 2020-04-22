@@ -9,3 +9,14 @@ Five pre-programmed queries are available. The first 3 are parameterized. To sel
 To use a parameterized query, enter the menu selection followed by comma-separated values, for example:
 * `> 1,DFW,OTP` find the 1-layover airports between Dallas-Fort Worth and Bucharest.
 * `> 2,LGA,ORD` describe 1-layover routes between La Guardia and O'Hare.
+
+## build
+
+Note that this program uses a specialized version of `gaia_object.hpp` named `gaia_object_q1_demo.hpp` in the `inc/` directory.
+
+```
+mkdir build
+cd build
+cmake ..
+make
+```

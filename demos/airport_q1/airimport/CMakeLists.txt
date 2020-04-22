@@ -11,8 +11,8 @@ set(GAIA_REPO ../../..)
 # Set the project name.
 project(airimport)
 
-set(GAIA_REPO /home/wayne/src/github.com/gaia-platform/GaiaPlatform)
 set(GAIA_INC ${GAIA_REPO}/production/inc)
+set(GAIA_PROD_BUILD ${GAIA_REPO}/third_party/production)
 set(GAIA_COMPILE_FLAGS "-c -Wextra -ggdb")
 set(GAIA_LINK_FLAGS "-ggdb")
 
@@ -30,7 +30,21 @@ set (AIRIMPORT_INCLUDES
 )
 include_directories(${AIRIMPORT_INCLUDES})
 
+add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/airport_q1_generated.h"
+  COMMAND ../${GAIA_PROD_BUILD}/flatbuffers/build/flatc --cpp --gaiacpp --gen-mutable --gen-setters
+    --gen-object-api --cpp-str-type gaia::common::nullable_string_t --cpp-str-flex-ctor
+    -o ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../inc/airport_q1.fbs
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../inc/airport_q1.fbs
+  COMMENT "Compiling airport_q1.fbs"
+)
+
+add_custom_target(headers_generated
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/airport_q1_generated.h"
+  COMMENT "All generated files were update.")
+
 add_executable(airimport data_loader.cpp)
+add_dependencies(airimport headers_generated)
 
 target_link_directories(airimport
   PRIVATE
