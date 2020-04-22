@@ -2,7 +2,7 @@
 This is a folder for a tool to generate a rule subscription code out of annotated cpp code. This is a temporary solution until rule generator is ready.
 
 # Build
-To build the tool, libclang-8-dev package should be installed. This package will bring internal llvm headers and libraries that are required to build the tool. If the package is not installed the build would skip building the tool.
+To build the tool, libclang-8-dev package should be installed. This package will bring internal LLVM headers and libraries that are required to build the tool. If the package is not installed the build would skip building the tool.
 to build follow regular pattern:
 ```
 cd GaiaPlatform/demos

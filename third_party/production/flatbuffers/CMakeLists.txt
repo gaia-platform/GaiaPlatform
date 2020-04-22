@@ -498,7 +498,7 @@ function(compile_flatbuffers_schema_to_embedded_binary SRC_FBS OPT)
 endfunction()
 
 if(FLATBUFFERS_BUILD_TESTS)
- 
+
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/tests" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
@@ -507,7 +507,7 @@ if(FLATBUFFERS_BUILD_TESTS)
   add_executable(gaia_no_col_tests ${FlatBuffersGaiaNoColEvents_Tests_SRCS})
   add_executable(gaia_no_iud_tests ${FlatBuffersGaiaNoIUDEvents_Tests_SRCS})
   add_executable(gaia_no_database_tx_tests ${FlatBuffersGaiaNoTableTxEvents_Tests_SRCS})
-  
+
   # TODO Add (monster_test.fbs monsterdata_test.json)->monsterdata_test.mon
   compile_flatbuffers_schema_to_cpp(tests/monster_test.fbs)
   compile_flatbuffers_schema_to_binary(tests/monster_test.fbs)
@@ -527,11 +527,12 @@ if(FLATBUFFERS_BUILD_TESTS)
     compile_flatbuffers_schema_to_cpp(tests/monster_extra.fbs) # Test floating-point NAN/INF.
   endif()
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/tests)
-  include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../demos/cow_se/inc)
-  include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/inc/public/rules)
-  include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/inc/public/common)
-  include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/db/storage_engine/mock)
-  include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../../production/inc/internal/common)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../demos/cow_se/inc)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../production/inc/public/rules)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../production/inc/public/common)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../production/db/storage_engine/mock)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../production/inc/internal/common)
+
   add_dependencies(flattests generated_code)
   set_property(TARGET flattests
     PROPERTY COMPILE_DEFINITIONS FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
@@ -562,7 +563,7 @@ if(FLATBUFFERS_BUILD_TESTS)
   add_custom_command(
      TARGET ${FLATBUFFERS_UNIT_TEST}
      COMMENT "Run flatbuffer tests"
-     POST_BUILD 
+     POST_BUILD
      COMMAND ${FLATBUFFERS_UNIT_TEST}
   )
 
@@ -570,7 +571,7 @@ if(FLATBUFFERS_BUILD_TESTS)
   add_custom_command(
      TARGET ${GAIA_ALL_EVENTS_UNIT_TEST}
      COMMENT "Run Gaia all events tests"
-     POST_BUILD 
+     POST_BUILD
      COMMAND ${GAIA_ALL_EVENTS_UNIT_TEST}
   )
 
@@ -578,7 +579,7 @@ if(FLATBUFFERS_BUILD_TESTS)
   add_custom_command(
      TARGET ${GAIA_NO_COL_EVENTS_UNIT_TEST}
      COMMENT "Run Gaia No Col events tests"
-     POST_BUILD 
+     POST_BUILD
      COMMAND ${GAIA_NO_COL_EVENTS_UNIT_TEST}
   )
 
@@ -586,7 +587,7 @@ if(FLATBUFFERS_BUILD_TESTS)
   add_custom_command(
      TARGET ${GAIA_NO_IUD_EVENTS_UNIT_TEST}
      COMMENT "Run Gaia no IUD events tests"
-     POST_BUILD 
+     POST_BUILD
      COMMAND ${GAIA_NO_IUD_EVENTS_UNIT_TEST}
   )
 
@@ -594,7 +595,7 @@ if(FLATBUFFERS_BUILD_TESTS)
   add_custom_command(
      TARGET ${GAIA_NO_TABLE_TX_EVENTS_UNIT_TEST}
      COMMENT "Run Gaia No Table TX events tests"
-     POST_BUILD 
+     POST_BUILD
      COMMAND ${GAIA_NO_TABLE_TX_EVENTS_UNIT_TEST}
   )
 
@@ -730,7 +731,7 @@ if(FLATBUFFERS_BUILD_TESTS)
   add_test(NAME gaia_no_column_event_tests COMMAND gaia_no_col_tests)
   add_test(NAME gaia_no_database_event_tests COMMAND gaia_no_iud_tests)
   add_test(NAME gaia_tx_event_tests COMMAND gaia_no_database_tx_tests)
-  
+
   if(FLATBUFFERS_BUILD_CPP17)
     add_test(NAME flattests_cpp17 COMMAND flattests_cpp17)
   endif()

@@ -156,7 +156,7 @@ private:
         check_database_event(type);
 
         // Transaction events should have no context supplied.
-        if((type < event_type_t::first_row_event) && row)
+        if ((type < event_type_t::first_row_event) && row)
         {
             throw invalid_context();
         }
