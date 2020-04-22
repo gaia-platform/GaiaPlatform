@@ -263,26 +263,13 @@ namespace flatbuffers
                 code_ += "using namespace gaia::common;";
                 code_ += "";
 
-                uint64_t currentObjectTypeValue = opts_.gaia_type_initial_value;
 
-                // Generate Object Type enum.
-                for (auto it = parser_.structs_.vec.begin();
-                    it != parser_.structs_.vec.end(); ++it) 
-                {
-                    const auto &struct_def = **it;
-                    if (!struct_def.fixed && !struct_def.generated) 
-                    {
-                        SetNameSpace(struct_def.defined_namespace);
-                        GenObjectTypeValues(struct_def, currentObjectTypeValue);
-                        currentObjectTypeValue ++;
-                  
-                    }
-                }
-                
                 if (cur_name_space_) 
                 {
                     SetNameSpace(nullptr);
                 }
+
+                uint64_t currentObjectTypeValue = opts_.gaia_type_initial_value;
 
                 // Generate class.
                 for (auto it = parser_.structs_.vec.cbegin();
@@ -292,8 +279,9 @@ namespace flatbuffers
                     if (!struct_def.fixed && !struct_def.generated) 
                     {
                         SetNameSpace(struct_def.defined_namespace);
-                        GenClass(struct_def);          
+                        GenClass(struct_def, currentObjectTypeValue);
                         code_ += "";
+                        currentObjectTypeValue++;
                     }
                 }
 
@@ -488,18 +476,8 @@ namespace flatbuffers
                 }
             }
    
-            // Generate values for class type
-            void GenObjectTypeValues(const StructDef &struct_def, 
-                uint64_t currentObjectTypeValue)
-            {
-                code_.SetValue("CONST_NAME", "k" + CapitalizeString(Name(struct_def)) + "Type");
-                code_ += 
-                    "static const gaia::common::gaia_type_t {{CONST_NAME}} = " + 
-                    NumToString(currentObjectTypeValue) + ";";
-            }
-
             // Generate a Zero Copy class with Setters
-            void GenClass(const StructDef &struct_def) 
+            void GenClass(const StructDef &struct_def, const uint64_t currentObjectTypeValue) 
             {                
                 // Generate an accessor struct, with methods of the form:
                 // type name() const { return GetField<type>(offset, defaultval); }
@@ -507,8 +485,8 @@ namespace flatbuffers
 
                 code_.SetValue("STRUCT_NAME", Name(struct_def));
                 code_.SetValue("CLASS_NAME", CapitalizeString(Name(struct_def)));
-                code_ += "struct {{CLASS_NAME}} : public gaia_object_t<" + CurrentNamespaceString() +  
-                    "::k{{CLASS_NAME}}Type,{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>{";
+                code_ += "struct {{CLASS_NAME}} : public gaia_object_t<" + NumToString(currentObjectTypeValue) + 
+                    ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>{";
     
                 std::string params = "";
                 std::string param_Values = "";
@@ -535,7 +513,6 @@ namespace flatbuffers
                     {
                         has_string_or_vector_fields = true;
                     }
-
 
                     if (!params.empty())
                     {
@@ -587,8 +564,7 @@ namespace flatbuffers
                             code_ += 
                                 "_fields.emplace(\"{{FIELD_NAME}}\");\n"
                                 "_fieldOffsets.emplace({{STRUCT_NAME}}::{{OFFSET}});";
-                            code_ += "gaia::rules::log_table_event(this, " + CurrentNamespaceString() +  
-                                "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::column_change, gaia::rules::event_mode_t::immediate);";
+                            code_ += "gaia::rules::log_field_event(this, \"{{FIELD_NAME}}\", gaia::rules::event_type_t::field_write, gaia::rules::event_mode_t::immediate);";
                         }
                         code_ += "}"; 
                     }
@@ -597,24 +573,21 @@ namespace flatbuffers
                 if (opts_.generate_setters && opts_.generate_table_change_events)
                 {
                     // Update function
-                    code_ += "void update_row(){\n"                    
+                    code_ += "void update_row(){\n"
                     "gaia_object_t::update_row();\n"
-                    "gaia::rules::log_table_event(this, " + CurrentNamespaceString() +  
-                    "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::row_update, gaia::rules::event_mode_t::immediate);\n"
+                    "gaia::rules::log_database_event(this, gaia::rules::event_type_t::row_update, gaia::rules::event_mode_t::immediate);\n"
                     "}\n"
 
                     // Insert function
-                    "void insert_row(){\n"                    
+                    "void insert_row(){\n"
                     "gaia_object_t::insert_row();\n"
-                    "gaia::rules::log_table_event(this, " + CurrentNamespaceString() +  
-                    "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::row_insert, gaia::rules::event_mode_t::immediate);\n"
+                    "gaia::rules::log_database_event(this, gaia::rules::event_type_t::row_insert, gaia::rules::event_mode_t::immediate);\n"
                     "}\n"
 
                     // Delete function
-                    "void delete_row(){\n"                    
-                    "gaia::rules::log_table_event(this, " + CurrentNamespaceString() +  
-                    "::k{{CLASS_NAME}}Type, gaia::rules::event_type_t::row_delete, gaia::rules::event_mode_t::immediate);\n"
-                    "gaia_object_t::delete_row();\n"                    
+                    "void delete_row(){\n"
+                    "gaia::rules::log_database_event(this, gaia::rules::event_type_t::row_delete, gaia::rules::event_mode_t::immediate);\n"
+                    "gaia_object_t::delete_row();\n"
                     "}";
                 }
                 else
@@ -631,20 +604,20 @@ namespace flatbuffers
                     code_ += 
                     "static void begin_transaction(){\n"
                     "gaia_object_t::begin_transaction();\n"
-                    "gaia::rules::log_transaction_event(gaia::rules::event_type_t::transaction_begin, gaia::rules::event_mode_t::immediate);\n"
+                    "gaia::rules::log_database_event(nullptr, gaia::rules::event_type_t::transaction_begin, gaia::rules::event_mode_t::immediate);\n"
                     "}\n"
 
                 // CommitTransaction function
                     "static void commit_transaction(){\n"
                     "gaia_object_t::commit_transaction();\n"
-                    "gaia::rules::log_transaction_event(gaia::rules::event_type_t::transaction_commit, gaia::rules::event_mode_t::immediate);\n"
+                    "gaia::rules::log_database_event(nullptr, gaia::rules::event_type_t::transaction_commit, gaia::rules::event_mode_t::immediate);\n"
                     "}\n"
 
                 // RollbackTransaction function
                 
                     "static void rollback_transaction(){\n"
                     "gaia_object_t::rollback_transaction();\n"
-                    "gaia::rules::log_transaction_event(gaia::rules::event_type_t::transaction_rollback, gaia::rules::event_mode_t::immediate);\n"
+                    "gaia::rules::log_database_event(nullptr, gaia::rules::event_type_t::transaction_rollback, gaia::rules::event_mode_t::immediate);\n"
                     "}";
                 }
 
@@ -667,8 +640,8 @@ namespace flatbuffers
                 }
 
                 code_ += "private:";
-                code_ += "friend struct gaia_object_t<" + CurrentNamespaceString() +  
-                    "::k{{CLASS_NAME}}Type,{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>;";
+                code_ += "friend struct gaia_object_t<" + NumToString(currentObjectTypeValue) +  
+                    ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>;";
                 code_ += "{{CLASS_NAME}}(gaia_id_t id) : gaia_object_t(id, \"{{CLASS_NAME}}\") {}";
                 
                 if (opts_.generate_setters && opts_.generate_column_change_events)

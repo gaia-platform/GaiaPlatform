@@ -69,7 +69,8 @@ struct gaia_base_t
     static void commit_transaction()   { gaia::db::commit_transaction(); }
     static void rollback_transaction() { gaia::db::rollback_transaction(); }
 
-    gaia_id_t gaia_id() {
+    gaia_id_t gaia_id() 
+    {
         return m_id;
     }
     
@@ -77,6 +78,8 @@ struct gaia_base_t
     {
         return m_typename;
     }
+
+    virtual gaia_type_t gaia_type() = 0;
 
     virtual ~gaia_base_t() = default;
 
@@ -93,9 +96,17 @@ protected:
     const char * m_typename;
 
 private:
-    virtual void reset(bool) {}
-
+    virtual void reset(bool) = 0;
 };
+
+
+// Macros for strongly types field accessors used by
+// gaia_object_t objects below.
+#define GET_CURRENT(field) (m_copy ? (m_copy->field) : (m_fb->field()))
+#define GET_ORIGINAL(field) (m_fb ? m_fb->field() : m_copy->field)
+#define GET_STR_ORIGINAL(field) (m_fb ? (m_fb->field() ? m_fb->field()->c_str() : nullptr) : (m_copy ? m_copy->field.c_str() : nullptr))
+#define GET_STR(field) (m_copy ? m_copy->field.c_str() : m_fb->field() ? m_fb->field()->c_str() : nullptr)
+#define SET(field, value) (copy_write()->field = value)
 
 // T_gaia_type - an integer (gaia_type_t) uniquely identifying the flatbuffer table type
 // T_gaia      - the subclass type derived from this template
@@ -123,11 +134,16 @@ public:
         copy_write();
     }
 
-    #define GET_CURRENT(field) (m_copy ? (m_copy->field) : (m_fb ? m_fb->field() : 0))
-    #define GET_ORIGINAL(field) (m_fb ? m_fb->field() : (m_copy ? m_copy->field : 0))
-    #define GET_STR_ORIGINAL(field) (m_fb ? (m_fb->field() ? m_fb->field()->c_str() : nullptr) : (m_copy ? m_copy->field.c_str() : nullptr))
-    #define GET_STR(field) (m_copy ? m_copy->field.c_str() : m_fb ? (m_fb->field()? m_fb->field()->c_str() : nullptr) : nullptr)
-    #define SET(field, value) (copy_write()->field = value)
+    // This can be used for subscribing to rules when you don't
+    // have a specific instance of the type.
+    static gaia::db::gaia_type_t s_gaia_type;
+
+    // This can be used when you are passed a gaia_base_t
+    // object and want to know the type at runtime.
+    gaia::db::gaia_type_t gaia_type() override
+    {
+        return T_gaia_type;
+    }
 
     static T_gaia* get_first() {
         auto node_ptr = gaia_ptr<gaia_se_node>::find_first(T_gaia_type);
@@ -257,7 +273,7 @@ private:
         return obj;
     }
 
-    void reset(bool clear_flatbuffer = false)
+    void reset(bool clear_flatbuffer = false) override
     {
         m_copy.reset();
         m_fbb.reset();
@@ -271,5 +287,9 @@ private:
         }
     }
 };
+
+// Static definition of the gaia_type in gaia_object_t class above.
+template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
+    gaia::db::gaia_type_t gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::s_gaia_type = T_gaia_type;
 } // common
 } // gaia
