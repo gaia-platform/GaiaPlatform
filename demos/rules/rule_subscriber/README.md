@@ -11,13 +11,13 @@ cd build
 cmake ..
 make
 ```
-The tool will be located at build/rules/RuleSubscriber folder.
+The tool will be located at build/rules/rule_subscriber folder.
 
 # Use 
 The build accept as a parameter a name of a source file that contains annotated functions and name of an output file that will contain the rule subscription code. In addition the tool accepts as a parameter a list of folders to include files in a syntax similar to clang compiler.
 The example of tool execution is:
 ```
-~/src/GaiaPlatformRuleSubscribeTool/GaiaPlatform/demos/build$ ./rules/RuleSubscriber/rule_subscriber rules/RuleSubscriber/out.cpp -output ttt.cpp -- -I ../../production/inc/public/rules -I /usr/lib/llvm-8/lib/clang/8.0.1/include -I ../../production/inc/internal/common -I ../../production/inc/public/common -I ../../third_party/production/flatbuffers/include -I ../../production/db/storage_engine/mock
+~/src/GaiaPlatformRuleSubscribeTool/GaiaPlatform/demos/build$ ./rules/rule_subscriber/rule_subscriber rules/rule_subscriber/out.cpp -output ttt.cpp -- -I ../../production/inc/public/rules -I /usr/lib/llvm-8/lib/clang/8.0.1/include -I ../../production/inc/internal/common -I ../../production/inc/public/common -I ../../third_party/production/flatbuffers/include -I ../../production/db/storage_engine/mock
 ```
 
 The example of input file:
