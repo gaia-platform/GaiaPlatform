@@ -141,8 +141,8 @@ endif()
 # Common code - currently, a headers-only library.
 add_library(gaia_common INTERFACE)
 target_sources(gaia_common INTERFACE
-  ${PROJECT_SOURCE_DIR}/inc/internal/common/gaia_exception.hpp
-  ${PROJECT_SOURCE_DIR}/inc/internal/common/retail_assert.hpp
+  ${PROJECT_SOURCE_DIR}/inc/public/common/gaia_exception.hpp
+  ${PROJECT_SOURCE_DIR}/inc/public/common/retail_assert.hpp
 )
 
 # Add flatbuffers

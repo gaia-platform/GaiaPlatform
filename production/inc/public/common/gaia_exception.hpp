@@ -12,9 +12,20 @@ using namespace std;
 
 namespace gaia
 {
+/**
+ * \addtogroup Gaia
+ * @{
+ */
 namespace common
 {
+/**
+ * \addtogroup Common
+ * @{
+ */
 
+/**
+ * Root class for Gaia exceptions.
+ */
 class gaia_exception : public exception
 {
 protected:
@@ -34,5 +45,7 @@ public:
     }
 };
 
+/*@}*/
 }
+/*@}*/
 }
