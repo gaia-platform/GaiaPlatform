@@ -12,7 +12,7 @@ set(GAIA_REPO ../../..)
 project(airimport)
 
 set(GAIA_INC ${GAIA_REPO}/production/inc)
-set(GAIA_PROD_BUILD ${GAIA_REPO}/third_party/production)
+set(GAIA_FLATBUFFERS ${GAIA_REPO}/third_party/production/flatbuffers)
 set(GAIA_COMPILE_FLAGS "-c -Wextra -ggdb")
 set(GAIA_LINK_FLAGS "-ggdb")
 
@@ -21,6 +21,7 @@ set(GAIA_COMMON_INCLUDES
   ${GAIA_INC}/internal/common
   ${GAIA_REPO}/demos/airport_q1/inc
   ${GAIA_REPO}/third_party/production/flatbuffers/include
+  ${CMAKE_CURRENT_BINARY_DIR}
 )
 message(STATUS "GAIA_COMMON_INCLUDES=${GAIA_COMMON_INCLUDES}")
 
@@ -31,17 +32,16 @@ set (AIRIMPORT_INCLUDES
 include_directories(${AIRIMPORT_INCLUDES})
 
 add_custom_command(
-  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/airport_q1_generated.h"
-  COMMAND ../${GAIA_PROD_BUILD}/flatbuffers/build/flatc --cpp --gaiacpp --gen-mutable --gen-setters
+  OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/airport_q1_generated.h"
+  COMMAND ../${GAIA_FLATBUFFERS}/build/flatc --cpp --gaiacpp --gen-mutable --gen-setters
     --gen-object-api --cpp-str-type gaia::common::nullable_string_t --cpp-str-flex-ctor
-    -o ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../inc/airport_q1.fbs
+    -o ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../inc/airport_q1.fbs
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../inc/airport_q1.fbs
   COMMENT "Compiling airport_q1.fbs"
 )
 
 add_custom_target(headers_generated
-  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/airport_q1_generated.h"
-  COMMENT "All generated files were update.")
+  DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/airport_q1_generated.h")
 
 add_executable(airimport data_loader.cpp)
 add_dependencies(airimport headers_generated)
