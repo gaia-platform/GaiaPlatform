@@ -458,9 +458,9 @@ TEST_F(gaia_object_test, new_del_del) {
 TEST_F(gaia_object_test, next_first) {
     gaia_base_t::begin_transaction();
     auto e1 = get_field("Harold");
-    auto e2 = get_field("Jameson");
-    EXPECT_EQ(2, count_rows());
-    EXPECT_EQ(e2, e1->get_next());
-    EXPECT_EQ(nullptr, e2->get_next());
+    auto e2 = get_field("Howard");
+    auto e3 = get_field("Hank");
+    auto e_test = e2->get_next();
+    EXPECT_TRUE(e_test == e1 || e_test == e3 || e_test == nullptr);
     gaia_base_t::commit_transaction();
 }
