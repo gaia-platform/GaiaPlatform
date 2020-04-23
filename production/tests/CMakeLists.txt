@@ -14,4 +14,4 @@ project(tests)
 add_subdirectory(common)
 
 # Tests.
-add_gtest(test_retail_assert test_retail_assert.cpp "${GAIA_INC}/internal/common" "")
+add_gtest(test_retail_assert test_retail_assert.cpp "${GAIA_INC}/public/common" "")
