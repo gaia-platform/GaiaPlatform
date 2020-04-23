@@ -34,16 +34,16 @@ namespace common {
  */
 
 /**
- * The gaia_base_t provides control over the extended data class objects by
+ * The gaia_base_t struct provides control over the extended data class objects by
  * keeping a cached pointer to each storage engine object that has been accessed.
  * Storage engine objects are identified by the gaia_id_t (currently a 64-bit
- * integer. When the same object is referenced at a multiple times, the cached
+ * integer). When the same object is referenced multiple times, the cached
  * gaia object associated with the gaia_id_t will be used again.
  * 
  * A second cache is maintained to track objects that have been involved in a 
  * transaction. These objects (which may be small in number compared to the
  * complete cache of objects) will be "cleared" at the beginning of each new
- * transaction. This assures that any changes made by other transaction will be
+ * transaction. This ensures that any changes made by other transactions will be
  * refreshed if they are accessed again.
  */
 struct gaia_base_t
@@ -55,11 +55,11 @@ struct gaia_base_t
      * any local transactional changes. Since each object may contain a pointer
      * to the flatbuffer payload in the SE memory, or a local, mutable copy of the
      * flatbuffer, these objects will be frequently referenced by their gaia_id and
-     *  require quick access to their contents.
+     * require quick access to their contents.
      */
     static id_cache_t s_gaia_cache;
     /**
-     * Track every gaia_base_t object that has been used inthe current transaction.
+     * Track every gaia_base_t object that has been used in the current transaction.
      * Used to clear the field values referenced in the objects at transaction commit
      * because they become stale. This separate cache is maintained as a smaller
      * subset of the s_gaia_cache so that the whole cache doesn't have to be searched
