@@ -5,9 +5,6 @@
 
 // -*- mode: java -*- // Java mode works for emacs to edit flatbuffers.
 
-// Note - these are NOT the schema we used in the q1 demos.
-// The q1 demos are in demos/airport/flatbuffers/airport.fbs
-
 namespace gaia.airport;
 
 // Payload for COW node type 1, loaded from airports.dat.
@@ -65,4 +62,3 @@ table flights
 // COW edge type 7: flight-->departs_from-->airport
 // COW edge type 8: airport-->arrival-->flight
 // COW edge type 9: airline-->operates-->flight
-
