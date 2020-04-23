@@ -159,9 +159,8 @@ void increase_fans(Incubator *incubator, FILE *log) {
     }
 }
 
-void on_sensor_changed(const context_base_t *context) {
-    const table_context_t *t = static_cast<const table_context_t *>(context);
-    Sensor *s = static_cast<Sensor *>(t->row);
+void on_sensor_changed(const rule_context_t *context) {
+    Sensor *s = static_cast<Sensor *>(context->event_context);
     Incubator *i = Incubator::get_row_by_id(s->incubator_id());
     FILE *log = fopen("message.log", "a");
     fprintf(log, "%s fired for %s sensor of %s incubator\n", __func__,
@@ -180,7 +179,7 @@ void add_fan_control_rule() {
     try {
         rule_binding_t fan_control("Incubator", "Fan control",
                                    on_sensor_changed);
-        subscribe_table_rule(kSensorType, event_type_t::row_update,
+        subscribe_database_rule(Sensor::s_gaia_type, event_type_t::row_update,
                              fan_control);
     } catch (duplicate_rule) {
         printf("The rule has already been added.\n");
@@ -188,8 +187,8 @@ void add_fan_control_rule() {
 }
 
 void list_rules() {
-    list_subscriptions_t subs;
-    list_subscribed_rules(nullptr, nullptr, nullptr, subs);
+    subscription_list_t subs;
+    list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subs);
     printf("Number of rules for incubator: %ld\n", subs.size());
     if (subs.size() > 0) {
         printf("\n");

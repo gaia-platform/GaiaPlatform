@@ -9,12 +9,11 @@ std::vector<string> processImage(const char *fileName);
 namespace cameraDemo
 {
 /**
- rule, image_create, CameraDemo::kCameraImageType = 1, event_type_t::row_insert
+ rule-image_create: [CameraDemo::Camera_image](insert)
 */
-    void ImageCreate_handler(const context_base_t *context)
+    void ImageCreate_handler(const rule_context_t *context)
     {        
-        const table_context_t* t = static_cast<const table_context_t*>(context);
-        CameraDemo::Camera_image* row = static_cast<CameraDemo::Camera_image*>(t->row);
+        CameraDemo::Camera_image* row = static_cast<CameraDemo::Camera_image*>(context->event_context);
         cerr << "IMAGE Captured " << row->file_name() <<  endl;
 
         std::vector<string> detectedClasses  = processImage(row->file_name());
@@ -34,23 +33,21 @@ namespace cameraDemo
     }
 
 /**
- rule, image_delete, CameraDemo::kCameraImageType = 1, event_type_t::row_delete
+ rule-image_delete: [CameraDemo::Camera_image](delete)
 */
-    void ImageDelete_handler(const context_base_t *context)
+    void ImageDelete_handler(const rule_context_t *context)
     {
-        const table_context_t* t = static_cast<const table_context_t*>(context);
-        CameraDemo::Camera_image* row = static_cast<CameraDemo::Camera_image*>(t->row);
+        CameraDemo::Camera_image* row = static_cast<CameraDemo::Camera_image*>(context->event_context);
         ::remove(row->file_name());
         cerr << "IMAGE deleted " <<  row->file_name() << endl;
     }
 
 /**
- rule, object_class, CameraDemo::kObjectType = 2, event_type_t::row_insert
+ rule-object_class: [CameraDemo::Object](insert)
 */
-    void ObjectClassify_handler(const context_base_t *context)
+    void ObjectClassify_handler(const rule_context_t *context)
     {
-        const table_context_t* t = static_cast<const table_context_t*>(context);
-        CameraDemo::Object* row = static_cast<CameraDemo::Object*>(t->row);
+        CameraDemo::Object* row = static_cast<CameraDemo::Object*>(context->event_context);
         cerr << "OBJECT CLASSIFIED " << row->class_() << endl;
     }
 } 
