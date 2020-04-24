@@ -462,5 +462,9 @@ TEST_F(gaia_object_test, next_first) {
     auto e3 = get_field("Hank");
     auto e_test = e2->get_next();
     EXPECT_TRUE(e_test == e1 || e_test == e3 || e_test == nullptr);
+    auto e4 = new Employee();
+    // In this case, the row doesn't exist yet.
+    e4->set_name_first("Hector");
+    EXPECT_EQ(nullptr, e4->get_next());
     gaia_base_t::commit_transaction();
 }
