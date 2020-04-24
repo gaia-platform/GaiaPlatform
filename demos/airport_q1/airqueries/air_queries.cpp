@@ -5,8 +5,8 @@
 
 #include "performance_timer.hpp"
 #include <cassert>
-#include <map>
 #include <fstream>
+#include <unordered_set>
 #include "nullable_string.hpp"
 #include "airport_q1_gaia_generated.h"
 using namespace std;
@@ -17,7 +17,7 @@ using namespace gaia::airport;
 // Query #4: Which cities are visited from SEA to an airport that flies Tarom to OTP.
 int32_t query_change_airport_SEA_to_OTP(vector<string> req, std::function<void (Airports* ap)> fn)
 {
-    vector<Airports*> airports;
+    unordered_set<Airports*> airports;
     uint32_t i = 0;
 
     string start_airport("SEA");
@@ -45,16 +45,13 @@ int32_t query_change_airport_SEA_to_OTP(vector<string> req, std::function<void (
                 {
                     if (final_ap->iata() != nullptr && strcmp(dest_airport.c_str(), final_ap->iata()) == 0) {
                         // add the connecting airport to the vector
-                        airports.push_back(next_ap);
+                        airports.insert(next_ap);
                     }
                 }
             }
         }
     }
-    sort(airports.begin(), airports.end());
-    auto it = std::unique (airports.begin(), airports.end()); 
-    airports.resize(std::distance(airports.begin(), it));
-    for (it = airports.begin(); it != airports.end(); ++it) {
+    for (auto it = airports.begin(); it != airports.end(); ++it) {
         fn(*it);
         i++;
     }
@@ -110,7 +107,7 @@ int32_t query_SEA_to_OTP_1_layover(vector<string>& req)
 // Query #3: Which airlines go from [SEA] to an airport that flies to [OTP] using Tarom [RO].
 int32_t query_airline_to_Tarom_connection(vector<string> req)
 {
-    vector<string> routes;
+    unordered_set<string> routes;
     uint32_t i = 0;
     string start_airport("SEA");
 
@@ -148,17 +145,14 @@ int32_t query_airline_to_Tarom_connection(vector<string> req)
                             // add the previous airline to the vector
                             auto ap_edge_id = ap->gaia_edge_id();
                             auto ap_edge = Routes::get_edge_by_id(ap_edge_id);
-                            routes.push_back(string(ap_edge->airline()));
+                            routes.insert(string(ap_edge->airline()));
                         }
                     }
                 }
             }
         }
     }
-    sort(routes.begin(), routes.end());
-    auto it = std::unique (routes.begin(), routes.end()); 
-    routes.resize(std::distance(routes.begin(), it));
-    for (it = routes.begin(); it != routes.end(); ++it) {
+    for (auto it = routes.begin(); it != routes.end(); ++it) {
         printf("==>%s\n", (*it).c_str());
         i++;
     }
