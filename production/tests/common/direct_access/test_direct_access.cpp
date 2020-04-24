@@ -453,3 +453,14 @@ TEST_F(gaia_object_test, new_del_del) {
     gaia_base_t::commit_transaction();
     delete e;
 }
+
+// Perform get_next() without a preceeding get_first()
+TEST_F(gaia_object_test, next_first) {
+    gaia_base_t::begin_transaction();
+    auto e1 = get_field("Harold");
+    auto e2 = get_field("Howard");
+    auto e3 = get_field("Hank");
+    auto e_test = e2->get_next();
+    EXPECT_TRUE(e_test == e1 || e_test == e3 || e_test == nullptr);
+    gaia_base_t::commit_transaction();
+}
