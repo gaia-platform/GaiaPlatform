@@ -1,4 +1,6 @@
-// Example IDL file for our monster's schema.
+// IDL file for a table with a large number of fields.
+// This is used to illustrate the overhead that is introduced
+// by the vtable of such a large structure.
 namespace Flatbuffers.BigTable;
 
 table BigTable
