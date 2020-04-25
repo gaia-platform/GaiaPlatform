@@ -401,12 +401,12 @@ class event_manager_test : public ::testing::Test
 protected:
     virtual void SetUp()
     {
-        gaia_base_t::begin_transaction();
+        begin_transaction();
     }
 
     virtual void TearDown()
     {
-        gaia_base_t::commit_transaction();
+        commit_transaction();
         unsubscribe_rules();
         g_context_checker.reset(true);
 

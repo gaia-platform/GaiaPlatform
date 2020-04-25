@@ -42,45 +42,49 @@ struct gaia_base_t
     typedef map<gaia_id_t, gaia_base_t *> id_cache_t;
     static id_cache_t s_gaia_cache;
     static id_cache_t s_gaia_tx_cache;
+    static bool s_tx_hooks_installed;
 
     gaia_base_t() = delete;
 
     gaia_base_t(const char* gaia_typename)
-    : m_id(0)
-    , m_typename(gaia_typename)
+    : gaia_base_t(0, gaia_typename)
     {
     }
-
-    static void begin_transaction()
-    {
-        // The s_gaia_tx_cache is a list of objects containing stale data that
-        // must be refreshed if a new transaction begins. Scan these objects to
-        // clean out old values. The objects will not be deleted, as they will
-        // continue to be tracked in the s_gaia_cache.
-        for (auto it = s_gaia_tx_cache.begin(); it != s_gaia_tx_cache.end(); ++it)
-        {
-            it->second->reset(true);
-        }
-        s_gaia_tx_cache.clear();
-
-        gaia::db::begin_transaction();
-    }
-
-    static void commit_transaction()   { gaia::db::commit_transaction(); }
-    static void rollback_transaction() { gaia::db::rollback_transaction(); }
 
     gaia_id_t gaia_id() 
     {
         return m_id;
     }
-    
+
     const char* gaia_typename()
     {
         return m_typename;
     }
 
-    virtual gaia_type_t gaia_type() = 0;
+    // After a commit, we need to ensure that any cached gaia objects
+    // are reset so that they re-read the payload from the storage engine
+    // when they are accessed again.  This ensures that any changes to the
+    // data are picked up from other committed transactions.  Public because
+    // the rule subscriber will call this hook if it creates its own hook
+    // to log a commit event.
+    static void commit_hook()
+    { 
+        for (auto it = s_gaia_tx_cache.begin(); it != s_gaia_tx_cache.end(); ++it)
+        {
+            it->second->reset(true);
+        }
+        s_gaia_tx_cache.clear();
+    }
 
+    // These hooks are intentionally left empty.  They are provided
+    // so that the rule subscriber can dumbly generate calls to them
+    // when generating its own hooks to generate transaction events.
+    // If code is run as part of begin or rollback hooks then do not
+    // forget to set the hook in set_tx_hooks below.
+    static void begin_hook() {}
+    static void rollback_hook() {}
+
+    virtual gaia_type_t gaia_type() = 0;
     virtual ~gaia_base_t() = default;
 
 protected:
@@ -88,6 +92,23 @@ protected:
     : m_id(id)
     , m_typename(gaia_typename)
     {
+        set_tx_hooks();
+    }
+
+    // The first time we put any gaia object in our cache
+    // we should install our commit hook.
+    static void set_tx_hooks()
+    {
+        if (!s_tx_hooks_installed)
+        {
+            // Do not overwrite an already established hook.  This could happen
+            // if an application has subscribed to transaction events.
+            if (!gaia::db::s_tx_commit_hook)
+            {
+                gaia::db::s_tx_commit_hook = commit_hook;
+            }
+            s_tx_hooks_installed = true;
+        }
     }
 
     // The gaia_id assigned to this row.

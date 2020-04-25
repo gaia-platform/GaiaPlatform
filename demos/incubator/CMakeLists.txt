@@ -35,7 +35,7 @@ add_custom_command(
             --cpp-str-flex-ctor
             --gaiacpp --gen-setters
             --no-includes --gen-compare
-            --gen-table-events --gen-transaction-events --gen-col-events
+            --gen-table-events --gen-col-events
             --gaia-type-initial-value 1000
             -I ${CMAKE_CURRENT_SOURCE_DIR}
             -o ${CMAKE_CURRENT_SOURCE_DIR}

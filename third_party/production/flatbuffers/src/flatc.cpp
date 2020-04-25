@@ -129,7 +129,6 @@ std::string FlatCompiler::GetUsageString(const char *program_name) const {
     "                             * 'c++17' - use C++17 features in generated code (experimental).\n"
     "  --gen-col-events         generate code in Gaia Wrapper to invoke event manager on column change.\n"
     "  --gen-table-events       generate code in Gaia Wrapper to invoke event manager on table change.\n"
-    "  --gen-transaction-events generate code in Gaia Wrapper to invoke event manager on transaction.\n"
     "  --gen-setters            generate code in Gaia Wrapper to generate setters for class data.\n"
     "  --gaia-type-initial-value sets an initial value while generating Gaia type.\n"
     "  --object-prefix          Customise class prefix for C++ object-based API.\n"
@@ -377,8 +376,6 @@ int FlatCompiler::Compile(int argc, const char **argv) {
         opts.generate_column_change_events = true;
       } else if (arg == "--gen-table-events") {
         opts.generate_table_change_events = true;
-      } else if (arg == "--gen-transaction-events") {
-        opts.generate_transaction_events = true;
       } else if (arg == "--gen-setters") {
         opts.generate_setters = true;
       } else if (arg == "--cpp-std") {

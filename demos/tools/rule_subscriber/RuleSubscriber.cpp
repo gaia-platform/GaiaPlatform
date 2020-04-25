@@ -40,6 +40,9 @@ struct rule_data_t
     string event_type;
     string gaia_type;
     string field;
+    bool include_tx_begin;
+    bool include_tx_commit;
+    bool include_tx_rollback;
 };
 
 vector<rule_data_t> g_rules;
@@ -246,7 +249,8 @@ public:
                     string qualifier = "event_type_t::";
 
                     // Fully qualify and validate our events.
-                    if (is_transaction_event(event))
+                    if (is_transaction_event(event, rule_data.include_tx_begin, 
+                        rule_data.include_tx_commit, rule_data.include_tx_rollback))
                     {
                         if (!rule_data.gaia_type.empty() || !rule_data.field.empty())
                         {
@@ -311,11 +315,25 @@ private:
         }
     }
 
-    bool is_transaction_event(const string& event)
+    bool is_transaction_event(const string& event, bool& is_begin, bool& is_commit, bool& is_rollback)
     {
-        return (0 == event.compare("begin"))
-            || (0 == event.compare("rollback"))
-            || (0 == event.compare("commit"));
+        is_begin = is_commit = is_rollback = false;
+        if (0 == event.compare("begin"))
+        {
+            is_begin = true;
+        }
+        else
+        if (0 == event.compare("rollback"))
+        {
+            is_rollback = true;
+        }
+        else
+        if (0 == event.compare("commit"))
+        {
+            is_commit = true;
+        }
+
+        return is_begin || is_commit || is_rollback;
     }
 
     bool is_table_event(const string& event)
@@ -505,6 +523,48 @@ void generateCode(const char *fileName, const vector<rule_data_t>& rules)
 
     declarations.clear();
 
+    // Generate transaction hooks if any transaction events were specified
+    bool begin_hook_generated = false;
+    bool commit_hook_generated = false;
+    bool rollback_hook_generated = false;
+
+    for (auto it = rules.cbegin(); it != rules.cend(); ++it)
+    {
+        if (it->include_tx_begin && !begin_hook_generated)
+        {
+            code << "static void rule_subscriber_begin_tx_hook()" << endl;
+            code << "{" << endl;
+            code << "    gaia_base_t::begin_hook();" << endl;
+            code << "    gaia::rules::log_database_event(nullptr, gaia::rules::event_type_t::transaction_begin," << endl;
+            code << "        gaia::rules::event_mode_t::immediate);" << endl;
+            code << "}" << endl;
+            begin_hook_generated = true;
+        }
+
+        if (it->include_tx_commit && !commit_hook_generated)
+        {
+            code << "static void rule_subscriber_commit_tx_hook()" << endl;
+            code << "{" << endl;
+            code << "    gaia_base_t::commit_hook();" << endl;
+            code << "    gaia::rules::log_database_event(nullptr, gaia::rules::event_type_t::transaction_commit," << endl;
+            code << "        gaia::rules::event_mode_t::immediate);" << endl;
+            code << "}" << endl;
+            commit_hook_generated = true;
+        }
+
+        if (it->include_tx_rollback && !rollback_hook_generated)
+        {
+            code << "static void rule_subscriber_rollback_tx_hook()" << endl;
+            code << "{" << endl;
+            code << "    gaia_base_t::rollback_hook();" << endl;
+            code << "    gaia::rules::log_database_event(nullptr, gaia::rules::event_type_t::transaction_rollback," << endl;
+            code << "        gaia::rules::event_mode_t::immediate);" << endl;
+            code << "}" << endl;
+            rollback_hook_generated = true;
+        }
+    }
+    code << endl;
+
     code << "extern \"C\" void initialize_rules()" << endl;
     code << "{" << endl;
     // Generate rule binding structure.
@@ -546,6 +606,22 @@ void generateCode(const char *fileName, const vector<rule_data_t>& rules)
         }
 
         code << endl;
+    }
+
+    // Install transaction hooks if needed.
+    if (begin_hook_generated)
+    {
+        code << "    gaia::db::s_tx_begin_hook = rule_subscriber_begin_tx_hook;" << endl;
+    }
+
+    if (commit_hook_generated)
+    {
+        code << "    gaia::db::s_tx_commit_hook = rule_subscriber_commit_tx_hook;" << endl;
+    }
+
+    if (rollback_hook_generated)
+    {
+        code << "    gaia::db::s_tx_rollback_hook = rule_subscriber_rollback_tx_hook;" << endl;
     }
 
     code << "}" << endl;

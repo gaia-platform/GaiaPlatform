@@ -59,7 +59,7 @@ void verify_field_event(gaia::common::gaia_base_t* table_context, const char* fi
 
 void GaiaNoTableTxEventsTest()
 {
-    AddrBook::Employee::begin_transaction();
+    begin_transaction();
 
     int64_t manager_id = get_next_id();
     int64_t first_address_id = get_next_id();
@@ -87,8 +87,8 @@ void GaiaNoTableTxEventsTest()
     TEST_EQ_STR("test",pEmployee->ssn());
     verify_field_event(pEmployee, "ssn", gaia::rules::event_type_t::field_write, gaia::rules::event_mode_t::immediate);
     
-    AddrBook::Employee::commit_transaction();
-    // No transactino events so globals should be the same values as they were when the field event occurred.
+    commit_transaction();
+    // No transaction events so globals should be the same values as they were when the field event occurred.
     verify_field_event(pEmployee, "ssn", gaia::rules::event_type_t::field_write, gaia::rules::event_mode_t::immediate);
 }
 

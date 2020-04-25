@@ -27,7 +27,7 @@ atomic<bool> IN_SIMULATION{false};
 atomic<int> TIMESTAMP{0};
 
 void init_storage() {
-    gaia_base_t::begin_transaction();
+    begin_transaction();
 
     ulong gaia_id;
 
@@ -41,11 +41,11 @@ void init_storage() {
     Actuator::insert_row(gaia_id, ACTUATOR_B_NAME, 0, 0.0);
     Actuator::insert_row(gaia_id, ACTUATOR_C_NAME, 0, 0.0);
 
-    gaia_base_t::commit_transaction();
+    commit_transaction();
 }
 
 void dump_db() {
-    gaia_base_t::begin_transaction();
+    begin_transaction();
     printf("\n");
 
     printf("[Incubators]\n");
@@ -80,7 +80,7 @@ void dump_db() {
         printf("\n");
         printf("\n");
     }
-    gaia_base_t::commit_transaction();
+    commit_transaction();
 }
 
 double calc_new_temp(float curr_temp, float fan_speed) {
@@ -97,7 +97,7 @@ void simulation() {
     time(&start);
     while (IN_SIMULATION) {
         sleep(1);
-        gaia_base_t::begin_transaction();
+        begin_transaction();
         double new_temp, fa_v, fb_v, fc_v;
         for (unique_ptr<Actuator> a{Actuator::get_first()}; a;
              a.reset(a->get_next())) {
@@ -131,7 +131,7 @@ void simulation() {
                 s->update_row();
             }
         }
-        gaia_base_t::commit_transaction();
+        commit_transaction();
     }
 }
 

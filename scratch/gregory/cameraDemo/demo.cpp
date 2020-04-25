@@ -55,11 +55,11 @@ int main( int argc, const char** argv )
 
 	        imwrite(file_name.c_str(), frame);
 
-            CameraDemo::Camera_image::begin_transaction();
+            begin_transaction();
             CameraDemo::Camera_image image;
             image.set_file_name(file_name.c_str());
             image.insert_row();
-            CameraDemo::Camera_image::commit_transaction();
+            commit_transaction();
 
             char c = (char)cv::waitKey(100);
             if( c == 27 || c == 'q' || c == 'Q' )

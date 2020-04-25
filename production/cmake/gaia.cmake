@@ -50,7 +50,7 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
   if("${ARGV5}")
     set(GTEST_LIB "gtest")
   else()
-    set(GTEST_LIB "gtest_main")
+    set(GTEST_LIB "gtest;gtest_main")
   endif()
   target_link_libraries(${TARGET} PRIVATE ${LIBRARIES} ${GTEST_LIB})
 
@@ -91,7 +91,7 @@ endfunction()
 # Gaia specific flatc helpers for generating headers
 # Optional parameter [OUTPUT_DIR], default is ${CMAKE_CURRENT_SOURCE_DIR}
 function(gaia_compile_flatbuffers_schema_to_cpp SRC_FBS)
-  message(STATUS "ARGV1=${ARGV1}")
+  # message(STATUS "ARGV1=${ARGV1}")
   if (NOT ("${ARGV1}" STREQUAL ""))
     set(OUTPUT_DIR "${ARGV1}")
   else()
