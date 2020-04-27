@@ -18,96 +18,96 @@ namespace gaia {
 namespace db {
 
 /**
- * Enum to represent gaia object types. Currently, the only types are nodes and edges
+ * Enum to represent gaia object types. Currently, the only types are nodes and edges.
  */
-enum GaiaObjectType: u_char {
+enum GaiaObjectType: u_int8_t {
     node = 0x0,
     edge = 0x1
 };
 
 /**
  * String writer library containing a byte buffer and current length; used for serializing 
- * gaia objects to rocksdb slices
+ * gaia objects to rocksdb slices.
  */
 class string_writer {
     private: 
-    std::vector<u_char> buf;
-    size_t pos;
+    std::vector<u_char> m_buffer;
+    size_t m_position;
 
     public:
     string_writer() {
-        pos = 0;
+        m_position = 0;
     }
 
     string_writer(const size_t len) {
-        pos = 0;
-        buf.resize(len);
+        m_position = 0;
+        m_buffer.resize(len);
     }
 
-    void alloc(const size_t len) {
-        if (buf.size() < pos + len) {
-            buf.resize(pos + len);
+    void allocate(const size_t len) {
+        if (m_buffer.size() < m_position + len) {
+            m_buffer.resize(m_position + len);
         }
-        pos += len;
+        m_position += len;
     }
 
     void write_uint64(const uint64_t value) {
-        alloc(sizeof(uint64_t));
-        //convert to network order (big endian)
+        allocate(sizeof(uint64_t));
+        // Convert to network order (big endian)
         u_int64_t result = htobe64(value);
-        memcpy(buf.data() + pos - sizeof(uint64_t), &result, sizeof(result));
+        memcpy(m_buffer.data() + m_position - sizeof(uint64_t), &result, sizeof(result));
     }
 
     void write_uint32(const uint32_t value) {
-        alloc(sizeof(uint32_t));
-        //convert to network order (big endian)
+        allocate(sizeof(uint32_t));
+        // Convert to network order (big endian)
         u_int32_t result = htobe32(value);
-        memcpy(buf.data() + pos - sizeof(uint32_t), &result, sizeof(result));
+        memcpy(m_buffer.data() + m_position - sizeof(uint32_t), &result, sizeof(result));
     }
 
-    void write_byte(const u_char value) {
-        alloc(sizeof(u_char));
-        *(buf.data() + pos - sizeof(u_char)) = value;
+    void write_uint8(const u_int8_t value) {
+        allocate(sizeof(u_int8_t));
+        *(m_buffer.data() + m_position - sizeof(u_int8_t)) = value;
     }
 
     void write(const char* const payload, const size_t len) {
-        alloc(len);
-        memcpy(buf.data() + pos - len, payload, len);
+        allocate(len);
+        memcpy(m_buffer.data() + m_position - len, payload, len);
     }
 
-    // Method to obtain slice from buffer
+    // Method to obtain slice from buffer.
     rocksdb::Slice to_slice() {
-        return rocksdb::Slice(reinterpret_cast<char *>(buf.data()), pos);
+        return rocksdb::Slice(reinterpret_cast<char *>(m_buffer.data()), m_position);
     }
 
-    size_t get_current_pos() {
-        return pos;
+    size_t get_current_position() {
+        return m_position;
     }
 
     void clean() {
-        pos = 0;
+        m_position = 0;
     }
 };
 
 /**
- * String reader library used during deserialization of slices to gaia objects
+ * String reader library used during deserialization of slices to gaia objects.
  */
 class string_reader {
     private: 
     // current ptr to keep track of char's read in slice
-    const char* curr_ptr;
+    const char* m_current;
     // maintain remaining length for sanity purposes
-    u_int rem_len;
+    u_int m_remaining;
 
     public:
     string_reader(const rocksdb::Slice* const slice) {
         if (!slice) {
-            // Ideally data should never be accessed if length is 0; hence set to nullptr
-            rem_len = 0;
-            curr_ptr = nullptr;
+            // Ideally data should never be accessed if length is 0; hence set to nullptr.
+            m_remaining = 0;
+            m_current = nullptr;
         } else {
-            curr_ptr = slice->data();
-            rem_len = slice->size();
+            m_current = slice->data();
+            m_remaining = slice->size();
         }
     }
 
@@ -118,12 +118,12 @@ class string_reader {
         if (casted_res) {
             u_int64_t temp;
             memcpy(&temp, casted_res, sizeof(u_int64_t));
-            // Convert to little endian
+            // Convert to little endian.
             *out = be64toh(temp);
-            return true; // value read successfully 
+            return true; // Value read successfully. 
         }
 
-        return false; // error
+        return false; // Error
     }
 
     bool read_uint32(u_int32_t* out) {
@@ -133,12 +133,12 @@ class string_reader {
         if (casted_res) {
             uint32_t temp;
             memcpy(&temp, casted_res, sizeof(u_int32_t));
-            // Convert to little endian
+            // Convert to little endian.
             *out = be32toh(temp);
-            return true; // value read successfully 
+            return true; // Value read successfully.
         }
 
-        return false; // error
+        return false; // Error
     }
 
     bool read_byte(u_char* out) {
@@ -147,25 +147,25 @@ class string_reader {
 
         if (casted_res) {
             *out = *casted_res;
-            return true; // value read successfully 
+            return true; // Value read successfully. 
         }
 
-        return false; // error
+        return false; // Error
     }
 
     u_int get_remaining_len_in_bytes () {
-        return rem_len;
+        return m_remaining;
     }
 
     const char* read(const u_int size) {
-        //sanity check
-        if (size > rem_len) {
+        // Sanity check
+        if (size > m_remaining) {
             return nullptr;
         }
 
-        const char* result = curr_ptr;
-        rem_len -= size;
-        curr_ptr += size;
+        const char* result = m_current;
+        m_remaining -= size;
+        m_current += size;
 
         return result;
     }
@@ -173,20 +173,36 @@ class string_reader {
 };
 
 /**
- * Utility class for for encoding/decoding gaia objects
+ * Utility class for for encoding/decoding gaia objects.
  */
 class rdb_object_converter_util {
     public:
-    static void encode_node(const u_int64_t id, u_int64_t type, u_int32_t size, const char* payload,
-                            string_writer* key, string_writer* value);
-    static void encode_edge(const u_int64_t id, u_int64_t type, u_int32_t size, const char* payload,
-                            const u_int64_t first, const u_int64_t second,
-                            string_writer* k, string_writer* v);
-    static const char* decode_node(const rocksdb::Slice& key, const rocksdb::Slice& value,
-                     gaia_id_t* id, gaia_type_t* type, u_int32_t* size);
-    static const char* decode_edge(const rocksdb::Slice& key, const rocksdb::Slice& value, 
-                            gaia_id_t* id, gaia_type_t* type, u_int32_t* size,
-                            gaia_id_t* first, gaia_id_t* second);
+    static void encode_node(const u_int64_t id,
+                            u_int64_t type,
+                            u_int32_t size,
+                            const char* payload,
+                            string_writer* key,
+                            string_writer* value);
+    static void encode_edge(const u_int64_t id,
+                            u_int64_t type,
+                            u_int32_t size,
+                            const char* payload,
+                            const u_int64_t first,
+                            const u_int64_t second,
+                            string_writer* key,
+                            string_writer* value);
+    static const char* decode_node(const rocksdb::Slice& key,
+                                   const rocksdb::Slice& value,
+                                   gaia_id_t* id,
+                                   gaia_type_t* type,
+                                   u_int32_t* size);
+    static const char* decode_edge(const rocksdb::Slice& key,
+                                   const rocksdb::Slice& value, 
+                                   gaia_id_t* id,
+                                   gaia_type_t* type,
+                                   u_int32_t* size,
+                                   gaia_id_t* first,
+                                   gaia_id_t* second);
     static bool is_rdb_object_edge(const rocksdb::Slice& value);
 };
 
