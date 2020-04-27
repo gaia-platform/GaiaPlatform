@@ -8,13 +8,17 @@ cmake_minimum_required(VERSION 3.11)
 # Set the project name.
 project(storage_engine)
 
-set(GAIA_STORAGE_ENGINE_INCLUDES "${GAIA_INC}/internal/common;${GAIA_DB_INC}/storage_engine")
+set(GAIA_STORAGE_ENGINE_INCLUDES 
+  "${GAIA_INC}/internal/common;${GAIA_DB_INC}/storage_engine;${ROCKSDB_INC};${GAIA_REPO}/production/db/storage_engine/mock")
+
 message(STATUS "GAIA_STORAGE_ENGINE_INCLUDES=${GAIA_STORAGE_ENGINE_INCLUDES}")
 
 ###############################################
 # Storage engine mock-related code begins here.
 ###############################################
-add_library(gaia_semock STATIC mock/storage_engine.cpp)
+add_library(gaia_semock STATIC
+  mock/storage_engine.cpp
+  mock/rdb_object_converter.cpp)
 target_include_directories(gaia_semock PRIVATE ${GAIA_STORAGE_ENGINE_INCLUDES})
 set_target_properties(gaia_semock PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 
@@ -50,3 +54,5 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   set_target_properties(jni_se_mock PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
   set_target_properties(jni_se_mock PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 endif()
+
+add_gtest(rdb_converter_test tests/test_rdb_object_converter.cpp "${GAIA_STORAGE_ENGINE_INCLUDES};${GOOGLE_TEST_INC}" "gaia_semock")
