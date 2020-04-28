@@ -36,6 +36,7 @@ set(ROCSKDB_INC "${ROCKSDB}/include")
 set(PYBIND_PATH "${GAIA_REPO}/third_party/production/pybind11")
 set(GREMLIN_CONSOLE_PATH "/usr/local/share/gremlin-console")
 set(GREMLIN_SERVER_PATH "/usr/local/share/gremlin-server")
+set(GAIA_PROD_BUILD "${CMAKE_BINARY_DIR}")
 
 message(STATUS "GAIA_INC=${GAIA_INC}")
 

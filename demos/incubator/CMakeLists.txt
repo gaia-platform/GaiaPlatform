@@ -9,14 +9,8 @@ enable_testing()
 # Set the project name.
 project(incubator_demo)
 
-get_filename_component(GAIA_REPO ../../ ABSOLUTE)
-set(GAIA_PROD "${GAIA_REPO}/production")
-set(GAIA_INC "${GAIA_PROD}/inc")
-
-set(FLATBUFFERS "${GAIA_REPO}/third_party/production/flatbuffers")
-set(FLATBUFFERS_INC "${FLATBUFFERS}/include")
-
 set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
+set(GENERATED_OUTPUTS "${CMAKE_BINARY_DIR}/incubator/generated")
 
 set(GAIA_INCUBATOR_DEMO_INCLUDES
   ${GAIA_PROD}/db/storage_engine/mock
@@ -24,30 +18,22 @@ set(GAIA_INCUBATOR_DEMO_INCLUDES
   ${GAIA_INC}/internal/common
   ${GAIA_INC}/public/rules
   ${FLATBUFFERS_INC}
+  ${GENERATED_OUTPUTS}
 )
 
-add_custom_command(
-    OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/barn_storage_generated.h"
-    COMMAND "${GAIA_PROD_BUILD}/flatbuffers/flatc"
-            --cpp --gen-mutable --gen-object-api --reflect-names
-            --cpp-ptr-type flatbuffers::unique_ptr
-            --cpp-str-type gaia::common::nullable_string_t
-            --cpp-str-flex-ctor
-            --gaiacpp --gen-setters
-            --no-includes --gen-compare
-            --gen-table-events --gen-col-events
-            --gaia-type-initial-value 1000
-            -I ${CMAKE_CURRENT_SOURCE_DIR}
-            -o ${CMAKE_CURRENT_SOURCE_DIR}
-            ${CMAKE_CURRENT_SOURCE_DIR}/barn_storage.fbs
-    DEPENDS ${GAIA_PROD_BUILD}/flatbuffers/flatc
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/barn_storage.fbs
-    COMMENT "Run generation: ${OUTPUT}"
+add_custom_target(make_generated_incubator_dir ALL
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${GENERATED_OUTPUTS}
 )
 
-add_custom_target(generate_barn_storage
-  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/barn_storage_generated.h"
-  COMMENT "All generated files were updated.")
+set_property(GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
+gaia_compile_flatbuffers_schema_to_cpp_opt(barn_storage.fbs "--no-includes;--gen-compare;--gen-setters;--gen-table-events;--gen-col-events;--gaia-type-initial-value;1000" "${GENERATED_OUTPUTS}")
+gaia_get_generated_output(fbs_generated)
+if(fbs_generated)
+  # message(STATUS "Add generated_code target with files:${fbs_generated}")
+  add_custom_target(generate_barn_storage
+    DEPENDS ${fbs_generated}
+    COMMENT "All generated files were updated.")
+endif()
 
 add_library(gaia SHARED IMPORTED GLOBAL)
 set_target_properties(gaia PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/system/libgaia.a)

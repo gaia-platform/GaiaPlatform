@@ -17,17 +17,21 @@ endfunction()
 
 set(TEST_SUCCESS "All tests passed!")
 
+#
 # Helper function for setting up our tests.
+#
 function(set_test target arg result)
   add_test(NAME ${target}_${arg} COMMAND ${target} ${arg})
   set_tests_properties(${target}_${arg} PROPERTIES PASS_REGULAR_EXPRESSION ${result})
 endfunction(set_test)
 
+#
 # Helper function for setting up google tests.
 # The named arguments are required:  TARGET, SOURCES, INCLUDES, LIBRARIES
 # Two optional arguments are after this: 
 # [DEPENDENCIES] - for add_dependencies used for generation of flatbuffer files.  Defaults to ""
 # [HAS_MAIN] - "{TRUE, 1, ON, YES, Y} indicates the test provides its own main function.  Defaults to "" (FALSE).
+#
 function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
 #  message(STATUS "TARGET = ${TARGET}")
 #  message(STATUS "SOURCES = ${SOURCES}")
@@ -58,7 +62,40 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
   gtest_discover_tests(${TARGET})
 endfunction(add_gtest)
 
+#
+# Helper to invoke the rule_subscriber; only used by builds under GaiaPlatform/demos
+#
+function(gaia_gen_rule_subscriptions INPUT_FILE GEN_OUTPUT INCLUDES)
+  foreach(include ${INCLUDES})
+    set(INCLUDE_ARGS "${INCLUDE_ARGS}" "-I${include}")
+  endforeach(include)
+
+  add_custom_command(
+    OUTPUT "${GEN_OUTPUT}"
+    COMMAND "${GAIA_DEMO_BUILD}/tools/rule_subscriber/rule_subscriber"
+      ${INPUT_FILE}
+      -output=${GEN_OUTPUT}
+      -- ${INCLUDE_ARGS}
+      DEPENDS ${GAIA_DEMO_BUILD}/tools/rule_subscriber/rule_subscriber
+      DEPENDS ${INPUT_FILE}
+      COMMENT "Run rule_subscriber: ${GEN_OUTPUT}"
+  )
+endfunction(gaia_gen_rule_subscriptions)
+
+#
 # Gaia specific flatc helpers for generating headers
+#
+function(gaia_register_generated_output file_name)
+  get_property(tmp GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
+  list(APPEND tmp ${file_name})
+  set_property(GLOBAL PROPERTY FBS_GENERATED_OUTPUTS ${tmp})
+endfunction(gaia_register_generated_output)
+
+function(gaia_get_generated_output generated_files)
+  get_property(tmp GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
+  set(${generated_files} ${tmp} PARENT_SCOPE)
+endfunction(gaia_get_generated_output)
+
 function(gaia_compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT OUTPUT_DIR)
   if(FLATBUFFERS_BUILD_LEGACY)
     set(OPT ${OPT};--cpp-std c++0x)
@@ -71,7 +108,7 @@ function(gaia_compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT OUTPUT_DIR)
 
   add_custom_command(
     OUTPUT ${OUTPUT_DIR}/${GEN_HEADER}
-    COMMAND "${CMAKE_BINARY_DIR}/flatbuffers/flatc"
+    COMMAND "${GAIA_PROD_BUILD}/flatbuffers/flatc"
             --cpp --gen-mutable --gen-object-api --reflect-names
             --cpp-ptr-type flatbuffers::unique_ptr # Used to test with C++98 STLs
             --cpp-str-type gaia::common::nullable_string_t
@@ -81,11 +118,11 @@ function(gaia_compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT OUTPUT_DIR)
             -I ${CMAKE_CURRENT_SOURCE_DIR}
             -o ${OUTPUT_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
-    DEPENDS ${CMAKE_BINARY_DIR}/flatbuffers/flatc 
+    DEPENDS ${GAIA_PROD_BUILD}/flatbuffers/flatc 
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
     COMMENT "Run generation: '${GEN_HEADER}'"
     VERBATIM)
-    register_generated_output(${OUTPUT_DIR}/${GEN_HEADER})
+    gaia_register_generated_output(${OUTPUT_DIR}/${GEN_HEADER})
 endfunction()
 
 # Gaia specific flatc helpers for generating headers

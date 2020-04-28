@@ -167,14 +167,11 @@ void GaiaUpdateTest()
 
     pEmployee->set_ssn("test");
     TEST_EQ_STR("test",pEmployee->ssn());
-    TEST_EQ(g_event_type,gaia::rules::event_type_t::field_write);
-    TEST_EQ(g_event_mode,gaia::rules::event_mode_t::immediate);
-    TEST_EQ(g_table_context, pEmployee);
+    verify_field_event(pEmployee, "ssn", gaia::rules::event_type_t::field_write, gaia::rules::event_mode_t::immediate);
     
     pEmployee->update_row();
-    TEST_EQ(g_event_type,gaia::rules::event_type_t::row_update);
-    TEST_EQ(g_event_mode,gaia::rules::event_mode_t::immediate);
-    TEST_EQ(g_table_context, pEmployee);
+    verify_database_event(pEmployee, gaia::rules::event_type_t::row_update, gaia::rules::event_mode_t::immediate);
+
     AddrBook::Employee *pEmployee1 = AddrBook::Employee::get_row_by_id(empl_node_id);
     TEST_EQ_STR("test",pEmployee1->ssn());
 

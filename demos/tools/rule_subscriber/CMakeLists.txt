@@ -3,13 +3,9 @@
 # All rights reserved.
 #############################################
 
-set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/../production/cmake;${CMAKE_MODULE_PATH}")
-include(gaia)
-include(GoogleTest)
-
-get_repo_root(${PROJECT_SOURCE_DIR} GAIA_REPO)
-
 cmake_minimum_required(VERSION 3.11)
+
+project(rule_subscriber)
 
 set(LLVM_LIB_PATH "/usr/lib/llvm-8")
 
@@ -50,6 +46,8 @@ target_link_libraries(rule_subscriber
   clangTooling
 )
 
+set(GENERATED_OUTPUTS "${CMAKE_BINARY_DIR}/tools/rule_subscriber/generated")
+
 set(RULE_SUBSCRIBER_INCLUDES 
   ${GAIA_REPO}/third_party/production/googletest/googletest/include
   ${GAIA_REPO}/third_party/production/flatbuffers/include
@@ -57,24 +55,28 @@ set(RULE_SUBSCRIBER_INCLUDES
   ${GAIA_REPO}/production/inc/public/rules
   ${GAIA_REPO}/production/inc/internal/common
   ${GAIA_REPO}/production/db/storage_engine/mock
-  ${GAIA_REPO}/production/tests/common/direct_access
+  ${GENERATED_OUTPUTS}
 )
 
-set(GENERATED_OUTPUTS "${CMAKE_BINARY_DIR}/tools/rule_subscriber/generated")
-add_custom_target(make_generated_dir ALL
+add_custom_target(make_generated_rule_subscriber_dir ALL
   COMMAND ${CMAKE_COMMAND} -E make_directory ${GENERATED_OUTPUTS}
 )
 
-add_custom_command(
-  OUTPUT "${GENERATED_OUTPUTS}/init_rules.cpp"
-  COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/gen_rules.sh"
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_rules2.hpp
-    ${GENERATED_OUTPUTS}/init_rules.cpp
-    ${RULE_SUBSCRIBER_INCLUDES}
-    DEPENDS rule_subscriber
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/test_rules2.hpp
-    COMMENT "Run rule_subscriber: ${GENERATED_OUTPUTS}/init_rules.cpp"
-)
+# generate headers for Address schema
+# generate the headers from the flatbuffer
+set_property(GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
+gaia_compile_flatbuffers_schema_to_cpp_opt(addr_book.fbs "--no-includes;--gen-compare;--gen-table-events;--gen-col-events;--gaia-type-initial-value;3000" "${GENERATED_OUTPUTS}")
+gaia_get_generated_output(fbs_generated)
+if(fbs_generated)
+  # message(STATUS "Add generated_code target with files:${fbs_generated}")
+  add_custom_target(generate_addr_book
+    DEPENDS ${fbs_generated}
+    COMMENT "All generated files were updated.")
+endif()
+
+# create rules initialization routine for test_rule_subscriber
+gaia_gen_rule_subscriptions("${CMAKE_CURRENT_SOURCE_DIR}/test_rules.hpp" "${GENERATED_OUTPUTS}/init_rules.cpp" "${RULE_SUBSCRIBER_INCLUDES}")
+gaia_gen_rule_subscriptions("${CMAKE_CURRENT_SOURCE_DIR}/test_rules_no_tx.hpp" "${GENERATED_OUTPUTS}/init_rules_no_tx.cpp" "${RULE_SUBSCRIBER_INCLUDES}")
 
 link_directories(
   ${GAIA_PROD_BUILD}/system
@@ -84,7 +86,15 @@ link_directories(
 )
 
 add_gtest(test_rule_subscriber 
-  "test_rule_subscriber.cpp;${GENERATED_OUTPUTS}/init_rules.cpp;" 
+  "test_rule_subscriber.cpp;${GENERATED_OUTPUTS}/init_rules.cpp" 
   "${RULE_SUBSCRIBER_INCLUDES}" 
   "rt;gaia_rules;gaia;gaia_direct;gaia_semock"
+  "generate_addr_book"
+)
+
+add_gtest(test_rule_subscriber_no_tx 
+  "test_rule_subscriber_no_tx.cpp;${GENERATED_OUTPUTS}/init_rules_no_tx.cpp" 
+  "${RULE_SUBSCRIBER_INCLUDES}" 
+  "rt;gaia_rules;gaia;gaia_direct;gaia_semock"
+  "generate_addr_book"
 )

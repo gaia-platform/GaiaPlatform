@@ -4,7 +4,7 @@
 /////////////////////////////////////////////
 
 #include "gtest/gtest.h"
-#include "test_rules2.hpp"
+#include "test_rules.hpp"
 #include "gaia_system.hpp"
 
 using namespace std;
@@ -13,10 +13,22 @@ using namespace gaia::common;
 
 using namespace ruleset_1;
 
+uint8_t g_tx_handler_called = 0;
+event_type_t g_event_type = event_type_t::row_delete;
+void check_tx_handler(event_type_t expected_event, uint8_t expected_call)
+{
+    EXPECT_EQ(expected_call, g_tx_handler_called);
+    EXPECT_EQ(expected_event, g_event_type);
+    g_tx_handler_called = 0;
+}
+
+/**
+ rule-1: [AddrBook::Employee](update, insert);[AddrBook::Employee.last_name](write);[AddrBook::Employee.first_name](read, write);
+ [](commit)
+ */
 void ruleset_1::ObjectRule_handler(const rule_context_t*)
 {
-    int x =5;
-    x=x*2;
+    g_tx_handler_called++;
 }
 
 /**
@@ -40,13 +52,9 @@ void ruleset_1::Table_handler(const rule_context_t*)
 /**
  rule-4: [](begin, commit, rollback)
 */
-
-bool g_tx_handler_called = false;
-event_type_t g_event_type = event_type_t::row_delete;
-
 void ruleset_1::TransactionRule_handler(const rule_context_t* context)
 {
-    g_tx_handler_called = true;
+    g_tx_handler_called++;
     g_event_type = context->event_type;
     // transaction events have no context
     EXPECT_EQ(nullptr, context->event_context);
@@ -57,11 +65,11 @@ void ruleset_1::TransactionRule_handler(const rule_context_t* context)
 
 TEST(rule_subscriber, tx_events)
 {
-    AddrBook::Employee e;
-    rule_binding_t binding("ruleset", "rulename", TransactionRule_handler);
     gaia::system::initialize(true);
-    // create a gaia object to ensure that the hooks are coded correctly
-    
+
+    // Create a gaia object to ensure that the hooks are coded correctly
+    // and overridden correctly
+    AddrBook::Employee e;
 
     gaia::db::begin_transaction();
     EXPECT_EQ(g_event_type, event_type_t::transaction_begin);
