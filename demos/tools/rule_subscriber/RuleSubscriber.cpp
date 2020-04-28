@@ -31,6 +31,29 @@ cl::opt<string> RuleSubscriberOutputOption("output", cl::init(""),
 cl::opt<bool> RuleSubscriberVerboseOption("v",
     cl::desc("print parse tokens"), cl::cat(RuleSubscriberCategory));
 
+enum tx_type_t
+{
+    none,
+    begin,
+    commit,
+    rollback,
+    max
+};
+
+struct tx_desc_t
+{
+    tx_type_t type;
+    const char * name;
+    bool generated;
+};
+
+tx_desc_t s_tx_descriptors[tx_type_t::max] = {
+    {tx_type_t::none, "none", false},
+    {tx_type_t::begin, "begin", false},
+    {tx_type_t::commit, "commit", false},
+    {tx_type_t::rollback, "rollback", false}
+};
+
 struct rule_data_t
 {
     string ruleset;
@@ -40,9 +63,7 @@ struct rule_data_t
     string event_type;
     string gaia_type;
     string field;
-    bool include_tx_begin;
-    bool include_tx_commit;
-    bool include_tx_rollback;
+    tx_type_t tx;
 };
 
 vector<rule_data_t> g_rules;
@@ -249,8 +270,7 @@ public:
                     string qualifier = "event_type_t::";
 
                     // Fully qualify and validate our events.
-                    if (is_transaction_event(event, rule_data.include_tx_begin, 
-                        rule_data.include_tx_commit, rule_data.include_tx_rollback))
+                    if (is_transaction_event(event, rule_data.tx))
                     {
                         if (!rule_data.gaia_type.empty() || !rule_data.field.empty())
                         {
@@ -315,25 +335,26 @@ private:
         }
     }
 
-    bool is_transaction_event(const string& event, bool& is_begin, bool& is_commit, bool& is_rollback)
+    bool is_transaction_event(const string& event, tx_type_t& type)
     {
-        is_begin = is_commit = is_rollback = false;
+        type = tx_type_t::none;
+
         if (0 == event.compare("begin"))
         {
-            is_begin = true;
+            type = tx_type_t::begin;
         }
         else
         if (0 == event.compare("rollback"))
         {
-            is_rollback = true;
+            type = tx_type_t::rollback;
         }
         else
         if (0 == event.compare("commit"))
         {
-            is_commit = true;
+            type = tx_type_t::commit;
         }
 
-        return is_begin || is_commit || is_rollback;
+        return !(type == tx_type_t::none);
     }
 
     bool is_table_event(const string& event)
@@ -465,6 +486,64 @@ bool SaveFile(const char *name, const stringstream& buf)
     return !ofs.bad();
 }
 
+// Use our "none" descriptor to track whether we've created
+// the gaia::rules namespace scope yet
+void beginTxHookNamespace(stringstream& code)
+{
+    if (!s_tx_descriptors[0].generated)
+    {
+        code << "namespace gaia" << endl;
+        code << "{" << endl;
+        code << "namespace rules" << endl;
+        code << "{" << endl;
+        s_tx_descriptors[0].generated = true;
+    }
+}
+
+void endTxHookNamespace(stringstream& code)
+{
+    if (s_tx_descriptors[0].generated)
+    {
+        code << "}" << endl;
+        code << "}" << endl;
+    }
+}
+
+void generateTxHookFunction(stringstream& code, tx_type_t hook_type)
+{
+    if (hook_type == tx_type_t::none) {
+        return;
+    }
+
+    tx_desc_t& tx_desc = s_tx_descriptors[(int)hook_type];
+    beginTxHookNamespace(code);
+
+    if (!tx_desc.generated)
+    {
+        const char * hook = tx_desc.name;
+        code << "static void " << hook << "_tx_hook()" << endl;
+        code << "{" << endl;
+        code << "    gaia_base_t::" << hook << "_hook();" << endl;
+        code << "    log_database_event(nullptr, event_type_t::transaction_" << hook << ", event_mode_t::immediate);" << endl;
+        code << "}" << endl;
+        tx_desc.generated = true;
+    }
+}
+
+void generateTxHookInit(stringstream& code)
+{
+    for (auto tx_desc : s_tx_descriptors)
+    {
+        // skip "none"
+        if (tx_desc.type != tx_type_t::none 
+            && tx_desc.generated)
+        {
+            const char * hook = tx_desc.name;
+            code << "    gaia::db::s_tx_" << hook << "_hook = gaia::rules::" << tx_desc.name << "_tx_hook;" << endl;
+        }
+    }
+}
+
 void generateCode(const char *fileName, const vector<rule_data_t>& rules)
 {
     unordered_set<string> declarations;
@@ -500,6 +579,14 @@ void generateCode(const char *fileName, const vector<rule_data_t>& rules)
     code << "using namespace gaia::rules;" << endl; 
     code << endl;
 
+    // Generate transaction hooks if any transaction events were specified
+    for (auto it = rules.cbegin(); it != rules.cend(); ++it)
+    {
+        generateTxHookFunction(code, it->tx);
+    }
+    endTxHookNamespace(code);
+    code << endl;
+
     for (auto it = declarations.cbegin(); it != declarations.cend(); ++it)
     {
         vector<string> namespaces;
@@ -522,48 +609,6 @@ void generateCode(const char *fileName, const vector<rule_data_t>& rules)
     code << endl;
 
     declarations.clear();
-
-    // Generate transaction hooks if any transaction events were specified
-    bool begin_hook_generated = false;
-    bool commit_hook_generated = false;
-    bool rollback_hook_generated = false;
-
-    for (auto it = rules.cbegin(); it != rules.cend(); ++it)
-    {
-        if (it->include_tx_begin && !begin_hook_generated)
-        {
-            code << "static void rule_subscriber_begin_tx_hook()" << endl;
-            code << "{" << endl;
-            code << "    gaia_base_t::begin_hook();" << endl;
-            code << "    gaia::rules::log_database_event(nullptr, gaia::rules::event_type_t::transaction_begin," << endl;
-            code << "        gaia::rules::event_mode_t::immediate);" << endl;
-            code << "}" << endl;
-            begin_hook_generated = true;
-        }
-
-        if (it->include_tx_commit && !commit_hook_generated)
-        {
-            code << "static void rule_subscriber_commit_tx_hook()" << endl;
-            code << "{" << endl;
-            code << "    gaia_base_t::commit_hook();" << endl;
-            code << "    gaia::rules::log_database_event(nullptr, gaia::rules::event_type_t::transaction_commit," << endl;
-            code << "        gaia::rules::event_mode_t::immediate);" << endl;
-            code << "}" << endl;
-            commit_hook_generated = true;
-        }
-
-        if (it->include_tx_rollback && !rollback_hook_generated)
-        {
-            code << "static void rule_subscriber_rollback_tx_hook()" << endl;
-            code << "{" << endl;
-            code << "    gaia_base_t::rollback_hook();" << endl;
-            code << "    gaia::rules::log_database_event(nullptr, gaia::rules::event_type_t::transaction_rollback," << endl;
-            code << "        gaia::rules::event_mode_t::immediate);" << endl;
-            code << "}" << endl;
-            rollback_hook_generated = true;
-        }
-    }
-    code << endl;
 
     code << "extern \"C\" void initialize_rules()" << endl;
     code << "{" << endl;
@@ -608,22 +653,8 @@ void generateCode(const char *fileName, const vector<rule_data_t>& rules)
         code << endl;
     }
 
-    // Install transaction hooks if needed.
-    if (begin_hook_generated)
-    {
-        code << "    gaia::db::s_tx_begin_hook = rule_subscriber_begin_tx_hook;" << endl;
-    }
-
-    if (commit_hook_generated)
-    {
-        code << "    gaia::db::s_tx_commit_hook = rule_subscriber_commit_tx_hook;" << endl;
-    }
-
-    if (rollback_hook_generated)
-    {
-        code << "    gaia::db::s_tx_rollback_hook = rule_subscriber_rollback_tx_hook;" << endl;
-    }
-
+    // Setup transaction hooks if needed.
+    generateTxHookInit(code);
     code << "}" << endl;
 
     SaveFile(fileName, code);

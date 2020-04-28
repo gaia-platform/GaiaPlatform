@@ -29,7 +29,6 @@ set(search_paths
   ${LLVM_LIB_PATH}/lib/cmake/llvm
 )
 
-
 find_package(LLVM REQUIRED CONFIG
   PATHS ${search_paths}
   NO_DEFAULT_PATH
@@ -61,11 +60,31 @@ set(RULE_SUBSCRIBER_INCLUDES
   ${GAIA_REPO}/production/tests/common/direct_access
 )
 
+set(GENERATED_OUTPUTS "${CMAKE_BINARY_DIR}/tools/rule_subscriber/generated")
+add_custom_target(make_generated_dir ALL
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${GENERATED_OUTPUTS}
+)
+
+add_custom_command(
+  OUTPUT "${GENERATED_OUTPUTS}/init_rules.cpp"
+  COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/gen_rules.sh"
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_rules2.hpp
+    ${GENERATED_OUTPUTS}/init_rules.cpp
+    ${RULE_SUBSCRIBER_INCLUDES}
+    DEPENDS rule_subscriber
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/test_rules2.hpp
+    COMMENT "Run rule_subscriber: ${GENERATED_OUTPUTS}/init_rules.cpp"
+)
+
 link_directories(
   ${GAIA_PROD_BUILD}/system
   ${GAIA_PROD_BUILD}/lib
   ${GAIA_PROD_BUILD}/db/storage_engine
   ${GAIA_PROD_BUILD}/rules/event_manager
-
 )
-add_gtest(test_rule_subscriber "test_rule_subscriber.cpp;init_rules.cpp" "${RULE_SUBSCRIBER_INCLUDES}" "rt;gaia_rules;gaia;gaia_direct;gaia_semock")
+
+add_gtest(test_rule_subscriber 
+  "test_rule_subscriber.cpp;${GENERATED_OUTPUTS}/init_rules.cpp;" 
+  "${RULE_SUBSCRIBER_INCLUDES}" 
+  "rt;gaia_rules;gaia;gaia_direct;gaia_semock"
+)
