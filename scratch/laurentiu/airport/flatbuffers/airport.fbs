@@ -42,7 +42,7 @@ table airlines
 table flights
 {
     // Relationship to airline and airports is encoded in edges
-    // and does not need to be carried in flight payload. 
+    // and does not need to be carried in flight payload.
     codeshare: string;
     stops: int32;
     equipment: string;
@@ -62,4 +62,3 @@ table flights
 // COW edge type 7: flight-->departs_from-->airport
 // COW edge type 8: airport-->arrival-->flight
 // COW edge type 9: airline-->operates-->flight
-

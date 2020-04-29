@@ -11,8 +11,8 @@ set(GAIA_REPO ../../..)
 # Set the project name.
 project(airimport)
 
-set(GAIA_REPO /home/wayne/src/github.com/gaia-platform/GaiaPlatform)
 set(GAIA_INC ${GAIA_REPO}/production/inc)
+set(FLATBUFFERS ${GAIA_REPO}/third_party/production/flatbuffers)
 set(GAIA_COMPILE_FLAGS "-c -Wextra -ggdb")
 set(GAIA_LINK_FLAGS "-ggdb")
 
@@ -21,6 +21,7 @@ set(GAIA_COMMON_INCLUDES
   ${GAIA_INC}/internal/common
   ${GAIA_REPO}/demos/airport_q1/inc
   ${GAIA_REPO}/third_party/production/flatbuffers/include
+  ${CMAKE_CURRENT_BINARY_DIR}
 )
 message(STATUS "GAIA_COMMON_INCLUDES=${GAIA_COMMON_INCLUDES}")
 
@@ -30,7 +31,24 @@ set (AIRIMPORT_INCLUDES
 )
 include_directories(${AIRIMPORT_INCLUDES})
 
+# This command produces two headers in the build directory. This program (airimport)
+# uses them unchanged. The companion program airqueries modifies airport_q1_gaia_generated.h
+# so that it points to a specialized gaia_object.hpp version called gaia_object_q1_demo.hpp
+# in the airport_q1/inc/ directory. See airqueries/CMakeLists.txt for more info.
+add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/airport_q1_generated.h"
+  COMMAND ../${FLATBUFFERS}/build/flatc --cpp --gaiacpp --gen-mutable --gen-setters
+    --gen-object-api --cpp-str-type gaia::common::nullable_string_t --cpp-str-flex-ctor
+    -o ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../inc/airport_q1.fbs
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../inc/airport_q1.fbs
+  COMMENT "Compiling airport_q1.fbs"
+)
+
+add_custom_target(headers_generated
+  DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/airport_q1_generated.h")
+
 add_executable(airimport data_loader.cpp)
+add_dependencies(airimport headers_generated)
 
 target_link_directories(airimport
   PRIVATE

@@ -17,31 +17,60 @@ using namespace std;
 using namespace gaia::db;
 
 namespace gaia {
+
+/**
+ * \addtogroup Gaia
+ * @{
+ */
+
 namespace common {
 
+/**
+ * \addtogroup Common
+ * @{
+ * 
+ * Implementation of Extended Data Classes. This provides a direct access API
+ * for CRUD operations on the database.
+ */
+
+/**
+ * The gaia_base_t struct provides control over the extended data class objects by
+ * keeping a cached pointer to each storage engine object that has been accessed.
+ * Storage engine objects are identified by the gaia_id_t (currently a 64-bit
+ * integer). When the same object is referenced multiple times, the cached
+ * gaia object associated with the gaia_id_t will be used again.
+ * 
+ * A second cache is maintained to track objects that have been involved in a 
+ * transaction. These objects (which may be small in number compared to the
+ * complete cache of objects) will be "cleared" at the beginning of each new
+ * transaction. This ensures that any changes made by other transactions will be
+ * refreshed if they are accessed again.
+ */
 struct gaia_base_t
 {
-    // object caches
-    // s_gaia_cache - Track every gaia_base_t object by the gaia_id. If the same
-    //                gaia_id is accessed multiple times, this cache will find
-    //                the same object containing any local transactional changes.
-    //                Since each object may contain a pointer to the flatbuffer
-    //                payload in the SE memory, or a local, mutable copy of the
-    //                flatbuffer, these objects will be frequently referenced by
-    //                their gaia_id and require quick access to their contents.
-    // s_gaia_tx_cache - Track every gaia_base_t object that has been used in
-    //                   the current transaction. Used to clear the field
-    //                   values referenced in the objects at transaction commit
-    //                   because they become stale. This separate cache is
-    //                   maintained as a smaller subset of the s_gaia_cache so that
-    //                   the whole cache doesn't have to be searched for contents
-    //                   to be cleared. This map is cleared before every
-    //                   transaction begins. By waiting until the next transaction
-    //                   begins, program references to fields will not cause
-    //                   crashes, even though the data is invalid.
     typedef map<gaia_id_t, gaia_base_t *> id_cache_t;
+    /**
+     * Track every gaia_base_t object by the gaia_id_t. If the same gaia_id_t is
+     * accessed multiple times, this cache will find the same object containing
+     * any local transactional changes. Since each object may contain a pointer
+     * to the flatbuffer payload in the SE memory, or a local, mutable copy of the
+     * flatbuffer, these objects will be frequently referenced by their gaia_id and
+     * require quick access to their contents.
+     */
     static id_cache_t s_gaia_cache;
+    /**
+     * Track every gaia_base_t object that has been used in the current transaction.
+     * Used to clear the field values referenced in the objects at transaction commit
+     * because they become stale. This separate cache is maintained as a smaller
+     * subset of the s_gaia_cache so that the whole cache doesn't have to be searched
+     * for contents to be cleared. This map is cleared before every transaction begins.
+     * By waiting until the next transaction begins, program references to fields will
+     * not cause crashes, even though the data is invalid.
+     */
     static id_cache_t s_gaia_tx_cache;
+    /**
+     * Install a commit_hook the first time any gaia object is instantiated.
+     */ 
     static bool s_tx_hooks_installed;
 
     gaia_base_t() = delete;
@@ -51,22 +80,34 @@ struct gaia_base_t
     {
     }
 
+    /**
+     * This is the storage engine's identification of this object. The id can be
+     * used to refer to this object later.
+     */
     gaia_id_t gaia_id() 
     {
         return m_id;
     }
 
+    /**
+     * The gaia_base_t and gaia_object_t shouldn't be instantiated directly. The
+     * gaia_object_t is created to be subclassed by a "typed" class that is identified
+     * with a flatbuffer table. This method returns the name of that type.
+     */
     const char* gaia_typename()
     {
         return m_typename;
     }
 
-    // After a commit, we need to ensure that any cached gaia objects
-    // are reset so that they re-read the payload from the storage engine
-    // when they are accessed again.  This ensures that any changes to the
-    // data are picked up from other committed transactions.  Public because
-    // the rule subscriber will call this hook if it creates its own hook
-    // to log a commit event.
+    /**
+     * The s_gaia_tx_cache is a list of objects containing stale data that
+     * must be refreshed if a new transaction begins. Scan these objects to
+     * clean out old values. The objects will not be deleted, as they will
+     * continue to be tracked in the s_gaia_cache.
+     * 
+     * This commit_hook() must be used together with the extended data
+     * class objects.  It is executed after the transaction has been committed.
+     */    
     static void commit_hook()
     { 
         for (auto it = s_gaia_tx_cache.begin(); it != s_gaia_tx_cache.end(); ++it)
@@ -76,11 +117,13 @@ struct gaia_base_t
         s_gaia_tx_cache.clear();
     }
 
-    // These hooks are intentionally left empty.  They are provided
-    // so that the rule subscriber can dumbly generate calls to them
-    // when generating its own hooks to generate transaction events.
-    // If code is run as part of begin or rollback hooks then do not
-    // forget to set the hook in set_tx_hooks below.
+    /**
+     * These hooks are intentionally left empty. They are provided
+     * so that the rule subscriber can dumbly generate calls to them
+     * when generating its own hooks to generate transaction events.
+     * If code is run as part of begin or rollback hooks then do not
+     * forget to set the hook in set_tx_hooks below.
+     */ 
     static void begin_hook() {}
     static void rollback_hook() {}
 
@@ -129,10 +172,14 @@ private:
 #define GET_STR(field) (m_copy ? m_copy->field.c_str() : m_fb->field() ? m_fb->field()->c_str() : nullptr)
 #define SET(field, value) (copy_write()->field = value)
 
-// T_gaia_type - an integer (gaia_type_t) uniquely identifying the flatbuffer table type
-// T_gaia      - the subclass type derived from this template
-// T_fb        - the flatbuffer table type to be implemented
-// T_obj       - the mutable flatbuffer type to be implemented
+/**
+ * The gaia_object_t that must be specialized to operate on a flatbuffer type.
+ * 
+ * @tparam T_gaia_type an integer (gaia_type_t) uniquely identifying the flatbuffer table type
+ * @tparam T_gaia the subclass type derived from this template
+ * @tparam T_fb the flatbuffer table type to be implemented
+ * @tparam T_obj the mutable flatbuffer type to be implemented
+ */
 template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
 struct gaia_object_t : gaia_base_t
 {
@@ -145,9 +192,10 @@ public:
     }
     gaia_object_t() = delete;
 
-    // This constructor supports completely new objects
-    // that the database has not seen yet by creating
-    // a copy buffer immediately.
+    /**
+     * This constructor supports completely new objects that the database has not seen yet
+     * by creating a copy buffer immediately.
+     */
     gaia_object_t(const char * gaia_typename) 
     : gaia_base_t(gaia_typename)
     , m_fb(nullptr)
@@ -155,33 +203,56 @@ public:
         copy_write();
     }
 
-    // This can be used for subscribing to rules when you don't
-    // have a specific instance of the type.
+    /**
+     * This can be used for subscribing to rules when you don't
+     * have a specific instance of the type.
+     */ 
     static gaia::db::gaia_type_t s_gaia_type;
 
-    // This can be used when you are passed a gaia_base_t
-    // object and want to know the type at runtime.
+    /**
+     * This can be used when you are passed a gaia_base_t
+     * object and want to know the type at runtime.
+     */ 
     gaia::db::gaia_type_t gaia_type() override
     {
         return T_gaia_type;
     }
 
+    /**
+     * Ask for the first object of a flatbuffer type, T_gaia_type.
+     */
     static T_gaia* get_first() {
         auto node_ptr = gaia_ptr<gaia_se_node>::find_first(T_gaia_type);
         return get_object(node_ptr);
     }
 
+    /**
+     * Ask for the next object of a flatbuffer type. This call must follow a call to the
+     * static method get_first().
+     */
     T_gaia* get_next() {
         auto current_ptr = gaia_se_node::open(m_id);
         auto next_ptr = current_ptr.find_next();
         return get_object(next_ptr);
     }
 
+    /**
+     * Ask for a specific object based on its id. References to this method must be qualified
+     * by the T_gaia_type, and that type must match the type of the identified object.
+     * 
+     * @param id the gaia_id_t of a specific storage engine object, of type T_gaia_type
+     */
     static T_gaia* get_row_by_id(gaia_id_t id) {
         auto node_ptr = gaia_se_node::open(id);
         return get_object(node_ptr);
     }
 
+    /**
+     * Insert the mutable flatbuffer contents contained in this new object into a newly
+     * created storage engine object. The member m_copy contains field values that have
+     * been set prior to this insert_row(). After the storage engine object exists, it
+     * must be modified only through the update_row() method.
+     */
     void insert_row()
     {
         // Create the node and add to the cache.
@@ -208,6 +279,11 @@ public:
         return;
     }
 
+    /**
+     * Write the mutable flatbuffer values to the storage engine. This involves the creation
+     * of a new storage engine object because the existing object cannot be modified. The new
+     * storage engine object will be addressed by the gaia_id_t m_id.
+     */
     void update_row()
     {
         if (m_copy) {
@@ -222,6 +298,10 @@ public:
         }
     }
 
+    /**
+     * Delete the storage engine object. This doesn't destroy the extended data class
+     * object, which is owned by the program.
+     */
     void delete_row()
     {
         auto node_ptr = gaia_se_node::open(m_id);
@@ -235,6 +315,10 @@ public:
         reset();
     }
 
+    /**
+     * Insert a mutable flatbuffer into a newly created storage engine object. This will be
+     * used by the generated type-specific insert_row() method.
+     */
     static gaia_id_t insert_row(flatbuffers::FlatBufferBuilder& fbb)
     {
         gaia_id_t nodeId = gaia_se_node::generate_id();
@@ -259,6 +343,11 @@ protected:
     // Flatbuffer referencing SE memory.
     const T_fb* m_fb;
 
+    /**
+     * Create the mutable flatbuffer object (m_copy) if it doesn't exist as a member
+     * yet. If this points to an existing storage engine object, load the current
+     * field values into m_copy.
+     */
     T_obj* copy_write()
     {
         if (m_copy == nullptr) {
@@ -308,9 +397,10 @@ private:
         }
     }
 };
-
+/*@}*/
 // Static definition of the gaia_type in gaia_object_t class above.
 template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
     gaia::db::gaia_type_t gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::s_gaia_type = T_gaia_type;
 } // common
+/*@}*/
 } // gaia

@@ -5,7 +5,6 @@
 
 cmake_minimum_required(VERSION 3.11)
 
-
 include(UseJava)
 
 enable_testing()
@@ -32,7 +31,7 @@ set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")
 set(FLATBUFFERS "${GAIA_REPO}/third_party/production/flatbuffers")
 set(FLATBUFFERS_INC "${FLATBUFFERS}/include")
 set(ROCKSDB "${GAIA_REPO}/third_party/production/rocksdb")
-set(ROCSKDB_INC "${ROCKSDB}/include")
+set(ROCKSDB_INC "${ROCKSDB}/include")
 set(PYBIND_PATH "${GAIA_REPO}/third_party/production/pybind11")
 set(GREMLIN_CONSOLE_PATH "/usr/local/share/gremlin-console")
 set(GREMLIN_SERVER_PATH "/usr/local/share/gremlin-server")
@@ -142,8 +141,8 @@ endif()
 # Common code - currently, a headers-only library.
 add_library(gaia_common INTERFACE)
 target_sources(gaia_common INTERFACE
-  ${PROJECT_SOURCE_DIR}/inc/internal/common/gaia_exception.hpp
-  ${PROJECT_SOURCE_DIR}/inc/internal/common/retail_assert.hpp
+  ${PROJECT_SOURCE_DIR}/inc/public/common/gaia_exception.hpp
+  ${PROJECT_SOURCE_DIR}/inc/public/common/retail_assert.hpp
 )
 
 # Add flatbuffers

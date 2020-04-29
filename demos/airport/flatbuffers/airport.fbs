@@ -5,6 +5,8 @@
 
 // -*- mode: java -*- // Java mode works for emacs to edit flatbuffers.
 
+// These are the q1 demo schema.
+
 // Types to match the demo data from the openflights.com data; data from there is free to use, open database license.
 namespace AirportDemo;
 
