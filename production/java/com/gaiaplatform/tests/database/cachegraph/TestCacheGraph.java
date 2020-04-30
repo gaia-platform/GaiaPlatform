@@ -36,7 +36,7 @@ public final class TestCacheGraph
         }
         else if (args[0].equals(GRAPHML))
         {
-            testGraphmlLoad();
+            testGraphmlOperations();
         }
         else
         {
@@ -129,7 +129,7 @@ public final class TestCacheGraph
         checkGraphSize(g, 9, 32);
     }
 
-    public static void testGraphmlLoad()
+    public static void testGraphmlOperations()
     {
         final String FILENAME = "tiny_airport.graphml";
 
