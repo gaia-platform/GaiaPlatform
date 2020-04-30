@@ -36,7 +36,7 @@ public final class TestCacheGraph
         }
         else if (args[0].equals(GRAPHML))
         {
-            testGraphmlLoad();
+            testGraphmlOperations();
         }
         else
         {
@@ -129,27 +129,27 @@ public final class TestCacheGraph
         checkGraphSize(g, 9, 32);
     }
 
-    public static void testGraphmlLoad()
+    public static void testGraphmlOperations()
     {
-        CacheGraph graph = CacheGraph.open();
+        final String FILENAME = "tiny_airport.graphml";
 
-        try
+        CacheGraph graph = CacheFactory.createTinyAirport();
+
+        if (!CacheFactory.writeGraphml(graph, FILENAME))
         {
-            graph.tx().open();
-            graph.io(graphml()).readGraph("../../data/internal/airport/gaia-airport-tiny.graphml");
-            graph.tx().commit();
+            System.exit(1);
         }
-        catch (Exception e)
+
+        graph = CacheGraph.open();
+
+        if (!CacheFactory.readGraphml(graph, FILENAME))
         {
-            System.out.println(
-                "An error happened while attempting to load graphml file: "
-                + e.getMessage());
             System.exit(1);
         }
 
         GraphTraversalSource g = graph.traversal();
 
-        checkGraphSize(g, 44, 102);
+        checkGraphSize(g, 39, 87);
 
         // Check absence and presence of some airports.
         assert g.V().has("iata", "AUS").hasNext() == false;
