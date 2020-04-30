@@ -457,14 +457,14 @@ public final class CacheFactory
     }
 
     // Load a graphml file.
-    public static CacheGraph loadGraphml(String filename)
+    public static CacheGraph readGraphml(String filename)
     {
         final CacheGraph graph = getDefaultCacheGraph();
-        loadGraphml(graph, filename);
+        readGraphml(graph, filename);
         return graph;
     }
 
-    public static void loadGraphml(final CacheGraph graph, String filename)
+    public static boolean readGraphml(final CacheGraph graph, String filename)
     {
         // If transactions are advertised to be supported (via Graph.Features)
         // then readGraph() will call commit() and rollback() itself,
@@ -480,6 +480,8 @@ public final class CacheFactory
         {
             graph.io(graphml()).readGraph(filename);
             graph.tx().commit();
+
+            return true;
         }
         catch (Exception e)
         {
@@ -487,11 +489,13 @@ public final class CacheFactory
             System.out.println(
                 "An error happened while attempting to load " + filename + ": "
                 + e.getMessage());
+
+            return false;
         }
     }
 
     // Write graph data to a graphml file.
-    public static void writeGraphml(final CacheGraph graph, String filename)
+    public static boolean writeGraphml(final CacheGraph graph, String filename)
     {
         try
         {
@@ -503,12 +507,16 @@ public final class CacheFactory
             }
 
             graph.io(graphml()).writeGraph(filename);
+
+            return true;
         }
         catch (Exception e)
         {
             System.out.println(
                 "An error happened while attempting to load " + filename + ": "
                 + e.getMessage());
+
+            return false;
         }
     }
 
