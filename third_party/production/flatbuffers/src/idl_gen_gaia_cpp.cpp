@@ -245,7 +245,6 @@ namespace flatbuffers
                 
                 if (opts_.generate_setters 
                     && (opts_.generate_column_change_events 
-                    || opts_.generate_transaction_events 
                     || opts_.generate_table_change_events))
                 {
                     code_ += "#include \"events.hpp\"";
@@ -596,29 +595,6 @@ namespace flatbuffers
                         "using gaia_object_t::insert_row;\n"
                         "using gaia_object_t::update_row;\n"
                         "using gaia_object_t::delete_row;";
-                }
-
-                if (opts_.generate_transaction_events)
-                {
-                // BeginTransaction function
-                    code_ += 
-                    "static void begin_transaction(){\n"
-                    "gaia_object_t::begin_transaction();\n"
-                    "gaia::rules::log_database_event(nullptr, gaia::rules::event_type_t::transaction_begin, gaia::rules::event_mode_t::immediate);\n"
-                    "}\n"
-
-                // CommitTransaction function
-                    "static void commit_transaction(){\n"
-                    "gaia_object_t::commit_transaction();\n"
-                    "gaia::rules::log_database_event(nullptr, gaia::rules::event_type_t::transaction_commit, gaia::rules::event_mode_t::immediate);\n"
-                    "}\n"
-
-                // RollbackTransaction function
-                
-                    "static void rollback_transaction(){\n"
-                    "gaia_object_t::rollback_transaction();\n"
-                    "gaia::rules::log_database_event(nullptr, gaia::rules::event_type_t::transaction_rollback, gaia::rules::event_mode_t::immediate);\n"
-                    "}";
                 }
 
                 // If the flatbuffer has a string or vector column then 

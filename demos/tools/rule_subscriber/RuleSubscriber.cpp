@@ -31,6 +31,29 @@ cl::opt<string> RuleSubscriberOutputOption("output", cl::init(""),
 cl::opt<bool> RuleSubscriberVerboseOption("v",
     cl::desc("print parse tokens"), cl::cat(RuleSubscriberCategory));
 
+enum tx_type_t
+{
+    none,
+    begin,
+    commit,
+    rollback,
+    max
+};
+
+struct tx_desc_t
+{
+    tx_type_t type;
+    const char* name;
+    bool generated;
+};
+
+tx_desc_t s_tx_descriptors[tx_type_t::max] = {
+    {tx_type_t::none, "none", false},
+    {tx_type_t::begin, "begin", false},
+    {tx_type_t::commit, "commit", false},
+    {tx_type_t::rollback, "rollback", false}
+};
+
 struct rule_data_t
 {
     string ruleset;
@@ -40,6 +63,7 @@ struct rule_data_t
     string event_type;
     string gaia_type;
     string field;
+    tx_type_t tx;
 };
 
 vector<rule_data_t> g_rules;
@@ -246,7 +270,7 @@ public:
                     string qualifier = "event_type_t::";
 
                     // Fully qualify and validate our events.
-                    if (is_transaction_event(event))
+                    if (is_transaction_event(event, rule_data.tx))
                     {
                         if (!rule_data.gaia_type.empty() || !rule_data.field.empty())
                         {
@@ -311,11 +335,26 @@ private:
         }
     }
 
-    bool is_transaction_event(const string& event)
+    bool is_transaction_event(const string& event, tx_type_t& type)
     {
-        return (0 == event.compare("begin"))
-            || (0 == event.compare("rollback"))
-            || (0 == event.compare("commit"));
+        type = tx_type_t::none;
+
+        if (0 == event.compare("begin"))
+        {
+            type = tx_type_t::begin;
+        }
+        else
+        if (0 == event.compare("rollback"))
+        {
+            type = tx_type_t::rollback;
+        }
+        else
+        if (0 == event.compare("commit"))
+        {
+            type = tx_type_t::commit;
+        }
+
+        return (type != tx_type_t::none);
     }
 
     bool is_table_event(const string& event)
@@ -447,6 +486,64 @@ bool SaveFile(const char *name, const stringstream& buf)
     return !ofs.bad();
 }
 
+// Use our "none" descriptor to track whether we've created
+// the gaia::rules namespace scope yet
+void beginTxHookNamespace(stringstream& code)
+{
+    if (!s_tx_descriptors[0].generated)
+    {
+        code << "namespace gaia" << endl;
+        code << "{" << endl;
+        code << "namespace rules" << endl;
+        code << "{" << endl;
+        s_tx_descriptors[0].generated = true;
+    }
+}
+
+void endTxHookNamespace(stringstream& code)
+{
+    if (s_tx_descriptors[0].generated)
+    {
+        code << "}" << endl;
+        code << "}" << endl;
+    }
+}
+
+void generateTxHookFunction(stringstream& code, tx_type_t hook_type)
+{
+    if (hook_type == tx_type_t::none) {
+        return;
+    }
+
+    tx_desc_t& tx_desc = s_tx_descriptors[(int)hook_type];
+    beginTxHookNamespace(code);
+
+    if (!tx_desc.generated)
+    {
+        const char * hook = tx_desc.name;
+        code << "static void " << hook << "_tx_hook()" << endl;
+        code << "{" << endl;
+        code << "    gaia_base_t::" << hook << "_hook();" << endl;
+        code << "    log_database_event(nullptr, event_type_t::transaction_" << hook << ", event_mode_t::immediate);" << endl;
+        code << "}" << endl;
+        tx_desc.generated = true;
+    }
+}
+
+void generateTxHookInit(stringstream& code)
+{
+    for (auto tx_desc : s_tx_descriptors)
+    {
+        // Skip "none".
+        if (tx_desc.type != tx_type_t::none 
+            && tx_desc.generated)
+        {
+            const char * hook = tx_desc.name;
+            code << "    gaia::db::s_tx_" << hook << "_hook = gaia::rules::" << tx_desc.name << "_tx_hook;" << endl;
+        }
+    }
+}
+
 void generateCode(const char *fileName, const vector<rule_data_t>& rules)
 {
     unordered_set<string> declarations;
@@ -470,7 +567,7 @@ void generateCode(const char *fileName, const vector<rule_data_t>& rules)
         }
     }
 
-    // Generate includes
+    // Generate includes.
     stringstream code;
     code << "#include \"rules.hpp\"" << endl;
     for (auto include : includes)
@@ -480,6 +577,14 @@ void generateCode(const char *fileName, const vector<rule_data_t>& rules)
     code << endl;
 
     code << "using namespace gaia::rules;" << endl; 
+    code << endl;
+
+    // Generate transaction hooks if any transaction events were specified.
+    for (auto it = rules.cbegin(); it != rules.cend(); ++it)
+    {
+        generateTxHookFunction(code, it->tx);
+    }
+    endTxHookNamespace(code);
     code << endl;
 
     for (auto it = declarations.cbegin(); it != declarations.cend(); ++it)
@@ -548,6 +653,8 @@ void generateCode(const char *fileName, const vector<rule_data_t>& rules)
         code << endl;
     }
 
+    // Setup transaction hooks if needed.
+    generateTxHookInit(code);
     code << "}" << endl;
 
     SaveFile(fileName, code);

@@ -26,7 +26,7 @@ message(STATUS "GAIA_EVENT_MANAGER_INCLUDES=${GAIA_EVENT_MANAGER_INCLUDES}")
 # Generate the event log headers from the flatbuffer schema.
 set_property(GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
 gaia_compile_flatbuffers_schema_to_cpp_opt(flatbuffers/event_log.fbs "--no-includes;--gen-compare;--gaia-type-initial-value;6" "${GENERATED_OUTPUTS}")
-get_generated_output(fbs_generated)
+gaia_get_generated_output(fbs_generated)
 if(fbs_generated)
   # message(STATUS "Add generated_code target with files:${fbs_generated}")
   add_custom_target(generate_event_logs
@@ -43,6 +43,7 @@ set_target_properties(gaia_rules PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}
 target_include_directories(gaia_rules PRIVATE ${GAIA_EVENT_MANAGER_INCLUDES})  
 
 # unit tests
+add_gtest(test_auto_tx "tests/test_auto_tx.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_semock")
 add_gtest(test_event_guard "tests/test_event_guard.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "")
 add_gtest(test_event_manager "tests/test_event_manager.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
 add_gtest(test_system_init "tests/test_system_init.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")

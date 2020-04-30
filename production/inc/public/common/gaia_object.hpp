@@ -68,53 +68,27 @@ struct gaia_base_t
      * not cause crashes, even though the data is invalid.
      */
     static id_cache_t s_gaia_tx_cache;
+    /**
+     * Install a commit_hook the first time any gaia object is instantiated.
+     */ 
+    static bool s_tx_hooks_installed;
 
     gaia_base_t() = delete;
 
     gaia_base_t(const char* gaia_typename)
-    : m_id(0)
-    , m_typename(gaia_typename)
+    : gaia_base_t(0, gaia_typename)
     {
     }
-    
-    /**
-     * The s_gaia_tx_cache is a list of objects containing stale data that
-     * must be refreshed if a new transaction begins. Scan these objects to
-     * clean out old values. The objects will not be deleted, as they will
-     * continue to be tracked in the s_gaia_cache.
-     * 
-     * This begin_transaction() method must be used together with the extended data
-     * class objects.
-     */
-    static void begin_transaction()
-    {
-        for (auto it = s_gaia_tx_cache.begin(); it != s_gaia_tx_cache.end(); ++it)
-        {
-            it->second->reset(true);
-        }
-        s_gaia_tx_cache.clear();
-
-        gaia::db::begin_transaction();
-    }
-
-    /**
-     * Pass this commit through to the storage engine. No additional functionality.
-     */
-    static void commit_transaction()   { gaia::db::commit_transaction(); }
-    /**
-     * Pass this rollback through to the storage engine. No additional functionality.
-     */
-    static void rollback_transaction() { gaia::db::rollback_transaction(); }
 
     /**
      * This is the storage engine's identification of this object. The id can be
      * used to refer to this object later.
      */
-    gaia_id_t gaia_id()
+    gaia_id_t gaia_id() 
     {
         return m_id;
     }
-    
+
     /**
      * The gaia_base_t and gaia_object_t shouldn't be instantiated directly. The
      * gaia_object_t is created to be subclassed by a "typed" class that is identified
@@ -125,8 +99,35 @@ struct gaia_base_t
         return m_typename;
     }
 
-    virtual gaia_type_t gaia_type() = 0;
+    /**
+     * The s_gaia_tx_cache is a list of objects containing stale data that
+     * must be refreshed if a new transaction begins. Scan these objects to
+     * clean out old values. The objects will not be deleted, as they will
+     * continue to be tracked in the s_gaia_cache.
+     * 
+     * This commit_hook() must be used together with the extended data
+     * class objects.  It is executed after the transaction has been committed.
+     */    
+    static void commit_hook()
+    { 
+        for (auto it = s_gaia_tx_cache.begin(); it != s_gaia_tx_cache.end(); ++it)
+        {
+            it->second->reset(true);
+        }
+        s_gaia_tx_cache.clear();
+    }
 
+    /**
+     * These hooks are intentionally left empty. They are provided
+     * so that the rule subscriber can dumbly generate calls to them
+     * when generating its own hooks to generate transaction events.
+     * If code is run as part of begin or rollback hooks then do not
+     * forget to set the hook in set_tx_hooks below.
+     */ 
+    static void begin_hook() {}
+    static void rollback_hook() {}
+
+    virtual gaia_type_t gaia_type() = 0;
     virtual ~gaia_base_t() = default;
 
 protected:
@@ -134,6 +135,23 @@ protected:
     : m_id(id)
     , m_typename(gaia_typename)
     {
+        set_tx_hooks();
+    }
+
+    // The first time we put any gaia object in our cache
+    // we should install our commit hook.
+    static void set_tx_hooks()
+    {
+        if (!s_tx_hooks_installed)
+        {
+            // Do not overwrite an already established hook.  This could happen
+            // if an application has subscribed to transaction events.
+            if (!gaia::db::s_tx_commit_hook)
+            {
+                gaia::db::s_tx_commit_hook = commit_hook;
+            }
+            s_tx_hooks_installed = true;
+        }
     }
 
     // The gaia_id assigned to this row.
@@ -154,7 +172,6 @@ private:
 #define GET_STR(field) (m_copy ? m_copy->field.c_str() : m_fb->field() ? m_fb->field()->c_str() : nullptr)
 #define SET(field, value) (copy_write()->field = value)
 
-// T_gaia_type - an integer (gaia_type_t) uniquely identifying the flatbuffer table type
 /**
  * The gaia_object_t that must be specialized to operate on a flatbuffer type.
  * 
@@ -186,12 +203,16 @@ public:
         copy_write();
     }
 
-    // This can be used for subscribing to rules when you don't
-    // have a specific instance of the type.
+    /**
+     * This can be used for subscribing to rules when you don't
+     * have a specific instance of the type.
+     */ 
     static gaia::db::gaia_type_t s_gaia_type;
 
-    // This can be used when you are passed a gaia_base_t
-    // object and want to know the type at runtime.
+    /**
+     * This can be used when you are passed a gaia_base_t
+     * object and want to know the type at runtime.
+     */ 
     gaia::db::gaia_type_t gaia_type() override
     {
         return T_gaia_type;

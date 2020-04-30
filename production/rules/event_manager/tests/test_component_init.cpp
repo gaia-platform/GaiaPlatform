@@ -71,7 +71,7 @@ TEST(event_manager_component_init, component_initialized)
     gaia::rules::initialize_rules_engine();
 
 
-    gaia_base_t::begin_transaction();
+    begin_transaction();
     EXPECT_EQ(false, log_database_event(&row, event_type_t::row_insert, event_mode_t::immediate));
     EXPECT_EQ(false, log_field_event(&row, "first_name", event_type_t::field_write, event_mode_t::immediate));
     subscribe_field_rule(2, event_type_t::field_write, fields, binding);
@@ -80,5 +80,5 @@ TEST(event_manager_component_init, component_initialized)
     EXPECT_EQ(true, unsubscribe_field_rule(row_context_t::s_gaia_type, event_type_t::field_write, fields, binding));
     unsubscribe_rules();
     list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subscriptions);
-    gaia_base_t::rollback_transaction();    
+    rollback_transaction();    
 }

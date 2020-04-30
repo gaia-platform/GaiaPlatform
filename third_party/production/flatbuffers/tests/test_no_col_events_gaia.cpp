@@ -58,8 +58,7 @@ void verify_field_event(gaia::common::gaia_base_t* table_context, const char* fi
 
 void GaiaNoColEventsTest()
 {
-    AddrBook::Employee::begin_transaction();
-    verify_database_event(nullptr, gaia::rules::event_type_t::transaction_begin, gaia::rules::event_mode_t::immediate);
+    begin_transaction();
 
     int64_t manager_id = get_next_id();
     int64_t first_address_id = get_next_id();
@@ -84,10 +83,18 @@ void GaiaNoColEventsTest()
     AddrBook::Employee *pEmployee = AddrBook::Employee::get_row_by_id(empl_node_id);
 
     pEmployee->set_ssn("test");
+    pEmployee->update_row();
+    verify_database_event(pEmployee, gaia::rules::event_type_t::row_update, gaia::rules::event_mode_t::immediate);
+
+    pEmployee->set_ssn("test");
     TEST_EQ_STR("test",pEmployee->ssn());
-        
-    AddrBook::Employee::commit_transaction();
-        verify_database_event(nullptr, gaia::rules::event_type_t::transaction_commit, gaia::rules::event_mode_t::immediate);
+    // No field events so verify that we still have the same database event from the update_row.
+    verify_database_event(pEmployee, gaia::rules::event_type_t::row_update, gaia::rules::event_mode_t::immediate);
+
+    AddrBook::Employee *pEmployee1 = AddrBook::Employee::get_row_by_id(empl_node_id);
+    TEST_EQ_STR("test",pEmployee1->ssn());
+
+    commit_transaction();
 }
 
 

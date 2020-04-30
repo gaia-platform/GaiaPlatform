@@ -5,6 +5,7 @@
 
 #include "retail_assert.hpp"
 #include "event_manager.hpp"
+#include "auto_tx.hpp"
 
 #include <cstring>
 
@@ -481,8 +482,13 @@ void event_manager_t::log_to_db(gaia_type_t gaia_type,
         }
         context_id = context->gaia_id();
     }
-    Event_log::insert_row((uint64_t)gaia_type, (uint32_t)event_type, 
-        (uint8_t) event_mode, event_source.c_str(), timestamp, context_id, rules_fired);
+
+    {
+        auto_tx_t tx;
+        Event_log::insert_row((uint64_t)gaia_type, (uint32_t)event_type, 
+            (uint8_t) event_mode, event_source.c_str(), timestamp, context_id, rules_fired);
+        tx.commit();
+    }
 }
 
 // Enable conversion from rule_binding_t -> internal_rules_binding_t.

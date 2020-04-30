@@ -568,7 +568,6 @@ struct IDLOptions {
   std::string filename_extension;
   bool generate_column_change_events;
   bool generate_table_change_events;
-  bool generate_transaction_events;
   bool generate_setters;
   uint64_t gaia_type_initial_value;
 
@@ -659,7 +658,6 @@ struct IDLOptions {
         filename_extension(),
         generate_column_change_events(false),
         generate_table_change_events(false),
-        generate_transaction_events(false),
         generate_setters(false),
         gaia_type_initial_value(1),
         lang(IDLOptions::kJava),
