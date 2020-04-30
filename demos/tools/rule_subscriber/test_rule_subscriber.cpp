@@ -36,8 +36,8 @@ void ruleset_1::ObjectRule_handler(const rule_context_t*)
  */
 void ruleset_1::Field_handler(const rule_context_t*)
 {
-    int x =5;
-    x=x*2;
+    int x = 5;
+    x = x*2;
 }
 
 /**
@@ -45,8 +45,8 @@ void ruleset_1::Field_handler(const rule_context_t*)
  */
 void ruleset_1::Table_handler(const rule_context_t*)
 {
-    int x =5;
-    x=x*2;
+    int x = 5;
+    x = x*2;
 }
 
 /**

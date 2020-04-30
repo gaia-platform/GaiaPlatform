@@ -43,7 +43,7 @@ enum tx_type_t
 struct tx_desc_t
 {
     tx_type_t type;
-    const char * name;
+    const char* name;
     bool generated;
 };
 
@@ -354,7 +354,7 @@ private:
             type = tx_type_t::commit;
         }
 
-        return !(type == tx_type_t::none);
+        return (type != tx_type_t::none);
     }
 
     bool is_table_event(const string& event)
@@ -534,7 +534,7 @@ void generateTxHookInit(stringstream& code)
 {
     for (auto tx_desc : s_tx_descriptors)
     {
-        // skip "none"
+        // Skip "none".
         if (tx_desc.type != tx_type_t::none 
             && tx_desc.generated)
         {
@@ -567,7 +567,7 @@ void generateCode(const char *fileName, const vector<rule_data_t>& rules)
         }
     }
 
-    // Generate includes
+    // Generate includes.
     stringstream code;
     code << "#include \"rules.hpp\"" << endl;
     for (auto include : includes)
@@ -579,7 +579,7 @@ void generateCode(const char *fileName, const vector<rule_data_t>& rules)
     code << "using namespace gaia::rules;" << endl; 
     code << endl;
 
-    // Generate transaction hooks if any transaction events were specified
+    // Generate transaction hooks if any transaction events were specified.
     for (auto it = rules.cbegin(); it != rules.cend(); ++it)
     {
         generateTxHookFunction(code, it->tx);

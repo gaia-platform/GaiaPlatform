@@ -1238,6 +1238,33 @@ TEST_F(event_manager_test, event_logging_subscriptions)
     EXPECT_EQ(3, clear_event_log());
 }
 
+TEST_F(event_manager_test, event_logging_no_active_tx)
+{
+    clear_event_log();
+    setup_all_rules();
+
+    // Compensate for begin_transaction() in test fixture Setup()
+    rollback_transaction();
+    EXPECT_EQ(false, gaia_mem_base::is_tx_active());
+
+    EXPECT_EQ(true, log_database_event(nullptr, event_type_t::transaction_commit, event_mode_t::immediate));
+    EXPECT_EQ(true, log_database_event(nullptr, event_type_t::transaction_rollback, event_mode_t::immediate));
+
+    // Note that this transaction will be commited in test fixture TearDown().
+    // We need it to verify that the correct records were written in our event log.
+    begin_transaction();
+    log_entry_t entry(Event_log::get_first());
+    EXPECT_TRUE(entry != nullptr);
+    verify_event_log_row(*entry, 0, 
+        event_type_t::transaction_commit, event_mode_t::immediate, "", 0, true); 
+
+    entry.reset(entry->get_next());
+    verify_event_log_row(*entry, 0, 
+        event_type_t::transaction_rollback, event_mode_t::immediate, "", 0, true); 
+    entry.reset();
+    EXPECT_EQ(2, clear_event_log());
+}
+
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   bool init_engine = true;

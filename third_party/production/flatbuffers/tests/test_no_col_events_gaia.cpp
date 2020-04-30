@@ -88,7 +88,7 @@ void GaiaNoColEventsTest()
 
     pEmployee->set_ssn("test");
     TEST_EQ_STR("test",pEmployee->ssn());
-    // No field events so verify that we still have the same database event from the update_row
+    // No field events so verify that we still have the same database event from the update_row.
     verify_database_event(pEmployee, gaia::rules::event_type_t::row_update, gaia::rules::event_mode_t::immediate);
 
     AddrBook::Employee *pEmployee1 = AddrBook::Employee::get_row_by_id(empl_node_id);

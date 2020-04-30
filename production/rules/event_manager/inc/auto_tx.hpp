@@ -15,29 +15,41 @@ namespace rules
 // so use the low-level storage engine api (gaia_mem_base) instead of
 // (gaia::db).  Because the storage engine does not currently support
 // nested transactions, we check to see whether we are currently in a transaction
-// before starting a new one.
-class event_tx_t
+// before starting a new one.  This transaction will automatically rollback if
+// it goes out of scope and commit is not called.  Correct usage looks like:
+class auto_tx_t
 {
 public:
-    event_tx_t()
+    auto_tx_t()
     {
         if (!gaia::db::gaia_mem_base::is_tx_active())
         {
             gaia::db::gaia_mem_base::tx_begin();
-            do_commit = true;
+            end_tx = true;
         }
     }
 
-    ~event_tx_t()
+    void commit()
     {
-        if (do_commit)
+        if (end_tx)
         {
             gaia::db::gaia_mem_base::tx_commit();
+            end_tx = false;
+        }
+    }
+
+    ~auto_tx_t()
+    {
+        // If commit() is not called then this transation will
+        // automatically rollback the transaction it started.
+        if (end_tx)
+        {
+            gaia::db::gaia_mem_base::tx_rollback();
         }
     }
 
 private:
-    bool do_commit = false;
+    bool end_tx = false;
 };
 
 } // namespace rules

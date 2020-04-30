@@ -317,7 +317,7 @@ namespace db
 
         static bool is_tx_active()
         {
-            return !(*gaia_mem_base::s_offsets == nullptr);
+            return (*gaia_mem_base::s_offsets != nullptr);
         }
 
         template <typename T>
