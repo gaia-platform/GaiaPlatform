@@ -110,29 +110,29 @@ gaia_fdw_handler(PG_FUNCTION_ARGS)
     routine->IterateDirectModify = gaiaIterateDirectModify;
     routine->EndDirectModify = gaiaEndDirectModify;
 
-    // /* Function for EvalPlanQual rechecks */
-    // routine->RecheckForeignScan = gaiaRecheckForeignScan;
-    // /* Support functions for EXPLAIN */
-    // routine->ExplainForeignScan = gaiaExplainForeignScan;
-    // routine->ExplainForeignModify = gaiaExplainForeignModify;
-    // routine->ExplainDirectModify = gaiaExplainDirectModify;
+    /* Function for EvalPlanQual rechecks */
+    routine->RecheckForeignScan = gaiaRecheckForeignScan;
+    /* Support functions for EXPLAIN */
+    routine->ExplainForeignScan = gaiaExplainForeignScan;
+    routine->ExplainForeignModify = gaiaExplainForeignModify;
+    routine->ExplainDirectModify = gaiaExplainDirectModify;
 
-    // /* Support functions for ANALYZE */
-    // routine->AnalyzeForeignTable = gaiaAnalyzeForeignTable;
+    /* Support functions for ANALYZE */
+    routine->AnalyzeForeignTable = gaiaAnalyzeForeignTable;
 
-    // /* Support functions for IMPORT FOREIGN SCHEMA */
+    /* Support functions for IMPORT FOREIGN SCHEMA */
     routine->ImportForeignSchema = gaiaImportForeignSchema;
 
-    // /* Support functions for join push-down */
-    // routine->GetForeignJoinPaths = gaiaGetForeignJoinPaths;
+    /* Support functions for join push-down */
+    routine->GetForeignJoinPaths = gaiaGetForeignJoinPaths;
 
-    // /* Support functions for upper relation push-down */
-    // routine->GetForeignUpperPaths = gaiaGetForeignUpperPaths;
+    /* Support functions for upper relation push-down */
+    routine->GetForeignUpperPaths = gaiaGetForeignUpperPaths;
 
-    // /* Support functions for late row locking */
-    // routine->RecheckForeignScan = gaiaRecheckForeignScan;
-    // routine->GetForeignRowMarkType = gaiaGetForeignRowMarkType;
-    // routine->RefetchForeignRow = gaiaRefetchForeignRow;
+    /* Support functions for late row locking */
+    routine->RecheckForeignScan = gaiaRecheckForeignScan;
+    routine->GetForeignRowMarkType = gaiaGetForeignRowMarkType;
+    routine->RefetchForeignRow = gaiaRefetchForeignRow;
 
     PG_RETURN_POINTER(routine);
 }
@@ -254,12 +254,7 @@ gaiaGetForeignRelSize(PlannerInfo *root,
 
     elog(DEBUG1, "entering function %s", __func__);
 
-    // FIXME: total hack, I added this method ad-hoc to gaia.h and this doesn't even get a per-type count
-    // NB: we have to do this in a txn or we'll segfault because the mapping doesn't exist
-    // comment out for now until we can discuss with SE folks
-    // begin_gaia_txn();
-    // baserel->rows = gaia_mem_base::row_id_count();
-    // commit_gaia_txn();
+    // TODO: get row count estimate from storage engine
 }
 
 extern "C"
