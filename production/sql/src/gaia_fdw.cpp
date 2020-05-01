@@ -52,25 +52,6 @@ static bool commit_gaia_txn() {
     return txn_closed;
 }
 
-static bool is_type_helper(Oid oid, int16 typlen_test) {
-    HeapTuple tup = SearchSysCache1(TYPEOID, ObjectIdGetDatum(oid));
-    if (!HeapTupleIsValid(tup)) {
-        elog(ERROR, "cache lookup failed for type %u", oid);
-    }
-    Form_pg_type typtup = (Form_pg_type) GETSTRUCT(tup);
-    bool result = (typtup->typlen == typlen_test);
-    ReleaseSysCache(tup);
-    return result;
-}
-
-static bool is_type_varlena(Oid oid) {
-    return is_type_helper(oid, -1);
-}
-
-static bool is_type_cstring(Oid oid) {
-    return is_type_helper(oid, -2);
-}
-
 /*
  * The FDW handler function returns a palloc'd FdwRoutine struct containing
  * pointers to the callback functions that will be called by the planner,
@@ -470,30 +451,16 @@ gaiaIterateForeignScan(ForeignScanState *node)
 
     /* get the next record, if any, and fill in the slot */
     const void *obj_buf;
-    size_t buf_size;
     if (scan_state->gaia_type_is_edge) {
         obj_buf = scan_state->cur_edge->payload;
-        buf_size = scan_state->cur_edge->payload_size;
     } else {
         obj_buf = scan_state->cur_node->payload;
-        buf_size = scan_state->cur_node->payload_size;
     }
-    std::ofstream("/tmp/airport.bin", std::ios::binary).write((const char *) obj_buf, buf_size);
     const void *obj_root = scan_state->deserializer(obj_buf);
     for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; attr_idx++) {
         char *attr_name = NameStr(TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->attname);
-        elog(DEBUG1, "in function %s: tuple attr name: %s, null: %d",
-            __func__, attr_name, slot->tts_isnull[attr_idx]);
         AttributeAccessor accessor = scan_state->indexed_accessors[attr_idx];
         Datum attr_val = accessor(obj_root);
-        Oid type_id = TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->atttypid;
-        if (is_type_varlena(type_id) && !slot->tts_isnull[attr_idx]) {
-            elog(DEBUG1, "in function %s: tuple attr value: %s",
-                __func__, TextDatumGetCString(attr_val));
-        } else if (is_type_cstring(type_id) && !slot->tts_isnull[attr_idx]) {
-            elog(DEBUG1, "in function %s: tuple attr value: %s",
-                __func__, DatumGetCString(attr_val));
-        }
         slot->tts_values[attr_idx] = attr_val;
         slot->tts_isnull[attr_idx] = false;
     }
@@ -856,8 +823,6 @@ gaiaExecForeignInsert(EState *estate,
     slot_getallattrs(slot);
     for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; attr_idx++) {
         char *attr_name = NameStr(TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->attname);
-        elog(DEBUG1, "in function %s: tuple attr name: %s, null: %d",
-            __func__, attr_name, slot->tts_isnull[attr_idx]);
         AttributeBuilder attr_builder = modify_state->indexed_builders[attr_idx];
         Datum attr_val;
         // We don't allow gaia_id to be set by an INSERT or UPDATE statement (this should
@@ -870,14 +835,6 @@ gaiaExecForeignInsert(EState *estate,
             slot->tts_isnull[attr_idx] = false;
         } else if (!(slot->tts_isnull[attr_idx])) {
             attr_val = slot->tts_values[attr_idx];
-            Oid type_id = TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->atttypid;
-            if (is_type_varlena(type_id) && !slot->tts_isnull[attr_idx]) {
-                elog(DEBUG1, "in function %s: tuple attr value: %s",
-                    __func__, TextDatumGetCString(slot->tts_values[attr_idx]));
-            } else if (is_type_cstring(type_id) && !slot->tts_isnull[attr_idx]) {
-                elog(DEBUG1, "in function %s: tuple attr value: %s",
-                    __func__, DatumGetCString(slot->tts_values[attr_idx]));
-            }
             if (modify_state->gaia_type_is_edge && attr_idx == modify_state->src_attr_idx) {
                 gaia_src_id = DatumGetUInt64(attr_val);
             }
