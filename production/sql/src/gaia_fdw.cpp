@@ -418,7 +418,7 @@ gaiaBeginForeignScan(ForeignScanState *node,
 
     // begin read transaction
     begin_gaia_txn();
-    // retrieve the first node of the requested type
+    // retrieve the first node of the requested type (this can't currently throw)
     if (scan_state->gaia_type_is_edge) {
         scan_state->cur_edge = gaia_ptr<gaia_se_edge>::find_first(mapping.gaia_type_id);
     } else {
@@ -506,7 +506,7 @@ gaiaIterateForeignScan(ForeignScanState *node)
     /* mark the slot as containing a virtual tuple */
     ExecStoreVirtualTuple(slot);
 
-    /* now advance the current node to the next node in the iteration */
+    /* now advance the current node to the next node in the iteration (this can't currently throw) */
     if (scan_state->gaia_type_is_edge) {
         scan_state->cur_edge = scan_state->cur_edge.find_next();
     } else {
@@ -904,20 +904,25 @@ gaiaExecForeignInsert(EState *estate,
     size_t size;
     const void *buffer = flatcc_builder_get_direct_buffer(builder, &size);
 
-    if (modify_state->gaia_type_is_edge) {
-        gaia_se_edge::create(
-            gaia_id,
-            modify_state->gaia_type_id,
-            gaia_src_id,
-            gaia_dst_id,
-            size,
-            buffer);
-    } else {
-        gaia_se_node::create(
-            gaia_id,
-            modify_state->gaia_type_id,
-            size,
-            buffer);
+    try {
+        if (modify_state->gaia_type_is_edge) {
+            gaia_se_edge::create(
+                gaia_id,
+                modify_state->gaia_type_id,
+                gaia_src_id,
+                gaia_dst_id,
+                size,
+                buffer);
+        } else {
+            gaia_se_node::create(
+                gaia_id,
+                modify_state->gaia_type_id,
+                size,
+                buffer);
+        }
+    } catch (const std::exception& e) {
+        ereport(ERROR, (errcode(ERRCODE_FDW_ERROR),
+            errmsg("error creating gaia object"), errhint(e.what())));
     }
 
     flatcc_builder_reset(builder);
@@ -989,12 +994,17 @@ gaiaExecForeignUpdate(EState *estate,
     size_t size;
     const void *buffer = flatcc_builder_get_direct_buffer(builder, &size);
 
-    if (modify_state->gaia_type_is_edge) {
-        auto edge = gaia_se_edge::open(gaia_id);
-        edge.update_payload(size, buffer);
-    } else {
-        auto node = gaia_se_node::open(gaia_id);
-        node.update_payload(size, buffer);
+    try {
+        if (modify_state->gaia_type_is_edge) {
+            auto edge = gaia_se_edge::open(gaia_id);
+            edge.update_payload(size, buffer);
+        } else {
+            auto node = gaia_se_node::open(gaia_id);
+            node.update_payload(size, buffer);
+        }
+    } catch (const std::exception& e) {
+        ereport(ERROR, (errcode(ERRCODE_FDW_ERROR),
+            errmsg("error updating gaia object"), errhint(e.what())));
     }
 
     flatcc_builder_reset(builder);
@@ -1052,24 +1062,29 @@ gaiaExecForeignDelete(EState *estate,
     Datum pk_val = slot_getattr(planSlot, attnum, &is_null);
     assert(!is_null);
     uint64_t gaia_id = DatumGetUInt64(pk_val);
-    if (modify_state->gaia_type_is_edge) {
-        modify_state->target_edge = gaia_se_edge::open(gaia_id);
-        if (modify_state->target_edge) {
-            elog(DEBUG1, "calling remove() on edge for gaia_id %d", gaia_id);
-            gaia_ptr<gaia_se_edge>::remove(modify_state->target_edge);
+    try {
+        if (modify_state->gaia_type_is_edge) {
+            modify_state->target_edge = gaia_se_edge::open(gaia_id);
+            if (modify_state->target_edge) {
+                elog(DEBUG1, "calling remove() on edge for gaia_id %d", gaia_id);
+                gaia_ptr<gaia_se_edge>::remove(modify_state->target_edge);
+            } else {
+                elog(DEBUG1, "edge for gaia_id %d is invalid", gaia_id);
+                retSlot = NULL;
+            }
         } else {
-            elog(DEBUG1, "edge for gaia_id %d is invalid", gaia_id);
-            retSlot = NULL;
+            modify_state->target_node = gaia_se_node::open(gaia_id);
+            if (modify_state->target_node) {
+                elog(DEBUG1, "calling remove() on node for gaia_id %d", gaia_id);
+                gaia_ptr<gaia_se_node>::remove(modify_state->target_node);
+            } else {
+                elog(DEBUG1, "node for gaia_id %d is invalid", gaia_id);
+                retSlot = NULL;
+            }
         }
-    } else {
-        modify_state->target_node = gaia_se_node::open(gaia_id);
-        if (modify_state->target_node) {
-            elog(DEBUG1, "calling remove() on node for gaia_id %d", gaia_id);
-            gaia_ptr<gaia_se_node>::remove(modify_state->target_node);
-        } else {
-            elog(DEBUG1, "node for gaia_id %d is invalid", gaia_id);
-            retSlot = NULL;
-        }
+    } catch (const std::exception& e) {
+        ereport(ERROR, (errcode(ERRCODE_FDW_ERROR),
+            errmsg("error deleting gaia object"), errhint(e.what())));
     }
     return retSlot;
 }
