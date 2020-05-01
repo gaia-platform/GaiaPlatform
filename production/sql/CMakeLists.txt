@@ -3,19 +3,21 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required (VERSION 3.10)
+cmake_minimum_required (VERSION 3.11)
 
 # Set the project name.
 
-project (cow_se_fdw)
+project (sql)
+
+enable_testing()
 
 # Get version.
 
-file (READ "version.config" PGCOW_SE_VERSION)
-string (STRIP ${PGCOW_SE_VERSION} PGCOW_SE_VERSION)
-set (PGCOW_SE_VERSION "${PGCOW_SE_VERSION}")
-string (REGEX REPLACE "\\.[0-9]*$" "" PGCOW_SE_VERSION_MAJOR "${PGCOW_SE_VERSION}")
-set (PGCOW_SE_VERSION_MAJOR "${PGCOW_SE_VERSION_MAJOR}")
+file (READ "version.config" PG_GAIA_FDW_VERSION)
+string (STRIP ${PG_GAIA_FDW_VERSION} PG_GAIA_FDW_VERSION)
+set (PG_GAIA_FDW_VERSION "${PG_GAIA_FDW_VERSION}")
+string (REGEX REPLACE "\\.[0-9]*$" "" PG_GAIA_FDW_VERSION_MAJOR "${PG_GAIA_FDW_VERSION}")
+set (PG_GAIA_FDW_VERSION_MAJOR "${PG_GAIA_FDW_VERSION_MAJOR}")
 
 # Get Postgres config settings from pg_config.
 
@@ -24,13 +26,13 @@ if (NOT PG_CONFIG)
   message (FATAL ERROR "Unable to find 'pg_config'")
 endif (NOT PG_CONFIG)
 
-exec_program (${PG_CONFIG} ARGS --version OUTPUT_VARIABLE PGCONFIG_OUTPUT)
+exec_program (${PG_CONFIG} ARGS --version OUTPUT_VARIABLE PG_CONFIG_OUTPUT)
 
 string (REGEX REPLACE
     "^PostgreSQL[\t ]+([0-9]+)\\.([0-9]+)\\.([0-9]+)" "\\1.\\2.\\3"
-    PGSQL_VERSION "${PGCONFIG_OUTPUT}")
+    PGSQL_VERSION "${PG_CONFIG_OUTPUT}")
 
-unset (PGCONFIG_OUTPUT)
+unset (PG_CONFIG_OUTPUT)
 
 if (PGSQL_VERSION)
     string (REGEX REPLACE
@@ -61,3 +63,7 @@ endif ()
 # Build sources.
 
 add_subdirectory (src)
+
+# Add tests.
+
+add_subdirectory (tests)

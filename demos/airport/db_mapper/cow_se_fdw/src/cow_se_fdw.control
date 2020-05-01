@@ -1,5 +1,0 @@
-# cow_se_fdw extension
-comment = 'Gaia COW Storage Engine Foreign Data Wrapper'
-default_version = '@PGCOW_SE_VERSION@'
-module_pathname = '$libdir/cow_se_fdw-@PGCOW_SE_VERSION_MAJOR@'
-relocatable = true

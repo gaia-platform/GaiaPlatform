@@ -5,10 +5,10 @@
 
 #pragma once
 
-// COW-SE implementation
-#include "cow_se.h"
-// airport demo data loader
-#include "data_loader.h"
+#include <fstream>
+
+// Gaia storage engine implementation
+#include "storage_engine.hpp"
 #include "helpers.h"
 
 // all Postgres headers and function declarations must have C linkage
@@ -22,19 +22,24 @@ extern "C" {
 #include "postgres.h"
 
 #include "access/reloptions.h"
+#include "access/table.h"
 #include "catalog/pg_foreign_server.h"
+#include "catalog/pg_type.h"
 #include "commands/defrem.h"
 #include "executor/executor.h"
 #include "foreign/fdwapi.h"
 // for FDW helpers: https://www.postgresql.org/docs/devel/fdw-helpers.html
 #include "foreign/foreign.h"
 #include "nodes/makefuncs.h"
+#include "nodes/pathnodes.h"
 #include "optimizer/optimizer.h"
 #include "optimizer/pathnode.h"
 #include "optimizer/planmain.h"
 #include "optimizer/restrictinfo.h"
+#include "parser/parsetree.h"
 #include "utils/lsyscache.h"
 #include "utils/rel.h"
+#include "utils/syscache.h"
 
 /*
  * Module initialization function
@@ -48,102 +53,102 @@ extern void _PG_fini();
 /*
  * SQL functions
  */
-extern Datum cow_se_fdw_handler(PG_FUNCTION_ARGS);
-extern Datum cow_se_fdw_validator(PG_FUNCTION_ARGS);
+extern Datum gaia_fdw_handler(PG_FUNCTION_ARGS);
+extern Datum gaia_fdw_validator(PG_FUNCTION_ARGS);
 
-PG_FUNCTION_INFO_V1(cow_se_fdw_handler);
-PG_FUNCTION_INFO_V1(cow_se_fdw_validator);
+PG_FUNCTION_INFO_V1(gaia_fdw_handler);
+PG_FUNCTION_INFO_V1(gaia_fdw_validator);
 
 /*
  * FDW callback routines
  */
-void cow_seGetForeignRelSize(PlannerInfo *root,
+void gaiaGetForeignRelSize(PlannerInfo *root,
                                       RelOptInfo *baserel,
                                       Oid foreigntableid);
-void cow_seGetForeignPaths(PlannerInfo *root,
+void gaiaGetForeignPaths(PlannerInfo *root,
                                     RelOptInfo *baserel,
                                     Oid foreigntableid);
-ForeignScan *cow_seGetForeignPlan(PlannerInfo *root,
+ForeignScan *gaiaGetForeignPlan(PlannerInfo *root,
                                            RelOptInfo *foreignrel,
                                            Oid foreigntableid,
                                            ForeignPath *best_path,
                                            List *tlist,
                                            List *scan_clauses,
                                            Plan *outer_plan);
-void cow_seBeginForeignScan(ForeignScanState *node, int eflags);
-TupleTableSlot *cow_seIterateForeignScan(ForeignScanState *node);
-void cow_seReScanForeignScan(ForeignScanState *node);
-void cow_seEndForeignScan(ForeignScanState *node);
-void cow_seAddForeignUpdateTargets(Query *parsetree,
+void gaiaBeginForeignScan(ForeignScanState *node, int eflags);
+TupleTableSlot *gaiaIterateForeignScan(ForeignScanState *node);
+void gaiaReScanForeignScan(ForeignScanState *node);
+void gaiaEndForeignScan(ForeignScanState *node);
+void gaiaAddForeignUpdateTargets(Query *parsetree,
                                             RangeTblEntry *target_rte,
                                             Relation target_relation);
-List *cow_sePlanForeignModify(PlannerInfo *root,
+List *gaiaPlanForeignModify(PlannerInfo *root,
                                        ModifyTable *plan,
                                        Index resultRelation,
                                        int subplan_index);
-void cow_seBeginForeignModify(ModifyTableState *mtstate,
+void gaiaBeginForeignModify(ModifyTableState *mtstate,
                                        ResultRelInfo *resultRelInfo,
                                        List *fdw_private,
                                        int subplan_index,
                                        int eflags);
-TupleTableSlot *cow_seExecForeignInsert(EState *estate,
+TupleTableSlot *gaiaExecForeignInsert(EState *estate,
                                                  ResultRelInfo *resultRelInfo,
                                                  TupleTableSlot *slot,
                                                  TupleTableSlot *planSlot);
-TupleTableSlot *cow_seExecForeignUpdate(EState *estate,
+TupleTableSlot *gaiaExecForeignUpdate(EState *estate,
                                                  ResultRelInfo *resultRelInfo,
                                                  TupleTableSlot *slot,
                                                  TupleTableSlot *planSlot);
-TupleTableSlot *cow_seExecForeignDelete(EState *estate,
+TupleTableSlot *gaiaExecForeignDelete(EState *estate,
                                                  ResultRelInfo *resultRelInfo,
                                                  TupleTableSlot *slot,
                                                  TupleTableSlot *planSlot);
-void cow_seEndForeignModify(EState *estate,
+void gaiaEndForeignModify(EState *estate,
                                      ResultRelInfo *resultRelInfo);
-void cow_seBeginForeignInsert(ModifyTableState *mtstate,
+void gaiaBeginForeignInsert(ModifyTableState *mtstate,
                                        ResultRelInfo *resultRelInfo);
-void cow_seEndForeignInsert(EState *estate,
+void gaiaEndForeignInsert(EState *estate,
                                      ResultRelInfo *resultRelInfo);
-int  cow_seIsForeignRelUpdatable(Relation rel);
-bool cow_sePlanDirectModify(PlannerInfo *root,
+int  gaiaIsForeignRelUpdatable(Relation rel);
+bool gaiaPlanDirectModify(PlannerInfo *root,
                                      ModifyTable *plan,
                                      Index resultRelation,
                                      int subplan_index);
-void cow_seBeginDirectModify(ForeignScanState *node, int eflags);
-TupleTableSlot *cow_seIterateDirectModify(ForeignScanState *node);
-void cow_seEndDirectModify(ForeignScanState *node);
-void cow_seExplainForeignScan(ForeignScanState *node,
+void gaiaBeginDirectModify(ForeignScanState *node, int eflags);
+TupleTableSlot *gaiaIterateDirectModify(ForeignScanState *node);
+void gaiaEndDirectModify(ForeignScanState *node);
+void gaiaExplainForeignScan(ForeignScanState *node,
                                        struct ExplainState *es);
-void cow_seExplainForeignModify(ModifyTableState *mtstate,
+void gaiaExplainForeignModify(ModifyTableState *mtstate,
                                          ResultRelInfo *rinfo,
                                          List *fdw_private,
                                          int subplan_index,
                                          struct ExplainState *es);
-void cow_seExplainDirectModify(ForeignScanState *node,
+void gaiaExplainDirectModify(ForeignScanState *node,
                                         struct ExplainState *es);
-bool cow_seAnalyzeForeignTable(Relation relation,
+bool gaiaAnalyzeForeignTable(Relation relation,
                                         AcquireSampleRowsFunc *func,
                                         BlockNumber *totalpages);
-List *cow_seImportForeignSchema(ImportForeignSchemaStmt *stmt,
+List *gaiaImportForeignSchema(ImportForeignSchemaStmt *stmt,
                                          Oid serverOid);
-void cow_seGetForeignJoinPaths(PlannerInfo *root,
+void gaiaGetForeignJoinPaths(PlannerInfo *root,
                                         RelOptInfo *joinrel,
                                         RelOptInfo *outerrel,
                                         RelOptInfo *innerrel,
                                         JoinType jointype,
                                         JoinPathExtraData *extra);
-bool cow_seRecheckForeignScan(ForeignScanState *node,
+bool gaiaRecheckForeignScan(ForeignScanState *node,
                                        TupleTableSlot *slot);
-void cow_seGetForeignUpperPaths(PlannerInfo *root,
+void gaiaGetForeignUpperPaths(PlannerInfo *root,
                                          UpperRelationKind stage,
                                          RelOptInfo *input_rel,
                                          RelOptInfo *output_rel,
                                          void *extra);
-bool cow_seRecheckForeignScan(ForeignScanState *node,
+bool gaiaRecheckForeignScan(ForeignScanState *node,
                                        TupleTableSlot *slot);
-RowMarkType cow_seGetForeignRowMarkType(RangeTblEntry *rte,
+RowMarkType gaiaGetForeignRowMarkType(RangeTblEntry *rte,
                                                LockClauseStrength strength);
-void cow_seRefetchForeignRow(EState *estate,
+void gaiaRefetchForeignRow(EState *estate,
                                       ExecRowMark *erm,
                                       Datum rowid,
                                       TupleTableSlot *slot,
@@ -158,26 +163,26 @@ typedef void (*OptionHandler)(const char *name, const char *value, Oid context);
  * Describes the valid options for objects that use this wrapper.
  */
 typedef struct {
-    const char *optname;
-    Oid optcontext;     /* Oid of catalog in which option may appear */
-    OptionHandler opthandler; 
-} cow_seFdwOption;
+    const char *name;
+    Oid context;     /* Oid of catalog in which option may appear */
+    OptionHandler handler;
+} gaiaFdwOption;
 
-static void handleDataDir(const char *name, const char *value, Oid context);
+static void handleResetStorageEngine(const char *name, const char *value, Oid context);
 
 /*
- * Valid options for cow_se_fdw.
+ * Valid options for gaia_fdw.
  */
-static const cow_seFdwOption valid_options[] = {
+static const gaiaFdwOption valid_options[] = {
 	/* Data source options */
-	{ "data_dir", ForeignServerRelationId, handleDataDir },
+	{ "reset", ForeignServerRelationId, handleResetStorageEngine },
     /* Sentinel */
 	{ NULL, InvalidOid, NULL }
 };
 
 /*
- * The scan state is set up in cow_seBeginForeignScan and stashed away in
- * node->fdw_private and fetched in cow_seIterateForeignScan.
+ * The scan state is set up in gaiaBeginForeignScan and stashed away in
+ * node->fdw_private and fetched in gaiaIterateForeignScan.
  */
 typedef struct {
     RootObjectDeserializer deserializer;
@@ -187,18 +192,18 @@ typedef struct {
     bool gaia_type_is_edge;
     // the COW-SE smart ptr we are currently iterating over
     union {
-        gaia_se::gaia_ptr<gaia_se::gaia_se_node> cur_node;
-        gaia_se::gaia_ptr<gaia_se::gaia_se_edge> cur_edge;
+        gaia::db::gaia_ptr<gaia::db::gaia_se_node> cur_node;
+        gaia::db::gaia_ptr<gaia::db::gaia_se_edge> cur_edge;
     };
-} cow_seFdwScanState;
+} gaiaFdwScanState;
 
 /*
  * The modify state is for maintaining state of modify operations.
  *
- * It is set up in cow_seBeginForeignModify and stashed in
- * rinfo->ri_FdwState and subsequently used in cow_seExecForeignInsert,
- * cow_seExecForeignUpdate, cow_seExecForeignDelete and
- * cow_seEndForeignModify.
+ * It is set up in gaiaBeginForeignModify and stashed in
+ * rinfo->ri_FdwState and subsequently used in gaiaExecForeignInsert,
+ * gaiaExecForeignUpdate, gaiaExecForeignDelete and
+ * gaiaEndForeignModify.
  */
 typedef struct {
     BuilderInitializer initializer;
@@ -218,9 +223,9 @@ typedef struct {
     bool gaia_type_is_edge;
     // the COW-SE smart ptr that is the target of our update
     union {
-        gaia_se::gaia_ptr<gaia_se::gaia_se_node> target_node;
-        gaia_se::gaia_ptr<gaia_se::gaia_se_edge> target_edge;
+        gaia::db::gaia_ptr<gaia::db::gaia_se_node> target_node;
+        gaia::db::gaia_ptr<gaia::db::gaia_se_edge> target_edge;
     };
-} cow_seFdwModifyState;
+} gaiaFdwModifyState;
 
 } // extern "C"

@@ -5,8 +5,10 @@
 
 #pragma once
 
-#include "cow_se.h"
+#include "storage_engine.hpp"
+
+using namespace gaia::common;
 
 namespace system_catalog_types {
-    static const gaia_se::gaia_type_t kEventLogType = 6;
+    static const gaia_type_t kEventLogType = 6;
 };

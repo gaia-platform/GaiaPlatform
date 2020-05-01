@@ -21,16 +21,10 @@ extern "C" {
 #include "event_log_builder.h"
 
 // type-specific extractors
-static inline Datum event_log_get_gaia_id(const void *rootObject) {
+static inline Datum event_log_get_gaia_type_id(const void *rootObject) {
     gaia_rules_event_log_table_t event = (gaia_rules_event_log_table_t) rootObject;
-    uint64_t gaia_id = gaia_rules_event_log_gaia_id(event);
-    return UInt64GetDatum(gaia_id);
-}
-
-static inline Datum event_log_get_gaia_type(const void *rootObject) {
-    gaia_rules_event_log_table_t event = (gaia_rules_event_log_table_t) rootObject;
-    uint64_t gaia_type = gaia_rules_event_log_gaia_type(event);
-    return UInt64GetDatum(gaia_type);
+    uint64_t gaia_type_id = gaia_rules_event_log_gaia_type_id(event);
+    return UInt64GetDatum(gaia_type_id);
 }
 
 static inline Datum event_log_get_event_type(const void *rootObject) {
@@ -57,10 +51,10 @@ static inline Datum event_log_get_timestamp(const void *rootObject) {
     return UInt64GetDatum(timestamp);
 }
 
-static inline Datum event_log_get_context_id(const void *rootObject) {
+static inline Datum event_log_get_gaia_id(const void *rootObject) {
     gaia_rules_event_log_table_t event = (gaia_rules_event_log_table_t) rootObject;
-    uint64_t context_id = gaia_rules_event_log_context_id(event);
-    return UInt64GetDatum(context_id);
+    uint64_t gaia_id = gaia_rules_event_log_gaia_id(event);
+    return UInt64GetDatum(gaia_id);
 }
 
 static inline Datum event_log_get_rules_fired(const void *rootObject) {
@@ -70,14 +64,9 @@ static inline Datum event_log_get_rules_fired(const void *rootObject) {
 }
 
 // type-specific builders
-static inline void event_log_add_gaia_id(flatbuffers_builder_t* builder, Datum value) {
-    uint64_t gaia_id = DatumGetUInt64(value);
-    gaia_rules_event_log_gaia_id_add(builder, gaia_id);
-}
-
-static inline void event_log_add_gaia_type(flatbuffers_builder_t* builder, Datum value) {
-    uint64_t gaia_type = DatumGetUInt64(value);
-    gaia_rules_event_log_gaia_type_add(builder, gaia_type);
+static inline void event_log_add_gaia_type_id(flatbuffers_builder_t* builder, Datum value) {
+    uint64_t gaia_type_id = DatumGetUInt64(value);
+    gaia_rules_event_log_gaia_type_id_add(builder, gaia_type_id);
 }
 
 static inline void event_log_add_event_type(flatbuffers_builder_t* builder, Datum value) {
@@ -100,9 +89,9 @@ static inline void event_log_add_timestamp(flatbuffers_builder_t* builder, Datum
     gaia_rules_event_log_timestamp_add(builder, timestamp);
 }
 
-static inline void event_log_add_context_id(flatbuffers_builder_t* builder, Datum value) {
-    uint64_t context_id = DatumGetUInt64(value);
-    gaia_rules_event_log_context_id_add(builder, context_id);
+static inline void event_log_add_gaia_id(flatbuffers_builder_t* builder, Datum value) {
+    uint64_t gaia_id = DatumGetUInt64(value);
+    gaia_rules_event_log_gaia_id_add(builder, gaia_id);
 }
 
 static inline void event_log_add_rules_fired(flatbuffers_builder_t* builder, Datum value) {
@@ -110,14 +99,13 @@ static inline void event_log_add_rules_fired(flatbuffers_builder_t* builder, Dat
     gaia_rules_event_log_rules_fired_add(builder, rules_fired);
 }
 
-static const AttributeWithAccessorBuilder EVENT_LOG_ATTRS[] = {
-    { "gaia_id", event_log_get_gaia_id, event_log_add_gaia_id },
-    { "gaia_type", event_log_get_gaia_type, event_log_add_gaia_type },
+static const Attribute EVENT_LOG_ATTRS[] = {
+    { "gaia_type_id", event_log_get_gaia_type_id, event_log_add_gaia_type_id },
     { "event_type", event_log_get_event_type, event_log_add_event_type },
     { "event_mode", event_log_get_event_mode, event_log_add_event_mode },
     { "event_source", event_log_get_event_source, event_log_add_event_source },
     { "timestamp", event_log_get_timestamp, event_log_add_timestamp },
-    { "context_id", event_log_get_context_id, event_log_add_context_id },
+    { "gaia_id", event_log_get_gaia_id, event_log_add_gaia_id },
     { "rules_fired", event_log_get_rules_fired, event_log_add_rules_fired },
 };
 
@@ -134,9 +122,8 @@ RelationAttributeMapping EVENT_LOG_MAPPING = {
 
 const char *EVENT_LOG_DDL_STMT_FMT =
     "create foreign table event_log( "
-    "gaia_id bigint, "
-    "gaia_type bigint, event_type int, event_mode smallint, "
-    "event_source text, timestamp bigint, context_id bigint, "
+    "gaia_type_id bigint, event_type int, event_mode smallint, "
+    "event_source text, timestamp bigint, gaia_id bigint, "
     "rules_fired boolean) "
     "server %s;";
 

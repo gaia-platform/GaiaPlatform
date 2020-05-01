@@ -3,10 +3,10 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "cow_se_fdw.h"
+#include "gaia_fdw.h"
 
 using namespace std;
-using namespace gaia_se;
+using namespace gaia::db;
 
 // magic block for extension library
 extern "C" {
@@ -33,7 +33,7 @@ static bool begin_gaia_txn() {
     int old_count = gaia_txn_ref_count++;
     if (old_count == 0) {
         txn_opened = true;
-        gaia_se::begin_transaction();
+        gaia::db::begin_transaction();
     }
     elog(DEBUG1, "txn actually opened: %s", txn_opened ? "true" : "false");
     return txn_opened;
@@ -46,10 +46,29 @@ static bool commit_gaia_txn() {
     int old_count = gaia_txn_ref_count--;
     if (old_count == 1) {
         txn_closed = true;
-        gaia_se::commit_transaction();
+        gaia::db::commit_transaction();
     }
     elog(DEBUG1, "txn actually closed: %s", txn_closed ? "true" : "false");
     return txn_closed;
+}
+
+static bool is_type_helper(Oid oid, int16 typlen_test) {
+    HeapTuple tup = SearchSysCache1(TYPEOID, ObjectIdGetDatum(oid));
+    if (!HeapTupleIsValid(tup)) {
+        elog(ERROR, "cache lookup failed for type %u", oid);
+    }
+    Form_pg_type typtup = (Form_pg_type) GETSTRUCT(tup);
+    bool result = (typtup->typlen == typlen_test);
+    ReleaseSysCache(tup);
+    return result;
+}
+
+static bool is_type_varlena(Oid oid) {
+    return is_type_helper(oid, -1);
+}
+
+static bool is_type_cstring(Oid oid) {
+    return is_type_helper(oid, -2);
 }
 
 /*
@@ -60,60 +79,60 @@ static bool commit_gaia_txn() {
 */
 extern "C"
 Datum
-cow_se_fdw_handler(PG_FUNCTION_ARGS)
+gaia_fdw_handler(PG_FUNCTION_ARGS)
 {
     elog(DEBUG1, "entering function %s", __func__);
 
     FdwRoutine *routine = makeNode(FdwRoutine);
 
     /* Functions for scanning foreign tables */
-    routine->GetForeignRelSize = cow_seGetForeignRelSize;
-    routine->GetForeignPaths = cow_seGetForeignPaths;
-    routine->GetForeignPlan = cow_seGetForeignPlan;
-    routine->BeginForeignScan = cow_seBeginForeignScan;
-    routine->IterateForeignScan = cow_seIterateForeignScan;
-    routine->ReScanForeignScan = cow_seReScanForeignScan;
-    routine->EndForeignScan = cow_seEndForeignScan;
+    routine->GetForeignRelSize = gaiaGetForeignRelSize;
+    routine->GetForeignPaths = gaiaGetForeignPaths;
+    routine->GetForeignPlan = gaiaGetForeignPlan;
+    routine->BeginForeignScan = gaiaBeginForeignScan;
+    routine->IterateForeignScan = gaiaIterateForeignScan;
+    routine->ReScanForeignScan = gaiaReScanForeignScan;
+    routine->EndForeignScan = gaiaEndForeignScan;
 
     /* Functions for updating foreign tables */
-    routine->AddForeignUpdateTargets = cow_seAddForeignUpdateTargets;
-    routine->PlanForeignModify = cow_sePlanForeignModify;
-    routine->BeginForeignModify = cow_seBeginForeignModify;
-    routine->ExecForeignInsert = cow_seExecForeignInsert;
-    routine->ExecForeignUpdate = cow_seExecForeignUpdate;
-    routine->ExecForeignDelete = cow_seExecForeignDelete;
-    routine->EndForeignModify = cow_seEndForeignModify;
-    routine->BeginForeignInsert = cow_seBeginForeignInsert;
-    routine->EndForeignInsert = cow_seEndForeignInsert;
-    routine->IsForeignRelUpdatable = cow_seIsForeignRelUpdatable;
-    routine->PlanDirectModify = cow_sePlanDirectModify;
-    routine->BeginDirectModify = cow_seBeginDirectModify;
-    routine->IterateDirectModify = cow_seIterateDirectModify;
-    routine->EndDirectModify = cow_seEndDirectModify;
+    routine->AddForeignUpdateTargets = gaiaAddForeignUpdateTargets;
+    routine->PlanForeignModify = gaiaPlanForeignModify;
+    routine->BeginForeignModify = gaiaBeginForeignModify;
+    routine->ExecForeignInsert = gaiaExecForeignInsert;
+    routine->ExecForeignUpdate = gaiaExecForeignUpdate;
+    routine->ExecForeignDelete = gaiaExecForeignDelete;
+    routine->EndForeignModify = gaiaEndForeignModify;
+    routine->BeginForeignInsert = gaiaBeginForeignInsert;
+    routine->EndForeignInsert = gaiaEndForeignInsert;
+    routine->IsForeignRelUpdatable = gaiaIsForeignRelUpdatable;
+    routine->PlanDirectModify = gaiaPlanDirectModify;
+    routine->BeginDirectModify = gaiaBeginDirectModify;
+    routine->IterateDirectModify = gaiaIterateDirectModify;
+    routine->EndDirectModify = gaiaEndDirectModify;
 
     // /* Function for EvalPlanQual rechecks */
-    // routine->RecheckForeignScan = cow_seRecheckForeignScan;
+    // routine->RecheckForeignScan = gaiaRecheckForeignScan;
     // /* Support functions for EXPLAIN */
-    // routine->ExplainForeignScan = cow_seExplainForeignScan;
-    // routine->ExplainForeignModify = cow_seExplainForeignModify;
-    // routine->ExplainDirectModify = cow_seExplainDirectModify;
+    // routine->ExplainForeignScan = gaiaExplainForeignScan;
+    // routine->ExplainForeignModify = gaiaExplainForeignModify;
+    // routine->ExplainDirectModify = gaiaExplainDirectModify;
 
     // /* Support functions for ANALYZE */
-    // routine->AnalyzeForeignTable = cow_seAnalyzeForeignTable;
+    // routine->AnalyzeForeignTable = gaiaAnalyzeForeignTable;
 
     // /* Support functions for IMPORT FOREIGN SCHEMA */
-    routine->ImportForeignSchema = cow_seImportForeignSchema;
+    routine->ImportForeignSchema = gaiaImportForeignSchema;
 
     // /* Support functions for join push-down */
-    // routine->GetForeignJoinPaths = cow_seGetForeignJoinPaths;
+    // routine->GetForeignJoinPaths = gaiaGetForeignJoinPaths;
 
     // /* Support functions for upper relation push-down */
-    // routine->GetForeignUpperPaths = cow_seGetForeignUpperPaths;
+    // routine->GetForeignUpperPaths = gaiaGetForeignUpperPaths;
 
     // /* Support functions for late row locking */
-    // routine->RecheckForeignScan = cow_seRecheckForeignScan;
-    // routine->GetForeignRowMarkType = cow_seGetForeignRowMarkType;
-    // routine->RefetchForeignRow = cow_seRefetchForeignRow;
+    // routine->RecheckForeignScan = gaiaRecheckForeignScan;
+    // routine->GetForeignRowMarkType = gaiaGetForeignRowMarkType;
+    // routine->RefetchForeignRow = gaiaRefetchForeignRow;
 
     PG_RETURN_POINTER(routine);
 }
@@ -121,16 +140,16 @@ cow_se_fdw_handler(PG_FUNCTION_ARGS)
 /*
  * Check if the provided option is one of the valid options.
  * context is the Oid of the catalog holding the object the option is for.
+ * If handler is registered for this option, invoke it.
  */
-static bool
-is_valid_option(const char *option, const char *value, Oid context)
+static bool is_valid_option(const char *option, const char *value, Oid context)
 {
-    const cow_seFdwOption *opt;
-    for (opt = valid_options; opt->optname; opt++)
+    const gaiaFdwOption *opt;
+    for (opt = valid_options; opt->name; opt++)
     {
-        if (context == opt->optcontext && strcmp(opt->optname, option) == 0) {
+        if (context == opt->context && strcmp(opt->name, option) == 0) {
             // invoke option handler callback
-            opt->opthandler(option, value, context);
+            opt->handler(option, value, context);
             return true;
         }
     }
@@ -138,16 +157,17 @@ is_valid_option(const char *option, const char *value, Oid context)
 }
 
 /*
- * Preload all the data corresponding to the demo schema, whenever the server is created.
+ * Clear all data in the storage engine.
  */
 extern "C"
 void
-handleDataDir(const char *name, const char *value, Oid context)
+handleResetStorageEngine(const char *name, const char *value, Oid context)
 {
-    assert(strcmp(name, "data_dir") == 0);
+    assert(strcmp(name, "reset") == 0);
     assert(context == ForeignServerRelationId);
-    AirportData data_loader;
-    data_loader.init(value, true);
+    if (strcmp(value, "true") == 0) {
+        gaia_mem_base::init(true);
+    }
 }
 
 /*
@@ -164,7 +184,7 @@ handleDataDir(const char *name, const char *value, Oid context)
  */
 extern "C"
 Datum
-cow_se_fdw_validator(PG_FUNCTION_ARGS)
+gaia_fdw_validator(PG_FUNCTION_ARGS)
 {
     elog(DEBUG1, "entering function %s", __func__);
     List *options_list = untransformRelOptions(PG_GETARG_DATUM(0));
@@ -172,7 +192,7 @@ cow_se_fdw_validator(PG_FUNCTION_ARGS)
         ereport(ERROR,
                 (errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
                     errmsg("invalid options"),
-                    errhint("cow_se FDW supports only the `data_dir` option")));
+                    errhint("gaia FDW supports only the `data_dir` option")));
         PG_RETURN_VOID();
     }
     Oid catalog = PG_GETARG_OID(1);
@@ -183,17 +203,17 @@ cow_se_fdw_validator(PG_FUNCTION_ARGS)
         char *opt_val = defGetString(def);
         elog(DEBUG1, "option name: %s, option value: %s", opt_name, opt_val);
         if (!is_valid_option(opt_name, opt_val, catalog)) {
-            const cow_seFdwOption *opt;
+            const gaiaFdwOption *opt;
             StringInfoData buf;
             /*
              * Unknown option specified, complain about it. Provide a hint
              * with list of valid options for the object.
              */
             initStringInfo(&buf);
-            for (opt = valid_options; opt->optname; opt++) {
-                if (catalog == opt->optcontext) {
+            for (opt = valid_options; opt->name; opt++) {
+                if (catalog == opt->context) {
                     appendStringInfo(&buf, "%s%s", (buf.len > 0) ? ", " : "",
-                                     opt->optname);
+                                     opt->name);
                 }
             }
             ereport(ERROR,
@@ -211,7 +231,7 @@ cow_se_fdw_validator(PG_FUNCTION_ARGS)
 
 extern "C"
 void
-cow_seGetForeignRelSize(PlannerInfo *root,
+gaiaGetForeignRelSize(PlannerInfo *root,
                            RelOptInfo *baserel,
                            Oid foreigntableid)
 {
@@ -234,16 +254,17 @@ cow_seGetForeignRelSize(PlannerInfo *root,
 
     elog(DEBUG1, "entering function %s", __func__);
 
-    // FIXME: total hack, I added this method ad-hoc to cow_se.h and this doesn't even get a per-type count
+    // FIXME: total hack, I added this method ad-hoc to gaia.h and this doesn't even get a per-type count
     // NB: we have to do this in a txn or we'll segfault because the mapping doesn't exist
-    begin_gaia_txn();
-    baserel->rows = gaia_mem_base::row_id_count();
-    commit_gaia_txn();
+    // comment out for now until we can discuss with SE folks
+    // begin_gaia_txn();
+    // baserel->rows = gaia_mem_base::row_id_count();
+    // commit_gaia_txn();
 }
 
 extern "C"
 void
-cow_seGetForeignPaths(PlannerInfo *root,
+gaiaGetForeignPaths(PlannerInfo *root,
                          RelOptInfo *baserel,
                          Oid foreigntableid)
 {
@@ -282,7 +303,7 @@ cow_seGetForeignPaths(PlannerInfo *root,
 
 extern "C"
 ForeignScan *
-cow_seGetForeignPlan(PlannerInfo *root,
+gaiaGetForeignPlan(PlannerInfo *root,
                         RelOptInfo *baserel,
                         Oid foreigntableid,
                         ForeignPath *best_path,
@@ -326,7 +347,7 @@ cow_seGetForeignPlan(PlannerInfo *root,
 
 extern "C"
 void
-cow_seBeginForeignScan(ForeignScanState *node,
+gaiaBeginForeignScan(ForeignScanState *node,
                           int eflags)
 {
     /*
@@ -369,7 +390,7 @@ cow_seBeginForeignScan(ForeignScanState *node,
         elog(ERROR, "unknown table name '%s'", table_name);
     }
 
-    cow_seFdwScanState *scan_state = (cow_seFdwScanState *) palloc0(sizeof(cow_seFdwScanState));
+    gaiaFdwScanState *scan_state = (gaiaFdwScanState *) palloc0(sizeof(gaiaFdwScanState));
     node->fdw_state = scan_state;
     scan_state->deserializer = mapping.deserializer;
     scan_state->gaia_type_is_edge = mapping.gaia_type_is_edge;
@@ -377,7 +398,7 @@ cow_seBeginForeignScan(ForeignScanState *node,
     TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
     TupleDesc tupleDesc = slot->tts_tupleDescriptor;
 
-    assert(tupleDesc->natts == mapping.num_attrs);
+    assert((size_t) tupleDesc->natts == mapping.attribute_count);
     // flatbuffer accessor functions indexed by attrnum
     AttributeAccessor *indexed_accessors = (AttributeAccessor *) palloc0(sizeof(AttributeAccessor) * tupleDesc->natts);
     scan_state->indexed_accessors = indexed_accessors;
@@ -387,9 +408,9 @@ cow_seBeginForeignScan(ForeignScanState *node,
         // user attributes are indexed starting from 1
         // AttrNumber attnum = i + 1;
         char *attr_name = NameStr(TupleDescAttr(tupleDesc, i)->attname);
-        for (int j = 0; j < mapping.num_attrs; j++) {
-            if (strcmp(attr_name, mapping.attr_methods[j].attr_name) == 0) {
-                indexed_accessors[i] = mapping.attr_methods[j].attr_accessor;
+        for (size_t j = 0; j < mapping.attribute_count; j++) {
+            if (strcmp(attr_name, mapping.attributes[j].name) == 0) {
+                indexed_accessors[i] = mapping.attributes[j].accessor;
                 break;
             }
         }
@@ -407,7 +428,7 @@ cow_seBeginForeignScan(ForeignScanState *node,
 
 extern "C"
 TupleTableSlot *
-cow_seIterateForeignScan(ForeignScanState *node)
+gaiaIterateForeignScan(ForeignScanState *node)
 {
     /*
      * Fetch one row from the foreign source, returning it in a tuple table
@@ -433,7 +454,7 @@ cow_seIterateForeignScan(ForeignScanState *node)
      * (just as you would need to do in the case of a data type mismatch).
      */
 
-    cow_seFdwScanState *scan_state = (cow_seFdwScanState *) node->fdw_state;
+    gaiaFdwScanState *scan_state = (gaiaFdwScanState *) node->fdw_state;
     TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
 
     // elog(DEBUG1, "entering function %s", __func__);
@@ -454,15 +475,30 @@ cow_seIterateForeignScan(ForeignScanState *node)
 
     /* get the next record, if any, and fill in the slot */
     const void *obj_buf;
+    size_t buf_size;
     if (scan_state->gaia_type_is_edge) {
         obj_buf = scan_state->cur_edge->payload;
+        buf_size = scan_state->cur_edge->payload_size;
     } else {
         obj_buf = scan_state->cur_node->payload;
+        buf_size = scan_state->cur_node->payload_size;
     }
+    std::ofstream("/tmp/airport.bin", std::ios::binary).write((const char *) obj_buf, buf_size);
     const void *obj_root = scan_state->deserializer(obj_buf);
     for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; attr_idx++) {
+        char *attr_name = NameStr(TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->attname);
+        elog(DEBUG1, "in function %s: tuple attr name: %s, null: %d",
+            __func__, attr_name, slot->tts_isnull[attr_idx]);
         AttributeAccessor accessor = scan_state->indexed_accessors[attr_idx];
         Datum attr_val = accessor(obj_root);
+        Oid type_id = TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->atttypid;
+        if (is_type_varlena(type_id) && !slot->tts_isnull[attr_idx]) {
+            elog(DEBUG1, "in function %s: tuple attr value: %s",
+                __func__, TextDatumGetCString(attr_val));
+        } else if (is_type_cstring(type_id) && !slot->tts_isnull[attr_idx]) {
+            elog(DEBUG1, "in function %s: tuple attr value: %s",
+                __func__, DatumGetCString(attr_val));
+        }
         slot->tts_values[attr_idx] = attr_val;
         slot->tts_isnull[attr_idx] = false;
     }
@@ -483,7 +519,7 @@ cow_seIterateForeignScan(ForeignScanState *node)
 
 extern "C"
 void
-cow_seReScanForeignScan(ForeignScanState *node)
+gaiaReScanForeignScan(ForeignScanState *node)
 {
     /*
      * Restart the scan from the beginning. Note that any parameters the scan
@@ -497,7 +533,7 @@ cow_seReScanForeignScan(ForeignScanState *node)
 
 extern "C"
 void
-cow_seEndForeignScan(ForeignScanState *node)
+gaiaEndForeignScan(ForeignScanState *node)
 {
     /*
      * End the scan and release resources. It is normally not important to
@@ -507,7 +543,7 @@ cow_seEndForeignScan(ForeignScanState *node)
 
     elog(DEBUG1, "entering function %s", __func__);
 
-    cow_seFdwScanState *scan_state = (cow_seFdwScanState *) node->fdw_state;
+    gaiaFdwScanState *scan_state = (gaiaFdwScanState *) node->fdw_state;
     // we should have reached the end of iteration
     if (scan_state->gaia_type_is_edge) {
         assert(!scan_state->cur_edge);
@@ -520,7 +556,7 @@ cow_seEndForeignScan(ForeignScanState *node)
 
 extern "C"
 void
-cow_seAddForeignUpdateTargets(Query *parsetree,
+gaiaAddForeignUpdateTargets(Query *parsetree,
                                  RangeTblEntry *target_rte,
                                  Relation target_relation)
 {
@@ -584,7 +620,7 @@ cow_seAddForeignUpdateTargets(Query *parsetree,
 
 extern "C"
 List *
-cow_sePlanForeignModify(PlannerInfo *root,
+gaiaPlanForeignModify(PlannerInfo *root,
                            ModifyTable *plan,
                            Index resultRelation,
                            int subplan_index)
@@ -611,12 +647,41 @@ cow_sePlanForeignModify(PlannerInfo *root,
 
     elog(DEBUG1, "entering function %s", __func__);
 
+    // we don't return any private data from this method, just check that gaia_id
+    // is not an INSERT or UPDATE target.
+    CmdType operation = plan->operation;
+    RangeTblEntry *rte = planner_rt_fetch(resultRelation, root);
+    Relation rel = table_open(rte->relid, NoLock);
+    TupleDesc tupleDesc = RelationGetDescr(rel);
+    Bitmapset *modifiedCols = NULL;
+    int col = -1;
+    if (operation == CMD_INSERT) {
+        modifiedCols = rte->insertedCols;
+    } else if (operation == CMD_UPDATE) {
+        modifiedCols = rte->updatedCols;
+    }
+    if (modifiedCols) {
+        while ((col = bms_next_member(modifiedCols, col)) >= 0) {
+            /* bit numbers are offset by FirstLowInvalidHeapAttributeNumber */
+            AttrNumber attno = col + FirstLowInvalidHeapAttributeNumber;
+            if (attno <= InvalidAttrNumber) { /* shouldn't happen */
+                elog(ERROR, "system-column insert or update is not supported");
+            }
+            char *attr_name = NameStr(TupleDescAttr(tupleDesc, attno - 1)->attname);
+            if (strcmp(attr_name, "gaia_id") == 0) {
+                ereport(ERROR,
+					(errcode(ERRCODE_FDW_INVALID_COLUMN_NAME),
+					 errmsg("cannot insert into or update system column gaia_id")));
+            }
+        }
+    }
+    table_close(rel, NoLock);
     return NULL;
 }
 
 extern "C"
 void
-cow_seBeginForeignModify(ModifyTableState *mtstate,
+gaiaBeginForeignModify(ModifyTableState *mtstate,
                             ResultRelInfo *rinfo,
                             List *fdw_private,
                             int subplan_index,
@@ -650,7 +715,7 @@ cow_seBeginForeignModify(ModifyTableState *mtstate,
 
     elog(DEBUG1, "entering function %s", __func__);
 
-    cow_seFdwModifyState *modify_state = (cow_seFdwModifyState *) palloc0(sizeof(cow_seFdwModifyState));
+    gaiaFdwModifyState *modify_state = (gaiaFdwModifyState *) palloc0(sizeof(gaiaFdwModifyState));
     // set invalid values
     modify_state->pk_attr_idx = modify_state->src_attr_idx = modify_state->dst_attr_idx = -1;
     rinfo->ri_FdwState = modify_state;
@@ -678,7 +743,7 @@ cow_seBeginForeignModify(ModifyTableState *mtstate,
     modify_state->finalizer = mapping.finalizer;
     flatcc_builder_init(&modify_state->builder);
 
-    assert(tupleDesc->natts == mapping.num_attrs);
+    assert((size_t) tupleDesc->natts == mapping.attribute_count);
     // flatbuffer accessor functions indexed by attrnum
     AttributeBuilder *indexed_builders = (AttributeBuilder *) palloc0(sizeof(AttributeBuilder) * tupleDesc->natts);
     modify_state->indexed_builders = indexed_builders;
@@ -697,9 +762,9 @@ cow_seBeginForeignModify(ModifyTableState *mtstate,
         if (strcmp(attr_name, "gaia_dst_id") == 0) {
             modify_state->dst_attr_idx = i;
         }
-        for (int j = 0; j < mapping.num_attrs; j++) {
-            if (strcmp(attr_name, mapping.attr_methods[j].attr_name) == 0) {
-                indexed_builders[i] = mapping.attr_methods[j].attr_builder;
+        for (size_t j = 0; j < mapping.attribute_count; j++) {
+            if (strcmp(attr_name, mapping.attributes[j].name) == 0) {
+                indexed_builders[i] = mapping.attributes[j].builder;
                 break;
             }
         }
@@ -715,9 +780,40 @@ cow_seBeginForeignModify(ModifyTableState *mtstate,
     begin_gaia_txn();
 }
 
+// Generate random gaia_id for INSERTs using /dev/urandom.
+// NB: because this is a 64-bit value, we will expect collisions
+// as the number of generated keys approaches 2^32! This is just
+// a temporary hack until the gaia_id type becomes a 128-bit GUID.
+static uint64_t new_gaia_id() {
+    ifstream urandom("/dev/urandom", ios::in|ios::binary);
+    if (urandom) {
+        // we need to loop until we have a value < 2^63 because the high bit of
+        // gaia_id is used for edge type in the current storage engine impl.
+        while (true) {
+            uint64_t rand_val;
+            urandom.read(reinterpret_cast<char*>(&rand_val), sizeof(rand_val));
+            if (urandom) {
+                assert(rand_val != 0); // this should be statistically impossible
+                if (rand_val & 0x8000000000000000) {
+                    // can't have the high bit set per above
+                    continue;
+                }
+                return rand_val;
+            } else {
+                elog(ERROR, "failed to read from /dev/urandom");
+            }
+        }
+        urandom.close();
+    } else {
+        elog(ERROR, "failed to open /dev/urandom");
+    }
+    assert(false); // should never get here (because elog(ERROR) calls longjmp)
+    return 0;
+}
+
 extern "C"
 TupleTableSlot *
-cow_seExecForeignInsert(EState *estate,
+gaiaExecForeignInsert(EState *estate,
                            ResultRelInfo *rinfo,
                            TupleTableSlot *slot,
                            TupleTableSlot *planSlot)
@@ -751,38 +847,57 @@ cow_seExecForeignInsert(EState *estate,
 
     elog(DEBUG1, "entering function %s", __func__);
 
-    cow_seFdwModifyState *modify_state = (cow_seFdwModifyState *) rinfo->ri_FdwState;
+    gaiaFdwModifyState *modify_state = (gaiaFdwModifyState *) rinfo->ri_FdwState;
     flatcc_builder_t *builder = &modify_state->builder;
     modify_state->initializer(builder);
 
-    uint64_t gaia_id, gaia_src_id, gaia_dst_id;
-    // TODO: if gaia_id could not be 0 then we could use that as a sentinel instead
-    bool found_gaia_id = false, found_gaia_src_id = false, found_gaia_dst_id = false;
+    // NB: we assume 0 is a valid sentinel value, i.e., it can never be a
+    // system-generated gaia_id. This is true for our internal implementation,
+    // but also needs to hold for all other implementations (until the storage
+    // engine itself starts generating gaia_ids).
+    uint64_t gaia_id = 0, gaia_src_id = 0, gaia_dst_id = 0;
     // slot_getallattrs() is necessary beginning in Postgres 12 (the slot will be empty!)
     // TODO: use slot_getattr()?
     slot_getallattrs(slot);
     for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; attr_idx++) {
-        if (!(slot->tts_isnull[attr_idx])) {
-            AttributeBuilder attr_builder = modify_state->indexed_builders[attr_idx];
-            Datum attr_val = slot->tts_values[attr_idx];
-            if (attr_idx == modify_state->pk_attr_idx) {
-                found_gaia_id = true;
-                gaia_id = DatumGetUInt64(attr_val);
+        char *attr_name = NameStr(TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->attname);
+        elog(DEBUG1, "in function %s: tuple attr name: %s, null: %d",
+            __func__, attr_name, slot->tts_isnull[attr_idx]);
+        AttributeBuilder attr_builder = modify_state->indexed_builders[attr_idx];
+        Datum attr_val;
+        // We don't allow gaia_id to be set by an INSERT or UPDATE statement (this should
+        // have already been checked in gaiaPlanForeignModify), and the storage engine
+        // doesn't yet generate gaia_ids, so we generate a random gaia_id ourselves.
+        if (attr_idx == modify_state->pk_attr_idx) {
+            assert(slot->tts_isnull[attr_idx]);
+            gaia_id = new_gaia_id();
+            attr_val = UInt64GetDatum(gaia_id);
+            slot->tts_isnull[attr_idx] = false;
+        } else if (!(slot->tts_isnull[attr_idx])) {
+            attr_val = slot->tts_values[attr_idx];
+            Oid type_id = TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->atttypid;
+            if (is_type_varlena(type_id) && !slot->tts_isnull[attr_idx]) {
+                elog(DEBUG1, "in function %s: tuple attr value: %s",
+                    __func__, TextDatumGetCString(slot->tts_values[attr_idx]));
+            } else if (is_type_cstring(type_id) && !slot->tts_isnull[attr_idx]) {
+                elog(DEBUG1, "in function %s: tuple attr value: %s",
+                    __func__, DatumGetCString(slot->tts_values[attr_idx]));
             }
             if (modify_state->gaia_type_is_edge && attr_idx == modify_state->src_attr_idx) {
-                found_gaia_src_id = true;
                 gaia_src_id = DatumGetUInt64(attr_val);
             }
             if (modify_state->gaia_type_is_edge && attr_idx == modify_state->dst_attr_idx) {
-                found_gaia_dst_id = true;
                 gaia_dst_id = DatumGetUInt64(attr_val);
             }
+        }
+        // if we have a null value, just don't bother to set it in the builder
+        if (!slot->tts_isnull[attr_idx]) {
             attr_builder(builder, attr_val);
         }
     }
-    assert(found_gaia_id);
+    assert(gaia_id);
     if (modify_state->gaia_type_is_edge) {
-        assert(found_gaia_src_id && found_gaia_dst_id);
+        assert(gaia_src_id && gaia_dst_id);
     }
 
     modify_state->finalizer(builder);
@@ -812,7 +927,7 @@ cow_seExecForeignInsert(EState *estate,
 
 extern "C"
 TupleTableSlot *
-cow_seExecForeignUpdate(EState *estate,
+gaiaExecForeignUpdate(EState *estate,
                            ResultRelInfo *rinfo,
                            TupleTableSlot *slot,
                            TupleTableSlot *planSlot)
@@ -846,13 +961,15 @@ cow_seExecForeignUpdate(EState *estate,
 
     elog(DEBUG1, "entering function %s", __func__);
 
-    cow_seFdwModifyState *modify_state = (cow_seFdwModifyState *) rinfo->ri_FdwState;
+    gaiaFdwModifyState *modify_state = (gaiaFdwModifyState *) rinfo->ri_FdwState;
     flatcc_builder_t *builder = &modify_state->builder;
     modify_state->initializer(builder);
 
-    uint64_t gaia_id;
-    // TODO: if gaia_id could not be 0 then we could use that as a sentinel instead
-    bool found_gaia_id = false;
+    // NB: we assume 0 is a valid sentinel value, i.e., it can never be a
+    // system-generated gaia_id. This is true for our internal implementation,
+    // but also needs to hold for all other implementations (until the storage
+    // engine itself starts generating gaia_ids).
+    uint64_t gaia_id = 0;
     // slot_getallattrs() is necessary beginning in Postgres 12 (the slot will be empty!)
     // TODO: use slot_getattr()?
     slot_getallattrs(slot);
@@ -861,13 +978,12 @@ cow_seExecForeignUpdate(EState *estate,
             AttributeBuilder attr_builder = modify_state->indexed_builders[attr_idx];
             Datum attr_val = slot->tts_values[attr_idx];
             if (attr_idx == modify_state->pk_attr_idx) {
-                found_gaia_id = true;
                 gaia_id = DatumGetUInt64(attr_val);
             }
             attr_builder(builder, attr_val);
         }
     }
-    assert(found_gaia_id);
+    assert(gaia_id); // we must have found a valid (i.e., nonzero) gaia_id attribute value
 
     modify_state->finalizer(builder);
     size_t size;
@@ -888,7 +1004,7 @@ cow_seExecForeignUpdate(EState *estate,
 
 extern "C"
 TupleTableSlot *
-cow_seExecForeignDelete(EState *estate,
+gaiaExecForeignDelete(EState *estate,
                            ResultRelInfo *rinfo,
                            TupleTableSlot *slot,
                            TupleTableSlot *planSlot)
@@ -920,7 +1036,7 @@ cow_seExecForeignDelete(EState *estate,
     elog(DEBUG1, "entering function %s", __func__);
 
     TupleTableSlot *retSlot = slot;
-    cow_seFdwModifyState *modify_state = (cow_seFdwModifyState *) rinfo->ri_FdwState;
+    gaiaFdwModifyState *modify_state = (gaiaFdwModifyState *) rinfo->ri_FdwState;
     // Relation rel = rinfo->ri_RelationDesc;
     // Oid foreignTableId = RelationGetRelid(rel);
 
@@ -960,7 +1076,7 @@ cow_seExecForeignDelete(EState *estate,
 
 extern "C"
 void
-cow_seEndForeignModify(EState *estate,
+gaiaEndForeignModify(EState *estate,
                           ResultRelInfo *rinfo)
 {
     /*
@@ -974,7 +1090,7 @@ cow_seEndForeignModify(EState *estate,
 
     elog(DEBUG1, "entering function %s", __func__);
 
-    cow_seFdwModifyState *modify_state = (cow_seFdwModifyState *) rinfo->ri_FdwState;
+    gaiaFdwModifyState *modify_state = (gaiaFdwModifyState *) rinfo->ri_FdwState;
     flatcc_builder_clear(&modify_state->builder);
 
     // for DELETE, this seems to always be called before EndForeignScan
@@ -983,7 +1099,7 @@ cow_seEndForeignModify(EState *estate,
 
 extern "C"
 void
-cow_seBeginForeignInsert(ModifyTableState *mtstate,
+gaiaBeginForeignInsert(ModifyTableState *mtstate,
                                        ResultRelInfo *resultRelInfo)
 {
     elog(DEBUG1, "entering function %s", __func__);
@@ -991,7 +1107,7 @@ cow_seBeginForeignInsert(ModifyTableState *mtstate,
 
 extern "C"
 void
-cow_seEndForeignInsert(EState *estate,
+gaiaEndForeignInsert(EState *estate,
                                      ResultRelInfo *resultRelInfo)
 {
     elog(DEBUG1, "entering function %s", __func__);
@@ -999,7 +1115,7 @@ cow_seEndForeignInsert(EState *estate,
 
 extern "C"
 int
-cow_seIsForeignRelUpdatable(Relation rel)
+gaiaIsForeignRelUpdatable(Relation rel)
 {
     /*
      * Report which update operations the specified foreign table supports.
@@ -1025,7 +1141,7 @@ cow_seIsForeignRelUpdatable(Relation rel)
 
 extern "C"
 bool
-cow_sePlanDirectModify(PlannerInfo *root,
+gaiaPlanDirectModify(PlannerInfo *root,
                                      ModifyTable *plan,
                                      Index resultRelation,
                                      int subplan_index)
@@ -1037,14 +1153,14 @@ cow_sePlanDirectModify(PlannerInfo *root,
 
 extern "C"
 void
-cow_seBeginDirectModify(ForeignScanState *node, int eflags)
+gaiaBeginDirectModify(ForeignScanState *node, int eflags)
 {
     elog(DEBUG1, "entering function %s", __func__);
 }
 
 extern "C"
 TupleTableSlot *
-cow_seIterateDirectModify(ForeignScanState *node)
+gaiaIterateDirectModify(ForeignScanState *node)
 {
     elog(DEBUG1, "entering function %s", __func__);
     return NULL;
@@ -1052,14 +1168,14 @@ cow_seIterateDirectModify(ForeignScanState *node)
 
 extern "C"
 void
-cow_seEndDirectModify(ForeignScanState *node)
+gaiaEndDirectModify(ForeignScanState *node)
 {
     elog(DEBUG1, "entering function %s", __func__);
 }
 
 extern "C"
 void
-cow_seExplainForeignScan(ForeignScanState *node,
+gaiaExplainForeignScan(ForeignScanState *node,
                             struct ExplainState *es)
 {
     /*
@@ -1079,7 +1195,7 @@ cow_seExplainForeignScan(ForeignScanState *node,
 
 extern "C"
 void
-cow_seExplainForeignModify(ModifyTableState *mtstate,
+gaiaExplainForeignModify(ModifyTableState *mtstate,
                               ResultRelInfo *rinfo,
                               List *fdw_private,
                               int subplan_index,
@@ -1098,8 +1214,8 @@ cow_seExplainForeignModify(ModifyTableState *mtstate,
      */
 
     /* ----
-     * cow_seFdwModifyState *modify_state =
-     *   (cow_seFdwModifyState *) rinfo->ri_FdwState;
+     * gaiaFdwModifyState *modify_state =
+     *   (gaiaFdwModifyState *) rinfo->ri_FdwState;
      * ----
      */
 
@@ -1109,7 +1225,7 @@ cow_seExplainForeignModify(ModifyTableState *mtstate,
 
 extern "C"
 void
-cow_seExplainDirectModify(ForeignScanState *node,
+gaiaExplainDirectModify(ForeignScanState *node,
                                         struct ExplainState *es)
 {
     elog(DEBUG1, "entering function %s", __func__);
@@ -1117,7 +1233,7 @@ cow_seExplainDirectModify(ForeignScanState *node,
 
 extern "C"
 bool
-cow_seAnalyzeForeignTable(Relation relation,
+gaiaAnalyzeForeignTable(Relation relation,
                              AcquireSampleRowsFunc *func,
                              BlockNumber *totalpages)
 {
@@ -1155,7 +1271,7 @@ cow_seAnalyzeForeignTable(Relation relation,
 
 extern "C"
 void
-cow_seGetForeignJoinPaths(PlannerInfo *root,
+gaiaGetForeignJoinPaths(PlannerInfo *root,
                              RelOptInfo *joinrel,
                              RelOptInfo *outerrel,
                              RelOptInfo *innerrel,
@@ -1198,7 +1314,7 @@ cow_seGetForeignJoinPaths(PlannerInfo *root,
 
 extern "C"
 void
-cow_seGetForeignUpperPaths(PlannerInfo *root,
+gaiaGetForeignUpperPaths(PlannerInfo *root,
                              UpperRelationKind stage,
                              RelOptInfo *input_rel,
                              RelOptInfo *output_rel,
@@ -1209,7 +1325,7 @@ cow_seGetForeignUpperPaths(PlannerInfo *root,
 
 extern "C"
 bool
-cow_seRecheckForeignScan(ForeignScanState *node,
+gaiaRecheckForeignScan(ForeignScanState *node,
                                        TupleTableSlot *slot)
 {
     elog(DEBUG1, "entering function %s", __func__);
@@ -1219,7 +1335,7 @@ cow_seRecheckForeignScan(ForeignScanState *node,
 
 extern "C"
 RowMarkType
-cow_seGetForeignRowMarkType(RangeTblEntry *rte,
+gaiaGetForeignRowMarkType(RangeTblEntry *rte,
                                LockClauseStrength strength)
 {
     /*
@@ -1245,7 +1361,7 @@ cow_seGetForeignRowMarkType(RangeTblEntry *rte,
 
 extern "C"
 void
-cow_seRefetchForeignRow(EState *estate,
+gaiaRefetchForeignRow(EState *estate,
                           ExecRowMark *erm,
                           Datum rowid,
                           TupleTableSlot *slot,
@@ -1291,7 +1407,7 @@ cow_seRefetchForeignRow(EState *estate,
 // tables corresponding to registered types in the storage engine.
 extern "C"
 List *
-cow_seImportForeignSchema(ImportForeignSchemaStmt *stmt,
+gaiaImportForeignSchema(ImportForeignSchemaStmt *stmt,
                              Oid serverOid)
 {
     /*
@@ -1336,12 +1452,12 @@ cow_seImportForeignSchema(ImportForeignSchemaStmt *stmt,
         AIRPORT_DDL_STMT_FMT, AIRLINE_DDL_STMT_FMT,
         ROUTE_DDL_STMT_FMT, EVENT_LOG_DDL_STMT_FMT,
     };
-    for (int i = 0; i < ARRAY_SIZE(ddl_stmt_fmts); i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(ddl_stmt_fmts); i++) {
         // length of format string + length of server name - 2 chars for format specifier + 1 char for null terminator
         size_t stmt_len = strlen(ddl_stmt_fmts[i]) + strlen(serverName) - 2 + 1;
         char *stmt_buf = (char *) palloc(stmt_len);
         // sprintf returns number of chars written, not including null terminator
-        if (sprintf(stmt_buf, ddl_stmt_fmts[i], serverName) != stmt_len - 1) {
+        if (sprintf(stmt_buf, ddl_stmt_fmts[i], serverName) != (int) (stmt_len - 1)) {
             elog(ERROR, "failed to format statement '%s' with server name '%s'", ddl_stmt_fmts[i], serverName);
         }
         commands = lappend(commands, stmt_buf);
@@ -1354,8 +1470,8 @@ extern "C"
 void
 _PG_init() {
     elog(DEBUG1, "entering function %s", __func__);
-    // initialize COW-SE
-    gaia_mem_base::init(true);
+    // initialize COW-SE without deleting all data
+    gaia_mem_base::init(false);
 }
 
 // Perform all module-level finalization here

@@ -5,7 +5,8 @@
 
 #pragma once
 
-#include "cow_se.h"
+// Gaia storage engine implementation
+#include "storage_engine.hpp"
 
 // all definitions in this file and included files should have C linkage
 extern "C" {
@@ -27,22 +28,22 @@ typedef void (*BuilderFinalizer)(flatbuffers_builder_t* builder);
 
 // mapping of attribute names to accessor methods
 typedef struct {
-    const char *attr_name;
-    const AttributeAccessor attr_accessor;
-    const AttributeBuilder attr_builder;
-} AttributeWithAccessorBuilder;
+    const char *name;
+    const AttributeAccessor accessor;
+    const AttributeBuilder builder;
+} Attribute;
 
 // mapping of relations to attribute accessor mappings
 // also include initializer/finalizer methods and clone_as_root methods (for updates)
 typedef struct {
-    const char *rel_name;
-    gaia_se::gaia_type_t gaia_type_id;
+    const char *relation;
+    gaia::common::gaia_type_t gaia_type_id;
     bool gaia_type_is_edge;
     RootObjectDeserializer deserializer;
     BuilderInitializer initializer;
     BuilderFinalizer finalizer;
-    const AttributeWithAccessorBuilder *attr_methods;
-    size_t num_attrs;
+    const Attribute *attributes;
+    size_t attribute_count;
 } RelationAttributeMapping;
 
 // flatbuffers type helpers
