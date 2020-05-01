@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 3.11)
 # Set the project name.
 project(storage_engine)
 
-set(GAIA_STORAGE_ENGINE_INCLUDES 
+set(GAIA_STORAGE_ENGINE_INCLUDES
   "${GAIA_INC}/internal/common;${GAIA_DB_INC}/storage_engine;${ROCKSDB_INC};${GAIA_REPO}/production/db/storage_engine/mock")
 
 message(STATUS "GAIA_STORAGE_ENGINE_INCLUDES=${GAIA_STORAGE_ENGINE_INCLUDES}")
@@ -26,7 +26,8 @@ set_target_properties(gaia_semock PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS
 set(pybind11_DIR ${PYBIND_PATH})
 
 # PyBind11 wrapper for storage engine mock.
-find_package(PythonInterp)
+# Ensure that Python2 is available.
+find_package(Python2 COMPONENTS Interpreter Development)
 find_package(pybind11)
 pybind11_add_module(se_mock mock/storage_engine_pybind_wrapper.cpp)
 target_include_directories(se_mock PRIVATE ${PYBIND_PATH})
