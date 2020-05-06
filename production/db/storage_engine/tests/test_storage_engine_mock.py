@@ -70,19 +70,13 @@ edge2 = gaia_se_edge.open(6);
 edge3 = gaia_se_edge.open(7);
 edge4 = gaia_se_edge.open(8);
 
-
 print_edge(edge1, False);
 print_edge(edge2, False);
 print_edge(edge3, False);
-print ('msj ');
-
 print_edge(edge4, False);
 print ('');
 
-print ('msj commit');
 commit_transaction();
-
-print ('msj begin');
 
 # Fourth transaction.
 begin_transaction();
@@ -126,7 +120,7 @@ print ('');
 print("Iterating through edges of type 3: ");
 edge_iter = gaia_se_edge_ptr.find_first(3);
 while edge_iter.get() != None:
-    (edge_iter, False);
+    print_edge(edge_iter, False);
     edge_iter = edge_iter.find_next();
 print ('');
 
