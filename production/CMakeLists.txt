@@ -152,6 +152,7 @@ add_subdirectory(${FLATBUFFERS} flatbuffers)
 add_subdirectory(db)
 add_subdirectory(direct_access)
 add_subdirectory(rules)
+add_subdirectory(sql)
 add_subdirectory(system)
 add_subdirectory(tests)
 
