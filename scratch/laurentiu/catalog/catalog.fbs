@@ -31,23 +31,23 @@ table fields
     // The type of the field.
     type_id: int64;
 
+    // The type that owns this field.
+    owning_type_id: int64;
+
     // Length if array. 0 = variable size, 1 = not array, > 1 = fixed size.
     // Do we need to support arrays larger than 65k?
     count: ushort;
 
-    // The type that owns this field.
-    owning_type_id: int64;
+    // Monotonically assigned identifier, to maintain order of fields in flatbuffers schema.
+    // This may be eliminated if identifiers are integers assigned incrementally and not GUIDs.
+    // Do we need to support more than 65k fields?
+    ordering_id: ushort;
 
     // For deprecating fields.
     enabled: bool;
 
     // Will require some flatbuffers modification to support.
     nullable: bool;
-
-    // Monotonically assigned identifier, to maintain order of fields in flatbuffers schema.
-    // This may be eliminated if identifiers are integers assigned incrementally and not GUIDs.
-    // Do we need to support more than 65k fields?
-    ordering_id: ushort;
 }
 
 // A table will have its own identifier as well as a specific type.
