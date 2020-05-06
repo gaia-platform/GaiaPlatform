@@ -58,8 +58,4 @@ table tables
     name: string;
 
     type_id: int64;
-
-    // Will contain the identifier of the field that is used as primary key.
-    // This should be a scalar type.
-    primary_key_id: int64;
 }
