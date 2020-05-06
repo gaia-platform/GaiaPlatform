@@ -18,6 +18,7 @@ table types
 
     // For indicating struct or table in flatbuffers.
     // Note: this catalog representation does not support union and enum.
+    // Support for them can be added post-Q2, if needed.
     type: ubyte;
 }
 
