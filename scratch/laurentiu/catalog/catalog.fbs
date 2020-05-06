@@ -1,0 +1,44 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+// -*- mode: java -*- // Java mode works for emacs to edit flatbuffers.
+
+// Identifiers are stored outside the payload.
+// Foreign keys are represented as int64 because flatbuffers does not yet support GUIDs.
+
+namespace gaia;
+
+table types
+{
+    name: string;
+
+    // For indicating struct or table in flatbuffers.
+    type: ubyte;
+}
+
+table fields
+{
+    name: string;
+
+    // The type of the field.
+    type_id: int64;
+
+    // The type that owns this field.
+    owning_type_id: int64;
+
+    // For deprecating fields.
+    enabled: bool;
+
+    // Monotonically assigned identifier, to maintain order of fields.
+    // Do we need to support more than 65k fields?
+    ordering_id: ushort;
+}
+
+table tables
+{
+    name: string;
+
+    type_id: int64;
+}
