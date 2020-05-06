@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gaia_fdw.h"
+#include "gaia_fdw.hpp"
 
 using namespace std;
 using namespace gaia::db;

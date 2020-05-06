@@ -9,13 +9,13 @@
 
 // Gaia storage engine implementation
 #include "storage_engine.hpp"
-#include "helpers.h"
+#include "helpers.hpp"
 
 // all Postgres headers and function declarations must have C linkage
 extern "C" {
 
-#include "airport_demo_type_mapping.h"
-#include "system_catalog_type_mapping.h"
+#include "airport_demo_type_mapping.hpp"
+#include "system_catalog_type_mapping.hpp"
 
 #include "flatbuffers_common_builder.h"
 

@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "type_mapping.h"
-#include "airport_demo_types.h"
-#include "helpers.h"
+#include "type_mapping.hpp"
+#include "airport_demo_types.hpp"
+#include "helpers.hpp"
 
 // all definitions in this file and included files should have C linkage
 extern "C" {
