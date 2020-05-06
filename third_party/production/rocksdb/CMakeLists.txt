@@ -325,7 +325,6 @@ if(NOT WITH_DYNAMIC_EXTENSION)
   add_definitions(-DROCKSDB_NO_DYNAMIC_EXTENSION)
 endif()
 
-if(FALSE)
 if(DEFINED USE_RTTI)
   if(USE_RTTI)
     message(STATUS "Enabling RTTI [RocksDB]")
@@ -350,7 +349,6 @@ else()
   else()
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fno-rtti")
   endif()
-endif()
 endif()
 
 # Used to run CI build and tests so we can run faster
@@ -764,7 +762,7 @@ if(WITH_FOLLY_DISTRIBUTED_MUTEX)
     third-party/folly/folly/synchronization/WaitOptions.cpp)
 endif()
 
-set(ROCKSDB_STATIC_LIB rocksdb${ARTIFACT_SUFFIX})
+set(ROCKSDB_STATIC_LIB rocksdb)
 set(ROCKSDB_SHARED_LIB rocksdb-shared${ARTIFACT_SUFFIX})
 
 option(ROCKSDB_BUILD_SHARED "Build shared versions of the RocksDB libraries" OFF)

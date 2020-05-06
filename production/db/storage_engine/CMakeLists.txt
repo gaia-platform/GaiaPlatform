@@ -18,8 +18,10 @@ message(STATUS "GAIA_STORAGE_ENGINE_INCLUDES=${GAIA_STORAGE_ENGINE_INCLUDES}")
 ###############################################
 add_library(gaia_semock STATIC
   mock/storage_engine.cpp
-  mock/rdb_object_converter.cpp)
+  mock/rdb_object_converter.cpp
+  mock/rdb_wrapper.cpp)
 target_include_directories(gaia_semock PRIVATE ${GAIA_STORAGE_ENGINE_INCLUDES})
+target_link_libraries(gaia_semock rocksdb)
 set_target_properties(gaia_semock PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 
 # Specify pybind11 location.
@@ -31,7 +33,7 @@ find_package(pybind11)
 pybind11_add_module(se_mock mock/storage_engine_pybind_wrapper.cpp)
 target_include_directories(se_mock PRIVATE ${PYBIND_PATH})
 target_include_directories(se_mock PRIVATE ${PROJECT_SOURCE_DIR})
-target_link_libraries(se_mock PRIVATE rt gaia_semock)
+target_link_libraries(se_mock PRIVATE rt gaia_semock rocksdb)
 set_target_properties(se_mock PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
 set_target_properties(se_mock PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
 
@@ -56,3 +58,5 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
 endif()
 
 add_gtest(rdb_converter_test tests/test_rdb_object_converter.cpp "${GAIA_STORAGE_ENGINE_INCLUDES};${GOOGLE_TEST_INC}" "gaia_semock")
+add_gtest(rdb_encode_decode_util_test tests/encode_decode_test.cpp "${GAIA_STORAGE_ENGINE_INCLUDES};${GOOGLE_TEST_INC}" "gaia_semock")
+add_gtest(rdb_internal_test tests/rdb_internal_test.cpp "${GAIA_STORAGE_ENGINE_INCLUDES};${GOOGLE_TEST_INC}" "gaia_semock")

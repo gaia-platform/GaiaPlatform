@@ -10,20 +10,13 @@
 #pragma once
 
 #include "rocksdb/slice.h"
+#include "rocksdb/status.h"
 #include "storage_engine.hpp"
 #include "vector"
 
 namespace gaia { 
 
 namespace db {
-
-/**
- * Enum to represent gaia object types. Currently, the only types are nodes and edges.
- */
-enum GaiaObjectType: u_int8_t {
-    node = 0x0,
-    edge = 0x1
-};
 
 /**
  * String writer library containing a byte buffer and current length; used for serializing 
@@ -176,34 +169,42 @@ class string_reader {
  * Utility class for for encoding/decoding gaia objects.
  */
 class rdb_object_converter_util {
+    private:
+    static void encode_object (
+        gaia_id_t id,
+        gaia_type_t type,
+        u_int32_t size,
+        const char* payload,
+        bool is_edge,
+        const gaia_id_t* first,
+        const gaia_id_t* second,
+        string_writer* key,
+        string_writer* value
+    );
+
     public:
-    static void encode_node(const u_int64_t id,
-                            u_int64_t type,
-                            u_int32_t size,
-                            const char* payload,
-                            string_writer* key,
-                            string_writer* value);
-    static void encode_edge(const u_int64_t id,
-                            u_int64_t type,
-                            u_int32_t size,
-                            const char* payload,
-                            const u_int64_t first,
-                            const u_int64_t second,
-                            string_writer* key,
-                            string_writer* value);
-    static const char* decode_node(const rocksdb::Slice& key,
-                                   const rocksdb::Slice& value,
-                                   gaia_id_t* id,
-                                   gaia_type_t* type,
-                                   u_int32_t* size);
-    static const char* decode_edge(const rocksdb::Slice& key,
-                                   const rocksdb::Slice& value, 
-                                   gaia_id_t* id,
-                                   gaia_type_t* type,
-                                   u_int32_t* size,
-                                   gaia_id_t* first,
-                                   gaia_id_t* second);
+    static const char* decode_object ( 
+        const rocksdb::Slice& key,
+        const rocksdb::Slice& value, 
+        bool is_edge,
+        gaia_id_t* id,
+        gaia_type_t* type,
+        u_int32_t* size,
+        gaia_id_t* first,
+        gaia_id_t* second
+    );
+
+    static gaia_ptr<gaia_se_node> decode_node (const rocksdb::Slice& key, const rocksdb::Slice& value);
+
+    static gaia_ptr<gaia_se_edge> decode_edge(const rocksdb::Slice& key, const rocksdb::Slice& value);
+                                   
     static bool is_rdb_object_edge(const rocksdb::Slice& value);
+
+    static void encode_node(const gaia::db::gaia_se_node* payload, string_writer* key, string_writer* value);
+    static void encode_edge(const gaia::db::gaia_se_edge* payload, string_writer* key, string_writer* value);
+
+    static std::string get_error_message(const rocksdb::Status& status);
+
 };
 
 }

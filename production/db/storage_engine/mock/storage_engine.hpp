@@ -9,6 +9,7 @@
 #include <iomanip>
 #include <cassert>
 #include <set>
+#include <map>
 #include <stdexcept>
 #include <string>
 #include <sstream>
@@ -19,6 +20,8 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/file.h>
+
+#include "rdb_wrapper.hpp"
 
 namespace gaia 
 {
@@ -45,6 +48,7 @@ namespace db
     
     struct gaia_se_node;
     struct gaia_se_edge;
+
     class gaia_ptr_base;
 
     class tx_not_open: public std::exception
@@ -117,6 +121,14 @@ namespace db
         }
     }
 
+    /**
+    * Enum to represent gaia object types. Currently, the only types are nodes and edges.
+    */
+    enum GaiaObjectType: u_int8_t {
+        node = 0x0,
+        edge = 0x1
+    };
+
     class gaia_mem_base
     {
     private:
@@ -128,6 +140,7 @@ namespace db
         }
 
     public:
+
         // Allow the caller to provide their own shared memory file prefix
         // so that multiple tests can run concurrently against unique
         // shared memory segments.
@@ -139,6 +152,15 @@ namespace db
                 SCH_MEM_OFFSETS = make_shm_name(s_sch_mem_offsets, prefix, SCH_MEM_OFFSETS);
             }
             init(engine);
+        }
+
+        static void init_rdb() {
+            rdb_status status = rdb->open();
+
+            if (!status.code) {
+                throw std::runtime_error(status.msg);
+            }
+            
         }
 
         static void init(bool engine = false)
@@ -224,6 +246,14 @@ namespace db
             s_fd_offsets = s_fd_data = 0;
             s_engine = false;
         }
+
+        static void reset_rdb() {
+            rdb_status status = rdb->close();
+            // No point throwing an exception here, simply log error.
+            if (!status.code) {
+                throw std::runtime_error(status.msg);
+            }
+        }
             
         static void tx_begin()
         {
@@ -262,7 +292,7 @@ namespace db
             }
         }
 
-        static void tx_log (int64_t row_id, int64_t old_object, int64_t new_object)
+        static void tx_log (int64_t row_id, int64_t old_object, int64_t new_object, int8_t type = -1)
         {
             assert(s_log->count < MAX_LOG_RECS);
 
@@ -271,26 +301,30 @@ namespace db
             lr->row_id = row_id;
             lr->old_object = old_object;
             lr->new_object = new_object;
+
+            if (type == GaiaObjectType::edge || GaiaObjectType::node) { 
+                lr->object_type = type;
+            }
         }
 
         static void tx_commit()
         {
             remap_offsets_shared();
 
-            std::set<int64_t> row_ids;
+            std::map<int64_t, int8_t> row_ids_with_type;
 
             for (auto i = 0; i < s_log->count; i++)
             {
                 auto lr = s_log->log_records + i;
 
-                if (row_ids.insert(lr->row_id).second)
+                if (row_ids_with_type.insert(std::pair<int64_t, int8_t> (lr->row_id, lr->object_type)).second)
                 {
                     if ((*s_offsets)[lr->row_id] != lr->old_object)
                     {
                         unmap();
                         throw tx_update_conflict();
                     }
-                }
+                } 
             }
 
             for (auto i = 0; i < s_log->count; i++)
@@ -298,6 +332,7 @@ namespace db
                 auto lr = s_log->log_records + i;
                 (*s_offsets)[lr->row_id] = lr->new_object;
             }
+
             unmap();
         }
 
@@ -313,6 +348,14 @@ namespace db
             return id;
         }
 
+        static void* offset_to_ptr(int64_t offset)
+        {
+            return offset && (*gaia_mem_base::s_offsets)[offset]
+                ? (gaia_mem_base::s_data->objects
+                             + (*gaia_mem_base::s_offsets)[offset])
+                : nullptr;
+        }
+        
         static inline void tx_rollback();
 
         static bool is_tx_active()
@@ -367,6 +410,7 @@ namespace db
                 int64_t row_id;
                 int64_t old_object;
                 int64_t new_object;
+                int8_t object_type;
             } log_records[MAX_LOG_RECS];
         };
 
@@ -374,6 +418,8 @@ namespace db
         static data *s_data;
         static log *s_log;
         static bool s_engine;
+        static gaia::db::rdb_wrapper* rdb;
+
 
         static void remap_offsets_shared()
         {
@@ -453,14 +499,6 @@ namespace db
 
             (*s_offsets)[row_id] = 1 + __sync_fetch_and_add (&s_data->objects[0],
                                         (size + sizeof(int64_t) -1) / sizeof(int64_t));
-        }
-
-        static void* offset_to_ptr(int64_t offset)
-        {
-            return offset && (*gaia_mem_base::s_offsets)[offset]
-                ? (gaia_mem_base::s_data->objects
-                             + (*gaia_mem_base::s_offsets)[offset])
-                : nullptr;
         }
 
         static int64_t ptr_to_offset(void* ptr)
@@ -755,7 +793,7 @@ namespace db
 
             // writing to log will be skipped for recovery
             if (log_updates) {
-                gaia_mem_base::tx_log (row_id, 0, to_offset());
+                gaia_mem_base::tx_log (row_id, 0, to_offset(), is_edge ? GaiaObjectType::edge : GaiaObjectType::node);
             }
         }
 
@@ -823,7 +861,7 @@ namespace db
         int64_t row_id;
     };
 
-    struct gaia_se_node
+    struct gaia_se_node 
     {
     public:
         gaia_ptr<gaia_se_edge> next_edge_first;
@@ -862,9 +900,10 @@ namespace db
         {
             return gaia_ptr<gaia_se_node>(id);
         }
+
     };
 
-    struct gaia_se_edge
+    struct gaia_se_edge 
     {
         gaia_ptr<gaia_se_node> node_first;
         gaia_ptr<gaia_se_node> node_second;

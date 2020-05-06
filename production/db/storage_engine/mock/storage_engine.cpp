@@ -18,3 +18,4 @@ gaia::db::gaia_mem_base::log* gaia::db::gaia_mem_base::s_log = nullptr;
 gaia::db::gaia_tx_hook gaia::db::s_tx_begin_hook = nullptr;
 gaia::db::gaia_tx_hook gaia::db::s_tx_commit_hook = nullptr;
 gaia::db::gaia_tx_hook gaia::db::s_tx_rollback_hook = nullptr;
+gaia::db::rdb_wrapper* gaia::db::gaia_mem_base::rdb = nullptr; 
