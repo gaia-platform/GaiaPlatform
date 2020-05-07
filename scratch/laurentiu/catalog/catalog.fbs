@@ -7,6 +7,7 @@
 
 // Identifiers are stored outside the payload.
 // Foreign keys are represented as int64 because flatbuffers does not yet support GUIDs.
+// If data size is not a concern, all integers can be made 64bit.
 
 namespace gaia;
 
@@ -17,8 +18,13 @@ table types
     name: string;
 
     // For indicating struct or table in flatbuffers.
+    //
     // Note: this catalog representation does not support union and enum.
     // Support for them can be added post-Q2, if needed.
+    //
+    // 0 = scalar, 1 = table, 2 = struct, 3 = enum, 4 = union
+    //
+    // Builtin basic types would be marked as scalar.
     type: ubyte;
 }
 
@@ -33,14 +39,20 @@ table fields
     type_id: int64;
 
     // The type that owns this field.
+    //
+    // This enables us to collect fields under a type.
+    // It also enables us to describe complex, hierarchical types.
     owning_type_id: int64;
 
-    // Length if array. 0 = variable size, 1 = not array, > 1 = fixed size.
-    // Do we need to support arrays larger than 65k?
-    count: ushort;
+    // Indicates whether this is an array type and if yes, what kind of size it has.
+    //
+    // 0 = variable size, 1 = not array, > 1 = fixed size.
+    //
+    // Do we need to support arrays larger than 4B?
+    count: uint;
 
-    // Monotonically assigned identifier, to maintain order of fields in flatbuffers schema.
-    // This may be eliminated if identifiers are integers assigned incrementally and not GUIDs.
+    // Monotonically assigned identifier, to maintain the order of fields in flatbuffers schema.
+    //
     // Do we need to support more than 65k fields?
     ordering_id: ushort;
 
@@ -57,5 +69,6 @@ table tables
 {
     name: string;
 
+    // Indicates the type of its payload, which gives us all the fields.
     type_id: int64;
 }
