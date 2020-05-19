@@ -20,15 +20,17 @@
 #include <sys/mman.h>
 #include <sys/file.h>
 
-namespace gaia 
+#include <gaia_exception.hpp>
+
+namespace gaia
 {
 
-namespace common 
+namespace common
 {
     typedef uint64_t gaia_type_t;
 }
 
-namespace db 
+namespace db
 {
     using namespace common;
 
@@ -42,12 +44,12 @@ namespace db
 
     // highest order bit to indicate the object is an edge
     const gaia_id_t c_edge_flag = 0x8000000000000000;
-    
+
     struct gaia_se_node;
     struct gaia_se_edge;
     class gaia_ptr_base;
 
-    class tx_not_open: public std::exception
+    class tx_not_open: public gaia_exception
     {
     public:
         const char* what() const throw ()
@@ -56,7 +58,7 @@ namespace db
         }
     };
 
-    class tx_update_conflict: public std::exception
+    class tx_update_conflict: public gaia_exception
     {
     public:
         const char* what() const throw ()
@@ -65,7 +67,7 @@ namespace db
         }
     };
 
-    class duplicate_id: public std::exception
+    class duplicate_id: public gaia_exception
     {
     public:
         const char* what() const throw ()
@@ -74,7 +76,7 @@ namespace db
         }
     };
 
-    class oom: public std::exception
+    class oom: public gaia_exception
     {
     public:
         const char* what() const throw ()
@@ -83,7 +85,7 @@ namespace db
         }
     };
 
-    class dependent_edges_exist: public std::exception
+    class dependent_edges_exist: public gaia_exception
     {
     public:
         const char* what() const throw ()
@@ -92,7 +94,7 @@ namespace db
         }
     };
 
-    class invalid_node_id: public std::exception
+    class invalid_node_id: public gaia_exception
     {
     public:
         invalid_node_id(int64_t id)
@@ -109,11 +111,20 @@ namespace db
         std::string whats;
     };
 
+    class invalid_id_value: public gaia_exception
+    {
+    public:
+        const char* what() const throw ()
+        {
+            return "ID must be less than 2^63";
+        }
+    };
+
     inline void check_id(gaia_id_t id)
     {
         if (id & c_edge_flag)
         {
-            throw std::invalid_argument("ID must be less than 2^63");
+            throw invalid_id_value();
         }
     }
 
@@ -192,10 +203,10 @@ namespace db
                 {
                     s_engine = true;
 
-                    if (ftruncate(s_fd_offsets, 0) ||
-                        ftruncate(s_fd_data, 0) ||
-                        ftruncate(s_fd_offsets, sizeof(offsets)) ||
-                        ftruncate(s_fd_data, sizeof(data)))
+                    if (ftruncate(s_fd_offsets, 0)
+                        || ftruncate(s_fd_data, 0)
+                        || ftruncate(s_fd_offsets, sizeof(offsets))
+                        || ftruncate(s_fd_data, sizeof(data)))
                     {
                         throw_runtime_error("ftruncate failed");
                     }
@@ -224,19 +235,19 @@ namespace db
             s_fd_offsets = s_fd_data = 0;
             s_engine = false;
         }
-            
+
         static void tx_begin()
         {
             s_data = (data*)mmap (nullptr, sizeof(data),
-                                            PROT_READ|PROT_WRITE, MAP_SHARED, s_fd_data, 0);
+                PROT_READ|PROT_WRITE, MAP_SHARED, s_fd_data, 0);
 
             if (MAP_FAILED == s_data)
             {
                 throw_runtime_error("mmap failed");
             }
 
-            s_log = (log*)mmap(nullptr, sizeof(log), 
-                            PROT_READ|PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+            s_log = (log*)mmap(nullptr, sizeof(log),
+                PROT_READ|PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
             if (MAP_FAILED == s_log)
             {
@@ -249,13 +260,13 @@ namespace db
             }
 
             s_offsets = (offsets*)mmap (nullptr, sizeof(offsets),
-                        PROT_READ|PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_offsets, 0);
+                PROT_READ|PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_offsets, 0);
 
             if (MAP_FAILED == s_offsets)
             {
                 throw_runtime_error("mmap failed");
             }
-            
+
             if (flock(s_fd_offsets, LOCK_UN) < 0)
             {
                 throw_runtime_error("flock failed");
@@ -307,7 +318,7 @@ namespace db
         // that the generated id is not in use
         // alreaady by a database that is
         // restored.
-        static gaia_id_t generate_id() 
+        static gaia_id_t generate_id()
         {
             gaia_id_t id = __sync_fetch_and_add(&s_next_id, 1);
             return id;
@@ -359,7 +370,7 @@ namespace db
 
             int64_t objects[MAX_RIDS * 8];
         };
-    
+
         struct log
         {
             int64_t count;
@@ -389,7 +400,7 @@ namespace db
 
 
             s_offsets = (offsets*)mmap (nullptr, sizeof(offsets),
-                                        PROT_READ|PROT_WRITE, MAP_SHARED, s_fd_offsets, 0);
+                PROT_READ|PROT_WRITE, MAP_SHARED, s_fd_offsets, 0);
 
             if (MAP_FAILED == s_offsets)
             {
@@ -451,15 +462,15 @@ namespace db
                 throw oom();
             }
 
-            (*s_offsets)[row_id] = 1 + __sync_fetch_and_add (&s_data->objects[0],
-                                        (size + sizeof(int64_t) -1) / sizeof(int64_t));
+            (*s_offsets)[row_id] = 1 + __sync_fetch_and_add(
+                &s_data->objects[0],
+                (size + sizeof(int64_t) -1) / sizeof(int64_t));
         }
 
         static void* offset_to_ptr(int64_t offset)
         {
             return offset && (*gaia_mem_base::s_offsets)[offset]
-                ? (gaia_mem_base::s_data->objects
-                             + (*gaia_mem_base::s_offsets)[offset])
+                ? (gaia_mem_base::s_data->objects + (*gaia_mem_base::s_offsets)[offset])
                 : nullptr;
         }
 
@@ -467,8 +478,8 @@ namespace db
         {
             auto iptr = (int64_t*)ptr;
 
-            if (iptr <= (*gaia_mem_base::s_offsets) ||
-                iptr >= (*gaia_mem_base::s_offsets) + MAX_RIDS)
+            if (iptr <= (*gaia_mem_base::s_offsets)
+                || iptr >= (*gaia_mem_base::s_offsets) + MAX_RIDS)
             {
                 return 0;
             }
@@ -526,8 +537,7 @@ namespace db
                 if (!new_node_idx)
                 {
                     assert(s_data->hash_node_count + HASH_BUCKETS < HASH_LIST_ELEMENTS);
-                    new_node_idx = HASH_BUCKETS +
-                                     __sync_fetch_and_add (&s_data->hash_node_count, 1);
+                    new_node_idx = HASH_BUCKETS + __sync_fetch_and_add (&s_data->hash_node_count, 1);
                     (s_data->hash_nodes + new_node_idx)->id = id;
                 }
 
@@ -547,7 +557,7 @@ namespace db
 
             auto node = s_data->hash_nodes + (id % HASH_BUCKETS);
 
-            while (node) 
+            while (node)
             {
                 if (node->id == id)
                 {
@@ -631,7 +641,7 @@ namespace db
         {
             return to_ptr();
         }
-    
+
         bool operator == (const gaia_ptr<T>& other) const
         {
             return row_id == other.row_id;
@@ -711,7 +721,7 @@ namespace db
             {
                 find_next(gaia_ptr<T>::to_ptr()->type);
             }
-  
+
             return *this;
         }
 
@@ -781,8 +791,7 @@ namespace db
             gaia_mem_base::verify_tx_active();
 
             return row_id && (*gaia_mem_base::s_offsets)[row_id]
-                ? (T*)(gaia_mem_base::s_data->objects
-                             + (*gaia_mem_base::s_offsets)[row_id])
+                ? (T*)(gaia_mem_base::s_data->objects + (*gaia_mem_base::s_offsets)[row_id])
                 : nullptr;
         }
 
@@ -884,7 +893,7 @@ namespace db
             gaia_id_t first,
             gaia_id_t second,
             size_t payload_size,
-            const void* payload, 
+            const void* payload,
             bool log_updates = true
         )
         {
@@ -941,8 +950,8 @@ namespace db
         }
         check_id(node->id);
 
-        if (node->next_edge_first ||
-            node->next_edge_second)
+        if (node->next_edge_first
+            || node->next_edge_second)
         {
             throw dependent_edges_exist();
         }
