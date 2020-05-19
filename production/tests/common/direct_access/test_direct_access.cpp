@@ -238,7 +238,7 @@ TEST_F(gaia_object_test, read_wrong_type) {
         Address::get_row_by_id(eid);
     }
     catch (const exception& e) {
-        EXPECT_STREQ(e.what(), "requesting Gaia type 2 but object identified by 1010 is type 1");
+        EXPECT_STREQ(e.what(), "requesting Gaia type 2 but object identified by 1010 is type 1(Employee)");
     }
     EXPECT_THROW(Address::get_row_by_id(eid), edc_invalid_object_type);
     commit_transaction();
