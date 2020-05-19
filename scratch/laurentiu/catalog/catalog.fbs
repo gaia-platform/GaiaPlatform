@@ -25,7 +25,7 @@ table types
     // 0 = scalar, 1 = table, 2 = struct, 3 = enum, 4 = union
     //
     // Builtin basic types would be marked as scalar.
-    type: ubyte;
+    category: ubyte;
 }
 
 // Any complex type is defined as a set of fields,
@@ -49,7 +49,7 @@ table fields
     // 0 = variable size, 1 = not array, > 1 = fixed size.
     //
     // Do we need to support arrays larger than 4B?
-    count: uint;
+    repeated_count: uint;
 
     // Monotonically assigned identifier, to maintain the order of fields in flatbuffers schema.
     //
@@ -57,9 +57,13 @@ table fields
     ordering_id: ushort;
 
     // For deprecating fields.
-    enabled: bool;
+    deprecated: bool;
 
-    // Will require some flatbuffers modification to support.
+    // Indicates whether the field accepts null values.
+    // Will require some flatbuffers modification to support null values.
+    // Mapping null to missing does not work for structs
+    // and may not be possible for tables either
+    // because we will probably avoid missing values to allow updating fields in-place.
     nullable: bool;
 }
 
