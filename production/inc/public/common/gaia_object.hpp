@@ -38,8 +38,11 @@ namespace common {
 class edc_invalid_object_type: public gaia_exception
 {
 public:
-    edc_invalid_object_type(string msg) {
-        m_message = msg;
+    edc_invalid_object_type(gaia_type_t expected, gaia_id_t id, gaia_type_t actual) {
+        stringstream msg;
+        msg << "requesting Gaia type " << expected << " but object identified by "
+            << id << " is type " << actual;
+        m_message = msg.str();
     }
 };
 
@@ -379,10 +382,8 @@ private:
             if (it != s_gaia_cache.end()) {
                 obj = dynamic_cast<T_gaia *>(it->second);
                 if (obj == nullptr) {
-                    stringstream msg;
-                    msg << "requesting Gaia type " << T_gaia_type << " but object identified by " 
-                        << node_ptr->id << " is type " << ((gaia_base_t *)(it->second))->gaia_type();
-                    throw edc_invalid_object_type(msg.str());
+                    throw edc_invalid_object_type(T_gaia_type, node_ptr->id,
+                            ((gaia_base_t *)(it->second))->gaia_type());
                 }
             }
             else {
