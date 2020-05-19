@@ -34,18 +34,6 @@ namespace common {
  * for CRUD operations on the database.
  */
 
-// Exception when get_row_by_id() argument doesn't match the class type
-class edc_invalid_object_type: public gaia_exception
-{
-public:
-    edc_invalid_object_type(gaia_type_t expected, gaia_id_t id, const char* type_name, gaia_type_t actual) {
-        stringstream msg;
-        msg << "requesting Gaia type " << expected << " but object identified by "
-            << id << " is type " << actual << "(" << type_name << ")";
-        m_message = msg.str();
-    }
-};
-
 /**
  * The gaia_base_t struct provides control over the extended data class objects by
  * keeping a cached pointer to each storage engine object that has been accessed.
@@ -174,6 +162,20 @@ protected:
 
 private:
     virtual void reset(bool) = 0;
+};
+
+// Exception when get_row_by_id() argument doesn't match the class type
+class edc_invalid_object_type: public gaia_exception
+{
+public:
+    edc_invalid_object_type(gaia_type_t expected, gaia_base_t* x_obj, gaia_id_t id,
+        const char* type_name, gaia_type_t actual) {
+        stringstream msg;
+        msg << "requesting Gaia type " << x_obj->gaia_typename() << "(" << expected << ") but object identified by "
+            << id << " is type " << type_name << "(" << actual << ")";
+        m_message = msg.str();
+        delete x_obj;
+    }
 };
 
 
@@ -382,7 +384,9 @@ private:
             if (it != s_gaia_cache.end()) {
                 obj = dynamic_cast<T_gaia *>(it->second);
                 if (obj == nullptr) {
-                    throw edc_invalid_object_type(T_gaia_type, node_ptr->id,
+                    auto x_obj = new T_gaia(0);
+
+                    throw edc_invalid_object_type(T_gaia_type, x_obj, node_ptr->id,
                             ((gaia_base_t *)(it->second))->gaia_typename(),
                             ((gaia_base_t *)(it->second))->gaia_type());
                 }
