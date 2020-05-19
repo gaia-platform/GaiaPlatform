@@ -10,6 +10,7 @@
 #include <list>
 #include <map>
 #include "flatbuffers/flatbuffers.h"
+#include "gaia_exception.hpp"
 #include "nullable_string.hpp"
 #include "storage_engine.hpp"
 
@@ -32,6 +33,15 @@ namespace common {
  * Implementation of Extended Data Classes. This provides a direct access API
  * for CRUD operations on the database.
  */
+
+// Exception when get_row_by_id() argument doesn't match the class type
+class edc_invalid_object_type: public gaia_exception
+{
+public:
+    edc_invalid_object_type() {
+        m_message = "id of object is different from accessing class";
+    }
+};
 
 /**
  * The gaia_base_t struct provides control over the extended data class objects by
@@ -368,6 +378,9 @@ private:
             auto it = s_gaia_cache.find(node_ptr->id);
             if (it != s_gaia_cache.end()) {
                 obj = dynamic_cast<T_gaia *>(it->second);
+                if (obj == nullptr) {
+                    throw edc_invalid_object_type();
+                }
             }
             else {
                 obj = new T_gaia(node_ptr->id);

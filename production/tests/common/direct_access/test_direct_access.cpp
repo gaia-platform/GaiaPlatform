@@ -227,6 +227,17 @@ TEST_F(gaia_object_test, read_back_id) {
     delete e;
 }
 
+// Create row, try getting row from wrong type
+TEST_F(gaia_object_test, read_wrong_type) {
+    begin_transaction();
+    auto eid = get_field("Howard")->gaia_id();
+    commit_transaction();
+
+    begin_transaction();
+    EXPECT_THROW(Address::get_row_by_id(eid), edc_invalid_object_type);
+    commit_transaction();
+}
+
 // Create, write two rows, read back by scan and verify
 TEST_F(gaia_object_test, read_back_scan) {
     begin_transaction();
