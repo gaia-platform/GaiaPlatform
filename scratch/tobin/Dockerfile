@@ -163,7 +163,7 @@ RUN ln -s ~/.zprezto/runcoms/zlogin ~/.zlogin && \
 RUN echo "zstyle ':prezto:module:prompt' theme '$ZSH_THEME'" >> ~/.zpreztorc
 
 # set build alias
-RUN echo "alias build='cmake -S /gaia-platform/production -B /build -DCMAKE_BUILD_TYPE=Debug -DPYTHON_EXECUTABLE:FILEPATH=/usr/bin/python -DBUILD_POSTGRES_FDW=true -G \"Unix Makefiles\" && pushd /build; make && sudo make install && make test; popd'" >> ~/.zshrc
+RUN echo "alias build='cmake -S /gaia-platform/production -B /build -DCMAKE_BUILD_TYPE=Debug -DPYTHON_EXECUTABLE:FILEPATH=/usr/bin/python -G \"Unix Makefiles\" && pushd /build; make && sudo make install && make test; popd'" >> ~/.zshrc
 
 # start zsh
 CMD ["zsh"]
