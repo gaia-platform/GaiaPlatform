@@ -8,8 +8,8 @@ cmake_minimum_required(VERSION 3.11)
 # Set the project name.
 project(storage_engine)
 
-set(GAIA_STORAGE_ENGINE_INCLUDES 
-  "${GAIA_INC}/internal/common;${GAIA_DB_INC}/storage_engine;${ROCKSDB_INC};${GAIA_REPO}/production/db/storage_engine/mock")
+set(GAIA_STORAGE_ENGINE_INCLUDES
+  "${GAIA_INC}/public/common;${GAIA_DB_INC}/storage_engine;${ROCKSDB_INC};${GAIA_REPO}/production/db/storage_engine/mock")
 
 message(STATUS "GAIA_STORAGE_ENGINE_INCLUDES=${GAIA_STORAGE_ENGINE_INCLUDES}")
 
@@ -21,6 +21,7 @@ add_library(gaia_semock STATIC
   mock/rdb_object_converter.cpp)
 target_include_directories(gaia_semock PRIVATE ${GAIA_STORAGE_ENGINE_INCLUDES})
 set_target_properties(gaia_semock PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+target_link_libraries(gaia_semock PRIVATE gaia_common)
 
 # Specify pybind11 location.
 set(pybind11_DIR ${PYBIND_PATH})
@@ -29,8 +30,9 @@ set(pybind11_DIR ${PYBIND_PATH})
 find_package(PythonInterp)
 find_package(pybind11)
 pybind11_add_module(se_mock mock/storage_engine_pybind_wrapper.cpp)
-target_include_directories(se_mock PRIVATE ${PYBIND_PATH})
+target_include_directories(se_mock PRIVATE ${PYBIND_PATH} )
 target_include_directories(se_mock PRIVATE ${PROJECT_SOURCE_DIR})
+target_include_directories(se_mock PRIVATE ${GAIA_STORAGE_ENGINE_INCLUDES})
 target_link_libraries(se_mock PRIVATE rt gaia_semock)
 set_target_properties(se_mock PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
 set_target_properties(se_mock PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
@@ -47,6 +49,7 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   target_include_directories(jni_se_mock PRIVATE ${PROJECT_SOURCE_DIR})
   target_include_directories(jni_se_mock PRIVATE ${PROJECT_BINARY_DIR})
   target_include_directories(jni_se_mock PRIVATE ${JNI_INCLUDE_DIRS})
+  target_include_directories(jni_se_mock PRIVATE ${GAIA_STORAGE_ENGINE_INCLUDES})
   target_link_libraries(jni_se_mock PRIVATE
     rt
     gaia_semock
