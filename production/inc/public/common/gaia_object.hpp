@@ -10,6 +10,7 @@
 #include <list>
 #include <map>
 #include "flatbuffers/flatbuffers.h"
+#include "gaia_exception.hpp"
 #include "nullable_string.hpp"
 #include "storage_engine.hpp"
 
@@ -161,6 +162,20 @@ protected:
 
 private:
     virtual void reset(bool) = 0;
+};
+
+// Exception when get_row_by_id() argument doesn't match the class type
+class edc_invalid_object_type: public gaia_exception
+{
+public:
+    edc_invalid_object_type(gaia_type_t expected, gaia_base_t* x_obj, gaia_id_t id,
+        const char* type_name, gaia_type_t actual) {
+        stringstream msg;
+        msg << "requesting Gaia type " << x_obj->gaia_typename() << "(" << expected << ") but object identified by "
+            << id << " is type " << type_name << "(" << actual << ")";
+        m_message = msg.str();
+        delete x_obj;
+    }
 };
 
 
@@ -368,6 +383,13 @@ private:
             auto it = s_gaia_cache.find(node_ptr->id);
             if (it != s_gaia_cache.end()) {
                 obj = dynamic_cast<T_gaia *>(it->second);
+                if (obj == nullptr) {
+                    auto x_obj = new T_gaia(0);
+
+                    throw edc_invalid_object_type(T_gaia_type, x_obj, node_ptr->id,
+                            ((gaia_base_t *)(it->second))->gaia_typename(),
+                            ((gaia_base_t *)(it->second))->gaia_type());
+                }
             }
             else {
                 obj = new T_gaia(node_ptr->id);
