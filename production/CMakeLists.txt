@@ -38,8 +38,7 @@ set(GAIA_PROD_BUILD "${CMAKE_BINARY_DIR}")
 
 message(STATUS "GAIA_INC=${GAIA_INC}")
 
-find_program(PYTHON "python")
-
+find_package(Python3 COMPONENTS Interpreter Development)
 find_package(Java)
 find_package(JNI)
 
