@@ -168,13 +168,12 @@ private:
 class edc_invalid_object_type: public gaia_exception
 {
 public:
-    edc_invalid_object_type(gaia_type_t expected, gaia_base_t* x_obj, gaia_id_t id,
-        const char* type_name, gaia_type_t actual) {
+    edc_invalid_object_type(gaia_id_t id, gaia_type_t expected, string expected_type,
+        gaia_type_t actual, const char* type_name) {
         stringstream msg;
-        msg << "requesting Gaia type " << x_obj->gaia_typename() << "(" << expected << ") but object identified by "
+        msg << "requesting Gaia type " << expected_type << "(" << expected << ") but object identified by "
             << id << " is type " << type_name << "(" << actual << ")";
         m_message = msg.str();
-        delete x_obj;
     }
 };
 
@@ -384,11 +383,14 @@ private:
             if (it != s_gaia_cache.end()) {
                 obj = dynamic_cast<T_gaia *>(it->second);
                 if (obj == nullptr) {
-                    auto x_obj = new T_gaia(0);
-
-                    throw edc_invalid_object_type(T_gaia_type, x_obj, node_ptr->id,
-                            ((gaia_base_t *)(it->second))->gaia_typename(),
-                            ((gaia_base_t *)(it->second))->gaia_type());
+                    // The T_gaia object will contain the type name we want for the exception.
+                    T_gaia expected;
+                    gaia_base_t * actual = (gaia_base_t *)(it->second);
+                    throw edc_invalid_object_type(node_ptr->id,
+                        expected.gaia_type(),
+                        expected.gaia_typename(),
+                        actual->gaia_type(),
+                        actual->gaia_typename());
                 }
             }
             else {
