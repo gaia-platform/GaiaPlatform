@@ -24,7 +24,7 @@ set_target_properties(gaia_semock PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS
 target_link_libraries(gaia_semock PRIVATE gaia_common)
 
 # PyBind11 wrapper for storage engine mock.
-find_package(PythonInterp)
+find_package(Python3 COMPONENTS Interpreter Development)
 find_package(pybind11)
 if (pybind11_FOUND)
   pybind11_add_module(se_mock mock/storage_engine_pybind_wrapper.cpp)
