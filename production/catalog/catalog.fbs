@@ -1,0 +1,74 @@
+namespace gaia.catalog;
+
+table gaia_schema {
+  name:string (required);
+}
+
+enum gaia_type_type:ubyte {
+  boolean,
+  byte,
+  ubyte,
+  short,
+  ushort,
+  int,
+  uint,
+  long,
+  ulong,
+  float,
+  double,
+  array,
+  vector,
+  table,
+  string
+}
+
+table gaia_type {
+  schema_id:uint64;
+  name:string (required);
+  type:gaia_type_type;
+  element_type_id:uint64;
+}
+
+table gaia_field {
+  schema_id:uint64;
+  name:string (required);
+  type_id:uint64;
+  length:uint64;
+  position:uint64;
+  required:bool;
+  deprecated:bool;
+}
+
+enum gaia_trim_action_type:ubyte (bit_flags) {
+  delete,
+  archive
+}
+
+table gaia_table {
+  id:uint64;
+  name:string (required);
+  schema_id:uint64;
+  is_log:bool = false;
+  trim_action:gaia_trim_action_type;
+  max_rows:uint64;
+  max_size:uint64;
+  max_seconds:uint64;
+}
+
+table gaia_trigger {
+  table_id:uint64;
+  function_id:uint64;
+}
+
+table gaia_ruleset {
+  name:string;
+  active:bool;
+  table_ids:[uint64];
+  source_location:string (required);
+  thread_name:string;
+}
+
+table gaia_function {
+  name:string (required);
+  ruleset_id:uint64;
+}
