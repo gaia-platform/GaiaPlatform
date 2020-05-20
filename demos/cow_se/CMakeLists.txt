@@ -18,11 +18,10 @@ set_target_properties(test_cow_se PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
 set_test(test_cow_se 0 ${TEST_SUCCESS})
 
 # The PyBind11 wrapper library.
-find_package(PythonInterp)
+# This requires python 2.7 because it has to work with multicorn.
+find_package(PythonInterp 2.7 REQUIRED)
 find_package(pybind11)
-# The following components require python2.7 and will fail to build under python3.
-# With no way to force use of python2, this code is being disabled.
-if (pybind11_FOUND AND false)
+if (pybind11_FOUND)
   pybind11_add_module(cow_se src/cow_se_pywrap.cpp)
   target_include_directories(cow_se PRIVATE ${pybind11_INCLUDE_DIR})
   target_include_directories(cow_se PRIVATE inc/)
