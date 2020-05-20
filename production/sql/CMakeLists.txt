@@ -10,6 +10,14 @@ project(sql)
 
 enable_testing()
 
+# Use existence of pg_config as a proxy for postgres being installed.
+
+find_program(PG_CONFIG pg_config)
+if(NOT PG_CONFIG)
+  message(WARNING "Postgres server does not appear to be installed, skipping build of ${CMAKE_CURRENT_SOURCE_DIR}.")
+  return()
+endif(NOT PG_CONFIG)
+
 # Get version.
 
 file(READ "version.config" PG_GAIA_FDW_VERSION)
@@ -20,11 +28,6 @@ string(REGEX REPLACE "\\.[0-9]*$" "" PG_GAIA_FDW_VERSION_MAJOR
 set(PG_GAIA_FDW_VERSION_MAJOR "${PG_GAIA_FDW_VERSION_MAJOR}")
 
 # Get Postgres config settings from pg_config.
-
-find_program(PG_CONFIG pg_config)
-if(NOT PG_CONFIG)
-  message(FATAL ERROR "Unable to find 'pg_config'")
-endif(NOT PG_CONFIG)
 
 exec_program(
   ${PG_CONFIG} ARGS
