@@ -238,6 +238,7 @@ TEST_F(gaia_object_test, read_wrong_type) {
         Address::get_row_by_id(eid);
     }
     catch (const exception& e) {
+        // The eid is unpredictable, but the exception will use it in its message.
         string compare_string = "requesting Gaia type Address(2) but object identified by " + to_string(eid) + " is type Employee(1)";
         EXPECT_STREQ(e.what(), compare_string.c_str());
     }

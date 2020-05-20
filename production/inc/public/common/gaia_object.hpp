@@ -302,7 +302,7 @@ public:
     {
         if (m_copy) {
             auto node_ptr = gaia_se_node::open(m_id);
-            if (nullptr == node_ptr) {
+            if (!node_ptr) {
                 throw invalid_node_id(m_id);
             }
             auto u = T_fb::Pack(*m_fbb, m_copy.get());
@@ -319,7 +319,7 @@ public:
     void delete_row()
     {
         auto node_ptr = gaia_se_node::open(m_id);
-        if (nullptr == node_ptr) {
+        if (!node_ptr) {
             throw invalid_node_id(m_id);
         }
 
@@ -364,7 +364,7 @@ protected:
      */
     T_obj* copy_write()
     {
-        if (m_copy == nullptr) {
+        if (!m_copy) {
             m_copy.reset(new T_obj());
             if (m_fb) {
                 m_fb->UnPackTo(m_copy.get());
@@ -378,11 +378,11 @@ private:
     static T_gaia* get_object(gaia_ptr<gaia_se_node>& node_ptr)
     {
         T_gaia* obj = nullptr;
-        if (node_ptr != nullptr) {
+        if (node_ptr) {
             auto it = s_gaia_cache.find(node_ptr->id);
             if (it != s_gaia_cache.end()) {
                 obj = dynamic_cast<T_gaia *>(it->second);
-                if (obj == nullptr) {
+                if (!obj) {
                     // The T_gaia object will contain the type name we want for the exception.
                     T_gaia expected;
                     gaia_base_t * actual = (gaia_base_t *)(it->second);
@@ -397,7 +397,7 @@ private:
                 obj = new T_gaia(node_ptr->id);
                 s_gaia_cache.insert(pair<gaia_id_t, gaia_base_t *>(node_ptr->id, obj));
             }
-            if (obj->m_fb == nullptr) {
+            if (!obj->m_fb) {
                 auto fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);
                 obj->m_fb = fb;
                 obj->m_id = node_ptr->id;
