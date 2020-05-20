@@ -19,9 +19,10 @@ set_test(test_cow_se 0 ${TEST_SUCCESS})
 
 # The PyBind11 wrapper library.
 # This requires python 2.7 because it has to work with multicorn.
-find_package(PythonInterp 2.7 REQUIRED)
+set(PYBIND11_PYTHON_VERSION 2.7 CACHE STRING "")
+find_package(Python2 COMPONENTS Interpreter Development)
 find_package(pybind11)
-if (pybind11_FOUND)
+if (Python2_FOUND AND pybind11_FOUND)
   pybind11_add_module(cow_se src/cow_se_pywrap.cpp)
   target_include_directories(cow_se PRIVATE ${pybind11_INCLUDE_DIR})
   target_include_directories(cow_se PRIVATE inc/)
@@ -34,6 +35,6 @@ if (pybind11_FOUND)
 
   # Python wrapper unit test.
   configure_file(tests/test_cow_se.py . COPYONLY)
-  add_test(NAME test_cow_se_py COMMAND ${PYTHON_EXECUTABLE} test_cow_se.py)
+  add_test(NAME test_cow_se_py COMMAND ${Python2_EXECUTABLE} test_cow_se.py)
   set_tests_properties(test_cow_se_py PROPERTIES PASS_REGULAR_EXPRESSION ${TEST_SUCCESS})
 endif()

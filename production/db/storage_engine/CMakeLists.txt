@@ -25,7 +25,7 @@ target_link_libraries(gaia_semock PRIVATE gaia_common)
 
 # PyBind11 wrapper for storage engine mock.
 find_package(pybind11)
-if (pybind11_FOUND)
+if (Python3_FOUND AND pybind11_FOUND)
   pybind11_add_module(se_mock mock/storage_engine_pybind_wrapper.cpp)
   target_include_directories(se_mock PRIVATE ${pybind11_INCLUDE_DIR})
   target_include_directories(se_mock PRIVATE ${PROJECT_SOURCE_DIR})
@@ -36,7 +36,7 @@ if (pybind11_FOUND)
 
   # Python wrapper unit test.
   configure_file(tests/test_storage_engine_mock.py . COPYONLY)
-  add_test(NAME test_se_mock_pybind COMMAND ${PYTHON_EXECUTABLE} test_storage_engine_mock.py)
+  add_test(NAME test_se_mock_pybind COMMAND ${Python3_EXECUTABLE} test_storage_engine_mock.py)
   set_tests_properties(test_se_mock_pybind PROPERTIES PASS_REGULAR_EXPRESSION ${TEST_SUCCESS})
 endif()
 
