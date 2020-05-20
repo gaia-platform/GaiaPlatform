@@ -3,8 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "pybind11.h"
-#include "stl.h"
+#include "pybind11/pybind11.h"
+#include "pybind11/stl.h"
 
 #include "cow_se.h"
 
@@ -43,7 +43,7 @@ void print_node(const gaia_ptr<gaia_se_node>& node, const bool indent = false);
 void print_edge(const gaia_ptr<gaia_se_edge>& edge, const bool indent = false)
 {
     cout << endl;
-    
+
     if (indent)
     {
         cout << "  ";
@@ -56,13 +56,13 @@ void print_edge(const gaia_ptr<gaia_se_edge>& edge, const bool indent = false)
     }
 
     cout
-        << "Edge id:" 
+        << "Edge id:"
         << edge->id << ", type:"
         << edge->type;
 
     print_payload (cout, edge->payload_size, edge->payload);
 
-    if (!indent) 
+    if (!indent)
     {
         print_node (edge->node_first, true);
         print_node (edge->node_second, true);
@@ -92,7 +92,7 @@ void print_node(const gaia_ptr<gaia_se_node>& node, const bool indent)
     }
 
     cout
-        << "Node id:" 
+        << "Node id:"
         << node->id << ", type:"
         << node->type;
 

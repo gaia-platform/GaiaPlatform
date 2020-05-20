@@ -8,9 +8,6 @@ cmake_minimum_required(VERSION 3.11)
 # Set the project name.
 project(cow_se)
 
-# Specify pybind11 location.
-set(pybind11_DIR ../third_party/production/pybind11)
-
 # C++ unit test.
 add_executable(test_cow_se tests/test_cow_se.cpp)
 target_include_directories(test_cow_se PRIVATE ${PROJECT_SOURCE_DIR})
@@ -23,17 +20,21 @@ set_test(test_cow_se 0 ${TEST_SUCCESS})
 # The PyBind11 wrapper library.
 find_package(PythonInterp)
 find_package(pybind11)
-pybind11_add_module(cow_se src/cow_se_pywrap.cpp)
-target_include_directories(cow_se PRIVATE ../../third_party/production/pybind11)
-target_include_directories(cow_se PRIVATE inc/)
-target_link_libraries(cow_se PRIVATE rt)
-set_target_properties(cow_se PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
-set_target_properties(cow_se PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
+# The following components require python2.7 and will fail to build under python3.
+# With no way to force use of python2, this code is being disabled.
+if (pybind11_FOUND AND false)
+  pybind11_add_module(cow_se src/cow_se_pywrap.cpp)
+  target_include_directories(cow_se PRIVATE ${pybind11_INCLUDE_DIR})
+  target_include_directories(cow_se PRIVATE inc/)
+  target_link_libraries(cow_se PRIVATE rt)
+  set_target_properties(cow_se PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
+  set_target_properties(cow_se PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
 
-# Copy file required for packaging out the Python wrapper library.
-configure_file(src/__init__.py . COPYONLY)
+  # Copy file required for packaging out the Python wrapper library.
+  configure_file(src/__init__.py . COPYONLY)
 
-# Python wrapper unit test.
-configure_file(tests/test_cow_se.py . COPYONLY)
-add_test(NAME test_cow_se_py COMMAND ${PYTHON_EXECUTABLE} test_cow_se.py)
-set_tests_properties(test_cow_se_py PROPERTIES PASS_REGULAR_EXPRESSION ${TEST_SUCCESS})
+  # Python wrapper unit test.
+  configure_file(tests/test_cow_se.py . COPYONLY)
+  add_test(NAME test_cow_se_py COMMAND ${PYTHON_EXECUTABLE} test_cow_se.py)
+  set_tests_properties(test_cow_se_py PROPERTIES PASS_REGULAR_EXPRESSION ${TEST_SUCCESS})
+endif()
