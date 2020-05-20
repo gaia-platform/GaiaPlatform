@@ -1,9 +1,15 @@
-#include <iostream>
+#include <unistd.h>
+
+#include <climits>
 #include <fstream>
-#include <sstream>
+#include <iostream>
+#include <memory>
+#include <vector>
+
+#include <opencv2/dnn.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
-#include <opencv2/dnn.hpp>
+
 using namespace cv;
 using namespace dnn;
 using namespace std;
@@ -11,17 +17,36 @@ using namespace std;
 const float confThreshold = 0.5, nmsThreshold = 0.4;
 static std::vector<std::string> classes;
 
-const char * model_prototxt = "yolov3.cfg";
-const char * model_binary = "yolov3.weights";
-const char * class_names = "object_detection_classes_yolov3.txt";
+std::string getCameraDemoBase();
+
+static const std::string camera_demo_base = getCameraDemoBase();
+static const std::string model_prototxt = camera_demo_base + "/" + "yolov3.cfg";
+static const std::string model_binary =
+    camera_demo_base + "/" + "yolov3.weights";
+static const std::string class_names =
+    camera_demo_base + "/" + "object_detection_classes_yolov3.txt";
+
 const float scale = 0.00392;
 const Scalar mean = {0,0,0};
 const bool swapRB = true;
 const int inpWidth = 416;
-const int inpHeight = 416;        
+const int inpHeight = 416;
 
 static cv::dnn::Net net = cv::dnn::readNet(model_binary, model_prototxt);
 static std::vector<String> outNames = net.getUnconnectedOutLayersNames();
+
+std::string getCameraDemoBase()
+{
+    char buf[PATH_MAX];
+    ssize_t len = readlink("/proc/self/exe", buf, sizeof(buf) - 1);
+    if (len == -1) {
+        throw std::runtime_error("Cannot readlink /proc/self/exe.");
+    }
+    buf[len] = '\0';
+    std::string camera_demo_executable = std::string(buf);
+    return camera_demo_executable.substr(
+        0, camera_demo_executable.rfind(std::string("/")));
+}
 
 void loadClassNames()
 {
