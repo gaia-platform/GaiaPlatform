@@ -4,9 +4,7 @@
 #include "cameraDemo_gaia_generated.h"
 
 #include "opencv2/highgui.hpp"
-#include "opencv2/imgproc.hpp"
 #include "opencv2/videoio.hpp"
-
 
 std::string random_string(std::string::size_type length)
 {
@@ -41,6 +39,7 @@ int main( int argc, const char** argv )
         cout << "Capture from camera #  0 didn't work" << endl;
         return 1;
     }
+    auto tmp = std::string("/tmp/");
     if( capture.isOpened() )
     {
         cout << "Video capturing has been started ..." << endl;
@@ -51,13 +50,13 @@ int main( int argc, const char** argv )
             if( frame.empty() )
                 break;
     
-            std::string file_name = random_string(10) + ".tiff";
+            std::string file_path = tmp + random_string(10) + ".tiff";
 
-	        imwrite(file_name.c_str(), frame);
+            imwrite(file_path, frame);
 
             begin_transaction();
             CameraDemo::Camera_image image;
-            image.set_file_name(file_name.c_str());
+            image.set_file_name(file_path.c_str());
             image.insert_row();
             commit_transaction();
 

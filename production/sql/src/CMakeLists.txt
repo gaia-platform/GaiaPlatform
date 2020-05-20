@@ -21,8 +21,6 @@ endforeach(fbs)
 # Compile config.
 
 add_library(gaia_fdw SHARED gaia_fdw.cpp)
-message("PGSQL_CPPFLAGS ${PGSQL_CPPFLAGS}")
-message("PGSQL_LDFLAGS ${PGSQL_LDFLAGS}")
 # exec_program() mangles this variable with added quotes, so un-quote it
 separate_arguments(PGSQL_CPPFLAGS UNIX_COMMAND "${PGSQL_CPPFLAGS}")
 target_compile_options(gaia_fdw PRIVATE ${PGSQL_CPPFLAGS})
