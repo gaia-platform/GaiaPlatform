@@ -39,6 +39,17 @@ set(GAIA_PROD_BUILD "${CMAKE_BINARY_DIR}")
 message(STATUS "GAIA_INC=${GAIA_INC}")
 
 find_package(Python3 COMPONENTS Interpreter Development)
+if (NOT Python3_FOUND)
+  # Work with CMAKE 3.11 python find package.  Looks like FindPython3
+  # FindPython2 or FindPython work with CMAKE 3.12 and above.
+  find_package(PythonInterp 3)
+  find_package(PythonLibs 3)
+  if (PYTHONINTERP_FOUND AND PYTHONLIBS_FOUND)
+    set(Python3_FOUND TRUE)
+    set(Python3_EXECUTABLE "${PYTHON_EXECUTABLE}")
+  endif()
+endif()
+
 find_package(Java)
 find_package(JNI)
 
