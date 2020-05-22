@@ -168,7 +168,7 @@ private:
 class edc_invalid_object_type: public gaia_exception
 {
 public:
-    edc_invalid_object_type(gaia_id_t id, gaia_type_t expected, string expected_type,
+    edc_invalid_object_type(gaia_id_t id, gaia_type_t expected, const char* expected_type,
         gaia_type_t actual, const char* type_name) {
         stringstream msg;
         msg << "requesting Gaia type " << expected_type << "(" << expected << ") but object identified by "
