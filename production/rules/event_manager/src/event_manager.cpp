@@ -44,6 +44,83 @@ void event_manager_t::init()
     m_is_initialized = true;
 }
 
+void event_manager_t::commit_trigger(uint32_t tx_id, gaia_event_t* events, uint16_t num_events)
+{
+    for (uint16_t i = 0; i < num_events; i++)
+    {
+        gaia_event_t* e = &events[i];
+
+        // lookup type
+        // once we have a type we need to figure out all rules bound
+        // to the type for the event this would include both table events (I/U/D)
+        // or field events.
+
+        // UNDONE: Is it bad to log the event here in this function
+        // UNDONE: Lock subscriptions here or put it in a mode where we can guarantee
+        // UNDONE: that the user can't add/remove subscriptions here...
+        auto type_it = m_subscriptions.find(e->gaia_type);
+        if (type_it == m_subscriptions.end())
+        {
+            continue;
+        }
+
+        // See if there are any rules bound to this particular event
+        events_map_t& events = type_it->second;
+        auto event_it = events.find(e->event_type);
+        if (event_it == events.end())
+        {
+            continue;
+        }
+
+        // Found bindings to this event either via the system
+        // LastOperation field (bound to operation and not a field
+        // reference) or to field references in a rule or
+        // potentially rules of both types.
+        // This should also include transaction events!
+        event_binding_t& binding = event_it->second;
+
+        // If we have rules bound the the LastOperation system field,
+        // then make sure they get called
+        rule_list_t& rules = binding.last_operation_rules;
+        for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it)
+        {
+            enqueue_invocation(e, *rules_it);
+        }
+
+        // Now see if we have any rules bound to any of the fields that 
+        // were part of this event.  Note that delete should never
+        // have any fields bound to it.  
+        if (binding.fields_map.size() > 0)
+        {
+            for (uint16_t j = 0; j < e->num_column_ids; j++)
+            {
+                uint16_t col = e->column_ids[j];
+                
+                auto field_it = binding.fields_map.find(col);
+                if (field_it == binding.fields_map.end())
+                {
+                    continue;
+                } 
+
+                // We have one more more rules that are referencing this field
+                // so enqueue them for invocation.
+                rule_list_t& rules = field_it->second;
+                for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it)
+                {
+                    enqueue_invocation(e, *rules_it);
+                }
+            }
+        }
+    }
+}
+
+void event_manager_t::enqueue_invocation(const gaia_event_t* event, const _rule_binding_t* binding)
+{
+    rule_context_t context = create_rule_context(binding, event->gaia_type, 
+        event->event_type, event->row_id);
+    m_invocations.enqueue(context);
+}
+
 bool event_manager_t::log_event(
     gaia_base_t* row, 
     event_type_t event_type, 

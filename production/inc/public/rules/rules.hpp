@@ -87,7 +87,7 @@ typedef std::vector<std::unique_ptr<subscription_t>> subscription_list_t;
 /**
  * Caller provide a list of fields to bind to field_change events
  */
-typedef std::unordered_set<std::string> field_list_t;
+typedef std::unordered_set<uint16_t> field_list_t;
 
 /**
  * The rule context wraps the event (or data) context as well as information 
@@ -111,16 +111,14 @@ public:
         const rule_binding_t& a_binding, 
         gaia::common::gaia_type_t a_gaia_type,
         event_type_t a_event_type,
-        gaia::common::gaia_base_t * a_row,
-        const char* a_field
+        gaia_id_t a_row
     );
 
     rule_context_t() = delete;
     const rule_binding_t rule_binding;
     gaia::common::gaia_type_t gaia_type;
     event_type_t event_type;
-    gaia::common::gaia_base_t* event_context;
-    string event_source;
+    gaia_id_t record;
 };
 
 /**
