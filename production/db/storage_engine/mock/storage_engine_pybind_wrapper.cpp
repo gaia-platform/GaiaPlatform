@@ -3,8 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "pybind11.h"
-#include "stl.h"
+#include "pybind11/pybind11.h"
+#include "pybind11/stl.h"
 
 #include "storage_engine.hpp"
 
@@ -43,7 +43,7 @@ void print_node(const gaia_ptr<gaia_se_node>& node, const bool indent = false);
 void print_edge(const gaia_ptr<gaia_se_edge>& edge, const bool indent = false)
 {
     cout << endl;
-    
+
     if (indent)
     {
         cout << "  ";
@@ -56,13 +56,13 @@ void print_edge(const gaia_ptr<gaia_se_edge>& edge, const bool indent = false)
     }
 
     cout
-        << "Edge id:" 
+        << "Edge id:"
         << edge->id << ", type:"
         << edge->type;
 
     print_payload (cout, edge->payload_size, edge->payload);
 
-    if (!indent) 
+    if (!indent)
     {
         print_node (edge->node_first, true);
         print_node (edge->node_second, true);
@@ -92,7 +92,7 @@ void print_node(const gaia_ptr<gaia_se_node>& node, const bool indent)
     }
 
     cout
-        << "Node id:" 
+        << "Node id:"
         << node->id << ", type:"
         << node->type;
 
@@ -118,23 +118,27 @@ void print_node(const gaia_ptr<gaia_se_node>& node, const bool indent)
 
 pybind11::bytes get_bytes(const pybind11::object& o)
 {
-    if (!PyBytes_Check(o.ptr()) && !PyString_Check(o.ptr()) && !PyByteArray_Check(o.ptr()))
-    {
-        throw invalid_argument("Expected a string, bytes, or bytearray argument!");
-    }
-
     char* ptr = nullptr;
     size_t size = 0;
 
-    if (PyByteArray_Check(o.ptr()))
+    if (PyUnicode_Check(o.ptr()))
+    {
+        ptr = (char*)PyUnicode_DATA(o.ptr());
+        size = PyUnicode_GetLength(o.ptr());
+    }
+    else if (PyBytes_Check(o.ptr()))
+    {
+        ptr = PyBytes_AsString(o.ptr());
+        size = PyBytes_Size(o.ptr());
+    }
+    else if (PyByteArray_Check(o.ptr()))
     {
         ptr = PyByteArray_AsString(o.ptr());
         size = PyByteArray_Size(o.ptr());
     }
     else
     {
-        ptr = PyBytes_AsString(o.ptr());
-        size = PyBytes_Size(o.ptr());
+        throw invalid_argument("Expected a string, bytes, or bytearray argument!");
     }
 
     if (o.ptr() == Py_None || ptr == nullptr)

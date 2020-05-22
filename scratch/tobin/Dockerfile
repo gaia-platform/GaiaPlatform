@@ -124,8 +124,8 @@ RUN GREMLIN_CONSOLE_DIR="apache-tinkerpop-gremlin-console-${GREMLIN_VERSION}" &&
 
 # install flatcc (C flatbuffers support)
 RUN apt-get -y install ninja-build
-RUN git clone https://github.com/dvidelabs/flatcc.git && \
-    cd /flatcc && \
+WORKDIR /flatcc
+RUN git clone https://github.com/dvidelabs/flatcc.git . && \
     # we have to compile flatcc builder runtime static lib with -fPIC so it can be linked with a shared lib
     echo "\n\nset_property (TARGET flatccrt PROPERTY POSITION_INDEPENDENT_CODE ON)\n" >> src/runtime/CMakeLists.txt && \
     scripts/build.sh && \
@@ -161,9 +161,16 @@ RUN ln -s ~/.zprezto/runcoms/zlogin ~/.zlogin && \
     ln -s ~/.zprezto/runcoms/zshrc ~/.zshrc
 # set the zsh theme
 RUN echo "zstyle ':prezto:module:prompt' theme '$ZSH_THEME'" >> ~/.zpreztorc
+# disable annoying prompt on file remove
+RUN echo "setopt rmstarsilent" >> ~/.zshrc
 
-# set build alias
-RUN echo "alias build='cmake -S /gaia-platform/production -B /build -DCMAKE_BUILD_TYPE=Debug -DPYTHON_EXECUTABLE:FILEPATH=/usr/bin/python -G \"Unix Makefiles\" && pushd /build; make && sudo make install && make test; popd'" >> ~/.zshrc
+# set build aliases
+ARG buildcmd="sudo service postgresql restart && cmake -S /gaia-platform/production -B /build -DCMAKE_BUILD_TYPE=Debug -DPYTHON_EXECUTABLE:FILEPATH=/usr/bin/python -G \"Unix Makefiles\" && pushd /build; make -j$(nproc) && sudo make install && make test; popd"
+ARG cleanbuildcmd="rm -rf /build/*; ${buildcmd}"
+RUN echo "alias build='${buildcmd}'" >> ~/.zshrc
+RUN echo "alias cleanbuild='${cleanbuildcmd}'" >> ~/.zshrc
+
+WORKDIR /gaia-platform/production
 
 # start zsh
 CMD ["zsh"]
