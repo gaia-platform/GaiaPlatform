@@ -92,7 +92,9 @@ RUN wget -O ${APP_RUN} https://github.com/AppImage/AppImageKit/releases/download
 # Install Gaia Platform production build dependencies.
 RUN apt-get install -y \
         clang-8 \
-        pybind11-dev
+        python3-pip
+
+RUN pip3 install pybind11
 
 # Build Gaia Platform production.
 COPY /production /GaiaPlatform/production

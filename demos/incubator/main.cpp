@@ -263,7 +263,7 @@ int main(int argc, const char **argv) {
                     simulation_thread[0].join();
                     printf("Simulation stopped...\n");
                 } else {
-                    printf("Simulatin is not started.\n");
+                    printf("Simulation is not started.\n");
                 }
                 break;
             case 'l':
