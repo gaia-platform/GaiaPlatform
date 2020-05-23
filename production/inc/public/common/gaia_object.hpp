@@ -202,6 +202,8 @@ public:
     {
         s_gaia_cache.erase(m_id);
         s_gaia_tx_cache.erase(m_id);
+        if (m_references)
+            free(m_references);
         reset(true);
     }
     gaia_object_t() = delete;
@@ -210,7 +212,7 @@ public:
      * This constructor supports completely new objects that the database has not seen yet
      * by creating a copy buffer immediately.
      */
-    gaia_object_t(const char * gaia_typename) 
+    gaia_object_t(const char * gaia_typename)
     : gaia_base_t(gaia_typename)
     , m_fb(nullptr)
     {
@@ -267,7 +269,7 @@ public:
      * been set prior to this insert_row(). After the storage engine object exists, it
      * must be modified only through the update_row() method.
      */
-    void insert_row()
+    void insert_row(gaia_id_t num_ptrs)
     {
         // Create the node and add to the cache.
         gaia_ptr<gaia_se_node> node_ptr;
@@ -278,7 +280,7 @@ public:
         if (m_copy) {
             auto u = T_fb::Pack(*m_fbb, m_copy.get());
             m_fbb->Finish(u);
-            node_ptr = gaia_se_node::create(m_id, T_gaia_type, m_fbb->GetSize(), m_fbb->GetBufferPointer());
+            node_ptr = create_node(m_id, m_fbb->GetSize(), m_fbb->GetBufferPointer(), num_ptrs);
             m_fbb->Clear();
             m_fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);
         } else {
@@ -333,7 +335,7 @@ public:
      * Insert a mutable flatbuffer into a newly created storage engine object. This will be
      * used by the generated type-specific insert_row() method.
      */
-    static gaia_id_t insert_row(flatbuffers::FlatBufferBuilder& fbb)
+    static gaia_id_t insert_row(flatbuffers::FlatBufferBuilder& fbb, gaia_id_t num_ptrs)
     {
         gaia_id_t nodeId = gaia_se_node::generate_id();
         gaia_se_node::create(nodeId, T_gaia_type, fbb.GetSize(), fbb.GetBufferPointer());
@@ -356,6 +358,9 @@ protected:
     unique_ptr<T_obj> m_copy;   
     // Flatbuffer referencing SE memory.
     const T_fb* m_fb;
+    // Array of pointers to related objects.
+    int32_t m_num_references;
+    gaia_id_t* m_references;
 
     /**
      * Create the mutable flatbuffer object (m_copy) if it doesn't exist as a member
@@ -398,13 +403,42 @@ private:
                 s_gaia_cache.insert(pair<gaia_id_t, gaia_base_t *>(node_ptr->id, obj));
             }
             if (!obj->m_fb) {
-                auto fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);
+                memcpy(&obj->m_num_references, node_ptr->payload, sizeof(gaia_id_t));
+                if (obj->m_references) {
+                    free(obj->m_references);
+                    obj->m_references = nullptr;
+                }
+                if (obj->m_num_references) {
+                    obj->m_references = (gaia_id_t*)malloc(obj->m_num_references*sizeof(gaia_id_t));
+                    memcpy(obj->m_references, node_ptr->payload+sizeof(gaia_id_t), obj->m_num_references*sizeof(gaia_id_t));
+                }
+                auto fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload+(obj->m_num_references+1)*sizeof(gaia_id_t));
                 obj->m_fb = fb;
                 obj->m_id = node_ptr->id;
                 s_gaia_tx_cache[obj->m_id] = obj;
             }
         }
         return obj;
+    }
+
+    gaia_ptr<gaia_se_node> create_node(gaia_id_t id, size_t size, const void* payload, gaia_id_t num_ptrs) {
+        m_num_references = num_ptrs;
+        if (num_ptrs) {
+            m_references = (gaia_id_t*)calloc(1, num_ptrs*sizeof(gaia_id_t));
+        }
+        else {
+            m_references = nullptr;
+        }
+        int32_t total_len = size + (num_ptrs+1)*sizeof(gaia_id_t);
+        uint8_t* b = (uint8_t*)malloc(total_len);
+        memcpy(b, &num_ptrs, sizeof(gaia_id_t));
+        if (m_references) {
+            memcpy(b+sizeof(gaia_id_t), m_references, num_ptrs*sizeof(gaia_id_t));
+        }
+        memcpy(b+sizeof(gaia_id_t)*(num_ptrs+1), payload, size);
+        auto node_ptr = gaia_se_node::create(id, T_gaia_type, total_len, b);
+        free(b);
+        return node_ptr;
     }
 
     void reset(bool clear_flatbuffer = false) override
