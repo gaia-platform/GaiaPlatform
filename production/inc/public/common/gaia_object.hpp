@@ -203,7 +203,7 @@ public:
         s_gaia_cache.erase(m_id);
         s_gaia_tx_cache.erase(m_id);
         if (m_references)
-            free(m_references);
+            delete[] m_references;
         reset(true);
     }
     gaia_object_t() = delete;
@@ -214,9 +214,9 @@ public:
      */
     gaia_object_t(const char * gaia_typename)
     : gaia_base_t(gaia_typename)
-    , m_fb(nullptr)
     , m_num_references(0)
     , m_references(nullptr)
+    , m_fb(nullptr)
     {
         copy_write();
     }
@@ -284,7 +284,7 @@ public:
             m_fbb->Finish(u);
             node_ptr = create_node(m_id, m_fbb->GetSize(), m_fbb->GetBufferPointer(), num_ptrs);
             m_fbb->Clear();
-            m_fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);
+            m_fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload+(m_num_references+1)*sizeof(gaia_id_t));
         } else {
             // This situation only happens if an object representing
             // a deleted row is reused.  By giving the object a copy buffer, 
@@ -296,6 +296,8 @@ public:
         s_gaia_tx_cache[m_id] = this;
         return;
     }
+
+    void insert_row() {insert_row(0);}
 
     /**
      * Write the mutable flatbuffer values to the storage engine. This involves the creation
@@ -311,8 +313,16 @@ public:
             }
             auto u = T_fb::Pack(*m_fbb, m_copy.get());
             m_fbb->Finish(u);
-            node_ptr.update_payload(m_fbb->GetSize(), m_fbb->GetBufferPointer());
+            int32_t total_len = m_fbb->GetSize() + (m_num_references+1)*sizeof(gaia_id_t);
+            uint8_t* b = new uint8_t[total_len];
+            memcpy(b, &m_num_references, sizeof(gaia_id_t));
+            if (m_num_references) {
+                memcpy(b+sizeof(gaia_id_t), m_references, m_num_references*sizeof(gaia_id_t));
+            }
+            memcpy(b+sizeof(gaia_id_t)*(m_num_references+1), m_fbb->GetBufferPointer(), m_fbb->GetSize());
+            node_ptr.update_payload(total_len, b);
             m_fbb->Clear();
+            delete[] b;
         }
     }
 
@@ -341,16 +351,20 @@ public:
     {
         gaia_id_t nodeId = gaia_se_node::generate_id();
         int32_t total_len = fbb.GetSize() + (num_ptrs+1)*sizeof(gaia_id_t);
-        uint8_t* b = (uint8_t*)malloc(total_len);
+        uint8_t* b = new uint8_t[total_len];
         memcpy(b, &num_ptrs, sizeof(gaia_id_t));
         // Pointers will be null in new object.
         memset(b+sizeof(gaia_id_t), 0, num_ptrs*sizeof(gaia_id_t));
         memcpy(b+sizeof(gaia_id_t)*(num_ptrs+1), fbb.GetBufferPointer(), fbb.GetSize());
         gaia_se_node::create(nodeId, T_gaia_type, total_len, b);
-        free(b);
+        delete[] b;
         return nodeId;
     }
-    
+
+    static gaia_id_t insert_row(flatbuffers::FlatBufferBuilder& fbb) {
+        return insert_row(fbb, 0);
+    }
+
     // Array of pointers to related objects.
     int32_t m_num_references;
     gaia_id_t* m_references;
@@ -360,9 +374,9 @@ protected:
     // nodes in the database.  It is called by our get_object below.
     gaia_object_t(gaia_id_t id, const char * gaia_typename) 
     : gaia_base_t(id, gaia_typename)
-    , m_fb(nullptr)
     , m_num_references(0)
     , m_references(nullptr)
+    , m_fb(nullptr)
     {
     }
 
@@ -417,11 +431,11 @@ private:
             if (!obj->m_fb) {
                 memcpy(&obj->m_num_references, node_ptr->payload, sizeof(gaia_id_t));
                 if (obj->m_references) {
-                    free(obj->m_references);
+                    delete[] obj->m_references;
                     obj->m_references = nullptr;
                 }
                 if (obj->m_num_references) {
-                    obj->m_references = (gaia_id_t*)malloc(obj->m_num_references*sizeof(gaia_id_t));
+                    obj->m_references = new gaia_id_t[obj->m_num_references];
                     memcpy(obj->m_references, node_ptr->payload+sizeof(gaia_id_t), obj->m_num_references*sizeof(gaia_id_t));
                 }
                 auto fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload+(obj->m_num_references+1)*sizeof(gaia_id_t));
@@ -436,20 +450,20 @@ private:
     gaia_ptr<gaia_se_node> create_node(gaia_id_t id, size_t size, const void* payload, gaia_id_t num_ptrs) {
         m_num_references = num_ptrs;
         if (num_ptrs) {
-            m_references = (gaia_id_t*)calloc(1, num_ptrs*sizeof(gaia_id_t));
+            m_references = new gaia_id_t[num_ptrs];
         }
         else {
             m_references = nullptr;
         }
         int32_t total_len = size + (num_ptrs+1)*sizeof(gaia_id_t);
-        uint8_t* b = (uint8_t*)malloc(total_len);
+        uint8_t* b = new uint8_t[total_len];
         memcpy(b, &num_ptrs, sizeof(gaia_id_t));
         if (m_references) {
             memcpy(b+sizeof(gaia_id_t), m_references, num_ptrs*sizeof(gaia_id_t));
         }
         memcpy(b+sizeof(gaia_id_t)*(num_ptrs+1), payload, size);
         auto node_ptr = gaia_se_node::create(id, T_gaia_type, total_len, b);
-        free(b);
+        delete[] b;
         return node_ptr;
     }
 
