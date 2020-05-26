@@ -215,6 +215,8 @@ public:
     gaia_object_t(const char * gaia_typename)
     : gaia_base_t(gaia_typename)
     , m_fb(nullptr)
+    , m_num_references(0)
+    , m_references(nullptr)
     {
         copy_write();
     }
@@ -338,9 +340,20 @@ public:
     static gaia_id_t insert_row(flatbuffers::FlatBufferBuilder& fbb, gaia_id_t num_ptrs)
     {
         gaia_id_t nodeId = gaia_se_node::generate_id();
-        gaia_se_node::create(nodeId, T_gaia_type, fbb.GetSize(), fbb.GetBufferPointer());
+        int32_t total_len = fbb.GetSize() + (num_ptrs+1)*sizeof(gaia_id_t);
+        uint8_t* b = (uint8_t*)malloc(total_len);
+        memcpy(b, &num_ptrs, sizeof(gaia_id_t));
+        // Pointers will be null in new object.
+        memset(b+sizeof(gaia_id_t), 0, num_ptrs*sizeof(gaia_id_t));
+        memcpy(b+sizeof(gaia_id_t)*(num_ptrs+1), fbb.GetBufferPointer(), fbb.GetSize());
+        gaia_se_node::create(nodeId, T_gaia_type, total_len, b);
+        free(b);
         return nodeId;
     }
+    
+    // Array of pointers to related objects.
+    int32_t m_num_references;
+    gaia_id_t* m_references;
 
 protected:
     // This constructor supports creating new objects from existing
@@ -348,6 +361,8 @@ protected:
     gaia_object_t(gaia_id_t id, const char * gaia_typename) 
     : gaia_base_t(id, gaia_typename)
     , m_fb(nullptr)
+    , m_num_references(0)
+    , m_references(nullptr)
     {
     }
 
@@ -358,9 +373,6 @@ protected:
     unique_ptr<T_obj> m_copy;   
     // Flatbuffer referencing SE memory.
     const T_fb* m_fb;
-    // Array of pointers to related objects.
-    int32_t m_num_references;
-    gaia_id_t* m_references;
 
     /**
      * Create the mutable flatbuffer object (m_copy) if it doesn't exist as a member
