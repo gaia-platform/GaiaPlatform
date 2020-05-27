@@ -3,11 +3,11 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "Utils.h"
-#include "MonsterHelper.h"
-
-#include <iostream>
 #include <iomanip>
+#include <iostream>
+
+#include "MonsterHelper.h"
+#include "Utils.h"
 
 using namespace std;
 using namespace flatbuffers;
@@ -132,7 +132,7 @@ void TestRegularInterface(char* data, int size)
     {
         int8_t item = *(int8_t*)(data + offsetMainTable + offsetInventory + sizeof(uint32_t) + i * sizeof(int8_t));
         cout << "      INVENTORY item #" << (i + 1) << " is: " << (int)item << "." << endl;
-    } 
+    }
 
     // Read color.
     voffset_t offsetColor = *((voffset_t*)(data + offsetMainTableVtable + Monster::VT_COLOR));

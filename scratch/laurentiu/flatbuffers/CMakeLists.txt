@@ -22,9 +22,9 @@ else()
     set_target_properties(Tutorial PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
 
     # Field access test.
-    add_executable(TestAccess TestAccess.cpp MonsterHelper.cpp)
+    add_executable(TestAccess TestAccess.cpp Utils.cpp MonsterHelper.cpp)
     target_include_directories(TestAccess PRIVATE ${PROJECT_SOURCE_DIR} )
-    target_link_libraries(TestAccess PRIVATE rt)
+    target_link_libraries(TestAccess PRIVATE rt ${FLATBUFFERS_LIB})
     set_target_properties(TestAccess PROPERTIES COMPILE_FLAGS ${GAIA_COMPILE_FLAGS})
     set_target_properties(TestAccess PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
 
@@ -48,6 +48,8 @@ else()
     configure_file(generated/blobv1_data.bin . COPYONLY)
     configure_file(generated/blobv2_data1.bin . COPYONLY)
     configure_file(generated/blobv2_data2.bin . COPYONLY)
+    # Copy binary schema required for TestAccess.
+    configure_file(generated/monster.bfbs . COPYONLY)
 
     add_test(NAME test_flatbuffers_tutorial COMMAND Tutorial)
     add_test(NAME test_flatbuffers_access COMMAND TestAccess)
@@ -70,5 +72,3 @@ else()
 
     add_test(NAME test_flatbuffers_tutorial_c COMMAND Tutorial_C)
 endif ()
-
-

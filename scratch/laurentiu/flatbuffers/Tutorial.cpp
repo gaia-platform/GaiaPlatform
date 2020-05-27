@@ -3,10 +3,10 @@
 // at: https://google.github.io/flatbuffers/flatbuffers_guide_tutorial.html
 /////////////////////////////////////////////
 
-#include "Utils.h"
-#include "MonsterHelper.h"
-
 #include <iostream>
+
+#include "MonsterHelper.h"
+#include "Utils.h"
 
 using namespace std;
 using namespace flatbuffers;
@@ -201,7 +201,7 @@ void RunTutorialCode()
 {
     uint8_t* buf = nullptr;
     int size = 0;
-    
+
     SerializeEntity(buf, size);
 
     DeserializeEntity(buf);
