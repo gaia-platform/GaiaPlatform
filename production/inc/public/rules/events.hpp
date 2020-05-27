@@ -26,7 +26,6 @@ namespace rules
  * Provides facilities for mapping events to rules.
  */
  
- 
 /**
  * Every event in the system has an event type.  The type
  * is scoped to an object type. Note that values must

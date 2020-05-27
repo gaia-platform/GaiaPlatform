@@ -13,19 +13,35 @@ using namespace gaia::rules;
 using namespace gaia::common;
 using namespace std;
 
-rule_thread_pool_t::rule_thread_pool()
-: m_exit(false)
+rule_thread_pool_t::rule_thread_pool_t(uint32_t num_threads)
 {
-    uint32_t num_threads = thread::hardware_concurrency();
+    init(num_threads);
+}
+
+rule_thread_pool_t::rule_thread_pool_t()
+{
+    init(thread::hardware_concurrency());
+}
+
+void rule_thread_pool_t::init(uint32_t num_threads)
+{
+    m_exit = false;
+    m_num_threads = num_threads;
+
     for (size_t i = 0; i < num_threads; i++)
     {
-        thread worker(invoke_rule);
+        thread worker([this]{ this->invoke_rule();});
         m_threads.push_back(move(worker));
     }
 }
 
+uint32_t rule_thread_pool_t::get_num_threads()
+{
+    return m_num_threads;
+}
+
 // Shutdown all threads in the pool
-rule_thread_pool_t::~rule_thread_pool()
+rule_thread_pool_t::~rule_thread_pool_t()
 {
     m_exit = true;
     m_has_invocations.notify_all();
@@ -42,7 +58,6 @@ void rule_thread_pool_t::enqueue(rule_context_t& invocation)
     lock.unlock();
     m_has_invocations.notify_one();
 }
-
 
 // thread worker function
 void rule_thread_pool_t::invoke_rule()

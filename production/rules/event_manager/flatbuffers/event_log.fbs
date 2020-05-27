@@ -8,11 +8,10 @@
 namespace gaia.rules;
 
 table event_log {
-    gaia_type_id : ulong;
     event_type : uint;
-    event_mode : ubyte;
-    event_source : string;
+    type_id : ulong;
+    record_id : ulong;
+    column_id : ushort;
     timestamp : ulong;
-    gaia_id : ulong;
-    rules_fired : bool;
+    rules_invoked : bool;
 }

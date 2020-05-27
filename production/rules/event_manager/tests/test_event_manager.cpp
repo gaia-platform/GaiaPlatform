@@ -38,7 +38,7 @@ public:
         rule = context->rule_binding.rule;
         event_type = context->event_type;
         gaia_type = context->gaia_type;
-        row = context->event_context;
+        row = context->record
         event_source = context->event_source;
         sequence.push_back(*context);
     }

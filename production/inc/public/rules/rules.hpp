@@ -75,7 +75,7 @@ struct subscription_t {
     const char* rule_name;
     gaia::common::gaia_type_t gaia_type;
     event_type_t type;
-    const char* field_name;
+    const uint16_t field;
 };
 
 /**
@@ -111,10 +111,16 @@ public:
         const rule_binding_t& a_binding, 
         gaia::common::gaia_type_t a_gaia_type,
         event_type_t a_event_type,
-        gaia_id_t a_row
-    );
-
+        gaia_id_t a_record)
+    : rule_binding(a_binding)
+    , gaia_type(a_gaia_type)
+    , event_type(a_event_type)
+    , record(a_record)
+    {
+    }
+    
     rule_context_t() = delete;
+
     const rule_binding_t rule_binding;
     gaia::common::gaia_type_t gaia_type;
     event_type_t event_type;
@@ -191,6 +197,20 @@ public:
 };
 
 /**
+ * invalid_subscription : public gaia::common::gaia_exception
+ */
+class invalid_subscription : public gaia::common::gaia_exception
+{
+public:
+    invalid_subscription(event_type_t event_type, const char * reason)
+    {
+        std::stringstream message;
+        message << "Cannot subscribe rule to " << (uint32_t)event_type << ". " << reason;
+        m_message = message.str();
+    }
+};
+
+/**
  * Initializes the rules engine.  Should only be called once
  * per process.
  * 
@@ -206,34 +226,16 @@ void initialize_rules_engine();
  * 
  * @param gaia_type table type to bind the rule to
  * @param event_type read or write field event
- * @param fields the set of fields that will cause this rule to be fired if changed
+ * @param fields the set of fields that will cause this rule to be fired if changed.  May be empty.
  * @param rule_binding caller-supplied rule information; this call will populate rule_name
  * @throw invalid_rule_binding
  * @throw duplicate_rule
  * @throw initialization_error
  */
-void subscribe_field_rule(
+void subscribe_rule(
     gaia::common::gaia_type_t gaia_type, 
     event_type_t event_type,
     const field_list_t& fields,
-    const rule_binding_t& rule_binding);
-
-/**
- * Subscribes this rule to the specified table event scoped to the gaia_type. 
- *  
- * Note that it is valid to bind multiple different rules to the same event.  
- * It is also valid to bind the same rule to multiple different events.
- * 
- * @param gaia_type table type to bind the rule to
- * @param event_type the table event type to bind this rule to
- * @param rule_binding caller-supplied rule information; this call will populate rule_name
- * @throw invalid_rule_binding
- * @throw duplicate_rule
- * @throw initialization_error
- */
-void subscribe_database_rule(
-    gaia::common::gaia_type_t gaia_type, 
-    event_type_t event_type, 
     const rule_binding_t& rule_binding);
 
 /**
@@ -247,25 +249,10 @@ void subscribe_database_rule(
  * @throw invalid_rule_binding
  * @throw initialization_error
  */
-bool unsubscribe_field_rule(
+bool unsubscribe_rule(
     gaia::common::gaia_type_t gaia_type, 
     event_type_t type, 
     const field_list_t& fields,
-    const rule_binding_t& rule_binding);
-
-/**
- * Unsubscribes this rule from the specified database event scoped by the gaia_type.
- * 
- * @param gaia_type table type to bind the rule to
- * @param type the event type to bind this rule to
- * @param rule_binding caller-supplied rule information
- * @return true if the rule was unsubscribed; false otherwise.
- * @throw invalid_rule_binding
- * @throw initialization_error
- */
-bool unsubscribe_database_rule(
-    gaia::common::gaia_type_t gaia_type, 
-    event_type_t type, 
     const rule_binding_t& rule_binding);
 
 /**
@@ -278,12 +265,12 @@ void unsubscribe_rules();
 /**
  * List all rules already subscribed to events.  
  * 
- * Enable filtering on ruleset name, gaia_type, field_name, and event_type.
+ * Enable filtering on ruleset name, gaia_type, event_type, and field.
  * 
  * @param ruleset_name Scope returned rules to specified rulset if provided.  May be null.
  * @param gaia_type Filter results by the object they refer to.  May be null.
- * @param event_type Filter by events you want.
- * @param field Filter by the field for field_read and field_write events.
+ * @param event_type Filter by event you want.
+ * @param field Filter by the field ordinal.
  * @param subscriptions Caller provided vector to hold the results.  This method will clear any existing
  *      entries before adding new ones.
  * @throw initialization_error
@@ -292,7 +279,7 @@ void list_subscribed_rules(
     const char* ruleset_name, 
     const gaia::common::gaia_type_t* gaia_type, 
     const event_type_t* event_type,
-    const char * field_name, 
+    const uint16_t* field, 
     subscription_list_t& subscriptions);
 
 /*@}*/

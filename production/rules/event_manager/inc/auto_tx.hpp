@@ -16,7 +16,7 @@ namespace rules
 // (gaia::db).  Because the storage engine does not currently support
 // nested transactions, we check to see whether we are currently in a transaction
 // before starting a new one.  This transaction will automatically rollback if
-// it goes out of scope and commit is not called.  Correct usage looks like:
+// it goes out of scope and commit is not called.
 class auto_tx_t
 {
 public:

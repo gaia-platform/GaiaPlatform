@@ -1,8 +1,7 @@
 
 #include <random>
-#include "AllEventsGaiaTests/tests/addr_book_gaia_generated.h"
+#include "GaiaTests/tests/addr_book_gaia_generated.h"
 #include "test_assert.h"
-#include "events.hpp"
 
 gaia_id_t get_next_id()
 {
@@ -10,50 +9,6 @@ gaia_id_t get_next_id()
     std::mt19937_64 gen(rd());
     std::uniform_int_distribution<uint64_t> dis;
     return dis(gen);
-}
-
-gaia::rules::event_type_t g_event_type;
-gaia::rules::event_mode_t g_event_mode;
-gaia::common::gaia_base_t* g_table_context;
-const char* g_field;
-
-namespace gaia 
-{
-    namespace rules
-    {
-        bool log_database_event(common::gaia_base_t* row, event_type_t type, event_mode_t mode)
-        {
-            g_event_type = type;
-            g_event_mode = mode;
-            g_table_context = row;
-            return true;
-        }
-
-        bool log_field_event(common::gaia_base_t* row, const char* field, event_type_t type, event_mode_t mode)
-        {
-            g_event_type = type;
-            g_event_mode = mode;
-            g_table_context = row;
-            g_field = field;
-            return true;
-
-        }
-    }
-}
-
-void verify_database_event(gaia::common::gaia_base_t* table_context, 
-    gaia::rules::event_type_t event_type, gaia::rules::event_mode_t mode)
-{
-    TEST_EQ(g_event_type, event_type);
-    TEST_EQ(g_event_mode, mode);
-    TEST_EQ(g_table_context, table_context);
-}
-
-void verify_field_event(gaia::common::gaia_base_t* table_context, const char* field,
-    gaia::rules::event_type_t event_type, gaia::rules::event_mode_t mode)
-{
-    verify_database_event(table_context, event_type, mode);
-    TEST_EQ_STR(g_field, field);
 }
 
 void GaiaGetTest()
@@ -134,8 +89,7 @@ void GaiaSetTest()
 
     pEmployee->set_ssn("test");
     TEST_EQ_STR("test",pEmployee->ssn());
-    verify_field_event(pEmployee, "ssn", gaia::rules::event_type_t::field_write, gaia::rules::event_mode_t::immediate);
-    
+
     commit_transaction();
 }
 
@@ -167,10 +121,8 @@ void GaiaUpdateTest()
 
     pEmployee->set_ssn("test");
     TEST_EQ_STR("test",pEmployee->ssn());
-    verify_field_event(pEmployee, "ssn", gaia::rules::event_type_t::field_write, gaia::rules::event_mode_t::immediate);
     
     pEmployee->update_row();
-    verify_database_event(pEmployee, gaia::rules::event_type_t::row_update, gaia::rules::event_mode_t::immediate);
 
     AddrBook::Employee *pEmployee1 = AddrBook::Employee::get_row_by_id(empl_node_id);
     TEST_EQ_STR("test",pEmployee1->ssn());
@@ -211,4 +163,3 @@ int main(int /*argc*/, const char * /*argv*/[])
     }
     return CloseTestEngine();
 }
-
