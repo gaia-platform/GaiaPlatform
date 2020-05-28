@@ -3,9 +3,9 @@
 // at: https://google.github.io/flatbuffers/flatbuffers_guide_tutorial.html
 /////////////////////////////////////////////
 
-#include "generated/monster_builder.h"
-
 #include <stdio.h>
+
+#include "generated/monster_builder.h"
 
 // Convenient namespace macro to manage long namespace prefix.
 #undef ns
@@ -178,7 +178,7 @@ void RunTutorialCode()
 {
     uint8_t* buf = 0;
     size_t size = 0;
-    
+
     SerializeEntity(&buf, &size);
 
     DeserializeEntity(buf);
