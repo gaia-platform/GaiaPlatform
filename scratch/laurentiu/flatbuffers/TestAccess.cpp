@@ -122,7 +122,13 @@ void PrintStructInformation(
             << ",\t offset=" << field->offset()
             << endl;
 
-        if (IsInteger(field->type()->base_type()))
+        if (field->type()->base_type() == reflection::Obj)
+        {
+            // Struct fields could be scalars or other structs.
+            // Monster example does not have such embedded structs,
+            // so we don't handle processing that scenario.
+        }
+        else if (IsInteger(field->type()->base_type()))
         {
             const int64_t& field_value = GetAnyFieldI(*struct_, *field);
             cout << indentation << "  value=[" << field_value << "]" << endl;
@@ -306,7 +312,7 @@ void AccessEntityWithReflection(uint8_t* buf)
         cout << "    value=[" << field_value << "]" << endl;
     }
 
-    // Go again through fields of Monster.
+    // Go again through fields of Monster using a different access method.
     cout << "\nExplore Monster data using specific field accessors:" << endl;
     PrintTableInformation(schema, root_table, monster_type);
 }
