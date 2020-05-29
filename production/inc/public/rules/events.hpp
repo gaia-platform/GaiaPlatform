@@ -43,45 +43,6 @@ enum class event_type_t : uint32_t {
     row_delete = 1 << 5,
 };
 
-/**
- * Thrown when the correct context information is not supplied for the
- * log event call.  Database events must have no context, row events
- * must have a row context, and field events must have both a row context
- * and a field name.
- */
-class invalid_context: public gaia::common::gaia_exception
-{
-public:
-    invalid_context()
-    {
-        m_message = "Transaction events must not have an associated row context.";
-    }
-    invalid_context(const gaia_base_t*)
-    {
-        m_message = "Row events must have an associated row context.";
-    }
-    invalid_context(const gaia_base_t*, const char*)
-    {
-        m_message = "Field events must have both a row context and field name.";
-    }
-};
-
-/**
- * Thrown when a specified event_type does not match the
- * log event call.  For example, if a field event type
- * is passed in for database log event call, then this exception
- * is thrown.
- */
-class invalid_event_type: public gaia::common::gaia_exception
-{
-public:
-    invalid_event_type(event_type_t event_type)
-    {
-        std::stringstream message;
-        message << "Invalid event type for operation: " << (uint32_t)event_type;
-        m_message = message.str();
-    }
-};
 /*@}*/
 }
 /*@}*/

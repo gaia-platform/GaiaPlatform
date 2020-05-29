@@ -90,6 +90,12 @@ typedef std::vector<std::unique_ptr<subscription_t>> subscription_list_t;
 typedef std::unordered_set<uint16_t> field_list_t;
 
 /**
+ * Use this constant to specify that no fields are needed for the
+ * subscribe_rule call.
+ */ 
+const field_list_t empty_fields;
+
+/**
  * The rule context wraps the event (or data) context as well as information 
  * about the event and rule metadata.  In the future the rule context may also 
  * maintain the error state of the rule invocation.  Therefore, the rule 
@@ -219,14 +225,15 @@ public:
 void initialize_rules_engine();
 
 /**
- * Subscribes this rule to a field change event (event_type_t::field_change).
+ * Subscribes this rule to one of:
+ * transaction operation (begin, commit, rollback)
+ * table operation (insert, update, delete)
+ * field references (update a specific field)
  * 
- * If any field that is part of the field list changes, then this rule
- * will be fired.
  * 
  * @param gaia_type table type to bind the rule to
  * @param event_type read or write field event
- * @param fields the set of fields that will cause this rule to be fired if changed.  May be empty.
+ * @param fields the set of fields that will cause this rule to be fired if changed.
  * @param rule_binding caller-supplied rule information; this call will populate rule_name
  * @throw invalid_rule_binding
  * @throw duplicate_rule

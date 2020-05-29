@@ -239,7 +239,8 @@ void event_manager_t::check_subscription(
     }
     else
     {
-        if (event_type == event_type_t::row_delete)
+        if (event_type == event_type_t::row_delete
+            || event_type == event_type_t::row_insert)
         {
             if (fields.size() > 0)
             {
