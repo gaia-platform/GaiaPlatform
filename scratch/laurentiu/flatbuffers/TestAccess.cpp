@@ -147,8 +147,8 @@ void PrintStructInformation(
 }
 
 void PrintTableInformation(
-    const reflection::Schema* schema,
     const Table* table,
+    const reflection::Schema* schema,
     const reflection::Object* type,
     int indentation_level = 1)
 {
@@ -234,7 +234,7 @@ void PrintTableInformation(
                     else
                     {
                         const Table* obj_table = GetAnyVectorElemPointer<const Table>(field_value, j);
-                        PrintTableInformation(schema, obj_table, obj_type, indentation_level + 2);
+                        PrintTableInformation(obj_table, schema, obj_type, indentation_level + 2);
                     }
                 }
             }
@@ -266,7 +266,7 @@ void PrintTableInformation(
             else
             {
                 const Table* obj_table = GetFieldT(*table, *field);
-                PrintTableInformation(schema, obj_table, obj_type, indentation_level + 1);
+                PrintTableInformation(obj_table, schema, obj_type, indentation_level + 1);
             }
         }
     }
@@ -279,7 +279,7 @@ void AccessEntityWithReflection(uint8_t* buf)
     char* data = nullptr;
     int length = 0;
 
-    cout << "\nLoading monster.bfbs..." << endl;
+    cout << "\nLoading schema from file [monster.bfbs]..." << endl;
     LoadFileData("monster.bfbs", data, length);
     const reflection::Schema* schema = reflection::GetSchema(data);
 
@@ -292,22 +292,37 @@ void AccessEntityWithReflection(uint8_t* buf)
         cout << "  " << type->name()->c_str() << endl;
     }
 
-    // List enums.
+    // List root type.
+    auto root_type = schema->root_table();
+    cout << "\nSchema root type is: " << root_type->name()->c_str() << endl;
+
+    // List enums and their values.
     cout << "\nSchema contains enums:" << endl;
     auto enums = schema->enums();
     for (size_t i = 0; i < enums->Length(); i++)
     {
         const reflection::Enum* enum_ = enums->Get(i);
         cout << "  " << enum_->name()->c_str() << endl;
+        cout << "    is_union=" << (enum_->is_union() ? 1 : 0) << endl;
+        cout << "    underlying_type=" << reflection::EnumNameBaseType(enum_->underlying_type()->base_type()) << endl;
+
+        const Vector<Offset<reflection::EnumVal>>* enum_values = enum_->values();
+
+        for (size_t j = 0; j < enum_values->Length(); j++)
+        {
+            auto enum_value = enum_values->Get(j);
+            cout << "    enum value " << j << ":" << endl;
+            cout << "      name=" << enum_value->name()->c_str() << endl;
+            cout << "      value=" << enum_value->value() << endl;
+        }
     }
 
     // Get root table of serialized data.
     const Table* root_table = GetAnyRoot(buffer_pointer);
 
-    // Go through fields of Monster.
-    cout << "\nExplore Monster data using generic string field accessor:" << endl;
-    auto monster_type = types->LookupByKey("Flatbuffers.Monster.Monster");
-    auto fields = monster_type->fields();
+    // Go through fields of the serialized object.
+    cout << "\nExplore data using generic string field accessor:" << endl;
+    auto fields = root_type->fields();
     for (size_t i = 0; i < fields->Length(); i++)
     {
         auto field = fields->Get(i);
@@ -321,9 +336,9 @@ void AccessEntityWithReflection(uint8_t* buf)
         cout << "    value=[" << field_value << "]" << endl;
     }
 
-    // Go again through fields of Monster using a different access method.
-    cout << "\nExplore Monster data using specific field accessors:" << endl;
-    PrintTableInformation(schema, root_table, monster_type);
+    // Go again through fields of the serialized object using a different access method.
+    cout << "\nExplore data using specific field accessors:" << endl;
+    PrintTableInformation(root_table, schema, root_type);
 }
 
 void TestAccess()
