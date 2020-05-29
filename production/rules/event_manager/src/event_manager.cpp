@@ -42,14 +42,14 @@ event_manager_t::event_manager_t()
 void event_manager_t::init()
 {
     // TODO: Check a configuration setting for the number of threads to create.
-    // For now, let the thread pool create an OS thread for each hardware thread
-    // available on the platform.
-    m_invocations.reset(new rule_thread_pool_t());
+    // For now, execute in immediate mode and do not have multiple threads
+    uint32_t num_threads = 0;
+    m_invocations.reset(new rule_thread_pool_t(num_threads));
     m_is_initialized = true;
 }
 
 // TODO: the first parameter is the transaction id and it is currently unused.
-void event_manager_t::commit_trigger(uint32_t, trigger_event_t* events, uint16_t num_events)
+void event_manager_t::commit_trigger(uint32_t, trigger_event_t* events, uint16_t num_events, bool immediate)
 {
     for (uint16_t i = 0; i < num_events; i++)
     {
@@ -108,13 +108,19 @@ void event_manager_t::commit_trigger(uint32_t, trigger_event_t* events, uint16_t
             }
         }
 
-        // Log the event to our table regardless of whether any 
-        // rules were  invoked.
+        // Log the event to our table regardless of whether any  rules will be invoked.
         log_to_db(event, rules_invoked);
+    }
+
+    if (immediate)
+    {
+        // execute any rules that were queued on the immediate queue
+        m_invocations->execute_immediate();
     }
 }
 
-void event_manager_t::enqueue_invocation(const trigger_event_t* event, const _rule_binding_t* binding)
+void event_manager_t::enqueue_invocation(const trigger_event_t* event, 
+    const _rule_binding_t* binding)
 {
     rule_context_t context({binding->ruleset_name.c_str(), binding->rule_name.c_str(), binding->rule}, 
         event->gaia_type, event->event_type, event->record_id);
@@ -594,4 +600,9 @@ void gaia::rules::list_subscribed_rules(
 {
     event_manager_t::get().list_subscribed_rules(ruleset_name, gaia_type,
         event_type, field, subscriptions);
+}
+
+void gaia::rules::commit_trigger(uint32_t tx_id, trigger_event_t* events, uint16_t num_events, bool immediate)
+{
+    event_manager_t::get().commit_trigger(tx_id, events, num_events, immediate);
 }

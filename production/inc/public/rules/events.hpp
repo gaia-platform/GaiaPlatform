@@ -82,7 +82,6 @@ public:
         m_message = message.str();
     }
 };
-
 /*@}*/
 }
 /*@}*/

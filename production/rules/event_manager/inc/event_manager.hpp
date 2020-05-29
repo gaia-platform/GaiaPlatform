@@ -5,15 +5,18 @@
 #pragma once
 
 #include <unordered_map>
+#include <queue>
 #include "rules.hpp"
 #include "event_guard.hpp"
 #include "event_log_gaia_generated.h"
 #include "rule_thread_pool.hpp"
+#include "mock_trigger.hpp"
 
 namespace gaia 
 {
 namespace rules
 {
+
 
 /**
  * Implementation class for event and rule APIs defined
@@ -62,25 +65,8 @@ public:
      * be a friend class.  This structure and associated commit_trigger
      * function should not be callable by the rule author.
      */
-    struct trigger_event_t {
-        event_type_t event_type; // insert, update, delete, begin, commit, rollback
-        gaia_type_t gaia_type; // gaia table type, maybe 0 if event has no associated table
-        gaia_id_t  record_id; //row id, may be 0 if if there is no assocated row id
-        const uint16_t* column_ids; // list of affected columns, may be null
-        uint16_t num_column_ids; // count of affected columsn, may be zero
-    };
+    void commit_trigger(uint32_t tx_id, trigger_event_t* events, uint16_t num_events, bool immediate);
 
-    /**
-    * Internal trigger function that is called by the high level storage engine when
-    * a commit occurs.
-    * Needs to be thread safe and re-entrant
-    * 
-    * @param tx_id Transaction id that has just been committed.
-    * @param events All the events that were part of this transaction.  May be null if this commit had no events.
-    * @param num_events May be 0 if this commit had no events.
-    */ 
-    void commit_trigger(uint32_t tx_id, trigger_event_t* events, uint16_t num_events);
-    
 private:
     // Internal rule binding to copy the callers
     // rule data and hold on to it.  This will be

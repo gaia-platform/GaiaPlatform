@@ -23,8 +23,11 @@ public:
     /**
      * Construct a thread pool used for executing rules.
      * 
-     * @param num_threads create a pool with this many worker threads
+     * @param num_threads create a pool with this many worker threads.  If 0 threads are specified
+     *   then the thread pool is in "immediate" mode
      */ 
+
+    // get rid of back pointer to an_event_manager!
     rule_thread_pool_t(uint32_t num_threads);
 
 
@@ -45,9 +48,17 @@ public:
      * that a rule is ready to be invoked.
      * 
      * @param invocation the context of the rule to invoke.  Note that the 
-     *  context includes the rule function pointer itself.
+     *   context includes the rule function pointer itself.
+     * @param immediate if True then the rule is invoked immediately instead of
+     *   begin placed in the queue.
      */ 
     void enqueue(rule_context_t& invocation);
+
+    /**
+     * Executes all rules in the queue.  This method can only be called
+     * if the thread pool was initialized with 0 threads
+     */
+    void execute_immediate();
 
     /**
      * Returns the number of worker threads this thread pool is managing.
@@ -57,15 +68,21 @@ public:
     uint32_t get_num_threads();
 
 private:
-    // our thread worker function
-    typedef void (* rule_thread_fn)();
-    void invoke_rule();
-
+    void rule_worker();
+    void invoke_rule(const rule_context_t* context);
     void init(uint32_t num_threads);
+    void process_pending_invocations(bool should_schedule);
 
+private:
+    // Each thread has a copy of these two variables to determine
+    // whether pending rule invocations can be scheduled or they
+    // have to wait.  If they have to wait then it is the responsibility
+    // of the thread they are waiting on to move them over.
+    static thread_local bool s_tls_can_enqueue;
+    static thread_local queue<rule_context_t> s_tls_pending_invocations;
 
     /**
-     * queue from which worker thread draw their invocations
+     * Queue from which worker thread draw their invocations.
      */
     queue<rule_context_t> m_invocations;
 

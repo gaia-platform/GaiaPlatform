@@ -6,12 +6,20 @@
 #include "retail_assert.hpp"
 #include "rule_thread_pool.hpp"
 #include "auto_tx.hpp"
+#include "event_manager.hpp"
 
 #include <cstring>
 
 using namespace gaia::rules;
 using namespace gaia::common;
 using namespace std;
+
+/**
+ * Thread local variable instances
+ */
+thread_local bool rule_thread_pool_t::s_tls_can_enqueue = true;
+thread_local queue<rule_context_t> rule_thread_pool_t::s_tls_pending_invocations;
+
 
 rule_thread_pool_t::rule_thread_pool_t(uint32_t num_threads)
 {
@@ -28,9 +36,9 @@ void rule_thread_pool_t::init(uint32_t num_threads)
     m_exit = false;
     m_num_threads = num_threads;
 
-    for (size_t i = 0; i < num_threads; i++)
+    for (uint32_t i = 0; i < num_threads; i++)
     {
-        thread worker([this]{ this->invoke_rule();});
+        thread worker([this]{ this->rule_worker();});
         m_threads.push_back(move(worker));
     }
 }
@@ -43,24 +51,62 @@ uint32_t rule_thread_pool_t::get_num_threads()
 // Shutdown all threads in the pool
 rule_thread_pool_t::~rule_thread_pool_t()
 {
-    m_exit = true;
-    m_has_invocations.notify_all();
-    for (thread& worker : m_threads)
+    if (m_num_threads > 0)
     {
-        worker.join();
+        m_exit = true;
+        m_has_invocations.notify_all();
+        for (thread& worker : m_threads)
+        {
+            worker.join();
+        }
+    }
+}
+
+void rule_thread_pool_t::execute_immediate()
+{
+    retail_assert(m_num_threads == 0, "Thread pool should have 0 workers for executing immediate!");
+
+    // If s_tls_can_enqueue is false then this means that a rule
+    // is in the middle of executing and issued a commit.  We have to wait
+    // until the last commit is done, however, so keep queueing.  The top
+    // level call to execute_immediate will drain the queue.  Since this
+    // all happens on the same thread, it is safe (unless the empty() method
+    // caches a value and we don't drain the queue)
+    if (s_tls_can_enqueue)
+    {
+        while (!m_invocations.empty())
+        {
+            rule_context_t context = m_invocations.front();
+            m_invocations.pop();
+            invoke_rule(&context);
+        }
     }
 }
 
 void rule_thread_pool_t::enqueue(rule_context_t& invocation)
 {
-    unique_lock<mutex> lock(m_lock);
-    m_invocations.push(invocation);
-    lock.unlock();
-    m_has_invocations.notify_one();
+    if (s_tls_can_enqueue)
+    {
+        if (m_num_threads > 0)
+        {
+            unique_lock<mutex> lock(m_lock);
+            m_invocations.push(invocation);
+            lock.unlock();
+            m_has_invocations.notify_one();
+        }
+        else
+        {
+            m_invocations.push(invocation);
+        }
+    }
+    else
+    {
+        s_tls_pending_invocations.push(invocation);
+    }
 }
 
-// thread worker function
-void rule_thread_pool_t::invoke_rule()
+// Thread worker function.
+void rule_thread_pool_t::rule_worker()
 {
     unique_lock<mutex> lock(m_lock, defer_lock);
 
@@ -81,9 +127,51 @@ void rule_thread_pool_t::invoke_rule()
         m_invocations.pop();
         lock.unlock();
 
-        // Invoke the rule
-        // UNDONE: handle errors
-        // UNDONE: start transaction
-        context.rule_binding.rule(&context);
+        invoke_rule(&context);
+    }
+}
+
+void rule_thread_pool_t::invoke_rule(const rule_context_t* context)
+{
+    s_tls_can_enqueue = false;
+    bool should_schedule = false;
+    try
+    {
+        gaia::db::gaia_mem_base::tx_begin();
+        context->rule_binding.rule(context);
+        // The rule may have committed the thread transaction
+        // so don't try to commit it again.
+        if (gaia::db::gaia_mem_base::is_tx_active())
+        {
+            gaia::db::commit_transaction();
+        }
+        should_schedule = true;
+    }
+    catch(const std::exception& e)
+    {
+        if (gaia::db::gaia_mem_base::is_tx_active())
+        {
+            gaia::db::rollback_transaction();
+        }
+        // TODO: Log an error in an error table here.
+        // TODO: Add retry logic for concurrency violation exception.
+        // TODO: Catch all exceptions or let terminate happen?
+        // TODO: Don't drop pending rules on the floor (should_schedule == false)
+        // TODO: when we add retry logic.
+    }
+    s_tls_can_enqueue = true;
+    process_pending_invocations(should_schedule);
+}
+
+void rule_thread_pool_t::process_pending_invocations(bool should_schedule)
+{
+    while(!s_tls_pending_invocations.empty())
+    {
+        if (should_schedule)
+        {
+            rule_context_t context = s_tls_pending_invocations.front();
+            enqueue(context);
+        }
+        s_tls_pending_invocations.pop();
     }
 }
