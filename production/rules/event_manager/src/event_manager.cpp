@@ -41,14 +41,15 @@ event_manager_t::event_manager_t()
 
 void event_manager_t::init()
 {
-    // TODO: Check a configuration setting for the number of threads to create.
+    // TODO[GAIAPLAT-111]: Check a configuration setting for the number of threads to create.
     // For now, execute in immediate mode and do not have multiple threads
     uint32_t num_threads = 0;
     m_invocations.reset(new rule_thread_pool_t(num_threads));
     m_is_initialized = true;
 }
 
-// TODO: the first parameter is the transaction id and it is currently unused.
+// TODO[GAIAPLAT-156]: Finalize the after commit trigger. Right now the proposed transaction id
+// argument is unused.
 void event_manager_t::commit_trigger(uint32_t, trigger_event_t* events, uint16_t num_events, bool immediate)
 {
     for (uint16_t i = 0; i < num_events; i++)
@@ -226,7 +227,7 @@ void event_manager_t::check_subscription(
 {
     if (is_transaction_event(event_type))
     {
-        // TODO: use a constant for a non-zero gaia_type
+        // TODO[GAIAPLAT-157]: use a constant for a non-zero gaia_type
         if (gaia_type != 0)
         {
             throw invalid_subscription(event_type, "The gaia_type must be zero.");
@@ -524,8 +525,9 @@ void event_manager_t::log_to_db(const trigger_event_t* event, bool rules_invoked
 
     uint64_t timestamp = (uint64_t)time(NULL);
 
-    // UNDONE:  when we support arrays in flatbuffers then we can pass in the 
-    // column ordinals.  Until then, just pick out the first of the list.
+    // TODO[GAIAPLAT-101]: add support for arrys of simple types
+    // When we have this support we can support the array of changed column fields
+    // in our event log.  Until then, just pick out the first of the list.
     uint16_t column_id = 0;
     if (event->num_column_ids > 0)
     {

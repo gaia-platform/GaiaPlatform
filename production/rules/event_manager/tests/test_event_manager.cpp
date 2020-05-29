@@ -250,15 +250,13 @@ void rule5(const rule_context_t* context)
     trigger_event_t trigger_events[] = {
         // Allow same event, we should not be re-entrant cause rules are only fired
         // after the rule invocation returns
-        // UNDONE: not re-entrant, but a cycle!
+        // TODO[GAIAPLAT-155]: Determine how the rule schedule deals with cycles
         //{context->event_type, context->gaia_type, context->record, nullptr, 0},
         // Allow event call on different gaia_type.
         {context->event_type, TestGaia2::s_gaia_type, context->record, nullptr, 0},
         // Allow event call on different event_type.
         {event_type_t::row_insert, context->gaia_type, test_gaia_ptr->gaia_id(), nullptr, 0}
     };
-    // UNDONE: not reentrant
-    //commit_trigger(0, trigger_events, 3, true);
     commit_trigger(0, trigger_events, 2, true);
 }
 
@@ -312,7 +310,7 @@ void rule8(const rule_context_t* context)
  * Attempts to forward chain to 
  * [Rule 10] TestGaia.timestamp write
  * 
- * UNDONE: forward chaining to self should be disallowed
+ * TODO[GAIAPLAT-155]: forward chaining to self should be disallowed
  */
 void rule9(const rule_context_t* context)
 {
@@ -336,7 +334,7 @@ void rule10(const rule_context_t* context)
 {
     g_context_checker.set(context);
 
-    //UNDONE: reentrancy check
+    //TODO[GAIAPLAT-155]
     //trigger_event_t event = {event_type_t::row_update, TestGaia::s_gaia_type, context->record, &s_value, 1};
     //commit_trigger(0, &event, 1, true);
 }
@@ -415,12 +413,10 @@ class event_manager_test : public ::testing::Test
 protected:
     virtual void SetUp()
     {
-        //begin_transaction();
     }
 
     virtual void TearDown()
     {
-        //commit_transaction();
         unsubscribe_rules();
         g_context_checker.reset(true);
 
@@ -550,6 +546,7 @@ protected:
     uint64_t clear_event_log()
     {
       uint64_t rows_cleared = 0;
+      gaia::db::begin_transaction();
       log_entry_t entry(Event_log::get_first());
       while(entry)
       {
@@ -557,6 +554,7 @@ protected:
           entry.reset(Event_log::get_first());
           rows_cleared++;
       }
+      gaia::db::commit_transaction();
       return rows_cleared;
     }
 
@@ -1139,10 +1137,7 @@ TEST_F(event_manager_test, forward_chain_field)
 
 TEST_F(event_manager_test, event_logging_no_subscriptions)
 {
-    //DAX:  clean this up
-    gaia::db::begin_transaction();
     clear_event_log();
-    gaia::db::commit_transaction();
 
     gaia_id_t record = 11;
 
@@ -1154,7 +1149,6 @@ TEST_F(event_manager_test, event_logging_no_subscriptions)
     commit_trigger(0, events, 2, true);
 
     gaia::db::begin_transaction();
-    
     log_entry_t entry(Event_log::get_first());
     verify_event_log_row(*entry, event_type_t::row_update, 
         TestGaia::s_gaia_type, record, s_last_name, false);
@@ -1162,67 +1156,44 @@ TEST_F(event_manager_test, event_logging_no_subscriptions)
     entry.reset(entry->get_next());
     verify_event_log_row(*entry, event_type_t::transaction_commit, 
         0, 0, 0, false);
+    gaia::db::commit_transaction();
 
     // Verify we only have two entries in the table.
     entry.reset();
     EXPECT_EQ(2, clear_event_log());
-    gaia::db::commit_transaction();
 }
 
-/*
 TEST_F(event_manager_test, event_logging_subscriptions)
 {
     clear_event_log();
     setup_all_rules();
 
+    gaia_id_t record = 7000;
+
     // Log events with subscriptions and ensure the table is populated.
-    EXPECT_EQ(true, log_field_event(&m_row2, "first_name", event_type_t::field_write, event_mode_t::immediate));
-    EXPECT_EQ(true, log_database_event(&m_row2, event_type_t::row_insert, event_mode_t::immediate));
-    EXPECT_EQ(true, log_database_event(nullptr, event_type_t::transaction_begin, event_mode_t::immediate));
+    trigger_event_t events[] = {
+        {event_type_t::row_update, TestGaia2::s_gaia_type, record, &s_first_name, 1},
+        {event_type_t::row_insert, TestGaia2::s_gaia_type, record + 1, nullptr, 0},
+        {event_type_t::transaction_begin, 0, 0, nullptr, 0}
+    };
+    commit_trigger(0, events, 3);
 
+    gaia::db::begin_transaction();
     log_entry_t entry(Event_log::get_first());
-    verify_event_log_row(*entry, TestGaia2::s_gaia_type, 
-        event_type_t::field_write, event_mode_t::immediate, "TestGaia2.first_name", 0, true); 
+    verify_event_log_row(*entry, event_type_t::row_update, 
+        TestGaia2::s_gaia_type, record, s_first_name, true);
 
     entry.reset(entry->get_next());
-    verify_event_log_row(*entry, TestGaia2::s_gaia_type, 
-        event_type_t::row_insert, event_mode_t::immediate, "TestGaia2", 0, true); 
+    verify_event_log_row(*entry, event_type_t::row_insert, 
+        TestGaia2::s_gaia_type, record + 1, 0, true); 
 
     entry.reset(entry->get_next());
-    verify_event_log_row(*entry, 0, 
-        event_type_t::transaction_begin, event_mode_t::immediate, "", 0, true); 
+    verify_event_log_row(*entry, event_type_t::transaction_begin, 0, 0, 0, true);
 
+    gaia::db::commit_transaction();
     entry.reset();
     EXPECT_EQ(3, clear_event_log());
 }
-
-TEST_F(event_manager_test, event_logging_no_active_tx)
-{
-    clear_event_log();
-    setup_all_rules();
-
-    // Compensate for begin_transaction() in test fixture Setup()
-    rollback_transaction();
-    EXPECT_EQ(false, gaia_mem_base::is_tx_active());
-
-    EXPECT_EQ(true, log_database_event(nullptr, event_type_t::transaction_commit, event_mode_t::immediate));
-    EXPECT_EQ(true, log_database_event(nullptr, event_type_t::transaction_rollback, event_mode_t::immediate));
-
-    // Note that this transaction will be commited in test fixture TearDown().
-    // We need it to verify that the correct records were written in our event log.
-    begin_transaction();
-    log_entry_t entry(Event_log::get_first());
-    EXPECT_TRUE(entry != nullptr);
-    verify_event_log_row(*entry, 0, 
-        event_type_t::transaction_commit, event_mode_t::immediate, "", 0, true); 
-
-    entry.reset(entry->get_next());
-    verify_event_log_row(*entry, 0, 
-        event_type_t::transaction_rollback, event_mode_t::immediate, "", 0, true); 
-    entry.reset();
-    EXPECT_EQ(2, clear_event_log());
-}
-*/
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

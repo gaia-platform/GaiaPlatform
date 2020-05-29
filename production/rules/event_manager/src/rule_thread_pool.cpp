@@ -153,11 +153,10 @@ void rule_thread_pool_t::invoke_rule(const rule_context_t* context)
         {
             gaia::db::rollback_transaction();
         }
-        // TODO: Log an error in an error table here.
-        // TODO: Add retry logic for concurrency violation exception.
-        // TODO: Catch all exceptions or let terminate happen?
-        // TODO: Don't drop pending rules on the floor (should_schedule == false)
-        // TODO: when we add retry logic.
+        // TODO[GAIAPLAT-129]: Log an error in an error table here.
+        // TODO[GAIAPLAT-158]: Determine retry/error handling logic
+        // Catch all exceptions or let terminate happen? Don't drop pending 
+        // rules on the floor (should_schedule == false) when we add retry logic.
     }
     s_tls_can_enqueue = true;
     process_pending_invocations(should_schedule);
