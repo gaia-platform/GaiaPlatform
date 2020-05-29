@@ -26,8 +26,6 @@ public:
      * @param num_threads create a pool with this many worker threads.  If 0 threads are specified
      *   then the thread pool is in "immediate" mode
      */ 
-
-    // get rid of back pointer to an_event_manager!
     rule_thread_pool_t(uint32_t num_threads);
 
 
