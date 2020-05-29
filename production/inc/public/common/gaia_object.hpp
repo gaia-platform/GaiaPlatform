@@ -168,13 +168,12 @@ private:
 class edc_invalid_object_type: public gaia_exception
 {
 public:
-    edc_invalid_object_type(gaia_type_t expected, gaia_base_t* x_obj, gaia_id_t id,
-        const char* type_name, gaia_type_t actual) {
+    edc_invalid_object_type(gaia_id_t id, gaia_type_t expected, const char* expected_type,
+        gaia_type_t actual, const char* type_name) {
         stringstream msg;
-        msg << "requesting Gaia type " << x_obj->gaia_typename() << "(" << expected << ") but object identified by "
+        msg << "requesting Gaia type " << expected_type << "(" << expected << ") but object identified by "
             << id << " is type " << type_name << "(" << actual << ")";
         m_message = msg.str();
-        delete x_obj;
     }
 };
 
@@ -303,7 +302,7 @@ public:
     {
         if (m_copy) {
             auto node_ptr = gaia_se_node::open(m_id);
-            if (nullptr == node_ptr) {
+            if (!node_ptr) {
                 throw invalid_node_id(m_id);
             }
             auto u = T_fb::Pack(*m_fbb, m_copy.get());
@@ -320,7 +319,7 @@ public:
     void delete_row()
     {
         auto node_ptr = gaia_se_node::open(m_id);
-        if (nullptr == node_ptr) {
+        if (!node_ptr) {
             throw invalid_node_id(m_id);
         }
 
@@ -365,7 +364,7 @@ protected:
      */
     T_obj* copy_write()
     {
-        if (m_copy == nullptr) {
+        if (!m_copy) {
             m_copy.reset(new T_obj());
             if (m_fb) {
                 m_fb->UnPackTo(m_copy.get());
@@ -379,23 +378,26 @@ private:
     static T_gaia* get_object(gaia_ptr<gaia_se_node>& node_ptr)
     {
         T_gaia* obj = nullptr;
-        if (node_ptr != nullptr) {
+        if (node_ptr) {
             auto it = s_gaia_cache.find(node_ptr->id);
             if (it != s_gaia_cache.end()) {
                 obj = dynamic_cast<T_gaia *>(it->second);
-                if (obj == nullptr) {
-                    auto x_obj = new T_gaia(0);
-
-                    throw edc_invalid_object_type(T_gaia_type, x_obj, node_ptr->id,
-                            ((gaia_base_t *)(it->second))->gaia_typename(),
-                            ((gaia_base_t *)(it->second))->gaia_type());
+                if (!obj) {
+                    // The T_gaia object will contain the type name we want for the exception.
+                    T_gaia expected;
+                    gaia_base_t * actual = (gaia_base_t *)(it->second);
+                    throw edc_invalid_object_type(node_ptr->id,
+                        expected.gaia_type(),
+                        expected.gaia_typename(),
+                        actual->gaia_type(),
+                        actual->gaia_typename());
                 }
             }
             else {
                 obj = new T_gaia(node_ptr->id);
                 s_gaia_cache.insert(pair<gaia_id_t, gaia_base_t *>(node_ptr->id, obj));
             }
-            if (obj->m_fb == nullptr) {
+            if (!obj->m_fb) {
                 auto fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);
                 obj->m_fb = fb;
                 obj->m_id = node_ptr->id;

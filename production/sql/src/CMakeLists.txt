@@ -39,6 +39,8 @@ set_target_properties(
 add_dependencies(gaia_fdw gen_fbs)
 # our private headers
 target_include_directories(gaia_fdw PRIVATE "${PROJECT_SOURCE_DIR}/inc")
+# common internal headers
+target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/public/common")
 # for flatbuffers generated code
 target_include_directories(gaia_fdw SYSTEM PRIVATE "${GEN_DIR}")
 # for postgres
