@@ -239,11 +239,20 @@ void PrintTableInformation(
                 }
             }
         }
-        else if (field->type()->base_type() == reflection::Obj)
+        else if (field->type()->base_type() == reflection::Obj
+            || field->type()->base_type() == reflection::Union)
         {
             // Lookup type of object.
-            auto types = schema->objects();
-            const reflection::Object* obj_type = types->Get(field->type()->index());
+            const reflection::Object* obj_type = nullptr;
+            if (field->type()->base_type() == reflection::Obj)
+            {
+                auto types = schema->objects();
+                obj_type = types->Get(field->type()->index());
+            }
+            else if (field->type()->base_type() == reflection::Union)
+            {
+                obj_type = &GetUnionType(*schema, *type, *field, *table);
+            }
 
             cout << indentation << "  object type=" << obj_type->name()->c_str()
                 << "\t is_struct=" << obj_type->is_struct() << endl;
