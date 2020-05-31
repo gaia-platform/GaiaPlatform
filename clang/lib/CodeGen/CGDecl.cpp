@@ -41,6 +41,7 @@ using namespace CodeGen;
 
 void CodeGenFunction::EmitDecl(const Decl &D) {
   switch (D.getKind()) {
+  case Decl::Ruleset:
   case Decl::BuiltinTemplate:
   case Decl::TranslationUnit:
   case Decl::ExternCContext:

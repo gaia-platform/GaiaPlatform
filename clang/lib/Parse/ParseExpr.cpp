@@ -1417,8 +1417,21 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
     return ParseExpressionTrait();
 
   case tok::at: {
-    SourceLocation AtLoc = ConsumeToken();
-    return ParseObjCAtExpression(AtLoc);
+      if (getLangOpts().Gaia)
+      {
+          ConsumeToken();
+          if (Tok.is(tok::identifier))
+          {
+              return ParseCastExpression(isUnaryExpression,
+                isAddressOfOperand,
+                NotCastExpr,
+                isTypeCast,
+                isVectorLiteral);
+          }
+      }
+      
+      SourceLocation AtLoc = ConsumeToken();
+      return ParseObjCAtExpression(AtLoc); 
   }
   case tok::caret:
     Res = ParseBlockLiteralExpression();

@@ -237,6 +237,9 @@ namespace  {
     void VisitOMPRequiresDecl(const OMPRequiresDecl *D);
     void VisitOMPCapturedExprDecl(const OMPCapturedExprDecl *D);
 
+    // Gaia Decl
+    void VisitRulesetDecl(const RulesetDecl *D);
+
     // C++ Decls
     void VisitNamespaceDecl(const NamespaceDecl *D);
     void VisitUsingDirectiveDecl(const UsingDirectiveDecl *D);
@@ -800,6 +803,12 @@ void ASTDumper::VisitOMPCapturedExprDecl(const OMPCapturedExprDecl *D) {
   dumpStmt(D->getInit());
 }
 
+//===----------------------------------------------------------------------===//
+// Gaia Declarations
+//===----------------------------------------------------------------------===//
+void ASTDumper::VisitRulesetDecl(const RulesetDecl *D) {
+  NodeDumper.dumpName(D);
+}
 //===----------------------------------------------------------------------===//
 // C++ Declarations
 //===----------------------------------------------------------------------===//

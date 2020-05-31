@@ -2164,6 +2164,25 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
   if (R.isAmbiguous())
     return ExprError();
 
+  if (R.empty())
+  {
+      DeclContext *DC = S->getEntity();
+      if (DC)
+      {
+        if (FunctionDecl *FD = dyn_cast<FunctionDecl>(DC))
+        {
+            if (FD->hasAttr<RuleAttr>())
+            {
+                NamedDecl *D = InjectVariableDefinition(II);
+                if (D) 
+                {
+                    R.addDecl(D);
+                }
+            }
+        }
+      }
+  }
+
   // This could be an implicitly declared function reference (legal in C90,
   // extension in C99, forbidden in C++).
   if (R.empty() && HasTrailingLParen && II && !getLangOpts().CPlusPlus) {

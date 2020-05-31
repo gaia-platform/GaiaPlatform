@@ -1500,6 +1500,7 @@ DEF_TRAVERSE_DECL(NamespaceAliasDecl, {
 
 DEF_TRAVERSE_DECL(LabelDecl, {// There is no code in a LabelDecl.
                              })
+DEF_TRAVERSE_DECL( RulesetDecl, {})
 
 DEF_TRAVERSE_DECL(
     NamespaceDecl,

@@ -703,6 +703,8 @@ bool Decl::isWeakImported() const {
 
 unsigned Decl::getIdentifierNamespaceForKind(Kind DeclKind) {
   switch (DeclKind) {
+    case Ruleset:
+      return IDNS_Ruleset;
     case Function:
     case CXXDeductionGuide:
     case CXXMethod:
@@ -1164,6 +1166,7 @@ DeclContext *DeclContext::getPrimaryContext() {
   case Decl::Block:
   case Decl::Captured:
   case Decl::OMPDeclareReduction:
+  case Decl::Ruleset:
     // There is only one DeclContext for these entities.
     return this;
 

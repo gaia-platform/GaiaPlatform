@@ -1329,6 +1329,7 @@ LinkageInfo LinkageComputer::computeLVForDecl(const NamedDecl *D,
     case Decl::Using:
     case Decl::UsingShadow:
     case Decl::UsingDirective:
+    case Decl::Ruleset:
       return LinkageInfo::none();
 
     case Decl::EnumConstant:

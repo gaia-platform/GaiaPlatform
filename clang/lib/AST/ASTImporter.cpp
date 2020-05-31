@@ -456,6 +456,7 @@ namespace clang {
     ExpectedDecl VisitAccessSpecDecl(AccessSpecDecl *D);
     ExpectedDecl VisitStaticAssertDecl(StaticAssertDecl *D);
     ExpectedDecl VisitTranslationUnitDecl(TranslationUnitDecl *D);
+    ExpectedDecl VisitRulesetDecl(RulesetDecl *D);
     ExpectedDecl VisitNamespaceDecl(NamespaceDecl *D);
     ExpectedDecl VisitNamespaceAliasDecl(NamespaceAliasDecl *D);
     ExpectedDecl VisitTypedefNameDecl(TypedefNameDecl *D, bool IsAlias);
@@ -2155,6 +2156,80 @@ ExpectedDecl ASTNodeImporter::VisitStaticAssertDecl(StaticAssertDecl *D) {
   ToD->setLexicalDeclContext(LexicalDC);
   LexicalDC->addDeclInternal(ToD);
   return ToD;
+}
+
+ExpectedDecl ASTNodeImporter::VisitRulesetDecl(RulesetDecl *D)
+{
+    // Import the major distinguishing characteristics of this ruleset.
+    DeclContext *DC, *LexicalDC;
+    DeclarationName Name;
+    SourceLocation Loc;
+    NamedDecl *ToD;
+    if (Error Err = ImportDeclParts(D, DC, LexicalDC, Name, ToD, Loc))
+    {
+        return std::move(Err);
+    }
+    if (ToD)
+    {
+        return ToD;
+    }
+
+    RulesetDecl *MergeWithRuleset = nullptr;
+    SmallVector<NamedDecl *, 4> ConflictingDecls;
+    auto FoundDecls = Importer.findDeclsInToCtx(DC, Name);
+    for (auto *FoundDecl : FoundDecls) 
+    {
+        if (!FoundDecl->isInIdentifierNamespace(Decl::IDNS_Ruleset))
+        {
+            continue;
+        }
+
+        if (auto *FoundNS = dyn_cast<RulesetDecl>(FoundDecl)) 
+        {
+            MergeWithRuleset = FoundNS;
+            ConflictingDecls.clear();
+            break;
+        }
+
+        ConflictingDecls.push_back(FoundDecl);
+    }
+
+    if (!ConflictingDecls.empty()) 
+    {
+        Name = Importer.HandleNameConflict(Name, DC, Decl::IDNS_Ruleset,
+            ConflictingDecls.data(), ConflictingDecls.size());
+        if (!Name)
+        {
+            return make_error<ImportError>(ImportError::NameConflict);
+        }
+    }
+  
+
+    ExpectedSLoc BeginLocOrErr = import(D->getBeginLoc());
+    if (!BeginLocOrErr)
+    {
+        return BeginLocOrErr.takeError();
+    }
+
+    // Create the "to" namespace, if needed.
+    RulesetDecl *ToRuleset = MergeWithRuleset;
+    if (!ToRuleset) 
+    {
+        if (GetImportedOrCreateDecl(
+            ToRuleset, D, Importer.getToContext(), DC, 
+            *BeginLocOrErr, Loc, Name.getAsIdentifierInfo()))
+        {
+            return ToRuleset;
+        }
+        ToRuleset->setLexicalDeclContext(LexicalDC);
+        LexicalDC->addDeclInternal(ToRuleset);
+    }
+    Importer.MapImported(D, ToRuleset);
+
+    if (Error Err = ImportDeclContext(D))
+        return std::move(Err);
+
+    return ToRuleset;
 }
 
 ExpectedDecl ASTNodeImporter::VisitNamespaceDecl(NamespaceDecl *D) {

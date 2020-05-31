@@ -1275,6 +1275,10 @@ Enable the 'blocks' language feature
 
 Accept non-standard constructs supported by the Borland compiler
 
+.. option:: -fgaia-extensions, -fno-gaia-extensions
+
+Accepts additional constructs introduced by Gaia
+
 .. option:: -fbracket-depth=<arg>
 
 .. option:: -fbuiltin, -fno-builtin

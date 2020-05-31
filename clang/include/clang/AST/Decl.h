@@ -4336,6 +4336,27 @@ inline bool IsEnumDeclScoped(EnumDecl *ED) {
   return ED->isScoped();
 }
 
+/// Represents Gaia ruleset.
+class RulesetDecl : public NamedDecl, public DeclContext
+{
+    RulesetDecl(ASTContext &C, DeclContext *DC,
+        SourceLocation StartLoc, SourceLocation IdLoc,
+        IdentifierInfo *Id)
+        : NamedDecl(Ruleset, DC, IdLoc, Id), DeclContext(Ruleset){}
+public:
+    friend class ASTDeclReader;
+    friend class ASTDeclWriter;
+
+    static RulesetDecl *Create(ASTContext &C, DeclContext *DC,
+        SourceLocation StartLoc,
+        SourceLocation IdLoc, IdentifierInfo *Id);
+
+    static RulesetDecl *CreateDeserialized(ASTContext &C, unsigned ID);
+
+  // Implement isa/cast/dyncast/etc.
+    static bool classof(const Decl *D) { return classofKind(D->getKind()); }
+    static bool classofKind(Kind K) { return K == Ruleset; }
+};
 } // namespace clang
 
 #endif // LLVM_CLANG_AST_DECL_H

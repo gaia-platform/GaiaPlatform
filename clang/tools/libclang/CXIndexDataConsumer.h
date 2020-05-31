@@ -428,6 +428,8 @@ public:
 
   bool handleNamespace(const NamespaceDecl *D);
 
+  bool handleRuleset(const RulesetDecl *D);
+
   bool handleClassTemplate(const ClassTemplateDecl *D);
   bool handleFunctionTemplate(const FunctionTemplateDecl *D);
   bool handleTypeAliasTemplate(const TypeAliasTemplateDecl *D);
