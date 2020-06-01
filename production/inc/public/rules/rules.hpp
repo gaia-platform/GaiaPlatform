@@ -208,7 +208,7 @@ public:
 class invalid_subscription : public gaia::common::gaia_exception
 {
 public:
-    invalid_subscription(event_type_t event_type, const char * reason)
+    invalid_subscription(event_type_t event_type, const char* reason)
     {
         std::stringstream message;
         message << "Cannot subscribe rule to " << (uint32_t)event_type << ". " << reason;

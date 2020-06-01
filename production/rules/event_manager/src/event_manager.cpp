@@ -50,9 +50,9 @@ void event_manager_t::init()
 
 // TODO[GAIAPLAT-156]: Finalize the after commit trigger. Right now the proposed transaction id
 // argument is unused.
-void event_manager_t::commit_trigger(uint32_t, trigger_event_t* events, uint16_t num_events, bool immediate)
+void event_manager_t::commit_trigger(uint32_t, trigger_event_t* events, size_t count_events, bool immediate)
 {
-    for (uint16_t i = 0; i < num_events; i++)
+    for (uint16_t i = 0; i < count_events; i++)
     {
         const trigger_event_t* event = &events[i];
         bool rules_invoked = false;
@@ -85,12 +85,12 @@ void event_manager_t::commit_trigger(uint32_t, trigger_event_t* events, uint16_t
                 // to be invoked.
                 if (binding.fields_map.size() > 0)
                 {
-                    for (uint16_t j = 0; j < event->num_column_ids; j++)
+                    for (uint16_t j = 0; j < event->count_columns; j++)
                     {
                         // Some rules refer to columns in this table.  Now see whether
                         // the specific columns changed in this event are referenced
                         // by any rules.  If not, keep going.
-                        uint16_t col = event->column_ids[j];
+                        uint16_t col = event->columns[j];
                         auto field_it = binding.fields_map.find(col);
                         if (field_it != binding.fields_map.end())
                         {
@@ -109,13 +109,14 @@ void event_manager_t::commit_trigger(uint32_t, trigger_event_t* events, uint16_t
             }
         }
 
-        // Log the event to our table regardless of whether any  rules will be invoked.
+        // Log the event to our table regardless of whether any rules will be invoked.
         log_to_db(event, rules_invoked);
     }
 
     if (immediate)
     {
-        // execute any rules that were queued on the immediate queue
+        // If any rules were enqueued and we are in "immediate" mode
+        // then execute them now.
         m_invocations->execute_immediate();
     }
 }
@@ -124,101 +125,9 @@ void event_manager_t::enqueue_invocation(const trigger_event_t* event,
     const _rule_binding_t* binding)
 {
     rule_context_t context({binding->ruleset_name.c_str(), binding->rule_name.c_str(), binding->rule}, 
-        event->gaia_type, event->event_type, event->record_id);
+        event->gaia_type, event->event_type, event->record);
     m_invocations->enqueue(context);
 }
-
-/*
-bool event_manager_t::log_event(
-    gaia_base_t* row, 
-    event_type_t event_type, 
-    event_mode_t mode)
-{
-    check_mode(mode);
-    check_database_event(event_type, row);
-    gaia_type_t gaia_type = row ? row->gaia_type() : 0;
-
-    // Don't allow reentrant log_event calls.
-
-    event_guard_t guard(m_database_event_guard, gaia_type, event_type);
-    if (guard.is_blocked())
-    {
-        return false;
-    }
-    
-    // Invoke all rules bound to this gaia_type and event_type immediately.
-    auto type_it = m_database_subscriptions.find(gaia_type);
-    if (type_it == m_database_subscriptions.end())
-    {
-        log_to_db(gaia_type, event_type, mode, row, false);
-        return false;
-    }
-
-    events_map_t& events = type_it->second;
-    rule_list_t& rules = events[event_type];
-    bool rules_fired = rules.size() > 0;
-
-    log_to_db(gaia_type, event_type, mode, row, rules_fired);
-
-    for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it) 
-    {
-        const _rule_binding_t* rule_ptr = (*rules_it);
-        rule_context_t context = create_rule_context(rule_ptr, gaia_type, event_type, row, nullptr);
-        rule_ptr->rule(&context);
-    }
-
-    return rules_fired;
-}
-
-bool event_manager_t::log_event(
-    gaia_base_t* row,
-    const char* field,
-    event_type_t event_type, 
-    event_mode_t mode)
-{
-    check_mode(mode);
-    check_field_event(event_type, row, field);
-    gaia_type_t gaia_type = row ? row->gaia_type() : 0;
-
-    // Don't allow reentrant log_event calls.
-    event_guard_t guard(m_field_event_guard, gaia_type, field, event_type);
-    if (guard.is_blocked())
-    {
-        return false;
-    }
-    
-    // Invoke all rules bound to this gaia_type, column, and event_type immediately.
-    auto type_it = m_field_subscriptions.find(gaia_type);
-    if (type_it == m_field_subscriptions.end())
-    {
-        log_to_db(gaia_type, event_type, mode, row, field, false);
-        return false;
-    }
-
-    fields_map_t& fields = type_it->second;
-    auto field_it = fields.find(field);
-    if (field_it == fields.end())
-    {
-        log_to_db(gaia_type, event_type, mode, row, field, false);
-        return false;
-    }
-
-    events_map_t& events = field_it->second;
-    rule_list_t& rules = events[event_type];
-    bool rules_fired = rules.size() > 0;
-
-    log_to_db(gaia_type, event_type, mode, row, field, rules_fired);
-
-    for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it) 
-    {
-        const _rule_binding_t* rule_ptr = *rules_it;
-        rule_context_t context = create_rule_context(rule_ptr, gaia_type, event_type, row, field);
-        rule_ptr->rule(&context);
-    }
-
-    return rules_fired;
-}
-*/
 
 void event_manager_t::check_subscription(
     gaia_type_t gaia_type, 
@@ -280,7 +189,7 @@ void event_manager_t::subscribe_rule(
         event_it = inserted_event.first;
     }
 
-    // We found or created an event entry.  Now see if we have bound
+    // We found or created an event entry. Now see if we have bound
     // any events already.
     event_binding_t& event_binding = event_it->second;
     if (fields.size() > 0)
@@ -291,6 +200,8 @@ void event_manager_t::subscribe_rule(
             auto field_it = fields_map.find(field);
             if (field_it == fields_map.end())
             {
+                // TODO[GAIAPLAT-183]: Verify the field is in the catalog and
+                // marked as an active field.
                 auto inserted_field = fields_map.insert(
                     make_pair(field, rule_list_t()));
                 field_it = inserted_field.first;
@@ -302,7 +213,8 @@ void event_manager_t::subscribe_rule(
     }
     else
     {
-        // We are binding a table event here with no fields so bind the rule directly.
+        // We are binding a table event to the LastOperation system field
+        // because no field reference fields were provided.
         rule_list_t& rules = event_binding.last_operation_rules;
         add_rule(rules, rule_binding);
     }
@@ -324,7 +236,7 @@ bool event_manager_t::unsubscribe_rule(
         return false;
     }
 
-    // See if any rules are bound to the event
+    // See if any rules are bound to the event.
     events_map_t& events = type_it->second;
     auto event_it = events.find(event_type);
     if (event_it == events.end())
@@ -529,15 +441,15 @@ void event_manager_t::log_to_db(const trigger_event_t* event, bool rules_invoked
     // When we have this support we can support the array of changed column fields
     // in our event log.  Until then, just pick out the first of the list.
     uint16_t column_id = 0;
-    if (event->num_column_ids > 0)
+    if (event->count_columns > 0)
     {
-        column_id = event->column_ids[0];
+        column_id = event->columns[0];
     }
 
     {
         auto_tx_t tx;
         Event_log::insert_row((uint32_t)(event->event_type), (uint64_t)(event->gaia_type), 
-            (uint64_t)(event->record_id), column_id, timestamp, rules_invoked);
+            (uint64_t)(event->record), column_id, timestamp, rules_invoked);
         tx.commit();
     }
 }
@@ -605,7 +517,7 @@ void gaia::rules::list_subscribed_rules(
         event_type, field, subscriptions);
 }
 
-void gaia::rules::commit_trigger(uint32_t tx_id, trigger_event_t* events, uint16_t num_events, bool immediate)
+void gaia::rules::commit_trigger(uint32_t tx_id, trigger_event_t* events, size_t num_events, bool immediate)
 {
     event_manager_t::get().commit_trigger(tx_id, events, num_events, immediate);
 }

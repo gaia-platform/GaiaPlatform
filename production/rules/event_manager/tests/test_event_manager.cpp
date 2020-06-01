@@ -129,8 +129,8 @@ public:
     {
     }
 
-    TestGaia(gaia_id_t record_id)
-    : gaia_base_t(record_id, "TestGaia")
+    TestGaia(gaia_id_t record)
+    : gaia_base_t(record, "TestGaia")
     {
 
     }
@@ -156,8 +156,8 @@ public:
     {
     }
 
-    TestGaia2(gaia_id_t record_id)
-    : gaia_base_t(record_id, "TestGaia2")
+    TestGaia2(gaia_id_t record)
+    : gaia_base_t(record, "TestGaia2")
     {
 
     }
@@ -686,8 +686,8 @@ TEST_F(event_manager_test, log_field_event_multi_event_single_rule) {
 
     add_context_sequence(sequence, TestGaia::s_gaia_type, event_type_t::row_update);
     record = 22;
-    update_field_event.column_ids = &s_first_name;
-    update_field_event.record_id = record;
+    update_field_event.columns = &s_first_name;
+    update_field_event.record = record;
     commit_trigger(0, &update_field_event, 1, true);
     validate_rule_sequence(sequence);
     validate_rule(ruleset1_name, rule1_name, rule1, event_type_t::row_update, 
@@ -720,7 +720,7 @@ TEST_F(event_manager_test, log_field_event_multi_event_multi_rule) {
         TestGaia::s_gaia_type, record);
 
     add_context_sequence(sequence, TestGaia::s_gaia_type, event_type_t::row_update);
-    update_field_event.column_ids = &s_first_name;
+    update_field_event.columns = &s_first_name;
     commit_trigger(0, &update_field_event, 1, true);
 
     validate_rule_sequence(sequence);
@@ -819,7 +819,7 @@ TEST_F(event_manager_test, log_event_multi_rule_multi_event)
     add_context_sequence(sequence, TestGaia::s_gaia_type, event_type_t::row_update);
     single_event.event_type = event_type_t::row_update;
     record++;
-    single_event.record_id = record;
+    single_event.record = record;
     commit_trigger(0, &single_event, 1, true);
 
     validate_rule_sequence(sequence);

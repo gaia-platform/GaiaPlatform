@@ -38,7 +38,7 @@ void rule_thread_pool_t::init(uint32_t num_threads)
 
     for (uint32_t i = 0; i < num_threads; i++)
     {
-        thread worker([this]{ this->rule_worker();});
+        thread worker([this]{ this->rule_worker(); });
         m_threads.push_back(move(worker));
     }
 }

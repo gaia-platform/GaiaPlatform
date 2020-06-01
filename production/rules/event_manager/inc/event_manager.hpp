@@ -65,7 +65,7 @@ public:
      * be a friend class.  This structure and associated commit_trigger
      * function should not be callable by the rule author.
      */
-    void commit_trigger(uint32_t tx_id, trigger_event_t* events, uint16_t num_events, bool immediate);
+    void commit_trigger(uint32_t tx_id, trigger_event_t* events, size_t count_events, bool immediate);
 
 private:
     // Internal rule binding to copy the callers
@@ -111,7 +111,7 @@ private:
         fields_map_t fields_map; // referenced fields of this type
     };
 
-    // Map the event type to the event binding
+    // Map the event type to the event binding.
     typedef std::unordered_map<event_type_t, event_binding_t> events_map_t;
 
 
@@ -124,7 +124,7 @@ private:
     unique_ptr<rule_thread_pool_t> m_invocations;
 
 private:
-    // only internal static creation is allowed
+    // Only internal static creation is allowed.
     event_manager_t();
 
     const _rule_binding_t* find_rule(const rules::rule_binding_t& binding); 
@@ -136,8 +136,8 @@ private:
     static inline bool is_transaction_event(event_type_t event_type)
     {
         return (event_type == event_type_t::transaction_begin 
-        || event_type == event_type_t::transaction_commit
-        || event_type == event_type_t::transaction_rollback);
+            || event_type == event_type_t::transaction_commit
+            || event_type == event_type_t::transaction_rollback);
     }
 
     static inline void check_rule_binding(const rule_binding_t& binding)
