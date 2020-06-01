@@ -1422,11 +1422,26 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
           ConsumeToken();
           if (Tok.is(tok::identifier))
           {
-              return ParseCastExpression(isUnaryExpression,
+              ExprResult expr =  ParseCastExpression(isUnaryExpression,
                 isAddressOfOperand,
                 NotCastExpr,
                 isTypeCast,
                 isVectorLiteral);
+                DeclRefExpr *declExpr = dyn_cast<DeclRefExpr>(expr.get());
+                if (declExpr != nullptr)
+                {
+                    ValueDecl *decl = declExpr->getDecl();
+                    if (decl->hasAttr<GaiaFieldAttr>())
+                    {
+                        decl->dropAttrs();
+                        decl->addAttr(GaiaFieldValueAttr::CreateImplicit(Actions.Context));
+                    }
+                    else
+                    {
+                        return ExprError(Diag(Tok, diag::err_unexpected_at));
+                    }                   
+                }                
+                return expr;
           }
       }
       

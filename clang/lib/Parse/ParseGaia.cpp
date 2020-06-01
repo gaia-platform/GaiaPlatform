@@ -51,29 +51,20 @@ std::string Parser::RandomString(std::string::size_type length) const
 
 QualType Sema::getFieldType (IdentifierInfo *id) const
 {
-            //llvm::errs() << Ident->getName().str().c_str() << "\n";
     return Context.WIntTy;
 }
 
 NamedDecl *Sema::InjectVariableDefinition(IdentifierInfo *II)
 {
-    /*ParsedAttributesWithRange attrs(AttrFactory);
-    attrs.addNew(&PP.getIdentifierTable().get("gaiaField"),
-        SourceRange(),
-        nullptr, SourceRange(), nullptr, 0,
-        ParsedAttr::AS_Keyword);*/
-
     DeclContext *DC  = getCurFunctionDecl();
-    //getFunctionLevelDeclContext
-   // DeclContext *DC = computeDeclContext(*SS, true);
     QualType qualType = getFieldType(II);
 
     VarDecl *NewVD = VarDecl::Create(Context, DC, SourceLocation(), SourceLocation(),
                             II, qualType, Context.getTrivialTypeSourceInfo(qualType, SourceLocation()), SC_None);
-   // NewVD->setLexicalDeclContext(DC);
-    //NewVD->setImplicit();
-   // SourceLocation endLoc;
-    //NewVD->takeAttributes(attrs, endLoc);
+    NewVD->setLexicalDeclContext(DC);
+    NewVD->setImplicit();
+    NewVD->addAttr(GaiaFieldAttr::CreateImplicit(Context));
+    DC->addDecl(NewVD);
     
     return NewVD;
 }
