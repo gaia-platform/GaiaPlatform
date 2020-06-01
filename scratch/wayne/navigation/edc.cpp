@@ -48,11 +48,12 @@ int main ()
     // first_dst_segment
     auto airport = new Airport();
     airport->set_name("SeaTac International");
-    airport->set_city("Seattle");
+    airport->set_city("SeaTac");
     airport->set_iata("SEA");
-    airport->insert_row(c_num_airport_ptrs);
+    airport->insert_row();
     auto ap1 = airport->gaia_id();
-    // auto ap1 = Airport::insert_row("SeaTac International", "Seattle", "SEA");
+    airport->set_city("Seattle");
+    airport->update_row();
     auto ap2 = Airport::insert_row("Denver International", "Denver", "DEN");
     auto ap3 = Airport::insert_row("Chicago O'Hare International", "Chicago", "ORD");
     auto ap4 = Airport::insert_row("LA International", "Los Angeles", "LAX");
@@ -104,7 +105,7 @@ int main ()
     Trip_segment::Iterator trip_segments;
 
     for (auto a : airports) {
-        printf("airport %s - %s\n", a->name(), a->iata());
+        printf("airport %s - %s (%s)\n", a->name(), a->iata(), a->city());
     }
     for (auto a : flights) {
         printf("flight %d - %d\n", a->number(), a->miles_flown());

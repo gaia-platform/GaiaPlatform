@@ -12,7 +12,7 @@
 #include "flatbuffers/flatbuffers.h"
 #include "gaia_exception.hpp"
 #include "nullable_string.hpp"
-#include "storage_engine.hpp"
+#include "storage_engine_mock.hpp"
 
 using namespace std;
 using namespace gaia::db;
@@ -271,10 +271,10 @@ public:
      * been set prior to this insert_row(). After the storage engine object exists, it
      * must be modified only through the update_row() method.
      */
-    void insert_row(gaia_id_t num_ptrs)
+    void insert_row(size_t num_ptrs)
     {
         // Create the node and add to the cache.
-        gaia_ptr<gaia_se_node> node_ptr;
+        gaia_ptr_mock node_ptr;
 
         if (0 == m_id) {
             m_id = gaia_se_node::generate_id();
@@ -282,7 +282,15 @@ public:
         if (m_copy) {
             auto u = T_fb::Pack(*m_fbb, m_copy.get());
             m_fbb->Finish(u);
-            node_ptr = create_node(m_id, m_fbb->GetSize(), m_fbb->GetBufferPointer(), num_ptrs);
+            m_num_references = num_ptrs;
+            if (num_ptrs) {
+                m_references = new gaia_id_t[num_ptrs];
+            }
+            else {
+                m_references = nullptr;
+            }
+            auto node_ptr = gaia_se_node_mock::create(m_id, T_gaia_type, num_ptrs, m_references,
+                m_fbb->GetSize(), m_fbb->GetBufferPointer());
             m_fbb->Clear();
             m_fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload+(m_num_references+1)*sizeof(gaia_id_t));
         } else {
@@ -290,7 +298,7 @@ public:
             // a deleted row is reused.  By giving the object a copy buffer, 
             // the object can be used to insert new values.
             copy_write();
-            node_ptr = gaia_se_node::create(m_id, T_gaia_type, 0, nullptr);
+            node_ptr = gaia_se_node_mock::create(m_id, T_gaia_type, 0, nullptr, 0, nullptr);
         }
         s_gaia_cache[m_id] = this;
         s_gaia_tx_cache[m_id] = this;
@@ -307,22 +315,14 @@ public:
     void update_row()
     {
         if (m_copy) {
-            auto node_ptr = gaia_se_node::open(m_id);
+            auto node_ptr = gaia_se_node_mock::open(m_id);
             if (!node_ptr) {
                 throw invalid_node_id(m_id);
             }
             auto u = T_fb::Pack(*m_fbb, m_copy.get());
             m_fbb->Finish(u);
-            int32_t total_len = m_fbb->GetSize() + (m_num_references+1)*sizeof(gaia_id_t);
-            uint8_t* b = new uint8_t[total_len];
-            memcpy(b, &m_num_references, sizeof(gaia_id_t));
-            if (m_num_references) {
-                memcpy(b+sizeof(gaia_id_t), m_references, m_num_references*sizeof(gaia_id_t));
-            }
-            memcpy(b+sizeof(gaia_id_t)*(m_num_references+1), m_fbb->GetBufferPointer(), m_fbb->GetSize());
-            node_ptr.update_payload(total_len, b);
+            node_ptr.update_payload(m_num_references, m_references, m_fbb->GetSize(), m_fbb->GetBufferPointer());
             m_fbb->Clear();
-            delete[] b;
         }
     }
 
@@ -350,14 +350,7 @@ public:
     static gaia_id_t insert_row(flatbuffers::FlatBufferBuilder& fbb, gaia_id_t num_ptrs)
     {
         gaia_id_t nodeId = gaia_se_node::generate_id();
-        int32_t total_len = fbb.GetSize() + (num_ptrs+1)*sizeof(gaia_id_t);
-        uint8_t* b = new uint8_t[total_len];
-        memcpy(b, &num_ptrs, sizeof(gaia_id_t));
-        // Pointers will be null in new object.
-        memset(b+sizeof(gaia_id_t), 0, num_ptrs*sizeof(gaia_id_t));
-        memcpy(b+sizeof(gaia_id_t)*(num_ptrs+1), fbb.GetBufferPointer(), fbb.GetSize());
-        gaia_se_node::create(nodeId, T_gaia_type, total_len, b);
-        delete[] b;
+        gaia_se_node_mock::create(nodeId, T_gaia_type, num_ptrs, nullptr, fbb.GetSize(), fbb.GetBufferPointer());
         return nodeId;
     }
 
@@ -366,7 +359,7 @@ public:
     }
 
     // Array of pointers to related objects.
-    int32_t m_num_references;
+    size_t m_num_references;
     gaia_id_t* m_references;
 
 protected:
@@ -445,26 +438,6 @@ private:
             }
         }
         return obj;
-    }
-
-    gaia_ptr<gaia_se_node> create_node(gaia_id_t id, size_t size, const void* payload, gaia_id_t num_ptrs) {
-        m_num_references = num_ptrs;
-        if (num_ptrs) {
-            m_references = new gaia_id_t[num_ptrs];
-        }
-        else {
-            m_references = nullptr;
-        }
-        int32_t total_len = size + (num_ptrs+1)*sizeof(gaia_id_t);
-        uint8_t* b = new uint8_t[total_len];
-        memcpy(b, &num_ptrs, sizeof(gaia_id_t));
-        if (m_references) {
-            memcpy(b+sizeof(gaia_id_t), m_references, num_ptrs*sizeof(gaia_id_t));
-        }
-        memcpy(b+sizeof(gaia_id_t)*(num_ptrs+1), payload, size);
-        auto node_ptr = gaia_se_node::create(id, T_gaia_type, total_len, b);
-        delete[] b;
-        return node_ptr;
     }
 
     void reset(bool clear_flatbuffer = false) override

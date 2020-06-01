@@ -19,7 +19,6 @@ set(GAIA_LINK_FLAGS "-ggdb")
 set(GAIA_COMMON_INCLUDES 
   ${GAIA_INC}/public/common
   ${GAIA_INC}/internal/common
-# ${GAIA_REPO}/demos/airport_q1/inc
   ${GAIA_REPO}/third_party/production/flatbuffers/include
   ${CMAKE_CURRENT_BINARY_DIR}
 )

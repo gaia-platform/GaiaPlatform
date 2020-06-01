@@ -99,6 +99,9 @@ struct Flight : public gaia_object_t<1,Flight,flight,flightT>{
         b.Finish(Createflight(b, number_val,miles_flown_val));
         return gaia_object_t::insert_row(b, c_num_flight_ptrs);
     }
+    void insert_row() {
+        gaia_object_t::insert_row(c_num_flight_ptrs);
+    }
     typedef gaia_type_iterator<Flight> Iterator;
 private:
     friend struct gaia_object_t<1,Flight,flight,flightT>;
@@ -123,6 +126,9 @@ struct Airport : public gaia_object_t<2,Airport,airport,airportT>{
         flatbuffers::FlatBufferBuilder b(128);
         b.Finish(CreateairportDirect(b, name_val,city_val,iata_val));
         return gaia_object_t::insert_row(b, c_num_airport_ptrs);
+    }
+    void insert_row() {
+        gaia_object_t::insert_row(c_num_airport_ptrs);
     }
     typedef gaia_type_iterator<Airport> Iterator;
 private:
@@ -151,6 +157,9 @@ struct Segment : public gaia_object_t<3,Segment,segment,segmentT>{
         flatbuffers::FlatBufferBuilder b(128);
         b.Finish(Createsegment(b, id_val,miles_val,status_val,luggage_weight_val));
         return gaia_object_t::insert_row(b, c_num_segment_ptrs);
+    }
+    void insert_row() {
+        gaia_object_t::insert_row(c_num_segment_ptrs);
     }
     static gaia_id_t connect_flight(gaia_id_t pid, gaia_id_t sid) {
         printf("Connecting flight to segment %ld to %ld\n", pid, sid);
@@ -190,6 +199,9 @@ struct Trip_segment : public gaia_object_t<4,Trip_segment,trip_segment,trip_segm
         flatbuffers::FlatBufferBuilder b(128);
         b.Finish(Createtrip_segmentDirect(b, who_val));
         return gaia_object_t::insert_row(b, c_num_trip_segment_ptrs);
+    }
+    void insert_row() {
+        gaia_object_t::insert_row(c_num_trip_segment_ptrs);
     }
     static gaia_id_t connect_segment(gaia_id_t sid, gaia_id_t tid) {
         printf("Connecting segment to trip_segment %ld to %ld\n", sid, tid);
