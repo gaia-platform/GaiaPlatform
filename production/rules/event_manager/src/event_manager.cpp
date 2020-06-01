@@ -318,7 +318,7 @@ void event_manager_t::list_subscribed_rules(
             }
 
             // If no field_ptr filter was passed in then also
-            // return any rules bound to the last operation
+            // return any rules bound to the last operation.
             const rule_list_t& rules = event_binding.last_operation_rules;
             add_subscriptions(subscriptions, rules, type_it.first,
                 event_it.first, 0, ruleset_name);
