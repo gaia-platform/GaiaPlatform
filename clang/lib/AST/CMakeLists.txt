@@ -76,6 +76,7 @@ add_clang_library(clangAST
   TypePrinter.cpp
   VTableBuilder.cpp
   VTTBuilder.cpp
+  DeclGaia.cpp
 
   LINK_LIBS
   clangBasic

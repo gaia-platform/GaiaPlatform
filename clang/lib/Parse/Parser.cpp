@@ -846,7 +846,7 @@ Parser::ParseExternalDeclaration(ParsedAttributesWithRange &attrs,
     SkipUntil(tok::semi);
     return nullptr;
   case tok::kw_ruleset:
-    return ParseRuleset();
+    return parseRuleset();
 
   default:
   dont_know:

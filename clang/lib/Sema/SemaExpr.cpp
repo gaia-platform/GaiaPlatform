@@ -2173,7 +2173,7 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
         {
             if (FD->hasAttr<RuleAttr>())
             {
-                NamedDecl *D = InjectVariableDefinition(II);
+                NamedDecl *D = injectVariableDefinition(II);
                 if (D) 
                 {
                     R.addDecl(D);

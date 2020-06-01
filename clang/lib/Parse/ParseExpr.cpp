@@ -1419,7 +1419,7 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
   case tok::at: {
       if (getLangOpts().Gaia)
       {
-          ConsumeToken();
+          SourceLocation atTok = ConsumeToken();
           if (Tok.is(tok::identifier))
           {
               ExprResult expr =  ParseCastExpression(isUnaryExpression,
@@ -1438,7 +1438,7 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
                     }
                     else
                     {
-                        return ExprError(Diag(Tok, diag::err_unexpected_at));
+                        return ExprError(Diag(atTok, diag::err_unexpected_at));
                     }                   
                 }                
                 return expr;

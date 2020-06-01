@@ -4598,7 +4598,7 @@ public:
                                SourceLocation IdentLoc, IdentifierInfo *Ident,
                                const ParsedAttributesView &AttrList);
   void ActOnRulesetDefFinish(); 
-  NamedDecl *InjectVariableDefinition(IdentifierInfo *II);
+  NamedDecl *injectVariableDefinition(IdentifierInfo *II);
   QualType getFieldType (IdentifierInfo *id) const;
   
 
