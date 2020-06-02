@@ -54,7 +54,7 @@ rule_thread_pool_t::~rule_thread_pool_t()
     if (m_num_threads > 0)
     {
         m_exit = true;
-        m_has_invocations.notify_all();
+        m_invocations_signal.notify_all();
         for (thread& worker : m_threads)
         {
             worker.join();
@@ -92,7 +92,7 @@ void rule_thread_pool_t::enqueue(rule_context_t& invocation)
             unique_lock<mutex> lock(m_lock);
             m_invocations.push(invocation);
             lock.unlock();
-            m_has_invocations.notify_one();
+            m_invocations_signal.notify_one();
         }
         else
         {
@@ -113,7 +113,7 @@ void rule_thread_pool_t::rule_worker()
     while (true)
     {
         lock.lock();
-        m_has_invocations.wait(lock, [this] {
+        m_invocations_signal.wait(lock, [this] {
             return (m_invocations.size() > 0 || m_exit);
         });
 

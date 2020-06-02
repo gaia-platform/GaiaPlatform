@@ -95,7 +95,7 @@ private:
      * threads.
      */ 
     mutex m_lock;
-    condition_variable m_has_invocations;
+    condition_variable m_invocations_signal;
     bool m_exit;
     uint32_t m_num_threads;
 };
