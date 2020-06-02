@@ -138,7 +138,10 @@ void rule_thread_pool_t::invoke_rule(const rule_context_t* context)
     try
     {
         gaia::db::gaia_mem_base::tx_begin();
+
+        // Invoke the rule.
         context->rule_binding.rule(context);
+
         // The rule may have committed the thread transaction
         // so don't try to commit it again.
         if (gaia::db::gaia_mem_base::is_tx_active())
