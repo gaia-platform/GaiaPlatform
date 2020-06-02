@@ -13,8 +13,8 @@ using namespace std;
 using namespace gaia::db;
 using namespace gaia::airport;
 
-void print_airport_segments(gaia_id_t ap) {
-    printf("Airport %ld:\n", ap);
+void print_airport_segments(Airport* ap) {
+    printf("Airport %ld:\n", ap->gaia_id());
     airport_src_segments airport_src_segments(ap);
     for (auto s : airport_src_segments) {
         printf("  source of segment %d - %d\n", s->id(), s->miles());
@@ -25,8 +25,8 @@ void print_airport_segments(gaia_id_t ap) {
     }
 }
 
-void print_segment_trip_segments(gaia_id_t s) {
-    printf("Segment %ld Trip_segments:\n", s);
+void print_segment_trip_segments(Segment* s) {
+    printf("Segment %ld Trip_segments:\n", s->gaia_id());
     segment_trip_segments segment_trip_segments(s);
     for (auto ts : segment_trip_segments) {
         printf("  segment %s\n", ts->who());
@@ -46,14 +46,13 @@ int main ()
 
     // first_src_segment
     // first_dst_segment
-    auto airport = new Airport();
-    airport->set_name("SeaTac International");
-    airport->set_city("SeaTac");
-    airport->set_iata("SEA");
-    airport->insert_row();
-    auto ap1 = airport->gaia_id();
-    airport->set_city("Seattle");
-    airport->update_row();
+    auto ap1 = new Airport();
+    ap1->set_name("SeaTac International");
+    ap1->set_city("SeaTac");
+    ap1->set_iata("SEA");
+    ap1->insert_row();
+    ap1->set_city("Seattle");
+    ap1->update_row();
     auto ap2 = Airport::insert_row("Denver International", "Denver", "DEN");
     auto ap3 = Airport::insert_row("Chicago O'Hare International", "Chicago", "ORD");
     auto ap4 = Airport::insert_row("LA International", "Los Angeles", "LAX");
@@ -117,7 +116,7 @@ int main ()
         printf("trip_segment %s\n", a->who());
     }
 
-    printf("Flight %ld segments:\n", f1);
+    printf("Flight %ld segments:\n", f1->gaia_id());
     flight_segments flight1_segments(f1);
     for (auto s : flight1_segments) {
         printf("  segment %d - %d\n", s->id(), s->miles());
@@ -127,9 +126,8 @@ int main ()
         printf("    desgination airport: %s\n", dap->name());
     }
 
-    printf("Flight %ld segments:\n", f2);
+    printf("Flight %ld segments:\n", f2->gaia_id());
     auto flight2_segments = new flight_segments(f2);
-    // flight_segments flight2_segments(f2);
     for (auto s : *flight2_segments) {
         printf("  segment %d - %d\n", s->id(), s->miles());
         auto sap = s->src_segment();
@@ -156,28 +154,28 @@ int main ()
     begin_transaction();
 
     // The deletes allow valgrind to see any other memory issues.
-    delete Flight::get_row_by_id(f1);
-    delete Flight::get_row_by_id(f2);
-    delete Flight::get_row_by_id(f3);
+    delete f1;
+    delete f2;
+    delete f3;
 
-    delete Airport::get_row_by_id(ap1);
-    delete Airport::get_row_by_id(ap2);
-    delete Airport::get_row_by_id(ap3);
-    delete Airport::get_row_by_id(ap4 );
-    delete Airport::get_row_by_id(ap5 );
+    delete ap1;
+    delete ap2;
+    delete ap3;
+    delete ap4;
+    delete ap5;
 
-    delete Segment::get_row_by_id(s1);
-    delete Segment::get_row_by_id(s2 );
-    delete Segment::get_row_by_id(s3 );
-    delete Segment::get_row_by_id(s4 );
-    delete Segment::get_row_by_id(s5);
+    delete s1;
+    delete s2;
+    delete s3;
+    delete s4;
+    delete s5;
 
-    delete Trip_segment::get_row_by_id(ts1);
-    delete Trip_segment::get_row_by_id(ts2);
-    delete Trip_segment::get_row_by_id(ts3);
-    delete Trip_segment::get_row_by_id(ts4);
-    delete Trip_segment::get_row_by_id(ts5);
-    delete Trip_segment::get_row_by_id(ts6);
+    delete ts1;
+    delete ts2;
+    delete ts3;
+    delete ts4;
+    delete ts5;
+    delete ts6;
 
     commit_transaction();
 }

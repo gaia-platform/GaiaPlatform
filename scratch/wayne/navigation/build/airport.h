@@ -74,13 +74,10 @@ public:
 };
 
 template <typename T_primary, typename T_foreign, int T_parent_slot, int T_primary_slot, int T_foreign_slot>
-static gaia_id_t connect_objects(gaia_id_t pid, gaia_id_t fid) {
-    T_primary* pp = T_primary::get_row_by_id(pid);
-    T_foreign* fp = T_foreign::get_row_by_id(fid);
+static void connect_objects(T_primary* pp, T_foreign* fp) {
     fp->m_references[T_foreign_slot] = pp->m_references[T_primary_slot];
-    fp->m_references[T_parent_slot]  = pid;
-    pp->m_references[T_primary_slot] = fid;
-    return pid;
+    fp->m_references[T_parent_slot]  = pp->gaia_id();
+    pp->m_references[T_primary_slot] = fp->gaia_id();
 }
 
 struct Flight : public gaia_object_t<1,Flight,flight,flightT>{
@@ -94,7 +91,7 @@ struct Flight : public gaia_object_t<1,Flight,flight,flightT>{
     using gaia_object_t::insert_row;
     using gaia_object_t::update_row;
     using gaia_object_t::delete_row;
-    static gaia_id_t insert_row (int32_t number_val,int32_t miles_flown_val){
+    static Flight* insert_row (int32_t number_val,int32_t miles_flown_val){
         flatbuffers::FlatBufferBuilder b(128);
         b.Finish(Createflight(b, number_val,miles_flown_val));
         return gaia_object_t::insert_row(b, c_num_flight_ptrs);
@@ -122,7 +119,7 @@ struct Airport : public gaia_object_t<2,Airport,airport,airportT>{
     using gaia_object_t::insert_row;
     using gaia_object_t::update_row;
     using gaia_object_t::delete_row;
-    static gaia_id_t insert_row (const char * name_val, const char * city_val,const char * iata_val){
+    static Airport* insert_row (const char * name_val, const char * city_val,const char * iata_val){
         flatbuffers::FlatBufferBuilder b(128);
         b.Finish(CreateairportDirect(b, name_val,city_val,iata_val));
         return gaia_object_t::insert_row(b, c_num_airport_ptrs);
@@ -153,7 +150,7 @@ struct Segment : public gaia_object_t<3,Segment,segment,segmentT>{
     using gaia_object_t::insert_row;
     using gaia_object_t::update_row;
     using gaia_object_t::delete_row;
-    static gaia_id_t insert_row (int32_t id_val,int32_t miles_val,int32_t status_val, int32_t luggage_weight_val){
+    static Segment* insert_row (int32_t id_val,int32_t miles_val,int32_t status_val, int32_t luggage_weight_val){
         flatbuffers::FlatBufferBuilder b(128);
         b.Finish(Createsegment(b, id_val,miles_val,status_val,luggage_weight_val));
         return gaia_object_t::insert_row(b, c_num_segment_ptrs);
@@ -161,17 +158,17 @@ struct Segment : public gaia_object_t<3,Segment,segment,segmentT>{
     void insert_row() {
         gaia_object_t::insert_row(c_num_segment_ptrs);
     }
-    static gaia_id_t connect_flight(gaia_id_t pid, gaia_id_t sid) {
-        printf("Connecting flight to segment %ld to %ld\n", pid, sid);
-        return connect_objects<Flight,Segment,c_primary_segment,c_first_segment,c_next_segment>(pid, sid);
+    static void connect_flight(Flight* pp, Segment* sp) {
+        printf("Connecting flight to segment %ld to %ld\n", pp->gaia_id(), sp->gaia_id());
+        connect_objects<Flight,Segment,c_primary_segment,c_first_segment,c_next_segment>(pp, sp);
     }
-    static gaia_id_t connect_src_airport(gaia_id_t aid, gaia_id_t sid) {
-        printf("Connecting airport src to segment %ld to %ld\n", aid, sid);
-        return connect_objects<Airport,Segment,c_primary_src_segment,c_first_src_segment,c_next_src_segment>(aid, sid);
+    static void connect_src_airport(Airport* ap, Segment* sp) {
+        printf("Connecting airport src to segment %ld to %ld\n", ap->gaia_id(), sp->gaia_id());
+        connect_objects<Airport,Segment,c_primary_src_segment,c_first_src_segment,c_next_src_segment>(ap, sp);
     }
-    static gaia_id_t connect_dst_airport(gaia_id_t aid, gaia_id_t sid) {
-        printf("Connecting airport dst to segment %ld to %ld\n", aid, sid);
-        return connect_objects<Airport,Segment,c_primary_dst_segment,c_first_dst_segment,c_next_dst_segment>(aid, sid);
+    static void connect_dst_airport(Airport* ap, Segment* sp) {
+        printf("Connecting airport dst to segment %ld to %ld\n", ap->gaia_id(), sp->gaia_id());
+        connect_objects<Airport,Segment,c_primary_dst_segment,c_first_dst_segment,c_next_dst_segment>(ap, sp);
     }
     Airport* src_segment() {
         Airport* pp = Airport::get_row_by_id(this->m_references[c_primary_src_segment]);
@@ -195,7 +192,7 @@ struct Trip_segment : public gaia_object_t<4,Trip_segment,trip_segment,trip_segm
     using gaia_object_t::insert_row;
     using gaia_object_t::update_row;
     using gaia_object_t::delete_row;
-    static gaia_id_t insert_row (const char * who_val){
+    static Trip_segment* insert_row (const char * who_val){
         flatbuffers::FlatBufferBuilder b(128);
         b.Finish(Createtrip_segmentDirect(b, who_val));
         return gaia_object_t::insert_row(b, c_num_trip_segment_ptrs);
@@ -203,9 +200,9 @@ struct Trip_segment : public gaia_object_t<4,Trip_segment,trip_segment,trip_segm
     void insert_row() {
         gaia_object_t::insert_row(c_num_trip_segment_ptrs);
     }
-    static gaia_id_t connect_segment(gaia_id_t sid, gaia_id_t tid) {
-        printf("Connecting segment to trip_segment %ld to %ld\n", sid, tid);
-        return connect_objects<Segment,Trip_segment,c_primary_trip_segment,c_first_trip_segment,c_next_trip_segment>(sid, tid);
+    static void connect_segment(Segment* sp, Trip_segment* tp) {
+        printf("Connecting segment to trip_segment %ld to %ld\n", sp->gaia_id(), tp->gaia_id());
+        connect_objects<Segment,Trip_segment,c_primary_trip_segment,c_first_trip_segment,c_next_trip_segment>(sp, tp);
     }
     typedef gaia_type_iterator<Trip_segment> Iterator;
 private:
@@ -236,8 +233,8 @@ class reference_iterator {
     };
 
 public:
-    reference_iterator(gaia_id_t id) {
-        m_id = id;
+    reference_iterator(T_primary* id) {
+        m_id = id->gaia_id();
     }
     Iterator begin() {
         T_primary* p_ptr = T_primary::get_row_by_id(m_id);

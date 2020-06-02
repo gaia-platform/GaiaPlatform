@@ -347,14 +347,14 @@ public:
      * Insert a mutable flatbuffer into a newly created storage engine object. This will be
      * used by the generated type-specific insert_row() method.
      */
-    static gaia_id_t insert_row(flatbuffers::FlatBufferBuilder& fbb, gaia_id_t num_ptrs)
+    static T_gaia* insert_row(flatbuffers::FlatBufferBuilder& fbb, gaia_id_t num_ptrs)
     {
         gaia_id_t nodeId = gaia_se_node::generate_id();
         gaia_se_node_mock::create(nodeId, T_gaia_type, num_ptrs, nullptr, fbb.GetSize(), fbb.GetBufferPointer());
-        return nodeId;
+        return get_row_by_id(nodeId);
     }
 
-    static gaia_id_t insert_row(flatbuffers::FlatBufferBuilder& fbb) {
+    static T_gaia* insert_row(flatbuffers::FlatBufferBuilder& fbb) {
         return insert_row(fbb, 0);
     }
 
