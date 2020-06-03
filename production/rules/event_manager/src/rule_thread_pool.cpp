@@ -71,7 +71,7 @@ void rule_thread_pool_t::execute_immediate()
     // until the last commit is done, however, so keep queueing.  The top
     // level call to execute_immediate will drain the queue.  Since this
     // all happens on the same thread, it is safe (unless the empty() method
-    // caches a value and we don't drain the queue)
+    // caches a value and we don't drain the queue).
     if (s_tls_can_enqueue)
     {
         while (!m_invocations.empty())
