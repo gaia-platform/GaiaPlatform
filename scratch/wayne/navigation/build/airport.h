@@ -41,37 +41,35 @@ const int c_primary_trip_segment = 1;
 const int c_num_trip_segment_ptrs = 2;
 
 template <typename T_gaia>
-class gaia_type_iterator {
-    class Iterator {
-    public:
-        Iterator() {}
-        Iterator(T_gaia* edc_ptr) {
-            m_edc_ptr = edc_ptr;
-        }
-        T_gaia* operator*() {
-            return m_edc_ptr;
-        }
-        Iterator &operator++() {
-            m_edc_ptr = m_edc_ptr->get_next();
-            return *this;
-        }
-        bool operator!=(const Iterator&) const {
-            return m_edc_ptr != nullptr;
-        }
-    private:
-        T_gaia* m_edc_ptr;
-    };
-
+class type_iterator {
 public:
-    Iterator begin() {
-        T_gaia* edc_ptr = T_gaia::get_first();
-        return Iterator(edc_ptr);
+    type_iterator() {}
+    type_iterator(T_gaia* edc_ptr) {
+        m_edc_ptr = edc_ptr;
     }
-
-    Iterator end() {
-        return Iterator(nullptr);
+    T_gaia* operator*() {
+        return m_edc_ptr;
     }
+    type_iterator &operator++() {
+        m_edc_ptr = m_edc_ptr->get_next();
+        return *this;
+    }
+    bool operator!=(const type_iterator&) const {
+        return m_edc_ptr != nullptr;
+    }
+private:
+    T_gaia* m_edc_ptr;
 };
+
+template <typename T_gaia>
+type_iterator<T_gaia> begin_scan() {
+    T_gaia* edc_ptr = T_gaia::get_first();
+    return type_iterator<T_gaia>(edc_ptr);
+}
+template <typename T_gaia>
+type_iterator<T_gaia> end_scan() {
+    return type_iterator<T_gaia>(nullptr);
+}
 
 template <typename T_primary, typename T_foreign, int T_parent_slot, int T_primary_slot, int T_foreign_slot>
 static void connect_objects(T_primary* pp, T_foreign* fp) {
@@ -79,6 +77,8 @@ static void connect_objects(T_primary* pp, T_foreign* fp) {
     fp->m_references[T_parent_slot]  = pp->gaia_id();
     pp->m_references[T_primary_slot] = fp->gaia_id();
 }
+
+struct Segment;
 
 struct Flight : public gaia_object_t<1,Flight,flight,flightT>{
     Flight() : gaia_object_t("Flight") {};
@@ -99,7 +99,44 @@ struct Flight : public gaia_object_t<1,Flight,flight,flightT>{
     void insert_row() {
         gaia_object_t::insert_row(c_num_flight_ptrs);
     }
-    typedef gaia_type_iterator<Flight> Iterator;
+    type_iterator<Flight> begin() {return begin_scan<Flight>();}
+    type_iterator<Flight> end() {return end_scan<Flight>();}
+
+//     class set_iterator {
+//     public:
+//         set_iterator() {}
+//         set_iterator(Segment* edc_ptr) {
+//             m_edc_ptr = edc_ptr;
+//         }
+//         Segment* operator*() {
+//             return m_edc_ptr;
+//         }
+//         set_iterator &operator++() {
+//             m_edc_ptr = Segment::get_row_by_id(m_edc_ptr->m_references[c_next_segment]);
+//             return *this;
+//         }
+//         bool operator!=(const set_iterator&) const {
+//             return m_edc_ptr != nullptr;
+//         }
+//     private:
+//         Segment* m_edc_ptr;
+//     };
+
+// public:
+//     class segment_iterator {
+//     public:
+//         set_iterator begin() {
+//             Flight* p_ptr = Flight::get_row_by_id(m_id);
+//             Segment* edc_ptr = Segment::get_row_by_id(p_ptr->m_references[c_first_segment]);
+//             return set_iterator(edc_ptr);
+//         }
+//         set_iterator end() {
+//             return set_iterator(nullptr);
+//         }
+//         gaia_id_t m_id;
+//     };
+//     segment_iterator segments;
+
 private:
     friend struct gaia_object_t<1,Flight,flight,flightT>;
     Flight(gaia_id_t id) : gaia_object_t(id, "Flight") {}
@@ -127,7 +164,8 @@ struct Airport : public gaia_object_t<2,Airport,airport,airportT>{
     void insert_row() {
         gaia_object_t::insert_row(c_num_airport_ptrs);
     }
-    typedef gaia_type_iterator<Airport> Iterator;
+    type_iterator<Airport> begin() {return begin_scan<Airport>();}
+    type_iterator<Airport> end() {return end_scan<Airport>();}
 private:
     friend struct gaia_object_t<2,Airport,airport,airportT>;
     Airport(gaia_id_t id) : gaia_object_t(id, "Airport") {}
@@ -178,7 +216,8 @@ struct Segment : public gaia_object_t<3,Segment,segment,segmentT>{
         Airport* pp = Airport::get_row_by_id(this->m_references[c_primary_dst_segment]);
         return pp;
     }
-    typedef gaia_type_iterator<Segment> Iterator;
+    type_iterator<Segment> begin() {return begin_scan<Segment>();}
+    type_iterator<Segment> end() {return end_scan<Segment>();}
 private:
     friend struct gaia_object_t<3,Segment,segment,segmentT>;
     Segment(gaia_id_t id) : gaia_object_t(id, "Segment") {}
@@ -204,7 +243,8 @@ struct Trip_segment : public gaia_object_t<4,Trip_segment,trip_segment,trip_segm
         printf("Connecting segment to trip_segment %ld to %ld\n", sp->gaia_id(), tp->gaia_id());
         connect_objects<Segment,Trip_segment,c_primary_trip_segment,c_first_trip_segment,c_next_trip_segment>(sp, tp);
     }
-    typedef gaia_type_iterator<Trip_segment> Iterator;
+    type_iterator<Trip_segment> begin() {return begin_scan<Trip_segment>();}
+    type_iterator<Trip_segment> end() {return end_scan<Trip_segment>();}
 private:
     friend struct gaia_object_t<4,Trip_segment,trip_segment,trip_segmentT>;
     Trip_segment(gaia_id_t id) : gaia_object_t(id, "Trip_segment") {}

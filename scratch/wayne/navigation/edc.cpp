@@ -98,33 +98,27 @@ int main ()
     Trip_segment::connect_segment(s4, ts5);
     Trip_segment::connect_segment(s5, ts6);
 
-    Airport::Iterator airports;
-    Flight::Iterator flights;
-    Segment::Iterator segments;
-    Trip_segment::Iterator trip_segments;
-
-    for (auto a : airports) {
+    for (auto a : *ap1) {
         printf("airport %s - %s (%s)\n", a->name(), a->iata(), a->city());
     }
-    for (auto a : flights) {
+    for (auto a : *f1) {
         printf("flight %d - %d\n", a->number(), a->miles_flown());
     }
-    for (auto a : segments) {
+    for (auto a : *s1) {
         printf("segment %d - %d\n", a->id(), a->miles());
     }
-    for (auto a : trip_segments) {
+    for (auto a : *ts1) {
         printf("trip_segment %s\n", a->who());
     }
 
-    printf("Flight %ld segments:\n", f1->gaia_id());
-    flight_segments flight1_segments(f1);
-    for (auto s : flight1_segments) {
-        printf("  segment %d - %d\n", s->id(), s->miles());
-        auto sap = s->src_segment();
-        auto dap = s->dst_segment();
-        printf("    source airport:      %s\n", sap->name());
-        printf("    desgination airport: %s\n", dap->name());
-    }
+    // printf("Flight %ld segments:\n", f1->gaia_id());
+    // for (auto s : f1->segments) {
+    //     printf("  segment %d - %d\n", s->id(), s->miles());
+    //     auto sap = s->src_segment();
+    //     auto dap = s->dst_segment();
+    //     printf("    source airport:      %s\n", sap->name());
+    //     printf("    desgination airport: %s\n", dap->name());
+    // }
 
     printf("Flight %ld segments:\n", f2->gaia_id());
     auto flight2_segments = new flight_segments(f2);
