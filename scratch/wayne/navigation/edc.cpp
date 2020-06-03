@@ -111,25 +111,23 @@ int main ()
         printf("trip_segment %s\n", a->who());
     }
 
-    // printf("Flight %ld segments:\n", f1->gaia_id());
-    // for (auto s : f1->segments) {
-    //     printf("  segment %d - %d\n", s->id(), s->miles());
-    //     auto sap = s->src_segment();
-    //     auto dap = s->dst_segment();
-    //     printf("    source airport:      %s\n", sap->name());
-    //     printf("    desgination airport: %s\n", dap->name());
-    // }
-
-    printf("Flight %ld segments:\n", f2->gaia_id());
-    auto flight2_segments = new flight_segments(f2);
-    for (auto s : *flight2_segments) {
+    printf("Flight %ld segments:\n", f1->gaia_id());
+    for (auto s : f1->segments) {
         printf("  segment %d - %d\n", s->id(), s->miles());
         auto sap = s->src_segment();
         auto dap = s->dst_segment();
         printf("    source airport:      %s\n", sap->name());
         printf("    desgination airport: %s\n", dap->name());
     }
-    delete  flight2_segments;
+
+    printf("Flight %ld segments:\n", f2->gaia_id());
+    for (auto s : f2->segments) {
+        printf("  segment %d - %d\n", s->id(), s->miles());
+        auto sap = s->src_segment();
+        auto dap = s->dst_segment();
+        printf("    source airport:      %s\n", sap->name());
+        printf("    desgination airport: %s\n", dap->name());
+    }
 
     print_airport_segments(ap1);
     print_airport_segments(ap2);
