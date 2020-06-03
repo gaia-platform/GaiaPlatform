@@ -14,6 +14,7 @@ using namespace gaia::db;
 using namespace gaia::rules;
 
 
+/*
 TEST(auto_tx_test, auto_tx_active_commit)
 {
     begin_transaction();
@@ -36,6 +37,7 @@ TEST(auto_tx_test, auto_tx_active_rollback)
     }
     EXPECT_EQ(true, gaia_mem_base::is_tx_active());
 }
+*/
 
 TEST(auto_tx_test, auto_tx_inactive_rollback)
 {
