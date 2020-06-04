@@ -18,6 +18,7 @@ def PragmaDetectMismatch : Decl;
 def ExternCContext : Decl, DeclContext;
 def Named : Decl<"named declarations", 1>;
   def Namespace : DDecl<Named, "namespaces">, DeclContext;
+  def Ruleset : DDecl<Named, "rulesets">, DeclContext;
   def UsingDirective : DDecl<Named>;
   def NamespaceAlias : DDecl<Named>;
   def Label : DDecl<Named, "labels">;

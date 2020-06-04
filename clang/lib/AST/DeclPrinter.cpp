@@ -58,6 +58,8 @@ namespace {
 
     void VisitDeclContext(DeclContext *DC, bool Indent = true);
 
+    void VisitRulesetDecl(RulesetDecl *D);
+
     void VisitTranslationUnitDecl(TranslationUnitDecl *D);
     void VisitTypedefDecl(TypedefDecl *D);
     void VisitTypeAliasDecl(TypeAliasDecl *D);
@@ -883,6 +885,15 @@ void DeclPrinter::VisitStaticAssertDecl(StaticAssertDecl *D) {
     SL->printPretty(Out, nullptr, Policy, Indentation);
   }
   Out << ")";
+}
+
+//----------------------------------------------------------------------------
+// C++ declarations
+//----------------------------------------------------------------------------
+void DeclPrinter::VisitRulesetDecl(RulesetDecl *D) {
+  Out << "namespace " << *D << " {\n";
+  VisitDeclContext(D);
+  Indent() << "}";
 }
 
 //----------------------------------------------------------------------------

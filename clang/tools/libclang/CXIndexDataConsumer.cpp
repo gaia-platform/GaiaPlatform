@@ -109,6 +109,11 @@ public:
     return true;
   }
 
+  bool VisitRulesetDecl(const RulesetDecl *D) {
+    DataConsumer.handleRuleset(D);
+    return true;
+  }
+
   bool VisitNamespaceDecl(const NamespaceDecl *D) {
     DataConsumer.handleNamespace(D);
     return true;
@@ -862,6 +867,13 @@ bool CXIndexDataConsumer::handleObjCProperty(const ObjCPropertyDecl *D) {
     DInfo.ObjCPropDeclInfo.setter = nullptr;
   }
 
+  return handleDecl(D, D->getLocation(), getCursor(D), DInfo);
+}
+
+bool CXIndexDataConsumer::handleRuleset(const RulesetDecl *D) {
+  DeclInfo DInfo(/*isRedeclaration=*/false,
+                 /*isDefinition=*/true,
+                 /*isContainer=*/true);
   return handleDecl(D, D->getLocation(), getCursor(D), DInfo);
 }
 

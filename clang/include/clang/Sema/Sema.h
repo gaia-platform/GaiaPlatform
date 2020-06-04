@@ -4593,6 +4593,15 @@ public:
   CXXRecordDecl *getStdBadAlloc() const;
   EnumDecl *getStdAlignValT() const;
 
+  Decl *ActOnRulesetDefStart(Scope *S, 
+                               SourceLocation RulesetLoc,
+                               SourceLocation IdentLoc, IdentifierInfo *Ident,
+                               const ParsedAttributesView &AttrList);
+  void ActOnRulesetDefFinish(); 
+  NamedDecl *injectVariableDefinition(IdentifierInfo *II);
+  QualType getFieldType (IdentifierInfo *id) const;
+  
+
 private:
   // A cache representing if we've fully checked the various comparison category
   // types stored in ASTContext. The bit-index corresponds to the integer value

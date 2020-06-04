@@ -5567,6 +5567,11 @@ void Parser::ParseDirectDeclarator(Declarator &D) {
         D.getCXXScopeSpec().isEmpty())
       return ParseDecompositionDeclarator(D);
 
+    if (getCurScope()->isRulesetScope() && Tok.is(tok::l_brace))
+    {
+        injectRuleFunction(D);
+        return;
+    }
     // Don't parse FOO:BAR as if it were a typo for FOO::BAR inside a class, in
     // this context it is a bitfield. Also in range-based for statement colon
     // may delimit for-range-declaration.

@@ -2457,6 +2457,13 @@ private:
 
   IdentifierInfo *TryParseCXX11AttributeIdentifier(SourceLocation &Loc);
 
+  void parseGaiaAttributes(ParsedAttributesWithRange &attrs,
+                            SourceLocation *EndLoc = nullptr);
+  void parseGaiaAttributeSpecifier(ParsedAttributesWithRange &attrs,
+                            SourceLocation *EndLoc = nullptr);
+  void injectRuleFunction(Declarator &D);
+  std::string randomString(std::string::size_type length) const;
+
   void MaybeParseMicrosoftAttributes(ParsedAttributes &attrs,
                                      SourceLocation *endLoc = nullptr) {
     if (getLangOpts().MicrosoftExt && Tok.is(tok::l_square))
@@ -2657,6 +2664,12 @@ private:
                             bool OuterMightBeMessageSend = false);
 
   void DiagnoseUnexpectedNamespace(NamedDecl *Context);
+
+  DeclGroupPtrTy parseRuleset();
+  void parseRulesetTable(ParsedAttributesWithRange &attrs,
+    SourceLocation *endLoc);
+
+  void parseInnerRuleset(BalancedDelimiterTracker &Tracker);
 
   DeclGroupPtrTy ParseNamespace(DeclaratorContext Context,
                                 SourceLocation &DeclEnd,

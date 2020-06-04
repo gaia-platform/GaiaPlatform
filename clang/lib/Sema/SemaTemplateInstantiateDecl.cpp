@@ -532,6 +532,11 @@ TemplateDeclInstantiator::VisitLabelDecl(LabelDecl *D) {
 }
 
 Decl *
+TemplateDeclInstantiator::VisitRulesetDecl(RulesetDecl *D) {
+  llvm_unreachable("Rulesets cannot be instantiated");
+}
+
+Decl *
 TemplateDeclInstantiator::VisitNamespaceDecl(NamespaceDecl *D) {
   llvm_unreachable("Namespaces cannot be instantiated");
 }

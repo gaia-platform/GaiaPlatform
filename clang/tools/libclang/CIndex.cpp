@@ -1212,6 +1212,10 @@ bool CursorVisitor::VisitObjCPropertyImplDecl(ObjCPropertyImplDecl *PD) {
   return false;
 }
 
+bool CursorVisitor::VisitRulesetDecl(RulesetDecl *D) {
+  return VisitDeclContext(D);
+}
+
 bool CursorVisitor::VisitNamespaceDecl(NamespaceDecl *D) {
   return VisitDeclContext(D);
 }
@@ -6196,6 +6200,7 @@ CXCursor clang_getCursorDefinition(CXCursor C) {
   switch (D->getKind()) {
   // Declaration kinds that don't really separate the notions of
   // declaration and definition.
+  case Decl::Ruleset:
   case Decl::Namespace:
   case Decl::Typedef:
   case Decl::TypeAlias:

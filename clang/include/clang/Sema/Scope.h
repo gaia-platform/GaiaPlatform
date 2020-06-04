@@ -132,6 +132,9 @@ public:
 
     /// We are between inheritance colon and the real class/struct definition scope.
     ClassInheritanceScope = 0x800000,
+
+    /// Gaia ruleset scope
+    GaiaRulesetScope = 0x1000000
   };
 
 private:
@@ -339,6 +342,12 @@ public:
     return (getFlags() & Scope::ClassScope);
   }
 
+  /// isRulesetScope() - Return true if this scope is a ruleset scope.
+  bool isRulesetScope() const 
+  {
+      return (getFlags() & Scope::GaiaRulesetScope);
+  }
+  
   /// isInCXXInlineMethodScope - Return true if this scope is a C++ inline
   /// method scope or is inside one.
   bool isInCXXInlineMethodScope() const {

@@ -2005,6 +2005,50 @@ static void handleCPUSpecificAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
         AL.getAttributeSpellingListIndex()));
 }
 
+static void handleRulesetAttr(Sema &S, Decl *D, const ParsedAttr &AL)
+{
+    if (!checkAttributeAtLeastNumArgs(S, AL, 1))
+    {
+        return;
+    }
+    SmallVector<IdentifierInfo *, 8> tables;
+    for (unsigned ArgNo = 0; ArgNo < getNumAttributeArgs(AL); ++ArgNo) 
+    {
+        if (!AL.isArgIdent(ArgNo)) 
+        {
+            S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
+                << AL << AANT_ArgumentIdentifier;
+            return;
+        }
+        IdentifierLoc *tableArg = AL.getArgAsIdent(ArgNo);
+        tables.push_back(tableArg->Ident);
+    }
+    D->addAttr(::new (S.Context) TableAttr(
+        AL.getRange(), S.Context, tables.data(), tables.size(),
+        AL.getAttributeSpellingListIndex()));
+}
+
+static void handleRuleAttr(Sema &S, Decl *D, const ParsedAttr &AL)
+{
+    D->addAttr(::new (S.Context) RuleAttr(
+        AL.getRange(), S.Context,
+        AL.getAttributeSpellingListIndex()));
+}
+
+static void handleFieldAttr(Sema &S, Decl *D, const ParsedAttr &AL)
+{
+    D->addAttr(::new (S.Context) GaiaFieldAttr(
+        AL.getRange(), S.Context,
+        AL.getAttributeSpellingListIndex()));
+}
+
+static void handleFieldValueAttr(Sema &S, Decl *D, const ParsedAttr &AL)
+{
+    D->addAttr(::new (S.Context) GaiaFieldValueAttr(
+        AL.getRange(), S.Context,
+        AL.getAttributeSpellingListIndex()));
+}
+
 static void handleCommonAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   if (S.LangOpts.CPlusPlus) {
     S.Diag(AL.getLoc(), diag::err_attribute_not_supported_in_lang)
@@ -7012,6 +7056,19 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
 
   case ParsedAttr::AT_ObjCExternallyRetained:
     handleObjCExternallyRetainedAttr(S, D, AL);
+    break;
+
+  case ParsedAttr::AT_Table:
+    handleRulesetAttr(S, D, AL);
+    break;
+  case ParsedAttr::AT_Rule:
+    handleRuleAttr(S, D, AL);
+    break;
+  case ParsedAttr::AT_GaiaField:
+    handleFieldAttr(S, D, AL);
+    break;
+  case ParsedAttr::AT_GaiaFieldValue:
+    handleFieldValueAttr(S, D, AL);
     break;
   }
 }

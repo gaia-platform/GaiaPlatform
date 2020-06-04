@@ -1417,8 +1417,36 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
     return ParseExpressionTrait();
 
   case tok::at: {
-    SourceLocation AtLoc = ConsumeToken();
-    return ParseObjCAtExpression(AtLoc);
+      if (getLangOpts().Gaia)
+      {
+          SourceLocation atTok = ConsumeToken();
+          if (Tok.is(tok::identifier))
+          {
+              ExprResult expr =  ParseCastExpression(isUnaryExpression,
+                isAddressOfOperand,
+                NotCastExpr,
+                isTypeCast,
+                isVectorLiteral);
+                DeclRefExpr *declExpr = dyn_cast<DeclRefExpr>(expr.get());
+                if (declExpr != nullptr)
+                {
+                    ValueDecl *decl = declExpr->getDecl();
+                    if (decl->hasAttr<GaiaFieldAttr>())
+                    {
+                        decl->dropAttrs();
+                        decl->addAttr(GaiaFieldValueAttr::CreateImplicit(Actions.Context));
+                    }
+                    else
+                    {
+                        return ExprError(Diag(atTok, diag::err_unexpected_at));
+                    }                   
+                }                
+                return expr;
+          }
+      }
+      
+      SourceLocation AtLoc = ConsumeToken();
+      return ParseObjCAtExpression(AtLoc); 
   }
   case tok::caret:
     Res = ParseBlockLiteralExpression();

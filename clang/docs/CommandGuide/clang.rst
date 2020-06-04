@@ -273,6 +273,10 @@ Language Selection and Mode Options
 
  Enable support for Borland extensions.
 
+ .. option:: -fgaia-extensions
+
+ Enable support for Gaia extensions
+
 .. option:: -fwritable-strings
 
  Make all string literals default to writable.  This disables uniquing of

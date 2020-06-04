@@ -845,6 +845,8 @@ Parser::ParseExternalDeclaration(ParsedAttributesWithRange &attrs,
     Diag(Tok, diag::err_unexpected_module_decl);
     SkipUntil(tok::semi);
     return nullptr;
+  case tok::kw_ruleset:
+    return parseRuleset();
 
   default:
   dont_know:

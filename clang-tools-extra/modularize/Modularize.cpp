@@ -595,6 +595,7 @@ public:
     return true;
   }
 
+
   // Check 'namespace (name) {}' block for #include directives.
   bool VisitNamespaceDecl(const NamespaceDecl *D) {
     SourceRange BlockRange = D->getSourceRange();
@@ -767,6 +768,10 @@ public:
     return true;
   }
 
+  bool VisitRulesetDecl(const RulesetDecl *D)
+  {
+      return true;
+  }
   // Check 'namespace (name) {}' block for #include directives.
   bool VisitNamespaceDecl(const NamespaceDecl *D) {
     return true;

@@ -61,6 +61,7 @@ namespace clang {
     void VisitTranslationUnitDecl(TranslationUnitDecl *D);
     void VisitNamedDecl(NamedDecl *D);
     void VisitLabelDecl(LabelDecl *LD);
+    void VisitRulesetDecl(RulesetDecl *D);
     void VisitNamespaceDecl(NamespaceDecl *D);
     void VisitUsingDirectiveDecl(UsingDirectiveDecl *D);
     void VisitNamespaceAliasDecl(NamespaceAliasDecl *D);
@@ -1158,6 +1159,10 @@ void ASTDeclWriter::VisitLabelDecl(LabelDecl *D) {
   Code = serialization::DECL_LABEL;
 }
 
+void ASTDeclWriter::VisitRulesetDecl(RulesetDecl *D)
+{
+    //TBD: PCH implementation if needed
+}
 
 void ASTDeclWriter::VisitNamespaceDecl(NamespaceDecl *D) {
   VisitRedeclarable(D);

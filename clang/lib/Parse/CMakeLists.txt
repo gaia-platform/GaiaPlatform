@@ -20,6 +20,7 @@ add_clang_library(clangParse
   ParseTemplate.cpp
   ParseTentative.cpp
   Parser.cpp
+  ParseGaia.cpp
 
   LINK_LIBS
   clangAST

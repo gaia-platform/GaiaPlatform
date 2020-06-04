@@ -566,6 +566,13 @@ public:
     return true;
   }
 
+  bool VisitRulesetDecl(const RulesetDecl *D)
+  {
+    TRY_DECL(D, IndexCtx.handleDecl(D));
+    IndexCtx.indexDeclContext(D);
+    return true;
+  }
+
   bool VisitNamespaceDecl(const NamespaceDecl *D) {
     TRY_DECL(D, IndexCtx.handleDecl(D));
     IndexCtx.indexDeclContext(D);

@@ -294,6 +294,7 @@ def RenderScript : LangOpt<"RenderScript">;
 def ObjC : LangOpt<"ObjC">;
 def BlocksSupported : LangOpt<"Blocks">;
 def ObjCAutoRefCount : LangOpt<"ObjCAutoRefCount">;
+def Gaia : LangOpt<"Gaia">;
 
 // Defines targets for target-specific attributes. Empty lists are unchecked.
 class TargetSpec {
@@ -3170,4 +3171,29 @@ def ObjCExternallyRetained : InheritableAttr {
   let Spellings = [Clang<"objc_externally_retained">];
   let Subjects = SubjectList<[NonParmVar, Function, Block, ObjCMethod]>;
   let Documentation = [ObjCExternallyRetainedDocs];
+}
+
+def Table : Attr {
+    let Spellings = [Keyword<"table">];
+    let Subjects = SubjectList<[Ruleset]>;
+    let Documentation = [Undocumented];
+    let Args = [VariadicIdentifierArgument<"tables">];
+}
+
+def Rule : Attr {
+  let Spellings = [Keyword<"rule">];
+  let Subjects = SubjectList<[Function]>;
+  let Documentation = [Undocumented];
+}
+
+def GaiaField : Attr {
+  let Spellings = [Keyword<"gaiaField">];
+  let Subjects = SubjectList<[Var]>;
+  let Documentation = [Undocumented];
+}
+
+def GaiaFieldValue : Attr {
+  let Spellings = [Keyword<"gaiaFieldValue">];
+  let Subjects = SubjectList<[Var]>;
+  let Documentation = [Undocumented];
 }

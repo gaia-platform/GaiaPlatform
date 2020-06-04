@@ -4731,6 +4731,11 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
                    options::OPT_fno_borland_extensions, false))
     CmdArgs.push_back("-fborland-extensions");
 
+  // -fno-gaia-extensions is default.
+  if (Args.hasFlag(options::OPT_fgaia_extensions,
+                   options::OPT_fno_gaia_extensions, false))
+    CmdArgs.push_back("-fgaia-extensions");
+
   // -fno-declspec is default, except for PS4.
   if (Args.hasFlag(options::OPT_fdeclspec, options::OPT_fno_declspec,
                    RawTriple.isPS4()))
