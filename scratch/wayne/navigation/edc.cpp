@@ -18,8 +18,7 @@ void print_airport_segments(Airport* ap) {
     for (auto s : ap->src_segments) {
         printf("  source of segment %d - %d\n", s->id(), s->miles());
     }
-    airport_dst_segments airport_dst_segments(ap);
-    for (auto s : airport_dst_segments) {
+    for (auto s : ap->dst_segments) {
         printf("  destination of segment %d - %d\n", s->id(), s->miles());
     }
 }

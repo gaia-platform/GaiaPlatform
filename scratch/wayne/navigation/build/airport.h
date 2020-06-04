@@ -111,6 +111,8 @@ public:
     T_primary* m_outer;
 };
 
+struct Flight;
+struct Airport;
 struct Segment;
 struct Trip_segment;
 
@@ -258,50 +260,6 @@ private:
     friend struct gaia_object_t<4,Trip_segment,trip_segment,trip_segmentT>;
     Trip_segment(gaia_id_t id) : gaia_object_t(id, "Trip_segment") {}
 };
-
-template <typename T_primary, typename T_foreign, int T_primary_slot, int T_foreign_slot>
-class reference_iterator {
-    class Iterator {
-    public:
-        Iterator() {}
-        Iterator(T_foreign* edc_ptr) {
-            m_edc_ptr = edc_ptr;
-        }
-        T_foreign* operator*() {
-            return m_edc_ptr;
-        }
-        Iterator &operator++() {
-            m_edc_ptr = T_foreign::get_row_by_id(m_edc_ptr->m_references[T_foreign_slot]);
-            return *this;
-        }
-        bool operator!=(const Iterator&) const {
-            return m_edc_ptr != nullptr;
-        }
-    private:
-        T_foreign* m_edc_ptr;
-    };
-
-public:
-    reference_iterator(T_primary* id) {
-        m_id = id->gaia_id();
-    }
-    Iterator begin() {
-        T_primary* p_ptr = T_primary::get_row_by_id(m_id);
-        T_foreign* edc_ptr = T_foreign::get_row_by_id(p_ptr->m_references[T_primary_slot]);
-        return Iterator(edc_ptr);
-    }
-
-    Iterator end() {
-        return Iterator(nullptr);
-    }
-
-    gaia_id_t m_id;
-};
-
-typedef reference_iterator<Flight,Segment,c_first_segment,c_next_segment> flight_segments;
-typedef reference_iterator<Airport,Segment,c_first_src_segment,c_next_src_segment> airport_src_segments;
-typedef reference_iterator<Airport,Segment,c_first_dst_segment,c_next_dst_segment> airport_dst_segments;
-typedef reference_iterator<Segment,Trip_segment,c_first_trip_segment,c_next_trip_segment> segment_trip_segments;
 
 }  // namespace airport
 }  // namespace gaia
