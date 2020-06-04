@@ -78,7 +78,7 @@ static void connect_objects(T_primary* pp, T_foreign* fp) {
     pp->m_references[T_primary_slot] = fp->gaia_id();
 }
 
-template <typename T_foreign>
+template <typename T_foreign, int T_foreign_slot>
 class set_iterator {
 public:
     set_iterator() {}
@@ -89,7 +89,7 @@ public:
         return m_edc_ptr;
     }
     set_iterator& operator++() {
-        m_edc_ptr = T_foreign::get_row_by_id(m_edc_ptr->m_references[c_next_segment]);
+        m_edc_ptr = T_foreign::get_row_by_id(m_edc_ptr->m_references[T_foreign_slot]);
         return *this;
     }
     bool operator!=(const set_iterator&) const {
@@ -99,22 +99,23 @@ private:
     T_foreign* m_edc_ptr;
 };
 
-template <typename T_primary, typename T_foreign>
+template <typename T_primary, typename T_foreign, int T_primary_slot, int T_foreign_slot>
 class reference_chain {
 public:
-    set_iterator<T_foreign> begin() {
-        T_foreign* edc_ptr = T_foreign::get_row_by_id(m_outer->m_references[c_first_segment]);
-        return set_iterator<T_foreign>(edc_ptr);
+    set_iterator<T_foreign,T_foreign_slot> begin() {
+        T_foreign* edc_ptr = T_foreign::get_row_by_id(m_outer->m_references[T_primary_slot]);
+        return set_iterator<T_foreign,T_foreign_slot>(edc_ptr);
     }
-    set_iterator<T_foreign> end() {return set_iterator<T_foreign>(nullptr);}
+    set_iterator<T_foreign,T_foreign_slot> end() {return set_iterator<T_foreign,T_foreign_slot>(nullptr);}
     void set_outer(T_primary* outer) {m_outer = outer;}
     T_primary* m_outer;
 };
 
 struct Segment;
+struct Trip_segment;
 
 struct Flight : public gaia_object_t<1,Flight,flight,flightT>{
-    Flight() : gaia_object_t("Flight") {}
+    Flight() : gaia_object_t("Flight") {segments.set_outer(this);}
     int32_t number () const {return GET_CURRENT(number);}
     int32_t number_original () const {return GET_ORIGINAL(number);}
     void set_number(int32_t val) {SET(number, val);}
@@ -134,9 +135,7 @@ struct Flight : public gaia_object_t<1,Flight,flight,flightT>{
     }
     type_iterator<Flight> begin() {return begin_scan<Flight>();}
     type_iterator<Flight> end() {return end_scan<Flight>();}
-
-    reference_chain<Flight,Segment> segments;
-
+    reference_chain<Flight,Segment,c_first_segment,c_next_segment> segments;
 private:
     friend struct gaia_object_t<1,Flight,flight,flightT>;
     friend struct Segment;
@@ -144,7 +143,10 @@ private:
 };
 
 struct Airport : public gaia_object_t<2,Airport,airport,airportT>{
-    Airport() : gaia_object_t("Airport") {};
+    Airport() : gaia_object_t("Airport") {
+        src_segments.set_outer(this);
+        dst_segments.set_outer(this);
+    }
     const char * name () const {return GET_STR(name);}
     const char * name_original () const {return GET_STR_ORIGINAL(name);}
     void set_name(const char * val) {SET(name, val);}
@@ -167,13 +169,18 @@ struct Airport : public gaia_object_t<2,Airport,airport,airportT>{
     }
     type_iterator<Airport> begin() {return begin_scan<Airport>();}
     type_iterator<Airport> end() {return end_scan<Airport>();}
+    reference_chain<Airport,Segment,c_first_src_segment,c_next_src_segment> src_segments;
+    reference_chain<Airport,Segment,c_first_dst_segment,c_next_dst_segment> dst_segments;
 private:
     friend struct gaia_object_t<2,Airport,airport,airportT>;
-    Airport(gaia_id_t id) : gaia_object_t(id, "Airport") {}
+    Airport(gaia_id_t id) : gaia_object_t(id, "Airport") {
+        src_segments.set_outer(this);
+        dst_segments.set_outer(this);
+    }
 };
 
 struct Segment : public gaia_object_t<3,Segment,segment,segmentT>{
-    Segment() : gaia_object_t("Segment") {};
+    Segment() : gaia_object_t("Segment") {trip_segments.set_outer(this);};
     int32_t id () const {return GET_CURRENT(id);}
     int32_t id_original () const {return GET_ORIGINAL(id);}
     void    set_id(int32_t val) {SET(id, val);}
@@ -219,9 +226,10 @@ struct Segment : public gaia_object_t<3,Segment,segment,segmentT>{
     }
     type_iterator<Segment> begin() {return begin_scan<Segment>();}
     type_iterator<Segment> end() {return end_scan<Segment>();}
+    reference_chain<Segment,Trip_segment,c_first_trip_segment,c_next_trip_segment> trip_segments;
 private:
     friend struct gaia_object_t<3,Segment,segment,segmentT>;
-    Segment(gaia_id_t id) : gaia_object_t(id, "Segment") {}
+    Segment(gaia_id_t id) : gaia_object_t(id, "Segment") {trip_segments.set_outer(this);}
 };
 
 struct Trip_segment : public gaia_object_t<4,Trip_segment,trip_segment,trip_segmentT>{

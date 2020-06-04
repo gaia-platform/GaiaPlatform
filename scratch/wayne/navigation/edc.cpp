@@ -15,8 +15,7 @@ using namespace gaia::airport;
 
 void print_airport_segments(Airport* ap) {
     printf("Airport %ld:\n", ap->gaia_id());
-    airport_src_segments airport_src_segments(ap);
-    for (auto s : airport_src_segments) {
+    for (auto s : ap->src_segments) {
         printf("  source of segment %d - %d\n", s->id(), s->miles());
     }
     airport_dst_segments airport_dst_segments(ap);
@@ -27,8 +26,7 @@ void print_airport_segments(Airport* ap) {
 
 void print_segment_trip_segments(Segment* s) {
     printf("Segment %ld Trip_segments:\n", s->gaia_id());
-    segment_trip_segments segment_trip_segments(s);
-    for (auto ts : segment_trip_segments) {
+    for (auto ts : s->trip_segments) {
         printf("  segment %s\n", ts->who());
     }
 }
