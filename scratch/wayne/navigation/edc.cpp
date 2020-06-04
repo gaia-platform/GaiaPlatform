@@ -95,16 +95,23 @@ int main ()
     Trip_segment::connect_segment(s4, ts5);
     Trip_segment::connect_segment(s5, ts6);
 
-    for (auto a : *ap1) {
+    for (auto it = Airport::airports().begin(); it != Airport::airports().end(); ++it)
+    {
+        printf("airport %s - %s (%s)\n", (*it)->name(), (*it)->iata(), (*it)->city());
+    }
+
+    for (auto a : Airport::airports())
+    {
         printf("airport %s - %s (%s)\n", a->name(), a->iata(), a->city());
     }
-    for (auto a : *f1) {
+
+    for (auto a : Flight::flights()) {
         printf("flight %d - %d\n", a->number(), a->miles_flown());
     }
-    for (auto a : *s1) {
+    for (auto a : Segment::segments()) {
         printf("segment %d - %d\n", a->id(), a->miles());
     }
-    for (auto a : *ts1) {
+    for (auto a : Trip_segment::trip_segments()) {
         printf("trip_segment %s\n", a->who());
     }
 
