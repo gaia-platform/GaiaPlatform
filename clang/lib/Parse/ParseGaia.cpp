@@ -28,9 +28,9 @@
 using namespace clang;
 
 
-std::string Parser::randomString(std::string::size_type length) const
+std::string Parser::RandomString(std::string::size_type length) const
 {
-    const char chrs[] = "ABCDEFGIJKLMNOPQRSTUVWXYZ_"
+    const char chrs[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ_"
         "abcdefghijklmnopqrstuvwxyz";
 
     std::random_device rd;
@@ -48,13 +48,14 @@ std::string Parser::randomString(std::string::size_type length) const
     return s;
 }
 
-void Parser::injectRuleFunction(Declarator &decl)
+// Insert a dummy function declaration to turn rule definition
+// to function with special attribute
+void Parser::InjectRuleFunction(Declarator &decl)
 {
     SourceLocation loc = Tok.getLocation();
     if (!getCurScope()->isRulesetScope())
     {
         Diag(loc, diag::err_ruleset_ruleset_scope);
-        cutOffParsing();;
         return;
     }
 
@@ -78,24 +79,24 @@ void Parser::injectRuleFunction(Declarator &decl)
     declSpec.Finish(Actions, Actions.getASTContext().getPrintingPolicy());
  
     // Set function name
-    IdentifierInfo *func = &PP.getIdentifierTable().get(randomString(10));
+    IdentifierInfo *func = &PP.getIdentifierTable().get(RandomString(10));
     decl.SetIdentifier(func, loc);
     
     decl.takeAttributes(attrs, endLoc);
     decl.AddTypeInfo(DeclaratorChunk::getFunction(
-                    true, false, loc, nullptr,
-                    0, loc, loc,
-                    true, SourceLocation(),
-                    /*MutableLoc=*/SourceLocation(),
-                    EST_None, SourceRange(), nullptr,
-                    nullptr, 0,
-                    nullptr,
-                    nullptr, None, loc,
-                    loc, decl, TypeResult(), &declSpec),
-                std::move(attrs), loc);
+        true, false, loc, nullptr,
+        0, loc, loc,
+        true, SourceLocation(),
+        /*MutableLoc=*/SourceLocation(),
+        EST_None, SourceRange(), nullptr,
+        nullptr, 0,
+        nullptr,
+        nullptr, None, loc,
+        loc, decl, TypeResult(), &declSpec),
+        std::move(attrs), loc);
 }
 
-void Parser::parseGaiaAttributeSpecifier(ParsedAttributesWithRange &attrs,
+bool Parser::ParseGaiaAttributeSpecifier(ParsedAttributesWithRange &attrs,
     SourceLocation *EndLoc)
 {
     if (Tok.is(tok::comma))
@@ -105,16 +106,15 @@ void Parser::parseGaiaAttributeSpecifier(ParsedAttributesWithRange &attrs,
     switch (Tok.getKind())
     {
         case tok::kw_table:
-            parseRulesetTable(attrs, EndLoc);
-            return;
+            return ParseRulesetTable(attrs, EndLoc);
         default:
             Diag(Tok, diag::err_invalid_ruleset_attribute);
-            cutOffParsing();
+            return false;
     }    
 }
 
 /// Parse Gaia Specific attributes
-void Parser::parseGaiaAttributes(ParsedAttributesWithRange &attrs,
+bool Parser::ParseGaiaAttributes(ParsedAttributesWithRange &attrs,
     SourceLocation *endLoc)
 {
     SourceLocation StartLoc = Tok.getLocation(), Loc;
@@ -125,13 +125,23 @@ void Parser::parseGaiaAttributes(ParsedAttributesWithRange &attrs,
 
     do 
     {
-        parseGaiaAttributeSpecifier(attrs, endLoc);
+        if (!ParseGaiaAttributeSpecifier(attrs, endLoc))
+        {
+            return false;
+        }
     } while (Tok.is(tok::comma));
 
+    if (Tok.isNot(tok::l_brace))
+    {
+        Diag(Tok, diag::err_invalid_ruleset_attribute);
+        return false;
+    }
+
     attrs.Range = SourceRange(StartLoc, *endLoc);
+    return true;
 }
 
-void Parser::parseRulesetTable(ParsedAttributesWithRange &attrs,
+bool Parser::ParseRulesetTable(ParsedAttributesWithRange &attrs,
     SourceLocation *endLoc)
 {
     assert(Tok.is(tok::kw_table) && "Not a ruleset table!");
@@ -142,30 +152,45 @@ void Parser::parseRulesetTable(ParsedAttributesWithRange &attrs,
     SourceLocation kwLoc = ConsumeToken();
 
     BalancedDelimiterTracker tracker(*this, tok::l_paren);
-    if (tracker.expectAndConsume())
+    if (tracker.consumeOpen())
     {
-        Diag(Tok, diag::err_expected) << tok::l_brace;
-        return;
+        Diag(Tok, diag::err_expected) << tok::l_paren;
+        return false;
     }
 
     do
     {
+        Tok.getLocation().dump(Actions.getSourceManager());
         if (Tok.is(tok::identifier))
         {
             argExprs.push_back(ParseIdentifierLoc());
+        }
+        else
+        {
+            if (Tok.isNot(tok::r_paren))
+            {
+                Diag(Tok, diag::err_expected) << tok::identifier;
+                return false;
+            }
         }
     } while(TryConsumeToken(tok::comma));
 
     if (tracker.consumeClose())
     {
-        Diag(Tok, diag::err_expected) << tok::r_paren;
+        return false;
     }
     *endLoc = tracker.getCloseLocation();
     attrs.addNew(kwName, SourceRange(kwLoc, *endLoc), nullptr, kwLoc, argExprs.data(), 
-        argExprs.size(), ParsedAttr::AS_Keyword);   
+        argExprs.size(), ParsedAttr::AS_Keyword);  
+    if (argExprs.size() == 0)
+    {   
+        Diag(Tok, diag::err_invalid_ruleset_attribute);
+        return false;
+    }
+    return true;
 }
 
-Parser::DeclGroupPtrTy Parser::parseRuleset()
+Parser::DeclGroupPtrTy Parser::ParseRuleset()
 {
     assert(Tok.is(tok::kw_ruleset) && "Not a ruleset!");
     
@@ -175,7 +200,8 @@ Parser::DeclGroupPtrTy Parser::parseRuleset()
     if (Tok.isNot(tok::identifier))
     {
         Diag(Tok, diag::err_expected) << tok::identifier;
-        cutOffParsing();
+        while(!SkipUntil(tok::l_brace));
+        while(!SkipUntil(tok::r_brace));
         return nullptr;
     }
 
@@ -185,20 +211,27 @@ Parser::DeclGroupPtrTy Parser::parseRuleset()
     if (Tok.is(tok::colon)) // attributes are specified
     {
         ConsumeToken();
-        parseGaiaAttributes(attrs);
+        if (!ParseGaiaAttributes(attrs))
+        {
+            while(!SkipUntil(tok::l_brace));
+            while(!SkipUntil(tok::r_brace));
+            return nullptr;
+        }
     }
         
     BalancedDelimiterTracker tracker(*this, tok::l_brace);
     if (tracker.consumeOpen()) 
     {
         Diag(Tok, diag::err_expected) << tok::l_brace;
+        while(!SkipUntil(tok::l_brace));
+        while(!SkipUntil(tok::r_brace));
         return nullptr;
     }
     
     if (getCurScope()->isRulesetScope())
     {
         Diag(tracker.getOpenLocation(), diag::err_ruleset_ruleset_scope);
-        SkipUntil(tok::r_brace);
+        tracker.skipToEnd();
         return nullptr;
     }
 
@@ -209,7 +242,7 @@ Parser::DeclGroupPtrTy Parser::parseRuleset()
     PrettyDeclStackTraceEntry CrashInfo(Actions.Context, rulesetDecl,
                                       rulesetLoc, "parsing ruleset");
 
-    parseInnerRuleset(tracker);
+    ParseRulesetContents(tracker);
 
     rulesetScope.Exit();
 
@@ -218,7 +251,7 @@ Parser::DeclGroupPtrTy Parser::parseRuleset()
     return Actions.ConvertDeclToDeclGroup(rulesetDecl, nullptr);
 }
 
-void Parser::parseInnerRuleset( BalancedDelimiterTracker &tracker)
+void Parser::ParseRulesetContents( BalancedDelimiterTracker &tracker)
 {
     while (Tok.isNot(tok::r_brace) && Tok.isNot(tok::eof)) 
     {

@@ -637,6 +637,7 @@ bool Parser::ParseTopLevelDecl(DeclGroupPtrTy &Result) {
 ///
 /// [Modules-TS] module-import-declaration
 ///
+/// [Gaia] ruleset declaration
 Parser::DeclGroupPtrTy
 Parser::ParseExternalDeclaration(ParsedAttributesWithRange &attrs,
                                  ParsingDeclSpec *DS) {
@@ -846,7 +847,7 @@ Parser::ParseExternalDeclaration(ParsedAttributesWithRange &attrs,
     SkipUntil(tok::semi);
     return nullptr;
   case tok::kw_ruleset:
-    return parseRuleset();
+    return ParseRuleset();
 
   default:
   dont_know:

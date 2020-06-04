@@ -1254,9 +1254,12 @@ let CategoryName = "Coroutines Issue" in {
 def err_for_co_await_not_range_for : Error<
   "'co_await' modifier can only be applied to range-based for loop">;
 }
+
+let CategoryName = "Gaia Issue" in {
 def err_ruleset_ruleset_scope : Error<
   "rulesets can not be defined in ruleset scope">;
 def err_invalid_ruleset_attribute : Error<
   "Invalid ruleset attribute">;
+}
 
 } // end of Parser diagnostics
