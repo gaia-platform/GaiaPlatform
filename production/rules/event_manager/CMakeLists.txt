@@ -16,6 +16,7 @@ set(GAIA_EVENT_MANAGER_INCLUDES
   ${GAIA_INC}/public/common
   ${GAIA_INC}/internal/common
   ${GAIA_INC}/public/rules
+  ${GAIA_INC}/internal/rules
   ${GAIA_RULES_INC}
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc
@@ -37,6 +38,7 @@ endif()
 # main target
 add_library(gaia_rules STATIC
   src/event_manager.cpp
+  src/rule_thread_pool.cpp
 )
 add_dependencies(gaia_rules generate_event_logs)
 set_target_properties(gaia_rules PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
@@ -44,7 +46,6 @@ target_include_directories(gaia_rules PRIVATE ${GAIA_EVENT_MANAGER_INCLUDES})
 
 # unit tests
 add_gtest(test_auto_tx "tests/test_auto_tx.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_semock")
-add_gtest(test_event_guard "tests/test_event_guard.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "")
 add_gtest(test_event_manager "tests/test_event_manager.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
 add_gtest(test_system_init "tests/test_system_init.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
 add_gtest(test_component_init "tests/test_component_init.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_rules;gaia_direct;gaia_semock")

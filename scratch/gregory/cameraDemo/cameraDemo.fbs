@@ -15,4 +15,6 @@ table object {
     class: string;
 }
 
-
+table emergency_stop {
+    until_time_ns: ulong;
+}
