@@ -16,8 +16,6 @@ enum gaia_type_type:ubyte {
   ulong,
   float,
   double,
-  array,
-  vector,
   table,
   string
 }
@@ -26,15 +24,16 @@ table gaia_type {
   schema_id:uint64;
   name:string (required);
   type:gaia_type_type;
-  element_type_id:uint64;
 }
 
 table gaia_field {
   schema_id:uint64;
   name:string (required);
+  owner_id:uint64;
   type_id:uint64;
-  length:uint64;
-  position:uint64;
+  is_repeating:bool;
+  length:uint16;
+  position:uint16;
   required:bool;
   deprecated:bool;
 }

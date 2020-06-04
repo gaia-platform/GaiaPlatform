@@ -1,4 +1,9 @@
 # Gaia Catalog
 
-## Metadata
-Catalog is the system to store all metadata related to gaia databases, tables, and rules.
+## Components
+
+`catalog_manager`
+This is the catalog manager library.
+
+`gaiac`
+This is the catalog command line tool for Gaia data definition language for creating schemas, types, and tables.
