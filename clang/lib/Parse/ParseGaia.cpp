@@ -27,7 +27,11 @@
 #include <random>
 using namespace clang;
 
-
+void Parser::ConsumeInvalidRuleset()
+{
+    while(!SkipUntil(tok::l_brace));
+    while(!SkipUntil(tok::r_brace));
+}
 std::string Parser::RandomString(std::string::size_type length) const
 {
     const char chrs[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ_"
@@ -160,7 +164,6 @@ bool Parser::ParseRulesetTable(ParsedAttributesWithRange &attrs,
 
     do
     {
-        Tok.getLocation().dump(Actions.getSourceManager());
         if (Tok.is(tok::identifier))
         {
             argExprs.push_back(ParseIdentifierLoc());
@@ -200,8 +203,7 @@ Parser::DeclGroupPtrTy Parser::ParseRuleset()
     if (Tok.isNot(tok::identifier))
     {
         Diag(Tok, diag::err_expected) << tok::identifier;
-        while(!SkipUntil(tok::l_brace));
-        while(!SkipUntil(tok::r_brace));
+        ConsumeInvalidRuleset();
         return nullptr;
     }
 
@@ -213,8 +215,7 @@ Parser::DeclGroupPtrTy Parser::ParseRuleset()
         ConsumeToken();
         if (!ParseGaiaAttributes(attrs))
         {
-            while(!SkipUntil(tok::l_brace));
-            while(!SkipUntil(tok::r_brace));
+            ConsumeInvalidRuleset();
             return nullptr;
         }
     }
@@ -223,8 +224,7 @@ Parser::DeclGroupPtrTy Parser::ParseRuleset()
     if (tracker.consumeOpen()) 
     {
         Diag(Tok, diag::err_expected) << tok::l_brace;
-        while(!SkipUntil(tok::l_brace));
-        while(!SkipUntil(tok::r_brace));
+        ConsumeInvalidRuleset();
         return nullptr;
     }
     
