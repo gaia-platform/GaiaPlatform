@@ -55,19 +55,19 @@ public:
     gaia_iterator_t(T_gaia_ptr ptr) : m_ptr(ptr) {}
     gaia_iterator_t(const gaia_iterator_t& it) : m_ptr(it.m_ptr) {}
 
-    gaia_iterator_t& operator++() { 
+    gaia_iterator_t& operator++() {
         m_ptr = m_ptr->get_next();
-        return *this; 
-    }
-    
-    T_gaia_ptr operator++(int) { 
-        T_gaia_ptr temp = m_ptr;
-        operator++(); 
-        return temp; 
+        return *this;
     }
 
-    bool operator==(const gaia_iterator_t& rhs) const { 
-        return m_ptr->gaia_id() == rhs.m_ptr->gaia_id(); 
+    T_gaia_ptr operator++(int) {
+        T_gaia_ptr temp = m_ptr;
+        operator++();
+        return temp;
+    }
+
+    bool operator==(const gaia_iterator_t& rhs) const {
+        return m_ptr->gaia_id() == rhs.m_ptr->gaia_id();
     }
     bool operator!=(const gaia_iterator_t& rhs) const {
         if (m_ptr && rhs.m_ptr) {
@@ -80,21 +80,14 @@ public:
 };
 
 template<typename T_gaia>
-class gaia_container_t {
-public:
-    static gaia_iterator_t<T_gaia *> begin() { return gaia_iterator_t<T_gaia *>(T_gaia::get_first()); }
-    static gaia_iterator_t<T_gaia *> end() { return gaia_iterator_t<T_gaia *>(nullptr); }
+struct gaia_container_t {
+    static gaia_iterator_t<T_gaia*> begin() { return gaia_iterator_t<T_gaia*>(T_gaia::get_first()); }
+    static gaia_iterator_t<T_gaia*> end() { return gaia_iterator_t<T_gaia*>(nullptr); }
 };
-
-template <typename T_primary, typename T_foreign, int T_parent_slot, int T_primary_slot, int T_foreign_slot>
-static void connect_objects(T_primary* pp, T_foreign* fp) {
-    fp->m_references[T_foreign_slot] = pp->m_references[T_primary_slot];
-    fp->m_references[T_parent_slot]  = pp->gaia_id();
-    pp->m_references[T_primary_slot] = fp->gaia_id();
-}
 
 template <typename T_foreign, int T_foreign_slot>
 class set_iterator {
+    T_foreign* m_edc_ptr;
 public:
     set_iterator() {}
     set_iterator(T_foreign* edc_ptr) {
@@ -110,12 +103,11 @@ public:
     bool operator!=(const set_iterator&) const {
         return m_edc_ptr != nullptr;
     }
-private:
-    T_foreign* m_edc_ptr;
 };
 
-template <typename T_primary, typename T_foreign, int T_primary_slot, int T_foreign_slot>
+template <typename T_primary, typename T_foreign, int T_parent_slot, int T_primary_slot, int T_foreign_slot>
 class reference_chain {
+    T_primary* m_outer;
 public:
     set_iterator<T_foreign,T_foreign_slot> begin() {
         T_foreign* edc_ptr = T_foreign::get_row_by_id(m_outer->m_references[T_primary_slot]);
@@ -123,7 +115,12 @@ public:
     }
     set_iterator<T_foreign,T_foreign_slot> end() {return set_iterator<T_foreign,T_foreign_slot>(nullptr);}
     void set_outer(T_primary* outer) {m_outer = outer;}
-    T_primary* m_outer;
+    void insert(T_foreign* foreign_ptr) {
+        foreign_ptr->m_references[T_foreign_slot] = m_outer->m_references[T_primary_slot];
+        foreign_ptr->m_references[T_parent_slot]  = m_outer->gaia_id();
+        m_outer->m_references[T_primary_slot] = foreign_ptr->gaia_id();
+    }
+    void erase(T_foreign*) {}
 };
 
 struct Flight;
@@ -151,12 +148,12 @@ struct Flight : public gaia_object_t<1,Flight,flight,flightT>{
         gaia_object_t::insert_row(c_num_flight_ptrs);
     }
 
-    static gaia_container_t<Flight>& flights(){ 
+    static gaia_container_t<Flight>& flights(){
         static gaia_container_t<Flight> flights;
         return flights;
     }
 
-    reference_chain<Flight,Segment,c_first_segment,c_next_segment> segments;
+    reference_chain<Flight,Segment,c_primary_segment,c_first_segment,c_next_segment> segments;
 private:
     friend struct gaia_object_t<1,Flight,flight,flightT>;
     friend struct Segment;
@@ -168,19 +165,19 @@ struct Airport : public gaia_object_t<2,Airport,airport,airportT>{
         src_segments.set_outer(this);
         dst_segments.set_outer(this);
     }
-    const char * name () const {return GET_STR(name);}
-    const char * name_original () const {return GET_STR_ORIGINAL(name);}
-    void set_name(const char * val) {SET(name, val);}
-    const char * city () const {return GET_STR(city);}
-    const char * city_original () const {return GET_STR_ORIGINAL(city);}
-    void set_city(const char * val) {SET(city, val);}
-    const char * iata () const {return GET_STR(iata);}
-    const char * iata_original () const {return GET_STR_ORIGINAL(iata);}
-    void set_iata(const char * val) {SET(iata, val);}
+    const char* name () const {return GET_STR(name);}
+    const char* name_original () const {return GET_STR_ORIGINAL(name);}
+    void set_name(const char* val) {SET(name, val);}
+    const char* city () const {return GET_STR(city);}
+    const char* city_original () const {return GET_STR_ORIGINAL(city);}
+    void set_city(const char* val) {SET(city, val);}
+    const char* iata () const {return GET_STR(iata);}
+    const char* iata_original () const {return GET_STR_ORIGINAL(iata);}
+    void set_iata(const char* val) {SET(iata, val);}
     using gaia_object_t::insert_row;
     using gaia_object_t::update_row;
     using gaia_object_t::delete_row;
-    static Airport* insert_row (const char * name_val, const char * city_val,const char * iata_val){
+    static Airport* insert_row (const char* name_val, const char* city_val,const char* iata_val){
         flatbuffers::FlatBufferBuilder b(128);
         b.Finish(CreateairportDirect(b, name_val,city_val,iata_val));
         return gaia_object_t::insert_row(b, c_num_airport_ptrs);
@@ -193,9 +190,9 @@ struct Airport : public gaia_object_t<2,Airport,airport,airportT>{
         static gaia_container_t<Airport> airports;
         return airports;
     }
-    
-    reference_chain<Airport,Segment,c_first_src_segment,c_next_src_segment> src_segments;
-    reference_chain<Airport,Segment,c_first_dst_segment,c_next_dst_segment> dst_segments;
+
+    reference_chain<Airport,Segment,c_primary_src_segment,c_first_src_segment,c_next_src_segment> src_segments;
+    reference_chain<Airport,Segment,c_primary_dst_segment,c_first_dst_segment,c_next_dst_segment> dst_segments;
 private:
     friend struct gaia_object_t<2,Airport,airport,airportT>;
     Airport(gaia_id_t id) : gaia_object_t(id, "Airport") {
@@ -229,18 +226,6 @@ struct Segment : public gaia_object_t<3,Segment,segment,segmentT>{
     void insert_row() {
         gaia_object_t::insert_row(c_num_segment_ptrs);
     }
-    static void connect_flight(Flight* pp, Segment* sp) {
-        printf("Connecting flight to segment %ld to %ld\n", pp->gaia_id(), sp->gaia_id());
-        connect_objects<Flight,Segment,c_primary_segment,c_first_segment,c_next_segment>(pp, sp);
-    }
-    static void connect_src_airport(Airport* ap, Segment* sp) {
-        printf("Connecting airport src to segment %ld to %ld\n", ap->gaia_id(), sp->gaia_id());
-        connect_objects<Airport,Segment,c_primary_src_segment,c_first_src_segment,c_next_src_segment>(ap, sp);
-    }
-    static void connect_dst_airport(Airport* ap, Segment* sp) {
-        printf("Connecting airport dst to segment %ld to %ld\n", ap->gaia_id(), sp->gaia_id());
-        connect_objects<Airport,Segment,c_primary_dst_segment,c_first_dst_segment,c_next_dst_segment>(ap, sp);
-    }
     Airport* src_segment() {
         Airport* pp = Airport::get_row_by_id(this->m_references[c_primary_src_segment]);
         return pp;
@@ -254,7 +239,7 @@ struct Segment : public gaia_object_t<3,Segment,segment,segmentT>{
         return segments;
     }
 
-    reference_chain<Segment,Trip_segment,c_first_trip_segment,c_next_trip_segment> trip_segments;
+    reference_chain<Segment,Trip_segment,c_primary_trip_segment,c_first_trip_segment,c_next_trip_segment> trip_segments;
 private:
     friend struct gaia_object_t<3,Segment,segment,segmentT>;
     Segment(gaia_id_t id) : gaia_object_t(id, "Segment") {trip_segments.set_outer(this);}
@@ -262,13 +247,13 @@ private:
 
 struct Trip_segment : public gaia_object_t<4,Trip_segment,trip_segment,trip_segmentT>{
     Trip_segment() : gaia_object_t("Trip_segment") {};
-    const char * who () const {return GET_STR(who);}
-    const char * who_original () const {return GET_STR_ORIGINAL(who);}
-    void set_who(const char * val) {SET(who, val);}
+    const char* who () const {return GET_STR(who);}
+    const char* who_original () const {return GET_STR_ORIGINAL(who);}
+    void set_who(const char* val) {SET(who, val);}
     using gaia_object_t::insert_row;
     using gaia_object_t::update_row;
     using gaia_object_t::delete_row;
-    static Trip_segment* insert_row (const char * who_val){
+    static Trip_segment* insert_row (const char* who_val){
         flatbuffers::FlatBufferBuilder b(128);
         b.Finish(Createtrip_segmentDirect(b, who_val));
         return gaia_object_t::insert_row(b, c_num_trip_segment_ptrs);
@@ -276,14 +261,10 @@ struct Trip_segment : public gaia_object_t<4,Trip_segment,trip_segment,trip_segm
     void insert_row() {
         gaia_object_t::insert_row(c_num_trip_segment_ptrs);
     }
-    static void connect_segment(Segment* sp, Trip_segment* tp) {
-        printf("Connecting segment to trip_segment %ld to %ld\n", sp->gaia_id(), tp->gaia_id());
-        connect_objects<Segment,Trip_segment,c_primary_trip_segment,c_first_trip_segment,c_next_trip_segment>(sp, tp);
-    }
     static gaia_container_t<Trip_segment>& trip_segments() {
         static gaia_container_t<Trip_segment> trip_segments;
         return trip_segments;
-    }    
+    }
 private:
     friend struct gaia_object_t<4,Trip_segment,trip_segment,trip_segmentT>;
     Trip_segment(gaia_id_t id) : gaia_object_t(id, "Trip_segment") {}

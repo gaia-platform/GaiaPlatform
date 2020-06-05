@@ -69,31 +69,31 @@ int main ()
     auto ts6 = Trip_segment::insert_row("Rachael");
 
     // Connect Flights to Segments.
-    Segment::connect_flight(f1, s1);
-    Segment::connect_flight(f1, s4);
-    Segment::connect_flight(f2, s2);
-    Segment::connect_flight(f2, s3);
-    Segment::connect_flight(f3, s5);
+    f1->segments.insert(s1);
+    f1->segments.insert(s4);
+    f2->segments.insert(s2);
+    f2->segments.insert(s3);
+    f3->segments.insert(s5);
 
     // Connect Airports to Segments.
-    Segment::connect_src_airport(ap1, s1);
-    Segment::connect_dst_airport(ap2, s1);
-    Segment::connect_src_airport(ap4, s2);
-    Segment::connect_dst_airport(ap2, s2);
-    Segment::connect_src_airport(ap2, s3);
-    Segment::connect_dst_airport(ap3, s3);
-    Segment::connect_src_airport(ap2, s4);
-    Segment::connect_dst_airport(ap5, s4);
-    Segment::connect_src_airport(ap5, s5);
-    Segment::connect_dst_airport(ap3, s5);
+    ap1->src_segments.insert(s1);
+    ap2->dst_segments.insert(s1);
+    ap4->src_segments.insert(s2);
+    ap2->dst_segments.insert(s2);
+    ap2->src_segments.insert(s3);
+    ap3->dst_segments.insert(s3);
+    ap2->src_segments.insert(s4);
+    ap5->dst_segments.insert(s4);
+    ap5->src_segments.insert(s5);
+    ap3->dst_segments.insert(s5);
 
     // Connect Segments to Trip_segments.
-    Trip_segment::connect_segment(s1, ts1);
-    Trip_segment::connect_segment(s3, ts2);
-    Trip_segment::connect_segment(s2, ts3);
-    Trip_segment::connect_segment(s4, ts4);
-    Trip_segment::connect_segment(s4, ts5);
-    Trip_segment::connect_segment(s5, ts6);
+    s1->trip_segments.insert(ts1);
+    s3->trip_segments.insert(ts2);
+    s2->trip_segments.insert(ts3);
+    s4->trip_segments.insert(ts4);
+    s4->trip_segments.insert(ts5);
+    s5->trip_segments.insert(ts6);
 
     for (auto it = Airport::airports().begin(); it != Airport::airports().end(); ++it)
     {
@@ -116,6 +116,13 @@ int main ()
     }
 
     printf("Flight %ld segments:\n", f1->gaia_id());
+    for (auto it = f1->segments.begin(); it != f1->segments.end(); ++it) {
+        printf("  segment %d - %d\n", (*it)->id(), (*it)->miles());
+        auto sap = (*it)->src_segment();
+        auto dap = (*it)->dst_segment();
+        printf("    source airport:      %s\n", sap->name());
+        printf("    desgination airport: %s\n", dap->name());
+    }
     for (auto s : f1->segments) {
         printf("  segment %d - %d\n", s->id(), s->miles());
         auto sap = s->src_segment();
