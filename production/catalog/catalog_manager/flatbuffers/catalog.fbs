@@ -33,7 +33,7 @@ enum gaia_value_index_type:uint8 {
 table gaia_table {
   name:string (required);
   is_log:bool = false;
-  trim_action:gaia_trim_action_type;
+  trim_action:GaiaTrimActionType;
   max_rows:uint64;
   max_size:uint64;
   max_seconds:uint64;
@@ -63,7 +63,7 @@ table gaia_value_index {
   unique:bool;
 }
 
-table gaia_ruleset {
+table gaiaRuleset {
   name:string;
   active_on_startup:bool;
   // TODO: convert the table_ids to [uint64] once EDC supports vector.
