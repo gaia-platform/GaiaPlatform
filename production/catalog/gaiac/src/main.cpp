@@ -5,6 +5,7 @@
 
 #include "driver.hpp"
 #include "gaia_catalog.hpp"
+#include "gaia_system.hpp"
 #include <iostream>
 #include <vector>
 
@@ -33,6 +34,8 @@ void execute(vector<Statement *> &statements) {
 int main(int argc, char *argv[]) {
     int res = 0;
     driver drv;
+    gaia::db::gaia_mem_base::init(true);
+    gaia::catalog::initialize_catalog(true);
     for (int i = 1; i < argc; ++i) {
         if (argv[i] == std::string("-p")) {
             drv.trace_parsing = true;

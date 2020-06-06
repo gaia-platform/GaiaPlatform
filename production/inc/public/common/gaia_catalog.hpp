@@ -96,7 +96,7 @@ struct CreateStatement : Statement {
 /*@}*/
 } // namespace ddl
 
-void initialize_catalog();
+void initialize_catalog(bool is_engine);
 
 void create_type(std::string name, std::vector<ddl::FieldDefinition *> *fields);
 

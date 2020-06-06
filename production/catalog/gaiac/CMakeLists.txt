@@ -38,8 +38,9 @@ add_executable(gaiac
   ${FLEX_lexer_OUTPUTS}
   ${BISON_parser_OUTPUTS})
 target_include_directories(gaiac PRIVATE ${GAIA_CATALOG_TOOL_INCLUDES})
-target_link_libraries(gaiac gaia_catalog)
+target_link_libraries(gaiac PRIVATE rt gaia gaia_catalog)
 set_target_properties(gaiac PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+set_target_properties(gaiac PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 
 set(TEST_SOURCES
   tests/test_ddl_parser.cpp

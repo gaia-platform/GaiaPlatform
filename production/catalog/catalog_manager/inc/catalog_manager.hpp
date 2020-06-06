@@ -16,7 +16,7 @@ class catalog_manager_t {
     void operator=(catalog_manager_t const &) = delete;
     static catalog_manager_t &get(bool is_initializing = false);
 
-    void init();
+    void init(bool is_engine);
 
     /*
     ** DDL APIs
