@@ -17,7 +17,7 @@ class driver {
   public:
     driver() : trace_parsing(false), trace_scanning(false){};
 
-    std::vector<gaia::catalog::ddl::Statement *> statements;
+    std::vector<gaia::catalog::ddl::statement_t *> statements;
 
     int parse(const std::string &f) {
         file = f;
