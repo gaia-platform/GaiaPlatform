@@ -1,3 +1,7 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
 /*-------------------------------------------------------------------------
  *
  * parser.yy
@@ -22,10 +26,10 @@
     namespace catalog {
     namespace ddl {
         enum class DataType : unsigned int;
-        class CompositeName;
-        class Statement;
-        class CreateStatement;
-        class FieldDefinition;
+        struct Statement;
+        struct CreateStatement;
+        struct FieldType;
+        struct FieldDefinition;
     }
     }
     }
@@ -42,12 +46,12 @@
 
 %code {
     #include "driver.hpp"
-    #include "ddl.hpp"
+    #include "gaia_catalog.hpp"
 }
 
 %define api.token.prefix {TOK_}
 %token BOOLEAN BYTE UBYTE SHORT USHORT INT UINT LONG ULONG FLOAT DOUBLE STRING
-%token CREATE TABLE TYPE SCHEMA AS
+%token CREATE TABLE TYPE OF
 %token END  0
 %token LPAREN "("
 %token RPAREN ")"
@@ -60,16 +64,14 @@
 %token <std::string> IDENTIFIER "identifier"
 %token <int> NUMBER "number"
 
-%type <CompositeName*> composite_name
 %type <Statement*> statement
 %type <CreateStatement*> create_statement
-%type <DataType> field_type
+%type <FieldType*> field_type
 %type <int> opt_array
 %type <FieldDefinition*> field_def
 %type <std::vector<FieldDefinition*>*> field_def_commalist
 %type <std::vector<Statement*>*> statement_list
 
-%printer { yyo << static_cast<unsigned int>($$); } <DataType>;
 %printer { yyo << $$; } <*>;
 
 %%
@@ -94,24 +96,20 @@ statement {
 statement: create_statement { $$ = $1; };
 
 create_statement:
-    CREATE TABLE composite_name "(" field_def_commalist ")" {
+    CREATE TABLE IDENTIFIER "(" field_def_commalist ")" {
         $$ = new CreateStatement(CreateType::kCreateTable);
-        $$->tableSchema = std::move($3->schema);
-        $$->tableName = std::move($3->name);
+        $$->tableName = std::move($3);
         $$->fields = $5;
     };
-    | CREATE TYPE composite_name "(" field_def_commalist ")" {
+    | CREATE TYPE IDENTIFIER "(" field_def_commalist ")" {
         $$ = new CreateStatement(CreateType::kCreateType);
-        $$->typeSchema = std::move($3->schema);
-        $$->typeName = std::move($3->name);
+        $$->typeName = std::move($3);
         $$->fields = $5;
     };
-    | CREATE TABLE composite_name AS composite_name {
-        $$ = new CreateStatement(CreateType::kCreateTableAs);
-        $$->tableSchema = std::move($3->schema);
-        $$->tableName = std::move($3->schema);
-        $$->typeSchema = std::move($5->schema);
-        $$->typeName = std::move($5->schema);
+    | CREATE TABLE IDENTIFIER OF IDENTIFIER {
+        $$ = new CreateStatement(CreateType::kCreateTableOf);
+        $$->tableName = std::move($3);
+        $$->typeName = std::move($5);
     };
 
 field_def_commalist:
@@ -119,7 +117,12 @@ field_def_commalist:
     | field_def_commalist "," field_def { $1->push_back($3); $$ = $1; };
 
 field_def:
-    IDENTIFIER field_type opt_array { $$ = new FieldDefinition($1, $2, $3); };
+    IDENTIFIER field_type opt_array {
+        $$ = new FieldDefinition($1, $2->type, $3);
+        if ($$->type == DataType::TABLE) {
+           $$->tableTypeName = std::move($2->name);
+        }
+    };
 
 opt_array:
     "[" "]" { $$ = 0; }
@@ -127,22 +130,19 @@ opt_array:
     | { $$ = 1; } ;
 
 field_type:
-    BOOLEAN { $$ = DataType::BOOLEAN; }
-    | BYTE { $$ = DataType::BYTE; }
-    | UBYTE { $$ = DataType::UBYTE; }
-    | SHORT { $$ = DataType::SHORT; }
-    | USHORT { $$ = DataType::USHORT; }
-    | INT { $$ = DataType::INT; }
-    | UINT { $$ = DataType::UINT; }
-    | LONG { $$ = DataType::LONG; }
-    | ULONG { $$ = DataType::ULONG; }
-    | FLOAT { $$ = DataType::FLOAT; }
-    | DOUBLE { $$ = DataType::DOUBLE; }
-    | STRING { $$ = DataType::STRING; };
-
-composite_name:
-    IDENTIFIER { $$ = new CompositeName($1); }
-    | IDENTIFIER "." IDENTIFIER { $$ = new CompositeName($1, $3); };
+    BOOLEAN { $$ = new FieldType(DataType::BOOLEAN); }
+    | BYTE { $$ = new FieldType(DataType::BYTE); }
+    | UBYTE { $$ = new FieldType(DataType::UBYTE); }
+    | SHORT { $$ = new FieldType(DataType::SHORT); }
+    | USHORT { $$ = new FieldType(DataType::USHORT); }
+    | INT { $$ = new FieldType(DataType::INT); }
+    | UINT { $$ = new FieldType(DataType::UINT); }
+    | LONG { $$ = new FieldType(DataType::LONG); }
+    | ULONG { $$ = new FieldType(DataType::ULONG); }
+    | FLOAT { $$ = new FieldType(DataType::FLOAT); }
+    | DOUBLE { $$ = new FieldType(DataType::DOUBLE); }
+    | STRING { $$ = new FieldType(DataType::STRING); }
+    | IDENTIFIER { $$ = new FieldType(DataType::TABLE); $$->name = $1; };
 
 %%
 void

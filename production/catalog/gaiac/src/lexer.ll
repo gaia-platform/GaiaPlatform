@@ -1,4 +1,8 @@
 %{ /* -*- C++ -*- */
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
 /*-------------------------------------------------------------------------
  *
  * lex.l
@@ -44,8 +48,7 @@ blank [ \t\r]
 "CREATE"  return yy::parser::make_CREATE     (loc);
 "TABLE"   return yy::parser::make_TABLE      (loc);
 "TYPE"    return yy::parser::make_TYPE       (loc);
-"SCHEMA"  return yy::parser::make_SCHEMA     (loc);
-"AS"      return yy::parser::make_AS         (loc);
+"OF"      return yy::parser::make_OF         (loc);
 "BOOLEAN" return yy::parser::make_BOOLEAN    (loc);
 "BYTE"    return yy::parser::make_BYTE       (loc);
 "UBYTE"   return yy::parser::make_UBYTE      (loc);
@@ -83,8 +86,7 @@ make_NUMBER (const std::string &s, const yy::parser::location_type& loc) {
 }
 
 void
-driver::scan_begin ()
-{
+driver::scan_begin () {
     yy_flex_debug = trace_scanning;
     if (file.empty () || file == "-") {
         yyin = stdin;

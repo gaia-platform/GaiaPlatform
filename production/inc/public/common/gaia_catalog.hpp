@@ -1,12 +1,30 @@
-#ifndef __DDL_H_
-#define __DDL_H_
-#include <cstdint>
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+#pragma once
+
+#include "gaia_object.hpp"
 #include <string>
-#include <vector>
 
 namespace gaia {
+/**
+ * \addtogroup Gaia
+ * @{
+ */
 namespace catalog {
+/**
+ * \addtogroup catalog
+ * @{
+ */
 namespace ddl {
+/**
+ * \addtogroup ddl
+ * @{
+ *
+ * Definitions for parse result bindings
+ */
 
 enum class DataType : unsigned int {
     BOOLEAN,
@@ -20,7 +38,8 @@ enum class DataType : unsigned int {
     ULONG,
     FLOAT,
     DOUBLE,
-    STRING
+    STRING,
+    TABLE
 };
 
 enum class StatementType : unsigned int { kStmtCreate, kStmtDrop, kStmtAlter };
@@ -37,13 +56,10 @@ struct Statement {
     StatementType _type;
 };
 
-struct CompositeName {
-    CompositeName(std::string schema, std::string name)
-        : schema(std::move(schema)), name(std::move(name)){};
+struct FieldType {
+    FieldType(DataType type) : type(type){};
 
-    CompositeName(std::string name) : name(std::move(name)){};
-
-    std::string schema;
+    DataType type;
     std::string name;
 };
 
@@ -54,12 +70,13 @@ struct FieldDefinition {
     std::string name;
     DataType type;
     uint16_t length;
+
+    std::string tableTypeName;
 };
 
 enum class CreateType : unsigned int {
-    kCreateSchema,
     kCreateTable,
-    kCreateTableAs,
+    kCreateTableOf,
     kCreateType
 };
 
@@ -68,15 +85,27 @@ struct CreateStatement : Statement {
         : Statement(StatementType::kStmtCreate), type(type), fields(nullptr){};
 
     CreateType type;
-    std::string tableSchema;
+
     std::string tableName;
-    std::string typeSchema;
+
     std::string typeName;
+
     std::vector<FieldDefinition *> *fields;
 };
 
+/*@}*/
 } // namespace ddl
-} // namespace catalog
-} // namespace gaia
 
-#endif // __DDL_H_
+void initialize_catalog();
+
+void create_type(std::string name, std::vector<ddl::FieldDefinition *> *fields);
+
+void create_table_of(std::string tableName, std::string typeName);
+
+void create_table(std::string name,
+                  std::vector<ddl::FieldDefinition *> *fields);
+
+/*@}*/
+} // namespace catalog
+/*@}*/
+} // namespace gaia
