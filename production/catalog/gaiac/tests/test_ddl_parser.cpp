@@ -39,7 +39,7 @@ TEST(catalog_ddl_parser_test, create_type) {
     yylex_destroy();
 }
 
-TEST(catalog_ddl_parser_test, create_table_as) {
+TEST(catalog_ddl_parser_test, create_table_of) {
     driver drv;
     yy_scan_string("CREATE TYPE t (c INT); CREATE TABLE tt OF t;");
     yy::parser parse(drv);
@@ -52,7 +52,7 @@ TEST(catalog_ddl_parser_test, create_table_as) {
     EXPECT_EQ(createStmt->typeName, "t");
     EXPECT_EQ(drv.statements[1]->type(), StatementType::kStmtCreate);
     createStmt = reinterpret_cast<CreateStatement *>(drv.statements[1]);
-    EXPECT_EQ(createStmt->type, CreateType::kCreateTableAs);
+    EXPECT_EQ(createStmt->type, CreateType::kCreateTableOf);
     EXPECT_EQ(createStmt->tableName, "tt");
     EXPECT_EQ(createStmt->typeName, "t");
     yylex_destroy();
