@@ -26,7 +26,7 @@ namespace ddl {
  * Definitions for parse result bindings
  */
 
-enum class DataType : unsigned int {
+enum class data_type_t : unsigned int {
     BOOLEAN,
     BYTE,
     UBYTE,
@@ -42,55 +42,55 @@ enum class DataType : unsigned int {
     TABLE
 };
 
-enum class StatementType : unsigned int { kStmtCreate, kStmtDrop, kStmtAlter };
+enum class statment_type_t : unsigned int { CREATE, DROP, ALTER };
 
-struct Statement {
+struct statement_t {
 
-    Statement(StatementType type) : _type(type){};
+    statement_t(statment_type_t type) : m_type(type){};
 
-    StatementType type() const { return _type; };
+    statment_type_t type() const { return m_type; };
 
-    bool isType(StatementType type) const { return _type == type; };
+    bool is_type(statment_type_t type) const { return m_type == type; };
 
   private:
-    StatementType _type;
+    statment_type_t m_type;
 };
 
-struct FieldType {
-    FieldType(DataType type) : type(type){};
+struct field_type_t {
+    field_type_t(data_type_t type) : type(type){};
 
-    DataType type;
+    data_type_t type;
     std::string name;
 };
 
-struct FieldDefinition {
-    FieldDefinition(std::string name, DataType type, uint16_t length)
+struct field_definition_t {
+    field_definition_t(std::string name, data_type_t type, uint16_t length)
         : name(std::move(name)), type(type), length(length){};
 
     std::string name;
-    DataType type;
+    data_type_t type;
     uint16_t length;
 
-    std::string tableTypeName;
+    std::string table_type_name;
 };
 
-enum class CreateType : unsigned int {
-    kCreateTable,
-    kCreateTableOf,
-    kCreateType
+enum class create_type_t : unsigned int {
+    CREATE_TABLE,
+    CREATE_TABLE_OF,
+    CREATE_TYPE
 };
 
-struct CreateStatement : Statement {
-    CreateStatement(CreateType type)
-        : Statement(StatementType::kStmtCreate), type(type), fields(nullptr){};
+struct create_statement_t : statement_t {
+    create_statement_t(create_type_t type)
+        : statement_t(statment_type_t::CREATE), type(type), fields(nullptr){};
 
-    CreateType type;
+    create_type_t type;
 
     std::string tableName;
 
     std::string typeName;
 
-    std::vector<FieldDefinition *> *fields;
+    std::vector<field_definition_t *> *fields;
 };
 
 /*@}*/
@@ -98,12 +98,12 @@ struct CreateStatement : Statement {
 
 void initialize_catalog(bool is_engine);
 
-void create_type(std::string name, std::vector<ddl::FieldDefinition *> *fields);
+void create_type(std::string name, std::vector<ddl::field_definition_t *> *fields);
 
 void create_table_of(std::string tableName, std::string typeName);
 
 void create_table(std::string name,
-                  std::vector<ddl::FieldDefinition *> *fields);
+                  std::vector<ddl::field_definition_t *> *fields);
 
 /*@}*/
 } // namespace catalog

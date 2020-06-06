@@ -12,19 +12,19 @@
 using namespace std;
 using namespace gaia::catalog::ddl;
 
-void execute(vector<Statement *> &statements) {
-    for (Statement *stmt : statements) {
-        if (!stmt->isType(StatementType::kStmtCreate)) {
+void execute(vector<statement_t *> &statements) {
+    for (statement_t *stmt : statements) {
+        if (!stmt->is_type(statment_type_t::CREATE)) {
             continue;
         }
-        CreateStatement *createStmt = reinterpret_cast<CreateStatement *>(stmt);
-        if (createStmt->type == CreateType::kCreateType) {
+        create_statement_t *createStmt = reinterpret_cast<create_statement_t *>(stmt);
+        if (createStmt->type == create_type_t::CREATE_TYPE) {
             gaia::catalog::create_type(createStmt->typeName,
                                        createStmt->fields);
-        } else if (createStmt->type == CreateType::kCreateTableOf) {
+        } else if (createStmt->type == create_type_t::CREATE_TABLE_OF) {
             gaia::catalog::create_table_of(createStmt->tableName,
                                            createStmt->typeName);
-        } else if (createStmt->type == CreateType::kCreateTable) {
+        } else if (createStmt->type == create_type_t::CREATE_TABLE) {
             gaia::catalog::create_table(createStmt->tableName,
                                         createStmt->fields);
         }

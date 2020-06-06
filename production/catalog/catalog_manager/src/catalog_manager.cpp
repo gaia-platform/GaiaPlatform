@@ -12,7 +12,7 @@ void gaia::catalog::initialize_catalog(bool is_engine) {
 }
 
 void gaia::catalog::create_type(std::string name,
-                                std::vector<ddl::FieldDefinition *> *fields) {
+                                std::vector<ddl::field_definition_t *> *fields) {
     catalog_manager_t::get().create_type(name, fields);
 }
 
@@ -22,7 +22,7 @@ void gaia::catalog::create_table_of(std::string tableName,
 }
 
 void gaia::catalog::create_table(std::string name,
-                                 std::vector<ddl::FieldDefinition *> *fields) {
+                                 std::vector<ddl::field_definition_t *> *fields) {
     catalog_manager_t::get().create_table(name, fields);
 }
 
@@ -71,31 +71,31 @@ catalog_manager_t &catalog_manager_t::get(bool is_initializing) {
 
 catalog_manager_t::catalog_manager_t() {}
 
-static GaiaTypeType to_gaia_type(ddl::DataType dt) {
+static GaiaTypeType to_gaia_type(ddl::data_type_t dt) {
     switch (dt) {
-    case ddl::DataType::BOOLEAN:
+    case ddl::data_type_t::BOOLEAN:
         return GaiaTypeType_BOOLEAN;
-    case ddl::DataType::BYTE:
+    case ddl::data_type_t::BYTE:
         return GaiaTypeType_BYTE;
-    case ddl::DataType::UBYTE:
+    case ddl::data_type_t::UBYTE:
         return GaiaTypeType_UBYTE;
-    case ddl::DataType::SHORT:
+    case ddl::data_type_t::SHORT:
         return GaiaTypeType_SHORT;
-    case ddl::DataType::USHORT:
+    case ddl::data_type_t::USHORT:
         return GaiaTypeType_USHORT;
-    case ddl::DataType::INT:
+    case ddl::data_type_t::INT:
         return GaiaTypeType_INT;
-    case ddl::DataType::UINT:
+    case ddl::data_type_t::UINT:
         return GaiaTypeType_UINT;
-    case ddl::DataType::LONG:
+    case ddl::data_type_t::LONG:
         return GaiaTypeType_LONG;
-    case ddl::DataType::ULONG:
+    case ddl::data_type_t::ULONG:
         return GaiaTypeType_ULONG;
-    case ddl::DataType::FLOAT:
+    case ddl::data_type_t::FLOAT:
         return GaiaTypeType_FLOAT;
-    case ddl::DataType::DOUBLE:
+    case ddl::data_type_t::DOUBLE:
         return GaiaTypeType_DOUBLE;
-    case ddl::DataType::STRING:
+    case ddl::data_type_t::STRING:
         return GaiaTypeType_STRING;
     default:
         throw gaia::common::gaia_exception("Unknown type");
@@ -103,7 +103,7 @@ static GaiaTypeType to_gaia_type(ddl::DataType dt) {
 }
 
 void catalog_manager_t::create_type(
-    std::string name, std::vector<ddl::FieldDefinition *> *fields) {
+    std::string name, std::vector<ddl::field_definition_t *> *fields) {
     if (m_type_cache.find(name) != m_type_cache.end()) {
         throw gaia::common::gaia_exception("The type " + name +
                                            " already exists.");
@@ -112,14 +112,14 @@ void catalog_manager_t::create_type(
     gaia::db::begin_transaction();
     gaia_id_t owner_id = GaiaType::insert_row(name.c_str(), GaiaTypeType_TABLE);
     uint16_t position = 0;
-    for (ddl::FieldDefinition *field : *fields) {
+    for (ddl::field_definition_t *field : *fields) {
         gaia_id_t type_id;
-        if (field->type == ddl::DataType::TABLE) {
-            if (m_type_cache.find(field->tableTypeName) == m_type_cache.end()) {
+        if (field->type == ddl::data_type_t::TABLE) {
+            if (m_type_cache.find(field->table_type_name) == m_type_cache.end()) {
                 throw gaia::common::gaia_exception(
-                    "The type " + field->tableTypeName + " does not exist.");
+                    "The type " + field->table_type_name + " does not exist.");
             } else {
-                type_id = m_type_cache[field->tableTypeName];
+                type_id = m_type_cache[field->table_type_name];
             }
         } else {
             type_id =
@@ -153,7 +153,7 @@ void catalog_manager_t::create_table_of(std::string tableName,
 }
 
 void catalog_manager_t::create_table(
-    std::string name, std::vector<ddl::FieldDefinition *> *fields) {
+    std::string name, std::vector<ddl::field_definition_t *> *fields) {
     create_type(name, fields);
     create_table_of(name, name);
 }

@@ -25,11 +25,11 @@
     namespace gaia {
     namespace catalog {
     namespace ddl {
-        enum class DataType : unsigned int;
-        struct Statement;
-        struct CreateStatement;
-        struct FieldType;
-        struct FieldDefinition;
+        enum class data_type_t : unsigned int;
+        struct statement_t;
+        struct create_statement_t;
+        struct field_type_t;
+        struct field_definition_t;
     }
     }
     }
@@ -64,20 +64,20 @@
 %token <std::string> IDENTIFIER "identifier"
 %token <int> NUMBER "number"
 
-%type <Statement*> statement
-%type <CreateStatement*> create_statement
-%type <FieldType*> field_type
+%type <statement_t*> statement
+%type <create_statement_t*> create_statement
+%type <field_type_t*> field_type
 %type <int> opt_array
-%type <FieldDefinition*> field_def
-%type <std::vector<FieldDefinition*>*> field_def_commalist
-%type <std::vector<Statement*>*> statement_list
+%type <field_definition_t*> field_def
+%type <std::vector<field_definition_t*>*> field_def_commalist
+%type <std::vector<statement_t*>*> statement_list
 
 %printer { yyo << $$; } <*>;
 
 %%
 %start input;
 input: statement_list opt_semicolon {
-    for (Statement* stmt : *$1) {
+    for (statement_t* stmt : *$1) {
         drv.statements.push_back(stmt);
     }
 };
@@ -86,7 +86,7 @@ opt_semicolon: ";" | ;
 
 statement_list:
 statement {
-    $$ = new std::vector<Statement*>();
+    $$ = new std::vector<statement_t*>();
     $$->push_back($1); }
 | statement_list ";" statement {
     $1->push_back($3);
@@ -97,30 +97,30 @@ statement: create_statement { $$ = $1; };
 
 create_statement:
     CREATE TABLE IDENTIFIER "(" field_def_commalist ")" {
-        $$ = new CreateStatement(CreateType::kCreateTable);
+        $$ = new create_statement_t(create_type_t::CREATE_TABLE);
         $$->tableName = std::move($3);
         $$->fields = $5;
     };
     | CREATE TYPE IDENTIFIER "(" field_def_commalist ")" {
-        $$ = new CreateStatement(CreateType::kCreateType);
+        $$ = new create_statement_t(create_type_t::CREATE_TYPE);
         $$->typeName = std::move($3);
         $$->fields = $5;
     };
     | CREATE TABLE IDENTIFIER OF IDENTIFIER {
-        $$ = new CreateStatement(CreateType::kCreateTableOf);
+        $$ = new create_statement_t(create_type_t::CREATE_TABLE_OF);
         $$->tableName = std::move($3);
         $$->typeName = std::move($5);
     };
 
 field_def_commalist:
-    field_def { $$ = new std::vector<FieldDefinition*>(); $$->push_back($1); }
+    field_def { $$ = new std::vector<field_definition_t*>(); $$->push_back($1); }
     | field_def_commalist "," field_def { $1->push_back($3); $$ = $1; };
 
 field_def:
     IDENTIFIER field_type opt_array {
-        $$ = new FieldDefinition($1, $2->type, $3);
-        if ($$->type == DataType::TABLE) {
-           $$->tableTypeName = std::move($2->name);
+        $$ = new field_definition_t($1, $2->type, $3);
+        if ($$->type == data_type_t::TABLE) {
+           $$->table_type_name = std::move($2->name);
         }
     };
 
@@ -130,19 +130,19 @@ opt_array:
     | { $$ = 1; } ;
 
 field_type:
-    BOOLEAN { $$ = new FieldType(DataType::BOOLEAN); }
-    | BYTE { $$ = new FieldType(DataType::BYTE); }
-    | UBYTE { $$ = new FieldType(DataType::UBYTE); }
-    | SHORT { $$ = new FieldType(DataType::SHORT); }
-    | USHORT { $$ = new FieldType(DataType::USHORT); }
-    | INT { $$ = new FieldType(DataType::INT); }
-    | UINT { $$ = new FieldType(DataType::UINT); }
-    | LONG { $$ = new FieldType(DataType::LONG); }
-    | ULONG { $$ = new FieldType(DataType::ULONG); }
-    | FLOAT { $$ = new FieldType(DataType::FLOAT); }
-    | DOUBLE { $$ = new FieldType(DataType::DOUBLE); }
-    | STRING { $$ = new FieldType(DataType::STRING); }
-    | IDENTIFIER { $$ = new FieldType(DataType::TABLE); $$->name = $1; };
+    BOOLEAN { $$ = new field_type_t(data_type_t::BOOLEAN); }
+    | BYTE { $$ = new field_type_t(data_type_t::BYTE); }
+    | UBYTE { $$ = new field_type_t(data_type_t::UBYTE); }
+    | SHORT { $$ = new field_type_t(data_type_t::SHORT); }
+    | USHORT { $$ = new field_type_t(data_type_t::USHORT); }
+    | INT { $$ = new field_type_t(data_type_t::INT); }
+    | UINT { $$ = new field_type_t(data_type_t::UINT); }
+    | LONG { $$ = new field_type_t(data_type_t::LONG); }
+    | ULONG { $$ = new field_type_t(data_type_t::ULONG); }
+    | FLOAT { $$ = new field_type_t(data_type_t::FLOAT); }
+    | DOUBLE { $$ = new field_type_t(data_type_t::DOUBLE); }
+    | STRING { $$ = new field_type_t(data_type_t::STRING); }
+    | IDENTIFIER { $$ = new field_type_t(data_type_t::TABLE); $$->name = $1; };
 
 %%
 void
