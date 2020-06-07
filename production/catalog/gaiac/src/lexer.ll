@@ -66,7 +66,6 @@ blank [ \t\r]
 "["       return yy::parser::make_LBRACKET   (loc);
 "]"       return yy::parser::make_RBRACKET   (loc);
 ","       return yy::parser::make_COMMA      (loc);
-"."       return yy::parser::make_DOT        (loc);
 ";"       return yy::parser::make_SEMICOLON  (loc);
 {id}      return yy::parser::make_IDENTIFIER (yytext, loc);
 {int}     return make_NUMBER                 (yytext, loc);

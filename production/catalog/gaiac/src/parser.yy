@@ -58,7 +58,6 @@
 %token LBRACKET "["
 %token RBRACKET "]"
 %token COMMA ","
-%token DOT "."
 %token SEMICOLON ";"
 
 %token <std::string> IDENTIFIER "identifier"
