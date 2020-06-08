@@ -2009,6 +2009,8 @@ static void handleRulesetAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
     if (!checkAttributeAtLeastNumArgs(S, AL, 1))
     {
+        S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
+            << AL << AANT_ArgumentIdentifier;
         return;
     }
     SmallVector<IdentifierInfo *, 8> tables;
@@ -2028,9 +2030,51 @@ static void handleRulesetAttr(Sema &S, Decl *D, const ParsedAttr &AL)
         AL.getAttributeSpellingListIndex()));
 }
 
+static void handleStreamAttr(Sema &S, Decl *D, const ParsedAttr &AL)
+{
+    IdentifierLoc *streamArg = AL.getArgAsIdent(0);
+    if (!AL.isArgIdent(0)) 
+    {
+        S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
+            << AL << AANT_ArgumentIdentifier;
+        return;
+    }
+    D->addAttr(::new (S.Context) SerialStreamAttr(
+        AL.getRange(), S.Context, streamArg->Ident,
+        AL.getAttributeSpellingListIndex()));
+}
+
 static void handleRuleAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
     D->addAttr(::new (S.Context) RuleAttr(
+        AL.getRange(), S.Context,
+        AL.getAttributeSpellingListIndex()));
+}
+
+static void handleGaiaLastOperationAttr(Sema &S, Decl *D, const ParsedAttr &AL)
+{
+    D->addAttr(::new (S.Context) GaiaLastOperationAttr(
+        AL.getRange(), S.Context,
+        AL.getAttributeSpellingListIndex()));
+}
+
+static void handleGaiaLastOperationInsertAttr(Sema &S, Decl *D, const ParsedAttr &AL)
+{
+    D->addAttr(::new (S.Context) GaiaLastOperationINSERTAttr(
+        AL.getRange(), S.Context,
+        AL.getAttributeSpellingListIndex()));
+}
+
+static void handleGaiaLastOperationUpdateAttr(Sema &S, Decl *D, const ParsedAttr &AL)
+{
+    D->addAttr(::new (S.Context) GaiaLastOperationUPDATEAttr(
+        AL.getRange(), S.Context,
+        AL.getAttributeSpellingListIndex()));
+}
+
+static void handleGaiaLastOperationDeleteAttr(Sema &S, Decl *D, const ParsedAttr &AL)
+{
+    D->addAttr(::new (S.Context) GaiaLastOperationDELETEAttr(
         AL.getRange(), S.Context,
         AL.getAttributeSpellingListIndex()));
 }
@@ -7069,6 +7113,21 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
     break;
   case ParsedAttr::AT_GaiaFieldValue:
     handleFieldValueAttr(S, D, AL);
+    break;
+  case ParsedAttr::AT_SerialStream:
+    handleStreamAttr(S, D, AL);
+    break;
+  case ParsedAttr::AT_GaiaLastOperation:
+    handleGaiaLastOperationAttr(S, D, AL);
+    break;
+  case ParsedAttr::AT_GaiaLastOperationINSERT:
+    handleGaiaLastOperationInsertAttr(S, D, AL);
+    break;
+  case ParsedAttr::AT_GaiaLastOperationUPDATE:
+    handleGaiaLastOperationUpdateAttr(S, D, AL);
+    break;
+  case ParsedAttr::AT_GaiaLastOperationDELETE:
+    handleGaiaLastOperationDeleteAttr(S, D, AL);
     break;
   }
 }

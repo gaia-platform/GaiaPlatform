@@ -3796,6 +3796,24 @@ Sema::PerformImplicitConversion(Expr *From, QualType ToType,
                                 const ImplicitConversionSequence &ICS,
                                 AssignmentAction Action,
                                 CheckedConversionKind CCK) {
+  if (getLangOpts().Gaia)
+  {
+    DeclRefExpr *exp = dyn_cast<DeclRefExpr>(From);
+
+    if (exp != nullptr)
+    {                    
+        ValueDecl *decl = exp->getDecl();
+        if (decl->hasAttr<GaiaLastOperationAttr>() || 
+            decl->hasAttr<GaiaLastOperationINSERTAttr>() ||
+            decl->hasAttr<GaiaLastOperationUPDATEAttr>() ||
+            decl->hasAttr<GaiaLastOperationDELETEAttr>())
+        {
+            Diag(exp->getLocation(), diag::err_invalid_assignment_last_operation);
+            return ExprError();
+        }
+    }
+  }
+
   // C++ [over.match.oper]p7: [...] operands of class type are converted [...]
   if (CCK == CCK_ForBuiltinOverloadedOp && !From->getType()->isRecordType())
     return From;

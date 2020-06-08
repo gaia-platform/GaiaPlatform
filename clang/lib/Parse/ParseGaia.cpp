@@ -32,6 +32,7 @@ void Parser::ConsumeInvalidRuleset()
     while(!SkipUntil(tok::l_brace));
     while(!SkipUntil(tok::r_brace));
 }
+
 std::string Parser::RandomString(std::string::size_type length) const
 {
     const char chrs[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ_"
@@ -111,6 +112,8 @@ bool Parser::ParseGaiaAttributeSpecifier(ParsedAttributesWithRange &attrs,
     {
         case tok::kw_table:
             return ParseRulesetTable(attrs, EndLoc);
+        case tok::kw_SerialStream:
+            return ParseRulesetSerialStream(attrs, EndLoc);
         default:
             Diag(Tok, diag::err_invalid_ruleset_attribute);
             return false;
@@ -142,6 +145,51 @@ bool Parser::ParseGaiaAttributes(ParsedAttributesWithRange &attrs,
     }
 
     attrs.Range = SourceRange(StartLoc, *endLoc);
+    return true;
+}
+
+bool Parser::ParseRulesetSerialStream(ParsedAttributesWithRange &attrs,
+    SourceLocation *endLoc)
+{
+    assert(Tok.is(tok::kw_SerialStream) && "Not a ruleset table!");
+
+    ArgsVector argExprs;
+
+    IdentifierInfo *kwName = Tok.getIdentifierInfo();
+    SourceLocation kwLoc = ConsumeToken();
+
+    BalancedDelimiterTracker tracker(*this, tok::l_paren);
+    if (tracker.consumeOpen())
+    {
+        Diag(Tok, diag::err_expected) << tok::l_paren;
+        return false;
+    }
+
+    
+    if (Tok.is(tok::identifier))
+    {
+        argExprs.push_back(ParseIdentifierLoc());
+    }
+    else
+    {
+        Diag(Tok, diag::err_expected) << tok::identifier;
+        return false;
+    }
+
+    if (tracker.consumeClose())
+    {
+        return false;
+    }
+
+    *endLoc = tracker.getCloseLocation();
+    attrs.addNew(kwName, SourceRange(kwLoc, *endLoc), nullptr, kwLoc, argExprs.data(), 
+        argExprs.size(), ParsedAttr::AS_Keyword);  
+
+    if (argExprs.size() == 0)
+    {   
+        Diag(Tok, diag::err_invalid_ruleset_attribute);
+        return false;
+    }
     return true;
 }
 

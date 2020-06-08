@@ -96,7 +96,7 @@ ruleset test10
 ruleset test11    
 { 
 ruleset test12  
-{// expected-error {{rulesets can not be defined in ruleset scope}}
+{// expected-error {{Rulesets can not be defined in ruleset scope}}
 {
   x+=@z; 
   y += x;
@@ -104,3 +104,112 @@ ruleset test12
 }
 }
 
+ruleset test12: table(dfsdf,sdfsdf,sfsdf), SerialStream()  // expected-error {{expected identifier}} 
+{
+{
+  x+=@z; 
+  y += x;
+}
+}
+// expected-note@+1 {{to match this '('}}
+ruleset test13: table(dfsdf,sdfsdf,sfsdf), SerialStream(sdfdf,sfdfsf)  // expected-error {{expected ')'}} 
+{
+{
+  x+=@z; 
+  y += x;
+}
+}
+
+ruleset test13: table(dfsdf,sdfsdf,sfsdf), SerialStream(,)  // expected-error {{expected identifier}} 
+{
+{
+  x+=@z; 
+  y += x;
+}
+}
+// expected-note@+1 {{to match this '('}}
+ruleset test14: table(dfsdf,sdfsdf,sfsdf), SerialStream(sdsdf,)  // expected-error {{expected ')'}} 
+{
+{
+  x+=@z; 
+  y += x;
+}
+}
+
+ruleset test14  
+{
+{
+  y=x.LastOperation; // expected-error {{Incorrect LastOperation operation}} 
+}
+}
+
+ruleset test15   
+{
+{
+  y=UPDATE; // expected-error {{Incorrect LastOperation operation}} 
+}
+}
+
+ruleset test16 
+{
+{
+  y=x.LastOperation < UPDATE; // expected-error {{Incorrect LastOperation operation}} 
+}
+}
+
+ruleset test17 
+{
+{
+  y=x.LastOperation + 3; // expected-error {{Incorrect LastOperation operation}} 
+}
+}
+
+ruleset test18   
+{
+{
+  y=UPDATE + 3; // expected-error {{Incorrect LastOperation operation}} 
+}
+}
+
+ruleset test19	
+{
+{
+  y= (int) UPDATE ; // expected-error {{Incorrect LastOperation operation}} 
+}
+}
+
+
+ruleset test21
+{
+{
+  y+= x.LastOperation ; // expected-error {{Incorrect LastOperation operation}} 
+}
+}
+
+ruleset test22 
+{
+{
+  x.LastOperation ++; // expected-error {{Incorrect LastOperation operation}} 
+}
+}
+
+ruleset test21
+{
+{
+  ++UPDATE ; // expected-error {{Incorrect LastOperation operation}} 
+}
+}
+
+ruleset test22 
+{
+{
+  y=x.LastOperation == 5; // expected-error {{Incorrect LastOperation operation}} 
+}
+}
+
+ruleset test23  
+{
+{
+  y= 3 == UPDATE; // expected-error {{Incorrect LastOperation operation}} 
+}
+}

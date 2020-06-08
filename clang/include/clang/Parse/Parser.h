@@ -2669,6 +2669,8 @@ private:
   DeclGroupPtrTy ParseRuleset();
   bool ParseRulesetTable(ParsedAttributesWithRange &attrs,
     SourceLocation *endLoc);
+  bool ParseRulesetSerialStream(ParsedAttributesWithRange &attrs,
+    SourceLocation *endLoc);
 
   void ParseRulesetContents(BalancedDelimiterTracker &Tracker);
 

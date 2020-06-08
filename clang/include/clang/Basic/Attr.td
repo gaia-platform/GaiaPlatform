@@ -3197,3 +3197,34 @@ def GaiaFieldValue : Attr {
   let Subjects = SubjectList<[Var]>;
   let Documentation = [Undocumented];
 }
+
+def SerialStream : Attr {
+    let Spellings = [Keyword<"SerialStream">];
+    let Subjects = SubjectList<[Ruleset]>;
+    let Documentation = [Undocumented];
+    let Args = [IdentifierArgument<"stream">];
+}
+
+def GaiaLastOperation : Attr {
+  let Spellings = [Keyword<"gaiaLastOperation">];
+  let Subjects = SubjectList<[Var]>;
+  let Documentation = [Undocumented];
+}
+
+def GaiaLastOperationINSERT : Attr {
+  let Spellings = [Keyword<"INSERT">];
+  let Subjects = SubjectList<[Var]>;
+  let Documentation = [Undocumented];
+}
+
+def GaiaLastOperationUPDATE : Attr {
+  let Spellings = [Keyword<"UPDATE">];
+  let Subjects = SubjectList<[Var]>;
+  let Documentation = [Undocumented];
+}
+
+def GaiaLastOperationDELETE : Attr {
+  let Spellings = [Keyword<"DELETE">];
+  let Subjects = SubjectList<[Var]>;
+  let Documentation = [Undocumented];
+}

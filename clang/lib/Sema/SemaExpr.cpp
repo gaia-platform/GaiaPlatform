@@ -11201,6 +11201,24 @@ static void DiagnoseRecursiveConstFields(Sema &S, const Expr *E,
 static bool CheckForModifiableLvalue(Expr *E, SourceLocation Loc, Sema &S) {
   assert(!E->hasPlaceholderType(BuiltinType::PseudoObject));
 
+if (S.getLangOpts().Gaia)
+{
+    DeclRefExpr *exp = dyn_cast<DeclRefExpr>(E);
+
+    if (exp != nullptr)
+    {                    
+        ValueDecl *decl = exp->getDecl();
+        if (decl->hasAttr<GaiaLastOperationAttr>() || 
+            decl->hasAttr<GaiaLastOperationINSERTAttr>() ||
+            decl->hasAttr<GaiaLastOperationUPDATEAttr>() ||
+            decl->hasAttr<GaiaLastOperationDELETEAttr>())
+        {
+            S.Diag(Loc, diag::err_invalid_assignment_last_operation);
+            return true;
+        }
+    }
+}
+
   S.CheckShadowingDeclModification(E, Loc);
 
   SourceLocation OrigLoc = Loc;
@@ -11379,6 +11397,24 @@ QualType Sema::CheckAssignmentOperands(Expr *LHSExpr, ExprResult &RHS,
   // Verify that LHS is a modifiable lvalue, and emit error if not.
   if (CheckForModifiableLvalue(LHSExpr, Loc, *this))
     return QualType();
+
+  if (getLangOpts().Gaia)
+  {
+    DeclRefExpr *exp = dyn_cast<DeclRefExpr>(RHS.get());
+
+    if (exp != nullptr)
+    {                    
+        ValueDecl *decl = exp->getDecl();
+        if (decl->hasAttr<GaiaLastOperationAttr>() || 
+            decl->hasAttr<GaiaLastOperationINSERTAttr>() ||
+            decl->hasAttr<GaiaLastOperationUPDATEAttr>() ||
+            decl->hasAttr<GaiaLastOperationDELETEAttr>())
+        {
+            Diag(Loc, diag::err_invalid_assignment_last_operation);
+            return QualType();
+        }
+    }
+  }
 
   QualType LHSType = LHSExpr->getType();
   QualType RHSType = CompoundType.isNull() ? RHS.get()->getType() :
@@ -12278,6 +12314,57 @@ static bool needsConversionOfHalfVec(bool OpRequiresConversion, ASTContext &Ctx,
 ExprResult Sema::CreateBuiltinBinOp(SourceLocation OpLoc,
                                     BinaryOperatorKind Opc,
                                     Expr *LHSExpr, Expr *RHSExpr) {
+  if (getLangOpts().Gaia)
+  {
+    bool leftLastOp = false, rightLastOp = false, lOp = false, rOp = false;
+    DeclRefExpr *l = dyn_cast<DeclRefExpr>(LHSExpr);
+    DeclRefExpr *r = dyn_cast<DeclRefExpr>(RHSExpr);
+
+    if (l != nullptr)
+    {                    
+        ValueDecl *decl = l->getDecl();
+        if (decl->hasAttr<GaiaLastOperationAttr>())
+        {
+            leftLastOp = true;
+        }
+        if (decl->hasAttr<GaiaLastOperationINSERTAttr>() ||
+            decl->hasAttr<GaiaLastOperationUPDATEAttr>() ||
+            decl->hasAttr<GaiaLastOperationDELETEAttr>())
+        {
+            lOp = true;
+        }
+    }
+
+    if (r != nullptr)
+    {                    
+        ValueDecl *decl = r->getDecl();
+        if (decl->hasAttr<GaiaLastOperationAttr>())
+        {
+            rightLastOp = true;
+        }
+        if (decl->hasAttr<GaiaLastOperationINSERTAttr>() ||
+            decl->hasAttr<GaiaLastOperationUPDATEAttr>() ||
+            decl->hasAttr<GaiaLastOperationDELETEAttr>())
+        {
+            rOp = true;
+        }
+    }
+    if (leftLastOp || rightLastOp || lOp || rOp)
+    {
+        if ((leftLastOp && rightLastOp) ||
+            (lOp && rOp) ||
+            (leftLastOp && !rOp) ||
+            (rightLastOp && !lOp) ||
+            (!leftLastOp && rOp) ||
+            (!rightLastOp && lOp) ||
+            (Opc != BO_EQ && Opc != BO_NE) )
+        {
+            Diag(OpLoc, diag::err_invalid_operand_last_operation);
+            return ExprError();
+        }
+    }
+  }
+
   if (getLangOpts().CPlusPlus11 && isa<InitListExpr>(RHSExpr)) {
     // The syntax only allows initializer lists on the RHS of assignment,
     // so we don't need to worry about accepting invalid code for
@@ -12890,6 +12977,23 @@ static bool isOverflowingIntegerType(ASTContext &Ctx, QualType T) {
 ExprResult Sema::CreateBuiltinUnaryOp(SourceLocation OpLoc,
                                       UnaryOperatorKind Opc,
                                       Expr *InputExpr) {
+  if (getLangOpts().Gaia)
+  {
+    DeclRefExpr *exp = dyn_cast<DeclRefExpr>(InputExpr);
+
+    if (exp != nullptr)
+    {                    
+        ValueDecl *decl = exp->getDecl();
+        if (decl->hasAttr<GaiaLastOperationAttr>() ||
+            decl->hasAttr<GaiaLastOperationINSERTAttr>() ||
+            decl->hasAttr<GaiaLastOperationUPDATEAttr>() ||
+            decl->hasAttr<GaiaLastOperationDELETEAttr>())
+        {
+            Diag(OpLoc, diag::err_invalid_operand_last_operation);
+            return ExprError();
+        }
+    }
+  }
   ExprResult Input = InputExpr;
   ExprValueKind VK = VK_RValue;
   ExprObjectKind OK = OK_Ordinary;
