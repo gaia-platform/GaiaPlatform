@@ -1,10 +1,11 @@
 # Docker Build Environment
 ## Goal
-Fast, repeatable builds that just work.
+Fast, repeatable builds that just work for every developer and continuous integration machine.
 
 ## Terminology
-- target - Corresponds to a folder in the GaiaPlatform git repo. Usually has a CMakeLists.txt
-  file that builds some output that we depend upon.
+- target - Specifically a folder in the GaiaPlatform git repo. Contains files like
+  CMakeLists.txt, \*requirements\*.txt, and build.sh such that we can build some output that
+  another target may depend upon.
 - dockerfile - A file with instructions to build a docker image. In our case, contains the
   sequence of commands that installs dependencies and build one of our targets.
 - image - A docker image. The output of the `docker build` command. It can serve as the base
@@ -20,7 +21,7 @@ Fast, repeatable builds that just work.
 - Python3
 
 ## Installing Dependencies
-For a fully-automatable build system, dependency installion needs to be scriptable. Ideally, it
+For a fully-automatable build system, dependency installation needs to be scriptable. Ideally, it
 should also be easy to do manually. Using \*requirements\*.txt files should be simple and
 satisfactory. The idea for these files is that they can be used with `xargs` or with `cat file |
 installer`. If this creates too big a mess of files, we could switch to a `requirements.cfg` like
@@ -37,7 +38,7 @@ https://dep4
 
 [gaia]
 /production
-/third-part/production/opencv
+/third_party/production/opencv
 ```
 
 ### apt_requirement.txt
@@ -77,25 +78,9 @@ For example, the `/production/gaia_requirements.txt` file may look like
 /third_party/production/rocksdb
 ```
 
-The `/scratch/gregory/cameraDemo/gaia_requirements.txt` file may look like
-```
-/production@tags/q1  # Notice the branch specification.
-/third_party/opencv
-```
-
-Note that there is no plan to make this work with branches already in the past like `@tags/q1` since
-it would be difficult and would provide little benefit.
-
-Each line implicitly indicates the current HEAD commit unless specified otherwise. The line may
-be followed by the last working branch name (like tags/q1) or commit hash before an API change in
-the dependency was not followed by the dependee. The gaia target should be built at that commit
-hash or git tag.
-
-Note that it would be preferable to always keep projects up-to-date so that they build with the
-latest commit of other gaia_requirements.txt. Usage of `@<branch>` and `@<hash>` should be used
-sparingly and with the intent that the build target will be updated to work with the latest code.
-The feature will exist to allow us to iterate on dependees (like /production) without the burden
-of immediately updating dependents (like /demos).
+Each line indicates another target in the current HEAD commit that the current target depends
+upon. All of the required gaia targets will be built before the attempting to build the current
+target.
 
 ### wget_requirements.txt
 For any raw artifacts that need to be downloaded.
@@ -104,7 +89,7 @@ For any raw artifacts that need to be downloaded.
 xargs -a wget_requirements.txt wget
 ```
 
-For example, in `/third_party/evaluation/opencv/wget_requirements.txt`
+For example, in `/demos/camera_demo/wget_requirements.txt`
 ```
 https://pjreddie.com/media/files/yolov3.weights
 https://raw.githubusercontent.com/opencv/opencv/4.3.0/samples/data/dnn/object_detection_classes_yolov3.txt
@@ -120,16 +105,16 @@ all environments still go in files such as `apt_requirements.txt`.
 Initially, we'll only build for bionic on amd64.
 
 ### build.sh
-For custom build command. This should usually not be needed. If missing, we just run 
+If build.sh is missing, we run the basic cmake build commands
 ```
 mkdir -p build
 cd build
 cmake ..
 make -j$(ncpu)
 ```
-Otherwise, invoke `./build.sh`
+In some cases, that basic build command is not sufficient. For such cases, we require a `./build.sh`.
 
-For example, in `/third_party/evaluation/opencv/build.sh`
+For example, we will require a `/third_party/evaluation/opencv/build.sh`.
 ```
 git clone --depth 1 --branch 4.3.0 https://github.com/opencv/opencv.git
 git clone --depth 1 --branch 4.3.0 https://github.com/opencv/opencv_contrib.git
@@ -148,21 +133,29 @@ make -j$(nproc)
 The proposed docker system mostly works with our current cmake build environment. We need to make
 one change.
 
-### The problem with our cmake system
-Our dependees (such as the camera demo) are currently able to include header files of dependencies
-using relative paths in the source tree. Camera demo has a dependency of `/production@tags/q1`.
-The production in the current checked out repo is `/production@HEAD`. The relative path in our
-cmake, `../../../../production/inc` leads to newer headers than we want.
+### Build our cmake in `/third_party/production/cmake`
+We should build cmake ourselves in `/third_party/production/cmake`. We will have an easier time
+controlling the cmake version (we'll check out a specific git tag) and will be able to stay on a
+fairly recent version. The exact cmake version we use to build gaia targets will be baked into
+each commit. If we were to just use Kitware's apt repo, we would always get the latest version of
+cmake. The danger here is that we may succeed now at building a hypothetical tag like `tags/q2`
+with the current latest kitware offering of cmake, but they may update it in the near future. In
+six months, if we were to try rebuilding `tags/q2` from scratch, we may find that the newer cmake
+introduces bugs or behaviour that make it impossible to repeat out past successful build.
 
-### Suggested improvements to our cmake system
-- We can use more generic cmake mechanisms for including our dependencies without relying on
-  paths. We would only be using `add_library` and `target_link_library`. For that to happen,
-  we'd need to either install our libraries (in the docker image, not our hosts) with headers
-  or use the cmake `export` function to register the public libraries with our cmake system.
+We also can't rely on cmake from Ubuntu's apt repo as we require a newer version than is
+available on Ubuntu 18.04. Additionally, behavioural differences between Ubuntu 18.04 cmake and
+Ubuntu 20.04 cmake are likely to cause problems.
 
-- We can require parameter inputs for library locations. So, when building camera demo we could
-  provide `-DGAIA_PROD_BUILD=<path to prod build in a tags/q1 checkout>`. I'm less a fan of this
-  since it makes our `cmake` invocations more complicated and harder to automate.
+### Do not rely on relative paths in CMakeLists.txt
+We can use more generic cmake mechanisms for including our dependencies without relying on
+paths. We would only be using `add_library` and `target_link_library`. For that to happen,
+we'd need to either install our libraries (in the docker image, not our hosts) with headers
+or use the cmake `export` function to register the public libraries with our cmake system.
+
+In the context of the docker build system, this suggestion is motivated by the desire to build
+outside the source tree. Caching mechanisms in `docker image build` are much easier to take
+advantage of if we can leave the source tree untouched while building.
 
 ## Docker
 Docker is a fantastic tool for creating repeatable builds. Unlike with virtual machines,
@@ -190,24 +183,40 @@ As for how we can do this, we can copy all the build folders from a docker image
 in your current source tree. We'd also need to register those build directories with the cmake
 registry. I haven't prototyped this so I'm not certain I know all the work required.
 
+### What about optional dependencies such as Java/JNI in `/production/db/storage_engine`
+For now, we'll build one version that includes the dependencies. We may build both with and
+without those dependencies in the future, but we could run into a combinatorial explosion of this
+dependee's depdendent images since we'd also have to build multiple versions of those to reflect
+the different options. Know that we can do it if needed, but I'd prefer to avoid it.
+
 ## Hosting Images
 Initially, we'll host docker images on our build machine. This means you'll need to connect to the
 VPN to connect to the docker image repository. If the build maching handles our traffic well enough,
 we can try to add a port forward in our firewall to make VPN unnecessary.
 
-Docker provides an image for that hosts an image repository. It requires little setup. We'll try
+After you pull an image from the image repository, it is cached on your local machine by your
+docker client. You only need to be connected to the VPN when you pull an image.
+
+Docker provides an image for hosting an image repository. It requires little setup. We'll try
 this first.
 
-## Tagging Images
-We'll name images as follows.
+## Naming Images
+Images will be named and tagged as follows.
 
-`<project name>:<tag>`
+`<target name>:<tag>`
 
-The image name will correspond to exported project names in our repo (like production, gaia_llvm,
-gaia_direct). We'll have multiple tags including
-- Branch name (if exists)
-- Git hash
-- latest (same as master, but this is a special default  tag name in docker)
+One image may have multiple tags. In our system, we will have the following tags.
+
+The image name will be the target path in our repo (like /production, /third_party/production/llvm,
+/production/db/gaia_direct). We'll have multiple tags including
+- <git hash> - Every image is required to have this tag.
+- <git tag> - This image tag exists if the git commit also has a git tag.
+- "master" - The current git master. This only exists if the image is built on the current git
+  master commit.
+- "latest" - This is a special tag name in docker. It's the implied tag name if you ever leave the
+  tag field blank (`docker pull ros` and `docker pull ros:latest` mean the same thing). For us
+  this is the most recent successfully-built image for a target. Ideally, "latest" is the current
+  git master commit, so we want to see this image also tagged as "master".
 
 ## gdev.py - a CLI to make our workflow easier
 Note that I'm not settled on the workflow, but this shows what it could be like.
@@ -223,6 +232,9 @@ Images are run with
 ```
 gdev run [target]
 ```
+
+This takes an immutable docker image and allows you to run a process in an isolated, mutable,
+ephemeral layer on top of the image (aka a container).
 
 ### Inspecting image environment
 You can drop into a container bash shell that has the entire build environment set up with
@@ -251,9 +263,9 @@ $ git clone git@github.com:gaia-platform/GaiaPlatform.git
 
 $ cd ~/GaiaPlatform/scratch/gregory/cameraDemo
 
-# Pull all docker images that camera demo depends upon at the current commit hash and mount the
-# container's `/usr` to `.../build/.local/usr`.
-Then, drop down into a shell with dependencies in place.
+# Pull all docker images that camera demo depends upon at the current commit hash. Then, drop down
+# into a shell with dependencies in place. All the dependencies are determined by the various
+# *requirements*.txt files in the current directory.
 cameron@host:~/GaiaPlatform/scratch/gregory/cameraDemo$ ~/GaiaPlatform/production/tools/gdev.py shell
 
 cameron@container:~/GaiaPlatform/scratch/gregory/cameraDemo$ cd build
@@ -312,3 +324,12 @@ container. It's one of the things that `gdev.py` and our build system would put 
 
 ### Can I build inside the container from an IDE?
 Yes. We'll have a wiki describing how to set it up.
+
+### How do I add dev tools like gdb, google sanitizer, etc to a docker image?
+I'm currently leaning towards having a set of dev tools as a target in a place like
+`/scratch/dev` that includes the relevant `apt_requirements.txt` and other dependencies needed
+for debugging. For my own custom tools, I'd make a target in `/scratch/cameron/dev`. I'd then add
+`/scratch/cameron/dev` to the gaia_requirements.txt for whatever target I'm working on.
+Alternatively, I may add a flag to gdev.py that allows target mixins like `/scratch/cameron/dev`
+so that I don't have to edit a `gaia_requirements.txt` file. Both the target being debugged and the
+dev tool mixin image will have already been built. Mixing them should be a fast operation.
