@@ -57,9 +57,7 @@ namespace {
           PrintInstantiation(PrintInstantiation) {}
 
     void VisitDeclContext(DeclContext *DC, bool Indent = true);
-
     void VisitRulesetDecl(RulesetDecl *D);
-
     void VisitTranslationUnitDecl(TranslationUnitDecl *D);
     void VisitTypedefDecl(TypedefDecl *D);
     void VisitTypeAliasDecl(TypeAliasDecl *D);

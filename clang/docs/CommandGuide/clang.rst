@@ -273,7 +273,7 @@ Language Selection and Mode Options
 
  Enable support for Borland extensions.
 
- .. option:: -fgaia-extensions
+.. option:: -fgaia-extensions
 
  Enable support for Gaia extensions
 

@@ -1443,6 +1443,11 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
                 }                
                 return expr;
           }
+          else
+          {
+              return ExprError();
+          }
+          
       }
       
       SourceLocation AtLoc = ConsumeToken();

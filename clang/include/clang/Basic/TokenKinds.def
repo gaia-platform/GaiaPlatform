@@ -260,7 +260,7 @@ PUNCTUATOR(caretcaret,            "^^")
 //   HALFSUPPORT - This is a keyword if 'half' is a built-in type
 //   WCHARSUPPORT - This is a keyword if 'wchar_t' is a built-in type
 //   CHAR8SUPPORT - This is a keyword if 'char8_t' is a built-in type
-//   KEYGAIA - This is a keyword ig Gaia extensions are enabled
+//   KEYGAIA - This is a keyword if Gaia extensions are enabled
 //
 KEYWORD(auto                        , KEYALL)
 KEYWORD(break                       , KEYALL)

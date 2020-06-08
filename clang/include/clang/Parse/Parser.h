@@ -2457,12 +2457,13 @@ private:
 
   IdentifierInfo *TryParseCXX11AttributeIdentifier(SourceLocation &Loc);
 
-  void parseGaiaAttributes(ParsedAttributesWithRange &attrs,
+  bool ParseGaiaAttributes(ParsedAttributesWithRange &attrs,
                             SourceLocation *EndLoc = nullptr);
-  void parseGaiaAttributeSpecifier(ParsedAttributesWithRange &attrs,
+  bool ParseGaiaAttributeSpecifier(ParsedAttributesWithRange &attrs,
                             SourceLocation *EndLoc = nullptr);
-  void injectRuleFunction(Declarator &D);
-  std::string randomString(std::string::size_type length) const;
+  void InjectRuleFunction(Declarator &D);
+  std::string RandomString(std::string::size_type length) const;
+  void ConsumeInvalidRuleset();
 
   void MaybeParseMicrosoftAttributes(ParsedAttributes &attrs,
                                      SourceLocation *endLoc = nullptr) {
@@ -2665,11 +2666,11 @@ private:
 
   void DiagnoseUnexpectedNamespace(NamedDecl *Context);
 
-  DeclGroupPtrTy parseRuleset();
-  void parseRulesetTable(ParsedAttributesWithRange &attrs,
+  DeclGroupPtrTy ParseRuleset();
+  bool ParseRulesetTable(ParsedAttributesWithRange &attrs,
     SourceLocation *endLoc);
 
-  void parseInnerRuleset(BalancedDelimiterTracker &Tracker);
+  void ParseRulesetContents(BalancedDelimiterTracker &Tracker);
 
   DeclGroupPtrTy ParseNamespace(DeclaratorContext Context,
                                 SourceLocation &DeclEnd,

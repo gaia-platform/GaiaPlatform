@@ -5569,7 +5569,7 @@ void Parser::ParseDirectDeclarator(Declarator &D) {
 
     if (getCurScope()->isRulesetScope() && Tok.is(tok::l_brace))
     {
-        injectRuleFunction(D);
+        InjectRuleFunction(D);
         return;
     }
     // Don't parse FOO:BAR as if it were a typo for FOO::BAR inside a class, in
