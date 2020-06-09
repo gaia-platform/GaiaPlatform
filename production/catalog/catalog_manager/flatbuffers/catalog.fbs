@@ -29,7 +29,7 @@ table gaiaField {
   name:string (required);
   owner_id:uint64;
   type_id:uint64;
-  length:uint16;
+  repeated_count:uint16;
   position:uint16;
   required:bool;
   deprecated:bool;
@@ -44,7 +44,6 @@ enum GaiaTrimActionType:ubyte {
 table gaiaTable {
   name:string (required);
   type_id:uint64;
-  is_struct:bool = false;
   is_log:bool = false;
   trim_action:GaiaTrimActionType;
   max_rows:uint64;
