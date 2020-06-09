@@ -50,7 +50,7 @@
 }
 
 %define api.token.prefix {TOK_}
-%token BOOLEAN BYTE UBYTE SHORT USHORT INT UINT LONG ULONG FLOAT DOUBLE STRING
+%token BOOL INT8 UINT8 INT16 UINT16 INT32 UINT32 INT64 UINT64 FLOAT32 FLOAT64 STRING
 %token CREATE TABLE TYPE OF
 %token END  0
 %token LPAREN "("
@@ -129,17 +129,17 @@ opt_array:
     | { $$ = 1; } ;
 
 field_type:
-    BOOLEAN { $$ = new field_type_t(data_type_t::BOOLEAN); }
-    | BYTE { $$ = new field_type_t(data_type_t::BYTE); }
-    | UBYTE { $$ = new field_type_t(data_type_t::UBYTE); }
-    | SHORT { $$ = new field_type_t(data_type_t::SHORT); }
-    | USHORT { $$ = new field_type_t(data_type_t::USHORT); }
-    | INT { $$ = new field_type_t(data_type_t::INT); }
-    | UINT { $$ = new field_type_t(data_type_t::UINT); }
-    | LONG { $$ = new field_type_t(data_type_t::LONG); }
-    | ULONG { $$ = new field_type_t(data_type_t::ULONG); }
-    | FLOAT { $$ = new field_type_t(data_type_t::FLOAT); }
-    | DOUBLE { $$ = new field_type_t(data_type_t::DOUBLE); }
+    BOOL{ $$ = new field_type_t(data_type_t::BOOL); }
+    | INT8 { $$ = new field_type_t(data_type_t::INT8); }
+    | UINT8 { $$ = new field_type_t(data_type_t::UINT8); }
+    | INT16 { $$ = new field_type_t(data_type_t::INT16); }
+    | UINT16 { $$ = new field_type_t(data_type_t::UINT16); }
+    | INT32 { $$ = new field_type_t(data_type_t::INT32); }
+    | UINT32 { $$ = new field_type_t(data_type_t::UINT32); }
+    | INT64 { $$ = new field_type_t(data_type_t::INT64); }
+    | UINT64 { $$ = new field_type_t(data_type_t::UINT64); }
+    | FLOAT32 { $$ = new field_type_t(data_type_t::FLOAT32); }
+    | FLOAT64 { $$ = new field_type_t(data_type_t::FLOAT64); }
     | STRING { $$ = new field_type_t(data_type_t::STRING); }
     | IDENTIFIER { $$ = new field_type_t(data_type_t::TABLE); $$->name = $1; };
 
