@@ -137,7 +137,7 @@ void rule_thread_pool_t::invoke_rule(const rule_context_t* context)
     bool should_schedule = false;
     try
     {
-        gaia::db::gaia_mem_base::tx_begin();
+        gaia::db::begin_transaction();
 
         // Invoke the rule.
         context->rule_binding.rule(context);

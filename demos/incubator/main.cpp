@@ -160,7 +160,7 @@ void increase_fans(Incubator *incubator, FILE *log) {
 }
 
 void on_sensor_changed(const rule_context_t *context) {
-    Sensor *s = static_cast<Sensor *>(context->event_context);
+    Sensor *s = Sensor::get_row_by_id(context->record);
     Incubator *i = Incubator::get_row_by_id(s->incubator_id());
     FILE *log = fopen("message.log", "a");
     fprintf(log, "%s fired for %s sensor of %s incubator\n", __func__,
@@ -175,12 +175,14 @@ void on_sensor_changed(const rule_context_t *context) {
     fclose(log);
 }
 
+// TODO:how will generated init code work with the ability to turn on/off rule
+// TODO:dynamically?
 void add_fan_control_rule() {
     try {
-        rule_binding_t fan_control("Incubator", "Fan control",
-                                   on_sensor_changed);
-        subscribe_database_rule(Sensor::s_gaia_type, event_type_t::row_update,
-                             fan_control);
+        rule_binding_t fan_control("Incubator", "Fan control", 
+            on_sensor_changed);
+        subscribe_rule(Sensor::s_gaia_type, event_type_t::row_update, 
+            empty_fields, fan_control);
     } catch (duplicate_rule) {
         printf("The rule has already been added.\n");
     }
@@ -214,6 +216,12 @@ void usage(const char *command) {
 
 extern "C" void initialize_rules() {}
 
+void commit_hook()
+{
+    commit_trigger(0, nullptr, 0, true);
+    gaia_base_t::commit_hook();
+}
+
 int main(int argc, const char **argv) {
     bool is_sim = false;
 
@@ -235,6 +243,8 @@ int main(int argc, const char **argv) {
         dump_db();
         return EXIT_SUCCESS;
     }
+
+    gaia::db::s_tx_commit_hook = commit_hook;
 
     printf("Incubator simulation...\n");
     gaia::system::initialize(true);
