@@ -2,11 +2,9 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
-
 #include "driver.hpp"
 #include "gaia_catalog.hpp"
 #include "gaia_system.hpp"
-#include <iostream>
 #include <vector>
 
 using namespace std;

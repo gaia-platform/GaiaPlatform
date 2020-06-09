@@ -1,3 +1,7 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
 #ifndef __CATALOG_H_
 #define __CATALOG_H_
 #include "gaia_catalog.hpp"

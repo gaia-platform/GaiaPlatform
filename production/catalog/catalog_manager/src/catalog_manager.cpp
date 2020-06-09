@@ -1,3 +1,7 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
 #include "catalog_manager.hpp"
 #include "catalog_gaia_generated.h"
 #include "gaia_exception.hpp"
