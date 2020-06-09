@@ -10,6 +10,17 @@
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;
 
+access_control_t::access_control_t()
+{
+    clear();
+}
+
+void access_control_t::clear()
+{
+    readers_count = 0;
+    access_lock = access_lock_type_t::none;
+}
+
 auto_access_control_t::auto_access_control_t()
 {
     clear();
