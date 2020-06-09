@@ -177,6 +177,7 @@ public:
     }
 };
 
+// A child's parent pointer must match the parent record we have.
 class edc_invalid_member: public gaia_exception
 {
 public:
@@ -189,6 +190,7 @@ public:
     }
 };
 
+// When a child refer's to a parent, but is not found in that parent's list.
 class edc_inconsistent_list: public gaia_exception
 {
 public:
