@@ -6,7 +6,6 @@
 #define __DRIVER_HPP
 #include "gaia_catalog.hpp"
 #include "parser.hpp"
-#include <map>
 #include <string>
 #include <vector>
 
