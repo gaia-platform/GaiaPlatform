@@ -213,3 +213,17 @@ ruleset test23
   y= 3 == UPDATE; // expected-error {{Incorrect LastOperation operation}} 
 }
 }
+
+ruleset test24  
+{
+{
+  y= !UPDATE; // expected-error {{Incorrect LastOperation operation}} 
+}
+}
+
+ruleset test24  
+{
+{
+  y= &x.LastOperation; // expected-error {{Incorrect LastOperation operation}} 
+}
+}
