@@ -27,17 +27,17 @@ namespace ddl {
  */
 
 enum class data_type_t : unsigned int {
-    BOOLEAN,
-    BYTE,
-    UBYTE,
-    SHORT,
-    USHORT,
-    INT,
-    UINT,
-    LONG,
-    ULONG,
-    FLOAT,
-    DOUBLE,
+    BOOL,
+    INT8,
+    UINT8,
+    INT16,
+    UINT16,
+    INT32,
+    UINT32,
+    INT64,
+    UINT64,
+    FLOAT32,
+    FLOAT64,
     STRING,
     TABLE
 };

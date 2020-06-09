@@ -34,12 +34,11 @@ void gaia::catalog::create_table(std::string name,
  * catalog_manager class
  **/
 void catalog_manager_t::init(bool is_engine) {
-    m_is_initialized = true;
     if (is_engine) {
         gaia::db::begin_transaction();
-        for (GaiaTypeType value : EnumValuesGaiaTypeType()) {
-            if (value != GaiaTypeType_TABLE) {
-                GaiaType::insert_row(EnumNameGaiaTypeType(value), value);
+        for (GaiaDataType value : EnumValuesGaiaDataType()) {
+            if (value != GaiaDataType_TABLE) {
+                GaiaType::insert_row(EnumNameGaiaDataType(value), value);
             }
         }
         for (unique_ptr<GaiaType> t{GaiaType::get_first()}; t;
@@ -48,6 +47,7 @@ void catalog_manager_t::init(bool is_engine) {
         }
         gaia::db::commit_transaction();
     }
+    m_is_initialized = true;
 }
 
 catalog_manager_t &catalog_manager_t::get(bool is_initializing) {
@@ -75,32 +75,32 @@ catalog_manager_t &catalog_manager_t::get(bool is_initializing) {
 
 catalog_manager_t::catalog_manager_t() {}
 
-static GaiaTypeType to_gaia_type(ddl::data_type_t dt) {
+static GaiaDataType to_gaia_type(ddl::data_type_t dt) {
     switch (dt) {
-    case ddl::data_type_t::BOOLEAN:
-        return GaiaTypeType_BOOLEAN;
-    case ddl::data_type_t::BYTE:
-        return GaiaTypeType_BYTE;
-    case ddl::data_type_t::UBYTE:
-        return GaiaTypeType_UBYTE;
-    case ddl::data_type_t::SHORT:
-        return GaiaTypeType_SHORT;
-    case ddl::data_type_t::USHORT:
-        return GaiaTypeType_USHORT;
-    case ddl::data_type_t::INT:
-        return GaiaTypeType_INT;
-    case ddl::data_type_t::UINT:
-        return GaiaTypeType_UINT;
-    case ddl::data_type_t::LONG:
-        return GaiaTypeType_LONG;
-    case ddl::data_type_t::ULONG:
-        return GaiaTypeType_ULONG;
-    case ddl::data_type_t::FLOAT:
-        return GaiaTypeType_FLOAT;
-    case ddl::data_type_t::DOUBLE:
-        return GaiaTypeType_DOUBLE;
+    case ddl::data_type_t::BOOL:
+        return GaiaDataType_BOOL;
+    case ddl::data_type_t::INT8:
+        return GaiaDataType_INT8;
+    case ddl::data_type_t::UINT8:
+        return GaiaDataType_UINT8;
+    case ddl::data_type_t::INT16:
+        return GaiaDataType_INT16;
+    case ddl::data_type_t::UINT16:
+        return GaiaDataType_UINT16;
+    case ddl::data_type_t::INT32:
+        return GaiaDataType_INT32;
+    case ddl::data_type_t::UINT32:
+        return GaiaDataType_UINT32;
+    case ddl::data_type_t::INT64:
+        return GaiaDataType_INT64;
+    case ddl::data_type_t::UINT64:
+        return GaiaDataType_UINT64;
+    case ddl::data_type_t::FLOAT32:
+        return GaiaDataType_FLOAT32;
+    case ddl::data_type_t::FLOAT64:
+        return GaiaDataType_FLOAT64;
     case ddl::data_type_t::STRING:
-        return GaiaTypeType_STRING;
+        return GaiaDataType_STRING;
     default:
         throw gaia::common::gaia_exception("Unknown type");
     }
@@ -114,7 +114,7 @@ void catalog_manager_t::create_type(
     }
 
     gaia::db::begin_transaction();
-    gaia_id_t owner_id = GaiaType::insert_row(name.c_str(), GaiaTypeType_TABLE);
+    gaia_id_t owner_id = GaiaType::insert_row(name.c_str(), GaiaDataType_TABLE);
     uint16_t position = 0;
     for (ddl::field_definition_t *field : *fields) {
         gaia_id_t type_id;
@@ -127,7 +127,7 @@ void catalog_manager_t::create_type(
             }
         } else {
             type_id =
-                m_type_cache[EnumNameGaiaTypeType(to_gaia_type(field->type))];
+                m_type_cache[EnumNameGaiaDataType(to_gaia_type(field->type))];
         }
         GaiaField::insert_row(field->name.c_str(), owner_id, type_id,
                               field->length, ++position, true, false);
