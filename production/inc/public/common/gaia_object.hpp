@@ -177,6 +177,28 @@ public:
     }
 };
 
+class edc_invalid_member: public gaia_exception
+{
+public:
+    edc_invalid_member(gaia_id_t id, gaia_type_t parent, const char* parent_type,
+        gaia_type_t child, const char* child_name) {
+        stringstream msg;
+        msg << "attempting to remove record with Gaia type " << child_name << "(" << child << ") from parent "
+            << id << " of type " << parent_type << "(" << parent << "), but not a member";
+        m_message = msg.str();
+    }
+};
+
+class edc_inconsistent_list: public gaia_exception
+{
+public:
+    edc_inconsistent_list(gaia_id_t id, const char* parent_type, gaia_id_t child, const char* child_name) {
+        stringstream msg;
+        msg << "linked list is inconsistent, child points to parent " << id << " of type " << parent_type 
+            << ", but child (" << child << ", type " << child_name << ") is not in parent's list";
+        m_message = msg.str();
+    }
+};
 
 // Macros for strongly types field accessors used by
 // gaia_object_t objects below.

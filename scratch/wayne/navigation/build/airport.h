@@ -7,9 +7,11 @@
 
 #include "gaia_object.hpp"
 #include "airport_generated.h"
+#include "edc_templates.hpp"
 
 using namespace std;
 using namespace gaia::common;
+
 
 namespace gaia {
 namespace airport {
@@ -23,11 +25,11 @@ const int c_num_flight_ptrs = 1;
 
 // in Segment
 const int c_first_trip_segment = 0;
-const int c_primary_segment = 1;
+const int c_parent_flight = 1;
 const int c_next_segment = 2;
-const int c_primary_src_segment = 3;
+const int c_parent_src_airport = 3;
 const int c_next_src_segment = 4;
-const int c_primary_dst_segment = 5;
+const int c_parent_dst_airport = 5;
 const int c_next_dst_segment = 6;
 const int c_num_segment_ptrs = 7;
 
@@ -38,90 +40,8 @@ const int c_num_airport_ptrs = 2;
 
 // in Trip_segment
 const int c_next_trip_segment = 0;
-const int c_primary_trip_segment = 1;
+const int c_parent_segment = 1;
 const int c_num_trip_segment_ptrs = 2;
-
-// C++17 compliant way when std::iterator is deprecated
-template<typename T_gaia_ptr>
-class gaia_iterator_t {
-    T_gaia_ptr m_ptr;
-public:
-    using iterator_category = std::forward_iterator_tag;
-    using value_type = T_gaia_ptr;
-    using difference_type = int;
-    using pointer = T_gaia_ptr*;
-    using reference = T_gaia_ptr&;
-
-    gaia_iterator_t(T_gaia_ptr ptr) : m_ptr(ptr) {}
-    gaia_iterator_t(const gaia_iterator_t& it) : m_ptr(it.m_ptr) {}
-
-    gaia_iterator_t& operator++() {
-        m_ptr = m_ptr->get_next();
-        return *this;
-    }
-
-    T_gaia_ptr operator++(int) {
-        T_gaia_ptr temp = m_ptr;
-        operator++();
-        return temp;
-    }
-
-    bool operator==(const gaia_iterator_t& rhs) const {
-        return m_ptr->gaia_id() == rhs.m_ptr->gaia_id();
-    }
-    bool operator!=(const gaia_iterator_t& rhs) const {
-        if (m_ptr && rhs.m_ptr) {
-            return m_ptr->gaia_id() != rhs.m_ptr->gaia_id();
-        }
-        return (m_ptr != rhs.m_ptr);
-    }
-
-    T_gaia_ptr& operator*() { return m_ptr; }
-};
-
-template<typename T_gaia>
-struct gaia_container_t {
-    static gaia_iterator_t<T_gaia*> begin() { return gaia_iterator_t<T_gaia*>(T_gaia::get_first()); }
-    static gaia_iterator_t<T_gaia*> end() { return gaia_iterator_t<T_gaia*>(nullptr); }
-};
-
-template <typename T_foreign, int T_foreign_slot>
-class set_iterator {
-    T_foreign* m_edc_ptr;
-public:
-    set_iterator() {}
-    set_iterator(T_foreign* edc_ptr) {
-        m_edc_ptr = edc_ptr;
-    }
-    T_foreign* operator*() {
-        return m_edc_ptr;
-    }
-    set_iterator& operator++() {
-        m_edc_ptr = T_foreign::get_row_by_id(m_edc_ptr->m_references[T_foreign_slot]);
-        return *this;
-    }
-    bool operator!=(const set_iterator&) const {
-        return m_edc_ptr != nullptr;
-    }
-};
-
-template <typename T_primary, typename T_foreign, int T_parent_slot, int T_primary_slot, int T_foreign_slot>
-class reference_chain {
-    T_primary* m_outer;
-public:
-    set_iterator<T_foreign,T_foreign_slot> begin() {
-        T_foreign* edc_ptr = T_foreign::get_row_by_id(m_outer->m_references[T_primary_slot]);
-        return set_iterator<T_foreign,T_foreign_slot>(edc_ptr);
-    }
-    set_iterator<T_foreign,T_foreign_slot> end() {return set_iterator<T_foreign,T_foreign_slot>(nullptr);}
-    void set_outer(T_primary* outer) {m_outer = outer;}
-    void insert(T_foreign* foreign_ptr) {
-        foreign_ptr->m_references[T_foreign_slot] = m_outer->m_references[T_primary_slot];
-        foreign_ptr->m_references[T_parent_slot]  = m_outer->gaia_id();
-        m_outer->m_references[T_primary_slot] = foreign_ptr->gaia_id();
-    }
-    void erase(T_foreign*) {}
-};
 
 struct Flight;
 struct Airport;
@@ -153,7 +73,7 @@ struct Flight : public gaia_object_t<1,Flight,flight,flightT>{
         return flights;
     }
 
-    reference_chain<Flight,Segment,c_primary_segment,c_first_segment,c_next_segment> segments;
+    reference_chain_t<Flight,Segment,c_parent_flight,c_first_segment,c_next_segment> segments;
 private:
     friend struct gaia_object_t<1,Flight,flight,flightT>;
     friend struct Segment;
@@ -191,8 +111,8 @@ struct Airport : public gaia_object_t<2,Airport,airport,airportT>{
         return airports;
     }
 
-    reference_chain<Airport,Segment,c_primary_src_segment,c_first_src_segment,c_next_src_segment> src_segments;
-    reference_chain<Airport,Segment,c_primary_dst_segment,c_first_dst_segment,c_next_dst_segment> dst_segments;
+    reference_chain_t<Airport,Segment,c_parent_src_airport,c_first_src_segment,c_next_src_segment> src_segments;
+    reference_chain_t<Airport,Segment,c_parent_dst_airport,c_first_dst_segment,c_next_dst_segment> dst_segments;
 private:
     friend struct gaia_object_t<2,Airport,airport,airportT>;
     Airport(gaia_id_t id) : gaia_object_t(id, "Airport") {
@@ -226,12 +146,16 @@ struct Segment : public gaia_object_t<3,Segment,segment,segmentT>{
     void insert_row() {
         gaia_object_t::insert_row(c_num_segment_ptrs);
     }
-    Airport* src_segment() {
-        Airport* pp = Airport::get_row_by_id(this->m_references[c_primary_src_segment]);
+    Airport* src_airport() {
+        Airport* pp = Airport::get_row_by_id(this->m_references[c_parent_src_airport]);
         return pp;
     }
-    Airport* dst_segment() {
-        Airport* pp = Airport::get_row_by_id(this->m_references[c_primary_dst_segment]);
+    Airport* dst_airport() {
+        Airport* pp = Airport::get_row_by_id(this->m_references[c_parent_dst_airport]);
+        return pp;
+    }
+    Flight* flight() {
+        Flight* pp = Flight::get_row_by_id(this->m_references[c_parent_flight]);
         return pp;
     }
     static gaia_container_t<Segment>& segments() {
@@ -239,7 +163,7 @@ struct Segment : public gaia_object_t<3,Segment,segment,segmentT>{
         return segments;
     }
 
-    reference_chain<Segment,Trip_segment,c_primary_trip_segment,c_first_trip_segment,c_next_trip_segment> trip_segments;
+    reference_chain_t<Segment,Trip_segment,c_parent_segment,c_first_trip_segment,c_next_trip_segment> trip_segments;
 private:
     friend struct gaia_object_t<3,Segment,segment,segmentT>;
     Segment(gaia_id_t id) : gaia_object_t(id, "Segment") {trip_segments.set_outer(this);}
@@ -260,6 +184,10 @@ struct Trip_segment : public gaia_object_t<4,Trip_segment,trip_segment,trip_segm
     }
     void insert_row() {
         gaia_object_t::insert_row(c_num_trip_segment_ptrs);
+    }
+    Segment* segment() {
+        Segment* pp = Segment::get_row_by_id(this->m_references[c_parent_segment]);
+        return pp;
     }
     static gaia_container_t<Trip_segment>& trip_segments() {
         static gaia_container_t<Trip_segment> trip_segments;

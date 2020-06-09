@@ -115,29 +115,64 @@ int main ()
         printf("trip_segment %s\n", a->who());
     }
 
-    printf("Flight %ld segments:\n", f1->gaia_id());
+    // Two forms of the same scan.
+    printf("Flight %ld segments, 2 times:\n", f1->gaia_id());
     for (auto it = f1->segments.begin(); it != f1->segments.end(); ++it) {
         printf("  segment %d - %d\n", (*it)->id(), (*it)->miles());
-        auto sap = (*it)->src_segment();
-        auto dap = (*it)->dst_segment();
+        auto sap = (*it)->src_airport();
+        auto dap = (*it)->dst_airport();
         printf("    source airport:      %s\n", sap->name());
-        printf("    desgination airport: %s\n", dap->name());
+        printf("    destination airport: %s\n", dap->name());
     }
     for (auto s : f1->segments) {
         printf("  segment %d - %d\n", s->id(), s->miles());
-        auto sap = s->src_segment();
-        auto dap = s->dst_segment();
+        auto sap = s->src_airport();
+        auto dap = s->dst_airport();
         printf("    source airport:      %s\n", sap->name());
-        printf("    desgination airport: %s\n", dap->name());
+        printf("    destination airport: %s\n", dap->name());
+    }
+
+    // Remove the first segment from a flight.
+    printf("Removing first segment from flight 1\n");
+    f1->segments.erase(s4);
+    for (auto s : f1->segments) {
+        printf("  segment %d - %d\n", s->id(), s->miles());
+    }
+
+    // Remove the first segment from a flight.
+    printf("Removing other segment from flight 1\n");
+    f1->segments.erase(s1);
+    for (auto s : f1->segments) {
+        printf("  segment %d - %d\n", s->id(), s->miles());
+    }
+
+    // Reconnect and remove in a different order.
+    printf("Re-inserting the segments\n");
+    f1->segments.insert(s1);
+    f1->segments.insert(s4);
+    for (auto s : f1->segments) {
+        printf("  segment %d - %d\n", s->id(), s->miles());
+    }
+
+    // Remove the second segment from a flight.
+    printf("Removing second segment from flight 1\n");
+    f1->segments.erase(s1);
+    for (auto s : f1->segments) {
+        printf("  segment %d - %d\n", s->id(), s->miles());
+    }
+    printf("Removing other segment from flight 1\n");
+    f1->segments.erase(s4);
+    for (auto s : f1->segments) {
+        printf("  segment %d - %d\n", s->id(), s->miles());
     }
 
     printf("Flight %ld segments:\n", f2->gaia_id());
     for (auto s : f2->segments) {
         printf("  segment %d - %d\n", s->id(), s->miles());
-        auto sap = s->src_segment();
-        auto dap = s->dst_segment();
+        auto sap = s->src_airport();
+        auto dap = s->dst_airport();
         printf("    source airport:      %s\n", sap->name());
-        printf("    desgination airport: %s\n", dap->name());
+        printf("    destination airport: %s\n", dap->name());
     }
 
     print_airport_segments(ap1);

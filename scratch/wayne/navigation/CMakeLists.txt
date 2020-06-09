@@ -45,13 +45,25 @@ add_custom_target(headers_generated
 add_executable(edc edc.cpp)
 add_dependencies(edc headers_generated)
 
-target_link_directories(edc
-  PRIVATE
-  ${GAIA_REPO}/production/build/direct_access
-  ${GAIA_REPO}/production/build/rules/event_manager
-  ${GAIA_REPO}/production/build/db/storage_engine
-  ${GAIA_REPO}/production/build/system
-)
+# target_link_directories(edc
+#   PRIVATE
+#   ${GAIA_REPO}/production/build/direct_access
+#   ${GAIA_REPO}/production/build/rules/event_manager
+#   ${GAIA_REPO}/production/build/db/storage_engine
+#   ${GAIA_REPO}/production/build/system
+# )
+
+add_library(gaia SHARED IMPORTED GLOBAL)
+set_target_properties(gaia PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/system/libgaia.a)
+
+add_library(gaia_semock SHARED IMPORTED GLOBAL)
+set_target_properties(gaia_semock PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/db/storage_engine/libgaia_semock.a)
+
+add_library(gaia_rules SHARED IMPORTED GLOBAL)
+set_target_properties(gaia_rules PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/rules/event_manager/libgaia_rules.a)
+
+add_library(gaia_direct SHARED IMPORTED GLOBAL)
+set_target_properties(gaia_direct PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/direct_access/libgaia_direct.a)
 
 target_link_libraries(edc PRIVATE rt gaia gaia_direct gaia_semock)
 
