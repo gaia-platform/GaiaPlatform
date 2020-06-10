@@ -148,9 +148,8 @@ void catalog_manager_t::create_table_of(
                                            " already exists.");
     }
     gaia::db::begin_transaction();
-    gaia_id_t table_id =
-        GaiaTable::insert_row(tableName.c_str(), m_type_cache[typeName], false,
-            false, GaiaTrimActionType_NONE, 0, 0, 0);
+    gaia_id_t table_id = GaiaTable::insert_row(tableName.c_str(),
+        m_type_cache[typeName], false, GaiaTrimActionType_NONE, 0, 0, 0);
     gaia::db::commit_transaction();
 
     m_table_cache[tableName] = table_id;
