@@ -33,9 +33,6 @@ QualType Sema::getFieldType (IdentifierInfo *id) const
 NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II)
 {
     std::string varName = II->getName().str();
-    bool isUpdate = varName == "UPDATE";
-    bool isInsert = varName == "INSERT";
-    bool isDelete = varName == "DELETE";
 
     DeclContext *context  = getCurFunctionDecl();
     QualType qualType = getFieldType(II);

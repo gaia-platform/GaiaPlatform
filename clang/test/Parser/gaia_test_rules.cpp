@@ -136,42 +136,42 @@ ruleset test14: table(dfsdf,sdfsdf,sfsdf), SerialStream(sdsdf,)  // expected-err
 }
 }
 
-ruleset test14  
+ruleset test15  
 {
 {
   y=x.LastOperation; // expected-error {{Incorrect LastOperation operation}} 
 }
 }
 
-ruleset test15   
+ruleset test16   
 {
 {
   y=UPDATE; // expected-error {{Incorrect LastOperation operation}} 
 }
 }
 
-ruleset test16 
+ruleset test17 
 {
 {
   y=x.LastOperation < UPDATE; // expected-error {{Incorrect LastOperation operation}} 
 }
 }
 
-ruleset test17 
+ruleset test18 
 {
 {
   y=x.LastOperation + 3; // expected-error {{Incorrect LastOperation operation}} 
 }
 }
 
-ruleset test18   
+ruleset test19   
 {
 {
   y=UPDATE + 3; // expected-error {{Incorrect LastOperation operation}} 
 }
 }
 
-ruleset test19	
+ruleset test20	
 {
 {
   y= (int) UPDATE ; // expected-error {{Incorrect LastOperation operation}} 
@@ -193,37 +193,44 @@ ruleset test22
 }
 }
 
-ruleset test21
+ruleset test23
 {
 {
   ++UPDATE ; // expected-error {{Incorrect LastOperation operation}} 
 }
 }
 
-ruleset test22 
+ruleset test24 
 {
 {
   y=x.LastOperation == 5; // expected-error {{Incorrect LastOperation operation}} 
 }
 }
 
-ruleset test23  
+ruleset test25  
 {
 {
   y= 3 == UPDATE; // expected-error {{Incorrect LastOperation operation}} 
 }
 }
 
-ruleset test24  
+ruleset test26  
 {
 {
   y= !UPDATE; // expected-error {{Incorrect LastOperation operation}} 
 }
 }
 
-ruleset test24  
+ruleset test27  
 {
 {
   y= &x.LastOperation; // expected-error {{Incorrect LastOperation operation}} 
+}
+}
+
+ruleset test28  
+{
+{
+  bool t = LastOperation == UPDATE; // expected-error {{expected expression}} 
 }
 }
