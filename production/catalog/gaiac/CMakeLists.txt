@@ -42,9 +42,8 @@ target_link_libraries(gaiac PRIVATE rt gaia gaia_catalog)
 set_target_properties(gaiac PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaiac PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 
-set(TEST_SOURCES
+set(DDL_PARSER_TEST_SOURCES
   tests/test_ddl_parser.cpp
   ${FLEX_lexer_OUTPUTS}
   ${BISON_parser_OUTPUTS})
-message(STATUS "TEST_SOURCES=${TEST_SOURCES}")
-add_gtest(test_ddl_scanner "${TEST_SOURCES}" "${GAIA_CATALOG_TOOL_INCLUDES}" "")
+add_gtest(test_ddl_parser "${DDL_PARSER_TEST_SOURCES}" "${GAIA_CATALOG_TOOL_INCLUDES}" "")
