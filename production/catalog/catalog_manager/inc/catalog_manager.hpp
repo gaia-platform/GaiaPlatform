@@ -2,8 +2,8 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
-#ifndef __CATALOG_H_
-#define __CATALOG_H_
+#pragma once
+
 #include "gaia_catalog.hpp"
 #include <unordered_map>
 
@@ -14,7 +14,6 @@ class catalog_manager_t {
     /**
      * Catalog manager scaffolding to ensure we have one global static instance.
      * Do not allow assignment or copying; this class is a singleton.
-     * The implementation follows event_manager convention.
      */
     catalog_manager_t(catalog_manager_t &) = delete;
     void operator=(catalog_manager_t const &) = delete;
@@ -26,15 +25,15 @@ class catalog_manager_t {
     ** DDL APIs
     */
     void create_type(std::string name,
-                     std::vector<ddl::field_definition_t *> *fields);
+        std::vector<ddl::field_definition_t *> *fields);
 
     void create_table_of(std::string tableName, std::string typeName);
 
     void create_table(std::string name,
-                      std::vector<ddl::field_definition_t *> *fields);
+        std::vector<ddl::field_definition_t *> *fields);
 
   private:
-    // only internal static creation is allowed
+    // Only internal static creation is allowed
     catalog_manager_t();
     bool m_is_initialized = false;
 
@@ -46,5 +45,3 @@ class catalog_manager_t {
 };
 } // namespace catalog
 } // namespace gaia
-
-#endif // __CATALOG_H_

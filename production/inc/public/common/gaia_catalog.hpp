@@ -2,7 +2,6 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
-
 #pragma once
 
 #include "gaia_object.hpp"
@@ -42,7 +41,11 @@ enum class data_type_t : unsigned int {
     TABLE
 };
 
-enum class statment_type_t : unsigned int { CREATE, DROP, ALTER };
+enum class statment_type_t : unsigned int {
+    CREATE,
+    DROP,
+    ALTER
+};
 
 struct statement_t {
 
@@ -98,12 +101,13 @@ struct create_statement_t : statement_t {
 
 void initialize_catalog(bool is_engine);
 
-void create_type(std::string name, std::vector<ddl::field_definition_t *> *fields);
+void create_type(std::string name,
+    std::vector<ddl::field_definition_t *> *fields);
 
 void create_table_of(std::string tableName, std::string typeName);
 
 void create_table(std::string name,
-                  std::vector<ddl::field_definition_t *> *fields);
+    std::vector<ddl::field_definition_t *> *fields);
 
 /*@}*/
 } // namespace catalog

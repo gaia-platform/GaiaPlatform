@@ -2,8 +2,8 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
-#ifndef __DRIVER_HPP
-#define __DRIVER_HPP
+#pragma once
+
 #include "gaia_catalog.hpp"
 #include "parser.hpp"
 #include <string>
@@ -37,4 +37,3 @@ class driver {
     bool trace_scanning;
     yy::location location;
 };
-#endif // !DRIVER_HPP
