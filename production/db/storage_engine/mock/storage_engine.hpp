@@ -52,45 +52,45 @@ namespace db
     class tx_not_open: public gaia_exception
     {
     public:
-        const char* what() const throw ()
+        tx_not_open()
         {
-            return "begin transaction before performing data access";
+            m_message = "begin transaction before performing data access";
         }
     };
 
     class tx_update_conflict: public gaia_exception
     {
     public:
-        const char* what() const throw ()
+        tx_update_conflict()
         {
-            return "transaction aborted due to serialization error";
+            m_message = "transaction aborted due to serialization error";
         }
     };
 
     class duplicate_id: public gaia_exception
     {
     public:
-        const char* what() const throw ()
+        duplicate_id()
         {
-            return "object with the same ID already exists";
+            m_message = "object with the same ID already exists";
         }
     };
 
     class oom: public gaia_exception
     {
     public:
-        const char* what() const throw ()
+        oom()
         {
-            return "out of memory";
+            m_message = "out of memory";
         }
     };
 
     class dependent_edges_exist: public gaia_exception
     {
     public:
-        const char* what() const throw ()
+        dependent_edges_exist()
         {
-            return "cannot remove node - dependent edges exist";
+            m_message = "cannot remove node - dependent edges exist";
         }
     };
 
@@ -101,22 +101,16 @@ namespace db
         {
             std::stringstream strs;
             strs << "ID: " << id << " is either invalid or the node is not found";
-            whats = strs.str();
+            m_message = strs.str();
         }
-
-        const char* what() const throw ()
-        {
-             return whats.c_str();
-        }
-        std::string whats;
     };
 
     class invalid_id_value: public gaia_exception
     {
     public:
-        const char* what() const throw ()
+        invalid_id_value()
         {
-            return "ID must be less than 2^63";
+            m_message = "ID must be less than 2^63";
         }
     };
 
