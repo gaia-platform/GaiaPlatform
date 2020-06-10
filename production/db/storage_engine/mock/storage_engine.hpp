@@ -54,7 +54,7 @@ namespace db
     public:
         tx_not_open()
         {
-            m_message = "begin transaction before performing data access";
+            m_message = "A transaction must be started before performing data access.";
         }
     };
 
@@ -63,16 +63,18 @@ namespace db
     public:
         tx_update_conflict()
         {
-            m_message = "transaction aborted due to serialization error";
+            m_message = "Transaction aborted due to serialization error.";
         }
     };
 
     class duplicate_id: public gaia_exception
     {
     public:
-        duplicate_id()
+        duplicate_id(gaia_id_t id)
         {
-            m_message = "object with the same ID already exists";
+            std::stringstream strs;
+            strs << "Object with the same ID (" << id << ") already exists.";
+            m_message = strs.str();
         }
     };
 
@@ -81,16 +83,18 @@ namespace db
     public:
         oom()
         {
-            m_message = "out of memory";
+            m_message = "Out of memory.";
         }
     };
 
     class dependent_edges_exist: public gaia_exception
     {
     public:
-        dependent_edges_exist()
+        dependent_edges_exist(gaia_id_t id)
         {
-            m_message = "cannot remove node - dependent edges exist";
+            std::stringstream strs;
+            strs << "Cannot remove node with ID " << id << " because it has dependent edges.";
+            m_message = strs.str();
         }
     };
 
@@ -100,7 +104,7 @@ namespace db
         invalid_node_id(int64_t id)
         {
             std::stringstream strs;
-            strs << "ID: " << id << " is either invalid or the node is not found";
+            strs << "Cannot find a node with ID " << id << ".";
             m_message = strs.str();
         }
     };
@@ -108,9 +112,11 @@ namespace db
     class invalid_id_value: public gaia_exception
     {
     public:
-        invalid_id_value()
+        invalid_id_value(gaia_id_t id)
         {
-            m_message = "ID must be less than 2^63";
+            std::stringstream strs;
+            strs << "ID value " << id << " is larger than the maximum ID value 2^63.";
+            m_message = strs.str();
         }
     };
 
@@ -118,7 +124,7 @@ namespace db
     {
         if (id & c_edge_flag)
         {
-            throw invalid_id_value();
+            throw invalid_id_value(id);
         }
     }
 
@@ -514,7 +520,7 @@ namespace db
                     if (node->row_id &&
                         (*gaia_mem_base::s_offsets)[node->row_id])
                     {
-                        throw duplicate_id();
+                        throw duplicate_id(id);
                     }
                     else
                     {
@@ -947,7 +953,7 @@ namespace db
         if (node->next_edge_first
             || node->next_edge_second)
         {
-            throw dependent_edges_exist();
+            throw dependent_edges_exist(node->id);
         }
         else
         {
