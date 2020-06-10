@@ -25,7 +25,7 @@ gaia_id_t gaia::catalog::create_table_of(std::string tableName,
     return catalog_manager_t::get().create_table_of(tableName, typeName);
 }
 
-gaia_id_t gaia::catalog::create_table(std::string name,
+std::pair<gaia_id_t, gaia_id_t> gaia::catalog::create_table(std::string name,
     std::vector<ddl::field_definition_t *> *fields) {
     return catalog_manager_t::get().create_table(name, fields);
 }
