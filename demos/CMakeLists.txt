@@ -10,7 +10,14 @@ enable_testing()
 # Set the project name.
 project(demos)
 
-set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/../production/cmake;${CMAKE_MODULE_PATH}")
+if (DEFINED ENV{GAIA_REPO})
+  set(GAIA_REPO $ENV{GAIA_REPO})
+endif()
+if (DEFINED ENV{GAIA_PROD_BUILD})
+  set(GAIA_PROD_BUILD $ENV{GAIA_PROD_BUILD})
+endif()
+
+#set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/../production/cmake;${CMAKE_MODULE_PATH}")
 include(gaia)
 include(GoogleTest)
 

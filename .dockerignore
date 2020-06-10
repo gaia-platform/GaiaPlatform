@@ -16,11 +16,11 @@ cmake-build-*/
 *.egg-info/
 dist/
 
-# Generated header files
+# Generated header files.
 *_generated.h
 
-# Generated gdev files.
-*.gdev
+# Gdev build configuration files.
+gdev.cfg
 
 # Java class files
 *.class

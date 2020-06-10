@@ -3,6 +3,13 @@
 # All rights reserved.
 #############################################
 
+if (NOT DEFINED GAIA_PROD_BUILD AND DEFINED ENV{GAIA_PROD_BUILD})
+  set(GAIA_PROD_BUILD ENV{GAIA_PROD_BUILD})
+endif()
+if (NOT DEFINED GAIA_DEMO_BUILD AND DEFINED ENV{GAIA_DEMO_BUILD})
+  set(GAIA_DEMO_BUILD ENV{GAIA_DEMO_BUILD})
+endif()
+
 # Helper function to return the absolute path of the 
 # repo root directory.  We use this to build absolute 
 # include paths to code stored in the third-party 
