@@ -15,19 +15,19 @@ void gaia::catalog::initialize_catalog(bool is_engine) {
     catalog_manager_t::get(true).init(is_engine);
 }
 
-void gaia::catalog::create_type(std::string name,
+gaia_id_t gaia::catalog::create_type(std::string name,
     std::vector<ddl::field_definition_t *> *fields) {
-    catalog_manager_t::get().create_type(name, fields);
+    return catalog_manager_t::get().create_type(name, fields);
 }
 
-void gaia::catalog::create_table_of(std::string tableName,
+gaia_id_t gaia::catalog::create_table_of(std::string tableName,
     std::string typeName) {
-    catalog_manager_t::get().create_table_of(tableName, typeName);
+    return catalog_manager_t::get().create_table_of(tableName, typeName);
 }
 
-void gaia::catalog::create_table(std::string name,
+gaia_id_t gaia::catalog::create_table(std::string name,
     std::vector<ddl::field_definition_t *> *fields) {
-    catalog_manager_t::get().create_table(name, fields);
+    return catalog_manager_t::get().create_table(name, fields);
 }
 
 /**
@@ -105,7 +105,7 @@ static GaiaDataType to_gaia_type(ddl::data_type_t dt) {
     }
 }
 
-void catalog_manager_t::create_type(std::string name,
+gaia_id_t catalog_manager_t::create_type(std::string name,
     std::vector<ddl::field_definition_t *> *fields) {
     if (m_type_cache.find(name) != m_type_cache.end()) {
         throw gaia::common::gaia_exception("The type " + name +
@@ -134,9 +134,10 @@ void catalog_manager_t::create_type(std::string name,
     gaia::db::commit_transaction();
 
     m_type_cache[name] = owner_id;
+    return owner_id;
 }
 
-void catalog_manager_t::create_table_of(
+gaia_id_t catalog_manager_t::create_table_of(
     std::string tableName,
     std::string typeName) {
     if (m_type_cache.find(typeName) == m_type_cache.end()) {
@@ -153,11 +154,12 @@ void catalog_manager_t::create_table_of(
     gaia::db::commit_transaction();
 
     m_table_cache[tableName] = table_id;
+    return table_id;
 }
 
-void catalog_manager_t::create_table(
+gaia_id_t catalog_manager_t::create_table(
     std::string name,
     std::vector<ddl::field_definition_t *> *fields) {
     create_type(name, fields);
-    create_table_of(name, name);
+    return create_table_of(name, name);
 }
