@@ -157,9 +157,10 @@ gaia_id_t catalog_manager_t::create_table_of(
     return table_id;
 }
 
-gaia_id_t catalog_manager_t::create_table(
+std::pair<gaia_id_t, gaia_id_t> catalog_manager_t::create_table(
     std::string name,
     std::vector<ddl::field_definition_t *> *fields) {
-    create_type(name, fields);
-    return create_table_of(name, name);
+    gaia_id_t type_id = create_type(name, fields);
+    gaia_id_t table_id = create_table_of(name, name);
+    return std::make_pair(table_id, type_id);
 }

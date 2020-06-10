@@ -101,12 +101,12 @@ struct create_statement_t : statement_t {
 
 void initialize_catalog(bool is_engine);
 
-gaia_id_t create_type(std::string name,
-    std::vector<ddl::field_definition_t *> *fields);
+gaia_id_t create_type(std::string name, std::vector<ddl::field_definition_t *> *fields);
 
 gaia_id_t create_table_of(std::string tableName, std::string typeName);
 
-gaia_id_t create_table(std::string name,
+std::pair<gaia_id_t, gaia_id_t> create_table(
+    std::string name,
     std::vector<ddl::field_definition_t *> *fields);
 
 /*@}*/

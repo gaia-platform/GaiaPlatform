@@ -6,6 +6,7 @@
 
 #include "gaia_catalog.hpp"
 #include <unordered_map>
+#include <utility>
 
 namespace gaia {
 namespace catalog {
@@ -29,7 +30,7 @@ class catalog_manager_t {
 
     gaia_id_t create_table_of(std::string tableName, std::string typeName);
 
-    gaia_id_t create_table(std::string name,
+    std::pair<gaia_id_t, gaia_id_t> create_table(std::string name,
         std::vector<ddl::field_definition_t *> *fields);
 
   private:
