@@ -57,7 +57,7 @@ table gaiaColumn {
   active:bool;
   nullable:bool;
   has_default:bool;
-  // TODO: convert the default value to [byte] once EDC supports vector
+  // TODO: convert the default value to [byte] once EDC supports vector.
   default_value:string;
   is_foreign_key:bool;
   reference:uint64;
@@ -71,7 +71,7 @@ enum GaiaValueIndexType:ubyte {
 table gaiaValueIndex {
   name:string;
   table_id:uint64;
-  // TODO: convert the columns to [uint16] once EDC supports vector
+  // TODO: convert the columns to [uint16] once EDC supports vector.
   columns:string;
   index_type:GaiaValueIndexType;
   unique:bool;
