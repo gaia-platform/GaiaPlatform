@@ -5,7 +5,7 @@
 
 #include <iostream>
 #include "gtest/gtest.h"
-#include "addr_book_gaia_generated.h"
+#include "addr_book.h"
 
 using namespace std;
 using namespace gaia::db;
@@ -185,6 +185,151 @@ TEST_F(gaia_object_test, new_del_original_field_ref) {
     commit_transaction();
 }
 
+// Test connecting, disconnecting, navigating records
+// ==================================================
+TEST_F(gaia_object_test, connect) {
+    begin_transaction();
+
+    // Connect two new rows.
+    Employee* e1 = new Employee();
+    Address* a1 = new Address();
+    EXPECT_THROW(e1->addresss.insert(a1), edc_unstored_row);
+
+    // Connect two non-inserted rows.
+    Employee* e2 = new Employee();
+    e2->set_name_first("Howard");
+    Address* a2 = new Address();
+    a2->set_city("Houston");
+    EXPECT_THROW(e2->addresss.insert(a2), edc_unstored_row);
+
+    // Connect two inserted rows.
+    Employee* e3 = new Employee();
+    e3->set_name_first("Hidalgo");
+    Address* a3 = new Address();
+    a3->set_city("Houston");
+    e3->insert_row();
+    a3->insert_row();
+    e3->addresss.insert(a3);
+    int count = 0;
+    for (auto ap : e3->addresss) {
+        if (ap) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, 1);
+    delete e1;
+    delete e2;
+    delete e3;
+    delete a1;
+    delete a2;
+    delete a3;
+    commit_transaction();
+}
+
+Employee* create_hierarchy() {
+    auto eptr = Employee::insert_row("Heidi", "Humphry", "555-22-4444", 20200530, "heidi@gmail.com", "");
+    for (int i = 0; i<2000; i++) {
+        char addr_string[6];
+        sprintf(addr_string, "%d", i);
+        auto aptr = Address::insert_row(addr_string, addr_string, addr_string, addr_string, addr_string, addr_string, true);
+        eptr->addresss.insert(aptr);
+        for (int j = 0; j < 40; j++) {
+            char phone_string[5];
+            sprintf(phone_string, "%d", j);
+            auto pptr = Phone::insert_row(phone_string, phone_string, true);
+            aptr->phones.insert(pptr);
+        }
+    }
+    return eptr;
+}
+
+int scan_hierarchy(Employee* eptr) {
+    int count = 1;
+    for (auto aptr : eptr->addresss) {
+        ++count;
+        for (auto pptr : aptr->phones) {
+            if (pptr) {
+                ++count;
+            }
+        }
+    }
+    return count;
+}
+
+bool bounce_hierarchy(Employee* eptr) {
+    // Take a subset of the hierarchy and travel to the bottom. From the bottom, travel back
+    // up, verifying the results on the way.
+    int count_addresses = 0;
+    for (auto aptr : eptr->addresss) {
+        if ((++count_addresses % 30) == 0) {
+            int count_phones = 0;
+            for (auto pptr : aptr->phones) {
+                if ((++count_phones % 4) == 0) {
+                    auto up_aptr = pptr->address();
+                    EXPECT_EQ(up_aptr, aptr);
+                    auto up_eptr = up_aptr->employee();
+                    EXPECT_EQ(up_eptr, eptr);
+                }
+            }
+        }
+    }
+    return true;
+}
+
+bool delete_hierarchy(Employee* eptr) {
+    int count_addresses = 1;
+    while (count_addresses>=1) {
+        count_addresses = 0;
+        // As long as there is at least one Address, continue
+        Address* xaptr;
+        for (auto aptr : eptr->addresss) {
+            ++count_addresses;
+            xaptr = aptr;
+            // Repeat: delete the last phone until all are deleted
+            int count_phones = 1;
+            while (count_phones>=1) {
+                count_phones = 0;
+                Phone* xpptr;
+                for (auto pptr : aptr->phones) {
+                    ++count_phones;
+                    xpptr = pptr;
+                }
+                if (count_phones) {
+                    aptr->phones.erase(xpptr);
+                    xpptr->delete_row();
+                }
+            }
+        }
+        if (count_addresses) {
+            eptr->addresss.erase(xaptr);
+            xaptr->delete_row();
+        }
+    }
+    eptr->delete_row();
+    return true;
+}
+
+TEST_F(gaia_object_test, connect_scan) {
+    begin_transaction();
+
+    // Create a hierarchy of employee to address to phone
+    auto eptr = create_hierarchy();
+
+    // Removing a row involved in any set should be prevented.
+    EXPECT_THROW(eptr->delete_row(), edc_not_disconnected);
+
+    // Count the records in the hierarchy
+    auto record_count = scan_hierarchy(eptr);
+    EXPECT_EQ(record_count, 82001);
+
+    // Travel down, then up the hierarchy
+    EXPECT_EQ(bounce_hierarchy(eptr), true);
+
+    // Delete the hierarchy, every third record, until it's gone
+    EXPECT_EQ(delete_hierarchy(eptr), true);
+    commit_transaction();
+}
+
 // Test on existing objects found by ID
 // ====================================
 
@@ -239,7 +384,7 @@ TEST_F(gaia_object_test, read_wrong_type) {
     }
     catch (const exception& e) {
         // The eid is unpredictable, but the exception will use it in its message.
-        string compare_string = "requesting Gaia type Address(2) but object identified by " + to_string(eid) + " is type Employee(1)";
+        string compare_string = "Requesting Gaia type Address(2) but object identified by " + to_string(eid) + " is type Employee(1).";
         EXPECT_STREQ(e.what(), compare_string.c_str());
     }
     EXPECT_THROW(Address::get_row_by_id(eid), edc_invalid_object_type);

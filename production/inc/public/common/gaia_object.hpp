@@ -171,8 +171,8 @@ public:
     edc_invalid_object_type(gaia_id_t id, gaia_type_t expected, const char* expected_type,
         gaia_type_t actual, const char* type_name) {
         stringstream msg;
-        msg << "requesting Gaia type " << expected_type << "(" << expected << ") but object identified by "
-            << id << " is type " << type_name << "(" << actual << ")";
+        msg << "Requesting Gaia type " << expected_type << "(" << expected << ") but object identified by "
+            << id << " is type " << type_name << "(" << actual << ").";
         m_message = msg.str();
     }
 };
@@ -184,8 +184,8 @@ public:
     edc_invalid_member(gaia_id_t id, gaia_type_t parent, const char* parent_type,
         gaia_type_t child, const char* child_name) {
         stringstream msg;
-        msg << "attempting to remove record with Gaia type " << child_name << "(" << child << ") from parent "
-            << id << " of type " << parent_type << "(" << parent << "), but not a member";
+        msg << "Attempting to remove record with Gaia type " << child_name << "(" << child << ") from parent "
+            << id << " of type " << parent_type << "(" << parent << "), but record is not a member.";
         m_message = msg.str();
     }
 };
@@ -196,8 +196,32 @@ class edc_inconsistent_list: public gaia_exception
 public:
     edc_inconsistent_list(gaia_id_t id, const char* parent_type, gaia_id_t child, const char* child_name) {
         stringstream msg;
-        msg << "linked list is inconsistent, child points to parent " << id << " of type " << parent_type 
-            << ", but child (" << child << ", type " << child_name << ") is not in parent's list";
+        msg << "Linked list is inconsistent, child points to parent " << id << " of type " << parent_type 
+            << ", but child (" << child << ", type " << child_name << ") is not in parent's list.";
+        m_message = msg.str();
+    }
+};
+
+// To connect two objects, a gaia_id() is needed but not available until SE create is called during
+// the insert_row().
+class edc_unstored_row: public gaia_exception
+{
+public:
+    edc_unstored_row(const char* parent_type, const char* child_type) {
+        stringstream msg;
+        msg << "Cannot connect two objects until they have both been inserted (insert_row()), parent type is " << 
+            parent_type << " and child type is " << child_type << ".";
+        m_message = msg.str();
+    }
+};
+
+// A non-null reference was found among this object's references.
+class edc_not_disconnected: public gaia_exception
+{
+public:
+    edc_not_disconnected(gaia_id_t id, const char* object_type) {
+        stringstream msg;
+        msg << "Cannot delete object " << id << ", type " << object_type << " because it is still connected to other object.";
         m_message = msg.str();
     }
 };
@@ -226,8 +250,9 @@ public:
     {
         s_gaia_cache.erase(m_id);
         s_gaia_tx_cache.erase(m_id);
-        if (m_references)
+        if (m_references) {
             delete[] m_references;
+        }
         reset(true);
     }
     gaia_object_t() = delete;
@@ -235,6 +260,18 @@ public:
     /**
      * This constructor supports completely new objects that the database has not seen yet
      * by creating a copy buffer immediately.
+     */
+    gaia_object_t(const char * gaia_typename, size_t num_references)
+    : gaia_base_t(gaia_typename)
+    , m_num_references(num_references)
+    , m_references(nullptr)
+    , m_fb(nullptr)
+    {
+        copy_write();
+    }
+
+    /**
+     * Needed for compatibility with earlier generated headers. May become obsolete.
      */
     gaia_object_t(const char * gaia_typename)
     : gaia_base_t(gaia_typename)
@@ -306,9 +343,11 @@ public:
         if (m_copy) {
             auto u = T_fb::Pack(*m_fbb, m_copy.get());
             m_fbb->Finish(u);
-            m_num_references = num_ptrs;
             if (num_ptrs) {
                 m_references = new gaia_id_t[num_ptrs];
+                for (size_t i=0; i<m_num_references; i++) {
+                    m_references[i] = 0;
+                }
             }
             else {
                 m_references = nullptr;
@@ -316,7 +355,7 @@ public:
             auto node_ptr = gaia_se_node_mock::create(m_id, T_gaia_type, num_ptrs, m_references,
                 m_fbb->GetSize(), m_fbb->GetBufferPointer());
             m_fbb->Clear();
-            m_fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload+(m_num_references+1)*sizeof(gaia_id_t));
+            m_fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload+(m_num_references+1) * sizeof(gaia_id_t));
         } else {
             // This situation only happens if an object representing
             // a deleted row is reused.  By giving the object a copy buffer, 
@@ -356,12 +395,19 @@ public:
      */
     void delete_row()
     {
-        auto node_ptr = gaia_se_node::open(m_id);
+        auto node_ptr = gaia_se_node_mock::open(m_id);
         if (!node_ptr) {
             throw invalid_node_id(m_id);
         }
 
-        gaia_ptr<gaia_se_node>::remove(node_ptr);
+        // The references may not have been updated to the SE payload, but the most
+        // recent values exist here in this object, so check them here.
+        for (size_t i=0; i<m_num_references; i++) {
+            if (m_references[i]) {
+                throw edc_not_disconnected(m_id, this->gaia_typename());
+            }
+        }
+        gaia_ptr_mock::remove_mock(node_ptr);
         // A partial reset leaves m_fb alone. If program incorrectly references
         // fields in this deleted object, it will not crash.
         reset();
@@ -374,20 +420,16 @@ public:
 
     static T_gaia* insert_row(flatbuffers::FlatBufferBuilder& fbb, gaia_id_t num_ptrs)
     {
-        gaia_id_t nodeId = gaia_se_node::generate_id();
-        gaia_se_node_mock::create(nodeId, T_gaia_type, num_ptrs, nullptr, fbb.GetSize(), fbb.GetBufferPointer());
-        return get_row_by_id(nodeId);
+        gaia_id_t node_id = gaia_se_node::generate_id();
+        gaia_se_node_mock::create(node_id, T_gaia_type, num_ptrs, nullptr, fbb.GetSize(), fbb.GetBufferPointer());
+        return get_row_by_id(node_id);
     }
-
-    //static T_gaia* insert_row(flatbuffers::FlatBufferBuilder& fbb) {
-    //    return insert_row(fbb, 0);
-    //}
 
     static gaia_id_t insert_row(flatbuffers::FlatBufferBuilder& fbb)
     {
-        gaia_id_t nodeId = gaia_se_node::generate_id();
-        gaia_se_node_mock::create(nodeId, T_gaia_type, 0, nullptr, fbb.GetSize(), fbb.GetBufferPointer());
-        return nodeId;
+        gaia_id_t node_id = gaia_se_node::generate_id();
+        gaia_se_node_mock::create(node_id, T_gaia_type, 0, nullptr, fbb.GetSize(), fbb.GetBufferPointer());
+        return node_id;
     }
 
 
@@ -398,6 +440,15 @@ public:
 protected:
     // This constructor supports creating new objects from existing
     // nodes in the database.  It is called by our get_object below.
+    gaia_object_t(gaia_id_t id, const char * gaia_typename, size_t num_references) 
+    : gaia_base_t(id, gaia_typename)
+    , m_num_references(num_references)
+    , m_references(nullptr)
+    , m_fb(nullptr)
+    {
+    }
+
+    // For compatibility with old generated headers. May become obsolete.
     gaia_object_t(gaia_id_t id, const char * gaia_typename) 
     : gaia_base_t(id, gaia_typename)
     , m_num_references(0)
@@ -427,6 +478,12 @@ protected:
                 m_fb->UnPackTo(m_copy.get());
             }
             m_fbb.reset(new flatbuffers::FlatBufferBuilder());
+            if (m_num_references && !m_references) {
+                m_references = new gaia_id_t[m_num_references];
+                for (size_t i=0; i<m_num_references; i++) {
+                    m_references[i] = 0;
+                }
+            }
         }
         return m_copy.get();
     }
@@ -462,9 +519,9 @@ private:
                 }
                 if (obj->m_num_references) {
                     obj->m_references = new gaia_id_t[obj->m_num_references];
-                    memcpy(obj->m_references, node_ptr->payload+sizeof(gaia_id_t), obj->m_num_references*sizeof(gaia_id_t));
+                    memcpy(obj->m_references, node_ptr->payload+sizeof(gaia_id_t), obj->m_num_references * sizeof(gaia_id_t));
                 }
-                auto fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload+(obj->m_num_references+1)*sizeof(gaia_id_t));
+                auto fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload+(obj->m_num_references+1) * sizeof(gaia_id_t));
                 obj->m_fb = fb;
                 obj->m_id = node_ptr->id;
                 s_gaia_tx_cache[obj->m_id] = obj;

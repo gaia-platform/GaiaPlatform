@@ -48,7 +48,7 @@ public:
 };
 
 // A gaia_container_t is defined within each EDC and used by programmers to scan
-// through all instances of the type.
+// through all instances of the type in the database.
 //   @tparam T_gaia the Extended Data Class type
 template<typename T_gaia>
 struct gaia_container_t {
@@ -109,15 +109,19 @@ public:
         foreign_ptr->m_references[T_foreign_slot] = m_outer->m_references[T_primary_slot];
         foreign_ptr->m_references[T_parent_slot]  = m_outer->gaia_id();
         m_outer->m_references[T_primary_slot] = foreign_ptr->gaia_id();
+        // The gaia_id() will be zero if the row hasn't been inserted into the SE.
+        if (!foreign_ptr->m_references[T_parent_slot] || !m_outer->m_references[T_primary_slot]) {
+            throw edc_unstored_row(m_outer->gaia_typename(), foreign_ptr->gaia_typename());
+        }
     }
     void erase(T_foreign* foreign_ptr) {
         if (foreign_ptr->m_references[T_parent_slot] != m_outer->gaia_id()) {
             throw edc_invalid_member(
-                        m_outer->gaia_id(),
-                        m_outer->gaia_type(),
-                        m_outer->gaia_typename(),
-                        foreign_ptr->gaia_type(),
-                        foreign_ptr->gaia_typename());
+                m_outer->gaia_id(),
+                m_outer->gaia_type(),
+                m_outer->gaia_typename(),
+                foreign_ptr->gaia_type(),
+                foreign_ptr->gaia_typename());
         }
         auto foreign_id = foreign_ptr->gaia_id();
         if (m_outer->m_references[T_primary_slot] == foreign_id) {
@@ -141,7 +145,7 @@ public:
                     return;
                 }
                 // Move to the next child.
-                auto cur_child = T_foreign::get_row_by_id(next_id);
+                cur_child = T_foreign::get_row_by_id(next_id);
             }
             // If we end up here, the child was not found in the chain. This is an error because
             // the pointers have become inconsistent (the child's parent pointer was correct).
