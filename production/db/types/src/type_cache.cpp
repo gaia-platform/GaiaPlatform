@@ -15,7 +15,7 @@ void field_cache_t::release(field_cache_t* field_cache)
 {
     retail_assert(field_cache != nullptr, "field_cache_t::release() should not be called with a null cache!");
 
-    --(field_cache->reference_count);
+    __sync_fetch_and_sub(&(field_cache->reference_count), 1);
     if (field_cache->reference_count == 0)
     {
         delete field_cache;
@@ -62,8 +62,9 @@ const field_cache_t* type_cache_t::get_field_cache(uint64_t type_id)
     }
     else
     {
-        ++(iterator->second->reference_count);
-        return iterator->second;
+        field_cache_t* field_cache = iterator->second;
+        __sync_fetch_and_add(&(field_cache->reference_count), 1);
+        return field_cache;
     }
 
     s_lock.unlock_shared();
@@ -76,7 +77,8 @@ void type_cache_t::clear_field_cache(uint64_t type_id)
     type_map_t::const_iterator iterator = m_type_map.find(type_id);
     if (iterator != m_type_map.end())
     {
-        --(iterator->second->reference_count);
+        field_cache_t* field_cache = iterator->second;
+        __sync_fetch_and_sub(&(field_cache->reference_count), 1);
         m_type_map.erase(iterator);
     }
 
