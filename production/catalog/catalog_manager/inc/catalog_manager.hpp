@@ -42,7 +42,6 @@ class catalog_manager_t {
     // We can drop these when the storage engine begin to support index.
     unordered_map<std::string, gaia_id_t> m_type_cache;
     unordered_map<std::string, gaia_id_t> m_table_cache;
-    unordered_map<std::string, gaia_id_t> m_field_cache;
 };
 } // namespace catalog
 } // namespace gaia
