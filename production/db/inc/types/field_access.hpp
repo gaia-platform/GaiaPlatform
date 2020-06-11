@@ -56,7 +56,7 @@ public:
     invalid_serialized_field_data(uint16_t position);
 };
 
-void load_binary_schema_into_cache(
+void initialize_field_cache_from_binary_schema(
     field_cache_t* field_cache,
     uint8_t* binary_schema);
 
@@ -78,13 +78,16 @@ get_table_field_value(
     type_cache_t* type_cache = type_cache_t::get_type_cache();
     const field_cache_t* field_cache = type_cache->get_field_cache(type_id);
 
-    // If data is not available for our type, we load it now from the binary schema.
+    // If we got hold of the field cache, we need to release access once we're don using it.
+    auto_release_cache_read_access auto_release_cache_access(field_cache != nullptr);
+
+    // If data is not available for our type, we load it locally from the binary schema provided to us.
+    field_cache_t local_field_cache;
     if (field_cache == nullptr)
     {
-        field_cache = new field_cache_t();
-        load_binary_schema_into_cache(const_cast<field_cache_t*>(field_cache), binary_schema);
+        initialize_field_cache_from_binary_schema(&local_field_cache, binary_schema);
+        field_cache = &local_field_cache;
     }
-    auto_release_field_cache auto_field_cache(field_cache);
 
     // Lookup field information in the field cache.
     const reflection::Field* field = field_cache->get_field(field_position);

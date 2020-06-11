@@ -46,7 +46,7 @@ invalid_serialized_field_data::invalid_serialized_field_data(uint16_t position)
     m_message = string_stream.str();
 }
 
-void load_binary_schema_into_cache(
+void initialize_field_cache_from_binary_schema(
     field_cache_t* field_cache,
     uint8_t* binary_schema)
 {
@@ -70,6 +70,6 @@ void load_binary_schema_into_cache(
     for (size_t i = 0; i < fields->Length(); i++)
     {
         const reflection::Field* current_field = fields->Get(i);
-        field_cache->field_map.insert(make_pair(current_field->id(), current_field));
+        field_cache->set_field(current_field->id(), current_field);
     }
 }
