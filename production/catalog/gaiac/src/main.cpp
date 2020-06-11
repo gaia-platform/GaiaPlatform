@@ -6,6 +6,7 @@
 #include "gaia_catalog.hpp"
 #include "gaia_system.hpp"
 #include <vector>
+#include <iostream>
 
 using namespace std;
 using namespace gaia::catalog::ddl;
@@ -38,5 +39,6 @@ int main(int argc, char *argv[]) {
             res = EXIT_FAILURE;
         }
     }
+    std::cout <<  gaia::catalog::generate_fbs() << endl;
     return res;
 }

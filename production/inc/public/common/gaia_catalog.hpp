@@ -99,6 +99,8 @@ void initialize_catalog(bool is_engine);
 
 gaia_id_t create_table(std::string name, const std::vector<ddl::field_definition_t *> &fields);
 
+std::string generate_fbs();
+
 /*@}*/
 } // namespace catalog
 /*@}*/

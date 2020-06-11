@@ -36,6 +36,7 @@ endif()
 # main target
 add_library(gaia_catalog STATIC
   src/catalog_manager.cpp
+  src/fbs_generator.cpp
 )
 add_dependencies(gaia_catalog generate_catalog)
 set_target_properties(gaia_catalog PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
