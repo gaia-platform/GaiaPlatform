@@ -1,0 +1,53 @@
+namespace gaia.db.messages;
+
+enum SessionState: byte {
+    CONNECTING,
+    CONNECTED,
+    DISCONNECTING,
+    DISCONNECTED,
+    // SHUTTING_DOWN,
+    // SHUTTING_DOWN_PENDING_ACK,
+    TXN_IN_PROGRESS,
+    TXN_COMMITTING,
+}
+
+enum SessionEvent: byte {
+    NOP,
+    CONNECT,
+    // For now we signal shutdown on either side by calling shutdown(SHUT_WR),
+    // which makes the other side return 0 from read(). However, we might later
+    // decide to signal shutdown in an explicit DISCONNECT message.
+    // DISCONNECT,
+    CLIENT_SHUTDOWN,
+    SERVER_SHUTDOWN,
+    BEGIN_TXN,
+    ABORT_TXN,
+    COMMIT_TXN,
+    DECIDE_TXN_COMMIT,
+    DECIDE_TXN_ABORT,
+}
+
+table ClientRequest {
+    event: SessionEvent;
+}
+
+table ServerReply {
+    // This can either be the client's original request event,
+    // or a server-generated event in response to the client's request.
+    event: SessionEvent;
+    old_state: SessionState;
+    new_state: SessionState;
+    // transition_success: bool;
+    // transition_info: string;
+}
+
+union AnyMessage {
+    request: ClientRequest,
+    reply: ServerReply,
+}
+
+table Message {
+    msg: AnyMessage;
+}
+
+root_type Message;
