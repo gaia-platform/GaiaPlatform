@@ -104,6 +104,11 @@ void event_manager_t::commit_trigger(const trigger_event_t* events, size_t count
     bool rules_invoked;
     const trigger_event_t* event;
 
+    retail_assert(events && count_events, "Expected at least one event!");
+
+    // Start a transaction that will be used to log all the events that were
+    // triggered independent of whether they invoked a rule or not.
+    auto_tx_t tx;
     for(size_t i = 0; i < count_events; i++, log_to_db(event, rules_invoked))
     {
         event = &events[i];
@@ -172,6 +177,7 @@ void event_manager_t::commit_trigger(const trigger_event_t* events, size_t count
             }
         }
     }
+    tx.commit();
 
     // If any rules were enqueued and we are in "immediate" mode
     // then execute them now.
@@ -487,6 +493,7 @@ std::string event_manager_t::make_rule_key(const rule_binding_t& binding)
     return rule_key;
 }
 
+// Assumes that the caller will manage the transaction.
 void event_manager_t::log_to_db(const trigger_event_t* event, bool rules_invoked)
 {
     static_assert(sizeof(uint32_t) == sizeof(event_type_t), 
@@ -504,10 +511,8 @@ void event_manager_t::log_to_db(const trigger_event_t* event, bool rules_invoked
     }
 
     {
-        auto_tx_t tx;
         Event_log::insert_row((uint32_t)(event->event_type), (uint64_t)(event->gaia_type), 
             (uint64_t)(event->record), column_id, timestamp, rules_invoked);
-        tx.commit();
     }
 }
 
