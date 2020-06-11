@@ -147,17 +147,11 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
       com.gaiaplatform.tests.database.cachegraph.TestCacheGraph graphml)
 endif()
 
-# Common code - currently, a headers-only library.
-add_library(gaia_common INTERFACE)
-target_sources(gaia_common INTERFACE
-  ${PROJECT_SOURCE_DIR}/inc/public/common/gaia_exception.hpp
-  ${PROJECT_SOURCE_DIR}/inc/public/common/retail_assert.hpp
-)
-
 # Add flatbuffers
 add_subdirectory(${FLATBUFFERS} flatbuffers)
 
 # Add individual component folders.
+add_subdirectory(common)
 add_subdirectory(db)
 add_subdirectory(direct_access)
 add_subdirectory(rules)
