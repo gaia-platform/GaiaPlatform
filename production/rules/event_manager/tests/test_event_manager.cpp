@@ -269,8 +269,8 @@ void rule6(const rule_context_t* context)
     g_context_checker.set(context);
 
     // Allow different event class (transaction event, not table event)
-    //trigger_event_t trigger_event = {event_type_t::transaction_commit, 0, 0, nullptr, 0};
-    //commit_trigger(0, &trigger_event, 1, true);
+    trigger_event_t trigger_event = {event_type_t::transaction_commit, 0, 0, nullptr, 0};
+    commit_trigger(0, &trigger_event, 1, true);
 }
 
 /**
@@ -301,7 +301,7 @@ void rule8(const rule_context_t* context)
 
     TestGaia row;
     trigger_event_t trigger_event = {event_type_t::row_update, TestGaia::s_gaia_type, row.gaia_id(), nullptr, 0};
-    commit_trigger(0, &trigger_event, 1, false);
+    commit_trigger(0, &trigger_event, 1, true);
 }
 
 /**
@@ -322,7 +322,7 @@ void rule9(const rule_context_t* context)
         {event_type_t::row_update, TestGaia::s_gaia_type, context->record, &s_timestamp, 1},
         {event_type_t::row_update, TestGaia::s_gaia_type, context->record, &s_id, 1},
     };
-    commit_trigger(0, events, 2, false);
+    commit_trigger(0, events, 2, true);
 }
 
 /**
@@ -1060,21 +1060,18 @@ TEST_F(event_manager_test, list_rules_all_filters)
 TEST_F(event_manager_test, forward_chain_not_subscribed)
 {
     subscribe_rule(0, event_type_t::transaction_commit, empty_fields, m_rule8);
-    install_transaction_hooks();
-    
+
     rule_context_sequence_t expected;
     add_context_sequence(expected, 0, event_type_t::transaction_commit);
     trigger_event_t event = {event_type_t::transaction_commit, 0, 0, nullptr, 0};
     commit_trigger(0, &event, 1, true);
     validate_rule_sequence(expected);
-    uninstall_transaction_hooks();
 }
 
 TEST_F(event_manager_test, forward_chain_transaction_table)
 {
     subscribe_rule(0, event_type_t::transaction_commit, empty_fields, m_rule8);
     subscribe_rule(TestGaia::s_gaia_type, event_type_t::row_update, empty_fields, m_rule5);
-    install_transaction_hooks();
 
     rule_context_sequence_t expected;
     add_context_sequence(expected, 0, event_type_t::transaction_commit);
@@ -1083,7 +1080,6 @@ TEST_F(event_manager_test, forward_chain_transaction_table)
     commit_trigger(0, &event, 1, true);
 
     validate_rule_sequence(expected);
-    uninstall_transaction_hooks();
 }
 
 TEST_F(event_manager_test, forward_chain_table_transaction)
@@ -1091,8 +1087,6 @@ TEST_F(event_manager_test, forward_chain_table_transaction)
     subscribe_rule(TestGaia2::s_gaia_type, event_type_t::row_update, empty_fields, m_rule6);
     subscribe_rule(0, event_type_t::transaction_commit, empty_fields, m_rule8);
 
-    install_transaction_hooks();
-    
     // Because of forward chaining, we expect the table event
     // and the transaction event to be called even though
     // we only logged the table event here.
@@ -1101,11 +1095,9 @@ TEST_F(event_manager_test, forward_chain_table_transaction)
     add_context_sequence(expected, 0, event_type_t::transaction_commit);
     trigger_event_t events[] = {
         {event_type_t::row_update, TestGaia2::s_gaia_type, 99, nullptr, 0},
-        {event_type_t::transaction_commit, 0, 0, nullptr, 0},
     };
-    commit_trigger(0, events, 2, true);
+    commit_trigger(0, events, 1, true);
     validate_rule_sequence(expected);
-    uninstall_transaction_hooks();
 }
 
 /*
@@ -1150,7 +1142,6 @@ TEST_F(event_manager_test, forward_chain_field_not_subscribed)
     fields.insert(s_value);
     subscribe_rule(TestGaia::s_gaia_type, event_type_t::row_update, fields, m_rule9);
 
-    install_transaction_hooks();
 
     // expect only one update from the value field
     rule_context_sequence_t expected;
@@ -1159,8 +1150,6 @@ TEST_F(event_manager_test, forward_chain_field_not_subscribed)
     trigger_event_t event = {event_type_t::row_update, TestGaia::s_gaia_type, 34, &s_value, 1};
     commit_trigger(0, &event, 1, true);
     validate_rule_sequence(expected);
-
-    uninstall_transaction_hooks();
 }
 
 TEST_F(event_manager_test, forward_chain_field_commit)
@@ -1184,11 +1173,11 @@ TEST_F(event_manager_test, forward_chain_field_commit)
     add_context_sequence(expected, TestGaia::s_gaia_type, event_type_t::row_update);    
     
     begin_transaction();
-        trigger_event_t events[] = {
-            {event_type_t::row_update, TestGaia::s_gaia_type, 34, &s_value, 1},
-            {event_type_t::transaction_commit, 0, 0, nullptr, 0}
-        };
-        commit_trigger(0, events, 2, false);
+    trigger_event_t events[] = {
+        {event_type_t::row_update, TestGaia::s_gaia_type, 34, &s_value, 1},
+        {event_type_t::transaction_commit, 0, 0, nullptr, 0}
+    };
+    commit_trigger(0, events, 2, false);
     commit_transaction();
     validate_rule_sequence(expected);
 

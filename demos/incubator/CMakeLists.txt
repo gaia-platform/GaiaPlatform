@@ -22,6 +22,12 @@ set(GAIA_INCUBATOR_DEMO_INCLUDES
   ${GENERATED_OUTPUTS}
 )
 
+gaia_gen_rule_subscriptions(
+    "${CMAKE_CURRENT_SOURCE_DIR}/rules.cpp"
+    "${GENERATED_OUTPUTS}/rules_init.cpp"
+    "${GAIA_INCUBATOR_DEMO_INCLUDES}"
+)
+
 add_custom_target(make_generated_incubator_dir ALL
   COMMAND ${CMAKE_COMMAND} -E make_directory ${GENERATED_OUTPUTS}
 )
@@ -48,7 +54,12 @@ set_target_properties(gaia_rules PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}
 add_library(gaia_direct SHARED IMPORTED GLOBAL)
 set_target_properties(gaia_direct PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/direct_access/libgaia_direct.a)
 
-add_executable(incubator main.cpp)
+add_executable(incubator 
+    main.cpp
+    rules.cpp
+    "${GENERATED_OUTPUTS}/rules_init.cpp"
+)
+
 add_dependencies(incubator generate_barn_storage)
 set_target_properties(incubator PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 target_include_directories(incubator PRIVATE ${GAIA_INCUBATOR_DEMO_INCLUDES})

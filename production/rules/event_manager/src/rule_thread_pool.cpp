@@ -137,7 +137,7 @@ void rule_thread_pool_t::invoke_rule(const rule_context_t* context)
     bool should_schedule = false;
     try
     {
-        gaia::db::begin_transaction();
+        gaia::db::gaia_mem_base::tx_begin();
 
         // Invoke the rule.
         context->rule_binding.rule(context);
@@ -146,7 +146,7 @@ void rule_thread_pool_t::invoke_rule(const rule_context_t* context)
         // so don't try to commit it again.
         if (gaia::db::gaia_mem_base::is_tx_active())
         {
-            gaia::db::commit_transaction();
+            gaia::db::gaia_mem_base::tx_commit();
         }
         should_schedule = true;
     }
@@ -154,7 +154,7 @@ void rule_thread_pool_t::invoke_rule(const rule_context_t* context)
     {
         if (gaia::db::gaia_mem_base::is_tx_active())
         {
-            gaia::db::rollback_transaction();
+            gaia::db::gaia_mem_base::tx_rollback();
         }
         // TODO[GAIAPLAT-129]: Log an error in an error table here.
         // TODO[GAIAPLAT-158]: Determine retry/error handling logic

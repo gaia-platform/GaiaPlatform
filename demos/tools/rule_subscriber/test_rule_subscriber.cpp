@@ -23,7 +23,7 @@ void check_tx_handler(event_type_t expected_event, uint8_t expected_call)
 }
 
 /**
- rule-1: [AddrBook::Employee](update, insert);[AddrBook::Employee.last_name](write);[AddrBook::Employee.first_name](read, write);
+ rule-1: [AddrBook::Employee](update, insert);[AddrBook::Employee.last_name];[AddrBook::Employee.first_name];
  [](commit)
  */
 void ruleset_1::ObjectRule_handler(const rule_context_t*)
@@ -32,7 +32,7 @@ void ruleset_1::ObjectRule_handler(const rule_context_t*)
 }
 
 /**
- rule-2: [AddrBook::Employee.last_name](write); [AddrBook::Employee.first_name](write); [AddrBook::Employee.phone_number](read)
+ rule-2: [AddrBook::Employee.last_name]; [AddrBook::Employee.first_name]; [AddrBook::Employee.phone_number]
  */
 void ruleset_1::Field_handler(const rule_context_t*)
 {
@@ -50,16 +50,15 @@ void ruleset_1::Table_handler(const rule_context_t*)
 }
 
 /**
- rule-4: [](begin, commit, rollback)
+ rule-4: [](commit, rollback)
 */
 void ruleset_1::TransactionRule_handler(const rule_context_t* context)
 {
     g_tx_handler_called++;
     g_event_type = context->event_type;
-    // transaction events have no context
-    EXPECT_EQ(nullptr, context->event_context);
+    // transaction events have record or type
+    EXPECT_EQ((uint64_t)0, context->record);
     EXPECT_EQ((uint64_t)0, context->gaia_type);
-    EXPECT_STREQ("", context->event_source.c_str());
 }
 
 
@@ -72,16 +71,12 @@ TEST(rule_subscriber, tx_events)
     AddrBook::Employee e;
 
     gaia::db::begin_transaction();
-    EXPECT_EQ(g_event_type, event_type_t::transaction_begin);
-
     // We did not hook rollback so we expect the same
     // event type from the begin.
     gaia::db::rollback_transaction();
-    EXPECT_EQ(g_event_type, event_type_t::transaction_begin);
+    EXPECT_EQ(g_event_type, event_type_t::transaction_rollback);
 
     gaia::db::begin_transaction();
-    EXPECT_EQ(g_event_type, event_type_t::transaction_begin);
-
     gaia::db::commit_transaction();
     EXPECT_EQ(g_event_type, event_type_t::transaction_commit);
 }

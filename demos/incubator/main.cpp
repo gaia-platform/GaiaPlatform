@@ -26,6 +26,8 @@ const char ACTUATOR_C_NAME[] = "Fan C";
 atomic<bool> IN_SIMULATION{false};
 atomic<int> TIMESTAMP{0};
 
+void add_fan_control_rule();
+
 void init_storage() {
     begin_transaction();
 
@@ -159,35 +161,6 @@ void increase_fans(Incubator *incubator, FILE *log) {
     }
 }
 
-void on_sensor_changed(const rule_context_t *context) {
-    Sensor *s = Sensor::get_row_by_id(context->record);
-    Incubator *i = Incubator::get_row_by_id(s->incubator_id());
-    FILE *log = fopen("message.log", "a");
-    fprintf(log, "%s fired for %s sensor of %s incubator\n", __func__,
-            s->name(), i->name());
-
-    double cur_temp = s->value();
-    if (cur_temp < i->min_temp()) {
-        decrease_fans(i, log);
-    } else if (cur_temp > i->max_temp()) {
-        increase_fans(i, log);
-    }
-    fclose(log);
-}
-
-// TODO:how will generated init code work with the ability to turn on/off rule
-// TODO:dynamically?
-void add_fan_control_rule() {
-    try {
-        rule_binding_t fan_control("Incubator", "Fan control", 
-            on_sensor_changed);
-        subscribe_rule(Sensor::s_gaia_type, event_type_t::row_update, 
-            empty_fields, fan_control);
-    } catch (duplicate_rule) {
-        printf("The rule has already been added.\n");
-    }
-}
-
 void list_rules() {
     subscription_list_t subs;
     list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subs);
@@ -214,14 +187,6 @@ void usage(const char *command) {
     printf(" help: print this message.\n");
 }
 
-extern "C" void initialize_rules() {}
-
-void commit_hook()
-{
-    commit_trigger(0, nullptr, 0, true);
-    gaia_base_t::commit_hook();
-}
-
 int main(int argc, const char **argv) {
     bool is_sim = false;
 
@@ -243,8 +208,6 @@ int main(int argc, const char **argv) {
         dump_db();
         return EXIT_SUCCESS;
     }
-
-    gaia::db::s_tx_commit_hook = commit_hook;
 
     printf("Incubator simulation...\n");
     gaia::system::initialize(true);

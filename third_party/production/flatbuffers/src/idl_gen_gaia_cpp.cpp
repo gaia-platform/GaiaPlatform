@@ -579,7 +579,7 @@ namespace flatbuffers
                     "   }\n"
                     "   gaia::rules::trigger_event_t event = {gaia::rules::event_type_t::row_update, this->gaia_type(),\n"
                     "       this->gaia_id(), _columns.data(), _columns.size()};\n"
-                    "   commit_trigger(0, &event, 1, false);"
+                    "   commit_trigger(0, &event, 1, false);\n"
                     "}\n"
 
                     // Insert function
@@ -587,7 +587,7 @@ namespace flatbuffers
                     "   gaia_object_t::insert_row();\n"
                     "   gaia::rules::trigger_event_t event = {gaia::rules::event_type_t::row_insert, this->gaia_type(),\n"
                     "       this->gaia_id(), nullptr, 0};\n"
-                    "   commit_trigger(0, &event, 1, false);"
+                    "   commit_trigger(0, &event, 1, false);\n"
                     "}\n"
 
                     // Delete function
@@ -595,7 +595,33 @@ namespace flatbuffers
                     "   gaia_object_t::delete_row();\n"
                     "   gaia::rules::trigger_event_t event = {gaia::rules::event_type_t::row_delete, this->gaia_type(),\n"
                     "       this->gaia_id(), nullptr, 0};\n"
-                    "   commit_trigger(0, &event, 1, false);"
+                    "   commit_trigger(0, &event, 1, false);\n"
+                    "}";
+
+                    // name to offset map
+                    code_ +=
+                    "static flatbuffers::voffset_t get_field_offset(const char* field){\n"
+                    "   static map<const char*, flatbuffers::voffset_t> field_offsets = {";
+
+                    for (auto it = struct_def.fields.vec.begin();
+                        it != struct_def.fields.vec.end(); ++it)
+                    {
+                        const auto &field = **it;
+                        if (field.deprecated) 
+                        {
+                            // Deprecated fields won't be accessible.
+                            continue;
+                        }
+
+                        code_.SetValue("FIELD_NAME", Name(field));
+                        code_.SetValue("OFFSET", GenFieldOffsetName(field));
+
+                        code_ +=
+                        "       {\"{{FIELD_NAME}}\",{{STRUCT_NAME}}::{{OFFSET}}},";
+                    }
+                    code_ +=
+                    "   };\n"
+                    "   return field_offsets[field];\n"
                     "}";
                 }
                 else
