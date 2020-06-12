@@ -13,7 +13,7 @@ namespace catalog {
 
 typedef unordered_map<gaia_id_t, std::string> type_id_map_t;
 typedef std::pair<int, std::string> fieldstr_pair_t;
-typedef std::unordered_map<std::string, vector<fieldstr_pair_t>> types_map_t;
+typedef std::unordered_map<std::string, vector<fieldstr_pair_t>> type_collection_t;
 
 static std::string generate_field(unique_ptr<GaiaField> &field, type_id_map_t &type_id_map) {
     string field_name{field->name()};
@@ -29,10 +29,9 @@ static std::string generate_field(unique_ptr<GaiaField> &field, type_id_map_t &t
     }
 }
 
-// Generate FlatBuffers schema file from catalog records
 std::string generate_fbs() {
     type_id_map_t type_id_map;
-    types_map_t types;
+    type_collection_t types;
 
     gaia::db::begin_transaction();
     for (unique_ptr<GaiaType> t{GaiaType::get_first()}; t; t.reset(t->get_next())) {
