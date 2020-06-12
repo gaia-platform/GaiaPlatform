@@ -11,6 +11,9 @@ using namespace std;
 using namespace gaia::common;
 using namespace gaia::db::types;
 
+shared_mutex type_cache_t::s_lock;
+type_cache_t* type_cache_t::s_type_cache = nullptr;
+
 const reflection::Field* field_cache_t::get_field(uint16_t field_id) const
 {
     field_map_t::const_iterator iterator = field_map.find(field_id);
