@@ -128,7 +128,8 @@ namespace db
 
         static void init_shared_memory()
         {
-            assert(!s_fd_data && !s_fd_offsets);
+            assert(s_fd_data == -1 && s_fd_offsets == -1);
+            assert(!s_data && !s_shared_offsets);
             s_fd_offsets = memfd_create(SCH_MEM_OFFSETS, MFD_ALLOW_SEALING);
             if (s_fd_offsets == -1)
             {
