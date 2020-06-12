@@ -52,12 +52,13 @@ void gaia_client::tx_cleanup() {
 }
 
 int gaia_client::get_session_socket() {
+    // Unlike the session socket on the server, this socket must be blocking,
+    // since we don't read within a multiplexing poll loop.
     int session_socket = socket(PF_UNIX, SOCK_SEQPACKET, 0);
     if (session_socket == -1) {
         throw_runtime_error("socket creation failed");
     }
-    struct sockaddr_un server_addr;
-    memset(&server_addr, 0, sizeof(server_addr));
+    struct sockaddr_un server_addr = {0};
     server_addr.sun_family = AF_UNIX;
     // The socket name (minus its null terminator) needs to fit into the space
     // in the server address structure after the prefix null byte.
@@ -103,8 +104,8 @@ void gaia_client::create_session()
     assert(bytes_read > 0);
     assert(fd_count == 2);
     const Message *msg = GetMessage(msg_buf);
-    const ServerReply *rep = msg->msg_as_reply();
-    const SessionEvent event = rep->event();
+    const ServerReply *reply = msg->msg_as_reply();
+    const SessionEvent event = reply->event();
     assert(event == SessionEvent::CONNECT);
     // Since the data and locator fds are global, we need to atomically update them
     // (and only if they're not already initialized).
@@ -135,6 +136,9 @@ void gaia_client::create_session()
             // we lost the race, close the fd
             close(fd_offsets);
         }
+    } else {
+        // locator fd is already initialized, close the fd
+        close(fd_offsets);
     }
 }
 
@@ -145,7 +149,8 @@ void gaia_client::destroy_session()
     // Discard all pending messages from the server and block until EOF.
     while (true) {
         uint8_t msg_buf[MAX_MSG_SIZE] = {0};
-        // POSIX says we should never get SIGPIPE except on writes, but just in case...
+        // POSIX says we should never get SIGPIPE except on writes,
+        // but set MSG_NOSIGNAL just in case.
         ssize_t bytes_read = recv(s_session_socket, msg_buf, sizeof(msg_buf), MSG_NOSIGNAL);
         if (bytes_read == -1) {
             throw_runtime_error("read failed");
@@ -231,8 +236,8 @@ bool gaia_client::commit_transaction()
     size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
     assert(bytes_read > 0);
     const Message *msg = GetMessage(msg_buf);
-    const ServerReply *rep = msg->msg_as_reply();
-    const SessionEvent event = rep->event();
+    const ServerReply *reply = msg->msg_as_reply();
+    const SessionEvent event = reply->event();
     assert(event == SessionEvent::DECIDE_TXN_COMMIT || event == SessionEvent::DECIDE_TXN_ABORT);
     return (event == SessionEvent::DECIDE_TXN_COMMIT);
 }

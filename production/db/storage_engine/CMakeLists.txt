@@ -54,7 +54,8 @@ target_include_directories(gaia_semock PRIVATE ${GAIA_STORAGE_ENGINE_INCLUDES})
 # for flatbuffers generated code
 target_include_directories(gaia_semock SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(gaia_semock SYSTEM PRIVATE "${GEN_DIR}")
-set_target_properties(gaia_semock PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+# suppress spurious warnings about zero-initialized structs
+set_target_properties(gaia_semock PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 target_link_libraries(gaia_semock PRIVATE gaia_common)
 set_property(TARGET gaia_semock PROPERTY POSITION_INDEPENDENT_CODE ON)
 
@@ -67,7 +68,8 @@ target_include_directories(gaia_semock_server PRIVATE ${GAIA_STORAGE_ENGINE_INCL
 # for flatbuffers generated code
 target_include_directories(gaia_semock_server SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(gaia_semock_server SYSTEM PRIVATE "${GEN_DIR}")
-set_target_properties(gaia_semock_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+# suppress spurious warnings about zero-initialized structs
+set_target_properties(gaia_semock_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 target_link_libraries(gaia_semock_server PRIVATE gaia_common Threads::Threads explain)
 
 # PyBind11 wrapper for storage engine mock.

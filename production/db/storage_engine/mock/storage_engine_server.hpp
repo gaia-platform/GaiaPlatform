@@ -208,8 +208,7 @@ namespace db
             if (connect_socket == -1) {
                 throw_runtime_error("socket creation failed");
             }
-            struct sockaddr_un server_addr;
-            memset(&server_addr, 0, sizeof(server_addr));
+            struct sockaddr_un server_addr = {0};
             server_addr.sun_family = AF_UNIX;
             // The socket name (minus its null terminator) needs to fit into the space
             // in the server address structure after the prefix null byte.
@@ -234,7 +233,7 @@ namespace db
             if (epoll_fd == -1) {
                  throw_runtime_error("epoll_create1 failed");
             }
-            int fds[2] = {connect_socket, s_server_shutdown_event_fd};
+            int fds[] = {connect_socket, s_server_shutdown_event_fd};
             for (size_t i = 0; i < array_size(fds); i++) {
                 struct epoll_event ev;
                 ev.events = EPOLLIN;
