@@ -196,7 +196,7 @@ class edc_inconsistent_list: public gaia_exception
 public:
     edc_inconsistent_list(gaia_id_t id, const char* parent_type, gaia_id_t child, const char* child_name) {
         stringstream msg;
-        msg << "Linked list is inconsistent, child points to parent " << id << " of type " << parent_type 
+        msg << "List is inconsistent, child points to parent " << id << " of type " << parent_type 
             << ", but child (" << child << ", type " << child_name << ") is not in parent's list.";
         m_message = msg.str();
     }
@@ -348,9 +348,6 @@ public:
                 for (size_t i=0; i<m_num_references; i++) {
                     m_references[i] = 0;
                 }
-            }
-            else {
-                m_references = nullptr;
             }
             auto node_ptr = gaia_se_node_mock::create(m_id, T_gaia_type, num_ptrs, m_references,
                 m_fbb->GetSize(), m_fbb->GetBufferPointer());

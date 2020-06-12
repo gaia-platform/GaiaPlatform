@@ -56,27 +56,27 @@ struct gaia_container_t {
     static gaia_iterator_t<T_gaia*> end() { return gaia_iterator_t<T_gaia*>(nullptr); }
 };
 
-// A set_iterator_t is only used from reference_chain_t. It contains the methods that implement
+// A gaia_set_iterator_t is only used from reference_chain_t. It contains the methods that implement
 // an iterator for scanning through the linked list forming a "set" between a parent ("primary")
 // and multiple child ("foreign") instances of a type.
 //   @tparam T_foreign the Extended Data Type that is in the child ("foreign") position in the set
 //   @tparam T_foreign_slot an integer indexing the list of references in the T_foreign type
 template <typename T_foreign, int T_foreign_slot>
-class set_iterator_t {
+class gaia_set_iterator_t {
     T_foreign* m_edc_ptr;
 public:
-    set_iterator_t() {}
-    set_iterator_t(T_foreign* edc_ptr) {
+    gaia_set_iterator_t() {}
+    gaia_set_iterator_t(T_foreign* edc_ptr) {
         m_edc_ptr = edc_ptr;
     }
     T_foreign* operator*() {
         return m_edc_ptr;
     }
-    set_iterator_t& operator++() {
+    gaia_set_iterator_t& operator++() {
         m_edc_ptr = T_foreign::get_row_by_id(m_edc_ptr->m_references[T_foreign_slot]);
         return *this;
     }
-    bool operator!=(const set_iterator_t&) const {
+    bool operator!=(const gaia_set_iterator_t&) const {
         return m_edc_ptr != nullptr;
     }
 };
@@ -99,11 +99,11 @@ template <typename T_primary, typename T_foreign, int T_parent_slot, int T_prima
 class reference_chain_t {
     T_primary* m_outer;
 public:
-    set_iterator_t<T_foreign,T_foreign_slot> begin() {
+    gaia_set_iterator_t<T_foreign,T_foreign_slot> begin() {
         T_foreign* edc_ptr = T_foreign::get_row_by_id(m_outer->m_references[T_primary_slot]);
-        return set_iterator_t<T_foreign,T_foreign_slot>(edc_ptr);
+        return gaia_set_iterator_t<T_foreign,T_foreign_slot>(edc_ptr);
     }
-    set_iterator_t<T_foreign,T_foreign_slot> end() {return set_iterator_t<T_foreign,T_foreign_slot>(nullptr);}
+    gaia_set_iterator_t<T_foreign,T_foreign_slot> end() {return gaia_set_iterator_t<T_foreign,T_foreign_slot>(nullptr);}
     void set_outer(T_primary* outer) {m_outer = outer;}
     void insert(T_foreign* foreign_ptr) {
         foreign_ptr->m_references[T_foreign_slot] = m_outer->m_references[T_primary_slot];

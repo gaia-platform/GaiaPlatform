@@ -45,14 +45,6 @@ add_custom_target(headers_generated
 add_executable(edc edc.cpp)
 add_dependencies(edc headers_generated)
 
-# target_link_directories(edc
-#   PRIVATE
-#   ${GAIA_REPO}/production/build/direct_access
-#   ${GAIA_REPO}/production/build/rules/event_manager
-#   ${GAIA_REPO}/production/build/db/storage_engine
-#   ${GAIA_REPO}/production/build/system
-# )
-
 add_library(gaia SHARED IMPORTED GLOBAL)
 set_target_properties(gaia PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/system/libgaia.a)
 

@@ -17,14 +17,14 @@ public:
     gaia_ptr_mock& update_payload(size_t num_references, gaia_id_t* references, size_t payload_size, const void* payload)
     {
         int32_t total_len = payload_size + (num_references + 1) * sizeof(gaia_id_t);
-        uint8_t* tmp_references = new uint8_t[total_len];
-        memcpy(tmp_references, &num_references, sizeof(gaia_id_t));
+        uint8_t* tmp_payload = new uint8_t[total_len];
+        memcpy(tmp_payload, &num_references, sizeof(gaia_id_t));
         if (num_references) {
-            memcpy(tmp_references + sizeof(gaia_id_t), references, num_references * sizeof(gaia_id_t));
+            memcpy(tmp_payload + sizeof(gaia_id_t), references, num_references * sizeof(gaia_id_t));
         }
-        memcpy(tmp_references + sizeof(gaia_id_t) * (num_references + 1), payload, payload_size);
-        gaia_ptr<gaia_se_node>::update_payload(total_len, tmp_references);
-        delete[] tmp_references;
+        memcpy(tmp_payload + sizeof(gaia_id_t) * (num_references + 1), payload, payload_size);
+        gaia_ptr<gaia_se_node>::update_payload(total_len, tmp_payload);
+        delete[] tmp_payload;
         return *this;
     }
 
@@ -51,17 +51,17 @@ struct gaia_se_node_mock : public gaia_se_node
         //   array of references : (number of references) * 8
         //   original payload
         int32_t total_len = payload_size + (num_refs + 1) * sizeof(gaia_id_t);
-        uint8_t* tmp_references = new uint8_t[total_len];
-        memcpy(tmp_references, &num_refs, sizeof(gaia_id_t));
+        uint8_t* tmp_payload = new uint8_t[total_len];
+        memcpy(tmp_payload, &num_refs, sizeof(gaia_id_t));
         if (references) {
-            memcpy(tmp_references + sizeof(gaia_id_t), references, num_refs * sizeof(gaia_id_t));
+            memcpy(tmp_payload + sizeof(gaia_id_t), references, num_refs * sizeof(gaia_id_t));
         }
         else {
-            memset(tmp_references + sizeof(gaia_id_t), 0, num_refs * sizeof(gaia_id_t));
+            memset(tmp_payload + sizeof(gaia_id_t), 0, num_refs * sizeof(gaia_id_t));
         }
-        memcpy(tmp_references + sizeof(gaia_id_t) * (num_refs + 1), payload, payload_size);
-        auto new_node = gaia_se_node::create(id, type, total_len, tmp_references, log_updates);
-        delete[] tmp_references;
+        memcpy(tmp_payload + sizeof(gaia_id_t) * (num_refs + 1), payload, payload_size);
+        auto new_node = gaia_se_node::create(id, type, total_len, tmp_payload, log_updates);
+        delete[] tmp_payload;
         return gaia_ptr_mock(new_node);
     }
 
