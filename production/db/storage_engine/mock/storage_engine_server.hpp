@@ -269,9 +269,13 @@ namespace db
                         }
                         client_threads.emplace_back(client_thread, client_socket);
                     } else if (ev.data.fd == s_server_shutdown_event_fd) {
-                        // We should always read the value 1 from a semaphore eventfd.
                         uint64_t val;
-                        assert(1 == read(s_server_shutdown_event_fd, &val, sizeof(val)));
+                        ssize_t bytes_read = read(s_server_shutdown_event_fd, &val, sizeof(val));
+                        if (bytes_read == -1) {
+                            throw_runtime_error("read failed");
+                        }
+                        // We should always read the value 1 from a semaphore eventfd.
+                        assert(bytes_read == sizeof(val) && val == 1);
                         goto shutdown;
                     } else {
                         // We don't monitor any other fds.
