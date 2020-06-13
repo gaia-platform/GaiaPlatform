@@ -36,19 +36,26 @@ gaia_tx_hook gaia_client::s_tx_rollback_hook = nullptr;
 
 static void build_client_request(FlatBufferBuilder& builder, SessionEvent event) {
     auto client_request = CreateClientRequest(builder, event);
-    CreateMessage(builder, AnyMessage::request, client_request.Union());
+    auto message = CreateMessage(builder, AnyMessage::request, client_request.Union());
+    builder.Finish(message);
 }
 
 void gaia_client::tx_cleanup() {
     // Destroy the log memory mapping.
-    if (-1 == munmap(s_log, sizeof(s_log))) {
-        const char* reason = explain_munmap(s_log, sizeof(s_log));
+    if (-1 == munmap(s_log, sizeof(log))) {
+        const char* reason = explain_munmap(s_log, sizeof(log));
         throw std::runtime_error(reason);
     }
     s_log = nullptr;
     // Destroy the log fd.
     close(s_fd_log);
     s_fd_log = -1;
+    // Destroy the offset mapping.
+    if (-1 == munmap(s_offsets, sizeof(offsets))) {
+        const char* reason = explain_munmap(s_offsets, sizeof(offsets));
+        throw std::runtime_error(reason);
+    }
+    s_offsets = nullptr;
 }
 
 int gaia_client::get_session_socket() {
@@ -85,7 +92,7 @@ int gaia_client::get_session_socket() {
 // locator shared memory segments, but we only use them if this is the client
 // process's first call to create_session(), since they are stored globally
 // rather than per-session. (The connected socket is stored per-session.)
-void gaia_client::create_session()
+void gaia_client::begin_session()
 {
     // Fail if a session already exists on this thread.
     verify_no_session();
@@ -142,7 +149,7 @@ void gaia_client::create_session()
     }
 }
 
-void gaia_client::destroy_session()
+void gaia_client::end_session()
 {
     // Send the server EOF.
     shutdown(s_session_socket, SHUT_WR);
@@ -191,7 +198,7 @@ void gaia_client::begin_transaction()
     {
         throw_runtime_error("flock failed");
     }
-    scope_guard::make_scope_guard([]() {
+    auto cleanup = scope_guard::make_scope_guard([]() {
         if (-1 == flock(s_fd_offsets, LOCK_UN))
         {
             // Per C++11 semantics, throwing an exception from a destructor
@@ -215,13 +222,25 @@ void gaia_client::begin_transaction()
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
 
+void gaia_client::rollback_transaction()
+{
+    verify_tx_active();
+    // Ensure we destroy the shared memory segment and memory mapping before we return.
+    auto cleanup = scope_guard::make_scope_guard(tx_cleanup);
+    FlatBufferBuilder builder;
+    build_client_request(builder, SessionEvent::ABORT_TXN);
+    send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
+    // We don't expect the server to reply to this message.
+}
+
 // This method returns true for a commit decision and false for an abort decision.
 // It sends a message to the server containing the fd of this txn's log segment and
 // will block waiting for a reply from the server.
 bool gaia_client::commit_transaction()
 {
+    verify_tx_active();
     // Ensure we destroy the shared memory segment and memory mapping before we return.
-    scope_guard::make_scope_guard(tx_cleanup);
+    auto cleanup = scope_guard::make_scope_guard(tx_cleanup);
     // Seal the txn log memfd for writes before sending it to the server.
     if (-1 == fcntl(s_fd_log, F_ADD_SEALS, F_SEAL_WRITE))
     {

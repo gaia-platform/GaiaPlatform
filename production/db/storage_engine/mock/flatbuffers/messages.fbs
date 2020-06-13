@@ -1,7 +1,8 @@
 namespace gaia.db.messages;
 
 enum SessionState: byte {
-    CONNECTING,
+    ANY,
+    // CONNECTING,
     CONNECTED,
     DISCONNECTING,
     DISCONNECTED,

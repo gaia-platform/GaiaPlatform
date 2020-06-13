@@ -87,43 +87,47 @@ namespace db
 
         static constexpr ValidTransition s_valid_transitions[] = {
             { SessionState::DISCONNECTED, SessionEvent::CONNECT, { SessionState::CONNECTED, handle_connect } },
+            { SessionState::ANY, SessionEvent::CLIENT_SHUTDOWN, { SessionState::DISCONNECTED, handle_client_shutdown } },
             { SessionState::CONNECTED, SessionEvent::BEGIN_TXN, { SessionState::TXN_IN_PROGRESS, handle_begin_txn } },
             { SessionState::TXN_IN_PROGRESS, SessionEvent::ABORT_TXN, { SessionState::CONNECTED, handle_abort_txn } },
             { SessionState::TXN_IN_PROGRESS, SessionEvent::COMMIT_TXN, { SessionState::TXN_COMMITTING, handle_commit_txn } },
             { SessionState::TXN_COMMITTING, SessionEvent::DECIDE_TXN_COMMIT, { SessionState::CONNECTED, handle_decide_txn } },
             { SessionState::TXN_COMMITTING, SessionEvent::DECIDE_TXN_ABORT, { SessionState::CONNECTED, handle_decide_txn } },
-            { SessionState::CONNECTED, SessionEvent::CLIENT_SHUTDOWN, { SessionState::DISCONNECTED, handle_client_shutdown } },
             { SessionState::CONNECTED, SessionEvent::SERVER_SHUTDOWN, { SessionState::DISCONNECTING, handle_server_shutdown } },
-            { SessionState::DISCONNECTING, SessionEvent::CLIENT_SHUTDOWN, { SessionState::DISCONNECTED, handle_client_shutdown } },
         };
 
         static void apply_transition(SessionEvent event, int* fds, size_t fd_count) {
             if (event == SessionEvent::NOP) {
                 return;
             }
+            // "Wildcard" transitions (current state = SessionState::ANY) must be listed after
+            // non-wildcard transitions with the same event, or the latter will never be applied.
             for (size_t i = 0; i < array_size(s_valid_transitions); i++) {
                 ValidTransition t = s_valid_transitions[i];
-                if (t.state == s_session_state && t.event == event) {
+                if (t.event == event && (t.state == s_session_state || t.state == SessionState::ANY)) {
+                    // It would be nice to statically enforce this on the Transition struct.
+                    assert(t.transition.new_state != SessionState::ANY);
                     SessionState old_state = s_session_state;
                     s_session_state = t.transition.new_state;
                     if (t.transition.handler) {
                         t.transition.handler(fds, fd_count, event, old_state, s_session_state);
                     }
-                    break;
-                } else {
-                    // consider propagating exception back to client?
-                    throw std::runtime_error(
-                        "no allowed state transition from state '" +
-                        std::string(EnumNameSessionState(s_session_state)) +
-                        "' with event '" +
-                        std::string(EnumNameSessionEvent(event)) + "'");
+                    return;
                 }
             }
+            // If we get here, we haven't found any compatible transition.
+            // XXX: consider propagating exception back to client?
+            throw std::runtime_error(
+                "no allowed state transition from state '" +
+                std::string(EnumNameSessionState(s_session_state)) +
+                "' with event '" +
+                std::string(EnumNameSessionEvent(event)) + "'");
         }
 
         static void build_server_reply(FlatBufferBuilder& builder, SessionEvent event, SessionState old_state, SessionState new_state) {
             auto server_reply = CreateServerReply(builder, event, old_state, new_state);
-            CreateMessage(builder, AnyMessage::reply, server_reply.Union());
+            auto message = CreateMessage(builder, AnyMessage::reply, server_reply.Union());
+            builder.Finish(message);
         }
 
         static void init_shared_memory()
@@ -250,7 +254,7 @@ namespace db
         static void client_dispatch_handler()
         {
             int epoll_fd = get_client_dispatch_fd();
-            std::vector<std::thread> client_threads;
+            std::vector<std::thread> session_threads;
             struct epoll_event events[2];
             while (true) {
                 // Block forever (we will be notified of shutdown).
@@ -263,11 +267,11 @@ namespace db
                     // We never register for anything but EPOLLIN.
                     assert(ev.events == EPOLLIN);
                     if (ev.data.fd == s_connect_socket) {
-                        int client_socket = accept(s_connect_socket, NULL, NULL);
-                        if (client_socket == -1) {
+                        int session_socket = accept(s_connect_socket, NULL, NULL);
+                        if (session_socket == -1) {
                             throw_runtime_error("accept failed");
                         }
-                        client_threads.emplace_back(client_thread, client_socket);
+                        session_threads.emplace_back(session_thread, session_socket);
                     } else if (ev.data.fd == s_server_shutdown_event_fd) {
                         uint64_t val;
                         ssize_t bytes_read = read(s_server_shutdown_event_fd, &val, sizeof(val));
@@ -285,14 +289,14 @@ namespace db
             }
         shutdown:
             close(epoll_fd);
-            for (std::thread &t : client_threads) {
+            for (std::thread &t : session_threads) {
                 t.join();
             }
         }
 
-        static void client_thread(int client_socket)
+        static void session_thread(int session_socket)
         {
-            // XXX: how do we gracefully close the client socket?
+            // XXX: how do we gracefully close the session socket?
             // do we need to issue a nonblocking read() first?
             // then do we need to call shutdown() before close()?
             // with TCP shutdown() will send a FIN packet, but what
@@ -313,10 +317,7 @@ namespace db
             // "The constants SHUT_RD, SHUT_WR, SHUT_RDWR have the value 0, 1, 2,
             // respectively, and are defined in <sys/socket.h>."
             s_session_shutdown = false;
-            s_session_socket = client_socket;
-            // We assume that the client thread is always launched in response to
-            // a client connection request.
-            s_session_state = SessionState::CONNECTING;
+            s_session_socket = session_socket;
             int epoll_fd = epoll_create1(0);
             if (epoll_fd == -1) {
                  throw_runtime_error("epoll_create1 failed");
@@ -358,7 +359,7 @@ namespace db
                         } else if (ev.events & EPOLLHUP) {
                             // This flag is unmaskable, so we don't need to register for it.
                             // Both ends of the socket have issued a shutdown(SHUT_WR) or equivalent.
-                            assert(!(ev.events & EPOLLRDHUP));
+                            assert(!(ev.events & EPOLLERR));
                             event = SessionEvent::CLIENT_SHUTDOWN;
                         } else if (ev.events & EPOLLRDHUP) {
                             // We must have already received a DISCONNECT message at this point
@@ -376,12 +377,12 @@ namespace db
                             int fd_buf[MAX_FD_COUNT] = {-1};
                             size_t fd_buf_size = array_size(fd_buf);
                             // Read client message with possible file descriptors.
-                            size_t bytes_read = recv_msg_with_fds(client_socket, fd_buf, &fd_buf_size, msg_buf, sizeof(msg_buf));
+                            size_t bytes_read = recv_msg_with_fds(s_session_socket, fd_buf, &fd_buf_size, msg_buf, sizeof(msg_buf));
                             // We shouldn't get EOF unless EPOLLRDHUP is set.
                             assert(bytes_read > 0);
                             const Message *msg = GetMessage(msg_buf);
-                            const ClientRequest *req = msg->msg_as_request();
-                            event = req->event();
+                            const ClientRequest *request = msg->msg_as_request();
+                            event = request->event();
                             if (fd_buf_size > 0) {
                                 fds = fd_buf;
                                 fd_count = fd_buf_size;
@@ -426,7 +427,7 @@ namespace db
             }
             // Within our own process, we must have exclusive access to the locator segment.
             const std::lock_guard<std::mutex> lock(s_commit_lock);
-            scope_guard::make_scope_guard([]() {
+            auto cleanup = scope_guard::make_scope_guard([]() {
                 if (-1 == flock(s_fd_offsets, LOCK_UN))
                 {
                     // Per C++11 semantics, throwing an exception from a destructor

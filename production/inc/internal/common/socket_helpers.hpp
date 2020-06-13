@@ -35,7 +35,9 @@ inline size_t send_msg_with_fds(int sock, const int *fds, size_t fd_count, void 
                          size_t data_size) {
     // fd_count has value equal to length of fds array,
     // and all fds we send must fit in control.buf below.
-    assert(fd_count <= MAX_FD_COUNT);
+    if (fds) {
+        assert(fd_count && fd_count <= MAX_FD_COUNT);
+    }
     struct msghdr msg;
     struct iovec iov;
     // This is a union only to guarantee alignment for cmsghdr.
@@ -53,7 +55,7 @@ inline size_t send_msg_with_fds(int sock, const int *fds, size_t fd_count, void 
     msg.msg_flags = 0;
     msg.msg_control = NULL;
     msg.msg_controllen = 0;
-    if (fds && fd_count > 0) {
+    if (fds) {
         msg.msg_control = control.buf;
         msg.msg_controllen = sizeof(control.buf);
         struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
@@ -90,7 +92,9 @@ inline size_t recv_msg_with_fds(int sock, int *fds, size_t *pfd_count, void *dat
                          size_t data_size) {
     // *pfd_count has initial value equal to length of fds array,
     // and all fds we receive must fit in control.buf below.
-    assert(*pfd_count <= MAX_FD_COUNT);
+    if (fds) {
+        assert(pfd_count && *pfd_count && *pfd_count <= MAX_FD_COUNT);
+    }
     struct msghdr msg;
     struct iovec iov;
     // This is a union only to guarantee alignment for cmsghdr.
@@ -108,7 +112,7 @@ inline size_t recv_msg_with_fds(int sock, int *fds, size_t *pfd_count, void *dat
     msg.msg_flags = 0;
     msg.msg_control = NULL;
     msg.msg_controllen = 0;
-    if (pfd_count && *pfd_count) {
+    if (fds) {
         msg.msg_control = control.buf;
         msg.msg_controllen = sizeof(control.buf);
     }
@@ -124,21 +128,27 @@ inline size_t recv_msg_with_fds(int sock, int *fds, size_t *pfd_count, void *dat
         throw std::runtime_error(
             "recvmsg: control or data payload truncated on read");
     }
-    if (pfd_count && *pfd_count) {
+    if (fds) {
         struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
-        assert(cmsg != nullptr);
-        assert(cmsg->cmsg_level == SOL_SOCKET);
-        assert(cmsg->cmsg_type == SCM_RIGHTS);
-        // This potentially fails to account for padding after cmsghdr,
-        // but seems to work in practice, and there's no supported way
-        // to directly get this information.
-        size_t fd_count = (cmsg->cmsg_len - sizeof(struct cmsghdr)) / sizeof(int);
-        // *pfd_count has initial value equal to length of fds array
-        assert(fd_count <= *pfd_count);
-        for (size_t i = 0; i < fd_count; i++) {
-            fds[i] = ((int *)CMSG_DATA(cmsg))[i];
+        if (cmsg) {
+            // message contains some fds, extract them
+            assert(cmsg->cmsg_level == SOL_SOCKET);
+            assert(cmsg->cmsg_type == SCM_RIGHTS);
+            // This potentially fails to account for padding after cmsghdr,
+            // but seems to work in practice, and there's no supported way
+            // to directly get this information.
+            size_t fd_count = (cmsg->cmsg_len - sizeof(struct cmsghdr)) / sizeof(int);
+            // *pfd_count has initial value equal to length of fds array
+            assert(fd_count <= *pfd_count);
+            for (size_t i = 0; i < fd_count; i++) {
+                fds[i] = ((int *)CMSG_DATA(cmsg))[i];
+            }
+            // *pfd_count has final value equal to number of fds returned
+            *pfd_count = fd_count;
+        } else {
+            // message contains no fds, notify caller
+            *pfd_count = 0;
         }
-        *pfd_count = fd_count;
     }
     return (size_t)bytes_read;
 }

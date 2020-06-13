@@ -56,7 +56,7 @@ target_include_directories(gaia_semock SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(gaia_semock SYSTEM PRIVATE "${GEN_DIR}")
 # suppress spurious warnings about zero-initialized structs
 set_target_properties(gaia_semock PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
-target_link_libraries(gaia_semock PRIVATE gaia_common)
+target_link_libraries(gaia_semock PRIVATE gaia_common explain)
 set_property(TARGET gaia_semock PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 add_executable(gaia_semock_server
