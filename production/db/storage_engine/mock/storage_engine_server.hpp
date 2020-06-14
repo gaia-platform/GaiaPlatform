@@ -321,10 +321,20 @@ namespace db
             // respectively, and are defined in <sys/socket.h>."
             s_session_shutdown = false;
             s_session_socket = session_socket;
+            auto socket_cleanup = scope_guard::make_scope_guard([]() {
+                // We can rely on close() to perform the equivalent of shutdown(SHUT_RDWR),
+                // since we hold the only fd pointing to this socket.
+                close(s_session_socket);
+                // Assign an invalid fd to the socket variable so it can't be reused.
+                s_session_socket = -1;
+            });
             int epoll_fd = epoll_create1(0);
             if (epoll_fd == -1) {
                  throw_runtime_error("epoll_create1 failed");
             }
+            auto epoll_cleanup = scope_guard::make_scope_guard([epoll_fd]() {
+                close(epoll_fd);
+            });
             int fds[] = {s_session_socket, s_server_shutdown_event_fd};
             for (size_t i = 0; i < array_size(fds); i++) {
                 struct epoll_event ev;
@@ -407,12 +417,6 @@ namespace db
                     apply_transition(event, fds, fd_count);
                 }
             }
-            close(epoll_fd);
-            // We can rely on close() to perform the equivalent of shutdown(SHUT_RDWR),
-            // since we hold the only fd pointing to this socket.
-            close(s_session_socket);
-            // Assign an invalid fd to the socket variable so it can't be reused.
-            s_session_socket = -1;
         }
 
         // Before this method is called, we have already received the log fd from the client
