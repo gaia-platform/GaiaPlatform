@@ -254,7 +254,15 @@ namespace db
         static void client_dispatch_handler()
         {
             int epoll_fd = get_client_dispatch_fd();
+            auto cleanup_epoll_fd = scope_guard::make_scope_guard([epoll_fd]() {
+                close(epoll_fd);
+            });
             std::vector<std::thread> session_threads;
+            auto cleanup_session_threads = scope_guard::make_scope_guard([&session_threads]() {
+                for (std::thread& t : session_threads) {
+                    t.join();
+                }
+            });
             struct epoll_event events[2];
             while (true) {
                 // Block forever (we will be notified of shutdown).
@@ -280,17 +288,12 @@ namespace db
                         }
                         // We should always read the value 1 from a semaphore eventfd.
                         assert(bytes_read == sizeof(val) && val == 1);
-                        goto shutdown;
+                        return;
                     } else {
                         // We don't monitor any other fds.
                         assert(false);
                     }
                 }
-            }
-        shutdown:
-            close(epoll_fd);
-            for (std::thread &t : session_threads) {
-                t.join();
             }
         }
 
