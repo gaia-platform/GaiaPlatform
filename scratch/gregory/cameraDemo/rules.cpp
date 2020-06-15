@@ -1,5 +1,7 @@
 #include <chrono>
 #include <cstdio>
+#include <map>
+#include <string>
 
 #include "rules.hpp"
 #include "cameraDemo_gaia_generated.h"
@@ -7,7 +9,11 @@
 using namespace gaia::rules;
 using namespace std::chrono;
 
+std::map<gaia_id_t, std::string> g_filenames;
+
 std::vector<string> processImage(const char *fileName);
+
+
 
 /** ruleset*/
 namespace cameraDemo
@@ -16,11 +22,10 @@ namespace cameraDemo
  rule-image_create: [CameraDemo::Camera_image](insert)
 */
     void ImageCreate_handler(const rule_context_t *context)
-    {        
-        auto row = static_cast<CameraDemo::Camera_image*>(
-            context->event_context);
+    {
+        auto row = CameraDemo::Camera_image::get_row_by_id(context->record);
         cerr << "IMAGE Captured " << row->file_name() <<  endl;
-
+        g_filenames.insert(make_pair(row->gaia_id(), row->file_name()));
         std::vector<string> detectedClasses  = processImage(row->file_name());
         if (detectedClasses.empty())
         {
@@ -42,10 +47,11 @@ namespace cameraDemo
 */
     void ImageDelete_handler(const rule_context_t *context)
     {
-        auto row = static_cast<CameraDemo::Camera_image*>(
-            context->event_context);
-        ::remove(row->file_name());
-        cerr << "IMAGE deleted " <<  row->file_name() << endl;
+        auto file_name = g_filenames[context->record];
+        ::remove(file_name.c_str());
+        
+        cerr << "IMAGE deleted " <<  file_name << endl;
+        g_filenames.erase(context->record);
     }
 
 /**
@@ -53,7 +59,7 @@ namespace cameraDemo
 */
     void ObjectClassify_handler(const rule_context_t *context)
     {
-        auto row = static_cast<CameraDemo::Object*>(context->event_context);
+        auto row = CameraDemo::Object::get_row_by_id(context->record);
         cerr << "OBJECT CLASSIFIED " << row->class_() << endl;
 
         if ("person" == std::string(row->class_()))

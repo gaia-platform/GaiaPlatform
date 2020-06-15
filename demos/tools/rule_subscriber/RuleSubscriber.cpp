@@ -3,11 +3,12 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <string>
+#include <algorithm>
 #include <fstream>
 #include <sstream>
-#include <vector>
+#include <string>
 #include <unordered_set>
+#include <vector>
 
 #include "clang/Driver/Options.h"
 #include "clang/AST/AST.h"
@@ -38,20 +39,6 @@ enum tx_type_t
     commit,
     rollback,
     max
-};
-
-struct tx_desc_t
-{
-    tx_type_t type;
-    const char* name;
-    bool generated;
-};
-
-tx_desc_t s_tx_descriptors[tx_type_t::max] = {
-    {tx_type_t::none, "none", false},
-    {tx_type_t::begin, "begin", false},
-    {tx_type_t::commit, "commit", false},
-    {tx_type_t::rollback, "rollback", false}
 };
 
 struct rule_data_t
@@ -260,15 +247,24 @@ public:
                 }
 
                 vector<string> events;
+                string qualifier = "event_type_t::";
+
                 if (!parse_events(decl, events))
                 {
-                    llvm::errs() << "The rule configuration is invalid: Invalid event list\n";
+                    if (rule_data.field.empty())
+                    {
+                        llvm::errs() << "The rule configuration is invalid: Invalid event list\n";
+                    }
+                    else
+                    {
+                        rule_data.event_type = qualifier + "row_update";
+                        g_rules.push_back(rule_data);
+                    }
                     continue;
                 }
+
                 for (auto event : events)
                 {
-                    string qualifier = "event_type_t::";
-
                     // Fully qualify and validate our events.
                     if (is_transaction_event(event, rule_data.tx))
                     {
@@ -288,17 +284,6 @@ public:
                             continue;
                         }
                         rule_data.event_type = qualifier + "row_" + event;
-                    }
-                    else
-                    if (is_field_event(event))
-                    {
-                        if (rule_data.gaia_type.empty() || rule_data.field.empty())
-                        {
-                            llvm::errs() << "The rule configuration is invalid: Field events must specify a qualified "
-                                "[gaia_type.field] source\n";
-                            continue;
-                        }
-                        rule_data.event_type = qualifier + "field_" + event;
                     }
                     else
                     {
@@ -490,58 +475,68 @@ bool SaveFile(const char *name, const stringstream& buf)
 // the gaia::rules namespace scope yet
 void beginTxHookNamespace(stringstream& code)
 {
-    if (!s_tx_descriptors[0].generated)
-    {
-        code << "namespace gaia" << endl;
-        code << "{" << endl;
-        code << "namespace rules" << endl;
-        code << "{" << endl;
-        s_tx_descriptors[0].generated = true;
-    }
+    code << "namespace gaia" << endl;
+    code << "{" << endl;
+    code << "namespace rules" << endl;
+    code << "{" << endl;
 }
 
 void endTxHookNamespace(stringstream& code)
 {
-    if (s_tx_descriptors[0].generated)
-    {
-        code << "}" << endl;
-        code << "}" << endl;
-    }
+    code << "}" << endl;
+    code << "}" << endl;
 }
 
-void generateTxHookFunction(stringstream& code, tx_type_t hook_type)
+void generateTxHookFunctions(stringstream& code, const vector<rule_data_t>& rules)
 {
-    if (hook_type == tx_type_t::none) {
-        return;
+    // Always generate the commit and rollback hooks but the hook implementation
+    // will differ.
+    // Note that binding to a begin transcation event is ignored for now.
+    bool gen_commit_event = false;
+
+    // Generate transaction hooks if any transaction events were specified.
+    for (auto it = rules.cbegin(); it != rules.cend(); ++it)
+    {
+        if (it->tx == tx_type_t::commit)
+        {
+            gen_commit_event = true;
+        }
     }
 
-    tx_desc_t& tx_desc = s_tx_descriptors[(int)hook_type];
     beginTxHookNamespace(code);
 
-    if (!tx_desc.generated)
+
+    // Always generate rollback hook (which implicitly fires event_type_t::transaction_rollback)
+    code << "static void rollback_tx_hook()" << endl;
+    code << "{" << endl;
+    code << "    rollback_trigger();" << endl;
+    code << "    gaia_base_t::rollback_hook();" << endl;    
+    code << "}" << endl;
+
+    // Always generate commit hook
+    code << "static void commit_tx_hook()" << endl;
+    code << "{" << endl;
+    if (gen_commit_event)
     {
-        const char * hook = tx_desc.name;
-        code << "static void " << hook << "_tx_hook()" << endl;
-        code << "{" << endl;
-        code << "    gaia_base_t::" << hook << "_hook();" << endl;
-        code << "    log_database_event(nullptr, event_type_t::transaction_" << hook << ", event_mode_t::immediate);" << endl;
-        code << "}" << endl;
-        tx_desc.generated = true;
+        code << "    trigger_event_t event = {event_type_t::transaction_commit, 0, 0, nullptr, 0};" << endl;
+        code << "    commit_trigger(0, &event, 1, true);" << endl;
     }
+    else
+    {
+        code << "    commit_trigger(0, nullptr, 0, true);" << endl;
+    }
+    code << "    gaia_base_t::commit_hook();" << endl;    
+    code << "}" << endl;
+    
+    endTxHookNamespace(code);
+    code << endl;
 }
 
 void generateTxHookInit(stringstream& code)
 {
-    for (auto tx_desc : s_tx_descriptors)
-    {
-        // Skip "none".
-        if (tx_desc.type != tx_type_t::none 
-            && tx_desc.generated)
-        {
-            const char * hook = tx_desc.name;
-            code << "    gaia::db::s_tx_" << hook << "_hook = gaia::rules::" << tx_desc.name << "_tx_hook;" << endl;
-        }
-    }
+    // We always have hooks for commit and rollback but begin is optional.
+    code << "    gaia::db::s_tx_commit_hook = gaia::rules::commit_tx_hook;" << endl;
+    code << "    gaia::db::s_tx_rollback_hook = gaia::rules::rollback_tx_hook;" << endl;
 }
 
 void generateCode(const char *fileName, const vector<rule_data_t>& rules)
@@ -579,13 +574,7 @@ void generateCode(const char *fileName, const vector<rule_data_t>& rules)
     code << "using namespace gaia::rules;" << endl; 
     code << endl;
 
-    // Generate transaction hooks if any transaction events were specified.
-    for (auto it = rules.cbegin(); it != rules.cend(); ++it)
-    {
-        generateTxHookFunction(code, it->tx);
-    }
-    endTxHookNamespace(code);
-    code << endl;
+    generateTxHookFunctions(code, rules);
 
     for (auto it = declarations.cbegin(); it != declarations.cend(); ++it)
     {
@@ -635,21 +624,20 @@ void generateCode(const char *fileName, const vector<rule_data_t>& rules)
         string gaia_type = it->gaia_type.empty() ? "0" : 
             (it->gaia_type + "::s_gaia_type");
 
-        if (it->field.empty())
+
+        string field_list = "fields_" + to_string(field_list_decl);
+        if (!(it->field.empty()))
         {
-            code << "    subscribe_database_rule(" << gaia_type << ", " 
-                << it->event_type << ", " << it->rule << ");" << endl;
+            code << "    field_list_t " << field_list << ";" << endl;
+            code << "    " << field_list << ".insert(" << it->gaia_type << "::get_field_offset(\"" << it->field << "\"));" << endl;
+            code << "    subscribe_rule(" << gaia_type << ", "  << it->event_type << ", " << field_list << ", " << it->rule << ");" << endl;
+            field_list_decl++;
         }
         else
         {
-            string field_list = "fields_" + to_string(field_list_decl);
-            code << "    field_list_t " << field_list << ";" << endl;
-            code << "    " << field_list << ".insert(\"" << it->field << "\");" << endl;
-            code << "    subscribe_field_rule(" << gaia_type << ", " 
-                << it->event_type << ", " << field_list << ", " << it->rule << ");" << endl;
-            field_list_decl++;
+            code << "    subscribe_rule(" << gaia_type << ", "  << it->event_type << ", gaia::rules::empty_fields, " << it->rule << ");" << endl;
         }
-
+        
         code << endl;
     }
 

@@ -19,27 +19,34 @@ class auto_tx_t
 public:
     auto_tx_t()
     {
-        gaia::db::gaia_mem_base::tx_begin();
+        if (!gaia::db::gaia_mem_base::is_tx_active())
+        {
+            gaia::db::gaia_mem_base::tx_begin();
+            m_started = true;
+        }
     }
 
     void commit()
     {
-        gaia::db::gaia_mem_base::tx_commit();
-        m_committed = true;
+        if (m_started)
+        {
+            gaia::db::gaia_mem_base::tx_commit();
+            m_started = false;
+        }
     }
 
     ~auto_tx_t()
     {
         // If commit() is not called then this transation will
         // automatically rollback the transaction it started.
-        if (!m_committed)
+        if (m_started)
         {
             gaia::db::gaia_mem_base::tx_rollback();
         }
     }
 
 private:
-    bool m_committed = false;
+    bool m_started = false;
 };
 
 } // namespace rules
