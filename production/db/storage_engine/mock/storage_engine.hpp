@@ -172,6 +172,7 @@ namespace db
         static const char* const SERVER_CONNECT_SOCKET_NAME;
         static const char* const SCH_MEM_OFFSETS;
         static const char* const SCH_MEM_DATA;
+        static const char* const SCH_MEM_LOG;
 
         auto static const MAX_RIDS = 32 * 128L * 1024L;
         static const auto HASH_BUCKETS = 12289;
@@ -199,7 +200,6 @@ namespace db
             int64_t row_id_count;
             int64_t hash_node_count;
             hash_node hash_nodes[HASH_BUCKETS + HASH_LIST_ELEMENTS];
-
             int64_t objects[MAX_RIDS * 8];
         };
 
@@ -214,9 +214,9 @@ namespace db
         };
 
         static int s_fd_offsets;
-        thread_local static int s_session_socket;
         static data *s_data;
         thread_local static log *s_log;
+        thread_local static int s_session_socket;
 
     public:
         // The real implementation will need

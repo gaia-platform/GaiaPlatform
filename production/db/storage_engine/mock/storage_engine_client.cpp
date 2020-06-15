@@ -40,13 +40,20 @@ static void build_client_request(FlatBufferBuilder& builder, SessionEvent event)
     builder.Finish(message);
 }
 
+void gaia_client::destroy_log_mapping() {
+    // We might have already destroyed the log mapping before committing the txn.
+    if (s_log) {
+        if (-1 == munmap(s_log, sizeof(log))) {
+            const char* reason = explain_munmap(s_log, sizeof(log));
+            throw std::runtime_error(reason);
+        }
+        s_log = nullptr;
+    }
+}
+
 void gaia_client::tx_cleanup() {
     // Destroy the log memory mapping.
-    if (-1 == munmap(s_log, sizeof(log))) {
-        const char* reason = explain_munmap(s_log, sizeof(log));
-        throw std::runtime_error(reason);
-    }
-    s_log = nullptr;
+    destroy_log_mapping();
     // Destroy the log fd.
     close(s_fd_log);
     s_fd_log = -1;
@@ -174,7 +181,7 @@ void gaia_client::begin_transaction()
     verify_session_active();
     verify_no_tx();
     // First we allocate a new log segment and map it in our own process.
-    s_fd_log = memfd_create(SCH_MEM_DATA, MFD_ALLOW_SEALING);
+    s_fd_log = memfd_create(SCH_MEM_LOG, MFD_ALLOW_SEALING);
     if (s_fd_log == -1)
     {
         throw_runtime_error("memfd_create failed");
@@ -185,11 +192,11 @@ void gaia_client::begin_transaction()
     }
 
     s_log = (log*)mmap(nullptr, sizeof(log),
-        PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, s_fd_log, 0);
+        PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_log, 0);
     if (s_log == MAP_FAILED)
     {
         const char *reason = explain_mmap(nullptr, sizeof(log),
-            PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, s_fd_log, 0);
+            PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_log, 0);
         throw std::runtime_error(reason);
     }
 
@@ -241,6 +248,8 @@ bool gaia_client::commit_transaction()
     verify_tx_active();
     // Ensure we destroy the shared memory segment and memory mapping before we return.
     auto cleanup = scope_guard::make_scope_guard(tx_cleanup);
+    // Unmap the log segment so we can seal it.
+    destroy_log_mapping();
     // Seal the txn log memfd for writes before sending it to the server.
     if (-1 == fcntl(s_fd_log, F_ADD_SEALS, F_SEAL_WRITE))
     {

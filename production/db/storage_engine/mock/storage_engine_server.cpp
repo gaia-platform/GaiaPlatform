@@ -57,12 +57,14 @@ void gaia_server::handle_commit_txn(int* fds, size_t fd_count, SessionEvent even
         throw_runtime_error("fcntl(F_GET_SEALS) failed");
     }
     assert(seals & F_SEAL_WRITE);
+    // Linux won't let us create a shared read-only mapping if F_SEAL_WRITE is set,
+    // which seems contrary to the manpage for fcntl(2).
     s_log = (log*)mmap(nullptr, sizeof(log),
-        PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, fd_log, 0);
+        PROT_READ, MAP_PRIVATE, fd_log, 0);
     if (s_log == MAP_FAILED)
     {
         const char *reason = explain_mmap(nullptr, sizeof(log),
-            PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, fd_log, 0);
+            PROT_READ, MAP_PRIVATE, fd_log, 0);
         throw std::runtime_error(reason);
     }
     // Close our log fd so the shared memory will be released when the client closes it.

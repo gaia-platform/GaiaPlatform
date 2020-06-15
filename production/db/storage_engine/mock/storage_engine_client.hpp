@@ -35,7 +35,6 @@ public:
         return __sync_bool_compare_and_swap(&s_tx_commit_hook, 0, hook);
     }
 
-
     static inline bool set_tx_rollback_hook(gaia_tx_hook hook)
     {
         return __sync_bool_compare_and_swap(&s_tx_rollback_hook, 0, hook);
@@ -53,7 +52,6 @@ private:
     // static int s_fd_offsets;
     // static data *s_data;
     // thread_local static log *s_log;
-    // thread_local static int s_session_socket;
 
     static inline bool is_tx_active()
     {
@@ -61,6 +59,8 @@ private:
     }
 
     static void tx_cleanup();
+
+    static void destroy_log_mapping();
 
     static int get_session_socket();
 
