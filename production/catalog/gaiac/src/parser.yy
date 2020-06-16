@@ -100,16 +100,6 @@ create_statement:
         $$->tableName = std::move($3);
         $$->fields = $5;
     };
-    | CREATE TYPE IDENTIFIER "(" field_def_commalist ")" {
-        $$ = new create_statement_t(create_type_t::CREATE_TYPE);
-        $$->typeName = std::move($3);
-        $$->fields = $5;
-    };
-    | CREATE TABLE IDENTIFIER OF IDENTIFIER {
-        $$ = new create_statement_t(create_type_t::CREATE_TABLE_OF);
-        $$->tableName = std::move($3);
-        $$->typeName = std::move($5);
-    };
 
 field_def_commalist:
     field_def { $$ = new std::vector<field_definition_t*>(); $$->push_back($1); }
