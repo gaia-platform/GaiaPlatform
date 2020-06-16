@@ -25,22 +25,15 @@ class catalog_manager_t {
     /*
     ** DDL APIs
     */
-    gaia_id_t create_type(std::string name,
-        std::vector<ddl::field_definition_t *> *fields);
+    gaia_id_t create_table(std::string name, std::vector<ddl::field_definition_t *> *fields);
 
-    gaia_id_t create_table_of(std::string tableName, std::string typeName);
-
-    std::pair<gaia_id_t, gaia_id_t> create_table(std::string name,
-        std::vector<ddl::field_definition_t *> *fields);
 
   private:
     // Only internal static creation is allowed
     catalog_manager_t();
     bool m_is_initialized = false;
 
-    // Maintain some in-memory name caches for fast id lookup.
-    // We can drop these when the storage engine begin to support index.
-    unordered_map<std::string, gaia_id_t> m_type_cache;
+    // Maintain an in-memory table name cache for fast id lookup.
     unordered_map<std::string, gaia_id_t> m_table_cache;
 };
 } // namespace catalog

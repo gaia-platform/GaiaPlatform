@@ -15,17 +15,7 @@ void gaia::catalog::initialize_catalog(bool is_engine) {
     catalog_manager_t::get(true).init(is_engine);
 }
 
-gaia_id_t gaia::catalog::create_type(std::string name,
-    std::vector<ddl::field_definition_t *> *fields) {
-    return catalog_manager_t::get().create_type(name, fields);
-}
-
-gaia_id_t gaia::catalog::create_table_of(std::string tableName,
-    std::string typeName) {
-    return catalog_manager_t::get().create_table_of(tableName, typeName);
-}
-
-std::pair<gaia_id_t, gaia_id_t> gaia::catalog::create_table(std::string name,
+gaia_id_t gaia::catalog::create_table(std::string name,
     std::vector<ddl::field_definition_t *> *fields) {
     return catalog_manager_t::get().create_table(name, fields);
 }
@@ -36,14 +26,6 @@ std::pair<gaia_id_t, gaia_id_t> gaia::catalog::create_table(std::string name,
 void catalog_manager_t::init(bool is_engine) {
     if (is_engine) {
         gaia::db::begin_transaction();
-        for (GaiaDataType value : EnumValuesGaiaDataType()) {
-            if (value != GaiaDataType_TABLE) {
-                GaiaType::insert_row(EnumNameGaiaDataType(value), value);
-            }
-        }
-        for (unique_ptr<GaiaType> t{GaiaType::get_first()}; t; t.reset(t->get_next())) {
-            m_type_cache[t->name()] = t->gaia_id();
-        }
         gaia::db::commit_transaction();
     }
     m_is_initialized = true;
@@ -74,8 +56,8 @@ catalog_manager_t &catalog_manager_t::get(bool is_initializing) {
 
 catalog_manager_t::catalog_manager_t() {}
 
-static GaiaDataType to_gaia_type(ddl::data_type_t dt) {
-    switch (dt) {
+static GaiaDataType to_gaia_data_type(ddl::data_type_t data_type) {
+    switch (data_type) {
     case ddl::data_type_t::BOOL:
         return GaiaDataType_BOOL;
     case ddl::data_type_t::INT8:
@@ -105,62 +87,48 @@ static GaiaDataType to_gaia_type(ddl::data_type_t dt) {
     }
 }
 
-gaia_id_t catalog_manager_t::create_type(std::string name,
+gaia_id_t catalog_manager_t::create_table(std::string name,
     std::vector<ddl::field_definition_t *> *fields) {
-    if (m_type_cache.find(name) != m_type_cache.end()) {
-        throw gaia::common::gaia_exception("The type " + name +
+    if (m_table_cache.find(name) != m_table_cache.end()) {
+        throw gaia::common::gaia_exception("The table " + name +
                                            " already exists.");
     }
 
     gaia::db::begin_transaction();
-    gaia_id_t owner_id = GaiaType::insert_row(name.c_str(), GaiaDataType_TABLE);
+    gaia_id_t table_id = GaiaTable::insert_row(name.c_str(),
+        false, GaiaTrimActionType_NONE, 0, 0, 0);
     uint16_t position = 0;
     for (ddl::field_definition_t *field : *fields) {
-        gaia_id_t type_id;
+        gaia_id_t type_id = 0;
         if (field->type == ddl::data_type_t::TABLE) {
-            if (m_type_cache.find(field->table_type_name) == m_type_cache.end()) {
+            if (m_table_cache.find(field->table_type_name) == m_table_cache.end()) {
                 throw gaia::common::gaia_exception(
-                    "The type " + field->table_type_name + " does not exist.");
+                    "The field table type " + field->table_type_name + " does not exist.");
+            } else if (type_id == table_id) {
+                throw gaia::common::gaia_exception(
+                    "The field table type " + field->table_type_name + " cannot be itself.");
             } else {
-                type_id = m_type_cache[field->table_type_name];
+                type_id = m_table_cache[field->table_type_name];
             }
-        } else {
-            type_id =
-                m_type_cache[EnumNameGaiaDataType(to_gaia_type(field->type))];
         }
-        GaiaField::insert_row(field->name.c_str(), owner_id, type_id,
-            field->length, ++position, true, false);
+        GaiaField::insert_row(
+            field->name.c_str(),
+            to_gaia_data_type(field->type),
+            type_id,
+            field->length,
+            ++position,
+            true,  // required
+            false, // deprecated
+            false, // active
+            true,  // nullable
+            false, // has_default
+            "",    // default value
+            false, // is_foreign_key
+            0      // references
+        );
     }
     gaia::db::commit_transaction();
 
-    m_type_cache[name] = owner_id;
-    return owner_id;
-}
-
-gaia_id_t catalog_manager_t::create_table_of(
-    std::string tableName,
-    std::string typeName) {
-    if (m_type_cache.find(typeName) == m_type_cache.end()) {
-        throw gaia::common::gaia_exception("The type " + typeName +
-                                           " does not exist.");
-    }
-    if (m_table_cache.find(tableName) != m_table_cache.end()) {
-        throw gaia::common::gaia_exception("The table " + tableName +
-                                           " already exists.");
-    }
-    gaia::db::begin_transaction();
-    gaia_id_t table_id = GaiaTable::insert_row(tableName.c_str(),
-        m_type_cache[typeName], false, GaiaTrimActionType_NONE, 0, 0, 0);
-    gaia::db::commit_transaction();
-
-    m_table_cache[tableName] = table_id;
+    m_table_cache[name] = table_id;
     return table_id;
-}
-
-std::pair<gaia_id_t, gaia_id_t> catalog_manager_t::create_table(
-    std::string name,
-    std::vector<ddl::field_definition_t *> *fields) {
-    gaia_id_t type_id = create_type(name, fields);
-    gaia_id_t table_id = create_table_of(name, name);
-    return std::make_pair(table_id, type_id);
 }

@@ -16,15 +16,8 @@ void execute(vector<statement_t *> &statements) {
             continue;
         }
         create_statement_t *createStmt = reinterpret_cast<create_statement_t *>(stmt);
-        if (createStmt->type == create_type_t::CREATE_TYPE) {
-            gaia::catalog::create_type(createStmt->typeName,
-                                       createStmt->fields);
-        } else if (createStmt->type == create_type_t::CREATE_TABLE_OF) {
-            gaia::catalog::create_table_of(createStmt->tableName,
-                                           createStmt->typeName);
-        } else if (createStmt->type == create_type_t::CREATE_TABLE) {
-            gaia::catalog::create_table(createStmt->tableName,
-                                        createStmt->fields);
+        if (createStmt->type == create_type_t::CREATE_TABLE) {
+            gaia::catalog::create_table(createStmt->tableName, createStmt->fields);
         }
     }
 }
