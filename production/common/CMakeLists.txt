@@ -15,7 +15,8 @@ message(STATUS "GAIA_COMMON_INCLUDES=${GAIA_COMMON_INCLUDES}")
 
 # Our main target.
 add_library(gaia_common SHARED
-    src/gaia_synchronization.cpp)
+    src/file.cpp
+    src/synchronization.cpp)
 target_include_directories(gaia_common PUBLIC ${GAIA_COMMON_INCLUDES})
 set_target_properties(gaia_common PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 

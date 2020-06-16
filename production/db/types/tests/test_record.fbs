@@ -7,7 +7,7 @@ table test_record
   age:ubyte;
   has_children:bool;
   estate_value:long;
-  monthly_mortgage:float;
+  monthly_mortgage:double;
   monthly_cable_bill:float;
 }
 

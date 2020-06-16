@@ -22,13 +22,21 @@ namespace common
  * @{
  */
 
-
-class pthread_rwlock_error: public gaia::common::gaia_exception
+/**
+ * The exception class used for unexpected pwthread_rwlock errors.
+ */
+class pthread_rwlock_error : public gaia::common::gaia_exception
 {
 public:
     pthread_rwlock_error(const char* api_name, int error_code);
 };
 
+/**
+ * An implementation of C17 shared_mutex interfaces using pthread_rwlock.
+ *
+ * The main goal of this implementation is to facilitate a future transition
+ * to the standard shared_mutex implementation.
+ */
 class shared_mutex
 {
 public:

@@ -11,6 +11,7 @@
 #include "flatbuffers/reflection.h"
 
 #include <gaia_exception.hpp>
+#include <type_holder.hpp>
 #include <type_cache.hpp>
 
 namespace gaia
@@ -60,13 +61,15 @@ void initialize_field_cache_from_binary_schema(
     field_cache_t* field_cache,
     uint8_t* binary_schema);
 
-template<typename T> T
+type_holder_t
 get_table_field_value(
     uint64_t type_id,
     uint8_t* serialized_data,
     uint8_t* binary_schema,
     uint16_t field_position)
 {
+    type_holder_t result;
+
     // First, we parse the serialized data to get its root object.
     const flatbuffers::Table* root_table = flatbuffers::GetAnyRoot(serialized_data);
     if (root_table == nullptr)
@@ -97,29 +100,31 @@ get_table_field_value(
     }
 
     // Read field value according to its type.
+    result.type = field->type()->base_type();
     if (field->type()->base_type() == reflection::String)
     {
-        const T field_value = flatbuffers::GetFieldS(*root_table, *field);
+        const flatbuffers::String* field_value = flatbuffers::GetFieldS(*root_table, *field);
         if (field_value == nullptr)
         {
             throw invalid_serialized_data();
         }
-        return field_value;
+
+        result.string_value = field_value->c_str();
     }
     else if (flatbuffers::IsInteger(field->type()->base_type()))
     {
-        const T field_value = flatbuffers::GetFieldI<T>(*root_table, *field);
-        return field_value;
+        result.integer_value = flatbuffers::GetAnyFieldI(*root_table, *field);
     }
     else if (flatbuffers::IsFloat(field->type()->base_type()))
     {
-        const T field_value = flatbuffers::GetFieldF<T>(*root_table, *field);
-        return field_value;
+        result.float_value = flatbuffers::GetAnyFieldF(*root_table, *field);
     }
     else
     {
         throw unhandled_field_type(field->type()->base_type());
     }
+
+    return result;
 }
 
 }

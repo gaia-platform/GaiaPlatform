@@ -9,7 +9,7 @@
 
 #include "gtest/gtest.h"
 
-#include "gaia_synchronization.hpp"
+#include "synchronization.hpp"
 
 using namespace std;
 using namespace gaia::common;

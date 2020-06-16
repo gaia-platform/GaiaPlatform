@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <gaia_synchronization.hpp>
+#include <synchronization.hpp>
 
 #include <sstream>
 #include <string>

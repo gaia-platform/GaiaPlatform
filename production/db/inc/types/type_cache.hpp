@@ -12,7 +12,7 @@
 
 #include "flatbuffers/reflection.h"
 
-#include <gaia_synchronization.hpp>
+#include <synchronization.hpp>
 
 namespace gaia
 {
@@ -38,19 +38,22 @@ public:
 
     void set_field(uint16_t field_id, const reflection::Field* field);
 
-private:
+    // Return the size of the internal map.
+    size_t size();
+
+protected:
 
     // The map used by the field cache.
-    field_map_t field_map;
+    field_map_t m_field_map;
 };
 
 typedef std::unordered_map<uint64_t, const field_cache_t*> type_map_t;
 
 class type_cache_t
 {
-private:
+protected:
 
-    // type_cache_t is a singleton, so its constructor is private.
+    // type_cache_t is a singleton, so its constructor is not public.
     type_cache_t() = default;
 
 public:
@@ -73,6 +76,9 @@ public:
     // It returns true if the cache was updated and false if an entry for the type was found to exist already.
     bool set_field_cache(uint64_t type_id, const field_cache_t* field_cache);
 
+    // Return the size of the internal map.
+    size_t size();
+
 protected:
 
     // Reads from cache will hold read locks, whereas update operations will request exclusive locks.
@@ -94,7 +100,7 @@ public:
     auto_release_cache_read_access(bool enable);
     ~auto_release_cache_read_access();
 
-private:
+protected:
 
     bool m_enabled;
 };

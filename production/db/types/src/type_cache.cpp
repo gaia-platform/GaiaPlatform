@@ -16,15 +16,20 @@ type_cache_t* type_cache_t::s_type_cache = nullptr;
 
 const reflection::Field* field_cache_t::get_field(uint16_t field_id) const
 {
-    field_map_t::const_iterator iterator = field_map.find(field_id);
-    return (iterator == field_map.end()) ? nullptr : iterator->second;
+    field_map_t::const_iterator iterator = m_field_map.find(field_id);
+    return (iterator == m_field_map.end()) ? nullptr : iterator->second;
 }
 
 void field_cache_t::set_field(uint16_t field_id, const reflection::Field* field)
 {
     retail_assert(field != nullptr, "field_cache_t::set_field() should not be called with a null field value!");
 
-    field_map.insert(make_pair(field_id, field));
+    m_field_map.insert(make_pair(field_id, field));
+}
+
+size_t field_cache_t::size()
+{
+    return m_field_map.size();
 }
 
 type_cache_t* type_cache_t::get_type_cache()
@@ -110,6 +115,11 @@ bool type_cache_t::set_field_cache(uint64_t type_id, const field_cache_t* field_
     s_lock.unlock();
 
     return inserted_field_cache;
+}
+
+size_t type_cache_t::size()
+{
+    return m_type_map.size();
 }
 
 auto_release_cache_read_access::auto_release_cache_read_access(bool enable)

@@ -46,7 +46,7 @@ invalid_serialized_field_data::invalid_serialized_field_data(uint16_t position)
     m_message = string_stream.str();
 }
 
-void initialize_field_cache_from_binary_schema(
+void gaia::db::types::initialize_field_cache_from_binary_schema(
     field_cache_t* field_cache,
     uint8_t* binary_schema)
 {
