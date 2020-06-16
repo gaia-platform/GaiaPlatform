@@ -404,7 +404,7 @@ public:
                 throw edc_not_disconnected(m_id, this->gaia_typename());
             }
         }
-        gaia_ptr_mock::remove_mock(node_ptr);
+        gaia_ptr_mock::remove(node_ptr);
         // A partial reset leaves m_fb alone. If program incorrectly references
         // fields in this deleted object, it will not crash.
         reset();
@@ -509,6 +509,7 @@ private:
                 s_gaia_cache.insert(pair<gaia_id_t, gaia_base_t *>(node_ptr->id, obj));
             }
             if (!obj->m_fb) {
+                obj->m_num_references = node_ptr->num_references;
                 memcpy(&obj->m_num_references, node_ptr->payload, sizeof(gaia_id_t));
                 if (obj->m_references) {
                     delete[] obj->m_references;

@@ -28,12 +28,14 @@ public:
         return *this;
     }
 
-    static void remove_mock(gaia_ptr_mock&);
+    static void remove(gaia_ptr_mock&);
 
 };
 
 struct gaia_se_node_mock : public gaia_se_node
 {
+    size_t num_references;
+
     gaia_se_node_mock(gaia_ptr<gaia_se_node> node) : se_node(node) {}
 
     static gaia_ptr_mock create (
@@ -61,6 +63,7 @@ struct gaia_se_node_mock : public gaia_se_node
         }
         memcpy(tmp_payload + sizeof(gaia_id_t) * (num_refs + 1), payload, payload_size);
         auto new_node = gaia_se_node::create(id, type, total_len, tmp_payload, log_updates);
+        new_node->num_references = num_refs;
         delete[] tmp_payload;
         return gaia_ptr_mock(new_node);
     }
@@ -72,7 +75,7 @@ struct gaia_se_node_mock : public gaia_se_node
     gaia_ptr<gaia_se_node> se_node;
 };
 
-inline void gaia_ptr_mock::remove_mock (gaia_ptr_mock& node)
+inline void gaia_ptr_mock::remove (gaia_ptr_mock& node)
 {
     if (!node) {
         return;
