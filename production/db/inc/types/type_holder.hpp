@@ -8,11 +8,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <unordered_map>
-
 #include "flatbuffers/reflection.h"
-
-#include <synchronization.hpp>
 
 namespace gaia
 {
@@ -20,6 +16,12 @@ namespace db
 {
 namespace types
 {
+
+inline bool is_signed_integer(reflection::BaseType t)
+{
+    // Signed integer types have odd BaseType enum values.
+    return flatbuffers::IsInteger(t) && (((int)t) % 2 == 1);
+}
 
 struct type_holder_t
 {
@@ -32,6 +34,8 @@ struct type_holder_t
     type_holder_t();
 
     void clear();
+
+    int compare(const type_holder_t& other) const;
 };
 
 }
