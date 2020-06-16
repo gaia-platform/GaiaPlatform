@@ -113,6 +113,7 @@ gaia_id_t catalog_manager_t::create_table(std::string name,
         }
         GaiaField::insert_row(
             field->name.c_str(),
+            table_id,
             to_gaia_data_type(field->type),
             type_id,
             field->length,
