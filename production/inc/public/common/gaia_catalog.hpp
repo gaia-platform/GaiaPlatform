@@ -97,7 +97,7 @@ struct create_statement_t : statement_t {
 
 void initialize_catalog(bool is_engine);
 
-gaia_id_t create_table(std::string name, std::vector<ddl::field_definition_t *> *fields);
+gaia_id_t create_table(std::string name, const std::vector<ddl::field_definition_t *> &fields);
 
 /*@}*/
 } // namespace catalog

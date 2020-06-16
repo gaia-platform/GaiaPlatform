@@ -17,7 +17,7 @@ void execute(vector<statement_t *> &statements) {
         }
         create_statement_t *createStmt = reinterpret_cast<create_statement_t *>(stmt);
         if (createStmt->type == create_type_t::CREATE_TABLE) {
-            gaia::catalog::create_table(createStmt->tableName, createStmt->fields);
+            gaia::catalog::create_table(createStmt->tableName, *createStmt->fields);
         }
     }
 }

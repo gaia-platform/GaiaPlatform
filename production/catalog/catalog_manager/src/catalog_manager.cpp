@@ -16,7 +16,7 @@ void gaia::catalog::initialize_catalog(bool is_engine) {
 }
 
 gaia_id_t gaia::catalog::create_table(std::string name,
-    std::vector<ddl::field_definition_t *> *fields) {
+    const std::vector<ddl::field_definition_t *> &fields) {
     return catalog_manager_t::get().create_table(name, fields);
 }
 
@@ -88,7 +88,7 @@ static GaiaDataType to_gaia_data_type(ddl::data_type_t data_type) {
 }
 
 gaia_id_t catalog_manager_t::create_table(std::string name,
-    std::vector<ddl::field_definition_t *> *fields) {
+    const std::vector<ddl::field_definition_t *> &fields) {
     if (m_table_cache.find(name) != m_table_cache.end()) {
         throw gaia::common::gaia_exception("The table " + name +
                                            " already exists.");
@@ -98,7 +98,7 @@ gaia_id_t catalog_manager_t::create_table(std::string name,
     gaia_id_t table_id = GaiaTable::insert_row(name.c_str(),
         false, GaiaTrimActionType_NONE, 0, 0, 0);
     uint16_t position = 0;
-    for (ddl::field_definition_t *field : *fields) {
+    for (ddl::field_definition_t *field : fields) {
         gaia_id_t type_id = 0;
         if (field->type == ddl::data_type_t::TABLE) {
             if (m_table_cache.find(field->table_type_name) == m_table_cache.end()) {

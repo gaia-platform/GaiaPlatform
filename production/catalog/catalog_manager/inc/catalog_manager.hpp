@@ -25,8 +25,7 @@ class catalog_manager_t {
     /*
     ** DDL APIs
     */
-    gaia_id_t create_table(std::string name, std::vector<ddl::field_definition_t *> *fields);
-
+    gaia_id_t create_table(std::string name, const std::vector<ddl::field_definition_t *> &fields);
 
   private:
     // Only internal static creation is allowed
