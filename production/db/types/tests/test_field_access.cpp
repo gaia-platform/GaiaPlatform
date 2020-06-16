@@ -120,8 +120,9 @@ void process_flatbuffers_data(bool access_fields = false)
     if (access_fields)
     {
         cout << "\nFirst round of field access:" << endl;
+
         // Access fields using cache information.
-        // Schema information is not passed to the calls.
+        // Schema information is not passed to the get_table_field_value() calls.
         get_fields_data(
             data_loader,
             schema_loader);
@@ -134,7 +135,8 @@ void process_flatbuffers_data(bool access_fields = false)
     if (access_fields)
     {
         cout << "\nSecond round of field access:" << endl;
-        // Pass schema information to the call,
+
+        // Pass schema information to the get_table_field_value() calls,
         // because cache is empty.
         get_fields_data(
             data_loader,
