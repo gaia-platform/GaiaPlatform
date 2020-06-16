@@ -251,6 +251,16 @@ namespace db
             return epoll_fd;
         }
 
+        static bool authenticate_client_socket(int socket) {
+            struct ucred cred;
+            socklen_t cred_len = sizeof(cred);
+            if (-1 == getsockopt(socket, SOL_SOCKET, SO_PEERCRED, &cred, &cred_len)) {
+                throw_runtime_error("getsockopt(SO_PEERCRED) failed");
+            }
+            // Client must have same effective user ID as server.
+            return (cred.uid == geteuid());
+        }
+
         static void client_dispatch_handler()
         {
             int epoll_fd = get_client_dispatch_fd();
@@ -279,7 +289,11 @@ namespace db
                         if (session_socket == -1) {
                             throw_runtime_error("accept failed");
                         }
-                        session_threads.emplace_back(session_thread, session_socket);
+                        if (authenticate_client_socket(session_socket)) {
+                            session_threads.emplace_back(session_thread, session_socket);
+                        } else {
+                            close(session_socket);
+                        }
                     } else if (ev.data.fd == s_server_shutdown_event_fd) {
                         uint64_t val;
                         ssize_t bytes_read = read(s_server_shutdown_event_fd, &val, sizeof(val));
