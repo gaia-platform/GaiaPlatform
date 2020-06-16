@@ -1,0 +1,9 @@
+{
+  first_name: "Takeshi",
+  last_name: "Kovacs",
+  age: 42,
+  has_children: false,
+  estate_value: 736459,
+  monthly_mortgage: 269999.99,
+  monthly_cable_bill: 49.99
+}
