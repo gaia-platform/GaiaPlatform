@@ -32,6 +32,8 @@ QualType Sema::getFieldType (IdentifierInfo *id) const
 
 NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II)
 {
+    std::string varName = II->getName().str();
+
     DeclContext *context  = getCurFunctionDecl();
     QualType qualType = getFieldType(II);
 
@@ -39,7 +41,24 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II)
                             II, qualType, Context.getTrivialTypeSourceInfo(qualType, SourceLocation()), SC_None);
     varDecl->setLexicalDeclContext(context);
     varDecl->setImplicit();
-    varDecl->addAttr(GaiaFieldAttr::CreateImplicit(Context));
+    if (varName == "UPDATE")
+    {
+        varDecl->addAttr(GaiaLastOperationUPDATEAttr::CreateImplicit(Context));
+    }
+    else if (varName == "INSERT")
+    {
+        varDecl->addAttr(GaiaLastOperationINSERTAttr::CreateImplicit(Context));
+    }
+    else if (varName == "DELETE")
+    {
+        varDecl->addAttr(GaiaLastOperationDELETEAttr::CreateImplicit(Context));
+    }
+    else
+    {
+        varDecl->addAttr(GaiaFieldAttr::CreateImplicit(Context));
+    }
+    
+    
     context->addDecl(varDecl);
     
     return varDecl;

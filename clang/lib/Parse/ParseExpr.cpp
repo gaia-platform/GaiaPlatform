@@ -1059,6 +1059,22 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
         isAddressOfOperand, std::move(Validator),
         /*IsInlineAsmIdentifier=*/false,
         Tok.is(tok::r_paren) ? nullptr : &Replacement);
+    if (Tok.is(tok::period) && NextToken().is(tok::kw_LastOperation))
+    {
+        DeclRefExpr *declExpr = dyn_cast<DeclRefExpr>(Res.get());
+        if (declExpr != nullptr)
+        {
+            ValueDecl *decl = declExpr->getDecl();
+            if (decl->hasAttr<GaiaFieldAttr>())
+            {
+                decl->dropAttrs();
+                decl->addAttr(GaiaLastOperationAttr::CreateImplicit(Actions.Context));
+                ConsumeToken();
+                ConsumeToken();
+            }
+        }
+    }
+        
     if (!Res.isInvalid() && Res.isUnset()) {
       UnconsumeToken(Replacement);
       return ParseCastExpression(isUnaryExpression, isAddressOfOperand,
@@ -1420,7 +1436,7 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
       if (getLangOpts().Gaia)
       {
           SourceLocation atTok = ConsumeToken();
-          if (Tok.is(tok::identifier))
+          if (Tok.is(tok::identifier) && NextToken().isNot(tok::period))
           {
               ExprResult expr =  ParseCastExpression(isUnaryExpression,
                 isAddressOfOperand,

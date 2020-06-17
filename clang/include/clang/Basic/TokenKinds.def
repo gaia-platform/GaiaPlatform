@@ -827,6 +827,8 @@ ANNOTATION(module_end)
 //Gaia extensions
 KEYWORD(ruleset      , KEYGAIA)
 KEYWORD(table        , KEYGAIA)
+KEYWORD(SerialStream , KEYGAIA)
+KEYWORD(LastOperation, KEYGAIA)
 
 #undef ANNOTATION
 #undef TESTING_KEYWORD
