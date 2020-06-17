@@ -74,13 +74,13 @@ void gaia::db::types::initialize_field_cache_from_binary_schema(
     }
 }
 
-type_holder_t gaia::db::types::get_table_field_value(
+data_holder_t gaia::db::types::get_table_field_value(
     uint64_t type_id,
     uint8_t* serialized_data,
     uint8_t* binary_schema,
     uint16_t field_position)
 {
-    type_holder_t result;
+    data_holder_t result;
 
     // First, we parse the serialized data to get its root object.
     const flatbuffers::Table* root_table = flatbuffers::GetAnyRoot(serialized_data);

@@ -17,7 +17,7 @@ message(STATUS "GAIA_TYPES_INCLUDES=${GAIA_TYPES_INCLUDES}")
 
 # Our main target.
 add_library(gaia_types SHARED
-    src/type_holder.cpp
+    src/data_holder.cpp
     src/type_cache.cpp
     src/field_access.cpp)
 target_include_directories(gaia_types PUBLIC ${GAIA_TYPES_INCLUDES})
@@ -45,4 +45,4 @@ add_custom_target(test_record_data_bin ALL DEPENDS ${TYPES_TESTS_GENERATED_OUTPU
 
 # Tests.
 add_gtest(test_field_access tests/test_field_access.cpp "${GAIA_TYPES_INCLUDES}" "gaia_common;gaia_types;flatbuffers")
-add_gtest(test_type_holder tests/test_type_holder.cpp "${GAIA_TYPES_INCLUDES}" "gaia_common;gaia_types;flatbuffers")
+add_gtest(test_data_holder tests/test_data_holder.cpp "${GAIA_TYPES_INCLUDES}" "gaia_common;gaia_types;flatbuffers")

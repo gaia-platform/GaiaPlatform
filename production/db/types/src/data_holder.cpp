@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <type_holder.hpp>
+#include <data_holder.hpp>
 
 #include <retail_assert.hpp>
 #include <field_access.hpp>
@@ -11,18 +11,18 @@
 using namespace gaia::common;
 using namespace gaia::db::types;
 
-type_holder_t::type_holder_t()
+data_holder_t::data_holder_t()
 {
     clear();
 }
 
-void type_holder_t::clear()
+void data_holder_t::clear()
 {
     type = reflection::None;
     hold.integer_value = 0;
 }
 
-int type_holder_t::compare(const type_holder_t& other) const
+int data_holder_t::compare(const data_holder_t& other) const
 {
     retail_assert(type == other.type, "type_holder_t::compare() was called for different types.");
 

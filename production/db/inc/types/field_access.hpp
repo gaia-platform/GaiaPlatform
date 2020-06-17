@@ -11,7 +11,7 @@
 #include "flatbuffers/reflection.h"
 
 #include <gaia_exception.hpp>
-#include <type_holder.hpp>
+#include <data_holder.hpp>
 #include <type_cache.hpp>
 
 namespace gaia
@@ -72,7 +72,7 @@ void initialize_field_cache_from_binary_schema(
 //
 // The binary_schema passed in will only be used if the type_cache
 // does not already contain a field_cache entry for the type_id.
-type_holder_t get_table_field_value(
+data_holder_t get_table_field_value(
     uint64_t type_id,
     uint8_t* serialized_data,
     uint8_t* binary_schema,

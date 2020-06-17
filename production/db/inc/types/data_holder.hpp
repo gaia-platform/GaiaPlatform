@@ -28,9 +28,9 @@ inline bool is_signed_integer(reflection::BaseType type)
     return flatbuffers::IsInteger(type) && (((int)type) % 2 == 1);
 }
 
-// This union allows us to reference data of different types.
+// This union allows us to reference values of different types.
 // We do not manage the string_value memory. The caller is responsible for it.
-union data_holder_t
+union value_holder_t
 {
     int64_t integer_value;
     double float_value;
@@ -39,16 +39,16 @@ union data_holder_t
 
 // A simple structure that isolates us from the details
 // of the encapsulated data type.
-struct type_holder_t
+struct data_holder_t
 {
     reflection::BaseType type;
-    data_holder_t hold;
+    value_holder_t hold;
 
-    type_holder_t();
+    data_holder_t();
 
     void clear();
 
-    int compare(const type_holder_t& other) const;
+    int compare(const data_holder_t& other) const;
 };
 
 }

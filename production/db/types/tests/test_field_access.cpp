@@ -44,7 +44,7 @@ void get_fields_data(
     file_loader_t& schema_loader,
     bool pass_schema = false)
 {
-    type_holder_t first_name = get_table_field_value(
+    data_holder_t first_name = get_table_field_value(
         c_type_id,
         data_loader.get_data(),
         pass_schema ? schema_loader.get_data() : nullptr,
@@ -53,7 +53,7 @@ void get_fields_data(
     ASSERT_EQ(0, strcmp(first_name.hold.string_value, c_first_name));
     cout << "\tfirst_name = " << first_name.hold.string_value << endl;
 
-    type_holder_t last_name = get_table_field_value(
+    data_holder_t last_name = get_table_field_value(
         c_type_id,
         data_loader.get_data(),
         pass_schema ? schema_loader.get_data() : nullptr,
@@ -62,7 +62,7 @@ void get_fields_data(
     ASSERT_EQ(0, strcmp(last_name.hold.string_value, c_last_name));
     cout << "\tlast_name = " << last_name.hold.string_value << endl;
 
-    type_holder_t age = get_table_field_value(
+    data_holder_t age = get_table_field_value(
         c_type_id,
         data_loader.get_data(),
         pass_schema ? schema_loader.get_data() : nullptr,
@@ -71,7 +71,7 @@ void get_fields_data(
     ASSERT_EQ(c_age, age.hold.integer_value);
     cout << "\tage = " << age.hold.integer_value << endl;
 
-    type_holder_t has_children = get_table_field_value(
+    data_holder_t has_children = get_table_field_value(
         c_type_id,
         data_loader.get_data(),
         pass_schema ? schema_loader.get_data() : nullptr,
@@ -80,7 +80,7 @@ void get_fields_data(
     ASSERT_EQ(c_has_children, has_children.hold.integer_value);
     cout << "\thas_children = " << has_children.hold.integer_value << endl;
 
-    type_holder_t identifier = get_table_field_value(
+    data_holder_t identifier = get_table_field_value(
         c_type_id,
         data_loader.get_data(),
         pass_schema ? schema_loader.get_data() : nullptr,
@@ -89,7 +89,7 @@ void get_fields_data(
     ASSERT_EQ(c_identifier, identifier.hold.integer_value);
     cout << "\testate_value = " << identifier.hold.integer_value << endl;
 
-    type_holder_t sleeve_cost = get_table_field_value(
+    data_holder_t sleeve_cost = get_table_field_value(
         c_type_id,
         data_loader.get_data(),
         pass_schema ? schema_loader.get_data() : nullptr,
@@ -99,7 +99,7 @@ void get_fields_data(
     ASSERT_TRUE(sleeve_cost.hold.float_value <= c_sleeve_cost + 1);
     cout << "\tmonthly_mortgage = " << sleeve_cost.hold.float_value << endl;
 
-    type_holder_t monthly_sleeve_insurance = get_table_field_value(
+    data_holder_t monthly_sleeve_insurance = get_table_field_value(
         c_type_id,
         data_loader.get_data(),
         pass_schema ? schema_loader.get_data() : nullptr,

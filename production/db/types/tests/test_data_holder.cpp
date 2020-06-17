@@ -7,7 +7,7 @@
 
 #include "gtest/gtest.h"
 
-#include "type_holder.hpp"
+#include "data_holder.hpp"
 
 using namespace std;
 using namespace gaia::db::types;
@@ -28,8 +28,8 @@ TEST(types, is_signed_integer)
 
 TEST(types, type_holder_string)
 {
-    type_holder_t value;
-    type_holder_t other_value;
+    data_holder_t value;
+    data_holder_t other_value;
 
     value.type = other_value.type = reflection::String;
     value.hold.string_value = "Alice";
@@ -42,8 +42,8 @@ TEST(types, type_holder_string)
 
 TEST(types, type_holder_integer)
 {
-    type_holder_t value;
-    type_holder_t other_value;
+    data_holder_t value;
+    data_holder_t other_value;
 
     value.type = other_value.type = reflection::UInt;
     value.hold.integer_value = -7;
@@ -56,8 +56,8 @@ TEST(types, type_holder_integer)
 
 TEST(types, type_holder_float)
 {
-    type_holder_t value;
-    type_holder_t other_value;
+    data_holder_t value;
+    data_holder_t other_value;
 
     value.type = other_value.type = reflection::Float;
     value.hold.float_value = -12.345;
