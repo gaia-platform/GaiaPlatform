@@ -9,6 +9,7 @@ cmake_minimum_required(VERSION 3.11)
 project(common)
 
 set(GAIA_COMMON_INCLUDES
+  "${GAIA_INC}/internal/common"
   "${GAIA_INC}/public/common")
 
 message(STATUS "GAIA_COMMON_INCLUDES=${GAIA_COMMON_INCLUDES}")
