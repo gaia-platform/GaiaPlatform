@@ -52,6 +52,13 @@ size_t file_loader_t::load_file_data(const string& filename)
 {
     retail_assert(!filename.empty(), "load_file_data() was called with an invalid filename argument.");
 
+    // If we had already loaded data from another file,
+    // clear our state first.
+    if (m_data != nullptr)
+    {
+        clear();
+    }
+
     m_filename = filename;
 
     ifstream file;

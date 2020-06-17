@@ -50,23 +50,23 @@ void gaia::db::types::initialize_field_cache_from_binary_schema(
     field_cache_t* field_cache,
     uint8_t* binary_schema)
 {
+    // Deserialize the schema.
     const reflection::Schema* schema = reflection::GetSchema(binary_schema);
     if (schema == nullptr)
     {
         throw invalid_schema();
     }
 
+    // Get the type of the schema's root object.
     const reflection::Object* root_type = schema->root_table();
     if (root_type == nullptr)
     {
         throw missing_root_type();
     }
 
+    // Get the collection of fields
+    // and insert each element under its corresponding field id.
     auto fields = root_type->fields();
-
-    // Lookup the field by position.
-    // Unfortunately, the fields vector is not ordered by this criteria,
-    // so we need to do a linear search.
     for (size_t i = 0; i < fields->Length(); i++)
     {
         const reflection::Field* current_field = fields->Get(i);
@@ -121,15 +121,15 @@ type_holder_t gaia::db::types::get_table_field_value(
             throw invalid_serialized_data();
         }
 
-        result.string_value = field_value->c_str();
+        result.hold.string_value = field_value->c_str();
     }
     else if (flatbuffers::IsInteger(field->type()->base_type()))
     {
-        result.integer_value = flatbuffers::GetAnyFieldI(*root_table, *field);
+        result.hold.integer_value = flatbuffers::GetAnyFieldI(*root_table, *field);
     }
     else if (flatbuffers::IsFloat(field->type()->base_type()))
     {
-        result.float_value = flatbuffers::GetAnyFieldF(*root_table, *field);
+        result.hold.float_value = flatbuffers::GetAnyFieldF(*root_table, *field);
     }
     else
     {

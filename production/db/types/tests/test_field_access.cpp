@@ -16,15 +16,27 @@ using namespace gaia::db::types;
 
 const uint64_t c_type_id = 88;
 
+// The following values must match the values from test_record_data.json.
+const char* c_first_name = "Takeshi";
+const char* c_last_name = "Kovacs";
+const uint8_t c_age = 242;
+const int8_t c_has_children = 0;
+const int64_t c_identifier = 7364592217;
+const double c_sleeve_cost = 769999.0;
+const float c_monthly_sleeve_insurance = 149.0;
+
 enum field
 {
     first_name,
     last_name,
     age,
     has_children,
-    estate_value,
-    monthly_mortgage,
-    monthly_cable_bill,
+    identifier,
+    sleeve_cost,
+    monthly_sleeve_insurance,
+
+    // Keep this entry last and add any new entry above.
+    count_fields
 };
 
 void get_fields_data(
@@ -38,8 +50,8 @@ void get_fields_data(
         pass_schema ? schema_loader.get_data() : nullptr,
         field::first_name);
     ASSERT_EQ(first_name.type, reflection::String);
-    ASSERT_EQ(0, strcmp(first_name.string_value, "Takeshi"));
-    cout << "\tfirst_name = " << first_name.string_value << endl;
+    ASSERT_EQ(0, strcmp(first_name.hold.string_value, c_first_name));
+    cout << "\tfirst_name = " << first_name.hold.string_value << endl;
 
     type_holder_t last_name = get_table_field_value(
         c_type_id,
@@ -47,8 +59,8 @@ void get_fields_data(
         pass_schema ? schema_loader.get_data() : nullptr,
         field::last_name);
     ASSERT_EQ(last_name.type, reflection::String);
-    ASSERT_EQ(0, strcmp(last_name.string_value, "Kovacs"));
-    cout << "\tlast_name = " << last_name.string_value << endl;
+    ASSERT_EQ(0, strcmp(last_name.hold.string_value, c_last_name));
+    cout << "\tlast_name = " << last_name.hold.string_value << endl;
 
     type_holder_t age = get_table_field_value(
         c_type_id,
@@ -56,8 +68,8 @@ void get_fields_data(
         pass_schema ? schema_loader.get_data() : nullptr,
         field::age);
     ASSERT_EQ(age.type, reflection::UByte);
-    ASSERT_EQ(42, age.integer_value);
-    cout << "\tage = " << age.integer_value << endl;
+    ASSERT_EQ(c_age, age.hold.integer_value);
+    cout << "\tage = " << age.hold.integer_value << endl;
 
     type_holder_t has_children = get_table_field_value(
         c_type_id,
@@ -65,37 +77,37 @@ void get_fields_data(
         pass_schema ? schema_loader.get_data() : nullptr,
         field::has_children);
     ASSERT_EQ(has_children.type, reflection::Bool);
-    ASSERT_EQ(0, has_children.integer_value);
-    cout << "\thas_children = " << has_children.integer_value << endl;
+    ASSERT_EQ(c_has_children, has_children.hold.integer_value);
+    cout << "\thas_children = " << has_children.hold.integer_value << endl;
 
-    type_holder_t estate_value = get_table_field_value(
+    type_holder_t identifier = get_table_field_value(
         c_type_id,
         data_loader.get_data(),
         pass_schema ? schema_loader.get_data() : nullptr,
-        field::estate_value);
-    ASSERT_EQ(estate_value.type, reflection::Long);
-    ASSERT_EQ(736459, estate_value.integer_value);
-    cout << "\testate_value = " << estate_value.integer_value << endl;
+        field::identifier);
+    ASSERT_EQ(identifier.type, reflection::Long);
+    ASSERT_EQ(c_identifier, identifier.hold.integer_value);
+    cout << "\testate_value = " << identifier.hold.integer_value << endl;
 
-    type_holder_t monthly_mortgage = get_table_field_value(
+    type_holder_t sleeve_cost = get_table_field_value(
         c_type_id,
         data_loader.get_data(),
         pass_schema ? schema_loader.get_data() : nullptr,
-        field::monthly_mortgage);
-    ASSERT_EQ(monthly_mortgage.type, reflection::Double);
-    ASSERT_TRUE(monthly_mortgage.float_value > 269999.0);
-    ASSERT_TRUE(monthly_mortgage.float_value <= 270000.0);
-    cout << "\tmonthly_mortgage = " << monthly_mortgage.float_value << endl;
+        field::sleeve_cost);
+    ASSERT_EQ(sleeve_cost.type, reflection::Double);
+    ASSERT_TRUE(sleeve_cost.hold.float_value > c_sleeve_cost);
+    ASSERT_TRUE(sleeve_cost.hold.float_value <= c_sleeve_cost + 1);
+    cout << "\tmonthly_mortgage = " << sleeve_cost.hold.float_value << endl;
 
-    type_holder_t monthly_cable_bill = get_table_field_value(
+    type_holder_t monthly_sleeve_insurance = get_table_field_value(
         c_type_id,
         data_loader.get_data(),
         pass_schema ? schema_loader.get_data() : nullptr,
-        field::monthly_cable_bill);
-    ASSERT_EQ(monthly_cable_bill.type, reflection::Float);
-    ASSERT_TRUE(monthly_cable_bill.float_value > 49.0);
-    ASSERT_TRUE(monthly_cable_bill.float_value <= 50.0);
-    cout << "\tmonthly_cable_bill = " << monthly_cable_bill.float_value << endl;
+        field::monthly_sleeve_insurance);
+    ASSERT_EQ(monthly_sleeve_insurance.type, reflection::Float);
+    ASSERT_TRUE(monthly_sleeve_insurance.hold.float_value > c_monthly_sleeve_insurance);
+    ASSERT_TRUE(monthly_sleeve_insurance.hold.float_value <= c_monthly_sleeve_insurance + 1);
+    cout << "\tmonthly_cable_bill = " << monthly_sleeve_insurance.hold.float_value << endl;
 }
 
 void process_flatbuffers_data(bool access_fields = false)
@@ -111,7 +123,7 @@ void process_flatbuffers_data(bool access_fields = false)
     // Create and initialize a field_cache.
     field_cache_t* field_cache = new field_cache_t();
     initialize_field_cache_from_binary_schema(field_cache, schema_loader.get_data());
-    ASSERT_EQ(7, field_cache->size());
+    ASSERT_EQ(field::count_fields, field_cache->size());
 
     // Add field cache to type cache.
     type_cache_t::get_type_cache()->set_field_cache(c_type_id, field_cache);

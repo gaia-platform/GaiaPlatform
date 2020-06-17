@@ -32,7 +32,7 @@ public:
 };
 
 /**
- * An implementation of C17 shared_mutex interfaces using pthread_rwlock.
+ * An implementation of the C17 shared_mutex interfaces using pthread_rwlock.
  *
  * The main goal of this implementation is to facilitate a future transition
  * to the standard shared_mutex implementation.

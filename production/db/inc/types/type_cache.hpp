@@ -23,19 +23,23 @@ namespace types
 
 typedef std::unordered_map<uint16_t, const reflection::Field*> field_map_t;
 
+// A field cache stores all Field descriptions for a given type,
+// indexed by the corresponding field id values.
 class field_cache_t
 {
 public:
 
     field_cache_t() = default;
 
-    // Returns field information if the field could be found or nullptr otherwise.
+    // Return field information if the field could be found or nullptr otherwise.
     //
     // Because the field information is retrieved by direct access to the binary schema,
     // we need to maintain a read lock while it is being used,
     // to prevent it from being changed.
     const reflection::Field* get_field(uint16_t field_id) const;
 
+    // Insert information about a field in the cache.
+    // This is used during construction of the cache.
     void set_field(uint16_t field_id, const reflection::Field* field);
 
     // Return the size of the internal map.
@@ -49,6 +53,8 @@ protected:
 
 typedef std::unordered_map<uint64_t, const field_cache_t*> type_map_t;
 
+// The type cache stores field_caches for all managed types.
+// The field_caches are indexed by their corresponding type id.
 class type_cache_t
 {
 protected:
@@ -58,11 +64,12 @@ protected:
 
 public:
 
-    // Returns a pointer to the singleton instance.
+    // Return a pointer to the singleton instance.
     static type_cache_t* get_type_cache();
 
     // Caller should call release_access() to release the read lock taken by get_field_cache().
     // This is not necessary if get_field_cache() returned nullptr.
+    // Alternatively, auto_release_cache_read_access can be used to automatically release the access.
     const field_cache_t* get_field_cache(uint64_t type_id);
     void release_access();
 
@@ -93,6 +100,7 @@ protected:
     type_map_t m_type_map;
 };
 
+// A class for automatically releasing the read lock taken while reading from the cache.
 class auto_release_cache_read_access
 {
 public:
@@ -102,7 +110,7 @@ public:
 
 protected:
 
-    bool m_enabled;
+    bool m_enable_release;
 };
 
 }

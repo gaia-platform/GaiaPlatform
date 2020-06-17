@@ -32,7 +32,7 @@ shared_mutex::shared_mutex()
 
 shared_mutex::~shared_mutex()
 {
-    // We can't throw exceptions and we don't have another way for surfacing errors.
+    // We can't throw exceptions and we don't have another way of surfacing errors.
     // OTOH, it's unlikely that such mutexes would get destroyed during regular code execution anyway,
     // as they'd normally be used to protect access to long-lived resources.
     pthread_rwlock_destroy(&m_lock);

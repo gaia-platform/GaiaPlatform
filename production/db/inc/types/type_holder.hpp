@@ -17,19 +17,32 @@ namespace db
 namespace types
 {
 
-inline bool is_signed_integer(reflection::BaseType t)
+// Return true if the type is a signed integer type.
+inline bool is_signed_integer(reflection::BaseType type)
 {
     // Signed integer types have odd BaseType enum values.
-    return flatbuffers::IsInteger(t) && (((int)t) % 2 == 1);
+    // This logic can break if flatbuffers adds support
+    // for new larger integers and doesn't maintain this property,
+    // but any check would share this weakness
+    // and this approach is quicker than others.
+    return flatbuffers::IsInteger(type) && (((int)type) % 2 == 1);
 }
 
-struct type_holder_t
+// This union allows us to reference data of different types.
+// We do not manage the string_value memory. The caller is responsible for it.
+union data_holder_t
 {
-    reflection::BaseType type;
-
     int64_t integer_value;
     double float_value;
     const char* string_value;
+};
+
+// A simple structure that isolates us from the details
+// of the encapsulated data type.
+struct type_holder_t
+{
+    reflection::BaseType type;
+    data_holder_t hold;
 
     type_holder_t();
 

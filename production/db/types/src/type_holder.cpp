@@ -19,10 +19,7 @@ type_holder_t::type_holder_t()
 void type_holder_t::clear()
 {
     type = reflection::None;
-
-    integer_value = 0;
-    float_value = 0;
-    string_value = nullptr;
+    hold.integer_value = 0;
 }
 
 int type_holder_t::compare(const type_holder_t& other) const
@@ -31,45 +28,45 @@ int type_holder_t::compare(const type_holder_t& other) const
 
     if (type == reflection::String)
     {
-        if (string_value == nullptr && other.string_value == nullptr)
+        if (hold.string_value == nullptr && other.hold.string_value == nullptr)
         {
             return 0;
         }
-        else if (string_value == nullptr || other.string_value == nullptr)
+        else if (hold.string_value == nullptr || other.hold.string_value == nullptr)
         {
-            return string_value == nullptr ? -1 : 1;
+            return hold.string_value == nullptr ? -1 : 1;
         }
         else
         {
-            return strcmp(string_value, other.string_value);
+            return strcmp(hold.string_value, other.hold.string_value);
         }
     }
     else if (flatbuffers::IsInteger(type))
     {
         if (is_signed_integer(type))
         {
-            return (integer_value == other.integer_value)
+            return (hold.integer_value == other.hold.integer_value)
                 ? 0
-                : (integer_value > other.integer_value) ? 1 : -1;
+                : (hold.integer_value > other.hold.integer_value) ? 1 : -1;
         }
         else
         {
-            if (integer_value == other.integer_value)
+            if (hold.integer_value == other.hold.integer_value)
             {
                 return 0;
             }
 
-            const uint64_t* unsigned_integer_value = reinterpret_cast<const uint64_t*>(&integer_value);
-            const uint64_t* other_unsigned_integer_value = reinterpret_cast<const uint64_t*>(&other.integer_value);
+            const uint64_t* unsigned_integer_value = reinterpret_cast<const uint64_t*>(&hold.integer_value);
+            const uint64_t* other_unsigned_integer_value = reinterpret_cast<const uint64_t*>(&other.hold.integer_value);
 
             return (*unsigned_integer_value > *other_unsigned_integer_value) ? 1 : -1;
         }
     }
     else if (flatbuffers::IsFloat(type))
     {
-        return (float_value == other.float_value)
+        return (hold.float_value == other.hold.float_value)
             ? 0
-            : (float_value > other.float_value) ? 1 : -1;
+            : (hold.float_value > other.hold.float_value) ? 1 : -1;
     }
     else
     {

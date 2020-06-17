@@ -32,8 +32,8 @@ TEST(types, type_holder_string)
     type_holder_t other_value;
 
     value.type = other_value.type = reflection::String;
-    value.string_value = "Alice";
-    other_value.string_value = "Alyssa";
+    value.hold.string_value = "Alice";
+    other_value.hold.string_value = "Alyssa";
 
     ASSERT_TRUE(value.compare(other_value) < 0);
     ASSERT_TRUE(other_value.compare(value) > 0);
@@ -46,8 +46,8 @@ TEST(types, type_holder_integer)
     type_holder_t other_value;
 
     value.type = other_value.type = reflection::UInt;
-    value.integer_value = -7;
-    other_value.integer_value = 7;
+    value.hold.integer_value = -7;
+    other_value.hold.integer_value = 7;
 
     ASSERT_EQ(1, value.compare(other_value));
     ASSERT_EQ(-1, other_value.compare(value));
@@ -60,8 +60,8 @@ TEST(types, type_holder_float)
     type_holder_t other_value;
 
     value.type = other_value.type = reflection::Float;
-    value.float_value = -12.345;
-    other_value.float_value = 67.890;
+    value.hold.float_value = -12.345;
+    other_value.hold.float_value = 67.890;
 
     ASSERT_EQ(-1, value.compare(other_value));
     ASSERT_EQ(1, other_value.compare(value));

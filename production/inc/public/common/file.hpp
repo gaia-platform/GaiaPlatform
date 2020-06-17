@@ -42,6 +42,7 @@ public:
     ~file_loader_t();
 
     size_t load_file_data(const std::string& filename);
+
     uint8_t* get_data();
     size_t get_data_length();
 

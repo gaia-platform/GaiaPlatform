@@ -1,9 +1,9 @@
 {
   first_name: "Takeshi",
   last_name: "Kovacs",
-  age: 42,
+  age: 242,
   has_children: false,
-  estate_value: 736459,
-  monthly_mortgage: 269999.99,
-  monthly_cable_bill: 49.99
+  identifier: 7364592217,
+  sleeve_cost: 769999.99,
+  monthly_sleeve_insurance: 149.99
 }

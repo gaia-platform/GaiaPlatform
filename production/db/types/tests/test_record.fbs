@@ -6,9 +6,9 @@ table test_record
   last_name:string;
   age:ubyte;
   has_children:bool;
-  estate_value:long;
-  monthly_mortgage:double;
-  monthly_cable_bill:float;
+  identifier:long;
+  sleeve_cost:double;
+  monthly_sleeve_insurance:float;
 }
 
 root_type test_record;

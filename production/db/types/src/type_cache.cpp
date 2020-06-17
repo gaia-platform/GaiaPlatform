@@ -124,12 +124,12 @@ size_t type_cache_t::size()
 
 auto_release_cache_read_access::auto_release_cache_read_access(bool enable)
 {
-    m_enabled = enable;
+    m_enable_release = enable;
 }
 
 auto_release_cache_read_access::~auto_release_cache_read_access()
 {
-    if (m_enabled)
+    if (m_enable_release)
     {
         type_cache_t::get_type_cache()->release_access();
     }
