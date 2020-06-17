@@ -9499,5 +9499,7 @@ def err_invalid_operand_last_operation : Error<
   "Incorrect LastOperation operation">;
 def err_invalid_assignment_last_operation : Error<
   "Incorrect LastOperation assignment">;
+def err_invalid_field_operation : Error<
+  "Incorrect field operation">;
 
 } // end of sema component.

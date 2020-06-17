@@ -9,7 +9,7 @@ ruleset test : table(dfsdf,sdfsdf,sfsdf), SerialStream(ttt)
 }
 }
 // CHECK:      RulesetDecl{{.*}} test
-// CHECK-NEXT:     TableAttr 0x{{[^ ]*}} <col:16, col:40> 0x{{[^ ]*}} 0x{{[^ ]*}} 0x{{[^ ]*}}
+// CHECK-NEXT:     RulesetTableAttr 0x{{[^ ]*}} <col:16, col:40> 0x{{[^ ]*}} 0x{{[^ ]*}} 0x{{[^ ]*}}
 // CHECK-NEXT:     -SerialStreamAttr 0x{{[^ ]*}} <col:43, col:59> ttt
 // CHECK:      FunctionDecl{{.*}} {{.*}} 'void (...)' 
 // CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:3> 'unsigned int' lvalue Var 0x{{[^ ]*}} 'x' 'unsigned int'

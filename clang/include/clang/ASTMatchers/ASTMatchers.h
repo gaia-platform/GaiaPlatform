@@ -364,6 +364,18 @@ extern const internal::VariadicDynCastAllOfMatcher<Decl, LabelDecl> labelDecl;
 extern const internal::VariadicDynCastAllOfMatcher<Decl, NamespaceDecl>
     namespaceDecl;
 
+/// Matches a declaration of a ruleset.
+///
+/// Given
+/// \code
+///   ruleset {}
+///   ruleset test {}
+/// \endcode
+/// rulesetDecl()
+///   matches "ruleset {}" and "ruleset test {}"
+extern const internal::VariadicDynCastAllOfMatcher<Decl, RulesetDecl>
+    rulesetDecl;
+
 /// Matches a declaration of a namespace alias.
 ///
 /// Given

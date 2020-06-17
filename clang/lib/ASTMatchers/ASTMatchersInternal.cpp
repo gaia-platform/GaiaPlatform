@@ -564,6 +564,7 @@ const internal::VariadicDynCastAllOfMatcher<Decl, LinkageSpecDecl>
 const internal::VariadicDynCastAllOfMatcher<Decl, NamedDecl> namedDecl;
 const internal::VariadicDynCastAllOfMatcher<Decl, LabelDecl> labelDecl;
 const internal::VariadicDynCastAllOfMatcher<Decl, NamespaceDecl> namespaceDecl;
+const internal::VariadicDynCastAllOfMatcher<Decl, RulesetDecl> rulesetDecl;
 const internal::VariadicDynCastAllOfMatcher<Decl, NamespaceAliasDecl>
     namespaceAliasDecl;
 const internal::VariadicDynCastAllOfMatcher<Decl, RecordDecl> recordDecl;
