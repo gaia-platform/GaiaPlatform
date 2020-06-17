@@ -93,7 +93,7 @@ type_holder_t gaia::db::types::get_table_field_value(
     type_cache_t* type_cache = type_cache_t::get_type_cache();
     const field_cache_t* field_cache = type_cache->get_field_cache(type_id);
 
-    // If we got hold of the field cache, we need to release access once we're don using it.
+    // If we got hold of the field cache, we need to release access once we're done using it.
     auto_release_cache_read_access auto_release_cache_access(field_cache != nullptr);
 
     // If data is not available for our type, we load it locally from the binary schema provided to us.
