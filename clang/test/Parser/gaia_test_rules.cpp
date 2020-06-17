@@ -139,42 +139,42 @@ ruleset test14: table(dfsdf,sdfsdf,sfsdf), SerialStream(sdsdf,)  // expected-err
 ruleset test15  
 {
 {
-  y=x.LastOperation; // expected-error {{Incorrect LastOperation operation}} 
+  y=x.LastOperation; // expected-error {{Incorrect LastOperation action}} 
 }
 }
 
 ruleset test16   
 {
 {
-  y=UPDATE; // expected-error {{Incorrect LastOperation operation}} 
+  y=UPDATE; // expected-error {{Incorrect LastOperation action}} 
 }
 }
 
 ruleset test17 
 {
 {
-  y=x.LastOperation < UPDATE; // expected-error {{Incorrect LastOperation operation}} 
+  y=x.LastOperation < UPDATE; // expected-error {{Incorrect LastOperation action}} 
 }
 }
 
 ruleset test18 
 {
 {
-  y=x.LastOperation + 3; // expected-error {{Incorrect LastOperation operation}} 
+  y=x.LastOperation + 3; // expected-error {{Incorrect LastOperation action}} 
 }
 }
 
 ruleset test19   
 {
 {
-  y=UPDATE + 3; // expected-error {{Incorrect LastOperation operation}} 
+  y=UPDATE + 3; // expected-error {{Incorrect LastOperation action}} 
 }
 }
 
 ruleset test20	
 {
 {
-  y= (int) UPDATE ; // expected-error {{Incorrect LastOperation operation}} 
+  y= (int) UPDATE ; // expected-error {{Incorrect LastOperation action}} 
 }
 }
 
@@ -182,49 +182,49 @@ ruleset test20
 ruleset test21
 {
 {
-  y+= x.LastOperation ; // expected-error {{Incorrect LastOperation operation}} 
+  y+= x.LastOperation ; // expected-error {{Incorrect LastOperation action}} 
 }
 }
 
 ruleset test22 
 {
 {
-  x.LastOperation ++; // expected-error {{Incorrect LastOperation operation}} 
+  x.LastOperation ++; // expected-error {{Incorrect LastOperation action}} 
 }
 }
 
 ruleset test23
 {
 {
-  ++UPDATE ; // expected-error {{Incorrect LastOperation operation}} 
+  ++UPDATE ; // expected-error {{Incorrect LastOperation action}} 
 }
 }
 
 ruleset test24 
 {
 {
-  y=x.LastOperation == 5; // expected-error {{Incorrect LastOperation operation}} 
+  y=x.LastOperation == 5; // expected-error {{Incorrect LastOperation action}} 
 }
 }
 
 ruleset test25  
 {
 {
-  y= 3 == UPDATE; // expected-error {{Incorrect LastOperation operation}} 
+  y= 3 == UPDATE; // expected-error {{Incorrect LastOperation action}} 
 }
 }
 
 ruleset test26  
 {
 {
-  y= !UPDATE; // expected-error {{Incorrect LastOperation operation}} 
+  y= !UPDATE; // expected-error {{Incorrect LastOperation action}} 
 }
 }
 
 ruleset test27  
 {
 {
-  y= &x.LastOperation; // expected-error {{Incorrect LastOperation operation}} 
+  y= &x.LastOperation; // expected-error {{Incorrect LastOperation action}} 
 }
 }
 
