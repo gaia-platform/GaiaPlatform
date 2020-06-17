@@ -12,7 +12,7 @@ using namespace gaia::common;
 using namespace gaia::db::types;
 
 shared_mutex type_cache_t::s_lock;
-type_cache_t* type_cache_t::s_type_cache = nullptr;
+type_cache_t type_cache_t::s_type_cache;
 
 const reflection::Field* field_cache_t::get_field(uint16_t field_id) const
 {
@@ -34,22 +34,7 @@ size_t field_cache_t::size()
 
 type_cache_t* type_cache_t::get_type_cache()
 {
-    // If singleton instance has not been created,
-    // acquire exclusive lock and create the instance,
-    // unless another thread has already done it before us.
-    if (s_type_cache == nullptr)
-    {
-        s_lock.lock();
-
-        if (s_type_cache == nullptr)
-        {
-            s_type_cache = new type_cache_t();
-        }
-
-        s_lock.unlock();
-    }
-
-    return s_type_cache;
+    return &s_type_cache;
 }
 
 const field_cache_t* type_cache_t::get_field_cache(uint64_t type_id)

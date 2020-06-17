@@ -94,7 +94,7 @@ protected:
     static gaia::common::shared_mutex s_lock;
 
     // The singleton instance, created on first call to get_type_cache().
-    static type_cache_t* s_type_cache;
+    static type_cache_t s_type_cache;
 
     // The map used by the type cache.
     type_map_t m_type_map;
