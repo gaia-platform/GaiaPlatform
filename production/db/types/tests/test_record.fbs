@@ -1,0 +1,14 @@
+namespace gaia.types.tests;
+
+table test_record
+{
+  first_name:string;
+  last_name:string;
+  age:ubyte;
+  has_children:bool;
+  identifier:long;
+  sleeve_cost:double;
+  monthly_sleeve_insurance:float;
+}
+
+root_type test_record;
