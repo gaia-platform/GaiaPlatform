@@ -88,13 +88,13 @@ public:
 
 protected:
 
+    // The singleton instance.
+    static type_cache_t s_type_cache;
+
     // Reads from cache will hold read locks, whereas update operations will request exclusive locks.
     // Operations that require exclusive locking are meant to be rare.
     // We can further improve implementation by preloading type information at system startup.
-    static gaia::common::shared_mutex s_lock;
-
-    // The singleton instance, created on first call to get_type_cache().
-    static type_cache_t s_type_cache;
+    gaia::common::shared_mutex m_lock;
 
     // The map used by the type cache.
     type_map_t m_type_map;

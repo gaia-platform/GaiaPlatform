@@ -7,7 +7,7 @@
 
 #include <pthread.h>
 
-#include <gaia_exception.hpp>
+#include <exceptions.hpp>
 
 namespace gaia
 {
@@ -25,10 +25,13 @@ namespace common
 /**
  * The exception class used for unexpected pwthread_rwlock errors.
  */
-class pthread_rwlock_error : public gaia::common::gaia_exception
+class pthread_rwlock_error : public api_error
 {
 public:
-    pthread_rwlock_error(const char* api_name, int error_code);
+    pthread_rwlock_error(const char* api_name, int error_code)
+        : api_error(api_name, error_code)
+    {
+    }
 };
 
 /**
@@ -56,6 +59,24 @@ protected:
 
     pthread_rwlock_t m_lock;
 };
+
+/**
+ * A class for automatically acquiring and releasing a shared_mutex lock.
+ */
+class auto_lock
+{
+public:
+
+    auto_lock(shared_mutex& lock, bool request_shared = false);
+    ~auto_lock();
+
+protected:
+
+    shared_mutex* m_lock;
+    bool m_request_shared;
+};
+
+
 
 /*@}*/
 }

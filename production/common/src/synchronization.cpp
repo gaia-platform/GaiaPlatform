@@ -5,21 +5,13 @@
 
 #include <synchronization.hpp>
 
-#include <sstream>
-#include <string>
+#include <cassert>
 
-#include <gaia_exception.hpp>
+#include <exceptions.hpp>
 #include <retail_assert.hpp>
 
 using namespace std;
 using namespace gaia::common;
-
-pthread_rwlock_error::pthread_rwlock_error(const char* api_name, int error_code)
-{
-    stringstream string_stream;
-    string_stream << api_name << "() returned an unexpected error code: " << error_code << ".";
-    m_message = string_stream.str();
-}
 
 shared_mutex::shared_mutex()
 {
@@ -33,9 +25,12 @@ shared_mutex::shared_mutex()
 shared_mutex::~shared_mutex()
 {
     // We can't throw exceptions and we don't have another way of surfacing errors.
+    // We'll debug assert for lack of a better choice.
+    //
     // OTOH, it's unlikely that such mutexes would get destroyed during regular code execution anyway,
     // as they'd normally be used to protect access to long-lived resources.
-    pthread_rwlock_destroy(&m_lock);
+    int error_code = pthread_rwlock_destroy(&m_lock);
+    assert(error_code == 0);
 }
 
 void shared_mutex::lock()
@@ -102,4 +97,17 @@ bool shared_mutex::try_lock_shared()
 void shared_mutex::unlock_shared()
 {
     unlock();
+}
+
+auto_lock::auto_lock(shared_mutex& lock, bool request_shared)
+{
+    m_lock = &lock;
+    m_request_shared = request_shared;
+
+    m_request_shared ? m_lock->lock_shared() : m_lock->lock();
+}
+
+auto_lock::~auto_lock()
+{
+    m_request_shared ? m_lock->unlock_shared() : m_lock->unlock();
 }

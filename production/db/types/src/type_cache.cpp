@@ -11,7 +11,6 @@ using namespace std;
 using namespace gaia::common;
 using namespace gaia::db::types;
 
-shared_mutex type_cache_t::s_lock;
 type_cache_t type_cache_t::s_type_cache;
 
 const reflection::Field* field_cache_t::get_field(uint16_t field_id) const
@@ -41,13 +40,13 @@ const field_cache_t* type_cache_t::get_field_cache(uint64_t type_id)
 {
     // We keep a shared lock while the field_cache is in use,
     // to ensure that its information is not being updated by another thread.
-    s_lock.lock_shared();
+    m_lock.lock_shared();
 
     type_map_t::const_iterator iterator = m_type_map.find(type_id);
 
     if (iterator == m_type_map.end())
     {
-        s_lock.unlock_shared();
+        m_lock.unlock_shared();
 
         return nullptr;
     }
@@ -59,14 +58,14 @@ void type_cache_t::release_access()
 {
     // Release the read lock taken by get_field_cache().
     // There is no check to ensure that a read lock was indeed being held by the caller of this method.
-    s_lock.unlock_shared();
+    m_lock.unlock_shared();
 }
 
 bool type_cache_t::remove_field_cache(uint64_t type_id)
 {
     bool removed_field_cache = false;
 
-    s_lock.lock();
+    auto_lock auto_lock(m_lock);
 
     type_map_t::const_iterator iterator = m_type_map.find(type_id);
     if (iterator != m_type_map.end())
@@ -77,8 +76,6 @@ bool type_cache_t::remove_field_cache(uint64_t type_id)
         removed_field_cache = true;
     }
 
-    s_lock.unlock();
-
     return removed_field_cache;
 }
 
@@ -88,7 +85,7 @@ bool type_cache_t::set_field_cache(uint64_t type_id, const field_cache_t* field_
 
     bool inserted_field_cache = false;
 
-    s_lock.lock();
+    auto_lock auto_lock(m_lock);
 
     type_map_t::const_iterator iterator = m_type_map.find(type_id);
     if (iterator == m_type_map.end())
@@ -96,8 +93,6 @@ bool type_cache_t::set_field_cache(uint64_t type_id, const field_cache_t* field_
         m_type_map.insert(make_pair(type_id, field_cache));
         inserted_field_cache = true;
     }
-
-    s_lock.unlock();
 
     return inserted_field_cache;
 }

@@ -16,6 +16,7 @@ message(STATUS "GAIA_COMMON_INCLUDES=${GAIA_COMMON_INCLUDES}")
 
 # Our main target.
 add_library(gaia_common SHARED
+    src/exceptions.cpp
     src/file.cpp
     src/synchronization.cpp)
 target_include_directories(gaia_common PUBLIC ${GAIA_COMMON_INCLUDES})
