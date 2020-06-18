@@ -35,7 +35,7 @@ cl::opt<string> ASTGeneratorOutputOption("output", cl::init(""),
 cl::opt<bool> ASTGeneratorVerboseOption("v",
     cl::desc("print parse tokens"), cl::cat(ASTGeneratorCategory));
 
-
+std::string curRuleset;
 bool g_verbose = false;
 
 void log(const char* message, const char* value)
@@ -587,15 +587,173 @@ public:
                 if (leftDeclExpr != nullptr)
                 {
                     const ValueDecl *opDecl = leftDeclExpr->getDecl();
-                    SourceLocation setLocEnd = Lexer::findLocationAfterToken(leftDeclExpr->getLocation(),tok::equal,rewriter.getSourceMgr(),rewriter.getLangOpts(),true);
-                    rewriter.ReplaceText(SourceRange(leftDeclExpr->getLocation(),setLocEnd.getLocWithOffset(-1)), opDecl->getName().str() + ".set(");
-                    rewriter.InsertTextBefore(op->getEndLoc().getLocWithOffset(1),")");
+                    tok::TokenKind tokenKind;
+                    std::string replacementText = opDecl->getName().str() + ".set(";
+                    switch(op->getOpcode())
+                    {
+                        case BO_Assign:
+                        {
+                            tokenKind = tok::equal;
+                            break;
+                        }
+                        case BO_MulAssign:
+                        {
+                            tokenKind = tok::starequal;
+                            break;
+                        }
+                        case BO_DivAssign:
+                        {
+                            tokenKind = tok::slashequal;
+                            break;
+                        }
+                        case BO_RemAssign:
+                        {
+                            tokenKind = tok::percentequal;
+                            break;
+                        }
+                        case BO_AddAssign:
+                        {
+                            tokenKind = tok::plusequal;
+                            break;
+                        }
+                        case BO_SubAssign:
+                        {
+                            tokenKind = tok::minusequal;
+                            break;
+                        }
+                        case BO_ShlAssign:
+                        {
+                            tokenKind = tok::lesslessequal;
+                            break;
+                        }
+                        case BO_ShrAssign:
+                        {
+                            tokenKind = tok::greatergreaterequal;
+                            break;
+                        }
+                        case BO_AndAssign:
+                        {
+                            tokenKind = tok::ampequal;
+                            break;
+                        }
+                        case BO_XorAssign:
+                        {
+                            tokenKind = tok::caretequal;
+                            break;
+                        }
+                        case BO_OrAssign:
+                        {
+                            tokenKind = tok::pipeequal;
+                            break;
+                        }
+                        default:
+                            return;
+                    }
+
+                    if (op->getOpcode() != BO_Assign)
+                    {
+                        replacementText += opDecl->getName().str() + ".get() " + ConvertCompoundBinaryOpcode(op->getOpcode()) + "(";
+                    }
+                    
+                    SourceLocation setLocEnd = Lexer::findLocationAfterToken(leftDeclExpr->getLocation(),tokenKind,rewriter.getSourceMgr(),rewriter.getLangOpts(),true);
+                    rewriter.ReplaceText(SourceRange(leftDeclExpr->getLocation(),setLocEnd.getLocWithOffset(-1)), replacementText);
+                    rewriter.InsertTextAfterToken(op->getEndLoc(),")");
+                    if (op->getOpcode() != BO_Assign)
+                    {
+                        rewriter.InsertTextAfterToken(op->getEndLoc(),")");
+                    }
+                    
                 }
             }
         }
     }
 
 private:
+    std::string ConvertCompoundBinaryOpcode(BinaryOperator::Opcode opcode)
+    {
+        switch(opcode)
+        {
+            case BO_MulAssign:
+                return  "*";
+            case BO_DivAssign:
+                return  "/";
+            case BO_RemAssign:
+                return  "%";
+            case BO_AddAssign:
+                return  "+";
+            case BO_SubAssign:
+                return  "-";
+            case BO_ShlAssign:
+                return  "<<";
+            case BO_ShrAssign:
+                return  ">>";
+            case BO_AndAssign:
+                return  "&";
+            case BO_XorAssign:
+                return  "^";
+            case BO_OrAssign:
+                return  "|";
+            default:
+                return "";
+        }
+    }
+
+    Rewriter &rewriter;
+};
+
+class FieldUnaryOperatorMatchHandler : public MatchFinder::MatchCallback
+{
+public:
+    FieldUnaryOperatorMatchHandler(Rewriter &r) : rewriter (r){}
+    virtual void run (const MatchFinder::MatchResult &Result)
+    {
+       const UnaryOperator *op = Result.Nodes.getNodeAs<UnaryOperator>("fieldUnaryOp");
+        if (op != nullptr)
+        {
+            const Expr *opExp = op->getSubExpr();
+            if (opExp != nullptr)
+            {
+                const DeclRefExpr *declExpr = dyn_cast<DeclRefExpr>(opExp);
+        
+                if (declExpr != nullptr)
+                {
+                    const ValueDecl *opDecl = declExpr->getDecl();
+                    std::string replaceStr;
+                    
+                    if (op->isPostfix())
+                    {
+                        if (op->isIncrementOp())
+                        {
+                            replaceStr = "[&]() mutable {auto t=" + opDecl->getName().str() + ".get();" + opDecl->getName().str() + ".set(" +  opDecl->getName().str() + ".get() + 1); return t;}()";
+                        }
+                        else
+                        {
+                            replaceStr = "[&]() mutable {auto t=" + opDecl->getName().str() + ".get();" + opDecl->getName().str() + ".set(" +  opDecl->getName().str() + ".get() - 1); return t;}()";
+                        }
+                    }
+                    else
+                    {
+                        if (op->isIncrementOp())
+                        {
+                            replaceStr = "[&]() mutable {" + opDecl->getName().str() + ".set(" +  opDecl->getName().str() + ".get() + 1); return " + opDecl->getName().str() + ".get();}()";
+                        }
+                        else
+                        {
+                            replaceStr = "[&]() mutable {" + opDecl->getName().str() + ".set(" +  opDecl->getName().str() + ".get() - 1); return " + opDecl->getName().str() + ".get();}()";
+                        }
+                    }
+
+                    rewriter.ReplaceText(SourceRange(op->getBeginLoc().getLocWithOffset(-1),op->getEndLoc().getLocWithOffset(1)), replaceStr);
+
+                }
+            }
+        }
+ 
+    }
+
+private:
+    
+
     Rewriter &rewriter;
 };
 
@@ -608,7 +766,7 @@ public:
         const FunctionDecl * ruleDecl = Result.Nodes.getNodeAs<FunctionDecl>("ruleDecl");
         if (ruleDecl != nullptr)
         {
-            rewriter.InsertText(ruleDecl->getLocation(),"void " + ruleDecl->getName().str() +"()\n");
+            rewriter.InsertText(ruleDecl->getLocation(),"void " + curRuleset + "_" + ruleDecl->getName().str() +"()\n");
         }
     }
 
@@ -625,8 +783,9 @@ public:
         const RulesetDecl * rulesetDecl = Result.Nodes.getNodeAs<RulesetDecl>("rulesetDecl");
         if (rulesetDecl != nullptr)
         {
-            llvm::errs() << rulesetDecl->getName().str() << "\n";
-            //rewriter.InsertText(ruleDecl->getLocation(),"void " + ruleDecl->getName().str() +"()\n");
+            curRuleset = rulesetDecl->getName().str();           
+            rewriter.ReplaceText(SourceRange(rulesetDecl->getBeginLoc(),rulesetDecl->decls_begin()->getBeginLoc().getLocWithOffset(-2)),
+                "namespace " + curRuleset + "\n{\n");
         }
     }
 
@@ -640,22 +799,26 @@ class ASTGenerator_Consumer : public clang::ASTConsumer
 public:
     explicit ASTGenerator_Consumer(ASTContext *context, Rewriter &r)
         : /*visitor(context) ,*/ fieldGetMatcherHandler(r), fieldSetMatcherHandler(r), ruleMatcherHandler(r),
-        rulesetMatcherHandler(r)
+        rulesetMatcherHandler(r), fieldUnaryOperatorMatchHandler(r)
     {
         StatementMatcher fieldGetMatcher = 
             declRefExpr(to(varDecl(anyOf(hasAttr(attr::GaiaField),hasAttr(attr::GaiaFieldValue)),
             unless(hasAttr(attr::GaiaFieldLValue))))).bind("fieldGet");  
         StatementMatcher fieldSetMatcher = binaryOperator(allOf(
-            hasOperatorName("="),
+            isAssignmentOperator(),
             hasLHS(declRefExpr(to(varDecl(hasAttr(attr::GaiaFieldLValue))))))).bind("fieldSet");
         DeclarationMatcher ruleMatcher = functionDecl(hasAttr(attr::Rule)).bind("ruleDecl");
         DeclarationMatcher rulesetMatcher = rulesetDecl().bind("rulesetDecl");
-
+        StatementMatcher fieldUnaryOperatorMatcher = unaryOperator(allOf(anyOf(
+            hasOperatorName("++"), hasOperatorName("--")),
+            hasUnaryOperand(declRefExpr(to(varDecl(hasAttr(attr::GaiaFieldLValue)))))
+            )).bind("fieldUnaryOp");
+        
         matcher.addMatcher(fieldSetMatcher, &fieldSetMatcherHandler);
         matcher.addMatcher(fieldGetMatcher, &fieldGetMatcherHandler);
         matcher.addMatcher(ruleMatcher, &ruleMatcherHandler);
         matcher.addMatcher(rulesetMatcher, &rulesetMatcherHandler);
-
+        matcher.addMatcher(fieldUnaryOperatorMatcher, &fieldUnaryOperatorMatchHandler);
     }
 
     virtual void HandleTranslationUnit(clang::ASTContext &context) 
@@ -670,6 +833,7 @@ private:
     FieldSetMatchHandler fieldSetMatcherHandler;
     RuleMatchHandler     ruleMatcherHandler;
     RulesetMatchHandler  rulesetMatcherHandler;
+    FieldUnaryOperatorMatchHandler fieldUnaryOperatorMatchHandler;
 };
 
 class ASTGenerator_Action : public clang::ASTFrontendAction 
