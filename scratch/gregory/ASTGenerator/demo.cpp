@@ -588,7 +588,7 @@ public:
                 {
                     const ValueDecl *opDecl = leftDeclExpr->getDecl();
                     tok::TokenKind tokenKind;
-                    std::string replacementText = opDecl->getName().str() + ".set(";
+                    std::string replacementText = "[&]() mutable {" + opDecl->getName().str() + ".set(";
                     switch(op->getOpcode())
                     {
                         case BO_Assign:
@@ -660,7 +660,11 @@ public:
                     rewriter.InsertTextAfterToken(op->getEndLoc(),")");
                     if (op->getOpcode() != BO_Assign)
                     {
-                        rewriter.InsertTextAfterToken(op->getEndLoc(),")");
+                        rewriter.InsertTextAfterToken(op->getEndLoc(),"); return " + opDecl->getName().str() + ".get();}() ");
+                    }
+                    else
+                    {
+                        rewriter.InsertTextAfterToken(op->getEndLoc(),";return " + opDecl->getName().str() + ".get();}() ");
                     }
                     
                 }
