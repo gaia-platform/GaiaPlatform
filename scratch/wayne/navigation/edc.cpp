@@ -187,6 +187,17 @@ int main ()
     print_segment_trip_segments(s4);
     print_segment_trip_segments(s5);
 
+    s1->trip_segments.erase(ts1);
+    ts1->delete_row();
+    try {
+        ap1->delete_row();
+        ap2->delete_row();
+        s1->delete_row();
+    }
+    catch (const gaia_exception& e) {
+        printf("exception %s caught\n", e.what());
+    }
+
     commit_transaction();
 
     begin_transaction();

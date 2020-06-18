@@ -49,7 +49,7 @@ struct Segment;
 struct Trip_segment;
 
 struct Flight : public gaia_object_t<1,Flight,flight,flightT>{
-    Flight() : gaia_object_t("Flight") {segments.set_outer(this);}
+    Flight() : gaia_object_t("Flight",c_num_flight_ptrs) {segments.set_outer(this);}
     int32_t number () const {return GET_CURRENT(number);}
     int32_t number_original () const {return GET_ORIGINAL(number);}
     void set_number(int32_t val) {SET(number, val);}
@@ -81,7 +81,7 @@ private:
 };
 
 struct Airport : public gaia_object_t<2,Airport,airport,airportT>{
-    Airport() : gaia_object_t("Airport") {
+    Airport() : gaia_object_t("Airport",c_num_airport_ptrs) {
         src_segments.set_outer(this);
         dst_segments.set_outer(this);
     }
@@ -122,7 +122,7 @@ private:
 };
 
 struct Segment : public gaia_object_t<3,Segment,segment,segmentT>{
-    Segment() : gaia_object_t("Segment") {trip_segments.set_outer(this);};
+    Segment() : gaia_object_t("Segment",c_num_segment_ptrs) {trip_segments.set_outer(this);};
     int32_t id () const {return GET_CURRENT(id);}
     int32_t id_original () const {return GET_ORIGINAL(id);}
     void    set_id(int32_t val) {SET(id, val);}
@@ -170,7 +170,7 @@ private:
 };
 
 struct Trip_segment : public gaia_object_t<4,Trip_segment,trip_segment,trip_segmentT>{
-    Trip_segment() : gaia_object_t("Trip_segment") {};
+    Trip_segment() : gaia_object_t("Trip_segment",c_num_trip_segment_ptrs) {};
     const char* who () const {return GET_STR(who);}
     const char* who_original () const {return GET_STR_ORIGINAL(who);}
     void set_who(const char* val) {SET(who, val);}

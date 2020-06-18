@@ -683,19 +683,27 @@ namespace db
             return *this;
         }
 
-        gaia_ptr<T>& update_payload(size_t payload_size, const void* payload)
+        gaia_ptr<T>& update_payload(size_t num_refs, gaia_id_t* refs, size_t payload_size, const void* payload)
         {
             auto old_this = to_ptr();
             auto old_offset = to_offset();
 
-            allocate(sizeof(T) + payload_size);
+            int32_t total_len = payload_size + num_refs * sizeof(gaia_id_t);
+            allocate(sizeof(T) + total_len);
 
             auto new_this = to_ptr();
-            auto new_payload = &new_this->payload;
 
             memcpy (new_this, old_this, sizeof(T));
-            new_this->payload_size = payload_size;
-            memcpy (new_payload, payload, payload_size);
+            new_this->payload_size = total_len;
+            if (num_refs) {
+                memcpy(new_this->references, refs, num_refs * sizeof(gaia_id_t));
+            }
+            new_this->payload = (char*)(new_this->references) + num_refs * sizeof(gaia_id_t);
+            // Note that num_refs shouldn't normally change. But if a new relationship has
+            // been added to the schema and this is an existing record, then it's possible
+            // that one or more references exist.
+            new_this->num_references = num_refs;
+            memcpy (new_this->payload, payload, payload_size);
 
             gaia_mem_base::tx_log (row_id, old_offset, to_offset());
 
@@ -840,8 +848,10 @@ namespace db
 
         gaia_id_t id;
         gaia_type_t type;
+        size_t num_references;
+        char* payload;
         size_t payload_size;
-        char payload[0];
+        gaia_id_t references[0];
 
         static gaia_id_t generate_id()
         {
@@ -851,17 +861,33 @@ namespace db
         static gaia_ptr<gaia_se_node> create (
             gaia_id_t id,
             gaia_type_t type,
+            size_t num_refs,
+            gaia_id_t* refs,
             size_t payload_size,
             const void* payload,
             bool log_updates = true
         )
         {
-            gaia_ptr<gaia_se_node> node(id, payload_size + sizeof(gaia_se_node), false, log_updates);
+            size_t total_len = payload_size + num_refs * sizeof(gaia_id_t);
+            gaia_ptr<gaia_se_node> node(id, total_len + sizeof(gaia_se_node), false, log_updates);
 
+            // I'm not sure why this is necessary, but it is.
+            node->next_edge_second = nullptr;
+            
             node->id = id;
             node->type = type;
-            node->payload_size = payload_size;
-            memcpy (node->payload, payload, payload_size);
+            node->num_references = num_refs;
+            if (num_refs) {
+                if (refs) {
+                    memcpy(node->references, refs, num_refs * sizeof(gaia_id_t));
+                }
+                else {
+                    memset(node->references, 0, num_refs * sizeof(gaia_id_t));
+                }
+            }
+            node->payload = (char*)(node->references) + num_refs * sizeof(gaia_id_t);
+            node->payload_size = total_len;
+            memcpy (node->payload, payload, total_len);
             return node;
         }
 

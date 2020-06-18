@@ -81,10 +81,10 @@ public:
     }
 };
 
-// A reference_chain_t is defined within each EDC than is a parent ("primary") in a "set" relationship.
+// A reference_chain_t is defined within each EDC that is a parent ("primary") in a "set" relationship.
 // The relationship is represented by a chain of pointers. The parent points to the first child,
 // and each child points to the next child, where a null pointer indicates the end of the chain.
-// Each EDC contains a fixed number of reference slots of type gaia_id_t, to form the chanins it
+// Each EDC contains a fixed number of reference slots of type gaia_id_t, to form the chains it
 // is a member of. Any EDC may be parent of any number of sets, and a member of any number of sets.
 // The catalog is aware of each set relationship and determines the number of slots required to be
 // stored in an EDC instanced in order to hold the pointers. One reference slot is needed for each
@@ -99,11 +99,11 @@ template <typename T_primary, typename T_foreign, int T_parent_slot, int T_prima
 class reference_chain_t {
     T_primary* m_outer;
 public:
-    gaia_set_iterator_t<T_foreign,T_foreign_slot> begin() {
+    gaia_set_iterator_t<T_foreign, T_foreign_slot> begin() {
         T_foreign* edc_ptr = T_foreign::get_row_by_id(m_outer->m_references[T_primary_slot]);
-        return gaia_set_iterator_t<T_foreign,T_foreign_slot>(edc_ptr);
+        return gaia_set_iterator_t<T_foreign, T_foreign_slot>(edc_ptr);
     }
-    gaia_set_iterator_t<T_foreign,T_foreign_slot> end() {return gaia_set_iterator_t<T_foreign,T_foreign_slot>(nullptr);}
+    gaia_set_iterator_t<T_foreign, T_foreign_slot> end() {return gaia_set_iterator_t<T_foreign, T_foreign_slot>(nullptr);}
     void set_outer(T_primary* outer) {m_outer = outer;}
     void insert(T_foreign* foreign_ptr) {
         foreign_ptr->m_references[T_foreign_slot] = m_outer->m_references[T_primary_slot];
