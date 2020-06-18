@@ -120,6 +120,16 @@ namespace db
         }
     };
 
+    class node_not_disconnected: public gaia_exception
+    {
+    public:
+        node_not_disconnected(gaia_id_t id, gaia_type_t object_type) {
+            stringstream msg;
+            msg << "Cannot delete object " << id << ", type " << object_type << " because it is still connected to other object.";
+            m_message = msg.str();
+        }
+    };
+
     inline void check_id(gaia_id_t id)
     {
         if (id & c_edge_flag)
@@ -873,7 +883,7 @@ namespace db
 
             // I'm not sure why this is necessary, but it is.
             node->next_edge_second = nullptr;
-            
+
             node->id = id;
             node->type = type;
             node->num_references = num_refs;
@@ -975,6 +985,12 @@ namespace db
             return;
         }
         check_id(node->id);
+
+        for (size_t i = 0; i < node->num_references; i++) {
+            if (node->references[i]) {
+                throw node_not_disconnected(node->id, node->type);
+            }
+        }
 
         if (node->next_edge_first
             || node->next_edge_second)

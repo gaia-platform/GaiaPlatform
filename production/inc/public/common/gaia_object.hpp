@@ -215,17 +215,6 @@ public:
     }
 };
 
-// A non-null reference was found among this object's references.
-class edc_not_disconnected: public gaia_exception
-{
-public:
-    edc_not_disconnected(gaia_id_t id, const char* object_type) {
-        stringstream msg;
-        msg << "Cannot delete object " << id << ", type " << object_type << " because it is still connected to other object.";
-        m_message = msg.str();
-    }
-};
-
 // Macros for strongly types field accessors used by
 // gaia_object_t objects below.
 #define GET_CURRENT(field) (m_copy ? (m_copy->field) : (m_fb->field()))
@@ -250,9 +239,6 @@ public:
     {
         s_gaia_cache.erase(m_id);
         s_gaia_tx_cache.erase(m_id);
-        if (m_references) {
-            delete[] m_references;
-        }
         reset(true);
     }
     gaia_object_t() = delete;
@@ -343,22 +329,23 @@ public:
         if (m_copy) {
             auto u = T_fb::Pack(*m_fbb, m_copy.get());
             m_fbb->Finish(u);
-            if (num_ptrs) {
-                m_references = new gaia_id_t[num_ptrs];
-                for (size_t i = 0; i < m_num_references; i++) {
-                    m_references[i] = 0;
-                }
-            }
             auto node_ptr = gaia_se_node::create(m_id, T_gaia_type, num_ptrs, m_references,
                 m_fbb->GetSize(), m_fbb->GetBufferPointer());
             m_fbb->Clear();
             m_fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);
+            // Stop using cached references now that the mutable object exists.
+            if (m_references) {
+                delete[] m_references;
+                m_references = node_ptr->references;
+            }
         } else {
             // This situation only happens if an object representing
             // a deleted row is reused.  By giving the object a copy buffer, 
             // the object can be used to insert new values.
+            m_fb = nullptr;
             copy_write();
             node_ptr = gaia_se_node::create(m_id, T_gaia_type, 0, nullptr, 0, nullptr);
+            m_references = node_ptr->references;
         }
         s_gaia_cache[m_id] = this;
         s_gaia_tx_cache[m_id] = this;
@@ -382,6 +369,7 @@ public:
             auto u = T_fb::Pack(*m_fbb, m_copy.get());
             m_fbb->Finish(u);
             node_ptr.update_payload(m_num_references, m_references, m_fbb->GetSize(), m_fbb->GetBufferPointer());
+            m_references = node_ptr->references;
             m_fbb->Clear();
         }
     }
@@ -397,13 +385,11 @@ public:
             throw invalid_node_id(m_id);
         }
 
-        // The references may not have been updated to the SE payload, but the most
-        // recent values exist here in this object, so check them here.
-        for (size_t i = 0; i < m_num_references; i++) {
-            if (m_references[i]) {
-                throw edc_not_disconnected(m_id, this->gaia_typename());
-            }
+        // If cached references exist, delete the memory.
+        if (m_references != node_ptr->references) {
+            delete[] m_references;
         }
+
         gaia_ptr<gaia_se_node>::remove(node_ptr);
         // A partial reset leaves m_fb alone. If program incorrectly references
         // fields in this deleted object, it will not crash.
@@ -471,17 +457,23 @@ protected:
     T_obj* copy_write()
     {
         if (!m_copy) {
+            // A brand new object should be prepared with the mutable flatbuffer
+            // object. It won't have the read-only object because the SE object
+            // doesn't exist yet. Set up the references to be used here in the
+            // EDC object until the SE object exists.
             m_copy.reset(new T_obj());
             if (m_fb) {
                 m_fb->UnPackTo(m_copy.get());
             }
-            m_fbb.reset(new flatbuffers::FlatBufferBuilder());
-            if (m_num_references && !m_references) {
-                m_references = new gaia_id_t[m_num_references];
-                for (size_t i = 0; i < m_num_references; i++) {
-                    m_references[i] = 0;
+            else {
+                if (m_num_references && !m_references) {
+                    m_references = new gaia_id_t[m_num_references];
+                    for (size_t i = 0; i < m_num_references; i++) {
+                        m_references[i] = 0;
+                    }
                 }
             }
+            m_fbb.reset(new flatbuffers::FlatBufferBuilder());
         }
         return m_copy.get();
     }
@@ -510,17 +502,12 @@ private:
                 s_gaia_cache.insert(pair<gaia_id_t, gaia_base_t *>(node_ptr->id, obj));
             }
             if (!obj->m_fb) {
-                if (obj->m_references) {
+                if (obj->m_references != node_ptr->references) {
                     delete[] obj->m_references;
-                    obj->m_references = nullptr;
                 }
                 obj->m_num_references = node_ptr->num_references;
-                if (obj->m_num_references) {
-                    obj->m_references = new gaia_id_t[obj->m_num_references];
-                    memcpy(obj->m_references, node_ptr->references, obj->m_num_references * sizeof(gaia_id_t));
-                }
-                auto fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);
-                obj->m_fb = fb;
+                obj->m_references = node_ptr->references;
+                obj->m_fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);
                 obj->m_id = node_ptr->id;
                 s_gaia_tx_cache[obj->m_id] = obj;
             }

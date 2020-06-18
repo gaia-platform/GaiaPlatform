@@ -21,7 +21,13 @@ protected:
             e;
             e = Employee::get_first())
         {
-            e->delete_row();
+            try {
+                e->delete_row();
+            }
+            catch (gaia_exception&) {
+                // Connection tests may cause this, but that's okay.
+                break;
+            }
             delete e;
         }
         commit_transaction();
@@ -316,7 +322,7 @@ TEST_F(gaia_object_test, connect_scan) {
     auto eptr = create_hierarchy();
 
     // Removing a row involved in any set should be prevented.
-    EXPECT_THROW(eptr->delete_row(), edc_not_disconnected);
+    EXPECT_THROW(eptr->delete_row(), node_not_disconnected);
 
     // Count the records in the hierarchy
     auto record_count = scan_hierarchy(eptr);
