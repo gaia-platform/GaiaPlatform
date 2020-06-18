@@ -661,6 +661,9 @@ namespace flatbuffers
                 }
 
                 code_ += "};";
+
+                // Generate the pointer to the object.
+                code_ += "typedef shared_ptr<{{CLASS_NAME}}> {{CLASS_NAME}}_ptr;";
             }
 
             // Set up the correct namespace. Only open a namespace if the existing one is

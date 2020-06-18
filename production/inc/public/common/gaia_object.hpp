@@ -7,7 +7,6 @@
 
 #include <cstring>
 #include <cstdint>
-#include <list>
 #include <map>
 #include "flatbuffers/flatbuffers.h"
 #include "gaia_exception.hpp"
@@ -47,9 +46,15 @@ namespace common {
  * transaction. This ensures that any changes made by other transactions will be
  * refreshed if they are accessed again.
  */
+struct gaia_base_t;
+typedef shared_ptr<gaia_base_t> db_ptr;
+typedef weak_ptr<gaia_base_t> obj_ptr;
+
 struct gaia_base_t
 {
-    typedef map<gaia_id_t, gaia_base_t *> id_cache_t;
+    typedef map<gaia_id_t, db_ptr> id_cache_t;
+    typedef map<gaia_base_t*, obj_ptr> obj_cache_t;
+
     /**
      * Track every gaia_base_t object by the gaia_id_t. If the same gaia_id_t is
      * accessed multiple times, this cache will find the same object containing
@@ -59,18 +64,16 @@ struct gaia_base_t
      * require quick access to their contents.
      */
     static id_cache_t s_gaia_cache;
+
     /**
-     * Track every gaia_base_t object that has been used in the current transaction.
-     * Used to clear the field values referenced in the objects at transaction commit
-     * because they become stale. This separate cache is maintained as a smaller
-     * subset of the s_gaia_cache so that the whole cache doesn't have to be searched
-     * for contents to be cleared. This map is cleared before every transaction begins.
-     * By waiting until the next transaction begins, program references to fields will
-     * not cause crashes, even though the data is invalid.
+     * Track new objects that have been created but not yet inserted
+     * into the database.  These get moved into the s_gaia_cache on insertion.
+     * This cache will not hold the references alive.
      */
-    static id_cache_t s_gaia_tx_cache;
+    static obj_cache_t s_obj_cache;
+
     /**
-     * Install a commit_hook the first time any gaia object is instantiated.
+     * Install a begin_hook the first time any gaia object is instantiated.
      */ 
     static bool s_tx_hooks_installed;
 
@@ -110,22 +113,70 @@ struct gaia_base_t
      * class objects.  It is executed after the transaction has been committed.
      */    
     static void commit_hook()
-    { 
-        for (auto it = s_gaia_tx_cache.begin(); it != s_gaia_tx_cache.end(); ++it)
-        {
-            it->second->reset(true);
-        }
-        s_gaia_tx_cache.clear();
+    {
     }
 
-    /**
-     * These hooks are intentionally left empty. They are provided
-     * so that the rule subscriber can dumbly generate calls to them
-     * when generating its own hooks to generate transaction events.
-     * If code is run as part of begin or rollback hooks then do not
-     * forget to set the hook in set_tx_hooks below.
-     */ 
-    static void begin_hook() {}
+    static void pre_commit()
+    {
+        for (auto it = s_gaia_cache.begin(); it != s_gaia_cache.end(); ++it)
+        {
+            db_ptr& obj = it->second;
+
+            // Only do the operation if there is an
+            // outstanding reference besides this cache
+            // object reference.
+            if (!obj.unique())
+            {
+                obj->do_operation();
+            }
+        }
+
+        for (auto it = s_obj_cache.begin(); it != s_obj_cache.end(); ++it) 
+        {
+            obj_ptr& ptr = it->second;
+            if (!ptr.expired())
+            {
+                ptr.lock()->do_operation();
+            }
+        }
+    }
+
+    static void begin_hook() 
+    {
+        for (auto it = s_gaia_cache.begin(); it != s_gaia_cache.end();)
+        {
+            db_ptr& obj = it->second;
+            // If there is an outstanding reference to this object then
+            // drop it from the cache.  Otherwise, refresh the object so
+            // that it picks up any changes from another comitted
+            // transaction.
+            if (obj.unique())
+            {
+                it = s_gaia_cache.erase(it);
+            }
+            else
+            {
+                obj->reset(true);
+                obj->refresh();
+                ++it;
+            }
+        }
+
+        // clean up object cache as well
+        for (auto it = s_obj_cache.begin(); it != s_obj_cache.end();)
+        {
+            obj_ptr& obj = it->second;
+            if (obj.expired())
+            {
+                it = s_obj_cache.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+    }
+
     static void rollback_hook() {}
 
     virtual gaia_type_t gaia_type() = 0;
@@ -147,9 +198,9 @@ protected:
         {
             // Do not overwrite an already established hook.  This could happen
             // if an application has subscribed to transaction events.
-            if (!gaia::db::s_tx_commit_hook)
+            if (!gaia::db::s_tx_begin_hook)
             {
-                gaia::db::s_tx_commit_hook = commit_hook;
+                gaia::db::s_tx_begin_hook = begin_hook;
             }
             s_tx_hooks_installed = true;
         }
@@ -162,6 +213,8 @@ protected:
 
 private:
     virtual void reset(bool) = 0;
+    virtual void refresh() = 0;
+    virtual void do_operation() {};
 };
 
 // Exception when get_row_by_id() argument doesn't match the class type
@@ -177,6 +230,32 @@ public:
     }
 };
 
+class auto_transaction_t
+{
+public:
+    auto_transaction_t()
+    {
+        gaia::db::begin_transaction();
+    }
+
+    void commit(bool auto_begin = true)
+    {
+        gaia_base_t::pre_commit();
+        gaia::db::commit_transaction();
+        if (auto_begin)
+        {
+            gaia::db::begin_transaction();
+        }
+    }
+
+    ~auto_transaction_t()
+    {
+        if (gaia::db::gaia_mem_base::is_tx_active())
+        {
+            gaia::db::rollback_transaction();
+        }
+    }
+};
 
 // Macros for strongly types field accessors used by
 // gaia_object_t objects below.
@@ -200,8 +279,6 @@ struct gaia_object_t : gaia_base_t
 public:
     virtual ~gaia_object_t()
     {
-        s_gaia_cache.erase(m_id);
-        s_gaia_tx_cache.erase(m_id);
         reset(true);
     }
     gaia_object_t() = delete;
@@ -233,9 +310,21 @@ public:
     }
 
     /**
+     * Factory method for creating new T_gaia objects
+     * not bound to the database.
+     */
+    static shared_ptr<T_gaia> create()
+    {
+        shared_ptr<T_gaia> client_ptr(new T_gaia());
+        gaia_base_t::s_obj_cache.insert(
+            pair<gaia_base_t*, obj_ptr>(client_ptr.get(), client_ptr));
+        return client_ptr;
+    }
+
+    /**
      * Ask for the first object of a flatbuffer type, T_gaia_type.
      */
-    static T_gaia* get_first() {
+    static shared_ptr<T_gaia> get_first() {
         auto node_ptr = gaia_ptr<gaia_se_node>::find_first(T_gaia_type);
         return get_object(node_ptr);
     }
@@ -244,7 +333,7 @@ public:
      * Ask for the next object of a flatbuffer type. This call must follow a call to the
      * static method get_first().
      */
-    T_gaia* get_next() {
+    shared_ptr<T_gaia> get_next() {
         auto current_ptr = gaia_se_node::open(m_id);
         auto next_ptr = current_ptr.find_next();
         return get_object(next_ptr);
@@ -256,7 +345,7 @@ public:
      * 
      * @param id the gaia_id_t of a specific storage engine object, of type T_gaia_type
      */
-    static T_gaia* get_row_by_id(gaia_id_t id) {
+    static shared_ptr<T_gaia> get_row_by_id(gaia_id_t id) {
         auto node_ptr = gaia_se_node::open(id);
         return get_object(node_ptr);
     }
@@ -288,9 +377,18 @@ public:
             copy_write();
             node_ptr = gaia_se_node::create(m_id, T_gaia_type, 0, nullptr);
         }
-        s_gaia_cache[m_id] = this;
-        s_gaia_tx_cache[m_id] = this;
-        return;
+
+        // Move the object from the new object cache to the db cache
+        auto it = s_obj_cache.find(this);
+        if (it != s_obj_cache.end())
+        {
+            obj_ptr& ptr = it->second;
+            if (!ptr.expired())
+            {
+                s_gaia_cache.insert(pair<gaia_id_t, db_ptr>(m_id, ptr.lock()));
+            }
+            s_obj_cache.erase(it);
+        }
     }
 
     /**
@@ -375,17 +473,17 @@ protected:
     }
 
 private:
-    static T_gaia* get_object(gaia_ptr<gaia_se_node>& node_ptr)
+    static shared_ptr<T_gaia> get_object(gaia_ptr<gaia_se_node>& node_ptr)
     {
-        T_gaia* obj = nullptr;
+        shared_ptr<T_gaia> client_ptr;
         if (node_ptr) {
             auto it = s_gaia_cache.find(node_ptr->id);
             if (it != s_gaia_cache.end()) {
-                obj = dynamic_cast<T_gaia *>(it->second);
-                if (!obj) {
+                client_ptr = dynamic_pointer_cast<T_gaia>(it->second);
+                if (!client_ptr) {
                     // The T_gaia object will contain the type name we want for the exception.
                     T_gaia expected;
-                    gaia_base_t * actual = (gaia_base_t *)(it->second);
+                    auto actual = it->second;
                     throw edc_invalid_object_type(node_ptr->id,
                         expected.gaia_type(),
                         expected.gaia_typename(),
@@ -394,17 +492,15 @@ private:
                 }
             }
             else {
-                obj = new T_gaia(node_ptr->id);
-                s_gaia_cache.insert(pair<gaia_id_t, gaia_base_t *>(node_ptr->id, obj));
+                client_ptr.reset(new T_gaia(node_ptr->id));
+                s_gaia_cache.insert(pair<gaia_id_t, db_ptr>(node_ptr->id, client_ptr));
             }
-            if (!obj->m_fb) {
-                auto fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);
-                obj->m_fb = fb;
-                obj->m_id = node_ptr->id;
-                s_gaia_tx_cache[obj->m_id] = obj;
+            if (!client_ptr->m_fb) {
+                client_ptr->m_id = node_ptr->id;
+                client_ptr->refresh();
             }
         }
-        return obj;
+        return client_ptr;
     }
 
     void reset(bool clear_flatbuffer = false) override
@@ -416,8 +512,33 @@ private:
         // time the object is located.  We do not own the flatbuffer so
         // don't delete it.
         if (clear_flatbuffer) {
-
             m_fb = nullptr;
+        }
+    }
+
+    void refresh() override
+    {
+        if (m_id)
+        {
+            auto node_ptr = gaia_se_node::open(m_id);
+            if (node_ptr) {
+                m_fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);
+            }
+        }
+    }
+
+    void do_operation() override
+    {
+        if (m_copy)
+        {
+            if (m_id == 0)
+            {
+                insert_row();
+            }
+            else
+            {
+                update_row();
+            }
         }
     }
 };

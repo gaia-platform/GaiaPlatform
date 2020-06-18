@@ -12,8 +12,6 @@ project(direct_access)
 set(GAIA_TEST_COMMON_INCLUDES 
     ${GAIA_INC}/public/common
     ${GAIA_INC}/internal/common
-    ${GAIA_INC}/public/rules
-    ${GAIA_RULES_INC}
     ${PROJECT_SOURCE_DIR}/inc
     ${FLATBUFFERS_INC}
 )
@@ -35,4 +33,9 @@ set (DIRECT_ACCESS_TEST_INCLUDES
     ${GAIA_TEST_COMMON_INCLUDES}
     ${GAIA_REPO}/production/db/storage_engine/mock
 )
-add_gtest(test_direct_access test_direct_access.cpp "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia" "test_generated_code")
+add_gtest(test_direct_access test_direct_access.cpp "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_semock;gaia_direct" "test_generated_code")
+
+#add_executable(test_proc test_proc.cpp)
+#set_target_properties(test_proc PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+#target_include_directories(test_proc PRIVATE ${DIRECT_ACCESS_TEST_INCLUDES})
+#target_link_libraries(test_proc rt gaia_direct gaia_semock)
