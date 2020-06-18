@@ -3,7 +3,7 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.11)
 
 enable_testing()
 
@@ -12,6 +12,3 @@ project(tests)
 
 # Add individual component folders.
 add_subdirectory(common)
-
-# Tests.
-add_gtest(test_retail_assert test_retail_assert.cpp "${GAIA_INC}/public/common" "")
