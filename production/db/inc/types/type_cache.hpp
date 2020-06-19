@@ -63,6 +63,11 @@ class type_cache_t
 
 protected:
 
+    // Do not allow copies to be made;
+    // disable copy constructor and assignment operator.
+    type_cache_t(const type_cache_t&) = delete;
+    type_cache_t& operator=(const type_cache_t&) = delete;
+
     // type_cache_t is a singleton, so its constructor is not public.
     type_cache_t() = default;
 
@@ -114,6 +119,11 @@ public:
 
     auto_field_cache_t();
     ~auto_field_cache_t();
+
+    // Do not allow copies to be made;
+    // disable copy constructor and assignment operator.
+    auto_field_cache_t(const auto_field_cache_t&) = delete;
+    auto_field_cache_t& operator=(const auto_field_cache_t&) = delete;
 
     const field_cache_t* get();
 
