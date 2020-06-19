@@ -16,7 +16,7 @@ using namespace gaia::common;
 
 struct context_t
 {
-    shared_mutex lock;
+    shared_mutex_t lock;
 
     int count_reader_executions;
     int count_writer_executions;

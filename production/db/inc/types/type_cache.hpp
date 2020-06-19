@@ -94,7 +94,7 @@ protected:
     // Reads from cache will hold read locks, whereas update operations will request exclusive locks.
     // Operations that require exclusive locking are meant to be rare.
     // We can further improve implementation by preloading type information at system startup.
-    gaia::common::shared_mutex m_lock;
+    gaia::common::shared_mutex_t m_lock;
 
     // The map used by the type cache.
     type_map_t m_type_map;

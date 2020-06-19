@@ -40,12 +40,12 @@ public:
  * The main goal of this implementation is to facilitate a future transition
  * to the standard shared_mutex implementation.
  */
-class shared_mutex
+class shared_mutex_t
 {
 public:
 
-    shared_mutex();
-    ~shared_mutex();
+    shared_mutex_t();
+    ~shared_mutex_t();
 
     void lock();
     bool try_lock();
@@ -63,16 +63,16 @@ protected:
 /**
  * A class for automatically acquiring and releasing a shared_mutex lock.
  */
-class auto_lock
+class auto_lock_t
 {
 public:
 
-    auto_lock(shared_mutex& lock, bool request_shared = false);
-    ~auto_lock();
+    auto_lock_t(shared_mutex_t& lock, bool request_shared = false);
+    ~auto_lock_t();
 
 protected:
 
-    shared_mutex* m_lock;
+    shared_mutex_t* m_lock;
     bool m_request_shared;
 };
 
