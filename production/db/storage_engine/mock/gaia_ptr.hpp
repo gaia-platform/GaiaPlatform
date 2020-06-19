@@ -82,7 +82,7 @@ public:
 
         memcpy (new_this, old_this, new_size);
 
-        gaia_client::tx_log (row_id, old_offset, to_offset());
+        client::tx_log (row_id, old_offset, to_offset());
 
         return *this;
     }
@@ -101,7 +101,7 @@ public:
         new_this->payload_size = payload_size;
         memcpy (new_payload, payload, payload_size);
 
-        gaia_client::tx_log (row_id, old_offset, to_offset());
+        client::tx_log (row_id, old_offset, to_offset());
 
         return *this;
     }
@@ -163,13 +163,13 @@ protected:
     {
         gaia_id_t id_copy = preprocess_id(id, is_edge);
 
-        gaia_mem_base::hash_node* hash_node = gaia_hash_map::insert (id_copy);
-        hash_node->row_id = row_id = gaia_client::allocate_row_id();
-        gaia_client::allocate_object(row_id, size);
+        se_base::hash_node* hash_node = gaia_hash_map::insert (id_copy);
+        hash_node->row_id = row_id = client::allocate_row_id();
+        client::allocate_object(row_id, size);
 
         // writing to log will be skipped for recovery
         if (log_updates) {
-            gaia_client::tx_log (row_id, 0, to_offset());
+            client::tx_log (row_id, 0, to_offset());
         }
     }
 
@@ -187,24 +187,24 @@ protected:
 
     void allocate (const size_t size)
     {
-        gaia_client::allocate_object(row_id, size);
+        client::allocate_object(row_id, size);
     }
 
     T* to_ptr() const
     {
-        gaia_client::verify_tx_active();
+        client::verify_tx_active();
 
-        return row_id && (*gaia_client::s_offsets)[row_id]
-            ? (T*)(gaia_client::s_data->objects + (*gaia_client::s_offsets)[row_id])
+        return row_id && (*client::s_offsets)[row_id]
+            ? (T*)(client::s_data->objects + (*client::s_offsets)[row_id])
             : nullptr;
     }
 
     int64_t to_offset() const
     {
-        gaia_client::verify_tx_active();
+        client::verify_tx_active();
 
         return row_id
-            ? (*gaia_client::s_offsets)[row_id]
+            ? (*client::s_offsets)[row_id]
             : 0;
     }
 
@@ -216,7 +216,7 @@ protected:
     void find_next(gaia_type_t type)
     {
         // search for rows of this type within the range of used slots
-        while (++row_id && row_id < gaia_client::s_data->row_id_count+1)
+        while (++row_id && row_id < client::s_data->row_id_count+1)
         {
             if (is (type))
             {
@@ -228,8 +228,8 @@ protected:
 
     void reset()
     {
-        gaia_client::tx_log (row_id, to_offset(), 0);
-        (*gaia_client::s_offsets)[row_id] = 0;
+        client::tx_log (row_id, to_offset(), 0);
+        (*client::s_offsets)[row_id] = 0;
         row_id = 0;
     }
 
@@ -249,7 +249,7 @@ public:
 
     static gaia_id_t generate_id()
     {
-        return gaia_mem_base::generate_id();
+        return se_base::generate_id();
     }
 
     static gaia_ptr<gaia_se_node> create (
@@ -393,7 +393,7 @@ inline void gaia_ptr<gaia_se_edge>::remove (gaia_ptr<gaia_se_edge>& edge)
         auto current_edge = node_first->next_edge_first;
         for (;;)
         {
-            assert(current_edge);
+            retail_assert(current_edge);
             if (current_edge->next_edge_first == edge)
             {
                 current_edge.clone();
@@ -416,7 +416,7 @@ inline void gaia_ptr<gaia_se_edge>::remove (gaia_ptr<gaia_se_edge>& edge)
 
         for (;;)
         {
-            assert(current_edge);
+            retail_assert(current_edge);
             if (current_edge->next_edge_second == edge)
             {
                 current_edge.clone();

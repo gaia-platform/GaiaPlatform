@@ -12,117 +12,118 @@ namespace gaia
 {
 namespace db
 {
-    using namespace common;
 
-    class gaia_hash_map : private gaia_client
+using namespace common;
+
+class gaia_hash_map : private client
+{
+public:
+    static se_base::hash_node* insert(const gaia_id_t id)
     {
-    public:
-        static gaia_mem_base::hash_node* insert(const gaia_id_t id)
+        if (*client::s_offsets == nullptr)
         {
-            if (*gaia_client::s_offsets == nullptr)
-            {
-                throw tx_not_open();
-            }
-
-            gaia_mem_base::hash_node* node = gaia_client::s_data->hash_nodes + (id % gaia_mem_base::HASH_BUCKETS);
-            if (node->id == 0 && __sync_bool_compare_and_swap(&node->id, 0, id))
-            {
-                return node;
-            }
-
-            int64_t new_node_idx = 0;
-
-            for (;;)
-            {
-                __sync_synchronize();
-
-                if (node->id == id)
-                {
-                    if (node->row_id &&
-                        (*gaia_client::s_offsets)[node->row_id])
-                    {
-                        throw duplicate_id();
-                    }
-                    else
-                    {
-                        return node;
-                    }
-                }
-
-                if (node->next)
-                {
-                    node = gaia_client::s_data->hash_nodes + node->next;
-                    continue;
-                }
-
-                if (!new_node_idx)
-                {
-                    assert(gaia_client::s_data->hash_node_count + gaia_mem_base::HASH_BUCKETS < gaia_mem_base::HASH_LIST_ELEMENTS);
-                    new_node_idx = gaia_mem_base::HASH_BUCKETS + __sync_fetch_and_add (&gaia_client::s_data->hash_node_count, 1);
-                    (gaia_client::s_data->hash_nodes + new_node_idx)->id = id;
-                }
-
-                if (__sync_bool_compare_and_swap(&node->next, 0, new_node_idx))
-                {
-                    return gaia_client::s_data->hash_nodes + new_node_idx;
-                }
-            }
+            throw tx_not_open();
         }
 
-        static int64_t find(const gaia_id_t id)
+        se_base::hash_node* node = client::s_data->hash_nodes + (id % se_base::HASH_BUCKETS);
+        if (node->id == 0 && __sync_bool_compare_and_swap(&node->id, 0, id))
         {
-            if (*gaia_client::s_offsets == nullptr)
-            {
-                throw tx_not_open();
-            }
-
-            auto node = gaia_client::s_data->hash_nodes + (id % gaia_mem_base::HASH_BUCKETS);
-
-            while (node)
-            {
-                if (node->id == id)
-                {
-                    if (node->row_id && (*gaia_client::s_offsets)[node->row_id])
-                    {
-                        return node->row_id;
-                    }
-                    else
-                    {
-                        return 0;
-                    }
-                }
-
-                node = node->next
-                    ? gaia_client::s_data->hash_nodes + node->next
-                    : 0;
-            }
-
-            return 0;
+            return node;
         }
 
-        static void remove(const gaia_id_t id)
-        {
-            gaia_mem_base::hash_node* node = gaia_client::s_data->hash_nodes + (id % gaia_mem_base::HASH_BUCKETS);
+        int64_t new_node_idx = 0;
 
-            while (node->id)
+        for (;;)
+        {
+            __sync_synchronize();
+
+            if (node->id == id)
             {
-                if (node->id == id)
+                if (node->row_id &&
+                    (*client::s_offsets)[node->row_id])
                 {
-                    if (node->row_id)
-                    {
-                        node->row_id = 0;
-                    }
-                    return;
+                    throw duplicate_id();
                 }
-                if (!node->next)
+                else
                 {
-                    return;
+                    return node;
                 }
-                node = gaia_client::s_data->hash_nodes + node->next;
+            }
+
+            if (node->next)
+            {
+                node = client::s_data->hash_nodes + node->next;
+                continue;
+            }
+
+            if (!new_node_idx)
+            {
+                retail_assert(client::s_data->hash_node_count + se_base::HASH_BUCKETS < se_base::HASH_LIST_ELEMENTS);
+                new_node_idx = se_base::HASH_BUCKETS + __sync_fetch_and_add (&client::s_data->hash_node_count, 1);
+                (client::s_data->hash_nodes + new_node_idx)->id = id;
+            }
+
+            if (__sync_bool_compare_and_swap(&node->next, 0, new_node_idx))
+            {
+                return client::s_data->hash_nodes + new_node_idx;
             }
         }
+    }
 
-    };
+    static int64_t find(const gaia_id_t id)
+    {
+        if (*client::s_offsets == nullptr)
+        {
+            throw tx_not_open();
+        }
+
+        auto node = client::s_data->hash_nodes + (id % se_base::HASH_BUCKETS);
+
+        while (node)
+        {
+            if (node->id == id)
+            {
+                if (node->row_id && (*client::s_offsets)[node->row_id])
+                {
+                    return node->row_id;
+                }
+                else
+                {
+                    return 0;
+                }
+            }
+
+            node = node->next
+                ? client::s_data->hash_nodes + node->next
+                : 0;
+        }
+
+        return 0;
+    }
+
+    static void remove(const gaia_id_t id)
+    {
+        se_base::hash_node* node = client::s_data->hash_nodes + (id % se_base::HASH_BUCKETS);
+
+        while (node->id)
+        {
+            if (node->id == id)
+            {
+                if (node->row_id)
+                {
+                    node->row_id = 0;
+                }
+                return;
+            }
+            if (!node->next)
+            {
+                return;
+            }
+            node = client::s_data->hash_nodes + node->next;
+        }
+    }
+
+};
 
 } // db
 } // gaia

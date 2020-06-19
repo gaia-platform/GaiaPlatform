@@ -5,13 +5,34 @@
 
 #pragma once
 
+#include <sys/epoll.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+
+#include <csignal>
+#include <thread>
+
+#include <flatbuffers/flatbuffers.h>
+
+#include "array_size.hpp"
+#include "retail_assert.hpp"
+#include "system_error.hpp"
+#include "mmap_helpers.hpp"
+#include "socket_helpers.hpp"
+#include "messages_generated.h"
+#include "storage_engine.hpp"
+
 using namespace gaia::common;
 
 namespace gaia
 {
 namespace db
 {
-class gaia_client : private gaia_mem_base
+
+// We need to forward-declare this class to avoid a circular dependency.
+class gaia_hash_map;
+
+class client : private se_base
 {
     template<typename T>
     friend class gaia_ptr;
@@ -48,7 +69,7 @@ private:
     static gaia_tx_hook s_tx_commit_hook;
     static gaia_tx_hook s_tx_rollback_hook;
 
-    // inherited from gaia_mem_base:
+    // inherited from se_base:
     // static int s_fd_offsets;
     // static data *s_data;
     // thread_local static log *s_log;
@@ -130,7 +151,7 @@ private:
 
     static inline void tx_log (int64_t row_id, int64_t old_object, int64_t new_object)
     {
-        assert(s_log->count < MAX_LOG_RECS);
+        retail_assert(s_log->count < MAX_LOG_RECS);
 
         log::log_record* lr = s_log->log_records + s_log->count++;
 

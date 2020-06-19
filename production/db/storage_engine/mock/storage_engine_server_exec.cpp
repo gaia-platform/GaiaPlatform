@@ -6,5 +6,5 @@
 #include "storage_engine_server.hpp"
 
 int main() {
-    gaia::db::gaia_server::run();
+    gaia::db::server::run();
 }
