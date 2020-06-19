@@ -53,10 +53,14 @@ protected:
 
 typedef std::unordered_map<uint64_t, const field_cache_t*> type_map_t;
 
+class auto_field_cache_t;
+
 // The type cache stores field_caches for all managed types.
 // The field_caches are indexed by their corresponding type id.
 class type_cache_t
 {
+    friend class auto_field_cache_t;
+
 protected:
 
     // type_cache_t is a singleton, so its constructor is not public.
@@ -67,11 +71,12 @@ public:
     // Return a pointer to the singleton instance.
     static type_cache_t* get_type_cache();
 
-    // Caller should call release_access() to release the read lock taken by get_field_cache().
-    // This is not necessary if get_field_cache() returned nullptr.
-    // Alternatively, auto_release_cache_read_access can be used to automatically release the access.
-    const field_cache_t* get_field_cache(uint64_t type_id);
-    void release_access();
+    // To ensure that the returned field cache continues to be valid,
+    // this method needs to hold a read lock on the type cache.
+    // To ensure the release of that lock once the field cache is no longer used,
+    // it is returned in an auto_field_cache_t wrapper that will release the lock
+    // at the time the wrapper gets destroyed.
+    void get_field_cache(uint64_t type_id, auto_field_cache_t& auto_field_cache);
 
     // This method should be called whenever the information for a type is being changed.
     // It will return true if the entry was found and deleted, and false if it was not found
@@ -101,16 +106,22 @@ protected:
 };
 
 // A class for automatically releasing the read lock taken while reading from the cache.
-class auto_release_cache_read_access
+class auto_field_cache_t
 {
+    friend class type_cache_t;
+
 public:
 
-    auto_release_cache_read_access(bool enable);
-    ~auto_release_cache_read_access();
+    auto_field_cache_t();
+    ~auto_field_cache_t();
+
+    const field_cache_t* get();
 
 protected:
 
-    bool m_enable_release;
+    const field_cache_t* m_field_cache;
+
+    void set(const field_cache_t* field_cache);
 };
 
 }

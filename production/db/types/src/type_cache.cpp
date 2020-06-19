@@ -36,7 +36,7 @@ type_cache_t* type_cache_t::get_type_cache()
     return &s_type_cache;
 }
 
-const field_cache_t* type_cache_t::get_field_cache(uint64_t type_id)
+void type_cache_t::get_field_cache(uint64_t type_id, auto_field_cache_t& auto_field_cache)
 {
     // We keep a shared lock while the field_cache is in use,
     // to ensure that its information is not being updated by another thread.
@@ -47,18 +47,11 @@ const field_cache_t* type_cache_t::get_field_cache(uint64_t type_id)
     if (iterator == m_type_map.end())
     {
         m_lock.unlock_shared();
-
-        return nullptr;
     }
-
-    return iterator->second;
-}
-
-void type_cache_t::release_access()
-{
-    // Release the read lock taken by get_field_cache().
-    // There is no check to ensure that a read lock was indeed being held by the caller of this method.
-    m_lock.unlock_shared();
+    else
+    {
+        auto_field_cache.set(iterator->second);
+    }
 }
 
 bool type_cache_t::remove_field_cache(uint64_t type_id)
@@ -102,15 +95,29 @@ size_t type_cache_t::size()
     return m_type_map.size();
 }
 
-auto_release_cache_read_access::auto_release_cache_read_access(bool enable)
+auto_field_cache_t::auto_field_cache_t()
 {
-    m_enable_release = enable;
+    m_field_cache = nullptr;
 }
 
-auto_release_cache_read_access::~auto_release_cache_read_access()
+auto_field_cache_t::~auto_field_cache_t()
 {
-    if (m_enable_release)
+    if (m_field_cache != nullptr)
     {
-        type_cache_t::get_type_cache()->release_access();
+        type_cache_t::get_type_cache()->m_lock.unlock_shared();
     }
+}
+
+const field_cache_t* auto_field_cache_t::get()
+{
+    return m_field_cache;
+}
+
+void auto_field_cache_t::set(const field_cache_t* field_cache)
+{
+    retail_assert(
+        m_field_cache == nullptr,
+        "auto_field_cache_t::set() was called on an already set instance!");
+
+    m_field_cache = field_cache;
 }
