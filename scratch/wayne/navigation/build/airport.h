@@ -73,7 +73,7 @@ struct Flight : public gaia_object_t<1,Flight,flight,flightT>{
         return flights;
     }
 
-    reference_chain_t<Flight,Segment,c_parent_flight,c_first_segment,c_next_segment> segments;
+    reference_chain_container_t<Flight,Segment,c_parent_flight,c_first_segment,c_next_segment> segments;
 private:
     friend struct gaia_object_t<1,Flight,flight,flightT>;
     friend struct Segment;
@@ -111,8 +111,8 @@ struct Airport : public gaia_object_t<2,Airport,airport,airportT>{
         return airports;
     }
 
-    reference_chain_t<Airport,Segment,c_parent_src_airport,c_first_src_segment,c_next_src_segment> src_segments;
-    reference_chain_t<Airport,Segment,c_parent_dst_airport,c_first_dst_segment,c_next_dst_segment> dst_segments;
+    reference_chain_container_t<Airport,Segment,c_parent_src_airport,c_first_src_segment,c_next_src_segment> src_segments;
+    reference_chain_container_t<Airport,Segment,c_parent_dst_airport,c_first_dst_segment,c_next_dst_segment> dst_segments;
 private:
     friend struct gaia_object_t<2,Airport,airport,airportT>;
     Airport(gaia_id_t id) : gaia_object_t(id, "Airport") {
@@ -163,7 +163,7 @@ struct Segment : public gaia_object_t<3,Segment,segment,segmentT>{
         return segments;
     }
 
-    reference_chain_t<Segment,Trip_segment,c_parent_segment,c_first_trip_segment,c_next_trip_segment> trip_segments;
+    reference_chain_container_t<Segment,Trip_segment,c_parent_segment,c_first_trip_segment,c_next_trip_segment> trip_segments;
 private:
     friend struct gaia_object_t<3,Segment,segment,segmentT>;
     Segment(gaia_id_t id) : gaia_object_t(id, "Segment") {trip_segments.set_outer(this);}

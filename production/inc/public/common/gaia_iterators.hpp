@@ -56,7 +56,7 @@ struct gaia_container_t {
     static gaia_iterator_t<T_gaia*> end() { return gaia_iterator_t<T_gaia*>(nullptr); }
 };
 
-// A gaia_set_iterator_t is only used from reference_chain_t. It contains the methods that implement
+// A gaia_set_iterator_t is only used from reference_chain_container_t. It contains the methods that implement
 // an iterator for scanning through the linked list forming a "set" between a parent ("primary")
 // and multiple child ("foreign") instances of a type.
 //   @tparam T_foreign the Extended Data Type that is in the child ("foreign") position in the set
@@ -81,7 +81,7 @@ public:
     }
 };
 
-// A reference_chain_t is defined within each EDC that is a parent ("primary") in a "set" relationship.
+// A reference_chain_container_t is defined within each EDC that is a parent ("primary") in a "set" relationship.
 // The relationship is represented by a chain of pointers. The parent points to the first child,
 // and each child points to the next child, where a null pointer indicates the end of the chain.
 // Each EDC contains a fixed number of reference slots of type gaia_id_t, to form the chains it
@@ -96,7 +96,7 @@ public:
 //   @tparam T_primary_slot an integer identifying the location of the pointer to the child in the parent reference list
 //   @tparam T_foreign_slot an integer indenifying the location of the pointer to the next child in the child reference list
 template <typename T_primary, typename T_foreign, int T_parent_slot, int T_primary_slot, int T_foreign_slot>
-class reference_chain_t {
+class reference_chain_container_t {
     T_primary* m_outer;
 public:
     gaia_set_iterator_t<T_foreign, T_foreign_slot> begin() {

@@ -693,26 +693,23 @@ namespace db
             return *this;
         }
 
-        gaia_ptr<T>& update_payload(size_t num_refs, gaia_id_t* refs, size_t payload_size, const void* payload)
+        gaia_ptr<T>& update_payload(size_t payload_size, const void* payload)
         {
             auto old_this = to_ptr();
             auto old_offset = to_offset();
 
-            int32_t total_len = payload_size + num_refs * sizeof(gaia_id_t);
+            int32_t total_len = payload_size + old_this->num_references * sizeof(gaia_id_t);
             allocate(sizeof(T) + total_len);
 
             auto new_this = to_ptr();
 
             memcpy (new_this, old_this, sizeof(T));
             new_this->payload_size = total_len;
-            if (num_refs) {
-                memcpy(new_this->references, refs, num_refs * sizeof(gaia_id_t));
+            if (old_this->num_references) {
+                memcpy(new_this->references, old_this->references, old_this->num_references * sizeof(gaia_id_t));
             }
-            new_this->payload = (char*)(new_this->references) + num_refs * sizeof(gaia_id_t);
-            // Note that num_refs shouldn't normally change. But if a new relationship has
-            // been added to the schema and this is an existing record, then it's possible
-            // that one or more references exist.
-            new_this->num_references = num_refs;
+            new_this->payload = (char*)(new_this->references) + old_this->num_references * sizeof(gaia_id_t);
+            new_this->num_references = old_this->num_references;
             memcpy (new_this->payload, payload, payload_size);
 
             gaia_mem_base::tx_log (row_id, old_offset, to_offset());

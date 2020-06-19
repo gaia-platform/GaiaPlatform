@@ -368,7 +368,7 @@ public:
             }
             auto u = T_fb::Pack(*m_fbb, m_copy.get());
             m_fbb->Finish(u);
-            node_ptr.update_payload(m_num_references, m_references, m_fbb->GetSize(), m_fbb->GetBufferPointer());
+            node_ptr.update_payload(m_fbb->GetSize(), m_fbb->GetBufferPointer());
             m_references = node_ptr->references;
             m_fbb->Clear();
         }

@@ -73,7 +73,7 @@ struct Employee : public gaia_object_t<1,Employee,employee,employeeT>{
         static gaia_container_t<Employee> employees;
         return employees;
     }
-    reference_chain_t<Employee,Address,c_parent_employee,c_first_address,c_next_address> addresss;
+    reference_chain_container_t<Employee,Address,c_parent_employee,c_first_address,c_next_address> addresss;
 private:
     friend struct gaia_object_t<1,Employee,employee,employeeT>;
     Employee(gaia_id_t id) : gaia_object_t(id, "Employee", c_num_employee_ptrs) {addresss.set_outer(this);}
@@ -123,7 +123,7 @@ struct Address : public gaia_object_t<2,Address,address,addressT>{
         static gaia_container_t<Employee> addresss;
         return addresss;
     }
-    reference_chain_t<Address,Phone,c_parent_address,c_first_phone,c_next_phone> phones;
+    reference_chain_container_t<Address,Phone,c_parent_address,c_first_phone,c_next_phone> phones;
 private:
     friend struct gaia_object_t<2,Address,address,addressT>;
     Address(gaia_id_t id) : gaia_object_t(id, "Address", c_num_address_ptrs) {phones.set_outer(this);}
