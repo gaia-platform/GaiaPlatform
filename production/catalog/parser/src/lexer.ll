@@ -5,7 +5,7 @@
 /////////////////////////////////////////////
 /*-------------------------------------------------------------------------
  *
- * lex.l
+ * lex.ll
  *   lexer for Gaia catalog DDLs
  *
  *-------------------------------------------------------------------------
@@ -15,8 +15,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
-#include "driver.hpp"
-#include "parser.hpp"
+#include "gaia_parser.hpp"
+#include "yy_parser.hpp"
 %}
 
 %option noyywrap nounput noinput batch debug
@@ -33,12 +33,13 @@ blank [ \t\r]
 
 %{
   #define YY_USER_ACTION loc.columns (yyleng);
+  #define YY_DECL yy::parser::symbol_type yylex(gaia::catalog::ddl::parser_t &gaia_parser)
 %}
 
 %%
 
 %{
-  yy::location& loc = drv.location;
+  yy::location& loc = gaia_parser.location;
   loc.step ();
 %}
 
@@ -84,18 +85,16 @@ make_NUMBER (const std::string &s, const yy::parser::location_type& loc) {
     return yy::parser::make_NUMBER ((int) n, loc);
 }
 
-void
-driver::scan_begin () {
+void gaia::catalog::ddl::parser_t::scan_begin () {
     yy_flex_debug = trace_scanning;
     if (file.empty () || file == "-") {
         yyin = stdin;
-    } else if (!(yyin = fopen (file.c_str (), "r"))) {
-        std::cerr << "cannot open " << file << ": " << strerror (errno) << '\n';
+    } else if (!(yyin = fopen(file.c_str (), "r"))) {
+        std::cerr << "cannot open " << file << ": " << strerror(errno) << '\n';
         exit (EXIT_FAILURE);
     }
 }
 
-void
-driver::scan_end () {
-    fclose (yyin);
+void gaia::catalog::ddl::parser_t::scan_end () {
+    fclose(yyin);
 }

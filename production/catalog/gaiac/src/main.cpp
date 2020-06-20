@@ -2,8 +2,8 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
-#include "driver.hpp"
 #include "gaia_catalog.hpp"
+#include "gaia_parser.hpp"
 #include "gaia_system.hpp"
 #include <vector>
 
@@ -24,16 +24,16 @@ void execute(vector<statement_t *> &statements) {
 
 int main(int argc, char *argv[]) {
     int res = 0;
-    driver drv;
+    parser_t parser;
     gaia::db::gaia_mem_base::init(true);
     gaia::catalog::initialize_catalog(true);
     for (int i = 1; i < argc; ++i) {
         if (argv[i] == std::string("-p")) {
-            drv.trace_parsing = true;
+            parser.trace_parsing = true;
         } else if (argv[i] == std::string("-s")) {
-            drv.trace_scanning = true;
-        } else if (!drv.parse(argv[i])) {
-            execute(drv.statements);
+            parser.trace_scanning = true;
+        } else if (!parser.parse(argv[i])) {
+            execute(parser.statements);
         } else {
             res = EXIT_FAILURE;
         }

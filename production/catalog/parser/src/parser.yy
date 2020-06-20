@@ -21,7 +21,6 @@
 
 %code requires {
     #include <string>
-    class driver;
     namespace gaia {
     namespace catalog {
     namespace ddl {
@@ -30,14 +29,16 @@
         struct create_statement_t;
         struct field_type_t;
         struct field_definition_t;
+        class parser_t;
     }
     }
     }
+
     using namespace gaia::catalog::ddl;
 }
 
 // The parsing context.
-%param { driver& drv }
+%param { gaia::catalog::ddl::parser_t& gaia_parser }
 
 %locations
 
@@ -45,8 +46,9 @@
 %define parse.error verbose
 
 %code {
-    #include "driver.hpp"
+    #include "gaia_parser.hpp"
     #include "gaia_catalog.hpp"
+    yy::parser::symbol_type yylex(gaia::catalog::ddl::parser_t &);
 }
 
 %define api.token.prefix {TOK_}
@@ -77,7 +79,7 @@
 %start input;
 input: statement_list opt_semicolon {
     for (statement_t* stmt : *$1) {
-        drv.statements.push_back(stmt);
+        gaia_parser.statements.push_back(stmt);
     }
 };
 

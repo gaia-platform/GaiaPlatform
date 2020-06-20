@@ -4,36 +4,36 @@
 /////////////////////////////////////////////
 
 #include "gaia_catalog.hpp"
-#include "driver.hpp"
-#include "lexer.h"
-#include "parser.hpp"
+#include "gaia_parser.hpp"
+#include "yy_lexer.hpp"
+#include "yy_parser.hpp"
 #include "gtest/gtest.h"
 
 using namespace gaia::catalog::ddl;
 
 TEST(catalog_ddl_parser_test, create_table) {
-    driver drv;
+    parser_t parser;
     yy_scan_string("CREATE TABLE t (c INT32);");
-    yy::parser parse(drv);
+    yy::parser parse(parser);
     EXPECT_EQ(EXIT_SUCCESS, parse());
-    EXPECT_EQ(1, drv.statements.size());
-    EXPECT_EQ(drv.statements[0]->type(), statment_type_t::CREATE);
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statment_type_t::CREATE);
     create_statement_t *createStmt =
-        reinterpret_cast<create_statement_t *>(drv.statements[0]);
+        reinterpret_cast<create_statement_t *>(parser.statements[0]);
     EXPECT_EQ(createStmt->type, create_type_t::CREATE_TABLE);
     EXPECT_EQ(createStmt->tableName, "t");
     yylex_destroy();
 }
 
 TEST(catalog_ddl_parser_test, create_table_multiple_fields) {
-    driver drv;
+    parser_t parser;
     yy_scan_string("CREATE TABLE t (c1 INT32[], c2 FLOAT64[2], c3 tt, c4 tt[3]);");
-    yy::parser parse(drv);
+    yy::parser parse(parser);
     EXPECT_EQ(EXIT_SUCCESS, parse());
-    EXPECT_EQ(1, drv.statements.size());
-    EXPECT_EQ(drv.statements[0]->type(), statment_type_t::CREATE);
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statment_type_t::CREATE);
     create_statement_t *createStmt =
-        reinterpret_cast<create_statement_t *>(drv.statements[0]);
+        reinterpret_cast<create_statement_t *>(parser.statements[0]);
     EXPECT_EQ(createStmt->type, create_type_t::CREATE_TABLE);
     EXPECT_EQ(createStmt->tableName, "t");
     EXPECT_EQ(createStmt->fields->size(), 4);

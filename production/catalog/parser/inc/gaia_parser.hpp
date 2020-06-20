@@ -5,16 +5,17 @@
 #pragma once
 
 #include "gaia_catalog.hpp"
-#include "parser.hpp"
+#include "yy_parser.hpp"
 #include <string>
 #include <vector>
 
-#define YY_DECL yy::parser::symbol_type yylex(driver &drv)
-YY_DECL;
+namespace gaia {
+namespace catalog {
+namespace ddl {
 
-class driver {
+class parser_t {
   public:
-    driver() : trace_parsing(false), trace_scanning(false){};
+    parser_t() : trace_parsing(false), trace_scanning(false){};
 
     std::vector<gaia::catalog::ddl::statement_t *> statements;
 
@@ -29,11 +30,17 @@ class driver {
         return res;
     };
 
-    std::string file;
+    yy::location location;
     bool trace_parsing;
+    bool trace_scanning;
+
+  private:
+    std::string file;
 
     void scan_begin();
     void scan_end();
-    bool trace_scanning;
-    yy::location location;
 };
+
+} // namespace ddl
+} // namespace catalog
+} // namespace gaia
