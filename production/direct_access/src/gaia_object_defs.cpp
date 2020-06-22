@@ -6,5 +6,4 @@
 #include "gaia_object.hpp"
 
 gaia::common::gaia_base_t::id_cache_t gaia_base_t::s_gaia_cache;
-gaia::common::gaia_base_t::obj_cache_t gaia_base_t::s_obj_cache;
 bool gaia_base_t::s_tx_hooks_installed = false;

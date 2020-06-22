@@ -14,6 +14,7 @@ gaia_id_t get_next_id()
     return dis(gen);
 }
 
+/*
 gaia::rules::trigger_event_t g_trigger_event;
 std::vector<uint16_t> g_columns;
 
@@ -54,6 +55,7 @@ void verify_trigger_event(gaia::rules::trigger_event_t& expected)
         TEST_ASSERT(std::find(g_columns.begin(), g_columns.end(), column) != g_columns.end());
     }
 }
+*/
 
 void GaiaGetTest()
 {
@@ -131,8 +133,8 @@ void GaiaSetTest()
     AddrBook::Birthdate_ptr pBirthdate = AddrBook::Birthdate::get_row_by_id(birthdate_id);
     TEST_EQ(1971, pBirthdate->year());
 
-    pEmployee->set_ssn("test");
-    TEST_EQ_STR("test",pEmployee->ssn());
+    pEmployee->get_writer()->ssn = "test";
+    TEST_EQ_STR("test",pEmployee->get_writer()->ssn.c_str());
 
     commit_transaction();
 }
@@ -163,25 +165,29 @@ void GaiaUpdateTest()
 
     AddrBook::Employee_ptr pEmployee = AddrBook::Employee::get_row_by_id(empl_node_id);
 
-    pEmployee->set_ssn("test");
-    TEST_EQ_STR("test",pEmployee->ssn());
-    pEmployee->set_name_first("john");
-    TEST_EQ_STR("john",pEmployee->name_first());
-    pEmployee->update_row();
+    pEmployee->get_writer()->ssn = "test";
+    TEST_EQ_STR("test",pEmployee->get_writer()->ssn.c_str());
+    pEmployee->get_writer()->name_first = "john";
+    TEST_EQ_STR("john",pEmployee->get_writer()->name_first.c_str());
+    AddrBook::Employee::update_row(pEmployee);
 
     // Verify two columns changed in update_row().
+    /*
     vector<uint16_t> columns;
     columns.push_back(AddrBook::employee::VT_SSN);
     columns.push_back(AddrBook::employee::VT_NAME_FIRST);
     gaia::rules::trigger_event_t expected_a = {gaia::rules::event_type_t::row_update, 
         AddrBook::Employee::s_gaia_type, pEmployee->gaia_id(), columns.data(), 2};
     verify_trigger_event(expected_a);
+    */
 
-    pEmployee->set_name_last("doe");
-    TEST_EQ_STR("doe",pEmployee->name_last());
-    pEmployee->set_name_first("jane");
-    TEST_EQ_STR("jane",pEmployee->name_first());
-    pEmployee->update_row();
+    pEmployee->get_writer()->name_last = "doe";
+    TEST_EQ_STR("doe",pEmployee->get_writer()->name_last.c_str());
+    pEmployee->get_writer()->name_first = "jane";
+    TEST_EQ_STR("jane",pEmployee->get_writer()->name_first.c_str());
+    AddrBook::Employee::update_row(pEmployee);
+    
+    /*
 
     // Since the changed columns are cumulative until the commit happens, we now have three
     // columns changed overall (ssn, name_last, and name_first).
@@ -189,6 +195,7 @@ void GaiaUpdateTest()
     gaia::rules::trigger_event_t expected_b = {gaia::rules::event_type_t::row_update, 
         AddrBook::Employee::s_gaia_type, pEmployee->gaia_id(), columns.data(), 3};
     verify_trigger_event(expected_b);
+    */
 
     AddrBook::Employee_ptr pEmployee1 = AddrBook::Employee::get_row_by_id(empl_node_id);
     TEST_EQ_STR("test",pEmployee1->ssn());
@@ -214,26 +221,27 @@ void GaiaInsertTest()
     const char* email = "jane.smith@janesmith.com";
     const char* web = "www.janesmith.com";
 
-    AddrBook::Employee_ptr e = AddrBook::Employee::create();
-    e->set_Gaia_Mgr_id(manager_id);
-    e->set_Gaia_FirstAddr_id(first_address_id);
-    e->set_Gaia_FirstPhone_id(first_phone_id);
-    e->set_Gaia_FirstProvision_id(first_provision_id);
-    e->set_Gaia_FirstSalary_id(first_salary_id);
-    e->set_name_first(name_first);
-    e->set_name_last(name_last);
-    e->set_ssn(ssn);
-    e->set_hire_date(hire_date);
-    e->set_email(email);
-    e->set_web(web);
-    e->insert_row();
-    gaia::db::gaia_id_t inserted_id = e->gaia_id();
+    AddrBook::Employee_writer writer = AddrBook::Employee::create();
+    writer->Gaia_Mgr_id = manager_id;
+    writer->Gaia_FirstAddr_id = first_address_id;
+    writer->Gaia_FirstPhone_id = first_phone_id;
+    writer->Gaia_FirstProvision_id =first_provision_id;
+    writer->Gaia_FirstSalary_id = first_salary_id;
+    writer->name_first = name_first;
+    writer->name_last = name_last;
+    writer->ssn = ssn;
+    writer->hire_date = hire_date;
+    writer->email = email;
+    writer->web = web;
+    gaia::db::gaia_id_t inserted_id = AddrBook::Employee::insert_row(writer);
 
+    /*
     gaia::rules::trigger_event_t expected = {gaia::rules::event_type_t::row_insert, 
         AddrBook::Employee::s_gaia_type, inserted_id, nullptr, 0};
     verify_trigger_event(expected);
+    */
 
-    e = AddrBook::Employee::get_row_by_id(inserted_id);
+    AddrBook::Employee_ptr e = AddrBook::Employee::get_row_by_id(inserted_id);
     TEST_EQ(manager_id, e->Gaia_Mgr_id());
     TEST_EQ(first_address_id, e->Gaia_FirstAddr_id());
     TEST_EQ(first_phone_id, e->Gaia_FirstPhone_id());
@@ -274,11 +282,14 @@ void GaiaDeleteTest()
         );
 
     AddrBook::Employee_ptr pEmployee = AddrBook::Employee::get_row_by_id(empl_node_id);
-    pEmployee->delete_row();
+    AddrBook::Employee::delete_row(pEmployee);
 
+    /*
+    
     gaia::rules::trigger_event_t expected = {gaia::rules::event_type_t::row_delete, 
         AddrBook::Employee::s_gaia_type, empl_node_id, nullptr, 0};
     verify_trigger_event(expected);
+    */    
 
     commit_transaction();
 }

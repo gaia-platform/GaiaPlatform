@@ -113,7 +113,7 @@ function(gaia_compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT OUTPUT_DIR)
             --cpp-ptr-type flatbuffers::unique_ptr # Used to test with C++98 STLs
             --cpp-str-type gaia::common::nullable_string_t
             --cpp-str-flex-ctor
-            --gaiacpp --gen-setters
+            --gaiacpp
             ${OPT}
             -I ${CMAKE_CURRENT_SOURCE_DIR}
             -o ${OUTPUT_DIR}

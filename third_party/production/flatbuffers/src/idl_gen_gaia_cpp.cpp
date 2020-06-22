@@ -484,8 +484,6 @@ namespace flatbuffers
     
                 std::string params = "";
                 std::string param_Values = "";
-                //generate constructors 
-                code_ += "{{CLASS_NAME}}() : gaia_object_t(\"{{CLASS_NAME}}\") {};";
 
                 bool has_string_or_vector_fields = false;
            
@@ -538,7 +536,7 @@ namespace flatbuffers
                     else
                     {
                         code_ += 
-                            "{{FIELD_TYPE}} {{FIELD_NAME}} () const { return GET_CURRENT({{FIELD_NAME}});}";
+                            "{{FIELD_TYPE}} {{FIELD_NAME}} () const { return GET({{FIELD_NAME}});}";
                         if (opts_.generate_setters)
                         {
                             code_ += 
@@ -627,9 +625,7 @@ namespace flatbuffers
                 else
                 {
                     code_ += 
-                        "using gaia_object_t::insert_row;\n"
-                        "using gaia_object_t::update_row;\n"
-                        "using gaia_object_t::delete_row;";
+                        "using gaia_object_t::insert_row;";
                 }
 
                 // If the flatbuffer has a string or vector column then 
@@ -664,6 +660,8 @@ namespace flatbuffers
 
                 // Generate the pointer to the object.
                 code_ += "typedef shared_ptr<{{CLASS_NAME}}> {{CLASS_NAME}}_ptr;";
+                // Generate pointe to writer
+                code_ += "typedef unique_ptr<{{STRUCT_NAME}}T> {{CLASS_NAME}}_writer;";
             }
 
             // Set up the correct namespace. Only open a namespace if the existing one is

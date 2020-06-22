@@ -41,7 +41,7 @@ class row_context_t : public gaia_base_t
 {
 public:
     row_context_t() : gaia_base_t("TestGaia") {}
-    void reset(bool) override {}
+    void refresh() override {}
     
     static gaia_type_t s_gaia_type;
     gaia_type_t gaia_type() override
