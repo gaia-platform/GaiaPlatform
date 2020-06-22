@@ -915,15 +915,19 @@ namespace db
 
         gaia_id_t id;
         gaia_type_t type;
+        size_t num_references;
         gaia_id_t first;
         gaia_id_t second;
+        char* payload;
         size_t payload_size;
-        char payload[0];
+        char references[0];
 
         static gaia_ptr<gaia_se_edge> create (
             gaia_id_t id,
             gaia_type_t type,
             gaia_id_t first,
+            size_t num_refs,
+            gaia_id_t* refs,
             gaia_id_t second,
             size_t payload_size,
             const void* payload,
@@ -943,14 +947,25 @@ namespace db
                 throw invalid_node_id(second);
             }
 
-            gaia_ptr<gaia_se_edge> edge(id, payload_size + sizeof(gaia_se_edge), true, log_updates);
+            size_t total_len = payload_size + num_refs * sizeof(gaia_id_t);
+            gaia_ptr<gaia_se_edge> edge(id, total_len + sizeof(gaia_se_edge), true, log_updates);
 
             edge->id = id;
             edge->type = type;
             edge->first = first;
             edge->second = second;
-            edge->payload_size = payload_size;
-            memcpy (edge->payload, payload, payload_size);
+            edge->num_references = num_refs;
+            if (num_refs) {
+                if (refs) {
+                    memcpy(edge->references, refs, num_refs * sizeof(gaia_id_t));
+                }
+                else {
+                    memset(edge->references, 0, num_refs * sizeof(gaia_id_t));
+                }
+            }
+            edge->payload = (char*)(edge->references) + num_refs * sizeof(gaia_id_t);
+            edge->payload_size = total_len;
+            memcpy (edge->payload, payload, total_len);
 
             edge->node_first = node_first;
             edge->node_second = node_second;
