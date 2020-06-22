@@ -868,6 +868,17 @@ namespace db
         static gaia_ptr<gaia_se_node> create (
             gaia_id_t id,
             gaia_type_t type,
+            size_t payload_size,
+            const void* payload,
+            bool log_updates = true
+        )
+        {
+            return create(id, type, 0, nullptr, payload_size, payload, log_updates);
+        }
+
+        static gaia_ptr<gaia_se_node> create (
+            gaia_id_t id,
+            gaia_type_t type,
             size_t num_refs,
             gaia_id_t* refs,
             size_t payload_size,
@@ -926,8 +937,21 @@ namespace db
             gaia_id_t id,
             gaia_type_t type,
             gaia_id_t first,
+            gaia_id_t second,
+            size_t payload_size,
+            const void* payload,
+            bool log_updates = true
+        )
+        {
+            return create(id, type, 0, nullptr, first, second, payload_size, payload, log_updates);
+        }
+
+        static gaia_ptr<gaia_se_edge> create (
+            gaia_id_t id,
+            gaia_type_t type,
             size_t num_refs,
             gaia_id_t* refs,
+            gaia_id_t first,
             gaia_id_t second,
             size_t payload_size,
             const void* payload,
