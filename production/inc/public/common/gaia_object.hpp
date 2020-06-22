@@ -329,8 +329,8 @@ public:
         if (m_copy) {
             auto u = T_fb::Pack(*m_fbb, m_copy.get());
             m_fbb->Finish(u);
-            auto node_ptr = gaia_se_node::create(m_id, T_gaia_type, num_ptrs, m_references,
-                m_fbb->GetSize(), m_fbb->GetBufferPointer());
+            auto node_ptr = gaia_se_node::create(m_id, T_gaia_type, m_fbb->GetSize(), m_fbb->GetBufferPointer(),
+                num_ptrs, m_references);
             m_fbb->Clear();
             m_fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);
             // Stop using cached references now that the mutable object exists.
@@ -404,7 +404,7 @@ public:
     static T_gaia* insert_row(flatbuffers::FlatBufferBuilder& fbb, gaia_id_t num_ptrs)
     {
         gaia_id_t node_id = gaia_se_node::generate_id();
-        auto node_ptr = gaia_se_node::create(node_id, T_gaia_type, num_ptrs, nullptr, fbb.GetSize(), fbb.GetBufferPointer());
+        auto node_ptr = gaia_se_node::create(node_id, T_gaia_type, fbb.GetSize(), fbb.GetBufferPointer(), num_ptrs, nullptr);
         node_ptr->num_references = num_ptrs;
         return get_row_by_id(node_id);
     }
@@ -412,7 +412,7 @@ public:
     static gaia_id_t insert_row(flatbuffers::FlatBufferBuilder& fbb)
     {
         gaia_id_t node_id = gaia_se_node::generate_id();
-        gaia_se_node::create(node_id, T_gaia_type, 0, nullptr, fbb.GetSize(), fbb.GetBufferPointer());
+        gaia_se_node::create(node_id, T_gaia_type, fbb.GetSize(), fbb.GetBufferPointer(), 0, nullptr);
         return node_id;
     }
 

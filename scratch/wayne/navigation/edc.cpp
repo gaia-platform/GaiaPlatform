@@ -15,17 +15,17 @@ using namespace gaia::airport;
 
 void print_airport_segments(Airport* ap) {
     printf("Airport %ld:\n", ap->gaia_id());
-    for (auto s : ap->src_segments) {
+    for (auto s : ap->src_segment_list) {
         printf("  source of segment %d - %d\n", s->id(), s->miles());
     }
-    for (auto s : ap->dst_segments) {
+    for (auto s : ap->dst_segment_list) {
         printf("  destination of segment %d - %d\n", s->id(), s->miles());
     }
 }
 
-void print_segment_trip_segments(Segment* s) {
+void print_segment_trip_segment_list(Segment* s) {
     printf("Segment %ld Trip_segments:\n", s->gaia_id());
-    for (auto ts : s->trip_segments) {
+    for (auto ts : s->trip_segment_list) {
         printf("  segment %s\n", ts->who());
     }
 }
@@ -69,108 +69,108 @@ int main ()
     auto ts6 = Trip_segment::insert_row("Rachael");
 
     // Connect Flights to Segments.
-    f1->segments.insert(s1);
-    f1->segments.insert(s4);
-    f2->segments.insert(s2);
-    f2->segments.insert(s3);
-    f3->segments.insert(s5);
+    f1->segment_list.insert(s1);
+    f1->segment_list.insert(s4);
+    f2->segment_list.insert(s2);
+    f2->segment_list.insert(s3);
+    f3->segment_list.insert(s5);
 
     // Connect Airports to Segments.
-    ap1->src_segments.insert(s1);
-    ap2->dst_segments.insert(s1);
-    ap4->src_segments.insert(s2);
-    ap2->dst_segments.insert(s2);
-    ap2->src_segments.insert(s3);
-    ap3->dst_segments.insert(s3);
-    ap2->src_segments.insert(s4);
-    ap5->dst_segments.insert(s4);
-    ap5->src_segments.insert(s5);
-    ap3->dst_segments.insert(s5);
+    ap1->src_segment_list.insert(s1);
+    ap2->dst_segment_list.insert(s1);
+    ap4->src_segment_list.insert(s2);
+    ap2->dst_segment_list.insert(s2);
+    ap2->src_segment_list.insert(s3);
+    ap3->dst_segment_list.insert(s3);
+    ap2->src_segment_list.insert(s4);
+    ap5->dst_segment_list.insert(s4);
+    ap5->src_segment_list.insert(s5);
+    ap3->dst_segment_list.insert(s5);
 
     // Connect Segments to Trip_segments.
-    s1->trip_segments.insert(ts1);
-    s3->trip_segments.insert(ts2);
-    s2->trip_segments.insert(ts3);
-    s4->trip_segments.insert(ts4);
-    s4->trip_segments.insert(ts5);
-    s5->trip_segments.insert(ts6);
+    s1->trip_segment_list.insert(ts1);
+    s3->trip_segment_list.insert(ts2);
+    s2->trip_segment_list.insert(ts3);
+    s4->trip_segment_list.insert(ts4);
+    s4->trip_segment_list.insert(ts5);
+    s5->trip_segment_list.insert(ts6);
 
-    for (auto it = Airport::airports().begin(); it != Airport::airports().end(); ++it)
+    for (auto it = Airport::airport_table().begin(); it != Airport::airport_table().end(); ++it)
     {
         printf("airport %s - %s (%s)\n", (*it)->name(), (*it)->iata(), (*it)->city());
     }
 
-    for (auto a : Airport::airports())
+    for (auto a : Airport::airport_table())
     {
         printf("airport %s - %s (%s)\n", a->name(), a->iata(), a->city());
     }
 
-    for (auto a : Flight::flights()) {
+    for (auto a : Flight::flight_table()) {
         printf("flight %d - %d\n", a->number(), a->miles_flown());
     }
-    for (auto a : Segment::segments()) {
+    for (auto a : Segment::segment_table()) {
         printf("segment %d - %d\n", a->id(), a->miles());
     }
-    for (auto a : Trip_segment::trip_segments()) {
+    for (auto a : Trip_segment::trip_segment_table()) {
         printf("trip_segment %s\n", a->who());
     }
 
     // Two forms of the same scan.
     printf("Flight %ld segments, 2 times:\n", f1->gaia_id());
-    for (auto it = f1->segments.begin(); it != f1->segments.end(); ++it) {
+    for (auto it = f1->segment_list.begin(); it != f1->segment_list.end(); ++it) {
         printf("  segment %d - %d\n", (*it)->id(), (*it)->miles());
-        auto sap = (*it)->src_airport();
-        auto dap = (*it)->dst_airport();
+        auto sap = (*it)->src_airport_owner();
+        auto dap = (*it)->dst_airport_owner();
         printf("    source airport:      %s\n", sap->name());
         printf("    destination airport: %s\n", dap->name());
     }
-    for (auto s : f1->segments) {
+    for (auto s : f1->segment_list) {
         printf("  segment %d - %d\n", s->id(), s->miles());
-        auto sap = s->src_airport();
-        auto dap = s->dst_airport();
+        auto sap = s->src_airport_owner();
+        auto dap = s->dst_airport_owner();
         printf("    source airport:      %s\n", sap->name());
         printf("    destination airport: %s\n", dap->name());
     }
 
     // Remove the first segment from a flight.
     printf("Removing first segment from flight 1\n");
-    f1->segments.erase(s4);
-    for (auto s : f1->segments) {
+    f1->segment_list.erase(s4);
+    for (auto s : f1->segment_list) {
         printf("  segment %d - %d\n", s->id(), s->miles());
     }
 
     // Remove the first segment from a flight.
     printf("Removing other segment from flight 1\n");
-    f1->segments.erase(s1);
-    for (auto s : f1->segments) {
+    f1->segment_list.erase(s1);
+    for (auto s : f1->segment_list) {
         printf("  segment %d - %d\n", s->id(), s->miles());
     }
 
     // Reconnect and remove in a different order.
     printf("Re-inserting the segments\n");
-    f1->segments.insert(s1);
-    f1->segments.insert(s4);
-    for (auto s : f1->segments) {
+    f1->segment_list.insert(s1);
+    f1->segment_list.insert(s4);
+    for (auto s : f1->segment_list) {
         printf("  segment %d - %d\n", s->id(), s->miles());
     }
 
     // Remove the second segment from a flight.
     printf("Removing second segment from flight 1\n");
-    f1->segments.erase(s1);
-    for (auto s : f1->segments) {
+    f1->segment_list.erase(s1);
+    for (auto s : f1->segment_list) {
         printf("  segment %d - %d\n", s->id(), s->miles());
     }
     printf("Removing other segment from flight 1\n");
-    f1->segments.erase(s4);
-    for (auto s : f1->segments) {
+    f1->segment_list.erase(s4);
+    for (auto s : f1->segment_list) {
         printf("  segment %d - %d\n", s->id(), s->miles());
     }
 
     printf("Flight %ld segments:\n", f2->gaia_id());
-    for (auto s : f2->segments) {
+    for (auto s : f2->segment_list) {
         printf("  segment %d - %d\n", s->id(), s->miles());
-        auto sap = s->src_airport();
-        auto dap = s->dst_airport();
+        auto sap = s->src_airport_owner();
+        auto dap = s->dst_airport_owner();
         printf("    source airport:      %s\n", sap->name());
         printf("    destination airport: %s\n", dap->name());
     }
@@ -181,13 +181,13 @@ int main ()
     print_airport_segments(ap4);
     print_airport_segments(ap5);
     
-    print_segment_trip_segments(s1);
-    print_segment_trip_segments(s2);
-    print_segment_trip_segments(s3);
-    print_segment_trip_segments(s4);
-    print_segment_trip_segments(s5);
+    print_segment_trip_segment_list(s1);
+    print_segment_trip_segment_list(s2);
+    print_segment_trip_segment_list(s3);
+    print_segment_trip_segment_list(s4);
+    print_segment_trip_segment_list(s5);
 
-    s1->trip_segments.erase(ts1);
+    s1->trip_segment_list.erase(ts1);
     ts1->delete_row();
     try {
         ap1->delete_row();

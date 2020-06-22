@@ -873,16 +873,16 @@ namespace db
             bool log_updates = true
         )
         {
-            return create(id, type, 0, nullptr, payload_size, payload, log_updates);
+            return create(id, type, payload_size, payload, 0, nullptr, log_updates);
         }
 
         static gaia_ptr<gaia_se_node> create (
             gaia_id_t id,
             gaia_type_t type,
-            size_t num_refs,
-            gaia_id_t* refs,
             size_t payload_size,
             const void* payload,
+            size_t num_refs,
+            gaia_id_t* refs,
             bool log_updates = true
         )
         {
@@ -943,18 +943,18 @@ namespace db
             bool log_updates = true
         )
         {
-            return create(id, type, 0, nullptr, first, second, payload_size, payload, log_updates);
+            return create(id, type, first, second, payload_size, payload, 0, nullptr, log_updates);
         }
 
         static gaia_ptr<gaia_se_edge> create (
             gaia_id_t id,
             gaia_type_t type,
-            size_t num_refs,
-            gaia_id_t* refs,
             gaia_id_t first,
             gaia_id_t second,
             size_t payload_size,
             const void* payload,
+            size_t num_refs,
+            gaia_id_t* refs,
             bool log_updates = true
         )
         {
