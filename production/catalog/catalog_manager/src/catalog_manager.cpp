@@ -75,7 +75,6 @@ gaia_id_t catalog_manager_t::create_table(std::string name,
             field->name.c_str(),            // name
             table_id,                       // table_id
             to_gaia_data_type(field->type), // type
-            type_id,                        // type_id
             field->length,                  // repeated_count
             ++position,                     // position
             true,                           // required

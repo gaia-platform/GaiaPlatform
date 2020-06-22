@@ -43,7 +43,6 @@ table gaiaField {
   name:string (required);
   table_id:uint64;
   type:GaiaDataType;
-  type_id:uint64;
   repeated_count:uint16;
   position:uint16;
   required:bool;
