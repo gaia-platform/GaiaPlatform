@@ -16,8 +16,7 @@ enum GaiaDataType:uint8 {
   UINT64,
   FLOAT32,
   FLOAT64,
-  STRING,
-  TABLE
+  STRING
 }
 
 enum GaiaTrimActionType:uint8 {
@@ -54,8 +53,6 @@ table gaiaField {
   has_default:bool;
   // TODO: convert the default value to [byte] once EDC supports vector.
   default_value:string;
-  is_foreign_key:bool;
-  references:uint64;
 }
 
 table gaiaValueIndex {

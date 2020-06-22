@@ -53,7 +53,7 @@
 
 %define api.token.prefix {TOK_}
 %token BOOL INT8 UINT8 INT16 UINT16 INT32 UINT32 INT64 UINT64 FLOAT32 FLOAT64 STRING
-%token CREATE TABLE TYPE OF
+%token CREATE TABLE
 %token END  0
 %token LPAREN "("
 %token RPAREN ")"
@@ -68,6 +68,7 @@
 %type <statement_t*> statement
 %type <create_statement_t*> create_statement
 %type <field_type_t*> field_type
+
 %type <int> opt_array
 %type <field_definition_t*> field_def
 %type <std::vector<field_definition_t*>*> field_def_commalist

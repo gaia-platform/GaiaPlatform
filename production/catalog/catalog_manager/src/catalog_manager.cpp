@@ -11,50 +11,10 @@ using namespace gaia::catalog;
 /**
  * Catalog public APIs
  **/
-void gaia::catalog::initialize_catalog(bool is_engine) {
-    catalog_manager_t::get(true).init(is_engine);
-}
-
 gaia_id_t gaia::catalog::create_table(std::string name,
     const std::vector<ddl::field_definition_t *> &fields) {
     return catalog_manager_t::get().create_table(name, fields);
 }
-
-/**
- * catalog_manager class
- **/
-void catalog_manager_t::init(bool is_engine) {
-    if (is_engine) {
-        gaia::db::begin_transaction();
-        gaia::db::commit_transaction();
-    }
-    m_is_initialized = true;
-}
-
-catalog_manager_t &catalog_manager_t::get(bool is_initializing) {
-    static catalog_manager_t s_instance;
-
-    // Initialize errors can happen for two reasons:
-    //
-    // If we are currently trying to initialize then is_initializing
-    // will be true. At this point, we don't expect the instance to be
-    // initialized yet.
-    //
-    // If we are not intializing then we expect the instance to already be
-    // initialized
-    if (is_initializing == s_instance.m_is_initialized) {
-        if (is_initializing) {
-            throw gaia::common::gaia_exception(
-                "The catalog manager has already been initialized.");
-        } else {
-            throw gaia::common::gaia_exception(
-                "The catalog manager has not been initialized yet.");
-        }
-    }
-    return s_instance;
-}
-
-catalog_manager_t::catalog_manager_t() {}
 
 static GaiaDataType to_gaia_data_type(ddl::data_type_t data_type) {
     switch (data_type) {
@@ -112,20 +72,18 @@ gaia_id_t catalog_manager_t::create_table(std::string name,
             }
         }
         GaiaField::insert_row(
-            field->name.c_str(),
-            table_id,
-            to_gaia_data_type(field->type),
-            type_id,
-            field->length,
-            ++position,
-            true,  // required
-            false, // deprecated
-            false, // active
-            true,  // nullable
-            false, // has_default
-            "",    // default value
-            false, // is_foreign_key
-            0      // references
+            field->name.c_str(),            // name
+            table_id,                       // table_id
+            to_gaia_data_type(field->type), // type
+            type_id,                        // type_id
+            field->length,                  // repeated_count
+            ++position,                     // position
+            true,                           // required
+            false,                          // deprecated
+            false,                          // active
+            true,                           // nullable
+            false,                          // has_default
+            ""                              // default value
         );
     }
     gaia::db::commit_transaction();

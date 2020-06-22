@@ -26,7 +26,6 @@ int main(int argc, char *argv[]) {
     int res = 0;
     parser_t parser;
     gaia::db::gaia_mem_base::init(true);
-    gaia::catalog::initialize_catalog(true);
     for (int i = 1; i < argc; ++i) {
         if (argv[i] == std::string("-p")) {
             parser.trace_parsing = true;

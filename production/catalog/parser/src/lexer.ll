@@ -48,8 +48,6 @@ blank [ \t\r]
 
 "CREATE"  return yy::parser::make_CREATE     (loc);
 "TABLE"   return yy::parser::make_TABLE      (loc);
-"TYPE"    return yy::parser::make_TYPE       (loc);
-"OF"      return yy::parser::make_OF         (loc);
 "BOOL"    return yy::parser::make_BOOL       (loc);
 "INT8"    return yy::parser::make_INT8       (loc);
 "UINT8"   return yy::parser::make_UINT8      (loc);
