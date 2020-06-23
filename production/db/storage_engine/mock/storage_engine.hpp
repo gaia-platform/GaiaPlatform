@@ -23,22 +23,17 @@
 
 #include "scope_guard.hpp"
 #include "system_error.hpp"
+#include "gaia_common.hpp"
 #include "gaia_exception.hpp"
 
 namespace gaia
 {
-
-namespace common
-{
-    typedef uint64_t gaia_type_t;
-}
 
 namespace db
 {
 
 using namespace common;
 
-typedef uint64_t gaia_id_t;
 typedef uint64_t gaia_edge_type_t;
 typedef void (* gaia_tx_hook)(void);
 
