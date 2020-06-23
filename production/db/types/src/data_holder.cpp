@@ -34,7 +34,7 @@ int data_holder_t::compare(const data_holder_t& other) const
         }
         else if (hold.string_value == nullptr || other.hold.string_value == nullptr)
         {
-            return hold.string_value == nullptr ? -1 : 1;
+            return (hold.string_value == nullptr) ? -1 : 1;
         }
         else
         {

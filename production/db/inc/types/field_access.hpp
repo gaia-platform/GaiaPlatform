@@ -72,6 +72,9 @@ void initialize_field_cache_from_binary_schema(
 //
 // The binary_schema passed in will only be used if the type_cache
 // does not already contain a field_cache entry for the type_id.
+//
+// If the binary_schema is needed but not provided,
+// an invalid_schema() exception will be thrown.
 data_holder_t get_table_field_value(
     uint64_t type_id,
     uint8_t* serialized_data,

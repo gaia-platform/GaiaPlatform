@@ -40,11 +40,27 @@ TEST(types, type_holder_string)
     ASSERT_EQ(0, value.compare(value));
 }
 
-TEST(types, type_holder_integer)
+TEST(types, type_holder_signed_integer)
 {
     data_holder_t value;
     data_holder_t other_value;
 
+    // Test signed comparison.
+    value.type = other_value.type = reflection::Int;
+    value.hold.integer_value = -7;
+    other_value.hold.integer_value = 7;
+
+    ASSERT_EQ(-1, value.compare(other_value));
+    ASSERT_EQ(1, other_value.compare(value));
+    ASSERT_EQ(0, value.compare(value));
+}
+
+TEST(types, type_holder_unsigned_integer)
+{
+    data_holder_t value;
+    data_holder_t other_value;
+
+    // Test unsigned comparison.
     value.type = other_value.type = reflection::UInt;
     value.hold.integer_value = -7;
     other_value.hold.integer_value = 7;

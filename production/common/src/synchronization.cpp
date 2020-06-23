@@ -5,23 +5,15 @@
 
 #include <synchronization.hpp>
 
-#include <sstream>
-#include <string>
+#include <cassert>
 
-#include <gaia_exception.hpp>
+#include <exceptions.hpp>
 #include <retail_assert.hpp>
 
 using namespace std;
 using namespace gaia::common;
 
-pthread_rwlock_error::pthread_rwlock_error(const char* api_name, int error_code)
-{
-    stringstream string_stream;
-    string_stream << api_name << "() returned an unexpected error code: " << error_code << ".";
-    m_message = string_stream.str();
-}
-
-shared_mutex::shared_mutex()
+shared_mutex_t::shared_mutex_t()
 {
     int error_code = pthread_rwlock_init(&m_lock, nullptr);
     if (error_code != 0)
@@ -30,15 +22,18 @@ shared_mutex::shared_mutex()
     }
 }
 
-shared_mutex::~shared_mutex()
+shared_mutex_t::~shared_mutex_t()
 {
     // We can't throw exceptions and we don't have another way of surfacing errors.
+    // We'll debug assert for lack of a better choice.
+    //
     // OTOH, it's unlikely that such mutexes would get destroyed during regular code execution anyway,
     // as they'd normally be used to protect access to long-lived resources.
-    pthread_rwlock_destroy(&m_lock);
+    int error_code = pthread_rwlock_destroy(&m_lock);
+    assert(error_code == 0);
 }
 
-void shared_mutex::lock()
+void shared_mutex_t::lock()
 {
     int error_code = pthread_rwlock_wrlock(&m_lock);
     if (error_code != 0)
@@ -47,7 +42,7 @@ void shared_mutex::lock()
     }
 }
 
-bool shared_mutex::try_lock()
+bool shared_mutex_t::try_lock()
 {
     int error_code = pthread_rwlock_trywrlock(&m_lock);
     if (error_code == 0)
@@ -64,7 +59,7 @@ bool shared_mutex::try_lock()
     }
 }
 
-void shared_mutex::unlock()
+void shared_mutex_t::unlock()
 {
     int error_code = pthread_rwlock_unlock(&m_lock);
     if (error_code != 0)
@@ -73,7 +68,7 @@ void shared_mutex::unlock()
     }
 }
 
-void shared_mutex::lock_shared()
+void shared_mutex_t::lock_shared()
 {
     int error_code = pthread_rwlock_rdlock(&m_lock);
     if (error_code != 0)
@@ -82,7 +77,7 @@ void shared_mutex::lock_shared()
     }
 }
 
-bool shared_mutex::try_lock_shared()
+bool shared_mutex_t::try_lock_shared()
 {
     int error_code = pthread_rwlock_tryrdlock(&m_lock);
     if (error_code == 0)
@@ -99,7 +94,20 @@ bool shared_mutex::try_lock_shared()
     }
 }
 
-void shared_mutex::unlock_shared()
+void shared_mutex_t::unlock_shared()
 {
     unlock();
+}
+
+auto_lock_t::auto_lock_t(shared_mutex_t& lock, bool request_shared)
+{
+    m_lock = &lock;
+    m_request_shared = request_shared;
+
+    m_request_shared ? m_lock->lock_shared() : m_lock->lock();
+}
+
+auto_lock_t::~auto_lock_t()
+{
+    m_request_shared ? m_lock->unlock_shared() : m_lock->unlock();
 }
