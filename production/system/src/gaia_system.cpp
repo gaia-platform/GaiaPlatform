@@ -3,7 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 #include "gaia_system.hpp"
-#include "gaia_catalog.hpp"
 #include "rules.hpp"
 #include "storage_engine.hpp"
 
