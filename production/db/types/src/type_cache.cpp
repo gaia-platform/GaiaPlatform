@@ -11,7 +11,6 @@ using namespace std;
 using namespace gaia::common;
 using namespace gaia::db::types;
 
-shared_mutex type_cache_t::s_lock;
 type_cache_t type_cache_t::s_type_cache;
 
 const reflection::Field* field_cache_t::get_field(uint16_t field_id) const
@@ -37,36 +36,29 @@ type_cache_t* type_cache_t::get_type_cache()
     return &s_type_cache;
 }
 
-const field_cache_t* type_cache_t::get_field_cache(uint64_t type_id)
+void type_cache_t::get_field_cache(uint64_t type_id, auto_field_cache_t& auto_field_cache)
 {
     // We keep a shared lock while the field_cache is in use,
     // to ensure that its information is not being updated by another thread.
-    s_lock.lock_shared();
+    m_lock.lock_shared();
 
     type_map_t::const_iterator iterator = m_type_map.find(type_id);
 
     if (iterator == m_type_map.end())
     {
-        s_lock.unlock_shared();
-
-        return nullptr;
+        m_lock.unlock_shared();
     }
-
-    return iterator->second;
-}
-
-void type_cache_t::release_access()
-{
-    // Release the read lock taken by get_field_cache().
-    // There is no check to ensure that a read lock was indeed being held by the caller of this method.
-    s_lock.unlock_shared();
+    else
+    {
+        auto_field_cache.set(iterator->second);
+    }
 }
 
 bool type_cache_t::remove_field_cache(uint64_t type_id)
 {
     bool removed_field_cache = false;
 
-    s_lock.lock();
+    auto_lock_t auto_lock(m_lock);
 
     type_map_t::const_iterator iterator = m_type_map.find(type_id);
     if (iterator != m_type_map.end())
@@ -77,8 +69,6 @@ bool type_cache_t::remove_field_cache(uint64_t type_id)
         removed_field_cache = true;
     }
 
-    s_lock.unlock();
-
     return removed_field_cache;
 }
 
@@ -88,7 +78,7 @@ bool type_cache_t::set_field_cache(uint64_t type_id, const field_cache_t* field_
 
     bool inserted_field_cache = false;
 
-    s_lock.lock();
+    auto_lock_t auto_lock(m_lock);
 
     type_map_t::const_iterator iterator = m_type_map.find(type_id);
     if (iterator == m_type_map.end())
@@ -96,8 +86,6 @@ bool type_cache_t::set_field_cache(uint64_t type_id, const field_cache_t* field_
         m_type_map.insert(make_pair(type_id, field_cache));
         inserted_field_cache = true;
     }
-
-    s_lock.unlock();
 
     return inserted_field_cache;
 }
@@ -107,15 +95,29 @@ size_t type_cache_t::size()
     return m_type_map.size();
 }
 
-auto_release_cache_read_access::auto_release_cache_read_access(bool enable)
+auto_field_cache_t::auto_field_cache_t()
 {
-    m_enable_release = enable;
+    m_field_cache = nullptr;
 }
 
-auto_release_cache_read_access::~auto_release_cache_read_access()
+auto_field_cache_t::~auto_field_cache_t()
 {
-    if (m_enable_release)
+    if (m_field_cache != nullptr)
     {
-        type_cache_t::get_type_cache()->release_access();
+        type_cache_t::get_type_cache()->m_lock.unlock_shared();
     }
+}
+
+const field_cache_t* auto_field_cache_t::get()
+{
+    return m_field_cache;
+}
+
+void auto_field_cache_t::set(const field_cache_t* field_cache)
+{
+    retail_assert(
+        m_field_cache == nullptr,
+        "auto_field_cache_t::set() was called on an already set instance!");
+
+    m_field_cache = field_cache;
 }

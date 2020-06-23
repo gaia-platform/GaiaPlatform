@@ -53,11 +53,20 @@ protected:
 
 typedef std::unordered_map<uint64_t, const field_cache_t*> type_map_t;
 
+class auto_field_cache_t;
+
 // The type cache stores field_caches for all managed types.
 // The field_caches are indexed by their corresponding type id.
 class type_cache_t
 {
+    friend class auto_field_cache_t;
+
 protected:
+
+    // Do not allow copies to be made;
+    // disable copy constructor and assignment operator.
+    type_cache_t(const type_cache_t&) = delete;
+    type_cache_t& operator=(const type_cache_t&) = delete;
 
     // type_cache_t is a singleton, so its constructor is not public.
     type_cache_t() = default;
@@ -67,11 +76,12 @@ public:
     // Return a pointer to the singleton instance.
     static type_cache_t* get_type_cache();
 
-    // Caller should call release_access() to release the read lock taken by get_field_cache().
-    // This is not necessary if get_field_cache() returned nullptr.
-    // Alternatively, auto_release_cache_read_access can be used to automatically release the access.
-    const field_cache_t* get_field_cache(uint64_t type_id);
-    void release_access();
+    // To ensure that the returned field cache continues to be valid,
+    // this method needs to hold a read lock on the type cache.
+    // To ensure the release of that lock once the field cache is no longer used,
+    // it is returned in an auto_field_cache_t wrapper that will release the lock
+    // at the time the wrapper gets destroyed.
+    void get_field_cache(uint64_t type_id, auto_field_cache_t& auto_field_cache);
 
     // This method should be called whenever the information for a type is being changed.
     // It will return true if the entry was found and deleted, and false if it was not found
@@ -88,29 +98,40 @@ public:
 
 protected:
 
+    // The singleton instance.
+    static type_cache_t s_type_cache;
+
     // Reads from cache will hold read locks, whereas update operations will request exclusive locks.
     // Operations that require exclusive locking are meant to be rare.
     // We can further improve implementation by preloading type information at system startup.
-    static gaia::common::shared_mutex s_lock;
-
-    // The singleton instance, created on first call to get_type_cache().
-    static type_cache_t s_type_cache;
+    gaia::common::shared_mutex_t m_lock;
 
     // The map used by the type cache.
     type_map_t m_type_map;
 };
 
 // A class for automatically releasing the read lock taken while reading from the cache.
-class auto_release_cache_read_access
+class auto_field_cache_t
 {
+    friend class type_cache_t;
+
 public:
 
-    auto_release_cache_read_access(bool enable);
-    ~auto_release_cache_read_access();
+    auto_field_cache_t();
+    ~auto_field_cache_t();
+
+    // Do not allow copies to be made;
+    // disable copy constructor and assignment operator.
+    auto_field_cache_t(const auto_field_cache_t&) = delete;
+    auto_field_cache_t& operator=(const auto_field_cache_t&) = delete;
+
+    const field_cache_t* get();
 
 protected:
 
-    bool m_enable_release;
+    const field_cache_t* m_field_cache;
+
+    void set(const field_cache_t* field_cache);
 };
 
 }
