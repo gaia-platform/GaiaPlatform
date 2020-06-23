@@ -17,10 +17,7 @@ class catalog_manager_t {
      */
     catalog_manager_t(catalog_manager_t &) = delete;
     void operator=(catalog_manager_t const &) = delete;
-    static catalog_manager_t &get() {
-        static catalog_manager_t s_instance;
-        return s_instance;
-    }
+    static catalog_manager_t &get();
 
     /*
     ** DDL APIs

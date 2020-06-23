@@ -47,6 +47,14 @@ static gaia_data_type to_gaia_data_type(ddl::data_type_t data_type) {
     }
 }
 
+/**
+ * Class methods
+ **/
+catalog_manager_t &catalog_manager_t::get() {
+    static catalog_manager_t s_instance;
+    return s_instance;
+}
+
 gaia_id_t catalog_manager_t::create_table(std::string name,
     const std::vector<ddl::field_definition_t *> &fields) {
     if (m_table_cache.find(name) != m_table_cache.end()) {
