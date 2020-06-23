@@ -89,7 +89,7 @@ inline size_t send_msg_with_fds(int sock, const int *fds, size_t fd_count, void 
         "sendmsg() should never return 0 bytes written unless we write 0 bytes.");
     retail_assert(bytes_written_or_error >= 0,
         "sendmsg() should never return a negative value except for -1.");
-    size_t bytes_written = (size_t)bytes_written_or_error;
+    size_t bytes_written = static_cast<size_t>(bytes_written_or_error);
     retail_assert(bytes_written < data_size,
         "sendmsg() payload was truncated but we didn't get EMSGSIZE.");
 
