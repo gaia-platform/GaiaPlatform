@@ -106,13 +106,15 @@ public:
     gaia_set_iterator_t<T_foreign, T_foreign_slot> end() {return gaia_set_iterator_t<T_foreign, T_foreign_slot>(nullptr);}
     void set_outer(T_primary* outer) {m_outer = outer;}
     void insert(T_foreign* foreign_ptr) {
-        foreign_ptr->m_references[T_foreign_slot] = m_outer->m_references[T_primary_slot];
-        foreign_ptr->m_references[T_parent_slot]  = m_outer->gaia_id();
-        m_outer->m_references[T_primary_slot] = foreign_ptr->gaia_id();
+        auto fid = foreign_ptr->gaia_id();
+        auto oid = m_outer->gaia_id();
         // The gaia_id() will be zero if the row hasn't been inserted into the SE.
-        if (!foreign_ptr->m_references[T_parent_slot] || !m_outer->m_references[T_primary_slot]) {
+        if (fid == 0 || oid == 0) {
             throw edc_unstored_row(m_outer->gaia_typename(), foreign_ptr->gaia_typename());
         }
+        foreign_ptr->m_references[T_foreign_slot] = m_outer->m_references[T_primary_slot];
+        foreign_ptr->m_references[T_parent_slot]  = oid;
+        m_outer->m_references[T_primary_slot] = fid;
     }
     void erase(T_foreign* foreign_ptr) {
         if (foreign_ptr->m_references[T_parent_slot] != m_outer->gaia_id()) {

@@ -329,15 +329,10 @@ public:
         if (m_copy) {
             auto u = T_fb::Pack(*m_fbb, m_copy.get());
             m_fbb->Finish(u);
-            auto node_ptr = gaia_se_node::create(m_id, T_gaia_type, m_fbb->GetSize(), m_fbb->GetBufferPointer(),
-                num_ptrs, m_references);
+            node_ptr = gaia_se_node::create(m_id, T_gaia_type, m_fbb->GetSize(), m_fbb->GetBufferPointer(),
+                num_ptrs, nullptr);
             m_fbb->Clear();
             m_fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);
-            // Stop using cached references now that the mutable object exists.
-            if (m_references) {
-                delete[] m_references;
-                m_references = node_ptr->references;
-            }
         } else {
             // This situation only happens if an object representing
             // a deleted row is reused.  By giving the object a copy buffer, 
@@ -345,8 +340,8 @@ public:
             m_fb = nullptr;
             copy_write();
             node_ptr = gaia_se_node::create(m_id, T_gaia_type, 0, nullptr, 0, nullptr);
-            m_references = node_ptr->references;
         }
+        m_references = node_ptr->references;
         s_gaia_cache[m_id] = this;
         s_gaia_tx_cache[m_id] = this;
         return;
@@ -383,11 +378,6 @@ public:
         auto node_ptr = gaia_se_node::open(m_id);
         if (!node_ptr) {
             throw invalid_node_id(m_id);
-        }
-
-        // If cached references exist, delete the memory.
-        if (m_references != node_ptr->references) {
-            delete[] m_references;
         }
 
         gaia_ptr<gaia_se_node>::remove(node_ptr);
@@ -465,14 +455,6 @@ protected:
             if (m_fb) {
                 m_fb->UnPackTo(m_copy.get());
             }
-            else {
-                if (m_num_references && !m_references) {
-                    m_references = new gaia_id_t[m_num_references];
-                    for (size_t i = 0; i < m_num_references; i++) {
-                        m_references[i] = 0;
-                    }
-                }
-            }
             m_fbb.reset(new flatbuffers::FlatBufferBuilder());
         }
         return m_copy.get();
@@ -502,9 +484,6 @@ private:
                 s_gaia_cache.insert(pair<gaia_id_t, gaia_base_t *>(node_ptr->id, obj));
             }
             if (!obj->m_fb) {
-                if (obj->m_references != node_ptr->references) {
-                    delete[] obj->m_references;
-                }
                 obj->m_num_references = node_ptr->num_references;
                 obj->m_references = node_ptr->references;
                 obj->m_fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);
