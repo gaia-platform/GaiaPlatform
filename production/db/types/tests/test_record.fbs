@@ -7,8 +7,10 @@ table test_record
   age:ubyte;
   has_children:bool;
   identifier:long;
+  known_associates:[long];
   sleeve_cost:double;
   monthly_sleeve_insurance:float;
+  last_yearly_top_credit_amounts:[double];
 }
 
 root_type test_record;

@@ -210,6 +210,7 @@ data_holder_t gaia::db::types::get_table_field_array_element(
     flatbuffers::VectorOfAny* field_value = GetFieldAnyV(*root_table, *field);
     retail_assert(array_index < field_value->size(), "Attempt to index array is out-of-bounds.");
 
+    result.type = field->type()->element();
     if (flatbuffers::IsInteger(field->type()->element()))
     {
         result.hold.integer_value = GetAnyVectorElemI(field_value, field->type()->element(), array_index);
