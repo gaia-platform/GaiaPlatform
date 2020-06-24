@@ -329,8 +329,7 @@ public:
         if (m_copy) {
             auto u = T_fb::Pack(*m_fbb, m_copy.get());
             m_fbb->Finish(u);
-            node_ptr = gaia_se_node::create(m_id, T_gaia_type, m_fbb->GetSize(), m_fbb->GetBufferPointer(),
-                num_ptrs, nullptr);
+            node_ptr = gaia_se_node::create(m_id, T_gaia_type, num_ptrs, m_fbb->GetSize(), m_fbb->GetBufferPointer());
             m_fbb->Clear();
             m_fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);
         } else {
@@ -339,7 +338,7 @@ public:
             // the object can be used to insert new values.
             m_fb = nullptr;
             copy_write();
-            node_ptr = gaia_se_node::create(m_id, T_gaia_type, 0, nullptr, 0, nullptr);
+            node_ptr = gaia_se_node::create(m_id, T_gaia_type, 0, 0, nullptr);
         }
         m_references = node_ptr->references;
         s_gaia_cache[m_id] = this;
@@ -394,7 +393,7 @@ public:
     static T_gaia* insert_row(flatbuffers::FlatBufferBuilder& fbb, gaia_id_t num_ptrs)
     {
         gaia_id_t node_id = gaia_se_node::generate_id();
-        auto node_ptr = gaia_se_node::create(node_id, T_gaia_type, fbb.GetSize(), fbb.GetBufferPointer(), num_ptrs, nullptr);
+        auto node_ptr = gaia_se_node::create(node_id, T_gaia_type, num_ptrs, fbb.GetSize(), fbb.GetBufferPointer());
         node_ptr->num_references = num_ptrs;
         return get_row_by_id(node_id);
     }
@@ -402,7 +401,7 @@ public:
     static gaia_id_t insert_row(flatbuffers::FlatBufferBuilder& fbb)
     {
         gaia_id_t node_id = gaia_se_node::generate_id();
-        gaia_se_node::create(node_id, T_gaia_type, fbb.GetSize(), fbb.GetBufferPointer(), 0, nullptr);
+        gaia_se_node::create(node_id, T_gaia_type, 0, fbb.GetSize(), fbb.GetBufferPointer());
         return node_id;
     }
 
