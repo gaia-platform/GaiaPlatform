@@ -14,6 +14,8 @@ set(GENERATED_OUTPUTS "${CMAKE_BINARY_DIR}/rules/event_manager/generated")
 set(GAIA_EVENT_MANAGER_INCLUDES 
   ${GAIA_REPO}/production/db/storage_engine/mock
   ${GAIA_INC}/public/common
+  ${GAIA_INC}/public/direct_access
+  ${GAIA_INC}/public/system
   ${GAIA_INC}/internal/common
   ${GAIA_INC}/public/rules
   ${GAIA_INC}/internal/rules

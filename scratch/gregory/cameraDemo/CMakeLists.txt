@@ -9,7 +9,7 @@ include(${CMAKE_BINARY_DIR}/../../../../production/cmake/gaia.cmake)
 #  ${LLVM_LIB_PATH}/lib/cmake/llvm
 # )
 
-find_package(OpenCV 4.3.0 REQUIRED)
+#find_package(OpenCV 4.3.0 REQUIRED)
 
 set(CMAKE_CXX_FLAGS
       "-std=c++0x -Wall -Wextra -ggdb -Wno-unused-parameter -ggdb")
@@ -34,6 +34,7 @@ set (CAMERA_DEMO_INCLUDES
   ${CMAKE_BINARY_DIR}/../../../../production/inc/internal/rules
   ${CMAKE_BINARY_DIR}/../../../../production/inc/internal/common
   ${CMAKE_BINARY_DIR}/../../../../production/inc/public/common
+  ${CMAKE_BINARY_DIR}/../../../../production/inc/public/direct_access
   ${CMAKE_BINARY_DIR}/../../../../third_party/production/flatbuffers/include
   ${CMAKE_BINARY_DIR}/../../../../production/db/storage_engine/mock
   ${CMAKE_BINARY_DIR}/../../../../production/build/rules/event_manager/generated

@@ -52,6 +52,8 @@ set(RULE_SUBSCRIBER_INCLUDES
   ${GAIA_REPO}/third_party/production/googletest/googletest/include
   ${GAIA_REPO}/third_party/production/flatbuffers/include
   ${GAIA_REPO}/production/inc/public/common
+  ${GAIA_REPO}/production/inc/public/direct_access
+  ${GAIA_REPO}/production/inc/public/system  
   ${GAIA_REPO}/production/inc/public/rules
   ${GAIA_REPO}/production/inc/internal/rules
   ${GAIA_REPO}/production/inc/internal/common

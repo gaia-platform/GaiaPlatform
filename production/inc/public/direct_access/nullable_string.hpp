@@ -8,13 +8,13 @@
 #include <string>
 
 namespace gaia {
-namespace common {
+namespace direct {
 
 // This class has been introduced to enable us to differentiate between
 // zero-length strings and null strings.  The C++ object api --gen-object-api
 // represents strings as std::string by default and represents zero-length 
 // strings as null values.  To use this type instead of std::string, we pass
-// the class name (gaia::common::nullable_string_t) to the flatc compiler via
+// the class name (gaia::direct::nullable_string_t) to the flatc compiler via
 // the option --cpp-str-type.
 struct nullable_string_t : std::string
 {

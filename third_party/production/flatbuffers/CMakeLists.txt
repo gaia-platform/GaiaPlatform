@@ -497,6 +497,7 @@ if(FLATBUFFERS_BUILD_TESTS)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../production/inc/public/rules)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../production/inc/internal/rules)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../production/inc/public/common)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../production/inc/public/direct_access)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../production/db/storage_engine/mock)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../production/inc/internal/common)
 
