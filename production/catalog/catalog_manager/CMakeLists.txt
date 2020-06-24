@@ -41,4 +41,4 @@ add_dependencies(gaia_catalog generate_catalog_edc)
 set_target_properties(gaia_catalog PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 target_include_directories(gaia_catalog PRIVATE ${GAIA_CATALOG_LIB_INCLUDES})
 
-add_gtest(test_catalog_manager "tests/test_catalog_manager.cpp" "${GAIA_CATALOG_LIB_INCLUDES}" "rt;gaia")
+add_gtest(test_catalog_manager "tests/test_catalog_manager.cpp" "${GAIA_CATALOG_LIB_INCLUDES}" "rt;gaia;gaia_catalog")
