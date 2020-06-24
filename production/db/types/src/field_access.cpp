@@ -77,6 +77,15 @@ void gaia::db::types::initialize_field_cache_from_binary_schema(
     }
 }
 
+// This is an internal helper for the field access methods.
+// It parses the flatbuffers serialization to get the root table
+// and then it retrieves the reflection::Field information
+// from the type's binary schema,
+// which is either loaded from the global type_cache
+// or parsed from the passed-in buffer.
+//
+// The caller is responsible for allocating the variables
+// that will hold the field_cache information.
 void get_table_field_information(
     uint64_t type_id,
     uint8_t* serialized_data,
@@ -114,7 +123,7 @@ void get_table_field_information(
     }
 }
 
-
+// The access method for scalar fields.
 data_holder_t gaia::db::types::get_table_field_value(
     uint64_t type_id,
     uint8_t* serialized_data,
@@ -130,9 +139,8 @@ data_holder_t gaia::db::types::get_table_field_value(
         type_id, serialized_data, binary_schema, field_position,
         root_table, auto_field_cache, local_field_cache, field);
 
-    data_holder_t result;
-
     // Read field value according to its type.
+    data_holder_t result;
     result.type = field->type()->base_type();
     if (field->type()->base_type() == reflection::String)
     {
@@ -160,6 +168,7 @@ data_holder_t gaia::db::types::get_table_field_value(
     return result;
 }
 
+// The access method for the size of a field of array type.
 size_t gaia::db::types::get_table_field_array_size(
     uint64_t type_id,
     uint8_t* serialized_data,
@@ -184,6 +193,7 @@ size_t gaia::db::types::get_table_field_array_size(
     return field_value->size();
 }
 
+// The access method for an element of a field of array type.
 data_holder_t gaia::db::types::get_table_field_array_element(
     uint64_t type_id,
     uint8_t* serialized_data,
@@ -200,8 +210,6 @@ data_holder_t gaia::db::types::get_table_field_array_element(
         type_id, serialized_data, binary_schema, field_position,
         root_table, auto_field_cache, local_field_cache, field);
 
-    data_holder_t result;
-
     if (field->type()->base_type() != reflection::Vector)
     {
         throw unhandled_field_type(field->type()->base_type());
@@ -210,6 +218,8 @@ data_holder_t gaia::db::types::get_table_field_array_element(
     flatbuffers::VectorOfAny* field_value = GetFieldAnyV(*root_table, *field);
     retail_assert(array_index < field_value->size(), "Attempt to index array is out-of-bounds.");
 
+    // Read element value according to its type.
+    data_holder_t result;
     result.type = field->type()->element();
     if (flatbuffers::IsInteger(field->type()->element()))
     {

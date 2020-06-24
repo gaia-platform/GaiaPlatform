@@ -81,12 +81,22 @@ data_holder_t get_table_field_value(
     uint8_t* binary_schema,
     uint16_t field_position);
 
+// Get the size of a field of array type.
+//
+// Callers should check the catalog to determine
+// whether they access a scalar field or an array field,
+// and then proceed accordingly to access the field content.
 size_t get_table_field_array_size(
     uint64_t type_id,
     uint8_t* serialized_data,
     uint8_t* binary_schema,
     uint16_t field_position);
 
+// Get a specific element of a field of array type.
+//
+// An exception will be thrown if the index is out of bounds.
+// Callers can first call get_table_field_array_size()
+// to find the array's size.
 data_holder_t get_table_field_array_element(
     uint64_t type_id,
     uint8_t* serialized_data,
