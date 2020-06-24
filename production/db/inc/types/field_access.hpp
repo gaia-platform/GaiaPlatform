@@ -81,6 +81,19 @@ data_holder_t get_table_field_value(
     uint8_t* binary_schema,
     uint16_t field_position);
 
+size_t get_table_field_array_size(
+    uint64_t type_id,
+    uint8_t* serialized_data,
+    uint8_t* binary_schema,
+    uint16_t field_position);
+
+data_holder_t get_table_field_array_element(
+    uint64_t type_id,
+    uint8_t* serialized_data,
+    uint8_t* binary_schema,
+    uint16_t field_position,
+    size_t array_index);
+
 }
 }
 }
