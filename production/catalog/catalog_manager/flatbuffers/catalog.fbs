@@ -1,0 +1,78 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+namespace gaia.catalog;
+
+enum gaia_data_type:uint8 {
+  BOOL,
+  INT8,
+  UINT8,
+  INT16,
+  UINT16,
+  INT32,
+  UINT32,
+  INT64,
+  UINT64,
+  FLOAT32,
+  FLOAT64,
+  STRING
+}
+
+enum gaia_trim_action_type:uint8 {
+  NONE,
+  DELETE,
+  ARCHIVE,
+}
+
+enum gaia_value_index_type:uint8 {
+  HASH,
+  RANGE
+}
+
+table gaia_table {
+  name:string (required);
+  is_log:bool = false;
+  trim_action:gaia_trim_action_type;
+  max_rows:uint64;
+  max_size:uint64;
+  max_seconds:uint64;
+}
+
+table gaia_field {
+  name:string (required);
+  table_id:uint64;
+  type:gaia_data_type;
+  repeated_count:uint16;
+  position:uint16;
+  required:bool;
+  deprecated:bool;
+  active:bool;
+  nullable:bool;
+  has_default:bool;
+  // TODO: convert the default value to [byte] once EDC supports vector.
+  default_value:string;
+}
+
+table gaia_value_index {
+  name:string;
+  table_id:uint64;
+  // TODO: convert the columns to [uint16] once EDC supports vector.
+  fields:string;
+  index_type:gaia_value_index_type;
+  unique:bool;
+}
+
+table gaia_ruleset {
+  name:string;
+  active_on_startup:bool;
+  // TODO: convert the table_ids to [uint64] once EDC supports vector.
+  table_ids:string;
+  source_location:string (required);
+  serial_stream:string;
+}
+
+table gaia_rule {
+  name:string (required);
+  ruleset_id:uint64;
+}
