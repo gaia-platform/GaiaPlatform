@@ -16,7 +16,7 @@ The `build` directory is required for this sample:
 
 ```
 cd build
-cmake .. -DGAIA_PROD_BUILD={your path to gaia-platform}/GaiaPlatform/production/build
+cmake .. -DGAIA_REPO={your path to gaia-platform}/GaiaPlatform
 make
 ```
 

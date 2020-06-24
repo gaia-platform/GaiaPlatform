@@ -5,9 +5,6 @@
 
 cmake_minimum_required(VERSION 3.11)
 
-# starting point
-set(GAIA_REPO ../../../../GaiaPlatform)
-
 # Set the project name.
 project(edc)
 
@@ -32,7 +29,7 @@ include_directories(${AIRIMPORT_INCLUDES})
 
 add_custom_command(
   OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/airport_generated.h"
-  COMMAND ../${FLATBUFFERS}/build/flatc --cpp --gaiacpp --gen-mutable --gen-setters
+  COMMAND ${FLATBUFFERS}/build/flatc --cpp --gaiacpp --gen-mutable --gen-setters
     --gen-object-api --cpp-str-type gaia::common::nullable_string_t --cpp-str-flex-ctor
     -o ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/airport.fbs
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/airport.fbs
