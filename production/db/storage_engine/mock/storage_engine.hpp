@@ -920,6 +920,11 @@ namespace db
 
         gaia_id_t id;
         gaia_type_t type;
+        // The num_references member is not actually necessary in an edge, as we have nothing
+        // that creates edges containing references. However, the update_payload method
+        // assumes certain similarities between the node and the edge, forcing us to process
+        // the num_references, payload and references members in the same way. This should
+        // be temporary.
         size_t num_references;
         gaia_id_t first;
         gaia_id_t second;
