@@ -8,6 +8,7 @@ table test_record
   has_children:bool;
   identifier:long;
   known_associates:[long];
+  known_aliases:[string];
   sleeve_cost:double;
   monthly_sleeve_insurance:float;
   last_yearly_top_credit_amounts:[double];

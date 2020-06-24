@@ -142,7 +142,15 @@ data_holder_t gaia::db::types::get_table_field_value(
     // Read field value according to its type.
     data_holder_t result;
     result.type = field->type()->base_type();
-    if (field->type()->base_type() == reflection::String)
+    if (flatbuffers::IsInteger(field->type()->base_type()))
+    {
+        result.hold.integer_value = flatbuffers::GetAnyFieldI(*root_table, *field);
+    }
+    else if (flatbuffers::IsFloat(field->type()->base_type()))
+    {
+        result.hold.float_value = flatbuffers::GetAnyFieldF(*root_table, *field);
+    }
+    else if (field->type()->base_type() == reflection::String)
     {
         const flatbuffers::String* field_value = flatbuffers::GetFieldS(*root_table, *field);
         if (field_value == nullptr)
@@ -151,14 +159,6 @@ data_holder_t gaia::db::types::get_table_field_value(
         }
 
         result.hold.string_value = field_value->c_str();
-    }
-    else if (flatbuffers::IsInteger(field->type()->base_type()))
-    {
-        result.hold.integer_value = flatbuffers::GetAnyFieldI(*root_table, *field);
-    }
-    else if (flatbuffers::IsFloat(field->type()->base_type()))
-    {
-        result.hold.float_value = flatbuffers::GetAnyFieldF(*root_table, *field);
     }
     else
     {
@@ -228,6 +228,17 @@ data_holder_t gaia::db::types::get_table_field_array_element(
     else if (flatbuffers::IsFloat(field->type()->element()))
     {
         result.hold.float_value = GetAnyVectorElemF(field_value, field->type()->element(), array_index);
+    }
+    else if (field->type()->element() == reflection::String)
+    {
+        const flatbuffers::String* field_element_value
+            = flatbuffers::GetAnyVectorElemPointer<const flatbuffers::String>(field_value, array_index);
+        if (field_element_value == nullptr)
+        {
+            throw invalid_serialized_data();
+        }
+
+        result.hold.string_value = field_element_value->c_str();
     }
     else
     {
