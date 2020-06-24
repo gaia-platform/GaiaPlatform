@@ -1,3 +1,5 @@
 BasedOnStyle: LLVM
 IndentWidth: 4
 SortIncludes: false
+AlignAfterOpenBracket: DontAlign
+ColumnLimit: 0

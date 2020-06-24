@@ -157,6 +157,7 @@ add_subdirectory(direct_access)
 add_subdirectory(rules)
 add_subdirectory(sql)
 add_subdirectory(system)
+add_subdirectory(catalog)
 
 # Add googletest
 add_subdirectory(${GOOGLE_TEST} googletest)
