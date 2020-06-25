@@ -15,6 +15,7 @@ set(GAIA_CATALOG_TOOL_INCLUDES
   ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_INC}/public/common
   ${GAIA_INC}/public/direct_access
+  ${GAIA_INC}/public/catalog
   ${GAIA_INC}/public/system
   ${GAIA_PARSER_GENERATED_OUTPUTS}
 )

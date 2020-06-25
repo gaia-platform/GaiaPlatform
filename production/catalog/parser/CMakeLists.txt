@@ -13,6 +13,7 @@ set(GAIA_PARSER_INCLUDES
   ${GAIA_REPO}/production/db/storage_engine/mock
   ${GAIA_INC}/public/common
   ${GAIA_INC}/public/direct_access
+  ${GAIA_INC}/public/catalog
   ${GAIA_INC}/internal/common
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc

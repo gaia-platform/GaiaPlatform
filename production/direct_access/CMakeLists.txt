@@ -24,7 +24,7 @@ add_library(gaia_direct STATIC
   src/gaia_base.cpp
 )
 
-# generate the headers from the flatbuffer
+# Generate the headers from the flatbuffer
 set_property(GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
 gaia_compile_flatbuffers_schema_to_cpp(tests/addr_book.fbs)
 gaia_get_generated_output(fbs_generated)
@@ -38,7 +38,7 @@ endif()
 target_include_directories(gaia_direct PRIVATE ${GAIA_DIRECT_ACCESS_INCLUDES})
 set_target_properties(gaia_direct PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 
-# unit tests
+# Start unit tests.
 set (DIRECT_ACCESS_TEST_INCLUDES
     ${GAIA_DIRECT_ACCESS_INCLUDES}
     .
