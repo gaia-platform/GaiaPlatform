@@ -63,18 +63,18 @@ struct field_type_t {
     field_type_t(data_type_t type) : type(type){};
 
     data_type_t type;
-    std::string name;
+    string name;
 };
 
 struct field_definition_t {
-    field_definition_t(std::string name, data_type_t type, uint16_t length)
-        : name(std::move(name)), type(type), length(length){};
+    field_definition_t(string name, data_type_t type, uint16_t length)
+        : name(move(name)), type(type), length(length){};
 
-    std::string name;
+    string name;
     data_type_t type;
     uint16_t length;
 
-    std::string table_type_name;
+    string table_type_name;
 };
 
 enum class create_type_t : unsigned int {
@@ -87,17 +87,21 @@ struct create_statement_t : statement_t {
 
     create_type_t type;
 
-    std::string tableName;
+    string tableName;
 
-    std::vector<field_definition_t *> *fields;
+    vector<field_definition_t *> *fields;
 };
 
 /*@}*/
 } // namespace ddl
 
-gaia_id_t create_table(std::string name, const std::vector<ddl::field_definition_t *> &fields);
+gaia_id_t create_table(string name, const vector<ddl::field_definition_t *> &fields);
 
-std::string generate_fbs();
+const vector<gaia_id_t> &list_tables();
+
+const vector<gaia_id_t> &list_fields(gaia_id_t table_id);
+
+string generate_fbs();
 
 /*@}*/
 } // namespace catalog
