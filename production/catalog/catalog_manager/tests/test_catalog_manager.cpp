@@ -58,8 +58,7 @@ TEST_F(catalog_manager_test, list_fields) {
     vector<ddl::field_definition_t *> fields{&f1, &f2};
 
     string test_table_name{"list_fields_test"};
-    gaia_id_t table_id = catalog_manager_t::get().create_table(test_table_name, fields);
-    table_ids.insert(table_id);
+    gaia_id_t table_id = create_test_table(test_table_name, fields);
 
     EXPECT_EQ(fields.size(), catalog_manager_t::get().list_fields(table_id).size());
 
