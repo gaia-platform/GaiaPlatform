@@ -14,6 +14,8 @@ set(GAIA_CATALOG_TOOL_INCLUDES
   ${GAIA_REPO}/production/db/storage_engine/mock
   ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_INC}/public/common
+  ${GAIA_INC}/public/direct_access
+  ${GAIA_INC}/public/system
   ${GAIA_PARSER_GENERATED_OUTPUTS}
 )
 message(STATUS "GAIA_CATALOG_TOOL_INCLUDES=${GAIA_CATALOG_TOOL_INCLUDES}")
