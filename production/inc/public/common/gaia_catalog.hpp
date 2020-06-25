@@ -95,7 +95,7 @@ struct create_statement_t : statement_t {
 /*@}*/
 } // namespace ddl
 
-gaia_id_t create_table(string name, const vector<ddl::field_definition_t *> &fields);
+gaia_id_t create_table(const string &name, const vector<ddl::field_definition_t *> &fields);
 
 const vector<gaia_id_t> &list_tables();
 

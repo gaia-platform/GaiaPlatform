@@ -11,8 +11,8 @@ using namespace gaia::catalog;
 /**
  * Catalog public APIs
  **/
-gaia_id_t gaia::catalog::create_table(std::string name,
-    const std::vector<ddl::field_definition_t *> &fields) {
+gaia_id_t gaia::catalog::create_table(const string& name,
+    const vector<ddl::field_definition_t *> &fields) {
     return catalog_manager_t::get().create_table(name, fields);
 }
 
@@ -66,8 +66,8 @@ catalog_manager_t &catalog_manager_t::get() {
     return s_instance;
 }
 
-gaia_id_t catalog_manager_t::create_table(std::string name,
-    const std::vector<ddl::field_definition_t *> &fields) {
+gaia_id_t catalog_manager_t::create_table(const string& name,
+    const vector<ddl::field_definition_t *> &fields) {
     if (m_table_names.find(name) != m_table_names.end()) {
         throw gaia::common::gaia_exception("The table " + name +
                                            " already exists.");
@@ -105,7 +105,7 @@ gaia_id_t catalog_manager_t::create_table(std::string name,
 
     m_table_names[name] = table_id;
     m_table_ids.push_back(table_id);
-    m_table_fields[table_id] = std::move(field_ids);
+    m_table_fields[table_id] = move(field_ids);
     return table_id;
 }
 

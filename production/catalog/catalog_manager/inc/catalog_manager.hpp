@@ -26,7 +26,7 @@ class catalog_manager_t {
     /*
     ** APIs for accessing catalog records
     */
-    gaia_id_t create_table(string name, const vector<ddl::field_definition_t *> &fields);
+    gaia_id_t create_table(const string &name, const vector<ddl::field_definition_t *> &fields);
 
     const vector<gaia_id_t> &list_tables() const;
     const vector<gaia_id_t> &list_fields(gaia_id_t table_id) const;
