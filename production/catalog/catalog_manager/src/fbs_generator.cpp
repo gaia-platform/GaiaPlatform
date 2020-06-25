@@ -47,6 +47,7 @@ std::string generate_fbs() {
             unique_ptr<Gaia_field> field{Gaia_field::get_row_by_id(field_id)};
             fbs += "\t" + generate_field(*field) + ";\n";
         }
+        fbs += "}\n\n";
     }
     gaia::db::commit_transaction();
     return fbs;
