@@ -15,8 +15,8 @@ typedef unordered_map<gaia_id_t, std::string> table_id_map_t;
 typedef std::pair<int, std::string> fieldstr_pair_t;
 typedef std::unordered_map<std::string, vector<fieldstr_pair_t>> table_collection_t;
 
-static std::string get_data_type_name(GaiaDataType e) {
-    string name{EnumNameGaiaDataType(e)};
+static std::string get_data_type_name(gaia_data_type e) {
+    string name{EnumNamegaia_data_type(e)};
     // Convert the data type enum name string to lowercase case
     // because FlatBuffers schema is case sensitive
     // and does not recognize uppercase keywords.
@@ -24,17 +24,12 @@ static std::string get_data_type_name(GaiaDataType e) {
     return name;
 }
 
-static std::string generate_field(unique_ptr<GaiaField> &field,
-    const table_id_map_t &table_id_map) {
+static std::string generate_field(unique_ptr<Gaia_field> &field) {
 
     string field_name{field->name()};
 
     string field_type;
-    if (field->type() != GaiaDataType_TABLE) {
-        field_type = get_data_type_name(field->type());
-    } else {
-        field_type = table_id_map.at(field->type_id());
-    }
+    field_type = get_data_type_name(field->type());
 
     if (field->repeated_count() == 1) {
         return field_name + ":" + field_type;
@@ -51,14 +46,14 @@ std::string generate_fbs() {
     table_collection_t tables;
 
     gaia::db::begin_transaction();
-    for (unique_ptr<GaiaTable> t{GaiaTable::get_first()}; t; t.reset(t->get_next())) {
+    for (unique_ptr<Gaia_table> t{Gaia_table::get_first()}; t; t.reset(t->get_next())) {
         table_id_map[t->gaia_id()] = t->name();
     }
 
-    for (unique_ptr<GaiaField> field{GaiaField::get_first()}; field; field.reset(field->get_next())) {
+    for (unique_ptr<Gaia_field> field{Gaia_field::get_first()}; field; field.reset(field->get_next())) {
         fieldstr_pair_t fieldstr_pair = std::make_pair(
             field->position(),
-            generate_field(field, table_id_map));
+            generate_field(field));
 
         const std::string &table_name = table_id_map[field->table_id()];
 
