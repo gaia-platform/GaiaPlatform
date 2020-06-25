@@ -4,6 +4,9 @@
   age: 242,
   has_children: false,
   identifier: 7364592217,
+  known_associates: [8583390572, 8438230053, 2334850034, 5773382939],
+  known_aliases: ["Mamba Lev", "One Hand Rending", "The Icepick", "Ken Kakura"],
   sleeve_cost: 769999.99,
-  monthly_sleeve_insurance: 149.99
+  monthly_sleeve_insurance: 149.99,
+  last_yearly_top_credit_amounts: [199000000, 99000000, 0]
 }
