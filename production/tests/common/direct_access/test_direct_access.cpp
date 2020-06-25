@@ -563,7 +563,6 @@ TEST_F(gaia_object_test, read_only) {
     printf("cache:  %ld\n", gaia_base_t::s_gaia_cache.size());
 }
 
-
 TEST_F(gaia_object_test, simple) {
     auto_transaction_t tx;
     auto writer = Employee::create();
@@ -577,8 +576,14 @@ TEST_F(gaia_object_test, simple) {
     printf("first name: %s\n", e->name_first());
     tx.commit();
 
-    e->get_writer()->ssn = "123456789";
-    e->get_writer()->email = "howdy@gmail.com";
+    //Employee_writer& updater = e->get_writer();
+    auto& updater = e->get_writer();
+    auto& ssn = updater->ssn;
+    ssn = "123456789";
+    auto& my_id = updater->Gaia_id;
+    my_id = 888;
+    nullable_string_t& email = updater->email;
+    email = "howdy@gmail.com";
     Employee::update_row(e);
     printf("id:  %ld\n", e->gaia_id());
     tx.commit();
@@ -587,6 +592,8 @@ TEST_F(gaia_object_test, simple) {
     printf("first name: %s\n", e->name_first());
     printf("ssn: %s\n", e->ssn());
     printf("email: %s\n", e->email());
+    printf("id: %ld\n", e->Gaia_id());
+    
     tx.commit();
 
     Employee::delete_row(e);
