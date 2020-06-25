@@ -21,6 +21,7 @@ public:
     using reference = T_gaia_ptr&;
 
     gaia_iterator_t(T_gaia_ptr ptr) : m_ptr(ptr) {}
+
     gaia_iterator_t(const gaia_iterator_t& it) : m_ptr(it.m_ptr) {}
 
     gaia_iterator_t& operator++() {
@@ -37,6 +38,7 @@ public:
     bool operator==(const gaia_iterator_t& rhs) const {
         return m_ptr->gaia_id() == rhs.m_ptr->gaia_id();
     }
+
     bool operator!=(const gaia_iterator_t& rhs) const {
         if (m_ptr && rhs.m_ptr) {
             return m_ptr->gaia_id() != rhs.m_ptr->gaia_id();
@@ -69,13 +71,16 @@ public:
     gaia_set_iterator_t(T_foreign* edc_ptr) {
         m_edc_ptr = edc_ptr;
     }
+
     T_foreign* operator*() {
         return m_edc_ptr;
     }
+
     gaia_set_iterator_t& operator++() {
         m_edc_ptr = T_foreign::get_row_by_id(m_edc_ptr->m_references[T_foreign_slot]);
         return *this;
     }
+
     bool operator!=(const gaia_set_iterator_t&) const {
         return m_edc_ptr != nullptr;
     }
@@ -103,8 +108,11 @@ public:
         T_foreign* edc_ptr = T_foreign::get_row_by_id(m_outer->m_references[T_primary_slot]);
         return gaia_set_iterator_t<T_foreign, T_foreign_slot>(edc_ptr);
     }
+
     gaia_set_iterator_t<T_foreign, T_foreign_slot> end() {return gaia_set_iterator_t<T_foreign, T_foreign_slot>(nullptr);}
+
     void set_outer(T_primary* outer) {m_outer = outer;}
+
     void insert(T_foreign* foreign_ptr) {
         auto fid = foreign_ptr->gaia_id();
         auto oid = m_outer->gaia_id();
@@ -116,6 +124,7 @@ public:
         foreign_ptr->m_references[T_parent_slot]  = oid;
         m_outer->m_references[T_primary_slot] = fid;
     }
+
     void erase(T_foreign* foreign_ptr) {
         if (foreign_ptr->m_references[T_parent_slot] != m_outer->gaia_id()) {
             throw edc_invalid_member(

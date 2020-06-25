@@ -88,12 +88,12 @@ TEST_F(gaia_references_test, connect) {
 
 Employee* create_hierarchy() {
     auto eptr = Employee::insert_row("Heidi", "Humphry", "555-22-4444", 20200530, "heidi@gmail.com", "");
-    for (int i = 0; i<2000; i++) {
+    for (int i = 0; i<200; i++) {
         char addr_string[6];
         sprintf(addr_string, "%d", i);
         auto aptr = Address::insert_row(addr_string, addr_string, addr_string, addr_string, addr_string, addr_string, true);
         eptr->address_list.insert(aptr);
-        for (int j = 0; j < 40; j++) {
+        for (int j = 0; j < 20; j++) {
             char phone_string[5];
             sprintf(phone_string, "%d", j);
             auto pptr = Phone::insert_row(phone_string, phone_string, true);
@@ -180,7 +180,7 @@ TEST_F(gaia_references_test, connect_scan) {
 
     // Count the records in the hierarchy
     auto record_count = scan_hierarchy(eptr);
-    EXPECT_EQ(record_count, 82001);
+    EXPECT_EQ(record_count, 4201);
 
     // Travel down, then up the hierarchy
     EXPECT_EQ(bounce_hierarchy(eptr), true);

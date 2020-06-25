@@ -61,9 +61,6 @@ struct Flight : public gaia_object_t<1,Flight,flight,flightT>{
     int32_t miles_flown () const {return GET_CURRENT(miles_flown);}
     int32_t miles_flown_original () const {return GET_ORIGINAL(miles_flown);}
     void set_miles_flown(int32_t val) {SET(miles_flown, val);}
-    using gaia_object_t::insert_row;
-    using gaia_object_t::update_row;
-    using gaia_object_t::delete_row;
     static Flight* insert_row (int32_t number_val,int32_t miles_flown_val){
         flatbuffers::FlatBufferBuilder b(128);
         b.Finish(Createflight(b, number_val,miles_flown_val));
@@ -99,9 +96,6 @@ struct Airport : public gaia_object_t<2,Airport,airport,airportT>{
     const char* iata () const {return GET_STR(iata);}
     const char* iata_original () const {return GET_STR_ORIGINAL(iata);}
     void set_iata(const char* val) {SET(iata, val);}
-    using gaia_object_t::insert_row;
-    using gaia_object_t::update_row;
-    using gaia_object_t::delete_row;
     static Airport* insert_row (const char* name_val, const char* city_val,const char* iata_val){
         flatbuffers::FlatBufferBuilder b(128);
         b.Finish(CreateairportDirect(b, name_val,city_val,iata_val));
@@ -140,9 +134,6 @@ struct Segment : public gaia_object_t<3,Segment,segment,segmentT>{
     int32_t luggage_weight () const {return GET_CURRENT(luggage_weight);}
     int32_t luggage_weight_original () const {return GET_ORIGINAL(luggage_weight);}
     void    set_luggage_weight(int32_t val) {SET(luggage_weight, val);}
-    using gaia_object_t::insert_row;
-    using gaia_object_t::update_row;
-    using gaia_object_t::delete_row;
     static Segment* insert_row (int32_t id_val,int32_t miles_val,int32_t status_val, int32_t luggage_weight_val){
         flatbuffers::FlatBufferBuilder b(128);
         b.Finish(Createsegment(b, id_val,miles_val,status_val,luggage_weight_val));
@@ -179,9 +170,6 @@ struct Trip_segment : public gaia_object_t<4,Trip_segment,trip_segment,trip_segm
     const char* who () const {return GET_STR(who);}
     const char* who_original () const {return GET_STR_ORIGINAL(who);}
     void set_who(const char* val) {SET(who, val);}
-    using gaia_object_t::insert_row;
-    using gaia_object_t::update_row;
-    using gaia_object_t::delete_row;
     static Trip_segment* insert_row (const char* who_val){
         flatbuffers::FlatBufferBuilder b(128);
         b.Finish(Createtrip_segmentDirect(b, who_val));

@@ -66,9 +66,6 @@ struct Employee : public gaia_object_t<1,Employee,employee,employeeT>{
     const char* web () const {return GET_STR(web);}
     const char* web_original () const {return GET_STR_ORIGINAL(web);}
     void set_web(const char* val) {SET(web, val);}
-    using gaia_object_t::insert_row;
-    using gaia_object_t::update_row;
-    using gaia_object_t::delete_row;
     static Employee* insert_row (const char* name_first_val,const char* name_last_val,const char* ssn_val,
             int64_t hire_date_val,const char* email_val,const char* web_val)
     {
@@ -120,9 +117,6 @@ struct Address : public gaia_object_t<2,Address,address,addressT>{
     bool current () const {return GET_CURRENT(current);}
     bool current_original () const {return GET_ORIGINAL(current);}
     void set_current(bool val) {SET(current, val);}
-    using gaia_object_t::insert_row;
-    using gaia_object_t::update_row;
-    using gaia_object_t::delete_row;
     static Address* insert_row (const char* street_val,const char* apt_suite_val,const char* city_val,
             const char* state_val,const char* postal_val,const char* country_val,bool current_val)
     {
@@ -158,9 +152,6 @@ struct Phone : public gaia_object_t<3,Phone,phone,phoneT>{
     bool primary () const {return GET_CURRENT(primary);}
     bool primary_original () const {return GET_ORIGINAL(primary);}
     void set_primary(bool val) {SET(primary, val);}
-    using gaia_object_t::insert_row;
-    using gaia_object_t::update_row;
-    using gaia_object_t::delete_row;
     static Phone* insert_row (const char* phone_number_val,const char* type_val,bool primary_val)
     {
         flatbuffers::FlatBufferBuilder b(128);
