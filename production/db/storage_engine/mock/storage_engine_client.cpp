@@ -79,13 +79,16 @@ void client::begin_session()
 {
     // Fail if a session already exists on this thread.
     verify_no_session();
+
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
     s_session_socket = get_session_socket();
+
     // Send the server the connection request.
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::CONNECT);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
+
     // Extract the data and locator shared memory segment fds from the server's response.
     uint8_t msg_buf[MAX_MSG_SIZE] = {0};
     const size_t FD_COUNT = 2;
@@ -104,6 +107,8 @@ void client::begin_session()
     // (and only if they're not already initialized).
     int fd_data = fds[DATA_FD_INDEX];
     retail_assert(fd_data != -1);
+
+    // Set up the shared data segment mapping.
     if (!s_data) {
         data* data_mapping = (data*)map_fd(
             sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0);
@@ -114,6 +119,8 @@ void client::begin_session()
     }
     // We've already mapped the data fd, so we can close it now.
     close(fd_data);
+
+    // Set up the private locator segment mapping.
     int fd_offsets = fds[OFFSETS_FD_INDEX];
     retail_assert(fd_offsets != -1);
     if (s_fd_offsets == -1) {
@@ -131,6 +138,7 @@ void client::end_session()
 {
     // Send the server EOF.
     shutdown(s_session_socket, SHUT_WR);
+
     // Discard all pending messages from the server and block until EOF.
     while (true) {
         uint8_t msg_buf[MAX_MSG_SIZE] = {0};
@@ -143,6 +151,7 @@ void client::end_session()
             break;
         }
     }
+
     close(s_session_socket);
     s_session_socket = -1;
 }
@@ -151,6 +160,7 @@ void client::begin_transaction()
 {
     verify_session_active();
     verify_no_tx();
+
     // First we allocate a new log segment and map it in our own process.
     s_fd_log = memfd_create(SCH_MEM_LOG, MFD_ALLOW_SEALING);
     if (s_fd_log == -1)
@@ -161,7 +171,6 @@ void client::begin_transaction()
     {
         throw_system_error("ftruncate failed");
     }
-
     s_log = (log*)map_fd(sizeof(log), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_log, 0);
 
     // Now we map a private COW view of the locator shared memory segment.
@@ -177,7 +186,6 @@ void client::begin_transaction()
             throw_system_error("flock failed");
         }
     });
-
     s_offsets = (offsets*)map_fd(sizeof(offsets),
         PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_offsets, 0);
 
@@ -190,8 +198,11 @@ void client::begin_transaction()
 void client::rollback_transaction()
 {
     verify_tx_active();
+
     // Ensure we destroy the shared memory segment and memory mapping before we return.
     auto cleanup = scope_guard::make_scope_guard(tx_cleanup);
+
+    // Notify the server that we rolled back this transaction.
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::ROLLBACK_TXN);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
@@ -204,8 +215,10 @@ void client::rollback_transaction()
 bool client::commit_transaction()
 {
     verify_tx_active();
+
     // Ensure we destroy the shared memory segment and memory mapping before we return.
     auto cleanup = scope_guard::make_scope_guard(tx_cleanup);
+
     // Unmap the log segment so we can seal it.
     destroy_log_mapping();
     // Seal the txn log memfd for writes before sending it to the server.
@@ -213,13 +226,17 @@ bool client::commit_transaction()
     {
         throw_system_error("fcntl(F_SEAL_WRITE) failed");
     }
+
     // Send the server the commit event with the log segment fd.
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::COMMIT_TXN);
     send_msg_with_fds(s_session_socket, &s_fd_log, 1, builder.GetBufferPointer(), builder.GetSize());
+
     // Block on the server's commit decision.
     uint8_t msg_buf[MAX_MSG_SIZE] = {0};
     size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
+
+    // Extract the commit decision from the server's reply and return it.
     retail_assert(bytes_read > 0);
     const message_t *msg = Getmessage_t(msg_buf);
     const server_reply_t *reply = msg->msg_as_reply();
