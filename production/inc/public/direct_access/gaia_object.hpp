@@ -152,4 +152,4 @@ private:
 // Pick up our template implementation.  These still
 // need to be in the header so that template specializations
 // that are declared later will pick up the definitions.
-#include "gaia_object_impl.cpp"
+#include "gaia_object.inc"
