@@ -888,9 +888,6 @@ namespace db
             size_t total_len = data_size + refs_len;
             gaia_ptr<gaia_se_node> node(id, total_len + sizeof(gaia_se_node), false, log_updates);
 
-            // I'm not sure why this is necessary, but it is.
-            node->next_edge_second = nullptr;
-
             node->id = id;
             node->type = type;
             node->num_references = num_refs;
