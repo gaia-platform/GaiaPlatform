@@ -693,12 +693,13 @@ namespace db
             return *this;
         }
 
-        gaia_ptr<T>& update_payload(size_t payload_size, const void* payload)
+        gaia_ptr<T>& update_payload(size_t data_size, const void* data)
         {
             auto old_this = to_ptr();
             auto old_offset = to_offset();
 
-            int32_t total_len = payload_size + old_this->num_references * sizeof(gaia_id_t);
+            int32_t ref_len = old_this->num_references * sizeof(gaia_id_t);
+            int32_t total_len = data_size + ref_len;
             allocate(sizeof(T) + total_len);
 
             auto new_this = to_ptr();
@@ -706,11 +707,10 @@ namespace db
             memcpy (new_this, old_this, sizeof(T));
             new_this->payload_size = total_len;
             if (old_this->num_references) {
-                memcpy(new_this->references, old_this->references, old_this->num_references * sizeof(gaia_id_t));
+                memcpy(new_this->payload, old_this->payload, ref_len);
             }
-            new_this->payload = (char*)(new_this->references) + old_this->num_references * sizeof(gaia_id_t);
             new_this->num_references = old_this->num_references;
-            memcpy (new_this->payload, payload, payload_size);
+            memcpy (new_this->payload + ref_len, data, data_size);
 
             gaia_mem_base::tx_log (row_id, old_offset, to_offset());
 
@@ -856,9 +856,8 @@ namespace db
         gaia_id_t id;
         gaia_type_t type;
         size_t num_references;
-        char* payload;
         size_t payload_size;
-        gaia_id_t references[0];
+        char payload[0];
 
         static gaia_id_t generate_id()
         {
@@ -868,24 +867,25 @@ namespace db
         static gaia_ptr<gaia_se_node> create (
             gaia_id_t id,
             gaia_type_t type,
-            size_t payload_size,
-            const void* payload,
+            size_t data_size,
+            const void* data,
             bool log_updates = true
         )
         {
-            return create(id, type, 0, payload_size, payload, log_updates);
+            return create(id, type, 0, data_size, data, log_updates);
         }
 
         static gaia_ptr<gaia_se_node> create (
             gaia_id_t id,
             gaia_type_t type,
             size_t num_refs,
-            size_t payload_size,
-            const void* payload,
+            size_t data_size,
+            const void* data,
             bool log_updates = true
         )
         {
-            size_t total_len = payload_size + num_refs * sizeof(gaia_id_t);
+            size_t refs_len = num_refs * sizeof(gaia_id_t);
+            size_t total_len = data_size + refs_len;
             gaia_ptr<gaia_se_node> node(id, total_len + sizeof(gaia_se_node), false, log_updates);
 
             // I'm not sure why this is necessary, but it is.
@@ -895,11 +895,10 @@ namespace db
             node->type = type;
             node->num_references = num_refs;
             if (num_refs) {
-                memset(node->references, 0, num_refs * sizeof(gaia_id_t));
+                memset(node->payload, 0, refs_len);
             }
-            node->payload = (char*)(node->references) + num_refs * sizeof(gaia_id_t);
             node->payload_size = total_len;
-            memcpy (node->payload, payload, total_len);
+            memcpy (node->payload + refs_len, data, data_size);
             return node;
         }
 
@@ -908,6 +907,16 @@ namespace db
         )
         {
             return gaia_ptr<gaia_se_node>(id);
+        }
+
+        char* data()
+        {
+            return (char *)(payload + num_references * sizeof(gaia_id_t));
+        }
+
+        gaia_id_t* references()
+        {
+            return (gaia_id_t*)(payload);
         }
     };
 
@@ -928,21 +937,20 @@ namespace db
         size_t num_references;
         gaia_id_t first;
         gaia_id_t second;
-        char* payload;
         size_t payload_size;
-        char references[0];
+        char payload[0];
 
         static gaia_ptr<gaia_se_edge> create (
             gaia_id_t id,
             gaia_type_t type,
             gaia_id_t first,
             gaia_id_t second,
-            size_t payload_size,
-            const void* payload,
+            size_t data_size,
+            const void* data,
             bool log_updates = true
         )
         {
-            return create(id, type, 0, first, second, payload_size, payload, log_updates);
+            return create(id, type, 0, first, second, data_size, data, log_updates);
         }
 
         static gaia_ptr<gaia_se_edge> create (
@@ -951,8 +959,8 @@ namespace db
             size_t num_refs,
             gaia_id_t first,
             gaia_id_t second,
-            size_t payload_size,
-            const void* payload,
+            size_t data_size,
+            const void* data,
             bool log_updates = true
         )
         {
@@ -969,7 +977,8 @@ namespace db
                 throw invalid_node_id(second);
             }
 
-            size_t total_len = payload_size + num_refs * sizeof(gaia_id_t);
+            size_t refs_len = num_refs * sizeof(gaia_id_t);
+            size_t total_len = data_size + refs_len;
             gaia_ptr<gaia_se_edge> edge(id, total_len + sizeof(gaia_se_edge), true, log_updates);
 
             edge->id = id;
@@ -978,11 +987,10 @@ namespace db
             edge->second = second;
             edge->num_references = num_refs;
             if (num_refs) {
-                memset(edge->references, 0, num_refs * sizeof(gaia_id_t));
+                memset(edge->payload, 0, refs_len);
             }
-            edge->payload = (char*)(edge->references) + num_refs * sizeof(gaia_id_t);
             edge->payload_size = total_len;
-            memcpy (edge->payload, payload, total_len);
+            memcpy(edge->payload + refs_len, data, data_size);
 
             edge->node_first = node_first;
             edge->node_second = node_second;
@@ -1004,6 +1012,17 @@ namespace db
         {
             return gaia_ptr<gaia_se_edge>(id, true);
         }
+
+        char* data()
+        {
+            return (char *)(payload + num_references * sizeof(gaia_id_t));
+        }
+
+        gaia_id_t* references()
+        {
+            return (gaia_id_t*)(payload);
+        }
+
     };
 
     template<>
@@ -1015,8 +1034,9 @@ namespace db
         }
         check_id(node->id);
 
+        gaia_id_t * references = node->references();
         for (size_t i = 0; i < node->num_references; i++) {
-            if (node->references[i]) {
+            if (references[i]) {
                 throw node_not_disconnected(node->id, node->type);
             }
         }

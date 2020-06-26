@@ -487,3 +487,25 @@ TEST_F(gaia_object_test, next_first) {
     EXPECT_EQ(nullptr, e4->get_next());
     commit_transaction();
 }
+
+void another_thread()
+{
+    begin_transaction();
+    for (unique_ptr<Employee> e{Employee::get_first()}; e ; e.reset(e->get_next()))
+    {
+        EXPECT_TRUE(nullptr != e->name_first());
+    }
+    commit_transaction();
+}
+
+#include <thread>
+TEST_F(gaia_object_test, thread_test) {
+    begin_transaction();
+    Employee::insert_row("Thread", "Master", "555-55-5555", 1234, "tid@tid.com", "www.thread.com");
+    commit_transaction();
+    // Run on this thread.
+    another_thread();
+    // Now spawn and run on another thread;
+    thread t = thread(another_thread);
+    t.join();
+}

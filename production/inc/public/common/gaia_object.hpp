@@ -331,7 +331,7 @@ public:
             m_fbb->Finish(u);
             node_ptr = gaia_se_node::create(m_id, T_gaia_type, num_ptrs, m_fbb->GetSize(), m_fbb->GetBufferPointer());
             m_fbb->Clear();
-            m_fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);
+            m_fb = flatbuffers::GetRoot<T_fb>(node_ptr->data());
         } else {
             // This situation only happens if an object representing
             // a deleted row is reused.  By giving the object a copy buffer,
@@ -340,7 +340,7 @@ public:
             copy_write();
             node_ptr = gaia_se_node::create(m_id, T_gaia_type, 0, 0, nullptr);
         }
-        m_references = node_ptr->references;
+        m_references = node_ptr->references();
         s_gaia_cache[m_id] = this;
         s_gaia_tx_cache[m_id] = this;
         return;
@@ -366,7 +366,7 @@ public:
             // The update_payload() method changes the physical location of the storage
             // engine object. Since m_references points into that object, it's necessary
             // to make sure it is pointing to the new one.
-            m_references = node_ptr->references;
+            m_references = node_ptr->references();
             m_fbb->Clear();
         }
     }
@@ -487,8 +487,8 @@ private:
             }
             if (!obj->m_fb) {
                 obj->m_num_references = node_ptr->num_references;
-                obj->m_references = node_ptr->references;
-                obj->m_fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);
+                obj->m_references = node_ptr->references();
+                obj->m_fb = flatbuffers::GetRoot<T_fb>(node_ptr->data());
                 obj->m_id = node_ptr->id;
                 s_gaia_tx_cache[obj->m_id] = obj;
             }
