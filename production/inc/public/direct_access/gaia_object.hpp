@@ -23,7 +23,7 @@ namespace gaia {
  * @{
  */
 
-namespace direct {
+namespace direct_access {
 
 /**
  * \addtogroup Direct
@@ -144,7 +144,7 @@ private:
 };
 
 /*@}*/
-} // direct
+} // direct_access
 /*@}*/
 } // gaia
 

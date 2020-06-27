@@ -6,7 +6,7 @@
 
 namespace gaia 
 {
-namespace direct 
+namespace direct_access 
 {
 
 /**
@@ -64,5 +64,5 @@ void gaia_base_t::commit_hook()
     s_gaia_tx_cache.clear();
 }
 
-} // direct
+} // direct_access
 } // gaia

@@ -255,7 +255,7 @@ namespace flatbuffers
 
                 code_ += "using namespace std;";
                 code_ += "using namespace gaia::common;";
-                code_ += "using namespace gaia::direct;";
+                code_ += "using namespace gaia::direct_access;";
                 code_ += "";
 
 

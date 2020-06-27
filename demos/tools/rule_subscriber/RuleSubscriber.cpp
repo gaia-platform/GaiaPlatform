@@ -123,7 +123,7 @@ public:
     }
 
     // Find all the gaia types we care about.  Gaia types inherit
-    // from gaia::direct::gaia_object_t.
+    // from gaia::direct_access::gaia_object_t.
     virtual bool VisitCXXRecordDecl(CXXRecordDecl *Declaration) 
     {
         if (!(Declaration->hasDefinition()))
@@ -141,7 +141,7 @@ public:
             }
             
             string baseQualifiedName = baseDecl->getQualifiedNameAsString();
-            if (0 == baseQualifiedName.compare("gaia::direct::gaia_object_t"))
+            if (0 == baseQualifiedName.compare("gaia::direct_access::gaia_object_t"))
             {
                 // We care about this object.  Add the name
                 // and fully qualified name to map this symbol

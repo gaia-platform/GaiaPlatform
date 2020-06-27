@@ -20,7 +20,7 @@ namespace gaia {
  * @{
  */
 
-namespace direct {
+namespace direct_access {
 
 /**
  * \addtogroup Direct

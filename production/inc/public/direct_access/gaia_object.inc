@@ -11,7 +11,7 @@
 // gaia_object_t declarations.
 namespace gaia
 {
-namespace direct
+namespace direct_access
 {
 
 
@@ -202,5 +202,5 @@ template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typ
 gaia::db::gaia_type_t gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::s_gaia_type = T_gaia_type;
 
 
-} // direct
+} // direct_access
 } // gaia
