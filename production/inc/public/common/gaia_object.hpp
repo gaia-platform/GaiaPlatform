@@ -29,7 +29,7 @@ namespace common {
 /**
  * \addtogroup Common
  * @{
- * 
+ *
  * Implementation of Extended Data Classes. This provides a direct access API
  * for CRUD operations on the database.
  */
@@ -40,8 +40,8 @@ namespace common {
  * Storage engine objects are identified by the gaia_id_t (currently a 64-bit
  * integer). When the same object is referenced multiple times, the cached
  * gaia object associated with the gaia_id_t will be used again.
- * 
- * A second cache is maintained to track objects that have been involved in a 
+ *
+ * A second cache is maintained to track objects that have been involved in a
  * transaction. These objects (which may be small in number compared to the
  * complete cache of objects) will be "cleared" at the beginning of each new
  * transaction. This ensures that any changes made by other transactions will be
@@ -71,7 +71,7 @@ struct gaia_base_t
     static id_cache_t s_gaia_tx_cache;
     /**
      * Install a commit_hook the first time any gaia object is instantiated.
-     */ 
+     */
     static bool s_tx_hooks_installed;
 
     gaia_base_t() = delete;
@@ -85,7 +85,7 @@ struct gaia_base_t
      * This is the storage engine's identification of this object. The id can be
      * used to refer to this object later.
      */
-    gaia_id_t gaia_id() 
+    gaia_id_t gaia_id()
     {
         return m_id;
     }
@@ -105,12 +105,12 @@ struct gaia_base_t
      * must be refreshed if a new transaction begins. Scan these objects to
      * clean out old values. The objects will not be deleted, as they will
      * continue to be tracked in the s_gaia_cache.
-     * 
+     *
      * This commit_hook() must be used together with the extended data
      * class objects.  It is executed after the transaction has been committed.
-     */    
+     */
     static void commit_hook()
-    { 
+    {
         for (auto it = s_gaia_tx_cache.begin(); it != s_gaia_tx_cache.end(); ++it)
         {
             it->second->reset(true);
@@ -124,7 +124,7 @@ struct gaia_base_t
      * when generating its own hooks to generate transaction events.
      * If code is run as part of begin or rollback hooks then do not
      * forget to set the hook in set_tx_hooks below.
-     */ 
+     */
     static void begin_hook() {}
     static void rollback_hook() {}
 
@@ -171,12 +171,49 @@ public:
     edc_invalid_object_type(gaia_id_t id, gaia_type_t expected, const char* expected_type,
         gaia_type_t actual, const char* type_name) {
         stringstream msg;
-        msg << "requesting Gaia type " << expected_type << "(" << expected << ") but object identified by "
-            << id << " is type " << type_name << "(" << actual << ")";
+        msg << "Requesting Gaia type " << expected_type << "(" << expected << ") but object identified by "
+            << id << " is type " << type_name << "(" << actual << ").";
         m_message = msg.str();
     }
 };
 
+// A child's parent pointer must match the parent record we have.
+class edc_invalid_member: public gaia_exception
+{
+public:
+    edc_invalid_member(gaia_id_t id, gaia_type_t parent, const char* parent_type,
+        gaia_type_t child, const char* child_name) {
+        stringstream msg;
+        msg << "Attempting to remove record with Gaia type " << child_name << "(" << child << ") from parent "
+            << id << " of type " << parent_type << "(" << parent << "), but record is not a member.";
+        m_message = msg.str();
+    }
+};
+
+// When a child refers to a parent, but is not found in that parent's list.
+class edc_inconsistent_list: public gaia_exception
+{
+public:
+    edc_inconsistent_list(gaia_id_t id, const char* parent_type, gaia_id_t child, const char* child_name) {
+        stringstream msg;
+        msg << "List is inconsistent, child points to parent " << id << " of type " << parent_type
+            << ", but child (" << child << ", type " << child_name << ") is not in parent's list.";
+        m_message = msg.str();
+    }
+};
+
+// To connect two objects, a gaia_id() is needed but not available until SE create is called during
+// the insert_row().
+class edc_unstored_row: public gaia_exception
+{
+public:
+    edc_unstored_row(const char* parent_type, const char* child_type) {
+        stringstream msg;
+        msg << "Cannot connect two objects until they have both been inserted (insert_row()), parent type is " <<
+            parent_type << " and child type is " << child_type << ".";
+        m_message = msg.str();
+    }
+};
 
 // Macros for strongly types field accessors used by
 // gaia_object_t objects below.
@@ -188,7 +225,7 @@ public:
 
 /**
  * The gaia_object_t that must be specialized to operate on a flatbuffer type.
- * 
+ *
  * @tparam T_gaia_type an integer (gaia_type_t) uniquely identifying the flatbuffer table type
  * @tparam T_gaia the subclass type derived from this template
  * @tparam T_fb the flatbuffer table type to be implemented
@@ -210,8 +247,22 @@ public:
      * This constructor supports completely new objects that the database has not seen yet
      * by creating a copy buffer immediately.
      */
-    gaia_object_t(const char * gaia_typename) 
+    gaia_object_t(const char * gaia_typename, size_t num_references)
     : gaia_base_t(gaia_typename)
+    , m_num_references(num_references)
+    , m_references(nullptr)
+    , m_fb(nullptr)
+    {
+        copy_write();
+    }
+
+    /**
+     * Needed for compatibility with earlier generated headers. May become obsolete.
+     */
+    gaia_object_t(const char * gaia_typename)
+    : gaia_base_t(gaia_typename)
+    , m_num_references(0)
+    , m_references(nullptr)
     , m_fb(nullptr)
     {
         copy_write();
@@ -220,13 +271,13 @@ public:
     /**
      * This can be used for subscribing to rules when you don't
      * have a specific instance of the type.
-     */ 
+     */
     static gaia::db::gaia_type_t s_gaia_type;
 
     /**
      * This can be used when you are passed a gaia_base_t
      * object and want to know the type at runtime.
-     */ 
+     */
     gaia::db::gaia_type_t gaia_type() override
     {
         return T_gaia_type;
@@ -253,7 +304,7 @@ public:
     /**
      * Ask for a specific object based on its id. References to this method must be qualified
      * by the T_gaia_type, and that type must match the type of the identified object.
-     * 
+     *
      * @param id the gaia_id_t of a specific storage engine object, of type T_gaia_type
      */
     static T_gaia* get_row_by_id(gaia_id_t id) {
@@ -267,7 +318,7 @@ public:
      * been set prior to this insert_row(). After the storage engine object exists, it
      * must be modified only through the update_row() method.
      */
-    void insert_row()
+    void insert_row(size_t num_ptrs)
     {
         // Create the node and add to the cache.
         gaia_ptr<gaia_se_node> node_ptr;
@@ -278,20 +329,24 @@ public:
         if (m_copy) {
             auto u = T_fb::Pack(*m_fbb, m_copy.get());
             m_fbb->Finish(u);
-            node_ptr = gaia_se_node::create(m_id, T_gaia_type, m_fbb->GetSize(), m_fbb->GetBufferPointer());
+            node_ptr = gaia_se_node::create(m_id, T_gaia_type, num_ptrs, m_fbb->GetSize(), m_fbb->GetBufferPointer());
             m_fbb->Clear();
-            m_fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);
+            m_fb = flatbuffers::GetRoot<T_fb>(node_ptr->data());
         } else {
             // This situation only happens if an object representing
-            // a deleted row is reused.  By giving the object a copy buffer, 
+            // a deleted row is reused.  By giving the object a copy buffer,
             // the object can be used to insert new values.
+            m_fb = nullptr;
             copy_write();
-            node_ptr = gaia_se_node::create(m_id, T_gaia_type, 0, nullptr);
+            node_ptr = gaia_se_node::create(m_id, T_gaia_type, 0, 0, nullptr);
         }
+        m_references = node_ptr->references();
         s_gaia_cache[m_id] = this;
         s_gaia_tx_cache[m_id] = this;
         return;
     }
+
+    void insert_row() {insert_row(0);}
 
     /**
      * Write the mutable flatbuffer values to the storage engine. This involves the creation
@@ -308,6 +363,10 @@ public:
             auto u = T_fb::Pack(*m_fbb, m_copy.get());
             m_fbb->Finish(u);
             node_ptr.update_payload(m_fbb->GetSize(), m_fbb->GetBufferPointer());
+            // The update_payload() method changes the physical location of the storage
+            // engine object. Since m_references points into that object, it's necessary
+            // to make sure it is pointing to the new one.
+            m_references = node_ptr->references();
             m_fbb->Clear();
         }
     }
@@ -333,27 +392,52 @@ public:
      * Insert a mutable flatbuffer into a newly created storage engine object. This will be
      * used by the generated type-specific insert_row() method.
      */
+
+    static T_gaia* insert_row(flatbuffers::FlatBufferBuilder& fbb, gaia_id_t num_ptrs)
+    {
+        gaia_id_t node_id = gaia_se_node::generate_id();
+        auto node_ptr = gaia_se_node::create(node_id, T_gaia_type, num_ptrs, fbb.GetSize(), fbb.GetBufferPointer());
+        node_ptr->num_references = num_ptrs;
+        return get_row_by_id(node_id);
+    }
+
     static gaia_id_t insert_row(flatbuffers::FlatBufferBuilder& fbb)
     {
-        gaia_id_t nodeId = gaia_se_node::generate_id();
-        gaia_se_node::create(nodeId, T_gaia_type, fbb.GetSize(), fbb.GetBufferPointer());
-        return nodeId;
+        gaia_id_t node_id = gaia_se_node::generate_id();
+        gaia_se_node::create(node_id, T_gaia_type, 0, fbb.GetSize(), fbb.GetBufferPointer());
+        return node_id;
     }
+
+
+    // Array of pointers to related objects.
+    size_t m_num_references;
+    gaia_id_t* m_references;
 
 protected:
     // This constructor supports creating new objects from existing
     // nodes in the database.  It is called by our get_object below.
-    gaia_object_t(gaia_id_t id, const char * gaia_typename) 
+    gaia_object_t(gaia_id_t id, const char * gaia_typename, size_t num_references)
     : gaia_base_t(id, gaia_typename)
+    , m_num_references(num_references)
+    , m_references(nullptr)
+    , m_fb(nullptr)
+    {
+    }
+
+    // For compatibility with old generated headers. May become obsolete.
+    gaia_object_t(gaia_id_t id, const char * gaia_typename)
+    : gaia_base_t(id, gaia_typename)
+    , m_num_references(0)
+    , m_references(nullptr)
     , m_fb(nullptr)
     {
     }
 
     // Cached flatbuffer builder for reuse when inserting
     // or modifying rows.
-    unique_ptr<flatbuffers::FlatBufferBuilder> m_fbb; 
+    unique_ptr<flatbuffers::FlatBufferBuilder> m_fbb;
     // Mutable flatbuffer copy of field changes.
-    unique_ptr<T_obj> m_copy;   
+    unique_ptr<T_obj> m_copy;
     // Flatbuffer referencing SE memory.
     const T_fb* m_fb;
 
@@ -365,6 +449,10 @@ protected:
     T_obj* copy_write()
     {
         if (!m_copy) {
+            // A brand new object should be prepared with the mutable flatbuffer
+            // object. It won't have the read-only object because the SE object
+            // doesn't exist yet. Set up the references to be used here in the
+            // EDC object until the SE object exists.
             m_copy.reset(new T_obj());
             if (m_fb) {
                 m_fb->UnPackTo(m_copy.get());
@@ -398,8 +486,9 @@ private:
                 s_gaia_cache.insert(pair<gaia_id_t, gaia_base_t *>(node_ptr->id, obj));
             }
             if (!obj->m_fb) {
-                auto fb = flatbuffers::GetRoot<T_fb>(node_ptr->payload);
-                obj->m_fb = fb;
+                obj->m_num_references = node_ptr->num_references;
+                obj->m_references = node_ptr->references();
+                obj->m_fb = flatbuffers::GetRoot<T_fb>(node_ptr->data());
                 obj->m_id = node_ptr->id;
                 s_gaia_tx_cache[obj->m_id] = obj;
             }
