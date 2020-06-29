@@ -24,7 +24,7 @@ class GenAbcCfg(Dependency, ABC):
 
     @memoize
     async def get_begin_pattern(self) -> Pattern:
-        begin_pattern = re.compile(fr'^.*\[{await self.get_section_name()}].*$')
+        begin_pattern = re.compile(fr'^\[{await self.get_section_name()}]$')
 
         self.log.debug(f'{begin_pattern = }')
 
@@ -32,7 +32,7 @@ class GenAbcCfg(Dependency, ABC):
 
     @memoize
     async def get_end_pattern(self) -> Pattern:
-        end_pattern = re.compile(fr'^.*\[.+].*$')
+        end_pattern = re.compile(fr'^\[.+]$')
 
         self.log.debug(f'{end_pattern = }')
 
