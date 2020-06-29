@@ -28,7 +28,7 @@ invalid_serialized_data::invalid_serialized_data()
     m_message = "Cannot deserialize data.";
 }
 
-invalid_field_position::invalid_field_position(uint16_t position)
+invalid_field_position::invalid_field_position(field_position_t position)
 {
     stringstream string_stream;
     string_stream << "No field could be found for position: " << position << ".";
@@ -42,7 +42,7 @@ unhandled_field_type::unhandled_field_type(size_t field_type)
     m_message = string_stream.str();
 }
 
-invalid_serialized_field_data::invalid_serialized_field_data(uint16_t position)
+invalid_serialized_field_data::invalid_serialized_field_data(field_position_t position)
 {
     stringstream string_stream;
     string_stream << "Cannot deserialize data for field position: " << position << ".";
@@ -97,7 +97,7 @@ void get_table_field_information(
     uint64_t type_id,
     uint8_t* serialized_data,
     uint8_t* binary_schema,
-    uint16_t field_position,
+    field_position_t field_position,
     const flatbuffers::Table*& root_table,
     auto_field_cache_t& auto_field_cache,
     field_cache_t& local_field_cache,
@@ -137,7 +137,7 @@ void get_table_field_array_information(
     uint64_t type_id,
     uint8_t* serialized_data,
     uint8_t* binary_schema,
-    uint16_t field_position,
+    field_position_t field_position,
     const flatbuffers::Table*& root_table,
     auto_field_cache_t& auto_field_cache,
     field_cache_t& local_field_cache,
@@ -165,7 +165,7 @@ data_holder_t gaia::db::types::get_table_field_value(
     uint64_t type_id,
     uint8_t* serialized_data,
     uint8_t* binary_schema,
-    uint16_t field_position)
+    field_position_t field_position)
 {
     const flatbuffers::Table* root_table = nullptr;
     auto_field_cache_t auto_field_cache;
@@ -210,7 +210,7 @@ size_t gaia::db::types::get_table_field_array_size(
     uint64_t type_id,
     uint8_t* serialized_data,
     uint8_t* binary_schema,
-    uint16_t field_position)
+    field_position_t field_position)
 {
     const flatbuffers::Table* root_table = nullptr;
     auto_field_cache_t auto_field_cache;
@@ -230,7 +230,7 @@ data_holder_t gaia::db::types::get_table_field_array_element(
     uint64_t type_id,
     uint8_t* serialized_data,
     uint8_t* binary_schema,
-    uint16_t field_position,
+    field_position_t field_position,
     size_t array_index)
 {
     const flatbuffers::Table* root_table = nullptr;

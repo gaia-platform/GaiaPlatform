@@ -12,6 +12,7 @@
 
 #include "flatbuffers/reflection.h"
 
+#include <field_common.hpp>
 #include <synchronization.hpp>
 
 namespace gaia
@@ -21,7 +22,7 @@ namespace db
 namespace types
 {
 
-typedef std::unordered_map<uint16_t, const reflection::Field*> field_map_t;
+typedef std::unordered_map<field_position_t, const reflection::Field*> field_map_t;
 
 // A field cache stores all Field descriptions for a given type,
 // indexed by the corresponding field id values.
@@ -36,11 +37,11 @@ public:
     // Because the field information is retrieved by direct access to the binary schema,
     // we need to maintain a read lock while it is being used,
     // to prevent it from being changed.
-    const reflection::Field* get_field(uint16_t field_id) const;
+    const reflection::Field* get_field(field_position_t field_position) const;
 
     // Insert information about a field in the cache.
     // This is used during construction of the cache.
-    void set_field(uint16_t field_id, const reflection::Field* field);
+    void set_field(field_position_t field_position, const reflection::Field* field);
 
     // Return the size of the internal map.
     size_t size();

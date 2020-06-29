@@ -10,8 +10,9 @@
 
 #include "flatbuffers/reflection.h"
 
-#include <gaia_exception.hpp>
 #include <data_holder.hpp>
+#include <field_common.hpp>
+#include <gaia_exception.hpp>
 #include <type_cache.hpp>
 
 namespace gaia
@@ -42,7 +43,7 @@ public:
 class invalid_field_position: public gaia::common::gaia_exception
 {
 public:
-    invalid_field_position(uint16_t position);
+    invalid_field_position(field_position_t position);
 };
 
 class unhandled_field_type: public gaia::common::gaia_exception
@@ -54,7 +55,7 @@ public:
 class invalid_serialized_field_data: public gaia::common::gaia_exception
 {
 public:
-    invalid_serialized_field_data(uint16_t position);
+    invalid_serialized_field_data(field_position_t position);
 };
 
 // Parse the binary schema and insert its Field definitions
@@ -79,7 +80,7 @@ data_holder_t get_table_field_value(
     uint64_t type_id,
     uint8_t* serialized_data,
     uint8_t* binary_schema,
-    uint16_t field_position);
+    field_position_t field_position);
 
 // Get the size of a field of array type.
 //
@@ -90,7 +91,7 @@ size_t get_table_field_array_size(
     uint64_t type_id,
     uint8_t* serialized_data,
     uint8_t* binary_schema,
-    uint16_t field_position);
+    field_position_t field_position);
 
 // Get a specific element of a field of array type.
 //
@@ -101,7 +102,7 @@ data_holder_t get_table_field_array_element(
     uint64_t type_id,
     uint8_t* serialized_data,
     uint8_t* binary_schema,
-    uint16_t field_position,
+    field_position_t field_position,
     size_t array_index);
 
 }
