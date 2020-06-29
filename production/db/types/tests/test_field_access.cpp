@@ -22,8 +22,14 @@ const char* c_last_name = "Kovacs";
 const uint8_t c_age = 242;
 const int8_t c_has_children = 0;
 const int64_t c_identifier = 7364592217;
+const size_t c_count_known_associates = 4;
+const int64_t c_known_associates[] = { 8583390572, 8438230053, 2334850034, 5773382939 };
+const size_t c_count_known_aliases = 4;
+const char* c_known_aliases[] = { "Mamba Lev", "One Hand Rending", "The Icepick", "Ken Kakura" };
 const double c_sleeve_cost = 769999.0;
 const float c_monthly_sleeve_insurance = 149.0;
+const size_t c_count_credit_amounts = 3;
+const double c_last_yearly_top_credit_amounts[] = { 199000000, 99000000, 0 };
 
 enum field
 {
@@ -32,8 +38,11 @@ enum field
     age,
     has_children,
     identifier,
+    known_associates,
+    known_aliases,
     sleeve_cost,
     monthly_sleeve_insurance,
+    last_yearly_top_credit_amounts,
 
     // Keep this entry last and add any new entry above.
     count_fields
@@ -89,6 +98,48 @@ void get_fields_data(
     ASSERT_EQ(c_identifier, identifier.hold.integer_value);
     cout << "\testate_value = " << identifier.hold.integer_value << endl;
 
+    size_t count_known_associates = get_table_field_array_size(
+        c_type_id,
+        data_loader.get_data(),
+        pass_schema ? schema_loader.get_data() : nullptr,
+        field::known_associates);
+    ASSERT_EQ(c_count_known_associates, count_known_associates);
+    cout << "\tcount known_associates = " << count_known_associates << endl;
+
+    for (size_t i = 0; i < count_known_associates; i++)
+    {
+        data_holder_t known_associate = get_table_field_array_element(
+            c_type_id,
+            data_loader.get_data(),
+            pass_schema ? schema_loader.get_data() : nullptr,
+            field::known_associates,
+            i);
+        ASSERT_EQ(known_associate.type, reflection::Long);
+        ASSERT_EQ(c_known_associates[i], known_associate.hold.integer_value);
+        cout << "\t\tknown_associate[" << i << "] = " << known_associate.hold.integer_value << endl;
+    }
+
+    size_t count_known_aliases = get_table_field_array_size(
+        c_type_id,
+        data_loader.get_data(),
+        pass_schema ? schema_loader.get_data() : nullptr,
+        field::known_aliases);
+    ASSERT_EQ(c_count_known_aliases, count_known_aliases);
+    cout << "\tcount known_aliases = " << count_known_aliases << endl;
+
+    for (size_t i = 0; i < count_known_aliases; i++)
+    {
+        data_holder_t known_alias = get_table_field_array_element(
+            c_type_id,
+            data_loader.get_data(),
+            pass_schema ? schema_loader.get_data() : nullptr,
+            field::known_aliases,
+            i);
+        ASSERT_EQ(known_alias.type, reflection::String);
+        ASSERT_EQ(0, strcmp(known_alias.hold.string_value, c_known_aliases[i]));
+        cout << "\t\tknown_alias[" << i << "] = " << known_alias.hold.string_value << endl;
+    }
+
     data_holder_t sleeve_cost = get_table_field_value(
         c_type_id,
         data_loader.get_data(),
@@ -108,6 +159,27 @@ void get_fields_data(
     ASSERT_TRUE(monthly_sleeve_insurance.hold.float_value > c_monthly_sleeve_insurance);
     ASSERT_TRUE(monthly_sleeve_insurance.hold.float_value <= c_monthly_sleeve_insurance + 1);
     cout << "\tmonthly_cable_bill = " << monthly_sleeve_insurance.hold.float_value << endl;
+
+    size_t count_credit_amounts = get_table_field_array_size(
+        c_type_id,
+        data_loader.get_data(),
+        pass_schema ? schema_loader.get_data() : nullptr,
+        field::last_yearly_top_credit_amounts);
+    ASSERT_EQ(c_count_credit_amounts, count_credit_amounts);
+    cout << "\tcount credit amounts = " << count_credit_amounts << endl;
+
+    for (size_t i = 0; i < count_credit_amounts; i++)
+    {
+        data_holder_t credit_amount = get_table_field_array_element(
+            c_type_id,
+            data_loader.get_data(),
+            pass_schema ? schema_loader.get_data() : nullptr,
+            field::last_yearly_top_credit_amounts,
+            i);
+        ASSERT_EQ(credit_amount.type, reflection::Double);
+        ASSERT_EQ(c_last_yearly_top_credit_amounts[i], credit_amount.hold.float_value);
+        cout << "\t\tlast_yearly_top_credit_amount[" << i << "] = " << credit_amount.hold.float_value << endl;
+    }
 }
 
 void process_flatbuffers_data(bool access_fields = false)

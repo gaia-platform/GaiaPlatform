@@ -36,8 +36,8 @@ namespace direct_access {
  * Storage engine objects are identified by the gaia_id_t (currently a 64-bit
  * integer). When the same object is referenced multiple times, the cached
  * gaia object associated with the gaia_id_t will be used again.
- * 
- * A second cache is maintained to track objects that have been involved in a 
+ *
+ * A second cache is maintained to track objects that have been involved in a
  * transaction. These objects (which may be small in number compared to the
  * complete cache of objects) will be "cleared" at the beginning of each new
  * transaction. This ensures that any changes made by other transactions will be
@@ -67,7 +67,7 @@ struct gaia_base_t
     static id_cache_t s_gaia_tx_cache;
     /**
      * Install a commit_hook the first time any gaia object is instantiated.
-     */ 
+     */
     static bool s_tx_hooks_installed;
 
     gaia_base_t() = delete;
@@ -92,10 +92,10 @@ struct gaia_base_t
      * must be refreshed if a new transaction begins. Scan these objects to
      * clean out old values. The objects will not be deleted, as they will
      * continue to be tracked in the s_gaia_cache.
-     * 
+     *
      * This commit_hook() must be used together with the extended data
      * class objects.  It is executed after the transaction has been committed.
-     */    
+     */
     static void commit_hook();
 
     /**
@@ -104,7 +104,7 @@ struct gaia_base_t
      * when generating its own hooks to generate transaction events.
      * If code is run as part of begin or rollback hooks then do not
      * forget to set the hook in set_tx_hooks below.
-     */ 
+     */
     static void begin_hook() {}
     static void rollback_hook() {}
 
@@ -136,6 +136,39 @@ public:
         const char* expected_type,
         gaia_type_t actual, 
         const char* type_name);
+};
+
+// A child's parent pointer must match the parent record we have.
+class edc_invalid_member: public gaia_exception
+{
+public:
+    edc_invalid_member(
+        gaia_id_t id, 
+        gaia_type_t parent, 
+        const char* parent_type,
+        gaia_type_t child, 
+        const char* child_name);
+};
+
+// When a child refers to a parent, but is not found in that parent's list.
+class edc_inconsistent_list: public gaia_exception
+{
+public:
+    edc_inconsistent_list(
+        gaia_id_t id, 
+        const char* parent_type, 
+        gaia_id_t child, 
+        const char* child_name);
+};
+
+// To connect two objects, a gaia_id() is needed but not available until SE create is called during
+// the insert_row().
+class edc_unstored_row: public gaia_exception
+{
+public:
+    edc_unstored_row(
+        const char* parent_type, 
+        const char* child_type);
 };
 
 /*@}*/

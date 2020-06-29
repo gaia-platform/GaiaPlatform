@@ -9,9 +9,9 @@ namespace gaia
 namespace direct_access 
 {
 
-/**
- * Exception class implementations
- */
+//
+// Exception class implementations.
+//
 edc_invalid_object_type::edc_invalid_object_type(
     gaia_id_t id, 
     gaia_type_t expected, 
@@ -20,15 +20,49 @@ edc_invalid_object_type::edc_invalid_object_type(
     const char* type_name) 
 {
     stringstream msg;
-    msg << "requesting Gaia type " << expected_type << "(" << expected << ") but object identified by "
-        << id << " is type " << type_name << "(" << actual << ")";
+    msg << "Requesting Gaia type " << expected_type << "(" << expected << ") but object identified by "
+        << id << " is type " << type_name << "(" << actual << ").";
     m_message = msg.str();
 }
 
+edc_invalid_member::edc_invalid_member(
+    gaia_id_t id, 
+    gaia_type_t parent, 
+    const char* parent_type,
+    gaia_type_t child, 
+    const char* child_name) 
+{
+    stringstream msg;
+    msg << "Attempting to remove record with Gaia type " << child_name << "(" << child << ") from parent "
+        << id << " of type " << parent_type << "(" << parent << "), but record is not a member.";
+    m_message = msg.str();
+}
 
-/**
- * gaia_base_t implementation
- */
+edc_inconsistent_list::edc_inconsistent_list(
+    gaia_id_t id, 
+    const char* parent_type, 
+    gaia_id_t child, 
+    const char* child_name) 
+{
+    stringstream msg;
+    msg << "List is inconsistent, child points to parent " << id << " of type " << parent_type
+        << ", but child (" << child << ", type " << child_name << ") is not in parent's list.";
+    m_message = msg.str();
+}
+
+edc_unstored_row::edc_unstored_row(
+    const char* parent_type, 
+    const char* child_type) 
+{
+    stringstream msg;
+    msg << "Cannot connect two objects until they have both been inserted (insert_row()), parent type is " <<
+        parent_type << " and child type is " << child_type << ".";
+    m_message = msg.str();
+}
+
+//
+// Base gaia_base_t implementation.
+//
 gaia_base_t::gaia_base_t(const char* gaia_typename)
 : gaia_base_t(0, gaia_typename)
 {

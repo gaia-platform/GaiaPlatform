@@ -8,14 +8,6 @@
 namespace AddrBook;
 
 table employee {
-    Gaia_id: int64;
-    Gaia_Mgr_id: int64;
-    Gaia_FirstAddr_id: int64;
-    Gaia_FirstPhone_id: int64;
-    Gaia_FirstProvision_id: int64;
-    Gaia_FirstSalary_id: int64;
-
-    // employee fields
     name_first: string;
     name_last: string;
     ssn: string;
@@ -25,11 +17,6 @@ table employee {
 }
 
 table address {
-    Gaia_id: int64;
-    Gaia_NextAddr_id: int64;
-    Gaia_NextState_id: int64;
-
-    // address fields
     street: string;
     apt_suite: string;
     city: string;
@@ -40,10 +27,6 @@ table address {
 }
 
 table phone {
-    Gaia_id: int64;
-    Gaia_NextPhone_id: int64;
-
-    // phone fields
     phone_number: string;
     type: string;
     primary: bool;

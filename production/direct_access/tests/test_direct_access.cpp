@@ -25,7 +25,7 @@ protected:
             delete e;
         }
         commit_transaction();
-}
+    }
 
     void SetUp() override {
         gaia_mem_base::init(true);
@@ -239,7 +239,7 @@ TEST_F(gaia_object_test, read_wrong_type) {
     }
     catch (const exception& e) {
         // The eid is unpredictable, but the exception will use it in its message.
-        string compare_string = "requesting Gaia type Address(2) but object identified by " + to_string(eid) + " is type Employee(1)";
+        string compare_string = "Requesting Gaia type Address(2) but object identified by " + to_string(eid) + " is type Employee(1).";
         EXPECT_STREQ(e.what(), compare_string.c_str());
     }
     EXPECT_THROW(Address::get_row_by_id(eid), edc_invalid_object_type);
@@ -486,4 +486,26 @@ TEST_F(gaia_object_test, next_first) {
     e4->set_name_first("Hector");
     EXPECT_EQ(nullptr, e4->get_next());
     commit_transaction();
+}
+
+void another_thread()
+{
+    begin_transaction();
+    for (unique_ptr<Employee> e{Employee::get_first()}; e ; e.reset(e->get_next()))
+    {
+        EXPECT_TRUE(nullptr != e->name_first());
+    }
+    commit_transaction();
+}
+
+#include <thread>
+TEST_F(gaia_object_test, thread_test) {
+    begin_transaction();
+    Employee::insert_row("Thread", "Master", "555-55-5555", 1234, "tid@tid.com", "www.thread.com");
+    commit_transaction();
+    // Run on this thread.
+    another_thread();
+    // Now spawn and run on another thread;
+    thread t = thread(another_thread);
+    t.join();
 }
