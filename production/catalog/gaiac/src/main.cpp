@@ -28,9 +28,9 @@ int main(int argc, char *argv[]) {
     parser_t parser;
     gaia::db::gaia_mem_base::init(true);
     for (int i = 1; i < argc; ++i) {
-        if (argv[i] == std::string("-p")) {
+        if (argv[i] == string("-p")) {
             parser.trace_parsing = true;
-        } else if (argv[i] == std::string("-s")) {
+        } else if (argv[i] == string("-s")) {
             parser.trace_scanning = true;
         } else if (!parser.parse(argv[i])) {
             execute(parser.statements);
@@ -38,6 +38,6 @@ int main(int argc, char *argv[]) {
             res = EXIT_FAILURE;
         }
     }
-    std::cout <<  gaia::catalog::generate_fbs() << endl;
+    cout <<  gaia::catalog::generate_fbs() << endl;
     return res;
 }
