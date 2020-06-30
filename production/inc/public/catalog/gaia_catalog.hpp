@@ -127,7 +127,11 @@ gaia_id_t create_table(const string &name, const vector<ddl::field_definition_t 
 const vector<gaia_id_t> &list_tables();
 
 /**
- * List all fields for a give table defined in the catalog.
+ * List all primay data type fields for a give table defined in the catalog.
+ * The fields returned here do not include references type fields.
+ * Reference type fields defines foreign key relationship between tables and
+ * are treated differently. Use list_references() API to get a list of all
+ * references for a given table.
  *
  * @param table_id id of the table
  * @return a list of field ids in the order of their positions.
