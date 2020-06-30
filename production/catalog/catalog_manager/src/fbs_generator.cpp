@@ -12,16 +12,16 @@
 namespace gaia {
 namespace catalog {
 
-static std::string get_data_type_name(gaia_data_type e) {
+static string get_data_type_name(gaia_data_type e) {
     string name{EnumNamegaia_data_type(e)};
     // Convert the data type enum name string to lowercase case
     // because FlatBuffers schema is case sensitive
     // and does not recognize uppercase keywords.
-    std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+    transform(name.begin(), name.end(), name.begin(), ::tolower);
     return name;
 }
 
-static std::string generate_field(const Gaia_field &field) {
+static string generate_field(const Gaia_field &field) {
     string field_name{field.name()};
 
     string field_type;
@@ -37,8 +37,8 @@ static std::string generate_field(const Gaia_field &field) {
     }
 }
 
-std::string generate_fbs() {
-    std::string fbs;
+string generate_fbs() {
+    string fbs;
     gaia::db::begin_transaction();
     for (gaia_id_t table_id : catalog_manager_t::get().list_tables()) {
         unique_ptr<Gaia_table> table{Gaia_table::get_row_by_id(table_id)};
