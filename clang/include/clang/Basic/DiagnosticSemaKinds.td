@@ -9496,8 +9496,10 @@ def err_builtin_launder_invalid_arg : Error<
   "'__builtin_launder' is not allowed">;
 
 def err_invalid_operand_last_operation : Error<
-  "Incorrect LastOperation operation">;
+  "Incorrect LastOperation action">;
 def err_invalid_assignment_last_operation : Error<
   "Incorrect LastOperation assignment">;
+def err_invalid_field_operation : Error<
+  "Incorrect field operation">;
 
 } // end of sema component.

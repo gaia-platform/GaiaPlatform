@@ -2166,17 +2166,21 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
 
   if (R.empty())
   {
-      DeclContext *DC = S->getEntity();
-      if (DC)
+      if (S->getFnParent() != nullptr)
       {
-        if (FunctionDecl *FD = dyn_cast<FunctionDecl>(DC))
+        DeclContext *DC = S->getFnParent()->getEntity();
+      
+        if (DC)
         {
-            if (FD->hasAttr<RuleAttr>())
+            if (FunctionDecl *FD = dyn_cast<FunctionDecl>(DC))
             {
-                NamedDecl *D = injectVariableDefinition(II);
-                if (D) 
+                if (FD->hasAttr<RuleAttr>())
                 {
-                    R.addDecl(D);
+                    NamedDecl *D = injectVariableDefinition(II);
+                    if (D) 
+                    {
+                        R.addDecl(D);
+                    }
                 }
             }
         }
@@ -11216,6 +11220,12 @@ if (S.getLangOpts().Gaia)
             S.Diag(Loc, diag::err_invalid_assignment_last_operation);
             return true;
         }
+
+        if (decl->hasAttr<GaiaFieldAttr>() ||
+            decl->hasAttr<GaiaFieldValueAttr>())
+        {
+            decl->addAttr(GaiaFieldLValueAttr::CreateImplicit(S.Context));
+        }
     }
 }
 
@@ -11397,24 +11407,6 @@ QualType Sema::CheckAssignmentOperands(Expr *LHSExpr, ExprResult &RHS,
   // Verify that LHS is a modifiable lvalue, and emit error if not.
   if (CheckForModifiableLvalue(LHSExpr, Loc, *this))
     return QualType();
-
-  if (getLangOpts().Gaia)
-  {
-    DeclRefExpr *exp = dyn_cast<DeclRefExpr>(RHS.get());
-
-    if (exp != nullptr)
-    {                    
-        ValueDecl *decl = exp->getDecl();
-        if (decl->hasAttr<GaiaLastOperationAttr>() || 
-            decl->hasAttr<GaiaLastOperationINSERTAttr>() ||
-            decl->hasAttr<GaiaLastOperationUPDATEAttr>() ||
-            decl->hasAttr<GaiaLastOperationDELETEAttr>())
-        {
-            Diag(Loc, diag::err_invalid_assignment_last_operation);
-            return QualType();
-        }
-    }
-  }
 
   QualType LHSType = LHSExpr->getType();
   QualType RHSType = CompoundType.isNull() ? RHS.get()->getType() :
@@ -12349,6 +12341,7 @@ ExprResult Sema::CreateBuiltinBinOp(SourceLocation OpLoc,
             rOp = true;
         }
     }
+    // prohibit all operations with LastOperation except == or !=
     if (leftLastOp || rightLastOp || lOp || rOp)
     {
         if ((leftLastOp && rightLastOp) ||
@@ -12990,6 +12983,14 @@ ExprResult Sema::CreateBuiltinUnaryOp(SourceLocation OpLoc,
             decl->hasAttr<GaiaLastOperationDELETEAttr>())
         {
             Diag(OpLoc, diag::err_invalid_operand_last_operation);
+            return ExprError();
+        }
+
+        if ((decl->hasAttr<GaiaFieldAttr>() ||
+            decl->hasAttr<GaiaFieldValueAttr>()) &&
+            (Opc == UO_AddrOf || Opc == UO_Deref))
+        {
+            Diag(OpLoc, diag::err_invalid_field_operation);
             return ExprError();
         }
     }

@@ -1528,6 +1528,9 @@ void ASTDeclReader::VisitLabelDecl(LabelDecl *D) {
 }
 void ASTDeclReader::VisitRulesetDecl(RulesetDecl *D) 
 {
+    VisitNamedDecl(D);
+    D->LocStart = ReadSourceLocation();
+    D->RBraceLoc = ReadSourceLocation();
     //TBD PCH implementation if needed
 }
 void ASTDeclReader::VisitNamespaceDecl(NamespaceDecl *D) {

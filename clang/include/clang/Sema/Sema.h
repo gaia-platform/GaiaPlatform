@@ -4597,7 +4597,7 @@ public:
                                SourceLocation RulesetLoc,
                                SourceLocation IdentLoc, IdentifierInfo *Ident,
                                const ParsedAttributesView &AttrList);
-  void ActOnRulesetDefFinish(); 
+  void ActOnRulesetDefFinish(Decl *Dcl, SourceLocation RBrace); 
   NamedDecl *injectVariableDefinition(IdentifierInfo *II);
   QualType getFieldType (IdentifierInfo *id) const;
   

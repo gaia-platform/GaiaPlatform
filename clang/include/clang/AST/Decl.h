@@ -4339,10 +4339,13 @@ inline bool IsEnumDeclScoped(EnumDecl *ED) {
 /// Represents Gaia ruleset.
 class RulesetDecl : public NamedDecl, public DeclContext
 {
+    SourceLocation LocStart;
+    SourceLocation RBraceLoc;
+
     RulesetDecl(ASTContext &C, DeclContext *DC,
         SourceLocation StartLoc, SourceLocation IdLoc,
         IdentifierInfo *Id)
-        : NamedDecl(Ruleset, DC, IdLoc, Id), DeclContext(Ruleset){}
+        : NamedDecl(Ruleset, DC, IdLoc, Id), DeclContext(Ruleset), LocStart(StartLoc){}
 public:
     friend class ASTDeclReader;
     friend class ASTDeclWriter;
@@ -4352,6 +4355,15 @@ public:
         SourceLocation IdLoc, IdentifierInfo *Id);
 
     static RulesetDecl *CreateDeserialized(ASTContext &C, unsigned ID);
+
+    SourceRange getSourceRange() const override LLVM_READONLY {
+        return SourceRange(LocStart, RBraceLoc);
+    }
+
+    SourceLocation getBeginLoc() const LLVM_READONLY { return LocStart; }
+    SourceLocation getRBraceLoc() const { return RBraceLoc; }
+    void setLocStart(SourceLocation L) { LocStart = L; }
+    void setRBraceLoc(SourceLocation L) { RBraceLoc = L; }
 
   // Implement isa/cast/dyncast/etc.
     static bool classof(const Decl *D) { return classofKind(D->getKind()); }

@@ -36,7 +36,7 @@ void Parser::ConsumeInvalidRuleset()
 std::string Parser::RandomString(std::string::size_type length) const
 {
     const char chrs[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ_"
-        "abcdefghijklmnopqrstuvwxyz";
+        "abcdefghijklmnopqrstuvwxyz0123456789";
 
     std::random_device rd;
     std::mt19937_64 gen(rd());
@@ -84,7 +84,7 @@ void Parser::InjectRuleFunction(Declarator &decl)
     declSpec.Finish(Actions, Actions.getASTContext().getPrintingPolicy());
  
     // Set function name
-    IdentifierInfo *func = &PP.getIdentifierTable().get(RandomString(10));
+    IdentifierInfo *func = &PP.getIdentifierTable().get(RandomString(15));
     decl.SetIdentifier(func, loc);
     
     decl.takeAttributes(attrs, endLoc);
@@ -294,7 +294,7 @@ Parser::DeclGroupPtrTy Parser::ParseRuleset()
 
     rulesetScope.Exit();
 
-    Actions.ActOnRulesetDefFinish();
+    Actions.ActOnRulesetDefFinish(rulesetDecl, tracker.getCloseLocation());
 
     return Actions.ConvertDeclToDeclGroup(rulesetDecl, nullptr);
 }

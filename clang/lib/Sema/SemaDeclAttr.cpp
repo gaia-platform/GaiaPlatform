@@ -2025,7 +2025,7 @@ static void handleRulesetAttr(Sema &S, Decl *D, const ParsedAttr &AL)
         IdentifierLoc *tableArg = AL.getArgAsIdent(ArgNo);
         tables.push_back(tableArg->Ident);
     }
-    D->addAttr(::new (S.Context) TableAttr(
+    D->addAttr(::new (S.Context) RulesetTableAttr(
         AL.getRange(), S.Context, tables.data(), tables.size(),
         AL.getAttributeSpellingListIndex()));
 }
@@ -2075,6 +2075,13 @@ static void handleGaiaLastOperationUpdateAttr(Sema &S, Decl *D, const ParsedAttr
 static void handleGaiaLastOperationDeleteAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
     D->addAttr(::new (S.Context) GaiaLastOperationDELETEAttr(
+        AL.getRange(), S.Context,
+        AL.getAttributeSpellingListIndex()));
+}
+
+static void handleGaiaFieldLValueAttr(Sema &S, Decl *D, const ParsedAttr &AL)
+{
+    D->addAttr(::new (S.Context) GaiaFieldLValueAttr(
         AL.getRange(), S.Context,
         AL.getAttributeSpellingListIndex()));
 }
@@ -7102,7 +7109,7 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
     handleObjCExternallyRetainedAttr(S, D, AL);
     break;
 
-  case ParsedAttr::AT_Table:
+  case ParsedAttr::AT_RulesetTable:
     handleRulesetAttr(S, D, AL);
     break;
   case ParsedAttr::AT_Rule:
@@ -7128,6 +7135,9 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
     break;
   case ParsedAttr::AT_GaiaLastOperationDELETE:
     handleGaiaLastOperationDeleteAttr(S, D, AL);
+    break;
+  case ParsedAttr::AT_GaiaFieldLValue:
+    handleGaiaFieldLValueAttr(S, D, AL);
     break;
   }
 }

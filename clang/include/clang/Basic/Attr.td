@@ -3173,7 +3173,7 @@ def ObjCExternallyRetained : InheritableAttr {
   let Documentation = [ObjCExternallyRetainedDocs];
 }
 
-def Table : Attr {
+def RulesetTable : Attr {
     let Spellings = [Keyword<"table">];
     let Subjects = SubjectList<[Ruleset]>;
     let Documentation = [Undocumented];
@@ -3225,6 +3225,12 @@ def GaiaLastOperationUPDATE : Attr {
 
 def GaiaLastOperationDELETE : Attr {
   let Spellings = [Keyword<"DELETE">];
+  let Subjects = SubjectList<[Var]>;
+  let Documentation = [Undocumented];
+}
+
+def GaiaFieldLValue : Attr {
+  let Spellings = [Keyword<"gaiaFieldLValue">];
   let Subjects = SubjectList<[Var]>;
   let Documentation = [Undocumented];
 }

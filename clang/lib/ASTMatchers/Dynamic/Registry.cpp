@@ -410,6 +410,7 @@ RegistryMaps::RegistryMaps() {
   REGISTER_MATCHER(namedDecl);
   REGISTER_MATCHER(namespaceAliasDecl);
   REGISTER_MATCHER(namespaceDecl);
+  REGISTER_MATCHER(rulesetDecl);
   REGISTER_MATCHER(namesType);
   REGISTER_MATCHER(nestedNameSpecifier);
   REGISTER_MATCHER(nestedNameSpecifierLoc);

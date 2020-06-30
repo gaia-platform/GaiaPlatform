@@ -80,8 +80,11 @@ Decl *Sema::ActOnRulesetDefStart(Scope *S, SourceLocation RulesetLoc,
     return ruleset;
 }
 
-void Sema::ActOnRulesetDefFinish()
+void Sema::ActOnRulesetDefFinish(Decl *Dcl, SourceLocation RBrace)
 {
+    RulesetDecl *ruleset = dyn_cast_or_null<RulesetDecl>(Dcl);
+    assert(ruleset && "Invalid parameter, expected RulesetDecl");
+    ruleset->setRBraceLoc(RBrace);
     PopDeclContext();
 }
 
