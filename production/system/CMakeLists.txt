@@ -10,6 +10,8 @@ project(system)
 
 set(GAIA_SYSTEM_INCLUDES 
     "${GAIA_INC}/public/common"
+    "${GAIA_INC}/public/direct_access"
+    "${GAIA_INC}/public/system"
     "${GAIA_INC}/public/rules"
     "${GAIA_INC}/internal/common"
     "${FLATBUFFERS_INC}"
