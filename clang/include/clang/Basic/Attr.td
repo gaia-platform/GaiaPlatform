@@ -3234,3 +3234,10 @@ def GaiaFieldLValue : Attr {
   let Subjects = SubjectList<[Var]>;
   let Documentation = [Undocumented];
 }
+
+def FieldTable : Attr {
+    let Spellings = [Keyword<"FieldTable">];
+    let Subjects = SubjectList<[Var]>;
+    let Documentation = [Undocumented];
+    let Args = [IdentifierArgument<"table">];
+}

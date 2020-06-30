@@ -4156,7 +4156,8 @@ public:
       Scope *S, CXXScopeSpec &SS, SourceLocation TemplateKWLoc,
       UnqualifiedId &Id, bool HasTrailingLParen, bool IsAddressOfOperand,
       std::unique_ptr<CorrectionCandidateCallback> CCC = nullptr,
-      bool IsInlineAsmIdentifier = false, Token *KeywordReplacement = nullptr);
+      bool IsInlineAsmIdentifier = false, Token *KeywordReplacement = nullptr, 
+      bool isGaiaFieldTable = false);
 
   void DecomposeUnqualifiedId(const UnqualifiedId &Id,
                               TemplateArgumentListInfo &Buffer,
@@ -4598,8 +4599,12 @@ public:
                                SourceLocation IdentLoc, IdentifierInfo *Ident,
                                const ParsedAttributesView &AttrList);
   void ActOnRulesetDefFinish(Decl *Dcl, SourceLocation RBrace); 
-  NamedDecl *injectVariableDefinition(IdentifierInfo *II);
+  NamedDecl *injectVariableDefinition(IdentifierInfo *II, bool isGaiaFieldTable);
   QualType getFieldType (IdentifierInfo *id) const;
+  QualType getTableType (IdentifierInfo *id) ;
+  void addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorChunk::ParamInfo *Params,
+    unsigned NumParams, AttributeFactory &attrFactory, ParsedAttributes &attrs, Scope *S, RecordDecl *RD) ;
+  void addField(IdentifierInfo *name, QualType type, RecordDecl *RD) const ;
   
 
 private:
