@@ -17,7 +17,7 @@
 //       Employee to Phone.
 
 using namespace std;
-using namespace gaia::common;
+using namespace gaia::direct_access;
 
 namespace AddrBook {
 

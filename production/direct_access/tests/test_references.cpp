@@ -10,6 +10,7 @@
 using namespace std;
 using namespace gaia::db;
 using namespace gaia::common;
+using namespace gaia::direct_access;
 using namespace AddrBook;
 
 class gaia_references_test : public ::testing::Test {
