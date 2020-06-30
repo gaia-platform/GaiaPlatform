@@ -69,8 +69,7 @@ catalog_manager_t &catalog_manager_t::get() {
 gaia_id_t catalog_manager_t::create_table(const string& name,
     const vector<ddl::field_definition_t *> &fields) {
     if (m_table_names.find(name) != m_table_names.end()) {
-        throw gaia::common::gaia_exception("The table " + name +
-                                           " already exists.");
+        throw table_already_exists(name);
     }
 
     gaia::db::begin_transaction();

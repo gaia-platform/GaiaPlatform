@@ -5,6 +5,7 @@
 #pragma once
 
 #include "gaia_object.hpp"
+#include "gaia_exception.hpp"
 #include <string>
 
 namespace gaia {
@@ -95,12 +96,49 @@ struct create_statement_t : statement_t {
 /*@}*/
 } // namespace ddl
 
+/**
+ * Thrown when creating a table that already exists.
+ */
+class table_already_exists: public gaia_exception {
+  public:
+    table_already_exists(const string &name) {
+        stringstream message;
+        message << "The table " << name << " already exists.";
+        m_message = message.str();
+    }
+};
+
+/**
+ * Create a table definition in the catalog.
+ *
+ * @param name table name
+ * @param fields fields of the table
+ * @return id of the new table
+ * @throw table_already_exists
+ */
 gaia_id_t create_table(const string &name, const vector<ddl::field_definition_t *> &fields);
 
+/**
+ * List all tables defined in the catalog.
+ *
+ * @return a list of tables ids in the catalog.
+ * The method makes no guarantees on the order of the table ids returned.
+ */
 const vector<gaia_id_t> &list_tables();
 
+/**
+ * List all fields for a give table defined in the catalog.
+ *
+ * @param table_id id of the table
+ * @return a list of field ids in the order of their positions.
+ */
 const vector<gaia_id_t> &list_fields(gaia_id_t table_id);
 
+/**
+ * Generate FlatBuffers schema (fbs) from catalog table definitions
+ *
+ * @return generated fbs string
+ */
 string generate_fbs();
 
 /*@}*/

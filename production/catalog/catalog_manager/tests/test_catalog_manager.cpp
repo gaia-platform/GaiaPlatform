@@ -42,6 +42,14 @@ TEST_F(catalog_manager_test, create_table) {
     gaia::db::commit_transaction();
 }
 
+TEST_F(catalog_manager_test, create_existing_table) {
+    string test_table_name{"create_existing_table"};
+    vector<ddl::field_definition_t *> fields;
+
+    create_test_table(test_table_name, fields);
+    EXPECT_THROW(create_test_table(test_table_name, fields), table_already_exists);
+}
+
 TEST_F(catalog_manager_test, list_tables) {
     vector<ddl::field_definition_t *> fields;
     for (int i = 0; i < 10; i++) {
