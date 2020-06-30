@@ -63,7 +63,8 @@ string &ltrim(string &s)
 string &rtrim(string &s) 
 {
     s.erase(
-        find_if(s.rbegin(), s.rend(), not1(ptr_fun<int, int>(isspace))).base(), s.end());
+        find_if(s.rbegin(), s.rend(), 
+            not1(ptr_fun<int, int>(isspace))).base(), s.end());
     return s;
 }
 
@@ -103,12 +104,10 @@ void split(const string &text, vector<string>& tokens, char separator)
     log("token: %s\n", tokens.back());
 }
 
-
-
-class FieldGetMatchHandler : public MatchFinder::MatchCallback
+class Field_Get_Match_Handler : public MatchFinder::MatchCallback
 {
 public:
-    FieldGetMatchHandler(Rewriter &r) : rewriter (r){}
+    Field_Get_Match_Handler(Rewriter &r) : rewriter (r){}
     virtual void run (const MatchFinder::MatchResult &Result)
     {
         //ASTContext *context = Result.Context;
@@ -120,11 +119,14 @@ public:
             
             if (decl->hasAttr<GaiaFieldAttr>())
             {
-                rewriter.ReplaceText(SourceRange(exp->getLocation(),exp->getEndLoc()), decl->getName().str() + ".get()");
+                rewriter.ReplaceText(SourceRange(exp->getLocation(),exp->getEndLoc()), 
+                    decl->getName().str() + ".get()");
             }
             else if (decl->hasAttr<GaiaFieldValueAttr>())
             {
-                rewriter.ReplaceText(SourceRange(exp->getLocation().getLocWithOffset(-1),exp->getEndLoc()), decl->getName().str() + ".get()");
+                rewriter.ReplaceText(
+                    SourceRange(exp->getLocation().getLocWithOffset(-1),exp->getEndLoc()), 
+                    decl->getName().str() + ".get()");
             }
         }
     }
@@ -133,10 +135,10 @@ private:
     Rewriter &rewriter;
 };
 
-class FieldSetMatchHandler : public MatchFinder::MatchCallback
+class Field_Set_Match_Handler : public MatchFinder::MatchCallback
 {
 public:
-    FieldSetMatchHandler(Rewriter &r) : rewriter (r){}
+    Field_Set_Match_Handler(Rewriter &r) : rewriter (r){}
     virtual void run (const MatchFinder::MatchResult &Result)
     {
         const BinaryOperator *op = Result.Nodes.getNodeAs<BinaryOperator>("fieldSet");
@@ -151,7 +153,8 @@ public:
                 {
                     const ValueDecl *opDecl = leftDeclExpr->getDecl();
                     tok::TokenKind tokenKind;
-                    std::string replacementText = "[&]() mutable {" + opDecl->getName().str() + ".set(";
+                    std::string replacementText = "[&]() mutable {" + 
+                        opDecl->getName().str() + ".set(";
                     switch(op->getOpcode())
                     {
                         case BO_Assign:
@@ -215,19 +218,26 @@ public:
 
                     if (op->getOpcode() != BO_Assign)
                     {
-                        replacementText += opDecl->getName().str() + ".get() " + ConvertCompoundBinaryOpcode(op->getOpcode()) + "(";
+                        replacementText += opDecl->getName().str() + ".get() " 
+                            + ConvertCompoundBinaryOpcode(op->getOpcode()) + "(";
                     }
                     
-                    SourceLocation setLocEnd = Lexer::findLocationAfterToken(leftDeclExpr->getLocation(),tokenKind,rewriter.getSourceMgr(),rewriter.getLangOpts(),true);
-                    rewriter.ReplaceText(SourceRange(leftDeclExpr->getLocation(),setLocEnd.getLocWithOffset(-1)), replacementText);
+                    SourceLocation setLocEnd = Lexer::findLocationAfterToken(
+                        leftDeclExpr->getLocation(),tokenKind,rewriter.getSourceMgr(),
+                        rewriter.getLangOpts(),true);
+                    rewriter.ReplaceText(
+                        SourceRange(leftDeclExpr->getLocation(),setLocEnd.getLocWithOffset(-1)), 
+                        replacementText);
                     rewriter.InsertTextAfterToken(op->getEndLoc(),")");
                     if (op->getOpcode() != BO_Assign)
                     {
-                        rewriter.InsertTextAfterToken(op->getEndLoc(),"); return " + opDecl->getName().str() + ".get();}() ");
+                        rewriter.InsertTextAfterToken(op->getEndLoc(),"); return " + 
+                            opDecl->getName().str() + ".get();}() ");
                     }
                     else
                     {
-                        rewriter.InsertTextAfterToken(op->getEndLoc(),";return " + opDecl->getName().str() + ".get();}() ");
+                        rewriter.InsertTextAfterToken(op->getEndLoc(),";return " + 
+                            opDecl->getName().str() + ".get();}() ");
                     }
                     
                 }
@@ -268,10 +278,10 @@ private:
     Rewriter &rewriter;
 };
 
-class FieldUnaryOperatorMatchHandler : public MatchFinder::MatchCallback
+class Field_Unary_Operator_Match_Handler : public MatchFinder::MatchCallback
 {
 public:
-    FieldUnaryOperatorMatchHandler(Rewriter &r) : rewriter (r){}
+    Field_Unary_Operator_Match_Handler(Rewriter &r) : rewriter (r){}
     virtual void run (const MatchFinder::MatchResult &Result)
     {
        const UnaryOperator *op = Result.Nodes.getNodeAs<UnaryOperator>("fieldUnaryOp");
@@ -291,26 +301,36 @@ public:
                     {
                         if (op->isIncrementOp())
                         {
-                            replaceStr = "[&]() mutable {auto t=" + opDecl->getName().str() + ".get();" + opDecl->getName().str() + ".set(" +  opDecl->getName().str() + ".get() + 1); return t;}()";
+                            replaceStr = "[&]() mutable {auto t=" + 
+                                opDecl->getName().str() + ".get();" + opDecl->getName().str() + 
+                                ".set(" +  opDecl->getName().str() + ".get() + 1); return t;}()";
                         }
-                        else
+                        else if(op->isDecrementOp())
                         {
-                            replaceStr = "[&]() mutable {auto t=" + opDecl->getName().str() + ".get();" + opDecl->getName().str() + ".set(" +  opDecl->getName().str() + ".get() - 1); return t;}()";
+                            replaceStr = "[&]() mutable {auto t=" + 
+                                opDecl->getName().str() + ".get();" + opDecl->getName().str() + 
+                                ".set(" +  opDecl->getName().str() + ".get() - 1); return t;}()";
                         }
                     }
                     else
                     {
                         if (op->isIncrementOp())
                         {
-                            replaceStr = "[&]() mutable {" + opDecl->getName().str() + ".set(" +  opDecl->getName().str() + ".get() + 1); return " + opDecl->getName().str() + ".get();}()";
+                            replaceStr = "[&]() mutable {" + opDecl->getName().str() + 
+                                ".set(" +  opDecl->getName().str() + ".get() + 1); return " + 
+                                opDecl->getName().str() + ".get();}()";
                         }
-                        else
+                        else if(op->isDecrementOp())
                         {
-                            replaceStr = "[&]() mutable {" + opDecl->getName().str() + ".set(" +  opDecl->getName().str() + ".get() - 1); return " + opDecl->getName().str() + ".get();}()";
+                            replaceStr = "[&]() mutable {" + opDecl->getName().str() + 
+                                ".set(" +  opDecl->getName().str() + ".get() - 1); return " + 
+                                opDecl->getName().str() + ".get();}()";
                         }
                     }
 
-                    rewriter.ReplaceText(SourceRange(op->getBeginLoc().getLocWithOffset(-1),op->getEndLoc().getLocWithOffset(1)), replaceStr);
+                    rewriter.ReplaceText(
+                        SourceRange(op->getBeginLoc().getLocWithOffset(-1),op->getEndLoc().getLocWithOffset(1)), 
+                        replaceStr);
 
                 }
             }
@@ -319,39 +339,73 @@ public:
     }
 
 private:
-    
-
     Rewriter &rewriter;
 };
 
-class RuleMatchHandler : public MatchFinder::MatchCallback
+class Rule_Match_Handler : public MatchFinder::MatchCallback
 {
 public:
-    RuleMatchHandler(Rewriter &r) : rewriter (r){}
+    Rule_Match_Handler(Rewriter &r) : rewriter (r){}
     virtual void run (const MatchFinder::MatchResult &Result)
     {
         const FunctionDecl * ruleDecl = Result.Nodes.getNodeAs<FunctionDecl>("ruleDecl");
+        const DeclContext *ctx = ruleDecl->getDeclContext();
+        while (ctx) 
+        {
+            const RulesetDecl *rs = dyn_cast<RulesetDecl>(ctx);
+            if (!rs)
+            {
+                continue;
+            }
+            else
+            {
+                log("Ruleset %s\n", rs->getName().str());
+                break;
+            }
+            ctx = ctx->getParent();
+        }
+
+        
+
         if (ruleDecl != nullptr)
         {
-            rewriter.InsertText(ruleDecl->getLocation(),"void " + curRuleset + "_" + ruleDecl->getName().str() +"()\n");
+            
+            rewriter.InsertText(ruleDecl->getLocation(),"void " + curRuleset + 
+                "_" + ruleDecl->getName().str() +"()\n");
+            string b = decl2str(ruleDecl, rewriter.getSourceMgr());
+            log("##################\n%s\n########################\n",b);
         }
     }
 
 private:
+    std::string decl2str(const Decl *d, SourceManager &sm) 
+    {
+        string text = Lexer::getSourceText(
+            CharSourceRange::getTokenRange(d->getSourceRange()), 
+            sm, LangOptions(), 0);
+        if (text.size() > 0 && (text.at(text.size()-1) == ',')) //the text can be ""
+        {
+            return Lexer::getSourceText(
+                CharSourceRange::getCharRange(d->getSourceRange()), 
+                sm, LangOptions(), 0);
+        }
+        return text;
+    }
     Rewriter &rewriter;
 };
 
-class RulesetMatchHandler : public MatchFinder::MatchCallback
+class Ruleset_Match_Handler : public MatchFinder::MatchCallback
 {
 public:
-    RulesetMatchHandler(Rewriter &r) : rewriter (r){}
+    Ruleset_Match_Handler(Rewriter &r) : rewriter (r){}
     virtual void run (const MatchFinder::MatchResult &Result)
     {
         const RulesetDecl * rulesetDecl = Result.Nodes.getNodeAs<RulesetDecl>("rulesetDecl");
         if (rulesetDecl != nullptr)
         {
             curRuleset = rulesetDecl->getName().str();           
-            rewriter.ReplaceText(SourceRange(rulesetDecl->getBeginLoc(),rulesetDecl->decls_begin()->getBeginLoc().getLocWithOffset(-2)),
+            rewriter.ReplaceText(
+                SourceRange(rulesetDecl->getBeginLoc(),rulesetDecl->decls_begin()->getBeginLoc().getLocWithOffset(-2)),
                 "namespace " + curRuleset + "\n{\n");
         }
     }
@@ -394,11 +448,11 @@ public:
     }
 private:
     MatchFinder matcher;
-    FieldGetMatchHandler fieldGetMatcherHandler;
-    FieldSetMatchHandler fieldSetMatcherHandler;
-    RuleMatchHandler     ruleMatcherHandler;
-    RulesetMatchHandler  rulesetMatcherHandler;
-    FieldUnaryOperatorMatchHandler fieldUnaryOperatorMatchHandler;
+    Field_Get_Match_Handler fieldGetMatcherHandler;
+    Field_Set_Match_Handler fieldSetMatcherHandler;
+    Rule_Match_Handler     ruleMatcherHandler;
+    Ruleset_Match_Handler  rulesetMatcherHandler;
+    Field_Unary_Operator_Match_Handler fieldUnaryOperatorMatchHandler;
 };
 
 class ASTGenerator_Action : public clang::ASTFrontendAction 
@@ -444,6 +498,5 @@ int main(int argc, const char **argv)
     // Create a new Clang Tool instance (a LibTooling environment).
     ClangTool tool(op.getCompilations(), op.getSourcePathList());
     tool.appendArgumentsAdjuster(getInsertArgumentAdjuster("-fgaia-extensions"));
-    tool.run(newFrontendActionFactory<ASTGenerator_Action>().get());
-    
+    tool.run(newFrontendActionFactory<ASTGenerator_Action>().get());    
 }
