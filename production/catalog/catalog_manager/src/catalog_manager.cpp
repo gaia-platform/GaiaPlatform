@@ -11,11 +11,22 @@ using namespace gaia::catalog;
 /**
  * Catalog public APIs
  **/
-gaia_id_t gaia::catalog::create_table(std::string name,
-    const std::vector<ddl::field_definition_t *> &fields) {
+gaia_id_t gaia::catalog::create_table(const string& name,
+    const vector<ddl::field_definition_t *> &fields) {
     return catalog_manager_t::get().create_table(name, fields);
 }
 
+const set<gaia_id_t> &list_tables() {
+    return catalog_manager_t::get().list_tables();
+}
+
+const vector<gaia_id_t> &list_fields(gaia_id_t table_id) {
+    return catalog_manager_t::get().list_fields(table_id);
+}
+
+/**
+ * Helper functions
+ **/
 static gaia_data_type to_gaia_data_type(ddl::data_type_t data_type) {
     switch (data_type) {
     case ddl::data_type_t::BOOL:
@@ -55,11 +66,10 @@ catalog_manager_t &catalog_manager_t::get() {
     return s_instance;
 }
 
-gaia_id_t catalog_manager_t::create_table(std::string name,
-    const std::vector<ddl::field_definition_t *> &fields) {
-    if (m_table_cache.find(name) != m_table_cache.end()) {
-        throw gaia::common::gaia_exception("The table " + name +
-                                           " already exists.");
+gaia_id_t catalog_manager_t::create_table(const string& name,
+    const vector<ddl::field_definition_t *> &fields) {
+    if (m_table_names.find(name) != m_table_names.end()) {
+        throw table_already_exists(name);
     }
 
     gaia::db::begin_transaction();
@@ -71,9 +81,11 @@ gaia_id_t catalog_manager_t::create_table(std::string name,
         0,                          // max_size
         0                           // max_seconds
     );
+
     uint16_t position = 0;
+    vector<gaia_id_t> field_ids;
     for (ddl::field_definition_t *field : fields) {
-        Gaia_field::insert_row(
+        gaia_id_t field_id = Gaia_field::insert_row(
             field->name.c_str(),            // name
             table_id,                       // table_id
             to_gaia_data_type(field->type), // type
@@ -86,9 +98,20 @@ gaia_id_t catalog_manager_t::create_table(std::string name,
             false,                          // has_default
             ""                              // default value
         );
+        field_ids.push_back(field_id);
     }
     gaia::db::commit_transaction();
 
-    m_table_cache[name] = table_id;
+    m_table_names[name] = table_id;
+    m_table_ids.insert(table_id);
+    m_table_fields[table_id] = move(field_ids);
     return table_id;
+}
+
+const set<gaia_id_t> &catalog_manager_t::list_tables() const {
+    return m_table_ids;
+}
+
+const vector<gaia_id_t> &catalog_manager_t::list_fields(gaia_id_t table_id) const {
+    return m_table_fields.at(table_id);
 }
