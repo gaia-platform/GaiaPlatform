@@ -33,8 +33,11 @@ ros2 run gaia_incubator temp_sensor
 ```
 
 4. **(Optional)** Open another Docker terminal to monitor ROS2 topics:
+
 Open another terminal.
+
 `docker exec -it "$(docker ps -q)" bash`
+
 Wait for a Docker shell to open.
 ```
 source /opt/ros/foxy/setup.bash
