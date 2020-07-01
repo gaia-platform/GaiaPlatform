@@ -11,7 +11,7 @@
 #include "flatbuffers/reflection.h"
 
 #include <data_holder.hpp>
-#include <field_common.hpp>
+#include <types.hpp>
 #include <gaia_exception.hpp>
 #include <type_cache.hpp>
 

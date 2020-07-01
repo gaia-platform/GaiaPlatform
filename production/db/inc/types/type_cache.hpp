@@ -12,7 +12,7 @@
 
 #include "flatbuffers/reflection.h"
 
-#include <field_common.hpp>
+#include <types.hpp>
 #include <synchronization.hpp>
 
 namespace gaia

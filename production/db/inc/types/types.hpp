@@ -17,6 +17,6 @@ namespace types
 // Type definitions for fields
 typedef uint16_t field_position_t;
 
-}
-}
-}
+} // namespace types
+} // namespace db
+} // namespace gaia
