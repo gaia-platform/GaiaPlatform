@@ -88,7 +88,7 @@ struct create_statement_t : statement_t {
 
     create_type_t type;
 
-    string tableName;
+    string table_name;
 
     vector<field_definition_t *> *fields;
 };
@@ -121,17 +121,17 @@ gaia_id_t create_table(const string &name, const vector<ddl::field_definition_t 
 /**
  * List all tables defined in the catalog.
  *
- * @return a list of tables ids in the catalog.
- * The method makes no guarantees on the order of the table ids returned.
+ * @return a set of tables ids in the catalog.
  */
-const vector<gaia_id_t> &list_tables();
+const set<gaia_id_t> &list_tables();
 
 /**
- * List all primay data type fields for a give table defined in the catalog.
+ * List all data payload fields for a given table defined in the catalog.
  * The fields returned here do not include references type fields.
- * Reference type fields defines foreign key relationship between tables and
- * are treated differently. Use list_references() API to get a list of all
- * references for a given table.
+ * Reference type fields defines foreign key relationship between tables.
+ * They are not part of the data payload and are ordered separately.
+ *
+ * Use list_references() API to get a list of all references for a given table.
  *
  * @param table_id id of the table
  * @return a list of field ids in the order of their positions.

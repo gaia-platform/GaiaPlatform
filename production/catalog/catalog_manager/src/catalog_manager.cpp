@@ -16,7 +16,7 @@ gaia_id_t gaia::catalog::create_table(const string& name,
     return catalog_manager_t::get().create_table(name, fields);
 }
 
-const vector<gaia_id_t> &list_tables() {
+const set<gaia_id_t> &list_tables() {
     return catalog_manager_t::get().list_tables();
 }
 
@@ -103,12 +103,12 @@ gaia_id_t catalog_manager_t::create_table(const string& name,
     gaia::db::commit_transaction();
 
     m_table_names[name] = table_id;
-    m_table_ids.push_back(table_id);
+    m_table_ids.insert(table_id);
     m_table_fields[table_id] = move(field_ids);
     return table_id;
 }
 
-const vector<gaia_id_t> &catalog_manager_t::list_tables() const {
+const set<gaia_id_t> &catalog_manager_t::list_tables() const {
     return m_table_ids;
 }
 

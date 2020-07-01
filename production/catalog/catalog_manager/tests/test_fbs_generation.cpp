@@ -21,5 +21,7 @@ TEST(fbs_generation_test, generate_fbs) {
     string fbs = generate_fbs();
 
     flatbuffers::Parser fbs_parser;
-    EXPECT_EQ(fbs_parser.Parse(fbs.c_str()), true);
+
+    EXPECT_GT(fbs.size(), 0);
+    ASSERT_TRUE(fbs_parser.Parse(fbs.c_str()));
 }

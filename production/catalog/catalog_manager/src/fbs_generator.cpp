@@ -23,9 +23,7 @@ static string get_data_type_name(gaia_data_type e) {
 
 static string generate_field(const Gaia_field &field) {
     string field_name{field.name()};
-
-    string field_type;
-    field_type = get_data_type_name(field.type());
+    string field_type{get_data_type_name(field.type())};
 
     if (field.repeated_count() == 1) {
         return field_name + ":" + field_type;

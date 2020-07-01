@@ -28,7 +28,7 @@ class catalog_manager_t {
     */
     gaia_id_t create_table(const string &name, const vector<ddl::field_definition_t *> &fields);
 
-    const vector<gaia_id_t> &list_tables() const;
+    const set<gaia_id_t> &list_tables() const;
     const vector<gaia_id_t> &list_fields(gaia_id_t table_id) const;
 
   private:
@@ -40,7 +40,7 @@ class catalog_manager_t {
     // We can switch to use value index when the feature is ready.
     table_names_t m_table_names;
     table_fields_t m_table_fields;
-    vector<gaia_id_t> m_table_ids;
+    set<gaia_id_t> m_table_ids;
 };
 } // namespace catalog
 } // namespace gaia

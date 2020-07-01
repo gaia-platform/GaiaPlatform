@@ -100,7 +100,7 @@ statement: create_statement { $$ = $1; };
 create_statement:
     CREATE TABLE IDENTIFIER "(" field_def_commalist ")" {
         $$ = new create_statement_t(create_type_t::CREATE_TABLE);
-        $$->tableName = std::move($3);
+        $$->table_name = std::move($3);
         $$->fields = $5;
     };
 
