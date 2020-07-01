@@ -188,17 +188,16 @@ T_gaia* gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::get_object(gaia_ptr<gai
     if (node_ptr) {
         auto it = s_gaia_cache.find(node_ptr->id);
         if (it != s_gaia_cache.end()) {
-            obj = dynamic_cast<T_gaia *>(it->second);
-            if (!obj) {
+            if (it->second->gaia_type() != T_gaia::s_gaia_type) {
                 // The T_gaia object will contain the type name we want for the exception.
                 T_gaia expected;
-                gaia_base_t * actual = (gaia_base_t *)(it->second);
                 throw edc_invalid_object_type(node_ptr->id,
                     expected.gaia_type(),
                     expected.gaia_typename(),
-                    actual->gaia_type(),
-                    actual->gaia_typename());
+                    it->second->gaia_type(),
+                    it->second->gaia_typename());
             }
+            obj = static_cast<T_gaia*>(it->second);
         }
         else {
             obj = new T_gaia(node_ptr->id);

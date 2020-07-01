@@ -427,7 +427,7 @@ void event_manager_t::add_rule(
         throw duplicate_rule(binding, true);
     }
 
-    // Dont' allow the caller to bind the same rule to the same rule list.  
+    // Do not allow the caller to bind the same rule to the same rule list.
     // This is most likely a programming error.
     for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it)
     {
