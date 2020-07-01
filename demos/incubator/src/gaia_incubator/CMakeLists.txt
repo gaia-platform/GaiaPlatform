@@ -22,10 +22,10 @@ find_package(ament_cmake REQUIRED)
 # find_package(<dependency> REQUIRED)
 
 find_package(rclcpp REQUIRED)
-find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 add_executable(temp_sensor src/temp_sensor.cpp)
-ament_target_dependencies(temp_sensor rclcpp std_msgs)
+ament_target_dependencies(temp_sensor rclcpp sensor_msgs)
 target_include_directories(temp_sensor PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
