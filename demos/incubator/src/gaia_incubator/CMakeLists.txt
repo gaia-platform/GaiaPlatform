@@ -22,13 +22,27 @@ find_package(ament_cmake REQUIRED)
 # find_package(<dependency> REQUIRED)
 
 find_package(rclcpp REQUIRED)
-find_package(sensor_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+
+set(msg_files
+  "msg/Temp.msg"
+  "msg/FanState.msg"
+)
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+  ${msg_files}
+)
+
+ament_export_dependencies(rosidl_default_runtime)
 
 add_executable(temp_sensor src/temp_sensor.cpp)
-ament_target_dependencies(temp_sensor rclcpp sensor_msgs)
+ament_target_dependencies(temp_sensor rclcpp)
 target_include_directories(temp_sensor PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
+
+rosidl_target_interfaces(temp_sensor
+  ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
 install(TARGETS temp_sensor
   EXPORT export_${PROJECT_NAME}
