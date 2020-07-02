@@ -14,6 +14,16 @@ set(GAIA_STORAGE_ENGINE_INCLUDES
 message(STATUS "GAIA_STORAGE_ENGINE_INCLUDES=${GAIA_STORAGE_ENGINE_INCLUDES}")
 
 ###############################################
+# Our main target.
+###############################################
+add_library(gaia_storage SHARED
+    src/locator_allocator.cpp
+    src/record_list.cpp)
+target_include_directories(gaia_storage PUBLIC ${GAIA_STORAGE_ENGINE_INCLUDES})
+set_target_properties(gaia_storage PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+target_link_libraries(gaia_storage PRIVATE gaia_common)
+
+###############################################
 # Storage engine mock-related code begins here.
 ###############################################
 add_library(gaia_semock STATIC
