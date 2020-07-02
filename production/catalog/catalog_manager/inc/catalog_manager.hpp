@@ -14,6 +14,7 @@ namespace catalog {
 using table_names_t = unordered_map<string, gaia_id_t>;
 using table_fields_t = unordered_map<gaia_id_t, vector<gaia_id_t>>;
 
+
 class catalog_manager_t {
   public:
     /**

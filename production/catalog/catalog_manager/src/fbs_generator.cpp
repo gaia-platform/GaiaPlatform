@@ -8,9 +8,54 @@
 #include <unordered_map>
 #include "catalog_manager.hpp"
 #include "catalog_gaia_generated.h"
+#include "flatbuffers/idl.h"
+#include "retail_assert.hpp"
 
 namespace gaia {
 namespace catalog {
+
+/**
+* Helper functions
+**/
+
+/**
+ * base64 encode function adapted from the following implementation.
+ * https://renenyffenegger.ch/notes/development/Base64/Encoding-and-decoding-base-64-with-cpp/
+ *
+ * This is for temoprary workdaround to encode binary into string before EDC support arrays.
+ **/
+static string base64_encode(uint8_t const *bytes_to_encode, uint32_t in_len) {
+    uint32_t len_encoded = (in_len + 2) / 3 * 4;
+    unsigned char trailing_char = '=';
+    static const char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                       "abcdefghijklmnopqrstuvwxyz"
+                                       "0123456789"
+                                       "+/";
+
+    string ret;
+    ret.reserve(len_encoded);
+
+    unsigned int pos = 0;
+    while (pos < in_len) {
+        ret.push_back(base64_chars[(bytes_to_encode[pos + 0] & 0xfc) >> 2]);
+        if (pos + 1 < in_len) {
+            ret.push_back(base64_chars[((bytes_to_encode[pos + 0] & 0x03) << 4) + ((bytes_to_encode[pos + 1] & 0xf0) >> 4)]);
+            if (pos + 2 < in_len) {
+                ret.push_back(base64_chars[((bytes_to_encode[pos + 1] & 0x0f) << 2) + ((bytes_to_encode[pos + 2] & 0xc0) >> 6)]);
+                ret.push_back(base64_chars[bytes_to_encode[pos + 2] & 0x3f]);
+            } else {
+                ret.push_back(base64_chars[(bytes_to_encode[pos + 1] & 0x0f) << 2]);
+                ret.push_back(trailing_char);
+            }
+        } else {
+            ret.push_back(base64_chars[(bytes_to_encode[pos + 0] & 0x03) << 4]);
+            ret.push_back(trailing_char);
+            ret.push_back(trailing_char);
+        }
+        pos += 3;
+    }
+    return ret;
+}
 
 static string get_data_type_name(gaia_data_type e) {
     string name{EnumNamegaia_data_type(e)};
@@ -21,18 +66,71 @@ static string get_data_type_name(gaia_data_type e) {
     return name;
 }
 
-static string generate_field(const Gaia_field &field) {
-    string field_name{field.name()};
-    string field_type{get_data_type_name(field.type())};
-
-    if (field.repeated_count() == 1) {
-        return field_name + ":" + field_type;
-    } else if (field.repeated_count() == 0) {
-        return field_name + ":[" + field_type + "]";
+static string generate_field_fbs(const string &name, const string &type, int count) {
+    if (count == 1) {
+        return name + ":" + type;
+    } else if (count == 0) {
+        return name + ":[" + type + "]";
     } else {
-        return field_name +
-               ":[" + field_type + ":" + to_string(field.repeated_count()) + "]";
+        return name + ":[" + type + ":" + to_string(count) + "]";
     }
+}
+
+static string generate_field_fbs(const Gaia_field &field) {
+    string name{field.name()};
+    string type{get_data_type_name(field.type())};
+    return generate_field_fbs(name, type, field.repeated_count());
+}
+
+
+/**
+ * Public interfaces
+ **/
+gaia_data_type to_gaia_data_type(ddl::data_type_t data_type) {
+    switch (data_type) {
+    case ddl::data_type_t::BOOL:
+        return gaia_data_type_BOOL;
+    case ddl::data_type_t::INT8:
+        return gaia_data_type_INT8;
+    case ddl::data_type_t::UINT8:
+        return gaia_data_type_UINT8;
+    case ddl::data_type_t::INT16:
+        return gaia_data_type_INT16;
+    case ddl::data_type_t::UINT16:
+        return gaia_data_type_UINT16;
+    case ddl::data_type_t::INT32:
+        return gaia_data_type_INT32;
+    case ddl::data_type_t::UINT32:
+        return gaia_data_type_UINT32;
+    case ddl::data_type_t::INT64:
+        return gaia_data_type_INT64;
+    case ddl::data_type_t::UINT64:
+        return gaia_data_type_UINT64;
+    case ddl::data_type_t::FLOAT32:
+        return gaia_data_type_FLOAT32;
+    case ddl::data_type_t::FLOAT64:
+        return gaia_data_type_FLOAT64;
+    case ddl::data_type_t::STRING:
+        return gaia_data_type_STRING;
+    default:
+        throw gaia::common::gaia_exception("Unknown type");
+    }
+}
+
+string generate_fbs(gaia_id_t table_id) {
+    string fbs;
+    gaia::db::begin_transaction();
+    unique_ptr<Gaia_table> table{Gaia_table::get_row_by_id(table_id)};
+    string table_name{table->name()};
+    fbs += "table " + table_name + "{\n";
+    for (gaia_id_t field_id : catalog_manager_t::get().list_fields(table_id)) {
+        unique_ptr<Gaia_field> field{Gaia_field::get_row_by_id(field_id)};
+        fbs += "\t" + generate_field_fbs(*field) + ";\n";
+    }
+    fbs += "}\n";
+    fbs += "root_type " + table_name + ";";
+    gaia::db::commit_transaction();
+    return fbs;
 }
 
 string generate_fbs() {
@@ -43,12 +141,37 @@ string generate_fbs() {
         fbs += "table " + string(table->name()) + "{\n";
         for (gaia_id_t field_id : catalog_manager_t::get().list_fields(table_id)) {
             unique_ptr<Gaia_field> field{Gaia_field::get_row_by_id(field_id)};
-            fbs += "\t" + generate_field(*field) + ";\n";
+            fbs += "\t" + generate_field_fbs(*field) + ";\n";
         }
         fbs += "}\n\n";
     }
     gaia::db::commit_transaction();
     return fbs;
 }
+
+string generate_fbs(const string &table_name,
+    const vector<ddl::field_definition_t *> &fields) {
+    string fbs;
+    fbs += "table " + table_name + "{";
+    for (auto field : fields) {
+        fbs += generate_field_fbs(
+                   field->name,
+                   get_data_type_name(to_gaia_data_type(field->type)),
+                   field->length) +
+               ";";
+    }
+    fbs += "}";
+    fbs += "root_type " + table_name + ";";
+    return fbs;
+}
+
+string generate_bfbs(const string &fbs) {
+    flatbuffers::Parser fbs_parser;
+    bool parsing_result = fbs_parser.Parse(fbs.c_str());
+    retail_assert(parsing_result == true, "Invalid FlatBuffers schema!");
+    fbs_parser.Serialize();
+    return base64_encode(fbs_parser.builder_.GetBufferPointer(), fbs_parser.builder_.GetSize());
+}
+
 } // namespace catalog
 } // namespace gaia

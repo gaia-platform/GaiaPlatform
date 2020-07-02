@@ -17,8 +17,10 @@ TEST(fbs_generation_test, generate_fbs) {
     ddl::field_definition_t f2{"name", ddl::data_type_t::STRING, 1};
     vector<ddl::field_definition_t *> fields{&f1, &f2};
 
-    create_table(test_table_name, fields);
-    string fbs = generate_fbs();
+    gaia_id_t table_id = create_table(test_table_name, fields);
+    string fbs = generate_fbs(table_id);
+
+    cout << fbs << endl;
 
     flatbuffers::Parser fbs_parser;
 

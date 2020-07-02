@@ -139,11 +139,31 @@ const set<gaia_id_t> &list_tables();
 const vector<gaia_id_t> &list_fields(gaia_id_t table_id);
 
 /**
- * Generate FlatBuffers schema (fbs) from catalog table definitions
+ * Retrieve the binary FlatBuffers schema (bfbs) for a given table.
+ * Note: caller of the function is responsible for releasing the buffer memory.
+ *
+ * @param table_id id of the table
+ * @return bfbs binary buffer pair where the first element is a pointer to the buffer,
+ * and the second element is its size. The buffer is allocated using built-in 'new'.
+ */
+pair<uint8_t*, uint32_t> get_bfbs(gaia_id_t table_id);
+
+/**
+ * Generate FlatBuffers schema (fbs) for a catalog table.
+ * The given table is the root type of the generated schema.
+ *
+ * @return generated fbs string
+ */
+string generate_fbs(gaia_id_t table_id);
+
+/**
+ * Generate FlatBuffers schema (fbs) for all catalog tables.
+ * No root type is specified in the generated schema.
  *
  * @return generated fbs string
  */
 string generate_fbs();
+
 
 /*@}*/
 } // namespace catalog
