@@ -19,4 +19,3 @@ table actuator {
       timestamp: ulong;
       value: float;
 }
-

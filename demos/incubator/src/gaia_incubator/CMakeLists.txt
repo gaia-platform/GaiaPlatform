@@ -27,6 +27,9 @@ find_package(rosidl_default_generators REQUIRED)
 set(msg_files
   "msg/Temp.msg"
   "msg/FanState.msg"
+  "msg/AddIncubator.msg"
+  "msg/AddSensor.msg"
+  "msg/AddFan.msg"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
