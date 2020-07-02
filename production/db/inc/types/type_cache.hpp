@@ -75,7 +75,7 @@ protected:
 public:
 
     // Return a pointer to the singleton instance.
-    static type_cache_t* get_type_cache();
+    static type_cache_t* get();
 
     // To ensure that the returned field cache continues to be valid,
     // this method needs to hold a read lock on the type cache.

@@ -111,7 +111,7 @@ void get_table_field_information(
     }
 
     // Get hold of the type cache and lookup the field cache for our type.
-    type_cache_t* type_cache = type_cache_t::get_type_cache();
+    type_cache_t* type_cache = type_cache_t::get();
     type_cache->get_field_cache(type_id, auto_field_cache);
     const field_cache_t* field_cache = auto_field_cache.get();
 

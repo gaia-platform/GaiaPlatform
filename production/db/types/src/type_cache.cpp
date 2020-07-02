@@ -31,7 +31,7 @@ size_t field_cache_t::size()
     return m_field_map.size();
 }
 
-type_cache_t* type_cache_t::get_type_cache()
+type_cache_t* type_cache_t::get()
 {
     return &s_type_cache;
 }
@@ -104,7 +104,7 @@ auto_field_cache_t::~auto_field_cache_t()
 {
     if (m_field_cache != nullptr)
     {
-        type_cache_t::get_type_cache()->m_lock.unlock_shared();
+        type_cache_t::get()->m_lock.unlock_shared();
     }
 }
 

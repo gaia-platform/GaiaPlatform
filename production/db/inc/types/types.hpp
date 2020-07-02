@@ -14,7 +14,7 @@ namespace db
 namespace types
 {
 
-// Type definitions for fields
+// Type definitions for fields.
 typedef uint16_t field_position_t;
 
 } // namespace types
