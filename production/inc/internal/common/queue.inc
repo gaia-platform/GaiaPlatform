@@ -5,10 +5,140 @@
 
 #pragma once
 
-template <class T> queue_t<T>::queue_t()
+template <class T> queue_element_t<T>::queue_element_t(T value)
 {
+    this->value = value;
+
+    next = nullptr;
+    previous = nullptr;
 }
 
-template <class T> queue_t<T>::~queue_t<T>()
+template <class T> queue_t<T>::queue_t()
 {
+    m_head.next = &m_tail;
+    m_head.previous = nullptr;
+
+    m_tail.next = nullptr;
+    m_tail.previous = &m_head;
+}
+
+template <class T> queue_t<T>::~queue_t()
+{
+    // Walk through the queue elements and deallocate them.
+    queue_element_t<T>* walker = m_head.next;
+    while (walker != &m_tail)
+    {
+        queue_element_t<T>* current = walker;
+        walker = walker->next;
+        delete current;
+    }
+}
+
+template <class T> void queue_t<T>::enqueue(T value)
+{
+    // Create element to hold new value.
+    queue_element_t<T>* new_first_element = new queue_element_t<T>(value);
+
+    // Link it to the head of the queue - this is safe to do.
+    new_first_element->previous = &m_head;
+
+    // For next operations, we need to take an exclusive lock on the head.
+    m_head.lock.lock();
+
+    queue_element_t<T>* current_first_element = m_head.next;
+
+    // We also need to take a lock on the current first element,
+    // to protect ourselves from a dequeue() operation that may try to concurrently remove it.
+    // A shared lock will be sufficient here, as it will prevent the exclusive lock
+    // requested by dequeue().
+    current_first_element->lock.lock_shared();
+
+    // We can now safely insert our new node.
+    new_first_element->next = current_first_element;
+    m_head.next = &new_first_element;
+    current_first_element->previous = new_first_element;
+
+    // Now we can release the locks.
+    current_first_element->lock.unlock_shared();
+    m_head.lock.unlock();
+}
+
+template <class T> void queue_t<T>::dequeue(T& value)
+{
+    while (!dequeue_internal(value))
+    {
+        // Keep trying. We'll either dequeue a value successfully,
+        // or we'll terminate by finding the queue to be empty.
+    }
+}
+
+template <class T> bool queue_t<T>::dequeue_internal(T& value)
+{
+    // We need to take an exclusive lock on the tail.
+    m_tail.lock.lock();
+
+    // Read the last element.
+    queue_element_t<T>* current_last_element = m_tail.previous;
+
+    // If the queue is empty, we're done, but first we need to release our lock.
+    //
+    // Note that this will prevent deadlocks: dequeue() will not hold a lock on an empty queue,
+    // so enqueue() should always succeed in getting its second lock.
+    if (current_last_element == &m_head)
+    {
+        m_tail.lock.unlock();
+        return true;
+    }
+
+    // Before we process the current_last_element, we need to take an exclusive lock on it as well
+    // This may make us wait behind another concurrent enqueue() operation that is trying to insert
+    // before this node; however, that insertion will not impact our own operation.
+    //
+    // There is a second case in which we acquire this lock before the other enqueue() thread
+    // and it is us that are blocking the other thread; that case is handled by the checks below.
+    current_last_element->lock.lock();
+
+    // With our second lock, it is safe to read the new last element.
+    queue_element_t<T>* new_last_element = current_last_element->previous;
+
+    // However, we still need a lock on this element,
+    // in case this was the last element in the list
+    // and a concurrent enqueue() operation is attempting to use it.
+    if (new_last_element->lock.try_lock_shared() == false)
+    {
+        retail_assert(
+            new_last_element == &m_head,
+             "We should only fail acquiring a shared lock if we were asking for it for the head element.");
+
+        // We've detected a concurrent enqueue() operation.
+        // It is not safe to continue and remove the node before which the insertion should take place,
+        // because its deallocation may cause the other thread to access invalid memory.
+        // So we should abort our operation and have the caller retry it,
+        // which will give a chance to the insertion to complete.
+        // Release the locks and exit.
+        current_last_element->lock.unlock();
+        m_tail.lock.unlock();
+
+        return false;
+    }
+
+    // Otherwise we can extract the value from the last element.
+    value = current_last_element->value;
+
+    // Remove the old last element.
+    new_last_element->next = &m_tail;
+    m_tail.previous = &new_last_element;
+
+    // We can release all locks now.
+    new_last_element->lock.unlock_shared();
+    current_last_element->lock.unlock();
+    m_tail.lock.unlock();
+
+    // Finally, we can deallocate the no longer needed element.
+    delete current_last_element;
+}
+
+template <class T> bool queue_t<T>::is_empty()
+{
+    return (m_tail.previous == &m_head);
 }

@@ -10,7 +10,7 @@
 
 #include <list>
 
-#include <synchronization.hpp>
+#include <queue.hpp>
 
 namespace gaia
 {
@@ -51,7 +51,7 @@ protected:
 
     // List of previously allocated locators that have been released
     // and are available for reuse.
-    std::list<uint64_t> m_available_locators;
+    gaia::common::queue_t<uint64_t> m_available_locators;
 
     // The next available locator value from our global pool.
     uint64_t m_next_locator;
