@@ -38,6 +38,6 @@ int main(int argc, char *argv[]) {
             res = EXIT_FAILURE;
         }
     }
-    //cout <<  gaia::catalog::generate_fbs() << endl;
+    cout <<  gaia::catalog::generate_fbs() << endl;
     return res;
 }

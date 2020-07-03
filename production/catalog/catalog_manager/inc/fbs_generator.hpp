@@ -12,9 +12,9 @@ namespace catalog {
 
 /**
  * Generate FlatBuffers schema (fbs) from parsing result of a table.
- * Before the support of complex types, we can generate a table schema by just looking at its
- * own definition. This method has no dependency on catalog or other table definitions.
- * If we begin to supoort complex types, the method will need to be updated sigificantly.
+ * Before the support of complex types, we can generate a table schema from its own own definition.
+ * This method has no dependency on catalog or other table definitions.
+ * Note: If we begin to supoort complex types, the method will need to be updated sigificantly.
  *
  * @param table_name table name
  * @param fields table fields parsing result bindings
