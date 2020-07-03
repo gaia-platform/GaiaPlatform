@@ -167,7 +167,7 @@ gaia_data_type to_gaia_data_type(ddl::data_type_t data_type) {
     case ddl::data_type_t::STRING:
         return gaia_data_type_STRING;
     default:
-        throw gaia::common::gaia_exception("Unknown type");
+        retail_assertion_failure("Unknown type!");
     }
 }
 
