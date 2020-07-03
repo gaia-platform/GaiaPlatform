@@ -13,6 +13,7 @@
 using namespace std;
 using namespace gaia::rules;
 using namespace gaia::common;
+using namespace gaia::direct_access;
 
 extern "C" void initialize_rules()
 {

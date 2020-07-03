@@ -111,7 +111,7 @@ function(gaia_compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT OUTPUT_DIR)
     COMMAND "${GAIA_PROD_BUILD}/flatbuffers/flatc"
             --cpp --gen-mutable --gen-object-api --reflect-names
             --cpp-ptr-type flatbuffers::unique_ptr # Used to test with C++98 STLs
-            --cpp-str-type gaia::common::nullable_string_t
+            --cpp-str-type gaia::direct_access::nullable_string_t
             --cpp-str-flex-ctor
             --gaiacpp
             ${OPT}

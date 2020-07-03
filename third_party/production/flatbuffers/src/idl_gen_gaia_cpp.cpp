@@ -255,6 +255,7 @@ namespace flatbuffers
 
                 code_ += "using namespace std;";
                 code_ += "using namespace gaia::common;";
+                code_ += "using namespace gaia::direct_access;";
                 code_ += "";
 
 
@@ -479,6 +480,7 @@ namespace flatbuffers
 
                 code_.SetValue("STRUCT_NAME", Name(struct_def));
                 code_.SetValue("CLASS_NAME", CapitalizeString(Name(struct_def)));
+
                 code_ += "struct {{CLASS_NAME}} : public gaia_object_t<" + NumToString(currentObjectTypeValue) + 
                     ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>{";
     
@@ -560,6 +562,17 @@ namespace flatbuffers
                     }
                 }
 
+                code_ += "static unique_ptr<gaia_writer_t<" + NumToString(currentObjectTypeValue) +
+                    ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>> create()";
+                code_ += "{";
+                code_ += "    unique_ptr<gaia_writer_t<" + NumToString(currentObjectTypeValue) +
+                    ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>> writer(";
+                code_ += "        new gaia_writer_t<" + NumToString(currentObjectTypeValue) +
+                    ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>(0,0)";
+                code_ += "    );";
+                code_ += "    return writer;";
+                code_ += "}";
+                
                 if (opts_.generate_setters && opts_.generate_events)
                 {
                     //
@@ -636,7 +649,7 @@ namespace flatbuffers
                 code_ += "static gaia_id_t insert_row (" + params + "){\n"
                     "flatbuffers::FlatBufferBuilder b(128);\n"
                     "b.Finish(Create{{STRUCT_NAME}}{{CREATE_SUFFIX}}(b, " + param_Values + "));\n"
-                    "return gaia_object_t::insert_row(b);\n"
+                    "return gaia_object_t::insert_row(b, 0);\n"
                     "}";
 
                 if (opts_.generate_setters && opts_.generate_events)
@@ -648,7 +661,7 @@ namespace flatbuffers
                 code_ += "private:";
                 code_ += "friend struct gaia_object_t<" + NumToString(currentObjectTypeValue) +  
                     ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>;";
-                code_ += "{{CLASS_NAME}}(gaia_id_t id) : gaia_object_t(id, \"{{CLASS_NAME}}\") {}";
+                code_ += "{{CLASS_NAME}}(gaia_id_t id) : gaia_object_t(id, \"{{CLASS_NAME}}\", 0) {}";
                 
                 if (opts_.generate_setters && opts_.generate_events)
                 {
@@ -660,8 +673,9 @@ namespace flatbuffers
 
                 // Generate the pointer to the object.
                 code_ += "typedef shared_ptr<{{CLASS_NAME}}> {{CLASS_NAME}}_ptr;";
-                // Generate pointe to writer
-                code_ += "typedef unique_ptr<{{STRUCT_NAME}}T> {{CLASS_NAME}}_writer;";
+                // Generate pointer to writer
+                code_ += "typedef unique_ptr<gaia_writer_t<" + NumToString(currentObjectTypeValue) +
+                    ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>> {{CLASS_NAME}}_writer;";
             }
 
             // Set up the correct namespace. Only open a namespace if the existing one is

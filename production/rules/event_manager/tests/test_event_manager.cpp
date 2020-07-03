@@ -550,7 +550,7 @@ protected:
       Event_log_ptr entry = Event_log::get_first();
       while(entry)
       {
-          Event_log::delete_row(entry);
+          entry->delete_row();
           entry = Event_log::get_first();
           rows_cleared++;
       }
