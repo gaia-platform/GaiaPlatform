@@ -2,6 +2,8 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+#pragma once
+
 #include "gaia_catalog.hpp"
 #include "catalog_gaia_generated.h"
 

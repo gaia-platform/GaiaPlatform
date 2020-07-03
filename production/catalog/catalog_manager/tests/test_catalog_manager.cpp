@@ -3,8 +3,10 @@
 // All rights reserved.
 /////////////////////////////////////////////
 #include "catalog_manager.hpp"
+#include "gaia_catalog.hpp"
 #include "catalog_gaia_generated.h"
 #include "gtest/gtest.h"
+#include "flatbuffers/reflection.h"
 #include <memory>
 #include <vector>
 #include <set>
