@@ -102,8 +102,16 @@ template <class T> bool queue_t<T>::dequeue_internal(T& value)
     queue_element_t<T>* new_last_element = current_last_element->previous;
 
     // However, we still need a lock on this element,
-    // in case this was the last element in the list
+    // in case this was the first element in the queue
     // and a concurrent enqueue() operation is attempting to use it.
+    //
+    // A shared lock will handle better the special case of concurrent enqueue()/dequeue() operations
+    // on a list of size 2:
+    // - enqueue() will acquire an exclusive lock on the head and a shared lock on the first element.
+    // - dequeue() will acquire an exclusive lock on the head and the second element
+    //   and a shared lock on the first element.
+    // The concurrent operations on the first element are safe because they don't conflict:
+    // enqueue() updates the previous link, whereas dequeue() updates the next link.
     if (new_last_element->lock.try_lock_shared() == false)
     {
         retail_assert(
