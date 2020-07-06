@@ -38,16 +38,16 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 
 ament_export_dependencies(rosidl_default_runtime)
 
-add_executable(temp_sensor src/temp_sensor.cpp)
-ament_target_dependencies(temp_sensor rclcpp)
-target_include_directories(temp_sensor PUBLIC
+add_executable(incubator_manager src/incubator_manager.cpp)
+ament_target_dependencies(incubator_manager rclcpp)
+target_include_directories(incubator_manager PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
-rosidl_target_interfaces(temp_sensor
+rosidl_target_interfaces(incubator_manager
   ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
-install(TARGETS temp_sensor
+install(TARGETS incubator_manager
   EXPORT export_${PROJECT_NAME}
   DESTINATION lib/${PROJECT_NAME})
 

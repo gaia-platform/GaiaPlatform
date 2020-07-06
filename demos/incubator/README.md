@@ -8,7 +8,7 @@ This currently contains a ROS2 workspace. ROS2 integration is in progress.
 2. Run cmake and supplement the production build directory with the variable `GAIA_PROD_BUILD`.
 ```
 > mkdir build && cd build
-> cmake .. -DCMAKE_BUILD_TYPE=Debug -DGAIA_PROD_BUILD=../../../production/build 
+> cmake .. -DCMAKE_BUILD_TYPE=Debug -DGAIA_PROD_BUILD=../../../production/build
 > make
 ```
 
@@ -26,10 +26,10 @@ colcon build
 ```
 You only need to source `setup.bash` once. You can keep the Docker shell open, edit the source files, and run `colcon build` repeatedly as a ROS2 development workflow.
 
-3. Run the temperature sensor node:
+3. Run the incubator manager node:
 ```
 source install/local_setup.bash
-ros2 run gaia_incubator temp_sensor
+ros2 run gaia_incubator incubator_manager
 ```
 
 4. **(Optional)** Open another Docker terminal to monitor ROS2 topics:
@@ -43,4 +43,3 @@ Wait for a Docker shell to open.
 source /opt/ros/foxy/setup.bash
 ros2 topic echo temp
 ```
-
