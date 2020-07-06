@@ -140,6 +140,11 @@ RUN GREMLIN_CONSOLE_DIR="apache-tinkerpop-gremlin-console-${GREMLIN_VERSION}" &&
     unzip "$GREMLIN_CONSOLE_FILE" && \
     mv "$GREMLIN_CONSOLE_DIR" "$GREMLIN_CONSOLE_INSTALL_DIR"
 
+# install flatbuffers (C++, Java, Python support)
+RUN add-apt-repository ppa:team-xbmc/ppa && \
+    apt-get -y update && \
+    apt-get -y install flatbuffers
+
 # install flatcc (C flatbuffers support)
 RUN apt-get -y install ninja-build
 WORKDIR /flatcc
