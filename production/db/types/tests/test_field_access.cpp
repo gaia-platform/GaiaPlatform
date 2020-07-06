@@ -198,8 +198,8 @@ void process_flatbuffers_data(bool access_fields = false)
     ASSERT_EQ(field::count_fields, field_cache->size());
 
     // Add field cache to type cache.
-    type_cache_t::get_type_cache()->set_field_cache(c_type_id, field_cache);
-    ASSERT_EQ(1, type_cache_t::get_type_cache()->size());
+    type_cache_t::get()->set_field_cache(c_type_id, field_cache);
+    ASSERT_EQ(1, type_cache_t::get()->size());
 
     if (access_fields)
     {
@@ -213,8 +213,8 @@ void process_flatbuffers_data(bool access_fields = false)
     }
 
     // Remove field cache from type cache.
-    type_cache_t::get_type_cache()->remove_field_cache(c_type_id);
-    ASSERT_EQ(0, type_cache_t::get_type_cache()->size());
+    type_cache_t::get()->remove_field_cache(c_type_id);
+    ASSERT_EQ(0, type_cache_t::get()->size());
 
     if (access_fields)
     {
@@ -231,7 +231,7 @@ void process_flatbuffers_data(bool access_fields = false)
     cout << endl;
 
     // Cache should continue to be empty.
-    ASSERT_EQ(0, type_cache_t::get_type_cache()->size());
+    ASSERT_EQ(0, type_cache_t::get()->size());
 }
 
 TEST(types, type_cache)
