@@ -20,29 +20,31 @@ RUN apt-get -y update && \
 
 # install prerequisites
 RUN apt-get -y install \
-    sudo \
-    build-essential \
-    libc6-dbg \
-    gdb \
-    valgrind \
-    clang-8 \
-    clang-format-8 \
-    libclang-8-dev \
-    libclang-common-8-dev \
-    libclang1-8 \
-    openjdk-8-jdk \
-    uuid-dev \
-    git \
-    ack-grep \
-    emacs \
-    xxd \
-    curl \
-    unzip \
-    ca-certificates \
-    gnupg \
-    lsb-release \
-    software-properties-common \
-    locales
+        sudo \
+        build-essential \
+        libc6-dbg \
+        gdb \
+        valgrind \
+        libexplain-dev \
+        clang-8 \
+        clang-format-8 \
+        libclang-8-dev \
+        libclang-common-8-dev \
+        libclang1-8 \
+        openjdk-8-jdk \
+        uuid-dev \
+        git \
+        ack-grep \
+        emacs \
+        xxd \
+        curl \
+        unzip \
+        ca-certificates \
+        gnupg \
+        lsb-release \
+        software-properties-common \
+        locales && \
+    rm -rf /var/lib/apt/lists/*
 
 # alias clang to clang-8
 RUN ln -s /usr/bin/clang-8 /usr/local/bin/clang && \
@@ -54,22 +56,27 @@ ENV CC=/usr/bin/clang-8
 ENV CXX=/usr/bin/clang++-8
 
 # install python2 (for pybind11)
-RUN apt-get -y install \
+RUN apt-get -y update && \
+    apt-get -y install \
         python-pip \
         python-dev && \
+    rm -rf /var/lib/apt/lists/* && \
     pip install --upgrade pip
 
 # install pybind11
-RUN apt-get -y install \
-    python-clang-8 \
-    python-pybind11 \
-    pybind11-dev
+RUN apt-get -y update && \
+    apt-get -y install \
+        python-clang-8 \
+        python-pybind11 \
+        pybind11-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 # install latest cmake
 RUN curl https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | sudo apt-key add - && \
     apt-add-repository "deb https://apt.kitware.com/ubuntu/ `lsb_release -cs` main" && \
     apt-get -y update && \
-    apt-get -y install cmake
+    apt-get -y install cmake && \
+    rm -rf /var/lib/apt/lists/*
 
 # set up build dir in container fs (to avoid building in mounted source tree)
 RUN mkdir /build && chmod 777 build
@@ -97,7 +104,8 @@ RUN curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
         postgresql-client-12-dbgsym \
         postgresql-contrib-12 \
         postgresql-server-dev-12 \
-        libpq-dev
+        libpq-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 # change local postgres auth to trusted
 RUN sed -i '/^local/ s/peer/trust/' `pg_conftool -s 12 main show hba_file`
