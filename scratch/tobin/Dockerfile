@@ -33,6 +33,8 @@ RUN apt-get -y install \
         libclang1-8 \
         openjdk-8-jdk \
         uuid-dev \
+        flex \
+        bison \
         git \
         ack-grep \
         emacs \
