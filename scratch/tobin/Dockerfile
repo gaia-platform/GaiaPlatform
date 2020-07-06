@@ -57,6 +57,14 @@ RUN ln -s /usr/bin/clang-8 /usr/local/bin/clang && \
 ENV CC=/usr/bin/clang-8
 ENV CXX=/usr/bin/clang++-8
 
+# install python3 dev packages (for pybind11)
+RUN apt-get -y update && \
+    apt-get -y install \
+        python3-pip \
+        python3-dev && \
+    rm -rf /var/lib/apt/lists/* && \
+    pip3 install --upgrade pip
+
 # install python2 (for pybind11)
 RUN apt-get -y update && \
     apt-get -y install \
