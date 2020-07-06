@@ -34,9 +34,9 @@ ros2 run gaia_incubator incubator_manager
 
 4. **(Optional)** Open another Docker terminal to monitor ROS2 topics:
 
-Open another terminal.
+Open another terminal in `demos/incubator`.
 
-`docker exec -it "$(docker ps -q)" bash`
+`gdev gen shell`
 
 Wait for a Docker shell to open.
 ```
