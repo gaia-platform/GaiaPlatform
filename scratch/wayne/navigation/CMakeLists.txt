@@ -15,6 +15,7 @@ set(GAIA_LINK_FLAGS "-ggdb")
 
 set(GAIA_COMMON_INCLUDES 
   ${GAIA_INC}/public/common
+  ${GAIA_INC}/public/direct_access
   ${GAIA_INC}/internal/common
   ${GAIA_REPO}/third_party/production/flatbuffers/include
   ${CMAKE_CURRENT_BINARY_DIR}
@@ -30,7 +31,7 @@ include_directories(${AIRIMPORT_INCLUDES})
 add_custom_command(
   OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/airport_generated.h"
   COMMAND ${FLATBUFFERS}/build/flatc --cpp --gaiacpp --gen-mutable --gen-setters
-    --gen-object-api --cpp-str-type gaia::common::nullable_string_t --cpp-str-flex-ctor
+    --gen-object-api --cpp-str-type gaia::direct_access::nullable_string_t --cpp-str-flex-ctor
     -o ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/airport.fbs
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/airport.fbs
   COMMENT "Compiling airport.fbs"
