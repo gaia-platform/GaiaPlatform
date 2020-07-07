@@ -43,7 +43,11 @@ public:
     queue_t();
     ~queue_t();
 
+    // Insert a value in the queue.
     void enqueue(T value);
+
+    // Extract a value from the queue.
+    // If the queue is empty, the value will be left unset.
     void dequeue(T& value);
 
     bool is_empty();
@@ -53,6 +57,9 @@ protected:
     queue_element_t<T> m_head;
     queue_element_t<T> m_tail;
 
+    // Internal extraction method: returns true if the operation succeeded
+    // or false if it was aborted due to another concurrent operation.
+    // In the latter case, the caller should retry the operation again.
     bool dequeue_internal(T& value);
 };
 
