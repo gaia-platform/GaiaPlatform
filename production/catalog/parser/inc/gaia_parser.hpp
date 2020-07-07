@@ -19,10 +19,10 @@ class parser_t {
     parser_t() : trace_parsing(false), trace_scanning(false){};
 
     // Use smart pointers to store the statements because we need the polymorphic behaviour.
-    std::vector<unique_ptr<gaia::catalog::ddl::statement_t>> statements;
+    vector<unique_ptr<gaia::catalog::ddl::statement_t>> statements;
 
-    int parse(const std::string &f) {
-        file = f;
+    int parse(const string &filename) {
+        file = filename;
         location.initialize(&file);
         scan_begin();
         yy::parser parse(*this);
@@ -37,7 +37,7 @@ class parser_t {
     bool trace_scanning;
 
   private:
-    std::string file;
+    string file;
 
     void scan_begin();
     void scan_end();
