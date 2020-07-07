@@ -20,7 +20,7 @@ namespace catalog {
  * @param fields table fields parsing result bindings
  * @return fbs schema
  */
-string generate_fbs(const string &table_name, const vector<unique_ptr<ddl::field_definition_t>> &fields);
+string generate_fbs(const string &table_name, const ddl::field_def_list_t &fields);
 
 /**
  * Generate binary FlatBuffers schema (bfbs) in base64 encoded string format.
