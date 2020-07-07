@@ -13,18 +13,22 @@ class fbs_generation_test : public ::testing::Test {
   protected:
     static void SetUpTestSuite() {
         gaia::db::gaia_mem_base::init(true);
+        // We need to use push_back to init the test fields because:
+        // 1) Initializer_lists always perform copies, and unique_ptrs are not copyable.
+        // 2) Without make_unique (C++ 14), using emplace_back and new can leak if the vector fails to reallocate memory.
+        test_table_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("id", ddl::data_type_t::INT8, 1)));
+        test_table_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("name", ddl::data_type_t::STRING, 1)));
     }
+
+    static ddl::field_def_list_t test_table_fields;
 };
 
+ddl::field_def_list_t fbs_generation_test::test_table_fields{};
 
 TEST_F(fbs_generation_test, generate_fbs_from_catalog) {
     string test_table_name{"test_fbs_generation"};
 
-    ddl::field_definition_t f1{"id", ddl::data_type_t::INT8, 1};
-    ddl::field_definition_t f2{"name", ddl::data_type_t::STRING, 1};
-    vector<ddl::field_definition_t *> fields{&f1, &f2};
-
-    gaia_id_t table_id = create_table(test_table_name, fields);
+    gaia_id_t table_id = create_table(test_table_name, test_table_fields);
     string fbs = generate_fbs(table_id);
 
     flatbuffers::Parser fbs_parser;
@@ -36,11 +40,7 @@ TEST_F(fbs_generation_test, generate_fbs_from_catalog) {
 TEST_F(fbs_generation_test, generate_fbs_from_table_definition) {
     string test_table_name{"test_fbs_generation"};
 
-    ddl::field_definition_t f1{"id", ddl::data_type_t::INT8, 1};
-    ddl::field_definition_t f2{"name", ddl::data_type_t::STRING, 1};
-    vector<ddl::field_definition_t *> fields{&f1, &f2};
-
-    string fbs = generate_fbs(test_table_name, fields);
+    string fbs = generate_fbs(test_table_name, test_table_fields);
 
     flatbuffers::Parser fbs_parser;
 
@@ -51,11 +51,7 @@ TEST_F(fbs_generation_test, generate_fbs_from_table_definition) {
 TEST_F(fbs_generation_test, generate_bfbs) {
     string test_table_name{"test_fbs_generation"};
 
-    ddl::field_definition_t f1{"id", ddl::data_type_t::INT8, 1};
-    ddl::field_definition_t f2{"name", ddl::data_type_t::STRING, 1};
-    vector<ddl::field_definition_t *> fields{&f1, &f2};
-
-    string fbs = generate_fbs(test_table_name, fields);
+    string fbs = generate_fbs(test_table_name, test_table_fields);
     string bfbs = generate_bfbs(fbs);
 
     // The generated bfbs is basd64 encoded.
@@ -66,11 +62,8 @@ TEST_F(fbs_generation_test, generate_bfbs) {
 
 TEST_F(fbs_generation_test, get_bfbs) {
     string test_table_name{"bfbs_test"};
-    ddl::field_definition_t f1{"id", ddl::data_type_t::INT8, 1};
-    ddl::field_definition_t f2{"name", ddl::data_type_t::STRING, 1};
-    vector<ddl::field_definition_t *> fields{&f1, &f2};
 
-    gaia_id_t table_id = create_table(test_table_name, fields);
+    gaia_id_t table_id = create_table(test_table_name, test_table_fields);
     string bfbs = get_bfbs(table_id);
 
     auto &schema = *reflection::GetSchema(bfbs.c_str());

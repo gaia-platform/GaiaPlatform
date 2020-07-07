@@ -7,6 +7,7 @@
 #include "gaia_object.hpp"
 #include "gaia_exception.hpp"
 #include <string>
+#include <memory>
 
 namespace gaia {
 /**
@@ -56,6 +57,8 @@ struct statement_t {
 
     bool is_type(statment_type_t type) const { return m_type == type; };
 
+    virtual ~statement_t(){};
+
   private:
     statment_type_t m_type;
 };
@@ -78,19 +81,23 @@ struct field_definition_t {
     string table_type_name;
 };
 
+using field_def_list_t = vector<unique_ptr<field_definition_t>>;
+
 enum class create_type_t : unsigned int {
     CREATE_TABLE,
 };
 
 struct create_statement_t : statement_t {
     create_statement_t(create_type_t type)
-        : statement_t(statment_type_t::CREATE), type(type), fields(nullptr){};
+        : statement_t(statment_type_t::CREATE), type(type) {};
+
+    virtual ~create_statement_t() {}
 
     create_type_t type;
 
     string table_name;
 
-    vector<field_definition_t *> *fields;
+    field_def_list_t fields;
 };
 
 /*@}*/
@@ -116,7 +123,7 @@ class table_already_exists : public gaia_exception {
  * @return id of the new table
  * @throw table_already_exists
  */
-gaia_id_t create_table(const string &name, const vector<ddl::field_definition_t *> &fields);
+gaia_id_t create_table(const string &name, const vector<unique_ptr<ddl::field_definition_t>> &fields);
 
 /**
  * List all tables defined in the catalog.

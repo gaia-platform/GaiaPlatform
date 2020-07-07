@@ -6,6 +6,7 @@
 #include "gaia_exception.hpp"
 #include "fbs_generator.hpp"
 #include "retail_assert.hpp"
+#include <memory>
 
 using namespace gaia::catalog;
 
@@ -13,7 +14,7 @@ using namespace gaia::catalog;
  * Catalog public APIs
  **/
 gaia_id_t gaia::catalog::create_table(const string &name,
-    const vector<ddl::field_definition_t *> &fields) {
+    const ddl::field_def_list_t &fields) {
     return catalog_manager_t::get().create_table(name, fields);
 }
 
@@ -34,7 +35,7 @@ catalog_manager_t &catalog_manager_t::get() {
 }
 
 gaia_id_t catalog_manager_t::create_table(const string &name,
-    const vector<ddl::field_definition_t *> &fields) {
+    const ddl::field_def_list_t &fields) {
     if (m_table_names.find(name) != m_table_names.end()) {
         throw table_already_exists(name);
     }
@@ -54,7 +55,7 @@ gaia_id_t catalog_manager_t::create_table(const string &name,
 
     uint16_t position = 0;
     vector<gaia_id_t> field_ids;
-    for (ddl::field_definition_t *field : fields) {
+    for (auto &field : fields) {
         gaia_id_t field_id = Gaia_field::insert_row(
             field->name.c_str(),            // name
             table_id,                       // table_id

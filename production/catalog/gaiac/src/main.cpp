@@ -11,14 +11,14 @@
 using namespace std;
 using namespace gaia::catalog::ddl;
 
-void execute(vector<statement_t *> &statements) {
-    for (statement_t *stmt : statements) {
+void execute(vector<unique_ptr<statement_t>> &statements) {
+    for (auto &stmt : statements) {
         if (!stmt->is_type(statment_type_t::CREATE)) {
             continue;
         }
-        create_statement_t *createStmt = reinterpret_cast<create_statement_t *>(stmt);
+        auto createStmt = dynamic_cast<create_statement_t *>(stmt.get());
         if (createStmt->type == create_type_t::CREATE_TABLE) {
-            gaia::catalog::create_table(createStmt->table_name, *createStmt->fields);
+            gaia::catalog::create_table(createStmt->table_name, createStmt->fields);
         }
     }
 }
@@ -38,6 +38,6 @@ int main(int argc, char *argv[]) {
             res = EXIT_FAILURE;
         }
     }
-    cout <<  gaia::catalog::generate_fbs() << endl;
+    cout << gaia::catalog::generate_fbs() << endl;
     return res;
 }

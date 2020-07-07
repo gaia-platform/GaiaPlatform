@@ -50,6 +50,7 @@ add_gtest(test_catalog_manager
   "${GAIA_CATALOG_LIB_INCLUDES}"
   "rt;gaia;gaia_catalog;flatbuffers"
   gaia_catalog)
+
 add_gtest(test_fbs_generation
   "tests/test_fbs_generation.cpp"
   "${GAIA_CATALOG_LIB_INCLUDES}"
