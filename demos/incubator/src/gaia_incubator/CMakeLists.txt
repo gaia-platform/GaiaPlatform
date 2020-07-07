@@ -38,8 +38,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 
 ament_export_dependencies(rosidl_default_runtime)
 
+# incubator_manager node
 add_executable(incubator_manager src/incubator_manager.cpp)
 ament_target_dependencies(incubator_manager rclcpp)
+
 target_include_directories(incubator_manager PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
@@ -47,9 +49,25 @@ target_include_directories(incubator_manager PUBLIC
 rosidl_target_interfaces(incubator_manager
   ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
-install(TARGETS incubator_manager
+# gaia_logic node
+add_executable(gaia_logic src/gaia_logic.cpp)
+ament_target_dependencies(gaia_logic rclcpp)
+
+target_include_directories(gaia_logic PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+
+rosidl_target_interfaces(gaia_logic
+  ${PROJECT_NAME} "rosidl_typesupport_cpp")
+
+# end of nodes
+
+install(TARGETS
+  incubator_manager
+  gaia_logic
   EXPORT export_${PROJECT_NAME}
   DESTINATION lib/${PROJECT_NAME})
+
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

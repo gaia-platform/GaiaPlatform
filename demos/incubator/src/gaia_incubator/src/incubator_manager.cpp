@@ -6,12 +6,12 @@
 
 int main(int argc, char* argv[])
 {
-    cout << "starting." << endl;
+    cout << "Starting incubator_manager." << endl;
     init(argc, argv);
     spin(make_shared<incubator_manager>());
 
     shutdown();
-    cout << "shut down." << endl;
+    cout << "Shut down incubator_manager." << endl;
     return 0;
 }
 
