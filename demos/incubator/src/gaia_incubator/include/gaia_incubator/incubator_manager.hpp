@@ -3,6 +3,7 @@
 #include <iostream>
 #include <set>
 #include <map>
+#include <mutex>
 
 #include "rclcpp/rclcpp.hpp"
 
@@ -31,10 +32,6 @@ private:
     void add_incubator(const msg::AddIncubator::SharedPtr msg);
     void add_sensor(const msg::AddSensor::SharedPtr msg);
     void add_fan(const msg::AddFan::SharedPtr msg);
-
-    static const QoS c_qos_sensors;
-    static const QoS c_qos_actuators;
-    static const QoS c_qos_setup_msgs;
 
     Publisher<msg::Temp>::SharedPtr m_pub_temp;
 
@@ -65,4 +62,5 @@ private:
 
     // Incubators are identified by their gaia_id, which is the uint32_t.
     map<uint32_t, incubator> m_incubators;
+    mutex m_incubators_mutex;
 };

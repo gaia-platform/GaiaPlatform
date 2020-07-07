@@ -2,8 +2,6 @@
 #include <chrono>
 #include <functional>
 
-#include "rmw/qos_profiles.h"
-
 #include "gaia_incubator/incubator_manager.hpp"
 
 int main(int argc, char* argv[])
@@ -17,41 +15,32 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-const QoS incubator_manager::c_qos_sensors = QoS(
-    QoSInitialization::from_rmw(rmw_qos_profile_sensor_data));
-
-const QoS incubator_manager::c_qos_actuators = QoS(
-    QoSInitialization::from_rmw(rmw_qos_profile_default));
-
-const QoS incubator_manager::c_qos_setup_msgs = QoS(
-    QoSInitialization::from_rmw(rmw_qos_profile_default));
-
 incubator_manager::incubator_manager(): Node("incubator_manager")
 {
     using namespace chrono_literals;
     using std::placeholders::_1;
 
     m_pub_temp =
-        this->create_publisher<msg::Temp>("temp", c_qos_sensors);
+        this->create_publisher<msg::Temp>("temp", SensorDataQoS());
 
     m_sub_fan_state =
         this->create_subscription<msg::FanState>(
-            "fan_state", c_qos_actuators, std::bind(
+            "fan_state", SystemDefaultsQoS(), std::bind(
                 &incubator_manager::set_fan_state, this, _1));
 
     m_sub_add_incubator =
         this->create_subscription<msg::AddIncubator>(
-            "add_incubator", c_qos_setup_msgs, std::bind(
+            "add_incubator", SystemDefaultsQoS(), std::bind(
                 &incubator_manager::add_incubator, this, _1));
 
     m_sub_add_sensor =
         this->create_subscription<msg::AddSensor>(
-            "add_sensor", c_qos_setup_msgs, std::bind(
+            "add_sensor", SystemDefaultsQoS(), std::bind(
                 &incubator_manager::add_sensor, this, _1));
 
     m_sub_add_fan =
         this->create_subscription<msg::AddFan>(
-            "add_fan", c_qos_setup_msgs, std::bind(
+            "add_fan", SystemDefaultsQoS(), std::bind(
                 &incubator_manager::add_fan, this, _1));
 
     m_sensor_reading_timer = this->create_wall_timer(
@@ -62,9 +51,12 @@ incubator_manager::incubator_manager(): Node("incubator_manager")
 } // incubator_manager()
 
 void incubator_manager::update_state() {
+    lock_guard<mutex> incubators_lock(m_incubators_mutex);
+
     for(auto& incubator_pair : m_incubators)
     {
         incubator& current_incubator = incubator_pair.second;
+
         float temp_change = 0.01;
 
         for(auto& fan_pair : current_incubator.fans)
@@ -95,10 +87,12 @@ void incubator_manager::update_state() {
 void incubator_manager::publish_temp()
 {
     msg::Temp temp_msg;
+    lock_guard<mutex> incubators_lock(m_incubators_mutex);
 
     for(const auto& incubator_pair : m_incubators)
     {
         temp_msg.incubator_id = incubator_pair.first;
+
         const incubator& current_incubator = incubator_pair.second;
 
         for(const string& sensor_name : current_incubator.sensors)
@@ -113,7 +107,8 @@ void incubator_manager::publish_temp()
 
 void incubator_manager::set_fan_state(const msg::FanState::SharedPtr msg)
 {
-    auto incubator_iter = m_incubators.find(msg->incubator_id);
+    lock_guard<mutex> incubators_lock(m_incubators_mutex);
+    const auto incubator_iter = m_incubators.find(msg->incubator_id);
 
     if(incubator_iter == m_incubators.end())
     {
@@ -123,7 +118,7 @@ void incubator_manager::set_fan_state(const msg::FanState::SharedPtr msg)
     }
     else
     {
-        auto fan_iter = incubator_iter->second.fans.find(msg->fan_name);
+        const auto fan_iter = incubator_iter->second.fans.find(msg->fan_name);
 
         if(fan_iter == incubator_iter->second.fans.end())
         {
@@ -145,6 +140,7 @@ void incubator_manager::add_incubator(const msg::AddIncubator::SharedPtr msg)
     inc.name = msg->name;
     inc.temperature = msg->temperature;
 
+    lock_guard<mutex> incubators_lock(m_incubators_mutex);
     m_incubators[msg->incubator_id] = inc;
 }
 
@@ -152,6 +148,7 @@ void incubator_manager::add_sensor(const msg::AddSensor::SharedPtr msg)
 {
     try
     {
+        lock_guard<mutex> incubators_lock(m_incubators_mutex);
         m_incubators.at(msg->incubator_id).sensors.insert(
             msg->sensor_name);
     }
@@ -168,6 +165,8 @@ void incubator_manager::add_fan(const msg::AddFan::SharedPtr msg)
     try
     {
         fan f;
+
+        lock_guard<mutex> incubators_lock(m_incubators_mutex);
         m_incubators.at(msg->incubator_id).fans[msg->fan_name] = f;
     }
     catch(const out_of_range)
