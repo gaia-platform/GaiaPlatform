@@ -222,7 +222,6 @@ public:
 
         if (!g_current_ruleset.empty())
         {
-            
             auto& rules = g_rulesets[g_current_ruleset];
             rule_data_t rule_data;
             rule_data.ruleset = g_current_ruleset;
@@ -687,8 +686,8 @@ void generateCode(const char *fileName, const map<string, vector<rule_data_t>>& 
     }
 
     // generate ruleset dispatch functions
-    generate_ruleset_dispatcher(code, rulesets, true);
-    generate_ruleset_dispatcher(code, rulesets, false);
+    generate_ruleset_dispatcher(code, rulesets, true /*subscribe*/);
+    generate_ruleset_dispatcher(code, rulesets, false /*unsubscribe*/);
 
 
     // generate initialize_rules functions
