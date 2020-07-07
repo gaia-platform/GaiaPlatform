@@ -211,10 +211,11 @@ string generate_fbs(const string &table_name, const ddl::field_def_list_t &field
     string fbs;
     fbs += "table " + table_name + "{";
     for (auto &field : fields) {
-        fbs += generate_field_fbs(field->name,
-                   get_data_type_name(to_gaia_data_type(field->type)),
-                   field->length) +
-               ";";
+        string field_fbs = generate_field_fbs(
+            field->name,
+            get_data_type_name(to_gaia_data_type(field->type)),
+            field->length);
+        fbs += field_fbs + ";";
     }
     fbs += "}";
     fbs += "root_type " + table_name + ";";
