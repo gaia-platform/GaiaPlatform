@@ -13,17 +13,17 @@ using namespace gaia::db::types;
 
 type_cache_t type_cache_t::s_type_cache;
 
-const reflection::Field* field_cache_t::get_field(uint16_t field_id) const
+const reflection::Field* field_cache_t::get_field(field_position_t field_position) const
 {
-    field_map_t::const_iterator iterator = m_field_map.find(field_id);
+    field_map_t::const_iterator iterator = m_field_map.find(field_position);
     return (iterator == m_field_map.end()) ? nullptr : iterator->second;
 }
 
-void field_cache_t::set_field(uint16_t field_id, const reflection::Field* field)
+void field_cache_t::set_field(field_position_t field_position, const reflection::Field* field)
 {
     retail_assert(field != nullptr, "field_cache_t::set_field() should not be called with a null field value!");
 
-    m_field_map.insert(make_pair(field_id, field));
+    m_field_map.insert(make_pair(field_position, field));
 }
 
 size_t field_cache_t::size()
@@ -31,7 +31,7 @@ size_t field_cache_t::size()
     return m_field_map.size();
 }
 
-type_cache_t* type_cache_t::get_type_cache()
+type_cache_t* type_cache_t::get()
 {
     return &s_type_cache;
 }
@@ -104,7 +104,7 @@ auto_field_cache_t::~auto_field_cache_t()
 {
     if (m_field_cache != nullptr)
     {
-        type_cache_t::get_type_cache()->m_lock.unlock_shared();
+        type_cache_t::get()->m_lock.unlock_shared();
     }
 }
 

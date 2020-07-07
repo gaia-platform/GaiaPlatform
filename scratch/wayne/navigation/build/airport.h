@@ -15,7 +15,7 @@
 #include "gaia_iterators.hpp"
 
 using namespace std;
-using namespace gaia::common;
+using namespace gaia::direct_access;
 
 
 namespace gaia {

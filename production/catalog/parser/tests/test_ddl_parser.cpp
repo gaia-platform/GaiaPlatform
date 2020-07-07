@@ -21,7 +21,7 @@ TEST(catalog_ddl_parser_test, create_table) {
     create_statement_t *createStmt =
         reinterpret_cast<create_statement_t *>(parser.statements[0]);
     EXPECT_EQ(createStmt->type, create_type_t::CREATE_TABLE);
-    EXPECT_EQ(createStmt->tableName, "t");
+    EXPECT_EQ(createStmt->table_name, "t");
     yylex_destroy();
 }
 
@@ -35,7 +35,7 @@ TEST(catalog_ddl_parser_test, create_table_multiple_fields) {
     create_statement_t *createStmt =
         reinterpret_cast<create_statement_t *>(parser.statements[0]);
     EXPECT_EQ(createStmt->type, create_type_t::CREATE_TABLE);
-    EXPECT_EQ(createStmt->tableName, "t");
+    EXPECT_EQ(createStmt->table_name, "t");
     EXPECT_EQ(createStmt->fields->size(), 4);
 
     EXPECT_EQ(createStmt->fields->at(0)->name, "c1");
