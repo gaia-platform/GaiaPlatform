@@ -5,6 +5,7 @@
 #include "gaia_catalog.hpp"
 #include "gaia_parser.hpp"
 #include "gaia_system.hpp"
+#include "linenoise.hpp"
 #include <vector>
 #include <iostream>
 
@@ -23,6 +24,35 @@ void execute(vector<unique_ptr<statement_t>> &statements) {
     }
 }
 
+void start_repl(parser_t &parser) {
+    const auto history_file_path = "gaiac_history.txt";
+    linenoise::SetHistoryMaxLen(100);
+    linenoise::LoadHistory(history_file_path);
+
+    while (true) {
+        string line;
+        auto quit = linenoise::Readline("gaiac> ", line);
+
+        if (quit) {
+            break;
+        }
+        int parsing_result = parser.parse_line(line);
+        if (parsing_result == EXIT_SUCCESS) {
+            try {
+                execute(parser.statements);
+                cout << gaia::catalog::generate_fbs();
+            } catch (gaia_exception &e) {
+                cout << e.what();
+            }
+        } else {
+            cout << "Invalid input." << endl;
+        }
+
+        linenoise::AddHistory(line.c_str());
+        linenoise::SaveHistory(history_file_path);
+    }
+}
+
 int main(int argc, char *argv[]) {
     int res = 0;
     parser_t parser;
@@ -32,12 +62,14 @@ int main(int argc, char *argv[]) {
             parser.trace_parsing = true;
         } else if (argv[i] == string("-s")) {
             parser.trace_scanning = true;
+        } else if (argv[i] == string("-i")) {
+            start_repl(parser);
         } else if (!parser.parse(argv[i])) {
             execute(parser.statements);
+            cout << gaia::catalog::generate_fbs() << endl;
         } else {
             res = EXIT_FAILURE;
         }
     }
-    cout << gaia::catalog::generate_fbs() << endl;
     return res;
 }
