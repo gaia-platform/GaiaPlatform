@@ -9,12 +9,7 @@ cmake_minimum_required(VERSION 3.11)
 project(triggers)
 
 set(GAIA_TRIGGERS_INCLUDES
-  "${GAIA_INC}/public/common"
-  "${GAIA_INC}/public/catalog"
-  "${GAIA_INC}/public/direct_access"
-  "${GAIA_INC}/internal/common"
-  "${GAIA_DB_INC}/triggers"
-  "${FLATBUFFERS_INC}")
+  "${GAIA_DB_INC}/triggers")
 
 message(STATUS "GAIA_TRIGGERS_INCLUDES=${GAIA_TRIGGERS_INCLUDES}")
 

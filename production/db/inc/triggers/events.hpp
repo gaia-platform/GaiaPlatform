@@ -7,7 +7,7 @@
 
 namespace gaia {
 namespace db {
-namespace events {
+namespace triggers {
     // TODO: header for events here
 }
 }
