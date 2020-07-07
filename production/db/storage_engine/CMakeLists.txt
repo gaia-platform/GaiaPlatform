@@ -66,6 +66,6 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   set_target_properties(jni_se_mock PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 endif()
 
-add_gtest(test_locator_allocator tests/test_locator_allocator.cpp "${GAIA_STORAGE_ENGINE_INCLUDES}" "gaia_common")
+add_gtest(test_locator_allocator tests/test_locator_allocator.cpp "${GAIA_STORAGE_ENGINE_INCLUDES}" "gaia_common;gaia_storage")
 add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_STORAGE_ENGINE_INCLUDES}" "gaia_common")
 add_gtest(test_rdb_object_converter tests/test_rdb_object_converter.cpp "${GAIA_STORAGE_ENGINE_INCLUDES};${GOOGLE_TEST_INC}" "gaia_semock")
