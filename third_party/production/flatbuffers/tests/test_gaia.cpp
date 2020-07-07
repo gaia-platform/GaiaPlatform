@@ -133,8 +133,9 @@ void GaiaSetTest()
     AddrBook::Birthdate_ptr pBirthdate = AddrBook::Birthdate::get_row_by_id(birthdate_id);
     TEST_EQ(1971, pBirthdate->year());
 
-    pEmployee->writer()->ssn = "test";
-    TEST_EQ_STR("test",pEmployee->writer()->ssn.c_str());
+    auto writer = pEmployee->writer();
+    writer->ssn = "test";
+    TEST_EQ_STR("test",writer->ssn.c_str());
 
     commit_transaction();
 }
@@ -165,11 +166,12 @@ void GaiaUpdateTest()
 
     AddrBook::Employee_ptr pEmployee = AddrBook::Employee::get_row_by_id(empl_node_id);
 
-    pEmployee->writer()->ssn = "test";
-    TEST_EQ_STR("test",pEmployee->writer()->ssn.c_str());
-    pEmployee->writer()->name_first = "john";
-    TEST_EQ_STR("john",pEmployee->writer()->name_first.c_str());
-    pEmployee->update_row();
+    auto writer = AddrBook::Employee::writer(pEmployee);
+    writer->ssn = "test";
+    TEST_EQ_STR("test",writer->ssn.c_str());
+    writer->name_first = "john";
+    TEST_EQ_STR("john",writer->name_first.c_str());
+    AddrBook::Employee::update_row(writer);
     
     // Verify two columns changed in update_row().
     /*
@@ -181,11 +183,11 @@ void GaiaUpdateTest()
     verify_trigger_event(expected_a);
     */
 
-    pEmployee->writer()->name_last = "doe";
-    TEST_EQ_STR("doe",pEmployee->writer()->name_last.c_str());
-    pEmployee->writer()->name_first = "jane";
-    TEST_EQ_STR("jane",pEmployee->writer()->name_first.c_str());
-    pEmployee->update_row();
+    writer->name_last = "doe";
+    TEST_EQ_STR("doe",writer->name_last.c_str());
+    writer->name_first = "jane";
+    TEST_EQ_STR("jane",writer->name_first.c_str());
+    AddrBook::Employee::update_row(writer);
         
     /*
 
@@ -221,7 +223,7 @@ void GaiaInsertTest()
     const char* email = "jane.smith@janesmith.com";
     const char* web = "www.janesmith.com";
 
-    AddrBook::Employee_writer writer = AddrBook::Employee::create();
+    AddrBook::Employee_writer writer = AddrBook::Employee::writer();
     writer->Gaia_Mgr_id = manager_id;
     writer->Gaia_FirstAddr_id = first_address_id;
     writer->Gaia_FirstPhone_id = first_phone_id;

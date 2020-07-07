@@ -23,61 +23,75 @@ namespace direct_access
 #define GET(field) (m_fb->field())
 #define GET_STR(field) (m_fb->field() ? m_fb->field()->c_str() : nullptr)
 
-template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
-gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::gaia_object_t(gaia_id_t id, const char * gaia_typename, size_t num_references) 
+template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
+gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::gaia_object_t(gaia_id_t id, const char * gaia_typename) 
 : gaia_base_t(id, gaia_typename)
-, m_num_references(num_references)
 , m_references(nullptr)
 , m_fb(nullptr)
 {
 }
 
-// DELETE ME
-/*
-template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
-gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::gaia_object_t(gaia_id_t id, const char * gaia_typename) 
-: gaia_object_t(id, gaia_typename, 0)
+template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
+unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>> 
+gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::writer()
 {
+    unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>> ptr;
+    ptr.reset(new gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>());
+    ptr->m_gaia.id = 0;
+    return ptr;
 }
-*/
 
-template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
-unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj>>& gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::writer()
+template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
+unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>> 
+gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::writer(const shared_ptr<T_gaia>& object)
 {
-    if (!m_writer)
+    unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>> ptr = writer();
+    object->m_fb->UnPackTo(ptr.get());
+    ptr->m_gaia.id = object->m_id;
+    return ptr;
+}
+
+template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
+unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>> 
+gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::writer(gaia_id_t id)
+{
+    auto node_ptr = gaia_se_node::open(id);
+    if (!node_ptr)
     {
-        m_writer.reset(new gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj>(m_id, m_num_references));
-        m_fb->UnPackTo(m_writer.get());
+        throw invalid_node_id(id);
     }
-
-    return m_writer;
+    unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>> ptr = writer();
+    T_fb* fb = flatbuffers::GetRoot<T_fb>(node_ptr->data());
+    fb->UnPackTo(ptr.get());
+    ptr->m_gaia.id = id;
+    return ptr;
 }
 
-template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
-shared_ptr<T_gaia> gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::get_first()
+template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
+shared_ptr<T_gaia> gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::get_first()
 {
     auto node_ptr = gaia_ptr<gaia_se_node>::find_first(T_gaia_type);
     return get_object(node_ptr);
 }
 
-template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
-shared_ptr<T_gaia> gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::get_next()
+template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
+shared_ptr<T_gaia> gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::get_next()
 {
     auto current_ptr = gaia_se_node::open(m_id);
     auto next_ptr = current_ptr.find_next();
     return get_object(next_ptr);
 }
 
-template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
-shared_ptr<T_gaia> gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::get_row_by_id(gaia_id_t id)
+template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
+shared_ptr<T_gaia> gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::get_row_by_id(gaia_id_t id)
 {
     auto node_ptr = gaia_se_node::open(id);
     return get_object(node_ptr);
 }
 
-template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
-gaia_id_t gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::insert_row(
-    const unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj>>& writer)
+template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
+gaia_id_t gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::insert_row(
+    const unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>>& writer)
 {
     // Create the node and add to the cache.
     gaia_ptr<gaia_se_node> node_ptr;
@@ -86,24 +100,13 @@ gaia_id_t gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::insert_row(
     gaia_id_t id = gaia_se_node::generate_id();
     auto u = T_fb::Pack(fbb, writer.get());
     fbb.Finish(u);
-    node_ptr = gaia_se_node::create(id, T_gaia_type, writer->m_num_references, fbb.GetSize(), 
+    node_ptr = gaia_se_node::create(id, T_gaia_type, N_references, fbb.GetSize(), 
         fbb.GetBufferPointer());
     return id;
 }
 
-/*
-DELETE ME!
-template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
-gaia_id_t gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::insert_row(flatbuffers::FlatBufferBuilder& fbb)
-{
-    gaia_id_t id = gaia_se_node::generate_id();
-    gaia_se_node::create(id, T_gaia_type, 0, fbb.GetSize(), fbb.GetBufferPointer());
-    return id;
-}
-*/
-
-template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
-gaia_id_t gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::insert_row(flatbuffers::FlatBufferBuilder& fbb, size_t num_ptrs)
+template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
+gaia_id_t gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::insert_row(flatbuffers::FlatBufferBuilder& fbb, size_t num_ptrs)
 {
     gaia_id_t node_id = gaia_se_node::generate_id();
     auto node_ptr = gaia_se_node::create(node_id, T_gaia_type, num_ptrs, fbb.GetSize(), fbb.GetBufferPointer());
@@ -112,40 +115,44 @@ gaia_id_t gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::insert_row(flatbuffer
 }
 
 
-template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
-void gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::update_row()
+template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
+void gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::update_row(
+    const unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>>& writer)
 {
-    // If we haven't written to this record then there is no need to
-    // proceed.
-    if (!m_writer) 
-    {
-        return;
-    }
-
-    auto node_ptr = gaia_se_node::open(m_id);
+    auto node_ptr = gaia_se_node::open(writer->m_gaia.id);
     if (!node_ptr)
     {
-        throw invalid_node_id(m_id);
+        throw invalid_node_id(writer->m_gaia.id);
     }
 
     flatbuffers::FlatBufferBuilder fbb;
-    auto u = T_fb::Pack(fbb, m_writer.get());
+    auto u = T_fb::Pack(fbb, writer.get());
     fbb.Finish(u);
     node_ptr.update_payload(fbb.GetSize(), fbb.GetBufferPointer());
 
-    // Update this object's state to reflect the new flatbuffer
-    // and references.
-    refresh();
+    // If there is an external reference to the object then
+    // refresh it to pick up the updates to the flatbuffer
+    auto it = s_gaia_cache.find(writer->m_gaia.id);
+    if (it != s_gaia_cache.end())
+    {
+        gaia_ptr_t& obj = it->second;
+        if (!obj.unique())
+        {
+            // UNDONE: make this safer?  see get_object
+            T_gaia* p = (T_gaia*)(obj.get());
+            p->refresh();
+        }
+    }
 }
 
-template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
-void gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::delete_row()
+template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
+void gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::delete_row()
 {
     delete_row(m_id);
 }
 
-template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
-void gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::delete_row(gaia_id_t id)
+template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
+void gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::delete_row(gaia_id_t id)
 {
     auto node_ptr = gaia_se_node::open(id);
     if (!node_ptr) 
@@ -161,8 +168,8 @@ void gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::delete_row(gaia_id_t id)
     s_gaia_cache.erase(id);
 }
 
-template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
-shared_ptr<T_gaia> gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::get_object(gaia_ptr<gaia_se_node>& node_ptr)
+template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
+shared_ptr<T_gaia> gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::get_object(gaia_ptr<gaia_se_node>& node_ptr)
 {
     shared_ptr<T_gaia> client_ptr;
     if (!node_ptr)
@@ -194,21 +201,19 @@ shared_ptr<T_gaia> gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::get_object(g
     return client_ptr;
 }
 
-template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
-void gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::refresh()
+template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
+void gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::refresh()
 {
-    m_writer.reset();
     auto node_ptr = gaia_se_node::open(m_id);
     if (node_ptr)
     {
         m_fb = flatbuffers::GetRoot<T_fb>(node_ptr->data());
-        m_num_references = node_ptr->num_references;
         m_references = node_ptr->references();
     }
 }
 
-template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
-gaia::db::gaia_type_t gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>::s_gaia_type = T_gaia_type;
+template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
+gaia::db::gaia_type_t gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::s_gaia_type = T_gaia_type;
 
 
 } // direct_access

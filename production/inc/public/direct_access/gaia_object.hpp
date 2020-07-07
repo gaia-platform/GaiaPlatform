@@ -34,7 +34,11 @@ namespace direct_access {
  * for CRUD operations on the database.
  */
 
-template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
+template<gaia::db::gaia_type_t T_gaia_type, 
+    typename T_gaia, 
+    typename T_fb, 
+    typename T_obj,
+    size_t N_references>
 struct gaia_writer_t;
 
 /**
@@ -44,33 +48,33 @@ struct gaia_writer_t;
  * @tparam T_gaia the subclass type derived from this template
  * @tparam T_fb the flatbuffer table type to be implemented
  * @tparam T_obj the mutable flatbuffer type to be implemented
+ * @tparam N_references the number of reference slots this type supports
  */
-template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
+template<gaia::db::gaia_type_t T_gaia_type, 
+    typename T_gaia, 
+    typename T_fb, 
+    typename T_obj,
+    size_t N_references>
 struct gaia_object_t : gaia_base_t
 {
-
 public:
     gaia_object_t() = delete;
 
-
+    /**
+     * Return a reference to a writer used to insert a row
+     */
+    static unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>> writer();
 
     /**
-     * This creation function supports constructor supports completely new objects that the database has not seen yet
-     * by creating a copy buffer immediately.  The 
-     * Employee::create() will be generated with the a call to gaia_writer(gaid_t id, and size_t num_references)
+     * Return a reference to a writer used to update a row
      */
-    //static unique_ptr<gaia_writer<T_obj>> create()
-    //{
-//        unique_ptr<gaia_writer<T_gaia_type, T_gaia, T_fb, T_obj>> writer(
-//            new gaia_writer<T_gaia_type, T_gaia, T_fb, T_obj>(0, 0)
-//        )
-    //}
+    static unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>> writer(const shared_ptr<T_gaia>& object);
 
     /**
-     * Return a reference to a writer used to udate a row
-     * 
+     * Return a reference to a writer used to update a row
      */
-    unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj>>& writer();
+    static unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>> writer(gaia_id_t id);
+
 
     /**
      * This can be used for subscribing to rules when you don't
@@ -108,14 +112,14 @@ public:
      * The user can get a new object by fetching the returned id using get_row_by_id(id)
      */
     static gaia_id_t insert_row(
-        const unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj>>& writer);
+        const unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>>& writer);
 
     /**
-     * Write the mutable flatbuffer values to the storage engine. This involves the creation
-     * of a new storage engine object because the existing object cannot be modified. The new
-     * storage engine object will be addressed by the gaia_id_t m_id.
+     * Insert the values in this new object into a newly created storage engine object.
+     * The user can get a new object by fetching the returned id using get_row_by_id(id)
      */
-    void update_row();
+    static void update_row(
+        const unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>>& writer);
 
     /**
      * Delete the storage engine object. This doesn't destroy the extended data class
@@ -129,7 +133,6 @@ public:
     static void delete_row(gaia_id_t id);
 
     // Array of pointers to related objects.
-    size_t m_num_references;
     gaia_id_t* m_references;
 
 protected:
@@ -137,7 +140,7 @@ protected:
      * This constructor supports creating new objects from existing
      * nodes in the database.  It is called by our get_object below.
      */
-    gaia_object_t(gaia_id_t id, const char * gaia_typename, size_t num_references);
+    gaia_object_t(gaia_id_t id, const char * gaia_typename);
 
      /**
      * Insert a mutable flatbuffer into a newly created storage engine object. This will be
@@ -149,37 +152,30 @@ protected:
     const T_fb* m_fb;
 
 private:
-    // Writer for this object to be used when updating rows
-    unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj>> m_writer;
-
     static shared_ptr<T_gaia> get_object(gaia_ptr<gaia_se_node>& node_ptr);
     void refresh() override;
 };
 
-template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
+template<gaia::db::gaia_type_t T_gaia_type, 
+    typename T_gaia, 
+    typename T_fb, 
+    typename T_obj,
+    size_t N_references>
 struct gaia_writer_t : public T_obj
 {
-    gaia_writer_t() = delete;
-
 private:
-    // Only friend class can construct a writer for itself
-    gaia_writer_t(gaia_id_t id, size_t num_references) 
-    : m_num_references(num_references)
-    , m_id(id) {};
+    gaia_writer_t() = default;
+     
 
-    // Set by generated create call which will call the gaia_writer ctor with the right number
-    // UNDONE:  name something like m_gaia?
-    size_t m_num_references; 
-    // Set if writer is retrieved from an existing row.  Used for update_row, ignored for insert_row.
-    // UNDONE:  name something like m_gaia?
-    gaia_id_t m_id;
-    // This class needs access to the private constructor.
-    friend T_gaia;
-    // CONSIDER:  have public members and then you don't need all these
-    // template parameters...also you have to worry about collisions, maybe
-    // an innner class?
-    // This class needs access to private members
-    friend gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj>;
+    // Gaia specific properties that are outside the flatbuffer payload 
+    // definition but needed for row creation.
+    struct gaia_t {
+        gaia_id_t id;
+    } m_gaia;
+
+    // This class needs access to the private m_gaia information and private
+    // constructor.
+    friend gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>;
 };
 
 /*@}*/

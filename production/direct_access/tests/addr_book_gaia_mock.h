@@ -44,22 +44,14 @@ struct Address;
 struct Phone;
 
 typedef shared_ptr<Employee> Employee_ptr;
-typedef unique_ptr<gaia_writer_t<1,Employee,employee,employeeT>> Employee_writer;
-
-struct Employee : public gaia_object_t<1,Employee,employee,employeeT>{
+typedef unique_ptr<gaia_writer_t<1,Employee,employee,employeeT, c_num_employee_ptrs>> Employee_writer;
+struct Employee : public gaia_object_t<1,Employee,employee,employeeT, c_num_employee_ptrs>{
     const char* name_first () const {return GET_STR(name_first);}
     const char* name_last () const {return GET_STR(name_last);}
     const char* ssn () const {return GET_STR(ssn);}
     int64_t hire_date () const {return GET(hire_date);}
     const char* email () const {return GET_STR(email);}
     const char* web () const {return GET_STR(web);}
-    static Employee_writer create()
-    {
-        Employee_writer writer(
-            new gaia_writer_t<1,Employee,employee,employeeT>(0, c_num_employee_ptrs)
-        );
-        return writer;
-    }
     using gaia_object_t::insert_row;
     static gaia_id_t insert_row (const char* name_first_val,const char* name_last_val,const char* ssn_val,
             int64_t hire_date_val,const char* email_val,const char* web_val)
@@ -81,8 +73,8 @@ struct Employee : public gaia_object_t<1,Employee,employee,employeeT>{
     // would you generate the nested class here?
     
 private:
-    friend struct gaia_object_t<1,Employee,employee,employeeT>;
-    Employee(gaia_id_t id) : gaia_object_t(id, "Employee", c_num_employee_ptrs)
+    friend struct gaia_object_t<1,Employee,employee,employeeT, c_num_employee_ptrs>;
+    Employee(gaia_id_t id) : gaia_object_t(id, "Employee")
     {
         address_list.set_outer(this);
         manages_employee_list.set_outer(this);
@@ -90,9 +82,8 @@ private:
 };
 
 typedef shared_ptr<Address> Address_ptr;
-typedef unique_ptr<gaia_writer_t<2,Address,address,addressT>> Address_writer;
-
-struct Address : public gaia_object_t<2,Address,address,addressT>{
+typedef unique_ptr<gaia_writer_t<2,Address,address,addressT, c_num_address_ptrs>> Address_writer;
+struct Address : public gaia_object_t<2,Address,address,addressT,c_num_address_ptrs>{
     const char* street () const {return GET_STR(street);}
     const char* apt_suite () const {return GET_STR(apt_suite);}
     const char* city () const {return GET_STR(city);}
@@ -100,13 +91,6 @@ struct Address : public gaia_object_t<2,Address,address,addressT>{
     const char* postal () const {return GET_STR(postal);}
     const char* country () const {return GET_STR(country);}
     bool current () const {return GET(current);}
-    static Address_writer create()
-    {
-        Address_writer writer(
-            new gaia_writer_t<2,Address,address,addressT>(0, c_num_address_ptrs)
-        );
-        return writer;
-    }
     using gaia_object_t::insert_row;
     static gaia_id_t insert_row (const char* street_val,const char* apt_suite_val,const char* city_val,
             const char* state_val,const char* postal_val,const char* country_val,bool current_val)
@@ -124,24 +108,19 @@ struct Address : public gaia_object_t<2,Address,address,addressT>{
     }
     reference_chain_container_t<Address,Phone,c_parent_address,c_first_phone,c_next_phone> phone_list;
 private:
-    friend struct gaia_object_t<2,Address,address,addressT>;
-    Address(gaia_id_t id) : gaia_object_t(id, "Address", c_num_address_ptrs) {phone_list.set_outer(this);}
+    friend struct gaia_object_t<2,Address,address,addressT, c_num_address_ptrs>;
+    Address(gaia_id_t id) : gaia_object_t(id, "Address") 
+    {
+        phone_list.set_outer(this);
+    }
 };
 
 typedef shared_ptr<Phone> Phone_ptr;
-typedef unique_ptr<gaia_writer_t<3,Phone,phone,phoneT>> Phone_writer;
-struct Phone : public gaia_object_t<3,Phone,phone,phoneT>{
+typedef unique_ptr<gaia_writer_t<3,Phone,phone,phoneT, c_num_phone_ptrs>> Phone_writer;
+struct Phone : public gaia_object_t<3,Phone,phone,phoneT, c_num_phone_ptrs>{
     const char* phone_number () const {return GET_STR(phone_number);}
     const char* type () const {return GET_STR(type);}
     bool primary () const {return GET(primary);}
-    static Phone_writer create()
-    {
-        Phone_writer writer(
-            new gaia_writer_t<3,Phone,phone,phoneT>(0, c_num_phone_ptrs)
-        );
-        return writer;
-    }
-
     using gaia_object_t::insert_row;
     static gaia_id_t insert_row (const char* phone_number_val,const char* type_val,bool primary_val)
     {
@@ -153,8 +132,8 @@ struct Phone : public gaia_object_t<3,Phone,phone,phoneT>{
         return Address::get_row_by_id(this->m_references[c_parent_address]);
     }
 private:
-    friend struct gaia_object_t<3,Phone,phone,phoneT>;
-    Phone(gaia_id_t id) : gaia_object_t(id, "Phone", c_num_phone_ptrs) {}
+    friend struct gaia_object_t<3,Phone,phone,phoneT, c_num_phone_ptrs>;
+    Phone(gaia_id_t id) : gaia_object_t(id, "Phone") {}
 };
 
 }  // namespace AddrBook

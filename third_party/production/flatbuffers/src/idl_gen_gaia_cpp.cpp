@@ -482,7 +482,7 @@ namespace flatbuffers
                 code_.SetValue("CLASS_NAME", CapitalizeString(Name(struct_def)));
 
                 code_ += "struct {{CLASS_NAME}} : public gaia_object_t<" + NumToString(currentObjectTypeValue) + 
-                    ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>{";
+                    ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T, 0>{";
     
                 std::string params = "";
                 std::string param_Values = "";
@@ -562,17 +562,6 @@ namespace flatbuffers
                     }
                 }
 
-                code_ += "static unique_ptr<gaia_writer_t<" + NumToString(currentObjectTypeValue) +
-                    ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>> create()";
-                code_ += "{";
-                code_ += "    unique_ptr<gaia_writer_t<" + NumToString(currentObjectTypeValue) +
-                    ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>> writer(";
-                code_ += "        new gaia_writer_t<" + NumToString(currentObjectTypeValue) +
-                    ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>(0,0)";
-                code_ += "    );";
-                code_ += "    return writer;";
-                code_ += "}";
-                
                 if (opts_.generate_setters && opts_.generate_events)
                 {
                     //
@@ -660,8 +649,8 @@ namespace flatbuffers
 
                 code_ += "private:";
                 code_ += "friend struct gaia_object_t<" + NumToString(currentObjectTypeValue) +  
-                    ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>;";
-                code_ += "{{CLASS_NAME}}(gaia_id_t id) : gaia_object_t(id, \"{{CLASS_NAME}}\", 0) {}";
+                    ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T, 0>;";
+                code_ += "{{CLASS_NAME}}(gaia_id_t id) : gaia_object_t(id, \"{{CLASS_NAME}}\") {}";
                 
                 if (opts_.generate_setters && opts_.generate_events)
                 {
@@ -675,7 +664,7 @@ namespace flatbuffers
                 code_ += "typedef shared_ptr<{{CLASS_NAME}}> {{CLASS_NAME}}_ptr;";
                 // Generate pointer to writer
                 code_ += "typedef unique_ptr<gaia_writer_t<" + NumToString(currentObjectTypeValue) +
-                    ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>> {{CLASS_NAME}}_writer;";
+                    ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T, 0>> {{CLASS_NAME}}_writer;";
             }
 
             // Set up the correct namespace. Only open a namespace if the existing one is
