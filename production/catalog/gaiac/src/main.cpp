@@ -40,12 +40,12 @@ void start_repl(parser_t &parser) {
         if (parsing_result == EXIT_SUCCESS) {
             try {
                 execute(parser.statements);
-                cout << gaia::catalog::generate_fbs();
+                cout << gaia::catalog::generate_fbs() << flush;
             } catch (gaia_exception &e) {
-                cout << e.what();
+                cout << e.what() << endl << flush;
             }
         } else {
-            cout << "Invalid input." << endl;
+            cout << "Invalid input." << endl << flush;
         }
 
         linenoise::AddHistory(line.c_str());

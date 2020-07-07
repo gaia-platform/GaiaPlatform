@@ -96,3 +96,11 @@ void gaia::catalog::ddl::parser_t::scan_begin () {
 void gaia::catalog::ddl::parser_t::scan_end () {
     fclose(yyin);
 }
+
+void gaia::catalog::ddl::parser_t::scan_string_begin (const string& input) {
+    yy_scan_string(input)
+}
+
+void gaia::catalog::ddl::parser_t::scan_string_end () {
+    yy_destroy();
+}
