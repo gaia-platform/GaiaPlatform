@@ -2,6 +2,8 @@
 #include <chrono>
 #include <functional>
 
+#include "rmw/qos_profiles.h"
+
 #include "gaia_incubator/incubator_manager.hpp"
 
 int main(int argc, char* argv[])
@@ -15,32 +17,41 @@ int main(int argc, char* argv[])
     return 0;
 }
 
+const QoS incubator_manager::c_qos_sensors = QoS(
+    QoSInitialization::from_rmw(rmw_qos_profile_sensor_data));
+
+const QoS incubator_manager::c_qos_actuators = QoS(
+    QoSInitialization::from_rmw(rmw_qos_profile_default));
+
+const QoS incubator_manager::c_qos_setup_msgs = QoS(
+    QoSInitialization::from_rmw(rmw_qos_profile_default));
+
 incubator_manager::incubator_manager(): Node("incubator_manager")
 {
     using namespace chrono_literals;
     using std::placeholders::_1;
 
     m_pub_temp =
-        this->create_publisher<msg::Temp>("temp", 10);
+        this->create_publisher<msg::Temp>("temp", c_qos_sensors);
 
     m_sub_fan_state =
         this->create_subscription<msg::FanState>(
-            "fan_state", 10, std::bind(
+            "fan_state", c_qos_actuators, std::bind(
                 &incubator_manager::set_fan_state, this, _1));
 
     m_sub_add_incubator =
         this->create_subscription<msg::AddIncubator>(
-            "add_incubator", 10, std::bind(
+            "add_incubator", c_qos_setup_msgs, std::bind(
                 &incubator_manager::add_incubator, this, _1));
 
     m_sub_add_sensor =
         this->create_subscription<msg::AddSensor>(
-            "add_sensor", 10, std::bind(
+            "add_sensor", c_qos_setup_msgs, std::bind(
                 &incubator_manager::add_sensor, this, _1));
 
     m_sub_add_fan =
         this->create_subscription<msg::AddFan>(
-            "add_fan", 10, std::bind(
+            "add_fan", c_qos_setup_msgs, std::bind(
                 &incubator_manager::add_fan, this, _1));
 
     m_sensor_reading_timer = this->create_wall_timer(

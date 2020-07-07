@@ -32,6 +32,10 @@ private:
     void add_sensor(const msg::AddSensor::SharedPtr msg);
     void add_fan(const msg::AddFan::SharedPtr msg);
 
+    static const QoS c_qos_sensors;
+    static const QoS c_qos_actuators;
+    static const QoS c_qos_setup_msgs;
+
     Publisher<msg::Temp>::SharedPtr m_pub_temp;
 
     Subscription<msg::FanState>::SharedPtr m_sub_fan_state;
