@@ -55,7 +55,7 @@ template <class T> void queue_t<T>::enqueue(T value)
 
     // We can now safely insert our new node.
     new_first_element->next = current_first_element;
-    m_head.next = &new_first_element;
+    m_head.next = new_first_element;
     current_first_element->previous = new_first_element;
 
     // Now we can release the locks.
@@ -135,7 +135,7 @@ template <class T> bool queue_t<T>::dequeue_internal(T& value)
 
     // Remove the old last element.
     new_last_element->next = &m_tail;
-    m_tail.previous = &new_last_element;
+    m_tail.previous = new_last_element;
 
     // We can release all locks now.
     new_last_element->lock.unlock_shared();
@@ -144,6 +144,8 @@ template <class T> bool queue_t<T>::dequeue_internal(T& value)
 
     // Finally, we can deallocate the no longer needed element.
     delete current_last_element;
+
+    return true;
 }
 
 template <class T> bool queue_t<T>::is_empty()

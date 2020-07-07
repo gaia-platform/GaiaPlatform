@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 #include <synchronization.hpp>
+#include <retail_assert.hpp>
 
 namespace gaia
 {
