@@ -123,7 +123,7 @@ class table_already_exists : public gaia_exception {
  * @return id of the new table
  * @throw table_already_exists
  */
-gaia_id_t create_table(const string &name, const vector<unique_ptr<ddl::field_definition_t>> &fields);
+gaia_id_t create_table(const string &name, const ddl::field_def_list_t &fields);
 
 /**
  * List all tables defined in the catalog.
