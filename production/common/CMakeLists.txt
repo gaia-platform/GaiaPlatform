@@ -25,3 +25,4 @@ set_target_properties(gaia_common PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS
 # Tests.
 add_gtest(test_retail_assert tests/test_retail_assert.cpp "${GAIA_COMMON_INCLUDES}" "")
 add_gtest(test_shared_mutex tests/test_shared_mutex.cpp "${GAIA_COMMON_INCLUDES}" "gaia_common")
+add_gtest(test_queue tests/test_queue.cpp "${GAIA_COMMON_INCLUDES}" "")
