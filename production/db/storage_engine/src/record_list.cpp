@@ -27,6 +27,8 @@ void record_data_t::set(uint64_t locator)
 
 record_range_t::record_range_t(size_t range_size)
 {
+    retail_assert(range_size > 0, "Range size must be greater than 0");
+
     m_range_size = range_size;
     m_record_range = new record_data_t[m_range_size];
     m_next_available_index = 0;
