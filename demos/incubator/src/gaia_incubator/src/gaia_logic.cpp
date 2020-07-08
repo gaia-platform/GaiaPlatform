@@ -1,5 +1,4 @@
 #include <memory>
-#include <chrono>
 #include <functional>
 
 #include "gaia_incubator/gaia_logic.hpp"
@@ -17,5 +16,15 @@ int main(int argc, char* argv[])
 
 gaia_logic::gaia_logic(): Node("gaia_logic")
 {
-    RCLCPP_INFO(get_logger(), "hello world!");
+    using std::placeholders::_1;
+
+    m_sub_temp =
+        this->create_subscription<msg::Temp>(
+            "temp", SystemDefaultsQoS(), std::bind(
+                &gaia_logic::temp_sensor_callback, this, _1));
+}
+
+void gaia_logic::temp_sensor_callback(const msg::Temp::SharedPtr msg)
+{
+    cout << msg->sensor_name << ": " << msg->value << endl;
 }

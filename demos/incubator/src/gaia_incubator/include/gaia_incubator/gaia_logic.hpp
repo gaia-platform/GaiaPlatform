@@ -14,5 +14,7 @@ public:
     gaia_logic();
 
 private:
+    void temp_sensor_callback(const msg::Temp::SharedPtr msg);
 
+    Subscription<msg::Temp>::SharedPtr m_sub_temp;
 };
