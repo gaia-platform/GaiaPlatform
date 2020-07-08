@@ -14,6 +14,7 @@ using namespace gaia::db::storage;
 
 TEST(storage, locator_allocator)
 {
+    // Allocate a few locators: they should be allocated incrementally from 1.
     uint64_t locator = locator_allocator_t::get()->allocate_locator();
     ASSERT_EQ(1, locator);
 
@@ -23,6 +24,8 @@ TEST(storage, locator_allocator)
     locator = locator_allocator_t::get()->allocate_locator();
     ASSERT_EQ(3, locator);
 
+    // Release some locators and verify that they will be allocated next,
+    // in the order of their release.
     locator_allocator_t::get()->release_locator(2);
     locator_allocator_t::get()->release_locator(1);
 
@@ -32,9 +35,12 @@ TEST(storage, locator_allocator)
     locator = locator_allocator_t::get()->allocate_locator();
     ASSERT_EQ(1, locator);
 
+    // Verify that we continue allocating sequentially after we run out of released locators.
     locator = locator_allocator_t::get()->allocate_locator();
     ASSERT_EQ(4, locator);
 
+    // Release one more locator and verify that it gets reused
+    // before we continue allocating sequentially.
     locator_allocator_t::get()->release_locator(3);
 
     locator = locator_allocator_t::get()->allocate_locator();
