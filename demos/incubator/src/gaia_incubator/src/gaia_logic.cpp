@@ -26,5 +26,6 @@ gaia_logic::gaia_logic(): Node("gaia_logic")
 
 void gaia_logic::temp_sensor_callback(const msg::Temp::SharedPtr msg)
 {
-    cout << msg->sensor_name << ": " << msg->value << endl;
+    cout << msg->sensor_name << ": " << msg->stamp.sec
+    << " | " << msg->value << endl;
 }
