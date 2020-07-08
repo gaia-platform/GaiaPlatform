@@ -10,7 +10,7 @@ ENV USER_PASSWORD=$USER_PASSWORD
 ARG ZSH_THEME=pure
 # TinkerPop/gremlin version
 ARG GREMLIN_VERSION=3.4.6
-ARG BISON_VERSION=bison-3.5
+ARG BISON_VERSION=3.5
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -142,11 +142,11 @@ RUN GREMLIN_CONSOLE_DIR="apache-tinkerpop-gremlin-console-${GREMLIN_VERSION}" &&
 
 # install bison (need 3.5+, not available until Ubuntu 20.04)
 WORKDIR /bison
-RUN curl http://ftp.gnu.org/gnu/bison/bison-3.5.tar.gz > src.tar.gz && \
+RUN curl "http://ftp.gnu.org/gnu/bison/bison-${BISON_VERSION}.tar.gz" > src.tar.gz && \
     tar -zxvf src.tar.gz && \
-    (cd "./${BISON_VERSION}" && ./configure) && \
-    (cd "./${BISON_VERSION}" && make) && \
-    (cd "./${BISON_VERSION}" && make install)
+    (cd "./bison-${BISON_VERSION}" && ./configure) && \
+    (cd "./bison-${BISON_VERSION}" && make) && \
+    (cd "./bison-${BISON_VERSION}" && make install)
 
 # install flatbuffers (C++, Java, Python support)
 RUN add-apt-repository ppa:team-xbmc/ppa && \
