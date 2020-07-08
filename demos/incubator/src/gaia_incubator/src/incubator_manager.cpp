@@ -100,6 +100,8 @@ void incubator_manager::publish_temp()
             temp_msg.sensor_name = sensor_name;
             // Every sensor in an incubator reports the same temperature.
             temp_msg.value = current_incubator.temperature;
+            temp_msg.header.stamp = now();
+
             m_pub_temp->publish(temp_msg);
         }
     }
