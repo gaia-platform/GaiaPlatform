@@ -14,46 +14,46 @@ using namespace gaia::common;
 
 TEST(common, queue)
 {
-    queue_t<int> q;
+    queue_t<int> queue;
 
     int value = -1;
 
     // Verify that the queue is empty.
-    q.dequeue(value);
+    queue.dequeue(value);
     ASSERT_EQ(-1, value);
 
     // Insert two values.
-    q.enqueue(1);
-    q.enqueue(2);
+    queue.enqueue(1);
+    queue.enqueue(2);
 
     // Extract a value.
-    q.dequeue(value);
+    queue.dequeue(value);
     ASSERT_EQ(1, value);
 
     // Insert another value.
-    q.enqueue(3);
+    queue.enqueue(3);
 
     // Extract the two values.
-    q.dequeue(value);
+    queue.dequeue(value);
     ASSERT_EQ(2, value);
 
-    q.dequeue(value);
+    queue.dequeue(value);
     ASSERT_EQ(3, value);
 
     // Verify that the queue is empty again.
     value = -1;
-    q.dequeue(value);
+    queue.dequeue(value);
     ASSERT_EQ(-1, value);
 
     // Insert one more value.
-    q.enqueue(4);
+    queue.enqueue(4);
 
     // Extract the value.
-    q.dequeue(value);
+    queue.dequeue(value);
     ASSERT_EQ(4, value);
 
     // Verify that the queue is empty again.
     value = 0;
-    q.dequeue(value);
+    queue.dequeue(value);
     ASSERT_EQ(0, value);
 }

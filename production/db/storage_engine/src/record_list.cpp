@@ -11,8 +11,6 @@
 using namespace gaia::common;
 using namespace gaia::db::storage;
 
-const uint64_t record_range_t::c_range_size = 1024;
-
 record_data_t::record_data_t()
 {
     locator = c_invalid_locator;
@@ -27,9 +25,10 @@ void record_data_t::set(uint64_t locator)
     this->is_deleted = false;
 }
 
-record_range_t::record_range_t()
+record_range_t::record_range_t(size_t range_size)
 {
-    m_record_range = new record_data_t[c_range_size];
+    m_range_size = range_size;
+    m_record_range = new record_data_t[m_range_size];
     m_next_available_index = 0;
     m_has_deletions = false;
     m_next_range = nullptr;
@@ -42,7 +41,7 @@ record_range_t::~record_range_t()
 
 bool record_range_t::is_full()
 {
-    return m_next_available_index == c_range_size;
+    return m_next_available_index == m_range_size;
 }
 
 void record_range_t::compact()
@@ -78,7 +77,7 @@ void record_range_t::add(uint64_t locator)
 
 record_data_t& record_range_t::get(size_t index)
 {
-    retail_assert(index < c_range_size, "Range index is out of bounds!");
+    retail_assert(index < m_range_size, "Range index is out of bounds!");
     retail_assert(index < m_next_available_index, "Range index is out of allocated bounds!");
 
     return m_record_range[index];
@@ -88,7 +87,7 @@ void record_range_t::add_next_range()
 {
     retail_assert(m_next_range == nullptr, "Cannot add next range because one already exists!");
 
-    m_next_range = new record_range_t();
+    m_next_range = new record_range_t(m_range_size);
 }
 
 record_range_t* record_range_t::next_range()
@@ -107,9 +106,12 @@ bool record_iterator_t::at_end()
     return current_range == nullptr;
 }
 
-record_list_t::record_list_t()
+record_list_t::record_list_t(size_t range_size)
 {
-    m_record_ranges = new record_range_t();
+    retail_assert(range_size > 0, "Range size must be greater than 0");
+
+    m_range_size = range_size;
+    m_record_ranges = new record_range_t(m_range_size);
 }
 
 record_list_t::~record_list_t()

@@ -38,7 +38,7 @@ class record_range_t
 
 public:
 
-    record_range_t();
+    record_range_t(size_t range_size);
     ~record_range_t();
 
     // Tells whether the range is full.
@@ -57,7 +57,7 @@ public:
 
 protected:
 
-    static const uint64_t c_range_size;
+    size_t m_range_size;
 
     // The record range: an array of record_data_t structures.
     record_data_t* m_record_range;
@@ -92,7 +92,7 @@ class record_list_t
 {
 public:
 
-    record_list_t();
+    record_list_t(size_t range_size);
     ~record_list_t();
 
     // Compact the ranges of the list by removing deleted entries.
@@ -109,15 +109,17 @@ public:
     // Advance the iterator to the next record.
     // Return true if the iterator was positioned on a valid record
     // and false otherwise.
-    bool move_next(record_iterator_t& iterator);
+    static bool move_next(record_iterator_t& iterator);
 
     // Read the record locator for the current iterator position.
-    uint64_t get_record_locator(record_iterator_t& iterator);
+    static uint64_t get_record_locator(record_iterator_t& iterator);
 
     // Mark the record currently referenced by the iterator as deleted.
-    void delete_record(record_iterator_t& iterator);
+    static void delete_record(record_iterator_t& iterator);
 
 protected:
+
+    size_t m_range_size;
 
     record_range_t* m_record_ranges;
 
