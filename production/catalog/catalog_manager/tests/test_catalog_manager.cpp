@@ -2,7 +2,7 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
-#include "catalog_manager.hpp"
+#include "gaia_catalog.hpp"
 #include "catalog_gaia_generated.h"
 #include "gtest/gtest.h"
 #include <memory>
@@ -22,7 +22,7 @@ class catalog_manager_test : public ::testing::Test {
 
     gaia_id_t create_test_table(const string &name,
         const vector<ddl::field_definition_t *> &fields) {
-        gaia_id_t table_id = catalog_manager_t::get().create_table(name, fields);
+        gaia_id_t table_id = create_table(name, fields);
         table_ids.insert(table_id);
         return table_id;
     }
@@ -56,8 +56,7 @@ TEST_F(catalog_manager_test, list_tables) {
         create_test_table("list_tables_test_" + to_string(i), fields);
     }
 
-    EXPECT_EQ(table_ids, set<gaia_id_t>(catalog_manager_t::get().list_tables().begin(),
-                             catalog_manager_t::get().list_tables().end()));
+    EXPECT_EQ(table_ids, set<gaia_id_t>(list_tables().begin(), list_tables().end()));
 }
 
 TEST_F(catalog_manager_test, list_fields) {
@@ -68,11 +67,11 @@ TEST_F(catalog_manager_test, list_fields) {
     string test_table_name{"list_fields_test"};
     gaia_id_t table_id = create_test_table(test_table_name, fields);
 
-    EXPECT_EQ(fields.size(), catalog_manager_t::get().list_fields(table_id).size());
+    EXPECT_EQ(fields.size(), list_fields(table_id).size());
 
     gaia::db::begin_transaction();
     uint16_t position = 0;
-    for (gaia_id_t field_id : catalog_manager_t::get().list_fields(table_id)) {
+    for (gaia_id_t field_id : list_fields(table_id)) {
         unique_ptr<Gaia_field> field_record{Gaia_field::get_row_by_id(field_id)};
         EXPECT_EQ(fields[position++]->name, field_record->name());
     }
