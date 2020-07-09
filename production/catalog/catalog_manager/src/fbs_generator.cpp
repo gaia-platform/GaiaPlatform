@@ -33,9 +33,7 @@ static unsigned int pos_of_char(const unsigned char chr) {
     } else if (chr == '/' || chr == '_') {
         return 63;
     }
-
     retail_assert(false, "Unknown base64 char!");
-    return 0;
 }
 
 /**
@@ -43,6 +41,7 @@ static unsigned int pos_of_char(const unsigned char chr) {
  * https://renenyffenegger.ch/notes/development/Base64/Encoding-and-decoding-base-64-with-cpp/
  *
  * This is for temporary workaround to decode string into binary buffer before EDC support arrays.
+ * Do not use it elsewhere.
  **/
 static string base64_decode(string encoded_string) {
     size_t length_of_string = encoded_string.length();
@@ -81,6 +80,7 @@ static string base64_decode(string encoded_string) {
  * https://renenyffenegger.ch/notes/development/Base64/Encoding-and-decoding-base-64-with-cpp/
  *
  * This is for temporary workaround to encode binary into string before EDC support arrays.
+ * Do not use it elsewhere.
  **/
 static string base64_encode(uint8_t const *bytes_to_encode, uint32_t in_len) {
     uint32_t len_encoded = (in_len + 2) / 3 * 4;
@@ -171,7 +171,6 @@ gaia_data_type to_gaia_data_type(ddl::data_type_t data_type) {
         return gaia_data_type_STRING;
     default:
         retail_assert(false, "Unknown type!");
-        return gaia_data_type_UNKNOWN;
     }
 }
 
