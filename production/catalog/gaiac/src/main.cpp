@@ -26,12 +26,14 @@ void execute(vector<unique_ptr<statement_t>> &statements) {
 
 void start_repl(parser_t &parser) {
     const auto history_file_path = "gaiac_history.txt";
+    const auto prompt = "gaiac> ";
+
     linenoise::SetHistoryMaxLen(100);
     linenoise::LoadHistory(history_file_path);
 
     while (true) {
         string line;
-        auto quit = linenoise::Readline("gaiac> ", line);
+        auto quit = linenoise::Readline(prompt, line);
 
         if (quit) {
             break;
@@ -42,10 +44,12 @@ void start_repl(parser_t &parser) {
                 execute(parser.statements);
                 cout << gaia::catalog::generate_fbs() << flush;
             } catch (gaia_exception &e) {
-                cout << e.what() << endl << flush;
+                cout << e.what() << endl
+                     << flush;
             }
         } else {
-            cout << "Invalid input." << endl << flush;
+            cout << "Invalid input." << endl
+                 << flush;
         }
 
         linenoise::AddHistory(line.c_str());
