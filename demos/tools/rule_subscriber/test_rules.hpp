@@ -6,7 +6,6 @@
 
 #include "rules.hpp"
 #include "addr_book_gaia_generated.h"
-#pragma once
 using namespace gaia::rules;
 
 /** ruleset*/
@@ -17,12 +16,20 @@ namespace ruleset_1
  [](commit)
  */
 void ObjectRule_handler(const rule_context_t*);
+}
 
+/** ruleset*/
+namespace ruleset_2
+{
 /**
  rule-2: [AddrBook::Employee.name_last]; [AddrBook::Employee.name_first]
  */
 void Field_handler(const rule_context_t*);
+}
 
+/** ruleset*/
+namespace ruleset_3
+{
 /**
  rule-3: [AddrBook::Employee](delete)
  */
