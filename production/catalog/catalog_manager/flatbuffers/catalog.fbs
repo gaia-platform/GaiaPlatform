@@ -17,7 +17,6 @@ enum gaia_data_type:uint8 {
   FLOAT32,
   FLOAT64,
   STRING,
-  UNKNOWN
 }
 
 enum gaia_trim_action_type:uint8 {
