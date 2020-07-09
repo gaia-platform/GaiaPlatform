@@ -6,6 +6,7 @@
 #include <mutex>
 
 #include "rclcpp/rclcpp.hpp"
+#include "rclcpp_components/register_node_macro.hpp"
 
 #include "gaia_incubator/msg/temp.hpp"
 #include "gaia_incubator/msg/fan_state.hpp"
@@ -20,7 +21,7 @@ using namespace gaia_incubator;
 class incubator_manager : public Node
 {
 public:
-    incubator_manager();
+    incubator_manager(const NodeOptions& options);
 
 private:
     void update_state();
@@ -32,6 +33,8 @@ private:
     void add_incubator(const msg::AddIncubator::SharedPtr msg);
     void add_sensor(const msg::AddSensor::SharedPtr msg);
     void add_fan(const msg::AddFan::SharedPtr msg);
+
+    void shutdown_callback();
 
     Publisher<msg::Temp>::SharedPtr m_pub_temp;
 
@@ -64,3 +67,5 @@ private:
     map<uint32_t, incubator> m_incubators;
     mutex m_incubators_mutex;
 };
+
+RCLCPP_COMPONENTS_REGISTER_NODE(incubator_manager)

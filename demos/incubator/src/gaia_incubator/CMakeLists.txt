@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.11)
 project(gaia_incubator)
 
 # Default to C99
@@ -22,6 +22,7 @@ find_package(ament_cmake REQUIRED)
 # find_package(<dependency> REQUIRED)
 
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
@@ -41,8 +42,14 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 ament_export_dependencies(rosidl_default_runtime)
 
 # incubator_manager node
-add_executable(incubator_manager src/incubator_manager.cpp)
-ament_target_dependencies(incubator_manager rclcpp)
+add_library(incubator_manager SHARED
+  src/incubator_manager.cpp)
+target_compile_definitions(incubator_manager
+  PRIVATE "COMPOSITION_BUILDING_DLL")
+ament_target_dependencies(incubator_manager
+  "rclcpp"
+  "rclcpp_components")
+rclcpp_components_register_nodes(incubator_manager "incubator_manager")
 
 target_include_directories(incubator_manager PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -52,8 +59,14 @@ rosidl_target_interfaces(incubator_manager
   ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
 # gaia_logic node
-add_executable(gaia_logic src/gaia_logic.cpp)
-ament_target_dependencies(gaia_logic rclcpp)
+add_library(gaia_logic SHARED
+  src/gaia_logic.cpp)
+target_compile_definitions(gaia_logic
+  PRIVATE "COMPOSITION_BUILDING_DLL")
+ament_target_dependencies(gaia_logic
+  "rclcpp"
+  "rclcpp_components")
+rclcpp_components_register_nodes(gaia_logic "gaia_logic")
 
 target_include_directories(gaia_logic PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

@@ -4,19 +4,12 @@
 
 #include "gaia_incubator/incubator_manager.hpp"
 
-int main(int argc, char* argv[])
+incubator_manager::incubator_manager(const NodeOptions& options)
+: Node("incubator_manager", options)
 {
     cout << "Starting incubator_manager." << endl;
-    init(argc, argv);
-    spin(make_shared<incubator_manager>());
+    on_shutdown([&]{incubator_manager::shutdown_callback();});
 
-    shutdown();
-    cout << "Shut down incubator_manager." << endl;
-    return 0;
-}
-
-incubator_manager::incubator_manager(): Node("incubator_manager")
-{
     using namespace chrono_literals;
     using std::placeholders::_1;
 
@@ -177,4 +170,9 @@ void incubator_manager::add_fan(const msg::AddFan::SharedPtr msg)
             "Failed to add a fan: cannot find an incubator with ID %u.",
             msg->incubator_id);
     }
+}
+
+void incubator_manager::shutdown_callback()
+{
+    cout << "Shut down incubator_manager." << endl;
 }
