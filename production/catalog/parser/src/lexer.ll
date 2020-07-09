@@ -99,9 +99,9 @@ void gaia::catalog::ddl::parser_t::scan_end () {
 
 void gaia::catalog::ddl::parser_t::scan_string_begin (const string& input) {
     yy_flex_debug = trace_scanning;
-    yy_scan_string(input)
+    yy_scan_string(input.c_str());
 }
 
 void gaia::catalog::ddl::parser_t::scan_string_end () {
-    yy_destroy();
+    yylex_destroy();
 }
