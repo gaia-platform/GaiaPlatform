@@ -66,6 +66,9 @@ TEST_F(fbs_generation_test, get_bfbs) {
     gaia_id_t table_id = create_table(test_table_name, test_table_fields);
     string bfbs = get_bfbs(table_id);
 
+    flatbuffers::Verifier verifier(reinterpret_cast<const uint8_t*>(bfbs.c_str()), bfbs.length());
+    EXPECT_TRUE(reflection::VerifySchemaBuffer(verifier));
+
     auto &schema = *reflection::GetSchema(bfbs.c_str());
     auto root_table = schema.root_table();
     ASSERT_STREQ(root_table->name()->c_str(), test_table_name.c_str());
