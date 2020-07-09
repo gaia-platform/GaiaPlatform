@@ -27,8 +27,6 @@ void check_handler(event_type_t expected_event, uint8_t expected_call)
   */
 void ruleset_1::ObjectRule_handler(const rule_context_t* context)
 {
-    // never called because we didn't setup events here in the generated
-    // addr book employee
     g_handler_called++;
     g_event_type = context->event_type;
 }
@@ -55,4 +53,24 @@ TEST(rule_subscriber, no_tx_events)
 
     gaia::db::begin_transaction();
     check_handler(event_type_t::row_insert, 0);
+    gaia::db::commit_transaction();
+
+    // unsubscribe
+    g_event_type = event_type_t::row_delete;
+    unsubscribe_ruleset("ruleset_1");
+    gaia::db::begin_transaction();
+    e = AddrBook::Employee::get_first();
+    e->set_web("mygollum.com");
+    e->update_row();
+    gaia::db::commit_transaction();
+    check_handler(event_type_t::row_delete, 0);
+
+    // resubscribe should enable update event
+    subscribe_ruleset("ruleset_1");
+    gaia::db::begin_transaction();
+    e = AddrBook::Employee::get_first();
+    e->set_web("mygollum.com");
+    e->update_row();
+    gaia::db::commit_transaction();
+    check_handler(event_type_t::row_update, 1);
 }
