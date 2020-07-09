@@ -6,12 +6,13 @@
 #include "catalog_gaia_generated.h"
 #include "gaia_exception.hpp"
 
-using namespace gaia::catalog;
-
 /**
  * Catalog public APIs
  **/
-gaia_id_t gaia::catalog::create_table(const string& name,
+namespace gaia {
+namespace catalog {
+
+gaia_id_t create_table(const string& name,
     const vector<ddl::field_definition_t *> &fields) {
     return catalog_manager_t::get().create_table(name, fields);
 }
@@ -115,3 +116,6 @@ const set<gaia_id_t> &catalog_manager_t::list_tables() const {
 const vector<gaia_id_t> &catalog_manager_t::list_fields(gaia_id_t table_id) const {
     return m_table_fields.at(table_id);
 }
+
+} // namespace catalog
+} // namespace gaia
