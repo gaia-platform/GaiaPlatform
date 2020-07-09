@@ -9,7 +9,7 @@
 #include <vector>
 #include <set>
 
-    using namespace gaia::catalog;
+using namespace gaia::catalog;
 using namespace std;
 
 class catalog_manager_test : public ::testing::Test {
