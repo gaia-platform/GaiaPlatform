@@ -34,7 +34,7 @@ static unsigned int pos_of_char(const unsigned char chr) {
         return 63;
     }
 
-    retail_assertion_failure("Unknown base64 char!");
+    retail_assert(false, "Unknown base64 char!");
     return 0;
 }
 
@@ -170,7 +170,7 @@ gaia_data_type to_gaia_data_type(ddl::data_type_t data_type) {
     case ddl::data_type_t::STRING:
         return gaia_data_type_STRING;
     default:
-        retail_assertion_failure("Unknown type!");
+        retail_assert(false, "Unknown type!");
         return gaia_data_type_UNKNOWN;
     }
 }
