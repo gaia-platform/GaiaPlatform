@@ -11223,11 +11223,28 @@ if (S.getLangOpts().Gaia)
         }
 
         if (decl->hasAttr<GaiaFieldAttr>() ||
-            decl->hasAttr<GaiaFieldValueAttr>())
+            decl->hasAttr<GaiaFieldValueAttr>() ||
+            decl->hasAttr<FieldTableAttr>())
         {
             decl->addAttr(GaiaFieldLValueAttr::CreateImplicit(S.Context));
         }
     }
+    else
+    {
+        MemberExpr *memberExp = dyn_cast<MemberExpr>(E);
+        if (memberExp != nullptr)
+        {
+            ValueDecl *decl = memberExp->getMemberDecl();
+            if (decl->hasAttr<GaiaFieldAttr>() ||
+                decl->hasAttr<GaiaFieldValueAttr>() ||
+                decl->hasAttr<FieldTableAttr>())
+            {
+                decl->addAttr(GaiaFieldLValueAttr::CreateImplicit(S.Context));
+            }
+        }
+    }
+    
+
 }
 
   S.CheckShadowingDeclModification(E, Loc);

@@ -9502,4 +9502,18 @@ def err_invalid_assignment_last_operation : Error<
 def err_invalid_field_operation : Error<
   "Incorrect field operation">;
 
+def err_invalid_table_name : Error<
+    "No table %0 was found in the catalog">;
+def err_invalid_field_type : Error<
+    "Field %0 has incorrect type">;
+def err_no_ruleset_for_rule : Error<
+    "No ruleset was detected for rule">;
+def err_duplicate_field : Error<
+    "Duplicate field %0">;
+def err_unknown_field : Error<
+    "Field %0 was not found in the catalog">;
+def err_catalog_exception : Error<
+    "Exception occured while fetching data from catalog: %0">;
+def err_invalid_table_field : Error<
+    "Field %0 have no table in the catalog">;
 } // end of sema component.

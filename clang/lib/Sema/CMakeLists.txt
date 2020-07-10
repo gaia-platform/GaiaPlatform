@@ -9,6 +9,13 @@ if (MSVC)
   set_source_files_properties(SemaTemplate.cpp PROPERTIES COMPILE_FLAGS /bigobj)
 endif()
 
+set(GAIA_CATALOG_INCLUDES
+  ../../../../../catalog/GaiaPlatform/production/build/catalog/catalog_manager/generated
+  ../../../../../catalog/GaiaPlatform/production/inc/public/common
+  ../../../../../catalog/GaiaPlatform/third_party/production/flatbuffers/include
+  ../../../../../catalog/GaiaPlatform/production/db/storage_engine/mock
+)
+  
 add_clang_library(clangSema
   AnalysisBasedWarnings.cpp
   CodeCompleteConsumer.cpp
@@ -58,11 +65,20 @@ add_clang_library(clangSema
   SemaType.cpp
   TypeLocBuilder.cpp
   SemaGaia.cpp
-
+  
   LINK_LIBS
   clangAST
   clangAnalysis
   clangBasic
   clangEdit
   clangLex
+  gaia_semock
+  gaia_direct
   )
+ target_include_directories(clangSema PRIVATE ${GAIA_CATALOG_INCLUDES})
+ add_library(gaia_semock STATIC IMPORTED GLOBAL)
+set_target_properties(gaia_semock PROPERTIES IMPORTED_LOCATION /home/gregory/src/catalog/GaiaPlatform/production/build/db/storage_engine/libgaia_semock.a)
+
+add_library(gaia_direct STATIC IMPORTED GLOBAL)
+set_target_properties(gaia_direct PROPERTIES IMPORTED_LOCATION /home/gregory/src/catalog/GaiaPlatform/production/build/direct_access/libgaia_direct.a)
+

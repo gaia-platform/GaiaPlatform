@@ -4600,7 +4600,7 @@ public:
                                const ParsedAttributesView &AttrList);
   void ActOnRulesetDefFinish(Decl *Dcl, SourceLocation RBrace); 
   NamedDecl *injectVariableDefinition(IdentifierInfo *II, bool isGaiaFieldTable);
-  QualType getFieldType (IdentifierInfo *id) const;
+  QualType getFieldType (IdentifierInfo *id) ;
   QualType getTableType (IdentifierInfo *id) ;
   void addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorChunk::ParamInfo *Params,
     unsigned NumParams, AttributeFactory &attrFactory, ParsedAttributes &attrs, Scope *S, RecordDecl *RD) ;

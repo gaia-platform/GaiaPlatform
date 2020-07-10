@@ -39,6 +39,7 @@ add_clang_tool(clang
   ${tablegen_deps}
   )
 
+
 target_link_libraries(clang
   PRIVATE
   clangBasic
@@ -47,8 +48,10 @@ target_link_libraries(clang
   clangFrontend
   clangFrontendTool
   clangSerialization
+  gaia_semock
+  gaia_direct
   )
-
+  
 if(WIN32 AND NOT CYGWIN)
   # Prevent versioning if the buildhost is targeting for Win32.
 else()
