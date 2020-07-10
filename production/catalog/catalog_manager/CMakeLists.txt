@@ -43,6 +43,16 @@ add_library(gaia_catalog STATIC
 add_dependencies(gaia_catalog generate_catalog_edc)
 set_target_properties(gaia_catalog PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 target_include_directories(gaia_catalog PRIVATE ${GAIA_CATALOG_LIB_INCLUDES})
+target_link_libraries(gaia_catalog flatbuffers)
 
-add_gtest(test_catalog_manager "tests/test_catalog_manager.cpp" "${GAIA_CATALOG_LIB_INCLUDES}" "rt;gaia;gaia_catalog")
-add_gtest(test_fbs_generation "tests/test_fbs_generation.cpp" "${GAIA_CATALOG_LIB_INCLUDES}" "rt;gaia;gaia_catalog;flatbuffers")
+add_gtest(test_catalog_manager
+  "tests/test_catalog_manager.cpp"
+  "${GAIA_CATALOG_LIB_INCLUDES}"
+  "rt;gaia;gaia_catalog;flatbuffers"
+  gaia_catalog)
+
+add_gtest(test_fbs_generation
+  "tests/test_fbs_generation.cpp"
+  "${GAIA_CATALOG_LIB_INCLUDES}"
+  "rt;gaia;gaia_catalog;flatbuffers"
+  gaia_catalog)

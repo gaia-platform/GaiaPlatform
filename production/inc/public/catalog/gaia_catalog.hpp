@@ -7,6 +7,7 @@
 #include "gaia_object.hpp"
 #include "gaia_exception.hpp"
 #include <string>
+#include <memory>
 
 namespace gaia {
 /**
@@ -56,6 +57,8 @@ struct statement_t {
 
     bool is_type(statment_type_t type) const { return m_type == type; };
 
+    virtual ~statement_t(){};
+
   private:
     statment_type_t m_type;
 };
@@ -78,19 +81,23 @@ struct field_definition_t {
     string table_type_name;
 };
 
+using field_def_list_t = vector<unique_ptr<field_definition_t>>;
+
 enum class create_type_t : unsigned int {
     CREATE_TABLE,
 };
 
 struct create_statement_t : statement_t {
     create_statement_t(create_type_t type)
-        : statement_t(statment_type_t::CREATE), type(type), fields(nullptr){};
+        : statement_t(statment_type_t::CREATE), type(type) {};
+
+    virtual ~create_statement_t() {}
 
     create_type_t type;
 
     string table_name;
 
-    vector<field_definition_t *> *fields;
+    field_def_list_t fields;
 };
 
 /*@}*/
@@ -99,7 +106,7 @@ struct create_statement_t : statement_t {
 /**
  * Thrown when creating a table that already exists.
  */
-class table_already_exists: public gaia_exception {
+class table_already_exists : public gaia_exception {
   public:
     table_already_exists(const string &name) {
         stringstream message;
@@ -116,7 +123,7 @@ class table_already_exists: public gaia_exception {
  * @return id of the new table
  * @throw table_already_exists
  */
-gaia_id_t create_table(const string &name, const vector<ddl::field_definition_t *> &fields);
+gaia_id_t create_table(const string &name, const ddl::field_def_list_t &fields);
 
 /**
  * List all tables defined in the catalog.
@@ -139,11 +146,28 @@ const set<gaia_id_t> &list_tables();
 const vector<gaia_id_t> &list_fields(gaia_id_t table_id);
 
 /**
- * Generate FlatBuffers schema (fbs) from catalog table definitions
+ * Generate FlatBuffers schema (fbs) for a catalog table.
+ * The given table is the root type of the generated schema.
+ *
+ * @return generated fbs string
+ */
+string generate_fbs(gaia_id_t table_id);
+
+/**
+ * Generate FlatBuffers schema (fbs) for all catalog tables.
+ * No root type is specified in the generated schema.
  *
  * @return generated fbs string
  */
 string generate_fbs();
+
+/**
+ * Retrieve the binary FlatBuffers schema (bfbs) for a given table.
+ *
+ * @param table_id id of the table
+ * @return bfbs
+ */
+string get_bfbs(gaia_id_t table_id);
 
 /*@}*/
 } // namespace catalog
