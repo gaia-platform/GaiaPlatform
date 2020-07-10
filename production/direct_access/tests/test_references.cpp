@@ -57,8 +57,8 @@ TEST_F(gaia_references_test, connect) {
     // Connect two new rows.
     //Employee_writer ew = Employee::create();
     //Address_writer aw = Address::create();
-    //Employee_ptr e1 = Employee::get_row_by_id(Employee::insert_row(ew));
-    //Address_ptr a1 = Address::get_row_by_id(Address::insert_row(aw));
+    //Employee_ptr e1 = Employee::get(Employee::insert_row(ew));
+    //Address_ptr a1 = Address::get(Address::insert_row(aw));
     //EXPECT_THROW(e1->address_list.insert(a1), edc_unstored_row);
 
     // In simplified API this is not possible since
@@ -75,11 +75,11 @@ TEST_F(gaia_references_test, connect) {
     // Connect two inserted rows.
     Employee_writer ew = Employee::writer();
     ew->name_first = "Hidalgo";
-    Employee_ptr e3 = Employee::get_row_by_id(Employee::insert_row(ew));
+    Employee_ptr e3 = Employee::get(Employee::insert_row(ew));
 
     Address_writer aw = Address::writer();
     aw->city = "Houston";
-    Address_ptr a3 = Address::get_row_by_id(Address::insert_row(aw));
+    Address_ptr a3 = Address::get(Address::insert_row(aw));
 
     e3->address_list.insert(a3);
     int count = 0;
@@ -94,20 +94,20 @@ TEST_F(gaia_references_test, connect) {
 
 
 Employee_ptr create_hierarchy() {
-    auto eptr = Employee::get_row_by_id(
+    auto eptr = Employee::get(
         Employee::insert_row("Heidi", "Humphry", "555-22-4444", 20200530, "heidi@gmail.com", "")
     );
     for (int i = 0; i<200; i++) {
         char addr_string[6];
         sprintf(addr_string, "%d", i);
-        auto aptr = Address::get_row_by_id(
+        auto aptr = Address::get(
             Address::insert_row(addr_string, addr_string, addr_string, addr_string, addr_string, addr_string, true)
         );
         eptr->address_list.insert(aptr);
         for (int j = 0; j < 20; j++) {
             char phone_string[5];
             sprintf(phone_string, "%d", j);
-            auto pptr = Phone::get_row_by_id(
+            auto pptr = Phone::get(
                     Phone::insert_row(phone_string, phone_string, true)
             );
             aptr->phone_list.insert(pptr);
@@ -213,7 +213,7 @@ void scan_manages(vector<string>& employee_vector, Employee_ptr e) {
 Employee_ptr insert_employee(Employee_writer& writer, const char * name_first)
 {
     writer->name_first = name_first;
-    return Employee::get_row_by_id(Employee::insert_row(writer));
+    return Employee::get(Employee::insert_row(writer));
 }
 
 TEST_F(gaia_references_test, recursive_scan) {

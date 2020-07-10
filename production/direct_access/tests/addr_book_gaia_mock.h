@@ -61,7 +61,7 @@ struct Employee : public gaia_object_t<1,Employee,employee,employeeT, c_num_empl
         return gaia_object_t::insert_row(b,c_num_employee_ptrs);
     }
     Employee_ptr manages_employee_owner() {
-        return Employee::get_row_by_id(this->m_references[c_parent_manages_employee]);
+        return Employee::get(this->m_references[c_parent_manages_employee]);
     }
     static gaia_container_t<Employee>& employee_table() {
         static gaia_container_t<Employee> employee_table;
@@ -100,7 +100,7 @@ struct Address : public gaia_object_t<2,Address,address,addressT,c_num_address_p
         return gaia_object_t::insert_row(b,c_num_address_ptrs);
     }
     Employee_ptr employee_owner() {
-        return Employee::get_row_by_id(this->m_references[c_parent_employee]);
+        return Employee::get(this->m_references[c_parent_employee]);
     }
     static gaia_container_t<Address>& address_table() {
         static gaia_container_t<Address> address_table;
@@ -129,7 +129,7 @@ struct Phone : public gaia_object_t<3,Phone,phone,phoneT, c_num_phone_ptrs>{
         return gaia_object_t::insert_row(b,c_num_phone_ptrs);
     }
     Address_ptr address_owner() {
-        return Address::get_row_by_id(this->m_references[c_parent_address]);
+        return Address::get(this->m_references[c_parent_address]);
     }
 private:
     friend struct gaia_object_t<3,Phone,phone,phoneT, c_num_phone_ptrs>;

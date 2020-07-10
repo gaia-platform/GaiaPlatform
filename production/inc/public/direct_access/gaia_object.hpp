@@ -105,18 +105,18 @@ public:
      *
      * @param id the gaia_id_t of a specific storage engine object, of type T_gaia_type
      */
-    static shared_ptr<T_gaia> get_row_by_id(gaia_id_t id);
+    static shared_ptr<T_gaia> get(gaia_id_t id);
 
     /**
      * Insert the values in this new object into a newly created storage engine object.
-     * The user can get a new object by fetching the returned id using get_row_by_id(id)
+     * The user can get a new object by fetching the returned id using get(id)
      */
     static gaia_id_t insert_row(
         const unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>>& writer);
 
     /**
      * Insert the values in this new object into a newly created storage engine object.
-     * The user can get a new object by fetching the returned id using get_row_by_id(id)
+     * The user can get a new object by fetching the returned id using get(id)
      */
     static void update_row(
         const unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>>& writer);

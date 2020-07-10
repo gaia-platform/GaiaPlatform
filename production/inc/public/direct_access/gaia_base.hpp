@@ -118,7 +118,7 @@ private:
     virtual void refresh() = 0;
 };
 
-// Exception when get_row_by_id() argument doesn't match the class type
+// Exception when get() argument doesn't match the class type
 class edc_invalid_object_type: public gaia_exception
 {
 public:

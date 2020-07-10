@@ -38,7 +38,7 @@ TEST_F(catalog_manager_test, create_table) {
     gaia_id_t table_id = create_test_table(test_table_name, fields);
 
     gaia::db::begin_transaction();
-    auto t = Gaia_table::get_row_by_id(table_id);
+    auto t = Gaia_table::get(table_id);
     EXPECT_EQ(test_table_name, t->name());
     gaia::db::commit_transaction();
 }
@@ -74,7 +74,7 @@ TEST_F(catalog_manager_test, list_fields) {
     gaia::db::begin_transaction();
     uint16_t position = 0;
     for (gaia_id_t field_id : list_fields(table_id)) {
-        Gaia_field_ptr field_record{Gaia_field::get_row_by_id(field_id)};
+        Gaia_field_ptr field_record{Gaia_field::get(field_id)};
         EXPECT_EQ(test_table_fields[position++]->name, field_record->name());
     }
     gaia::db::commit_transaction();

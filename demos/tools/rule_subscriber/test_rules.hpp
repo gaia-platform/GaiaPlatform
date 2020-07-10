@@ -18,14 +18,16 @@ namespace ruleset_1
 void ObjectRule_handler(const rule_context_t*);
 }
 
+
 /** ruleset*/
-namespace ruleset_2
-{
+//namespace ruleset_2
+//{
 /**
  rule-2: [AddrBook::Employee.name_last]; [AddrBook::Employee.name_first]
  */
-void Field_handler(const rule_context_t*);
-}
+//void Field_handler(const rule_context_t*);
+//}
+
 
 /** ruleset*/
 namespace ruleset_3

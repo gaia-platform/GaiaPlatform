@@ -81,7 +81,7 @@ void GaiaGetTest()
         ,"testWeb"
         );
         
-    AddrBook::Employee_ptr pEmployee = AddrBook::Employee::get_row_by_id(empl_node_id);
+    AddrBook::Employee_ptr pEmployee = AddrBook::Employee::get(empl_node_id);
     TEST_EQ(empl_node_id,pEmployee->gaia_id());
     TEST_EQ(manager_id,pEmployee->Gaia_Mgr_id());
     TEST_EQ(first_address_id,pEmployee->Gaia_FirstAddr_id());
@@ -122,7 +122,7 @@ void GaiaSetTest()
         ,"testWeb"
         );
 
-    AddrBook::Employee_ptr pEmployee = AddrBook::Employee::get_row_by_id(empl_node_id);
+    AddrBook::Employee_ptr pEmployee = AddrBook::Employee::get(empl_node_id);
 
     // Verify we can use the generated optimized insert_row function that 
     // calls the correct flatbuffer Create<type> API.  For types that have
@@ -130,7 +130,7 @@ void GaiaSetTest()
     // For types without a string or vector field, insert_row will call
     // Create<type> since the Create<type>Direct call is not generated.
     int64_t birthdate_id = AddrBook::Birthdate::insert_row(1971, 7, 20);
-    AddrBook::Birthdate_ptr pBirthdate = AddrBook::Birthdate::get_row_by_id(birthdate_id);
+    AddrBook::Birthdate_ptr pBirthdate = AddrBook::Birthdate::get(birthdate_id);
     TEST_EQ(1971, pBirthdate->year());
 
     auto writer = pEmployee->writer();
@@ -164,7 +164,7 @@ void GaiaUpdateTest()
         ,"testWeb"
         );
 
-    AddrBook::Employee_ptr pEmployee = AddrBook::Employee::get_row_by_id(empl_node_id);
+    AddrBook::Employee_ptr pEmployee = AddrBook::Employee::get(empl_node_id);
 
     auto writer = AddrBook::Employee::writer(pEmployee);
     writer->ssn = "test";
@@ -199,7 +199,7 @@ void GaiaUpdateTest()
     verify_trigger_event(expected_b);
     */
 
-    AddrBook::Employee_ptr pEmployee1 = AddrBook::Employee::get_row_by_id(empl_node_id);
+    AddrBook::Employee_ptr pEmployee1 = AddrBook::Employee::get(empl_node_id);
     TEST_EQ_STR("test",pEmployee1->ssn());
     TEST_EQ_STR("jane",pEmployee1->name_first());
     TEST_EQ_STR("doe",pEmployee1->name_last());
@@ -243,7 +243,7 @@ void GaiaInsertTest()
     verify_trigger_event(expected);
     */
 
-    AddrBook::Employee_ptr e = AddrBook::Employee::get_row_by_id(inserted_id);
+    AddrBook::Employee_ptr e = AddrBook::Employee::get(inserted_id);
     TEST_EQ(manager_id, e->Gaia_Mgr_id());
     TEST_EQ(first_address_id, e->Gaia_FirstAddr_id());
     TEST_EQ(first_phone_id, e->Gaia_FirstPhone_id());
@@ -283,7 +283,7 @@ void GaiaDeleteTest()
         ,"testWeb"
         );
 
-    AddrBook::Employee_ptr pEmployee = AddrBook::Employee::get_row_by_id(empl_node_id);
+    AddrBook::Employee_ptr pEmployee = AddrBook::Employee::get(empl_node_id);
     pEmployee->delete_row();
 
     /*

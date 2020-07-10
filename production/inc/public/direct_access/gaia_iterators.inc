@@ -60,7 +60,7 @@ bool gaia_iterator_t<T_gaia_ptr>::operator!=(const gaia_iterator_t& rhs) const
 template<typename T_foreign, int T_foreign_slot>
 gaia_set_iterator_t<T_foreign, T_foreign_slot>& gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator++()
 {
-    m_edc_ptr = T_foreign::get_row_by_id(m_edc_ptr->m_references[T_foreign_slot]);
+    m_edc_ptr = T_foreign::get(m_edc_ptr->m_references[T_foreign_slot]);
     return *this;
 }
 
@@ -70,7 +70,7 @@ gaia_set_iterator_t<T_foreign, T_foreign_slot>& gaia_set_iterator_t<T_foreign, T
 template <typename T_primary, typename T_foreign, int T_parent_slot, int T_primary_slot, int T_foreign_slot>
 gaia_set_iterator_t<T_foreign, T_foreign_slot> reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_slot, T_foreign_slot>::begin()
 {
-    shared_ptr<T_foreign> edc_ptr = T_foreign::get_row_by_id(m_outer->m_references[T_primary_slot]);
+    shared_ptr<T_foreign> edc_ptr = T_foreign::get(m_outer->m_references[T_primary_slot]);
     return gaia_set_iterator_t<T_foreign, T_foreign_slot>(edc_ptr);
 }
 
@@ -112,7 +112,7 @@ void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_
     else 
     {
         // Need to scan the list to find this one because it's not first on the list.
-        auto cur_child = T_foreign::get_row_by_id(m_outer->m_references[T_primary_slot]);
+        auto cur_child = T_foreign::get(m_outer->m_references[T_primary_slot]);
         while (cur_child->m_references[T_foreign_slot]) 
         {
             auto next_id = cur_child->m_references[T_foreign_slot];
@@ -126,7 +126,7 @@ void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_
                 return;
             }
             // Move to the next child.
-            cur_child = T_foreign::get_row_by_id(next_id);
+            cur_child = T_foreign::get(next_id);
         }
         // If we end up here, the child was not found in the chain. This is an error because
         // the pointers have become inconsistent (the child's parent pointer was correct).

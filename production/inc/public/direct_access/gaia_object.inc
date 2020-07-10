@@ -83,7 +83,7 @@ shared_ptr<T_gaia> gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>
 }
 
 template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
-shared_ptr<T_gaia> gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::get_row_by_id(gaia_id_t id)
+shared_ptr<T_gaia> gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::get(gaia_id_t id)
 {
     auto node_ptr = gaia_se_node::open(id);
     return get_object(node_ptr);

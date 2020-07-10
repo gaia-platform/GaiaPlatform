@@ -59,7 +59,7 @@ Employee_ptr insert_row(const char* name) {
     auto e = set_field(name);
     EXPECT_NE(e, nullptr);
     gaia_id_t id = Employee::insert_row(e);
-    return Employee::get_row_by_id(id);
+    return Employee::get(id);
 }
 
 Employee_ptr update_row(const char* name) {
@@ -124,7 +124,7 @@ TEST_F(gaia_object_test, new_ins_get) {
     
     auto writer = Employee::writer();
     Employee::insert_row(writer);
-    auto e = Employee::get_row_by_id(Employee::insert_row(writer));
+    auto e = Employee::get(Employee::insert_row(writer));
     auto name = e->name_first();
     auto hire_date = e->hire_date();
 
@@ -152,7 +152,7 @@ TEST_F(gaia_object_test, new_del_field_ref) {
     begin_transaction();
 
     auto writer = Employee::writer();
-    auto e = Employee::get_row_by_id(Employee::insert_row(writer));
+    auto e = Employee::get(Employee::insert_row(writer));
     e->delete_row();
     auto name = e->name_first();
     EXPECT_EQ(name, nullptr);
@@ -175,9 +175,9 @@ TEST_F(gaia_object_test, read_back_id) {
     commit_transaction();
 
     begin_transaction();
-    auto e = Employee::get_row_by_id(eid);
+    auto e = Employee::get(eid);
     EXPECT_STREQ("Howard", e->name_first());
-    e = Employee::get_row_by_id(eid2);
+    e = Employee::get(eid2);
     EXPECT_STREQ("Henry", e->name_first());
     // Change the field and verify that original value is intact
     auto writer = Employee::writer(e);
@@ -210,7 +210,7 @@ TEST_F(gaia_object_test, read_wrong_type) {
 
     begin_transaction();
     try {
-        auto a = Address::get_row_by_id(eid);
+        auto a = Address::get(eid);
         gaia_id_t id = a->gaia_id();
         EXPECT_EQ(id, 1000);
     }
@@ -219,7 +219,7 @@ TEST_F(gaia_object_test, read_wrong_type) {
         string compare_string = "Requesting Gaia type Address(2) but object identified by " + to_string(eid) + " is type Employee(1).";
         EXPECT_STREQ(e.what(), compare_string.c_str());
     }
-    EXPECT_THROW(Address::get_row_by_id(eid), edc_invalid_object_type);
+    EXPECT_THROW(Address::get(eid), edc_invalid_object_type);
     commit_transaction();
 }
 
@@ -310,7 +310,7 @@ TEST_F(gaia_object_test, new_del_ins) {
 
     // UNDONE:  should throw an exception here (or ignore id!)
     gaia_id_t id = Employee::insert_row(w);
-    auto e2 = Employee::get_row_by_id(id);
+    auto e2 = Employee::get(id);
     w = Employee::writer(e2);
     w->name_first = "hudson";
     commit_transaction();
@@ -337,7 +337,7 @@ TEST_F(gaia_object_test, found_del_ins) {
     commit_transaction();
 
     begin_transaction();
-    e = Employee::get_row_by_id(eid);
+    e = Employee::get(eid);
     writer = Employee::writer(e);
     writer->name_first = "Hudson";
     commit_transaction();
@@ -361,7 +361,7 @@ TEST_F(gaia_object_test, found_del_upd) {
     commit_transaction();
 
     begin_transaction();
-    e = Employee::get_row_by_id(eid);
+    e = Employee::get(eid);
     e->delete_row();
     auto w = Employee::writer(e);
     EXPECT_THROW(Employee::update_row(w), invalid_node_id);
@@ -397,7 +397,7 @@ void InsertIdX2(bool insert_flag) {
     commit_transaction();
 
     begin_transaction();
-    auto e = Employee::get_row_by_id(eid);
+    auto e = Employee::get(eid);
     if (insert_flag) {
         e->set_name_first("Zerubbabel");
     }
@@ -495,7 +495,7 @@ TEST_F(gaia_object_test, auto_tx) {
     EXPECT_EQ(gaia_base_t::s_gaia_cache.size(), 0);
 
     writer->name_last = "Hawkins";
-    Employee_ptr e = Employee::get_row_by_id(Employee::insert_row(writer));
+    Employee_ptr e = Employee::get(Employee::insert_row(writer));
     tx.commit();
 
     EXPECT_STREQ(e->name_last(), "Hawkins");
@@ -520,7 +520,7 @@ TEST_F(gaia_object_test, auto_tx) {
         auto a_writer = Address::writer();
         EXPECT_EQ(gaia_base_t::s_gaia_cache.size(), 1);
         a_writer->city = "Seattle";
-        a = Address::get_row_by_id(Address::insert_row(a_writer));
+        a = Address::get(Address::insert_row(a_writer));
         tx.commit();
         a_writer = Address::writer(a);
         a_writer->city = "Portland";
@@ -586,7 +586,7 @@ TEST_F(gaia_object_test, simple) {
     gaia_id_t id = Employee::insert_row(writer);
     tx.commit();
 
-    auto e = Employee::get_row_by_id(id);
+    auto e = Employee::get(id);
     printf("last name: %s\n", e->name_last());
     printf("first name: %s\n", e->name_first());
     tx.commit();
