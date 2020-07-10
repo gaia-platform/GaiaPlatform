@@ -21,6 +21,7 @@ namespace db
 {
 namespace types
 {
+
 // This structure defines list for fields in the table
 class field_list_t {
     private:
@@ -65,6 +66,7 @@ class field_list_t {
     // Getter: table_id
     gaia_id_t get_table_id() const;
 };
+
 }
 }
 }
