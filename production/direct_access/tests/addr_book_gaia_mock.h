@@ -58,7 +58,7 @@ struct Employee : public gaia_object_t<1,Employee,employee,employeeT, c_num_empl
     {
         flatbuffers::FlatBufferBuilder b(128);
         b.Finish(CreateemployeeDirect(b, name_first_val,name_last_val,ssn_val,hire_date_val,email_val,web_val));
-        return gaia_object_t::insert_row(b,c_num_employee_ptrs);
+        return gaia_object_t::insert_row(b);
     }
     Employee_ptr manages_employee_owner() {
         return Employee::get(this->m_references[c_parent_manages_employee]);
@@ -97,7 +97,7 @@ struct Address : public gaia_object_t<2,Address,address,addressT,c_num_address_p
     {
         flatbuffers::FlatBufferBuilder b(128);
         b.Finish(CreateaddressDirect(b, street_val,apt_suite_val,city_val,state_val,postal_val,country_val,current_val));
-        return gaia_object_t::insert_row(b,c_num_address_ptrs);
+        return gaia_object_t::insert_row(b);
     }
     Employee_ptr employee_owner() {
         return Employee::get(this->m_references[c_parent_employee]);
@@ -126,7 +126,7 @@ struct Phone : public gaia_object_t<3,Phone,phone,phoneT, c_num_phone_ptrs>{
     {
         flatbuffers::FlatBufferBuilder b(128);
         b.Finish(CreatephoneDirect(b, phone_number_val,type_val,primary_val));
-        return gaia_object_t::insert_row(b,c_num_phone_ptrs);
+        return gaia_object_t::insert_row(b);
     }
     Address_ptr address_owner() {
         return Address::get(this->m_references[c_parent_address]);

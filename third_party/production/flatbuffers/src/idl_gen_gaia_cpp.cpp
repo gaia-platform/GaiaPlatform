@@ -638,7 +638,7 @@ namespace flatbuffers
                 code_ += "static gaia_id_t insert_row (" + params + "){\n"
                     "flatbuffers::FlatBufferBuilder b(128);\n"
                     "b.Finish(Create{{STRUCT_NAME}}{{CREATE_SUFFIX}}(b, " + param_Values + "));\n"
-                    "return gaia_object_t::insert_row(b, 0);\n"
+                    "return gaia_object_t::insert_row(b);\n"
                     "}";
 
                 if (opts_.generate_setters && opts_.generate_events)

@@ -111,11 +111,10 @@ gaia_id_t gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::insert_
 }
 
 template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
-gaia_id_t gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::insert_row(flatbuffers::FlatBufferBuilder& fbb, size_t num_ptrs)
+gaia_id_t gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::insert_row(flatbuffers::FlatBufferBuilder& fbb)
 {
     gaia_id_t node_id = gaia_se_node::generate_id();
-    auto node_ptr = gaia_se_node::create(node_id, T_gaia_type, num_ptrs, fbb.GetSize(), fbb.GetBufferPointer());
-    node_ptr->num_references = num_ptrs;
+    gaia_se_node::create(node_id, T_gaia_type, N_references, fbb.GetSize(), fbb.GetBufferPointer());
     return node_id;
 }
 

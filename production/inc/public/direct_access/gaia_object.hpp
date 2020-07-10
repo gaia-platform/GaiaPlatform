@@ -146,7 +146,7 @@ protected:
      * Insert a mutable flatbuffer into a newly created storage engine object. This will be
      * used by the generated type-specific insert_row() method.
      */
-    static gaia_id_t insert_row(flatbuffers::FlatBufferBuilder& fbb, size_t num_ptrs);
+    static gaia_id_t insert_row(flatbuffers::FlatBufferBuilder& fbb);
 
     // Flatbuffer referencing SE memory.
     const T_fb* m_fb;
