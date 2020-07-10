@@ -20,7 +20,7 @@ add_library(gaia_semock STATIC
   mock/storage_engine.cpp
   mock/rdb_object_converter.cpp)
 target_include_directories(gaia_semock PRIVATE ${GAIA_STORAGE_ENGINE_INCLUDES})
-set_target_properties(gaia_semock PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+set_target_properties(gaia_semock PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fPIC")
 target_link_libraries(gaia_semock PRIVATE gaia_common)
 
 # PyBind11 wrapper for storage engine mock.

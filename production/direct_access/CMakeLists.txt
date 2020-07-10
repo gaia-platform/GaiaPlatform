@@ -18,4 +18,4 @@ message(STATUS "GAIA_DIRECT_ACCESS_INCLUDES=${GAIA_DIRECT_ACCESS_INCLUDES}")
 # Our main target.
 add_library(gaia_direct STATIC src/gaia_object_defs.cpp)
 target_include_directories(gaia_direct PRIVATE ${GAIA_DIRECT_ACCESS_INCLUDES})
-set_target_properties(gaia_direct PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+set_target_properties(gaia_direct PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fPIC")

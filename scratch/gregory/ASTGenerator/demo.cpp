@@ -104,30 +104,69 @@ void split(const string &text, vector<string>& tokens, char separator)
     log("token: %s\n", tokens.back());
 }
 
+string getTableName(const Decl *decl)
+{
+    const FieldTableAttr *tableAttr = decl->getAttr<FieldTableAttr>();
+    if (tableAttr != nullptr)
+    {
+        return tableAttr->getTable()->getName().str();
+    }
+    return "";
+}
+
 class Field_Get_Match_Handler : public MatchFinder::MatchCallback
 {
 public:
     Field_Get_Match_Handler(Rewriter &r) : rewriter (r){}
     virtual void run (const MatchFinder::MatchResult &Result)
     {
-        //ASTContext *context = Result.Context;
         const DeclRefExpr *exp = Result.Nodes.getNodeAs<DeclRefExpr>("fieldGet");
-        
-        if (exp)
+        const MemberExpr  *memberExpr = Result.Nodes.getNodeAs<MemberExpr>("tableFieldGet");
+        string tableName;
+        string fieldName;
+        SourceRange expSourceRange;
+        if (exp != nullptr)
         {
             const ValueDecl *decl = exp->getDecl();
+            if (decl->getType()->isStructureType())
+            {
+                return;
+            }
+
+            tableName = getTableName(decl);
+            fieldName = decl->getName().str();
             
             if (decl->hasAttr<GaiaFieldAttr>())
             {
-                rewriter.ReplaceText(SourceRange(exp->getLocation(),exp->getEndLoc()), 
-                    decl->getName().str() + ".get()");
+                expSourceRange = SourceRange(exp->getLocation(),exp->getEndLoc());
             }
             else if (decl->hasAttr<GaiaFieldValueAttr>())
             {
-                rewriter.ReplaceText(
-                    SourceRange(exp->getLocation().getLocWithOffset(-1),exp->getEndLoc()), 
-                    decl->getName().str() + ".get()");
+                expSourceRange = SourceRange(exp->getLocation().getLocWithOffset(-1),exp->getEndLoc());
             }
+        }
+        else if (memberExpr != nullptr)
+        {
+            DeclRefExpr *declExpr = dyn_cast<DeclRefExpr>(memberExpr->getBase());
+            if (declExpr != nullptr)
+            {
+                fieldName = memberExpr->getMemberNameInfo().getName().getAsString();
+                tableName = declExpr->getDecl()->getName().str();
+                if (declExpr->getDecl()->hasAttr<GaiaFieldValueAttr>())
+                {
+                    expSourceRange = SourceRange(memberExpr->getBeginLoc().getLocWithOffset(-1), 
+                        memberExpr->getEndLoc());
+                }
+                else
+                {
+                    expSourceRange = SourceRange(memberExpr->getBeginLoc(),
+                        memberExpr->getEndLoc());
+                }   
+            }
+        }
+        if (expSourceRange.isValid())
+        {
+            rewriter.ReplaceText(expSourceRange, tableName + "->" + fieldName + "()");
         }
     }
 
@@ -148,13 +187,40 @@ public:
             if (opExp != nullptr)
             {
                 const DeclRefExpr *leftDeclExpr = dyn_cast<DeclRefExpr>(opExp);
+                const MemberExpr  *memberExpr = dyn_cast<MemberExpr>(opExp);
         
-                if (leftDeclExpr != nullptr)
+                string tableName;
+                string fieldName;
+                SourceLocation startLocation;
+                SourceLocation setLocEnd;
+                if (leftDeclExpr != nullptr || memberExpr != nullptr)
                 {
-                    const ValueDecl *opDecl = leftDeclExpr->getDecl();
+                    if (leftDeclExpr != nullptr)
+                    {
+                        const ValueDecl *opDecl = leftDeclExpr->getDecl();
+                        if (opDecl->getType()->isStructureType())
+                        {
+                            return;
+                        }
+                        tableName = getTableName(opDecl);
+                        fieldName = opDecl->getName().str();
+                        startLocation = leftDeclExpr->getLocation();
+                    }
+                    else
+                    {
+                        DeclRefExpr *declExpr = dyn_cast<DeclRefExpr>(memberExpr->getBase());
+                        if (declExpr == nullptr)
+                        {
+                            return;
+                        }
+                        fieldName = memberExpr->getMemberNameInfo().getName().getAsString();
+                        tableName = declExpr->getDecl()->getName().str();
+                        startLocation = memberExpr->getBeginLoc();
+                        
+                    }
                     tok::TokenKind tokenKind;
                     std::string replacementText = "[&]() mutable {" + 
-                        opDecl->getName().str() + ".set(";
+                        tableName + "->set_" + fieldName + "(";
                     switch(op->getOpcode())
                     {
                         case BO_Assign:
@@ -218,28 +284,37 @@ public:
 
                     if (op->getOpcode() != BO_Assign)
                     {
-                        replacementText += opDecl->getName().str() + ".get() " 
+                        replacementText += tableName + "->" + fieldName + "() " 
                             + ConvertCompoundBinaryOpcode(op->getOpcode()) + "(";
                     }
                     
-                    SourceLocation setLocEnd = Lexer::findLocationAfterToken(
-                        leftDeclExpr->getLocation(),tokenKind,rewriter.getSourceMgr(),
-                        rewriter.getLangOpts(),true);
+                    if (leftDeclExpr != nullptr)
+                    {
+                        setLocEnd = Lexer::findLocationAfterToken(
+                            startLocation,tokenKind,rewriter.getSourceMgr(),
+                            rewriter.getLangOpts(),true);
+                    }
+                    else
+                    {
+                        setLocEnd = Lexer::findLocationAfterToken(
+                            memberExpr->getExprLoc(),tokenKind,rewriter.getSourceMgr(),
+                            rewriter.getLangOpts(),true);
+                    }
+                    
                     rewriter.ReplaceText(
-                        SourceRange(leftDeclExpr->getLocation(),setLocEnd.getLocWithOffset(-1)), 
+                        SourceRange(startLocation,setLocEnd.getLocWithOffset(-1)), 
                         replacementText);
                     rewriter.InsertTextAfterToken(op->getEndLoc(),")");
                     if (op->getOpcode() != BO_Assign)
                     {
                         rewriter.InsertTextAfterToken(op->getEndLoc(),"); return " + 
-                            opDecl->getName().str() + ".get();}() ");
+                            tableName + "->" + fieldName + "();}() ");
                     }
                     else
                     {
                         rewriter.InsertTextAfterToken(op->getEndLoc(),";return " + 
-                            opDecl->getName().str() + ".get();}() ");
+                            tableName + "->" + fieldName + "();}() ");
                     }
-                    
                 }
             }
         }
@@ -291,51 +366,78 @@ public:
             if (opExp != nullptr)
             {
                 const DeclRefExpr *declExpr = dyn_cast<DeclRefExpr>(opExp);
+                const MemberExpr  *memberExpr = dyn_cast<MemberExpr>(opExp);
         
-                if (declExpr != nullptr)
+                if (declExpr != nullptr || memberExpr != nullptr)
                 {
-                    const ValueDecl *opDecl = declExpr->getDecl();
                     std::string replaceStr;
+                    string tableName;
+                    string fieldName;
+
+                    if (declExpr != nullptr)
+                    {
+                        
+                        const ValueDecl *opDecl = declExpr->getDecl();
+                        if (opDecl->getType()->isStructureType())
+                        {
+                            return;
+                        }
+                    
+                        tableName = getTableName(opDecl);
+                        fieldName = opDecl->getName().str();
+                    }
+                    else
+                    {
+                        DeclRefExpr *declExpr = dyn_cast<DeclRefExpr>(memberExpr->getBase());
+                        if (declExpr == nullptr)
+                        {
+                            return;
+                        }
+                        fieldName = memberExpr->getMemberNameInfo().getName().getAsString();
+                        tableName = declExpr->getDecl()->getName().str();
+                    }
                     
                     if (op->isPostfix())
                     {
                         if (op->isIncrementOp())
                         {
                             replaceStr = "[&]() mutable {auto t=" + 
-                                opDecl->getName().str() + ".get();" + opDecl->getName().str() + 
-                                ".set(" +  opDecl->getName().str() + ".get() + 1); return t;}()";
+                                tableName + "->" + fieldName + "();" + 
+                                tableName + "->set_" + fieldName +"(" +  
+                                tableName + "->" + fieldName + "() + 1); return t;}()";
                         }
                         else if(op->isDecrementOp())
                         {
                             replaceStr = "[&]() mutable {auto t=" + 
-                                opDecl->getName().str() + ".get();" + opDecl->getName().str() + 
-                                ".set(" +  opDecl->getName().str() + ".get() - 1); return t;}()";
+                                tableName + "->" + fieldName + "();" +
+                                tableName + "->set_" + fieldName +"(" +  
+                                tableName + "->" + fieldName + "() - 1); return t;}()";
                         }
                     }
                     else
                     {
                         if (op->isIncrementOp())
                         {
-                            replaceStr = "[&]() mutable {" + opDecl->getName().str() + 
-                                ".set(" +  opDecl->getName().str() + ".get() + 1); return " + 
-                                opDecl->getName().str() + ".get();}()";
+                            replaceStr = "[&]() mutable {" + 
+                                tableName + "->set_" + fieldName +"(" +  
+                                tableName + "->" + fieldName + "() + 1); return " + 
+                                tableName + "->" + fieldName + "();}()";
                         }
                         else if(op->isDecrementOp())
                         {
-                            replaceStr = "[&]() mutable {" + opDecl->getName().str() + 
-                                ".set(" +  opDecl->getName().str() + ".get() - 1); return " + 
-                                opDecl->getName().str() + ".get();}()";
+                            replaceStr = "[&]() mutable {" + 
+                                tableName + "->set_" + fieldName +"(" +  
+                                tableName + "->" + fieldName + "() - 1); return " + 
+                                tableName + "->" + fieldName + "();}()";
                         }
                     }
 
                     rewriter.ReplaceText(
                         SourceRange(op->getBeginLoc().getLocWithOffset(-1),op->getEndLoc().getLocWithOffset(1)), 
                         replaceStr);
-
                 }
             }
         }
- 
     }
 
 private:
@@ -363,9 +465,7 @@ public:
                 break;
             }
             ctx = ctx->getParent();
-        }
-
-        
+        }       
 
         if (ruleDecl != nullptr)
         {
@@ -414,13 +514,31 @@ private:
     Rewriter &rewriter;
 };
 
+class EDC_Function_Call_Match_Handler : public MatchFinder::MatchCallback
+{
+public:
+    EDC_Function_Call_Match_Handler(Rewriter &r) : rewriter (r){}
+    virtual void run (const MatchFinder::MatchResult &Result)
+    {
+        const CXXMemberCallExpr *callExpr = Result.Nodes.getNodeAs<CXXMemberCallExpr>("EDCFunctionCall");
+        if (callExpr != nullptr)
+        {
+            rewriter.ReplaceText(
+                SourceRange(callExpr->getExprLoc().getLocWithOffset(-1),callExpr->getExprLoc().getLocWithOffset(-1)),
+                "->");
+        }
+    }
+
+private:
+    Rewriter &rewriter;
+};
 
 class ASTGenerator_Consumer : public clang::ASTConsumer 
 {
 public:
     explicit ASTGenerator_Consumer(ASTContext *context, Rewriter &r)
         : fieldGetMatcherHandler(r), fieldSetMatcherHandler(r), ruleMatcherHandler(r),
-        rulesetMatcherHandler(r), fieldUnaryOperatorMatchHandler(r)
+        rulesetMatcherHandler(r), fieldUnaryOperatorMatchHandler(r), edcFunctionCallMatchHandler(r)
     {
         StatementMatcher fieldGetMatcher = 
             declRefExpr(to(varDecl(anyOf(hasAttr(attr::GaiaField),hasAttr(attr::GaiaFieldValue)),
@@ -434,12 +552,37 @@ public:
             hasOperatorName("++"), hasOperatorName("--")),
             hasUnaryOperand(declRefExpr(to(varDecl(hasAttr(attr::GaiaFieldLValue)))))
             )).bind("fieldUnaryOp");
+
+        StatementMatcher tableFieldGetMatcher = 
+            memberExpr(member(allOf(hasAttr(attr::GaiaField),unless(hasAttr(attr::GaiaFieldLValue)))),
+            hasDescendant(declRefExpr(to(varDecl(anyOf(hasAttr(attr::GaiaField),hasAttr(attr::GaiaFieldValue)))))))
+            .bind("tableFieldGet");
+
+        StatementMatcher tableFieldSetMatcher = binaryOperator(allOf(
+            isAssignmentOperator(),
+            hasLHS(memberExpr(member(hasAttr(attr::GaiaFieldLValue))))))
+            .bind("fieldSet");
+
+        StatementMatcher tableFieldUnaryOperatorMatcher = unaryOperator(allOf(anyOf(
+            hasOperatorName("++"), hasOperatorName("--")),
+            hasUnaryOperand(memberExpr(member(hasAttr(attr::GaiaFieldLValue)))))
+            ).bind("fieldUnaryOp");
+
+        StatementMatcher EDCFunctionCallMatcher = cxxMemberCallExpr(on(declRefExpr(to(varDecl(
+            hasAttr(attr::FieldTable))))))
+            .bind("EDCFunctionCall");
         
         matcher.addMatcher(fieldSetMatcher, &fieldSetMatcherHandler);
         matcher.addMatcher(fieldGetMatcher, &fieldGetMatcherHandler);
+             
         matcher.addMatcher(ruleMatcher, &ruleMatcherHandler);
         matcher.addMatcher(rulesetMatcher, &rulesetMatcherHandler);
         matcher.addMatcher(fieldUnaryOperatorMatcher, &fieldUnaryOperatorMatchHandler);
+        
+        matcher.addMatcher(tableFieldSetMatcher, &fieldSetMatcherHandler);
+        matcher.addMatcher(tableFieldGetMatcher, &fieldGetMatcherHandler);
+        matcher.addMatcher(tableFieldUnaryOperatorMatcher, &fieldUnaryOperatorMatchHandler);
+        matcher.addMatcher(EDCFunctionCallMatcher, &edcFunctionCallMatchHandler);
     }
 
     virtual void HandleTranslationUnit(clang::ASTContext &context) 
@@ -453,6 +596,8 @@ private:
     Rule_Match_Handler     ruleMatcherHandler;
     Ruleset_Match_Handler  rulesetMatcherHandler;
     Field_Unary_Operator_Match_Handler fieldUnaryOperatorMatchHandler;
+    EDC_Function_Call_Match_Handler edcFunctionCallMatchHandler;
+
 };
 
 class ASTGenerator_Action : public clang::ASTFrontendAction 
