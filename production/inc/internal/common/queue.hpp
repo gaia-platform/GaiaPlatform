@@ -44,7 +44,7 @@ public:
     ~queue_t();
 
     // Insert a value in the queue.
-    void enqueue(T value);
+    void enqueue(const T& value);
 
     // Extract a value from the queue.
     // If the queue is empty, the value will be left unset.

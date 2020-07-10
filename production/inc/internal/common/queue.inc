@@ -34,7 +34,7 @@ template <class T> queue_t<T>::~queue_t()
     }
 }
 
-template <class T> void queue_t<T>::enqueue(T value)
+template <class T> void queue_t<T>::enqueue(const T& value)
 {
     // Create element to hold new value.
     queue_element_t<T>* new_first_element = new queue_element_t<T>(value);
