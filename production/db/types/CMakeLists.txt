@@ -18,7 +18,7 @@ set(GAIA_TYPES_INCLUDES
 message(STATUS "GAIA_TYPES_INCLUDES=${GAIA_TYPES_INCLUDES}")
 
 # Our main target.
-add_library(gaia_types SHARED
+add_library(gaia_types STATIC
     src/data_holder.cpp
     src/type_cache.cpp
     src/field_access.cpp
