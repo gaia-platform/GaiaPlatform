@@ -45,11 +45,11 @@ namespace direct_access {
  * refreshed if they are accessed again.
  */
 struct gaia_base_t;
-typedef shared_ptr<gaia_base_t> gaia_ptr_t;
+typedef shared_ptr<gaia_base_t> gaia_base_ptr_t;
 
 struct gaia_base_t
 {
-    typedef map<gaia_id_t, gaia_ptr_t> id_cache_t;
+    typedef map<gaia_id_t, gaia_base_ptr_t> id_cache_t;
     /**
      * Track every gaia_base_t object by the gaia_id_t. If the same gaia_id_t is
      * accessed multiple times, this cache will find the same object containing

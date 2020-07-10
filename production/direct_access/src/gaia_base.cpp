@@ -96,7 +96,7 @@ void gaia_base_t::begin_hook()
 {
     for (auto it = s_gaia_cache.begin(); it != s_gaia_cache.end();)
     {
-        gaia_ptr_t& obj = it->second;
+        gaia_base_ptr_t& obj = it->second;
 
         // If there is no outstanding reference to this object then
         // we can remove it from our cache.

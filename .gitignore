@@ -3,7 +3,6 @@
 
 # Build files.
 build/
-.gdev/
 
 # Emacs backups.
 *~

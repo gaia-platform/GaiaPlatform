@@ -135,7 +135,7 @@ void gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::update_row(
     auto it = s_gaia_cache.find(writer->m_gaia.id);
     if (it != s_gaia_cache.end())
     {
-        gaia_ptr_t& obj = it->second;
+        gaia_base_ptr_t& obj = it->second;
         if (!obj.unique())
         {
             // UNDONE: make this safer?  see get_object
@@ -194,7 +194,7 @@ shared_ptr<T_gaia> gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>
     else 
     {
         client_ptr.reset(new T_gaia(node_ptr->id));
-        s_gaia_cache.insert(pair<gaia_id_t, gaia_ptr_t>(node_ptr->id, client_ptr));
+        s_gaia_cache.insert(pair<gaia_id_t, gaia_base_ptr_t>(node_ptr->id, client_ptr));
     }
 
     client_ptr->refresh();
