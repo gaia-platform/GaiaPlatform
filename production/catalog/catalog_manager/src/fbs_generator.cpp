@@ -3,11 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 #include <string>
-#include <vector>
 #include <algorithm>
-#include <unordered_map>
-#include "catalog_manager.hpp"
-#include "catalog_gaia_generated.h"
+#include "fbs_generator.hpp"
 #include "flatbuffers/idl.h"
 #include "retail_assert.hpp"
 
@@ -33,7 +30,9 @@ static unsigned int pos_of_char(const unsigned char chr) {
     } else if (chr == '/' || chr == '_') {
         return 63;
     }
+
     retail_assert(false, "Unknown base64 char!");
+    return 0;
 }
 
 /**
@@ -143,6 +142,10 @@ static string generate_field_fbs(const Gaia_field &field) {
 /**
  * Public interfaces
  **/
+ddl::unknown_data_type::unknown_data_type() {
+    m_message = "Unknown data type.";
+}
+
 gaia_data_type to_gaia_data_type(ddl::data_type_t data_type) {
     switch (data_type) {
     case ddl::data_type_t::BOOL:
@@ -170,7 +173,7 @@ gaia_data_type to_gaia_data_type(ddl::data_type_t data_type) {
     case ddl::data_type_t::STRING:
         return gaia_data_type_STRING;
     default:
-        retail_assert(false, "Unknown type!");
+        throw ddl::unknown_data_type();
     }
 }
 
@@ -180,7 +183,7 @@ string generate_fbs(gaia_id_t table_id) {
     unique_ptr<Gaia_table> table{Gaia_table::get_row_by_id(table_id)};
     string table_name{table->name()};
     fbs += "table " + table_name + "{\n";
-    for (gaia_id_t field_id : catalog_manager_t::get().list_fields(table_id)) {
+    for (gaia_id_t field_id : list_fields(table_id)) {
         unique_ptr<Gaia_field> field{Gaia_field::get_row_by_id(field_id)};
         fbs += "\t" + generate_field_fbs(*field) + ";\n";
     }
@@ -193,10 +196,10 @@ string generate_fbs(gaia_id_t table_id) {
 string generate_fbs() {
     string fbs;
     gaia::db::begin_transaction();
-    for (gaia_id_t table_id : catalog_manager_t::get().list_tables()) {
+    for (gaia_id_t table_id : list_tables()) {
         unique_ptr<Gaia_table> table{Gaia_table::get_row_by_id(table_id)};
         fbs += "table " + string(table->name()) + "{\n";
-        for (gaia_id_t field_id : catalog_manager_t::get().list_fields(table_id)) {
+        for (gaia_id_t field_id : list_fields(table_id)) {
             unique_ptr<Gaia_field> field{Gaia_field::get_row_by_id(field_id)};
             fbs += "\t" + generate_field_fbs(*field) + ";\n";
         }
