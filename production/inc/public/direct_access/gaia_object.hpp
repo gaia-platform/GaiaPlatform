@@ -75,7 +75,6 @@ public:
      */
     static unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>> writer(gaia_id_t id);
 
-
     /**
      * This can be used for subscribing to rules when you don't
      * have a specific instance of the type.
