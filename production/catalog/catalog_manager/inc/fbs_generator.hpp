@@ -10,6 +10,15 @@
 namespace gaia {
 namespace catalog {
 
+namespace ddl {
+
+class unknown_data_type : public gaia::common::gaia_exception {
+  public:
+    unknown_data_type();
+};
+
+} // namespace ddl
+
 /**
  * Generate FlatBuffers schema (fbs) from parsing result of a table.
  * Before the support of complex types, we can generate a table schema from its own own definition.
