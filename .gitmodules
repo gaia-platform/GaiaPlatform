@@ -1,3 +1,0 @@
-[submodule "third_party/production/cpp-linenoise"]
-	path = third_party/production/cpp-linenoise
-	url = https://github.com/gaia-platform/cpp-linenoise.git

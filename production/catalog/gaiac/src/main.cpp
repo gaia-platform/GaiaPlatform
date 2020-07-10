@@ -5,9 +5,9 @@
 #include "gaia_catalog.hpp"
 #include "gaia_parser.hpp"
 #include "gaia_system.hpp"
-#include "linenoise.hpp"
-#include <vector>
 #include <iostream>
+#include <string>
+#include <vector>
 
 using namespace std;
 using namespace gaia::catalog::ddl;
@@ -25,17 +25,14 @@ void execute(vector<unique_ptr<statement_t>> &statements) {
 }
 
 void start_repl(parser_t &parser) {
-    const auto history_file_path = "gaiac_history.txt";
     const auto prompt = "gaiac> ";
-
-    linenoise::SetHistoryMaxLen(100);
-    linenoise::LoadHistory(history_file_path);
 
     while (true) {
         string line;
-        auto quit = linenoise::Readline(prompt, line);
+        cout << prompt << flush;
+        getline(cin, line);
 
-        if (quit) {
+        if (line.length() == 0 || line == "exit") {
             break;
         }
         int parsing_result = parser.parse_line(line);
@@ -51,9 +48,6 @@ void start_repl(parser_t &parser) {
             cout << "Invalid input." << endl
                  << flush;
         }
-
-        linenoise::AddHistory(line.c_str());
-        linenoise::SaveHistory(history_file_path);
     }
 }
 
