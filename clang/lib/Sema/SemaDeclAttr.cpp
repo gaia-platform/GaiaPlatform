@@ -2044,6 +2044,21 @@ static void handleStreamAttr(Sema &S, Decl *D, const ParsedAttr &AL)
         AL.getAttributeSpellingListIndex()));
 }
 
+static void handleFieldTableAttr(Sema &S, Decl *D, const ParsedAttr &AL)
+{
+    IdentifierLoc *tableArg = AL.getArgAsIdent(0);
+    if (!AL.isArgIdent(0)) 
+    {
+        S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
+            << AL << AANT_ArgumentIdentifier;
+        return;
+    }
+    D->addAttr(::new (S.Context) FieldTableAttr(
+        AL.getRange(), S.Context, tableArg->Ident,
+        AL.getAttributeSpellingListIndex()));
+}
+
+
 static void handleRuleAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
     D->addAttr(::new (S.Context) RuleAttr(
@@ -7138,6 +7153,9 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
     break;
   case ParsedAttr::AT_GaiaFieldLValue:
     handleGaiaFieldLValueAttr(S, D, AL);
+    break;
+  case ParsedAttr::AT_FieldTable:
+    handleFieldTableAttr(S, D, AL);
     break;
   }
 }

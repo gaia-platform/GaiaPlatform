@@ -33,7 +33,7 @@ void Parser::ConsumeInvalidRuleset()
     while(!SkipUntil(tok::r_brace));
 }
 
-std::string Parser::RandomString(std::string::size_type length) const
+static std::string RandomString(std::string::size_type length)
 {
     const char chrs[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ_"
         "abcdefghijklmnopqrstuvwxyz0123456789";

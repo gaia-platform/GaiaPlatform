@@ -2462,7 +2462,6 @@ private:
   bool ParseGaiaAttributeSpecifier(ParsedAttributesWithRange &attrs,
                             SourceLocation *EndLoc = nullptr);
   void InjectRuleFunction(Declarator &D);
-  std::string RandomString(std::string::size_type length) const;
   void ConsumeInvalidRuleset();
 
   void MaybeParseMicrosoftAttributes(ParsedAttributes &attrs,

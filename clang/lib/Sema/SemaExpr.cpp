@@ -2068,7 +2068,8 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
                         SourceLocation TemplateKWLoc, UnqualifiedId &Id,
                         bool HasTrailingLParen, bool IsAddressOfOperand,
                         std::unique_ptr<CorrectionCandidateCallback> CCC,
-                        bool IsInlineAsmIdentifier, Token *KeywordReplacement) {
+                        bool IsInlineAsmIdentifier, Token *KeywordReplacement, 
+                        bool isGaiaFieldTable) {
   assert(!(IsAddressOfOperand && HasTrailingLParen) &&
          "cannot be direct & operand and have a trailing lparen");
   if (SS.isInvalid())
@@ -2176,7 +2177,7 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
             {
                 if (FD->hasAttr<RuleAttr>())
                 {
-                    NamedDecl *D = injectVariableDefinition(II);
+                    NamedDecl *D = injectVariableDefinition(II, isGaiaFieldTable);
                     if (D) 
                     {
                         R.addDecl(D);
