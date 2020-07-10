@@ -103,6 +103,15 @@ record_iterator_t::record_iterator_t()
     current_index = 0;
 }
 
+record_iterator_t::~record_iterator_t()
+{
+    // Release the shared lock maintained on the current range.
+    if (current_range != nullptr)
+    {
+        current_range->m_lock.unlock_shared();
+    }
+}
+
 bool record_iterator_t::at_end()
 {
     return current_range == nullptr;
@@ -135,7 +144,11 @@ void record_list_t::compact()
         current_range != nullptr;
         current_range = current_range->next_range())
     {
+        current_range->m_lock.lock();
+
         current_range->compact();
+
+        current_range->m_lock.unlock();
     }
 }
 
@@ -147,10 +160,15 @@ void record_list_t::add(uint64_t locator)
     record_range_t* current_range = m_record_ranges;
     while (current_range != nullptr)
     {
+        current_range->m_lock.lock();
+
         // If current range has space, add our record to it.
         if (!current_range->is_full())
         {
             current_range->add(locator);
+
+            current_range->m_lock.unlock();
+
             return;
         }
 
@@ -159,6 +177,8 @@ void record_list_t::add(uint64_t locator)
         {
             current_range->add_next_range();
         }
+
+        current_range->m_lock.unlock();
 
         // Check the next range.
         // This is guaranteed to exist because of the above logic.
@@ -171,6 +191,7 @@ void record_list_t::seek(record_iterator_t& iterator)
 {
     while (!iterator.at_end())
     {
+        // Search for a non-deleted record in the current range.
         for ( ; iterator.current_index < iterator.current_range->m_next_available_index; iterator.current_index++)
         {
             if (iterator.current_range->get(iterator.current_index).is_deleted == false)
@@ -179,8 +200,17 @@ void record_list_t::seek(record_iterator_t& iterator)
             }
         }
 
+        // Release the lock on the current range before acquiring one on the next range.
+        iterator.current_range->m_lock.unlock_shared();
+
         iterator.current_range = iterator.current_range->next_range();
         iterator.current_index = 0;
+
+        // Acquire a lock on the next range if one exists.
+        if (iterator.current_range != nullptr)
+        {
+            iterator.current_range->m_lock.lock_shared();
+        }
     }
 }
 
@@ -189,6 +219,9 @@ bool record_list_t::start(record_iterator_t& iterator)
     // Position iterator to beginning of list.
     iterator.current_range = m_record_ranges;
     iterator.current_index = 0;
+
+    // Iterators will maintain a shared lock on the current range.
+    iterator.current_range->m_lock.lock_shared();
 
     // Seek first valid record.
     seek(iterator);

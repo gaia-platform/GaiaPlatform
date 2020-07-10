@@ -30,10 +30,12 @@ struct record_data_t
     void set(uint64_t locator);
 };
 
+struct record_iterator_t;
 class record_list_t;
 
 class record_range_t
 {
+    friend struct record_iterator_t;
     friend class record_list_t;
 
 public:
@@ -83,6 +85,7 @@ struct record_iterator_t
     size_t current_index;
 
     record_iterator_t();
+    ~record_iterator_t();
 
     // Tells whether the iterator position represents the end of the range.
     bool at_end();
