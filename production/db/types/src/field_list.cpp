@@ -103,7 +103,7 @@ void field_list_t::normalize() {
 // TODO (yiwen): figure out semantics if table_ids do not match
 field_list_t field_list_t::intersect(field_list_t& other) {
     // TODO (yiwen): implement.
-    return field_list_t(m_table_id);
+    return field_list_t(other); // PLACEHOLDER: suppress warnings
 }
 
 // Get table_id associated with this list
