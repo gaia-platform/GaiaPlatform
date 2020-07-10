@@ -164,6 +164,25 @@ TEST_F(gaia_object_test, new_del_field_ref) {
     commit_transaction();
 }
 
+// Attempt to update a row with a new writer.
+TEST_F(gaia_object_test, new_upd_field) {
+    begin_transaction();
+    auto writer = Employee::writer();
+    EXPECT_THROW(Employee::update_row(writer), invalid_node_id);
+    commit_transaction();
+}
+
+// Attempt to insert with an update writer
+TEST_F(gaia_object_test, existing_ins_field) {
+    begin_transaction();
+    auto writer = Employee::writer();
+    auto e = Employee::get(Employee::insert_row(writer));
+    writer = Employee::writer(e);
+    EXPECT_THROW(Employee::insert_row(writer), invalid_node_id);
+    commit_transaction();
+}
+
+
 // Test on existing objects found by ID
 // ====================================
 
@@ -307,12 +326,7 @@ TEST_F(gaia_object_test, new_del_ins) {
     
     auto w = Employee::writer(e);
     e->delete_row();
-
-    // UNDONE:  should throw an exception here (or ignore id!)
-    gaia_id_t id = Employee::insert_row(w);
-    auto e2 = Employee::get(id);
-    w = Employee::writer(e2);
-    w->name_first = "hudson";
+    EXPECT_THROW(Employee::insert_row(w), invalid_node_id);
     commit_transaction();
 }
 
@@ -529,99 +543,6 @@ TEST_F(gaia_object_test, auto_tx) {
     tx.commit();
     EXPECT_STREQ(a->city(), "Seattle");
 }
-
-/*
-TEST_F(gaia_object_test, simplified_api_example) {
-    
-    //Below code is what the simplified example is doing
-  
-    //begin_transaction();
-    //Employee_ptr e = Employee::writer();
-    //e->set_name_last("Smith");
-    //e->insert_row();
-    //commit_transaction();
-
-    //begin_transaction();
-    //EXPECT_STREQ(e->name_last(), "Smith");
-    //e->set_name_last("Doe");
-    //e->update_row();
-    //commit_transaction();
-
-    //begin_transaction();
-    //EXPECT_STREQ(e->name_last(), "Doe");
-    //commit_transaction();
-
-    auto_transaction_t tx;
-    Employee_ptr e = Employee::writer();
-    e->set_name_last("Smith");
-    tx.commit();
-    
-    EXPECT_STREQ(e->name_last(), "Smith");
-    e->set_name_last("Doe");
-    e->update_row();
-    tx.commit();
-    
-    EXPECT_STREQ(e->name_last(), "Doe");
-    tx.commit(false);
-}
-
-TEST_F(gaia_object_test, read_only) {
-    auto_transaction_t tx;
-    auto e_rw = Employee::writer(); // different type than the _ro type so our typecast fails ...
-    e_rw->set_name_last("Hawkins");
-    tx.commit();
-    printf("cache:  %ld\n", gaia_base_t::s_gaia_cache.size());
-
-    auto e = Employee_ro::get_first();
-    printf("last name:  %s\n", e->name_last());
-    tx.commit(false);
-    printf("cache:  %ld\n", gaia_base_t::s_gaia_cache.size());
-}
-
-TEST_F(gaia_object_test, simple) {
-    auto_transaction_t tx;
-    auto writer = Employee::writer();
-    writer->name_last = "Hawkins";
-    writer->name_first = "Dax";
-    gaia_id_t id = Employee::insert_row(writer);
-    tx.commit();
-
-    auto e = Employee::get(id);
-    printf("last name: %s\n", e->name_last());
-    printf("first name: %s\n", e->name_first());
-    tx.commit();
-
-    //Employee_writer& updater = e->get_writer();
-    auto& updater = e->get_writer();
-    auto& ssn = updater->ssn;
-    ssn = "123456789";
-    auto& my_id = updater->Gaia_id;
-    my_id = 888;
-    nullable_string_t& email = updater->email;
-    email = "howdy@gmail.com";
-    e->update_row();
-    printf("id:  %ld\n", e->gaia_id());
-    tx.commit();
-
-    printf("last name: %s\n", e->name_last());
-    printf("first name: %s\n", e->name_first());
-    printf("ssn: %s\n", e->ssn());
-    printf("email: %s\n", e->email());
-    printf("id: %ld\n", e->Gaia_id());
-    
-    tx.commit();
-
-    e->delete_row();
-    printf("last name: %s\n", e->name_last());
-    printf("first name: %s\n", e->name_first());
-    printf("ssn: %s\n", e->ssn());
-    printf("email: %s\n", e->email());
-    tx.commit();
-
-    e->update_row();
-    tx.commit(false);
-}
-*/
 
 void another_thread()
 {

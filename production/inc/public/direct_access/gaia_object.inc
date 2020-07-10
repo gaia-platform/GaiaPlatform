@@ -97,6 +97,11 @@ gaia_id_t gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::insert_
     gaia_ptr<gaia_se_node> node_ptr;
     flatbuffers::FlatBufferBuilder fbb;
 
+    // Don't allow inserting a row with a writer that already has a node id.
+    if (writer->m_gaia.id) {
+        throw invalid_node_id(writer->m_gaia.id);
+    }
+
     gaia_id_t id = gaia_se_node::generate_id();
     auto u = T_fb::Pack(fbb, writer.get());
     fbb.Finish(u);
