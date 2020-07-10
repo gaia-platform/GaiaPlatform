@@ -9,7 +9,7 @@ include(${CMAKE_BINARY_DIR}/../../../../production/cmake/gaia.cmake)
 #  ${LLVM_LIB_PATH}/lib/cmake/llvm
 # )
 
-find_package(OpenCV 4.3.0 REQUIRED)
+#find_package(OpenCV 4.3.0 REQUIRED)
 
 set(CMAKE_CXX_FLAGS
       "-std=c++0x -Wall -Wextra -ggdb -Wno-unused-parameter -ggdb")
@@ -21,7 +21,7 @@ add_custom_target(make_generated_cameraDemo_dir ALL
   )
 set_property(GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
 set(GAIA_PROD_BUILD ${CMAKE_BINARY_DIR}/../../../../production/build)
-gaia_compile_flatbuffers_schema_to_cpp_opt(cameraDemo.fbs "--no-includes;--gen-compare;--gen-setters;--gen-table-events;--gen-col-events;--gaia-type-initial-value;1000" "${GENERATED_OUTPUTS}")
+gaia_compile_flatbuffers_schema_to_cpp_opt(cameraDemo.fbs "--no-includes;--gen-compare;--gen-setters;--gen-events;--gaia-type-initial-value;1000" "${GENERATED_OUTPUTS}")
 gaia_get_generated_output(fbs_generated)
 if(fbs_generated)
   add_custom_target(generate_camera_demo
@@ -31,8 +31,10 @@ endif()
 
 set (CAMERA_DEMO_INCLUDES
   ${CMAKE_BINARY_DIR}/../../../../production/inc/public/rules
+  ${CMAKE_BINARY_DIR}/../../../../production/inc/internal/rules
   ${CMAKE_BINARY_DIR}/../../../../production/inc/internal/common
   ${CMAKE_BINARY_DIR}/../../../../production/inc/public/common
+  ${CMAKE_BINARY_DIR}/../../../../production/inc/public/direct_access
   ${CMAKE_BINARY_DIR}/../../../../third_party/production/flatbuffers/include
   ${CMAKE_BINARY_DIR}/../../../../production/db/storage_engine/mock
   ${CMAKE_BINARY_DIR}/../../../../production/build/rules/event_manager/generated

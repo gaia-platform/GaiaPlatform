@@ -127,9 +127,8 @@ std::string FlatCompiler::GetUsageString(const char *program_name) const {
     "                             * 'c++0x' - generate code compatible with old compilers;\n"
     "                             * 'c++11' - use C++11 code generator (default);\n"
     "                             * 'c++17' - use C++17 features in generated code (experimental).\n"
-    "  --gen-col-events         generate code in Gaia Wrapper to invoke event manager on column change.\n"
-    "  --gen-table-events       generate code in Gaia Wrapper to invoke event manager on table change.\n"
-    "  --gen-setters            generate code in Gaia Wrapper to generate setters for class data.\n"
+    "  --gen-events             Generate code in Gaia Wrapper to invoke event triggers.\n"
+    "  --gen-setters            Generate code in Gaia Wrapper to generate setters for class data.\n"
     "  --gaia-type-initial-value sets an initial value while generating Gaia type.\n"
     "  --object-prefix          Customise class prefix for C++ object-based API.\n"
     "  --object-suffix          Customise class suffix for C++ object-based API.\n"
@@ -372,10 +371,8 @@ int FlatCompiler::Compile(int argc, const char **argv) {
         opts.cs_gen_json_serializer = true;
       } else if (arg == "--flexbuffers") {
         opts.use_flexbuffers = true;
-      } else if (arg == "--gen-col-events") {
-        opts.generate_column_change_events = true;
-      } else if (arg == "--gen-table-events") {
-        opts.generate_table_change_events = true;
+      } else if (arg == "--gen-events") {
+        opts.generate_events = true;
       } else if (arg == "--gen-setters") {
         opts.generate_setters = true;
       } else if (arg == "--cpp-std") {

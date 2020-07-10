@@ -52,45 +52,49 @@ namespace db
     class tx_not_open: public gaia_exception
     {
     public:
-        const char* what() const throw ()
+        tx_not_open()
         {
-            return "begin transaction before performing data access";
+            m_message = "A transaction must be started before performing data access.";
         }
     };
 
     class tx_update_conflict: public gaia_exception
     {
     public:
-        const char* what() const throw ()
+        tx_update_conflict()
         {
-            return "transaction aborted due to serialization error";
+            m_message = "Transaction aborted due to serialization error.";
         }
     };
 
     class duplicate_id: public gaia_exception
     {
     public:
-        const char* what() const throw ()
+        duplicate_id(gaia_id_t id)
         {
-            return "object with the same ID already exists";
+            std::stringstream strs;
+            strs << "Object with the same ID (" << id << ") already exists.";
+            m_message = strs.str();
         }
     };
 
     class oom: public gaia_exception
     {
     public:
-        const char* what() const throw ()
+        oom()
         {
-            return "out of memory";
+            m_message = "Out of memory.";
         }
     };
 
     class dependent_edges_exist: public gaia_exception
     {
     public:
-        const char* what() const throw ()
+        dependent_edges_exist(gaia_id_t id)
         {
-            return "cannot remove node - dependent edges exist";
+            std::stringstream strs;
+            strs << "Cannot remove node with ID " << id << " because it has dependent edges.";
+            m_message = strs.str();
         }
     };
 
@@ -100,23 +104,29 @@ namespace db
         invalid_node_id(int64_t id)
         {
             std::stringstream strs;
-            strs << "ID: " << id << " is either invalid or the node is not found";
-            whats = strs.str();
+            strs << "Cannot find a node with ID " << id << ".";
+            m_message = strs.str();
         }
-
-        const char* what() const throw ()
-        {
-             return whats.c_str();
-        }
-        std::string whats;
     };
 
     class invalid_id_value: public gaia_exception
     {
     public:
-        const char* what() const throw ()
+        invalid_id_value(gaia_id_t id)
         {
-            return "ID must be less than 2^63";
+            std::stringstream strs;
+            strs << "ID value " << id << " is larger than the maximum ID value 2^63.";
+            m_message = strs.str();
+        }
+    };
+
+    class node_not_disconnected: public gaia_exception
+    {
+    public:
+        node_not_disconnected(gaia_id_t id, gaia_type_t object_type) {
+            stringstream msg;
+            msg << "Cannot delete object " << id << ", type " << object_type << " because it is still connected to other object.";
+            m_message = msg.str();
         }
     };
 
@@ -124,7 +134,7 @@ namespace db
     {
         if (id & c_edge_flag)
         {
-            throw invalid_id_value();
+            throw invalid_id_value(id);
         }
     }
 
@@ -520,7 +530,7 @@ namespace db
                     if (node->row_id &&
                         (*gaia_mem_base::s_offsets)[node->row_id])
                     {
-                        throw duplicate_id();
+                        throw duplicate_id(id);
                     }
                     else
                     {
@@ -683,19 +693,24 @@ namespace db
             return *this;
         }
 
-        gaia_ptr<T>& update_payload(size_t payload_size, const void* payload)
+        gaia_ptr<T>& update_payload(size_t data_size, const void* data)
         {
             auto old_this = to_ptr();
             auto old_offset = to_offset();
 
-            allocate(sizeof(T) + payload_size);
+            int32_t ref_len = old_this->num_references * sizeof(gaia_id_t);
+            int32_t total_len = data_size + ref_len;
+            allocate(sizeof(T) + total_len);
 
             auto new_this = to_ptr();
-            auto new_payload = &new_this->payload;
 
             memcpy (new_this, old_this, sizeof(T));
-            new_this->payload_size = payload_size;
-            memcpy (new_payload, payload, payload_size);
+            new_this->payload_size = total_len;
+            if (old_this->num_references) {
+                memcpy(new_this->payload, old_this->payload, ref_len);
+            }
+            new_this->num_references = old_this->num_references;
+            memcpy (new_this->payload + ref_len, data, data_size);
 
             gaia_mem_base::tx_log (row_id, old_offset, to_offset());
 
@@ -840,6 +855,7 @@ namespace db
 
         gaia_id_t id;
         gaia_type_t type;
+        size_t num_references;
         size_t payload_size;
         char payload[0];
 
@@ -851,17 +867,35 @@ namespace db
         static gaia_ptr<gaia_se_node> create (
             gaia_id_t id,
             gaia_type_t type,
-            size_t payload_size,
-            const void* payload,
+            size_t data_size,
+            const void* data,
             bool log_updates = true
         )
         {
-            gaia_ptr<gaia_se_node> node(id, payload_size + sizeof(gaia_se_node), false, log_updates);
+            return create(id, type, 0, data_size, data, log_updates);
+        }
+
+        static gaia_ptr<gaia_se_node> create (
+            gaia_id_t id,
+            gaia_type_t type,
+            size_t num_refs,
+            size_t data_size,
+            const void* data,
+            bool log_updates = true
+        )
+        {
+            size_t refs_len = num_refs * sizeof(gaia_id_t);
+            size_t total_len = data_size + refs_len;
+            gaia_ptr<gaia_se_node> node(id, total_len + sizeof(gaia_se_node), false, log_updates);
 
             node->id = id;
             node->type = type;
-            node->payload_size = payload_size;
-            memcpy (node->payload, payload, payload_size);
+            node->num_references = num_refs;
+            if (num_refs) {
+                memset(node->payload, 0, refs_len);
+            }
+            node->payload_size = total_len;
+            memcpy (node->payload + refs_len, data, data_size);
             return node;
         }
 
@@ -870,6 +904,16 @@ namespace db
         )
         {
             return gaia_ptr<gaia_se_node>(id);
+        }
+
+        char* data()
+        {
+            return (char *)(payload + num_references * sizeof(gaia_id_t));
+        }
+
+        gaia_id_t* references()
+        {
+            return (gaia_id_t*)(payload);
         }
     };
 
@@ -882,6 +926,12 @@ namespace db
 
         gaia_id_t id;
         gaia_type_t type;
+        // The num_references member is not actually necessary in an edge, as we have nothing
+        // that creates edges containing references. However, the update_payload method
+        // assumes certain similarities between the node and the edge, forcing us to process
+        // the num_references, payload and references members in the same way. This should
+        // be temporary.
+        size_t num_references;
         gaia_id_t first;
         gaia_id_t second;
         size_t payload_size;
@@ -892,8 +942,22 @@ namespace db
             gaia_type_t type,
             gaia_id_t first,
             gaia_id_t second,
-            size_t payload_size,
-            const void* payload,
+            size_t data_size,
+            const void* data,
+            bool log_updates = true
+        )
+        {
+            return create(id, type, 0, first, second, data_size, data, log_updates);
+        }
+
+        static gaia_ptr<gaia_se_edge> create (
+            gaia_id_t id,
+            gaia_type_t type,
+            size_t num_refs,
+            gaia_id_t first,
+            gaia_id_t second,
+            size_t data_size,
+            const void* data,
             bool log_updates = true
         )
         {
@@ -910,14 +974,20 @@ namespace db
                 throw invalid_node_id(second);
             }
 
-            gaia_ptr<gaia_se_edge> edge(id, payload_size + sizeof(gaia_se_edge), true, log_updates);
+            size_t refs_len = num_refs * sizeof(gaia_id_t);
+            size_t total_len = data_size + refs_len;
+            gaia_ptr<gaia_se_edge> edge(id, total_len + sizeof(gaia_se_edge), true, log_updates);
 
             edge->id = id;
             edge->type = type;
             edge->first = first;
             edge->second = second;
-            edge->payload_size = payload_size;
-            memcpy (edge->payload, payload, payload_size);
+            edge->num_references = num_refs;
+            if (num_refs) {
+                memset(edge->payload, 0, refs_len);
+            }
+            edge->payload_size = total_len;
+            memcpy(edge->payload + refs_len, data, data_size);
 
             edge->node_first = node_first;
             edge->node_second = node_second;
@@ -939,6 +1009,17 @@ namespace db
         {
             return gaia_ptr<gaia_se_edge>(id, true);
         }
+
+        char* data()
+        {
+            return (char *)(payload + num_references * sizeof(gaia_id_t));
+        }
+
+        gaia_id_t* references()
+        {
+            return (gaia_id_t*)(payload);
+        }
+
     };
 
     template<>
@@ -950,10 +1031,17 @@ namespace db
         }
         check_id(node->id);
 
+        gaia_id_t * references = node->references();
+        for (size_t i = 0; i < node->num_references; i++) {
+            if (references[i]) {
+                throw node_not_disconnected(node->id, node->type);
+            }
+        }
+
         if (node->next_edge_first
             || node->next_edge_second)
         {
-            throw dependent_edges_exist();
+            throw dependent_edges_exist(node->id);
         }
         else
         {

@@ -26,6 +26,8 @@ const char ACTUATOR_C_NAME[] = "Fan C";
 atomic<bool> IN_SIMULATION{false};
 atomic<int> TIMESTAMP{0};
 
+void add_fan_control_rule();
+
 void init_storage() {
     begin_transaction();
 
@@ -159,33 +161,6 @@ void increase_fans(Incubator *incubator, FILE *log) {
     }
 }
 
-void on_sensor_changed(const rule_context_t *context) {
-    Sensor *s = static_cast<Sensor *>(context->event_context);
-    Incubator *i = Incubator::get_row_by_id(s->incubator_id());
-    FILE *log = fopen("message.log", "a");
-    fprintf(log, "%s fired for %s sensor of %s incubator\n", __func__,
-            s->name(), i->name());
-
-    double cur_temp = s->value();
-    if (cur_temp < i->min_temp()) {
-        decrease_fans(i, log);
-    } else if (cur_temp > i->max_temp()) {
-        increase_fans(i, log);
-    }
-    fclose(log);
-}
-
-void add_fan_control_rule() {
-    try {
-        rule_binding_t fan_control("Incubator", "Fan control",
-                                   on_sensor_changed);
-        subscribe_database_rule(Sensor::s_gaia_type, event_type_t::row_update,
-                             fan_control);
-    } catch (duplicate_rule) {
-        printf("The rule has already been added.\n");
-    }
-}
-
 void list_rules() {
     subscription_list_t subs;
     list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subs);
@@ -211,8 +186,6 @@ void usage(const char *command) {
     printf(" show: dump the tables in storage.\n");
     printf(" help: print this message.\n");
 }
-
-extern "C" void initialize_rules() {}
 
 int main(int argc, const char **argv) {
     bool is_sim = false;

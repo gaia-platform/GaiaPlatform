@@ -3,11 +3,13 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <string>
+#include <algorithm>
 #include <fstream>
 #include <sstream>
-#include <vector>
+#include <string>
+#include <map>
 #include <unordered_set>
+#include <vector>
 
 #include "clang/Driver/Options.h"
 #include "clang/AST/AST.h"
@@ -40,20 +42,6 @@ enum tx_type_t
     max
 };
 
-struct tx_desc_t
-{
-    tx_type_t type;
-    const char* name;
-    bool generated;
-};
-
-tx_desc_t s_tx_descriptors[tx_type_t::max] = {
-    {tx_type_t::none, "none", false},
-    {tx_type_t::begin, "begin", false},
-    {tx_type_t::commit, "commit", false},
-    {tx_type_t::rollback, "rollback", false}
-};
-
 struct rule_data_t
 {
     string ruleset;
@@ -66,7 +54,7 @@ struct rule_data_t
     tx_type_t tx;
 };
 
-vector<rule_data_t> g_rules;
+map<string, vector<rule_data_t>> g_rulesets;
 string g_current_ruleset;
 bool g_verbose = false;
 unordered_map<string, string> g_includes;
@@ -136,7 +124,7 @@ public:
     }
 
     // Find all the gaia types we care about.  Gaia types inherit
-    // from gaia::common::gaia_object_t.
+    // from gaia::direct_access::gaia_object_t.
     virtual bool VisitCXXRecordDecl(CXXRecordDecl *Declaration) 
     {
         if (!(Declaration->hasDefinition()))
@@ -154,7 +142,7 @@ public:
             }
             
             string baseQualifiedName = baseDecl->getQualifiedNameAsString();
-            if (0 == baseQualifiedName.compare("gaia::common::gaia_object_t"))
+            if (0 == baseQualifiedName.compare("gaia::direct_access::gaia_object_t"))
             {
                 // We care about this object.  Add the name
                 // and fully qualified name to map this symbol
@@ -188,6 +176,11 @@ public:
             if (comment.compare(0, prefix.size(), prefix) == 0)
             {
                 g_current_ruleset = d->getNameAsString();
+                if (g_rulesets.find(g_current_ruleset) == g_rulesets.end())
+                {
+                    vector<rule_data_t> v;
+                    g_rulesets.insert(make_pair(g_current_ruleset, std::move(v)));
+                }
             }
             else
             {
@@ -229,6 +222,7 @@ public:
 
         if (!g_current_ruleset.empty())
         {
+            auto& rules = g_rulesets[g_current_ruleset];
             rule_data_t rule_data;
             rule_data.ruleset = g_current_ruleset;
             rule_data.rule = d->getNameAsString();
@@ -260,15 +254,24 @@ public:
                 }
 
                 vector<string> events;
+                string qualifier = "event_type_t::";
+
                 if (!parse_events(decl, events))
                 {
-                    llvm::errs() << "The rule configuration is invalid: Invalid event list\n";
+                    if (rule_data.field.empty())
+                    {
+                        llvm::errs() << "The rule configuration is invalid: Invalid event list\n";
+                    }
+                    else
+                    {
+                        rule_data.event_type = qualifier + "row_update";
+                        rules.push_back(rule_data);
+                    }
                     continue;
                 }
+
                 for (auto event : events)
                 {
-                    string qualifier = "event_type_t::";
-
                     // Fully qualify and validate our events.
                     if (is_transaction_event(event, rule_data.tx))
                     {
@@ -290,22 +293,11 @@ public:
                         rule_data.event_type = qualifier + "row_" + event;
                     }
                     else
-                    if (is_field_event(event))
-                    {
-                        if (rule_data.gaia_type.empty() || rule_data.field.empty())
-                        {
-                            llvm::errs() << "The rule configuration is invalid: Field events must specify a qualified "
-                                "[gaia_type.field] source\n";
-                            continue;
-                        }
-                        rule_data.event_type = qualifier + "field_" + event;
-                    }
-                    else
                     {
                         llvm::errs() << "The rule configuration is invalid: Invalid valid event type\n";
                         continue;
                     }
-                    g_rules.push_back(rule_data);
+                    rules.push_back(rule_data);
                 }
             }
         }
@@ -490,129 +482,98 @@ bool SaveFile(const char *name, const stringstream& buf)
 // the gaia::rules namespace scope yet
 void beginTxHookNamespace(stringstream& code)
 {
-    if (!s_tx_descriptors[0].generated)
-    {
-        code << "namespace gaia" << endl;
-        code << "{" << endl;
-        code << "namespace rules" << endl;
-        code << "{" << endl;
-        s_tx_descriptors[0].generated = true;
-    }
+    code << "namespace gaia" << endl;
+    code << "{" << endl;
+    code << "namespace rules" << endl;
+    code << "{" << endl;
 }
 
 void endTxHookNamespace(stringstream& code)
 {
-    if (s_tx_descriptors[0].generated)
-    {
-        code << "}" << endl;
-        code << "}" << endl;
-    }
+    code << "}" << endl;
+    code << "}" << endl;
 }
 
-void generateTxHookFunction(stringstream& code, tx_type_t hook_type)
+void generateTxHookFunctions(stringstream& code, const map<string, vector<rule_data_t>>& rulesets)
 {
-    if (hook_type == tx_type_t::none) {
-        return;
+    // Always generate the commit and rollback hooks but the hook implementation
+    // will differ.
+    // Note that binding to a begin transcation event is ignored for now.
+    bool gen_commit_event = false;
+
+    for (auto it_rulesets = rulesets.cbegin(); it_rulesets != rulesets.cend(); ++it_rulesets)
+    {
+        auto rules = it_rulesets->second;
+        // Generate rules forward declarations and gather includes
+        for (auto it_rules = rules.cbegin(); it_rules != rules.cend(); ++it_rules)
+        {
+            if (it_rules->tx == tx_type_t::commit)
+            {
+                gen_commit_event = true;
+                break;
+            }
+        }
     }
 
-    tx_desc_t& tx_desc = s_tx_descriptors[(int)hook_type];
     beginTxHookNamespace(code);
 
-    if (!tx_desc.generated)
+    // Always generate rollback hook (which implicitly fires event_type_t::transaction_rollback)
+    code << "static void rollback_tx_hook()" << endl;
+    code << "{" << endl;
+    code << "    rollback_trigger();" << endl;
+    code << "    gaia_base_t::rollback_hook();" << endl;    
+    code << "}" << endl;
+
+    // Always generate commit hook
+    code << "static void commit_tx_hook()" << endl;
+    code << "{" << endl;
+    if (gen_commit_event)
     {
-        const char * hook = tx_desc.name;
-        code << "static void " << hook << "_tx_hook()" << endl;
-        code << "{" << endl;
-        code << "    gaia_base_t::" << hook << "_hook();" << endl;
-        code << "    log_database_event(nullptr, event_type_t::transaction_" << hook << ", event_mode_t::immediate);" << endl;
-        code << "}" << endl;
-        tx_desc.generated = true;
+        code << "    trigger_event_t event = {event_type_t::transaction_commit, 0, 0, nullptr, 0};" << endl;
+        code << "    commit_trigger(0, &event, 1, true);" << endl;
     }
+    else
+    {
+        code << "    commit_trigger(0, nullptr, 0, true);" << endl;
+    }
+    code << "    gaia_base_t::commit_hook();" << endl;    
+    code << "}" << endl;
+    
+    endTxHookNamespace(code);
+    code << endl;
 }
 
 void generateTxHookInit(stringstream& code)
 {
-    for (auto tx_desc : s_tx_descriptors)
-    {
-        // Skip "none".
-        if (tx_desc.type != tx_type_t::none 
-            && tx_desc.generated)
-        {
-            const char * hook = tx_desc.name;
-            code << "    gaia::db::s_tx_" << hook << "_hook = gaia::rules::" << tx_desc.name << "_tx_hook;" << endl;
-        }
-    }
+    // We always have hooks for commit and rollback but begin is optional.
+    code << "    gaia::db::s_tx_commit_hook = gaia::rules::commit_tx_hook;" << endl;
+    code << "    gaia::db::s_tx_rollback_hook = gaia::rules::rollback_tx_hook;" << endl;
 }
 
-void generateCode(const char *fileName, const vector<rule_data_t>& rules)
+void generate_ruleset_namespace(stringstream& code, const string& ruleset, const vector<rule_data_t>& rules)
 {
-    unordered_set<string> declarations;
-    unordered_set<string> includes;    
+    unordered_set<std::string> declarations;
 
-    // Generate rules forward declarations and gather includes
+    code << "namespace " << ruleset << " {" << endl;
     for (auto it = rules.cbegin(); it != rules.cend(); ++it)
     {
-        declarations.emplace(it->qualified_rule);
-        if (!it->gaia_type.empty())
-        {
-            auto inc_it = g_includes.find(it->gaia_type);
-            if (inc_it != g_includes.end())
-            {
-                includes.insert(inc_it->second);
-            }
-            else
-            {
-                log("Didn't find header for gaia_type '%s'\n", it->gaia_type);
-            }
+        if (declarations.find(it->rule) == declarations.end()) {
+            code << "   void " << it->rule << "(const rule_context_t* context);" << endl;
+            declarations.insert(it->rule);
         }
     }
+    code << "}" << endl;
+}
 
-    // Generate includes.
-    stringstream code;
-    code << "#include \"rules.hpp\"" << endl;
-    for (auto include : includes)
-    {
-        code << "#include \"" << include << "\"" << endl;
-    }
-    code << endl;
+void generate_ruleset_subunsub(stringstream& code, const string& ruleset, const vector<rule_data_t>& rules, bool subscribe)
+{
+    unordered_set<std::string> declarations;
+    string action = subscribe ? "subscribe_" : "unsubscribe_";
 
-    code << "using namespace gaia::rules;" << endl; 
-    code << endl;
-
-    // Generate transaction hooks if any transaction events were specified.
-    for (auto it = rules.cbegin(); it != rules.cend(); ++it)
-    {
-        generateTxHookFunction(code, it->tx);
-    }
-    endTxHookNamespace(code);
-    code << endl;
-
-    for (auto it = declarations.cbegin(); it != declarations.cend(); ++it)
-    {
-        vector<string> namespaces;
-        split(*it, namespaces, ':');
-        int namespace_count = 0;
-        for (auto namespace_iterator = namespaces.cbegin(); namespace_iterator != namespaces.cend() - 1; ++namespace_iterator)
-        {
-            if (!namespace_iterator->empty())
-            {
-                code << "namespace " << *namespace_iterator << "{" << endl;
-                namespace_count ++;
-            }
-        }
-        code << "void " << *(namespaces.cend() - 1) << "(const rule_context_t* context);" << endl;
-        for (int namespace_count_idx = 0; namespace_count_idx < namespace_count; ++ namespace_count_idx)
-        {
-            code << "}" << endl;
-        }
-    }
-    code << endl;
-
-    declarations.clear();
-
-    code << "extern \"C\" void initialize_rules()" << endl;
+    code << "void " << action << ruleset << "()" << endl;
     code << "{" << endl;
-    // Generate rule binding structure.
+
+    // Generate rule binding structures.
     for (auto it = rules.cbegin(); it != rules.cend(); ++it)
     {
         declarations.emplace("    rule_binding_t  " + it->rule + "(\"" 
@@ -635,22 +596,110 @@ void generateCode(const char *fileName, const vector<rule_data_t>& rules)
         string gaia_type = it->gaia_type.empty() ? "0" : 
             (it->gaia_type + "::s_gaia_type");
 
-        if (it->field.empty())
+
+        string field_list = "fields_" + to_string(field_list_decl);
+        if (!(it->field.empty()))
         {
-            code << "    subscribe_database_rule(" << gaia_type << ", " 
-                << it->event_type << ", " << it->rule << ");" << endl;
+            code << "    field_list_t " << field_list << ";" << endl;
+            code << "    " << field_list << ".insert(" << it->gaia_type << "::get_field_offset(\"" << it->field << "\"));" << endl;
+            code << "    " << action << "rule(" << gaia_type << ", "  << it->event_type << ", " << field_list << ", " << it->rule << ");" << endl;
+            field_list_decl++;
         }
         else
         {
-            string field_list = "fields_" + to_string(field_list_decl);
-            code << "    field_list_t " << field_list << ";" << endl;
-            code << "    " << field_list << ".insert(\"" << it->field << "\");" << endl;
-            code << "    subscribe_field_rule(" << gaia_type << ", " 
-                << it->event_type << ", " << field_list << ", " << it->rule << ");" << endl;
-            field_list_decl++;
+            code << "    " << action << "rule(" << gaia_type << ", "  << it->event_type << ", gaia::rules::empty_fields, " << it->rule << ");" << endl;
         }
-
+        
         code << endl;
+    }
+
+    code << "}" << endl;
+}
+
+void generate_ruleset_dispatcher(stringstream& code, const map<string, vector<rule_data_t>>& rulesets, bool subscribe) 
+{
+    string action = subscribe ? "subscribe_" : "unsubscribe_";
+    // generate functions for subscribing, unsubscribing based on ruleset name
+    code << "extern \"C\" void " << action << "ruleset(const char* ruleset_name)" << endl;
+    code << "{" << endl;
+
+    for (auto it_rulesets = rulesets.cbegin(); it_rulesets != rulesets.cend(); ++it_rulesets)
+    {
+        code << "   if (strcmp(ruleset_name, \"" << it_rulesets->first << "\") == 0)" << endl;
+        code << "   {" << endl;
+        code << "       " << action << it_rulesets->first << "();" << endl;
+        code << "       return;" << endl;
+        code << "   }" << endl;
+    }
+
+    code << "   throw ruleset_not_found(ruleset_name);" << endl;
+    code << "}" << endl;
+}
+
+void generateCode(const char *fileName, const map<string, vector<rule_data_t>>& rulesets)
+{
+    unordered_set<string> declarations;
+    unordered_set<string> includes;
+
+    for (auto it_rulesets = rulesets.cbegin(); it_rulesets != rulesets.cend(); ++it_rulesets)
+    {
+        auto rules = it_rulesets->second;
+        // Generate rules forward declarations and gather includes
+        for (auto it_rules = rules.cbegin(); it_rules != rules.cend(); ++it_rules)
+        {
+            declarations.emplace(it_rules->qualified_rule);
+            if (!it_rules->gaia_type.empty())
+            {
+                auto inc_it = g_includes.find(it_rules->gaia_type);
+                if (inc_it != g_includes.end())
+                {
+                    includes.insert(inc_it->second);
+                }
+                else
+                {
+                    log("Didn't find header for gaia_type '%s'\n", it_rules->gaia_type);
+                }
+            }
+        }
+    }
+
+    // Generate includes.
+    stringstream code;
+    code << "#include \"rules.hpp\"" << endl;
+    for (auto include : includes)
+    {
+        code << "#include \"" << include << "\"" << endl;
+    }
+    code << endl;
+
+    code << "using namespace gaia::rules;" << endl; 
+    code << endl;
+
+    generateTxHookFunctions(code, rulesets);
+
+    // generate ruleset init functions
+    for (auto it_rulesets = rulesets.cbegin(); it_rulesets != rulesets.cend(); ++it_rulesets)
+    {
+        generate_ruleset_namespace(code, it_rulesets->first, it_rulesets->second);
+        generate_ruleset_subunsub(code, it_rulesets->first, it_rulesets->second, true /*subscribe*/);
+        generate_ruleset_subunsub(code, it_rulesets->first, it_rulesets->second, false /*unsubscribe*/);
+    }
+
+    // generate ruleset dispatch functions
+    generate_ruleset_dispatcher(code, rulesets, true /*subscribe*/);
+    generate_ruleset_dispatcher(code, rulesets, false /*unsubscribe*/);
+
+
+    // generate initialize_rules functions
+    // generate subscribe/unsubscribe 
+    // generate overloads that just take a string for the ruleset name
+    code << "extern \"C\" void initialize_rules()" << endl;
+    code << "{" << endl;
+
+    // generate calls to each generated initialize_ruleset function
+    for (auto it_rulesets = rulesets.cbegin(); it_rulesets != rulesets.cend(); ++it_rulesets)
+    {
+        code << "    subscribe_" << it_rulesets->first << "();" << endl;
     }
 
     // Setup transaction hooks if needed.
@@ -673,6 +722,6 @@ int main(int argc, const char **argv)
     // Create a new Clang Tool instance (a LibTooling environment).
     ClangTool tool(op.getCompilations(), op.getSourcePathList());
     tool.run(newFrontendActionFactory<Rule_Subscriber_Action>().get());
-    generateCode(RuleSubscriberOutputOption.c_str(), g_rules);
+    generateCode(RuleSubscriberOutputOption.c_str(), g_rulesets);
 
 }

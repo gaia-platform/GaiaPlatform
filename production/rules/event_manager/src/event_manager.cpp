@@ -35,6 +35,8 @@ event_manager_t& event_manager_t::get(bool is_initializing)
     return s_instance;
 }
 
+thread_local vector<trigger_event_t> event_manager_t::s_tls_events;
+
 event_manager_t::event_manager_t() 
 {
 }
@@ -48,13 +50,65 @@ void event_manager_t::init()
     m_is_initialized = true;
 }
 
-// TODO[GAIAPLAT-156]: Finalize the after commit trigger. Right now the proposed transaction id
-// argument is unused.
 void event_manager_t::commit_trigger(uint32_t, trigger_event_t* events, size_t count_events, bool immediate)
 {
+    if (!immediate)
+    {
+        for (size_t i = 0; i < count_events; i++)
+        {
+            s_tls_events.push_back(events[i]);
+        }
+        return;
+    }
+
+    // If there is nothing to do then just bail now.
+    if (count_events == 0 && s_tls_events.size() == 0)
+    {
+        return;
+    }
+
+    // Make a copy for this function and ensure that future calls
+    // to commit_trigger append events to a fresh list.
+    vector<trigger_event_t> trigger_events = s_tls_events;
+    s_tls_events.clear();
+
+    // Append any events from this call with the thread local list
+    for (size_t i = 0; i < count_events; i++)
+    {
+        trigger_events.push_back(events[i]);
+    }
+
+    // Do the work to enqueue invocations and execute them immediately.
+    commit_trigger(trigger_events.data(), trigger_events.size());
+}
+
+// TODO[GAIAPLAT-194]: We have not finalized transaction events yet.  We expose this
+// now to wipe any pending events off the list (not invoke rules for them) but we
+// still want to call any rules bound to event_type_t::transaction_rollback
+// argument is unused.
+void event_manager_t::rollback_trigger()
+{
+    // On a rollback and events that were queued are not going to happen so
+    // don't send them.
+    s_tls_events.clear();
+    trigger_event_t rollback = {event_type_t::transaction_rollback, 0, 0, nullptr, 0};
+    commit_trigger(&rollback, 1);
+}
+
+
+// TODO[GAIAPLAT-156]: Finalize the after commit trigger. Right now the proposed transaction id
+// argument is unused.
+void event_manager_t::commit_trigger(const trigger_event_t* events, size_t count_events)
+{
+
     bool rules_invoked;
     const trigger_event_t* event;
 
+    retail_assert(events && count_events, "Expected at least one event!");
+
+    // Start a transaction that will be used to log all the events that were
+    // triggered independent of whether they invoked a rule or not.
+    auto_tx_t tx;
     for(size_t i = 0; i < count_events; i++, log_to_db(event, rules_invoked))
     {
         event = &events[i];
@@ -123,13 +177,11 @@ void event_manager_t::commit_trigger(uint32_t, trigger_event_t* events, size_t c
             }
         }
     }
+    tx.commit();
 
-    if (immediate)
-    {
-        // If any rules were enqueued and we are in "immediate" mode
-        // then execute them now.
-        m_invocations->execute_immediate();
-    }
+    // If any rules were enqueued and we are in "immediate" mode
+    // then execute them now.
+    m_invocations->execute_immediate();
 }
 
 void event_manager_t::enqueue_invocation(const trigger_event_t* event, 
@@ -375,7 +427,7 @@ void event_manager_t::add_rule(
         throw duplicate_rule(binding, true);
     }
 
-    // Dont' allow the caller to bind the same rule to the same rule list.  
+    // Do not allow the caller to bind the same rule to the same rule list.
     // This is most likely a programming error.
     for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it)
     {
@@ -441,6 +493,7 @@ std::string event_manager_t::make_rule_key(const rule_binding_t& binding)
     return rule_key;
 }
 
+// Assumes that the caller will manage the transaction.
 void event_manager_t::log_to_db(const trigger_event_t* event, bool rules_invoked)
 {
     static_assert(sizeof(uint32_t) == sizeof(event_type_t), 
@@ -458,10 +511,8 @@ void event_manager_t::log_to_db(const trigger_event_t* event, bool rules_invoked
     }
 
     {
-        auto_tx_t tx;
         Event_log::insert_row((uint32_t)(event->event_type), (uint64_t)(event->gaia_type), 
             (uint64_t)(event->record), column_id, timestamp, rules_invoked);
-        tx.commit();
     }
 }
 
@@ -531,4 +582,9 @@ void gaia::rules::list_subscribed_rules(
 void gaia::rules::commit_trigger(uint32_t tx_id, trigger_event_t* events, size_t num_events, bool immediate)
 {
     event_manager_t::get().commit_trigger(tx_id, events, num_events, immediate);
+}
+
+void gaia::rules::rollback_trigger()
+{
+    event_manager_t::get().rollback_trigger();
 }

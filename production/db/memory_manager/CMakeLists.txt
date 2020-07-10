@@ -8,15 +8,18 @@ cmake_minimum_required(VERSION 3.11)
 # Set the project name.
 project(memory_manager)
 
-set(GAIA_MEMORY_MANAGER_INCLUDES "${GAIA_INC}/public/common;${GAIA_DB_INC}/memory_manager")
+set(GAIA_MEMORY_MANAGER_INCLUDES
+  "${GAIA_INC}/public/common"
+  "${GAIA_DB_INC}/memory_manager")
+
 message(STATUS "GAIA_MEMORY_MANAGER_INCLUDES=${GAIA_MEMORY_MANAGER_INCLUDES}")
 
 # Our main target.
 add_library(gaia_memorymanager SHARED
-    src/access_control.cpp
-    src/base_memory_manager.cpp
-    src/memory_manager.cpp
-    src/stack_allocator.cpp)
+  src/access_control.cpp
+  src/base_memory_manager.cpp
+  src/memory_manager.cpp
+  src/stack_allocator.cpp)
 target_include_directories(gaia_memorymanager PUBLIC ${GAIA_MEMORY_MANAGER_INCLUDES})
 set_target_properties(gaia_memorymanager PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 target_link_libraries(gaia_memorymanager PRIVATE gaia_common)

@@ -1,0 +1,4 @@
+clang-8
+git
+libssl-dev
+make

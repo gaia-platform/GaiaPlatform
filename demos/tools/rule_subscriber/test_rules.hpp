@@ -6,30 +6,37 @@
 
 #include "rules.hpp"
 #include "addr_book_gaia_generated.h"
-#pragma once
 using namespace gaia::rules;
 
 /** ruleset*/
 namespace ruleset_1
 {
 /**
- rule-1: [AddrBook::Employee](update, insert);[AddrBook::Employee.last_name](write);[AddrBook::Employee.first_name](read, write);
+ rule-1: [AddrBook::Employee](update, insert);
  [](commit)
  */
 void ObjectRule_handler(const rule_context_t*);
+}
 
+/** ruleset*/
+namespace ruleset_2
+{
 /**
- rule-2: [AddrBook::Employee.last_name](write); [AddrBook::Employee.first_name](write); [AddrBook::Employee.phone_number](read)
+ rule-2: [AddrBook::Employee.name_last]; [AddrBook::Employee.name_first]
  */
 void Field_handler(const rule_context_t*);
+}
 
+/** ruleset*/
+namespace ruleset_3
+{
 /**
  rule-3: [AddrBook::Employee](delete)
  */
 void Table_handler(const rule_context_t*);
 
 /**
- rule-4: [](begin, commit)
+ rule-4: [](commit, rollback)
 */
 void TransactionRule_handler(const rule_context_t*);
 }

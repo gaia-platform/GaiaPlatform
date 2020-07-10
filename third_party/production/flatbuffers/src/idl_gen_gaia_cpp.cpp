@@ -229,7 +229,7 @@ namespace flatbuffers
 
             // Iterate through all definitions we haven't generate code for (enums,
             // structs, and tables) and output them to a single file.
-            bool generate() 
+            bool generate()
             {
                 code_.Clear();
                 code_ += "// " + std::string(FlatBuffersGeneratedWarning()) + "\n\n";
@@ -243,16 +243,11 @@ namespace flatbuffers
                 code_ += "#include \"gaia_object.hpp\"";
                 code_ += "#include \"" + GeneratedCPPFileName(file_name_) + "\"";
                 
-                if (opts_.generate_setters 
-                    && (opts_.generate_column_change_events 
-                    || opts_.generate_table_change_events))
+                if (opts_.generate_setters && opts_.generate_events)
                 {
-                    code_ += "#include \"events.hpp\"";
-                }
-
-                if (opts_.generate_setters && opts_.generate_column_change_events)
-                {
+                    code_ += "#include \"mock_trigger.hpp\"";
                     code_ += "#include <unordered_set>";
+                    code_ += "#include <vector>";
                 }
 
                 code_ += "";
@@ -260,6 +255,7 @@ namespace flatbuffers
 
                 code_ += "using namespace std;";
                 code_ += "using namespace gaia::common;";
+                code_ += "using namespace gaia::direct_access;";
                 code_ += "";
 
 
@@ -557,36 +553,76 @@ namespace flatbuffers
                             "void set_{{FIELD_NAME}}({{FIELD_TYPE}} val)\n"
                             "{\n"
                             "SET({{FIELD_NAME}}, val);";
-    
-                        if (opts_.generate_column_change_events)
+
+                        if (opts_.generate_events)
                         {
                             code_ += 
-                                "_fields.emplace(\"{{FIELD_NAME}}\");\n"
                                 "_fieldOffsets.emplace({{STRUCT_NAME}}::{{OFFSET}});";
-                            code_ += "gaia::rules::log_field_event(this, \"{{FIELD_NAME}}\", gaia::rules::event_type_t::field_write, gaia::rules::event_mode_t::immediate);";
                         }
-                        code_ += "}"; 
+                            code_ += "}"; 
                     }
                 }
 
-                if (opts_.generate_setters && opts_.generate_table_change_events)
+                if (opts_.generate_setters && opts_.generate_events)
                 {
+                    //
+                    // TODO[GAIAPLAT-191]: Remove the mock trigger function
+                    // calls when the storage engine provides this 
+                    // functionality.
+                    //
+
                     // Update function
                     code_ += "void update_row(){\n"
-                    "gaia_object_t::update_row();\n"
-                    "gaia::rules::log_database_event(this, gaia::rules::event_type_t::row_update, gaia::rules::event_mode_t::immediate);\n"
+                    "   gaia_object_t::update_row();\n"
+                    "   _columns.clear();\n"
+                    "   for(uint16_t id : _fieldOffsets) {\n"
+                    "       _columns.push_back(id);\n"
+                    "   }\n"
+                    "   gaia::rules::trigger_event_t event = {gaia::rules::event_type_t::row_update, this->gaia_type(),\n"
+                    "       this->gaia_id(), _columns.data(), _columns.size()};\n"
+                    "   commit_trigger(0, &event, 1, false);\n"
                     "}\n"
 
                     // Insert function
                     "void insert_row(){\n"
-                    "gaia_object_t::insert_row();\n"
-                    "gaia::rules::log_database_event(this, gaia::rules::event_type_t::row_insert, gaia::rules::event_mode_t::immediate);\n"
+                    "   gaia_object_t::insert_row();\n"
+                    "   gaia::rules::trigger_event_t event = {gaia::rules::event_type_t::row_insert, this->gaia_type(),\n"
+                    "       this->gaia_id(), nullptr, 0};\n"
+                    "   commit_trigger(0, &event, 1, false);\n"
                     "}\n"
 
                     // Delete function
                     "void delete_row(){\n"
-                    "gaia::rules::log_database_event(this, gaia::rules::event_type_t::row_delete, gaia::rules::event_mode_t::immediate);\n"
-                    "gaia_object_t::delete_row();\n"
+                    "   gaia_object_t::delete_row();\n"
+                    "   gaia::rules::trigger_event_t event = {gaia::rules::event_type_t::row_delete, this->gaia_type(),\n"
+                    "       this->gaia_id(), nullptr, 0};\n"
+                    "   commit_trigger(0, &event, 1, false);\n"
+                    "}";
+
+                    // name to offset map
+                    code_ +=
+                    "static flatbuffers::voffset_t get_field_offset(const char* field){\n"
+                    "   static map<const char*, flatbuffers::voffset_t> field_offsets = {";
+
+                    for (auto it = struct_def.fields.vec.begin();
+                        it != struct_def.fields.vec.end(); ++it)
+                    {
+                        const auto &field = **it;
+                        if (field.deprecated) 
+                        {
+                            // Deprecated fields won't be accessible.
+                            continue;
+                        }
+
+                        code_.SetValue("FIELD_NAME", Name(field));
+                        code_.SetValue("OFFSET", GenFieldOffsetName(field));
+
+                        code_ +=
+                        "       {\"{{FIELD_NAME}}\",{{STRUCT_NAME}}::{{OFFSET}}},";
+                    }
+                    code_ +=
+                    "   };\n"
+                    "   return field_offsets[field];\n"
                     "}";
                 }
                 else
@@ -608,10 +644,9 @@ namespace flatbuffers
                     "return gaia_object_t::insert_row(b);\n"
                     "}";
 
-                if (opts_.generate_setters && opts_.generate_column_change_events)
+                if (opts_.generate_setters && opts_.generate_events)
                 {
                     code_ += 
-                        "const unordered_set<string>& get_changed_fields() { return _fields;}\n"
                         "const unordered_set<flatbuffers::voffset_t>& get_changed_fields_offsets() { return _fieldOffsets;}";
                 }
 
@@ -620,13 +655,13 @@ namespace flatbuffers
                     ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>;";
                 code_ += "{{CLASS_NAME}}(gaia_id_t id) : gaia_object_t(id, \"{{CLASS_NAME}}\") {}";
                 
-                if (opts_.generate_setters && opts_.generate_column_change_events)
+                if (opts_.generate_setters && opts_.generate_events)
                 {
-                    code_ += "unordered_set<string> _fields;\n"
-                    "unordered_set<flatbuffers::voffset_t> _fieldOffsets;";
+                    code_ += "unordered_set<flatbuffers::voffset_t> _fieldOffsets;";
+                    code_ += "vector<flatbuffers::voffset_t> _columns;";
                 }
 
-                code_ += "};";      
+                code_ += "};";
             }
 
             // Set up the correct namespace. Only open a namespace if the existing one is
