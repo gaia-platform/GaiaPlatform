@@ -14,7 +14,7 @@
 namespace gaia {
 namespace catalog {
 
-gaia_id_t create_table(const string& name,
+gaia_id_t create_table(const string &name,
     const ddl::field_def_list_t &fields) {
     return catalog_manager_t::get().create_table(name, fields);
 }
