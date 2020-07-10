@@ -10,6 +10,7 @@ ENV USER_PASSWORD=$USER_PASSWORD
 ARG ZSH_THEME=pure
 # TinkerPop/gremlin version
 ARG GREMLIN_VERSION=3.4.6
+ARG BISON_VERSION=3.5
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -20,29 +21,32 @@ RUN apt-get -y update && \
 
 # install prerequisites
 RUN apt-get -y install \
-    sudo \
-    build-essential \
-    libc6-dbg \
-    gdb \
-    valgrind \
-    clang-8 \
-    clang-format-8 \
-    libclang-8-dev \
-    libclang-common-8-dev \
-    libclang1-8 \
-    openjdk-8-jdk \
-    uuid-dev \
-    git \
-    ack-grep \
-    emacs \
-    xxd \
-    curl \
-    unzip \
-    ca-certificates \
-    gnupg \
-    lsb-release \
-    software-properties-common \
-    locales
+        sudo \
+        build-essential \
+        libc6-dbg \
+        gdb \
+        valgrind \
+        libexplain-dev \
+        clang-8 \
+        clang-format-8 \
+        libclang-8-dev \
+        libclang-common-8-dev \
+        libclang1-8 \
+        openjdk-8-jdk \
+        uuid-dev \
+        flex \
+        git \
+        ack-grep \
+        emacs \
+        xxd \
+        curl \
+        unzip \
+        ca-certificates \
+        gnupg \
+        lsb-release \
+        software-properties-common \
+        locales && \
+    rm -rf /var/lib/apt/lists/*
 
 # alias clang to clang-8
 RUN ln -s /usr/bin/clang-8 /usr/local/bin/clang && \
@@ -53,23 +57,36 @@ RUN ln -s /usr/bin/clang-8 /usr/local/bin/clang && \
 ENV CC=/usr/bin/clang-8
 ENV CXX=/usr/bin/clang++-8
 
+# install python3 dev packages (for pybind11)
+RUN apt-get -y update && \
+    apt-get -y install \
+        python3-pip \
+        python3-dev && \
+    rm -rf /var/lib/apt/lists/* && \
+    pip3 install --upgrade pip
+
 # install python2 (for pybind11)
-RUN apt-get -y install \
+RUN apt-get -y update && \
+    apt-get -y install \
         python-pip \
         python-dev && \
+    rm -rf /var/lib/apt/lists/* && \
     pip install --upgrade pip
 
 # install pybind11
-RUN apt-get -y install \
-    python-clang-8 \
-    python-pybind11 \
-    pybind11-dev
+RUN apt-get -y update && \
+    apt-get -y install \
+        python-clang-8 \
+        python-pybind11 \
+        pybind11-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 # install latest cmake
 RUN curl https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | sudo apt-key add - && \
     apt-add-repository "deb https://apt.kitware.com/ubuntu/ `lsb_release -cs` main" && \
     apt-get -y update && \
-    apt-get -y install cmake
+    apt-get -y install cmake && \
+    rm -rf /var/lib/apt/lists/*
 
 # set up build dir in container fs (to avoid building in mounted source tree)
 RUN mkdir /build && chmod 777 build
@@ -97,7 +114,8 @@ RUN curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
         postgresql-client-12-dbgsym \
         postgresql-contrib-12 \
         postgresql-server-dev-12 \
-        libpq-dev
+        libpq-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 # change local postgres auth to trusted
 RUN sed -i '/^local/ s/peer/trust/' `pg_conftool -s 12 main show hba_file`
@@ -121,6 +139,19 @@ RUN GREMLIN_CONSOLE_DIR="apache-tinkerpop-gremlin-console-${GREMLIN_VERSION}" &&
     curl "$GREMLIN_CONSOLE_URL" > "$GREMLIN_CONSOLE_FILE" && \
     unzip "$GREMLIN_CONSOLE_FILE" && \
     mv "$GREMLIN_CONSOLE_DIR" "$GREMLIN_CONSOLE_INSTALL_DIR"
+
+# install bison (need 3.5+, not available until Ubuntu 20.04)
+WORKDIR /bison
+RUN curl "http://ftp.gnu.org/gnu/bison/bison-${BISON_VERSION}.tar.gz" > src.tar.gz && \
+    tar -zxvf src.tar.gz && \
+    (cd "./bison-${BISON_VERSION}" && ./configure) && \
+    (cd "./bison-${BISON_VERSION}" && make) && \
+    (cd "./bison-${BISON_VERSION}" && make install)
+
+# install flatbuffers (C++, Java, Python support)
+RUN add-apt-repository ppa:team-xbmc/ppa && \
+    apt-get -y update && \
+    apt-get -y install flatbuffers
 
 # install flatcc (C flatbuffers support)
 RUN apt-get -y install ninja-build

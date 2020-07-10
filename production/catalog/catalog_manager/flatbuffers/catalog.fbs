@@ -16,7 +16,7 @@ enum gaia_data_type:uint8 {
   UINT64,
   FLOAT32,
   FLOAT64,
-  STRING
+  STRING,
 }
 
 enum gaia_trim_action_type:uint8 {
@@ -37,6 +37,8 @@ table gaia_table {
   max_rows:uint64;
   max_size:uint64;
   max_seconds:uint64;
+  // TODO: convert the binary schema to [byte] once EDC supports vector.
+  binary_schema:string;
 }
 
 table gaia_field {
@@ -57,7 +59,7 @@ table gaia_field {
 table gaia_value_index {
   name:string;
   table_id:uint64;
-  // TODO: convert the columns to [uint16] once EDC supports vector.
+  // TODO: convert the fields to [uint16] once EDC supports vector.
   fields:string;
   index_type:gaia_value_index_type;
   unique:bool;

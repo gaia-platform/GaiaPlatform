@@ -22,6 +22,7 @@ add_library(gaia_semock STATIC
 target_include_directories(gaia_semock PRIVATE ${GAIA_STORAGE_ENGINE_INCLUDES})
 set_target_properties(gaia_semock PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 target_link_libraries(gaia_semock PRIVATE gaia_common)
+set_property(TARGET gaia_semock PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # PyBind11 wrapper for storage engine mock.
 find_package(pybind11)

@@ -18,10 +18,9 @@ TEST(catalog_ddl_parser_test, create_table) {
     EXPECT_EQ(EXIT_SUCCESS, parse());
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statment_type_t::CREATE);
-    create_statement_t *createStmt =
-        reinterpret_cast<create_statement_t *>(parser.statements[0]);
+    auto createStmt = dynamic_cast<create_statement_t *>(parser.statements[0].get());
     EXPECT_EQ(createStmt->type, create_type_t::CREATE_TABLE);
-    EXPECT_EQ(createStmt->tableName, "t");
+    EXPECT_EQ(createStmt->table_name, "t");
     yylex_destroy();
 }
 
@@ -32,26 +31,25 @@ TEST(catalog_ddl_parser_test, create_table_multiple_fields) {
     EXPECT_EQ(EXIT_SUCCESS, parse());
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statment_type_t::CREATE);
-    create_statement_t *createStmt =
-        reinterpret_cast<create_statement_t *>(parser.statements[0]);
+    auto createStmt = dynamic_cast<create_statement_t *>(parser.statements[0].get());
     EXPECT_EQ(createStmt->type, create_type_t::CREATE_TABLE);
-    EXPECT_EQ(createStmt->tableName, "t");
-    EXPECT_EQ(createStmt->fields->size(), 4);
+    EXPECT_EQ(createStmt->table_name, "t");
+    EXPECT_EQ(createStmt->fields.size(), 4);
 
-    EXPECT_EQ(createStmt->fields->at(0)->name, "c1");
-    EXPECT_EQ(createStmt->fields->at(0)->type, data_type_t::INT32);
-    EXPECT_EQ(createStmt->fields->at(0)->length, 0);
+    EXPECT_EQ(createStmt->fields.at(0)->name, "c1");
+    EXPECT_EQ(createStmt->fields.at(0)->type, data_type_t::INT32);
+    EXPECT_EQ(createStmt->fields.at(0)->length, 0);
 
-    EXPECT_EQ(createStmt->fields->at(1)->name, "c2");
-    EXPECT_EQ(createStmt->fields->at(1)->type, data_type_t::FLOAT64);
-    EXPECT_EQ(createStmt->fields->at(1)->length, 2);
+    EXPECT_EQ(createStmt->fields.at(1)->name, "c2");
+    EXPECT_EQ(createStmt->fields.at(1)->type, data_type_t::FLOAT64);
+    EXPECT_EQ(createStmt->fields.at(1)->length, 2);
 
-    EXPECT_EQ(createStmt->fields->at(2)->name, "c3");
-    EXPECT_EQ(createStmt->fields->at(2)->type, data_type_t::TABLE);
-    EXPECT_EQ(createStmt->fields->at(2)->length, 1);
+    EXPECT_EQ(createStmt->fields.at(2)->name, "c3");
+    EXPECT_EQ(createStmt->fields.at(2)->type, data_type_t::TABLE);
+    EXPECT_EQ(createStmt->fields.at(2)->length, 1);
 
-    EXPECT_EQ(createStmt->fields->at(3)->name, "c4");
-    EXPECT_EQ(createStmt->fields->at(3)->type, data_type_t::TABLE);
-    EXPECT_EQ(createStmt->fields->at(3)->length, 3);
+    EXPECT_EQ(createStmt->fields.at(3)->name, "c4");
+    EXPECT_EQ(createStmt->fields.at(3)->type, data_type_t::TABLE);
+    EXPECT_EQ(createStmt->fields.at(3)->length, 3);
     yylex_destroy();
 }
