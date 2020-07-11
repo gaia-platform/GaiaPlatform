@@ -152,6 +152,10 @@ public:
             {
                 fieldName = memberExpr->getMemberNameInfo().getName().getAsString();
                 tableName = declExpr->getDecl()->getName().str();
+                if (declExpr->getDecl()->hasAttr<GaiaLastOperationAttr>())
+                {
+                    tableName = "context";
+                }
                 if (declExpr->getDecl()->hasAttr<GaiaFieldValueAttr>())
                 {
                     expSourceRange = SourceRange(memberExpr->getBeginLoc().getLocWithOffset(-1), 
@@ -555,7 +559,10 @@ public:
 
         StatementMatcher tableFieldGetMatcher = 
             memberExpr(member(allOf(hasAttr(attr::GaiaField),unless(hasAttr(attr::GaiaFieldLValue)))),
-            hasDescendant(declRefExpr(to(varDecl(anyOf(hasAttr(attr::GaiaField),hasAttr(attr::GaiaFieldValue)))))))
+            hasDescendant(declRefExpr(to(varDecl(anyOf(
+                hasAttr(attr::GaiaField),
+                hasAttr(attr::GaiaFieldValue), 
+                hasAttr(attr::GaiaLastOperation)))))))
             .bind("tableFieldGet");
 
         StatementMatcher tableFieldSetMatcher = binaryOperator(allOf(
