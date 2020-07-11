@@ -40,7 +40,7 @@ enum class data_type_t : unsigned int {
     FLOAT32,
     FLOAT64,
     STRING,
-    TABLE
+    REFERENCES
 };
 
 enum class statment_type_t : unsigned int {
@@ -110,10 +110,23 @@ class table_already_exists : public gaia_exception {
   public:
     table_already_exists(const string &name) {
         stringstream message;
-        message << "The table " << name << " already exists.";
+        message << "The table \"" << name << "\" already exists.";
         m_message = message.str();
     }
 };
+
+/**
+ * Thrown when a referenced table does not exists.
+ */
+class table_not_exists : public gaia_exception {
+  public:
+    table_not_exists(const string &name) {
+        stringstream message;
+        message << "The table \"" << name << "\" does not exist.";
+        m_message = message.str();
+    }
+};
+
 
 /**
  * Create a table definition in the catalog.
@@ -144,6 +157,16 @@ const set<gaia_id_t> &list_tables();
  * @return a list of field ids in the order of their positions.
  */
 const vector<gaia_id_t> &list_fields(gaia_id_t table_id);
+
+/**
+ * List all references for a given table defined in the catalog.
+ * References are foreign key constraints or table links.
+ * They defines relationships between tables.
+ *
+ * @param table_id id of the table
+ * @return a list of ids of the table references in the order of their positions.
+ */
+const vector<gaia_id_t> &list_references(gaia_id_t table_id);
 
 /**
  * Generate FlatBuffers schema (fbs) for a catalog table.

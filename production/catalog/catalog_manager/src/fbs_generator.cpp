@@ -172,6 +172,8 @@ gaia_data_type to_gaia_data_type(ddl::data_type_t data_type) {
         return gaia_data_type_FLOAT64;
     case ddl::data_type_t::STRING:
         return gaia_data_type_STRING;
+    case ddl::data_type_t::REFERENCES:
+        return gaia_data_type_REFERENCES;
     default:
         throw ddl::unknown_data_type();
     }
@@ -213,6 +215,9 @@ string generate_fbs(const string &table_name, const ddl::field_def_list_t &field
     string fbs;
     fbs += "table " + table_name + "{";
     for (auto &field : fields) {
+        if (field->type == ddl::data_type_t::REFERENCES) {
+            continue;
+        }
         string field_fbs = generate_field_fbs(
             field->name,
             get_data_type_name(to_gaia_data_type(field->type)),
