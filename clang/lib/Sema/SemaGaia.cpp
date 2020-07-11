@@ -203,6 +203,9 @@ QualType Sema::getTableType (IdentifierInfo *table)
         addField(&Context.Idents.get(fieldName), fieldType, RD);
     }
 
+    //insert fields and methods that are not part of the schema
+    addField(&Context.Idents.get("LastOperation"), Context.WIntTy, RD);
+
     addMethod(&Context.Idents.get("update"), DeclSpec::TST_void, nullptr, 0, attrFactory, attrs, &S, RD);
     
     ActOnFinishCXXMemberSpecification(getCurScope(), SourceLocation(), RD,
@@ -215,6 +218,14 @@ QualType Sema::getTableType (IdentifierInfo *table)
 QualType Sema::getFieldType (IdentifierInfo *id) 
 {
     std::string fieldName = id->getName().str();
+
+    if(fieldName == "UPDATE" ||
+         fieldName == "DELETE" ||
+         fieldName == "INSERT")
+    {
+        return Context.WIntTy;
+    }
+
     DeclContext *c = getCurFunctionDecl();
     while (c)
     {
@@ -303,7 +314,8 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, bool isGaiaFieldTa
                             II, qualType, Context.getTrivialTypeSourceInfo(qualType, SourceLocation()), SC_None);
     varDecl->setLexicalDeclContext(context);
     varDecl->setImplicit();
-    if (varName == "UPDATE")
+
+    if (varName =="UPDATE")
     {
         varDecl->addAttr(GaiaLastOperationUPDATEAttr::CreateImplicit(Context));
     }

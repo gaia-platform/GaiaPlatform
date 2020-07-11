@@ -1061,20 +1061,19 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
         Tok.is(tok::r_paren) ? nullptr : &Replacement,
         getLangOpts().Gaia && (
             (Tok.is(tok::period) || Tok.is(tok::coloncolon)) &&  
-            (NextToken().is(tok::identifier) || NextToken().is(tok::kw_LastOperation))));
+            NextToken().is(tok::identifier)));
     if (getLangOpts().Gaia && Tok.is(tok::period) && 
-        NextToken().is(tok::kw_LastOperation) && 
-        !Res.isInvalid() && !Res.isUnset())
+        NextToken().is(tok::identifier) && 
+        !Res.isInvalid() && !Res.isUnset() && 
+        NextToken().getIdentifierInfo()->getName().str() == "LastOperation")
     {
         DeclRefExpr *declExpr = dyn_cast<DeclRefExpr>(Res.get());
         if (declExpr != nullptr)
         {
             ValueDecl *decl = declExpr->getDecl();
-            if (decl->hasAttr<GaiaFieldAttr>())
+            if (decl->hasAttr<FieldTableAttr>())
             {
                 decl->addAttr(GaiaLastOperationAttr::CreateImplicit(Actions.Context));
-                ConsumeToken();
-                ConsumeToken();
             }
         }
     }

@@ -3799,6 +3799,12 @@ Sema::PerformImplicitConversion(Expr *From, QualType ToType,
   if (getLangOpts().Gaia)
   {
     DeclRefExpr *exp = dyn_cast<DeclRefExpr>(From);
+    MemberExpr *expm = dyn_cast<MemberExpr>(From);
+    
+    if (exp == nullptr && expm != nullptr)
+    {
+        exp = dyn_cast<DeclRefExpr>(expm->getBase());
+    }
 
     if (exp != nullptr)
     {                    

@@ -2740,6 +2740,12 @@ ExprResult Sema::BuildCStyleCastExpr(SourceLocation LPLoc,
   if (getLangOpts().Gaia)
   {
     DeclRefExpr *exp = dyn_cast<DeclRefExpr>(CastExpr);
+    MemberExpr *expm = dyn_cast<MemberExpr>(CastExpr);
+    
+    if (exp == nullptr && expm != nullptr)
+    {
+        exp = dyn_cast<DeclRefExpr>(expm->getBase());
+    }
 
     if (exp != nullptr)
     {              
