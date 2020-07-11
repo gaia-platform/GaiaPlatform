@@ -58,16 +58,20 @@ gaia_id_t catalog_manager_t::create_table(const string &name,
         bfbs.c_str()                // bfbs
     );
 
-    uint16_t position = 0;
-    vector<gaia_id_t> field_ids;
-    vector<gaia_id_t> reference_ids;
+    uint16_t field_position = 0, reference_position = 0;
+    vector<gaia_id_t> field_ids, reference_ids;
+
     for (auto &field : fields) {
         gaia_id_t field_type_id{0};
+        uint16_t position;
         if (field->type == ddl::data_type_t::REFERENCES) {
             if (m_table_names.find(field->table_type_name) == m_table_names.end()) {
                 throw table_not_exists(field->table_type_name);
             }
             field_type_id = m_table_names[field->table_type_name];
+            position = ++reference_position;
+        } else {
+            position = ++field_position;
         }
         gaia_id_t field_id = Gaia_field::insert_row(
             field->name.c_str(),            // name
@@ -75,7 +79,7 @@ gaia_id_t catalog_manager_t::create_table(const string &name,
             to_gaia_data_type(field->type), // type
             field_type_id,                  // type_id
             field->length,                  // repeated_count
-            ++position,                     // position
+            position,                       // position
             true,                           // required
             false,                          // deprecated
             false,                          // active

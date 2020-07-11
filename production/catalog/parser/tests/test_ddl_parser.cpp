@@ -13,25 +13,24 @@ using namespace gaia::catalog::ddl;
 
 TEST(catalog_ddl_parser_test, create_table) {
     parser_t parser;
-    yy_scan_string("CREATE TABLE t (c INT32);");
-    yy::parser parse(parser);
-    EXPECT_EQ(EXIT_SUCCESS, parse());
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t (c INT32);"));
+
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statment_type_t::CREATE);
+
     auto createStmt = dynamic_cast<create_statement_t *>(parser.statements[0].get());
+
     EXPECT_EQ(createStmt->type, create_type_t::CREATE_TABLE);
     EXPECT_EQ(createStmt->table_name, "t");
-    yylex_destroy();
 }
 
 TEST(catalog_ddl_parser_test, create_table_multiple_fields) {
     parser_t parser;
-    yy_scan_string("CREATE TABLE t (c1 INT32[], c2 FLOAT64[2]);");
-    yy::parser parse(parser);
-    EXPECT_EQ(EXIT_SUCCESS, parse());
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t (c1 INT32[], c2 FLOAT64[2]);"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statment_type_t::CREATE);
+
     auto createStmt = dynamic_cast<create_statement_t *>(parser.statements[0].get());
 
     EXPECT_EQ(createStmt->type, create_type_t::CREATE_TABLE);
@@ -45,8 +44,6 @@ TEST(catalog_ddl_parser_test, create_table_multiple_fields) {
     EXPECT_EQ(createStmt->fields.at(1)->name, "c2");
     EXPECT_EQ(createStmt->fields.at(1)->type, data_type_t::FLOAT64);
     EXPECT_EQ(createStmt->fields.at(1)->length, 2);
-
-    yylex_destroy();
 }
 
 TEST(catalog_ddl_parser_test, create_table_references) {
@@ -55,6 +52,7 @@ TEST(catalog_ddl_parser_test, create_table_references) {
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statment_type_t::CREATE);
+
     auto createStmt = dynamic_cast<create_statement_t *>(parser.statements[0].get());
 
     EXPECT_EQ(createStmt->type, create_type_t::CREATE_TABLE);
