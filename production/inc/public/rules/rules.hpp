@@ -43,6 +43,18 @@ typedef void (* gaia_rule_fn)(const rule_context_t * context);
 extern "C" void initialize_rules();
 
 /**
+ * The application may provide an implementation of subscribe_ruleset().  This
+ * is a convenience method to subscribe all the rules in a ruleset at once.
+ */ 
+extern "C" void subscribe_ruleset(const char* ruleset_name);
+
+/**
+ * The application may provide an implementation of unsubscribe_ruleset().  This
+ * is a convenience method to unsubscribe all the rules in a ruleset at once.
+ */ 
+extern "C" void unsubscribe_ruleset(const char* ruleset_name);
+
+/**
  * The caller supplies a rule_binding to subscribe/unsubscribe rules to/from events.
  * The caller must supply the ruleset_name, rule_name, and the function pointer for the rule.
  * The ruleset_name and the rule_name must uniquely identify the rule.
@@ -212,6 +224,20 @@ public:
     {
         std::stringstream message;
         message << "Cannot subscribe rule to " << (uint32_t)event_type << ". " << reason;
+        m_message = message.str();
+    }
+};
+
+/**
+ * invalid_subscription : public gaia::common::gaia_exception
+ */
+class ruleset_not_found : public gaia::common::gaia_exception
+{
+public:
+    ruleset_not_found(const char* ruleset_name)
+    {
+        std::stringstream message;
+        message << "Ruleset '" << ruleset_name << "' not found.";
         m_message = message.str();
     }
 };

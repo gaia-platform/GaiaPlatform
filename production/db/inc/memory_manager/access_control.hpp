@@ -31,16 +31,8 @@ struct access_control_t
     uint32_t readers_count;
     access_lock_type_t access_lock;
 
-    access_control_t()
-    {
-        clear();
-    }
-
-    void clear()
-    {
-        readers_count = 0;
-        access_lock = access_lock_type_t::none;
-    }
+    access_control_t();
+    void clear();
 };
 
 // A class for access synchronization. It can be used to implement spinlocks.

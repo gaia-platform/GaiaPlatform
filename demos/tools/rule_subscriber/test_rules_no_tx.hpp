@@ -13,7 +13,7 @@ using namespace gaia::rules;
 namespace ruleset_1
 {
 /**
- rule-1: [AddrBook::Employee](update, insert);[AddrBook::Employee.name_last](write);[AddrBook::Employee.name_first](read, write)
+ rule-1: [AddrBook::Employee](update, insert);[AddrBook::Employee.name_last];[AddrBook::Employee.name_first]
   */
 void ObjectRule_handler(const rule_context_t*);
 }

@@ -31,12 +31,12 @@ struct trigger_event_t {
     gaia_type_t gaia_type; // gaia table type, maybe 0 if event has no associated table
     gaia_id_t  record; //row id, may be 0 if if there is no assocated row id
     const uint16_t* columns; // list of affected columns, may be null
-    uint16_t count_columns; // count of affected columsn, may be zero
+    size_t count_columns; // count of affected columsn, may be zero
 };
 
 /**
 * Internal trigger function that is called by the high level storage engine when
-* a commit occurs.
+* a commit occurs.  Trigger events can be queued by setting immediate == false.
 * 
 * @param tx_id Transaction id that has just been committed.  Currently unused.
 * @param events All the events that were part of this transaction.  May be null if this commit had no events.
@@ -45,7 +45,14 @@ struct trigger_event_t {
 */ 
 void commit_trigger(uint32_t tx_id, trigger_event_t* events, size_t count_events, bool immediate = false);
 
- 
+/**
+* TODO[GAIAPLAT-194]:  Transaction events are TBD.  Only here for Q1 compatability.
+* Internal trigger function that is called by the high level storage engine when
+* a rollback occurs.  This clears any pending events that had been queued up during
+* the active transaction and fires a rollback event if the user bound a rule to it.
+*/ 
+void rollback_trigger();
+
 /*@}*/
 }
 /*@}*/

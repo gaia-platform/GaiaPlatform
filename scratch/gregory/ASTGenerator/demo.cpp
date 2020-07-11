@@ -191,6 +191,7 @@ public:
             if (opExp != nullptr)
             {
                 const DeclRefExpr *leftDeclExpr = dyn_cast<DeclRefExpr>(opExp);
+
                 const MemberExpr  *memberExpr = dyn_cast<MemberExpr>(opExp);
         
                 string tableName;
@@ -225,6 +226,7 @@ public:
                     tok::TokenKind tokenKind;
                     std::string replacementText = "[&]() mutable {" + 
                         tableName + "->set_" + fieldName + "(";
+
                     switch(op->getOpcode())
                     {
                         case BO_Assign:
@@ -307,12 +309,14 @@ public:
                     
                     rewriter.ReplaceText(
                         SourceRange(startLocation,setLocEnd.getLocWithOffset(-1)), 
+
                         replacementText);
                     rewriter.InsertTextAfterToken(op->getEndLoc(),")");
                     if (op->getOpcode() != BO_Assign)
                     {
                         rewriter.InsertTextAfterToken(op->getEndLoc(),"); return " + 
                             tableName + "->" + fieldName + "();}() ");
+
                     }
                     else
                     {
@@ -400,6 +404,7 @@ public:
                         fieldName = memberExpr->getMemberNameInfo().getName().getAsString();
                         tableName = declExpr->getDecl()->getName().str();
                     }
+
                     
                     if (op->isPostfix())
                     {
@@ -409,6 +414,7 @@ public:
                                 tableName + "->" + fieldName + "();" + 
                                 tableName + "->set_" + fieldName +"(" +  
                                 tableName + "->" + fieldName + "() + 1); return t;}()";
+
                         }
                         else if(op->isDecrementOp())
                         {
@@ -442,6 +448,7 @@ public:
                 }
             }
         }
+
     }
 
 private:
@@ -543,6 +550,7 @@ public:
     explicit ASTGenerator_Consumer(ASTContext *context, Rewriter &r)
         : fieldGetMatcherHandler(r), fieldSetMatcherHandler(r), ruleMatcherHandler(r),
         rulesetMatcherHandler(r), fieldUnaryOperatorMatchHandler(r), edcFunctionCallMatchHandler(r)
+
     {
         StatementMatcher fieldGetMatcher = 
             declRefExpr(to(varDecl(anyOf(hasAttr(attr::GaiaField),hasAttr(attr::GaiaFieldValue)),

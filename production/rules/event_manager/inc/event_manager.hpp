@@ -6,6 +6,9 @@
 
 #include <unordered_map>
 #include <queue>
+#include <thread>
+#include <vector>
+
 #include "rules.hpp"
 #include "event_guard.hpp"
 #include "event_log_gaia_generated.h"
@@ -61,11 +64,16 @@ public:
       subscription_list_t& subscriptions);
 
     /**
-     * Consider making this private and then have the storage engine
-     * be a friend class.  This structure and associated commit_trigger
-     * function should not be callable by the rule author.
+     * Consider making these private and then have the storage engine
+     * be a friend class.  Transaction triggers should not be callable by rule authors 
      */
-    void commit_trigger(uint32_t tx_id, trigger_event_t* events, size_t count_events, bool immediate);
+    void commit_trigger(
+        uint32_t tx_id, 
+        trigger_event_t* events, 
+        size_t count_events, 
+        bool immediate);
+
+    void rollback_trigger();
 
 private:
     // Internal rule binding to copy the callers
@@ -123,6 +131,9 @@ private:
     // N threads.
     unique_ptr<rule_thread_pool_t> m_invocations;
 
+    // Events that have been added before the commit
+    thread_local static vector<trigger_event_t> s_tls_events;
+
 private:
     // Only internal static creation is allowed.
     event_manager_t();
@@ -132,6 +143,7 @@ private:
     bool remove_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     void enqueue_invocation(const trigger_event_t* event, const _rule_binding_t* rule_binding);
     void check_subscription(gaia_type_t gaia_type, event_type_t event_type, const field_list_t& fields);
+    void commit_trigger(const trigger_event_t* events, size_t count_events);
 
     static inline bool is_transaction_event(event_type_t event_type)
     {

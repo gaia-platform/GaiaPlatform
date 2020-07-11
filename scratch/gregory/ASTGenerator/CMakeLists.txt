@@ -21,8 +21,8 @@ link_directories(
   ${CMAKE_BINARY_DIR}/../../../../../../TranslationEngineLLVM/TranslationEngineLLVM/build/lib
 )
 
-set(GAIA_PROD_BUILD ${CMAKE_BINARY_DIR}/../../../../production/build)
 
+set(GAIA_PROD_BUILD ${CMAKE_BINARY_DIR}/../../../../production/build)
 add_executable(ASTCodeGenerator ${ASTGENERATOR_DEMO_SRCS})
 
 target_link_libraries(ASTCodeGenerator
@@ -199,4 +199,5 @@ set_target_properties(gaia_semock PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD
 
 add_library(gaia_direct STATIC IMPORTED GLOBAL)
 set_target_properties(gaia_direct PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/direct_access/libgaia_direct.a)
+)
 
