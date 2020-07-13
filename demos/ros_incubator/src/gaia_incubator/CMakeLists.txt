@@ -15,12 +15,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# find dependencies
 find_package(ament_cmake REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
-
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(builtin_interfaces REQUIRED)
@@ -41,47 +36,37 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 
 ament_export_dependencies(rosidl_default_runtime)
 
-# incubator_manager node
-add_library(incubator_manager SHARED
-  src/incubator_manager.cpp)
-target_compile_definitions(incubator_manager
-  PRIVATE "COMPOSITION_BUILDING_DLL")
-ament_target_dependencies(incubator_manager
-  "rclcpp"
-  "rclcpp_components")
-rclcpp_components_register_nodes(incubator_manager "incubator_manager")
-
-target_include_directories(incubator_manager PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
-
-rosidl_target_interfaces(incubator_manager
-  ${PROJECT_NAME} "rosidl_typesupport_cpp")
-
-# gaia_logic node
-add_library(gaia_logic SHARED
+# node setup
+add_library(gaia_library SHARED
+  src/incubator_manager.cpp
   src/gaia_logic.cpp)
-target_compile_definitions(gaia_logic
+
+target_compile_definitions(gaia_library
   PRIVATE "COMPOSITION_BUILDING_DLL")
-ament_target_dependencies(gaia_logic
+ament_target_dependencies(gaia_library
   "rclcpp"
   "rclcpp_components")
-rclcpp_components_register_nodes(gaia_logic "gaia_logic")
 
-target_include_directories(gaia_logic PUBLIC
+rclcpp_components_register_node(gaia_library
+  PLUGIN "incubator_manager"
+  EXECUTABLE incubator_manager)
+
+rclcpp_components_register_node(gaia_library
+  PLUGIN "gaia_logic"
+  EXECUTABLE gaia_logic)
+
+target_include_directories(gaia_library PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-
-rosidl_target_interfaces(gaia_logic
+rosidl_target_interfaces(gaia_library
   ${PROJECT_NAME} "rosidl_typesupport_cpp")
-
-# end of nodes
+# end node setup
 
 install(TARGETS
-  incubator_manager
-  gaia_logic
-  EXPORT export_${PROJECT_NAME}
-  DESTINATION lib/${PROJECT_NAME})
+  gaia_library
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
