@@ -43,7 +43,7 @@ template <class T> void queue_t<T>::enqueue(const T& value)
     new_first_element->previous = &m_head;
 
     // For next operations, we need to take an exclusive lock on the head.
-    m_head.lock.lock();
+    auto_lock_t auto_head_lock(m_head.lock);
 
     queue_element_t<T>* current_first_element = m_head.next;
 
@@ -51,16 +51,12 @@ template <class T> void queue_t<T>::enqueue(const T& value)
     // to protect ourselves from a dequeue() operation that may try to concurrently remove it.
     // A shared lock will be sufficient here, as it will prevent the exclusive lock
     // requested by dequeue().
-    current_first_element->lock.lock_shared();
+    auto_lock_t auto_first_lock(current_first_element->lock, true);
 
     // We can now safely insert our new node.
     new_first_element->next = current_first_element;
     m_head.next = new_first_element;
     current_first_element->previous = new_first_element;
-
-    // Now we can release the locks.
-    current_first_element->lock.unlock_shared();
-    m_head.lock.unlock();
 }
 
 template <class T> void queue_t<T>::dequeue(T& value)
@@ -74,73 +70,70 @@ template <class T> void queue_t<T>::dequeue(T& value)
 
 template <class T> bool queue_t<T>::dequeue_internal(T& value)
 {
-    // We need to take an exclusive lock on the tail.
-    m_tail.lock.lock();
+    queue_element_t<T>* current_last_element = nullptr;
 
-    // Read the last element.
-    queue_element_t<T>* current_last_element = m_tail.previous;
-
-    // If the queue is empty, we're done, but first we need to release our lock.
-    //
-    // Note that this will prevent deadlocks: dequeue() will not hold a lock on an empty queue,
-    // so enqueue() should always succeed in getting its second lock.
-    if (current_last_element == &m_head)
+    // Create scope for lock release.
     {
-        m_tail.lock.unlock();
-        return true;
+        // We need to take an exclusive lock on the tail.
+        auto_lock_t auto_tail_lock(m_tail.lock);
+
+        // Read the last element.
+        queue_element_t<T>* current_last_element = m_tail.previous;
+
+        // If the queue is empty, we're done, but first we need to release our lock.
+        //
+        // Note that this will prevent deadlocks: dequeue() will not hold a lock on an empty queue,
+        // so enqueue() should always succeed in getting its second lock.
+        if (current_last_element == &m_head)
+        {
+            return true;
+        }
+
+        // Before we process the current_last_element, we need to take an exclusive lock on it as well
+        // This may make us wait behind another concurrent enqueue() operation that is trying to insert
+        // before this node; however, that insertion will not impact our own operation.
+        //
+        // There is a second case in which we acquire this lock before the other enqueue() thread
+        // and it is us that are blocking the other thread; that case is handled by the checks below.
+        auto_lock_t auto_last_lock(current_last_element->lock);
+
+        // With our second lock, it is safe to read the new last element.
+        queue_element_t<T>* new_last_element = current_last_element->previous;
+
+        // However, we still need a lock on this element,
+        // in case this was the first element in the queue
+        // and a concurrent enqueue() operation is attempting to use it.
+        //
+        // A shared lock will handle better the special case of concurrent enqueue()/dequeue() operations
+        // on a list of size 2:
+        // - enqueue() will acquire an exclusive lock on the head and a shared lock on the first element.
+        // - dequeue() will acquire an exclusive lock on the head and the second element
+        //   and a shared lock on the first element.
+        // The concurrent operations on the first element are safe because they don't conflict:
+        // enqueue() updates the previous link, whereas dequeue() updates the next link.
+        auto_lock_t auto_new_last_lock;
+        if (auto_new_last_lock.try_lock(new_last_element->lock, true) == false)
+        {
+            retail_assert(
+                new_last_element == &m_head,
+                "We should only fail acquiring a shared lock if we were asking for it for the head element.");
+
+            // We've detected a concurrent enqueue() operation.
+            // It is not safe to continue and remove the node before which the insertion should take place,
+            // because its deallocation may cause the other thread to access invalid memory.
+            // So we should abort our operation and have the caller retry it,
+            // which will give a chance to the insertion to complete.
+            // Release the locks and exit.
+            return false;
+        }
+
+        // Otherwise we can extract the value from the last element.
+        value = current_last_element->value;
+
+        // Remove the old last element.
+        new_last_element->next = &m_tail;
+        m_tail.previous = new_last_element;
     }
-
-    // Before we process the current_last_element, we need to take an exclusive lock on it as well
-    // This may make us wait behind another concurrent enqueue() operation that is trying to insert
-    // before this node; however, that insertion will not impact our own operation.
-    //
-    // There is a second case in which we acquire this lock before the other enqueue() thread
-    // and it is us that are blocking the other thread; that case is handled by the checks below.
-    current_last_element->lock.lock();
-
-    // With our second lock, it is safe to read the new last element.
-    queue_element_t<T>* new_last_element = current_last_element->previous;
-
-    // However, we still need a lock on this element,
-    // in case this was the first element in the queue
-    // and a concurrent enqueue() operation is attempting to use it.
-    //
-    // A shared lock will handle better the special case of concurrent enqueue()/dequeue() operations
-    // on a list of size 2:
-    // - enqueue() will acquire an exclusive lock on the head and a shared lock on the first element.
-    // - dequeue() will acquire an exclusive lock on the head and the second element
-    //   and a shared lock on the first element.
-    // The concurrent operations on the first element are safe because they don't conflict:
-    // enqueue() updates the previous link, whereas dequeue() updates the next link.
-    if (new_last_element->lock.try_lock_shared() == false)
-    {
-        retail_assert(
-            new_last_element == &m_head,
-             "We should only fail acquiring a shared lock if we were asking for it for the head element.");
-
-        // We've detected a concurrent enqueue() operation.
-        // It is not safe to continue and remove the node before which the insertion should take place,
-        // because its deallocation may cause the other thread to access invalid memory.
-        // So we should abort our operation and have the caller retry it,
-        // which will give a chance to the insertion to complete.
-        // Release the locks and exit.
-        current_last_element->lock.unlock();
-        m_tail.lock.unlock();
-
-        return false;
-    }
-
-    // Otherwise we can extract the value from the last element.
-    value = current_last_element->value;
-
-    // Remove the old last element.
-    new_last_element->next = &m_tail;
-    m_tail.previous = new_last_element;
-
-    // We can release all locks now.
-    new_last_element->lock.unlock_shared();
-    current_last_element->lock.unlock();
-    m_tail.lock.unlock();
 
     // Finally, we can deallocate the no longer needed element.
     delete current_last_element;

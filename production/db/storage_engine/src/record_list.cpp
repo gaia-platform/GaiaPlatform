@@ -144,11 +144,10 @@ void record_list_t::compact()
         current_range != nullptr;
         current_range = current_range->next_range())
     {
-        current_range->m_lock.lock();
+        // Take an exclusive lock before compacting the range.
+        auto_lock_t auto_range_lock(current_range->m_lock);
 
         current_range->compact();
-
-        current_range->m_lock.unlock();
     }
 }
 
@@ -160,14 +159,13 @@ void record_list_t::add(uint64_t locator)
     record_range_t* current_range = m_record_ranges;
     while (current_range != nullptr)
     {
-        current_range->m_lock.lock();
+        // Take an exclusive lock before attempting to add the new locator.
+        auto_lock_t auto_range_lock(current_range->m_lock);
 
         // If current range has space, add our record to it.
         if (!current_range->is_full())
         {
             current_range->add(locator);
-
-            current_range->m_lock.unlock();
 
             return;
         }
@@ -178,7 +176,7 @@ void record_list_t::add(uint64_t locator)
             current_range->add_next_range();
         }
 
-        current_range->m_lock.unlock();
+        auto_range_lock.release();
 
         // Check the next range.
         // This is guaranteed to exist because of the above logic.

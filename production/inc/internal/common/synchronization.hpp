@@ -67,16 +67,20 @@ class auto_lock_t
 {
 public:
 
+    auto_lock_t();
     auto_lock_t(shared_mutex_t& lock, bool request_shared = false);
     ~auto_lock_t();
+
+    void get_lock(shared_mutex_t& lock, bool request_shared = false);
+    bool try_lock(shared_mutex_t& lock, bool request_shared = false);
+
+    void release();
 
 protected:
 
     shared_mutex_t* m_lock;
     bool m_request_shared;
 };
-
-
 
 /*@}*/
 }
