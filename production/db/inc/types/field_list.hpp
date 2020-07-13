@@ -22,16 +22,16 @@ namespace db
 namespace types
 {
 
-// This structure defines list for fields in the table
+// This structure defines list for fields in the table.
 class field_list_t {
     private:
     const size_t c_max_vector_reserve = 8;
 
     gaia_id_t m_table_id;
 
-    // Backing structure for this list
+    // Backing structure for this list.
     unique_ptr< vector<gaia_id_t> > m_data;
-    // Initialize the backing structure
+    // Initialize the backing structure.
     void initialize();
 
     public:
@@ -41,7 +41,7 @@ class field_list_t {
     // Copy constructor
     field_list_t(const field_list_t& old);
 
-    // Is there this field a member?
+    // Is this field a member?
     bool contains(gaia_id_t field_id) const;
 
     // Number of fields in this list.
@@ -50,18 +50,14 @@ class field_list_t {
     // No changes in this list?
     bool empty() const;
 
-    // Set/clear individual fields.
-    void set(gaia_id_t field_id);
-    void clear(gaia_id_t field_id);
+    // Add individual fields.
+    void add(gaia_id_t field_id);
 
     // Additional binary operations
     field_list_t intersect(field_list_t& other);
 
     // Validate: check if this list is valid against the catalog
     bool validate() const;
-
-    // Normalize: sort fields in the order specified by the catalog
-    void normalize();
 
     // Getter: table_id
     gaia_id_t get_table_id() const;

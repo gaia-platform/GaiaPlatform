@@ -14,19 +14,19 @@ using namespace gaia::common;
 using namespace std;
 
 field_list_t::field_list_t(gaia_id_t table_id)
-: m_table_id(table_id),
-m_data(nullptr) {
+    : m_table_id(table_id),
+    m_data(nullptr) {
     // Right now the backing structure for the field_list is a lazily initialized vector.
     // The implementation might change in future to enhance performance.
     // This is to keep empty versions of this structure small to reduce overhead during runtime.
     //
-    // initialize() will be called on the first set().
+    // initialize() will be called on the first add().
 }
 
 // Copy constructor
 field_list_t::field_list_t(const field_list_t& other)
-: m_table_id(other.m_table_id),
-m_data((other.m_data) ? new vector<gaia_id_t>(*other.m_data) : nullptr) {
+    : m_table_id(other.m_table_id),
+    m_data((other.m_data) ? new vector<gaia_id_t>(*other.m_data) : nullptr) {
 }
 
 // Initialize backing structure on this list.
@@ -39,8 +39,9 @@ void field_list_t::initialize() {
 }
 
 // Set a field in the field_list.
-void field_list_t::set(gaia_id_t field_id) {
+void field_list_t::add(gaia_id_t field_id) {
     if (!m_data) {
+        // Lazy initialization here
         initialize();
     }
 
@@ -48,19 +49,6 @@ void field_list_t::set(gaia_id_t field_id) {
 
     if (it == m_data->cend()) {
         m_data->push_back(field_id);
-    }
-}
-
-// Clear a field from the field_list.
-void field_list_t::clear(gaia_id_t field_id) {
-    if (!m_data) {
-        return;
-    }
-
-    auto it = std::find(m_data->begin(), m_data->end(), field_id);
-    if (it != m_data->end()) {
-        *it = m_data->back();
-        m_data->pop_back();
     }
 }
 
@@ -92,11 +80,6 @@ bool field_list_t::empty() const {
 bool field_list_t::validate() const {
     // TODO (yiwen): implement
     return true;
-}
-
-// Normalize: sort fields in the order specified by the catalog
-void field_list_t::normalize() {
-    // TODO(yiwen): implement. NOTE: ordering needs to be checked against catalog
 }
 
 // Intersection. Returns fields on both lists if table_ids are the same.
