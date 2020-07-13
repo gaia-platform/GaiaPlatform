@@ -54,7 +54,7 @@ void field_list_t::add(gaia_id_t field_id) {
 
 // Does the list contain the field?
 bool field_list_t::contains(gaia_id_t field_id) const {
-    if (empty()) {
+    if (is_empty()) {
         return false;
     }
 
@@ -72,7 +72,7 @@ size_t field_list_t::size() const {
 }
 
 // No fields in this list?
-bool field_list_t::empty() const {
+bool field_list_t::is_empty() const {
     return size() == 0;
 }
 
@@ -85,7 +85,7 @@ bool field_list_t::validate() const {
 
 // Intersection. Returns fields on both lists if table_ids are the same.
 // TODO (yiwen): figure out semantics if table_ids do not match.
-field_list_t field_list_t::intersect(field_list_t& other) {
+field_list_t field_list_t::intersect(field_list_t& other) const{
     // TODO (yiwen): implement.
     return field_list_t(other); // PLACEHOLDER: suppress warnings.
 }

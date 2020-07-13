@@ -48,13 +48,13 @@ class field_list_t {
     size_t size() const;
 
     // No changes in this list?
-    bool empty() const;
+    bool is_empty() const;
 
     // Add individual fields.
     void add(gaia_id_t field_id);
 
     // Additional binary operations.
-    field_list_t intersect(field_list_t& other);
+    field_list_t intersect(field_list_t& other) const;
 
     // Validate: check if this list is valid against the catalog.
     bool validate() const;

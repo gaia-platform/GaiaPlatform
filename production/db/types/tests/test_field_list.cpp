@@ -41,10 +41,10 @@ TEST(field_list, multi_add) {
 TEST(field_list, emptiness) {
     field_list_t test_list = field_list_t(888);
 
-    ASSERT_TRUE(test_list.empty());
+    ASSERT_TRUE(test_list.is_empty());
     ASSERT_EQ(test_list.size(), 0);
 
     test_list.add(1);
-    ASSERT_FALSE(test_list.empty());
+    ASSERT_FALSE(test_list.is_empty());
     ASSERT_EQ(test_list.size(), 1);
 }
