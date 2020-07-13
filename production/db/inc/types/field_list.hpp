@@ -53,13 +53,13 @@ class field_list_t {
     // Add individual fields.
     void add(gaia_id_t field_id);
 
-    // Additional binary operations
+    // Additional binary operations.
     field_list_t intersect(field_list_t& other);
 
-    // Validate: check if this list is valid against the catalog
+    // Validate: check if this list is valid against the catalog.
     bool validate() const;
 
-    // Getter: table_id
+    // Getter: table_id.
     gaia_id_t get_table_id() const;
 };
 

@@ -41,7 +41,7 @@ void field_list_t::initialize() {
 // Set a field in the field_list.
 void field_list_t::add(gaia_id_t field_id) {
     if (!m_data) {
-        // Lazy initialization here
+        // Lazy initialization here.
         initialize();
     }
 
@@ -54,7 +54,7 @@ void field_list_t::add(gaia_id_t field_id) {
 
 // Does the list contain the field?
 bool field_list_t::contains(gaia_id_t field_id) const {
-    if (!m_data) {
+    if (empty()) {
         return false;
     }
 
@@ -64,6 +64,7 @@ bool field_list_t::contains(gaia_id_t field_id) const {
 
 // Number of fields in this list.
 size_t field_list_t::size() const {
+    // Uninitialized, return 0.
     if (!m_data) {
         return 0;
     }
@@ -76,20 +77,20 @@ bool field_list_t::empty() const {
 }
 
 // Check if list is valid. All fields should be associated
-// with the table_id
+// with the table_id.
 bool field_list_t::validate() const {
     // TODO (yiwen): implement
     return true;
 }
 
 // Intersection. Returns fields on both lists if table_ids are the same.
-// TODO (yiwen): figure out semantics if table_ids do not match
+// TODO (yiwen): figure out semantics if table_ids do not match.
 field_list_t field_list_t::intersect(field_list_t& other) {
     // TODO (yiwen): implement.
-    return field_list_t(other); // PLACEHOLDER: suppress warnings
+    return field_list_t(other); // PLACEHOLDER: suppress warnings.
 }
 
-// Get table_id associated with this list
+// Get table_id associated with this list.
 gaia_id_t field_list_t::get_table_id() const {
     return m_table_id;
 }
