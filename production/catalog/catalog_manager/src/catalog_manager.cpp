@@ -65,10 +65,16 @@ gaia_id_t catalog_manager_t::create_table(const string &name,
         gaia_id_t field_type_id{0};
         uint16_t position;
         if (field->type == ddl::data_type_t::REFERENCES) {
-            if (m_table_names.find(field->table_type_name) == m_table_names.end()) {
+            if (field->table_type_name != name) {
+                // We allow a table definition to reference itself (self-referencing).
+                field_type_id = table_id;
+            } else if (m_table_names.find(field->table_type_name) != m_table_names.end()) {
+                // A table definition can refernece any of existing tables.
+                field_type_id = m_table_names[field->table_type_name];
+            } else {
+                // Not self-referencing or reference to an existing table.
                 throw table_not_exists(field->table_type_name);
             }
-            field_type_id = m_table_names[field->table_type_name];
             position = ++reference_position;
         } else {
             position = ++field_position;
