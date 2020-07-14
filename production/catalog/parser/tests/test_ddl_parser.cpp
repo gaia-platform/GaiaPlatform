@@ -5,7 +5,6 @@
 
 #include "gaia_catalog.hpp"
 #include "gaia_parser.hpp"
-#include "yy_lexer.hpp"
 #include "yy_parser.hpp"
 #include "gtest/gtest.h"
 
