@@ -674,3 +674,21 @@ TEST_F(gaia_object_test, writer_tests) {
     commit_transaction();
 }
 
+TEST_F(gaia_object_test, writer_value_ref) {
+    begin_transaction();
+    Employee_writer w1 = Employee::create_writer();
+    w1->name_last = "Gretzky";
+    Employee_ptr e = Employee::get(Employee::insert_row(w1));
+    commit_transaction();
+
+    begin_transaction();
+    auto& ssn = e->writer()->ssn;
+    ssn = "987654321";
+    e->update_row();
+    commit_transaction();
+
+    begin_transaction();
+    EXPECT_STREQ(e->ssn(), "987654321");
+    commit_transaction();
+}
+
