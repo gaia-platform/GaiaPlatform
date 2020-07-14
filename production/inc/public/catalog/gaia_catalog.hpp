@@ -74,6 +74,9 @@ struct field_definition_t {
     field_definition_t(string name, data_type_t type, uint16_t length)
         : name(move(name)), type(type), length(length){};
 
+    field_definition_t(string name, data_type_t type, uint16_t length, string referenced_table_name)
+        : name(move(name)), type(type), length(length), table_type_name(move(referenced_table_name)){};
+
     string name;
     data_type_t type;
     uint16_t length;
@@ -89,7 +92,7 @@ enum class create_type_t : unsigned int {
 
 struct create_statement_t : statement_t {
     create_statement_t(create_type_t type)
-        : statement_t(statment_type_t::CREATE), type(type) {};
+        : statement_t(statment_type_t::CREATE), type(type){};
 
     virtual ~create_statement_t() {}
 
@@ -138,8 +141,6 @@ class duplicate_field : public gaia_exception {
         m_message = message.str();
     }
 };
-
-
 
 /**
  * Create a table definition in the catalog.

@@ -94,8 +94,7 @@ TEST_F(catalog_manager_test, list_references) {
     string employee_table_name{"list_references_test_employee"};
     ddl::field_def_list_t employee_table_fields;
     employee_table_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("name", ddl::data_type_t::STRING, 1)));
-    employee_table_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("department", ddl::data_type_t::REFERENCES, 1)));
-    employee_table_fields.back()->table_type_name = dept_table_name;
+    employee_table_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("department", ddl::data_type_t::REFERENCES, 1, dept_table_name)));
 
     gaia_id_t employee_table_id = create_test_table(employee_table_name, employee_table_fields);
 
@@ -121,10 +120,24 @@ TEST_F(catalog_manager_test, list_references) {
 TEST_F(catalog_manager_test, create_table_references_not_exist) {
     string test_table_name{"ref_not_exist_test"};
     ddl::field_def_list_t fields;
-    fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("ref_field", ddl::data_type_t::REFERENCES, 1)));
-    fields.back()->table_type_name = "unknown";
-
+    fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("ref_field", ddl::data_type_t::REFERENCES, 1, "unknown")));
     EXPECT_THROW(create_test_table(test_table_name, fields), table_not_exists);
+}
+
+TEST_F(catalog_manager_test, create_table_self_references) {
+    string test_table_name{"self_ref_table_test"};
+    ddl::field_def_list_t fields;
+    fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("self_ref_field", ddl::data_type_t::REFERENCES, 1, test_table_name)));
+
+    gaia_id_t table_id = create_test_table(test_table_name, fields);
+    gaia::db::begin_transaction();
+    gaia_id_t reference_id = list_references(table_id).front();
+    unique_ptr<Gaia_field> reference_record{Gaia_field::get_row_by_id(reference_id)};
+    EXPECT_EQ(fields.front()->name, reference_record->name());
+    EXPECT_EQ(to_gaia_data_type(ddl::data_type_t::REFERENCES), reference_record->type());
+    EXPECT_EQ(table_id, reference_record->type_id());
+    EXPECT_EQ(1, reference_record->position());
+    gaia::db::commit_transaction();
 }
 
 TEST_F(catalog_manager_test, create_table_case_sensitivity) {
