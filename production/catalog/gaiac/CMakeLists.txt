@@ -11,7 +11,6 @@ project(gaiac)
 
 set(GAIA_CATALOG_TOOL_INCLUDES
   ${FLATBUFFERS_INC}
-  ${GAIA_REPO}/third_party/production/cpp-linenoise
   ${GAIA_REPO}/production/db/storage_engine/mock
   ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_INC}/public/common

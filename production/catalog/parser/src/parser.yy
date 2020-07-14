@@ -56,9 +56,10 @@
 }
 
 %define api.token.prefix {TOK_}
+
 %token BOOL INT8 UINT8 INT16 UINT16 INT32 UINT32 INT64 UINT64 FLOAT32 FLOAT64 STRING
-%token CREATE TABLE
-%token END  0
+%token CREATE TABLE REFERENCES
+%token END 0
 %token LPAREN "("
 %token RPAREN ")"
 %token LBRACKET "["
@@ -88,20 +89,22 @@
 
 %%
 %start input;
-input: statement_list opt_semicolon {
-    gaia_parser.statements = std::move(*$1);
-};
+
+input:
+    statement_list opt_semicolon {
+        gaia_parser.statements = std::move(*$1);
+    };
 
 opt_semicolon: ";" | ;
 
 statement_list:
-statement {
-    $$ = std::unique_ptr<statement_list_t>{new statement_list_t()};
-    $$->push_back(std::move($1)); }
-| statement_list ";" statement {
-    $1->push_back(std::move($3));
-    $$ = std::move($1);
-};
+    statement {
+        $$ = std::unique_ptr<statement_list_t>{new statement_list_t()};
+        $$->push_back(std::move($1)); }
+    | statement_list ";" statement {
+        $1->push_back(std::move($3));
+        $$ = std::move($1);
+    };
 
 statement: create_statement { $$ = std::unique_ptr<statement_t>{std::move($1)}; };
 
@@ -124,7 +127,7 @@ field_def_commalist:
 field_def:
     IDENTIFIER field_type opt_array {
         $$ = std::unique_ptr<field_definition_t>{new field_definition_t($1, $2->type, $3)};
-        if ($$->type == data_type_t::TABLE) {
+        if ($$->type == data_type_t::REFERENCES) {
            $$->table_type_name = std::move($2->name);
         }
     };
@@ -132,10 +135,10 @@ field_def:
 opt_array:
     "[" "]" { $$ = 0; }
     | "[" NUMBER "]" { $$ = $2; }
-    | { $$ = 1; } ;
+    | { $$ = 1; };
 
 field_type:
-    BOOL{ $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::BOOL)}; }
+    BOOL { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::BOOL)}; }
     | INT8 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::INT8)}; }
     | UINT8 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::UINT8)}; }
     | INT16 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::INT16)}; }
@@ -147,7 +150,10 @@ field_type:
     | FLOAT32 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::FLOAT32)}; }
     | FLOAT64 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::FLOAT64)}; }
     | STRING { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::STRING)}; }
-    | IDENTIFIER { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::TABLE)}; $$->name = std::move($1); };
+    | REFERENCES IDENTIFIER {
+        $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::REFERENCES)};
+        $$->name = std::move($2);
+    };
 
 %%
 void

@@ -17,6 +17,7 @@ enum gaia_data_type:uint8 {
   FLOAT32,
   FLOAT64,
   STRING,
+  REFERENCES,
 }
 
 enum gaia_trim_action_type:uint8 {
@@ -45,6 +46,7 @@ table gaia_field {
   name:string (required);
   table_id:uint64;
   type:gaia_data_type;
+  type_id:uint64;
   repeated_count:uint16;
   position:uint16;
   required:bool;
