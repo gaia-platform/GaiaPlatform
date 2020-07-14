@@ -14,6 +14,16 @@ set(GAIA_STORAGE_ENGINE_INCLUDES
 message(STATUS "GAIA_STORAGE_ENGINE_INCLUDES=${GAIA_STORAGE_ENGINE_INCLUDES}")
 
 ###############################################
+# Our main target.
+###############################################
+add_library(gaia_storage SHARED
+    src/locator_allocator.cpp
+    src/record_list.cpp)
+target_include_directories(gaia_storage PUBLIC ${GAIA_STORAGE_ENGINE_INCLUDES})
+set_target_properties(gaia_storage PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+target_link_libraries(gaia_storage PRIVATE gaia_common)
+
+###############################################
 # Storage engine mock-related code begins here.
 ###############################################
 add_library(gaia_semock STATIC
@@ -57,4 +67,6 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   set_target_properties(jni_se_mock PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 endif()
 
-add_gtest(rdb_converter_test tests/test_rdb_object_converter.cpp "${GAIA_STORAGE_ENGINE_INCLUDES};${GOOGLE_TEST_INC}" "gaia_semock")
+add_gtest(test_locator_allocator tests/test_locator_allocator.cpp "${GAIA_STORAGE_ENGINE_INCLUDES}" "gaia_common;gaia_storage")
+add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_STORAGE_ENGINE_INCLUDES}" "gaia_common;gaia_storage")
+add_gtest(test_rdb_object_converter tests/test_rdb_object_converter.cpp "${GAIA_STORAGE_ENGINE_INCLUDES};${GOOGLE_TEST_INC}" "gaia_semock")
