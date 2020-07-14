@@ -29,8 +29,7 @@ bison_target(parser
   DEFINES_FILE ${GAIA_PARSER_GENERATED_OUTPUTS}/yy_parser.hpp)
 flex_target(lexer
   src/lexer.ll
-  ${GAIA_PARSER_GENERATED_OUTPUTS}/yy_lexer.cpp
-  DEFINES_FILE ${GAIA_PARSER_GENERATED_OUTPUTS}/yy_lexer.hpp)
+  ${GAIA_PARSER_GENERATED_OUTPUTS}/yy_lexer.cpp)
 add_flex_bison_dependency(lexer parser)
 
 

@@ -30,9 +30,10 @@ void start_repl(parser_t &parser) {
     while (true) {
         string line;
         cout << prompt << flush;
-        getline(cin, line);
-
-        if (line.length() == 0 || line == "exit") {
+        if (!getline(cin, line)) {
+            break;
+        }
+        if (line == "exit") {
             break;
         }
         int parsing_result = parser.parse_line(line);

@@ -45,6 +45,18 @@ gaia_id_t catalog_manager_t::create_table(const string &name,
         throw table_already_exists(name);
     }
 
+    // Check for any duplication in field names.
+    // We do this before generating fbs because FlatBuffers schema
+    // also does not allow duplicate field names and we may generate
+    // invalid fbs without checking duplication first.
+    set<string> field_names;
+    for (auto &field : fields) {
+        if (field_names.find(field->name) != field_names.end()) {
+            throw duplicate_field(field->name);
+        }
+        field_names.insert(field->name);
+    }
+
     string bfbs{generate_bfbs(generate_fbs(name, fields))};
 
     gaia::db::begin_transaction();

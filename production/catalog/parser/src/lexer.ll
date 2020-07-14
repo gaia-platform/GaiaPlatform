@@ -19,7 +19,7 @@
 #include "yy_parser.hpp"
 %}
 
-%option noyywrap nounput noinput batch debug
+%option caseless noyywrap nounput noinput batch debug
 
 %{
   yy::parser::symbol_type
