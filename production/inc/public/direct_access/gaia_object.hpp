@@ -63,17 +63,12 @@ public:
     /**
      * Return a reference to a writer used to insert a row
      */
-    static unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>> writer();
+    static shared_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>> create_writer();
 
     /**
      * Return a reference to a writer used to update a row
      */
-    static unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>> writer(const shared_ptr<T_gaia>& object);
-
-    /**
-     * Return a reference to a writer used to update a row
-     */
-    static unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>> writer(gaia_id_t id);
+    shared_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>> writer();
 
     /**
      * This can be used for subscribing to rules when you don't
@@ -111,14 +106,13 @@ public:
      * The user can get a new object by fetching the returned id using get(id)
      */
     static gaia_id_t insert_row(
-        const unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>>& writer);
+        const shared_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>>& writer);
 
     /**
      * Insert the values in this new object into a newly created storage engine object.
      * The user can get a new object by fetching the returned id using get(id)
      */
-    static void update_row(
-        const unique_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>>& writer);
+    void update_row();
 
     /**
      * Delete the storage engine object. This doesn't destroy the extended data class
@@ -150,9 +144,15 @@ protected:
     // Flatbuffer referencing SE memory.
     const T_fb* m_fb;
 
+
 private:
     static shared_ptr<T_gaia> get_object(gaia_ptr<gaia_se_node>& node_ptr);
     void refresh() override;
+    void refresh(gaia_ptr<gaia_se_node>& node_ptr);
+
+
+    // Writer associated with this object
+    shared_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>> m_writer;
 };
 
 template<gaia::db::gaia_type_t T_gaia_type, 
@@ -164,13 +164,7 @@ struct gaia_writer_t : public T_obj
 {
 private:
     gaia_writer_t() = default;
-     
-
-    // Gaia specific properties that are outside the flatbuffer payload 
-    // definition but needed for row creation.
-    struct gaia_t {
-        gaia_id_t id;
-    } m_gaia;
+    flatbuffers::FlatBufferBuilder m_builder;
 
     // This class needs access to the private m_gaia information and private
     // constructor.

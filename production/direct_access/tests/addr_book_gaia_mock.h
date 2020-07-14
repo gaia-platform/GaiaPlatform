@@ -44,7 +44,7 @@ struct Address;
 struct Phone;
 
 typedef shared_ptr<Employee> Employee_ptr;
-typedef unique_ptr<gaia_writer_t<1,Employee,employee,employeeT, c_num_employee_ptrs>> Employee_writer;
+typedef shared_ptr<gaia_writer_t<1,Employee,employee,employeeT, c_num_employee_ptrs>> Employee_writer;
 struct Employee : public gaia_object_t<1,Employee,employee,employeeT, c_num_employee_ptrs>{
     const char* name_first () const {return GET_STR(name_first);}
     const char* name_last () const {return GET_STR(name_last);}
@@ -82,7 +82,7 @@ private:
 };
 
 typedef shared_ptr<Address> Address_ptr;
-typedef unique_ptr<gaia_writer_t<2,Address,address,addressT, c_num_address_ptrs>> Address_writer;
+typedef shared_ptr<gaia_writer_t<2,Address,address,addressT, c_num_address_ptrs>> Address_writer;
 struct Address : public gaia_object_t<2,Address,address,addressT,c_num_address_ptrs>{
     const char* street () const {return GET_STR(street);}
     const char* apt_suite () const {return GET_STR(apt_suite);}
@@ -116,7 +116,7 @@ private:
 };
 
 typedef shared_ptr<Phone> Phone_ptr;
-typedef unique_ptr<gaia_writer_t<3,Phone,phone,phoneT, c_num_phone_ptrs>> Phone_writer;
+typedef shared_ptr<gaia_writer_t<3,Phone,phone,phoneT, c_num_phone_ptrs>> Phone_writer;
 struct Phone : public gaia_object_t<3,Phone,phone,phoneT, c_num_phone_ptrs>{
     const char* phone_number () const {return GET_STR(phone_number);}
     const char* type () const {return GET_STR(type);}

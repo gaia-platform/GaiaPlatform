@@ -73,11 +73,11 @@ TEST_F(gaia_references_test, connect) {
     //EXPECT_THROW(e2->address_list.insert(a2), edc_unstored_row);
 
     // Connect two inserted rows.
-    Employee_writer ew = Employee::writer();
+    Employee_writer ew = Employee::create_writer();
     ew->name_first = "Hidalgo";
     Employee_ptr e3 = Employee::get(Employee::insert_row(ew));
 
-    Address_writer aw = Address::writer();
+    Address_writer aw = Address::create_writer();
     aw->city = "Houston";
     Address_ptr a3 = Address::get(Address::insert_row(aw));
 
@@ -229,7 +229,7 @@ TEST_F(gaia_references_test, recursive_scan) {
     //    Hector
     //    Hank
 
-    Employee_writer writer = Employee::writer();
+    Employee_writer writer = Employee::create_writer();
     auto e1 = insert_employee(writer, "Horace");
     auto e2 = insert_employee(writer, "Henry");
     auto e3 = insert_employee(writer, "Hal");

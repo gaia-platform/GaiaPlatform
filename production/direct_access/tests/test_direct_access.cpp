@@ -50,7 +50,7 @@ int count_rows() {
 }
 
 Employee_writer set_field(const char* name) {
-    auto e = Employee::writer();
+    auto e = Employee::create_writer();
     e->name_first = name;
     return e;
 }
@@ -65,8 +65,8 @@ Employee_ptr insert_row(const char* name) {
 Employee_ptr update_row(const char* name) {
     auto e = insert_row(name);
     EXPECT_NE(e, nullptr);
-    auto w = Employee::writer(e);
-    Employee::update_row(w);
+    auto w = e->writer();
+    e->update_row();
     return e;
 }
 
@@ -105,7 +105,7 @@ TEST_F(gaia_object_test, new_set_ins) {
 
 // Read back from new, unsaved object
 TEST_F(gaia_object_test, net_set_get) {
-    auto e = Employee::writer();
+    auto e = Employee::create_writer();
     e->name_last = "Smith";
     EXPECT_STREQ(e->name_last.c_str(), "Smith");
 }
@@ -122,7 +122,7 @@ TEST_F(gaia_object_test, read_original_from_copy) {
 TEST_F(gaia_object_test, new_ins_get) {
     begin_transaction();
     
-    auto writer = Employee::writer();
+    auto writer = Employee::create_writer();
     Employee::insert_row(writer);
     auto e = Employee::get(Employee::insert_row(writer));
     auto name = e->name_first();
@@ -138,7 +138,7 @@ TEST_F(gaia_object_test, new_ins_get) {
 TEST_F(gaia_object_test, new_get) {
     begin_transaction();
     
-    auto e = Employee::writer();
+    auto e = Employee::create_writer();
     auto name = e->name_first;
     auto hire_date = e->hire_date;
 
@@ -151,34 +151,41 @@ TEST_F(gaia_object_test, new_del_field_ref) {
     // create GAIA-64 scenario
     begin_transaction();
 
-    auto writer = Employee::writer();
+    auto writer = Employee::create_writer();
     auto e = Employee::get(Employee::insert_row(writer));
     e->delete_row();
     auto name = e->name_first();
     EXPECT_EQ(name, nullptr);
     auto hire_date = e->hire_date();
     EXPECT_EQ(hire_date, 0);
-    writer = Employee::writer(e);
+    // this is not obvious, make create_writer() return a shared-pter as well but with no references?
+    writer = e->writer();
     writer->name_last = "Hendricks";
 
     commit_transaction();
 }
 
 // Attempt to update a row with a new writer.
+// This test doesn't make sense any more since you can't create a new employee
+// object but only a new writer.
+
+/*
 TEST_F(gaia_object_test, new_upd_field) {
     begin_transaction();
-    auto writer = Employee::writer();
+    auto writer = Employee::create_writer();
     EXPECT_THROW(Employee::update_row(writer), invalid_node_id);
     commit_transaction();
 }
+*/
 
-// Attempt to insert with an update writer
+// Attempt to insert with an update writer, this should work.
 TEST_F(gaia_object_test, existing_ins_field) {
     begin_transaction();
-    auto writer = Employee::writer();
+    auto writer = Employee::create_writer();
     auto e = Employee::get(Employee::insert_row(writer));
-    writer = Employee::writer(e);
-    EXPECT_THROW(Employee::insert_row(writer), invalid_node_id);
+    writer = e->writer();
+    // although the storage engine may throw with an invalid node id (duplicate?)
+    Employee::insert_row(writer);
     commit_transaction();
 }
 
@@ -199,11 +206,11 @@ TEST_F(gaia_object_test, read_back_id) {
     e = Employee::get(eid2);
     EXPECT_STREQ("Henry", e->name_first());
     // Change the field and verify that original value is intact
-    auto writer = Employee::writer(e);
+    auto writer = e->writer();
     writer->name_first = "Heinrich";
     EXPECT_STREQ("Henry", e->name_first());
     // While we have the original and modified values, update
-    Employee::update_row(writer);
+    e->update_row();
     EXPECT_STREQ("Heinrich", e->name_first());
     EXPECT_STREQ("Heinrich", writer->name_first.c_str());
 
@@ -268,20 +275,20 @@ void UpdateReadBack(bool update_flag) {
 
     begin_transaction();
     auto e = Employee::get_first();
-    auto w = Employee::writer(e);
+    auto w = e->writer();
     w->name_first = "Herald";
     w->name_last = "Hollman";
     if (update_flag) {
-        Employee::update_row(w);
+        e->update_row();
     }
     e = e->get_next();
 
     // get writer for next row!
-    w = Employee::writer(e);
+    w = e->writer();
     w->name_first = "Gerald";
     w->name_last = "Glickman";
     if (update_flag) {
-        Employee::update_row(w);
+        e->update_row();
     }
     commit_transaction();
 
@@ -324,9 +331,9 @@ TEST_F(gaia_object_test, new_del_ins) {
     begin_transaction();
     auto e = get_field("Hector");
     
-    auto w = Employee::writer(e);
+    auto w = e->writer();
     e->delete_row();
-    EXPECT_THROW(Employee::insert_row(w), invalid_node_id);
+    Employee::insert_row(w);
     commit_transaction();
 }
 
@@ -335,35 +342,33 @@ TEST_F(gaia_object_test, new_del_upd) {
     begin_transaction();
     auto e = get_field("Hector");
     e->delete_row();
-    auto w = Employee::writer(e);
-    EXPECT_THROW(Employee::update_row(w), invalid_node_id);
+    auto w = e->writer();
+    EXPECT_THROW(e->update_row(), invalid_node_id);
     commit_transaction();
 }
 
-// Delete a found object then insert after, it's good again
+// Delete a found object then insert after, it's good again.
 TEST_F(gaia_object_test, found_del_ins) {
     begin_transaction();
     
     auto e = get_field("Hector");
     e->delete_row();
-    Employee_writer writer = Employee::writer();
+    Employee_writer writer = e->writer();
     auto eid = Employee::insert_row(writer);
     commit_transaction();
 
     begin_transaction();
     e = Employee::get(eid);
-    writer = Employee::writer(e);
-    writer->name_first = "Hudson";
+    e->writer()->name_first = "Hudson";
     commit_transaction();
 }
 
-// Delete an inserted object then set field after, it's good again
+// Delete an inserted object then set field after, it's allowed.
 TEST_F(gaia_object_test, new_del_set) {
     begin_transaction();
     auto e = get_field("Hector");
     e->delete_row();
-    auto w = Employee::writer(e);
-    w->name_first = "Howard";
+    e->writer()->name_first = "Howard";
     commit_transaction();
 }
 
@@ -377,8 +382,10 @@ TEST_F(gaia_object_test, found_del_upd) {
     begin_transaction();
     e = Employee::get(eid);
     e->delete_row();
-    auto w = Employee::writer(e);
-    EXPECT_THROW(Employee::update_row(w), invalid_node_id);
+
+    // A writer was retrieved from a helper function above
+    // so this will cause an exception.
+    EXPECT_THROW(e->update_row(), invalid_node_id);
     commit_transaction();
 }
 
@@ -437,8 +444,8 @@ TEST_F(gaia_object_test, no_tx) {
 }
 
 // Simplified model doesn't allow this because you
-// you cannot create a new Employee() and you the
-// Employee::create method returns an Employee_writer
+// you cannot create a new Employee() and the
+// Employee::create_writer method returns an Employee_writer
 // not an Employee object.  The update and delete
 // methods require a reference to an Employee object
 // and not a writer object.  The insert method
@@ -505,7 +512,7 @@ TEST_F(gaia_object_test, next_first) {
 TEST_F(gaia_object_test, auto_tx) {
     auto_transaction_t tx;
 
-    auto writer = Employee::writer();
+    auto writer = Employee::create_writer();
     EXPECT_EQ(gaia_base_t::s_gaia_cache.size(), 0);
 
     writer->name_last = "Hawkins";
@@ -516,9 +523,9 @@ TEST_F(gaia_object_test, auto_tx) {
     EXPECT_EQ(gaia_base_t::s_gaia_cache.size(), 1);
     
     // update
-    writer = Employee::writer(e);
+    writer = e->writer();
     writer->name_last = "Clinton";
-    Employee::update_row(writer);
+    e->update_row();
     tx.commit();
     
     EXPECT_EQ(gaia_base_t::s_gaia_cache.size(), 1);
@@ -531,12 +538,12 @@ TEST_F(gaia_object_test, auto_tx) {
     // no object off of which youc an call update_row()
     Address_ptr a;
     {
-        auto a_writer = Address::writer();
+        auto a_writer = Address::create_writer();
         EXPECT_EQ(gaia_base_t::s_gaia_cache.size(), 1);
         a_writer->city = "Seattle";
         a = Address::get(Address::insert_row(a_writer));
         tx.commit();
-        a_writer = Address::writer(a);
+        a_writer = a->writer();
         a_writer->city = "Portland";
         EXPECT_EQ(gaia_base_t::s_gaia_cache.size(), 2);
     }
@@ -566,22 +573,104 @@ TEST_F(gaia_object_test, thread_test) {
     t.join();
 }
 
-/*
-TEST_F(gaia_object_test, simplified_api) {
-
-    // insert row, m_num_references should be schema
-    EmployeeWriter& w = Employee::writer();
-    w.last_name = "Hawkins";
-    //w.insert_row();
-    Employee& e = Employee::get(Employee::insert_row(w));
-
-    EmployeeWriter& w = e.writer();
-    Employee::update_row(w);
-
-    // nested class
-    Employee::Writer::insert(w);
-    Employee::Writer::update(w);
-    
-
+TEST_F(gaia_object_test, create_writer_tests) {
+    // A new writer is not shared so it's use count is always
+    // equal to the number of outstanding references.
+    Employee_writer w1 = Employee::create_writer();
+    EXPECT_EQ(1, w1.use_count());
+    {
+        Employee_writer w2 = Employee::create_writer();
+        EXPECT_EQ(1, w1.use_count());
+        EXPECT_EQ(1, w2.use_count());
+    }
+    EXPECT_EQ(1, w1.use_count());
+    Employee_writer w2 = w1;
+    EXPECT_EQ(2, w1.use_count());
+    EXPECT_EQ(2, w2.use_count());
 }
-*/
+
+TEST_F(gaia_object_test, writer_tests) {
+    begin_transaction();
+    // An existing writer is shared with the owning
+    // gaia object.
+    Employee_writer w1 = Employee::create_writer();
+    w1->name_last = "Gretzky";
+    Employee_ptr e = Employee::get(Employee::insert_row(w1));
+    w1.reset();
+    EXPECT_EQ(0, w1.use_count());
+
+    // Verify that the writer returned from create_writer and writer methods
+    // is the same type.  If they are not you'll get a compile error here.
+    w1 = e->writer();
+
+    // The owning employee object is holding on to a reference here so
+    // we expect 2.
+    EXPECT_EQ(2, w1.use_count());
+    w1->name_first = "Wayne";
+    w1.reset();
+
+    // We just reset the shared pointer here so it's use_count should be 0.
+    EXPECT_EQ(0, w1.use_count());
+
+    // Because the employee object had a reference to the writer, however,
+    // we haven't lost our changes above.
+    EXPECT_STREQ(e->writer()->name_first.c_str(), "Wayne");
+
+    // Now make some other changes without having an explicit reference.
+    e->writer()->name_last = "Gretzky";
+    e->writer()->ssn = "123456789";
+    e->update_row();
+
+    // Verify we've persisted the values and updated the underlying storage.
+    EXPECT_STREQ(e->name_first(), "Wayne");
+    EXPECT_STREQ(e->name_last(), "Gretzky");
+    EXPECT_STREQ(e->ssn(), "123456789");
+
+    // Verify the writer has these same values as well and still only
+    // has a ref count of 2.
+    w1 = e->writer();
+    EXPECT_EQ(2, w1.use_count());
+
+    EXPECT_STREQ(w1->name_first.c_str(), "Wayne");
+    EXPECT_STREQ(w1->name_last.c_str(), "Gretzky");
+    EXPECT_STREQ(w1->ssn.c_str(), "123456789");
+    commit_transaction();
+
+    // Our reference count should still be two because we are holding on
+    // to w1 and e.
+    EXPECT_EQ(2, w1.use_count());
+
+    // Drop our reference to the employee.
+    e.reset();
+
+    // Writer reference count should still be two.  The gaia cache is holding a 
+    // reference to e which is holding a reference to the writer.
+    EXPECT_EQ(2, w1.use_count());
+
+    // Since there aren't any outstanding references to the employee, the object
+    // gets dropped from the gaia object cache on our next transaction.
+    begin_transaction();
+
+    // Since the cache has dropped employee, it will have dropped its reference
+    // to the writer and we are down to 1.  The writer should still be valid
+    // to reference.
+    EXPECT_EQ(1, w1.use_count());
+    EXPECT_STREQ(w1->name_first.c_str(), "Wayne");
+
+    // However, it is now detached from the employee.
+    w1->name_last = "Wilson";
+    EXPECT_STREQ(w1->name_last.c_str(), "Wilson");
+
+    e = Employee::get_first();
+    EXPECT_STREQ(e->name_first(), "Wayne");
+    EXPECT_STREQ(e->name_last(), "Gretzky");
+    EXPECT_STREQ(e->ssn(), "123456789");
+
+    // The writer is detached at this point so this call is a no-op.
+    e->update_row();
+    EXPECT_STREQ(e->name_first(), "Wayne");
+    EXPECT_STREQ(e->name_last(), "Gretzky");
+    EXPECT_STREQ(e->ssn(), "123456789");
+    commit_transaction();
+}
+

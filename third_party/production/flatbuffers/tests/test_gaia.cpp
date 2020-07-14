@@ -166,12 +166,12 @@ void GaiaUpdateTest()
 
     AddrBook::Employee_ptr pEmployee = AddrBook::Employee::get(empl_node_id);
 
-    auto writer = AddrBook::Employee::writer(pEmployee);
+    auto writer = pEmployee->writer();
     writer->ssn = "test";
     TEST_EQ_STR("test",writer->ssn.c_str());
     writer->name_first = "john";
     TEST_EQ_STR("john",writer->name_first.c_str());
-    AddrBook::Employee::update_row(writer);
+    pEmployee->update_row();
     
     // Verify two columns changed in update_row().
     /*
@@ -187,7 +187,7 @@ void GaiaUpdateTest()
     TEST_EQ_STR("doe",writer->name_last.c_str());
     writer->name_first = "jane";
     TEST_EQ_STR("jane",writer->name_first.c_str());
-    AddrBook::Employee::update_row(writer);
+    pEmployee->update_row();
         
     /*
 
@@ -223,7 +223,7 @@ void GaiaInsertTest()
     const char* email = "jane.smith@janesmith.com";
     const char* web = "www.janesmith.com";
 
-    AddrBook::Employee_writer writer = AddrBook::Employee::writer();
+    AddrBook::Employee_writer writer = AddrBook::Employee::create_writer();
     writer->Gaia_Mgr_id = manager_id;
     writer->Gaia_FirstAddr_id = first_address_id;
     writer->Gaia_FirstPhone_id = first_phone_id;
