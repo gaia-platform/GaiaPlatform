@@ -109,8 +109,7 @@ public:
         const shared_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>>& writer);
 
     /**
-     * Insert the values in this new object into a newly created storage engine object.
-     * The user can get a new object by fetching the returned id using get(id)
+     * Update the row values into the storage engine object.
      */
     void update_row();
 
