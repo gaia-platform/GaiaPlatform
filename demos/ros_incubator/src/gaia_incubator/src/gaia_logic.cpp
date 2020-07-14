@@ -1,3 +1,8 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 // gaia includes
 /*#include "barn_storage_gaia_generated.h"
 #include "events.hpp"
