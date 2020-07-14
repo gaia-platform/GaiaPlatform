@@ -71,3 +71,11 @@ TEST(catalog_ddl_parser_test, create_table_references) {
     EXPECT_EQ(createStmt->fields.at(2)->type, data_type_t::REFERENCES);
     EXPECT_EQ(createStmt->fields.at(2)->length, 0);
 }
+
+TEST(catalog_ddl_parser_test, case_sensitivity) {
+    parser_t parser;
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t (c INT32);"));
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("create table t (c int32);"));
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("cReAte taBle T (c int32);"));
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE T (c int32, C int32);"));
+}

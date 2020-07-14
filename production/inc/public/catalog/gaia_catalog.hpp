@@ -127,6 +127,19 @@ class table_not_exists : public gaia_exception {
     }
 };
 
+/**
+ * Thrown when a field is specified more than once
+ */
+class duplicate_field : public gaia_exception {
+  public:
+    duplicate_field(const string &name) {
+        stringstream message;
+        message << "The field \"" << name << "\" specified more than once.";
+        m_message = message.str();
+    }
+};
+
+
 
 /**
  * Create a table definition in the catalog.

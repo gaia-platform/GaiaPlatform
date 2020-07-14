@@ -28,6 +28,13 @@ class catalog_manager_test : public ::testing::Test {
         table_ids.insert(table_id);
         return table_id;
     }
+
+    void check_table_name(gaia_id_t id, const string &name) {
+        gaia::db::begin_transaction();
+        unique_ptr<Gaia_table> t{Gaia_table::get_row_by_id(id)};
+        EXPECT_EQ(name, t->name());
+        gaia::db::commit_transaction();
+    }
 };
 
 set<gaia_id_t> catalog_manager_test::table_ids{};
@@ -38,10 +45,7 @@ TEST_F(catalog_manager_test, create_table) {
 
     gaia_id_t table_id = create_test_table(test_table_name, fields);
 
-    gaia::db::begin_transaction();
-    unique_ptr<Gaia_table> t{Gaia_table::get_row_by_id(table_id)};
-    EXPECT_EQ(test_table_name, t->name());
-    gaia::db::commit_transaction();
+    check_table_name(table_id, test_table_name);
 }
 
 TEST_F(catalog_manager_test, create_existing_table) {
@@ -121,4 +125,33 @@ TEST_F(catalog_manager_test, create_table_references_not_exist) {
     fields.back()->table_type_name = "unknown";
 
     EXPECT_THROW(create_test_table(test_table_name, fields), table_not_exists);
+}
+
+TEST_F(catalog_manager_test, create_table_case_sensitivity) {
+    string lower_case_table_name{"case_test_table"};
+    string upper_case_table_name{"CASE_TEST_TABLE"};
+    string mixed_case_table_name{"cAsE_teST_TablE"};
+    ddl::field_def_list_t fields;
+
+    gaia_id_t lower_case_table_id = create_test_table(lower_case_table_name, fields);
+    gaia_id_t upper_case_table_id = create_test_table(upper_case_table_name, fields);
+    gaia_id_t mixed_case_table_id = create_test_table(mixed_case_table_name, fields);
+
+    check_table_name(lower_case_table_id, lower_case_table_name);
+    check_table_name(upper_case_table_id, upper_case_table_name);
+    check_table_name(mixed_case_table_id, mixed_case_table_name);
+
+    string test_field_case_table_name{"test_field_case_table"};
+    fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("field1", ddl::data_type_t::STRING, 1)));
+    fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("Field1", ddl::data_type_t::STRING, 1)));
+    gaia_id_t test_field_case_table_id = create_test_table(test_field_case_table_name, fields);
+    check_table_name(test_field_case_table_id, test_field_case_table_name);
+}
+
+TEST_F(catalog_manager_test, create_table_duplicate_field) {
+    string test_duplicate_field_table_name{"test_duplicate_field_table"};
+    ddl::field_def_list_t fields;
+    fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("field1", ddl::data_type_t::STRING, 1)));
+    fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("field1", ddl::data_type_t::STRING, 1)));
+    EXPECT_THROW(create_test_table(test_duplicate_field_table_name, fields), duplicate_field);
 }
