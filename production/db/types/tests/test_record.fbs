@@ -4,14 +4,14 @@ table test_record
 {
   first_name:string;
   last_name:string;
-  age:ubyte;
+  age:uint8;
   has_children:bool;
-  identifier:long;
-  known_associates:[long];
+  identifier:int64;
+  known_associates:[int64];
   known_aliases:[string];
-  sleeve_cost:double;
-  monthly_sleeve_insurance:float;
-  last_yearly_top_credit_amounts:[double];
+  sleeve_cost:float64;
+  monthly_sleeve_insurance:float32;
+  last_yearly_top_credit_amounts:[float64];
 }
 
 root_type test_record;

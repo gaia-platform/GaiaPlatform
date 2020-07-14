@@ -99,15 +99,58 @@ void shared_mutex_t::unlock_shared()
     unlock();
 }
 
+auto_lock_t::auto_lock_t()
+{
+    m_lock = nullptr;
+}
+
 auto_lock_t::auto_lock_t(shared_mutex_t& lock, bool request_shared)
 {
+    m_lock = nullptr;
+
+    get_lock(lock, request_shared);
+}
+
+auto_lock_t::~auto_lock_t()
+{
+    if (m_lock != nullptr)
+    {
+        release();
+    }
+}
+
+void auto_lock_t::get_lock(shared_mutex_t& lock, bool request_shared)
+{
+    retail_assert(m_lock == nullptr, "Attempting to acquire new lock on already acquired auto_lock_t!");
+
     m_lock = &lock;
     m_request_shared = request_shared;
 
     m_request_shared ? m_lock->lock_shared() : m_lock->lock();
 }
 
-auto_lock_t::~auto_lock_t()
+bool auto_lock_t::try_lock(shared_mutex_t& lock, bool request_shared)
 {
+    retail_assert(m_lock == nullptr, "Attempting to acquire new lock on already acquired auto_lock_t!");
+
+    m_lock = &lock;
+    m_request_shared = request_shared;
+
+    bool was_lock_acquired = m_request_shared ? m_lock->try_lock_shared() : m_lock->try_lock();
+
+    // If we failed to acquire the lock, release our reference to it.
+    if (!was_lock_acquired)
+    {
+        m_lock = nullptr;
+    }
+
+    return was_lock_acquired;
+}
+
+void auto_lock_t::release()
+{
+    retail_assert(m_lock != nullptr, "Attempting to release an already released (or unacquired) auto_lock_t!");
+
     m_request_shared ? m_lock->unlock_shared() : m_lock->unlock();
+    m_lock = nullptr;
 }
