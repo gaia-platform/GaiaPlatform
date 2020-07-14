@@ -134,7 +134,7 @@ class duplicate_field : public gaia_exception {
   public:
     duplicate_field(const string &name) {
         stringstream message;
-        message << "The field \"" << name << "\" specified more than once.";
+        message << "The field \"" << name << "\" is specified more than once.";
         m_message = message.str();
     }
 };
