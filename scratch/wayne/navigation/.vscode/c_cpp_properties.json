@@ -4,10 +4,11 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "~/src/github.com/gaia-platform/GaiaPlatform/production/inc/public/common/",
-                "~/src/github.com/gaia-platform/GaiaPlatform/production/inc/public/direct_access/",
-                "~/src/github.com/gaia-platform/GaiaPlatform/production/inc/public/db/",
-                "~/src/github.com/gaia-platform/GaiaPlatform/production/db/storage_engine/mock"
+                "/home/wayne/src/github.com/gaia-platform/GaiaPlatform/production/inc/public/common/",
+                "/home/wayne/src/github.com/gaia-platform/GaiaPlatform/production/inc/public/direct_access/",
+                "/home/wayne/src/github.com/gaia-platform/GaiaPlatform/production/inc/public/db/",
+                "/home/wayne/src/github.com/gaia-platform/GaiaPlatform/production/db/storage_engine/mock",
+                "build"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang-8",

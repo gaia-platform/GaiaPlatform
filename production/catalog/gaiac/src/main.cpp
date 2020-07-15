@@ -78,6 +78,7 @@ int main(int argc, char *argv[]) {
 
                 // Generate the flatbuffer schema file.
                 ofstream fbs(db_name + ".fbs");
+                fbs << "namespace gaia." << db_name << ";" << endl << endl;
                 fbs << gaia::catalog::generate_fbs() << endl;
                 fbs.close();
 

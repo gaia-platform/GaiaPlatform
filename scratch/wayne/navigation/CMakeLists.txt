@@ -28,15 +28,6 @@ set (AIRIMPORT_INCLUDES
 )
 include_directories(${AIRIMPORT_INCLUDES})
 
-# add_custom_command(
-#   OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/airport_generated.h"
-#   COMMAND ${FLATBUFFERS}/build/flatc --cpp --gaiacpp --gen-mutable --gen-setters
-#     --gen-object-api --cpp-str-type gaia::direct_access::nullable_string_t --cpp-str-flex-ctor
-#     -o ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/airport.fbs
-#   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/airport.fbs
-#   COMMENT "Compiling airport.fbs"
-# )
-
 add_custom_command(
   OUTPUT "gaia_airport.h"
   COMMAND gaiac ${CMAKE_CURRENT_SOURCE_DIR}/airport.ddl

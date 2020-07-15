@@ -1,4 +1,4 @@
-CREATE table airport
+create table airport
 (
     name string,
     city string,
@@ -11,18 +11,18 @@ CREATE table flight
     miles_flown int32
 );
 
-CREATE table segment
+create table segment
 (
     id int32,
     miles int32,
     status int32,
     luggage_weight int32,
-    flights_ REFERENCES flight,
+    flights_ references flight,
     src_ references airport,
     dst_ references airport
 );
 
-CREATE table trip_segment
+create table trip_segment
 (
     who string,
     trip_segments_ references segment
