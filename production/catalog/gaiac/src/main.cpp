@@ -5,8 +5,9 @@
 #include "gaia_catalog.hpp"
 #include "gaia_parser.hpp"
 #include "gaia_system.hpp"
-#include <vector>
 #include <iostream>
+#include <string>
+#include <vector>
 
 using namespace std;
 using namespace gaia::catalog::ddl;
@@ -23,6 +24,33 @@ void execute(vector<unique_ptr<statement_t>> &statements) {
     }
 }
 
+void start_repl(parser_t &parser) {
+    const auto prompt = "gaiac> ";
+
+    while (true) {
+        string line;
+        cout << prompt << flush;
+        getline(cin, line);
+
+        if (line.length() == 0 || line == "exit") {
+            break;
+        }
+        int parsing_result = parser.parse_line(line);
+        if (parsing_result == EXIT_SUCCESS) {
+            try {
+                execute(parser.statements);
+                cout << gaia::catalog::generate_fbs() << flush;
+            } catch (gaia_exception &e) {
+                cout << e.what() << endl
+                     << flush;
+            }
+        } else {
+            cout << "Invalid input." << endl
+                 << flush;
+        }
+    }
+}
+
 int main(int argc, char *argv[]) {
     int res = 0;
     parser_t parser;
@@ -32,12 +60,14 @@ int main(int argc, char *argv[]) {
             parser.trace_parsing = true;
         } else if (argv[i] == string("-s")) {
             parser.trace_scanning = true;
+        } else if (argv[i] == string("-i")) {
+            start_repl(parser);
         } else if (!parser.parse(argv[i])) {
             execute(parser.statements);
+            cout << gaia::catalog::generate_fbs() << endl;
         } else {
             res = EXIT_FAILURE;
         }
     }
-    cout << gaia::catalog::generate_fbs() << endl;
     return res;
 }

@@ -32,6 +32,15 @@ class parser_t {
         return res;
     };
 
+    int parse_line(const std::string &line) {
+        scan_string_begin(line);
+        yy::parser parse(*this);
+        parse.set_debug_level(trace_parsing);
+        int res = parse();
+        scan_string_end();
+        return res;
+    }
+
     yy::location location;
     bool trace_parsing;
     bool trace_scanning;
@@ -41,6 +50,9 @@ class parser_t {
 
     void scan_begin();
     void scan_end();
+
+    void scan_string_begin(const std::string &line);
+    void scan_string_end();
 };
 
 } // namespace ddl
