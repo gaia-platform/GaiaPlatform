@@ -691,4 +691,3 @@ TEST_F(gaia_object_test, writer_value_ref) {
     EXPECT_STREQ(e->ssn(), "987654321");
     commit_transaction();
 }
-
