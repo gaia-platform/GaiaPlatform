@@ -10,7 +10,6 @@ enable_testing()
 project(parser)
 
 set(GAIA_PARSER_INCLUDES
-  ${GAIA_REPO}/production/db/storage_engine/mock
   ${GAIA_INC}/public/common
   ${GAIA_INC}/public/db
   ${GAIA_INC}/public/direct_access
