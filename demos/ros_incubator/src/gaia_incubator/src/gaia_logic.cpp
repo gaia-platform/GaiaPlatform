@@ -4,10 +4,10 @@
 /////////////////////////////////////////////
 
 // gaia includes
-/*#include "barn_storage_gaia_generated.h"
+#include "barn_storage_gaia_generated.h"
 #include "events.hpp"
 #include "gaia_system.hpp"
-#include "rules.hpp"*/
+#include "rules.hpp"
 
 #include <memory>
 #include <functional>
@@ -15,10 +15,10 @@
 #include "gaia_incubator/gaia_logic.hpp"
 
 // gaia namespaces
-/*using namespace gaia::common;
+using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::rules;
-using namespace BarnStorage;*/
+using namespace BarnStorage;
 
 gaia_logic::gaia_logic(const NodeOptions& options)
 : Node("gaia_logic", options)
@@ -46,7 +46,7 @@ void gaia_logic::shutdown_callback()
 }
 
 // gaia-specific function
-/*void init_storage() {
+void init_storage() {
     begin_transaction();
 
     ulong gaia_id;
@@ -56,4 +56,4 @@ void gaia_logic::shutdown_callback()
     Actuator::insert_row(gaia_id, "test_fan", 0, 0.0);
 
     commit_transaction();
-}*/
+}

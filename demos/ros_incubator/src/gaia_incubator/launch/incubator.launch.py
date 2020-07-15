@@ -1,23 +1,29 @@
 import launch
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
+import launch.actions
+import launch.substitutions
+import launch_ros.actions
 
 def generate_launch_description():
     container = ComposableNodeContainer(
-        node_name='incubator_container',
+        name='incubator_container',
         package='rclcpp_components',
-        node_executable='incubator_container')
-    loader = LoadComposableNodes(
+        namespace='',
+        executable='component_container',
         composable_node_descriptions=[
             ComposableNode(
                 package='gaia_incubator',
                 plugin='incubator_manager',
-                name='incubator_manager'),
+                name='incubator_manager'
+            ),
             ComposableNode(
                 package='gaia_incubator',
                 plugin='gaia_logic',
-                name='gaia_logic')
+                name='gaia_logic'
+            )
         ],
-        target_container=container, output='screen')
+        output='screen'
+    )
 
-    return LaunchDescription([container, loader])
+    return launch.LaunchDescription([container])
