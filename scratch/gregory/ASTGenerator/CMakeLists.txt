@@ -2,8 +2,10 @@ cmake_minimum_required(VERSION 3.11)
 
 project(ASTCodeGenerator VERSION 0.0.0)
 
+include(${CMAKE_BINARY_DIR}/../../../../production/cmake/gaia.cmake)
+
 set(CMAKE_CXX_FLAGS
-      "-std=c++0x -Wall -Wextra -ggdb -Wno-unused-parameter -fno-rtti -DLLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING=1")
+      "-std=c++0x -Wall -Wextra -ggdb -Wno-unused-parameter -DLLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING=1")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ggdb -pthread")
 
 
@@ -19,6 +21,8 @@ link_directories(
   ${CMAKE_BINARY_DIR}/../../../../../../TranslationEngineLLVM/TranslationEngineLLVM/build/lib
 )
 
+
+set(GAIA_PROD_BUILD ${CMAKE_BINARY_DIR}/../../../../production/build)
 add_executable(ASTCodeGenerator ${ASTGENERATOR_DEMO_SRCS})
 
 target_link_libraries(ASTCodeGenerator
@@ -186,5 +190,14 @@ target_link_libraries(ASTCodeGenerator
   LLVMBinaryFormat 
   LLVMSupport 
   LLVMDemangle
+  gaia_semock
+  gaia_direct
+)
+
+add_library(gaia_semock STATIC IMPORTED GLOBAL)
+set_target_properties(gaia_semock PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/db/storage_engine/libgaia_semock.a)
+
+add_library(gaia_direct STATIC IMPORTED GLOBAL)
+set_target_properties(gaia_direct PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/direct_access/libgaia_direct.a)
 )
 

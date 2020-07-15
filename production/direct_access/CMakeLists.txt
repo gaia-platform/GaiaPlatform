@@ -51,7 +51,6 @@ set_property (TARGET gaia_direct PROPERTY POSITION_INDEPENDENT_CODE ON)
 set (DIRECT_ACCESS_TEST_INCLUDES
   ${GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES}
   ${GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES}
-  .
 )
 add_gtest(test_direct_access "tests/test_direct_access.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia" "test_generated_code")
 add_gtest(test_references "tests/test_references.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia" "test_generated_code")
