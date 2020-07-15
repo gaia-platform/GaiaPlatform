@@ -1,0 +1,12 @@
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
+cmake_minimum_required(VERSION 3.11)
+enable_testing()
+
+# Set the project name.
+project(tools)
+
+add_subdirectory(gaia_generate)
