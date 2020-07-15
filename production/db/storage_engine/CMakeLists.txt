@@ -104,6 +104,7 @@ if (Python3_FOUND AND pybind11_FOUND)
   set_target_properties(se_mock PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
   set_target_properties(se_mock PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
 
+  # FIXME: fix this test in https://gaiaplatform.atlassian.net/browse/GAIAPLAT-260.
   # Python wrapper unit test.
   # configure_file(tests/test_storage_engine_mock.py . COPYONLY)
   # add_test(NAME test_se_mock_pybind COMMAND ${Python3_EXECUTABLE} test_storage_engine_mock.py)
@@ -126,6 +127,12 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   set_target_properties(jni_se_mock PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 endif()
 
-add_gtest(rdb_converter_test "tests/test_rdb_object_converter.cpp" "${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES};${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES};${GOOGLE_TEST_INC}" "gaia_semock")
-add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES};${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES};${GOOGLE_TEST_INC}" "gaia_common;gaia_storage")
-add_gtest(storage_engine_client_test "tests/test_storage_engine_client.cpp" "${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES};${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES};${GOOGLE_TEST_INC}" "gaia_semock")
+set(GAIA_STORAGE_ENGINE_TEST_INCLUDES
+  ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}
+  ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}
+)
+
+add_gtest(test_rdb_object_converter "tests/test_rdb_object_converter.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_semock")
+add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
+add_gtest(test_storage_engine_client "tests/test_storage_engine_client.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_semock")
+add_gtest(test_locator_allocator tests/test_locator_allocator.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")

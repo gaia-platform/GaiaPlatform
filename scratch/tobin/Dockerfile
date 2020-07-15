@@ -90,7 +90,7 @@ RUN curl https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | s
     rm -rf /var/lib/apt/lists/*
 
 # set up build dir in container fs (to avoid building in mounted source tree)
-RUN mkdir /build && chmod 777 build
+RUN mkdir /build && chmod 777 /build
 
 # set locale properly for zsh and postgres
 ENV LC_CTYPE=en_US.UTF-8

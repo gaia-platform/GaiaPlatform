@@ -26,6 +26,11 @@ namespace common
 typedef uint64_t gaia_id_t;
 
 /**
+ * The value of an invalid gaia_id.
+ */
+constexpr gaia_id_t INVALID_GAIA_ID = 0;
+
+/**
  * The type of a Gaia type identifier.
  */
 typedef uint64_t gaia_type_t;

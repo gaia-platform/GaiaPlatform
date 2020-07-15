@@ -99,7 +99,7 @@ void client::begin_session()
     const size_t OFFSETS_FD_INDEX = 1;
     size_t bytes_read = recv_msg_with_fds(s_session_socket, fds, &fd_count, msg_buf, sizeof(msg_buf));
     retail_assert(bytes_read > 0);
-    retail_assert(fd_count == 2);
+    retail_assert(fd_count == FD_COUNT);
     const message_t *msg = Getmessage_t(msg_buf);
     const server_reply_t *reply = msg->msg_as_reply();
     const session_event_t event = reply->event();
@@ -111,8 +111,8 @@ void client::begin_session()
 
     // Set up the shared data segment mapping.
     if (!s_data) {
-        data* data_mapping = (data*)map_fd(
-            sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0);
+        data* data_mapping = static_cast<data*>(map_fd(
+            sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0));
         if (!__sync_bool_compare_and_swap(&s_data, 0, data_mapping)) {
             // we lost the race, throw away the mapping
             unmap_fd(data_mapping, sizeof(data));
@@ -172,7 +172,7 @@ void client::begin_transaction()
     {
         throw_system_error("ftruncate failed");
     }
-    s_log = (log*)map_fd(sizeof(log), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_log, 0);
+    s_log = static_cast<log*>(map_fd(sizeof(log), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_log, 0));
 
     // Now we map a private COW view of the locator shared memory segment.
     if (flock(s_fd_offsets, LOCK_SH) < 0)
@@ -187,8 +187,8 @@ void client::begin_transaction()
             throw_system_error("flock failed");
         }
     });
-    s_offsets = (offsets*)map_fd(sizeof(offsets),
-        PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_offsets, 0);
+    s_offsets = static_cast<offsets*>(map_fd(sizeof(offsets),
+        PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_offsets, 0));
 
     // Notify the server that we're in a transaction. (We don't send our log fd until commit.)
     FlatBufferBuilder builder;
@@ -246,9 +246,9 @@ bool client::commit_transaction()
     // Block on the server's commit decision.
     uint8_t msg_buf[MAX_MSG_SIZE] = {0};
     size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
+    retail_assert(bytes_read > 0);
 
     // Extract the commit decision from the server's reply and return it.
-    retail_assert(bytes_read > 0);
     const message_t *msg = Getmessage_t(msg_buf);
     const server_reply_t *reply = msg->msg_as_reply();
     const session_event_t event = reply->event();

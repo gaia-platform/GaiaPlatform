@@ -155,10 +155,10 @@ private:
         {
             throw_system_error("ftruncate failed");
         }
-        s_shared_offsets = (offsets*)map_fd(sizeof(offsets),
-            PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_offsets, 0);
-        s_data = (data*)map_fd(sizeof(data),
-            PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_data, 0);
+        s_shared_offsets = static_cast<offsets*>(map_fd(sizeof(offsets),
+            PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_offsets, 0));
+        s_data = static_cast<data*>(map_fd(sizeof(data),
+            PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_data, 0));
     }
 
     static sigset_t mask_signals()
@@ -244,7 +244,6 @@ private:
         s_connect_socket = connect_socket;
         return epoll_fd;
     }
-
 
     static bool authenticate_client_socket(int socket) {
         struct ucred cred;

@@ -32,7 +32,7 @@ public:
     }
 };
 
-inline size_t send_msg_with_fds(int sock, const int *fds, size_t fd_count, void *data,
+inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void* data,
                          size_t data_size) {
     // We should never send 0 bytes of data (because that would make it impossible
     // to determine if a 0-byte read meant EOF).
@@ -47,7 +47,7 @@ inline size_t send_msg_with_fds(int sock, const int *fds, size_t fd_count, void 
     struct iovec iov;
     // This is a union only to guarantee alignment for cmsghdr.
     union {
-        // this is a dummy field for alignment only
+        // This is a dummy field for alignment only.
         struct cmsghdr dummy;
         char buf[CMSG_SPACE(sizeof(int) * MAX_FD_COUNT)];
     } control;
@@ -63,7 +63,7 @@ inline size_t send_msg_with_fds(int sock, const int *fds, size_t fd_count, void 
     if (fds) {
         msg.msg_control = control.buf;
         msg.msg_controllen = sizeof(control.buf);
-        struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
+        struct cmsghdr* cmsg = CMSG_FIRSTHDR(&msg);
         cmsg->cmsg_len = CMSG_LEN(sizeof(int) * fd_count);
         cmsg->cmsg_level = SOL_SOCKET;
         cmsg->cmsg_type = SCM_RIGHTS;
@@ -97,7 +97,7 @@ inline size_t send_msg_with_fds(int sock, const int *fds, size_t fd_count, void 
     return bytes_written;
 }
 
-inline size_t recv_msg_with_fds(int sock, int *fds, size_t *pfd_count, void *data,
+inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* data,
                          size_t data_size) {
     // *pfd_count has initial value equal to length of fds array,
     // and all fds we receive must fit in control.buf below.
@@ -108,7 +108,7 @@ inline size_t recv_msg_with_fds(int sock, int *fds, size_t *pfd_count, void *dat
     struct iovec iov;
     // This is a union only to guarantee alignment for cmsghdr.
     union {
-        // this is a dummy field for alignment only
+        // This is a dummy field for alignment only.
         struct cmsghdr dummy;
         char buf[CMSG_SPACE(sizeof(int) * MAX_FD_COUNT)];
     } control;
@@ -138,7 +138,7 @@ inline size_t recv_msg_with_fds(int sock, int *fds, size_t *pfd_count, void *dat
             "recvmsg: control or data payload truncated on read");
     }
     if (fds) {
-        struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
+        struct cmsghdr* cmsg = CMSG_FIRSTHDR(&msg);
         if (cmsg) {
             // message contains some fds, extract them
             retail_assert(cmsg->cmsg_level == SOL_SOCKET);

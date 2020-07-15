@@ -112,9 +112,9 @@ public:
             return;
         }
 
-        const gaia_id_t * references = node.references();
+        const gaia_id_t* references = node.references();
         for (size_t i = 0; i < node.num_references(); i++) {
-            if (references[i]) {
+            if (references[i] != INVALID_GAIA_ID) {
                 throw node_not_disconnected(node.id(), node.type());
             }
         }

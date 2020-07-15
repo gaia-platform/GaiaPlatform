@@ -44,7 +44,7 @@ inline void retail_assert(bool condition, const string& message = "")
 {
     if (!condition)
     {
-        throw retail_assertion_failure(string(message));
+        throw retail_assertion_failure(message);
     }
 }
 

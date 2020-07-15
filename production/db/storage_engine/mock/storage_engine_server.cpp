@@ -60,7 +60,7 @@ void server::handle_commit_txn(int* fds, size_t fd_count, session_event_t event,
     retail_assert(seals & F_SEAL_WRITE);
     // Linux won't let us create a shared read-only mapping if F_SEAL_WRITE is set,
     // which seems contrary to the manpage for fcntl(2).
-    s_log = (log*)map_fd(sizeof(log), PROT_READ, MAP_PRIVATE, fd_log, 0);
+    s_log = static_cast<log*>(map_fd(sizeof(log), PROT_READ, MAP_PRIVATE, fd_log, 0));
     // Close our log fd so the shared memory will be released when the client closes it.
     close(fd_log);
     // Actually commit the transaction.

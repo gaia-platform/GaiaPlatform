@@ -113,6 +113,7 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
     INCLUDE_JARS GaiaTinkerpop)
   get_target_property(GAIA_TESTS_JAR GaiaTests JAR_FILE)
 
+  # FIXME: fix these tests in https://gaiaplatform.atlassian.net/browse/GAIAPLAT-260.
   # Add JNI test.
   # add_test(
   #   NAME test_se_mock_jni

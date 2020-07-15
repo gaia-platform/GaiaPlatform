@@ -27,7 +27,7 @@ inline void* map_fd(size_t length, int protection, int flags, int fd, size_t off
     return mapping;
 }
 
-inline void unmap_fd(void *addr, size_t length)
+inline void unmap_fd(void* addr, size_t length)
 {
     if (-1 == munmap(addr, length)) {
         const char* reason = explain_munmap(addr, length);
