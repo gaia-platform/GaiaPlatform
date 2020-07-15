@@ -36,7 +36,8 @@ if(fbs_generated)
 endif()
 
 target_include_directories(gaia_direct PRIVATE ${GAIA_DIRECT_ACCESS_INCLUDES})
-set_target_properties(gaia_direct PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+
+set_target_properties(gaia_direct PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fPIC")
 
 # Start unit tests.
 set (DIRECT_ACCESS_TEST_INCLUDES
@@ -45,3 +46,4 @@ set (DIRECT_ACCESS_TEST_INCLUDES
 )
 add_gtest(test_direct_access "tests/test_direct_access.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia" "test_generated_code")
 add_gtest(test_references "tests/test_references.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia" "test_generated_code")
+
