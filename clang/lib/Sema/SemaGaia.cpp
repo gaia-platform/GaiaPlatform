@@ -82,14 +82,14 @@ static unordered_map<string, unordered_map<string, QualType>> getTableData(Sema 
     
         gaia::db::begin_transaction();
 
-        for(unique_ptr<catalog::Gaia_table> table { catalog::Gaia_table::get_first()}; 
+        for(unique_ptr<catalog::Gaia_table> table (catalog::Gaia_table::get_first()); 
             table; table.reset(table->get_next()))
         {
             unordered_map<string, QualType> fields;
             retVal[table->name()] = fields;
         }
 
-        for(unique_ptr<catalog::Gaia_field> field { catalog::Gaia_field::get_first()}; 
+        for(unique_ptr<catalog::Gaia_field> field (catalog::Gaia_field::get_first()); 
             field; field.reset(field->get_next()))
         {
             gaia_id_t tableId = field->table_id();

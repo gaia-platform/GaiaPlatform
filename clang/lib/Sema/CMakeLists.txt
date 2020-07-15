@@ -10,10 +10,11 @@ if (MSVC)
 endif()
 
 set(GAIA_CATALOG_INCLUDES
-  ../../../../../catalog/GaiaPlatform/production/build/catalog/catalog_manager/generated
-  ../../../../../catalog/GaiaPlatform/production/inc/public/common
-  ../../../../../catalog/GaiaPlatform/third_party/production/flatbuffers/include
-  ../../../../../catalog/GaiaPlatform/production/db/storage_engine/mock
+  ../../../../../ASTCodeGeneration/GaiaPlatform/production/build/catalog/catalog_manager/generated
+  ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/public/common
+  ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/public/direct_access
+  ../../../../../ASTCodeGeneration/GaiaPlatform/third_party/production/flatbuffers/include
+  ../../../../../ASTCodeGeneration/GaiaPlatform/production/db/storage_engine/mock
 )
   
 add_clang_library(clangSema
@@ -77,8 +78,8 @@ add_clang_library(clangSema
   )
  target_include_directories(clangSema PRIVATE ${GAIA_CATALOG_INCLUDES})
  add_library(gaia_semock STATIC IMPORTED GLOBAL)
-set_target_properties(gaia_semock PROPERTIES IMPORTED_LOCATION /home/gregory/src/catalog/GaiaPlatform/production/build/db/storage_engine/libgaia_semock.a)
+set_target_properties(gaia_semock PROPERTIES IMPORTED_LOCATION /home/gregory/src/ASTCodeGeneration/GaiaPlatform/production/build/db/storage_engine/libgaia_semock.a)
 
 add_library(gaia_direct STATIC IMPORTED GLOBAL)
-set_target_properties(gaia_direct PROPERTIES IMPORTED_LOCATION /home/gregory/src/catalog/GaiaPlatform/production/build/direct_access/libgaia_direct.a)
+set_target_properties(gaia_direct PROPERTIES IMPORTED_LOCATION /home/gregory/src/ASTCodeGeneration/GaiaPlatform/production/build/direct_access/libgaia_direct.a)
 
