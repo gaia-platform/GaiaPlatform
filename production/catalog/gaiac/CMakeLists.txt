@@ -3,7 +3,7 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.12)
 enable_testing()
 
 # Set the project name.
@@ -11,9 +11,11 @@ project(gaiac)
 
 set(GAIA_CATALOG_TOOL_INCLUDES
   ${FLATBUFFERS_INC}
-  ${GAIA_REPO}/production/db/storage_engine/mock
+  # ${GAIA_REPO}/production/db/storage_engine/mock
   ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_INC}/public/common
+  ${GAIA_INC}/public/db
+  ${GAIA_INC}/internal/db
   ${GAIA_INC}/public/direct_access
   ${GAIA_INC}/public/catalog
   ${GAIA_INC}/public/system

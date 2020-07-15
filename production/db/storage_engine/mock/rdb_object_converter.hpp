@@ -9,11 +9,14 @@
 
 #pragma once
 
-#include "rocksdb/slice.h"
-#include "storage_engine.hpp"
-#include "vector"
+#include <vector>
 
-namespace gaia { 
+#include "gaia_common.hpp"
+#include "rocksdb/slice.h"
+
+using namespace gaia::common;
+
+namespace gaia {
 
 namespace db {
 
@@ -26,11 +29,11 @@ enum GaiaObjectType: u_int8_t {
 };
 
 /**
- * String writer library containing a byte buffer and current length; used for serializing 
+ * String writer library containing a byte buffer and current length; used for serializing
  * gaia objects to rocksdb slices.
  */
 class string_writer {
-    private: 
+    private:
     std::vector<u_char> m_buffer;
     size_t m_position;
 
@@ -93,7 +96,7 @@ class string_writer {
  * String reader library used during deserialization of slices to gaia objects.
  */
 class string_reader {
-    private: 
+    private:
     // current ptr to keep track of char's read in slice
     const char* m_current;
     // maintain remaining length for sanity purposes
@@ -112,7 +115,7 @@ class string_reader {
     }
 
     bool read_uint64(u_int64_t* out) {
-        const u_char* casted_res = 
+        const u_char* casted_res =
         reinterpret_cast<const u_char *>(read(sizeof(u_int64_t)));
 
         if (casted_res) {
@@ -120,14 +123,14 @@ class string_reader {
             memcpy(&temp, casted_res, sizeof(u_int64_t));
             // Convert to little endian.
             *out = be64toh(temp);
-            return true; // Value read successfully. 
+            return true; // Value read successfully.
         }
 
         return false; // Error
     }
 
     bool read_uint32(u_int32_t* out) {
-        const u_char* casted_res = 
+        const u_char* casted_res =
         reinterpret_cast<const u_char *>(read(sizeof(u_int32_t)));
 
         if (casted_res) {
@@ -142,12 +145,12 @@ class string_reader {
     }
 
     bool read_byte(u_char* out) {
-        const u_char* casted_res = 
+        const u_char* casted_res =
         reinterpret_cast<const u_char *>(read(sizeof(u_char)));
 
         if (casted_res) {
             *out = *casted_res;
-            return true; // Value read successfully. 
+            return true; // Value read successfully.
         }
 
         return false; // Error
@@ -197,7 +200,7 @@ class rdb_object_converter_util {
                                    gaia_type_t* type,
                                    u_int32_t* size);
     static const char* decode_edge(const rocksdb::Slice& key,
-                                   const rocksdb::Slice& value, 
+                                   const rocksdb::Slice& value,
                                    gaia_id_t* id,
                                    gaia_type_t* type,
                                    u_int32_t* size,

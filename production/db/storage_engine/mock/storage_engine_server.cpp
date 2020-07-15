@@ -17,7 +17,7 @@ int server::s_fd_data = -1;
 se_base::offsets* server::s_shared_offsets = nullptr;
 thread_local session_state_t server::s_session_state = session_state_t::DISCONNECTED;
 thread_local bool server::s_session_shutdown = false;
-constexpr server::ValidTransition server::s_valid_transitions[];
+constexpr server::valid_transition_t server::s_valid_transitions[];
 
 void server::handle_connect(int*, size_t, session_event_t event, session_state_t old_state, session_state_t new_state) {
     retail_assert(event == session_event_t::CONNECT);

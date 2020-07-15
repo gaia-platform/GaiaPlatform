@@ -135,18 +135,6 @@ static bool is_valid_option(const char *option, const char *value,
 }
 
 /*
- * Clear all data in the storage engine.
- */
-extern "C" void handleResetStorageEngine(const char *name, const char *value,
-                                         Oid context) {
-    assert(strcmp(name, "reset") == 0);
-    assert(context == ForeignServerRelationId);
-    if (strcmp(value, "true") == 0) {
-        gaia_mem_base::init(true);
-    }
-}
-
-/*
  * The validator function is responsible for validating options given in CREATE
  * and ALTER commands for its foreign data wrapper, as well as foreign servers,
  * user mappings, and foreign tables using the wrapper. The validator function
@@ -340,7 +328,6 @@ extern "C" void gaiaBeginForeignScan(ForeignScanState *node, int eflags) {
         (gaiaFdwScanState *)palloc0(sizeof(gaiaFdwScanState));
     node->fdw_state = scan_state;
     scan_state->deserializer = mapping.deserializer;
-    scan_state->gaia_type_is_edge = mapping.gaia_type_is_edge;
 
     TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
     TupleDesc tupleDesc = slot->tts_tupleDescriptor;
@@ -368,13 +355,7 @@ extern "C" void gaiaBeginForeignScan(ForeignScanState *node, int eflags) {
     begin_gaia_txn();
     // retrieve the first node of the requested type (this can't currently
     // throw)
-    if (scan_state->gaia_type_is_edge) {
-        scan_state->cur_edge =
-            gaia_ptr<gaia_se_edge>::find_first(mapping.gaia_type_id);
-    } else {
-        scan_state->cur_node =
-            gaia_ptr<gaia_se_node>::find_first(mapping.gaia_type_id);
-    }
+    scan_state->cur_node = gaia_ptr::find_first(mapping.gaia_type_id);
 }
 
 extern "C" TupleTableSlot *gaiaIterateForeignScan(ForeignScanState *node) {
@@ -408,14 +389,8 @@ extern "C" TupleTableSlot *gaiaIterateForeignScan(ForeignScanState *node) {
     // elog(DEBUG1, "entering function %s", __func__);
 
     // return NULL if we reach the end of iteration
-    if (scan_state->gaia_type_is_edge) {
-        if (!scan_state->cur_edge) {
-            return NULL;
-        }
-    } else {
-        if (!scan_state->cur_node) {
-            return NULL;
-        }
+    if (!scan_state->cur_node) {
+        return NULL;
     }
 
     /* mark the slot empty */
@@ -423,11 +398,7 @@ extern "C" TupleTableSlot *gaiaIterateForeignScan(ForeignScanState *node) {
 
     /* get the next record, if any, and fill in the slot */
     const void *obj_buf;
-    if (scan_state->gaia_type_is_edge) {
-        obj_buf = scan_state->cur_edge->payload;
-    } else {
-        obj_buf = scan_state->cur_node->payload;
-    }
+    obj_buf = scan_state->cur_node.data();
     const void *obj_root = scan_state->deserializer(obj_buf);
     for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts;
          attr_idx++) {
@@ -444,11 +415,7 @@ extern "C" TupleTableSlot *gaiaIterateForeignScan(ForeignScanState *node) {
 
     /* now advance the current node to the next node in the iteration (this
      * can't currently throw) */
-    if (scan_state->gaia_type_is_edge) {
-        scan_state->cur_edge = scan_state->cur_edge.find_next();
-    } else {
-        scan_state->cur_node = scan_state->cur_node.find_next();
-    }
+    scan_state->cur_node = scan_state->cur_node.find_next();
 
     /* return the slot */
     return slot;
@@ -475,11 +442,7 @@ extern "C" void gaiaEndForeignScan(ForeignScanState *node) {
 
     gaiaFdwScanState *scan_state = (gaiaFdwScanState *)node->fdw_state;
     // we should have reached the end of iteration
-    if (scan_state->gaia_type_is_edge) {
-        assert(!scan_state->cur_edge);
-    } else {
-        assert(!scan_state->cur_node);
-    }
+    assert(!scan_state->cur_node);
     // commit read transaction
     commit_gaia_txn();
 }
@@ -662,7 +625,6 @@ extern "C" void gaiaBeginForeignModify(ModifyTableState *mtstate,
     }
 
     modify_state->gaia_type_id = mapping.gaia_type_id;
-    modify_state->gaia_type_is_edge = mapping.gaia_type_is_edge;
     modify_state->initializer = mapping.initializer;
     modify_state->finalizer = mapping.finalizer;
     flatcc_builder_init(&modify_state->builder);
@@ -681,12 +643,6 @@ extern "C" void gaiaBeginForeignModify(ModifyTableState *mtstate,
         if (strcmp(attr_name, "gaia_id") == 0) {
             modify_state->pk_attr_idx = i;
         }
-        if (strcmp(attr_name, "gaia_src_id") == 0) {
-            modify_state->src_attr_idx = i;
-        }
-        if (strcmp(attr_name, "gaia_dst_id") == 0) {
-            modify_state->dst_attr_idx = i;
-        }
         for (size_t j = 0; j < mapping.attribute_count; j++) {
             if (strcmp(attr_name, mapping.attributes[j].name) == 0) {
                 indexed_builders[i] = mapping.attributes[j].builder;
@@ -697,10 +653,6 @@ extern "C" void gaiaBeginForeignModify(ModifyTableState *mtstate,
 
     // check invariants
     assert(modify_state->pk_attr_idx > -1);
-    if (modify_state->gaia_type_is_edge) {
-        assert(modify_state->src_attr_idx > -1);
-        assert(modify_state->dst_attr_idx > -1);
-    }
 
     begin_gaia_txn();
 }
@@ -712,24 +664,15 @@ extern "C" void gaiaBeginForeignModify(ModifyTableState *mtstate,
 static uint64_t new_gaia_id() {
     ifstream urandom("/dev/urandom", ios::in | ios::binary);
     if (urandom) {
-        // we need to loop until we have a value < 2^63 because the high bit of
-        // gaia_id is used for edge type in the current storage engine impl.
-        while (true) {
-            uint64_t rand_val;
-            urandom.read(reinterpret_cast<char *>(&rand_val), sizeof(rand_val));
-            if (urandom) {
-                assert(rand_val !=
-                       0); // this should be statistically impossible
-                if (rand_val & 0x8000000000000000) {
-                    // can't have the high bit set per above
-                    continue;
-                }
-                return rand_val;
-            } else {
-                elog(ERROR, "failed to read from /dev/urandom");
-            }
+        uint64_t rand_val;
+        urandom.read(reinterpret_cast<char *>(&rand_val), sizeof(rand_val));
+        if (urandom) {
+            // Generating 0 should be statistically impossible.
+            assert(rand_val != 0);
+            return rand_val;
+        } else {
+            elog(ERROR, "failed to read from /dev/urandom");
         }
-        urandom.close();
     } else {
         elog(ERROR, "failed to open /dev/urandom");
     }
@@ -801,14 +744,6 @@ extern "C" TupleTableSlot *gaiaExecForeignInsert(EState *estate,
             slot->tts_isnull[attr_idx] = false;
         } else if (!(slot->tts_isnull[attr_idx])) {
             attr_val = slot->tts_values[attr_idx];
-            if (modify_state->gaia_type_is_edge &&
-                attr_idx == modify_state->src_attr_idx) {
-                gaia_src_id = DatumGetUInt64(attr_val);
-            }
-            if (modify_state->gaia_type_is_edge &&
-                attr_idx == modify_state->dst_attr_idx) {
-                gaia_dst_id = DatumGetUInt64(attr_val);
-            }
         }
         // if we have a null value, just don't bother to set it in the builder
         if (!slot->tts_isnull[attr_idx]) {
@@ -816,22 +751,13 @@ extern "C" TupleTableSlot *gaiaExecForeignInsert(EState *estate,
         }
     }
     assert(gaia_id);
-    if (modify_state->gaia_type_is_edge) {
-        assert(gaia_src_id && gaia_dst_id);
-    }
 
     modify_state->finalizer(builder);
     size_t size;
     const void *buffer = flatcc_builder_get_direct_buffer(builder, &size);
 
     try {
-        if (modify_state->gaia_type_is_edge) {
-            gaia_se_edge::create(gaia_id, modify_state->gaia_type_id,
-                                 gaia_src_id, gaia_dst_id, size, buffer);
-        } else {
-            gaia_se_node::create(gaia_id, modify_state->gaia_type_id, size,
-                                 buffer);
-        }
+        gaia_ptr::create(gaia_id, modify_state->gaia_type_id, size, buffer);
     } catch (const std::exception &e) {
         ereport(ERROR,
                 (errcode(ERRCODE_FDW_ERROR),
@@ -909,13 +835,8 @@ extern "C" TupleTableSlot *gaiaExecForeignUpdate(EState *estate,
     const void *buffer = flatcc_builder_get_direct_buffer(builder, &size);
 
     try {
-        if (modify_state->gaia_type_is_edge) {
-            auto edge = gaia_se_edge::open(gaia_id);
-            edge.update_payload(size, buffer);
-        } else {
-            auto node = gaia_se_node::open(gaia_id);
-            node.update_payload(size, buffer);
-        }
+        auto node = gaia_ptr::open(gaia_id);
+        node.update_payload(size, buffer);
     } catch (const std::exception &e) {
         ereport(ERROR,
                 (errcode(ERRCODE_FDW_ERROR),
@@ -975,26 +896,14 @@ extern "C" TupleTableSlot *gaiaExecForeignDelete(EState *estate,
     assert(!is_null);
     uint64_t gaia_id = DatumGetUInt64(pk_val);
     try {
-        if (modify_state->gaia_type_is_edge) {
-            modify_state->target_edge = gaia_se_edge::open(gaia_id);
-            if (modify_state->target_edge) {
-                elog(DEBUG1, "calling remove() on edge for gaia_id %d",
-                     gaia_id);
-                gaia_ptr<gaia_se_edge>::remove(modify_state->target_edge);
-            } else {
-                elog(DEBUG1, "edge for gaia_id %d is invalid", gaia_id);
-                retSlot = NULL;
-            }
+        modify_state->target_node = gaia_ptr::open(gaia_id);
+        if (modify_state->target_node) {
+            elog(DEBUG1, "calling remove() on node for gaia_id %d",
+                    gaia_id);
+            gaia_ptr::remove(modify_state->target_node);
         } else {
-            modify_state->target_node = gaia_se_node::open(gaia_id);
-            if (modify_state->target_node) {
-                elog(DEBUG1, "calling remove() on node for gaia_id %d",
-                     gaia_id);
-                gaia_ptr<gaia_se_node>::remove(modify_state->target_node);
-            } else {
-                elog(DEBUG1, "node for gaia_id %d is invalid", gaia_id);
-                retSlot = NULL;
-            }
+            elog(DEBUG1, "node for gaia_id %d is invalid", gaia_id);
+            retSlot = NULL;
         }
     } catch (const std::exception &e) {
         ereport(ERROR,
@@ -1316,7 +1225,7 @@ extern "C" List *gaiaImportForeignSchema(ImportForeignSchemaStmt *stmt,
         ROUTE_DDL_STMT_FMT,
         EVENT_LOG_DDL_STMT_FMT,
     };
-    for (size_t i = 0; i < ARRAY_SIZE(ddl_stmt_fmts); i++) {
+    for (size_t i = 0; i < array_size(ddl_stmt_fmts); i++) {
         // length of format string + length of server name - 2 chars for format
         // specifier + 1 char for null terminator
         size_t stmt_len = strlen(ddl_stmt_fmts[i]) + strlen(serverName) - 2 + 1;
@@ -1337,11 +1246,11 @@ extern "C" List *gaiaImportForeignSchema(ImportForeignSchemaStmt *stmt,
 extern "C" void _PG_init() {
     elog(DEBUG1, "entering function %s", __func__);
     // initialize COW-SE without deleting all data
-    gaia_mem_base::init(false);
+    gaia::db::begin_session();
 }
 
 // Perform all module-level finalization here
 extern "C" void _PG_fini() {
     elog(DEBUG1, "entering function %s", __func__);
-    // any SE cleanup required?
+     gaia::db::end_session();
 }

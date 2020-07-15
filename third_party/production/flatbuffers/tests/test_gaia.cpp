@@ -5,6 +5,7 @@
 
 #include "GaiaTests/tests/addr_book_gaia_generated.h"
 #include "test_assert.h"
+#include "db_test_helpers.hpp"
 
 gaia_id_t get_next_id()
 {
@@ -17,7 +18,7 @@ gaia_id_t get_next_id()
 gaia::rules::trigger_event_t g_trigger_event;
 std::vector<uint16_t> g_columns;
 
-namespace gaia 
+namespace gaia
 {
 namespace rules
 {
@@ -29,7 +30,7 @@ void commit_trigger(uint32_t tx_id, trigger_event_t* events, size_t count_events
     g_columns.clear();
     g_trigger_event = *events;
 
-    // Save off the columns array because its lifetime is not guaranteed to 
+    // Save off the columns array because its lifetime is not guaranteed to
     // extend beyond the end of this function call.
     trigger_event_t * event = events;
     for (size_t i = 0; i < event->count_columns; i++)
@@ -65,7 +66,7 @@ void GaiaGetTest()
     int64_t first_provision_id = get_next_id();
     int64_t first_salary_id = get_next_id();
     int64_t hire_date = get_next_id();
-        
+
     int64_t empl_node_id = AddrBook::Employee::insert_row(manager_id
         ,first_address_id
         ,first_phone_id
@@ -78,7 +79,7 @@ void GaiaGetTest()
         ,"testEmail"
         ,"testWeb"
         );
-        
+
     AddrBook::Employee *pEmployee = AddrBook::Employee::get_row_by_id(empl_node_id);
     TEST_EQ(empl_node_id,pEmployee->gaia_id());
     TEST_EQ(manager_id,pEmployee->Gaia_Mgr_id());
@@ -106,7 +107,7 @@ void GaiaSetTest()
     int64_t first_provision_id = get_next_id();
     int64_t first_salary_id = get_next_id();
     int64_t hire_date = get_next_id();
-        
+
     int64_t empl_node_id = AddrBook::Employee::insert_row(manager_id
         ,first_address_id
         ,first_phone_id
@@ -122,7 +123,7 @@ void GaiaSetTest()
 
     AddrBook::Employee *pEmployee = AddrBook::Employee::get_row_by_id(empl_node_id);
 
-    // Verify we can use the generated optimized insert_row function that 
+    // Verify we can use the generated optimized insert_row function that
     // calls the correct flatbuffer Create<type> API.  For types that have
     // a string or vector field, insert_row will call Create<type>Direct.
     // For types without a string or vector field, insert_row will call
@@ -147,7 +148,7 @@ void GaiaUpdateTest()
     int64_t first_provision_id = get_next_id();
     int64_t first_salary_id = get_next_id();
     int64_t hire_date = get_next_id();
-        
+
     int64_t empl_node_id = AddrBook::Employee::insert_row(manager_id
         ,first_address_id
         ,first_phone_id
@@ -173,7 +174,7 @@ void GaiaUpdateTest()
     vector<uint16_t> columns;
     columns.push_back(AddrBook::employee::VT_SSN);
     columns.push_back(AddrBook::employee::VT_NAME_FIRST);
-    gaia::rules::trigger_event_t expected_a = {gaia::rules::event_type_t::row_update, 
+    gaia::rules::trigger_event_t expected_a = {gaia::rules::event_type_t::row_update,
         AddrBook::Employee::s_gaia_type, pEmployee->gaia_id(), columns.data(), 2};
     verify_trigger_event(expected_a);
 
@@ -186,7 +187,7 @@ void GaiaUpdateTest()
     // Since the changed columns are cumulative until the commit happens, we now have three
     // columns changed overall (ssn, name_last, and name_first).
     columns.push_back(AddrBook::employee::VT_NAME_LAST);
-    gaia::rules::trigger_event_t expected_b = {gaia::rules::event_type_t::row_update, 
+    gaia::rules::trigger_event_t expected_b = {gaia::rules::event_type_t::row_update,
         AddrBook::Employee::s_gaia_type, pEmployee->gaia_id(), columns.data(), 3};
     verify_trigger_event(expected_b);
 
@@ -228,9 +229,9 @@ void GaiaInsertTest()
     e->set_web(web);
     e->insert_row();
     gaia::db::gaia_id_t inserted_id = e->gaia_id();
-    delete e;    
+    delete e;
 
-    gaia::rules::trigger_event_t expected = {gaia::rules::event_type_t::row_insert, 
+    gaia::rules::trigger_event_t expected = {gaia::rules::event_type_t::row_insert,
         AddrBook::Employee::s_gaia_type, inserted_id, nullptr, 0};
     verify_trigger_event(expected);
 
@@ -261,7 +262,7 @@ void GaiaDeleteTest()
     int64_t first_provision_id = get_next_id();
     int64_t first_salary_id = get_next_id();
     int64_t hire_date = get_next_id();
-        
+
     gaia::db::gaia_id_t empl_node_id = AddrBook::Employee::insert_row(manager_id
         ,first_address_id
         ,first_phone_id
@@ -278,16 +279,17 @@ void GaiaDeleteTest()
     AddrBook::Employee *pEmployee = AddrBook::Employee::get_row_by_id(empl_node_id);
     pEmployee->delete_row();
 
-    gaia::rules::trigger_event_t expected = {gaia::rules::event_type_t::row_delete, 
+    gaia::rules::trigger_event_t expected = {gaia::rules::event_type_t::row_delete,
         AddrBook::Employee::s_gaia_type, empl_node_id, nullptr, 0};
     verify_trigger_event(expected);
 
     commit_transaction();
 }
 
-int main(int /*argc*/, const char * /*argv*/[]) 
+int main(int /*argc*/, const char * /*argv*/[])
 {
     InitTestEngine();
+    start_server();
 
     std::string req_locale;
     if (flatbuffers::ReadEnvironmentVariable("FLATBUFFERS_TEST_LOCALE",
@@ -302,18 +304,20 @@ int main(int /*argc*/, const char * /*argv*/[])
         TEST_OUTPUT_LINE("The global C-locale changed: %s", the_locale.c_str());
     }
 
-    gaia_mem_base::init("all_events", true);
+    gaia::db::begin_session();
     GaiaGetTest();
     GaiaSetTest();
     GaiaUpdateTest();
     GaiaInsertTest();
     GaiaDeleteTest();
+    gaia::db::end_session();
+    stop_server();
 
-    if (!testing_fails) 
+    if (!testing_fails)
     {
         TEST_OUTPUT_LINE("ALL TESTS PASSED");
-    } 
-    else 
+    }
+    else
     {
         TEST_OUTPUT_LINE("%d FAILED TESTS", testing_fails);
     }

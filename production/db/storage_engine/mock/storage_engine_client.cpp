@@ -12,9 +12,10 @@ using namespace flatbuffers;
 
 thread_local se_base::offsets* client::s_offsets = nullptr;
 thread_local int client::s_fd_log = -1;
-gaia_tx_hook client::s_tx_begin_hook = nullptr;
-gaia_tx_hook client::s_tx_commit_hook = nullptr;
-gaia_tx_hook client::s_tx_rollback_hook = nullptr;
+
+std::atomic<gaia_tx_hook> client::s_tx_begin_hook {nullptr};
+std::atomic<gaia_tx_hook> client::s_tx_commit_hook{nullptr};
+std::atomic<gaia_tx_hook> client::s_tx_rollback_hook{nullptr};
 
 static void build_client_request(FlatBufferBuilder& builder, session_event_t event) {
     auto client_request = Createclient_request_t(builder, event);
@@ -120,7 +121,7 @@ void client::begin_session()
     // We've already mapped the data fd, so we can close it now.
     close(fd_data);
 
-    // Set up the private locator segment mapping.
+    // Set up the private locator segment fd.
     int fd_offsets = fds[OFFSETS_FD_INDEX];
     retail_assert(fd_offsets != -1);
     if (s_fd_offsets == -1) {
@@ -193,6 +194,11 @@ void client::begin_transaction()
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::BEGIN_TXN);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
+
+    // Don't call the hook unless all preceding steps were successful.
+    if (s_tx_begin_hook) {
+        (s_tx_begin_hook.load())();
+    }
 }
 
 void client::rollback_transaction()
@@ -203,10 +209,15 @@ void client::rollback_transaction()
     auto cleanup = scope_guard::make_scope_guard(tx_cleanup);
 
     // Notify the server that we rolled back this transaction.
+    // (We don't expect the server to reply to this message.)
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::ROLLBACK_TXN);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
-    // We don't expect the server to reply to this message.
+
+    // Don't call the hook unless all preceding steps were successful.
+    if (s_tx_rollback_hook) {
+        (s_tx_rollback_hook.load())();
+    }
 }
 
 // This method returns true for a commit decision and false for an abort decision.
@@ -242,5 +253,11 @@ bool client::commit_transaction()
     const server_reply_t *reply = msg->msg_as_reply();
     const session_event_t event = reply->event();
     retail_assert(event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT);
+
+    // Don't call the hook unless all preceding steps were successful.
+    if (s_tx_commit_hook) {
+        (s_tx_commit_hook.load())();
+    }
+
     return (event == session_event_t::DECIDE_TXN_COMMIT);
 }

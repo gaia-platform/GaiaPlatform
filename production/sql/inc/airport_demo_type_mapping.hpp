@@ -5,9 +5,9 @@
 
 #pragma once
 
+#include "array_size.hpp"
 #include "type_mapping.hpp"
 #include "airport_demo_types.hpp"
-#include "helpers.hpp"
 
 // all definitions in this file and included files should have C linkage
 extern "C" {
@@ -542,34 +542,31 @@ static const Attribute ROUTE_ATTRS[] = {
 RelationAttributeMapping AIRPORT_MAPPING = {
     "airports",
     airport_demo_types::kAirportsType,
-    false,
     (RootObjectDeserializer)gaia_airport_airports_as_root,
     (BuilderInitializer)gaia_airport_airports_start_as_root,
     (BuilderFinalizer)gaia_airport_airports_end_as_root,
     AIRPORT_ATTRS,
-    ARRAY_SIZE(AIRPORT_ATTRS),
+    array_size(AIRPORT_ATTRS),
 };
 
 RelationAttributeMapping AIRLINE_MAPPING = {
     "airlines",
     airport_demo_types::kAirlinesType,
-    false,
     (RootObjectDeserializer)gaia_airport_airlines_as_root,
     (BuilderInitializer)gaia_airport_airlines_start_as_root,
     (BuilderFinalizer)gaia_airport_airlines_end_as_root,
     AIRLINE_ATTRS,
-    ARRAY_SIZE(AIRLINE_ATTRS),
+    array_size(AIRLINE_ATTRS),
 };
 
 RelationAttributeMapping ROUTE_MAPPING = {
     "routes",
     airport_demo_types::kRoutesType,
-    true,
     (RootObjectDeserializer)gaia_airport_routes_as_root,
     (BuilderInitializer)gaia_airport_routes_start_as_root,
     (BuilderFinalizer)gaia_airport_routes_end_as_root,
     ROUTE_ATTRS,
-    ARRAY_SIZE(ROUTE_ATTRS),
+    array_size(ROUTE_ATTRS),
 };
 
 const char *AIRPORT_DDL_STMT_FMT =

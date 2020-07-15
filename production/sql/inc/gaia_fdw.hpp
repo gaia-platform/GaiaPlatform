@@ -7,9 +7,9 @@
 
 #include <fstream>
 
-// Gaia storage engine implementation
-#include "storage_engine.hpp"
-#include "helpers.hpp"
+#include "array_size.hpp"
+#include "gaia_db.hpp"
+#include "gaia_ptr.hpp"
 
 // all Postgres headers and function declarations must have C linkage
 extern "C" {
@@ -138,15 +138,10 @@ typedef struct {
     OptionHandler handler;
 } gaiaFdwOption;
 
-static void handleResetStorageEngine(const char *name, const char *value,
-                                     Oid context);
-
 /*
  * Valid options for gaia_fdw.
  */
 static const gaiaFdwOption valid_options[] = {
-    /* Data source options */
-    {"reset", ForeignServerRelationId, handleResetStorageEngine},
     /* Sentinel */
     {NULL, InvalidOid, NULL}};
 
@@ -158,13 +153,8 @@ typedef struct {
     RootObjectDeserializer deserializer;
     // flatbuffer accessor functions indexed by attrnum
     AttributeAccessor *indexed_accessors;
-    // discriminant for the following union
-    bool gaia_type_is_edge;
     // the COW-SE smart ptr we are currently iterating over
-    union {
-        gaia::db::gaia_ptr<gaia::db::gaia_se_node> cur_node;
-        gaia::db::gaia_ptr<gaia::db::gaia_se_edge> cur_edge;
-    };
+    gaia::db::gaia_ptr cur_node;
 } gaiaFdwScanState;
 
 /*
@@ -191,13 +181,8 @@ typedef struct {
     // only)
     int dst_attr_idx;
     gaia_type_t gaia_type_id;
-    // discriminant for the following union
-    bool gaia_type_is_edge;
     // the COW-SE smart ptr that is the target of our update
-    union {
-        gaia::db::gaia_ptr<gaia::db::gaia_se_node> target_node;
-        gaia::db::gaia_ptr<gaia::db::gaia_se_edge> target_edge;
-    };
+    gaia::db::gaia_ptr target_node;
 } gaiaFdwModifyState;
 
 } // extern "C"

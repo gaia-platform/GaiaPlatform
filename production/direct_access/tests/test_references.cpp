@@ -6,6 +6,7 @@
 #include <iostream>
 #include "gtest/gtest.h"
 #include "addr_book_gaia_mock.h"
+#include "db_test_helpers.hpp"
 
 using namespace std;
 using namespace gaia::db;
@@ -32,16 +33,18 @@ protected:
             delete e;
         }
         commit_transaction();
-}
+    }
 
     void SetUp() override {
-        gaia_mem_base::init(true);
+        start_server();
+        // Start new session with server.
+        begin_session();
     }
 
     void TearDown() override {
         delete_employees();
-        // Delete the shared memory segments.
-        gaia_mem_base::reset();
+        end_session();
+        stop_server();
     }
 };
 

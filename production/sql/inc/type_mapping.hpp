@@ -5,8 +5,7 @@
 
 #pragma once
 
-// Gaia storage engine implementation
-#include "storage_engine.hpp"
+#include "gaia_common.hpp"
 
 // all definitions in this file and included files should have C linkage
 extern "C" {
@@ -41,7 +40,6 @@ typedef struct {
 typedef struct {
     const char *relation;
     gaia::common::gaia_type_t gaia_type_id;
-    bool gaia_type_is_edge;
     RootObjectDeserializer deserializer;
     BuilderInitializer initializer;
     BuilderFinalizer finalizer;

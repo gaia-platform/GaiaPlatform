@@ -30,6 +30,11 @@ typedef uint64_t gaia_id_t;
  */
 typedef uint64_t gaia_type_t;
 
+/**
+ * The type of a Gaia transaction hook.
+ */
+typedef void (* gaia_tx_hook)(void);
+
 } // common
 /*@}*/
 } // gaia

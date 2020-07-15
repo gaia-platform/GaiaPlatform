@@ -11,6 +11,7 @@
 
 #include <csignal>
 #include <thread>
+#include <atomic>
 
 #include <flatbuffers/flatbuffers.h>
 
@@ -22,6 +23,7 @@
 #include "messages_generated.h"
 #include "storage_engine.hpp"
 
+using namespace std;
 using namespace gaia::common;
 
 namespace gaia
@@ -34,50 +36,47 @@ class gaia_hash_map;
 
 class client : private se_base
 {
-    template<typename T>
     friend class gaia_ptr;
     friend class gaia_hash_map;
 
 public:
+    static inline bool is_transaction_active()
+    {
+        return (*s_offsets != nullptr);
+    }
     static void begin_session();
     static void end_session();
     static void begin_transaction();
     static void rollback_transaction();
     static bool commit_transaction();
 
-    // The following setters will never overwrite already-registered hooks.
-    static inline bool set_tx_begin_hook(gaia_tx_hook hook)
+    static inline gaia_tx_hook set_tx_begin_hook(gaia_tx_hook hook, bool overwrite)
     {
-        return __sync_bool_compare_and_swap(&s_tx_begin_hook, 0, hook);
+        return set_tx_hook(s_tx_begin_hook, hook, overwrite);
     }
 
-    static inline bool set_tx_commit_hook(gaia_tx_hook hook)
+    static inline gaia_tx_hook set_tx_commit_hook(gaia_tx_hook hook, bool overwrite)
     {
-        return __sync_bool_compare_and_swap(&s_tx_commit_hook, 0, hook);
+        return set_tx_hook(s_tx_commit_hook, hook, overwrite);
     }
 
-    static inline bool set_tx_rollback_hook(gaia_tx_hook hook)
+    static inline gaia_tx_hook set_tx_rollback_hook(gaia_tx_hook hook, bool overwrite)
     {
-        return __sync_bool_compare_and_swap(&s_tx_rollback_hook, 0, hook);
+        return set_tx_hook(s_tx_rollback_hook, hook, overwrite);
     }
 
 private:
     thread_local static int s_fd_log;
     thread_local static offsets* s_offsets;
 
-    static gaia_tx_hook s_tx_begin_hook;
-    static gaia_tx_hook s_tx_commit_hook;
-    static gaia_tx_hook s_tx_rollback_hook;
+    static atomic<gaia_tx_hook> s_tx_begin_hook;
+    static atomic<gaia_tx_hook> s_tx_commit_hook;
+    static atomic<gaia_tx_hook> s_tx_rollback_hook;
 
     // inherited from se_base:
     // static int s_fd_offsets;
     // static data *s_data;
     // thread_local static log *s_log;
-
-    static inline bool is_tx_active()
-    {
-        return (*s_offsets != nullptr);
-    }
 
     static void tx_cleanup();
 
@@ -119,7 +118,7 @@ private:
 
     static inline void verify_tx_active()
     {
-        if (!is_tx_active())
+        if (!is_transaction_active())
         {
             throw tx_not_open();
         }
@@ -127,7 +126,7 @@ private:
 
     static inline void verify_no_tx()
     {
-        if (is_tx_active())
+        if (is_transaction_active())
         {
             throw tx_in_progress();
         }
@@ -158,6 +157,21 @@ private:
         lr->row_id = row_id;
         lr->old_object = old_object;
         lr->new_object = new_object;
+    }
+
+    static inline gaia_tx_hook set_tx_hook(atomic<gaia_tx_hook>& old_hook, gaia_tx_hook new_hook, bool overwrite)
+    {
+        if (overwrite) {
+            // Register the new hook and return the previously registered hook.
+            return old_hook.exchange(new_hook);
+        } else {
+            // Do not overwrite previously registered hook.
+            gaia_tx_hook expected = nullptr;
+            // If the exchange failed (because a hook was already registered),
+            // then return the registered hook, otherwise return null.
+            old_hook.compare_exchange_strong(expected, new_hook);
+            return expected;
+        }
     }
 };
 

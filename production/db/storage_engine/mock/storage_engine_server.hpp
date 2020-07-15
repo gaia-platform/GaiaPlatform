@@ -56,7 +56,7 @@ private:
     // thread_local static int s_session_socket;
 
     // function pointer type that executes side effects of a state transition
-    typedef void (*TransitionHandler)(int* fds, size_t fd_count, session_event_t event, session_state_t old_state, session_state_t new_state);
+    typedef void (*transition_handler_t)(int* fds, size_t fd_count, session_event_t event, session_state_t old_state, session_state_t new_state);
     static void handle_connect(int*, size_t, session_event_t, session_state_t, session_state_t);
     static void handle_begin_txn(int*, size_t, session_event_t, session_state_t, session_state_t);
     static void handle_rollback_txn(int*, size_t, session_event_t, session_state_t, session_state_t);
@@ -65,15 +65,15 @@ private:
     static void handle_client_shutdown(int*, size_t, session_event_t, session_state_t, session_state_t);
     static void handle_server_shutdown(int*, size_t, session_event_t, session_state_t, session_state_t);
 
-    struct Transition {
+    struct transition_t {
         session_state_t new_state;
-        TransitionHandler handler;
+        transition_handler_t handler;
     };
 
-    struct ValidTransition {
+    struct valid_transition_t {
         session_state_t state;
         session_event_t event;
-        Transition transition;
+        transition_t transition;
     };
 
     // DISCONNECTED (client has connected to server listening socket, authenticated, and requested session)
@@ -91,7 +91,7 @@ private:
     // TXN_COMMITTING (server decided to commit or abort transaction)
     // -> CONNECTED
 
-    static constexpr ValidTransition s_valid_transitions[] = {
+    static constexpr valid_transition_t s_valid_transitions[] = {
         { session_state_t::DISCONNECTED, session_event_t::CONNECT, { session_state_t::CONNECTED, handle_connect } },
         { session_state_t::ANY, session_event_t::CLIENT_SHUTDOWN, { session_state_t::DISCONNECTED, handle_client_shutdown } },
         { session_state_t::CONNECTED, session_event_t::BEGIN_TXN, { session_state_t::TXN_IN_PROGRESS, handle_begin_txn } },
@@ -109,7 +109,7 @@ private:
         // "Wildcard" transitions (current state = session_state_t::ANY) must be listed after
         // non-wildcard transitions with the same event, or the latter will never be applied.
         for (size_t i = 0; i < array_size(s_valid_transitions); i++) {
-            ValidTransition t = s_valid_transitions[i];
+            valid_transition_t t = s_valid_transitions[i];
             if (t.event == event && (t.state == s_session_state || t.state == session_state_t::ANY)) {
                 // It would be nice to statically enforce this on the Transition struct.
                 retail_assert(t.transition.new_state != session_state_t::ANY);
@@ -381,7 +381,6 @@ private:
             for (int i = 0; i < ready_fd_count; i++) {
                 const epoll_event ev = events[i];
                 if (ev.data.fd == s_session_socket) {
-                    print_epoll_flags(ev.events);
                     // NB: Since many event flags are set in combination with others, the
                     // order we test them in matters! E.g., EPOLLIN seems to always be set
                     // whenever EPOLLRDHUP is set, so we need to test EPOLLRDHUP before
@@ -402,7 +401,7 @@ private:
                         // We must have already received a DISCONNECT message at this point
                         // and sent a reply followed by a FIN equivalent. The client must
                         // have received our reply and sent a FIN as well.
-                        // Can we get both EPOLLHUP and EPOLLRDHUP when the client half-closes
+                        // REVIEW: Can we get both EPOLLHUP and EPOLLRDHUP when the client half-closes
                         // the socket after we half-close it?
                         retail_assert(!(ev.events & EPOLLHUP));
                         event = session_event_t::CLIENT_SHUTDOWN;

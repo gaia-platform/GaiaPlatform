@@ -40,7 +40,7 @@ public:
  * Retail asserts are meant for important conditions that indicate internal errors.
  * They help us surface issues early, at the source.
  */
-inline void retail_assert(bool condition, const char* message = "")
+inline void retail_assert(bool condition, const string& message = "")
 {
     if (!condition)
     {

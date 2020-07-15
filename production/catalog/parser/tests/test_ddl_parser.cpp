@@ -15,7 +15,7 @@ TEST(catalog_ddl_parser_test, create_table) {
     ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t (c INT32);"));
 
     EXPECT_EQ(1, parser.statements.size());
-    EXPECT_EQ(parser.statements[0]->type(), statment_type_t::CREATE);
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::CREATE);
 
     auto createStmt = dynamic_cast<create_statement_t *>(parser.statements[0].get());
 
@@ -28,7 +28,7 @@ TEST(catalog_ddl_parser_test, create_table_multiple_fields) {
     ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t (c1 INT32[], c2 FLOAT64[2]);"));
 
     EXPECT_EQ(1, parser.statements.size());
-    EXPECT_EQ(parser.statements[0]->type(), statment_type_t::CREATE);
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::CREATE);
 
     auto createStmt = dynamic_cast<create_statement_t *>(parser.statements[0].get());
 
@@ -50,7 +50,7 @@ TEST(catalog_ddl_parser_test, create_table_references) {
     ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t (c1 REFERENCES t1, c2 REFERENCES t2[3], c3 REFERENCES t3[]);"));
 
     EXPECT_EQ(1, parser.statements.size());
-    EXPECT_EQ(parser.statements[0]->type(), statment_type_t::CREATE);
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::CREATE);
 
     auto createStmt = dynamic_cast<create_statement_t *>(parser.statements[0].get());
 

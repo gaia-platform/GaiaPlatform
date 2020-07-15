@@ -15,8 +15,10 @@ namespace db
 
 using namespace common;
 
-class gaia_hash_map : private client
+class gaia_hash_map
 {
+    friend class client;
+
 public:
     static se_base::hash_node* insert(const gaia_id_t id)
     {
@@ -42,7 +44,7 @@ public:
                 if (node->row_id &&
                     (*client::s_offsets)[node->row_id])
                 {
-                    throw duplicate_id();
+                    throw duplicate_id(id);
                 }
                 else
                 {
