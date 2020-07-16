@@ -3,14 +3,19 @@
 // All rights reserved.
 /////////////////////////////////////////////
 #include "gaia_catalog.hpp"
+#include "event_manager.hpp"
 #include "flatbuffers/idl.h"
 #include "gtest/gtest.h"
 
 using namespace gaia::catalog;
 
+extern "C" void initialize_rules()
+{
+}
+
 TEST(fbs_generation_test, generate_fbs) {
     gaia::db::gaia_mem_base::init(true);
-
+    gaia::rules::initialize_rules_engine();
     string test_table_name{"test_fbs_generation"};
 
     ddl::field_definition_t f1{"id", ddl::data_type_t::INT8, 1};

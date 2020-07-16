@@ -8,10 +8,12 @@
 
 #include "gtest/gtest.h"
 #include "rules.hpp"
+#include "gaia_base.hpp"
 
 using namespace std;
 using namespace gaia::rules;
 using namespace gaia::common;
+using namespace gaia::db::triggers;
 using namespace gaia::direct_access;
 
 extern "C" void initialize_rules()

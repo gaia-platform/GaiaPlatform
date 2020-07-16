@@ -6,13 +6,33 @@
 #include <iostream>
 #include "gtest/gtest.h"
 #include "addr_book_gaia_generated.h"
+#include "event_manager.hpp"
 
 using namespace std;
 using namespace gaia::db;
+using namespace gaia::rules;
 using namespace gaia::common;
 using namespace AddrBook;
 
+uint32_t g_initialize_rules_called = 0;
+static uint32_t rule_count = 0;
+const gaia_type_t m_gaia_type = 0;
+extern "C"
+void initialize_rules()
+{
+    ++g_initialize_rules_called;
+}
+
+void rule1(const rule_context_t* context)
+{
+    rule_count++;
+}
+
+rule_binding_t m_rule1{"ruleset1_name", "rule1_name", rule1};
+
 class gaia_object_test : public ::testing::Test {
+public:
+    static bool init_rules;
 protected:
     void delete_employees() {
         Employee* e;
@@ -29,6 +49,11 @@ protected:
 
     void SetUp() override {
         gaia_mem_base::init(true);
+        if (!init_rules) {
+            init_rules = true;
+            gaia::rules::initialize_rules_engine();
+        } 
+
     }
 
     void TearDown() override {
@@ -37,6 +62,8 @@ protected:
         gaia_mem_base::reset();
     }
 };
+
+bool gaia_object_test::init_rules;
 
 int count_rows() {
     int count = 0;
@@ -80,9 +107,12 @@ Employee* get_field(const char* name) {
 
 // Create, write & read, one row
 TEST_F(gaia_object_test, get_field) {
+    subscribe_rule(m_gaia_type, event_type_t::row_insert, empty_fields, m_rule1);
     begin_transaction();
     get_field("Harold");
     commit_transaction();
+    assert(rule_count == 1);
+    unsubscribe_rules();
 }
 
 // Delete one row

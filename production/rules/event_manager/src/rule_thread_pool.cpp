@@ -146,7 +146,7 @@ void rule_thread_pool_t::invoke_rule(const rule_context_t* context)
         // so don't try to commit it again.
         if (gaia::db::gaia_mem_base::is_tx_active())
         {
-            gaia::db::gaia_mem_base::tx_commit();
+            gaia::db::gaia_mem_base::tx_commit(false);
         }
         should_schedule = true;
     }

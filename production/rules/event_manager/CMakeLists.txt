@@ -13,6 +13,7 @@ set(GENERATED_OUTPUTS "${CMAKE_BINARY_DIR}/rules/event_manager/generated")
 
 set(GAIA_EVENT_MANAGER_INCLUDES 
   ${GAIA_REPO}/production/db/storage_engine/mock
+  ${GAIA_REPO}/production/db/inc/triggers
   ${GAIA_INC}/public/common
   ${GAIA_INC}/public/direct_access
   ${GAIA_INC}/public/system
@@ -47,7 +48,7 @@ set_target_properties(gaia_rules PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}
 target_include_directories(gaia_rules PRIVATE ${GAIA_EVENT_MANAGER_INCLUDES})  
 
 # unit tests
-add_gtest(test_auto_tx "tests/test_auto_tx.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_semock")
-add_gtest(test_event_manager "tests/test_event_manager.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
-add_gtest(test_system_init "tests/test_system_init.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
-add_gtest(test_component_init "tests/test_component_init.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_rules;gaia_direct;gaia_semock")
+add_gtest(test_auto_tx "tests/test_auto_tx.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_semock;gaia_triggers;gaia_rules")
+add_gtest(test_event_manager "tests/test_event_manager.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia;gaia_triggers")
+add_gtest(test_system_init "tests/test_system_init.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia;gaia_triggers")
+add_gtest(test_component_init "tests/test_component_init.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_rules;gaia_direct;gaia_semock;gaia_triggers")

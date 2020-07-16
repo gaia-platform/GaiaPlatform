@@ -8,6 +8,10 @@
 #include <unordered_set>
 
 #include "events.hpp"
+#include "gaia_exception.hpp"
+#include "storage_engine.hpp"
+
+using namespace gaia::db;
 
 namespace gaia 
 {
@@ -74,7 +78,7 @@ struct subscription_t {
     const char* ruleset_name;
     const char* rule_name;
     gaia::common::gaia_type_t gaia_type;
-    event_type_t type;
+    gaia::db::triggers::event_type_t type;
     const uint16_t field;
 };
 
@@ -116,7 +120,7 @@ public:
     rule_context_t(
         const rule_binding_t& a_binding, 
         gaia::common::gaia_type_t a_gaia_type,
-        event_type_t a_event_type,
+        gaia::db::triggers::event_type_t a_event_type,
         gaia_id_t a_record)
     : rule_binding(a_binding)
     , gaia_type(a_gaia_type)
@@ -129,7 +133,7 @@ public:
 
     const rule_binding_t rule_binding;
     gaia::common::gaia_type_t gaia_type;
-    event_type_t event_type;
+    gaia::db::triggers::event_type_t event_type;
     gaia_id_t record;
 };
 
@@ -208,7 +212,7 @@ public:
 class invalid_subscription : public gaia::common::gaia_exception
 {
 public:
-    invalid_subscription(event_type_t event_type, const char* reason)
+    invalid_subscription(gaia::db::triggers::event_type_t event_type, const char* reason)
     {
         std::stringstream message;
         message << "Cannot subscribe rule to " << (uint32_t)event_type << ". " << reason;
@@ -241,7 +245,7 @@ void initialize_rules_engine();
  */
 void subscribe_rule(
     gaia::common::gaia_type_t gaia_type, 
-    event_type_t event_type,
+    gaia::db::triggers::event_type_t event_type,
     const field_list_t& fields,
     const rule_binding_t& rule_binding);
 
@@ -258,7 +262,7 @@ void subscribe_rule(
  */
 bool unsubscribe_rule(
     gaia::common::gaia_type_t gaia_type, 
-    event_type_t type, 
+    gaia::db::triggers::event_type_t type, 
     const field_list_t& fields,
     const rule_binding_t& rule_binding);
 
@@ -285,7 +289,7 @@ void unsubscribe_rules();
 void list_subscribed_rules(
     const char* ruleset_name, 
     const gaia::common::gaia_type_t* gaia_type, 
-    const event_type_t* event_type,
+    const gaia::db::triggers::event_type_t* event_type,
     const uint16_t* field, 
     subscription_list_t& subscriptions);
 

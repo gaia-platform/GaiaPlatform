@@ -16,6 +16,7 @@ set(GAIA_SYSTEM_INCLUDES
     "${GAIA_INC}/internal/common"
     "${FLATBUFFERS_INC}"
     "${GAIA_REPO}/production/db/storage_engine/mock"
+    "${GAIA_REPO}/production/db/inc/triggers"
     "${GAIA_REPO}/production/rules/event_manager/inc"
     "${CMAKE_BINARY_DIR}/rules/event_manager/generated"
 )

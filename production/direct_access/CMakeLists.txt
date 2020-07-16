@@ -13,6 +13,7 @@ set(GAIA_DIRECT_ACCESS_INCLUDES
     "${GAIA_INC}/public/common"
     "${GAIA_INC}/internal/common"
     "${FLATBUFFERS_INC}"
+    "${GAIA_REPO}/production/db/inc/triggers"
     "${GAIA_REPO}/production/db/storage_engine/mock"
     .
 )
@@ -43,5 +44,5 @@ set (DIRECT_ACCESS_TEST_INCLUDES
     ${GAIA_DIRECT_ACCESS_INCLUDES}
     .
 )
-add_gtest(test_direct_access "tests/test_direct_access.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia" "test_generated_code")
-add_gtest(test_references "tests/test_references.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia" "test_generated_code")
+add_gtest(test_direct_access "tests/test_direct_access.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia;gaia_triggers;gaia_rules" "test_generated_code")
+add_gtest(test_references "tests/test_references.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia;gaia_triggers;gaia_rules" "test_generated_code")

@@ -498,6 +498,7 @@ if(FLATBUFFERS_BUILD_TESTS)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../production/inc/internal/rules)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../production/inc/public/common)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../production/inc/public/direct_access)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../production/db/inc/triggers)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../production/db/storage_engine/mock)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../production/inc/internal/common)
 
@@ -513,7 +514,7 @@ if(FLATBUFFERS_BUILD_TESTS)
     add_fsanitize_to_target(flattests ${FLATBUFFERS_CODE_SANITIZE})
   endif()
   target_link_libraries(flattests PRIVATE rt)
-  target_link_libraries(gaia_tests PRIVATE rt gaia_semock gaia_direct)
+  target_link_libraries(gaia_tests PRIVATE rt gaia_semock gaia_direct gaia_triggers gaia_rules)
   
   set(FLATBUFFERS_UNIT_TEST flattests)
   add_custom_command(
@@ -530,7 +531,7 @@ if(FLATBUFFERS_BUILD_TESTS)
      POST_BUILD
      COMMAND ${GAIA_UNIT_TEST}
   )
-
+  
   compile_flatbuffers_schema_to_cpp(samples/monster.fbs)
   compile_flatbuffers_schema_to_binary(samples/monster.fbs)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/samples)

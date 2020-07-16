@@ -30,7 +30,7 @@ public:
     {
         if (m_started)
         {
-            gaia::db::gaia_mem_base::tx_commit();
+            gaia::db::gaia_mem_base::tx_commit(false);
             m_started = false;
         }
     }

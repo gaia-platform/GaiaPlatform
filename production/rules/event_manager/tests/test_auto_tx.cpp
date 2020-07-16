@@ -13,6 +13,9 @@ using namespace std;
 using namespace gaia::db;
 using namespace gaia::rules;
 
+extern "C" void initialize_rules()
+{
+}
 
 /*
 TEST(auto_tx_test, auto_tx_active_commit)

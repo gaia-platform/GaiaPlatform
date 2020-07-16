@@ -9,9 +9,13 @@ enable_testing()
 project(catalog_manager)
 
 set(CATALOG_FBS_GENERATED_OUTPUTS "${CMAKE_CURRENT_BINARY_DIR}/generated")
+set(GENERATED_OUTPUTS "${CMAKE_BINARY_DIR}/rules/event_manager/generated")
 
 set(GAIA_CATALOG_LIB_INCLUDES
   ${GAIA_REPO}/production/db/storage_engine/mock
+  ${GAIA_REPO}/production/db/inc/triggers
+  ${GAIA_REPO}/production/rules/event_manager/inc
+  ${GAIA_REPO}/production/inc/public/rules
   ${GAIA_INC}/public/common
   ${GAIA_INC}/public/direct_access
   ${GAIA_INC}/public/catalog
@@ -19,6 +23,7 @@ set(GAIA_CATALOG_LIB_INCLUDES
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc
   ${CATALOG_FBS_GENERATED_OUTPUTS}
+  ${GENERATED_OUTPUTS}
 )
 message(STATUS "GAIA_CATALOG_LIB_INCLUDES=${GAIA_CATALOG_LIB_INCLUDES}")
 
@@ -40,9 +45,9 @@ add_library(gaia_catalog STATIC
   src/catalog_manager.cpp
   src/fbs_generator.cpp
 )
-add_dependencies(gaia_catalog generate_catalog_edc)
+add_dependencies(gaia_catalog generate_catalog_edc generate_event_logs)
 set_target_properties(gaia_catalog PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 target_include_directories(gaia_catalog PRIVATE ${GAIA_CATALOG_LIB_INCLUDES})
 
-add_gtest(test_catalog_manager "tests/test_catalog_manager.cpp" "${GAIA_CATALOG_LIB_INCLUDES}" "rt;gaia;gaia_catalog")
-add_gtest(test_fbs_generation "tests/test_fbs_generation.cpp" "${GAIA_CATALOG_LIB_INCLUDES}" "rt;gaia;gaia_catalog;flatbuffers")
+add_gtest(test_catalog_manager "tests/test_catalog_manager.cpp" "${GAIA_CATALOG_LIB_INCLUDES}" "rt;gaia;gaia_catalog;gaia_triggers")
+add_gtest(test_fbs_generation "tests/test_fbs_generation.cpp" "${GAIA_CATALOG_LIB_INCLUDES}" "rt;gaia;gaia_catalog;flatbuffers;gaia_triggers")

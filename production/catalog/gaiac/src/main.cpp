@@ -11,6 +11,11 @@
 using namespace std;
 using namespace gaia::catalog::ddl;
 
+// Todo (msj) Is this avoidable?
+extern "C" void initialize_rules()
+{
+}
+
 void execute(vector<statement_t *> &statements) {
     for (statement_t *stmt : statements) {
         if (!stmt->is_type(statment_type_t::CREATE)) {

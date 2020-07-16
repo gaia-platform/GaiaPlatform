@@ -12,6 +12,8 @@
 #include <stdexcept>
 #include <string>
 #include <sstream>
+#include <vector>
+#include <memory>
 
 #include <string.h>
 
@@ -21,6 +23,8 @@
 #include <sys/file.h>
 
 #include <gaia_exception.hpp>
+#include "trigger.hpp"
+#include "thread_pool.hpp"
 
 namespace gaia
 {
@@ -138,6 +142,13 @@ namespace db
         }
     }
 
+    enum GaiaOperation: u_int8_t {
+        create = 0x0,
+        update = 0x1,
+        remove = 0x2,
+        clone  = 0x3
+    };
+
     class gaia_mem_base
     {
     private:
@@ -222,6 +233,9 @@ namespace db
                     }
                 }
             }
+
+            // init thread safe queue and launch background reader thread.
+            trigger_pool = new threadPool();
         }
 
         static void reset(bool silent = false)
@@ -281,9 +295,11 @@ namespace db
             {
                 throw_runtime_error("flock failed");
             }
+
+            s_log->latest_trid = allocate_transaction_id();
         }
 
-        static void tx_log (int64_t row_id, int64_t old_object, int64_t new_object)
+        static void tx_log (int64_t row_id, int64_t old_object, int64_t new_object, int8_t event_type, int64_t object_type)
         {
             assert(s_log->count < MAX_LOG_RECS);
 
@@ -292,22 +308,43 @@ namespace db
             lr->row_id = row_id;
             lr->old_object = old_object;
             lr->new_object = new_object;
+            lr->event_type = event_type;
+            lr->object_type = object_type;
         }
 
-        static void tx_commit()
+        // Update object type for the current log record.
+        static void tx_log_object_type(int64_t object_type) {
+            log::log_record* lr = s_log->log_records + s_log->count;
+            lr->object_type = object_type;
+        }
+
+        static void tx_commit(bool trigger = true)
         {
+
             remap_offsets_shared();
 
             std::set<int64_t> row_ids;
+            auto log_count = s_log->count;
+            auto trid = s_log->latest_trid;
+
+            auto events_ = std::make_shared<std::vector<unique_ptr<triggers::trigger_event_t>>>();
+            if (trigger) {
+                events_.get()->push_back(unique_ptr<triggers::trigger_event_t>(new triggers::trigger_event_t {triggers::event_type_t::transaction_begin, 0, 0, nullptr, 0}));
+            }
 
             for (auto i = 0; i < s_log->count; i++)
             {
                 auto lr = s_log->log_records + i;
 
+                if (trigger) {
+                    events_->push_back(unique_ptr<triggers::trigger_event_t>(new triggers::trigger_event_t {get_event_type(lr->event_type), lr->object_type, lr->row_id, nullptr, 0}));
+                }
+
                 if (row_ids.insert(lr->row_id).second)
                 {
                     if ((*s_offsets)[lr->row_id] != lr->old_object)
                     {
+                        // Rollback triggers?
                         unmap();
                         throw tx_update_conflict();
                     }
@@ -320,6 +357,28 @@ namespace db
                 (*s_offsets)[lr->row_id] = lr->new_object;
             }
             unmap();
+
+            if (trigger) {
+                events_->push_back(unique_ptr<triggers::trigger_event_t>(new triggers::trigger_event_t {triggers::event_type_t::transaction_commit, 0, 0, nullptr, 0}));
+                triggers::event_trigger::commit_trigger_(trid, events_, log_count +  2, true);
+
+                // Todo(msj) Enable when merged with new SE
+                // trigger_pool->add_trigger_task(trid, log_count +  2, events_);
+            }            
+        }
+
+        static triggers::event_type_t get_event_type(int8_t op) {
+            switch(op) {
+                case GaiaOperation::clone:
+                case GaiaOperation::create:
+                    return triggers::event_type_t::row_insert;
+                case GaiaOperation::update:
+                    return triggers::event_type_t::row_update;
+                case GaiaOperation::remove:
+                    return triggers::event_type_t::row_delete;
+                default:
+                    abort();
+            }
         }
 
         // The real implementation will need
@@ -359,6 +418,7 @@ namespace db
         static const auto HASH_BUCKETS = 12289;
         static const auto HASH_LIST_ELEMENTS = MAX_RIDS;
         static const auto MAX_LOG_RECS = 1000000;
+        static const auto MAX_TRIGGERS = 1000000;
         static const auto MAX_OBJECTS = MAX_RIDS * 8;
         static gaia_id_t s_next_id;
 
@@ -375,6 +435,7 @@ namespace db
         {
             int64_t commit_lock;
             int64_t row_id_count;
+            int64_t transaction_id_count;
             int64_t hash_node_count;
             hash_node hash_nodes[HASH_BUCKETS + HASH_LIST_ELEMENTS];
 
@@ -384,10 +445,13 @@ namespace db
         struct log
         {
             int64_t count;
+            int64_t latest_trid;
             struct log_record {
-                int64_t row_id;
+                uint64_t row_id;
                 int64_t old_object;
                 int64_t new_object;
+                int8_t event_type;
+                uint64_t object_type;
             } log_records[MAX_LOG_RECS];
         };
 
@@ -395,6 +459,9 @@ namespace db
         static data *s_data;
         static log *s_log;
         static bool s_engine;
+        static threadPool* trigger_pool; 
+ 
+        // static thread-safe queue
 
         static void remap_offsets_shared()
         {
@@ -458,6 +525,16 @@ namespace db
             }
 
             return 1 + __sync_fetch_and_add (&s_data->row_id_count, 1);
+        }
+
+        static int64_t allocate_transaction_id() 
+        {
+            if (*gaia_mem_base::s_offsets == nullptr)
+            {
+                throw tx_not_open();
+            }
+
+            return 1 + __sync_fetch_and_add (&s_data->transaction_id_count, 1);
         }
 
         static void allocate_object (int64_t row_id, size_t size)
@@ -688,7 +765,7 @@ namespace db
 
             memcpy (new_this, old_this, new_size);
 
-            gaia_mem_base::tx_log (row_id, old_offset, to_offset());
+            gaia_mem_base::tx_log (row_id, old_offset, to_offset(), GaiaOperation::clone, new_this->type);
 
             return *this;
         }
@@ -712,7 +789,7 @@ namespace db
             new_this->num_references = old_this->num_references;
             memcpy (new_this->payload + ref_len, data, data_size);
 
-            gaia_mem_base::tx_log (row_id, old_offset, to_offset());
+            gaia_mem_base::tx_log (row_id, old_offset, to_offset(), GaiaOperation::update, new_this->type);
 
             return *this;
         }
@@ -780,8 +857,12 @@ namespace db
 
             // writing to log will be skipped for recovery
             if (log_updates) {
-                gaia_mem_base::tx_log (row_id, 0, to_offset());
+                gaia_mem_base::tx_log (row_id, 0, to_offset(), GaiaOperation::create, 0);
             }
+        }
+
+        void log_current_object_type(int64_t type) {
+            gaia_mem_base::tx_log_object_type (type);
         }
 
         gaia_id_t preprocess_id(const gaia_id_t& id, bool is_edge = false)
@@ -839,7 +920,7 @@ namespace db
 
         void reset()
         {
-            gaia_mem_base::tx_log (row_id, to_offset(), 0);
+            gaia_mem_base::tx_log (row_id, to_offset(), 0, GaiaOperation::remove, to_ptr()->type);
             (*gaia_mem_base::s_offsets)[row_id] = 0;
             row_id = 0;
         }
@@ -896,6 +977,7 @@ namespace db
             }
             node->payload_size = total_len;
             memcpy (node->payload + refs_len, data, data_size);
+            node.log_current_object_type(type);
             return node;
         }
 
@@ -1000,6 +1082,7 @@ namespace db
 
             node_first->next_edge_first = edge;
             node_second->next_edge_second = edge;
+            edge.log_current_object_type(type);
             return edge;
         }
 
@@ -1115,9 +1198,9 @@ namespace db
         }
     }
 
-    inline void commit_transaction()
+    inline void commit_transaction(bool trigger = true)
     {
-        gaia_mem_base::tx_commit();
+        gaia_mem_base::tx_commit(trigger);
         if (s_tx_commit_hook)
         {
             s_tx_commit_hook();

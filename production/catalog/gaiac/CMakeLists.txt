@@ -12,6 +12,7 @@ project(gaiac)
 set(GAIA_CATALOG_TOOL_INCLUDES
   ${FLATBUFFERS_INC}
   ${GAIA_REPO}/production/db/storage_engine/mock
+  ${GAIA_REPO}/production/db/inc/triggers
   ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_INC}/public/common
   ${GAIA_INC}/public/direct_access
@@ -23,6 +24,6 @@ message(STATUS "GAIA_CATALOG_TOOL_INCLUDES=${GAIA_CATALOG_TOOL_INCLUDES}")
 
 add_executable(gaiac src/main.cpp)
 target_include_directories(gaiac PRIVATE ${GAIA_CATALOG_TOOL_INCLUDES})
-target_link_libraries(gaiac PRIVATE rt gaia_catalog gaia_parser)
+target_link_libraries(gaiac PRIVATE rt gaia_catalog gaia_parser gaia_triggers gaia_rules)
 set_target_properties(gaiac PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaiac PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")

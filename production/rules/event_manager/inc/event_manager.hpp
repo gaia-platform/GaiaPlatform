@@ -13,7 +13,9 @@
 #include "event_guard.hpp"
 #include "event_log_gaia_generated.h"
 #include "rule_thread_pool.hpp"
-#include "mock_trigger.hpp"
+#include "trigger.hpp"
+
+using namespace gaia::db::triggers;
 
 namespace gaia 
 {
@@ -71,6 +73,12 @@ public:
         uint32_t tx_id, 
         trigger_event_t* events, 
         size_t count_events, 
+        bool immediate);
+    
+    void commit_trigger_se(
+        uint64_t tx_id,
+        shared_ptr<std::vector<unique_ptr<triggers::trigger_event_t>>> events,
+        size_t count_events,
         bool immediate);
 
     void rollback_trigger();

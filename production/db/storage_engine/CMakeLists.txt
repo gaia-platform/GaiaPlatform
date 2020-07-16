@@ -9,7 +9,7 @@ cmake_minimum_required(VERSION 3.11)
 project(storage_engine)
 
 set(GAIA_STORAGE_ENGINE_INCLUDES
-  "${GAIA_INC}/public/common;${GAIA_DB_INC}/storage_engine;${ROCKSDB_INC};${GAIA_REPO}/production/db/storage_engine/mock")
+  "${GAIA_INC}/public/common;${GAIA_DB_INC}/storage_engine;${ROCKSDB_INC};${GAIA_REPO}/production/db/storage_engine/mock;${GAIA_REPO}/production/db/inc/triggers")
 
 message(STATUS "GAIA_STORAGE_ENGINE_INCLUDES=${GAIA_STORAGE_ENGINE_INCLUDES}")
 
