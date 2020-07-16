@@ -43,7 +43,7 @@ enum class data_type_t : unsigned int {
     REFERENCES
 };
 
-enum class statment_type_t : unsigned int {
+enum class  statement_type_t : unsigned int {
     CREATE,
     DROP,
     ALTER
@@ -51,16 +51,16 @@ enum class statment_type_t : unsigned int {
 
 struct statement_t {
 
-    statement_t(statment_type_t type) : m_type(type){};
+    statement_t( statement_type_t type) : m_type(type){};
 
-    statment_type_t type() const { return m_type; };
+     statement_type_t type() const { return m_type; };
 
-    bool is_type(statment_type_t type) const { return m_type == type; };
+    bool is_type( statement_type_t type) const { return m_type == type; };
 
     virtual ~statement_t(){};
 
   private:
-    statment_type_t m_type;
+     statement_type_t m_type;
 };
 
 struct field_type_t {
@@ -92,7 +92,7 @@ enum class create_type_t : unsigned int {
 
 struct create_statement_t : statement_t {
     create_statement_t(create_type_t type)
-        : statement_t(statment_type_t::CREATE), type(type){};
+        : statement_t(statement_type_t::CREATE), type(type){};
 
     virtual ~create_statement_t() {}
 

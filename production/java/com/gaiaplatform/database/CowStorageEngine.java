@@ -32,7 +32,7 @@ public class CowStorageEngine
     {
         CowStorageEngine cow = new CowStorageEngine();
 
-        cow.open();
+        cow.beginSession();
 
         cow.beginTransaction();
 
@@ -83,13 +83,15 @@ public class CowStorageEngine
 
         // We're not making any changes to COW, so we can just rollback.
         cow.rollbackTransaction();
+
+        cow.endSession();
     }
 
     private static void runCowTest()
     {
         CowStorageEngine cow = new CowStorageEngine();
 
-        cow.create();
+        cow.beginSession();
 
         // First transaction.
         cow.beginTransaction();
@@ -214,6 +216,8 @@ public class CowStorageEngine
         printEmptyLine();
 
         cow.commitTransaction();
+
+        cow.endSession();
 
         System.out.println("All tests passed!");
     }
@@ -352,8 +356,8 @@ public class CowStorageEngine
     }
 
     // Native interface.
-    public native boolean create();
-    public native boolean open();
+    public native void beginSession();
+    public native void endSession();
 
     public native void beginTransaction();
     public native void commitTransaction();

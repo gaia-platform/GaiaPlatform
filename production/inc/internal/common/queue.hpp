@@ -10,21 +10,19 @@
 #include <synchronization.hpp>
 #include <retail_assert.hpp>
 
-namespace gaia
-{
+namespace gaia {
 /**
  * \addtogroup Gaia
  * @{
  */
-namespace common
-{
+namespace common {
 /**
  * \addtogroup Common
  * @{
  */
 
-template <class T> struct queue_element_t
-{
+template <class T>
+struct queue_element_t {
     T value;
 
     queue_element_t* next;
@@ -36,10 +34,9 @@ template <class T> struct queue_element_t
     queue_element_t(T value);
 };
 
-template <class T> class queue_t
-{
-public:
-
+template <class T>
+class queue_t {
+   public:
     queue_t();
     ~queue_t();
 
@@ -52,8 +49,7 @@ public:
 
     bool is_empty();
 
-protected:
-
+   protected:
     queue_element_t<T> m_head;
     queue_element_t<T> m_tail;
 
@@ -66,6 +62,6 @@ protected:
 #include "queue.inc"
 
 /*@}*/
-}
+}  // namespace common
 /*@}*/
-}
+}  // namespace gaia
