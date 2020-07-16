@@ -29,6 +29,38 @@ field_list_t::field_list_t(const field_list_t& other)
     m_data((other.m_data) ? new vector<gaia_id_t>(*other.m_data) : nullptr) {
 }
 
+// Copy assignment operator
+field_list_t& field_list_t::operator=(const field_list_t& other) {
+    if (this != &other) {
+        m_table_id = other.m_table_id;
+        m_data.reset((other.m_data) ? new vector<gaia_id_t>(*other.m_data) : nullptr);
+    }
+    return *this;
+}
+
+// Move constructor
+field_list_t::field_list_t(field_list_t&& other)
+    : m_table_id(other.m_table_id),
+    m_data(std::move(other.m_data)) {
+}
+
+// Move assignment operator
+field_list_t& field_list_t::operator=(field_list_t&& other) {
+    if (this != &other) {
+        m_table_id = other.m_table_id;
+        m_data = std::move(other.m_data);
+    }
+    return *this;
+}
+
+// Access operator
+gaia_id_t field_list_t::operator[](size_t idx) const {
+    if (idx >= size()) {
+        throw field_list_out_of_bounds();
+    }
+    return (*m_data)[idx];
+}
+
 // Initialize backing structure on this list.
 void field_list_t::initialize() {
     retail_assert(m_data == nullptr, "field list already initialized");
@@ -84,8 +116,10 @@ bool field_list_t::validate() const {
 }
 
 // Intersection. Returns fields on both lists if table_ids are the same.
-// TODO (yiwen): figure out semantics if table_ids do not match.
-field_list_t field_list_t::intersect(field_list_t& other) const{
+field_list_t field_list_t::intersect(const field_list_t& other) const {
+    if (other.m_table_id != m_table_id) {
+        throw field_list_invalid_operation();
+    }
     // TODO (yiwen): implement.
     return field_list_t(other); // PLACEHOLDER: suppress warnings.
 }
