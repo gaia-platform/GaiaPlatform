@@ -32,7 +32,7 @@ typedef vector<table_references_t> references_vec;
 typedef map<gaia_id_t, references_vec> references_map;
 
 // Build the two reference maps, one for the 1: side of the relationship, another for the :N side.
-static void build_references_maps(references_map& references_1, references_map& references_N) {
+static void build_references_maps(references_map& references_1, references_map& references_n) {
     for (auto table_id : catalog_manager_t::get().list_tables()) {
         field_vec field_strings;
         auto table_record = Gaia_table::get_row_by_id(table_id);
@@ -40,7 +40,7 @@ static void build_references_maps(references_map& references_1, references_map& 
             unique_ptr<Gaia_field>ref_record(Gaia_field::get_row_by_id(ref_id));
             auto owner_record = Gaia_table::get_row_by_id(ref_record->type_id());
             references_1[ref_record->type_id()].push_back({table_record->name(), ref_record->name()});
-            references_N[table_id].push_back({owner_record->name(), ref_record->name()});
+            references_n[table_id].push_back({owner_record->name(), ref_record->name()});
         }
     }
 }
@@ -116,8 +116,13 @@ static string generate_boilerplate_bottom(string dbname) {
 }
 
 // Generate the list of constants referred to by the class definitions and templates.
-static string generate_constant_list(references_map& references_1, references_map& references_N) {
+static string generate_constant_list(references_map& references_1, references_map& references_n) {
     code_writer code(indent_string);
+    // A fixed constant is used for the flatbuffer builder constructor.
+    code += "";
+    code += "// The initial size of the flatbuffer builder buffer.";
+    code += "const int c_flatbuffer_builder_size = 128;";
+    code += "";
     for (auto table_id : catalog_manager_t::get().list_tables()) {
         auto table_record = Gaia_table::get_row_by_id(table_id);
         auto const_count = 0;
@@ -129,7 +134,7 @@ static string generate_constant_list(references_map& references_1, references_ma
             code.set_value("CONST_VALUE", to_string(const_count++));
             code += "const int c_first_{{REF_NAME}}{{REF_TABLE}} = {{CONST_VALUE}};";
         }
-        for (auto ref : references_N[table_id]) {
+        for (auto ref : references_n[table_id]) {
             code.set_value("REF_TABLE", ref.name);
             code.set_value("REF_NAME", ref.ref_name);
             code.set_value("CONST_VALUE", to_string(const_count++));
@@ -158,7 +163,7 @@ static string generate_declarations() {
 }
 
 static string generate_edc_struct(int position, string table_name, field_vec& field_strings,
-    references_vec& references_1, references_vec& references_N)
+    references_vec& references_1, references_vec& references_n)
 {
     code_writer code(indent_string);
 
@@ -217,7 +222,7 @@ static string generate_edc_struct(int position, string table_name, field_vec& fi
     }
     code += param_list + ") {";
     code.increment_indent_level();
-    code += "flatbuffers::FlatBufferBuilder b(128);";
+    code += "flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);";
     code.set_value("DIRECT", has_string ? "Direct" : "");
     param_list = "b.Finish(Create{{TABLE_NAME}}{{DIRECT}}(b";
     for (auto f : field_strings) {
@@ -234,7 +239,7 @@ static string generate_edc_struct(int position, string table_name, field_vec& fi
     code += "void insert_row() {gaia_object_t::insert_row(c_num_{{TABLE_NAME}}_ptrs);}";
 
     // The reference to the parent records.
-    for (auto ref : references_N) {
+    for (auto ref : references_n) {
         code.set_value("REF_TABLE", ref.name);
         code.set_value("REF_NAME", ref.ref_name);
         code += "{{REF_TABLE}}_t* {{REF_NAME}}{{REF_TABLE}}_owner() {";
@@ -289,14 +294,14 @@ static string generate_edc_struct(int position, string table_name, field_vec& fi
 string gaia_generate(string dbname) {
 
     references_map references_1;
-    references_map references_N;
+    references_map references_n;
     string code_lines;
     begin_transaction();
-    build_references_maps(references_1, references_N);
+    build_references_maps(references_1, references_n);
 
     code_lines = generate_boilerplate_top(dbname);
 
-    code_lines += generate_constant_list(references_1, references_N);
+    code_lines += generate_constant_list(references_1, references_n);
 
     code_lines += generate_declarations();
 
@@ -311,7 +316,7 @@ string gaia_generate(string dbname) {
         for (auto ref_id : catalog_manager_t::get().list_references(table_id)) {
             unique_ptr<Gaia_field>ref_record(Gaia_field::get_row_by_id(ref_id));
         }
-        code_lines += generate_edc_struct(position++, table_record->name(), field_strings, references_1[table_id], references_N[table_id]);
+        code_lines += generate_edc_struct(position++, table_record->name(), field_strings, references_1[table_id], references_n[table_id]);
     }
     commit_transaction();
 
