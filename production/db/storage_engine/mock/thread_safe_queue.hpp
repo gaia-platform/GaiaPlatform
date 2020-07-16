@@ -3,6 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 // This file implements a simple thread safe queue (using dumb locks)
+// Todo (msj) look up other faster implementations?
 
 #pragma once
 

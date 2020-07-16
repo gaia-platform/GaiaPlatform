@@ -612,12 +612,3 @@ void gaia::rules::list_subscribed_rules(
         event_type, field, subscriptions);
 }
 
-// void gaia::rules::commit_trigger(uint32_t tx_id, trigger_event_t* events, size_t num_events, bool immediate)
-// {
-//     event_manager_t::get().commit_trigger(tx_id, events, num_events, immediate);
-// }
-
-// void gaia::rules::rollback_trigger()
-// {
-//     event_manager_t::get().rollback_trigger();
-// }

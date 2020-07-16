@@ -5,7 +5,7 @@
 // This file implements a thread safe lock based queue.
 
 #pragma once
-#include "mock_queue.hpp"
+#include "thread_safe_queue.hpp"
 #include <functional>
 #include <thread>
 #include <vector>

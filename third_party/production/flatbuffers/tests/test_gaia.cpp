@@ -24,9 +24,7 @@ void initialize_rules()
 {
 }
 
-// Todo(msj) Write an end to end test.
-// Caller won't have visibility into event triggers.
-// An end to end test could be, the trigger causes a rule to do a write, which could be verified by the calling code.
+// Todo(msj) Fix verify
 void verify_trigger_event(trigger_event_t& expected)
 {
     // TEST_EQ(expected.event_type, g_trigger_event.event_type);
