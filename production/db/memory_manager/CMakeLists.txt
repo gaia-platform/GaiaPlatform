@@ -3,7 +3,7 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.12)
 
 # Set the project name.
 project(memory_manager)

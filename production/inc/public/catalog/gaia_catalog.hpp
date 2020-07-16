@@ -40,10 +40,10 @@ enum class data_type_t : unsigned int {
     FLOAT32,
     FLOAT64,
     STRING,
-    TABLE
+    REFERENCES
 };
 
-enum class statment_type_t : unsigned int {
+enum class  statement_type_t : unsigned int {
     CREATE,
     DROP,
     ALTER
@@ -51,16 +51,16 @@ enum class statment_type_t : unsigned int {
 
 struct statement_t {
 
-    statement_t(statment_type_t type) : m_type(type){};
+    statement_t( statement_type_t type) : m_type(type){};
 
-    statment_type_t type() const { return m_type; };
+     statement_type_t type() const { return m_type; };
 
-    bool is_type(statment_type_t type) const { return m_type == type; };
+    bool is_type( statement_type_t type) const { return m_type == type; };
 
     virtual ~statement_t(){};
 
   private:
-    statment_type_t m_type;
+     statement_type_t m_type;
 };
 
 struct field_type_t {
@@ -73,6 +73,9 @@ struct field_type_t {
 struct field_definition_t {
     field_definition_t(string name, data_type_t type, uint16_t length)
         : name(move(name)), type(type), length(length){};
+
+    field_definition_t(string name, data_type_t type, uint16_t length, string referenced_table_name)
+        : name(move(name)), type(type), length(length), table_type_name(move(referenced_table_name)){};
 
     string name;
     data_type_t type;
@@ -89,7 +92,7 @@ enum class create_type_t : unsigned int {
 
 struct create_statement_t : statement_t {
     create_statement_t(create_type_t type)
-        : statement_t(statment_type_t::CREATE), type(type) {};
+        : statement_t(statement_type_t::CREATE), type(type){};
 
     virtual ~create_statement_t() {}
 
@@ -110,7 +113,31 @@ class table_already_exists : public gaia_exception {
   public:
     table_already_exists(const string &name) {
         stringstream message;
-        message << "The table " << name << " already exists.";
+        message << "The table \"" << name << "\" already exists.";
+        m_message = message.str();
+    }
+};
+
+/**
+ * Thrown when a referenced table does not exists.
+ */
+class table_not_exists : public gaia_exception {
+  public:
+    table_not_exists(const string &name) {
+        stringstream message;
+        message << "The table \"" << name << "\" does not exist.";
+        m_message = message.str();
+    }
+};
+
+/**
+ * Thrown when a field is specified more than once
+ */
+class duplicate_field : public gaia_exception {
+  public:
+    duplicate_field(const string &name) {
+        stringstream message;
+        message << "The field \"" << name << "\" is specified more than once.";
         m_message = message.str();
     }
 };
@@ -144,6 +171,16 @@ const set<gaia_id_t> &list_tables();
  * @return a list of field ids in the order of their positions.
  */
 const vector<gaia_id_t> &list_fields(gaia_id_t table_id);
+
+/**
+ * List all references for a given table defined in the catalog.
+ * References are foreign key constraints or table links.
+ * They defines relationships between tables.
+ *
+ * @param table_id id of the table
+ * @return a list of ids of the table references in the order of their positions.
+ */
+const vector<gaia_id_t> &list_references(gaia_id_t table_id);
 
 /**
  * Generate FlatBuffers schema (fbs) for a catalog table.

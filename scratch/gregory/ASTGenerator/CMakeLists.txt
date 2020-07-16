@@ -12,6 +12,11 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ggdb -pthread")
 include_directories(
   ${CMAKE_BINARY_DIR}/../../../../../../TranslationEngineLLVM/TranslationEngineLLVM/clang/include
   ${CMAKE_BINARY_DIR}/../../../../../../TranslationEngineLLVM/TranslationEngineLLVM/build/tools/clang/include
+  ${CMAKE_BINARY_DIR}/../../../../production/build/catalog/catalog_manager/generated
+  ${CMAKE_BINARY_DIR}/../../../../production/inc/public/common
+  ${CMAKE_BINARY_DIR}/../../../../third_party/production/flatbuffers/include
+  ${CMAKE_BINARY_DIR}/../../../../production/db/storage_engine/mock
+  ${CMAKE_BINARY_DIR}/../../../../production/inc/public/direct_access
 )
 set(ASTGENERATOR_DEMO_SRCS
   ../demo.cpp
@@ -188,7 +193,7 @@ target_link_libraries(ASTCodeGenerator
   LLVMBitReader 
   LLVMCore 
   LLVMBinaryFormat 
-  LLVMSupport 
+  LLVMSupport
   LLVMDemangle
   gaia_semock
   gaia_direct
@@ -199,5 +204,5 @@ set_target_properties(gaia_semock PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD
 
 add_library(gaia_direct STATIC IMPORTED GLOBAL)
 set_target_properties(gaia_direct PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/direct_access/libgaia_direct.a)
-)
+
 

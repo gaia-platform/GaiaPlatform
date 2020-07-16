@@ -5,9 +5,9 @@
 
 #pragma once
 
+#include "array_size.hpp"
 #include "type_mapping.hpp"
 #include "system_catalog_types.hpp"
-#include "helpers.hpp"
 
 // all definitions in this file and included files should have C linkage
 extern "C" {
@@ -21,13 +21,6 @@ extern "C" {
 #include "event_log_builder.h"
 
 // type-specific extractors
-static inline Datum event_log_get_gaia_type_id(const void *rootObject) {
-    gaia_rules_event_log_table_t event =
-        (gaia_rules_event_log_table_t)rootObject;
-    uint64_t gaia_type_id = gaia_rules_event_log_gaia_type_id(event);
-    return UInt64GetDatum(gaia_type_id);
-}
-
 static inline Datum event_log_get_event_type(const void *rootObject) {
     gaia_rules_event_log_table_t event =
         (gaia_rules_event_log_table_t)rootObject;
@@ -35,19 +28,25 @@ static inline Datum event_log_get_event_type(const void *rootObject) {
     return UInt32GetDatum(event_type);
 }
 
-static inline Datum event_log_get_event_mode(const void *rootObject) {
+static inline Datum event_log_get_type_id(const void *rootObject) {
     gaia_rules_event_log_table_t event =
         (gaia_rules_event_log_table_t)rootObject;
-    uint8_t event_mode = gaia_rules_event_log_event_mode(event);
-    return UInt8GetDatum(event_mode);
+    uint64_t type_id = gaia_rules_event_log_type_id(event);
+    return UInt64GetDatum(type_id);
 }
 
-static inline Datum event_log_get_event_source(const void *rootObject) {
+static inline Datum event_log_get_record_id(const void *rootObject) {
     gaia_rules_event_log_table_t event =
         (gaia_rules_event_log_table_t)rootObject;
-    flatbuffers_string_t event_source =
-        gaia_rules_event_log_event_source(event);
-    return flatbuffers_string_to_text_datum(event_source);
+    uint64_t record_id = gaia_rules_event_log_record_id(event);
+    return UInt64GetDatum(record_id);
+}
+
+static inline Datum event_log_get_column_id(const void *rootObject) {
+    gaia_rules_event_log_table_t event =
+        (gaia_rules_event_log_table_t)rootObject;
+    uint16_t column_id = gaia_rules_event_log_column_id(event);
+    return UInt16GetDatum(column_id);
 }
 
 static inline Datum event_log_get_timestamp(const void *rootObject) {
@@ -57,89 +56,74 @@ static inline Datum event_log_get_timestamp(const void *rootObject) {
     return UInt64GetDatum(timestamp);
 }
 
-static inline Datum event_log_get_gaia_id(const void *rootObject) {
+static inline Datum event_log_get_rules_invoked(const void *rootObject) {
     gaia_rules_event_log_table_t event =
         (gaia_rules_event_log_table_t)rootObject;
-    uint64_t gaia_id = gaia_rules_event_log_gaia_id(event);
-    return UInt64GetDatum(gaia_id);
-}
-
-static inline Datum event_log_get_rules_fired(const void *rootObject) {
-    gaia_rules_event_log_table_t event =
-        (gaia_rules_event_log_table_t)rootObject;
-    bool rules_fired = gaia_rules_event_log_rules_fired(event);
-    return BoolGetDatum(rules_fired);
+    bool rules_invoked = gaia_rules_event_log_rules_invoked(event);
+    return BoolGetDatum(rules_invoked);
 }
 
 // type-specific builders
-static inline void event_log_add_gaia_type_id(flatbuffers_builder_t *builder,
-                                              Datum value) {
-    uint64_t gaia_type_id = DatumGetUInt64(value);
-    gaia_rules_event_log_gaia_type_id_add(builder, gaia_type_id);
-}
-
 static inline void event_log_add_event_type(flatbuffers_builder_t *builder,
-                                            Datum value) {
+    Datum value) {
     uint32_t event_type = DatumGetUInt32(value);
     gaia_rules_event_log_event_type_add(builder, event_type);
 }
 
-static inline void event_log_add_event_mode(flatbuffers_builder_t *builder,
-                                            Datum value) {
-    uint8_t event_mode = DatumGetUInt8(value);
-    gaia_rules_event_log_event_mode_add(builder, event_mode);
+static inline void event_log_add_type_id(flatbuffers_builder_t *builder,
+    Datum value) {
+    uint64_t type_id = DatumGetUInt64(value);
+    gaia_rules_event_log_type_id_add(builder, type_id);
 }
 
-static inline void event_log_add_event_source(flatbuffers_builder_t *builder,
-                                              Datum value) {
-    const char *event_source = TextDatumGetCString(value);
-    gaia_rules_event_log_event_source_create_str(builder, event_source);
+static inline void event_log_add_record_id(flatbuffers_builder_t *builder,
+    Datum value) {
+    uint64_t record_id = DatumGetUInt64(value);
+    gaia_rules_event_log_record_id_add(builder, record_id);
+}
+
+static inline void event_log_add_column_id(flatbuffers_builder_t *builder,
+    Datum value) {
+    uint16_t column_id = DatumGetUInt16(value);
+    gaia_rules_event_log_column_id_add(builder, column_id);
 }
 
 static inline void event_log_add_timestamp(flatbuffers_builder_t *builder,
-                                           Datum value) {
+    Datum value) {
     uint64_t timestamp = DatumGetUInt64(value);
     gaia_rules_event_log_timestamp_add(builder, timestamp);
 }
 
-static inline void event_log_add_gaia_id(flatbuffers_builder_t *builder,
-                                         Datum value) {
-    uint64_t gaia_id = DatumGetUInt64(value);
-    gaia_rules_event_log_gaia_id_add(builder, gaia_id);
-}
-
-static inline void event_log_add_rules_fired(flatbuffers_builder_t *builder,
-                                             Datum value) {
-    bool rules_fired = DatumGetBool(value);
-    gaia_rules_event_log_rules_fired_add(builder, rules_fired);
+static inline void event_log_add_rules_invoked(flatbuffers_builder_t *builder,
+    Datum value) {
+    bool rules_invoked = DatumGetBool(value);
+    gaia_rules_event_log_rules_invoked_add(builder, rules_invoked);
 }
 
 static const Attribute EVENT_LOG_ATTRS[] = {
-    {"gaia_type_id", event_log_get_gaia_type_id, event_log_add_gaia_type_id},
     {"event_type", event_log_get_event_type, event_log_add_event_type},
-    {"event_mode", event_log_get_event_mode, event_log_add_event_mode},
-    {"event_source", event_log_get_event_source, event_log_add_event_source},
+    {"type_id", event_log_get_type_id, event_log_add_type_id},
+    {"record_id", event_log_get_record_id, event_log_add_record_id},
+    {"column_id", event_log_get_column_id, event_log_add_column_id},
     {"timestamp", event_log_get_timestamp, event_log_add_timestamp},
-    {"gaia_id", event_log_get_gaia_id, event_log_add_gaia_id},
-    {"rules_fired", event_log_get_rules_fired, event_log_add_rules_fired},
+    {"rules_invoked", event_log_get_rules_invoked, event_log_add_rules_invoked},
 };
 
 RelationAttributeMapping EVENT_LOG_MAPPING = {
     "event_log",
     system_catalog_types::kEventLogType,
-    false,
     (RootObjectDeserializer)gaia_rules_event_log_as_root,
     (BuilderInitializer)gaia_rules_event_log_start_as_root,
     (BuilderFinalizer)gaia_rules_event_log_end_as_root,
     EVENT_LOG_ATTRS,
-    ARRAY_SIZE(EVENT_LOG_ATTRS),
+    array_size(EVENT_LOG_ATTRS),
 };
 
 const char *EVENT_LOG_DDL_STMT_FMT =
     "create foreign table event_log( "
-    "gaia_type_id bigint, event_type int, event_mode smallint, "
-    "event_source text, timestamp bigint, gaia_id bigint, "
-    "rules_fired boolean) "
+    "event_type int, type_id bigint, record_id bigint, "
+    "column_id smallint, timestamp bigint, "
+    "rules_invoked boolean) "
     "server %s;";
 
-} // extern "C"
+}  // extern "C"
