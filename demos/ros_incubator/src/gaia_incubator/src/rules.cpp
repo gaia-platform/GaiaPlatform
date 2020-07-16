@@ -12,6 +12,10 @@
 using namespace gaia::rules;
 using namespace BarnStorage;
 
+// This code only exists to verify that the gaia_incubator package is
+// linked to the Gaia production libraries. In the future, this
+// implementation will contain new rules for the ROS demo.
+
 /** ruleset*/
 namespace incubator_ruleset
 {

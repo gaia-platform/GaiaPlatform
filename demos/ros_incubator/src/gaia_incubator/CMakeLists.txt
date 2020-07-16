@@ -94,7 +94,8 @@ ament_export_dependencies(rosidl_default_runtime)
 add_library(gaia_library SHARED
   src/incubator_manager.cpp
   src/gaia_logic.cpp
-  src/rules.cpp)
+  src/rules.cpp
+)
 
 add_dependencies(gaia_library generate_barn_storage)
 target_include_directories(gaia_library PRIVATE ${ROS_INCUBATOR_DEMO_INCLUDES})

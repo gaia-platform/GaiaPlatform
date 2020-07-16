@@ -13,33 +13,31 @@ incubator_manager::incubator_manager(const NodeOptions& options)
 : Node("incubator_manager", options)
 {
     cout << "Starting incubator_manager." << endl;
-    on_shutdown([&]{incubator_manager::shutdown_callback();});
+    on_shutdown([&]
+    {
+        incubator_manager::shutdown_callback();
+    });
 
     using namespace chrono_literals;
     using std::placeholders::_1;
 
-    m_pub_temp =
-        this->create_publisher<msg::Temp>("temp", SensorDataQoS());
+    m_pub_temp = this->create_publisher<msg::Temp>("temp", SensorDataQoS());
 
-    m_sub_fan_state =
-        this->create_subscription<msg::FanState>(
-            "fan_state", SystemDefaultsQoS(), std::bind(
-                &incubator_manager::set_fan_state, this, _1));
+    m_sub_fan_state = this->create_subscription<msg::FanState>(
+        "fan_state", SystemDefaultsQoS(), std::bind(
+            &incubator_manager::set_fan_state, this, _1));
 
-    m_sub_add_incubator =
-        this->create_subscription<msg::AddIncubator>(
-            "add_incubator", SystemDefaultsQoS(), std::bind(
-                &incubator_manager::add_incubator, this, _1));
+    m_sub_add_incubator = this->create_subscription<msg::AddIncubator>(
+        "add_incubator", SystemDefaultsQoS(), std::bind(
+            &incubator_manager::add_incubator, this, _1));
 
-    m_sub_add_sensor =
-        this->create_subscription<msg::AddSensor>(
-            "add_sensor", SystemDefaultsQoS(), std::bind(
-                &incubator_manager::add_sensor, this, _1));
+    m_sub_add_sensor = this->create_subscription<msg::AddSensor>(
+        "add_sensor", SystemDefaultsQoS(), std::bind(
+            &incubator_manager::add_sensor, this, _1));
 
-    m_sub_add_fan =
-        this->create_subscription<msg::AddFan>(
-            "add_fan", SystemDefaultsQoS(), std::bind(
-                &incubator_manager::add_fan, this, _1));
+    m_sub_add_fan = this->create_subscription<msg::AddFan>(
+        "add_fan", SystemDefaultsQoS(), std::bind(
+            &incubator_manager::add_fan, this, _1));
 
     m_sensor_reading_timer = this->create_wall_timer(
         1s, bind(&incubator_manager::publish_temp, this));
@@ -51,18 +49,18 @@ incubator_manager::incubator_manager(const NodeOptions& options)
 void incubator_manager::update_state() {
     lock_guard<mutex> incubators_lock(m_incubators_mutex);
 
-    for(auto& incubator_pair : m_incubators)
+    for (auto& incubator_pair : m_incubators)
     {
         incubator& current_incubator = incubator_pair.second;
 
         float temp_change = 0.01;
 
-        for(auto& fan_pair : current_incubator.fans)
+        for (auto& fan_pair : current_incubator.fans)
         {
             fan& current_fan = fan_pair.second;
 
             // Calculate the new fan speed.
-            if(current_fan.is_on)
+            if (current_fan.is_on)
             {
                 current_fan.speed = min(3500.0, current_fan.speed + 50.0);
             }
@@ -72,14 +70,18 @@ void incubator_manager::update_state() {
             }
 
             // Calculate the temperature change for the current fan.
-            if(current_fan.speed > 3000.0)
+            if (current_fan.speed > 3000.0)
+            {
                 temp_change -= 0.03;
-            else if(current_fan.speed > 1000.0)
+            }
+            else if (current_fan.speed > 1000.0)
+            {
                 temp_change -= 0.02;
-        } // for loop, fans
+            }
+        } // for : current_incubator.fans
 
         current_incubator.temperature += temp_change;
-    } // for loop, incubators
+    } // for : m_incubators
 } // update_state()
 
 void incubator_manager::publish_temp()
@@ -87,13 +89,13 @@ void incubator_manager::publish_temp()
     msg::Temp temp_msg;
     lock_guard<mutex> incubators_lock(m_incubators_mutex);
 
-    for(const auto& incubator_pair : m_incubators)
+    for (const auto& incubator_pair : m_incubators)
     {
         temp_msg.incubator_id = incubator_pair.first;
 
         const incubator& current_incubator = incubator_pair.second;
 
-        for(const string& sensor_name : current_incubator.sensors)
+        for (const string& sensor_name : current_incubator.sensors)
         {
             temp_msg.sensor_name = sensor_name;
             // Every sensor in an incubator reports the same temperature.
@@ -110,7 +112,7 @@ void incubator_manager::set_fan_state(const msg::FanState::SharedPtr msg)
     lock_guard<mutex> incubators_lock(m_incubators_mutex);
     const auto incubator_iter = m_incubators.find(msg->incubator_id);
 
-    if(incubator_iter == m_incubators.end())
+    if (incubator_iter == m_incubators.end())
     {
         RCLCPP_INFO(get_logger(),
             "Failed to set a fan's state: cannot find an incubator with ID %u.",
@@ -120,7 +122,7 @@ void incubator_manager::set_fan_state(const msg::FanState::SharedPtr msg)
     {
         const auto fan_iter = incubator_iter->second.fans.find(msg->fan_name);
 
-        if(fan_iter == incubator_iter->second.fans.end())
+        if (fan_iter == incubator_iter->second.fans.end())
         {
             RCLCPP_INFO(get_logger(),
                 "Failed to set a fan's state: cannot find a fan named %s in the incubator with ID %u.",
@@ -149,8 +151,7 @@ void incubator_manager::add_sensor(const msg::AddSensor::SharedPtr msg)
     try
     {
         lock_guard<mutex> incubators_lock(m_incubators_mutex);
-        m_incubators.at(msg->incubator_id).sensors.insert(
-            msg->sensor_name);
+        m_incubators.at(msg->incubator_id).sensors.insert(msg->sensor_name);
     }
     catch(const out_of_range)
     {
@@ -165,7 +166,7 @@ void incubator_manager::add_fan(const msg::AddFan::SharedPtr msg)
     try
     {
         fan f;
-
+        
         lock_guard<mutex> incubators_lock(m_incubators_mutex);
         m_incubators.at(msg->incubator_id).fans[msg->fan_name] = f;
     }

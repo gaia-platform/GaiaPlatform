@@ -28,10 +28,20 @@ gaia_logic::gaia_logic(const NodeOptions& options)
 
     using std::placeholders::_1;
 
-    m_sub_temp =
-        this->create_subscription<msg::Temp>(
-            "temp", SystemDefaultsQoS(), std::bind(
-                &gaia_logic::temp_sensor_callback, this, _1));
+    m_pub_add_incubator = this->create_publisher<msg::AddIncubator>(
+        "add_incubator", SystemDefaultsQoS());
+
+    m_pub_add_sensor = this->create_publisher<msg::AddSensor>(
+        "add_sensor", SystemDefaultsQoS());
+
+    m_pub_add_fan = this->create_publisher<msg::AddFan>(
+        "add_fan", SystemDefaultsQoS());
+
+    m_sub_temp = this->create_subscription<msg::Temp>(
+        "temp", SystemDefaultsQoS(), std::bind(
+            &gaia_logic::temp_sensor_callback, this, _1));
+
+    setup_incubators();
 }
 
 void gaia_logic::temp_sensor_callback(const msg::Temp::SharedPtr msg)
@@ -45,15 +55,26 @@ void gaia_logic::shutdown_callback()
     cout << "Shut down gaia_logic." << endl;
 }
 
-// gaia-specific function
-void init_storage() {
+void gaia_logic::setup_incubators()
+{
+    msg::AddIncubator add_incubator_msg;
+    add_incubator_msg.incubator_id = 1;
+    add_incubator_msg.name = "Puppy";
+    m_pub_add_incubator->publish(add_incubator_msg);
+
+    msg::AddSensor add_sensor_msg;
+    add_sensor_msg.sensor_name = "Puppy Sensor";
+    add_sensor_msg.incubator_id = 1;
+    m_pub_add_sensor->publish(add_sensor_msg);
+
+    msg::AddFan add_fan_msg;
+    add_fan_msg.fan_name = "Puppy Fan";
+    add_fan_msg.incubator_id = 1;
+    m_pub_add_fan->publish(add_fan_msg);
+}
+
+// An unused function for checking Gaia dependencies at compile-time.
+void gaia_logic::init_storage() {
     begin_transaction();
-
-    ulong gaia_id;
-
-    gaia_id = Incubator::insert_row("test_incubator", 90.0, 100.0);
-    Sensor::insert_row(gaia_id, "test_sensor", 0, 99.0);
-    Actuator::insert_row(gaia_id, "test_fan", 0, 0.0);
-
     commit_transaction();
 }
