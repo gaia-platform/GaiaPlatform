@@ -29,6 +29,19 @@ public:
     incubator_manager(const NodeOptions& options);
 
 private:
+    const double c_publish_temp_rate = 1.0;
+    const double c_update_state_rate = 0.1;
+
+    const double c_fan_acceleration = 500.0;
+    const double c_fan_max_speed = 3500.0;
+    const double c_fan_high_speed = 3000.0;
+    const double c_fan_low_speed = 1000.0;
+
+    const double c_temp_change_initial = 0.01;
+    const double c_temp_change_high_fan_speed = 0.03;
+    const double c_temp_change_low_fan_speed = 0.02;
+
+
     void update_state();
 
     void publish_temp();
@@ -53,14 +66,14 @@ private:
 
     struct fan
     {
-        float speed = 0.0;
+        double speed = 0.0;
         bool is_on = false;
     };
 
     struct incubator
     {
         string name;
-        float temperature;
+        double temperature;
 
         // Sensors are only stored as their names. They do not keep a state.
         set<string> sensors;

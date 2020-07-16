@@ -40,10 +40,12 @@ incubator_manager::incubator_manager(const NodeOptions& options)
             &incubator_manager::add_fan, this, _1));
 
     m_sensor_reading_timer = this->create_wall_timer(
-        1s, bind(&incubator_manager::publish_temp, this));
+        (1s * c_publish_temp_rate),
+        bind(&incubator_manager::publish_temp, this));
 
     m_update_state_timer = this->create_wall_timer(
-        100ms, bind(&incubator_manager::update_state, this));
+        (1s * c_update_state_rate),
+        bind(&incubator_manager::update_state, this));
 } // incubator_manager()
 
 void incubator_manager::update_state() {
@@ -53,7 +55,7 @@ void incubator_manager::update_state() {
     {
         incubator& current_incubator = incubator_pair.second;
 
-        float temp_change = 0.01;
+        double temp_change = c_temp_change_initial;
 
         for (auto& fan_pair : current_incubator.fans)
         {
@@ -62,21 +64,25 @@ void incubator_manager::update_state() {
             // Calculate the new fan speed.
             if (current_fan.is_on)
             {
-                current_fan.speed = min(3500.0, current_fan.speed + 50.0);
+                current_fan.speed = min(c_fan_max_speed,
+                    c_fan_acceleration * c_update_state_rate
+                    + current_fan.speed);
             }
             else
             {
-                current_fan.speed = max(0.0, current_fan.speed - 50.0);
+                current_fan.speed = max(0.0,
+                    c_fan_acceleration * c_update_state_rate
+                    - current_fan.speed);
             }
 
             // Calculate the temperature change for the current fan.
-            if (current_fan.speed > 3000.0)
+            if (current_fan.speed > c_fan_high_speed)
             {
-                temp_change -= 0.03;
+                temp_change -= c_temp_change_high_fan_speed;
             }
-            else if (current_fan.speed > 1000.0)
+            else if (current_fan.speed > c_fan_low_speed)
             {
-                temp_change -= 0.02;
+                temp_change -= c_temp_change_low_fan_speed;
             }
         } // for : current_incubator.fans
 
@@ -166,7 +172,7 @@ void incubator_manager::add_fan(const msg::AddFan::SharedPtr msg)
     try
     {
         fan f;
-        
+
         lock_guard<mutex> incubators_lock(m_incubators_mutex);
         m_incubators.at(msg->incubator_id).fans[msg->fan_name] = f;
     }
