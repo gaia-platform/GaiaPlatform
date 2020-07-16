@@ -53,8 +53,7 @@ void server::handle_commit_txn(int* fds, size_t fd_count, session_event_t event,
     int fd_log = *fds;
     // Check that the log memfd was sealed for writes.
     int seals = fcntl(fd_log, F_GET_SEALS);
-    if (seals == -1)
-    {
+    if (seals == -1) {
         throw_system_error("fcntl(F_GET_SEALS) failed");
     }
     retail_assert(seals & F_SEAL_WRITE);
@@ -102,8 +101,7 @@ void server::handle_server_shutdown(int*, size_t, session_event_t event, session
 
 // this must be run on main thread
 // see https://thomastrapp.com/blog/signal-handler-for-multithreaded-c++/
-void server::run()
-{
+void server::run() {
     // Create eventfd shutdown event.
     // Linux is non-POSIX-compliant and sometimes marks an fd as readable
     // from select/poll/epoll even when a subsequent read would block.

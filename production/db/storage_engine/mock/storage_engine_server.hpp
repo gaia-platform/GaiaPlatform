@@ -19,26 +19,23 @@
 #include "socket_helpers.hpp"
 #include "messages_generated.h"
 
-namespace gaia
-{
-namespace db
-{
+namespace gaia {
+namespace db {
 
 using namespace common;
 using namespace messages;
 using namespace flatbuffers;
 
-class invalid_session_transition: public gaia_exception
-{
-public:
+class invalid_session_transition : public gaia_exception {
+   public:
     invalid_session_transition(const string& message) : gaia_exception(message) {}
 };
 
-class server: private se_base
-{
-public:
+class server : private se_base {
+   public:
     static void run();
-private:
+
+   private:
     // FIXME: this really should be constexpr, but C++11 seems broken in that respect.
     static const uint64_t MAX_SEMAPHORE_COUNT;
     static int s_server_shutdown_event_fd;
@@ -92,14 +89,14 @@ private:
     // -> CONNECTED
 
     static constexpr valid_transition_t s_valid_transitions[] = {
-        { session_state_t::DISCONNECTED, session_event_t::CONNECT, { session_state_t::CONNECTED, handle_connect } },
-        { session_state_t::ANY, session_event_t::CLIENT_SHUTDOWN, { session_state_t::DISCONNECTED, handle_client_shutdown } },
-        { session_state_t::CONNECTED, session_event_t::BEGIN_TXN, { session_state_t::TXN_IN_PROGRESS, handle_begin_txn } },
-        { session_state_t::TXN_IN_PROGRESS, session_event_t::ROLLBACK_TXN, { session_state_t::CONNECTED, handle_rollback_txn } },
-        { session_state_t::TXN_IN_PROGRESS, session_event_t::COMMIT_TXN, { session_state_t::TXN_COMMITTING, handle_commit_txn } },
-        { session_state_t::TXN_COMMITTING, session_event_t::DECIDE_TXN_COMMIT, { session_state_t::CONNECTED, handle_decide_txn } },
-        { session_state_t::TXN_COMMITTING, session_event_t::DECIDE_TXN_ABORT, { session_state_t::CONNECTED, handle_decide_txn } },
-        { session_state_t::CONNECTED, session_event_t::SERVER_SHUTDOWN, { session_state_t::DISCONNECTING, handle_server_shutdown } },
+        {session_state_t::DISCONNECTED, session_event_t::CONNECT, {session_state_t::CONNECTED, handle_connect}},
+        {session_state_t::ANY, session_event_t::CLIENT_SHUTDOWN, {session_state_t::DISCONNECTED, handle_client_shutdown}},
+        {session_state_t::CONNECTED, session_event_t::BEGIN_TXN, {session_state_t::TXN_IN_PROGRESS, handle_begin_txn}},
+        {session_state_t::TXN_IN_PROGRESS, session_event_t::ROLLBACK_TXN, {session_state_t::CONNECTED, handle_rollback_txn}},
+        {session_state_t::TXN_IN_PROGRESS, session_event_t::COMMIT_TXN, {session_state_t::TXN_COMMITTING, handle_commit_txn}},
+        {session_state_t::TXN_COMMITTING, session_event_t::DECIDE_TXN_COMMIT, {session_state_t::CONNECTED, handle_decide_txn}},
+        {session_state_t::TXN_COMMITTING, session_event_t::DECIDE_TXN_ABORT, {session_state_t::CONNECTED, handle_decide_txn}},
+        {session_state_t::CONNECTED, session_event_t::SERVER_SHUTDOWN, {session_state_t::DISCONNECTING, handle_server_shutdown}},
     };
 
     static void apply_transition(session_event_t event, int* fds, size_t fd_count) {
@@ -136,23 +133,18 @@ private:
         builder.Finish(message);
     }
 
-    static void init_shared_memory()
-    {
+    static void init_shared_memory() {
         retail_assert(s_fd_data == -1 && s_fd_offsets == -1);
         retail_assert(!s_data && !s_shared_offsets);
         s_fd_offsets = memfd_create(SCH_MEM_OFFSETS, MFD_ALLOW_SEALING);
-        if (s_fd_offsets == -1)
-        {
+        if (s_fd_offsets == -1) {
             throw_system_error("memfd_create failed");
         }
         s_fd_data = memfd_create(SCH_MEM_DATA, MFD_ALLOW_SEALING);
-        if (s_fd_data == -1)
-        {
+        if (s_fd_data == -1) {
             throw_system_error("memfd_create failed");
         }
-        if (-1 == ftruncate(s_fd_offsets, sizeof(offsets))
-            || -1 == ftruncate(s_fd_data, sizeof(data)))
-        {
+        if (-1 == ftruncate(s_fd_offsets, sizeof(offsets)) || -1 == ftruncate(s_fd_data, sizeof(data))) {
             throw_system_error("ftruncate failed");
         }
         s_shared_offsets = static_cast<offsets*>(map_fd(sizeof(offsets),
@@ -161,8 +153,7 @@ private:
             PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_data, 0));
     }
 
-    static sigset_t mask_signals()
-    {
+    static sigset_t mask_signals() {
         sigset_t sigset;
         sigemptyset(&sigset);
         // TODO: do we want to handle SIGHUP differently at some point (e.g. reload config)?
@@ -177,8 +168,7 @@ private:
         return sigset;
     }
 
-    static void signal_handler(sigset_t sigset, int& signum)
-    {
+    static void signal_handler(sigset_t sigset, int& signum) {
         // Wait until a signal is delivered.
         // REVIEW: do we have any use for sigwaitinfo()?
         sigwait(&sigset, &signum);
@@ -216,13 +206,13 @@ private:
         // (Linux-exclusive) "abstract namespace", i.e., not bound to the
         // filesystem.
         strncpy(&server_addr.sun_path[1], SERVER_CONNECT_SOCKET_NAME,
-                sizeof(server_addr.sun_path) - 1);
+            sizeof(server_addr.sun_path) - 1);
         // The socket name is not null-terminated in the address structure, but
         // we need to add an extra byte for the null byte prefix.
         socklen_t server_addr_size =
             sizeof(server_addr.sun_family) + 1 + strlen(&server_addr.sun_path[1]);
-        if (-1 == ::bind(connect_socket, (struct sockaddr *)&server_addr,
-                    server_addr_size)) {
+        if (-1 == ::bind(connect_socket, (struct sockaddr*)&server_addr,
+                      server_addr_size)) {
             throw_system_error("bind failed");
         }
         if (-1 == listen(connect_socket, 0)) {
@@ -230,7 +220,7 @@ private:
         }
         int epoll_fd = epoll_create1(0);
         if (epoll_fd == -1) {
-                throw_system_error("epoll_create1 failed");
+            throw_system_error("epoll_create1 failed");
         }
         int fds[] = {connect_socket, s_server_shutdown_event_fd};
         for (size_t i = 0; i < array_size(fds); i++) {
@@ -255,8 +245,7 @@ private:
         return (cred.uid == geteuid());
     }
 
-    static void client_dispatch_handler()
-    {
+    static void client_dispatch_handler() {
         int epoll_fd = get_client_dispatch_fd();
         auto cleanup_epoll_fd = scope_guard::make_scope_guard([epoll_fd]() {
             close(epoll_fd);
@@ -284,7 +273,7 @@ private:
                         int error = 0;
                         socklen_t err_len = sizeof(error);
                         // Ignore errors getting error message and default to generic error message.
-                        getsockopt(s_connect_socket, SOL_SOCKET, SO_ERROR, (void *)&error, &err_len);
+                        getsockopt(s_connect_socket, SOL_SOCKET, SO_ERROR, (void*)&error, &err_len);
                         throw_system_error("client socket error", error);
                     } else if (ev.data.fd == s_server_shutdown_event_fd) {
                         throw_system_error("shutdown eventfd error");
@@ -319,8 +308,7 @@ private:
         }
     }
 
-    static void session_thread(int session_socket)
-    {
+    static void session_thread(int session_socket) {
         // REVIEW: how do we gracefully close the session socket?
         // do we need to issue a nonblocking read() first?
         // then do we need to call shutdown() before close()?
@@ -352,7 +340,7 @@ private:
         });
         int epoll_fd = epoll_create1(0);
         if (epoll_fd == -1) {
-                throw_system_error("epoll_create1 failed");
+            throw_system_error("epoll_create1 failed");
         }
         auto epoll_cleanup = scope_guard::make_scope_guard([epoll_fd]() {
             close(epoll_fd);
@@ -389,7 +377,7 @@ private:
                         int error = 0;
                         socklen_t err_len = sizeof(error);
                         // Ignore errors getting error message and default to generic error message.
-                        getsockopt(s_session_socket, SOL_SOCKET, SO_ERROR, (void *)&error, &err_len);
+                        getsockopt(s_session_socket, SOL_SOCKET, SO_ERROR, (void*)&error, &err_len);
                         throw_system_error("client socket error", error);
                     } else if (ev.events & EPOLLHUP) {
                         // This flag is unmaskable, so we don't need to register for it.
@@ -415,8 +403,8 @@ private:
                         size_t bytes_read = recv_msg_with_fds(s_session_socket, fd_buf, &fd_buf_size, msg_buf, sizeof(msg_buf));
                         // We shouldn't get EOF unless EPOLLRDHUP is set.
                         retail_assert(bytes_read > 0);
-                        const message_t *msg = Getmessage_t(msg_buf);
-                        const client_request_t *request = msg->msg_as_request();
+                        const message_t* msg = Getmessage_t(msg_buf);
+                        const client_request_t* request = msg->msg_as_request();
                         event = request->event();
                         if (fd_buf_size > 0) {
                             fds = fd_buf;
@@ -444,21 +432,18 @@ private:
     // Before this method is called, we have already received the log fd from the client
     // and mmapped it.
     // This method returns true for a commit decision and false for an abort decision.
-    static bool tx_commit()
-    {
+    static bool tx_commit() {
         // At the process level, acquiring an advisory file lock in exclusive mode
         // guarantees there are no clients mapping the locator segment. It does not
         // guarantee there are no other threads in this process that have acquired
         // an exclusive lock, though (hence the additional mutex).
-        if (-1 == flock(s_fd_offsets, LOCK_EX))
-        {
+        if (-1 == flock(s_fd_offsets, LOCK_EX)) {
             throw_system_error("flock failed");
         }
         // Within our own process, we must have exclusive access to the locator segment.
         const std::lock_guard<std::mutex> lock(s_commit_lock);
         auto cleanup = scope_guard::make_scope_guard([]() {
-            if (-1 == flock(s_fd_offsets, LOCK_UN))
-            {
+            if (-1 == flock(s_fd_offsets, LOCK_UN)) {
                 // Per C++11 semantics, throwing an exception from a destructor
                 // will just call std::terminate(), no undefined behavior.
                 throw_system_error("flock failed");
@@ -468,21 +453,17 @@ private:
 
         std::set<int64_t> row_ids;
 
-        for (auto i = 0; i < s_log->count; i++)
-        {
+        for (auto i = 0; i < s_log->count; i++) {
             auto lr = s_log->log_records + i;
 
-            if (row_ids.insert(lr->row_id).second)
-            {
-                if ((*s_shared_offsets)[lr->row_id] != lr->old_object)
-                {
+            if (row_ids.insert(lr->row_id).second) {
+                if ((*s_shared_offsets)[lr->row_id] != lr->old_object) {
                     return false;
                 }
             }
         }
 
-        for (auto i = 0; i < s_log->count; i++)
-        {
+        for (auto i = 0; i < s_log->count; i++) {
             auto lr = s_log->log_records + i;
             (*s_shared_offsets)[lr->row_id] = lr->new_object;
         }
@@ -491,5 +472,5 @@ private:
     }
 };
 
-} // db
-} // gaia
+}  // namespace db
+}  // namespace gaia

@@ -23,7 +23,7 @@ namespace db {
 /**
  * Enum to represent gaia object types. Currently, the only types are nodes and edges.
  */
-enum GaiaObjectType: u_int8_t {
+enum GaiaObjectType : u_int8_t {
     node = 0x0,
     edge = 0x1
 };
@@ -33,11 +33,11 @@ enum GaiaObjectType: u_int8_t {
  * gaia objects to rocksdb slices.
  */
 class string_writer {
-    private:
+   private:
     std::vector<u_char> m_buffer;
     size_t m_position;
 
-    public:
+   public:
     string_writer() {
         m_position = 0;
     }
@@ -80,7 +80,7 @@ class string_writer {
 
     // Method to obtain slice from buffer.
     rocksdb::Slice to_slice() {
-        return rocksdb::Slice(reinterpret_cast<char *>(m_buffer.data()), m_position);
+        return rocksdb::Slice(reinterpret_cast<char*>(m_buffer.data()), m_position);
     }
 
     size_t get_current_position() {
@@ -96,13 +96,13 @@ class string_writer {
  * String reader library used during deserialization of slices to gaia objects.
  */
 class string_reader {
-    private:
+   private:
     // current ptr to keep track of char's read in slice
     const char* m_current;
     // maintain remaining length for sanity purposes
     u_int m_remaining;
 
-    public:
+   public:
     string_reader(const rocksdb::Slice* const slice) {
         if (!slice) {
             // Ideally data should never be accessed if length is 0; hence set to nullptr.
@@ -116,47 +116,47 @@ class string_reader {
 
     bool read_uint64(u_int64_t* out) {
         const u_char* casted_res =
-        reinterpret_cast<const u_char *>(read(sizeof(u_int64_t)));
+            reinterpret_cast<const u_char*>(read(sizeof(u_int64_t)));
 
         if (casted_res) {
             u_int64_t temp;
             memcpy(&temp, casted_res, sizeof(u_int64_t));
             // Convert to little endian.
             *out = be64toh(temp);
-            return true; // Value read successfully.
+            return true;  // Value read successfully.
         }
 
-        return false; // Error
+        return false;  // Error
     }
 
     bool read_uint32(u_int32_t* out) {
         const u_char* casted_res =
-        reinterpret_cast<const u_char *>(read(sizeof(u_int32_t)));
+            reinterpret_cast<const u_char*>(read(sizeof(u_int32_t)));
 
         if (casted_res) {
             uint32_t temp;
             memcpy(&temp, casted_res, sizeof(u_int32_t));
             // Convert to little endian.
             *out = be32toh(temp);
-            return true; // Value read successfully.
+            return true;  // Value read successfully.
         }
 
-        return false; // Error
+        return false;  // Error
     }
 
     bool read_byte(u_char* out) {
         const u_char* casted_res =
-        reinterpret_cast<const u_char *>(read(sizeof(u_char)));
+            reinterpret_cast<const u_char*>(read(sizeof(u_char)));
 
         if (casted_res) {
             *out = *casted_res;
-            return true; // Value read successfully.
+            return true;  // Value read successfully.
         }
 
-        return false; // Error
+        return false;  // Error
     }
 
-    u_int get_remaining_len_in_bytes () {
+    u_int get_remaining_len_in_bytes() {
         return m_remaining;
     }
 
@@ -172,43 +172,42 @@ class string_reader {
 
         return result;
     }
-
 };
 
 /**
  * Utility class for for encoding/decoding gaia objects.
  */
 class rdb_object_converter_util {
-    public:
+   public:
     static void encode_node(const u_int64_t id,
-                            u_int64_t type,
-                            u_int32_t size,
-                            const char* payload,
-                            string_writer* key,
-                            string_writer* value);
+        u_int64_t type,
+        u_int32_t size,
+        const char* payload,
+        string_writer* key,
+        string_writer* value);
     static void encode_edge(const u_int64_t id,
-                            u_int64_t type,
-                            u_int32_t size,
-                            const char* payload,
-                            const u_int64_t first,
-                            const u_int64_t second,
-                            string_writer* key,
-                            string_writer* value);
+        u_int64_t type,
+        u_int32_t size,
+        const char* payload,
+        const u_int64_t first,
+        const u_int64_t second,
+        string_writer* key,
+        string_writer* value);
     static const char* decode_node(const rocksdb::Slice& key,
-                                   const rocksdb::Slice& value,
-                                   gaia_id_t* id,
-                                   gaia_type_t* type,
-                                   u_int32_t* size);
+        const rocksdb::Slice& value,
+        gaia_id_t* id,
+        gaia_type_t* type,
+        u_int32_t* size);
     static const char* decode_edge(const rocksdb::Slice& key,
-                                   const rocksdb::Slice& value,
-                                   gaia_id_t* id,
-                                   gaia_type_t* type,
-                                   u_int32_t* size,
-                                   gaia_id_t* first,
-                                   gaia_id_t* second);
+        const rocksdb::Slice& value,
+        gaia_id_t* id,
+        gaia_type_t* type,
+        u_int32_t* size,
+        gaia_id_t* first,
+        gaia_id_t* second);
     static bool is_rdb_object_edge(const rocksdb::Slice& value);
 };
 
-}
+}  // namespace db
 
-}
+}  // namespace gaia

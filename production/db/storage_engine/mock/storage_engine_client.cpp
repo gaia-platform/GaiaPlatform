@@ -10,14 +10,14 @@ using namespace gaia::db;
 using namespace gaia::db::messages;
 using namespace flatbuffers;
 
-thread_local se_base::offsets* client::s_offsets = nullptr;
+thread_local se_base::offsets *client::s_offsets = nullptr;
 thread_local int client::s_fd_log = -1;
 
-std::atomic<gaia_tx_hook> client::s_tx_begin_hook {nullptr};
+std::atomic<gaia_tx_hook> client::s_tx_begin_hook{nullptr};
 std::atomic<gaia_tx_hook> client::s_tx_commit_hook{nullptr};
 std::atomic<gaia_tx_hook> client::s_tx_rollback_hook{nullptr};
 
-static void build_client_request(FlatBufferBuilder& builder, session_event_t event) {
+static void build_client_request(FlatBufferBuilder &builder, session_event_t event) {
     auto client_request = Createclient_request_t(builder, event);
     auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
     builder.Finish(message);
@@ -58,13 +58,13 @@ int client::get_session_socket() {
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
     // filesystem.
     strncpy(&server_addr.sun_path[1], SERVER_CONNECT_SOCKET_NAME,
-            sizeof(server_addr.sun_path) - 1);
+        sizeof(server_addr.sun_path) - 1);
     // The socket name is not null-terminated in the address structure, but
     // we need to add an extra byte for the null byte prefix.
     socklen_t server_addr_size =
         sizeof(server_addr.sun_family) + 1 + strlen(&server_addr.sun_path[1]);
     if (-1 == connect(session_socket, (struct sockaddr *)&server_addr,
-                server_addr_size)) {
+                  server_addr_size)) {
         throw_system_error("connect failed");
     }
     return session_socket;
@@ -76,8 +76,7 @@ int client::get_session_socket() {
 // locator shared memory segments, but we only use them if this is the client
 // process's first call to create_session(), since they are stored globally
 // rather than per-session. (The connected socket is stored per-session.)
-void client::begin_session()
-{
+void client::begin_session() {
     // Fail if a session already exists on this thread.
     verify_no_session();
 
@@ -111,7 +110,7 @@ void client::begin_session()
 
     // Set up the shared data segment mapping.
     if (!s_data) {
-        data* data_mapping = static_cast<data*>(map_fd(
+        data *data_mapping = static_cast<data *>(map_fd(
             sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0));
         if (!__sync_bool_compare_and_swap(&s_data, 0, data_mapping)) {
             // we lost the race, throw away the mapping
@@ -135,8 +134,7 @@ void client::begin_session()
     }
 }
 
-void client::end_session()
-{
+void client::end_session() {
     // Send the server EOF.
     shutdown(s_session_socket, SHUT_WR);
 
@@ -157,37 +155,32 @@ void client::end_session()
     s_session_socket = -1;
 }
 
-void client::begin_transaction()
-{
+void client::begin_transaction() {
     verify_session_active();
     verify_no_tx();
 
     // First we allocate a new log segment and map it in our own process.
     s_fd_log = memfd_create(SCH_MEM_LOG, MFD_ALLOW_SEALING);
-    if (s_fd_log == -1)
-    {
+    if (s_fd_log == -1) {
         throw_system_error("memfd_create failed");
     }
-    if (-1 == ftruncate(s_fd_log, sizeof(log)))
-    {
+    if (-1 == ftruncate(s_fd_log, sizeof(log))) {
         throw_system_error("ftruncate failed");
     }
-    s_log = static_cast<log*>(map_fd(sizeof(log), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_log, 0));
+    s_log = static_cast<log *>(map_fd(sizeof(log), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_log, 0));
 
     // Now we map a private COW view of the locator shared memory segment.
-    if (flock(s_fd_offsets, LOCK_SH) < 0)
-    {
+    if (flock(s_fd_offsets, LOCK_SH) < 0) {
         throw_system_error("flock failed");
     }
     auto cleanup = scope_guard::make_scope_guard([]() {
-        if (-1 == flock(s_fd_offsets, LOCK_UN))
-        {
+        if (-1 == flock(s_fd_offsets, LOCK_UN)) {
             // Per C++11 semantics, throwing an exception from a destructor
             // will just call std::terminate(), no undefined behavior.
             throw_system_error("flock failed");
         }
     });
-    s_offsets = static_cast<offsets*>(map_fd(sizeof(offsets),
+    s_offsets = static_cast<offsets *>(map_fd(sizeof(offsets),
         PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_offsets, 0));
 
     // Notify the server that we're in a transaction. (We don't send our log fd until commit.)
@@ -201,8 +194,7 @@ void client::begin_transaction()
     }
 }
 
-void client::rollback_transaction()
-{
+void client::rollback_transaction() {
     verify_tx_active();
 
     // Ensure we destroy the shared memory segment and memory mapping before we return.
@@ -223,8 +215,7 @@ void client::rollback_transaction()
 // This method returns true for a commit decision and false for an abort decision.
 // It sends a message to the server containing the fd of this txn's log segment and
 // will block waiting for a reply from the server.
-bool client::commit_transaction()
-{
+bool client::commit_transaction() {
     verify_tx_active();
 
     // Ensure we destroy the shared memory segment and memory mapping before we return.
@@ -233,8 +224,7 @@ bool client::commit_transaction()
     // Unmap the log segment so we can seal it.
     destroy_log_mapping();
     // Seal the txn log memfd for writes before sending it to the server.
-    if (-1 == fcntl(s_fd_log, F_ADD_SEALS, F_SEAL_WRITE))
-    {
+    if (-1 == fcntl(s_fd_log, F_ADD_SEALS, F_SEAL_WRITE)) {
         throw_system_error("fcntl(F_SEAL_WRITE) failed");
     }
 

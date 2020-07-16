@@ -65,37 +65,37 @@ static inline Datum event_log_get_rules_invoked(const void *rootObject) {
 
 // type-specific builders
 static inline void event_log_add_event_type(flatbuffers_builder_t *builder,
-                                            Datum value) {
+    Datum value) {
     uint32_t event_type = DatumGetUInt32(value);
     gaia_rules_event_log_event_type_add(builder, event_type);
 }
 
 static inline void event_log_add_type_id(flatbuffers_builder_t *builder,
-                                              Datum value) {
+    Datum value) {
     uint64_t type_id = DatumGetUInt64(value);
     gaia_rules_event_log_type_id_add(builder, type_id);
 }
 
 static inline void event_log_add_record_id(flatbuffers_builder_t *builder,
-                                            Datum value) {
+    Datum value) {
     uint64_t record_id = DatumGetUInt64(value);
     gaia_rules_event_log_record_id_add(builder, record_id);
 }
 
 static inline void event_log_add_column_id(flatbuffers_builder_t *builder,
-                                         Datum value) {
+    Datum value) {
     uint16_t column_id = DatumGetUInt16(value);
     gaia_rules_event_log_column_id_add(builder, column_id);
 }
 
 static inline void event_log_add_timestamp(flatbuffers_builder_t *builder,
-                                           Datum value) {
+    Datum value) {
     uint64_t timestamp = DatumGetUInt64(value);
     gaia_rules_event_log_timestamp_add(builder, timestamp);
 }
 
 static inline void event_log_add_rules_invoked(flatbuffers_builder_t *builder,
-                                             Datum value) {
+    Datum value) {
     bool rules_invoked = DatumGetBool(value);
     gaia_rules_event_log_rules_invoked_add(builder, rules_invoked);
 }
@@ -126,4 +126,4 @@ const char *EVENT_LOG_DDL_STMT_FMT =
     "rules_invoked boolean) "
     "server %s;";
 
-} // extern "C"
+}  // extern "C"

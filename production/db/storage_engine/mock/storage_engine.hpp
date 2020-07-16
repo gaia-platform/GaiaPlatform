@@ -27,11 +27,9 @@
 #include "gaia_db.hpp"
 #include "gaia_exception.hpp"
 
-namespace gaia
-{
+namespace gaia {
 
-namespace db
-{
+namespace db {
 
 using namespace common;
 
@@ -40,11 +38,11 @@ typedef uint64_t gaia_edge_type_t;
 // 1K oughta be enough for anybody...
 const size_t MAX_MSG_SIZE = 1 << 10;
 
-class se_base
-{
+class se_base {
     friend class gaia_ptr;
     friend class gaia_hash_map;
-protected:
+
+   protected:
     static const char* const SERVER_CONNECT_SOCKET_NAME;
     static const char* const SCH_MEM_OFFSETS;
     static const char* const SCH_MEM_DATA;
@@ -58,15 +56,13 @@ protected:
 
     typedef int64_t offsets[MAX_RIDS];
 
-    struct hash_node
-    {
+    struct hash_node {
         gaia_id_t id;
         int64_t next;
         int64_t row_id;
     };
 
-    struct data
-    {
+    struct data {
         // The first two fields are used as cross-process atomic counters.
         // We don't need something like a cross-process mutex for this,
         // as long as we use atomic intrinsics for mutating the counters.
@@ -79,8 +75,7 @@ protected:
         int64_t objects[MAX_RIDS * 8];
     };
 
-    struct log
-    {
+    struct log {
         int64_t count;
         struct log_record {
             int64_t row_id;
@@ -90,23 +85,22 @@ protected:
     };
 
     static int s_fd_offsets;
-    static data *s_data;
-    thread_local static log *s_log;
+    static data* s_data;
+    thread_local static log* s_log;
     thread_local static int s_session_socket;
 
-public:
+   public:
     // The real implementation will need
     // to do something better than increment
     // a counter.  It will need to guarantee
     // that the generated id is not in use
     // already by a database that is
     // restored.
-    static gaia_id_t generate_id()
-    {
+    static gaia_id_t generate_id() {
         gaia_id_t id = __sync_fetch_and_add(&s_data->next_id, 1);
         return id;
     }
 };
 
-} // db
-} // gaia
+}  // namespace db
+}  // namespace gaia

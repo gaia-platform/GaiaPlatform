@@ -17,8 +17,7 @@
 namespace gaia {
 namespace common {
 
-inline void* map_fd(size_t length, int protection, int flags, int fd, size_t offset)
-{
+inline void* map_fd(size_t length, int protection, int flags, int fd, size_t offset) {
     void* mapping = mmap(nullptr, length, protection, flags, fd, static_cast<off_t>(offset));
     if (mapping == MAP_FAILED) {
         const char* reason = explain_mmap(nullptr, length, protection, flags, fd, static_cast<off_t>(offset));
@@ -27,13 +26,12 @@ inline void* map_fd(size_t length, int protection, int flags, int fd, size_t off
     return mapping;
 }
 
-inline void unmap_fd(void* addr, size_t length)
-{
+inline void unmap_fd(void* addr, size_t length) {
     if (-1 == munmap(addr, length)) {
         const char* reason = explain_munmap(addr, length);
         throw system_error(reason);
     }
 }
 
-} // namespace common
-} // namespace gaia
+}  // namespace common
+}  // namespace gaia

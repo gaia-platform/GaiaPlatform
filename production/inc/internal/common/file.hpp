@@ -9,14 +9,12 @@
 
 #include <gaia_exception.hpp>
 
-namespace gaia
-{
+namespace gaia {
 /**
  * \addtogroup Gaia
  * @{
  */
-namespace common
-{
+namespace common {
 /**
  * \addtogroup Common
  * @{
@@ -25,19 +23,16 @@ namespace common
 /**
  * The exception class used for file open errors.
  */
-class file_open_error : public gaia::common::gaia_exception
-{
-public:
+class file_open_error : public gaia::common::gaia_exception {
+   public:
     file_open_error(const char* filename);
 };
 
 /**
  * A helper class for loading data from a file.
  */
-class file_loader_t
-{
-public:
-
+class file_loader_t {
+   public:
     file_loader_t();
     ~file_loader_t();
 
@@ -46,8 +41,7 @@ public:
     uint8_t* get_data();
     size_t get_data_length();
 
-protected:
-
+   protected:
     void initialize();
     void clear();
 
@@ -57,6 +51,6 @@ protected:
 };
 
 /*@}*/
-}
+}  // namespace common
 /*@}*/
-}
+}  // namespace gaia

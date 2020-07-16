@@ -23,17 +23,15 @@ const size_t MAX_FD_COUNT = 2;
 
 // We throw this exception on either EPIPE/SIGPIPE caught from a write
 // or EOF returned from a read (where a 0-length read is impossible).
-class peer_disconnected : public gaia_exception
-{
-public:
-    peer_disconnected()
-    {
+class peer_disconnected : public gaia_exception {
+   public:
+    peer_disconnected() {
         m_message = "The socket peer is disconnected.";
     }
 };
 
 inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void* data,
-                         size_t data_size) {
+    size_t data_size) {
     // We should never send 0 bytes of data (because that would make it impossible
     // to determine if a 0-byte read meant EOF).
     retail_assert(data_size > 0);
@@ -98,7 +96,7 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
 }
 
 inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* data,
-                         size_t data_size) {
+    size_t data_size) {
     // *pfd_count has initial value equal to length of fds array,
     // and all fds we receive must fit in control.buf below.
     if (fds) {
@@ -162,5 +160,5 @@ inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* dat
     return static_cast<size_t>(bytes_read);
 }
 
-} // namespace common
-} // namespace gaia
+}  // namespace common
+}  // namespace gaia

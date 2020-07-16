@@ -7,14 +7,12 @@
 
 #include <cstdint>
 
-namespace gaia
-{
+namespace gaia {
 /**
  * \addtogroup Gaia
  * @{
  */
-namespace common
-{
+namespace common {
 /**
  * \addtogroup Common
  * @{
@@ -38,8 +36,8 @@ typedef uint64_t gaia_type_t;
 /**
  * The type of a Gaia transaction hook.
  */
-typedef void (* gaia_tx_hook)(void);
+typedef void (*gaia_tx_hook)(void);
 
-} // common
+}  // namespace common
 /*@}*/
-} // gaia
+}  // namespace gaia

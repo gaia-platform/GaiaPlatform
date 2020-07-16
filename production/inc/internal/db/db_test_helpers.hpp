@@ -15,10 +15,8 @@
 
 using namespace gaia::common;
 
-namespace gaia
-{
-namespace db
-{
+namespace gaia {
+namespace db {
 
 static const char* SE_SERVER_NAME = "gaia_semock_server";
 static const size_t CMD_BUFFER_SIZE = 100;
@@ -51,5 +49,5 @@ void stop_server() {
     ::system(cmd);
 }
 
-} // db
-} // gaia
+}  // namespace db
+}  // namespace gaia

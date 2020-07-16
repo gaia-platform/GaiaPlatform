@@ -59,4 +59,4 @@ static Datum flatbuffers_string_to_text_datum(flatbuffers_string_t str) {
     return CStringGetDatum(t);
 }
 
-} // extern "C"
+}  // extern "C"
