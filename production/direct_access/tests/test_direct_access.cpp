@@ -4,8 +4,11 @@
 /////////////////////////////////////////////
 
 #include <iostream>
+#include <cstdlib>
+
 #include "gtest/gtest.h"
 #include "addr_book_gaia_generated.h"
+#include "db_test_helpers.hpp"
 
 using namespace std;
 using namespace gaia::db;
@@ -28,13 +31,15 @@ protected:
     }
 
     void SetUp() override {
-        gaia_mem_base::init(true);
+        start_server();
+        // Start new session with server.
+        begin_session();
     }
 
     void TearDown() override {
         delete_employees();
-        // Delete the shared memory segments.
-        gaia_mem_base::reset();
+        end_session();
+        stop_server();
     }
 };
 
@@ -127,7 +132,7 @@ TEST_F(gaia_object_test, read_original_from_copy) {
 // Insert a row with no field values
 TEST_F(gaia_object_test, new_ins_get) {
     begin_transaction();
-    
+
     auto e = new Employee();
     e->insert_row();
     auto name = e->name_first();
@@ -142,7 +147,7 @@ TEST_F(gaia_object_test, new_ins_get) {
 // Delete an un-inserted object with field values
 TEST_F(gaia_object_test, new_get) {
     begin_transaction();
-    
+
     auto e = new Employee();
     auto name = e->name_first();
     auto hire_date = e->hire_date();
@@ -345,7 +350,7 @@ TEST_F(gaia_object_test, new_del_upd) {
 // Delete a found object then insert after, it's good again
 TEST_F(gaia_object_test, found_del_ins) {
     begin_transaction();
-    
+
     auto e = get_field("Hector");
     e->delete_row();
     e->insert_row();

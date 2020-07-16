@@ -20,6 +20,8 @@ set(GAIA_GENERATE_INCLUDES
   ${GAIA_INC}/public/common
   ${GAIA_INC}/public/direct_access
   ${GAIA_INC}/public/catalog
+  ${GAIA_INC}/public/db
+  ${GAIA_INC}/internal/db
   ${CMAKE_CURRENT_SOURCE_DIR}/inc
 )
 message(STATUS "GAIA_GENERATE_INCLUDES=${GAIA_GENERATE_INCLUDES}")

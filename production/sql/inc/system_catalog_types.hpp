@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "storage_engine.hpp"
+#include "gaia_common.hpp"
 
 using namespace gaia::common;
 

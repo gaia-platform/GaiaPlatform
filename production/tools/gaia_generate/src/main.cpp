@@ -5,6 +5,7 @@
 #include "catalog_gaia_generated.h"
 #include "catalog_manager.hpp"
 #include "code_writer.hpp"
+#include <iostream>
 #include <memory>
 #include <vector>
 #include <set>
@@ -17,8 +18,6 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "usage: gaia_direct_access_compiler database_name\n");
         exit(1);
     }
-
-    gaia_mem_base::init(false);
 
     auto code_lines = gaia_generate(argv[1]);
     cout << code_lines << endl;

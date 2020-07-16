@@ -15,12 +15,12 @@ using namespace std;
 class gaia_generate_test : public ::testing::Test {
 protected:
     void SetUp() override {
-        gaia_mem_base::init(true);
+        // gaia_mem_base::init(true);
     }
 
     void TearDown() override {
         // Delete the shared memory segments.
-        gaia_mem_base::reset();
+        // gaia_mem_base::reset();
         catalog_manager_t::get().reset();
     }
 };
@@ -28,7 +28,7 @@ protected:
 // Copied from gaiac main.cpp
 void execute(vector<unique_ptr<statement_t>> &statements) {
     for (auto &stmt : statements) {
-        if (!stmt->is_type(statment_type_t::CREATE)) {
+        if (!stmt->is_type(statement_type_t::CREATE)) {
             continue;
         }
         auto createStmt = dynamic_cast<create_statement_t *>(stmt.get());

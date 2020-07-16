@@ -4,8 +4,8 @@
 /////////////////////////////////////////////
 
 #include "rdb_object_converter.hpp"
-#include "storage_engine.hpp"
 
+using namespace gaia::common;
 using namespace gaia::db;
 
 /**
@@ -14,11 +14,11 @@ using namespace gaia::db;
  * Value: value_type, payload_size, payload
  */
 void rdb_object_converter_util::encode_node(const u_int64_t id,
-                                            u_int64_t type,
-                                            u_int32_t size,
-                                            const char* payload,
-                                            string_writer* key,
-                                            string_writer* value) {
+    u_int64_t type,
+    u_int32_t size,
+    const char* payload,
+    string_writer* key,
+    string_writer* value) {
     // create key
     key->write_uint64(type);
     key->write_uint64(id);
@@ -33,27 +33,27 @@ void rdb_object_converter_util::encode_node(const u_int64_t id,
  * Todo: Update to create and return gaia_ptr<node>, pending recovery impl.
  */
 const char* rdb_object_converter_util::decode_node(const rocksdb::Slice& key,
-                                                   const rocksdb::Slice& value,
-                                                   gaia_id_t* id,
-                                                   gaia_type_t* type,
-                                                   u_int32_t* size) {
+    const rocksdb::Slice& value,
+    gaia_id_t* id,
+    gaia_type_t* type,
+    u_int32_t* size) {
     string_reader key_(&key);
     string_reader value_(&value);
     //Read key.
     key_.read_uint64(type);
     key_.read_uint64(id);
     assert(key_.get_remaining_len_in_bytes() == 0);
-    
+
     //Read value.
     u_char type_;
-    value_.read_byte(&type_); 
+    value_.read_byte(&type_);
     assert(type_ == GaiaObjectType::node);
 
     value_.read_uint32(size);
     return value_.read(*size);
 }
 
-/** 
+/**
  * Return whether the slice value belongs to an edge.
  */
 bool rdb_object_converter_util::is_rdb_object_edge(const rocksdb::Slice& value) {
@@ -65,17 +65,16 @@ bool rdb_object_converter_util::is_rdb_object_edge(const rocksdb::Slice& value) 
 /**
  * Format:
  * Key: fbb_type, id (uint64, uint64)
- * Value: value_type, node_first, node_second, payload_size, payload 
+ * Value: value_type, node_first, node_second, payload_size, payload
  */
 void rdb_object_converter_util::encode_edge(const u_int64_t id,
-                                            u_int64_t type, 
-                                            u_int32_t size,
-                                            const char* payload,
-                                            const u_int64_t first,
-                                            const u_int64_t second,
-                                            string_writer* key,
-                                            string_writer* value) {
-
+    u_int64_t type,
+    u_int32_t size,
+    const char* payload,
+    const u_int64_t first,
+    const u_int64_t second,
+    string_writer* key,
+    string_writer* value) {
     // Create key.
     key->write_uint64(type);
     key->write_uint64(id);
@@ -92,22 +91,22 @@ void rdb_object_converter_util::encode_edge(const u_int64_t id,
  * Todo: Update to create and return gaia_ptr<edge>, pending recovery impl.
  */
 const char* rdb_object_converter_util::decode_edge(const rocksdb::Slice& key,
-                                                   const rocksdb::Slice& value, 
-                                                   gaia_id_t* id,
-                                                   gaia_type_t* type,
-                                                   u_int32_t* size,
-                                                   gaia_id_t* first,
-                                                   gaia_id_t* second) {
+    const rocksdb::Slice& value,
+    gaia_id_t* id,
+    gaia_type_t* type,
+    u_int32_t* size,
+    gaia_id_t* first,
+    gaia_id_t* second) {
     string_reader key_(&key);
     string_reader value_(&value);
 
     // Read key.
     key_.read_uint64(type);
     key_.read_uint64(id);
-    
+
     // Read value.
     u_char type_;
-    value_.read_byte(&type_); 
+    value_.read_byte(&type_);
     assert(type_ == GaiaObjectType::edge);
 
     value_.read_uint64(first);
@@ -116,5 +115,3 @@ const char* rdb_object_converter_util::decode_edge(const rocksdb::Slice& key,
     value_.read_uint32(size);
     return value_.read(*size);
 }
-
-
