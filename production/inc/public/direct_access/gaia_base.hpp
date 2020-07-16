@@ -7,11 +7,11 @@
 
 #include <map>
 
-#include "gaia_common.hpp"
 #include "gaia_exception.hpp"
+#include "storage_engine.hpp"
 
 using namespace std;
-using namespace gaia::common;
+using namespace gaia::db;
 
 namespace gaia {
 
@@ -25,7 +25,7 @@ namespace direct_access {
 /**
  * \addtogroup Direct
  * @{
- *
+ * 
  * Implementation of Extended Data Classes. This provides a direct access API
  * for CRUD operations on the database.
  */
@@ -65,6 +65,10 @@ struct gaia_base_t
      * not cause crashes, even though the data is invalid.
      */
     static id_cache_t s_gaia_tx_cache;
+    /**
+     * Install a commit_hook the first time any gaia object is instantiated.
+     */
+    static bool s_tx_hooks_installed;
 
     gaia_base_t() = delete;
 
@@ -127,10 +131,10 @@ private:
 class edc_invalid_object_type: public gaia_exception
 {
 public:
-    edc_invalid_object_type(gaia_id_t id,
-        gaia_type_t expected,
+    edc_invalid_object_type(gaia_id_t id, 
+        gaia_type_t expected, 
         const char* expected_type,
-        gaia_type_t actual,
+        gaia_type_t actual, 
         const char* type_name);
 };
 
@@ -139,10 +143,10 @@ class edc_invalid_member: public gaia_exception
 {
 public:
     edc_invalid_member(
-        gaia_id_t id,
-        gaia_type_t parent,
+        gaia_id_t id, 
+        gaia_type_t parent, 
         const char* parent_type,
-        gaia_type_t child,
+        gaia_type_t child, 
         const char* child_name);
 };
 
@@ -151,9 +155,9 @@ class edc_inconsistent_list: public gaia_exception
 {
 public:
     edc_inconsistent_list(
-        gaia_id_t id,
-        const char* parent_type,
-        gaia_id_t child,
+        gaia_id_t id, 
+        const char* parent_type, 
+        gaia_id_t child, 
         const char* child_name);
 };
 
@@ -163,7 +167,7 @@ class edc_unstored_row: public gaia_exception
 {
 public:
     edc_unstored_row(
-        const char* parent_type,
+        const char* parent_type, 
         const char* child_type);
 };
 

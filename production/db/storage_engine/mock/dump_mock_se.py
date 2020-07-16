@@ -5,7 +5,7 @@
 
 from se_mock import *;
 
-begin_session();
+gaia_mem_base.init(False);
 
 begin_transaction();
 
@@ -47,5 +47,3 @@ while not(done):
     type = type + 1;
 
 commit_transaction();
-
-end_session();

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "gaia_common.hpp"
+#include "storage_engine.hpp"
 
 using namespace gaia::common;
 
@@ -15,4 +15,4 @@ static const gaia_type_t kAirportsType = 2;
 static const gaia_type_t kRoutesType = 3;
 static const gaia_type_t kNodesType = 4;
 static const gaia_type_t kEdgesType = 5;
-};  // namespace airport_demo_types
+}; // namespace airport_demo_types

@@ -16,14 +16,14 @@ namespace system
 /**
  * \addtogroup System
  * @{
- *
+ * 
  * Provides system wide facilities for the Gaia Platform
  */
 
 /**
  *  Initialize the Gaia sub systems
- */
-void initialize();
+ */ 
+void initialize(bool is_engine);
 
 /*@}*/
 }

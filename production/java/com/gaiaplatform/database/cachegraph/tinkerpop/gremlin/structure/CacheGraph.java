@@ -127,16 +127,26 @@ public final class CacheGraph implements Graph
         if (createOnStart)
         {
             CacheHelper.reset();
-        }
 
-        if (!this.enableAirportCode)
+            if (!this.cow.create())
+            {
+                throw new UnsupportedOperationException("COW initialization failed!");
+            }
+        }
+        else
         {
-            throw new UnsupportedOperationException("Opening of COW is only supported for airport data!");
+            if (!this.enableAirportCode)
+            {
+                throw new UnsupportedOperationException("Opening of COW is only supported for airport data!");
+            }
+
+            if (!this.cow.open())
+            {
+                throw new UnsupportedOperationException("Opening of COW failed!");
+            }
+
+            CacheHelper.loadAirportGraphFromCow(this);
         }
-
-        this.cow.beginSession();
-
-        CacheHelper.loadAirportGraphFromCow(this);
     }
 
     public static CacheGraph open()

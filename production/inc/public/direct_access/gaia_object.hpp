@@ -11,12 +11,9 @@
 #include "flatbuffers/flatbuffers.h"
 #include "nullable_string.hpp"
 
-#include "gaia_common.hpp"
 #include "gaia_base.hpp"
-#include "gaia_ptr.hpp"
 
 using namespace std;
-using namespace gaia::common;
 using namespace gaia::db;
 
 namespace gaia {
@@ -31,7 +28,7 @@ namespace direct_access {
 /**
  * \addtogroup Direct
  * @{
- *
+ * 
  * Implementation of Extended Data Classes. This provides a direct access API
  * for CRUD operations on the database.
  */
@@ -45,7 +42,7 @@ namespace direct_access {
  * @tparam T_fb the flatbuffer table type to be implemented
  * @tparam T_obj the mutable flatbuffer type to be implemented
  */
-template <gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
+template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj>
 struct gaia_object_t : gaia_base_t
 {
 public:
@@ -67,13 +64,13 @@ public:
      * This can be used for subscribing to rules when you don't
      * have a specific instance of the type.
      */
-    static gaia_type_t s_gaia_type;
+    static gaia::db::gaia_type_t s_gaia_type;
 
     /**
      * This can be used when you are passed a gaia_base_t
      * object and want to know the type at runtime.
      */
-    gaia_type_t gaia_type() override { return T_gaia_type; }
+    gaia::db::gaia_type_t gaia_type() override { return T_gaia_type; }
 
     /**
      * Ask for the first object of a flatbuffer type, T_gaia_type.
@@ -149,14 +146,14 @@ protected:
 
     // Cached flatbuffer builder for reuse when inserting
     // or modifying rows.
-    unique_ptr<flatbuffers::FlatBufferBuilder> m_fbb;
+    unique_ptr<flatbuffers::FlatBufferBuilder> m_fbb; 
     // Mutable flatbuffer copy of field changes.
-    unique_ptr<T_obj> m_copy;
+    unique_ptr<T_obj> m_copy;   
     // Flatbuffer referencing SE memory.
     const T_fb* m_fb;
 
 private:
-    static T_gaia* get_object(gaia_ptr& node_ptr);
+    static T_gaia* get_object(gaia_ptr<gaia_se_node>& node_ptr);
     void reset(bool clear_flatbuffer = false) override;
 };
 

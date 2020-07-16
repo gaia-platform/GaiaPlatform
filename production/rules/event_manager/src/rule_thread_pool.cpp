@@ -137,28 +137,28 @@ void rule_thread_pool_t::invoke_rule(const rule_context_t* context)
     bool should_schedule = false;
     try
     {
-        gaia::db::begin_transaction();
+        gaia::db::gaia_mem_base::tx_begin();
 
         // Invoke the rule.
         context->rule_binding.rule(context);
 
         // The rule may have committed the thread transaction
         // so don't try to commit it again.
-        if (gaia::db::is_transaction_active())
+        if (gaia::db::gaia_mem_base::is_tx_active())
         {
-            gaia::db::commit_transaction();
+            gaia::db::gaia_mem_base::tx_commit();
         }
         should_schedule = true;
     }
     catch(const std::exception& e)
     {
-        if (gaia::db::is_transaction_active())
+        if (gaia::db::gaia_mem_base::is_tx_active())
         {
-            gaia::db::rollback_transaction();
+            gaia::db::gaia_mem_base::tx_rollback();
         }
         // TODO[GAIAPLAT-129]: Log an error in an error table here.
         // TODO[GAIAPLAT-158]: Determine retry/error handling logic
-        // Catch all exceptions or let terminate happen? Don't drop pending
+        // Catch all exceptions or let terminate happen? Don't drop pending 
         // rules on the floor (should_schedule == false) when we add retry logic.
     }
     s_tls_can_enqueue = true;

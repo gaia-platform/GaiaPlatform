@@ -39,14 +39,8 @@ set_target_properties(
 add_dependencies(gaia_fdw gen_fbs)
 # our private headers
 target_include_directories(gaia_fdw PRIVATE "${PROJECT_SOURCE_DIR}/inc")
-# common public headers
-target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/public/common")
 # common internal headers
-target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/internal/common")
-# public DB headers
-target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/public/db")
-# internal DB headers
-target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/internal/db")
+target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/public/common")
 # for flatbuffers generated code
 target_include_directories(gaia_fdw SYSTEM PRIVATE "${GEN_DIR}")
 # for postgres
@@ -55,6 +49,10 @@ target_include_directories(gaia_fdw SYSTEM PRIVATE "${PGSQL_INCLUDEDIR_SERVER}")
 target_link_libraries(gaia_fdw PRIVATE flatccrt)
 # for COW-SE
 target_link_libraries(gaia_fdw PRIVATE gaia_semock)
+# we want to link to a static lib for the SE, but there are no decl-only headers
+# yet for it
+target_include_directories(
+  gaia_fdw PRIVATE "${GAIA_REPO}/production/db/storage_engine/mock")
 
 # Extension config.
 

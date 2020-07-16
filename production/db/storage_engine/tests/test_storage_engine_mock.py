@@ -5,8 +5,7 @@
 
 from se_mock import *;
 
-# Start session.
-begin_session();
+gaia_mem_base.init(True);
 
 # First transaction.
 begin_transaction();
@@ -134,7 +133,5 @@ while edge_iter.get() != None:
 print ('');
 
 commit_transaction();
-
-end_session();
 
 print ('All tests passed!');

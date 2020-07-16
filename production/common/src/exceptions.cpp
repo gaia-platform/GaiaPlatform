@@ -3,7 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <cstring>
+#include <string.h>
+
 #include <sstream>
 #include <string>
 

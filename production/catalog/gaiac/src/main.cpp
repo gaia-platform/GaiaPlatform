@@ -4,8 +4,7 @@
 /////////////////////////////////////////////
 #include "gaia_catalog.hpp"
 #include "gaia_parser.hpp"
-#include "gaia_db.hpp"
-
+#include "gaia_system.hpp"
 #include <iostream>
 #include <string>
 #include <vector>
@@ -15,7 +14,7 @@ using namespace gaia::catalog::ddl;
 
 void execute(vector<unique_ptr<statement_t>> &statements) {
     for (auto &stmt : statements) {
-        if (!stmt->is_type(statement_type_t::CREATE)) {
+        if (!stmt->is_type(statment_type_t::CREATE)) {
             continue;
         }
         auto createStmt = dynamic_cast<create_statement_t *>(stmt.get());
@@ -56,7 +55,7 @@ void start_repl(parser_t &parser) {
 int main(int argc, char *argv[]) {
     int res = 0;
     parser_t parser;
-    gaia::db::begin_session();
+    gaia::db::gaia_mem_base::init(true);
     for (int i = 1; i < argc; ++i) {
         if (argv[i] == string("-p")) {
             parser.trace_parsing = true;
@@ -71,6 +70,5 @@ int main(int argc, char *argv[]) {
             res = EXIT_FAILURE;
         }
     }
-    gaia::db::end_session();
     return res;
 }

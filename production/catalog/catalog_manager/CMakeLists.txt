@@ -3,29 +3,24 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.11)
 enable_testing()
 
 project(catalog_manager)
 
 set(CATALOG_FBS_GENERATED_OUTPUTS "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
-set(GAIA_CATALOG_LIB_PUBLIC_INCLUDES
-  ${GAIA_INC}/public/catalog
+set(GAIA_CATALOG_LIB_INCLUDES
+  ${GAIA_REPO}/production/db/storage_engine/mock
   ${GAIA_INC}/public/common
-)
-message(STATUS "GAIA_CATALOG_LIB_PUBLIC_INCLUDES=${GAIA_CATALOG_LIB_PUBLIC_INCLUDES}")
-
-set(GAIA_CATALOG_LIB_PRIVATE_INCLUDES
-  ${GAIA_INC}/public/db
   ${GAIA_INC}/public/direct_access
+  ${GAIA_INC}/public/catalog
   ${GAIA_INC}/internal/common
-  ${GAIA_INC}/internal/db
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc
   ${CATALOG_FBS_GENERATED_OUTPUTS}
 )
-message(STATUS "GAIA_CATALOG_LIB_PRIVATE_INCLUDES=${GAIA_CATALOG_LIB_PRIVATE_INCLUDES}")
+message(STATUS "GAIA_CATALOG_LIB_INCLUDES=${GAIA_CATALOG_LIB_INCLUDES}")
 
 # Generate the catalog headers from the flatbuffer schema.
 set_property(GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
@@ -47,18 +42,17 @@ add_library(gaia_catalog STATIC
 )
 add_dependencies(gaia_catalog generate_catalog_edc)
 set_target_properties(gaia_catalog PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
-target_include_directories(gaia_catalog PUBLIC ${GAIA_CATALOG_LIB_PUBLIC_INCLUDES})
-target_include_directories(gaia_catalog PRIVATE ${GAIA_CATALOG_LIB_PRIVATE_INCLUDES})
-target_link_libraries(gaia_catalog PRIVATE gaia_direct)
+target_include_directories(gaia_catalog PRIVATE ${GAIA_CATALOG_LIB_INCLUDES})
+target_link_libraries(gaia_catalog flatbuffers)
 
 add_gtest(test_catalog_manager
   "tests/test_catalog_manager.cpp"
-  "${GAIA_CATALOG_LIB_PUBLIC_INCLUDES};${GAIA_CATALOG_LIB_PRIVATE_INCLUDES}"
+  "${GAIA_CATALOG_LIB_INCLUDES}"
   "rt;gaia;gaia_catalog;flatbuffers"
   gaia_catalog)
 
 add_gtest(test_fbs_generation
   "tests/test_fbs_generation.cpp"
-  "${GAIA_CATALOG_LIB_PUBLIC_INCLUDES};${GAIA_CATALOG_LIB_PRIVATE_INCLUDES}"
+  "${GAIA_CATALOG_LIB_INCLUDES}"
   "rt;gaia;gaia_catalog;flatbuffers"
   gaia_catalog)

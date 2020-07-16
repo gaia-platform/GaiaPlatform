@@ -3,13 +3,14 @@
 // All rights reserved.
 /////////////////////////////////////////////
 #include "gaia_system.hpp"
-#include "gaia_db.hpp"
 #include "rules.hpp"
+#include "storage_engine.hpp"
 
-void gaia::system::initialize()
+
+void gaia::system::initialize(bool is_engine)
 {
-    // Create the storage engine session first as the event manager depends on it.
-    gaia::db::begin_session();
+    // Create the storage engine first as the event manager depends on it.
+    gaia::db::gaia_mem_base::init(is_engine);
 
     gaia::rules::initialize_rules_engine();
 }

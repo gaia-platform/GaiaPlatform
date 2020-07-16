@@ -3,19 +3,18 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.11)
 enable_testing()
 
 # Set the project name.
 project(parser)
 
 set(GAIA_PARSER_INCLUDES
+  ${GAIA_REPO}/production/db/storage_engine/mock
   ${GAIA_INC}/public/common
-  ${GAIA_INC}/public/db
   ${GAIA_INC}/public/direct_access
   ${GAIA_INC}/public/catalog
   ${GAIA_INC}/internal/common
-  ${GAIA_INC}/internal/db
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc
   ${GAIA_PARSER_GENERATED_OUTPUTS}
@@ -33,11 +32,12 @@ flex_target(lexer
   ${GAIA_PARSER_GENERATED_OUTPUTS}/yy_lexer.cpp)
 add_flex_bison_dependency(lexer parser)
 
+
 add_library(gaia_parser STATIC
   ${FLEX_lexer_OUTPUTS}
   ${BISON_parser_OUTPUTS})
 target_include_directories(gaia_parser PRIVATE ${GAIA_PARSER_INCLUDES})
-target_link_libraries(gaia_parser PRIVATE gaia_catalog flatbuffers)
+target_link_libraries(gaia_parser PRIVATE rt gaia gaia_catalog)
 set_target_properties(gaia_parser PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaia_parser PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 

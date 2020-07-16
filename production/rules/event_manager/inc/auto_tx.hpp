@@ -3,25 +3,25 @@
 // All rights reserved.
 /////////////////////////////////////////////
 #pragma once
+#include "storage_engine.hpp"
 
-#include "gaia_db.hpp"
-
-namespace gaia
+namespace gaia 
 {
 namespace rules
 {
 
 // This class is used internally to log events in the event table.  We don't
 // want to cause any events to be fired in response to an internal transaction
-// so we use the low-level storage engine api.
+// so use the low-level storage engine api (gaia_mem_base) instead of
+// (gaia::db).
 class auto_tx_t
 {
 public:
     auto_tx_t()
     {
-        if (!gaia::db::is_transaction_active())
+        if (!gaia::db::gaia_mem_base::is_tx_active())
         {
-            gaia::db::begin_transaction();
+            gaia::db::gaia_mem_base::tx_begin();
             m_started = true;
         }
     }
@@ -30,7 +30,7 @@ public:
     {
         if (m_started)
         {
-            gaia::db::commit_transaction();
+            gaia::db::gaia_mem_base::tx_commit();
             m_started = false;
         }
     }
@@ -41,7 +41,7 @@ public:
         // automatically rollback the transaction it started.
         if (m_started)
         {
-            gaia::db::rollback_transaction();
+            gaia::db::gaia_mem_base::tx_rollback();
         }
     }
 

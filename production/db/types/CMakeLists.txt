@@ -3,7 +3,7 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.11)
 
 # Set the project name.
 project(types)
@@ -27,8 +27,6 @@ add_dependencies(gaia_types gaia_catalog)
 target_include_directories(gaia_types PUBLIC ${GAIA_TYPES_INCLUDES})
 set_target_properties(gaia_types PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 target_link_libraries(gaia_types PRIVATE gaia_common gaia_catalog)
-# This static library must be compatible with linking in a shared library.
-set_property (TARGET gaia_types PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # Generate the flatbuffers files required by test_field_access.
 add_custom_command(
