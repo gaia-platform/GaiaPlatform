@@ -17,7 +17,11 @@ using namespace std;
 class catalog_manager_test : public ::testing::Test {
   protected:
     static void SetUpTestSuite() {
-        gaia::db::gaia_mem_base::init(true);
+        gaia::db::begin_session();
+    }
+
+    static void TearDownTestSuite() {
+        gaia::db::end_session();
     }
 
     static set<gaia_id_t> table_ids;

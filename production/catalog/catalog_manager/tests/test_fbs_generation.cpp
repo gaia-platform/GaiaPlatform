@@ -12,7 +12,7 @@ using namespace gaia::catalog;
 class fbs_generation_test : public ::testing::Test {
   protected:
     static void SetUpTestSuite() {
-        gaia::db::gaia_mem_base::init(true);
+        gaia::db::begin_session();
         // We need to use push_back to init the test fields because:
         // 1) Initializer_lists always perform copies, and unique_ptrs are not copyable.
         // 2) Without make_unique (C++ 14), using emplace_back and new can leak if the vector fails to reallocate memory.
@@ -30,6 +30,7 @@ TEST_F(fbs_generation_test, generate_fbs_from_catalog) {
 
     gaia_id_t table_id = create_table(test_table_name, test_table_fields);
     string fbs = generate_fbs(table_id);
+    gaia::db::end_session();
 
     flatbuffers::Parser fbs_parser;
 

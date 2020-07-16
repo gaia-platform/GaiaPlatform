@@ -20,7 +20,7 @@ PG_MODULE_MAGIC;
 // and only commit a txn when the counter is decremented to 0. An unsynchronized
 // global counter is ok since there's no concurrency within a postgres backend.
 static int gaia_txn_ref_count =
-    0; // use signed int so we can assert it is non-negative
+    0;  // use signed int so we can assert it is non-negative
 
 static bool is_gaia_txn_open() {
     assert(gaia_txn_ref_count >= 0);
@@ -122,7 +122,7 @@ extern "C" Datum gaia_fdw_handler(PG_FUNCTION_ARGS) {
  * If handler is registered for this option, invoke it.
  */
 static bool is_valid_option(const char *option, const char *value,
-                            Oid context) {
+    Oid context) {
     const gaiaFdwOption *opt;
     for (opt = valid_options; opt->name; opt++) {
         if (context == opt->context && strcmp(opt->name, option) == 0) {
@@ -132,18 +132,6 @@ static bool is_valid_option(const char *option, const char *value,
         }
     }
     return false;
-}
-
-/*
- * Clear all data in the storage engine.
- */
-extern "C" void handleResetStorageEngine(const char *name, const char *value,
-                                         Oid context) {
-    assert(strcmp(name, "reset") == 0);
-    assert(context == ForeignServerRelationId);
-    if (strcmp(value, "true") == 0) {
-        gaia_mem_base::init(true);
-    }
 }
 
 /*
@@ -163,9 +151,9 @@ extern "C" Datum gaia_fdw_validator(PG_FUNCTION_ARGS) {
     List *options_list = untransformRelOptions(PG_GETARG_DATUM(0));
     if (list_length(options_list) > 1) {
         ereport(ERROR,
-                (errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
-                 errmsg("invalid options"),
-                 errhint("gaia FDW supports only the `data_dir` option")));
+            (errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
+                errmsg("invalid options"),
+                errhint("gaia FDW supports only the `data_dir` option")));
         PG_RETURN_VOID();
     }
     Oid catalog = PG_GETARG_OID(1);
@@ -186,17 +174,17 @@ extern "C" Datum gaia_fdw_validator(PG_FUNCTION_ARGS) {
             for (opt = valid_options; opt->name; opt++) {
                 if (catalog == opt->context) {
                     appendStringInfo(&buf, "%s%s", (buf.len > 0) ? ", " : "",
-                                     opt->name);
+                        opt->name);
                 }
             }
             ereport(
                 ERROR,
                 (errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
-                 errmsg("invalid option \"%s\"", opt_name),
-                 buf.len > 0
-                     ? errhint("Valid options in this context are: %s",
-                               buf.data)
-                     : errhint("There are no valid options in this context.")));
+                    errmsg("invalid option \"%s\"", opt_name),
+                    buf.len > 0
+                        ? errhint("Valid options in this context are: %s",
+                              buf.data)
+                        : errhint("There are no valid options in this context.")));
             PG_RETURN_VOID();
         }
     }
@@ -204,7 +192,7 @@ extern "C" Datum gaia_fdw_validator(PG_FUNCTION_ARGS) {
 }
 
 extern "C" void gaiaGetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel,
-                                      Oid foreigntableid) {
+    Oid foreigntableid) {
     /*
      * Obtain relation size estimates for a foreign table. This is called at
      * the beginning of planning for a query that scans a foreign table. root
@@ -228,7 +216,7 @@ extern "C" void gaiaGetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel,
 }
 
 extern "C" void gaiaGetForeignPaths(PlannerInfo *root, RelOptInfo *baserel,
-                                    Oid foreigntableid) {
+    Oid foreigntableid) {
     /*
      * Create possible access paths for a scan on a foreign table. This is
      * called during query planning. The parameters are the same as for
@@ -251,18 +239,18 @@ extern "C" void gaiaGetForeignPaths(PlannerInfo *root, RelOptInfo *baserel,
 
     /* Create a ForeignPath node and add it as only possible path */
     add_path(baserel,
-             (Path *)create_foreignscan_path(
-                 root, baserel, NULL, /* default pathtarget */
-                 baserel->rows, startup_cost, total_cost, NIL, /* no pathkeys */
-                 NULL,   /* no outer rel either */
-                 NULL,   /* no extra plan */
-                 NULL)); /* no per-path private info */
+        (Path *)create_foreignscan_path(
+            root, baserel, NULL,                          /* default pathtarget */
+            baserel->rows, startup_cost, total_cost, NIL, /* no pathkeys */
+            NULL,                                         /* no outer rel either */
+            NULL,                                         /* no extra plan */
+            NULL));                                       /* no per-path private info */
 }
 
 extern "C" ForeignScan *
 gaiaGetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
-                   ForeignPath *best_path, List *tlist, List *scan_clauses,
-                   Plan *outer_plan) {
+    ForeignPath *best_path, List *tlist, List *scan_clauses,
+    Plan *outer_plan) {
     /*
      * Create a ForeignScan plan node from the selected foreign access path.
      * This is called at the end of query planning. The parameters are as for
@@ -288,11 +276,11 @@ gaiaGetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 
     /* Create the ForeignScan node */
     return make_foreignscan(tlist, scan_clauses, scan_relid,
-                            NIL, /* no expressions to evaluate */
-                            NIL, /* no private data */
-                            NIL, /* no custom tlist */
-                            NIL, /* no remote quals */
-                            outer_plan);
+        NIL, /* no expressions to evaluate */
+        NIL, /* no private data */
+        NIL, /* no custom tlist */
+        NIL, /* no remote quals */
+        outer_plan);
 }
 
 extern "C" void gaiaBeginForeignScan(ForeignScanState *node, int eflags) {
@@ -340,7 +328,6 @@ extern "C" void gaiaBeginForeignScan(ForeignScanState *node, int eflags) {
         (gaiaFdwScanState *)palloc0(sizeof(gaiaFdwScanState));
     node->fdw_state = scan_state;
     scan_state->deserializer = mapping.deserializer;
-    scan_state->gaia_type_is_edge = mapping.gaia_type_is_edge;
 
     TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
     TupleDesc tupleDesc = slot->tts_tupleDescriptor;
@@ -368,13 +355,7 @@ extern "C" void gaiaBeginForeignScan(ForeignScanState *node, int eflags) {
     begin_gaia_txn();
     // retrieve the first node of the requested type (this can't currently
     // throw)
-    if (scan_state->gaia_type_is_edge) {
-        scan_state->cur_edge =
-            gaia_ptr<gaia_se_edge>::find_first(mapping.gaia_type_id);
-    } else {
-        scan_state->cur_node =
-            gaia_ptr<gaia_se_node>::find_first(mapping.gaia_type_id);
-    }
+    scan_state->cur_node = gaia_ptr::find_first(mapping.gaia_type_id);
 }
 
 extern "C" TupleTableSlot *gaiaIterateForeignScan(ForeignScanState *node) {
@@ -408,14 +389,8 @@ extern "C" TupleTableSlot *gaiaIterateForeignScan(ForeignScanState *node) {
     // elog(DEBUG1, "entering function %s", __func__);
 
     // return NULL if we reach the end of iteration
-    if (scan_state->gaia_type_is_edge) {
-        if (!scan_state->cur_edge) {
-            return NULL;
-        }
-    } else {
-        if (!scan_state->cur_node) {
-            return NULL;
-        }
+    if (!scan_state->cur_node) {
+        return NULL;
     }
 
     /* mark the slot empty */
@@ -423,11 +398,7 @@ extern "C" TupleTableSlot *gaiaIterateForeignScan(ForeignScanState *node) {
 
     /* get the next record, if any, and fill in the slot */
     const void *obj_buf;
-    if (scan_state->gaia_type_is_edge) {
-        obj_buf = scan_state->cur_edge->payload;
-    } else {
-        obj_buf = scan_state->cur_node->payload;
-    }
+    obj_buf = scan_state->cur_node.data();
     const void *obj_root = scan_state->deserializer(obj_buf);
     for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts;
          attr_idx++) {
@@ -444,11 +415,7 @@ extern "C" TupleTableSlot *gaiaIterateForeignScan(ForeignScanState *node) {
 
     /* now advance the current node to the next node in the iteration (this
      * can't currently throw) */
-    if (scan_state->gaia_type_is_edge) {
-        scan_state->cur_edge = scan_state->cur_edge.find_next();
-    } else {
-        scan_state->cur_node = scan_state->cur_node.find_next();
-    }
+    scan_state->cur_node = scan_state->cur_node.find_next();
 
     /* return the slot */
     return slot;
@@ -475,18 +442,14 @@ extern "C" void gaiaEndForeignScan(ForeignScanState *node) {
 
     gaiaFdwScanState *scan_state = (gaiaFdwScanState *)node->fdw_state;
     // we should have reached the end of iteration
-    if (scan_state->gaia_type_is_edge) {
-        assert(!scan_state->cur_edge);
-    } else {
-        assert(!scan_state->cur_node);
-    }
+    assert(!scan_state->cur_node);
     // commit read transaction
     commit_gaia_txn();
 }
 
 extern "C" void gaiaAddForeignUpdateTargets(Query *parsetree,
-                                            RangeTblEntry *target_rte,
-                                            Relation target_relation) {
+    RangeTblEntry *target_rte,
+    Relation target_relation) {
     /*
      * UPDATE and DELETE operations are performed against rows previously
      * fetched by the table-scanning functions. The FDW may need extra
@@ -531,7 +494,7 @@ extern "C" void gaiaAddForeignUpdateTargets(Query *parsetree,
             /* Make a Var representing the desired value */
             Var *var =
                 makeVar(parsetree->resultRelation, attr->attnum, attr->atttypid,
-                        attr->atttypmod, attr->attcollation, 0);
+                    attr->atttypmod, attr->attcollation, 0);
             /* Wrap it in a resjunk TLE with the right name ... */
             TargetEntry *tle = makeTargetEntry(
                 (Expr *)var, list_length(parsetree->targetList) + 1,
@@ -543,13 +506,13 @@ extern "C" void gaiaAddForeignUpdateTargets(Query *parsetree,
     }
     if (!key_found) {
         elog(ERROR, "could not find 'gaia_id' column in table '%s'",
-             RelationGetRelationName(target_relation));
+            RelationGetRelationName(target_relation));
     }
 }
 
 extern "C" List *gaiaPlanForeignModify(PlannerInfo *root, ModifyTable *plan,
-                                       Index resultRelation,
-                                       int subplan_index) {
+    Index resultRelation,
+    int subplan_index) {
     /*
      * Perform any additional planning actions needed for an insert, update,
      * or delete on a foreign table. This function generates the FDW-private
@@ -596,8 +559,8 @@ extern "C" List *gaiaPlanForeignModify(PlannerInfo *root, ModifyTable *plan,
                 NameStr(TupleDescAttr(tupleDesc, attno - 1)->attname);
             if (strcmp(attr_name, "gaia_id") == 0) {
                 ereport(ERROR, (errcode(ERRCODE_FDW_INVALID_COLUMN_NAME),
-                                errmsg("cannot insert into or update system "
-                                       "column gaia_id")));
+                                   errmsg("cannot insert into or update system "
+                                          "column gaia_id")));
             }
         }
     }
@@ -606,8 +569,8 @@ extern "C" List *gaiaPlanForeignModify(PlannerInfo *root, ModifyTable *plan,
 }
 
 extern "C" void gaiaBeginForeignModify(ModifyTableState *mtstate,
-                                       ResultRelInfo *rinfo, List *fdw_private,
-                                       int subplan_index, int eflags) {
+    ResultRelInfo *rinfo, List *fdw_private,
+    int subplan_index, int eflags) {
     /*
      * Begin executing a foreign table modification operation. This routine is
      * called during executor startup. It should perform any initialization
@@ -662,7 +625,6 @@ extern "C" void gaiaBeginForeignModify(ModifyTableState *mtstate,
     }
 
     modify_state->gaia_type_id = mapping.gaia_type_id;
-    modify_state->gaia_type_is_edge = mapping.gaia_type_is_edge;
     modify_state->initializer = mapping.initializer;
     modify_state->finalizer = mapping.finalizer;
     flatcc_builder_init(&modify_state->builder);
@@ -681,12 +643,6 @@ extern "C" void gaiaBeginForeignModify(ModifyTableState *mtstate,
         if (strcmp(attr_name, "gaia_id") == 0) {
             modify_state->pk_attr_idx = i;
         }
-        if (strcmp(attr_name, "gaia_src_id") == 0) {
-            modify_state->src_attr_idx = i;
-        }
-        if (strcmp(attr_name, "gaia_dst_id") == 0) {
-            modify_state->dst_attr_idx = i;
-        }
         for (size_t j = 0; j < mapping.attribute_count; j++) {
             if (strcmp(attr_name, mapping.attributes[j].name) == 0) {
                 indexed_builders[i] = mapping.attributes[j].builder;
@@ -697,10 +653,6 @@ extern "C" void gaiaBeginForeignModify(ModifyTableState *mtstate,
 
     // check invariants
     assert(modify_state->pk_attr_idx > -1);
-    if (modify_state->gaia_type_is_edge) {
-        assert(modify_state->src_attr_idx > -1);
-        assert(modify_state->dst_attr_idx > -1);
-    }
 
     begin_gaia_txn();
 }
@@ -712,35 +664,26 @@ extern "C" void gaiaBeginForeignModify(ModifyTableState *mtstate,
 static uint64_t new_gaia_id() {
     ifstream urandom("/dev/urandom", ios::in | ios::binary);
     if (urandom) {
-        // we need to loop until we have a value < 2^63 because the high bit of
-        // gaia_id is used for edge type in the current storage engine impl.
-        while (true) {
-            uint64_t rand_val;
-            urandom.read(reinterpret_cast<char *>(&rand_val), sizeof(rand_val));
-            if (urandom) {
-                assert(rand_val !=
-                       0); // this should be statistically impossible
-                if (rand_val & 0x8000000000000000) {
-                    // can't have the high bit set per above
-                    continue;
-                }
-                return rand_val;
-            } else {
-                elog(ERROR, "failed to read from /dev/urandom");
-            }
+        uint64_t rand_val;
+        urandom.read(reinterpret_cast<char *>(&rand_val), sizeof(rand_val));
+        if (urandom) {
+            // Generating 0 should be statistically impossible.
+            assert(rand_val != 0);
+            return rand_val;
+        } else {
+            elog(ERROR, "failed to read from /dev/urandom");
         }
-        urandom.close();
     } else {
         elog(ERROR, "failed to open /dev/urandom");
     }
-    assert(false); // should never get here (because elog(ERROR) calls longjmp)
+    assert(false);  // should never get here (because elog(ERROR) calls longjmp)
     return 0;
 }
 
 extern "C" TupleTableSlot *gaiaExecForeignInsert(EState *estate,
-                                                 ResultRelInfo *rinfo,
-                                                 TupleTableSlot *slot,
-                                                 TupleTableSlot *planSlot) {
+    ResultRelInfo *rinfo,
+    TupleTableSlot *slot,
+    TupleTableSlot *planSlot) {
     /*
      * Insert one tuple into the foreign table. estate is global execution
      * state for the query. rinfo is the ResultRelInfo struct describing the
@@ -801,14 +744,6 @@ extern "C" TupleTableSlot *gaiaExecForeignInsert(EState *estate,
             slot->tts_isnull[attr_idx] = false;
         } else if (!(slot->tts_isnull[attr_idx])) {
             attr_val = slot->tts_values[attr_idx];
-            if (modify_state->gaia_type_is_edge &&
-                attr_idx == modify_state->src_attr_idx) {
-                gaia_src_id = DatumGetUInt64(attr_val);
-            }
-            if (modify_state->gaia_type_is_edge &&
-                attr_idx == modify_state->dst_attr_idx) {
-                gaia_dst_id = DatumGetUInt64(attr_val);
-            }
         }
         // if we have a null value, just don't bother to set it in the builder
         if (!slot->tts_isnull[attr_idx]) {
@@ -816,26 +751,17 @@ extern "C" TupleTableSlot *gaiaExecForeignInsert(EState *estate,
         }
     }
     assert(gaia_id);
-    if (modify_state->gaia_type_is_edge) {
-        assert(gaia_src_id && gaia_dst_id);
-    }
 
     modify_state->finalizer(builder);
     size_t size;
     const void *buffer = flatcc_builder_get_direct_buffer(builder, &size);
 
     try {
-        if (modify_state->gaia_type_is_edge) {
-            gaia_se_edge::create(gaia_id, modify_state->gaia_type_id,
-                                 gaia_src_id, gaia_dst_id, size, buffer);
-        } else {
-            gaia_se_node::create(gaia_id, modify_state->gaia_type_id, size,
-                                 buffer);
-        }
+        gaia_ptr::create(gaia_id, modify_state->gaia_type_id, size, buffer);
     } catch (const std::exception &e) {
         ereport(ERROR,
-                (errcode(ERRCODE_FDW_ERROR),
-                 errmsg("error creating gaia object"), errhint(e.what())));
+            (errcode(ERRCODE_FDW_ERROR),
+                errmsg("error creating gaia object"), errhint(e.what())));
     }
 
     flatcc_builder_reset(builder);
@@ -844,9 +770,9 @@ extern "C" TupleTableSlot *gaiaExecForeignInsert(EState *estate,
 }
 
 extern "C" TupleTableSlot *gaiaExecForeignUpdate(EState *estate,
-                                                 ResultRelInfo *rinfo,
-                                                 TupleTableSlot *slot,
-                                                 TupleTableSlot *planSlot) {
+    ResultRelInfo *rinfo,
+    TupleTableSlot *slot,
+    TupleTableSlot *planSlot) {
     /*
      * Update one tuple in the foreign table. estate is global execution state
      * for the query. rinfo is the ResultRelInfo struct describing the target
@@ -901,25 +827,20 @@ extern "C" TupleTableSlot *gaiaExecForeignUpdate(EState *estate,
             attr_builder(builder, attr_val);
         }
     }
-    assert(gaia_id); // we must have found a valid (i.e., nonzero) gaia_id
-                     // attribute value
+    assert(gaia_id);  // we must have found a valid (i.e., nonzero) gaia_id
+                      // attribute value
 
     modify_state->finalizer(builder);
     size_t size;
     const void *buffer = flatcc_builder_get_direct_buffer(builder, &size);
 
     try {
-        if (modify_state->gaia_type_is_edge) {
-            auto edge = gaia_se_edge::open(gaia_id);
-            edge.update_payload(size, buffer);
-        } else {
-            auto node = gaia_se_node::open(gaia_id);
-            node.update_payload(size, buffer);
-        }
+        auto node = gaia_ptr::open(gaia_id);
+        node.update_payload(size, buffer);
     } catch (const std::exception &e) {
         ereport(ERROR,
-                (errcode(ERRCODE_FDW_ERROR),
-                 errmsg("error updating gaia object"), errhint(e.what())));
+            (errcode(ERRCODE_FDW_ERROR),
+                errmsg("error updating gaia object"), errhint(e.what())));
     }
 
     flatcc_builder_reset(builder);
@@ -928,9 +849,9 @@ extern "C" TupleTableSlot *gaiaExecForeignUpdate(EState *estate,
 }
 
 extern "C" TupleTableSlot *gaiaExecForeignDelete(EState *estate,
-                                                 ResultRelInfo *rinfo,
-                                                 TupleTableSlot *slot,
-                                                 TupleTableSlot *planSlot) {
+    ResultRelInfo *rinfo,
+    TupleTableSlot *slot,
+    TupleTableSlot *planSlot) {
     /*
      * Delete one tuple from the foreign table. estate is global execution
      * state for the query. rinfo is the ResultRelInfo struct describing the
@@ -975,31 +896,19 @@ extern "C" TupleTableSlot *gaiaExecForeignDelete(EState *estate,
     assert(!is_null);
     uint64_t gaia_id = DatumGetUInt64(pk_val);
     try {
-        if (modify_state->gaia_type_is_edge) {
-            modify_state->target_edge = gaia_se_edge::open(gaia_id);
-            if (modify_state->target_edge) {
-                elog(DEBUG1, "calling remove() on edge for gaia_id %d",
-                     gaia_id);
-                gaia_ptr<gaia_se_edge>::remove(modify_state->target_edge);
-            } else {
-                elog(DEBUG1, "edge for gaia_id %d is invalid", gaia_id);
-                retSlot = NULL;
-            }
+        modify_state->target_node = gaia_ptr::open(gaia_id);
+        if (modify_state->target_node) {
+            elog(DEBUG1, "calling remove() on node for gaia_id %d",
+                gaia_id);
+            gaia_ptr::remove(modify_state->target_node);
         } else {
-            modify_state->target_node = gaia_se_node::open(gaia_id);
-            if (modify_state->target_node) {
-                elog(DEBUG1, "calling remove() on node for gaia_id %d",
-                     gaia_id);
-                gaia_ptr<gaia_se_node>::remove(modify_state->target_node);
-            } else {
-                elog(DEBUG1, "node for gaia_id %d is invalid", gaia_id);
-                retSlot = NULL;
-            }
+            elog(DEBUG1, "node for gaia_id %d is invalid", gaia_id);
+            retSlot = NULL;
         }
     } catch (const std::exception &e) {
         ereport(ERROR,
-                (errcode(ERRCODE_FDW_ERROR),
-                 errmsg("error deleting gaia object"), errhint(e.what())));
+            (errcode(ERRCODE_FDW_ERROR),
+                errmsg("error deleting gaia object"), errhint(e.what())));
     }
     return retSlot;
 }
@@ -1024,12 +933,12 @@ extern "C" void gaiaEndForeignModify(EState *estate, ResultRelInfo *rinfo) {
 }
 
 extern "C" void gaiaBeginForeignInsert(ModifyTableState *mtstate,
-                                       ResultRelInfo *resultRelInfo) {
+    ResultRelInfo *resultRelInfo) {
     elog(DEBUG1, "entering function %s", __func__);
 }
 
 extern "C" void gaiaEndForeignInsert(EState *estate,
-                                     ResultRelInfo *resultRelInfo) {
+    ResultRelInfo *resultRelInfo) {
     elog(DEBUG1, "entering function %s", __func__);
 }
 
@@ -1057,7 +966,7 @@ extern "C" int gaiaIsForeignRelUpdatable(Relation rel) {
 }
 
 extern "C" bool gaiaPlanDirectModify(PlannerInfo *root, ModifyTable *plan,
-                                     Index resultRelation, int subplan_index) {
+    Index resultRelation, int subplan_index) {
     elog(DEBUG1, "entering function %s", __func__);
 
     return false;
@@ -1077,7 +986,7 @@ extern "C" void gaiaEndDirectModify(ForeignScanState *node) {
 }
 
 extern "C" void gaiaExplainForeignScan(ForeignScanState *node,
-                                       struct ExplainState *es) {
+    struct ExplainState *es) {
     /*
      * Print additional EXPLAIN output for a foreign table scan. This function
      * can call ExplainPropertyText and related functions to add fields to the
@@ -1093,9 +1002,9 @@ extern "C" void gaiaExplainForeignScan(ForeignScanState *node,
 }
 
 extern "C" void gaiaExplainForeignModify(ModifyTableState *mtstate,
-                                         ResultRelInfo *rinfo,
-                                         List *fdw_private, int subplan_index,
-                                         struct ExplainState *es) {
+    ResultRelInfo *rinfo,
+    List *fdw_private, int subplan_index,
+    struct ExplainState *es) {
     /*
      * Print additional EXPLAIN output for a foreign table update. This
      * function can call ExplainPropertyText and related functions to add
@@ -1118,13 +1027,13 @@ extern "C" void gaiaExplainForeignModify(ModifyTableState *mtstate,
 }
 
 extern "C" void gaiaExplainDirectModify(ForeignScanState *node,
-                                        struct ExplainState *es) {
+    struct ExplainState *es) {
     elog(DEBUG1, "entering function %s", __func__);
 }
 
 extern "C" bool gaiaAnalyzeForeignTable(Relation relation,
-                                        AcquireSampleRowsFunc *func,
-                                        BlockNumber *totalpages) {
+    AcquireSampleRowsFunc *func,
+    BlockNumber *totalpages) {
     /* ----
      * This function is called when ANALYZE is executed on a foreign table. If
      * the FDW can collect statistics for this foreign table, it should return
@@ -1158,9 +1067,9 @@ extern "C" bool gaiaAnalyzeForeignTable(Relation relation,
 }
 
 extern "C" void gaiaGetForeignJoinPaths(PlannerInfo *root, RelOptInfo *joinrel,
-                                        RelOptInfo *outerrel,
-                                        RelOptInfo *innerrel, JoinType jointype,
-                                        JoinPathExtraData *extra) {
+    RelOptInfo *outerrel,
+    RelOptInfo *innerrel, JoinType jointype,
+    JoinPathExtraData *extra) {
     /*
      * Create possible access paths for a join of two (or more) foreign tables
      * that all belong to the same foreign server. This optional function is
@@ -1195,21 +1104,21 @@ extern "C" void gaiaGetForeignJoinPaths(PlannerInfo *root, RelOptInfo *joinrel,
 }
 
 extern "C" void gaiaGetForeignUpperPaths(PlannerInfo *root,
-                                         UpperRelationKind stage,
-                                         RelOptInfo *input_rel,
-                                         RelOptInfo *output_rel, void *extra) {
+    UpperRelationKind stage,
+    RelOptInfo *input_rel,
+    RelOptInfo *output_rel, void *extra) {
     elog(DEBUG1, "entering function %s", __func__);
 }
 
 extern "C" bool gaiaRecheckForeignScan(ForeignScanState *node,
-                                       TupleTableSlot *slot) {
+    TupleTableSlot *slot) {
     elog(DEBUG1, "entering function %s", __func__);
 
     return false;
 }
 
 extern "C" RowMarkType gaiaGetForeignRowMarkType(RangeTblEntry *rte,
-                                                 LockClauseStrength strength) {
+    LockClauseStrength strength) {
     /*
      * Report which row-marking option to use for a foreign table. rte is the
      * RangeTblEntry node for the table and strength describes the lock
@@ -1231,8 +1140,8 @@ extern "C" RowMarkType gaiaGetForeignRowMarkType(RangeTblEntry *rte,
 }
 
 extern "C" void gaiaRefetchForeignRow(EState *estate, ExecRowMark *erm,
-                                      Datum rowid, TupleTableSlot *slot,
-                                      bool *updated) {
+    Datum rowid, TupleTableSlot *slot,
+    bool *updated) {
     /*
      * Re-fetch one tuple from the foreign table, after locking it if
      * required. estate is global execution state for the query. erm is the
@@ -1271,7 +1180,7 @@ extern "C" void gaiaRefetchForeignRow(EState *estate, ExecRowMark *erm,
 // we may want to use IMPORT FOREIGN SCHEMA to automatically create the foreign
 // tables corresponding to registered types in the storage engine.
 extern "C" List *gaiaImportForeignSchema(ImportForeignSchemaStmt *stmt,
-                                         Oid serverOid) {
+    Oid serverOid) {
     /*
      * Obtain a list of foreign table creation commands. This function is
      * called when executing IMPORT FOREIGN SCHEMA, and is passed the parse
@@ -1316,7 +1225,7 @@ extern "C" List *gaiaImportForeignSchema(ImportForeignSchemaStmt *stmt,
         ROUTE_DDL_STMT_FMT,
         EVENT_LOG_DDL_STMT_FMT,
     };
-    for (size_t i = 0; i < ARRAY_SIZE(ddl_stmt_fmts); i++) {
+    for (size_t i = 0; i < array_size(ddl_stmt_fmts); i++) {
         // length of format string + length of server name - 2 chars for format
         // specifier + 1 char for null terminator
         size_t stmt_len = strlen(ddl_stmt_fmts[i]) + strlen(serverName) - 2 + 1;
@@ -1326,7 +1235,7 @@ extern "C" List *gaiaImportForeignSchema(ImportForeignSchemaStmt *stmt,
         if (sprintf(stmt_buf, ddl_stmt_fmts[i], serverName) !=
             (int)(stmt_len - 1)) {
             elog(ERROR, "failed to format statement '%s' with server name '%s'",
-                 ddl_stmt_fmts[i], serverName);
+                ddl_stmt_fmts[i], serverName);
         }
         commands = lappend(commands, stmt_buf);
     }
@@ -1337,11 +1246,11 @@ extern "C" List *gaiaImportForeignSchema(ImportForeignSchemaStmt *stmt,
 extern "C" void _PG_init() {
     elog(DEBUG1, "entering function %s", __func__);
     // initialize COW-SE without deleting all data
-    gaia_mem_base::init(false);
+    gaia::db::begin_session();
 }
 
 // Perform all module-level finalization here
 extern "C" void _PG_fini() {
     elog(DEBUG1, "entering function %s", __func__);
-    // any SE cleanup required?
+    gaia::db::end_session();
 }

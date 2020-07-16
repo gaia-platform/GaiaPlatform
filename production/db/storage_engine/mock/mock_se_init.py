@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-from se_mock import gaia_mem_base
+from se_mock import gaia_db
 
-gaia_mem_base.init(True)
-
+gaia_db.begin_session()
