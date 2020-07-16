@@ -31,6 +31,13 @@ class catalog_manager_t {
     const set<gaia_id_t> &list_tables() const;
     const vector<gaia_id_t> &list_fields(gaia_id_t table_id) const;
     const vector<gaia_id_t> &list_references(gaia_id_t table_id) const;
+    // A reset should only be needed for testing.
+    void reset() {
+      m_table_names.clear();
+      m_table_fields.clear();
+      m_table_references.clear();
+      m_table_ids.clear();
+    }
 
   private:
     // Only internal static creation is allowed
