@@ -310,10 +310,10 @@ class server : private se_base {
 
     static void session_thread(int session_socket) {
         // REVIEW: how do we gracefully close the session socket?
-        // do we need to issue a nonblocking read() first?
-        // then do we need to call shutdown() before close()?
-        // with TCP shutdown() will send a FIN packet, but what
-        // does it do for a Unix socket? or should we do a
+        // Do we need to issue a nonblocking read() first?
+        // Then do we need to call shutdown() before close()?
+        // With TCP, shutdown() will send a FIN packet, but what
+        // does it do for a Unix socket? Or should we do a
         // shutdown(), then a blocking read(), then a close()?
         // http://web.deu.edu.tr/doc/soket/:
         // "Generally the difference between close() and shutdown() is: close()
@@ -322,10 +322,10 @@ class server : private se_base {
         // stays opened both for read and write, and sometimes this is very
         // important. shutdown() breaks the connection for all processes sharing
         // the socket id. Those who try to read will detect EOF, and those who
-        // try to write will reseive SIGPIPE, possibly delayed while the kernel
+        // try to write will receive SIGPIPE, possibly delayed while the kernel
         // socket buffer will be filled. Additionally, shutdown() has a second
         // argument which denotes how to close the connection: 0 means to
-        // disable further reading, 1 to disable writing and 2 disables both.""
+        // disable further reading, 1 to disable writing and 2 disables both."
         // https://linux.die.net/man/2/shutdown:
         // "The constants SHUT_RD, SHUT_WR, SHUT_RDWR have the value 0, 1, 2,
         // respectively, and are defined in <sys/socket.h>."
