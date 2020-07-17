@@ -29,7 +29,7 @@ static bool is_gaia_txn_open() {
 }
 
 static bool begin_gaia_txn() {
-    elog(DEBUG1, "opening COW-SE transaction...");
+    elog(DEBUG1, "Opening COW-SE transaction...");
     bool txn_opened = false;
     assert(gaia_txn_ref_count >= 0);
     int old_count = gaia_txn_ref_count++;
@@ -37,12 +37,12 @@ static bool begin_gaia_txn() {
         txn_opened = true;
         gaia::db::begin_transaction();
     }
-    elog(DEBUG1, "txn actually opened: %s", txn_opened ? "true" : "false");
+    elog(DEBUG1, "Txn actually opened: %s.", txn_opened ? "true" : "false");
     return txn_opened;
 }
 
 static bool commit_gaia_txn() {
-    elog(DEBUG1, "closing COW-SE transaction...");
+    elog(DEBUG1, "Closing COW-SE transaction...");
     bool txn_closed = false;
     assert(gaia_txn_ref_count > 0);
     int old_count = gaia_txn_ref_count--;
@@ -50,7 +50,7 @@ static bool commit_gaia_txn() {
         txn_closed = true;
         gaia::db::commit_transaction();
     }
-    elog(DEBUG1, "txn actually closed: %s", txn_closed ? "true" : "false");
+    elog(DEBUG1, "Txn actually closed: %s.", txn_closed ? "true" : "false");
     return txn_closed;
 }
 
@@ -59,7 +59,7 @@ static bool commit_gaia_txn() {
 // executor, and various maintenance commands. The scan-related functions are
 // required, the rest are optional.
 extern "C" Datum gaia_fdw_handler(PG_FUNCTION_ARGS) {
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 
     FdwRoutine *routine = makeNode(FdwRoutine);
 
@@ -142,14 +142,14 @@ static bool is_valid_option(const char *option, const char *value,
 // If no validator function is supplied, options are not checked at object
 // creation time or object alteration time.
 extern "C" Datum gaia_fdw_validator(PG_FUNCTION_ARGS) {
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 
     List *options_list = untransformRelOptions(PG_GETARG_DATUM(0));
     if (list_length(options_list) > 1) {
         ereport(ERROR,
             (errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
-            errmsg("invalid options"),
-            errhint("gaia FDW supports only the `data_dir` option")));
+            errmsg("Invalid options."),
+            errhint("gaia FDW supports only the `data_dir` option.")));
         PG_RETURN_VOID();
     }
 
@@ -159,7 +159,7 @@ extern "C" Datum gaia_fdw_validator(PG_FUNCTION_ARGS) {
         DefElem *def = (DefElem *)lfirst(cell);
         char *opt_name = def->defname;
         char *opt_val = defGetString(def);
-        elog(DEBUG1, "option name: %s, option value: %s", opt_name, opt_val);
+        elog(DEBUG1, "Option name: %s, option value: %s.", opt_name, opt_val);
 
         if (!is_valid_option(opt_name, opt_val, catalog)) {
             // Unknown option specified, complain about it. Provide a hint
@@ -176,9 +176,9 @@ extern "C" Datum gaia_fdw_validator(PG_FUNCTION_ARGS) {
             ereport(
                 ERROR,
                 (errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
-                errmsg("invalid option \"%s\"", opt_name),
+                errmsg("Invalid option \"%s\".", opt_name),
                 buf.len > 0
-                    ? errhint("Valid options in this context are: %s", buf.data)
+                    ? errhint("Valid options in this context are: %s.", buf.data)
                     : errhint("There are no valid options in this context.")));
             PG_RETURN_VOID();
         }
@@ -204,7 +204,7 @@ extern "C" void gaia_get_foreign_rel_size(
     // just a constant default estimate, which should be replaced if at all
     // possible. The function may also choose to update base_rel->width if it
     // can compute a better estimate of the average result row width.
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 
     // TODO: get row count estimate from storage engine.
 }
@@ -225,7 +225,7 @@ extern "C" void gaia_get_foreign_paths(
     // pathkeys to represent a pre-sorted result. Each access path must
     // contain cost estimates, and can contain any FDW-private information
     // that is needed to identify the specific scan method intended.
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 
     Cost startup_cost = 0;
     Cost total_cost = startup_cost + base_rel->rows;
@@ -256,7 +256,7 @@ extern "C" ForeignScan *gaia_get_foreign_plan(
     //
     // This function must create and return a ForeignScan plan node; it's
     // recommended to use make_foreignscan to build the ForeignScan node.
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 
     Index scan_relid = base_rel->relid;
 
@@ -292,7 +292,7 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState *node, int eflags) {
     // should not perform any externally-visible actions; it should only do
     // the minimum required to make the node state valid for
     // ExplainForeignScan and EndForeignScan.
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 
     ForeignScan *plan = (ForeignScan *)node->ss.ps.plan;
     EState *estate = node->ss.ps.state;
@@ -310,7 +310,7 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState *node, int eflags) {
     } else if (strcmp(table_name, "event_log") == 0) {
         mapping = c_event_log_mapping;
     } else {
-        elog(ERROR, "unknown table name '%s'", table_name);
+        elog(ERROR, "Unknown table name '%s'.", table_name);
     }
 
     gaia_fdw_scan_state_t *scan_state
@@ -370,7 +370,7 @@ extern "C" TupleTableSlot *gaia_iterate_foreign_scan(ForeignScanState *node) {
     // contain them. If a NULL value is encountered when the user has declared
     // that none should be present, it may be appropriate to raise an error
     // (just as you would need to do in the case of a data type mismatch).
-    // elog(DEBUG1, "entering function %s", __func__);
+    // elog(DEBUG1, "Entering function %s...", __func__);
 
     gaia_fdw_scan_state_t *scan_state = (gaia_fdw_scan_state_t *)node->fdw_state;
     TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
@@ -412,14 +412,14 @@ extern "C" void gaia_rescan_foreign_scan(ForeignScanState *node) {
     // Restart the scan from the beginning. Note that any parameters the scan
     // depends on may have changed value, so the new scan does not necessarily
     // return exactly the same rows.
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 }
 
 extern "C" void gaia_end_foreign_scan(ForeignScanState *node) {
     // End the scan and release resources. It is normally not important to
     // release palloc'd memory, but for example open files and connections to
     // remote servers should be cleaned up.
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 
     gaia_fdw_scan_state_t *scan_state = (gaia_fdw_scan_state_t *)node->fdw_state;
     // We should have reached the end of iteration.
@@ -456,7 +456,7 @@ extern "C" void gaia_add_foreign_update_targets(
     // expressions are added. (This will make it impossible to implement
     // DELETE operations, though UPDATE may still be feasible if the FDW
     // relies on an unchanging primary key to identify rows.)
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 
     TupleDesc tupleDesc = target_relation->rd_att;
     // FIXME: we really shouldn't hardcode the primary key like this,
@@ -488,7 +488,7 @@ extern "C" void gaia_add_foreign_update_targets(
         }
     }
     if (!key_found) {
-        elog(ERROR, "could not find 'gaia_id' column in table '%s'",
+        elog(ERROR, "Could not find 'gaia_id' column in table '%s'.",
             RelationGetRelationName(target_relation));
     }
 }
@@ -515,7 +515,7 @@ extern "C" List *gaia_plan_foreign_modify(
     // If the PlanForeignModify pointer is set to NULL, no additional
     // plan-time actions are taken, and the fdw_private list delivered to
     // BeginForeignModify will be NIL.
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 
     // We don't return any private data from this method, just check that
     // gaia_id is not an INSERT or UPDATE target.
@@ -538,7 +538,7 @@ extern "C" List *gaia_plan_foreign_modify(
             AttrNumber attno = col + FirstLowInvalidHeapAttributeNumber;
             if (attno <= InvalidAttrNumber) {
                 // Shouldn't happen.
-                elog(ERROR, "system-column insert or update is not supported");
+                elog(ERROR, "System-column insert or update is not supported.");
             }
 
             char *attr_name
@@ -546,7 +546,7 @@ extern "C" List *gaia_plan_foreign_modify(
             if (strcmp(attr_name, "gaia_id") == 0) {
                 ereport(ERROR,
                     (errcode(ERRCODE_FDW_INVALID_COLUMN_NAME),
-                    errmsg("cannot insert into or update system column gaia_id")));
+                    errmsg("Cannot insert into or update system column gaia_id.")));
             }
         }
     }
@@ -583,7 +583,7 @@ extern "C" void gaia_begin_foreign_modify(
     //
     // If the BeginForeignModify pointer is set to NULL, no action is taken
     // during executor startup.
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 
     gaia_fdw_modify_state_t *modify_state
         = (gaia_fdw_modify_state_t *)palloc0(sizeof(gaia_fdw_modify_state_t));
@@ -610,7 +610,7 @@ extern "C" void gaia_begin_foreign_modify(
     } else if (strcmp(table_name, "event_log") == 0) {
         mapping = c_event_log_mapping;
     } else {
-        elog(ERROR, "unknown table name '%s'", table_name);
+        elog(ERROR, "Unknown table name '%s'.", table_name);
     }
 
     modify_state->gaia_type_id = mapping.gaia_type_id;
@@ -661,10 +661,10 @@ static uint64_t new_gaia_id() {
             assert(rand_val != 0);
             return rand_val;
         } else {
-            elog(ERROR, "failed to read from /dev/urandom");
+            elog(ERROR, "Failed to read from /dev/urandom.");
         }
     } else {
-        elog(ERROR, "failed to open /dev/urandom");
+        elog(ERROR, "Failed to open /dev/urandom.");
     }
     assert(false);  // Should never get here (because elog(ERROR) calls longjmp).
     return 0;
@@ -698,7 +698,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_insert(
     //
     // If the ExecForeignInsert pointer is set to NULL, attempts to insert
     // into the foreign table will fail with an error message.
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 
     gaia_fdw_modify_state_t *modify_state = (gaia_fdw_modify_state_t *)rinfo->ri_FdwState;
     flatcc_builder_t *builder = &modify_state->builder;
@@ -752,7 +752,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_insert(
     } catch (const std::exception &e) {
         ereport(ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-            errmsg("error creating gaia object"), errhint(e.what())));
+            errmsg("Error creating gaia object."), errhint(e.what())));
     }
 
     flatcc_builder_reset(builder);
@@ -788,7 +788,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_update(
     //
     // If the ExecForeignUpdate pointer is set to NULL, attempts to update the
     // foreign table will fail with an error message.
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 
     gaia_fdw_modify_state_t *modify_state = (gaia_fdw_modify_state_t *)rinfo->ri_FdwState;
     flatcc_builder_t *builder = &modify_state->builder;
@@ -830,7 +830,8 @@ extern "C" TupleTableSlot *gaia_exec_foreign_update(
     } catch (const std::exception &e) {
         ereport(ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-            errmsg("error updating gaia object"), errhint(e.what())));
+            errmsg("Error updating gaia object."),
+            errhint(e.what())));
     }
 
     flatcc_builder_reset(builder);
@@ -865,7 +866,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_delete(
     // If the ExecForeignDelete pointer is set to NULL, attempts to delete
     // from the foreign table will fail with an error message.
 
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 
     TupleTableSlot *return_slot = slot;
     gaia_fdw_modify_state_t *modify_state = (gaia_fdw_modify_state_t *)rinfo->ri_FdwState;
@@ -890,18 +891,19 @@ extern "C" TupleTableSlot *gaia_exec_foreign_delete(
     try {
         modify_state->target_node = gaia_ptr::open(gaia_id);
         if (modify_state->target_node) {
-            elog(DEBUG1, "calling remove() on node for gaia_id %d",
+            elog(DEBUG1, "Calling remove() on node for gaia_id %d.",
                 gaia_id);
             gaia_ptr::remove(modify_state->target_node);
         } else {
-            elog(DEBUG1, "node for gaia_id %d is invalid", gaia_id);
+            elog(DEBUG1, "Node for gaia_id %d is invalid.", gaia_id);
             return_slot = NULL;
         }
     } catch (const std::exception &e) {
         ereport(ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-            errmsg("error deleting gaia object"), errhint(e.what())));
+            errmsg("Error deleting gaia object."), errhint(e.what())));
     }
+
     return return_slot;
 }
 
@@ -912,7 +914,7 @@ extern "C" void gaia_end_foreign_modify(EState *estate, ResultRelInfo *rinfo) {
     //
     // If the EndForeignModify pointer is set to NULL, no action is taken
     // during executor shutdown.
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 
     gaia_fdw_modify_state_t *modify_state = (gaia_fdw_modify_state_t *)rinfo->ri_FdwState;
     flatcc_builder_clear(&modify_state->builder);
@@ -923,12 +925,12 @@ extern "C" void gaia_end_foreign_modify(EState *estate, ResultRelInfo *rinfo) {
 
 extern "C" void gaia_begin_foreign_insert(ModifyTableState *mtstate,
     ResultRelInfo *resultRelInfo) {
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 }
 
 extern "C" void gaia_end_foreign_insert(EState *estate,
     ResultRelInfo *resultRelInfo) {
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 }
 
 extern "C" int gaia_is_foreign_rel_updatable(Relation rel) {
@@ -946,7 +948,7 @@ extern "C" int gaia_is_foreign_rel_updatable(Relation rel) {
     // permissible to throw an error in the execution routine instead of
     // checking in this function. However, this function is used to determine
     // updatability for display in the information_schema views.)
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 
     return (1 << CMD_UPDATE) | (1 << CMD_INSERT) | (1 << CMD_DELETE);
 }
@@ -956,22 +958,22 @@ extern "C" bool gaia_plan_direct_modify(
     ModifyTable *plan,
     Index result_relation,
     int subplan_index) {
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 
     return false;
 }
 
 extern "C" void gaia_begin_direct_modify(ForeignScanState *node, int eflags) {
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 }
 
 extern "C" TupleTableSlot *gaia_iterate_direct_modify(ForeignScanState *node) {
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
     return NULL;
 }
 
 extern "C" void gaia_end_direct_modify(ForeignScanState *node) {
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 }
 
 extern "C" void gaia_explain_foreign_scan(
@@ -985,7 +987,7 @@ extern "C" void gaia_explain_foreign_scan(
     //
     // If the ExplainForeignScan pointer is set to NULL, no additional
     // information is printed during EXPLAIN.
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 }
 
 extern "C" void gaia_explain_foreign_modify(
@@ -1003,7 +1005,7 @@ extern "C" void gaia_explain_foreign_modify(
     //
     // If the ExplainForeignModify pointer is set to NULL, no additional
     // information is printed during EXPLAIN.
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 
     // gaiaFdwModifyState *modify_state =
     //   (gaiaFdwModifyState *) rinfo->ri_FdwState;
@@ -1012,7 +1014,7 @@ extern "C" void gaia_explain_foreign_modify(
 extern "C" void gaia_explain_direct_modify(
     ForeignScanState *node,
     struct ExplainState *es) {
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 }
 
 extern "C" bool gaia_analyze_foreign_table(
@@ -1042,7 +1044,7 @@ extern "C" bool gaia_analyze_foreign_table(
     // total numbers of live and dead rows in the table into the output
     // parameters totalrows and totaldeadrows. (Set totaldeadrows to zero if
     // the FDW does not have any concept of dead rows.)
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 
     return false;
 }
@@ -1081,7 +1083,7 @@ extern "C" void gaia_get_foreign_join_paths(
     // the FDW must fill fdw_scan_tlist with an appropriate list of
     // TargetEntry nodes, representing the set of columns it will supply at
     // runtime in the tuples it returns.
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 }
 
 extern "C" void gaia_get_foreign_upper_paths(
@@ -1090,13 +1092,13 @@ extern "C" void gaia_get_foreign_upper_paths(
     RelOptInfo *input_rel,
     RelOptInfo *output_rel,
     void *extra) {
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 }
 
 extern "C" bool gaia_recheck_foreign_scan(
     ForeignScanState *node,
     TupleTableSlot *slot) {
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 
     return false;
 }
@@ -1116,7 +1118,7 @@ extern "C" RowMarkType gaia_get_foreign_row_mark_type(
     // If the GetForeignRowMarkType pointer is set to NULL, the ROW_MARK_COPY
     // option is always used. (This implies that RefetchForeignRow will never
     // be called, so it need not be provided either.)
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 
     return ROW_MARK_COPY;
 }
@@ -1156,7 +1158,7 @@ extern "C" void gaia_refetch_foreign_row(
     //
     // If the RefetchForeignRow pointer is set to NULL, attempts to re-fetch
     // rows will fail with an error message.
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 }
 
 // We may want to use IMPORT FOREIGN SCHEMA to automatically create the foreign
@@ -1195,7 +1197,7 @@ extern "C" List *gaia_import_foreign_schema(
     // creating commands for excluded tables in the first place. The function
     // IsImportableForeignTable() may be useful to test whether a given
     // foreign-table name will pass the filter.
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
 
     ForeignServer *server = GetForeignServer(server_oid);
     const char *server_name = server->servername;
@@ -1218,7 +1220,7 @@ extern "C" List *gaia_import_foreign_schema(
         // terminator.
         if (sprintf(stmt_buf, ddl_stmt_fmts[i], server_name) !=
             (int)(stmt_len - 1)) {
-            elog(ERROR, "failed to format statement '%s' with server name '%s'",
+            elog(ERROR, "Failed to format statement '%s' with server name '%s'.",
                 ddl_stmt_fmts[i], server_name);
         }
 
@@ -1230,13 +1232,13 @@ extern "C" List *gaia_import_foreign_schema(
 
 // Perform all module-level initialization here.
 extern "C" void _PG_init() {
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
     // Initialize COW-SE without deleting all data.
     gaia::db::begin_session();
 }
 
 // Perform all module-level finalization here.
 extern "C" void _PG_fini() {
-    elog(DEBUG1, "entering function %s", __func__);
+    elog(DEBUG1, "Entering function %s...", __func__);
     gaia::db::end_session();
 }

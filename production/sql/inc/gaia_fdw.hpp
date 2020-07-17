@@ -193,22 +193,27 @@ typedef void (*option_handler_fn)(const char *name, const char *value, Oid conte
 // Describes the valid options for objects that use this wrapper.
 typedef struct {
     const char *name;
-    Oid context; /* Oid of catalog in which option may appear */
+
+    // Oid of catalog in which option may appear.
+    Oid context;
+
     option_handler_fn handler;
 } gaia_fdw_option_t;
 
 // Valid options for gaia_fdw.
 static const gaia_fdw_option_t valid_options[] = {
-    /* Sentinel */
+    // Sentinel.
     {NULL, InvalidOid, NULL}};
 
 // The scan state is set up in gaia_begin_foreign_scan and stashed away in
 // node->fdw_private and fetched in gaia_iterate_foreign_scan.
 typedef struct {
     root_object_deserializer_fn deserializer;
-    // flatbuffer accessor functions indexed by attrnum
+
+    // flatbuffer accessor functions indexed by attrnum.
     attribute_accessor_fn *indexed_accessors;
-    // the COW-SE smart ptr we are currently iterating over
+
+    // The COW-SE smart ptr we are currently iterating over.
     gaia::db::gaia_ptr cur_node;
 } gaia_fdw_scan_state_t;
 
@@ -221,19 +226,26 @@ typedef struct {
 typedef struct {
     builder_initializer_fn initializer;
     builder_finalizer_fn finalizer;
+
     // flatbuffer attribute builder functions indexed by attrnum.
     attribute_builder_fn *indexed_builders;
+
     // flatbuffers builder for INSERT and UPDATE.
     flatcc_builder_t builder;
+
     // 0-based index of gaia_id attribute in tuple descriptor.
     int pk_attr_idx;
+
     // 0-based index of gaia_src_id attribute in tuple descriptor (edge types
     // only).
     int src_attr_idx;
+
     // 0-based index of gaia_dst_id attribute in tuple descriptor (edge types
     // only).
     int dst_attr_idx;
+
     gaia_type_t gaia_type_id;
+
     // The COW-SE smart ptr that is the target of our update.
     gaia::db::gaia_ptr target_node;
 } gaia_fdw_modify_state_t;
