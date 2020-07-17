@@ -13,7 +13,6 @@ using namespace std;
 using namespace gaia::db;
 using namespace gaia::rules;
 
-
 void check_all_event_types(
     gaia_type_t context_type, 
     gaia_type_t test_type, 
@@ -50,15 +49,15 @@ void check_all_event_types(
 
 TEST(rule_context_test, last_operation_type_match)
 {
-    // If the context type matches the passed in type then we should get the
+    // If the context type matches the passed-in type then we should get the
     // last_operation_t value mapped to a table event type.
     check_all_event_types(42, 42, nullptr);
 }
 
 TEST(rule_context_test, last_operation_type_mismatch)
 {
-    // If the context type does not match the passed in type then the last operation
-    // preformed on this type should be 'none'.
+    // If the context type does not match the passed-in type then the last operation
+    // performed on this type should be 'none'.
     last_operation_t expected = last_operation_t::none;
     check_all_event_types(0, 42, &expected);
 }
