@@ -41,27 +41,19 @@ extern "C" {
 #include "utils/rel.h"
 #include "utils/syscache.h"
 
-/*
- * Module initialization function.
- */
+// Module initialization function.
 extern void _PG_init();
-/*
- * Module unload function.
- */
+// Module unload function.
 extern void _PG_fini();
 
-/*
- * SQL functions.
- */
+// SQL functions.
 extern Datum gaia_fdw_handler(PG_FUNCTION_ARGS);
 extern Datum gaia_fdw_validator(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(gaia_fdw_handler);
 PG_FUNCTION_INFO_V1(gaia_fdw_validator);
 
-/*
- * FDW callback routines.
- */
+// FDW callback routines.
 void gaia_get_foreign_rel_size(PlannerInfo *root, RelOptInfo *base_rel,
     Oid foreign_table_id);
 
@@ -113,7 +105,7 @@ void gaia_begin_foreign_insert(ModifyTableState *mtstate,
 
 void gaia_end_foreign_insert(EState *estate, ResultRelInfo *result_rel_info);
 
-int gaia_is_foreign_rel_updatable(Relation rel);
+int gaia_is_foreign_rel_updatable(Relation relation);
 
 bool gaia_plan_direct_modify(PlannerInfo *root, ModifyTable *plan,
     Index result_rel, int subplan_index);
@@ -153,32 +145,23 @@ RowMarkType gaia_get_foreign_row_mark_type(RangeTblEntry *rte,
 void gaia_refetch_foreign_row(EState *estate, ExecRowMark *erm, Datum rowid,
     TupleTableSlot *slot, bool *updated);
 
-/*
- * Structures used by the FDW.
- */
-
+// Structures used by the FDW.
 typedef void (*option_handler)(const char *name, const char *value, Oid context);
 
-/*
- * Describes the valid options for objects that use this wrapper.
- */
+// Describes the valid options for objects that use this wrapper.
 typedef struct {
     const char *name;
     Oid context; /* Oid of catalog in which option may appear */
     option_handler handler;
 } gaia_fdw_option_t;
 
-/*
- * Valid options for gaia_fdw.
- */
+// Valid options for gaia_fdw.
 static const gaia_fdw_option_t valid_options[] = {
     /* Sentinel */
     {NULL, InvalidOid, NULL}};
 
-/*
- * The scan state is set up in gaiaBeginForeignScan and stashed away in
- * node->fdw_private and fetched in gaiaIterateForeignScan.
- */
+// The scan state is set up in gaia_begin_foreign_scan and stashed away in
+// node->fdw_private and fetched in gaia_iterate_foreign_scan.
 typedef struct {
     root_object_deserializer deserializer;
     // flatbuffer accessor functions indexed by attrnum
@@ -187,31 +170,29 @@ typedef struct {
     gaia::db::gaia_ptr cur_node;
 } gaia_fdw_scan_state_t;
 
-/*
- * The modify state is for maintaining state of modify operations.
- *
- * It is set up in gaiaBeginForeignModify and stashed in
- * rinfo->ri_FdwState and subsequently used in gaiaExecForeignInsert,
- * gaiaExecForeignUpdate, gaiaExecForeignDelete and
- * gaiaEndForeignModify.
- */
+// The modify state is for maintaining state of modify operations.
+//
+// It is set up in gaiaBeginForeignModify and stashed in
+// rinfo->ri_FdwState and subsequently used in gaiaExecForeignInsert,
+// gaiaExecForeignUpdate, gaiaExecForeignDelete and
+// gaiaEndForeignModify.
 typedef struct {
     builder_initializer initializer;
     builder_finalizer finalizer;
-    // flatbuffer attribute builder functions indexed by attrnum
+    // flatbuffer attribute builder functions indexed by attrnum.
     attribute_builder *indexed_builders;
-    // flatbuffers builder for INSERT and UPDATE
+    // flatbuffers builder for INSERT and UPDATE.
     flatcc_builder_t builder;
-    // 0-based index of gaia_id attribute in tuple descriptor
+    // 0-based index of gaia_id attribute in tuple descriptor.
     int pk_attr_idx;
     // 0-based index of gaia_src_id attribute in tuple descriptor (edge types
-    // only)
+    // only).
     int src_attr_idx;
     // 0-based index of gaia_dst_id attribute in tuple descriptor (edge types
-    // only)
+    // only).
     int dst_attr_idx;
     gaia_type_t gaia_type_id;
-    // the COW-SE smart ptr that is the target of our update
+    // The COW-SE smart ptr that is the target of our update.
     gaia::db::gaia_ptr target_node;
 } gaia_fdw_modify_state_t;
 
