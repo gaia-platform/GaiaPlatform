@@ -1,0 +1,89 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+#pragma once
+
+#include <iostream>
+#include <set>
+#include <map>
+#include <mutex>
+
+#include "rclcpp/rclcpp.hpp"
+#include "rclcpp_components/register_node_macro.hpp"
+
+#include "gaia_incubator/msg/temp.hpp"
+#include "gaia_incubator/msg/fan_state.hpp"
+#include "gaia_incubator/msg/add_incubator.hpp"
+#include "gaia_incubator/msg/add_sensor.hpp"
+#include "gaia_incubator/msg/add_fan.hpp"
+
+using namespace std;
+using namespace rclcpp;
+using namespace gaia_incubator;
+
+class incubator_manager : public Node
+{
+public:
+    incubator_manager(const NodeOptions& options);
+
+private:
+    const double c_publish_temp_rate = 1.0;
+    const double c_update_state_rate = 0.1;
+
+    const double c_fan_acceleration = 500.0;
+    const double c_fan_max_speed = 3500.0;
+    const double c_fan_high_speed = 3000.0;
+    const double c_fan_low_speed = 1000.0;
+
+    const double c_temp_change_initial = 0.01;
+    const double c_temp_change_high_fan_speed = 0.03;
+    const double c_temp_change_low_fan_speed = 0.02;
+
+
+    void update_state();
+
+    void publish_temp();
+
+    void set_fan_state(const msg::FanState::SharedPtr msg);
+
+    void add_incubator(const msg::AddIncubator::SharedPtr msg);
+    void add_sensor(const msg::AddSensor::SharedPtr msg);
+    void add_fan(const msg::AddFan::SharedPtr msg);
+
+    void shutdown_callback();
+
+    Publisher<msg::Temp>::SharedPtr m_pub_temp;
+
+    Subscription<msg::FanState>::SharedPtr m_sub_fan_state;
+    Subscription<msg::AddIncubator>::SharedPtr m_sub_add_incubator;
+    Subscription<msg::AddSensor>::SharedPtr m_sub_add_sensor;
+    Subscription<msg::AddFan>::SharedPtr m_sub_add_fan;
+
+    TimerBase::SharedPtr m_sensor_reading_timer;
+    TimerBase::SharedPtr m_update_state_timer;
+
+    struct fan
+    {
+        double speed = 0.0;
+        bool is_on = false;
+    };
+
+    struct incubator
+    {
+        string name;
+        double temperature;
+
+        // Sensors are only stored as their names. They do not keep a state.
+        set<string> sensors;
+        // Fans are identified by their names.
+        map<string, fan> fans;
+    };
+
+    // Incubators are identified by their gaia_id, which is the uint32_t.
+    map<uint32_t, incubator> m_incubators;
+    mutex m_incubators_mutex;
+};
+
+RCLCPP_COMPONENTS_REGISTER_NODE(incubator_manager)
