@@ -39,11 +39,11 @@ set(ROS_INCUBATOR_DEMO_INCLUDES
 # end of gaia variables
 
 # gaia setup
-gaia_gen_rule_subscriptions(
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/rules.cpp"
-    "${GENERATED_OUTPUTS}/rules_init.cpp"
-    "${ROS_INCUBATOR_DEMO_INCLUDES}"
-)
+#gaia_gen_rule_subscriptions(
+#    "${CMAKE_CURRENT_SOURCE_DIR}/src/rules.cpp"
+#    "${GENERATED_OUTPUTS}/rules_init.cpp"
+#    "${ROS_INCUBATOR_DEMO_INCLUDES}"
+#)
 
 add_custom_target(make_generated_incubator_dir ALL
   COMMAND ${CMAKE_COMMAND} -E make_directory ${GENERATED_OUTPUTS}
@@ -67,6 +67,7 @@ add_library(gaia_rules SHARED IMPORTED GLOBAL)
 set_target_properties(gaia_rules PROPERTIES IMPORTED_LOCATION "${GAIA_PROD_BUILD}/rules/event_manager/libgaia_rules.a")
 add_library(gaia_direct SHARED IMPORTED GLOBAL)
 set_target_properties(gaia_direct PROPERTIES IMPORTED_LOCATION "${GAIA_PROD_BUILD}/direct_access/libgaia_direct.a")
+
 # end of gaia setup
 
 find_package(ament_cmake REQUIRED)
@@ -94,10 +95,10 @@ ament_export_dependencies(rosidl_default_runtime)
 add_library(gaia_library SHARED
   src/incubator_manager.cpp
   src/gaia_logic.cpp
-  src/rules.cpp
+  #src/rules.cpp
 )
 
-add_dependencies(gaia_library generate_barn_storage)
+add_dependencies(gaia_library generate_barn_storage gaia_semock)
 target_include_directories(gaia_library PRIVATE ${ROS_INCUBATOR_DEMO_INCLUDES})
 
 target_compile_options(gaia_library PUBLIC -fPIC)

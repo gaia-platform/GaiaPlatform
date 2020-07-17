@@ -75,6 +75,6 @@ void gaia_logic::setup_incubators()
 
 // An unused function for checking Gaia dependencies at compile-time.
 void gaia_logic::init_storage() {
-    begin_transaction();
-    commit_transaction();
+    //begin_transaction();
+    //commit_transaction();
 }
