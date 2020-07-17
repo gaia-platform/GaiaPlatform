@@ -65,51 +65,51 @@ extern "C" Datum gaia_fdw_handler(PG_FUNCTION_ARGS) {
     FdwRoutine *routine = makeNode(FdwRoutine);
 
     /* Functions for scanning foreign tables */
-    routine->GetForeignRelSize = gaiaGetForeignRelSize;
-    routine->GetForeignPaths = gaiaGetForeignPaths;
-    routine->GetForeignPlan = gaiaGetForeignPlan;
-    routine->BeginForeignScan = gaiaBeginForeignScan;
-    routine->IterateForeignScan = gaiaIterateForeignScan;
-    routine->ReScanForeignScan = gaiaReScanForeignScan;
-    routine->EndForeignScan = gaiaEndForeignScan;
+    routine->GetForeignRelSize = gaia_get_foreign_rel_size;
+    routine->GetForeignPaths = gaia_get_foreign_paths;
+    routine->GetForeignPlan = gaia_get_foreign_plan;
+    routine->BeginForeignScan = gaia_begin_foreign_scan;
+    routine->IterateForeignScan = gaia_iterate_foreign_scan;
+    routine->ReScanForeignScan = gaia_rescan_foreign_scan;
+    routine->EndForeignScan = gaia_end_foreign_scan;
 
     /* Functions for updating foreign tables */
-    routine->AddForeignUpdateTargets = gaiaAddForeignUpdateTargets;
-    routine->PlanForeignModify = gaiaPlanForeignModify;
-    routine->BeginForeignModify = gaiaBeginForeignModify;
-    routine->ExecForeignInsert = gaiaExecForeignInsert;
-    routine->ExecForeignUpdate = gaiaExecForeignUpdate;
-    routine->ExecForeignDelete = gaiaExecForeignDelete;
-    routine->EndForeignModify = gaiaEndForeignModify;
-    routine->BeginForeignInsert = gaiaBeginForeignInsert;
-    routine->EndForeignInsert = gaiaEndForeignInsert;
-    routine->IsForeignRelUpdatable = gaiaIsForeignRelUpdatable;
-    routine->PlanDirectModify = gaiaPlanDirectModify;
-    routine->BeginDirectModify = gaiaBeginDirectModify;
-    routine->IterateDirectModify = gaiaIterateDirectModify;
-    routine->EndDirectModify = gaiaEndDirectModify;
+    routine->AddForeignUpdateTargets = gaia_add_foreign_update_targets;
+    routine->PlanForeignModify = gaia_plan_foreign_modify;
+    routine->BeginForeignModify = gaia_begin_foreign_modify;
+    routine->ExecForeignInsert = gaia_exec_foreign_insert;
+    routine->ExecForeignUpdate = gaia_exec_foreign_update;
+    routine->ExecForeignDelete = gaia_exec_foreign_delete;
+    routine->EndForeignModify = gaia_end_foreign_modify;
+    routine->BeginForeignInsert = gaia_begin_foreign_insert;
+    routine->EndForeignInsert = gaia_end_foreign_insert;
+    routine->IsForeignRelUpdatable = gaia_is_foreign_rel_updatable;
+    routine->PlanDirectModify = gaia_plan_direct_modify;
+    routine->BeginDirectModify = gaia_begin_direct_modify;
+    routine->IterateDirectModify = gaia_iterate_direct_modify;
+    routine->EndDirectModify = gaia_end_direct_modify;
 
     /* Function for EvalPlanQual rechecks */
-    routine->RecheckForeignScan = gaiaRecheckForeignScan;
+    routine->RecheckForeignScan = gaia_recheck_foreign_scan;
     /* Support functions for EXPLAIN */
-    routine->ExplainForeignScan = gaiaExplainForeignScan;
-    routine->ExplainForeignModify = gaiaExplainForeignModify;
-    routine->ExplainDirectModify = gaiaExplainDirectModify;
+    routine->ExplainForeignScan = gaia_explain_foreign_scan;
+    routine->ExplainForeignModify = gaia_explain_foreign_modify;
+    routine->ExplainDirectModify = gaia_explain_direct_modify;
 
     /* Support functions for ANALYZE */
-    routine->AnalyzeForeignTable = gaiaAnalyzeForeignTable;
+    routine->AnalyzeForeignTable = gaia_analyze_foreign_table;
 
     /* Support functions for IMPORT FOREIGN SCHEMA */
-    routine->ImportForeignSchema = gaiaImportForeignSchema;
+    routine->ImportForeignSchema = gaia_import_foreign_schema;
 
     /* Support functions for join push-down */
-    routine->GetForeignJoinPaths = gaiaGetForeignJoinPaths;
+    routine->GetForeignJoinPaths = gaia_get_foreign_join_paths;
 
     /* Support functions for upper relation push-down */
-    routine->GetForeignUpperPaths = gaiaGetForeignUpperPaths;
+    routine->GetForeignUpperPaths = gaia_get_foreign_upper_paths;
 
     /* Support functions for late row locking */
-    routine->RecheckForeignScan = gaiaRecheckForeignScan;
+    routine->RecheckForeignScan = gaia_recheck_foreign_scan;
     routine->GetForeignRowMarkType = gaiaGetForeignRowMarkType;
     routine->RefetchForeignRow = gaiaRefetchForeignRow;
 
@@ -191,7 +191,7 @@ extern "C" Datum gaia_fdw_validator(PG_FUNCTION_ARGS) {
     PG_RETURN_VOID();
 }
 
-extern "C" void gaiaGetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel,
+extern "C" void gaia_get_foreign_rel_size(PlannerInfo *root, RelOptInfo *baserel,
     Oid foreigntableid) {
     /*
      * Obtain relation size estimates for a foreign table. This is called at
@@ -215,7 +215,7 @@ extern "C" void gaiaGetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel,
     // TODO: get row count estimate from storage engine
 }
 
-extern "C" void gaiaGetForeignPaths(PlannerInfo *root, RelOptInfo *baserel,
+extern "C" void gaia_get_foreign_paths(PlannerInfo *root, RelOptInfo *baserel,
     Oid foreigntableid) {
     /*
      * Create possible access paths for a scan on a foreign table. This is
@@ -248,7 +248,7 @@ extern "C" void gaiaGetForeignPaths(PlannerInfo *root, RelOptInfo *baserel,
 }
 
 extern "C" ForeignScan *
-gaiaGetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
+gaia_get_foreign_plan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
     ForeignPath *best_path, List *tlist, List *scan_clauses,
     Plan *outer_plan) {
     /*
@@ -283,7 +283,7 @@ gaiaGetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
         outer_plan);
 }
 
-extern "C" void gaiaBeginForeignScan(ForeignScanState *node, int eflags) {
+extern "C" void gaia_begin_foreign_scan(ForeignScanState *node, int eflags) {
     /*
      * Begin executing a foreign scan. This is called during executor startup.
      * It should perform any initialization needed before the scan can start,
@@ -358,7 +358,7 @@ extern "C" void gaiaBeginForeignScan(ForeignScanState *node, int eflags) {
     scan_state->cur_node = gaia_ptr::find_first(mapping.gaia_type_id);
 }
 
-extern "C" TupleTableSlot *gaiaIterateForeignScan(ForeignScanState *node) {
+extern "C" TupleTableSlot *gaia_iterate_foreign_scan(ForeignScanState *node) {
     /*
      * Fetch one row from the foreign source, returning it in a tuple table
      * slot (the node's ScanTupleSlot should be used for this purpose). Return
@@ -421,7 +421,7 @@ extern "C" TupleTableSlot *gaiaIterateForeignScan(ForeignScanState *node) {
     return slot;
 }
 
-extern "C" void gaiaReScanForeignScan(ForeignScanState *node) {
+extern "C" void gaia_rescan_foreign_scan(ForeignScanState *node) {
     /*
      * Restart the scan from the beginning. Note that any parameters the scan
      * depends on may have changed value, so the new scan does not necessarily
@@ -431,7 +431,7 @@ extern "C" void gaiaReScanForeignScan(ForeignScanState *node) {
     elog(DEBUG1, "entering function %s", __func__);
 }
 
-extern "C" void gaiaEndForeignScan(ForeignScanState *node) {
+extern "C" void gaia_end_foreign_scan(ForeignScanState *node) {
     /*
      * End the scan and release resources. It is normally not important to
      * release palloc'd memory, but for example open files and connections to
@@ -447,7 +447,7 @@ extern "C" void gaiaEndForeignScan(ForeignScanState *node) {
     commit_gaia_txn();
 }
 
-extern "C" void gaiaAddForeignUpdateTargets(Query *parsetree,
+extern "C" void gaia_add_foreign_update_targets(Query *parsetree,
     RangeTblEntry *target_rte,
     Relation target_relation) {
     /*
@@ -510,7 +510,7 @@ extern "C" void gaiaAddForeignUpdateTargets(Query *parsetree,
     }
 }
 
-extern "C" List *gaiaPlanForeignModify(PlannerInfo *root, ModifyTable *plan,
+extern "C" List *gaia_plan_foreign_modify(PlannerInfo *root, ModifyTable *plan,
     Index resultRelation,
     int subplan_index) {
     /*
@@ -568,7 +568,7 @@ extern "C" List *gaiaPlanForeignModify(PlannerInfo *root, ModifyTable *plan,
     return NULL;
 }
 
-extern "C" void gaiaBeginForeignModify(ModifyTableState *mtstate,
+extern "C" void gaia_begin_foreign_modify(ModifyTableState *mtstate,
     ResultRelInfo *rinfo, List *fdw_private,
     int subplan_index, int eflags) {
     /*
@@ -680,7 +680,7 @@ static uint64_t new_gaia_id() {
     return 0;
 }
 
-extern "C" TupleTableSlot *gaiaExecForeignInsert(EState *estate,
+extern "C" TupleTableSlot *gaia_exec_foreign_insert(EState *estate,
     ResultRelInfo *rinfo,
     TupleTableSlot *slot,
     TupleTableSlot *planSlot) {
@@ -734,7 +734,7 @@ extern "C" TupleTableSlot *gaiaExecForeignInsert(EState *estate,
             modify_state->indexed_builders[attr_idx];
         Datum attr_val;
         // We don't allow gaia_id to be set by an INSERT or UPDATE statement
-        // (this should have already been checked in gaiaPlanForeignModify), and
+        // (this should have already been checked in gaia_plan_foreign_modify), and
         // the storage engine doesn't yet generate gaia_ids, so we generate a
         // random gaia_id ourselves.
         if (attr_idx == modify_state->pk_attr_idx) {
@@ -769,7 +769,7 @@ extern "C" TupleTableSlot *gaiaExecForeignInsert(EState *estate,
     return slot;
 }
 
-extern "C" TupleTableSlot *gaiaExecForeignUpdate(EState *estate,
+extern "C" TupleTableSlot *gaia_exec_foreign_update(EState *estate,
     ResultRelInfo *rinfo,
     TupleTableSlot *slot,
     TupleTableSlot *planSlot) {
@@ -848,7 +848,7 @@ extern "C" TupleTableSlot *gaiaExecForeignUpdate(EState *estate,
     return slot;
 }
 
-extern "C" TupleTableSlot *gaiaExecForeignDelete(EState *estate,
+extern "C" TupleTableSlot *gaia_exec_foreign_delete(EState *estate,
     ResultRelInfo *rinfo,
     TupleTableSlot *slot,
     TupleTableSlot *planSlot) {
@@ -913,7 +913,7 @@ extern "C" TupleTableSlot *gaiaExecForeignDelete(EState *estate,
     return retSlot;
 }
 
-extern "C" void gaiaEndForeignModify(EState *estate, ResultRelInfo *rinfo) {
+extern "C" void gaia_end_foreign_modify(EState *estate, ResultRelInfo *rinfo) {
     /*
      * End the table update and release resources. It is normally not
      * important to release palloc'd memory, but for example open files and
@@ -932,17 +932,17 @@ extern "C" void gaiaEndForeignModify(EState *estate, ResultRelInfo *rinfo) {
     commit_gaia_txn();
 }
 
-extern "C" void gaiaBeginForeignInsert(ModifyTableState *mtstate,
+extern "C" void gaia_begin_foreign_insert(ModifyTableState *mtstate,
     ResultRelInfo *resultRelInfo) {
     elog(DEBUG1, "entering function %s", __func__);
 }
 
-extern "C" void gaiaEndForeignInsert(EState *estate,
+extern "C" void gaia_end_foreign_insert(EState *estate,
     ResultRelInfo *resultRelInfo) {
     elog(DEBUG1, "entering function %s", __func__);
 }
 
-extern "C" int gaiaIsForeignRelUpdatable(Relation rel) {
+extern "C" int gaia_is_foreign_rel_updatable(Relation rel) {
     /*
      * Report which update operations the specified foreign table supports.
      * The return value should be a bit mask of rule event numbers indicating
@@ -965,27 +965,27 @@ extern "C" int gaiaIsForeignRelUpdatable(Relation rel) {
     return (1 << CMD_UPDATE) | (1 << CMD_INSERT) | (1 << CMD_DELETE);
 }
 
-extern "C" bool gaiaPlanDirectModify(PlannerInfo *root, ModifyTable *plan,
+extern "C" bool gaia_plan_direct_modify(PlannerInfo *root, ModifyTable *plan,
     Index resultRelation, int subplan_index) {
     elog(DEBUG1, "entering function %s", __func__);
 
     return false;
 }
 
-extern "C" void gaiaBeginDirectModify(ForeignScanState *node, int eflags) {
+extern "C" void gaia_begin_direct_modify(ForeignScanState *node, int eflags) {
     elog(DEBUG1, "entering function %s", __func__);
 }
 
-extern "C" TupleTableSlot *gaiaIterateDirectModify(ForeignScanState *node) {
+extern "C" TupleTableSlot *gaia_iterate_direct_modify(ForeignScanState *node) {
     elog(DEBUG1, "entering function %s", __func__);
     return NULL;
 }
 
-extern "C" void gaiaEndDirectModify(ForeignScanState *node) {
+extern "C" void gaia_end_direct_modify(ForeignScanState *node) {
     elog(DEBUG1, "entering function %s", __func__);
 }
 
-extern "C" void gaiaExplainForeignScan(ForeignScanState *node,
+extern "C" void gaia_explain_foreign_scan(ForeignScanState *node,
     struct ExplainState *es) {
     /*
      * Print additional EXPLAIN output for a foreign table scan. This function
@@ -1001,7 +1001,7 @@ extern "C" void gaiaExplainForeignScan(ForeignScanState *node,
     elog(DEBUG1, "entering function %s", __func__);
 }
 
-extern "C" void gaiaExplainForeignModify(ModifyTableState *mtstate,
+extern "C" void gaia_explain_foreign_modify(ModifyTableState *mtstate,
     ResultRelInfo *rinfo,
     List *fdw_private, int subplan_index,
     struct ExplainState *es) {
@@ -1026,12 +1026,12 @@ extern "C" void gaiaExplainForeignModify(ModifyTableState *mtstate,
     elog(DEBUG1, "entering function %s", __func__);
 }
 
-extern "C" void gaiaExplainDirectModify(ForeignScanState *node,
+extern "C" void gaia_explain_direct_modify(ForeignScanState *node,
     struct ExplainState *es) {
     elog(DEBUG1, "entering function %s", __func__);
 }
 
-extern "C" bool gaiaAnalyzeForeignTable(Relation relation,
+extern "C" bool gaia_analyze_foreign_table(Relation relation,
     AcquireSampleRowsFunc *func,
     BlockNumber *totalpages) {
     /* ----
@@ -1066,7 +1066,7 @@ extern "C" bool gaiaAnalyzeForeignTable(Relation relation,
     return false;
 }
 
-extern "C" void gaiaGetForeignJoinPaths(PlannerInfo *root, RelOptInfo *joinrel,
+extern "C" void gaia_get_foreign_join_paths(PlannerInfo *root, RelOptInfo *joinrel,
     RelOptInfo *outerrel,
     RelOptInfo *innerrel, JoinType jointype,
     JoinPathExtraData *extra) {
@@ -1103,14 +1103,14 @@ extern "C" void gaiaGetForeignJoinPaths(PlannerInfo *root, RelOptInfo *joinrel,
     elog(DEBUG1, "entering function %s", __func__);
 }
 
-extern "C" void gaiaGetForeignUpperPaths(PlannerInfo *root,
+extern "C" void gaia_get_foreign_upper_paths(PlannerInfo *root,
     UpperRelationKind stage,
     RelOptInfo *input_rel,
     RelOptInfo *output_rel, void *extra) {
     elog(DEBUG1, "entering function %s", __func__);
 }
 
-extern "C" bool gaiaRecheckForeignScan(ForeignScanState *node,
+extern "C" bool gaia_recheck_foreign_scan(ForeignScanState *node,
     TupleTableSlot *slot) {
     elog(DEBUG1, "entering function %s", __func__);
 
@@ -1179,7 +1179,7 @@ extern "C" void gaiaRefetchForeignRow(EState *estate, ExecRowMark *erm,
 
 // we may want to use IMPORT FOREIGN SCHEMA to automatically create the foreign
 // tables corresponding to registered types in the storage engine.
-extern "C" List *gaiaImportForeignSchema(ImportForeignSchemaStmt *stmt,
+extern "C" List *gaia_import_foreign_schema(ImportForeignSchemaStmt *stmt,
     Oid serverOid) {
     /*
      * Obtain a list of foreign table creation commands. This function is

@@ -62,65 +62,96 @@ PG_FUNCTION_INFO_V1(gaia_fdw_validator);
 /*
  * FDW callback routines
  */
-void gaiaGetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel,
+void gaia_get_foreign_rel_size(PlannerInfo *root, RelOptInfo *baserel,
     Oid foreigntableid);
-void gaiaGetForeignPaths(PlannerInfo *root, RelOptInfo *baserel,
+
+void gaia_get_foreign_paths(PlannerInfo *root, RelOptInfo *baserel,
     Oid foreigntableid);
-ForeignScan *gaiaGetForeignPlan(PlannerInfo *root, RelOptInfo *foreignrel,
+
+ForeignScan *gaia_get_foreign_plan(PlannerInfo *root, RelOptInfo *foreignrel,
     Oid foreigntableid, ForeignPath *best_path,
     List *tlist, List *scan_clauses,
     Plan *outer_plan);
-void gaiaBeginForeignScan(ForeignScanState *node, int eflags);
-TupleTableSlot *gaiaIterateForeignScan(ForeignScanState *node);
-void gaiaReScanForeignScan(ForeignScanState *node);
-void gaiaEndForeignScan(ForeignScanState *node);
-void gaiaAddForeignUpdateTargets(Query *parsetree, RangeTblEntry *target_rte,
+
+void gaia_begin_foreign_scan(ForeignScanState *node, int eflags);
+
+TupleTableSlot *gaia_iterate_foreign_scan(ForeignScanState *node);
+
+void gaia_rescan_foreign_scan(ForeignScanState *node);
+
+void gaia_end_foreign_scan(ForeignScanState *node);
+
+void gaia_add_foreign_update_targets(Query *parsetree, RangeTblEntry *target_rte,
     Relation target_relation);
-List *gaiaPlanForeignModify(PlannerInfo *root, ModifyTable *plan,
+
+List *gaia_plan_foreign_modify(PlannerInfo *root, ModifyTable *plan,
     Index resultRelation, int subplan_index);
-void gaiaBeginForeignModify(ModifyTableState *mtstate,
+
+void gaia_begin_foreign_modify(ModifyTableState *mtstate,
     ResultRelInfo *resultRelInfo, List *fdw_private,
     int subplan_index, int eflags);
-TupleTableSlot *gaiaExecForeignInsert(EState *estate,
+
+TupleTableSlot *gaia_exec_foreign_insert(EState *estate,
     ResultRelInfo *resultRelInfo,
     TupleTableSlot *slot,
     TupleTableSlot *planSlot);
-TupleTableSlot *gaiaExecForeignUpdate(EState *estate,
+
+TupleTableSlot *gaia_exec_foreign_update(EState *estate,
     ResultRelInfo *resultRelInfo,
     TupleTableSlot *slot,
     TupleTableSlot *planSlot);
-TupleTableSlot *gaiaExecForeignDelete(EState *estate,
+
+TupleTableSlot *gaia_exec_foreign_delete(EState *estate,
     ResultRelInfo *resultRelInfo,
     TupleTableSlot *slot,
     TupleTableSlot *planSlot);
-void gaiaEndForeignModify(EState *estate, ResultRelInfo *resultRelInfo);
-void gaiaBeginForeignInsert(ModifyTableState *mtstate,
+
+void gaia_end_foreign_modify(EState *estate, ResultRelInfo *resultRelInfo);
+
+void gaia_begin_foreign_insert(ModifyTableState *mtstate,
     ResultRelInfo *resultRelInfo);
-void gaiaEndForeignInsert(EState *estate, ResultRelInfo *resultRelInfo);
-int gaiaIsForeignRelUpdatable(Relation rel);
-bool gaiaPlanDirectModify(PlannerInfo *root, ModifyTable *plan,
+
+void gaia_end_foreign_insert(EState *estate, ResultRelInfo *resultRelInfo);
+
+int gaia_is_foreign_rel_updatable(Relation rel);
+
+bool gaia_plan_direct_modify(PlannerInfo *root, ModifyTable *plan,
     Index resultRelation, int subplan_index);
-void gaiaBeginDirectModify(ForeignScanState *node, int eflags);
-TupleTableSlot *gaiaIterateDirectModify(ForeignScanState *node);
-void gaiaEndDirectModify(ForeignScanState *node);
-void gaiaExplainForeignScan(ForeignScanState *node, struct ExplainState *es);
-void gaiaExplainForeignModify(ModifyTableState *mtstate, ResultRelInfo *rinfo,
+
+void gaia_begin_direct_modify(ForeignScanState *node, int eflags);
+
+TupleTableSlot *gaia_iterate_direct_modify(ForeignScanState *node);
+
+void gaia_end_direct_modify(ForeignScanState *node);
+
+void gaia_explain_foreign_scan(ForeignScanState *node, struct ExplainState *es);
+
+void gaia_explain_foreign_modify(ModifyTableState *mtstate, ResultRelInfo *rinfo,
     List *fdw_private, int subplan_index,
     struct ExplainState *es);
-void gaiaExplainDirectModify(ForeignScanState *node, struct ExplainState *es);
-bool gaiaAnalyzeForeignTable(Relation relation, AcquireSampleRowsFunc *func,
+
+void gaia_explain_direct_modify(ForeignScanState *node, struct ExplainState *es);
+
+bool gaia_analyze_foreign_table(Relation relation, AcquireSampleRowsFunc *func,
     BlockNumber *totalpages);
-List *gaiaImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid);
-void gaiaGetForeignJoinPaths(PlannerInfo *root, RelOptInfo *joinrel,
+
+List *gaia_import_foreign_schema(ImportForeignSchemaStmt *stmt, Oid serverOid);
+
+void gaia_get_foreign_join_paths(PlannerInfo *root, RelOptInfo *joinrel,
     RelOptInfo *outerrel, RelOptInfo *innerrel,
     JoinType jointype, JoinPathExtraData *extra);
-bool gaiaRecheckForeignScan(ForeignScanState *node, TupleTableSlot *slot);
-void gaiaGetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
+
+bool gaia_recheck_foreign_scan(ForeignScanState *node, TupleTableSlot *slot);
+
+void gaia_get_foreign_upper_paths(PlannerInfo *root, UpperRelationKind stage,
     RelOptInfo *input_rel, RelOptInfo *output_rel,
     void *extra);
-bool gaiaRecheckForeignScan(ForeignScanState *node, TupleTableSlot *slot);
+
+bool gaia_recheck_foreign_scan(ForeignScanState *node, TupleTableSlot *slot);
+
 RowMarkType gaiaGetForeignRowMarkType(RangeTblEntry *rte,
     LockClauseStrength strength);
+
 void gaiaRefetchForeignRow(EState *estate, ExecRowMark *erm, Datum rowid,
     TupleTableSlot *slot, bool *updated);
 

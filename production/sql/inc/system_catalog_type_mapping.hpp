@@ -21,44 +21,44 @@ extern "C" {
 #include "event_log_builder.h"
 
 // type-specific extractors
-static inline Datum event_log_get_event_type(const void *rootObject) {
+static inline Datum event_log_get_event_type(const void *root_object) {
     gaia_rules_event_log_table_t event =
-        (gaia_rules_event_log_table_t)rootObject;
+        (gaia_rules_event_log_table_t)root_object;
     uint32_t event_type = gaia_rules_event_log_event_type(event);
     return UInt32GetDatum(event_type);
 }
 
-static inline Datum event_log_get_type_id(const void *rootObject) {
+static inline Datum event_log_get_type_id(const void *root_object) {
     gaia_rules_event_log_table_t event =
-        (gaia_rules_event_log_table_t)rootObject;
+        (gaia_rules_event_log_table_t)root_object;
     uint64_t type_id = gaia_rules_event_log_type_id(event);
     return UInt64GetDatum(type_id);
 }
 
-static inline Datum event_log_get_record_id(const void *rootObject) {
+static inline Datum event_log_get_record_id(const void *root_object) {
     gaia_rules_event_log_table_t event =
-        (gaia_rules_event_log_table_t)rootObject;
+        (gaia_rules_event_log_table_t)root_object;
     uint64_t record_id = gaia_rules_event_log_record_id(event);
     return UInt64GetDatum(record_id);
 }
 
-static inline Datum event_log_get_column_id(const void *rootObject) {
+static inline Datum event_log_get_column_id(const void *root_object) {
     gaia_rules_event_log_table_t event =
-        (gaia_rules_event_log_table_t)rootObject;
+        (gaia_rules_event_log_table_t)root_object;
     uint16_t column_id = gaia_rules_event_log_column_id(event);
     return UInt16GetDatum(column_id);
 }
 
-static inline Datum event_log_get_timestamp(const void *rootObject) {
+static inline Datum event_log_get_timestamp(const void *root_object) {
     gaia_rules_event_log_table_t event =
-        (gaia_rules_event_log_table_t)rootObject;
+        (gaia_rules_event_log_table_t)root_object;
     uint64_t timestamp = gaia_rules_event_log_timestamp(event);
     return UInt64GetDatum(timestamp);
 }
 
-static inline Datum event_log_get_rules_invoked(const void *rootObject) {
+static inline Datum event_log_get_rules_invoked(const void *root_object) {
     gaia_rules_event_log_table_t event =
-        (gaia_rules_event_log_table_t)rootObject;
+        (gaia_rules_event_log_table_t)root_object;
     bool rules_invoked = gaia_rules_event_log_rules_invoked(event);
     return BoolGetDatum(rules_invoked);
 }
@@ -111,7 +111,7 @@ static const Attribute EVENT_LOG_ATTRS[] = {
 
 RelationAttributeMapping EVENT_LOG_MAPPING = {
     "event_log",
-    system_catalog_types::kEventLogType,
+    system_catalog_types::c_event_log_type,
     (RootObjectDeserializer)gaia_rules_event_log_as_root,
     (BuilderInitializer)gaia_rules_event_log_start_as_root,
     (BuilderFinalizer)gaia_rules_event_log_end_as_root,
