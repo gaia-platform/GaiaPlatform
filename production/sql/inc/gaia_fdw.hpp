@@ -147,12 +147,10 @@ void gaia_get_foreign_upper_paths(PlannerInfo *root, UpperRelationKind stage,
     RelOptInfo *input_rel, RelOptInfo *output_rel,
     void *extra);
 
-bool gaia_recheck_foreign_scan(ForeignScanState *node, TupleTableSlot *slot);
-
-RowMarkType gaiaGetForeignRowMarkType(RangeTblEntry *rte,
+RowMarkType gaia_get_foreign_row_mark_type(RangeTblEntry *rte,
     LockClauseStrength strength);
 
-void gaiaRefetchForeignRow(EState *estate, ExecRowMark *erm, Datum rowid,
+void gaia_refetch_foreign_row(EState *estate, ExecRowMark *erm, Datum rowid,
     TupleTableSlot *slot, bool *updated);
 
 /*
@@ -167,12 +165,12 @@ typedef struct {
     const char *name;
     Oid context; /* Oid of catalog in which option may appear */
     OptionHandler handler;
-} gaiaFdwOption;
+} gaia_fdw_option_t;
 
 /*
  * Valid options for gaia_fdw.
  */
-static const gaiaFdwOption valid_options[] = {
+static const gaia_fdw_option_t valid_options[] = {
     /* Sentinel */
     {NULL, InvalidOid, NULL}};
 
@@ -186,7 +184,7 @@ typedef struct {
     AttributeAccessor *indexed_accessors;
     // the COW-SE smart ptr we are currently iterating over
     gaia::db::gaia_ptr cur_node;
-} gaiaFdwScanState;
+} gaia_fdw_scan_state_t;
 
 /*
  * The modify state is for maintaining state of modify operations.
@@ -214,6 +212,6 @@ typedef struct {
     gaia_type_t gaia_type_id;
     // the COW-SE smart ptr that is the target of our update
     gaia::db::gaia_ptr target_node;
-} gaiaFdwModifyState;
+} gaia_fdw_modify_state_t;
 
 }  // extern "C"

@@ -110,8 +110,8 @@ extern "C" Datum gaia_fdw_handler(PG_FUNCTION_ARGS) {
 
     /* Support functions for late row locking */
     routine->RecheckForeignScan = gaia_recheck_foreign_scan;
-    routine->GetForeignRowMarkType = gaiaGetForeignRowMarkType;
-    routine->RefetchForeignRow = gaiaRefetchForeignRow;
+    routine->GetForeignRowMarkType = gaia_get_foreign_row_mark_type;
+    routine->RefetchForeignRow = gaia_refetch_foreign_row;
 
     PG_RETURN_POINTER(routine);
 }
@@ -123,7 +123,7 @@ extern "C" Datum gaia_fdw_handler(PG_FUNCTION_ARGS) {
  */
 static bool is_valid_option(const char *option, const char *value,
     Oid context) {
-    const gaiaFdwOption *opt;
+    const gaia_fdw_option_t *opt;
     for (opt = valid_options; opt->name; opt++) {
         if (context == opt->context && strcmp(opt->name, option) == 0) {
             // invoke option handler callback
@@ -164,7 +164,7 @@ extern "C" Datum gaia_fdw_validator(PG_FUNCTION_ARGS) {
         char *opt_val = defGetString(def);
         elog(DEBUG1, "option name: %s, option value: %s", opt_name, opt_val);
         if (!is_valid_option(opt_name, opt_val, catalog)) {
-            const gaiaFdwOption *opt;
+            const gaia_fdw_option_t *opt;
             StringInfoData buf;
             /*
              * Unknown option specified, complain about it. Provide a hint
@@ -324,8 +324,8 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState *node, int eflags) {
         elog(ERROR, "unknown table name '%s'", table_name);
     }
 
-    gaiaFdwScanState *scan_state =
-        (gaiaFdwScanState *)palloc0(sizeof(gaiaFdwScanState));
+    gaia_fdw_scan_state_t *scan_state =
+        (gaia_fdw_scan_state_t *)palloc0(sizeof(gaia_fdw_scan_state_t));
     node->fdw_state = scan_state;
     scan_state->deserializer = mapping.deserializer;
 
@@ -383,7 +383,7 @@ extern "C" TupleTableSlot *gaia_iterate_foreign_scan(ForeignScanState *node) {
      * (just as you would need to do in the case of a data type mismatch).
      */
 
-    gaiaFdwScanState *scan_state = (gaiaFdwScanState *)node->fdw_state;
+    gaia_fdw_scan_state_t *scan_state = (gaia_fdw_scan_state_t *)node->fdw_state;
     TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
 
     // elog(DEBUG1, "entering function %s", __func__);
@@ -440,7 +440,7 @@ extern "C" void gaia_end_foreign_scan(ForeignScanState *node) {
 
     elog(DEBUG1, "entering function %s", __func__);
 
-    gaiaFdwScanState *scan_state = (gaiaFdwScanState *)node->fdw_state;
+    gaia_fdw_scan_state_t *scan_state = (gaia_fdw_scan_state_t *)node->fdw_state;
     // we should have reached the end of iteration
     assert(!scan_state->cur_node);
     // commit read transaction
@@ -599,8 +599,8 @@ extern "C" void gaia_begin_foreign_modify(ModifyTableState *mtstate,
 
     elog(DEBUG1, "entering function %s", __func__);
 
-    gaiaFdwModifyState *modify_state =
-        (gaiaFdwModifyState *)palloc0(sizeof(gaiaFdwModifyState));
+    gaia_fdw_modify_state_t *modify_state =
+        (gaia_fdw_modify_state_t *)palloc0(sizeof(gaia_fdw_modify_state_t));
     // set invalid values
     modify_state->pk_attr_idx = modify_state->src_attr_idx =
         modify_state->dst_attr_idx = -1;
@@ -713,7 +713,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_insert(EState *estate,
 
     elog(DEBUG1, "entering function %s", __func__);
 
-    gaiaFdwModifyState *modify_state = (gaiaFdwModifyState *)rinfo->ri_FdwState;
+    gaia_fdw_modify_state_t *modify_state = (gaia_fdw_modify_state_t *)rinfo->ri_FdwState;
     flatcc_builder_t *builder = &modify_state->builder;
     modify_state->initializer(builder);
 
@@ -802,7 +802,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_update(EState *estate,
 
     elog(DEBUG1, "entering function %s", __func__);
 
-    gaiaFdwModifyState *modify_state = (gaiaFdwModifyState *)rinfo->ri_FdwState;
+    gaia_fdw_modify_state_t *modify_state = (gaia_fdw_modify_state_t *)rinfo->ri_FdwState;
     flatcc_builder_t *builder = &modify_state->builder;
     modify_state->initializer(builder);
 
@@ -879,7 +879,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_delete(EState *estate,
     elog(DEBUG1, "entering function %s", __func__);
 
     TupleTableSlot *retSlot = slot;
-    gaiaFdwModifyState *modify_state = (gaiaFdwModifyState *)rinfo->ri_FdwState;
+    gaia_fdw_modify_state_t *modify_state = (gaia_fdw_modify_state_t *)rinfo->ri_FdwState;
     // Relation rel = rinfo->ri_RelationDesc;
     // Oid foreignTableId = RelationGetRelid(rel);
 
@@ -925,7 +925,7 @@ extern "C" void gaia_end_foreign_modify(EState *estate, ResultRelInfo *rinfo) {
 
     elog(DEBUG1, "entering function %s", __func__);
 
-    gaiaFdwModifyState *modify_state = (gaiaFdwModifyState *)rinfo->ri_FdwState;
+    gaia_fdw_modify_state_t *modify_state = (gaia_fdw_modify_state_t *)rinfo->ri_FdwState;
     flatcc_builder_clear(&modify_state->builder);
 
     // for DELETE, this seems to always be called before EndForeignScan
@@ -1117,7 +1117,7 @@ extern "C" bool gaia_recheck_foreign_scan(ForeignScanState *node,
     return false;
 }
 
-extern "C" RowMarkType gaiaGetForeignRowMarkType(RangeTblEntry *rte,
+extern "C" RowMarkType gaia_get_foreign_row_mark_type(RangeTblEntry *rte,
     LockClauseStrength strength) {
     /*
      * Report which row-marking option to use for a foreign table. rte is the
@@ -1139,7 +1139,7 @@ extern "C" RowMarkType gaiaGetForeignRowMarkType(RangeTblEntry *rte,
     return ROW_MARK_COPY;
 }
 
-extern "C" void gaiaRefetchForeignRow(EState *estate, ExecRowMark *erm,
+extern "C" void gaia_refetch_foreign_row(EState *estate, ExecRowMark *erm,
     Datum rowid, TupleTableSlot *slot,
     bool *updated) {
     /*
