@@ -112,9 +112,9 @@ static const attribute_t c_event_log_attributes[] = {
 relation_attribute_mapping_t c_event_log_mapping = {
     "event_log",
     system_catalog_types::c_event_log_type,
-    (root_object_deserializer)gaia_rules_event_log_as_root,
-    (builder_initializer)gaia_rules_event_log_start_as_root,
-    (builder_finalizer)gaia_rules_event_log_end_as_root,
+    (root_object_deserializer_fn)gaia_rules_event_log_as_root,
+    (builder_initializer_fn)gaia_rules_event_log_start_as_root,
+    (builder_finalizer_fn)gaia_rules_event_log_end_as_root,
     c_event_log_attributes,
     array_size(c_event_log_attributes),
 };

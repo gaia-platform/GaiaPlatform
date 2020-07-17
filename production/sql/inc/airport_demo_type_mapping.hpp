@@ -542,9 +542,9 @@ static const attribute_t c_route_attributes[] = {
 relation_attribute_mapping_t c_airport_mapping = {
     "airports",
     airport_demo_types::c_airports_type,
-    (root_object_deserializer)gaia_airport_airports_as_root,
-    (builder_initializer)gaia_airport_airports_start_as_root,
-    (builder_finalizer)gaia_airport_airports_end_as_root,
+    (root_object_deserializer_fn)gaia_airport_airports_as_root,
+    (builder_initializer_fn)gaia_airport_airports_start_as_root,
+    (builder_finalizer_fn)gaia_airport_airports_end_as_root,
     c_airport_attributes,
     array_size(c_airport_attributes),
 };
@@ -552,9 +552,9 @@ relation_attribute_mapping_t c_airport_mapping = {
 relation_attribute_mapping_t c_airline_mapping = {
     "airlines",
     airport_demo_types::c_airlines_type,
-    (root_object_deserializer)gaia_airport_airlines_as_root,
-    (builder_initializer)gaia_airport_airlines_start_as_root,
-    (builder_finalizer)gaia_airport_airlines_end_as_root,
+    (root_object_deserializer_fn)gaia_airport_airlines_as_root,
+    (builder_initializer_fn)gaia_airport_airlines_start_as_root,
+    (builder_finalizer_fn)gaia_airport_airlines_end_as_root,
     c_airline_attributes,
     array_size(c_airline_attributes),
 };
@@ -562,9 +562,9 @@ relation_attribute_mapping_t c_airline_mapping = {
 relation_attribute_mapping_t c_route_mapping = {
     "routes",
     airport_demo_types::c_routes_type,
-    (root_object_deserializer)gaia_airport_routes_as_root,
-    (builder_initializer)gaia_airport_routes_start_as_root,
-    (builder_finalizer)gaia_airport_routes_end_as_root,
+    (root_object_deserializer_fn)gaia_airport_routes_as_root,
+    (builder_initializer_fn)gaia_airport_routes_start_as_root,
+    (builder_finalizer_fn)gaia_airport_routes_end_as_root,
     c_route_attributes,
     array_size(c_route_attributes),
 };
