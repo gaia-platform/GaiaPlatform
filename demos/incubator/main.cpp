@@ -52,31 +52,31 @@ void dump_db() {
 
     printf("[Incubators]\n");
     for (auto i = Incubator::get_first(); i;
-         i = i->get_next()) {
+         i = i.get_next()) {
         printf("  name  | min_temp | max_temp \n");
         printf("------------------------------\n");
-        printf("%-8s|%10.1lf|%10.1lf\n", i->name(), i->min_temp(),
-               i->max_temp());
+        printf("%-8s|%10.1lf|%10.1lf\n", i.name(), i.min_temp(),
+               i.max_temp());
         printf("\n");
         printf("  [Sensors]\n");
         printf("   name | time | value \n");
         printf("  ---------------------\n");
-        for (Sensor_ptr s{Sensor::get_first()}; s;
-             s = s->get_next()){
-            if (s->incubator_id() == i->gaia_id()) {
-                printf("  %-6s|%6ld|%7.1lf\n", s->name(), s->timestamp(),
-                       s->value());
+        for (Sensor s = Sensor::get_first(); s;
+             s = s.get_next()){
+            if (s.incubator_id() == i.gaia_id()) {
+                printf("  %-6s|%6ld|%7.1lf\n", s.name(), s.timestamp(),
+                       s.value());
             }
         }
         printf("\n");
         printf("  [Actuators]\n");
         printf("   name | time | value \n");
         printf("  ---------------------\n");
-        for (Actuator_ptr a{Actuator::get_first()}; a;
-             a = a->get_next()) {
-            if (a->incubator_id() == i->gaia_id()) {
-                printf("  %-6s|%6ld|%7.1lf\n", a->name(), a->timestamp(),
-                       a->value());
+        for (Actuator a = Actuator::get_first(); a;
+             a = a.get_next()) {
+            if (a.incubator_id() == i.gaia_id()) {
+                printf("  %-6s|%6ld|%7.1lf\n", a.name(), a.timestamp(),
+                       a.value());
             }
         }
         printf("\n");
@@ -101,69 +101,69 @@ void simulation() {
         sleep(1);
         begin_transaction();
         double new_temp, fa_v, fb_v, fc_v;
-        for (Actuator_ptr a = Actuator::get_first(); 
+        for (Actuator a = Actuator::get_first(); 
             a;
-            a = a->get_next()) {
-            if (strcmp(a->name(), ACTUATOR_A_NAME) == 0) {
-                fa_v = a->value();
-            } else if (strcmp(a->name(), ACTUATOR_B_NAME) == 0) {
-                fb_v = a->value();
-            } else if (strcmp(a->name(), ACTUATOR_C_NAME) == 0) {
-                fc_v = a->value();
+            a = a.get_next()) {
+            if (strcmp(a.name(), ACTUATOR_A_NAME) == 0) {
+                fa_v = a.value();
+            } else if (strcmp(a.name(), ACTUATOR_B_NAME) == 0) {
+                fb_v = a.value();
+            } else if (strcmp(a.name(), ACTUATOR_C_NAME) == 0) {
+                fc_v = a.value();
             }
         }
         time(&cur);
         TIMESTAMP = difftime(cur, start);
-        for (Sensor_ptr s = Sensor::get_first(); 
+        for (Sensor s = Sensor::get_first(); 
             s;
-            s = s->get_next()) {
-            Sensor_writer w = Sensor::writer(s);
-            if (strcmp(s->name(), SENSOR_A_NAME) == 0) {
-                new_temp = calc_new_temp(s->value(), fa_v);
-                w->value = new_temp;
-                w->timestamp = TIMESTAMP;
-                Sensor::update_row(w);
-            } else if (strcmp(s->name(), SENSOR_B_NAME) == 0) {
-                new_temp = calc_new_temp(s->value(), fb_v);
+            s = s.get_next()) {
+            Sensor_writer w = s.writer();
+            if (strcmp(s.name(), SENSOR_A_NAME) == 0) {
+                new_temp = calc_new_temp(s.value(), fa_v);
+                w.value = new_temp;
+                w.timestamp = TIMESTAMP;
+                w.update_row();
+            } else if (strcmp(s.name(), SENSOR_B_NAME) == 0) {
+                new_temp = calc_new_temp(s.value(), fb_v);
                 new_temp = calc_new_temp(new_temp, fc_v);
-                w->value = new_temp;
-                w->timestamp = TIMESTAMP;
-                Sensor::update_row(w);
-            } else if (strcmp(s->name(), SENSOR_C_NAME) == 0) {
-                new_temp = calc_new_temp(s->value(), fa_v);
-                w->value = new_temp;
-                w->timestamp = TIMESTAMP;
-                Sensor::update_row(w);
+                w.value = new_temp;
+                w.timestamp = TIMESTAMP;
+                w.update_row();
+            } else if (strcmp(s.name(), SENSOR_C_NAME) == 0) {
+                new_temp = calc_new_temp(s.value(), fa_v);
+                w.value = new_temp;
+                w.timestamp = TIMESTAMP;
+                w.update_row();
             }
         }
         commit_transaction();
     }
 }
 
-void decrease_fans(Incubator_ptr& incubator, FILE *log) {
-    fprintf(log, "%s called for %s incubator.\n", __func__, incubator->name());
-    for (Actuator_ptr a = Actuator::get_first(); 
+void decrease_fans(Incubator& incubator, FILE *log) {
+    fprintf(log, "%s called for %s incubator.\n", __func__, incubator.name());
+    for (Actuator a = Actuator::get_first(); 
         a;
-        a = a->get_next()) {
-        if (a->incubator_id() == incubator->gaia_id()) {
-            Actuator_writer w = Actuator::writer(a);
-            w->value = max(0.0, w->value - 500.0);
-            w->timestamp = TIMESTAMP;
-            Actuator::update_row(w);
+        a = a.get_next()) {
+        if (a.incubator_id() == incubator.gaia_id()) {
+            Actuator_writer w = a.writer();
+            w.value = max(0.0, w.value - 500.0);
+            w.timestamp = TIMESTAMP;
+            w.update_row();
         }
     }
 }
 
-void increase_fans(Incubator_ptr& incubator, FILE *log) {
-    fprintf(log, "%s called for %s incubator.\n", __func__, incubator->name());
-    for (Actuator_ptr a = Actuator::get_first(); 
+void increase_fans(Incubator& incubator, FILE *log) {
+    fprintf(log, "%s called for %s incubator.\n", __func__, incubator.name());
+    for (Actuator a = Actuator::get_first(); 
          a;
-         a = a->get_next()) {
-        if (a->incubator_id() == incubator->gaia_id()) {
-            Actuator_writer w = Actuator::writer(a);
-            w->value = min(FAN_SPEED_LIMIT, w->value + 500.0);
-            w->timestamp = TIMESTAMP;
-            Actuator::update_row(w);
+         a = a.get_next()) {
+        if (a.incubator_id() == incubator.gaia_id()) {
+            Actuator_writer w = a.writer();
+            w.value = min(FAN_SPEED_LIMIT, w.value + 500.0);
+            w.timestamp = TIMESTAMP;
+            w.update_row();
         }
     }
 }
