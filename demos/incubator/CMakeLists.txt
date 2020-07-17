@@ -56,7 +56,7 @@ set_target_properties(gaia_rules PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}
 add_library(gaia_direct SHARED IMPORTED GLOBAL)
 set_target_properties(gaia_direct PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/direct_access/libgaia_direct.a)
 
-add_executable(incubator 
+add_executable(incubator
     main.cpp
     rules.cpp
     "${GENERATED_OUTPUTS}/rules_init.cpp"
