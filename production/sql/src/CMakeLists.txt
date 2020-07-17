@@ -6,30 +6,30 @@
 
 find_program(FLATCC flatcc)
 set(GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
-set(FBS_INPUT
+set(FBS_INPUTS
   "${GAIA_REPO}/demos/airport_q1/inc/airport_q1.fbs"
-  "${GAIA_REPO}/production/rules/event_manager/flatbuffers/event_log.fbs")
-set(FBS_OUTPUT
+  "${GAIA_REPO}/production/rules/event_manager/flatbuffers/event_log.fbs"
+)
+set(FBS_OUTPUTS
   "${GEN_DIR}/airport_q1_builder.h"
   "${GEN_DIR}/airport_q1_reader.h"
   "${GEN_DIR}/airport_q1_verifier.h"
   "${GEN_DIR}/event_log_builder.h"
-  "${GEN_DIR}/airport_q1_builder.h"
   "${GEN_DIR}/event_log_reader.h"
   "${GEN_DIR}/event_log_verifier.h"
   "${GEN_DIR}/flatbuffers_common_builder.h"
   "${GEN_DIR}/flatbuffers_common_reader.h"
 )
 add_custom_command(
-  OUTPUT "${FBS_OUTPUT}"
+  OUTPUT "${FBS_OUTPUTS}"
   COMMAND cmake -E make_directory "${GEN_DIR}"
-  COMMAND "${FLATCC}" -a -o "${GEN_DIR}" "${FBS_INPUT}" DEPENDS "${FBS_INPUT}"
-  DEPENDS "${FBS_INPUT}"
+  COMMAND "${FLATCC}" -a -o "${GEN_DIR}" "${FBS_INPUTS}"
+  DEPENDS "${FBS_INPUTS}"
   VERBATIM
 )
 add_custom_target(
   "${PROJECT_NAME}-gen_fbs"
-  DEPENDS "${FBS_OUTPUT}"
+  DEPENDS "${FBS_OUTPUTS}"
 )
 
 # Compile config.
@@ -48,8 +48,10 @@ target_link_options(gaia_fdw PRIVATE ${PGSQL_LDFLAGS})
 separate_arguments(GAIA_LINK_FLAGS UNIX_COMMAND "${GAIA_LINK_FLAGS}")
 target_link_options(gaia_fdw PRIVATE ${GAIA_LINK_FLAGS})
 set_target_properties(
-  gaia_fdw PROPERTIES OUTPUT_NAME "gaia_fdw-${PG_GAIA_FDW_VERSION_MAJOR}" PREFIX
-                                                                          "")
+  gaia_fdw PROPERTIES
+  OUTPUT_NAME "gaia_fdw-${PG_GAIA_FDW_VERSION_MAJOR}"
+  PREFIX ""
+)
 add_dependencies(gaia_fdw ${PROJECT_NAME}-gen_fbs)
 # our private headers
 target_include_directories(gaia_fdw PRIVATE "${PROJECT_SOURCE_DIR}/inc")
@@ -73,18 +75,25 @@ target_link_libraries(gaia_fdw PRIVATE gaia_semock)
 # Extension config.
 
 set(GAIA_FDW_INSTALL_EXTENSIONS
-    "${PROJECT_BINARY_DIR}/pgsql/gaia_fdw--${PG_GAIA_FDW_VERSION}.sql"
-    "${PROJECT_BINARY_DIR}/pgsql/gaia_fdw.control")
+  "${PROJECT_BINARY_DIR}/pgsql/gaia_fdw--${PG_GAIA_FDW_VERSION}.sql"
+  "${PROJECT_BINARY_DIR}/pgsql/gaia_fdw.control"
+)
 
 configure_file(
   gaia_fdw.sql
-  "${PROJECT_BINARY_DIR}/pgsql/gaia_fdw--${PG_GAIA_FDW_VERSION}.sql")
+  "${PROJECT_BINARY_DIR}/pgsql/gaia_fdw--${PG_GAIA_FDW_VERSION}.sql"
+)
 
-configure_file(gaia_fdw.control "${PROJECT_BINARY_DIR}/pgsql/gaia_fdw.control")
+configure_file(
+  gaia_fdw.control
+  "${PROJECT_BINARY_DIR}/pgsql/gaia_fdw.control"
+)
 
 # Install config and binaries.
 
 install(TARGETS gaia_fdw DESTINATION ${PGSQL_PKGLIBDIR})
 
-install(FILES ${GAIA_FDW_INSTALL_EXTENSIONS}
-        DESTINATION "${PGSQL_SHAREDIR}/extension")
+install(
+  FILES ${GAIA_FDW_INSTALL_EXTENSIONS}
+  DESTINATION "${PGSQL_SHAREDIR}/extension"
+)
