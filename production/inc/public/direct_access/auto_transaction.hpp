@@ -37,8 +37,8 @@ namespace direct_access {
 class auto_transaction_t
 {
 public:
-    auto_transaction_t() = delete;
-    auto_transaction_t(bool auto_begin = false);
+    auto_transaction_t(): auto_transaction_t(true) {}
+    auto_transaction_t(bool auto_begin);
 
     void commit();
 
@@ -46,7 +46,6 @@ public:
 private:
     bool m_auto_begin;
 };
-
 
 /*@}*/
 }

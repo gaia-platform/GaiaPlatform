@@ -479,15 +479,12 @@ TEST_F(gaia_object_test, next_first) {
 }
 */
 
-// If tx is non-null then test implicit and auto-begin
-// transactions.  Otherwise, use the same model
-// The two should have the exact same semantics.
-TEST_F(gaia_object_test, auto_tx) {
-    bool auto_begin = true;
-    auto_transaction_t tx(auto_begin);
+TEST_F(gaia_object_test, auto_tx_begin) {
+
+    // Default constructor enables auto_begin semantics
+    auto_transaction_t tx;
 
     auto writer = Employee_writer();
-
     writer.name_last = "Hawkins";
     Employee e = Employee::get(writer.insert_row());
     tx.commit();
@@ -501,21 +498,40 @@ TEST_F(gaia_object_test, auto_tx) {
     tx.commit();
     
     EXPECT_STREQ(e.name_last(), "Clinton");
+}
 
-    // TODO: pointless test
-    // Ensure scoping is fine; we should be able to insert a row
-    // should also not work.  Again not an issue
-    // in the non-simplified API because there is
-    // no object off of which youc an call update_row()
-    {
-        Address_writer a_writer;
-        a_writer.city = "Seattle";
-        Address a = Address::get(a_writer.insert_row());
-        tx.commit();
-        a_writer = a.writer();
-        a_writer.city = "Portland";
-    }
+TEST_F(gaia_object_test, auto_tx) {
+    // Specify auto_begin = false
+    auto_transaction_t tx(false);
+    auto writer = Employee_writer();
+
+    writer.name_last = "Hawkins";
+    Employee e = Employee::get(writer.insert_row());
     tx.commit();
+
+    // Expect an exception since we're not in a transaction
+    EXPECT_THROW(e.name_last(), tx_not_open);
+
+    begin_transaction();
+
+    EXPECT_STREQ(e.name_last(), "Hawkins");
+
+    // This is legal.
+    tx.commit();
+}
+
+TEST_F(gaia_object_test, auto_tx_rollback) {
+    gaia_id_t id;
+    {
+        auto_transaction_t tx;
+        auto writer = Employee_writer();
+        writer.name_last = "Hawkins";
+        id = writer.insert_row();
+    }
+    // Transaction was rolled back 
+    auto_transaction_t tx;
+    Employee e = Employee::get(id);
+    EXPECT_FALSE(e);
 }
 
 void another_thread()
