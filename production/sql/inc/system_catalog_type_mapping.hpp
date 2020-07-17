@@ -9,18 +9,18 @@
 #include "type_mapping.hpp"
 #include "system_catalog_types.hpp"
 
-// all definitions in this file and included files should have C linkage
+// All definitions in this file and included files should have C linkage.
 extern "C" {
 
 #include "postgres.h"
 #include "utils/builtins.h"
 
 #include "flatbuffers_common_reader.h"
-// flatcc generated code
+// flatcc generated code.
 #include "event_log_reader.h"
 #include "event_log_builder.h"
 
-// type-specific extractors
+// Type-specific extractors.
 static inline Datum event_log_get_event_type(const void *root_object) {
     gaia_rules_event_log_table_t event =
         (gaia_rules_event_log_table_t)root_object;
@@ -63,7 +63,7 @@ static inline Datum event_log_get_rules_invoked(const void *root_object) {
     return BoolGetDatum(rules_invoked);
 }
 
-// type-specific builders
+// Type-specific builders.
 static inline void event_log_add_event_type(flatbuffers_builder_t *builder,
     Datum value) {
     uint32_t event_type = DatumGetUInt32(value);
@@ -100,7 +100,7 @@ static inline void event_log_add_rules_invoked(flatbuffers_builder_t *builder,
     gaia_rules_event_log_rules_invoked_add(builder, rules_invoked);
 }
 
-static const Attribute EVENT_LOG_ATTRS[] = {
+static const attribute_t c_event_log_attributes[] = {
     {"event_type", event_log_get_event_type, event_log_add_event_type},
     {"type_id", event_log_get_type_id, event_log_add_type_id},
     {"record_id", event_log_get_record_id, event_log_add_record_id},
@@ -109,17 +109,17 @@ static const Attribute EVENT_LOG_ATTRS[] = {
     {"rules_invoked", event_log_get_rules_invoked, event_log_add_rules_invoked},
 };
 
-RelationAttributeMapping EVENT_LOG_MAPPING = {
+relation_attribute_mapping_t c_event_log_mapping = {
     "event_log",
     system_catalog_types::c_event_log_type,
     (root_object_deserializer)gaia_rules_event_log_as_root,
     (builder_initializer)gaia_rules_event_log_start_as_root,
     (builder_finalizer)gaia_rules_event_log_end_as_root,
-    EVENT_LOG_ATTRS,
-    array_size(EVENT_LOG_ATTRS),
+    c_event_log_attributes,
+    array_size(c_event_log_attributes),
 };
 
-const char *EVENT_LOG_DDL_STMT_FMT =
+const char *c_event_log_ddl_stmt_fmt =
     "create foreign table event_log( "
     "event_type int, type_id bigint, record_id bigint, "
     "column_id smallint, timestamp bigint, "

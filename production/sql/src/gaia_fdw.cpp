@@ -311,15 +311,15 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState *node, int eflags) {
     RangeTblEntry *rte = exec_rt_fetch(rtindex, estate);
     char *table_name = get_rel_name(rte->relid);
 
-    RelationAttributeMapping mapping;
+    relation_attribute_mapping_t mapping;
     if (strcmp(table_name, "airports") == 0) {
-        mapping = AIRPORT_MAPPING;
+        mapping = c_airport_mapping;
     } else if (strcmp(table_name, "airlines") == 0) {
-        mapping = AIRLINE_MAPPING;
+        mapping = c_airline_mapping;
     } else if (strcmp(table_name, "routes") == 0) {
-        mapping = ROUTE_MAPPING;
+        mapping = c_route_mapping;
     } else if (strcmp(table_name, "event_log") == 0) {
-        mapping = EVENT_LOG_MAPPING;
+        mapping = c_event_log_mapping;
     } else {
         elog(ERROR, "unknown table name '%s'", table_name);
     }
@@ -611,15 +611,15 @@ extern "C" void gaia_begin_foreign_modify(ModifyTableState *mtstate,
         exec_rt_fetch(rinfo->ri_RangeTableIndex, mtstate->ps.state);
     char *table_name = get_rel_name(rte->relid);
 
-    RelationAttributeMapping mapping;
+    relation_attribute_mapping_t mapping;
     if (strcmp(table_name, "airports") == 0) {
-        mapping = AIRPORT_MAPPING;
+        mapping = c_airport_mapping;
     } else if (strcmp(table_name, "airlines") == 0) {
-        mapping = AIRLINE_MAPPING;
+        mapping = c_airline_mapping;
     } else if (strcmp(table_name, "routes") == 0) {
-        mapping = ROUTE_MAPPING;
+        mapping = c_route_mapping;
     } else if (strcmp(table_name, "event_log") == 0) {
-        mapping = EVENT_LOG_MAPPING;
+        mapping = c_event_log_mapping;
     } else {
         elog(ERROR, "unknown table name '%s'", table_name);
     }
@@ -1220,10 +1220,10 @@ extern "C" List *gaia_import_foreign_schema(ImportForeignSchemaStmt *stmt,
     const char *serverName = server->servername;
     List *commands = NIL;
     const char *ddl_stmt_fmts[] = {
-        AIRPORT_DDL_STMT_FMT,
-        AIRLINE_DDL_STMT_FMT,
-        ROUTE_DDL_STMT_FMT,
-        EVENT_LOG_DDL_STMT_FMT,
+        c_airport_ddl_stmt_fmt,
+        c_airline_ddl_stmt_fmt,
+        c_route_ddl_stmt_fmt,
+        c_event_log_ddl_stmt_fmt,
     };
     for (size_t i = 0; i < array_size(ddl_stmt_fmts); i++) {
         // length of format string + length of server name - 2 chars for format

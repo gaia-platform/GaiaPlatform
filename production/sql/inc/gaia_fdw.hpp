@@ -11,7 +11,7 @@
 #include "gaia_db.hpp"
 #include "gaia_ptr.hpp"
 
-// all Postgres headers and function declarations must have C linkage
+// All Postgres headers and function declarations must have C linkage.
 extern "C" {
 
 #include "airport_demo_type_mapping.hpp"
@@ -28,7 +28,7 @@ extern "C" {
 #include "commands/defrem.h"
 #include "executor/executor.h"
 #include "foreign/fdwapi.h"
-// for FDW helpers: https://www.postgresql.org/docs/devel/fdw-helpers.html
+// For FDW helpers: https://www.postgresql.org/docs/devel/fdw-helpers.html.
 #include "foreign/foreign.h"
 #include "nodes/makefuncs.h"
 #include "nodes/pathnodes.h"
@@ -42,16 +42,16 @@ extern "C" {
 #include "utils/syscache.h"
 
 /*
- * Module initialization function
+ * Module initialization function.
  */
 extern void _PG_init();
 /*
- * Module unload function
+ * Module unload function.
  */
 extern void _PG_fini();
 
 /*
- * SQL functions
+ * SQL functions.
  */
 extern Datum gaia_fdw_handler(PG_FUNCTION_ARGS);
 extern Datum gaia_fdw_validator(PG_FUNCTION_ARGS);
@@ -60,16 +60,16 @@ PG_FUNCTION_INFO_V1(gaia_fdw_handler);
 PG_FUNCTION_INFO_V1(gaia_fdw_validator);
 
 /*
- * FDW callback routines
+ * FDW callback routines.
  */
-void gaia_get_foreign_rel_size(PlannerInfo *root, RelOptInfo *baserel,
-    Oid foreigntableid);
+void gaia_get_foreign_rel_size(PlannerInfo *root, RelOptInfo *base_rel,
+    Oid foreign_table_id);
 
-void gaia_get_foreign_paths(PlannerInfo *root, RelOptInfo *baserel,
-    Oid foreigntableid);
+void gaia_get_foreign_paths(PlannerInfo *root, RelOptInfo *base_rel,
+    Oid foreign_table_id);
 
-ForeignScan *gaia_get_foreign_plan(PlannerInfo *root, RelOptInfo *foreignrel,
-    Oid foreigntableid, ForeignPath *best_path,
+ForeignScan *gaia_get_foreign_plan(PlannerInfo *root, RelOptInfo *foreign_rel,
+    Oid foreign_table_id, ForeignPath *best_path,
     List *tlist, List *scan_clauses,
     Plan *outer_plan);
 
@@ -81,42 +81,42 @@ void gaia_rescan_foreign_scan(ForeignScanState *node);
 
 void gaia_end_foreign_scan(ForeignScanState *node);
 
-void gaia_add_foreign_update_targets(Query *parsetree, RangeTblEntry *target_rte,
+void gaia_add_foreign_update_targets(Query *parse_tree, RangeTblEntry *target_rte,
     Relation target_relation);
 
 List *gaia_plan_foreign_modify(PlannerInfo *root, ModifyTable *plan,
-    Index resultRelation, int subplan_index);
+    Index result_rel, int subplan_index);
 
 void gaia_begin_foreign_modify(ModifyTableState *mtstate,
-    ResultRelInfo *resultRelInfo, List *fdw_private,
+    ResultRelInfo *result_rel_info, List *fdw_private,
     int subplan_index, int eflags);
 
 TupleTableSlot *gaia_exec_foreign_insert(EState *estate,
-    ResultRelInfo *resultRelInfo,
+    ResultRelInfo *result_rel_info,
     TupleTableSlot *slot,
-    TupleTableSlot *planSlot);
+    TupleTableSlot *plan_slot);
 
 TupleTableSlot *gaia_exec_foreign_update(EState *estate,
-    ResultRelInfo *resultRelInfo,
+    ResultRelInfo *result_rel_info,
     TupleTableSlot *slot,
-    TupleTableSlot *planSlot);
+    TupleTableSlot *plan_slot);
 
 TupleTableSlot *gaia_exec_foreign_delete(EState *estate,
-    ResultRelInfo *resultRelInfo,
+    ResultRelInfo *result_rel_info,
     TupleTableSlot *slot,
-    TupleTableSlot *planSlot);
+    TupleTableSlot *plan_slot);
 
-void gaia_end_foreign_modify(EState *estate, ResultRelInfo *resultRelInfo);
+void gaia_end_foreign_modify(EState *estate, ResultRelInfo *result_rel_info);
 
 void gaia_begin_foreign_insert(ModifyTableState *mtstate,
-    ResultRelInfo *resultRelInfo);
+    ResultRelInfo *result_rel_info);
 
-void gaia_end_foreign_insert(EState *estate, ResultRelInfo *resultRelInfo);
+void gaia_end_foreign_insert(EState *estate, ResultRelInfo *result_rel_info);
 
 int gaia_is_foreign_rel_updatable(Relation rel);
 
 bool gaia_plan_direct_modify(PlannerInfo *root, ModifyTable *plan,
-    Index resultRelation, int subplan_index);
+    Index result_rel, int subplan_index);
 
 void gaia_begin_direct_modify(ForeignScanState *node, int eflags);
 
@@ -133,13 +133,13 @@ void gaia_explain_foreign_modify(ModifyTableState *mtstate, ResultRelInfo *rinfo
 void gaia_explain_direct_modify(ForeignScanState *node, struct ExplainState *es);
 
 bool gaia_analyze_foreign_table(Relation relation, AcquireSampleRowsFunc *func,
-    BlockNumber *totalpages);
+    BlockNumber *total_pages);
 
-List *gaia_import_foreign_schema(ImportForeignSchemaStmt *stmt, Oid serverOid);
+List *gaia_import_foreign_schema(ImportForeignSchemaStmt *stmt, Oid server_oid);
 
-void gaia_get_foreign_join_paths(PlannerInfo *root, RelOptInfo *joinrel,
-    RelOptInfo *outerrel, RelOptInfo *innerrel,
-    JoinType jointype, JoinPathExtraData *extra);
+void gaia_get_foreign_join_paths(PlannerInfo *root, RelOptInfo *join_rel,
+    RelOptInfo *outer_rel, RelOptInfo *inner_rel,
+    JoinType join_type, JoinPathExtraData *extra);
 
 bool gaia_recheck_foreign_scan(ForeignScanState *node, TupleTableSlot *slot);
 
@@ -154,17 +154,18 @@ void gaia_refetch_foreign_row(EState *estate, ExecRowMark *erm, Datum rowid,
     TupleTableSlot *slot, bool *updated);
 
 /*
- * structures used by the FDW
+ * Structures used by the FDW.
  */
 
-typedef void (*OptionHandler)(const char *name, const char *value, Oid context);
+typedef void (*option_handler)(const char *name, const char *value, Oid context);
+
 /*
  * Describes the valid options for objects that use this wrapper.
  */
 typedef struct {
     const char *name;
     Oid context; /* Oid of catalog in which option may appear */
-    OptionHandler handler;
+    option_handler handler;
 } gaia_fdw_option_t;
 
 /*
