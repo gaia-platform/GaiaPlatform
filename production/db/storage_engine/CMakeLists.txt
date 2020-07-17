@@ -33,16 +33,21 @@ message(STATUS "GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES=${GAIA_STORAGE_ENGINE_PRIVA
 # Generate flatbuffers headers.
 find_program(FLATC flatc)
 set(GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
-set(FBS_SOURCES
-    "${PROJECT_SOURCE_DIR}/mock/flatbuffers/messages.fbs")
-add_custom_target("${PROJECT_NAME}-gen_fbs" ALL)
-foreach(fbs ${FBS_SOURCES})
-  add_custom_command(
-    TARGET "${PROJECT_NAME}-gen_fbs"
-    COMMAND cmake -E make_directory "${GEN_DIR}"
-    COMMAND "${FLATC}" --cpp --scoped-enums -o "${GEN_DIR}" "${fbs}" DEPENDS "${fbs}"
-    VERBATIM)
-endforeach(fbs)
+set(FBS_INPUT
+  "${PROJECT_SOURCE_DIR}/mock/flatbuffers/messages.fbs")
+set(FBS_OUTPUT
+  "${GEN_DIR}/messages_generated.h")
+add_custom_command(
+  OUTPUT "${FBS_OUTPUT}"
+  COMMAND cmake -E make_directory "${GEN_DIR}"
+  COMMAND "${FLATC}" --cpp --scoped-enums -o "${GEN_DIR}" "${FBS_INPUT}"
+  DEPENDS "${FBS_INPUT}"
+  VERBATIM
+)
+add_custom_target(
+  "${PROJECT_NAME}-gen_fbs"
+  DEPENDS "${FBS_OUTPUT}"
+)
 
 ###############################################
 # Our main target.

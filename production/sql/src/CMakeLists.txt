@@ -6,17 +6,31 @@
 
 find_program(FLATCC flatcc)
 set(GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
-set(FBS_SOURCES
-    "${GAIA_REPO}/demos/airport_q1/inc/airport_q1.fbs"
-    "${GAIA_REPO}/production/rules/event_manager/flatbuffers/event_log.fbs")
-add_custom_target(gen_fbs ALL)
-foreach(fbs ${FBS_SOURCES})
-  add_custom_command(
-    TARGET gen_fbs
-    COMMAND cmake -E make_directory "${GEN_DIR}"
-    COMMAND "${FLATCC}" -a -o "${GEN_DIR}" "${fbs}" DEPENDS "${fbs}"
-    VERBATIM)
-endforeach(fbs)
+set(FBS_INPUT
+  "${GAIA_REPO}/demos/airport_q1/inc/airport_q1.fbs"
+  "${GAIA_REPO}/production/rules/event_manager/flatbuffers/event_log.fbs")
+set(FBS_OUTPUT
+  "${GEN_DIR}/airport_q1_builder.h"
+  "${GEN_DIR}/airport_q1_reader.h"
+  "${GEN_DIR}/airport_q1_verifier.h"
+  "${GEN_DIR}/event_log_builder.h"
+  "${GEN_DIR}/airport_q1_builder.h"
+  "${GEN_DIR}/event_log_reader.h"
+  "${GEN_DIR}/event_log_verifier.h"
+  "${GEN_DIR}/flatbuffers_common_builder.h"
+  "${GEN_DIR}/flatbuffers_common_reader.h"
+)
+add_custom_command(
+  OUTPUT "${FBS_OUTPUT}"
+  COMMAND cmake -E make_directory "${GEN_DIR}"
+  COMMAND "${FLATCC}" -a -o "${GEN_DIR}" "${FBS_INPUT}" DEPENDS "${FBS_INPUT}"
+  DEPENDS "${FBS_INPUT}"
+  VERBATIM
+)
+add_custom_target(
+  "${PROJECT_NAME}-gen_fbs"
+  DEPENDS "${FBS_OUTPUT}"
+)
 
 # Compile config.
 
@@ -36,7 +50,7 @@ target_link_options(gaia_fdw PRIVATE ${GAIA_LINK_FLAGS})
 set_target_properties(
   gaia_fdw PROPERTIES OUTPUT_NAME "gaia_fdw-${PG_GAIA_FDW_VERSION_MAJOR}" PREFIX
                                                                           "")
-add_dependencies(gaia_fdw gen_fbs)
+add_dependencies(gaia_fdw ${PROJECT_NAME}-gen_fbs)
 # our private headers
 target_include_directories(gaia_fdw PRIVATE "${PROJECT_SOURCE_DIR}/inc")
 # common public headers
