@@ -334,8 +334,8 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState *node, int eflags) {
 
     assert((size_t)tupleDesc->natts == mapping.attribute_count);
     // flatbuffer accessor functions indexed by attrnum
-    AttributeAccessor *indexed_accessors = (AttributeAccessor *)palloc0(
-        sizeof(AttributeAccessor) * tupleDesc->natts);
+    attribute_accessor *indexed_accessors = (attribute_accessor *)palloc0(
+        sizeof(attribute_accessor) * tupleDesc->natts);
     scan_state->indexed_accessors = indexed_accessors;
 
     // set up mapping of attnos to flatbuffer accessor functions
@@ -404,7 +404,7 @@ extern "C" TupleTableSlot *gaia_iterate_foreign_scan(ForeignScanState *node) {
          attr_idx++) {
         char *attr_name = NameStr(
             TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->attname);
-        AttributeAccessor accessor = scan_state->indexed_accessors[attr_idx];
+        attribute_accessor accessor = scan_state->indexed_accessors[attr_idx];
         Datum attr_val = accessor(obj_root);
         slot->tts_values[attr_idx] = attr_val;
         slot->tts_isnull[attr_idx] = false;
@@ -631,8 +631,8 @@ extern "C" void gaia_begin_foreign_modify(ModifyTableState *mtstate,
 
     assert((size_t)tupleDesc->natts == mapping.attribute_count);
     // flatbuffer accessor functions indexed by attrnum
-    AttributeBuilder *indexed_builders = (AttributeBuilder *)palloc0(
-        sizeof(AttributeBuilder) * tupleDesc->natts);
+    attribute_builder *indexed_builders = (attribute_builder *)palloc0(
+        sizeof(attribute_builder) * tupleDesc->natts);
     modify_state->indexed_builders = indexed_builders;
 
     // set up mapping of attnos to flatbuffer attribute builder functions
@@ -730,7 +730,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_insert(EState *estate,
          attr_idx++) {
         char *attr_name = NameStr(
             TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->attname);
-        AttributeBuilder attr_builder =
+        attribute_builder attr_builder =
             modify_state->indexed_builders[attr_idx];
         Datum attr_val;
         // We don't allow gaia_id to be set by an INSERT or UPDATE statement
@@ -818,7 +818,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_update(EState *estate,
     for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts;
          attr_idx++) {
         if (!(slot->tts_isnull[attr_idx])) {
-            AttributeBuilder attr_builder =
+            attribute_builder attr_builder =
                 modify_state->indexed_builders[attr_idx];
             Datum attr_val = slot->tts_values[attr_idx];
             if (attr_idx == modify_state->pk_attr_idx) {

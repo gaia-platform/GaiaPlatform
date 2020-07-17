@@ -112,9 +112,9 @@ static const Attribute EVENT_LOG_ATTRS[] = {
 RelationAttributeMapping EVENT_LOG_MAPPING = {
     "event_log",
     system_catalog_types::c_event_log_type,
-    (RootObjectDeserializer)gaia_rules_event_log_as_root,
-    (BuilderInitializer)gaia_rules_event_log_start_as_root,
-    (BuilderFinalizer)gaia_rules_event_log_end_as_root,
+    (root_object_deserializer)gaia_rules_event_log_as_root,
+    (builder_initializer)gaia_rules_event_log_start_as_root,
+    (builder_finalizer)gaia_rules_event_log_end_as_root,
     EVENT_LOG_ATTRS,
     array_size(EVENT_LOG_ATTRS),
 };

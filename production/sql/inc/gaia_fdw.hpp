@@ -179,9 +179,9 @@ static const gaia_fdw_option_t valid_options[] = {
  * node->fdw_private and fetched in gaiaIterateForeignScan.
  */
 typedef struct {
-    RootObjectDeserializer deserializer;
+    root_object_deserializer deserializer;
     // flatbuffer accessor functions indexed by attrnum
-    AttributeAccessor *indexed_accessors;
+    attribute_accessor *indexed_accessors;
     // the COW-SE smart ptr we are currently iterating over
     gaia::db::gaia_ptr cur_node;
 } gaia_fdw_scan_state_t;
@@ -195,10 +195,10 @@ typedef struct {
  * gaiaEndForeignModify.
  */
 typedef struct {
-    BuilderInitializer initializer;
-    BuilderFinalizer finalizer;
+    builder_initializer initializer;
+    builder_finalizer finalizer;
     // flatbuffer attribute builder functions indexed by attrnum
-    AttributeBuilder *indexed_builders;
+    attribute_builder *indexed_builders;
     // flatbuffers builder for INSERT and UPDATE
     flatcc_builder_t builder;
     // 0-based index of gaia_id attribute in tuple descriptor

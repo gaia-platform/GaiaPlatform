@@ -16,22 +16,22 @@ extern "C" {
 
 // function pointer type that extracts a typed root object from a flatbuffer
 // byte array
-typedef const void *(*RootObjectDeserializer)(const void *buffer);
+typedef const void *(*root_object_deserializer)(const void *buffer);
 // function pointer type that extracts an attribute from a typed flatbuffer
 // object
-typedef Datum (*AttributeAccessor)(const void *rootObject);
+typedef Datum (*attribute_accessor)(const void *rootObject);
 // function pointer type that adds an attribute to a flatbuffer builder
-typedef void (*AttributeBuilder)(flatbuffers_builder_t *builder, Datum value);
+typedef void (*attribute_builder)(flatbuffers_builder_t *builder, Datum value);
 // function pointer type that initializes a flatbuffer builder for a type
-typedef void (*BuilderInitializer)(flatbuffers_builder_t *builder);
+typedef void (*builder_initializer)(flatbuffers_builder_t *builder);
 // function pointer type that finalizes a flatbuffer builder for a type
-typedef void (*BuilderFinalizer)(flatbuffers_builder_t *builder);
+typedef void (*builder_finalizer)(flatbuffers_builder_t *builder);
 
 // mapping of attribute names to accessor methods
 typedef struct {
     const char *name;
-    const AttributeAccessor accessor;
-    const AttributeBuilder builder;
+    const attribute_accessor accessor;
+    const attribute_builder builder;
 } Attribute;
 
 // mapping of relations to attribute accessor mappings
@@ -40,9 +40,9 @@ typedef struct {
 typedef struct {
     const char *relation;
     gaia::common::gaia_type_t gaia_type_id;
-    RootObjectDeserializer deserializer;
-    BuilderInitializer initializer;
-    BuilderFinalizer finalizer;
+    root_object_deserializer deserializer;
+    builder_initializer initializer;
+    builder_finalizer finalizer;
     const Attribute *attributes;
     size_t attribute_count;
 } RelationAttributeMapping;
