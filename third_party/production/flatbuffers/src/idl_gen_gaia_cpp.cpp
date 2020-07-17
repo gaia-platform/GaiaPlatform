@@ -660,11 +660,9 @@ namespace flatbuffers
 
                 code_ += "};";
 
-                // Generate the pointer to the object.
-                code_ += "typedef shared_ptr<{{CLASS_NAME}}> {{CLASS_NAME}}_ptr;";
                 // Generate pointer to writer
-                code_ += "typedef shared_ptr<gaia_writer_t<" + NumToString(currentObjectTypeValue) +
-                    ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T, 0>> {{CLASS_NAME}}_writer;";
+                code_ += "typedef gaia_writer_t<" + NumToString(currentObjectTypeValue) +
+                    ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T, 0> {{CLASS_NAME}}_writer;";
             }
 
             // Set up the correct namespace. Only open a namespace if the existing one is

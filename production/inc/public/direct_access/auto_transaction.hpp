@@ -37,11 +37,14 @@ namespace direct_access {
 class auto_transaction_t
 {
 public:
-    auto_transaction_t();
+    auto_transaction_t() = delete;
+    auto_transaction_t(bool auto_begin = false);
 
-    void commit(bool auto_begin = true);
+    void commit();
 
     ~auto_transaction_t();
+private:
+    bool m_auto_begin;
 };
 
 

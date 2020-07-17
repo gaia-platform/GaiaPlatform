@@ -61,14 +61,9 @@ public:
     gaia_object_t() = delete;
 
     /**
-     * Return a reference to a writer used to insert a row
+     * Return a reference that is pre-populated with values from the row
      */
-    static shared_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>> create_writer();
-
-    /**
-     * Return a reference to a writer used to update a row
-     */
-    shared_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>> writer();
+    gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references> writer();
 
     /**
      * This can be used for subscribing to rules when you don't
@@ -85,13 +80,13 @@ public:
     /**
      * Ask for the first object of a flatbuffer type, T_gaia_type.
      */
-    static shared_ptr<T_gaia> get_first();
+    static T_gaia get_first();
 
     /**
      * Ask for the next object of a flatbuffer type. This call must follow a call to the
      * static method get_first().
      */
-    shared_ptr<T_gaia> get_next();
+    T_gaia get_next();
 
     /**
      * Ask for a specific object based on its id. References to this method must be qualified
@@ -99,19 +94,7 @@ public:
      *
      * @param id the gaia_id_t of a specific storage engine object, of type T_gaia_type
      */
-    static shared_ptr<T_gaia> get(gaia_id_t id);
-
-    /**
-     * Insert the values in this new object into a newly created storage engine object.
-     * The user can get a new object by fetching the returned id using get(id)
-     */
-    static gaia_id_t insert_row(
-        const shared_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>>& writer);
-
-    /**
-     * Update the row values into the storage engine object.
-     */
-    void update_row();
+    static T_gaia get(gaia_id_t id);
 
     /**
      * Delete the storage engine object. This doesn't destroy the extended data class
@@ -124,8 +107,21 @@ public:
      */
     static void delete_row(gaia_id_t id);
 
-    // Array of pointers to related objects.
-    gaia_id_t* m_references;
+    /**
+     * Get the array of pointers to related objects.
+     */
+    gaia_id_t* references();
+
+    /**
+     * This is the storage engine's identification of this object. The id can be
+     * used to refer to this object later.
+     */
+    gaia_id_t gaia_id() const;
+
+    /**
+     * Returns true if there is an an underlying storage engine object
+     */
+    operator bool () const;
 
 protected:
     /**
@@ -140,18 +136,18 @@ protected:
      */
     static gaia_id_t insert_row(flatbuffers::FlatBufferBuilder& fbb);
 
-    // Flatbuffer referencing SE memory.
-    const T_fb* m_fb;
-
+    /**
+     * Materialize the flatbuffer associated with this record
+     */
+    const T_fb* row() const;
 
 private:
-    static shared_ptr<T_gaia> get_object(gaia_ptr<gaia_se_node>& node_ptr);
-    void refresh() override;
-    void refresh(gaia_ptr<gaia_se_node>& node_ptr);
+    static T_gaia get_object(gaia_ptr<gaia_se_node>& node_ptr);
 
-
-    // Writer associated with this object
-    shared_ptr<gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>> m_writer;
+    /**
+     * The record locator for this object.
+     */
+    gaia_ptr<gaia_se_node> m_record;
 };
 
 template<gaia::db::gaia_type_t T_gaia_type, 
@@ -161,12 +157,26 @@ template<gaia::db::gaia_type_t T_gaia_type,
     size_t N_references>
 struct gaia_writer_t : public T_obj
 {
-private:
     gaia_writer_t() = default;
+
+    /**
+     * Insert the values in this new object into a newly created storage engine object.
+     * The user can get a new object by fetching the returned id using get(id)
+     */
+    gaia_id_t insert_row();
+
+    /**
+     * Update the row values stored in this writer.
+     */
+    void update_row();
+
+private:
     flatbuffers::FlatBufferBuilder m_builder;
 
-    // This class needs access to the private m_gaia information and private
-    // constructor.
+    struct {
+        gaia_id_t id;
+    } m_gaia;
+
     friend gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>;
 };
 
@@ -174,7 +184,6 @@ private:
 } // direct_access
 /*@}*/
 } // gaia
-
 
 // Pick up our template implementation.  These still
 // need to be in the header so that template specializations

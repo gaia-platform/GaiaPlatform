@@ -12,15 +12,16 @@ namespace direct_access
 //
 // The auto_transaction_t implementation.
 //
-auto_transaction_t::auto_transaction_t()
+auto_transaction_t::auto_transaction_t(bool auto_begin)
 {
+    m_auto_begin = auto_begin;
     gaia::db::begin_transaction();
 }
 
-void auto_transaction_t::commit(bool auto_begin)
+void auto_transaction_t::commit()
 {
     gaia::db::commit_transaction();
-    if (auto_begin)
+    if (m_auto_begin)
     {
         gaia::db::begin_transaction();
     }

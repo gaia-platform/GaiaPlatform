@@ -20,7 +20,6 @@ message(STATUS "GAIA_DIRECT_ACCESS_INCLUDES=${GAIA_DIRECT_ACCESS_INCLUDES}")
 
 # Our main target.
 add_library(gaia_direct STATIC 
-  src/gaia_object_defs.cpp
   src/gaia_base.cpp
   src/auto_transaction.cpp
 )

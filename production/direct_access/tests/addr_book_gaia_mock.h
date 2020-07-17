@@ -43,8 +43,7 @@ struct Employee;
 struct Address;
 struct Phone;
 
-typedef shared_ptr<Employee> Employee_ptr;
-typedef shared_ptr<gaia_writer_t<1,Employee,employee,employeeT, c_num_employee_ptrs>> Employee_writer;
+typedef gaia_writer_t<1,Employee,employee,employeeT, c_num_employee_ptrs> Employee_writer;
 struct Employee : public gaia_object_t<1,Employee,employee,employeeT, c_num_employee_ptrs>{
     const char* name_first () const {return GET_STR(name_first);}
     const char* name_last () const {return GET_STR(name_last);}
@@ -60,29 +59,26 @@ struct Employee : public gaia_object_t<1,Employee,employee,employeeT, c_num_empl
         b.Finish(CreateemployeeDirect(b, name_first_val,name_last_val,ssn_val,hire_date_val,email_val,web_val));
         return gaia_object_t::insert_row(b);
     }
-    Employee_ptr manages_employee_owner() {
-        return Employee::get(this->m_references[c_parent_manages_employee]);
+    Employee manages_employee_owner() {
+        return Employee::get(this->references()[c_parent_manages_employee]);
     }
-    static gaia_container_t<Employee>& employee_table() {
-        static gaia_container_t<Employee> employee_table;
+    static gaia_container_t<1, Employee>& employee_table() {
+        static gaia_container_t<1, Employee> employee_table;
         return employee_table;
     }
-    reference_chain_container_t<Employee,Address,c_parent_employee,c_first_address,c_next_address> address_list;
-    reference_chain_container_t<Employee,Employee,c_parent_manages_employee,c_first_manages_employee,c_next_manages_employee> manages_employee_list;
+    reference_chain_container_t<Employee, Address,c_parent_employee,c_first_address,c_next_address> address_list;
+    reference_chain_container_t<Employee, Employee,c_parent_manages_employee,c_first_manages_employee,c_next_manages_employee> manages_employee_list;
 
-    // would you generate the nested class here?
-    
 private:
     friend struct gaia_object_t<1,Employee,employee,employeeT, c_num_employee_ptrs>;
     Employee(gaia_id_t id) : gaia_object_t(id, "Employee")
     {
-        address_list.set_outer(this);
-        manages_employee_list.set_outer(this);
+        address_list.set_outer(gaia_id());
+        manages_employee_list.set_outer(gaia_id());
     }
 };
 
-typedef shared_ptr<Address> Address_ptr;
-typedef shared_ptr<gaia_writer_t<2,Address,address,addressT, c_num_address_ptrs>> Address_writer;
+typedef gaia_writer_t<2,Address,address,addressT, c_num_address_ptrs> Address_writer;
 struct Address : public gaia_object_t<2,Address,address,addressT,c_num_address_ptrs>{
     const char* street () const {return GET_STR(street);}
     const char* apt_suite () const {return GET_STR(apt_suite);}
@@ -99,11 +95,11 @@ struct Address : public gaia_object_t<2,Address,address,addressT,c_num_address_p
         b.Finish(CreateaddressDirect(b, street_val,apt_suite_val,city_val,state_val,postal_val,country_val,current_val));
         return gaia_object_t::insert_row(b);
     }
-    Employee_ptr employee_owner() {
-        return Employee::get(this->m_references[c_parent_employee]);
+    Employee employee_owner() {
+        return Employee::get(this->references()[c_parent_employee]);
     }
-    static gaia_container_t<Address>& address_table() {
-        static gaia_container_t<Address> address_table;
+    static gaia_container_t<2, Address>& address_table() {
+        static gaia_container_t<2, Address> address_table;
         return address_table;
     }
     reference_chain_container_t<Address,Phone,c_parent_address,c_first_phone,c_next_phone> phone_list;
@@ -111,12 +107,11 @@ private:
     friend struct gaia_object_t<2,Address,address,addressT, c_num_address_ptrs>;
     Address(gaia_id_t id) : gaia_object_t(id, "Address") 
     {
-        phone_list.set_outer(this);
+        phone_list.set_outer(gaia_id());
     }
 };
 
-typedef shared_ptr<Phone> Phone_ptr;
-typedef shared_ptr<gaia_writer_t<3,Phone,phone,phoneT, c_num_phone_ptrs>> Phone_writer;
+typedef gaia_writer_t<3,Phone,phone,phoneT, c_num_phone_ptrs> Phone_writer;
 struct Phone : public gaia_object_t<3,Phone,phone,phoneT, c_num_phone_ptrs>{
     const char* phone_number () const {return GET_STR(phone_number);}
     const char* type () const {return GET_STR(type);}
@@ -128,8 +123,8 @@ struct Phone : public gaia_object_t<3,Phone,phone,phoneT, c_num_phone_ptrs>{
         b.Finish(CreatephoneDirect(b, phone_number_val,type_val,primary_val));
         return gaia_object_t::insert_row(b);
     }
-    Address_ptr address_owner() {
-        return Address::get(this->m_references[c_parent_address]);
+    Address address_owner() {
+        return Address::get(this->references()[c_parent_address]);
     }
 private:
     friend struct gaia_object_t<3,Phone,phone,phoneT, c_num_phone_ptrs>;

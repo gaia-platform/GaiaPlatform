@@ -14,14 +14,13 @@ namespace direct_access
 //
 edc_invalid_object_type::edc_invalid_object_type(
     gaia_id_t id, 
-    gaia_type_t expected, 
-    const char* expected_type,
-    gaia_type_t actual, 
-    const char* type_name) 
+    gaia_type_t expected_type, 
+    const char* expected_typename,
+    gaia_type_t actual_type) 
 {
     stringstream msg;
-    msg << "Requesting Gaia type " << expected_type << "(" << expected << ") but object identified by "
-        << id << " is type " << type_name << "(" << actual << ").";
+    msg << "Requesting Gaia type " << expected_typename << "(" << expected_type << ") but object identified by "
+        << id << " is type " "(" << actual_type << ").";
     m_message = msg.str();
 }
 
@@ -58,58 +57,6 @@ edc_unstored_row::edc_unstored_row(
     msg << "Cannot connect two objects until they have both been inserted (insert_row()), parent type is " <<
         parent_type << " and child type is " << child_type << ".";
     m_message = msg.str();
-}
-
-//
-// Base gaia_base_t implementation.
-//
-gaia_base_t::gaia_base_t(const char* gaia_typename)
-: gaia_base_t(0, gaia_typename)
-{
-}
-
-gaia_base_t::gaia_base_t(gaia_id_t id, const char * gaia_typename)
-: m_id(id)
-, m_typename(gaia_typename)
-{
-    set_tx_hooks();
-}
-
-void gaia_base_t::set_tx_hooks()
-{
-    if (!s_tx_hooks_installed)
-    {
-        // Do not overwrite an already established hook.  This could happen
-        // if an application has subscribed to transaction events.
-        if (!gaia::db::s_tx_begin_hook)
-        {
-            gaia::db::s_tx_begin_hook = begin_hook;
-        }
-        s_tx_hooks_installed = true;
-    }
-}
-
-// If an object has an outstanding reference to it (from a user) then refresh
-// the object to pull in any changes made by other transactions.  If the
-// object has no outstanding references, then remove it from the cache.
-void gaia_base_t::begin_hook()
-{
-    for (auto it = s_gaia_cache.begin(); it != s_gaia_cache.end();)
-    {
-        gaia_base_ptr_t& obj = it->second;
-
-        // If there is no outstanding reference to this object then
-        // we can remove it from our cache.
-        if (obj.unique())
-        {
-            it = s_gaia_cache.erase(it);
-        }
-        else
-        {
-            obj->refresh();
-            ++it;
-        }
-    }
 }
 
 } // direct_access

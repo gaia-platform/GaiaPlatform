@@ -38,10 +38,6 @@ namespace db
     typedef uint64_t gaia_edge_type_t;
     typedef void (* gaia_tx_hook)(void);
 
-    extern gaia_tx_hook s_tx_begin_hook;
-    extern gaia_tx_hook s_tx_commit_hook;
-    extern gaia_tx_hook s_tx_rollback_hook;
-
     // highest order bit to indicate the object is an edge
     const gaia_id_t c_edge_flag = 0x8000000000000000;
 
@@ -1109,28 +1105,16 @@ namespace db
     inline void begin_transaction()
     {
         gaia_mem_base::tx_begin();
-        if (s_tx_begin_hook)
-        {
-            s_tx_begin_hook();
-        }
     }
 
     inline void commit_transaction()
     {
         gaia_mem_base::tx_commit();
-        if (s_tx_commit_hook)
-        {
-            s_tx_commit_hook();
-        }
     }
 
     inline void rollback_transaction()
     {
         gaia_mem_base::tx_rollback();
-        if (s_tx_rollback_hook)
-        {
-            s_tx_rollback_hook();
-        }
     }
 } // db
 } // gaia
