@@ -42,11 +42,45 @@ std::string curRuleset;
 bool g_verbose = false;
 bool generationError = false;
 
+vector<string> rulesets;
 unordered_map<string, unordered_set<string>>  activeFields;
-unordered_map<string, unordered_set<string>>  usedFields;
+unordered_set<string>  usedTables;
 unordered_map<string, gaia_id_t> tableData;
 const FunctionDecl *curRuleDecl = nullptr;
 unordered_map<string, unordered_map<string, bool>> fieldData;
+string curRulesetSubscription;
+string generatedSubscriptionCode;
+string curRulesetUnSubscription;
+
+string generateGeneralSubscriptionCode()
+{
+    string retVal = "extern \"C\" void subscribe_ruleset(const char* ruleset_name)\n{\n";
+
+    for (string ruleset : rulesets)
+    {
+        retVal += "if (strcmp(ruleset_name, \"" + ruleset + "\") == 0)\n" \
+            "{\nsubscribeRuleset_" + ruleset + "();\n return;\n}\n";
+    }
+
+    retVal += "throw ruleset_not_found(ruleset_name);\n}\n" \
+        "extern \"C\" void unsubscribe_ruleset(const char* ruleset_name)\n{\n";
+
+    for (string ruleset : rulesets)
+    {
+        retVal += "if (strcmp(ruleset_name, \"" + ruleset + "\") == 0)\n" \
+            "{\nunsubscribeRuleset_" + ruleset + "();\n return;\n}\n";
+    }
+
+    retVal += "throw ruleset_not_found(ruleset_name);\n}\n" \
+        "extern \"C\" void initialize_rules()\n{\n";
+    for (string ruleset : rulesets)
+    {
+        retVal +=  "\nsubscribeRuleset_" + ruleset + "();\n" ;
+    }
+    retVal += "}";
+
+    return retVal;
+}
 
 unordered_map<string, unordered_map<string, bool>> getTableData()
 {
@@ -202,16 +236,34 @@ void generateRules(Rewriter &rewriter)
     int ruleCnt = 1;
     for (auto fd : activeFields)
     {
-        if (fieldData.find(fd.first) == fieldData.end())
+        string table = fd.first;
+        bool containsLastOperation = false;
+        bool containsFields = false;
+        string fieldSubscriptionCode;
+        if (fieldData.find(table) == fieldData.end())
         {
-            llvm::errs() << "No table " << fd.first << " found in the catalog\n";
+            llvm::errs() << "No table " << table << " found in the catalog\n";
             generationError = true;
             return;
         }
-        auto fields = fieldData[fd.first];
+        string ruleName = curRuleset + "_" + curRuleDecl->getName().str() + "_" + to_string(ruleCnt);
+        fieldSubscriptionCode =  "\nrule_binding_t " + ruleName + "binding(" +
+            "\"" + curRuleset + "\",\"" + ruleName + "\"," + curRuleset + "::" + ruleName + ");\n" + 
+            "field_list_t fields_" + to_string(ruleCnt) + ";\n";
+
+        auto fields = fieldData[table];
         for (auto field : fd.second)
         {
-            if (fields.find(field) == fields.end())
+            bool isLastOperation = field == "LastOperation";
+            if (!containsLastOperation && isLastOperation )
+            {
+                containsLastOperation = true;
+            }
+            if (!containsFields && !isLastOperation)
+            {
+                containsFields = true;
+            }
+            if (!isLastOperation && fields.find(field) == fields.end())
             {
                 llvm::errs() << "No field " << field << " found in the catalog\n";
                 generationError = true;
@@ -223,21 +275,66 @@ void generateRules(Rewriter &rewriter)
                 generationError = true;
                 return;
             }*/
+
+            if (!isLastOperation)
+            {
+                fieldSubscriptionCode += "fields_" + to_string(ruleCnt) + ".insert(" + table + 
+                "::get_field_offset(\"" + field + "\"));\n";
+            }            
         }
+
+        if (!containsFields && !containsLastOperation)
+        {
+            llvm::errs() << "No fields referred by table " + table +"\n";
+            generationError = true;
+            return;
+        }
+
+        if (containsFields)
+        {
+            curRulesetSubscription += fieldSubscriptionCode + "subscribe_rule(" + table + 
+                "::s_gaia_type, event_type_t::row_update, fields_" + to_string(ruleCnt) + 
+                "," + ruleName + "binding);\n";
+            curRulesetUnSubscription += fieldSubscriptionCode + "unsubscribe_rule(" + table + 
+                "::s_gaia_type, event_type_t::row_update, fields_" + to_string(ruleCnt) + 
+                "," + ruleName + "binding);\n";
+        }
+
+        if (containsLastOperation)
+        {
+            curRulesetSubscription += "subscribe_rule(" + table + 
+                "::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields," + 
+                ruleName + "binding);\n";
+            curRulesetSubscription += "subscribe_rule(" + table + 
+                "::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields," + 
+                ruleName + "binding);\n";
+            curRulesetSubscription += "subscribe_rule(" + table + 
+                "::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields," + 
+                ruleName + "binding);\n";
+
+            curRulesetUnSubscription += "unsubscribe_rule(" + table + 
+                "::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields," + 
+                ruleName + "binding);\n";
+            curRulesetUnSubscription += "unsubscribe_rule(" + table + 
+                "::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields," + 
+                ruleName + "binding);\n";
+            curRulesetUnSubscription += "unsubscribe_rule(" + table + 
+                "::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields," + 
+                ruleName + "binding);\n";
+        }
+        
        
         if(ruleCnt == 1)
         {
-            rewriter.InsertText(curRuleDecl->getLocation(),"\nvoid " + curRuleset + 
-               "_" + curRuleDecl->getName().str() + "_" + to_string(ruleCnt) + "(rule_context_t* context)\n");
-            rewriter.InsertTextAfterToken(curRuleDecl->getLocation(), "\n" + fd.first + "_t " + fd.first + " = " + 
-                fd.first + "_t::get_row_by_id(context->record);");
+            rewriter.InsertText(curRuleDecl->getLocation(),"\nvoid " + ruleName + "(const rule_context_t* context)\n");
+            rewriter.InsertTextAfterToken(curRuleDecl->getLocation(), "\n" + table + "_t " + table + " = " + 
+                table + "_t::get_row_by_id(context->record);");
         }
         else
         {
-            rewriter.InsertTextBefore(curRuleDecl->getLocation(),"\nvoid " + curRuleset + 
-               "_" + curRuleDecl->getName().str() + "_" + to_string(ruleCnt) +"(rule_context_t* context)\n"
-               + insertRulePreamble (ruleCode, "\n" + fd.first + "_t " + fd.first + " = " + 
-                fd.first + "_t::get_row_by_id(context->record);"));
+            rewriter.InsertTextBefore(curRuleDecl->getLocation(),"\nvoid " + ruleName +"(const rule_context_t* context)\n"
+               + insertRulePreamble (ruleCode, "\n" + table + "_t " + table + " = " + 
+                table + "_t::get_row_by_id(context->record);"));
         }
         
         ruleCnt++;
@@ -270,7 +367,7 @@ public:
 
             tableName = getTableName(decl);
             fieldName = decl->getName().str();
-            usedFields[tableName].insert(fieldName);
+            usedTables.insert(tableName);
 
             
             if (decl->hasAttr<GaiaFieldAttr>())
@@ -293,10 +390,7 @@ public:
                 
                 isLastOperation = declExpr->getDecl()->hasAttr<GaiaLastOperationAttr>();
 
-                if (!isLastOperation)
-                {
-                    usedFields[tableName].insert(fieldName);
-                }
+                usedTables.insert(tableName);
 
                 if (declExpr->getDecl()->hasAttr<GaiaFieldValueAttr>())
                 {
@@ -307,10 +401,7 @@ public:
                 {
                     expSourceRange = SourceRange(memberExpr->getBeginLoc(),
                         memberExpr->getEndLoc());
-                    if (!isLastOperation)
-                    {
-                        activeFields[tableName].insert(fieldName);
-                    }
+                    activeFields[tableName].insert(fieldName);
                 }   
             }
             else
@@ -330,7 +421,7 @@ public:
         {
             if (isLastOperation)
             {
-                rewriter.ReplaceText(expSourceRange, "context->last_operation(" + tableName + "->gaia_type())");
+                rewriter.ReplaceText(expSourceRange, "context->last_operation(" + tableName + "::s_gaia_type");
             }
             else
             {
@@ -393,7 +484,7 @@ public:
                         startLocation = memberExpr->getBeginLoc();
                         
                     }
-                    usedFields[tableName].insert(fieldName);
+                    usedTables.insert(tableName);
                 
                     tok::TokenKind tokenKind;
                     std::string replacementText = "[&]() mutable {" + 
@@ -602,7 +693,7 @@ public:
                         tableName = declExpr->getDecl()->getName().str();
                     }
 
-                    usedFields[tableName].insert(fieldName);
+                    usedTables.insert(tableName);
                     activeFields[tableName].insert(fieldName);
                                     
                     if (op->isPostfix())
@@ -686,26 +777,8 @@ public:
             return;
         }
         curRuleDecl = ruleDecl;
-        usedFields.clear();
+        usedTables.clear();
         activeFields.clear();
-
-        const DeclContext *ctx = ruleDecl->getDeclContext();
-        while (ctx) 
-        {
-            const RulesetDecl *rs = dyn_cast<RulesetDecl>(ctx);
-            if (rs)
-            {
-                log("Ruleset %s\n", rs->getName().str());
-                break;
-            }
-            ctx = ctx->getParent();
-        }       
-
-        if (ruleDecl != nullptr)
-        {            
-     //       rewriter.InsertText(ruleDecl->getLocation(),"void " + curRuleset + 
-       //         "_" + ruleDecl->getName().str() +"()\n");
-        }
     }
 
 private:   
@@ -728,13 +801,25 @@ public:
             return;
         }
         curRuleDecl = nullptr;
-        usedFields.clear();
+        usedTables.clear();
         activeFields.clear();
 
         const RulesetDecl * rulesetDecl = Result.Nodes.getNodeAs<RulesetDecl>("rulesetDecl");
         if (rulesetDecl != nullptr)
         {
-            curRuleset = rulesetDecl->getName().str();           
+            if (!curRuleset.empty())
+            {
+                generatedSubscriptionCode += "void subscribeRuleset_" + 
+                    rulesetDecl->getName().str() + "()\n{\n" + curRulesetSubscription + 
+                    "\n}\n";
+                generatedSubscriptionCode += "void unsubscribeRuleset_" + 
+                    rulesetDecl->getName().str() + "()\n{\n" + curRulesetUnSubscription + 
+                    "\n}\n";
+            }
+            curRuleset = rulesetDecl->getName().str();   
+            rulesets.push_back(curRuleset);
+            curRulesetSubscription.clear(); 
+            curRulesetUnSubscription.clear();       
             rewriter.ReplaceText(
                 SourceRange(rulesetDecl->getBeginLoc(),rulesetDecl->decls_begin()->getBeginLoc().getLocWithOffset(-2)),
                 "namespace " + curRuleset + "\n{\n");
@@ -952,11 +1037,17 @@ public:
             return;
         }
  
-
+        generatedSubscriptionCode += "void subscribeRuleset_" + 
+                    curRuleset + "()\n{\n" + curRulesetSubscription + 
+                    "\n}\n" + "void unsubscribeRuleset_" + 
+                    curRuleset + "()\n{\n" + curRulesetUnSubscription + 
+                    "\n}\n" + generateGeneralSubscriptionCode();
         if (!shouldEraseOutputFiles() && !generationError)
         {
             rewriter.getEditBuffer(rewriter.getSourceMgr().getMainFileID())
-                .write(llvm::outs());
+                .write(llvm::outs()); 
+
+            llvm::errs() << "\n" << generatedSubscriptionCode << "\n";
         }
     }
 private: 
