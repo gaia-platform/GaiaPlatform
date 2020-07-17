@@ -112,7 +112,8 @@ const field_list_t empty_fields;
  * This is a different enum type than the event type because there may be
  * events that are not caused by a table operation.  In addition, a 'none'
  * enum value is provided to indicate that no operation was performed on a
- * table. See the rule_context_t::last_operation() method below.
+ * table. See the rule_context_t::last_operation() method for further
+ * explanation.
  */
 enum class last_operation_t : uint8_t {
     none,
@@ -155,7 +156,7 @@ public:
 
     /**
      * Helper to enable a declarative rule to check what the last database
-     * operation was for the passed in type. For example, consider a rule that
+     * operation was for the passed-in type. For example, consider a rule that
      * may be invoked either from a table operation on type X or a change to
      * a field reference in table Y. This method enables the rule author to 
      * determine the reason for the rule being invoked.
