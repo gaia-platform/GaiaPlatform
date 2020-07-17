@@ -9,265 +9,265 @@
 #include "type_mapping.hpp"
 #include "airport_demo_types.hpp"
 
-// all definitions in this file and included files should have C linkage
+// All definitions in this file and included files should have C linkage.
 extern "C" {
 
 #include "postgres.h"
 #include "utils/builtins.h"
 
 #include "flatbuffers_common_reader.h"
-// flatcc generated code
+// flatcc generated code.
 #include "airport_q1_reader.h"
 #include "airport_q1_builder.h"
 
-// type-specific extractors
-static inline Datum airport_get_gaia_id(const void *rootObject) {
+// Type-specific extractors.
+static inline Datum airport_get_gaia_id(const void *root_object) {
     gaia_airport_airports_table_t airport =
-        (gaia_airport_airports_table_t)rootObject;
+        (gaia_airport_airports_table_t)root_object;
     uint64_t gaia_id = gaia_airport_airports_gaia_id(airport);
     return UInt64GetDatum(gaia_id);
 }
 
-static inline Datum airport_get_ap_id(const void *rootObject) {
+static inline Datum airport_get_ap_id(const void *root_object) {
     gaia_airport_airports_table_t airport =
-        (gaia_airport_airports_table_t)rootObject;
+        (gaia_airport_airports_table_t)root_object;
     int32_t ap_id = gaia_airport_airports_ap_id(airport);
     return Int32GetDatum(ap_id);
 }
 
-static inline Datum airport_get_name(const void *rootObject) {
+static inline Datum airport_get_name(const void *root_object) {
     gaia_airport_airports_table_t airport =
-        (gaia_airport_airports_table_t)rootObject;
+        (gaia_airport_airports_table_t)root_object;
     flatbuffers_string_t name = gaia_airport_airports_name(airport);
     return flatbuffers_string_to_text_datum(name);
 }
 
-static inline Datum airport_get_city(const void *rootObject) {
+static inline Datum airport_get_city(const void *root_object) {
     gaia_airport_airports_table_t airport =
-        (gaia_airport_airports_table_t)rootObject;
+        (gaia_airport_airports_table_t)root_object;
     flatbuffers_string_t city = gaia_airport_airports_city(airport);
     return flatbuffers_string_to_text_datum(city);
 }
 
-static inline Datum airport_get_country(const void *rootObject) {
+static inline Datum airport_get_country(const void *root_object) {
     gaia_airport_airports_table_t airport =
-        (gaia_airport_airports_table_t)rootObject;
+        (gaia_airport_airports_table_t)root_object;
     flatbuffers_string_t country = gaia_airport_airports_country(airport);
     return flatbuffers_string_to_text_datum(country);
 }
 
-static inline Datum airport_get_iata(const void *rootObject) {
+static inline Datum airport_get_iata(const void *root_object) {
     gaia_airport_airports_table_t airport =
-        (gaia_airport_airports_table_t)rootObject;
+        (gaia_airport_airports_table_t)root_object;
     flatbuffers_string_t iata = gaia_airport_airports_iata(airport);
     return flatbuffers_string_to_text_datum(iata);
 }
 
-static inline Datum airport_get_icao(const void *rootObject) {
+static inline Datum airport_get_icao(const void *root_object) {
     gaia_airport_airports_table_t airport =
-        (gaia_airport_airports_table_t)rootObject;
+        (gaia_airport_airports_table_t)root_object;
     flatbuffers_string_t icao = gaia_airport_airports_icao(airport);
     return flatbuffers_string_to_text_datum(icao);
 }
 
-static inline Datum airport_get_latitude(const void *rootObject) {
+static inline Datum airport_get_latitude(const void *root_object) {
     gaia_airport_airports_table_t airport =
-        (gaia_airport_airports_table_t)rootObject;
+        (gaia_airport_airports_table_t)root_object;
     double latitude = gaia_airport_airports_latitude(airport);
     return Float8GetDatum(latitude);
 }
 
-static inline Datum airport_get_longitude(const void *rootObject) {
+static inline Datum airport_get_longitude(const void *root_object) {
     gaia_airport_airports_table_t airport =
-        (gaia_airport_airports_table_t)rootObject;
+        (gaia_airport_airports_table_t)root_object;
     double longitude = gaia_airport_airports_longitude(airport);
     return Float8GetDatum(longitude);
 }
 
-static inline Datum airport_get_altitude(const void *rootObject) {
+static inline Datum airport_get_altitude(const void *root_object) {
     gaia_airport_airports_table_t airport =
-        (gaia_airport_airports_table_t)rootObject;
+        (gaia_airport_airports_table_t)root_object;
     int32_t altitude = gaia_airport_airports_altitude(airport);
     return Int32GetDatum(altitude);
 }
 
-static inline Datum airport_get_timezone(const void *rootObject) {
+static inline Datum airport_get_timezone(const void *root_object) {
     gaia_airport_airports_table_t airport =
-        (gaia_airport_airports_table_t)rootObject;
+        (gaia_airport_airports_table_t)root_object;
     float timezone = gaia_airport_airports_timezone(airport);
     return Float4GetDatum(timezone);
 }
 
-static inline Datum airport_get_dst(const void *rootObject) {
+static inline Datum airport_get_dst(const void *root_object) {
     gaia_airport_airports_table_t airport =
-        (gaia_airport_airports_table_t)rootObject;
+        (gaia_airport_airports_table_t)root_object;
     flatbuffers_string_t dst = gaia_airport_airports_dst(airport);
     return flatbuffers_string_to_text_datum(dst);
 }
 
-static inline Datum airport_get_tztext(const void *rootObject) {
+static inline Datum airport_get_tztext(const void *root_object) {
     gaia_airport_airports_table_t airport =
-        (gaia_airport_airports_table_t)rootObject;
+        (gaia_airport_airports_table_t)root_object;
     flatbuffers_string_t tztext = gaia_airport_airports_tztext(airport);
     return flatbuffers_string_to_text_datum(tztext);
 }
 
-static inline Datum airport_get_type(const void *rootObject) {
+static inline Datum airport_get_type(const void *root_object) {
     gaia_airport_airports_table_t airport =
-        (gaia_airport_airports_table_t)rootObject;
+        (gaia_airport_airports_table_t)root_object;
     flatbuffers_string_t type = gaia_airport_airports_type(airport);
     return flatbuffers_string_to_text_datum(type);
 }
 
-static inline Datum airport_get_source(const void *rootObject) {
+static inline Datum airport_get_source(const void *root_object) {
     gaia_airport_airports_table_t airport =
-        (gaia_airport_airports_table_t)rootObject;
+        (gaia_airport_airports_table_t)root_object;
     flatbuffers_string_t source = gaia_airport_airports_source(airport);
     return flatbuffers_string_to_text_datum(source);
 }
 
-static inline Datum airline_get_gaia_id(const void *rootObject) {
+static inline Datum airline_get_gaia_id(const void *root_object) {
     gaia_airport_airlines_table_t airline =
-        (gaia_airport_airlines_table_t)rootObject;
+        (gaia_airport_airlines_table_t)root_object;
     uint64_t gaia_id = gaia_airport_airlines_gaia_id(airline);
     return UInt64GetDatum(gaia_id);
 }
 
-static inline Datum airline_get_al_id(const void *rootObject) {
+static inline Datum airline_get_al_id(const void *root_object) {
     gaia_airport_airlines_table_t airline =
-        (gaia_airport_airlines_table_t)rootObject;
+        (gaia_airport_airlines_table_t)root_object;
     int32_t al_id = gaia_airport_airlines_al_id(airline);
     return Int32GetDatum(al_id);
 }
 
-static inline Datum airline_get_name(const void *rootObject) {
+static inline Datum airline_get_name(const void *root_object) {
     gaia_airport_airlines_table_t airline =
-        (gaia_airport_airlines_table_t)rootObject;
+        (gaia_airport_airlines_table_t)root_object;
     flatbuffers_string_t name = gaia_airport_airlines_name(airline);
     return flatbuffers_string_to_text_datum(name);
 }
 
-static inline Datum airline_get_alias(const void *rootObject) {
+static inline Datum airline_get_alias(const void *root_object) {
     gaia_airport_airlines_table_t airline =
-        (gaia_airport_airlines_table_t)rootObject;
+        (gaia_airport_airlines_table_t)root_object;
     flatbuffers_string_t alias = gaia_airport_airlines_alias(airline);
     return flatbuffers_string_to_text_datum(alias);
 }
 
-static inline Datum airline_get_iata(const void *rootObject) {
+static inline Datum airline_get_iata(const void *root_object) {
     gaia_airport_airlines_table_t airline =
-        (gaia_airport_airlines_table_t)rootObject;
+        (gaia_airport_airlines_table_t)root_object;
     flatbuffers_string_t iata = gaia_airport_airlines_iata(airline);
     return flatbuffers_string_to_text_datum(iata);
 }
 
-static inline Datum airline_get_icao(const void *rootObject) {
+static inline Datum airline_get_icao(const void *root_object) {
     gaia_airport_airlines_table_t airline =
-        (gaia_airport_airlines_table_t)rootObject;
+        (gaia_airport_airlines_table_t)root_object;
     flatbuffers_string_t icao = gaia_airport_airlines_icao(airline);
     return flatbuffers_string_to_text_datum(icao);
 }
 
-static inline Datum airline_get_callsign(const void *rootObject) {
+static inline Datum airline_get_callsign(const void *root_object) {
     gaia_airport_airlines_table_t airline =
-        (gaia_airport_airlines_table_t)rootObject;
+        (gaia_airport_airlines_table_t)root_object;
     flatbuffers_string_t callsign = gaia_airport_airlines_callsign(airline);
     return flatbuffers_string_to_text_datum(callsign);
 }
 
-static inline Datum airline_get_country(const void *rootObject) {
+static inline Datum airline_get_country(const void *root_object) {
     gaia_airport_airlines_table_t airline =
-        (gaia_airport_airlines_table_t)rootObject;
+        (gaia_airport_airlines_table_t)root_object;
     flatbuffers_string_t country = gaia_airport_airlines_country(airline);
     return flatbuffers_string_to_text_datum(country);
 }
 
-static inline Datum airline_get_active(const void *rootObject) {
+static inline Datum airline_get_active(const void *root_object) {
     gaia_airport_airlines_table_t airline =
-        (gaia_airport_airlines_table_t)rootObject;
+        (gaia_airport_airlines_table_t)root_object;
     flatbuffers_string_t active = gaia_airport_airlines_active(airline);
     return flatbuffers_string_to_text_datum(active);
 }
 
-static inline Datum route_get_gaia_id(const void *rootObject) {
-    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)rootObject;
+static inline Datum route_get_gaia_id(const void *root_object) {
+    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)root_object;
     uint64_t gaia_id = gaia_airport_routes_gaia_id(route);
     return UInt64GetDatum(gaia_id);
 }
 
-static inline Datum route_get_gaia_al_id(const void *rootObject) {
-    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)rootObject;
+static inline Datum route_get_gaia_al_id(const void *root_object) {
+    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)root_object;
     uint64_t gaia_al_id = gaia_airport_routes_gaia_al_id(route);
     return UInt64GetDatum(gaia_al_id);
 }
 
-static inline Datum route_get_gaia_src_id(const void *rootObject) {
-    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)rootObject;
+static inline Datum route_get_gaia_src_id(const void *root_object) {
+    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)root_object;
     uint64_t gaia_src_id = gaia_airport_routes_gaia_src_id(route);
     return UInt64GetDatum(gaia_src_id);
 }
 
-static inline Datum route_get_gaia_dst_id(const void *rootObject) {
-    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)rootObject;
+static inline Datum route_get_gaia_dst_id(const void *root_object) {
+    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)root_object;
     uint64_t gaia_dst_id = gaia_airport_routes_gaia_dst_id(route);
     return UInt64GetDatum(gaia_dst_id);
 }
 
-static inline Datum route_get_airline(const void *rootObject) {
-    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)rootObject;
+static inline Datum route_get_airline(const void *root_object) {
+    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)root_object;
     flatbuffers_string_t airline = gaia_airport_routes_airline(route);
     return flatbuffers_string_to_text_datum(airline);
 }
 
-static inline Datum route_get_al_id(const void *rootObject) {
-    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)rootObject;
+static inline Datum route_get_al_id(const void *root_object) {
+    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)root_object;
     int32_t al_id = gaia_airport_routes_al_id(route);
     return Int32GetDatum(al_id);
 }
 
-static inline Datum route_get_src_ap(const void *rootObject) {
-    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)rootObject;
+static inline Datum route_get_src_ap(const void *root_object) {
+    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)root_object;
     flatbuffers_string_t src_ap = gaia_airport_routes_src_ap(route);
     return flatbuffers_string_to_text_datum(src_ap);
 }
 
-static inline Datum route_get_src_ap_id(const void *rootObject) {
-    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)rootObject;
+static inline Datum route_get_src_ap_id(const void *root_object) {
+    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)root_object;
     int32_t src_ap_id = gaia_airport_routes_src_ap_id(route);
     return Int32GetDatum(src_ap_id);
 }
 
-static inline Datum route_get_dst_ap(const void *rootObject) {
-    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)rootObject;
+static inline Datum route_get_dst_ap(const void *root_object) {
+    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)root_object;
     flatbuffers_string_t dst_ap = gaia_airport_routes_dst_ap(route);
     return flatbuffers_string_to_text_datum(dst_ap);
 }
 
-static inline Datum route_get_dst_ap_id(const void *rootObject) {
-    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)rootObject;
+static inline Datum route_get_dst_ap_id(const void *root_object) {
+    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)root_object;
     int32_t dst_ap_id = gaia_airport_routes_dst_ap_id(route);
     return Int32GetDatum(dst_ap_id);
 }
 
-static inline Datum route_get_codeshare(const void *rootObject) {
-    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)rootObject;
+static inline Datum route_get_codeshare(const void *root_object) {
+    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)root_object;
     flatbuffers_string_t codeshare = gaia_airport_routes_codeshare(route);
     return flatbuffers_string_to_text_datum(codeshare);
 }
 
-static inline Datum route_get_stops(const void *rootObject) {
-    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)rootObject;
+static inline Datum route_get_stops(const void *root_object) {
+    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)root_object;
     int32_t stops = gaia_airport_routes_stops(route);
     return Int32GetDatum(stops);
 }
 
-static inline Datum route_get_equipment(const void *rootObject) {
-    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)rootObject;
+static inline Datum route_get_equipment(const void *root_object) {
+    gaia_airport_routes_table_t route = (gaia_airport_routes_table_t)root_object;
     flatbuffers_string_t equipment = gaia_airport_routes_equipment(route);
     return flatbuffers_string_to_text_datum(equipment);
 }
 
-// type-specific builders
+// Type-specific builders.
 static inline void airport_add_gaia_id(flatbuffers_builder_t *builder,
     Datum value) {
     uint64_t gaia_id = DatumGetUInt64(value);
@@ -490,10 +490,10 @@ static inline void route_add_equipment(flatbuffers_builder_t *builder,
     gaia_airport_routes_equipment_create_str(builder, equipment);
 }
 
-// hardcoded mappings for the demo types, later will be dynamically generated by
+// Hardcoded mappings for the demo types, later will be dynamically generated by
 // parsing flatbuffer schema these arrays are defined separately so I can use
-// sizeof() on them to determine their size at compile time
-static const Attribute AIRPORT_ATTRS[] = {
+// sizeof() on them to determine their size at compile time.
+static const attribute_t c_airport_attributes[] = {
     {"gaia_id", airport_get_gaia_id, airport_add_gaia_id},
     {"ap_id", airport_get_ap_id, airport_add_ap_id},
     {"name", airport_get_name, airport_add_name},
@@ -511,7 +511,7 @@ static const Attribute AIRPORT_ATTRS[] = {
     {"source", airport_get_source, airport_add_source},
 };
 
-static const Attribute AIRLINE_ATTRS[] = {
+static const attribute_t c_airline_attributes[] = {
     {"gaia_id", airline_get_gaia_id, airline_add_gaia_id},
     {"al_id", airline_get_al_id, airline_add_al_id},
     {"name", airline_get_name, airline_add_name},
@@ -523,7 +523,7 @@ static const Attribute AIRLINE_ATTRS[] = {
     {"active", airline_get_active, airline_add_active},
 };
 
-static const Attribute ROUTE_ATTRS[] = {
+static const attribute_t c_route_attributes[] = {
     {"gaia_id", route_get_gaia_id, route_add_gaia_id},
     {"gaia_al_id", route_get_gaia_al_id, route_add_gaia_al_id},
     {"gaia_src_id", route_get_gaia_src_id, route_add_gaia_src_id},
@@ -539,37 +539,37 @@ static const Attribute ROUTE_ATTRS[] = {
     {"equipment", route_get_equipment, route_add_equipment},
 };
 
-RelationAttributeMapping AIRPORT_MAPPING = {
+relation_attribute_mapping_t c_airport_mapping = {
     "airports",
-    airport_demo_types::kAirportsType,
-    (RootObjectDeserializer)gaia_airport_airports_as_root,
-    (BuilderInitializer)gaia_airport_airports_start_as_root,
-    (BuilderFinalizer)gaia_airport_airports_end_as_root,
-    AIRPORT_ATTRS,
-    array_size(AIRPORT_ATTRS),
+    airport_demo_types::c_airports_type,
+    (root_object_deserializer_fn)gaia_airport_airports_as_root,
+    (builder_initializer_fn)gaia_airport_airports_start_as_root,
+    (builder_finalizer_fn)gaia_airport_airports_end_as_root,
+    c_airport_attributes,
+    array_size(c_airport_attributes),
 };
 
-RelationAttributeMapping AIRLINE_MAPPING = {
+relation_attribute_mapping_t c_airline_mapping = {
     "airlines",
-    airport_demo_types::kAirlinesType,
-    (RootObjectDeserializer)gaia_airport_airlines_as_root,
-    (BuilderInitializer)gaia_airport_airlines_start_as_root,
-    (BuilderFinalizer)gaia_airport_airlines_end_as_root,
-    AIRLINE_ATTRS,
-    array_size(AIRLINE_ATTRS),
+    airport_demo_types::c_airlines_type,
+    (root_object_deserializer_fn)gaia_airport_airlines_as_root,
+    (builder_initializer_fn)gaia_airport_airlines_start_as_root,
+    (builder_finalizer_fn)gaia_airport_airlines_end_as_root,
+    c_airline_attributes,
+    array_size(c_airline_attributes),
 };
 
-RelationAttributeMapping ROUTE_MAPPING = {
+relation_attribute_mapping_t c_route_mapping = {
     "routes",
-    airport_demo_types::kRoutesType,
-    (RootObjectDeserializer)gaia_airport_routes_as_root,
-    (BuilderInitializer)gaia_airport_routes_start_as_root,
-    (BuilderFinalizer)gaia_airport_routes_end_as_root,
-    ROUTE_ATTRS,
-    array_size(ROUTE_ATTRS),
+    airport_demo_types::c_routes_type,
+    (root_object_deserializer_fn)gaia_airport_routes_as_root,
+    (builder_initializer_fn)gaia_airport_routes_start_as_root,
+    (builder_finalizer_fn)gaia_airport_routes_end_as_root,
+    c_route_attributes,
+    array_size(c_route_attributes),
 };
 
-const char *AIRPORT_DDL_STMT_FMT =
+const char *c_airport_ddl_stmt_fmt =
     "create foreign table airports( "
     "gaia_id bigint, "
     "ap_id int, name text, city text, country text, iata char(3), icao "
@@ -578,7 +578,7 @@ const char *AIRPORT_DDL_STMT_FMT =
     "timezone float, dst char(1), tztext text, type text, source text) "
     "server %s;";
 
-const char *AIRLINE_DDL_STMT_FMT =
+const char *c_airline_ddl_stmt_fmt =
     "create foreign table airlines( "
     "gaia_id bigint, "
     "al_id int, "
@@ -586,7 +586,7 @@ const char *AIRLINE_DDL_STMT_FMT =
     "callsign text, country text, active char(1)) "
     "server %s;";
 
-const char *ROUTE_DDL_STMT_FMT =
+const char *c_route_ddl_stmt_fmt =
     "create foreign table routes( "
     "gaia_id bigint, gaia_al_id bigint, gaia_src_id bigint, gaia_dst_id "
     "bigint, "

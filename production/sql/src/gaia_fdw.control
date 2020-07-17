@@ -1,4 +1,4 @@
-# gaia_fdw extension
+# gaia_fdw extension.
 comment = 'Gaia Storage Engine Foreign Data Wrapper'
 default_version = '@PG_GAIA_FDW_VERSION@'
 module_pathname = '$libdir/gaia_fdw-@PG_GAIA_FDW_VERSION_MAJOR@'
