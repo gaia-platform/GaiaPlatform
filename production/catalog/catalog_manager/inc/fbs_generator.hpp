@@ -39,13 +39,5 @@ string generate_fbs(const string &table_name, const ddl::field_def_list_t &field
  */
 string generate_bfbs(const string &fbs);
 
-/**
- * Convert the DDL parser binding data type enum to catalog record fbs definition enum.
- *
- * @param DDL data type
- * @return Gaia catalog data type
- */
-gaia_data_type to_gaia_data_type(ddl::data_type_t data_type);
-
 } // namespace catalog
 } // namespace gaia

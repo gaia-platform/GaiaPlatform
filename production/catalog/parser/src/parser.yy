@@ -25,8 +25,8 @@
     #include <vector>
     namespace gaia {
     namespace catalog {
+    enum class data_type_t : uint8_t;
     namespace ddl {
-        enum class data_type_t : unsigned int;
         struct statement_t;
         struct create_statement_t;
         struct field_type_t;
@@ -39,6 +39,7 @@
     using namespace gaia::catalog::ddl;
     using field_def_list_t = std::vector<std::unique_ptr<field_definition_t>>;
     using statement_list_t = std::vector<std::unique_ptr<statement_t>>;
+    using data_type_t = gaia::catalog::data_type_t;
 }
 
 // The parsing context.

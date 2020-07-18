@@ -19,15 +19,15 @@ namespace catalog {
  * \addtogroup catalog
  * @{
  */
-namespace ddl {
-/**
- * \addtogroup ddl
- * @{
- *
- * Definitions for parse result bindings
+
+/*
+ * The following enum classes are shared cross the catalog usage.
  */
 
-enum class data_type_t : unsigned int {
+/*
+ * Data types for Gaia field records.
+ */
+enum class data_type_t : uint8_t {
     BOOL,
     INT8,
     UINT8,
@@ -43,7 +43,32 @@ enum class data_type_t : unsigned int {
     REFERENCES
 };
 
-enum class  statement_type_t : unsigned int {
+/*
+ * Trim action for log tables.
+ */
+enum class trim_action_type_t : uint8_t {
+    NONE,
+    DELETE,
+    ARCHIVE,
+};
+
+/*
+ * Value index types.
+ */
+enum value_index_type_t : uint8_t {
+    HASH,
+    RANGE
+};
+
+namespace ddl {
+/**
+ * \addtogroup ddl
+ * @{
+ *
+ * Definitions for parse result bindings
+ */
+
+enum class statement_type_t : uint8_t {
     CREATE,
     DROP,
     ALTER
@@ -51,16 +76,16 @@ enum class  statement_type_t : unsigned int {
 
 struct statement_t {
 
-    statement_t( statement_type_t type) : m_type(type){};
+    statement_t(statement_type_t type) : m_type(type){};
 
-     statement_type_t type() const { return m_type; };
+    statement_type_t type() const { return m_type; };
 
-    bool is_type( statement_type_t type) const { return m_type == type; };
+    bool is_type(statement_type_t type) const { return m_type == type; };
 
     virtual ~statement_t(){};
 
   private:
-     statement_type_t m_type;
+    statement_type_t m_type;
 };
 
 struct field_type_t {
@@ -86,7 +111,7 @@ struct field_definition_t {
 
 using field_def_list_t = vector<unique_ptr<field_definition_t>>;
 
-enum class create_type_t : unsigned int {
+enum class create_type_t : uint8_t {
     CREATE_TABLE,
 };
 
