@@ -42,6 +42,7 @@ endif()
 add_library(gaia_rules STATIC
   src/event_manager.cpp
   src/rule_thread_pool.cpp
+  src/rule_context.cpp
 )
 add_dependencies(gaia_rules generate_event_logs)
 set_target_properties(gaia_rules PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
@@ -51,7 +52,8 @@ target_link_libraries(gaia_rules PRIVATE gaia_semock)
 set_property (TARGET gaia_rules PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # unit tests
-# add_gtest(test_auto_tx "tests/test_auto_tx.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
-# add_gtest(test_event_manager "tests/test_event_manager.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
-# add_gtest(test_system_init "tests/test_system_init.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
-# add_gtest(test_component_init "tests/test_component_init.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
+#add_gtest(test_auto_tx "tests/test_auto_tx.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_semock")
+#add_gtest(test_event_manager "tests/test_event_manager.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
+#add_gtest(test_system_init "tests/test_system_init.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
+#add_gtest(test_component_init "tests/test_component_init.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_rules;gaia_direct;gaia_semock")
+add_gtest(test_rule_context "tests/test_rule_context.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_rules")
