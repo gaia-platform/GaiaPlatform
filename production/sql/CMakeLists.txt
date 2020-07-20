@@ -101,4 +101,4 @@ add_subdirectory(src)
 
 # Add tests.
 
-add_subdirectory(tests)
+#add_subdirectory(tests)
