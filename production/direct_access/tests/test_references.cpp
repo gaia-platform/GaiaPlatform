@@ -6,7 +6,6 @@
 #include <iostream>
 #include "gtest/gtest.h"
 #include "addr_book_gaia_mock.h"
-#include "event_manager.hpp"
 
 using namespace std;
 using namespace gaia::db;
@@ -14,13 +13,8 @@ using namespace gaia::common;
 using namespace gaia::direct_access;
 using namespace AddrBook;
 
-extern "C" void initialize_rules()
-{
-}
-
 class gaia_references_test : public ::testing::Test {
 public:
-    static bool init_rules;
 protected:
     void delete_employees() {
         Employee* e;
@@ -43,10 +37,6 @@ protected:
 
     void SetUp() override {
         gaia_mem_base::init(true);
-        if (!init_rules) {
-            init_rules = true;
-            gaia::rules::initialize_rules_engine();
-        }
     }
 
     void TearDown() override { 
@@ -55,9 +45,6 @@ protected:
         gaia_mem_base::reset();
     }
 };
-
-bool gaia_references_test::init_rules;
-
 
 // Test connecting, disconnecting, navigating records
 // ==================================================

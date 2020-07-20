@@ -44,5 +44,5 @@ set (DIRECT_ACCESS_TEST_INCLUDES
     ${GAIA_DIRECT_ACCESS_INCLUDES}
     .
 )
-add_gtest(test_direct_access "tests/test_direct_access.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia;gaia_triggers;gaia_rules" "test_generated_code")
-add_gtest(test_references "tests/test_references.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia;gaia_triggers;gaia_rules" "test_generated_code")
+add_gtest(test_direct_access "tests/test_direct_access.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia;gaia_triggers" "test_generated_code")
+add_gtest(test_references "tests/test_references.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia;gaia_triggers" "test_generated_code")

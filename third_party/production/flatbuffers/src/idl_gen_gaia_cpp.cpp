@@ -241,7 +241,6 @@ namespace flatbuffers
                 code_ += "";
 
                 code_ += "#include \"gaia_object.hpp\"";
-                code_ += "#include \"event_manager.hpp\"";
                 code_ += "#include \"" + GeneratedCPPFileName(file_name_) + "\"";
                 
                 if (opts_.generate_setters && opts_.generate_events)

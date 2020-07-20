@@ -19,3 +19,4 @@ gaia::db::threadPool* gaia::db::gaia_mem_base::trigger_pool = nullptr;
 gaia::db::gaia_tx_hook gaia::db::s_tx_begin_hook = nullptr;
 gaia::db::gaia_tx_hook gaia::db::s_tx_commit_hook = nullptr;
 gaia::db::gaia_tx_hook gaia::db::s_tx_rollback_hook = nullptr;
+gaia::common::f_commit_trigger_t gaia::db::gaia_mem_base::s_tx_commit_trigger = nullptr;

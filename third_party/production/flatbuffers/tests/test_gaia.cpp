@@ -19,11 +19,6 @@ gaia_id_t get_next_id()
 trigger_event_t g_trigger_event;
 std::vector<uint16_t> g_columns;
 
-extern "C"
-void initialize_rules()
-{
-}
-
 // Todo(msj) Fix verify
 void verify_trigger_event(trigger_event_t& expected)
 {
@@ -286,7 +281,6 @@ int main(int /*argc*/, const char * /*argv*/[])
     }
 
     gaia_mem_base::init("all_events", true);
-    gaia::rules::initialize_rules_engine();
     GaiaGetTest();
     GaiaSetTest();
     GaiaUpdateTest();

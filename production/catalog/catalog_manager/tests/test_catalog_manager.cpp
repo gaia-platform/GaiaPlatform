@@ -4,7 +4,6 @@
 /////////////////////////////////////////////
 #include "catalog_manager.hpp"
 #include "catalog_gaia_generated.h"
-#include "event_manager.hpp"
 #include "gtest/gtest.h"
 #include <memory>
 #include <vector>
@@ -13,15 +12,10 @@
 using namespace gaia::catalog;
 using namespace std;
 
-extern "C" void initialize_rules()
-{
-}
-
 class catalog_manager_test : public ::testing::Test {
   protected:
     static void SetUpTestSuite() {
         gaia::db::gaia_mem_base::init(true);
-        gaia::rules::initialize_rules_engine();
     }
 
     static set<gaia_id_t> table_ids;

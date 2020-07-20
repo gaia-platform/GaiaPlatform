@@ -6,12 +6,19 @@
 #include "retail_assert.hpp"
 #include "event_manager.hpp"
 #include "auto_tx.hpp"
+// #include "storage_engine.hpp"
 
 #include <cstring>
 
 using namespace gaia::rules;
 using namespace gaia::common;
 using namespace std;
+
+// static event_manager_t* g_event_manager_t;
+
+// void call_func(uint64_t xid, shared_ptr<std::vector<unique_ptr<triggers::trigger_event_t>>> events, size_t count_events, bool immediate) {
+//     g_event_manager_t->commit_trigger_se(xid, events, count_events, immediate);
+// }
 
 /**
  * Class implementation
@@ -51,7 +58,7 @@ void event_manager_t::init()
 }
 
 void event_manager_t::commit_trigger(uint32_t, trigger_event_t* events, size_t count_events, bool immediate)
-{
+{ 
     if (!immediate)
     {
         for (size_t i = 0; i < count_events; i++)
@@ -568,6 +575,12 @@ void gaia::rules::initialize_rules_engine()
 {
     bool is_initializing = true;
     event_manager_t::get(is_initializing).init();
+
+    auto func = [] (uint64_t xid, shared_ptr<std::vector<unique_ptr<triggers::trigger_event_t>>> events, size_t count_events, bool immediate) {
+        event_manager_t::get().commit_trigger_se(xid, events, count_events, immediate);
+    };
+
+    gaia::db::set_commit_trigger(func);
 
     /**
      * This function must be provided by the 

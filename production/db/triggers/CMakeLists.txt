@@ -11,8 +11,6 @@ project(triggers)
 set(GENERATED_OUTPUTS "${CMAKE_BINARY_DIR}/rules/event_manager/generated")
 set(GAIA_TRIGGERS_INCLUDES
   "${GAIA_DB_INC}/triggers"
-  "${GAIA_REPO}/production/rules/event_manager/inc"
-  "${GAIA_REPO}/production/inc/public/rules"
   "${GAIA_REPO}/production/inc/public/direct_access"
   "${GAIA_REPO}/production/db/storage_engine/mock"
   "${GAIA_INC}/public/common"

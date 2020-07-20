@@ -19,6 +19,12 @@ using namespace gaia::db::triggers;
 
 namespace gaia 
 {
+
+namespace db 
+{
+    f_commit_trigger_t set_commit_trigger(f_commit_trigger_t commit_trigger);
+}
+
 namespace rules
 {
 

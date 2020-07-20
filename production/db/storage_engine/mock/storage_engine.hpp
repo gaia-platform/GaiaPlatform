@@ -32,6 +32,7 @@ namespace gaia
 namespace common
 {
     typedef uint64_t gaia_type_t;
+    typedef void (*f_commit_trigger_t) (uint64_t, shared_ptr<std::vector<unique_ptr<gaia::db::triggers::trigger_event_t>>>, size_t, bool);
 }
 
 namespace db
@@ -152,6 +153,13 @@ namespace db
     class gaia_mem_base
     {
     private:
+        static f_commit_trigger_t s_tx_commit_trigger;
+
+        friend f_commit_trigger_t set_commit_trigger(f_commit_trigger_t commit_trigger) {
+            s_tx_commit_trigger = commit_trigger;
+            return s_tx_commit_trigger;
+        }
+
         static void throw_runtime_error(const std::string& info)
         {
             std::stringstream ss;
@@ -360,8 +368,12 @@ namespace db
 
             if (trigger) {
                 events_->push_back(unique_ptr<triggers::trigger_event_t>(new triggers::trigger_event_t {triggers::event_type_t::transaction_commit, 0, 0, nullptr, 0}));
-                triggers::event_trigger::commit_trigger_(trid, events_, log_count +  2, true);
-
+                // triggers::event_trigger::commit_trigger_(trid, events_, log_count +  2, true);
+                
+                // Execute trigger only if rules engine is initialized.
+                if (s_tx_commit_trigger) {
+                    s_tx_commit_trigger(trid, events_, log_count+2, true);
+                }
                 // Todo(msj) Enable when merged with new SE
                 // trigger_pool->add_trigger_task(trid, log_count +  2, events_);
             }            
