@@ -2,22 +2,37 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
-#include "gaia_catalog.hpp"
-#include "fbs_generator.hpp"
+
 #include "flatbuffers/idl.h"
 #include "gtest/gtest.h"
+
+#include "gaia_catalog.hpp"
+#include "fbs_generator.hpp"
+#include "db_test_helpers.hpp"
 
 using namespace gaia::catalog;
 
 class fbs_generation_test : public ::testing::Test {
   protected:
-    static void SetUpTestSuite() {
+    void SetUp() override {
         gaia::db::begin_session();
+    }
+
+    void TearDown() override {
+        gaia::db::end_session();
+    }
+
+    static void SetUpTestSuite() {
+        gaia::db::start_server();
         // We need to use push_back to init the test fields because:
         // 1) Initializer_lists always perform copies, and unique_ptrs are not copyable.
         // 2) Without make_unique (C++ 14), using emplace_back and new can leak if the vector fails to reallocate memory.
         test_table_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("id", ddl::data_type_t::INT8, 1)));
         test_table_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("name", ddl::data_type_t::STRING, 1)));
+    }
+
+    static void TearDownTestSuite() {
+        gaia::db::stop_server();
     }
 
     static ddl::field_def_list_t test_table_fields;
@@ -30,7 +45,6 @@ TEST_F(fbs_generation_test, generate_fbs_from_catalog) {
 
     gaia_id_t table_id = create_table(test_table_name, test_table_fields);
     string fbs = generate_fbs(table_id);
-    gaia::db::end_session();
 
     flatbuffers::Parser fbs_parser;
 

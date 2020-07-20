@@ -68,5 +68,8 @@ int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);
   start_server();
   begin_session();
-  return RUN_ALL_TESTS();
+  int ret_code = RUN_ALL_TESTS();
+  end_session();
+  stop_server();
+  return ret_code;
 }

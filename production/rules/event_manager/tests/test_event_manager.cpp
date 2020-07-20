@@ -412,21 +412,26 @@ static constexpr int s_rule_decl_len = sizeof(s_rule_decl)/sizeof(s_rule_decl[0]
 class event_manager_test : public ::testing::Test
 {
 protected:
-    virtual void SetUp()
-    {
+    static void SetUpTestSuite() {
         start_server();
     }
 
-    virtual void TearDown()
-    {
+    static void TearDownTestSuite() {
+        stop_server();
+    }
+
+    void SetUp() override {
+        begin_session();
+    }
+
+    virtual void TearDown() override {
         unsubscribe_rules();
         g_context_checker.reset(true);
-
         // This expectation verifies that the caller provided
         // initialize_rules function was called exactly once by
         // the event_manager_t singleton.
         EXPECT_EQ(1, g_initialize_rules_called);
-        stop_server();
+        end_session();
     }
 
     void validate_rule(
