@@ -103,17 +103,21 @@ private:
         commit_transaction();
     }
 protected:
-    virtual void SetUp()
-    {
+    static void SetUpTestSuite() {
         start_server();
+    }
+
+    static void TearDownTestSuite() {
+        stop_server();
+    }
+
+    void SetUp() override {
         begin_session();
         init_data();
     }
 
-    virtual void TearDown()
-    {
+    void TearDown() override {
         end_session();
-        stop_server();
     }
 };
 

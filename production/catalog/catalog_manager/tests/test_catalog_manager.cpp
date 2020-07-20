@@ -2,26 +2,38 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
-#include "gaia_catalog.hpp"
-#include "catalog_gaia_generated.h"
-#include "fbs_generator.hpp"
-#include "gtest/gtest.h"
-#include "flatbuffers/reflection.h"
+
 #include <memory>
 #include <vector>
 #include <set>
+
+#include "gtest/gtest.h"
+#include "flatbuffers/reflection.h"
+
+#include "gaia_catalog.hpp"
+#include "catalog_gaia_generated.h"
+#include "fbs_generator.hpp"
+#include "db_test_helpers.hpp"
 
 using namespace gaia::catalog;
 using namespace std;
 
 class catalog_manager_test : public ::testing::Test {
   protected:
-    static void SetUpTestSuite() {
+    void SetUp() override {
         gaia::db::begin_session();
     }
 
-    static void TearDownTestSuite() {
+    void TearDown() override {
         gaia::db::end_session();
+    }
+
+    static void SetUpTestSuite() {
+        gaia::db::start_server();
+    }
+
+    static void TearDownTestSuite() {
+        gaia::db::stop_server();
     }
 
     static set<gaia_id_t> table_ids;
