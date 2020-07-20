@@ -11,7 +11,7 @@
 #include "gaia_db.hpp"
 #include "gaia_ptr.hpp"
 
-// all Postgres headers and function declarations must have C linkage
+// All Postgres headers and function declarations must have C linkage.
 extern "C" {
 
 #include "airport_demo_type_mapping.hpp"
@@ -28,7 +28,7 @@ extern "C" {
 #include "commands/defrem.h"
 #include "executor/executor.h"
 #include "foreign/fdwapi.h"
-// for FDW helpers: https://www.postgresql.org/docs/devel/fdw-helpers.html
+// For FDW helpers: https://www.postgresql.org/docs/devel/fdw-helpers.html.
 #include "foreign/foreign.h"
 #include "nodes/makefuncs.h"
 #include "nodes/pathnodes.h"
@@ -41,148 +41,213 @@ extern "C" {
 #include "utils/rel.h"
 #include "utils/syscache.h"
 
-/*
- * Module initialization function
- */
+// Module initialization function.
 extern void _PG_init();
-/*
- * Module unload function
- */
+// Module unload function.
 extern void _PG_fini();
 
-/*
- * SQL functions
- */
+// SQL functions.
 extern Datum gaia_fdw_handler(PG_FUNCTION_ARGS);
 extern Datum gaia_fdw_validator(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(gaia_fdw_handler);
 PG_FUNCTION_INFO_V1(gaia_fdw_validator);
 
-/*
- * FDW callback routines
- */
-void gaiaGetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel,
-    Oid foreigntableid);
-void gaiaGetForeignPaths(PlannerInfo *root, RelOptInfo *baserel,
-    Oid foreigntableid);
-ForeignScan *gaiaGetForeignPlan(PlannerInfo *root, RelOptInfo *foreignrel,
-    Oid foreigntableid, ForeignPath *best_path,
-    List *tlist, List *scan_clauses,
+// FDW callback routines.
+void gaia_get_foreign_rel_size(
+    PlannerInfo *root,
+    RelOptInfo *base_rel,
+    Oid foreign_table_id);
+
+void gaia_get_foreign_paths(
+    PlannerInfo *root,
+    RelOptInfo *base_rel,
+    Oid foreign_table_id);
+
+ForeignScan *gaia_get_foreign_plan(
+    PlannerInfo *root,
+    RelOptInfo *foreign_rel,
+    Oid foreign_table_id,
+    ForeignPath *best_path,
+    List *tlist,
+    List *scan_clauses,
     Plan *outer_plan);
-void gaiaBeginForeignScan(ForeignScanState *node, int eflags);
-TupleTableSlot *gaiaIterateForeignScan(ForeignScanState *node);
-void gaiaReScanForeignScan(ForeignScanState *node);
-void gaiaEndForeignScan(ForeignScanState *node);
-void gaiaAddForeignUpdateTargets(Query *parsetree, RangeTblEntry *target_rte,
+
+void gaia_begin_foreign_scan(
+    ForeignScanState *node,
+    int eflags);
+
+TupleTableSlot *gaia_iterate_foreign_scan(ForeignScanState *node);
+
+void gaia_rescan_foreign_scan(ForeignScanState *node);
+
+void gaia_end_foreign_scan(ForeignScanState *node);
+
+void gaia_add_foreign_update_targets(
+    Query *parse_tree,
+    RangeTblEntry *target_rte,
     Relation target_relation);
-List *gaiaPlanForeignModify(PlannerInfo *root, ModifyTable *plan,
-    Index resultRelation, int subplan_index);
-void gaiaBeginForeignModify(ModifyTableState *mtstate,
-    ResultRelInfo *resultRelInfo, List *fdw_private,
-    int subplan_index, int eflags);
-TupleTableSlot *gaiaExecForeignInsert(EState *estate,
-    ResultRelInfo *resultRelInfo,
+
+List *gaia_plan_foreign_modify(
+    PlannerInfo *root,
+    ModifyTable *plan,
+    Index result_rel,
+    int subplan_index);
+
+void gaia_begin_foreign_modify(
+    ModifyTableState *mtstate,
+    ResultRelInfo *result_rel_info,
+    List *fdw_private,
+    int subplan_index,
+    int eflags);
+
+TupleTableSlot *gaia_exec_foreign_insert(
+    EState *estate,
+    ResultRelInfo *result_rel_info,
     TupleTableSlot *slot,
-    TupleTableSlot *planSlot);
-TupleTableSlot *gaiaExecForeignUpdate(EState *estate,
-    ResultRelInfo *resultRelInfo,
+    TupleTableSlot *plan_slot);
+
+TupleTableSlot *gaia_exec_foreign_update(
+    EState *estate,
+    ResultRelInfo *result_rel_info,
     TupleTableSlot *slot,
-    TupleTableSlot *planSlot);
-TupleTableSlot *gaiaExecForeignDelete(EState *estate,
-    ResultRelInfo *resultRelInfo,
+    TupleTableSlot *plan_slot);
+
+TupleTableSlot *gaia_exec_foreign_delete(
+    EState *estate,
+    ResultRelInfo *result_rel_info,
     TupleTableSlot *slot,
-    TupleTableSlot *planSlot);
-void gaiaEndForeignModify(EState *estate, ResultRelInfo *resultRelInfo);
-void gaiaBeginForeignInsert(ModifyTableState *mtstate,
-    ResultRelInfo *resultRelInfo);
-void gaiaEndForeignInsert(EState *estate, ResultRelInfo *resultRelInfo);
-int gaiaIsForeignRelUpdatable(Relation rel);
-bool gaiaPlanDirectModify(PlannerInfo *root, ModifyTable *plan,
-    Index resultRelation, int subplan_index);
-void gaiaBeginDirectModify(ForeignScanState *node, int eflags);
-TupleTableSlot *gaiaIterateDirectModify(ForeignScanState *node);
-void gaiaEndDirectModify(ForeignScanState *node);
-void gaiaExplainForeignScan(ForeignScanState *node, struct ExplainState *es);
-void gaiaExplainForeignModify(ModifyTableState *mtstate, ResultRelInfo *rinfo,
-    List *fdw_private, int subplan_index,
+    TupleTableSlot *plan_slot);
+
+void gaia_end_foreign_modify(EState *estate, ResultRelInfo *result_rel_info);
+
+void gaia_begin_foreign_insert(
+    ModifyTableState *mtstate,
+    ResultRelInfo *result_rel_info);
+
+void gaia_end_foreign_insert(EState *estate, ResultRelInfo *result_rel_info);
+
+int gaia_is_foreign_rel_updatable(Relation relation);
+
+bool gaia_plan_direct_modify(
+    PlannerInfo *root,
+    ModifyTable *plan,
+    Index result_rel,
+    int subplan_index);
+
+void gaia_begin_direct_modify(ForeignScanState *node, int eflags);
+
+TupleTableSlot *gaia_iterate_direct_modify(ForeignScanState *node);
+
+void gaia_end_direct_modify(ForeignScanState *node);
+
+void gaia_explain_foreign_scan(ForeignScanState *node, struct ExplainState *es);
+
+void gaia_explain_foreign_modify(
+    ModifyTableState *mtstate,
+    ResultRelInfo *rinfo,
+    List *fdw_private,
+    int subplan_index,
     struct ExplainState *es);
-void gaiaExplainDirectModify(ForeignScanState *node, struct ExplainState *es);
-bool gaiaAnalyzeForeignTable(Relation relation, AcquireSampleRowsFunc *func,
-    BlockNumber *totalpages);
-List *gaiaImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid);
-void gaiaGetForeignJoinPaths(PlannerInfo *root, RelOptInfo *joinrel,
-    RelOptInfo *outerrel, RelOptInfo *innerrel,
-    JoinType jointype, JoinPathExtraData *extra);
-bool gaiaRecheckForeignScan(ForeignScanState *node, TupleTableSlot *slot);
-void gaiaGetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
-    RelOptInfo *input_rel, RelOptInfo *output_rel,
+
+void gaia_explain_direct_modify(ForeignScanState *node, struct ExplainState *es);
+
+bool gaia_analyze_foreign_table(
+    Relation relation,
+    AcquireSampleRowsFunc *func,
+    BlockNumber *total_pages);
+
+List *gaia_import_foreign_schema(ImportForeignSchemaStmt *stmt, Oid server_oid);
+
+void gaia_get_foreign_join_paths(
+    PlannerInfo *root,
+    RelOptInfo *join_rel,
+    RelOptInfo *outer_rel,
+    RelOptInfo *inner_rel,
+    JoinType join_type,
+    JoinPathExtraData *extra);
+
+bool gaia_recheck_foreign_scan(ForeignScanState *node, TupleTableSlot *slot);
+
+void gaia_get_foreign_upper_paths(
+    PlannerInfo *root,
+    UpperRelationKind stage,
+    RelOptInfo *input_rel,
+    RelOptInfo *output_rel,
     void *extra);
-bool gaiaRecheckForeignScan(ForeignScanState *node, TupleTableSlot *slot);
-RowMarkType gaiaGetForeignRowMarkType(RangeTblEntry *rte,
+
+RowMarkType gaia_get_foreign_row_mark_type(
+    RangeTblEntry *rte,
     LockClauseStrength strength);
-void gaiaRefetchForeignRow(EState *estate, ExecRowMark *erm, Datum rowid,
-    TupleTableSlot *slot, bool *updated);
 
-/*
- * structures used by the FDW
- */
+void gaia_refetch_foreign_row(
+    EState *estate,
+    ExecRowMark *erm,
+    Datum rowid,
+    TupleTableSlot *slot,
+    bool *updated);
 
-typedef void (*OptionHandler)(const char *name, const char *value, Oid context);
-/*
- * Describes the valid options for objects that use this wrapper.
- */
+// Structures used by the FDW.
+typedef void (*option_handler_fn)(const char *name, const char *value, Oid context);
+
+// Describes the valid options for objects that use this wrapper.
 typedef struct {
     const char *name;
-    Oid context; /* Oid of catalog in which option may appear */
-    OptionHandler handler;
-} gaiaFdwOption;
 
-/*
- * Valid options for gaia_fdw.
- */
-static const gaiaFdwOption valid_options[] = {
-    /* Sentinel */
+    // Oid of catalog in which option may appear.
+    Oid context;
+
+    option_handler_fn handler;
+} gaia_fdw_option_t;
+
+// Valid options for gaia_fdw.
+static const gaia_fdw_option_t valid_options[] = {
+    // Sentinel.
     {NULL, InvalidOid, NULL}};
 
-/*
- * The scan state is set up in gaiaBeginForeignScan and stashed away in
- * node->fdw_private and fetched in gaiaIterateForeignScan.
- */
+// The scan state is set up in gaia_begin_foreign_scan and stashed away in
+// node->fdw_private and fetched in gaia_iterate_foreign_scan.
 typedef struct {
-    RootObjectDeserializer deserializer;
-    // flatbuffer accessor functions indexed by attrnum
-    AttributeAccessor *indexed_accessors;
-    // the COW-SE smart ptr we are currently iterating over
-    gaia::db::gaia_ptr cur_node;
-} gaiaFdwScanState;
+    root_object_deserializer_fn deserializer;
 
-/*
- * The modify state is for maintaining state of modify operations.
- *
- * It is set up in gaiaBeginForeignModify and stashed in
- * rinfo->ri_FdwState and subsequently used in gaiaExecForeignInsert,
- * gaiaExecForeignUpdate, gaiaExecForeignDelete and
- * gaiaEndForeignModify.
- */
+    // flatbuffer accessor functions indexed by attrnum.
+    attribute_accessor_fn *indexed_accessors;
+
+    // The COW-SE smart ptr we are currently iterating over.
+    gaia::db::gaia_ptr cur_node;
+} gaia_fdw_scan_state_t;
+
+// The modify state is for maintaining state of modify operations.
+//
+// It is set up in gaiaBeginForeignModify and stashed in
+// rinfo->ri_FdwState and subsequently used in gaiaExecForeignInsert,
+// gaiaExecForeignUpdate, gaiaExecForeignDelete and
+// gaiaEndForeignModify.
 typedef struct {
-    BuilderInitializer initializer;
-    BuilderFinalizer finalizer;
-    // flatbuffer attribute builder functions indexed by attrnum
-    AttributeBuilder *indexed_builders;
-    // flatbuffers builder for INSERT and UPDATE
+    builder_initializer_fn initializer;
+    builder_finalizer_fn finalizer;
+
+    // flatbuffer attribute builder functions indexed by attrnum.
+    attribute_builder_fn *indexed_builders;
+
+    // flatbuffers builder for INSERT and UPDATE.
     flatcc_builder_t builder;
-    // 0-based index of gaia_id attribute in tuple descriptor
+
+    // 0-based index of gaia_id attribute in tuple descriptor.
     int pk_attr_idx;
+
     // 0-based index of gaia_src_id attribute in tuple descriptor (edge types
-    // only)
+    // only).
     int src_attr_idx;
+
     // 0-based index of gaia_dst_id attribute in tuple descriptor (edge types
-    // only)
+    // only).
     int dst_attr_idx;
+
     gaia_type_t gaia_type_id;
-    // the COW-SE smart ptr that is the target of our update
+
+    // The COW-SE smart ptr that is the target of our update.
     gaia::db::gaia_ptr target_node;
-} gaiaFdwModifyState;
+} gaia_fdw_modify_state_t;
 
 }  // extern "C"
