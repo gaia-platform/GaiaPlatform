@@ -238,7 +238,7 @@ TEST_F(gaia_object_test, read_back_id) {
 }
 
 // Create row, try getting row from wrong type
-TEST_F(gaia_object_test, DISABLED_read_wrong_type) {
+TEST_F(gaia_object_test, read_wrong_type) {
     begin_transaction();
     auto eid = get_field("Howard")->gaia_id();
     commit_transaction();
@@ -406,7 +406,7 @@ TEST_F(gaia_object_test, found_del_upd) {
 // ====================
 
 // Attempt to insert one row twice
-TEST_F(gaia_object_test, DISABLED_insert_x2) {
+TEST_F(gaia_object_test, insert_x2) {
     begin_transaction();
     auto e = get_field("Zachary");
     EXPECT_THROW(e->insert_row(), duplicate_id);
@@ -430,12 +430,12 @@ void InsertIdX2(bool insert_flag) {
 }
 
 // Attempt to insert a row found by ID
-TEST_F(gaia_object_test, DISABLED_insert_id_x2) {
+TEST_F(gaia_object_test, insert_id_x2) {
     InsertIdX2(false);
 }
 
 // Attempt to insert a row found by ID after setting field value
-TEST_F(gaia_object_test, DISABLED_set_insert_id_x2) {
+TEST_F(gaia_object_test, set_insert_id_x2) {
     InsertIdX2(true);
 }
 
@@ -483,7 +483,7 @@ TEST_F(gaia_object_test, new_del_del) {
 }
 
 // Perform get_next() without a preceeding get_first()
-TEST_F(gaia_object_test, DISABLED_next_first) {
+TEST_F(gaia_object_test, next_first) {
     begin_transaction();
     auto e1 = get_field("Harold");
     auto e2 = get_field("Howard");
@@ -497,24 +497,30 @@ TEST_F(gaia_object_test, DISABLED_next_first) {
     commit_transaction();
 }
 
-void another_thread()
+void another_thread(bool new_thread)
 {
+    if (new_thread) {
+        begin_session();
+    }
     begin_transaction();
     for (unique_ptr<Employee> e{Employee::get_first()}; e ; e.reset(e->get_next()))
     {
         EXPECT_TRUE(nullptr != e->name_first());
     }
     commit_transaction();
+    if (new_thread) {
+        end_session();
+    }
 }
 
 #include <thread>
-TEST_F(gaia_object_test, DISABLED_thread_test) {
+TEST_F(gaia_object_test, thread_test) {
     begin_transaction();
     Employee::insert_row("Thread", "Master", "555-55-5555", 1234, "tid@tid.com", "www.thread.com");
     commit_transaction();
     // Run on this thread.
-    another_thread();
+    another_thread(false);
     // Now spawn and run on another thread;
-    thread t = thread(another_thread);
+    thread t = thread(another_thread, true);
     t.join();
 }

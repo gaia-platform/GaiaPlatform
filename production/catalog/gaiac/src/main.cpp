@@ -6,6 +6,7 @@
 #include "gaia_parser.hpp"
 #include "gaia_system.hpp"
 #include "gaia_db.hpp"
+#include "db_test_helpers.hpp"
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -57,6 +58,7 @@ void start_repl(parser_t &parser) {
 int main(int argc, char *argv[]) {
     int res = 0;
     parser_t parser;
+    gaia::db::start_server();
     gaia::db::begin_session();
     for (int i = 1; i < argc; ++i) {
         if (argv[i] == string("-p")) {

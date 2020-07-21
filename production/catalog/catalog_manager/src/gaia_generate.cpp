@@ -203,6 +203,7 @@ static string generate_edc_struct(int position, string table_name, field_vec& fi
             code.set_value("FCN_NAME", "GET");
         }
         code += "{{TYPE}} {{FIELD_NAME}}() const {return {{FCN_NAME}}({{FIELD_NAME}});}";
+        code += "void set_{{FIELD_NAME}}({{TYPE}} val) {SET({{FIELD_NAME}}, val);}";
     }
 
     // The typed insert_row().

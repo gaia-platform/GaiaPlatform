@@ -56,7 +56,7 @@ protected:
 
 // Test connecting, disconnecting, navigating records
 // ==================================================
-TEST_F(gaia_references_test, DISABLED_connect) {
+TEST_F(gaia_references_test, connect) {
     begin_transaction();
 
     // Connect two new rows.
@@ -178,7 +178,7 @@ bool delete_hierarchy(Employee* eptr) {
     return true;
 }
 
-TEST_F(gaia_references_test, DISABLED_connect_scan) {
+TEST_F(gaia_references_test, connect_scan) {
     begin_transaction();
 
     // Create a hierarchy of employee to address to phone
@@ -206,7 +206,7 @@ void scan_manages(vector<string>& employee_vector, Employee* e) {
     }
 }
 
-TEST_F(gaia_references_test, DISABLED_recursive_scan) {
+TEST_F(gaia_references_test, recursive_scan) {
     begin_transaction();
 
     // The "manages" set is Employee to Employee.

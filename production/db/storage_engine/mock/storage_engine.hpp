@@ -97,7 +97,7 @@ class se_base {
     // already by a database that is
     // restored.
     static gaia_id_t generate_id() {
-        gaia_id_t id = __sync_fetch_and_add(&s_data->next_id, 1);
+        gaia_id_t id = __sync_add_and_fetch(&s_data->next_id, 1);
         return id;
     }
 };
