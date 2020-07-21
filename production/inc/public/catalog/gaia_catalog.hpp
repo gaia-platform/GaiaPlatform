@@ -226,7 +226,7 @@ string generate_fbs();
 /**
  * Generate the Extended Data Classes header file.
  *
- * @return void
+ * @return generated source
  */
 string gaia_generate(string);
 
