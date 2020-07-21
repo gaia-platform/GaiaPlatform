@@ -25,8 +25,8 @@ message(STATUS "GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES=${GAIA_DIRECT_ACCESS_PRIVATE
 
 # Our main target.
 add_library(gaia_direct STATIC
-  src/gaia_object_defs.cpp
   src/gaia_base.cpp
+  src/auto_transaction.cpp
 )
 
 # Generate the headers from the flatbuffer
@@ -52,5 +52,5 @@ set (DIRECT_ACCESS_TEST_INCLUDES
   ${GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES}
   ${GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES}
 )
-add_gtest(test_direct_access "tests/test_direct_access.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia" "test_generated_code")
-add_gtest(test_references "tests/test_references.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia" "test_generated_code")
+add_gtest(test_direct_access "tests/test_direct_access.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_semock;gaia_direct" "test_generated_code")
+add_gtest(test_references "tests/test_references.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_semock;gaia_direct" "test_generated_code")

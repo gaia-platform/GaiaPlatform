@@ -15,20 +15,20 @@ using namespace std;
 
 class gaia_generate_test : public ::testing::Test {
 protected:
+    static void SetUpTestSuite() {
+        start_server();
+    }
+
+    static void TearDownTestSuite() {
+        stop_server();
+    }
+
     void SetUp() override {
         gaia::db::begin_session();
     }
 
     void TearDown() override {
         gaia::db::end_session();
-    }
-
-    static void SetUpTestSuite() {
-        gaia::db::start_server();
-    }
-
-    static void TearDownTestSuite() {
-        gaia::db::stop_server();
     }
 };
 

@@ -63,8 +63,7 @@ int client::get_session_socket() {
     // we need to add an extra byte for the null byte prefix.
     socklen_t server_addr_size =
         sizeof(server_addr.sun_family) + 1 + strlen(&server_addr.sun_path[1]);
-    if (-1 == connect(session_socket, (struct sockaddr *)&server_addr,
-                  server_addr_size)) {
+    if (-1 == connect(session_socket, (struct sockaddr *)&server_addr, server_addr_size)) {
         throw_system_error("connect failed");
     }
     return session_socket;
@@ -125,11 +124,11 @@ void client::begin_session() {
     retail_assert(fd_offsets != -1);
     if (s_fd_offsets == -1) {
         if (!__sync_bool_compare_and_swap(&s_fd_offsets, -1, fd_offsets)) {
-            // we lost the race, close the fd
+            // We lost the race, close the fd.
             close(fd_offsets);
         }
     } else {
-        // locator fd is already initialized, close the fd
+        // locator fd is already initialized, close the fd.
         close(fd_offsets);
     }
 }

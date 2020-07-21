@@ -15,14 +15,13 @@ namespace direct_access
 //
 edc_invalid_object_type::edc_invalid_object_type(
     gaia_id_t id,
-    gaia_type_t expected,
-    const char* expected_type,
-    gaia_type_t actual,
-    const char* type_name)
+    gaia_type_t expected_type,
+    const char* expected_typename,
+    gaia_type_t actual_type)
 {
     stringstream msg;
-    msg << "Requesting Gaia type " << expected_type << "(" << expected << ") but object identified by "
-        << id << " is type " << type_name << "(" << actual << ").";
+    msg << "Requesting Gaia type " << expected_typename << "(" << expected_type << ") but object identified by "
+        << id << " is type " "(" << actual_type << ").";
     m_message = msg.str();
 }
 
@@ -59,36 +58,6 @@ edc_unstored_row::edc_unstored_row(
     msg << "Cannot connect two objects until they have both been inserted (insert_row()), parent type is " <<
         parent_type << " and child type is " << child_type << ".";
     m_message = msg.str();
-}
-
-//
-// Base gaia_base_t implementation.
-//
-gaia_base_t::gaia_base_t(const char* gaia_typename)
-: gaia_base_t(0, gaia_typename)
-{
-}
-
-gaia_base_t::gaia_base_t(gaia_id_t id, const char * gaia_typename)
-: m_id(id)
-, m_typename(gaia_typename)
-{
-    set_tx_hooks();
-}
-
-void gaia_base_t::set_tx_hooks()
-{
-    // Don't overwrite an already-registered hook.
-     gaia::db::set_tx_begin_hook(commit_hook, false);
-}
-
-void gaia_base_t::commit_hook()
-{
-    for (auto it = s_gaia_tx_cache.begin(); it != s_gaia_tx_cache.end(); ++it)
-    {
-        it->second->reset(true);
-    }
-    s_gaia_tx_cache.clear();
 }
 
 } // direct_access

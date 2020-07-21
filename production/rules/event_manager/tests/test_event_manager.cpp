@@ -125,13 +125,14 @@ rule_context_checker_t g_context_checker;
 class TestGaia : public gaia_base_t
 {
 public:
-    TestGaia()
-    : gaia_base_t("TestGaia")
+    TestGaia() 
+    : TestGaia(0)
     {
     }
 
     TestGaia(gaia_id_t record)
-    : gaia_base_t(record, "TestGaia")
+    : gaia_base_t("TestGaia")
+    , m_id(record)
     {
 
     }
@@ -142,7 +143,9 @@ public:
         return s_gaia_type;
     }
 
-    void reset(bool) override {}
+    gaia_id_t gaia_id() { return m_id; }
+
+    gaia_id_t m_id; 
 };
 const gaia_type_t TestGaia::s_gaia_type = 333;
 typedef unique_ptr<TestGaia> test_gaia_ptr_t;
@@ -152,15 +155,15 @@ typedef unique_ptr<TestGaia> test_gaia_ptr_t;
 class TestGaia2 : public gaia_base_t
 {
 public:
-    TestGaia2()
-    : gaia_base_t("TestGaia2")
+    TestGaia2() 
+    : TestGaia2(0)
     {
     }
 
     TestGaia2(gaia_id_t record)
-    : gaia_base_t(record, "TestGaia2")
+    : gaia_base_t("TestGaia2")
+    , m_id(record)
     {
-
     }
 
     static const gaia_type_t s_gaia_type;
@@ -169,8 +172,10 @@ public:
         return s_gaia_type;
     }
 
-    void reset(bool) override {}
+    gaia_id_t gaia_id() { return m_id; }
+    gaia_id_t m_id;
 };
+
 const gaia_type_t TestGaia2::s_gaia_type = 444;
 typedef unique_ptr<TestGaia2> test_gaia2_ptr_t;
 
@@ -550,23 +555,22 @@ protected:
     }
 
     // event log table helpers
-    typedef unique_ptr<Event_log> log_entry_t;
     uint64_t clear_event_log()
     {
       uint64_t rows_cleared = 0;
       gaia::db::begin_transaction();
-      log_entry_t entry(Event_log::get_first());
+      log_entry_t entry = log_entry_t::get_first();
       while(entry)
       {
-          entry->delete_row();
-          entry.reset(Event_log::get_first());
+          entry.delete_row();
+          entry = log_entry_t::get_first();
           rows_cleared++;
       }
       gaia::db::commit_transaction();
       return rows_cleared;
     }
 
-    void verify_event_log_row(const Event_log& row, event_type_t event_type, uint64_t gaia_type,
+    void verify_event_log_row(const log_entry_t& row, event_type_t event_type, uint64_t gaia_type,
         gaia_id_t record_id, uint16_t column_id, bool rules_invoked)
     {
         EXPECT_EQ(row.event_type(), (uint32_t) event_type);
@@ -596,18 +600,6 @@ protected:
         {
             s_existing_rollback_hook();
         }
-    }
-
-    void install_transaction_hooks()
-    {
-        s_existing_commit_hook = gaia::db::set_tx_begin_hook(commit_hook);
-        s_existing_rollback_hook = gaia::db::set_tx_rollback_hook(rollback_hook);
-    }
-
-    void uninstall_transaction_hooks()
-    {
-        gaia::db::set_tx_begin_hook(s_existing_commit_hook);
-        gaia::db::set_tx_rollback_hook(s_existing_rollback_hook);
     }
 
     // Table context has data within the Gaia "object".
@@ -1157,6 +1149,7 @@ TEST_F(event_manager_test, forward_chain_field_not_subscribed)
     validate_rule_sequence(expected);
 }
 
+/*
 TEST_F(event_manager_test, forward_chain_field_commit)
 {
     field_list_t fields;
@@ -1214,6 +1207,7 @@ TEST_F(event_manager_test, forward_chain_field_rollback)
 
     uninstall_transaction_hooks();
 }
+*/
 
 TEST_F(event_manager_test, event_logging_no_subscriptions)
 {
@@ -1229,17 +1223,15 @@ TEST_F(event_manager_test, event_logging_no_subscriptions)
     commit_trigger(0, events, 2, true);
 
     gaia::db::begin_transaction();
-    log_entry_t entry(Event_log::get_first());
-    verify_event_log_row(*entry, event_type_t::row_update,
+    log_entry_t entry = log_entry_t::get_first();
+    verify_event_log_row(entry, event_type_t::row_update, 
         TestGaia::s_gaia_type, record, s_last_name, false);
-
-    entry.reset(entry->get_next());
-    verify_event_log_row(*entry, event_type_t::transaction_commit,
+    
+    entry = entry.get_next();
+    verify_event_log_row(entry, event_type_t::transaction_commit, 
         0, 0, 0, false);
     gaia::db::commit_transaction();
 
-    // Verify we only have two entries in the table.
-    entry.reset();
     EXPECT_EQ(2, clear_event_log());
 }
 
@@ -1259,19 +1251,18 @@ TEST_F(event_manager_test, event_logging_subscriptions)
     commit_trigger(0, events, 3, true);
 
     gaia::db::begin_transaction();
-    log_entry_t entry(Event_log::get_first());
-    verify_event_log_row(*entry, event_type_t::row_update,
+    log_entry_t entry = log_entry_t::get_first();
+    verify_event_log_row(entry, event_type_t::row_update, 
         TestGaia2::s_gaia_type, record, s_first_name, true);
 
-    entry.reset(entry->get_next());
-    verify_event_log_row(*entry, event_type_t::row_insert,
-        TestGaia2::s_gaia_type, record + 1, 0, true);
+    entry = entry.get_next();
+    verify_event_log_row(entry, event_type_t::row_insert, 
+        TestGaia2::s_gaia_type, record + 1, 0, true); 
 
-    entry.reset(entry->get_next());
-    verify_event_log_row(*entry, event_type_t::transaction_begin, 0, 0, 0, true);
+    entry = entry.get_next();
+    verify_event_log_row(entry, event_type_t::transaction_begin, 0, 0, 0, true);
 
     gaia::db::commit_transaction();
-    entry.reset();
     EXPECT_EQ(3, clear_event_log());
 }
 
