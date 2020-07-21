@@ -7,8 +7,7 @@
 
 #include <map>
 
-#include "gaia_exception.hpp"
-#include "storage_engine.hpp"
+#include "gaia_db.hpp"
 
 using namespace std;
 using namespace gaia::db;

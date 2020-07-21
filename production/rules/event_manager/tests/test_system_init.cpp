@@ -60,7 +60,7 @@ TEST(event_manager_system_init, system_initialized)
     fields.insert(5);
     row_context_t row;
 
-    gaia::system::initialize(true);
+    gaia::system::initialize();
 
     subscribe_rule(row_context_t::s_gaia_type, event_type_t::row_update, fields, binding);
     EXPECT_EQ(true, unsubscribe_rule(row_context_t::s_gaia_type, event_type_t::row_update, fields, binding));

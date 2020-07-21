@@ -29,7 +29,7 @@ void auto_transaction_t::commit()
 
 auto_transaction_t::~auto_transaction_t()
 {
-    if (gaia::db::gaia_mem_base::is_tx_active())
+    if (gaia::db::is_transaction_active())
     {
         gaia::db::rollback_transaction();
     }

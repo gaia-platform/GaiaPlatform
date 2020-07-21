@@ -11,10 +11,13 @@
 #include "flatbuffers/flatbuffers.h"
 #include "nullable_string.hpp"
 
+#include "gaia_common.hpp"
 #include "gaia_base.hpp"
 #include "auto_transaction.hpp"
+#include "gaia_ptr.hpp"
 
 using namespace std;
+using namespace gaia::common;
 using namespace gaia::db;
 
 namespace gaia {
@@ -29,7 +32,7 @@ namespace direct_access {
 /**
  * \addtogroup Direct
  * @{
- * 
+ *
  * Implementation of Extended Data Classes. This provides a direct access API
  * for CRUD operations on the database.
  */
@@ -50,7 +53,7 @@ struct gaia_writer_t;
  * @tparam T_obj the mutable flatbuffer type to be implemented
  * @tparam N_references the number of reference slots this type supports
  */
-template<gaia::db::gaia_type_t T_gaia_type, 
+template <gaia::db::gaia_type_t T_gaia_type, 
     typename T_gaia, 
     typename T_fb, 
     typename T_obj,
@@ -69,13 +72,13 @@ public:
      * This can be used for subscribing to rules when you don't
      * have a specific instance of the type.
      */
-    static gaia::db::gaia_type_t s_gaia_type;
+    static gaia_type_t s_gaia_type;
 
     /**
      * This can be used when you are passed a gaia_base_t
      * object and want to know the type at runtime.
      */
-    gaia::db::gaia_type_t gaia_type() override { return T_gaia_type; }
+    gaia_type_t gaia_type() override { return T_gaia_type; }
 
     /**
      * Ask for the first object of a flatbuffer type, T_gaia_type.
@@ -142,17 +145,17 @@ protected:
     const T_fb* row() const;
 
 private:
-    static T_gaia get_object(gaia_ptr<gaia_se_node>& node_ptr);
+    static T_gaia get_object(gaia_ptr& node_ptr);
 
     /**
      * The record locator for this object.
      */
-    gaia_ptr<gaia_se_node> m_record;
+    gaia_ptr m_record;
 };
 
-template<gaia::db::gaia_type_t T_gaia_type, 
-    typename T_gaia, 
-    typename T_fb, 
+template <gaia::db::gaia_type_t T_gaia_type,
+    typename T_gaia,
+    typename T_fb,
     typename T_obj,
     size_t N_references>
 struct gaia_writer_t : public T_obj

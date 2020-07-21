@@ -19,7 +19,7 @@ gaia_id_t gaia_iterator_t<T_gaia>::operator++()
         return m_id;
     }
 
-    auto ptr = gaia_se_node::open(m_id);
+    auto ptr = gaia_ptr::open(m_id);
     if (!ptr)
     {
         m_id = 0;
@@ -61,7 +61,7 @@ bool gaia_iterator_t<T_gaia>::operator!=(const gaia_iterator_t& rhs) const
 template <typename T_gaia>
 T_gaia gaia_iterator_t<T_gaia>::operator*()
 {
-    return T_gaia(gaia_se_node::open(m_id));
+    return T_gaia(gaia_ptr::open(m_id));
 }
 
 //
@@ -70,10 +70,10 @@ T_gaia gaia_iterator_t<T_gaia>::operator*()
 template<gaia_type_t T_gaia_type, typename T_gaia>
 gaia_iterator_t<T_gaia> gaia_container_t<T_gaia_type, T_gaia>::begin()
 {
-    auto node_ptr = gaia_ptr<gaia_se_node>::find_first(T_gaia_type);
+    auto node_ptr = gaia_ptr::find_first(T_gaia_type);
     if (node_ptr)
     {
-        return node_ptr->id;
+        return node_ptr.id();
     }
 
     return 0;
@@ -103,14 +103,14 @@ gaia_id_t gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator++()
         return m_id;
     }
 
-    auto ptr = gaia_se_node::open(m_id);
+    auto ptr = gaia_ptr::open(m_id);
     if (!ptr)
     {
         m_id = 0;
         return m_id;
     }
 
-    m_id = ptr->references()[T_foreign_slot];
+    m_id = ptr.references()[T_foreign_slot];
 
     return m_id;
 }
@@ -146,10 +146,10 @@ gaia_set_iterator_t<T_foreign, T_foreign_slot> reference_chain_container_t<T_pri
 
     if (m_primary_id)
     {
-        auto node_ptr = gaia_se_node::open(m_primary_id);
+        auto node_ptr = gaia_ptr::open(m_primary_id);
         if (node_ptr) 
         {
-            id = node_ptr->references()[T_primary_slot];
+            id = node_ptr.references()[T_primary_slot];
         }
     }
     return gaia_set_iterator_t<T_foreign, T_foreign_slot>(id);
@@ -173,14 +173,14 @@ void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_
         throw edc_unstored_row(expected.gaia_typename(), foreign_edc.gaia_typename());
     }
 
-    auto node_ptr = gaia_se_node::open(oid);
+    auto node_ptr = gaia_ptr::open(oid);
     if (!node_ptr)
     {
         return;
     }
-    foreign_edc.references()[T_foreign_slot] = node_ptr->references()[T_primary_slot];
+    foreign_edc.references()[T_foreign_slot] = node_ptr.references()[T_primary_slot];
     foreign_edc.references()[T_parent_slot]  = oid;
-    node_ptr->references()[T_primary_slot] = fid;
+    node_ptr.references()[T_primary_slot] = fid;
 }
 
 template <typename T_primary, typename T_foreign, int T_parent_slot, int T_primary_slot, int T_foreign_slot>
@@ -198,16 +198,16 @@ void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_
     }
     gaia_id_t foreign_id = foreign_edc.gaia_id();
 
-    auto node_ptr = gaia_se_node::open(m_primary_id);
+    auto node_ptr = gaia_ptr::open(m_primary_id);
     if (!node_ptr)
     {
         return;
     }
 
-    if (node_ptr->references()[T_primary_slot] == foreign_id) 
+    if (node_ptr.references()[T_primary_slot] == foreign_id) 
     {
         // It's the first one in the list, point the "first" to the current "next".
-        node_ptr->references()[T_primary_slot] = foreign_edc.references()[T_foreign_slot];
+        node_ptr.references()[T_primary_slot] = foreign_edc.references()[T_foreign_slot];
         // Clean up the removed child.
         foreign_edc.references()[T_foreign_slot] = 0;
         foreign_edc.references()[T_parent_slot] = 0;
@@ -215,23 +215,23 @@ void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_
     else 
     {
         // Need to scan the list to find this one because it's not first on the list.
-        auto cur_child_ptr = gaia_se_node::open(node_ptr->references()[T_primary_slot]);
+        auto cur_child_ptr = gaia_ptr::open(node_ptr.references()[T_primary_slot]);
 
-        //auto cur_child = T_foreign::get(m_outer->references()[T_primary_slot]);
-        while (cur_child_ptr && cur_child_ptr->references()[T_foreign_slot]) 
+        //auto cur_child = T_foreign::get(m_outer.references()[T_primary_slot]);
+        while (cur_child_ptr && cur_child_ptr.references()[T_foreign_slot]) 
         {
-            gaia_id_t next_id = cur_child_ptr->references()[T_foreign_slot];
+            gaia_id_t next_id = cur_child_ptr.references()[T_foreign_slot];
             if (next_id == foreign_id) 
             {
                 // Point the current child to the child following the next.
-                cur_child_ptr->references()[T_foreign_slot] = foreign_edc.references()[T_foreign_slot];
+                cur_child_ptr.references()[T_foreign_slot] = foreign_edc.references()[T_foreign_slot];
                 // Clean up the removed child.
                 foreign_edc.references()[T_foreign_slot] = 0;
                 foreign_edc.references()[T_parent_slot] = 0;
                 return;
             }
             // Move to the next child.
-            cur_child_ptr = gaia_se_node::open(next_id);
+            cur_child_ptr = gaia_ptr::open(next_id);
         }
         // If we end up here, the child was not found in the chain. This is an error because
         // the pointers have become inconsistent (the child's parent pointer was correct).

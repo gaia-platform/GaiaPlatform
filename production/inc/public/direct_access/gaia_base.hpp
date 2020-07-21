@@ -8,11 +8,11 @@
 #include <map>
 #include <memory>
 
+#include "gaia_common.hpp"
 #include "gaia_exception.hpp"
-#include "storage_engine.hpp"
 
 using namespace std;
-using namespace gaia::db;
+using namespace gaia::common;
 
 namespace gaia {
 
@@ -26,7 +26,7 @@ namespace direct_access {
 /**
  * \addtogroup Direct
  * @{
- * 
+ *
  * Implementation of Extended Data Classes. This provides a direct access API
  * for CRUD operations on the database.
  */
@@ -57,10 +57,10 @@ protected:
 class edc_invalid_object_type: public gaia_exception
 {
 public:
-    edc_invalid_object_type(gaia_id_t id, 
-        gaia_type_t expected, 
-        const char* expected_type,
-        gaia_type_t actual);
+    edc_invalid_object_type(gaia_id_t id,
+        gaia_type_t expected_type,
+        const char* expected_typename,
+        gaia_type_t actual_type);
 };
 
 // A child's parent pointer must match the parent record we have.
@@ -68,10 +68,10 @@ class edc_invalid_member: public gaia_exception
 {
 public:
     edc_invalid_member(
-        gaia_id_t id, 
-        gaia_type_t parent, 
+        gaia_id_t id,
+        gaia_type_t parent,
         const char* parent_type,
-        gaia_type_t child, 
+        gaia_type_t child,
         const char* child_name);
 };
 
@@ -80,9 +80,9 @@ class edc_inconsistent_list: public gaia_exception
 {
 public:
     edc_inconsistent_list(
-        gaia_id_t id, 
-        const char* parent_type, 
-        gaia_id_t child, 
+        gaia_id_t id,
+        const char* parent_type,
+        gaia_id_t child,
         const char* child_name);
 };
 
@@ -92,7 +92,7 @@ class edc_unstored_row: public gaia_exception
 {
 public:
     edc_unstored_row(
-        const char* parent_type, 
+        const char* parent_type,
         const char* child_type);
 };
 

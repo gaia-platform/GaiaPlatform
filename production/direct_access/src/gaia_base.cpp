@@ -2,21 +2,22 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+#include "gaia_db.hpp"
 #include "gaia_base.hpp"
 
-namespace gaia 
+namespace gaia
 {
-namespace direct_access 
+namespace direct_access
 {
 
 //
 // Exception class implementations.
 //
 edc_invalid_object_type::edc_invalid_object_type(
-    gaia_id_t id, 
-    gaia_type_t expected_type, 
+    gaia_id_t id,
+    gaia_type_t expected_type,
     const char* expected_typename,
-    gaia_type_t actual_type) 
+    gaia_type_t actual_type)
 {
     stringstream msg;
     msg << "Requesting Gaia type " << expected_typename << "(" << expected_type << ") but object identified by "
@@ -25,11 +26,11 @@ edc_invalid_object_type::edc_invalid_object_type(
 }
 
 edc_invalid_member::edc_invalid_member(
-    gaia_id_t id, 
-    gaia_type_t parent, 
+    gaia_id_t id,
+    gaia_type_t parent,
     const char* parent_type,
-    gaia_type_t child, 
-    const char* child_name) 
+    gaia_type_t child,
+    const char* child_name)
 {
     stringstream msg;
     msg << "Attempting to remove record with Gaia type " << child_name << "(" << child << ") from parent "
@@ -38,10 +39,10 @@ edc_invalid_member::edc_invalid_member(
 }
 
 edc_inconsistent_list::edc_inconsistent_list(
-    gaia_id_t id, 
-    const char* parent_type, 
-    gaia_id_t child, 
-    const char* child_name) 
+    gaia_id_t id,
+    const char* parent_type,
+    gaia_id_t child,
+    const char* child_name)
 {
     stringstream msg;
     msg << "List is inconsistent, child points to parent " << id << " of type " << parent_type
@@ -50,8 +51,8 @@ edc_inconsistent_list::edc_inconsistent_list(
 }
 
 edc_unstored_row::edc_unstored_row(
-    const char* parent_type, 
-    const char* child_type) 
+    const char* parent_type,
+    const char* child_type)
 {
     stringstream msg;
     msg << "Cannot connect two objects until they have both been inserted (insert_row()), parent type is " <<

@@ -59,10 +59,11 @@ TEST(event_manager_component_init, component_initialized)
     fields.insert(10);
     row_context_t row;
 
-    gaia_mem_base::init(true);
+    gaia::db::begin_session();
     gaia::rules::initialize_rules_engine();
     subscribe_rule(row_context_t::s_gaia_type, event_type_t::row_update, fields, binding);
     EXPECT_EQ(true, unsubscribe_rule(row_context_t::s_gaia_type, event_type_t::row_update, fields, binding));
     unsubscribe_rules();
     list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subscriptions);
+    gaia::db::end_session();
 }
