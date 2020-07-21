@@ -21,11 +21,12 @@ include(gaia)
 
 set(GAIA_REPO "/source")
 set(GAIA_PROD_BUILD "/build/production")
+set(GAIA_DEMO_BUILD "/build/demos")
 set(GAIA_PROD "${GAIA_REPO}/production")
 set(GAIA_INC "${GAIA_PROD}/inc")
 set(FLATBUFFERS "${GAIA_REPO}/third_party/production/flatbuffers")
 set(FLATBUFFERS_INC "${FLATBUFFERS}/include")
-set(GENERATED_OUTPUTS "${CMAKE_BINARY_DIR}/ros_incubator/generated")
+set(GENERATED_OUTPUTS "${CMAKE_BINARY_DIR}/generated")
 
 set(ROS_INCUBATOR_DEMO_INCLUDES
   ${GAIA_PROD}/db/storage_engine/mock
@@ -39,11 +40,11 @@ set(ROS_INCUBATOR_DEMO_INCLUDES
 # end of gaia variables
 
 # gaia setup
-#gaia_gen_rule_subscriptions(
-#    "${CMAKE_CURRENT_SOURCE_DIR}/src/rules.cpp"
-#    "${GENERATED_OUTPUTS}/rules_init.cpp"
-#    "${ROS_INCUBATOR_DEMO_INCLUDES}"
-#)
+gaia_gen_rule_subscriptions(
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/gaia_logic.cpp"
+    "${GENERATED_OUTPUTS}/gaia_logic_init.cpp"
+    "${ROS_INCUBATOR_DEMO_INCLUDES}"
+)
 
 add_custom_target(make_generated_incubator_dir ALL
   COMMAND ${CMAKE_COMMAND} -E make_directory ${GENERATED_OUTPUTS}
@@ -95,7 +96,7 @@ ament_export_dependencies(rosidl_default_runtime)
 add_library(gaia_library SHARED
   src/incubator_manager.cpp
   src/gaia_logic.cpp
-  #src/rules.cpp
+  "${GENERATED_OUTPUTS}/gaia_logic_init.cpp"
 )
 
 add_dependencies(gaia_library generate_barn_storage gaia_semock)

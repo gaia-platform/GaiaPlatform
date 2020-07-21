@@ -10,9 +10,9 @@ if (NOT DEFINED GAIA_DEMO_BUILD AND DEFINED ENV{GAIA_DEMO_BUILD})
   set(GAIA_DEMO_BUILD ENV{GAIA_DEMO_BUILD})
 endif()
 
-# Helper function to return the absolute path of the 
-# repo root directory.  We use this to build absolute 
-# include paths to code stored in the third-party 
+# Helper function to return the absolute path of the
+# repo root directory.  We use this to build absolute
+# include paths to code stored in the third-party
 # directory.  Note that this code assumes that the
 # function is invoked from a directoy directly below
 # the repo root (i.e. production or demos).
@@ -35,7 +35,7 @@ endfunction(set_test)
 #
 # Helper function for setting up google tests.
 # The named arguments are required:  TARGET, SOURCES, INCLUDES, LIBRARIES
-# Two optional arguments are after this: 
+# Two optional arguments are after this:
 # [DEPENDENCIES] - for add_dependencies used for generation of flatbuffer files.  Defaults to ""
 # [HAS_MAIN] - "{TRUE, 1, ON, YES, Y} indicates the test provides its own main function.  Defaults to "" (FALSE).
 #
@@ -82,6 +82,7 @@ function(gaia_gen_rule_subscriptions INPUT_FILE GEN_OUTPUT INCLUDES)
     COMMAND "${GAIA_DEMO_BUILD}/tools/rule_subscriber/rule_subscriber"
       ${INPUT_FILE}
       -output=${GEN_OUTPUT}
+      -v
       -- ${INCLUDE_ARGS}
       DEPENDS ${GAIA_DEMO_BUILD}/tools/rule_subscriber/rule_subscriber
       DEPENDS ${INPUT_FILE}
@@ -125,7 +126,7 @@ function(gaia_compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT OUTPUT_DIR)
             -I ${CMAKE_CURRENT_SOURCE_DIR}
             -o ${OUTPUT_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
-    DEPENDS ${GAIA_PROD_BUILD}/flatbuffers/flatc 
+    DEPENDS ${GAIA_PROD_BUILD}/flatbuffers/flatc
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
     COMMENT "Run generation: '${GEN_HEADER}'"
     VERBATIM)

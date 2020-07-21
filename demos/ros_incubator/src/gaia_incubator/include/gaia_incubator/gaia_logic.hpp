@@ -29,9 +29,7 @@ private:
 
     void setup_incubators();
 
-    // This is an unused function. It is only here to make sure the
-    // Gaia dependencies were properly linked.
-    void init_storage();
+    void dump_db();
 
     Publisher<msg::AddIncubator>::SharedPtr m_pub_add_incubator;
     Publisher<msg::AddSensor>::SharedPtr m_pub_add_sensor;

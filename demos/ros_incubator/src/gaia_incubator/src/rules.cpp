@@ -19,22 +19,15 @@ using namespace BarnStorage;
 /** ruleset*/
 namespace incubator_ruleset
 {
-
 /**
- rule-sensor_changed: [BarnStorage::Sensor](update)
+ rule-sensor_inserted: [BarnStorage::Sensor](insert)
 */
-void on_sensor_changed(const rule_context_t *context) {
-    printf("on_sensor_changed!\n");
-}
+void on_sensor_inserted(const rule_context_t *context)
+{
+    Sensor* s = Sensor::get_row_by_id(context->record);
+    // TODO: try writing to a file
+    // TODO: implement initialize_rules()
+    printf("%s\n", s->name());
 }
 
-void add_fan_control_rule() {
-    try {
-        rule_binding_t fan_control("incubator_ruleset", "rule-sensor_changed",
-            incubator_ruleset::on_sensor_changed);
-        subscribe_rule(Sensor::s_gaia_type, event_type_t::row_update,
-            empty_fields, fan_control);
-    } catch (duplicate_rule) {
-        printf("The rule has already been added.\n");
-    }
 }
