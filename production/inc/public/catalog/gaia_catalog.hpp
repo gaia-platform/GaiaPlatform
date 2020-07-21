@@ -199,6 +199,13 @@ string generate_fbs(gaia_id_t table_id);
 string generate_fbs();
 
 /**
+ * Generate the Extended Data Classes header file.
+ *
+ * @return void
+ */
+string gaia_generate(string);
+
+/**
  * Retrieve the binary FlatBuffers schema (bfbs) for a given table.
  *
  * @param table_id id of the table
