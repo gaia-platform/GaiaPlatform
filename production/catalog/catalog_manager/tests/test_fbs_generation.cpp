@@ -35,10 +35,6 @@ class fbs_generation_test : public ::testing::Test {
         gaia::db::stop_server();
     }
 
-    static void TearDownTestSuite() {
-        gaia::db::stop_server();
-    }
-
     static ddl::field_def_list_t test_table_fields;
 };
 
