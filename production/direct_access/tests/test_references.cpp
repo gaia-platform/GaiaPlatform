@@ -34,15 +34,14 @@ protected:
     }
 
     void SetUp() override {
-        start_server();
         // Start new session with server.
         begin_session();
+        delete_employees();
     }
 
     void TearDown() override {
         delete_employees();
         end_session();
-        stop_server();
     }
 };
 
@@ -264,4 +263,12 @@ TEST_F(gaia_references_test, recursive_scan) {
     }
 
     commit_transaction();
+}
+
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    start_server();
+    int result = RUN_ALL_TESTS();
+    stop_server();
+    return result;
 }

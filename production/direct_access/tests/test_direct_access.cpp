@@ -30,15 +30,13 @@ protected:
     }
 
     void SetUp() override {
-        start_server();
-        // Start new session with server.
         begin_session();
+        delete_employees();
     }
 
     void TearDown() override {
         delete_employees();
         end_session();
-        stop_server();
     }
 };
 
@@ -539,14 +537,21 @@ TEST_F(gaia_object_test, auto_tx_rollback) {
     EXPECT_FALSE(e);
 }
 
-void another_thread()
+void another_thread(bool new_thread)
 {
+    if (new_thread) {
+        begin_session();
+    }
     begin_transaction();
     for (auto e = Employee::get_first(); e ; e =e.get_next())
     {
         EXPECT_TRUE(nullptr != e.name_first());
     }
     commit_transaction();
+    if (new_thread)
+    {
+        end_session();
+    }
 }
 
 #include <thread>
@@ -555,157 +560,35 @@ TEST_F(gaia_object_test, thread_test) {
     Employee::insert_row("Thread", "Master", "555-55-5555", 1234, "tid@tid.com", "www.thread.com");
     commit_transaction();
     // Run on this thread.
-    another_thread();
+    another_thread(false);
     // Now spawn and run on another thread;
-    thread t = thread(another_thread);
+    thread t = thread(another_thread, true);
     t.join();
-}
-
-/*
-TEST_F(gaia_object_test, writer_tests) {
-    // A new writer is not shared so it's use count is always
-    // equal to the number of outstanding references.
-    Employee_writer w1 = Employee_writer();
-    EXPECT_EQ(1, w1.use_count());
-    {
-        Employee_writer w2 = Employee_writer();
-        EXPECT_EQ(1, w1.use_count());
-        EXPECT_EQ(1, w2.use_count());
-    }
-    EXPECT_EQ(1, w1.use_count());
-    Employee_writer w2 = w1;
-    EXPECT_EQ(2, w1.use_count());
-    EXPECT_EQ(2, w2.use_count());
-}
-
-TEST_F(gaia_object_test, writer_tests) {
-    begin_transaction();
-    // An existing writer is shared with the owning
-    // gaia object.
-    Employee_writer w1 = Employee_writer();
-    w1->name_last = "Gretzky";
-    Employee_ptr e = Employee::get(Employee::insert_row(w1));
-    w1.reset();
-    EXPECT_EQ(0, w1.use_count());
-
-    // Verify that the writer returned from writer and writer methods
-    // is the same type.  If they are not you'll get a compile error here.
-    w1 = e->writer();
-
-    // The owning employee object is holding on to a reference here so
-    // we expect 2.
-    EXPECT_EQ(2, w1.use_count());
-    w1->name_first = "Wayne";
-    w1.reset();
-
-    // We just reset the shared pointer here so it's use_count should be 0.
-    EXPECT_EQ(0, w1.use_count());
-
-    // Because the employee object had a reference to the writer, however,
-    // we haven't lost our changes above.
-    EXPECT_STREQ(e->writer()->name_first.c_str(), "Wayne");
-
-    // Now make some other changes without having an explicit reference.
-    e->writer()->name_last = "Gretzky";
-    e->writer()->ssn = "123456789";
-    e->update_row();
-
-    // Verify we've persisted the values and updated the underlying storage.
-    EXPECT_STREQ(e->name_first(), "Wayne");
-    EXPECT_STREQ(e->name_last(), "Gretzky");
-    EXPECT_STREQ(e->ssn(), "123456789");
-
-    // Verify the writer has these same values as well and still only
-    // has a ref count of 2.
-    w1 = e->writer();
-    EXPECT_EQ(2, w1.use_count());
-
-    EXPECT_STREQ(w1->name_first.c_str(), "Wayne");
-    EXPECT_STREQ(w1->name_last.c_str(), "Gretzky");
-    EXPECT_STREQ(w1->ssn.c_str(), "123456789");
-    commit_transaction();
-
-    // Our reference count should still be two because we are holding on
-    // to w1 and e.
-    EXPECT_EQ(2, w1.use_count());
-
-    // Drop our reference to the employee.
-    e.reset();
-
-    // Writer reference count should still be two.  The gaia cache is holding a 
-    // reference to e which is holding a reference to the writer.
-    EXPECT_EQ(2, w1.use_count());
-
-    // Since there aren't any outstanding references to the employee, the object
-    // gets dropped from the gaia object cache on our next transaction.
-    begin_transaction();
-
-    // Since the cache has dropped employee, it will have dropped its reference
-    // to the writer and we are down to 1.  The writer should still be valid
-    // to reference.
-    EXPECT_EQ(1, w1.use_count());
-    EXPECT_STREQ(w1->name_first.c_str(), "Wayne");
-
-    // However, it is now detached from the employee.
-    w1->name_last = "Wilson";
-    EXPECT_STREQ(w1->name_last.c_str(), "Wilson");
-
-    e = Employee::get_first();
-    EXPECT_STREQ(e->name_first(), "Wayne");
-    EXPECT_STREQ(e->name_last(), "Gretzky");
-    EXPECT_STREQ(e->ssn(), "123456789");
-
-    // The writer is detached at this point so this call is a no-op.
-    e->update_row();
-    EXPECT_STREQ(e->name_first(), "Wayne");
-    EXPECT_STREQ(e->name_last(), "Gretzky");
-    EXPECT_STREQ(e->ssn(), "123456789");
-    commit_transaction();
 }
 
 TEST_F(gaia_object_test, writer_value_ref) {
     begin_transaction();
     Employee_writer w1 = Employee_writer();
-    w1->name_last = "Gretzky";
-    Employee_ptr e = Employee::get(Employee::insert_row(w1));
+    w1.name_last = "Gretzky";
+    Employee e = Employee::get(w1.insert_row());
     commit_transaction();
 
     begin_transaction();
-    auto& ssn = e->writer()->ssn;
+    w1 = e.writer();
+    auto& ssn = w1.ssn;
     ssn = "987654321";
-    e->update_row();
+    w1.update_row();
     commit_transaction();
 
     begin_transaction();
-    EXPECT_STREQ(e->ssn(), "987654321");
+    EXPECT_STREQ(e.ssn(), "987654321");
     commit_transaction();
 }
 
-TEST_F(gaia_object_test, writer_api)
-{
-    begin_transaction();
-    // pre-populated
-    auto writer = Employee::get_writer(Employee& e);
-    writer.last_name() = foo;
-    writer.first_name() = bar;
-    writer->insert_row();
-    writer->update_row();
-
-
-    // how would you code:
-    // x.last_name = "hawkins";
-    // stuff happens here
-    // x.first_name = "dax;"
-    {
-        auto writer = Employee::get_writer(e);
-        writer.last_name = "hawkins";
-        writer.first_name = "dax";
-        writer->update_row();
-    }
-
-    {auto writer = Employee::get_writer(Employee& e); writer->last_name="hawkins"; writer->update_row();}
-    {auto writer = Employee::get_writer(Employee& e); writer->last_name="hawkins"; writer->update_row();}
-
-    auto writer =
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    start_server();
+    int result = RUN_ALL_TESTS();
+    stop_server();
+    return result;
 }
-*/
