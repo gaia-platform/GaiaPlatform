@@ -62,7 +62,7 @@ gaia_ptr::gaia_ptr(const gaia_id_t id, const size_t size, bool log_updates)
     hash_node->row_id = row_id = client::allocate_row_id();
     client::allocate_object(row_id, size);
 
-    // writing to log will be skipped for recovery
+    // Writing to log will be skipped for recovery.
     if (log_updates) {
         client::tx_log(row_id, 0, to_offset());
     }
@@ -76,16 +76,16 @@ gaia_ptr::object* gaia_ptr::to_ptr() const {
     client::verify_tx_active();
 
     return row_id && (*client::s_offsets)[row_id]
-               ? reinterpret_cast<gaia_ptr::object*>(client::s_data->objects + (*client::s_offsets)[row_id])
-               : nullptr;
+        ? reinterpret_cast<gaia_ptr::object*>(client::s_data->objects + (*client::s_offsets)[row_id])
+        : nullptr;
 }
 
 int64_t gaia_ptr::to_offset() const {
     client::verify_tx_active();
 
     return row_id
-               ? (*client::s_offsets)[row_id]
-               : 0;
+        ? (*client::s_offsets)[row_id]
+        : 0;
 }
 
 void gaia_ptr::find_next(gaia_type_t type) {
