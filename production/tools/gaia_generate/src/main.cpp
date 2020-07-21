@@ -15,7 +15,7 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
-        fprintf(stderr, "usage: gaia_direct_access_compiler database_name\n");
+        fprintf(stderr, "usage: gaia_generate database_name\n");
         exit(1);
     }
 
