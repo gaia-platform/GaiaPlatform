@@ -3,7 +3,7 @@
 //// All rights reserved.
 ///////////////////////////////////////////////
 #include "catalog_gaia_generated.h"
-#include "fbs_generator.hpp"
+#include "gaia_catalog.hpp"
 #include "code_writer.hpp"
 #include <memory>
 #include <vector>
@@ -42,6 +42,37 @@ static void build_references_maps(references_map& references_1, references_map& 
             references_1[ref_record->type_id()].push_back({table_record->name(), ref_record->name()});
             references_n[table_id].push_back({owner_record->name(), ref_record->name()});
         }
+    }
+}
+
+static string field_cpp_type_string(data_type_t data_type) {
+    switch (data_type) {
+    case data_type_t::BOOL:
+        return "bool";
+    case data_type_t::INT8:
+        return "int8_t";
+    case data_type_t::UINT8:
+        return "uint8_t";
+    case data_type_t::INT16:
+        return "int16_t";
+    case data_type_t::UINT16:
+        return "uint16_t";
+    case data_type_t::INT32:
+        return "int32_t";
+    case data_type_t::UINT32:
+        return "uint32_t";
+    case data_type_t::INT64:
+        return "int64_t";
+    case data_type_t::UINT64:
+        return "uint64_t";
+    case data_type_t::FLOAT32:
+        return "float32_t";
+    case data_type_t::FLOAT64:
+        return "float64_t";
+    case data_type_t::STRING:
+        return "const char*";
+    default:
+        throw gaia::common::gaia_exception("Unknown type");
     }
 }
 
@@ -162,7 +193,7 @@ static string generate_edc_struct(int position, string table_name, field_vec& fi
     bool has_string = false;
     // Accessors.
     for (auto f : field_strings) {
-        code.set_value("TYPE", get_data_type_name(f.type));
+        code.set_value("TYPE", field_cpp_type_string(f.type));
         code.set_value("FIELD_NAME", f.name);
         if (f.type == data_type_t::STRING) {
             has_string = true;
@@ -184,7 +215,7 @@ static string generate_edc_struct(int position, string table_name, field_vec& fi
         else {
             first = false;
         }
-        param_list += get_data_type_name(f.type) + " ";
+        param_list += field_cpp_type_string(f.type) + " ";
         param_list += f.name;
     }
     code += param_list + ") {";
