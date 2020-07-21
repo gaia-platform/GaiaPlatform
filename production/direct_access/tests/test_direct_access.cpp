@@ -29,6 +29,14 @@ protected:
         commit_transaction();
     }
 
+    static void SetUpTestSuite() {
+        start_server();
+    }
+
+    static void TearDownTestSuite() {
+        stop_server();
+    }
+
     void SetUp() override {
         begin_session();
         delete_employees();
@@ -373,13 +381,12 @@ TEST_F(gaia_object_test, found_del_upd) {
 // writer.  This seems reasonable given the model
 // of passing in the row object to an insert_row method
 // auto writer = Employe::writer();
-// Employe::insert_row(writer);
-// Employe::insert_row(writer); // this is fine.
+// writer.insert_row();
+// writer.insert_row();
 
 /*
-
 // Attempt to insert one row twice
-TEST_F(gaia_object_test, insert_x2) {
+TEST_F(gaia_object_test, DISABLED_insert_x2) {
     begin_transaction();
     auto e = get_field("Zachary");
     EXPECT_THROW(e.insert_row(), duplicate_id);
@@ -403,12 +410,12 @@ void InsertIdX2(bool insert_flag) {
 }
 
 // Attempt to insert a row found by ID
-TEST_F(gaia_object_test, insert_id_x2) {
+TEST_F(gaia_object_test, DISABLED_insert_id_x2) {
     InsertIdX2(false);
 }
 
 // Attempt to insert a row found by ID after setting field value
-TEST_F(gaia_object_test, set_insert_id_x2) {
+TEST_F(gaia_object_test, DISABLED_set_insert_id_x2) {
     InsertIdX2(true);
 }
 */
@@ -583,12 +590,4 @@ TEST_F(gaia_object_test, writer_value_ref) {
     begin_transaction();
     EXPECT_STREQ(e.ssn(), "987654321");
     commit_transaction();
-}
-
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    start_server();
-    int result = RUN_ALL_TESTS();
-    stop_server();
-    return result;
 }

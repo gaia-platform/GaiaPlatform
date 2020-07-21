@@ -33,8 +33,16 @@ protected:
         commit_transaction();
     }
 
+    // Start new session with server.
+    static void SetUpTestSuite() {
+        start_server();
+    }
+
+    static void TearDownTestSuite() {
+        stop_server();
+    }
+
     void SetUp() override {
-        // Start new session with server.
         begin_session();
         delete_employees();
     }
@@ -263,12 +271,4 @@ TEST_F(gaia_references_test, recursive_scan) {
     }
 
     commit_transaction();
-}
-
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    start_server();
-    int result = RUN_ALL_TESTS();
-    stop_server();
-    return result;
 }

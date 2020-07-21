@@ -315,13 +315,13 @@ int main(int /*argc*/, const char * /*argv*/[])
         TEST_OUTPUT_LINE("The global C-locale changed: %s", the_locale.c_str());
     }
 
-    gaia::db::begin_session();
+    begin_session();
     GaiaGetTest();
     GaiaSetTest();
     GaiaUpdateTest();
     GaiaInsertTest();
     GaiaDeleteTest();
-    gaia::db::end_session();
+    end_session();
     stop_server();
 
     if (!testing_fails)
