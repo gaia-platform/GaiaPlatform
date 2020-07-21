@@ -28,7 +28,6 @@
 #include "gaia_exception.hpp"
 
 namespace gaia {
-
 namespace db {
 
 using namespace common;

@@ -66,7 +66,7 @@ class client : private se_base {
     static atomic<gaia_tx_hook> s_tx_commit_hook;
     static atomic<gaia_tx_hook> s_tx_rollback_hook;
 
-    // inherited from se_base:
+    // Inherited from se_base:
     // static int s_fd_offsets;
     // static data *s_data;
     // thread_local static log *s_log;
@@ -99,8 +99,8 @@ class client : private se_base {
         }
 
         (*s_offsets)[row_id] = 1 + __sync_fetch_and_add(
-                                       &s_data->objects[0],
-                                       (size + sizeof(int64_t) - 1) / sizeof(int64_t));
+            &s_data->objects[0],
+            (size + sizeof(int64_t) - 1) / sizeof(int64_t));
     }
 
     static inline void verify_tx_active() {
