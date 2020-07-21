@@ -15,7 +15,6 @@ set(GAIA_GENERATE_INCLUDES
   ${GAIA_REPO}/production/build/catalog/catalog_manager/generated
   ${GAIA_REPO}/production/build/catalog/parser/generated
   ${GAIA_REPO}/third_party/production/flatbuffers/include
-  ${GAIA_REPO}/production/catalog/catalog_manager/inc
   ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_INC}/public/common
   ${GAIA_INC}/public/direct_access

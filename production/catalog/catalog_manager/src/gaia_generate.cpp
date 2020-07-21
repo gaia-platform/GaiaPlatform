@@ -3,7 +3,7 @@
 //// All rights reserved.
 ///////////////////////////////////////////////
 #include "catalog_gaia_generated.h"
-#include "catalog_manager.hpp"
+#include "fbs_generator.hpp"
 #include "code_writer.hpp"
 #include <memory>
 #include <vector>
@@ -18,7 +18,7 @@ const string indent_string("    ");
 
 typedef struct {
     string name;
-    gaia_data_type type;
+    data_type_t type;
 } field_strings_t;
 
 typedef vector<field_strings_t> field_vec;
@@ -33,46 +33,15 @@ typedef map<gaia_id_t, references_vec> references_map;
 
 // Build the two reference maps, one for the 1: side of the relationship, another for the :N side.
 static void build_references_maps(references_map& references_1, references_map& references_n) {
-    for (auto table_id : catalog_manager_t::get().list_tables()) {
+    for (auto table_id : list_tables()) {
         field_vec field_strings;
         auto table_record = Gaia_table::get_row_by_id(table_id);
-        for (auto ref_id : catalog_manager_t::get().list_references(table_id)) {
+        for (auto ref_id : list_references(table_id)) {
             unique_ptr<Gaia_field>ref_record(Gaia_field::get_row_by_id(ref_id));
             auto owner_record = Gaia_table::get_row_by_id(ref_record->type_id());
             references_1[ref_record->type_id()].push_back({table_record->name(), ref_record->name()});
             references_n[table_id].push_back({owner_record->name(), ref_record->name()});
         }
-    }
-}
-
-static string field_cpp_type_string(gaia_data_type data_type) {
-    switch (data_type) {
-    case gaia_data_type_BOOL:
-        return "bool";
-    case gaia_data_type_INT8:
-        return "int8_t";
-    case gaia_data_type_UINT8:
-        return "uint8_t";
-    case gaia_data_type_INT16:
-        return "int16_t";
-    case gaia_data_type_UINT16:
-        return "uint16_t";
-    case gaia_data_type_INT32:
-        return "int32_t";
-    case gaia_data_type_UINT32:
-        return "uint32_t";
-    case gaia_data_type_INT64:
-        return "int64_t";
-    case gaia_data_type_UINT64:
-        return "uint64_t";
-    case gaia_data_type_FLOAT32:
-        return "float32_t";
-    case gaia_data_type_FLOAT64:
-        return "float64_t";
-    case gaia_data_type_STRING:
-        return "const char*";
-    default:
-        throw gaia::common::gaia_exception("Unknown type");
     }
 }
 
@@ -123,7 +92,7 @@ static string generate_constant_list(references_map& references_1, references_ma
     code += "// The initial size of the flatbuffer builder buffer.";
     code += "const int c_flatbuffer_builder_size = 128;";
     code += "";
-    for (auto table_id : catalog_manager_t::get().list_tables()) {
+    for (auto table_id : list_tables()) {
         auto table_record = Gaia_table::get_row_by_id(table_id);
         auto const_count = 0;
         code.set_value("TABLE_NAME", table_record->name());
@@ -153,7 +122,7 @@ static string generate_constant_list(references_map& references_1, references_ma
 static string generate_declarations() {
     code_writer code(indent_string);
 
-    for (auto table_id : catalog_manager_t::get().list_tables()) {
+    for (auto table_id : list_tables()) {
         auto table_record = Gaia_table::get_row_by_id(table_id);
         code.set_value("TABLE_NAME", table_record->name());
         code += "struct {{TABLE_NAME}}_t;";
@@ -193,9 +162,9 @@ static string generate_edc_struct(int position, string table_name, field_vec& fi
     bool has_string = false;
     // Accessors.
     for (auto f : field_strings) {
-        code.set_value("TYPE", field_cpp_type_string(f.type));
+        code.set_value("TYPE", get_data_type_name(f.type));
         code.set_value("FIELD_NAME", f.name);
-        if (f.type == gaia_data_type_STRING) {
+        if (f.type == data_type_t::STRING) {
             has_string = true;
             code.set_value("FCN_NAME", "GET_STR");
         }
@@ -215,7 +184,7 @@ static string generate_edc_struct(int position, string table_name, field_vec& fi
         else {
             first = false;
         }
-        param_list += field_cpp_type_string(f.type) + " ";
+        param_list += get_data_type_name(f.type) + " ";
         param_list += f.name;
     }
     code += param_list + ") {";
@@ -304,14 +273,14 @@ string gaia_generate(string dbname) {
     code_lines += generate_declarations();
 
     int position = 1;
-    for (auto table_id : catalog_manager_t::get().list_tables()) {
+    for (auto table_id : list_tables()) {
         field_vec field_strings;
         auto table_record = Gaia_table::get_row_by_id(table_id);
-        for (auto field_id : catalog_manager_t::get().list_fields(table_id)) {
+        for (auto field_id : list_fields(table_id)) {
             unique_ptr<Gaia_field>field_record(Gaia_field::get_row_by_id(field_id));
-            field_strings.push_back(field_strings_t{field_record->name(), field_record->type()});
+            field_strings.push_back(field_strings_t{field_record->name(), static_cast<data_type_t>(field_record->type())});
         }
-        for (auto ref_id : catalog_manager_t::get().list_references(table_id)) {
+        for (auto ref_id : list_references(table_id)) {
             unique_ptr<Gaia_field>ref_record(Gaia_field::get_row_by_id(ref_id));
         }
         code_lines += generate_edc_struct(position++, table_record->name(), field_strings, references_1[table_id], references_n[table_id]);

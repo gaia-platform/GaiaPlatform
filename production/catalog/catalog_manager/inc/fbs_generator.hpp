@@ -39,5 +39,14 @@ string generate_fbs(const string &table_name, const ddl::field_def_list_t &field
  */
 string generate_bfbs(const string &fbs);
 
+/**
+ * Get the data type name (in string)
+ *
+ * @param catalog data type
+ * @return data type name in string
+ * @throw unknown_data_type
+ */
+string get_data_type_name(data_type_t data_type);
+
 } // namespace catalog
 } // namespace gaia
