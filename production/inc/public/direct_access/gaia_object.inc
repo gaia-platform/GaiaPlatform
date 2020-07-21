@@ -23,6 +23,7 @@ namespace direct_access
 // Macros for strongly types field accessors used by
 // gaia_object_t objects below.
 #define GET_CURRENT(field) (m_copy ? (m_copy->field) : (m_fb->field()))
+#define GET(field) (m_copy ? (m_copy->field) : (m_fb->field()))
 #define GET_ORIGINAL(field) (m_fb ? m_fb->field() : m_copy->field)
 #define GET_STR_ORIGINAL(field) (m_fb ? (m_fb->field() ? m_fb->field()->c_str() : nullptr) : (m_copy ? m_copy->field.c_str() : nullptr))
 #define GET_STR(field) (m_copy ? m_copy->field.c_str() : m_fb->field() ? m_fb->field()->c_str() : nullptr)

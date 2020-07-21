@@ -9,61 +9,61 @@
 #include "type_mapping.hpp"
 #include "system_catalog_types.hpp"
 
-// all definitions in this file and included files should have C linkage
+// All definitions in this file and included files should have C linkage.
 extern "C" {
 
 #include "postgres.h"
 #include "utils/builtins.h"
 
 #include "flatbuffers_common_reader.h"
-// flatcc generated code
+// flatcc generated code.
 #include "event_log_reader.h"
 #include "event_log_builder.h"
 
-// type-specific extractors
-static inline Datum event_log_get_event_type(const void *rootObject) {
+// Type-specific extractors.
+static inline Datum event_log_get_event_type(const void *root_object) {
     gaia_rules_event_log_table_t event =
-        (gaia_rules_event_log_table_t)rootObject;
+        (gaia_rules_event_log_table_t)root_object;
     uint32_t event_type = gaia_rules_event_log_event_type(event);
     return UInt32GetDatum(event_type);
 }
 
-static inline Datum event_log_get_type_id(const void *rootObject) {
+static inline Datum event_log_get_type_id(const void *root_object) {
     gaia_rules_event_log_table_t event =
-        (gaia_rules_event_log_table_t)rootObject;
+        (gaia_rules_event_log_table_t)root_object;
     uint64_t type_id = gaia_rules_event_log_type_id(event);
     return UInt64GetDatum(type_id);
 }
 
-static inline Datum event_log_get_record_id(const void *rootObject) {
+static inline Datum event_log_get_record_id(const void *root_object) {
     gaia_rules_event_log_table_t event =
-        (gaia_rules_event_log_table_t)rootObject;
+        (gaia_rules_event_log_table_t)root_object;
     uint64_t record_id = gaia_rules_event_log_record_id(event);
     return UInt64GetDatum(record_id);
 }
 
-static inline Datum event_log_get_column_id(const void *rootObject) {
+static inline Datum event_log_get_column_id(const void *root_object) {
     gaia_rules_event_log_table_t event =
-        (gaia_rules_event_log_table_t)rootObject;
+        (gaia_rules_event_log_table_t)root_object;
     uint16_t column_id = gaia_rules_event_log_column_id(event);
     return UInt16GetDatum(column_id);
 }
 
-static inline Datum event_log_get_timestamp(const void *rootObject) {
+static inline Datum event_log_get_timestamp(const void *root_object) {
     gaia_rules_event_log_table_t event =
-        (gaia_rules_event_log_table_t)rootObject;
+        (gaia_rules_event_log_table_t)root_object;
     uint64_t timestamp = gaia_rules_event_log_timestamp(event);
     return UInt64GetDatum(timestamp);
 }
 
-static inline Datum event_log_get_rules_invoked(const void *rootObject) {
+static inline Datum event_log_get_rules_invoked(const void *root_object) {
     gaia_rules_event_log_table_t event =
-        (gaia_rules_event_log_table_t)rootObject;
+        (gaia_rules_event_log_table_t)root_object;
     bool rules_invoked = gaia_rules_event_log_rules_invoked(event);
     return BoolGetDatum(rules_invoked);
 }
 
-// type-specific builders
+// Type-specific builders.
 static inline void event_log_add_event_type(flatbuffers_builder_t *builder,
     Datum value) {
     uint32_t event_type = DatumGetUInt32(value);
@@ -100,7 +100,7 @@ static inline void event_log_add_rules_invoked(flatbuffers_builder_t *builder,
     gaia_rules_event_log_rules_invoked_add(builder, rules_invoked);
 }
 
-static const Attribute EVENT_LOG_ATTRS[] = {
+static const attribute_t c_event_log_attributes[] = {
     {"event_type", event_log_get_event_type, event_log_add_event_type},
     {"type_id", event_log_get_type_id, event_log_add_type_id},
     {"record_id", event_log_get_record_id, event_log_add_record_id},
@@ -109,17 +109,17 @@ static const Attribute EVENT_LOG_ATTRS[] = {
     {"rules_invoked", event_log_get_rules_invoked, event_log_add_rules_invoked},
 };
 
-RelationAttributeMapping EVENT_LOG_MAPPING = {
+relation_attribute_mapping_t c_event_log_mapping = {
     "event_log",
-    system_catalog_types::kEventLogType,
-    (RootObjectDeserializer)gaia_rules_event_log_as_root,
-    (BuilderInitializer)gaia_rules_event_log_start_as_root,
-    (BuilderFinalizer)gaia_rules_event_log_end_as_root,
-    EVENT_LOG_ATTRS,
-    array_size(EVENT_LOG_ATTRS),
+    system_catalog_types::c_event_log_type,
+    (root_object_deserializer_fn)gaia_rules_event_log_as_root,
+    (builder_initializer_fn)gaia_rules_event_log_start_as_root,
+    (builder_finalizer_fn)gaia_rules_event_log_end_as_root,
+    c_event_log_attributes,
+    array_size(c_event_log_attributes),
 };
 
-const char *EVENT_LOG_DDL_STMT_FMT =
+const char *c_event_log_ddl_stmt_fmt =
     "create foreign table event_log( "
     "event_type int, type_id bigint, record_id bigint, "
     "column_id smallint, timestamp bigint, "
