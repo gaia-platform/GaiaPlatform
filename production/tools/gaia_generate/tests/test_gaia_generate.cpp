@@ -8,20 +8,28 @@
 #include "gtest/gtest.h"
 #include "catalog_manager.hpp"
 #include "gaia_parser.hpp"
+#include "db_test_helpers.hpp"
 
 using namespace gaia::catalog;
 using namespace std;
 
 class gaia_generate_test : public ::testing::Test {
 protected:
+    static void SetUpTestSuite() {
+        start_server();
+    }
+
+    static void TearDownTestSuite() {
+        stop_server();
+    }
+
     void SetUp() override {
-        // gaia_mem_base::init(true);
+        begin_session();
     }
 
     void TearDown() override {
-        // Delete the shared memory segments.
-        // gaia_mem_base::reset();
         catalog_manager_t::get().reset();
+        end_session();
     }
 };
 

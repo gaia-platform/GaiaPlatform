@@ -480,13 +480,12 @@ namespace flatbuffers
 
                 code_.SetValue("STRUCT_NAME", Name(struct_def));
                 code_.SetValue("CLASS_NAME", CapitalizeString(Name(struct_def)));
+
                 code_ += "struct {{CLASS_NAME}} : public gaia_object_t<" + NumToString(currentObjectTypeValue) + 
-                    ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>{";
+                    ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T, 0>{";
     
                 std::string params = "";
                 std::string param_Values = "";
-                //generate constructors 
-                code_ += "{{CLASS_NAME}}() : gaia_object_t(\"{{CLASS_NAME}}\") {};";
 
                 bool has_string_or_vector_fields = false;
            
@@ -539,7 +538,7 @@ namespace flatbuffers
                     else
                     {
                         code_ += 
-                            "{{FIELD_TYPE}} {{FIELD_NAME}} () const { return GET_CURRENT({{FIELD_NAME}});}";
+                            "{{FIELD_TYPE}} {{FIELD_NAME}} () const { return GET({{FIELD_NAME}});}";
                         if (opts_.generate_setters)
                         {
                             code_ += 
@@ -628,9 +627,7 @@ namespace flatbuffers
                 else
                 {
                     code_ += 
-                        "using gaia_object_t::insert_row;\n"
-                        "using gaia_object_t::update_row;\n"
-                        "using gaia_object_t::delete_row;";
+                        "using gaia_object_t::insert_row;";
                 }
 
                 // If the flatbuffer has a string or vector column then 
@@ -652,7 +649,7 @@ namespace flatbuffers
 
                 code_ += "private:";
                 code_ += "friend struct gaia_object_t<" + NumToString(currentObjectTypeValue) +  
-                    ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T>;";
+                    ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T, 0>;";
                 code_ += "{{CLASS_NAME}}(gaia_id_t id) : gaia_object_t(id, \"{{CLASS_NAME}}\") {}";
                 
                 if (opts_.generate_setters && opts_.generate_events)
@@ -662,6 +659,10 @@ namespace flatbuffers
                 }
 
                 code_ += "};";
+
+                // Generate pointer to writer
+                code_ += "typedef gaia_writer_t<" + NumToString(currentObjectTypeValue) +
+                    ",{{CLASS_NAME}},{{STRUCT_NAME}},{{STRUCT_NAME}}T, 0> {{CLASS_NAME}}_writer;";
             }
 
             // Set up the correct namespace. Only open a namespace if the existing one is
