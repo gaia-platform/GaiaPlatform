@@ -102,6 +102,10 @@ void gaia_logic::dump_db()
     fflush(stdout);
 }
 
+// TODO: try writing to a file
+// TODO: implement initialize_rules()
+
+/** ruleset*/
 namespace incubator_ruleset
 {
 /**
@@ -109,10 +113,12 @@ namespace incubator_ruleset
 */
 void on_sensor_inserted(const rule_context_t *context)
 {
+    FILE* log = fopen("message.log", "a");
+    fprintf(log, "beans");
+    fclose(log);
+
     Sensor* s = Sensor::get_row_by_id(context->record);
-    // TODO: try writing to a file
-    // TODO: implement initialize_rules()
+
     printf("%s\n", s->name());
 }
-
 }

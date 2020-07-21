@@ -3,7 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <chrono>
 #include <cstdio>
 
 #include "rules.hpp"
@@ -24,6 +23,10 @@ namespace incubator_ruleset
 */
 void on_sensor_inserted(const rule_context_t *context)
 {
+    FILE* log = fopen("message.log", "a");
+    fprintf(log, "beans");
+    fclose(log);
+
     Sensor* s = Sensor::get_row_by_id(context->record);
     // TODO: try writing to a file
     // TODO: implement initialize_rules()

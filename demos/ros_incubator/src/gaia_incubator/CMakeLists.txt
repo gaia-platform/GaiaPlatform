@@ -26,7 +26,7 @@ set(GAIA_PROD "${GAIA_REPO}/production")
 set(GAIA_INC "${GAIA_PROD}/inc")
 set(FLATBUFFERS "${GAIA_REPO}/third_party/production/flatbuffers")
 set(FLATBUFFERS_INC "${FLATBUFFERS}/include")
-set(GENERATED_OUTPUTS "${CMAKE_BINARY_DIR}/generated")
+set(GENERATED_OUTPUTS "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
 set(ROS_INCUBATOR_DEMO_INCLUDES
   ${GAIA_PROD}/db/storage_engine/mock
@@ -35,6 +35,7 @@ set(ROS_INCUBATOR_DEMO_INCLUDES
   ${GAIA_INC}/public/rules
   ${GAIA_INC}/internal/rules
   ${FLATBUFFERS_INC}
+  include
   ${GENERATED_OUTPUTS}
 )
 # end of gaia variables
@@ -96,6 +97,7 @@ ament_export_dependencies(rosidl_default_runtime)
 add_library(gaia_library SHARED
   src/incubator_manager.cpp
   src/gaia_logic.cpp
+  #src/rules.cpp
   "${GENERATED_OUTPUTS}/gaia_logic_init.cpp"
 )
 
