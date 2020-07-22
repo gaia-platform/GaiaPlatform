@@ -4,10 +4,16 @@
 /////////////////////////////////////////////
 #pragma once
 
-#include "gaia_object.hpp"
-#include "gaia_exception.hpp"
+#include <set>
 #include <string>
+#include <sstream>
+#include <vector>
 #include <memory>
+
+#include "gaia_common.hpp"
+#include "gaia_exception.hpp"
+
+using namespace gaia::common;
 
 namespace gaia {
 /**
