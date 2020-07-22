@@ -3,7 +3,6 @@
 //// All rights reserved.
 ///////////////////////////////////////////////
 #include "gaia_catalog.hpp"
-#include "db_test_helpers.hpp"
 #include <iostream>
 #include <memory>
 #include <vector>
@@ -18,7 +17,6 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    gaia::db::start_server();
     begin_session();
 
     auto code_lines = gaia_generate(argv[1]);
