@@ -574,28 +574,6 @@ protected:
         EXPECT_EQ(row.rules_invoked(), rules_invoked);
     }
 
-    // Utilities for setting up commit hook for mock trigger function
-    // This is a  test specific commit hook which simulates the post-commit
-    // mock trigger event.  Be sure to chain down to the EDC installed commit
-    // hook which is installed by default.
-    static void commit_hook()
-    {
-        commit_trigger(0, nullptr, 0, true);
-        if (s_existing_commit_hook)
-        {
-            s_existing_commit_hook();
-        }
-    }
-
-    static void rollback_hook()
-    {
-        rollback_trigger();
-        if (s_existing_rollback_hook)
-        {
-            s_existing_rollback_hook();
-        }
-    }
-
     // Table context has data within the Gaia "object".
     TestGaia m_row;
     // Table context has data within the Gaia2 "object".
@@ -614,13 +592,7 @@ protected:
     rule_binding_t m_rule8{ruleset3_name, rule8_name, rule8};
     rule_binding_t m_rule9{ruleset3_name, rule9_name, rule9};
     rule_binding_t m_rule10{ruleset3_name, rule10_name, rule10};
-
-    static gaia::db::gaia_tx_hook s_existing_commit_hook;
-    static gaia::db::gaia_tx_hook s_existing_rollback_hook;
 };
-gaia::db::gaia_tx_hook event_manager_test::s_existing_commit_hook = nullptr;
-gaia::db::gaia_tx_hook event_manager_test::s_existing_rollback_hook = nullptr;
-
 
 TEST_F(event_manager_test, invalid_subscription)
 {
