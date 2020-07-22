@@ -28,6 +28,29 @@ set(FLATBUFFERS "${GAIA_REPO}/third_party/production/flatbuffers")
 set(FLATBUFFERS_INC "${FLATBUFFERS}/include")
 set(GENERATED_OUTPUTS "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
+# ros2 setup
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
+find_package(builtin_interfaces REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+
+set(msg_files
+  "msg/Temp.msg"
+  "msg/FanState.msg"
+  "msg/AddIncubator.msg"
+  "msg/AddSensor.msg"
+  "msg/AddFan.msg"
+)
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+  ${msg_files}
+  DEPENDENCIES builtin_interfaces
+)
+
+ament_export_dependencies(rosidl_default_runtime)
+# end of ros2 setup
+
 set(ROS_INCUBATOR_DEMO_INCLUDES
   ${GAIA_PROD}/db/storage_engine/mock
   ${GAIA_INC}/public/common
@@ -35,7 +58,9 @@ set(ROS_INCUBATOR_DEMO_INCLUDES
   ${GAIA_INC}/public/rules
   ${GAIA_INC}/internal/rules
   ${FLATBUFFERS_INC}
-  include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_cpp/gaia_incubator/msg
+  /opt/ros/foxy/include
   ${GENERATED_OUTPUTS}
 )
 # end of gaia variables
@@ -72,32 +97,10 @@ set_target_properties(gaia_direct PROPERTIES IMPORTED_LOCATION "${GAIA_PROD_BUIL
 
 # end of gaia setup
 
-find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(rclcpp_components REQUIRED)
-find_package(builtin_interfaces REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
-
-set(msg_files
-  "msg/Temp.msg"
-  "msg/FanState.msg"
-  "msg/AddIncubator.msg"
-  "msg/AddSensor.msg"
-  "msg/AddFan.msg"
-)
-
-rosidl_generate_interfaces(${PROJECT_NAME}
-  ${msg_files}
-  DEPENDENCIES builtin_interfaces
-)
-
-ament_export_dependencies(rosidl_default_runtime)
-
 # node setup
 add_library(gaia_library SHARED
   src/incubator_manager.cpp
   src/gaia_logic.cpp
-  #src/rules.cpp
   "${GENERATED_OUTPUTS}/gaia_logic_init.cpp"
 )
 
@@ -110,8 +113,8 @@ target_compile_definitions(gaia_library
   PRIVATE "COMPOSITION_BUILDING_DLL")
 
 ament_target_dependencies(gaia_library
-  "rclcpp"
-  "rclcpp_components"
+  rclcpp
+  rclcpp_components
 )
 
 target_link_libraries(gaia_library
