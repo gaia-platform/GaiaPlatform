@@ -101,9 +101,5 @@ void begin_transaction();
 void rollback_transaction();
 bool commit_transaction();
 
-gaia_tx_hook set_tx_begin_hook(gaia_tx_hook hook, bool overwrite = true);
-gaia_tx_hook set_tx_commit_hook(gaia_tx_hook hook, bool overwrite = true);
-gaia_tx_hook set_tx_rollback_hook(gaia_tx_hook hook, bool overwrite = true);
-
 }  // namespace db
 }  // namespace gaia

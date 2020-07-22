@@ -13,10 +13,6 @@ using namespace flatbuffers;
 thread_local se_base::offsets *client::s_offsets = nullptr;
 thread_local int client::s_fd_log = -1;
 
-std::atomic<gaia_tx_hook> client::s_tx_begin_hook{nullptr};
-std::atomic<gaia_tx_hook> client::s_tx_commit_hook{nullptr};
-std::atomic<gaia_tx_hook> client::s_tx_rollback_hook{nullptr};
-
 static void build_client_request(FlatBufferBuilder &builder, session_event_t event) {
     auto client_request = Createclient_request_t(builder, event);
     auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
@@ -186,11 +182,6 @@ void client::begin_transaction() {
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::BEGIN_TXN);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
-
-    // Don't call the hook unless all preceding steps were successful.
-    if (s_tx_begin_hook) {
-        (s_tx_begin_hook.load())();
-    }
 }
 
 void client::rollback_transaction() {
@@ -204,11 +195,6 @@ void client::rollback_transaction() {
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::ROLLBACK_TXN);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
-
-    // Don't call the hook unless all preceding steps were successful.
-    if (s_tx_rollback_hook) {
-        (s_tx_rollback_hook.load())();
-    }
 }
 
 // This method returns true for a commit decision and false for an abort decision.
@@ -242,11 +228,6 @@ bool client::commit_transaction() {
     const server_reply_t *reply = msg->msg_as_reply();
     const session_event_t event = reply->event();
     retail_assert(event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT);
-
-    // Don't call the hook unless all preceding steps were successful.
-    if (s_tx_commit_hook) {
-        (s_tx_commit_hook.load())();
-    }
 
     return (event == session_event_t::DECIDE_TXN_COMMIT);
 }
