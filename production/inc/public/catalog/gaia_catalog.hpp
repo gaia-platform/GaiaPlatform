@@ -28,36 +28,36 @@ namespace catalog {
  * Data types for Gaia field records.
  */
 enum class data_type_t : uint8_t {
-    BOOL,
-    INT8,
-    UINT8,
-    INT16,
-    UINT16,
-    INT32,
-    UINT32,
-    INT64,
-    UINT64,
-    FLOAT32,
-    FLOAT64,
-    STRING,
-    REFERENCES
+    e_bool,
+    e_int8,
+    e_uint8,
+    e_int16,
+    e_uint16,
+    e_int32,
+    e_uint32,
+    e_int64,
+    e_uint64,
+    e_float32,
+    e_float64,
+    e_string,
+    e_references
 };
 
 /*
  * Trim action for log tables.
  */
 enum class trim_action_type_t : uint8_t {
-    NONE,
-    DELETE,
-    ARCHIVE,
+    e_none,
+    e_delete,
+    e_archive,
 };
 
 /*
  * Value index types.
  */
 enum value_index_type_t : uint8_t {
-    HASH,
-    RANGE
+    e_hash,
+    e_range
 };
 
 namespace ddl {
@@ -69,9 +69,9 @@ namespace ddl {
  */
 
 enum class statement_type_t : uint8_t {
-    CREATE,
-    DROP,
-    ALTER
+    e_create,
+    e_drop,
+    e_alter
 };
 
 struct statement_t {
@@ -112,12 +112,12 @@ struct field_definition_t {
 using field_def_list_t = vector<unique_ptr<field_definition_t>>;
 
 enum class create_type_t : uint8_t {
-    CREATE_TABLE,
+    e_create_table,
 };
 
 struct create_statement_t : statement_t {
     create_statement_t(create_type_t type)
-        : statement_t(statement_type_t::CREATE), type(type){};
+        : statement_t(statement_type_t::e_create), type(type){};
 
     virtual ~create_statement_t() {}
 

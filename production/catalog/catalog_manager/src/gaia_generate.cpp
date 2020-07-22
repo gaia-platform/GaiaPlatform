@@ -47,29 +47,29 @@ static void build_references_maps(references_map& references_1, references_map& 
 
 static string field_cpp_type_string(data_type_t data_type) {
     switch (data_type) {
-    case data_type_t::BOOL:
+    case data_type_t::e_bool:
         return "bool";
-    case data_type_t::INT8:
+    case data_type_t::e_int8:
         return "int8_t";
-    case data_type_t::UINT8:
+    case data_type_t::e_uint8:
         return "uint8_t";
-    case data_type_t::INT16:
+    case data_type_t::e_int16:
         return "int16_t";
-    case data_type_t::UINT16:
+    case data_type_t::e_uint16:
         return "uint16_t";
-    case data_type_t::INT32:
+    case data_type_t::e_int32:
         return "int32_t";
-    case data_type_t::UINT32:
+    case data_type_t::e_uint32:
         return "uint32_t";
-    case data_type_t::INT64:
+    case data_type_t::e_int64:
         return "int64_t";
-    case data_type_t::UINT64:
+    case data_type_t::e_uint64:
         return "uint64_t";
-    case data_type_t::FLOAT32:
+    case data_type_t::e_float32:
         return "float32_t";
-    case data_type_t::FLOAT64:
+    case data_type_t::e_float64:
         return "float64_t";
-    case data_type_t::STRING:
+    case data_type_t::e_string:
         return "const char*";
     default:
         throw gaia::common::gaia_exception("Unknown type");
@@ -195,7 +195,7 @@ static string generate_edc_struct(int position, string table_name, field_vec& fi
     for (auto f : field_strings) {
         code.set_value("TYPE", field_cpp_type_string(f.type));
         code.set_value("FIELD_NAME", f.name);
-        if (f.type == data_type_t::STRING) {
+        if (f.type == data_type_t::e_string) {
             has_string = true;
             code.set_value("FCN_NAME", "GET_STR");
         }

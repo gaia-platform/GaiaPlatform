@@ -35,11 +35,11 @@ protected:
 // Copied from gaiac main.cpp
 void execute(vector<unique_ptr<statement_t>> &statements) {
     for (auto &stmt : statements) {
-        if (!stmt->is_type(statement_type_t::CREATE)) {
+        if (!stmt->is_type(statement_type_t::e_create)) {
             continue;
         }
         auto createStmt = dynamic_cast<create_statement_t *>(stmt.get());
-        if (createStmt->type == create_type_t::CREATE_TABLE) {
+        if (createStmt->type == create_type_t::e_create_table) {
             gaia::catalog::create_table(createStmt->table_name, createStmt->fields);
         }
     }
@@ -48,7 +48,7 @@ void execute(vector<unique_ptr<statement_t>> &statements) {
 // Using the catalog manager's create_table(), create a catalog and an EDC header from that.
 TEST_F(gaia_generate_test, use_create_table) {
     ddl::field_def_list_t fields;
-    fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t{"name", data_type_t::STRING, 1}));
+    fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t{"name", data_type_t::e_string, 1}));
     create_table("airport", fields);
 
     auto header_str = gaia_generate("airport");

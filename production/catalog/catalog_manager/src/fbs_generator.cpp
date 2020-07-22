@@ -123,29 +123,29 @@ static string base64_encode(uint8_t const *bytes_to_encode, uint32_t in_len) {
  */
 static string get_data_type_name(data_type_t data_type) {
     switch (data_type) {
-    case data_type_t::BOOL:
+    case data_type_t::e_bool:
         return "bool";
-    case data_type_t::INT8:
+    case data_type_t::e_int8:
         return "int8";
-    case data_type_t::UINT8:
+    case data_type_t::e_uint8:
         return "uint8";
-    case data_type_t::INT16:
+    case data_type_t::e_int16:
         return "int16";
-    case data_type_t::UINT16:
+    case data_type_t::e_uint16:
         return "uint16";
-    case data_type_t::INT32:
+    case data_type_t::e_int32:
         return "int32";
-    case data_type_t::UINT32:
+    case data_type_t::e_uint32:
         return "uint32";
-    case data_type_t::INT64:
+    case data_type_t::e_int64:
         return "int64";
-    case data_type_t::UINT64:
+    case data_type_t::e_uint64:
         return "uint64";
-    case data_type_t::FLOAT32:
+    case data_type_t::e_float32:
         return "float32";
-    case data_type_t::FLOAT64:
+    case data_type_t::e_float64:
         return "float64";
-    case data_type_t::STRING:
+    case data_type_t::e_string:
         return "string";
     default:
         throw ddl::unknown_data_type();
@@ -211,7 +211,7 @@ string generate_fbs(const string &table_name, const ddl::field_def_list_t &field
     string fbs;
     fbs += "table " + table_name + "{";
     for (auto &field : fields) {
-        if (field->type == data_type_t::REFERENCES) {
+        if (field->type == data_type_t::e_references) {
             continue;
         }
         string field_fbs = generate_field_fbs(

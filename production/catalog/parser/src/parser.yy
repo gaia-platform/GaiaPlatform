@@ -111,7 +111,7 @@ statement: create_statement { $$ = std::unique_ptr<statement_t>{std::move($1)}; 
 
 create_statement:
     CREATE TABLE IDENTIFIER "(" field_def_commalist ")" {
-        $$ = std::unique_ptr<create_statement_t>{new create_statement_t(create_type_t::CREATE_TABLE)};
+        $$ = std::unique_ptr<create_statement_t>{new create_statement_t(create_type_t::e_create_table)};
         $$->table_name = std::move($3);
         $$->fields = std::move(*$5);
     };
@@ -128,7 +128,7 @@ field_def_commalist:
 field_def:
     IDENTIFIER field_type opt_array {
         $$ = std::unique_ptr<field_definition_t>{new field_definition_t($1, $2->type, $3)};
-        if ($$->type == data_type_t::REFERENCES) {
+        if ($$->type == data_type_t::e_references) {
            $$->table_type_name = std::move($2->name);
         }
     };
@@ -139,20 +139,20 @@ opt_array:
     | { $$ = 1; };
 
 field_type:
-    BOOL { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::BOOL)}; }
-    | INT8 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::INT8)}; }
-    | UINT8 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::UINT8)}; }
-    | INT16 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::INT16)}; }
-    | UINT16 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::UINT16)}; }
-    | INT32 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::INT32)}; }
-    | UINT32 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::UINT32)}; }
-    | INT64 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::INT64)}; }
-    | UINT64 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::UINT64)}; }
-    | FLOAT32 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::FLOAT32)}; }
-    | FLOAT64 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::FLOAT64)}; }
-    | STRING { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::STRING)}; }
+    BOOL { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_bool)}; }
+    | INT8 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_int8)}; }
+    | UINT8 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_uint8)}; }
+    | INT16 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_int16)}; }
+    | UINT16 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_uint16)}; }
+    | INT32 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_int32)}; }
+    | UINT32 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_uint32)}; }
+    | INT64 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_int64)}; }
+    | UINT64 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_uint64)}; }
+    | FLOAT32 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_float32)}; }
+    | FLOAT64 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_float64)}; }
+    | STRING { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_string)}; }
     | REFERENCES IDENTIFIER {
-        $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::REFERENCES)};
+        $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_references)};
         $$->name = std::move($2);
     };
 

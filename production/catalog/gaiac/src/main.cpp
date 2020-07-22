@@ -17,11 +17,11 @@ using namespace gaia::catalog::ddl;
 
 void execute(vector<unique_ptr<statement_t>> &statements) {
     for (auto &stmt : statements) {
-        if (!stmt->is_type(statement_type_t::CREATE)) {
+        if (!stmt->is_type(statement_type_t::e_create)) {
             continue;
         }
         auto createStmt = dynamic_cast<create_statement_t *>(stmt.get());
-        if (createStmt->type == create_type_t::CREATE_TABLE) {
+        if (createStmt->type == create_type_t::e_create_table) {
             gaia::catalog::create_table(createStmt->table_name, createStmt->fields);
         }
     }
