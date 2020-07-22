@@ -8,8 +8,6 @@ enable_testing()
 
 project(catalog_manager)
 
-set(CATALOG_FBS_GENERATED_OUTPUTS "${CMAKE_CURRENT_BINARY_DIR}/generated")
-
 set(GAIA_CATALOG_LIB_PUBLIC_INCLUDES
   ${GAIA_INC}/public/catalog
   ${GAIA_INC}/public/common
@@ -23,7 +21,7 @@ set(GAIA_CATALOG_LIB_PRIVATE_INCLUDES
   ${GAIA_INC}/internal/db
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc
-  ${CATALOG_FBS_GENERATED_OUTPUTS}
+  ${GAIA_CATALOG_GENERATED}
 )
 message(STATUS "GAIA_CATALOG_LIB_PRIVATE_INCLUDES=${GAIA_CATALOG_LIB_PRIVATE_INCLUDES}")
 
@@ -31,7 +29,7 @@ message(STATUS "GAIA_CATALOG_LIB_PRIVATE_INCLUDES=${GAIA_CATALOG_LIB_PRIVATE_INC
 set_property(GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
 gaia_compile_flatbuffers_schema_to_cpp_opt(flatbuffers/catalog.fbs
   "--no-includes;--gen-compare;--gaia-type-initial-value;6"
-  "${CATALOG_FBS_GENERATED_OUTPUTS}")
+  "${GAIA_CATALOG_GENERATED}")
 get_generated_output(catalog_fbs_generated)
 if(catalog_fbs_generated)
   # message(STATUS "Add generated_code target with files:${fbs_generated}")

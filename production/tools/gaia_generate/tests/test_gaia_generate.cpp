@@ -11,6 +11,7 @@
 #include "db_test_helpers.hpp"
 
 using namespace gaia::catalog;
+using namespace gaia::db;
 using namespace std;
 
 class gaia_generate_test : public ::testing::Test {
