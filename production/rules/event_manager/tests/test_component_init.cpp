@@ -7,12 +7,15 @@
 // we don't have a dependency on the internal implementation.
 
 #include "gtest/gtest.h"
+#include "db_test_helpers.hpp"
 #include "rules.hpp"
 
-using namespace std;
-using namespace gaia::rules;
+
 using namespace gaia::common;
+using namespace gaia::db;
 using namespace gaia::direct_access;
+using namespace gaia::rules;
+using namespace std;
 
 extern "C" void initialize_rules()
 {
@@ -66,4 +69,12 @@ TEST(event_manager_component_init, component_initialized)
     unsubscribe_rules();
     list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subscriptions);
     gaia::db::end_session();
+}
+
+int main(int argc, char **argv) {
+  testing::InitGoogleTest(&argc, argv);
+  start_server();
+  int ret_code = RUN_ALL_TESTS();
+  stop_server();
+  return ret_code;
 }

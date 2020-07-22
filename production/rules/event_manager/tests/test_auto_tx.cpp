@@ -15,7 +15,6 @@ using namespace gaia::db;
 using namespace gaia::rules;
 
 
-/*
 TEST(auto_tx_test, auto_tx_active_commit)
 {
     begin_transaction();
@@ -26,6 +25,7 @@ TEST(auto_tx_test, auto_tx_active_commit)
         tx.commit();
     }
     EXPECT_EQ(true, is_transaction_active());
+    rollback_transaction();
 }
 
 TEST(auto_tx_test, auto_tx_active_rollback)
@@ -37,8 +37,8 @@ TEST(auto_tx_test, auto_tx_active_rollback)
         auto_tx_t tx;
     }
     EXPECT_EQ(true, is_transaction_active());
+    rollback_transaction();
 }
-*/
 
 TEST(auto_tx_test, auto_tx_inactive_rollback)
 {
