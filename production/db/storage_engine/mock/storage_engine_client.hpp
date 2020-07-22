@@ -46,25 +46,9 @@ class client : private se_base {
     static void rollback_transaction();
     static bool commit_transaction();
 
-    static inline gaia_tx_hook set_tx_begin_hook(gaia_tx_hook hook, bool overwrite) {
-        return set_tx_hook(s_tx_begin_hook, hook, overwrite);
-    }
-
-    static inline gaia_tx_hook set_tx_commit_hook(gaia_tx_hook hook, bool overwrite) {
-        return set_tx_hook(s_tx_commit_hook, hook, overwrite);
-    }
-
-    static inline gaia_tx_hook set_tx_rollback_hook(gaia_tx_hook hook, bool overwrite) {
-        return set_tx_hook(s_tx_rollback_hook, hook, overwrite);
-    }
-
    private:
     thread_local static int s_fd_log;
     thread_local static offsets* s_offsets;
-
-    static atomic<gaia_tx_hook> s_tx_begin_hook;
-    static atomic<gaia_tx_hook> s_tx_commit_hook;
-    static atomic<gaia_tx_hook> s_tx_rollback_hook;
 
     // Inherited from se_base:
     // static int s_fd_offsets;
@@ -135,20 +119,6 @@ class client : private se_base {
         lr->row_id = row_id;
         lr->old_object = old_object;
         lr->new_object = new_object;
-    }
-
-    static inline gaia_tx_hook set_tx_hook(atomic<gaia_tx_hook>& old_hook, gaia_tx_hook new_hook, bool overwrite) {
-        if (overwrite) {
-            // Register the new hook and return the previously registered hook.
-            return old_hook.exchange(new_hook);
-        } else {
-            // Do not overwrite previously registered hook.
-            gaia_tx_hook expected = nullptr;
-            // If the exchange failed (because a hook was already registered),
-            // then return the registered hook, otherwise return null.
-            old_hook.compare_exchange_strong(expected, new_hook);
-            return expected;
-        }
     }
 };
 
