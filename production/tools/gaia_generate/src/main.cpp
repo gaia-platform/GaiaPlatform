@@ -3,6 +3,7 @@
 //// All rights reserved.
 ///////////////////////////////////////////////
 #include "gaia_catalog.hpp"
+#include "gaia_db.hpp"
 #include <iostream>
 #include <memory>
 #include <vector>
@@ -17,10 +18,10 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    begin_session();
+    gaia::db::begin_session();
 
     auto code_lines = gaia_generate(argv[1]);
     cout << code_lines << endl;
 
-    end_session();
+    gaia::db::end_session();
 }
