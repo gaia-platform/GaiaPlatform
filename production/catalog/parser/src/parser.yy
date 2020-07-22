@@ -111,7 +111,7 @@ statement: create_statement { $$ = std::unique_ptr<statement_t>{std::move($1)}; 
 
 create_statement:
     CREATE TABLE IDENTIFIER "(" field_def_commalist ")" {
-        $$ = std::unique_ptr<create_statement_t>{new create_statement_t(create_type_t::e_create_table)};
+        $$ = std::unique_ptr<create_statement_t>{new create_statement_t(create_type_t::create_table)};
         $$->table_name = std::move($3);
         $$->fields = std::move(*$5);
     };

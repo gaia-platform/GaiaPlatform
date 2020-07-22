@@ -56,8 +56,8 @@ enum class trim_action_type_t : uint8_t {
  * Value index types.
  */
 enum value_index_type_t : uint8_t {
-    e_hash,
-    e_range
+    hash,
+    range
 };
 
 namespace ddl {
@@ -69,9 +69,9 @@ namespace ddl {
  */
 
 enum class statement_type_t : uint8_t {
-    e_create,
-    e_drop,
-    e_alter
+    create,
+    drop,
+    alter
 };
 
 struct statement_t {
@@ -112,12 +112,12 @@ struct field_definition_t {
 using field_def_list_t = vector<unique_ptr<field_definition_t>>;
 
 enum class create_type_t : uint8_t {
-    e_create_table,
+    create_table,
 };
 
 struct create_statement_t : statement_t {
     create_statement_t(create_type_t type)
-        : statement_t(statement_type_t::e_create), type(type){};
+        : statement_t(statement_type_t::create), type(type){};
 
     virtual ~create_statement_t() {}
 

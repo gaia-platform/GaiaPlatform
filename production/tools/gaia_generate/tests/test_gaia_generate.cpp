@@ -35,11 +35,11 @@ protected:
 // Copied from gaiac main.cpp
 void execute(vector<unique_ptr<statement_t>> &statements) {
     for (auto &stmt : statements) {
-        if (!stmt->is_type(statement_type_t::e_create)) {
+        if (!stmt->is_type(statement_type_t::create)) {
             continue;
         }
         auto createStmt = dynamic_cast<create_statement_t *>(stmt.get());
-        if (createStmt->type == create_type_t::e_create_table) {
+        if (createStmt->type == create_type_t::create_table) {
             gaia::catalog::create_table(createStmt->table_name, createStmt->fields);
         }
     }
