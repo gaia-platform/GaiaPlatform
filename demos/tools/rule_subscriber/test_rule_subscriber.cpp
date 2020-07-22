@@ -34,11 +34,11 @@ void ruleset_1::ObjectRule_handler(const rule_context_t*)
 /**
  rule-2: [AddrBook::Employee.last_name]; [AddrBook::Employee.first_name]; [AddrBook::Employee.phone_number]
  */
-void ruleset_2::Field_handler(const rule_context_t*)
-{
-    int x = 5;
-    x = x*2;
-}
+//void ruleset_2::Field_handler(const rule_context_t*)
+//{
+//    int x = 5;
+//    x = x*2;
+//}
 
 /**
  rule-3: [AddrBook::Employee](delete)
@@ -71,7 +71,7 @@ TEST(rule_subscriber, tx_events)
 
     // Create a gaia object to ensure that the hooks are coded correctly
     // and overridden correctly
-    AddrBook::Employee e;
+    AddrBook::Employee_ptr e;
 
     gaia::db::begin_transaction();
     // We did not hook rollback so we expect the same

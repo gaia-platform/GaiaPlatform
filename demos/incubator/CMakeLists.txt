@@ -35,7 +35,7 @@ add_custom_target(make_generated_incubator_dir ALL
 )
 
 set_property(GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
-gaia_compile_flatbuffers_schema_to_cpp_opt(barn_storage.fbs "--no-includes;--gen-compare;--gen-setters;--gen-events;--gaia-type-initial-value;1000" "${GENERATED_OUTPUTS}")
+gaia_compile_flatbuffers_schema_to_cpp_opt(barn_storage.fbs "--no-includes;--gen-compare;--gaia-type-initial-value;1000" "${GENERATED_OUTPUTS}")
 gaia_get_generated_output(fbs_generated)
 if(fbs_generated)
   # message(STATUS "Add generated_code target with files:${fbs_generated}")

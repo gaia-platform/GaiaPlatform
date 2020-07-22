@@ -23,7 +23,7 @@ namespace cameraDemo
 */
     void ImageCreate_handler(const rule_context_t *context)
     {
-        auto row = CameraDemo::Camera_image::get_row_by_id(context->record);
+        auto row = CameraDemo::Camera_image::get(context->record);
         cerr << "IMAGE Captured " << row->file_name() <<  endl;
         g_filenames.insert(make_pair(row->gaia_id(), row->file_name()));
         std::vector<string> detectedClasses  = processImage(row->file_name());
@@ -35,9 +35,9 @@ namespace cameraDemo
         {
             for (const auto& it: detectedClasses)
             {
-                CameraDemo::Object obj;
-                obj.set_class_(it.c_str());
-                obj.insert_row();
+                CameraDemo::Object_writer obj = CameraDemo::Object::writer();
+                obj->class_ = it.c_str();
+                CameraDemo::Object::insert_row(obj);
             }
         }        
     }
@@ -59,7 +59,7 @@ namespace cameraDemo
 */
     void ObjectClassify_handler(const rule_context_t *context)
     {
-        auto row = CameraDemo::Object::get_row_by_id(context->record);
+        auto row = CameraDemo::Object::get(context->record);
         cerr << "OBJECT CLASSIFIED " << row->class_() << endl;
 
         if ("person" == std::string(row->class_()))
@@ -70,14 +70,15 @@ namespace cameraDemo
 
             auto p_row = CameraDemo::Emergency_stop::get_first();
             if (nullptr == p_row) {
-                CameraDemo::Emergency_stop emergency_stop;
-                emergency_stop.set_until_time_ns(until_time_ns);
-                emergency_stop.insert_row();
+                CameraDemo::Emergency_stop_writer w = CameraDemo::Emergency_stop::writer();
+                w->until_time_ns = until_time_ns;
+                CameraDemo::Emergency_stop::insert_row(w);
             }
             else
             {
-                p_row->set_until_time_ns(until_time_ns);
-                p_row->update_row();
+                CameraDemo::Emergency_stop_writer w = CameraDemo::Emergency_stop::writer(p_row);
+                w->until_time_ns = until_time_ns;
+                p_row->update_row(w);
             }
         }
     }

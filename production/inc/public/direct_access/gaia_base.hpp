@@ -6,6 +6,7 @@
 #pragma once
 
 #include <map>
+#include <memory>
 
 #include "gaia_common.hpp"
 #include "gaia_exception.hpp"
@@ -31,107 +32,35 @@ namespace direct_access {
  */
 
 /**
- * The gaia_base_t struct provides control over the extended data class objects by
- * keeping a cached pointer to each storage engine object that has been accessed.
- * Storage engine objects are identified by the gaia_id_t (currently a 64-bit
- * integer). When the same object is referenced multiple times, the cached
- * gaia object associated with the gaia_id_t will be used again.
- *
- * A second cache is maintained to track objects that have been involved in a
- * transaction. These objects (which may be small in number compared to the
- * complete cache of objects) will be "cleared" at the beginning of each new
- * transaction. This ensures that any changes made by other transactions will be
- * refreshed if they are accessed again.
+ * The gaia_base_t struct is a tag to mark extended data class objects.
  */
 struct gaia_base_t
 {
-    typedef map<gaia_id_t, gaia_base_t *> id_cache_t;
-    /**
-     * Track every gaia_base_t object by the gaia_id_t. If the same gaia_id_t is
-     * accessed multiple times, this cache will find the same object containing
-     * any local transactional changes. Since each object may contain a pointer
-     * to the flatbuffer payload in the SE memory, or a local, mutable copy of the
-     * flatbuffer, these objects will be frequently referenced by their gaia_id and
-     * require quick access to their contents.
-     */
-    static id_cache_t s_gaia_cache;
-    /**
-     * Track every gaia_base_t object that has been used in the current transaction.
-     * Used to clear the field values referenced in the objects at transaction commit
-     * because they become stale. This separate cache is maintained as a smaller
-     * subset of the s_gaia_cache so that the whole cache doesn't have to be searched
-     * for contents to be cleared. This map is cleared before every transaction begins.
-     * By waiting until the next transaction begins, program references to fields will
-     * not cause crashes, even though the data is invalid.
-     */
-    static id_cache_t s_gaia_tx_cache;
-
-    gaia_base_t() = delete;
-
-    gaia_base_t(const char* gaia_typename);
-
-    /**
-     * This is the storage engine's identification of this object. The id can be
-     * used to refer to this object later.
-     */
-    gaia_id_t gaia_id() { return m_id; }
-
     /**
      * The gaia_base_t and gaia_object_t shouldn't be instantiated directly. The
      * gaia_object_t is created to be subclassed by a "typed" class that is identified
      * with a flatbuffer table. This method returns the name of that type.
      */
+    gaia_base_t() = delete;
+    gaia_base_t(const char* gaia_typename) : m_typename(gaia_typename) {}
+    
     const char* gaia_typename() { return m_typename; }
-
-    /**
-     * The s_gaia_tx_cache is a list of objects containing stale data that
-     * must be refreshed if a new transaction begins. Scan these objects to
-     * clean out old values. The objects will not be deleted, as they will
-     * continue to be tracked in the s_gaia_cache.
-     *
-     * This commit_hook() must be used together with the extended data
-     * class objects.  It is executed after the transaction has been committed.
-     */
-    static void commit_hook();
-
-    /**
-     * These hooks are intentionally left empty. They are provided
-     * so that the rule subscriber can dumbly generate calls to them
-     * when generating its own hooks to generate transaction events.
-     * If code is run as part of begin or rollback hooks then do not
-     * forget to set the hook in set_tx_hooks below.
-     */
-    static void begin_hook() {}
-    static void rollback_hook() {}
-
     virtual gaia_type_t gaia_type() = 0;
     virtual ~gaia_base_t() = default;
 
 protected:
-    gaia_base_t(gaia_id_t id, const char * gaia_typename);
-
-    // The first time we put any gaia object in our cache
-    // we should install our commit hook.
-    static void set_tx_hooks();
-
-    // The gaia_id assigned to this row.
-    gaia_id_t m_id;
     // The typename for this gaia type
     const char * m_typename;
-
-private:
-    virtual void reset(bool) = 0;
 };
 
-// Exception when get_row_by_id() argument doesn't match the class type
+// Exception when get() argument doesn't match the class type
 class edc_invalid_object_type: public gaia_exception
 {
 public:
     edc_invalid_object_type(gaia_id_t id,
-        gaia_type_t expected,
-        const char* expected_type,
-        gaia_type_t actual,
-        const char* type_name);
+        gaia_type_t expected_type,
+        const char* expected_typename,
+        gaia_type_t actual_type);
 };
 
 // A child's parent pointer must match the parent record we have.

@@ -675,7 +675,7 @@ void generateCode(const char *fileName, const map<string, vector<rule_data_t>>& 
     code << "using namespace gaia::rules;" << endl; 
     code << endl;
 
-    generateTxHookFunctions(code, rulesets);
+    //generateTxHookFunctions(code, rulesets);
 
     // generate ruleset init functions
     for (auto it_rulesets = rulesets.cbegin(); it_rulesets != rulesets.cend(); ++it_rulesets)
@@ -703,7 +703,7 @@ void generateCode(const char *fileName, const map<string, vector<rule_data_t>>& 
     }
 
     // Setup transaction hooks if needed.
-    generateTxHookInit(code);
+    // generateTxHookInit(code);
     code << "}" << endl;
 
     SaveFile(fileName, code);

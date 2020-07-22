@@ -211,8 +211,7 @@ class server : private se_base {
         // we need to add an extra byte for the null byte prefix.
         socklen_t server_addr_size =
             sizeof(server_addr.sun_family) + 1 + strlen(&server_addr.sun_path[1]);
-        if (-1 == ::bind(connect_socket, (struct sockaddr*)&server_addr,
-                      server_addr_size)) {
+        if (-1 == ::bind(connect_socket, (struct sockaddr*)&server_addr, server_addr_size)) {
             throw_system_error("bind failed");
         }
         if (-1 == listen(connect_socket, 0)) {

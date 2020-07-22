@@ -4,9 +4,10 @@
 /////////////////////////////////////////////
 #pragma once
 
-#include <unordered_map>
+#include <list>
 #include <queue>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 #include "rules.hpp"

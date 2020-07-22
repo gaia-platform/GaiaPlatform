@@ -75,8 +75,8 @@ class gaia_hash_map {
             }
 
             node = node->next
-                       ? client::s_data->hash_nodes + node->next
-                       : 0;
+                ? client::s_data->hash_nodes + node->next
+                : 0;
         }
 
         return 0;

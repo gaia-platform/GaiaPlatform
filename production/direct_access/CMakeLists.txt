@@ -25,8 +25,8 @@ message(STATUS "GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES=${GAIA_DIRECT_ACCESS_PRIVATE
 
 # Our main target.
 add_library(gaia_direct STATIC
-  src/gaia_object_defs.cpp
   src/gaia_base.cpp
+  src/auto_transaction.cpp
 )
 
 # Generate the headers from the flatbuffer
@@ -40,7 +40,6 @@ if(fbs_generated)
     COMMENT "All generated files were updated.")
 endif()
 
-
 target_include_directories(gaia_direct PUBLIC ${GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES})
 target_include_directories(gaia_direct PRIVATE ${GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES})
 target_link_libraries(gaia_direct PUBLIC gaia_semock)
@@ -48,12 +47,10 @@ set_target_properties(gaia_direct PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia_direct PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-
 # Start unit tests.
 set (DIRECT_ACCESS_TEST_INCLUDES
   ${GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES}
   ${GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES}
 )
-add_gtest(test_direct_access "tests/test_direct_access.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia" "test_generated_code")
-add_gtest(test_references "tests/test_references.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia" "test_generated_code")
-
+add_gtest(test_direct_access "tests/test_direct_access.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_semock;gaia_direct" "test_generated_code")
+add_gtest(test_references "tests/test_references.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_semock;gaia_direct" "test_generated_code")

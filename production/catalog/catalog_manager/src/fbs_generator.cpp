@@ -182,12 +182,12 @@ gaia_data_type to_gaia_data_type(ddl::data_type_t data_type) {
 string generate_fbs(gaia_id_t table_id) {
     string fbs;
     gaia::db::begin_transaction();
-    unique_ptr<Gaia_table> table{Gaia_table::get_row_by_id(table_id)};
-    string table_name{table->name()};
+    Gaia_table table = Gaia_table::get(table_id);
+    string table_name{table.name()};
     fbs += "table " + table_name + "{\n";
     for (gaia_id_t field_id : list_fields(table_id)) {
-        unique_ptr<Gaia_field> field{Gaia_field::get_row_by_id(field_id)};
-        fbs += "\t" + generate_field_fbs(*field) + ";\n";
+        Gaia_field field = Gaia_field::get(field_id);
+        fbs += "\t" + generate_field_fbs(field) + ";\n";
     }
     fbs += "}\n";
     fbs += "root_type " + table_name + ";";
@@ -199,11 +199,11 @@ string generate_fbs() {
     string fbs;
     gaia::db::begin_transaction();
     for (gaia_id_t table_id : list_tables()) {
-        unique_ptr<Gaia_table> table{Gaia_table::get_row_by_id(table_id)};
-        fbs += "table " + string(table->name()) + "{\n";
+        Gaia_table table = Gaia_table::get(table_id);
+        fbs += "table " + string(table.name()) + "{\n";
         for (gaia_id_t field_id : list_fields(table_id)) {
-            unique_ptr<Gaia_field> field{Gaia_field::get_row_by_id(field_id)};
-            fbs += "\t" + generate_field_fbs(*field) + ";\n";
+            Gaia_field field = Gaia_field::get(field_id);
+            fbs += "\t" + generate_field_fbs(field) + ";\n";
         }
         fbs += "}\n\n";
     }
@@ -239,8 +239,8 @@ string generate_bfbs(const string &fbs) {
 
 string get_bfbs(gaia_id_t table_id) {
     gaia::db::begin_transaction();
-    unique_ptr<Gaia_table> table{Gaia_table::get_row_by_id(table_id)};
-    string base64_binary_schema = table->binary_schema();
+    Gaia_table table = Gaia_table::get(table_id);
+    string base64_binary_schema = table.binary_schema();
     gaia::db::commit_transaction();
     return base64_decode(base64_binary_schema);
 }
