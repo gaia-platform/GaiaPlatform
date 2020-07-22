@@ -25,6 +25,47 @@ namespace catalog {
  * \addtogroup catalog
  * @{
  */
+
+/*
+ * The following enum classes are shared cross the catalog usage.
+ */
+
+/*
+ * Data types for Gaia field records.
+ */
+enum class data_type_t : uint8_t {
+    e_bool,
+    e_int8,
+    e_uint8,
+    e_int16,
+    e_uint16,
+    e_int32,
+    e_uint32,
+    e_int64,
+    e_uint64,
+    e_float32,
+    e_float64,
+    e_string,
+    e_references
+};
+
+/*
+ * Trim action for log tables.
+ */
+enum class trim_action_type_t : uint8_t {
+    e_none,
+    e_delete,
+    e_archive,
+};
+
+/*
+ * Value index types.
+ */
+enum value_index_type_t : uint8_t {
+    hash,
+    range
+};
+
 namespace ddl {
 /**
  * \addtogroup ddl
@@ -33,40 +74,24 @@ namespace ddl {
  * Definitions for parse result bindings
  */
 
-enum class data_type_t : unsigned int {
-    BOOL,
-    INT8,
-    UINT8,
-    INT16,
-    UINT16,
-    INT32,
-    UINT32,
-    INT64,
-    UINT64,
-    FLOAT32,
-    FLOAT64,
-    STRING,
-    REFERENCES
-};
-
-enum class  statement_type_t : unsigned int {
-    CREATE,
-    DROP,
-    ALTER
+enum class statement_type_t : uint8_t {
+    create,
+    drop,
+    alter
 };
 
 struct statement_t {
 
-    statement_t( statement_type_t type) : m_type(type){};
+    statement_t(statement_type_t type) : m_type(type){};
 
-     statement_type_t type() const { return m_type; };
+    statement_type_t type() const { return m_type; };
 
-    bool is_type( statement_type_t type) const { return m_type == type; };
+    bool is_type(statement_type_t type) const { return m_type == type; };
 
     virtual ~statement_t(){};
 
   private:
-     statement_type_t m_type;
+    statement_type_t m_type;
 };
 
 struct field_type_t {
@@ -92,13 +117,13 @@ struct field_definition_t {
 
 using field_def_list_t = vector<unique_ptr<field_definition_t>>;
 
-enum class create_type_t : unsigned int {
-    CREATE_TABLE,
+enum class create_type_t : uint8_t {
+    create_table,
 };
 
 struct create_statement_t : statement_t {
     create_statement_t(create_type_t type)
-        : statement_t(statement_type_t::CREATE), type(type){};
+        : statement_t(statement_type_t::create), type(type){};
 
     virtual ~create_statement_t() {}
 
@@ -207,7 +232,7 @@ string generate_fbs();
 /**
  * Generate the Extended Data Classes header file.
  *
- * @return void
+ * @return generated source
  */
 string gaia_generate(string);
 

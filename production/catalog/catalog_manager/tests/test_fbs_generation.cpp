@@ -27,8 +27,8 @@ class fbs_generation_test : public ::testing::Test {
         // We need to use push_back to init the test fields because:
         // 1) Initializer_lists always perform copies, and unique_ptrs are not copyable.
         // 2) Without make_unique (C++ 14), using emplace_back and new can leak if the vector fails to reallocate memory.
-        test_table_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("id", ddl::data_type_t::INT8, 1)));
-        test_table_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("name", ddl::data_type_t::STRING, 1)));
+        test_table_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("id", data_type_t::e_int8, 1)));
+        test_table_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("name", data_type_t::e_string, 1)));
     }
 
     static void TearDownTestSuite() {

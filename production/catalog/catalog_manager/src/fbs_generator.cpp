@@ -114,13 +114,42 @@ static string base64_encode(uint8_t const *bytes_to_encode, uint32_t in_len) {
     return ret;
 }
 
-static string get_data_type_name(gaia_data_type e) {
-    string name{EnumNamegaia_data_type(e)};
-    // Convert the data type enum name string to lowercase case
-    // because FlatBuffers schema is case sensitive
-    // and does not recognize uppercase keywords.
-    transform(name.begin(), name.end(), name.begin(), ::tolower);
-    return name;
+/**
+ * Get the data type name for fbs
+ *
+ * @param catalog data type
+ * @return fbs data type name
+ * @throw unknown_data_type
+ */
+static string get_data_type_name(data_type_t data_type) {
+    switch (data_type) {
+    case data_type_t::e_bool:
+        return "bool";
+    case data_type_t::e_int8:
+        return "int8";
+    case data_type_t::e_uint8:
+        return "uint8";
+    case data_type_t::e_int16:
+        return "int16";
+    case data_type_t::e_uint16:
+        return "uint16";
+    case data_type_t::e_int32:
+        return "int32";
+    case data_type_t::e_uint32:
+        return "uint32";
+    case data_type_t::e_int64:
+        return "int64";
+    case data_type_t::e_uint64:
+        return "uint64";
+    case data_type_t::e_float32:
+        return "float32";
+    case data_type_t::e_float64:
+        return "float64";
+    case data_type_t::e_string:
+        return "string";
+    default:
+        throw ddl::unknown_data_type();
+    }
 }
 
 static string generate_field_fbs(const string &name, const string &type, int count) {
@@ -135,7 +164,7 @@ static string generate_field_fbs(const string &name, const string &type, int cou
 
 static string generate_field_fbs(const Gaia_field &field) {
     string name{field.name()};
-    string type{get_data_type_name(field.type())};
+    string type{get_data_type_name(static_cast<data_type_t>(field.type()))};
     return generate_field_fbs(name, type, field.repeated_count());
 }
 
@@ -144,39 +173,6 @@ static string generate_field_fbs(const Gaia_field &field) {
  **/
 ddl::unknown_data_type::unknown_data_type() {
     m_message = "Unknown data type.";
-}
-
-gaia_data_type to_gaia_data_type(ddl::data_type_t data_type) {
-    switch (data_type) {
-    case ddl::data_type_t::BOOL:
-        return gaia_data_type_BOOL;
-    case ddl::data_type_t::INT8:
-        return gaia_data_type_INT8;
-    case ddl::data_type_t::UINT8:
-        return gaia_data_type_UINT8;
-    case ddl::data_type_t::INT16:
-        return gaia_data_type_INT16;
-    case ddl::data_type_t::UINT16:
-        return gaia_data_type_UINT16;
-    case ddl::data_type_t::INT32:
-        return gaia_data_type_INT32;
-    case ddl::data_type_t::UINT32:
-        return gaia_data_type_UINT32;
-    case ddl::data_type_t::INT64:
-        return gaia_data_type_INT64;
-    case ddl::data_type_t::UINT64:
-        return gaia_data_type_UINT64;
-    case ddl::data_type_t::FLOAT32:
-        return gaia_data_type_FLOAT32;
-    case ddl::data_type_t::FLOAT64:
-        return gaia_data_type_FLOAT64;
-    case ddl::data_type_t::STRING:
-        return gaia_data_type_STRING;
-    case ddl::data_type_t::REFERENCES:
-        return gaia_data_type_REFERENCES;
-    default:
-        throw ddl::unknown_data_type();
-    }
 }
 
 string generate_fbs(gaia_id_t table_id) {
@@ -215,12 +211,12 @@ string generate_fbs(const string &table_name, const ddl::field_def_list_t &field
     string fbs;
     fbs += "table " + table_name + "{";
     for (auto &field : fields) {
-        if (field->type == ddl::data_type_t::REFERENCES) {
+        if (field->type == data_type_t::e_references) {
             continue;
         }
         string field_fbs = generate_field_fbs(
             field->name,
-            get_data_type_name(to_gaia_data_type(field->type)),
+            get_data_type_name(field->type),
             field->length);
         fbs += field_fbs + ";";
     }
