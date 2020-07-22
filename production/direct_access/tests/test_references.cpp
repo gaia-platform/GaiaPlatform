@@ -219,6 +219,12 @@ void scan_manages(vector<string>& employee_vector, Employee& e) {
     }
 }
 
+Employee insert_employee(Employee_writer& writer, const char * name_first)
+{
+    writer.name_first = name_first;
+    return Employee::get(writer.insert_row());
+}
+
 TEST_F(gaia_references_test, recursive_scan) {
     begin_transaction();
 

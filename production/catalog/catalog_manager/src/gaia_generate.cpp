@@ -310,7 +310,7 @@ string gaia_generate(string dbname) {
         auto table_record = Gaia_table::get(table_id);
         for (auto field_id : list_fields(table_id)) {
             Gaia_field field_record(Gaia_field::get(field_id));
-            field_strings.push_back(field_strings_t{field_record.name(), field_record.type()});
+            field_strings.push_back(field_strings_t{field_record.name(), static_cast<data_type_t>(field_record.type())});
         }
         for (auto ref_id : list_references(table_id)) {
             Gaia_field ref_record = Gaia_field::get(ref_id);

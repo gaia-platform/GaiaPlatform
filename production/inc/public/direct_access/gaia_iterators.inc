@@ -33,7 +33,7 @@ gaia_id_t gaia_iterator_t<T_gaia>::operator++()
         return m_id;
     }
 
-    m_id = ptr_next->id;
+    m_id = ptr_next.id();
 
     return m_id;
 }
