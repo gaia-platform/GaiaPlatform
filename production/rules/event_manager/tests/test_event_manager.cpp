@@ -14,9 +14,11 @@
 #include "mock_trigger.hpp"
 #include "db_test_helpers.hpp"
 
-using namespace std;
-using namespace gaia::rules;
 using namespace gaia::common;
+using namespace gaia::db;
+using namespace gaia::direct_access;
+using namespace gaia::rules;
+using namespace std;
 
 /**
  * The rule_context_checker_t validates whethe the rule was passed the
@@ -417,14 +419,6 @@ static constexpr int s_rule_decl_len = sizeof(s_rule_decl)/sizeof(s_rule_decl[0]
 class event_manager_test : public ::testing::Test
 {
 protected:
-    static void SetUpTestSuite() {
-        start_server();
-    }
-
-    static void TearDownTestSuite() {
-        stop_server();
-    }
-
     void SetUp() override {
         begin_session();
     }
@@ -559,18 +553,18 @@ protected:
     {
       uint64_t rows_cleared = 0;
       gaia::db::begin_transaction();
-      log_entry_t entry = log_entry_t::get_first();
+      Event_log entry = Event_log::get_first();
       while(entry)
       {
           entry.delete_row();
-          entry = log_entry_t::get_first();
+          entry = Event_log::get_first();
           rows_cleared++;
       }
       gaia::db::commit_transaction();
       return rows_cleared;
     }
 
-    void verify_event_log_row(const log_entry_t& row, event_type_t event_type, uint64_t gaia_type,
+    void verify_event_log_row(const Event_log& row, event_type_t event_type, uint64_t gaia_type,
         gaia_id_t record_id, uint16_t column_id, bool rules_invoked)
     {
         EXPECT_EQ(row.event_type(), (uint32_t) event_type);
@@ -1223,7 +1217,7 @@ TEST_F(event_manager_test, event_logging_no_subscriptions)
     commit_trigger(0, events, 2, true);
 
     gaia::db::begin_transaction();
-    log_entry_t entry = log_entry_t::get_first();
+    Event_log entry = Event_log::get_first();
     verify_event_log_row(entry, event_type_t::row_update, 
         TestGaia::s_gaia_type, record, s_last_name, false);
     
@@ -1251,7 +1245,7 @@ TEST_F(event_manager_test, event_logging_subscriptions)
     commit_trigger(0, events, 3, true);
 
     gaia::db::begin_transaction();
-    log_entry_t entry = log_entry_t::get_first();
+    Event_log entry = Event_log::get_first();
     verify_event_log_row(entry, event_type_t::row_update, 
         TestGaia2::s_gaia_type, record, s_first_name, true);
 
@@ -1268,6 +1262,10 @@ TEST_F(event_manager_test, event_logging_subscriptions)
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
-  gaia::system::initialize();
-  return RUN_ALL_TESTS();
+  testing::InitGoogleTest(&argc, argv);
+  start_server();
+  gaia::rules::initialize_rules_engine();
+  int ret_code = RUN_ALL_TESTS();
+  stop_server();
+  return ret_code;
 }
