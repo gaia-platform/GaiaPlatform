@@ -3805,7 +3805,7 @@ Sema::PerformImplicitConversion(Expr *From, QualType ToType,
     {
         exp = dyn_cast<DeclRefExpr>(expm->getBase());
     }
-    
+
     if (exp != nullptr)
     {                  
         ValueDecl *decl = exp->getDecl();
