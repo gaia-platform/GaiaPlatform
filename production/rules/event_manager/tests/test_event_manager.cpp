@@ -1143,7 +1143,7 @@ TEST_F(event_manager_test, forward_chain_field_commit)
         {event_type_t::transaction_commit, 0, 0, nullptr, 0}
     };
     event_manager_t::get().commit_trigger(0, events, 2, false);
-    commit_transaction(false);
+    commit_transaction();
     validate_rule_sequence(expected);
 
     uninstall_transaction_hooks();

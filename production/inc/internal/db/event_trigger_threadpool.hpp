@@ -24,6 +24,7 @@ namespace db
 {
 namespace triggers {
 
+// Class used to clean up resources per thread.
 class session_destructor {
     public:
         session_destructor() = default;
@@ -48,12 +49,12 @@ class event_trigger_threadpool {
         thread_local static session_destructor destroy_session;
 
         std::atomic_bool has_execution_completed;
-        wait_queue<std::function<void()>> tasks;
+        wait_queue_t<std::function<void()>> tasks;
         std::vector<std::thread> workers;
 
         void run_method() {
 
-            if (!has_execution_completed) {
+            while (!has_execution_completed) {
                 std::function<void()> task;
                 tasks.pop(task);
                 // Before executing a task, create a session if it doesn't exist.
@@ -63,14 +64,12 @@ class event_trigger_threadpool {
                 }
                 task();
             }
-
         }
  
         public: 
             event_trigger_threadpool() {
                 has_execution_completed = false;
-                auto count = 1;
-                for (int i = 0; i < count; i++) {
+                for (uint32_t i = 0; i < std::thread::hardware_concurrency(); i++) {
                     workers.push_back(std::thread(&event_trigger_threadpool::run_method, this));
                 }
             }

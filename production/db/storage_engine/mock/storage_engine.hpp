@@ -20,8 +20,6 @@
 #include <stdexcept>
 #include <string>
 #include <sstream>
-#include <vector>
-#include <memory>
 
 #include "scope_guard.hpp"
 #include "system_error.hpp"

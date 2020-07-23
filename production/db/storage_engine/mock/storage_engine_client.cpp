@@ -17,7 +17,7 @@ thread_local gaia_xid_t client::s_transaction_id = -1;
 thread_local std::vector<trigger_event_t> client::s_events;
 
 std::unordered_set<gaia_type_t> client::trigger_type_filter{6 /*event_log*/};
-// should this be initialized by the rules engine instead?
+// Should this be initialized by the rules engine instead?
 event_trigger_threadpool* client::event_trigger_pool = new event_trigger_threadpool();
 
 static void build_client_request(FlatBufferBuilder &builder, session_event_t event) {
@@ -195,7 +195,7 @@ void client::begin_transaction() {
     size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
     retail_assert(bytes_read > 0);
 
-    // Extract the transaction id and cache it; it needs to be cleared post commit.
+    // Extract the transaction id and cache it; it needs to be reset for the next transaction.
     const message_t *msg = Getmessage_t(msg_buf);
     const server_reply_t *reply = msg->msg_as_reply();
     s_transaction_id = reply->transaction_id();

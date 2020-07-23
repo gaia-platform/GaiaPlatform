@@ -43,19 +43,6 @@ void commit_trigger(uint32_t tx_id, trigger_event_t* events, size_t count_events
 
 }
 }
-
-void verify_trigger_event(trigger_event_t& expected)
-{
-    // TEST_EQ(expected.event_type, g_trigger_event.event_type);
-    // TEST_EQ(expected.gaia_type, g_trigger_event.gaia_type);
-    // TEST_EQ(expected.record,g_trigger_event.record);
-    // TEST_EQ(expected.count_columns, g_trigger_event.count_columns);
-    // for (size_t i = 0; i < g_trigger_event.count_columns; i++)
-    // {
-    //     uint16_t column = expected.columns[i];
-    //     TEST_ASSERT(std::find(g_columns.begin(), g_columns.end(), column) != g_columns.end());
-    // }
-}
 */
 
 void GaiaGetTest()

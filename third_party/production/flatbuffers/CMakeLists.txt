@@ -523,7 +523,6 @@ if(FLATBUFFERS_BUILD_TESTS)
      POST_BUILD
      COMMAND ${FLATBUFFERS_UNIT_TEST}
   )
-  
   # Disabling these tests since we're not keeping our fork of flatc
   # set(GAIA_UNIT_TEST gaia_tests)
   # add_custom_command(

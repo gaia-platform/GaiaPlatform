@@ -20,7 +20,6 @@ using namespace gaia::db::triggers;
 
 namespace gaia 
 {
-    void set_commit_trigger(f_commit_trigger_t commit_trigger);
 namespace rules
 {
 /**

@@ -45,7 +45,7 @@ add_library(gaia_catalog STATIC
   src/gaia_generate.cpp
   src/code_writer.cpp
 )
-add_dependencies(gaia_catalog generate_catalog_edc generate_event_logs)
+add_dependencies(gaia_catalog generate_catalog_edc)
 set_target_properties(gaia_catalog PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 target_include_directories(gaia_catalog PUBLIC ${GAIA_CATALOG_LIB_PUBLIC_INCLUDES})
 target_include_directories(gaia_catalog PRIVATE ${GAIA_CATALOG_LIB_PRIVATE_INCLUDES})

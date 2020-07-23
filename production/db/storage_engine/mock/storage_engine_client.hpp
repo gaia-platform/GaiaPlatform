@@ -31,7 +31,6 @@ using namespace gaia::common;
 using namespace gaia::db::triggers;
 
 namespace gaia {
-
 namespace db {
 
 // We need to forward-declare this class to avoid a circular dependency.
@@ -58,14 +57,14 @@ class client : private se_base {
     thread_local static std::vector<gaia::db::triggers::trigger_event_t> s_events;
     thread_local static gaia_xid_t s_transaction_id;
 
-    // Maintain a static filter in the client to disable generating trigger events
+    // Maintain a static filter in the client to disable generating events
     // for system types.
     static std::unordered_set<gaia_type_t> trigger_type_filter;
 
     // Threadpool to help invoke post-commit triggers in response to events generated in each transaction.
     static gaia::db::triggers::event_trigger_threadpool* event_trigger_pool;
 
-    // inherited from se_base:
+    // Inherited from se_base:
     // static int s_fd_offsets;
     // static data *s_data;
     // thread_local static log *s_log;

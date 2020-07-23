@@ -540,6 +540,7 @@ void gaia::rules::initialize_rules_engine()
     bool is_initializing = true;
     event_manager_t::get(is_initializing).init();
 
+    // As part of initialization, pass the post commit trigger function to the SE initialized trigger_event_threadpool.
     auto func = [] (uint64_t xid, std::vector<triggers::trigger_event_t> events, bool immediate) {
         event_manager_t::get().commit_trigger(xid, events.data(), events.size(), immediate);
     };
