@@ -25,7 +25,7 @@ const gaia_type_t m_gaia_type = 1;
 extern "C"
 void initialize_rules() {}
 
-void rule1(const rule_context_t* context)
+void rule1(const rule_context_t*)
 {
     rule_count++;
 }
@@ -47,7 +47,7 @@ TEST_F(gaia_system_test, insert_row_trigger) {
     begin_transaction();
     auto w = Employee_writer();
     w.name_first = "name";
-    gaia_id_t id = w.insert_row();
+    w.insert_row();
     commit_transaction();
 
     // The event_trigger_threadpool will invoke the rules engine on a separate thread from the client thread.

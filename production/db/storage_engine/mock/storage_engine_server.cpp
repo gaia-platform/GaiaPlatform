@@ -39,7 +39,6 @@ void server::handle_begin_txn(int*, size_t, session_event_t event, session_state
     FlatBufferBuilder builder;
     s_transaction_id = allocate_transaction_id();
     build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_transaction_id);
-    const int send_fds[] = {s_fd_data, s_fd_offsets};
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
 
