@@ -2,14 +2,13 @@ cmake_minimum_required(VERSION 3.11)
 
 project(camera_demo VERSION 0.1.0)
 
-include(${CMAKE_BINARY_DIR}/../../../../production/cmake/gaia.cmake)
-
 #list(APPEND CMAKE_MODULE_PATH 
 #  ${LLVM_LIB_PATH}/lib/cmake/clang
 #  ${LLVM_LIB_PATH}/lib/cmake/llvm
 # )
+find_package(OpenCV 4.3.0 REQUIRED)
 
-#find_package(OpenCV 4.3.0 REQUIRED)
+include(gaia)
 
 set(CMAKE_CXX_FLAGS
       "-std=c++0x -Wall -Wextra -ggdb -Wno-unused-parameter -ggdb")
@@ -20,8 +19,7 @@ add_custom_target(make_generated_cameraDemo_dir ALL
   COMMAND ${CMAKE_COMMAND} -E make_directory ${GENERATED_OUTPUTS}
   )
 set_property(GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
-set(GAIA_PROD_BUILD ${CMAKE_BINARY_DIR}/../../../../production/build)
-gaia_compile_flatbuffers_schema_to_cpp_opt(cameraDemo.fbs "--no-includes;--gen-compare;--gaia-type-initial-value;1000" "${GENERATED_OUTPUTS}")
+gaia_compile_flatbuffers_schema_to_cpp_opt(cameraDemo.fbs "--no-includes;--gen-compare;--gen-setters;--gen-events;--gaia-type-initial-value;1000" "${GENERATED_OUTPUTS}")
 gaia_get_generated_output(fbs_generated)
 if(fbs_generated)
   add_custom_target(generate_camera_demo
@@ -30,14 +28,14 @@ if(fbs_generated)
 endif()
 
 set (CAMERA_DEMO_INCLUDES
-  ${CMAKE_BINARY_DIR}/../../../../production/inc/public/rules
-  ${CMAKE_BINARY_DIR}/../../../../production/inc/internal/rules
-  ${CMAKE_BINARY_DIR}/../../../../production/inc/internal/common
-  ${CMAKE_BINARY_DIR}/../../../../production/inc/public/common
-  ${CMAKE_BINARY_DIR}/../../../../production/inc/public/direct_access
-  ${CMAKE_BINARY_DIR}/../../../../third_party/production/flatbuffers/include
-  ${CMAKE_BINARY_DIR}/../../../../production/db/storage_engine/mock
-  ${CMAKE_BINARY_DIR}/../../../../production/build/rules/event_manager/generated
+  ${CMAKE_SOURCE_DIR}/../../../production/inc/public/rules
+  ${CMAKE_SOURCE_DIR}/../../../production/inc/internal/rules
+  ${CMAKE_SOURCE_DIR}/../../../production/inc/internal/common
+  ${CMAKE_SOURCE_DIR}/../../../production/inc/public/common
+  ${CMAKE_SOURCE_DIR}/../../../third_party/production/flatbuffers/include
+  ${CMAKE_SOURCE_DIR}/../../../production/db/storage_engine/mock
+  #${CMAKE_SOURCE_DIR}/../../../production/build/rules/event_manager/generated
+  ${GAIA_PROD_BUILD}/rules/event_manager/generated
   ${GENERATED_OUTPUTS}
   ${OpenCV_INCLUDE_DIR}
   )
@@ -45,18 +43,17 @@ set (CAMERA_DEMO_INCLUDES
 include_directories(${CAMERA_DEMO_INCLUDES})
 
 # GAIA_DEMO_BUILD used by gaia_gen_rule_subscriptions.
-set(GAIA_DEMO_BUILD ${CMAKE_BINARY_DIR}/../../../../demos/build)
 gaia_gen_rule_subscriptions(
-  "../rules.cpp"
+  "${CMAKE_SOURCE_DIR}/rules.cpp"
   "${GENERATED_OUTPUTS}/rules_init.cpp"
   "${CAMERA_DEMO_INCLUDES}"
-)
+  )
 
 set(CAMERA_DEMO_SRCS
   "${GENERATED_OUTPUTS}/rules_init.cpp"
-  ../rules.cpp
-  ../demo.cpp
-  ../cv.cpp
+  "${CMAKE_SOURCE_DIR}/rules.cpp"
+  "${CMAKE_SOURCE_DIR}/demo.cpp"
+  "${CMAKE_SOURCE_DIR}/cv.cpp"
   )
 
 add_library(gaia SHARED IMPORTED GLOBAL)
