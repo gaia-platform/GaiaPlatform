@@ -1060,19 +1060,20 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
         /*IsInlineAsmIdentifier=*/false,
         Tok.is(tok::r_paren) ? nullptr : &Replacement,
         getLangOpts().Gaia && (
-            (Tok.is(tok::period) || Tok.is(tok::coloncolon)) &&  NextToken().is(tok::identifier)));
-    if (Tok.is(tok::period) && NextToken().is(tok::kw_LastOperation))
+            (Tok.is(tok::period) || Tok.is(tok::coloncolon)) &&  
+            NextToken().is(tok::identifier)));
+    if (getLangOpts().Gaia && Tok.is(tok::period) && 
+        NextToken().is(tok::identifier) && 
+        !Res.isInvalid() && !Res.isUnset() && 
+        NextToken().getIdentifierInfo()->getName().str() == "LastOperation")
     {
         DeclRefExpr *declExpr = dyn_cast<DeclRefExpr>(Res.get());
         if (declExpr != nullptr)
         {
             ValueDecl *decl = declExpr->getDecl();
-            if (decl->hasAttr<GaiaFieldAttr>())
+            if (decl->hasAttr<FieldTableAttr>())
             {
-                decl->dropAttrs();
                 decl->addAttr(GaiaLastOperationAttr::CreateImplicit(Actions.Context));
-                ConsumeToken();
-                ConsumeToken();
             }
         }
     }
@@ -1446,19 +1447,31 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
                 isTypeCast,
                 isVectorLiteral);
                 DeclRefExpr *declExpr = dyn_cast<DeclRefExpr>(expr.get());
+                MemberExpr *memberExpr = dyn_cast<MemberExpr>(expr.get());
+                if (declExpr == nullptr && memberExpr != nullptr)
+                {
+                    declExpr = dyn_cast<DeclRefExpr>(memberExpr->getBase());
+                }
                 if (declExpr != nullptr)
                 {
                     ValueDecl *decl = declExpr->getDecl();
-                    if (decl->hasAttr<GaiaFieldAttr>())
+                    if (decl->hasAttr<GaiaFieldAttr>() || 
+                        decl->hasAttr<FieldTableAttr>())
                     {
+                        auto tableAttr = decl->getAttr<FieldTableAttr>();
                         decl->dropAttrs();
                         decl->addAttr(GaiaFieldValueAttr::CreateImplicit(Actions.Context));
+                        if (tableAttr != nullptr)
+                        {
+                            decl->addAttr(tableAttr);
+                        }
                     }
                     else
                     {
                         return ExprError(Diag(atTok, diag::err_unexpected_at));
                     }                   
-                }                
+                } 
+                              
                 return expr;
           }
           else

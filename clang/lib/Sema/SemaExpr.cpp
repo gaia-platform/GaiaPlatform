@@ -11209,7 +11209,7 @@ static bool CheckForModifiableLvalue(Expr *E, SourceLocation Loc, Sema &S) {
 if (S.getLangOpts().Gaia)
 {
     DeclRefExpr *exp = dyn_cast<DeclRefExpr>(E);
-
+        
     if (exp != nullptr)
     {                    
         ValueDecl *decl = exp->getDecl();
@@ -11223,9 +11223,24 @@ if (S.getLangOpts().Gaia)
         }
 
         if (decl->hasAttr<GaiaFieldAttr>() ||
-            decl->hasAttr<GaiaFieldValueAttr>())
+            decl->hasAttr<GaiaFieldValueAttr>() ||
+            decl->hasAttr<FieldTableAttr>())
         {
             decl->addAttr(GaiaFieldLValueAttr::CreateImplicit(S.Context));
+        }
+    }
+    else
+    {
+        MemberExpr *memberExp = dyn_cast<MemberExpr>(E);
+        if (memberExp != nullptr)
+        {
+            ValueDecl *decl = memberExp->getMemberDecl();
+            if (decl->hasAttr<GaiaFieldAttr>() ||
+                decl->hasAttr<GaiaFieldValueAttr>() ||
+                decl->hasAttr<FieldTableAttr>())
+            {
+                decl->addAttr(GaiaFieldLValueAttr::CreateImplicit(S.Context));
+            }
         }
     }
 }
@@ -12312,6 +12327,17 @@ ExprResult Sema::CreateBuiltinBinOp(SourceLocation OpLoc,
     bool leftLastOp = false, rightLastOp = false, lOp = false, rOp = false;
     DeclRefExpr *l = dyn_cast<DeclRefExpr>(LHSExpr);
     DeclRefExpr *r = dyn_cast<DeclRefExpr>(RHSExpr);
+    MemberExpr *lm = dyn_cast<MemberExpr>(LHSExpr);
+    MemberExpr *rm = dyn_cast<MemberExpr>(RHSExpr);
+    if (l == nullptr && lm != nullptr)
+    {
+        l = dyn_cast<DeclRefExpr>(lm->getBase());
+    }
+
+    if (r == nullptr && rm != nullptr)
+    {
+        r = dyn_cast<DeclRefExpr>(rm->getBase());
+    }
 
     if (l != nullptr)
     {                    
@@ -12974,6 +13000,12 @@ ExprResult Sema::CreateBuiltinUnaryOp(SourceLocation OpLoc,
   if (getLangOpts().Gaia)
   {
     DeclRefExpr *exp = dyn_cast<DeclRefExpr>(InputExpr);
+    MemberExpr *expm = dyn_cast<MemberExpr>(InputExpr);
+    
+    if (exp == nullptr && expm != nullptr)
+    {
+        exp = dyn_cast<DeclRefExpr>(expm->getBase());
+    }
 
     if (exp != nullptr)
     {                    
