@@ -83,6 +83,7 @@ class gaia_ptr {
         }
         obj_ptr->payload_size = total_len;
         memcpy(obj_ptr->payload + refs_len, data, data_size);
+        obj.create_insert_trigger(type, id);
         return obj;
     }
 
@@ -139,7 +140,7 @@ class gaia_ptr {
         return row_id == 0;
     }
 
-    int64_t id() const {
+    gaia_id_t id() const {
         return to_ptr()->id;
     }
 
@@ -173,6 +174,8 @@ class gaia_ptr {
 
     void allocate(const size_t size);
 
+    void create_insert_trigger(gaia_type_t type, gaia_id_t id);
+
     gaia_ptr::object* to_ptr() const;
 
     int64_t to_offset() const;
@@ -184,6 +187,9 @@ class gaia_ptr {
     void find_next(gaia_type_t type);
 
     void reset();
+
+   private:
+    void log_current_object_type(gaia_type_t type);
 };
 
 }  // namespace db

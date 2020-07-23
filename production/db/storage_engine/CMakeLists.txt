@@ -16,6 +16,8 @@ find_package(Threads REQUIRED)
 set(GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES
   "${GAIA_INC}/public/common"
   "${GAIA_INC}/public/db"
+  "${GAIA_REPO}/production/db/inc/triggers"
+  "${GAIA_REPO}/production/db/inc/types"
   # This should be a public include since it exposes the gaia_ptr interface,
   # which is consumed by internal clients.
   "${GAIA_INC}/internal/db"
@@ -53,7 +55,7 @@ add_library(gaia_storage SHARED
 target_include_directories(gaia_storage PUBLIC ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES})
 target_include_directories(gaia_storage PRIVATE ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES})
 set_target_properties(gaia_storage PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
-target_link_libraries(gaia_storage PRIVATE gaia_common)
+target_link_libraries(gaia_storage PRIVATE gaia_common gaia_triggers)
 
 ###############################################
 # Storage engine mock-related code begins here.
@@ -63,7 +65,8 @@ add_library(gaia_semock STATIC
   mock/gaia_ptr.cpp
   mock/storage_engine.cpp
   mock/storage_engine_client.cpp
-  mock/rdb_object_converter.cpp)
+  mock/rdb_object_converter.cpp
+  mock/event_trigger_threadpool.cpp)
 add_dependencies(gaia_semock "${PROJECT_NAME}-gen_fbs")
 target_include_directories(gaia_semock PUBLIC ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES})
 target_include_directories(gaia_semock PRIVATE ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES})
@@ -134,5 +137,5 @@ set(GAIA_STORAGE_ENGINE_TEST_INCLUDES
 
 add_gtest(test_rdb_object_converter "tests/test_rdb_object_converter.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_semock")
 add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
-add_gtest(test_storage_engine_client "tests/test_storage_engine_client.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_semock")
+add_gtest(test_storage_engine_client "tests/test_storage_engine_client.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_semock")
 add_gtest(test_locator_allocator tests/test_locator_allocator.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")

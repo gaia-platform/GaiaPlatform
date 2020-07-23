@@ -44,7 +44,7 @@ void commit_trigger(uint32_t tx_id, trigger_event_t* events, size_t count_events
 }
 }
 
-void verify_trigger_event(gaia::rules::trigger_event_t& expected)
+void verify_trigger_event(trigger_event_t& expected)
 {
     TEST_EQ(expected.event_type, g_trigger_event.event_type);
     TEST_EQ(expected.gaia_type, g_trigger_event.gaia_type);

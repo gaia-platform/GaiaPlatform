@@ -45,6 +45,7 @@ class server : private se_base {
     static offsets* s_shared_offsets;
     thread_local static session_state_t s_session_state;
     thread_local static bool s_session_shutdown;
+    thread_local static gaia_xid_t s_transaction_id;
 
     // inherited from se_base:
     // static int s_fd_offsets;
@@ -127,8 +128,8 @@ class server : private se_base {
             std::string(EnumNamesession_event_t(event)) + "'");
     }
 
-    static void build_server_reply(FlatBufferBuilder& builder, session_event_t event, session_state_t old_state, session_state_t new_state) {
-        auto server_reply = Createserver_reply_t(builder, event, old_state, new_state);
+    static void build_server_reply(FlatBufferBuilder& builder, session_event_t event, session_state_t old_state, session_state_t new_state, gaia_xid_t transaction_id) {
+        auto server_reply = Createserver_reply_t(builder, event, old_state, new_state, transaction_id);
         auto message = Createmessage_t(builder, any_message_t::reply, server_reply.Union());
         builder.Finish(message);
     }

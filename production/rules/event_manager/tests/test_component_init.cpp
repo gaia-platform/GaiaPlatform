@@ -9,7 +9,7 @@
 #include "gtest/gtest.h"
 #include "db_test_helpers.hpp"
 #include "rules.hpp"
-
+#include "gaia_base.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
