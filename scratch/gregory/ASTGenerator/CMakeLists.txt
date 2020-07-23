@@ -14,9 +14,12 @@ include_directories(
   ${CMAKE_BINARY_DIR}/../../../../../../TranslationEngineLLVM/TranslationEngineLLVM/build/tools/clang/include
   ${CMAKE_BINARY_DIR}/../../../../production/build/catalog/catalog_manager/generated
   ${CMAKE_BINARY_DIR}/../../../../production/inc/public/common
-  ${CMAKE_BINARY_DIR}/../../../../third_party/production/flatbuffers/include
-  ${CMAKE_BINARY_DIR}/../../../../production/db/storage_engine/mock
   ${CMAKE_BINARY_DIR}/../../../../production/inc/public/direct_access
+  ${CMAKE_BINARY_DIR}/../../../../production/inc/internal/common
+  ${CMAKE_BINARY_DIR}/../../../../production/inc/internal/db
+  ${CMAKE_BINARY_DIR}/../../../../production/inc/public/db
+  ${CMAKE_BINARY_DIR}/../../../..//third_party/production/flatbuffers/include
+  ${CMAKE_BINARY_DIR}/../../../..//production/db/storage_engine/mock
 )
 set(ASTGENERATOR_DEMO_SRCS
   ../demo.cpp
@@ -197,6 +200,7 @@ target_link_libraries(ASTCodeGenerator
   LLVMDemangle
   gaia_semock
   gaia_direct
+  explain
 )
 
 add_library(gaia_semock STATIC IMPORTED GLOBAL)

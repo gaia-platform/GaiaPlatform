@@ -45,12 +45,24 @@ bool generationError = false;
 vector<string> rulesets;
 unordered_map<string, unordered_set<string>>  activeFields;
 unordered_set<string>  usedTables;
-unordered_map<string, gaia_id_t> tableData;
 const FunctionDecl *curRuleDecl = nullptr;
 unordered_map<string, unordered_map<string, bool>> fieldData;
 string curRulesetSubscription;
 string generatedSubscriptionCode;
 string curRulesetUnSubscription;
+struct TableLinkData
+{
+    string table;
+    string field;
+};
+unordered_multimap<string, TableLinkData> tableRelationship1;
+unordered_multimap<string, TableLinkData> tableRelationshipN;
+
+struct NavigationCodeData
+{
+    string prefix;
+    string postfix;
+};
 
 string generateGeneralSubscriptionCode()
 {
@@ -59,7 +71,7 @@ string generateGeneralSubscriptionCode()
     for (string ruleset : rulesets)
     {
         retVal += "if (strcmp(ruleset_name, \"" + ruleset + "\") == 0)\n" \
-            "{\nsubscribeRuleset_" + ruleset + "();\n return;\n}\n";
+            "{\nsubscribeRuleset_" + ruleset + "();\nreturn;\n}\n";
     }
 
     retVal += "throw ruleset_not_found(ruleset_name);\n}\n" \
@@ -68,65 +80,105 @@ string generateGeneralSubscriptionCode()
     for (string ruleset : rulesets)
     {
         retVal += "if (strcmp(ruleset_name, \"" + ruleset + "\") == 0)\n" \
-            "{\nunsubscribeRuleset_" + ruleset + "();\n return;\n}\n";
+            "{\nunsubscribeRuleset_" + ruleset + "();\nreturn;\n}\n";
     }
 
     retVal += "throw ruleset_not_found(ruleset_name);\n}\n" \
         "extern \"C\" void initialize_rules()\n{\n";
     for (string ruleset : rulesets)
     {
-        retVal +=  "\nsubscribeRuleset_" + ruleset + "();\n" ;
+        retVal +=  "subscribeRuleset_" + ruleset + "();\n" ;
     }
     retVal += "}";
 
     return retVal;
 }
 
+class DBMonitor
+{
+    public:
+        DBMonitor()
+        {
+            gaia::db::begin_session();
+            gaia::db::begin_transaction();
+        }
+
+        ~DBMonitor()
+        {
+            gaia::db::commit_transaction();
+            gaia::db::end_session();
+        }
+};
+
 unordered_map<string, unordered_map<string, bool>> getTableData()
 {
     unordered_map<string, unordered_map<string, bool>> retVal;
     try 
     {
-        static bool initialized = false;
-        if (!initialized)
-        {
-            gaia::db::gaia_mem_base::init();
-            initialized = true;
-        }
+        DBMonitor monitor;
     
-        gaia::db::begin_transaction();
-
-        for(unique_ptr<catalog::Gaia_table> table (catalog::Gaia_table::get_first()); 
-            table; table.reset(table->get_next()))
+        for(catalog::Gaia_table table = catalog::Gaia_table::get_first(); 
+            table; table = table.get_next())
         {
             unordered_map<string, bool> fields;
-            retVal[table->name()] = fields;
-            tableData[table->name()] = table->gaia_id();
+            retVal[table.name()] = fields;
         }
 
-        for(unique_ptr<catalog::Gaia_field> field (catalog::Gaia_field::get_first()); 
-            field; field.reset(field->get_next()))
+        for(catalog::Gaia_field field = catalog::Gaia_field::get_first(); 
+            field; field = field.get_next())
         {
-            gaia_id_t tableId = field->table_id();
-            unique_ptr<catalog::Gaia_table> tbl { catalog::Gaia_table::get_row_by_id(tableId)};
-            if (tbl == nullptr)
+            if (field.type() != gaia::catalog::gaia_data_type_REFERENCES)
             {
-                llvm::errs() << "Incorrect table for field " << field->name() << "\n";
-                generationError = true;
-                return unordered_map<string, unordered_map<string, bool>>();
-            }
-            unordered_map<string, bool> fields = retVal[tbl->name()];
-            if (fields.find(field->name()) != fields.end())
-            {
-               llvm::errs() << "Duplicate field " << field->name() << "\n";
-                generationError = true;
-                return unordered_map<string, unordered_map<string, bool>>();
-            }
-            fields[field->name()] = field->active();
+                gaia_id_t tableId = field.table_id();
+                catalog::Gaia_table tbl = catalog::Gaia_table::get(tableId);
+                if (!tbl)
+                {
+                    llvm::errs() << "Incorrect table for field " << field.name() << "\n";
+                    generationError = true;
+                    return unordered_map<string, unordered_map<string, bool>>();
+                }
+                unordered_map<string, bool> fields = retVal[tbl.name()];
+                if (fields.find(field.name()) != fields.end())
+                {
+                    llvm::errs() << "Duplicate field " << field.name() << "\n";
+                    generationError = true;
+                    return unordered_map<string, unordered_map<string, bool>>();
+                }
+                fields[field.name()] = field.active();
 
-            retVal[tbl->name()] = fields;
+                retVal[tbl.name()] = fields;
+            }
+            else
+            {
+                gaia_id_t parentTableId = field.table_id();
+                catalog::Gaia_table parentTable = catalog::Gaia_table::get(parentTableId);
+                if (!parentTable)
+                {
+                    llvm::errs() << "Incorrect table for field " << field.name() << "\n";
+                    generationError = true;
+                    return unordered_map<string, unordered_map<string, bool>>();
+                }
+
+                gaia_id_t childTableId = field.type_id();
+                catalog::Gaia_table childTable = catalog::Gaia_table::get(childTableId);
+                if (!childTable)
+                {
+                    llvm::errs() << "Incorrect table referenced by field " << field.name() << "\n";
+                    generationError = true;
+                    return unordered_map<string, unordered_map<string, bool>>();
+                }
+                TableLinkData linkData1;
+                linkData1.table = childTable.name();
+                linkData1.field = field.name();
+                TableLinkData linkDataN;
+                linkDataN.table = parentTable.name();
+                linkDataN.field = field.name();
+
+                tableRelationship1.emplace(parentTable.name(), linkData1);
+                tableRelationshipN.emplace(childTable.name(), linkDataN);
+            }
+            
         }
-        gaia::db::commit_transaction();
     }
     catch (exception e)
     {
@@ -219,6 +271,105 @@ string insertRulePreamble(string rule, string preamble)
     return "{" + preamble + rule.substr(ruleCodeStart + 1);
 }
 
+NavigationCodeData generateNavigationCode(string anchorTable)
+{
+    NavigationCodeData retVal;
+    retVal.prefix = "\n" + anchorTable + "_t " + anchorTable + " = " + 
+        anchorTable + "_t::get(context->record);\n";
+    //single table used in the rule
+    if (usedTables.size() == 1 && usedTables.find(anchorTable) != usedTables.end())
+    {
+        return retVal;
+    }
+
+    if (usedTables.empty())
+    {
+        generationError = true;
+        llvm::errs() << "No tables are used in the rule \n";
+        return NavigationCodeData();
+    }
+    if (usedTables.find(anchorTable) == usedTables.end())
+    {
+        generationError = true;
+        llvm::errs() << "Table " << anchorTable <<" is not used in the rule \n";
+        return NavigationCodeData();
+    }
+
+    if (tableRelationship1.find(anchorTable) == tableRelationship1.end() &&
+        tableRelationshipN.find(anchorTable) == tableRelationshipN.end())
+    {
+        generationError = true;
+        llvm::errs() << "Table " << anchorTable << " doesn't reference any table and not referenced by any other tables";
+        return NavigationCodeData();
+    }
+    auto parentItr = tableRelationship1.equal_range(anchorTable);
+    auto childItr = tableRelationshipN.equal_range(anchorTable);    
+    for (string table : usedTables)
+    {
+        bool is1Relationship = false, isNRelationship = false;
+        if (table == anchorTable)
+        {
+            continue;
+        }
+        string linkingField;
+        for (auto it = parentItr.first; it != parentItr.second; ++it)
+        {
+            if (it != tableRelationship1.end() && it->second.table == table)
+            {
+                if (is1Relationship)
+                {
+                    generationError = true;
+                    llvm::errs() << "More then one field that links " << anchorTable << " and " << table << "\n";
+                    return NavigationCodeData();
+                }
+                is1Relationship = true;
+                linkingField = it->second.field;
+            }
+        }
+
+        for (auto it = childItr.first; it != childItr.second; ++it)
+        {
+            if (it != tableRelationshipN.end() && it->second.table == table)
+            {
+                if (isNRelationship)
+                {
+                    generationError = true;
+                    llvm::errs() << "More then one field that links " << anchorTable << " and " << table << "\n";
+                    return NavigationCodeData();
+                }
+                isNRelationship = true;
+                linkingField = it->second.field;
+            }
+        }
+
+        if (!is1Relationship && !isNRelationship)
+        {
+            generationError = true;
+            llvm::errs() << "No relationship between tables " << anchorTable << " and " << table << "\n";
+            return NavigationCodeData();
+        }
+
+        if (is1Relationship && isNRelationship)
+        {
+            generationError = true;
+            llvm::errs() << "Both relationships exist between tables " << anchorTable << " and " << table << "\n";
+            return NavigationCodeData();
+        }
+
+        if (is1Relationship)
+        {
+            retVal.prefix += table + "_t " + table + " = " + anchorTable + "." + linkingField + table + "_owner());\n";
+        }
+        else
+        {
+            retVal.prefix += "for (auto " + table + " : " + anchorTable + "." + linkingField + table + "_list)\n{\n";
+            retVal.postfix += "}\n";
+        }
+    }
+
+    return retVal;
+}
+
 void generateRules(Rewriter &rewriter)
 {
     if (curRuleDecl == nullptr)
@@ -247,7 +398,7 @@ void generateRules(Rewriter &rewriter)
             return;
         }
         string ruleName = curRuleset + "_" + curRuleDecl->getName().str() + "_" + to_string(ruleCnt);
-        fieldSubscriptionCode =  "\nrule_binding_t " + ruleName + "binding(" +
+        fieldSubscriptionCode =  "rule_binding_t " + ruleName + "binding(" +
             "\"" + curRuleset + "\",\"" + ruleName + "\"," + curRuleset + "::" + ruleName + ");\n" + 
             "field_list_t fields_" + to_string(ruleCnt) + ";\n";
 
@@ -323,18 +474,18 @@ void generateRules(Rewriter &rewriter)
                 ruleName + "binding);\n";
         }
         
+        NavigationCodeData navigationCode = generateNavigationCode(table);
        
         if(ruleCnt == 1)
         {
             rewriter.InsertText(curRuleDecl->getLocation(),"\nvoid " + ruleName + "(const rule_context_t* context)\n");
-            rewriter.InsertTextAfterToken(curRuleDecl->getLocation(), "\n" + table + "_t " + table + " = " + 
-                table + "_t::get_row_by_id(context->record);");
+            rewriter.InsertTextAfterToken(curRuleDecl->getLocation(), navigationCode.prefix);
+            rewriter.InsertText(curRuleDecl->getEndLoc(),navigationCode.postfix);
         }
         else
         {
-            rewriter.InsertTextBefore(curRuleDecl->getLocation(),"\nvoid " + ruleName +"(const rule_context_t* context)\n"
-               + insertRulePreamble (ruleCode, "\n" + table + "_t " + table + " = " + 
-                table + "_t::get_row_by_id(context->record);"));
+            rewriter.InsertTextBefore(curRuleDecl->getLocation(),"\nvoid " + ruleName + "(const rule_context_t* context)\n"
+               + insertRulePreamble (ruleCode + navigationCode.postfix, navigationCode.prefix));
         }
         
         ruleCnt++;
@@ -421,11 +572,11 @@ public:
         {
             if (isLastOperation)
             {
-                rewriter.ReplaceText(expSourceRange, "context->last_operation(" + tableName + "::s_gaia_type");
+                rewriter.ReplaceText(expSourceRange, "context->last_operation(" + tableName + "::s_gaia_type)");
             }
             else
             {
-                rewriter.ReplaceText(expSourceRange, tableName + "->" + fieldName + "()");
+                rewriter.ReplaceText(expSourceRange, tableName + "." + fieldName + "()");
             }
         }
     }
@@ -488,7 +639,7 @@ public:
                 
                     tok::TokenKind tokenKind;
                     std::string replacementText = "[&]() mutable {" + 
-                        tableName + "->set_" + fieldName + "(";
+                        tableName + "_writer w=" + tableName + "::writer(" +tableName + "); w->" + fieldName;
 
                     switch(op->getOpcode())
                     {
@@ -555,10 +706,14 @@ public:
 
                     if (op->getOpcode() != BO_Assign)
                     {
-                        replacementText += tableName + "->" + fieldName + "() " 
-                            + ConvertCompoundBinaryOpcode(op->getOpcode()) + "(";
+                        replacementText += ConvertCompoundBinaryOpcode(op->getOpcode());
                         activeFields[tableName].insert(fieldName);
                     }
+                    else
+                    {
+                        replacementText += "=";
+                    }
+                    
                     
                     if (leftDeclExpr != nullptr)
                     {
@@ -576,17 +731,19 @@ public:
                     rewriter.ReplaceText(
                         SourceRange(startLocation,setLocEnd.getLocWithOffset(-1)), 
                         replacementText);
-                    rewriter.InsertTextAfterToken(op->getEndLoc(),")");
+                    //rewriter.InsertTextAfterToken(op->getEndLoc(),")");
                     if (op->getOpcode() != BO_Assign)
                     {
-                        rewriter.InsertTextAfterToken(op->getEndLoc(),"); return " + 
-                            tableName + "->" + fieldName + "();}() ");
+                        rewriter.InsertTextAfterToken(op->getEndLoc(),";" +
+                            tableName + "::update_row(w);return " + 
+                            tableName + "." + fieldName + "();}() ");
 
                     }
                     else
                     {
-                        rewriter.InsertTextAfterToken(op->getEndLoc(),";return " + 
-                            tableName + "->" + fieldName + "();}() ");
+                        rewriter.InsertTextAfterToken(op->getEndLoc(),";" +
+                            tableName + "::update_row(w);return " +  
+                            tableName + "." + fieldName + "();}()");
                     }
                 }
                 else
@@ -614,25 +771,25 @@ private:
         switch(opcode)
         {
             case BO_MulAssign:
-                return  "*";
+                return  "*=";
             case BO_DivAssign:
-                return  "/";
+                return  "/=";
             case BO_RemAssign:
-                return  "%";
+                return  "%=";
             case BO_AddAssign:
-                return  "+";
+                return  "+=";
             case BO_SubAssign:
-                return  "-";
+                return  "-=";
             case BO_ShlAssign:
-                return  "<<";
+                return  "<<=";
             case BO_ShrAssign:
-                return  ">>";
+                return  ">>=";
             case BO_AndAssign:
-                return  "&";
+                return  "&=";
             case BO_XorAssign:
-                return  "^";
+                return  "^=";
             case BO_OrAssign:
-                return  "|";
+                return  "|=";
             default:
                 llvm::errs() << "Incorrect Operator Code " << opcode <<"\n";
                 generationError = true;
@@ -701,17 +858,19 @@ public:
                         if (op->isIncrementOp())
                         {
                             replaceStr = "[&]() mutable {auto t=" + 
-                                tableName + "->" + fieldName + "();" + 
-                                tableName + "->set_" + fieldName +"(" +  
-                                tableName + "->" + fieldName + "() + 1); return t;}()";
+                                tableName + "." + fieldName + "();" + 
+                                tableName + "_writer w=" + tableName + "::writer(" + 
+                                tableName + ");w->" + fieldName +"++;" +  
+                                tableName + "::update_row(w);return t;}()";
 
                         }
                         else if(op->isDecrementOp())
                         {
                             replaceStr = "[&]() mutable {auto t=" + 
-                                tableName + "->" + fieldName + "();" +
-                                tableName + "->set_" + fieldName +"(" +  
-                                tableName + "->" + fieldName + "() - 1); return t;}()";
+                                tableName + "." + fieldName + "();" + 
+                                tableName + "_writer w=" + tableName + "::writer(" + 
+                                tableName + ");w->" + fieldName + "--;" +  
+                                tableName + "::update_row(w);return t;}()";
                         }
                     }
                     else
@@ -719,16 +878,18 @@ public:
                         if (op->isIncrementOp())
                         {
                             replaceStr = "[&]() mutable {" + 
-                                tableName + "->set_" + fieldName +"(" +  
-                                tableName + "->" + fieldName + "() + 1); return " + 
-                                tableName + "->" + fieldName + "();}()";
+                                tableName + "_writer w=" + tableName + "::writer(" +  
+                                tableName + ");++ w->" + fieldName +  ";" +
+                                tableName + "::update_row(w); return w->" +
+                                fieldName + ";}()";
                         }
                         else if(op->isDecrementOp())
                         {
                             replaceStr = "[&]() mutable {" + 
-                                tableName + "->set_" + fieldName +"(" +  
-                                tableName + "->" + fieldName + "() - 1); return " + 
-                                tableName + "->" + fieldName + "();}()";
+                                tableName + "_writer w = " + tableName + "::writer(" +  
+                                tableName + ");-- w->" + fieldName +  ";" +
+                                tableName + "::update_row(w); return w->" +
+                                fieldName + ";}()";
                         }
                     }
 
@@ -811,10 +972,10 @@ public:
             {
                 generatedSubscriptionCode += "void subscribeRuleset_" + 
                     rulesetDecl->getName().str() + "()\n{\n" + curRulesetSubscription + 
-                    "\n}\n";
+                    "}\n";
                 generatedSubscriptionCode += "void unsubscribeRuleset_" + 
                     rulesetDecl->getName().str() + "()\n{\n" + curRulesetUnSubscription + 
-                    "\n}\n";
+                    "}\n";
             }
             curRuleset = rulesetDecl->getName().str();   
             rulesets.push_back(curRuleset);
@@ -823,25 +984,6 @@ public:
             rewriter.ReplaceText(
                 SourceRange(rulesetDecl->getBeginLoc(),rulesetDecl->decls_begin()->getBeginLoc().getLocWithOffset(-2)),
                 "namespace " + curRuleset + "\n{\n");
-        }
-    }
-
-private:
-    Rewriter &rewriter;
-};
-
-class EDC_Function_Call_Match_Handler : public MatchFinder::MatchCallback
-{
-public:
-    EDC_Function_Call_Match_Handler(Rewriter &r) : rewriter (r){}
-    virtual void run (const MatchFinder::MatchResult &Result)
-    {
-        const CXXMemberCallExpr *callExpr = Result.Nodes.getNodeAs<CXXMemberCallExpr>("EDCFunctionCall");
-        if (callExpr != nullptr)
-        {
-            rewriter.ReplaceText(
-                SourceRange(callExpr->getExprLoc().getLocWithOffset(-1),callExpr->getExprLoc().getLocWithOffset(-1)),
-                "->");
         }
     }
 
@@ -930,7 +1072,7 @@ class ASTGenerator_Consumer : public clang::ASTConsumer
 public:
     explicit ASTGenerator_Consumer(ASTContext *context, Rewriter &r)
         : fieldGetMatcherHandler(r), fieldSetMatcherHandler(r), ruleMatcherHandler(r),
-        rulesetMatcherHandler(r), fieldUnaryOperatorMatchHandler(r), edcFunctionCallMatchHandler(r),
+        rulesetMatcherHandler(r), fieldUnaryOperatorMatchHandler(r), 
         updateMatchHandler(r),insertMatchHandler(r),deleteMatchHandler(r),noneMatchHandler(r)
 
     {
@@ -966,10 +1108,6 @@ public:
             hasUnaryOperand(memberExpr(member(hasAttr(attr::GaiaFieldLValue)))))
             ).bind("fieldUnaryOp");
 
-        StatementMatcher EDCFunctionCallMatcher = cxxMemberCallExpr(on(declRefExpr(to(varDecl(
-            hasAttr(attr::FieldTable))))))
-            .bind("EDCFunctionCall");
-
         StatementMatcher updateMatcher = 
             declRefExpr(to(varDecl(hasAttr(attr::GaiaLastOperationUPDATE)))).bind("UPDATE"); 
         StatementMatcher insertMatcher = 
@@ -991,7 +1129,6 @@ public:
         matcher.addMatcher(fieldUnaryOperatorMatcher, &fieldUnaryOperatorMatchHandler);
               
         matcher.addMatcher(tableFieldUnaryOperatorMatcher, &fieldUnaryOperatorMatchHandler);
-        matcher.addMatcher(EDCFunctionCallMatcher, &edcFunctionCallMatchHandler);
 
         matcher.addMatcher(updateMatcher,&updateMatchHandler);
         matcher.addMatcher(insertMatcher,&insertMatchHandler);
@@ -1010,7 +1147,6 @@ private:
     Rule_Match_Handler     ruleMatcherHandler;
     Ruleset_Match_Handler  rulesetMatcherHandler;
     Field_Unary_Operator_Match_Handler fieldUnaryOperatorMatchHandler;
-    EDC_Function_Call_Match_Handler edcFunctionCallMatchHandler;
     Update_Match_Handler updateMatchHandler;
     Insert_Match_Handler insertMatchHandler;
     Delete_Match_Handler deleteMatchHandler;
@@ -1039,9 +1175,9 @@ public:
  
         generatedSubscriptionCode += "void subscribeRuleset_" + 
                     curRuleset + "()\n{\n" + curRulesetSubscription + 
-                    "\n}\n" + "void unsubscribeRuleset_" + 
+                    "}\n" + "void unsubscribeRuleset_" + 
                     curRuleset + "()\n{\n" + curRulesetUnSubscription + 
-                    "\n}\n" + generateGeneralSubscriptionCode();
+                    "}\n" + generateGeneralSubscriptionCode();
         if (!shouldEraseOutputFiles() && !generationError)
         {
             rewriter.getEditBuffer(rewriter.getSourceMgr().getMainFileID())
