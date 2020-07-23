@@ -2753,7 +2753,8 @@ ExprResult Sema::BuildCStyleCastExpr(SourceLocation LPLoc,
         if (decl->hasAttr<GaiaLastOperationAttr>() || 
             decl->hasAttr<GaiaLastOperationINSERTAttr>() ||
             decl->hasAttr<GaiaLastOperationUPDATEAttr>() ||
-            decl->hasAttr<GaiaLastOperationDELETEAttr>())
+            decl->hasAttr<GaiaLastOperationDELETEAttr>() ||
+            decl->hasAttr<GaiaLastOperationNONEAttr>())
         {
             Diag(LPLoc, diag::err_invalid_operand_last_operation);
             return ExprError();

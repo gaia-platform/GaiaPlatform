@@ -11216,7 +11216,8 @@ if (S.getLangOpts().Gaia)
         if (decl->hasAttr<GaiaLastOperationAttr>() || 
             decl->hasAttr<GaiaLastOperationINSERTAttr>() ||
             decl->hasAttr<GaiaLastOperationUPDATEAttr>() ||
-            decl->hasAttr<GaiaLastOperationDELETEAttr>())
+            decl->hasAttr<GaiaLastOperationDELETEAttr>() ||
+            decl->hasAttr<GaiaLastOperationNONEAttr>())
         {
             S.Diag(Loc, diag::err_invalid_assignment_last_operation);
             return true;
@@ -12348,7 +12349,8 @@ ExprResult Sema::CreateBuiltinBinOp(SourceLocation OpLoc,
         }
         if (decl->hasAttr<GaiaLastOperationINSERTAttr>() ||
             decl->hasAttr<GaiaLastOperationUPDATEAttr>() ||
-            decl->hasAttr<GaiaLastOperationDELETEAttr>())
+            decl->hasAttr<GaiaLastOperationDELETEAttr>() ||
+            decl->hasAttr<GaiaLastOperationNONEAttr>())
         {
             lOp = true;
         }
@@ -12363,7 +12365,8 @@ ExprResult Sema::CreateBuiltinBinOp(SourceLocation OpLoc,
         }
         if (decl->hasAttr<GaiaLastOperationINSERTAttr>() ||
             decl->hasAttr<GaiaLastOperationUPDATEAttr>() ||
-            decl->hasAttr<GaiaLastOperationDELETEAttr>())
+            decl->hasAttr<GaiaLastOperationDELETEAttr>() ||
+            decl->hasAttr<GaiaLastOperationNONEAttr>())
         {
             rOp = true;
         }
@@ -13013,7 +13016,8 @@ ExprResult Sema::CreateBuiltinUnaryOp(SourceLocation OpLoc,
         if (decl->hasAttr<GaiaLastOperationAttr>() ||
             decl->hasAttr<GaiaLastOperationINSERTAttr>() ||
             decl->hasAttr<GaiaLastOperationUPDATEAttr>() ||
-            decl->hasAttr<GaiaLastOperationDELETEAttr>())
+            decl->hasAttr<GaiaLastOperationDELETEAttr>() ||
+            decl->hasAttr<GaiaLastOperationNONEAttr>())
         {
             Diag(OpLoc, diag::err_invalid_operand_last_operation);
             return ExprError();

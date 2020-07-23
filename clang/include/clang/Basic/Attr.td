@@ -3229,6 +3229,12 @@ def GaiaLastOperationDELETE : Attr {
   let Documentation = [Undocumented];
 }
 
+def GaiaLastOperationNONE : Attr {
+  let Spellings = [Keyword<"NONE">];
+  let Subjects = SubjectList<[Var]>;
+  let Documentation = [Undocumented];
+}
+
 def GaiaFieldLValue : Attr {
   let Spellings = [Keyword<"gaiaFieldLValue">];
   let Subjects = SubjectList<[Var]>;

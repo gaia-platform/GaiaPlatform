@@ -68,48 +68,56 @@ static QualType mapFieldType(catalog::gaia_data_type dbType, ASTContext *context
     }
 }
 
+class DBMonitor
+{
+    public:
+        DBMonitor()
+        {
+            gaia::db::begin_session();
+            gaia::db::begin_transaction();
+        }
+
+        ~DBMonitor()
+        {
+            gaia::db::commit_transaction();
+            gaia::db::end_session();
+        }
+};
+
 static unordered_map<string, unordered_map<string, QualType>> getTableData(Sema *s)
 {
     unordered_map<string, unordered_map<string, QualType>> retVal;
     try 
     {
-        static bool initialized = false;
-        if (!initialized)
-        {
-            gaia::db::gaia_mem_base::init();
-            initialized = true;
-        }
-    
-        gaia::db::begin_transaction();
+        DBMonitor monitor;
 
-        for(unique_ptr<catalog::Gaia_table> table (catalog::Gaia_table::get_first()); 
-            table; table.reset(table->get_next()))
+        for(catalog::Gaia_table table = catalog::Gaia_table::get_first();
+            table; table = table.get_next())
         {
             unordered_map<string, QualType> fields;
-            retVal[table->name()] = fields;
+            retVal[table.name()] = fields;
         }
 
-        for(unique_ptr<catalog::Gaia_field> field (catalog::Gaia_field::get_first()); 
-            field; field.reset(field->get_next()))
+        for(catalog::Gaia_field field = catalog::Gaia_field::get_first(); 
+            field; field = field.get_next())
         {
-            gaia_id_t tableId = field->table_id();
-            unique_ptr<catalog::Gaia_table> tbl { catalog::Gaia_table::get_row_by_id(tableId)};
-            if (tbl == nullptr)
+            gaia_id_t tableId = field.table_id();
+            catalog::Gaia_table tbl = catalog::Gaia_table::get(tableId);
+            if (!tbl)
             {
-                s->Diag(SourceLocation(), diag::err_invalid_table_field) << field->name();
+                s->Diag(SourceLocation(), diag::err_invalid_table_field) << field.name();
                 return unordered_map<string, unordered_map<string, QualType>>();
             }
-            unordered_map<string, QualType> fields = retVal[tbl->name()];
-            if (fields.find(field->name()) != fields.end())
+            unordered_map<string, QualType> fields = retVal[tbl.name()];
+            if (fields.find(field.name()) != fields.end())
             {
-                s->Diag(SourceLocation(), diag::err_duplicate_field) << field->name();
+                s->Diag(SourceLocation(), diag::err_duplicate_field) << field.name();
                 return unordered_map<string, unordered_map<string, QualType>>();
             }
-            fields[field->name()] = mapFieldType(field->type(), &s->Context);
+            fields[field.name()] = mapFieldType(field.type(), &s->Context);
 
-            retVal[tbl->name()] = fields;
+            retVal[tbl.name()] = fields;
         }
-        gaia::db::commit_transaction();
     }
     catch (exception e)
     {
@@ -204,9 +212,9 @@ QualType Sema::getTableType (IdentifierInfo *table)
     }
 
     //insert fields and methods that are not part of the schema
-    addField(&Context.Idents.get("LastOperation"), Context.WIntTy, RD);
+    addField(&Context.Idents.get("LastOperation"), Context.WIntTy.withConst(), RD);
 
-    addMethod(&Context.Idents.get("update"), DeclSpec::TST_void, nullptr, 0, attrFactory, attrs, &S, RD);
+    //addMethod(&Context.Idents.get("update"), DeclSpec::TST_void, nullptr, 0, attrFactory, attrs, &S, RD);
     
     ActOnFinishCXXMemberSpecification(getCurScope(), SourceLocation(), RD,
         SourceLocation(), SourceLocation(), attrs);
@@ -221,9 +229,10 @@ QualType Sema::getFieldType (IdentifierInfo *id)
 
     if(fieldName == "UPDATE" ||
          fieldName == "DELETE" ||
-         fieldName == "INSERT")
+         fieldName == "INSERT" ||
+         fieldName == "NONE")
     {
-        return Context.WIntTy;
+        return Context.WIntTy.withConst();
     }
 
     DeclContext *c = getCurFunctionDecl();
@@ -318,14 +327,26 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, bool isGaiaFieldTa
     if (varName =="UPDATE")
     {
         varDecl->addAttr(GaiaLastOperationUPDATEAttr::CreateImplicit(Context));
+        varDecl->setConstexpr(true);
+        varDecl->setInit(ActOnIntegerConstant(SourceLocation(),0).get());
     }
     else if (varName == "INSERT")
     {
         varDecl->addAttr(GaiaLastOperationINSERTAttr::CreateImplicit(Context));
+        varDecl->setConstexpr(true);
+        varDecl->setInit(ActOnIntegerConstant(SourceLocation(),0).get());
     }
     else if (varName == "DELETE")
     {
         varDecl->addAttr(GaiaLastOperationDELETEAttr::CreateImplicit(Context));
+        varDecl->setConstexpr(true);
+        varDecl->setInit(ActOnIntegerConstant(SourceLocation(),0).get());
+    }
+    else if (varName == "NONE")
+    {
+        varDecl->addAttr(GaiaLastOperationNONEAttr::CreateImplicit(Context));
+        varDecl->setConstexpr(true);
+        varDecl->setInit(ActOnIntegerConstant(SourceLocation(),0).get());
     }
     else if (isGaiaFieldTable)
     {

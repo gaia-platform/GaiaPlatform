@@ -13,6 +13,9 @@ set(GAIA_CATALOG_INCLUDES
   ../../../../../ASTCodeGeneration/GaiaPlatform/production/build/catalog/catalog_manager/generated
   ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/public/common
   ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/public/direct_access
+  ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/internal/common
+  ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/internal/db
+  ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/public/db
   ../../../../../ASTCodeGeneration/GaiaPlatform/third_party/production/flatbuffers/include
   ../../../../../ASTCodeGeneration/GaiaPlatform/production/db/storage_engine/mock
 )
@@ -75,6 +78,7 @@ add_clang_library(clangSema
   clangLex
   gaia_semock
   gaia_direct
+  explain
   )
  target_include_directories(clangSema PRIVATE ${GAIA_CATALOG_INCLUDES})
  add_library(gaia_semock STATIC IMPORTED GLOBAL)
