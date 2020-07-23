@@ -62,6 +62,7 @@ int main(int argc, char *argv[]) {
     int res = 0;
     parser_t parser;
     gaia::db::begin_session();
+    gaia::catalog::initialize_catalog();
     for (int i = 1; i < argc; ++i) {
         if (argv[i] == string("-p")) {
             parser.trace_parsing = true;

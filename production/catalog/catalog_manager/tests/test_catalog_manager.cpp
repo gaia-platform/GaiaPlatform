@@ -192,9 +192,16 @@ TEST_F(catalog_manager_test, drop_table) {
     check_table_name(table_id, test_table_name);
 
     drop_table(test_table_name);
-    auto_transaction_t tx;
-    auto table = Gaia_table::get(table_id);
-    EXPECT_FALSE(table);
+    // Make sure table record no longer exist
+    {
+        auto_transaction_t tx;
+        auto table = Gaia_table::get(table_id);
+        EXPECT_FALSE(table);
+    }
+    // Make sure list_tables results no longer have the table
+    for (gaia_id_t id : list_tables()) {
+        EXPECT_NE(id, table_id);
+    }
 }
 
 TEST_F(catalog_manager_test, drop_table_not_exist) {

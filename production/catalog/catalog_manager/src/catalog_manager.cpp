@@ -67,13 +67,15 @@ void catalog_manager_t::reload_cache() {
     for (auto table = Gaia_table::get_first(); table; table = table.get_next()) {
         m_table_ids.insert(table.gaia_id());
         m_table_names[table.name()] = table.gaia_id();
+        m_table_fields[table.gaia_id()] = {};
+        m_table_references[table.gaia_id()] = {};
     }
 
     for (auto field = Gaia_field::get_first(); field; field = field.get_next()) {
-        if (m_table_fields.find(field.table_id()) == m_table_fields.end()) {
-            m_table_fields[field.table_id()] = { field.gaia_id() };
-        } else {
+        if (static_cast<data_type_t>(field.type()) != data_type_t::e_references) {
             m_table_fields[field.table_id()].push_back(field.gaia_id());
+        } else {
+            m_table_references[field.table_id()].push_back(field.gaia_id());
         }
     }
     gaia::db::commit_transaction();

@@ -28,9 +28,9 @@ class catalog_manager_t {
     // Initialize the catalog manager.
     void init();
 
-    /*
-    ** APIs for accessing catalog records
-    */
+    /**
+     * APIs for accessing catalog records
+     */
     gaia_id_t create_table(const string &name, const ddl::field_def_list_t &fields);
     void drop_table(const string &name);
 
@@ -53,13 +53,15 @@ class catalog_manager_t {
     void reload_cache();
 
     // Maintain some in-memory cache for fast lookup.
+    // This is only intended for single process usage.
+    // We cannot guarantee the cache is consistent across mutiple processes.
     // We should switch to use value index when the feature is ready.
     table_names_t m_table_names;
     table_fields_t m_table_fields;
     table_fields_t m_table_references;
     set<gaia_id_t> m_table_ids;
 
-    // Use the lock to ensure exclusive write access to caches.
+    // Use the lock to ensure exclusive access to caches.
     mutex m_lock;
 };
 } // namespace catalog
