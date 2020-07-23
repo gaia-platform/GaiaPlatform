@@ -11,6 +11,7 @@
 
 #include <memory>
 #include <functional>
+#include <cstdio>
 
 #include "gaia_incubator/gaia_logic.hpp"
 
@@ -50,15 +51,18 @@ void gaia_logic::temp_sensor_callback(const msg::Temp::SharedPtr msg)
 {
     begin_transaction();
 
-    Sensor::insert_row(msg->incubator_id, msg->sensor_name.c_str(),
-        msg->stamp.sec, msg->value);
+    Sensor* sensor_record = new Sensor();
+    sensor_record->set_incubator_id(msg->incubator_id);
+    sensor_record->set_name(msg->sensor_name.c_str());
+    sensor_record->set_timestamp(msg->stamp.sec);
+    sensor_record->set_value(msg->value);
 
+    sensor_record->insert_row();
     commit_transaction();
 }
 
 void gaia_logic::shutdown_callback()
 {
-    dump_db();
     cout << "Shut down gaia_logic." << endl;
 }
 
@@ -80,45 +84,16 @@ void gaia_logic::setup_incubators()
     m_pub_add_fan->publish(add_fan_msg);
 }
 
-void gaia_logic::dump_db()
-{
-    begin_transaction();
-
-    for (unique_ptr<Sensor> s{Sensor::get_first()}; s;
-         s.reset(s->get_next()))
-    {
-        printf("%-6s|%6ld|%7.1lf\n", s->name(), s->timestamp(),
-            s->value());
-    }
-
-    for (unique_ptr<Actuator> a{Actuator::get_first()}; a;
-         a.reset(a->get_next()))
-    {
-        printf("%-6s|%6ld|%7.1lf\n", a->name(), a->timestamp(),
-            a->value());
-    }
-
-    commit_transaction();
-    fflush(stdout);
-}
-
-// TODO: try writing to a file
-// TODO: implement initialize_rules()
-
 /** ruleset*/
-namespace incubator_ruleset
+namespace gaia_incubator_ruleset
 {
 /**
  rule-sensor_inserted: [BarnStorage::Sensor](insert)
 */
 void on_sensor_inserted(const rule_context_t *context)
 {
-    FILE* log = fopen("message.log", "a");
-    fprintf(log, "beans");
-    fclose(log);
-
     Sensor* s = Sensor::get_row_by_id(context->record);
-
-    printf("%s\n", s->name());
+    printf("%-6s|%6ld|%7.1lf\n", s->name(), s->timestamp(), s->value());
+    fflush(stdout);
 }
 }

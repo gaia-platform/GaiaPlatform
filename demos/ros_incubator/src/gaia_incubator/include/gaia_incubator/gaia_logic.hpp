@@ -29,8 +29,6 @@ private:
 
     void setup_incubators();
 
-    void dump_db();
-
     Publisher<msg::AddIncubator>::SharedPtr m_pub_add_incubator;
     Publisher<msg::AddSensor>::SharedPtr m_pub_add_sensor;
     Publisher<msg::AddFan>::SharedPtr m_pub_add_fan;
