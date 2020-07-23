@@ -6,12 +6,22 @@
 #include "retail_assert.hpp"
 #include "event_manager.hpp"
 #include "auto_tx.hpp"
+#include "events.hpp"
+#include "triggers.hpp"
+#include "event_trigger_threadpool.hpp"
 
 #include <cstring>
 
 using namespace gaia::rules;
 using namespace gaia::common;
+using namespace gaia::db::triggers;
 using namespace std;
+
+static event_manager_t* g_event_manager_t;
+
+void call_func(uint32_t xid, trigger_event_t* events, size_t count_events, bool immediate) {
+    g_event_manager_t->commit_trigger(xid, events, count_events, immediate);
+}
 
 /**
  * Class implementation
@@ -50,7 +60,7 @@ void event_manager_t::init()
     m_is_initialized = true;
 }
 
-void event_manager_t::commit_trigger(uint32_t, trigger_event_t* events, size_t count_events, bool immediate)
+void event_manager_t::commit_trigger(uint64_t, trigger_event_t* events, size_t count_events, bool immediate)
 {
     if (!immediate)
     {
@@ -536,6 +546,12 @@ void gaia::rules::initialize_rules_engine()
     bool is_initializing = true;
     event_manager_t::get(is_initializing).init();
 
+    auto func = [] (uint64_t xid, std::vector<triggers::trigger_event_t> events, bool immediate) {
+        event_manager_t::get().commit_trigger(xid, events.data(), events.size(), immediate);
+    };
+
+    event_trigger_threadpool::set_commit_trigger(func);
+
     /**
      * This function must be provided by the 
      * rules application.  This function is
@@ -577,14 +593,4 @@ void gaia::rules::list_subscribed_rules(
 {
     event_manager_t::get().list_subscribed_rules(ruleset_name, gaia_type,
         event_type, field, subscriptions);
-}
-
-void gaia::rules::commit_trigger(uint32_t tx_id, trigger_event_t* events, size_t num_events, bool immediate)
-{
-    event_manager_t::get().commit_trigger(tx_id, events, num_events, immediate);
-}
-
-void gaia::rules::rollback_trigger()
-{
-    event_manager_t::get().rollback_trigger();
 }

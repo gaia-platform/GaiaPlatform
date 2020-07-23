@@ -3,12 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#pragma once
+// #include "triggers.hpp"
 
-namespace gaia {
-namespace db {
-namespace triggers {
-    // TODO: header for events here
-}
-}
-}
+// using namespace gaia::db::triggers;
+
+// f_commit_trigger_t event_trigger_threadpool::s_tx_commit_trigger = nullptr;

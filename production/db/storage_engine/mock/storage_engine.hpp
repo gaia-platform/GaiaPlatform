@@ -68,6 +68,7 @@ class se_base {
         // This is because the instructions targeted by the intrinsics
         // operate at the level of physical memory, not virtual addresses.
         gaia_id_t next_id;
+        int64_t transaction_id_count;
         int64_t row_id_count;
         int64_t hash_node_count;
         hash_node hash_nodes[HASH_BUCKETS + HASH_LIST_ELEMENTS];
@@ -98,6 +99,11 @@ class se_base {
     static gaia_id_t generate_id() {
         gaia_id_t id = __sync_add_and_fetch(&s_data->next_id, 1);
         return id;
+    }
+
+    static gaia_xid_t allocate_transaction_id() {
+        gaia_xid_t xid = 1 + __sync_fetch_and_add (&s_data->transaction_id_count, 1);
+        return xid;
     }
 };
 

@@ -4,10 +4,19 @@
 /////////////////////////////////////////////
 #pragma once
 
+#include <sstream>
+#include <string>
+#include <memory>
 #include <vector>
+#include <set>
 #include <unordered_set>
 
 #include "events.hpp"
+#include "gaia_common.hpp"
+#include "gaia_exception.hpp"
+
+using namespace gaia::db::triggers;
+using namespace gaia::common;
 
 namespace gaia 
 {
