@@ -5,22 +5,22 @@
 
 #include <iostream>
 #include "gtest/gtest.h"
-#include "addr_book_gaia_mock.h"
+#include "gaia_addr_book.h"
 #include "db_test_helpers.hpp"
 
 using namespace std;
 using namespace gaia::db;
 using namespace gaia::common;
 using namespace gaia::direct_access;
-using namespace AddrBook;
+using namespace gaia::addr_book;
 
 class gaia_references_test : public ::testing::Test {
 protected:
     void delete_employees() {
         begin_transaction();
-        for(Employee e = Employee::get_first();
+        for(employee_t e = employee_t::get_first();
             e;
-            e = Employee::get_first())
+            e = employee_t::get_first())
         {
             try {
                 e.delete_row();
@@ -60,39 +60,39 @@ TEST_F(gaia_references_test, connect) {
     begin_transaction();
 
     // In simplified API this is not possible since
-    // you cannot get a non-inserted Employee or Address
+    // you cannot get a non-inserted employee_t or address_t
     // object.
-    
+
     // Connect two new rows.
-    //Employee_writer ew = Employee::create();
-    //Address_writer aw = Address::create();
-    //Employee_ptr e1 = Employee::get(Employee::insert_row(ew));
-    //Address_ptr a1 = Address::get(Address::insert_row(aw));
-    //EXPECT_THROW(e1->address_list.insert(a1), edc_unstored_row);
+    //employee_writer ew = employee_t::create();
+    //address_writer aw = address_t::create();
+    //Employee_ptr e1 = employee_t::get(employee_t::insert_row(ew));
+    //Address_ptr a1 = address_t::get(address_t::insert_row(aw));
+    //EXPECT_THROW(e1->addresses_address_list.insert(a1), edc_unstored_row);
 
     // In simplified API this is not possible since
-    // you cannot get a non-inserted Employee or Address
+    // you cannot get a non-inserted employee_t or address_t
     // object.
 
     // Connect two non-inserted rows.
-    //Employee* e2 = new Employee();
+    //employee_t* e2 = new employee_t();
     //e2->set_name_first("Howard");
-    //Address* a2 = new Address();
+    //address_t* a2 = new address_t();
     //a2->set_city("Houston");
-    //EXPECT_THROW(e2->address_list.insert(a2), edc_unstored_row);
+    //EXPECT_THROW(e2->addresses_address_list.insert(a2), edc_unstored_row);
 
     // Connect two inserted rows.
-    Employee_writer ew;
+    employee_writer ew;
     ew.name_first = "Hidalgo";
-    Employee e3 = Employee::get(ew.insert_row());
+    employee_t e3 = employee_t::get(ew.insert_row());
 
-    Address_writer aw;
+    address_writer aw;
     aw.city = "Houston";
-    Address a3 = Address::get(aw.insert_row());
+    address_t a3 = address_t::get(aw.insert_row());
 
-    e3.address_list.insert(a3);
+    e3.addresses_address_list.insert(a3);
     int count = 0;
-    for (auto ap : e3.address_list) {
+    for (auto ap : e3.addresses_address_list) {
         if (ap) {
             count++;
         }
@@ -102,34 +102,34 @@ TEST_F(gaia_references_test, connect) {
 }
 
 
-Employee create_hierarchy() {
-    auto eptr = Employee::get(
-        Employee::insert_row("Heidi", "Humphry", "555-22-4444", 20200530, "heidi@gmail.com", "")
+employee_t create_hierarchy() {
+    auto eptr = employee_t::get(
+        employee_t::insert_row("Heidi", "Humphry", "555-22-4444", 20200530, "heidi@gmail.com", "")
     );
     for (int i = 0; i<200; i++) {
         char addr_string[6];
         sprintf(addr_string, "%d", i);
-        auto aptr = Address::get(
-            Address::insert_row(addr_string, addr_string, addr_string, addr_string, addr_string, addr_string, true)
+        auto aptr = address_t::get(
+            address_t::insert_row(addr_string, addr_string, addr_string, addr_string, addr_string, addr_string, true)
         );
-        eptr.address_list.insert(aptr);
+        eptr.addresses_address_list.insert(aptr);
         for (int j = 0; j < 20; j++) {
             char phone_string[5];
             sprintf(phone_string, "%d", j);
-            auto pptr = Phone::get(
-                    Phone::insert_row(phone_string, phone_string, true)
+            auto pptr = phone_t::get(
+                    phone_t::insert_row(phone_string, phone_string, true)
             );
-            aptr.phone_list.insert(pptr);
+            aptr.phones_phone_list.insert(pptr);
         }
     }
     return eptr;
 }
 
-int scan_hierarchy(Employee& eptr) {
+int scan_hierarchy(employee_t& eptr) {
     int count = 1;
-    for (auto aptr : eptr.address_list) {
+    for (auto aptr : eptr.addresses_address_list) {
         ++count;
-        for (auto pptr : aptr.phone_list) {
+        for (auto pptr : aptr.phones_phone_list) {
             if (pptr) {
                 ++count;
             }
@@ -138,18 +138,18 @@ int scan_hierarchy(Employee& eptr) {
     return count;
 }
 
-bool bounce_hierarchy(Employee& eptr) {
+bool bounce_hierarchy(employee_t& eptr) {
     // Take a subset of the hierarchy and travel to the bottom. From the bottom, travel back
     // up, verifying the results on the way.
     int count_addresses = 0;
-    for (auto aptr : eptr.address_list) {
+    for (auto aptr : eptr.addresses_address_list) {
         if ((++count_addresses % 30) == 0) {
             int count_phones = 0;
-            for (auto pptr : aptr.phone_list) {
+            for (auto pptr : aptr.phones_phone_list) {
                 if ((++count_phones % 4) == 0) {
-                    auto up_aptr = pptr.address_owner();
+                    auto up_aptr = pptr.phones_address_owner();
                     EXPECT_EQ(up_aptr, aptr);
-                    auto up_eptr = up_aptr.employee_owner();
+                    auto up_eptr = up_aptr.addresses_employee_owner();
                     EXPECT_EQ(up_eptr, eptr);
                 }
             }
@@ -158,37 +158,54 @@ bool bounce_hierarchy(Employee& eptr) {
     return true;
 }
 
-bool delete_hierarchy(Employee& eptr) {
+bool delete_hierarchy(employee_t& eptr) {
     int count_addresses = 1;
     while (count_addresses>=1) {
         count_addresses = 0;
-        // As long as there is at least one Address, continue
-        Address* xaptr;
-        for (auto aptr : eptr.address_list) {
+        // As long as there is at least one address_t, continue
+        address_t* xaptr;
+        for (auto aptr : eptr.addresses_address_list) {
             ++count_addresses;
             xaptr = &aptr;
             // Repeat: delete the last phone until all are deleted
             int count_phones = 1;
             while (count_phones>=1) {
                 count_phones = 0;
-                Phone* xpptr;
-                for (auto pptr : aptr.phone_list) {
+                phone_t* xpptr;
+                for (auto pptr : aptr.phones_phone_list) {
                     ++count_phones;
                     xpptr = &pptr;
                 }
                 if (count_phones) {
-                    aptr.phone_list.erase(*xpptr);
+                    aptr.phones_phone_list.erase(*xpptr);
                     xpptr->delete_row();
                 }
             }
         }
         if (count_addresses) {
-            eptr.address_list.erase(*xaptr);
+            eptr.addresses_address_list.erase(*xaptr);
             xaptr->delete_row();
         }
     }
     eptr.delete_row();
     return true;
+}
+
+template <typename T_type>
+int count_type() {
+    int count = 0;
+    for (auto row : T_type::list()) {
+        row.gaia_type();
+        count++;
+    }
+    return count;
+}
+
+string first_employee() {
+    for (auto row : employee_t::list()) {
+        return row.name_first();
+    }
+    return "";
 }
 
 TEST_F(gaia_references_test, connect_scan) {
@@ -207,28 +224,36 @@ TEST_F(gaia_references_test, connect_scan) {
     // Travel down, then up the hierarchy
     EXPECT_EQ(bounce_hierarchy(eptr), true);
 
+    // Count the rows.
+    EXPECT_EQ(count_type<employee_t>(), 2);
+    EXPECT_EQ(count_type<address_t>(), 201);
+    EXPECT_EQ(count_type<phone_t>(), 4000);
+
+    // Scan through some rows.
+    EXPECT_EQ(first_employee(), "Hidalgo");
+
     // Delete the hierarchy, every third record, until it's gone
     EXPECT_EQ(delete_hierarchy(eptr), true);
     commit_transaction();
 }
 
-void scan_manages(vector<string>& employee_vector, Employee& e) {
+void scan_manages(vector<string>& employee_vector, employee_t& e) {
     employee_vector.push_back(e.name_first());
     for (auto eptr : e.manages_employee_list) {
         scan_manages(employee_vector, eptr);
     }
 }
 
-Employee insert_employee(Employee_writer& writer, const char * name_first)
+employee_t insert_employee(employee_writer& writer, const char * name_first)
 {
     writer.name_first = name_first;
-    return Employee::get(writer.insert_row());
+    return employee_t::get(writer.insert_row());
 }
 
 TEST_F(gaia_references_test, recursive_scan) {
     begin_transaction();
 
-    // The "manages" set is Employee to Employee.
+    // The "manages" set is employee_t to employee_t.
     // This test will create, then walk through a management hierarchy.
     // Horace
     //    Henry
@@ -238,7 +263,7 @@ TEST_F(gaia_references_test, recursive_scan) {
     //    Hector
     //    Hank
 
-    Employee_writer writer;
+    employee_writer writer;
     auto e1 = insert_employee(writer, "Horace");
     auto e2 = insert_employee(writer, "Henry");
     auto e3 = insert_employee(writer, "Hal");

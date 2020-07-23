@@ -25,7 +25,7 @@ namespace direct_access
 #define GET_STR(field) (row()->field() ? row()->field()->c_str() : nullptr)
 
 template <gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
-gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::gaia_object_t(gaia_id_t id, const char * gaia_typename) 
+gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::gaia_object_t(gaia_id_t id, const char * gaia_typename)
     : gaia_base_t(gaia_typename)
 {
     m_record = gaia_ptr::open(id);
@@ -65,7 +65,7 @@ gaia_id_t* gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::refere
 }
 
 template <gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
-gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references> 
+gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>
 gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::writer()
 {
     if (!m_record)
@@ -119,7 +119,7 @@ template <gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_ob
 void gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::delete_row(gaia_id_t id)
 {
     auto node_ptr = gaia_ptr::open(id);
-    if (!node_ptr) 
+    if (!node_ptr)
     {
         throw invalid_node_id(id);
     }
@@ -157,11 +157,11 @@ template <gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_ob
 gaia_id_t gaia_writer_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::insert_row()
 {
     gaia_ptr node_ptr;
-    
+
     gaia_id_t id = gaia_ptr::generate_id();
     auto u = T_fb::Pack(m_builder, this);
     m_builder.Finish(u);
-    node_ptr = gaia_ptr::create(id, T_gaia_type, N_references, m_builder.GetSize(), 
+    node_ptr = gaia_ptr::create(id, T_gaia_type, N_references, m_builder.GetSize(),
         m_builder.GetBufferPointer());
     m_builder.Clear();
 
