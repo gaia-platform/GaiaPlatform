@@ -184,3 +184,20 @@ TEST_F(catalog_manager_test, create_table_duplicate_field) {
     fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("field1", data_type_t::e_string, 1)));
     EXPECT_THROW(create_test_table(test_duplicate_field_table_name, fields), duplicate_field);
 }
+
+TEST_F(catalog_manager_test, drop_table) {
+    string test_table_name{"drop_table_test"};
+    ddl::field_def_list_t fields;
+    gaia_id_t table_id = create_test_table(test_table_name, fields);
+    check_table_name(table_id, test_table_name);
+
+    drop_table(test_table_name);
+    auto_transaction_t tx;
+    auto table = Gaia_table::get(table_id);
+    EXPECT_FALSE(table);
+}
+
+TEST_F(catalog_manager_test, drop_table_not_exist) {
+    string test_table_name{"a_not_existed_table"};
+    EXPECT_THROW(drop_table(test_table_name), table_not_exists);
+}

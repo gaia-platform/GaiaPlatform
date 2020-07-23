@@ -14,9 +14,17 @@
 namespace gaia {
 namespace catalog {
 
+void initialize_catalog() {
+    catalog_manager_t::get().init();
+}
+
 gaia_id_t create_table(const string &name,
     const ddl::field_def_list_t &fields) {
     return catalog_manager_t::get().create_table(name, fields);
+}
+
+void drop_table(const string &name) {
+    return catalog_manager_t::get().drop_table(name);
 }
 
 const set<gaia_id_t> &list_tables() {
@@ -39,8 +47,43 @@ catalog_manager_t &catalog_manager_t::get() {
     return s_instance;
 }
 
+void catalog_manager_t::init() {
+    reload_cache();
+}
+
+void catalog_manager_t::clear_cache() {
+    m_table_names.clear();
+    m_table_fields.clear();
+    m_table_references.clear();
+    m_table_ids.clear();
+}
+
+void catalog_manager_t::reload_cache() {
+    unique_lock<mutex> lock(m_lock);
+
+    clear_cache();
+
+    gaia::db::begin_transaction();
+    for (auto table = Gaia_table::get_first(); table; table = table.get_next()) {
+        m_table_ids.insert(table.gaia_id());
+        m_table_names[table.name()] = table.gaia_id();
+    }
+
+    for (auto field = Gaia_field::get_first(); field; field = field.get_next()) {
+        if (m_table_fields.find(field.table_id()) == m_table_fields.end()) {
+            m_table_fields[field.table_id()] = { field.gaia_id() };
+        } else {
+            m_table_fields[field.table_id()].push_back(field.gaia_id());
+        }
+    }
+    gaia::db::commit_transaction();
+}
+
 gaia_id_t catalog_manager_t::create_table(const string &name,
     const ddl::field_def_list_t &fields) {
+
+    unique_lock<mutex> lock(m_lock);
+
     if (m_table_names.find(name) != m_table_names.end()) {
         throw table_already_exists(name);
     }
@@ -119,6 +162,36 @@ gaia_id_t catalog_manager_t::create_table(const string &name,
     m_table_fields[table_id] = move(field_ids);
     m_table_references[table_id] = move(reference_ids);
     return table_id;
+}
+
+void catalog_manager_t::drop_table(const string &name) {
+
+    unique_lock<mutex> lock(m_lock);
+
+    if (m_table_names.find(name) == m_table_names.end()) {
+        throw table_not_exists(name);
+    }
+    gaia_id_t table_id = m_table_names[name];
+
+    // Remove all records belong to the table in the catalog tables.
+    gaia::db::begin_transaction();
+    for (gaia_id_t field_id : list_fields(table_id)) {
+        auto field_record = Gaia_field::get(field_id);
+        field_record.delete_row();
+    }
+    for (gaia_id_t reference_id : list_references(table_id)) {
+        auto reference_record = Gaia_field::get(reference_id);
+        reference_record.delete_row();
+    }
+    auto table_record = Gaia_table::get(table_id);
+    table_record.delete_row();
+    gaia::db::commit_transaction();
+
+    // Invalidate catalog caches.
+    m_table_fields.erase(table_id);
+    m_table_references.erase(table_id);
+    m_table_ids.erase(table_id);
+    m_table_names.erase(name);
 }
 
 const set<gaia_id_t> &catalog_manager_t::list_tables() const {

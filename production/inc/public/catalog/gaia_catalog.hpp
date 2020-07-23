@@ -171,7 +171,7 @@ class table_already_exists : public gaia_exception {
 };
 
 /**
- * Thrown when a referenced table does not exists.
+ * Thrown when a specifid table does not exists.
  */
 class table_not_exists : public gaia_exception {
   public:
@@ -195,6 +195,11 @@ class duplicate_field : public gaia_exception {
 };
 
 /**
+ * Initialize the catalog.
+*/
+void initialize_catalog();
+
+/**
  * Create a table definition in the catalog.
  *
  * @param name table name
@@ -205,7 +210,19 @@ class duplicate_field : public gaia_exception {
 gaia_id_t create_table(const string &name, const ddl::field_def_list_t &fields);
 
 /**
+ * Delete a table from the catalog.
+ *
+ * @param name table name
+ * @throw table_not_exists
+ */
+void drop_table(const string &name);
+
+/**
  * List all tables defined in the catalog.
+ *
+ * The method is NOT thread safe with concurrent creating/dropping/altering table activities.
+ * It has the same safety gurantee of the underlying container.
+ * Use direct access APIs with transactions for thread safe access of catalog records.
  *
  * @return a set of tables ids in the catalog.
  */
@@ -219,6 +236,10 @@ const set<gaia_id_t> &list_tables();
  *
  * Use list_references() API to get a list of all references for a given table.
  *
+ * The method is NOT thread safe with concurrent creating/dropping/altering table activities.
+ * It has the same safety gurantee of the underlying container.
+ * Use direct access APIs with transactions for thread safe access of catalog records.
+ *
  * @param table_id id of the table
  * @return a list of field ids in the order of their positions.
  */
@@ -228,6 +249,10 @@ const vector<gaia_id_t> &list_fields(gaia_id_t table_id);
  * List all references for a given table defined in the catalog.
  * References are foreign key constraints or table links.
  * They defines relationships between tables.
+ *
+ * The method is NOT thread safe with concurrent creating/dropping/altering table activities.
+ * It has the same safety gurantee of the underlying container.
+ * Use direct access APIs with transactions for thread safe access of catalog records.
  *
  * @param table_id id of the table
  * @return a list of ids of the table references in the order of their positions.
