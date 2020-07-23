@@ -10,7 +10,7 @@ ENV USER_PASSWORD=$USER_PASSWORD
 ARG ZSH_THEME=pure
 # TinkerPop/gremlin version
 ARG GREMLIN_VERSION=3.4.6
-ARG BISON_VERSION=bison-3.5
+ARG BISON_VERSION=3.5
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -73,8 +73,9 @@ RUN apt-get -y update && \
     rm -rf /var/lib/apt/lists/* && \
     pip install --upgrade pip
 
-# install pybind11
-RUN apt-get -y update && \
+# install pybind11 (2.2.3) more recent than default
+RUN add-apt-repository ppa:nschloe/pybind11-backports && \
+    apt-get -y update && \
     apt-get -y install \
         python-clang-8 \
         python-pybind11 \
@@ -89,7 +90,7 @@ RUN curl https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | s
     rm -rf /var/lib/apt/lists/*
 
 # set up build dir in container fs (to avoid building in mounted source tree)
-RUN mkdir /build && chmod 777 build
+RUN mkdir /build && chmod 777 /build
 
 # set locale properly for zsh and postgres
 ENV LC_CTYPE=en_US.UTF-8
@@ -142,11 +143,11 @@ RUN GREMLIN_CONSOLE_DIR="apache-tinkerpop-gremlin-console-${GREMLIN_VERSION}" &&
 
 # install bison (need 3.5+, not available until Ubuntu 20.04)
 WORKDIR /bison
-RUN curl http://ftp.gnu.org/gnu/bison/bison-3.5.tar.gz > src.tar.gz && \
+RUN curl "http://ftp.gnu.org/gnu/bison/bison-${BISON_VERSION}.tar.gz" > src.tar.gz && \
     tar -zxvf src.tar.gz && \
-    (cd "./${BISON_VERSION}" && ./configure) && \
-    (cd "./${BISON_VERSION}" && make) && \
-    (cd "./${BISON_VERSION}" && make install)
+    (cd "./bison-${BISON_VERSION}" && ./configure) && \
+    (cd "./bison-${BISON_VERSION}" && make) && \
+    (cd "./bison-${BISON_VERSION}" && make install)
 
 # install flatbuffers (C++, Java, Python support)
 RUN add-apt-repository ppa:team-xbmc/ppa && \
@@ -196,9 +197,11 @@ RUN echo "zstyle ':prezto:module:prompt' theme '$ZSH_THEME'" >> ~/.zpreztorc
 RUN echo "setopt rmstarsilent" >> ~/.zshrc
 
 # set build aliases
-ARG buildcmd="sudo service postgresql restart && cmake -S /gaia-platform/production -B /build -DCMAKE_BUILD_TYPE=Debug -DPYTHON_EXECUTABLE:FILEPATH=/usr/bin/python -G \"Unix Makefiles\" && pushd /build; make -j$(nproc) && sudo make install && make test; popd"
+ARG buildcmd="sudo service postgresql restart && cmake -S /gaia-platform/production -B /build -DCMAKE_BUILD_TYPE=Debug -G \"Unix Makefiles\" && pushd /build; make -j$(nproc) && sudo make install && make test; popd"
+ARG buildcmdverbose="sudo service postgresql restart && cmake -S /gaia-platform/production -B /build -DCMAKE_BUILD_TYPE=Debug -G \"Unix Makefiles\" && pushd /build; make -j$(nproc) VERBOSE=1 && sudo make install && CTEST_OUTPUT_ON_FAILURE=1 make test; popd"
 ARG cleanbuildcmd="rm -rf /build/*; ${buildcmd}"
 RUN echo "alias build='${buildcmd}'" >> ~/.zshrc
+RUN echo "alias buildverbose='${buildcmdverbose}'" >> ~/.zshrc
 RUN echo "alias cleanbuild='${cleanbuildcmd}'" >> ~/.zshrc
 
 WORKDIR /gaia-platform/production

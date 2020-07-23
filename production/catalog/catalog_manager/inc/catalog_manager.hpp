@@ -26,10 +26,18 @@ class catalog_manager_t {
     /*
     ** APIs for accessing catalog records
     */
-    gaia_id_t create_table(const string &name, const vector<ddl::field_definition_t *> &fields);
+    gaia_id_t create_table(const string &name, const ddl::field_def_list_t &fields);
 
     const set<gaia_id_t> &list_tables() const;
     const vector<gaia_id_t> &list_fields(gaia_id_t table_id) const;
+    const vector<gaia_id_t> &list_references(gaia_id_t table_id) const;
+    // A reset should only be needed for testing.
+    void reset() {
+      m_table_names.clear();
+      m_table_fields.clear();
+      m_table_references.clear();
+      m_table_ids.clear();
+    }
 
   private:
     // Only internal static creation is allowed
@@ -40,6 +48,7 @@ class catalog_manager_t {
     // We can switch to use value index when the feature is ready.
     table_names_t m_table_names;
     table_fields_t m_table_fields;
+    table_fields_t m_table_references;
     set<gaia_id_t> m_table_ids;
 };
 } // namespace catalog

@@ -8,6 +8,7 @@
 #include "yy_parser.hpp"
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace gaia {
 namespace catalog {
@@ -17,10 +18,11 @@ class parser_t {
   public:
     parser_t() : trace_parsing(false), trace_scanning(false){};
 
-    std::vector<gaia::catalog::ddl::statement_t *> statements;
+    // Use smart pointers to store the statements because we need the polymorphic behaviour.
+    vector<unique_ptr<gaia::catalog::ddl::statement_t>> statements;
 
-    int parse(const std::string &f) {
-        file = f;
+    int parse(const string &filename) {
+        file = filename;
         location.initialize(&file);
         scan_begin();
         yy::parser parse(*this);
@@ -30,15 +32,27 @@ class parser_t {
         return res;
     };
 
+    int parse_line(const std::string &line) {
+        scan_string_begin(line);
+        yy::parser parse(*this);
+        parse.set_debug_level(trace_parsing);
+        int res = parse();
+        scan_string_end();
+        return res;
+    }
+
     yy::location location;
     bool trace_parsing;
     bool trace_scanning;
 
   private:
-    std::string file;
+    string file;
 
     void scan_begin();
     void scan_end();
+
+    void scan_string_begin(const std::string &line);
+    void scan_string_end();
 };
 
 } // namespace ddl

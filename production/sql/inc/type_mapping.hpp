@@ -5,53 +5,55 @@
 
 #pragma once
 
-// Gaia storage engine implementation
-#include "storage_engine.hpp"
+#include "gaia_common.hpp"
 
-// all definitions in this file and included files should have C linkage
+// All definitions in this file and included files should have C linkage.
 extern "C" {
 
 #include "postgres.h"
 #include "flatbuffers_common_reader.h"
 #include "flatbuffers_common_builder.h"
 
-// function pointer type that extracts a typed root object from a flatbuffer
-// byte array
-typedef const void *(*RootObjectDeserializer)(const void *buffer);
-// function pointer type that extracts an attribute from a typed flatbuffer
-// object
-typedef Datum (*AttributeAccessor)(const void *rootObject);
-// function pointer type that adds an attribute to a flatbuffer builder
-typedef void (*AttributeBuilder)(flatbuffers_builder_t *builder, Datum value);
-// function pointer type that initializes a flatbuffer builder for a type
-typedef void (*BuilderInitializer)(flatbuffers_builder_t *builder);
-// function pointer type that finalizes a flatbuffer builder for a type
-typedef void (*BuilderFinalizer)(flatbuffers_builder_t *builder);
+// Function pointer type that extracts a typed root object from a flatbuffer
+// byte array.
+typedef const void *(*root_object_deserializer_fn)(const void *buffer);
 
-// mapping of attribute names to accessor methods
+// Function pointer type that extracts an attribute from a typed flatbuffer
+// object.
+typedef Datum (*attribute_accessor_fn)(const void *rootObject);
+
+// Function pointer type that adds an attribute to a flatbuffer builder.
+typedef void (*attribute_builder_fn)(flatbuffers_builder_t *builder, Datum value);
+
+// Function pointer type that initializes a flatbuffer builder for a type.
+typedef void (*builder_initializer_fn)(flatbuffers_builder_t *builder);
+
+// Function pointer type that finalizes a flatbuffer builder for a type.
+typedef void (*builder_finalizer_fn)(flatbuffers_builder_t *builder);
+
+// Mapping of attribute names to accessor methods.
 typedef struct {
     const char *name;
-    const AttributeAccessor accessor;
-    const AttributeBuilder builder;
-} Attribute;
+    const attribute_accessor_fn accessor;
+    const attribute_builder_fn builder;
+} attribute_t;
 
-// mapping of relations to attribute accessor mappings
+// Mapping of relations to attribute accessor mappings
 // also include initializer/finalizer methods and clone_as_root methods (for
-// updates)
+// updates).
 typedef struct {
     const char *relation;
     gaia::common::gaia_type_t gaia_type_id;
-    bool gaia_type_is_edge;
-    RootObjectDeserializer deserializer;
-    BuilderInitializer initializer;
-    BuilderFinalizer finalizer;
-    const Attribute *attributes;
+    root_object_deserializer_fn deserializer;
+    builder_initializer_fn initializer;
+    builder_finalizer_fn finalizer;
+    const attribute_t *attributes;
     size_t attribute_count;
-} RelationAttributeMapping;
+} relation_attribute_mapping_t;
 
-// flatbuffers type helpers
-// we need to use this instead of CStringGetTextDatum because it translates null
-// pointers into zero-length strings
+// flatbuffers type helpers.
+// We need to use this instead of CStringGetTextDatum because it translates null
+// pointers into zero-length strings.
 static Datum flatbuffers_string_to_text_datum(flatbuffers_string_t str) {
     size_t str_len = flatbuffers_string_len(str);
     size_t text_len = str_len + VARHDRSZ;
@@ -61,4 +63,4 @@ static Datum flatbuffers_string_to_text_datum(flatbuffers_string_t str) {
     return CStringGetDatum(t);
 }
 
-} // extern "C"
+}  // extern "C"

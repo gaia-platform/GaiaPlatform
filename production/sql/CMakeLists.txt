@@ -2,7 +2,7 @@
 # Copyright (c) Gaia Platform LLC. All rights reserved.
 # ##############################################################################
 
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.12)
 
 # Set the project name.
 
@@ -101,4 +101,4 @@ add_subdirectory(src)
 
 # Add tests.
 
-add_subdirectory(tests)
+# add_subdirectory(tests)

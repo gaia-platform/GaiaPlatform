@@ -4,14 +4,14 @@
 /////////////////////////////////////////////
 
 #pragma once
+
 #include <stdint.h>
 
 namespace gaia {
 namespace db {
 namespace triggers {
-    // TODO: header for events here
 
-    enum class event_type_t : uint32_t {
+enum class event_type_t : uint32_t {
     // Transaction events.
     transaction_begin = 1 << 0,
     transaction_commit = 1 << 1,
@@ -21,6 +21,7 @@ namespace triggers {
     row_insert = 1 << 4,
     row_delete = 1 << 5,
 };
+
 }
 }
 }

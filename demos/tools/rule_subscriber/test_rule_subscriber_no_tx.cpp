@@ -27,8 +27,6 @@ void check_handler(event_type_t expected_event, uint8_t expected_call)
   */
 void ruleset_1::ObjectRule_handler(const rule_context_t* context)
 {
-    // never called because we didn't setup events here in the generated
-    // addr book employee
     g_handler_called++;
     g_event_type = context->event_type;
 }
@@ -36,18 +34,16 @@ void ruleset_1::ObjectRule_handler(const rule_context_t* context)
 TEST(rule_subscriber, no_tx_events)
 {
     gaia::system::initialize(true); 
-    AddrBook::Employee * e = nullptr;
 
     // no transaction events
     gaia::db::begin_transaction();
     {
-        e = new AddrBook::Employee();
-        e->set_name_first("dax");
-        e->insert_row();
+        AddrBook::Employee_writer w = AddrBook::Employee::writer();
+        w->name_first = "dax";
+        AddrBook::Employee::insert_row(w);
     }
     gaia::db::commit_transaction();
     check_handler(event_type_t::row_insert, 1);
-    delete e;
 
     gaia::db::begin_transaction();
     gaia::db::rollback_transaction();
@@ -55,4 +51,26 @@ TEST(rule_subscriber, no_tx_events)
 
     gaia::db::begin_transaction();
     check_handler(event_type_t::row_insert, 0);
+    gaia::db::commit_transaction();
+
+    // unsubscribe
+    g_event_type = event_type_t::row_delete;
+    unsubscribe_ruleset("ruleset_1");
+    gaia::db::begin_transaction();
+    AddrBook::Employee_ptr e = AddrBook::Employee::get_first();
+    AddrBook::Employee_writer w = AddrBook::Employee::writer(e);
+    w->web = "mygollum.com";
+    AddrBook::Employee::update_row(w);
+    gaia::db::commit_transaction();
+    check_handler(event_type_t::row_delete, 0);
+
+    // resubscribe should enable update event
+    subscribe_ruleset("ruleset_1");
+    gaia::db::begin_transaction();
+    e = AddrBook::Employee::get_first();
+    w = AddrBook::Employee::writer(e);
+    w->web = "mygollum.com";
+    AddrBook::Employee::update_row(w);
+    gaia::db::commit_transaction();
+    check_handler(event_type_t::row_update, 1);
 }

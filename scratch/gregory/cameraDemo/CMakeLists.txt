@@ -21,7 +21,7 @@ add_custom_target(make_generated_cameraDemo_dir ALL
   )
 set_property(GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
 set(GAIA_PROD_BUILD ${CMAKE_BINARY_DIR}/../../../../production/build)
-gaia_compile_flatbuffers_schema_to_cpp_opt(cameraDemo.fbs "--no-includes;--gen-compare;--gen-setters;--gen-events;--gaia-type-initial-value;1000" "${GENERATED_OUTPUTS}")
+gaia_compile_flatbuffers_schema_to_cpp_opt(cameraDemo.fbs "--no-includes;--gen-compare;--gaia-type-initial-value;1000" "${GENERATED_OUTPUTS}")
 gaia_get_generated_output(fbs_generated)
 if(fbs_generated)
   add_custom_target(generate_camera_demo

@@ -4,9 +4,16 @@
 /////////////////////////////////////////////
 #pragma once
 
-#include "gaia_object.hpp"
-#include "gaia_exception.hpp"
+#include <set>
 #include <string>
+#include <sstream>
+#include <vector>
+#include <memory>
+
+#include "gaia_common.hpp"
+#include "gaia_exception.hpp"
+
+using namespace gaia::common;
 
 namespace gaia {
 /**
@@ -18,6 +25,47 @@ namespace catalog {
  * \addtogroup catalog
  * @{
  */
+
+/*
+ * The following enum classes are shared cross the catalog usage.
+ */
+
+/*
+ * Data types for Gaia field records.
+ */
+enum class data_type_t : uint8_t {
+    e_bool,
+    e_int8,
+    e_uint8,
+    e_int16,
+    e_uint16,
+    e_int32,
+    e_uint32,
+    e_int64,
+    e_uint64,
+    e_float32,
+    e_float64,
+    e_string,
+    e_references
+};
+
+/*
+ * Trim action for log tables.
+ */
+enum class trim_action_type_t : uint8_t {
+    e_none,
+    e_delete,
+    e_archive,
+};
+
+/*
+ * Value index types.
+ */
+enum value_index_type_t : uint8_t {
+    hash,
+    range
+};
+
 namespace ddl {
 /**
  * \addtogroup ddl
@@ -26,38 +74,24 @@ namespace ddl {
  * Definitions for parse result bindings
  */
 
-enum class data_type_t : unsigned int {
-    BOOL,
-    INT8,
-    UINT8,
-    INT16,
-    UINT16,
-    INT32,
-    UINT32,
-    INT64,
-    UINT64,
-    FLOAT32,
-    FLOAT64,
-    STRING,
-    TABLE
-};
-
-enum class statment_type_t : unsigned int {
-    CREATE,
-    DROP,
-    ALTER
+enum class statement_type_t : uint8_t {
+    create,
+    drop,
+    alter
 };
 
 struct statement_t {
 
-    statement_t(statment_type_t type) : m_type(type){};
+    statement_t(statement_type_t type) : m_type(type){};
 
-    statment_type_t type() const { return m_type; };
+    statement_type_t type() const { return m_type; };
 
-    bool is_type(statment_type_t type) const { return m_type == type; };
+    bool is_type(statement_type_t type) const { return m_type == type; };
+
+    virtual ~statement_t(){};
 
   private:
-    statment_type_t m_type;
+    statement_type_t m_type;
 };
 
 struct field_type_t {
@@ -71,6 +105,9 @@ struct field_definition_t {
     field_definition_t(string name, data_type_t type, uint16_t length)
         : name(move(name)), type(type), length(length){};
 
+    field_definition_t(string name, data_type_t type, uint16_t length, string referenced_table_name)
+        : name(move(name)), type(type), length(length), table_type_name(move(referenced_table_name)){};
+
     string name;
     data_type_t type;
     uint16_t length;
@@ -78,19 +115,23 @@ struct field_definition_t {
     string table_type_name;
 };
 
-enum class create_type_t : unsigned int {
-    CREATE_TABLE,
+using field_def_list_t = vector<unique_ptr<field_definition_t>>;
+
+enum class create_type_t : uint8_t {
+    create_table,
 };
 
 struct create_statement_t : statement_t {
     create_statement_t(create_type_t type)
-        : statement_t(statment_type_t::CREATE), type(type), fields(nullptr){};
+        : statement_t(statement_type_t::create), type(type){};
+
+    virtual ~create_statement_t() {}
 
     create_type_t type;
 
     string table_name;
 
-    vector<field_definition_t *> *fields;
+    field_def_list_t fields;
 };
 
 /*@}*/
@@ -99,11 +140,35 @@ struct create_statement_t : statement_t {
 /**
  * Thrown when creating a table that already exists.
  */
-class table_already_exists: public gaia_exception {
+class table_already_exists : public gaia_exception {
   public:
     table_already_exists(const string &name) {
         stringstream message;
-        message << "The table " << name << " already exists.";
+        message << "The table \"" << name << "\" already exists.";
+        m_message = message.str();
+    }
+};
+
+/**
+ * Thrown when a referenced table does not exists.
+ */
+class table_not_exists : public gaia_exception {
+  public:
+    table_not_exists(const string &name) {
+        stringstream message;
+        message << "The table \"" << name << "\" does not exist.";
+        m_message = message.str();
+    }
+};
+
+/**
+ * Thrown when a field is specified more than once
+ */
+class duplicate_field : public gaia_exception {
+  public:
+    duplicate_field(const string &name) {
+        stringstream message;
+        message << "The field \"" << name << "\" is specified more than once.";
         m_message = message.str();
     }
 };
@@ -116,7 +181,7 @@ class table_already_exists: public gaia_exception {
  * @return id of the new table
  * @throw table_already_exists
  */
-gaia_id_t create_table(const string &name, const vector<ddl::field_definition_t *> &fields);
+gaia_id_t create_table(const string &name, const ddl::field_def_list_t &fields);
 
 /**
  * List all tables defined in the catalog.
@@ -139,11 +204,45 @@ const set<gaia_id_t> &list_tables();
 const vector<gaia_id_t> &list_fields(gaia_id_t table_id);
 
 /**
- * Generate FlatBuffers schema (fbs) from catalog table definitions
+ * List all references for a given table defined in the catalog.
+ * References are foreign key constraints or table links.
+ * They defines relationships between tables.
+ *
+ * @param table_id id of the table
+ * @return a list of ids of the table references in the order of their positions.
+ */
+const vector<gaia_id_t> &list_references(gaia_id_t table_id);
+
+/**
+ * Generate FlatBuffers schema (fbs) for a catalog table.
+ * The given table is the root type of the generated schema.
+ *
+ * @return generated fbs string
+ */
+string generate_fbs(gaia_id_t table_id);
+
+/**
+ * Generate FlatBuffers schema (fbs) for all catalog tables.
+ * No root type is specified in the generated schema.
  *
  * @return generated fbs string
  */
 string generate_fbs();
+
+/**
+ * Generate the Extended Data Classes header file.
+ *
+ * @return generated source
+ */
+string gaia_generate(string);
+
+/**
+ * Retrieve the binary FlatBuffers schema (bfbs) for a given table.
+ *
+ * @param table_id id of the table
+ * @return bfbs
+ */
+string get_bfbs(gaia_id_t table_id);
 
 /*@}*/
 } // namespace catalog

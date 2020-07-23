@@ -4,31 +4,25 @@
 /////////////////////////////////////////////
 #pragma once
 
-#include <unordered_map>
+#include <list>
 #include <queue>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 #include "rules.hpp"
 #include "event_guard.hpp"
 #include "event_log_gaia_generated.h"
 #include "rule_thread_pool.hpp"
-#include "trigger.hpp"
+#include "triggers.hpp"
 
 using namespace gaia::db::triggers;
 
 namespace gaia 
 {
-
-namespace db 
-{
-    f_commit_trigger_t set_commit_trigger(f_commit_trigger_t commit_trigger);
-}
-
+    void set_commit_trigger(f_commit_trigger_t commit_trigger);
 namespace rules
 {
-
-
 /**
  * Implementation class for event and rule APIs defined
  * in events.hpp and rules.hpp respectively.  See documentation
@@ -76,7 +70,7 @@ public:
      * be a friend class.  Transaction triggers should not be callable by rule authors 
      */
     void commit_trigger(
-        uint32_t tx_id, 
+        uint64_t tx_id, 
         trigger_event_t* events, 
         size_t count_events, 
         bool immediate);
@@ -88,6 +82,8 @@ public:
         bool immediate);
 
     void rollback_trigger();
+
+    // void (*fptr) (uint32_t, trigger_event_t* , size_t , bool) = &event_manager_t::commit_trigger;
 
 private:
     // Internal rule binding to copy the callers

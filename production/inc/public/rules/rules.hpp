@@ -4,14 +4,19 @@
 /////////////////////////////////////////////
 #pragma once
 
+#include <sstream>
+#include <string>
+#include <memory>
 #include <vector>
+#include <set>
 #include <unordered_set>
 
 #include "events.hpp"
+#include "gaia_common.hpp"
 #include "gaia_exception.hpp"
-#include "storage_engine.hpp"
 
-using namespace gaia::db;
+using namespace gaia::db::triggers;
+using namespace gaia::common;
 
 namespace gaia 
 {
@@ -45,6 +50,18 @@ typedef void (* gaia_rule_fn)(const rule_context_t * context);
  * function is invoked when the event manager singleton is created.
  */ 
 extern "C" void initialize_rules();
+
+/**
+ * The application may provide an implementation of subscribe_ruleset().  This
+ * is a convenience method to subscribe all the rules in a ruleset at once.
+ */ 
+extern "C" void subscribe_ruleset(const char* ruleset_name);
+
+/**
+ * The application may provide an implementation of unsubscribe_ruleset().  This
+ * is a convenience method to unsubscribe all the rules in a ruleset at once.
+ */ 
+extern "C" void unsubscribe_ruleset(const char* ruleset_name);
 
 /**
  * The caller supplies a rule_binding to subscribe/unsubscribe rules to/from events.
@@ -100,6 +117,21 @@ typedef std::unordered_set<uint16_t> field_list_t;
 const field_list_t empty_fields;
 
 /**
+ * Enumeration for the last database operation performed for a given gaia type.
+ * This is a different enum type than the event type because there may be
+ * events that are not caused by a table operation.  In addition, a 'none'
+ * enum value is provided to indicate that no operation was performed on a
+ * table. See the rule_context_t::last_operation() method for further
+ * explanation.
+ */
+enum class last_operation_t : uint8_t {
+    none,
+    row_update,
+    row_insert,
+    row_delete
+};
+
+/**
  * The rule context wraps the event (or data) context as well as information 
  * about the event and rule metadata.  In the future the rule context may also 
  * maintain the error state of the rule invocation.  Therefore, the rule 
@@ -116,7 +148,7 @@ const field_list_t empty_fields;
  */
 struct rule_context_t 
 {
-public:            
+public:
     rule_context_t(
         const rule_binding_t& a_binding, 
         gaia::common::gaia_type_t a_gaia_type,
@@ -130,6 +162,21 @@ public:
     }
     
     rule_context_t() = delete;
+
+    /**
+     * Helper to enable a declarative rule to check what the last database
+     * operation was for the passed-in type. For example, consider a rule that
+     * may be invoked either from a table operation on type X or a change to
+     * a field reference in table Y. This method enables the rule author to 
+     * determine the reason for the rule being invoked.
+     * 
+     * if (X.last_operation == last_operation_t::row_update) { do A stuff }
+     * else { do B stuff } 
+     * 
+     * This method will return last_operation_t::none if this rule was not
+     * invoked due to an operation on X.
+     */
+    last_operation_t last_operation(gaia_type_t gaia_type);
 
     const rule_binding_t rule_binding;
     gaia::common::gaia_type_t gaia_type;
@@ -216,6 +263,20 @@ public:
     {
         std::stringstream message;
         message << "Cannot subscribe rule to " << (uint32_t)event_type << ". " << reason;
+        m_message = message.str();
+    }
+};
+
+/**
+ * invalid_subscription : public gaia::common::gaia_exception
+ */
+class ruleset_not_found : public gaia::common::gaia_exception
+{
+public:
+    ruleset_not_found(const char* ruleset_name)
+    {
+        std::stringstream message;
+        message << "Ruleset '" << ruleset_name << "' not found.";
         m_message = message.str();
     }
 };

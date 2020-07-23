@@ -3,9 +3,9 @@
 # All rights reserved.
 #############################################
 
-# Helper function to return the absolute path of the 
-# repo root directory.  We use this to build absolute 
-# include paths to code stored in the third-party 
+# Helper function to return the absolute path of the
+# repo root directory.  We use this to build absolute
+# include paths to code stored in the third-party
 # directory.  Note that this code assumes that the
 # function is invoked from a directoy directly below
 # the repo root (i.e. production or demos).
@@ -28,9 +28,10 @@ endfunction(set_test)
 #
 # Helper function for setting up google tests.
 # The named arguments are required:  TARGET, SOURCES, INCLUDES, LIBRARIES
-# Two optional arguments are after this: 
-# [DEPENDENCIES] - for add_dependencies used for generation of flatbuffer files.  Defaults to ""
+# Three optional arguments are after this:
+# [DEPENDENCIES] - for add_dependencies used for generation of flatbuffer files.  Defaults to "".
 # [HAS_MAIN] - "{TRUE, 1, ON, YES, Y} indicates the test provides its own main function.  Defaults to "" (FALSE).
+# [ENV] - a semicolon-delimited list of key-value pairs for environment variables to be passed to the test. Defaults to "".
 #
 function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
 #  message(STATUS "TARGET = ${TARGET}")
@@ -58,8 +59,14 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
   endif()
   target_link_libraries(${TARGET} PRIVATE ${LIBRARIES} ${GTEST_LIB})
 
+  if("${ARGV6}")
+    set(ENV "${ARGV6}")
+  else()
+    set(ENV "")
+  endif()
+
   set_target_properties(${TARGET} PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
-  gtest_discover_tests(${TARGET})
+  gtest_discover_tests(${TARGET} PROPERTIES ENVIRONMENT "${ENV}")
 endfunction(add_gtest)
 
 #
@@ -113,12 +120,12 @@ function(gaia_compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT OUTPUT_DIR)
             --cpp-ptr-type flatbuffers::unique_ptr # Used to test with C++98 STLs
             --cpp-str-type gaia::direct_access::nullable_string_t
             --cpp-str-flex-ctor
-            --gaiacpp --gen-setters
+            --gaiacpp
             ${OPT}
             -I ${CMAKE_CURRENT_SOURCE_DIR}
             -o ${OUTPUT_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
-    DEPENDS ${GAIA_PROD_BUILD}/flatbuffers/flatc 
+    DEPENDS ${GAIA_PROD_BUILD}/flatbuffers/flatc
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${SRC_FBS}
     COMMENT "Run generation: '${GEN_HEADER}'"
     VERBATIM)

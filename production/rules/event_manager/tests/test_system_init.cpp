@@ -6,16 +6,17 @@
 // Do not include event_manager.hpp to ensure that
 // we don't have a dependency on the internal implementation.
 
+#include "db_test_helpers.hpp"
+#include "gaia_system.hpp"
 #include "gtest/gtest.h"
 #include "rules.hpp"
-#include "gaia_system.hpp"
 #include "gaia_base.hpp"
 
-using namespace std;
-using namespace gaia::rules;
 using namespace gaia::common;
-using namespace gaia::db::triggers;
+using namespace gaia::db;
 using namespace gaia::direct_access;
+using namespace gaia::rules;
+using namespace std;
 
 extern "C" void initialize_rules()
 {
@@ -45,7 +46,6 @@ class row_context_t : public gaia_base_t
 {
 public:
     row_context_t() : gaia_base_t("TestGaia") {}
-    void reset(bool) override {}
 
     static gaia_type_t s_gaia_type;
     gaia_type_t gaia_type() override
@@ -63,10 +63,18 @@ TEST(event_manager_system_init, system_initialized)
     fields.insert(5);
     row_context_t row;
 
-    gaia::system::initialize(true);
+    gaia::system::initialize();
 
     subscribe_rule(row_context_t::s_gaia_type, event_type_t::row_update, fields, binding);
     EXPECT_EQ(true, unsubscribe_rule(row_context_t::s_gaia_type, event_type_t::row_update, fields, binding));
     unsubscribe_rules();
     list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subscriptions);
+}
+
+int main(int argc, char **argv) {
+  testing::InitGoogleTest(&argc, argv);
+  start_server();
+  int ret_code = RUN_ALL_TESTS();
+  stop_server();
+  return ret_code;
 }

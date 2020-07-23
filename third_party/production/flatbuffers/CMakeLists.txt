@@ -477,7 +477,7 @@ if(FLATBUFFERS_BUILD_TESTS)
 
   add_executable(flattests ${FlatBuffers_Tests_SRCS})
   add_executable(gaia_tests ${FlatBuffersGaia_Tests_SRCS})
-  
+
   # TODO Add (monster_test.fbs monsterdata_test.json)->monsterdata_test.mon
   compile_flatbuffers_schema_to_cpp(tests/monster_test.fbs)
   compile_flatbuffers_schema_to_binary(tests/monster_test.fbs)
@@ -488,7 +488,7 @@ if(FLATBUFFERS_BUILD_TESTS)
   compile_flatbuffers_schema_to_cpp_opt(tests/arrays_test.fbs "--scoped-enums;--gen-compare")
   compile_flatbuffers_schema_to_binary(tests/arrays_test.fbs)
   compile_flatbuffers_schema_to_embedded_binary(tests/monster_test.fbs "--no-includes;--gen-compare")
-  compile_flatbuffers_schema_to_gaiacpp_opt(tests/addr_book.fbs "--gen-setters;--gen-events;--gaia-type-initial-value;15" "GaiaTests")
+  compile_flatbuffers_schema_to_gaiacpp_opt(tests/addr_book.fbs "--gaia-type-initial-value;15" "GaiaTests")
   if(NOT (MSVC AND (MSVC_VERSION LESS 1900)))
     compile_flatbuffers_schema_to_cpp(tests/monster_extra.fbs) # Test floating-point NAN/INF.
   endif()
@@ -498,8 +498,8 @@ if(FLATBUFFERS_BUILD_TESTS)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../production/inc/internal/rules)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../production/inc/public/common)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../production/inc/public/direct_access)
-  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../production/db/inc/triggers)
-  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../production/db/storage_engine/mock)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../production/inc/public/db)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../production/inc/internal/db)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../production/inc/internal/common)
 
   add_dependencies(flattests generated_code)
@@ -509,13 +509,13 @@ if(FLATBUFFERS_BUILD_TESTS)
   set_property(TARGET gaia_tests
     PROPERTY COMPILE_DEFINITIONS FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
     FLATBUFFERS_DEBUG_VERIFICATION_FAILURE=1)
-  
+
   if(FLATBUFFERS_CODE_SANITIZE)
     add_fsanitize_to_target(flattests ${FLATBUFFERS_CODE_SANITIZE})
   endif()
   target_link_libraries(flattests PRIVATE rt)
-  target_link_libraries(gaia_tests PRIVATE rt gaia_semock gaia_direct gaia_triggers gaia_rules)
-  
+  target_link_libraries(gaia_tests PRIVATE gaia_direct)
+
   set(FLATBUFFERS_UNIT_TEST flattests)
   add_custom_command(
      TARGET ${FLATBUFFERS_UNIT_TEST}
@@ -523,15 +523,16 @@ if(FLATBUFFERS_BUILD_TESTS)
      POST_BUILD
      COMMAND ${FLATBUFFERS_UNIT_TEST}
   )
-
-  set(GAIA_UNIT_TEST gaia_tests)
-  add_custom_command(
-     TARGET ${GAIA_UNIT_TEST}
-     COMMENT "Run Gaia tests"
-     POST_BUILD
-     COMMAND ${GAIA_UNIT_TEST}
-  )
   
+  # Disabling these tests since we're not keeping our fork of flatc
+  # set(GAIA_UNIT_TEST gaia_tests)
+  # add_custom_command(
+  #    TARGET ${GAIA_UNIT_TEST}
+  #    COMMENT "Run Gaia tests"
+  #    POST_BUILD
+  #    COMMAND "${GAIA_UNIT_TEST}"
+  # )
+
   compile_flatbuffers_schema_to_cpp(samples/monster.fbs)
   compile_flatbuffers_schema_to_binary(samples/monster.fbs)
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/samples)
