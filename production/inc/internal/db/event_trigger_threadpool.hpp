@@ -25,6 +25,7 @@ namespace db
 namespace triggers {
 
 // Class used to clean up resources per thread.
+// Begin_session() is not invoked in the constructor as the SE server may not be up yet.
 class session_destructor {
     public:
         session_destructor() = default;
@@ -90,8 +91,7 @@ class event_trigger_threadpool {
 
             /**
              * Invoked by the Storage Engine during transaction commit to check whether the rules engine has
-             * been initialized. We don't need synchronization here as the rules engine will be activated on startup, 
-             * whereas transaction commit occurs much later.
+             * been initialized. We don't need synchronization here as the rules engine will be activated on startup.
              */
             static f_commit_trigger_t get_commit_trigger() {
                 return s_tx_commit_trigger;
@@ -99,8 +99,8 @@ class event_trigger_threadpool {
 
             void add_trigger_task(gaia_xid_t transaction_id, std::vector<triggers::trigger_event_t> events) {
                 // Pass vector of events by copy to capture for now.
-                // We can avoid the copy with a custom allocator (if copying becomes a problem)
-                // Todo - deep copy events post yi wen's changes?
+                // We can avoid the copy with a custom allocator - if copying becomes a problem.
+                // Todo (msj) deep copy?
                 tasks.push([=] () {
                     s_tx_commit_trigger(transaction_id, std::move(events), true);
                 });
