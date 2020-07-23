@@ -15,7 +15,6 @@ using namespace gaia::direct_access;
 using namespace AddrBook;
 
 class gaia_references_test : public ::testing::Test {
-public:
 protected:
     void delete_employees() {
         begin_transaction();
@@ -48,11 +47,12 @@ protected:
         delete_employees();
     }
 
-    void TearDown() override { 
+    void TearDown() override {
         delete_employees();
         end_session();
     }
 };
+
 
 // Test connecting, disconnecting, navigating records
 // ==================================================

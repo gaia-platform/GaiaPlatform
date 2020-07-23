@@ -17,12 +17,6 @@ using namespace gaia::common;
 using namespace gaia::db::triggers;
 using namespace std;
 
-static event_manager_t* g_event_manager_t;
-
-void call_func(uint32_t xid, trigger_event_t* events, size_t count_events, bool immediate) {
-    g_event_manager_t->commit_trigger(xid, events, count_events, immediate);
-}
-
 /**
  * Class implementation
  */
@@ -86,39 +80,6 @@ void event_manager_t::commit_trigger(uint64_t, trigger_event_t* events, size_t c
     for (size_t i = 0; i < count_events; i++)
     {
         trigger_events.push_back(events[i]);
-    }
-
-    // Do the work to enqueue invocations and execute them immediately.
-    commit_trigger(trigger_events.data(), trigger_events.size());
-}
-
-void event_manager_t::commit_trigger_se(uint64_t tx_id, shared_ptr<std::vector<unique_ptr<triggers::trigger_event_t>>> events, size_t count_events, bool immediate)
-{
-    assert(count_events == events->size());
-    if (!immediate)
-    {
-        for (auto i = events->begin(); i != events->end(); i++)
-        {
-            s_tls_events.push_back(*i->get());
-        }
-        return;
-    }
-
-    // If there is nothing to do then just bail now.
-    if (count_events == 0 && s_tls_events.size() == 0)
-    {
-        return;
-    }
-
-    // Make a copy for this function and ensure that future calls
-    // to commit_trigger append events to a fresh list.
-    vector<trigger_event_t> trigger_events = s_tls_events;
-    s_tls_events.clear();
-
-    // Append any events from this call with the thread local list
-    for (auto i = events->begin(); i != events->end(); i++)
-    {
-        trigger_events.push_back(*i->get());
     }
 
     // Do the work to enqueue invocations and execute them immediately.

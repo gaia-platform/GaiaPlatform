@@ -16,7 +16,6 @@ find_package(Threads REQUIRED)
 set(GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES
   "${GAIA_INC}/public/common"
   "${GAIA_INC}/public/db"
-  "${GAIA_REPO}/production/db/inc/triggers"
   "${GAIA_REPO}/production/db/inc/types"
   # This should be a public include since it exposes the gaia_ptr interface,
   # which is consumed by internal clients.
@@ -55,7 +54,7 @@ add_library(gaia_storage SHARED
 target_include_directories(gaia_storage PUBLIC ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES})
 target_include_directories(gaia_storage PRIVATE ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES})
 set_target_properties(gaia_storage PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
-target_link_libraries(gaia_storage PRIVATE gaia_common gaia_triggers)
+target_link_libraries(gaia_storage PRIVATE gaia_common)
 
 ###############################################
 # Storage engine mock-related code begins here.

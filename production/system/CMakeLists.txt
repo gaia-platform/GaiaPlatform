@@ -26,17 +26,6 @@ set(GAIA_SYSTEM_PRIVATE_INCLUDES
 )
 message(STATUS "GAIA_SYSTEM_PRIVATE_INCLUDES=${GAIA_SYSTEM_PRIVATE_INCLUDES}")
 
-# Generate the headers from the flatbuffer
-set_property(GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
-gaia_compile_flatbuffers_schema_to_cpp(tests/addr_book.fbs)
-gaia_get_generated_output(fbs_generated)
-if(fbs_generated)
-  # message(STATUS "Add generated_code target with files:${fbs_generated}")
-  add_custom_target(gen_code
-    DEPENDS ${fbs_generated}
-    COMMENT "All generated files were updated.")
-endif()
-
 # Our main target.
 add_library(gaia STATIC src/gaia_system.cpp)
 

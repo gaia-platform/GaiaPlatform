@@ -17,7 +17,6 @@ using namespace AddrBook;
 
 
 class gaia_object_test : public ::testing::Test {
-public:
 protected:
     void delete_employees() {
         begin_transaction();
@@ -94,6 +93,7 @@ TEST_F(gaia_object_test, get_field) {
     commit_transaction();
 }
 
+// Delete one row
 TEST_F(gaia_object_test, get_field_delete) {
     begin_transaction();
     auto e = get_field("Jameson");

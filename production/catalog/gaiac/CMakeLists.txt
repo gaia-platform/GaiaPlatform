@@ -24,6 +24,6 @@ message(STATUS "GAIA_CATALOG_TOOL_INCLUDES=${GAIA_CATALOG_TOOL_INCLUDES}")
 
 add_executable(gaiac src/main.cpp)
 target_include_directories(gaiac PRIVATE ${GAIA_CATALOG_TOOL_INCLUDES})
-target_link_libraries(gaiac PRIVATE rt gaia_catalog gaia_parser gaia_triggers)
+target_link_libraries(gaiac PRIVATE rt gaia_catalog gaia_parser)
 set_target_properties(gaiac PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaiac PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")

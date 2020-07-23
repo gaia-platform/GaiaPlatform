@@ -254,11 +254,10 @@ bool client::commit_transaction() {
     // Reset transaction id.
     s_transaction_id = -1;
 
-    // Reset TLS events vector in case of transaction abort.
+    // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
-    
-    // Ensure TLS events vector is reset for next transaction.
-    assert(s_events.size() == 0);
+    // Assert anyway.
+    assert(s_events.size() == 0); 
 
     return (event == session_event_t::DECIDE_TXN_COMMIT);
 }

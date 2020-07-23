@@ -74,16 +74,8 @@ public:
         trigger_event_t* events, 
         size_t count_events, 
         bool immediate);
-    
-    void commit_trigger_se(
-        uint64_t tx_id,
-        shared_ptr<std::vector<unique_ptr<triggers::trigger_event_t>>> events,
-        size_t count_events,
-        bool immediate);
 
     void rollback_trigger();
-
-    // void (*fptr) (uint32_t, trigger_event_t* , size_t , bool) = &event_manager_t::commit_trigger;
 
 private:
     // Internal rule binding to copy the callers
