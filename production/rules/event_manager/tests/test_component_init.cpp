@@ -21,7 +21,18 @@ extern "C" void initialize_rules()
 {
 }
 
-TEST(event_manager_component_init, component_not_initialized_error)
+class component_init_test : public ::testing::Test {
+protected:
+    static void SetUpTestSuite() {
+        start_server();
+    }
+
+    static void TearDownTestSuite() {
+        stop_server();
+    }
+};
+
+TEST_F(component_init_test, component_not_initialized_error)
 {
     rule_binding_t dont_care;
     subscription_list_t still_dont_care;
@@ -54,7 +65,7 @@ public:
 };
 gaia_type_t row_context_t::s_gaia_type = 2;
 
-TEST(event_manager_component_init, component_initialized)
+TEST_F(component_init_test, component_initialized)
 {
     rule_binding_t binding("ruleset", "rulename", rule);
     subscription_list_t subscriptions;
@@ -69,12 +80,4 @@ TEST(event_manager_component_init, component_initialized)
     unsubscribe_rules();
     list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subscriptions);
     gaia::db::end_session();
-}
-
-int main(int argc, char **argv) {
-  testing::InitGoogleTest(&argc, argv);
-  start_server();
-  int ret_code = RUN_ALL_TESTS();
-  stop_server();
-  return ret_code;
 }
