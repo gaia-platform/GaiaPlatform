@@ -47,6 +47,7 @@ blank [ \t\r]
 \n+          loc.lines (yyleng); loc.step ();
 
 "CREATE"     return yy::parser::make_CREATE(loc);
+"DROP"       return yy::parser::make_DROP(loc);
 "TABLE"      return yy::parser::make_TABLE(loc);
 "REFERENCES" return yy::parser::make_REFERENCES(loc);
 "BOOL"       return yy::parser::make_BOOL(loc);

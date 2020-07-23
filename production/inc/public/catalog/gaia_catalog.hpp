@@ -125,13 +125,34 @@ struct create_statement_t : statement_t {
     create_statement_t(create_type_t type)
         : statement_t(statement_type_t::create), type(type){};
 
+    create_statement_t(create_type_t type, string name)
+        : statement_t(statement_type_t::create), type(type), name(move(name)){};
+
     virtual ~create_statement_t() {}
 
     create_type_t type;
 
-    string table_name;
+    string name;
 
     field_def_list_t fields;
+};
+
+enum class drop_type_t : uint8_t {
+    drop_table,
+};
+
+struct drop_statement_t : statement_t {
+    drop_statement_t(drop_type_t type)
+        : statement_t(statement_type_t::drop), type(type){};
+
+    drop_statement_t(drop_type_t type, string name)
+        : statement_t(statement_type_t::drop), type(type), name(move(name)){};
+
+    virtual ~drop_statement_t() {}
+
+    drop_type_t type;
+
+    string name;
 };
 
 /*@}*/

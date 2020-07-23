@@ -17,10 +17,10 @@ TEST(catalog_ddl_parser_test, create_table) {
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
 
-    auto createStmt = dynamic_cast<create_statement_t *>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t *>(parser.statements[0].get());
 
-    EXPECT_EQ(createStmt->type, create_type_t::create_table);
-    EXPECT_EQ(createStmt->table_name, "t");
+    EXPECT_EQ(create_stmt->type, create_type_t::create_table);
+    EXPECT_EQ(create_stmt->name, "t");
 }
 
 TEST(catalog_ddl_parser_test, create_table_multiple_fields) {
@@ -33,7 +33,7 @@ TEST(catalog_ddl_parser_test, create_table_multiple_fields) {
     auto createStmt = dynamic_cast<create_statement_t *>(parser.statements[0].get());
 
     EXPECT_EQ(createStmt->type, create_type_t::create_table);
-    EXPECT_EQ(createStmt->table_name, "t");
+    EXPECT_EQ(createStmt->name, "t");
     EXPECT_EQ(createStmt->fields.size(), 2);
 
     EXPECT_EQ(createStmt->fields.at(0)->name, "c1");
@@ -55,7 +55,7 @@ TEST(catalog_ddl_parser_test, create_table_references) {
     auto createStmt = dynamic_cast<create_statement_t *>(parser.statements[0].get());
 
     EXPECT_EQ(createStmt->type, create_type_t::create_table);
-    EXPECT_EQ(createStmt->table_name, "t");
+    EXPECT_EQ(createStmt->name, "t");
     EXPECT_EQ(createStmt->fields.size(), 3);
 
     EXPECT_EQ(createStmt->fields.at(0)->name, "c1");
@@ -71,10 +71,27 @@ TEST(catalog_ddl_parser_test, create_table_references) {
     EXPECT_EQ(createStmt->fields.at(2)->length, 0);
 }
 
+TEST(catalog_ddl_parser_test, drop_table) {
+    parser_t parser;
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("DROP TABLE t;"));
+
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::drop);
+
+    auto drop_stmt = dynamic_cast<drop_statement_t *>(parser.statements[0].get());
+
+    EXPECT_EQ(drop_stmt->type, drop_type_t::drop_table);
+    EXPECT_EQ(drop_stmt->name, "t");
+}
+
 TEST(catalog_ddl_parser_test, case_sensitivity) {
     parser_t parser;
     ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t (c INT32);"));
     ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("create table t (c int32);"));
     ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("cReAte taBle T (c int32);"));
     ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE T (c int32, C int32);"));
+
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("DROP TABLE t;"));
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("drop table t;"));
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("DrOp TaBle T;"));
 }

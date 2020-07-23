@@ -41,7 +41,7 @@ void execute(vector<unique_ptr<statement_t>> &statements) {
         }
         auto createStmt = dynamic_cast<create_statement_t *>(stmt.get());
         if (createStmt->type == create_type_t::create_table) {
-            gaia::catalog::create_table(createStmt->table_name, createStmt->fields);
+            gaia::catalog::create_table(createStmt->name, createStmt->fields);
         }
     }
 }
