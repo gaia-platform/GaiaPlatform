@@ -11,7 +11,7 @@
 #include "flatbuffers/reflection.h"
 
 #include "gaia_catalog.hpp"
-#include "catalog_gaia_generated.h"
+#include "gaia_catalog.h"
 #include "fbs_generator.hpp"
 #include "db_test_helpers.hpp"
 

@@ -2,7 +2,6 @@
 //// Copyright (c) Gaia Platform LLC
 //// All rights reserved.
 ///////////////////////////////////////////////
-#include "catalog_gaia_generated.h"
 #include "catalog_manager.hpp"
 #include "code_writer.hpp"
 #include <memory>
@@ -276,6 +275,7 @@ static string generate_edc_struct(int position, string table_name, field_vec& fi
     // Finishing brace.
     code.decrement_indent_level();
     code += "};";
+    code += "";
 
     string str = code.to_string();
     return str;
