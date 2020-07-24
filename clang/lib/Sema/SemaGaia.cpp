@@ -118,6 +118,7 @@ static unordered_map<string, unordered_map<string, QualType>> getTableData(Sema 
 
             retVal[tbl.name()] = fields;
         }
+
     }
     catch (exception e)
     {
@@ -215,6 +216,7 @@ QualType Sema::getTableType (IdentifierInfo *table)
     addField(&Context.Idents.get("LastOperation"), Context.WIntTy.withConst(), RD);
 
     //addMethod(&Context.Idents.get("update"), DeclSpec::TST_void, nullptr, 0, attrFactory, attrs, &S, RD);
+
     
     ActOnFinishCXXMemberSpecification(getCurScope(), SourceLocation(), RD,
         SourceLocation(), SourceLocation(), attrs);
@@ -350,7 +352,8 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, bool isGaiaFieldTa
     }
     else if (isGaiaFieldTable)
     {
-        varDecl->addAttr(FieldTableAttr::CreateImplicit(Context,II));
+        varDecl->addAttr(GaiaFieldAttr::CreateImplicit(Context));
+        varDecl->addAttr(FieldTableAttr::CreateImplicit(Context, &Context.Idents.get(fieldTableName)));
     }
     else
     {
