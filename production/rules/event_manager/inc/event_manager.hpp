@@ -20,6 +20,7 @@ using namespace gaia::db::triggers;
 
 namespace gaia 
 {
+    void set_commit_trigger(f_commit_trigger_t commit_trigger);
 namespace rules
 {
 /**
@@ -75,6 +76,8 @@ public:
         bool immediate);
 
     void rollback_trigger();
+
+    // void (*fptr) (uint32_t, trigger_event_t* , size_t , bool) = &event_manager_t::commit_trigger;
 
 private:
     // Internal rule binding to copy the callers

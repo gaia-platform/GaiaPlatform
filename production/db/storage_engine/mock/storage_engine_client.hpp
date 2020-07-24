@@ -31,6 +31,7 @@ using namespace gaia::common;
 using namespace gaia::db::triggers;
 
 namespace gaia {
+
 namespace db {
 
 // We need to forward-declare this class to avoid a circular dependency.
@@ -64,7 +65,7 @@ class client : private se_base {
     // Threadpool to help invoke post-commit triggers in response to events generated in each transaction.
     static gaia::db::triggers::event_trigger_threadpool_t* event_trigger_pool;
 
-    // Inherited from se_base:
+    // inherited from se_base:
     // static int s_fd_offsets;
     // static data *s_data;
     // thread_local static log *s_log;

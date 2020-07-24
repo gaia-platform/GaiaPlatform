@@ -17,6 +17,12 @@ using namespace gaia::common;
 using namespace gaia::db::triggers;
 using namespace std;
 
+static event_manager_t* g_event_manager_t;
+
+void call_func(uint32_t xid, trigger_event_t* events, size_t count_events, bool immediate) {
+    g_event_manager_t->commit_trigger(xid, events, count_events, immediate);
+}
+
 /**
  * Class implementation
  */

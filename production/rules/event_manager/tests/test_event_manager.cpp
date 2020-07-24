@@ -421,6 +421,16 @@ static constexpr int s_rule_decl_len = sizeof(s_rule_decl)/sizeof(s_rule_decl[0]
 class event_manager_test : public ::testing::Test
 {
 protected:
+
+    static void SetUpTestSuite() {
+        start_server();
+        gaia::rules::initialize_rules_engine();
+    }
+
+    static void TearDownTestSuite() {
+        stop_server();
+    }
+
     void SetUp() override {
         begin_session();
     }
@@ -1231,14 +1241,4 @@ TEST_F(event_manager_test, event_logging_subscriptions)
 
     gaia::db::commit_transaction();
     EXPECT_EQ(3, clear_event_log());
-}
-
-int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  testing::InitGoogleTest(&argc, argv);
-  start_server();
-  gaia::rules::initialize_rules_engine();
-  int ret_code = RUN_ALL_TESTS();
-  stop_server();
-  return ret_code;
 }
