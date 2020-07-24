@@ -22,7 +22,7 @@ namespace db
 namespace types
 {
 
-// Exceptions
+// Exception: Out of bounds
 class field_list_out_of_bounds : gaia::common::gaia_exception {
     public:
     field_list_out_of_bounds() {
@@ -60,10 +60,10 @@ class field_list_t {
     field_list_t& operator=(const field_list_t& other);
 
     // Move constructor
-    field_list_t(field_list_t&& other);
+    field_list_t(field_list_t&& other)  = default;
 
     // Move assignment
-    field_list_t& operator=(field_list_t&& other);
+    field_list_t& operator=(field_list_t&& other) = default;
 
     gaia_id_t operator[](size_t idx) const;
 

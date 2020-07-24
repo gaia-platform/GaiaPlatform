@@ -8,6 +8,7 @@
 #include <algorithm>
 
 #include "retail_assert.hpp"
+#include "gaia_catalog.hpp"
 
 using namespace gaia::db::types;
 using namespace gaia::common;
@@ -38,21 +39,6 @@ field_list_t& field_list_t::operator=(const field_list_t& other) {
     return *this;
 }
 
-// Move constructor
-field_list_t::field_list_t(field_list_t&& other)
-    : m_table_id(other.m_table_id),
-    m_data(std::move(other.m_data)) {
-}
-
-// Move assignment operator
-field_list_t& field_list_t::operator=(field_list_t&& other) {
-    if (this != &other) {
-        m_table_id = other.m_table_id;
-        m_data = std::move(other.m_data);
-    }
-    return *this;
-}
-
 // Access operator
 gaia_id_t field_list_t::operator[](size_t idx) const {
     if (idx >= size()) {
@@ -65,7 +51,8 @@ gaia_id_t field_list_t::operator[](size_t idx) const {
 void field_list_t::initialize() {
     retail_assert(m_data == nullptr, "field list already initialized");
     // TODO(yiwen): lookup catalog for actual size of table
-    size_t reserve_size = c_max_vector_reserve;
+    size_t num_fields = gaia::catalog::list_fields(m_table_id).size();
+    size_t reserve_size = (c_max_vector_reserve < num_fields) ? c_max_vector_reserve : num_fields;
     m_data.reset(new vector<gaia_id_t>()); // change to make_unique with C++14 and above.
     m_data->reserve(reserve_size);
 }

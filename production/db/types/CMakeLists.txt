@@ -11,9 +11,13 @@ project(types)
 set(GAIA_TYPES_INCLUDES
   "${GAIA_INC}/public/common"
   "${GAIA_INC}/public/catalog"
+  "${GAIA_INC}/public/direct_access"
+  "${GAIA_INC}/public/db/"
   "${GAIA_INC}/internal/common"
+  "${GAIA_INC}/internal/db"
   "${GAIA_DB_INC}/types"
-  "${FLATBUFFERS_INC}")
+  "${FLATBUFFERS_INC}"
+  "${GAIA_CATALOG_GENERATED}")
 
 message(STATUS "GAIA_TYPES_INCLUDES=${GAIA_TYPES_INCLUDES}")
 
