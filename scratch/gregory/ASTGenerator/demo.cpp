@@ -66,12 +66,12 @@ struct NavigationCodeData
 
 string generateGeneralSubscriptionCode()
 {
-    string retVal = "extern \"C\" void subscribe_ruleset(const char* ruleset_name)\n{\n";
+    string retVal = "namespace gaia {\n namespace rules{\nextern \"C\" void subscribe_ruleset(const char* ruleset_name)\n{\n";
 
     for (string ruleset : rulesets)
     {
         retVal += "if (strcmp(ruleset_name, \"" + ruleset + "\") == 0)\n" \
-            "{\nsubscribeRuleset_" + ruleset + "();\nreturn;\n}\n";
+            "{\n" + ruleset + "::subscribeRuleset_" + ruleset + "();\nreturn;\n}\n";
     }
 
     retVal += "throw ruleset_not_found(ruleset_name);\n}\n" \
@@ -80,16 +80,16 @@ string generateGeneralSubscriptionCode()
     for (string ruleset : rulesets)
     {
         retVal += "if (strcmp(ruleset_name, \"" + ruleset + "\") == 0)\n" \
-            "{\nunsubscribeRuleset_" + ruleset + "();\nreturn;\n}\n";
+            "{\n" + ruleset + "::unsubscribeRuleset_" + ruleset + "();\nreturn;\n}\n";
     }
 
     retVal += "throw ruleset_not_found(ruleset_name);\n}\n" \
         "extern \"C\" void initialize_rules()\n{\n";
     for (string ruleset : rulesets)
     {
-        retVal +=  "subscribeRuleset_" + ruleset + "();\n" ;
+        retVal +=  ruleset + "::subscribeRuleset_" + ruleset + "();\n" ;
     }
-    retVal += "}";
+    retVal += "}\n}\n}";
 
     return retVal;
 }
@@ -559,8 +559,7 @@ public:
             {
                 llvm::errs() << "Incorrect Base Type of generated type\n";
                 generationError = true;
-            }
-            
+            }            
         }
         else
         {
@@ -1178,29 +1177,25 @@ public:
                     "}\n" + "void unsubscribeRuleset_" + 
                     curRuleset + "()\n{\n" + curRulesetUnSubscription + 
                     "}\n" + generateGeneralSubscriptionCode();
-        if (!shouldEraseOutputFiles() && !generationError)
-        {
-            rewriter.getEditBuffer(rewriter.getSourceMgr().getMainFileID())
-                .write(llvm::outs()); 
 
-            llvm::errs() << "\n" << generatedSubscriptionCode << "\n";
+        if (!shouldEraseOutputFiles() && !generationError && !ASTGeneratorOutputOption.empty())
+        {
+            std::error_code error_code;
+            llvm::raw_fd_ostream outFile(ASTGeneratorOutputOption, error_code, llvm::sys::fs::F_None);
+
+            if (!outFile.has_error())
+            {
+                rewriter.getEditBuffer(rewriter.getSourceMgr().getMainFileID())
+                    .write(outFile); 
+                outFile << generatedSubscriptionCode;
+            }
+
+            outFile.close();
         }
     }
 private: 
     Rewriter rewriter;
 };
-
-bool SaveFile(const char *name, const stringstream& buf) 
-{
-    std::ofstream ofs(name, std::ofstream::out);
-    if (!ofs.is_open())
-    {
-        return false;
-    }
-    ofs << buf.str();
-    return !ofs.bad();
-}
-
 
 int main(int argc, const char **argv) 
 {
