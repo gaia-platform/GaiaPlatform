@@ -98,6 +98,10 @@ TEST_F(gaia_references_test, connect) {
         }
     }
     EXPECT_EQ(count, 1 );
+
+    e3.addresses_address_list.erase(a3);
+    a3.delete_row();
+    e3.delete_row();
     commit_transaction();
 }
 
@@ -202,10 +206,30 @@ int count_type() {
 }
 
 string first_employee() {
+    const char* name;
     for (auto row : employee_t::list()) {
-        return row.name_first();
+        name = row.name_first();
     }
-    return "";
+    return name;
+}
+
+int all_addresses() {
+    int count = 0;
+    char addr_string[6];
+    for (auto address : address_t::list()) {
+        sprintf(addr_string, "%d", count);
+        EXPECT_STREQ(addr_string, address.city());
+        count++;
+    }
+    int i = 0;
+    for (auto it = address_t::list().begin(); it != address_t::list().end(); ++it) {
+        sprintf(addr_string, "%d", i);
+        EXPECT_STREQ(addr_string, (*it).city());
+        count--;
+        ++i;
+    }
+
+    return count;
 }
 
 TEST_F(gaia_references_test, connect_scan) {
@@ -225,12 +249,15 @@ TEST_F(gaia_references_test, connect_scan) {
     EXPECT_EQ(bounce_hierarchy(eptr), true);
 
     // Count the rows.
-    EXPECT_EQ(count_type<employee_t>(), 2);
-    EXPECT_EQ(count_type<address_t>(), 201);
+    EXPECT_EQ(count_type<employee_t>(), 1);
+    EXPECT_EQ(count_type<address_t>(), 200);
     EXPECT_EQ(count_type<phone_t>(), 4000);
 
     // Scan through some rows.
     EXPECT_EQ(first_employee(), "Hidalgo");
+
+    // Scan through all addresses.
+    EXPECT_EQ(all_addresses(), 0);
 
     // Delete the hierarchy, every third record, until it's gone
     EXPECT_EQ(delete_hierarchy(eptr), true);
