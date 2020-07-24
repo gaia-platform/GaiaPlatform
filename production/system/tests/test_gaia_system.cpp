@@ -90,10 +90,12 @@ void validate_and_end_test(uint32_t count_tx, uint32_t crud_operations_per_tx, u
     stop_server();
 }
 
-// Todo (msj) Add a parallel test and remove reliance on sleep_for.
-// Note: This test takes 3 seconds on an m5.xlarge.
+// Time taken by tests: 
+// 1/2 Test #1: gaia_system_test.single_threaded_transactions ...   Passed    2.38 sec
+// 2/2 Test #2: gaia_system_test.multi_threaded_transactions ....   Passed    5.30 sec
+// Currently both tests start to hang if I bump up count_tx_per_thread; need to debug further.
 TEST_F(gaia_system_test, single_threaded_transactions) {
-    uint32_t count_tx = 10;
+    uint32_t count_tx = 20;
     uint32_t crud_operations_per_tx = 3;
 
     begin_test();
@@ -102,9 +104,9 @@ TEST_F(gaia_system_test, single_threaded_transactions) {
 }
 
 TEST_F(gaia_system_test, multi_threaded_transactions) {
-    uint32_t count_tx_per_thread = 5;
+    uint32_t count_tx_per_thread = 6;
     uint32_t crud_operations_per_tx = 3;
-    uint32_t count_threads = 5;
+    uint32_t count_threads = 10;
 
     begin_test();
     for (uint32_t i = 0; i < count_threads; i++) {
