@@ -90,7 +90,7 @@ void validate_and_end_test(uint32_t count_tx, uint32_t crud_operations_per_tx, u
     stop_server();
 }
 
-// Time taken by tests: 
+// Time taken by tests on m5.xlarge: 
 // 1/2 Test #1: gaia_system_test.single_threaded_transactions ...   Passed    2.38 sec
 // 2/2 Test #2: gaia_system_test.multi_threaded_transactions ....   Passed    5.30 sec
 // Currently both tests start to hang if I bump up count_tx_per_thread; need to debug further.
