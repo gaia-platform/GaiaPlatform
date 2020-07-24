@@ -36,8 +36,10 @@ add_custom_command(
   COMMAND flatc
     --schema
     -b ${PROJECT_SOURCE_DIR}/tests/test_record.fbs
+  DEPENDS ${PROJECT_SOURCE_DIR}/tests/test_record.fbs
   DEPENDS ${CMAKE_BINARY_DIR}/flatbuffers/flatc
-  COMMENT "Completed flatbuffers compilation of test_record.fbs!")
+  COMMENT "Completed flatbuffers compilation of test_record.fbs!"
+  VERBATIM)
 add_custom_target(test_record_bfbs ALL DEPENDS ${TYPES_TESTS_GENERATED_OUTPUT}/test_record.bfbs)
 
 add_custom_command(
@@ -45,8 +47,10 @@ add_custom_command(
   COMMAND flatc
     -b ${PROJECT_SOURCE_DIR}/tests/test_record.fbs
     ${PROJECT_SOURCE_DIR}/tests/test_record_data.json
+  DEPENDS ${PROJECT_SOURCE_DIR}/tests/test_record_data.json
   DEPENDS ${CMAKE_BINARY_DIR}/flatbuffers/flatc
-  COMMENT "Completed flatbuffers compilation of test_record_data.json!")
+  COMMENT "Completed flatbuffers compilation of test_record_data.json!"
+  VERBATIM)
 add_custom_target(test_record_data_bin ALL DEPENDS ${TYPES_TESTS_GENERATED_OUTPUT}/test_record_data.bin)
 
 # Tests.
