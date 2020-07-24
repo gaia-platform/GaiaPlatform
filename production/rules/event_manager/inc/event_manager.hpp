@@ -64,21 +64,6 @@ public:
       const uint16_t* field,
       subscription_list_t& subscriptions);
 
-<<<<<<< HEAD
-=======
-    /**
-     * Consider making these private and then have the storage engine
-     * be a friend class.  Transaction triggers should not be callable by rule authors 
-     */
-    void commit_trigger(
-        uint64_t tx_id, 
-        trigger_event_t* events, 
-        size_t count_events, 
-        bool immediate);
-
-    void rollback_trigger();
-
->>>>>>> make task queue in event_trigger_threadpool thread local
 private:
     // Internal rule binding to copy the callers
     // rule data and hold on to it.  This will be
