@@ -60,12 +60,7 @@ TEST_F(gaia_generate_test, use_create_table) {
 TEST_F(gaia_generate_test, parse_ddl) {
     parser_t parser;
 
-    // Create a very small DDL file.
-    ofstream ddl_file("tmp_airport_remove_me.ddl");
-    ddl_file << "create table tmp_airport ( name string );" << endl;
-    ddl_file.close();
-    EXPECT_EQ(EXIT_SUCCESS, parser.parse("tmp_airport_remove_me.ddl"));
-    unlink("tmp_airport_remove_me.ddl");
+    EXPECT_EQ(EXIT_SUCCESS, parser.parse_line("create table tmp_airport ( name string );"));
     execute(parser.statements);
 
     auto header_str = gaia_generate("tmp_airport");
