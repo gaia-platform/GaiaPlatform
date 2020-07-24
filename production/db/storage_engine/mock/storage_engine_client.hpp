@@ -65,7 +65,7 @@ class client : private se_base {
     // Threadpool to help invoke post-commit triggers in response to events generated in each transaction.
     static gaia::db::triggers::event_trigger_threadpool_t* event_trigger_pool;
 
-    // inherited from se_base:
+    // Inherited from se_base:
     // static int s_fd_offsets;
     // static data *s_data;
     // thread_local static log *s_log;

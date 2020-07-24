@@ -26,11 +26,6 @@ gaia_ptr& gaia_ptr::clone() {
     memcpy(new_this, old_this, new_size);
 
     client::tx_log(row_id, old_offset, to_offset());
-    client::s_events.push_back(trigger_event_t {event_type_t::row_insert, new_this->type, new_this->id, nullptr, 0});
-
-    if (!client::is_invalid_event(new_this->type)) {
-        client::s_events.push_back(trigger_event_t {event_type_t::row_insert, new_this->type, new_this->id, nullptr, 0});
-    }
 
     if (!client::is_invalid_event(new_this->type)) {
         client::s_events.push_back(trigger_event_t {event_type_t::row_insert, new_this->type, new_this->id, nullptr, 0});
@@ -58,11 +53,6 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data) {
     memcpy(new_this->payload + ref_len, data, data_size);
 
     client::tx_log(row_id, old_offset, to_offset());
-    client::s_events.push_back(trigger_event_t {event_type_t::row_update, new_this->type, new_this->id, nullptr, 0});
-
-    if (!client::is_invalid_event(new_this->type)) {
-        client::s_events.push_back(trigger_event_t {event_type_t::row_update, new_this->type, new_this->id, nullptr, 0});
-    }
 
     if (!client::is_invalid_event(new_this->type)) {
         client::s_events.push_back(trigger_event_t {event_type_t::row_update, new_this->type, new_this->id, nullptr, 0});
