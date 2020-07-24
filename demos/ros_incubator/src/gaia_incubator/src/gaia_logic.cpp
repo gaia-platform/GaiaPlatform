@@ -87,12 +87,23 @@ void gaia_logic::setup_incubators()
 /** ruleset*/
 namespace gaia_incubator_ruleset
 {
+auto ruleset_node = Node::make_shared("ruleset_node");
+
+auto ruleset_pub_fan_state = ruleset_node->create_publisher<msg::FanState>(
+    "fan_state", SystemDefaultsQoS());
 /**
  rule-sensor_inserted: [BarnStorage::Sensor](insert)
 */
 void on_sensor_inserted(const rule_context_t *context)
 {
     Sensor* s = Sensor::get_row_by_id(context->record);
+
+    msg::FanState fan_state_msg;
+    fan_state_msg.incubator_id = s->incubator_id();
+    fan_state_msg.fans_on = true;
+
+    ruleset_pub_fan_state->publish(fan_state_msg);
+
     printf("%-6s|%6ld|%7.1lf\n", s->name(), s->timestamp(), s->value());
     fflush(stdout);
 }

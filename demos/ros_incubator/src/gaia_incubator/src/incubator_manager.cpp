@@ -121,23 +121,15 @@ void incubator_manager::set_fan_state(const msg::FanState::SharedPtr msg)
     if (incubator_iter == m_incubators.end())
     {
         RCLCPP_INFO(get_logger(),
-            "Failed to set a fan's state: cannot find an incubator with ID %u.",
+            "Failed to set fan states: cannot find an incubator with ID %u.",
             msg->incubator_id);
     }
     else
     {
-        const auto fan_iter = incubator_iter->second.fans.find(msg->fan_name);
-
-        if (fan_iter == incubator_iter->second.fans.end())
+        for (auto& fan_pair : incubator_iter->second.fans)
         {
-            RCLCPP_INFO(get_logger(),
-                "Failed to set a fan's state: cannot find a fan named %s in the incubator with ID %u.",
-                msg->fan_name.c_str(),
-                msg->incubator_id);
-        }
-        else
-        {
-            fan_iter->second.is_on = msg->is_on;
+            fan& current_fan = fan_pair.second;
+            current_fan.is_on = msg->fans_on;
         }
     }
 }

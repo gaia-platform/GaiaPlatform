@@ -9,6 +9,7 @@
 #include "rclcpp_components/register_node_macro.hpp"
 
 #include "gaia_incubator/msg/temp.hpp"
+#include "gaia_incubator/msg/fan_state.hpp"
 #include "gaia_incubator/msg/add_incubator.hpp"
 #include "gaia_incubator/msg/add_sensor.hpp"
 #include "gaia_incubator/msg/add_fan.hpp"

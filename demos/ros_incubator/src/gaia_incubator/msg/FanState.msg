@@ -1,3 +1,2 @@
-bool is_on
-string fan_name
+bool fans_on
 uint32 incubator_id
