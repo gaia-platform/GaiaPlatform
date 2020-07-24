@@ -254,7 +254,7 @@ TEST_F(gaia_references_test, connect_scan) {
     EXPECT_EQ(count_type<phone_t>(), 4000);
 
     // Scan through some rows.
-    EXPECT_EQ(first_employee(), "Hidalgo");
+    EXPECT_EQ(first_employee(), "Heidi");
 
     // Scan through all addresses.
     EXPECT_EQ(all_addresses(), 0);

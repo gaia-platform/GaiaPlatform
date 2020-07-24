@@ -61,7 +61,7 @@ bool gaia_iterator_t<T_gaia>::operator!=(const gaia_iterator_t& rhs) const
 template <typename T_gaia>
 T_gaia gaia_iterator_t<T_gaia>::operator*()
 {
-    return T_gaia(gaia_ptr::open(m_id));
+    return T_gaia::get(m_id);
 }
 
 //
@@ -70,19 +70,20 @@ T_gaia gaia_iterator_t<T_gaia>::operator*()
 template<gaia_type_t T_gaia_type, typename T_gaia>
 gaia_iterator_t<T_gaia> gaia_container_t<T_gaia_type, T_gaia>::begin()
 {
+    gaia_id_t id = 0;
     auto node_ptr = gaia_ptr::find_first(T_gaia_type);
     if (node_ptr)
     {
-        return node_ptr.id();
+        id = node_ptr.id();
     }
 
-    return 0;
+    return gaia_iterator_t<T_gaia>(id);
 }
 
 template<gaia_type_t T_gaia_type, typename T_gaia>
 gaia_iterator_t<T_gaia> gaia_container_t<T_gaia_type, T_gaia>::end()
 {
-    return 0;
+    return gaia_iterator_t<T_gaia>(0);
 }
 
 
