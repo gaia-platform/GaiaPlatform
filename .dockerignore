@@ -1,0 +1,29 @@
+# Editor files.
+.vscode/
+.idea/
+
+# Build files.
+build/
+cmake-build-*/
+
+# Emacs backups.
+*~
+
+# Compiled python files.
+*pyc
+
+# Python packaging folders.
+*.egg-info/
+dist/
+
+# Generated header files.
+*_generated.h
+
+# Gdev build configuration files.
+gdev.cfg
+
+# Java class files
+*.class
+
+# Vim swap files
+*.swp

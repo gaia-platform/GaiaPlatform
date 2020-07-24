@@ -2,9 +2,8 @@
 //// Copyright (c) Gaia Platform LLC
 //// All rights reserved.
 ///////////////////////////////////////////////
-#include "catalog_gaia_generated.h"
-#include "catalog_manager.hpp"
-#include "code_writer.hpp"
+#include "gaia_catalog.hpp"
+#include "gaia_db.hpp"
 #include <iostream>
 #include <memory>
 #include <vector>
@@ -19,6 +18,10 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    gaia::db::begin_session();
+
     auto code_lines = gaia_generate(argv[1]);
     cout << code_lines << endl;
+
+    gaia::db::end_session();
 }

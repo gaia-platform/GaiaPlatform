@@ -4,37 +4,10 @@
 /////////////////////////////////////////////
 namespace gaia.catalog;
 
-enum gaia_data_type:uint8 {
-  BOOL,
-  INT8,
-  UINT8,
-  INT16,
-  UINT16,
-  INT32,
-  UINT32,
-  INT64,
-  UINT64,
-  FLOAT32,
-  FLOAT64,
-  STRING,
-  REFERENCES,
-}
-
-enum gaia_trim_action_type:uint8 {
-  NONE,
-  DELETE,
-  ARCHIVE,
-}
-
-enum gaia_value_index_type:uint8 {
-  HASH,
-  RANGE
-}
-
 table gaia_table {
   name:string (required);
   is_log:bool = false;
-  trim_action:gaia_trim_action_type;
+  trim_action:uint8;
   max_rows:uint64;
   max_size:uint64;
   max_seconds:uint64;
@@ -45,7 +18,7 @@ table gaia_table {
 table gaia_field {
   name:string (required);
   table_id:uint64;
-  type:gaia_data_type;
+  type:uint8;
   type_id:uint64;
   repeated_count:uint16;
   position:uint16;
@@ -63,7 +36,7 @@ table gaia_value_index {
   table_id:uint64;
   // TODO: convert the fields to [uint16] once EDC supports vector.
   fields:string;
-  index_type:gaia_value_index_type;
+  index_type:uint8;
   unique:bool;
 }
 

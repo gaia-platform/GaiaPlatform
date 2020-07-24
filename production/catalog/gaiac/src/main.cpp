@@ -17,11 +17,11 @@ using namespace gaia::catalog::ddl;
 
 void execute(vector<unique_ptr<statement_t>> &statements) {
     for (auto &stmt : statements) {
-        if (!stmt->is_type(statement_type_t::CREATE)) {
+        if (!stmt->is_type(statement_type_t::create)) {
             continue;
         }
         auto createStmt = dynamic_cast<create_statement_t *>(stmt.get());
-        if (createStmt->type == create_type_t::CREATE_TABLE) {
+        if (createStmt->type == create_type_t::create_table) {
             gaia::catalog::create_table(createStmt->table_name, createStmt->fields);
         }
     }
@@ -58,62 +58,62 @@ void start_repl(parser_t &parser) {
 void load_bootstrap_catalog() {
     {
         field_def_list_t fields;
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::STRING, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"is_log", data_type_t::BOOL, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"trim_action", data_type_t::UINT8, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"max_rows", data_type_t::UINT64, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"max_size", data_type_t::UINT64, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"max_seconds", data_type_t::UINT64, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"binary_schema", data_type_t::STRING, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::e_string, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"is_log", data_type_t::e_bool, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"trim_action", data_type_t::e_uint8, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"max_rows", data_type_t::e_uint64, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"max_size", data_type_t::e_uint64, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"max_seconds", data_type_t::e_uint64, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"binary_schema", data_type_t::e_string, 1}));
         catalog_manager_t::get().create_table("gaia_table", fields);
     }
 
     {
         field_def_list_t fields;
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::STRING, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"table_id", data_type_t::UINT64, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"fields", data_type_t::STRING, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"index_type", data_type_t::INT8, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"unique", data_type_t::BOOL, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"values_", data_type_t::REFERENCES, 1, "gaia_table"}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::e_string, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"table_id", data_type_t::e_uint64, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"fields", data_type_t::e_string, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"index_type", data_type_t::e_int8, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"unique", data_type_t::e_bool, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"values_", data_type_t::e_references, 1, "gaia_table"}));
         catalog_manager_t::get().create_table("gaia_value_index", fields);
     }
 
     {
         field_def_list_t fields;
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::STRING, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"table_id", data_type_t::UINT64, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"type", data_type_t::UINT8, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"type_id", data_type_t::UINT64, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"repeated_count", data_type_t::UINT8, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"position", data_type_t::UINT16, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"required", data_type_t::BOOL, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"deprecated", data_type_t::BOOL, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"active", data_type_t::BOOL, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"nullable", data_type_t::BOOL, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"has_default", data_type_t::BOOL, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"default_value", data_type_t::STRING, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"value_fields_", data_type_t::REFERENCES, 1, "gaia_value_index"}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"fields_", data_type_t::REFERENCES, 1, "gaia_table"}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"references_", data_type_t::REFERENCES, 1, "gaia_table"}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::e_string, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"table_id", data_type_t::e_uint64, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"type", data_type_t::e_uint8, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"type_id", data_type_t::e_uint64, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"repeated_count", data_type_t::e_uint8, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"position", data_type_t::e_uint16, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"required", data_type_t::e_bool, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"deprecated", data_type_t::e_bool, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"active", data_type_t::e_bool, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"nullable", data_type_t::e_bool, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"has_default", data_type_t::e_bool, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"default_value", data_type_t::e_string, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"value_fields_", data_type_t::e_references, 1, "gaia_value_index"}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"fields_", data_type_t::e_references, 1, "gaia_table"}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"references_", data_type_t::e_references, 1, "gaia_table"}));
         catalog_manager_t::get().create_table("gaia_field", fields);
     }
 
     {
         field_def_list_t fields;
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::STRING, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"active_on_startup", data_type_t::BOOL, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"table_ids", data_type_t::STRING, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"source_location", data_type_t::STRING, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"serial_stream", data_type_t::STRING, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::e_string, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"active_on_startup", data_type_t::e_bool, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"table_ids", data_type_t::e_string, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"source_location", data_type_t::e_string, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"serial_stream", data_type_t::e_string, 1}));
         catalog_manager_t::get().create_table("gaia_ruleset", fields);
     }
 
         {
         field_def_list_t fields;
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::STRING, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"ruleset_id", data_type_t::UINT64, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"rules_", data_type_t::REFERENCES, 1, "gaia_ruleset"}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::e_string, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"ruleset_id", data_type_t::e_uint64, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"rules_", data_type_t::e_references, 1, "gaia_ruleset"}));
         catalog_manager_t::get().create_table("gaia_rule", fields);
     }
 }

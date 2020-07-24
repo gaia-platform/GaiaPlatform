@@ -2,6 +2,7 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+#include "gaia_catalog.h"
 #include "catalog_manager.hpp"
 #include "gaia_exception.hpp"
 #include "fbs_generator.hpp"
@@ -60,14 +61,14 @@ gaia_id_t catalog_manager_t::create_table(const string &name,
     string bfbs{generate_bfbs(generate_fbs(name, fields))};
 
     gaia::db::begin_transaction();
-    gaia_id_t table_id = Gaia_table::insert_row(
-        name.c_str(),               // name
-        false,                      // is_log
-        gaia_trim_action_type_NONE, // trim_action
-        0,                          // max_rows
-        0,                          // max_size
-        0,                          // max_seconds
-        bfbs.c_str()                // bfbs
+    gaia_id_t table_id = gaia_table_t::insert_row(
+        name.c_str(),                                     // name
+        false,                                            // is_log
+        static_cast<uint8_t>(trim_action_type_t::e_none), // trim_action
+        0,                                                // max_rows
+        0,                                                // max_size
+        0,                                                // max_seconds
+        bfbs.c_str()                                      // bfbs
     );
 
     uint16_t field_position = 0, reference_position = 0;
@@ -76,7 +77,7 @@ gaia_id_t catalog_manager_t::create_table(const string &name,
     for (auto &field : fields) {
         gaia_id_t field_type_id{0};
         uint16_t position;
-        if (field->type == ddl::data_type_t::REFERENCES) {
+        if (field->type == data_type_t::e_references) {
             if (field->table_type_name == name) {
                 // We allow a table definition to reference itself (self-referencing).
                 field_type_id = table_id;
@@ -91,22 +92,22 @@ gaia_id_t catalog_manager_t::create_table(const string &name,
         } else {
             position = ++field_position;
         }
-        gaia_id_t field_id = Gaia_field::insert_row(
-            field->name.c_str(),            // name
-            table_id,                       // table_id
-            to_gaia_data_type(field->type), // type
-            field_type_id,                  // type_id
-            field->length,                  // repeated_count
-            position,                       // position
-            true,                           // required
-            false,                          // deprecated
-            false,                          // active
-            true,                           // nullable
-            false,                          // has_default
-            ""                              // default value
+        gaia_id_t field_id = gaia_field_t::insert_row(
+            field->name.c_str(),               // name
+            table_id,                          // table_id
+            static_cast<uint8_t>(field->type), // type
+            field_type_id,                     // type_id
+            field->length,                     // repeated_count
+            position,                          // position
+            true,                              // required
+            false,                             // deprecated
+            false,                             // active
+            true,                              // nullable
+            false,                             // has_default
+            ""                                 // default value
         );
 
-        if (field->type != ddl::data_type_t::REFERENCES) {
+        if (field->type != data_type_t::e_references) {
             field_ids.push_back(field_id);
         } else {
             reference_ids.push_back(field_id);

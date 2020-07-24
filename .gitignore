@@ -1,8 +1,10 @@
 # Editor files.
 .vscode/
+.idea/
 
 # Build files.
 build/
+cmake-build-*/
 
 # Emacs backups.
 *~
