@@ -30,10 +30,12 @@ struct trigger_event_t {
     size_t count_columns; // count of affected columns, may be zero
 };
 
+typedef std::vector<trigger_event_t> trigger_event_list_t;
+
 /**
  * The type of Gaia commit trigger.
  */
-typedef void (*f_commit_trigger_t) (uint64_t, std::vector<trigger_event_t>, bool);
+typedef void (*commit_trigger_fn) (uint64_t, trigger_event_list_t, bool);
 
 }
 }
