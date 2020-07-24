@@ -7,5 +7,5 @@
 
 using namespace gaia::db::triggers;
 
-f_commit_trigger_t event_trigger_threadpool::s_tx_commit_trigger = nullptr;
-thread_local bool event_trigger_threadpool::session_active = false;
+f_commit_trigger_t event_trigger_threadpool_t::s_tx_commit_trigger = nullptr;
+thread_local bool event_trigger_threadpool_t::session_active = false;

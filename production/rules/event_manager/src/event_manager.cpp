@@ -545,7 +545,7 @@ void gaia::rules::initialize_rules_engine()
     };
 
     // As part of initialization, pass the post commit trigger function to the SE initialized trigger_event_threadpool.
-    event_trigger_threadpool::set_commit_trigger(func);
+    event_trigger_threadpool_t::set_commit_trigger(func);
 
     /**
      * This function must be provided by the 

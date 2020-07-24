@@ -39,7 +39,7 @@ class gaia_hash_map;
 class client : private se_base {
     friend class gaia_ptr;
     friend class gaia_hash_map;
-    friend class event_trigger_threadpool;
+    friend class event_trigger_threadpool_t;
 
    public:
     static inline bool is_transaction_active() {
@@ -62,7 +62,7 @@ class client : private se_base {
     static std::unordered_set<gaia_type_t> trigger_type_filter;
 
     // Threadpool to help invoke post-commit triggers in response to events generated in each transaction.
-    static gaia::db::triggers::event_trigger_threadpool* event_trigger_pool;
+    static gaia::db::triggers::event_trigger_threadpool_t* event_trigger_pool;
 
     // Inherited from se_base:
     // static int s_fd_offsets;

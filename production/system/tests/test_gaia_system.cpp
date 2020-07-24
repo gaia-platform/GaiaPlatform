@@ -5,6 +5,8 @@
 
 #include <iostream>
 #include <unistd.h>
+#include <thread>
+#include <chrono>
 #include "gtest/gtest.h"
 #include "gaia_system.hpp"
 #include "rules.hpp"
@@ -56,7 +58,7 @@ TEST_F(gaia_system_test, insert_row_trigger) {
     auto count = 0;
     while(rule_count != 1 && count < 10) {  
         count ++;
-        this_thread::sleep_for(chrono::milliseconds(100) );
+        std::this_thread::sleep_for(std::chrono::milliseconds(100) );
     }
     EXPECT_EQ(rule_count, 1);
     unsubscribe_rules();

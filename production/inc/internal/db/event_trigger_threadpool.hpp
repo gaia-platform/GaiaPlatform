@@ -38,7 +38,7 @@ class session_destructor {
  * Threadpool used to enque trigger event execution callbacks to the Rules Engine.
  * Todo (msj) Make this threadpool generic to handle waitable tasks too.
  */ 
-class event_trigger_threadpool {
+class event_trigger_threadpool_t {
     private:
         // Rules engine needs access to this variable.
         static f_commit_trigger_t s_tx_commit_trigger;
@@ -68,14 +68,14 @@ class event_trigger_threadpool {
         }
  
         public: 
-            event_trigger_threadpool() {
+            event_trigger_threadpool_t() {
                 has_execution_completed = false;
                 for (uint32_t i = 0; i < std::thread::hardware_concurrency(); i++) {
-                    workers.push_back(std::thread(&event_trigger_threadpool::run_method, this));
+                    workers.push_back(std::thread(&event_trigger_threadpool_t::run_method, this));
                 }
             }
 
-            ~event_trigger_threadpool() {
+            ~event_trigger_threadpool_t() {
                 has_execution_completed = true;
                 for (auto& worker: workers) {
                     worker.join();
