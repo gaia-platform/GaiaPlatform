@@ -50,7 +50,7 @@ class event_trigger_threadpool_t {
         thread_local static session_destructor destroy_session;
 
         std::atomic_bool has_execution_completed;
-        wait_queue_t<std::function<void()>> tasks;
+        thread_local static wait_queue_t<std::function<void()>> tasks;
         std::vector<std::thread> workers;
 
         void run_method() {
