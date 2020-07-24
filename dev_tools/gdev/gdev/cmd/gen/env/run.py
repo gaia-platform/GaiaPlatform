@@ -2,7 +2,7 @@ from .build import GenEnvBuild
 from .._abc.run import GenAbcRun
 
 
-class GenPreBuildRun(GenAbcRun):
+class GenEnvRun(GenAbcRun):
 
     @property
     def build(self) -> GenEnvBuild:

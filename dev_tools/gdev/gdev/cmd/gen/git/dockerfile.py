@@ -11,7 +11,7 @@ class GenGitDockerfile(GenAbcDockerfile):
 
     @memoize
     async def get_from_section(self) -> str:
-        from_section = f'FROM git_base as {await self.get_name()}'
+        from_section = f'FROM git_base AS {await self.get_name()}'
 
         self.log.debug(f'{from_section = }')
 
@@ -23,8 +23,8 @@ class GenGitDockerfile(GenAbcDockerfile):
             run_section = (
                     'RUN '
                     + ' \\\n    && '.join([f'git clone --depth 1 {line}' for line in lines])
+                    + ' \\\n    && rm -rf */.git'
                     + ' \\\n    && apt-get remove --autoremove -y git'
-                    + ' \\\n    && apt-get clean'
             )
         else:
             run_section = ''
