@@ -103,7 +103,11 @@ TEST_F(gaia_system_test, single_threaded_transactions) {
 }
 
 TEST_F(gaia_system_test, multi_threaded_transactions) {
+<<<<<<< HEAD
     uint32_t count_tx_per_thread = 1;
+=======
+    uint32_t count_tx_per_thread = 2;
+>>>>>>> update test parameters to run faster
     uint32_t crud_operations_per_tx = 3;
     uint32_t count_threads = 3;
 
