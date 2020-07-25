@@ -9,13 +9,16 @@ table incubator {
 table sensor {
       incubator_id: ulong;
       name: string;
-      timestamp: ulong;
-      value: float;
 }
 
-table actuator {
+table sensor_data {
       incubator_id: ulong;
       name: string;
       timestamp: ulong;
       value: float;
+}
+
+table fan {
+      incubator_id: ulong;
+      name: string;
 }

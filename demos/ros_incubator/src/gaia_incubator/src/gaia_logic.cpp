@@ -31,15 +31,6 @@ gaia_logic::gaia_logic(const NodeOptions& options)
 
     using std::placeholders::_1;
 
-    m_pub_add_incubator = this->create_publisher<msg::AddIncubator>(
-        "add_incubator", SystemDefaultsQoS());
-
-    m_pub_add_sensor = this->create_publisher<msg::AddSensor>(
-        "add_sensor", SystemDefaultsQoS());
-
-    m_pub_add_fan = this->create_publisher<msg::AddFan>(
-        "add_fan", SystemDefaultsQoS());
-
     m_sub_temp = this->create_subscription<msg::Temp>(
         "temp", SystemDefaultsQoS(), std::bind(
             &gaia_logic::temp_sensor_callback, this, _1));
@@ -51,13 +42,13 @@ void gaia_logic::temp_sensor_callback(const msg::Temp::SharedPtr msg)
 {
     begin_transaction();
 
-    Sensor* sensor_record = new Sensor();
-    sensor_record->set_incubator_id(msg->incubator_id);
-    sensor_record->set_name(msg->sensor_name.c_str());
-    sensor_record->set_timestamp(msg->stamp.sec);
-    sensor_record->set_value(msg->value);
+    Sensor_data* s_data = new Sensor_data();
+    s_data->set_incubator_id(msg->incubator_id);
+    s_data->set_name(msg->sensor_name.c_str());
+    s_data->set_timestamp(msg->stamp.sec);
+    s_data->set_value(msg->value);
 
-    sensor_record->insert_row();
+    s_data->insert_row();
     commit_transaction();
 }
 
@@ -68,20 +59,26 @@ void gaia_logic::shutdown_callback()
 
 void gaia_logic::setup_incubators()
 {
-    msg::AddIncubator add_incubator_msg;
-    add_incubator_msg.incubator_id = 1;
-    add_incubator_msg.name = "Puppy";
-    m_pub_add_incubator->publish(add_incubator_msg);
+    begin_transaction();
 
-    msg::AddSensor add_sensor_msg;
-    add_sensor_msg.sensor_name = "Puppy Sensor";
-    add_sensor_msg.incubator_id = 1;
-    m_pub_add_sensor->publish(add_sensor_msg);
+    Incubator* puppy_incubator = new Incubator();
+    puppy_incubator->set_name("Puppy");
+    puppy_incubator->set_min_temp(85.0);
+    puppy_incubator->set_max_temp(90.0);
+    puppy_incubator->insert_row();
+    ulong puppy_incubator_id = puppy_incubator->gaia_id();
 
-    msg::AddFan add_fan_msg;
-    add_fan_msg.fan_name = "Puppy Fan";
-    add_fan_msg.incubator_id = 1;
-    m_pub_add_fan->publish(add_fan_msg);
+    Sensor* puppy_sensor = new Sensor();
+    puppy_sensor->set_name("Puppy Sensor");
+    puppy_sensor->set_incubator_id(puppy_incubator_id);
+    puppy_sensor->insert_row();
+
+    Fan* puppy_fan = new Fan();
+    puppy_fan->set_name("Puppy Fan");
+    puppy_fan->set_incubator_id(puppy_incubator_id);
+    puppy_fan->insert_row();
+
+    commit_transaction();
 }
 
 /** ruleset*/
@@ -91,20 +88,85 @@ auto ruleset_node = Node::make_shared("ruleset_node");
 
 auto ruleset_pub_fan_state = ruleset_node->create_publisher<msg::FanState>(
     "fan_state", SystemDefaultsQoS());
+
+auto ruleset_pub_add_incubator
+    = ruleset_node->create_publisher<msg::AddIncubator>(
+    "add_incubator", SystemDefaultsQoS());
+
+auto ruleset_pub_add_sensor = ruleset_node->create_publisher<msg::AddSensor>(
+    "add_sensor", SystemDefaultsQoS());
+
+auto ruleset_pub_add_fan = ruleset_node->create_publisher<msg::AddFan>(
+    "add_fan", SystemDefaultsQoS());
+
+/**
+ rule-sensor_data_inserted: [BarnStorage::Sensor_data](insert)
+*/
+void on_sensor_data_inserted(const rule_context_t *context)
+{
+    Sensor_data* s_data = Sensor_data::get_row_by_id(context->record);
+    Incubator* inc = Incubator::get_row_by_id(s_data->incubator_id());
+
+    msg::FanState fan_state_msg;
+    fan_state_msg.incubator_id = inc->gaia_id();
+
+    if (s_data->value() < inc->min_temp())
+    {
+        fan_state_msg.fans_on = false;
+        ruleset_pub_fan_state->publish(fan_state_msg);
+        printf("%s OFF\n", s_data->name());
+    }
+    else if (s_data->value() > inc->max_temp())
+    {
+        fan_state_msg.fans_on = true;
+        ruleset_pub_fan_state->publish(fan_state_msg);
+        printf("%s ON\n", s_data->name());
+    }
+
+    printf("%-6s|%6ld|%7.1lf\n",
+        s_data->name(), s_data->timestamp(), s_data->value());
+    fflush(stdout);
+}
+
+/**
+ rule-incubator_inserted: [BarnStorage::Incubator](insert)
+*/
+void on_incubator_inserted(const rule_context_t *context)
+{
+    Incubator* inc = Incubator::get_row_by_id(context->record);
+
+    msg::AddIncubator add_incubator_msg;
+    add_incubator_msg.incubator_id = inc->gaia_id();
+    add_incubator_msg.name = inc->name();
+
+    ruleset_pub_add_incubator->publish(add_incubator_msg);
+}
+
 /**
  rule-sensor_inserted: [BarnStorage::Sensor](insert)
 */
 void on_sensor_inserted(const rule_context_t *context)
 {
-    Sensor* s = Sensor::get_row_by_id(context->record);
+    Sensor* sens = Sensor::get_row_by_id(context->record);
 
-    msg::FanState fan_state_msg;
-    fan_state_msg.incubator_id = s->incubator_id();
-    fan_state_msg.fans_on = true;
+    msg::AddSensor add_sensor_msg;
+    add_sensor_msg.sensor_name = sens->name();
+    add_sensor_msg.incubator_id = sens->incubator_id();
 
-    ruleset_pub_fan_state->publish(fan_state_msg);
+    ruleset_pub_add_sensor->publish(add_sensor_msg);
+}
 
-    printf("%-6s|%6ld|%7.1lf\n", s->name(), s->timestamp(), s->value());
-    fflush(stdout);
+/**
+ rule-fan_inserted: [BarnStorage::Fan](insert)
+*/
+void on_fan_inserted(const rule_context_t *context)
+{
+    Fan* f = Fan::get_row_by_id(context->record);
+
+    msg::AddFan add_fan_msg;
+    add_fan_msg.fan_name = f->name();
+    add_fan_msg.incubator_id = f->incubator_id();
+
+    ruleset_pub_add_fan->publish(add_fan_msg);
 }
 }
