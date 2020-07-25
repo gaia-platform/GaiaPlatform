@@ -58,7 +58,7 @@ void event_manager_t::init()
     m_is_initialized = true;
 }
 
-void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_event_list, bool immediate)
+void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_event_list, bool)
 {
     if (trigger_event_list.size() == 0)
     {

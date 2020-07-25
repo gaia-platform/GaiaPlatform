@@ -13,6 +13,7 @@ namespace gaia {
 namespace db {
     
 // This class implements a simple thread safe queue using dumb locks.
+// Todo (msj) Move to another efficient implementation post Q2.
 template<typename T>
 class wait_queue_t {
         

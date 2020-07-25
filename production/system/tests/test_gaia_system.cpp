@@ -97,6 +97,9 @@ void perform_transactions(uint32_t count_transactions, uint32_t crud_operations_
 }
 
 void validate_and_end_test(uint32_t count_tx, uint32_t crud_operations_per_tx, uint32_t count_threads) {
+    // Total wait time is 10 seconds
+    // uint32_t wait_time_ms = 100;
+    // uint32_t wait_loop_count = 10;
     // The event_trigger_threadpool will invoke the rules engine on a separate thread from the client thread.
     // Each thread in the pool will lazily initialize a server session thus the first execution will be slow.
     // which is why we have a dumb while loop for now.
@@ -110,12 +113,8 @@ void validate_and_end_test(uint32_t count_tx, uint32_t crud_operations_per_tx, u
     EXPECT_EQ(rule_count, count_tx * crud_operations_per_tx * count_threads);
 }
 
-// Time taken by tests on m5.xlarge: 
-// 1/2 Test #1: gaia_system_test.single_threaded_transactions ...   Passed    2.38 sec
-// 2/2 Test #2: gaia_system_test.multi_threaded_transactions ....   Passed    5.30 sec
-// Currently both tests start to hang if I bump up count_tx_per_thread; need to debug further.
 TEST_F(gaia_system_test, single_threaded_transactions) {
-    uint32_t count_tx = 20;
+    uint32_t count_tx = 2;
     uint32_t crud_operations_per_tx = 3;
     perform_transactions(count_tx, crud_operations_per_tx, false);
     validate_and_end_test(count_tx, crud_operations_per_tx, 1);
@@ -123,7 +122,7 @@ TEST_F(gaia_system_test, single_threaded_transactions) {
 
 
 TEST_F(gaia_system_test, multi_threaded_transactions) {
-    uint32_t count_tx_per_thread = 6;
+    uint32_t count_tx_per_thread = 1;
     uint32_t crud_operations_per_tx = 3;
     uint32_t count_threads = 10;
     for (uint32_t i = 0; i < count_threads; i++) {
