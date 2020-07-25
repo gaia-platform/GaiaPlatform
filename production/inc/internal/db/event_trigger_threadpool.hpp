@@ -102,7 +102,7 @@ class event_trigger_threadpool_t {
                 // We can avoid the copy with a custom allocator - if copying becomes a problem.
                 // Todo (msj) deep copy?
                 tasks.push([=] () {
-                    s_tx_commit_trigger(transaction_id, std::move(events), true);
+                    s_tx_commit_trigger(transaction_id, std::move(events));
                 });
             }        
     };

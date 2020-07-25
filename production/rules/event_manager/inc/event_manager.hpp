@@ -116,18 +116,20 @@ private:
     // Only internal static creation is allowed.
     event_manager_t();
 
+    // Test helper methods allow initializing the rules engine
+    // with a custom number of threads.  This will transfer ownership of 
+    // the rule_thread_pool pointer to the rules engine scheduler
+    friend void gaia::rules::test::initialize_rules_engine(size_t count_threads);
+
     // Allow test helper to access private members if the test links in
     // the implementation.
-    friend void gaia::rules::commit_trigger_test(
-        uint64_t tx_id,
-        const trigger_event_t* events,
-        size_t count_events,
-        bool immediate);
+    friend void gaia::rules::test::commit_trigger(uint64_t, const trigger_event_t*, size_t count_events);
 
     // Well known trigger function called by the storage engine after commit.
     // Protected so that unit-tests can call directly
-    void commit_trigger(uint64_t tx_id, trigger_event_list_t event_list, bool immediate);
-
+    void commit_trigger(uint64_t tx_id, trigger_event_list_t event_list);
+    void init(size_t num_threads);
+    void init(rule_thread_pool_t* rule_thread_pool);
     const _rule_binding_t* find_rule(const rules::rule_binding_t& binding); 
     void add_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     bool remove_rule(rule_list_t& rules, const rules::rule_binding_t& binding);

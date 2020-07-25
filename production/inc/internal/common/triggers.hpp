@@ -35,7 +35,7 @@ typedef std::vector<trigger_event_t> trigger_event_list_t;
 /**
  * The type of Gaia commit trigger.
  */
-typedef void (*commit_trigger_fn) (uint64_t, trigger_event_list_t, bool);
+typedef void (*commit_trigger_fn) (uint64_t, trigger_event_list_t);
 
 }
 }

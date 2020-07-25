@@ -11,10 +11,16 @@ namespace gaia
 {
 namespace rules
 {
-    void commit_trigger_test(
-        uint64_t transaction_id, 
+namespace test
+{
+
+    void initialize_rules_engine(size_t num_threads);
+
+    void commit_trigger(
+        uint64_t transaction_id,
         const trigger_event_t* triggger_events,
-        size_t count_events, 
-        bool immediate);
-} // namespace rules
-} // namespace gaia
+        size_t count_events);
+
+} // test
+} // rules
+} // gaia

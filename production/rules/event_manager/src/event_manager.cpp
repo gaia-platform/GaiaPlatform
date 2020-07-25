@@ -46,19 +46,29 @@ event_manager_t::event_manager_t()
 void event_manager_t::init()
 {
     // TODO[GAIAPLAT-111]: Check a configuration setting for the number of threads to create.
-    // For now, execute in immediate mode and do not have multiple threads
-    //uint32_t num_threads = 0;
-    m_invocations.reset(new rule_thread_pool_t());
+    // Create the rules engine scheduler with N hardware threads.
+    init(new rule_thread_pool_t());
+}
 
-    auto fn = [](uint64_t transaction_id, trigger_event_list_t event_list, bool immediate) {
-        event_manager_t::get().commit_trigger(transaction_id, event_list, immediate);
+void event_manager_t::init(size_t num_threads)
+{
+    init(new rule_thread_pool_t(num_threads));
+}
+
+void event_manager_t::init(rule_thread_pool_t* rule_thread_pool)
+{
+    m_invocations.reset(rule_thread_pool);
+
+    auto fn = [](uint64_t transaction_id, trigger_event_list_t event_list) {
+        event_manager_t::get().commit_trigger(transaction_id, event_list);
     };
     event_trigger_threadpool_t::set_commit_trigger(fn);
 
     m_is_initialized = true;
 }
 
-void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_event_list, bool)
+
+void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_event_list)
 {
     if (trigger_event_list.size() == 0)
     {
@@ -139,10 +149,6 @@ void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_even
         }
     }
     tx.commit();
-
-    // If any rules were enqueued and we are in "immediate" mode
-    // then execute them now.
-    //m_invocations->execute_immediate();
 }
 
 void event_manager_t::enqueue_invocation(const trigger_event_t& event, 

@@ -89,6 +89,11 @@ T_gaia gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::get_first(
 template <gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
 T_gaia gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::get_next()
 {
+    if (!m_record)
+    {
+        throw invalid_node_id(0);
+    }
+
     auto next_ptr = m_record.find_next();
     return get_object(next_ptr);
 }
