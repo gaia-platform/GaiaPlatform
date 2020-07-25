@@ -47,19 +47,18 @@ void event_manager_t::init()
 {
     // TODO[GAIAPLAT-111]: Check a configuration setting for the number of threads to create.
     // For now, execute in immediate mode and do not have multiple threads
-    uint32_t num_threads = 0;
-    m_invocations.reset(new rule_thread_pool_t(num_threads));
+    //uint32_t num_threads = 0;
+    m_invocations.reset(new rule_thread_pool_t());
 
     auto fn = [](uint64_t transaction_id, trigger_event_list_t event_list, bool immediate) {
         event_manager_t::get().commit_trigger(transaction_id, event_list, immediate);
     };
-
     event_trigger_threadpool_t::set_commit_trigger(fn);
 
     m_is_initialized = true;
 }
 
-void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_event_list, bool)
+void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_event_list, bool immediate)
 {
     if (trigger_event_list.size() == 0)
     {
@@ -143,7 +142,7 @@ void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_even
 
     // If any rules were enqueued and we are in "immediate" mode
     // then execute them now.
-    m_invocations->execute_immediate();
+    //m_invocations->execute_immediate();
 }
 
 void event_manager_t::enqueue_invocation(const trigger_event_t& event, 

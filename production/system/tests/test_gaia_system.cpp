@@ -13,6 +13,7 @@
 #include "db_test_helpers.hpp"
 #include "../addr_book_gaia_generated.h"
 #include "triggers.hpp"
+#include <atomic>
 
 using namespace std;
 using namespace gaia::db;
@@ -21,29 +22,53 @@ using namespace gaia::rules;
 using namespace gaia::common;
 using namespace AddrBook_;
 
-static uint32_t rule_count = 0;
+static atomic<uint32_t> rule_count;
+static atomic<uint32_t> rule_per_commit_count;
 
 const gaia_type_t m_gaia_type = 1;
-extern "C"
-void initialize_rules() {}
 
 void rule1(const rule_context_t*)
 {
+    rule_per_commit_count++;
     rule_count++;
 }
 
-rule_binding_t m_rule1{"ruleset1_name", "rule1_name", rule1};
+extern "C"
+void initialize_rules() {
+       rule_binding_t m_rule1{"ruleset1_name", "rule1_name", rule1};
+       subscribe_rule(m_gaia_type, event_type_t::row_insert, empty_fields, m_rule1);
+       subscribe_rule(m_gaia_type, event_type_t::row_delete, empty_fields, m_rule1);
+       subscribe_rule(m_gaia_type, event_type_t::row_update, empty_fields, m_rule1);
+}
 
-class gaia_system_test : public ::testing::Test {};
+class gaia_system_test : public ::testing::Test
+{
+protected:
+    static void SetUpTestSuite() {
+       start_server();
+       gaia::system::initialize();
+    }
+
+    static void TearDownTestSuite() {
+        end_session();
+        stop_server();
+    }
+
+    void SetUp() override {
+        rule_count = 0;
+        rule_per_commit_count = 0;
+    }
+};
 
 // This method will perform multiple transactions on the current client thread.
 // Each transaction performs 3 operations.
-void perform_transactions(uint32_t count_transactions, bool new_thread) {
+void perform_transactions(uint32_t count_transactions, uint32_t crud_operations_per_tx, bool new_thread) {
     if (new_thread) {
         begin_session();
     }
 
     for (uint32_t i = 0; i < count_transactions; i++) {
+        rule_per_commit_count = 0;
         begin_transaction();
         // Insert row.
         auto w = Employee_writer();
@@ -58,6 +83,12 @@ void perform_transactions(uint32_t count_transactions, bool new_thread) {
         // Delete row.
         e.delete_row();
         commit_transaction();
+
+        // We should get crud_operations_per_tx per commit.  Wait for them.
+        while (rule_per_commit_count < crud_operations_per_tx)
+        {
+            usleep(1);
+        }
     }
 
     if (new_thread) {
@@ -65,29 +96,18 @@ void perform_transactions(uint32_t count_transactions, bool new_thread) {
     }
 }
 
-void begin_test() {
-    start_server();
-    begin_session();
-    EXPECT_EQ(rule_count, 0);
-    gaia::rules::initialize_rules_engine();
-    subscribe_rule(m_gaia_type, event_type_t::row_insert, empty_fields, m_rule1);
-    subscribe_rule(m_gaia_type, event_type_t::row_delete, empty_fields, m_rule1);
-    subscribe_rule(m_gaia_type, event_type_t::row_update, empty_fields, m_rule1);
-}
-
 void validate_and_end_test(uint32_t count_tx, uint32_t crud_operations_per_tx, uint32_t count_threads) {
     // The event_trigger_threadpool will invoke the rules engine on a separate thread from the client thread.
     // Each thread in the pool will lazily initialize a server session thus the first execution will be slow.
     // which is why we have a dumb while loop for now.
-    auto count = 0;
-    while(rule_count != count_tx * crud_operations_per_tx * count_threads && count < 100) {  
+
+    /*
+    while(rule_count != count_tx * crud_operations_per_tx * count_threads && count < 100) {
         count ++;
-        std::this_thread::sleep_for(std::chrono::milliseconds(100) );
+        //std::this_thread::sleep_for(std::chrono::milliseconds(100) );
     }
+    */
     EXPECT_EQ(rule_count, count_tx * crud_operations_per_tx * count_threads);
-    unsubscribe_rules();
-    end_session();
-    stop_server();
 }
 
 // Time taken by tests on m5.xlarge: 
@@ -97,20 +117,17 @@ void validate_and_end_test(uint32_t count_tx, uint32_t crud_operations_per_tx, u
 TEST_F(gaia_system_test, single_threaded_transactions) {
     uint32_t count_tx = 20;
     uint32_t crud_operations_per_tx = 3;
-
-    begin_test();
-    perform_transactions(count_tx, false);
+    perform_transactions(count_tx, crud_operations_per_tx, false);
     validate_and_end_test(count_tx, crud_operations_per_tx, 1);
 }
+
 
 TEST_F(gaia_system_test, multi_threaded_transactions) {
     uint32_t count_tx_per_thread = 6;
     uint32_t crud_operations_per_tx = 3;
     uint32_t count_threads = 10;
-
-    begin_test();
     for (uint32_t i = 0; i < count_threads; i++) {
-        auto t = std::thread(perform_transactions, count_tx_per_thread, true);
+        auto t = std::thread(perform_transactions, count_tx_per_thread, crud_operations_per_tx, true);
         t.join();
     }
     validate_and_end_test(count_tx_per_thread, crud_operations_per_tx, count_threads);

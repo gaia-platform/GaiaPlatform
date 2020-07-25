@@ -111,8 +111,12 @@ gaia_id_t gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::insert_
 template <gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
 void gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::delete_row()
 {
-    //UNDONE:  add delete_row() twice test
-    gaia_ptr::remove(m_record);
+    if (!m_record)
+    {
+        throw invalid_node_id(0);
+    }
+
+    delete_row(gaia_id());
 }
 
 template <gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
