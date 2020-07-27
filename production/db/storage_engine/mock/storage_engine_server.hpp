@@ -128,7 +128,12 @@ class server : private se_base {
             std::string(EnumNamesession_event_t(event)) + "'");
     }
 
-    static void build_server_reply(FlatBufferBuilder& builder, session_event_t event, session_state_t old_state, session_state_t new_state, gaia_xid_t transaction_id) {
+    static void build_server_reply(
+        FlatBufferBuilder& builder,
+        session_event_t event,
+        session_state_t old_state,
+        session_state_t new_state,
+        gaia_xid_t transaction_id) {
         auto server_reply = Createserver_reply_t(builder, event, old_state, new_state, transaction_id);
         auto message = Createmessage_t(builder, any_message_t::reply, server_reply.Union());
         builder.Finish(message);

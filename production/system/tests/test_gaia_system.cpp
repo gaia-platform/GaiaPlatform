@@ -20,7 +20,7 @@ using namespace gaia::db;
 using namespace gaia::db::triggers;
 using namespace gaia::rules;
 using namespace gaia::common;
-using namespace AddrBook_;
+using namespace addr_book;
 
 static atomic<uint32_t> rule_count;
 static atomic<uint32_t> rule_per_commit_count;

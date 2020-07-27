@@ -102,7 +102,7 @@ class se_base {
     }
 
     static gaia_xid_t allocate_transaction_id() {
-        gaia_xid_t xid = 1 + __sync_fetch_and_add (&s_data->transaction_id_count, 1);
+        gaia_xid_t xid = __sync_add_and_fetch (&s_data->transaction_id_count, 1);
         return xid;
     }
 };

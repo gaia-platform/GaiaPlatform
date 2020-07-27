@@ -5,7 +5,7 @@
 
 // -*- mode: java -*- // Java mode works for emacs to edit flatbuffers.
 
-namespace AddrBook_;
+namespace addr_book;
 
 table employee {
     name_first: string;

@@ -22,8 +22,8 @@ namespace gaia
 {
 namespace db
 {
-namespace triggers {
-
+namespace triggers 
+{
 // Class used to clean up resources per thread.
 // Begin_session() is not invoked in the constructor as the SE server may not be up yet.
 class session_destructor {
@@ -54,7 +54,6 @@ class event_trigger_threadpool_t {
         std::vector<std::thread> workers;
 
         void run_method() {
-
             while (!has_execution_completed) {
                 std::function<void()> task;
                 tasks.pop(task);

@@ -16,12 +16,10 @@ namespace db {
 // Todo (msj) Move to another efficient implementation post Q2.
 template<typename T>
 class wait_queue_t {
-        
     private:
         std::mutex mutex;
         std::condition_variable queue_has_data;
         std::queue<T> queue;
-
     public:
         wait_queue_t() = default;
 
