@@ -9,9 +9,6 @@
 #include "type_mapping.hpp"
 #include "airport_demo_types.hpp"
 
-// All definitions in this file and included files should have C linkage.
-extern "C" {
-
 #include "postgres.h"
 #include "utils/builtins.h"
 
@@ -594,5 +591,3 @@ const char *c_route_ddl_stmt_fmt =
     "src_ap varchar(4), src_ap_id int, dst_ap varchar(4), dst_ap_id int, "
     "codeshare char(1), stops int, equipment text) "
     "server %s;";
-
-}  // extern "C"

@@ -187,6 +187,8 @@ void gaia_refetch_foreign_row(
     TupleTableSlot *slot,
     bool *updated);
 
+}  // extern "C"
+
 // Structures used by the FDW.
 typedef void (*option_handler_fn)(const char *name, const char *value, Oid context);
 
@@ -249,5 +251,3 @@ typedef struct {
     // The COW-SE smart ptr that is the target of our update.
     gaia::db::gaia_ptr target_node;
 } gaia_fdw_modify_state_t;
-
-}  // extern "C"

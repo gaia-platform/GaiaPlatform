@@ -9,9 +9,6 @@
 #include "type_mapping.hpp"
 #include "system_catalog_types.hpp"
 
-// All definitions in this file and included files should have C linkage.
-extern "C" {
-
 #include "postgres.h"
 #include "utils/builtins.h"
 
@@ -125,5 +122,3 @@ const char *c_event_log_ddl_stmt_fmt =
     "column_id smallint, timestamp bigint, "
     "rules_invoked boolean) "
     "server %s;";
-
-}  // extern "C"
