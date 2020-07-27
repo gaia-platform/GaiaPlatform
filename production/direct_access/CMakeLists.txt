@@ -35,7 +35,7 @@ add_library(gaia_direct STATIC
 # Generate the headers from the Gaia DDL
 add_custom_command(
   OUTPUT "gaia_addr_book.h"
-  COMMAND ${GAIA_GENERATE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/addr_book.ddl
+  COMMAND ${GAIA_GENERATE} -t ${CMAKE_CURRENT_SOURCE_DIR}/tests/addr_book.ddl
   DEPENDS ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/tests/addr_book.ddl
   COMMENT "Compiling addr_book.ddl"

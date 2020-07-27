@@ -147,40 +147,51 @@ int main(int argc, char *argv[]) {
     int res = 0;
     parser_t parser;
     bool gen_catalog = true;
-    gaia::db::start_server();
-    gaia::db::begin_session();
-    for (int i = 1; i < argc; ++i) {
-        if (argv[i] == string("-p")) {
-            parser.trace_parsing = true;
-        } else if (argv[i] == string("-s")) {
-            parser.trace_scanning = true;
-        } else if (argv[i] == string("-i")) {
-            start_repl(parser);
-            gen_catalog = false;
-        } else {
-            if (!parser.parse(argv[i])) {
-                execute(parser.statements);
-                // Strip off the path and any suffix to get database name.
-                string db_name = string(argv[i]);
-                if (db_name.find("/") != string::npos) {
-                    db_name = db_name.substr(db_name.find_last_of("/")+1);
-                }
-                if (db_name.find(".") != string::npos) {
-                    db_name = db_name.substr(0, db_name.find_last_of("."));
-                }
-
-                generate_headers(db_name);
-
+    try {
+        for (int i = 1; i < argc; ++i) {
+            if (argv[i] == string("-p")) {
+                parser.trace_parsing = true;
+            } else if (argv[i] == string("-s")) {
+                parser.trace_scanning = true;
+            } else if (argv[i] == string("-i")) {
+                gaia::db::begin_session();
+                start_repl(parser);
+                gen_catalog = false;
+                gaia::db::end_session();
+            } else if (argv[i] == string("-t")) {
+                // Note the order dependency.
+                gaia::db::start_server();
             } else {
-                res = EXIT_FAILURE;
+                if (!parser.parse(argv[i])) {
+                    gaia::db::begin_session();
+                    execute(parser.statements);
+                    // Strip off the path and any suffix to get database name.
+                    string db_name = string(argv[i]);
+                    if (db_name.find("/") != string::npos) {
+                        db_name = db_name.substr(db_name.find_last_of("/")+1);
+                    }
+                    if (db_name.find(".") != string::npos) {
+                        db_name = db_name.substr(0, db_name.find_last_of("."));
+                    }
+
+                    generate_headers(db_name);
+                    gaia::db::end_session();
+
+                } else {
+                    res = EXIT_FAILURE;
+                }
+                gen_catalog = false;
             }
-            gen_catalog = false;
         }
+        if (gen_catalog) {
+            gaia::db::begin_session();
+            load_bootstrap_catalog();
+            generate_headers("catalog");
+            gaia::db::end_session();
+        }
+    } catch (gaia_exception &e) {
+        cerr << "Caught exception \"" << e.what() << "\". May need to start the storage engine server." << endl;
+        res = 1;
     }
-    if (gen_catalog) {
-        load_bootstrap_catalog();
-        generate_headers("catalog");
-    }
-    gaia::db::end_session();
     return res;
 }
