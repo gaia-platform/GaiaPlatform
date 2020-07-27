@@ -17,6 +17,7 @@ int server::s_fd_data = -1;
 se_base::offsets* server::s_shared_offsets = nullptr;
 thread_local session_state_t server::s_session_state = session_state_t::DISCONNECTED;
 thread_local bool server::s_session_shutdown = false;
+thread_local gaia_xid_t server::s_transaction_id = -1;
 constexpr server::valid_transition_t server::s_valid_transitions[];
 
 void server::handle_connect(int*, size_t, session_event_t event, session_state_t old_state, session_state_t new_state) {
@@ -25,7 +26,7 @@ void server::handle_connect(int*, size_t, session_event_t event, session_state_t
     retail_assert(old_state == session_state_t::DISCONNECTED && new_state == session_state_t::CONNECTED);
     // We need to reply to the client with the fds for the data/locator segments.
     FlatBufferBuilder builder;
-    build_server_reply(builder, session_event_t::CONNECT, old_state, new_state);
+    build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_transaction_id);
     const int send_fds[] = {s_fd_data, s_fd_offsets};
     send_msg_with_fds(s_session_socket, send_fds, array_size(send_fds), builder.GetBufferPointer(), builder.GetSize());
 }
@@ -35,6 +36,10 @@ void server::handle_begin_txn(int*, size_t, session_event_t event, session_state
     // This message should only be received while a transaction is in progress.
     retail_assert(old_state == session_state_t::CONNECTED && new_state == session_state_t::TXN_IN_PROGRESS);
     // Currently we don't need to alter any server-side state for opening a transaction.
+    FlatBufferBuilder builder;
+    s_transaction_id = allocate_transaction_id();
+    build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_transaction_id);
+    send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
 
 void server::handle_rollback_txn(int*, size_t, session_event_t event, session_state_t old_state, session_state_t new_state) {
@@ -73,7 +78,7 @@ void server::handle_decide_txn(int*, size_t, session_event_t event, session_stat
     retail_assert(event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT);
     retail_assert(old_state == session_state_t::TXN_COMMITTING && new_state == session_state_t::CONNECTED);
     FlatBufferBuilder builder;
-    build_server_reply(builder, event, old_state, new_state);
+    build_server_reply(builder, event, old_state, new_state, s_transaction_id);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
 

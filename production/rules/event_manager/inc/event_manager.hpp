@@ -11,17 +11,17 @@
 #include <vector>
 
 #include "rules.hpp"
-#include "event_guard.hpp"
+#include "triggers.hpp"
 #include "event_log_gaia_generated.h"
+#include "event_manager_test_helpers.hpp"
 #include "rule_thread_pool.hpp"
-#include "mock_trigger.hpp"
+
+using namespace gaia::db::triggers;
 
 namespace gaia 
 {
 namespace rules
 {
-
-
 /**
  * Implementation class for event and rule APIs defined
  * in events.hpp and rules.hpp respectively.  See documentation
@@ -64,18 +64,6 @@ public:
       const uint16_t* field,
       subscription_list_t& subscriptions);
 
-    /**
-     * Consider making these private and then have the storage engine
-     * be a friend class.  Transaction triggers should not be callable by rule authors 
-     */
-    void commit_trigger(
-        uint32_t tx_id, 
-        trigger_event_t* events, 
-        size_t count_events, 
-        bool immediate);
-
-    void rollback_trigger();
-
 private:
     // Internal rule binding to copy the callers
     // rule data and hold on to it.  This will be
@@ -99,13 +87,6 @@ private:
     // The key is the rulset_name::rule_name.
     std::unordered_map<std::string, std::unique_ptr<_rule_binding_t>> m_rules;
 
-    // Track the state of all currently executing log event calls.  
-    // In Q1 we don't allow reentrancy.  This can happen if a rule 
-    // calls the same log_event while handling the log_event that 
-    // invoked the rule.
-    database_event_guard_t m_database_event_guard;
-    field_event_guard_t m_field_event_guard;
-
     // List of rules that are invoked when an event is logged.
     typedef std::list<const _rule_binding_t*> rule_list_t;
 
@@ -123,7 +104,6 @@ private:
     // Map the event type to the event binding.
     typedef std::unordered_map<event_type_t, event_binding_t> events_map_t;
 
-
     // List of all rule subscriptions by gaia type, event type,
     // and column if appropriate
     std::unordered_map<common::gaia_type_t, events_map_t> m_subscriptions;
@@ -132,27 +112,35 @@ private:
     // N threads.
     unique_ptr<rule_thread_pool_t> m_invocations;
 
-    // Events that have been added before the commit
-    thread_local static vector<trigger_event_t> s_tls_events;
-
 private:
     // Only internal static creation is allowed.
     event_manager_t();
 
+    // Test helper methods allow initializing the rules engine
+    // with a custom number of threads.
+    friend void gaia::rules::test::initialize_rules_engine(size_t count_threads);
+
+    // Allow test helper to access private members if the test links in
+    // the implementation.
+    friend void gaia::rules::test::commit_trigger(uint64_t, const trigger_event_t*, size_t count_events);
+
+    // Well known trigger function called by the storage engine after commit.
+    // Protected so that unit-tests can call directly
+    void commit_trigger(uint64_t tx_id, trigger_event_list_t event_list);
+
+    void init(size_t num_threads);
+    void init(rule_thread_pool_t* rule_thread_pool);
     const _rule_binding_t* find_rule(const rules::rule_binding_t& binding); 
     void add_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     bool remove_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
-    void enqueue_invocation(const trigger_event_t* event, const _rule_binding_t* rule_binding);
+    void enqueue_invocation(const trigger_event_t& event, const _rule_binding_t* rule_binding);
     void check_subscription(gaia_type_t gaia_type, event_type_t event_type, const field_list_t& fields);
-    void commit_trigger(const trigger_event_t* events, size_t count_events);
-
     static inline bool is_transaction_event(event_type_t event_type)
     {
         return (event_type == event_type_t::transaction_begin 
             || event_type == event_type_t::transaction_commit
             || event_type == event_type_t::transaction_rollback);
     }
-
     static inline void check_rule_binding(const rule_binding_t& binding)
     {
         if (nullptr == binding.rule 
@@ -162,7 +150,6 @@ private:
             throw invalid_rule_binding();
         }
     }
-
     static bool is_valid_rule_binding(const rules::rule_binding_t& binding);
     static std::string make_rule_key(const rules::rule_binding_t& binding);
     static void add_subscriptions(rules::subscription_list_t& subscriptions, 
@@ -171,10 +158,7 @@ private:
         event_type_t event_type,
         uint16_t field,
         const char* ruleset_filter);
-
-    // Overload to log fields events to the database which have 
-    // an extra field name argument.
-    static void log_to_db(const trigger_event_t* trigger_event, bool rules_invoked);
+    static void log_to_db(const trigger_event_t& trigger_event, bool rules_invoked);
 };
 
 } // namespace rules
