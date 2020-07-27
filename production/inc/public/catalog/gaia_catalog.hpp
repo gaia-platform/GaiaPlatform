@@ -171,7 +171,7 @@ class table_already_exists : public gaia_exception {
 };
 
 /**
- * Thrown when a specifid table does not exists.
+ * Thrown when a specified table does not exists.
  */
 class table_not_exists : public gaia_exception {
   public:
