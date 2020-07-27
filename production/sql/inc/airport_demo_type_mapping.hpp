@@ -9,10 +9,16 @@
 #include "type_mapping.hpp"
 #include "airport_demo_types.hpp"
 
+// All Postgres headers and function declarations must have C linkage.
+extern "C" {
+
 #include "postgres.h"
 #include "utils/builtins.h"
 
+}  // extern "C"
+
 #include "flatbuffers_common_reader.h"
+
 // flatcc generated code.
 #include "airport_q1_reader.h"
 #include "airport_q1_builder.h"

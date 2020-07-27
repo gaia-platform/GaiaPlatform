@@ -9,10 +9,16 @@
 #include "type_mapping.hpp"
 #include "system_catalog_types.hpp"
 
+// All Postgres headers and function declarations must have C linkage.
+extern "C" {
+
 #include "postgres.h"
 #include "utils/builtins.h"
 
+}  // extern "C"
+
 #include "flatbuffers_common_reader.h"
+
 // flatcc generated code.
 #include "event_log_reader.h"
 #include "event_log_builder.h"

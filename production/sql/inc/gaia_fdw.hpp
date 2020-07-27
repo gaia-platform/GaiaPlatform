@@ -11,13 +11,13 @@
 #include "gaia_db.hpp"
 #include "gaia_ptr.hpp"
 
-// All Postgres headers and function declarations must have C linkage.
-extern "C" {
-
 #include "airport_demo_type_mapping.hpp"
 #include "system_catalog_type_mapping.hpp"
 
 #include "flatbuffers_common_builder.h"
+
+// All Postgres headers and function declarations must have C linkage.
+extern "C" {
 
 #include "postgres.h"
 
