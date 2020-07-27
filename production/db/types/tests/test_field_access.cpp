@@ -4,6 +4,7 @@
 /////////////////////////////////////////////
 
 #include <iostream>
+#include <string>
 
 #include "gtest/gtest.h"
 
@@ -50,13 +51,14 @@ enum field
 
 void get_fields_data(
     file_loader_t& data_loader,
-    file_loader_t& schema_loader,
-    bool pass_schema = false)
+    file_loader_t& schema_loader)
 {
+    std::string schema(reinterpret_cast<char*>(schema_loader.get_data()), schema_loader.get_data_length());
+
     data_holder_t first_name = get_table_field_value(
         c_type_id,
         data_loader.get_data(),
-        pass_schema ? schema_loader.get_data() : nullptr,
+        schema,
         field::first_name);
     ASSERT_EQ(first_name.type, reflection::String);
     ASSERT_EQ(0, strcmp(first_name.hold.string_value, c_first_name));
@@ -65,7 +67,7 @@ void get_fields_data(
     data_holder_t last_name = get_table_field_value(
         c_type_id,
         data_loader.get_data(),
-        pass_schema ? schema_loader.get_data() : nullptr,
+        schema,
         field::last_name);
     ASSERT_EQ(last_name.type, reflection::String);
     ASSERT_EQ(0, strcmp(last_name.hold.string_value, c_last_name));
@@ -74,7 +76,7 @@ void get_fields_data(
     data_holder_t age = get_table_field_value(
         c_type_id,
         data_loader.get_data(),
-        pass_schema ? schema_loader.get_data() : nullptr,
+        schema,
         field::age);
     ASSERT_EQ(age.type, reflection::UByte);
     ASSERT_EQ(c_age, age.hold.integer_value);
@@ -83,7 +85,7 @@ void get_fields_data(
     data_holder_t has_children = get_table_field_value(
         c_type_id,
         data_loader.get_data(),
-        pass_schema ? schema_loader.get_data() : nullptr,
+        schema,
         field::has_children);
     ASSERT_EQ(has_children.type, reflection::Bool);
     ASSERT_EQ(c_has_children, has_children.hold.integer_value);
@@ -92,7 +94,7 @@ void get_fields_data(
     data_holder_t identifier = get_table_field_value(
         c_type_id,
         data_loader.get_data(),
-        pass_schema ? schema_loader.get_data() : nullptr,
+        schema,
         field::identifier);
     ASSERT_EQ(identifier.type, reflection::Long);
     ASSERT_EQ(c_identifier, identifier.hold.integer_value);
@@ -101,7 +103,7 @@ void get_fields_data(
     size_t count_known_associates = get_table_field_array_size(
         c_type_id,
         data_loader.get_data(),
-        pass_schema ? schema_loader.get_data() : nullptr,
+        schema,
         field::known_associates);
     ASSERT_EQ(c_count_known_associates, count_known_associates);
     cout << "\tcount known_associates = " << count_known_associates << endl;
@@ -111,7 +113,7 @@ void get_fields_data(
         data_holder_t known_associate = get_table_field_array_element(
             c_type_id,
             data_loader.get_data(),
-            pass_schema ? schema_loader.get_data() : nullptr,
+            schema,
             field::known_associates,
             i);
         ASSERT_EQ(known_associate.type, reflection::Long);
@@ -122,7 +124,7 @@ void get_fields_data(
     size_t count_known_aliases = get_table_field_array_size(
         c_type_id,
         data_loader.get_data(),
-        pass_schema ? schema_loader.get_data() : nullptr,
+        schema,
         field::known_aliases);
     ASSERT_EQ(c_count_known_aliases, count_known_aliases);
     cout << "\tcount known_aliases = " << count_known_aliases << endl;
@@ -132,7 +134,7 @@ void get_fields_data(
         data_holder_t known_alias = get_table_field_array_element(
             c_type_id,
             data_loader.get_data(),
-            pass_schema ? schema_loader.get_data() : nullptr,
+            schema,
             field::known_aliases,
             i);
         ASSERT_EQ(known_alias.type, reflection::String);
@@ -143,7 +145,7 @@ void get_fields_data(
     data_holder_t sleeve_cost = get_table_field_value(
         c_type_id,
         data_loader.get_data(),
-        pass_schema ? schema_loader.get_data() : nullptr,
+        schema,
         field::sleeve_cost);
     ASSERT_EQ(sleeve_cost.type, reflection::Double);
     ASSERT_TRUE(sleeve_cost.hold.float_value > c_sleeve_cost);
@@ -153,7 +155,7 @@ void get_fields_data(
     data_holder_t monthly_sleeve_insurance = get_table_field_value(
         c_type_id,
         data_loader.get_data(),
-        pass_schema ? schema_loader.get_data() : nullptr,
+        schema,
         field::monthly_sleeve_insurance);
     ASSERT_EQ(monthly_sleeve_insurance.type, reflection::Float);
     ASSERT_TRUE(monthly_sleeve_insurance.hold.float_value > c_monthly_sleeve_insurance);
@@ -163,7 +165,7 @@ void get_fields_data(
     size_t count_credit_amounts = get_table_field_array_size(
         c_type_id,
         data_loader.get_data(),
-        pass_schema ? schema_loader.get_data() : nullptr,
+        schema,
         field::last_yearly_top_credit_amounts);
     ASSERT_EQ(c_count_credit_amounts, count_credit_amounts);
     cout << "\tcount credit amounts = " << count_credit_amounts << endl;
@@ -173,7 +175,7 @@ void get_fields_data(
         data_holder_t credit_amount = get_table_field_array_element(
             c_type_id,
             data_loader.get_data(),
-            pass_schema ? schema_loader.get_data() : nullptr,
+            schema,
             field::last_yearly_top_credit_amounts,
             i);
         ASSERT_EQ(credit_amount.type, reflection::Double);
@@ -192,9 +194,11 @@ void process_flatbuffers_data(bool access_fields = false)
     file_loader_t data_loader;
     data_loader.load_file_data("test_record_data.bin");
 
+    std::string schema(reinterpret_cast<char*>(schema_loader.get_data()), schema_loader.get_data_length());
+
     // Create and initialize a field_cache.
     field_cache_t* field_cache = new field_cache_t();
-    initialize_field_cache_from_binary_schema(field_cache, schema_loader.get_data());
+    initialize_field_cache_from_binary_schema(field_cache, schema);
     ASSERT_EQ(field::count_fields, field_cache->size());
 
     // Add field cache to type cache.
@@ -224,8 +228,7 @@ void process_flatbuffers_data(bool access_fields = false)
         // because cache is empty.
         get_fields_data(
             data_loader,
-            schema_loader,
-            true);
+            schema_loader);
     }
 
     cout << endl;

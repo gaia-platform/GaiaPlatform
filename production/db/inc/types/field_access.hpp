@@ -7,13 +7,17 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <string>
 
 #include "flatbuffers/reflection.h"
 
 #include <data_holder.hpp>
 #include <types.hpp>
 #include <gaia_exception.hpp>
+#include "gaia_common.hpp"
 #include <type_cache.hpp>
+
+using namespace gaia::common;
 
 namespace gaia
 {
@@ -66,7 +70,7 @@ public:
 // throughout the use of the field_cache instance.
 void initialize_field_cache_from_binary_schema(
     field_cache_t* field_cache,
-    uint8_t* binary_schema);
+    const string& binary_schema);
 
 // Get the field value of a table record payload.
 // The value will be packed in a type_holder_t structure.
@@ -77,9 +81,9 @@ void initialize_field_cache_from_binary_schema(
 // If the binary_schema is needed but not provided,
 // an invalid_schema() exception will be thrown.
 data_holder_t get_table_field_value(
-    uint64_t type_id,
-    uint8_t* serialized_data,
-    uint8_t* binary_schema,
+    gaia_type_t type_id,
+    const uint8_t* serialized_data,
+    const string& binary_schema,
     field_position_t field_position);
 
 // Get the size of a field of array type.
@@ -88,9 +92,9 @@ data_holder_t get_table_field_value(
 // whether they access a scalar field or an array field,
 // and then proceed accordingly to access the field content.
 size_t get_table_field_array_size(
-    uint64_t type_id,
-    uint8_t* serialized_data,
-    uint8_t* binary_schema,
+    gaia_type_t type_id,
+    const uint8_t* serialized_data,
+    const string& binary_schema,
     field_position_t field_position);
 
 // Get a specific element of a field of array type.
@@ -99,9 +103,9 @@ size_t get_table_field_array_size(
 // Callers can first call get_table_field_array_size()
 // to find the array's size.
 data_holder_t get_table_field_array_element(
-    uint64_t type_id,
-    uint8_t* serialized_data,
-    uint8_t* binary_schema,
+    gaia_type_t type_id,
+    const uint8_t* serialized_data,
+    const string& binary_schema,
     field_position_t field_position,
     size_t array_index);
 

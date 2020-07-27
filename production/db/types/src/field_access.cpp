@@ -51,17 +51,12 @@ invalid_serialized_field_data::invalid_serialized_field_data(field_position_t po
 
 void gaia::db::types::initialize_field_cache_from_binary_schema(
     field_cache_t* field_cache,
-    uint8_t* binary_schema)
+    const string& binary_schema)
 {
     retail_assert(field_cache != nullptr, "field_cache argument should not be null.");
 
-    if (binary_schema == nullptr)
-    {
-        throw invalid_schema();
-    }
-
     // Deserialize the schema.
-    const reflection::Schema* schema = reflection::GetSchema(binary_schema);
+    const reflection::Schema* schema = reflection::GetSchema(binary_schema.c_str());
     if (schema == nullptr)
     {
         throw invalid_schema();
@@ -95,8 +90,8 @@ void gaia::db::types::initialize_field_cache_from_binary_schema(
 // that will hold the field_cache information.
 void get_table_field_information(
     uint64_t type_id,
-    uint8_t* serialized_data,
-    uint8_t* binary_schema,
+    const uint8_t* serialized_data,
+    const string& binary_schema,
     field_position_t field_position,
     const flatbuffers::Table*& root_table,
     auto_field_cache_t& auto_field_cache,
@@ -135,8 +130,8 @@ void get_table_field_information(
 // that allows operating on the array.
 void get_table_field_array_information(
     uint64_t type_id,
-    uint8_t* serialized_data,
-    uint8_t* binary_schema,
+    const uint8_t* serialized_data,
+    const string& binary_schema,
     field_position_t field_position,
     const flatbuffers::Table*& root_table,
     auto_field_cache_t& auto_field_cache,
@@ -163,8 +158,8 @@ void get_table_field_array_information(
 // The access method for scalar fields.
 data_holder_t gaia::db::types::get_table_field_value(
     uint64_t type_id,
-    uint8_t* serialized_data,
-    uint8_t* binary_schema,
+    const uint8_t* serialized_data,
+    const string& binary_schema,
     field_position_t field_position)
 {
     const flatbuffers::Table* root_table = nullptr;
@@ -208,8 +203,8 @@ data_holder_t gaia::db::types::get_table_field_value(
 // The access method for the size of a field of array type.
 size_t gaia::db::types::get_table_field_array_size(
     uint64_t type_id,
-    uint8_t* serialized_data,
-    uint8_t* binary_schema,
+    const uint8_t* serialized_data,
+    const string& binary_schema,
     field_position_t field_position)
 {
     const flatbuffers::Table* root_table = nullptr;
@@ -228,8 +223,8 @@ size_t gaia::db::types::get_table_field_array_size(
 // The access method for an element of a field of array type.
 data_holder_t gaia::db::types::get_table_field_array_element(
     uint64_t type_id,
-    uint8_t* serialized_data,
-    uint8_t* binary_schema,
+    const uint8_t* serialized_data,
+    const string& binary_schema,
     field_position_t field_position,
     size_t array_index)
 {
