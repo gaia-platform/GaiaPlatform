@@ -122,7 +122,6 @@ void rule_thread_pool_t::rule_worker()
             break;
         }
 
-        // should move instead of copy this
         rule_context_t context = m_invocations.front();
         m_invocations.pop();
         lock.unlock();

@@ -38,7 +38,7 @@ if(fbs_generated)
     COMMENT "All generated files were updated.")
 endif()
 
-gaia_compile_flatbuffers_schema_to_cpp_opt(flatbuffers/addr_book.fbs "--no-includes;--gen-compare;--gaia-type-initial-value;1000" "${GENERATED_OUTPUTS}")
+gaia_compile_flatbuffers_schema_to_cpp_opt(tests/flatbuffers/addr_book.fbs "--no-includes;--gen-compare;--gaia-type-initial-value;1000" "${GENERATED_OUTPUTS}")
 gaia_get_generated_output(fbs_generated)
 if(fbs_generated)
   # message(STATUS "Add generated_code target with files:${fbs_generated}")
