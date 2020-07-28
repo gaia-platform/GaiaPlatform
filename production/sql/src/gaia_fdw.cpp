@@ -5,6 +5,11 @@
 
 #include "gaia_fdw.hpp"
 
+#include <fstream>
+
+#include "array_size.hpp"
+#include "gaia_fdw_adapter.hpp"
+
 using namespace std;
 using namespace gaia::db;
 

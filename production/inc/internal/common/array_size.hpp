@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <cstddef>
+
 namespace gaia {
 namespace common {
 

@@ -5,17 +5,6 @@
 
 #pragma once
 
-#include <fstream>
-
-#include "array_size.hpp"
-#include "gaia_db.hpp"
-#include "gaia_ptr.hpp"
-
-#include "airport_demo_type_mapping.hpp"
-#include "system_catalog_type_mapping.hpp"
-
-#include "flatbuffers_common_builder.h"
-
 // All Postgres headers and function declarations must have C linkage.
 extern "C" {
 
@@ -188,66 +177,3 @@ void gaia_refetch_foreign_row(
     bool *updated);
 
 }  // extern "C"
-
-// Structures used by the FDW.
-typedef void (*option_handler_fn)(const char *name, const char *value, Oid context);
-
-// Describes the valid options for objects that use this wrapper.
-typedef struct {
-    const char *name;
-
-    // Oid of catalog in which option may appear.
-    Oid context;
-
-    option_handler_fn handler;
-} gaia_fdw_option_t;
-
-// Valid options for gaia_fdw.
-static const gaia_fdw_option_t valid_options[] = {
-    // Sentinel.
-    {NULL, InvalidOid, NULL}};
-
-// The scan state is set up in gaia_begin_foreign_scan and stashed away in
-// node->fdw_private and fetched in gaia_iterate_foreign_scan.
-typedef struct {
-    root_object_deserializer_fn deserializer;
-
-    // flatbuffer accessor functions indexed by attrnum.
-    attribute_accessor_fn *indexed_accessors;
-
-    // The COW-SE smart ptr we are currently iterating over.
-    gaia::db::gaia_ptr cur_node;
-} gaia_fdw_scan_state_t;
-
-// The modify state is for maintaining state of modify operations.
-//
-// It is set up in gaiaBeginForeignModify and stashed in
-// rinfo->ri_FdwState and subsequently used in gaiaExecForeignInsert,
-// gaiaExecForeignUpdate, gaiaExecForeignDelete and
-// gaiaEndForeignModify.
-typedef struct {
-    builder_initializer_fn initializer;
-    builder_finalizer_fn finalizer;
-
-    // flatbuffer attribute builder functions indexed by attrnum.
-    attribute_builder_fn *indexed_builders;
-
-    // flatbuffers builder for INSERT and UPDATE.
-    flatcc_builder_t builder;
-
-    // 0-based index of gaia_id attribute in tuple descriptor.
-    int pk_attr_idx;
-
-    // 0-based index of gaia_src_id attribute in tuple descriptor (edge types
-    // only).
-    int src_attr_idx;
-
-    // 0-based index of gaia_dst_id attribute in tuple descriptor (edge types
-    // only).
-    int dst_attr_idx;
-
-    gaia_type_t gaia_type_id;
-
-    // The COW-SE smart ptr that is the target of our update.
-    gaia::db::gaia_ptr target_node;
-} gaia_fdw_modify_state_t;

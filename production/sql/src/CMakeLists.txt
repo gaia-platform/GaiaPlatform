@@ -28,7 +28,11 @@ endforeach(FBS_SOURCE)
 
 # Compile config.
 
-add_library(gaia_fdw SHARED gaia_fdw.cpp)
+add_library(gaia_fdw SHARED
+  airport_demo_type_mapping.cpp
+  system_catalog_type_mapping.cpp
+  gaia_fdw.cpp
+  gaia_fdw_adapter.cpp)
 
 # exec_program() mangles this variable with added quotes, so un-quote it.
 separate_arguments(PGSQL_CPPFLAGS UNIX_COMMAND "${PGSQL_CPPFLAGS}")
