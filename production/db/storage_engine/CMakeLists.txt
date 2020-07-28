@@ -64,7 +64,6 @@ add_library(gaia_semock STATIC
   mock/storage_engine.cpp
   mock/storage_engine_client.cpp
   mock/rdb_object_converter.cpp)
-
 add_dependencies(gaia_semock "${PROJECT_NAME}-gen_fbs")
 target_include_directories(gaia_semock PUBLIC ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES})
 target_include_directories(gaia_semock PRIVATE ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES})
