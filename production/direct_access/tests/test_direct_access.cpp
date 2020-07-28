@@ -661,7 +661,6 @@ TEST_F(gaia_object_test, thread_update_other_row) {
         gaia_id_t row2_id = Employee::insert_row(g_insert, nullptr, nullptr, 0, nullptr, nullptr);
     commit_transaction();
 
-    
     begin_transaction();
         // Update the same record in a different transaction and commit
         thread t = thread(update_thread, row1_id);
@@ -670,7 +669,6 @@ TEST_F(gaia_object_test, thread_update_other_row) {
         Employee_writer w = Employee::get(row2_id).writer();
         w.name_first = "No Violation";
         w.update_row();
-
     EXPECT_TRUE(commit_transaction());
 
     begin_transaction();
@@ -720,6 +718,7 @@ TEST_F(gaia_object_test, thread_insert_update_delete) {
         EXPECT_STREQ(Employee::get(row1_id).name_first(), local);
         EXPECT_STREQ(Employee::get(row2_id).name_first(), "Red Shirt");
     commit_transaction();
+
     begin_transaction();
         // Deleted row2.
         EXPECT_THROW(Employee::get(row2_id).name_first(), invalid_node_id);
@@ -746,5 +745,4 @@ TEST_F(gaia_object_test, thread_delete_conflict) {
         // Expect the row to be deleted so another attempt to delete should fail.
         EXPECT_THROW(Employee::delete_row(g_inserted_id), invalid_node_id);
     commit_transaction();
-
 };
