@@ -29,6 +29,7 @@
     namespace ddl {
         struct statement_t;
         struct create_statement_t;
+        struct drop_statement_t;
         struct field_type_t;
         struct field_definition_t;
         class parser_t;
@@ -59,7 +60,7 @@
 %define api.token.prefix {TOK_}
 
 %token BOOL INT8 UINT8 INT16 UINT16 INT32 UINT32 INT64 UINT64 FLOAT32 FLOAT64 STRING
-%token CREATE TABLE REFERENCES
+%token CREATE DROP TABLE REFERENCES
 %token END 0
 %token LPAREN "("
 %token RPAREN ")"
@@ -73,6 +74,7 @@
 
 %type <std::unique_ptr<statement_t>> statement
 %type <std::unique_ptr<create_statement_t>> create_statement
+%type <std::unique_ptr<drop_statement_t>> drop_statement
 %type <std::unique_ptr<field_type_t>> field_type
 
 %type <int> opt_array
@@ -81,7 +83,8 @@
 %type <std::unique_ptr<statement_list_t>> statement_list
 
 %printer { yyo << "statement"; } statement
-%printer { yyo << "create_statement"; } create_statement
+%printer { yyo << "create_statement:" << $$->name; } create_statement
+%printer { yyo << "drop_statement:" << $$->name; } drop_statement
 %printer { yyo << "filed_type"; } field_type
 %printer { yyo << "filed_def:" << $$->name; } field_def
 %printer { yyo << "filed_def_commalist[" << $$->size() << "]"; } field_def_commalist
@@ -107,13 +110,19 @@ statement_list:
         $$ = std::move($1);
     };
 
-statement: create_statement { $$ = std::unique_ptr<statement_t>{std::move($1)}; };
+statement:
+    create_statement { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
+    | drop_statement { $$ = std::unique_ptr<statement_t>{std::move($1)}; };
 
 create_statement:
     CREATE TABLE IDENTIFIER "(" field_def_commalist ")" {
-        $$ = std::unique_ptr<create_statement_t>{new create_statement_t(create_type_t::create_table)};
-        $$->table_name = std::move($3);
+        $$ = std::unique_ptr<create_statement_t>{new create_statement_t(create_type_t::create_table, $3)};
         $$->fields = std::move(*$5);
+    };
+
+drop_statement:
+    DROP TABLE IDENTIFIER {
+        $$ = std::unique_ptr<drop_statement_t>{new drop_statement_t(drop_type_t::drop_table, $3)};
     };
 
 field_def_commalist:

@@ -11,6 +11,7 @@ project(system)
 set(GAIA_SYSTEM_PUBLIC_INCLUDES
     "${GAIA_INC}/public/common"
     "${GAIA_INC}/public/db"
+    "${GAIA_INC}/public/catalog"
     "${GAIA_INC}/public/direct_access"
     "${GAIA_INC}/public/system"
     "${GAIA_INC}/public/rules"
@@ -41,7 +42,7 @@ endif()
 
 target_include_directories(gaia PUBLIC ${GAIA_SYSTEM_PUBLIC_INCLUDES})
 target_include_directories(gaia PRIVATE ${GAIA_SYSTEM_PRIVATE_INCLUDES})
-target_link_libraries(gaia PUBLIC gaia_direct gaia_rules)
+target_link_libraries(gaia PUBLIC gaia_direct gaia_rules gaia_catalog)
 set_target_properties(gaia PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia PROPERTY POSITION_INDEPENDENT_CODE ON)

@@ -16,12 +16,16 @@ using namespace gaia::catalog::ddl;
 
 void execute(vector<unique_ptr<statement_t>> &statements) {
     for (auto &stmt : statements) {
-        if (!stmt->is_type(statement_type_t::create)) {
-            continue;
-        }
-        auto createStmt = dynamic_cast<create_statement_t *>(stmt.get());
-        if (createStmt->type == create_type_t::create_table) {
-            gaia::catalog::create_table(createStmt->table_name, createStmt->fields);
+        if (stmt->is_type(statement_type_t::create)) {
+            auto create_stmt = dynamic_cast<create_statement_t *>(stmt.get());
+            if (create_stmt->type == create_type_t::create_table) {
+                gaia::catalog::create_table(create_stmt->name, create_stmt->fields);
+            }
+        } else if (stmt->is_type(statement_type_t::drop)) {
+            auto drop_stmt = dynamic_cast<drop_statement_t *>(stmt.get());
+            if (drop_stmt->type == drop_type_t::drop_table) {
+                gaia::catalog::drop_table(drop_stmt->name);
+            }
         }
     }
 }
@@ -58,6 +62,7 @@ int main(int argc, char *argv[]) {
     int res = 0;
     parser_t parser;
     gaia::db::begin_session();
+    gaia::catalog::initialize_catalog();
     for (int i = 1; i < argc; ++i) {
         if (argv[i] == string("-p")) {
             parser.trace_parsing = true;
