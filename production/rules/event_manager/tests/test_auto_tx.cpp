@@ -14,6 +14,9 @@ using namespace std;
 using namespace gaia::db;
 using namespace gaia::rules;
 
+extern "C" void initialize_rules()
+{
+}
 
 class auto_tx_test : public ::testing::Test {
 protected:

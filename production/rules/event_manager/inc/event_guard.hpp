@@ -6,6 +6,9 @@
 
 #include <unordered_map>
 #include "rules.hpp"
+#include "events.hpp"
+
+using namespace gaia::db::triggers;
 
 namespace gaia 
 {

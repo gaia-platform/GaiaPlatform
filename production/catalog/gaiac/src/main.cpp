@@ -18,12 +18,16 @@ using namespace gaia::catalog::ddl;
 
 void execute(vector<unique_ptr<statement_t>> &statements) {
     for (auto &stmt : statements) {
-        if (!stmt->is_type(statement_type_t::create)) {
-            continue;
-        }
-        auto createStmt = dynamic_cast<create_statement_t *>(stmt.get());
-        if (createStmt->type == create_type_t::create_table) {
-            gaia::catalog::create_table(createStmt->table_name, createStmt->fields);
+        if (stmt->is_type(statement_type_t::create)) {
+            auto create_stmt = dynamic_cast<create_statement_t *>(stmt.get());
+            if (create_stmt->type == create_type_t::create_table) {
+                gaia::catalog::create_table(create_stmt->name, create_stmt->fields);
+            }
+        } else if (stmt->is_type(statement_type_t::drop)) {
+            auto drop_stmt = dynamic_cast<drop_statement_t *>(stmt.get());
+            if (drop_stmt->type == drop_type_t::drop_table) {
+                gaia::catalog::drop_table(drop_stmt->name);
+            }
         }
     }
 }
@@ -155,6 +159,7 @@ int main(int argc, char *argv[]) {
                 parser.trace_scanning = true;
             } else if (argv[i] == string("-i")) {
                 gaia::db::begin_session();
+                gaia::catalog::initialize_catalog();
                 start_repl(parser);
                 gen_catalog = false;
                 gaia::db::end_session();
@@ -164,6 +169,7 @@ int main(int argc, char *argv[]) {
             } else {
                 if (!parser.parse(argv[i])) {
                     gaia::db::begin_session();
+                    gaia::catalog::initialize_catalog();
                     execute(parser.statements);
                     // Strip off the path and any suffix to get database name.
                     string db_name = string(argv[i]);
@@ -185,6 +191,7 @@ int main(int argc, char *argv[]) {
         }
         if (gen_catalog) {
             gaia::db::begin_session();
+            gaia::catalog::initialize_catalog();
             load_bootstrap_catalog();
             generate_headers("catalog");
             gaia::db::end_session();

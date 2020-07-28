@@ -34,6 +34,7 @@ table server_reply_t {
     event: session_event_t;
     old_state: session_state_t;
     new_state: session_state_t;
+    transaction_id: ulong;
 }
 
 union any_message_t {

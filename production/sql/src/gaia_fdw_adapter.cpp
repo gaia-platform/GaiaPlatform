@@ -3,12 +3,10 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#pragma once
+#include <gaia_fdw_adapter.hpp>
 
-namespace gaia {
-namespace db {
-namespace triggers {
-    // TODO: header for events here
-}
-}
+using namespace gaia::fdw;
+
+gaia_fdw_adapter::gaia_fdw_adapter()
+{
 }

@@ -15,12 +15,21 @@ namespace direct_access
 auto_transaction_t::auto_transaction_t(bool auto_begin)
 {
     m_auto_begin = auto_begin;
-    gaia::db::begin_transaction();
+    // We currently do not allow nested transactions so don't start one if one
+    // is active
+    if (!gaia::db::is_transaction_active())
+    {
+        gaia::db::begin_transaction();
+    }
 }
 
 void auto_transaction_t::commit()
 {
-    gaia::db::commit_transaction();
+    if (gaia::db::is_transaction_active())
+    {
+        gaia::db::commit_transaction();
+    }
+
     if (m_auto_begin)
     {
         gaia::db::begin_transaction();

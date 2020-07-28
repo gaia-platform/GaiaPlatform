@@ -245,7 +245,7 @@ namespace flatbuffers
                 
                 if (opts_.generate_setters && opts_.generate_events)
                 {
-                    code_ += "#include \"mock_trigger.hpp\"";
+                    code_ += "#include \"triggers.hpp\"";
                     code_ += "#include <unordered_set>";
                     code_ += "#include <vector>";
                 }
@@ -577,25 +577,22 @@ namespace flatbuffers
                     "   for(uint16_t id : _fieldOffsets) {\n"
                     "       _columns.push_back(id);\n"
                     "   }\n"
-                    "   gaia::rules::trigger_event_t event = {gaia::rules::event_type_t::row_update, this->gaia_type(),\n"
+                    "   gaia::db::triggers::trigger_event_t event = {gaia::db::triggers::event_type_t::row_update, this->gaia_type(),\n"
                     "       this->gaia_id(), _columns.data(), _columns.size()};\n"
-                    "   commit_trigger(0, &event, 1, false);\n"
                     "}\n"
 
                     // Insert function
                     "void insert_row(){\n"
                     "   gaia_object_t::insert_row();\n"
-                    "   gaia::rules::trigger_event_t event = {gaia::rules::event_type_t::row_insert, this->gaia_type(),\n"
+                    "   gaia::db::triggers::trigger_event_t event = {gaia::db::triggers::event_type_t::row_insert, this->gaia_type(),\n"
                     "       this->gaia_id(), nullptr, 0};\n"
-                    "   commit_trigger(0, &event, 1, false);\n"
                     "}\n"
 
                     // Delete function
                     "void delete_row(){\n"
                     "   gaia_object_t::delete_row();\n"
-                    "   gaia::rules::trigger_event_t event = {gaia::rules::event_type_t::row_delete, this->gaia_type(),\n"
+                    "   gaia::db::triggers::trigger_event_t event = {gaia::db::triggers::event_type_t::row_delete, this->gaia_type(),\n"
                     "       this->gaia_id(), nullptr, 0};\n"
-                    "   commit_trigger(0, &event, 1, false);\n"
                     "}";
 
                     // name to offset map

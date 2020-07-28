@@ -109,7 +109,7 @@ void rule_thread_pool_t::enqueue(rule_context_t& invocation)
 void rule_thread_pool_t::rule_worker()
 {
     unique_lock<mutex> lock(m_lock, defer_lock);
-
+    begin_session();
     while (true)
     {
         lock.lock();
@@ -122,13 +122,13 @@ void rule_thread_pool_t::rule_worker()
             break;
         }
 
-        // should move instead of copy this
         rule_context_t context = m_invocations.front();
         m_invocations.pop();
         lock.unlock();
 
         invoke_rule(&context);
     }
+    end_session();
 }
 
 void rule_thread_pool_t::invoke_rule(const rule_context_t* context)

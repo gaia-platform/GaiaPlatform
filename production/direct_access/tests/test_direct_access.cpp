@@ -22,7 +22,7 @@ protected:
         begin_transaction();
         for(auto e = employee_t::get_first();
             e;
-            e = e.get_next())
+            e = e.get_first())
         {
             e.delete_row();
         }
@@ -460,10 +460,10 @@ TEST_F(gaia_object_test, new_del) {
 TEST_F(gaia_object_test, new_del_del) {
     begin_transaction();
     auto e = get_field("Hugo");
-    // the first delete succeeds
+    // The first delete succeeds.
     e.delete_row();
-    // second one is a no-op
-    e.delete_row();
+    // The second one should throw.
+    EXPECT_THROW(e.delete_row(), invalid_node_id);
     commit_transaction();
 }
 
