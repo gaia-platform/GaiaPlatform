@@ -43,20 +43,20 @@ bool g_verbose = false;
 bool generationError = false;
 
 vector<string> rulesets;
-unordered_map<string, unordered_set<string>>  activeFields;
-unordered_set<string>  usedTables;
-const FunctionDecl *curRuleDecl = nullptr;
-unordered_map<string, unordered_map<string, bool>> fieldData;
-string curRulesetSubscription;
-string generatedSubscriptionCode;
-string curRulesetUnSubscription;
+unordered_map<string, unordered_set<string>>  active_Fields;
+unordered_set<string>  used_Tables;
+const FunctionDecl *current_Rule_Declaration = nullptr;
+unordered_map<string, unordered_map<string, bool>> field_Data;
+string current_Ruleset_Subscription;
+string generated_Subscription_Code;
+string current_Ruleset_UnSubscription;
 struct TableLinkData
 {
     string table;
     string field;
 };
-unordered_multimap<string, TableLinkData> tableRelationship1;
-unordered_multimap<string, TableLinkData> tableRelationshipN;
+unordered_multimap<string, TableLinkData> table_Relationship_1;
+unordered_multimap<string, TableLinkData> table_Relationship_N;
 
 struct NavigationCodeData
 {
@@ -117,14 +117,14 @@ unordered_map<string, unordered_map<string, bool>> getTableData()
     {
         DBMonitor monitor;
     
-        for(catalog::Gaia_table table = catalog::Gaia_table::get_first(); 
+        for (catalog::Gaia_table table = catalog::Gaia_table::get_first(); 
             table; table = table.get_next())
         {
             unordered_map<string, bool> fields;
             retVal[table.name()] = fields;
         }
 
-        for(catalog::Gaia_field field = catalog::Gaia_field::get_first(); 
+        for (catalog::Gaia_field field = catalog::Gaia_field::get_first(); 
             field; field = field.get_next())
         {
             if (field.type() != gaia::catalog::gaia_data_type_REFERENCES)
@@ -174,8 +174,8 @@ unordered_map<string, unordered_map<string, bool>> getTableData()
                 linkDataN.table = parentTable.name();
                 linkDataN.field = field.name();
 
-                tableRelationship1.emplace(parentTable.name(), linkData1);
-                tableRelationshipN.emplace(childTable.name(), linkDataN);
+                table_Relationship_1.emplace(parentTable.name(), linkData1);
+                table_Relationship_N.emplace(childTable.name(), linkDataN);
             }
             
         }
@@ -277,34 +277,34 @@ NavigationCodeData generateNavigationCode(string anchorTable)
     retVal.prefix = "\n" + anchorTable + "_t " + anchorTable + " = " + 
         anchorTable + "_t::get(context->record);\n";
     //single table used in the rule
-    if (usedTables.size() == 1 && usedTables.find(anchorTable) != usedTables.end())
+    if (used_Tables.size() == 1 && used_Tables.find(anchorTable) != used_Tables.end())
     {
         return retVal;
     }
 
-    if (usedTables.empty())
+    if (used_Tables.empty())
     {
         generationError = true;
         llvm::errs() << "No tables are used in the rule \n";
         return NavigationCodeData();
     }
-    if (usedTables.find(anchorTable) == usedTables.end())
+    if (used_Tables.find(anchorTable) == used_Tables.end())
     {
         generationError = true;
         llvm::errs() << "Table " << anchorTable <<" is not used in the rule \n";
         return NavigationCodeData();
     }
 
-    if (tableRelationship1.find(anchorTable) == tableRelationship1.end() &&
-        tableRelationshipN.find(anchorTable) == tableRelationshipN.end())
+    if (table_Relationship_1.find(anchorTable) == table_Relationship_1.end() &&
+        table_Relationship_N.find(anchorTable) == table_Relationship_N.end())
     {
         generationError = true;
         llvm::errs() << "Table " << anchorTable << " doesn't reference any table and not referenced by any other tables";
         return NavigationCodeData();
     }
-    auto parentItr = tableRelationship1.equal_range(anchorTable);
-    auto childItr = tableRelationshipN.equal_range(anchorTable);    
-    for (string table : usedTables)
+    auto parentItr = table_Relationship_1.equal_range(anchorTable);
+    auto childItr = table_Relationship_N.equal_range(anchorTable);    
+    for (string table : used_Tables)
     {
         bool is1Relationship = false, isNRelationship = false;
         if (table == anchorTable)
@@ -314,7 +314,7 @@ NavigationCodeData generateNavigationCode(string anchorTable)
         string linkingField;
         for (auto it = parentItr.first; it != parentItr.second; ++it)
         {
-            if (it != tableRelationship1.end() && it->second.table == table)
+            if (it != table_Relationship_1.end() && it->second.table == table)
             {
                 if (is1Relationship)
                 {
@@ -329,7 +329,7 @@ NavigationCodeData generateNavigationCode(string anchorTable)
 
         for (auto it = childItr.first; it != childItr.second; ++it)
         {
-            if (it != tableRelationshipN.end() && it->second.table == table)
+            if (it != table_Relationship_N.end() && it->second.table == table)
             {
                 if (isNRelationship)
                 {
@@ -372,37 +372,37 @@ NavigationCodeData generateNavigationCode(string anchorTable)
 
 void generateRules(Rewriter &rewriter)
 {
-    if (curRuleDecl == nullptr)
+    if (current_Rule_Declaration == nullptr)
     {
         return;
     }
-    if (activeFields.empty())
+    if (active_Fields.empty())
     {
         llvm::errs() << "No active fields for the rule\n";
         generationError = true;
         return;
     }
 
-    string ruleCode = rewriter.getRewrittenText(curRuleDecl->getSourceRange());
+    string ruleCode = rewriter.getRewrittenText(current_Rule_Declaration->getSourceRange());
     int ruleCnt = 1;
-    for (auto fd : activeFields)
+    for (auto fd : active_Fields)
     {
         string table = fd.first;
         bool containsLastOperation = false;
         bool containsFields = false;
         string fieldSubscriptionCode;
-        if (fieldData.find(table) == fieldData.end())
+        if (field_Data.find(table) == field_Data.end())
         {
             llvm::errs() << "No table " << table << " found in the catalog\n";
             generationError = true;
             return;
         }
-        string ruleName = curRuleset + "_" + curRuleDecl->getName().str() + "_" + to_string(ruleCnt);
+        string ruleName = curRuleset + "_" + current_Rule_Declaration->getName().str() + "_" + to_string(ruleCnt);
         fieldSubscriptionCode =  "rule_binding_t " + ruleName + "binding(" +
             "\"" + curRuleset + "\",\"" + ruleName + "\"," + curRuleset + "::" + ruleName + ");\n" + 
             "field_list_t fields_" + to_string(ruleCnt) + ";\n";
 
-        auto fields = fieldData[table];
+        auto fields = field_Data[table];
         for (auto field : fd.second)
         {
             bool isLastOperation = field == "LastOperation";
@@ -443,33 +443,33 @@ void generateRules(Rewriter &rewriter)
 
         if (containsFields)
         {
-            curRulesetSubscription += fieldSubscriptionCode + "subscribe_rule(" + table + 
+            current_Ruleset_Subscription += fieldSubscriptionCode + "subscribe_rule(" + table + 
                 "::s_gaia_type, event_type_t::row_update, fields_" + to_string(ruleCnt) + 
                 "," + ruleName + "binding);\n";
-            curRulesetUnSubscription += fieldSubscriptionCode + "unsubscribe_rule(" + table + 
+            current_Ruleset_UnSubscription += fieldSubscriptionCode + "unsubscribe_rule(" + table + 
                 "::s_gaia_type, event_type_t::row_update, fields_" + to_string(ruleCnt) + 
                 "," + ruleName + "binding);\n";
         }
 
         if (containsLastOperation)
         {
-            curRulesetSubscription += "subscribe_rule(" + table + 
+            current_Ruleset_Subscription += "subscribe_rule(" + table + 
                 "::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields," + 
                 ruleName + "binding);\n";
-            curRulesetSubscription += "subscribe_rule(" + table + 
+            current_Ruleset_Subscription += "subscribe_rule(" + table + 
                 "::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields," + 
                 ruleName + "binding);\n";
-            curRulesetSubscription += "subscribe_rule(" + table + 
+            current_Ruleset_Subscription += "subscribe_rule(" + table + 
                 "::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields," + 
                 ruleName + "binding);\n";
 
-            curRulesetUnSubscription += "unsubscribe_rule(" + table + 
+            current_Ruleset_UnSubscription += "unsubscribe_rule(" + table + 
                 "::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields," + 
                 ruleName + "binding);\n";
-            curRulesetUnSubscription += "unsubscribe_rule(" + table + 
+            current_Ruleset_UnSubscription += "unsubscribe_rule(" + table + 
                 "::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields," + 
                 ruleName + "binding);\n";
-            curRulesetUnSubscription += "unsubscribe_rule(" + table + 
+            current_Ruleset_UnSubscription += "unsubscribe_rule(" + table + 
                 "::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields," + 
                 ruleName + "binding);\n";
         }
@@ -478,13 +478,13 @@ void generateRules(Rewriter &rewriter)
        
         if(ruleCnt == 1)
         {
-            rewriter.InsertText(curRuleDecl->getLocation(),"\nvoid " + ruleName + "(const rule_context_t* context)\n");
-            rewriter.InsertTextAfterToken(curRuleDecl->getLocation(), navigationCode.prefix);
-            rewriter.InsertText(curRuleDecl->getEndLoc(),navigationCode.postfix);
+            rewriter.InsertText(current_Rule_Declaration->getLocation(),"\nvoid " + ruleName + "(const rule_context_t* context)\n");
+            rewriter.InsertTextAfterToken(current_Rule_Declaration->getLocation(), navigationCode.prefix);
+            rewriter.InsertText(current_Rule_Declaration->getEndLoc(),navigationCode.postfix);
         }
         else
         {
-            rewriter.InsertTextBefore(curRuleDecl->getLocation(),"\nvoid " + ruleName + "(const rule_context_t* context)\n"
+            rewriter.InsertTextBefore(current_Rule_Declaration->getLocation(),"\nvoid " + ruleName + "(const rule_context_t* context)\n"
                + insertRulePreamble (ruleCode + navigationCode.postfix, navigationCode.prefix));
         }
         
@@ -518,13 +518,13 @@ public:
 
             tableName = getTableName(decl);
             fieldName = decl->getName().str();
-            usedTables.insert(tableName);
+            used_Tables.insert(tableName);
 
             
             if (decl->hasAttr<GaiaFieldAttr>())
             {
                 expSourceRange = SourceRange(exp->getLocation(),exp->getEndLoc());
-                activeFields[tableName].insert(fieldName);
+                active_Fields[tableName].insert(fieldName);
             }
             else if (decl->hasAttr<GaiaFieldValueAttr>())
             {
@@ -541,7 +541,7 @@ public:
                 
                 isLastOperation = declExpr->getDecl()->hasAttr<GaiaLastOperationAttr>();
 
-                usedTables.insert(tableName);
+                used_Tables.insert(tableName);
 
                 if (declExpr->getDecl()->hasAttr<GaiaFieldValueAttr>())
                 {
@@ -552,7 +552,7 @@ public:
                 {
                     expSourceRange = SourceRange(memberExpr->getBeginLoc(),
                         memberExpr->getEndLoc());
-                    activeFields[tableName].insert(fieldName);
+                    active_Fields[tableName].insert(fieldName);
                 }   
             }
             else
@@ -634,11 +634,12 @@ public:
                         startLocation = memberExpr->getBeginLoc();
                         
                     }
-                    usedTables.insert(tableName);
+                    used_Tables.insert(tableName);
                 
                     tok::TokenKind tokenKind;
                     std::string replacementText = "[&]() mutable {" + 
-                        tableName + "_writer w=" + tableName + "::writer(" +tableName + "); w->" + fieldName;
+                        tableName + "_writer w = " + tableName + ".writer(); w." + 
+                        fieldName;
 
                     switch(op->getOpcode())
                     {
@@ -706,7 +707,7 @@ public:
                     if (op->getOpcode() != BO_Assign)
                     {
                         replacementText += ConvertCompoundBinaryOpcode(op->getOpcode());
-                        activeFields[tableName].insert(fieldName);
+                        active_Fields[tableName].insert(fieldName);
                     }
                     else
                     {
@@ -733,15 +734,15 @@ public:
                     //rewriter.InsertTextAfterToken(op->getEndLoc(),")");
                     if (op->getOpcode() != BO_Assign)
                     {
-                        rewriter.InsertTextAfterToken(op->getEndLoc(),";" +
-                            tableName + "::update_row(w);return " + 
+                        rewriter.InsertTextAfterToken(op->getEndLoc(),
+                            "; w.update_row();return " + 
                             tableName + "." + fieldName + "();}() ");
 
                     }
                     else
                     {
-                        rewriter.InsertTextAfterToken(op->getEndLoc(),";" +
-                            tableName + "::update_row(w);return " +  
+                        rewriter.InsertTextAfterToken(op->getEndLoc(),
+                            "; w.update_row();return " +  
                             tableName + "." + fieldName + "();}()");
                     }
                 }
@@ -849,8 +850,8 @@ public:
                         tableName = declExpr->getDecl()->getName().str();
                     }
 
-                    usedTables.insert(tableName);
-                    activeFields[tableName].insert(fieldName);
+                    used_Tables.insert(tableName);
+                    active_Fields[tableName].insert(fieldName);
                                     
                     if (op->isPostfix())
                     {
@@ -858,18 +859,16 @@ public:
                         {
                             replaceStr = "[&]() mutable {auto t=" + 
                                 tableName + "." + fieldName + "();" + 
-                                tableName + "_writer w=" + tableName + "::writer(" + 
-                                tableName + ");w->" + fieldName +"++;" +  
-                                tableName + "::update_row(w);return t;}()";
+                                tableName + "_writer w = " + tableName + ".writer(); w." + 
+                                fieldName + "++; w.update_row();return t;}()";
 
                         }
                         else if(op->isDecrementOp())
                         {
                             replaceStr = "[&]() mutable {auto t=" + 
                                 tableName + "." + fieldName + "();" + 
-                                tableName + "_writer w=" + tableName + "::writer(" + 
-                                tableName + ");w->" + fieldName + "--;" +  
-                                tableName + "::update_row(w);return t;}()";
+                                tableName + "_writer w = " + tableName + ".writer(); w." + 
+                                fieldName + "--; w.update_row();return t;}()";
                         }
                     }
                     else
@@ -877,17 +876,15 @@ public:
                         if (op->isIncrementOp())
                         {
                             replaceStr = "[&]() mutable {" + 
-                                tableName + "_writer w=" + tableName + "::writer(" +  
-                                tableName + ");++ w->" + fieldName +  ";" +
-                                tableName + "::update_row(w); return w->" +
+                                tableName + "_writer w = " + tableName + ".writer(); ++ w." + 
+                                fieldName + ";w.update_row(); return w." +
                                 fieldName + ";}()";
                         }
                         else if(op->isDecrementOp())
                         {
                             replaceStr = "[&]() mutable {" + 
-                                tableName + "_writer w = " + tableName + "::writer(" +  
-                                tableName + ");-- w->" + fieldName +  ";" +
-                                tableName + "::update_row(w); return w->" +
+                                tableName + "_writer w = " + tableName + ".writer(); -- w." + 
+                                fieldName + ";w.update_row(); return w." +
                                 fieldName + ";}()";
                         }
                     }
@@ -936,9 +933,9 @@ public:
         {
             return;
         }
-        curRuleDecl = ruleDecl;
-        usedTables.clear();
-        activeFields.clear();
+        current_Rule_Declaration = ruleDecl;
+        used_Tables.clear();
+        active_Fields.clear();
     }
 
 private:   
@@ -960,26 +957,26 @@ public:
         {
             return;
         }
-        curRuleDecl = nullptr;
-        usedTables.clear();
-        activeFields.clear();
+        current_Rule_Declaration = nullptr;
+        used_Tables.clear();
+        active_Fields.clear();
 
         const RulesetDecl * rulesetDecl = Result.Nodes.getNodeAs<RulesetDecl>("rulesetDecl");
         if (rulesetDecl != nullptr)
         {
             if (!curRuleset.empty())
             {
-                generatedSubscriptionCode += "void subscribeRuleset_" + 
-                    rulesetDecl->getName().str() + "()\n{\n" + curRulesetSubscription + 
+                generated_Subscription_Code += "void subscribeRuleset_" + 
+                    rulesetDecl->getName().str() + "()\n{\n" + current_Ruleset_Subscription + 
                     "}\n";
-                generatedSubscriptionCode += "void unsubscribeRuleset_" + 
-                    rulesetDecl->getName().str() + "()\n{\n" + curRulesetUnSubscription + 
+                generated_Subscription_Code += "void unsubscribeRuleset_" + 
+                    rulesetDecl->getName().str() + "()\n{\n" + current_Ruleset_UnSubscription + 
                     "}\n";
             }
             curRuleset = rulesetDecl->getName().str();   
             rulesets.push_back(curRuleset);
-            curRulesetSubscription.clear(); 
-            curRulesetUnSubscription.clear();       
+            current_Ruleset_Subscription.clear(); 
+            current_Ruleset_UnSubscription.clear();       
             rewriter.ReplaceText(
                 SourceRange(rulesetDecl->getBeginLoc(),rulesetDecl->decls_begin()->getBeginLoc().getLocWithOffset(-2)),
                 "namespace " + curRuleset + "\n{\n");
@@ -1172,10 +1169,10 @@ public:
             return;
         }
  
-        generatedSubscriptionCode += "void subscribeRuleset_" + 
-                    curRuleset + "()\n{\n" + curRulesetSubscription + 
+        generated_Subscription_Code += "void subscribeRuleset_" + 
+                    curRuleset + "()\n{\n" + current_Ruleset_Subscription + 
                     "}\n" + "void unsubscribeRuleset_" + 
-                    curRuleset + "()\n{\n" + curRulesetUnSubscription + 
+                    curRuleset + "()\n{\n" + current_Ruleset_UnSubscription + 
                     "}\n" + generateGeneralSubscriptionCode();
 
         if (!shouldEraseOutputFiles() && !generationError && !ASTGeneratorOutputOption.empty())
@@ -1187,7 +1184,7 @@ public:
             {
                 rewriter.getEditBuffer(rewriter.getSourceMgr().getMainFileID())
                     .write(outFile); 
-                outFile << generatedSubscriptionCode;
+                outFile << generated_Subscription_Code;
             }
 
             outFile.close();
@@ -1199,7 +1196,7 @@ private:
 
 int main(int argc, const char **argv) 
 {
-    fieldData = getTableData();
+    field_Data = getTableData();
     // Parse the command-line args passed to your code.
     CommonOptionsParser op(argc, argv, ASTGeneratorCategory);
     if (ASTGeneratorVerboseOption)

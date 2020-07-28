@@ -95,7 +95,6 @@ set_target_properties(gaia_semock_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPIL
 target_link_libraries(gaia_semock_server PRIVATE gaia_common Threads::Threads explain)
 install(TARGETS gaia_semock_server DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 
-
 # PyBind11 wrapper for storage engine mock.
 find_package(pybind11 REQUIRED)
 if (Python3_FOUND AND pybind11_FOUND)
