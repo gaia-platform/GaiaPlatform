@@ -176,18 +176,6 @@ static string generate_edc_struct(int position, string table_name, field_vec& fi
 
     code.increment_indent_level();
 
-    // The constructor.
-    code += "{{TABLE_NAME}}_t(gaia_id_t id) : gaia_object_t(id, \"{{TABLE_NAME}}_t\") {";
-    code.increment_indent_level();
-    for (auto ref : references_1) {
-        code.set_value("REF_TABLE", ref.name);
-        code.set_value("REF_NAME", ref.ref_name);
-        code += "{{REF_NAME}}{{REF_TABLE}}_list.set_outer(gaia_id());";
-    }
-    code.decrement_indent_level();
-    code += "}";
-
-
     // Below, a flatbuffer method is invoked as Create{{TABLE_NAME}}() or
     // as Create{{TABLE_NAME}}Direct. The choice is determined by whether any of the
     // fields are strings. If at least one is a string, than the Direct variation
@@ -271,7 +259,17 @@ static string generate_edc_struct(int position, string table_name, field_vec& fi
     code += "private:";
     code.increment_indent_level();
     code += "friend struct gaia_object_t<{{POSITION}}, {{TABLE_NAME}}_t, {{TABLE_NAME}}, {{TABLE_NAME}}T, c_num_{{TABLE_NAME}}_ptrs>;";
+
+    // The constructor.
+    code += "{{TABLE_NAME}}_t(gaia_id_t id) : gaia_object_t(id, \"{{TABLE_NAME}}_t\") {";
+    code.increment_indent_level();
+    for (auto ref : references_1) {
+        code.set_value("REF_TABLE", ref.name);
+        code.set_value("REF_NAME", ref.ref_name);
+        code += "{{REF_NAME}}{{REF_TABLE}}_list.set_outer(gaia_id());";
+    }
     code.decrement_indent_level();
+    code += "}";
 
     // Finishing brace.
     code.decrement_indent_level();

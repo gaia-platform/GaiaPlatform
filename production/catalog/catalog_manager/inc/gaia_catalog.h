@@ -61,11 +61,6 @@ struct gaia_rule_t;
 
 typedef gaia_writer_t<1,gaia_table_t,gaia_table,gaia_tableT,c_num_gaia_table_ptrs> gaia_table_writer;
 struct gaia_table_t : public gaia_object_t<1,gaia_table_t,gaia_table,gaia_tableT,c_num_gaia_table_ptrs> {
-    gaia_table_t(gaia_id_t id) : gaia_object_t(id, "gaia_table_t") {
-        values_gaia_value_index_list.set_outer(gaia_id());
-        fields_gaia_field_list.set_outer(gaia_id());
-        references_gaia_field_list.set_outer(gaia_id());
-    }
     const char* name() const {return GET_STR(name);}
     bool is_log() const {return GET(is_log);}
     uint8_t trim_action() const {return GET(trim_action);}
@@ -88,13 +83,15 @@ struct gaia_table_t : public gaia_object_t<1,gaia_table_t,gaia_table,gaia_tableT
     reference_chain_container_t<gaia_table_t,gaia_field_t,c_parent_references_gaia_table,c_first_references_gaia_field,c_next_references_gaia_field> references_gaia_field_list;
 private:
     friend struct gaia_object_t<1, gaia_table_t, gaia_table, gaia_tableT, c_num_gaia_table_ptrs>;
+    gaia_table_t(gaia_id_t id) : gaia_object_t(id, "gaia_table_t") {
+        values_gaia_value_index_list.set_outer(gaia_id());
+        fields_gaia_field_list.set_outer(gaia_id());
+        references_gaia_field_list.set_outer(gaia_id());
+    }
 };
 
 typedef gaia_writer_t<2,gaia_value_index_t,gaia_value_index,gaia_value_indexT,c_num_gaia_value_index_ptrs> gaia_value_index_writer;
 struct gaia_value_index_t : public gaia_object_t<2,gaia_value_index_t,gaia_value_index,gaia_value_indexT,c_num_gaia_value_index_ptrs> {
-    gaia_value_index_t(gaia_id_t id) : gaia_object_t(id, "gaia_value_index_t") {
-        value_fields_gaia_field_list.set_outer(gaia_id());
-    }
     const char* name() const {return GET_STR(name);}
     uint64_t table_id() const {return GET(table_id);}
     const char* fields() const {return GET_STR(fields);}
@@ -116,12 +113,13 @@ struct gaia_value_index_t : public gaia_object_t<2,gaia_value_index_t,gaia_value
     reference_chain_container_t<gaia_value_index_t,gaia_field_t,c_parent_value_fields_gaia_value_index,c_first_value_fields_gaia_field,c_next_value_fields_gaia_field> value_fields_gaia_field_list;
 private:
     friend struct gaia_object_t<2, gaia_value_index_t, gaia_value_index, gaia_value_indexT, c_num_gaia_value_index_ptrs>;
+    gaia_value_index_t(gaia_id_t id) : gaia_object_t(id, "gaia_value_index_t") {
+        value_fields_gaia_field_list.set_outer(gaia_id());
+    }
 };
 
 typedef gaia_writer_t<3,gaia_field_t,gaia_field,gaia_fieldT,c_num_gaia_field_ptrs> gaia_field_writer;
 struct gaia_field_t : public gaia_object_t<3,gaia_field_t,gaia_field,gaia_fieldT,c_num_gaia_field_ptrs> {
-    gaia_field_t(gaia_id_t id) : gaia_object_t(id, "gaia_field_t") {
-    }
     const char* name() const {return GET_STR(name);}
     uint64_t table_id() const {return GET(table_id);}
     uint8_t type() const {return GET(type);}
@@ -155,13 +153,12 @@ struct gaia_field_t : public gaia_object_t<3,gaia_field_t,gaia_field,gaia_fieldT
     }
 private:
     friend struct gaia_object_t<3, gaia_field_t, gaia_field, gaia_fieldT, c_num_gaia_field_ptrs>;
+    gaia_field_t(gaia_id_t id) : gaia_object_t(id, "gaia_field_t") {
+    }
 };
 
 typedef gaia_writer_t<4,gaia_ruleset_t,gaia_ruleset,gaia_rulesetT,c_num_gaia_ruleset_ptrs> gaia_ruleset_writer;
 struct gaia_ruleset_t : public gaia_object_t<4,gaia_ruleset_t,gaia_ruleset,gaia_rulesetT,c_num_gaia_ruleset_ptrs> {
-    gaia_ruleset_t(gaia_id_t id) : gaia_object_t(id, "gaia_ruleset_t") {
-        rules_gaia_rule_list.set_outer(gaia_id());
-    }
     const char* name() const {return GET_STR(name);}
     bool active_on_startup() const {return GET(active_on_startup);}
     const char* table_ids() const {return GET_STR(table_ids);}
@@ -180,12 +177,13 @@ struct gaia_ruleset_t : public gaia_object_t<4,gaia_ruleset_t,gaia_ruleset,gaia_
     reference_chain_container_t<gaia_ruleset_t,gaia_rule_t,c_parent_rules_gaia_ruleset,c_first_rules_gaia_rule,c_next_rules_gaia_rule> rules_gaia_rule_list;
 private:
     friend struct gaia_object_t<4, gaia_ruleset_t, gaia_ruleset, gaia_rulesetT, c_num_gaia_ruleset_ptrs>;
+    gaia_ruleset_t(gaia_id_t id) : gaia_object_t(id, "gaia_ruleset_t") {
+        rules_gaia_rule_list.set_outer(gaia_id());
+    }
 };
 
 typedef gaia_writer_t<5,gaia_rule_t,gaia_rule,gaia_ruleT,c_num_gaia_rule_ptrs> gaia_rule_writer;
 struct gaia_rule_t : public gaia_object_t<5,gaia_rule_t,gaia_rule,gaia_ruleT,c_num_gaia_rule_ptrs> {
-    gaia_rule_t(gaia_id_t id) : gaia_object_t(id, "gaia_rule_t") {
-    }
     const char* name() const {return GET_STR(name);}
     uint64_t ruleset_id() const {return GET(ruleset_id);}
     using gaia_object_t::insert_row;
@@ -203,6 +201,8 @@ struct gaia_rule_t : public gaia_object_t<5,gaia_rule_t,gaia_rule,gaia_ruleT,c_n
     }
 private:
     friend struct gaia_object_t<5, gaia_rule_t, gaia_rule, gaia_ruleT, c_num_gaia_rule_ptrs>;
+    gaia_rule_t(gaia_id_t id) : gaia_object_t(id, "gaia_rule_t") {
+    }
 };
 
 }  // namespace catalog
