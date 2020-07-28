@@ -28,7 +28,7 @@ message(STATUS "GAIA_CATALOG_LIB_PRIVATE_INCLUDES=${GAIA_CATALOG_LIB_PRIVATE_INC
 # Generate the catalog headers from the flatbuffer schema.
 set_property(GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
 gaia_compile_flatbuffers_schema_to_cpp_opt(flatbuffers/catalog.fbs
-  "--no-includes;--gen-compare;--gaia-type-initial-value;6"
+  "--no-includes;--gen-compare;--gaia-type-initial-value;7"
   "${GAIA_CATALOG_GENERATED}")
 get_generated_output(catalog_fbs_generated)
 if(catalog_fbs_generated)
