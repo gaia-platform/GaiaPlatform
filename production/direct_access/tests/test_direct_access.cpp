@@ -739,7 +739,7 @@ TEST_F(gaia_object_test, thread_delete_conflict) {
     // Expect a concurrency violation here, but for now commit_transaction is
     // returning false.
     // EXPECT_THROW(commit_transaction, tx_update_conflict);
-    EXPECT_TRUE(commit_transaction());
+    EXPECT_FALSE(commit_transaction());
 
     begin_transaction();
         // Expect the row to be deleted so another attempt to delete should fail.
