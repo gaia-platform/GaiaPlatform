@@ -78,15 +78,24 @@ struct gaia_table_t : public gaia_object_t<1,gaia_table_t,gaia_table,gaia_tableT
         static gaia_container_t<1, gaia_table_t> list;
         return list;
     }
-    reference_chain_container_t<gaia_table_t,gaia_value_index_t,c_parent_values_gaia_table,c_first_values_gaia_value_index,c_next_values_gaia_value_index> values_gaia_value_index_list;
-    reference_chain_container_t<gaia_table_t,gaia_field_t,c_parent_fields_gaia_table,c_first_fields_gaia_field,c_next_fields_gaia_field> fields_gaia_field_list;
-    reference_chain_container_t<gaia_table_t,gaia_field_t,c_parent_references_gaia_table,c_first_references_gaia_field,c_next_references_gaia_field> references_gaia_field_list;
+    reference_chain_container_t<gaia_table_t,gaia_value_index_t,c_parent_values_gaia_table,c_first_values_gaia_value_index,c_next_values_gaia_value_index> m_values_gaia_value_index_list;
+    reference_chain_container_t<gaia_table_t,gaia_value_index_t,c_parent_values_gaia_table,c_first_values_gaia_value_index,c_next_values_gaia_value_index>& values_gaia_value_index_list() {
+        return m_values_gaia_value_index_list;
+    }
+    reference_chain_container_t<gaia_table_t,gaia_field_t,c_parent_fields_gaia_table,c_first_fields_gaia_field,c_next_fields_gaia_field> m_fields_gaia_field_list;
+    reference_chain_container_t<gaia_table_t,gaia_field_t,c_parent_fields_gaia_table,c_first_fields_gaia_field,c_next_fields_gaia_field>& fields_gaia_field_list() {
+        return m_fields_gaia_field_list;
+    }
+    reference_chain_container_t<gaia_table_t,gaia_field_t,c_parent_references_gaia_table,c_first_references_gaia_field,c_next_references_gaia_field> m_references_gaia_field_list;
+    reference_chain_container_t<gaia_table_t,gaia_field_t,c_parent_references_gaia_table,c_first_references_gaia_field,c_next_references_gaia_field>& references_gaia_field_list() {
+        return m_references_gaia_field_list;
+    }
 private:
     friend struct gaia_object_t<1, gaia_table_t, gaia_table, gaia_tableT, c_num_gaia_table_ptrs>;
     gaia_table_t(gaia_id_t id) : gaia_object_t(id, "gaia_table_t") {
-        values_gaia_value_index_list.set_outer(gaia_id());
-        fields_gaia_field_list.set_outer(gaia_id());
-        references_gaia_field_list.set_outer(gaia_id());
+        m_values_gaia_value_index_list.set_outer(gaia_id());
+        m_fields_gaia_field_list.set_outer(gaia_id());
+        m_references_gaia_field_list.set_outer(gaia_id());
     }
 };
 
@@ -110,11 +119,14 @@ struct gaia_value_index_t : public gaia_object_t<2,gaia_value_index_t,gaia_value
         static gaia_container_t<2, gaia_value_index_t> list;
         return list;
     }
-    reference_chain_container_t<gaia_value_index_t,gaia_field_t,c_parent_value_fields_gaia_value_index,c_first_value_fields_gaia_field,c_next_value_fields_gaia_field> value_fields_gaia_field_list;
+    reference_chain_container_t<gaia_value_index_t,gaia_field_t,c_parent_value_fields_gaia_value_index,c_first_value_fields_gaia_field,c_next_value_fields_gaia_field> m_value_fields_gaia_field_list;
+    reference_chain_container_t<gaia_value_index_t,gaia_field_t,c_parent_value_fields_gaia_value_index,c_first_value_fields_gaia_field,c_next_value_fields_gaia_field>& value_fields_gaia_field_list() {
+        return m_value_fields_gaia_field_list;
+    }
 private:
     friend struct gaia_object_t<2, gaia_value_index_t, gaia_value_index, gaia_value_indexT, c_num_gaia_value_index_ptrs>;
     gaia_value_index_t(gaia_id_t id) : gaia_object_t(id, "gaia_value_index_t") {
-        value_fields_gaia_field_list.set_outer(gaia_id());
+        m_value_fields_gaia_field_list.set_outer(gaia_id());
     }
 };
 
@@ -174,11 +186,14 @@ struct gaia_ruleset_t : public gaia_object_t<4,gaia_ruleset_t,gaia_ruleset,gaia_
         static gaia_container_t<4, gaia_ruleset_t> list;
         return list;
     }
-    reference_chain_container_t<gaia_ruleset_t,gaia_rule_t,c_parent_rules_gaia_ruleset,c_first_rules_gaia_rule,c_next_rules_gaia_rule> rules_gaia_rule_list;
+    reference_chain_container_t<gaia_ruleset_t,gaia_rule_t,c_parent_rules_gaia_ruleset,c_first_rules_gaia_rule,c_next_rules_gaia_rule> m_rules_gaia_rule_list;
+    reference_chain_container_t<gaia_ruleset_t,gaia_rule_t,c_parent_rules_gaia_ruleset,c_first_rules_gaia_rule,c_next_rules_gaia_rule>& rules_gaia_rule_list() {
+        return m_rules_gaia_rule_list;
+    }
 private:
     friend struct gaia_object_t<4, gaia_ruleset_t, gaia_ruleset, gaia_rulesetT, c_num_gaia_ruleset_ptrs>;
     gaia_ruleset_t(gaia_id_t id) : gaia_object_t(id, "gaia_ruleset_t") {
-        rules_gaia_rule_list.set_outer(gaia_id());
+        m_rules_gaia_rule_list.set_outer(gaia_id());
     }
 };
 

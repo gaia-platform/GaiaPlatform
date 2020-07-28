@@ -251,7 +251,13 @@ static string generate_edc_struct(int position, string table_name, field_vec& fi
         code.set_value("REF_TABLE", ref.name);
         code.set_value("REF_NAME", ref.ref_name);
         code += "reference_chain_container_t<{{TABLE_NAME}}_t,{{REF_TABLE}}_t,c_parent_{{REF_NAME}}{{TABLE_NAME}},"
-            "c_first_{{REF_NAME}}{{REF_TABLE}},c_next_{{REF_NAME}}{{REF_TABLE}}> {{REF_NAME}}{{REF_TABLE}}_list;";
+            "c_first_{{REF_NAME}}{{REF_TABLE}},c_next_{{REF_NAME}}{{REF_TABLE}}> m_{{REF_NAME}}{{REF_TABLE}}_list;";
+        code += "reference_chain_container_t<{{TABLE_NAME}}_t,{{REF_TABLE}}_t,c_parent_{{REF_NAME}}{{TABLE_NAME}},"
+            "c_first_{{REF_NAME}}{{REF_TABLE}},c_next_{{REF_NAME}}{{REF_TABLE}}>& {{REF_NAME}}{{REF_TABLE}}_list() {";
+        code.increment_indent_level();
+        code += "return m_{{REF_NAME}}{{REF_TABLE}}_list;";
+        code.decrement_indent_level();
+        code += "}";
     }
 
     // The private area.
@@ -266,7 +272,7 @@ static string generate_edc_struct(int position, string table_name, field_vec& fi
     for (auto ref : references_1) {
         code.set_value("REF_TABLE", ref.name);
         code.set_value("REF_NAME", ref.ref_name);
-        code += "{{REF_NAME}}{{REF_TABLE}}_list.set_outer(gaia_id());";
+        code += "m_{{REF_NAME}}{{REF_TABLE}}_list.set_outer(gaia_id());";
     }
     code.decrement_indent_level();
     code += "}";

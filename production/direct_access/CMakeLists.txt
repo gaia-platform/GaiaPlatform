@@ -38,10 +38,10 @@ add_custom_command(
   COMMAND ${GAIA_GENERATE} -t ${CMAKE_CURRENT_SOURCE_DIR}/tests/addr_book.ddl
   DEPENDS ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/tests/addr_book.ddl
-  COMMENT "Compiling addr_book.ddl"
+  COMMENT "Compiling addr_book.ddl."
 )
 
-add_custom_target(headers_generated
+add_custom_target(addr_book_headers_generated
   DEPENDS "gaia_addr_book.h"
 )
 
@@ -57,7 +57,7 @@ set (DIRECT_ACCESS_TEST_INCLUDES
   ${GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES}
   ${GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES}
 )
-add_gtest(test_direct_access "tests/test_direct_access.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_semock;gaia_direct" "headers_generated")
-add_dependencies(test_direct_access headers_generated)
-add_gtest(test_references "tests/test_references.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_semock;gaia_direct" "headers_generated")
-add_dependencies(test_references headers_generated)
+add_gtest(test_direct_access "tests/test_direct_access.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_semock;gaia_direct" "addr_book_headers_generated")
+add_dependencies(test_direct_access addr_book_headers_generated)
+add_gtest(test_references "tests/test_references.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_semock;gaia_direct" "addr_book_headers_generated")
+add_dependencies(test_references addr_book_headers_generated)
