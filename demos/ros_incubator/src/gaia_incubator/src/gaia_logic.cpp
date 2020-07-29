@@ -62,11 +62,11 @@ void gaia_logic::setup_incubators()
     begin_transaction();
 
     Incubator* puppy_incubator = new Incubator();
-    puppy_incubator->set_name("Puppy");
+    puppy_incubator->set_name("Puppy Incubator");
     puppy_incubator->set_min_temp(85.0);
-    puppy_incubator->set_max_temp(90.0);
+    puppy_incubator->set_max_temp(85.5);
     puppy_incubator->insert_row();
-    ulong puppy_incubator_id = puppy_incubator->gaia_id();
+    gaia_id_t puppy_incubator_id = puppy_incubator->gaia_id();
 
     Sensor* puppy_sensor = new Sensor();
     puppy_sensor->set_name("Puppy Sensor");
@@ -110,17 +110,29 @@ void on_sensor_data_inserted(const rule_context_t *context)
     msg::FanState fan_state_msg;
     fan_state_msg.incubator_id = inc->gaia_id();
 
+    bool should_publish_fan_state = false;
+
     if (s_data->value() < inc->min_temp())
     {
-        fan_state_msg.fans_on = false;
-        ruleset_pub_fan_state->publish(fan_state_msg);
-        printf("%s OFF\n", s_data->name());
+        fan_state_msg.fan_on = false;
+        should_publish_fan_state = true;
     }
     else if (s_data->value() > inc->max_temp())
     {
-        fan_state_msg.fans_on = true;
-        ruleset_pub_fan_state->publish(fan_state_msg);
-        printf("%s ON\n", s_data->name());
+        fan_state_msg.fan_on = true;
+        should_publish_fan_state = true;
+    }
+
+    if(should_publish_fan_state)
+    {
+        for (unique_ptr<Fan> f{Fan::get_first()}; f; f.reset(f->get_next()))
+        {
+            if (f->incubator_id() == inc->gaia_id())
+            {
+                fan_state_msg.fan_name = f->name();
+                ruleset_pub_fan_state->publish(fan_state_msg);
+            }
+        }
     }
 
     printf("%-6s|%6ld|%7.1lf\n",

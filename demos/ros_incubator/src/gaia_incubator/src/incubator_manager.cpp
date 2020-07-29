@@ -53,40 +53,40 @@ void incubator_manager::update_state() {
 
     for (auto& incubator_pair : m_incubators)
     {
-        incubator& current_incubator = incubator_pair.second;
+        incubator_t& incubator = incubator_pair.second;
 
-        double temp_change = c_temp_change_initial;
+        float temp_change = c_temp_change_initial;
 
-        for (auto& fan_pair : current_incubator.fans)
+        for (auto& fan_pair : incubator.fans)
         {
-            fan& current_fan = fan_pair.second;
+            fan_t& fan = fan_pair.second;
 
             // Calculate the new fan speed.
-            if (current_fan.is_on)
+            if (fan.is_on)
             {
-                current_fan.speed = min(c_fan_max_speed,
+                fan.speed = min(c_fan_max_speed,
                     c_fan_acceleration * c_update_state_rate
-                    + current_fan.speed);
+                    + fan.speed);
             }
             else
             {
-                current_fan.speed = max(0.0,
+                fan.speed = max((float) 0.0,
                     c_fan_acceleration * c_update_state_rate
-                    - current_fan.speed);
+                    - fan.speed);
             }
 
             // Calculate the temperature change for the current fan.
-            if (current_fan.speed > c_fan_high_speed)
+            if (fan.speed > c_fan_high_speed)
             {
                 temp_change -= c_temp_change_high_fan_speed;
             }
-            else if (current_fan.speed > c_fan_low_speed)
+            else if (fan.speed > c_fan_low_speed)
             {
                 temp_change -= c_temp_change_low_fan_speed;
             }
-        } // for : current_incubator.fans
+        } // for : incubator.fans
 
-        current_incubator.temperature += temp_change;
+        incubator.temperature += temp_change;
     } // for : m_incubators
 } // update_state()
 
@@ -99,13 +99,13 @@ void incubator_manager::publish_temp()
     {
         temp_msg.incubator_id = incubator_pair.first;
 
-        const incubator& current_incubator = incubator_pair.second;
+        const incubator_t& incubator = incubator_pair.second;
 
-        for (const string& sensor_name : current_incubator.sensors)
+        for (const string& sensor_name : incubator.sensors)
         {
             temp_msg.sensor_name = sensor_name;
             // Every sensor in an incubator reports the same temperature.
-            temp_msg.value = current_incubator.temperature;
+            temp_msg.value = incubator.temperature;
             temp_msg.stamp = now();
 
             m_pub_temp->publish(temp_msg);
@@ -121,27 +121,41 @@ void incubator_manager::set_fan_state(const msg::FanState::SharedPtr msg)
     if (incubator_iter == m_incubators.end())
     {
         RCLCPP_INFO(get_logger(),
-            "Failed to set fan states: cannot find an incubator with ID %u.",
+            "Failed to set fan state: cannot find an incubator with ID %u.",
             msg->incubator_id);
     }
     else
     {
-        for (auto& fan_pair : incubator_iter->second.fans)
+        incubator_t& incubator = incubator_iter->second;
+
+        const auto fan_iter = incubator.fans.find(msg->fan_name);
+
+        if (fan_iter == incubator.fans.end())
         {
-            fan& current_fan = fan_pair.second;
-            current_fan.is_on = msg->fans_on;
+            RCLCPP_INFO(get_logger(),
+                "Failed to set fan state: cannot find a fan named %s in the incubator with ID %u.",
+                msg->fan_name.c_str(), msg->incubator_id);
+        }
+        else
+        {
+            fan_t& fan = fan_iter->second;
+            fan.is_on = msg->fan_on;
+
+            const char* fan_on = msg->fan_on ? "ON" : "OFF";
+            printf("%s %s\n", msg->fan_name.c_str(), fan_on);
+            fflush(stdout);
         }
     }
 }
 
 void incubator_manager::add_incubator(const msg::AddIncubator::SharedPtr msg)
 {
-    incubator inc;
-    inc.name = msg->name;
-    inc.temperature = msg->temperature;
+    incubator_t incubator;
+    incubator.name = msg->name;
+    incubator.temperature = msg->temperature;
 
     lock_guard<mutex> incubators_lock(m_incubators_mutex);
-    m_incubators[msg->incubator_id] = inc;
+    m_incubators[msg->incubator_id] = incubator;
 }
 
 void incubator_manager::add_sensor(const msg::AddSensor::SharedPtr msg)
@@ -163,10 +177,10 @@ void incubator_manager::add_fan(const msg::AddFan::SharedPtr msg)
 {
     try
     {
-        fan f;
+        fan_t fan;
 
         lock_guard<mutex> incubators_lock(m_incubators_mutex);
-        m_incubators.at(msg->incubator_id).fans[msg->fan_name] = f;
+        m_incubators.at(msg->incubator_id).fans[msg->fan_name] = fan;
     }
     catch(const out_of_range)
     {

@@ -29,17 +29,17 @@ public:
     incubator_manager(const NodeOptions& options);
 
 private:
-    const double c_publish_temp_rate = 1.0;
-    const double c_update_state_rate = 0.1;
+    const float c_publish_temp_rate = 1.0;
+    const float c_update_state_rate = 0.1;
 
-    const double c_fan_acceleration = 500.0;
-    const double c_fan_max_speed = 3500.0;
-    const double c_fan_high_speed = 3000.0;
-    const double c_fan_low_speed = 1000.0;
+    const float c_fan_acceleration = 500.0;
+    const float c_fan_max_speed = 3500.0;
+    const float c_fan_high_speed = 3000.0;
+    const float c_fan_low_speed = 1000.0;
 
-    const double c_temp_change_initial = 0.01;
-    const double c_temp_change_high_fan_speed = 0.03;
-    const double c_temp_change_low_fan_speed = 0.02;
+    const float c_temp_change_initial = 0.01;
+    const float c_temp_change_high_fan_speed = 0.03;
+    const float c_temp_change_low_fan_speed = 0.02;
 
 
     void update_state();
@@ -64,25 +64,25 @@ private:
     TimerBase::SharedPtr m_sensor_reading_timer;
     TimerBase::SharedPtr m_update_state_timer;
 
-    struct fan
+    struct fan_t
     {
-        double speed = 0.0;
+        float speed = 0.0;
         bool is_on = false;
     };
 
-    struct incubator
+    struct incubator_t
     {
         string name;
-        double temperature;
+        float temperature;
 
         // Sensors are only stored as their names. They do not keep a state.
         set<string> sensors;
         // Fans are identified by their names.
-        map<string, fan> fans;
+        map<string, fan_t> fans;
     };
 
     // Incubators are identified by their gaia_id, which is the uint32_t.
-    map<uint32_t, incubator> m_incubators;
+    map<ulong, incubator_t> m_incubators;
     mutex m_incubators_mutex;
 };
 

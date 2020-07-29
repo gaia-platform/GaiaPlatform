@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11) # ROS2 defaults to version 3.5
+cmake_minimum_required(VERSION 3.17) # ROS2 defaults to version 3.5
 project(gaia_incubator)
 
 # Default to C99
@@ -11,17 +11,20 @@ if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 14)
 endif()
 
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
-endif()
+add_compile_options(-Wall -Wextra -Wpedantic)
 
-# gaia variables
-set(CMAKE_MODULE_PATH "/source/production/cmake;${CMAKE_MODULE_PATH}")
+# FIXME: until gaia.cmake is installed to the cmake modules path,
+# these harcoded paths are for the convenience of calling colcon without
+# passing in cmake arguments.
+set(GAIA_REPO "/source")
+set(GAIA_BUILD_DIR "/build")
+
+set(CMAKE_MODULE_PATH "${GAIA_REPO}/production/cmake;${CMAKE_MODULE_PATH}")
 include(gaia)
 
-set(GAIA_REPO "/source")
-set(GAIA_PROD_BUILD "/build/production")
-set(GAIA_DEMO_BUILD "/build/demos")
+# gaia variables
+set(GAIA_PROD_BUILD "${GAIA_BUILD_DIR}/production")
+set(GAIA_DEMO_BUILD "${GAIA_BUILD_DIR}/demos")
 set(GAIA_PROD "${GAIA_REPO}/production")
 set(GAIA_INC "${GAIA_PROD}/inc")
 set(FLATBUFFERS "${GAIA_REPO}/third_party/production/flatbuffers")
@@ -77,7 +80,10 @@ add_custom_target(make_generated_incubator_dir ALL
 )
 
 set_property(GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
-gaia_compile_flatbuffers_schema_to_cpp_opt(src/barn_storage.fbs "--no-includes;--gen-compare;--gen-setters;--gen-events;--gaia-type-initial-value;1000" "${GENERATED_OUTPUTS}")
+gaia_compile_flatbuffers_schema_to_cpp_opt(src/barn_storage.fbs
+  "--no-includes;--gen-compare;--gen-setters;--gen-events;--gaia-type-initial-value;1000"
+  "${GENERATED_OUTPUTS}"
+)
 gaia_get_generated_output(fbs_generated)
 if(fbs_generated)
   # message(STATUS "Add generated_code target with files:${fbs_generated}")
@@ -110,7 +116,8 @@ target_include_directories(gaia_library PRIVATE ${ROS_INCUBATOR_DEMO_INCLUDES})
 target_compile_options(gaia_library PUBLIC -fPIC)
 
 target_compile_definitions(gaia_library
-  PRIVATE "COMPOSITION_BUILDING_DLL")
+  PRIVATE "COMPOSITION_BUILDING_DLL"
+)
 
 ament_target_dependencies(gaia_library
   rclcpp
@@ -123,18 +130,22 @@ target_link_libraries(gaia_library
 
 rclcpp_components_register_node(gaia_library
   PLUGIN "incubator_manager"
-  EXECUTABLE incubator_manager)
+  EXECUTABLE incubator_manager
+)
 
 rclcpp_components_register_node(gaia_library
   PLUGIN "gaia_logic"
-  EXECUTABLE gaia_logic)
+  EXECUTABLE gaia_logic
+)
 
 target_include_directories(gaia_library PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
+  $<INSTALL_INTERFACE:include>
+)
 
 rosidl_target_interfaces(gaia_library
-  ${PROJECT_NAME} "rosidl_typesupport_cpp")
+  ${PROJECT_NAME} "rosidl_typesupport_cpp"
+)
 # end node setup
 
 install(TARGETS
