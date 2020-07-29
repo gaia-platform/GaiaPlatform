@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <cstdlib>
+#include <thread>
 
 #include "gtest/gtest.h"
 #include "gaia_addr_book.h"
@@ -167,13 +168,13 @@ TEST_F(gaia_object_test, new_del_field_ref) {
 }
 
 // Attempt to update a row with a new writer.
-// This test doesn't make sense any more since you can't create a new employee
+// This test doesn't make sense any more since you can't create a new employee_t
 // object but only a new writer.
 
 /*
 TEST_F(gaia_object_test, new_upd_field) {
     begin_transaction();
-    auto writer = Employee_writer();
+    auto writer = employee_writer();
     EXPECT_THROW(employee_t::update_row(writer), invalid_node_id);
     commit_transaction();
 }
@@ -428,7 +429,7 @@ TEST_F(gaia_object_test, no_tx) {
 
 // Simplified model doesn't allow this because you
 // you cannot create a new employee_t() and the
-// employee_t::writer method returns an Employee_writer
+// employee_t::writer method returns an employee_writer
 // not an employee_t object.  The update and delete
 // methods require a reference to an employee_t object
 // and not a writer object.  The insert method
@@ -439,7 +440,7 @@ TEST_F(gaia_object_test, no_tx) {
 // Attempt to update an un-inserted object
 TEST_F(gaia_object_test, new_upd) {
     begin_transaction();
-    auto emp = Employee_writer();
+    auto emp = employee_writer();
     emp->set_name_first("Judith");
     EXPECT_THROW(emp->update_row(), invalid_node_id);
     //employee_t* emp2 = new employee_t(0);
@@ -450,7 +451,7 @@ TEST_F(gaia_object_test, new_upd) {
 // Delete an un-inserted object
 TEST_F(gaia_object_test, new_del) {
     begin_transaction();
-    auto e = Employee_writer();
+    auto e = employee_writer();
     EXPECT_THROW(e.delete_row(), invalid_node_id);
     commit_transaction();
 }
@@ -468,7 +469,7 @@ TEST_F(gaia_object_test, new_del_del) {
 }
 
 // Simplified model doesn't allow this scenario because
-// Employee_writer() returns a writer and not an employee_t()
+// employee_writer() returns a writer and not an employee_t()
 // object.
 
 // Perform get_next() without a preceeding get_first()
@@ -480,7 +481,7 @@ TEST_F(gaia_object_test, next_first) {
     auto e3 = get_field("Hank");
     auto e_test = e2->get_next();
     EXPECT_TRUE(e_test == e1 || e_test == e3 || e_test == nullptr);
-    auto e4 = Employee_writer();
+    auto e4 = employee_writer();
     // In this case, the row doesn't exist yet.
     e4->set_name_first("Hector");
     EXPECT_EQ(nullptr, e4->get_next());
@@ -543,34 +544,6 @@ TEST_F(gaia_object_test, auto_tx_rollback) {
     EXPECT_FALSE(e);
 }
 
-void another_thread(bool new_thread)
-{
-    if (new_thread) {
-        begin_session();
-    }
-    begin_transaction();
-    for (auto e = employee_t::get_first(); e ; e =e.get_next())
-    {
-        EXPECT_TRUE(nullptr != e.name_first());
-    }
-    commit_transaction();
-    if (new_thread)
-    {
-        end_session();
-    }
-}
-
-#include <thread>
-TEST_F(gaia_object_test, thread_test) {
-    begin_transaction();
-    employee_t::insert_row("Thread", "Master", "555-55-5555", 1234, "tid@tid.com", "www.thread.com");
-    commit_transaction();
-    // Run on this thread.
-    another_thread(false);
-    // Now spawn and run on another thread;
-    thread t = thread(another_thread, true);
-    t.join();
-}
 
 TEST_F(gaia_object_test, writer_value_ref) {
     begin_transaction();
@@ -590,3 +563,228 @@ TEST_F(gaia_object_test, writer_value_ref) {
     EXPECT_STREQ(e.ssn(), "987654321");
     commit_transaction();
 }
+
+const char* g_insert = "insert_thread";
+gaia_id_t g_inserted_id = INVALID_GAIA_ID;
+void insert_thread(bool new_thread)
+{
+    if (new_thread) { begin_session(); }
+
+    begin_transaction();
+    {
+        g_inserted_id = employee_t::insert_row(g_insert, nullptr, nullptr, 0, nullptr, nullptr);
+    }
+    commit_transaction();
+
+    if (new_thread) { end_session(); }
+}
+
+const char* g_update = "update_thread";
+void update_thread(gaia_id_t id)
+{
+    begin_session();
+    begin_transaction();
+    {
+        employee_t e = employee_t::get(id);
+        employee_writer w = e.writer();
+        w.name_first = g_update;
+        w.update_row();
+    }
+    commit_transaction();
+    end_session();
+}
+
+void delete_thread(gaia_id_t id)
+{
+    begin_session();
+    begin_transaction();
+    {
+        employee_t::delete_row(id);
+    }
+    commit_transaction();
+    end_session();
+}
+
+TEST_F(gaia_object_test, thread_insert) {
+    // Insert a record in another thread and verify
+    // we can see it here.
+    thread t = thread(insert_thread, true);
+    t.join();
+    begin_transaction();
+    {
+        employee_t e = employee_t::get(g_inserted_id);
+        EXPECT_STREQ(e.name_first(), g_insert);
+    }
+    commit_transaction();
+}
+
+TEST_F(gaia_object_test, thread_update) {
+    // Update a record in another thread and verify
+    // we can see it here.
+    insert_thread(false);
+
+    begin_transaction();
+    employee_t e = employee_t::get(g_inserted_id);
+    EXPECT_STREQ(e.name_first(), g_insert);
+
+    // Update the same record in a different transaction and commit.
+    thread t = thread(update_thread, g_inserted_id);
+    t.join();
+
+    // The change should not be visible in our transaction
+    EXPECT_STREQ(e.name_first(), g_insert);
+    commit_transaction();
+
+    begin_transaction();
+    {
+        // now we should have the new value
+        EXPECT_STREQ(e.name_first(), g_update);
+    }
+    commit_transaction();
+}
+
+TEST_F(gaia_object_test, thread_update_conflict) {
+    insert_thread(false);
+
+    begin_transaction();
+    {
+        // Update the same record in a different transaction and commit
+        thread t = thread(update_thread, g_inserted_id);
+        t.join();
+
+        employee_writer w = employee_t::get(g_inserted_id).writer();
+        w.name_first = "Violation";
+        w.update_row();
+
+    }
+    // Expect a concurrency violation here, but for now commit_transaction is
+    // returning false.
+    // EXPECT_THROW(commit_transaction, tx_update_conflict);
+    EXPECT_FALSE(commit_transaction());
+
+    begin_transaction();
+    {
+        // Actual value here is g_update, which shows that my update never
+        // went through.
+        EXPECT_STREQ(employee_t::get(g_inserted_id).name_first(), g_update);
+    }
+    commit_transaction();
+}
+
+TEST_F(gaia_object_test, thread_update_other_row) {
+    gaia_id_t row1_id = 0;
+    gaia_id_t row2_id = 0;
+
+    begin_transaction();
+    {
+        row1_id = employee_t::insert_row(g_insert, nullptr, nullptr, 0, nullptr, nullptr);
+        row2_id = employee_t::insert_row(g_insert, nullptr, nullptr, 0, nullptr, nullptr);
+    }
+    commit_transaction();
+
+    begin_transaction();
+    {
+        // Update the same record in a different transaction and commit
+        thread t = thread(update_thread, row1_id);
+        t.join();
+
+        employee_writer w = employee_t::get(row2_id).writer();
+        w.name_first = "No Violation";
+        w.update_row();
+    }
+    EXPECT_TRUE(commit_transaction());
+
+    begin_transaction();
+    {
+        // Row 1 should have been updated by the update thread.
+        // Row 2 should have been updated by this thread.
+        EXPECT_STREQ(employee_t::get(row1_id).name_first(), g_update);
+        EXPECT_STREQ(employee_t::get(row2_id).name_first(), "No Violation");
+    }
+    commit_transaction();
+}
+
+TEST_F(gaia_object_test, thread_delete) {
+    // update a record in another thread and verify
+    // we can see it
+    insert_thread(false);
+    begin_transaction();
+    {
+        // Delete the record we just inserted
+        thread t = thread(delete_thread, g_inserted_id);
+        t.join();
+
+        // The change should not be visible in our transaction and
+        // we should be able to access the record just fine.
+        EXPECT_STREQ(employee_t::get(g_inserted_id).name_first(), g_insert);
+    }
+    commit_transaction();
+
+    begin_transaction();
+    {
+        // Now this should fail.
+        EXPECT_THROW(employee_t::get(g_inserted_id).name_first(), invalid_node_id);
+    }
+    commit_transaction();
+}
+
+TEST_F(gaia_object_test, thread_insert_update_delete) {
+    // Do three concurrent operations and make sure we see are isolated from them
+    // and then do see them in a subsequent transaction.
+    const char* local = "My Insert";
+    gaia_id_t row1_id = 0;
+    gaia_id_t row2_id = 0;
+
+    begin_transaction();
+    {
+        row1_id = employee_t::insert_row(local, nullptr, nullptr, 0, nullptr, nullptr);
+        row2_id = employee_t::insert_row("Red Shirt", nullptr, nullptr, 0, nullptr, nullptr);
+    }
+    commit_transaction();
+
+    begin_transaction();
+    {
+        thread t1 = thread(delete_thread, row2_id);
+        thread t2 = thread(insert_thread, true);
+        thread t3 = thread(update_thread, row1_id);
+        t1.join();
+        t2.join();
+        t3.join();
+        EXPECT_STREQ(employee_t::get(row1_id).name_first(), local);
+        EXPECT_STREQ(employee_t::get(row2_id).name_first(), "Red Shirt");
+    }
+    commit_transaction();
+
+    begin_transaction();
+    {
+        // Deleted row2.
+        EXPECT_THROW(employee_t::get(row2_id).name_first(), invalid_node_id);
+        // Inserted a new row
+        EXPECT_STREQ(employee_t::get(g_inserted_id).name_first(), g_insert);
+        // Updated row1.
+        EXPECT_STREQ(employee_t::get(row1_id).name_first(), g_update);
+    }
+    commit_transaction();
+};
+
+TEST_F(gaia_object_test, thread_delete_conflict) {
+    // Have two threads delete the same row.
+    insert_thread(false);
+    begin_transaction();
+    {
+        employee_t::delete_row(g_inserted_id);
+        thread t1 = thread(delete_thread, g_inserted_id);
+        t1.join();
+    }
+    // Expect a concurrency violation here, but for now commit_transaction is
+    // returning false.
+    // EXPECT_THROW(commit_transaction, tx_update_conflict);
+    EXPECT_FALSE(commit_transaction());
+
+    begin_transaction();
+    {
+        // Expect the row to be deleted so another attempt to delete should fail.
+        EXPECT_THROW(employee_t::delete_row(g_inserted_id), invalid_node_id);
+    }
+    commit_transaction();
+};
