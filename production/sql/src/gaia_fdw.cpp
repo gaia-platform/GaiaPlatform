@@ -808,7 +808,10 @@ extern "C" TupleTableSlot *gaia_exec_foreign_delete(
     assert(!is_null);
     uint64_t gaia_id = DatumGetUInt64(pk_val);
 
-    fdw_adapter->delete_record(gaia_id);
+    if (!fdw_adapter->delete_record(gaia_id))
+    {
+        return_slot = NULL;
+    }
 
     return return_slot;
 }
