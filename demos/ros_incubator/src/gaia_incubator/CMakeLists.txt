@@ -16,8 +16,8 @@ add_compile_options(-Wall -Wextra -Wpedantic)
 # FIXME: until gaia.cmake is installed to the cmake modules path,
 # these harcoded paths are for the convenience of calling colcon without
 # passing in cmake arguments.
-set(GAIA_REPO "/source")
-set(GAIA_BUILD_DIR "/build")
+set(GAIA_REPO "$ENV{GAIA_REPO}")
+set(GAIA_BUILD_DIR "$ENV{GAIA_BUILD_DIR}")
 
 set(CMAKE_MODULE_PATH "${GAIA_REPO}/production/cmake;${CMAKE_MODULE_PATH}")
 include(gaia)
