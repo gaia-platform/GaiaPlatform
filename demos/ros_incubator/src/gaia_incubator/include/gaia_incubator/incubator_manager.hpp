@@ -14,7 +14,7 @@
 #include "rclcpp_components/register_node_macro.hpp"
 
 #include "gaia_incubator/msg/temp.hpp"
-#include "gaia_incubator/msg/fan_state.hpp"
+#include "gaia_incubator/msg/fan_speed.hpp"
 #include "gaia_incubator/msg/add_incubator.hpp"
 #include "gaia_incubator/msg/add_sensor.hpp"
 #include "gaia_incubator/msg/add_fan.hpp"
@@ -29,24 +29,11 @@ public:
     incubator_manager(const NodeOptions& options);
 
 private:
-    const float c_publish_temp_rate = 1.0;
-    const float c_update_state_rate = 0.1;
-
-    const float c_fan_acceleration = 500.0;
-    const float c_fan_max_speed = 3500.0;
-    const float c_fan_high_speed = 3000.0;
-    const float c_fan_low_speed = 1000.0;
-
-    const float c_temp_change_initial = 0.01;
-    const float c_temp_change_high_fan_speed = 0.03;
-    const float c_temp_change_low_fan_speed = 0.02;
-
-
     void update_state();
 
     void publish_temp();
 
-    void set_fan_state(const msg::FanState::SharedPtr msg);
+    void set_fan_speed(const msg::FanSpeed::SharedPtr msg);
 
     void add_incubator(const msg::AddIncubator::SharedPtr msg);
     void add_sensor(const msg::AddSensor::SharedPtr msg);
@@ -56,7 +43,7 @@ private:
 
     Publisher<msg::Temp>::SharedPtr m_pub_temp;
 
-    Subscription<msg::FanState>::SharedPtr m_sub_fan_state;
+    Subscription<msg::FanSpeed>::SharedPtr m_sub_fan_speed;
     Subscription<msg::AddIncubator>::SharedPtr m_sub_add_incubator;
     Subscription<msg::AddSensor>::SharedPtr m_sub_add_sensor;
     Subscription<msg::AddFan>::SharedPtr m_sub_add_fan;
@@ -67,7 +54,6 @@ private:
     struct fan_t
     {
         float speed = 0.0;
-        bool is_on = false;
     };
 
     struct incubator_t
@@ -82,7 +68,7 @@ private:
     };
 
     // Incubators are identified by their gaia_id, which is the uint32_t.
-    map<ulong, incubator_t> m_incubators;
+    map<uint32_t, incubator_t> m_incubators;
     mutex m_incubators_mutex;
 };
 

@@ -21,4 +21,5 @@ table sensor_data {
 table fan {
       incubator_id: ulong;
       name: string;
+      speed: float;
 }

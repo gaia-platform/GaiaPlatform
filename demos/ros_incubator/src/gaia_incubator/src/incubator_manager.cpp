@@ -8,6 +8,9 @@
 #include <functional>
 
 #include "gaia_incubator/incubator_manager.hpp"
+#include "gaia_incubator/demo_constants.hpp"
+
+using namespace demo_constants;
 
 incubator_manager::incubator_manager(const NodeOptions& options)
 : Node("incubator_manager", options)
@@ -21,22 +24,22 @@ incubator_manager::incubator_manager(const NodeOptions& options)
     using namespace chrono_literals;
     using std::placeholders::_1;
 
-    m_pub_temp = this->create_publisher<msg::Temp>("temp", SensorDataQoS());
+    m_pub_temp = this->create_publisher<msg::Temp>("temp", ParametersQoS());
 
-    m_sub_fan_state = this->create_subscription<msg::FanState>(
-        "fan_state", SystemDefaultsQoS(), std::bind(
-            &incubator_manager::set_fan_state, this, _1));
+    m_sub_fan_speed = this->create_subscription<msg::FanSpeed>(
+        "fan_speed", ParametersQoS(), std::bind(
+            &incubator_manager::set_fan_speed, this, _1));
 
     m_sub_add_incubator = this->create_subscription<msg::AddIncubator>(
-        "add_incubator", SystemDefaultsQoS(), std::bind(
+        "add_incubator", ParametersQoS(), std::bind(
             &incubator_manager::add_incubator, this, _1));
 
     m_sub_add_sensor = this->create_subscription<msg::AddSensor>(
-        "add_sensor", SystemDefaultsQoS(), std::bind(
+        "add_sensor", ParametersQoS(), std::bind(
             &incubator_manager::add_sensor, this, _1));
 
     m_sub_add_fan = this->create_subscription<msg::AddFan>(
-        "add_fan", SystemDefaultsQoS(), std::bind(
+        "add_fan", ParametersQoS(), std::bind(
             &incubator_manager::add_fan, this, _1));
 
     m_sensor_reading_timer = this->create_wall_timer(
@@ -60,20 +63,6 @@ void incubator_manager::update_state() {
         for (auto& fan_pair : incubator.fans)
         {
             fan_t& fan = fan_pair.second;
-
-            // Calculate the new fan speed.
-            if (fan.is_on)
-            {
-                fan.speed = min(c_fan_max_speed,
-                    c_fan_acceleration * c_update_state_rate
-                    + fan.speed);
-            }
-            else
-            {
-                fan.speed = max((float) 0.0,
-                    c_fan_acceleration * c_update_state_rate
-                    - fan.speed);
-            }
 
             // Calculate the temperature change for the current fan.
             if (fan.speed > c_fan_high_speed)
@@ -113,7 +102,7 @@ void incubator_manager::publish_temp()
     }
 }
 
-void incubator_manager::set_fan_state(const msg::FanState::SharedPtr msg)
+void incubator_manager::set_fan_speed(const msg::FanSpeed::SharedPtr msg)
 {
     lock_guard<mutex> incubators_lock(m_incubators_mutex);
     const auto incubator_iter = m_incubators.find(msg->incubator_id);
@@ -139,10 +128,10 @@ void incubator_manager::set_fan_state(const msg::FanState::SharedPtr msg)
         else
         {
             fan_t& fan = fan_iter->second;
-            fan.is_on = msg->fan_on;
+            fan.speed = msg->speed;
 
-            const char* fan_on = msg->fan_on ? "ON" : "OFF";
-            printf("%s %s\n", msg->fan_name.c_str(), fan_on);
+            printf("%s set to speed %.1f\n",
+                msg->fan_name.c_str(), fan.speed);
             fflush(stdout);
         }
     }
