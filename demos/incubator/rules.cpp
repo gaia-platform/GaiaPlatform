@@ -39,9 +39,9 @@ void on_sensor_changed(const rule_context_t *context) {
 
 void add_fan_control_rule() {
     try {
-        rule_binding_t fan_control("incubator_ruleset", "rule-sensor_changed", 
+        rule_binding_t fan_control("incubator_ruleset", "rule-sensor_changed",
             incubator_ruleset::on_sensor_changed);
-        subscribe_rule(Sensor::s_gaia_type, event_type_t::row_update, 
+        subscribe_rule(Sensor::s_gaia_type, event_type_t::row_update,
             empty_fields, fan_control);
     } catch (duplicate_rule) {
         printf("The rule has already been added.\n");

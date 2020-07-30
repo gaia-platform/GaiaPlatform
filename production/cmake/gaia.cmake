@@ -82,6 +82,7 @@ function(gaia_gen_rule_subscriptions INPUT_FILE GEN_OUTPUT INCLUDES)
     COMMAND "${GAIA_DEMO_BUILD}/tools/rule_subscriber/rule_subscriber"
       ${INPUT_FILE}
       -output=${GEN_OUTPUT}
+      -v
       -- ${INCLUDE_ARGS}
       DEPENDS ${GAIA_DEMO_BUILD}/tools/rule_subscriber/rule_subscriber
       DEPENDS ${INPUT_FILE}

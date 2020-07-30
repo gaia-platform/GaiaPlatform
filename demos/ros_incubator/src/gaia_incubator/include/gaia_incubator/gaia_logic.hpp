@@ -9,6 +9,7 @@
 #include "rclcpp_components/register_node_macro.hpp"
 
 #include "gaia_incubator/msg/temp.hpp"
+#include "gaia_incubator/msg/fan_speed.hpp"
 #include "gaia_incubator/msg/add_incubator.hpp"
 #include "gaia_incubator/msg/add_sensor.hpp"
 #include "gaia_incubator/msg/add_fan.hpp"
@@ -27,15 +28,7 @@ private:
 
     void shutdown_callback();
 
-    void setup_incubators();
-
-    // This is an unused function. It is only here to make sure the
-    // Gaia dependencies were properly linked.
-    void init_storage();
-
-    Publisher<msg::AddIncubator>::SharedPtr m_pub_add_incubator;
-    Publisher<msg::AddSensor>::SharedPtr m_pub_add_sensor;
-    Publisher<msg::AddFan>::SharedPtr m_pub_add_fan;
+    void setup_devices();
 
     Subscription<msg::Temp>::SharedPtr m_sub_temp;
 };
