@@ -5,8 +5,6 @@
 
 #include "gaia_fdw.hpp"
 
-#include <fstream>
-
 #include "array_size.hpp"
 #include "gaia_fdw_adapter.hpp"
 
@@ -333,6 +331,7 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState *node, int eflags) {
         // User attributes are indexed starting from 1.
         // AttrNumber attnum = i + 1.
         char *attr_name = NameStr(TupleDescAttr(tupleDesc, i)->attname);
+
         fdw_adapter->set_accessor_index(attr_name, (size_t)i);
     }
 
@@ -470,7 +469,7 @@ extern "C" void gaia_add_foreign_update_targets(
         char *attr_name = NameStr(attr->attname);
 
         // If primary key, add a resjunk for this column.
-        if (strcmp("gaia_id", attr_name) == 0) {
+        if (strcmp(c_gaia_id, attr_name) == 0) {
             key_found = true;
 
             // Make a Var representing the desired value.
@@ -548,7 +547,7 @@ extern "C" List *gaia_plan_foreign_modify(
             }
 
             char *attr_name = NameStr(TupleDescAttr(tupleDesc, attno - 1)->attname);
-            if (strcmp(attr_name, "gaia_id") == 0) {
+            if (strcmp(attr_name, c_gaia_id) == 0) {
                 ereport(ERROR,
                     (errcode(ERRCODE_FDW_INVALID_COLUMN_NAME),
                     errmsg("Cannot insert into or update system column gaia_id.")));
@@ -592,94 +591,29 @@ extern "C" void gaia_begin_foreign_modify(
     // during executor startup.
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    TupleDesc tupleDesc = rinfo->ri_RelationDesc->rd_att;
     RangeTblEntry *rte
         = exec_rt_fetch(rinfo->ri_RangeTableIndex, mtstate->ps.state);
     char *table_name = get_rel_name(rte->relid);
+    TupleDesc tupleDesc = rinfo->ri_RelationDesc->rd_att;
 
-    gaia_fdw_modify_state_t *modify_state
-        = (gaia_fdw_modify_state_t *)palloc0(sizeof(gaia_fdw_modify_state_t));
-
-    // Set invalid values.
-    modify_state->pk_attr_idx = -1;
-
-    relation_attribute_mapping_t mapping;
-    if (strcmp(table_name, "airports") == 0) {
-        mapping = c_airport_mapping;
-    } else if (strcmp(table_name, "airlines") == 0) {
-        mapping = c_airline_mapping;
-    } else if (strcmp(table_name, "routes") == 0) {
-        mapping = c_route_mapping;
-    } else if (strcmp(table_name, "event_log") == 0) {
-        mapping = c_event_log_mapping;
-    } else {
+    gaia_fdw_adapter_t *fdw_adapter = gaia_fdw_adapter_t::get_table_adapter(
+        adapter_state_t::modify, table_name, (size_t)tupleDesc->natts);
+    if (fdw_adapter == nullptr) {
         elog(ERROR, "Unknown table name '%s'.", table_name);
     }
-
-    modify_state->gaia_type_id = mapping.gaia_type_id;
-    modify_state->initializer = mapping.initializer;
-    modify_state->finalizer = mapping.finalizer;
-
-    flatcc_builder_init(&modify_state->builder);
-
-    assert((size_t)tupleDesc->natts == mapping.attribute_count);
-    // flatbuffer accessor functions indexed by attrnum.
-    attribute_builder_fn *indexed_builders = (attribute_builder_fn *)palloc0(
-        sizeof(attribute_builder_fn) * tupleDesc->natts);
 
     // Set up mapping of attnos to flatbuffer attribute builder functions.
     for (int i = 0; i < tupleDesc->natts; i++) {
         // User attributes are indexed starting from 1.
         // AttrNumber attnum = i + 1.
         char *attr_name = NameStr(TupleDescAttr(tupleDesc, i)->attname);
-        if (strcmp(attr_name, "gaia_id") == 0) {
-            modify_state->pk_attr_idx = i;
-        }
 
-        for (size_t j = 0; j < mapping.attribute_count; j++) {
-            if (strcmp(attr_name, mapping.attributes[j].name) == 0) {
-                indexed_builders[i] = mapping.attributes[j].builder;
-                break;
-            }
-        }
+        fdw_adapter->set_accessor_index(attr_name, (size_t)i);
     }
 
-    modify_state->indexed_builders = indexed_builders;
-
-    rinfo->ri_FdwState = modify_state;
-
-    // Check invariants.
-    assert(modify_state->pk_attr_idx > -1);
+    rinfo->ri_FdwState = fdw_adapter;
 
     begin_gaia_txn();
-}
-
-// Generate random gaia_id for INSERTs using /dev/urandom.
-// NB: because this is a 64-bit value, we will expect collisions
-// as the number of generated keys approaches 2^32! This is just
-// a temporary hack until the gaia_id type becomes a 128-bit GUID.
-static uint64_t new_gaia_id() {
-    ifstream urandom("/dev/urandom", ios::in | ios::binary);
-
-    if (urandom) {
-        uint64_t rand_val;
-        urandom.read(reinterpret_cast<char *>(&rand_val), sizeof(rand_val));
-
-        if (urandom) {
-            // Generating 0 should be statistically impossible.
-            assert(rand_val != 0);
-            return rand_val;
-        } else {
-            elog(ERROR, "Failed to read from /dev/urandom.");
-        }
-    } else {
-        elog(ERROR, "Failed to open /dev/urandom.");
-    }
-
-    // Should never get here (because elog(ERROR) calls longjmp).
-    assert(false);
-
-    return 0;
 }
 
 extern "C" TupleTableSlot *gaia_exec_foreign_insert(
@@ -712,37 +646,35 @@ extern "C" TupleTableSlot *gaia_exec_foreign_insert(
     // into the foreign table will fail with an error message.
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    gaia_fdw_modify_state_t *modify_state = (gaia_fdw_modify_state_t *)rinfo->ri_FdwState;
-    flatcc_builder_t *builder = &modify_state->builder;
-    modify_state->initializer(builder);
+    gaia_fdw_adapter_t *fdw_adapter = (gaia_fdw_adapter_t *)rinfo->ri_FdwState;
+
+    fdw_adapter->initialize_modify();
 
     // NB: we assume 0 is a valid sentinel value, i.e., it can never be a
     // system-generated gaia_id. This is true for our internal implementation,
     // but also needs to hold for all other implementations (until the storage
     // engine itself starts generating gaia_ids).
     uint64_t gaia_id = 0;
-    uint64_t gaia_src_id = 0;
-    uint64_t gaia_dst_id = 0;
 
     // slot_getallattrs() is necessary beginning in Postgres 12 (the slot will
     // be empty!).
     // TODO: use slot_getattr()?
     slot_getallattrs(slot);
     for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; attr_idx++) {
-        char *attr_name = NameStr(
-            TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->attname);
-
-        attribute_builder_fn attr_builder = modify_state->indexed_builders[attr_idx];
+        // char *attr_name = NameStr(
+        //     TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->attname);
 
         // We don't allow gaia_id to be set by an INSERT or UPDATE statement
         // (this should have already been checked in gaia_plan_foreign_modify), and
         // the storage engine doesn't yet generate gaia_ids, so we generate a
         // random gaia_id ourselves.
         Datum attr_val;
-        if (attr_idx == modify_state->pk_attr_idx) {
+        if (fdw_adapter->is_gaia_id_field_index((size_t)attr_idx)) {
             assert(slot->tts_isnull[attr_idx]);
-            gaia_id = new_gaia_id();
+
+            gaia_id = gaia_fdw_adapter_t::get_new_gaia_id();
             attr_val = UInt64GetDatum(gaia_id);
+
             slot->tts_isnull[attr_idx] = false;
         } else if (!(slot->tts_isnull[attr_idx])) {
             attr_val = slot->tts_values[attr_idx];
@@ -750,26 +682,13 @@ extern "C" TupleTableSlot *gaia_exec_foreign_insert(
 
         // If we have a null value, just don't bother to set it in the builder.
         if (!slot->tts_isnull[attr_idx]) {
-            attr_builder(builder, attr_val);
+            fdw_adapter->set_field_value(attr_idx, attr_val);
         }
     }
 
     assert(gaia_id);
 
-    modify_state->finalizer(builder);
-
-    size_t size;
-    const void *buffer = flatcc_builder_get_direct_buffer(builder, &size);
-
-    try {
-        gaia_ptr::create(gaia_id, modify_state->gaia_type_id, size, buffer);
-    } catch (const std::exception &e) {
-        ereport(ERROR,
-            (errcode(ERRCODE_FDW_ERROR),
-            errmsg("Error creating gaia object."), errhint(e.what())));
-    }
-
-    flatcc_builder_reset(builder);
+    fdw_adapter->insert_record(gaia_id);
 
     return slot;
 }
@@ -804,9 +723,9 @@ extern "C" TupleTableSlot *gaia_exec_foreign_update(
     // foreign table will fail with an error message.
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    gaia_fdw_modify_state_t *modify_state = (gaia_fdw_modify_state_t *)rinfo->ri_FdwState;
-    flatcc_builder_t *builder = &modify_state->builder;
-    modify_state->initializer(builder);
+    gaia_fdw_adapter_t *fdw_adapter = (gaia_fdw_adapter_t *)rinfo->ri_FdwState;
+
+    fdw_adapter->initialize_modify();
 
     // NB: we assume 0 is a valid sentinel value, i.e., it can never be a
     // system-generated gaia_id. This is true for our internal implementation,
@@ -820,37 +739,20 @@ extern "C" TupleTableSlot *gaia_exec_foreign_update(
     slot_getallattrs(slot);
     for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; attr_idx++) {
         if (!(slot->tts_isnull[attr_idx])) {
-            attribute_builder_fn attr_builder
-                = modify_state->indexed_builders[attr_idx];
-
             Datum attr_val = slot->tts_values[attr_idx];
-            if (attr_idx == modify_state->pk_attr_idx) {
+
+            if (fdw_adapter->is_gaia_id_field_index((size_t)attr_idx)) {
                 gaia_id = DatumGetUInt64(attr_val);
             }
 
-            attr_builder(builder, attr_val);
+            fdw_adapter->set_field_value(attr_idx, attr_val);
         }
     }
 
     // We must have found a valid (i.e., nonzero) gaia_id attribute value.
     assert(gaia_id);
 
-    modify_state->finalizer(builder);
-
-    size_t size;
-    const void *buffer = flatcc_builder_get_direct_buffer(builder, &size);
-
-    try {
-        auto node = gaia_ptr::open(gaia_id);
-        node.update_payload(size, buffer);
-    } catch (const std::exception &e) {
-        ereport(ERROR,
-            (errcode(ERRCODE_FDW_ERROR),
-            errmsg("Error updating gaia object."),
-            errhint(e.what())));
-    }
-
-    flatcc_builder_reset(builder);
+    fdw_adapter->update_record(gaia_id);
 
     return slot;
 }
@@ -885,7 +787,9 @@ extern "C" TupleTableSlot *gaia_exec_foreign_delete(
     elog(DEBUG1, "Entering function %s...", __func__);
 
     TupleTableSlot *return_slot = slot;
-    gaia_fdw_modify_state_t *modify_state = (gaia_fdw_modify_state_t *)rinfo->ri_FdwState;
+
+    gaia_fdw_adapter_t *fdw_adapter = (gaia_fdw_adapter_t *)rinfo->ri_FdwState;
+
     // Relation rel = rinfo->ri_RelationDesc;
     // Oid foreignTableId = RelationGetRelid(rel);
 
@@ -897,29 +801,14 @@ extern "C" TupleTableSlot *gaia_exec_foreign_delete(
     Form_pg_attribute attr = TupleDescAttr(tupleDesc, 0);
     AttrNumber attnum = attr->attnum;
     char *attr_name = NameStr(attr->attname);
-    assert(strcmp("gaia_id", attr_name) == 0);
+    assert(strcmp(c_gaia_id, attr_name) == 0);
 
     bool is_null;
     Datum pk_val = slot_getattr(plan_slot, attnum, &is_null);
     assert(!is_null);
     uint64_t gaia_id = DatumGetUInt64(pk_val);
 
-    try {
-        modify_state->target_node = gaia_ptr::open(gaia_id);
-
-        if (modify_state->target_node) {
-            elog(DEBUG1, "Calling remove() on node for gaia_id %d.",
-                gaia_id);
-            gaia_ptr::remove(modify_state->target_node);
-        } else {
-            elog(DEBUG1, "Node for gaia_id %d is invalid.", gaia_id);
-            return_slot = NULL;
-        }
-    } catch (const std::exception &e) {
-        ereport(ERROR,
-            (errcode(ERRCODE_FDW_ERROR),
-            errmsg("Error deleting gaia object."), errhint(e.what())));
-    }
+    fdw_adapter->delete_record(gaia_id);
 
     return return_slot;
 }
@@ -933,9 +822,9 @@ extern "C" void gaia_end_foreign_modify(EState *estate, ResultRelInfo *rinfo) {
     // during executor shutdown.
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    gaia_fdw_modify_state_t *modify_state = (gaia_fdw_modify_state_t *)rinfo->ri_FdwState;
+    gaia_fdw_adapter_t *fdw_adapter = (gaia_fdw_adapter_t *)rinfo->ri_FdwState;
 
-    flatcc_builder_clear(&modify_state->builder);
+    fdw_adapter->finalize_modify();
 
     // For DELETE, this seems to always be called before EndForeignScan.
     commit_gaia_txn();
@@ -1219,32 +1108,7 @@ extern "C" List *gaia_import_foreign_schema(
     ForeignServer *server = GetForeignServer(server_oid);
     const char *server_name = server->servername;
 
-    List *commands = NIL;
-    const char *ddl_stmt_fmts[] = {
-        c_airport_ddl_stmt_fmt,
-        c_airline_ddl_stmt_fmt,
-        c_route_ddl_stmt_fmt,
-        c_event_log_ddl_stmt_fmt,
-    };
-
-    for (size_t i = 0; i < array_size(ddl_stmt_fmts); i++) {
-        // Length of format string + length of server name - 2 chars for format
-        // specifier + 1 char for null terminator.
-        size_t stmt_len = strlen(ddl_stmt_fmts[i]) + strlen(server_name) - 2 + 1;
-        char *stmt_buf = (char *)palloc(stmt_len);
-
-        // sprintf returns number of chars written, not including null
-        // terminator.
-        if (sprintf(stmt_buf, ddl_stmt_fmts[i], server_name)
-            != (int)(stmt_len - 1)) {
-            elog(ERROR, "Failed to format statement '%s' with server name '%s'.",
-                ddl_stmt_fmts[i], server_name);
-        }
-
-        commands = lappend(commands, stmt_buf);
-    }
-
-    return commands;
+    return gaia_fdw_adapter_t::get_ddl_command_list(server_name);
 }
 
 // Perform all module-level initialization here.

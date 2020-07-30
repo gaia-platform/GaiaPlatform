@@ -8,7 +8,8 @@
 // Valid options for gaia_fdw.
 const gaia_fdw_option_t valid_options[] = {
     // Sentinel.
-    {NULL, InvalidOid, NULL}};
+    {NULL, InvalidOid, NULL}
+};
 
 Datum flatbuffers_string_to_text_datum(flatbuffers_string_t str) {
     size_t str_len = flatbuffers_string_len(str);

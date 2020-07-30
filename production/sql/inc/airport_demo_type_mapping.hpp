@@ -13,7 +13,7 @@ extern "C" {
 #include "postgres.h"
 #include "utils/builtins.h"
 
-}  // extern "C"
+} // extern "C"
 
 // flatcc generated code.
 #include "airport_q1_reader.h"

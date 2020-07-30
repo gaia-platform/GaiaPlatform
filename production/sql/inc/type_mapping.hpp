@@ -9,12 +9,12 @@
 #include "gaia_db.hpp"
 #include "gaia_ptr.hpp"
 
-// All definitions in this file and included files should have C linkage.
+// All Postgres headers and function declarations must have C linkage.
 extern "C" {
 
 #include "postgres.h"
 
-}  // extern "C"
+} // extern "C"
 
 #include "flatbuffers_common_reader.h"
 #include "flatbuffers_common_builder.h"
@@ -100,9 +100,6 @@ typedef struct {
     int pk_attr_idx;
 
     gaia_type_t gaia_type_id;
-
-    // The COW-SE smart ptr that is the target of our update.
-    gaia::db::gaia_ptr target_node;
 } gaia_fdw_modify_state_t;
 
 // Valid options for gaia_fdw.

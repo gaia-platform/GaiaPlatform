@@ -176,4 +176,4 @@ void gaia_refetch_foreign_row(
     TupleTableSlot *slot,
     bool *updated);
 
-}  // extern "C"
+} // extern "C"

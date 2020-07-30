@@ -17,4 +17,4 @@ static const gaia_type_t c_routes_type = 3;
 static const gaia_type_t c_nodes_type = 4;
 static const gaia_type_t c_edges_type = 5;
 
-};  // namespace airport_demo_types
+}; // namespace airport_demo_types
