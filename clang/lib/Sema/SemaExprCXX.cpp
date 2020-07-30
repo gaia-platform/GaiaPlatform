@@ -3807,12 +3807,13 @@ Sema::PerformImplicitConversion(Expr *From, QualType ToType,
     }
 
     if (exp != nullptr)
-    {                    
+    {                  
         ValueDecl *decl = exp->getDecl();
-        if (decl->hasAttr<GaiaLastOperationAttr>() || 
+        if (!getCurScope()->isSwitchScope() && (decl->hasAttr<GaiaLastOperationAttr>() || 
             decl->hasAttr<GaiaLastOperationINSERTAttr>() ||
             decl->hasAttr<GaiaLastOperationUPDATEAttr>() ||
-            decl->hasAttr<GaiaLastOperationDELETEAttr>())
+            decl->hasAttr<GaiaLastOperationDELETEAttr>() ||
+            decl->hasAttr<GaiaLastOperationNONEAttr>()))
         {
             Diag(exp->getLocation(), diag::err_invalid_assignment_last_operation);
             return ExprError();

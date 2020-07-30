@@ -2094,6 +2094,13 @@ static void handleGaiaLastOperationDeleteAttr(Sema &S, Decl *D, const ParsedAttr
         AL.getAttributeSpellingListIndex()));
 }
 
+static void handleGaiaLastOperationNoneAttr(Sema &S, Decl *D, const ParsedAttr &AL)
+{
+    D->addAttr(::new (S.Context) GaiaLastOperationNONEAttr(
+        AL.getRange(), S.Context,
+        AL.getAttributeSpellingListIndex()));
+}
+
 static void handleGaiaFieldLValueAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
     D->addAttr(::new (S.Context) GaiaFieldLValueAttr(
@@ -7157,6 +7164,10 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
   case ParsedAttr::AT_FieldTable:
     handleFieldTableAttr(S, D, AL);
     break;
+  case ParsedAttr::AT_GaiaLastOperationNONE:
+    handleGaiaLastOperationNoneAttr(S, D, AL); 
+    break;
+
   }
 }
 

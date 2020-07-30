@@ -50,6 +50,7 @@ target_link_libraries(clang
   clangSerialization
   gaia_semock
   gaia_direct
+  explain
   )
   
 if(WIN32 AND NOT CYGWIN)
