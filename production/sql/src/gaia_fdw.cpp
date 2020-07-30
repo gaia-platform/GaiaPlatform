@@ -12,6 +12,7 @@
 
 using namespace std;
 using namespace gaia::db;
+using namespace gaia::fdw;
 
 // Magic block for extension library.
 extern "C" {
@@ -33,6 +34,8 @@ static bool is_gaia_txn_open() {
     return gaia_txn_ref_count > 0;
 }
 
+// TODO: Need to reimplement these methods and move them into FDW adapter,
+// but this is not a priority for now.
 static bool begin_gaia_txn() {
     elog(DEBUG1, "Opening COW-SE transaction...");
 
@@ -126,21 +129,6 @@ extern "C" Datum gaia_fdw_handler(PG_FUNCTION_ARGS) {
     routine->RefetchForeignRow = gaia_refetch_foreign_row;
 
     PG_RETURN_POINTER(routine);
-}
-
-// Check if the provided option is one of the valid options.
-// context is the Oid of the catalog holding the object the option is for.
-// If handler is registered for this option, invoke it.
-static bool is_valid_option(const char *option, const char *value, Oid context) {
-    const gaia_fdw_option_t *opt;
-    for (opt = valid_options; opt->name; opt++) {
-        if (context == opt->context && strcmp(opt->name, option) == 0) {
-            // Invoke option handler callback.
-            opt->handler(option, value, context);
-            return true;
-        }
-    }
-    return false;
 }
 
 // The validator function is responsible for validating options given in CREATE
@@ -247,21 +235,21 @@ extern "C" void gaia_get_foreign_paths(
     Cost total_cost = startup_cost + base_rel->rows;
 
     Path* foreign_scan_path = (Path *)create_foreignscan_path(
-            root,
-            base_rel,
-            // Default pathtarget.
-            NULL,
-            base_rel->rows,
-            startup_cost,
-            total_cost,
-            // No pathkeys.
-            NIL,
-            // No outer rel either.
-            NULL,
-            // No extra plan.
-            NULL,
-            // No per-path private info.
-            NULL);
+        root,
+        base_rel,
+        // Default pathtarget.
+        NULL,
+        base_rel->rows,
+        startup_cost,
+        total_cost,
+        // No pathkeys.
+        NIL,
+        // No outer rel either.
+        NULL,
+        // No extra plan.
+        NULL,
+        // No per-path private info.
+        NULL);
 
     // Create a ForeignPath node and add it as only possible path.
     add_path(base_rel, foreign_scan_path);
@@ -326,60 +314,38 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState *node, int eflags) {
     elog(DEBUG1, "Entering function %s...", __func__);
 
     ForeignScan *plan = (ForeignScan *)node->ss.ps.plan;
-    EState *estate = node->ss.ps.state;
     Index rtindex = plan->scan.scanrelid;
+    EState *estate = node->ss.ps.state;
     RangeTblEntry *rte = exec_rt_fetch(rtindex, estate);
     char *table_name = get_rel_name(rte->relid);
-
-    relation_attribute_mapping_t mapping;
-    if (strcmp(table_name, "airports") == 0) {
-        mapping = c_airport_mapping;
-    } else if (strcmp(table_name, "airlines") == 0) {
-        mapping = c_airline_mapping;
-    } else if (strcmp(table_name, "routes") == 0) {
-        mapping = c_route_mapping;
-    } else if (strcmp(table_name, "event_log") == 0) {
-        mapping = c_event_log_mapping;
-    } else {
-        elog(ERROR, "Unknown table name '%s'.", table_name);
-    }
 
     TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
     TupleDesc tupleDesc = slot->tts_tupleDescriptor;
 
-    assert((size_t)tupleDesc->natts == mapping.attribute_count);
-
-    // flatbuffer accessor functions indexed by attrnum.
-    attribute_accessor_fn *indexed_accessors = (attribute_accessor_fn *)palloc0(
-        sizeof(attribute_accessor_fn) * tupleDesc->natts);
+    gaia_fdw_adapter_t *fdw_adapter = gaia_fdw_adapter_t::get_table_adapter(
+        adapter_state_t::scan, table_name, (size_t)tupleDesc->natts);
+    if (fdw_adapter == nullptr) {
+        elog(ERROR, "Unknown table name '%s'.", table_name);
+    }
 
     // Set up mapping of attnos to flatbuffer accessor functions.
     for (int i = 0; i < tupleDesc->natts; i++) {
         // User attributes are indexed starting from 1.
         // AttrNumber attnum = i + 1.
         char *attr_name = NameStr(TupleDescAttr(tupleDesc, i)->attname);
-        for (size_t j = 0; j < mapping.attribute_count; j++) {
-            if (strcmp(attr_name, mapping.attributes[j].name) == 0) {
-                indexed_accessors[i] = mapping.attributes[j].accessor;
-                break;
-            }
-        }
+        fdw_adapter->set_accessor_index(attr_name, (size_t)i);
     }
 
-    gaia_fdw_scan_state_t *scan_state
-        = (gaia_fdw_scan_state_t *)palloc0(sizeof(gaia_fdw_scan_state_t));
-
-    scan_state->indexed_accessors = indexed_accessors;
-    scan_state->deserializer = mapping.deserializer;
-
-    node->fdw_state = scan_state;
+    node->fdw_state = fdw_adapter;
 
     // Begin read transaction.
     begin_gaia_txn();
 
     // Retrieve the first node of the requested type
     // (this can't currently throw).
-    scan_state->cur_node = gaia_ptr::find_first(mapping.gaia_type_id);
+    if (fdw_adapter->initialize_scan()) {
+        elog(ERROR, "Failed to scan initialization for table '%s'.", table_name);
+    }
 }
 
 extern "C" TupleTableSlot *gaia_iterate_foreign_scan(ForeignScanState *node) {
@@ -406,28 +372,23 @@ extern "C" TupleTableSlot *gaia_iterate_foreign_scan(ForeignScanState *node) {
     // (just as you would need to do in the case of a data type mismatch).
     // elog(DEBUG1, "Entering function %s...", __func__);
 
-    gaia_fdw_scan_state_t *scan_state = (gaia_fdw_scan_state_t *)node->fdw_state;
-    TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
+    gaia_fdw_adapter_t *fdw_adapter = (gaia_fdw_adapter_t *)node->fdw_state;
 
     // Return NULL if we reach the end of iteration.
-    if (!scan_state->cur_node) {
+    if (fdw_adapter->has_scan_ended()) {
         return NULL;
     }
 
     // Mark the slot empty.
+    TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
     ExecClearTuple(slot);
 
     // Get the next record, if any, and fill in the slot.
-    const void *obj_buf;
-    obj_buf = scan_state->cur_node.data();
-    const void *obj_root = scan_state->deserializer(obj_buf);
-
     for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; attr_idx++) {
-        char *attr_name = NameStr(
-            TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->attname);
+        // char *attr_name = NameStr(
+        //     TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->attname);
 
-        attribute_accessor_fn accessor = scan_state->indexed_accessors[attr_idx];
-        Datum attr_val = accessor(obj_root);
+        Datum attr_val = fdw_adapter->extract_field_value((size_t)attr_idx);
 
         slot->tts_values[attr_idx] = attr_val;
         slot->tts_isnull[attr_idx] = false;
@@ -438,7 +399,7 @@ extern "C" TupleTableSlot *gaia_iterate_foreign_scan(ForeignScanState *node) {
 
     // Now advance the current node to the next node in the iteration
     // (this can't currently throw).
-    scan_state->cur_node = scan_state->cur_node.find_next();
+    fdw_adapter->scan_forward();
 
     // Return the slot.
     return slot;
@@ -457,10 +418,10 @@ extern "C" void gaia_end_foreign_scan(ForeignScanState *node) {
     // remote servers should be cleaned up.
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    gaia_fdw_scan_state_t *scan_state = (gaia_fdw_scan_state_t *)node->fdw_state;
+    gaia_fdw_adapter_t *fdw_adapter = (gaia_fdw_adapter_t *)node->fdw_state;
 
     // We should have reached the end of iteration.
-    assert(!scan_state->cur_node);
+    assert(fdw_adapter->has_scan_ended());
 
     // Commit read transaction.
     commit_gaia_txn();
@@ -641,8 +602,6 @@ extern "C" void gaia_begin_foreign_modify(
 
     // Set invalid values.
     modify_state->pk_attr_idx = -1;
-    modify_state->src_attr_idx = -1;
-    modify_state->dst_attr_idx = -1;
 
     relation_attribute_mapping_t mapping;
     if (strcmp(table_name, "airports") == 0) {
