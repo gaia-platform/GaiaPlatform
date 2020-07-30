@@ -42,7 +42,7 @@ private:
     void shutdown_callback();
 
     Publisher<msg::Temp>::SharedPtr m_pub_temp;
-
+    
     Subscription<msg::FanSpeed>::SharedPtr m_sub_fan_speed;
     Subscription<msg::AddIncubator>::SharedPtr m_sub_add_incubator;
     Subscription<msg::AddSensor>::SharedPtr m_sub_add_sensor;
