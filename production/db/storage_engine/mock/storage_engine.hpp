@@ -88,6 +88,9 @@ class se_base {
     static data* s_data;
     thread_local static log* s_log;
     thread_local static int s_session_socket;
+    thread_local static gaia_xid_t s_transaction_id;
+    // This is only intended to have a non-default value during test use.
+    static std::string s_server_socket_name;
 
    public:
     // The real implementation will need

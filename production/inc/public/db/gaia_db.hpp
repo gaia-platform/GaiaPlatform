@@ -101,5 +101,10 @@ void begin_transaction();
 void rollback_transaction();
 bool commit_transaction();
 
+const char* const SE_SERVER_NAME = "gaia_semock_server";
+
+// This method is intended only for use by test code.
+void set_server_socket_name(const char* server_socket_name);
+
 }  // namespace db
 }  // namespace gaia

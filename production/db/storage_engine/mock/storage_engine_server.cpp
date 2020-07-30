@@ -17,8 +17,12 @@ int server::s_fd_data = -1;
 se_base::offsets* server::s_shared_offsets = nullptr;
 thread_local session_state_t server::s_session_state = session_state_t::DISCONNECTED;
 thread_local bool server::s_session_shutdown = false;
-thread_local gaia_xid_t server::s_transaction_id = -1;
 constexpr server::valid_transition_t server::s_valid_transitions[];
+
+// This method is intended only for use by test code.
+void server::set_server_socket_name(const char* server_socket_name) {
+    se_base::s_server_socket_name = string(server_socket_name);
+}
 
 void server::handle_connect(int*, size_t, session_event_t event, session_state_t old_state, session_state_t new_state) {
     retail_assert(event == session_event_t::CONNECT);
@@ -97,11 +101,12 @@ void server::handle_client_shutdown(int*, size_t, session_event_t event, session
 
 void server::handle_server_shutdown(int*, size_t, session_event_t event, session_state_t, session_state_t new_state) {
     retail_assert(event == session_event_t::SERVER_SHUTDOWN);
-    retail_assert(new_state == session_state_t::DISCONNECTING);
+    retail_assert(new_state == session_state_t::DISCONNECTED);
     // This transition should only be triggered on notification of the server shutdown event.
-    // We notify the client of our intention to shut down by closing our write end of the
-    // socket, and wait for them to do the same before closing the socket.
-    shutdown(s_session_socket, SHUT_WR);
+    // Since we are about to shut down, we can't wait for acknowledgment from the client and
+    // should just close the session socket. As noted above, setting the shutdown flag will
+    // immediately break out of the poll loop and close the session socket.
+    s_session_shutdown = true;
 }
 
 // this must be run on main thread
@@ -135,6 +140,11 @@ void server::run() {
     signal_handler_thread.join();
     // To exit with the correct status (reflecting a caught signal),
     // we need to unblock blocked signals and re-raise the signal.
+    // We may have already received other pending signals by the time
+    // we unblock signals, in which case they will be delivered and
+    // terminate the process before we can re-raise the caught signal.
+    // That is benign, since we've already performed cleanup actions
+    // and the exit status will still be valid.
     if (caught_signal != 0) {
         pthread_sigmask(SIG_UNBLOCK, &handled_signals, nullptr);
         raise(caught_signal);

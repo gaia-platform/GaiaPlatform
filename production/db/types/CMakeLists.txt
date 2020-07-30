@@ -12,6 +12,7 @@ set(GAIA_TYPES_INCLUDES
   "${GAIA_INC}/public/common"
   "${GAIA_INC}/public/catalog"
   "${GAIA_INC}/internal/common"
+  "${GAIA_INC}/internal/db"
   "${GAIA_DB_INC}/types"
   "${FLATBUFFERS_INC}")
 

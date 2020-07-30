@@ -31,4 +31,4 @@ target_link_libraries(gaia_generate PRIVATE rt gaia_catalog gaia_parser)
 set_target_properties(gaia_generate PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaia_generate PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 
-add_gtest(test_gaia_generate "tests/test_gaia_generate.cpp" "${GAIA_GENERATE_INCLUDES}" "rt;gaia;gaia_catalog;gaia_parser")
+add_gtest(test_gaia_generate "tests/test_gaia_generate.cpp" "${GAIA_GENERATE_INCLUDES}" "rt;gaia;gaia_catalog;gaia_parser;tiny-process-library")

@@ -6,9 +6,9 @@
 // Do not include event_manager.hpp to ensure that
 // we don't have a dependency on the internal implementation.
 
-#include "gtest/gtest.h"
 #include "auto_tx.hpp"
-#include "db_test_helpers.hpp"
+#include "gtest/gtest.h"
+#include "db_test_base.hpp"
 
 using namespace std;
 using namespace gaia::db;
@@ -18,17 +18,7 @@ extern "C" void initialize_rules()
 {
 }
 
-class auto_tx_test : public ::testing::Test {
-protected:
-    static void SetUpTestSuite() {
-        start_server();
-        begin_session();
-    }
-
-    static void TearDownTestSuite() {
-        end_session();
-        stop_server();
-    }
+class auto_tx_test : public db_test_base_t {
 };
 
 TEST_F(auto_tx_test, auto_tx_active_commit)

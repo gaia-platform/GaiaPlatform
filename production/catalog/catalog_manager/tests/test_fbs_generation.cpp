@@ -8,31 +8,19 @@
 
 #include "gaia_catalog.hpp"
 #include "fbs_generator.hpp"
-#include "db_test_helpers.hpp"
+#include "db_test_base.hpp"
 
 using namespace gaia::catalog;
 
-class fbs_generation_test : public ::testing::Test {
+class fbs_generation_test : public db_test_base_t {
   protected:
-    void SetUp() override {
-        gaia::db::begin_session();
-    }
-
-    void TearDown() override {
-        gaia::db::end_session();
-    }
-
     static void SetUpTestSuite() {
-        gaia::db::start_server();
+        db_test_base_t::SetUpTestSuite();
         // We need to use push_back to init the test fields because:
         // 1) Initializer_lists always perform copies, and unique_ptrs are not copyable.
         // 2) Without make_unique (C++ 14), using emplace_back and new can leak if the vector fails to reallocate memory.
         test_table_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("id", data_type_t::e_int8, 1)));
         test_table_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("name", data_type_t::e_string, 1)));
-    }
-
-    static void TearDownTestSuite() {
-        gaia::db::stop_server();
     }
 
     static ddl::field_def_list_t test_table_fields;

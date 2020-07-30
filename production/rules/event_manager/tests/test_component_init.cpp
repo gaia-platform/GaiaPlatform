@@ -7,7 +7,7 @@
 // we don't have a dependency on the internal implementation.
 
 #include "gtest/gtest.h"
-#include "db_test_helpers.hpp"
+#include "db_test_base.hpp"
 #include "rules.hpp"
 #include "gaia_base.hpp"
 
@@ -21,14 +21,9 @@ extern "C" void initialize_rules()
 {
 }
 
-class component_init_test : public ::testing::Test {
+class component_init_test : public db_test_base_t {
 protected:
-    static void SetUpTestSuite() {
-        start_server();
-    }
-
-    static void TearDownTestSuite() {
-        stop_server();
+    component_init_test() : db_test_base_t(false) {
     }
 };
 
@@ -56,7 +51,7 @@ class row_context_t : public gaia_base_t
 {
 public:
     row_context_t() : gaia_base_t("TestGaia") {}
-    
+
     static gaia_type_t s_gaia_type;
     gaia_type_t gaia_type() override
     {

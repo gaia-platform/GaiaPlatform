@@ -34,6 +34,8 @@ class invalid_session_transition : public gaia_exception {
 class server : private se_base {
    public:
     static void run();
+    // This method is intended only for use by test code.
+    static void set_server_socket_name(const char* server_socket_name);
 
    private:
     // FIXME: this really should be constexpr, but C++11 seems broken in that respect.
@@ -45,13 +47,14 @@ class server : private se_base {
     static offsets* s_shared_offsets;
     thread_local static session_state_t s_session_state;
     thread_local static bool s_session_shutdown;
-    thread_local static gaia_xid_t s_transaction_id;
 
     // inherited from se_base:
     // static int s_fd_offsets;
     // static data *s_data;
     // thread_local static log *s_log;
     // thread_local static int s_session_socket;
+    // static std::string s_server_socket_name;
+    // thread_local static gaia_xid_t s_transaction_id;
 
     // function pointer type that executes side effects of a state transition
     typedef void (*transition_handler_t)(int* fds, size_t fd_count, session_event_t event, session_state_t old_state, session_state_t new_state);
@@ -97,7 +100,7 @@ class server : private se_base {
         {session_state_t::TXN_IN_PROGRESS, session_event_t::COMMIT_TXN, {session_state_t::TXN_COMMITTING, handle_commit_txn}},
         {session_state_t::TXN_COMMITTING, session_event_t::DECIDE_TXN_COMMIT, {session_state_t::CONNECTED, handle_decide_txn}},
         {session_state_t::TXN_COMMITTING, session_event_t::DECIDE_TXN_ABORT, {session_state_t::CONNECTED, handle_decide_txn}},
-        {session_state_t::CONNECTED, session_event_t::SERVER_SHUTDOWN, {session_state_t::DISCONNECTING, handle_server_shutdown}},
+        {session_state_t::ANY, session_event_t::SERVER_SHUTDOWN, {session_state_t::DISCONNECTED, handle_server_shutdown}},
     };
 
     static void apply_transition(session_event_t event, int* fds, size_t fd_count) {
@@ -109,7 +112,7 @@ class server : private se_base {
         for (size_t i = 0; i < array_size(s_valid_transitions); i++) {
             valid_transition_t t = s_valid_transitions[i];
             if (t.event == event && (t.state == s_session_state || t.state == session_state_t::ANY)) {
-                // It would be nice to statically enforce this on the Transition struct.
+                // It would be nice to statically enforce this on the transition_t type.
                 retail_assert(t.transition.new_state != session_state_t::ANY);
                 session_state_t old_state = s_session_state;
                 s_session_state = t.transition.new_state;
@@ -207,11 +210,11 @@ class server : private se_base {
         server_addr.sun_family = AF_UNIX;
         // The socket name (minus its null terminator) needs to fit into the space
         // in the server address structure after the prefix null byte.
-        retail_assert(sizeof(SERVER_CONNECT_SOCKET_NAME) - 1 <= sizeof(server_addr.sun_path) - 1);
+        retail_assert(s_server_socket_name.size() <= sizeof(server_addr.sun_path) - 1);
         // We prepend a null byte to the socket name so the address is in the
         // (Linux-exclusive) "abstract namespace", i.e., not bound to the
         // filesystem.
-        strncpy(&server_addr.sun_path[1], SERVER_CONNECT_SOCKET_NAME,
+        strncpy(&server_addr.sun_path[1], s_server_socket_name.c_str(),
             sizeof(server_addr.sun_path) - 1);
         // The socket name is not null-terminated in the address structure, but
         // we need to add an extra byte for the null byte prefix.
@@ -390,9 +393,8 @@ class server : private se_base {
                         retail_assert(!(ev.events & EPOLLERR));
                         event = session_event_t::CLIENT_SHUTDOWN;
                     } else if (ev.events & EPOLLRDHUP) {
-                        // We must have already received a DISCONNECT message at this point
-                        // and sent a reply followed by a FIN equivalent. The client must
-                        // have received our reply and sent a FIN as well.
+                        // The client has called shutdown(SHUT_WR) to signal their intention to
+                        // disconnect. We do the same by closing the session socket.
                         // REVIEW: Can we get both EPOLLHUP and EPOLLRDHUP when the client half-closes
                         // the socket after we half-close it?
                         retail_assert(!(ev.events & EPOLLHUP));
@@ -407,6 +409,9 @@ class server : private se_base {
                         // Read client message with possible file descriptors.
                         size_t bytes_read = recv_msg_with_fds(s_session_socket, fd_buf, &fd_buf_size, msg_buf, sizeof(msg_buf));
                         // We shouldn't get EOF unless EPOLLRDHUP is set.
+                        // REVIEW: it might be possible for the client to call shutdown(SHUT_WR)
+                        // after we have already woken up on EPOLLIN, in which case we would
+                        // legitimately read 0 bytes and this assert would be invalid.
                         retail_assert(bytes_read > 0);
                         const message_t* msg = Getmessage_t(msg_buf);
                         const client_request_t* request = msg->msg_as_request();

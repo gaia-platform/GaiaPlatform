@@ -7,7 +7,7 @@
 
 #include "gaia_db.hpp"
 #include "gaia_ptr.hpp"
-#include "db_test_helpers.hpp"
+#include "db_test_base.hpp"
 
 using namespace gaia::db;
 
@@ -71,7 +71,7 @@ void print_node(const gaia_ptr& node, const bool indent=false)
  * test case below.  SetUp() is called before each test is run
  * and TearDown() is called after each test case is done.
  */
-class storage_engine_client_test : public ::testing::Test
+class storage_engine_client_test : public db_test_base_t
 {
 private:
     void init_data() {
@@ -103,21 +103,9 @@ private:
         commit_transaction();
     }
 protected:
-    static void SetUpTestSuite() {
-        start_server();
-    }
-
-    static void TearDownTestSuite() {
-        stop_server();
-    }
-
     void SetUp() override {
-        begin_session();
+        db_test_base_t::SetUp();
         init_data();
-    }
-
-    void TearDown() override {
-        end_session();
     }
 };
 

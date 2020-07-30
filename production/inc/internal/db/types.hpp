@@ -5,18 +5,15 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace gaia
 {
 namespace db
 {
-namespace types
-{
 
 // Type definitions for fields.
 typedef uint16_t field_position_t;
 
-} // namespace types
 } // namespace db
 } // namespace gaia
