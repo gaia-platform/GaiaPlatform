@@ -4599,12 +4599,12 @@ public:
                                SourceLocation IdentLoc, IdentifierInfo *Ident,
                                const ParsedAttributesView &AttrList);
   void ActOnRulesetDefFinish(Decl *Dcl, SourceLocation RBrace); 
-  NamedDecl *injectVariableDefinition(IdentifierInfo *II, bool isGaiaFieldTable);
-  QualType getFieldType (IdentifierInfo *id) ;
-  QualType getTableType (IdentifierInfo *id) ;
+  NamedDecl *injectVariableDefinition(IdentifierInfo *II, SourceLocation loc,  bool isGaiaFieldTable);
+  QualType getFieldType (IdentifierInfo *id, SourceLocation loc) ;
+  QualType getTableType (IdentifierInfo *id, SourceLocation loc) ;
   void addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorChunk::ParamInfo *Params,
-    unsigned NumParams, AttributeFactory &attrFactory, ParsedAttributes &attrs, Scope *S, RecordDecl *RD) ;
-  void addField(IdentifierInfo *name, QualType type, RecordDecl *RD) const ;
+    unsigned NumParams, AttributeFactory &attrFactory, ParsedAttributes &attrs, Scope *S, RecordDecl *RD, SourceLocation loc) ;
+  void addField(IdentifierInfo *name, QualType type, RecordDecl *R, SourceLocation locD) const ;
   
 
 private:

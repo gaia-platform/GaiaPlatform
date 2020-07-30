@@ -84,7 +84,7 @@ class DBMonitor
         }
 };
 
-static unordered_map<string, unordered_map<string, QualType>> getTableData(Sema *s)
+static unordered_map<string, unordered_map<string, QualType>> getTableData(Sema *s, SourceLocation loc)
 {
     unordered_map<string, unordered_map<string, QualType>> retVal;
     try 
@@ -101,17 +101,22 @@ static unordered_map<string, unordered_map<string, QualType>> getTableData(Sema 
         for(catalog::Gaia_field field = catalog::Gaia_field::get_first(); 
             field; field = field.get_next())
         {
+            if (field.type() == gaia::catalog::gaia_data_type_REFERENCES)
+            {
+                continue;
+            }
+            
             gaia_id_t tableId = field.table_id();
             catalog::Gaia_table tbl = catalog::Gaia_table::get(tableId);
             if (!tbl)
             {
-                s->Diag(SourceLocation(), diag::err_invalid_table_field) << field.name();
+                s->Diag(loc, diag::err_invalid_table_field) << field.name();
                 return unordered_map<string, unordered_map<string, QualType>>();
             }
             unordered_map<string, QualType> fields = retVal[tbl.name()];
             if (fields.find(field.name()) != fields.end())
             {
-                s->Diag(SourceLocation(), diag::err_duplicate_field) << field.name();
+                s->Diag(loc, diag::err_duplicate_field) << field.name();
                 return unordered_map<string, unordered_map<string, QualType>>();
             }
             fields[field.name()] = mapFieldType(field.type(), &s->Context);
@@ -122,17 +127,17 @@ static unordered_map<string, unordered_map<string, QualType>> getTableData(Sema 
     }
     catch (exception e)
     {
-        s->Diag(SourceLocation(), diag::err_catalog_exception) << e.what();
+        s->Diag(loc, diag::err_catalog_exception) << e.what();
         return unordered_map<string, unordered_map<string, QualType>>();
     }
     return retVal;
 }
 
 
-void Sema::addField(IdentifierInfo *name, QualType type, RecordDecl *RD) const
+void Sema::addField(IdentifierInfo *name, QualType type, RecordDecl *RD, SourceLocation loc) const
 {
     FieldDecl *Field = FieldDecl::Create(
-        Context, RD, SourceLocation(), SourceLocation(),
+        Context, RD, loc, loc,
         name, type, /*TInfo=*/nullptr,
         /*BitWidth=*/nullptr, /*Mutable=*/false, ICIS_NoInit);
     Field->setAccess(AS_public);
@@ -141,7 +146,7 @@ void Sema::addField(IdentifierInfo *name, QualType type, RecordDecl *RD) const
 }
 
 void Sema::addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorChunk::ParamInfo *Params,
-    unsigned NumParams, AttributeFactory &attrFactory, ParsedAttributes &attrs, Scope *S, RecordDecl *RD) 
+    unsigned NumParams, AttributeFactory &attrFactory, ParsedAttributes &attrs, Scope *S, RecordDecl *RD, SourceLocation loc) 
 {
     DeclSpec DS(attrFactory);
     const char *dummy;
@@ -149,24 +154,24 @@ void Sema::addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorC
 
     Declarator D(DS, DeclaratorContext::MemberContext);
     D.setFunctionDefinitionKind(FDK_Declaration);
-    D.getMutableDeclSpec().SetTypeSpecType(retValType, SourceLocation(), dummy,
+    D.getMutableDeclSpec().SetTypeSpecType(retValType, loc, dummy,
         diagId, getPrintingPolicy());
-    ActOnAccessSpecifier(AS_public, SourceLocation(), SourceLocation(), attrs);
+    ActOnAccessSpecifier(AS_public, loc, loc, attrs);
             
-    D.SetIdentifier(name, SourceLocation());
+    D.SetIdentifier(name, loc);
             
     DS.Finish(*this, getPrintingPolicy());
 
     D.AddTypeInfo(DeclaratorChunk::getFunction(
-        true, false, SourceLocation(), Params,
-        NumParams, SourceLocation(), SourceLocation(),
-        true, SourceLocation(),
-        /*MutableLoc=*/SourceLocation(),
+        true, false, loc, Params,
+        NumParams, loc, loc,
+        true, loc,
+        /*MutableLoc=*/loc,
         EST_None, SourceRange(), nullptr,
         nullptr, 0, nullptr,
-        nullptr, None, SourceLocation(),
-        SourceLocation(), D, TypeResult(), &DS),
-        std::move(attrs), SourceLocation());
+        nullptr, None, loc,
+        loc, D, TypeResult(), &DS),
+        std::move(attrs), loc);
                                    
     DeclarationNameInfo NameInfo = GetNameForDeclarator(D);
 
@@ -179,14 +184,14 @@ void Sema::addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorC
     RD->addDecl(Ret);        
 }
 
-QualType Sema::getTableType (IdentifierInfo *table) 
+QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc) 
 {
     std::string tableName = table->getName().str();
-    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(this);
+    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(this, loc);
     auto tableDescription = tableData.find(tableName);
     if (tableDescription == tableData.end())
     {
-        Diag(SourceLocation(),diag::err_invalid_table_name) << tableName;
+        Diag(loc,diag::err_invalid_table_name) << tableName;
         return Context.VoidTy;
     }
     
@@ -195,8 +200,8 @@ QualType Sema::getTableType (IdentifierInfo *table)
     RD->startDefinition();
     Scope S(CurScope,Scope::DeclScope|Scope::ClassScope, Diags);
     ActOnTagStartDefinition(&S,RD);
-    ActOnStartCXXMemberDeclarations(getCurScope(), RD, SourceLocation(),
-        false, SourceLocation());
+    ActOnStartCXXMemberDeclarations(getCurScope(), RD, loc,
+        false, loc);
     AttributeFactory attrFactory;
     ParsedAttributes attrs(attrFactory);   
     
@@ -206,26 +211,26 @@ QualType Sema::getTableType (IdentifierInfo *table)
         QualType fieldType = f.second;
         if (fieldType->isVoidType())
         {
-            Diag(SourceLocation(),diag::err_invalid_field_type) << fieldName;
+            Diag(loc,diag::err_invalid_field_type) << fieldName;
             return Context.VoidTy;
         }
-        addField(&Context.Idents.get(fieldName), fieldType, RD);
+        addField(&Context.Idents.get(fieldName), fieldType, RD, loc);
     }
 
     //insert fields and methods that are not part of the schema
-    addField(&Context.Idents.get("LastOperation"), Context.WIntTy.withConst(), RD);
+    addField(&Context.Idents.get("LastOperation"), Context.WIntTy.withConst(), RD, loc);
 
-    //addMethod(&Context.Idents.get("update"), DeclSpec::TST_void, nullptr, 0, attrFactory, attrs, &S, RD);
+    //addMethod(&Context.Idents.get("update"), DeclSpec::TST_void, nullptr, 0, attrFactory, attrs, &S, RD, loc);
 
     
-    ActOnFinishCXXMemberSpecification(getCurScope(), SourceLocation(), RD,
-        SourceLocation(), SourceLocation(), attrs);
+    ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD,
+        loc, loc, attrs);
     ActOnTagFinishDefinition(getCurScope(), RD, SourceRange());
   
     return Context.getTagDeclType(RD);
 }
 
-QualType Sema::getFieldType (IdentifierInfo *id) 
+QualType Sema::getFieldType (IdentifierInfo *id, SourceLocation loc) 
 {
     std::string fieldName = id->getName().str();
 
@@ -249,7 +254,7 @@ QualType Sema::getFieldType (IdentifierInfo *id)
 
     if (c == nullptr || !isa<RulesetDecl>(c))
     {
-        Diag(SourceLocation(), diag::err_no_ruleset_for_rule);
+        Diag(loc, diag::err_no_ruleset_for_rule);
         return Context.VoidTy;
     }
     vector<string> tables;
@@ -263,7 +268,7 @@ QualType Sema::getFieldType (IdentifierInfo *id)
         }
     }
 
-    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(this);
+    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(this, loc);
     if (tables.size() == 0)
     {
         for (auto it : tableData)
@@ -278,7 +283,7 @@ QualType Sema::getFieldType (IdentifierInfo *id)
         auto tableDescription = tableData.find(tableName);
         if (tableDescription == tableData.end())
         {
-            Diag(SourceLocation(),diag::err_invalid_table_name) << tableName;
+            Diag(loc,diag::err_invalid_table_name) << tableName;
             return Context.VoidTy;
         }
 
@@ -287,12 +292,12 @@ QualType Sema::getFieldType (IdentifierInfo *id)
         {
             if (fieldDescription->second->isVoidType())
             {
-                Diag(SourceLocation(),diag::err_invalid_field_type) << fieldName;
+                Diag(loc, diag::err_invalid_field_type) << fieldName;
                 return Context.VoidTy;
             }
             if (retVal != Context.VoidTy)
             {
-                Diag(SourceLocation(), diag::err_duplicate_field) << fieldName;
+                Diag(loc, diag::err_duplicate_field) << fieldName;
                 return Context.VoidTy;
             }
                 
@@ -303,15 +308,15 @@ QualType Sema::getFieldType (IdentifierInfo *id)
 
     if (retVal == Context.VoidTy)
     {
-        Diag(SourceLocation(), diag::err_unknown_field) << fieldName;
+        Diag(loc, diag::err_unknown_field) << fieldName;
     }
 
     return retVal;
 }
 
-NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, bool isGaiaFieldTable)
+NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc, bool isGaiaFieldTable)
 {
-    QualType qualType = isGaiaFieldTable ? getTableType(II) : getFieldType(II);
+    QualType qualType = isGaiaFieldTable ? getTableType(II, loc) : getFieldType(II, loc);
     if (qualType->isVoidType())
     {
         return nullptr;
@@ -321,8 +326,8 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, bool isGaiaFieldTa
 
     DeclContext *context  = getCurFunctionDecl();
 
-    VarDecl *varDecl = VarDecl::Create(Context, context, SourceLocation(), SourceLocation(),
-                            II, qualType, Context.getTrivialTypeSourceInfo(qualType, SourceLocation()), SC_None);
+    VarDecl *varDecl = VarDecl::Create(Context, context, loc, loc,
+                            II, qualType, Context.getTrivialTypeSourceInfo(qualType, loc), SC_None);
     varDecl->setLexicalDeclContext(context);
     varDecl->setImplicit();
 
@@ -330,25 +335,25 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, bool isGaiaFieldTa
     {
         varDecl->addAttr(GaiaLastOperationUPDATEAttr::CreateImplicit(Context));
         varDecl->setConstexpr(true);
-        varDecl->setInit(ActOnIntegerConstant(SourceLocation(),0).get());
+        varDecl->setInit(ActOnIntegerConstant(loc, 0).get());
     }
     else if (varName == "INSERT")
     {
         varDecl->addAttr(GaiaLastOperationINSERTAttr::CreateImplicit(Context));
         varDecl->setConstexpr(true);
-        varDecl->setInit(ActOnIntegerConstant(SourceLocation(),0).get());
+        varDecl->setInit(ActOnIntegerConstant(loc, 0).get());
     }
     else if (varName == "DELETE")
     {
         varDecl->addAttr(GaiaLastOperationDELETEAttr::CreateImplicit(Context));
         varDecl->setConstexpr(true);
-        varDecl->setInit(ActOnIntegerConstant(SourceLocation(),0).get());
+        varDecl->setInit(ActOnIntegerConstant(loc, 0).get());
     }
     else if (varName == "NONE")
     {
         varDecl->addAttr(GaiaLastOperationNONEAttr::CreateImplicit(Context));
         varDecl->setConstexpr(true);
-        varDecl->setInit(ActOnIntegerConstant(SourceLocation(),0).get());
+        varDecl->setInit(ActOnIntegerConstant(loc, 0).get());
     }
     else if (isGaiaFieldTable)
     {

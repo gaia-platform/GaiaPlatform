@@ -2177,7 +2177,7 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
             {
                 if (FD->hasAttr<RuleAttr>())
                 {
-                    NamedDecl *D = injectVariableDefinition(II, isGaiaFieldTable);
+                    NamedDecl *D = injectVariableDefinition(II, NameLoc, isGaiaFieldTable);
                     if (D) 
                     {
                         R.addDecl(D);
