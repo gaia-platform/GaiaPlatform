@@ -15,14 +15,50 @@ using namespace gaia::fdw;
 
 const int c_invalid_index = -1;
 
-gaia_fdw_adapter_t* gaia_fdw_adapter_t::get_table_adapter(
-    adapter_state_t adapter_state, const char* table_name, size_t count_accessors)
+int gaia_fdw_adapter_t::s_transaction_reference_count = 0;
+
+bool gaia_fdw_adapter_t::is_transaction_open()
 {
-    gaia_fdw_adapter_t* adapter = (gaia_fdw_adapter_t *)palloc0(sizeof(gaia_fdw_adapter_t));
+    assert(s_transaction_reference_count >= 0);
+    return s_transaction_reference_count > 0;
+}
 
-    adapter->m_adapter_state = adapter_state;
+bool gaia_fdw_adapter_t::begin_transaction()
+{
+    elog(DEBUG1, "Opening COW-SE transaction...");
 
-    return adapter->initialize(table_name, count_accessors) ? adapter : nullptr;
+    assert(s_transaction_reference_count >= 0);
+
+    bool opened_transaction = false;
+    int previous_count = s_transaction_reference_count++;
+    if (previous_count == 0)
+    {
+        opened_transaction = true;
+        gaia::db::begin_transaction();
+    }
+
+    elog(DEBUG1, "Txn actually opened: %s.", opened_transaction ? "true" : "false");
+
+    return opened_transaction;
+}
+
+bool gaia_fdw_adapter_t::commit_transaction()
+{
+    elog(DEBUG1, "Closing COW-SE transaction...");
+
+    assert(s_transaction_reference_count > 0);
+
+    bool closed_transaction = false;
+    int previous_count = s_transaction_reference_count--;
+    if (previous_count == 1)
+    {
+        closed_transaction = true;
+        gaia::db::commit_transaction();
+    }
+
+    elog(DEBUG1, "Txn actually closed: %s.", closed_transaction ? "true" : "false");
+
+    return closed_transaction;
 }
 
 // Generate random gaia_id for INSERTs using /dev/urandom.
@@ -87,6 +123,16 @@ List* gaia_fdw_adapter_t::get_ddl_command_list(const char* server_name)
     }
 
     return commands;
+}
+
+gaia_fdw_adapter_t* gaia_fdw_adapter_t::get_table_adapter(
+    adapter_state_t adapter_state, const char* table_name, size_t count_accessors)
+{
+    gaia_fdw_adapter_t* adapter = (gaia_fdw_adapter_t *)palloc0(sizeof(gaia_fdw_adapter_t));
+
+    adapter->m_adapter_state = adapter_state;
+
+    return adapter->initialize(table_name, count_accessors) ? adapter : nullptr;
 }
 
 bool gaia_fdw_adapter_t::initialize(const char* table_name, size_t count_accessors)

@@ -63,20 +63,26 @@ protected:
 
 public:
 
-    static gaia_fdw_adapter_t* get_table_adapter(
-        adapter_state_t adapter_state, const char* table_name, size_t count_accessors);
+    static bool is_transaction_open();
+    static bool begin_transaction();
+    static bool commit_transaction();
 
     static uint64_t get_new_gaia_id();
 
     static List* get_ddl_command_list(const char* server_name);
 
+    static gaia_fdw_adapter_t* get_table_adapter(
+        adapter_state_t adapter_state, const char* table_name, size_t count_accessors);
+
     bool set_accessor_index(const char* accessor_name, size_t accessor_index);
 
+    // Scan API.
     bool initialize_scan();
     bool has_scan_ended();
     Datum extract_field_value(size_t field_index);
     bool scan_forward();
 
+    // Modify API.
     void initialize_modify();
     bool is_gaia_id_field_index(size_t field_index);
     void set_field_value(size_t field_index, const Datum& field_value);
@@ -86,6 +92,16 @@ public:
     void finalize_modify();
 
 protected:
+
+    // HACKHACK: global counter to simulate nested transactions. Because a DELETE
+    // plan is nested within a scan, committing the write txn will invalidate the
+    // read txn. We get around this by using a refcount to track the txn nesting
+    // state, so we only open a txn when the counter is initially incremented from 0
+    // and only commit a txn when the counter is decremented to 0. An unsynchronized
+    // global counter is ok since there's no concurrency within a postgres backend.
+    //
+    // Use signed int so we can assert it is non-negative.
+    static int s_transaction_reference_count;
 
     adapter_state_t m_adapter_state;
 

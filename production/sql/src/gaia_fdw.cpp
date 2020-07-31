@@ -17,57 +17,6 @@ extern "C" {
 PG_MODULE_MAGIC;
 }
 
-// HACKHACK: global counter to simulate nested transactions. Because a DELETE
-// plan is nested within a scan, committing the write txn will invalidate the
-// read txn. We get around this by using a refcount to track the txn nesting
-// state, so we only open a txn when the counter is initially incremented from 0
-// and only commit a txn when the counter is decremented to 0. An unsynchronized
-// global counter is ok since there's no concurrency within a postgres backend.
-static int gaia_txn_ref_count
-    // Use signed int so we can assert it is non-negative.
-    = 0;
-
-static bool is_gaia_txn_open() {
-    assert(gaia_txn_ref_count >= 0);
-    return gaia_txn_ref_count > 0;
-}
-
-// TODO: Need to reimplement these methods and move them into FDW adapter,
-// but this is not a priority for now.
-static bool begin_gaia_txn() {
-    elog(DEBUG1, "Opening COW-SE transaction...");
-
-    bool txn_opened = false;
-    assert(gaia_txn_ref_count >= 0);
-
-    int old_count = gaia_txn_ref_count++;
-    if (old_count == 0) {
-        txn_opened = true;
-        gaia::db::begin_transaction();
-    }
-
-    elog(DEBUG1, "Txn actually opened: %s.", txn_opened ? "true" : "false");
-
-    return txn_opened;
-}
-
-static bool commit_gaia_txn() {
-    elog(DEBUG1, "Closing COW-SE transaction...");
-
-    bool txn_closed = false;
-    assert(gaia_txn_ref_count > 0);
-
-    int old_count = gaia_txn_ref_count--;
-    if (old_count == 1) {
-        txn_closed = true;
-        gaia::db::commit_transaction();
-    }
-
-    elog(DEBUG1, "Txn actually closed: %s.", txn_closed ? "true" : "false");
-
-    return txn_closed;
-}
-
 // The FDW handler function returns a palloc'd FdwRoutine struct containing
 // pointers to the callback functions that will be called by the planner,
 // executor, and various maintenance commands. The scan-related functions are
@@ -337,7 +286,7 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState *node, int eflags) {
     node->fdw_state = fdw_adapter;
 
     // Begin read transaction.
-    begin_gaia_txn();
+    gaia_fdw_adapter_t::begin_transaction();
 
     // Retrieve the first node of the requested type
     // (this can't currently throw).
@@ -422,7 +371,7 @@ extern "C" void gaia_end_foreign_scan(ForeignScanState *node) {
     assert(fdw_adapter->has_scan_ended());
 
     // Commit read transaction.
-    commit_gaia_txn();
+    gaia_fdw_adapter_t::commit_transaction();
 }
 
 extern "C" void gaia_add_foreign_update_targets(
@@ -612,7 +561,7 @@ extern "C" void gaia_begin_foreign_modify(
 
     rinfo->ri_FdwState = fdw_adapter;
 
-    begin_gaia_txn();
+    gaia_fdw_adapter_t::begin_transaction();
 }
 
 extern "C" TupleTableSlot *gaia_exec_foreign_insert(
@@ -829,7 +778,7 @@ extern "C" void gaia_end_foreign_modify(EState *estate, ResultRelInfo *rinfo) {
     fdw_adapter->finalize_modify();
 
     // For DELETE, this seems to always be called before EndForeignScan.
-    commit_gaia_txn();
+    gaia_fdw_adapter_t::commit_transaction();
 }
 
 extern "C" void gaia_begin_foreign_insert(ModifyTableState *mtstate,
