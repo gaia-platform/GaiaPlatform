@@ -424,9 +424,12 @@ protected:
 
     static void SetUpTestSuite() {
         start_server();
-
-        // Create the rules engine with no background threads.
-        test::initialize_rules_engine(0);
+        // Create the rules engine with no background threads and disable
+        // catalog checking for rule subscriptions.
+        event_manager_settings_t settings;
+        settings.num_background_threads = 0;
+        settings.disable_catalog_checks = true;
+        test::initialize_rules_engine(settings);
     }
 
     static void TearDownTestSuite() {

@@ -11,9 +11,11 @@
 #include "rules.hpp"
 #include "gaia_system.hpp"
 #include "addr_book_gaia_generated.h"
+#include "event_manager_test_helpers.hpp"
 #include "db_test_helpers.hpp"
 #include <thread>
 #include <atomic>
+#include <map>
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -135,7 +137,17 @@ public:
 protected:
     static void SetUpTestSuite() {
         start_server();
-        gaia::system::initialize();
+
+        // TODO:  Create the rules engine with no catalog integration yet.
+        // When the catalog and flatbuffer are in sync, then remove the 
+        // test initialization function and just use the stock one.
+        // gaia::system::initialize();
+        begin_session();
+
+        event_manager_settings_t settings;
+        settings.num_background_threads = SIZE_MAX;
+        settings.disable_catalog_checks = true;
+        test::initialize_rules_engine(settings);
     }
 
     static void TearDownTestSuite() {

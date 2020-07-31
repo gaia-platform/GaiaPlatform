@@ -20,19 +20,16 @@ namespace rules
 class rule_thread_pool_t
 {
 public:
+    rule_thread_pool_t() = delete;
+
     /**
      * Construct a thread pool used for executing rules.
      * 
      * @param num_threads create a pool with this many worker threads.  If 0 threads are specified
-     *   then the thread pool is in "immediate" mode
+     * then the thread pool is in "immediate" mode and no worker thrads are created.   f SIZE_MAX is specified 
+     * then create thepool with the number of available hardware threads.
      */ 
-    rule_thread_pool_t(uint32_t num_threads);
-
-
-    /**
-     * Construct a thread pool with the number of hardware therads
-     */
-    rule_thread_pool_t();
+    rule_thread_pool_t(size_t num_threads);
 
     /**
      * Will notify and wait for all workers in the thread pool
@@ -49,7 +46,7 @@ public:
      *   context includes the rule function pointer itself.
      * @param immediate if True then the rule is invoked immediately instead of
      *   begin placed in the queue.
-     */ 
+     */
     void enqueue(rule_context_t& invocation);
 
     /**
@@ -68,7 +65,6 @@ public:
 private:
     void rule_worker();
     void invoke_rule(const rule_context_t* context);
-    void init(uint32_t num_threads);
     void process_pending_invocations(bool should_schedule);
 
 private:
@@ -97,7 +93,7 @@ private:
     mutex m_lock;
     condition_variable m_invocations_signal;
     bool m_exit;
-    uint32_t m_num_threads;
+    size_t m_num_threads;
 };
 
 } // namespace rules

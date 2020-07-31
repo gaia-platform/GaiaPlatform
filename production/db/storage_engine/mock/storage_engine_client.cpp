@@ -17,7 +17,11 @@ thread_local int client::s_fd_log = -1;
 thread_local gaia_xid_t client::s_transaction_id = 0;
 thread_local std::vector<trigger_event_t> client::s_events;
 
-std::unordered_set<gaia_type_t> client::trigger_type_filter{system_catalog_types::c_event_log_type};
+std::unordered_set<gaia_type_t> client::trigger_type_filter{
+    system_catalog_types::c_event_log_type,
+    system_catalog_types::c_catalog_table_type,
+    system_catalog_types::c_catalog_field_type};
+
 // Should this be initialized by the rules engine instead?
 event_trigger_threadpool_t* client::event_trigger_pool = new event_trigger_threadpool_t();
 

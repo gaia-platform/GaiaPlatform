@@ -10,10 +10,12 @@
 #include "gaia_system.hpp"
 #include "gtest/gtest.h"
 #include "rules.hpp"
+#include "gaia_catalog.hpp"
 #include "gaia_base.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
+using namespace gaia::catalog;
 using namespace gaia::direct_access;
 using namespace gaia::rules;
 using namespace std;
@@ -22,7 +24,18 @@ extern "C" void initialize_rules()
 {
 }
 
+
 class system_init_test : public ::testing::Test {
+public:
+    gaia_type_t load_catalog()
+    {
+        // Add a dummy type so that the event manager doesn't cry foul when subscribing a rule.
+        ddl::field_def_list_t fields;
+        fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t{"id", data_type_t::e_string, 1}));
+        // The type of the table is the row id of table in the catalog.
+        return create_table("system_init_test", fields);
+    }
+
 protected:
     static void SetUpTestSuite() {
         start_server();
@@ -53,31 +66,16 @@ void rule(const rule_context_t*)
 {
 }
 
-class row_context_t : public gaia_base_t
-{
-public:
-    row_context_t() : gaia_base_t("TestGaia") {}
-
-    static gaia_type_t s_gaia_type;
-    gaia_type_t gaia_type() override
-    {
-        return s_gaia_type;
-    }
-};
-gaia_type_t row_context_t::s_gaia_type = 1;
-
 TEST_F(system_init_test, system_initialized)
 {
     rule_binding_t binding("ruleset", "rulename", rule);
     subscription_list_t subscriptions;
-    field_list_t fields;
-    fields.insert(5);
-    row_context_t row;
 
     gaia::system::initialize();
+    gaia_type_t type_id = load_catalog();
 
-    subscribe_rule(row_context_t::s_gaia_type, event_type_t::row_update, fields, binding);
-    EXPECT_EQ(true, unsubscribe_rule(row_context_t::s_gaia_type, event_type_t::row_update, fields, binding));
+    subscribe_rule(type_id, event_type_t::row_update, empty_fields, binding);
+    EXPECT_EQ(true, unsubscribe_rule(type_id, event_type_t::row_update, empty_fields, binding));
     unsubscribe_rules();
     list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subscriptions);
 }
