@@ -157,11 +157,11 @@ public:
         set_path(db_server_path);
         stop();
 
-        int written = snprintf(m_cmd, sizeof(m_cmd), "%s &", m_server_path.c_str());
-        retail_assert(written > 0 && (size_t)written < sizeof(m_cmd));
         // Launch SE server in background.
-        cerr << m_cmd << endl;
-        ::system(m_cmd);
+        string cmd = m_server_path + " &";
+        cerr << cmd << endl;
+        ::system(cmd.c_str());
+
         // Wait for server to initialize.
         cerr << "Waiting for server to initialize..." << endl;
         sleep(1);
@@ -171,10 +171,10 @@ public:
     {
         // Try to kill the SE server process.
         // REVIEW: we should be using a proper process library for this, so we can kill by PID.
-        int written = snprintf(m_cmd, sizeof(m_cmd), "pkill -f -9 %s", m_server_path.c_str());
-        retail_assert(written > 0 && (size_t)written < sizeof(m_cmd));
-        cerr << m_cmd << endl;
-        ::system(m_cmd);
+        string cmd = "pkill -f -KILL ";
+        cmd +=  m_server_path.c_str();
+        cerr << cmd << endl;
+        ::system(cmd.c_str());
     }
 
 private:
@@ -196,7 +196,6 @@ private:
     }
 
     const char* SE_SERVER_NAME = "gaia_semock_server";
-    char m_cmd[100];
     string m_server_path;
 };
 
