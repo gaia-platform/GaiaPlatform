@@ -55,6 +55,11 @@ void gaia::db::types::initialize_field_cache_from_binary_schema(
 {
     retail_assert(field_cache != nullptr, "field_cache argument should not be null.");
 
+    if (binary_schema == nullptr)
+    {
+        throw invalid_schema();
+    }
+
     // Deserialize the schema.
     const reflection::Schema* schema = reflection::GetSchema(binary_schema);
     if (schema == nullptr)

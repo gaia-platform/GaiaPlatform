@@ -27,9 +27,9 @@ field_list_t compute_payload_diff(gaia_id_t table_id, const uint8_t* payload1, c
 
     const vector<gaia_id_t>& fields = gaia::catalog::list_fields(table_id);
     size_t num_fields = fields.size();
+    auto_transaction_t tx;
 
     for (field_position_t i = 0; i < num_fields; i++) {
-        auto_transaction_t tx;
         gaia::catalog::Gaia_table table = gaia::catalog::Gaia_table::get(table_id);
         gaia_type_t type_id = table.gaia_type();
         string schema = gaia::catalog::get_bfbs(table_id);

@@ -7,17 +7,13 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <string>
 
 #include "flatbuffers/reflection.h"
 
 #include <data_holder.hpp>
 #include <types.hpp>
 #include <gaia_exception.hpp>
-#include "gaia_common.hpp"
 #include <type_cache.hpp>
-
-using namespace gaia::common;
 
 namespace gaia
 {
@@ -81,7 +77,7 @@ void initialize_field_cache_from_binary_schema(
 // If the binary_schema is needed but not provided,
 // an invalid_schema() exception will be thrown.
 data_holder_t get_table_field_value(
-    gaia_type_t type_id,
+    uint64_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
     field_position_t field_position);
@@ -92,7 +88,7 @@ data_holder_t get_table_field_value(
 // whether they access a scalar field or an array field,
 // and then proceed accordingly to access the field content.
 size_t get_table_field_array_size(
-    gaia_type_t type_id,
+    uint64_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
     field_position_t field_position);
@@ -103,7 +99,7 @@ size_t get_table_field_array_size(
 // Callers can first call get_table_field_array_size()
 // to find the array's size.
 data_holder_t get_table_field_array_element(
-    gaia_type_t type_id,
+    uint64_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
     field_position_t field_position,
