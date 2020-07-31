@@ -320,8 +320,3 @@ TEST_F(storage_engine_client_test, iterate_type_delete) {
     }
     commit_transaction();
 }
-
-int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

@@ -18,7 +18,7 @@ if(NOT PG_CONFIG)
   return()
 endif(NOT PG_CONFIG)
 
-# @LaurentiuCristofor: skip building extension if flatcc isn't installed.
+# Skip building extension if flatcc isn't installed.
 
 find_program(FLATCC flatcc)
 if(NOT FLATCC)
@@ -31,8 +31,7 @@ endif(NOT FLATCC)
 file(READ "version.config" PG_GAIA_FDW_VERSION)
 string(STRIP ${PG_GAIA_FDW_VERSION} PG_GAIA_FDW_VERSION)
 set(PG_GAIA_FDW_VERSION "${PG_GAIA_FDW_VERSION}")
-string(REGEX REPLACE "\\.[0-9]*$" "" PG_GAIA_FDW_VERSION_MAJOR
-                     "${PG_GAIA_FDW_VERSION}")
+string(REGEX REPLACE "\\.[0-9]*$" "" PG_GAIA_FDW_VERSION_MAJOR "${PG_GAIA_FDW_VERSION}")
 set(PG_GAIA_FDW_VERSION_MAJOR "${PG_GAIA_FDW_VERSION_MAJOR}")
 
 # Get Postgres config settings from pg_config.
@@ -43,15 +42,13 @@ exec_program(
   PG_CONFIG_OUTPUT)
 
 string(REGEX REPLACE "^PostgreSQL[\t ]+([0-9]+)\\.([0-9]+)\\.([0-9]+)"
-                     "\\1.\\2.\\3" PGSQL_VERSION "${PG_CONFIG_OUTPUT}")
+  "\\1.\\2.\\3" PGSQL_VERSION "${PG_CONFIG_OUTPUT}")
 
 unset(PG_CONFIG_OUTPUT)
 
 if(PGSQL_VERSION)
-  string(REGEX REPLACE "([0-9]+)\\.([0-9]+)\\.([0-9]+)" "\\1"
-                       PGSQL_VERSION_MAJOR "${PGSQL_VERSION}")
-  string(REGEX REPLACE "([0-9]+)\\.([0-9]+)\\.([0-9]+)" "\\2"
-                       PGSQL_VERSION_MINOR "${PGSQL_VERSION}")
+  string(REGEX REPLACE "([0-9]+)\\.([0-9]+)\\.([0-9]+)" "\\1" PGSQL_VERSION_MAJOR "${PGSQL_VERSION}")
+  string(REGEX REPLACE "([0-9]+)\\.([0-9]+)\\.([0-9]+)" "\\2" PGSQL_VERSION_MINOR "${PGSQL_VERSION}")
 
   set(PGSQL_NUMERIC_VERSION ${PGSQL_VERSION_MAJOR}${PGSQL_VERSION_MINOR})
 endif()
@@ -101,4 +98,5 @@ add_subdirectory(src)
 
 # Add tests.
 
+# Tests are disabled until they get rewritten.
 # add_subdirectory(tests)

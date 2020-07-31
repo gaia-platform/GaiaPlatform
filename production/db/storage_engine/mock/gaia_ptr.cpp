@@ -9,6 +9,7 @@
 
 using namespace gaia::common;
 using namespace gaia::db;
+using namespace gaia::db::triggers;
 
 gaia_id_t gaia_ptr::generate_id() {
     return client::generate_id();
@@ -25,6 +26,10 @@ gaia_ptr& gaia_ptr::clone() {
     memcpy(new_this, old_this, new_size);
 
     client::tx_log(row_id, old_offset, to_offset());
+
+    if (!client::is_invalid_event(new_this->type)) {
+        client::s_events.push_back(trigger_event_t {event_type_t::row_insert, new_this->type, new_this->id, nullptr, 0});
+    }
 
     return *this;
 }
@@ -49,6 +54,10 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data) {
 
     client::tx_log(row_id, old_offset, to_offset());
 
+    if (!client::is_invalid_event(new_this->type)) {
+        client::s_events.push_back(trigger_event_t {event_type_t::row_update, new_this->type, new_this->id, nullptr, 0});
+    }
+
     return *this;
 }
 
@@ -70,6 +79,12 @@ gaia_ptr::gaia_ptr(const gaia_id_t id, const size_t size, bool log_updates)
 
 void gaia_ptr::allocate(const size_t size) {
     client::allocate_object(row_id, size);
+}
+
+void gaia_ptr::create_insert_trigger(gaia_type_t type, gaia_id_t id) {
+    if (!client::is_invalid_event(type)) {
+        client::s_events.push_back(trigger_event_t {event_type_t::row_insert, type, id, nullptr, 0});
+    }
 }
 
 gaia_ptr::object* gaia_ptr::to_ptr() const {
@@ -100,6 +115,9 @@ void gaia_ptr::find_next(gaia_type_t type) {
 
 void gaia_ptr::reset() {
     client::tx_log(row_id, to_offset(), 0);
+    if (!client::is_invalid_event(to_ptr()->type)) {
+        client::s_events.push_back(trigger_event_t {event_type_t::row_delete, to_ptr()->type, to_ptr()->id, nullptr, 0});
+    }
     (*client::s_offsets)[row_id] = 0;
     row_id = 0;
 }

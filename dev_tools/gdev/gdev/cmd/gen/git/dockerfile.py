@@ -1,0 +1,34 @@
+from gdev.third_party.atools import memoize
+from .cfg import GenGitCfg
+from .._abc.dockerfile import GenAbcDockerfile
+
+
+class GenGitDockerfile(GenAbcDockerfile):
+
+    @property
+    def cfg(self) -> GenGitCfg:
+        return GenGitCfg(self.options)
+
+    @memoize
+    async def get_from_section(self) -> str:
+        from_section = f'FROM git_base as {await self.get_name()}'
+
+        self.log.debug(f'{from_section = }')
+
+        return from_section
+
+    @memoize
+    async def get_run_section(self) -> str:
+        if lines := await self.cfg.get_lines():
+            run_section = (
+                    'RUN '
+                    + ' \\\n    && '.join([f'git clone --depth 1 {line}' for line in lines])
+                    + ' \\\n    && apt-get remove --autoremove -y git'
+                    + ' \\\n    && apt-get clean'
+            )
+        else:
+            run_section = ''
+
+        self.log.debug(f'{run_section = }')
+
+        return run_section

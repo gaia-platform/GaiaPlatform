@@ -12,10 +12,8 @@ project(gaia_generate)
 set(GAIA_GENERATE_INCLUDES
   ${FLATBUFFERS_INC}
   ${GAIA_REPO}/production/db/storage_engine/mock
-  ${GAIA_REPO}/production/build/catalog/catalog_manager/generated
-  ${GAIA_REPO}/production/build/catalog/parser/generated
+  ${GAIA_PROD_BUILD}/catalog/parser/generated
   ${GAIA_REPO}/third_party/production/flatbuffers/include
-  ${GAIA_REPO}/production/catalog/catalog_manager/inc
   ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_INC}/public/common
   ${GAIA_INC}/public/direct_access
@@ -23,6 +21,7 @@ set(GAIA_GENERATE_INCLUDES
   ${GAIA_INC}/public/db
   ${GAIA_INC}/internal/db
   ${CMAKE_CURRENT_SOURCE_DIR}/inc
+  ${GAIA_CATALOG_GENERATED}
 )
 message(STATUS "GAIA_GENERATE_INCLUDES=${GAIA_GENERATE_INCLUDES}")
 

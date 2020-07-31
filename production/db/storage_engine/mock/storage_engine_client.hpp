@@ -12,6 +12,7 @@
 #include <csignal>
 #include <thread>
 #include <atomic>
+#include <unordered_set>
 
 #include <flatbuffers/flatbuffers.h>
 
@@ -22,11 +23,15 @@
 #include "socket_helpers.hpp"
 #include "messages_generated.h"
 #include "storage_engine.hpp"
+#include "triggers.hpp"
+#include "event_trigger_threadpool.hpp"
 
 using namespace std;
 using namespace gaia::common;
+using namespace gaia::db::triggers;
 
 namespace gaia {
+
 namespace db {
 
 // We need to forward-declare this class to avoid a circular dependency.
@@ -35,6 +40,7 @@ class gaia_hash_map;
 class client : private se_base {
     friend class gaia_ptr;
     friend class gaia_hash_map;
+    friend class event_trigger_threadpool_t;
 
    public:
     static inline bool is_transaction_active() {
@@ -46,25 +52,18 @@ class client : private se_base {
     static void rollback_transaction();
     static bool commit_transaction();
 
-    static inline gaia_tx_hook set_tx_begin_hook(gaia_tx_hook hook, bool overwrite) {
-        return set_tx_hook(s_tx_begin_hook, hook, overwrite);
-    }
-
-    static inline gaia_tx_hook set_tx_commit_hook(gaia_tx_hook hook, bool overwrite) {
-        return set_tx_hook(s_tx_commit_hook, hook, overwrite);
-    }
-
-    static inline gaia_tx_hook set_tx_rollback_hook(gaia_tx_hook hook, bool overwrite) {
-        return set_tx_hook(s_tx_rollback_hook, hook, overwrite);
-    }
-
    private:
     thread_local static int s_fd_log;
     thread_local static offsets* s_offsets;
+    thread_local static std::vector<gaia::db::triggers::trigger_event_t> s_events;
+    thread_local static gaia_xid_t s_transaction_id;
 
-    static atomic<gaia_tx_hook> s_tx_begin_hook;
-    static atomic<gaia_tx_hook> s_tx_commit_hook;
-    static atomic<gaia_tx_hook> s_tx_rollback_hook;
+    // Maintain a static filter in the client to disable generating events
+    // for system types.
+    static std::unordered_set<gaia_type_t> trigger_type_filter;
+
+    // Threadpool to help invoke post-commit triggers in response to events generated in each transaction.
+    static gaia::db::triggers::event_trigger_threadpool_t* event_trigger_pool;
 
     // Inherited from se_base:
     // static int s_fd_offsets;
@@ -76,6 +75,13 @@ class client : private se_base {
     static void destroy_log_mapping();
 
     static int get_session_socket();
+
+    /**
+     * Function returns whether to generate a trigger event for an operation based on the gaia_type_t.
+     */
+    static inline bool is_invalid_event(const gaia_type_t type) {
+        return trigger_type_filter.find(type) != trigger_type_filter.end();
+    }
 
     static inline int64_t allocate_row_id() {
         if (*s_offsets == nullptr) {
@@ -135,20 +141,6 @@ class client : private se_base {
         lr->row_id = row_id;
         lr->old_object = old_object;
         lr->new_object = new_object;
-    }
-
-    static inline gaia_tx_hook set_tx_hook(atomic<gaia_tx_hook>& old_hook, gaia_tx_hook new_hook, bool overwrite) {
-        if (overwrite) {
-            // Register the new hook and return the previously registered hook.
-            return old_hook.exchange(new_hook);
-        } else {
-            // Do not overwrite previously registered hook.
-            gaia_tx_hook expected = nullptr;
-            // If the exchange failed (because a hook was already registered),
-            // then return the registered hook, otherwise return null.
-            old_hook.compare_exchange_strong(expected, new_hook);
-            return expected;
-        }
     }
 };
 

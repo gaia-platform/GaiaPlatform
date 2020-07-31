@@ -6,6 +6,7 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 
 namespace gaia {
 /**
@@ -34,9 +35,14 @@ constexpr gaia_id_t INVALID_GAIA_ID = 0;
 typedef uint64_t gaia_type_t;
 
 /**
- * The type of a Gaia transaction hook.
+ * The type of a Gaia transaction id.
  */
-typedef void (*gaia_tx_hook)(void);
+typedef uint64_t gaia_xid_t;
+
+/**
+ * The type of a Gaia event type.
+ */
+typedef uint8_t gaia_event_t;
 
 }  // namespace common
 /*@}*/

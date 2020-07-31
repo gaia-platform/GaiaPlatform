@@ -38,6 +38,15 @@ if(fbs_generated)
     COMMENT "All generated files were updated.")
 endif()
 
+gaia_compile_flatbuffers_schema_to_cpp_opt(tests/flatbuffers/addr_book.fbs "--no-includes;--gen-compare;--gaia-type-initial-value;1000" "${GENERATED_OUTPUTS}")
+gaia_get_generated_output(fbs_generated)
+if(fbs_generated)
+  # message(STATUS "Add generated_code target with files:${fbs_generated}")
+  add_custom_target(generate_addr_book
+    DEPENDS ${fbs_generated}
+    COMMENT "All generated files were updated.")
+endif()
+
 # main target
 add_library(gaia_rules STATIC
   src/event_manager.cpp
@@ -52,8 +61,9 @@ target_link_libraries(gaia_rules PRIVATE gaia_semock)
 set_property (TARGET gaia_rules PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # unit tests
-#add_gtest(test_auto_tx "tests/test_auto_tx.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_semock")
-#add_gtest(test_event_manager "tests/test_event_manager.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
-#add_gtest(test_system_init "tests/test_system_init.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
-#add_gtest(test_component_init "tests/test_component_init.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_rules;gaia_direct;gaia_semock")
+add_gtest(test_auto_tx "tests/test_auto_tx.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_semock")
+add_gtest(test_event_manager "tests/test_event_manager.cpp;tests/event_manager_test_helpers.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
+add_gtest(test_system_init "tests/test_system_init.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
+add_gtest(test_component_init "tests/test_component_init.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_rules;gaia_direct;gaia_semock")
 add_gtest(test_rule_context "tests/test_rule_context.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_rules")
+add_gtest(test_rule_integration "tests/test_rule_integration.cpp" "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia" "generate_addr_book")

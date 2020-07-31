@@ -29,15 +29,3 @@ void gaia::db::rollback_transaction() {
 bool gaia::db::commit_transaction() {
     return gaia::db::client::commit_transaction();
 }
-
-gaia::db::gaia_tx_hook gaia::db::set_tx_begin_hook(gaia::db::gaia_tx_hook hook, bool overwrite) {
-    return gaia::db::client::set_tx_begin_hook(hook, overwrite);
-}
-
-gaia::db::gaia_tx_hook gaia::db::set_tx_commit_hook(gaia::db::gaia_tx_hook hook, bool overwrite) {
-    return gaia::db::client::set_tx_commit_hook(hook, overwrite);
-}
-
-gaia::db::gaia_tx_hook gaia::db::set_tx_rollback_hook(gaia::db::gaia_tx_hook hook, bool overwrite) {
-    return gaia::db::client::set_tx_rollback_hook(hook, overwrite);
-}

@@ -4,10 +4,16 @@
 /////////////////////////////////////////////
 #pragma once
 
-#include "gaia_object.hpp"
-#include "gaia_exception.hpp"
+#include <set>
 #include <string>
+#include <sstream>
+#include <vector>
 #include <memory>
+
+#include "gaia_common.hpp"
+#include "gaia_exception.hpp"
+
+using namespace gaia::common;
 
 namespace gaia {
 /**
@@ -19,6 +25,47 @@ namespace catalog {
  * \addtogroup catalog
  * @{
  */
+
+/*
+ * The following enum classes are shared cross the catalog usage.
+ */
+
+/*
+ * Data types for Gaia field records.
+ */
+enum class data_type_t : uint8_t {
+    e_bool,
+    e_int8,
+    e_uint8,
+    e_int16,
+    e_uint16,
+    e_int32,
+    e_uint32,
+    e_int64,
+    e_uint64,
+    e_float32,
+    e_float64,
+    e_string,
+    e_references
+};
+
+/*
+ * Trim action for log tables.
+ */
+enum class trim_action_type_t : uint8_t {
+    e_none,
+    e_delete,
+    e_archive,
+};
+
+/*
+ * Value index types.
+ */
+enum value_index_type_t : uint8_t {
+    hash,
+    range
+};
+
 namespace ddl {
 /**
  * \addtogroup ddl
@@ -27,40 +74,24 @@ namespace ddl {
  * Definitions for parse result bindings
  */
 
-enum class data_type_t : unsigned int {
-    BOOL,
-    INT8,
-    UINT8,
-    INT16,
-    UINT16,
-    INT32,
-    UINT32,
-    INT64,
-    UINT64,
-    FLOAT32,
-    FLOAT64,
-    STRING,
-    REFERENCES
-};
-
-enum class  statement_type_t : unsigned int {
-    CREATE,
-    DROP,
-    ALTER
+enum class statement_type_t : uint8_t {
+    create,
+    drop,
+    alter
 };
 
 struct statement_t {
 
-    statement_t( statement_type_t type) : m_type(type){};
+    statement_t(statement_type_t type) : m_type(type){};
 
-     statement_type_t type() const { return m_type; };
+    statement_type_t type() const { return m_type; };
 
-    bool is_type( statement_type_t type) const { return m_type == type; };
+    bool is_type(statement_type_t type) const { return m_type == type; };
 
     virtual ~statement_t(){};
 
   private:
-     statement_type_t m_type;
+    statement_type_t m_type;
 };
 
 struct field_type_t {
@@ -86,21 +117,42 @@ struct field_definition_t {
 
 using field_def_list_t = vector<unique_ptr<field_definition_t>>;
 
-enum class create_type_t : unsigned int {
-    CREATE_TABLE,
+enum class create_type_t : uint8_t {
+    create_table,
 };
 
 struct create_statement_t : statement_t {
     create_statement_t(create_type_t type)
-        : statement_t(statement_type_t::CREATE), type(type){};
+        : statement_t(statement_type_t::create), type(type){};
+
+    create_statement_t(create_type_t type, string name)
+        : statement_t(statement_type_t::create), type(type), name(move(name)){};
 
     virtual ~create_statement_t() {}
 
     create_type_t type;
 
-    string table_name;
+    string name;
 
     field_def_list_t fields;
+};
+
+enum class drop_type_t : uint8_t {
+    drop_table,
+};
+
+struct drop_statement_t : statement_t {
+    drop_statement_t(drop_type_t type)
+        : statement_t(statement_type_t::drop), type(type){};
+
+    drop_statement_t(drop_type_t type, string name)
+        : statement_t(statement_type_t::drop), type(type), name(move(name)){};
+
+    virtual ~drop_statement_t() {}
+
+    drop_type_t type;
+
+    string name;
 };
 
 /*@}*/
@@ -119,7 +171,7 @@ class table_already_exists : public gaia_exception {
 };
 
 /**
- * Thrown when a referenced table does not exists.
+ * Thrown when a specified table does not exists.
  */
 class table_not_exists : public gaia_exception {
   public:
@@ -143,6 +195,11 @@ class duplicate_field : public gaia_exception {
 };
 
 /**
+ * Initialize the catalog.
+*/
+void initialize_catalog();
+
+/**
  * Create a table definition in the catalog.
  *
  * @param name table name
@@ -153,7 +210,19 @@ class duplicate_field : public gaia_exception {
 gaia_id_t create_table(const string &name, const ddl::field_def_list_t &fields);
 
 /**
+ * Delete a table from the catalog.
+ *
+ * @param name table name
+ * @throw table_not_exists
+ */
+void drop_table(const string &name);
+
+/**
  * List all tables defined in the catalog.
+ *
+ * The method is NOT thread safe with concurrent creating/dropping/altering table activities.
+ * It has the same safety gurantee of the underlying container.
+ * Use direct access APIs with transactions for thread safe access of catalog records.
  *
  * @return a set of tables ids in the catalog.
  */
@@ -167,6 +236,10 @@ const set<gaia_id_t> &list_tables();
  *
  * Use list_references() API to get a list of all references for a given table.
  *
+ * The method is NOT thread safe with concurrent creating/dropping/altering table activities.
+ * It has the same safety gurantee of the underlying container.
+ * Use direct access APIs with transactions for thread safe access of catalog records.
+ *
  * @param table_id id of the table
  * @return a list of field ids in the order of their positions.
  */
@@ -176,6 +249,10 @@ const vector<gaia_id_t> &list_fields(gaia_id_t table_id);
  * List all references for a given table defined in the catalog.
  * References are foreign key constraints or table links.
  * They defines relationships between tables.
+ *
+ * The method is NOT thread safe with concurrent creating/dropping/altering table activities.
+ * It has the same safety gurantee of the underlying container.
+ * Use direct access APIs with transactions for thread safe access of catalog records.
  *
  * @param table_id id of the table
  * @return a list of ids of the table references in the order of their positions.
@@ -201,7 +278,7 @@ string generate_fbs();
 /**
  * Generate the Extended Data Classes header file.
  *
- * @return void
+ * @return generated source
  */
 string gaia_generate(string);
 

@@ -4,18 +4,22 @@
 /////////////////////////////////////////////
 
 #include "storage_engine_client.hpp"
+#include "system_catalog_types.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
+using namespace gaia::db::triggers;
 using namespace gaia::db::messages;
 using namespace flatbuffers;
 
 thread_local se_base::offsets *client::s_offsets = nullptr;
 thread_local int client::s_fd_log = -1;
+thread_local gaia_xid_t client::s_transaction_id = 0;
+thread_local std::vector<trigger_event_t> client::s_events;
 
-std::atomic<gaia_tx_hook> client::s_tx_begin_hook{nullptr};
-std::atomic<gaia_tx_hook> client::s_tx_commit_hook{nullptr};
-std::atomic<gaia_tx_hook> client::s_tx_rollback_hook{nullptr};
+std::unordered_set<gaia_type_t> client::trigger_type_filter{system_catalog_types::c_event_log_type};
+// Should this be initialized by the rules engine instead?
+event_trigger_threadpool_t* client::event_trigger_pool = new event_trigger_threadpool_t();
 
 static void build_client_request(FlatBufferBuilder &builder, session_event_t event) {
     auto client_request = Createclient_request_t(builder, event);
@@ -187,10 +191,15 @@ void client::begin_transaction() {
     build_client_request(builder, session_event_t::BEGIN_TXN);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
-    // Don't call the hook unless all preceding steps were successful.
-    if (s_tx_begin_hook) {
-        (s_tx_begin_hook.load())();
-    }
+    // Block to receive transaction id from the server
+    uint8_t msg_buf[MAX_MSG_SIZE] = {0};
+    size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
+    retail_assert(bytes_read > 0);
+
+    // Extract the transaction id and cache it; it needs to be reset for the next transaction.
+    const message_t *msg = Getmessage_t(msg_buf);
+    const server_reply_t *reply = msg->msg_as_reply();
+    s_transaction_id = reply->transaction_id();
 }
 
 void client::rollback_transaction() {
@@ -204,11 +213,6 @@ void client::rollback_transaction() {
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::ROLLBACK_TXN);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
-
-    // Don't call the hook unless all preceding steps were successful.
-    if (s_tx_rollback_hook) {
-        (s_tx_rollback_hook.load())();
-    }
 }
 
 // This method returns true for a commit decision and false for an abort decision.
@@ -243,10 +247,18 @@ bool client::commit_transaction() {
     const session_event_t event = reply->event();
     retail_assert(event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT);
 
-    // Don't call the hook unless all preceding steps were successful.
-    if (s_tx_commit_hook) {
-        (s_tx_commit_hook.load())();
-    }
+    // Execute trigger only if rules engine is initialized.
+    if (event_trigger_pool->get_commit_trigger() && event == session_event_t::DECIDE_TXN_COMMIT) {
+        event_trigger_pool->add_trigger_task(s_transaction_id, std::move(s_events));
+    } 
+
+    // Reset transaction id.
+    s_transaction_id = -1;
+
+    // Reset TLS events vector for the next transaction that will run on this thread.
+    s_events.clear();
+    // Assert anyway.
+    assert(s_events.size() == 0); 
 
     return (event == session_event_t::DECIDE_TXN_COMMIT);
 }
