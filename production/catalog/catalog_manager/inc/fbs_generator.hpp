@@ -5,7 +5,6 @@
 #pragma once
 
 #include "gaia_catalog.hpp"
-#include "catalog_gaia_generated.h"
 
 namespace gaia {
 namespace catalog {

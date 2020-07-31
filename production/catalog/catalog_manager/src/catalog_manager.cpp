@@ -2,6 +2,7 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+#include "gaia_catalog.h"
 #include "catalog_manager.hpp"
 #include "gaia_exception.hpp"
 #include "fbs_generator.hpp"
@@ -64,14 +65,14 @@ void catalog_manager_t::reload_cache() {
     clear_cache();
 
     gaia::db::begin_transaction();
-    for (auto table = Gaia_table::get_first(); table; table = table.get_next()) {
+    for (auto table = gaia_table_t::get_first(); table; table = table.get_next()) {
         m_table_ids.insert(table.gaia_id());
         m_table_names[table.name()] = table.gaia_id();
         m_table_fields[table.gaia_id()] = {};
         m_table_references[table.gaia_id()] = {};
     }
 
-    for (auto field = Gaia_field::get_first(); field; field = field.get_next()) {
+    for (auto field = gaia_field_t::get_first(); field; field = field.get_next()) {
         if (static_cast<data_type_t>(field.type()) != data_type_t::e_references) {
             m_table_fields[field.table_id()].push_back(field.gaia_id());
         } else {
@@ -105,7 +106,7 @@ gaia_id_t catalog_manager_t::create_table(const string &name,
     string bfbs{generate_bfbs(generate_fbs(name, fields))};
 
     gaia::db::begin_transaction();
-    gaia_id_t table_id = Gaia_table::insert_row(
+    gaia_id_t table_id = gaia_table_t::insert_row(
         name.c_str(),                                     // name
         false,                                            // is_log
         static_cast<uint8_t>(trim_action_type_t::e_none), // trim_action
@@ -136,7 +137,7 @@ gaia_id_t catalog_manager_t::create_table(const string &name,
         } else {
             position = ++field_position;
         }
-        gaia_id_t field_id = Gaia_field::insert_row(
+        gaia_id_t field_id = gaia_field_t::insert_row(
             field->name.c_str(),               // name
             table_id,                          // table_id
             static_cast<uint8_t>(field->type), // type
@@ -178,14 +179,14 @@ void catalog_manager_t::drop_table(const string &name) {
     // Remove all records belong to the table in the catalog tables.
     gaia::db::begin_transaction();
     for (gaia_id_t field_id : list_fields(table_id)) {
-        auto field_record = Gaia_field::get(field_id);
+        auto field_record = gaia_field_t::get(field_id);
         field_record.delete_row();
     }
     for (gaia_id_t reference_id : list_references(table_id)) {
-        auto reference_record = Gaia_field::get(reference_id);
+        auto reference_record = gaia_field_t::get(reference_id);
         reference_record.delete_row();
     }
-    auto table_record = Gaia_table::get(table_id);
+    auto table_record = gaia_table_t::get(table_id);
     table_record.delete_row();
     gaia::db::commit_transaction();
 

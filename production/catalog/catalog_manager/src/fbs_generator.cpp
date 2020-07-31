@@ -4,6 +4,7 @@
 /////////////////////////////////////////////
 #include <string>
 #include <algorithm>
+#include "gaia_catalog.h"
 #include "fbs_generator.hpp"
 #include "flatbuffers/idl.h"
 #include "retail_assert.hpp"
@@ -162,7 +163,7 @@ static string generate_field_fbs(const string &name, const string &type, int cou
     }
 }
 
-static string generate_field_fbs(const Gaia_field &field) {
+static string generate_field_fbs(const gaia_field_t &field) {
     string name{field.name()};
     string type{get_data_type_name(static_cast<data_type_t>(field.type()))};
     return generate_field_fbs(name, type, field.repeated_count());
@@ -178,11 +179,11 @@ ddl::unknown_data_type::unknown_data_type() {
 string generate_fbs(gaia_id_t table_id) {
     string fbs;
     gaia::db::begin_transaction();
-    Gaia_table table = Gaia_table::get(table_id);
+    gaia_table_t table = gaia_table_t::get(table_id);
     string table_name{table.name()};
     fbs += "table " + table_name + "{\n";
     for (gaia_id_t field_id : list_fields(table_id)) {
-        Gaia_field field = Gaia_field::get(field_id);
+        gaia_field_t field = gaia_field_t::get(field_id);
         fbs += "\t" + generate_field_fbs(field) + ";\n";
     }
     fbs += "}\n";
@@ -195,10 +196,10 @@ string generate_fbs() {
     string fbs;
     gaia::db::begin_transaction();
     for (gaia_id_t table_id : list_tables()) {
-        Gaia_table table = Gaia_table::get(table_id);
+        gaia_table_t table = gaia_table_t::get(table_id);
         fbs += "table " + string(table.name()) + "{\n";
         for (gaia_id_t field_id : list_fields(table_id)) {
-            Gaia_field field = Gaia_field::get(field_id);
+            gaia_field_t field = gaia_field_t::get(field_id);
             fbs += "\t" + generate_field_fbs(field) + ";\n";
         }
         fbs += "}\n\n";
@@ -235,7 +236,7 @@ string generate_bfbs(const string &fbs) {
 
 string get_bfbs(gaia_id_t table_id) {
     gaia::db::begin_transaction();
-    Gaia_table table = Gaia_table::get(table_id);
+    gaia_table_t table = gaia_table_t::get(table_id);
     string base64_binary_schema = table.binary_schema();
     gaia::db::commit_transaction();
     return base64_decode(base64_binary_schema);

@@ -2,16 +2,18 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
-#include "gaia_catalog.hpp"
+#include "catalog_manager.hpp"
 #include "gaia_parser.hpp"
 #include "gaia_system.hpp"
 #include "gaia_db.hpp"
+#include "db_test_helpers.hpp"
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
 
 using namespace std;
+using namespace gaia::catalog;
 using namespace gaia::catalog::ddl;
 
 void execute(vector<unique_ptr<statement_t>> &statements) {
@@ -58,55 +60,145 @@ void start_repl(parser_t &parser) {
     }
 }
 
+void load_bootstrap_catalog() {
+    {
+        field_def_list_t fields;
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::e_string, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"is_log", data_type_t::e_bool, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"trim_action", data_type_t::e_uint8, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"max_rows", data_type_t::e_uint64, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"max_size", data_type_t::e_uint64, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"max_seconds", data_type_t::e_uint64, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"binary_schema", data_type_t::e_string, 1}));
+        catalog_manager_t::get().create_table("gaia_table", fields);
+    }
+
+    {
+        field_def_list_t fields;
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::e_string, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"table_id", data_type_t::e_uint64, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"fields", data_type_t::e_string, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"index_type", data_type_t::e_int8, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"unique", data_type_t::e_bool, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"values_", data_type_t::e_references, 1, "gaia_table"}));
+        catalog_manager_t::get().create_table("gaia_value_index", fields);
+    }
+
+    {
+        field_def_list_t fields;
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::e_string, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"table_id", data_type_t::e_uint64, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"type", data_type_t::e_uint8, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"type_id", data_type_t::e_uint64, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"repeated_count", data_type_t::e_uint8, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"position", data_type_t::e_uint16, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"required", data_type_t::e_bool, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"deprecated", data_type_t::e_bool, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"active", data_type_t::e_bool, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"nullable", data_type_t::e_bool, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"has_default", data_type_t::e_bool, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"default_value", data_type_t::e_string, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"value_fields_", data_type_t::e_references, 1, "gaia_value_index"}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"fields_", data_type_t::e_references, 1, "gaia_table"}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"references_", data_type_t::e_references, 1, "gaia_table"}));
+        catalog_manager_t::get().create_table("gaia_field", fields);
+    }
+
+    {
+        field_def_list_t fields;
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::e_string, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"active_on_startup", data_type_t::e_bool, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"table_ids", data_type_t::e_string, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"source_location", data_type_t::e_string, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"serial_stream", data_type_t::e_string, 1}));
+        catalog_manager_t::get().create_table("gaia_ruleset", fields);
+    }
+
+        {
+        field_def_list_t fields;
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::e_string, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"ruleset_id", data_type_t::e_uint64, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"rules_", data_type_t::e_references, 1, "gaia_ruleset"}));
+        catalog_manager_t::get().create_table("gaia_rule", fields);
+    }
+}
+
+// From the database name and catalog contents, generate the flatbuffer andGaia EDC header files.
+void generate_headers(string db_name) {
+    // Generate the flatbuffer schema file.
+    ofstream fbs(db_name + ".fbs");
+    fbs << "namespace gaia." << db_name << ";" << endl << endl;
+    fbs << gaia::catalog::generate_fbs() << endl;
+    fbs.close();
+
+    // Run the flatbuffer compiler, flatc, on this schema.
+    string flatc_cmd = "flatc --cpp --gen-object-api ";
+    flatc_cmd += "--cpp-str-type gaia::direct_access::nullable_string_t --cpp-str-flex-ctor ";
+    flatc_cmd += db_name + ".fbs";
+    auto rc = system(flatc_cmd.c_str());
+
+    // Generate the Extended Data Class definitions
+    ofstream edc("gaia_" + db_name + ".h");
+    edc << gaia::catalog::gaia_generate(db_name) << endl;
+    edc.close();
+
+    if (rc != 0) {
+        cout << "flatc failed to compile " + db_name + ".fbs" ", return code = " << rc << endl;
+    }
+}
+
 int main(int argc, char *argv[]) {
     int res = 0;
     parser_t parser;
-    gaia::db::begin_session();
-    gaia::catalog::initialize_catalog();
-    for (int i = 1; i < argc; ++i) {
-        if (argv[i] == string("-p")) {
-            parser.trace_parsing = true;
-        } else if (argv[i] == string("-s")) {
-            parser.trace_scanning = true;
-        } else if (argv[i] == string("-i")) {
-            start_repl(parser);
-        } else {
-            if (!parser.parse(argv[i])) {
-                execute(parser.statements);
-                // Strip off the path and any suffix to get database name.
-                string db_name = string(argv[i]);
-                if (db_name.find("/") != string::npos) {
-                    db_name = db_name.substr(db_name.find_last_of("/")+1);
-                }
-                if (db_name.find(".") != string::npos) {
-                    db_name = db_name.substr(0, db_name.find_last_of("."));
-                }
-
-                // Generate the flatbuffer schema file.
-                ofstream fbs(db_name + ".fbs");
-                fbs << "namespace gaia." << db_name << ";" << endl << endl;
-                fbs << gaia::catalog::generate_fbs() << endl;
-                fbs.close();
-
-                // Run the flatbuffer compiler, flatc, on this schema.
-                string flatc_cmd = "flatc --cpp --gen-mutable --gen-setters --gen-object-api ";
-                flatc_cmd += "--cpp-str-type gaia::direct_access::nullable_string_t --cpp-str-flex-ctor ";
-                flatc_cmd += db_name + ".fbs";
-                auto rc = system(flatc_cmd.c_str());
-
-                // Generate the Extended Data Class definitions
-                ofstream edc("gaia_" + db_name + ".h");
-                edc << gaia::catalog::gaia_generate(db_name) << endl;
-                edc.close();
-
-                if (rc != 0) {
-                    cout << "flatc failed to compile " + db_name + ".fbs" ", return code = " << rc << endl;
-                }
+    bool gen_catalog = true;
+    try {
+        for (int i = 1; i < argc; ++i) {
+            if (argv[i] == string("-p")) {
+                parser.trace_parsing = true;
+            } else if (argv[i] == string("-s")) {
+                parser.trace_scanning = true;
+            } else if (argv[i] == string("-i")) {
+                gaia::db::begin_session();
+                gaia::catalog::initialize_catalog();
+                start_repl(parser);
+                gen_catalog = false;
+                gaia::db::end_session();
+            } else if (argv[i] == string("-t")) {
+                // Note the order dependency.
+                gaia::db::start_server();
             } else {
-                res = EXIT_FAILURE;
+                if (!parser.parse(argv[i])) {
+                    gaia::db::begin_session();
+                    gaia::catalog::initialize_catalog();
+                    execute(parser.statements);
+                    // Strip off the path and any suffix to get database name.
+                    string db_name = string(argv[i]);
+                    if (db_name.find("/") != string::npos) {
+                        db_name = db_name.substr(db_name.find_last_of("/")+1);
+                    }
+                    if (db_name.find(".") != string::npos) {
+                        db_name = db_name.substr(0, db_name.find_last_of("."));
+                    }
+
+                    generate_headers(db_name);
+                    gaia::db::end_session();
+
+                } else {
+                    res = EXIT_FAILURE;
+                }
+                gen_catalog = false;
             }
         }
+        if (gen_catalog) {
+            gaia::db::begin_session();
+            gaia::catalog::initialize_catalog();
+            load_bootstrap_catalog();
+            generate_headers("catalog");
+            gaia::db::end_session();
+        }
+    } catch (gaia_exception &e) {
+        cerr << "Caught exception \"" << e.what() << "\". May need to start the storage engine server." << endl;
+        res = 1;
     }
-    gaia::db::end_session();
     return res;
 }
