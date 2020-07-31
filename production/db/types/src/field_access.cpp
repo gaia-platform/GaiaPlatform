@@ -51,12 +51,12 @@ invalid_serialized_field_data::invalid_serialized_field_data(field_position_t po
 
 void gaia::db::types::initialize_field_cache_from_binary_schema(
     field_cache_t* field_cache,
-    const string& binary_schema)
+    const uint8_t* binary_schema)
 {
     retail_assert(field_cache != nullptr, "field_cache argument should not be null.");
 
     // Deserialize the schema.
-    const reflection::Schema* schema = reflection::GetSchema(binary_schema.c_str());
+    const reflection::Schema* schema = reflection::GetSchema(binary_schema);
     if (schema == nullptr)
     {
         throw invalid_schema();
@@ -91,7 +91,7 @@ void gaia::db::types::initialize_field_cache_from_binary_schema(
 void get_table_field_information(
     uint64_t type_id,
     const uint8_t* serialized_data,
-    const string& binary_schema,
+    const uint8_t* binary_schema,
     field_position_t field_position,
     const flatbuffers::Table*& root_table,
     auto_field_cache_t& auto_field_cache,
@@ -131,7 +131,7 @@ void get_table_field_information(
 void get_table_field_array_information(
     uint64_t type_id,
     const uint8_t* serialized_data,
-    const string& binary_schema,
+    const uint8_t* binary_schema,
     field_position_t field_position,
     const flatbuffers::Table*& root_table,
     auto_field_cache_t& auto_field_cache,
@@ -159,7 +159,7 @@ void get_table_field_array_information(
 data_holder_t gaia::db::types::get_table_field_value(
     uint64_t type_id,
     const uint8_t* serialized_data,
-    const string& binary_schema,
+    const uint8_t* binary_schema,
     field_position_t field_position)
 {
     const flatbuffers::Table* root_table = nullptr;
@@ -204,7 +204,7 @@ data_holder_t gaia::db::types::get_table_field_value(
 size_t gaia::db::types::get_table_field_array_size(
     uint64_t type_id,
     const uint8_t* serialized_data,
-    const string& binary_schema,
+    const uint8_t* binary_schema,
     field_position_t field_position)
 {
     const flatbuffers::Table* root_table = nullptr;
@@ -224,7 +224,7 @@ size_t gaia::db::types::get_table_field_array_size(
 data_holder_t gaia::db::types::get_table_field_array_element(
     uint64_t type_id,
     const uint8_t* serialized_data,
-    const string& binary_schema,
+    const uint8_t* binary_schema,
     field_position_t field_position,
     size_t array_index)
 {

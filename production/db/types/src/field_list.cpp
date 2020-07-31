@@ -24,13 +24,11 @@ field_list_t::field_list_t(gaia_id_t table_id)
     // initialize() will be called on the first add().
 }
 
-// Copy constructor
 field_list_t::field_list_t(const field_list_t& other)
     : m_table_id(other.m_table_id),
     m_data((other.m_data) ? new vector<gaia_id_t>(*other.m_data) : nullptr) {
 }
 
-// Copy assignment operator
 field_list_t& field_list_t::operator=(const field_list_t& other) {
     if (this != &other) {
         m_table_id = other.m_table_id;
@@ -39,10 +37,9 @@ field_list_t& field_list_t::operator=(const field_list_t& other) {
     return *this;
 }
 
-// Access operator
 gaia_id_t field_list_t::operator[](size_t idx) const {
     if (idx >= size()) {
-        throw field_list_out_of_bounds();
+        throw field_list_index_out_of_bounds();
     }
     return (*m_data)[idx];
 }
@@ -104,9 +101,7 @@ bool field_list_t::validate() const {
 
 // Intersection. Returns fields on both lists if table_ids are the same.
 field_list_t field_list_t::intersect(const field_list_t& other) const {
-    if (other.m_table_id != m_table_id) {
-        throw field_list_invalid_operation();
-    }
+    retail_assert(m_table_id == other.m_table_id, "Incompatible field lists for intersect");
     // TODO (yiwen): implement.
     return field_list_t(other); // PLACEHOLDER: suppress warnings.
 }

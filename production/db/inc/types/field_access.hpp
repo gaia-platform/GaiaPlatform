@@ -70,7 +70,7 @@ public:
 // throughout the use of the field_cache instance.
 void initialize_field_cache_from_binary_schema(
     field_cache_t* field_cache,
-    const string& binary_schema);
+    const uint8_t* binary_schema);
 
 // Get the field value of a table record payload.
 // The value will be packed in a type_holder_t structure.
@@ -83,7 +83,7 @@ void initialize_field_cache_from_binary_schema(
 data_holder_t get_table_field_value(
     gaia_type_t type_id,
     const uint8_t* serialized_data,
-    const string& binary_schema,
+    const uint8_t* binary_schema,
     field_position_t field_position);
 
 // Get the size of a field of array type.
@@ -94,7 +94,7 @@ data_holder_t get_table_field_value(
 size_t get_table_field_array_size(
     gaia_type_t type_id,
     const uint8_t* serialized_data,
-    const string& binary_schema,
+    const uint8_t* binary_schema,
     field_position_t field_position);
 
 // Get a specific element of a field of array type.
@@ -105,7 +105,7 @@ size_t get_table_field_array_size(
 data_holder_t get_table_field_array_element(
     gaia_type_t type_id,
     const uint8_t* serialized_data,
-    const string& binary_schema,
+    const uint8_t* binary_schema,
     field_position_t field_position,
     size_t array_index);
 

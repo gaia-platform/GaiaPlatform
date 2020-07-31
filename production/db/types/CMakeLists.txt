@@ -24,7 +24,7 @@ message(STATUS "GAIA_TYPES_INCLUDES=${GAIA_TYPES_INCLUDES}")
 # Our main target.
 add_library(gaia_types STATIC
     src/data_holder.cpp
-    src/data_diff.cpp
+    src/payload_diff.cpp
     src/type_cache.cpp
     src/field_access.cpp
     src/field_list.cpp)

@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "data_diff.hpp"
+#include "payload_diff.hpp"
 
 #include <vector>
 #include <string>
@@ -21,7 +21,8 @@ namespace db
 {
 namespace types
 {
-field_list_t data_diff(gaia_id_t table_id, const uint8_t* payload1, const uint8_t* payload2) {
+
+field_list_t compute_payload_diff(gaia_id_t table_id, const uint8_t* payload1, const uint8_t* payload2) {
     field_list_t retval(table_id);
 
     const vector<gaia_id_t>& fields = gaia::catalog::list_fields(table_id);
@@ -32,17 +33,18 @@ field_list_t data_diff(gaia_id_t table_id, const uint8_t* payload1, const uint8_
         gaia::catalog::Gaia_table table = gaia::catalog::Gaia_table::get(table_id);
         gaia_type_t type_id = table.gaia_type();
         string schema = gaia::catalog::get_bfbs(table_id);
-        data_holder_t d1 = get_table_field_value(type_id, payload1, schema, i);
-        data_holder_t d2 = get_table_field_value(type_id, payload2, schema, i);
+        data_holder_t data_holder1 = get_table_field_value(type_id, payload1, reinterpret_cast<const uint8_t*>(schema.c_str()), i);
+        data_holder_t data_holder2 = get_table_field_value(type_id, payload2, reinterpret_cast<const uint8_t*>(schema.c_str()), i);
 
         // Compare values and set.
-        if (d1.compare(d2) != 0) {
+        if (data_holder1.compare(data_holder2) != 0) {
             retval.add(fields[i]);
         }
     }
 
     return retval;
 }
+
 }
 }
 }

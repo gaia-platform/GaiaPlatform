@@ -22,18 +22,10 @@ namespace db
 namespace types
 {
 
-// Exception: Out of bounds
-class field_list_out_of_bounds : gaia::common::gaia_exception {
+class field_list_index_out_of_bounds : gaia::common::gaia_exception {
     public:
-    field_list_out_of_bounds() {
+    field_list_index_out_of_bounds() {
         m_message = "Field list out of bounds.";
-    }
-};
-
-class field_list_invalid_operation : gaia::common::gaia_exception {
-    public:
-    field_list_invalid_operation() {
-        m_message = "Invalid field list operation.";
     }
 };
 
@@ -53,16 +45,10 @@ class field_list_t {
     // Constructor, accepts table_id for this list as the input.
     field_list_t(gaia_id_t table_id);
 
-    // Copy constructor
+    // Copy and move.
     field_list_t(const field_list_t& other);
-
-    // Copy assignment
     field_list_t& operator=(const field_list_t& other);
-
-    // Move constructor
-    field_list_t(field_list_t&& other)  = default;
-
-    // Move assignment
+    field_list_t(field_list_t&& other) = default;
     field_list_t& operator=(field_list_t&& other) = default;
 
     gaia_id_t operator[](size_t idx) const;
