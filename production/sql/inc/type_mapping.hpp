@@ -122,7 +122,9 @@ union gaia_fdw_state_t
 {
     gaia_fdw_state_t()
     {
-        // Nothing to do, but the compiler requires a non-default constructor.
+        // The compiler requires a non-default constructor,
+        // so we'll use this to set the union memory to zero.
+        memset(this, 0, sizeof(gaia_fdw_state_t));
     }
 
     gaia_fdw_scan_state_t scan;
