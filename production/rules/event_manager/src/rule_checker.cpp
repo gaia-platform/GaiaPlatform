@@ -112,8 +112,7 @@ void rule_checker_t::check_catalog(gaia_type_t type, const field_list_t& field_l
     check_fields(type, field_list);
 }
 
-// This function assumes that a transaction has been started and that the
-// checker has been initialized to throw exceptions
+// This function assumes that a transaction has been started.
 void rule_checker_t::check_table_type(gaia_type_t type)
 {
     bool found_type = false;
@@ -137,9 +136,8 @@ void rule_checker_t::check_table_type(gaia_type_t type)
     }
 }
 
-// This function assumes that a transaction has been started, the checker
-// has been initialized to throw exceptions and that the type exists in the 
-// catalog.
+// This function assumes that a transaction has been started and that the table
+// type exists in the catalog.
 void rule_checker_t::check_fields(gaia_type_t type, const field_list_t& field_list)
 {
     if (0 == field_list.size())
@@ -149,12 +147,11 @@ void rule_checker_t::check_fields(gaia_type_t type, const field_list_t& field_li
 
     // This function assumes that check_table_type was just called
     Gaia_table gaia_table = Gaia_table::get(type);
-
-    // Make sure the field exists, is not deprecated, and is active
     auto field_ids = list_fields(type);
 
     // Walk through all the requested fields and check them against
-    // the catalog fields.
+    // the catalog fields.  Make sure the field exists, is not deprecated
+    // and marked as active.
     for (auto requested_position : field_list)
     {
         bool found_requested_field = false;
