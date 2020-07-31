@@ -31,10 +31,10 @@ field_list_t compute_payload_diff(gaia_id_t table_id, const uint8_t* payload1, c
 
     for (field_position_t i = 0; i < num_fields; i++) {
         gaia::catalog::Gaia_table table = gaia::catalog::Gaia_table::get(table_id);
-        gaia_type_t type_id = table.gaia_type();
+        gaia_id_t table_id = table.gaia_id();
         string schema = gaia::catalog::get_bfbs(table_id);
-        data_holder_t data_holder1 = get_table_field_value(type_id, payload1, reinterpret_cast<const uint8_t*>(schema.c_str()), i);
-        data_holder_t data_holder2 = get_table_field_value(type_id, payload2, reinterpret_cast<const uint8_t*>(schema.c_str()), i);
+        data_holder_t data_holder1 = get_table_field_value(table_id, payload1, reinterpret_cast<const uint8_t*>(schema.c_str()), i);
+        data_holder_t data_holder2 = get_table_field_value(table_id, payload2, reinterpret_cast<const uint8_t*>(schema.c_str()), i);
 
         // Compare values and set.
         if (data_holder1.compare(data_holder2) != 0) {

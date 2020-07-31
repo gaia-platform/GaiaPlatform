@@ -94,7 +94,7 @@ void gaia::db::types::initialize_field_cache_from_binary_schema(
 // The caller is responsible for allocating the variables
 // that will hold the field_cache information.
 void get_table_field_information(
-    uint64_t type_id,
+    gaia_id_t table_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
     field_position_t field_position,
@@ -112,7 +112,7 @@ void get_table_field_information(
 
     // Get hold of the type cache and lookup the field cache for our type.
     type_cache_t* type_cache = type_cache_t::get();
-    type_cache->get_field_cache(type_id, auto_field_cache);
+    type_cache->get_field_cache(table_id, auto_field_cache);
     const field_cache_t* field_cache = auto_field_cache.get();
 
     // If data is not available for our type, we load it locally from the binary schema provided to us.
@@ -134,7 +134,7 @@ void get_table_field_information(
 // This helper also retrieves a VectorOfAny pointer
 // that allows operating on the array.
 void get_table_field_array_information(
-    uint64_t type_id,
+    gaia_id_t table_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
     field_position_t field_position,
@@ -145,7 +145,7 @@ void get_table_field_array_information(
     const flatbuffers::VectorOfAny*& field_value)
 {
     get_table_field_information(
-        type_id, serialized_data, binary_schema, field_position,
+        table_id, serialized_data, binary_schema, field_position,
         root_table, auto_field_cache, local_field_cache, field);
 
     if (field->type()->base_type() != reflection::Vector)
@@ -162,7 +162,7 @@ void get_table_field_array_information(
 
 // The access method for scalar fields.
 data_holder_t gaia::db::types::get_table_field_value(
-    uint64_t type_id,
+    gaia_id_t table_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
     field_position_t field_position)
@@ -173,7 +173,7 @@ data_holder_t gaia::db::types::get_table_field_value(
     const reflection::Field* field = nullptr;
 
     get_table_field_information(
-        type_id, serialized_data, binary_schema, field_position,
+        table_id, serialized_data, binary_schema, field_position,
         root_table, auto_field_cache, local_field_cache, field);
 
     // Read field value according to its type.
@@ -207,7 +207,7 @@ data_holder_t gaia::db::types::get_table_field_value(
 
 // The access method for the size of a field of array type.
 size_t gaia::db::types::get_table_field_array_size(
-    uint64_t type_id,
+    gaia_id_t table_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
     field_position_t field_position)
@@ -219,7 +219,7 @@ size_t gaia::db::types::get_table_field_array_size(
     const flatbuffers::VectorOfAny* field_value = nullptr;
 
     get_table_field_array_information(
-        type_id, serialized_data, binary_schema, field_position,
+        table_id, serialized_data, binary_schema, field_position,
         root_table, auto_field_cache, local_field_cache, field, field_value);
 
     return field_value->size();
@@ -227,7 +227,7 @@ size_t gaia::db::types::get_table_field_array_size(
 
 // The access method for an element of a field of array type.
 data_holder_t gaia::db::types::get_table_field_array_element(
-    uint64_t type_id,
+    gaia_id_t table_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
     field_position_t field_position,
@@ -240,7 +240,7 @@ data_holder_t gaia::db::types::get_table_field_array_element(
     const flatbuffers::VectorOfAny* field_value = nullptr;
 
     get_table_field_array_information(
-        type_id, serialized_data, binary_schema, field_position,
+        table_id, serialized_data, binary_schema, field_position,
         root_table, auto_field_cache, local_field_cache, field, field_value);
 
     retail_assert(array_index < field_value->size(), "Attempt to index array is out-of-bounds.");

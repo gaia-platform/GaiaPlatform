@@ -23,10 +23,11 @@ namespace types
 {
 
 class field_list_index_out_of_bounds : gaia::common::gaia_exception {
-    public:
-    field_list_index_out_of_bounds() {
-        m_message = "Field list out of bounds.";
-    }
+public:
+
+field_list_index_out_of_bounds() {
+    m_message = "Field list out of bounds.";
+}
 };
 
 // This structure defines list for fields in the table.
