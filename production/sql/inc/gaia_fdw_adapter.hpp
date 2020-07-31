@@ -91,11 +91,7 @@ protected:
 
     relation_attribute_mapping_t m_mapping;
 
-    gaia_fdw_scan_state_t m_scan_state;
-    const void* m_object_root;
-
-    gaia_fdw_modify_state_t m_modify_state;
-    bool m_has_initialized_modify_builder;
+    gaia_fdw_state_t m_state;
 };
 
 }

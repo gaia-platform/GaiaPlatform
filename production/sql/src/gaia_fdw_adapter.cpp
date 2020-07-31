@@ -107,27 +107,27 @@ bool gaia_fdw_adapter_t::initialize(const char* table_name, size_t count_accesso
 
     if (m_adapter_state == adapter_state_t::scan)
     {
-        m_scan_state.deserializer = m_mapping.deserializer;
+        m_state.scan.deserializer = m_mapping.deserializer;
 
-        m_scan_state.indexed_accessors = (attribute_accessor_fn*)palloc0(
+        m_state.scan.indexed_accessors = (attribute_accessor_fn*)palloc0(
             sizeof(attribute_accessor_fn) * m_mapping.attribute_count);
 
-        m_object_root = nullptr;
+        m_state.scan.current_object_root = nullptr;
     }
     else if (m_adapter_state == adapter_state_t::modify)
     {
-        m_modify_state.pk_attr_idx = c_invalid_index;
+        m_state.modify.pk_attr_idx = c_invalid_index;
 
-        m_modify_state.gaia_type_id = m_mapping.gaia_type_id;
-        m_modify_state.initializer = m_mapping.initializer;
-        m_modify_state.finalizer = m_mapping.finalizer;
+        m_state.modify.gaia_type_id = m_mapping.gaia_type_id;
+        m_state.modify.initializer = m_mapping.initializer;
+        m_state.modify.finalizer = m_mapping.finalizer;
 
-        flatcc_builder_init(&m_modify_state.builder);
+        flatcc_builder_init(&m_state.modify.builder);
 
-        m_modify_state.indexed_builders = (attribute_builder_fn*)palloc0(
+        m_state.modify.indexed_builders = (attribute_builder_fn*)palloc0(
             sizeof(attribute_builder_fn) * m_mapping.attribute_count);
 
-        m_has_initialized_modify_builder = false;
+        m_state.modify.has_initialized_builder = false;
     }
     else
     {
@@ -153,15 +153,15 @@ bool gaia_fdw_adapter_t::set_accessor_index(const char* accessor_name, size_t ac
 
             if (m_adapter_state == adapter_state_t::scan)
             {
-                m_scan_state.indexed_accessors[accessor_index] = m_mapping.attributes[i].accessor;
+                m_state.scan.indexed_accessors[accessor_index] = m_mapping.attributes[i].accessor;
             }
             else if (m_adapter_state == adapter_state_t::modify)
             {
-                m_modify_state.indexed_builders[accessor_index] = m_mapping.attributes[i].builder;
+                m_state.modify.indexed_builders[accessor_index] = m_mapping.attributes[i].builder;
 
                 if (strcmp(accessor_name, c_gaia_id) == 0)
                 {
-                    m_modify_state.pk_attr_idx = accessor_index;
+                    m_state.modify.pk_attr_idx = accessor_index;
                 }
             }
             else
@@ -173,8 +173,8 @@ bool gaia_fdw_adapter_t::set_accessor_index(const char* accessor_name, size_t ac
         }
     }
 
-    assert(m_modify_state.pk_attr_idx != c_invalid_index);
-    if (m_modify_state.pk_attr_idx == c_invalid_index)
+    assert(m_state.modify.pk_attr_idx != c_invalid_index);
+    if (m_state.modify.pk_attr_idx == c_invalid_index)
     {
         return false;
     }
@@ -190,7 +190,7 @@ bool gaia_fdw_adapter_t::initialize_scan()
         return false;
     }
 
-    m_scan_state.current_node = gaia_ptr::find_first(m_mapping.gaia_type_id);
+    m_state.scan.current_node = gaia_ptr::find_first(m_mapping.gaia_type_id);
 
     return true;
 }
@@ -199,7 +199,7 @@ bool gaia_fdw_adapter_t::has_scan_ended()
 {
     assert(m_adapter_state == adapter_state_t::scan);
 
-    return !m_scan_state.current_node;
+    return !m_state.scan.current_node;
 }
 
 void gaia_fdw_adapter_t::deserialize_record()
@@ -207,8 +207,8 @@ void gaia_fdw_adapter_t::deserialize_record()
     assert(!has_scan_ended());
 
     const void* data;
-    data = m_scan_state.current_node.data();
-    m_object_root = m_scan_state.deserializer(data);
+    data = m_state.scan.current_node.data();
+    m_state.scan.current_object_root = m_state.scan.deserializer(data);
 }
 
 Datum gaia_fdw_adapter_t::extract_field_value(size_t field_index)
@@ -216,15 +216,15 @@ Datum gaia_fdw_adapter_t::extract_field_value(size_t field_index)
     assert(m_adapter_state == adapter_state_t::scan);
     assert(field_index < m_mapping.attribute_count);
 
-    if (m_object_root == nullptr)
+    if (m_state.scan.current_object_root == nullptr)
     {
         deserialize_record();
     }
 
-    assert(m_object_root != nullptr);
+    assert(m_state.scan.current_object_root != nullptr);
 
-    attribute_accessor_fn accessor = m_scan_state.indexed_accessors[field_index];
-    Datum field_value = accessor(m_object_root);
+    attribute_accessor_fn accessor = m_state.scan.indexed_accessors[field_index];
+    Datum field_value = accessor(m_state.scan.current_object_root);
     return field_value;
 }
 
@@ -232,9 +232,9 @@ bool gaia_fdw_adapter_t::scan_forward()
 {
     assert(!has_scan_ended());
 
-    m_scan_state.current_node = m_scan_state.current_node.find_next();
+    m_state.scan.current_node = m_state.scan.current_node.find_next();
 
-    m_object_root = nullptr;
+    m_state.scan.current_object_root = nullptr;
 
     return has_scan_ended();
 }
@@ -243,34 +243,34 @@ void gaia_fdw_adapter_t::initialize_modify()
 {
     assert(m_adapter_state == adapter_state_t::modify);
 
-    m_modify_state.initializer(&m_modify_state.builder);
-    m_has_initialized_modify_builder = true;
+    m_state.modify.initializer(&m_state.modify.builder);
+    m_state.modify.has_initialized_builder = true;
 }
 
 bool gaia_fdw_adapter_t::is_gaia_id_field_index(size_t field_index)
 {
     assert(m_adapter_state == adapter_state_t::modify);
 
-    return field_index == (size_t)m_modify_state.pk_attr_idx;
+    return field_index == (size_t)m_state.modify.pk_attr_idx;
 }
 
 void gaia_fdw_adapter_t::set_field_value(size_t field_index, const Datum& field_value)
 {
     assert(m_adapter_state == adapter_state_t::modify);
 
-    attribute_builder_fn accessor = m_modify_state.indexed_builders[field_index];
-    accessor(&m_modify_state.builder, field_value);
+    attribute_builder_fn accessor = m_state.modify.indexed_builders[field_index];
+    accessor(&m_state.modify.builder, field_value);
 }
 
 bool gaia_fdw_adapter_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
 {
     assert(m_adapter_state == adapter_state_t::modify);
 
-    m_modify_state.finalizer(&m_modify_state.builder);
+    m_state.modify.finalizer(&m_state.modify.builder);
 
     size_t record_payload_size;
     const void* record_payload = flatcc_builder_get_direct_buffer(
-        &m_modify_state.builder, &record_payload_size);
+        &m_state.modify.builder, &record_payload_size);
 
     bool result = false;
     try
@@ -279,7 +279,7 @@ bool gaia_fdw_adapter_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
         {
             gaia_ptr::create(
                 gaia_id,
-                m_modify_state.gaia_type_id,
+                m_state.modify.gaia_type_id,
                 record_payload_size,
                 record_payload);
         }
@@ -293,7 +293,7 @@ bool gaia_fdw_adapter_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
     }
     catch (const std::exception& e)
     {
-        flatcc_builder_reset(&m_modify_state.builder);
+        flatcc_builder_reset(&m_state.modify.builder);
 
         if (edit_state == edit_state_t::create)
         {
@@ -313,7 +313,7 @@ bool gaia_fdw_adapter_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
         return false;
     }
 
-    flatcc_builder_reset(&m_modify_state.builder);
+    flatcc_builder_reset(&m_state.modify.builder);
 
     return result;
 }
@@ -361,9 +361,9 @@ void gaia_fdw_adapter_t::finalize_modify()
 {
     assert(m_adapter_state == adapter_state_t::modify);
 
-    if (m_has_initialized_modify_builder)
+    if (m_state.modify.has_initialized_builder)
     {
-        flatcc_builder_clear(&m_modify_state.builder);
-        m_has_initialized_modify_builder = false;
+        flatcc_builder_clear(&m_state.modify.builder);
+        m_state.modify.has_initialized_builder = false;
     }
 }

@@ -168,8 +168,7 @@ extern "C" Datum gaia_fdw_validator(PG_FUNCTION_ARGS) {
 
             for (opt = valid_options; opt->name; opt++) {
                 if (catalog == opt->context) {
-                    appendStringInfo(&buf, "%s%s", (buf.len > 0) ? ", " : "",
-                        opt->name);
+                    appendStringInfo(&buf, "%s%s", (buf.len > 0) ? ", " : "", opt->name);
                 }
             }
 
