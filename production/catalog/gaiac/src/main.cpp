@@ -147,10 +147,63 @@ void generate_headers(string db_name) {
     }
 }
 
+// Temporary start server (taken and modified from db_test_helpers)
+// Use case is always to call start() followed by stop().
+class db_server_t 
+{
+public:
+    void start(const char* db_server_path) 
+    {
+        set_path(db_server_path);
+        stop();
+
+        // Launch SE server in background.
+        string cmd = m_server_path + " &";
+        cerr << cmd << endl;
+        ::system(cmd.c_str());
+
+        // Wait for server to initialize.
+        cerr << "Waiting for server to initialize..." << endl;
+        sleep(1);
+    }
+
+    void stop() 
+    {
+        // Try to kill the SE server process.
+        // REVIEW: we should be using a proper process library for this, so we can kill by PID.
+        string cmd = "pkill -f -KILL ";
+        cmd +=  m_server_path.c_str();
+        cerr << cmd << endl;
+        ::system(cmd.c_str());
+    }
+
+private:
+    void set_path(const char* db_server_path)
+    {
+        if (!db_server_path)
+        {
+            m_server_path = SE_SERVER_NAME;
+        }
+        else
+        {
+            m_server_path = db_server_path;
+            if (m_server_path.back() != '/')
+            {
+                m_server_path.append("/");
+            }
+            m_server_path.append(SE_SERVER_NAME);
+        }
+    }
+
+    const char* SE_SERVER_NAME = "gaia_semock_server";
+    string m_server_path;
+};
+
 int main(int argc, char *argv[]) {
     int res = 0;
     parser_t parser;
     bool gen_catalog = true;
+    db_server_t server;
     try {
         for (int i = 1; i < argc; ++i) {
             if (argv[i] == string("-p")) {
@@ -165,7 +218,10 @@ int main(int argc, char *argv[]) {
                 gaia::db::end_session();
             } else if (argv[i] == string("-t")) {
                 // Note the order dependency.
-                gaia::db::start_server();
+                // Require a path right after this
+                ++i;
+                const char* path_to_db_server = argv[i];
+                server.start(path_to_db_server);
             } else {
                 if (!parser.parse(argv[i])) {
                     gaia::db::begin_session();
@@ -196,6 +252,7 @@ int main(int argc, char *argv[]) {
             generate_headers("catalog");
             gaia::db::end_session();
         }
+        server.stop();
     } catch (gaia_exception &e) {
         cerr << "Caught exception \"" << e.what() << "\". May need to start the storage engine server." << endl;
         res = 1;
