@@ -34,7 +34,7 @@ set(GAIA_GENERATE ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac)
 
 # Generate the headers from the Gaia DDL
 add_custom_command(
-  OUTPUT "gaia_event_log.h"
+  OUTPUT ${GENERATED_OUTPUTS}/gaia_event_log.h
   COMMAND ${GAIA_GENERATE} -t ${GAIA_PROD_BUILD}/db/storage_engine -o ${GENERATED_OUTPUTS}
     ${CMAKE_CURRENT_SOURCE_DIR}/schema/event_log.ddl
   DEPENDS ${GAIA_GENERATE}
@@ -43,7 +43,7 @@ add_custom_command(
 )
 
 add_custom_target(generate_event_logs
-    DEPENDS "gaia_event_log.h"
+    DEPENDS ${GENERATED_OUTPUTS}/gaia_event_log.h
 )
 
 # Generate our integration test "rules db" by concatenating
@@ -52,7 +52,7 @@ gaia_make_db_ddl(${CMAKE_CURRENT_SOURCE_DIR}/tests/schema/addr_book.ddl ${GENERA
 
 # Generate the headers for the integration test
 add_custom_command(
-  OUTPUT "gaia_rules_db.h"
+  OUTPUT ${GENERATED_OUTPUTS}/gaia_rules_db.h
   COMMAND ${GAIA_GENERATE} -t ${GAIA_PROD_BUILD}/db/storage_engine -o ${GENERATED_OUTPUTS}
     ${GENERATED_OUTPUTS}/rules_db.ddl
   DEPENDS ${GAIA_GENERATE}
@@ -61,7 +61,7 @@ add_custom_command(
 )
 
 add_custom_target(generate_rules_db
-  DEPENDS "gaia_rules_db.h"
+  DEPENDS ${GENERATED_OUTPUTS}/gaia_rules_db.h
 )
 
 # main target

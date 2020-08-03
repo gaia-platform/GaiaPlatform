@@ -38,7 +38,7 @@ set(GAIA_GENERATE ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac)
 
 # Generate the headers for the integration test
 add_custom_command(
-  OUTPUT "gaia_system_db.h"
+  OUTPUT ${GENERATED_OUTPUTS}/gaia_system_db.h
   COMMAND ${GAIA_GENERATE} -t ${GAIA_PROD_BUILD}/db/storage_engine -o ${GENERATED_OUTPUTS}
     ${GENERATED_OUTPUTS}/system_db.ddl
   DEPENDS ${GAIA_GENERATE}
@@ -46,7 +46,7 @@ add_custom_command(
 )
 
 add_custom_target(generate_system_db
-  DEPENDS "gaia_system_db.h"
+  DEPENDS ${GENERATED_OUTPUTS}/gaia_system_db.h
 )
 
 target_include_directories(gaia PUBLIC ${GAIA_SYSTEM_PUBLIC_INCLUDES})
