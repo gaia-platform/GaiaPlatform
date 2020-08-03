@@ -268,9 +268,9 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState *node, int eflags) {
     TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
     TupleDesc tupleDesc = slot->tts_tupleDescriptor;
 
-    gaia_fdw_adapter_t *fdw_adapter = gaia_fdw_adapter_t::get_table_adapter(
-        adapter_state_t::scan, table_name, (size_t)tupleDesc->natts);
-    if (fdw_adapter == nullptr) {
+    gaia_fdw_scan_state_t *scan_state = gaia_fdw_adapter_t::get_scan_state(
+        table_name, (size_t)tupleDesc->natts);
+    if (scan_state == nullptr) {
         elog(ERROR, "Unknown table name '%s'.", table_name);
     }
 
@@ -280,17 +280,17 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState *node, int eflags) {
         // AttrNumber attnum = i + 1.
         char *attr_name = NameStr(TupleDescAttr(tupleDesc, i)->attname);
 
-        fdw_adapter->set_accessor_index(attr_name, (size_t)i);
+        scan_state->set_accessor_index(attr_name, (size_t)i);
     }
 
-    node->fdw_state = fdw_adapter;
+    node->fdw_state = scan_state;
 
     // Begin read transaction.
     gaia_fdw_adapter_t::begin_transaction();
 
     // Retrieve the first node of the requested type
     // (this can't currently throw).
-    if (fdw_adapter->initialize_scan()) {
+    if (scan_state->initialize_scan()) {
         elog(ERROR, "Failed to scan initialization for table '%s'.", table_name);
     }
 }
@@ -319,10 +319,10 @@ extern "C" TupleTableSlot *gaia_iterate_foreign_scan(ForeignScanState *node) {
     // (just as you would need to do in the case of a data type mismatch).
     // elog(DEBUG1, "Entering function %s...", __func__);
 
-    gaia_fdw_adapter_t *fdw_adapter = (gaia_fdw_adapter_t *)node->fdw_state;
+    gaia_fdw_scan_state_t *scan_state = (gaia_fdw_scan_state_t *)node->fdw_state;
 
     // Return NULL if we reach the end of iteration.
-    if (fdw_adapter->has_scan_ended()) {
+    if (scan_state->has_scan_ended()) {
         return NULL;
     }
 
@@ -335,7 +335,7 @@ extern "C" TupleTableSlot *gaia_iterate_foreign_scan(ForeignScanState *node) {
         // char *attr_name = NameStr(
         //     TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->attname);
 
-        Datum attr_val = fdw_adapter->extract_field_value((size_t)attr_idx);
+        Datum attr_val = scan_state->extract_field_value((size_t)attr_idx);
 
         slot->tts_values[attr_idx] = attr_val;
         slot->tts_isnull[attr_idx] = false;
@@ -346,7 +346,7 @@ extern "C" TupleTableSlot *gaia_iterate_foreign_scan(ForeignScanState *node) {
 
     // Now advance the current node to the next node in the iteration
     // (this can't currently throw).
-    fdw_adapter->scan_forward();
+    scan_state->scan_forward();
 
     // Return the slot.
     return slot;
@@ -365,10 +365,10 @@ extern "C" void gaia_end_foreign_scan(ForeignScanState *node) {
     // remote servers should be cleaned up.
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    gaia_fdw_adapter_t *fdw_adapter = (gaia_fdw_adapter_t *)node->fdw_state;
+    gaia_fdw_scan_state_t *scan_state = (gaia_fdw_scan_state_t *)node->fdw_state;
 
     // We should have reached the end of iteration.
-    assert(fdw_adapter->has_scan_ended());
+    assert(scan_state->has_scan_ended());
 
     // Commit read transaction.
     gaia_fdw_adapter_t::commit_transaction();
@@ -544,9 +544,9 @@ extern "C" void gaia_begin_foreign_modify(
     char *table_name = get_rel_name(rte->relid);
     TupleDesc tupleDesc = rinfo->ri_RelationDesc->rd_att;
 
-    gaia_fdw_adapter_t *fdw_adapter = gaia_fdw_adapter_t::get_table_adapter(
-        adapter_state_t::modify, table_name, (size_t)tupleDesc->natts);
-    if (fdw_adapter == nullptr) {
+    gaia_fdw_modify_state_t *modify_state = gaia_fdw_adapter_t::get_modify_state(
+        table_name, (size_t)tupleDesc->natts);
+    if (modify_state == nullptr) {
         elog(ERROR, "Unknown table name '%s'.", table_name);
     }
 
@@ -556,10 +556,10 @@ extern "C" void gaia_begin_foreign_modify(
         // AttrNumber attnum = i + 1.
         char *attr_name = NameStr(TupleDescAttr(tupleDesc, i)->attname);
 
-        fdw_adapter->set_accessor_index(attr_name, (size_t)i);
+        modify_state->set_builder_index(attr_name, (size_t)i);
     }
 
-    rinfo->ri_FdwState = fdw_adapter;
+    rinfo->ri_FdwState = modify_state;
 
     gaia_fdw_adapter_t::begin_transaction();
 }
@@ -594,9 +594,9 @@ extern "C" TupleTableSlot *gaia_exec_foreign_insert(
     // into the foreign table will fail with an error message.
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    gaia_fdw_adapter_t *fdw_adapter = (gaia_fdw_adapter_t *)rinfo->ri_FdwState;
+    gaia_fdw_modify_state_t *modify_state = (gaia_fdw_modify_state_t *)rinfo->ri_FdwState;
 
-    fdw_adapter->initialize_modify();
+    modify_state->initialize_modify();
 
     // NB: we assume 0 is a valid sentinel value, i.e., it can never be a
     // system-generated gaia_id. This is true for our internal implementation,
@@ -617,7 +617,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_insert(
         // the storage engine doesn't yet generate gaia_ids, so we generate a
         // random gaia_id ourselves.
         Datum attr_val;
-        if (fdw_adapter->is_gaia_id_field_index((size_t)attr_idx)) {
+        if (modify_state->is_gaia_id_field_index((size_t)attr_idx)) {
             assert(slot->tts_isnull[attr_idx]);
 
             gaia_id = gaia_fdw_adapter_t::get_new_gaia_id();
@@ -630,13 +630,13 @@ extern "C" TupleTableSlot *gaia_exec_foreign_insert(
 
         // If we have a null value, just don't bother to set it in the builder.
         if (!slot->tts_isnull[attr_idx]) {
-            fdw_adapter->set_field_value(attr_idx, attr_val);
+            modify_state->set_field_value(attr_idx, attr_val);
         }
     }
 
     assert(gaia_id);
 
-    fdw_adapter->insert_record(gaia_id);
+    modify_state->insert_record(gaia_id);
 
     return slot;
 }
@@ -671,9 +671,9 @@ extern "C" TupleTableSlot *gaia_exec_foreign_update(
     // foreign table will fail with an error message.
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    gaia_fdw_adapter_t *fdw_adapter = (gaia_fdw_adapter_t *)rinfo->ri_FdwState;
+    gaia_fdw_modify_state_t *modify_state = (gaia_fdw_modify_state_t *)rinfo->ri_FdwState;
 
-    fdw_adapter->initialize_modify();
+    modify_state->initialize_modify();
 
     // NB: we assume 0 is a valid sentinel value, i.e., it can never be a
     // system-generated gaia_id. This is true for our internal implementation,
@@ -689,18 +689,18 @@ extern "C" TupleTableSlot *gaia_exec_foreign_update(
         if (!(slot->tts_isnull[attr_idx])) {
             Datum attr_val = slot->tts_values[attr_idx];
 
-            if (fdw_adapter->is_gaia_id_field_index((size_t)attr_idx)) {
+            if (modify_state->is_gaia_id_field_index((size_t)attr_idx)) {
                 gaia_id = DatumGetUInt64(attr_val);
             }
 
-            fdw_adapter->set_field_value(attr_idx, attr_val);
+            modify_state->set_field_value(attr_idx, attr_val);
         }
     }
 
     // We must have found a valid (i.e., nonzero) gaia_id attribute value.
     assert(gaia_id);
 
-    fdw_adapter->update_record(gaia_id);
+    modify_state->update_record(gaia_id);
 
     return slot;
 }
@@ -736,7 +736,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_delete(
 
     TupleTableSlot *return_slot = slot;
 
-    gaia_fdw_adapter_t *fdw_adapter = (gaia_fdw_adapter_t *)rinfo->ri_FdwState;
+    gaia_fdw_modify_state_t *modify_state = (gaia_fdw_modify_state_t *)rinfo->ri_FdwState;
 
     // Relation rel = rinfo->ri_RelationDesc;
     // Oid foreignTableId = RelationGetRelid(rel);
@@ -756,7 +756,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_delete(
     assert(!is_null);
     uint64_t gaia_id = DatumGetUInt64(pk_val);
 
-    if (!fdw_adapter->delete_record(gaia_id))
+    if (!modify_state->delete_record(gaia_id))
     {
         return_slot = NULL;
     }
@@ -773,9 +773,9 @@ extern "C" void gaia_end_foreign_modify(EState *estate, ResultRelInfo *rinfo) {
     // during executor shutdown.
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    gaia_fdw_adapter_t *fdw_adapter = (gaia_fdw_adapter_t *)rinfo->ri_FdwState;
+    gaia_fdw_modify_state_t *modify_state = (gaia_fdw_modify_state_t *)rinfo->ri_FdwState;
 
-    fdw_adapter->finalize_modify();
+    modify_state->finalize_modify();
 
     // For DELETE, this seems to always be called before EndForeignScan.
     gaia_fdw_adapter_t::commit_transaction();

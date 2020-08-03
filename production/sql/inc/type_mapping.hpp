@@ -76,61 +76,6 @@ struct relation_attribute_mapping_t
     size_t attribute_count;
 };
 
-// The scan state is set up in gaia_begin_foreign_scan and stashed away in
-// node->fdw_private and fetched in gaia_iterate_foreign_scan.
-struct gaia_fdw_scan_state_t
-{
-    root_object_deserializer_fn deserializer;
-
-    // flatbuffer accessor functions indexed by attrnum.
-    attribute_accessor_fn* indexed_accessors;
-
-    // The COW-SE smart ptr we are currently iterating over.
-    gaia::db::gaia_ptr current_node;
-
-    // Pointer to the deserialized payload of the current_node.
-    const void* current_object_root;
-};
-
-// The modify state is for maintaining state of modify operations.
-//
-// It is set up in gaiaBeginForeignModify and stashed in
-// rinfo->ri_FdwState and subsequently used in gaiaExecForeignInsert,
-// gaiaExecForeignUpdate, gaiaExecForeignDelete and
-// gaiaEndForeignModify.
-struct gaia_fdw_modify_state_t
-{
-    builder_initializer_fn initializer;
-    builder_finalizer_fn finalizer;
-
-    // flatbuffer attribute builder functions indexed by attrnum.
-    attribute_builder_fn* indexed_builders;
-
-    // flatbuffers builder for INSERT and UPDATE.
-    flatcc_builder_t builder;
-
-    // Tracks whether the builder has been initialized.
-    bool has_initialized_builder;
-
-    // 0-based index of gaia_id attribute in tuple descriptor.
-    int pk_attr_idx;
-
-    gaia_type_t gaia_type_id;
-};
-
-union gaia_fdw_state_t
-{
-    gaia_fdw_state_t()
-    {
-        // The compiler requires a non-default constructor,
-        // so we'll use this to set the union memory to zero.
-        memset(this, 0, sizeof(gaia_fdw_state_t));
-    }
-
-    gaia_fdw_scan_state_t scan;
-    gaia_fdw_modify_state_t modify;
-};
-
 // Valid options for gaia_fdw.
 extern const gaia_fdw_option_t valid_options[];
 
