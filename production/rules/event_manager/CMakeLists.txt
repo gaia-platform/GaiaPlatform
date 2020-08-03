@@ -18,6 +18,7 @@ set(GAIA_EVENT_MANAGER_INCLUDES
   ${GAIA_INC}/public/system
   ${GAIA_INC}/internal/common
   ${GAIA_INC}/internal/db
+  ${GAIA_INC}/internal/catalog
   ${GAIA_INC}/public/rules
   ${GAIA_INC}/public/catalog
   ${GAIA_INC}/internal/rules
@@ -29,25 +30,39 @@ set(GAIA_EVENT_MANAGER_INCLUDES
 )
 message(STATUS "GAIA_EVENT_MANAGER_INCLUDES=${GAIA_EVENT_MANAGER_INCLUDES}")
 
-# Generate the event log headers from the flatbuffer schema.
-set_property(GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
-gaia_compile_flatbuffers_schema_to_cpp_opt(flatbuffers/event_log.fbs "--no-includes;--gen-compare;--gaia-type-initial-value;6" "${GENERATED_OUTPUTS}")
-gaia_get_generated_output(fbs_generated)
-if(fbs_generated)
-  # message(STATUS "Add generated_code target with files:${fbs_generated}")
-  add_custom_target(generate_event_logs
-    DEPENDS ${fbs_generated}
-    COMMENT "All generated files were updated.")
-endif()
+set(GAIA_GENERATE ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac)
 
-gaia_compile_flatbuffers_schema_to_cpp_opt(tests/flatbuffers/addr_book.fbs "--no-includes;--gen-compare;" "${GENERATED_OUTPUTS}")
-gaia_get_generated_output(fbs_generated)
-if(fbs_generated)
-  # message(STATUS "Add generated_code target with files:${fbs_generated}")
-  add_custom_target(generate_addr_book
-    DEPENDS ${fbs_generated}
-    COMMENT "All generated files were updated.")
-endif()
+# Generate the headers from the Gaia DDL
+add_custom_command(
+  OUTPUT "gaia_event_log.h"
+  COMMAND ${GAIA_GENERATE} -t ${GAIA_PROD_BUILD}/db/storage_engine -o ${GENERATED_OUTPUTS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/schema/event_log.ddl
+  DEPENDS ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/schema/event_log.ddl
+  COMMENT "Compiling event_log.ddl."
+)
+
+add_custom_target(generate_event_logs
+    DEPENDS "gaia_event_log.h"
+)
+
+# Generate our integration test "rules db" by concatenating
+# schemas together.
+gaia_make_db_ddl(${CMAKE_CURRENT_SOURCE_DIR}/tests/schema/addr_book.ddl ${GENERATED_OUTPUTS}/rules_db.ddl)
+
+# Generate the headers for the integration test
+add_custom_command(
+  OUTPUT "gaia_rules_db.h"
+  COMMAND ${GAIA_GENERATE} -t ${GAIA_PROD_BUILD}/db/storage_engine -o ${GENERATED_OUTPUTS}
+    ${GENERATED_OUTPUTS}/rules_db.ddl
+  DEPENDS ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac
+  #DEPENDS ${GENERATED_OUTOUTS}/rules_db.ddl
+  COMMENT "Compiling rules_db.ddl."
+)
+
+add_custom_target(generate_rules_db
+  DEPENDS "gaia_rules_db.h"
+)
 
 # main target
 add_library(gaia_rules STATIC
@@ -77,5 +92,5 @@ add_gtest(test_rule_context "tests/test_rule_context.cpp"
   "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_rules")
 add_gtest(test_rule_checker "tests/test_rule_checker.cpp;"
   "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
-add_gtest(test_rule_integration "tests/test_rule_integration.cpp;tests/event_manager_test_helpers.cpp"
-  "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia" "generate_addr_book")
+add_gtest(test_rule_integration "tests/test_rule_integration.cpp"
+  "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia" "generate_rules_db")

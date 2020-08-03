@@ -10,7 +10,7 @@
 #include "gtest/gtest.h"
 #include "rules.hpp"
 #include "gaia_system.hpp"
-#include "event_log_gaia_generated.h"
+#include "gaia_event_log.h"
 #include "triggers.hpp"
 #include "db_test_helpers.hpp"
 #include "event_manager_test_helpers.hpp"
@@ -570,18 +570,18 @@ protected:
     {
       uint64_t rows_cleared = 0;
       gaia::db::begin_transaction();
-      Event_log entry = Event_log::get_first();
+      auto entry = gaia::event_log::event_log_t::get_first();
       while(entry)
       {
           entry.delete_row();
-          entry = Event_log::get_first();
+          entry = gaia::event_log::event_log_t::get_first();
           rows_cleared++;
       }
       gaia::db::commit_transaction();
       return rows_cleared;
     }
 
-    void verify_event_log_row(const Event_log& row, event_type_t event_type, uint64_t gaia_type,
+    void verify_event_log_row(const gaia::event_log::event_log_t& row, event_type_t event_type, uint64_t gaia_type,
         gaia_id_t record_id, uint16_t column_id, bool rules_invoked)
     {
         EXPECT_EQ(row.event_type(), (uint32_t) event_type);
@@ -1204,7 +1204,7 @@ TEST_F(event_manager_test, event_logging_no_subscriptions)
     test::commit_trigger(0, events, 2);
 
     gaia::db::begin_transaction();
-    Event_log entry = Event_log::get_first();
+    auto entry = gaia::event_log::event_log_t::get_first();
     verify_event_log_row(entry, event_type_t::row_update, 
         TestGaia::s_gaia_type, record, s_last_name, false);
     
@@ -1232,7 +1232,7 @@ TEST_F(event_manager_test, event_logging_subscriptions)
     test::commit_trigger(0, events, 3);
 
     gaia::db::begin_transaction();
-    Event_log entry = Event_log::get_first();
+    auto entry = gaia::event_log::event_log_t::get_first();
     verify_event_log_row(entry, event_type_t::row_update, 
         TestGaia2::s_gaia_type, record, s_first_name, true);
 

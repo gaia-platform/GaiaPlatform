@@ -10,9 +10,10 @@
 #include "gtest/gtest.h"
 #include "rules.hpp"
 #include "gaia_system.hpp"
-#include "addr_book_gaia_generated.h"
-#include "event_manager_test_helpers.hpp"
+#include "gaia_rules_db.h"
 #include "db_test_helpers.hpp"
+//#include "catalog_helper.hpp"
+#include "gaia_catalog.hpp"
 #include <thread>
 #include <atomic>
 #include <map>
@@ -22,7 +23,7 @@ using namespace gaia::db;
 using namespace gaia::direct_access;
 using namespace gaia::rules;
 using namespace std;
-using namespace AddrBook;
+using namespace gaia::rules_db;
 
 const char* c_name = "John";
 const char* c_city = "Seattle";
@@ -32,13 +33,13 @@ atomic<int> g_wait_for_count;
 // When an employee is inserted insert an address.
 void rule_insert_address(const rule_context_t* context)
 {
-    Employee e = Employee::get(context->record);
-    EXPECT_EQ(Employee::s_gaia_type, context->gaia_type);
+    employee_t e = employee_t::get(context->record);
+    EXPECT_EQ(employee_t::s_gaia_type, context->gaia_type);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_insert);
 
     if (0 == strcmp(c_name, e.name_first()))
     {
-        Address_writer aw;
+        address_writer aw;
         aw.city = c_city;
         aw.insert_row();
     }
@@ -49,10 +50,10 @@ void rule_insert_address(const rule_context_t* context)
 void rule_update_address(const rule_context_t* context)
 {
     auto_transaction_t tx(false);
-    EXPECT_EQ(Address::s_gaia_type, context->gaia_type);
+    EXPECT_EQ(address_t::s_gaia_type, context->gaia_type);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_insert);
-    Address a = Address::get(context->record);
-    Address_writer aw = a.writer();
+    address_t a = address_t::get(context->record);
+    address_writer aw = a.writer();
     aw.state = c_state;
     aw.update_row();
     // Explicitly commit the transaction that was started by the rules engine.
@@ -66,7 +67,7 @@ void rule_update_address(const rule_context_t* context)
 
 void rule_update(const rule_context_t* context)
 {
-    Employee e = Employee::get(context->record);
+    employee_t e = employee_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_update);
     EXPECT_STREQ(c_name, e.name_first());
     g_wait_for_count--;
@@ -74,7 +75,7 @@ void rule_update(const rule_context_t* context)
 
 void rule_delete(const rule_context_t* context)
 {
-    Employee d = Employee::get(context->record);
+    employee_t d = employee_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_delete);
     EXPECT_THROW(d.delete_row(), invalid_node_id);
     g_wait_for_count--;
@@ -89,6 +90,19 @@ void rule_sleep(const rule_context_t*)
 extern "C"
 void initialize_rules()
 {
+}
+
+
+void load_catalog()
+{
+    gaia::catalog::ddl::field_def_list_t fields;
+
+    // add dummy catalog types for all our types
+    for (gaia_type_t i = 1; i <= phone_t::s_gaia_type; i++) 
+    {
+        string table_name = "dummy" + std::to_string(i);
+        gaia::catalog::create_table(table_name, fields);
+    }
 }
 
 // Waits for the rules to be called by checking 
@@ -112,42 +126,33 @@ public:
     {
         rule_binding_t rule1{"ruleset", "rule_insert_address", rule_insert_address};
         rule_binding_t rule2{"ruleset", "rule_update_address", rule_update_address};
-        subscribe_rule(Employee::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule1);
-        subscribe_rule(Address::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule2);
+        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule1);
+        subscribe_rule(address_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule2);
     }
 
     void subscribe_delete()
     {
         rule_binding_t rule{"ruleset", "rule_delete", rule_delete};
-        subscribe_rule(Employee::s_gaia_type, triggers::event_type_t::row_delete, empty_fields, rule);
+        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_delete, empty_fields, rule);
     }
 
     void subscribe_update()
     {
         rule_binding_t rule{"ruleset", "rule_update", rule_update};
-        subscribe_rule(Employee::s_gaia_type, triggers::event_type_t::row_update, empty_fields, rule);
+        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_update, empty_fields, rule);
     }
 
     void subscribe_sleep()
     {
         rule_binding_t rule{"ruleset", "rule_sleep", rule_sleep};
-        subscribe_rule(Employee::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule);
+        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule);
     }
 
 protected:
     static void SetUpTestSuite() {
         start_server();
-
-        // TODO:  Create the rules engine with no catalog integration yet.
-        // When the catalog and flatbuffer are in sync, then remove the 
-        // test initialization function and just use the stock one.
-        // gaia::system::initialize();
-        begin_session();
-
-        event_manager_settings_t settings;
-        settings.num_background_threads = SIZE_MAX;
-        settings.disable_catalog_checks = true;
-        test::initialize_rules_engine(settings);
+        gaia::system::initialize();
+        load_catalog();
     }
 
     static void TearDownTestSuite() {
@@ -166,7 +171,7 @@ protected:
     void delete_employees()
     {
         auto_transaction_t tx(false);
-            for (Employee e = Employee::get_first(); e ; e=e.get_first())
+            for (employee_t e = employee_t::get_first(); e ; e=e.get_first())
             {
                 e.delete_row();
             }
@@ -180,7 +185,7 @@ TEST_F(rule_integration_test, test_insert)
     {
         rule_monitor_t monitor(1);
         auto_transaction_t tx(false);
-            Employee_writer writer;
+            employee_writer writer;
             writer.name_first = c_name;
             writer.insert_row();
         tx.commit();
@@ -190,7 +195,7 @@ TEST_F(rule_integration_test, test_insert)
     // rule that was fired above.
     {
         auto_transaction_t tx(false);
-        Address a = Address::get_first();
+        address_t a = address_t::get_first();
         EXPECT_STREQ(a.city(), c_city);
         EXPECT_STREQ(a.state(), c_state);
     }
@@ -202,9 +207,9 @@ TEST_F(rule_integration_test, test_delete)
     {
         rule_monitor_t monitor(1);
         auto_transaction_t tx(true);
-            Employee_writer writer;
+            employee_writer writer;
             writer.name_first = c_name;
-            Employee e = Employee::get(writer.insert_row());
+            employee_t e = employee_t::get(writer.insert_row());
         tx.commit();
             e.delete_row();
         tx.commit();
@@ -217,9 +222,9 @@ TEST_F(rule_integration_test, test_update)
     {
         rule_monitor_t monitor(1);
         auto_transaction_t tx(true);
-            Employee_writer writer;
+            employee_writer writer;
             writer.name_first = "Ignore";
-            Employee e = Employee::get(writer.insert_row());
+            employee_t e = employee_t::get(writer.insert_row());
         tx.commit();
             writer = e.writer();
             writer.name_first = c_name;
@@ -237,15 +242,15 @@ TEST_F(rule_integration_test, test_two_rules)
         gaia_id_t first;
         gaia_id_t second;
         auto_transaction_t tx(true);
-            Employee_writer writer;
+            employee_writer writer;
             writer.name_first = "Ignore";
             first = writer.insert_row();
             writer.name_first = "Me Too";
             second = writer.insert_row();
         tx.commit();
             // Delete first row and update second.
-            Employee::delete_row(first);
-            writer = Employee::get(second).writer();
+            employee_t::delete_row(first);
+            writer = employee_t::get(second).writer();
             writer.name_first = c_name;
             writer.update_row();
         tx.commit();
@@ -269,7 +274,7 @@ TEST_F(rule_integration_test, test_parallel)
         auto_transaction_t tx(false);
             for (int i = 0; i < num_inserts; i++)
             {
-                Employee::insert_row("John", "Jones", "111-11-1111", i, nullptr, nullptr);
+                employee_t::insert_row("John", "Jones", "111-11-1111", i, nullptr, nullptr);
             }
         start = std::chrono::high_resolution_clock::now();
         tx.commit();

@@ -6,7 +6,7 @@
 #include "rule_checker.hpp"
 
 #include "gaia_catalog.hpp"
-#include "catalog_gaia_generated.h"
+#include "gaia_catalog.h"
 #include "auto_tx.hpp"
 
 using namespace gaia::rules;
@@ -66,7 +66,7 @@ invalid_subscription::invalid_subscription(gaia_type_t gaia_type)
 {
     std::stringstream message;
     message << "Table (type:" << gaia_type << ") "
-        << "was not found in the catalog. ";
+        << "was not found in the catalog.";
     m_message = message.str();
 }
 
@@ -118,11 +118,11 @@ void rule_checker_t::check_table_type(gaia_type_t type)
     bool found_type = false;
     // CONSIDER: when reference code gets generated 
     // then use the list method.
-    for (Gaia_table table = Gaia_table::get_first() ; 
+    for (gaia_table_t table = gaia_table_t::get_first() ; 
         table;
         table = table.get_next())
     {
-        // The gaia_id() of the Gaia_table is the type id.
+        // The gaia_id() of the gaia_table_t is the type id.
         if (type == table.gaia_id())
         {
             found_type = true;
@@ -146,7 +146,7 @@ void rule_checker_t::check_fields(gaia_type_t type, const field_list_t& field_li
     }
 
     // This function assumes that check_table_type was just called
-    Gaia_table gaia_table = Gaia_table::get(type);
+    gaia_table_t gaia_table = gaia_table_t::get(type);
     auto field_ids = list_fields(type);
 
     // Walk through all the requested fields and check them against
@@ -157,7 +157,7 @@ void rule_checker_t::check_fields(gaia_type_t type, const field_list_t& field_li
         bool found_requested_field = false;
         for (gaia_id_t field_id : field_ids)
         {
-            Gaia_field gaia_field = Gaia_field::get(field_id);
+            gaia_field_t gaia_field = gaia_field_t::get(field_id);
             if (gaia_field.position() == requested_position)
             {
                 // If the field is deprecated or not active then we should

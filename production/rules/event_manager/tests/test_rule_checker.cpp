@@ -3,15 +3,12 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-// Do not include event_manager.hpp to ensure that
-// we don't have a dependency on the internal implementation.
-
 #include "gtest/gtest.h"
 #include "rules.hpp"
 #include "db_test_helpers.hpp"
 #include "rule_checker.hpp"
 #include "gaia_catalog.hpp"
-#include "catalog_gaia_generated.h"
+#include "gaia_catalog.h"
 
 using namespace gaia::common;
 using namespace gaia::catalog;
@@ -53,8 +50,8 @@ void load_catalog()
     begin_transaction();
     for (gaia_id_t field_id : field_ids)
     {
-        Gaia_field field = Gaia_field::get(field_id);
-        Gaia_field_writer writer = field.writer();
+        gaia_field_t field = gaia_field_t::get(field_id);
+        gaia_field_writer writer = field.writer();
         g_field_positions[field.name()] = field.position();
 
         if (0 == strcmp(field.name(), "active") 

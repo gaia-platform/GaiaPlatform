@@ -493,7 +493,7 @@ void event_manager_t::log_to_db(const trigger_event_t& event, bool rules_invoked
     }
 
     {
-        Event_log::insert_row((uint32_t)(event.event_type), (uint64_t)(event.gaia_type), 
+        event_log::event_log_t::insert_row((uint32_t)(event.event_type), (uint64_t)(event.gaia_type), 
             (uint64_t)(event.record), column_id, timestamp, rules_invoked);
     }
 }

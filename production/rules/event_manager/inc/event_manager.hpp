@@ -12,7 +12,7 @@
 
 #include "rules.hpp"
 #include "triggers.hpp"
-#include "event_log_gaia_generated.h"
+#include "gaia_event_log.h"
 #include "event_manager_test_helpers.hpp"
 #include "rule_thread_pool.hpp"
 #include "rule_checker.hpp"
