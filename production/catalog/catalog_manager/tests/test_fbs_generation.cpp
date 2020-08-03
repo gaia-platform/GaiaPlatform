@@ -14,8 +14,8 @@ using namespace gaia::catalog;
 
 class fbs_generation_test : public db_test_base_t {
   protected:
-    static void SetUpTestSuite() {
-        db_test_base_t::SetUpTestSuite();
+    void SetUp() override {
+        db_test_base_t::SetUp();
         // We need to use push_back to init the test fields because:
         // 1) Initializer_lists always perform copies, and unique_ptrs are not copyable.
         // 2) Without make_unique (C++ 14), using emplace_back and new can leak if the vector fails to reallocate memory.

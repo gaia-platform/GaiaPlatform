@@ -24,7 +24,7 @@ extern "C" void initialize_rules()
 
 class system_init_test : public db_test_base_t {
 protected:
-    system_init_test() : db_test_base_t(false) {
+    system_init_test() : db_test_base_t(true) {
     }
 };
 
@@ -75,4 +75,6 @@ TEST_F(system_init_test, system_initialized)
     EXPECT_EQ(true, unsubscribe_rule(row_context_t::s_gaia_type, event_type_t::row_update, fields, binding));
     unsubscribe_rules();
     list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subscriptions);
+
+    end_session();
 }

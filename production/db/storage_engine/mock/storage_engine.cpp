@@ -15,4 +15,3 @@ thread_local int gaia::db::se_base::s_session_socket = -1;
 thread_local gaia::common::gaia_xid_t gaia::db::se_base::s_transaction_id = 0;
 gaia::db::se_base::data* gaia::db::se_base::s_data = nullptr;
 thread_local gaia::db::se_base::log* gaia::db::se_base::s_log = nullptr;
-std::string gaia::db::se_base::s_server_socket_name(SERVER_CONNECT_SOCKET_NAME);

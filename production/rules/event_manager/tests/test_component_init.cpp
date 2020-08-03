@@ -22,9 +22,6 @@ extern "C" void initialize_rules()
 }
 
 class component_init_test : public db_test_base_t {
-protected:
-    component_init_test() : db_test_base_t(false) {
-    }
 };
 
 TEST_F(component_init_test, component_not_initialized_error)
@@ -68,11 +65,9 @@ TEST_F(component_init_test, component_initialized)
     fields.insert(10);
     row_context_t row;
 
-    gaia::db::begin_session();
     gaia::rules::initialize_rules_engine();
     subscribe_rule(row_context_t::s_gaia_type, event_type_t::row_update, fields, binding);
     EXPECT_EQ(true, unsubscribe_rule(row_context_t::s_gaia_type, event_type_t::row_update, fields, binding));
     unsubscribe_rules();
     list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subscriptions);
-    gaia::db::end_session();
 }

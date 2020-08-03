@@ -136,21 +136,18 @@ public:
     }
 
 protected:
-    rule_integration_test() : db_test_base_t(false) {
-    }
-    static void SetUpTestSuite() {
-        db_test_base_t::SetUpTestSuite();
-        gaia::system::initialize();
+    rule_integration_test() : db_test_base_t(true) {
     }
 
-    static void TearDownTestSuite() {
-        end_session();
-        db_test_base_t::TearDownTestSuite();
+    void SetUp() override {
+        db_test_base_t::SetUp();
+        gaia::system::initialize();
     }
 
     void TearDown() override {
         unsubscribe_rules();
         delete_employees();
+        end_session();
         db_test_base_t::TearDown();
     }
 

@@ -34,8 +34,6 @@ class invalid_session_transition : public gaia_exception {
 class server : private se_base {
    public:
     static void run();
-    // This method is intended only for use by test code.
-    static void set_server_socket_name(const char* server_socket_name);
 
    private:
     // FIXME: this really should be constexpr, but C++11 seems broken in that respect.
@@ -53,7 +51,6 @@ class server : private se_base {
     // static data *s_data;
     // thread_local static log *s_log;
     // thread_local static int s_session_socket;
-    // static std::string s_server_socket_name;
     // thread_local static gaia_xid_t s_transaction_id;
 
     // function pointer type that executes side effects of a state transition
@@ -142,7 +139,36 @@ class server : private se_base {
         builder.Finish(message);
     }
 
+    static void clear_shared_memory() {
+        if (s_shared_offsets) {
+            unmap_fd(s_shared_offsets, sizeof(offsets));
+            s_shared_offsets = nullptr;
+        }
+        if (s_fd_offsets != -1) {
+            close(s_fd_offsets);
+            s_fd_offsets = -1;
+        }
+        if (s_data) {
+            unmap_fd(s_data, sizeof(data));
+            s_data = nullptr;
+        }
+        if (s_fd_data != -1) {
+            close(s_fd_data);
+            s_fd_data = -1;
+        }
+    }
+
+    // To avoid synchronization, we assume that this method is only called when
+    // no sessions exist and the server is not accepting any new connections.
     static void init_shared_memory() {
+        // The listening socket must not be open.
+        retail_assert(s_connect_socket == -1);
+        // We may be reinitializing the server upon receiving a SIGHUP.
+        clear_shared_memory();
+        // Clear all shared memory if an exception is thrown.
+        auto cleanup_memory = scope_guard::make_scope_guard([]() {
+            clear_shared_memory();
+        });
         retail_assert(s_fd_data == -1 && s_fd_offsets == -1);
         retail_assert(!s_data && !s_shared_offsets);
         s_fd_offsets = memfd_create(SCH_MEM_OFFSETS, MFD_ALLOW_SEALING);
@@ -160,6 +186,7 @@ class server : private se_base {
             PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_offsets, 0));
         s_data = static_cast<data*>(map_fd(sizeof(data),
             PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_data, 0));
+        cleanup_memory.dismiss();
     }
 
     static sigset_t mask_signals() {
@@ -181,6 +208,7 @@ class server : private se_base {
         // Wait until a signal is delivered.
         // REVIEW: do we have any use for sigwaitinfo()?
         sigwait(&sigset, &signum);
+        cerr << "Caught signal " << strsignal(signum) << endl;
         // Signal the eventfd by writing a nonzero value.
         // This value is large enough that no thread will
         // decrement it to zero, so every waiting thread
@@ -210,11 +238,12 @@ class server : private se_base {
         server_addr.sun_family = AF_UNIX;
         // The socket name (minus its null terminator) needs to fit into the space
         // in the server address structure after the prefix null byte.
-        retail_assert(s_server_socket_name.size() <= sizeof(server_addr.sun_path) - 1);
+        // This should be static_assert(), but strlen() doesn't return a constexpr.
+        retail_assert(strlen(SE_SERVER_NAME) <= sizeof(server_addr.sun_path) - 1);
         // We prepend a null byte to the socket name so the address is in the
         // (Linux-exclusive) "abstract namespace", i.e., not bound to the
         // filesystem.
-        strncpy(&server_addr.sun_path[1], s_server_socket_name.c_str(),
+        strncpy(&server_addr.sun_path[1], SE_SERVER_NAME,
             sizeof(server_addr.sun_path) - 1);
         // The socket name is not null-terminated in the address structure, but
         // we need to add an extra byte for the null byte prefix.
@@ -255,11 +284,14 @@ class server : private se_base {
 
     static void client_dispatch_handler() {
         int epoll_fd = get_client_dispatch_fd();
-        auto cleanup_epoll_fd = scope_guard::make_scope_guard([epoll_fd]() {
-            close(epoll_fd);
-        });
         std::vector<std::thread> session_threads;
-        auto cleanup_session_threads = scope_guard::make_scope_guard([&session_threads]() {
+        auto cleanup = scope_guard::make_scope_guard([epoll_fd, &session_threads]() {
+            // We must close the epoll fd before closing the socket it polls!
+            close(epoll_fd);
+            // We should close the listening socket first, so no new sessions
+            // can be established while we wait for all session threads to exit.
+            close(s_connect_socket);
+            s_connect_socket = -1;
             for (std::thread& t : session_threads) {
                 t.join();
             }
@@ -276,7 +308,6 @@ class server : private se_base {
                 // We never register for anything but EPOLLIN,
                 // but EPOLLERR will always be delivered.
                 if (ev.events & EPOLLERR) {
-                    // This flag is unmaskable, so we don't need to register for it.
                     if (ev.data.fd == s_connect_socket) {
                         int error = 0;
                         socklen_t err_len = sizeof(error);
@@ -386,7 +417,8 @@ class server : private se_base {
                         socklen_t err_len = sizeof(error);
                         // Ignore errors getting error message and default to generic error message.
                         getsockopt(s_session_socket, SOL_SOCKET, SO_ERROR, (void*)&error, &err_len);
-                        throw_system_error("client socket error", error);
+                        cerr << "client socket error: " << strerror(error) << endl;
+                        event = session_event_t::CLIENT_SHUTDOWN;
                     } else if (ev.events & EPOLLHUP) {
                         // This flag is unmaskable, so we don't need to register for it.
                         // Both ends of the socket have issued a shutdown(SHUT_WR) or equivalent.

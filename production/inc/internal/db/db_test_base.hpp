@@ -12,7 +12,6 @@
 #include <memory>
 #include <thread>
 #include <chrono>
-#include "process.hpp"
 #include "gtest/gtest.h"
 
 #include "retail_assert.hpp"
@@ -21,68 +20,22 @@
 
 using namespace gaia::common;
 using namespace gaia::db;
-using namespace TinyProcessLib;
 
 namespace gaia {
 namespace db {
 
 class db_test_base_t : public ::testing::Test {
-protected:
-    db_test_base_t(bool manages_session) : m_manages_session(manages_session) {
-    }
-
-    db_test_base_t() : db_test_base_t(true) {
-    }
-
-    static void SetUpTestSuite() {
-        // Force the client to connect using our random socket name.
-        set_server_socket_name(get_socket_name().c_str());
-        start_server();
-    }
-
-    static void TearDownTestSuite() {
-        stop_server();
-    }
-
-    void SetUp() override {
-        if (m_manages_session) {
-            begin_session();
-        }
-    }
-
-    void TearDown() override {
-        if (m_manages_session) {
-            end_session();
-        }
-    }
-
 private:
-    bool m_manages_session;
-    static constexpr size_t SOCKET_NAME_LEN = 16;
+    bool m_client_manages_session;
 
-    static const std::string& get_socket_name() {
-        static std::string socket_name = compute_socket_name();
-        return socket_name;
-    }
-
-    static std::string compute_socket_name() {
-        std::string str("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
-        std::random_device rd;
-        std::mt19937 generator(rd());
-        std::shuffle(str.begin(), str.end(), generator);
-        return str.substr(0, SOCKET_NAME_LEN);  // assumes SOCKET_NAME_LEN < number of characters in str
-    }
-
-    static Process& get_server_proc() {
-        std::string cmd = std::string(SE_SERVER_NAME) + " " + get_socket_name();
-        static Process server_proc(cmd);
-        return server_proc;
-    }
-
-    static void start_server() {
+    static void reset_server() {
         static constexpr int POLL_INTERVAL_MILLIS = 10;
-        // Launch server process with random socket name.
-        get_server_proc();
+        // Reinitialize the server (forcibly disconnects all clients and clears database).
+        ::system((std::string("pkill -f -HUP ") + SE_SERVER_NAME).c_str());
+        // Wait a bit for the server's listening socket to be closed.
+        // (Otherwise, a new session might be accepted after the signal has been sent
+        // but before the server has been reinitialized.)
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
         // Wait for server to initialize.
         while (true) {
             try {
@@ -103,13 +56,27 @@ private:
         end_session();
     }
 
-    static void stop_server() {
-        // Send SIGTERM to server process.
-        Process& server_proc = get_server_proc();
-        server_proc.kill(true);
-        int exit_status = server_proc.get_exit_status();
-        // The exit status should reflect catching SIGTERM (numeric value 15).
-        EXPECT_EQ(exit_status, 15);
+protected:
+    db_test_base_t(bool client_manages_session) : m_client_manages_session(client_manages_session) {
+    }
+
+    db_test_base_t() : db_test_base_t(false) {
+    }
+
+    // Since ctest always launches each gtest in a new process, there is no point
+    // to defining separate SetUpTestSuite/TearDownTestSuite methods.
+
+    void SetUp() override {
+        reset_server();
+        if (!m_client_manages_session) {
+            begin_session();
+        }
+    }
+
+    void TearDown() override {
+        if (!m_client_manages_session) {
+            end_session();
+        }
     }
 };
 

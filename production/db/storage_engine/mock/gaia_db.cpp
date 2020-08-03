@@ -29,7 +29,3 @@ void gaia::db::rollback_transaction() {
 bool gaia::db::commit_transaction() {
     return gaia::db::client::commit_transaction();
 }
-
-void gaia::db::set_server_socket_name(const char* server_socket_name) {
-    gaia::db::client::set_server_socket_name(server_socket_name);
-}

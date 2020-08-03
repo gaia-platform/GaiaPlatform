@@ -420,10 +420,8 @@ static constexpr int s_rule_decl_len = sizeof(s_rule_decl)/sizeof(s_rule_decl[0]
 class event_manager_test : public db_test_base_t
 {
 protected:
-
-    static void SetUpTestSuite() {
-        db_test_base_t::SetUpTestSuite();
-
+    virtual void SetUp() override {
+        db_test_base_t::SetUp();
         // Create the rules engine with no background threads.
         test::initialize_rules_engine(0);
     }

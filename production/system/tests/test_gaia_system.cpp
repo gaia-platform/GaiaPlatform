@@ -46,18 +46,19 @@ void initialize_rules() {
 class gaia_system_test : public db_test_base_t
 {
 protected:
-    gaia_system_test() : db_test_base_t(false) {
-    }
-
-    static void SetUpTestSuite() {
-        db_test_base_t::SetUpTestSuite();
-        gaia::system::initialize();
+    gaia_system_test() : db_test_base_t(true) {
     }
 
     void SetUp() override {
         db_test_base_t::SetUp();
+        gaia::system::initialize();
         rule_count = 0;
         rule_per_commit_count = 0;
+    }
+
+    void TearDown() override {
+        end_session();
+        db_test_base_t::TearDown();
     }
 };
 

@@ -45,13 +45,7 @@ void client::tx_cleanup() {
     s_offsets = nullptr;
 }
 
-// This method is intended only for use by test code.
-void client::set_server_socket_name(const char* server_socket_name) {
-    se_base::s_server_socket_name = string(server_socket_name);
-}
-
 int client::get_session_socket() {
-    const char* socket_name = se_base::s_server_socket_name.c_str();
     // Unlike the session socket on the server, this socket must be blocking,
     // since we don't read within a multiplexing poll loop.
     int session_socket = socket(PF_UNIX, SOCK_SEQPACKET, 0);
@@ -62,11 +56,11 @@ int client::get_session_socket() {
     server_addr.sun_family = AF_UNIX;
     // The socket name (minus its null terminator) needs to fit into the space
     // in the server address structure after the prefix null byte.
-    retail_assert(strlen(socket_name) <= sizeof(server_addr.sun_path) - 1);
+    retail_assert(strlen(SE_SERVER_NAME) <= sizeof(server_addr.sun_path) - 1);
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
     // filesystem.
-    strncpy(&server_addr.sun_path[1], socket_name,
+    strncpy(&server_addr.sun_path[1], SE_SERVER_NAME,
         sizeof(server_addr.sun_path) - 1);
     // The socket name is not null-terminated in the address structure, but
     // we need to add an extra byte for the null byte prefix.
@@ -97,6 +91,11 @@ void client::begin_session() {
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
     s_session_socket = get_session_socket();
+
+    auto cleanup_session_socket = scope_guard::make_scope_guard([]() {
+        close(s_session_socket);
+        s_session_socket = -1;
+    });
 
     // Send the server the connection request.
     FlatBufferBuilder builder;
@@ -146,11 +145,17 @@ void client::begin_session() {
         // locator fd is already initialized, close the fd.
         close(fd_offsets);
     }
+    cleanup_session_socket.dismiss();
 }
 
 void client::end_session() {
     // Send the server EOF.
     shutdown(s_session_socket, SHUT_WR);
+
+    auto cleanup_session_socket = scope_guard::make_scope_guard([]() {
+        close(s_session_socket);
+        s_session_socket = -1;
+    });
 
     // Discard all pending messages from the server and block until EOF.
     // REVIEW: Is there any reason not to just close the socket to begin with?
@@ -166,9 +171,6 @@ void client::end_session() {
             break;
         }
     }
-
-    close(s_session_socket);
-    s_session_socket = -1;
 }
 
 void client::begin_transaction() {

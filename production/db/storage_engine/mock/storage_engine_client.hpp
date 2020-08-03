@@ -52,9 +52,6 @@ class client : private se_base {
     static void rollback_transaction();
     static bool commit_transaction();
 
-    // This method is intended only for use by test code.
-    static void set_server_socket_name(const char* server_socket_name);
-
    private:
     thread_local static int s_fd_log;
     thread_local static offsets* s_offsets;
