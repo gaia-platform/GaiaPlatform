@@ -9,7 +9,7 @@ project(rule_subscriber)
 
 set(LLVM_LIB_PATH "/usr/lib/llvm-8")
 
-list(APPEND CMAKE_MODULE_PATH 
+list(APPEND CMAKE_MODULE_PATH
   ${LLVM_LIB_PATH}/lib/cmake/clang
   ${LLVM_LIB_PATH}/lib/cmake/llvm
  )
@@ -48,13 +48,15 @@ target_link_libraries(rule_subscriber
 
 set(GENERATED_OUTPUTS "${CMAKE_BINARY_DIR}/tools/rule_subscriber/generated")
 
-set(RULE_SUBSCRIBER_INCLUDES 
+set(RULE_SUBSCRIBER_INCLUDES
   ${GAIA_REPO}/third_party/production/googletest/googletest/include
   ${GAIA_REPO}/third_party/production/flatbuffers/include
+  ${GAIA_REPO}/production/inc/public/db
   ${GAIA_REPO}/production/inc/public/common
   ${GAIA_REPO}/production/inc/public/direct_access
-  ${GAIA_REPO}/production/inc/public/system  
+  ${GAIA_REPO}/production/inc/public/system
   ${GAIA_REPO}/production/inc/public/rules
+  ${GAIA_REPO}/production/inc/internal/db
   ${GAIA_REPO}/production/inc/internal/rules
   ${GAIA_REPO}/production/inc/internal/common
   ${GAIA_REPO}/production/db/storage_engine/mock
@@ -88,16 +90,16 @@ link_directories(
   ${GAIA_PROD_BUILD}/rules/event_manager
 )
 
-add_gtest(test_rule_subscriber 
-  "test_rule_subscriber.cpp;${GENERATED_OUTPUTS}/init_rules.cpp" 
-  "${RULE_SUBSCRIBER_INCLUDES}" 
+add_gtest(test_rule_subscriber
+  "test_rule_subscriber.cpp;${GENERATED_OUTPUTS}/init_rules.cpp"
+  "${RULE_SUBSCRIBER_INCLUDES}"
   "rt;gaia_rules;gaia;gaia_direct"
   "generate_addr_book"
 )
 
-add_gtest(test_rule_subscriber_no_tx 
-  "test_rule_subscriber_no_tx.cpp;${GENERATED_OUTPUTS}/init_rules_no_tx.cpp" 
-  "${RULE_SUBSCRIBER_INCLUDES}" 
+add_gtest(test_rule_subscriber_no_tx
+  "test_rule_subscriber_no_tx.cpp;${GENERATED_OUTPUTS}/init_rules_no_tx.cpp"
+  "${RULE_SUBSCRIBER_INCLUDES}"
   "rt;gaia_rules;gaia;gaia_direct"
   "generate_addr_book"
 )
