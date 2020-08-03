@@ -56,7 +56,6 @@ class client : private se_base {
     thread_local static int s_fd_log;
     thread_local static offsets* s_offsets;
     thread_local static std::vector<gaia::db::triggers::trigger_event_t> s_events;
-    thread_local static gaia_xid_t s_transaction_id;
 
     // Maintain a static filter in the client to disable generating events
     // for system types.
@@ -69,6 +68,8 @@ class client : private se_base {
     // static int s_fd_offsets;
     // static data *s_data;
     // thread_local static log *s_log;
+    // static string s_server_socket_name;
+    // thread_local static gaia_xid_t s_transaction_id;
 
     static void tx_cleanup();
 

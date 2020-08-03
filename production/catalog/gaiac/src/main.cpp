@@ -2,15 +2,17 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
-#include "catalog_manager.hpp"
-#include "gaia_parser.hpp"
-#include "gaia_system.hpp"
-#include "gaia_db.hpp"
-#include "db_test_helpers.hpp"
+#include <unistd.h>
+
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
+
+#include "catalog_manager.hpp"
+#include "gaia_parser.hpp"
+#include "gaia_system.hpp"
+#include "gaia_db.hpp"
 
 using namespace std;
 using namespace gaia::catalog;
@@ -149,10 +151,10 @@ void generate_headers(string db_name) {
 
 // Temporary start server (taken and modified from db_test_helpers)
 // Use case is always to call start() followed by stop().
-class db_server_t 
+class db_server_t
 {
 public:
-    void start(const char* db_server_path) 
+    void start(const char* db_server_path)
     {
         set_path(db_server_path);
         stop();
@@ -164,10 +166,10 @@ public:
 
         // Wait for server to initialize.
         cerr << "Waiting for server to initialize..." << endl;
-        sleep(1);
+        ::sleep(1);
     }
 
-    void stop() 
+    void stop()
     {
         // Try to kill the SE server process.
         // REVIEW: we should be using a proper process library for this, so we can kill by PID.
@@ -182,7 +184,7 @@ private:
     {
         if (!db_server_path)
         {
-            m_server_path = SE_SERVER_NAME;
+            m_server_path = gaia::db::SE_SERVER_NAME;
         }
         else
         {
@@ -191,11 +193,10 @@ private:
             {
                 m_server_path.append("/");
             }
-            m_server_path.append(SE_SERVER_NAME);
+            m_server_path.append(gaia::db::SE_SERVER_NAME);
         }
     }
 
-    const char* SE_SERVER_NAME = "gaia_semock_server";
     string m_server_path;
 };
 

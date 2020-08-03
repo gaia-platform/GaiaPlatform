@@ -6,14 +6,17 @@
 // Do not include event_manager.hpp to ensure that
 // we don't have a dependency on the internal implementation.
 
-#include "unistd.h"
-#include "gtest/gtest.h"
-#include "rules.hpp"
-#include "gaia_system.hpp"
-#include "addr_book_gaia_generated.h"
-#include "db_test_helpers.hpp"
+#include <unistd.h>
+
 #include <thread>
 #include <atomic>
+
+#include "gtest/gtest.h"
+
+#include "rules.hpp"
+#include "gaia_system.hpp"
+#include "db_test_base.hpp"
+#include "addr_book_gaia_generated.h"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -89,7 +92,7 @@ void initialize_rules()
 {
 }
 
-// Waits for the rules to be called by checking 
+// Waits for the rules to be called by checking
 // for the counter to reach 0.
 class rule_monitor_t
 {
@@ -103,7 +106,7 @@ public:
  * test case below.  SetUp() is called before each test is run
  * and TearDown() is called after each test case is done.
  */
-class rule_integration_test : public ::testing::Test
+class rule_integration_test : public db_test_base_t
 {
 public:
     void subscribe_insert()
@@ -133,22 +136,19 @@ public:
     }
 
 protected:
-    static void SetUpTestSuite() {
-        start_server();
-        gaia::system::initialize();
-    }
-
-    static void TearDownTestSuite() {
-        end_session();
-        stop_server();
+    rule_integration_test() : db_test_base_t(true) {
     }
 
     void SetUp() override {
+        db_test_base_t::SetUp();
+        gaia::system::initialize();
     }
 
     void TearDown() override {
         unsubscribe_rules();
         delete_employees();
+        end_session();
+        db_test_base_t::TearDown();
     }
 
     void delete_employees()
@@ -250,8 +250,8 @@ TEST_F(rule_integration_test, test_parallel)
 {
     const int num_inserts = thread::hardware_concurrency();
     subscribe_sleep();
-    std::chrono::_V2::system_clock::time_point start;
-    std::chrono::_V2::system_clock::time_point end;
+    std::chrono::system_clock::time_point start;
+    std::chrono::system_clock::time_point end;
     {
         rule_monitor_t monitor(num_inserts);
         auto_transaction_t tx(false);

@@ -11,6 +11,7 @@
 
 using namespace std;
 using namespace gaia::common;
+using namespace gaia::db;
 using namespace gaia::db::types;
 
 invalid_schema::invalid_schema()
