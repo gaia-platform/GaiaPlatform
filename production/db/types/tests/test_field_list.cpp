@@ -15,8 +15,7 @@ using namespace gaia::db::types;
 namespace gaia {
 namespace catalog {
     static vector<gaia_id_t> mock_fields;
-    const vector<gaia_id_t>& list_fields (gaia_id_t table_id) {
-        (void) table_id; // suppress unused warning.
+    const vector<gaia_id_t>& list_fields (gaia_id_t) {
         return mock_fields;
     }
  }
