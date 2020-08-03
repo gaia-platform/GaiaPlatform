@@ -39,7 +39,7 @@ field_list_t compute_payload_diff(gaia_id_t type_id, const uint8_t* payload1, co
 
         // Compare values and set.
         if (data_holder1.compare(data_holder2) != 0) {
-            retval.add(fields[i]);
+            retval.add(pos);
         }
     }
 
