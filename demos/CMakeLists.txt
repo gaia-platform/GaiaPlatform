@@ -52,7 +52,7 @@ add_subdirectory(cow_se)
 if (DEFINED GAIA_PROD_BUILD AND EXISTS ${GAIA_PROD_BUILD})
   # Convert relative path to absolute path so custom commands will work if given a relative path
   get_filename_component(GAIA_PROD_BUILD "${GAIA_PROD_BUILD}" REALPATH BASE_DIR "${CMAKE_BINARY_DIR}")
-  add_subdirectory(incubator)
+  #add_subdirectory(incubator)
   add_subdirectory(tools)
 else()
   message(STATUS "To build the incubator demo or the rule_subscriber tool, build production first and set GAIA_PROD_BUILD to the build dir.")
