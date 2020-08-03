@@ -6,13 +6,17 @@
 // Do not include event_manager.hpp to ensure that
 // we don't have a dependency on the internal implementation.
 
-#include "unistd.h"
+#include <unistd.h>
+
+#include <thread>
+#include <atomic>
+
 #include "gtest/gtest.h"
+
 #include "rules.hpp"
 #include "gaia_system.hpp"
 #include "gaia_rules_db.h"
-#include "db_test_helpers.hpp"
-//#include "catalog_helper.hpp"
+#include "db_test_base.hpp"
 #include "gaia_catalog.hpp"
 #include <thread>
 #include <atomic>
@@ -29,6 +33,7 @@ const char* c_name = "John";
 const char* c_city = "Seattle";
 const char* c_state = "WA";
 atomic<int> g_wait_for_count;
+bool g_is_initialized = false;
 
 // When an employee is inserted insert an address.
 void rule_insert_address(const rule_context_t* context)
@@ -93,19 +98,7 @@ void initialize_rules()
 }
 
 
-void load_catalog()
-{
-    gaia::catalog::ddl::field_def_list_t fields;
-
-    // add dummy catalog types for all our types
-    for (gaia_type_t i = 1; i <= phone_t::s_gaia_type; i++) 
-    {
-        string table_name = "dummy" + std::to_string(i);
-        gaia::catalog::create_table(table_name, fields);
-    }
-}
-
-// Waits for the rules to be called by checking 
+// Waits for the rules to be called by checking
 // for the counter to reach 0.
 class rule_monitor_t
 {
@@ -119,7 +112,7 @@ public:
  * test case below.  SetUp() is called before each test is run
  * and TearDown() is called after each test case is done.
  */
-class rule_integration_test : public ::testing::Test
+class rule_integration_test : public db_test_base_t
 {
 public:
     void subscribe_insert()
@@ -148,33 +141,45 @@ public:
         subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule);
     }
 
-protected:
-    static void SetUpTestSuite() {
-        start_server();
-        gaia::system::initialize();
-        load_catalog();
+    void load_catalog()
+    {
+        gaia::catalog::ddl::field_def_list_t fields;
+
+        // add dummy catalog types for all our types
+        for (gaia_type_t i = 1; i <= phone_t::s_gaia_type; i++) 
+        {
+            string table_name = "dummy" + std::to_string(i);
+            gaia::catalog::create_table(table_name, fields);
+        }
     }
 
-    static void TearDownTestSuite() {
-        end_session();
-        stop_server();
+protected:
+    rule_integration_test() : db_test_base_t(true) {
     }
 
     void SetUp() override {
+        if (!g_is_initialized) {
+            db_test_base_t::SetUp();
+            gaia::system::initialize();
+            load_catalog();
+            g_is_initialized = true;
+        }
     }
 
     void TearDown() override {
         unsubscribe_rules();
         delete_employees();
+        // Currently a no-op.
+        db_test_base_t::TearDown();
     }
 
     void delete_employees()
     {
         auto_transaction_t tx(false);
-            for (employee_t e = employee_t::get_first(); e ; e=e.get_first())
-            {
-                e.delete_row();
-            }
+        for (employee_t e = employee_t::get_first(); e ; e=e.get_first())
+        {
+            e.delete_row();
+        }
         tx.commit();
     }
 };
@@ -184,10 +189,11 @@ TEST_F(rule_integration_test, test_insert)
     subscribe_insert();
     {
         rule_monitor_t monitor(1);
+
         auto_transaction_t tx(false);
-            employee_writer writer;
-            writer.name_first = c_name;
-            writer.insert_row();
+        employee_writer writer;
+        writer.name_first = c_name;
+        writer.insert_row();
         tx.commit();
     }
 
@@ -206,12 +212,14 @@ TEST_F(rule_integration_test, test_delete)
     subscribe_delete();
     {
         rule_monitor_t monitor(1);
+
         auto_transaction_t tx(true);
-            employee_writer writer;
-            writer.name_first = c_name;
-            employee_t e = employee_t::get(writer.insert_row());
+        employee_writer writer;
+        writer.name_first = c_name;
+        employee_t e = employee_t::get(writer.insert_row());
         tx.commit();
-            e.delete_row();
+
+        e.delete_row();
         tx.commit();
     }
 }
@@ -241,18 +249,20 @@ TEST_F(rule_integration_test, test_two_rules)
         rule_monitor_t monitor(2);
         gaia_id_t first;
         gaia_id_t second;
+
         auto_transaction_t tx(true);
-            employee_writer writer;
-            writer.name_first = "Ignore";
-            first = writer.insert_row();
-            writer.name_first = "Me Too";
-            second = writer.insert_row();
+        employee_writer writer;
+        writer.name_first = "Ignore";
+        first = writer.insert_row();
+        writer.name_first = "Me Too";
+        second = writer.insert_row();
         tx.commit();
-            // Delete first row and update second.
-            employee_t::delete_row(first);
-            writer = employee_t::get(second).writer();
-            writer.name_first = c_name;
-            writer.update_row();
+
+        // Delete first row and update second.
+        employee_t::delete_row(first);
+        writer = employee_t::get(second).writer();
+        writer.name_first = c_name;
+        writer.update_row();
         tx.commit();
     }
 }
@@ -267,15 +277,15 @@ TEST_F(rule_integration_test, test_parallel)
 {
     const int num_inserts = thread::hardware_concurrency();
     subscribe_sleep();
-    std::chrono::_V2::system_clock::time_point start;
-    std::chrono::_V2::system_clock::time_point end;
+    std::chrono::system_clock::time_point start;
+    std::chrono::system_clock::time_point end;
     {
         rule_monitor_t monitor(num_inserts);
         auto_transaction_t tx(false);
-            for (int i = 0; i < num_inserts; i++)
-            {
-                employee_t::insert_row("John", "Jones", "111-11-1111", i, nullptr, nullptr);
-            }
+        for (int i = 0; i < num_inserts; i++)
+        {
+            employee_t::insert_row("John", "Jones", "111-11-1111", i, nullptr, nullptr);
+        }
         start = std::chrono::high_resolution_clock::now();
         tx.commit();
     }

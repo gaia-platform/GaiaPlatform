@@ -3,9 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#pragma once
-
-#include <stdint.h>
+#include "field_list.hpp"
 
 namespace gaia
 {
@@ -14,9 +12,8 @@ namespace db
 namespace types
 {
 
-// Type definitions for fields.
-typedef uint16_t field_position_t;
+field_list_t compute_payload_diff(gaia_id_t type_id, const uint8_t* payload1, const uint8_t* payload2);
 
-} // namespace types
-} // namespace db
-} // namespace gaia
+}
+}
+}

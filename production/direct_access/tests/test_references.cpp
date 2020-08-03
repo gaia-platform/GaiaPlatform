@@ -6,7 +6,7 @@
 #include <iostream>
 #include "gtest/gtest.h"
 #include "gaia_addr_book.h"
-#include "db_test_helpers.hpp"
+#include "db_test_base.hpp"
 
 using namespace std;
 using namespace gaia::db;
@@ -14,7 +14,7 @@ using namespace gaia::common;
 using namespace gaia::direct_access;
 using namespace gaia::addr_book;
 
-class gaia_references_test : public ::testing::Test {
+class gaia_references_test : public db_test_base_t {
 protected:
     void delete_employees() {
         begin_transaction();
@@ -33,23 +33,14 @@ protected:
         commit_transaction();
     }
 
-    // Start new session with server.
-    static void SetUpTestSuite() {
-        start_server();
-    }
-
-    static void TearDownTestSuite() {
-        stop_server();
-    }
-
     void SetUp() override {
-        begin_session();
+        db_test_base_t::SetUp();
         delete_employees();
     }
 
     void TearDown() override {
         delete_employees();
-        end_session();
+        db_test_base_t::TearDown();
     }
 };
 

@@ -101,5 +101,7 @@ void begin_transaction();
 void rollback_transaction();
 bool commit_transaction();
 
+const char* const SE_SERVER_NAME = "gaia_semock_server";
+
 }  // namespace db
 }  // namespace gaia

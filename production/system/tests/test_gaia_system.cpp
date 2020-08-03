@@ -7,14 +7,16 @@
 #include <unistd.h>
 #include <thread>
 #include <chrono>
+#include <atomic>
+
 #include "gtest/gtest.h"
+
 #include "gaia_system.hpp"
 #include "gaia_catalog.hpp"
 #include "rules.hpp"
-#include "db_test_helpers.hpp"
 #include "gaia_system_db.h"
 #include "triggers.hpp"
-#include <atomic>
+#include "db_test_base.hpp"
 
 using namespace std;
 using namespace gaia::db;
@@ -49,29 +51,30 @@ extern "C"
 void initialize_rules() {
 }
 
-class gaia_system_test : public ::testing::Test
+class gaia_system_test : public db_test_base_t
 {
 protected:
-    static void SetUpTestSuite() {
-       start_server();
-       gaia::system::initialize();
-       load_catalog();
-       
-       // Initialize rules after loading the catalog.
-       rule_binding_t m_rule1{"ruleset1_name", "rule1_name", rule1};
-       subscribe_rule(m_gaia_type, event_type_t::row_insert, empty_fields, m_rule1);
-       subscribe_rule(m_gaia_type, event_type_t::row_delete, empty_fields, m_rule1);
-       subscribe_rule(m_gaia_type, event_type_t::row_update, empty_fields, m_rule1);
-    }
-
-    static void TearDownTestSuite() {
-        end_session();
-        stop_server();
+    gaia_system_test() : db_test_base_t(true) {
     }
 
     void SetUp() override {
+        db_test_base_t::SetUp();
+        gaia::system::initialize();
+        load_catalog();
+        
+        // Initialize rules after loading the catalog.
+        rule_binding_t m_rule1{"ruleset1_name", "rule1_name", rule1};
+        subscribe_rule(m_gaia_type, event_type_t::row_insert, empty_fields, m_rule1);
+        subscribe_rule(m_gaia_type, event_type_t::row_delete, empty_fields, m_rule1);
+        subscribe_rule(m_gaia_type, event_type_t::row_update, empty_fields, m_rule1);
+
         rule_count = 0;
         rule_per_commit_count = 0;
+    }
+
+    void TearDown() override {
+        end_session();
+        db_test_base_t::TearDown();
     }
 };
 

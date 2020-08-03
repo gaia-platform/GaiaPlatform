@@ -37,7 +37,7 @@ add_custom_command(
   OUTPUT "gaia_event_log.h"
   COMMAND ${GAIA_GENERATE} -t ${GAIA_PROD_BUILD}/db/storage_engine -o ${GENERATED_OUTPUTS}
     ${CMAKE_CURRENT_SOURCE_DIR}/schema/event_log.ddl
-  DEPENDS ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac
+  DEPENDS ${GAIA_GENERATE}
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/schema/event_log.ddl
   COMMENT "Compiling event_log.ddl."
 )
@@ -55,8 +55,8 @@ add_custom_command(
   OUTPUT "gaia_rules_db.h"
   COMMAND ${GAIA_GENERATE} -t ${GAIA_PROD_BUILD}/db/storage_engine -o ${GENERATED_OUTPUTS}
     ${GENERATED_OUTPUTS}/rules_db.ddl
-  DEPENDS ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac
-  #DEPENDS ${GENERATED_OUTOUTS}/rules_db.ddl
+  DEPENDS ${GAIA_GENERATE}
+  DEPENDS ${GENERATED_OUTPUTS}/rules_db.ddl
   COMMENT "Compiling rules_db.ddl."
 )
 
@@ -75,7 +75,7 @@ add_library(gaia_rules STATIC
 add_dependencies(gaia_rules generate_event_logs)
 set_target_properties(gaia_rules PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 target_include_directories(gaia_rules PRIVATE ${GAIA_EVENT_MANAGER_INCLUDES})
-target_link_libraries(gaia_rules PRIVATE gaia_semock)
+target_link_libraries(gaia_rules PRIVATE gaia_direct)
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia_rules PROPERTY POSITION_INDEPENDENT_CODE ON)
 

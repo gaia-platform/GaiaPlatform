@@ -14,9 +14,9 @@
 #include "types.hpp"
 
 using namespace gaia::common;
-using namespace gaia::db::types;
+using namespace gaia::db;
 
-namespace gaia 
+namespace gaia
 {
 namespace db
 {

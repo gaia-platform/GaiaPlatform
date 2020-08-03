@@ -14,7 +14,6 @@ using namespace flatbuffers;
 
 thread_local se_base::offsets *client::s_offsets = nullptr;
 thread_local int client::s_fd_log = -1;
-thread_local gaia_xid_t client::s_transaction_id = 0;
 thread_local std::vector<trigger_event_t> client::s_events;
 
 std::unordered_set<gaia_type_t> client::trigger_type_filter{
@@ -65,11 +64,11 @@ int client::get_session_socket() {
     server_addr.sun_family = AF_UNIX;
     // The socket name (minus its null terminator) needs to fit into the space
     // in the server address structure after the prefix null byte.
-    retail_assert(sizeof(SERVER_CONNECT_SOCKET_NAME) - 1 <= sizeof(server_addr.sun_path) - 1);
+    retail_assert(strlen(SE_SERVER_NAME) <= sizeof(server_addr.sun_path) - 1);
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
     // filesystem.
-    strncpy(&server_addr.sun_path[1], SERVER_CONNECT_SOCKET_NAME,
+    strncpy(&server_addr.sun_path[1], SE_SERVER_NAME,
         sizeof(server_addr.sun_path) - 1);
     // The socket name is not null-terminated in the address structure, but
     // we need to add an extra byte for the null byte prefix.
@@ -87,6 +86,12 @@ int client::get_session_socket() {
 // locator shared memory segments, but we only use them if this is the client
 // process's first call to create_session(), since they are stored globally
 // rather than per-session. (The connected socket is stored per-session.)
+// REVIEW: There is currently no way for the client to be asynchronously notified
+// when the server closes the session (e.g., if the server process shuts down).
+// Throwing an asynchronous exception on the session thread may not be possible,
+// and would be difficult to handle properly even if it were possible.
+// In any case, send_msg_with_fds()/recv_msg_with_fds() already throw a
+// peer_disconnected exception when the other end of the socket is closed.
 void client::begin_session() {
     // Fail if a session already exists on this thread.
     verify_no_session();
@@ -94,6 +99,11 @@ void client::begin_session() {
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
     s_session_socket = get_session_socket();
+
+    auto cleanup_session_socket = scope_guard::make_scope_guard([]() {
+        close(s_session_socket);
+        s_session_socket = -1;
+    });
 
     // Send the server the connection request.
     FlatBufferBuilder builder;
@@ -124,7 +134,7 @@ void client::begin_session() {
         data *data_mapping = static_cast<data *>(map_fd(
             sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0));
         if (!__sync_bool_compare_and_swap(&s_data, 0, data_mapping)) {
-            // we lost the race, throw away the mapping
+            // We lost the race, throw away the mapping.
             unmap_fd(data_mapping, sizeof(data));
         }
     }
@@ -143,13 +153,21 @@ void client::begin_session() {
         // locator fd is already initialized, close the fd.
         close(fd_offsets);
     }
+    cleanup_session_socket.dismiss();
 }
 
 void client::end_session() {
     // Send the server EOF.
     shutdown(s_session_socket, SHUT_WR);
 
+    auto cleanup_session_socket = scope_guard::make_scope_guard([]() {
+        close(s_session_socket);
+        s_session_socket = -1;
+    });
+
     // Discard all pending messages from the server and block until EOF.
+    // REVIEW: Is there any reason not to just close the socket to begin with?
+    // That *should* deliver EPOLLRDHUP to the other side (but needs testing).
     while (true) {
         uint8_t msg_buf[MAX_MSG_SIZE] = {0};
         // POSIX says we should never get SIGPIPE except on writes,
@@ -161,9 +179,6 @@ void client::end_session() {
             break;
         }
     }
-
-    close(s_session_socket);
-    s_session_socket = -1;
 }
 
 void client::begin_transaction() {
@@ -199,7 +214,7 @@ void client::begin_transaction() {
     build_client_request(builder, session_event_t::BEGIN_TXN);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
-    // Block to receive transaction id from the server
+    // Block to receive transaction id from the server.
     uint8_t msg_buf[MAX_MSG_SIZE] = {0};
     size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
     retail_assert(bytes_read > 0);
@@ -258,15 +273,13 @@ bool client::commit_transaction() {
     // Execute trigger only if rules engine is initialized.
     if (event_trigger_pool->get_commit_trigger() && event == session_event_t::DECIDE_TXN_COMMIT) {
         event_trigger_pool->add_trigger_task(s_transaction_id, std::move(s_events));
-    } 
+    }
 
     // Reset transaction id.
-    s_transaction_id = -1;
+    s_transaction_id = 0;
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
-    // Assert anyway.
-    assert(s_events.size() == 0); 
 
     return (event == session_event_t::DECIDE_TXN_COMMIT);
 }

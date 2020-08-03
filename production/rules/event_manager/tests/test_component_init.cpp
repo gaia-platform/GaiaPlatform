@@ -7,14 +7,12 @@
 // we don't have a dependency on the internal implementation.
 
 #include "gtest/gtest.h"
-#include "db_test_helpers.hpp"
+#include "db_test_base.hpp"
 #include "event_manager_test_helpers.hpp"
 #include "rules.hpp"
-#include "gaia_base.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
-using namespace gaia::direct_access;
 using namespace gaia::rules;
 using namespace std;
 
@@ -22,15 +20,7 @@ extern "C" void initialize_rules()
 {
 }
 
-class component_init_test : public ::testing::Test {
-protected:
-    static void SetUpTestSuite() {
-        start_server();
-    }
-
-    static void TearDownTestSuite() {
-        stop_server();
-    }
+class component_init_test : public db_test_base_t {
 };
 
 TEST_F(component_init_test, component_not_initialized_error)
@@ -61,7 +51,6 @@ TEST_F(component_init_test, component_initialized)
     fields.insert(10);
 
     // Custom init disables catalog checks.
-    gaia::db::begin_session();
     event_manager_settings_t settings{SIZE_MAX, true};
     gaia::rules::test::initialize_rules_engine(settings);
 
@@ -69,5 +58,4 @@ TEST_F(component_init_test, component_initialized)
     EXPECT_EQ(true, unsubscribe_rule(1000, event_type_t::row_update, fields, binding));
     unsubscribe_rules();
     list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subscriptions);
-    gaia::db::end_session();
 }

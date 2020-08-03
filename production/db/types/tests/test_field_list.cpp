@@ -3,10 +3,23 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <vector>
+
 #include "gtest/gtest.h"
 #include "field_list.hpp"
 
+using namespace std;
 using namespace gaia::db::types;
+
+// Mock catalog API for testing
+namespace gaia {
+namespace catalog {
+    static vector<gaia_id_t> mock_fields;
+    const vector<gaia_id_t>& list_fields (gaia_id_t) {
+        return mock_fields;
+    }
+ }
+}
 
 TEST(field_list, add_and_test) {
     field_list_t test_fieldlist = field_list_t(888);

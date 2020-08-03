@@ -5,7 +5,7 @@
 
 #include "gtest/gtest.h"
 #include "rules.hpp"
-#include "db_test_helpers.hpp"
+#include "db_test_base.hpp"
 #include "rule_checker.hpp"
 #include "gaia_catalog.hpp"
 #include "gaia_catalog.h"
@@ -17,6 +17,7 @@ using namespace gaia::rules;
 using namespace std;
 
 
+bool g_loaded_catalog = false;
 gaia_id_t g_table_type = 0;
 map<string, uint16_t> g_field_positions;
 
@@ -71,6 +72,7 @@ void load_catalog()
         writer.update_row();
     }
     commit_transaction();
+    g_loaded_catalog = true;
 }
 
 extern "C"
@@ -78,7 +80,7 @@ void initialize_rules()
 {
 }
 
-class rule_checker_test : public ::testing::Test
+class rule_checker_test : public db_test_base_t
 {
 public:
     void verify_exception(const char* expected_message, std::function<void ()> fn)
@@ -102,24 +104,17 @@ public:
     }
 
 protected:
-    static void SetUpTestSuite() {
-        start_server();
-        begin_session();
-        gaia::catalog::initialize_catalog();
-        load_catalog();
-    }
-
-    static void TearDownTestSuite() {
-        end_session();
-        stop_server();
-    }
-
     void SetUp() override {
+        db_test_base_t::SetUp();
+        gaia::catalog::initialize_catalog();
+        if (!g_loaded_catalog) {
+            load_catalog();
+        }
     }
 
     void TearDown() override {
+        db_test_base_t::TearDown();
     }
-
 };
 
 TEST_F(rule_checker_test, table_not_found)

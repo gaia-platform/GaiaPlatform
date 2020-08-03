@@ -107,7 +107,7 @@ target_include_directories(gaia_semock_server SYSTEM PRIVATE "${GEN_DIR}")
 set_target_properties(gaia_semock_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 target_link_libraries(gaia_semock_server PRIVATE gaia_common Threads::Threads explain)
 
-install(TARGETS gaia_semock_server DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
+install(TARGETS gaia_semock_server DESTINATION "bin")
 
 ###############################################
 # PyBind11 wrapper for storage engine mock.
@@ -153,5 +153,5 @@ set(GAIA_STORAGE_ENGINE_TEST_INCLUDES
 
 add_gtest(test_rdb_object_converter "tests/test_rdb_object_converter.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_semock")
 add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
-add_gtest(test_storage_engine_client "tests/test_storage_engine_client.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_semock")
+add_gtest(test_storage_engine_client "tests/test_storage_engine_client.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_semock")
 add_gtest(test_locator_allocator tests/test_locator_allocator.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")

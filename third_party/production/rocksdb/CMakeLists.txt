@@ -832,7 +832,8 @@ if(NOT WIN32 OR ROCKSDB_INSTALL_ON_WINDOWS)
   if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
       # Change default installation prefix on Linux to /usr
-      set(CMAKE_INSTALL_PREFIX /usr CACHE PATH "Install path prefix, prepended onto install directories." FORCE)
+      # This hijacks CMAKE_INSTALL_PREFIX for everything else, disabling
+      # set(CMAKE_INSTALL_PREFIX /usr CACHE PATH "Install path prefix, prepended onto install directories." FORCE)
     endif()
   endif()
 

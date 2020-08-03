@@ -12,7 +12,7 @@
 #include "gaia_system.hpp"
 #include "gaia_event_log.h"
 #include "triggers.hpp"
-#include "db_test_helpers.hpp"
+#include "db_test_base.hpp"
 #include "event_manager_test_helpers.hpp"
 
 using namespace gaia::common;
@@ -129,7 +129,7 @@ rule_context_checker_t g_context_checker;
 class TestGaia : public gaia_base_t
 {
 public:
-    TestGaia() 
+    TestGaia()
     : TestGaia(0)
     {
     }
@@ -149,7 +149,7 @@ public:
 
     gaia_id_t gaia_id() { return m_id; }
 
-    gaia_id_t m_id; 
+    gaia_id_t m_id;
 };
 const gaia_type_t TestGaia::s_gaia_type = 333;
 typedef unique_ptr<TestGaia> test_gaia_ptr_t;
@@ -159,7 +159,7 @@ typedef unique_ptr<TestGaia> test_gaia_ptr_t;
 class TestGaia2 : public gaia_base_t
 {
 public:
-    TestGaia2() 
+    TestGaia2()
     : TestGaia2(0)
     {
     }
@@ -418,26 +418,15 @@ static constexpr int s_rule_decl_len = sizeof(s_rule_decl)/sizeof(s_rule_decl[0]
  * test case below.  SetUp() is called before each test is run
  * and TearDown() is called after each test case is done.
  */
-class event_manager_test : public ::testing::Test
+class event_manager_test : public db_test_base_t
 {
 protected:
-
-    static void SetUpTestSuite() {
-        start_server();
-        // Create the rules engine with no background threads and disable
-        // catalog checking for rule subscriptions.
+    virtual void SetUp() override {
+        db_test_base_t::SetUp();
         event_manager_settings_t settings;
         settings.num_background_threads = 0;
         settings.disable_catalog_checks = true;
         test::initialize_rules_engine(settings);
-    }
-
-    static void TearDownTestSuite() {
-        stop_server();
-    }
-
-    void SetUp() override {
-        begin_session();
     }
 
     virtual void TearDown() override {
@@ -447,7 +436,7 @@ protected:
         // initialize_rules function was called exactly once by
         // the event_manager_t singleton.
         EXPECT_EQ(1, g_initialize_rules_called);
-        end_session();
+        db_test_base_t::TearDown();
     }
 
     void validate_rule(
@@ -1207,9 +1196,9 @@ TEST_F(event_manager_test, event_logging_no_subscriptions)
     auto entry = gaia::event_log::event_log_t::get_first();
     verify_event_log_row(entry, event_type_t::row_update, 
         TestGaia::s_gaia_type, record, s_last_name, false);
-    
+
     entry = entry.get_next();
-    verify_event_log_row(entry, event_type_t::transaction_commit, 
+    verify_event_log_row(entry, event_type_t::transaction_commit,
         0, 0, 0, false);
     gaia::db::commit_transaction();
 
@@ -1237,8 +1226,8 @@ TEST_F(event_manager_test, event_logging_subscriptions)
         TestGaia2::s_gaia_type, record, s_first_name, true);
 
     entry = entry.get_next();
-    verify_event_log_row(entry, event_type_t::row_insert, 
-        TestGaia2::s_gaia_type, record + 1, 0, true); 
+    verify_event_log_row(entry, event_type_t::row_insert,
+        TestGaia2::s_gaia_type, record + 1, 0, true);
 
     entry = entry.get_next();
     verify_event_log_row(entry, event_type_t::transaction_begin, 0, 0, 0, true);
