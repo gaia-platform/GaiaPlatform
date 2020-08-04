@@ -34,21 +34,6 @@ function (gaia_cat IN_FILE OUT_FILE)
 endfunction()
 
 #
-# Builds a full database catalog ddl and headers
-# by pulling in system types.
-#
-function (gaia_make_db_ddl IN_DDL_FILE OUT_DDL_FILE)
-  file(WRITE "${OUT_DDL_FILE}.in" "")
-  # Include catalog type definitions.
-  gaia_cat(${GAIA_REPO}/production/catalog/catalog_manager/src/catalog.ddl ${OUT_DDL_FILE}.in)
-  # Include rules engine type definitions.
-  gaia_cat(${GAIA_REPO}/production/rules/event_manager/schema/event_log.ddl ${OUT_DDL_FILE}.in)
-  # Now add user DDL file
-  gaia_cat(${IN_DDL_FILE} ${OUT_DDL_FILE}.in)
-  configure_file(${OUT_DDL_FILE}.in ${OUT_DDL_FILE})
-endfunction()
-
-#
 # Helper function for setting up google tests.
 # The named arguments are required:  TARGET, SOURCES, INCLUDES, LIBRARIES
 # Three optional arguments are after this:

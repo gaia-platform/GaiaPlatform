@@ -15,7 +15,7 @@
 
 #include "rules.hpp"
 #include "gaia_system.hpp"
-#include "gaia_rules_db.h"
+#include "gaia_addr_book_db.h"
 #include "db_test_base.hpp"
 #include "gaia_catalog.hpp"
 #include <thread>
@@ -27,7 +27,7 @@ using namespace gaia::db;
 using namespace gaia::direct_access;
 using namespace gaia::rules;
 using namespace std;
-using namespace gaia::rules_db;
+using namespace gaia::addr_book_db;
 
 const char* c_name = "John";
 const char* c_city = "Seattle";

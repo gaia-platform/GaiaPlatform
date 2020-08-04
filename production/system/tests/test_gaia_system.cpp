@@ -14,7 +14,7 @@
 #include "gaia_system.hpp"
 #include "gaia_catalog.hpp"
 #include "rules.hpp"
-#include "gaia_system_db.h"
+#include "gaia_addr_book_db.h"
 #include "triggers.hpp"
 #include "db_test_base.hpp"
 
@@ -23,7 +23,7 @@ using namespace gaia::db;
 using namespace gaia::db::triggers;
 using namespace gaia::rules;
 using namespace gaia::common;
-using namespace gaia::system_db;
+using namespace gaia::addr_book_db;
 
 static atomic<uint32_t> rule_count;
 static atomic<uint32_t> rule_per_commit_count;
