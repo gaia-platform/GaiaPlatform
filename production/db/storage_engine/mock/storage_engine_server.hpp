@@ -192,7 +192,7 @@ class server : private se_base {
     static sigset_t mask_signals() {
         sigset_t sigset;
         sigemptyset(&sigset);
-        // TODO: do we want to handle SIGHUP differently at some point (e.g. reload config)?
+        // We now special-case SIGHUP to disconnect all sessions and reinitialize all shared memory.
         sigaddset(&sigset, SIGHUP);
         sigaddset(&sigset, SIGINT);
         sigaddset(&sigset, SIGTERM);
