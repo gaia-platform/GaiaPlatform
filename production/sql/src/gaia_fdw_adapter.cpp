@@ -125,20 +125,13 @@ List* gaia_fdw_adapter_t::get_ddl_command_list(const char* server_name)
     return commands;
 }
 
-gaia_fdw_scan_state_t* gaia_fdw_adapter_t::get_scan_state(
+template <class S>
+S* gaia_fdw_adapter_t::get_state(
     const char* table_name, size_t count_accessors)
 {
-    gaia_fdw_scan_state_t* scan_state = (gaia_fdw_scan_state_t*)palloc0(sizeof(gaia_fdw_scan_state_t));
+    S* state = (S*)palloc0(sizeof(S));
 
-    return scan_state->initialize(table_name, count_accessors) ? scan_state : nullptr;
-}
-
-gaia_fdw_modify_state_t* gaia_fdw_adapter_t::get_modify_state(
-    const char* table_name, size_t count_accessors)
-{
-    gaia_fdw_modify_state_t* modify_state = (gaia_fdw_modify_state_t*)palloc0(sizeof(gaia_fdw_modify_state_t));
-
-    return modify_state->initialize(table_name, count_accessors) ? modify_state : nullptr;
+    return state->initialize(table_name, count_accessors) ? state : nullptr;
 }
 
 bool gaia_fdw_state_t::initialize(const char* table_name, size_t count_accessors)

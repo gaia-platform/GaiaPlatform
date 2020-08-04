@@ -60,10 +60,8 @@ public:
 
     static List* get_ddl_command_list(const char* server_name);
 
-    static gaia_fdw_scan_state_t* get_scan_state(
-        const char* table_name, size_t count_accessors);
-
-    static gaia_fdw_modify_state_t* get_modify_state(
+    template <class S>
+    static S* get_state(
         const char* table_name, size_t count_accessors);
 
 protected:

@@ -268,7 +268,7 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState *node, int eflags) {
     TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
     TupleDesc tupleDesc = slot->tts_tupleDescriptor;
 
-    gaia_fdw_scan_state_t *scan_state = gaia_fdw_adapter_t::get_scan_state(
+    gaia_fdw_scan_state_t *scan_state = gaia_fdw_adapter_t::get_state<gaia_fdw_scan_state_t>(
         table_name, (size_t)tupleDesc->natts);
     if (scan_state == nullptr) {
         elog(ERROR, "Unknown table name '%s'.", table_name);
@@ -544,7 +544,7 @@ extern "C" void gaia_begin_foreign_modify(
     char *table_name = get_rel_name(rte->relid);
     TupleDesc tupleDesc = rinfo->ri_RelationDesc->rd_att;
 
-    gaia_fdw_modify_state_t *modify_state = gaia_fdw_adapter_t::get_modify_state(
+    gaia_fdw_modify_state_t *modify_state = gaia_fdw_adapter_t::get_state<gaia_fdw_modify_state_t>(
         table_name, (size_t)tupleDesc->natts);
     if (modify_state == nullptr) {
         elog(ERROR, "Unknown table name '%s'.", table_name);
