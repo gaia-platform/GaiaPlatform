@@ -45,16 +45,6 @@ gaia_ros2_msg_to_ddl(
 
 ament_export_dependencies(rosidl_default_runtime)
 
-set(msg_files
-  "msg/Test.msg"
-)
-
-rosidl_generate_interfaces(${PROJECT_NAME}
-  ${msg_files}
-)
-
-ament_export_dependencies(rosidl_default_runtime)
-
 add_library(gaia_pkg_shared_lib SHARED
   src/gaia_node.cpp
 )

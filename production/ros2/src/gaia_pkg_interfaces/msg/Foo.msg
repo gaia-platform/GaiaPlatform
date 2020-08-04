@@ -1,0 +1,2 @@
+uint32 foo_int
+builtin_interfaces/Duration foo_duration
