@@ -80,9 +80,9 @@ void load_bootstrap_catalog() {
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::e_string, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"table_id", data_type_t::e_uint64, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"fields", data_type_t::e_string, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"index_type", data_type_t::e_int8, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"index_type", data_type_t::e_uint8, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"unique", data_type_t::e_bool, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"values_", data_type_t::e_references, 1, "gaia_table"}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"values", data_type_t::e_references, 1, "gaia_table"}));
         catalog_manager_t::get().create_table("gaia_value_index", fields);
     }
 
@@ -92,7 +92,7 @@ void load_bootstrap_catalog() {
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"table_id", data_type_t::e_uint64, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"type", data_type_t::e_uint8, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"type_id", data_type_t::e_uint64, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"repeated_count", data_type_t::e_uint8, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"repeated_count", data_type_t::e_uint16, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"position", data_type_t::e_uint16, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"required", data_type_t::e_bool, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"deprecated", data_type_t::e_bool, 1}));
@@ -100,9 +100,10 @@ void load_bootstrap_catalog() {
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"nullable", data_type_t::e_bool, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"has_default", data_type_t::e_bool, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"default_value", data_type_t::e_string, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"value_fields_", data_type_t::e_references, 1, "gaia_value_index"}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"fields_", data_type_t::e_references, 1, "gaia_table"}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"references_", data_type_t::e_references, 1, "gaia_table"}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"value_fields", data_type_t::e_references, 1, "gaia_value_index"}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"fields", data_type_t::e_references, 1, "gaia_table"}));
+        // Use "refs" rather than "references" to avoid collision with "references" keyword.
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"refs", data_type_t::e_references, 1, "gaia_table"}));
         catalog_manager_t::get().create_table("gaia_field", fields);
     }
 
@@ -120,7 +121,7 @@ void load_bootstrap_catalog() {
         field_def_list_t fields;
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::e_string, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"ruleset_id", data_type_t::e_uint64, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"rules_", data_type_t::e_references, 1, "gaia_ruleset"}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"rules", data_type_t::e_references, 1, "gaia_ruleset"}));
         catalog_manager_t::get().create_table("gaia_rule", fields);
     }
 }

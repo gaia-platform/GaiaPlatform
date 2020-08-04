@@ -4,28 +4,36 @@ isolated within Docker images and do not depend on any installed packages or con
 host.
 
 ## Installation
-Install `gdev` dependencies.
+Symlink `gdev.sh` to your user executable path.
 ```bash
-sudo apt-get update
-sudo apt-get install python3.8 python3-pip
+mkdir -p ~/.local/bin && ln -s $GAIA_REPO/dev_tools/gdev/gdev.sh ~/.local/bin/gdev
+```
+
+Ensure your user executable path is in your `PATH` variable. If it is not, add it to your `.bashrc`.
+```bash
+echo $PATH | grep $HOME/.local/bin \
+    || (echo 'PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc && source .bashrc)
+```
+Install Python 3.8 and pip.
+* Ubuntu 18.04
+    ```bash
+    sudo apt-get update && sudo apt-get install -y python3.8 python3-pip
+    ```
+* Ubuntu 20.04
+    ```bash
+    sudo apt-get update && sudo apt-get install -y python3-pip
+    ```
+* Mac
+    TODO
+
+Install Python dependencies.
+```bash
 python3.8 -m pip install --user atools argcomplete
 ```
 
-Add gdev alias to your `.bashrc`. Note that you need to **set the `$GAIA_REPO`
-environment variable** for this to work.
+Enable gdev tab-completion.
 ```bash
-echo "alias gdev=\"PYTHONPATH=$GAIA_REPO/dev_tools/gdev python3.8 -m gdev\"" >> ~/.bashrc
-```
-
-Enable experimental features in Docker by editing the `/etc/docker/daemon.json` file.
-```bash
-sudo vi /etc/docker/daemon.json
-```
-Ensure the `/etc/docker/daemon.json` file contents match the following and save.
-```
-{
-"experimental": true
-}
+echo 'eval "$(register-python-argcomplete gdev)"' >> ~/.bashrc && source ~/.bashrc
 ```
 
 (Linux only) [Install docker for Linux](https://docs.docker.com/engine/install/ubuntu/).
@@ -55,9 +63,27 @@ Linux](https://docs.docker.com/engine/install/linux-postinstall/).
 ```bash
 sudo groupadd docker
 sudo usermod -aG docker $USER
-newgrp docker 
+newgrp docker
 ```
-Then, log out and log back in to have group membership changes take effect.
+Log out and log back in to have group membership changes take effect.
+
+Enable experimental features in Docker.
+* Ubuntu
+    In `/etc/docker/daemon.json`, add the experimental field.
+    ```
+    {
+    "experimental": true
+    }
+    ```
+    Restart the docker daemon to make changes take effect.
+    ```bash
+    sudo service docker restart
+    ```
+* Mac
+    In the "Docker Desktop" menu, go to `Preferences > Command Line` and turn on `Enable
+    Experimental Features`.
+
+    Click `Apply and Restart` to make the changes take effect.
 
 ## Creating build rules with `gdev.cfg` files
 `gdev.cfg` files are simple configuration files. They belong in the same directory as the associated
@@ -148,7 +174,6 @@ Note that `third_party/production/cmake` is listed as a `[gaia]` dependency. Whe
 build production, the dependencies in the `[gaia]` section are built first and the associated build
 outputs are made available while building production.
 
-
 `gdev.cfg` files contain the following sections.
 * `[apt]`
     List of apt dependencies to install. One dependency per line.
@@ -168,9 +193,10 @@ outputs are made available while building production.
 * `[web]`
     List of web dependencies to download into build folder. One dependency per line.
 * `[pre_run]`
-    Note that dependencies defined in `[apt]`, `[env]`, `[gaia]`, `[git]`, and `[pip]` sections
-    become available for use in this section.  List of commands to run before the main run. Commands
-    are run in the build folder in the Docker image for the current build rule. One command per line.
+    List of commands to run before the main run. Commands are run in the build folder in the Docker
+    image for the current build rule. One command per line. The dependencies defined in `[apt]`,
+    `[env]`, `[gaia]`, `[git]`, `[pip]`, and `[web]` sections become available for use in this
+    section.
 * `[run]`
     List of commands to run after pre_run. This is the final stage for the build rule. Commands are
     run in the build folder in the Docker image for the current build rule. One command per line.
@@ -227,46 +253,19 @@ depends on `gdev build` which depends on `gdev dockerfile`. Each command will in
 commands by itself.
 
 ### Building
-Internally, `gdev` tags docker images using git hashes. An image tagged with a git can contain only
-what was in the git commit and nothing else.
+In normal workflow, `gdev` only tracks images with the `latest` tag. Whenever the image is built, we
+also record metadata about what git hash it was built with and whether it was "tainted" with
+uncommitted changes or untracked files.
 ```bash
-# Ok
 cameron@host:~/GaiaPlatform/production$ gdev build
 ```
 
- If you try to build for the first time with local changes in the directory subtree of a build
-target or one of its transitive dependencies, `gdev` will refuse to build.
+Once gdev builds an image with your current git hash, subsequent calls to `gdev build` will see that
+the image is already exists and will not try to rebuild it. If you have local changes that need to
+be built into the image, but your current git hash hasn't changed, you can force the changes into
+the image by providing the `--force` (or equivalently the `-f`) flag.
 ```bash
-# Not ok. `gdev` refuses to build with uncommitted changes in the `production` subtree.
-cameron@host:~/GaiaPlatform/production$ echo "this taints the image!" > foo.txt
-cameron@host:~/GaiaPlatform/production$ gdev build
-```
-However, modifications that around outside the directory subtree of the build target and its
-transitive dependencies will not taint the image as the file will never be copied into the image.
-```bash
-# Ok. Neither `production` nor its transitive dependencies use the `production/scratch` subtree.
-cameron@host:~/GaiaPlatform/production$ echo "this does not taint the image!" > ../scratch/foo.txt
-cameron@host:~/GaiaPlatform/production$ gdev build
-```
-We do this for two reasons.
-1. Checking `docker image ls <name>:<tag>` to see if our image is already built is an extremely fast
-   operation. It is very useful to know that an image named `<name>:<tag>` has exactly the contents
-   we mean it to have.
-2. Internally, the docker image has a build cache with keys calculated based on the contents of what
-   we copy into the image. If files change, so do the build cache keys. While building an image, it
-   is possible to query against a remote Docker image repository that has images built. Those remote
-   images need to be build with the correct cache keys (meaning no file modifications) for this to
-   work. Locally, we need to guarantee the same thing so that we generate the matching cache key as
-   the remote image.
-
-If you must build an image locally with uncommitted changes, you can build a tainted image. Note
-that you must use `--tainted` for subsequent commands such as `gdev run --tainted` to actually use
-the tainted image. Every time you use the `--tainted` flag, docker will re-evaluate whether it needs
-to rebuild the tainted image.
-```bash
-cameron@host:~/GaiaPlatform/production$ echo "this taints the image!" > foo.txt
-cameron@host:~/GaiaPlatform/production$ gdev build --tainted
-# Ok. The image will be named `<name>:tainted` and will not use the git hash as the tag.
+cameron@host:~/GaiaPlatform/production$ gdev build -f
 ```
 
 ### Running programs
@@ -289,9 +288,9 @@ container at `/source`. You may make code and configuration edits to the code on
 rebuild within the container.
 
 Useful programs that are not normally included in the build can be *mixed* into the image and then
-run.
+run. The `--sticky-mixins` flag is *sticky* (the value you provide is saved until you change it).
 ```bash
-cameron@host:~/GaiaPlatform/production$ gdev run --mixins gdb
+cameron@host:~/GaiaPlatform/production$ gdev run --sticky-mixins gdb sudo
 cameron@gdb__user__production__run:/build/production$ gdb
 ...snip...
 (gdb)
@@ -304,13 +303,26 @@ gdb
 ```
 You can see the available mixins with `gdev run --help`.
 
+You can also mount directories from your host to the container or from your container to your host
+with the `--sticky-mounts` flag. You can provide a list of `<host_path>:<container_path>` mappings
+to bind. By default, `gdev run` mounts the container's current working directory folder to your host
+at `./build.gdev` (equivalent to specifying `--sticky-mixins ./build.gdev:.`). Note that the mounts
+are persistent and are not ephemeral like the containers. When a container is cleaned up, the
+mounted folders remain on the host.
+```bash
+cameron@host:~/GaiaPlatform/production$ gdev run ctest  -T Test --no-compress-output
+cameron@host:~/GaiaPlatform/production$ ls build.gdev/
+...snip contents of the mounted build directory...
+```
+`--sticky-mounts <host_path>:<container_path>` behavior follows the following rules in order.
+1. If the `<host_path>` directory exists on the host, the host folder will be mounted into the
+container at `<container_path>`.
+2. If the `<host_path>` directory does not exist on the host, the container folder at
+`<container_path` will be mounted into the host at `<host_path>`.
+3. If neither the `<host_path>` nor the `<container_path>` exists, an empty folder will be created
+and will be mounted.
+
 ## Best-practices
-TODO
-
-### Delete third-party git repositories at the end of the `[run]` section
-TODO
-
-### Avoid `--tainted` if you can easily rebuild from inside the container
 TODO
 
 ## Multi-stage build and merge process

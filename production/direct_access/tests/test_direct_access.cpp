@@ -226,13 +226,10 @@ TEST_F(gaia_object_test, read_wrong_type) {
     begin_transaction();
     try {
         auto a = address_t::get(eid);
-        gaia_id_t id = a.gaia_id();
-        EXPECT_EQ(id, 1000);
     }
     catch (const exception& e) {
-        // The eid is unpredictable, but the exception will use it in its message.
-        string compare_string = "Requesting Gaia type address_t(2) but object identified by " + to_string(eid) + " is type (1).";
-        EXPECT_STREQ(e.what(), compare_string.c_str());
+        string what = string(e.what());
+        EXPECT_EQ(what.find("Requesting Gaia type address_t") != string::npos, true);
     }
     EXPECT_THROW(address_t::get(eid), edc_invalid_object_type);
     commit_transaction();
