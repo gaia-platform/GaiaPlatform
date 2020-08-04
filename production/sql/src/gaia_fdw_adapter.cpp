@@ -125,32 +125,6 @@ List* gaia_fdw_adapter_t::get_ddl_command_list(const char* server_name)
     return commands;
 }
 
-const relation_attribute_mapping_t* gaia_fdw_adapter_t::get_mapping(const char* table_name, size_t count_accessors)
-{
-    const relation_attribute_mapping_t* mapping = nullptr;
-
-    if (strcmp(table_name, "airports") == 0)
-    {
-        mapping = &c_airport_mapping;
-    }
-    else if (strcmp(table_name, "airlines") == 0)
-    {
-        mapping = &c_airline_mapping;
-    }
-    else if (strcmp(table_name, "routes") == 0)
-    {
-        mapping = &c_route_mapping;
-    }
-    else if (strcmp(table_name, "event_log") == 0)
-    {
-        mapping = &c_event_log_mapping;
-    }
-
-    assert(count_accessors == mapping->attribute_count);
-
-    return mapping;
-}
-
 gaia_fdw_scan_state_t* gaia_fdw_adapter_t::get_scan_state(
     const char* table_name, size_t count_accessors)
 {
@@ -167,11 +141,37 @@ gaia_fdw_modify_state_t* gaia_fdw_adapter_t::get_modify_state(
     return modify_state->initialize(table_name, count_accessors) ? modify_state : nullptr;
 }
 
+bool gaia_fdw_state_t::initialize(const char* table_name, size_t count_accessors)
+{
+    if (strcmp(table_name, "airports") == 0)
+    {
+        m_mapping = &c_airport_mapping;
+    }
+    else if (strcmp(table_name, "airlines") == 0)
+    {
+        m_mapping = &c_airline_mapping;
+    }
+    else if (strcmp(table_name, "routes") == 0)
+    {
+        m_mapping = &c_route_mapping;
+    }
+    else if (strcmp(table_name, "event_log") == 0)
+    {
+        m_mapping = &c_event_log_mapping;
+    }
+    else
+    {
+        return false;
+    }
+
+    assert(count_accessors == m_mapping->attribute_count);
+
+    return true;
+}
+
 bool gaia_fdw_scan_state_t::initialize(const char* table_name, size_t count_accessors)
 {
-    m_mapping = gaia_fdw_adapter_t::get_mapping(table_name, count_accessors);
-
-    if (m_mapping == nullptr)
+    if (!gaia_fdw_state_t::initialize(table_name, count_accessors))
     {
         return false;
     }
@@ -257,9 +257,7 @@ bool gaia_fdw_scan_state_t::scan_forward()
 
 bool gaia_fdw_modify_state_t::initialize(const char* table_name, size_t count_accessors)
 {
-    m_mapping = gaia_fdw_adapter_t::get_mapping(table_name, count_accessors);
-
-    if (m_mapping == nullptr)
+    if (!gaia_fdw_state_t::initialize(table_name, count_accessors))
     {
         return false;
     }

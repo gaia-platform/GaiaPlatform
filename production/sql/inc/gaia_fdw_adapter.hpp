@@ -45,16 +45,10 @@ class gaia_fdw_adapter_t
 
 protected:
 
-    // Do not allow copies to be made;
-    // disable copy constructor and assignment operator.
-    gaia_fdw_adapter_t(const gaia_fdw_adapter_t&) = delete;
-    gaia_fdw_adapter_t& operator=(const gaia_fdw_adapter_t&) = delete;
-
-    // gaia_fdw_adapter_t is a singleton, so its constructor is not public.
+    // gaia_fdw_adapter_t is just a container for static methods,
+    // so its constructor is protected
+    // to prevent the creation of any instances.
     gaia_fdw_adapter_t() = default;
-
-    static const relation_attribute_mapping_t* get_mapping(
-        const char* table_name, size_t count_accessors);
 
 public:
 
@@ -85,10 +79,27 @@ protected:
     static int s_transaction_reference_count;
 };
 
+class gaia_fdw_state_t
+{
+protected:
+
+    // gaia_fdw_state_t is just a base class,
+    // so its constructor is protected
+    // to prevent the creation of any instances.
+    gaia_fdw_state_t() = default;
+
+    bool initialize(const char* table_name, size_t count_accessors);
+
+protected:
+
+    const relation_attribute_mapping_t* m_mapping;
+};
+
+
 // The scan state is set up in gaia_begin_foreign_scan,
 // is stashed away in node->fdw_private,
 // and is fetched in gaia_iterate_foreign_scan.
-class gaia_fdw_scan_state_t
+class gaia_fdw_scan_state_t : public gaia_fdw_state_t
 {
     friend class gaia_fdw_adapter_t;
 
@@ -116,8 +127,6 @@ public:
 
 protected:
 
-    const relation_attribute_mapping_t* m_mapping;
-
     root_object_deserializer_fn m_deserializer;
 
     // flatbuffer accessor functions indexed by attrnum.
@@ -135,7 +144,7 @@ protected:
 // It is set up in gaiaBeginForeignModify, stashed in rinfo->ri_FdwState,
 // and is subsequently used in gaiaExecForeignInsert, gaiaExecForeignUpdate,
 // gaiaExecForeignDelete, and gaiaEndForeignModify.
-class gaia_fdw_modify_state_t
+class gaia_fdw_modify_state_t : public gaia_fdw_state_t
 {
     friend class gaia_fdw_adapter_t;
 
@@ -166,8 +175,6 @@ public:
     void finalize_modify();
 
 protected:
-
-    const relation_attribute_mapping_t* m_mapping;
 
     builder_initializer_fn m_initializer;
     builder_finalizer_fn m_finalizer;
