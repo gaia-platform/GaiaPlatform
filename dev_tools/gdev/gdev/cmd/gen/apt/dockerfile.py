@@ -11,7 +11,7 @@ class GenAptDockerfile(GenAbcDockerfile):
 
     @memoize
     async def get_from_section(self) -> str:
-        from_section = f'FROM apt_base as {await self.get_name()}'
+        from_section = f'FROM apt_base AS {await self.get_name()}'
 
         self.log.debug(f'{from_section = }')
 
@@ -21,7 +21,8 @@ class GenAptDockerfile(GenAbcDockerfile):
     async def get_run_section(self) -> str:
         if lines := await self.cfg.get_lines():
             run_section = (
-                    'RUN DEBIAN_FRONTEND=noninteractive apt-get install -y'
+                    'RUN apt-get update'
+                    + ' \\\n    && DEBIAN_FRONTEND=noninteractive apt-get install -y'
                     + ' \\\n        '
                     + ' \\\n        '.join(lines)
                     + ' \\\n    && apt-get clean'
