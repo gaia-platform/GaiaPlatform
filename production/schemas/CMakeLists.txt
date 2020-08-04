@@ -25,13 +25,14 @@ set(CATALOG_DDL ${GAIA_REPO}/production/catalog/catalog_manager/src/catalog.ddl)
 set(EVENT_LOG_DDL ${GAIA_REPO}/production/rules/event_manager/schema/event_log.ddl)
 
 #
-# generate catalog headers
+# Generate catalog headers.
 #
 add_custom_command(
   OUTPUT ${GENERATED_OUTPUTS}/gaia_catalog.h
   COMMAND cmake -E make_directory "${GENERATED_OUTPUTS}"
   COMMAND ${GAIA_GENERATE} -t ${GAIA_PROD_BUILD}/db/storage_engine -o ${GENERATED_OUTPUTS} ${CATALOG_DDL}
   DEPENDS ${GAIA_GENERATE}
+  DEPENDS ${CATALOG_DDL}
   COMMENT "Compiling ${CATALOG_DDL}"
 )
 
@@ -40,13 +41,13 @@ add_custom_target(generate_catalog_headers ALL
 )
 
 #
-# generate event_log headers
+# Generate event_log headers.
 #
 add_custom_command(
   OUTPUT ${GENERATED_OUTPUTS}/gaia_event_log.h
-  COMMAND cmake -E make_directory "${GENERATED_OUTPUTS}"
   COMMAND ${GAIA_GENERATE} -t ${GAIA_PROD_BUILD}/db/storage_engine -o ${GENERATED_OUTPUTS} ${EVENT_LOG_DDL}
   DEPENDS ${GAIA_GENERATE}
+  DEPENDS ${EVENT_LOG_DDL}
   COMMENT "${EVENT_LOG_DDL}"
 )
 
@@ -57,14 +58,14 @@ add_custom_target(generate_event_log_headers ALL
 )
 
 #
-# generate stand alone address_book
+# Generate stand alone address_book.
 #
 add_custom_command(
   OUTPUT ${GENERATED_OUTPUTS}/gaia_addr_book.h
-  COMMAND cmake -E make_directory "${GENERATED_OUTPUTS}"
   COMMAND ${GAIA_GENERATE} -t ${GAIA_PROD_BUILD}/db/storage_engine -o ${GENERATED_OUTPUTS}
     ${GAIA_SCHEMAS}/addr_book.ddl
   DEPENDS ${GAIA_GENERATE}
+  DEPENDS ${GAIA_SCHEMAS}/addr_book.ddl
   COMMENT "Compiling addr_book.ddl."
 )
 
@@ -92,10 +93,12 @@ configure_file(${GENERATED_OUTPUTS}/addr_book_db.in ${GENERATED_OUTPUTS}/addr_bo
 
 add_custom_command(
   OUTPUT ${GENERATED_OUTPUTS}/gaia_addr_book_db.h
-  COMMAND cmake -E make_directory "${GENERATED_OUTPUTS}"
   COMMAND ${GAIA_GENERATE} -t ${GAIA_PROD_BUILD}/db/storage_engine -o ${GENERATED_OUTPUTS}
     ${GENERATED_OUTPUTS}/addr_book_db.ddl
   DEPENDS ${GAIA_GENERATE}
+  DEPENDS ${CATALOG_DDL}
+  DEPENDS ${EVENT_LOG_DDL}
+  DEPENDS ${GAIA_SCHEMAS}/addr_book.ddl
   COMMENT "Compiling addr_book_db.ddl."
 )
 
