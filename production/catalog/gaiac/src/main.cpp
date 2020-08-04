@@ -2,15 +2,17 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
-#include "catalog_manager.hpp"
-#include "gaia_parser.hpp"
-#include "gaia_system.hpp"
-#include "gaia_db.hpp"
-#include "db_test_helpers.hpp"
+#include <unistd.h>
+
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
+
+#include "catalog_manager.hpp"
+#include "gaia_parser.hpp"
+#include "gaia_system.hpp"
+#include "gaia_db.hpp"
 
 using namespace std;
 using namespace gaia::catalog;
@@ -78,9 +80,9 @@ void load_bootstrap_catalog() {
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::e_string, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"table_id", data_type_t::e_uint64, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"fields", data_type_t::e_string, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"index_type", data_type_t::e_int8, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"index_type", data_type_t::e_uint8, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"unique", data_type_t::e_bool, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"values_", data_type_t::e_references, 1, "gaia_table"}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"values", data_type_t::e_references, 1, "gaia_table"}));
         catalog_manager_t::get().create_table("gaia_value_index", fields);
     }
 
@@ -90,7 +92,7 @@ void load_bootstrap_catalog() {
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"table_id", data_type_t::e_uint64, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"type", data_type_t::e_uint8, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"type_id", data_type_t::e_uint64, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"repeated_count", data_type_t::e_uint8, 1}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"repeated_count", data_type_t::e_uint16, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"position", data_type_t::e_uint16, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"required", data_type_t::e_bool, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"deprecated", data_type_t::e_bool, 1}));
@@ -98,9 +100,10 @@ void load_bootstrap_catalog() {
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"nullable", data_type_t::e_bool, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"has_default", data_type_t::e_bool, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"default_value", data_type_t::e_string, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"value_fields_", data_type_t::e_references, 1, "gaia_value_index"}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"fields_", data_type_t::e_references, 1, "gaia_table"}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"references_", data_type_t::e_references, 1, "gaia_table"}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"value_fields", data_type_t::e_references, 1, "gaia_value_index"}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"fields", data_type_t::e_references, 1, "gaia_table"}));
+        // Use "refs" rather than "references" to avoid collision with "references" keyword.
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"refs", data_type_t::e_references, 1, "gaia_table"}));
         catalog_manager_t::get().create_table("gaia_field", fields);
     }
 
@@ -118,7 +121,7 @@ void load_bootstrap_catalog() {
         field_def_list_t fields;
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::e_string, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"ruleset_id", data_type_t::e_uint64, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"rules_", data_type_t::e_references, 1, "gaia_ruleset"}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"rules", data_type_t::e_references, 1, "gaia_ruleset"}));
         catalog_manager_t::get().create_table("gaia_rule", fields);
     }
 }
@@ -149,10 +152,10 @@ void generate_headers(string db_name) {
 
 // Temporary start server (taken and modified from db_test_helpers)
 // Use case is always to call start() followed by stop().
-class db_server_t 
+class db_server_t
 {
 public:
-    void start(const char* db_server_path) 
+    void start(const char* db_server_path)
     {
         set_path(db_server_path);
         stop();
@@ -164,10 +167,10 @@ public:
 
         // Wait for server to initialize.
         cerr << "Waiting for server to initialize..." << endl;
-        sleep(1);
+        ::sleep(1);
     }
 
-    void stop() 
+    void stop()
     {
         // Try to kill the SE server process.
         // REVIEW: we should be using a proper process library for this, so we can kill by PID.
@@ -182,7 +185,7 @@ private:
     {
         if (!db_server_path)
         {
-            m_server_path = SE_SERVER_NAME;
+            m_server_path = gaia::db::SE_SERVER_NAME;
         }
         else
         {
@@ -191,11 +194,10 @@ private:
             {
                 m_server_path.append("/");
             }
-            m_server_path.append(SE_SERVER_NAME);
+            m_server_path.append(gaia::db::SE_SERVER_NAME);
         }
     }
 
-    const char* SE_SERVER_NAME = "gaia_semock_server";
     string m_server_path;
 };
 

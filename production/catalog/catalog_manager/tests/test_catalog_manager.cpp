@@ -13,29 +13,13 @@
 #include "gaia_catalog.hpp"
 #include "gaia_catalog.h"
 #include "fbs_generator.hpp"
-#include "db_test_helpers.hpp"
+#include "db_test_base.hpp"
 
 using namespace gaia::catalog;
 using namespace std;
 
-class catalog_manager_test : public ::testing::Test {
+class catalog_manager_test : public db_test_base_t {
   protected:
-    void SetUp() override {
-        gaia::db::begin_session();
-    }
-
-    void TearDown() override {
-        gaia::db::end_session();
-    }
-
-    static void SetUpTestSuite() {
-        gaia::db::start_server();
-    }
-
-    static void TearDownTestSuite() {
-        gaia::db::stop_server();
-    }
-
     static set<gaia_id_t> table_ids;
 
     gaia_id_t create_test_table(const string &name,

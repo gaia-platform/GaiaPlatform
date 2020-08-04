@@ -54,11 +54,11 @@ target_link_libraries(gaia_catalog PRIVATE gaia_direct flatbuffers)
 add_gtest(test_catalog_manager
   "tests/test_catalog_manager.cpp"
   "${GAIA_CATALOG_LIB_PUBLIC_INCLUDES};${GAIA_CATALOG_LIB_PRIVATE_INCLUDES}"
-  "rt;gaia;gaia_catalog"
+  "rt;gaia;gaia_catalog;flatbuffers"
   gaia_catalog)
 
 add_gtest(test_fbs_generation
   "tests/test_fbs_generation.cpp"
   "${GAIA_CATALOG_LIB_PUBLIC_INCLUDES};${GAIA_CATALOG_LIB_PRIVATE_INCLUDES}"
-  "rt;gaia;gaia_catalog"
+  "rt;gaia;gaia_catalog;flatbuffers"
   gaia_catalog)

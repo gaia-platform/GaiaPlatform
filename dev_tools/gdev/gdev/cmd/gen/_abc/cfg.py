@@ -81,10 +81,10 @@ class GenAbcCfg(Dependency, ABC):
     @staticmethod
     @memoize
     async def _get_raw_text(path: Path) -> str:
-        if path.is_file():
-            text = path.read_text()
-        else:
-            text = ''
+        if not path.is_file():
+            raise Dependency.Abort(f'File "<repo_root>/{path.context()}" must exist.')
+
+        text = path.read_text()
 
         return text
 

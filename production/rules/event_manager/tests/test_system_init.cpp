@@ -6,7 +6,7 @@
 // Do not include event_manager.hpp to ensure that
 // we don't have a dependency on the internal implementation.
 
-#include "db_test_helpers.hpp"
+#include "db_test_base.hpp"
 #include "gaia_system.hpp"
 #include "gtest/gtest.h"
 #include "rules.hpp"
@@ -22,14 +22,9 @@ extern "C" void initialize_rules()
 {
 }
 
-class system_init_test : public ::testing::Test {
+class system_init_test : public db_test_base_t {
 protected:
-    static void SetUpTestSuite() {
-        start_server();
-    }
-
-    static void TearDownTestSuite() {
-        stop_server();
+    system_init_test() : db_test_base_t(true) {
     }
 };
 
@@ -80,4 +75,6 @@ TEST_F(system_init_test, system_initialized)
     EXPECT_EQ(true, unsubscribe_rule(row_context_t::s_gaia_type, event_type_t::row_update, fields, binding));
     unsubscribe_rules();
     list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subscriptions);
+
+    end_session();
 }

@@ -88,6 +88,7 @@ class se_base {
     static data* s_data;
     thread_local static log* s_log;
     thread_local static int s_session_socket;
+    thread_local static gaia_xid_t s_transaction_id;
 
    public:
     // The real implementation will need

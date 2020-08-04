@@ -8,29 +8,13 @@
 #include "gtest/gtest.h"
 #include "gaia_catalog.hpp"
 #include "gaia_parser.hpp"
-#include "db_test_helpers.hpp"
+#include "db_test_base.hpp"
 
 using namespace gaia::catalog;
 using namespace gaia::db;
 using namespace std;
 
-class gaia_generate_test : public ::testing::Test {
-protected:
-    static void SetUpTestSuite() {
-        start_server();
-    }
-
-    static void TearDownTestSuite() {
-        stop_server();
-    }
-
-    void SetUp() override {
-        gaia::db::begin_session();
-    }
-
-    void TearDown() override {
-        gaia::db::end_session();
-    }
+class gaia_generate_test : public db_test_base_t {
 };
 
 // Copied from gaiac main.cpp

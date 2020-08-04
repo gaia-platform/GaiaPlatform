@@ -55,35 +55,48 @@ class GenAbcBuild(Dependency, ABC):
     async def execute_and_get_line(self, command: str, *, err_ok=False) -> str:
         return await self._execute(command=command, err_ok=err_ok, fn=Host.execute_and_get_line)
 
-    @staticmethod
-    @memoize
-    async def _get_git_hash() -> str:
-        return await Host.execute_and_get_line('git rev-parse HEAD')
-
     @memoize
     async def get_git_hash(self) -> str:
-        git_hash = f'{"tainted" if self.options.tainted else await self._get_git_hash()}'
+        git_hash = await Host.execute_and_get_line('git rev-parse HEAD')
 
         self.log.debug(f'{git_hash = }')
 
         return git_hash
 
     @memoize
-    async def get_sha(self) -> str:
+    async def get_image_git_hash(self) -> str:
+        if (line := await Host.execute_and_get_line(
+                f'docker image inspect'
+                ' --format="{{.Config.Labels.GitHash}}"'
+                f' {await self.get_tag()}'
+        )) == '"<no value>"':
+            image_git_hash = ''
+        else:
+            image_git_hash = line.strip('"')
+
+        self.log.debug(f'{image_git_hash = }')
+
+        return image_git_hash
+
+    @memoize
+    async def get_image_sha(self) -> str:
         if lines := await Host.execute_and_get_lines(
             f'docker image ls -q --no-trunc {await self.get_tag()}'
         ):
-            sha = next(iter(lines))
+            image_sha = next(iter(lines))
         else:
-            sha = ''
+            image_sha = ''
 
-        self.log.debug(f'{sha = }')
+        self.log.debug(f'{image_sha = }')
 
-        return sha
+        return image_sha
 
     @memoize
     async def get_tag(self) -> str:
-        name = f'{await self.dockerfile.get_name()}:{await self.get_git_hash()}'
+        name = (
+            f'{await self.dockerfile.get_name()}'
+            f':{await self.get_git_hash() if self.options.upload else "latest"}'
+        )
 
         self.log.debug(f'{name = }')
 
@@ -116,17 +129,11 @@ class GenAbcBuild(Dependency, ABC):
 
     @memoize
     async def main(self) -> None:
-
-        if tainted := self.options.tainted or (not await self.get_sha()):
-            if (uncommitted := await self.get_uncommitted()) and (not tainted):
-                raise Exception(
-                    f'Cannot build an untainted build with uncommitted files. It is recommended'
-                    f' that you `git stash` your changes and build an untainted build.'
-                    f' You may also use gdev\'s `--tainted` flag to build a tainted build. Note'
-                    f' that every use of the `--tainted` flag causes re-verification of the docker'
-                    f' build cache, which can take a few extra seconds.\n{uncommitted = }'
-                )
-
+        if (
+                self.options.force
+                or (not await self.get_image_sha())
+                or (await self.get_git_hash() != await self.get_image_git_hash())
+        ):
             await self.dockerfile.run()
 
             # TODO query remotely for cached build sources.
@@ -135,6 +142,8 @@ class GenAbcBuild(Dependency, ABC):
                 f'docker build'
                 f' -f {self.dockerfile.path}'
                 f' -t {await self.get_tag()}'
+
+                f' --label GitHash={await self.get_git_hash()}'
 
                 # Keep metadata about layers so that they can be used as a cache source.
                 f'{" --build-arg BUILDKIT_INLINE_CACHE=1" if self.options.upload else ""}'
@@ -146,3 +155,4 @@ class GenAbcBuild(Dependency, ABC):
 
                 f' {Path.repo()}'
             )
+            await Host.execute(f'docker image prune -f')
