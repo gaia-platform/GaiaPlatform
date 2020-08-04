@@ -10,7 +10,6 @@
 
 using namespace std;
 using namespace gaia::db;
-using namespace gaia::fdw;
 
 // Magic block for extension library.
 extern "C" {
@@ -100,7 +99,7 @@ extern "C" Datum gaia_fdw_validator(PG_FUNCTION_ARGS) {
         PG_RETURN_VOID();
     }
 
-    Oid catalog = PG_GETARG_OID(1);
+    Oid catalog_id = PG_GETARG_OID(1);
     ListCell *cell;
     foreach (cell, options_list) {
         DefElem *def = (DefElem *)lfirst(cell);
@@ -108,18 +107,11 @@ extern "C" Datum gaia_fdw_validator(PG_FUNCTION_ARGS) {
         char *opt_val = defGetString(def);
         elog(DEBUG1, "Option name: %s, option value: %s.", opt_name, opt_val);
 
-        if (!is_valid_option(opt_name, opt_val, catalog)) {
+        if (!gaia::fdw::is_valid_option(opt_name, opt_val, catalog_id)) {
             // Unknown option specified, complain about it. Provide a hint
             // with list of valid options for the object.
-            const gaia_fdw_option_t *opt;
             StringInfoData buf;
-            initStringInfo(&buf);
-
-            for (opt = valid_options; opt->name; opt++) {
-                if (catalog == opt->context) {
-                    appendStringInfo(&buf, "%s%s", (buf.len > 0) ? ", " : "", opt->name);
-                }
-            }
+            gaia::fdw::append_context_option_names(catalog_id, buf);
 
             ereport(
                 ERROR,
@@ -268,7 +260,7 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState *node, int eflags) {
     TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
     TupleDesc tupleDesc = slot->tts_tupleDescriptor;
 
-    gaia_fdw_scan_state_t *scan_state = gaia_fdw_adapter_t::get_state<gaia_fdw_scan_state_t>(
+    gaia::fdw::scan_state_t *scan_state = gaia::fdw::adapter_t::get_state<gaia::fdw::scan_state_t>(
         table_name, (size_t)tupleDesc->natts);
     if (scan_state == nullptr) {
         elog(ERROR, "Unknown table name '%s'.", table_name);
@@ -286,7 +278,7 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState *node, int eflags) {
     node->fdw_state = scan_state;
 
     // Begin read transaction.
-    gaia_fdw_adapter_t::begin_transaction();
+    gaia::fdw::adapter_t::begin_transaction();
 
     // Retrieve the first node of the requested type
     // (this can't currently throw).
@@ -319,7 +311,7 @@ extern "C" TupleTableSlot *gaia_iterate_foreign_scan(ForeignScanState *node) {
     // (just as you would need to do in the case of a data type mismatch).
     // elog(DEBUG1, "Entering function %s...", __func__);
 
-    gaia_fdw_scan_state_t *scan_state = (gaia_fdw_scan_state_t *)node->fdw_state;
+    gaia::fdw::scan_state_t *scan_state = (gaia::fdw::scan_state_t *)node->fdw_state;
 
     // Return NULL if we reach the end of iteration.
     if (scan_state->has_scan_ended()) {
@@ -365,13 +357,13 @@ extern "C" void gaia_end_foreign_scan(ForeignScanState *node) {
     // remote servers should be cleaned up.
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    gaia_fdw_scan_state_t *scan_state = (gaia_fdw_scan_state_t *)node->fdw_state;
+    gaia::fdw::scan_state_t *scan_state = (gaia::fdw::scan_state_t *)node->fdw_state;
 
     // We should have reached the end of iteration.
     assert(scan_state->has_scan_ended());
 
     // Commit read transaction.
-    gaia_fdw_adapter_t::commit_transaction();
+    gaia::fdw::adapter_t::commit_transaction();
 }
 
 extern "C" void gaia_add_foreign_update_targets(
@@ -417,7 +409,7 @@ extern "C" void gaia_add_foreign_update_targets(
         char *attr_name = NameStr(attr->attname);
 
         // If primary key, add a resjunk for this column.
-        if (strcmp(c_gaia_id, attr_name) == 0) {
+        if (strcmp(gaia::fdw::c_gaia_id, attr_name) == 0) {
             key_found = true;
 
             // Make a Var representing the desired value.
@@ -495,7 +487,7 @@ extern "C" List *gaia_plan_foreign_modify(
             }
 
             char *attr_name = NameStr(TupleDescAttr(tupleDesc, attno - 1)->attname);
-            if (strcmp(attr_name, c_gaia_id) == 0) {
+            if (strcmp(attr_name, gaia::fdw::c_gaia_id) == 0) {
                 ereport(ERROR,
                     (errcode(ERRCODE_FDW_INVALID_COLUMN_NAME),
                     errmsg("Cannot insert into or update system column gaia_id.")));
@@ -544,7 +536,7 @@ extern "C" void gaia_begin_foreign_modify(
     char *table_name = get_rel_name(rte->relid);
     TupleDesc tupleDesc = rinfo->ri_RelationDesc->rd_att;
 
-    gaia_fdw_modify_state_t *modify_state = gaia_fdw_adapter_t::get_state<gaia_fdw_modify_state_t>(
+    gaia::fdw::modify_state_t *modify_state = gaia::fdw::adapter_t::get_state<gaia::fdw::modify_state_t>(
         table_name, (size_t)tupleDesc->natts);
     if (modify_state == nullptr) {
         elog(ERROR, "Unknown table name '%s'.", table_name);
@@ -561,7 +553,7 @@ extern "C" void gaia_begin_foreign_modify(
 
     rinfo->ri_FdwState = modify_state;
 
-    gaia_fdw_adapter_t::begin_transaction();
+    gaia::fdw::adapter_t::begin_transaction();
 }
 
 extern "C" TupleTableSlot *gaia_exec_foreign_insert(
@@ -594,7 +586,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_insert(
     // into the foreign table will fail with an error message.
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    gaia_fdw_modify_state_t *modify_state = (gaia_fdw_modify_state_t *)rinfo->ri_FdwState;
+    gaia::fdw::modify_state_t *modify_state = (gaia::fdw::modify_state_t *)rinfo->ri_FdwState;
 
     modify_state->initialize_modify();
 
@@ -620,7 +612,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_insert(
         if (modify_state->is_gaia_id_field_index((size_t)attr_idx)) {
             assert(slot->tts_isnull[attr_idx]);
 
-            gaia_id = gaia_fdw_adapter_t::get_new_gaia_id();
+            gaia_id = gaia::fdw::adapter_t::get_new_gaia_id();
             attr_val = UInt64GetDatum(gaia_id);
 
             slot->tts_isnull[attr_idx] = false;
@@ -671,7 +663,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_update(
     // foreign table will fail with an error message.
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    gaia_fdw_modify_state_t *modify_state = (gaia_fdw_modify_state_t *)rinfo->ri_FdwState;
+    gaia::fdw::modify_state_t *modify_state = (gaia::fdw::modify_state_t *)rinfo->ri_FdwState;
 
     modify_state->initialize_modify();
 
@@ -736,7 +728,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_delete(
 
     TupleTableSlot *return_slot = slot;
 
-    gaia_fdw_modify_state_t *modify_state = (gaia_fdw_modify_state_t *)rinfo->ri_FdwState;
+    gaia::fdw::modify_state_t *modify_state = (gaia::fdw::modify_state_t *)rinfo->ri_FdwState;
 
     // Relation rel = rinfo->ri_RelationDesc;
     // Oid foreignTableId = RelationGetRelid(rel);
@@ -749,7 +741,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_delete(
     Form_pg_attribute attr = TupleDescAttr(tupleDesc, 0);
     AttrNumber attnum = attr->attnum;
     char *attr_name = NameStr(attr->attname);
-    assert(strcmp(c_gaia_id, attr_name) == 0);
+    assert(strcmp(gaia::fdw::c_gaia_id, attr_name) == 0);
 
     bool is_null;
     Datum pk_val = slot_getattr(plan_slot, attnum, &is_null);
@@ -773,12 +765,12 @@ extern "C" void gaia_end_foreign_modify(EState *estate, ResultRelInfo *rinfo) {
     // during executor shutdown.
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    gaia_fdw_modify_state_t *modify_state = (gaia_fdw_modify_state_t *)rinfo->ri_FdwState;
+    gaia::fdw::modify_state_t *modify_state = (gaia::fdw::modify_state_t *)rinfo->ri_FdwState;
 
     modify_state->finalize_modify();
 
     // For DELETE, this seems to always be called before EndForeignScan.
-    gaia_fdw_adapter_t::commit_transaction();
+    gaia::fdw::adapter_t::commit_transaction();
 }
 
 extern "C" void gaia_begin_foreign_insert(ModifyTableState *mtstate,
@@ -1059,7 +1051,7 @@ extern "C" List *gaia_import_foreign_schema(
     ForeignServer *server = GetForeignServer(server_oid);
     const char *server_name = server->servername;
 
-    return gaia_fdw_adapter_t::get_ddl_command_list(server_name);
+    return gaia::fdw::adapter_t::get_ddl_command_list(server_name);
 }
 
 // Perform all module-level initialization here.

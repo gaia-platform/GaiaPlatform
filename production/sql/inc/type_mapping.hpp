@@ -37,19 +37,6 @@ typedef void (*builder_initializer_fn)(flatbuffers_builder_t* builder);
 // Function pointer type that finalizes a flatbuffer builder for a type.
 typedef void (*builder_finalizer_fn)(flatbuffers_builder_t* builder);
 
-typedef void (*option_handler_fn)(const char* name, const char* value, Oid context);
-
-// Describes the valid options for objects that use this wrapper.
-struct gaia_fdw_option_t
-{
-    const char* name;
-
-    // Oid of catalog in which option may appear.
-    Oid context;
-
-    option_handler_fn handler;
-};
-
 // Mapping of attribute names to accessor methods.
 struct attribute_t
 {
@@ -76,15 +63,7 @@ struct relation_attribute_mapping_t
     size_t attribute_count;
 };
 
-// Valid options for gaia_fdw.
-extern const gaia_fdw_option_t valid_options[];
-
 // flatbuffers type helpers.
 // We need to use this instead of CStringGetTextDatum because it translates null
 // pointers into zero-length strings.
 Datum flatbuffers_string_to_text_datum(flatbuffers_string_t str);
-
-// Check if the provided option is one of the valid options.
-// context is the Oid of the catalog holding the object the option is for.
-// If handler is registered for this option, invoke it.
-bool is_valid_option(const char* option, const char* value, Oid context);

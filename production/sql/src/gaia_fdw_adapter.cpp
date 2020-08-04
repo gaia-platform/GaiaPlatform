@@ -15,15 +15,52 @@ using namespace gaia::fdw;
 
 const int c_invalid_index = -1;
 
-int gaia_fdw_adapter_t::s_transaction_reference_count = 0;
+// Valid options for gaia_fdw.
+const option_t valid_options[] =
+{
+    // Sentinel.
+    { NULL, InvalidOid, NULL }
+};
 
-bool gaia_fdw_adapter_t::is_transaction_open()
+int adapter_t::s_transaction_reference_count = 0;
+
+bool is_valid_option(const char* option_name, const char* value, Oid context_id)
+{
+    for (const option_t* option = valid_options; option->name; option++)
+    {
+        if (option->context_id == context_id && strcmp(option->name, option_name) == 0)
+        {
+            // Invoke option handler callback.
+            option->handler(option_name, value, context_id);
+            return true;
+        }
+    }
+    return false;
+}
+
+void append_context_option_names(Oid context_id, StringInfoData& string_info)
+{
+    initStringInfo(&string_info);
+    for (const option_t* option = valid_options; option->name; option++)
+    {
+        if (context_id == option->context_id)
+        {
+            appendStringInfo(
+                &string_info,
+                "%s%s",
+                (string_info.len > 0) ? ", " : "",
+                option->name);
+        }
+    }
+}
+
+bool adapter_t::is_transaction_open()
 {
     assert(s_transaction_reference_count >= 0);
     return s_transaction_reference_count > 0;
 }
 
-bool gaia_fdw_adapter_t::begin_transaction()
+bool adapter_t::begin_transaction()
 {
     elog(DEBUG1, "Opening COW-SE transaction...");
 
@@ -42,7 +79,7 @@ bool gaia_fdw_adapter_t::begin_transaction()
     return opened_transaction;
 }
 
-bool gaia_fdw_adapter_t::commit_transaction()
+bool adapter_t::commit_transaction()
 {
     elog(DEBUG1, "Closing COW-SE transaction...");
 
@@ -65,7 +102,7 @@ bool gaia_fdw_adapter_t::commit_transaction()
 // NB: because this is a 64-bit value, we will expect collisions
 // as the number of generated keys approaches 2^32! This is just
 // a temporary hack until the gaia_id type becomes a 128-bit GUID.
-uint64_t gaia_fdw_adapter_t::get_new_gaia_id()
+uint64_t adapter_t::get_new_gaia_id()
 {
     ifstream urandom("/dev/urandom", ios::in | ios::binary);
     if (!urandom)
@@ -90,7 +127,7 @@ uint64_t gaia_fdw_adapter_t::get_new_gaia_id()
     return random_value;
 }
 
-List* gaia_fdw_adapter_t::get_ddl_command_list(const char* server_name)
+List* adapter_t::get_ddl_command_list(const char* server_name)
 {
     List* commands = NIL;
 
@@ -126,7 +163,7 @@ List* gaia_fdw_adapter_t::get_ddl_command_list(const char* server_name)
 }
 
 template <class S>
-S* gaia_fdw_adapter_t::get_state(
+S* adapter_t::get_state(
     const char* table_name, size_t count_accessors)
 {
     S* state = (S*)palloc0(sizeof(S));
@@ -134,7 +171,7 @@ S* gaia_fdw_adapter_t::get_state(
     return state->initialize(table_name, count_accessors) ? state : nullptr;
 }
 
-bool gaia_fdw_state_t::initialize(const char* table_name, size_t count_accessors)
+bool state_t::initialize(const char* table_name, size_t count_accessors)
 {
     if (strcmp(table_name, "airports") == 0)
     {
@@ -162,9 +199,9 @@ bool gaia_fdw_state_t::initialize(const char* table_name, size_t count_accessors
     return true;
 }
 
-bool gaia_fdw_scan_state_t::initialize(const char* table_name, size_t count_accessors)
+bool scan_state_t::initialize(const char* table_name, size_t count_accessors)
 {
-    if (!gaia_fdw_state_t::initialize(table_name, count_accessors))
+    if (!state_t::initialize(table_name, count_accessors))
     {
         return false;
     }
@@ -179,7 +216,7 @@ bool gaia_fdw_scan_state_t::initialize(const char* table_name, size_t count_acce
     return true;
 }
 
-bool gaia_fdw_scan_state_t::set_accessor_index(const char* accessor_name, size_t accessor_index)
+bool scan_state_t::set_accessor_index(const char* accessor_name, size_t accessor_index)
 {
     if (accessor_index >= m_mapping->attribute_count)
     {
@@ -200,19 +237,19 @@ bool gaia_fdw_scan_state_t::set_accessor_index(const char* accessor_name, size_t
     return found_accessor;
 }
 
-bool gaia_fdw_scan_state_t::initialize_scan()
+bool scan_state_t::initialize_scan()
 {
     m_current_node = gaia_ptr::find_first(m_mapping->gaia_type_id);
 
     return true;
 }
 
-bool gaia_fdw_scan_state_t::has_scan_ended()
+bool scan_state_t::has_scan_ended()
 {
     return !m_current_node;
 }
 
-void gaia_fdw_scan_state_t::deserialize_record()
+void scan_state_t::deserialize_record()
 {
     assert(!has_scan_ended());
 
@@ -221,7 +258,7 @@ void gaia_fdw_scan_state_t::deserialize_record()
     m_current_object_root = m_deserializer(data);
 }
 
-Datum gaia_fdw_scan_state_t::extract_field_value(size_t field_index)
+Datum scan_state_t::extract_field_value(size_t field_index)
 {
     assert(field_index < m_mapping->attribute_count);
 
@@ -237,7 +274,7 @@ Datum gaia_fdw_scan_state_t::extract_field_value(size_t field_index)
     return field_value;
 }
 
-bool gaia_fdw_scan_state_t::scan_forward()
+bool scan_state_t::scan_forward()
 {
     assert(!has_scan_ended());
 
@@ -248,9 +285,9 @@ bool gaia_fdw_scan_state_t::scan_forward()
     return has_scan_ended();
 }
 
-bool gaia_fdw_modify_state_t::initialize(const char* table_name, size_t count_accessors)
+bool modify_state_t::initialize(const char* table_name, size_t count_accessors)
 {
-    if (!gaia_fdw_state_t::initialize(table_name, count_accessors))
+    if (!state_t::initialize(table_name, count_accessors))
     {
         return false;
     }
@@ -271,7 +308,7 @@ bool gaia_fdw_modify_state_t::initialize(const char* table_name, size_t count_ac
     return true;
 }
 
-bool gaia_fdw_modify_state_t::set_builder_index(const char* builder_name, size_t builder_index)
+bool modify_state_t::set_builder_index(const char* builder_name, size_t builder_index)
 {
     if (builder_index >= m_mapping->attribute_count)
     {
@@ -305,24 +342,24 @@ bool gaia_fdw_modify_state_t::set_builder_index(const char* builder_name, size_t
     return found_builder;
 }
 
-void gaia_fdw_modify_state_t::initialize_modify()
+void modify_state_t::initialize_modify()
 {
     m_initializer(&m_builder);
     m_has_initialized_builder = true;
 }
 
-bool gaia_fdw_modify_state_t::is_gaia_id_field_index(size_t field_index)
+bool modify_state_t::is_gaia_id_field_index(size_t field_index)
 {
     return field_index == (size_t)m_pk_attr_idx;
 }
 
-void gaia_fdw_modify_state_t::set_field_value(size_t field_index, const Datum& field_value)
+void modify_state_t::set_field_value(size_t field_index, const Datum& field_value)
 {
     attribute_builder_fn accessor = m_indexed_builders[field_index];
     accessor(&m_builder, field_value);
 }
 
-bool gaia_fdw_modify_state_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
+bool modify_state_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
 {
     m_finalizer(&m_builder);
 
@@ -376,17 +413,17 @@ bool gaia_fdw_modify_state_t::edit_record(uint64_t gaia_id, edit_state_t edit_st
     return result;
 }
 
-bool gaia_fdw_modify_state_t::insert_record(uint64_t gaia_id)
+bool modify_state_t::insert_record(uint64_t gaia_id)
 {
     return edit_record(gaia_id, edit_state_t::create);
 }
 
-bool gaia_fdw_modify_state_t::update_record(uint64_t gaia_id)
+bool modify_state_t::update_record(uint64_t gaia_id)
 {
     return edit_record(gaia_id, edit_state_t::update);
 }
 
-bool gaia_fdw_modify_state_t::delete_record(uint64_t gaia_id)
+bool modify_state_t::delete_record(uint64_t gaia_id)
 {
     try
     {
@@ -413,7 +450,7 @@ bool gaia_fdw_modify_state_t::delete_record(uint64_t gaia_id)
     return false;
 }
 
-void gaia_fdw_modify_state_t::finalize_modify()
+void modify_state_t::finalize_modify()
 {
     if (m_has_initialized_builder)
     {

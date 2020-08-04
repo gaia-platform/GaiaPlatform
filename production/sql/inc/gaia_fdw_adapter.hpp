@@ -12,6 +12,7 @@ extern "C" {
 
 #include "postgres.h"
 
+#include "catalog/pg_type.h"
 #include "nodes/pg_list.h"
 
 } // extern "C"
@@ -27,6 +28,26 @@ namespace fdw
 
 const char* const c_gaia_id = "gaia_id";
 
+typedef void (*option_handler_fn)(const char* option_name, const char* option_value, Oid context_id);
+
+// Describes the valid options for objects that use this wrapper.
+struct option_t
+{
+    const char* name;
+
+    // Oid of catalog in which option may appear.
+    Oid context_id;
+
+    option_handler_fn handler;
+};
+
+// Check if the provided option is one of the valid options.
+// context_id is the Oid of the catalog holding the object the option is for.
+// If handler is registered for this option, invoke it.
+bool is_valid_option(const char* option_name, const char* option_value, Oid context_id);
+
+void append_context_option_names(Oid context_id, StringInfoData& string_data);
+
 enum class edit_state_t: int8_t
 {
     none = 0,
@@ -35,20 +56,20 @@ enum class edit_state_t: int8_t
     update = 2,
 };
 
-class gaia_fdw_scan_state_t;
-class gaia_fdw_modify_state_t;
-class gaia_fdw_adapter_t
+class scan_state_t;
+class modify_state_t;
+class adapter_t
 {
     // For providing access to get_mapping internal helper.
-    friend class gaia_fdw_scan_state_t;
-    friend class gaia_fdw_modify_state_t;
+    friend class scan_state_t;
+    friend class modify_state_t;
 
 protected:
 
-    // gaia_fdw_adapter_t is just a container for static methods,
+    // adapter_t is just a container for static methods,
     // so its constructor is protected
     // to prevent the creation of any instances.
-    gaia_fdw_adapter_t() = default;
+    adapter_t() = default;
 
 public:
 
@@ -77,14 +98,14 @@ protected:
     static int s_transaction_reference_count;
 };
 
-class gaia_fdw_state_t
+class state_t
 {
 protected:
 
-    // gaia_fdw_state_t is just a base class,
+    // state_t is just a base class,
     // so its constructor is protected
     // to prevent the creation of any instances.
-    gaia_fdw_state_t() = default;
+    state_t() = default;
 
     bool initialize(const char* table_name, size_t count_accessors);
 
@@ -97,19 +118,19 @@ protected:
 // The scan state is set up in gaia_begin_foreign_scan,
 // is stashed away in node->fdw_private,
 // and is fetched in gaia_iterate_foreign_scan.
-class gaia_fdw_scan_state_t : public gaia_fdw_state_t
+class scan_state_t : public state_t
 {
-    friend class gaia_fdw_adapter_t;
+    friend class adapter_t;
 
 protected:
 
     // Do not allow copies to be made;
     // disable copy constructor and assignment operator.
-    gaia_fdw_scan_state_t(const gaia_fdw_scan_state_t&) = delete;
-    gaia_fdw_scan_state_t& operator=(const gaia_fdw_scan_state_t&) = delete;
+    scan_state_t(const scan_state_t&) = delete;
+    scan_state_t& operator=(const scan_state_t&) = delete;
 
-    // Only gaia_fdw_adapter_t can create instances of gaia_fdw_scan_state_t.
-    gaia_fdw_scan_state_t() = default;
+    // Only adapter_t can create instances of scan_state_t.
+    scan_state_t() = default;
 
     bool initialize(const char* table_name, size_t count_accessors);
     void deserialize_record();
@@ -142,19 +163,19 @@ protected:
 // It is set up in gaiaBeginForeignModify, stashed in rinfo->ri_FdwState,
 // and is subsequently used in gaiaExecForeignInsert, gaiaExecForeignUpdate,
 // gaiaExecForeignDelete, and gaiaEndForeignModify.
-class gaia_fdw_modify_state_t : public gaia_fdw_state_t
+class modify_state_t : public state_t
 {
-    friend class gaia_fdw_adapter_t;
+    friend class adapter_t;
 
 protected:
 
     // Do not allow copies to be made;
     // disable copy constructor and assignment operator.
-    gaia_fdw_modify_state_t(const gaia_fdw_modify_state_t&) = delete;
-    gaia_fdw_modify_state_t& operator=(const gaia_fdw_modify_state_t&) = delete;
+    modify_state_t(const modify_state_t&) = delete;
+    modify_state_t& operator=(const modify_state_t&) = delete;
 
-    // Only gaia_fdw_adapter_t can create instances of gaia_fdw_modify_state_t.
-    gaia_fdw_modify_state_t() = default;
+    // Only adapter_t can create instances of modify_state_t.
+    modify_state_t() = default;
 
     bool initialize(const char* table_name, size_t count_accessors);
 
