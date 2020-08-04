@@ -132,15 +132,15 @@ static string generate_constant_list(references_map& references_1, references_ma
             code.set_value("REF_TABLE", ref.name);
             code.set_value("REF_NAME", ref.ref_name);
             code.set_value("CONST_VALUE", to_string(const_count++));
-            code += "constexpr int c_first_{{REF_NAME}}{{REF_TABLE}} = {{CONST_VALUE}};";
+            code += "constexpr int c_first_{{REF_NAME}}_{{REF_TABLE}} = {{CONST_VALUE}};";
         }
         for (auto ref : references_n[table_id]) {
             code.set_value("REF_TABLE", ref.name);
             code.set_value("REF_NAME", ref.ref_name);
             code.set_value("CONST_VALUE", to_string(const_count++));
-            code += "constexpr int c_parent_{{REF_NAME}}{{REF_TABLE}} = {{CONST_VALUE}};";
+            code += "constexpr int c_parent_{{REF_NAME}}_{{REF_TABLE}} = {{CONST_VALUE}};";
             code.set_value("CONST_VALUE", to_string(const_count++));
-            code += "constexpr int c_next_{{REF_NAME}}{{TABLE_NAME}} = {{CONST_VALUE}};";
+            code += "constexpr int c_next_{{REF_NAME}}_{{TABLE_NAME}} = {{CONST_VALUE}};";
         }
         code.set_value("CONST_VALUE", to_string(const_count++));
         code += "constexpr int c_num_{{TABLE_NAME}}_ptrs = {{CONST_VALUE}};";
@@ -229,11 +229,17 @@ static string generate_edc_struct(int position, string table_name, field_vec& fi
 
     // The reference to the parent records.
     for (auto ref : references_n) {
+        if (ref.ref_name.length()) {
+            code.set_value("REF_NAME", ref.ref_name);
+        }
+        else {
+            // This relationship is anonymous.
+            code.set_value("REF_NAME", ref.name);
+        }
         code.set_value("REF_TABLE", ref.name);
-        code.set_value("REF_NAME", ref.ref_name);
-        code += "{{REF_TABLE}}_t {{REF_NAME}}{{REF_TABLE}}_owner() {";
+        code += "{{REF_TABLE}}_t {{REF_NAME}}() {";
         code.increment_indent_level();
-        code += "return {{REF_TABLE}}_t::get(this->references()[c_parent_{{REF_NAME}}{{REF_TABLE}}]);";
+        code += "return {{REF_TABLE}}_t::get(this->references()[c_parent_{{REF_NAME}}_{{REF_TABLE}}]);";
         code.decrement_indent_level();
         code += "}";
     }
@@ -248,14 +254,19 @@ static string generate_edc_struct(int position, string table_name, field_vec& fi
 
     // Iterator objects to scan rows pointed to by this one.
     for (auto ref : references_1) {
+        if (ref.ref_name.length()) {
+            code.set_value("REF_NAME", ref.ref_name);
+        }
+        else {
+            code.set_value("REF_NAME", ref.name);
+        }
         code.set_value("REF_TABLE", ref.name);
-        code.set_value("REF_NAME", ref.ref_name);
-        code += "reference_chain_container_t<{{TABLE_NAME}}_t,{{REF_TABLE}}_t,c_parent_{{REF_NAME}}{{TABLE_NAME}},"
-            "c_first_{{REF_NAME}}{{REF_TABLE}},c_next_{{REF_NAME}}{{REF_TABLE}}> m_{{REF_NAME}}{{REF_TABLE}}_list;";
-        code += "reference_chain_container_t<{{TABLE_NAME}}_t,{{REF_TABLE}}_t,c_parent_{{REF_NAME}}{{TABLE_NAME}},"
-            "c_first_{{REF_NAME}}{{REF_TABLE}},c_next_{{REF_NAME}}{{REF_TABLE}}>& {{REF_NAME}}{{REF_TABLE}}_list() {";
+        code += "reference_chain_container_t<{{TABLE_NAME}}_t,{{REF_TABLE}}_t,c_parent_{{REF_NAME}}_{{TABLE_NAME}},"
+            "c_first_{{REF_NAME}}_{{REF_TABLE}},c_next_{{REF_NAME}}_{{REF_TABLE}}> m_{{REF_NAME}}_list;";
+        code += "reference_chain_container_t<{{TABLE_NAME}}_t,{{REF_TABLE}}_t,c_parent_{{REF_NAME}}_{{TABLE_NAME}},"
+            "c_first_{{REF_NAME}}_{{REF_TABLE}},c_next_{{REF_NAME}}_{{REF_TABLE}}>& {{REF_NAME}}_list() {";
         code.increment_indent_level();
-        code += "return m_{{REF_NAME}}{{REF_TABLE}}_list;";
+        code += "return m_{{REF_NAME}}_list;";
         code.decrement_indent_level();
         code += "}";
     }
@@ -270,9 +281,13 @@ static string generate_edc_struct(int position, string table_name, field_vec& fi
     code += "{{TABLE_NAME}}_t(gaia_id_t id) : gaia_object_t(id, \"{{TABLE_NAME}}_t\") {";
     code.increment_indent_level();
     for (auto ref : references_1) {
-        code.set_value("REF_TABLE", ref.name);
-        code.set_value("REF_NAME", ref.ref_name);
-        code += "m_{{REF_NAME}}{{REF_TABLE}}_list.set_outer(gaia_id());";
+        if (ref.ref_name.length()) {
+            code.set_value("REF_NAME", ref.ref_name);
+        }
+        else {
+            code.set_value("REF_NAME", ref.name);
+        }
+        code += "m_{{REF_NAME}}_list.set_outer(gaia_id());";
     }
     code.decrement_indent_level();
     code += "}";

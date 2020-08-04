@@ -14,7 +14,7 @@ create table gaia_value_index (
   fields string,
   index_type uint8,
   unique bool,
-  values_ references gaia_table
+  values references gaia_table
 );
 
 create table gaia_field (
@@ -30,9 +30,9 @@ create table gaia_field (
   nullable bool,
   has_default bool,
   default_value string,
-  value_fields_ references gaia_value_index,
-  fields_ references gaia_table,
-  refs_ references gaia_table
+  value_fields references gaia_value_index,
+  fields references gaia_table,
+  refs references gaia_table
 );
 
 create table gaia_ruleset (
@@ -46,5 +46,5 @@ create table gaia_ruleset (
 create table gaia_rule (
   name string,
   ruleset_id uint64,
-  rules_ references gaia_ruleset
+  rules references gaia_ruleset
 );
