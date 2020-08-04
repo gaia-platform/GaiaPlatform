@@ -46,4 +46,4 @@ target_link_libraries(gaia PUBLIC gaia_direct gaia_rules gaia_catalog)
 set_target_properties(gaia PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia PROPERTY POSITION_INDEPENDENT_CODE ON)
-add_gtest(test_gaia_system "tests/test_gaia_system.cpp" "${GAIA_SYSTEM_PUBLIC_INCLUDES};${GAIA_SYSTEM_PRIVATE_INCLUDES}" "rt;gaia;gaia_common" "generated_code_")
+add_gtest(test_gaia_system "tests/test_gaia_system.cpp" "${GAIA_SYSTEM_PUBLIC_INCLUDES};${GAIA_SYSTEM_PRIVATE_INCLUDES}" "rt;gaia" "generated_code_")

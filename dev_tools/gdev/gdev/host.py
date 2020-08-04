@@ -1,11 +1,9 @@
-from asyncio.subprocess import (
-    create_subprocess_exec, create_subprocess_shell, PIPE, Process, STDOUT
-)
+from asyncio.subprocess import create_subprocess_exec, create_subprocess_shell, PIPE, Process
 from dataclasses import dataclass
 from logging import getLogger
 import os
 import sys
-from typing import Iterable, Optional, Sequence
+from typing import Optional, Sequence
 
 from gdev.third_party.atools import memoize
 
@@ -20,23 +18,19 @@ class Host:
         pass
 
     @staticmethod
-    async def _finish_process(
-            capture_output: bool, err_ok: bool, process: Process
-    ) -> Optional[Iterable[str]]:
-
-        await process.wait()
-
-        if (process.returncode != 0) and (not err_ok):
-            if process.stdout is not None:
-                print((await process.stdout.read()).decode())
-            if process.stderr is not None:
-                print((await process.stderr.read()).decode())
-            sys.exit(process.returncode)
-
-        if capture_output:
-            return tuple(((await process.communicate())[0]).decode().strip().splitlines())
+    async def _finish_process(err_ok: bool, process: Process) -> Sequence[str]:
+        stdout, stderr = await process.communicate()
+        if process.returncode == 0 or err_ok:
+            if stdout is None:
+                return tuple()
+            else:
+                return tuple(stdout.decode().strip().splitlines())
         else:
-            return None
+            if stdout is not None:
+                print(stdout.decode(), file=sys.stdout)
+            if stderr is not None:
+                print(stderr.decode(), file=sys.stderr)
+            sys.exit(process.returncode)
 
     @staticmethod
     @memoize
@@ -45,21 +39,17 @@ class Host:
         process = await create_subprocess_exec(
             *command.split(),
             stdout=PIPE if capture_output else None,
-            stderr=STDOUT if capture_output else None,
+            stderr=PIPE if capture_output else None,
             env=os.environ,
         )
-        return await Host._finish_process(
-            capture_output=capture_output,
-            err_ok=err_ok,
-            process=process,
-        )
+        return await Host._finish_process(err_ok=err_ok, process=process)
 
     @staticmethod
     async def execute(command: str, *, err_ok: bool = False) -> None:
         await Host._execute(capture_output=False, command=command, err_ok=err_ok)
 
     @staticmethod
-    async def execute_and_get_lines(command: str, *, err_ok: bool = False) -> Iterable[str]:
+    async def execute_and_get_lines(command: str, *, err_ok: bool = False) -> Sequence[str]:
         return await Host._execute(capture_output=True, command=command, err_ok=err_ok)
 
     @staticmethod
@@ -78,20 +68,18 @@ class Host:
         process = await create_subprocess_shell(
             command,
             stdout=PIPE if capture_output else None,
-            stderr=STDOUT if capture_output else None,
+            stderr=PIPE if capture_output else None,
             env=os.environ,
         )
 
-        return await Host._finish_process(
-            process=process, err_ok=err_ok, capture_output=capture_output
-        )
+        return await Host._finish_process(process=process, err_ok=err_ok)
 
     @staticmethod
-    async def execute_shell(command: str, *, err_ok: bool = False) -> Iterable[str]:
+    async def execute_shell(command: str, *, err_ok: bool = False) -> Sequence[str]:
         return await Host._execute_shell(capture_output=False, command=command, err_ok=err_ok)
 
     @staticmethod
-    async def execute_shell_and_get_lines(command: str, *, err_ok: bool = False) -> Iterable[str]:
+    async def execute_shell_and_get_lines(command: str, *, err_ok: bool = False) -> Sequence[str]:
         return await Host._execute_shell(capture_output=True, command=command, err_ok=err_ok)
 
     @staticmethod

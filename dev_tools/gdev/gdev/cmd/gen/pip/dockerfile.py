@@ -11,7 +11,7 @@ class GenPipDockerfile(GenAbcDockerfile):
 
     @memoize
     async def get_from_section(self) -> str:
-        from_section = f'FROM pip_base as {await self.get_name()}'
+        from_section = f'FROM pip_base AS {await self.get_name()}'
 
         self.log.debug(f'{from_section = }')
 

@@ -45,13 +45,13 @@ class server : private se_base {
     static offsets* s_shared_offsets;
     thread_local static session_state_t s_session_state;
     thread_local static bool s_session_shutdown;
-    thread_local static gaia_xid_t s_transaction_id;
 
     // inherited from se_base:
     // static int s_fd_offsets;
     // static data *s_data;
     // thread_local static log *s_log;
     // thread_local static int s_session_socket;
+    // thread_local static gaia_xid_t s_transaction_id;
 
     // function pointer type that executes side effects of a state transition
     typedef void (*transition_handler_t)(int* fds, size_t fd_count, session_event_t event, session_state_t old_state, session_state_t new_state);
@@ -97,7 +97,7 @@ class server : private se_base {
         {session_state_t::TXN_IN_PROGRESS, session_event_t::COMMIT_TXN, {session_state_t::TXN_COMMITTING, handle_commit_txn}},
         {session_state_t::TXN_COMMITTING, session_event_t::DECIDE_TXN_COMMIT, {session_state_t::CONNECTED, handle_decide_txn}},
         {session_state_t::TXN_COMMITTING, session_event_t::DECIDE_TXN_ABORT, {session_state_t::CONNECTED, handle_decide_txn}},
-        {session_state_t::CONNECTED, session_event_t::SERVER_SHUTDOWN, {session_state_t::DISCONNECTING, handle_server_shutdown}},
+        {session_state_t::ANY, session_event_t::SERVER_SHUTDOWN, {session_state_t::DISCONNECTED, handle_server_shutdown}},
     };
 
     static void apply_transition(session_event_t event, int* fds, size_t fd_count) {
@@ -109,7 +109,7 @@ class server : private se_base {
         for (size_t i = 0; i < array_size(s_valid_transitions); i++) {
             valid_transition_t t = s_valid_transitions[i];
             if (t.event == event && (t.state == s_session_state || t.state == session_state_t::ANY)) {
-                // It would be nice to statically enforce this on the Transition struct.
+                // It would be nice to statically enforce this on the transition_t type.
                 retail_assert(t.transition.new_state != session_state_t::ANY);
                 session_state_t old_state = s_session_state;
                 s_session_state = t.transition.new_state;
@@ -139,7 +139,36 @@ class server : private se_base {
         builder.Finish(message);
     }
 
+    static void clear_shared_memory() {
+        if (s_shared_offsets) {
+            unmap_fd(s_shared_offsets, sizeof(offsets));
+            s_shared_offsets = nullptr;
+        }
+        if (s_fd_offsets != -1) {
+            close(s_fd_offsets);
+            s_fd_offsets = -1;
+        }
+        if (s_data) {
+            unmap_fd(s_data, sizeof(data));
+            s_data = nullptr;
+        }
+        if (s_fd_data != -1) {
+            close(s_fd_data);
+            s_fd_data = -1;
+        }
+    }
+
+    // To avoid synchronization, we assume that this method is only called when
+    // no sessions exist and the server is not accepting any new connections.
     static void init_shared_memory() {
+        // The listening socket must not be open.
+        retail_assert(s_connect_socket == -1);
+        // We may be reinitializing the server upon receiving a SIGHUP.
+        clear_shared_memory();
+        // Clear all shared memory if an exception is thrown.
+        auto cleanup_memory = scope_guard::make_scope_guard([]() {
+            clear_shared_memory();
+        });
         retail_assert(s_fd_data == -1 && s_fd_offsets == -1);
         retail_assert(!s_data && !s_shared_offsets);
         s_fd_offsets = memfd_create(SCH_MEM_OFFSETS, MFD_ALLOW_SEALING);
@@ -157,6 +186,7 @@ class server : private se_base {
             PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_offsets, 0));
         s_data = static_cast<data*>(map_fd(sizeof(data),
             PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_data, 0));
+        cleanup_memory.dismiss();
     }
 
     static sigset_t mask_signals() {
@@ -178,6 +208,7 @@ class server : private se_base {
         // Wait until a signal is delivered.
         // REVIEW: do we have any use for sigwaitinfo()?
         sigwait(&sigset, &signum);
+        cerr << "Caught signal " << strsignal(signum) << endl;
         // Signal the eventfd by writing a nonzero value.
         // This value is large enough that no thread will
         // decrement it to zero, so every waiting thread
@@ -207,11 +238,12 @@ class server : private se_base {
         server_addr.sun_family = AF_UNIX;
         // The socket name (minus its null terminator) needs to fit into the space
         // in the server address structure after the prefix null byte.
-        retail_assert(sizeof(SERVER_CONNECT_SOCKET_NAME) - 1 <= sizeof(server_addr.sun_path) - 1);
+        // This should be static_assert(), but strlen() doesn't return a constexpr.
+        retail_assert(strlen(SE_SERVER_NAME) <= sizeof(server_addr.sun_path) - 1);
         // We prepend a null byte to the socket name so the address is in the
         // (Linux-exclusive) "abstract namespace", i.e., not bound to the
         // filesystem.
-        strncpy(&server_addr.sun_path[1], SERVER_CONNECT_SOCKET_NAME,
+        strncpy(&server_addr.sun_path[1], SE_SERVER_NAME,
             sizeof(server_addr.sun_path) - 1);
         // The socket name is not null-terminated in the address structure, but
         // we need to add an extra byte for the null byte prefix.
@@ -252,11 +284,14 @@ class server : private se_base {
 
     static void client_dispatch_handler() {
         int epoll_fd = get_client_dispatch_fd();
-        auto cleanup_epoll_fd = scope_guard::make_scope_guard([epoll_fd]() {
-            close(epoll_fd);
-        });
         std::vector<std::thread> session_threads;
-        auto cleanup_session_threads = scope_guard::make_scope_guard([&session_threads]() {
+        auto cleanup = scope_guard::make_scope_guard([epoll_fd, &session_threads]() {
+            // We must close the epoll fd before closing the socket it polls!
+            close(epoll_fd);
+            // We should close the listening socket first, so no new sessions
+            // can be established while we wait for all session threads to exit.
+            close(s_connect_socket);
+            s_connect_socket = -1;
             for (std::thread& t : session_threads) {
                 t.join();
             }
@@ -273,7 +308,6 @@ class server : private se_base {
                 // We never register for anything but EPOLLIN,
                 // but EPOLLERR will always be delivered.
                 if (ev.events & EPOLLERR) {
-                    // This flag is unmaskable, so we don't need to register for it.
                     if (ev.data.fd == s_connect_socket) {
                         int error = 0;
                         socklen_t err_len = sizeof(error);
@@ -383,16 +417,16 @@ class server : private se_base {
                         socklen_t err_len = sizeof(error);
                         // Ignore errors getting error message and default to generic error message.
                         getsockopt(s_session_socket, SOL_SOCKET, SO_ERROR, (void*)&error, &err_len);
-                        throw_system_error("client socket error", error);
+                        cerr << "client socket error: " << strerror(error) << endl;
+                        event = session_event_t::CLIENT_SHUTDOWN;
                     } else if (ev.events & EPOLLHUP) {
                         // This flag is unmaskable, so we don't need to register for it.
                         // Both ends of the socket have issued a shutdown(SHUT_WR) or equivalent.
                         retail_assert(!(ev.events & EPOLLERR));
                         event = session_event_t::CLIENT_SHUTDOWN;
                     } else if (ev.events & EPOLLRDHUP) {
-                        // We must have already received a DISCONNECT message at this point
-                        // and sent a reply followed by a FIN equivalent. The client must
-                        // have received our reply and sent a FIN as well.
+                        // The client has called shutdown(SHUT_WR) to signal their intention to
+                        // disconnect. We do the same by closing the session socket.
                         // REVIEW: Can we get both EPOLLHUP and EPOLLRDHUP when the client half-closes
                         // the socket after we half-close it?
                         retail_assert(!(ev.events & EPOLLHUP));
@@ -407,6 +441,9 @@ class server : private se_base {
                         // Read client message with possible file descriptors.
                         size_t bytes_read = recv_msg_with_fds(s_session_socket, fd_buf, &fd_buf_size, msg_buf, sizeof(msg_buf));
                         // We shouldn't get EOF unless EPOLLRDHUP is set.
+                        // REVIEW: it might be possible for the client to call shutdown(SHUT_WR)
+                        // after we have already woken up on EPOLLIN, in which case we would
+                        // legitimately read 0 bytes and this assert would be invalid.
                         retail_assert(bytes_read > 0);
                         const message_t* msg = Getmessage_t(msg_buf);
                         const client_request_t* request = msg->msg_as_request();
