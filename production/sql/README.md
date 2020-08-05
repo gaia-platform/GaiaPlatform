@@ -12,7 +12,7 @@ The plan is to transition from the static definitions of the airport demo to dyn
 To get there, the code will be rewritten in stages:
 
 * We first define a C++ adapter to isolate the FDW code from the Gaia database internals.
-  * During this stage, the adapted will continue to use the static airport code.
+  * During this stage, the adapter will continue to use the static airport code.
   * THIS IS THE CURRENT STAGE!!!
 * We will next transition from the static airport code to dynamic, catalog-based code, by reimplementing the adapter. This will further be broken into two stages:
   * Support for read operations (SELECT).
