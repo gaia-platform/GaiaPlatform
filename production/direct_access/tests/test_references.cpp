@@ -4,6 +4,7 @@
 /////////////////////////////////////////////
 
 #include <iostream>
+#include <fstream>
 #include "gtest/gtest.h"
 #include "gaia_addr_book.h"
 #include "db_test_base.hpp"
@@ -49,28 +50,6 @@ protected:
 // ==================================================
 TEST_F(gaia_references_test, connect) {
     begin_transaction();
-
-    // In simplified API this is not possible since
-    // you cannot get a non-inserted employee_t or address_t
-    // object.
-
-    // Connect two new rows.
-    //employee_writer ew = employee_t::create();
-    //address_writer aw = address_t::create();
-    //Employee_ptr e1 = employee_t::get(employee_t::insert_row(ew));
-    //Address_ptr a1 = address_t::get(address_t::insert_row(aw));
-    //EXPECT_THROW(e1->addresses_list().insert(a1), edc_unstored_row);
-
-    // In simplified API this is not possible since
-    // you cannot get a non-inserted employee_t or address_t
-    // object.
-
-    // Connect two non-inserted rows.
-    //employee_t* e2 = new employee_t();
-    //e2->set_name_first("Howard");
-    //address_t* a2 = new address_t();
-    //a2->set_city("Houston");
-    //EXPECT_THROW(e2->addresses_list().insert(a2), edc_unstored_row);
 
     // Connect two inserted rows.
     employee_writer ew;
@@ -262,10 +241,17 @@ void scan_manages(vector<string>& employee_vector, employee_t& e) {
     }
 }
 
-employee_t insert_employee(employee_writer& writer, const char * name_first)
+employee_t insert_employee(employee_writer& writer, const char* name_first)
 {
     writer.name_first = name_first;
     return employee_t::get(writer.insert_row());
+}
+
+address_t insert_address(address_writer& writer, const char* street, const char* city)
+{
+    writer.street = street;
+    writer.city = city;
+    return address_t::get(writer.insert_row());
 }
 
 TEST_F(gaia_references_test, recursive_scan) {
@@ -314,4 +300,90 @@ TEST_F(gaia_references_test, recursive_scan) {
     }
 
     commit_transaction();
+}
+
+TEST_F(gaia_references_test, connect_to_ids) {
+    auto_transaction_t tx;
+
+    /* Create some unconnected Employee and Address objects */
+    employee_writer employee_w;
+    employee_w.name_first = "Horace";
+    auto eid1 = employee_w.insert_row();
+
+    address_writer address_w;
+    address_w.street = "430 S. 41st St.";
+    address_w.city = "Boulder";
+    auto aid1 = address_w.insert_row();
+
+    address_w.street = "10618 129th Pl. N.E.";
+    address_w.city = "Kirkland";
+    auto aid2 = address_w.insert_row();
+
+    // Start a new transaction so that the objects are created fresh.
+    tx.commit();
+
+    // Generate the object from the ids.
+    auto e1 = employee_t::get(eid1);
+    auto a1 = address_t::get(aid1);
+    auto a2 = address_t::get(aid2);
+    e1.addresses_list().insert(a1);
+    e1.addresses_list().insert(a2);
+}
+
+TEST_F(gaia_references_test, connect_to_objects) {
+    begin_transaction();
+
+    /* Create some unconnected Employee and Address objects */
+    employee_writer employee_w;
+    auto e1 = insert_employee(employee_w, "Horace");
+
+    address_writer address_w;
+    auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
+    auto a2 = insert_address(address_w, "10618 129th Pl. N.E.", "Kirkland");
+
+    commit_transaction();
+
+    // In a subsequent transaction, connect the objects.
+    begin_transaction();
+
+    // Use the objects from the previous transaction.
+    e1.addresses_list().insert(a1);
+    e1.addresses_list().insert(a2);
+    auto addr = e1.addresses_list().begin();
+// ofstream f;
+// f.open("debug.txt");
+// f << "City " << (*addr).city() << endl;
+// f.close();
+    EXPECT_STREQ((*addr).city(), "Kirkland");
+    ++addr;
+    EXPECT_STREQ((*addr).city(), "Boulder");
+
+    commit_transaction();
+}
+
+TEST_F(gaia_references_test, writer_update) {
+    auto_transaction_t tx;
+
+    employee_writer employee_w;
+    auto e1 = insert_employee(employee_w, "Horace");
+
+    tx.commit();
+    employee_writer empl_w = e1.writer();
+    EXPECT_STREQ(empl_w.name_first.c_str(), "Horace");
+    empl_w.name_first = "Hubert";
+    EXPECT_STREQ(e1.name_first(), "Horace");
+    EXPECT_STREQ(empl_w.name_first.c_str(), "Hubert");
+    empl_w.update_row();
+    EXPECT_STREQ(empl_w.name_first.c_str(), "Hubert");
+    EXPECT_STREQ(e1.name_first(), "Hubert");
+
+    // tx.commit();
+    // employee_writer e_w(e1);
+    // EXPECT_STREQ(empl_w.name_first.c_str(), "Hubert");
+    // e_w.name_first = "Harvey";
+    // EXPECT_STREQ(e1.name_first(), "Hubert");
+    // EXPECT_STREQ(empl_w.name_first.c_str(), "Harvey");
+    // empl_w.update_row();
+    // EXPECT_STREQ(empl_w.name_first.c_str(), "Harvey");
+    // EXPECT_STREQ(e1.name_first(), "Harvey");
 }
