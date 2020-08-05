@@ -26,14 +26,6 @@ function(set_test target arg result)
 endfunction(set_test)
 
 #
-# Helper function for concatenating text files together
-#
-function (gaia_cat IN_FILE OUT_FILE)
-  file(READ ${IN_FILE} CONTENTS)
-  file(APPEND ${OUT_FILE} "${CONTENTS}")
-endfunction()
-
-#
 # Helper function for setting up google tests.
 # The named arguments are required:  TARGET, SOURCES, INCLUDES, LIBRARIES
 # Three optional arguments are after this:
