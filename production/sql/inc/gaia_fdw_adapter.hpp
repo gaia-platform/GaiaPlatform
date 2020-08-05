@@ -44,7 +44,7 @@ struct option_t
 // Check if the provided option is one of the valid options.
 // context_id is the Oid of the catalog holding the object the option is for.
 // If handler is registered for this option, invoke it.
-bool is_valid_option(const char* option_name, const char* option_value, Oid context_id);
+bool validate_and_apply_option(const char* option_name, const char* option_value, Oid context_id);
 
 void append_context_option_names(Oid context_id, StringInfoData& string_data);
 

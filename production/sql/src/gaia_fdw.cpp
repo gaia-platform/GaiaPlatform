@@ -107,7 +107,7 @@ extern "C" Datum gaia_fdw_validator(PG_FUNCTION_ARGS) {
         char *opt_val = defGetString(def);
         elog(DEBUG1, "Option name: %s, option value: %s.", opt_name, opt_val);
 
-        if (!gaia::fdw::is_valid_option(opt_name, opt_val, catalog_id)) {
+        if (!gaia::fdw::validate_and_apply_option(opt_name, opt_val, catalog_id)) {
             // Unknown option specified, complain about it. Provide a hint
             // with list of valid options for the object.
             StringInfoData buf;

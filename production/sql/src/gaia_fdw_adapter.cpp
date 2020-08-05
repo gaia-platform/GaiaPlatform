@@ -24,7 +24,7 @@ const option_t valid_options[] =
 
 int adapter_t::s_transaction_reference_count = 0;
 
-bool is_valid_option(const char* option_name, const char* value, Oid context_id)
+bool validate_and_apply_option(const char* option_name, const char* value, Oid context_id)
 {
     for (const option_t* option = valid_options; option->name; option++)
     {
