@@ -76,23 +76,21 @@ add_custom_target(generate_addr_book_headers ALL
 )
 
 #
-# Generate full "database" in one header
-# by combining catalog, event_log, and addr_book
+# Generate full "database" in one header by combining
+# catalog, event_log, and addr_book.  Use a cmake script
+# file to concatenate files together.  Put this file under
+# add_custom_command so that it correctly gets rebuilt if
+# any of the dependent files change.
 #
-file(WRITE "${GENERATED_OUTPUTS}/addr_book_db.in" "")
-
-# Include catalog type definitions.
-gaia_cat(${CATALOG_DDL} ${GENERATED_OUTPUTS}/addr_book_db.in)
-
-# Include rules engine type definitions.
-gaia_cat(${EVENT_LOG_DDL} ${GENERATED_OUTPUTS}/addr_book_db.in)
-
-# Now add addr_book
-gaia_cat(${GAIA_SCHEMAS}/addr_book.ddl ${GENERATED_OUTPUTS}/addr_book_db.in)
-configure_file(${GENERATED_OUTPUTS}/addr_book_db.in ${GENERATED_OUTPUTS}/addr_book_db.ddl)
-
 add_custom_command(
   OUTPUT ${GENERATED_OUTPUTS}/gaia_addr_book_db.h
+  COMMAND cmake
+    -D GENERATED_OUTPUTS=${GENERATED_OUTPUTS}
+    -D CATALOG_DDL=${CATALOG_DDL} 
+    -D EVENT_LOG_DDL=${EVENT_LOG_DDL}
+    -D GAIA_USER_SCHEMA=${GAIA_SCHEMAS}/addr_book.ddl
+    -D OUTPUT_DDL_PREFIX=${GENERATED_OUTPUTS}/addr_book
+    -P ${GAIA_SCHEMAS}/build_db_ddl.cmake
   COMMAND ${GAIA_GENERATE} -t ${GAIA_PROD_BUILD}/db/storage_engine -o ${GENERATED_OUTPUTS}
     ${GENERATED_OUTPUTS}/addr_book_db.ddl
   DEPENDS ${GAIA_GENERATE}
