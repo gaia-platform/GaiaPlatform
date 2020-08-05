@@ -56,6 +56,10 @@ enum class edit_state_t: int8_t
     update = 2,
 };
 
+// The adapter_t class provides the interface through which the FDW
+// can interact with the database.
+// Instances of scan_state_t will be used during scan operations
+// and instances of modify_state_t will be used for insert/update/delete operations.
 class scan_state_t;
 class modify_state_t;
 class adapter_t
@@ -137,8 +141,11 @@ protected:
 
 public:
 
+    // Provides the index corresponding to each accessor.
+    // This enables future calls to use index values.
     bool set_accessor_index(const char* accessor_name, size_t accessor_index);
 
+    // Scan API.
     bool initialize_scan();
     bool has_scan_ended();
     Datum extract_field_value(size_t field_index);
@@ -183,8 +190,11 @@ protected:
 
 public:
 
+    // Provides the index corresponding to each builder.
+    // This enables future calls to use index values.
     bool set_builder_index(const char* builder_name, size_t builder_index);
 
+    // Modify API.
     void initialize_modify();
     bool is_gaia_id_field_index(size_t field_index);
     void set_field_value(size_t field_index, const Datum& field_value);
