@@ -7,8 +7,9 @@
 
 #include <algorithm>
 
+#include "auto_transaction.hpp"
+#include "catalog_gaia_generated.h"
 #include "retail_assert.hpp"
-#include "gaia_catalog.hpp"
 
 using namespace gaia::db::types;
 using namespace gaia::common;
@@ -47,7 +48,16 @@ gaia_id_t field_list_t::operator[](size_t idx) const {
 // Initialize backing structure on this list.
 void field_list_t::initialize() {
     retail_assert(m_data == nullptr, "field list already initialized");
-    size_t num_fields = gaia::catalog::list_fields(m_type_id).size();
+    size_t num_fields = 0;
+    auto_transaction_t tx;
+
+    for (auto field = gaia::catalog::Gaia_field::get_first(); field; field.get_next()) {
+        if (field.table_id() == m_type_id) {
+            num_fields++;
+        }
+    }
+    tx.commit();
+
     size_t reserve_size = (c_max_vector_reserve < num_fields) ? c_max_vector_reserve : num_fields;
     m_data.reset(new vector<field_position_t>()); // change to make_unique with C++14 and above.
     m_data->reserve(reserve_size);
