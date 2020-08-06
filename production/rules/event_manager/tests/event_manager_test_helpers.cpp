@@ -7,10 +7,10 @@
 // Test code can access these helpers by linking them
 // into their test.
 
-void gaia::rules::test::initialize_rules_engine(size_t num_threads)
+void gaia::rules::test::initialize_rules_engine(event_manager_settings_t& settings)
 {
     bool is_initializing = true;
-    event_manager_t::get(is_initializing).init(num_threads);
+    event_manager_t::get(is_initializing).init(settings);
     initialize_rules();
 }
 
