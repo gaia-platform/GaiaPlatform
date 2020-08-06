@@ -9,10 +9,10 @@ cmake_minimum_required(VERSION 3.12)
 project(direct_access)
 
 set(GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES
-    ${GAIA_INC}/public/direct_access
-    ${GAIA_INC}/public/db
-    ${GAIA_INC}/public/common
-    ${GAIA_GENERATED_SCHEMAS}
+  ${GAIA_INC}/public/direct_access
+  ${GAIA_INC}/public/db
+  ${GAIA_INC}/public/common
+  ${GAIA_GENERATED_SCHEMAS}
 )
 message(STATUS "GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES=${GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES}")
 

@@ -127,7 +127,7 @@ void load_bootstrap_catalog() {
 }
 
 // From the database name and catalog contents, generate the flatbuffer and Gaia EDC header files.
-void generate_headers(string& db_name, string& output_path) {
+void generate_headers(string& db_name, const string& output_path) {
     // Generate the flatbuffer schema file.
     ofstream fbs(output_path + db_name + ".fbs");
     fbs << "namespace gaia." << db_name << ";" << endl << endl;

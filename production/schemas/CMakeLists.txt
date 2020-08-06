@@ -13,7 +13,7 @@ set(GAIA_GENERATE ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac)
 
 #
 # We are intentionally making the schema generation serialized because the
-# gaiac tool uses to generate the headers relies on the database to run.
+# gaiac tool used to generate the headers relies on the database to run.
 # Since we currently don't support running multiple instances of the database at 
 # the same time, we generate all schemas here in order.
 #
@@ -33,7 +33,7 @@ add_custom_command(
   COMMAND ${GAIA_GENERATE} -t ${GAIA_PROD_BUILD}/db/storage_engine -o ${GENERATED_OUTPUTS} ${CATALOG_DDL}
   DEPENDS ${GAIA_GENERATE}
   DEPENDS ${CATALOG_DDL}
-  COMMENT "Compiling ${CATALOG_DDL}"
+  COMMENT "Compiled ${CATALOG_DDL}"
 )
 
 add_custom_target(generate_catalog_headers ALL
@@ -52,9 +52,9 @@ add_custom_command(
 )
 
 add_custom_target(generate_event_log_headers ALL
-    DEPENDS ${GENERATED_OUTPUTS}/gaia_event_log.h
-    # Add previous target to serialize parallel builds.
-    DEPENDS generate_catalog_headers
+  DEPENDS ${GENERATED_OUTPUTS}/gaia_event_log.h
+  # Add previous target to serialize parallel builds.
+  DEPENDS generate_catalog_headers
 )
 
 #
@@ -66,7 +66,7 @@ add_custom_command(
     ${GAIA_SCHEMAS}/addr_book.ddl
   DEPENDS ${GAIA_GENERATE}
   DEPENDS ${GAIA_SCHEMAS}/addr_book.ddl
-  COMMENT "Compiling addr_book.ddl."
+  COMMENT "Compiled addr_book.ddl."
 )
 
 add_custom_target(generate_addr_book_headers ALL
@@ -97,7 +97,7 @@ add_custom_command(
   DEPENDS ${CATALOG_DDL}
   DEPENDS ${EVENT_LOG_DDL}
   DEPENDS ${GAIA_SCHEMAS}/addr_book.ddl
-  COMMENT "Compiling addr_book_db.ddl."
+  COMMENT "Compiled addr_book_db.ddl."
 )
 
 add_custom_target(generate_addr_book_db_headers ALL

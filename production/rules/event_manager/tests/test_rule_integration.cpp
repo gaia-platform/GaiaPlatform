@@ -176,7 +176,7 @@ protected:
     void delete_employees()
     {
         auto_transaction_t tx(false);
-        for (employee_t e = employee_t::get_first(); e ; e=e.get_first())
+        for (employee_t e = employee_t::get_first(); e; e = e.get_first())
         {
             e.delete_row();
         }

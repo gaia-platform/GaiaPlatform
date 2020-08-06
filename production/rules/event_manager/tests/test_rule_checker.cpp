@@ -16,7 +16,6 @@ using namespace gaia::db;
 using namespace gaia::rules;
 using namespace std;
 
-
 bool g_loaded_catalog = false;
 gaia_id_t g_table_type = 0;
 map<string, uint16_t> g_field_positions;
@@ -60,8 +59,7 @@ void load_catalog()
         {
             writer.active = true;
         }
-        else
-        if (0 == strcmp(field.name(), "deprecated"))
+        else if (0 == strcmp(field.name(), "deprecated"))
         {
             writer.deprecated = true;
         }
@@ -104,15 +102,18 @@ public:
     }
 
 protected:
-    void SetUp() override {
+    void SetUp() override 
+    {
         db_test_base_t::SetUp();
         gaia::catalog::initialize_catalog();
-        if (!g_loaded_catalog) {
+        if (!g_loaded_catalog) 
+        {
             load_catalog();
         }
     }
 
-    void TearDown() override {
+    void TearDown() override 
+    {
         db_test_base_t::TearDown();
     }
 };

@@ -28,7 +28,7 @@ public:
      * @param num_threads create a pool with this many worker threads.
      * If 0 threads are specified then the thread pool is in "immediate"
      * mode and no worker threads are created. If SIZE_MAX is specified
-     * then create thepool with the number of available hardware threads.
+     * then create the pool with the number of available hardware threads.
      */ 
     rule_thread_pool_t(size_t num_threads);
 
