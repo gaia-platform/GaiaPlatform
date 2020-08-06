@@ -8,7 +8,7 @@
 #include <algorithm>
 
 #include "auto_transaction.hpp"
-#include "catalog_gaia_generated.h"
+#include "gaia_catalog.h"
 #include "retail_assert.hpp"
 
 using namespace gaia::db::types;
@@ -51,7 +51,7 @@ void field_list_t::initialize() {
     size_t num_fields = 0;
     auto_transaction_t tx;
 
-    for (auto field = gaia::catalog::Gaia_field::get_first(); field; field.get_next()) {
+    for (auto field = gaia::catalog::gaia_field_t::get_first(); field; field.get_next()) {
         if (field.table_id() == m_type_id) {
             num_fields++;
         }
