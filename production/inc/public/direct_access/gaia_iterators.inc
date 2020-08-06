@@ -171,7 +171,7 @@ void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_
     // The gaia_id() will be zero if the row hasn't been inserted into the SE.
     if (fid == 0 || oid == 0) {
         T_primary expected = T_primary::get(0);
-        throw edc_unstored_row(expected.gaia_typename(), foreign_edc.gaia_typename());
+        throw edc_invalid_state(expected.gaia_typename(), foreign_edc.gaia_typename());
     }
 
     auto node_ptr = gaia_ptr::open(oid);
@@ -182,7 +182,8 @@ void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_
 
     // Cannot connect a foreign object that is already connected.
     if (foreign_edc.references()[T_parent_slot] != 0) {
-        throw edc_already_inserted(foreign_edc.references()[T_parent_slot]);
+        T_primary expected = T_primary::get(0);
+        throw edc_already_inserted(foreign_edc.references()[T_parent_slot], expected.gaia_typename());
     }
 
     foreign_edc.references()[T_foreign_slot] = node_ptr.references()[T_primary_slot];

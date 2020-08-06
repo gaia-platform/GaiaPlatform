@@ -88,10 +88,10 @@ public:
 
 // To connect two objects, a gaia_id() is needed but not available until SE create is called during
 // the insert_row().
-class edc_unstored_row: public gaia_exception
+class edc_invalid_state: public gaia_exception
 {
 public:
-    edc_unstored_row(
+    edc_invalid_state(
         const char* parent_type,
         const char* child_type);
 };
@@ -100,7 +100,7 @@ public:
 class edc_already_inserted: public gaia_exception
 {
 public:
-    edc_already_inserted(gaia_id_t parent);
+    edc_already_inserted(gaia_id_t parent, const char* parent_type);
 };
 
 /*@}*/

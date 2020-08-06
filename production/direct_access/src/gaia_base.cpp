@@ -50,22 +50,22 @@ edc_inconsistent_list::edc_inconsistent_list(
     m_message = msg.str();
 }
 
-edc_unstored_row::edc_unstored_row(
+edc_invalid_state::edc_invalid_state(
     const char* parent_type,
     const char* child_type)
 {
     stringstream msg;
-    msg << "Cannot connect two objects until they have both been inserted (insert_row()), parent type is "
-        << parent_type << " and child type is " << child_type << ".";
+    msg << "Object(s) have invalid state, no ID exists. Parent type is " << parent_type << " and child type is " << child_type << ".";
     m_message = msg.str();
 }
 
 edc_already_inserted::edc_already_inserted(
-    gaia_id_t parent)
+    gaia_id_t parent,
+    const char* parent_type)
 {
     stringstream msg;
-    msg << "The object being inserted has already been inserted to object with id " << parent
-        << ". Erase first.";
+    msg << "The object being inserted has already been inserted to object with Gaia type " << parent_type
+        << ", id is " << parent << ". Erase first.";
     m_message = msg.str();
 }
 
