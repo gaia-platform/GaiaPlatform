@@ -193,11 +193,7 @@ public:
 class invalid_rule_binding: public gaia::common::gaia_exception
 {
 public:
-    invalid_rule_binding()
-    {
-        m_message = "Invalid rule binding. "
-            "Verify that the ruleset_name, rule_name and rule are provided.";
-    }
+    invalid_rule_binding();
 };
 
 /**
@@ -213,24 +209,7 @@ public:
 class duplicate_rule: public gaia::common::gaia_exception
 {
 public:
-    duplicate_rule(const rule_binding_t& binding, bool duplicate_key_found)
-    {
-        std::stringstream message;
-        if (duplicate_key_found)
-        {
-            message << binding.ruleset_name << "::"
-                << binding.rule_name 
-                << " already subscribed with the same key "
-                "but different rule function.";
-        }
-        else
-        {
-            message << binding.ruleset_name << "::"
-                << binding.rule_name 
-                << " already subscribed to the same rule list.";
-        }
-        m_message = message.str();
-    }
+    duplicate_rule(const rule_binding_t& binding, bool duplicate_key_found);
 };
 
 /**
@@ -240,45 +219,34 @@ public:
 class initialization_error : public gaia::common::gaia_exception
 {
 public:
-    initialization_error(bool is_already_initialized)
-    {
-        if (is_already_initialized)
-        {
-            m_message = "The event manager has already been initialized.";
-        }
-        else
-        {
-            m_message = "The event manager has not been initialized yet.";
-        }
-    }
+    initialization_error(bool is_already_initialized);
 };
 
 /**
- * invalid_subscription : public gaia::common::gaia_exception
- */
+ * Thrown when the caller provides an invalid subscription.  See the
+ * constructor methods for the reasons that his could occur.
+ */ 
 class invalid_subscription : public gaia::common::gaia_exception
 {
 public:
-    invalid_subscription(gaia::db::triggers::event_type_t event_type, const char* reason)
-    {
-        std::stringstream message;
-        message << "Cannot subscribe rule to " << (uint32_t)event_type << ". " << reason;
-        m_message = message.str();
-    }
+    // Invalid event type specified.
+    invalid_subscription(event_type_t event_type, const char* reason);
+    // Table type not found.
+    invalid_subscription(gaia_type_t gaia_type);
+    // Field not found.
+    invalid_subscription(gaia_type_t gaia_type, const char* table, uint16_t position);
+    // Field not active or has been deprecated
+    invalid_subscription(gaia_type_t gaia_type, const char* table, uint16_t position, 
+        const char* field_name, bool is_deprecated);
 };
 
 /**
- * invalid_subscription : public gaia::common::gaia_exception
+ * ruleset_not_found_subscription : public gaia::common::gaia_exception
  */
 class ruleset_not_found : public gaia::common::gaia_exception
 {
 public:
-    ruleset_not_found(const char* ruleset_name)
-    {
-        std::stringstream message;
-        message << "Ruleset '" << ruleset_name << "' not found.";
-        m_message = message.str();
-    }
+    ruleset_not_found(const char* ruleset_name);
 };
 
 /**

@@ -26,6 +26,6 @@ void gaia::db::rollback_transaction() {
     gaia::db::client::rollback_transaction();
 }
 
-bool gaia::db::commit_transaction() {
-    return gaia::db::client::commit_transaction();
+void gaia::db::commit_transaction() {
+    gaia::db::client::commit_transaction();
 }

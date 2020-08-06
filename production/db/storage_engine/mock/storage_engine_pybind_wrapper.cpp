@@ -127,9 +127,9 @@ PYBIND11_MODULE(se_mock, m) {
 
     register_exception<gaia::db::session_exists>(m, "session_exists");
     register_exception<gaia::db::no_session_active>(m, "no_session_active");
-    register_exception<gaia::db::tx_in_progress>(m, "tx_in_progress");
-    register_exception<gaia::db::tx_not_open>(m, "tx_not_open");
-    register_exception<gaia::db::tx_update_conflict>(m, "tx_update_conflict");
+    register_exception<gaia::db::transaction_in_progress>(m, "transaction_in_progress");
+    register_exception<gaia::db::transaction_not_open>(m, "transaction_not_open");
+    register_exception<gaia::db::transaction_update_conflict>(m, "transaction_update_conflict");
     register_exception<gaia::db::duplicate_id>(m, "duplicate_id");
     register_exception<gaia::db::oom>(m, "oom");
     register_exception<gaia::db::invalid_node_id>(m, "invalid_node_id");

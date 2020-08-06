@@ -19,7 +19,7 @@ class gaia_hash_map {
    public:
     static se_base::hash_node* insert(const gaia_id_t id) {
         if (*client::s_offsets == nullptr) {
-            throw tx_not_open();
+            throw transaction_not_open();
         }
 
         se_base::hash_node* node = client::s_data->hash_nodes + (id % se_base::HASH_BUCKETS);
@@ -60,7 +60,7 @@ class gaia_hash_map {
 
     static int64_t find(const gaia_id_t id) {
         if (*client::s_offsets == nullptr) {
-            throw tx_not_open();
+            throw transaction_not_open();
         }
 
         auto node = client::s_data->hash_nodes + (id % se_base::HASH_BUCKETS);

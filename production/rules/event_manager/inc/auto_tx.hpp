@@ -11,9 +11,8 @@ namespace gaia
 namespace rules
 {
 
-// This class is used internally to log events in the event table.  We don't
-// want to cause any events to be fired in response to an internal transaction
-// so we use the low-level storage engine api.
+// This class is used internally to log events in the event table and verify
+// rule subscriptions with the catalog.
 class auto_tx_t
 {
 public:
