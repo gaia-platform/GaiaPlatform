@@ -412,7 +412,7 @@ TEST_F(gaia_object_test, set_insert_id_x2) {
 
 // Attempt to create a row outside of a transaction
 TEST_F(gaia_object_test, no_tx) {
-    EXPECT_THROW(get_field("Harold"), tx_not_open);
+    EXPECT_THROW(get_field("Harold"), transaction_not_open);
     // NOTE: the employee_t object is leaked here
 }
 
@@ -509,7 +509,7 @@ TEST_F(gaia_object_test, auto_tx) {
     tx.commit();
 
     // Expect an exception since we're not in a transaction
-    EXPECT_THROW(e.name_last(), tx_not_open);
+    EXPECT_THROW(e.name_last(), transaction_not_open);
 
     begin_transaction();
 
@@ -646,10 +646,7 @@ TEST_F(gaia_object_test, thread_update_conflict) {
         w.update_row();
 
     }
-    // Expect a concurrency violation here, but for now commit_transaction is
-    // returning false.
-    // EXPECT_THROW(commit_transaction, tx_update_conflict);
-    EXPECT_FALSE(commit_transaction());
+    EXPECT_THROW(commit_transaction(), transaction_update_conflict);
 
     begin_transaction();
     {
@@ -681,7 +678,7 @@ TEST_F(gaia_object_test, thread_update_other_row) {
         w.name_first = "No Violation";
         w.update_row();
     }
-    EXPECT_TRUE(commit_transaction());
+    EXPECT_NO_THROW(commit_transaction());
 
     begin_transaction();
     {
@@ -765,10 +762,7 @@ TEST_F(gaia_object_test, thread_delete_conflict) {
         thread t1 = thread(delete_thread, g_inserted_id);
         t1.join();
     }
-    // Expect a concurrency violation here, but for now commit_transaction is
-    // returning false.
-    // EXPECT_THROW(commit_transaction, tx_update_conflict);
-    EXPECT_FALSE(commit_transaction());
+    EXPECT_THROW(commit_transaction(), transaction_update_conflict);
 
     begin_transaction();
     {
