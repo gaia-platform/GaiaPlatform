@@ -126,10 +126,10 @@ void load_bootstrap_catalog() {
     }
 }
 
-// From the database name and catalog contents, generate the flatbuffer andGaia EDC header files.
-void generate_headers(string db_name) {
+// From the database name and catalog contents, generate the flatbuffer and Gaia EDC header files.
+void generate_headers(string& db_name, const string& output_path) {
     // Generate the flatbuffer schema file.
-    ofstream fbs(db_name + ".fbs");
+    ofstream fbs(output_path + db_name + ".fbs");
     fbs << "namespace gaia." << db_name << ";" << endl << endl;
     fbs << gaia::catalog::generate_fbs() << endl;
     fbs.close();
@@ -137,16 +137,30 @@ void generate_headers(string db_name) {
     // Run the flatbuffer compiler, flatc, on this schema.
     string flatc_cmd = "flatc --cpp --gen-object-api ";
     flatc_cmd += "--cpp-str-type gaia::direct_access::nullable_string_t --cpp-str-flex-ctor ";
-    flatc_cmd += db_name + ".fbs";
+    if (!output_path.empty())
+    {
+        flatc_cmd += "-o ";
+        flatc_cmd += output_path + " ";
+    }
+    flatc_cmd += output_path + db_name + ".fbs";
     auto rc = system(flatc_cmd.c_str());
 
     // Generate the Extended Data Class definitions
-    ofstream edc("gaia_" + db_name + ".h");
+    ofstream edc(output_path + "gaia_" + db_name + ".h");
     edc << gaia::catalog::gaia_generate(db_name) << endl;
     edc.close();
 
     if (rc != 0) {
         cout << "flatc failed to compile " + db_name + ".fbs" ", return code = " << rc << endl;
+    }
+}
+
+// Add a trailing '/' if not provided.
+void terminate_path(string& path)
+{
+    if (path.back() != '/')
+    {
+        path.append("/");
     }
 }
 
@@ -175,7 +189,7 @@ public:
         // Try to kill the SE server process.
         // REVIEW: we should be using a proper process library for this, so we can kill by PID.
         string cmd = "pkill -f -KILL ";
-        cmd +=  m_server_path.c_str();
+        cmd.append(m_server_path.c_str());
         cerr << cmd << endl;
         ::system(cmd.c_str());
     }
@@ -190,10 +204,7 @@ private:
         else
         {
             m_server_path = db_server_path;
-            if (m_server_path.back() != '/')
-            {
-                m_server_path.append("/");
-            }
+            terminate_path(m_server_path);
             m_server_path.append(gaia::db::SE_SERVER_NAME);
         }
     }
@@ -206,6 +217,7 @@ int main(int argc, char *argv[]) {
     parser_t parser;
     bool gen_catalog = true;
     db_server_t server;
+    string output_path;
     try {
         for (int i = 1; i < argc; ++i) {
             if (argv[i] == string("-p")) {
@@ -224,6 +236,10 @@ int main(int argc, char *argv[]) {
                 ++i;
                 const char* path_to_db_server = argv[i];
                 server.start(path_to_db_server);
+            } else if (argv[i] == string("-o")) {
+                ++i;
+                output_path = argv[i];
+                terminate_path(output_path);
             } else {
                 if (!parser.parse(argv[i])) {
                     gaia::db::begin_session();
@@ -238,7 +254,7 @@ int main(int argc, char *argv[]) {
                         db_name = db_name.substr(0, db_name.find_last_of("."));
                     }
 
-                    generate_headers(db_name);
+                    generate_headers(db_name, output_path);
                     gaia::db::end_session();
 
                 } else {
@@ -248,10 +264,12 @@ int main(int argc, char *argv[]) {
             }
         }
         if (gen_catalog) {
+            string empty_path;
+            string db_name = "catalog";
             gaia::db::begin_session();
             gaia::catalog::initialize_catalog();
             load_bootstrap_catalog();
-            generate_headers("catalog");
+            generate_headers(db_name, empty_path);
             gaia::db::end_session();
         }
         server.stop();

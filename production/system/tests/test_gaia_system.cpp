@@ -12,22 +12,23 @@
 #include "gtest/gtest.h"
 
 #include "gaia_system.hpp"
+#include "gaia_catalog.hpp"
 #include "rules.hpp"
+#include "gaia_addr_book_db.h"
 #include "triggers.hpp"
 #include "db_test_base.hpp"
-#include "../addr_book_gaia_generated.h"
 
 using namespace std;
 using namespace gaia::db;
 using namespace gaia::db::triggers;
 using namespace gaia::rules;
 using namespace gaia::common;
-using namespace addr_book;
+using namespace gaia::addr_book_db;
 
 static atomic<uint32_t> rule_count;
 static atomic<uint32_t> rule_per_commit_count;
 
-const gaia_type_t m_gaia_type = 1;
+const gaia_type_t m_gaia_type = employee_t::s_gaia_type;
 
 void rule1(const rule_context_t*)
 {
@@ -35,12 +36,19 @@ void rule1(const rule_context_t*)
     rule_count++;
 }
 
+void load_catalog()
+{
+    gaia::catalog::ddl::field_def_list_t fields;
+    // Add dummy catalog types for all our types used in this test.
+    for (gaia_type_t i = 1; i <= phone_t::s_gaia_type; i++) 
+    {
+        string table_name = "dummy" + std::to_string(i);
+        gaia::catalog::create_table(table_name, fields);
+    }
+}
+
 extern "C"
 void initialize_rules() {
-       rule_binding_t m_rule1{"ruleset1_name", "rule1_name", rule1};
-       subscribe_rule(m_gaia_type, event_type_t::row_insert, empty_fields, m_rule1);
-       subscribe_rule(m_gaia_type, event_type_t::row_delete, empty_fields, m_rule1);
-       subscribe_rule(m_gaia_type, event_type_t::row_update, empty_fields, m_rule1);
 }
 
 class gaia_system_test : public db_test_base_t
@@ -52,6 +60,14 @@ protected:
     void SetUp() override {
         db_test_base_t::SetUp();
         gaia::system::initialize();
+        load_catalog();
+        
+        // Initialize rules after loading the catalog.
+        rule_binding_t m_rule1{"ruleset1_name", "rule1_name", rule1};
+        subscribe_rule(m_gaia_type, event_type_t::row_insert, empty_fields, m_rule1);
+        subscribe_rule(m_gaia_type, event_type_t::row_delete, empty_fields, m_rule1);
+        subscribe_rule(m_gaia_type, event_type_t::row_update, empty_fields, m_rule1);
+
         rule_count = 0;
         rule_per_commit_count = 0;
     }
@@ -73,10 +89,10 @@ void perform_transactions(uint32_t count_transactions, uint32_t crud_operations_
         rule_per_commit_count = 0;
         begin_transaction();
         // Insert row.
-        auto w = Employee_writer();
+        auto w = employee_writer();
         w.name_first = "name";
         gaia_id_t id = w.insert_row();
-        auto e = Employee::get(id);
+        auto e = employee_t::get(id);
 
         // Update row.
         e.writer().name_first = "name2";

@@ -45,19 +45,25 @@ event_manager_t::event_manager_t()
 
 void event_manager_t::init()
 {
-    // TODO[GAIAPLAT-111]: Check a configuration setting for the number of threads to create.
-    // Create the rules engine scheduler with N hardware threads.
-    init(new rule_thread_pool_t());
+    // TODO[GAIAPLAT-111]: Check a configuration setting supplied by the
+    // application developer for the number of threads to create.
+    
+    event_manager_settings_t settings;
+    // Allow the thread pool to decide how many threads to create
+    settings.num_background_threads = SIZE_MAX;
+    // Verify rule subscriptions against the catalog
+    settings.disable_catalog_checks = false;
+
+    init(settings);
 }
 
-void event_manager_t::init(size_t num_threads)
+void event_manager_t::init(event_manager_settings_t& settings)
 {
-    init(new rule_thread_pool_t(num_threads));
-}
-
-void event_manager_t::init(rule_thread_pool_t* rule_thread_pool)
-{
-    m_invocations.reset(rule_thread_pool);
+    m_invocations.reset(new rule_thread_pool_t(settings.num_background_threads));
+    if (!settings.disable_catalog_checks)
+    {
+        m_rule_checker.reset(new rule_checker_t());
+    }
 
     auto fn = [](uint64_t transaction_id, trigger_event_list_t event_list) {
         event_manager_t::get().commit_trigger(transaction_id, event_list);
@@ -66,7 +72,6 @@ void event_manager_t::init(rule_thread_pool_t* rule_thread_pool)
 
     m_is_initialized = true;
 }
-
 
 void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_event_list)
 {
@@ -196,8 +201,18 @@ void event_manager_t::subscribe_rule(
     const field_list_t& fields,
     const rule_binding_t& rule_binding)
 {
+    // If any of these checks fail then an exception is thrown.
     check_rule_binding(rule_binding);
     check_subscription(gaia_type, event_type, fields);
+
+    // Verify that the type and fields specified in the rule subscription
+    // are valid according to the catalog.  The rule checker may be null
+    // if the event_manager was initialized with 'disabled_catalog_checks'
+    // set to true in its settings.
+    if (m_rule_checker)
+    {
+        m_rule_checker->check_catalog(gaia_type, fields);
+    }
 
     // Look up the gaia_type in our type map.  If we do not find it
     // then we create a new empty event map map.
@@ -478,7 +493,7 @@ void event_manager_t::log_to_db(const trigger_event_t& event, bool rules_invoked
     }
 
     {
-        Event_log::insert_row((uint32_t)(event.event_type), (uint64_t)(event.gaia_type), 
+        event_log::event_log_t::insert_row((uint32_t)(event.event_type), (uint64_t)(event.gaia_type), 
             (uint64_t)(event.record), column_id, timestamp, rules_invoked);
     }
 }
