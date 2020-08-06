@@ -16,12 +16,14 @@ cmake-build-*/
 *.egg-info/
 dist/
 
-# Generated header files
+# Generated header files.
 *_generated.h
 
 # Generated gdev files.
 *.gdev
 
-# Java class files
+# Java class files.
 *.class
 
+# Mac OS index files.
+.DS_Store
