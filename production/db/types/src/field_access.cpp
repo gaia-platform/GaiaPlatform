@@ -162,7 +162,7 @@ void get_table_field_array_information(
 }
 
 // The access method for scalar fields.
-data_holder_t gaia::db::types::get_table_field_value(
+data_holder_t gaia::db::types::get_field_value(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
@@ -207,7 +207,7 @@ data_holder_t gaia::db::types::get_table_field_value(
 }
 
 // The access method for the size of a field of array type.
-size_t gaia::db::types::get_table_field_array_size(
+size_t gaia::db::types::get_field_array_size(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
@@ -227,7 +227,7 @@ size_t gaia::db::types::get_table_field_array_size(
 }
 
 // The access method for an element of a field of array type.
-data_holder_t gaia::db::types::get_table_field_array_element(
+data_holder_t gaia::db::types::get_field_array_element(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,

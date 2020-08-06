@@ -76,7 +76,7 @@ void initialize_field_cache_from_binary_schema(
 //
 // If the binary_schema is needed but not provided,
 // an invalid_schema() exception will be thrown.
-data_holder_t get_table_field_value(
+data_holder_t get_field_value(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
@@ -87,7 +87,7 @@ data_holder_t get_table_field_value(
 // Callers should check the catalog to determine
 // whether they access a scalar field or an array field,
 // and then proceed accordingly to access the field content.
-size_t get_table_field_array_size(
+size_t get_field_array_size(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
@@ -98,7 +98,7 @@ size_t get_table_field_array_size(
 // An exception will be thrown if the index is out of bounds.
 // Callers can first call get_table_field_array_size()
 // to find the array's size.
-data_holder_t get_table_field_array_element(
+data_holder_t get_field_array_element(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
