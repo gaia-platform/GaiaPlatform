@@ -13,6 +13,15 @@ set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
+# Enable stack traces in debug builds for the storage engine server.
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  # backward-cpp stack trace library.
+  find_package(Backward REQUIRED)
+  # backward-cpp dependencies (one of several options):
+  # "libdw provides access to DWARF debug information stored inside ELF files."
+  find_library(dw REQUIRED)
+endif()
+
 set(GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES
   "${GAIA_INC}/public/common"
   "${GAIA_INC}/public/db"
@@ -91,22 +100,28 @@ target_link_libraries(gaia_semock PRIVATE explain)
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia_semock PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-add_executable(gaia_semock_server
+set(GAIA_SE_SERVER_SOURCES
   mock/storage_engine.cpp
   mock/storage_engine_server.cpp
-  mock/storage_engine_server_exec.cpp)
+  mock/storage_engine_server_exec.cpp
+)
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  list(APPEND GAIA_SE_SERVER_SOURCES mock/backward.cpp)
+endif()
+add_executable(gaia_semock_server ${GAIA_SE_SERVER_SOURCES})
 add_dependencies(gaia_semock_server "messages.fbs")
 target_include_directories(gaia_semock_server PRIVATE
   "${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}"
   "${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}")
-
 # For flatbuffers generated code.
 target_include_directories(gaia_semock_server SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(gaia_semock_server SYSTEM PRIVATE "${GEN_DIR}")
 # Suppress spurious warnings about zero-initialized structs.
 set_target_properties(gaia_semock_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 target_link_libraries(gaia_semock_server PRIVATE gaia_common Threads::Threads explain)
-
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  target_link_libraries(gaia_semock_server PUBLIC Backward::Backward)
+endif()
 install(TARGETS gaia_semock_server DESTINATION "bin")
 
 ###############################################
