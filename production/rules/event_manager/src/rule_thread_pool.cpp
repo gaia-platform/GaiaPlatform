@@ -21,22 +21,12 @@ thread_local bool rule_thread_pool_t::s_tls_can_enqueue = true;
 thread_local queue<rule_context_t> rule_thread_pool_t::s_tls_pending_invocations;
 
 
-rule_thread_pool_t::rule_thread_pool_t(uint32_t num_threads)
-{
-    init(num_threads);
-}
-
-rule_thread_pool_t::rule_thread_pool_t()
-{
-    init(thread::hardware_concurrency());
-}
-
-void rule_thread_pool_t::init(uint32_t num_threads)
+rule_thread_pool_t::rule_thread_pool_t(size_t num_threads)
 {
     m_exit = false;
-    m_num_threads = num_threads;
+    m_num_threads = (num_threads == SIZE_MAX) ? thread::hardware_concurrency() : num_threads; 
 
-    for (uint32_t i = 0; i < num_threads; i++)
+    for (uint32_t i = 0; i < m_num_threads; i++)
     {
         thread worker([this]{ rule_worker(); });
         m_threads.push_back(move(worker));

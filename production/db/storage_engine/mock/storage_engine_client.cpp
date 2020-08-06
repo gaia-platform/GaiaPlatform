@@ -16,7 +16,15 @@ thread_local se_base::offsets *client::s_offsets = nullptr;
 thread_local int client::s_fd_log = -1;
 thread_local std::vector<trigger_event_t> client::s_events;
 
-std::unordered_set<gaia_type_t> client::trigger_type_filter{system_catalog_types::c_event_log_type};
+std::unordered_set<gaia_type_t> client::trigger_type_filter{
+    system_catalog_types::c_catalog_table_type,
+    system_catalog_types::c_catalog_value_index_type,
+    system_catalog_types::c_catalog_field_type,
+    system_catalog_types::c_catalog_ruleset_type,
+    system_catalog_types::c_catalog_rule_type,
+    system_catalog_types::c_event_log_type
+};
+
 // Should this be initialized by the rules engine instead?
 event_trigger_threadpool_t* client::event_trigger_pool = new event_trigger_threadpool_t();
 
@@ -230,10 +238,10 @@ void client::rollback_transaction() {
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
 
-// This method returns true for a commit decision and false for an abort decision.
+// This method returns void on a commit decision and throws on an abort decision.
 // It sends a message to the server containing the fd of this txn's log segment and
 // will block waiting for a reply from the server.
-bool client::commit_transaction() {
+void client::commit_transaction() {
     verify_tx_active();
 
     // Ensure we destroy the shared memory segment and memory mapping before we return.
@@ -273,5 +281,10 @@ bool client::commit_transaction() {
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
 
-    return (event == session_event_t::DECIDE_TXN_COMMIT);
+    // Throw an exception on server-side abort.
+    // REVIEW: We could include the gaia_ids of conflicting objects in transaction_update_conflict
+    // (https://gaiaplatform.atlassian.net/browse/GAIAPLAT-292).
+    if (event == session_event_t::DECIDE_TXN_ABORT) {
+        throw transaction_update_conflict();
+    }
 }

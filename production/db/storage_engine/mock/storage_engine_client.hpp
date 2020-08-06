@@ -50,7 +50,7 @@ class client : private se_base {
     static void end_session();
     static void begin_transaction();
     static void rollback_transaction();
-    static bool commit_transaction();
+    static void commit_transaction();
 
    private:
     thread_local static int s_fd_log;
@@ -68,7 +68,6 @@ class client : private se_base {
     // static int s_fd_offsets;
     // static data *s_data;
     // thread_local static log *s_log;
-    // static string s_server_socket_name;
     // thread_local static gaia_xid_t s_transaction_id;
 
     static void tx_cleanup();
@@ -86,7 +85,7 @@ class client : private se_base {
 
     static inline int64_t allocate_row_id() {
         if (*s_offsets == nullptr) {
-            throw tx_not_open();
+            throw transaction_not_open();
         }
 
         if (s_data->row_id_count >= MAX_RIDS) {
@@ -98,7 +97,7 @@ class client : private se_base {
 
     static void inline allocate_object(int64_t row_id, size_t size) {
         if (*s_offsets == nullptr) {
-            throw tx_not_open();
+            throw transaction_not_open();
         }
 
         if (s_data->objects[0] >= MAX_OBJECTS) {
@@ -112,13 +111,13 @@ class client : private se_base {
 
     static inline void verify_tx_active() {
         if (!is_transaction_active()) {
-            throw tx_not_open();
+            throw transaction_not_open();
         }
     }
 
     static inline void verify_no_tx() {
         if (is_transaction_active()) {
-            throw tx_in_progress();
+            throw transaction_in_progress();
         }
     }
 
