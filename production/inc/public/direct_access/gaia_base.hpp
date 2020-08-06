@@ -43,7 +43,7 @@ struct gaia_base_t
      */
     gaia_base_t() = delete;
     gaia_base_t(const char* gaia_typename) : m_typename(gaia_typename) {}
-    
+
     const char* gaia_typename() { return m_typename; }
     virtual gaia_type_t gaia_type() = 0;
     virtual ~gaia_base_t() = default;
@@ -94,6 +94,13 @@ public:
     edc_unstored_row(
         const char* parent_type,
         const char* child_type);
+};
+
+// An attempt has been made to insert a member that has already been inserted somewhere.
+class edc_already_inserted: public gaia_exception
+{
+public:
+    edc_already_inserted(gaia_id_t parent);
 };
 
 /*@}*/

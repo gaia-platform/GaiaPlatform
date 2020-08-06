@@ -330,8 +330,8 @@ TEST_F(gaia_references_test, connect_to_ids) {
     e1.addresses_list().insert(a2);
 }
 
-TEST_F(gaia_references_test, connect_to_objects) {
-    begin_transaction();
+TEST_F(gaia_references_test, connect_after_tx) {
+    auto_transaction_t tx;
 
     /* Create some unconnected Employee and Address objects */
     employee_writer employee_w;
@@ -341,10 +341,8 @@ TEST_F(gaia_references_test, connect_to_objects) {
     auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
     auto a2 = insert_address(address_w, "10618 129th Pl. N.E.", "Kirkland");
 
-    commit_transaction();
-
     // In a subsequent transaction, connect the objects.
-    begin_transaction();
+    tx.commit();
 
     // Use the objects from the previous transaction.
     e1.addresses_list().insert(a1);
@@ -357,8 +355,6 @@ TEST_F(gaia_references_test, connect_to_objects) {
     EXPECT_STREQ((*addr).city(), "Kirkland");
     ++addr;
     EXPECT_STREQ((*addr).city(), "Boulder");
-
-    commit_transaction();
 }
 
 TEST_F(gaia_references_test, writer_update) {
@@ -376,14 +372,95 @@ TEST_F(gaia_references_test, writer_update) {
     empl_w.update_row();
     EXPECT_STREQ(empl_w.name_first.c_str(), "Hubert");
     EXPECT_STREQ(e1.name_first(), "Hubert");
+}
 
-    // tx.commit();
-    // employee_writer e_w(e1);
-    // EXPECT_STREQ(empl_w.name_first.c_str(), "Hubert");
-    // e_w.name_first = "Harvey";
-    // EXPECT_STREQ(e1.name_first(), "Hubert");
-    // EXPECT_STREQ(empl_w.name_first.c_str(), "Harvey");
-    // empl_w.update_row();
-    // EXPECT_STREQ(empl_w.name_first.c_str(), "Harvey");
-    // EXPECT_STREQ(e1.name_first(), "Harvey");
+TEST_F(gaia_references_test, disconnect_after_tx) {
+    auto_transaction_t tx;
+
+    /* Create some unconnected Employee and Address objects */
+    employee_writer employee_w;
+    auto e1 = insert_employee(employee_w, "Horace");
+
+    address_writer address_w;
+    auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
+    auto a2 = insert_address(address_w, "10618 129th Pl. N.E.", "Kirkland");
+
+    e1.addresses_list().insert(a1);
+    e1.addresses_list().insert(a2);
+
+    // In a subsequent transaction, disconnect the objects.
+    tx.commit();
+
+    e1.addresses_list().erase(a1);
+    e1.addresses_list().erase(a2);
+}
+
+TEST_F(gaia_references_test, connect_twice) {
+    auto_transaction_t tx;
+
+    /* Create some unconnected Employee and Address objects */
+    employee_writer employee_w;
+    auto e1 = insert_employee(employee_w, "Horace");
+
+    address_writer address_w;
+    auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
+
+    // The second insert should fail.
+    e1.addresses_list().insert(a1);
+    EXPECT_THROW(e1.addresses_list().insert(a1), edc_already_inserted);
+}
+
+TEST_F(gaia_references_test, erase_uninserted) {
+    auto_transaction_t tx;
+
+    /* Create some unconnected Employee and Address objects */
+    employee_writer employee_w;
+    auto e1 = insert_employee(employee_w, "Horace");
+
+    address_writer address_w;
+    auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
+
+    // The erase() should fail.
+    EXPECT_THROW(e1.addresses_list().erase(a1), edc_invalid_member);
+}
+
+TEST_F(gaia_references_test, erase_in_iterator) {
+    auto_transaction_t tx;
+
+    /* Create some unconnected Employee and Address objects */
+    employee_writer employee_w;
+    auto e1 = insert_employee(employee_w, "Horace");
+
+    address_writer address_w;
+    auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
+    auto a2 = insert_address(address_w, "10618 129th Pl. N.E.", "Kirkland");
+    auto a3 = insert_address(address_w, "10805 Circle Dr.", "Bothell");
+
+    e1.addresses_list().insert(a1);
+    e1.addresses_list().insert(a2);
+    e1.addresses_list().insert(a3);
+
+    // We're happy with it not crashing, even though the list is cut short.
+    int count = 0;
+    for (auto a : e1.addresses_list()) {
+        e1.addresses_list().erase(a);
+        count++;
+    }
+    EXPECT_EQ(count,1);
+
+    // There should be two on the list here, but same behavior.
+    count = 0;
+    for (auto a : e1.addresses_list()) {
+        e1.addresses_list().erase(a);
+        count++;
+    }
+    EXPECT_EQ(count,1);
+
+    // Verify that one member remains.
+    count = 0;
+    for (auto a : e1.addresses_list()) {
+        EXPECT_STREQ(a.city(), "Boulder");
+        count++;
+    }
+    EXPECT_EQ(count,1);
 }
