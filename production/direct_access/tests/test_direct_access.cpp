@@ -231,7 +231,7 @@ TEST_F(gaia_object_test, new_del_ins) {
 
 // Attempt to create a row outside of a transaction
 TEST_F(gaia_object_test, no_tx) {
-    EXPECT_THROW(create_employee("Harold"), tx_not_open);
+    EXPECT_THROW(create_employee("Harold"), transaction_not_open);
     // NOTE: the employee_t object is leaked here
 }
 
