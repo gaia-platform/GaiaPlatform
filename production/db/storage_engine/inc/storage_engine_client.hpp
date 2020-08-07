@@ -52,6 +52,9 @@ class client : private se_base {
     static void rollback_transaction();
     static void commit_transaction();
 
+    // This is test-only functionality, intended to be exposed only in internal headers.
+    static void clear_shared_memory();
+
    private:
     thread_local static int s_fd_log;
     thread_local static offsets* s_offsets;

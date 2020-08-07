@@ -17,6 +17,7 @@
 #include "retail_assert.hpp"
 #include "system_error.hpp"
 #include "gaia_db.hpp"
+#include "gaia_db_internal.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -29,6 +30,9 @@ private:
     bool m_client_manages_session;
 
     static void reset_server() {
+        // We need to drop all client references to shared memory before resetting the server.
+        // NB: this cannot be called within an active session!
+        clear_shared_memory();
         static constexpr int POLL_INTERVAL_MILLIS = 10;
         // Reinitialize the server (forcibly disconnects all clients and clears database).
         ::system((std::string("pkill -f -HUP ") + SE_SERVER_NAME).c_str());
