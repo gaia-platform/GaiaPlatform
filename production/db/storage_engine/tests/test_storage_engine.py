@@ -3,7 +3,7 @@
 # All rights reserved.
 #############################################
 
-from se_mock import *;
+from se_client import *;
 
 # Start session.
 begin_session();

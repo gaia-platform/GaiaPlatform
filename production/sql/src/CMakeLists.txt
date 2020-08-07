@@ -69,7 +69,7 @@ target_include_directories(gaia_fdw SYSTEM PRIVATE "${GEN_DIR}")
 target_include_directories(gaia_fdw SYSTEM PRIVATE "${PGSQL_INCLUDEDIR_SERVER}")
 
 target_link_libraries(gaia_fdw PRIVATE flatccrt)
-target_link_libraries(gaia_fdw PRIVATE gaia_semock)
+target_link_libraries(gaia_fdw PRIVATE gaia_se_client)
 
 # Extension config.
 
