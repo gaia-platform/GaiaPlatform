@@ -74,9 +74,6 @@ class field_list_t {
 
     // Getter: table_id.
     gaia_id_t get_table_id() const;
-
-    // Getter: m_data.
-    gaia_id_t get_data() const;
 };
 
 }

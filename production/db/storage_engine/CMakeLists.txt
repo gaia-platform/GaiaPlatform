@@ -19,7 +19,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   find_package(Backward REQUIRED)
   # backward-cpp dependencies (one of several options):
   # "libdw provides access to DWARF debug information stored inside ELF files."
-  #find_library(dw REQUIRED)
+  find_library(dw REQUIRED)
 endif()
 
 set(GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES
