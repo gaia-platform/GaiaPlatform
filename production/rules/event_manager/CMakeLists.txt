@@ -23,7 +23,7 @@ set(GAIA_EVENT_MANAGER_INCLUDES
   ${GAIA_RULES_INC}
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc
-  ${GAIA_CATALOG_GENERATED}
+  ${GAIA_GENERATED_SCHEMAS}
 )
 message(STATUS "GAIA_EVENT_MANAGER_INCLUDES=${GAIA_EVENT_MANAGER_INCLUDES}")
 
@@ -50,7 +50,7 @@ add_gtest(test_event_manager "tests/test_event_manager.cpp;tests/event_manager_t
 add_gtest(test_system_init "tests/test_system_init.cpp"
   "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
 add_gtest(test_component_init "tests/test_component_init.cpp;tests/event_manager_test_helpers.cpp"
-  "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_rules;gaia_direct;gaia_catalog")
+  "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_rules;gaia_catalog")
 add_gtest(test_rule_context "tests/test_rule_context.cpp"
   "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_rules")
 add_gtest(test_rule_checker "tests/test_rule_checker.cpp;"
