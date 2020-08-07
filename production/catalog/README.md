@@ -1,38 +1,41 @@
 # Gaia Catalog
 
+This directory contains implementation of [catalog public interfaces](../inc/public/catalog/gaia_catalog.hpp).
+Including `gaia_catalog.hpp` and linking `gaia_catalog` is the standard way to use the catalog library.
+The implementation here may change without any notification.
+If you are using the headers defined here directly, make sure you know what you are doing.
+
 ## Components
 
-### `catalog_manager`
-This directory contains [catalog public API](../inc/public/catalog/gaia_catalog.h) implmentation.
-Including the public API and linking to `gaia_catalog` is the standard way to use catalog.
-The implementation here may change without notifying anyone.
-If you are using the APIs defined here directly, make sure you know what you are doing.
+### Catalog manager
+The sub-directory contains the following code.
 
 - `catalog_manager` is a singleton class that implements all the catalog DDL APIs.
-- `fbs_generator` implments FlatBuffers schema generation APIs.
-- `gaia_generate` implments Gaia extended data classes (EDC) generation APIs.
+- `fbs_generator` implements FlatBuffers schema generation APIs.
+- `gaia_generate` implements Gaia extended data classes (EDC) generation APIs.
 
-### `parser`
+### Parser
 This is the scanner-parser for Gaia DDL.
-We used lex/parser generator--flex/bison--to generate the C++ code.
-The lexical analysis rules are defined in [`lexer.ll`](parser/src/lex.ll).
+We used a lex/parser generator, `flex/bison` specifically, to generate the C++ code.
+The lexical analysis rules are defined in [`lexer.ll`](parser/src/lexer.ll).
 The grammar rules are defined in [`parser.yy`](parser/src/parser.yy).
-A helper or driver class of the lexer-parser is defined in [`gaia_parser.hpp`](parser/inc/gaia_parser.hpp).
+A helper or driver class `parser_t` of the lexer-parser is defined in [`gaia_parser.hpp`](parser/inc/gaia_parser.hpp).
+Most parsing usage should call the `gaia::catalog::ddl:parser_t` instead of `yy_lex` or `yy_parser` interfaces.
 
-### `gaiac`
+### Gaiac
 This is the catalog command line tool for Gaia data definition language.
 It is used for bootstrapping the EDC definitions, manual testing and development.
 
 Currently, when supplied with a file containing Gaia DDL, it will compile it into
 the catalog tables, then automatically generate 3 additional files:
-- The flatbuffer schema, `<dbname>.fbs`
-- The flatbuffer header for field access, `<dbname>_generated.h`
+- The FlatBuffers schema, `<dbname>.fbs`
+- The FlatBuffers header for field access, `<dbname>_generated.h`
 - The EDC header file `gaia_<dbname>.h`
 
 With the two headers, a direct access source file gains access to the database as
 defined by the catalog.
 
-`flatc` may be run using <dbname>.fbs with the following command-line arguments to get the exact same output of the C++ header(s).
+`flatc` may be run using <dbname>.fbs with the following command-line arguments to get the same output of the C++ header(s).
 
 ```
 flatc --cpp --gen-object-api \
@@ -76,4 +79,4 @@ After this, gaia production should be rebuilt with the newly generated sources.
 
 Be sure to update [system_table_types.hpp](../inc/internal/common/system_table_types.hpp) if new types are added or the `type_id` of the catalog tables change.
 
-Be sure to save the new [gaia_catalog.h](../inc/internal/common/gaia_catalog.h) and [catalog_generated.h](../inc/internal/common/catalog_generated.h) in place of the previous ones.
+Be sure to save the new [gaia_catalog.h](../inc/internal/catalog/gaia_catalog.h) and [catalog_generated.h](../inc/internal/catalog/catalog_generated.h) in place of the previous ones.
