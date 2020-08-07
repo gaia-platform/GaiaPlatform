@@ -3,7 +3,7 @@ This is a folder for the Postgres-based relational engine.
 
 ## Current status
 
-After the client/server separation of the mock storage engine, the code compiles but the tests do not work.
+After the client/server separation of the storage engine, the code compiles but the tests do not work.
 
 This code is currently being re-written.
 
