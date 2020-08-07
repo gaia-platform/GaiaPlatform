@@ -35,7 +35,7 @@ add_library(gaia_rules STATIC
   src/rule_checker.cpp
 )
 
-add_dependencies(gaia_rules generate_event_log_headers)
+add_dependencies(gaia_rules generate_rules_headers)
 set_target_properties(gaia_rules PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 target_include_directories(gaia_rules PRIVATE ${GAIA_EVENT_MANAGER_INCLUDES})
 target_link_libraries(gaia_rules PRIVATE gaia_direct)
@@ -50,7 +50,7 @@ add_gtest(test_event_manager "tests/test_event_manager.cpp;tests/event_manager_t
 add_gtest(test_system_init "tests/test_system_init.cpp"
   "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
 add_gtest(test_component_init "tests/test_component_init.cpp;tests/event_manager_test_helpers.cpp"
-  "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_rules;gaia_direct;gaia_semock;gaia_catalog")
+  "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_rules;gaia_direct;gaia_catalog")
 add_gtest(test_rule_context "tests/test_rule_context.cpp"
   "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_rules")
 add_gtest(test_rule_checker "tests/test_rule_checker.cpp;"
