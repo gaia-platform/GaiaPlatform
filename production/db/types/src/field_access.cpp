@@ -191,12 +191,10 @@ data_holder_t gaia::db::types::get_field_value(
     else if (field->type()->base_type() == reflection::String)
     {
         const flatbuffers::String* field_value = flatbuffers::GetFieldS(*root_table, *field);
-        if (field_value == nullptr)
-        {
-            throw invalid_serialized_data();
-        }
 
-        result.hold.string_value = field_value->c_str();
+        // For null strings, the field_value will come back as nullptr,
+        // so just set the string_value to nullptr as well.
+        result.hold.string_value = (field_value == nullptr) ? nullptr : field_value->c_str();
     }
     else
     {
