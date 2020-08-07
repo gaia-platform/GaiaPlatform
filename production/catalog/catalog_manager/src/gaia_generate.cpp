@@ -4,7 +4,9 @@
 ///////////////////////////////////////////////
 #include "gaia_catalog.h"
 #include "catalog_manager.hpp"
-#include "code_writer.hpp"
+
+#include "flatbuffers/code_generators.h"
+
 #include <memory>
 #include <vector>
 #include <set>
@@ -77,8 +79,8 @@ static string field_cpp_type_string(data_type_t data_type) {
 }
 
 static string generate_boilerplate_top(string dbname) {
-    code_writer code(indent_string);
-    code.set_value("DBNAME", dbname);
+    flatbuffers::CodeWriter code(indent_string);
+    code.SetValue("DBNAME", dbname);
     code += "/////////////////////////////////////////////";
     code += "// Copyright (c) Gaia Platform LLC";
     code += "// All rights reserved.";
@@ -100,24 +102,24 @@ static string generate_boilerplate_top(string dbname) {
     code += "";
     code += "namespace gaia {";
     code += "namespace {{DBNAME}} {";
-    string str = code.to_string();
+    string str = code.ToString();
     return str;
 }
 
 static string generate_boilerplate_bottom(string dbname) {
-    code_writer code(indent_string);
-    code.set_value("DBNAME", dbname);
+    flatbuffers::CodeWriter code(indent_string);
+    code.SetValue("DBNAME", dbname);
     code += "}  // namespace {{DBNAME}}";
     code += "}  // namespace gaia";
     code += "";
     code += "#endif  // GAIA_GENERATED_{{DBNAME}}_H_";
-    string str = code.to_string();
+    string str = code.ToString();
     return str;
 }
 
 // Generate the list of constants referred to by the class definitions and templates.
 static string generate_constant_list(references_map& references_1, references_map& references_n) {
-    code_writer code(indent_string);
+    flatbuffers::CodeWriter code(indent_string);
     // A fixed constant is used for the flatbuffer builder constructor.
     code += "";
     code += "// The initial size of the flatbuffer builder buffer.";
@@ -126,55 +128,55 @@ static string generate_constant_list(references_map& references_1, references_ma
     for (auto table_id : list_tables()) {
         auto table_record = gaia_table_t::get(table_id);
         auto const_count = 0;
-        code.set_value("TABLE_NAME", table_record.name());
+        code.SetValue("TABLE_NAME", table_record.name());
         code += "// Constants contained in the {{TABLE_NAME}} object.";
         for (auto ref : references_1[table_id]) {
-            code.set_value("REF_TABLE", ref.name);
-            code.set_value("REF_NAME", ref.ref_name);
-            code.set_value("CONST_VALUE", to_string(const_count++));
+            code.SetValue("REF_TABLE", ref.name);
+            code.SetValue("REF_NAME", ref.ref_name);
+            code.SetValue("CONST_VALUE", to_string(const_count++));
             code += "constexpr int c_first_{{REF_NAME}}_{{REF_TABLE}} = {{CONST_VALUE}};";
         }
         for (auto ref : references_n[table_id]) {
-            code.set_value("REF_TABLE", ref.name);
-            code.set_value("REF_NAME", ref.ref_name);
-            code.set_value("CONST_VALUE", to_string(const_count++));
+            code.SetValue("REF_TABLE", ref.name);
+            code.SetValue("REF_NAME", ref.ref_name);
+            code.SetValue("CONST_VALUE", to_string(const_count++));
             code += "constexpr int c_parent_{{REF_NAME}}_{{REF_TABLE}} = {{CONST_VALUE}};";
-            code.set_value("CONST_VALUE", to_string(const_count++));
+            code.SetValue("CONST_VALUE", to_string(const_count++));
             code += "constexpr int c_next_{{REF_NAME}}_{{TABLE_NAME}} = {{CONST_VALUE}};";
         }
-        code.set_value("CONST_VALUE", to_string(const_count++));
+        code.SetValue("CONST_VALUE", to_string(const_count++));
         code += "constexpr int c_num_{{TABLE_NAME}}_ptrs = {{CONST_VALUE}};";
         code += "";
     }
-    string str = code.to_string();
+    string str = code.ToString();
     return str;
 }
 
 static string generate_declarations() {
-    code_writer code(indent_string);
+    flatbuffers::CodeWriter code(indent_string);
 
     for (auto table_id : list_tables()) {
         auto table_record = gaia_table_t::get(table_id);
-        code.set_value("TABLE_NAME", table_record.name());
+        code.SetValue("TABLE_NAME", table_record.name());
         code += "struct {{TABLE_NAME}}_t;";
     }
     code += "";
-    string str = code.to_string();
+    string str = code.ToString();
     return str;
 }
 
 static string generate_edc_struct(gaia_type_t table_type_id, string table_name, field_vec& field_strings,
     references_vec& references_1, references_vec& references_n)
 {
-    code_writer code(indent_string);
+    flatbuffers::CodeWriter code(indent_string);
 
     // Struct statement.
-    code.set_value("TABLE_NAME", table_name);
-    code.set_value("POSITION", to_string(table_type_id));
+    code.SetValue("TABLE_NAME", table_name);
+    code.SetValue("POSITION", to_string(table_type_id));
     code += "typedef gaia_writer_t<{{POSITION}}llu,{{TABLE_NAME}}_t,{{TABLE_NAME}},{{TABLE_NAME}}T,c_num_{{TABLE_NAME}}_ptrs> {{TABLE_NAME}}_writer;";
     code += "struct {{TABLE_NAME}}_t : public gaia_object_t<{{POSITION}}llu,{{TABLE_NAME}}_t,{{TABLE_NAME}},{{TABLE_NAME}}T,c_num_{{TABLE_NAME}}_ptrs> {";
 
-    code.increment_indent_level();
+    code.IncrementIdentLevel();
 
     // Below, a flatbuffer method is invoked as Create{{TABLE_NAME}}() or
     // as Create{{TABLE_NAME}}Direct. The choice is determined by whether any of the
@@ -185,14 +187,14 @@ static string generate_edc_struct(gaia_type_t table_type_id, string table_name, 
     bool has_string = false;
     // Accessors.
     for (auto f : field_strings) {
-        code.set_value("TYPE", field_cpp_type_string(f.type));
-        code.set_value("FIELD_NAME", f.name);
+        code.SetValue("TYPE", field_cpp_type_string(f.type));
+        code.SetValue("FIELD_NAME", f.name);
         if (f.type == data_type_t::e_string) {
             has_string = true;
-            code.set_value("FCN_NAME", "GET_STR");
+            code.SetValue("FCN_NAME", "GET_STR");
         }
         else {
-            code.set_value("FCN_NAME", "GET");
+            code.SetValue("FCN_NAME", "GET");
         }
         code += "{{TYPE}} {{FIELD_NAME}}() const {return {{FCN_NAME}}({{FIELD_NAME}});}";
     }
@@ -213,9 +215,9 @@ static string generate_edc_struct(gaia_type_t table_type_id, string table_name, 
         param_list += f.name;
     }
     code += param_list + ") {";
-    code.increment_indent_level();
+    code.IncrementIdentLevel();
     code += "flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);";
-    code.set_value("DIRECT", has_string ? "Direct" : "");
+    code.SetValue("DIRECT", has_string ? "Direct" : "");
     param_list = "b.Finish(Create{{TABLE_NAME}}{{DIRECT}}(b";
     for (auto f : field_strings) {
         param_list += ", ";
@@ -224,80 +226,80 @@ static string generate_edc_struct(gaia_type_t table_type_id, string table_name, 
     param_list += "));";
     code += param_list;
     code += "return gaia_object_t::insert_row(b);";
-    code.decrement_indent_level();
+    code.DecrementIdentLevel();
     code += "}";
 
     // The reference to the parent records.
     for (auto ref : references_n) {
         if (ref.ref_name.length()) {
-            code.set_value("REF_NAME", ref.ref_name);
+            code.SetValue("REF_NAME", ref.ref_name);
         }
         else {
             // This relationship is anonymous.
-            code.set_value("REF_NAME", ref.name);
+            code.SetValue("REF_NAME", ref.name);
         }
-        code.set_value("REF_TABLE", ref.name);
+        code.SetValue("REF_TABLE", ref.name);
         code += "{{REF_TABLE}}_t {{REF_NAME}}() {";
-        code.increment_indent_level();
+        code.IncrementIdentLevel();
         code += "return {{REF_TABLE}}_t::get(this->references()[c_parent_{{REF_NAME}}_{{REF_TABLE}}]);";
-        code.decrement_indent_level();
+        code.DecrementIdentLevel();
         code += "}";
     }
 
     // The table range.
     code += "static gaia_container_t<{{POSITION}}llu, {{TABLE_NAME}}_t>& list() {";
-    code.increment_indent_level();
+    code.IncrementIdentLevel();
     code += "static gaia_container_t<{{POSITION}}llu, {{TABLE_NAME}}_t> list;";
     code += "return list;";
-    code.decrement_indent_level();
+    code.DecrementIdentLevel();
     code += "}";
 
     // Iterator objects to scan rows pointed to by this one.
     for (auto ref : references_1) {
         if (ref.ref_name.length()) {
-            code.set_value("REF_NAME", ref.ref_name);
+            code.SetValue("REF_NAME", ref.ref_name);
         }
         else {
-            code.set_value("REF_NAME", ref.name);
+            code.SetValue("REF_NAME", ref.name);
         }
-        code.set_value("REF_TABLE", ref.name);
+        code.SetValue("REF_TABLE", ref.name);
         code += "reference_chain_container_t<{{TABLE_NAME}}_t,{{REF_TABLE}}_t,c_parent_{{REF_NAME}}_{{TABLE_NAME}},"
             "c_first_{{REF_NAME}}_{{REF_TABLE}},c_next_{{REF_NAME}}_{{REF_TABLE}}> m_{{REF_NAME}}_list;";
         code += "reference_chain_container_t<{{TABLE_NAME}}_t,{{REF_TABLE}}_t,c_parent_{{REF_NAME}}_{{TABLE_NAME}},"
             "c_first_{{REF_NAME}}_{{REF_TABLE}},c_next_{{REF_NAME}}_{{REF_TABLE}}>& {{REF_NAME}}_list() {";
-        code.increment_indent_level();
+        code.IncrementIdentLevel();
         code += "return m_{{REF_NAME}}_list;";
-        code.decrement_indent_level();
+        code.DecrementIdentLevel();
         code += "}";
     }
 
     // The private area.
-    code.decrement_indent_level();
+    code.DecrementIdentLevel();
     code += "private:";
-    code.increment_indent_level();
+    code.IncrementIdentLevel();
     code += "friend struct gaia_object_t<{{POSITION}}llu, {{TABLE_NAME}}_t, {{TABLE_NAME}}, {{TABLE_NAME}}T, c_num_{{TABLE_NAME}}_ptrs>;";
 
     // The constructor.
     code += "{{TABLE_NAME}}_t(gaia_id_t id) : gaia_object_t(id, \"{{TABLE_NAME}}_t\") {";
-    code.increment_indent_level();
+    code.IncrementIdentLevel();
     for (auto ref : references_1) {
         if (ref.ref_name.length()) {
-            code.set_value("REF_NAME", ref.ref_name);
+            code.SetValue("REF_NAME", ref.ref_name);
         }
         else {
-            code.set_value("REF_NAME", ref.name);
+            code.SetValue("REF_NAME", ref.name);
         }
         code += "m_{{REF_NAME}}_list.set_outer(gaia_id());";
     }
-    code.decrement_indent_level();
+    code.DecrementIdentLevel();
     code += "}";
 
     // Finishing brace.
-    code.decrement_indent_level();
+    code.DecrementIdentLevel();
     code += "};";
     code += "";
 
-    string str = code.to_string();
+    string str = code.ToString();
     return str;
 }
 
