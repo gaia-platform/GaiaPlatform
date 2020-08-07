@@ -4,6 +4,7 @@
 /////////////////////////////////////////////
 
 #include <iostream>
+#include <fstream>
 #include "gtest/gtest.h"
 #include "gaia_addr_book.h"
 #include "db_test_base.hpp"
@@ -16,30 +17,11 @@ using namespace gaia::addr_book;
 
 class gaia_references_test : public db_test_base_t {
 protected:
-    void delete_employees() {
-        begin_transaction();
-        for(employee_t e = employee_t::get_first();
-            e;
-            e = employee_t::get_first())
-        {
-            try {
-                e.delete_row();
-            }
-            catch (gaia_exception&) {
-                // Connection tests may cause this, but that's okay.
-                break;
-            }
-        }
-        commit_transaction();
-    }
-
     void SetUp() override {
         db_test_base_t::SetUp();
-        delete_employees();
     }
 
     void TearDown() override {
-        delete_employees();
         db_test_base_t::TearDown();
     }
 };
@@ -49,28 +31,6 @@ protected:
 // ==================================================
 TEST_F(gaia_references_test, connect) {
     begin_transaction();
-
-    // In simplified API this is not possible since
-    // you cannot get a non-inserted employee_t or address_t
-    // object.
-
-    // Connect two new rows.
-    //employee_writer ew = employee_t::create();
-    //address_writer aw = address_t::create();
-    //Employee_ptr e1 = employee_t::get(employee_t::insert_row(ew));
-    //Address_ptr a1 = address_t::get(address_t::insert_row(aw));
-    //EXPECT_THROW(e1->addresses_list().insert(a1), edc_unstored_row);
-
-    // In simplified API this is not possible since
-    // you cannot get a non-inserted employee_t or address_t
-    // object.
-
-    // Connect two non-inserted rows.
-    //employee_t* e2 = new employee_t();
-    //e2->set_name_first("Howard");
-    //address_t* a2 = new address_t();
-    //a2->set_city("Houston");
-    //EXPECT_THROW(e2->addresses_list().insert(a2), edc_unstored_row);
 
     // Connect two inserted rows.
     employee_writer ew;
@@ -223,6 +183,7 @@ int all_addresses() {
     return count;
 }
 
+// Create a hierachy of records, then scan and count them.
 TEST_F(gaia_references_test, connect_scan) {
     begin_transaction();
 
@@ -262,12 +223,20 @@ void scan_manages(vector<string>& employee_vector, employee_t& e) {
     }
 }
 
-employee_t insert_employee(employee_writer& writer, const char * name_first)
+employee_t insert_employee(employee_writer& writer, const char* name_first)
 {
     writer.name_first = name_first;
     return employee_t::get(writer.insert_row());
 }
 
+address_t insert_address(address_writer& writer, const char* street, const char* city)
+{
+    writer.street = street;
+    writer.city = city;
+    return address_t::get(writer.insert_row());
+}
+
+// Test recursive scanning, employee_t to employee_t through manages relationship.
 TEST_F(gaia_references_test, recursive_scan) {
     begin_transaction();
 
@@ -314,4 +283,263 @@ TEST_F(gaia_references_test, recursive_scan) {
     }
 
     commit_transaction();
+}
+
+// Re-hydrate IDs created in prior transaction, then connect.
+TEST_F(gaia_references_test, connect_to_ids) {
+    auto_transaction_t tx;
+
+    /* Create some unconnected Employee and Address objects */
+    employee_writer employee_w;
+    employee_w.name_first = "Horace";
+    gaia_id_t eid1 = employee_w.insert_row();
+
+    address_writer address_w;
+    address_w.street = "430 S. 41st St.";
+    address_w.city = "Boulder";
+    gaia_id_t aid1 = address_w.insert_row();
+
+    address_w.street = "10618 129th Pl. N.E.";
+    address_w.city = "Kirkland";
+    gaia_id_t aid2 = address_w.insert_row();
+
+    tx.commit();
+
+    // Generate the object from the ids.
+    employee_t e1 = employee_t::get(eid1);
+    address_t a1 = address_t::get(aid1);
+    address_t a2 = address_t::get(aid2);
+    e1.addresses_list().insert(a1);
+    e1.addresses_list().insert(a2);
+}
+
+// Connect objects created in prior transaction.
+TEST_F(gaia_references_test, connect_after_tx) {
+    auto_transaction_t tx;
+
+    employee_writer employee_w;
+    auto e1 = insert_employee(employee_w, "Horace");
+
+    address_writer address_w;
+    auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
+    auto a2 = insert_address(address_w, "10618 129th Pl. N.E.", "Kirkland");
+
+    // In a subsequent transaction, connect the objects.
+    tx.commit();
+
+    // Use the objects from the previous transaction.
+    e1.addresses_list().insert(a1);
+    e1.addresses_list().insert(a2);
+    auto addr = e1.addresses_list().begin();
+    EXPECT_STREQ((*addr).city(), "Kirkland");
+    ++addr;
+    EXPECT_STREQ((*addr).city(), "Boulder");
+}
+
+// Erase list members inserted in prior transaction.
+TEST_F(gaia_references_test, disconnect_after_tx) {
+    auto_transaction_t tx;
+
+    employee_writer employee_w;
+    auto e1 = insert_employee(employee_w, "Horace");
+
+    address_writer address_w;
+    auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
+    auto a2 = insert_address(address_w, "10618 129th Pl. N.E.", "Kirkland");
+
+    e1.addresses_list().insert(a1);
+    e1.addresses_list().insert(a2);
+
+    // In a subsequent transaction, disconnect the objects.
+    tx.commit();
+
+    e1.addresses_list().erase(a1);
+    e1.addresses_list().erase(a2);
+}
+
+// Generate an exception by attempting to insert member twice.
+TEST_F(gaia_references_test, connect_twice) {
+    auto_transaction_t tx;
+
+    /* Create some unconnected Employee and Address objects */
+    employee_writer employee_w;
+    auto e1 = insert_employee(employee_w, "Horace");
+    auto e2 = insert_employee(employee_w, "Hector");
+
+    address_writer address_w;
+    auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
+
+    // The second insert is redundant and is treated as a no-op.
+    e1.addresses_list().insert(a1);
+    e1.addresses_list().insert(a1);
+
+    // The third insert is illegal because the address cannot be on the
+    // same list of two owners.
+    EXPECT_THROW(e2.addresses_list().insert(a1), edc_already_inserted);
+}
+
+// Generate an exception by attempting to erase un-inserted member.
+TEST_F(gaia_references_test, erase_uninserted) {
+    auto_transaction_t tx;
+
+    employee_writer employee_w;
+    auto e1 = insert_employee(employee_w, "Horace");
+
+    address_writer address_w;
+    auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
+
+    // The erase() should fail.
+    EXPECT_THROW(e1.addresses_list().erase(a1), edc_invalid_member);
+
+    // Now insert it, erase, and erase again.
+    e1.addresses_list().insert(a1);
+    e1.addresses_list().erase(a1);
+    EXPECT_THROW(e1.addresses_list().erase(a1), edc_invalid_member);
+}
+
+// Make sure that erasing a member found in iterator doesn't crash.
+TEST_F(gaia_references_test, erase_in_iterator) {
+    auto_transaction_t tx;
+
+    employee_writer employee_w;
+    auto e1 = insert_employee(employee_w, "Horace");
+
+    address_writer address_w;
+    auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
+    auto a2 = insert_address(address_w, "10618 129th Pl. N.E.", "Kirkland");
+    auto a3 = insert_address(address_w, "10805 Circle Dr.", "Bothell");
+
+    e1.addresses_list().insert(a1);
+    e1.addresses_list().insert(a2);
+    e1.addresses_list().insert(a3);
+
+    // We're happy with it not crashing, even though the list is cut short.
+    int count = 0;
+    for (auto a : e1.addresses_list()) {
+        e1.addresses_list().erase(a);
+        count++;
+    }
+    EXPECT_EQ(count,1);
+
+    // There should be two on the list here, but same behavior.
+    count = 0;
+    for (auto a : e1.addresses_list()) {
+        e1.addresses_list().erase(a);
+        count++;
+    }
+    EXPECT_EQ(count,1);
+
+    // Verify that one member remains.
+    count = 0;
+    for (auto a : e1.addresses_list()) {
+        EXPECT_STREQ(a.city(), "Boulder");
+        count++;
+    }
+    EXPECT_EQ(count,1);
+}
+
+// Scan beyond the end of the iterator.
+TEST_F(gaia_references_test, scan_past_end) {
+    auto_transaction_t tx;
+
+    employee_writer employee_w;
+    auto e1 = insert_employee(employee_w, "Horace");
+
+    address_writer address_w;
+    auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
+    auto a2 = insert_address(address_w, "10618 129th Pl. N.E.", "Kirkland");
+    auto a3 = insert_address(address_w, "10805 Circle Dr.", "Bothell");
+
+    e1.addresses_list().insert(a1);
+    e1.addresses_list().insert(a2);
+    e1.addresses_list().insert(a3);
+
+    int count = 0;
+    auto a = e1.addresses_list().begin();
+    while (a != e1.addresses_list().end()) {
+        count++;
+        a++;
+    }
+    EXPECT_EQ(count,3);
+    a++;
+    EXPECT_EQ(a == e1.addresses_list().end(), true);
+    a++;
+    EXPECT_EQ(a == e1.addresses_list().end(), true);
+}
+
+// Attempt to insert two EDC objects in separate thread.
+void insert_object(bool committed, employee_t e1, address_t a1)
+{
+    begin_session();
+    begin_transaction();
+    {
+        if (committed) {
+            e1.addresses_list().insert(a1);
+        }
+        else {
+            // Nothing is committed yet.
+            EXPECT_THROW(e1.addresses_list().insert(a1), edc_invalid_state);
+        }
+    }
+    commit_transaction();
+    end_session();
+}
+
+// Attempt to insert objects hydrated from IDs, in separate thread.
+void insert_addresses(bool committed, gaia_id_t eid1, gaia_id_t aid1, gaia_id_t aid2, gaia_id_t aid3)
+{
+    begin_session();
+    begin_transaction();
+    {
+        auto e1 = employee_t::get(eid1);
+        auto a1 = address_t::get(aid1);
+        auto a2 = address_t::get(aid2);
+        auto a3 = address_t::get(aid3);
+        if (committed) {
+            // Note this first insert has already been done. This is no-op.
+            e1.addresses_list().insert(a1);
+            e1.addresses_list().insert(a2);
+            e1.addresses_list().insert(a3);
+        }
+        else {
+            EXPECT_THROW(e1.addresses_list().insert(a1), edc_invalid_state);
+        }
+    }
+    commit_transaction();
+    end_session();
+}
+
+// Create objects in one thread, connect them in another, verify in first thread.
+TEST_F(gaia_references_test, thread_inserts) {
+    auto_transaction_t tx;
+
+    employee_writer employee_w;
+    auto e1 = insert_employee(employee_w, "Horace");
+
+    address_writer address_w;
+    auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
+    auto a2 = insert_address(address_w, "10618 129th Pl. N.E.", "Kirkland");
+    auto a3 = insert_address(address_w, "10805 Circle Dr.", "Bothell");
+
+    // These threads should have problems since the objects aren't committed yet.
+    thread t = thread(insert_object, false, e1, a1);
+    t.join();
+
+    t = thread(insert_addresses, false, e1.gaia_id(), a1.gaia_id(), a2.gaia_id(), a3.gaia_id());
+    t.join();
+
+    tx.commit();
+
+    // Retry the threads after our objects are committed.
+    t = thread(insert_object, true, e1, a1);
+    t.join();
+    t = thread(insert_addresses, true, e1.gaia_id(), a1.gaia_id(), a2.gaia_id(), a3.gaia_id());
+    t.join();
+
+    // Count the members. They should show up.
+    int count = 0;
+    for (auto a : e1.addresses_list()) {
+        count++;
+    }
+    EXPECT_EQ(count, 3);
 }
