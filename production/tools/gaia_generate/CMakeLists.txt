@@ -11,7 +11,7 @@ project(gaia_generate)
 
 set(GAIA_GENERATE_INCLUDES
   ${FLATBUFFERS_INC}
-  ${GAIA_REPO}/production/db/storage_engine/mock
+  ${GAIA_REPO}/production/db/storage_engine/src
   ${GAIA_PROD_BUILD}/catalog/parser/generated
   ${GAIA_REPO}/third_party/production/flatbuffers/include
   ${GAIA_REPO}/production/catalog/parser/inc
