@@ -123,19 +123,18 @@ void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_even
         // See if any rules are bound to any columns that were 
         // changed as part of this event.  If so, then schedule these rules
         // to be invoked.
-        if (binding.fields_map.size() == 0)
+        if (binding.fields_map.size() == 0 || !event.columns)
         {
             // No rules were subscribed to any fields to this event on this type.
             continue;
         }
 
-        for (uint16_t j = 0; j < event.count_columns; j++)
+        for (field_position_t field_position : *event.columns)
         {
             // Some rules refer to columns in this table.  Now see whether
             // the specific columns changed in this event are referenced
             // by any rules.  If not, keep going.
-            uint16_t col = event.columns.get()->data()[j];
-            auto field_it = binding.fields_map.find(col);
+            auto field_it = binding.fields_map.find(field_position);
             if (field_it == binding.fields_map.end())
             {
                 // The column that changed was not subscribed to any rule.
