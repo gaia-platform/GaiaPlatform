@@ -19,7 +19,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   find_package(Backward REQUIRED)
   # backward-cpp dependencies (one of several options):
   # "libdw provides access to DWARF debug information stored inside ELF files."
-  find_library(dw REQUIRED)
+  #find_library(dw REQUIRED)
 endif()
 
 set(GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES
@@ -96,7 +96,7 @@ target_include_directories(gaia_semock SYSTEM PRIVATE "${GEN_DIR}")
 # Suppress spurious warnings about zero-initialized structs.
 set_target_properties(gaia_semock PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 target_link_libraries(gaia_semock PUBLIC gaia_common)
-target_link_libraries(gaia_semock PRIVATE explain)
+target_link_libraries(gaia_semock PRIVATE explain gaia_types)
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia_semock PROPERTY POSITION_INDEPENDENT_CODE ON)
 

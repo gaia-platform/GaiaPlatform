@@ -22,12 +22,19 @@ namespace db
 {
 namespace triggers {
 
+typedef std::vector<field_position_t> field_pos_list_t;
+
+typedef std::shared_ptr<field_pos_list_t> field_list_ptr_t;
+
 struct trigger_event_t {
     event_type_t event_type; // insert, update, delete, begin, commit, rollback
     gaia_id_t gaia_type; // gaia table type, maybe 0 if event has no associated tables
     gaia_id_t record; //row id, may be 0 if if there is no assocated row id
-    const field_position_t* columns; // list of affected columns, may be null
+    field_list_ptr_t columns; // list of affected columns
     size_t count_columns; // count of affected columns, may be zero
+
+    trigger_event_t(event_type_t event_type, gaia_id_t gaia_type, gaia_id_t record, field_list_ptr_t columns, size_t count_columns):
+        event_type(event_type), gaia_type(gaia_type), record(record), columns(columns), count_columns(count_columns) {}
 };
 
 typedef std::vector<trigger_event_t> trigger_event_list_t;

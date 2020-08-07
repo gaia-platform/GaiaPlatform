@@ -134,7 +134,7 @@ void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_even
             // Some rules refer to columns in this table.  Now see whether
             // the specific columns changed in this event are referenced
             // by any rules.  If not, keep going.
-            uint16_t col = event.columns[j];
+            uint16_t col = event.columns.get()->data()[j];
             auto field_it = binding.fields_map.find(col);
             if (field_it == binding.fields_map.end())
             {
@@ -474,7 +474,7 @@ std::string event_manager_t::make_rule_key(const rule_binding_t& binding)
     rule_key.append(binding.rule_name);
     return rule_key;
 }
-
+ 
 // Assumes that the caller will manage the transaction.
 void event_manager_t::log_to_db(const trigger_event_t& event, bool rules_invoked)
 {
@@ -489,7 +489,7 @@ void event_manager_t::log_to_db(const trigger_event_t& event, bool rules_invoked
     uint16_t column_id = 0;
     if (event.count_columns > 0)
     {
-        column_id = event.columns[0];
+        column_id = event.columns.get()->data()[0];
     }
 
     {
