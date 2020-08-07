@@ -91,13 +91,13 @@ link_directories(
 add_gtest(test_rule_subscriber 
   "test_rule_subscriber.cpp;${GENERATED_OUTPUTS}/init_rules.cpp" 
   "${RULE_SUBSCRIBER_INCLUDES}" 
-  "rt;gaia_rules;gaia;gaia_direct;gaia_semock"
+  "rt;gaia_rules;gaia;gaia_direct"
   "generate_addr_book"
 )
 
 add_gtest(test_rule_subscriber_no_tx 
   "test_rule_subscriber_no_tx.cpp;${GENERATED_OUTPUTS}/init_rules_no_tx.cpp" 
   "${RULE_SUBSCRIBER_INCLUDES}" 
-  "rt;gaia_rules;gaia;gaia_direct;gaia_semock"
+  "rt;gaia_rules;gaia;gaia_direct"
   "generate_addr_book"
 )

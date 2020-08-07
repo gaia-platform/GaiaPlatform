@@ -59,7 +59,7 @@ class client : private se_base {
 
     // Maintain a static filter in the client to disable generating events
     // for system types.
-    static std::unordered_set<gaia_type_t> trigger_type_filter;
+    static std::unordered_set<gaia_type_t> trigger_excluded_types;
 
     // Threadpool to help invoke post-commit triggers in response to events generated in each transaction.
     static gaia::db::triggers::event_trigger_threadpool_t* event_trigger_pool;
@@ -80,7 +80,7 @@ class client : private se_base {
      * Function returns whether to generate a trigger event for an operation based on the gaia_type_t.
      */
     static inline bool is_invalid_event(const gaia_type_t type) {
-        return trigger_type_filter.find(type) != trigger_type_filter.end();
+        return trigger_excluded_types.find(type) != trigger_excluded_types.end();
     }
 
     static inline int64_t allocate_row_id() {
