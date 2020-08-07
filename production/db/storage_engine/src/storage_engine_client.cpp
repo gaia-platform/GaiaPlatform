@@ -4,7 +4,7 @@
 /////////////////////////////////////////////
 
 #include "storage_engine_client.hpp"
-#include "system_catalog_types.hpp"
+#include "system_table_types.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -17,12 +17,11 @@ thread_local int client::s_fd_log = -1;
 thread_local std::vector<trigger_event_t> client::s_events;
 
 std::unordered_set<gaia_type_t> client::trigger_excluded_types{
-    system_catalog_types::c_catalog_table_type,
-    system_catalog_types::c_catalog_value_index_type,
-    system_catalog_types::c_catalog_field_type,
-    system_catalog_types::c_catalog_ruleset_type,
-    system_catalog_types::c_catalog_rule_type,
-    system_catalog_types::c_event_log_type
+    static_cast<gaia_type_t>(system_table_type_t::catalog_table_type),
+    static_cast<gaia_type_t>(system_table_type_t::catalog_field_type),
+    static_cast<gaia_type_t>(system_table_type_t::catalog_ruleset_type),
+    static_cast<gaia_type_t>(system_table_type_t::catalog_rule_type),
+    static_cast<gaia_type_t>(system_table_type_t::event_log_type)
 };
 
 // Should this be initialized by the rules engine instead?

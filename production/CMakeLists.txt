@@ -104,8 +104,8 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
       ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8.java
       ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8Old.java
       ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8Safe.java
-    GENERATE_NATIVE_HEADERS storage_engine_mock_jni_headers
-      DESTINATION ${PROJECT_BINARY_DIR}/db/storage_engine/mock)
+    GENERATE_NATIVE_HEADERS storage_engine_jni_headers
+      DESTINATION ${PROJECT_BINARY_DIR}/db/storage_engine/)
   get_target_property(GAIA_TINKERPOP_JAR GaiaTinkerpop JAR_FILE)
 
   # Java tests.
@@ -118,7 +118,7 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   # FIXME: fix these tests in https://gaiaplatform.atlassian.net/browse/GAIAPLAT-260.
   # Add JNI test.
   # add_test(
-  #   NAME test_se_mock_jni
+  #   NAME test_se_jni
   #   COMMAND ${Java_JAVA_EXECUTABLE}
   #     -Djava.library.path=${PROJECT_BINARY_DIR}/db/storage_engine
   #     -cp ${GAIA_TINKERPOP_JAR}
@@ -164,5 +164,5 @@ add_subdirectory(${GOOGLE_TEST} googletest)
 
 # Customize test commands.
 file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
-  CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_semock_server>\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_semock_server\")\n"
+  CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_se_server>\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_se_server\")\n"
 )

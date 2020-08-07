@@ -111,8 +111,8 @@ pybind11::bytes get_node_payload(gaia_ptr node) {
     return pybind11::bytes(node.data(), node.data_size());
 }
 
-PYBIND11_MODULE(se_mock, m) {
-    m.doc() = "Python wrapper over Gaia COW storage engine mock.";
+PYBIND11_MODULE(se_client, m) {
+    m.doc() = "Python wrapper over Gaia COW storage engine.";
 
     m.def("begin_session", &begin_session);
     m.def("end_session", &end_session);
