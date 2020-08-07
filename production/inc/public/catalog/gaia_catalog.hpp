@@ -32,10 +32,6 @@ namespace catalog {
  */
 
 /*
- * Catalog table IDs.
- */
-
-/*
  * Data types for Gaia field records.
  */
 enum class data_type_t : uint8_t {

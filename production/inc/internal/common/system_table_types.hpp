@@ -28,7 +28,9 @@ enum class system_table_type_t : gaia_type_t {
     catalog_field_type = static_cast<gaia_type_t>(catalog_table_type_t::gaia_field),
     catalog_ruleset_type = static_cast<gaia_type_t>(catalog_table_type_t::gaia_ruleset),
     catalog_rule_type = static_cast<gaia_type_t>(catalog_table_type_t::gaia_rule),
-    event_log_type = c_system_table_reserved_range_start,
+    // TODO: assign constant IDs to other system tables starting from lower end of the reserved range, i.e.
+    //       event_log_type = c_system_table_reserved_range_start,
+    event_log_type = 30,
 };
 
 } // namespace common
