@@ -12,38 +12,37 @@ namespace direct_access
 // Implementation for gaia_iterator_t.
 //
 template <typename T_gaia>
-gaia_id_t gaia_iterator_t<T_gaia>::operator++()
+gaia_iterator_t<T_gaia>& gaia_iterator_t<T_gaia>::operator++()
 {
     if (!m_id)
     {
-        return m_id;
+        return *this;
     }
 
     auto ptr = gaia_ptr::open(m_id);
     if (!ptr)
     {
         m_id = 0;
-        return m_id;
+        return *this;
     }
 
     auto ptr_next = ptr.find_next();
     if (!ptr_next)
     {
         m_id = 0;
-        return m_id;
+        return *this;
     }
 
     m_id = ptr_next.id();
-
-    return m_id;
+    return *this;
 }
 
 template <typename T_gaia>
-gaia_id_t gaia_iterator_t<T_gaia>::operator++(int)
+gaia_iterator_t<T_gaia> gaia_iterator_t<T_gaia>::operator++(int)
 {
-    gaia_id_t id = m_id;
+    gaia_iterator_t<T_gaia> old(m_id);
     operator++();
-    return id;
+    return old;
 }
 
 template <typename T_gaia>
@@ -97,31 +96,30 @@ T_foreign gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator*()
 }
 
 template<typename T_foreign, int T_foreign_slot>
-gaia_id_t gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator++()
+gaia_set_iterator_t<T_foreign, T_foreign_slot>& gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator++()
 {
     if (!m_id)
     {
-        return m_id;
+        return *this;
     }
 
     auto ptr = gaia_ptr::open(m_id);
     if (!ptr)
     {
         m_id = 0;
-        return m_id;
+        return *this;
     }
 
     m_id = ptr.references()[T_foreign_slot];
-
-    return m_id;
+    return *this;
 }
 
 template <typename T_foreign, int T_foreign_slot>
-gaia_id_t gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator++(int)
+gaia_set_iterator_t<T_foreign, T_foreign_slot> gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator++(int)
 {
-    gaia_id_t id = m_id;
+    gaia_set_iterator_t<T_foreign, T_foreign_slot> old(m_id);
     operator++();
-    return id;
+    return old;
 }
 
 template <typename T_foreign, int T_foreign_slot>

@@ -253,13 +253,11 @@ TEST_F(gaia_object_test, scan_past_end) {
 }
 
 // Test pre/post increment of iterator.
-/* The following won't compile. Should it? Is there a syntax error?
 TEST_F(gaia_object_test, pre_post_iterator) {
     auto_transaction_t tx;
     create_employee("Hvitserk");
     create_employee("Hubert");
     create_employee("Humphrey");
-    int count = 0;
     auto e = employee_t::list().begin();
     EXPECT_STREQ((*e).name_first(), "Hvitserk");
     EXPECT_STREQ((*e++).name_first(), "Hvitserk");
@@ -271,7 +269,6 @@ TEST_F(gaia_object_test, pre_post_iterator) {
     ++e;
     EXPECT_EQ(e == employee_t::list().end(), true);
 }
-*/
 
 // Create row, try getting row from wrong type
 TEST_F(gaia_object_test, read_wrong_type) {
