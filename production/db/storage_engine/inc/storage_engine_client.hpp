@@ -86,6 +86,17 @@ class client : private se_base {
         return trigger_excluded_types.find(type) != trigger_excluded_types.end();
     }
 
+    /**
+     * Wrapper over is_invalid_event() for readability.
+     * Additionally don't generate events if the rules engine is uninitialized.
+     */ 
+    static inline bool is_valid_event(const gaia_type_t type) {
+        if (!is_invalid_event(type) && event_trigger_pool->get_commit_trigger() != nullptr) {
+            return true;
+        }
+        return false;
+    }
+
     static inline int64_t allocate_row_id() {
         if (*s_offsets == nullptr) {
             throw transaction_not_open();

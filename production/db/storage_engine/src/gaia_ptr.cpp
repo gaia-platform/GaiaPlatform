@@ -6,6 +6,8 @@
 #include "storage_engine_client.hpp"
 #include "gaia_hash_map.hpp"
 #include "gaia_ptr.hpp"
+#include "payload_diff.hpp"
+#include "field_list.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -27,7 +29,7 @@ gaia_ptr& gaia_ptr::clone() {
 
     client::tx_log(row_id, old_offset, to_offset());
 
-    if (!client::is_invalid_event(new_this->type)) {
+    if (client::is_valid_event(new_this->type)) {
         client::s_events.push_back(trigger_event_t {event_type_t::row_insert, new_this->type, new_this->id, nullptr, 0});
     }
 
@@ -54,8 +56,15 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data) {
 
     client::tx_log(row_id, old_offset, to_offset());
 
-    if (!client::is_invalid_event(new_this->type)) {
-        client::s_events.push_back(trigger_event_t {event_type_t::row_update, new_this->type, new_this->id, nullptr, 0});
+    if (client::is_valid_event(new_this->type)) {
+        auto old_data = (const uint8_t*) old_this->payload;
+    
+        if (old_this->num_references) {
+            old_data = old_data + sizeof(gaia_id_t) * old_this->num_references;
+        }
+        // Compute field diff
+        auto diff = gaia::db::types::compute_payload_position_diff(new_this->type, old_data, (const uint8_t*) data);
+        client::s_events.push_back(trigger_event_t {event_type_t::row_update, new_this->type, new_this->id, diff, diff->size()});
     }
 
     return *this;
@@ -82,7 +91,7 @@ void gaia_ptr::allocate(const size_t size) {
 }
 
 void gaia_ptr::create_insert_trigger(gaia_type_t type, gaia_id_t id) {
-    if (!client::is_invalid_event(type)) {
+    if (client::is_valid_event(type)) {
         client::s_events.push_back(trigger_event_t {event_type_t::row_insert, type, id, nullptr, 0});
     }
 }
@@ -104,7 +113,7 @@ int64_t gaia_ptr::to_offset() const {
 }
 
 void gaia_ptr::find_next(gaia_type_t type) {
-    // search for rows of this type within the range of used slots
+    // search for rows of this type within the range of used slots 
     while (++row_id && row_id < client::s_data->row_id_count + 1) {
         if (is(type)) {
             return;
@@ -115,7 +124,7 @@ void gaia_ptr::find_next(gaia_type_t type) {
 
 void gaia_ptr::reset() {
     client::tx_log(row_id, to_offset(), 0);
-    if (!client::is_invalid_event(to_ptr()->type)) {
+    if (client::is_valid_event(to_ptr()->type)) {
         client::s_events.push_back(trigger_event_t {event_type_t::row_delete, to_ptr()->type, to_ptr()->id, nullptr, 0});
     }
     (*client::s_offsets)[row_id] = 0;
