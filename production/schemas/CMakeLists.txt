@@ -19,5 +19,8 @@ set(GAIA_GENERATE ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac)
 #
 set(EVENT_LOG_DDL ${GAIA_REPO}/production/rules/event_manager/schema/event_log.ddl)
 
+
+file(MAKE_DIRECTORY ${GAIA_GENERATED_SCHEMAS})
+
 add_subdirectory(system)
 add_subdirectory(test)

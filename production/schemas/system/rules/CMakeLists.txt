@@ -18,6 +18,4 @@ add_custom_command(
 
 add_custom_target(generate_rules_headers ALL
   DEPENDS ${GAIA_GENERATED_SCHEMAS}/gaia_event_log.h
-  # Add previous target to serialize parallel builds.
-  DEPENDS generate_catalog_headers
 )

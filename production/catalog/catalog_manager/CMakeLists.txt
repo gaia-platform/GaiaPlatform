@@ -9,6 +9,7 @@ enable_testing()
 project(catalog_manager)
 
 set(GAIA_CATALOG_LIB_PUBLIC_INCLUDES
+  ${GAIA_INC}/internal/catalog
   ${GAIA_INC}/public/catalog
   ${GAIA_INC}/public/common
 )

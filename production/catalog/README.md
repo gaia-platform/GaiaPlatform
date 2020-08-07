@@ -63,4 +63,4 @@ After this, gaia production should be rebuilt with the newly generated sources.
 
 Be sure to update [system_table_types.hpp](../inc/internal/common/system_table_types.hpp) if new types are added or the type_id of the catalog tables change.
 
-Be sure to save the new `gaia_catalog.h` in place of the previous one.
+Be sure to save the new [gaia_catalog.h](../inc/internal/common/gaia_catalog.h) and [catalog_generated.h](../inc/internal/common/catalog_generated.h) in place of the previous ones.
