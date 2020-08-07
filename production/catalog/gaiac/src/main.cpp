@@ -129,6 +129,7 @@ class db_server_t {
         // Wait for server to initialize.
         cerr << "Waiting for server to initialize..." << endl;
         ::sleep(1);
+        m_server_started = true;
     }
 
     void stop() {
@@ -138,6 +139,10 @@ class db_server_t {
         cmd.append(m_server_path.c_str());
         cerr << cmd << endl;
         ::system(cmd.c_str());
+    }
+
+    bool server_started() {
+        return m_server_started;
     }
 
   private:
@@ -152,6 +157,7 @@ class db_server_t {
     }
 
     string m_server_path;
+    bool m_server_started = false;
 };
 
 int main(int argc, char *argv[]) {
@@ -213,7 +219,9 @@ int main(int argc, char *argv[]) {
             generate_headers(db_name, empty_path);
             gaia::db::end_session();
         }
-        server.stop();
+        if (server.server_started()) {
+            server.stop();
+        }
     } catch (gaia_exception &e) {
         cerr << "Caught exception \"" << e.what() << "\". May need to start the storage engine server." << endl;
         res = 1;
