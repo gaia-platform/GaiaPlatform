@@ -82,6 +82,13 @@ data_holder_t get_field_value(
     const uint8_t* binary_schema,
     field_position_t field_position);
 
+bool set_field_value(
+    gaia_id_t type_id,
+    const uint8_t* serialized_data,
+    const uint8_t* binary_schema,
+    field_position_t field_position,
+    const data_holder_t& value);
+
 // Get the size of a field of array type.
 //
 // Callers should check the catalog to determine

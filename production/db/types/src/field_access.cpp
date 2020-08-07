@@ -206,6 +206,41 @@ data_holder_t gaia::db::types::get_field_value(
     return result;
 }
 
+// The setter method for scalar fields.
+bool gaia::db::types::set_field_value(
+    gaia_id_t type_id,
+    const uint8_t* serialized_data,
+    const uint8_t* binary_schema,
+    field_position_t field_position,
+    const data_holder_t& value)
+{
+    const flatbuffers::Table* const_root_table = nullptr;
+    auto_field_cache_t auto_field_cache;
+    field_cache_t local_field_cache;
+    const reflection::Field* field = nullptr;
+
+    get_table_field_information(
+        type_id, serialized_data, binary_schema, field_position,
+        const_root_table, auto_field_cache, local_field_cache, field);
+
+    // We need to update the root_table, so we need to remove the const qualifier.
+    flatbuffers::Table* root_table = const_cast<flatbuffers::Table*>(const_root_table);
+
+    // Write field value according to its type.
+    if (flatbuffers::IsInteger(field->type()->base_type()))
+    {
+        return flatbuffers::SetAnyFieldI(root_table, *field, value.hold.integer_value);
+    }
+    else if (flatbuffers::IsFloat(field->type()->base_type()))
+    {
+        return flatbuffers::SetAnyFieldF(root_table, *field, value.hold.float_value);
+    }
+    else
+    {
+        throw unhandled_field_type(field->type()->base_type());
+    }
+}
+
 // The access method for the size of a field of array type.
 size_t gaia::db::types::get_field_array_size(
     gaia_id_t type_id,
