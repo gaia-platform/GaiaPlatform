@@ -64,8 +64,8 @@ edc_already_inserted::edc_already_inserted(
     const char* parent_type)
 {
     stringstream msg;
-    msg << "The object being inserted has already been inserted to object with Gaia type " << parent_type
-        << ", id is " << parent << ". Erase first.";
+    msg << "The object being inserted is a member of this same list type but a different owner. "
+        "The owner object type is " << parent_type << ", and id is " << parent << ".";
     m_message = msg.str();
 }
 

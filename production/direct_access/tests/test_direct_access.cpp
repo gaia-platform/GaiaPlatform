@@ -104,7 +104,7 @@ TEST_F(gaia_object_test, read_original_from_copy) {
 }
 
 // Insert a row with no field values
-TEST_F(gaia_object_test, new_ins_get) {
+TEST_F(gaia_object_test, new_insert_get) {
     begin_transaction();
 
     auto e = employee_t::get(employee_writer().insert_row());
@@ -130,7 +130,7 @@ TEST_F(gaia_object_test, new_get) {
 }
 
 // Attempt to insert with an update writer, this should work.
-TEST_F(gaia_object_test, existing_ins_field) {
+TEST_F(gaia_object_test, existing_insert_field) {
     begin_transaction();
     auto e = employee_t::get(employee_writer().insert_row());
     auto writer = e.writer();
@@ -217,7 +217,7 @@ TEST_F(gaia_object_test, no_update_read_back) {
 }
 
 // Delete an inserted object then insert after; the new row is good.
-TEST_F(gaia_object_test, new_del_ins) {
+TEST_F(gaia_object_test, new_delete_insert) {
     begin_transaction();
     auto e = create_employee("Hector");
     auto w = e.writer();
@@ -335,7 +335,7 @@ TEST_F(gaia_object_test, new_del_field_ref) {
 }
 
 // Delete a found object then update
-TEST_F(gaia_object_test, new_del_upd) {
+TEST_F(gaia_object_test, new_del_update) {
     begin_transaction();
     auto e = create_employee("Hector");
     e.delete_row();
@@ -363,7 +363,7 @@ TEST_F(gaia_object_test, found_del_ins) {
 }
 
 // Delete a found object then update
-TEST_F(gaia_object_test, found_del_upd) {
+TEST_F(gaia_object_test, found_del_update) {
     begin_transaction();
     auto e = create_employee("Hector");
     auto eid = e.gaia_id();

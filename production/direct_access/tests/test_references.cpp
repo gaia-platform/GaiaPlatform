@@ -303,7 +303,6 @@ TEST_F(gaia_references_test, connect_to_ids) {
     address_w.city = "Kirkland";
     gaia_id_t aid2 = address_w.insert_row();
 
-    // Start a new transaction so that the objects are created fresh.
     tx.commit();
 
     // Generate the object from the ids.
@@ -337,23 +336,6 @@ TEST_F(gaia_references_test, connect_after_tx) {
     EXPECT_STREQ((*addr).city(), "Boulder");
 }
 
-// TEST_F(gaia_references_test, writer_update) {
-//     auto_transaction_t tx;
-
-//     employee_writer employee_w;
-//     auto e1 = insert_employee(employee_w, "Horace");
-
-//     tx.commit();
-//     employee_writer empl_w = e1.writer();
-//     EXPECT_STREQ(empl_w.name_first.c_str(), "Horace");
-//     empl_w.name_first = "Hubert";
-//     EXPECT_STREQ(e1.name_first(), "Horace");
-//     EXPECT_STREQ(empl_w.name_first.c_str(), "Hubert");
-//     empl_w.update_row();
-//     EXPECT_STREQ(empl_w.name_first.c_str(), "Hubert");
-//     EXPECT_STREQ(e1.name_first(), "Hubert");
-// }
-
 // Erase list members inserted in prior transaction.
 TEST_F(gaia_references_test, disconnect_after_tx) {
     auto_transaction_t tx;
@@ -382,13 +364,18 @@ TEST_F(gaia_references_test, connect_twice) {
     /* Create some unconnected Employee and Address objects */
     employee_writer employee_w;
     auto e1 = insert_employee(employee_w, "Horace");
+    auto e2 = insert_employee(employee_w, "Hector");
 
     address_writer address_w;
     auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
 
-    // The second insert should fail.
+    // The second insert is redundant and is treated as a no-op.
     e1.addresses_list().insert(a1);
-    EXPECT_THROW(e1.addresses_list().insert(a1), edc_already_inserted);
+    e1.addresses_list().insert(a1);
+
+    // The third insert is illegal because the address cannot be on the
+    // same list of two owners.
+    EXPECT_THROW(e2.addresses_list().insert(a1), edc_already_inserted);
 }
 
 // Generate an exception by attempting to erase un-inserted member.
@@ -509,7 +496,8 @@ void insert_addresses(bool committed, gaia_id_t eid1, gaia_id_t aid1, gaia_id_t 
         auto a2 = address_t::get(aid2);
         auto a3 = address_t::get(aid3);
         if (committed) {
-            EXPECT_THROW(e1.addresses_list().insert(a1), edc_already_inserted);
+            // Note this first insert has already been done. This is no-op.
+            e1.addresses_list().insert(a1);
             e1.addresses_list().insert(a2);
             e1.addresses_list().insert(a3);
         }

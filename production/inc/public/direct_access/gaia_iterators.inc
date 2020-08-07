@@ -178,8 +178,13 @@ void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_
         return;
     }
 
-    // Cannot connect a foreign object that is already connected.
-    if (foreign_edc.references()[T_parent_slot] != 0) {
+    // This is a no-op if it is already connected to this owner.
+    if (foreign_edc.references()[T_parent_slot] == oid) {
+        return;
+    }
+
+    // Cannot connect a foreign object that is already connected to a differrent owner.
+    if (foreign_edc.references()[T_parent_slot] != 0 && foreign_edc.references()[T_parent_slot] != oid) {
         T_primary expected = T_primary::get(0);
         throw edc_already_inserted(foreign_edc.references()[T_parent_slot], expected.gaia_typename());
     }
