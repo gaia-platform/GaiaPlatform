@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 
+#include "flatbuffers/idl.h"
+
 #include "catalog_manager.hpp"
 #include "gaia_parser.hpp"
 #include "gaia_system.hpp"
@@ -62,51 +64,60 @@ void start_repl(parser_t &parser) {
     }
 }
 
-// From the database name and catalog contents, generate the flatbuffer and Gaia EDC header files.
-void generate_headers(const string& db_name, const string& output_path) {
-    // Generate the flatbuffer schema file.
-    ofstream fbs(output_path + db_name + ".fbs");
-    fbs << "namespace gaia." << db_name << ";" << endl << endl;
-    fbs << gaia::catalog::generate_fbs() << endl;
-    fbs.close();
+namespace flatbuffers {
+void LogCompilerWarn(const std::string &warn) {
+    cout << "warn: " << warn << endl;
+}
+void LogCompilerError(const std::string &err) {
+    cout << "error: " << err << endl;
+}
+} // namespace flatbuffers
 
-    // Run the flatbuffer compiler, flatc, on this schema.
-    string flatc_cmd = "flatc --cpp --gen-object-api ";
-    flatc_cmd += "--cpp-str-type gaia::direct_access::nullable_string_t --cpp-str-flex-ctor ";
-    if (!output_path.empty())
-    {
-        flatc_cmd += "-o ";
-        flatc_cmd += output_path + " ";
+// From the database name and catalog contents, generate the FlatBuffers C++ header file(s).
+void generate_fbs_headers(const string &db_name, const string &output_path) {
+    flatbuffers::IDLOptions fbs_opts;
+    fbs_opts.generate_object_based_api = true;
+    fbs_opts.cpp_object_api_string_type = "gaia::direct_access::nullable_string_t";
+    fbs_opts.cpp_object_api_string_flexible_constructor = true;
+
+    flatbuffers::Parser fbs_parser(fbs_opts);
+
+    string fbs_schema = "namespace gaia." + db_name + ";\n" +
+                        gaia::catalog::generate_fbs();
+    if (!fbs_parser.Parse(fbs_schema.c_str())) {
+        cerr << "Fail to parse the catalog generated FlatBuffers schema. Error: "
+             << fbs_parser.error_ << endl;
     }
-    flatc_cmd += output_path + db_name + ".fbs";
-    auto rc = system(flatc_cmd.c_str());
 
-    // Generate the Extended Data Class definitions
+    if (!flatbuffers::GenerateCPP(fbs_parser, output_path, db_name)) {
+        cerr << "Unable to generate FlatBuffers C++ headers for " << db_name << endl;
+    };
+}
+
+// From the database name and catalog contents, generate the Extended Data Class definition(s).
+void generate_edc_headers(const string &db_name, const string &output_path) {
     ofstream edc(output_path + "gaia_" + db_name + ".h");
     edc << gaia::catalog::gaia_generate(db_name) << endl;
     edc.close();
+}
 
-    if (rc != 0) {
-        cout << "flatc failed to compile " + db_name + ".fbs" ", return code = " << rc << endl;
-    }
+void generate_headers(const string &db_name, const string &output_path) {
+    generate_fbs_headers(db_name, output_path);
+    generate_edc_headers(db_name, output_path);
 }
 
 // Add a trailing '/' if not provided.
-void terminate_path(string& path)
-{
-    if (path.back() != '/')
-    {
+void terminate_path(string &path) {
+    if (path.back() != '/') {
         path.append("/");
     }
 }
 
 // Temporary start server (taken and modified from db_test_helpers)
 // Use case is always to call start() followed by stop().
-class db_server_t
-{
-public:
-    void start(const char* db_server_path)
-    {
+class db_server_t {
+  public:
+    void start(const char *db_server_path) {
         set_path(db_server_path);
         stop();
 
@@ -120,8 +131,7 @@ public:
         ::sleep(1);
     }
 
-    void stop()
-    {
+    void stop() {
         // Try to kill the SE server process.
         // REVIEW: we should be using a proper process library for this, so we can kill by PID.
         string cmd = "pkill -f -KILL ";
@@ -130,15 +140,11 @@ public:
         ::system(cmd.c_str());
     }
 
-private:
-    void set_path(const char* db_server_path)
-    {
-        if (!db_server_path)
-        {
+  private:
+    void set_path(const char *db_server_path) {
+        if (!db_server_path) {
             m_server_path = gaia::db::SE_SERVER_NAME;
-        }
-        else
-        {
+        } else {
             m_server_path = db_server_path;
             terminate_path(m_server_path);
             m_server_path.append(gaia::db::SE_SERVER_NAME);
@@ -170,7 +176,7 @@ int main(int argc, char *argv[]) {
                 // Note the order dependency.
                 // Require a path right after this
                 ++i;
-                const char* path_to_db_server = argv[i];
+                const char *path_to_db_server = argv[i];
                 server.start(path_to_db_server);
             } else if (argv[i] == string("-o")) {
                 ++i;
@@ -184,7 +190,7 @@ int main(int argc, char *argv[]) {
                     // Strip off the path and any suffix to get database name.
                     string db_name = string(argv[i]);
                     if (db_name.find("/") != string::npos) {
-                        db_name = db_name.substr(db_name.find_last_of("/")+1);
+                        db_name = db_name.substr(db_name.find_last_of("/") + 1);
                     }
                     if (db_name.find(".") != string::npos) {
                         db_name = db_name.substr(0, db_name.find_last_of("."));
