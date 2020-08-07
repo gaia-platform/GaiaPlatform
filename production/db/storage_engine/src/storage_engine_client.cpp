@@ -41,6 +41,27 @@ void client::destroy_log_mapping() {
     }
 }
 
+// This function is intended only for use in test scenarios, where we need to clear
+// stale mappings and file descriptors referencing shared memory segments that have
+// been reinitialized by the server following receipt of SIGHUP (test-only feature).
+// It is not concurrency-safe, since we assume that no sessions are active while this
+// function is being called, which is a reasonable assumption for tests.
+void client::clear_shared_memory() {
+    // This is intended to be called before any session is established.
+    verify_no_session();
+    // We closed our original fd for the data segment, so we only need to unmap it.
+    if (s_data) {
+        unmap_fd(s_data, sizeof(data));
+        s_data = nullptr;
+    }
+    // If the server has already closed its fd for the offset segment
+    // (and there are no other clients), this will release it.
+    if (s_fd_offsets != -1) {
+        close(s_fd_offsets);
+        s_fd_offsets = -1;
+    }
+}
+
 void client::tx_cleanup() {
     // Destroy the log memory mapping.
     destroy_log_mapping();
