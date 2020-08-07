@@ -4,11 +4,12 @@
 /////////////////////////////////////////////
 #pragma once
 
-#include <set>
-#include <string>
-#include <sstream>
-#include <vector>
+#include <limits>
 #include <memory>
+#include <set>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #include "gaia_common.hpp"
 #include "gaia_exception.hpp"
@@ -28,6 +29,10 @@ namespace catalog {
 
 /*
  * The following enum classes are shared cross the catalog usage.
+ */
+
+/*
+ * Catalog table IDs.
  */
 
 /*

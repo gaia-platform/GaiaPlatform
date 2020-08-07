@@ -17,7 +17,6 @@ set(GAIA_GENERATE ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac)
 #
 # System DDL files we are pulling in.
 #
-set(CATALOG_DDL ${GAIA_REPO}/production/catalog/catalog_manager/src/catalog.ddl)
 set(EVENT_LOG_DDL ${GAIA_REPO}/production/rules/event_manager/schema/event_log.ddl)
 
 add_subdirectory(system)

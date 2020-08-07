@@ -163,16 +163,16 @@ static string generate_declarations() {
     return str;
 }
 
-static string generate_edc_struct(int position, string table_name, field_vec& field_strings,
+static string generate_edc_struct(gaia_type_t table_type_id, string table_name, field_vec& field_strings,
     references_vec& references_1, references_vec& references_n)
 {
     code_writer code(indent_string);
 
     // Struct statement.
     code.set_value("TABLE_NAME", table_name);
-    code.set_value("POSITION", to_string(position));
-    code += "typedef gaia_writer_t<{{POSITION}},{{TABLE_NAME}}_t,{{TABLE_NAME}},{{TABLE_NAME}}T,c_num_{{TABLE_NAME}}_ptrs> {{TABLE_NAME}}_writer;";
-    code += "struct {{TABLE_NAME}}_t : public gaia_object_t<{{POSITION}},{{TABLE_NAME}}_t,{{TABLE_NAME}},{{TABLE_NAME}}T,c_num_{{TABLE_NAME}}_ptrs> {";
+    code.set_value("POSITION", to_string(table_type_id));
+    code += "typedef gaia_writer_t<{{POSITION}}llu,{{TABLE_NAME}}_t,{{TABLE_NAME}},{{TABLE_NAME}}T,c_num_{{TABLE_NAME}}_ptrs> {{TABLE_NAME}}_writer;";
+    code += "struct {{TABLE_NAME}}_t : public gaia_object_t<{{POSITION}}llu,{{TABLE_NAME}}_t,{{TABLE_NAME}},{{TABLE_NAME}}T,c_num_{{TABLE_NAME}}_ptrs> {";
 
     code.increment_indent_level();
 
@@ -245,9 +245,9 @@ static string generate_edc_struct(int position, string table_name, field_vec& fi
     }
 
     // The table range.
-    code += "static gaia_container_t<{{POSITION}}, {{TABLE_NAME}}_t>& list() {";
+    code += "static gaia_container_t<{{POSITION}}llu, {{TABLE_NAME}}_t>& list() {";
     code.increment_indent_level();
-    code += "static gaia_container_t<{{POSITION}}, {{TABLE_NAME}}_t> list;";
+    code += "static gaia_container_t<{{POSITION}}llu, {{TABLE_NAME}}_t> list;";
     code += "return list;";
     code.decrement_indent_level();
     code += "}";
@@ -275,7 +275,7 @@ static string generate_edc_struct(int position, string table_name, field_vec& fi
     code.decrement_indent_level();
     code += "private:";
     code.increment_indent_level();
-    code += "friend struct gaia_object_t<{{POSITION}}, {{TABLE_NAME}}_t, {{TABLE_NAME}}, {{TABLE_NAME}}T, c_num_{{TABLE_NAME}}_ptrs>;";
+    code += "friend struct gaia_object_t<{{POSITION}}llu, {{TABLE_NAME}}_t, {{TABLE_NAME}}, {{TABLE_NAME}}T, c_num_{{TABLE_NAME}}_ptrs>;";
 
     // The constructor.
     code += "{{TABLE_NAME}}_t(gaia_id_t id) : gaia_object_t(id, \"{{TABLE_NAME}}_t\") {";
@@ -315,7 +315,6 @@ string gaia_generate(string dbname) {
 
     code_lines += generate_declarations();
 
-    int position = 1;
     for (auto table_id : list_tables()) {
         field_vec field_strings;
         auto table_record = gaia_table_t::get(table_id);
@@ -326,7 +325,7 @@ string gaia_generate(string dbname) {
         for (auto ref_id : list_references(table_id)) {
             gaia_field_t ref_record = gaia_field_t::get(ref_id);
         }
-        code_lines += generate_edc_struct(position++, table_record.name(), field_strings, references_1[table_id], references_n[table_id]);
+        code_lines += generate_edc_struct(table_id, table_record.name(), field_strings, references_1[table_id], references_n[table_id]);
     }
     commit_transaction();
 
