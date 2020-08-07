@@ -27,14 +27,18 @@ const int64_t c_identifier = 7364592217;
 const int64_t c_new_identifier = 9287332599;
 const size_t c_count_known_associates = 4;
 const int64_t c_known_associates[] = { 8583390572, 8438230053, 2334850034, 5773382939 };
+const size_t c_index_new_known_associate = 1;
+const int64_t c_new_known_associate = 7234958243;
 const size_t c_count_known_aliases = 4;
 const char* c_known_aliases[] = { "Mamba Lev", "One Hand Rending", "The Icepick", "Ken Kakura" };
 const double c_sleeve_cost = 769999.19;
-const double c_new_sleeve_cost = 1299999.29;
-const float c_monthly_sleeve_insurance = 149.39;
-const float c_new_monthly_sleeve_insurance = 259.49;
+const double c_new_sleeve_cost = 1299999.69;
+const float c_monthly_sleeve_insurance = 149.29;
+const float c_new_monthly_sleeve_insurance = 259.79;
 const size_t c_count_credit_amounts = 3;
-const double c_last_yearly_top_credit_amounts[] = { 199000000, 99000000, 0 };
+const double c_last_yearly_top_credit_amounts[] = { 190000000.39, 29900000.49, 0 };
+const size_t c_index_new_credit_amount = 1;
+const double c_new_credit_amount = 39900000.89;
 
 enum field
 {
@@ -122,7 +126,15 @@ void get_fields_data(
             i);
         cout << "\t\tknown_associate[" << i << "] = " << known_associate.hold.integer_value << endl;
         ASSERT_EQ(known_associate.type, reflection::Long);
-        ASSERT_EQ(c_known_associates[i], known_associate.hold.integer_value);
+        if (i == c_index_new_known_associate)
+        {
+            ASSERT_EQ(check_new_values ? c_new_known_associate : c_known_associates[i],
+                known_associate.hold.integer_value);
+        }
+        else
+        {
+            ASSERT_EQ(c_known_associates[i], known_associate.hold.integer_value);
+        }
     }
 
     size_t count_known_aliases = get_field_array_size(
@@ -186,7 +198,18 @@ void get_fields_data(
             i);
         cout << "\t\tcredit_amount[" << i << "] = " << credit_amount.hold.float_value << endl;
         ASSERT_EQ(credit_amount.type, reflection::Double);
-        ASSERT_EQ(c_last_yearly_top_credit_amounts[i], credit_amount.hold.float_value);
+        if (i == c_index_new_credit_amount)
+        {
+            ASSERT_TRUE(credit_amount.hold.float_value
+                >= (check_new_values ? c_new_credit_amount : c_last_yearly_top_credit_amounts[i]));
+            ASSERT_TRUE(credit_amount.hold.float_value
+                <= (check_new_values ? c_new_credit_amount : c_last_yearly_top_credit_amounts[i]) + 1);
+        }
+        else
+        {
+            ASSERT_TRUE(credit_amount.hold.float_value >= c_last_yearly_top_credit_amounts[i]);
+            ASSERT_TRUE(credit_amount.hold.float_value <= c_last_yearly_top_credit_amounts[i] + 1);
+        }
     }
 }
 
@@ -311,6 +334,19 @@ void update_flatbuffers_data()
         new_identifier);
     ASSERT_EQ(true, set_result);
 
+    cout << "\tupdating known_associate[" << c_index_new_known_associate
+        << "] to " << c_new_known_associate << "..." << endl;
+    data_holder_t new_known_associate;
+    new_known_associate.type = reflection::Long;
+    new_known_associate.hold.integer_value = c_new_known_associate;
+    set_field_array_element(
+        c_type_id,
+        data_loader.get_data(),
+        nullptr,
+        field::known_associates,
+        c_index_new_known_associate,
+        new_known_associate);
+
     cout << "\tupdating sleeve_cost to " << c_new_sleeve_cost << "..." << endl;
     data_holder_t new_sleeve_cost;
     new_sleeve_cost.type = reflection::Double;
@@ -334,6 +370,19 @@ void update_flatbuffers_data()
         field::monthly_sleeve_insurance,
         new_monthly_sleeve_insurance);
     ASSERT_EQ(true, set_result);
+
+    cout << "\tupdating credit_amount[" << c_index_new_credit_amount
+        << "] to " << c_new_credit_amount << "..." << endl;
+    data_holder_t new_credit_amount;
+    new_credit_amount.type = reflection::Double;
+    new_credit_amount.hold.float_value = c_new_credit_amount;
+    set_field_array_element(
+        c_type_id,
+        data_loader.get_data(),
+        nullptr,
+        field::last_yearly_top_credit_amounts,
+        c_index_new_credit_amount,
+        new_credit_amount);
 
     // Read back the modified data using cache information.
     // Schema information is not passed to the get_field_value() calls.

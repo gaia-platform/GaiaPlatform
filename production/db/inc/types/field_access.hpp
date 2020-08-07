@@ -92,7 +92,7 @@ data_holder_t get_field_value(
     const uint8_t* binary_schema,
     field_position_t field_position);
 
-// Set the field value of a table record payload.
+// Set the scalar field value of a table record payload.
 // The new value is provided in a data_holder_t structure.
 //
 // The binary_schema passed in will only be used if the type_cache
@@ -131,6 +131,21 @@ data_holder_t get_field_array_element(
     const uint8_t* binary_schema,
     field_position_t field_position,
     size_t array_index);
+
+// Set a specific element of a scalar field of array type.
+//
+// An exception will be thrown if the index is out of bounds.
+// Callers can first call get_table_field_array_size()
+// to find the array's size.
+//
+// This function only works for scalar fields (integers and floating point numbers).
+void set_field_array_element(
+    gaia_id_t type_id,
+    const uint8_t* serialized_data,
+    const uint8_t* binary_schema,
+    field_position_t field_position,
+    size_t array_index,
+    const data_holder_t& value);
 
 }
 }

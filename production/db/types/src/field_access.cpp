@@ -161,7 +161,7 @@ void get_table_field_array_information(
     }
 }
 
-// The access method for scalar fields.
+// The access method for scalar fields and strings.
 data_holder_t gaia::db::types::get_field_value(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
@@ -220,6 +220,11 @@ bool gaia::db::types::set_field_value(
     get_table_field_information(
         type_id, serialized_data, binary_schema, field_position,
         const_root_table, auto_field_cache, local_field_cache, field);
+
+    retail_assert(
+        (flatbuffers::IsInteger(field->type()->base_type()) && flatbuffers::IsInteger(value.type))
+        || (flatbuffers::IsFloat(field->type()->base_type()) && flatbuffers::IsFloat(value.type)),
+        "Attempt to set value of incorrect type");
 
     // We need to update the root_table, so we need to remove the const qualifier.
     flatbuffers::Table* root_table = const_cast<flatbuffers::Table*>(const_root_table);
@@ -284,22 +289,22 @@ data_holder_t gaia::db::types::get_field_array_element(
     result.type = field->type()->element();
     if (flatbuffers::IsInteger(field->type()->element()))
     {
-        result.hold.integer_value = GetAnyVectorElemI(field_value, field->type()->element(), array_index);
+        result.hold.integer_value = flatbuffers::GetAnyVectorElemI(
+            field_value, field->type()->element(), array_index);
     }
     else if (flatbuffers::IsFloat(field->type()->element()))
     {
-        result.hold.float_value = GetAnyVectorElemF(field_value, field->type()->element(), array_index);
+        result.hold.float_value = flatbuffers::GetAnyVectorElemF(
+            field_value, field->type()->element(), array_index);
     }
     else if (field->type()->element() == reflection::String)
     {
         const flatbuffers::String* field_element_value
             = flatbuffers::GetAnyVectorElemPointer<const flatbuffers::String>(field_value, array_index);
-        if (field_element_value == nullptr)
-        {
-            throw invalid_serialized_data();
-        }
 
-        result.hold.string_value = field_element_value->c_str();
+        // For null strings, the field_value will come back as nullptr,
+        // so just set the string_value to nullptr as well.
+        result.hold.string_value = (field_element_value == nullptr) ? nullptr : field_element_value->c_str();
     }
     else
     {
@@ -307,4 +312,49 @@ data_holder_t gaia::db::types::get_field_array_element(
     }
 
     return result;
+}
+
+// The setter method for a scalar element of a field of array type.
+void gaia::db::types::set_field_array_element(
+    gaia_id_t type_id,
+    const uint8_t* serialized_data,
+    const uint8_t* binary_schema,
+    field_position_t field_position,
+    size_t array_index,
+    const data_holder_t& value)
+{
+    const flatbuffers::Table* const_root_table = nullptr;
+    auto_field_cache_t auto_field_cache;
+    field_cache_t local_field_cache;
+    const reflection::Field* field = nullptr;
+    const flatbuffers::VectorOfAny* const_field_value = nullptr;
+
+    get_table_field_array_information(
+        type_id, serialized_data, binary_schema, field_position,
+        const_root_table, auto_field_cache, local_field_cache, field, const_field_value);
+
+    retail_assert(array_index < const_field_value->size(), "Attempt to index array is out-of-bounds.");
+    retail_assert(
+        (flatbuffers::IsInteger(field->type()->element()) && flatbuffers::IsInteger(value.type))
+        || (flatbuffers::IsFloat(field->type()->element()) && flatbuffers::IsFloat(value.type)),
+        "Attempt to set value of incorrect type");
+
+    // We need to update the serialization, so we need to remove the const qualifier.
+    flatbuffers::VectorOfAny* field_value = const_cast<flatbuffers::VectorOfAny* >(const_field_value);
+
+    // Write field value according to its type.
+    if (flatbuffers::IsInteger(field->type()->element()))
+    {
+        flatbuffers::SetAnyVectorElemI(
+            field_value, field->type()->element(), array_index, value.hold.integer_value);
+    }
+    else if (flatbuffers::IsFloat(field->type()->element()))
+    {
+        flatbuffers::SetAnyVectorElemF(
+            field_value, field->type()->element(), array_index, value.hold.float_value);
+    }
+    else
+    {
+        throw unhandled_field_type(field->type()->element());
+    }
 }
