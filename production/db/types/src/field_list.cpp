@@ -38,7 +38,7 @@ field_list_t& field_list_t::operator=(const field_list_t& other) {
     return *this;
 }
 
-gaia_id_t field_list_t::operator[](size_t idx) const {
+field_position_t field_list_t::operator[](size_t idx) const {
     if (idx >= size()) {
         throw field_list_index_out_of_bounds();
     }
@@ -59,7 +59,8 @@ void field_list_t::initialize() {
     tx.commit();
 
     size_t reserve_size = (c_max_vector_reserve < num_fields) ? c_max_vector_reserve : num_fields;
-    m_data.reset(new vector<field_position_t>()); // change to make_unique with C++14 and above.
+    // change the following to make_unique with C++14 and above.
+    m_data.reset(new vector<field_position_t>());
     m_data->reserve(reserve_size);
 }
 
@@ -116,6 +117,6 @@ field_list_t field_list_t::intersect(const field_list_t& other) const {
 }
 
 // Get table_id associated with this list.
-gaia_id_t field_list_t::get_table_id() const {
+gaia_id_t field_list_t::get_type_id() const {
     return m_type_id;
 }

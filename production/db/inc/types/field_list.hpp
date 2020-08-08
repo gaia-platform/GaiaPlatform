@@ -44,7 +44,7 @@ class field_list_t {
     void initialize();
 
     public:
-    // Constructor, accepts table_id for this list as the input.
+    // Constructor, accepts type_id for this list as the input.
     field_list_t(gaia_id_t type_id);
 
     // Copy and move.
@@ -53,7 +53,7 @@ class field_list_t {
     field_list_t(field_list_t&& other) = default;
     field_list_t& operator=(field_list_t&& other) = default;
 
-    gaia_id_t operator[](size_t idx) const;
+    field_position_t operator[](size_t idx) const;
 
     // Is this field a member?
     bool contains(field_position_t field_pos) const;
@@ -73,8 +73,8 @@ class field_list_t {
     // Validate: check if this list is valid against the catalog.
     bool validate() const;
 
-    // Getter: table_id.
-    gaia_id_t get_table_id() const;
+    // Getter: type_id.
+    gaia_id_t get_type_id() const;
 };
 
 }
