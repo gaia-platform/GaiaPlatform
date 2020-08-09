@@ -44,9 +44,11 @@ namespace db
              * Iterate over all elements in the LSM and call storage engine create apis 
              * for every key/value pair obtained (after deduping keys).
              */
-            Status read_on_recovery();
+            void recover();
 
-            void prepare_tx();
+            Status prepare_tx(gaia_xid_t transaction_id);
+
+            void commit_tx(gaia_xid_t transaction_id);
 
             void commit_tx(int64_t trid);
 

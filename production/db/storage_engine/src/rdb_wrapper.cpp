@@ -4,6 +4,7 @@
 /////////////////////////////////////////////
 
 #include "storage_engine.hpp"
+#include "storage_engine_server.hpp"
 #include "rocksdb/db.h"
 #include "rocksdb/write_batch.h"
 #include "rdb_wrapper.hpp"
@@ -54,8 +55,8 @@ void rdb_wrapper::destroy() {
     rdb_internal->destroy();
 }
 
-void rdb_wrapper::commit_tx(int64_t trid) {
-    rocksdb::Status status = rdb_internal->commit_txn(trid);
+void rdb_wrapper::commit_tx(gaia_xid_t transaction_id) {
+    rocksdb::Status status = rdb_internal->commit_txn(transaction_id);
     
     // Ideally, this should always go through as RocksDB validation is switched off.
     // For now, abort if commit fails.
@@ -69,37 +70,31 @@ void rdb_wrapper::commit_tx(int64_t trid) {
 Status rdb_wrapper::prepare_tx(gaia_xid_t transaction_id) {
     rocksdb::WriteOptions writeOptions{};
     rocksdb::TransactionOptions txnOptions{};
-    auto s_log = gaia_mem_base::get_log();
+    auto s_log = se_base::s_log;
     
-    rocksdb::Transaction* trx = rdb_internal->begin_txn(writeOptions, txnOptions, gaia_mem_base::get_trid());
-
-    //set of deleted keys
-    set<int64_t> deleted_id;
+    rocksdb::Transaction* trx = rdb_internal->begin_txn(writeOptions, txnOptions, transaction_id);
 
     for (auto i = 0; i < s_log->count; i++) {
 
         auto lr = s_log->log_records + i;
 
-        if (lr->operation == GaiaOperation::remove) {
+        if (lr->operation == se_base::gaia_operation_t::remove) {
             // Encode key to be deleted.
-            // Op1: Reset later
-            // Op2: Log key to be deleted.
             string_writer key; 
-            // Create key.
-            key.write_uint64(lr->fbb_type);
-            key.write_uint64(lr->gaia_id);
+            key.write_uint64(lr->type);
+            key.write_uint64(lr->id);
             trx->Delete(key.to_slice());
         } else {
             string_writer key; 
             string_writer value;
-            void* gaia_object = gaia_mem_base::offset_to_ptr(lr->row_id);
+            void* gaia_object = server::offset_to_ptr(lr->row_id);
 
             if (!gaia_object) {
                 // object was deleted in current tx
                 continue;
             }
 
-            rdb_object_converter_util::encode_object(static_cast<object*>(gaia_object), &key, &value);
+            rdb_object_converter_util::encode_object((gaia_ptr::object*) gaia_object, &key, &value);
 
             // Gaia objects encoded as key-value slices shouldn't be empty.
             assert(key.get_current_position() != 0 && value.get_current_position() != 0);
@@ -122,15 +117,17 @@ Status rdb_wrapper::prepare_tx(gaia_xid_t transaction_id) {
  * Note that, for now we skip validating the existence of object references on recovery, 
  * since these aren't checked during object creation either. 
  */
-void rdb_wrapper::read_on_recovery() {
+void rdb_wrapper::recover() {
     rocksdb::Iterator* it = rdb_internal->get_iterator();
-    uint64_t max_id = gaia_mem_base::get_current_id();
+    uint64_t max_id = se_base::get_current_id();
     
     for (it->SeekToFirst(); it->Valid(); it->Next()) {
         rdb_object_converter_util::decode_object(it->key(), it->value(), &max_id);
     }
 
-    gaia_mem_base::set_id(max_id + 1);
+    se_base::set_id(max_id + 1);
+
+    // Purge the log.
 
     delete it; 
 }

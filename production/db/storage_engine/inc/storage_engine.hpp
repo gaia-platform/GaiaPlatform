@@ -40,6 +40,8 @@ const size_t MAX_MSG_SIZE = 1 << 10;
 class se_base {
     friend class gaia_ptr;
     friend class gaia_hash_map;
+    friend class rdb_wrapper;
+    friend class rdb_object_converter_util;
 
    protected:
     static const char* const SERVER_CONNECT_SOCKET_NAME;
@@ -59,6 +61,13 @@ class se_base {
         gaia_id_t id;
         int64_t next;
         int64_t row_id;
+    };
+
+    enum gaia_operation_t: int8_t {
+        create = 0x0,
+        update = 0x1,
+        remove = 0x2,
+        clone  = 0x3
     };
 
     struct data {
@@ -81,6 +90,9 @@ class se_base {
             int64_t row_id;
             int64_t old_object;
             int64_t new_object;
+            gaia_id_t id;
+            gaia_type_t type;
+            gaia_operation_t operation;
         } log_records[MAX_LOG_RECS];
     };
 
@@ -100,6 +112,16 @@ class se_base {
     static gaia_id_t generate_id() {
         gaia_id_t id = __sync_add_and_fetch(&s_data->next_id, 1);
         return id;
+    }
+
+    // Only used during recovery.
+    static void set_id(gaia_id_t id) {
+        s_data->next_id = id;
+    }
+
+    // Only used during recovery.
+    static gaia_id_t get_current_id() {
+        return s_data->next_id;
     }
 
     static gaia_xid_t allocate_transaction_id() {

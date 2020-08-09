@@ -19,6 +19,7 @@ class gaia_ptr {
     // We need access to private implementation state of the client library.
     friend class client;
     friend class rdb_object_converter_util;
+    friend class rdb_wrapper;
 
    private:
     int64_t row_id;
@@ -74,8 +75,8 @@ class gaia_ptr {
         bool log_updates = true) {
         size_t refs_len = num_refs * sizeof(gaia_id_t);
         size_t total_len = data_size + refs_len;
-        gaia_ptr obj(id, total_len + sizeof(gaia_ptr::object), log_updates);
-        gaia_ptr::object* obj_ptr = obj.to_ptr();
+        gaia_ptr obj(id, total_len + sizeof(object), log_updates);
+        object* obj_ptr = obj.to_ptr();
         obj_ptr->id = id;
         obj_ptr->type = type;
         obj_ptr->num_references = num_refs;
@@ -84,7 +85,10 @@ class gaia_ptr {
         }
         obj_ptr->payload_size = total_len;
         memcpy(obj_ptr->payload + refs_len, data, data_size);
-        obj.create_insert_trigger(type, id);
+        // Don't create insert triggers during recovery.
+        if (log_updates) {
+            obj.create_insert_trigger(type, id);
+        }
         return obj;
     }
 
@@ -175,7 +179,7 @@ class gaia_ptr {
 
     void allocate(const size_t size);
 
-    gaia_ptr::object* to_ptr() const;
+    object* to_ptr() const;
 
     int64_t to_offset() const;
 

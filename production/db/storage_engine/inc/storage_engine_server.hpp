@@ -32,6 +32,7 @@ class invalid_session_transition : public gaia_exception {
 };
 
 class server : private se_base {
+    friend class rdb_wrapper;
    public:
     static void run();
 
@@ -471,6 +472,14 @@ class server : private se_base {
         }
     }
 
+    static void* offset_to_ptr(int64_t offset)
+    {
+        return offset && (*s_shared_offsets)[offset]
+            ? (se_base::s_data->objects
+                         + (*s_shared_offsets)[offset])
+            : nullptr;
+    }
+
     // Before this method is called, we have already received the log fd from the client
     // and mmapped it.
     // This method returns true for a commit decision and false for an abort decision.
@@ -495,11 +504,13 @@ class server : private se_base {
 
         std::set<int64_t> row_ids;
 
+        // Prep writes to log.
         for (auto i = 0; i < s_log->count; i++) {
             auto lr = s_log->log_records + i;
 
             if (row_ids.insert(lr->row_id).second) {
                 if ((*s_shared_offsets)[lr->row_id] != lr->old_object) {
+                    // Append Rollback decision to log.
                     return false;
                 }
             }
@@ -509,6 +520,8 @@ class server : private se_base {
             auto lr = s_log->log_records + i;
             (*s_shared_offsets)[lr->row_id] = lr->new_object;
         }
+
+        // Append commit decision to WAL.
 
         return true;
     }

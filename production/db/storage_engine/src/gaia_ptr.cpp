@@ -3,6 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "storage_engine.hpp"
 #include "storage_engine_client.hpp"
 #include "gaia_hash_map.hpp"
 #include "gaia_ptr.hpp"
@@ -19,7 +20,6 @@ gaia_ptr& gaia_ptr::clone() {
     auto old_this = to_ptr();
     auto old_offset = to_offset();
     auto new_size = sizeof(gaia_ptr::object) + old_this->payload_size;
-
     allocate(new_size);
     auto new_this = to_ptr();
 
