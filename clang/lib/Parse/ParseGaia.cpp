@@ -108,16 +108,20 @@ bool Parser::ParseGaiaAttributeSpecifier(ParsedAttributesWithRange &attrs,
     {
         ConsumeToken();
     }
-    switch (Tok.getKind())
+    if (Tok.is(tok::identifier))
     {
-        case tok::kw_table:
+        if (!Tok.getIdentifierInfo()->getName().compare("table"))
+        {
             return ParseRulesetTable(attrs, EndLoc);
-        case tok::kw_SerialStream:
+        }
+
+        if (!Tok.getIdentifierInfo()->getName().compare("SerialStream"))
+        {
             return ParseRulesetSerialStream(attrs, EndLoc);
-        default:
-            Diag(Tok, diag::err_invalid_ruleset_attribute);
-            return false;
-    }    
+        }
+    }
+    Diag(Tok, diag::err_invalid_ruleset_attribute);
+    return false;
 }
 
 /// Parse Gaia Specific attributes
@@ -151,7 +155,7 @@ bool Parser::ParseGaiaAttributes(ParsedAttributesWithRange &attrs,
 bool Parser::ParseRulesetSerialStream(ParsedAttributesWithRange &attrs,
     SourceLocation *endLoc)
 {
-    assert(Tok.is(tok::kw_SerialStream) && "Not a ruleset table!");
+    assert(!Tok.getIdentifierInfo()->getName().compare("SerialStream") && "Not a ruleset table!");
 
     ArgsVector argExprs;
 
@@ -196,7 +200,7 @@ bool Parser::ParseRulesetSerialStream(ParsedAttributesWithRange &attrs,
 bool Parser::ParseRulesetTable(ParsedAttributesWithRange &attrs,
     SourceLocation *endLoc)
 {
-    assert(Tok.is(tok::kw_table) && "Not a ruleset table!");
+    assert(!Tok.getIdentifierInfo()->getName().compare("table") && "Not a ruleset table!");
 
     ArgsVector argExprs;
 
@@ -276,7 +280,7 @@ Parser::DeclGroupPtrTy Parser::ParseRuleset()
         return nullptr;
     }
     
-    if (getCurScope()->isRulesetScope())
+    if (getCurScope()->isInRulesetScope())
     {
         Diag(tracker.getOpenLocation(), diag::err_ruleset_ruleset_scope);
         tracker.skipToEnd();

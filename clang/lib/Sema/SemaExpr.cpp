@@ -2165,7 +2165,7 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
   if (R.isAmbiguous())
     return ExprError();
 
-  if (R.empty())
+  if (R.empty() && getCurScope()->isInRulesetScope())
   {
       if (S->getFnParent() != nullptr)
       {
@@ -11206,7 +11206,7 @@ static void DiagnoseRecursiveConstFields(Sema &S, const Expr *E,
 static bool CheckForModifiableLvalue(Expr *E, SourceLocation Loc, Sema &S) {
   assert(!E->hasPlaceholderType(BuiltinType::PseudoObject));
 
-if (S.getLangOpts().Gaia)
+if (S.getLangOpts().Gaia && S.getCurScope()->isInRulesetScope())
 {
     DeclRefExpr *exp = dyn_cast<DeclRefExpr>(E);
         
@@ -12323,7 +12323,7 @@ static bool needsConversionOfHalfVec(bool OpRequiresConversion, ASTContext &Ctx,
 ExprResult Sema::CreateBuiltinBinOp(SourceLocation OpLoc,
                                     BinaryOperatorKind Opc,
                                     Expr *LHSExpr, Expr *RHSExpr) {
-  if (getLangOpts().Gaia)
+  if (getLangOpts().Gaia && getCurScope()->isInRulesetScope())
   {
     bool leftLastOp = false, rightLastOp = false, lOp = false, rOp = false;
     DeclRefExpr *l = dyn_cast<DeclRefExpr>(LHSExpr);
@@ -13000,7 +13000,7 @@ static bool isOverflowingIntegerType(ASTContext &Ctx, QualType T) {
 ExprResult Sema::CreateBuiltinUnaryOp(SourceLocation OpLoc,
                                       UnaryOperatorKind Opc,
                                       Expr *InputExpr) {
-  if (getLangOpts().Gaia)
+  if (getLangOpts().Gaia && getCurScope()->isInRulesetScope())
   {
     DeclRefExpr *exp = dyn_cast<DeclRefExpr>(InputExpr);
     MemberExpr *expm = dyn_cast<MemberExpr>(InputExpr);

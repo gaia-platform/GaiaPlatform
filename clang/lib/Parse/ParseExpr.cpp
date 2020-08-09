@@ -1059,13 +1059,13 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
         isAddressOfOperand, std::move(Validator),
         /*IsInlineAsmIdentifier=*/false,
         Tok.is(tok::r_paren) ? nullptr : &Replacement,
-        getLangOpts().Gaia && (
+        getLangOpts().Gaia && Actions.getCurScope()->isInRulesetScope()&& (
             (Tok.is(tok::period) || Tok.is(tok::coloncolon)) &&  
             NextToken().is(tok::identifier)));
     if (getLangOpts().Gaia && Tok.is(tok::period) && 
-        NextToken().is(tok::identifier) && 
+        NextToken().is(tok::identifier) && Actions.getCurScope()->isInRulesetScope() &&
         !Res.isInvalid() && !Res.isUnset() && 
-        NextToken().getIdentifierInfo()->getName().str() == "LastOperation")
+        !NextToken().getIdentifierInfo()->getName().compare("LastOperation"))
     {
         DeclRefExpr *declExpr = dyn_cast<DeclRefExpr>(Res.get());
         if (declExpr != nullptr)
@@ -1436,7 +1436,7 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
     return ParseExpressionTrait();
 
   case tok::at: {
-      if (getLangOpts().Gaia)
+      if (getLangOpts().Gaia && Actions.getCurScope()->isInRulesetScope())
       {
           SourceLocation atTok = ConsumeToken();
           if (Tok.is(tok::identifier))

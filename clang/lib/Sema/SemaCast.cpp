@@ -2737,7 +2737,7 @@ ExprResult Sema::BuildCStyleCastExpr(SourceLocation LPLoc,
                                      TypeSourceInfo *CastTypeInfo,
                                      SourceLocation RPLoc,
                                      Expr *CastExpr) {
-  if (getLangOpts().Gaia)
+  if (getLangOpts().Gaia && getCurScope()->isInRulesetScope())
   {
     DeclRefExpr *exp = dyn_cast<DeclRefExpr>(CastExpr);
     MemberExpr *expm = dyn_cast<MemberExpr>(CastExpr);

@@ -275,7 +275,7 @@ Language Selection and Mode Options
 
 .. option:: -fgaia-extensions
 
- Enable support for Gaia extensions
+ Enable support for Gaia extensions.
 
 .. option:: -fwritable-strings
 

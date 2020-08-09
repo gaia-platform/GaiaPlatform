@@ -294,7 +294,6 @@ def RenderScript : LangOpt<"RenderScript">;
 def ObjC : LangOpt<"ObjC">;
 def BlocksSupported : LangOpt<"Blocks">;
 def ObjCAutoRefCount : LangOpt<"ObjCAutoRefCount">;
-def Gaia : LangOpt<"Gaia">;
 
 // Defines targets for target-specific attributes. Empty lists are unchecked.
 class TargetSpec {

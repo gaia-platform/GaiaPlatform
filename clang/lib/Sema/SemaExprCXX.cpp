@@ -3796,7 +3796,7 @@ Sema::PerformImplicitConversion(Expr *From, QualType ToType,
                                 const ImplicitConversionSequence &ICS,
                                 AssignmentAction Action,
                                 CheckedConversionKind CCK) {
-  if (getLangOpts().Gaia)
+  if (getLangOpts().Gaia && getCurScope()->isInRulesetScope())
   {
     DeclRefExpr *exp = dyn_cast<DeclRefExpr>(From);
     MemberExpr *expm = dyn_cast<MemberExpr>(From);

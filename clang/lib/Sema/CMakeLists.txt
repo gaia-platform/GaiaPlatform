@@ -10,12 +10,14 @@ if (MSVC)
 endif()
 
 set(GAIA_CATALOG_INCLUDES
-  ../../../../../ASTCodeGeneration/GaiaPlatform/production/build/catalog/catalog_manager/generated
+  ../../../../../ASTCodeGeneration/GaiaPlatform/production/catalog/catalog_manager/inc
+  ../../../../../ASTCodeGeneration/GaiaPlatform/production/build/catalog/generated
   ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/public/common
   ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/public/direct_access
   ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/internal/common
   ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/internal/db
   ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/public/db
+  ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/public/catalog
   ../../../../../ASTCodeGeneration/GaiaPlatform/third_party/production/flatbuffers/include
   ../../../../../ASTCodeGeneration/GaiaPlatform/production/db/storage_engine/mock
 )

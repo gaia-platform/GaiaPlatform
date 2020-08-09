@@ -347,6 +347,18 @@ public:
   {
       return (getFlags() & Scope::GaiaRulesetScope);
   }
+
+  bool isInRulesetScope() const 
+  {
+    for (const Scope *S = this; S; S = S->getParent()) 
+    {
+      if (S->getFlags() & Scope::GaiaRulesetScope)
+      {
+        return true;
+      }
+    }
+    return false;
+  }
   
   /// isInCXXInlineMethodScope - Return true if this scope is a C++ inline
   /// method scope or is inside one.

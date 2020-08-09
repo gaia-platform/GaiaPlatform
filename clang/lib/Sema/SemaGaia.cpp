@@ -27,7 +27,9 @@
 #include <unordered_map>
 #include <vector>
 #include "storage_engine.hpp"
-#include "catalog_gaia_generated.h"
+#include "gaia_catalog.h"
+#include "gaia_catalog.hpp"
+
 
 using namespace gaia;
 using namespace std;
@@ -35,33 +37,38 @@ using namespace clang;
 
 static string fieldTableName;
 
-static QualType mapFieldType(catalog::gaia_data_type dbType, ASTContext *context)
+static const char *updateVarName = "UPDATE";
+static const char *deleteVarName = "DELETE";
+static const char *insertVarName = "INSERT";
+static const char *noneVarName = "NONE";
+
+static QualType mapFieldType(catalog::data_type_t dbType, ASTContext *context)
 {
     switch(dbType)
     {
-        case catalog::gaia_data_type_BOOL:
+        case catalog::data_type_t::e_bool:
             return context->BoolTy;
-        case catalog::gaia_data_type_INT8:
+        case catalog::data_type_t::e_int8:
             return context->SignedCharTy;
-        case catalog::gaia_data_type_UINT8:
+        case catalog::data_type_t::e_uint8:
             return context->UnsignedCharTy;
-        case catalog::gaia_data_type_INT16:
+        case catalog::data_type_t::e_int16:
             return context->ShortTy;
-        case catalog::gaia_data_type_UINT16:
+        case catalog::data_type_t::e_uint16:
             return context->UnsignedShortTy;
-        case catalog::gaia_data_type_INT32:
+        case catalog::data_type_t::e_int32:
             return context->IntTy;
-        case catalog::gaia_data_type_UINT32:
+        case catalog::data_type_t::e_uint32:
             return context->UnsignedIntTy;
-        case catalog::gaia_data_type_INT64:
+        case catalog::data_type_t::e_int64:
             return context->LongLongTy;
-        case catalog::gaia_data_type_UINT64:
+        case catalog::data_type_t::e_uint64:
             return context->UnsignedLongLongTy;
-        case catalog::gaia_data_type_FLOAT32:
+        case catalog::data_type_t::e_float32:
             return context->FloatTy;
-        case catalog::gaia_data_type_FLOAT64:
+        case catalog::data_type_t::e_float64:
             return context->DoubleTy;
-        case catalog::gaia_data_type_STRING:
+        case catalog::data_type_t::e_string:
             return context->getPointerType((context->CharTy).withConst());
         default:
             return context->VoidTy;
@@ -90,24 +97,23 @@ static unordered_map<string, unordered_map<string, QualType>> getTableData(Sema 
     try 
     {
         DBMonitor monitor;
-
-        for(catalog::Gaia_table table = catalog::Gaia_table::get_first();
+        for(catalog::gaia_table_t table = catalog::gaia_table_t::get_first();
             table; table = table.get_next())
         {
             unordered_map<string, QualType> fields;
             retVal[table.name()] = fields;
         }
 
-        for(catalog::Gaia_field field = catalog::Gaia_field::get_first(); 
+        for(catalog::gaia_field_t field = catalog::gaia_field_t::get_first(); 
             field; field = field.get_next())
         {
-            if (field.type() == gaia::catalog::gaia_data_type_REFERENCES)
+            
+            if (static_cast<catalog::data_type_t>(field.type()) == catalog::data_type_t::e_references)
             {
                 continue;
             }
             
-            gaia_id_t tableId = field.table_id();
-            catalog::Gaia_table tbl = catalog::Gaia_table::get(tableId);
+            catalog::gaia_table_t tbl = catalog::gaia_table_t::get(field.table_id());
             if (!tbl)
             {
                 s->Diag(loc, diag::err_invalid_table_field) << field.name();
@@ -119,11 +125,10 @@ static unordered_map<string, unordered_map<string, QualType>> getTableData(Sema 
                 s->Diag(loc, diag::err_duplicate_field) << field.name();
                 return unordered_map<string, unordered_map<string, QualType>>();
             }
-            fields[field.name()] = mapFieldType(field.type(), &s->Context);
+            fields[field.name()] = mapFieldType(static_cast<catalog::data_type_t>(field.type()), &s->Context);
 
             retVal[tbl.name()] = fields;
         }
-
     }
     catch (exception e)
     {
@@ -142,6 +147,7 @@ void Sema::addField(IdentifierInfo *name, QualType type, RecordDecl *RD, SourceL
         /*BitWidth=*/nullptr, /*Mutable=*/false, ICIS_NoInit);
     Field->setAccess(AS_public);
     Field->addAttr(GaiaFieldAttr::CreateImplicit(Context));
+    
     RD->addDecl(Field);
 }
 
@@ -218,9 +224,11 @@ QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc)
     }
 
     //insert fields and methods that are not part of the schema
-    addField(&Context.Idents.get("LastOperation"), Context.WIntTy.withConst(), RD, loc);
+    addField(&Context.Idents.get("LastOperation"), Context.IntTy, RD, loc);
+    //addField(&Context.Idents.get("gaia_id"), Context.IntTy, RD, loc);
 
-    //addMethod(&Context.Idents.get("update"), DeclSpec::TST_void, nullptr, 0, attrFactory, attrs, &S, RD, loc);
+    addMethod(&Context.Idents.get("delete_row"), DeclSpec::TST_void, nullptr, 0, attrFactory, attrs, &S, RD, loc);
+    addMethod(&Context.Idents.get("gaia_id"), DeclSpec::TST_int, nullptr, 0, attrFactory, attrs, &S, RD, loc);
 
     
     ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD,
@@ -232,15 +240,17 @@ QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc)
 
 QualType Sema::getFieldType (IdentifierInfo *id, SourceLocation loc) 
 {
-    std::string fieldName = id->getName().str();
+    StringRef fieldNameStrRef = id->getName();
 
-    if(fieldName == "UPDATE" ||
-         fieldName == "DELETE" ||
-         fieldName == "INSERT" ||
-         fieldName == "NONE")
+    if(!fieldNameStrRef.compare(updateVarName) ||
+         !fieldNameStrRef.compare(deleteVarName) ||
+         !fieldNameStrRef.compare(insertVarName) ||
+         !fieldNameStrRef.compare(noneVarName))
     {
-        return Context.WIntTy.withConst();
+        return Context.IntTy.withConst();
     }
+
+    std::string fieldName = fieldNameStrRef.str();
 
     DeclContext *c = getCurFunctionDecl();
     while (c)
@@ -292,12 +302,12 @@ QualType Sema::getFieldType (IdentifierInfo *id, SourceLocation loc)
         {
             if (fieldDescription->second->isVoidType())
             {
-                Diag(loc, diag::err_invalid_field_type) << fieldName;
+                Diag(loc, diag::err_invalid_field_type) << fieldNameStrRef;
                 return Context.VoidTy;
             }
             if (retVal != Context.VoidTy)
             {
-                Diag(loc, diag::err_duplicate_field) << fieldName;
+                Diag(loc, diag::err_duplicate_field) << fieldNameStrRef;
                 return Context.VoidTy;
             }
                 
@@ -308,7 +318,7 @@ QualType Sema::getFieldType (IdentifierInfo *id, SourceLocation loc)
 
     if (retVal == Context.VoidTy)
     {
-        Diag(loc, diag::err_unknown_field) << fieldName;
+        Diag(loc, diag::err_unknown_field) << fieldNameStrRef;
     }
 
     return retVal;
@@ -322,7 +332,7 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc
         return nullptr;
     }
 
-    std::string varName = II->getName().str();
+    StringRef varName = II->getName();
 
     DeclContext *context  = getCurFunctionDecl();
 
@@ -331,29 +341,25 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc
     varDecl->setLexicalDeclContext(context);
     varDecl->setImplicit();
 
-    if (varName =="UPDATE")
+    if (!varName.compare(updateVarName))
     {
         varDecl->addAttr(GaiaLastOperationUPDATEAttr::CreateImplicit(Context));
-        varDecl->setConstexpr(true);
         varDecl->setInit(ActOnIntegerConstant(loc, 0).get());
     }
-    else if (varName == "INSERT")
+    else if (!varName.compare(insertVarName))
     {
         varDecl->addAttr(GaiaLastOperationINSERTAttr::CreateImplicit(Context));
-        varDecl->setConstexpr(true);
-        varDecl->setInit(ActOnIntegerConstant(loc, 0).get());
+        varDecl->setInit(ActOnIntegerConstant(loc, 1).get());
     }
-    else if (varName == "DELETE")
+    else if (!varName.compare(deleteVarName))
     {
         varDecl->addAttr(GaiaLastOperationDELETEAttr::CreateImplicit(Context));
-        varDecl->setConstexpr(true);
-        varDecl->setInit(ActOnIntegerConstant(loc, 0).get());
+        varDecl->setInit(ActOnIntegerConstant(loc, 2).get());
     }
-    else if (varName == "NONE")
+    else if (!varName.compare(noneVarName))
     {
         varDecl->addAttr(GaiaLastOperationNONEAttr::CreateImplicit(Context));
-        varDecl->setConstexpr(true);
-        varDecl->setInit(ActOnIntegerConstant(loc, 0).get());
+        varDecl->setInit(ActOnIntegerConstant(loc, 3).get());
     }
     else if (isGaiaFieldTable)
     {
