@@ -101,12 +101,22 @@ target_link_libraries(gaia_se_client PRIVATE explain)
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia_se_client PROPERTY POSITION_INDEPENDENT_CODE ON)
 
+add_library(rocks_wrapper STATIC
+  src/rdb_object_converter.cpp
+  src/rdb_wrapper.cpp)
+target_include_directories(rocks_wrapper PRIVATE
+  "${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}"
+  "${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}")
+target_include_directories(rocks_wrapper SYSTEM PRIVATE "${FLATBUFFERS_INC}")
+target_include_directories(rocks_wrapper SYSTEM PRIVATE "${GEN_DIR}")
+# The client is required to create gaia objects on recovery.
+target_link_libraries(rocks_wrapper rocksdb gaia_se_client)
+set_target_properties(rocks_wrapper PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+
 set(GAIA_SE_SERVER_SOURCES
   src/storage_engine.cpp
   src/storage_engine_server.cpp
   src/storage_engine_server_exec.cpp
-  src/rdb_wrapper.cpp
-  src/rdb_object_converter.cpp
 )
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   list(APPEND GAIA_SE_SERVER_SOURCES src/backward.cpp)
@@ -121,8 +131,7 @@ target_include_directories(gaia_se_server SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(gaia_se_server SYSTEM PRIVATE "${GEN_DIR}")
 # Suppress spurious warnings about zero-initialized structs.
 set_target_properties(gaia_se_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
-# The server needs the client to create gaia objects on recovery.
-target_link_libraries(gaia_se_server PRIVATE gaia_common Threads::Threads explain rocksdb gaia_se_client)
+target_link_libraries(gaia_se_server PRIVATE gaia_common Threads::Threads explain rocks_wrapper)
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   target_link_libraries(gaia_se_server PUBLIC Backward::Backward)
 endif()
