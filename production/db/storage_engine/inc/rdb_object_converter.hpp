@@ -13,6 +13,7 @@
 
 #include "gaia_common.hpp"
 #include "rocksdb/slice.h"
+#include "gaia_ptr.hpp"
 
 using namespace gaia::common;
 
@@ -171,20 +172,13 @@ class string_reader {
 class rdb_object_converter_util {
    public:
     static void encode_object(
-        const uint64_t id,
-        uint64_t type,
-        uint32_t reference_count,
-        uint32_t size,
-        const char* payload,
+        const gaia_ptr::object* gaia_object,
         string_writer* key,
         string_writer* value);
-    static const char* decode_object(
+    static gaia_ptr decode_object(
         const rocksdb::Slice& key,
         const rocksdb::Slice& value,
-        gaia_id_t* id,
-        gaia_type_t* type,
-        uint32_t* reference_count,
-        uint32_t* size);
+        uint64_t* max_id);
 };
 
 }  // namespace db

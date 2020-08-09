@@ -4,6 +4,7 @@
 /////////////////////////////////////////////
 
 #include "rdb_object_converter.hpp"
+#include "gaia_ptr.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -14,46 +15,43 @@ using namespace gaia::db;
  * Value: reference_count, payload_size, payload
  */
 void rdb_object_converter_util::encode_object(
-    const uint64_t id,
-    uint64_t type,
-    uint32_t reference_count,
-    uint32_t size,
-    const char* payload,
+    const gaia_ptr::object* gaia_object,
     string_writer* key,
     string_writer* value) {
     // Create key.
-    key->write_uint64(type);
-    key->write_uint64(id);
+    key->write_uint64(gaia_object->type);
+    key->write_uint64(gaia_object->id);
 
     // Create value.
-    value->write_uint32(reference_count);
-    value->write_uint32(size);
-    value->write(payload, size);
+    value->write_uint32(gaia_object->num_references);
+    value->write_uint32(gaia_object->payload_size);
+    value->write(gaia_object->payload, gaia_object->payload_size);
 }
 
-/**
- * Todo: Update to create and return gaia_ptr<node>, pending recovery impl.
- */
-const char* rdb_object_converter_util::decode_object(
+gaia_ptr rdb_object_converter_util::decode_object(
     const rocksdb::Slice& key,
     const rocksdb::Slice& value,
-    gaia_id_t* id,
-    gaia_type_t* type,
-    uint32_t* reference_count,
-    uint32_t* size,
     uint64_t* max_id) {
+    gaia_id_t id;
+    gaia_type_t type;
+    uint32_t size;
+    uint32_t num_references;
     string_reader key_(&key);
     string_reader value_(&value);
+
     // Read key.
-    key_.read_uint64(type);
-    key_.read_uint64(id);
+    key_.read_uint64(&type);
+    key_.read_uint64(&id);
     assert(key_.get_remaining_len_in_bytes() == 0);
 
     // Find the maximum gaia_id which was last serialized to disk.
     *max_id = std::max(*max_id, id);
-    
+
     // Read value.
-    value_.read_uint32(reference_count);
-    value_.read_uint32(size);
-    return value_.read(*size);
+    value_.read_uint32(&num_references);
+    value_.read_uint32(&size);
+    auto payload = value_.read(size);
+
+    // Create object & skip logging updates, since this API is called on Recovery.
+    return gaia_ptr::create(id, type, num_references, size, payload, false);
 }

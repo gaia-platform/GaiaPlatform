@@ -18,6 +18,7 @@ namespace db {
 class gaia_ptr {
     // We need access to private implementation state of the client library.
     friend class client;
+    friend class rdb_object_converter_util;
 
    private:
     int64_t row_id;
