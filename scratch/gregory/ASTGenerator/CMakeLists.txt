@@ -12,8 +12,10 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ggdb -pthread")
 include_directories(
   ${CMAKE_BINARY_DIR}/../../../../../../TranslationEngineLLVM/TranslationEngineLLVM/clang/include
   ${CMAKE_BINARY_DIR}/../../../../../../TranslationEngineLLVM/TranslationEngineLLVM/build/tools/clang/include
-  ${CMAKE_BINARY_DIR}/../../../../production/build/catalog/catalog_manager/generated
+  ${CMAKE_BINARY_DIR}/../../../../production/catalog/catalog_manager/inc
+  ${CMAKE_BINARY_DIR}/../../../../production/build/catalog/generated
   ${CMAKE_BINARY_DIR}/../../../../production/inc/public/common
+  ${CMAKE_BINARY_DIR}/../../../../production/inc/public/catalog
   ${CMAKE_BINARY_DIR}/../../../../production/inc/public/direct_access
   ${CMAKE_BINARY_DIR}/../../../../production/inc/internal/common
   ${CMAKE_BINARY_DIR}/../../../../production/inc/internal/db

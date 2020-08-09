@@ -22,7 +22,8 @@
 #include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "storage_engine.hpp"
-#include "catalog_gaia_generated.h"
+#include "gaia_catalog.h"
+#include "gaia_catalog.hpp"
 
 using namespace std;
 using namespace clang;
@@ -46,7 +47,12 @@ vector<string> rulesets;
 unordered_map<string, unordered_set<string>>  active_Fields;
 unordered_set<string>  used_Tables;
 const FunctionDecl *current_Rule_Declaration = nullptr;
-unordered_map<string, unordered_map<string, bool>> field_Data;
+struct FieldData
+{
+    bool isActive;
+    int position;
+};
+unordered_map<string, unordered_map<string, FieldData>> field_Data;
 string current_Ruleset_Subscription;
 string generated_Subscription_Code;
 string current_Ruleset_UnSubscription;
@@ -71,7 +77,7 @@ string generateGeneralSubscriptionCode()
     for (string ruleset : rulesets)
     {
         retVal += "if (strcmp(ruleset_name, \"" + ruleset + "\") == 0)\n" \
-            "{\n" + ruleset + "::subscribeRuleset_" + ruleset + "();\nreturn;\n}\n";
+            "{\n::" + ruleset + "::subscribeRuleset_" + ruleset + "();\nreturn;\n}\n";
     }
 
     retVal += "throw ruleset_not_found(ruleset_name);\n}\n" \
@@ -80,14 +86,14 @@ string generateGeneralSubscriptionCode()
     for (string ruleset : rulesets)
     {
         retVal += "if (strcmp(ruleset_name, \"" + ruleset + "\") == 0)\n" \
-            "{\n" + ruleset + "::unsubscribeRuleset_" + ruleset + "();\nreturn;\n}\n";
+            "{\n::" + ruleset + "::unsubscribeRuleset_" + ruleset + "();\nreturn;\n}\n";
     }
 
     retVal += "throw ruleset_not_found(ruleset_name);\n}\n" \
         "extern \"C\" void initialize_rules()\n{\n";
     for (string ruleset : rulesets)
     {
-        retVal +=  ruleset + "::subscribeRuleset_" + ruleset + "();\n" ;
+        retVal += "::" + ruleset + "::subscribeRuleset_" + ruleset + "();\n" ;
     }
     retVal += "}\n}\n}";
 
@@ -110,62 +116,64 @@ class DBMonitor
         }
 };
 
-unordered_map<string, unordered_map<string, bool>> getTableData()
+unordered_map<string, unordered_map<string, FieldData>> getTableData()
 {
-    unordered_map<string, unordered_map<string, bool>> retVal;
+    unordered_map<string, unordered_map<string, FieldData>> retVal;
     try 
     {
         DBMonitor monitor;
     
-        for (catalog::Gaia_table table = catalog::Gaia_table::get_first(); 
+        for (catalog::gaia_table_t table = catalog::gaia_table_t::get_first(); 
             table; table = table.get_next())
         {
-            unordered_map<string, bool> fields;
+            unordered_map<string, FieldData> fields;
             retVal[table.name()] = fields;
         }
 
-        for (catalog::Gaia_field field = catalog::Gaia_field::get_first(); 
+        for (catalog::gaia_field_t field = catalog::gaia_field_t::get_first(); 
             field; field = field.get_next())
         {
-            if (field.type() != gaia::catalog::gaia_data_type_REFERENCES)
+            if (static_cast<catalog::data_type_t>(field.type()) != catalog::data_type_t::e_references)
             {
-                gaia_id_t tableId = field.table_id();
-                catalog::Gaia_table tbl = catalog::Gaia_table::get(tableId);
+                catalog::gaia_table_t tbl = catalog::gaia_table_t::get(field.table_id());
                 if (!tbl)
                 {
                     llvm::errs() << "Incorrect table for field " << field.name() << "\n";
                     generationError = true;
-                    return unordered_map<string, unordered_map<string, bool>>();
+                    return unordered_map<string, unordered_map<string, FieldData>>();
                 }
-                unordered_map<string, bool> fields = retVal[tbl.name()];
+                unordered_map<string, FieldData> fields = retVal[tbl.name()];
                 if (fields.find(field.name()) != fields.end())
                 {
                     llvm::errs() << "Duplicate field " << field.name() << "\n";
                     generationError = true;
-                    return unordered_map<string, unordered_map<string, bool>>();
+                    return unordered_map<string, unordered_map<string, FieldData>>();
                 }
-                fields[field.name()] = field.active();
+                FieldData fieldData;
+                fieldData.isActive = field.active();
+                fieldData.position = field.position();
+                fields[field.name()] = fieldData;
 
                 retVal[tbl.name()] = fields;
             }
             else
             {
                 gaia_id_t parentTableId = field.table_id();
-                catalog::Gaia_table parentTable = catalog::Gaia_table::get(parentTableId);
+                catalog::gaia_table_t parentTable = catalog::gaia_table_t::get(parentTableId);
                 if (!parentTable)
                 {
                     llvm::errs() << "Incorrect table for field " << field.name() << "\n";
                     generationError = true;
-                    return unordered_map<string, unordered_map<string, bool>>();
+                    return unordered_map<string, unordered_map<string, FieldData>>();
                 }
 
                 gaia_id_t childTableId = field.type_id();
-                catalog::Gaia_table childTable = catalog::Gaia_table::get(childTableId);
+                catalog::gaia_table_t childTable = catalog::gaia_table_t::get(childTableId);
                 if (!childTable)
                 {
                     llvm::errs() << "Incorrect table referenced by field " << field.name() << "\n";
                     generationError = true;
-                    return unordered_map<string, unordered_map<string, bool>>();
+                    return unordered_map<string, unordered_map<string, FieldData>>();
                 }
                 TableLinkData linkData1;
                 linkData1.table = childTable.name();
@@ -184,7 +192,7 @@ unordered_map<string, unordered_map<string, bool>> getTableData()
     {
         llvm::errs() << "Exception while processing the catalog " << e.what() << "\n";
         generationError = true;
-        return unordered_map<string, unordered_map<string, bool>>();
+        return unordered_map<string, unordered_map<string, FieldData>>();
     }
     return retVal;
 }
@@ -274,8 +282,8 @@ string insertRulePreamble(string rule, string preamble)
 NavigationCodeData generateNavigationCode(string anchorTable)
 {
     NavigationCodeData retVal;
-    retVal.prefix = "\n" + anchorTable + "_t " + anchorTable + " = " + 
-        anchorTable + "_t::get(context->record);\n";
+    retVal.prefix = "\ngaia::" + curRuleset+ "::" + anchorTable + "_t " + anchorTable + " = " + 
+        "gaia::" + curRuleset+ "::" + anchorTable + "_t::get(context->record);\n";
     //single table used in the rule
     if (used_Tables.size() == 1 && used_Tables.find(anchorTable) != used_Tables.end())
     {
@@ -391,6 +399,7 @@ void generateRules(Rewriter &rewriter)
         bool containsLastOperation = false;
         bool containsFields = false;
         string fieldSubscriptionCode;
+        string commonSubscriptionCode;
         if (field_Data.find(table) == field_Data.end())
         {
             llvm::errs() << "No table " << table << " found in the catalog\n";
@@ -398,9 +407,9 @@ void generateRules(Rewriter &rewriter)
             return;
         }
         string ruleName = curRuleset + "_" + current_Rule_Declaration->getName().str() + "_" + to_string(ruleCnt);
-        fieldSubscriptionCode =  "rule_binding_t " + ruleName + "binding(" +
-            "\"" + curRuleset + "\",\"" + ruleName + "\"," + curRuleset + "::" + ruleName + ");\n" + 
-            "field_list_t fields_" + to_string(ruleCnt) + ";\n";
+        commonSubscriptionCode = "rule_binding_t " + ruleName + "binding(" +
+            "\"" + curRuleset + "\",\"" + ruleName + "\"," + curRuleset + "::" + ruleName + ");\n";
+        fieldSubscriptionCode =  "field_list_t fields_" + ruleName + ";\n";
 
         auto fields = field_Data[table];
         for (auto field : fd.second)
@@ -420,7 +429,8 @@ void generateRules(Rewriter &rewriter)
                 generationError = true;
                 return;
             }
-           /* if (!fields[field])
+            FieldData fieldData = fields[field];
+           /* if (!fieldData.isActive)
             {
                 llvm::errs() << "Field " << field << " is not marked as active in the catalog\n";
                 generationError = true;
@@ -429,8 +439,7 @@ void generateRules(Rewriter &rewriter)
 
             if (!isLastOperation)
             {
-                fieldSubscriptionCode += "fields_" + to_string(ruleCnt) + ".insert(" + table + 
-                "::get_field_offset(\"" + field + "\"));\n";
+                fieldSubscriptionCode += "fields_" + ruleName + ".insert(" + to_string(fieldData.position) +");\n";
             }            
         }
 
@@ -441,36 +450,40 @@ void generateRules(Rewriter &rewriter)
             return;
         }
 
+        current_Ruleset_Subscription += commonSubscriptionCode;
+        current_Ruleset_UnSubscription += commonSubscriptionCode;
+
         if (containsFields)
         {
-            current_Ruleset_Subscription += fieldSubscriptionCode + "subscribe_rule(" + table + 
-                "::s_gaia_type, event_type_t::row_update, fields_" + to_string(ruleCnt) + 
+            current_Ruleset_Subscription += fieldSubscriptionCode + "subscribe_rule(gaia::" + curRuleset + "::" + table +
+             "_t::s_gaia_type, event_type_t::row_update, fields_" + ruleName + 
                 "," + ruleName + "binding);\n";
-            current_Ruleset_UnSubscription += fieldSubscriptionCode + "unsubscribe_rule(" + table + 
-                "::s_gaia_type, event_type_t::row_update, fields_" + to_string(ruleCnt) + 
+            current_Ruleset_UnSubscription += fieldSubscriptionCode + "unsubscribe_rule(gaia::" + curRuleset + "::" + table +
+             "_t::s_gaia_type, event_type_t::row_update, fields_" + ruleName + 
                 "," + ruleName + "binding);\n";
         }
+                
 
         if (containsLastOperation)
         {
-            current_Ruleset_Subscription += "subscribe_rule(" + table + 
-                "::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields," + 
+            current_Ruleset_Subscription += "subscribe_rule(gaia::" + curRuleset + "::" + table +
+             "_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields," + 
                 ruleName + "binding);\n";
-            current_Ruleset_Subscription += "subscribe_rule(" + table + 
-                "::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields," + 
+            current_Ruleset_Subscription += "subscribe_rule(gaia::" + curRuleset + "::" + table +
+             "_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields," + 
                 ruleName + "binding);\n";
-            current_Ruleset_Subscription += "subscribe_rule(" + table + 
-                "::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields," + 
+            current_Ruleset_Subscription += "subscribe_rule(gaia::" + curRuleset + "::" + table +
+             "_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields," + 
                 ruleName + "binding);\n";
 
-            current_Ruleset_UnSubscription += "unsubscribe_rule(" + table + 
-                "::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields," + 
+            current_Ruleset_UnSubscription += "unsubscribe_rule(gaia::" + curRuleset + "::" + table +
+             "_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields," + 
                 ruleName + "binding);\n";
-            current_Ruleset_UnSubscription += "unsubscribe_rule(" + table + 
-                "::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields," + 
+            current_Ruleset_UnSubscription += "unsubscribe_rule(gaia::" + curRuleset + "::" + table +
+             "_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields," + 
                 ruleName + "binding);\n";
-            current_Ruleset_UnSubscription += "unsubscribe_rule(" + table + 
-                "::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields," + 
+            current_Ruleset_UnSubscription += "unsubscribe_rule(gaia::" + curRuleset + "::" + table +
+             "_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields," + 
                 ruleName + "binding);\n";
         }
         
@@ -571,7 +584,7 @@ public:
         {
             if (isLastOperation)
             {
-                rewriter.ReplaceText(expSourceRange, "context->last_operation(" + tableName + "::s_gaia_type)");
+                rewriter.ReplaceText(expSourceRange, "context->last_operation(gaia::" + curRuleset + "::" + tableName + "_t::s_gaia_type)");
             }
             else
             {
@@ -966,12 +979,12 @@ public:
         {
             if (!curRuleset.empty())
             {
-                generated_Subscription_Code += "void subscribeRuleset_" + 
+                generated_Subscription_Code += "namespace " + curRuleset +
+                    "{\nvoid subscribeRuleset_" + 
                     rulesetDecl->getName().str() + "()\n{\n" + current_Ruleset_Subscription + 
-                    "}\n";
-                generated_Subscription_Code += "void unsubscribeRuleset_" + 
+                    "}\nvoid unsubscribeRuleset_" + 
                     rulesetDecl->getName().str() + "()\n{\n" + current_Ruleset_UnSubscription + 
-                    "}\n";
+                    "}\n}\n";
             }
             curRuleset = rulesetDecl->getName().str();   
             rulesets.push_back(curRuleset);
@@ -998,7 +1011,7 @@ public:
         {
             rewriter.ReplaceText(
                 SourceRange(exp->getLocation(),exp->getEndLoc()),
-                "last_operation_t::update");
+                "gaia::rules::last_operation_t::row_update");
         }
     }
 
@@ -1017,7 +1030,7 @@ public:
         {
             rewriter.ReplaceText(
                 SourceRange(exp->getLocation(),exp->getEndLoc()),
-                "last_operation_t::insert");
+                "gaia::rules::last_operation_t::row_insert");
         }
     }
 
@@ -1036,7 +1049,7 @@ public:
         {
             rewriter.ReplaceText(
                 SourceRange(exp->getLocation(),exp->getEndLoc()),
-                "last_operation_t::delete");
+                "gaia::rules::last_operation_t::row_delete");
         }
     }
 
@@ -1055,7 +1068,7 @@ public:
         {
             rewriter.ReplaceText(
                 SourceRange(exp->getLocation(),exp->getEndLoc()),
-                "last_operation_t::none");
+                "gaia::rules::last_operation_t::row_none");
         }
     }
 
@@ -1169,11 +1182,11 @@ public:
             return;
         }
  
-        generated_Subscription_Code += "void subscribeRuleset_" + 
+        generated_Subscription_Code += "namespace " + curRuleset + "{\nvoid subscribeRuleset_" + 
                     curRuleset + "()\n{\n" + current_Ruleset_Subscription + 
                     "}\n" + "void unsubscribeRuleset_" + 
                     curRuleset + "()\n{\n" + current_Ruleset_UnSubscription + 
-                    "}\n" + generateGeneralSubscriptionCode();
+                    "}\n}\n" + generateGeneralSubscriptionCode();
 
         if (!shouldEraseOutputFiles() && !generationError && !ASTGeneratorOutputOption.empty())
         {
