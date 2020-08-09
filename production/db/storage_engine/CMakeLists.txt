@@ -40,6 +40,8 @@ set(GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES
 )
 message(STATUS "GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES=${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}")
 
+set_target_properties(rocksdb PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 ###############################################
 # Generate flatbuffers headers.
 ###############################################
@@ -118,7 +120,7 @@ target_include_directories(gaia_se_server SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(gaia_se_server SYSTEM PRIVATE "${GEN_DIR}")
 # Suppress spurious warnings about zero-initialized structs.
 set_target_properties(gaia_se_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
-target_link_libraries(gaia_se_server PRIVATE gaia_common Threads::Threads explain)
+target_link_libraries(gaia_se_server PRIVATE gaia_common Threads::Threads explain rocksdb)
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   target_link_libraries(gaia_se_server PUBLIC Backward::Backward)
 endif()
