@@ -5,19 +5,10 @@
 
 #pragma once
 
-#include <stdint.h>
-
 namespace gaia {
 namespace db {
-namespace triggers {
 
-enum class event_type_t : uint32_t {
-    // Row events.
-    row_update = 1 << 0,
-    row_insert = 1 << 1,
-    row_delete = 1 << 2,
-};
+void clear_shared_memory();
 
-}
-}
-}
+}  // namespace db
+}  // namespace gaia

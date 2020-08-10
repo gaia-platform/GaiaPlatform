@@ -21,6 +21,8 @@
 #include "clang/Rewrite/Core/Rewriter.h"
 #include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
+#include "storage_engine.hpp"
+#include "catalog_gaia_generated.h"
 
 using namespace std;
 using namespace clang;
@@ -28,6 +30,7 @@ using namespace clang::driver;
 using namespace clang::tooling;
 using namespace llvm;
 using namespace clang::ast_matchers;
+using namespace gaia;
 
 cl::OptionCategory ASTGeneratorCategory("Use ASTGenerator options");
 cl::opt<string> ASTGeneratorOutputOption("output", cl::init(""), 
@@ -37,6 +40,154 @@ cl::opt<bool> ASTGeneratorVerboseOption("v",
 
 std::string curRuleset;
 bool g_verbose = false;
+bool generationError = false;
+
+vector<string> rulesets;
+unordered_map<string, unordered_set<string>>  active_Fields;
+unordered_set<string>  used_Tables;
+const FunctionDecl *current_Rule_Declaration = nullptr;
+unordered_map<string, unordered_map<string, bool>> field_Data;
+string current_Ruleset_Subscription;
+string generated_Subscription_Code;
+string current_Ruleset_UnSubscription;
+struct TableLinkData
+{
+    string table;
+    string field;
+};
+unordered_multimap<string, TableLinkData> table_Relationship_1;
+unordered_multimap<string, TableLinkData> table_Relationship_N;
+
+struct NavigationCodeData
+{
+    string prefix;
+    string postfix;
+};
+
+string generateGeneralSubscriptionCode()
+{
+    string retVal = "namespace gaia {\n namespace rules{\nextern \"C\" void subscribe_ruleset(const char* ruleset_name)\n{\n";
+
+    for (string ruleset : rulesets)
+    {
+        retVal += "if (strcmp(ruleset_name, \"" + ruleset + "\") == 0)\n" \
+            "{\n" + ruleset + "::subscribeRuleset_" + ruleset + "();\nreturn;\n}\n";
+    }
+
+    retVal += "throw ruleset_not_found(ruleset_name);\n}\n" \
+        "extern \"C\" void unsubscribe_ruleset(const char* ruleset_name)\n{\n";
+
+    for (string ruleset : rulesets)
+    {
+        retVal += "if (strcmp(ruleset_name, \"" + ruleset + "\") == 0)\n" \
+            "{\n" + ruleset + "::unsubscribeRuleset_" + ruleset + "();\nreturn;\n}\n";
+    }
+
+    retVal += "throw ruleset_not_found(ruleset_name);\n}\n" \
+        "extern \"C\" void initialize_rules()\n{\n";
+    for (string ruleset : rulesets)
+    {
+        retVal +=  ruleset + "::subscribeRuleset_" + ruleset + "();\n" ;
+    }
+    retVal += "}\n}\n}";
+
+    return retVal;
+}
+
+class DBMonitor
+{
+    public:
+        DBMonitor()
+        {
+            gaia::db::begin_session();
+            gaia::db::begin_transaction();
+        }
+
+        ~DBMonitor()
+        {
+            gaia::db::commit_transaction();
+            gaia::db::end_session();
+        }
+};
+
+unordered_map<string, unordered_map<string, bool>> getTableData()
+{
+    unordered_map<string, unordered_map<string, bool>> retVal;
+    try 
+    {
+        DBMonitor monitor;
+    
+        for (catalog::Gaia_table table = catalog::Gaia_table::get_first(); 
+            table; table = table.get_next())
+        {
+            unordered_map<string, bool> fields;
+            retVal[table.name()] = fields;
+        }
+
+        for (catalog::Gaia_field field = catalog::Gaia_field::get_first(); 
+            field; field = field.get_next())
+        {
+            if (field.type() != gaia::catalog::gaia_data_type_REFERENCES)
+            {
+                gaia_id_t tableId = field.table_id();
+                catalog::Gaia_table tbl = catalog::Gaia_table::get(tableId);
+                if (!tbl)
+                {
+                    llvm::errs() << "Incorrect table for field " << field.name() << "\n";
+                    generationError = true;
+                    return unordered_map<string, unordered_map<string, bool>>();
+                }
+                unordered_map<string, bool> fields = retVal[tbl.name()];
+                if (fields.find(field.name()) != fields.end())
+                {
+                    llvm::errs() << "Duplicate field " << field.name() << "\n";
+                    generationError = true;
+                    return unordered_map<string, unordered_map<string, bool>>();
+                }
+                fields[field.name()] = field.active();
+
+                retVal[tbl.name()] = fields;
+            }
+            else
+            {
+                gaia_id_t parentTableId = field.table_id();
+                catalog::Gaia_table parentTable = catalog::Gaia_table::get(parentTableId);
+                if (!parentTable)
+                {
+                    llvm::errs() << "Incorrect table for field " << field.name() << "\n";
+                    generationError = true;
+                    return unordered_map<string, unordered_map<string, bool>>();
+                }
+
+                gaia_id_t childTableId = field.type_id();
+                catalog::Gaia_table childTable = catalog::Gaia_table::get(childTableId);
+                if (!childTable)
+                {
+                    llvm::errs() << "Incorrect table referenced by field " << field.name() << "\n";
+                    generationError = true;
+                    return unordered_map<string, unordered_map<string, bool>>();
+                }
+                TableLinkData linkData1;
+                linkData1.table = childTable.name();
+                linkData1.field = field.name();
+                TableLinkData linkDataN;
+                linkDataN.table = parentTable.name();
+                linkDataN.field = field.name();
+
+                table_Relationship_1.emplace(parentTable.name(), linkData1);
+                table_Relationship_N.emplace(childTable.name(), linkDataN);
+            }
+            
+        }
+    }
+    catch (exception e)
+    {
+        llvm::errs() << "Exception while processing the catalog " << e.what() << "\n";
+        generationError = true;
+        return unordered_map<string, unordered_map<string, bool>>();
+    }
+    return retVal;
+}
 
 void log(const char* message, const char* value)
 {
@@ -114,17 +265,249 @@ string getTableName(const Decl *decl)
     return "";
 }
 
+string insertRulePreamble(string rule, string preamble)
+{
+    size_t ruleCodeStart = rule.find('{');
+    return "{" + preamble + rule.substr(ruleCodeStart + 1);
+}
+
+NavigationCodeData generateNavigationCode(string anchorTable)
+{
+    NavigationCodeData retVal;
+    retVal.prefix = "\n" + anchorTable + "_t " + anchorTable + " = " + 
+        anchorTable + "_t::get(context->record);\n";
+    //single table used in the rule
+    if (used_Tables.size() == 1 && used_Tables.find(anchorTable) != used_Tables.end())
+    {
+        return retVal;
+    }
+
+    if (used_Tables.empty())
+    {
+        generationError = true;
+        llvm::errs() << "No tables are used in the rule \n";
+        return NavigationCodeData();
+    }
+    if (used_Tables.find(anchorTable) == used_Tables.end())
+    {
+        generationError = true;
+        llvm::errs() << "Table " << anchorTable <<" is not used in the rule \n";
+        return NavigationCodeData();
+    }
+
+    if (table_Relationship_1.find(anchorTable) == table_Relationship_1.end() &&
+        table_Relationship_N.find(anchorTable) == table_Relationship_N.end())
+    {
+        generationError = true;
+        llvm::errs() << "Table " << anchorTable << " doesn't reference any table and not referenced by any other tables";
+        return NavigationCodeData();
+    }
+    auto parentItr = table_Relationship_1.equal_range(anchorTable);
+    auto childItr = table_Relationship_N.equal_range(anchorTable);    
+    for (string table : used_Tables)
+    {
+        bool is1Relationship = false, isNRelationship = false;
+        if (table == anchorTable)
+        {
+            continue;
+        }
+        string linkingField;
+        for (auto it = parentItr.first; it != parentItr.second; ++it)
+        {
+            if (it != table_Relationship_1.end() && it->second.table == table)
+            {
+                if (is1Relationship)
+                {
+                    generationError = true;
+                    llvm::errs() << "More then one field that links " << anchorTable << " and " << table << "\n";
+                    return NavigationCodeData();
+                }
+                is1Relationship = true;
+                linkingField = it->second.field;
+            }
+        }
+
+        for (auto it = childItr.first; it != childItr.second; ++it)
+        {
+            if (it != table_Relationship_N.end() && it->second.table == table)
+            {
+                if (isNRelationship)
+                {
+                    generationError = true;
+                    llvm::errs() << "More then one field that links " << anchorTable << " and " << table << "\n";
+                    return NavigationCodeData();
+                }
+                isNRelationship = true;
+                linkingField = it->second.field;
+            }
+        }
+
+        if (!is1Relationship && !isNRelationship)
+        {
+            generationError = true;
+            llvm::errs() << "No relationship between tables " << anchorTable << " and " << table << "\n";
+            return NavigationCodeData();
+        }
+
+        if (is1Relationship && isNRelationship)
+        {
+            generationError = true;
+            llvm::errs() << "Both relationships exist between tables " << anchorTable << " and " << table << "\n";
+            return NavigationCodeData();
+        }
+
+        if (is1Relationship)
+        {
+            retVal.prefix += table + "_t " + table + " = " + anchorTable + "." + linkingField + table + "_owner());\n";
+        }
+        else
+        {
+            retVal.prefix += "for (auto " + table + " : " + anchorTable + "." + linkingField + table + "_list)\n{\n";
+            retVal.postfix += "}\n";
+        }
+    }
+
+    return retVal;
+}
+
+void generateRules(Rewriter &rewriter)
+{
+    if (current_Rule_Declaration == nullptr)
+    {
+        return;
+    }
+    if (active_Fields.empty())
+    {
+        llvm::errs() << "No active fields for the rule\n";
+        generationError = true;
+        return;
+    }
+
+    string ruleCode = rewriter.getRewrittenText(current_Rule_Declaration->getSourceRange());
+    int ruleCnt = 1;
+    for (auto fd : active_Fields)
+    {
+        string table = fd.first;
+        bool containsLastOperation = false;
+        bool containsFields = false;
+        string fieldSubscriptionCode;
+        if (field_Data.find(table) == field_Data.end())
+        {
+            llvm::errs() << "No table " << table << " found in the catalog\n";
+            generationError = true;
+            return;
+        }
+        string ruleName = curRuleset + "_" + current_Rule_Declaration->getName().str() + "_" + to_string(ruleCnt);
+        fieldSubscriptionCode =  "rule_binding_t " + ruleName + "binding(" +
+            "\"" + curRuleset + "\",\"" + ruleName + "\"," + curRuleset + "::" + ruleName + ");\n" + 
+            "field_list_t fields_" + to_string(ruleCnt) + ";\n";
+
+        auto fields = field_Data[table];
+        for (auto field : fd.second)
+        {
+            bool isLastOperation = field == "LastOperation";
+            if (!containsLastOperation && isLastOperation )
+            {
+                containsLastOperation = true;
+            }
+            if (!containsFields && !isLastOperation)
+            {
+                containsFields = true;
+            }
+            if (!isLastOperation && fields.find(field) == fields.end())
+            {
+                llvm::errs() << "No field " << field << " found in the catalog\n";
+                generationError = true;
+                return;
+            }
+           /* if (!fields[field])
+            {
+                llvm::errs() << "Field " << field << " is not marked as active in the catalog\n";
+                generationError = true;
+                return;
+            }*/
+
+            if (!isLastOperation)
+            {
+                fieldSubscriptionCode += "fields_" + to_string(ruleCnt) + ".insert(" + table + 
+                "::get_field_offset(\"" + field + "\"));\n";
+            }            
+        }
+
+        if (!containsFields && !containsLastOperation)
+        {
+            llvm::errs() << "No fields referred by table " + table +"\n";
+            generationError = true;
+            return;
+        }
+
+        if (containsFields)
+        {
+            current_Ruleset_Subscription += fieldSubscriptionCode + "subscribe_rule(" + table + 
+                "::s_gaia_type, event_type_t::row_update, fields_" + to_string(ruleCnt) + 
+                "," + ruleName + "binding);\n";
+            current_Ruleset_UnSubscription += fieldSubscriptionCode + "unsubscribe_rule(" + table + 
+                "::s_gaia_type, event_type_t::row_update, fields_" + to_string(ruleCnt) + 
+                "," + ruleName + "binding);\n";
+        }
+
+        if (containsLastOperation)
+        {
+            current_Ruleset_Subscription += "subscribe_rule(" + table + 
+                "::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields," + 
+                ruleName + "binding);\n";
+            current_Ruleset_Subscription += "subscribe_rule(" + table + 
+                "::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields," + 
+                ruleName + "binding);\n";
+            current_Ruleset_Subscription += "subscribe_rule(" + table + 
+                "::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields," + 
+                ruleName + "binding);\n";
+
+            current_Ruleset_UnSubscription += "unsubscribe_rule(" + table + 
+                "::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields," + 
+                ruleName + "binding);\n";
+            current_Ruleset_UnSubscription += "unsubscribe_rule(" + table + 
+                "::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields," + 
+                ruleName + "binding);\n";
+            current_Ruleset_UnSubscription += "unsubscribe_rule(" + table + 
+                "::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields," + 
+                ruleName + "binding);\n";
+        }
+        
+        NavigationCodeData navigationCode = generateNavigationCode(table);
+       
+        if(ruleCnt == 1)
+        {
+            rewriter.InsertText(current_Rule_Declaration->getLocation(),"\nvoid " + ruleName + "(const rule_context_t* context)\n");
+            rewriter.InsertTextAfterToken(current_Rule_Declaration->getLocation(), navigationCode.prefix);
+            rewriter.InsertText(current_Rule_Declaration->getEndLoc(),navigationCode.postfix);
+        }
+        else
+        {
+            rewriter.InsertTextBefore(current_Rule_Declaration->getLocation(),"\nvoid " + ruleName + "(const rule_context_t* context)\n"
+               + insertRulePreamble (ruleCode + navigationCode.postfix, navigationCode.prefix));
+        }
+        
+        ruleCnt++;
+    }
+}
+
 class Field_Get_Match_Handler : public MatchFinder::MatchCallback
 {
 public:
     Field_Get_Match_Handler(Rewriter &r) : rewriter (r){}
     virtual void run (const MatchFinder::MatchResult &Result)
     {
+        if (generationError)
+        {
+            return;
+        }
         const DeclRefExpr *exp = Result.Nodes.getNodeAs<DeclRefExpr>("fieldGet");
         const MemberExpr  *memberExpr = Result.Nodes.getNodeAs<MemberExpr>("tableFieldGet");
         string tableName;
         string fieldName;
         SourceRange expSourceRange;
+        bool isLastOperation = false;
         if (exp != nullptr)
         {
             const ValueDecl *decl = exp->getDecl();
@@ -135,10 +518,13 @@ public:
 
             tableName = getTableName(decl);
             fieldName = decl->getName().str();
+            used_Tables.insert(tableName);
+
             
             if (decl->hasAttr<GaiaFieldAttr>())
             {
                 expSourceRange = SourceRange(exp->getLocation(),exp->getEndLoc());
+                active_Fields[tableName].insert(fieldName);
             }
             else if (decl->hasAttr<GaiaFieldValueAttr>())
             {
@@ -152,10 +538,11 @@ public:
             {
                 fieldName = memberExpr->getMemberNameInfo().getName().getAsString();
                 tableName = declExpr->getDecl()->getName().str();
-                if (declExpr->getDecl()->hasAttr<GaiaLastOperationAttr>())
-                {
-                    tableName = "context";
-                }
+                
+                isLastOperation = declExpr->getDecl()->hasAttr<GaiaLastOperationAttr>();
+
+                used_Tables.insert(tableName);
+
                 if (declExpr->getDecl()->hasAttr<GaiaFieldValueAttr>())
                 {
                     expSourceRange = SourceRange(memberExpr->getBeginLoc().getLocWithOffset(-1), 
@@ -165,12 +552,31 @@ public:
                 {
                     expSourceRange = SourceRange(memberExpr->getBeginLoc(),
                         memberExpr->getEndLoc());
+                    active_Fields[tableName].insert(fieldName);
                 }   
             }
+            else
+            {
+                llvm::errs() << "Incorrect Base Type of generated type\n";
+                generationError = true;
+            }            
         }
+        else
+        {
+            llvm::errs() << "Incorrect matched expression\n";
+            generationError = true;
+        }
+        
         if (expSourceRange.isValid())
         {
-            rewriter.ReplaceText(expSourceRange, tableName + "->" + fieldName + "()");
+            if (isLastOperation)
+            {
+                rewriter.ReplaceText(expSourceRange, "context->last_operation(" + tableName + "::s_gaia_type)");
+            }
+            else
+            {
+                rewriter.ReplaceText(expSourceRange, tableName + "." + fieldName + "()");
+            }
         }
     }
 
@@ -184,6 +590,10 @@ public:
     Field_Set_Match_Handler(Rewriter &r) : rewriter (r){}
     virtual void run (const MatchFinder::MatchResult &Result)
     {
+        if (generationError)
+        {
+            return;
+        }
         const BinaryOperator *op = Result.Nodes.getNodeAs<BinaryOperator>("fieldSet");
         if (op != nullptr)
         {
@@ -191,7 +601,6 @@ public:
             if (opExp != nullptr)
             {
                 const DeclRefExpr *leftDeclExpr = dyn_cast<DeclRefExpr>(opExp);
-
                 const MemberExpr  *memberExpr = dyn_cast<MemberExpr>(opExp);
         
                 string tableName;
@@ -216,6 +625,8 @@ public:
                         DeclRefExpr *declExpr = dyn_cast<DeclRefExpr>(memberExpr->getBase());
                         if (declExpr == nullptr)
                         {
+                            llvm::errs() << "Incorrect Base Type of generated type\n";
+                            generationError = true;
                             return;
                         }
                         fieldName = memberExpr->getMemberNameInfo().getName().getAsString();
@@ -223,9 +634,12 @@ public:
                         startLocation = memberExpr->getBeginLoc();
                         
                     }
+                    used_Tables.insert(tableName);
+                
                     tok::TokenKind tokenKind;
                     std::string replacementText = "[&]() mutable {" + 
-                        tableName + "->set_" + fieldName + "(";
+                        tableName + "_writer w = " + tableName + ".writer(); w." + 
+                        fieldName;
 
                     switch(op->getOpcode())
                     {
@@ -285,14 +699,21 @@ public:
                             break;
                         }
                         default:
+                            llvm::errs() << "Incorrect Operator type\n";
+                            generationError = true;
                             return;
                     }
 
                     if (op->getOpcode() != BO_Assign)
                     {
-                        replacementText += tableName + "->" + fieldName + "() " 
-                            + ConvertCompoundBinaryOpcode(op->getOpcode()) + "(";
+                        replacementText += ConvertCompoundBinaryOpcode(op->getOpcode());
+                        active_Fields[tableName].insert(fieldName);
                     }
+                    else
+                    {
+                        replacementText += "=";
+                    }
+                    
                     
                     if (leftDeclExpr != nullptr)
                     {
@@ -309,22 +730,38 @@ public:
                     
                     rewriter.ReplaceText(
                         SourceRange(startLocation,setLocEnd.getLocWithOffset(-1)), 
-
                         replacementText);
-                    rewriter.InsertTextAfterToken(op->getEndLoc(),")");
+                    //rewriter.InsertTextAfterToken(op->getEndLoc(),")");
                     if (op->getOpcode() != BO_Assign)
                     {
-                        rewriter.InsertTextAfterToken(op->getEndLoc(),"); return " + 
-                            tableName + "->" + fieldName + "();}() ");
+                        rewriter.InsertTextAfterToken(op->getEndLoc(),
+                            "; w.update_row();return " + 
+                            tableName + "." + fieldName + "();}() ");
 
                     }
                     else
                     {
-                        rewriter.InsertTextAfterToken(op->getEndLoc(),";return " + 
-                            tableName + "->" + fieldName + "();}() ");
+                        rewriter.InsertTextAfterToken(op->getEndLoc(),
+                            "; w.update_row();return " +  
+                            tableName + "." + fieldName + "();}()");
                     }
                 }
+                else
+                {
+                    llvm::errs() << "Incorrect Operator Expression Type\n";
+                    generationError = true;
+                }
             }
+            else
+            {
+                llvm::errs() << "Incorrect Operator Expression\n";
+                generationError = true;
+            }
+        }
+        else
+        {
+            llvm::errs() << "Incorrect Matched operator\n";
+            generationError = true;
         }
     }
 
@@ -334,26 +771,28 @@ private:
         switch(opcode)
         {
             case BO_MulAssign:
-                return  "*";
+                return  "*=";
             case BO_DivAssign:
-                return  "/";
+                return  "/=";
             case BO_RemAssign:
-                return  "%";
+                return  "%=";
             case BO_AddAssign:
-                return  "+";
+                return  "+=";
             case BO_SubAssign:
-                return  "-";
+                return  "-=";
             case BO_ShlAssign:
-                return  "<<";
+                return  "<<=";
             case BO_ShrAssign:
-                return  ">>";
+                return  ">>=";
             case BO_AndAssign:
-                return  "&";
+                return  "&=";
             case BO_XorAssign:
-                return  "^";
+                return  "^=";
             case BO_OrAssign:
-                return  "|";
+                return  "|=";
             default:
+                llvm::errs() << "Incorrect Operator Code " << opcode <<"\n";
+                generationError = true;
                 return "";
         }
     }
@@ -367,7 +806,11 @@ public:
     Field_Unary_Operator_Match_Handler(Rewriter &r) : rewriter (r){}
     virtual void run (const MatchFinder::MatchResult &Result)
     {
-       const UnaryOperator *op = Result.Nodes.getNodeAs<UnaryOperator>("fieldUnaryOp");
+        if (generationError)
+        {
+            return;
+        }
+        const UnaryOperator *op = Result.Nodes.getNodeAs<UnaryOperator>("fieldUnaryOp");
         if (op != nullptr)
         {
             const Expr *opExp = op->getSubExpr();
@@ -399,29 +842,33 @@ public:
                         DeclRefExpr *declExpr = dyn_cast<DeclRefExpr>(memberExpr->getBase());
                         if (declExpr == nullptr)
                         {
+                            llvm::errs() << "Incorrect Base Type of generated type\n";
+                            generationError = true;
                             return;
                         }
                         fieldName = memberExpr->getMemberNameInfo().getName().getAsString();
                         tableName = declExpr->getDecl()->getName().str();
                     }
 
-                    
+                    used_Tables.insert(tableName);
+                    active_Fields[tableName].insert(fieldName);
+                                    
                     if (op->isPostfix())
                     {
                         if (op->isIncrementOp())
                         {
                             replaceStr = "[&]() mutable {auto t=" + 
-                                tableName + "->" + fieldName + "();" + 
-                                tableName + "->set_" + fieldName +"(" +  
-                                tableName + "->" + fieldName + "() + 1); return t;}()";
+                                tableName + "." + fieldName + "();" + 
+                                tableName + "_writer w = " + tableName + ".writer(); w." + 
+                                fieldName + "++; w.update_row();return t;}()";
 
                         }
                         else if(op->isDecrementOp())
                         {
                             replaceStr = "[&]() mutable {auto t=" + 
-                                tableName + "->" + fieldName + "();" +
-                                tableName + "->set_" + fieldName +"(" +  
-                                tableName + "->" + fieldName + "() - 1); return t;}()";
+                                tableName + "." + fieldName + "();" + 
+                                tableName + "_writer w = " + tableName + ".writer(); w." + 
+                                fieldName + "--; w.update_row();return t;}()";
                         }
                     }
                     else
@@ -429,16 +876,16 @@ public:
                         if (op->isIncrementOp())
                         {
                             replaceStr = "[&]() mutable {" + 
-                                tableName + "->set_" + fieldName +"(" +  
-                                tableName + "->" + fieldName + "() + 1); return " + 
-                                tableName + "->" + fieldName + "();}()";
+                                tableName + "_writer w = " + tableName + ".writer(); ++ w." + 
+                                fieldName + ";w.update_row(); return w." +
+                                fieldName + ";}()";
                         }
                         else if(op->isDecrementOp())
                         {
                             replaceStr = "[&]() mutable {" + 
-                                tableName + "->set_" + fieldName +"(" +  
-                                tableName + "->" + fieldName + "() - 1); return " + 
-                                tableName + "->" + fieldName + "();}()";
+                                tableName + "_writer w = " + tableName + ".writer(); -- w." + 
+                                fieldName + ";w.update_row(); return w." +
+                                fieldName + ";}()";
                         }
                     }
 
@@ -446,7 +893,22 @@ public:
                         SourceRange(op->getBeginLoc().getLocWithOffset(-1),op->getEndLoc().getLocWithOffset(1)), 
                         replaceStr);
                 }
+                else
+                {
+                    llvm::errs() << "Incorrect Operator Expression Type\n";
+                    generationError = true;
+                }
             }
+            else
+            {
+                llvm::errs() << "Incorrect Operator Expression\n";
+                generationError = true;
+            }
+        }
+        else
+        {
+            llvm::errs() << "Incorrect Matched Operator\n";
+            generationError = true;
         }
 
     }
@@ -461,47 +923,22 @@ public:
     Rule_Match_Handler(Rewriter &r) : rewriter (r){}
     virtual void run (const MatchFinder::MatchResult &Result)
     {
+        if (generationError)
+        {
+            return;
+        }
         const FunctionDecl * ruleDecl = Result.Nodes.getNodeAs<FunctionDecl>("ruleDecl");
-        const DeclContext *ctx = ruleDecl->getDeclContext();
-        while (ctx) 
+        generateRules(rewriter);
+        if (generationError)
         {
-            const RulesetDecl *rs = dyn_cast<RulesetDecl>(ctx);
-            if (!rs)
-            {
-                continue;
-            }
-            else
-            {
-                log("Ruleset %s\n", rs->getName().str());
-                break;
-            }
-            ctx = ctx->getParent();
-        }       
-
-        if (ruleDecl != nullptr)
-        {
-            
-            rewriter.InsertText(ruleDecl->getLocation(),"void " + curRuleset + 
-                "_" + ruleDecl->getName().str() +"()\n");
-            string b = decl2str(ruleDecl, rewriter.getSourceMgr());
-            log("##################\n%s\n########################\n",b);
+            return;
         }
+        current_Rule_Declaration = ruleDecl;
+        used_Tables.clear();
+        active_Fields.clear();
     }
 
-private:
-    std::string decl2str(const Decl *d, SourceManager &sm) 
-    {
-        string text = Lexer::getSourceText(
-            CharSourceRange::getTokenRange(d->getSourceRange()), 
-            sm, LangOptions(), 0);
-        if (text.size() > 0 && (text.at(text.size()-1) == ',')) //the text can be ""
-        {
-            return Lexer::getSourceText(
-                CharSourceRange::getCharRange(d->getSourceRange()), 
-                sm, LangOptions(), 0);
-        }
-        return text;
-    }
+private:   
     Rewriter &rewriter;
 };
 
@@ -511,10 +948,35 @@ public:
     Ruleset_Match_Handler(Rewriter &r) : rewriter (r){}
     virtual void run (const MatchFinder::MatchResult &Result)
     {
+        if (generationError)
+        {
+            return;
+        }
+        generateRules(rewriter);
+        if (generationError)
+        {
+            return;
+        }
+        current_Rule_Declaration = nullptr;
+        used_Tables.clear();
+        active_Fields.clear();
+
         const RulesetDecl * rulesetDecl = Result.Nodes.getNodeAs<RulesetDecl>("rulesetDecl");
         if (rulesetDecl != nullptr)
         {
-            curRuleset = rulesetDecl->getName().str();           
+            if (!curRuleset.empty())
+            {
+                generated_Subscription_Code += "void subscribeRuleset_" + 
+                    rulesetDecl->getName().str() + "()\n{\n" + current_Ruleset_Subscription + 
+                    "}\n";
+                generated_Subscription_Code += "void unsubscribeRuleset_" + 
+                    rulesetDecl->getName().str() + "()\n{\n" + current_Ruleset_UnSubscription + 
+                    "}\n";
+            }
+            curRuleset = rulesetDecl->getName().str();   
+            rulesets.push_back(curRuleset);
+            current_Ruleset_Subscription.clear(); 
+            current_Ruleset_UnSubscription.clear();       
             rewriter.ReplaceText(
                 SourceRange(rulesetDecl->getBeginLoc(),rulesetDecl->decls_begin()->getBeginLoc().getLocWithOffset(-2)),
                 "namespace " + curRuleset + "\n{\n");
@@ -525,18 +987,75 @@ private:
     Rewriter &rewriter;
 };
 
-class EDC_Function_Call_Match_Handler : public MatchFinder::MatchCallback
+class Update_Match_Handler : public MatchFinder::MatchCallback
 {
 public:
-    EDC_Function_Call_Match_Handler(Rewriter &r) : rewriter (r){}
+    Update_Match_Handler(Rewriter &r) : rewriter (r){}
     virtual void run (const MatchFinder::MatchResult &Result)
     {
-        const CXXMemberCallExpr *callExpr = Result.Nodes.getNodeAs<CXXMemberCallExpr>("EDCFunctionCall");
-        if (callExpr != nullptr)
+        const DeclRefExpr *exp = Result.Nodes.getNodeAs<DeclRefExpr>("UPDATE");
+        if (exp != nullptr)
         {
             rewriter.ReplaceText(
-                SourceRange(callExpr->getExprLoc().getLocWithOffset(-1),callExpr->getExprLoc().getLocWithOffset(-1)),
-                "->");
+                SourceRange(exp->getLocation(),exp->getEndLoc()),
+                "last_operation_t::update");
+        }
+    }
+
+private:
+    Rewriter &rewriter;
+};
+
+class Insert_Match_Handler : public MatchFinder::MatchCallback
+{
+public:
+    Insert_Match_Handler(Rewriter &r) : rewriter (r){}
+    virtual void run (const MatchFinder::MatchResult &Result)
+    {
+        const DeclRefExpr *exp = Result.Nodes.getNodeAs<DeclRefExpr>("INSERT");
+        if (exp != nullptr)
+        {
+            rewriter.ReplaceText(
+                SourceRange(exp->getLocation(),exp->getEndLoc()),
+                "last_operation_t::insert");
+        }
+    }
+
+private:
+    Rewriter &rewriter;
+};
+
+class Delete_Match_Handler : public MatchFinder::MatchCallback
+{
+public:
+    Delete_Match_Handler(Rewriter &r) : rewriter (r){}
+    virtual void run (const MatchFinder::MatchResult &Result)
+    {
+        const DeclRefExpr *exp = Result.Nodes.getNodeAs<DeclRefExpr>("DELETE");
+        if (exp != nullptr)
+        {
+            rewriter.ReplaceText(
+                SourceRange(exp->getLocation(),exp->getEndLoc()),
+                "last_operation_t::delete");
+        }
+    }
+
+private:
+    Rewriter &rewriter;
+};
+
+class None_Match_Handler : public MatchFinder::MatchCallback
+{
+public:
+    None_Match_Handler(Rewriter &r) : rewriter (r){}
+    virtual void run (const MatchFinder::MatchResult &Result)
+    {
+        const DeclRefExpr *exp = Result.Nodes.getNodeAs<DeclRefExpr>("NONE");
+        if (exp != nullptr)
+        {
+            rewriter.ReplaceText(
+                SourceRange(exp->getLocation(),exp->getEndLoc()),
+                "last_operation_t::none");
         }
     }
 
@@ -549,7 +1068,8 @@ class ASTGenerator_Consumer : public clang::ASTConsumer
 public:
     explicit ASTGenerator_Consumer(ASTContext *context, Rewriter &r)
         : fieldGetMatcherHandler(r), fieldSetMatcherHandler(r), ruleMatcherHandler(r),
-        rulesetMatcherHandler(r), fieldUnaryOperatorMatchHandler(r), edcFunctionCallMatchHandler(r)
+        rulesetMatcherHandler(r), fieldUnaryOperatorMatchHandler(r), 
+        updateMatchHandler(r),insertMatchHandler(r),deleteMatchHandler(r),noneMatchHandler(r)
 
     {
         StatementMatcher fieldGetMatcher = 
@@ -569,6 +1089,7 @@ public:
             memberExpr(member(allOf(hasAttr(attr::GaiaField),unless(hasAttr(attr::GaiaFieldLValue)))),
             hasDescendant(declRefExpr(to(varDecl(anyOf(
                 hasAttr(attr::GaiaField),
+                hasAttr(attr::FieldTable),
                 hasAttr(attr::GaiaFieldValue), 
                 hasAttr(attr::GaiaLastOperation)))))))
             .bind("tableFieldGet");
@@ -583,21 +1104,32 @@ public:
             hasUnaryOperand(memberExpr(member(hasAttr(attr::GaiaFieldLValue)))))
             ).bind("fieldUnaryOp");
 
-        StatementMatcher EDCFunctionCallMatcher = cxxMemberCallExpr(on(declRefExpr(to(varDecl(
-            hasAttr(attr::FieldTable))))))
-            .bind("EDCFunctionCall");
+        StatementMatcher updateMatcher = 
+            declRefExpr(to(varDecl(hasAttr(attr::GaiaLastOperationUPDATE)))).bind("UPDATE"); 
+        StatementMatcher insertMatcher = 
+            declRefExpr(to(varDecl(hasAttr(attr::GaiaLastOperationINSERT)))).bind("INSERT"); 
+        StatementMatcher deleteMatcher = 
+            declRefExpr(to(varDecl(hasAttr(attr::GaiaLastOperationDELETE)))).bind("DELETE"); 
+        StatementMatcher noneMatcher = 
+            declRefExpr(to(varDecl(hasAttr(attr::GaiaLastOperationNONE)))).bind("NONE"); 
         
-        matcher.addMatcher(fieldSetMatcher, &fieldSetMatcherHandler);
+        
         matcher.addMatcher(fieldGetMatcher, &fieldGetMatcherHandler);
+        matcher.addMatcher(tableFieldGetMatcher, &fieldGetMatcherHandler);
+
+        matcher.addMatcher(fieldSetMatcher, &fieldSetMatcherHandler);
+        matcher.addMatcher(tableFieldSetMatcher, &fieldSetMatcherHandler);
              
         matcher.addMatcher(ruleMatcher, &ruleMatcherHandler);
         matcher.addMatcher(rulesetMatcher, &rulesetMatcherHandler);
         matcher.addMatcher(fieldUnaryOperatorMatcher, &fieldUnaryOperatorMatchHandler);
-        
-        matcher.addMatcher(tableFieldSetMatcher, &fieldSetMatcherHandler);
-        matcher.addMatcher(tableFieldGetMatcher, &fieldGetMatcherHandler);
+              
         matcher.addMatcher(tableFieldUnaryOperatorMatcher, &fieldUnaryOperatorMatchHandler);
-        matcher.addMatcher(EDCFunctionCallMatcher, &edcFunctionCallMatchHandler);
+
+        matcher.addMatcher(updateMatcher,&updateMatchHandler);
+        matcher.addMatcher(insertMatcher,&insertMatchHandler);
+        matcher.addMatcher(deleteMatcher,&deleteMatchHandler);
+        matcher.addMatcher(noneMatcher,&noneMatchHandler);
     }
 
     virtual void HandleTranslationUnit(clang::ASTContext &context) 
@@ -611,7 +1143,11 @@ private:
     Rule_Match_Handler     ruleMatcherHandler;
     Ruleset_Match_Handler  rulesetMatcherHandler;
     Field_Unary_Operator_Match_Handler fieldUnaryOperatorMatchHandler;
-    EDC_Function_Call_Match_Handler edcFunctionCallMatchHandler;
+    Update_Match_Handler updateMatchHandler;
+    Insert_Match_Handler insertMatchHandler;
+    Delete_Match_Handler deleteMatchHandler;
+    None_Match_Handler noneMatchHandler;
+    
 
 };
 
@@ -621,34 +1157,46 @@ public:
     virtual std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
         clang::CompilerInstance &compiler, llvm::StringRef inFile) 
     {
-        AstGeneratorRewriter.setSourceMgr(compiler.getSourceManager(), compiler.getLangOpts());
+        rewriter.setSourceMgr(compiler.getSourceManager(), compiler.getLangOpts());
         return std::unique_ptr<clang::ASTConsumer>(
-            new ASTGenerator_Consumer(&compiler.getASTContext(), AstGeneratorRewriter));
+            new ASTGenerator_Consumer(&compiler.getASTContext(), rewriter));
     }
     void EndSourceFileAction()
     {
-        AstGeneratorRewriter.getEditBuffer(AstGeneratorRewriter.getSourceMgr().getMainFileID())
-            .write(llvm::outs());
+        generateRules(rewriter);
+        if (generationError)
+        {
+            return;
+        }
+ 
+        generated_Subscription_Code += "void subscribeRuleset_" + 
+                    curRuleset + "()\n{\n" + current_Ruleset_Subscription + 
+                    "}\n" + "void unsubscribeRuleset_" + 
+                    curRuleset + "()\n{\n" + current_Ruleset_UnSubscription + 
+                    "}\n" + generateGeneralSubscriptionCode();
+
+        if (!shouldEraseOutputFiles() && !generationError && !ASTGeneratorOutputOption.empty())
+        {
+            std::error_code error_code;
+            llvm::raw_fd_ostream outFile(ASTGeneratorOutputOption, error_code, llvm::sys::fs::F_None);
+
+            if (!outFile.has_error())
+            {
+                rewriter.getEditBuffer(rewriter.getSourceMgr().getMainFileID())
+                    .write(outFile); 
+                outFile << generated_Subscription_Code;
+            }
+
+            outFile.close();
+        }
     }
 private: 
-    Rewriter AstGeneratorRewriter;
+    Rewriter rewriter;
 };
-
-bool SaveFile(const char *name, const stringstream& buf) 
-{
-    std::ofstream ofs(name, std::ofstream::out);
-    if (!ofs.is_open())
-    {
-        return false;
-    }
-    ofs << buf.str();
-    return !ofs.bad();
-}
-
 
 int main(int argc, const char **argv) 
 {
-
+    field_Data = getTableData();
     // Parse the command-line args passed to your code.
     CommonOptionsParser op(argc, argv, ASTGeneratorCategory);
     if (ASTGeneratorVerboseOption)

@@ -23,7 +23,7 @@ set(GAIA_EVENT_MANAGER_INCLUDES
   ${GAIA_RULES_INC}
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc
-  ${GAIA_CATALOG_GENERATED}
+  ${GAIA_GENERATED_SCHEMAS}
 )
 message(STATUS "GAIA_EVENT_MANAGER_INCLUDES=${GAIA_EVENT_MANAGER_INCLUDES}")
 
@@ -35,7 +35,7 @@ add_library(gaia_rules STATIC
   src/rule_checker.cpp
 )
 
-add_dependencies(gaia_rules generate_event_log_headers)
+add_dependencies(gaia_rules generate_rules_headers)
 set_target_properties(gaia_rules PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 target_include_directories(gaia_rules PRIVATE ${GAIA_EVENT_MANAGER_INCLUDES})
 target_link_libraries(gaia_rules PRIVATE gaia_direct)
@@ -44,13 +44,13 @@ set_property (TARGET gaia_rules PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # unit tests
 add_gtest(test_auto_tx "tests/test_auto_tx.cpp"
-  "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_semock")
+  "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_se_client")
 add_gtest(test_event_manager "tests/test_event_manager.cpp;tests/event_manager_test_helpers.cpp"
   "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
 add_gtest(test_system_init "tests/test_system_init.cpp"
   "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
 add_gtest(test_component_init "tests/test_component_init.cpp;tests/event_manager_test_helpers.cpp"
-  "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_rules;gaia_direct;gaia_semock;gaia_catalog")
+  "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_rules;gaia_catalog")
 add_gtest(test_rule_context "tests/test_rule_context.cpp"
   "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_rules")
 add_gtest(test_rule_checker "tests/test_rule_checker.cpp;"

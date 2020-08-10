@@ -40,9 +40,9 @@ public:
 
     gaia_iterator_t(gaia_id_t id) : m_id(id) {}
 
-    gaia_id_t operator++();
+    gaia_iterator_t<T_gaia>& operator++();
 
-    gaia_id_t operator++(int);
+    gaia_iterator_t<T_gaia> operator++(int);
 
     bool operator==(const gaia_iterator_t& rhs) const;
 
@@ -79,9 +79,9 @@ public:
 
     T_foreign operator*();
 
-    gaia_id_t operator++();
+    gaia_set_iterator_t<T_foreign, T_foreign_slot>& operator++();
 
-    gaia_id_t operator++(int);
+    gaia_set_iterator_t<T_foreign, T_foreign_slot> operator++(int);
 
     bool operator==(const gaia_set_iterator_t& rhs) const;
 
