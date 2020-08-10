@@ -33,18 +33,20 @@ void check_all_event_types(
     EXPECT_EQ(expected ? *expected : last_operation_t::row_insert, 
         context.last_operation(test_type));
 
-    // Test event types that are not table operations.
-    context.event_type = event_type_t::transaction_begin;
-    EXPECT_EQ(expected ? *expected : last_operation_t::none, 
-        context.last_operation(test_type));
-    
-    context.event_type = event_type_t::transaction_commit;
-    EXPECT_EQ(expected ? *expected : last_operation_t::none, 
-        context.last_operation(test_type));
+    // TODO[GAIAPLAT-194]: Transaction events are out of scope for Q2
 
-    context.event_type = event_type_t::transaction_rollback;
-    EXPECT_EQ(expected ? *expected : last_operation_t::none, 
-        context.last_operation(test_type));
+    // Test event types that are not table operations.
+    //context.event_type = event_type_t::transaction_begin;
+    //EXPECT_EQ(expected ? *expected : last_operation_t::none, 
+    //    context.last_operation(test_type));
+    
+    //context.event_type = event_type_t::transaction_commit;
+    //EXPECT_EQ(expected ? *expected : last_operation_t::none, 
+    //    context.last_operation(test_type));
+
+    //context.event_type = event_type_t::transaction_rollback;
+    //EXPECT_EQ(expected ? *expected : last_operation_t::none, 
+    //    context.last_operation(test_type));
 }
 
 TEST(rule_context_test, last_operation_type_match)
