@@ -42,6 +42,8 @@ public:
     void commit();
 
     ~auto_transaction_t();
+
+    static const bool no_auto_begin = false;
 private:
     bool m_auto_begin;
     bool m_is_transaction_owner;

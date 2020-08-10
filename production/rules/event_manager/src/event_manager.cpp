@@ -83,7 +83,7 @@ void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_even
 
     // Start a transaction that will be used to log all the events that were
     // triggered independent of whether they invoked a rule or not.
-    auto_transaction_t transaction;
+    auto_transaction_t transaction(auto_transaction_t::no_auto_begin);
     for (size_t i =0; i < trigger_event_list.size(); log_to_db(trigger_event_list[i], rules_invoked), ++i)
     {
         const trigger_event_t& event = trigger_event_list[i];

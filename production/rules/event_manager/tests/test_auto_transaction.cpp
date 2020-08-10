@@ -103,6 +103,7 @@ TEST_F(auto_transaction_test, auto_transaction_nested_commit)
 
 TEST_F(auto_transaction_test, auto_begin_true)
 {
+    static_assert(false == auto_transaction_t::no_auto_begin, "auto_transaction_t::no_auto_begin constant should be false");
     EXPECT_EQ(false, is_transaction_active());
     {
         auto_transaction_t tx;
