@@ -17,9 +17,12 @@ class gaia_hash_map {
     friend class client;
 
    public:
-    static se_base::hash_node* insert(const gaia_id_t id) {
-        if (*client::s_offsets == nullptr) {
-            throw transaction_not_open();
+    static se_base::hash_node* insert(const gaia_id_t id, bool is_ongoing_recovery = false) {
+        // Special casing for Recovery.
+        if (!is_ongoing_recovery) {
+            if (*client::s_offsets == nullptr) {
+                throw transaction_not_open();
+            }
         }
 
         se_base::hash_node* node = client::s_data->hash_nodes + (id % se_base::HASH_BUCKETS);

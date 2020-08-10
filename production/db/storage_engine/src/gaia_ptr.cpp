@@ -67,7 +67,7 @@ gaia_ptr::gaia_ptr(const gaia_id_t id) {
 
 gaia_ptr::gaia_ptr(const gaia_id_t id, const size_t size, bool log_updates)
     : row_id(0) {
-    se_base::hash_node* hash_node = gaia_hash_map::insert(id);
+    se_base::hash_node* hash_node = gaia_hash_map::insert(id, !log_updates);
     hash_node->row_id = row_id = client::allocate_row_id();
     client::allocate_object(row_id, size);
 
