@@ -45,6 +45,7 @@ class server : private se_base {
     static std::mutex s_commit_lock;
     static int s_fd_data;
     static offsets* s_shared_offsets;
+    static bool recovered;
     //Should be unique ptr? 
     static rdb_wrapper* rdb;
     thread_local static session_state_t s_session_state;
@@ -162,16 +163,15 @@ class server : private se_base {
         }
     }
 
+    // Should just run once for the lifetime of a server process.
     static void recover_db() {
-        rdb = new gaia::db::rdb_wrapper();
-
-        rocksdb::Status status = rdb->open();
-
-        if (!status.ok()) {
-            throw std::runtime_error("Unable to open database directory.");
+        if (!recovered) {
+            rdb = new gaia::db::rdb_wrapper();
+            rocksdb::Status status = rdb->open();
+            assert(status.ok());
+            rdb->recover();
+            recovered = true;
         }
-
-        rdb->recover();
     }
 
     // To avoid synchronization, we assume that this method is only called when
@@ -522,7 +522,7 @@ class server : private se_base {
 
         std::set<int64_t> row_ids;
         // Prepare tx
-        // rdb->prepare_tx(s_transaction_id);
+        rdb->prepare_tx(s_transaction_id);
         for (auto i = 0; i < s_log->count; i++) {
             auto lr = s_log->log_records + i;
 
@@ -540,7 +540,7 @@ class server : private se_base {
         }
 
         // Append commit decision to WAL.
-        // rdb->commit_tx(s_transaction_id);
+        rdb->commit_tx(s_transaction_id);
 
         return true;
     }
