@@ -136,7 +136,17 @@ class client : private se_base {
         }
     }
 
-    static inline void tx_log(int64_t row_id, int64_t old_object, int64_t new_object) {
+    static inline void tx_log(
+        int64_t row_id,
+        int64_t old_object,
+        int64_t new_object,
+        // 'id' & 'type' are required to keep track of deleted keys which will be propagated to the persistent layer.
+        // Drawback of this approach is that we're keeping 8 + 8 bytes of memory (for other operations) in the transient log.
+        // One approach would be to introduce a separate log for deleted keys; 
+        // another alternative would be to keep the key as <id> only (as opposed to <type, id>)
+        gaia_operation_t operation,
+        gaia_id_t id = 0,
+        gaia_type_t type = 0) {
         retail_assert(s_log->count < MAX_LOG_RECS);
 
         log::log_record* lr = s_log->log_records + s_log->count++;
@@ -144,6 +154,9 @@ class client : private se_base {
         lr->row_id = row_id;
         lr->old_object = old_object;
         lr->new_object = new_object;
+        lr->id = id;
+        lr->type = type;
+        lr->operation = operation;
     }
 };
 

@@ -11,7 +11,7 @@
 #include "rocksdb/status.h"
 #include "rocksdb/utilities/transaction_db.h"
 
-// Simple library over RocksDB APIs, and has no knowledge about the storage engine
+// Simple library over RocksDB APIs.
 namespace gaia 
 {
 namespace db 

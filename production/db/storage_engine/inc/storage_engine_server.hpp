@@ -18,6 +18,7 @@
 #include "mmap_helpers.hpp"
 #include "socket_helpers.hpp"
 #include "messages_generated.h"
+#include "rdb_wrapper.hpp"
 
 namespace gaia {
 namespace db {
@@ -44,6 +45,8 @@ class server : private se_base {
     static std::mutex s_commit_lock;
     static int s_fd_data;
     static offsets* s_shared_offsets;
+    //Should be unique ptr? 
+    static rdb_wrapper* rdb;
     thread_local static session_state_t s_session_state;
     thread_local static bool s_session_shutdown;
 
@@ -159,6 +162,18 @@ class server : private se_base {
         }
     }
 
+    static void recover_db() {
+        rdb = new gaia::db::rdb_wrapper();
+
+        rocksdb::Status status = rdb->open();
+
+        if (!status.ok()) {
+            throw std::runtime_error("Unable to open database directory.");
+        }
+
+        rdb->recover();
+    }
+
     // To avoid synchronization, we assume that this method is only called when
     // no sessions exist and the server is not accepting any new connections.
     static void init_shared_memory() {
@@ -187,6 +202,9 @@ class server : private se_base {
             PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_offsets, 0));
         s_data = static_cast<data*>(map_fd(sizeof(data),
             PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_data, 0));
+        
+        recover_db();
+
         cleanup_memory.dismiss();
     }
 
@@ -503,8 +521,8 @@ class server : private se_base {
         });
 
         std::set<int64_t> row_ids;
-
-        // Prep writes to log.
+        // Prepare tx
+        rdb->prepare_tx(s_transaction_id);
         for (auto i = 0; i < s_log->count; i++) {
             auto lr = s_log->log_records + i;
 
@@ -522,6 +540,7 @@ class server : private se_base {
         }
 
         // Append commit decision to WAL.
+        rdb->commit_tx(s_transaction_id);
 
         return true;
     }

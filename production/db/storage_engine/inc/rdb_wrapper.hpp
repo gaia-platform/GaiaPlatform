@@ -4,8 +4,7 @@
 /////////////////////////////////////////////
 
 #pragma once
-
-using namespace rocksdb;
+#include "rocksdb/status.h"
 
 // This file provides gaia specific functionality to 
 // 1) commit to RocksDB LSM on write and 
@@ -32,13 +31,13 @@ namespace db
              * Open rocksdb with the correct options.
              * Todo(Mihir) Set tuning options https://github.com/facebook/rocksdb/wiki/RocksDB-Tuning-Guide
              */
-            Status open();
+            rocksdb::Status open();
 
             /**
              * Close the database and delete the database object.
              * This call cannot be reversed.
              */
-            Status close();
+            rocksdb::Status close();
 
             /** 
              * Iterate over all elements in the LSM and call storage engine create apis 
@@ -46,7 +45,7 @@ namespace db
              */
             void recover();
 
-            Status prepare_tx(gaia_xid_t transaction_id);
+            rocksdb::Status prepare_tx(gaia_xid_t transaction_id);
 
             void commit_tx(gaia_xid_t transaction_id);
 

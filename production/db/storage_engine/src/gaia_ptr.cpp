@@ -25,7 +25,7 @@ gaia_ptr& gaia_ptr::clone() {
 
     memcpy(new_this, old_this, new_size);
 
-    client::tx_log(row_id, old_offset, to_offset());
+    client::tx_log(row_id, old_offset, to_offset(), se_base::gaia_operation_t::clone);
 
     if (!client::is_invalid_event(new_this->type)) {
         client::s_events.push_back(trigger_event_t {event_type_t::row_insert, new_this->type, new_this->id, nullptr, 0});
@@ -52,7 +52,7 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data) {
     new_this->num_references = old_this->num_references;
     memcpy(new_this->payload + ref_len, data, data_size);
 
-    client::tx_log(row_id, old_offset, to_offset());
+    client::tx_log(row_id, old_offset, to_offset(), se_base::gaia_operation_t::update);
 
     if (!client::is_invalid_event(new_this->type)) {
         client::s_events.push_back(trigger_event_t {event_type_t::row_update, new_this->type, new_this->id, nullptr, 0});
@@ -73,7 +73,7 @@ gaia_ptr::gaia_ptr(const gaia_id_t id, const size_t size, bool log_updates)
 
     // Writing to log will be skipped for recovery.
     if (log_updates) {
-        client::tx_log(row_id, 0, to_offset());
+        client::tx_log(row_id, 0, to_offset(), se_base::gaia_operation_t::create);
     }
 }
 
@@ -114,7 +114,8 @@ void gaia_ptr::find_next(gaia_type_t type) {
 }
 
 void gaia_ptr::reset() {
-    client::tx_log(row_id, to_offset(), 0);
+    client::tx_log(row_id, to_offset(), 0, se_base::gaia_operation_t::remove, to_ptr()->id, to_ptr()->type);
+
     if (!client::is_invalid_event(to_ptr()->type)) {
         client::s_events.push_back(trigger_event_t {event_type_t::row_delete, to_ptr()->type, to_ptr()->id, nullptr, 0});
     }

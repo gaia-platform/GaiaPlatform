@@ -90,7 +90,7 @@ Status rdb_wrapper::prepare_tx(gaia_xid_t transaction_id) {
             void* gaia_object = server::offset_to_ptr(lr->row_id);
 
             if (!gaia_object) {
-                // object was deleted in current tx
+                // Object was deleted in current transaction.
                 continue;
             }
 
