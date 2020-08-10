@@ -100,6 +100,7 @@ private:
     condition_variable m_invocations_signal;
     bool m_exit;
     size_t m_num_threads;
+    static const bool do_not_auto_begin_after_commit = false;
 };
 
 } // namespace rules

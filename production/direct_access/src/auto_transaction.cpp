@@ -36,7 +36,7 @@ void auto_transaction_t::commit()
 }
 
 auto_transaction_t::~auto_transaction_t()
-{    
+{
     if (m_is_transaction_owner)
     {
         // Someone could have ended the current transaction with an explicit

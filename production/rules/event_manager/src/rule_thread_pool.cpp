@@ -126,7 +126,8 @@ void rule_thread_pool_t::invoke_rule(const invocation_t& invocation)
     bool should_schedule = false;
     try
     {
-        auto_transaction_t tx;
+        auto_transaction_t tx(do_not_auto_begin_after_commit);
+
         rule_context_t context(tx,
             invocation.gaia_type,
             invocation.event_type,

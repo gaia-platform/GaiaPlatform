@@ -100,3 +100,28 @@ TEST_F(auto_transaction_test, auto_transaction_nested_commit)
     }
     EXPECT_EQ(false, is_transaction_active());
 }
+
+TEST_F(auto_transaction_test, auto_begin_true)
+{
+    EXPECT_EQ(false, is_transaction_active());
+    {
+        auto_transaction_t tx;
+        EXPECT_EQ(true, is_transaction_active());
+        tx.commit();
+        // We begin a new transaction after commit
+        EXPECT_EQ(true, is_transaction_active());
+    }// Rollback the auto-begin transaction here.
+    EXPECT_EQ(false, is_transaction_active());
+}
+
+TEST_F(auto_transaction_test, auto_begin_false)
+{
+    EXPECT_EQ(false, is_transaction_active());
+    {
+        auto_transaction_t tx(false);
+        EXPECT_EQ(true, is_transaction_active());
+        tx.commit();
+        EXPECT_EQ(false, is_transaction_active());
+    }// Nothing to rollback here.
+    EXPECT_EQ(false, is_transaction_active());
+}
