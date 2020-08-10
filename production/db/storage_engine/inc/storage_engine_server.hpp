@@ -522,7 +522,7 @@ class server : private se_base {
 
         std::set<int64_t> row_ids;
         // Prepare tx
-        rdb->prepare_tx(s_transaction_id);
+        // rdb->prepare_tx(s_transaction_id);
         for (auto i = 0; i < s_log->count; i++) {
             auto lr = s_log->log_records + i;
 
@@ -540,7 +540,7 @@ class server : private se_base {
         }
 
         // Append commit decision to WAL.
-        rdb->commit_tx(s_transaction_id);
+        // rdb->commit_tx(s_transaction_id);
 
         return true;
     }

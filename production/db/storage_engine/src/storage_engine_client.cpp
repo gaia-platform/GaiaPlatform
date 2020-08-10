@@ -25,7 +25,7 @@ std::unordered_set<gaia_type_t> client::trigger_excluded_types{
 };
 
 // Should this be initialized by the rules engine instead?
-event_trigger_threadpool_t* client::event_trigger_pool = new event_trigger_threadpool_t();
+// event_trigger_threadpool_t* client::event_trigger_pool = new event_trigger_threadpool_t();
 
 static void build_client_request(FlatBufferBuilder &builder, session_event_t event) {
     auto client_request = Createclient_request_t(builder, event);
@@ -291,9 +291,9 @@ void client::commit_transaction() {
     retail_assert(event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT);
 
     // Execute trigger only if rules engine is initialized.
-    if (event_trigger_pool->get_commit_trigger() && event == session_event_t::DECIDE_TXN_COMMIT) {
-        event_trigger_pool->add_trigger_task(s_transaction_id, std::move(s_events));
-    }
+    // if (event_trigger_pool->get_commit_trigger() && event == session_event_t::DECIDE_TXN_COMMIT) {
+    //     event_trigger_pool->add_trigger_task(s_transaction_id, std::move(s_events));
+    // }
 
     // Reset transaction id.
     s_transaction_id = 0;

@@ -173,113 +173,113 @@ protected:
     }
 };
 
-TEST_F(rule_integration_test, test_insert)
-{
-    subscribe_insert();
-    {
-        rule_monitor_t monitor(1);
+// TEST_F(rule_integration_test, test_insert)
+// {
+//     subscribe_insert();
+//     {
+//         rule_monitor_t monitor(1);
 
-        auto_transaction_t tx(false);
-        employee_writer writer;
-        writer.name_first = c_name;
-        writer.insert_row();
-        tx.commit();
-    }
+//         auto_transaction_t tx(false);
+//         employee_writer writer;
+//         writer.name_first = c_name;
+//         writer.insert_row();
+//         tx.commit();
+//     }
 
-    // Make sure the address was added and updated by the
-    // rule that was fired above.
-    {
-        auto_transaction_t tx(false);
-        address_t a = address_t::get_first();
-        EXPECT_STREQ(a.city(), c_city);
-        EXPECT_STREQ(a.state(), c_state);
-    }
-}
+//     // Make sure the address was added and updated by the
+//     // rule that was fired above.
+//     {
+//         auto_transaction_t tx(false);
+//         address_t a = address_t::get_first();
+//         EXPECT_STREQ(a.city(), c_city);
+//         EXPECT_STREQ(a.state(), c_state);
+//     }
+// }
 
-TEST_F(rule_integration_test, test_delete)
-{
-    subscribe_delete();
-    {
-        rule_monitor_t monitor(1);
+// TEST_F(rule_integration_test, test_delete)
+// {
+//     subscribe_delete();
+//     {
+//         rule_monitor_t monitor(1);
 
-        auto_transaction_t tx(true);
-        employee_writer writer;
-        writer.name_first = c_name;
-        employee_t e = employee_t::get(writer.insert_row());
-        tx.commit();
+//         auto_transaction_t tx(true);
+//         employee_writer writer;
+//         writer.name_first = c_name;
+//         employee_t e = employee_t::get(writer.insert_row());
+//         tx.commit();
 
-        e.delete_row();
-        tx.commit();
-    }
-}
+//         e.delete_row();
+//         tx.commit();
+//     }
+// }
 
-TEST_F(rule_integration_test, test_update)
-{
-    subscribe_update();
-    {
-        rule_monitor_t monitor(1);
-        auto_transaction_t tx(true);
-            employee_writer writer;
-            writer.name_first = "Ignore";
-            employee_t e = employee_t::get(writer.insert_row());
-        tx.commit();
-            writer = e.writer();
-            writer.name_first = c_name;
-            writer.update_row();
-        tx.commit();
-    }
-}
+// TEST_F(rule_integration_test, test_update)
+// {
+//     subscribe_update();
+//     {
+//         rule_monitor_t monitor(1);
+//         auto_transaction_t tx(true);
+//             employee_writer writer;
+//             writer.name_first = "Ignore";
+//             employee_t e = employee_t::get(writer.insert_row());
+//         tx.commit();
+//             writer = e.writer();
+//             writer.name_first = c_name;
+//             writer.update_row();
+//         tx.commit();
+//     }
+// }
 
-TEST_F(rule_integration_test, test_two_rules)
-{
-    subscribe_update();
-    subscribe_delete();
-    {
-        rule_monitor_t monitor(2);
-        gaia_id_t first;
-        gaia_id_t second;
+// TEST_F(rule_integration_test, test_two_rules)
+// {
+//     subscribe_update();
+//     subscribe_delete();
+//     {
+//         rule_monitor_t monitor(2);
+//         gaia_id_t first;
+//         gaia_id_t second;
 
-        auto_transaction_t tx(true);
-        employee_writer writer;
-        writer.name_first = "Ignore";
-        first = writer.insert_row();
-        writer.name_first = "Me Too";
-        second = writer.insert_row();
-        tx.commit();
+//         auto_transaction_t tx(true);
+//         employee_writer writer;
+//         writer.name_first = "Ignore";
+//         first = writer.insert_row();
+//         writer.name_first = "Me Too";
+//         second = writer.insert_row();
+//         tx.commit();
 
-        // Delete first row and update second.
-        employee_t::delete_row(first);
-        writer = employee_t::get(second).writer();
-        writer.name_first = c_name;
-        writer.update_row();
-        tx.commit();
-    }
-}
+//         // Delete first row and update second.
+//         employee_t::delete_row(first);
+//         writer = employee_t::get(second).writer();
+//         writer.name_first = c_name;
+//         writer.update_row();
+//         tx.commit();
+//     }
+// }
 
-// Invoke the sleep rule which sleeps for 1 second.  We will call it the number
-// of times equal to the number of hardware threads the system the test is
-// running on. If we are truly running parallel then our total run time should
-// be roughly 1s.  We'll be conservative and just verify its less than 2s. If we
-// are not running parallel then the time will be equal to the number of times
-// we invoke the sleep function.
-TEST_F(rule_integration_test, test_parallel)
-{
-    const int num_inserts = thread::hardware_concurrency();
-    subscribe_sleep();
-    std::chrono::system_clock::time_point start;
-    std::chrono::system_clock::time_point end;
-    {
-        rule_monitor_t monitor(num_inserts);
-        auto_transaction_t tx(false);
-        for (int i = 0; i < num_inserts; i++)
-        {
-            employee_t::insert_row("John", "Jones", "111-11-1111", i, nullptr, nullptr);
-        }
-        start = std::chrono::high_resolution_clock::now();
-        tx.commit();
-    }
-    end = std::chrono::high_resolution_clock::now();
-    int64_t total_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
-    double total_seconds = total_time / (double)1e9;
-    EXPECT_TRUE(total_seconds < 2.0);
-}
+// // Invoke the sleep rule which sleeps for 1 second.  We will call it the number
+// // of times equal to the number of hardware threads the system the test is
+// // running on. If we are truly running parallel then our total run time should
+// // be roughly 1s.  We'll be conservative and just verify its less than 2s. If we
+// // are not running parallel then the time will be equal to the number of times
+// // we invoke the sleep function.
+// TEST_F(rule_integration_test, test_parallel)
+// {
+//     const int num_inserts = thread::hardware_concurrency();
+//     subscribe_sleep();
+//     std::chrono::system_clock::time_point start;
+//     std::chrono::system_clock::time_point end;
+//     {
+//         rule_monitor_t monitor(num_inserts);
+//         auto_transaction_t tx(false);
+//         for (int i = 0; i < num_inserts; i++)
+//         {
+//             employee_t::insert_row("John", "Jones", "111-11-1111", i, nullptr, nullptr);
+//         }
+//         start = std::chrono::high_resolution_clock::now();
+//         tx.commit();
+//     }
+//     end = std::chrono::high_resolution_clock::now();
+//     int64_t total_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
+//     double total_seconds = total_time / (double)1e9;
+//     EXPECT_TRUE(total_seconds < 2.0);
+// }
