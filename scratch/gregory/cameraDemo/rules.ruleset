@@ -15,22 +15,25 @@ std::vector<string> processImage(const char *fileName);
 ruleset cameraDemo
 {
     {
-        std::cerr << "IMAGE Captured " << file_name <<  endl;
-        g_filenames.insert(make_pair(camera_image.gaia_id(), file_name));
-        std::vector<string> detectedClasses  = processImage(file_name);
-        if (detectedClasses.empty())
+        if (camera_image.LastOperation == INSERT)
         {
-            camera_image.delete_row();
-        }
-        else
-        {
-            for (const auto& it: detectedClasses)
+            std::cerr << "IMAGE Captured " << @file_name <<  endl;
+            g_filenames.insert(make_pair(camera_image.gaia_id(), @file_name));
+            std::vector<string> detectedClasses  = processImage(@file_name);
+            if (detectedClasses.empty())
             {
-                gaia::cameraDemo::object_writer obj = gaia::cameraDemo::object_writer();
-                obj.object_class = it.c_str();
-                obj.insert_row();
+                camera_image.delete_row();
             }
-        }        
+            else
+            {
+                for (const auto& it: detectedClasses)
+                {
+                    gaia::cameraDemo::object_writer obj = gaia::cameraDemo::object_writer();
+                    obj.object_class = it.c_str();
+                    obj.insert_row();
+                }
+            } 
+        }      
     }
 
     {
@@ -45,25 +48,28 @@ ruleset cameraDemo
     }
 
     {
-        cerr << "OBJECT CLASSIFIED " << object_class << endl;
-
-        if ("person" == std::string(object_class))
+        if (object.LastOperation == INSERT)
         {
-            auto until_time_ns = static_cast<ulong>(
-                high_resolution_clock::now().time_since_epoch().count() +
-                duration_cast<nanoseconds>(seconds(3)).count());
+            cerr << "OBJECT CLASSIFIED " << @object_class << endl;
 
-            auto p_row = gaia::cameraDemo::emergency_stop_t::get_first();
-            if (!p_row) {
-                gaia::cameraDemo::emergency_stop_writer w = gaia::cameraDemo::emergency_stop_writer();
-                w.until_time_ns = until_time_ns;
-                w.insert_row();
-            }
-            else
+            if ("person" == std::string(@object_class))
             {
-                gaia::cameraDemo::emergency_stop_writer w = p_row.writer();
-                w.until_time_ns = until_time_ns;
-                w.update_row();
+                auto until_time_ns = static_cast<ulong>(
+                    high_resolution_clock::now().time_since_epoch().count() +
+                    duration_cast<nanoseconds>(seconds(3)).count());
+
+                auto p_row = gaia::cameraDemo::emergency_stop_t::get_first();
+                if (!p_row) {
+                    gaia::cameraDemo::emergency_stop_writer w = gaia::cameraDemo::emergency_stop_writer();
+                    w.until_time_ns = until_time_ns;
+                    w.insert_row();
+                }
+                else
+                {
+                    gaia::cameraDemo::emergency_stop_writer w = p_row.writer();
+                    w.until_time_ns = until_time_ns;
+                    w.update_row();
+                }
             }
         }
     }

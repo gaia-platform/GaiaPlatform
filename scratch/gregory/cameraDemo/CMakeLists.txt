@@ -9,7 +9,7 @@ project(camera_demo VERSION 0.1.0)
 find_package(OpenCV 4.3.0 REQUIRED)
 
 include(gaia)
-
+set(GAIA_PROD_BUILD "${CMAKE_SOURCE_DIR}/../../../production/build")
 set(CMAKE_CXX_FLAGS
       "-std=c++0x -Wall -Wextra -ggdb -Wno-unused-parameter -ggdb")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ggdb -pthread")
@@ -39,7 +39,7 @@ set(CAMERA_DEMO_SRCS
   "${CMAKE_SOURCE_DIR}/demo.cpp"
   "${CMAKE_SOURCE_DIR}/cv.cpp"
   )
-
+message (STATUS "${GAIA_PROD_BUILD}")
 add_library(gaia SHARED IMPORTED GLOBAL)
 set_target_properties(gaia PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/system/libgaia.a)
 
@@ -62,6 +62,7 @@ target_link_libraries(camera_demo
   gaia
   gaia_direct
   ${OpenCV_LIBS}
+  explain
   m
   rt
 )
