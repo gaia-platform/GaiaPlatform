@@ -18,19 +18,10 @@ namespace db {
 class gaia_ptr {
     // We need access to private implementation state of the client library.
     friend class client;
-    friend class rdb_object_converter_util;
-    friend class rdb_wrapper;
 
    private:
     int64_t row_id;
-
-    struct object {
-        gaia_id_t id;
-        gaia_type_t type;
-        size_t num_references;
-        size_t payload_size;
-        char payload[0];
-    };
+    void create_insert_trigger(gaia_type_t type, gaia_id_t id);
 
    public:
     gaia_ptr(const std::nullptr_t = nullptr)
@@ -173,6 +164,15 @@ class gaia_ptr {
     }
 
    protected:
+
+    struct object {
+        gaia_id_t id;
+        gaia_type_t type;
+        size_t num_references;
+        size_t payload_size;
+        char payload[0];
+    };
+
     gaia_ptr(const gaia_id_t id);
 
     gaia_ptr(const gaia_id_t id, const size_t size, bool log_updates = true);
@@ -190,9 +190,6 @@ class gaia_ptr {
     void find_next(gaia_type_t type);
 
     void reset();
-
-   private:
-    void create_insert_trigger(gaia_type_t type, gaia_id_t id);
 };
 
 }  // namespace db

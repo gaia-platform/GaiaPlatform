@@ -4,7 +4,7 @@
 /////////////////////////////////////////////
 
 #include "rdb_object_converter.hpp"
-#include "gaia_ptr.hpp"
+#include "gaia_ptr_server.hpp"
 #include "storage_engine.hpp"
 
 using namespace gaia::common;
@@ -16,7 +16,7 @@ using namespace gaia::db;
  * Value: reference_count, payload_size, payload
  */
 void rdb_object_converter_util::encode_object(
-    const gaia_ptr::object* gaia_object,
+    const gaia_ptr_server::object* gaia_object,
     string_writer* key,
     string_writer* value) {
     // Create key.
@@ -29,7 +29,7 @@ void rdb_object_converter_util::encode_object(
     value->write(gaia_object->payload, gaia_object->payload_size);
 }
 
-gaia_ptr rdb_object_converter_util::decode_object(
+gaia_ptr_server rdb_object_converter_util::decode_object(
     const rocksdb::Slice& key,
     const rocksdb::Slice& value,
     uint64_t* max_id) {
@@ -53,6 +53,5 @@ gaia_ptr rdb_object_converter_util::decode_object(
     value_.read_uint32(&size);
     auto payload = value_.read(size);
 
-    // Create object & skip logging updates, since this API is called on Recovery.
-    return gaia_ptr::create(id, type, num_references, size, payload, false);
+    return gaia_ptr_server::create(id, type, num_references, size, payload);
 }

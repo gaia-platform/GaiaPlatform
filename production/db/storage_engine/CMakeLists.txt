@@ -116,6 +116,7 @@ set_target_properties(rocks_wrapper PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLA
 set(GAIA_SE_SERVER_SOURCES
   src/storage_engine.cpp
   src/storage_engine_server.cpp
+  src/gaia_ptr_server.cpp
   src/storage_engine_server_exec.cpp
 )
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")

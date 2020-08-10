@@ -67,9 +67,9 @@ gaia_ptr::gaia_ptr(const gaia_id_t id) {
 
 gaia_ptr::gaia_ptr(const gaia_id_t id, const size_t size, bool log_updates)
     : row_id(0) {
-    se_base::hash_node* hash_node = gaia_hash_map::insert(id, !log_updates);
-    hash_node->row_id = row_id = client::allocate_row_id();
-    client::allocate_object(row_id, size);
+    se_base::hash_node* hash_node = gaia_hash_map::insert(id);
+    hash_node->row_id = row_id = client::allocate_row_id(client::s_offsets);
+    client::allocate_object(row_id, size, client::s_offsets);
 
     // Writing to log will be skipped for recovery.
     if (log_updates) {
@@ -78,7 +78,7 @@ gaia_ptr::gaia_ptr(const gaia_id_t id, const size_t size, bool log_updates)
 }
 
 void gaia_ptr::allocate(const size_t size) {
-    client::allocate_object(row_id, size);
+    client::allocate_object(row_id, size, client::s_offsets);
 }
 
 void gaia_ptr::create_insert_trigger(gaia_type_t type, gaia_id_t id) {

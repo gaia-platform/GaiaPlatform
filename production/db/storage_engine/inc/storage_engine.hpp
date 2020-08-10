@@ -39,7 +39,9 @@ const size_t MAX_MSG_SIZE = 1 << 10;
 
 class se_base {
     friend class gaia_ptr;
+    friend class gaia_ptr_server;
     friend class gaia_hash_map;
+    friend class gaia_hash_map_server;
     friend class rdb_wrapper;
     friend class rdb_object_converter_util;
 
@@ -102,6 +104,32 @@ class se_base {
     thread_local static log* s_log;
     thread_local static int s_session_socket;
     thread_local static gaia_xid_t s_transaction_id;
+
+    static inline int64_t allocate_row_id(offsets* offsets) {
+        if (offsets == nullptr) {
+            throw transaction_not_open();
+        }
+
+        if (s_data->row_id_count >= MAX_RIDS) {
+            throw oom();
+        }
+
+        return 1 + __sync_fetch_and_add(&s_data->row_id_count, 1);
+    }
+
+    static void inline allocate_object(int64_t row_id, size_t size, offsets* offsets) {
+        // if (*s_offsets == nullptr) {
+        //     throw transaction_not_open();
+        // }
+
+        if (s_data->objects[0] >= MAX_OBJECTS) {
+            throw oom();
+        }
+
+        (*offsets)[row_id] = 1 + __sync_fetch_and_add(
+            &s_data->objects[0],
+            (size + sizeof(int64_t) - 1) / sizeof(int64_t));
+    }
 
    public:
     // The real implementation will need

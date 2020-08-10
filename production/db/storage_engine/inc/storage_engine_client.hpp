@@ -86,32 +86,6 @@ class client : private se_base {
         return trigger_excluded_types.find(type) != trigger_excluded_types.end();
     }
 
-    static inline int64_t allocate_row_id() {
-        if (*s_offsets == nullptr) {
-            throw transaction_not_open();
-        }
-
-        if (s_data->row_id_count >= MAX_RIDS) {
-            throw oom();
-        }
-
-        return 1 + __sync_fetch_and_add(&s_data->row_id_count, 1);
-    }
-
-    static void inline allocate_object(int64_t row_id, size_t size) {
-        if (*s_offsets == nullptr) {
-            throw transaction_not_open();
-        }
-
-        if (s_data->objects[0] >= MAX_OBJECTS) {
-            throw oom();
-        }
-
-        (*s_offsets)[row_id] = 1 + __sync_fetch_and_add(
-            &s_data->objects[0],
-            (size + sizeof(int64_t) - 1) / sizeof(int64_t));
-    }
-
     static inline void verify_tx_active() {
         if (!is_transaction_active()) {
             throw transaction_not_open();

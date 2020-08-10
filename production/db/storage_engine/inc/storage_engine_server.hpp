@@ -34,6 +34,8 @@ class invalid_session_transition : public gaia_exception {
 
 class server : private se_base {
     friend class rdb_wrapper;
+    friend class gaia_hash_map_server;
+    friend class gaia_ptr_server;
    public:
     static void run();
 
@@ -203,7 +205,7 @@ class server : private se_base {
         s_data = static_cast<data*>(map_fd(sizeof(data),
             PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_data, 0));
         
-        recover_db();
+        // recover_db();
 
         cleanup_memory.dismiss();
     }
@@ -522,7 +524,7 @@ class server : private se_base {
 
         std::set<int64_t> row_ids;
         // Prepare tx
-        rdb->prepare_tx(s_transaction_id);
+        // rdb->prepare_tx(s_transaction_id);
         for (auto i = 0; i < s_log->count; i++) {
             auto lr = s_log->log_records + i;
 
@@ -540,7 +542,7 @@ class server : private se_base {
         }
 
         // Append commit decision to WAL.
-        rdb->commit_tx(s_transaction_id);
+        // rdb->commit_tx(s_transaction_id);
 
         return true;
     }
