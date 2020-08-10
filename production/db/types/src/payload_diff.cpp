@@ -22,13 +22,12 @@ namespace db
 namespace types
 {
 
-field_list_t compute_payload_diff(gaia_id_t type_id, const uint8_t* payload1, const uint8_t* payload2, bool outside_tx) {
+field_list_t compute_payload_diff(gaia_id_t type_id, const uint8_t* payload1, const uint8_t* payload2, field_position_list_t* position_list) {
+    // Initialization occurs upon first addition, so constructor doesn't init any memory.
     field_list_t retval(type_id);
-    auto_transaction_t tx;
-
     // Query the catalog for the schema
     gaia::catalog::gaia_table_t table = gaia::catalog::gaia_table_t::get(type_id);
-    string schema = gaia::catalog::get_bfbs(type_id);
+    string schema = gaia::catalog::get_bfbs_transaction_scope(type_id);
 
     for (auto field = gaia::catalog::gaia_field_t::get_first(); field; field.get_next()) {
         if (field.table_id() == type_id) {
@@ -40,22 +39,15 @@ field_list_t compute_payload_diff(gaia_id_t type_id, const uint8_t* payload1, co
 
             // Compare values and set.
             if (data_holder1.compare(data_holder2) != 0) {
-                retval.add(pos);
+                if (position_list == nullptr) {
+                    retval.add(pos);
+                } else {
+                    // We don't concern ourselves with the internal implementation of field_list_t.
+                    // It holds field_position_t now but this may change for other use cases of this API.
+                    position_list->push_back(pos);
+                }
             }
         }
-    }
-
-    return retval;
-}
-
-shared_ptr<vector<field_position_t>> compute_payload_position_diff(gaia_id_t type_id, const uint8_t* payload1, const uint8_t* payload2) {
-    field_list_t diff = compute_payload_diff(type_id, payload1, payload2, false);
-    string schema = gaia::catalog::get_bfbs(type_id, false);
-
-    auto retval = std::make_shared<vector<field_position_t>>();
-
-    for (size_t i = 0; i < diff.size(); i++) {
-        retval.get()->push_back(gaia::catalog::gaia_field_t::get(diff[i]).position());
     }
 
     return retval;

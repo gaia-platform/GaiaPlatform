@@ -210,11 +210,11 @@ static constexpr uint16_t s_last_name = 4;
 static constexpr uint16_t s_value = 5;
 static constexpr uint16_t s_timestamp = 6;
 static constexpr uint16_t s_id = 7;
-static field_list_ptr_t s_first_name_(new field_pos_list_t{s_first_name});
-static field_list_ptr_t s_last_name_(new field_pos_list_t{s_last_name});
-static field_list_ptr_t s_value_(new field_pos_list_t{s_value});
-static field_list_ptr_t s_timestamp_(new field_pos_list_t{s_timestamp});
-static field_list_ptr_t s_id_(new field_pos_list_t{s_id});
+static field_position_list_t s_first_name_{s_first_name};
+static field_position_list_t s_last_name_{s_last_name};
+static field_position_list_t s_value_{s_value};
+static field_position_list_t s_timestamp_{s_timestamp};
+static field_position_list_t s_id_{s_id};
 
 /**
  * Table Rule functions.
@@ -268,9 +268,9 @@ void rule5(const rule_context_t* context)
         // TODO[GAIAPLAT-155]: Determine how the rule schedule deals with cycles
         //{context->event_type, context->gaia_type, context->record, nullptr, 0},
         // Allow event call on different gaia_type.
-        {context->event_type, TestGaia2::s_gaia_type, context->record, nullptr, 0},
+        {context->event_type, TestGaia2::s_gaia_type, context->record, empty_position_list},
         // Allow event call on different event_type.
-        {event_type_t::row_insert, context->gaia_type, test_gaia_ptr->gaia_id(), nullptr, 0}
+        {event_type_t::row_insert, context->gaia_type, test_gaia_ptr->gaia_id(), empty_position_list}
     };
     test::commit_trigger(0, trigger_events, 2);
 }
@@ -317,7 +317,7 @@ void rule8(const rule_context_t* context)
     g_context_checker.set(context);
 
     TestGaia row;
-    trigger_event_t trigger_event = {event_type_t::row_update, TestGaia::s_gaia_type, row.gaia_id(), nullptr, 0};
+    trigger_event_t trigger_event = {event_type_t::row_update, TestGaia::s_gaia_type, row.gaia_id(), empty_position_list};
     test::commit_trigger(0, &trigger_event, 1);
 }
 
@@ -336,8 +336,8 @@ void rule9(const rule_context_t* context)
     // write to timestamp value an id values, writing the timestamp
     // will chain to the rule10
     trigger_event_t events[] = {
-        {event_type_t::row_update, TestGaia::s_gaia_type, context->record, s_timestamp_, 1},
-        {event_type_t::row_update, TestGaia::s_gaia_type, context->record, s_id_, 1},
+        {event_type_t::row_update, TestGaia::s_gaia_type, context->record, s_timestamp_},
+        {event_type_t::row_update, TestGaia::s_gaia_type, context->record, s_id_},
     };
     test::commit_trigger(0, events, 2);
 }
@@ -635,7 +635,7 @@ TEST_F(event_manager_test, log_event_no_rules)
 {
     // An empty sequence will verify that the rule was not called.
     rule_context_sequence_t sequence;
-    trigger_event_t event = {event_type_t::row_delete, TestGaia::s_gaia_type, 123, nullptr, 0};
+    trigger_event_t event = {event_type_t::row_delete, TestGaia::s_gaia_type, 123, empty_position_list};
     test::commit_trigger(0, &event, 1);
     validate_rule_sequence(sequence);
 }
@@ -650,8 +650,8 @@ TEST_F(event_manager_test, log_database_event_single_event_single_rule) {
     // fire an insert event and an update event; verify the rule was only fired for update event
     gaia_id_t record = 55;
     trigger_event_t events[] = {
-        {event_type_t::row_insert, TestGaia::s_gaia_type, 20, nullptr, 0},
-        {event_type_t::row_update, TestGaia::s_gaia_type, record, nullptr, 0}
+        {event_type_t::row_insert, TestGaia::s_gaia_type, 20, empty_position_list},
+        {event_type_t::row_update, TestGaia::s_gaia_type, record, empty_position_list}
     };
     test::commit_trigger(0, events, 2);
 
@@ -674,8 +674,8 @@ TEST_F(event_manager_test, log_field_event_single_event_single_rule) {
     // Verify an update to a different column doesn't fire the rule
     // And then verify an update to the correct column does fire the rule
     trigger_event_t update_field_events[] = {
-        {event_type_t::row_update, TestGaia::s_gaia_type, 1, s_first_name_, 1},
-        {event_type_t::row_update, TestGaia::s_gaia_type, record, s_last_name_, 1}
+        {event_type_t::row_update, TestGaia::s_gaia_type, 1, s_first_name_},
+        {event_type_t::row_update, TestGaia::s_gaia_type, record, s_last_name_}
     };
     test::commit_trigger(0, update_field_events, 2);
     validate_rule_sequence(sequence);
@@ -698,7 +698,7 @@ TEST_F(event_manager_test, log_field_event_multi_event_single_rule) {
     add_context_sequence(sequence, TestGaia::s_gaia_type, event_type_t::row_update);
 
     gaia_id_t record = 30;
-    trigger_event_t update_field_event = {event_type_t::row_update, TestGaia::s_gaia_type, record, s_last_name_, 1};
+    trigger_event_t update_field_event = {event_type_t::row_update, TestGaia::s_gaia_type, record, s_last_name_};
     test::commit_trigger(0, &update_field_event, 1);
     validate_rule_sequence(sequence);
     validate_rule(ruleset1_name, rule1_name, rule1,
@@ -732,7 +732,7 @@ TEST_F(event_manager_test, log_field_event_multi_event_multi_rule) {
     gaia_id_t record = 3;
     add_context_sequence(sequence, TestGaia::s_gaia_type, event_type_t::row_update);
 
-    trigger_event_t update_field_event = {event_type_t::row_update, TestGaia::s_gaia_type, record, s_last_name_, 1};
+    trigger_event_t update_field_event = {event_type_t::row_update, TestGaia::s_gaia_type, record, s_last_name_};
     test::commit_trigger(0, &update_field_event, 1);
 
     validate_rule_sequence(sequence);
@@ -762,9 +762,9 @@ TEST_F(event_manager_test, log_database_event_single_rule_multi_event)
     // Log delete, update, and insert.  Sequence should be update followed by insert
     // because we didn't bind a rule to delete.
     trigger_event_t events[] = {
-        {event_type_t::row_delete, TestGaia::s_gaia_type, record, nullptr, 0},
-        {event_type_t::row_update, TestGaia::s_gaia_type, record+1, nullptr, 0},
-        {event_type_t::row_insert, TestGaia::s_gaia_type, record+2, nullptr, 0}
+        {event_type_t::row_delete, TestGaia::s_gaia_type, record, empty_position_list},
+        {event_type_t::row_update, TestGaia::s_gaia_type, record+1, empty_position_list},
+        {event_type_t::row_insert, TestGaia::s_gaia_type, record+2, empty_position_list}
     };
     test::commit_trigger(0, events, 3);
     validate_rule_sequence(sequence);
@@ -784,8 +784,8 @@ TEST_F(event_manager_test, log_database_event_multi_rule_single_event)
     // Log an update event followed by a delete event.  We should see two rules
     // fired in response to the delete event.
     trigger_event_t events[] = {
-        {event_type_t::row_update, TestGaia::s_gaia_type, 1, nullptr, 0},
-        {event_type_t::row_delete, TestGaia::s_gaia_type, 100, nullptr, 0},
+        {event_type_t::row_update, TestGaia::s_gaia_type, 1, empty_position_list},
+        {event_type_t::row_delete, TestGaia::s_gaia_type, 100, empty_position_list},
     };
     test::commit_trigger(0, events, 2);
     validate_rule_sequence(sequence);
@@ -814,9 +814,9 @@ TEST_F(event_manager_test, log_event_multi_rule_multi_event)
     gaia_id_t record = 100;
 
     trigger_event_t events[] = {
-        {event_type_t::row_update, TestGaia::s_gaia_type, 1, &s_first_name, 1},
-        {event_type_t::row_delete, TestGaia::s_gaia_type, record, nullptr, 0}
-    //    {event_type_t::transaction_commit, 0, 0, nullptr, 0}
+        {event_type_t::row_update, TestGaia::s_gaia_type, 1, s_first_name_},
+        {event_type_t::row_delete, TestGaia::s_gaia_type, record, empty_position_list}
+        // {event_type_t::transaction_commit, 0, 0, nullptr, 0}
     };
     test::commit_trigger(0, events, 2);
     validate_rule_sequence(sequence);
@@ -837,7 +837,7 @@ TEST_F(event_manager_test, log_event_multi_rule_multi_event)
     add_context_sequence(sequence, TestGaia::s_gaia_type, event_type_t::row_insert);
 
     record = 205;
-    trigger_event_t single_event = {event_type_t::row_insert, TestGaia::s_gaia_type, record, nullptr, 0};
+    trigger_event_t single_event = {event_type_t::row_insert, TestGaia::s_gaia_type, record, empty_position_list};
     test::commit_trigger(0, &single_event, 1);
     validate_rule_sequence(sequence);
     validate_rule(ruleset1_name, rule2_name, rule2, event_type_t::row_insert,
@@ -1135,7 +1135,7 @@ TEST_F(event_manager_test, forward_chain_field_not_subscribed)
     rule_context_sequence_t expected;
     add_context_sequence(expected, TestGaia::s_gaia_type, event_type_t::row_update);
 
-    trigger_event_t event = {event_type_t::row_update, TestGaia::s_gaia_type, 34, s_value_, 1};
+    trigger_event_t event = {event_type_t::row_update, TestGaia::s_gaia_type, 34, s_value_};
     test::commit_trigger(0, &event, 1);
     validate_rule_sequence(expected);
 }
@@ -1208,7 +1208,7 @@ TEST_F(event_manager_test, event_logging_no_subscriptions)
 
     // Ensure the event was logged even if it had no subscribers.
     trigger_event_t events[] = {
-        {event_type_t::row_update, TestGaia::s_gaia_type, record, &s_last_name, 1},
+        {event_type_t::row_update, TestGaia::s_gaia_type, record, s_last_name_}
     };
     test::commit_trigger(0, events, 1);
 
@@ -1232,8 +1232,8 @@ TEST_F(event_manager_test, event_logging_subscriptions)
 
     // Log events with subscriptions and ensure the table is populated.
     trigger_event_t events[] = {
-        {event_type_t::row_update, TestGaia2::s_gaia_type, record, s_first_name_, 1},
-        {event_type_t::row_insert, TestGaia2::s_gaia_type, record + 1, nullptr, 0},
+        {event_type_t::row_update, TestGaia2::s_gaia_type, record, s_first_name_},
+        {event_type_t::row_insert, TestGaia2::s_gaia_type, record + 1, empty_position_list},
     };
     test::commit_trigger(0, events, 2);
 

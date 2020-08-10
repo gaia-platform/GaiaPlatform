@@ -47,19 +47,31 @@ void load_catalog()
         if (i == employee_t::s_gaia_type) {
             gaia::catalog::ddl::field_def_list_t emp_fields;
             emp_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t{"name_first", data_type_t::e_string, 1}));
-            gaia::catalog::create_table("employee", emp_fields);
+            auto table_id = gaia::catalog::create_table("employee", emp_fields);
+            begin_transaction();
+            {
+                auto field_ids = list_fields(table_id);
+                for (gaia_id_t field_id : field_ids)
+                {
+                    // Mark all fields as active so that we can bind to them
+                    gaia_field_writer w = gaia_field_t::get(field_id).writer();
+                    w.active = true;
+                    w.update_row();
+                }
+            }
+            commit_transaction();
         } else {
             gaia::catalog::create_table(table_name, fields);
         }
     }
 
-    auto field_ids = list_fields(employee_t::s_gaia_type);
-    begin_transaction();
-    gaia_field_t field = gaia_field_t::get(field_ids[0]);
-    gaia_field_writer writer = field.writer();
-    writer.active = true;
-    writer.update_row();
-    gaia::db::commit_transaction();
+    // auto field_ids = list_fields(employee_t::s_gaia_type);
+    // begin_transaction();
+    // gaia_field_t field = gaia_field_t::get(field_ids[0]);
+    // gaia_field_writer writer = field.writer();
+    // writer.active = true;
+    // writer.update_row();
+    // gaia::db::commit_transaction();
 }
 
 extern "C"
@@ -147,13 +159,13 @@ TEST_F(gaia_system_test, single_threaded_transactions) {
 }
 
 
-TEST_F(gaia_system_test, multi_threaded_transactions) {
-    uint32_t count_tx_per_thread = 1;
-    uint32_t crud_operations_per_tx = 3;
-    uint32_t count_threads = 10;
-    for (uint32_t i = 0; i < count_threads; i++) {
-        auto t = std::thread(perform_transactions, count_tx_per_thread, crud_operations_per_tx, true);
-        t.join();
-    }
-    validate_and_end_test(count_tx_per_thread, crud_operations_per_tx, count_threads);
-}
+// TEST_F(gaia_system_test, multi_threaded_transactions) {
+//     uint32_t count_tx_per_thread = 1;
+//     uint32_t crud_operations_per_tx = 3;
+//     uint32_t count_threads = 10;
+//     for (uint32_t i = 0; i < count_threads; i++) {
+//         auto t = std::thread(perform_transactions, count_tx_per_thread, crud_operations_per_tx, true);
+//         t.join();
+//     }
+//     validate_and_end_test(count_tx_per_thread, crud_operations_per_tx, count_threads);
+// }
