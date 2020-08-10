@@ -70,7 +70,7 @@ TEST_F(auto_transaction_test, auto_transaction_inactive_commit)
     EXPECT_EQ(false, is_transaction_active());
 }
 
-TEST_F(auto_transaction_test, auto_transaction_nested)
+TEST_F(auto_transaction_test, auto_transaction_nested_rollback)
 {
     EXPECT_EQ(false, is_transaction_active());
     {
@@ -79,6 +79,22 @@ TEST_F(auto_transaction_test, auto_transaction_nested)
             // No-op begin and rollback since
             // this instance doesn't own the transaction.
             auto_transaction_t nested;
+        }
+        EXPECT_EQ(true, is_transaction_active());
+    }
+    EXPECT_EQ(false, is_transaction_active());
+}
+
+TEST_F(auto_transaction_test, auto_transaction_nested_commit)
+{
+    EXPECT_EQ(false, is_transaction_active());
+    {
+        auto_transaction_t tx;
+        {
+            // No-op begin and rollback since
+            // this instance doesn't own the transaction.
+            auto_transaction_t nested;
+            nested.commit();
         }
         EXPECT_EQ(true, is_transaction_active());
     }
