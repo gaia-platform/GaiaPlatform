@@ -5,7 +5,6 @@
 
 #include "retail_assert.hpp"
 #include "event_manager.hpp"
-#include "auto_tx.hpp"
 #include "events.hpp"
 #include "triggers.hpp"
 #include "event_trigger_threadpool.hpp"
@@ -84,7 +83,7 @@ void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_even
 
     // Start a transaction that will be used to log all the events that were
     // triggered independent of whether they invoked a rule or not.
-    auto_tx_t tx;
+    auto_transaction_t transaction;
     for (size_t i =0; i < trigger_event_list.size(); log_to_db(trigger_event_list[i], rules_invoked), ++i)
     {
         const trigger_event_t& event = trigger_event_list[i];
@@ -153,15 +152,14 @@ void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_even
             }
         }
     }
-    tx.commit();
+    transaction.commit();
 }
 
 void event_manager_t::enqueue_invocation(const trigger_event_t& event, 
     const _rule_binding_t* binding)
 {
-    rule_context_t context({binding->ruleset_name.c_str(), binding->rule_name.c_str(), binding->rule}, 
-        event.gaia_type, event.event_type, event.record);
-    m_invocations->enqueue(context);
+    rule_thread_pool_t::invocation_t invocation{binding->rule, event.gaia_type, event.event_type, event.record};
+    m_invocations->enqueue(invocation);
 }
 
 void event_manager_t::check_subscription(

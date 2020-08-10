@@ -6,66 +6,81 @@
 // Do not include event_manager.hpp to ensure that
 // we don't have a dependency on the internal implementation.
 
-#include "auto_tx.hpp"
 #include "gtest/gtest.h"
 #include "db_test_base.hpp"
+#include "auto_transaction.hpp"
 
 using namespace std;
 using namespace gaia::db;
-using namespace gaia::rules;
+using namespace gaia::direct_access;
 
 extern "C" void initialize_rules()
 {
 }
 
-class auto_tx_test : public db_test_base_t {
+class auto_transaction_test : public db_test_base_t {
 };
 
-TEST_F(auto_tx_test, auto_tx_active_commit)
+TEST_F(auto_transaction_test, auto_transaction_active_commit)
 {
     begin_transaction();
     EXPECT_EQ(true, is_transaction_active());
     {
         // Should be a no-op since a transaction is already active.
-        auto_tx_t tx;
+        auto_transaction_t tx;
         tx.commit();
     }
     EXPECT_EQ(true, is_transaction_active());
     rollback_transaction();
 }
 
-TEST_F(auto_tx_test, auto_tx_active_rollback)
+TEST_F(auto_transaction_test, auto_transaction_active_rollback)
 {
     begin_transaction();
     EXPECT_EQ(true, is_transaction_active());
     {
         // Should be a no-op since a transaction is already active.
-        auto_tx_t tx;
+        auto_transaction_t tx;
     }
     EXPECT_EQ(true, is_transaction_active());
     rollback_transaction();
 }
 
-TEST_F(auto_tx_test, auto_tx_inactive_rollback)
+TEST_F(auto_transaction_test, auto_transaction_inactive_rollback)
 {
     EXPECT_EQ(false, is_transaction_active());
     {
         // Starts transaction then rollback on scope exit.
-        auto_tx_t tx;
+        auto_transaction_t tx;
         EXPECT_EQ(true, is_transaction_active());
     }
     EXPECT_EQ(false, is_transaction_active());
 }
 
-TEST_F(auto_tx_test, auto_tx_inactive_commit)
+TEST_F(auto_transaction_test, auto_transaction_inactive_commit)
 {
     EXPECT_EQ(false, is_transaction_active());
     {
-        // Starts transaction then commit.
-        auto_tx_t tx;
+        // Start transaction then commit.
+        auto_transaction_t tx(false);
         EXPECT_EQ(true, is_transaction_active());
         tx.commit();
         EXPECT_EQ(false, is_transaction_active());
+    }
+    EXPECT_EQ(false, is_transaction_active());
+}
+
+TEST_F(auto_transaction_test, auto_transaction_nested)
+{
+    EXPECT_EQ(false, is_transaction_active());
+    {
+        auto_transaction_t tx;
+        {
+            // No-op begin and rollback since
+            // this instance doesn't own the transaction.
+            auto_transaction_t nested;
+        }
+        EXPECT_EQ(true, is_transaction_active());
     }
     EXPECT_EQ(false, is_transaction_active());
 }

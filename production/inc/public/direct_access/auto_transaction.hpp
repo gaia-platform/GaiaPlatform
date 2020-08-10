@@ -44,6 +44,7 @@ public:
     ~auto_transaction_t();
 private:
     bool m_auto_begin;
+    bool m_is_transaction_owner;
 };
 
 /*@}*/

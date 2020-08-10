@@ -5,7 +5,6 @@
 
 #include "retail_assert.hpp"
 #include "rule_thread_pool.hpp"
-#include "auto_tx.hpp"
 #include "event_manager.hpp"
 
 #include <cstring>
@@ -18,7 +17,7 @@ using namespace std;
  * Thread local variable instances
  */
 thread_local bool rule_thread_pool_t::s_tls_can_enqueue = true;
-thread_local queue<rule_context_t> rule_thread_pool_t::s_tls_pending_invocations;
+thread_local queue<rule_thread_pool_t::invocation_t> rule_thread_pool_t::s_tls_pending_invocations;
 
 
 rule_thread_pool_t::rule_thread_pool_t(size_t num_threads)
@@ -66,14 +65,14 @@ void rule_thread_pool_t::execute_immediate()
     {
         while (!m_invocations.empty())
         {
-            rule_context_t context = m_invocations.front();
+            invocation_t context = m_invocations.front();
             m_invocations.pop();
-            invoke_rule(&context);
+            invoke_rule(context);
         }
     }
 }
 
-void rule_thread_pool_t::enqueue(rule_context_t& invocation)
+void rule_thread_pool_t::enqueue(const invocation_t& invocation)
 {
     if (s_tls_can_enqueue)
     {
@@ -112,31 +111,35 @@ void rule_thread_pool_t::rule_worker()
             break;
         }
 
-        rule_context_t context = m_invocations.front();
+        invocation_t context = m_invocations.front();
         m_invocations.pop();
         lock.unlock();
 
-        invoke_rule(&context);
+        invoke_rule(context);
     }
     end_session();
 }
 
-void rule_thread_pool_t::invoke_rule(const rule_context_t* context)
+void rule_thread_pool_t::invoke_rule(const invocation_t& invocation)
 {
     s_tls_can_enqueue = false;
     bool should_schedule = false;
     try
     {
-        gaia::db::begin_transaction();
+        auto_transaction_t tx;
+        rule_context_t context(tx,
+            invocation.gaia_type,
+            invocation.event_type,
+            invocation.record);
 
         // Invoke the rule.
-        context->rule_binding.rule(context);
+        invocation.rule_fn(&context);
 
-        // The rule may have committed the thread transaction
+        // The rule may have committed the transaction
         // so don't try to commit it again.
         if (gaia::db::is_transaction_active())
         {
-            gaia::db::commit_transaction();
+            tx.commit();
         }
         should_schedule = true;
     }
@@ -161,8 +164,8 @@ void rule_thread_pool_t::process_pending_invocations(bool should_schedule)
     {
         if (should_schedule)
         {
-            rule_context_t context = s_tls_pending_invocations.front();
-            enqueue(context);
+            invocation_t invocation = s_tls_pending_invocations.front();
+            enqueue(invocation);
         }
         s_tls_pending_invocations.pop();
     }

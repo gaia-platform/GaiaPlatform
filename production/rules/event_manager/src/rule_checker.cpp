@@ -7,7 +7,6 @@
 
 #include "gaia_catalog.hpp"
 #include "gaia_catalog.h"
-#include "auto_tx.hpp"
 
 using namespace gaia::rules;
 using namespace gaia::common;
@@ -107,7 +106,7 @@ ruleset_not_found::ruleset_not_found(const char* ruleset_name)
 // 
 void rule_checker_t::check_catalog(gaia_type_t type, const field_list_t& field_list)
 {
-    auto_tx_t tx;
+    auto_transaction_t transaction;
     check_table_type(type);
     check_fields(type, field_list);
 }

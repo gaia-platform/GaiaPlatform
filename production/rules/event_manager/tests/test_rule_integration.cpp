@@ -54,7 +54,6 @@ void rule_insert_address(const rule_context_t* context)
 // inserted address.
 void rule_update_address(const rule_context_t* context)
 {
-    auto_transaction_t tx(false);
     EXPECT_EQ(address_t::s_gaia_type, context->gaia_type);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_insert);
     address_t a = address_t::get(context->record);
@@ -66,7 +65,7 @@ void rule_update_address(const rule_context_t* context)
     // to the test thread when we decrement our count and the test would fail.
     // This also tests that the rules scheduler does the right thing when the
     // rule author commits the transaction in a rule.
-    tx.commit();
+    context->transaction.commit();
     g_wait_for_count--;
 }
 
