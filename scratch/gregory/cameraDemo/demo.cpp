@@ -6,6 +6,7 @@
 
 #include "opencv2/highgui.hpp"
 #include "opencv2/videoio.hpp"
+#include <X11/Xlib.h>
 
 std::string random_string(std::string::size_type length)
 {
@@ -30,6 +31,7 @@ std::string random_string(std::string::size_type length)
 
 int main( int argc, const char** argv )
 {
+    XInitThreads();
     gaia::db::begin_session();
     gaia::rules::initialize_rules_engine();
 

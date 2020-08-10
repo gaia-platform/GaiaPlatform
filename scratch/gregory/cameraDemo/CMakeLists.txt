@@ -65,5 +65,6 @@ target_link_libraries(camera_demo
   explain
   m
   rt
+  X11
 )
 
