@@ -7,15 +7,16 @@
 
 #include <algorithm>
 
+#include "auto_transaction.hpp"
+#include "gaia_catalog.h"
 #include "retail_assert.hpp"
-#include "gaia_catalog.hpp"
 
 using namespace gaia::db::types;
 using namespace gaia::common;
 using namespace std;
 
-field_list_t::field_list_t(gaia_id_t table_id)
-    : m_table_id(table_id),
+field_list_t::field_list_t(gaia_id_t type_id)
+    : m_type_id(type_id),
     m_data(nullptr) {
     // Right now the backing structure for the field_list is a lazily initialized vector.
     // The implementation might change in future to enhance performance.
@@ -25,19 +26,19 @@ field_list_t::field_list_t(gaia_id_t table_id)
 }
 
 field_list_t::field_list_t(const field_list_t& other)
-    : m_table_id(other.m_table_id),
-    m_data((other.m_data) ? new vector<gaia_id_t>(*other.m_data) : nullptr) {
+    : m_type_id(other.m_type_id),
+    m_data((other.m_data) ? new vector<field_position_t>(*other.m_data) : nullptr) {
 }
 
 field_list_t& field_list_t::operator=(const field_list_t& other) {
     if (this != &other) {
-        m_table_id = other.m_table_id;
-        m_data.reset((other.m_data) ? new vector<gaia_id_t>(*other.m_data) : nullptr);
+        m_type_id = other.m_type_id;
+        m_data.reset((other.m_data) ? new vector<field_position_t>(*other.m_data) : nullptr);
     }
     return *this;
 }
 
-gaia_id_t field_list_t::operator[](size_t idx) const {
+field_position_t field_list_t::operator[](size_t idx) const {
     if (idx >= size()) {
         throw field_list_index_out_of_bounds();
     }
@@ -47,34 +48,43 @@ gaia_id_t field_list_t::operator[](size_t idx) const {
 // Initialize backing structure on this list.
 void field_list_t::initialize() {
     retail_assert(m_data == nullptr, "field list already initialized");
-    // TODO(yiwen): lookup catalog for actual size of table
-    size_t num_fields = gaia::catalog::list_fields(m_table_id).size();
+    size_t num_fields = 0;
+    auto_transaction_t tx;
+
+    for (auto field = gaia::catalog::gaia_field_t::get_first(); field; field.get_next()) {
+        if (field.table_id() == m_type_id) {
+            num_fields++;
+        }
+    }
+    tx.commit();
+
     size_t reserve_size = (c_max_vector_reserve < num_fields) ? c_max_vector_reserve : num_fields;
-    m_data.reset(new vector<gaia_id_t>()); // change to make_unique with C++14 and above.
+    // change the following to make_unique with C++14 and above.
+    m_data.reset(new vector<field_position_t>());
     m_data->reserve(reserve_size);
 }
 
 // Set a field in the field_list.
-void field_list_t::add(gaia_id_t field_id) {
+void field_list_t::add(field_position_t field_pos) {
     if (!m_data) {
         // Lazy initialization here.
         initialize();
     }
 
-    auto it = std::find(m_data->cbegin(), m_data->cend(), field_id);
+    auto it = std::find(m_data->cbegin(), m_data->cend(), field_pos);
 
     if (it == m_data->cend()) {
-        m_data->push_back(field_id);
+        m_data->push_back(field_pos);
     }
 }
 
 // Does the list contain the field?
-bool field_list_t::contains(gaia_id_t field_id) const {
+bool field_list_t::contains(field_position_t field_pos) const {
     if (is_empty()) {
         return false;
     }
 
-    auto it = std::find(m_data->cbegin(), m_data->cend(), field_id);
+    auto it = std::find(m_data->cbegin(), m_data->cend(), field_pos);
     return it != m_data->end();
 }
 
@@ -101,12 +111,12 @@ bool field_list_t::validate() const {
 
 // Intersection. Returns fields on both lists if table_ids are the same.
 field_list_t field_list_t::intersect(const field_list_t& other) const {
-    retail_assert(m_table_id == other.m_table_id, "Incompatible field lists for intersect");
+    retail_assert(m_type_id == other.m_type_id, "Incompatible field lists for intersect");
     // TODO (yiwen): implement.
     return field_list_t(other); // PLACEHOLDER: suppress warnings.
 }
 
 // Get table_id associated with this list.
-gaia_id_t field_list_t::get_table_id() const {
-    return m_table_id;
+gaia_id_t field_list_t::get_type_id() const {
+    return m_type_id;
 }
