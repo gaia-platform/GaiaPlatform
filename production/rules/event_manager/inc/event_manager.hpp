@@ -121,13 +121,17 @@ private:
     // Only internal static creation is allowed.
     event_manager_t();
 
-    // Test helper methods allow initializing the rules engine
-    // with custom behavior options.
+    //
+    // Test helper methods.  These are just the friend declarations.  These methods are 
+    // implemented in a separate source file that must be compiled into the test.
+    //
     friend void gaia::rules::test::initialize_rules_engine(event_manager_settings_t& settings);
-
-    // Allow test helper to access private members if the test links in
-    // the implementation.
     friend void gaia::rules::test::commit_trigger(uint64_t, const trigger_event_t*, size_t count_events);
+
+    //
+    // Meta rule for scheduling user-rules and logging to the event
+    //
+    static void enqueue_event_jobs(const rule_context_t* contest);
 
     // Well known trigger function called by the storage engine after commit.
     // Protected so that unit-tests can call directly
