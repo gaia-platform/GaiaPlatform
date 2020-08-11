@@ -23,6 +23,9 @@ namespace types
 {
 
 void compute_payload_diff(gaia_id_t type_id, const uint8_t* payload1, const uint8_t* payload2, field_position_list_t* changed_fields) {
+    if (changed_fields == nullptr) {
+        return;
+    }
     // Query the catalog for the schema
     gaia::catalog::gaia_table_t table = gaia::catalog::gaia_table_t::get(type_id);
     string schema = gaia::catalog::get_bfbs(type_id);
