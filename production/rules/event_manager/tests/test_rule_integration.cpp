@@ -110,15 +110,6 @@ void rule_delete(const rule_context_t* context)
     g_wait_for_count--;
 }
 
-/*
-void rule_field(const rule_context_t* context)
-{
-    employee_t e = employee_t::get(context->record);
-    EXPECT_EQ(context->event_type, triggers::event_type_t::row_update);
-    EXPECT_STREQ(c_name, e.name_first());
-}
-*/
-
 void rule_sleep(const rule_context_t*)
 {
     sleep(1);

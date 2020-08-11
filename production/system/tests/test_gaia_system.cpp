@@ -64,14 +64,6 @@ void load_catalog()
             gaia::catalog::create_table(table_name, fields);
         }
     }
-
-    // auto field_ids = list_fields(employee_t::s_gaia_type);
-    // begin_transaction();
-    // gaia_field_t field = gaia_field_t::get(field_ids[0]);
-    // gaia_field_writer writer = field.writer();
-    // writer.active = true;
-    // writer.update_row();
-    // gaia::db::commit_transaction();
 }
 
 extern "C"

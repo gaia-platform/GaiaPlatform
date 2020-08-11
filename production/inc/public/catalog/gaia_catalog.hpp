@@ -291,16 +291,6 @@ string gaia_generate(string);
  */
 string get_bfbs(gaia_id_t table_id);
 
-/**
- * Retrieve the binary FlatBuffers schema (bfbs) for a given table.
- * This method assumes an outer transaction scope; i.e, a transaction
- * must already be active when calling this method.
- *
- * @param table_id id of the table
- * @return bfbs
- */
-string get_bfbs_transaction_scope(gaia_id_t table_id);
-
 /*@}*/
 } // namespace catalog
 /*@}*/
