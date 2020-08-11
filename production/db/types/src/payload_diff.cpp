@@ -40,7 +40,7 @@ void compute_payload_diff(gaia_id_t type_id, const uint8_t* payload1, const uint
 
             // Compare values and set.
             if (data_holder1.compare(data_holder2) != 0) {
-                changed_fields->push_back(pos);      
+                changed_fields->push_back(pos);
             }
         }
     }
