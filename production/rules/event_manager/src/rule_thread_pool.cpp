@@ -146,10 +146,6 @@ void rule_thread_pool_t::invoke_rule(const invocation_t& invocation)
     }
     catch(const std::exception& e)
     {
-        if (gaia::db::is_transaction_active())
-        {
-            gaia::db::rollback_transaction();
-        }
         // TODO[GAIAPLAT-129]: Log an error in an error table here.
         // TODO[GAIAPLAT-158]: Determine retry/error handling logic
         // Catch all exceptions or let terminate happen? Don't drop pending

@@ -95,9 +95,18 @@ public:
     // Helper to add a context to a context list.
     void add_context_sequence(rule_context_sequence_t& sequence, gaia_type_t gaia_type, event_type_t event_type)
     {
-        auto_transaction_t ignore;
-        rule_context_t c(ignore, gaia_type, event_type, 0);
+        rule_context_t c(get_dummy_transaction(), gaia_type, event_type, 0);
         sequence.push_back(c);
+    }
+
+    auto_transaction_t& get_dummy_transaction(bool init=false) 
+    {
+        // Create a transaction that won't do anything
+        static auto_transaction_t s_dummy(auto_transaction_t::no_auto_begin);
+        if (init) {
+            s_dummy.commit();
+        }
+        return s_dummy;
     }
 
     gaia_type_t gaia_type;
@@ -418,6 +427,7 @@ protected:
         settings.num_background_threads = 0;
         settings.disable_catalog_checks = true;
         test::initialize_rules_engine(settings);
+        g_context_checker.get_dummy_transaction(true);
     }
 
     virtual void TearDown() override {

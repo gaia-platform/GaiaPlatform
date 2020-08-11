@@ -21,32 +21,19 @@ extern "C" void initialize_rules()
 class auto_transaction_test : public db_test_base_t {
 };
 
-TEST_F(auto_transaction_test, auto_transaction_active_commit)
+TEST_F(auto_transaction_test, throw_if_active)
 {
     begin_transaction();
     EXPECT_EQ(true, is_transaction_active());
     {
         // Should be a no-op since a transaction is already active.
-        auto_transaction_t tx;
-        tx.commit();
+        EXPECT_THROW(auto_transaction_t tx, transaction_in_progress);
     }
     EXPECT_EQ(true, is_transaction_active());
     rollback_transaction();
 }
 
-TEST_F(auto_transaction_test, auto_transaction_active_rollback)
-{
-    begin_transaction();
-    EXPECT_EQ(true, is_transaction_active());
-    {
-        // Should be a no-op since a transaction is already active.
-        auto_transaction_t tx;
-    }
-    EXPECT_EQ(true, is_transaction_active());
-    rollback_transaction();
-}
-
-TEST_F(auto_transaction_test, auto_transaction_inactive_rollback)
+TEST_F(auto_transaction_test, rollback_on_destruction)
 {
     EXPECT_EQ(false, is_transaction_active());
     {
@@ -57,7 +44,7 @@ TEST_F(auto_transaction_test, auto_transaction_inactive_rollback)
     EXPECT_EQ(false, is_transaction_active());
 }
 
-TEST_F(auto_transaction_test, auto_transaction_inactive_commit)
+TEST_F(auto_transaction_test, commit_no_rollback)
 {
     EXPECT_EQ(false, is_transaction_active());
     {
@@ -70,7 +57,7 @@ TEST_F(auto_transaction_test, auto_transaction_inactive_commit)
     EXPECT_EQ(false, is_transaction_active());
 }
 
-TEST_F(auto_transaction_test, auto_transaction_nested_rollback)
+TEST_F(auto_transaction_test, invalid_nested)
 {
     EXPECT_EQ(false, is_transaction_active());
     {
@@ -78,26 +65,53 @@ TEST_F(auto_transaction_test, auto_transaction_nested_rollback)
         {
             // No-op begin and rollback since
             // this instance doesn't own the transaction.
-            auto_transaction_t nested;
+            EXPECT_THROW(auto_transaction_t nested, transaction_in_progress);
         }
         EXPECT_EQ(true, is_transaction_active());
     }
     EXPECT_EQ(false, is_transaction_active());
 }
 
-TEST_F(auto_transaction_test, auto_transaction_nested_commit)
+TEST_F(auto_transaction_test, invalid_commit_twice)
+{
+    EXPECT_EQ(false, is_transaction_active());
+    {
+        auto_transaction_t tx(auto_transaction_t::no_auto_begin);
+        tx.commit();
+        EXPECT_THROW(tx.commit(), transaction_not_open);
+    }
+    EXPECT_EQ(false, is_transaction_active());
+}
+
+TEST_F(auto_transaction_test, invalid_commit_mixed)
 {
     EXPECT_EQ(false, is_transaction_active());
     {
         auto_transaction_t tx;
-        {
-            // No-op begin and rollback since
-            // this instance doesn't own the transaction.
-            auto_transaction_t nested;
-            nested.commit();
-        }
-        EXPECT_EQ(true, is_transaction_active());
+        gaia::db::commit_transaction();
+        EXPECT_THROW(tx.commit(), transaction_not_open);
     }
+    EXPECT_EQ(false, is_transaction_active());
+}
+
+TEST_F(auto_transaction_test, no_throw_on_destruction)
+{
+    EXPECT_EQ(false, is_transaction_active());
+    {
+        auto_transaction_t tx;
+        gaia::db::commit_transaction();
+    } // Transaction is not active so the destructor shouldn't attempt to rollback
+    EXPECT_EQ(false, is_transaction_active());
+}
+
+TEST_F(auto_transaction_test, rollback_existing)
+{
+    EXPECT_EQ(false, is_transaction_active());
+    {
+        auto_transaction_t tx;
+        gaia::db::commit_transaction();
+        gaia::db::begin_transaction();
+    } // Transaction is not active so the destructor shouldn't attempt to rollback
     EXPECT_EQ(false, is_transaction_active());
 }
 
@@ -119,7 +133,7 @@ TEST_F(auto_transaction_test, auto_begin_false)
 {
     EXPECT_EQ(false, is_transaction_active());
     {
-        auto_transaction_t tx(false);
+        auto_transaction_t tx(auto_transaction_t::no_auto_begin);
         EXPECT_EQ(true, is_transaction_active());
         tx.commit();
         EXPECT_EQ(false, is_transaction_active());
