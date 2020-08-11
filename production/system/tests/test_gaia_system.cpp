@@ -41,7 +41,7 @@ void load_catalog()
 {
     gaia::catalog::ddl::field_def_list_t fields;
     // Add dummy catalog types for all our types used in this test.
-    for (gaia_type_t i = 1; i <= phone_t::s_gaia_type; i++) 
+    for (gaia_type_t i = event_log_t::s_gaia_type; i <= phone_t::s_gaia_type; i++) 
     {
         string table_name = "dummy" + std::to_string(i);
         if (i == employee_t::s_gaia_type) {

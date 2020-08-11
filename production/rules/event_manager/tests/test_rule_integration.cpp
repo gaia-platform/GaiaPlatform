@@ -207,21 +207,16 @@ public:
         ddl::field_def_list_t empty_fields;
 
         // Add dummy catalog types for all our types with just dummy fields
-        for (gaia_type_t i = 1; i <= phone_t::s_gaia_type; i++) 
+        for (gaia_type_t i = event_log_t::s_gaia_type; i < phone_t::s_gaia_type; i++)
         {
-            if (i == phone_t::s_gaia_type)
-            {
-                load_phone();
-            }
-            else
-            {
-                string table_name = "dummy" + std::to_string(i);
-                gaia::catalog::create_table(table_name, empty_fields);
-            }
+            string table_name = "dummy" + std::to_string(i);
+            gaia::catalog::create_table(table_name, empty_fields);
         }
+
+        load_phone_table();
     }
 
-    void load_phone()
+    void load_phone_table()
     {
         // Our test type for field bindings (must be the last table in the addr_book_db schema so that inserting fields
         // doesn't throw off the type ids for tables that come after it).
@@ -231,7 +226,7 @@ public:
         phone_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t{"type", data_type_t::e_string, 1}));
         phone_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t{"primary", data_type_t::e_bool, 1}));
 
-        gaia_id_t phone_table = gaia::catalog::create_table("phone", phone_fields);
+        gaia_id_t phone_table = gaia::catalog::create_table("phone_t", phone_fields);
         auto field_ids = list_fields(phone_table);
 
         begin_transaction();
