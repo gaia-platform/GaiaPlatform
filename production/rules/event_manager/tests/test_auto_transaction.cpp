@@ -100,7 +100,7 @@ TEST_F(auto_transaction_test, no_throw_on_destruction)
     {
         auto_transaction_t tx;
         gaia::db::commit_transaction();
-    } // Transaction is not active so the destructor shouldn't attempt to rollback
+    } // Transaction is not active so the destructor shouldn't attempt to rollback.
     EXPECT_EQ(false, is_transaction_active());
 }
 
@@ -111,7 +111,7 @@ TEST_F(auto_transaction_test, rollback_existing)
         auto_transaction_t tx;
         gaia::db::commit_transaction();
         gaia::db::begin_transaction();
-    } // Transaction is not active so the destructor shouldn't attempt to rollback
+    } // Transaction is active so the destructor should rollback.
     EXPECT_EQ(false, is_transaction_active());
 }
 
