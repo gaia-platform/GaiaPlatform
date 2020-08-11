@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-namespace gaia 
+namespace gaia
 {
 namespace direct_access
 {
@@ -12,48 +12,47 @@ namespace direct_access
 // Implementation for gaia_iterator_t.
 //
 template <typename T_gaia>
-gaia_id_t gaia_iterator_t<T_gaia>::operator++()
+gaia_iterator_t<T_gaia>& gaia_iterator_t<T_gaia>::operator++()
 {
     if (!m_id)
     {
-        return m_id;
+        return *this;
     }
 
     auto ptr = gaia_ptr::open(m_id);
     if (!ptr)
     {
         m_id = 0;
-        return m_id;
+        return *this;
     }
 
     auto ptr_next = ptr.find_next();
     if (!ptr_next)
     {
         m_id = 0;
-        return m_id;
+        return *this;
     }
 
     m_id = ptr_next.id();
-
-    return m_id;
+    return *this;
 }
 
 template <typename T_gaia>
-gaia_id_t gaia_iterator_t<T_gaia>::operator++(int) 
+gaia_iterator_t<T_gaia> gaia_iterator_t<T_gaia>::operator++(int)
 {
-    gaia_id_t id = m_id;
+    gaia_iterator_t<T_gaia> old(m_id);
     operator++();
-    return id;
+    return old;
 }
 
 template <typename T_gaia>
-bool gaia_iterator_t<T_gaia>::operator==(const gaia_iterator_t& rhs) const 
+bool gaia_iterator_t<T_gaia>::operator==(const gaia_iterator_t& rhs) const
 {
     return m_id == rhs.m_id;
 }
 
 template <typename T_gaia>
-bool gaia_iterator_t<T_gaia>::operator!=(const gaia_iterator_t& rhs) const 
+bool gaia_iterator_t<T_gaia>::operator!=(const gaia_iterator_t& rhs) const
 {
     return m_id != rhs.m_id;
 }
@@ -97,41 +96,40 @@ T_foreign gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator*()
 }
 
 template<typename T_foreign, int T_foreign_slot>
-gaia_id_t gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator++()
+gaia_set_iterator_t<T_foreign, T_foreign_slot>& gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator++()
 {
     if (!m_id)
     {
-        return m_id;
+        return *this;
     }
 
     auto ptr = gaia_ptr::open(m_id);
     if (!ptr)
     {
         m_id = 0;
-        return m_id;
+        return *this;
     }
 
     m_id = ptr.references()[T_foreign_slot];
-
-    return m_id;
+    return *this;
 }
 
 template <typename T_foreign, int T_foreign_slot>
-gaia_id_t gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator++(int)
+gaia_set_iterator_t<T_foreign, T_foreign_slot> gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator++(int)
 {
-    gaia_id_t id = m_id;
+    gaia_set_iterator_t<T_foreign, T_foreign_slot> old(m_id);
     operator++();
-    return id;
+    return old;
 }
 
 template <typename T_foreign, int T_foreign_slot>
-bool gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator==(const gaia_set_iterator_t& rhs) const 
+bool gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator==(const gaia_set_iterator_t& rhs) const
 {
     return m_id == rhs.m_id;
 }
 
 template <typename T_foreign, int T_foreign_slot>
-bool gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator!=(const gaia_set_iterator_t& rhs) const 
+bool gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator!=(const gaia_set_iterator_t& rhs) const
 {
     return m_id != rhs.m_id;
 }
@@ -148,7 +146,7 @@ gaia_set_iterator_t<T_foreign, T_foreign_slot> reference_chain_container_t<T_pri
     if (m_primary_id)
     {
         auto node_ptr = gaia_ptr::open(m_primary_id);
-        if (node_ptr) 
+        if (node_ptr)
         {
             id = node_ptr.references()[T_primary_slot];
         }
@@ -171,7 +169,7 @@ void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_
     // The gaia_id() will be zero if the row hasn't been inserted into the SE.
     if (fid == 0 || oid == 0) {
         T_primary expected = T_primary::get(0);
-        throw edc_unstored_row(expected.gaia_typename(), foreign_edc.gaia_typename());
+        throw edc_invalid_state(expected.gaia_typename(), foreign_edc.gaia_typename());
     }
 
     auto node_ptr = gaia_ptr::open(oid);
@@ -179,6 +177,18 @@ void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_
     {
         return;
     }
+
+    // This is a no-op if it is already connected to this owner.
+    if (foreign_edc.references()[T_parent_slot] == oid) {
+        return;
+    }
+
+    // Cannot connect a foreign object that is already connected to a differrent owner.
+    if (foreign_edc.references()[T_parent_slot] != 0 && foreign_edc.references()[T_parent_slot] != oid) {
+        T_primary expected = T_primary::get(0);
+        throw edc_already_inserted(foreign_edc.references()[T_parent_slot], expected.gaia_typename());
+    }
+
     foreign_edc.references()[T_foreign_slot] = node_ptr.references()[T_primary_slot];
     foreign_edc.references()[T_parent_slot]  = oid;
     node_ptr.references()[T_primary_slot] = fid;
@@ -187,7 +197,7 @@ void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_
 template <typename T_primary, typename T_foreign, int T_parent_slot, int T_primary_slot, int T_foreign_slot>
 void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_slot, T_foreign_slot>::erase(T_foreign& foreign_edc)
 {
-    if (foreign_edc.references()[T_parent_slot] != m_primary_id) 
+    if (foreign_edc.references()[T_parent_slot] != m_primary_id)
     {
         T_primary expected = T_primary::get(0);
         throw edc_invalid_member(
@@ -205,7 +215,7 @@ void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_
         return;
     }
 
-    if (node_ptr.references()[T_primary_slot] == foreign_id) 
+    if (node_ptr.references()[T_primary_slot] == foreign_id)
     {
         // It's the first one in the list, point the "first" to the current "next".
         node_ptr.references()[T_primary_slot] = foreign_edc.references()[T_foreign_slot];
@@ -213,16 +223,16 @@ void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_
         foreign_edc.references()[T_foreign_slot] = 0;
         foreign_edc.references()[T_parent_slot] = 0;
     }
-    else 
+    else
     {
         // Need to scan the list to find this one because it's not first on the list.
         auto cur_child_ptr = gaia_ptr::open(node_ptr.references()[T_primary_slot]);
 
         //auto cur_child = T_foreign::get(m_outer.references()[T_primary_slot]);
-        while (cur_child_ptr && cur_child_ptr.references()[T_foreign_slot]) 
+        while (cur_child_ptr && cur_child_ptr.references()[T_foreign_slot])
         {
             gaia_id_t next_id = cur_child_ptr.references()[T_foreign_slot];
-            if (next_id == foreign_id) 
+            if (next_id == foreign_id)
             {
                 // Point the current child to the child following the next.
                 cur_child_ptr.references()[T_foreign_slot] = foreign_edc.references()[T_foreign_slot];

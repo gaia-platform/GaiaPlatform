@@ -18,9 +18,6 @@ endfunction()
 
 file(WRITE "${OUTPUT_DDL_PREFIX}_db.ddl" "")
 
-# Include catalog type definitions.
-gaia_cat(${CATALOG_DDL} ${OUTPUT_DDL_PREFIX}_db.ddl)
-
 # Include rules engine type definitions.
 gaia_cat(${EVENT_LOG_DDL} ${OUTPUT_DDL_PREFIX}_db.ddl)
 

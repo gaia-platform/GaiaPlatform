@@ -123,13 +123,13 @@ void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_even
         // See if any rules are bound to any columns that were 
         // changed as part of this event.  If so, then schedule these rules
         // to be invoked.
-        if (binding.fields_map.size() == 0 || !event.columns)
+        if (binding.fields_map.size() == 0 || event.columns.size() == 0)
         {
             // No rules were subscribed to any fields to this event on this type.
             continue;
         }
 
-        for (field_position_t field_position : *event.columns)
+        for (field_position_t field_position : event.columns)
         {
             // Some rules refer to columns in this table.  Now see whether
             // the specific columns changed in this event are referenced
@@ -164,32 +164,15 @@ void event_manager_t::enqueue_invocation(const trigger_event_t& event,
 }
 
 void event_manager_t::check_subscription(
-    gaia_type_t gaia_type, 
     event_type_t event_type,
     const field_list_t& fields)
 {
-    if (is_transaction_event(event_type))
+    if (event_type == event_type_t::row_delete
+        || event_type == event_type_t::row_insert)
     {
-        // TODO[GAIAPLAT-157]: use a constant for a non-zero gaia_type
-        if (gaia_type != 0)
-        {
-            throw invalid_subscription(event_type, "The gaia_type must be zero.");
-        }
-
         if (fields.size() > 0)
         {
             throw invalid_subscription(event_type, "The field list must be empty.");
-        }
-    }
-    else
-    {
-        if (event_type == event_type_t::row_delete
-            || event_type == event_type_t::row_insert)
-        {
-            if (fields.size() > 0)
-            {
-                throw invalid_subscription(event_type, "The field list must be empty.");
-            }
         }
     }
 }
@@ -202,7 +185,7 @@ void event_manager_t::subscribe_rule(
 {
     // If any of these checks fail then an exception is thrown.
     check_rule_binding(rule_binding);
-    check_subscription(gaia_type, event_type, fields);
+    check_subscription(event_type, fields);
 
     // Verify that the type and fields specified in the rule subscription
     // are valid according to the catalog.  The rule checker may be null
@@ -486,9 +469,9 @@ void event_manager_t::log_to_db(const trigger_event_t& event, bool rules_invoked
     // When we have this support we can support the array of changed column fields
     // in our event log.  Until then, just pick out the first of the list.
     uint16_t column_id = 0;
-    if (event.count_columns > 0)
+    if (event.columns.size() > 0)
     {
-        column_id = event.columns.get()->data()[0];
+        column_id = event.columns[0];
     }
 
     {

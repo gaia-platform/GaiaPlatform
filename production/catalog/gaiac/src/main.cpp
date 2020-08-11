@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 
+#include "flatbuffers/idl.h"
+
 #include "catalog_manager.hpp"
 #include "gaia_parser.hpp"
 #include "gaia_system.hpp"
@@ -62,115 +64,60 @@ void start_repl(parser_t &parser) {
     }
 }
 
-void load_bootstrap_catalog() {
-    {
-        field_def_list_t fields;
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::e_string, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"is_log", data_type_t::e_bool, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"trim_action", data_type_t::e_uint8, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"max_rows", data_type_t::e_uint64, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"max_size", data_type_t::e_uint64, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"max_seconds", data_type_t::e_uint64, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"binary_schema", data_type_t::e_string, 1}));
-        catalog_manager_t::get().create_table("gaia_table", fields);
+namespace flatbuffers {
+void LogCompilerWarn(const std::string &warn) {
+    cout << "warn: " << warn << endl;
+}
+void LogCompilerError(const std::string &err) {
+    cout << "error: " << err << endl;
+}
+} // namespace flatbuffers
+
+// From the database name and catalog contents, generate the FlatBuffers C++ header file(s).
+void generate_fbs_headers(const string &db_name, const string &output_path) {
+    flatbuffers::IDLOptions fbs_opts;
+    fbs_opts.generate_object_based_api = true;
+    fbs_opts.cpp_object_api_string_type = "gaia::direct_access::nullable_string_t";
+    fbs_opts.cpp_object_api_string_flexible_constructor = true;
+
+    flatbuffers::Parser fbs_parser(fbs_opts);
+
+    string fbs_schema = "namespace gaia." + db_name + ";\n" +
+                        gaia::catalog::generate_fbs();
+    if (!fbs_parser.Parse(fbs_schema.c_str())) {
+        cerr << "Fail to parse the catalog generated FlatBuffers schema. Error: "
+             << fbs_parser.error_ << endl;
     }
 
-    {
-        field_def_list_t fields;
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::e_string, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"table_id", data_type_t::e_uint64, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"fields", data_type_t::e_string, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"index_type", data_type_t::e_uint8, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"unique", data_type_t::e_bool, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"values", data_type_t::e_references, 1, "gaia_table"}));
-        catalog_manager_t::get().create_table("gaia_value_index", fields);
-    }
-
-    {
-        field_def_list_t fields;
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::e_string, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"table_id", data_type_t::e_uint64, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"type", data_type_t::e_uint8, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"type_id", data_type_t::e_uint64, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"repeated_count", data_type_t::e_uint16, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"position", data_type_t::e_uint16, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"required", data_type_t::e_bool, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"deprecated", data_type_t::e_bool, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"active", data_type_t::e_bool, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"nullable", data_type_t::e_bool, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"has_default", data_type_t::e_bool, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"default_value", data_type_t::e_string, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"value_fields", data_type_t::e_references, 1, "gaia_value_index"}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"fields", data_type_t::e_references, 1, "gaia_table"}));
-        // Use "refs" rather than "references" to avoid collision with "references" keyword.
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"refs", data_type_t::e_references, 1, "gaia_table"}));
-        catalog_manager_t::get().create_table("gaia_field", fields);
-    }
-
-    {
-        field_def_list_t fields;
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::e_string, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"active_on_startup", data_type_t::e_bool, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"table_ids", data_type_t::e_string, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"source_location", data_type_t::e_string, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"serial_stream", data_type_t::e_string, 1}));
-        catalog_manager_t::get().create_table("gaia_ruleset", fields);
-    }
-
-        {
-        field_def_list_t fields;
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::e_string, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"ruleset_id", data_type_t::e_uint64, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"rules", data_type_t::e_references, 1, "gaia_ruleset"}));
-        catalog_manager_t::get().create_table("gaia_rule", fields);
-    }
+    if (!flatbuffers::GenerateCPP(fbs_parser, output_path, db_name)) {
+        cerr << "Unable to generate FlatBuffers C++ headers for " << db_name << endl;
+    };
 }
 
-// From the database name and catalog contents, generate the flatbuffer and Gaia EDC header files.
-void generate_headers(string& db_name, const string& output_path) {
-    // Generate the flatbuffer schema file.
-    ofstream fbs(output_path + db_name + ".fbs");
-    fbs << "namespace gaia." << db_name << ";" << endl << endl;
-    fbs << gaia::catalog::generate_fbs() << endl;
-    fbs.close();
-
-    // Run the flatbuffer compiler, flatc, on this schema.
-    string flatc_cmd = "flatc --cpp --gen-object-api ";
-    flatc_cmd += "--cpp-str-type gaia::direct_access::nullable_string_t --cpp-str-flex-ctor ";
-    if (!output_path.empty())
-    {
-        flatc_cmd += "-o ";
-        flatc_cmd += output_path + " ";
-    }
-    flatc_cmd += output_path + db_name + ".fbs";
-    auto rc = system(flatc_cmd.c_str());
-
-    // Generate the Extended Data Class definitions
+// From the database name and catalog contents, generate the Extended Data Class definition(s).
+void generate_edc_headers(const string &db_name, const string &output_path) {
     ofstream edc(output_path + "gaia_" + db_name + ".h");
     edc << gaia::catalog::gaia_generate(db_name) << endl;
     edc.close();
+}
 
-    if (rc != 0) {
-        cout << "flatc failed to compile " + db_name + ".fbs" ", return code = " << rc << endl;
-    }
+void generate_headers(const string &db_name, const string &output_path) {
+    generate_fbs_headers(db_name, output_path);
+    generate_edc_headers(db_name, output_path);
 }
 
 // Add a trailing '/' if not provided.
-void terminate_path(string& path)
-{
-    if (path.back() != '/')
-    {
+void terminate_path(string &path) {
+    if (path.back() != '/') {
         path.append("/");
     }
 }
 
 // Temporary start server (taken and modified from db_test_helpers)
 // Use case is always to call start() followed by stop().
-class db_server_t
-{
-public:
-    void start(const char* db_server_path)
-    {
+class db_server_t {
+  public:
+    void start(const char *db_server_path) {
         set_path(db_server_path);
         stop();
 
@@ -182,10 +129,10 @@ public:
         // Wait for server to initialize.
         cerr << "Waiting for server to initialize..." << endl;
         ::sleep(1);
+        m_server_started = true;
     }
 
-    void stop()
-    {
+    void stop() {
         // Try to kill the SE server process.
         // REVIEW: we should be using a proper process library for this, so we can kill by PID.
         string cmd = "pkill -f -KILL ";
@@ -194,15 +141,15 @@ public:
         ::system(cmd.c_str());
     }
 
-private:
-    void set_path(const char* db_server_path)
-    {
-        if (!db_server_path)
-        {
+    bool server_started() {
+        return m_server_started;
+    }
+
+  private:
+    void set_path(const char *db_server_path) {
+        if (!db_server_path) {
             m_server_path = gaia::db::SE_SERVER_NAME;
-        }
-        else
-        {
+        } else {
             m_server_path = db_server_path;
             terminate_path(m_server_path);
             m_server_path.append(gaia::db::SE_SERVER_NAME);
@@ -210,6 +157,7 @@ private:
     }
 
     string m_server_path;
+    bool m_server_started = false;
 };
 
 int main(int argc, char *argv[]) {
@@ -234,7 +182,7 @@ int main(int argc, char *argv[]) {
                 // Note the order dependency.
                 // Require a path right after this
                 ++i;
-                const char* path_to_db_server = argv[i];
+                const char *path_to_db_server = argv[i];
                 server.start(path_to_db_server);
             } else if (argv[i] == string("-o")) {
                 ++i;
@@ -248,7 +196,7 @@ int main(int argc, char *argv[]) {
                     // Strip off the path and any suffix to get database name.
                     string db_name = string(argv[i]);
                     if (db_name.find("/") != string::npos) {
-                        db_name = db_name.substr(db_name.find_last_of("/")+1);
+                        db_name = db_name.substr(db_name.find_last_of("/") + 1);
                     }
                     if (db_name.find(".") != string::npos) {
                         db_name = db_name.substr(0, db_name.find_last_of("."));
@@ -264,15 +212,16 @@ int main(int argc, char *argv[]) {
             }
         }
         if (gen_catalog) {
-            string empty_path;
-            string db_name = "catalog";
+            const string empty_path;
+            const string db_name = "catalog";
             gaia::db::begin_session();
             gaia::catalog::initialize_catalog();
-            load_bootstrap_catalog();
             generate_headers(db_name, empty_path);
             gaia::db::end_session();
         }
-        server.stop();
+        if (server.server_started()) {
+            server.stop();
+        }
     } catch (gaia_exception &e) {
         cerr << "Caught exception \"" << e.what() << "\". May need to start the storage engine server." << endl;
         res = 1;

@@ -3,6 +3,9 @@
 # All rights reserved.
 #############################################
 
-from se_mock import gaia_db
+cmake_minimum_required(VERSION 3.12)
 
-gaia_db.begin_session()
+# Set the project name.
+project(system_schemas)
+
+add_subdirectory(rules)

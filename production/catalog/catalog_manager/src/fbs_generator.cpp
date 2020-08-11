@@ -246,5 +246,11 @@ string get_bfbs(gaia_id_t table_id, bool outside_tx) {
     return base64_decode(base64_binary_schema);
 }
 
+string get_bfbs_transaction_scope(gaia_id_t table_id) {
+    gaia_table_t table = gaia_table_t::get(table_id);
+    string base64_binary_schema = table.binary_schema();
+    return base64_decode(base64_binary_schema);
+}
+
 } // namespace catalog
 } // namespace gaia

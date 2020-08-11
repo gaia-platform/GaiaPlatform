@@ -9,6 +9,7 @@ enable_testing()
 project(catalog_manager)
 
 set(GAIA_CATALOG_LIB_PUBLIC_INCLUDES
+  ${GAIA_INC}/internal/catalog
   ${GAIA_INC}/public/catalog
   ${GAIA_INC}/public/common
 )
@@ -25,27 +26,12 @@ set(GAIA_CATALOG_LIB_PRIVATE_INCLUDES
 )
 message(STATUS "GAIA_CATALOG_LIB_PRIVATE_INCLUDES=${GAIA_CATALOG_LIB_PRIVATE_INCLUDES}")
 
-# Generate the catalog headers from the flatbuffer schema.
-set_property(GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
-gaia_compile_flatbuffers_schema_to_cpp_opt(flatbuffers/catalog.fbs
-  "--no-includes;--gen-compare;--gaia-type-initial-value;7"
-  "${GAIA_CATALOG_GENERATED}")
-get_generated_output(catalog_fbs_generated)
-if(catalog_fbs_generated)
-  # message(STATUS "Add generated_code target with files:${fbs_generated}")
-  add_custom_target(generate_catalog_edc
-    DEPENDS ${catalog_fbs_generated}
-    COMMENT "All generated files were updated.")
-endif()
-
 # main target
 add_library(gaia_catalog STATIC
   src/catalog_manager.cpp
   src/fbs_generator.cpp
   src/gaia_generate.cpp
-  src/code_writer.cpp
-)
-add_dependencies(gaia_catalog generate_catalog_edc)
+  ${FLATBUFFERS}/src/code_generators.cpp)
 set_target_properties(gaia_catalog PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 target_include_directories(gaia_catalog PUBLIC ${GAIA_CATALOG_LIB_PUBLIC_INCLUDES})
 target_include_directories(gaia_catalog PRIVATE ${GAIA_CATALOG_LIB_PRIVATE_INCLUDES})
@@ -55,11 +41,11 @@ set_property (TARGET gaia_catalog PROPERTY POSITION_INDEPENDENT_CODE ON)
 add_gtest(test_catalog_manager
   "tests/test_catalog_manager.cpp"
   "${GAIA_CATALOG_LIB_PUBLIC_INCLUDES};${GAIA_CATALOG_LIB_PRIVATE_INCLUDES}"
-  "rt;gaia;gaia_catalog;flatbuffers"
+  "rt;gaia;gaia_catalog"
   gaia_catalog)
 
 add_gtest(test_fbs_generation
   "tests/test_fbs_generation.cpp"
   "${GAIA_CATALOG_LIB_PUBLIC_INCLUDES};${GAIA_CATALOG_LIB_PRIVATE_INCLUDES}"
-  "rt;gaia;gaia_catalog;flatbuffers"
+  "rt;gaia;gaia_catalog"
   gaia_catalog)

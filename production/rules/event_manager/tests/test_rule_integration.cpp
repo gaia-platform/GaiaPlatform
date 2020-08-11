@@ -262,19 +262,8 @@ protected:
 
     void TearDown() override {
         unsubscribe_rules();
-        delete_employees();
         // Currently a no-op.
         db_test_base_t::TearDown();
-    }
-
-    void delete_employees()
-    {
-        auto_transaction_t tx(false);
-        for (employee_t e = employee_t::get_first(); e; e = e.get_first())
-        {
-            e.delete_row();
-        }
-        tx.commit();
     }
 };
 

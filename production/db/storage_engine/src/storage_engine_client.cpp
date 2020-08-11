@@ -4,7 +4,7 @@
 /////////////////////////////////////////////
 
 #include "storage_engine_client.hpp"
-#include "system_catalog_types.hpp"
+#include "system_table_types.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -16,13 +16,12 @@ thread_local se_base::offsets *client::s_offsets = nullptr;
 thread_local int client::s_fd_log = -1;
 thread_local std::vector<trigger_event_t> client::s_events;
 
-std::unordered_set<gaia_type_t> client::trigger_type_filter{
-    system_catalog_types::c_catalog_table_type,
-    system_catalog_types::c_catalog_value_index_type,
-    system_catalog_types::c_catalog_field_type,
-    system_catalog_types::c_catalog_ruleset_type,
-    system_catalog_types::c_catalog_rule_type,
-    system_catalog_types::c_event_log_type
+std::unordered_set<gaia_type_t> client::trigger_excluded_types{
+    static_cast<gaia_type_t>(system_table_type_t::catalog_table_type),
+    static_cast<gaia_type_t>(system_table_type_t::catalog_field_type),
+    static_cast<gaia_type_t>(system_table_type_t::catalog_ruleset_type),
+    static_cast<gaia_type_t>(system_table_type_t::catalog_rule_type),
+    static_cast<gaia_type_t>(system_table_type_t::event_log_type)
 };
 
 // Should this be initialized by the rules engine instead?
@@ -39,6 +38,27 @@ void client::destroy_log_mapping() {
     if (s_log) {
         unmap_fd(s_log, sizeof(log));
         s_log = nullptr;
+    }
+}
+
+// This function is intended only for use in test scenarios, where we need to clear
+// stale mappings and file descriptors referencing shared memory segments that have
+// been reinitialized by the server following receipt of SIGHUP (test-only feature).
+// It is not concurrency-safe, since we assume that no sessions are active while this
+// function is being called, which is a reasonable assumption for tests.
+void client::clear_shared_memory() {
+    // This is intended to be called before any session is established.
+    verify_no_session();
+    // We closed our original fd for the data segment, so we only need to unmap it.
+    if (s_data) {
+        unmap_fd(s_data, sizeof(data));
+        s_data = nullptr;
+    }
+    // If the server has already closed its fd for the offset segment
+    // (and there are no other clients), this will release it.
+    if (s_fd_offsets != -1) {
+        close(s_fd_offsets);
+        s_fd_offsets = -1;
     }
 }
 

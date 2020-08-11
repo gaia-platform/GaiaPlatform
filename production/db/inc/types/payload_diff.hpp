@@ -13,9 +13,11 @@ namespace db
 namespace types
 {
 
-field_list_t compute_payload_diff(gaia_id_t type_id, const uint8_t* payload1, const uint8_t* payload2);
-
-shared_ptr<vector<field_position_t>> compute_payload_position_diff(gaia_id_t type_id, const uint8_t* payload1, const uint8_t* payload2);
+/** 
+ * This API assumes we're already in transaction scope.
+ * Pass in non-null position_list to cache field positions.
+ */
+field_list_t compute_payload_diff(gaia_id_t type_id, const uint8_t* payload1, const uint8_t* payload2, field_position_list_t* position_list);
 
 }
 }

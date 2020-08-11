@@ -7,21 +7,24 @@
 
 #include "gtest/gtest.h"
 #include "field_list.hpp"
+#include "db_test_base.hpp"
 
 using namespace std;
 using namespace gaia::db::types;
 
-// Mock catalog API for testing
-namespace gaia {
-namespace catalog {
-    static vector<gaia_id_t> mock_fields;
-    const vector<gaia_id_t>& list_fields (gaia_id_t) {
-        return mock_fields;
-    }
- }
-}
+class field_list : public db_test_base_t {
+protected:
 
-TEST(field_list, add_and_test) {
+    void SetUp() override {
+        db_test_base_t::SetUp();
+    }
+
+    void TearDown() override {
+        db_test_base_t::TearDown();
+    }
+};
+
+TEST_F(field_list, add_and_test) {
     field_list_t test_fieldlist = field_list_t(888);
     ASSERT_NO_THROW(test_fieldlist.add(1));
     ASSERT_NO_THROW(test_fieldlist.add(2));
@@ -34,7 +37,7 @@ TEST(field_list, add_and_test) {
     ASSERT_FALSE(test_fieldlist.contains(4));
 }
 
-TEST(field_list, multi_add) {
+TEST_F(field_list, multi_add) {
     field_list_t test_list = field_list_t(888);
     test_list.add(1);
     test_list.add(2);
@@ -51,7 +54,7 @@ TEST(field_list, multi_add) {
     ASSERT_EQ(test_list.size(), 3);
 }
 
-TEST(field_list, emptiness) {
+TEST_F(field_list, emptiness) {
     field_list_t test_list = field_list_t(888);
 
     ASSERT_TRUE(test_list.is_empty());

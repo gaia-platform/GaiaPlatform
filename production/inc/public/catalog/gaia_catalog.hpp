@@ -4,11 +4,12 @@
 /////////////////////////////////////////////
 #pragma once
 
-#include <set>
-#include <string>
-#include <sstream>
-#include <vector>
+#include <limits>
 #include <memory>
+#include <set>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #include "gaia_common.hpp"
 #include "gaia_exception.hpp"
@@ -289,6 +290,16 @@ string gaia_generate(string);
  * @return bfbs
  */
 string get_bfbs(gaia_id_t table_id, bool outside_tx = true);
+
+/**
+ * Retrieve the binary FlatBuffers schema (bfbs) for a given table.
+ * This method assumes an outer transaction scope; i.e, a transaction
+ * must already be active when calling this method.
+ *
+ * @param table_id id of the table
+ * @return bfbs
+ */
+string get_bfbs_transaction_scope(gaia_id_t table_id);
 
 /*@}*/
 } // namespace catalog

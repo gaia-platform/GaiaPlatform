@@ -4,6 +4,7 @@
 /////////////////////////////////////////////
 
 #include "gaia_db.hpp"
+#include "gaia_db_internal.hpp"
 #include "storage_engine_client.hpp"
 
 bool gaia::db::is_transaction_active() {
@@ -28,4 +29,8 @@ void gaia::db::rollback_transaction() {
 
 void gaia::db::commit_transaction() {
     gaia::db::client::commit_transaction();
+}
+
+void gaia::db::clear_shared_memory() {
+    gaia::db::client::clear_shared_memory();
 }

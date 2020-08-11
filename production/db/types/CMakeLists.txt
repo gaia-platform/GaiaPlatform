@@ -15,6 +15,7 @@ set(GAIA_TYPES_INCLUDES
   "${GAIA_INC}/public/db/"
   "${GAIA_INC}/internal/common"
   "${GAIA_INC}/internal/db"
+  "${GAIA_INC}/internal/catalog"
   "${GAIA_DB_INC}/types"
   "${FLATBUFFERS_INC}"
   "${GAIA_CATALOG_GENERATED}")
@@ -50,6 +51,7 @@ add_custom_target(test_record_bfbs ALL DEPENDS ${TYPES_TESTS_GENERATED_OUTPUT}/t
 add_custom_command(
   OUTPUT ${TYPES_TESTS_GENERATED_OUTPUT}/test_record_data.bin
   COMMAND flatc
+    --force-defaults
     -b ${PROJECT_SOURCE_DIR}/tests/test_record.fbs
     ${PROJECT_SOURCE_DIR}/tests/test_record_data.json
   DEPENDS ${PROJECT_SOURCE_DIR}/tests/test_record_data.json
