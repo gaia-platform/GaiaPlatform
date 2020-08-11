@@ -22,10 +22,6 @@ namespace db
 {
 namespace triggers {
 
-typedef std::vector<field_position_t> field_pos_list_t;
-
-typedef std::shared_ptr<field_pos_list_t> field_list_ptr_t;
-
 struct trigger_event_t {
     event_type_t event_type; // insert, update, delete, begin, commit, rollback
     gaia_id_t gaia_type; // gaia table type, maybe 0 if event has no associated tables
