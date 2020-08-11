@@ -529,7 +529,7 @@ void generateTxHookFunctions(stringstream& code, const map<string, vector<rule_d
     code << "{" << endl;
     if (gen_commit_event)
     {
-        code << "    trigger_event_t event = {event_type_t::transaction_commit, 0, 0, nullptr, 0};" << endl;
+        code << "    trigger_event_t event = {event_type_t::transaction_commit, 0, 0, nullptr};" << endl;
         code << "    commit_trigger(0, &event, 1, true);" << endl;
     }
     else

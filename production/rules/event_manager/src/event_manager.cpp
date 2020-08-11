@@ -123,19 +123,18 @@ void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_even
         // See if any rules are bound to any columns that were 
         // changed as part of this event.  If so, then schedule these rules
         // to be invoked.
-        if (binding.fields_map.size() == 0)
+        if (binding.fields_map.size() == 0 || event.columns.size() == 0)
         {
             // No rules were subscribed to any fields to this event on this type.
             continue;
         }
 
-        for (uint16_t j = 0; j < event.count_columns; j++)
+        for (field_position_t field_position : event.columns)
         {
             // Some rules refer to columns in this table.  Now see whether
             // the specific columns changed in this event are referenced
             // by any rules.  If not, keep going.
-            uint16_t col = event.columns[j];
-            auto field_it = binding.fields_map.find(col);
+            auto field_it = binding.fields_map.find(field_position);
             if (field_it == binding.fields_map.end())
             {
                 // The column that changed was not subscribed to any rule.
@@ -470,7 +469,7 @@ void event_manager_t::log_to_db(const trigger_event_t& event, bool rules_invoked
     // When we have this support we can support the array of changed column fields
     // in our event log.  Until then, just pick out the first of the list.
     uint16_t column_id = 0;
-    if (event.count_columns > 0)
+    if (event.columns.size() > 0)
     {
         column_id = event.columns[0];
     }
