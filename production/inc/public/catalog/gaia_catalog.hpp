@@ -27,6 +27,8 @@ namespace catalog {
  * @{
  */
 
+const string c_global_db_name = "(global)";
+
 /*
  * The following enum classes are shared cross the catalog usage.
  */
@@ -160,6 +162,30 @@ struct drop_statement_t : statement_t {
 } // namespace ddl
 
 /**
+ * Thrown when creating a database that already exists.
+ */
+class db_already_exists : public gaia_exception {
+  public:
+    db_already_exists(const string &name) {
+        stringstream message;
+        message << "The database \"" << name << "\" already exists.";
+        m_message = message.str();
+    }
+};
+
+/**
+ * Thrown when a specified database does not exists.
+ */
+class db_not_exists : public gaia_exception {
+  public:
+    db_not_exists(const string &name) {
+        stringstream message;
+        message << "The database \"" << name << "\" does not exist.";
+        m_message = message.str();
+    }
+};
+
+/**
  * Thrown when creating a table that already exists.
  */
 class table_already_exists : public gaia_exception {
@@ -201,7 +227,27 @@ class duplicate_field : public gaia_exception {
 void initialize_catalog();
 
 /**
- * Create a table definition in the catalog.
+ * Create a database in the catalog.
+ *
+ * @param name database name
+ * @return id of the new database
+ * @throw db_already_exists
+ */
+gaia_id_t create_database(const string &name);
+
+/**
+ * Create a table definition in a given database.
+ *
+ * @param name database name
+ * @param name table name
+ * @param fields fields of the table
+ * @return id of the new table
+ * @throw table_already_exists
+ */
+gaia_id_t create_table(const string &dbname, const string &name, const ddl::field_def_list_t &fields);
+
+/**
+ * Create a table definition in the catalog's global database.
  *
  * @param name table name
  * @param fields fields of the table
@@ -211,7 +257,16 @@ void initialize_catalog();
 gaia_id_t create_table(const string &name, const ddl::field_def_list_t &fields);
 
 /**
- * Delete a table from the catalog.
+ * Delete a table in a given database.
+ *
+ * @param dbname database name
+ * @param name table name
+ * @throw table_not_exists
+ */
+void drop_table(const string &dbname, const string &name);
+
+/**
+ * Delete a table from the catalog's global database.
  *
  * @param name table name
  * @throw table_not_exists
@@ -279,9 +334,10 @@ string generate_fbs();
 /**
  * Generate the Extended Data Classes header file.
  *
+ * @param dbname database name
  * @return generated source
  */
-string gaia_generate(string);
+string gaia_generate(const string &dbname);
 
 /**
  * Retrieve the binary FlatBuffers schema (bfbs) for a given table.
@@ -290,6 +346,14 @@ string gaia_generate(string);
  * @return bfbs
  */
 string get_bfbs(gaia_id_t table_id);
+
+/**
+ * Find the database id given its name
+ *
+ * @param dbname database name
+ * @return database id (or INVALID_ID if the db name does not exist)
+ */
+gaia_id_t find_db_id(const string &dbname);
 
 /*@}*/
 } // namespace catalog

@@ -208,8 +208,11 @@ string generate_fbs() {
     return fbs;
 }
 
-string generate_fbs(const string &table_name, const ddl::field_def_list_t &fields) {
+string generate_fbs(const string& db_name, const string &table_name, const ddl::field_def_list_t &fields) {
     string fbs;
+    if (!db_name.empty()) {
+        fbs += "namespace " + db_name + ";\n";
+    }
     fbs += "table " + table_name + "{";
     for (auto &field : fields) {
         if (field->type == data_type_t::e_references) {
