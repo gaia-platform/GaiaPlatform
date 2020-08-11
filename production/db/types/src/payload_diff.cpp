@@ -31,7 +31,7 @@ void compute_payload_diff(gaia_id_t type_id, const uint8_t* payload1, const uint
     string schema = gaia::catalog::get_bfbs(type_id);
 
     for (auto field = gaia::catalog::gaia_field_t::get_first(); field; field.get_next()) {
-    if (field.table_id() == type_id) {
+        if (field.table_id() == type_id) {
             field_position_t pos = field.position();
             data_holder_t data_holder1 = get_field_value(
                 type_id, payload1, reinterpret_cast<const uint8_t*>(schema.c_str()), pos);
