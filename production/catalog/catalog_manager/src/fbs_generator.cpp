@@ -234,15 +234,11 @@ string generate_bfbs(const string &fbs) {
     return base64_encode(fbs_parser.builder_.GetBufferPointer(), fbs_parser.builder_.GetSize());
 }
 
-string get_bfbs(gaia_id_t table_id, bool outside_tx) {
-    if (outside_tx) {
-        gaia::db::begin_transaction();
-    }
+string get_bfbs(gaia_id_t table_id) {
+    gaia::db::begin_transaction();
     gaia_table_t table = gaia_table_t::get(table_id);
     string base64_binary_schema = table.binary_schema();
-    if (outside_tx) {
-        gaia::db::commit_transaction();
-    }
+    gaia::db::commit_transaction();
     return base64_decode(base64_binary_schema);
 }
 

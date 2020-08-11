@@ -22,7 +22,7 @@ namespace db
 namespace types
 {
 
-field_list_t compute_payload_diff(gaia_id_t type_id, const uint8_t* payload1, const uint8_t* payload2, field_position_list_t* position_list) {
+field_list_t compute_payload_diff(gaia_id_t type_id, const uint8_t* payload1, const uint8_t* payload2, field_position_list_t* changed_fields) {
     // Initialization occurs upon first addition, so constructor doesn't init any memory.
     field_list_t retval(type_id);
     // Query the catalog for the schema
@@ -39,12 +39,12 @@ field_list_t compute_payload_diff(gaia_id_t type_id, const uint8_t* payload1, co
 
             // Compare values and set.
             if (data_holder1.compare(data_holder2) != 0) {
-                if (position_list == nullptr) {
+                if (changed_fields == nullptr) {
                     retval.add(pos);
                 } else {
                     // We don't concern ourselves with the internal implementation of field_list_t.
                     // It holds field_position_t now but this may change for other use cases of this API.
-                    position_list->push_back(pos);
+                    changed_fields->push_back(pos);
                 }
             }
         }

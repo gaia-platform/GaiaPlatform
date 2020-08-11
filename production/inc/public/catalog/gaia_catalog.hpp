@@ -289,7 +289,7 @@ string gaia_generate(string);
  * @param table_id id of the table
  * @return bfbs
  */
-string get_bfbs(gaia_id_t table_id, bool outside_tx = true);
+string get_bfbs(gaia_id_t table_id);
 
 /**
  * Retrieve the binary FlatBuffers schema (bfbs) for a given table.
