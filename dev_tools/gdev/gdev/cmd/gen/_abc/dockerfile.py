@@ -111,22 +111,7 @@ class GenAbcDockerfile(Dependency, ABC):
 
     @memoize
     async def get_env_section(self) -> str:
-        """Return text for the ENV section of the final build stage."""
-        from ..env.dockerfile import GenEnvDockerfile
-
-        seen_env_dockerfiles = set()
-
-        async def inner(env_dockerfile: GenEnvDockerfile) -> Iterable[str]:
-            env_section_parts = []
-            if env_dockerfile not in seen_env_dockerfiles:
-                seen_env_dockerfiles.add(env_dockerfile)
-                for input_env_dockerfile in await env_dockerfile.get_input_dockerfiles():
-                    env_section_parts += await inner(GenEnvDockerfile(input_env_dockerfile.options))
-                for line in await env_dockerfile.cfg.get_lines():
-                    env_section_parts.append(f'ENV {line}')
-            return env_section_parts
-
-        env_section = '\n'.join(await inner(GenEnvDockerfile(self.options)))
+        env_section = ''
 
         self.log.debug(f'{env_section = }')
 

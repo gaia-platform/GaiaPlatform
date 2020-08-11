@@ -12,6 +12,16 @@ class GenRunDockerfile(GenAbcDockerfile):
         return GenRunCfg(self.options)
 
     @memoize
+    async def get_env_section(self) -> str:
+        from ..pre_run.dockerfile import GenPreRunDockerfile
+
+        env_section = await GenPreRunDockerfile(self.options).get_env_section()
+
+        self.log.debug(f'{env_section = }')
+
+        return env_section
+
+    @memoize
     async def get_input_dockerfiles(self) -> Iterable[GenAbcDockerfile]:
         from ..pre_run.dockerfile import GenPreRunDockerfile
 

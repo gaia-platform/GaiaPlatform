@@ -10,7 +10,7 @@ from inspect import getdoc, isabstract, iscoroutinefunction
 import logging
 from pkgutil import iter_modules
 import sys
-from typing import FrozenSet, List, Sequence, Set, Tuple
+from typing import FrozenSet, Sequence, Set, Tuple
 
 from gdev.custom.pathlib import Path
 from gdev.options import Options, Mount
@@ -112,16 +112,6 @@ class Dependency:
         await self.run()
 
     @staticmethod
-    @memoize_db(keygen=lambda: Path.cwd())
-    def get_sticky_mixins() -> List[str]:
-        return ['sudo']
-
-    @staticmethod
-    @memoize_db(keygen=lambda: Path.cwd())
-    def get_sticky_mounts() -> List[str]:
-        return ['build.gdev:.']
-
-    @staticmethod
     @memoize_db(size=1)
     def get_parser_structure() -> _ParserStructure:
         return _ParserStructure.of_command_parts(tuple())
@@ -153,11 +143,10 @@ class Dependency:
                 help='Force Docker to build with local changes.'
             )
 
-            sticky_mixins = Dependency.get_sticky_mixins()
+            mixins_default = []
             parser.add_argument(
-                '--sticky-mixins',
-                default=sticky_mixins,
-                dest='mixins',
+                '--mixins',
+                default=mixins_default,
                 nargs='*',
                 choices=sorted([
                     directory.name
@@ -165,29 +154,24 @@ class Dependency:
                     if directory.is_dir()
                 ]),
                 help=(
-                    f'This flag is sticky! Any value you provide here will persist for all future'
-                    f' invocations of gdev in the current working directory until you explicitly'
-                    f' provide a new sticky value. Image mixins to use when creating a container.'
-                    f' Mixins provide dev tools and configuration from targets in the'
-                    f' "{Path.mixin().relative_to(Path.repo())}" directory. Currently:'
-                    f' "{" ".join(sticky_mixins)}"'
+                    f'Image mixins to use when creating a container. Mixins provide dev tools and'
+                    f' configuration from targets in the "{Path.mixin().relative_to(Path.repo())}"'
+                    f' directory. Default: "{mixins_default}"'
                 )
             )
-            sticky_mounts = Dependency.get_sticky_mounts()
+            mounts_default = []
             parser.add_argument(
-                '--sticky-mounts',
-                default=sticky_mounts,
+                '--mounts',
+                default=[],
                 dest='mounts',
                 nargs='*',
                 help=(
-                    f'This flag is sticky! Any value you provide here will persist for all future'
-                    f' invocations of gdev in the current working directory until you explicitly'
-                    f' provide a new sticky value. <host_path>:<container_path> mounts to be'
-                    f' created (or if already created, resumed) during `docker run`. Paths may be'
-                    f' specified as relative paths. <host_path> relative paths are relative to the'
-                    f' host\'s current working directory. <container_path> relative paths are'
-                    f' relative to the Docker container\'s WORKDIR (AKA the build dir). Currently:'
-                    f' "{" ".join(sticky_mounts)}"'
+                    f'<host_path>:<container_path> mounts to be created (or if already created,'
+                    f' resumed) during `docker run`. Paths may be specified as relative paths.'
+                    f' <host_path> relative paths are relative to the host\'s current working'
+                    f' directory. <container_path> relative paths are relative to the Docker'
+                    f' container\'s WORKDIR (AKA the build dir). Default:'
+                    f' "{" ".join(mounts_default)}"'
                 )
             )
             platform_default = 'linux/amd64'
@@ -197,10 +181,14 @@ class Dependency:
                 choices=['linux/amd64', 'linux/arm64'],
                 help=f'Platform to build upon. Default: "{platform_default}"'
             )
+            registry_default = '192.168.0.250:5000'
             parser.add_argument(
-                '--upload',
-                action='store_true',
-                help='Upload image to Gaia docker image repository after building.'
+                '--registry',
+                default=registry_default,
+                help=(
+                    f'Registry to push images and query cached build stages.'
+                    f' Default: {registry_default}'
+                )
             )
 
         def inner(parser: ArgumentParser, parser_structure: _ParserStructure) -> ArgumentParser:
@@ -255,9 +243,6 @@ class Dependency:
             parser.parse_args([*args, '--help'])
             import sys
             sys.exit(1)
-
-        Dependency.get_sticky_mixins.memoize.upsert()(parsed_args['mixins'])
-        Dependency.get_sticky_mounts.memoize.upsert()(parsed_args['mounts'])
 
         parsed_args['args'] = ' '.join(parsed_args['args'])
         parsed_args['mixins'] = frozenset(parsed_args['mixins'])
