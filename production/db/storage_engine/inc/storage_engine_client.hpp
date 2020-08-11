@@ -80,15 +80,7 @@ class client : private se_base {
     static int get_session_socket();
 
     /**
-     * Function returns whether to generate a trigger event for an operation based on the gaia_type_t.
-     */
-    static inline bool is_invalid_event(const gaia_type_t type) {
-        return trigger_excluded_types.find(type) != trigger_excluded_types.end();
-    }
-
-    /**
-     * Wrapper over is_invalid_event() for readability.
-     * Additionally don't generate events if the rules engine is uninitialized.
+     *  Check if an event should be generated for a given type.
      */ 
     static inline bool is_valid_event(const gaia_type_t type) {
         return !(trigger_excluded_types.find(type) != trigger_excluded_types.end()) && 

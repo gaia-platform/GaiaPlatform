@@ -456,7 +456,7 @@ std::string event_manager_t::make_rule_key(const rule_binding_t& binding)
     rule_key.append(binding.rule_name);
     return rule_key;
 }
- 
+
 // Assumes that the caller will manage the transaction.
 void event_manager_t::log_to_db(const trigger_event_t& event, bool rules_invoked)
 {
