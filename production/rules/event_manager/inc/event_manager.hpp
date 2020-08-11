@@ -131,7 +131,7 @@ private:
 
     // Well known trigger function called by the storage engine after commit.
     // Protected so that unit-tests can call directly
-    void commit_trigger(uint64_t tx_id, trigger_event_list_t event_list);
+    void commit_trigger(uint64_t tx_id, const trigger_event_list_t& event_list);
 
     void init(event_manager_settings_t& settings);
     const _rule_binding_t* find_rule(const rules::rule_binding_t& binding); 

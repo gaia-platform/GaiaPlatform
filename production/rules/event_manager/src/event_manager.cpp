@@ -8,6 +8,7 @@
 #include "events.hpp"
 #include "triggers.hpp"
 #include "event_trigger_threadpool.hpp"
+#include "PerfTimer.h"
 
 #include <cstring>
 
@@ -15,6 +16,8 @@ using namespace gaia::rules;
 using namespace gaia::common;
 using namespace gaia::db::triggers;
 using namespace std;
+
+bool PerfTimer::s_enabled = true;
 
 /**
  * Class implementation
@@ -64,7 +67,7 @@ void event_manager_t::init(event_manager_settings_t& settings)
         m_rule_checker.reset(new rule_checker_t());
     }
 
-    auto fn = [](uint64_t transaction_id, trigger_event_list_t event_list) {
+    auto fn = [](uint64_t transaction_id, const trigger_event_list_t& event_list) {
         event_manager_t::get().commit_trigger(transaction_id, event_list);
     };
     event_trigger_threadpool_t::set_commit_trigger(fn);
@@ -72,8 +75,10 @@ void event_manager_t::init(event_manager_settings_t& settings)
     m_is_initialized = true;
 }
 
-void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_event_list)
+void event_manager_t::commit_trigger(uint64_t, const trigger_event_list_t& trigger_event_list)
 {
+    PerfTimer timer("commit_trigger time:", [&]() {
+
     if (trigger_event_list.size() == 0)
     {
         return;
@@ -83,8 +88,8 @@ void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_even
 
     // Start a transaction that will be used to log all the events that were
     // triggered independent of whether they invoked a rule or not.
-    auto_transaction_t transaction(auto_transaction_t::no_auto_begin);
-    for (size_t i =0; i < trigger_event_list.size(); log_to_db(trigger_event_list[i], rules_invoked), ++i)
+    //auto_transaction_t transaction(auto_transaction_t::no_auto_begin);
+    for (size_t i =0; i < trigger_event_list.size(); /*log_to_db(trigger_event_list[i], rules_invoked),*/ ++i)
     {
         const trigger_event_t& event = trigger_event_list[i];
         rules_invoked = false;
@@ -151,7 +156,9 @@ void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_even
             }
         }
     }
-    transaction.commit();
+
+    });
+    //transaction.commit();
 }
 
 void event_manager_t::enqueue_invocation(const trigger_event_t& event, 
