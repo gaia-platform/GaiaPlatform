@@ -14,6 +14,7 @@
 #include "events.hpp"
 #include "gaia_common.hpp"
 #include "gaia_exception.hpp"
+#include "auto_transaction.hpp"
 
 using namespace gaia::db::triggers;
 using namespace gaia::common;
@@ -150,11 +151,11 @@ struct rule_context_t
 {
 public:
     rule_context_t(
-        const rule_binding_t& a_binding, 
-        gaia::common::gaia_type_t a_gaia_type,
-        gaia::db::triggers::event_type_t a_event_type,
+        direct_access::auto_transaction_t& a_transaction,
+        common::gaia_type_t a_gaia_type,
+        db::triggers::event_type_t a_event_type,
         gaia_id_t a_record)
-    : rule_binding(a_binding)
+    : transaction(a_transaction)
     , gaia_type(a_gaia_type)
     , event_type(a_event_type)
     , record(a_record)
@@ -176,12 +177,13 @@ public:
      * This method will return last_operation_t::none if this rule was not
      * invoked due to an operation on X.
      */
-    last_operation_t last_operation(gaia_type_t gaia_type);
+    last_operation_t last_operation(gaia_type_t gaia_type) const;
 
-    const rule_binding_t rule_binding;
-    gaia::common::gaia_type_t gaia_type;
-    gaia::db::triggers::event_type_t event_type;
+    direct_access::auto_transaction_t& transaction;
+    common::gaia_type_t gaia_type;
+    db::triggers::event_type_t event_type;
     gaia_id_t record;
+
 };
 
 /**
