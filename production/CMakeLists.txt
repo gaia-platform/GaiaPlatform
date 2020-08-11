@@ -21,6 +21,9 @@ include(GoogleTest)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+# Ensure debug builds have the DEBUG flag defined.
+add_compile_options("$<$<CONFIG:DEBUG>:-DDEBUG>")
+
 # Set some global variables.
 get_repo_root(${PROJECT_SOURCE_DIR} GAIA_REPO)
 set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")

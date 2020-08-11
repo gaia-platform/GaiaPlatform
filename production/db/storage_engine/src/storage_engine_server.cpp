@@ -144,8 +144,13 @@ void server::run() {
         s_server_shutdown_event_fd = -1;
         // We shouldn't get here unless the signal handler thread has caught a signal.
         retail_assert(caught_signal != 0);
-        // We special-case SIGHUP to force reinitialization of the server.
-        if (caught_signal != SIGHUP) {
+        // In debug builds, we special-case SIGHUP to force reinitialization of the server.
+        sigset_t reinit_signals;
+        sigemptyset(&reinit_signals);
+#ifdef DEBUG
+        sigaddset(&reinit_signals, SIGHUP);
+#endif
+        if (!sigismember(&reinit_signals, caught_signal)) {
             // To exit with the correct status (reflecting a caught signal),
             // we need to unblock blocked signals and re-raise the signal.
             // We may have already received other pending signals by the time
