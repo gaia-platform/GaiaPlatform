@@ -7,6 +7,7 @@
 #include "storage_engine_client.hpp"
 #include "gaia_hash_map.hpp"
 #include "gaia_ptr.hpp"
+#include "types.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -19,7 +20,7 @@ gaia_id_t gaia_ptr::generate_id() {
 gaia_ptr& gaia_ptr::clone() {
     auto old_this = to_ptr();
     auto old_offset = to_offset();
-    auto new_size = sizeof(gaia_ptr::object) + old_this->payload_size;
+    auto new_size = sizeof(object) + old_this->payload_size;
     allocate(new_size);
     auto new_this = to_ptr();
 
@@ -40,11 +41,11 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data) {
 
     int32_t ref_len = old_this->num_references * sizeof(gaia_id_t);
     int32_t total_len = data_size + ref_len;
-    allocate(sizeof(gaia_ptr::object) + total_len);
+    allocate(sizeof(object) + total_len);
 
     auto new_this = to_ptr();
 
-    memcpy(new_this, old_this, sizeof(gaia_ptr::object));
+    memcpy(new_this, old_this, sizeof(object));
     new_this->payload_size = total_len;
     if (old_this->num_references) {
         memcpy(new_this->payload, old_this->payload, ref_len);
@@ -62,12 +63,12 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data) {
 }
 
 gaia_ptr::gaia_ptr(const gaia_id_t id) {
-    row_id = gaia_hash_map::find(id);
+    row_id = gaia_map_object.find(id);
 }
 
 gaia_ptr::gaia_ptr(const gaia_id_t id, const size_t size, bool log_updates)
     : row_id(0) {
-    se_base::hash_node* hash_node = gaia_hash_map::insert(id);
+    se_base::hash_node* hash_node = gaia_map_object.insert(id);
     hash_node->row_id = row_id = client::allocate_row_id(client::s_offsets);
     client::allocate_object(row_id, size, client::s_offsets);
 
@@ -87,11 +88,11 @@ void gaia_ptr::create_insert_trigger(gaia_type_t type, gaia_id_t id) {
     }
 }
 
-gaia_ptr::object* gaia_ptr::to_ptr() const {
+object* gaia_ptr::to_ptr() const {
     client::verify_tx_active();
 
     return row_id && (*client::s_offsets)[row_id]
-        ? reinterpret_cast<gaia_ptr::object*>(client::s_data->objects + (*client::s_offsets)[row_id])
+        ? reinterpret_cast<object*>(client::s_data->objects + (*client::s_offsets)[row_id])
         : nullptr;
 }
 

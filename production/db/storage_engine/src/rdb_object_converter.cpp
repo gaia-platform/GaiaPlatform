@@ -16,7 +16,7 @@ using namespace gaia::db;
  * Value: reference_count, payload_size, payload
  */
 void rdb_object_converter_util::encode_object(
-    const gaia_ptr_server::object* gaia_object,
+    const object* gaia_object,
     string_writer* key,
     string_writer* value) {
     // Create key.

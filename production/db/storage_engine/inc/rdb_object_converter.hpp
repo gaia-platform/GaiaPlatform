@@ -172,7 +172,7 @@ class string_reader {
 class rdb_object_converter_util {
    public:
     static void encode_object(
-        const gaia_ptr_server::object* gaia_object,
+        const object* gaia_object,
         string_writer* key,
         string_writer* value);
     static gaia_ptr_server decode_object(

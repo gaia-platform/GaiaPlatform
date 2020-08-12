@@ -12,6 +12,7 @@
 #include "rdb_internal.hpp"
 
 using namespace gaia::db; 
+using namespace gaia::common;
 using namespace rocksdb;
 
 // Todo (msj) Take as input to some options file.
@@ -94,7 +95,7 @@ Status rdb_wrapper::prepare_tx(gaia_xid_t transaction_id) {
                 continue;
             }
 
-            rdb_object_converter_util::encode_object((gaia_ptr_server::object*) gaia_object, &key, &value);
+            rdb_object_converter_util::encode_object((object*) gaia_object, &key, &value);
 
             // Gaia objects encoded as key-value slices shouldn't be empty.
             assert(key.get_current_position() != 0 && value.get_current_position() != 0);

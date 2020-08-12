@@ -40,6 +40,7 @@ const size_t MAX_MSG_SIZE = 1 << 10;
 class se_base {
     friend class gaia_ptr;
     friend class gaia_ptr_server;
+    friend class gaia_hash_map_base;
     friend class gaia_hash_map;
     friend class gaia_hash_map_server;
     friend class rdb_wrapper;

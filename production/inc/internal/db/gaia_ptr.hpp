@@ -9,6 +9,8 @@
 
 #include "retail_assert.hpp"
 #include "gaia_db.hpp"
+#include "gaia_hash_map.hpp"
+#include "types.hpp"
 
 using namespace gaia::common;
 
@@ -22,6 +24,7 @@ class gaia_ptr {
    private:
     int64_t row_id;
     void create_insert_trigger(gaia_type_t type, gaia_id_t id);
+    static gaia_hash_map gaia_map_object;
 
    public:
     gaia_ptr(const std::nullptr_t = nullptr)
@@ -164,14 +167,6 @@ class gaia_ptr {
     }
 
    protected:
-
-    struct object {
-        gaia_id_t id;
-        gaia_type_t type;
-        size_t num_references;
-        size_t payload_size;
-        char payload[0];
-    };
 
     gaia_ptr(const gaia_id_t id);
 

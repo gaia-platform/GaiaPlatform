@@ -9,7 +9,8 @@
 
 #include "retail_assert.hpp"
 #include "gaia_db.hpp"
-#include "gaia_ptr.hpp"
+#include "gaia_hash_map_server.hpp"
+#include "types.hpp"
 
 using namespace gaia::common;
 
@@ -17,7 +18,7 @@ namespace gaia {
 namespace db {
 
 // Class used for recovery purposes only.
-class gaia_ptr_server : public gaia_ptr {
+class gaia_ptr_server {
     friend class rdb_object_converter_util;
     friend class rdb_wrapper;
    public:
@@ -47,6 +48,7 @@ class gaia_ptr_server : public gaia_ptr {
     object* to_ptr() const;
    private:
     int64_t row_id;
+    gaia_hash_map_server gaia_map_object;
 };
 
 }  // namespace db

@@ -47,7 +47,7 @@ class server : private se_base {
     static std::mutex s_commit_lock;
     static int s_fd_data;
     static offsets* s_shared_offsets;
-    static bool recovered;
+    static bool rocksdb_is_open;
     //Should be unique ptr? 
     static rdb_wrapper* rdb;
     thread_local static session_state_t s_session_state;
@@ -166,14 +166,21 @@ class server : private se_base {
     }
 
     // Should just run once for the lifetime of a server process.
+    // Todo: Close rocksdb when server process dies via RAII & wrap 
+    // 'rdb' object in a unique ptr.
     static void recover_db() {
-        if (!recovered) {
+        // Open rocksdb just once.
+        if (!rocksdb_is_open) {
             rdb = new gaia::db::rdb_wrapper();
             rocksdb::Status status = rdb->open();
             assert(status.ok());
-            rdb->recover();
-            recovered = true;
+            rocksdb_is_open = true;
         }
+        // Called when memory is initialized. 
+        // Anonymous mapping should be blown away on each re-init (via clear_shared_memory())
+        // and therefore it is safe to repopulate gaia in-memory state in case this API 
+        // gets called again.
+        rdb->recover(); 
     }
 
     // To avoid synchronization, we assume that this method is only called when
@@ -205,7 +212,7 @@ class server : private se_base {
         s_data = static_cast<data*>(map_fd(sizeof(data),
             PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_data, 0));
         
-        // recover_db();
+        recover_db();
 
         cleanup_memory.dismiss();
     }
@@ -524,7 +531,7 @@ class server : private se_base {
 
         std::set<int64_t> row_ids;
         // Prepare tx
-        // rdb->prepare_tx(s_transaction_id);
+        rdb->prepare_tx(s_transaction_id);
         for (auto i = 0; i < s_log->count; i++) {
             auto lr = s_log->log_records + i;
 
@@ -542,7 +549,7 @@ class server : private se_base {
         }
 
         // Append commit decision to WAL.
-        // rdb->commit_tx(s_transaction_id);
+        rdb->commit_tx(s_transaction_id);
 
         return true;
     }

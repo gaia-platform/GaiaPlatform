@@ -179,7 +179,7 @@ TEST_F(storage_engine_client_test, update_payload) {
     commit_transaction();
 }
 
-TEST_F(storage_engine_client_test, update_payload_rollback) {
+TEST_F(storage_engine_client_test, DISABLED_update_payload_rollback) {
     auto payload = "payload str";
     begin_transaction();
     {
@@ -220,7 +220,7 @@ TEST_F(storage_engine_client_test, update_payload_rollback) {
     commit_transaction();
 }
 
-TEST_F(storage_engine_client_test, iterate_type) {
+TEST_F(storage_engine_client_test, DISABLED_iterate_type) {
     begin_transaction();
     {
         std::cerr << std::endl;
@@ -263,7 +263,7 @@ TEST_F(storage_engine_client_test, iterate_type) {
     commit_transaction();
 }
 
-TEST_F(storage_engine_client_test, iterate_type_delete) {
+TEST_F(storage_engine_client_test, DISABLED_iterate_type_delete) {
     begin_transaction();
     {
         try
