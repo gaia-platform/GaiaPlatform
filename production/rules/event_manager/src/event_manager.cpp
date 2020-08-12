@@ -8,7 +8,7 @@
 #include "events.hpp"
 #include "triggers.hpp"
 #include "event_trigger_threadpool.hpp"
-#include "PerfTimer.h"
+//#include "PerfTimer.h"
 
 #include <cstring>
 
@@ -17,7 +17,7 @@ using namespace gaia::common;
 using namespace gaia::db::triggers;
 using namespace std;
 
-bool PerfTimer::s_enabled = true;
+//bool PerfTimer::s_enabled = true;
 
 /**
  * Class implementation
@@ -124,7 +124,7 @@ bool event_manager_t::process_field_events(event_binding_t& binding, const trigg
 
 void event_manager_t::commit_trigger(uint64_t, const trigger_event_list_t& trigger_event_list)
 {
-    PerfTimer timer("commit_trigger time:", [&]() {
+    //PerfTimer timer("commit_trigger time:", [&]() {
         if (trigger_event_list.size() == 0)
         {
             return;
@@ -174,7 +174,7 @@ void event_manager_t::commit_trigger(uint64_t, const trigger_event_list_t& trigg
             // associated with any rule.
             enqueue_invocation(event, nullptr, rule_type);
         }
-    });
+    //});
 }
 
 void event_manager_t::enqueue_invocation(const trigger_event_t& event, 
