@@ -23,7 +23,7 @@
 #include <thread>
 #include <atomic>
 #include <map>
-#include "PerfTimer.h"
+//#include "PerfTimer.h"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -50,9 +50,9 @@ std::chrono::high_resolution_clock::time_point g_start;
 // When an employee is inserted insert an address.
 void rule_insert_address(const rule_context_t* context)
 {
-    g_end = std::chrono::high_resolution_clock::now();
-    auto result = std::chrono::duration_cast<std::chrono::nanoseconds>(g_end-g_start).count();
-    printf("latency:  %0.2f us\n", PerfTimer::ns_us(result));
+  //  g_end = std::chrono::high_resolution_clock::now();
+  //  auto result = std::chrono::duration_cast<std::chrono::nanoseconds>(g_end-g_start).count();
+  //  printf("latency:  %0.2f us\n", PerfTimer::ns_us(result));
 
     employee_t e = employee_t::get(context->record);
     EXPECT_EQ(employee_t::s_gaia_type, context->gaia_type);
@@ -251,7 +251,7 @@ TEST_F(rule_integration_test, test_insert)
         writer.name_first = c_name;
         writer.insert_row();
         tx.commit();
-        g_start = std::chrono::high_resolution_clock::now();
+        //g_start = std::chrono::high_resolution_clock::now();
     }
 
     // Make sure the address was added and updated by the
