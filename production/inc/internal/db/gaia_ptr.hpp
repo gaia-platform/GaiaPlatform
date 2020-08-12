@@ -9,13 +9,14 @@
 
 #include "retail_assert.hpp"
 #include "gaia_db.hpp"
-#include "gaia_hash_map.hpp"
 #include "types.hpp"
 
 using namespace gaia::common;
 
 namespace gaia {
 namespace db {
+
+class gaia_hash_map;
 
 class gaia_ptr {
     // We need access to private implementation state of the client library.
@@ -24,7 +25,7 @@ class gaia_ptr {
    private:
     int64_t row_id;
     void create_insert_trigger(gaia_type_t type, gaia_id_t id);
-    static gaia_hash_map gaia_map_object;
+    static gaia_hash_map* gaia_map_object;
 
    public:
     gaia_ptr(const std::nullptr_t = nullptr)
