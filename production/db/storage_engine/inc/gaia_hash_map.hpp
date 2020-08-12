@@ -14,22 +14,22 @@ namespace db {
 
 using namespace common;
 
-class gaia_hash_map : public gaia_hash_map_base {
+class gaia_hash_map : public gaia_hash_map_base<gaia_hash_map> {
     friend class client;
    public:  
-    virtual se_base::hash_node* get_hash_node(int64_t offset) {
+    static se_base::hash_node* get_hash_node(int64_t offset) {
         return client::s_data->hash_nodes + offset;
     }
 
-    virtual bool locator_exists(int64_t offset) {
+    static bool locator_exists(int64_t offset) {
         return (*client::s_offsets)[offset];
     }
 
-    virtual bool check_no_active_transaction() {
+    static bool check_no_active_transaction() {
         return *client::s_offsets == nullptr;
     }
 
-    virtual int64_t* get_hash_node_count() {
+    static int64_t* get_hash_node_count() {
         return &client::s_data->hash_node_count;
     }
 };

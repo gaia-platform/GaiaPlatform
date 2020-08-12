@@ -13,8 +13,6 @@ using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::db::triggers;
 
-gaia_hash_map* gaia_ptr::gaia_map_object = nullptr;
-
 gaia_id_t gaia_ptr::generate_id() {
     return client::generate_id();
 }
@@ -65,12 +63,12 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data) {
 }
 
 gaia_ptr::gaia_ptr(const gaia_id_t id) {
-    row_id = gaia_map_object->find(id);
+    row_id = gaia_hash_map::find(id);
 }
 
 gaia_ptr::gaia_ptr(const gaia_id_t id, const size_t size, bool log_updates)
     : row_id(0) {
-    se_base::hash_node* hash_node = gaia_map_object->insert(id);
+    se_base::hash_node* hash_node = gaia_hash_map::insert(id);
     hash_node->row_id = row_id = client::allocate_row_id(client::s_offsets);
     client::allocate_object(row_id, size, client::s_offsets);
 

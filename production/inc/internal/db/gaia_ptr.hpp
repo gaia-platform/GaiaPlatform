@@ -25,7 +25,6 @@ class gaia_ptr {
    private:
     int64_t row_id;
     void create_insert_trigger(gaia_type_t type, gaia_id_t id);
-    static gaia_hash_map* gaia_map_object;
 
    public:
     gaia_ptr(const std::nullptr_t = nullptr)
