@@ -20,6 +20,30 @@ thread_local bool rule_thread_pool_t::s_tls_can_enqueue = true;
 thread_local queue<rule_thread_pool_t::invocation_t> rule_thread_pool_t::s_tls_pending_invocations;
 
 
+void rule_thread_pool_t::log_event(const invocation_t& invocation)
+{
+    gaia::db::begin_transaction();
+    {
+        uint64_t timestamp = (uint64_t)time(NULL);
+
+        // TODO[GAIAPLAT-101]: add support for arrys of simple types
+        // When we have this support we can support the array of changed column fields
+        // in our event log.  Until then, just pick out the first of the list.
+        uint16_t column_id = 0;
+
+        bool rule_invoked = (invocation.rule_type == rule_type_t::log_event_subscribed);
+
+        if (invocation.fields.size() > 0)
+        {
+            column_id = invocation.fields[0];
+        }
+
+        event_log::event_log_t::insert_row((uint32_t)(invocation.event_type), (uint64_t)(invocation.gaia_type), 
+        (uint64_t)(invocation.record), column_id, timestamp, rule_invoked);
+    }
+    gaia::db::commit_transaction();
+}
+
 rule_thread_pool_t::rule_thread_pool_t(size_t num_threads)
 {
     m_exit = false;
@@ -120,28 +144,39 @@ void rule_thread_pool_t::rule_worker()
     end_session();
 }
 
-void rule_thread_pool_t::invoke_rule(const invocation_t& invocation)
+// Special handling for system "rules"
+// Currently only support logging to the event table.
+void rule_thread_pool_t::invoke_system_rule(const invocation_t& invocation)
+{
+    rule_thread_pool_t::log_event(invocation);
+}
+
+// We must worry about user-rules that throw exceptions, end the transaction
+// started by the rules engine, and log the event.
+void rule_thread_pool_t::invoke_user_rule(const invocation_t& invocation)
 {
     s_tls_can_enqueue = false;
     bool should_schedule = false;
+
     try
     {
-        auto_transaction_t tx(auto_transaction_t::no_auto_begin);
-
-        rule_context_t context(tx,
+        auto_transaction_t transaction(auto_transaction_t::no_auto_begin);
+        rule_context_t context(
+            transaction,
             invocation.gaia_type,
             invocation.event_type,
-            invocation.record);
+            invocation.record,
+            invocation.fields
+        );
 
         // Invoke the rule.
         invocation.rule_fn(&context);
 
-        // The rule may have committed the transaction
-        // so don't try to commit it again.
         if (gaia::db::is_transaction_active())
         {
-            tx.commit();
+            transaction.commit();
         }
+
         should_schedule = true;
     }
     catch(const std::exception& e)
@@ -151,6 +186,7 @@ void rule_thread_pool_t::invoke_rule(const invocation_t& invocation)
         // Catch all exceptions or let terminate happen? Don't drop pending
         // rules on the floor (should_schedule == false) when we add retry logic.
     }
+
     s_tls_can_enqueue = true;
     process_pending_invocations(should_schedule);
 }

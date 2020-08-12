@@ -71,8 +71,8 @@ private:
     // required for deferred rules later.
     struct _rule_binding_t
     {
-        _rule_binding_t() = delete;
         _rule_binding_t(const rules::rule_binding_t& binding);
+        _rule_binding_t(const char* a_ruleset_name, const char* a_rule_name, gaia_rule_fn rule);
 
         std::string ruleset_name;
         std::string rule_name;
@@ -128,20 +128,17 @@ private:
     friend void gaia::rules::test::initialize_rules_engine(event_manager_settings_t& settings);
     friend void gaia::rules::test::commit_trigger(uint64_t, const trigger_event_t*, size_t count_events);
 
-    //
-    // Meta rule for scheduling user-rules and logging to the event
-    //
-    static void enqueue_event_jobs(const rule_context_t* contest);
-
     // Well known trigger function called by the storage engine after commit.
     // Protected so that unit-tests can call directly
     void commit_trigger(uint64_t tx_id, const trigger_event_list_t& event_list);
-
+    bool process_last_operation_events(event_binding_t& binding, const trigger_event_t& event);
+    bool process_field_events(event_binding_t& binding, const trigger_event_t& event);
     void init(event_manager_settings_t& settings);
     const _rule_binding_t* find_rule(const rules::rule_binding_t& binding); 
     void add_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     bool remove_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
-    void enqueue_invocation(const trigger_event_t& event, const _rule_binding_t* rule_binding);
+    void enqueue_invocation(const trigger_event_t& event, const _rule_binding_t* rule_binding, 
+        rule_thread_pool_t::rule_type_t rule_type = rule_thread_pool_t::rule_type_t::user);
     void check_subscription(event_type_t event_type, const field_position_list_t& fields);
     static inline void check_rule_binding(const rule_binding_t& binding)
     {

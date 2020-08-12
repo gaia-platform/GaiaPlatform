@@ -95,8 +95,14 @@ public:
     // Helper to add a context to a context list.
     void add_context_sequence(rule_context_sequence_t& sequence, gaia_type_t gaia_type, event_type_t event_type)
     {
-        rule_context_t c(get_dummy_transaction(), gaia_type, event_type, 0);
+        rule_context_t c(get_dummy_transaction(), gaia_type, event_type, 0, get_dummy_field_list());
         sequence.push_back(c);
+    }
+
+    field_position_list_t& get_dummy_field_list()
+    {
+        static field_position_list_t s_fields;
+        return s_fields;
     }
 
     auto_transaction_t& get_dummy_transaction(bool init=false) 

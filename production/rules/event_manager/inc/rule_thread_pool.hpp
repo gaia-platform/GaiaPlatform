@@ -21,12 +21,28 @@ class rule_thread_pool_t
 {
 public:
 
+    enum class rule_type_t : uint8_t 
+    {
+        user = 0,
+        // System Rule to log events
+        log_event_unsubscribed = 1 << 0,
+        log_event_subscribed = 1 << 1
+    };
+
     struct invocation_t {
+        rule_type_t rule_type;
         gaia_rule_fn rule_fn;
         common::gaia_type_t gaia_type;
         db::triggers::event_type_t event_type;
         gaia_id_t record;
+        const field_position_list_t fields;
     };
+
+    /**
+     * System rules.  Currently the only system function we support
+     * is logging to the event table.
+     */
+    static void log_event(const invocation_t& invocation);
 
     rule_thread_pool_t() = delete;
 
@@ -71,7 +87,21 @@ public:
 
 private:
     void rule_worker();
-    void invoke_rule(const invocation_t& invocation);
+
+    void inline invoke_rule(const invocation_t& invocation) 
+    {
+        if (rule_type_t::user == invocation.rule_type)
+        {
+            invoke_user_rule(invocation);
+        }
+        else
+        {
+            invoke_system_rule(invocation);
+        }
+    }
+
+    void invoke_user_rule(const invocation_t& invocation);
+    void invoke_system_rule(const invocation_t& invocation);
     void process_pending_invocations(bool should_schedule);
 
     // Each thread has a copy of these two variables to determine

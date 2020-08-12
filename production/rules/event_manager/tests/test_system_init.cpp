@@ -26,6 +26,16 @@ extern "C" void initialize_rules()
 
 class system_init_test : public db_test_base_t {
 public:
+    static void SetUpTestSuite()
+    {
+        db_test_base_t::SetUpTestSuite(true);
+    }
+
+    static void TearDownTestSuite()
+    {
+        db_test_base_t::TearDownTestSuite(true);
+    }
+
     gaia_type_t load_catalog()
     {
         // Add a dummy type so that the event manager doesn't cry foul when subscribing a rule.

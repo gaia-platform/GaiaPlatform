@@ -47,7 +47,6 @@ atomic<int> g_wait_for_count;
 std::chrono::high_resolution_clock::time_point g_end;
 std::chrono::high_resolution_clock::time_point g_start;
 
-
 // When an employee is inserted insert an address.
 void rule_insert_address(const rule_context_t* context)
 {
@@ -147,6 +146,16 @@ public:
 class rule_integration_test : public db_test_base_t
 {
 public:
+    static void SetUpTestSuite() {
+        db_test_base_t::SetUpTestSuite(true);
+        gaia::system::initialize();
+        load_catalog();
+    }
+
+    void TearDown() override {
+        unsubscribe_rules();
+    }
+
     void subscribe_insert()
     {
         rule_binding_t rule1{"ruleset", "rule_insert_address", rule_insert_address};

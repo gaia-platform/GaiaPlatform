@@ -75,69 +75,38 @@ void event_manager_t::init(event_manager_settings_t& settings)
     m_is_initialized = true;
 }
 
-void enqueue_event_jobs(const rule_context_t*)
+
+bool event_manager_t::process_last_operation_events(event_binding_t& binding, const trigger_event_t& event)
 {
-    /*
-    // Start a transaction that will be used to log all the events that were
-    // triggered independent of whether they invoked a rule or not.
-    //auto_transaction_t transaction(auto_transaction_t::no_auto_begin);
-    for (size_t i =0; i < trigger_event_list.size(); log_to_db(trigger_event_list[i], rules_invoked), ++i)
+    bool rules_invoked = false;
+    rule_list_t& rules = binding.last_operation_rules;
+
+    for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it)
     {
-        const trigger_event_t& event = trigger_event_list[i];
-        rules_invoked = false;
+        rules_invoked = true;
+        enqueue_invocation(event, *rules_it);
+    }
 
-        auto type_it = m_subscriptions.find(event.gaia_type);
-        if (type_it == m_subscriptions.end())
+    return rules_invoked;
+}
+
+bool event_manager_t::process_field_events(event_binding_t& binding, const trigger_event_t& event)
+{
+    if (binding.fields_map.size() == 0 || event.columns.size() == 0)
+    {
+        return false;
+    }
+
+    bool rules_invoked = false;
+
+    for (field_position_t field_position : event.columns)
+    {
+        // Some rules refer to columns in this table.  Now see whether
+        // the specific columns changed in this event are referenced
+        // by any rules.  If not, keep going.
+        auto field_it = binding.fields_map.find(field_position);
+        if (field_it != binding.fields_map.end())
         {
-            // No rules were subscribed to this type.
-            continue;
-        }
-
-        events_map_t& events = type_it->second;
-        auto event_it = events.find(event.event_type);
-        if (event_it == events.end())
-        {
-            // No rules were subscribed to this event on this type.
-            continue;
-        }
-
-        // At least one rule is bound to this specific event.
-        // The rule may be bound at the table level via the system
-        // LastOperation field or at the column level by referencing
-        // an active field in the rule body.
-        event_binding_t& binding = event_it->second;
-
-        // See if any rules are bound at the table level.  If so, schedule 
-        // these rules to be invoked.
-        rule_list_t& rules = binding.last_operation_rules;
-        for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it)
-        {
-            rules_invoked = true;
-            enqueue_invocation(event, *rules_it);
-        }
-
-        // See if any rules are bound to any columns that were 
-        // changed as part of this event.  If so, then schedule these rules
-        // to be invoked.
-        if (binding.fields_map.size() == 0)
-        {
-            // No rules were subscribed to any fields to this event on this type.
-            continue;
-        }
-
-        for (uint16_t j = 0; j < event.count_columns; j++)
-        {
-            // Some rules refer to columns in this table.  Now see whether
-            // the specific columns changed in this event are referenced
-            // by any rules.  If not, keep going.
-            uint16_t col = event.columns[j];
-            auto field_it = binding.fields_map.find(col);
-            if (field_it == binding.fields_map.end())
-            {
-                // The column that changed was not subscribed to any rule.
-                continue;
-            }
-
             // If we got here then we have changed a field that is
             // referenced by at least one rule.  Schedule those rules
             // for invocation now.
@@ -149,100 +118,85 @@ void enqueue_event_jobs(const rule_context_t*)
             }
         }
     }
-    */
 
+    return rules_invoked;
 }
 
 void event_manager_t::commit_trigger(uint64_t, const trigger_event_list_t& trigger_event_list)
 {
     PerfTimer timer("commit_trigger time:", [&]() {
-
-    if (trigger_event_list.size() == 0)
-    {
-        return;
-    }
-
-    bool rules_invoked;
-
-    // Start a transaction that will be used to log all the events that were
-    // triggered independent of whether they invoked a rule or not.
-    //auto_transaction_t transaction(auto_transaction_t::no_auto_begin);
-    for (size_t i =0; i < trigger_event_list.size(); /*log_to_db(trigger_event_list[i], rules_invoked),*/ ++i)
-    {
-        const trigger_event_t& event = trigger_event_list[i];
-        rules_invoked = false;
-
-        auto type_it = m_subscriptions.find(event.gaia_type);
-        if (type_it == m_subscriptions.end())
+        if (trigger_event_list.size() == 0)
         {
-            // No rules were subscribed to this type.
-            continue;
+            return;
         }
 
-        events_map_t& events = type_it->second;
-        auto event_it = events.find(event.event_type);
-        if (event_it == events.end())
+        // Start a transaction that will be used to log all the events that were
+        // triggered independent of whether they invoked a rule or not.
+        for (size_t i = 0; i < trigger_event_list.size(); ++i)
         {
-            // No rules were subscribed to this event on this type.
-            continue;
-        }
+            const trigger_event_t& event = trigger_event_list[i];
+            bool rules_invoked = false;
 
-        // At least one rule is bound to this specific event.
-        // The rule may be bound at the table level via the system
-        // LastOperation field or at the column level by referencing
-        // an active field in the rule body.
-        event_binding_t& binding = event_it->second;
-
-        // See if any rules are bound at the table level.  If so, schedule 
-        // these rules to be invoked.
-        rule_list_t& rules = binding.last_operation_rules;
-        for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it)
-        {
-            rules_invoked = true;
-            enqueue_invocation(event, *rules_it);
-        }
-
-        // See if any rules are bound to any columns that were 
-        // changed as part of this event.  If so, then schedule these rules
-        // to be invoked.
-        if (binding.fields_map.size() == 0 || event.columns.size() == 0)
-        {
-            // No rules were subscribed to any fields to this event on this type.
-            continue;
-        }
-
-        for (field_position_t field_position : event.columns)
-        {
-            // Some rules refer to columns in this table.  Now see whether
-            // the specific columns changed in this event are referenced
-            // by any rules.  If not, keep going.
-            auto field_it = binding.fields_map.find(field_position);
-            if (field_it == binding.fields_map.end())
+            auto type_it = m_subscriptions.find(event.gaia_type);
+            if (type_it != m_subscriptions.end())
             {
-                // The column that changed was not subscribed to any rule.
-                continue;
+                events_map_t& events = type_it->second;
+                auto event_it = events.find(event.event_type);
+
+                if (event_it != events.end())
+                {
+                    // At least one rule is bound to this specific event.
+                    // The rule may be bound at the table level via the system
+                    // LastOperation field or at the column level by referencing
+                    // an active field in the rule body.
+                    event_binding_t& binding = event_it->second;
+
+                    // Once rules_invoked is true, we keep it there to mean
+                    // that any rule was subscribed to this event.
+                    if (process_last_operation_events(binding, event))
+                    {
+                        rules_invoked = true;
+                    }
+
+                    if (process_field_events(binding, event))
+                    {
+                        rules_invoked = true;
+                    }
+                }
             }
 
-            // If we got here then we have changed a field that is
-            // referenced by at least one rule.  Schedule those rules
-            // for invocation now.
-            rule_list_t& rules = field_it->second;
-            for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it)
+            rule_thread_pool_t::rule_type_t rule_type = rule_thread_pool_t::rule_type_t::log_event_unsubscribed;
+            if (rules_invoked)
             {
-                rules_invoked = true;
-                enqueue_invocation(event, *rules_it);
+                rule_type = rule_thread_pool_t::rule_type_t::log_event_subscribed;
             }
+            // Enqueue our log_event rule to log events that are not
+            // associated with any rule.
+            enqueue_invocation(event, nullptr, rule_type);
         }
-    }
-
     });
-    //transaction.commit();
 }
 
 void event_manager_t::enqueue_invocation(const trigger_event_t& event, 
-    const _rule_binding_t* binding)
+    const _rule_binding_t* binding, rule_thread_pool_t::rule_type_t rule_type)
 {
-    rule_thread_pool_t::invocation_t invocation{binding->rule, event.gaia_type, event.event_type, event.record};
+    if (rule_type == rule_thread_pool_t::rule_type_t::user)
+    {
+        retail_assert(binding->rule != nullptr, "User rule function is null!");
+    }
+    else
+    {
+        retail_assert(binding == nullptr, "System rule function must have null binding!");
+    }
+    
+    rule_thread_pool_t::invocation_t invocation { 
+        rule_type,
+        binding ? binding->rule : nullptr,
+        event.gaia_type, 
+        event.event_type, 
+        event.record, 
+        event.columns 
+    };
     m_invocations->enqueue(invocation);
 }
 
@@ -566,14 +520,26 @@ void event_manager_t::log_to_db(const trigger_event_t& event, bool rules_invoked
 // Enable conversion from rule_binding_t -> internal_rules_binding_t.
 event_manager_t::_rule_binding_t::_rule_binding_t(
     const rule_binding_t& binding)
+: _rule_binding_t(binding.ruleset_name, binding.rule_name, binding.rule)
 {
-    ruleset_name = binding.ruleset_name;
-    rule = binding.rule;
-    if (binding.rule_name != nullptr) 
+}
+
+event_manager_t::_rule_binding_t::_rule_binding_t(
+    const char* a_ruleset_name, 
+    const char* a_rule_name, 
+    gaia_rule_fn a_rule)
+{
+    ruleset_name = a_ruleset_name;
+    rule = a_rule;
+    if (a_rule_name != nullptr) 
     {
-        rule_name = binding.rule_name;
+        rule_name = a_rule_name;
     }
 }
+
+
+
+// Enable construction
 
 /**
  * Public rules API implementation

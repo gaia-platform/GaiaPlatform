@@ -294,6 +294,16 @@ void client::commit_transaction() {
     const session_event_t event = reply->event();
     retail_assert(event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT);
 
+    
+
+    
+    // Throw an exception on server-side abort.
+    // REVIEW: We could include the gaia_ids of conflicting objects in transaction_update_conflict
+    // (https://gaiaplatform.atlassian.net/browse/GAIAPLAT-292).
+    if (event == session_event_t::DECIDE_TXN_ABORT) {
+        throw transaction_update_conflict();
+    }
+
     // Execute trigger only if rules engine is initialized.
     if (event_trigger_pool->get_commit_trigger() 
         && event == session_event_t::DECIDE_TXN_COMMIT
@@ -302,17 +312,10 @@ void client::commit_transaction() {
         fn(s_transaction_id, s_events);
 //        event_trigger_pool->add_trigger_task(s_transaction_id, std::move(s_events));
     }
-
     // Reset transaction id.
     s_transaction_id = 0;
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
 
-    // Throw an exception on server-side abort.
-    // REVIEW: We could include the gaia_ids of conflicting objects in transaction_update_conflict
-    // (https://gaiaplatform.atlassian.net/browse/GAIAPLAT-292).
-    if (event == session_event_t::DECIDE_TXN_ABORT) {
-        throw transaction_update_conflict();
-    }
 }
