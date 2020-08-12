@@ -19,7 +19,6 @@ int main(int argc, char *argv[]) {
     }
 
     gaia::db::begin_session();
-    gaia::catalog::initialize_catalog();
 
     auto code_lines = gaia_generate(argv[1]);
     cout << code_lines << endl;

@@ -23,25 +23,14 @@ namespace catalog {
 // The initial size of the flatbuffer builder buffer.
 constexpr int c_flatbuffer_builder_size = 128;
 
-// Constants contained in the gaia_database object.
-constexpr int c_first_gaia_table_gaia_table = 0;
-constexpr int c_num_gaia_database_ptrs = 1;
-
-// Constants contained in the gaia_ruleset object.
-constexpr int c_first_rules_gaia_rule = 0;
-constexpr int c_num_gaia_ruleset_ptrs = 1;
-
 // Constants contained in the gaia_rule object.
 constexpr int c_parent_rules_gaia_ruleset = 0;
 constexpr int c_next_rules_gaia_rule = 1;
 constexpr int c_num_gaia_rule_ptrs = 2;
 
-// Constants contained in the gaia_table object.
-constexpr int c_first_fields_gaia_field = 0;
-constexpr int c_first_refs_gaia_field = 1;
-constexpr int c_parent_gaia_database_gaia_database = 2;
-constexpr int c_next_gaia_table_gaia_table = 3;
-constexpr int c_num_gaia_table_ptrs = 4;
+// Constants contained in the gaia_ruleset object.
+constexpr int c_first_rules_gaia_rule = 0;
+constexpr int c_num_gaia_ruleset_ptrs = 1;
 
 // Constants contained in the gaia_field object.
 constexpr int c_parent_fields_gaia_table = 0;
@@ -50,11 +39,22 @@ constexpr int c_parent_refs_gaia_table = 2;
 constexpr int c_next_refs_gaia_field = 3;
 constexpr int c_num_gaia_field_ptrs = 4;
 
-struct gaia_database_t;
-struct gaia_ruleset_t;
+// Constants contained in the gaia_table object.
+constexpr int c_first_fields_gaia_field = 0;
+constexpr int c_first_refs_gaia_field = 1;
+constexpr int c_parent_gaia_database_gaia_database = 2;
+constexpr int c_next_gaia_table_gaia_table = 3;
+constexpr int c_num_gaia_table_ptrs = 4;
+
+// Constants contained in the gaia_database object.
+constexpr int c_first_gaia_table_gaia_table = 0;
+constexpr int c_num_gaia_database_ptrs = 1;
+
 struct gaia_rule_t;
-struct gaia_table_t;
+struct gaia_ruleset_t;
 struct gaia_field_t;
+struct gaia_table_t;
+struct gaia_database_t;
 
 typedef gaia_writer_t<18446744073709551611llu,gaia_database_t,gaia_database,gaia_databaseT,c_num_gaia_database_ptrs> gaia_database_writer;
 struct gaia_database_t : public gaia_object_t<18446744073709551611llu,gaia_database_t,gaia_database,gaia_databaseT,c_num_gaia_database_ptrs> {

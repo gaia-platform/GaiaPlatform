@@ -30,8 +30,8 @@ add_custom_target(generate_addr_book_headers ALL
 
 #
 # Generate full "database" in one header by combining
-# event_log, and addr_book.  Use a cmake script
-# file to concatenate files together.  Put this file under
+# all schemas. Use a cmake script
+# file to concatenate files together. Put this file under
 # add_custom_command so that it correctly gets rebuilt if
 # any of the dependent files change.
 #
@@ -39,14 +39,12 @@ add_custom_command(
   OUTPUT ${GAIA_GENERATED_SCHEMAS}/gaia_addr_book_db.h
   COMMAND cmake
     -D GAIA_GENERATED_SCHEMAS=${GAIA_GENERATED_SCHEMAS}
-    -D EVENT_LOG_DDL=${EVENT_LOG_DDL}
     -D GAIA_USER_SCHEMA=${ADDR_BOOK_DDL}
     -D OUTPUT_DDL_PREFIX=${GAIA_GENERATED_SCHEMAS}/addr_book
     -P ${GAIA_SCHEMAS_INC}/build_db_ddl.cmake
   COMMAND ${GAIA_GENERATE} -t ${GAIA_PROD_BUILD}/db/storage_engine -o ${GAIA_GENERATED_SCHEMAS}
     ${GAIA_GENERATED_SCHEMAS}/addr_book_db.ddl
   DEPENDS gaiac
-  DEPENDS ${EVENT_LOG_DDL}
   DEPENDS ${ADDR_BOOK_DDL}
   COMMENT "Compiled addr_book_db.ddl."
 )

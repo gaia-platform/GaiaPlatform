@@ -46,7 +46,6 @@ void execute(const string &dbname, vector<unique_ptr<statement_t>> &statements) 
 
 void start_repl(parser_t &parser) {
     gaia::db::begin_session();
-    gaia::catalog::initialize_catalog();
 
     const auto prompt = "gaiac> ";
     const auto exit_command = "exit";
@@ -64,7 +63,7 @@ void start_repl(parser_t &parser) {
         if (parsing_result == EXIT_SUCCESS) {
             try {
                 execute("", parser.statements);
-                cout << gaia::catalog::generate_fbs() << flush;
+                cout << gaia::catalog::generate_fbs("") << flush;
             } catch (gaia_exception &e) {
                 cout << c_error_prompt << e.what() << endl
                      << flush;
@@ -101,7 +100,7 @@ void generate_fbs_headers(const string &db_name, const string &output_path) {
     string fbs_schema = "namespace gaia" +
                         (db_name.empty() ? "" : "." + db_name) +
                         ";\n" +
-                        gaia::catalog::generate_fbs();
+                        gaia::catalog::generate_fbs(db_name);
     if (!fbs_parser.Parse(fbs_schema.c_str())) {
         cout << c_error_prompt
              << "Fail to parse the catalog generated FlatBuffers schema. Error: "
@@ -259,7 +258,6 @@ int main(int argc, char *argv[]) {
     } else if (mode == operate_mode_t::generation) {
         try {
             gaia::db::begin_session();
-            gaia::catalog::initialize_catalog();
 
             if (db_name.empty() && !ddl_filename.empty()) {
                 // Strip off the path and any suffix to get database name if database name is not specified.

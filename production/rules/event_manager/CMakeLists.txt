@@ -38,7 +38,7 @@ add_library(gaia_rules STATIC
 add_dependencies(gaia_rules generate_rules_headers)
 set_target_properties(gaia_rules PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 target_include_directories(gaia_rules PRIVATE ${GAIA_EVENT_MANAGER_INCLUDES})
-target_link_libraries(gaia_rules PRIVATE gaia_direct)
+target_link_libraries(gaia_rules PRIVATE gaia_direct gaia_catalog)
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia_rules PROPERTY POSITION_INDEPENDENT_CODE ON)
 

@@ -192,13 +192,16 @@ string generate_fbs(gaia_id_t table_id) {
     return fbs;
 }
 
-string generate_fbs() {
+string generate_fbs(const string &dbname) {
+    gaia_id_t db_id = find_db_id(dbname);
+    if (db_id == INVALID_GAIA_ID) {
+        throw db_not_exists(dbname);
+    }
     string fbs;
     gaia::db::begin_transaction();
-    for (gaia_id_t table_id : list_tables()) {
-        gaia_table_t table = gaia_table_t::get(table_id);
+    for (auto table : gaia_database_t::get(db_id).gaia_table_list()) {
         fbs += "table " + string(table.name()) + "{\n";
-        for (gaia_id_t field_id : list_fields(table_id)) {
+        for (gaia_id_t field_id : list_fields(table.gaia_id())) {
             gaia_field_t field = gaia_field_t::get(field_id);
             fbs += "\t" + generate_field_fbs(field) + ";\n";
         }

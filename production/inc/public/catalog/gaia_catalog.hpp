@@ -274,17 +274,6 @@ void drop_table(const string &dbname, const string &name);
 void drop_table(const string &name);
 
 /**
- * List all tables defined in the catalog.
- *
- * The method is NOT thread safe with concurrent creating/dropping/altering table activities.
- * It has the same safety gurantee of the underlying container.
- * Use direct access APIs with transactions for thread safe access of catalog records.
- *
- * @return a set of tables ids in the catalog.
- */
-const set<gaia_id_t> &list_tables();
-
-/**
  * List all data payload fields for a given table defined in the catalog.
  * The fields returned here do not include references type fields.
  * Reference type fields defines foreign key relationship between tables.
@@ -324,12 +313,13 @@ const vector<gaia_id_t> &list_references(gaia_id_t table_id);
 string generate_fbs(gaia_id_t table_id);
 
 /**
- * Generate FlatBuffers schema (fbs) for all catalog tables.
+ * Generate FlatBuffers schema (fbs) for all catalog tables in a given database.
  * No root type is specified in the generated schema.
  *
+ * @param dbname database name
  * @return generated fbs string
  */
-string generate_fbs();
+string generate_fbs(const string &dbname);
 
 /**
  * Generate the Extended Data Classes header file.

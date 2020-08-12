@@ -18,8 +18,5 @@ endfunction()
 
 file(WRITE "${OUTPUT_DDL_PREFIX}_db.ddl" "")
 
-# Include rules engine type definitions.
-gaia_cat(${EVENT_LOG_DDL} ${OUTPUT_DDL_PREFIX}_db.ddl)
-
 # Now add the user's schema.
 gaia_cat(${GAIA_USER_SCHEMA} ${OUTPUT_DDL_PREFIX}_db.ddl)

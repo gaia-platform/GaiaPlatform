@@ -18,10 +18,6 @@ using namespace gaia::catalog::ddl;
 namespace gaia {
 namespace catalog {
 
-void initialize_catalog() {
-    catalog_manager_t::get().init();
-}
-
 gaia_id_t create_database(const string &name) {
     return catalog_manager_t::get().create_database(name);
 }
@@ -47,10 +43,6 @@ void drop_table(const string &dbname, const string &name) {
     return catalog_manager_t::get().drop_table(dbname, name);
 }
 
-const set<gaia_id_t> &list_tables() {
-    return catalog_manager_t::get().list_tables();
-}
-
 const vector<gaia_id_t> &list_fields(gaia_id_t table_id) {
     return catalog_manager_t::get().list_fields(table_id);
 }
@@ -60,18 +52,17 @@ const vector<gaia_id_t> &list_references(gaia_id_t table_id) {
 }
 
 gaia_id_t find_db_id(const string &dbname) {
-    if (dbname.empty()) {
-        return find_db_id(c_global_db_name);
-    } else if (catalog_manager_t::get().db_names().count(dbname)) {
-        return catalog_manager_t::get().db_names().at(dbname);
-    } else {
-        return INVALID_GAIA_ID;
-    }
+    return catalog_manager_t::get().find_db_id(dbname);
 }
 
 /**
  * Class methods
  **/
+
+catalog_manager_t::catalog_manager_t() {
+    init();
+}
+
 catalog_manager_t &catalog_manager_t::get() {
     static catalog_manager_t s_instance;
     return s_instance;
@@ -206,7 +197,6 @@ void catalog_manager_t::clear_cache() {
     m_table_names.clear();
     m_table_fields.clear();
     m_table_references.clear();
-    m_table_ids.clear();
 }
 
 void catalog_manager_t::reload_cache() {
@@ -220,9 +210,8 @@ void catalog_manager_t::reload_cache() {
     }
 
     for (auto table : gaia_table_t::list()) {
-        m_table_ids.insert(table.gaia_id());
-        table.gaia_database();
-        m_table_names[table.name()] = table.gaia_id();
+        string full_table_name = string(table.gaia_database().name()) + "." + string(table.name());
+        m_table_names[full_table_name] = table.gaia_id();
         m_table_fields[table.gaia_id()] = {};
         m_table_references[table.gaia_id()] = {};
     }
@@ -274,6 +263,8 @@ void catalog_manager_t::drop_table(
     }
 
     string full_table_name = (dbname.empty() ? "" : dbname + ".") + name;
+    gaia_id_t db_id = find_db_id_no_lock(dbname);
+    retail_assert(db_id != INVALID_GAIA_ID);
 
     if (m_table_names.find(full_table_name) == m_table_names.end()) {
         throw table_not_exists(name);
@@ -290,14 +281,17 @@ void catalog_manager_t::drop_table(
         auto reference_record = gaia_field_t::get(reference_id);
         reference_record.delete_row();
     }
+
     auto table_record = gaia_table_t::get(table_id);
+    // Unlink the table from its database.
+    gaia_database_t::get(db_id).gaia_table_list().erase(table_record);
+    // Remove the table.
     table_record.delete_row();
     gaia::db::commit_transaction();
 
     // Invalidate catalog caches.
     m_table_fields.erase(table_id);
     m_table_references.erase(table_id);
-    m_table_ids.erase(table_id);
     m_table_names.erase(full_table_name);
 }
 
@@ -343,6 +337,8 @@ gaia_id_t catalog_manager_t::create_table_impl(
     }
 
     string full_table_name = (dbname.empty() ? "" : dbname + ".") + table_name;
+    gaia_id_t db_id = find_db_id_no_lock(dbname);
+    retail_assert(db_id != INVALID_GAIA_ID);
 
     if (m_table_names.find(full_table_name) != m_table_names.end()) {
         if (throw_on_exist) {
@@ -394,7 +390,7 @@ gaia_id_t catalog_manager_t::create_table_impl(
 
     // Connect the table to the database
     auto table_record = gaia_table_t::get(table_id);
-    auto db_record = gaia_database_t::get(m_db_names.at(dbname.empty() ? c_global_db_name : dbname));
+    auto db_record = gaia_database_t::get(db_id);
     db_record.gaia_table_list().insert(table_record);
 
     uint16_t field_position = 0, reference_position = 0;
@@ -408,10 +404,10 @@ gaia_id_t catalog_manager_t::create_table_impl(
                 // We allow a table definition to reference itself (self-referencing).
                 field_type_id = table_id;
             } else if (m_table_names.find(field->table_type_name) != m_table_names.end()) {
-                // A table definition can refernece any of existing tables.
+                // A table definition can reference any of existing tables.
                 field_type_id = m_table_names[field->table_type_name];
             } else if (!dbname.empty() && m_table_names.count(dbname + "." + field->table_type_name)) {
-                // A table definition can refernece existing tables in its own database without specifying the database name.
+                // A table definition can reference existing tables in its own database without specifying the database name.
                 field_type_id = m_table_names[dbname + "." + field->table_type_name];
             } else {
                 // We cannot find the referenced table.
@@ -446,18 +442,25 @@ gaia_id_t catalog_manager_t::create_table_impl(
     gaia::db::commit_transaction();
 
     m_table_names[full_table_name] = table_id;
-    m_table_ids.insert(table_id);
     m_table_fields[table_id] = move(field_ids);
     m_table_references[table_id] = move(reference_ids);
     return table_id;
 }
 
-const db_names_t &catalog_manager_t::db_names() const {
-    return m_db_names;
+gaia_id_t catalog_manager_t::find_db_id(const string &dbname) {
+    // TODO: used shared lock for read
+    unique_lock<mutex> lock(m_lock);
+    return find_db_id_no_lock(dbname);
 }
 
-const set<gaia_id_t> &catalog_manager_t::list_tables() const {
-    return m_table_ids;
+inline gaia_id_t catalog_manager_t::find_db_id_no_lock(const string &dbname) const {
+    if (dbname.empty()) {
+        return m_global_db_id;
+    } else if (m_db_names.count(dbname)) {
+        return m_db_names.at(dbname);
+    } else {
+        return INVALID_GAIA_ID;
+    }
 }
 
 const vector<gaia_id_t> &catalog_manager_t::list_fields(gaia_id_t table_id) const {

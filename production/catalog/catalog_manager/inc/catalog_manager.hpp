@@ -26,9 +26,6 @@ class catalog_manager_t {
     void operator=(catalog_manager_t const &) = delete;
     static catalog_manager_t &get();
 
-    // Initialize the catalog manager.
-    void init();
-
     /**
      * APIs for accessing catalog records
      */
@@ -36,19 +33,22 @@ class catalog_manager_t {
     gaia_id_t create_table(const string &dbname, const string &name, const ddl::field_def_list_t &fields);
     void drop_table(const string &dbname, const string &name);
 
+    gaia_id_t find_db_id(const string& dbname);
+
     // The following methods provide convenient access to catalog caches.
     // Thread safety is only guranteed by the underlying containers.
     // They are NOT thread safe if you are creating/dropping/modifying tables concurrently.
     // Use direct access API with transactions to access catalog records thread-safely.
-    const db_names_t &db_names() const;
-    const set<gaia_id_t> &list_tables() const;
     const vector<gaia_id_t> &list_fields(gaia_id_t table_id) const;
     const vector<gaia_id_t> &list_references(gaia_id_t table_id) const;
 
   private:
     // Only internal static creation is allowed
-    catalog_manager_t() {}
+    catalog_manager_t();
     ~catalog_manager_t() {}
+
+    // Initialize the catalog manager.
+    void init();
 
     // This is the internal create table implementation.
     // The public create_table calls this method but does not allow specifying an ID.
@@ -63,15 +63,19 @@ class catalog_manager_t {
         bool throw_on_exist = true,
         gaia_id_t id = INVALID_GAIA_ID);
 
+    // Find the database ID given its name.
+    // The method does not use a lock.
+    inline gaia_id_t find_db_id_no_lock(const string& dbname) const;
+
     // Clear all the caches (only for testing purposes).
     void clear_cache();
     // Reload all the caches from catalog records in storage engine.
     void reload_cache();
 
-    // Bootstrap catalog with its own tables
+    // Bootstrap catalog with its own tables.
     void bootstrap_catalog();
 
-    // Create other system tables that need constant IDs
+    // Create other system tables that need constant IDs.
     void create_system_tables();
 
     // Maintain some in-memory cache for fast lookup.
@@ -82,7 +86,6 @@ class catalog_manager_t {
     table_names_t m_table_names;
     table_fields_t m_table_fields;
     table_fields_t m_table_references;
-    set<gaia_id_t> m_table_ids;
 
     gaia_id_t m_global_db_id;
 
