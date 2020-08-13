@@ -26,7 +26,6 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "storage_engine.hpp"
 #include "gaia_catalog.h"
 #include "gaia_catalog.hpp"
 

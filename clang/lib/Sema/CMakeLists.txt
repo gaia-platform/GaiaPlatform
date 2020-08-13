@@ -11,7 +11,7 @@ endif()
 
 set(GAIA_CATALOG_INCLUDES
   ../../../../../ASTCodeGeneration/GaiaPlatform/production/catalog/catalog_manager/inc
-  ../../../../../ASTCodeGeneration/GaiaPlatform/production/build/catalog/generated
+  ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/internal/catalog
   ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/public/common
   ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/public/direct_access
   ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/internal/common
