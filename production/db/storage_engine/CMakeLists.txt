@@ -13,6 +13,15 @@ set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
+# Enable stack traces in debug builds for the storage engine server.
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  # backward-cpp stack trace library.
+  find_package(Backward REQUIRED)
+  # backward-cpp dependencies (one of several options):
+  # "libdw provides access to DWARF debug information stored inside ELF files."
+  find_library(dw REQUIRED)
+endif()
+
 set(GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES
   "${GAIA_INC}/public/common"
   "${GAIA_INC}/public/db"
@@ -27,7 +36,7 @@ set(GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES
   "${GAIA_INC}/internal/common"
   "${GAIA_DB_INC}/storage_engine"
   "${ROCKSDB_INC}"
-  "${PROJECT_SOURCE_DIR}/mock"
+  "${PROJECT_SOURCE_DIR}/inc"
 )
 message(STATUS "GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES=${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}")
 
@@ -38,7 +47,7 @@ set(GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
 # The names of the following source files should be unique because they'll be used as targets.
 set(FBS_SOURCES
-  "${PROJECT_SOURCE_DIR}/mock/flatbuffers/messages.fbs")
+  "${PROJECT_SOURCE_DIR}/src/flatbuffers/messages.fbs")
 
 foreach(FBS_SOURCE ${FBS_SOURCES})
   get_filename_component(FBS_SOURCE_FILENAME ${FBS_SOURCE} NAME)
@@ -68,82 +77,88 @@ set_target_properties(gaia_storage PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAG
 target_link_libraries(gaia_storage PRIVATE gaia_common)
 
 ###############################################
-# Storage engine mock-related code begins here.
+# Storage engine-related code begins here.
 ###############################################
-add_library(gaia_semock STATIC
-  mock/gaia_db.cpp
-  mock/gaia_ptr.cpp
-  mock/storage_engine.cpp
-  mock/storage_engine_client.cpp
-  mock/rdb_object_converter.cpp
-  mock/event_trigger_threadpool.cpp)
-add_dependencies(gaia_semock "messages.fbs")
-target_include_directories(gaia_semock PUBLIC ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES})
-target_include_directories(gaia_semock PRIVATE ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES})
+add_library(gaia_se_client STATIC
+  src/gaia_db.cpp
+  src/gaia_ptr.cpp
+  src/storage_engine.cpp
+  src/storage_engine_client.cpp
+  src/rdb_object_converter.cpp
+  src/event_trigger_threadpool.cpp)
+add_dependencies(gaia_se_client "messages.fbs")
+target_include_directories(gaia_se_client PUBLIC ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES})
+target_include_directories(gaia_se_client PRIVATE ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES})
 
 # For flatbuffers generated code.
-target_include_directories(gaia_semock SYSTEM PRIVATE "${FLATBUFFERS_INC}")
-target_include_directories(gaia_semock SYSTEM PRIVATE "${GEN_DIR}")
+target_include_directories(gaia_se_client SYSTEM PRIVATE "${FLATBUFFERS_INC}")
+target_include_directories(gaia_se_client SYSTEM PRIVATE "${GEN_DIR}")
 # Suppress spurious warnings about zero-initialized structs.
-set_target_properties(gaia_semock PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
-target_link_libraries(gaia_semock PUBLIC gaia_common)
-target_link_libraries(gaia_semock PRIVATE explain)
+set_target_properties(gaia_se_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
+target_link_libraries(gaia_se_client PUBLIC gaia_common)
+target_link_libraries(gaia_se_client PRIVATE explain gaia_types)
 # This static library must be compatible with linking in a shared library.
-set_property (TARGET gaia_semock PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property (TARGET gaia_se_client PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-add_executable(gaia_semock_server
-  mock/storage_engine.cpp
-  mock/storage_engine_server.cpp
-  mock/storage_engine_server_exec.cpp)
-add_dependencies(gaia_semock_server "messages.fbs")
-target_include_directories(gaia_semock_server PRIVATE
+set(GAIA_SE_SERVER_SOURCES
+  src/storage_engine.cpp
+  src/storage_engine_server.cpp
+  src/storage_engine_server_exec.cpp
+)
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  list(APPEND GAIA_SE_SERVER_SOURCES src/backward.cpp)
+endif()
+add_executable(gaia_se_server ${GAIA_SE_SERVER_SOURCES})
+add_dependencies(gaia_se_server "messages.fbs")
+target_include_directories(gaia_se_server PRIVATE
   "${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}"
   "${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}")
-
 # For flatbuffers generated code.
-target_include_directories(gaia_semock_server SYSTEM PRIVATE "${FLATBUFFERS_INC}")
-target_include_directories(gaia_semock_server SYSTEM PRIVATE "${GEN_DIR}")
+target_include_directories(gaia_se_server SYSTEM PRIVATE "${FLATBUFFERS_INC}")
+target_include_directories(gaia_se_server SYSTEM PRIVATE "${GEN_DIR}")
 # Suppress spurious warnings about zero-initialized structs.
-set_target_properties(gaia_semock_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
-target_link_libraries(gaia_semock_server PRIVATE gaia_common Threads::Threads explain)
-
-install(TARGETS gaia_semock_server DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
+set_target_properties(gaia_se_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
+target_link_libraries(gaia_se_server PRIVATE gaia_common Threads::Threads explain)
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  target_link_libraries(gaia_se_server PUBLIC Backward::Backward)
+endif()
+install(TARGETS gaia_se_server DESTINATION "bin")
 
 ###############################################
-# PyBind11 wrapper for storage engine mock.
+# PyBind11 wrapper for storage engine.
 ###############################################
 find_package(pybind11 REQUIRED)
 if (Python3_FOUND AND pybind11_FOUND)
-  pybind11_add_module(se_mock mock/storage_engine_pybind_wrapper.cpp)
-  target_include_directories(se_mock PRIVATE ${PROJECT_SOURCE_DIR})
-  target_include_directories(se_mock PRIVATE ${GAIA_STORAGE_ENGINE_INCLUDES})
-  target_link_libraries(se_mock PRIVATE pybind11::module rt gaia_semock)
-  set_target_properties(se_mock PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
-  set_target_properties(se_mock PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
+  pybind11_add_module(se_client src/storage_engine_pybind_wrapper.cpp)
+  target_include_directories(se_client PRIVATE ${PROJECT_SOURCE_DIR})
+  target_include_directories(se_client PRIVATE ${GAIA_STORAGE_ENGINE_INCLUDES})
+  target_link_libraries(se_client PRIVATE pybind11::module rt gaia_se_client)
+  set_target_properties(se_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
+  set_target_properties(se_client PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
 
   # FIXME: fix this test in https://gaiaplatform.atlassian.net/browse/GAIAPLAT-260.
   # Python wrapper unit test.
-  # configure_file(tests/test_storage_engine_mock.py . COPYONLY)
-  # add_test(NAME test_se_mock_pybind COMMAND ${Python3_EXECUTABLE} test_storage_engine_mock.py)
-  # set_tests_properties(test_se_mock_pybind PROPERTIES PASS_REGULAR_EXPRESSION ${TEST_SUCCESS})
+  # configure_file(tests/test_storage_engine.py . COPYONLY)
+  # add_test(NAME test_se_client_pybind COMMAND ${Python3_EXECUTABLE} test_storage_engine.py)
+  # set_tests_properties(test_se_client_pybind PROPERTIES PASS_REGULAR_EXPRESSION ${TEST_SUCCESS})
 endif()
 
 ###############################################
-# JNI wrapper for storage engine mock.
+# JNI wrapper for storage engine.
 ###############################################
 if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   # Configure build of native C++ wrapper library.
-  add_library(jni_se_mock SHARED mock/storage_engine_jni_wrapper.cpp)
-  target_include_directories(jni_se_mock PRIVATE ${PROJECT_SOURCE_DIR})
-  target_include_directories(jni_se_mock PRIVATE ${PROJECT_BINARY_DIR})
-  target_include_directories(jni_se_mock PRIVATE ${JNI_INCLUDE_DIRS})
-  target_include_directories(jni_se_mock PRIVATE ${GAIA_STORAGE_ENGINE_INCLUDES})
-  target_link_libraries(jni_se_mock PRIVATE
+  add_library(jni_se_client SHARED src/storage_engine_jni_wrapper.cpp)
+  target_include_directories(jni_se_client PRIVATE ${PROJECT_SOURCE_DIR})
+  target_include_directories(jni_se_client PRIVATE ${PROJECT_BINARY_DIR})
+  target_include_directories(jni_se_client PRIVATE ${JNI_INCLUDE_DIRS})
+  target_include_directories(jni_se_client PRIVATE ${GAIA_STORAGE_ENGINE_INCLUDES})
+  target_link_libraries(jni_se_client PRIVATE
     rt
-    gaia_semock
-    storage_engine_mock_jni_headers)
-  set_target_properties(jni_se_mock PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
-  set_target_properties(jni_se_mock PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+    gaia_se_client
+    storage_engine_jni_headers)
+  set_target_properties(jni_se_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
+  set_target_properties(jni_se_client PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 endif()
 
 set(GAIA_STORAGE_ENGINE_TEST_INCLUDES
@@ -151,7 +166,7 @@ set(GAIA_STORAGE_ENGINE_TEST_INCLUDES
   ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}
 )
 
-add_gtest(test_rdb_object_converter "tests/test_rdb_object_converter.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_semock")
+add_gtest(test_rdb_object_converter "tests/test_rdb_object_converter.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_se_client")
 add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
-add_gtest(test_storage_engine_client "tests/test_storage_engine_client.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_semock")
+add_gtest(test_storage_engine_client "tests/test_storage_engine_client.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_se_client")
 add_gtest(test_locator_allocator tests/test_locator_allocator.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")

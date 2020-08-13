@@ -10,7 +10,6 @@
 #ifndef GAIA_GENERATED_cameraDemo_H_
 #define GAIA_GENERATED_cameraDemo_H_
 
-
 #include "gaia_object.hpp"
 #include "cameraDemo_generated.h"
 #include "gaia_iterators.hpp"
@@ -33,12 +32,37 @@ constexpr int c_num_object_ptrs = 0;
 // Constants contained in the emergency_stop object.
 constexpr int c_num_emergency_stop_ptrs = 0;
 
+// Constants contained in the gaia_ruleset object.
+constexpr int c_first_rules_gaia_rule = 0;
+constexpr int c_num_gaia_ruleset_ptrs = 1;
+
+// Constants contained in the gaia_rule object.
+constexpr int c_parent_rules_gaia_ruleset = 0;
+constexpr int c_next_rules_gaia_rule = 1;
+constexpr int c_num_gaia_rule_ptrs = 2;
+
+// Constants contained in the gaia_table object.
+constexpr int c_first_fields_gaia_field = 0;
+constexpr int c_first_refs_gaia_field = 1;
+constexpr int c_num_gaia_table_ptrs = 2;
+
+// Constants contained in the gaia_field object.
+constexpr int c_parent_fields_gaia_table = 0;
+constexpr int c_next_fields_gaia_field = 1;
+constexpr int c_parent_refs_gaia_table = 2;
+constexpr int c_next_refs_gaia_field = 3;
+constexpr int c_num_gaia_field_ptrs = 4;
+
 struct camera_image_t;
 struct object_t;
 struct emergency_stop_t;
+struct gaia_ruleset_t;
+struct gaia_rule_t;
+struct gaia_table_t;
+struct gaia_field_t;
 
-typedef gaia_writer_t<1,camera_image_t,camera_image,camera_imageT,c_num_camera_image_ptrs> camera_image_writer;
-struct camera_image_t : public gaia_object_t<1,camera_image_t,camera_image,camera_imageT,c_num_camera_image_ptrs> {
+typedef gaia_writer_t<30llu,camera_image_t,camera_image,camera_imageT,c_num_camera_image_ptrs> camera_image_writer;
+struct camera_image_t : public gaia_object_t<30llu,camera_image_t,camera_image,camera_imageT,c_num_camera_image_ptrs> {
     const char* file_name() const {return GET_STR(file_name);}
     using gaia_object_t::insert_row;
     static gaia_id_t insert_row(const char* file_name) {
@@ -46,18 +70,18 @@ struct camera_image_t : public gaia_object_t<1,camera_image_t,camera_image,camer
         b.Finish(Createcamera_imageDirect(b, file_name));
         return gaia_object_t::insert_row(b);
     }
-    static gaia_container_t<1, camera_image_t>& list() {
-        static gaia_container_t<1, camera_image_t> list;
+    static gaia_container_t<30llu, camera_image_t>& list() {
+        static gaia_container_t<30llu, camera_image_t> list;
         return list;
     }
 private:
-    friend struct gaia_object_t<1, camera_image_t, camera_image, camera_imageT, c_num_camera_image_ptrs>;
+    friend struct gaia_object_t<30llu, camera_image_t, camera_image, camera_imageT, c_num_camera_image_ptrs>;
     camera_image_t(gaia_id_t id) : gaia_object_t(id, "camera_image_t") {
     }
 };
 
-typedef gaia_writer_t<2,object_t,object,objectT,c_num_object_ptrs> object_writer;
-struct object_t : public gaia_object_t<2,object_t,object,objectT,c_num_object_ptrs> {
+typedef gaia_writer_t<32llu,object_t,object,objectT,c_num_object_ptrs> object_writer;
+struct object_t : public gaia_object_t<32llu,object_t,object,objectT,c_num_object_ptrs> {
     const char* object_class() const {return GET_STR(object_class);}
     using gaia_object_t::insert_row;
     static gaia_id_t insert_row(const char* object_class) {
@@ -65,18 +89,18 @@ struct object_t : public gaia_object_t<2,object_t,object,objectT,c_num_object_pt
         b.Finish(CreateobjectDirect(b, object_class));
         return gaia_object_t::insert_row(b);
     }
-    static gaia_container_t<2, object_t>& list() {
-        static gaia_container_t<2, object_t> list;
+    static gaia_container_t<32llu, object_t>& list() {
+        static gaia_container_t<32llu, object_t> list;
         return list;
     }
 private:
-    friend struct gaia_object_t<2, object_t, object, objectT, c_num_object_ptrs>;
+    friend struct gaia_object_t<32llu, object_t, object, objectT, c_num_object_ptrs>;
     object_t(gaia_id_t id) : gaia_object_t(id, "object_t") {
     }
 };
 
-typedef gaia_writer_t<3,emergency_stop_t,emergency_stop,emergency_stopT,c_num_emergency_stop_ptrs> emergency_stop_writer;
-struct emergency_stop_t : public gaia_object_t<3,emergency_stop_t,emergency_stop,emergency_stopT,c_num_emergency_stop_ptrs> {
+typedef gaia_writer_t<34llu,emergency_stop_t,emergency_stop,emergency_stopT,c_num_emergency_stop_ptrs> emergency_stop_writer;
+struct emergency_stop_t : public gaia_object_t<34llu,emergency_stop_t,emergency_stop,emergency_stopT,c_num_emergency_stop_ptrs> {
     uint64_t until_time_ns() const {return GET(until_time_ns);}
     using gaia_object_t::insert_row;
     static gaia_id_t insert_row(uint64_t until_time_ns) {
@@ -84,13 +108,135 @@ struct emergency_stop_t : public gaia_object_t<3,emergency_stop_t,emergency_stop
         b.Finish(Createemergency_stop(b, until_time_ns));
         return gaia_object_t::insert_row(b);
     }
-    static gaia_container_t<3, emergency_stop_t>& list() {
-        static gaia_container_t<3, emergency_stop_t> list;
+    static gaia_container_t<34llu, emergency_stop_t>& list() {
+        static gaia_container_t<34llu, emergency_stop_t> list;
         return list;
     }
 private:
-    friend struct gaia_object_t<3, emergency_stop_t, emergency_stop, emergency_stopT, c_num_emergency_stop_ptrs>;
+    friend struct gaia_object_t<34llu, emergency_stop_t, emergency_stop, emergency_stopT, c_num_emergency_stop_ptrs>;
     emergency_stop_t(gaia_id_t id) : gaia_object_t(id, "emergency_stop_t") {
+    }
+};
+
+typedef gaia_writer_t<18446744073709551612llu,gaia_ruleset_t,gaia_ruleset,gaia_rulesetT,c_num_gaia_ruleset_ptrs> gaia_ruleset_writer;
+struct gaia_ruleset_t : public gaia_object_t<18446744073709551612llu,gaia_ruleset_t,gaia_ruleset,gaia_rulesetT,c_num_gaia_ruleset_ptrs> {
+    const char* name() const {return GET_STR(name);}
+    bool active_on_startup() const {return GET(active_on_startup);}
+    const char* table_ids() const {return GET_STR(table_ids);}
+    const char* source_location() const {return GET_STR(source_location);}
+    const char* serial_stream() const {return GET_STR(serial_stream);}
+    using gaia_object_t::insert_row;
+    static gaia_id_t insert_row(const char* name, bool active_on_startup, const char* table_ids, const char* source_location, const char* serial_stream) {
+        flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
+        b.Finish(Creategaia_rulesetDirect(b, name, active_on_startup, table_ids, source_location, serial_stream));
+        return gaia_object_t::insert_row(b);
+    }
+    static gaia_container_t<18446744073709551612llu, gaia_ruleset_t>& list() {
+        static gaia_container_t<18446744073709551612llu, gaia_ruleset_t> list;
+        return list;
+    }
+    reference_chain_container_t<gaia_ruleset_t,gaia_rule_t,c_parent_rules_gaia_ruleset,c_first_rules_gaia_rule,c_next_rules_gaia_rule> m_rules_list;
+    reference_chain_container_t<gaia_ruleset_t,gaia_rule_t,c_parent_rules_gaia_ruleset,c_first_rules_gaia_rule,c_next_rules_gaia_rule>& rules_list() {
+        return m_rules_list;
+    }
+private:
+    friend struct gaia_object_t<18446744073709551612llu, gaia_ruleset_t, gaia_ruleset, gaia_rulesetT, c_num_gaia_ruleset_ptrs>;
+    gaia_ruleset_t(gaia_id_t id) : gaia_object_t(id, "gaia_ruleset_t") {
+        m_rules_list.set_outer(gaia_id());
+    }
+};
+
+typedef gaia_writer_t<18446744073709551613llu,gaia_rule_t,gaia_rule,gaia_ruleT,c_num_gaia_rule_ptrs> gaia_rule_writer;
+struct gaia_rule_t : public gaia_object_t<18446744073709551613llu,gaia_rule_t,gaia_rule,gaia_ruleT,c_num_gaia_rule_ptrs> {
+    const char* name() const {return GET_STR(name);}
+    uint64_t ruleset_id() const {return GET(ruleset_id);}
+    using gaia_object_t::insert_row;
+    static gaia_id_t insert_row(const char* name, uint64_t ruleset_id) {
+        flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
+        b.Finish(Creategaia_ruleDirect(b, name, ruleset_id));
+        return gaia_object_t::insert_row(b);
+    }
+    gaia_ruleset_t rules() {
+        return gaia_ruleset_t::get(this->references()[c_parent_rules_gaia_ruleset]);
+    }
+    static gaia_container_t<18446744073709551613llu, gaia_rule_t>& list() {
+        static gaia_container_t<18446744073709551613llu, gaia_rule_t> list;
+        return list;
+    }
+private:
+    friend struct gaia_object_t<18446744073709551613llu, gaia_rule_t, gaia_rule, gaia_ruleT, c_num_gaia_rule_ptrs>;
+    gaia_rule_t(gaia_id_t id) : gaia_object_t(id, "gaia_rule_t") {
+    }
+};
+
+typedef gaia_writer_t<18446744073709551614llu,gaia_table_t,gaia_table,gaia_tableT,c_num_gaia_table_ptrs> gaia_table_writer;
+struct gaia_table_t : public gaia_object_t<18446744073709551614llu,gaia_table_t,gaia_table,gaia_tableT,c_num_gaia_table_ptrs> {
+    const char* name() const {return GET_STR(name);}
+    bool is_log() const {return GET(is_log);}
+    uint8_t trim_action() const {return GET(trim_action);}
+    uint64_t max_rows() const {return GET(max_rows);}
+    uint64_t max_size() const {return GET(max_size);}
+    uint64_t max_seconds() const {return GET(max_seconds);}
+    const char* binary_schema() const {return GET_STR(binary_schema);}
+    using gaia_object_t::insert_row;
+    static gaia_id_t insert_row(const char* name, bool is_log, uint8_t trim_action, uint64_t max_rows, uint64_t max_size, uint64_t max_seconds, const char* binary_schema) {
+        flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
+        b.Finish(Creategaia_tableDirect(b, name, is_log, trim_action, max_rows, max_size, max_seconds, binary_schema));
+        return gaia_object_t::insert_row(b);
+    }
+    static gaia_container_t<18446744073709551614llu, gaia_table_t>& list() {
+        static gaia_container_t<18446744073709551614llu, gaia_table_t> list;
+        return list;
+    }
+    reference_chain_container_t<gaia_table_t,gaia_field_t,c_parent_fields_gaia_table,c_first_fields_gaia_field,c_next_fields_gaia_field> m_fields_list;
+    reference_chain_container_t<gaia_table_t,gaia_field_t,c_parent_fields_gaia_table,c_first_fields_gaia_field,c_next_fields_gaia_field>& fields_list() {
+        return m_fields_list;
+    }
+    reference_chain_container_t<gaia_table_t,gaia_field_t,c_parent_refs_gaia_table,c_first_refs_gaia_field,c_next_refs_gaia_field> m_refs_list;
+    reference_chain_container_t<gaia_table_t,gaia_field_t,c_parent_refs_gaia_table,c_first_refs_gaia_field,c_next_refs_gaia_field>& refs_list() {
+        return m_refs_list;
+    }
+private:
+    friend struct gaia_object_t<18446744073709551614llu, gaia_table_t, gaia_table, gaia_tableT, c_num_gaia_table_ptrs>;
+    gaia_table_t(gaia_id_t id) : gaia_object_t(id, "gaia_table_t") {
+        m_fields_list.set_outer(gaia_id());
+        m_refs_list.set_outer(gaia_id());
+    }
+};
+
+typedef gaia_writer_t<18446744073709551615llu,gaia_field_t,gaia_field,gaia_fieldT,c_num_gaia_field_ptrs> gaia_field_writer;
+struct gaia_field_t : public gaia_object_t<18446744073709551615llu,gaia_field_t,gaia_field,gaia_fieldT,c_num_gaia_field_ptrs> {
+    const char* name() const {return GET_STR(name);}
+    uint64_t table_id() const {return GET(table_id);}
+    uint8_t type() const {return GET(type);}
+    uint64_t type_id() const {return GET(type_id);}
+    uint16_t repeated_count() const {return GET(repeated_count);}
+    uint16_t position() const {return GET(position);}
+    bool required() const {return GET(required);}
+    bool deprecated() const {return GET(deprecated);}
+    bool active() const {return GET(active);}
+    bool nullable() const {return GET(nullable);}
+    bool has_default() const {return GET(has_default);}
+    const char* default_value() const {return GET_STR(default_value);}
+    using gaia_object_t::insert_row;
+    static gaia_id_t insert_row(const char* name, uint64_t table_id, uint8_t type, uint64_t type_id, uint16_t repeated_count, uint16_t position, bool required, bool deprecated, bool active, bool nullable, bool has_default, const char* default_value) {
+        flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
+        b.Finish(Creategaia_fieldDirect(b, name, table_id, type, type_id, repeated_count, position, required, deprecated, active, nullable, has_default, default_value));
+        return gaia_object_t::insert_row(b);
+    }
+    gaia_table_t fields() {
+        return gaia_table_t::get(this->references()[c_parent_fields_gaia_table]);
+    }
+    gaia_table_t refs() {
+        return gaia_table_t::get(this->references()[c_parent_refs_gaia_table]);
+    }
+    static gaia_container_t<18446744073709551615llu, gaia_field_t>& list() {
+        static gaia_container_t<18446744073709551615llu, gaia_field_t> list;
+        return list;
+    }
+private:
+    friend struct gaia_object_t<18446744073709551615llu, gaia_field_t, gaia_field, gaia_fieldT, c_num_gaia_field_ptrs>;
+    gaia_field_t(gaia_id_t id) : gaia_object_t(id, "gaia_field_t") {
     }
 };
 

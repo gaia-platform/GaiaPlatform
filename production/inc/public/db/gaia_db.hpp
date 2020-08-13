@@ -30,23 +30,23 @@ class no_session_active : public gaia_exception {
     }
 };
 
-class tx_in_progress : public gaia_exception {
+class transaction_in_progress : public gaia_exception {
    public:
-    tx_in_progress() {
+    transaction_in_progress() {
         m_message = "Commit or roll back the current transaction before beginning a new transaction.";
     }
 };
 
-class tx_not_open : public gaia_exception {
+class transaction_not_open : public gaia_exception {
    public:
-    tx_not_open() {
+    transaction_not_open() {
         m_message = "Begin a transaction before performing data access.";
     }
 };
 
-class tx_update_conflict : public gaia_exception {
+class transaction_update_conflict : public gaia_exception {
    public:
-    tx_update_conflict() {
+    transaction_update_conflict() {
         m_message = "Transaction was aborted due to a serialization error.";
     }
 };
@@ -99,7 +99,9 @@ void begin_session();
 void end_session();
 void begin_transaction();
 void rollback_transaction();
-bool commit_transaction();
+void commit_transaction();
+
+const char* const SE_SERVER_NAME = "gaia_se_server";
 
 }  // namespace db
 }  // namespace gaia

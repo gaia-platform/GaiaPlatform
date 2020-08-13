@@ -47,10 +47,23 @@ class catalog_manager_t {
     catalog_manager_t() {}
     ~catalog_manager_t() {}
 
+    // This is the internal create table implementation.
+    // The public create_table calls this method but does not allow specifying an ID.
+    // The call to create a table with a given ID is only intended for system tables.
+    // 'throw_on_exist' indicates if an exception should be thrown when the table of
+    // the given name already exists.
+    gaia_id_t create_table_impl(const string &name,
+        const ddl::field_def_list_t &fields,
+        bool throw_on_exist = true,
+        gaia_id_t id = INVALID_GAIA_ID);
+
     // Clear all the caches (only for testing purposes).
     void clear_cache();
     // Reload all the caches from catalog records in storage engine.
     void reload_cache();
+
+    // Load the bootstrapped catalog content
+    void bootstrap_catalog();
 
     // Maintain some in-memory cache for fast lookup.
     // This is only intended for single process usage.

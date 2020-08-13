@@ -21,7 +21,6 @@
 #include "clang/Rewrite/Core/Rewriter.h"
 #include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
-#include "storage_engine.hpp"
 #include "gaia_catalog.h"
 #include "gaia_catalog.hpp"
 
@@ -133,7 +132,7 @@ unordered_map<string, unordered_map<string, FieldData>> getTableData()
         for (catalog::gaia_field_t field = catalog::gaia_field_t::get_first(); 
             field; field = field.get_next())
         {
-            if (static_cast<catalog::data_type_t>(field.type()) != catalog::data_type_t::e_references)
+            if (static_cast<gaia::catalog::data_type_t>(field.type()) != gaia::catalog::data_type_t::e_references)
             {
                 catalog::gaia_table_t tbl = catalog::gaia_table_t::get(field.table_id());
                 if (!tbl)
@@ -153,7 +152,6 @@ unordered_map<string, unordered_map<string, FieldData>> getTableData()
                 fieldData.isActive = field.active();
                 fieldData.position = field.position();
                 fields[field.name()] = fieldData;
-
                 retVal[tbl.name()] = fields;
             }
             else
@@ -726,7 +724,7 @@ public:
                     {
                         replacementText += "=";
                     }
-                    
+                                        
                     
                     if (leftDeclExpr != nullptr)
                     {
@@ -923,7 +921,6 @@ public:
             llvm::errs() << "Incorrect Matched Operator\n";
             generationError = true;
         }
-
     }
 
 private:

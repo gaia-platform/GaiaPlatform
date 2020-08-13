@@ -9,7 +9,7 @@
 
 #include "gtest/gtest.h"
 #include "gaia_addr_book.h"
-#include "db_test_helpers.hpp"
+#include "db_test_base.hpp"
 
 using namespace std;
 using namespace gaia::db;
@@ -17,69 +17,39 @@ using namespace gaia::common;
 using namespace gaia::addr_book;
 
 
-class gaia_object_test : public ::testing::Test {
+class gaia_object_test : public db_test_base_t {
 protected:
-    void delete_employees() {
-        begin_transaction();
-        for(auto e = employee_t::get_first();
-            e;
-            e = e.get_first())
-        {
-            e.delete_row();
-        }
-        commit_transaction();
-    }
-
-    static void SetUpTestSuite() {
-        start_server();
-    }
-
-    static void TearDownTestSuite() {
-        stop_server();
-    }
-
     void SetUp() override {
-        begin_session();
-        delete_employees();
+        db_test_base_t::SetUp();
     }
 
     void TearDown() override {
-        delete_employees();
-        end_session();
+        db_test_base_t::TearDown();
     }
 };
 
 int count_rows() {
+    // Old method for scanning objects:
+    int cnt = 0;
+    for (auto e = employee_t::get_first(); e; e = e.get_next()) {
+        ++cnt;
+    }
+
+    // Primary method for scanning objects:
     int count = 0;
-    for (auto e = employee_t::get_first();
-         e;
-         e = e.get_next())
-    {
+    for (auto e : employee_t::list()) {
         ++count;
     }
+    EXPECT_EQ(count,cnt);
     return count;
 }
 
-employee_writer set_field(const char* name) {
+// Utility function that creates one named employee row.
+employee_t create_employee(const char* name) {
     auto w = employee_writer();
     w.name_first = name;
-    return w;
-}
-
-employee_t insert_row(const char* name) {
-    auto w = set_field(name);
     gaia_id_t id = w.insert_row();
-    return employee_t::get(id);
-}
-
-employee_t update_row(const char* name) {
-    auto e = insert_row(name);
-    e.writer().update_row();
-    return e;
-}
-
-employee_t get_field(const char* name) {
-    auto e = update_row(name);
+    auto e = employee_t::get(id);
     EXPECT_STREQ(e.name_first(), name);
     return e;
 }
@@ -88,16 +58,16 @@ employee_t get_field(const char* name) {
 // ================================
 
 // Create, write & read, one row
-TEST_F(gaia_object_test, get_field) {
+TEST_F(gaia_object_test, create_employee) {
     begin_transaction();
-    get_field("Harold");
+    create_employee("Harold");
     commit_transaction();
 }
 
 // Delete one row
-TEST_F(gaia_object_test, get_field_delete) {
+TEST_F(gaia_object_test, create_employee_delete) {
     begin_transaction();
-    auto e = get_field("Jameson");
+    auto e = create_employee("Jameson");
     e.delete_row();
     commit_transaction();
 }
@@ -105,29 +75,36 @@ TEST_F(gaia_object_test, get_field_delete) {
 // Scan multiple rows
 TEST_F(gaia_object_test, new_set_ins) {
     begin_transaction();
-    get_field("Harold");
-    get_field("Jameson");
+    create_employee("Harold");
+    create_employee("Jameson");
     EXPECT_EQ(2, count_rows());
     commit_transaction();
 }
 
 // Read back from new, unsaved object
 TEST_F(gaia_object_test, net_set_get) {
+    // Note no transaction needed to create & use writer.
     auto w = employee_writer();
     w.name_last = "Smith";
     EXPECT_STREQ(w.name_last.c_str(), "Smith");
+
+    auto_transaction_t tx;
+    auto eid = w.insert_row();
+    EXPECT_STREQ(w.name_last.c_str(), "Smith");
+    auto employee = employee_t::get(eid);
+    EXPECT_STREQ(w.name_last.c_str(), employee.name_last());
 }
 
-// Attempt to read original value from new object
+// Read original value from an inserted object
 TEST_F(gaia_object_test, read_original_from_copy) {
     begin_transaction();
-    auto e = get_field("Zachary");
+    auto e = create_employee("Zachary");
     EXPECT_STREQ("Zachary", e.name_first());
     commit_transaction();
 }
 
 // Insert a row with no field values
-TEST_F(gaia_object_test, new_ins_get) {
+TEST_F(gaia_object_test, new_insert_get) {
     begin_transaction();
 
     auto e = employee_t::get(employee_writer().insert_row());
@@ -152,55 +129,174 @@ TEST_F(gaia_object_test, new_get) {
     commit_transaction();
 }
 
-TEST_F(gaia_object_test, new_del_field_ref) {
-    // create GAIA-64 scenario
-    begin_transaction();
-
-    auto e = employee_t::get(employee_writer().insert_row());
-    e.delete_row();
-    // can't access data from a deleted row
-    EXPECT_THROW(e.name_first(), invalid_node_id);
-
-    // Can't get a writer from a deleted row either
-    EXPECT_THROW(e.writer(), invalid_node_id);
-
-    commit_transaction();
-}
-
-// Attempt to update a row with a new writer.
-// This test doesn't make sense any more since you can't create a new employee_t
-// object but only a new writer.
-
-/*
-TEST_F(gaia_object_test, new_upd_field) {
-    begin_transaction();
-    auto writer = employee_writer();
-    EXPECT_THROW(employee_t::update_row(writer), invalid_node_id);
-    commit_transaction();
-}
-*/
-
 // Attempt to insert with an update writer, this should work.
-TEST_F(gaia_object_test, existing_ins_field) {
+TEST_F(gaia_object_test, existing_insert_field) {
     begin_transaction();
     auto e = employee_t::get(employee_writer().insert_row());
     auto writer = e.writer();
-    writer.insert_row();
+
+    // This creates a new row.
+    auto eid = writer.insert_row();
+    EXPECT_NE(e.gaia_id(), employee_t::get(eid).gaia_id());
     commit_transaction();
 }
-
 
 // Test on existing objects found by ID
 // ====================================
 
-// Create, write two rows, read back by ID and verify
-TEST_F(gaia_object_test, read_back_id) {
+// Create, write two rows, read back by scan and verify
+TEST_F(gaia_object_test, read_back_scan) {
     begin_transaction();
-    auto eid = get_field("Howard").gaia_id();
-    auto eid2 = get_field("Henry").gaia_id();
+    auto eid = create_employee("Howard").gaia_id();
+    auto eid2 = create_employee("Henry").gaia_id();
     commit_transaction();
 
     begin_transaction();
+    auto e = employee_t::get_first();
+    EXPECT_EQ(eid, e.gaia_id());
+    EXPECT_STREQ("Howard", e.name_first());
+    e = e.get_next();
+    EXPECT_EQ(eid2, e.gaia_id());
+    EXPECT_STREQ("Henry", e.name_first());
+    commit_transaction();
+}
+
+// Used twice, below
+void UpdateReadBack(bool update_flag) {
+    auto_transaction_t tx;
+    create_employee("Howard");
+    create_employee("Henry");
+    tx.commit();
+
+    auto e = employee_t::get_first();
+    auto w = e.writer();
+    w.name_first = "Herald";
+    w.name_last = "Hollman";
+    if (update_flag) {
+        w.update_row();
+    }
+    e = e.get_next();
+
+    // get writer for next row!
+    w = e.writer();
+    w.name_first = "Gerald";
+    w.name_last = "Glickman";
+    if (update_flag) {
+        w.update_row();
+    }
+    tx.commit();
+
+    e = employee_t::get_first();
+    if (update_flag) {
+        EXPECT_STREQ("Herald", e.name_first());
+        EXPECT_STREQ("Hollman", e.name_last());
+    } else {
+        // unchanged by previous transaction
+        EXPECT_STREQ("Howard", e.name_first());
+        EXPECT_STREQ(nullptr, e.name_last());
+    }
+    e = e.get_next();
+    if (update_flag) {
+        EXPECT_STREQ("Gerald", e.name_first());
+        EXPECT_STREQ("Glickman", e.name_last());
+    } else {
+        // unchanged by previous transaction
+        EXPECT_STREQ("Henry", e.name_first());
+        EXPECT_STREQ(nullptr, e.name_last());
+    }
+}
+
+// Create, write two rows, set fields, update, read, verify
+TEST_F(gaia_object_test, update_read_back) {
+    UpdateReadBack(true);
+}
+
+// Create, write two rows, set fields, update, read, verify
+TEST_F(gaia_object_test, no_update_read_back) {
+    UpdateReadBack(false);
+}
+
+// Delete an inserted object then insert after; the new row is good.
+TEST_F(gaia_object_test, new_delete_insert) {
+    begin_transaction();
+    auto e = create_employee("Hector");
+    auto w = e.writer();
+    e.delete_row();
+    w.insert_row();
+    commit_transaction();
+}
+
+// EXCEPTION conditions
+// ====================
+
+// Attempt to create a row outside of a transaction
+TEST_F(gaia_object_test, no_tx) {
+    EXPECT_THROW(create_employee("Harold"), transaction_not_open);
+    // NOTE: the employee_t object is leaked here
+}
+
+// Scan beyond the end of the iterator.
+TEST_F(gaia_object_test, scan_past_end) {
+    auto_transaction_t tx;
+    create_employee("Hvitserk");
+    int count = 0;
+    auto e = employee_t::list().begin();
+    while (e != employee_t::list().end()) {
+        count++;
+        e++;
+    }
+    EXPECT_EQ(count,1);
+    e++;
+    EXPECT_EQ(e == employee_t::list().end(), true);
+    e++;
+    EXPECT_EQ(e == employee_t::list().end(), true);
+}
+
+// Test pre/post increment of iterator.
+TEST_F(gaia_object_test, pre_post_iterator) {
+    auto_transaction_t tx;
+    create_employee("Hvitserk");
+    create_employee("Hubert");
+    create_employee("Humphrey");
+    auto e = employee_t::list().begin();
+    EXPECT_STREQ((*e).name_first(), "Hvitserk");
+    EXPECT_STREQ((*e++).name_first(), "Hvitserk");
+    EXPECT_STREQ((*e).name_first(), "Hubert");
+    EXPECT_STREQ((*++e).name_first(), "Humphrey");
+    EXPECT_STREQ((*e).name_first(), "Humphrey");
+    e++;
+    EXPECT_EQ(e == employee_t::list().end(), true);
+    ++e;
+    EXPECT_EQ(e == employee_t::list().end(), true);
+}
+
+// Create row, try getting row from wrong type
+TEST_F(gaia_object_test, read_wrong_type) {
+    begin_transaction();
+    auto e = create_employee("Howard");
+    auto eid = e.gaia_id();
+    commit_transaction();
+
+    begin_transaction();
+    try {
+        auto a = address_t::get(eid);
+    }
+    catch (const exception& e) {
+        string what = string(e.what());
+        EXPECT_EQ(what.find("Requesting Gaia type address_t") != string::npos, true);
+    }
+    EXPECT_THROW(address_t::get(eid), edc_invalid_object_type);
+    commit_transaction();
+}
+
+// Create, write two rows, read back by ID and verify
+TEST_F(gaia_object_test, read_back_id) {
+    auto_transaction_t tx;
+    auto eid = create_employee("Howard").gaia_id();
+    auto eid2 = create_employee("Henry").gaia_id();
+
+    tx.commit();
+
     auto e = employee_t::get(eid);
     EXPECT_STREQ("Howard", e.name_first());
     e = employee_t::get(eid2);
@@ -221,120 +317,27 @@ TEST_F(gaia_object_test, read_back_id) {
     e.delete_row();
     // Can't access data of a deleted row
     EXPECT_THROW(e.name_first(), invalid_node_id);
-    commit_transaction();
 }
 
-// Create row, try getting row from wrong type
-TEST_F(gaia_object_test, read_wrong_type) {
+TEST_F(gaia_object_test, new_del_field_ref) {
+    // create GAIA-64 scenario
     begin_transaction();
-    auto e = get_field("Howard");
-    auto eid = e.gaia_id();
-    commit_transaction();
 
-    begin_transaction();
-    try {
-        auto a = address_t::get(eid);
-        gaia_id_t id = a.gaia_id();
-        EXPECT_EQ(id, 1000);
-    }
-    catch (const exception& e) {
-        // The eid is unpredictable, but the exception will use it in its message.
-        string compare_string = "Requesting Gaia type address_t(2) but object identified by " + to_string(eid) + " is type (1).";
-        EXPECT_STREQ(e.what(), compare_string.c_str());
-    }
-    EXPECT_THROW(address_t::get(eid), edc_invalid_object_type);
-    commit_transaction();
-}
-
-// Create, write two rows, read back by scan and verify
-TEST_F(gaia_object_test, read_back_scan) {
-    begin_transaction();
-    auto eid = get_field("Howard").gaia_id();
-    auto eid2 = get_field("Henry").gaia_id();
-    commit_transaction();
-
-    begin_transaction();
-    auto e = employee_t::get_first();
-    EXPECT_EQ(eid, e.gaia_id());
-    EXPECT_STREQ("Howard", e.name_first());
-    e = e.get_next();
-    EXPECT_EQ(eid2, e.gaia_id());
-    EXPECT_STREQ("Henry", e.name_first());
-    commit_transaction();
-}
-
-// Used twice, below
-void UpdateReadBack(bool update_flag) {
-    begin_transaction();
-    get_field("Howard");
-    get_field("Henry");
-    commit_transaction();
-
-    begin_transaction();
-    auto e = employee_t::get_first();
-    auto w = e.writer();
-    w.name_first = "Herald";
-    w.name_last = "Hollman";
-    if (update_flag) {
-        w.update_row();
-    }
-    e = e.get_next();
-
-    // get writer for next row!
-    w = e.writer();
-    w.name_first = "Gerald";
-    w.name_last = "Glickman";
-    if (update_flag) {
-        w.update_row();
-    }
-    commit_transaction();
-
-    begin_transaction();
-    e = employee_t::get_first();
-    if (update_flag) {
-        EXPECT_STREQ("Herald", e.name_first());
-        EXPECT_STREQ("Hollman", e.name_last());
-    } else {
-        // unchanged by previous transaction
-        EXPECT_STREQ("Howard", e.name_first());
-        EXPECT_STREQ(nullptr, e.name_last());
-    }
-    e = e.get_next();
-    if (update_flag) {
-        EXPECT_STREQ("Gerald", e.name_first());
-        EXPECT_STREQ("Glickman", e.name_last());
-    } else {
-        // unchanged by previous transaction
-        EXPECT_STREQ("Henry", e.name_first());
-        EXPECT_STREQ(nullptr, e.name_last());
-    }
-    commit_transaction();
-}
-
-// Create, write two rows, set fields, update, read, verify
-TEST_F(gaia_object_test, update_read_back) {
-    UpdateReadBack(true);
-}
-
-// Create, write two rows, set fields, update, read, verify
-TEST_F(gaia_object_test, no_update_read_back) {
-    UpdateReadBack(false);
-}
-
-// Delete an inserted object then insert after; the new row is good.
-TEST_F(gaia_object_test, new_del_ins) {
-    begin_transaction();
-    auto e = get_field("Hector");
-    auto w = e.writer();
+    auto e = employee_t::get(employee_writer().insert_row());
     e.delete_row();
-    w.insert_row();
+    // can't access data from a deleted row
+    EXPECT_THROW(e.name_first(), invalid_node_id);
+
+    // Can't get a writer from a deleted row either
+    EXPECT_THROW(e.writer(), invalid_node_id);
+
     commit_transaction();
 }
 
 // Delete a found object then update
-TEST_F(gaia_object_test, new_del_upd) {
+TEST_F(gaia_object_test, new_del_update) {
     begin_transaction();
-    auto e = get_field("Hector");
+    auto e = create_employee("Hector");
     e.delete_row();
     EXPECT_THROW(e.writer().update_row(), invalid_node_id);
     commit_transaction();
@@ -344,7 +347,7 @@ TEST_F(gaia_object_test, new_del_upd) {
 TEST_F(gaia_object_test, found_del_ins) {
     begin_transaction();
 
-    auto e = get_field("Hector");
+    auto e = create_employee("Hector");
     auto writer = e.writer();
     e.delete_row();
     EXPECT_THROW(e.writer(), invalid_node_id);
@@ -360,9 +363,9 @@ TEST_F(gaia_object_test, found_del_ins) {
 }
 
 // Delete a found object then update
-TEST_F(gaia_object_test, found_del_upd) {
+TEST_F(gaia_object_test, found_del_update) {
     begin_transaction();
-    auto e = get_field("Hector");
+    auto e = create_employee("Hector");
     auto eid = e.gaia_id();
     commit_transaction();
 
@@ -374,9 +377,6 @@ TEST_F(gaia_object_test, found_del_upd) {
     commit_transaction();
 }
 
-// EXCEPTION conditions
-// ====================
-
 // The simplified model allows you to
 // do multiple insertions with the same
 // writer.  This seems reasonable given the model
@@ -384,48 +384,6 @@ TEST_F(gaia_object_test, found_del_upd) {
 // auto writer = Employe::writer();
 // writer.insert_row();
 // writer.insert_row();
-
-/*
-// Attempt to insert one row twice
-TEST_F(gaia_object_test, insert_x2) {
-    begin_transaction();
-    auto e = get_field("Zachary");
-    EXPECT_THROW(e.insert_row(), duplicate_id);
-    commit_transaction();
-}
-
-// Create, then get by ID, insert
-// Used twice, below
-void InsertIdX2(bool insert_flag) {
-    begin_transaction();
-    auto eid = get_field("Zachary")->gaia_id();
-    commit_transaction();
-
-    begin_transaction();
-    auto e = employee_t::get(eid);
-    if (insert_flag) {
-        e.set_name_first("Zerubbabel");
-    }
-    EXPECT_THROW(e.insert_row(), duplicate_id);
-    commit_transaction();
-}
-
-// Attempt to insert a row found by ID
-TEST_F(gaia_object_test, insert_id_x2) {
-    InsertIdX2(false);
-}
-
-// Attempt to insert a row found by ID after setting field value
-TEST_F(gaia_object_test, set_insert_id_x2) {
-    InsertIdX2(true);
-}
-*/
-
-// Attempt to create a row outside of a transaction
-TEST_F(gaia_object_test, no_tx) {
-    EXPECT_THROW(get_field("Harold"), tx_not_open);
-    // NOTE: the employee_t object is leaked here
-}
 
 // Simplified model doesn't allow this because you
 // you cannot create a new employee_t() and the
@@ -435,59 +393,16 @@ TEST_F(gaia_object_test, no_tx) {
 // and not a writer object.  The insert method
 // only takes a writer object.
 
-/*
-
-// Attempt to update an un-inserted object
-TEST_F(gaia_object_test, new_upd) {
-    begin_transaction();
-    auto emp = employee_writer();
-    emp->set_name_first("Judith");
-    EXPECT_THROW(emp->update_row(), invalid_node_id);
-    //employee_t* emp2 = new employee_t(0);
-    //printf("%s\n", emp2->name_first());
-    commit_transaction();
-}
-
-// Delete an un-inserted object
-TEST_F(gaia_object_test, new_del) {
-    begin_transaction();
-    auto e = employee_writer();
-    EXPECT_THROW(e.delete_row(), invalid_node_id);
-    commit_transaction();
-}
-*/
-
 // Delete a row twice
 TEST_F(gaia_object_test, new_del_del) {
     begin_transaction();
-    auto e = get_field("Hugo");
+    auto e = create_employee("Hugo");
     // The first delete succeeds.
     e.delete_row();
     // The second one should throw.
     EXPECT_THROW(e.delete_row(), invalid_node_id);
     commit_transaction();
 }
-
-// Simplified model doesn't allow this scenario because
-// employee_writer() returns a writer and not an employee_t()
-// object.
-
-// Perform get_next() without a preceeding get_first()
-/*
-TEST_F(gaia_object_test, next_first) {
-    begin_transaction();
-    auto e1 = get_field("Harold");
-    auto e2 = get_field("Howard");
-    auto e3 = get_field("Hank");
-    auto e_test = e2->get_next();
-    EXPECT_TRUE(e_test == e1 || e_test == e3 || e_test == nullptr);
-    auto e4 = employee_writer();
-    // In this case, the row doesn't exist yet.
-    e4->set_name_first("Hector");
-    EXPECT_EQ(nullptr, e4->get_next());
-    commit_transaction();
-}
-*/
 
 TEST_F(gaia_object_test, auto_tx_begin) {
 
@@ -520,7 +435,7 @@ TEST_F(gaia_object_test, auto_tx) {
     tx.commit();
 
     // Expect an exception since we're not in a transaction
-    EXPECT_THROW(e.name_last(), tx_not_open);
+    EXPECT_THROW(e.name_last(), transaction_not_open);
 
     begin_transaction();
 
@@ -657,10 +572,7 @@ TEST_F(gaia_object_test, thread_update_conflict) {
         w.update_row();
 
     }
-    // Expect a concurrency violation here, but for now commit_transaction is
-    // returning false.
-    // EXPECT_THROW(commit_transaction, tx_update_conflict);
-    EXPECT_FALSE(commit_transaction());
+    EXPECT_THROW(commit_transaction(), transaction_update_conflict);
 
     begin_transaction();
     {
@@ -692,7 +604,7 @@ TEST_F(gaia_object_test, thread_update_other_row) {
         w.name_first = "No Violation";
         w.update_row();
     }
-    EXPECT_TRUE(commit_transaction());
+    EXPECT_NO_THROW(commit_transaction());
 
     begin_transaction();
     {
@@ -776,10 +688,7 @@ TEST_F(gaia_object_test, thread_delete_conflict) {
         thread t1 = thread(delete_thread, g_inserted_id);
         t1.join();
     }
-    // Expect a concurrency violation here, but for now commit_transaction is
-    // returning false.
-    // EXPECT_THROW(commit_transaction, tx_update_conflict);
-    EXPECT_FALSE(commit_transaction());
+    EXPECT_THROW(commit_transaction(), transaction_update_conflict);
 
     begin_transaction();
     {

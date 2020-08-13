@@ -11,15 +11,21 @@ project(types)
 set(GAIA_TYPES_INCLUDES
   "${GAIA_INC}/public/common"
   "${GAIA_INC}/public/catalog"
+  "${GAIA_INC}/public/direct_access"
+  "${GAIA_INC}/public/db/"
   "${GAIA_INC}/internal/common"
+  "${GAIA_INC}/internal/db"
+  "${GAIA_INC}/internal/catalog"
   "${GAIA_DB_INC}/types"
-  "${FLATBUFFERS_INC}")
+  "${FLATBUFFERS_INC}"
+  "${GAIA_CATALOG_GENERATED}")
 
 message(STATUS "GAIA_TYPES_INCLUDES=${GAIA_TYPES_INCLUDES}")
 
 # Our main target.
 add_library(gaia_types STATIC
     src/data_holder.cpp
+    src/payload_diff.cpp
     src/type_cache.cpp
     src/field_access.cpp
     src/field_list.cpp)
@@ -45,6 +51,7 @@ add_custom_target(test_record_bfbs ALL DEPENDS ${TYPES_TESTS_GENERATED_OUTPUT}/t
 add_custom_command(
   OUTPUT ${TYPES_TESTS_GENERATED_OUTPUT}/test_record_data.bin
   COMMAND flatc
+    --force-defaults
     -b ${PROJECT_SOURCE_DIR}/tests/test_record.fbs
     ${PROJECT_SOURCE_DIR}/tests/test_record_data.json
   DEPENDS ${PROJECT_SOURCE_DIR}/tests/test_record_data.json

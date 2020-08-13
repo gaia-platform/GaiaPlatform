@@ -12,9 +12,10 @@
 
 #include "rules.hpp"
 #include "triggers.hpp"
-#include "event_log_gaia_generated.h"
+#include "gaia_event_log.h"
 #include "event_manager_test_helpers.hpp"
 #include "rule_thread_pool.hpp"
+#include "rule_checker.hpp"
 
 using namespace gaia::db::triggers;
 
@@ -112,13 +113,17 @@ private:
     // N threads.
     unique_ptr<rule_thread_pool_t> m_invocations;
 
+    // Helper class to verify rule subscriptions against
+    // the catalog.
+    unique_ptr<rule_checker_t> m_rule_checker;
+
 private:
     // Only internal static creation is allowed.
     event_manager_t();
 
     // Test helper methods allow initializing the rules engine
-    // with a custom number of threads.
-    friend void gaia::rules::test::initialize_rules_engine(size_t count_threads);
+    // with custom behavior options.
+    friend void gaia::rules::test::initialize_rules_engine(event_manager_settings_t& settings);
 
     // Allow test helper to access private members if the test links in
     // the implementation.
@@ -128,19 +133,12 @@ private:
     // Protected so that unit-tests can call directly
     void commit_trigger(uint64_t tx_id, trigger_event_list_t event_list);
 
-    void init(size_t num_threads);
-    void init(rule_thread_pool_t* rule_thread_pool);
+    void init(event_manager_settings_t& settings);
     const _rule_binding_t* find_rule(const rules::rule_binding_t& binding); 
     void add_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     bool remove_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     void enqueue_invocation(const trigger_event_t& event, const _rule_binding_t* rule_binding);
-    void check_subscription(gaia_type_t gaia_type, event_type_t event_type, const field_list_t& fields);
-    static inline bool is_transaction_event(event_type_t event_type)
-    {
-        return (event_type == event_type_t::transaction_begin 
-            || event_type == event_type_t::transaction_commit
-            || event_type == event_type_t::transaction_rollback);
-    }
+    void check_subscription(event_type_t event_type, const field_list_t& fields);
     static inline void check_rule_binding(const rule_binding_t& binding)
     {
         if (nullptr == binding.rule 

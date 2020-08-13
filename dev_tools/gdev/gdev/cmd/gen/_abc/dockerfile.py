@@ -36,6 +36,8 @@ class GenAbcDockerfile(Dependency, ABC):
     @memoize
     async def get_base_stages_text(self) -> str:
         base_stages_text = dedent(fr'''
+            #syntax=docker/dockerfile-upstream:master-experimental
+
             # Static definition of base stages.
             FROM {self.options.base_image} AS base
             RUN groupadd -r -g 101 messagebus \
@@ -46,19 +48,22 @@ class GenAbcDockerfile(Dependency, ABC):
                 && useradd postgres -l -r -u 102 -g 102 -G ssl-cert
 
             FROM base AS apt_base
-            RUN echo "APT::Acquire::Retries \"3\";" > /etc/apt/apt.conf.d/80-retries \
+            RUN echo "APT::Acquire::Retries \"5\";" > /etc/apt/apt.conf.d/80-retries \
                 && apt-get update
 
             FROM apt_base AS git_base
-            RUN DEBIAN_FRONTEND=noninteractive apt-get install -y git \
+            RUN apt-get update \
+                && DEBIAN_FRONTEND=noninteractive apt-get install -y git \
                 && apt-get clean
 
             FROM apt_base AS pip_base
-            RUN DEBIAN_FRONTEND=noninteractive apt-get install -y python3-pip \
+            RUN apt-get update \
+                && DEBIAN_FRONTEND=noninteractive apt-get install -y python3-pip \
                 && apt-get clean
 
             FROM apt_base AS web_base
-            RUN DEBIAN_FRONTEND=noninteractive apt-get install -y wget \
+            RUN apt-get update \
+                && DEBIAN_FRONTEND=noninteractive apt-get install -y wget \
                 && apt-get clean
         ''').strip()
 
@@ -68,7 +73,7 @@ class GenAbcDockerfile(Dependency, ABC):
 
     @memoize
     async def get_copy_section(self) -> str:
-        """Return the text for the COPY section of the final build stage."""
+        """Return text for the COPY section of the final build stage."""
         from ..pre_run.dockerfile import GenPreRunDockerfile
         seen_dockerfiles = set()
 
@@ -106,7 +111,7 @@ class GenAbcDockerfile(Dependency, ABC):
 
     @memoize
     async def get_env_section(self) -> str:
-        """Return the text for the ENV section of the final build stage."""
+        """Return text for the ENV section of the final build stage."""
         from ..env.dockerfile import GenEnvDockerfile
 
         seen_env_dockerfiles = set()
@@ -129,7 +134,8 @@ class GenAbcDockerfile(Dependency, ABC):
 
     @memoize
     async def get_final_stage_text(self) -> str:
-        final_stage_text = '\n'.join([
+        """Return text for the final build stage."""
+        final_stage_text = '\n'.join(line for line in [
             f'\n# {self}',
             await self.get_from_section(),
             await self.get_copy_section(),
@@ -137,7 +143,7 @@ class GenAbcDockerfile(Dependency, ABC):
             await self.get_workdir_section(),
             await self.get_run_section(),
             'ENTRYPOINT [ "/bin/bash" ]',
-        ])
+        ] if line)
 
         self.log.debug(f'{final_stage_text = }')
 
@@ -145,7 +151,7 @@ class GenAbcDockerfile(Dependency, ABC):
 
     @memoize
     async def get_from_section(self) -> str:
-        """Return the text for the FROM line of the final build stage."""
+        """Return text for the FROM line of the final build stage."""
         from_section = f'FROM base AS {await self.get_name()}'
 
         self.log.debug(f'{from_section = }')
@@ -163,8 +169,8 @@ class GenAbcDockerfile(Dependency, ABC):
 
     @memoize
     async def get_name(self) -> str:
-        """Return the name of this build stage, for e.g. `FROM <image> AS <name>` statements."""
-        name = f'{self.options.target.replace("/", "__")}__{self.cfg.section_name}'
+        """Return the name of the final build stage, for e.g. `FROM <image> AS <name>`."""
+        name = f'{self.options.target.replace("/", "__")}__{self.cfg.section_name}'.lower()
 
         self.log.debug(f'{name = }')
 
@@ -172,7 +178,7 @@ class GenAbcDockerfile(Dependency, ABC):
 
     @memoize
     async def get_run_section(self) -> str:
-        """Return the text for the RUN line of the final build stage."""
+        """Return text for the RUN line of the final build stage."""
         run_section = ''
 
         self.log.debug(f'{run_section = }')
@@ -201,11 +207,7 @@ class GenAbcDockerfile(Dependency, ABC):
                     text_parts.append(await dockerfile.get_final_stage_text())
             return text_parts
 
-        text = '\n'.join(
-            text_part for text_part
-            in [await self.get_base_stages_text(), *await inner(self)]
-            if text_part
-        )
+        text = '\n'.join([await self.get_base_stages_text(), *await inner(self)])
 
         self.log.debug(f'{text = }')
 
@@ -213,7 +215,7 @@ class GenAbcDockerfile(Dependency, ABC):
 
     @memoize
     async def get_workdir_section(self) -> str:
-        """Return the text for the WORKDIR line of the final build stage."""
+        """Return text for the WORKDIR line of the final build stage."""
         workdir_section = f'WORKDIR {self.cfg.path.parent.image_build()}'
 
         self.log.debug(f'{workdir_section = }')

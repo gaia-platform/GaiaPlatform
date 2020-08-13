@@ -9,8 +9,8 @@ find_program(FLATCC flatcc)
 set(GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
 set(FBS_SOURCES
-    "${GAIA_REPO}/demos/airport_q1/inc/airport_q1.fbs"
-    "${GAIA_REPO}/production/rules/event_manager/flatbuffers/event_log.fbs")
+  "${GAIA_REPO}/demos/airport_q1/inc/airport_q1.fbs"
+  "${GAIA_REPO}/production/rules/event_manager/flatbuffers/event_log.fbs")
 
 foreach(FBS_SOURCE ${FBS_SOURCES})
   get_filename_component(FBS_SOURCE_FILENAME ${FBS_SOURCE} NAME)
@@ -21,6 +21,7 @@ foreach(FBS_SOURCE ${FBS_SOURCES})
     COMMAND cmake -E make_directory "${GEN_DIR}"
     COMMAND "${FLATCC}" -a -o "${GEN_DIR}" "${FBS_SOURCE}"
     DEPENDS "${FBS_SOURCE}"
+    COMMENT "Completed flatbuffers compilation of ${FBS_SOURCE}!"
     VERBATIM)
 
   add_custom_target(${FBS_SOURCE_FILENAME} ALL DEPENDS "${GEN_DIR}/${GEN_HEADER}")
@@ -29,6 +30,7 @@ endforeach(FBS_SOURCE)
 # Compile config.
 
 add_library(gaia_fdw SHARED
+  type_mapping.cpp
   airport_demo_type_mapping.cpp
   system_catalog_type_mapping.cpp
   gaia_fdw.cpp
@@ -67,7 +69,7 @@ target_include_directories(gaia_fdw SYSTEM PRIVATE "${GEN_DIR}")
 target_include_directories(gaia_fdw SYSTEM PRIVATE "${PGSQL_INCLUDEDIR_SERVER}")
 
 target_link_libraries(gaia_fdw PRIVATE flatccrt)
-target_link_libraries(gaia_fdw PRIVATE gaia_semock)
+target_link_libraries(gaia_fdw PRIVATE gaia_se_client)
 
 # Extension config.
 

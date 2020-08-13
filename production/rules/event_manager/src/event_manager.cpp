@@ -5,7 +5,6 @@
 
 #include "retail_assert.hpp"
 #include "event_manager.hpp"
-#include "auto_tx.hpp"
 #include "events.hpp"
 #include "triggers.hpp"
 #include "event_trigger_threadpool.hpp"
@@ -45,19 +44,25 @@ event_manager_t::event_manager_t()
 
 void event_manager_t::init()
 {
-    // TODO[GAIAPLAT-111]: Check a configuration setting for the number of threads to create.
-    // Create the rules engine scheduler with N hardware threads.
-    init(new rule_thread_pool_t());
+    // TODO[GAIAPLAT-111]: Check a configuration setting supplied by the
+    // application developer for the number of threads to create.
+    
+    event_manager_settings_t settings;
+    // Allow the thread pool to decide how many threads to create
+    settings.num_background_threads = SIZE_MAX;
+    // Verify rule subscriptions against the catalog
+    settings.disable_catalog_checks = false;
+
+    init(settings);
 }
 
-void event_manager_t::init(size_t num_threads)
+void event_manager_t::init(event_manager_settings_t& settings)
 {
-    init(new rule_thread_pool_t(num_threads));
-}
-
-void event_manager_t::init(rule_thread_pool_t* rule_thread_pool)
-{
-    m_invocations.reset(rule_thread_pool);
+    m_invocations.reset(new rule_thread_pool_t(settings.num_background_threads));
+    if (!settings.disable_catalog_checks)
+    {
+        m_rule_checker.reset(new rule_checker_t());
+    }
 
     auto fn = [](uint64_t transaction_id, trigger_event_list_t event_list) {
         event_manager_t::get().commit_trigger(transaction_id, event_list);
@@ -66,7 +71,6 @@ void event_manager_t::init(rule_thread_pool_t* rule_thread_pool)
 
     m_is_initialized = true;
 }
-
 
 void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_event_list)
 {
@@ -79,7 +83,7 @@ void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_even
 
     // Start a transaction that will be used to log all the events that were
     // triggered independent of whether they invoked a rule or not.
-    auto_tx_t tx;
+    auto_transaction_t transaction(auto_transaction_t::no_auto_begin);
     for (size_t i =0; i < trigger_event_list.size(); log_to_db(trigger_event_list[i], rules_invoked), ++i)
     {
         const trigger_event_t& event = trigger_event_list[i];
@@ -118,19 +122,18 @@ void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_even
         // See if any rules are bound to any columns that were 
         // changed as part of this event.  If so, then schedule these rules
         // to be invoked.
-        if (binding.fields_map.size() == 0)
+        if (binding.fields_map.size() == 0 || event.columns.size() == 0)
         {
             // No rules were subscribed to any fields to this event on this type.
             continue;
         }
 
-        for (uint16_t j = 0; j < event.count_columns; j++)
+        for (field_position_t field_position : event.columns)
         {
             // Some rules refer to columns in this table.  Now see whether
             // the specific columns changed in this event are referenced
             // by any rules.  If not, keep going.
-            uint16_t col = event.columns[j];
-            auto field_it = binding.fields_map.find(col);
+            auto field_it = binding.fields_map.find(field_position);
             if (field_it == binding.fields_map.end())
             {
                 // The column that changed was not subscribed to any rule.
@@ -148,44 +151,26 @@ void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_even
             }
         }
     }
-    tx.commit();
+    transaction.commit();
 }
 
 void event_manager_t::enqueue_invocation(const trigger_event_t& event, 
     const _rule_binding_t* binding)
 {
-    rule_context_t context({binding->ruleset_name.c_str(), binding->rule_name.c_str(), binding->rule}, 
-        event.gaia_type, event.event_type, event.record);
-    m_invocations->enqueue(context);
+    rule_thread_pool_t::invocation_t invocation{binding->rule, event.gaia_type, event.event_type, event.record};
+    m_invocations->enqueue(invocation);
 }
 
 void event_manager_t::check_subscription(
-    gaia_type_t gaia_type, 
     event_type_t event_type,
     const field_list_t& fields)
 {
-    if (is_transaction_event(event_type))
+    if (event_type == event_type_t::row_delete
+        || event_type == event_type_t::row_insert)
     {
-        // TODO[GAIAPLAT-157]: use a constant for a non-zero gaia_type
-        if (gaia_type != 0)
-        {
-            throw invalid_subscription(event_type, "The gaia_type must be zero.");
-        }
-
         if (fields.size() > 0)
         {
             throw invalid_subscription(event_type, "The field list must be empty.");
-        }
-    }
-    else
-    {
-        if (event_type == event_type_t::row_delete
-            || event_type == event_type_t::row_insert)
-        {
-            if (fields.size() > 0)
-            {
-                throw invalid_subscription(event_type, "The field list must be empty.");
-            }
         }
     }
 }
@@ -196,8 +181,18 @@ void event_manager_t::subscribe_rule(
     const field_list_t& fields,
     const rule_binding_t& rule_binding)
 {
+    // If any of these checks fail then an exception is thrown.
     check_rule_binding(rule_binding);
-    check_subscription(gaia_type, event_type, fields);
+    check_subscription(event_type, fields);
+
+    // Verify that the type and fields specified in the rule subscription
+    // are valid according to the catalog.  The rule checker may be null
+    // if the event_manager was initialized with 'disabled_catalog_checks'
+    // set to true in its settings.
+    if (m_rule_checker)
+    {
+        m_rule_checker->check_catalog(gaia_type, fields);
+    }
 
     // Look up the gaia_type in our type map.  If we do not find it
     // then we create a new empty event map map.
@@ -472,13 +467,13 @@ void event_manager_t::log_to_db(const trigger_event_t& event, bool rules_invoked
     // When we have this support we can support the array of changed column fields
     // in our event log.  Until then, just pick out the first of the list.
     uint16_t column_id = 0;
-    if (event.count_columns > 0)
+    if (event.columns.size() > 0)
     {
         column_id = event.columns[0];
     }
 
     {
-        Event_log::insert_row((uint32_t)(event.event_type), (uint64_t)(event.gaia_type), 
+        event_log::event_log_t::insert_row((uint32_t)(event.event_type), (uint64_t)(event.gaia_type), 
             (uint64_t)(event.record), column_id, timestamp, rules_invoked);
     }
 }

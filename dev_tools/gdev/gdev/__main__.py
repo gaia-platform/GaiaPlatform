@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.8
 # PYTHON_ARGCOMPLETE_OK
 
 
@@ -10,7 +10,10 @@ def main() -> int:
     logging.basicConfig(level=dependency.options.log_level)
 
     import asyncio
-    asyncio.run(dependency.cli_entrypoint())
+    try:
+        asyncio.run(dependency.cli_entrypoint())
+    except dependency.Exception as e:
+        print(f'\n{e}', file=sys.stderr)
 
     return 0
 

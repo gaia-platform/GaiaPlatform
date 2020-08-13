@@ -7,25 +7,29 @@
 #include <unistd.h>
 #include <thread>
 #include <chrono>
-#include "gtest/gtest.h"
-#include "gaia_system.hpp"
-#include "rules.hpp"
-#include "db_test_helpers.hpp"
-#include "../addr_book_gaia_generated.h"
-#include "triggers.hpp"
 #include <atomic>
+
+#include "gtest/gtest.h"
+
+#include "gaia_system.hpp"
+#include "gaia_catalog.hpp"
+#include "rules.hpp"
+#include "gaia_addr_book_db.h"
+#include "triggers.hpp"
+#include "db_test_base.hpp"
 
 using namespace std;
 using namespace gaia::db;
 using namespace gaia::db::triggers;
+using namespace gaia::catalog;
 using namespace gaia::rules;
 using namespace gaia::common;
-using namespace addr_book;
+using namespace gaia::addr_book_db;
 
 static atomic<uint32_t> rule_count;
 static atomic<uint32_t> rule_per_commit_count;
 
-const gaia_type_t m_gaia_type = 1;
+const gaia_type_t m_gaia_type = employee_t::s_gaia_type;
 
 void rule1(const rule_context_t*)
 {
@@ -33,31 +37,69 @@ void rule1(const rule_context_t*)
     rule_count++;
 }
 
-extern "C"
-void initialize_rules() {
-       rule_binding_t m_rule1{"ruleset1_name", "rule1_name", rule1};
-       subscribe_rule(m_gaia_type, event_type_t::row_insert, empty_fields, m_rule1);
-       subscribe_rule(m_gaia_type, event_type_t::row_delete, empty_fields, m_rule1);
-       subscribe_rule(m_gaia_type, event_type_t::row_update, empty_fields, m_rule1);
+void load_catalog()
+{
+    gaia::catalog::ddl::field_def_list_t fields;
+    // Add dummy catalog types for all our types used in this test.
+    for (gaia_type_t i = event_log_t::s_gaia_type; i <= phone_t::s_gaia_type; i++) 
+    {
+        string table_name = "dummy" + std::to_string(i);
+        if (i == employee_t::s_gaia_type) {
+            gaia::catalog::ddl::field_def_list_t emp_fields;
+            emp_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t{"name_first", data_type_t::e_string, 1}));
+            auto table_id = gaia::catalog::create_table("employee", emp_fields);
+            begin_transaction();
+            {
+                auto field_ids = list_fields(table_id);
+                for (gaia_id_t field_id : field_ids)
+                {
+                    // Mark all fields as active so that we can bind to them
+                    gaia_field_writer w = gaia_field_t::get(field_id).writer();
+                    w.active = true;
+                    w.update_row();
+                }
+            }
+            commit_transaction();
+        } else {
+            gaia::catalog::create_table(table_name, fields);
+        }
+    }
 }
 
-class gaia_system_test : public ::testing::Test
+extern "C"
+void initialize_rules() {
+}
+
+class gaia_system_test : public db_test_base_t
 {
 protected:
-    static void SetUpTestSuite() {
-       start_server();
-       gaia::system::initialize();
-    }
-
-    static void TearDownTestSuite() {
-        end_session();
-        stop_server();
+    gaia_system_test() : db_test_base_t(true) {
     }
 
     void SetUp() override {
+        db_test_base_t::SetUp();
+        gaia::system::initialize();
+        load_catalog();
+
+        field_list_t fields;
+        // We only have 1 field in this test.
+        fields.insert(0);
+        
+        // Initialize rules after loading the catalog.
+        rule_binding_t m_rule1{"ruleset1_name", "rule1_name", rule1};
+        subscribe_rule(m_gaia_type, event_type_t::row_insert, empty_fields, m_rule1);
+        subscribe_rule(m_gaia_type, event_type_t::row_delete, empty_fields, m_rule1);
+        subscribe_rule(m_gaia_type, event_type_t::row_update, fields, m_rule1);
+
         rule_count = 0;
         rule_per_commit_count = 0;
     }
+
+    void TearDown() override {
+        end_session();
+        db_test_base_t::TearDown();
+    }
+
 };
 
 // This method will perform multiple transactions on the current client thread.
@@ -71,18 +113,19 @@ void perform_transactions(uint32_t count_transactions, uint32_t crud_operations_
         rule_per_commit_count = 0;
         begin_transaction();
         // Insert row.
-        auto w = Employee_writer();
+        employee_writer w;
         w.name_first = "name";
         gaia_id_t id = w.insert_row();
-        auto e = Employee::get(id);
+        auto e = employee_t::get(id);
 
         // Update row.
-        e.writer().name_first = "name2";
-        e.writer().update_row();
+        w = e.writer();
+        w.name_first = "updated_name";
+        w.update_row();
 
         // Delete row.
-        e.delete_row();
-        commit_transaction();
+        employee_t::delete_row(id);
+        gaia::db::commit_transaction();
 
         // We should get crud_operations_per_tx per commit.  Wait for them.
         while (rule_per_commit_count < crud_operations_per_tx)
@@ -97,19 +140,6 @@ void perform_transactions(uint32_t count_transactions, uint32_t crud_operations_
 }
 
 void validate_and_end_test(uint32_t count_tx, uint32_t crud_operations_per_tx, uint32_t count_threads) {
-    // Total wait time is 10 seconds
-    // uint32_t wait_time_ms = 100;
-    // uint32_t wait_loop_count = 10;
-    // The event_trigger_threadpool will invoke the rules engine on a separate thread from the client thread.
-    // Each thread in the pool will lazily initialize a server session thus the first execution will be slow.
-    // which is why we have a dumb while loop for now.
-
-    /*
-    while(rule_count != count_tx * crud_operations_per_tx * count_threads && count < 100) {
-        count ++;
-        //std::this_thread::sleep_for(std::chrono::milliseconds(100) );
-    }
-    */
     EXPECT_EQ(rule_count, count_tx * crud_operations_per_tx * count_threads);
 }
 

@@ -35,7 +35,8 @@ set(ROCKSDB_INC "${ROCKSDB}/include")
 set(GREMLIN_CONSOLE_PATH "/usr/local/share/gremlin-console")
 set(GREMLIN_SERVER_PATH "/usr/local/share/gremlin-server")
 set(GAIA_PROD_BUILD "${CMAKE_CURRENT_BINARY_DIR}")
-set(GAIA_CATALOG_GENERATED "${GAIA_PROD_BUILD}/catalog/generated")
+set(GAIA_CATALOG_GENERATED "${PROJECT_SOURCE_DIR}/catalog/catalog_manager/inc")
+set(GAIA_GENERATED_SCHEMAS "${GAIA_PROD_BUILD}/schemas/generated")
 
 message(STATUS "GAIA_INC=${GAIA_INC}")
 
@@ -103,8 +104,8 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
       ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8.java
       ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8Old.java
       ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8Safe.java
-    GENERATE_NATIVE_HEADERS storage_engine_mock_jni_headers
-      DESTINATION ${PROJECT_BINARY_DIR}/db/storage_engine/mock)
+    GENERATE_NATIVE_HEADERS storage_engine_jni_headers
+      DESTINATION ${PROJECT_BINARY_DIR}/db/storage_engine/)
   get_target_property(GAIA_TINKERPOP_JAR GaiaTinkerpop JAR_FILE)
 
   # Java tests.
@@ -117,7 +118,7 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   # FIXME: fix these tests in https://gaiaplatform.atlassian.net/browse/GAIAPLAT-260.
   # Add JNI test.
   # add_test(
-  #   NAME test_se_mock_jni
+  #   NAME test_se_jni
   #   COMMAND ${Java_JAVA_EXECUTABLE}
   #     -Djava.library.path=${PROJECT_BINARY_DIR}/db/storage_engine
   #     -cp ${GAIA_TINKERPOP_JAR}
@@ -146,12 +147,14 @@ endif()
 
 # Add flatbuffers
 add_subdirectory(${FLATBUFFERS} flatbuffers)
+set_property (TARGET flatbuffers PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # Add individual component folders.
 add_subdirectory(common)
 add_subdirectory(db)
 add_subdirectory(direct_access)
 add_subdirectory(rules)
+add_subdirectory(schemas)
 add_subdirectory(sql)
 add_subdirectory(system)
 add_subdirectory(catalog)
@@ -159,3 +162,8 @@ add_subdirectory(tools)
 
 # Add googletest
 add_subdirectory(${GOOGLE_TEST} googletest)
+
+# Customize test commands.
+file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
+  CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_se_server>\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_se_server\")\n"
+)

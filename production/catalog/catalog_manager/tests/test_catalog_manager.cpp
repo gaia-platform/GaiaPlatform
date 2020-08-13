@@ -13,29 +13,13 @@
 #include "gaia_catalog.hpp"
 #include "gaia_catalog.h"
 #include "fbs_generator.hpp"
-#include "db_test_helpers.hpp"
+#include "db_test_base.hpp"
 
 using namespace gaia::catalog;
 using namespace std;
 
-class catalog_manager_test : public ::testing::Test {
+class catalog_manager_test : public db_test_base_t {
   protected:
-    void SetUp() override {
-        gaia::db::begin_session();
-    }
-
-    void TearDown() override {
-        gaia::db::end_session();
-    }
-
-    static void SetUpTestSuite() {
-        gaia::db::start_server();
-    }
-
-    static void TearDownTestSuite() {
-        gaia::db::stop_server();
-    }
-
     static set<gaia_id_t> table_ids;
 
     gaia_id_t create_test_table(const string &name,
@@ -122,14 +106,14 @@ TEST_F(catalog_manager_test, list_references) {
     gaia_field_t field_record = gaia_field_t::get(field_id);
     EXPECT_EQ(employee_table_fields[0]->name, field_record.name());
     EXPECT_EQ(data_type_t::e_string, static_cast<data_type_t>(field_record.type()));
-    EXPECT_EQ(1, field_record.position());
+    EXPECT_EQ(0, field_record.position());
 
     gaia_id_t reference_id = list_references(employee_table_id).front();
     gaia_field_t reference_record = gaia_field_t::get(reference_id);
     EXPECT_EQ(employee_table_fields[1]->name, reference_record.name());
     EXPECT_EQ(data_type_t::e_references, static_cast<data_type_t>(reference_record.type()));
     EXPECT_EQ(dept_table_id, reference_record.type_id());
-    EXPECT_EQ(1, reference_record.position());
+    EXPECT_EQ(0, reference_record.position());
     gaia::db::commit_transaction();
 }
 
@@ -152,7 +136,7 @@ TEST_F(catalog_manager_test, create_table_self_references) {
     EXPECT_EQ(fields.front()->name, reference_record.name());
     EXPECT_EQ(data_type_t::e_references, static_cast<data_type_t>(reference_record.type()));
     EXPECT_EQ(table_id, reference_record.type_id());
-    EXPECT_EQ(1, reference_record.position());
+    EXPECT_EQ(0, reference_record.position());
     gaia::db::commit_transaction();
 }
 

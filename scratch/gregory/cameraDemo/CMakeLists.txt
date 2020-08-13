@@ -52,6 +52,12 @@ set_target_properties(gaia_rules PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}
 add_library(gaia_direct SHARED IMPORTED GLOBAL)
 set_target_properties(gaia_direct PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/direct_access/libgaia_direct.a)
 
+add_library(gaia_catalog SHARED IMPORTED GLOBAL)
+set_target_properties(gaia_catalog PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/catalog/catalog_manager/libgaia_catalog.a)
+
+add_library(gaia_parser SHARED IMPORTED GLOBAL)
+set_target_properties(gaia_parser PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/catalog/parser/libgaia_parser.a)
+
 add_executable(camera_demo ${CAMERA_DEMO_SRCS})
 
 
@@ -61,6 +67,9 @@ target_link_libraries(camera_demo
   gaia_semock
   gaia
   gaia_direct
+  gaia_catalog
+  gaia_parser
+  flatbuffers
   ${OpenCV_LIBS}
   explain
   m
