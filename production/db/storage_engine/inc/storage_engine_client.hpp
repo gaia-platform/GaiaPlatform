@@ -80,10 +80,11 @@ class client : private se_base {
     static int get_session_socket();
 
     /**
-     * Function returns whether to generate a trigger event for an operation based on the gaia_type_t.
-     */
-    static inline bool is_invalid_event(const gaia_type_t type) {
-        return trigger_excluded_types.find(type) != trigger_excluded_types.end();
+     *  Check if an event should be generated for a given type.
+     */ 
+    static inline bool is_valid_event(const gaia_type_t type) {
+        return !(trigger_excluded_types.find(type) != trigger_excluded_types.end()) && 
+                event_trigger_pool->get_commit_trigger() != nullptr; 
     }
 
     static inline void verify_tx_active() {

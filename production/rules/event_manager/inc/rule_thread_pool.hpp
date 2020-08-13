@@ -20,6 +20,14 @@ namespace rules
 class rule_thread_pool_t
 {
 public:
+
+    struct invocation_t {
+        gaia_rule_fn rule_fn;
+        common::gaia_type_t gaia_type;
+        db::triggers::event_type_t event_type;
+        gaia_id_t record;
+    };
+
     rule_thread_pool_t() = delete;
 
     /**
@@ -43,12 +51,10 @@ public:
      * Enqueue a rule onto the thread pool and notify any worker thread
      * that a rule is ready to be invoked.
      * 
-     * @param invocation the context of the rule to invoke.  Note that the 
-     *   context includes the rule function pointer itself.
-     * @param immediate if True then the rule is invoked immediately instead of
-     *   begin placed in the queue.
+     * @param invocation the function pointer of the rule along with the
+     *   trigger event information needed to call the rule.
      */
-    void enqueue(rule_context_t& invocation);
+    void enqueue(const invocation_t& invocation);
 
     /**
      * Executes all rules in the queue.  This method can only be called
@@ -65,21 +71,20 @@ public:
 
 private:
     void rule_worker();
-    void invoke_rule(const rule_context_t* context);
+    void invoke_rule(const invocation_t& invocation);
     void process_pending_invocations(bool should_schedule);
 
-private:
     // Each thread has a copy of these two variables to determine
     // whether pending rule invocations can be scheduled or they
     // have to wait.  If they have to wait then it is the responsibility
     // of the thread they are waiting on to move them over.
     static thread_local bool s_tls_can_enqueue;
-    static thread_local queue<rule_context_t> s_tls_pending_invocations;
+    static thread_local queue<invocation_t> s_tls_pending_invocations;
 
     /**
      * Queue from which worker thread draw their invocations.
      */
-    queue<rule_context_t> m_invocations;
+    queue<invocation_t> m_invocations;
 
     /**
      * OS threads waiting to do work

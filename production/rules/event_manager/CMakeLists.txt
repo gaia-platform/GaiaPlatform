@@ -43,8 +43,8 @@ target_link_libraries(gaia_rules PRIVATE gaia_direct)
 set_property (TARGET gaia_rules PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # unit tests
-add_gtest(test_auto_tx "tests/test_auto_tx.cpp"
-  "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_se_client")
+add_gtest(test_auto_transaction "tests/test_auto_transaction.cpp"
+  "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_direct")
 add_gtest(test_event_manager "tests/test_event_manager.cpp;tests/event_manager_test_helpers.cpp"
   "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
 add_gtest(test_system_init "tests/test_system_init.cpp"

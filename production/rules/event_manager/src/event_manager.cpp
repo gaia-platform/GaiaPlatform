@@ -5,7 +5,6 @@
 
 #include "retail_assert.hpp"
 #include "event_manager.hpp"
-#include "auto_tx.hpp"
 #include "events.hpp"
 #include "triggers.hpp"
 #include "event_trigger_threadpool.hpp"
@@ -84,7 +83,7 @@ void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_even
 
     // Start a transaction that will be used to log all the events that were
     // triggered independent of whether they invoked a rule or not.
-    auto_tx_t tx;
+    auto_transaction_t transaction(auto_transaction_t::no_auto_begin);
     for (size_t i =0; i < trigger_event_list.size(); log_to_db(trigger_event_list[i], rules_invoked), ++i)
     {
         const trigger_event_t& event = trigger_event_list[i];
@@ -123,19 +122,18 @@ void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_even
         // See if any rules are bound to any columns that were 
         // changed as part of this event.  If so, then schedule these rules
         // to be invoked.
-        if (binding.fields_map.size() == 0)
+        if (binding.fields_map.size() == 0 || event.columns.size() == 0)
         {
             // No rules were subscribed to any fields to this event on this type.
             continue;
         }
 
-        for (uint16_t j = 0; j < event.count_columns; j++)
+        for (field_position_t field_position : event.columns)
         {
             // Some rules refer to columns in this table.  Now see whether
             // the specific columns changed in this event are referenced
             // by any rules.  If not, keep going.
-            uint16_t col = event.columns[j];
-            auto field_it = binding.fields_map.find(col);
+            auto field_it = binding.fields_map.find(field_position);
             if (field_it == binding.fields_map.end())
             {
                 // The column that changed was not subscribed to any rule.
@@ -153,15 +151,14 @@ void event_manager_t::commit_trigger(uint64_t, trigger_event_list_t trigger_even
             }
         }
     }
-    tx.commit();
+    transaction.commit();
 }
 
 void event_manager_t::enqueue_invocation(const trigger_event_t& event, 
     const _rule_binding_t* binding)
 {
-    rule_context_t context({binding->ruleset_name.c_str(), binding->rule_name.c_str(), binding->rule}, 
-        event.gaia_type, event.event_type, event.record);
-    m_invocations->enqueue(context);
+    rule_thread_pool_t::invocation_t invocation{binding->rule, event.gaia_type, event.event_type, event.record};
+    m_invocations->enqueue(invocation);
 }
 
 void event_manager_t::check_subscription(
@@ -470,7 +467,7 @@ void event_manager_t::log_to_db(const trigger_event_t& event, bool rules_invoked
     // When we have this support we can support the array of changed column fields
     // in our event log.  Until then, just pick out the first of the list.
     uint16_t column_id = 0;
-    if (event.count_columns > 0)
+    if (event.columns.size() > 0)
     {
         column_id = event.columns[0];
     }
