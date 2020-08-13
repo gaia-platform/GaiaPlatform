@@ -49,7 +49,7 @@ class server : private se_base {
     static offsets* s_shared_offsets;
     static bool rocksdb_is_open;
     //Should be unique ptr? 
-    static rdb_wrapper* rdb;
+    static std::unique_ptr<rdb_wrapper> rdb;
     thread_local static session_state_t s_session_state;
     thread_local static bool s_session_shutdown;
 
@@ -171,7 +171,7 @@ class server : private se_base {
     static void recover_db() {
         // Open rocksdb just once.
         if (!rocksdb_is_open) {
-            rdb = new gaia::db::rdb_wrapper();
+            rdb = std::unique_ptr<rdb_wrapper>(new gaia::db::rdb_wrapper());
             rocksdb::Status status = rdb->open();
             assert(status.ok());
             rocksdb_is_open = true;
