@@ -28,9 +28,8 @@ def check_nested_msg(field_type):
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "-n", "--nested",
-    action="store_true",
-    help="Set for processing nested messages within the top-level message"
+    "-f", "--fbs_path",
+    help="For nested message types, provide the filepath of the top-level FBS"
 )
 parser.add_argument(
     "package_name",
@@ -47,7 +46,14 @@ parser.add_argument(
     help="Filepath of a ROS2 message file",
     type=str
 )
+
 args = parser.parse_args()
+
+def get_out_file():
+    if args.fbs_path:
+        return open(args.fbs_path, "a")
+    else:
+        return open(args.cmake_current_binary_dir + "/gaia_translation.fbs", "w")
 
 msg_name = filename_no_ext(args.msg_file_path)
 msg_py_filename = camel_to_snake_case(msg_name) + ".py"
@@ -63,25 +69,31 @@ base_fields = []
 nested_msg_fields = []
 
 for field, field_type in msg_fields.items():
-    if args.nested:
-        field = camel_to_snake_case(msg_name, True) + "_" + field
-
     nested_msg_type = check_nested_msg(field_type)
 
     if nested_msg_type:
-        # add to nested_msg_fields
         nested_msg_fields.append(
             (field, nested_msg_type[0], nested_msg_type[1])
         )
     else:
-        # add to base_fields
         base_fields.append((field, field_type))
 
-if not args.nested:
-    print("MESSAGE: " + msg_name)
+out_file = get_out_file()
+
+if not args.fbs_path:
+    out_file.write("namespace ros_msgs\n\n")
+
+out_file.write("table " + msg_name + " {\n")
 
 for field, field_type in base_fields:
-    print(field_type + " " + field)
+    out_file.write("    " + field + ": " + field_type + ";\n")
 
 for field, pkg, field_type in nested_msg_fields:
-    print(pkg + "/" + field_type + " " + field)
+    out_file.write("    " + field + ": " + pkg + "/" + field_type + ";\n")
+
+out_file.write("}\n")
+
+out_file.close()
+
+for field, pkg, field_type in nested_msg_fields:
+    print(pkg + " " + field_type + ".msg")
