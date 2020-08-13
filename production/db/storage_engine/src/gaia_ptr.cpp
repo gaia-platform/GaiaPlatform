@@ -124,7 +124,7 @@ void gaia_ptr::find_next(gaia_type_t type) {
 }
 
 void gaia_ptr::reset() {
-    client::tx_log(row_id, to_offset(), 0, se_base::gaia_operation_t::remove, to_ptr()->id, to_ptr()->type);
+    client::tx_log(row_id, to_offset(), 0, se_base::gaia_operation_t::remove, to_ptr()->id);
 
     if (client::is_valid_event(to_ptr()->type)) {
         client::s_events.push_back(trigger_event_t {event_type_t::row_delete, to_ptr()->type, to_ptr()->id, empty_position_list});

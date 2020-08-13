@@ -118,9 +118,9 @@ class se_base {
     }
 
     static void inline allocate_object(int64_t row_id, size_t size, offsets* offsets) {
-        // if (*s_offsets == nullptr) {
-        //     throw transaction_not_open();
-        // }
+        if (offsets == nullptr) {
+            throw transaction_not_open();
+        }
 
         if (s_data->objects[0] >= MAX_OBJECTS) {
             throw oom();

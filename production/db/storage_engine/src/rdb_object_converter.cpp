@@ -12,18 +12,18 @@ using namespace gaia::db;
 
 /**
  * Format:
- * Key: fbb_type, id (uint64, uint64)
- * Value: reference_count, payload_size, payload
+ * Key: id (uint64)
+ * Value: type, reference_count, payload_size, payload
  */
 void rdb_object_converter_util::encode_object(
     const object* gaia_object,
     string_writer* key,
     string_writer* value) {
     // Create key.
-    key->write_uint64(gaia_object->type);
     key->write_uint64(gaia_object->id);
 
     // Create value.
+    value->write_uint64(gaia_object->type);
     value->write_uint32(gaia_object->num_references);
     value->write_uint32(gaia_object->payload_size);
     value->write(gaia_object->payload, gaia_object->payload_size);
@@ -41,7 +41,6 @@ gaia_ptr_server rdb_object_converter_util::decode_object(
     string_reader value_(&value);
 
     // Read key.
-    key_.read_uint64(&type);
     key_.read_uint64(&id);
     assert(key_.get_remaining_len_in_bytes() == 0);
 
@@ -49,6 +48,7 @@ gaia_ptr_server rdb_object_converter_util::decode_object(
     *max_id = std::max(*max_id, id);
 
     // Read value.
+    value_.read_uint64(&type);
     value_.read_uint32(&num_references);
     value_.read_uint32(&size);
     auto payload = value_.read(size);

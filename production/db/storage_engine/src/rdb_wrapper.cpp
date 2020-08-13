@@ -84,7 +84,6 @@ Status rdb_wrapper::prepare_tx(gaia_xid_t transaction_id, rocksdb::Transaction* 
         if (lr->operation == se_base::gaia_operation_t::remove) {
             // Encode key to be deleted.
             string_writer key; 
-            key.write_uint64(lr->type);
             key.write_uint64(lr->id);
             trx->Delete(key.to_slice());
         } else {
