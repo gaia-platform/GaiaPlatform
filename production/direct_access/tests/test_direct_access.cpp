@@ -163,6 +163,7 @@ TEST_F(gaia_object_test, read_back_scan) {
             count ++;
         }
     }
+    commit_transaction();
 }
 
 // Used twice, below
@@ -275,7 +276,7 @@ TEST_F(gaia_object_test, pre_post_iterator) {
     create_employee("Hvitserk");
     create_employee("Hubert");
     create_employee("Humphrey");
-    auto e = employee_t::list().end();
+    auto e = employee_t::list().begin();
     EXPECT_STREQ((*e).name_first(), "Hvitserk");
     EXPECT_STREQ((*e++).name_first(), "Hvitserk");
     EXPECT_STREQ((*e).name_first(), "Hubert");
