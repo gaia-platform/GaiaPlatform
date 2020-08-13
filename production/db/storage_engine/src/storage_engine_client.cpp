@@ -25,7 +25,7 @@ std::unordered_set<gaia_type_t> client::trigger_excluded_types{
 };
 
 // Should this be initialized by the rules engine instead?
-// event_trigger_threadpool_t* client::event_trigger_pool = new event_trigger_threadpool_t();
+event_trigger_threadpool_t* client::event_trigger_pool = new event_trigger_threadpool_t();
 
 static void build_client_request(FlatBufferBuilder &builder, session_event_t event) {
     auto client_request = Createclient_request_t(builder, event);

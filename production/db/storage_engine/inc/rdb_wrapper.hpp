@@ -5,6 +5,7 @@
 
 #pragma once
 #include "rocksdb/status.h"
+#include "rocksdb/utilities/transaction_db.h"
 
 // This file provides gaia specific functionality to 
 // 1) commit to RocksDB LSM on write and 
@@ -45,11 +46,9 @@ namespace db
              */
             void recover();
 
-            rocksdb::Status prepare_tx(gaia_xid_t transaction_id);
+            rocksdb::Status prepare_tx(gaia_xid_t transaction_id, rocksdb::Transaction* trx);
 
-            void commit_tx(gaia_xid_t transaction_id);
-
-            void commit_tx(int64_t trid);
+            void commit_tx(gaia_xid_t transaction_id, rocksdb::Transaction* trx);
 
             void destroy();
 

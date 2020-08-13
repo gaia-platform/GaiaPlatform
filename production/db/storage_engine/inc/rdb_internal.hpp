@@ -21,7 +21,6 @@ class rdb_internal
 {
     private:
         rocksdb::TransactionDB* m_txn_db;
-        std::map<int64_t, rocksdb::Transaction*> transaction_map;
 
         std::string data_dir;
         rocksdb::WriteOptions writeOptions;
@@ -42,26 +41,15 @@ class rdb_internal
         rocksdb::Transaction* begin_txn(rocksdb::WriteOptions& options, const rocksdb::TransactionOptions& txnOpts, std::int64_t trid) {
             rocksdb::Transaction* trx = m_txn_db->BeginTransaction(options, txnOpts);
             trx->SetName(std::to_string(trid));
-            transaction_map.insert(std::make_pair(trid, trx));
             return trx;
         }
 
-        rocksdb::Status prepare_txn(std::int64_t trid) {
-            std::map<int64_t, rocksdb::Transaction*>::iterator it = transaction_map.find(trid);
-            if (it != transaction_map.end()) {
-                return it->second->Prepare();
-            }
+        rocksdb::Status prepare_txn(rocksdb::Transaction* trx) {
+            return trx->Prepare();
         }
 
-        rocksdb::Status commit_txn(std::int64_t trid) {
-            std::map<int64_t, rocksdb::Transaction*>::iterator it = transaction_map.find(trid);
-            if (it != transaction_map.end()) {
-                rocksdb::Status s = it->second->Commit();
-                if (s.ok()) {
-                    transaction_map.erase(it);
-                }
-                return s;
-            }
+        rocksdb::Status commit_txn(rocksdb::Transaction* trx) {
+            return trx->Commit();
         }
         
         rocksdb::Status close() {
