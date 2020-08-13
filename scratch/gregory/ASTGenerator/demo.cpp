@@ -63,6 +63,13 @@ struct TableLinkData
 unordered_multimap<string, TableLinkData> table_Relationship_1;
 unordered_multimap<string, TableLinkData> table_Relationship_N;
 
+struct NavigationData
+{
+    string name;
+    string linkingField;
+    bool isParent;
+};
+
 struct NavigationCodeData
 {
     string prefix;
@@ -247,7 +254,7 @@ string removeSemicolon(string s)
 void split(const string &text, vector<string>& tokens, char separator) 
 {
     size_t start = 0, end = 0;
-    string token;
+    string token;   
     
     while ((end = text.find(separator, start)) != string::npos) 
     {
@@ -276,6 +283,60 @@ string insertRulePreamble(string rule, string preamble)
     size_t ruleCodeStart = rule.find('{');
     return "{" + preamble + rule.substr(ruleCodeStart + 1);
 }
+
+bool findNavigationPath(string src, string dst, vector<NavigationData> &currentPath)
+{
+    if (src == dst)
+    {
+        return true;
+    }
+
+    auto parentItr = table_Relationship_1.equal_range(src);
+    for (auto it = parentItr.first; it != parentItr.second; ++it)
+    {      
+        if (it != table_Relationship_1.end())
+        {
+            NavigationData data = { it->second.table, it->second.field, true };
+            currentPath.push_back(data);
+            if (it->second.table == dst)
+            {              
+                return true;
+            }
+            if (findNavigationPath(it->second.table, dst, currentPath))
+            {
+                return true;
+            }
+            else
+            {
+                currentPath.pop_back();
+            }
+        }
+    }
+
+    auto childItr = table_Relationship_N.equal_range(src);
+    for (auto it = childItr.first; it != childItr.second; ++it)
+    {
+        if (it != table_Relationship_N.end())
+        {
+            NavigationData data = { it->second.table, it->second.field, false };
+            currentPath.push_back(data);
+            if (it->second.table == dst)
+            {              
+                return true;
+            }
+            if (findNavigationPath(it->second.table, dst, currentPath))
+            {
+                return true;
+            }
+            else
+            {
+                currentPath.pop_back();
+            }
+        }
+    }
+    return false;
+}
+
 
 NavigationCodeData generateNavigationCode(string anchorTable)
 {
@@ -348,13 +409,6 @@ NavigationCodeData generateNavigationCode(string anchorTable)
             }
         }
 
-        if (!is1Relationship && !isNRelationship)
-        {
-            generationError = true;
-            llvm::errs() << "No relationship between tables " << anchorTable << " and " << table << "\n";
-            return NavigationCodeData();
-        }
-
         if (is1Relationship && isNRelationship)
         {
             generationError = true;
@@ -362,14 +416,45 @@ NavigationCodeData generateNavigationCode(string anchorTable)
             return NavigationCodeData();
         }
 
-        if (is1Relationship)
+
+        if (!is1Relationship && !isNRelationship)
         {
-            retVal.prefix += table + "_t " + table + " = " + anchorTable + "." + linkingField + table + "_owner());\n";
+            vector<NavigationData> path;
+            if (findNavigationPath(anchorTable, table, path))
+            {
+                string srcTbl = anchorTable;
+                for (auto p : path)
+                {
+                    if (p.isParent)
+                    {
+                        retVal.prefix += p.name + "_t " + p.name + " = " + srcTbl + "." + p.linkingField + p.name + "_owner());\n";
+                    }
+                    else
+                    {
+                        retVal.prefix += "for (auto " + p.name + " : " + srcTbl + "." + p.linkingField + p.name + "_list)\n{\n";
+                        retVal.postfix += "}\n";
+                    }
+                    srcTbl = p.name;
+                }
+            }
+            else
+            {
+                generationError = true;
+                llvm::errs() << "No path between tables " << anchorTable << " and " << table << "\n";
+                return NavigationCodeData();
+            }
         }
         else
         {
-            retVal.prefix += "for (auto " + table + " : " + anchorTable + "." + linkingField + table + "_list)\n{\n";
-            retVal.postfix += "}\n";
+            if (is1Relationship)
+            {
+                retVal.prefix += table + "_t " + table + " = " + anchorTable + "." + linkingField + table + "_owner());\n";
+            }
+            else
+            {
+                retVal.prefix += "for (auto " + table + " : " + anchorTable + "." + linkingField + table + "_list)\n{\n";
+                retVal.postfix += "}\n";
+            }
         }
     }
 
