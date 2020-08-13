@@ -75,9 +75,10 @@ TEST_F(gaia_object_test, create_employee_delete) {
 // Scan multiple rows
 TEST_F(gaia_object_test, new_set_ins) {
     begin_transaction();
+    auto current_count = count_rows();
     create_employee("Harold");
     create_employee("Jameson");
-    EXPECT_EQ(2, count_rows());
+    EXPECT_EQ(current_count + 2, count_rows());
     commit_transaction();
 }
 

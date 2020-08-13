@@ -143,12 +143,12 @@ void validate_and_end_test(uint32_t count_tx, uint32_t crud_operations_per_tx, u
     EXPECT_EQ(rule_count, count_tx * crud_operations_per_tx * count_threads);
 }
 
-// TEST_F(gaia_system_test, single_threaded_transactions) {
-//     uint32_t count_tx = 2;
-//     uint32_t crud_operations_per_tx = 3;
-//     perform_transactions(count_tx, crud_operations_per_tx, false);
-//     validate_and_end_test(count_tx, crud_operations_per_tx, 1);
-// }
+TEST_F(gaia_system_test, single_threaded_transactions) {
+    uint32_t count_tx = 2;
+    uint32_t crud_operations_per_tx = 3;
+    perform_transactions(count_tx, crud_operations_per_tx, false);
+    validate_and_end_test(count_tx, crud_operations_per_tx, 1);
+}
 
 
 // TEST_F(gaia_system_test, multi_threaded_transactions) {
