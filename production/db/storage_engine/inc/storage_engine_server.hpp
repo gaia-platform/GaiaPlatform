@@ -532,7 +532,8 @@ class server : private se_base {
 
         std::set<int64_t> row_ids;
 
-        rocksdb::Transaction* trx;
+        rocksdb::Transaction* trx = rdb->begin_tx(s_transaction_id);
+        
         // Prepare tx
         rdb->prepare_tx(s_transaction_id, trx);
         for (auto i = 0; i < s_log->count; i++) {

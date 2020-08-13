@@ -68,12 +68,14 @@ void rdb_wrapper::commit_tx(gaia_xid_t transaction_id, rocksdb::Transaction* trx
     }
 }
 
-Status rdb_wrapper::prepare_tx(gaia_xid_t transaction_id, rocksdb::Transaction* trx) {
+rocksdb::Transaction* rdb_wrapper::begin_tx(gaia_xid_t transaction_id) {
     rocksdb::WriteOptions writeOptions{};
     rocksdb::TransactionOptions txnOptions{};
+    return rdb_internal->begin_txn(writeOptions, txnOptions, transaction_id);
+}
+
+Status rdb_wrapper::prepare_tx(gaia_xid_t transaction_id, rocksdb::Transaction* trx) {
     auto s_log = se_base::s_log;
-    
-    trx = rdb_internal->begin_txn(writeOptions, txnOptions, transaction_id);
 
     for (auto i = 0; i < s_log->count; i++) {
 

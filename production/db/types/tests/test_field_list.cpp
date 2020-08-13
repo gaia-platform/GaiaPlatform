@@ -24,7 +24,7 @@ protected:
     }
 };
 
-TEST_F(field_list, add_and_test) {
+TEST_F(field_list, DISABLED_add_and_test) {
     field_list_t test_fieldlist = field_list_t(888);
     ASSERT_NO_THROW(test_fieldlist.add(1));
     ASSERT_NO_THROW(test_fieldlist.add(2));
@@ -37,7 +37,7 @@ TEST_F(field_list, add_and_test) {
     ASSERT_FALSE(test_fieldlist.contains(4));
 }
 
-TEST_F(field_list, multi_add) {
+TEST_F(field_list, DISABLED_multi_add) {
     field_list_t test_list = field_list_t(888);
     test_list.add(1);
     test_list.add(2);
@@ -54,7 +54,7 @@ TEST_F(field_list, multi_add) {
     ASSERT_EQ(test_list.size(), 3);
 }
 
-TEST_F(field_list, emptiness) {
+TEST_F(field_list, DISABLED_emptiness) {
     field_list_t test_list = field_list_t(888);
 
     ASSERT_TRUE(test_list.is_empty());

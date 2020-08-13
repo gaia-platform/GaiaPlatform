@@ -46,6 +46,8 @@ namespace db
              */
             void recover();
 
+            rocksdb::Transaction* begin_tx(gaia_xid_t transaction_id);
+
             rocksdb::Status prepare_tx(gaia_xid_t transaction_id, rocksdb::Transaction* trx);
 
             void commit_tx(gaia_xid_t transaction_id, rocksdb::Transaction* trx);

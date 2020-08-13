@@ -170,46 +170,6 @@ TEST_F(storage_engine_client_test, read_data) {
         std::cerr << std::endl;
     }
     commit_transaction();
-
-
-    auto payload = "payload str";
-    begin_transaction();
-    {
-        std::cerr << std::endl;
-        std::cerr << "*** Update payload and verify" << std::endl;
-        try
-        {
-            gaia_ptr node1 = gaia_ptr::open(node1_id);
-            print_node(node1);
-            node1.update_payload(strlen(payload), payload);
-            print_node(node1);
-            EXPECT_STREQ(node1.data(), payload);
-        }
-        catch(const std::exception& e)
-        {
-            std::cerr << e.what() << '\n';
-        }
-        std::cerr << std::endl;
-    }
-    commit_transaction();
-
-    begin_transaction();
-    {
-        std::cerr << std::endl;
-        std::cerr << "*** Reload data and verify update" << std::endl;
-        try
-        {
-            gaia_ptr node1 = gaia_ptr::open(node1_id);
-            print_node(node1);
-            EXPECT_STREQ(node1.data(), payload);
-        }
-        catch(const std::exception& e)
-        {
-            std::cerr << e.what() << '\n';
-        }
-        std::cerr << std::endl;
-    }
-    commit_transaction();
 }
 
 // TEST_F(storage_engine_client_test, update_payload) {
