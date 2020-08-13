@@ -15,9 +15,10 @@
 
 #include "rules.hpp"
 #include "gaia_system.hpp"
-#include "gaia_addr_book_db.h"
+#include "gaia_addr_book.h"
 #include "db_test_base.hpp"
 #include "gaia_catalog.hpp"
+#include "gaia_catalog_internal.hpp"
 #include <thread>
 #include <atomic>
 #include <map>
@@ -27,7 +28,7 @@ using namespace gaia::db;
 using namespace gaia::direct_access;
 using namespace gaia::rules;
 using namespace std;
-using namespace gaia::addr_book_db;
+using namespace gaia::addr_book;
 
 const char* c_name = "John";
 const char* c_city = "Seattle";
@@ -141,27 +142,23 @@ public:
         subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule);
     }
 
-    void load_catalog()
-    {
-        gaia::catalog::ddl::field_def_list_t fields;
-
-        // add dummy catalog types for all our types
-        for (gaia_type_t i = 1; i <= phone_t::s_gaia_type; i++) 
-        {
-            string table_name = "dummy" + std::to_string(i);
-            gaia::catalog::create_table(table_name, fields);
-        }
-    }
-
 protected:
     rule_integration_test() : db_test_base_t(true) {
     }
 
     void SetUp() override {
         if (!g_is_initialized) {
+            const char* ddl_file = getenv("DDL_FILE");
+            ASSERT_NE(ddl_file, nullptr);
+
             db_test_base_t::SetUp();
-            gaia::system::initialize();
-            load_catalog();
+
+            gaia::db::begin_session();
+            // NOTE: For the unit test setup, we need to init catalog and load test tables before rules engine starts.
+            //       Otherwise, the event log activities will cause out of order test table IDs.
+            gaia::catalog::load_catalog(ddl_file);
+            gaia::rules::initialize_rules_engine();
+
             g_is_initialized = true;
         }
     }

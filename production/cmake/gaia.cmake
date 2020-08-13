@@ -59,7 +59,7 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
   endif()
   target_link_libraries(${TARGET} PRIVATE ${LIBRARIES} ${GTEST_LIB})
 
-  if("${ARGV6}")
+  if(NOT ("${ARGV6}" STREQUAL ""))
     set(ENV "${ARGV6}")
   else()
     set(ENV "")

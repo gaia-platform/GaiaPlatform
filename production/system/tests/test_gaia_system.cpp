@@ -13,8 +13,9 @@
 
 #include "gaia_system.hpp"
 #include "gaia_catalog.hpp"
+#include "gaia_catalog_internal.hpp"
 #include "rules.hpp"
-#include "gaia_addr_book_db.h"
+#include "gaia_addr_book.h"
 #include "triggers.hpp"
 #include "db_test_base.hpp"
 
@@ -23,7 +24,7 @@ using namespace gaia::db;
 using namespace gaia::db::triggers;
 using namespace gaia::rules;
 using namespace gaia::common;
-using namespace gaia::addr_book_db;
+using namespace gaia::addr_book;
 
 static atomic<uint32_t> rule_count;
 static atomic<uint32_t> rule_per_commit_count;
@@ -34,17 +35,6 @@ void rule1(const rule_context_t*)
 {
     rule_per_commit_count++;
     rule_count++;
-}
-
-void load_catalog()
-{
-    gaia::catalog::ddl::field_def_list_t fields;
-    // Add dummy catalog types for all our types used in this test.
-    for (gaia_type_t i = 1; i <= phone_t::s_gaia_type; i++) 
-    {
-        string table_name = "dummy" + std::to_string(i);
-        gaia::catalog::create_table(table_name, fields);
-    }
 }
 
 extern "C"
@@ -58,10 +48,17 @@ protected:
     }
 
     void SetUp() override {
+        const char* ddl_file = getenv("DDL_FILE");
+        ASSERT_NE(ddl_file, nullptr);
+
         db_test_base_t::SetUp();
-        gaia::system::initialize();
-        load_catalog();
-        
+
+        gaia::db::begin_session();
+        // NOTE: For the unit test setup, we need to init catalog and load test tables before rules engine starts.
+        //       Otherwise, the event log activities will cause out of order test table IDs.
+        gaia::catalog::load_catalog(ddl_file);
+        gaia::rules::initialize_rules_engine();
+
         // Initialize rules after loading the catalog.
         rule_binding_t m_rule1{"ruleset1_name", "rule1_name", rule1};
         subscribe_rule(m_gaia_type, event_type_t::row_insert, empty_fields, m_rule1);

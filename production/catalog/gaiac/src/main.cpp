@@ -12,6 +12,7 @@
 #include "flatbuffers/idl.h"
 
 #include "catalog_manager.hpp"
+#include "gaia_catalog_internal.hpp"
 #include "gaia_parser.hpp"
 #include "gaia_system.hpp"
 #include "gaia_db.hpp"
@@ -26,25 +27,10 @@ static const string c_warning_prompt = "WARNING: ";
 enum class operate_mode_t {
     interactive,
     generation,
+    loading,
 };
 
-void execute(const string &dbname, vector<unique_ptr<statement_t>> &statements) {
-    for (auto &stmt : statements) {
-        if (stmt->is_type(statement_type_t::create)) {
-            auto create_stmt = dynamic_cast<create_statement_t *>(stmt.get());
-            if (create_stmt->type == create_type_t::create_table) {
-                gaia::catalog::create_table(dbname, create_stmt->name, create_stmt->fields);
-            }
-        } else if (stmt->is_type(statement_type_t::drop)) {
-            auto drop_stmt = dynamic_cast<drop_statement_t *>(stmt.get());
-            if (drop_stmt->type == drop_type_t::drop_table) {
-                gaia::catalog::drop_table(drop_stmt->name);
-            }
-        }
-    }
-}
-
-void start_repl(parser_t &parser) {
+void start_repl(parser_t &parser, const string &dbname) {
     gaia::db::begin_session();
 
     const auto prompt = "gaiac> ";
@@ -62,8 +48,8 @@ void start_repl(parser_t &parser) {
         int parsing_result = parser.parse_line(line);
         if (parsing_result == EXIT_SUCCESS) {
             try {
-                execute("", parser.statements);
-                cout << gaia::catalog::generate_fbs("") << flush;
+                execute(dbname, parser.statements);
+                cout << gaia::catalog::generate_fbs(dbname) << flush;
             } catch (gaia_exception &e) {
                 cout << c_error_prompt << e.what() << endl
                      << flush;
@@ -183,17 +169,18 @@ class db_server_t {
 
 string usage() {
     std::stringstream ss;
-    ss << "Usage: gaiac [options] [ddl_file]"
-          "  where: -s          Print parsing trace."
-          "         -p          Print scanning trace."
-          "         -d <dbname> Set the databse name."
-          "         -i          Interactive prompt, as a REPL."
-          "         -o <path>   Set the path to all generated files."
-          "         -t          Start the SE server (for testing purposes)."
-          "         -h          Print help information."
-          "         <ddl_file>  Process the DDLs in the file."
-          "                     In the absence of <dbname>, the ddl file basename will be used as the database name."
-          "                     The database will be created automatically.";
+    ss << "Usage: gaiac [options] [ddl_file]\n\n"
+          "  -p          Print parsing trace.\n"
+          "  -s          Print scanning trace.\n"
+          "  -d <dbname> Set the databse name.\n"
+          "  -i          Interactive prompt, as a REPL.\n"
+          "  -g          Generate fbs and gaia headers.\n"
+          "  -o <path>   Set the path to all generated files.\n"
+          "  -t          Start the SE server (for testing purposes).\n"
+          "  -h          Print help information.\n"
+          "  <ddl_file>  Process the DDLs in the file.\n"
+          "              In the absence of <dbname>, the ddl file basename will be used as the database name.\n"
+          "              The database will be created automatically.\n";
     return ss.str();
 }
 
@@ -203,7 +190,7 @@ int main(int argc, char *argv[]) {
     string output_path;
     string db_name;
     string ddl_filename;
-    operate_mode_t mode = operate_mode_t::generation;
+    operate_mode_t mode = operate_mode_t::loading;
     parser_t parser;
 
     for (int i = 1; i < argc; ++i) {
@@ -213,6 +200,8 @@ int main(int argc, char *argv[]) {
             parser.trace_scanning = true;
         } else if (argv[i] == string("-i")) {
             mode = operate_mode_t::interactive;
+        } else if (argv[i] == string("-g")) {
+            mode = operate_mode_t::generation;
         } else if (argv[i] == string("-t")) {
             // Note the order dependency.
             // Require a path right after this
@@ -243,36 +232,22 @@ int main(int argc, char *argv[]) {
             exit(EXIT_SUCCESS);
         } else {
             ddl_filename = argv[i];
-            int parsing_result = parser.parse(ddl_filename);
-            if (parsing_result != EXIT_SUCCESS) {
-                cout << c_error_prompt << "Fail to parse the ddl file '"
-                     << ddl_filename << "''." << endl
-                     << flush;
-                exit(parsing_result);
-            }
         }
     }
 
     if (mode == operate_mode_t::interactive) {
-        start_repl(parser);
-    } else if (mode == operate_mode_t::generation) {
+        start_repl(parser, db_name);
+    } else {
         try {
             gaia::db::begin_session();
 
-            if (db_name.empty() && !ddl_filename.empty()) {
-                // Strip off the path and any suffix to get database name if database name is not specified.
-                db_name = ddl_filename;
-                if (db_name.find("/") != string::npos) {
-                    db_name = db_name.substr(db_name.find_last_of("/") + 1);
-                }
-                if (db_name.find(".") != string::npos) {
-                    db_name = db_name.substr(0, db_name.find_last_of("."));
-                }
-                create_database(db_name);
+            if (!ddl_filename.empty()) {
+                db_name = load_catalog(parser, ddl_filename, db_name);
             }
 
-            execute(db_name, parser.statements);
-            generate_headers(db_name, output_path);
+            if (mode == operate_mode_t::generation) {
+                generate_headers(db_name, output_path);
+            }
             gaia::db::end_session();
         } catch (gaia_exception &e) {
             cout << c_error_prompt << e.what() << endl;
