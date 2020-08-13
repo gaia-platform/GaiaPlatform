@@ -48,6 +48,10 @@ class rdb_internal
             return trx->Prepare();
         }
 
+        rocksdb::Status rollback(rocksdb::Transaction* trx) {
+            return trx->Rollback();
+        }
+
         rocksdb::Status commit_txn(rocksdb::Transaction* trx) {
             return trx->Commit();
         }
@@ -60,14 +64,6 @@ class rdb_internal
             m_txn_db = nullptr;
 
             return status;
-        }
-
-        rocksdb::Status write(rocksdb::WriteBatch& batch) {
-            return m_txn_db->Write(writeOptions, &batch);
-        }
-
-        rocksdb::Status get(rocksdb::Slice& key, std::string* value) {
-            return m_txn_db->Get(rocksdb::ReadOptions(), key, value);
         }
 
         rocksdb::Iterator* get_iterator() {

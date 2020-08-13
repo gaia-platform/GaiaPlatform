@@ -8,10 +8,10 @@
 #include "rocksdb/utilities/transaction_db.h"
 
 // This file provides gaia specific functionality to 
-// 1) commit to RocksDB LSM on write and 
-// 2) Read from LSM during recovery 
+// 1) persist writes to RocksDB &
+// 2) Read from LSM during recovery.
 // Above features are built using the simple RocksDB internal library (rdb_internal.hpp)
-// This file will be called by the storage engine and doesn't expose any RocksDB internals
+// This file will be called by the storage engine.
 namespace gaia 
 {
 namespace db 
@@ -30,27 +30,38 @@ namespace db
 
             /**
              * Open rocksdb with the correct options.
-             * Todo(Mihir) Set tuning options https://github.com/facebook/rocksdb/wiki/RocksDB-Tuning-Guide
              */
             rocksdb::Status open();
 
             /**
-             * Close the database and delete the database object.
-             * This call cannot be reversed.
+             * Close the database.
              */
             rocksdb::Status close();
 
             /** 
-             * Iterate over all elements in the LSM and call storage engine create apis 
+             * Iterate over all elements in the LSM and call SE create API 
              * for every key/value pair obtained (after deduping keys).
              */
             void recover();
 
             rocksdb::Transaction* begin_tx(gaia_xid_t transaction_id);
 
+            /**
+             * Prepare will serialize the transaction to the log. w
+             * Similarly, rollback will append a rollback marker to the log.
+             */ 
             rocksdb::Status prepare_tx(gaia_xid_t transaction_id, rocksdb::Transaction* trx);
 
+            /** 
+             * This method will append a commit marker with the appropriate
+             * transaction_id to the log.
+             */
             void commit_tx(gaia_xid_t transaction_id, rocksdb::Transaction* trx);
+
+            /**
+             * Similarly, rollback will append a rollback marker to the log. 
+             */
+            rocksdb::Status rollback_tx(rocksdb::Transaction* trx);
 
             void destroy();
 

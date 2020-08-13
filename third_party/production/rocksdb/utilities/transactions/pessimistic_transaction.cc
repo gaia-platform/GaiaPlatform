@@ -132,9 +132,9 @@ WriteCommittedTxn::WriteCommittedTxn(TransactionDB* txn_db,
     : PessimisticTransaction(txn_db, write_options, txn_options){};
 
 Status PessimisticTransaction::CommitBatch(WriteBatch* batch) {
-  TransactionKeyMap keys_to_unlock;
+  // TransactionKeyMap keys_to_unlock;
   Status s;
-  LockBatch(batch, &keys_to_unlock);
+  // LockBatch(batch, &keys_to_unlock);
 
   // if (!s.ok()) {
   //   return s;

@@ -49,7 +49,6 @@ class server : private se_base {
     static int s_fd_data;
     static offsets* s_shared_offsets;
     static bool rocksdb_is_open;
-    //Should be unique ptr? 
     static std::unique_ptr<rdb_wrapper> rdb;
     thread_local static session_state_t s_session_state;
     thread_local static bool s_session_shutdown;
@@ -536,12 +535,16 @@ class server : private se_base {
         
         // Prepare tx
         rdb->prepare_tx(s_transaction_id, trx);
+        
         for (auto i = 0; i < s_log->count; i++) {
             auto lr = s_log->log_records + i;
 
             if (row_ids.insert(lr->row_id).second) {
                 if ((*s_shared_offsets)[lr->row_id] != lr->old_object) {
                     // Append Rollback decision to log.
+                    // This isn't really required since recovery will skip deserializing transactions 
+                    // which don't have a commit marker; we do it for completeness anyway. 
+                    rdb->rollback_tx(trx);
                     return false;
                 }
             }

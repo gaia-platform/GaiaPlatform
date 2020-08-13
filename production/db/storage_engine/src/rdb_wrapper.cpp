@@ -34,10 +34,8 @@ Status rdb_wrapper::open() {
     rocksdb::TransactionDBOptions options{};
     rocksdb::Options initoptions{};
     // Every write to the log will require an fsync.
-    // Note that RocksDB will perform 1 fsync for a 'group' of parallel transactions.
     initoptions.use_fsync = true;
-    // With the current implementation (unoptimized) each transaction will write to the log twice
-    // in the commit path; once to prepare & once to append the commit decision to the log.
+    // Implies 2PC log writes.
     initoptions.allow_2pc = true;
     // Create a new database directory if one doesn't exist.
     initoptions.create_if_missing = true;
@@ -61,8 +59,6 @@ void rdb_wrapper::commit_tx(gaia_xid_t transaction_id, rocksdb::Transaction* trx
     
     // Ideally, this should always go through as RocksDB validation is switched off.
     // For now, abort if commit fails.
-
-    // Before calling rollback, look at the rollback API impl.
     if (!status.ok()) {
         abort();
     }
@@ -72,6 +68,10 @@ rocksdb::Transaction* rdb_wrapper::begin_tx(gaia_xid_t transaction_id) {
     rocksdb::WriteOptions writeOptions{};
     rocksdb::TransactionOptions txnOptions{};
     return rdb_internal->begin_txn(writeOptions, txnOptions, transaction_id);
+}
+
+rocksdb::Status rdb_wrapper::rollback_tx(rocksdb::Transaction* trx) {
+    return rdb_internal->rollback(trx);
 }
 
 Status rdb_wrapper::prepare_tx(gaia_xid_t transaction_id, rocksdb::Transaction* trx) {
@@ -113,12 +113,15 @@ Status rdb_wrapper::prepare_tx(gaia_xid_t transaction_id, rocksdb::Transaction* 
 /**
  * This API will read the entire LSM in sorted order and construct 
  * gaia_objects using the create API.
- * Population the transactional log will be skipped. 
- * Additionally, this method will recover the max gaia_id seen by previous 
+ * Additionally, this method will recover the max gaia_id/transaction_id's seen by previous 
  * incarnations of the database. 
  * 
+ * Todo (msj) The current implementation has an issue where deleted gaia_ids may get recycled post 
+ * recovery. Both the last seen gaia_id & transaction_id need to be
+ * persisted to the RocksDB manifest. https://github.com/facebook/rocksdb/wiki/MANIFEST
+ * 
  * Note that, for now we skip validating the existence of object references on recovery, 
- * since these aren't checked during object creation either. 
+ * since these aren't validated during object creation either. 
  */
 void rdb_wrapper::recover() {
     rocksdb::Iterator* it = rdb_internal->get_iterator();
@@ -129,8 +132,6 @@ void rdb_wrapper::recover() {
     }
 
     se_base::set_id(max_id + 1);
-
-    // Purge the log.
 
     delete it; 
 }
