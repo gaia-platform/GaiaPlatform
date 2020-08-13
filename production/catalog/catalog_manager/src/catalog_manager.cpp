@@ -414,9 +414,10 @@ gaia_id_t catalog_manager_t::create_table_impl(
                 // Forward declaration is not supported right now.
                 throw table_not_exists(field->table_type_name);
             }
-            position = ++reference_position;
+            // The field ID/position values must be a contiguous range from 0 onwards.
+            position = reference_position++;
         } else {
-            position = ++field_position;
+            position = field_position++;
         }
         gaia_id_t field_id = gaia_field_t::insert_row(
             field->name.c_str(),               // name

@@ -241,10 +241,15 @@ string generate_bfbs(const string &fbs) {
 }
 
 string get_bfbs(gaia_id_t table_id) {
-    gaia::db::begin_transaction();
+    bool is_transaction_owner = !gaia::db::is_transaction_active();
+    if (is_transaction_owner) {
+        gaia::db::begin_transaction();
+    }
     gaia_table_t table = gaia_table_t::get(table_id);
     string base64_binary_schema = table.binary_schema();
-    gaia::db::commit_transaction();
+    if (is_transaction_owner) {
+        gaia::db::commit_transaction();
+    }
     return base64_decode(base64_binary_schema);
 }
 

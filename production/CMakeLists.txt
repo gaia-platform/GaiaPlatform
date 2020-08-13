@@ -147,6 +147,7 @@ endif()
 
 # Add flatbuffers
 add_subdirectory(${FLATBUFFERS} flatbuffers)
+set_property (TARGET flatbuffers PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # Add individual component folders.
 add_subdirectory(common)

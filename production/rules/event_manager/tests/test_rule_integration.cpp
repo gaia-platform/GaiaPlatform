@@ -17,6 +17,7 @@
 #include "gaia_system.hpp"
 #include "gaia_addr_book.h"
 #include "db_test_base.hpp"
+#include "gaia_catalog.h"
 #include "gaia_catalog.hpp"
 #include "gaia_catalog_internal.hpp"
 #include <thread>
@@ -29,10 +30,18 @@ using namespace gaia::direct_access;
 using namespace gaia::rules;
 using namespace std;
 using namespace gaia::addr_book;
+using namespace gaia::catalog;
 
 const char* c_name = "John";
 const char* c_city = "Seattle";
 const char* c_state = "WA";
+const char* c_phone_number = "867-5309";
+const char* c_phone_type = "satellite";
+
+uint16_t c_phone_number_position = 0;
+uint16_t c_phone_type_position = 1;
+uint16_t c_phone_primary_position = 2;
+
 atomic<int> g_wait_for_count;
 bool g_is_initialized = false;
 
@@ -55,7 +64,6 @@ void rule_insert_address(const rule_context_t* context)
 // inserted address.
 void rule_update_address(const rule_context_t* context)
 {
-    auto_transaction_t tx(false);
     EXPECT_EQ(address_t::s_gaia_type, context->gaia_type);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_insert);
     address_t a = address_t::get(context->record);
@@ -67,7 +75,7 @@ void rule_update_address(const rule_context_t* context)
     // to the test thread when we decrement our count and the test would fail.
     // This also tests that the rules scheduler does the right thing when the
     // rule author commits the transaction in a rule.
-    tx.commit();
+    context->transaction.commit();
     g_wait_for_count--;
 }
 
@@ -76,6 +84,22 @@ void rule_update(const rule_context_t* context)
     employee_t e = employee_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_update);
     EXPECT_STREQ(c_name, e.name_first());
+    g_wait_for_count--;
+}
+
+void rule_field_phone_number(const rule_context_t* context)
+{
+    phone_t p = phone_t::get(context->record);
+    EXPECT_EQ(context->event_type, triggers::event_type_t::row_update);
+    EXPECT_STREQ(c_phone_number, p.phone_number());
+    g_wait_for_count--;
+}
+
+void rule_field_phone_type(const rule_context_t* context)
+{
+    phone_t p = phone_t::get(context->record);
+    EXPECT_EQ(context->event_type, triggers::event_type_t::row_update);
+    EXPECT_STREQ(c_phone_type, p.type());
     g_wait_for_count--;
 }
 
@@ -142,6 +166,50 @@ public:
         subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule);
     }
 
+    // We have two rules:  rule_field_phone_number and rule_phone_type.
+    // The former is fired when phone_number changes and the latter is
+    // fired when the type changes.  Both will fire if the 'primary' field
+    // is changed.  This tests the following cases:
+    // One rule subscribing to multiple active fields
+    // Multiple rules suscribing to multiple active fields.
+    void subscribe_field(uint16_t field_position)
+    {
+        field_list_t fields;
+        fields.insert(field_position);
+        fields.insert(c_phone_primary_position);
+
+        rule_binding_t binding{"ruleset", nullptr, nullptr};
+
+        if (field_position == c_phone_number_position)
+        {
+            binding.rule_name = "rule_field_phone_number";
+            binding.rule = rule_field_phone_number;
+        }
+        else if (field_position == c_phone_type_position)
+        {
+            binding.rule_name = "rule_field_phone_type";
+            binding.rule = rule_field_phone_type;
+        }
+
+        subscribe_rule(phone_t::s_gaia_type, triggers::event_type_t::row_update, fields, binding);
+    }
+
+    void mark_phone_table_fields_active()
+    {
+        // TODO: suppport specifying active field via DDL.
+        begin_transaction();
+        {
+            for (gaia_id_t field_id : list_fields(phone_t::s_gaia_type))
+            {
+                // Mark all fields as active so that we can bind to them
+                gaia_field_writer w = gaia_field_t::get(field_id).writer();
+                w.active = true;
+                w.update_row();
+            }
+        }
+        commit_transaction();
+    }
+
 protected:
     rule_integration_test() : db_test_base_t(true) {
     }
@@ -156,7 +224,9 @@ protected:
             gaia::db::begin_session();
             // NOTE: For the unit test setup, we need to init catalog and load test tables before rules engine starts.
             //       Otherwise, the event log activities will cause out of order test table IDs.
-            gaia::catalog::load_catalog(ddl_file);
+            load_catalog(ddl_file);
+            mark_phone_table_fields_active();
+
             gaia::rules::initialize_rules_engine();
 
             g_is_initialized = true;
@@ -224,6 +294,79 @@ TEST_F(rule_integration_test, test_update)
             writer.name_first = c_name;
             writer.update_row();
         tx.commit();
+    }
+}
+
+// Test single rule, single active field binding.
+TEST_F(rule_integration_test, test_update_field)
+{
+    subscribe_field(c_phone_number_position);
+    {
+        rule_monitor_t monitor(1);
+        auto_transaction_t tx(true);
+            phone_writer writer;
+            writer.phone_number = "111-1111";
+            phone_t p = phone_t::get(writer.insert_row());
+        tx.commit();
+            writer = p.writer();
+            writer.phone_number = c_phone_number;
+            writer.update_row();
+        tx.commit();
+    }
+}
+
+// Test that a different rule gets fired for different fields.
+TEST_F(rule_integration_test, test_update_field_multiple_rules)
+{
+    subscribe_field(c_phone_number_position);
+    subscribe_field(c_phone_type_position);
+    {
+        rule_monitor_t monitor(2);
+        auto_transaction_t tx(true);
+        phone_writer writer;
+        writer.phone_number = "111-1111";
+        //writer.type = "home";
+        phone_t p = phone_t::get(writer.insert_row());
+        tx.commit();
+        writer = p.writer();
+        writer.phone_number = c_phone_number;
+        writer.type = c_phone_type;
+        writer.update_row();
+        tx.commit();
+    }
+}
+
+// Test that the same rule gets fired for different active fields.
+TEST_F(rule_integration_test, test_update_field_single_rule)
+{
+    subscribe_field(c_phone_number_position);
+    {
+        gaia_id_t phone_id;
+        auto_transaction_t tx;
+
+        phone_writer writer;
+        writer.phone_number = "111-1111";
+        writer.primary = false;
+        phone_id = writer.insert_row();
+        tx.commit();
+
+        {
+            // Changing the phone number should fire a rule.
+            rule_monitor_t monitor(1);
+            phone_writer writer = phone_t::get(phone_id).writer();
+            writer.phone_number = c_phone_number;
+            writer.update_row();
+            tx.commit();
+        }
+
+        {
+            // Changing the primary field should fire the rule.
+            rule_monitor_t monitor(1);
+            phone_writer writer = phone_t::get(phone_id).writer();
+            writer.primary = true;
+            writer.update_row();
+            tx.commit();
+        }
     }
 }
 

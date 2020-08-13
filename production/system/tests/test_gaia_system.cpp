@@ -22,6 +22,7 @@
 using namespace std;
 using namespace gaia::db;
 using namespace gaia::db::triggers;
+using namespace gaia::catalog;
 using namespace gaia::rules;
 using namespace gaia::common;
 using namespace gaia::addr_book;
@@ -73,6 +74,7 @@ protected:
         end_session();
         db_test_base_t::TearDown();
     }
+
 };
 
 // This method will perform multiple transactions on the current client thread.
@@ -86,18 +88,19 @@ void perform_transactions(uint32_t count_transactions, uint32_t crud_operations_
         rule_per_commit_count = 0;
         begin_transaction();
         // Insert row.
-        auto w = employee_writer();
+        employee_writer w;
         w.name_first = "name";
         gaia_id_t id = w.insert_row();
         auto e = employee_t::get(id);
 
         // Update row.
-        e.writer().name_first = "name2";
-        e.writer().update_row();
+        w = e.writer();
+        w.name_first = "updated_name";
+        w.update_row();
 
         // Delete row.
-        e.delete_row();
-        commit_transaction();
+        employee_t::delete_row(id);
+        gaia::db::commit_transaction();
 
         // We should get crud_operations_per_tx per commit.  Wait for them.
         while (rule_per_commit_count < crud_operations_per_tx)
@@ -112,19 +115,6 @@ void perform_transactions(uint32_t count_transactions, uint32_t crud_operations_
 }
 
 void validate_and_end_test(uint32_t count_tx, uint32_t crud_operations_per_tx, uint32_t count_threads) {
-    // Total wait time is 10 seconds
-    // uint32_t wait_time_ms = 100;
-    // uint32_t wait_loop_count = 10;
-    // The event_trigger_threadpool will invoke the rules engine on a separate thread from the client thread.
-    // Each thread in the pool will lazily initialize a server session thus the first execution will be slow.
-    // which is why we have a dumb while loop for now.
-
-    /*
-    while(rule_count != count_tx * crud_operations_per_tx * count_threads && count < 100) {
-        count ++;
-        //std::this_thread::sleep_for(std::chrono::milliseconds(100) );
-    }
-    */
     EXPECT_EQ(rule_count, count_tx * crud_operations_per_tx * count_threads);
 }
 
