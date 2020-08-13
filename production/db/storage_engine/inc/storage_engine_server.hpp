@@ -165,21 +165,17 @@ class server : private se_base {
         }
     }
 
-    // Should just run once for the lifetime of a server process.
-    // Todo: Close rocksdb when server process dies via RAII & wrap 
-    // 'rdb' object in a unique ptr.
     static void recover_db() {
-        // Open rocksdb just once.
+        // Open RocksDB just once.
         if (!rocksdb_is_open) {
             rdb = std::unique_ptr<rdb_wrapper>(new gaia::db::rdb_wrapper());
             rocksdb::Status status = rdb->open();
             assert(status.ok());
             rocksdb_is_open = true;
         }
-        // Called when memory is initialized. 
         // Anonymous mapping should be blown away on each re-init (via clear_shared_memory())
-        // and therefore it is safe to repopulate gaia in-memory state in case this API 
-        // gets called again.
+        // and therefore it is safe to repopulate gaia in-memory state in case the 'recover_db()' API 
+        // gets called repeatedly.
         rdb->recover(); 
     }
 
@@ -534,7 +530,7 @@ class server : private se_base {
         rocksdb::Transaction* trx = rdb->begin_tx(s_transaction_id);
         
         // Prepare tx
-        rdb->prepare_tx(s_transaction_id, trx);
+        rdb->prepare_tx(trx);
         
         for (auto i = 0; i < s_log->count; i++) {
             auto lr = s_log->log_records + i;
@@ -555,8 +551,8 @@ class server : private se_base {
             (*s_shared_offsets)[lr->row_id] = lr->new_object;
         }
 
-        // Append commit decision to WAL.
-        rdb->commit_tx(s_transaction_id, trx);
+        // Append commit decision to the log.
+        rdb->commit_tx(trx);
 
         return true;
     }

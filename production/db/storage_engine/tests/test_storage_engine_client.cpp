@@ -66,8 +66,6 @@ void print_node(const gaia_ptr& node, const bool indent=false)
     std::cerr << std::endl;
 }
 
-// Undeterministic tests since rand() can return a previously existing gaia_id.
-// Todo(msj): Blow away persistent directory after each test.
 gaia_id_t node1_id = 1;
 gaia_id_t node2_id = 2;
 gaia_id_t node3_id = 3;

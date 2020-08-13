@@ -126,6 +126,9 @@ bool PessimisticTransaction::IsExpired() const {
   return false;
 }
 
+/**
+ * Switch off validation in the RocksDB commit path.
+ */ 
 WriteCommittedTxn::WriteCommittedTxn(TransactionDB* txn_db,
                                      const WriteOptions& write_options,
                                      const TransactionOptions& txn_options)

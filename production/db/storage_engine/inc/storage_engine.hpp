@@ -94,7 +94,6 @@ class se_base {
             int64_t old_object;
             int64_t new_object;
             gaia_id_t id;
-            gaia_type_t type;
             gaia_operation_t operation;
         } log_records[MAX_LOG_RECS];
     };

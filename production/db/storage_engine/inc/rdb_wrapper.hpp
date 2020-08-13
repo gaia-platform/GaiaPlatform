@@ -48,13 +48,13 @@ namespace db
              * Prepare will serialize the transaction to the log. w
              * Similarly, rollback will append a rollback marker to the log.
              */ 
-            rocksdb::Status prepare_tx(gaia_xid_t transaction_id, rocksdb::Transaction* trx);
+            rocksdb::Status prepare_tx(rocksdb::Transaction* trx);
 
             /** 
              * This method will append a commit marker with the appropriate
              * transaction_id to the log.
              */
-            void commit_tx(gaia_xid_t transaction_id, rocksdb::Transaction* trx);
+            void commit_tx(rocksdb::Transaction* trx);
 
             /**
              * Similarly, rollback will append a rollback marker to the log. 

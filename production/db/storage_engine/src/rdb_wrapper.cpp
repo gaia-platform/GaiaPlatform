@@ -54,7 +54,7 @@ void rdb_wrapper::destroy() {
     rdb_internal->destroy();
 }
 
-void rdb_wrapper::commit_tx(gaia_xid_t transaction_id, rocksdb::Transaction* trx) {
+void rdb_wrapper::commit_tx(rocksdb::Transaction* trx) {
     rocksdb::Status status = rdb_internal->commit_txn(trx);
     
     // Ideally, this should always go through as RocksDB validation is switched off.
@@ -74,7 +74,7 @@ rocksdb::Status rdb_wrapper::rollback_tx(rocksdb::Transaction* trx) {
     return rdb_internal->rollback(trx);
 }
 
-Status rdb_wrapper::prepare_tx(gaia_xid_t transaction_id, rocksdb::Transaction* trx) {
+Status rdb_wrapper::prepare_tx(rocksdb::Transaction* trx) {
     auto s_log = se_base::s_log;
 
     for (auto i = 0; i < s_log->count; i++) {
