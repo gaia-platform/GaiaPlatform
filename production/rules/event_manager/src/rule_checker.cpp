@@ -104,7 +104,7 @@ ruleset_not_found::ruleset_not_found(const char* ruleset_name)
 //
 // Rule Checker implementation. 
 // 
-void rule_checker_t::check_catalog(gaia_type_t type, const field_list_t& field_list)
+void rule_checker_t::check_catalog(gaia_type_t type, const field_position_list_t& field_list)
 {
     auto_transaction_t transaction;
     check_table_type(type);
@@ -137,7 +137,7 @@ void rule_checker_t::check_table_type(gaia_type_t type)
 
 // This function assumes that a transaction has been started and that the table
 // type exists in the catalog.
-void rule_checker_t::check_fields(gaia_type_t type, const field_list_t& field_list)
+void rule_checker_t::check_fields(gaia_type_t type, const field_position_list_t& field_list)
 {
     if (0 == field_list.size())
     {

@@ -81,9 +81,9 @@ protected:
         gaia::system::initialize();
         load_catalog();
 
-        field_list_t fields;
+        field_position_list_t fields;
         // We only have 1 field in this test.
-        fields.insert(0);
+        fields.push_back(0);
         
         // Initialize rules after loading the catalog.
         rule_binding_t m_rule1{"ruleset1_name", "rule1_name", rule1};

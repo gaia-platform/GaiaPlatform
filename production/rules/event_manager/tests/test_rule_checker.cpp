@@ -136,8 +136,8 @@ TEST_F(rule_checker_test, table_found)
 TEST_F(rule_checker_test, field_not_found)
 {
     rule_checker_t rule_checker;
-    field_list_t fields;
-    fields.insert(1000);
+    field_position_list_t fields;
+    fields.push_back(1000);
     const char* message = "Field (position:1000) was not found in table";
     verify_exception(message, [&](){
         rule_checker.check_catalog(g_table_type, fields);
@@ -148,16 +148,16 @@ TEST_F(rule_checker_test, active_field)
 {
     rule_checker_t rule_checker;
 
-    field_list_t fields;
-    fields.insert(g_field_positions["active"]);
+    field_position_list_t fields;
+    fields.push_back(g_field_positions["active"]);
     rule_checker.check_catalog(g_table_type, fields);
 }
 
 TEST_F(rule_checker_test, inactive_field)
 {
     rule_checker_t rule_checker;
-    field_list_t fields;
-    fields.insert(g_field_positions["inactive"]);
+    field_position_list_t fields;
+    fields.push_back(g_field_positions["inactive"]);
     const char* message = "not marked as active";
 
     verify_exception(message, [&](){
@@ -168,8 +168,8 @@ TEST_F(rule_checker_test, inactive_field)
 TEST_F(rule_checker_test, deprecated_field)
 {
     rule_checker_t rule_checker;
-    field_list_t fields;
-    fields.insert(g_field_positions["deprecated"]);
+    field_position_list_t fields;
+    fields.push_back(g_field_positions["deprecated"]);
     const char* message = "deprecated";
 
     verify_exception(message, [&](){
@@ -180,18 +180,18 @@ TEST_F(rule_checker_test, deprecated_field)
 TEST_F(rule_checker_test, multiple_valid_fields)
 {
     rule_checker_t rule_checker;
-    field_list_t fields;
-    fields.insert(g_field_positions["active"]);
-    fields.insert(g_field_positions["valid"]);
+    field_position_list_t fields;
+    fields.push_back(g_field_positions["active"]);
+    fields.push_back(g_field_positions["valid"]);
     rule_checker.check_catalog(g_table_type, fields);
 }
 
 TEST_F(rule_checker_test, multiple_invalid_fields)
 {
     rule_checker_t rule_checker;
-    field_list_t fields;
-    fields.insert(g_field_positions["inactive"]);
-    fields.insert(g_field_positions["deprecated"]);
+    field_position_list_t fields;
+    fields.push_back(g_field_positions["inactive"]);
+    fields.push_back(g_field_positions["deprecated"]);
     // Mainly checking we get any field exception here so just
     // search for the (position: substring without specifying
     // which of the two fields above failed first.
@@ -205,9 +205,9 @@ TEST_F(rule_checker_test, multiple_invalid_fields)
 TEST_F(rule_checker_test, multiple_fields)
 {
     rule_checker_t rule_checker;
-    field_list_t fields;
-    fields.insert(g_field_positions["active"]);
-    fields.insert(g_field_positions["inactive"]);
+    field_position_list_t fields;
+    fields.push_back(g_field_positions["active"]);
+    fields.push_back(g_field_positions["inactive"]);
     const char* message = "not marked as active";
 
     verify_exception(message, [&](){
