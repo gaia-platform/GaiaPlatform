@@ -172,173 +172,173 @@ TEST_F(storage_engine_client_test, read_data) {
     commit_transaction();
 }
 
-// TEST_F(storage_engine_client_test, update_payload) {
-//     auto payload = "payload str";
-//     begin_transaction();
-//     {
-//         std::cerr << std::endl;
-//         std::cerr << "*** Update payload and verify" << std::endl;
-//         try
-//         {
-//             gaia_ptr node1 = gaia_ptr::open(node1_id);
-//             print_node(node1);
-//             node1.update_payload(strlen(payload), payload);
-//             print_node(node1);
-//             EXPECT_STREQ(node1.data(), payload);
-//         }
-//         catch(const std::exception& e)
-//         {
-//             std::cerr << e.what() << '\n';
-//         }
-//         std::cerr << std::endl;
-//     }
-//     commit_transaction();
+TEST_F(storage_engine_client_test, update_payload) {
+    auto payload = "payload str";
+    begin_transaction();
+    {
+        std::cerr << std::endl;
+        std::cerr << "*** Update payload and verify" << std::endl;
+        try
+        {
+            gaia_ptr node1 = gaia_ptr::open(node1_id);
+            print_node(node1);
+            node1.update_payload(strlen(payload), payload);
+            print_node(node1);
+            EXPECT_STREQ(node1.data(), payload);
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+        std::cerr << std::endl;
+    }
+    commit_transaction();
 
-//     begin_transaction();
-//     {
-//         std::cerr << std::endl;
-//         std::cerr << "*** Reload data and verify update" << std::endl;
-//         try
-//         {
-//             gaia_ptr node1 = gaia_ptr::open(node1_id);
-//             print_node(node1);
-//             EXPECT_STREQ(node1.data(), payload);
-//         }
-//         catch(const std::exception& e)
-//         {
-//             std::cerr << e.what() << '\n';
-//         }
-//         std::cerr << std::endl;
-//     }
-//     commit_transaction();
-// }
+    begin_transaction();
+    {
+        std::cerr << std::endl;
+        std::cerr << "*** Reload data and verify update" << std::endl;
+        try
+        {
+            gaia_ptr node1 = gaia_ptr::open(node1_id);
+            print_node(node1);
+            EXPECT_STREQ(node1.data(), payload);
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+        std::cerr << std::endl;
+    }
+    commit_transaction();
+}
 
-// TEST_F(storage_engine_client_test, update_payload_rollback) {
-//     auto payload = "payload str";
-//     begin_transaction();
-//     {
-//         std::cerr << std::endl;
-//         std::cerr << "*** Update payload and verify" << std::endl;
-//         try
-//         {
-//             gaia_ptr node1 = gaia_ptr::open(node1_id);
-//             print_node(node1);
-//             node1.update_payload(strlen(payload), payload);
-//             print_node(node1);
-//             EXPECT_STREQ(node1.data(), payload);
-//         }
-//         catch(const std::exception& e)
-//         {
-//             std::cerr << e.what() << '\n';
-//         }
-//         std::cerr << std::endl;
-//     }
-//     rollback_transaction();
+TEST_F(storage_engine_client_test, update_payload_rollback) {
+    auto payload = "payload str";
+    begin_transaction();
+    {
+        std::cerr << std::endl;
+        std::cerr << "*** Update payload and verify" << std::endl;
+        try
+        {
+            gaia_ptr node1 = gaia_ptr::open(node1_id);
+            print_node(node1);
+            node1.update_payload(strlen(payload), payload);
+            print_node(node1);
+            EXPECT_STREQ(node1.data(), payload);
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+        std::cerr << std::endl;
+    }
+    rollback_transaction();
 
-//     begin_transaction();
-//     {
-//         std::cerr << std::endl;
-//         std::cerr << "*** Reload data and verify update" << std::endl;
-//         try
-//         {
-//             gaia_ptr node1 = gaia_ptr::open(node1_id);
-//             print_node(node1);
-//             EXPECT_EQ(node1.data(), nullptr);
-//         }
-//         catch(const std::exception& e)
-//         {
-//             std::cerr << e.what() << '\n';
-//         }
-//         std::cerr << std::endl;
-//     }
-//     commit_transaction();
-// }
+    begin_transaction();
+    {
+        std::cerr << std::endl;
+        std::cerr << "*** Reload data and verify update" << std::endl;
+        try
+        {
+            gaia_ptr node1 = gaia_ptr::open(node1_id);
+            print_node(node1);
+            EXPECT_EQ(node1.data(), nullptr);
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+        std::cerr << std::endl;
+    }
+    commit_transaction();
+}
 
-// TEST_F(storage_engine_client_test, iterate_type) {
-//     begin_transaction();
-//     {
-//         std::cerr << std::endl;
-//         std::cerr << "*** Iterating over nodes of type 1:" << std::endl;
+TEST_F(storage_engine_client_test, iterate_type) {
+    begin_transaction();
+    {
+        std::cerr << std::endl;
+        std::cerr << "*** Iterating over nodes of type 1:" << std::endl;
 
-//         try
-//         {
-//             gaia_type_t type = type1;
-//             gaia_id_t id = node1_id;
-//             for (auto node_iter = gaia_ptr::find_first(type);
-//                 node_iter;
-//                 node_iter = node_iter.find_next())
-//             {
-//                 print_node(node_iter);
-//                 EXPECT_EQ(node_iter.id(), id);
-//                 id++;
-//             }
+        try
+        {
+            gaia_type_t type = type1;
+            gaia_id_t id = node1_id;
+            for (auto node_iter = gaia_ptr::find_first(type);
+                node_iter;
+                node_iter = node_iter.find_next())
+            {
+                print_node(node_iter);
+                EXPECT_EQ(node_iter.id(), id);
+                id++;
+            }
 
-//             std::cerr << std::endl;
-//             std::cerr << "*** Iterating over nodes of type 2:" << std::endl;
-//             type = type2;
-//             for (auto node_iter = gaia_ptr::find_first(type);
-//                 node_iter;
-//                 node_iter = node_iter.find_next())
-//             {
-//                 print_node(node_iter);
-//                 EXPECT_EQ(node_iter.id(), id);
-//                 id++;
-//             }
+            std::cerr << std::endl;
+            std::cerr << "*** Iterating over nodes of type 2:" << std::endl;
+            type = type2;
+            for (auto node_iter = gaia_ptr::find_first(type);
+                node_iter;
+                node_iter = node_iter.find_next())
+            {
+                print_node(node_iter);
+                EXPECT_EQ(node_iter.id(), id);
+                id++;
+            }
 
-//             std::cerr << std::endl;
-//         }
-//         catch(const std::exception& e)
-//         {
-//             std::cerr << e.what() << '\n';
-//         }
+            std::cerr << std::endl;
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
 
-//         std::cerr << std::endl;
-//     }
-//     commit_transaction();
-// }
+        std::cerr << std::endl;
+    }
+    commit_transaction();
+}
 
-// TEST_F(storage_engine_client_test, iterate_type_delete) {
-//     begin_transaction();
-//     {
-//         try
-//         {
-//             std::cerr << std::endl;
-//             std::cerr << "*** Iterating over nodes of type 1 before delete:" << std::endl;
-//             auto node_iter = gaia_ptr::find_first(type1);
-//             print_node(node_iter);
-//             EXPECT_EQ(node_iter.id(), node1_id);
-//             std::cerr << std::endl;
-//             std::cerr << "*** Preparing to delete first node of type 1:" << std::endl;
-//             gaia_ptr::remove(node_iter);
-//             std::cerr << "*** Iterating over nodes of type 1 after delete:" << std::endl;
-//             node_iter = gaia_ptr::find_first(type1);
-//             print_node(node_iter);
-//             EXPECT_EQ(node_iter.id(), node2_id);
-//         }
-//         catch(const std::exception& e)
-//         {
-//             std::cerr << e.what() << '\n';
-//         }
+TEST_F(storage_engine_client_test, iterate_type_delete) {
+    begin_transaction();
+    {
+        try
+        {
+            std::cerr << std::endl;
+            std::cerr << "*** Iterating over nodes of type 1 before delete:" << std::endl;
+            auto node_iter = gaia_ptr::find_first(type1);
+            print_node(node_iter);
+            EXPECT_EQ(node_iter.id(), node1_id);
+            std::cerr << std::endl;
+            std::cerr << "*** Preparing to delete first node of type 1:" << std::endl;
+            gaia_ptr::remove(node_iter);
+            std::cerr << "*** Iterating over nodes of type 1 after delete:" << std::endl;
+            node_iter = gaia_ptr::find_first(type1);
+            print_node(node_iter);
+            EXPECT_EQ(node_iter.id(), node2_id);
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
 
-//         std::cerr << std::endl;
-//     }
-//     commit_transaction();
+        std::cerr << std::endl;
+    }
+    commit_transaction();
 
-//     begin_transaction();
-//     {
-//         try
-//         {
-//             std::cerr << std::endl;
-//             std::cerr << "*** Reloading data: iterating over nodes of type 1 after delete:" << std::endl;
-//             auto node_iter = gaia_ptr::find_first(type1);
-//             print_node(node_iter);
-//             EXPECT_EQ(node_iter.id(), node2_id);
-//         }
-//         catch(const std::exception& e)
-//         {
-//             std::cerr << e.what() << '\n';
-//         }
-//         std::cerr << std::endl;
-//     }
-//     commit_transaction();
-// }
+    begin_transaction();
+    {
+        try
+        {
+            std::cerr << std::endl;
+            std::cerr << "*** Reloading data: iterating over nodes of type 1 after delete:" << std::endl;
+            auto node_iter = gaia_ptr::find_first(type1);
+            print_node(node_iter);
+            EXPECT_EQ(node_iter.id(), node2_id);
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+        std::cerr << std::endl;
+    }
+    commit_transaction();
+}
