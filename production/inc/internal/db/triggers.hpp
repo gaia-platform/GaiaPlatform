@@ -26,8 +26,10 @@ struct trigger_event_t {
     event_type_t event_type; // insert, update, delete, begin, commit, rollback
     gaia_id_t gaia_type; // gaia table type, maybe 0 if event has no associated tables
     gaia_id_t record; //row id, may be 0 if if there is no assocated row id
-    const field_position_t* columns; // list of affected columns, may be null
-    size_t count_columns; // count of affected columns, may be zero
+    field_position_list_t columns; // list of affected columns
+
+    trigger_event_t(event_type_t event_type, gaia_id_t gaia_type, gaia_id_t record, field_position_list_t columns):
+        event_type(event_type), gaia_type(gaia_type), record(record), columns(columns) {}
 };
 
 typedef std::vector<trigger_event_t> trigger_event_list_t;
@@ -36,6 +38,11 @@ typedef std::vector<trigger_event_t> trigger_event_list_t;
  * The type of Gaia commit trigger.
  */
 typedef void (*commit_trigger_fn) (uint64_t, trigger_event_list_t);
+
+/**
+ * Use this constant to specify that no fields are needed when generating trigger_event_t.
+ */ 
+const field_position_list_t empty_position_list;
 
 }
 }
