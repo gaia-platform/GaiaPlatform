@@ -546,11 +546,11 @@ protected:
 
             event_type_t event = decl.sub.type;
             gaia_type_t gaia_type = decl.sub.gaia_type;
-            field_list_t fields;
+            field_position_list_t fields;
 
             if (decl.sub.field)
             {
-                fields.insert(decl.sub.field);
+                fields.push_back(decl.sub.field);
 
             }
             subscribe_rule(gaia_type, event, fields, binding);
@@ -605,8 +605,8 @@ protected:
 
 TEST_F(event_manager_test, invalid_subscription)
 {
-    field_list_t fields;
-    fields.insert(1);
+    field_position_list_t fields;
+    fields.push_back(1);
     
     // TODO[GAIAPLAT-194]: Transaction Events are out of scope for Q2
 
@@ -657,8 +657,8 @@ TEST_F(event_manager_test, log_database_event_single_event_single_rule) {
 TEST_F(event_manager_test, log_field_event_single_event_single_rule) {
 
     // Ensure we have field level granularity.
-    field_list_t fields;
-    fields.insert(s_last_name);
+    field_position_list_t fields;
+    fields.push_back(s_last_name);
     subscribe_rule(TestGaia::s_gaia_type, event_type_t::row_update, fields, m_rule1);
     gaia_id_t record = 999;
 
@@ -679,11 +679,11 @@ TEST_F(event_manager_test, log_field_event_single_event_single_rule) {
 
 TEST_F(event_manager_test, log_field_event_multi_event_single_rule) {
     // Ensure we have field level granularity.
-    field_list_t fields;
+    field_position_list_t fields;
 
     // Rule 1 will fire on any writes to "last_name" or "first_name"
-    fields.insert(s_last_name);
-    fields.insert(s_first_name);
+    fields.push_back(s_last_name);
+    fields.push_back(s_first_name);
 
     subscribe_rule(TestGaia::s_gaia_type, event_type_t::row_update, fields, m_rule1);
 
@@ -708,15 +708,15 @@ TEST_F(event_manager_test, log_field_event_multi_event_single_rule) {
 
 TEST_F(event_manager_test, log_field_event_multi_event_multi_rule) {
     // Ensure we have field level granularity.
-    field_list_t fields;
+    field_position_list_t fields;
 
     // Rule 1 will fire on write to "last_name".
-    fields.insert(s_last_name);
+    fields.push_back(s_last_name);
     subscribe_rule(TestGaia::s_gaia_type, event_type_t::row_update, fields, m_rule1);
 
     // Rule 2 will fire on write to "first_name".
     fields.clear();
-    fields.insert(s_first_name);
+    fields.push_back(s_first_name);
     subscribe_rule(TestGaia::s_gaia_type, event_type_t::row_update, fields, m_rule2);
 
     rule_context_sequence_t sequence;
@@ -812,7 +812,7 @@ TEST_F(event_manager_test, log_event_multi_rule_multi_event)
 
     // Unsubscribe rule1 from delete
     // Rule 2 gets fired
-    field_list_t empty_fields;
+    field_position_list_t empty_fields;
     EXPECT_EQ(true, unsubscribe_rule(TestGaia::s_gaia_type, event_type_t::row_delete, empty_fields, m_rule1));
 
     add_context_sequence(sequence, TestGaia::s_gaia_type, event_type_t::row_delete);
@@ -1113,8 +1113,8 @@ TEST_F(event_manager_test, forward_chain_disallow_cycle)
 
 TEST_F(event_manager_test, forward_chain_field_not_subscribed)
 {
-    field_list_t fields;
-    fields.insert(s_value);
+    field_position_list_t fields;
+    fields.push_back(s_value);
     subscribe_rule(TestGaia::s_gaia_type, event_type_t::row_update, fields, m_rule9);
 
 
@@ -1130,14 +1130,14 @@ TEST_F(event_manager_test, forward_chain_field_not_subscribed)
 /*
 TEST_F(event_manager_test, forward_chain_field_commit)
 {
-    field_list_t fields;
-    fields.insert(s_value);
+    field_position_list_t fields;
+    fields.push_back(s_value);
     subscribe_rule(TestGaia::s_gaia_type, event_type_t::row_update, fields, m_rule9);
     fields.clear();
 
     install_transaction_hooks();
 
-    fields.insert(s_timestamp);
+    fields.push_back(s_timestamp);
     subscribe_rule(TestGaia::s_gaia_type, event_type_t::row_update, fields, m_rule10);
 
     subscribe_rule(0, event_type_t::transaction_commit, empty_fields, m_rule3);
@@ -1162,14 +1162,14 @@ TEST_F(event_manager_test, forward_chain_field_commit)
 
 TEST_F(event_manager_test, forward_chain_field_rollback)
 {
-    field_list_t fields;
-    fields.insert(s_value);
+    field_position_list_t fields;
+    fields.push_back(s_value);
     subscribe_rule(TestGaia::s_gaia_type, event_type_t::row_update, fields, m_rule9);
     fields.clear();
 
     install_transaction_hooks();
 
-    fields.insert(s_timestamp);
+    fields.push_back(s_timestamp);
     subscribe_rule(TestGaia::s_gaia_type, event_type_t::row_update, fields, m_rule10);
     subscribe_rule(0, event_type_t::transaction_rollback, empty_fields, m_rule3);
 

@@ -44,7 +44,7 @@ TEST_F(system_init_test, system_not_initialized_error)
 {
     rule_binding_t dont_care;
     subscription_list_t still_dont_care;
-    field_list_t ignore;
+    field_position_list_t ignore;
 
     EXPECT_THROW(subscribe_rule(0, event_type_t::row_update, ignore, dont_care),
         initialization_error);
