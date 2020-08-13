@@ -116,9 +116,7 @@ class client : private se_base {
         int64_t old_object,
         int64_t new_object,
         // 'id' & 'type' are required to keep track of deleted keys which will be propagated to the persistent layer.
-        // Drawback of this approach is that we're keeping 8 + 8 bytes of memory (for other operations) in the transient log.
-        // One approach would be to introduce a separate log for deleted keys; 
-        // another alternative would be to keep the key as <id> only (as opposed to <type, id>)
+        // Todo (msj)  Update key to be <gaia_id> only instead of <id, type> since type can the obtained from the gaia_ptr.
         gaia_operation_t operation,
         gaia_id_t id = 0,
         gaia_type_t type = 0) {

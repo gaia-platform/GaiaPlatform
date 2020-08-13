@@ -55,9 +55,8 @@ class gaia_ptr {
         gaia_id_t id,
         gaia_type_t type,
         size_t data_size,
-        const void* data,
-        bool log_updates = true) {
-        return create(id, type, 0, data_size, data, log_updates);
+        const void* data) {
+        return create(id, type, 0, data_size, data);
     }
 
     static gaia_ptr create(
@@ -65,11 +64,10 @@ class gaia_ptr {
         gaia_type_t type,
         size_t num_refs,
         size_t data_size,
-        const void* data,
-        bool log_updates = true) {
+        const void* data) {
         size_t refs_len = num_refs * sizeof(gaia_id_t);
         size_t total_len = data_size + refs_len;
-        gaia_ptr obj(id, total_len + sizeof(object), log_updates);
+        gaia_ptr obj(id, total_len + sizeof(object));
         object* obj_ptr = obj.to_ptr();
         obj_ptr->id = id;
         obj_ptr->type = type;
@@ -79,10 +77,7 @@ class gaia_ptr {
         }
         obj_ptr->payload_size = total_len;
         memcpy(obj_ptr->payload + refs_len, data, data_size);
-        // Don't create insert triggers during recovery.
-        if (log_updates) {
-            obj.create_insert_trigger(type, id);
-        }
+        obj.create_insert_trigger(type, id);
         return obj;
     }
 
@@ -170,7 +165,7 @@ class gaia_ptr {
 
     gaia_ptr(const gaia_id_t id);
 
-    gaia_ptr(const gaia_id_t id, const size_t size, bool log_updates = true);
+    gaia_ptr(const gaia_id_t id, const size_t size);
 
     void allocate(const size_t size);
 

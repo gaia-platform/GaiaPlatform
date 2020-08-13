@@ -35,4 +35,4 @@ class gaia_hash_map : public gaia_hash_map_base<gaia_hash_map> {
 };
 
 }  // namespace db
-}  // namespace gaiaF
+}  // namespace gaia

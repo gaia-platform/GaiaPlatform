@@ -7,11 +7,9 @@
 #include "rocksdb/status.h"
 #include "rocksdb/utilities/transaction_db.h"
 
-// This file provides gaia specific functionality to 
-// 1) persist writes to RocksDB &
-// 2) Read from LSM during recovery.
-// Above features are built using the simple RocksDB internal library (rdb_internal.hpp)
-// This file will be called by the storage engine.
+// This file provides gaia specific functionality to persist writes to & read from 
+// RocksDB during recovery.
+// This file will be called by the storage engine & leverages the simple RocksDB internal library (rdb_internal.hpp)
 namespace gaia 
 {
 namespace db 

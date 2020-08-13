@@ -100,7 +100,6 @@ class se_base {
     };
 
     static int s_fd_offsets;
-    static bool is_recovery_completed;
     static data* s_data;
     thread_local static log* s_log;
     thread_local static int s_session_socket;
@@ -152,14 +151,6 @@ class se_base {
     // Only used during recovery.
     static gaia_id_t get_current_id() {
         return s_data->next_id;
-    }
-
-    static void set_recovery_completed() {
-        is_recovery_completed = true;
-    }
-
-    static bool get_recovery_status() {
-        return is_recovery_completed;
     }
 
     static gaia_xid_t allocate_transaction_id() {

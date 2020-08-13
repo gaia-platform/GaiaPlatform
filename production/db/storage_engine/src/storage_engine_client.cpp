@@ -258,17 +258,6 @@ void client::rollback_transaction() {
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
 
-// void client::destroy_persistent_store() {
-//     verify_session_active();
-//     verify_no_tx();
-
-//     // Notify the server that we rolled back this transaction.
-//     // (We don't expect the server to reply to this message.)
-//     FlatBufferBuilder builder;
-//     build_client_request(builder, session_event_t::ROLLBACK_TXN);
-//     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
-// }
-
 // This method returns void on a commit decision and throws on an abort decision.
 // It sends a message to the server containing the fd of this txn's log segment and
 // will block waiting for a reply from the server.

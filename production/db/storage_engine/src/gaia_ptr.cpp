@@ -79,16 +79,12 @@ gaia_ptr::gaia_ptr(const gaia_id_t id) {
     row_id = gaia_hash_map::find(id);
 }
 
-gaia_ptr::gaia_ptr(const gaia_id_t id, const size_t size, bool log_updates)
+gaia_ptr::gaia_ptr(const gaia_id_t id, const size_t size)
     : row_id(0) {
     se_base::hash_node* hash_node = gaia_hash_map::insert(id);
     hash_node->row_id = row_id = client::allocate_row_id(client::s_offsets);
     client::allocate_object(row_id, size, client::s_offsets);
-
-    // Writing to log will be skipped for recovery.
-    if (log_updates) {
-        client::tx_log(row_id, 0, to_offset(), se_base::gaia_operation_t::create);
-    }
+    client::tx_log(row_id, 0, to_offset(), se_base::gaia_operation_t::create);
 }
 
 void gaia_ptr::allocate(const size_t size) {

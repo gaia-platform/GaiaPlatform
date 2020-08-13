@@ -26,8 +26,7 @@ class gaia_ptr_server {
         gaia_type_t type,
         size_t num_refs,
         size_t data_size,
-        const void* data,
-        bool log_updates = true) {
+        const void* data) {
         size_t refs_len = num_refs * sizeof(gaia_id_t);
         size_t total_len = data_size + refs_len;
         object* obj_ptr;
