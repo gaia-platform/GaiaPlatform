@@ -17,7 +17,7 @@ namespace direct_access {
 /**
  * \addtogroup Direct
  * @{
- * 
+ *
  * Implementation of Extended Data Classes. This provides a direct access API
  * for CRUD operations on the database.
  */
@@ -112,7 +112,11 @@ public:
 
     void set_outer(gaia_id_t primary_id) {m_primary_id = primary_id;}
 
+    void insert(gaia_id_t foreign_id);
+
     void insert(T_foreign& foreign_edc);
+
+    void erase(gaia_id_t foreign_id);
 
     void erase(T_foreign& foreign_edc);
 };

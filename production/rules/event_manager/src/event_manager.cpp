@@ -163,7 +163,7 @@ void event_manager_t::enqueue_invocation(const trigger_event_t& event,
 
 void event_manager_t::check_subscription(
     event_type_t event_type,
-    const field_list_t& fields)
+    const field_position_list_t& fields)
 {
     if (event_type == event_type_t::row_delete
         || event_type == event_type_t::row_insert)
@@ -178,7 +178,7 @@ void event_manager_t::check_subscription(
 void event_manager_t::subscribe_rule(
     gaia_type_t gaia_type, 
     event_type_t event_type,
-    const field_list_t& fields,
+    const field_position_list_t& fields,
     const rule_binding_t& rule_binding)
 {
     // If any of these checks fail then an exception is thrown.
@@ -248,7 +248,7 @@ void event_manager_t::subscribe_rule(
 bool event_manager_t::unsubscribe_rule(
     gaia_type_t gaia_type,
     event_type_t event_type, 
-    const field_list_t& fields,
+    const field_position_list_t& fields,
     const rule_binding_t& rule_binding)
 {
     check_rule_binding(rule_binding);
@@ -510,7 +510,7 @@ void gaia::rules::initialize_rules_engine()
 void gaia::rules::subscribe_rule(
     gaia_type_t gaia_type,
     event_type_t event_type,
-    const field_list_t& fields,
+    const field_position_list_t& fields,
     const rule_binding_t& rule_binding)
 {
     event_manager_t::get().subscribe_rule(gaia_type, event_type, fields, rule_binding);
@@ -519,7 +519,7 @@ void gaia::rules::subscribe_rule(
 bool gaia::rules::unsubscribe_rule(
     gaia_type_t gaia_type, 
     event_type_t event_type,
-    const field_list_t& fields, 
+    const field_position_list_t& fields, 
     const gaia::rules::rule_binding_t& rule_binding)
 {
     return event_manager_t::get().unsubscribe_rule(gaia_type, event_type, fields, rule_binding);

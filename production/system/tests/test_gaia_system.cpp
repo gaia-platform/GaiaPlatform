@@ -73,9 +73,9 @@ class gaia_system_test : public db_test_base_t {
         subscribe_rule(employee_t::s_gaia_type, event_type_t::row_insert, empty_fields, m_rule1);
         subscribe_rule(employee_t::s_gaia_type, event_type_t::row_delete, empty_fields, m_rule1);
 
-        field_list_t fields;
+        field_position_list_t fields;
         // We only have 1 field in this test.
-        fields.insert(0);
+        fields.push_back(0);
         subscribe_rule(employee_t::s_gaia_type, event_type_t::row_update, fields, m_rule1);
 
         rule_count = 0;

@@ -4,7 +4,6 @@
 /////////////////////////////////////////////
 
 #include "field_list.hpp"
-#include "types.hpp"
 
 namespace gaia
 {

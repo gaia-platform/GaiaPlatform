@@ -13,7 +13,6 @@
 #include "field_access.hpp"
 #include "gaia_catalog.h"
 #include "gaia_catalog.hpp"
-#include "types.hpp"
 
 namespace gaia {
 namespace db {
