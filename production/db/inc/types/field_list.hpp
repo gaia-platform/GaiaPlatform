@@ -11,7 +11,6 @@
 
 #include "gaia_common.hpp"
 #include "gaia_exception.hpp"
-#include "types.hpp"
 
 using namespace std;
 using namespace gaia::common;

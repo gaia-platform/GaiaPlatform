@@ -56,6 +56,35 @@ TEST_F(gaia_references_test, connect) {
     commit_transaction();
 }
 
+// Repeat above test, but with gaia_id_t members only.
+TEST_F(gaia_references_test, connect_id_member) {
+    begin_transaction();
+
+    // Connect two inserted rows.
+    employee_writer ew;
+    ew.name_first = "Hidalgo";
+    employee_t e3 = employee_t::get(ew.insert_row());
+
+    address_writer aw;
+    aw.city = "Houston";
+    gaia_id_t aid3 = aw.insert_row();
+
+    e3.addresses_list().insert(aid3);
+    int count = 0;
+    for (auto ap : e3.addresses_list()) {
+        if (ap) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, 1 );
+
+    e3.addresses_list().erase(aid3);
+    address_t::delete_row(aid3);
+    e3.delete_row();
+    EXPECT_THROW(address_t::delete_row(12), invalid_node_id);
+    commit_transaction();
+}
+
 
 employee_t create_hierarchy() {
     auto eptr = employee_t::get(

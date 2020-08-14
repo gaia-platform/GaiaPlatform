@@ -172,9 +172,9 @@ public:
     // Multiple rules suscribing to multiple active fields.
     void subscribe_field(uint16_t field_position)
     {
-        field_list_t fields;
-        fields.insert(field_position);
-        fields.insert(c_phone_primary_position);
+        field_position_list_t fields;
+        fields.push_back(field_position);
+        fields.push_back(c_phone_primary_position);
 
         rule_binding_t binding{"ruleset", nullptr, nullptr};
 

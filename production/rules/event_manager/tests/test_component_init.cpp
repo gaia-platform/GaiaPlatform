@@ -27,7 +27,7 @@ TEST_F(component_init_test, component_not_initialized_error)
 {
     rule_binding_t dont_care;
     subscription_list_t still_dont_care;
-    field_list_t ignore;
+    field_position_list_t ignore;
 
     EXPECT_THROW(subscribe_rule(0, event_type_t::row_update, ignore, dont_care),
         initialization_error);
@@ -47,8 +47,8 @@ TEST_F(component_init_test, component_initialized)
 {
     rule_binding_t binding("ruleset", "rulename", rule);
     subscription_list_t subscriptions;
-    field_list_t fields;
-    fields.insert(10);
+    field_position_list_t fields;
+    fields.push_back(10);
 
     // Custom init disables catalog checks.
     event_manager_settings_t settings{SIZE_MAX, true};

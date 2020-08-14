@@ -9,7 +9,6 @@
 #include <memory>
 #include <vector>
 #include <set>
-#include <unordered_set>
 
 #include "events.hpp"
 #include "gaia_common.hpp"
@@ -107,15 +106,10 @@ struct subscription_t {
 typedef std::vector<std::unique_ptr<subscription_t>> subscription_list_t;
 
 /**
- * Caller provide a list of fields to bind to field_change events
- */
-typedef std::unordered_set<uint16_t> field_list_t;
-
-/**
  * Use this constant to specify that no fields are needed for the
  * subscribe_rule call.
  */ 
-const field_list_t empty_fields;
+const field_position_list_t empty_fields;
 
 /**
  * Enumeration for the last database operation performed for a given gaia type.
@@ -277,7 +271,7 @@ void initialize_rules_engine();
 void subscribe_rule(
     gaia::common::gaia_type_t gaia_type, 
     gaia::db::triggers::event_type_t event_type,
-    const field_list_t& fields,
+    const field_position_list_t& fields,
     const rule_binding_t& rule_binding);
 
 /**
@@ -294,7 +288,7 @@ void subscribe_rule(
 bool unsubscribe_rule(
     gaia::common::gaia_type_t gaia_type, 
     gaia::db::triggers::event_type_t type, 
-    const field_list_t& fields,
+    const field_position_list_t& fields,
     const rule_binding_t& rule_binding);
 
 /**

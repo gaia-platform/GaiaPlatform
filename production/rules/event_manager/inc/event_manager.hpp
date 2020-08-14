@@ -47,13 +47,13 @@ public:
     void subscribe_rule(
         gaia::common::gaia_type_t gaia_type,
         event_type_t event_type,
-        const field_list_t& fields,
+        const field_position_list_t& fields,
         const rule_binding_t& rule_binding);
 
     bool unsubscribe_rule(
       gaia::common::gaia_type_t gaia_type, 
       event_type_t event_type,
-      const field_list_t& fields,
+      const field_position_list_t& fields,
       const rule_binding_t& rule_binding);
 
     void unsubscribe_rules();
@@ -138,7 +138,7 @@ private:
     void add_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     bool remove_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     void enqueue_invocation(const trigger_event_t& event, const _rule_binding_t* rule_binding);
-    void check_subscription(event_type_t event_type, const field_list_t& fields);
+    void check_subscription(event_type_t event_type, const field_position_list_t& fields);
     static inline void check_rule_binding(const rule_binding_t& binding)
     {
         if (nullptr == binding.rule 
