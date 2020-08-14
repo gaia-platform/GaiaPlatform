@@ -284,7 +284,20 @@ string insertRulePreamble(string rule, string preamble)
     return "{" + preamble + rule.substr(ruleCodeStart + 1);
 }
 
-bool findNavigationPath(string src, string dst, vector<NavigationData> &currentPath)
+bool checkCircularLink(const string& table, vector<NavigationData> &currentPath)
+{
+    for (auto p : currentPath)
+    {
+        if (p.name == table)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool findNavigationPath(const string& src, const string& dst, vector<NavigationData> &currentPath)
 {
     if (src == dst)
     {
@@ -296,19 +309,22 @@ bool findNavigationPath(string src, string dst, vector<NavigationData> &currentP
     {      
         if (it != table_Relationship_1.end())
         {
-            NavigationData data = { it->second.table, it->second.field, true };
-            currentPath.push_back(data);
-            if (it->second.table == dst)
-            {              
-                return true;
-            }
-            if (findNavigationPath(it->second.table, dst, currentPath))
+            if (!checkCircularLink(it->second.table,currentPath))
             {
-                return true;
-            }
-            else
-            {
-                currentPath.pop_back();
+                NavigationData data = { it->second.table, it->second.field, true };
+                currentPath.push_back(data);
+                if (it->second.table == dst)
+                {              
+                    return true;
+                }
+                if (findNavigationPath(it->second.table, dst, currentPath))
+                {
+                    return true;
+                }
+                else
+                {
+                    currentPath.pop_back();
+                }
             }
         }
     }
@@ -318,19 +334,22 @@ bool findNavigationPath(string src, string dst, vector<NavigationData> &currentP
     {
         if (it != table_Relationship_N.end())
         {
-            NavigationData data = { it->second.table, it->second.field, false };
-            currentPath.push_back(data);
-            if (it->second.table == dst)
-            {              
-                return true;
-            }
-            if (findNavigationPath(it->second.table, dst, currentPath))
+            if (!checkCircularLink(it->second.table,currentPath))
             {
-                return true;
-            }
-            else
-            {
-                currentPath.pop_back();
+                NavigationData data = { it->second.table, it->second.field, false };
+                currentPath.push_back(data);
+                if (it->second.table == dst)
+                {              
+                    return true;
+                }
+                if (findNavigationPath(it->second.table, dst, currentPath))
+                {
+                    return true;
+                }
+                else
+                {
+                    currentPath.pop_back();
+                }
             }
         }
     }
