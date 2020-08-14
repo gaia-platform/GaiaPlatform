@@ -99,7 +99,7 @@ static string generate_boilerplate_top(string dbname) {
     code += "using namespace std;";
     code += "using namespace gaia::direct_access;";
     code += "";
-    code += "namespace gaia {";
+    code += "namespace " + c_gaia_namespace + " {";
     if (!dbname.empty()) {
         code += "namespace {{DBNAME}} {";
     }
@@ -113,7 +113,7 @@ static string generate_boilerplate_bottom(string dbname) {
     if (!dbname.empty()) {
         code += "}  // namespace {{DBNAME}}";
     }
-    code += "}  // namespace gaia";
+    code += "}  // namespace " + c_gaia_namespace;
     code += "";
     code += "#endif  // GAIA_GENERATED_{{DBNAME}}_H_";
     string str = code.ToString();

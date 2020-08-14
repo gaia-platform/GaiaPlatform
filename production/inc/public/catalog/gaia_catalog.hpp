@@ -27,6 +27,12 @@ namespace catalog {
  * @{
  */
 
+// The top level namespace for all the Gaia generated code.
+const string c_gaia_namespace = "gaia";
+
+// The name for global database in internal catalog representation.
+// From users' perspective, it is a database name of an empty string.
+// Think of it as a notion for empty database similar to Epsilon for empty string.
 const string c_global_db_name = "(global)";
 
 /*

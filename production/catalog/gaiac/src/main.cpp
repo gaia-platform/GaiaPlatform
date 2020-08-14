@@ -83,10 +83,7 @@ void generate_fbs_headers(const string &db_name, const string &output_path) {
 
     flatbuffers::Parser fbs_parser(fbs_opts);
 
-    string fbs_schema = "namespace gaia" +
-                        (db_name.empty() ? "" : "." + db_name) +
-                        ";\n" +
-                        gaia::catalog::generate_fbs(db_name);
+    string fbs_schema = gaia::catalog::generate_fbs(db_name);
     if (!fbs_parser.Parse(fbs_schema.c_str())) {
         cout << c_error_prompt
              << "Fail to parse the catalog generated FlatBuffers schema. Error: "
