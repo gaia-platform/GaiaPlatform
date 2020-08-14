@@ -208,6 +208,45 @@ TEST_F(storage_engine_client_test, iterate_type) {
     commit_transaction();
 }
 
+TEST_F(storage_engine_client_test, iterate_type_cursor) {
+    begin_transaction();
+    {
+        std::cerr << std::endl;
+        std::cerr << "*** Iterating over nodes of type 1:" << std::endl;
+
+        try
+        {
+            gaia_type_t type = 1;
+            gaia_id_t id = 1;
+            for (auto node : gaia_ptr::find_all(type))
+            {
+                print_node(node);
+                EXPECT_EQ(node.id(), id);
+                id++;
+            }
+
+            std::cerr << std::endl;
+            std::cerr << "*** Iterating over nodes of type 2:" << std::endl;
+            type = 2;
+            for (auto node : gaia_ptr::find_all(type))
+            {
+                print_node(node);
+                EXPECT_EQ(node.id(), id);
+                id++;
+            }
+
+            std::cerr << std::endl;
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+
+        std::cerr << std::endl;
+    }
+    commit_transaction();
+}
+
 TEST_F(storage_engine_client_test, iterate_type_delete) {
     begin_transaction();
     {

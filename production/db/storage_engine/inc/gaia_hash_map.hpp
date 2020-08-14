@@ -54,7 +54,7 @@ public:
         }
     }
 
-    static int64_t find(se_base::data* s_data, se_base::locators* locators, gaia_id_t id) {
+    static gaia_locator_t find(const gaia_id_t id) {
         if (locators == nullptr) {
             throw transaction_not_open();
         }

@@ -36,10 +36,7 @@ typedef uint64_t gaia_type_t;
 
 /**
  * The value of an invalid gaia_type.
- */
 constexpr gaia_type_t INVALID_GAIA_TYPE = 0;
-
-/**
  * The type of a Gaia event type.
  */
 typedef uint8_t gaia_event_t;

@@ -33,7 +33,7 @@ class system_error : public gaia_exception {
 
 inline void throw_system_error(const string& user_info, const int err = errno) {
     std::stringstream ss;
-    ss << user_info << " - " << (strerror(err));
+    ss << user_info << " - " << (::strerror(err));
     throw system_error(ss.str(), err);
 }
 

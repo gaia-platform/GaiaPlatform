@@ -21,13 +21,13 @@
 #include <string>
 #include <sstream>
 
-#include "scope_guard.hpp"
-#include "system_error.hpp"
 #include "gaia_common.hpp"
-#include "gaia_db.hpp"
 #include "db_types.hpp"
 #include "gaia_exception.hpp"
 #include "retail_assert.hpp"
+#include "gaia_db.hpp"
+#include "gaia_db_internal.hpp"
+#include "gaia_se_object.hpp"
 
 namespace gaia {
 namespace db {
@@ -62,11 +62,19 @@ protected:
 
     static constexpr size_t MAX_LOCATORS = 32 * 128L * 1024L;
     static constexpr size_t HASH_BUCKETS = 12289;
+    static constexpr size_t HASH_BUCKETS = 12289;
     static constexpr size_t HASH_LIST_ELEMENTS = MAX_LOCATORS;
+    static constexpr size_t MAX_LOG_RECS = 1000000;
     static constexpr size_t MAX_LOG_RECS = 1000000;
     static constexpr size_t MAX_OBJECTS = MAX_LOCATORS * 8;
 
     typedef gaia_locator_t locators[MAX_LOCATORS];
+
+    struct hash_node {
+        gaia_id_t id;
+        size_t next;
+        gaia_locator_t row_id;
+    };
 
     struct data {
         // The first two fields are used as cross-process atomic counters.
@@ -88,6 +96,7 @@ protected:
     };
 
     struct log {
+        size_t count;
         size_t count;
         struct log_record {
             gaia_locator_t locator;

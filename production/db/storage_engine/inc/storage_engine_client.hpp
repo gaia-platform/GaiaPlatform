@@ -13,18 +13,23 @@
 #include <thread>
 #include <atomic>
 #include <unordered_set>
+#include <functional>
+#include <optional>
 
 #include <flatbuffers/flatbuffers.h>
 
+#include "scope_guard.hpp"
+#include "array_size.hpp"
 #include "retail_assert.hpp"
 #include "system_error.hpp"
 #include "mmap_helpers.hpp"
 #include "socket_helpers.hpp"
+#include "generator_iterator.hpp"
 #include "messages_generated.h"
 #include "storage_engine.hpp"
 #include "triggers.hpp"
 #include "db_types.hpp"
-#include "gaia_db_internal.hpp"
+#include "system_table_types.hpp"
 
 using namespace std;
 using namespace gaia::common;
@@ -60,6 +65,10 @@ public:
     static void rollback_transaction();
     static void commit_transaction();
 
+    // This is a helper for higher-level methods that use
+    // this generator to build a range or iterator object.
+    static std::function<std::optional<gaia_id_t>()> get_id_generator_for_type(gaia_type_t type);
+
 private:
     // Both s_fd_log & s_locators have transaction lifetime.
     thread_local static int s_fd_log;
@@ -86,12 +95,16 @@ private:
 
     static int get_session_socket();
 
+    static int get_id_cursor_socket_for_type(gaia_type_t type);
+
     /**
      *  Check if an event should be generated for a given type.
      */
     static inline bool is_valid_event(gaia_type_t type) {
         return (s_txn_commit_trigger
             && (trigger_excluded_types.find(type) == trigger_excluded_types.end()));
+    static void inline allocate_object(gaia_locator_t row_id, size_t size) {
+                                       (size + sizeof(gaia_offset_t) - 1) / sizeof(gaia_offset_t));
     }
 
     static inline void verify_txn_active() {
@@ -127,7 +140,7 @@ private:
         // Memory for other operations will be unused. An alternative would be to keep a separate log for deleted keys only.
         gaia_id_t deleted_id = 0) {
         retail_assert(s_log->count < MAX_LOG_RECS);
-        log::log_record* lr = s_log->log_records + s_log->count++;
+        log::log_record *lr = s_log->log_records + s_log->count++;
         lr->locator = locator;
         lr->old_offset = old_offset;
         lr->new_offset = new_offset;

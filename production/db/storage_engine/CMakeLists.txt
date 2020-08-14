@@ -143,7 +143,7 @@ find_package(pybind11 REQUIRED)
 
 if(Python3_FOUND AND pybind11_FOUND)
   pybind11_add_module(se_client src/storage_engine_pybind_wrapper.cpp)
-  target_include_directories(se_client PRIVATE ${PROJECT_SOURCE_DIR})
+  target_include_directories(se_client PRIVATE ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES};${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES})
   target_include_directories(se_client PRIVATE
   "${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}"
   "${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}")

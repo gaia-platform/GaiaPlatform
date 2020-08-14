@@ -41,8 +41,10 @@ public:
 
     // Get a locator value.
     gaia_locator_t allocate_locator();
+    gaia_locator_t allocate_locator();
 
     // Release a previously obtained locator value.
+    void release_locator(gaia_locator_t locator);
     void release_locator(gaia_locator_t locator);
 
 protected:
@@ -53,8 +55,10 @@ protected:
     // List of previously allocated locators that have been released
     // and are available for reuse.
     gaia::common::queue_t<gaia_locator_t> m_available_locators;
+    gaia::common::queue_t<gaia_locator_t> m_available_locators;
 
     // The next available locator value from our global pool.
+    gaia_locator_t m_next_locator;
     gaia_locator_t m_next_locator;
 };
 

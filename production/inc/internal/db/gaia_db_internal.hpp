@@ -23,6 +23,13 @@ bool set_commit_trigger(gaia::db::triggers::commit_trigger_fn trigger_fn);
  * For use only by test code, in combination with the DB
  * server's reinitialization feature.
  */
+typedef uint64_t gaia_offset_t;
+
+/**
+ * Reinitializes the DB client's shared memory structures.
+ * For use only by test code, in combination with the DB
+ * server's reinitialization feature.
+ */
 void clear_shared_memory();
 
 // Todo (Mihir): Expose options to set the persistent

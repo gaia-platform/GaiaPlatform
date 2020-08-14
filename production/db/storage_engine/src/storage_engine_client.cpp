@@ -15,6 +15,7 @@ using namespace gaia::db;
 using namespace gaia::db::triggers;
 using namespace gaia::db::messages;
 using namespace flatbuffers;
+using namespace scope_guard;
 
 thread_local se_base::locators* client::s_locators = nullptr;
 thread_local int client::s_fd_log = -1;
@@ -29,6 +30,63 @@ std::unordered_set<gaia_type_t> client::trigger_excluded_types{
     static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_ruleset),
     static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_rule),
     static_cast<gaia_type_t>(system_table_type_t::event_log)};
+
+int client::get_id_cursor_socket_for_type(gaia_type_t type) {
+    // Send the server the cursor socket request.
+    FlatBufferBuilder builder;
+    auto table_scan_info = Createtable_scan_info_t(builder, type);
+    auto client_request = Createclient_request_t(builder, session_event_t::REQUEST_STREAM, request_data_t::table_scan, table_scan_info.Union());
+    auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
+    builder.Finish(message);
+    send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
+
+    // Extract the stream socket fd from the server's response.
+    uint8_t msg_buf[MAX_MSG_SIZE] = {0};
+    int stream_socket_fd = -1;
+    size_t fd_count = 1;
+    size_t bytes_read = recv_msg_with_fds(s_session_socket, &stream_socket_fd, &fd_count, msg_buf, sizeof(msg_buf));
+    retail_assert(bytes_read > 0);
+    retail_assert(fd_count == 1);
+    const message_t *msg = Getmessage_t(msg_buf);
+    const server_reply_t *reply = msg->msg_as_reply();
+    const session_event_t event = reply->event();
+    retail_assert(event == session_event_t::REQUEST_STREAM);
+    retail_assert(stream_socket_fd != -1);
+    return stream_socket_fd;
+}
+
+// This generator wraps a socket which reads a stream of gaia_id values from the server.
+std::function<std::optional<gaia_id_t>()>
+client::get_id_generator_for_type(gaia_type_t type) {
+    int stream_socket_fd = get_id_cursor_socket_for_type(type);
+    auto cleanup_stream_socket = make_scope_guard([stream_socket_fd]() {
+        ::close(stream_socket_fd);
+    });
+    auto id_generator = [stream_socket_fd]() mutable -> std::optional<gaia_id_t> {
+        // We shouldn't be called again after we received EOF from the server.
+        retail_assert(stream_socket_fd != -1);
+        gaia_id_t next_id;
+        ssize_t bytes_read = ::read(stream_socket_fd, &next_id, sizeof(next_id));
+        if (bytes_read == -1) {
+            throw_system_error("read failed");
+        }
+        if (bytes_read == 0) {
+            // We received EOF from the server, so close
+            // client socket and stop iteration.
+            ::close(stream_socket_fd);
+            // Set the socket fd to an invalid value so we can
+            // immediately abort if this is called again.
+            stream_socket_fd = -1;
+            // Tell the caller to stop iteration.
+            return std::nullopt;
+        }
+        retail_assert(bytes_read == sizeof(next_id));
+        retail_assert(next_id != INVALID_GAIA_ID);
+        return next_id;
+    };
+    cleanup_stream_socket.dismiss();
+    return id_generator;
+}
 
 static void build_client_request(FlatBufferBuilder& builder, session_event_t event) {
     auto client_request = Createclient_request_t(builder, event);
@@ -69,7 +127,7 @@ void client::txn_cleanup() {
     // Destroy the log memory mapping.
     destroy_log_mapping();
     // Destroy the log fd.
-    close(s_fd_log);
+    ::close(s_fd_log);
     s_fd_log = -1;
     // Destroy the locator mapping.
     if (s_locators) {
@@ -81,7 +139,7 @@ void client::txn_cleanup() {
 int client::get_session_socket() {
     // Unlike the session socket on the server, this socket must be blocking,
     // since we don't read within a multiplexing poll loop.
-    int session_socket = socket(PF_UNIX, SOCK_SEQPACKET, 0);
+    int session_socket = ::socket(PF_UNIX, SOCK_SEQPACKET, 0);
     if (session_socket == -1) {
         throw_system_error("socket creation failed");
     }
@@ -96,7 +154,7 @@ int client::get_session_socket() {
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
     // filesystem.
-    strncpy(&server_addr.sun_path[1], SE_SERVER_SOCKET_NAME,
+    ::strncpy(&server_addr.sun_path[1], SE_SERVER_SOCKET_NAME,
         sizeof(server_addr.sun_path) - 1);
     // The socket name is not null-terminated in the address structure, but
     // we need to add an extra byte for the null byte prefix.
@@ -136,8 +194,8 @@ void client::begin_session() {
     // for the data and locator shared memory segment fds.
     s_session_socket = get_session_socket();
 
-    auto cleanup_session_socket = scope_guard::make_scope_guard([]() {
-        close(s_session_socket);
+    auto cleanup_session_socket = make_scope_guard([]() {
+        ::close(s_session_socket);
         s_session_socket = -1;
     });
 
@@ -184,7 +242,7 @@ void client::begin_session() {
         sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0));
 
     // We've already mapped the data fd, so we can close it now.
-    close(fd_data);
+    ::close(fd_data);
 
     // Set up the private locator segment fd.
     s_fd_locators = fd_locators;
@@ -203,11 +261,11 @@ void client::begin_transaction() {
     verify_no_txn();
 
     // First we allocate a new log segment and map it in our own process.
-    int fd_log = memfd_create(SCH_MEM_LOG, MFD_ALLOW_SEALING);
+    s_fd_log = ::memfd_create(SCH_MEM_LOG, MFD_ALLOW_SEALING);
     if (fd_log == -1) {
         throw_system_error("memfd_create failed");
     }
-    auto cleanup_fd = scope_guard::make_scope_guard([fd_log]() {
+    auto cleanup_fd = make_scope_guard([fd_log]() {
         close(fd_log);
     });
     if (-1 == ftruncate(fd_log, sizeof(log))) {
@@ -220,11 +278,11 @@ void client::begin_transaction() {
     });
 
     // Now we map a private COW view of the locator shared memory segment.
-    if (flock(s_fd_locators, LOCK_SH) < 0) {
+    if (::flock(s_fd_locators, LOCK_SH) < 0) {
         throw_system_error("flock failed");
     }
-    auto cleanup_flock = scope_guard::make_scope_guard([]() {
-        if (-1 == flock(s_fd_locators, LOCK_UN)) {
+    auto cleanup_flock = make_scope_guard([]() {
+        if (-1 == ::flock(s_fd_locators, LOCK_UN)) {
             // Per C++11 semantics, throwing an exception from a destructor
             // will just call std::terminate(), no undefined behavior.
             throw_system_error("flock failed");
@@ -233,7 +291,7 @@ void client::begin_transaction() {
 
     s_locators = static_cast<locators*>(map_fd(sizeof(locators),
         PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_locators, 0));
-    auto cleanup_locator_mapping = scope_guard::make_scope_guard([]() {
+    auto cleanup_locator_mapping = make_scope_guard([]() {
         unmap_fd(s_locators, sizeof(locators));
         s_locators = nullptr;
     });
@@ -251,8 +309,8 @@ void client::begin_transaction() {
     // Extract the transaction id and cache it; it needs to be reset for the next transaction.
     const message_t* msg = Getmessage_t(msg_buf);
     const server_reply_t* reply = msg->msg_as_reply();
-    s_txn_id = reply->txn_id();
-
+    const transaction_info_t *txn_info = reply->data_as_transaction_info();
+    s_txn_id = txn_info->txn_id();
     // Save the log fd to send to the server on commit.
     s_fd_log = fd_log;
 
@@ -265,7 +323,7 @@ void client::rollback_transaction() {
     verify_txn_active();
 
     // Ensure we destroy the shared memory segment and memory mapping before we return.
-    auto cleanup = scope_guard::make_scope_guard(txn_cleanup);
+    auto cleanup = make_scope_guard(txn_cleanup);
 
     // Notify the server that we rolled back this transaction.
     // (We don't expect the server to reply to this message.)
@@ -281,12 +339,12 @@ void client::commit_transaction() {
     verify_txn_active();
 
     // Ensure we destroy the shared memory segment and memory mapping before we return.
-    auto cleanup = scope_guard::make_scope_guard(txn_cleanup);
+    auto cleanup = make_scope_guard(txn_cleanup);
 
     // Unmap the log segment so we can seal it.
     destroy_log_mapping();
     // Seal the txn log memfd for writes before sending it to the server.
-    if (-1 == fcntl(s_fd_log, F_ADD_SEALS, F_SEAL_WRITE)) {
+    if (-1 == ::fcntl(s_fd_log, F_ADD_SEALS, F_SEAL_WRITE)) {
         throw_system_error("fcntl(F_SEAL_WRITE) failed");
     }
 

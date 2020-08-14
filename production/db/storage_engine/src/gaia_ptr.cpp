@@ -7,6 +7,7 @@
 
 #include "storage_engine.hpp"
 #include "storage_engine_client.hpp"
+#include "generator_iterator.hpp"
 #include "gaia_hash_map.hpp"
 #include "payload_diff.hpp"
 #include "field_list.hpp"
@@ -24,6 +25,28 @@ gaia_id_t gaia_ptr::generate_id() {
 void gaia_ptr::clone_no_txn() {
     gaia_se_object_t* old_this = to_ptr();
     size_t new_size = sizeof(gaia_se_object_t) + old_this->payload_size;
+    size_t num_refs,
+    size_t data_size,
+    const void* data,
+    bool log_updates) {
+    size_t refs_len = num_refs * sizeof(gaia_id_t);
+    size_t total_len = data_size + refs_len;
+    gaia_ptr obj(id, total_len + sizeof(object), log_updates);
+    object* obj_ptr = obj.to_ptr();
+    obj_ptr->id = id;
+    obj_ptr->type = type;
+    obj_ptr->num_references = num_refs;
+    if (num_refs) {
+        memset(obj_ptr->payload, 0, refs_len);
+    }
+    obj_ptr->payload_size = total_len;
+    memcpy(obj_ptr->payload + refs_len, data, data_size);
+    if (!client::is_invalid_event(type)) {
+        client::s_events.push_back(trigger_event_t{event_type_t::row_insert, type, id, nullptr, 0});
+    }
+    return obj;
+}
+
     allocate(new_size);
     gaia_se_object_t* new_this = to_ptr();
     memcpy(new_this, old_this, new_size);
@@ -119,12 +142,9 @@ void gaia_ptr::allocate(size_t size) {
     se_base::allocate_object(m_locator, size, client::s_locators, client::s_data);
 }
 
-void gaia_ptr::create_insert_trigger(gaia_type_t type, gaia_id_t id) {
+object* gaia_ptr::to_ptr() const {
     if (client::is_valid_event(type)) {
         client::s_events.push_back(trigger_event_t{event_type_t::row_insert, type, id, empty_position_list});
-    }
-}
-
 gaia_se_object_t* gaia_ptr::to_ptr() const {
     client::verify_txn_active();
 
@@ -159,6 +179,11 @@ void gaia_ptr::reset() {
     }
     (*client::s_locators)[m_locator] = 0;
     m_locator = 0;
+}
+
+// This trivial implementation is necessary to avoid calling into client code from the header file.
+std::function<std::optional<gaia_id_t>()> gaia_ptr::get_id_generator_for_type(gaia_type_t type) {
+    return client::get_id_generator_for_type(type);
 }
 
 void gaia_ptr::add_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset) {

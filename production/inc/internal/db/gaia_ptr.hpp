@@ -9,6 +9,7 @@
 #include <iostream>
 
 #include "retail_assert.hpp"
+#include "generator_iterator.hpp"
 #include "gaia_db.hpp"
 #include "db_types.hpp"
 #include "gaia_se_object.hpp"
@@ -29,12 +30,12 @@ public:
     gaia_ptr(const std::nullptr_t = nullptr)
         : m_locator(0) {}
 
-    gaia_ptr(const gaia_ptr& other)
+    gaia_ptr(const gaia_ptr &other)
         : m_locator(other.m_locator) {}
 
     gaia_ptr& operator=(const gaia_ptr& other) = default;
 
-    bool operator==(const gaia_ptr& other) const {
+    bool operator==(const gaia_ptr &other) const {
         return m_locator == other.m_locator;
     }
 
@@ -82,33 +83,20 @@ public:
         size_t num_refs,
         size_t data_size,
         const void* data) {
-        size_t refs_len = num_refs * sizeof(gaia_id_t);
-        size_t total_len = data_size + refs_len;
         gaia_ptr obj(id, total_len + sizeof(gaia_se_object_t));
         gaia_se_object_t* obj_ptr = obj.to_ptr();
-        obj_ptr->id = id;
-        obj_ptr->type = type;
-        obj_ptr->num_references = num_refs;
-        if (num_refs) {
-            memset(obj_ptr->payload, 0, refs_len);
-        }
-        obj_ptr->payload_size = total_len;
-        memcpy(obj_ptr->payload + refs_len, data, data_size);
-        obj.create_insert_trigger(type, id);
-        return obj;
-    }
 
     static gaia_ptr open(
         gaia_id_t id) {
         return gaia_ptr(id);
     }
 
-    static void remove(gaia_ptr& node) {
+    static void remove(gaia_ptr &node) {
         if (!node) {
             return;
         }
 
-        const gaia_id_t* references = node.references();
+        const gaia_id_t *references = node.references();
         for (size_t i = 0; i < node.num_references(); i++) {
             if (references[i] != INVALID_GAIA_ID) {
                 throw node_not_disconnected(node.id(), node.type());
@@ -117,9 +105,9 @@ public:
         node.reset();
     }
 
-    gaia_ptr& clone();
+    gaia_ptr &clone();
 
-    gaia_ptr& update_payload(size_t data_size, const void* data);
+    gaia_ptr &update_payload(size_t data_size, const void *data);
 
     /**
      * Update the next child and parent reference slots in a child.
@@ -183,8 +171,8 @@ public:
         return to_ptr()->type;
     }
 
-    char* data() const {
-        return data_size() ? (char*)(to_ptr()->payload + (to_ptr()->num_references * sizeof(gaia_id_t))) : nullptr;
+    char *data() const {
+        return data_size() ? (char *)(to_ptr()->payload + (to_ptr()->num_references * sizeof(gaia_id_t))) : nullptr;
     }
 
     size_t data_size() const {
@@ -194,8 +182,8 @@ public:
         return data_size;
     }
 
-    gaia_id_t* references() const {
-        return reinterpret_cast<gaia_id_t*>(to_ptr()->payload);
+    gaia_id_t *references() const {
+        return reinterpret_cast<gaia_id_t *>(to_ptr()->payload);
     }
 
     size_t num_references() const {
@@ -246,6 +234,35 @@ public:
      */
     void remove_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset);
 
+    // REVIEW: should we offer a lower-level iterator interface as well
+    // as this range interface (i.e. supporting dereference, pre-increment,
+    // and equality/inequality operators)? This would be trivial to
+    // implement using the gaia::common::iterators helpers.
+
+    // This function must be implemented in the header to avoid the compiler error
+    // "function with deduced return type cannot be used before it is defined".
+    // The function must be defined in the same translation unit where it is used,
+    // and the only way to guarantee that for our clients is to define it in the
+    // header file itself.
+
+    /**
+     * Returns a range object suitable for a range-based for loop,
+     * using a server-side cursor over all objects of the given
+     * type. This is essentially a proof-of-concept for server-side
+     * cursors, which will be extended to support server-side filters.
+     */
+    static auto find_all(gaia_type_t type) {
+        std::function<std::optional<gaia_id_t>()> id_generator = get_id_generator_for_type(type);
+        auto gaia_ptr_generator = [id_generator]() -> std::optional<gaia_ptr> {
+            std::optional<gaia_id_t> id_opt = id_generator();
+            if (id_opt) {
+                return gaia_ptr::open(*id_opt);
+            }
+            return std::nullopt;
+        };
+        return gaia::common::iterators::generator(gaia_ptr_generator);
+    }
+
 protected:
     gaia_ptr(gaia_id_t id);
 
@@ -264,6 +281,10 @@ protected:
     void find_next(gaia_type_t type);
 
     void reset();
+private:
+    // This is just a trivial wrapper for a gaia::db::client API,
+    // to avoid calling into SE client code from this header file.
+    static std::function<std::optional<gaia_id_t>()> get_id_generator_for_type(gaia_type_t type);
 };
 
 } // namespace db

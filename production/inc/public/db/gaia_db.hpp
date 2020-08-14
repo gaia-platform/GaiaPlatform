@@ -69,7 +69,7 @@ class oom : public gaia_exception {
 
 class invalid_node_id : public gaia_exception {
    public:
-    invalid_node_id(int64_t id) {
+    invalid_node_id(gaia_id_t id) {
         std::stringstream strs;
         strs << "Cannot find a node with ID " << id << ".";
         m_message = strs.str();

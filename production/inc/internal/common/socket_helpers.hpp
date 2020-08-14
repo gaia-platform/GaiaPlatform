@@ -75,7 +75,7 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
     // On BSD platforms we could use the SO_SIGNOPIPE socket option,
     // otherwise we need to suppress SIGPIPE (portable code here:
     // https://github.com/kroki/XProbes/blob/1447f3d93b6dbf273919af15e59f35cca58fcc23/src/libxprobes.c#L156).
-    ssize_t bytes_written_or_error = sendmsg(sock, &msg, MSG_NOSIGNAL);
+    ssize_t bytes_written_or_error = ::sendmsg(sock, &msg, MSG_NOSIGNAL);
     // Since we assert that we never send 0 bytes, we should never return 0 bytes written.
     retail_assert(bytes_written_or_error != 0,
         "sendmsg() should never return 0 bytes written unless we write 0 bytes.");
@@ -123,7 +123,7 @@ inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* dat
         msg.msg_control = control.buf;
         msg.msg_controllen = sizeof(control.buf);
     }
-    ssize_t bytes_read = recvmsg(sock, &msg, 0);
+    ssize_t bytes_read = ::recvmsg(sock, &msg, 0);
     retail_assert(bytes_read >= -1,
         "recvmsg() should never return a negative value except for -1.");
     if (bytes_read == -1) {
