@@ -19,7 +19,6 @@ set(GAIA_CATALOG_INCLUDES
   ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/public/db
   ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/public/catalog
   ../../../../../ASTCodeGeneration/GaiaPlatform/third_party/production/flatbuffers/include
-  ../../../../../ASTCodeGeneration/GaiaPlatform/production/db/storage_engine/mock
 )
   
 add_clang_library(clangSema
@@ -78,14 +77,30 @@ add_clang_library(clangSema
   clangBasic
   clangEdit
   clangLex
-  gaia_semock
+  gaia_se_client
   gaia_direct
+  gaia_types
+  gaia_common
+  gaia_catalog
+  flatbuffers
   explain
   )
  target_include_directories(clangSema PRIVATE ${GAIA_CATALOG_INCLUDES})
- add_library(gaia_semock STATIC IMPORTED GLOBAL)
-set_target_properties(gaia_semock PROPERTIES IMPORTED_LOCATION /home/gregory/src/ASTCodeGeneration/GaiaPlatform/production/build/db/storage_engine/libgaia_semock.a)
+ 
+add_library(flatbuffers STATIC IMPORTED GLOBAL)
+set_target_properties(flatbuffers PROPERTIES IMPORTED_LOCATION /home/gregory/src/ASTCodeGeneration/GaiaPlatform/production/build/flatbuffers/libflatbuffers.a)
+
+add_library(gaia_catalog STATIC IMPORTED GLOBAL)
+set_target_properties(gaia_catalog PROPERTIES IMPORTED_LOCATION /home/gregory/src/ASTCodeGeneration/GaiaPlatform/production/build/catalog/catalog_manager/libgaia_catalog.a)
+
+add_library(gaia_common STATIC IMPORTED GLOBAL)
+set_target_properties(gaia_common PROPERTIES IMPORTED_LOCATION /home/gregory/src/ASTCodeGeneration/GaiaPlatform/production/build/common/libgaia_common.a)
+
+add_library(gaia_se_client STATIC IMPORTED GLOBAL)
+set_target_properties(gaia_se_client PROPERTIES IMPORTED_LOCATION /home/gregory/src/ASTCodeGeneration/GaiaPlatform/production/build/db/storage_engine/libgaia_se_client.a)
 
 add_library(gaia_direct STATIC IMPORTED GLOBAL)
 set_target_properties(gaia_direct PROPERTIES IMPORTED_LOCATION /home/gregory/src/ASTCodeGeneration/GaiaPlatform/production/build/direct_access/libgaia_direct.a)
 
+add_library(gaia_types STATIC IMPORTED GLOBAL)
+set_target_properties(gaia_types PROPERTIES IMPORTED_LOCATION /home/gregory/src/ASTCodeGeneration/GaiaPlatform/production/build/db/types/libgaia_types.a)

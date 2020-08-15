@@ -198,10 +198,10 @@ try:
     import psutil
     lit_config.note('Found python psutil module')
     for p in psutil.process_iter(['name']):
-        if p.info['name'] == 'gaia_semock_server':
+        if p.info['name'] == 'gaia_se_server':
             p.kill()
     if os.path.exists('/home/gregory/src/ASTCodeGeneration/GaiaPlatform/production/build/db/storage_engine'):
-        psutil.Popen(["/home/gregory/src/ASTCodeGeneration/GaiaPlatform/production/build/db/storage_engine/gaia_semock_server"])
+        psutil.Popen(["/home/gregory/src/ASTCodeGeneration/GaiaPlatform/production/build/db/storage_engine/gaia_se_server"])
     if os.path.exists('/home/gregory/src/ASTCodeGeneration/GaiaPlatform/production/build/catalog/gaiac'):
         psutil.Popen(["/home/gregory/src/ASTCodeGeneration/GaiaPlatform/production/build/catalog/gaiac/gaiac", "/home/gregory/src/TranslationEngineLLVM/TranslationEngineLLVM/clang/test/Parser/barn_storage.ddl"])
 except ImportError:

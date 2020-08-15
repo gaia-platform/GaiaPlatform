@@ -48,8 +48,12 @@ target_link_libraries(clang
   clangFrontend
   clangFrontendTool
   clangSerialization
-  gaia_semock
+  gaia_se_client
   gaia_direct
+  gaia_types
+  gaia_common
+  gaia_catalog
+  flatbuffers
   explain
   )
   
