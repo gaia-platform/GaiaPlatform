@@ -39,12 +39,12 @@ set(CAMERA_DEMO_SRCS
   "${CMAKE_SOURCE_DIR}/demo.cpp"
   "${CMAKE_SOURCE_DIR}/cv.cpp"
   )
-message (STATUS "${GAIA_PROD_BUILD}")
+
 add_library(gaia SHARED IMPORTED GLOBAL)
 set_target_properties(gaia PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/system/libgaia.a)
 
-add_library(gaia_semock SHARED IMPORTED GLOBAL)
-set_target_properties(gaia_semock PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/db/storage_engine/libgaia_semock.a)
+add_library(gaia_se_client STATIC IMPORTED GLOBAL)
+set_target_properties(gaia_se_client PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/db/storage_engine/libgaia_se_client.a)
 
 add_library(gaia_rules SHARED IMPORTED GLOBAL)
 set_target_properties(gaia_rules PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/rules/event_manager/libgaia_rules.a)
@@ -58,14 +58,26 @@ set_target_properties(gaia_catalog PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUIL
 add_library(gaia_parser SHARED IMPORTED GLOBAL)
 set_target_properties(gaia_parser PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/catalog/parser/libgaia_parser.a)
 
+add_library(flatbuffers STATIC IMPORTED GLOBAL)
+set_target_properties(flatbuffers PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/flatbuffers/libflatbuffers.a)
+
+add_library(gaia_types STATIC IMPORTED GLOBAL)
+set_target_properties(gaia_types PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/db/types/libgaia_types.a)
+
+add_library(gaia_common STATIC IMPORTED GLOBAL)
+set_target_properties(gaia_common PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/common/libgaia_common.a)
+
+
 add_executable(camera_demo ${CAMERA_DEMO_SRCS})
 
 
 target_link_libraries(camera_demo
   PRIVATE
   gaia_rules
-  gaia_semock
+  gaia_se_client
   gaia
+  gaia_types
+  gaia_common
   gaia_direct
   gaia_catalog
   gaia_parser

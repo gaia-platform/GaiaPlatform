@@ -511,7 +511,7 @@ void generateRules(Rewriter &rewriter)
         string ruleName = curRuleset + "_" + current_Rule_Declaration->getName().str() + "_" + to_string(ruleCnt);
         commonSubscriptionCode = "rule_binding_t " + ruleName + "binding(" +
             "\"" + curRuleset + "\",\"" + ruleName + "\"," + curRuleset + "::" + ruleName + ");\n";
-        fieldSubscriptionCode =  "field_list_t fields_" + ruleName + ";\n";
+        fieldSubscriptionCode =  "field_position_list_t fields_" + ruleName + ";\n";
 
         auto fields = field_Data[table];
         for (auto field : fd.second)
