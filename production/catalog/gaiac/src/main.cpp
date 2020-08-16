@@ -15,6 +15,7 @@
 #include "gaia_parser.hpp"
 #include "gaia_system.hpp"
 #include "gaia_db.hpp"
+#include "db_test_base.hpp"
 
 using namespace std;
 using namespace gaia::catalog;
@@ -106,60 +107,6 @@ void generate_headers(const string &db_name, const string &output_path) {
     generate_edc_headers(db_name, output_path);
 }
 
-// Add a trailing '/' if not provided.
-void terminate_path(string &path) {
-    if (path.back() != '/') {
-        path.append("/");
-    }
-}
-
-// Temporary start server (taken and modified from db_test_helpers)
-// Use case is always to call start() followed by stop().
-class db_server_t {
-  public:
-    void start(const char *db_server_path) {
-        set_path(db_server_path);
-        stop();
-
-        // Launch SE server in background.
-        string cmd = m_server_path + " &";
-        cerr << cmd << endl;
-        ::system(cmd.c_str());
-
-        // Wait for server to initialize.
-        cerr << "Waiting for server to initialize..." << endl;
-        ::sleep(1);
-        m_server_started = true;
-    }
-
-    void stop() {
-        // Try to kill the SE server process.
-        // REVIEW: we should be using a proper process library for this, so we can kill by PID.
-        string cmd = "pkill -f -KILL ";
-        cmd.append(m_server_path.c_str());
-        cerr << cmd << endl;
-        ::system(cmd.c_str());
-    }
-
-    bool server_started() {
-        return m_server_started;
-    }
-
-  private:
-    void set_path(const char *db_server_path) {
-        if (!db_server_path) {
-            m_server_path = gaia::db::SE_SERVER_NAME;
-        } else {
-            m_server_path = db_server_path;
-            terminate_path(m_server_path);
-            m_server_path.append(gaia::db::SE_SERVER_NAME);
-        }
-    }
-
-    string m_server_path;
-    bool m_server_started = false;
-};
-
 int main(int argc, char *argv[]) {
     int res = 0;
     parser_t parser;
@@ -187,7 +134,7 @@ int main(int argc, char *argv[]) {
             } else if (argv[i] == string("-o")) {
                 ++i;
                 output_path = argv[i];
-                terminate_path(output_path);
+                db_server_t::terminate_path(output_path);
             } else {
                 if (!parser.parse(argv[i])) {
                     gaia::db::begin_session();

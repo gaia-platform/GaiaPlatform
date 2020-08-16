@@ -39,6 +39,13 @@ Status rdb_wrapper::open() {
     initoptions.allow_2pc = true;
     // Create a new database directory if one doesn't exist.
     initoptions.create_if_missing = true;
+    // Size of memtable (4 mb)
+    initoptions.write_buffer_size = 4 * 1024 * 1024; 
+    // Number of memtables; 
+    // The maximum number of write buffers that are built up in memory.
+    // So that when 1 write buffers being flushed to storage, new writes can continue to the other
+    // write buffer.
+    initoptions.max_write_buffer_number = 2;
     return rdb_internal->open_txn_db(initoptions, options);
 }
 

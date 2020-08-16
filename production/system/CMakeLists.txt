@@ -38,3 +38,11 @@ set_target_properties(gaia PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_property (TARGET gaia PROPERTY POSITION_INDEPENDENT_CODE ON)
 add_gtest(test_gaia_system "tests/test_gaia_system.cpp"
   "${GAIA_SYSTEM_PUBLIC_INCLUDES};${GAIA_SYSTEM_PRIVATE_INCLUDES}" "rt;gaia" "generate_addr_book_db_headers")
+
+# Recovery tests. Not to be run with ctest.
+add_executable(test_recovery "tests/test_recovery.cpp")
+target_include_directories(test_recovery PRIVATE "${GAIA_SYSTEM_PUBLIC_INCLUDES};${GAIA_SYSTEM_PRIVATE_INCLUDES}")
+add_dependencies(test_recovery "generate_addr_book_db_headers")
+target_link_libraries(test_recovery PRIVATE "rt;gaia" )
+set_target_properties(test_recovery PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+set_target_properties(test_recovery PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
