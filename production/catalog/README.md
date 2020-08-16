@@ -1,14 +1,15 @@
 # Gaia Catalog
 
-This directory contains implementation of [catalog public interfaces](../inc/public/catalog/gaia_catalog.hpp).
+This directory contains implementation of Gaia data definition language (DDL)
+and catalog.
 
 ## API Usage
 Including headers in the following directories, and linking `gaia_catalog` is
 the most common way to use the catalog library. We recommend use direct access
 APIs to navigate and retrieve catalog records.
 
-- `{$GAIA_INC}/public/catalog`
-- `{$GAIA_INC}/internal/catalog`
+- `${GAIA_INC}/public/catalog`
+- `${GAIA_INC}/internal/catalog`
 
 Linking any sub-components of catalog below are also allowed, and may even be
 necessary in certain scenarios. Use it at your own discretion as the
@@ -30,10 +31,11 @@ lexical analysis rules are defined in [`lexer.ll`](parser/src/lexer.ll). The
 grammar rules are defined in [`parser.yy`](parser/src/parser.yy). A helper or
 driver class `parser_t` of the lexer-parser is defined in
 [`gaia_parser.hpp`](parser/inc/gaia_parser.hpp). Most parsing usage should call
-the `gaia::catalog::ddl:parser_t` instead of `yy_lex` or `yy_parser` interfaces.
+the `gaia::catalog::ddl:parser_t` instead of the generated `yy_lex` or
+`yy_parser` interfaces.
 
-Add the following directories to the include list and link to `gaia_parser` to
-use the parser directly.
+Add the following directories to the include list and link `gaia_parser` to use
+the parser directly.
 
 - `${GAIA_REPO}/production/catalog/parser/inc`
 - `${GAIA_PARSER_GENERATED}`
@@ -44,15 +46,15 @@ used for bootstrapping the EDC definitions, manual testing and development.
 
 The tool has three modes of operation: loading, interactive, and generation.
 
-By default without specifying any mode, `gaiac` will run as loading mode to
+By default without specifying any mode, `gaiac` will run under loading mode to
 execute the DDL statements--translating them into catalog records--without
 generating any output.
 
-The interactive mode (`-i`) provides a REPL style command line interface to play
-with DDLs. The DDL typed in will be executed, and fbs output if any will be
+The interactive mode (`-i`) provides a REPL style command line interface to try
+out the DDL. The DDL typed in will be executed, and fbs output if any will be
 printed out to the console output.
 
-Under generation mode (`-g`), the tool will generate the following 2 header
+Under generation mode (`-g`), the tool will generate the following two header
 files either from an DDL file or a specified database.
 
 - The FlatBuffers header for field access, `<dbname>_generated.h`
@@ -102,9 +104,11 @@ Generate catalog direct access APIs. This is the command used for bootstrapping.
 
 ## Databases
 
-There are two ways to create a database and specifying a table in a database.
+There are two ways to create a database and specifying a table in a database:
+first, using DDL; second, using `gaiac` command. When both are specified, the
+DDL definition will override the `gaiac` settings.
 
-### Explicitly through the data definition language
+### Use DDL
 
 The DDL to create database is `create database`.
 
@@ -149,11 +153,11 @@ reference to a table in the same database.
     );
 ```
 
-### Implicitly through command line argument or file name
+### Use `gaiac`
 
 This is the way to create and specify a database before the introduction of the
-database to DDL. The `gaiac` command line usage already documented the usage.
-See the following examples for more explanation and details.
+database to DDL. The `gaiac` command line usage already documented how to do
+this. See the following examples for more explanation.
 
 #### Examples
 In the following command line example, an `airport` database will be created
