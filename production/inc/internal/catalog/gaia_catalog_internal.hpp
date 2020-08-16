@@ -16,12 +16,18 @@ void execute(const string &dbname, vector<unique_ptr<ddl::statement_t>> &stateme
         if (stmt->is_type(ddl::statement_type_t::create)) {
             auto create_stmt = dynamic_cast<ddl::create_statement_t *>(stmt.get());
             if (create_stmt->type == ddl::create_type_t::create_table) {
-                gaia::catalog::create_table(dbname, create_stmt->name, create_stmt->fields);
+                if (!create_stmt->database.empty()) {
+                    gaia::catalog::create_table(create_stmt->database, create_stmt->name, create_stmt->fields);
+                } else {
+                    gaia::catalog::create_table(dbname, create_stmt->name, create_stmt->fields);
+                }
+            } else if (create_stmt->type == ddl::create_type_t::create_database) {
+                gaia::catalog::create_database(create_stmt->name);
             }
         } else if (stmt->is_type(ddl::statement_type_t::drop)) {
             auto drop_stmt = dynamic_cast<ddl::drop_statement_t *>(stmt.get());
             if (drop_stmt->type == ddl::drop_type_t::drop_table) {
-                gaia::catalog::drop_table(drop_stmt->name);
+                gaia::catalog::drop_table(drop_stmt->database, drop_stmt->name);
             }
         }
     }

@@ -48,6 +48,7 @@ blank [ \t\r]
 
 "CREATE"     return yy::parser::make_CREATE(loc);
 "DROP"       return yy::parser::make_DROP(loc);
+"DATABASE"   return yy::parser::make_DATABASE(loc);
 "TABLE"      return yy::parser::make_TABLE(loc);
 "REFERENCES" return yy::parser::make_REFERENCES(loc);
 "ACTIVE"     return yy::parser::make_ACTIVE(loc);
@@ -68,6 +69,7 @@ blank [ \t\r]
 "["          return yy::parser::make_LBRACKET(loc);
 "]"          return yy::parser::make_RBRACKET(loc);
 ","          return yy::parser::make_COMMA(loc);
+"."          return yy::parser::make_DOT(loc);
 ";"          return yy::parser::make_SEMICOLON(loc);
 {id}         return yy::parser::make_IDENTIFIER(yytext, loc);
 {int}        return make_NUMBER(yytext, loc);

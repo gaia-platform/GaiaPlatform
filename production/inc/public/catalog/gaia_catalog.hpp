@@ -122,12 +122,14 @@ struct field_definition_t {
     uint16_t length;
 
     string table_type_name;
+    string table_type_database;
     bool active = false;
 };
 
 using field_def_list_t = vector<unique_ptr<field_definition_t>>;
 
 enum class create_type_t : uint8_t {
+    create_database,
     create_table,
 };
 
@@ -143,6 +145,8 @@ struct create_statement_t : statement_t {
     create_type_t type;
 
     string name;
+
+    string database;
 
     field_def_list_t fields;
 };
@@ -163,6 +167,8 @@ struct drop_statement_t : statement_t {
     drop_type_t type;
 
     string name;
+
+    string database;
 };
 
 /*@}*/

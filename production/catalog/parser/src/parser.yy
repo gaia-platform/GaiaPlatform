@@ -41,6 +41,7 @@
     using field_def_list_t = std::vector<std::unique_ptr<field_definition_t>>;
     using statement_list_t = std::vector<std::unique_ptr<statement_t>>;
     using data_type_t = gaia::catalog::data_type_t;
+    using composite_name_t = std::pair<std::string, std::string>;
 }
 
 // The parsing context.
@@ -61,13 +62,14 @@
 %define api.token.prefix {TOK_}
 
 %token BOOL INT8 UINT8 INT16 UINT16 INT32 UINT32 INT64 UINT64 FLOAT32 FLOAT64 STRING
-%token CREATE DROP TABLE REFERENCES ACTIVE
+%token CREATE DROP DATABASE TABLE REFERENCES ACTIVE
 %token END 0
 %token LPAREN "("
 %token RPAREN ")"
 %token LBRACKET "["
 %token RBRACKET "]"
 %token COMMA ","
+%token DOT "."
 %token SEMICOLON ";"
 
 %token <std::string> IDENTIFIER "identifier"
@@ -82,6 +84,7 @@
 %type <std::unique_ptr<field_definition_t>> field_def
 %type <std::unique_ptr<field_def_list_t>> field_def_commalist
 %type <std::unique_ptr<statement_list_t>> statement_list
+%type <composite_name_t> composite_name
 
 %printer { yyo << "statement"; } statement
 %printer { yyo << "create_statement:" << $$->name; } create_statement
@@ -90,6 +93,7 @@
 %printer { yyo << "filed_def:" << $$->name; } field_def
 %printer { yyo << "filed_def_commalist[" << $$->size() << "]"; } field_def_commalist
 %printer { yyo << "statement_list[" << $$->size() << "]"; } statement_list
+%printer { yyo << "composite_name: " << $$.first << "." << $$.second; } composite_name
 %printer { yyo << $$; } <*>
 
 %%
@@ -120,15 +124,20 @@ statement:
 ;
 
 create_statement:
-  CREATE TABLE IDENTIFIER "(" field_def_commalist ")" {
-      $$ = std::unique_ptr<create_statement_t>{new create_statement_t(create_type_t::create_table, $3)};
+  CREATE DATABASE IDENTIFIER {
+      $$ = std::unique_ptr<create_statement_t>{new create_statement_t(create_type_t::create_database, $3)};
+  }
+| CREATE TABLE composite_name "(" field_def_commalist ")" {
+      $$ = std::unique_ptr<create_statement_t>{new create_statement_t(create_type_t::create_table, $3.second)};
+      $$->database = std::move($3.first);
       $$->fields = std::move(*$5);
   }
 ;
 
 drop_statement:
-  DROP TABLE IDENTIFIER {
-      $$ = std::unique_ptr<drop_statement_t>{new drop_statement_t(drop_type_t::drop_table, $3)};
+  DROP TABLE composite_name {
+      $$ = std::unique_ptr<drop_statement_t>{new drop_statement_t(drop_type_t::drop_table, $3.second)};
+      $$->database = std::move($3.first);
   }
 ;
 
@@ -150,13 +159,15 @@ field_def:
       $$ = std::unique_ptr<field_definition_t>{new field_definition_t($1, $2->type, $3)};
       $$->active = true;
   }
-| IDENTIFIER REFERENCES IDENTIFIER  {
+| IDENTIFIER REFERENCES composite_name  {
       $$ = std::unique_ptr<field_definition_t>{new field_definition_t($1, data_type_t::e_references, 1)};
-      $$->table_type_name = std::move($3);
+      $$->table_type_database = std::move($3.first);
+      $$->table_type_name = std::move($3.second);
   }
-| REFERENCES IDENTIFIER {
+| REFERENCES composite_name {
       $$ = std::unique_ptr<field_definition_t>{new field_definition_t("", data_type_t::e_references, 1)};
-      $$->table_type_name = std::move($2);
+      $$->table_type_database = std::move($2.first);
+      $$->table_type_name = std::move($2.second);
   }
 ;
 
@@ -179,6 +190,11 @@ field_type:
 | FLOAT32 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_float32)}; }
 | FLOAT64 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_float64)}; }
 | STRING { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_string)}; }
+;
+
+composite_name:
+  IDENTIFIER { $$ = std::make_pair("", $1); }
+| IDENTIFIER "." IDENTIFIER { $$ = make_pair($1, $3); }
 ;
 
 %%

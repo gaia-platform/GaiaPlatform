@@ -49,7 +49,11 @@ TEST(catalog_ddl_parser_test, create_table_multiple_fields) {
 
 TEST(catalog_ddl_parser_test, create_table_references) {
     parser_t parser;
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t (c1 REFERENCES t1, REFERENCES t2);"));
+    string ddl = string(
+        "CREATE TABLE t "
+        "(c1 REFERENCES t1,"
+        " REFERENCES d.t2);");
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line(ddl));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
@@ -63,6 +67,7 @@ TEST(catalog_ddl_parser_test, create_table_references) {
     EXPECT_EQ(create_stmt->fields.at(0)->name, "c1");
     EXPECT_EQ(create_stmt->fields.at(0)->type, data_type_t::e_references);
     EXPECT_EQ(create_stmt->fields.at(0)->table_type_name, "t1");
+    EXPECT_EQ(create_stmt->fields.at(0)->table_type_database, "");
     EXPECT_EQ(create_stmt->fields.at(0)->length, 1);
     EXPECT_EQ(create_stmt->fields.at(0)->active, false);
 
@@ -70,8 +75,9 @@ TEST(catalog_ddl_parser_test, create_table_references) {
     EXPECT_EQ(create_stmt->fields.at(1)->name, "");
     EXPECT_EQ(create_stmt->fields.at(1)->type, data_type_t::e_references);
     EXPECT_EQ(create_stmt->fields.at(1)->table_type_name, "t2");
+    EXPECT_EQ(create_stmt->fields.at(1)->table_type_database, "d");
     EXPECT_EQ(create_stmt->fields.at(1)->length, 1);
-    EXPECT_EQ(create_stmt->fields.at(0)->active, false);
+    EXPECT_EQ(create_stmt->fields.at(1)->active, false);
 }
 
 TEST(catalog_ddl_parser_test, drop_table) {
@@ -121,4 +127,31 @@ TEST(catalog_ddl_parser_test, create_active_field) {
     EXPECT_EQ(create_stmt->fields.at(1)->type, data_type_t::e_string);
     EXPECT_EQ(create_stmt->fields.at(1)->length, 1);
     EXPECT_EQ(create_stmt->fields.at(1)->active, true);
+}
+
+TEST(catalog_ddl_parser_test, create_database) {
+    parser_t parser;
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE DATABASE db;"));
+
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+
+    auto create_stmt = dynamic_cast<create_statement_t *>(parser.statements[0].get());
+
+    EXPECT_EQ(create_stmt->type, create_type_t::create_database);
+    EXPECT_EQ(create_stmt->name, "db");
+}
+
+TEST(catalog_ddl_parser_test, create_table_in_database) {
+    parser_t parser;
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE d.t (id INT32);"));
+
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+
+    auto create_stmt = dynamic_cast<create_statement_t *>(parser.statements[0].get());
+
+    EXPECT_EQ(create_stmt->type, create_type_t::create_table);
+    EXPECT_EQ(create_stmt->name, "t");
+    EXPECT_EQ(create_stmt->database, "d");
 }
