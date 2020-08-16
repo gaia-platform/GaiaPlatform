@@ -26,5 +26,3 @@ add_custom_target(generate_addr_book_headers ALL
   # Add previous target to serialize parallel builds.
   DEPENDS generate_rules_headers
 )
-
-file(COPY ${ADDR_BOOK_DDL} DESTINATION ${GAIA_GENERATED_SCHEMAS})

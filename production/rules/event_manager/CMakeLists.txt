@@ -63,4 +63,4 @@ set(TEST_RULE_INTEGRATION_INCLUDES
   ${GAIA_PARSER_GENERATED})
 add_gtest(test_rule_integration "tests/test_rule_integration.cpp"
   "${TEST_RULE_INTEGRATION_INCLUDES}" "rt;gaia;gaia_parser" "generate_addr_book_headers" ""
-  "DDL_FILE=${GAIA_GENERATED_SCHEMAS}/addr_book.ddl")
+  "DDL_FILE=${GAIA_REPO}/production/schemas/test/addr_book/addr_book.ddl")

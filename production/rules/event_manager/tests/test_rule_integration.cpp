@@ -195,22 +195,6 @@ public:
     }
 
 protected:
-    void mark_phone_table_fields_active()
-    {
-        // TODO: suppport specifying active field via DDL.
-        begin_transaction();
-        {
-            for (gaia_id_t field_id : list_fields(phone_t::s_gaia_type))
-            {
-                // Mark all fields as active so that we can bind to them
-                gaia_field_writer w = gaia_field_t::get(field_id).writer();
-                w.active = true;
-                w.update_row();
-            }
-        }
-        commit_transaction();
-    }
-
     void SetUp() override {
         if (!g_is_initialized) {
             const char* ddl_file = getenv("DDL_FILE");
@@ -221,7 +205,6 @@ protected:
             // NOTE: For the unit test setup, we need to init catalog and load test tables before rules engine starts.
             //       Otherwise, the event log activities will cause out of order test table IDs.
             load_catalog(ddl_file);
-            mark_phone_table_fields_active();
 
             gaia::rules::initialize_rules_engine();
 

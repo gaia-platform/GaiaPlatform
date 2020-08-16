@@ -122,6 +122,7 @@ struct field_definition_t {
     uint16_t length;
 
     string table_type_name;
+    bool active = false;
 };
 
 using field_def_list_t = vector<unique_ptr<field_definition_t>>;

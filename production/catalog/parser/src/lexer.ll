@@ -50,6 +50,7 @@ blank [ \t\r]
 "DROP"       return yy::parser::make_DROP(loc);
 "TABLE"      return yy::parser::make_TABLE(loc);
 "REFERENCES" return yy::parser::make_REFERENCES(loc);
+"ACTIVE"     return yy::parser::make_ACTIVE(loc);
 "BOOL"       return yy::parser::make_BOOL(loc);
 "INT8"       return yy::parser::make_INT8(loc);
 "UINT8"      return yy::parser::make_UINT8(loc);

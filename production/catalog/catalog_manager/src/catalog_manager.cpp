@@ -428,7 +428,7 @@ gaia_id_t catalog_manager_t::create_table_impl(
             position,                          // position
             true,                              // required
             false,                             // deprecated
-            false,                             // active
+            field->active,                     // active
             true,                              // nullable
             false,                             // has_default
             ""                                 // default value

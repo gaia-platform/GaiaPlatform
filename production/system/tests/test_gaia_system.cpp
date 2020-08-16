@@ -41,20 +41,6 @@ extern "C" void initialize_rules() {
 
 class gaia_system_test : public db_test_base_t {
   protected:
-    void mark_employee_table_fields_active() {
-        // TODO: suppport specifying active field via DDL.
-        begin_transaction();
-        {
-            for (gaia_id_t field_id : list_fields(employee_t::s_gaia_type)) {
-                // Mark all fields as active so that we can bind to them
-                gaia_field_writer w = gaia_field_t::get(field_id).writer();
-                w.active = true;
-                w.update_row();
-            }
-        }
-        commit_transaction();
-    }
-
     void SetUp() override {
         const char *ddl_file = getenv("DDL_FILE");
         ASSERT_NE(ddl_file, nullptr);
@@ -64,7 +50,6 @@ class gaia_system_test : public db_test_base_t {
         // NOTE: For the unit test setup, we need to init catalog and load test tables before rules engine starts.
         //       Otherwise, the event log activities will cause out of order test table IDs.
         gaia::catalog::load_catalog(ddl_file);
-        mark_employee_table_fields_active();
 
         gaia::rules::initialize_rules_engine();
 
