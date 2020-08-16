@@ -23,19 +23,14 @@ namespace catalog {
 // The initial size of the flatbuffer builder buffer.
 constexpr int c_flatbuffer_builder_size = 128;
 
-// Constants contained in the gaia_ruleset object.
-constexpr int c_first_rules_gaia_rule = 0;
-constexpr int c_num_gaia_ruleset_ptrs = 1;
-
 // Constants contained in the gaia_rule object.
 constexpr int c_parent_rules_gaia_ruleset = 0;
 constexpr int c_next_rules_gaia_rule = 1;
 constexpr int c_num_gaia_rule_ptrs = 2;
 
-// Constants contained in the gaia_table object.
-constexpr int c_first_fields_gaia_field = 0;
-constexpr int c_first_refs_gaia_field = 1;
-constexpr int c_num_gaia_table_ptrs = 2;
+// Constants contained in the gaia_ruleset object.
+constexpr int c_first_rules_gaia_rule = 0;
+constexpr int c_num_gaia_ruleset_ptrs = 1;
 
 // Constants contained in the gaia_field object.
 constexpr int c_parent_fields_gaia_table = 0;
@@ -44,10 +39,46 @@ constexpr int c_parent_refs_gaia_table = 2;
 constexpr int c_next_refs_gaia_field = 3;
 constexpr int c_num_gaia_field_ptrs = 4;
 
-struct gaia_ruleset_t;
+// Constants contained in the gaia_table object.
+constexpr int c_first_fields_gaia_field = 0;
+constexpr int c_first_refs_gaia_field = 1;
+constexpr int c_parent_gaia_database_gaia_database = 2;
+constexpr int c_next_gaia_table_gaia_table = 3;
+constexpr int c_num_gaia_table_ptrs = 4;
+
+// Constants contained in the gaia_database object.
+constexpr int c_first_gaia_table_gaia_table = 0;
+constexpr int c_num_gaia_database_ptrs = 1;
+
 struct gaia_rule_t;
-struct gaia_table_t;
+struct gaia_ruleset_t;
 struct gaia_field_t;
+struct gaia_table_t;
+struct gaia_database_t;
+
+typedef gaia_writer_t<18446744073709551611llu,gaia_database_t,gaia_database,gaia_databaseT,c_num_gaia_database_ptrs> gaia_database_writer;
+struct gaia_database_t : public gaia_object_t<18446744073709551611llu,gaia_database_t,gaia_database,gaia_databaseT,c_num_gaia_database_ptrs> {
+    const char* name() const {return GET_STR(name);}
+    using gaia_object_t::insert_row;
+    static gaia_id_t insert_row(const char* name) {
+        flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
+        b.Finish(Creategaia_databaseDirect(b, name));
+        return gaia_object_t::insert_row(b);
+    }
+    static gaia_container_t<18446744073709551611llu, gaia_database_t>& list() {
+        static gaia_container_t<18446744073709551611llu, gaia_database_t> list;
+        return list;
+    }
+    reference_chain_container_t<gaia_database_t,gaia_table_t,c_parent_gaia_database_gaia_database,c_first_gaia_table_gaia_table,c_next_gaia_table_gaia_table> m_gaia_table_list;
+    reference_chain_container_t<gaia_database_t,gaia_table_t,c_parent_gaia_database_gaia_database,c_first_gaia_table_gaia_table,c_next_gaia_table_gaia_table>& gaia_table_list() {
+        return m_gaia_table_list;
+    }
+private:
+    friend struct gaia_object_t<18446744073709551611llu, gaia_database_t, gaia_database, gaia_databaseT, c_num_gaia_database_ptrs>;
+    gaia_database_t(gaia_id_t id) : gaia_object_t(id, "gaia_database_t") {
+        m_gaia_table_list.set_outer(gaia_id());
+    }
+};
 
 typedef gaia_writer_t<18446744073709551612llu,gaia_ruleset_t,gaia_ruleset,gaia_rulesetT,c_num_gaia_ruleset_ptrs> gaia_ruleset_writer;
 struct gaia_ruleset_t : public gaia_object_t<18446744073709551612llu,gaia_ruleset_t,gaia_ruleset,gaia_rulesetT,c_num_gaia_ruleset_ptrs> {
@@ -114,6 +145,9 @@ struct gaia_table_t : public gaia_object_t<18446744073709551614llu,gaia_table_t,
         flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
         b.Finish(Creategaia_tableDirect(b, name, is_log, trim_action, max_rows, max_size, max_seconds, binary_schema));
         return gaia_object_t::insert_row(b);
+    }
+    gaia_database_t gaia_database() {
+        return gaia_database_t::get(this->references()[c_parent_gaia_database_gaia_database]);
     }
     static gaia_container_t<18446744073709551614llu, gaia_table_t>& list() {
         static gaia_container_t<18446744073709551614llu, gaia_table_t> list;

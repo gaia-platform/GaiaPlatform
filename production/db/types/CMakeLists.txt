@@ -17,8 +17,7 @@ set(GAIA_TYPES_INCLUDES
   "${GAIA_INC}/internal/db"
   "${GAIA_INC}/internal/catalog"
   "${GAIA_DB_INC}/types"
-  "${FLATBUFFERS_INC}"
-  "${GAIA_CATALOG_GENERATED}")
+  "${FLATBUFFERS_INC}")
 
 message(STATUS "GAIA_TYPES_INCLUDES=${GAIA_TYPES_INCLUDES}")
 

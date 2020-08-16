@@ -14,12 +14,6 @@ set(GAIA_SCHEMAS_INC "${PROJECT_SOURCE_DIR}")
 #
 set(GAIA_GENERATE ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac)
 
-#
-# System DDL files we are pulling in.
-#
-set(EVENT_LOG_DDL ${GAIA_REPO}/production/rules/event_manager/schema/event_log.ddl)
-
-
 file(MAKE_DIRECTORY ${GAIA_GENERATED_SCHEMAS})
 
 add_subdirectory(system)

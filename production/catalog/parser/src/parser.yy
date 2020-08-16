@@ -2,13 +2,13 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
-/*-------------------------------------------------------------------------
+/**
+ * Gaia data definition language (DDL) Bison input file
  *
- * parser.yy
- *   parser definition for Gaia catalog DDLs
- *
- *-------------------------------------------------------------------------
- */
+ * Coding style for this file:
+ * - The braced C++ code follows "Gaia C++ Coding Guidelines".
+ * - The grammar rule definition loosely follows the style used in the Bison (3.5) manual.
+ **/
 %skeleton "lalr1.cc" // -*- C++ -*-
 %require "3.5"
 %defines
@@ -33,14 +33,15 @@
         struct field_type_t;
         struct field_definition_t;
         class parser_t;
-    }
-    }
-    }
+    } // namespace ddl
+    } // namespace catalog
+    } // namespace gaia
 
     using namespace gaia::catalog::ddl;
     using field_def_list_t = std::vector<std::unique_ptr<field_definition_t>>;
     using statement_list_t = std::vector<std::unique_ptr<statement_t>>;
     using data_type_t = gaia::catalog::data_type_t;
+    using composite_name_t = std::pair<std::string, std::string>;
 }
 
 // The parsing context.
@@ -54,19 +55,21 @@
 %code {
     #include "gaia_parser.hpp"
     #include "gaia_catalog.hpp"
+
     yy::parser::symbol_type yylex(gaia::catalog::ddl::parser_t &);
 }
 
 %define api.token.prefix {TOK_}
 
 %token BOOL INT8 UINT8 INT16 UINT16 INT32 UINT32 INT64 UINT64 FLOAT32 FLOAT64 STRING
-%token CREATE DROP TABLE REFERENCES
+%token CREATE DROP DATABASE TABLE REFERENCES ACTIVE
 %token END 0
 %token LPAREN "("
 %token RPAREN ")"
 %token LBRACKET "["
 %token RBRACKET "]"
 %token COMMA ","
+%token DOT "."
 %token SEMICOLON ";"
 
 %token <std::string> IDENTIFIER "identifier"
@@ -81,6 +84,7 @@
 %type <std::unique_ptr<field_definition_t>> field_def
 %type <std::unique_ptr<field_def_list_t>> field_def_commalist
 %type <std::unique_ptr<statement_list_t>> statement_list
+%type <composite_name_t> composite_name
 
 %printer { yyo << "statement"; } statement
 %printer { yyo << "create_statement:" << $$->name; } create_statement
@@ -89,85 +93,112 @@
 %printer { yyo << "filed_def:" << $$->name; } field_def
 %printer { yyo << "filed_def_commalist[" << $$->size() << "]"; } field_def_commalist
 %printer { yyo << "statement_list[" << $$->size() << "]"; } statement_list
+%printer { yyo << "composite_name: " << $$.first << "." << $$.second; } composite_name
 %printer { yyo << $$; } <*>
 
 %%
 %start input;
 
 input:
-    statement_list opt_semicolon {
-        gaia_parser.statements = std::move(*$1);
-    };
+  statement_list opt_semicolon {
+      gaia_parser.statements = std::move(*$1);
+  }
+;
 
 opt_semicolon: ";" | ;
 
 statement_list:
-    statement {
-        $$ = std::unique_ptr<statement_list_t>{new statement_list_t()};
-        $$->push_back(std::move($1)); }
-    | statement_list ";" statement {
-        $1->push_back(std::move($3));
-        $$ = std::move($1);
-    };
+  statement {
+      $$ = std::unique_ptr<statement_list_t>{new statement_list_t()};
+      $$->push_back(std::move($1));
+  }
+| statement_list ";" statement {
+      $1->push_back(std::move($3));
+      $$ = std::move($1);
+  }
+;
 
 statement:
-    create_statement { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
-    | drop_statement { $$ = std::unique_ptr<statement_t>{std::move($1)}; };
+  create_statement { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
+| drop_statement { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
+;
 
 create_statement:
-    CREATE TABLE IDENTIFIER "(" field_def_commalist ")" {
-        $$ = std::unique_ptr<create_statement_t>{new create_statement_t(create_type_t::create_table, $3)};
-        $$->fields = std::move(*$5);
-    };
+  CREATE DATABASE IDENTIFIER {
+      $$ = std::unique_ptr<create_statement_t>{new create_statement_t(create_type_t::create_database, $3)};
+  }
+| CREATE TABLE composite_name "(" field_def_commalist ")" {
+      $$ = std::unique_ptr<create_statement_t>{new create_statement_t(create_type_t::create_table, $3.second)};
+      $$->database = std::move($3.first);
+      $$->fields = std::move(*$5);
+  }
+;
 
 drop_statement:
-    DROP TABLE IDENTIFIER {
-        $$ = std::unique_ptr<drop_statement_t>{new drop_statement_t(drop_type_t::drop_table, $3)};
-    };
+  DROP TABLE composite_name {
+      $$ = std::unique_ptr<drop_statement_t>{new drop_statement_t(drop_type_t::drop_table, $3.second)};
+      $$->database = std::move($3.first);
+  }
+;
 
 field_def_commalist:
-    field_def {
-        $$ = std::unique_ptr<field_def_list_t>{new field_def_list_t()};
-        $$->push_back(std::move($1)); }
-    | field_def_commalist "," field_def {
-        $1->push_back(std::move($3));
-        $$ = std::move($1);
-    };
+  field_def {
+      $$ = std::unique_ptr<field_def_list_t>{new field_def_list_t()};
+      $$->push_back(std::move($1)); }
+| field_def_commalist "," field_def {
+      $1->push_back(std::move($3));
+      $$ = std::move($1);
+  }
+;
 
 field_def:
-    IDENTIFIER field_type opt_array {
-        $$ = std::unique_ptr<field_definition_t>{new field_definition_t($1, $2->type, $3)};
-        if ($$->type == data_type_t::e_references) {
-           $$->table_type_name = std::move($2->name);
-        }
-    };
+  IDENTIFIER field_type opt_array {
+      $$ = std::unique_ptr<field_definition_t>{new field_definition_t($1, $2->type, $3)};
+  }
+| IDENTIFIER field_type opt_array ACTIVE {
+      $$ = std::unique_ptr<field_definition_t>{new field_definition_t($1, $2->type, $3)};
+      $$->active = true;
+  }
+| IDENTIFIER REFERENCES composite_name  {
+      $$ = std::unique_ptr<field_definition_t>{new field_definition_t($1, data_type_t::e_references, 1)};
+      $$->table_type_database = std::move($3.first);
+      $$->table_type_name = std::move($3.second);
+  }
+| REFERENCES composite_name {
+      $$ = std::unique_ptr<field_definition_t>{new field_definition_t("", data_type_t::e_references, 1)};
+      $$->table_type_database = std::move($2.first);
+      $$->table_type_name = std::move($2.second);
+  }
+;
 
 opt_array:
-    "[" "]" { $$ = 0; }
-    | "[" NUMBER "]" { $$ = $2; }
-    | { $$ = 1; };
+  "[" "]" { $$ = 0; }
+| "[" NUMBER "]" { $$ = $2; }
+| { $$ = 1; }
+;
 
 field_type:
-    BOOL { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_bool)}; }
-    | INT8 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_int8)}; }
-    | UINT8 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_uint8)}; }
-    | INT16 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_int16)}; }
-    | UINT16 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_uint16)}; }
-    | INT32 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_int32)}; }
-    | UINT32 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_uint32)}; }
-    | INT64 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_int64)}; }
-    | UINT64 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_uint64)}; }
-    | FLOAT32 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_float32)}; }
-    | FLOAT64 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_float64)}; }
-    | STRING { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_string)}; }
-    | REFERENCES IDENTIFIER {
-        $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_references)};
-        $$->name = std::move($2);
-    };
+  BOOL { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_bool)}; }
+| INT8 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_int8)}; }
+| UINT8 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_uint8)}; }
+| INT16 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_int16)}; }
+| UINT16 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_uint16)}; }
+| INT32 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_int32)}; }
+| UINT32 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_uint32)}; }
+| INT64 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_int64)}; }
+| UINT64 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_uint64)}; }
+| FLOAT32 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_float32)}; }
+| FLOAT64 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_float64)}; }
+| STRING { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_string)}; }
+;
+
+composite_name:
+  IDENTIFIER { $$ = std::make_pair("", $1); }
+| IDENTIFIER "." IDENTIFIER { $$ = make_pair($1, $3); }
+;
 
 %%
-void
-yy::parser::error (const location_type& l, const std::string& m)
-{
-  std::cerr << l << ": " << m << '\n';
+
+void yy::parser::error (const location_type& l, const std::string& m) {
+    std::cerr << l << ": " << m << '\n';
 }
