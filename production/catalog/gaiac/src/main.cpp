@@ -36,6 +36,7 @@ void start_repl(parser_t &parser, const string &dbname) {
     const auto prompt = "gaiac> ";
     const auto exit_command = "exit";
 
+    // NOTE: all REPL outputs including error messages go to standarad output.
     while (true) {
         string line;
         cout << prompt << flush;
@@ -65,12 +66,11 @@ void start_repl(parser_t &parser, const string &dbname) {
 
 namespace flatbuffers {
 void LogCompilerWarn(const std::string &warn) {
-    cout << c_warning_prompt << warn << endl
-         << flush;
+    cerr << c_warning_prompt << warn << endl;
 }
+
 void LogCompilerError(const std::string &err) {
-    cout << c_warning_prompt << err << endl
-         << flush;
+    cerr << c_warning_prompt << err << endl;
 }
 } // namespace flatbuffers
 
@@ -85,16 +85,14 @@ void generate_fbs_headers(const string &db_name, const string &output_path) {
 
     string fbs_schema = gaia::catalog::generate_fbs(db_name);
     if (!fbs_parser.Parse(fbs_schema.c_str())) {
-        cout << c_error_prompt
+        cerr << c_error_prompt
              << "Fail to parse the catalog generated FlatBuffers schema. Error: "
-             << fbs_parser.error_ << endl
-             << flush;
+             << fbs_parser.error_ << endl;
     }
 
     if (!flatbuffers::GenerateCPP(fbs_parser, output_path, db_name)) {
-        cout << c_error_prompt
-             << "Unable to generate FlatBuffers C++ headers for " << db_name << endl
-             << flush;
+        cerr << c_error_prompt
+             << "Unable to generate FlatBuffers C++ headers for " << db_name << endl;
     };
 }
 
@@ -200,27 +198,22 @@ int main(int argc, char *argv[]) {
         } else if (argv[i] == string("-g")) {
             mode = operate_mode_t::generation;
         } else if (argv[i] == string("-t")) {
-            // Note the order dependency.
-            // Require a path right after this
             if (++i > argc) {
-                cout << c_error_prompt << "Missing path to db server." << endl
-                     << flush;
+                cerr << c_error_prompt << "Missing path to db server." << endl;
                 exit(EXIT_FAILURE);
             }
             const char *path_to_db_server = argv[i];
             server.start(path_to_db_server);
         } else if (argv[i] == string("-o")) {
             if (++i > argc) {
-                cout << c_error_prompt << "Missing path to output directory." << endl
-                     << flush;
+                cerr << c_error_prompt << "Missing path to output directory." << endl;
                 exit(EXIT_FAILURE);
             }
             output_path = argv[i];
             terminate_path(output_path);
         } else if (argv[i] == string("-d")) {
             if (++i > argc) {
-                cout << c_error_prompt << "Missing database name." << endl
-                     << flush;
+                cerr << c_error_prompt << "Missing database name." << endl;
                 exit(EXIT_FAILURE);
             }
             db_name = argv[i];
@@ -247,9 +240,9 @@ int main(int argc, char *argv[]) {
             }
             gaia::db::end_session();
         } catch (gaia_exception &e) {
-            cout << c_error_prompt << e.what() << endl;
+            cerr << c_error_prompt << e.what() << endl;
             if (string(e.what()).find("connect failed") != string::npos) {
-                cout << "May need to start the storage engine server." << endl;
+                cerr << "May need to start the storage engine server." << endl;
             }
             res = EXIT_FAILURE;
         }

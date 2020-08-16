@@ -84,8 +84,10 @@ There are two ways to create a database and specifying a table in a database.
 
 ### Explicitly through the data definition language
 
-The DDL to create database is `create database`. To specifying a table in a
-database, using the composite name of the format `[database].[table]`.
+The DDL to create database is `create database`.
+
+To specifying a table in a database, using the composite name of the format
+`[database].[table]`.
 
 #### Examples
 A database `addr_book` can be created using the following statement.
@@ -131,15 +133,26 @@ This is the way to create and specify a database before the introduction of the
 database to DDL. It is perfectly supported as well. The `gaiac` command line
 usage already documented this usage.
 
+#### Examples
 In the following command line example, an `airport` database will be created
-automatically. All create table statements in the `airport.ddl` will create
-tables in the `airport` database. No database prefix is necessary for table
-names.
+automatically. When no database prefix is specified for table names, the tables
+will be created in the `airport` database. (The database prefix can still be
+used to override the database name derived from the DDL file name.)
 
 ```
    gaiac -g airport.ddl
 
 ```
+
+The following command line will create all tables in `tmp_airport`. Because a
+database name is specified via `-d`, the command will not create the database
+`tmp_airport` automatically.
+
+```
+   gaiac -d tmp_airport -g airport.ddl
+
+```
+
 
 ## Bootstrapping the catalog
 The gaia catalog manager uses Extended Data Classes to perform operations on the
