@@ -17,14 +17,14 @@ implementation may change more frequently.
 
 ## Components
 
-### Catalog manager
+### `catalog_manager`
 The sub-directory contains the following code.
 
 - `catalog_manager` is a singleton class that implements all the catalog DDL APIs.
 - `fbs_generator` implements FlatBuffers schema (fbs) generation APIs.
 - `gaia_generate` implements Gaia extended data classes (EDC) generation APIs.
 
-### Parser
+### `parser`
 This is the scanner-parser for Gaia DDL. We used the lex/parser generator--
 `flex/bison`--to generate the C++ code for both the lexer and parser. The
 lexical analysis rules are defined in [`lexer.ll`](parser/src/lexer.ll). The
@@ -40,7 +40,7 @@ the parser directly.
 - `${GAIA_REPO}/production/catalog/parser/inc`
 - `${GAIA_PARSER_GENERATED}`
 
-### Gaiac
+### `gaiac`
 This is the catalog command line tool for Gaia data definition language. It is
 used for bootstrapping the EDC definitions, manual testing and development.
 
