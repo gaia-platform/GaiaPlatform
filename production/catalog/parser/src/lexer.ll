@@ -1,8 +1,8 @@
+%{ /* -*- C++ -*- */
 /////////////////////////////////////////////
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
-%{ /* -*- C++ -*- */
 /**
  * Gaia data definition language (DDL) Flex input file
  *
