@@ -211,10 +211,11 @@ Be sure to save the new [gaia_catalog.h](../inc/internal/catalog/gaia_catalog.h)
 and [catalog_generated.h](../inc/internal/catalog/catalog_generated.h) in place
 of the previous ones.
 
-## Creating other system tables with fixed IDs
-If you need to create a new system table with fixed ID, add the table type and
-its ID to
-[system_table_types.hpp](../inc/internal/common/system_table_types.hpp). Add the
-table definition in C++ code to `catalog_manager_t::create_system_tables()`.
-Build instructions to generate the direct access APIs for the table should go
-under `${GAIA_REPO}/production/schemas/system`.
+## Creating system tables
+The following are the steps to create a new system table with fixed ID:
+
+- Add the table type and its ID to
+[system_table_types.hpp](../inc/internal/common/system_table_types.hpp).
+- Add the table definition in C++ code to `catalog_manager_t::create_system_tables()`.
+- Add build instructions to generate the direct access APIs under
+  `${GAIA_REPO}/production/schemas/system`.
