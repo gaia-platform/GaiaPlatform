@@ -7,6 +7,7 @@
 #include <iostream>
 #include "gtest/gtest.h"
 #include "gaia_catalog.hpp"
+#include "gaia_catalog_internal.hpp"
 #include "gaia_parser.hpp"
 #include "db_test_base.hpp"
 
@@ -17,24 +18,12 @@ using namespace std;
 class gaia_generate_test : public db_test_base_t {
 };
 
-// Copied from gaiac main.cpp
-void execute(vector<unique_ptr<statement_t>> &statements) {
-    for (auto &stmt : statements) {
-        if (!stmt->is_type(statement_type_t::create)) {
-            continue;
-        }
-        auto create_stmt = dynamic_cast<create_statement_t *>(stmt.get());
-        if (create_stmt->type == create_type_t::create_table) {
-            gaia::catalog::create_table(create_stmt->name, create_stmt->fields);
-        }
-    }
-}
-
 // Using the catalog manager's create_table(), create a catalog and an EDC header from that.
 TEST_F(gaia_generate_test, use_create_table) {
+    create_database("airport");
     ddl::field_def_list_t fields;
     fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t{"name", data_type_t::e_string, 1}));
-    create_table("airport", fields);
+    create_table("airport", "airport", fields);
 
     auto header_str = gaia_generate("airport");
     EXPECT_NE(0, header_str.find("struct airport_t"));
@@ -45,7 +34,8 @@ TEST_F(gaia_generate_test, parse_ddl) {
     parser_t parser;
 
     EXPECT_EQ(EXIT_SUCCESS, parser.parse_line("create table tmp_airport ( name string );"));
-    execute(parser.statements);
+    create_database("tmp_airport");
+    execute("tmp_airport", parser.statements);
 
     auto header_str = gaia_generate("tmp_airport");
     EXPECT_NE(0, header_str.find("struct tmp_airport_t"));

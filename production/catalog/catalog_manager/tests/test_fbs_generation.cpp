@@ -43,7 +43,7 @@ TEST_F(fbs_generation_test, generate_fbs_from_catalog) {
 TEST_F(fbs_generation_test, generate_fbs_from_table_definition) {
     string test_table_name{"test_fbs_generation"};
 
-    string fbs = generate_fbs(test_table_name, test_table_fields);
+    string fbs = generate_fbs("", test_table_name, test_table_fields);
 
     flatbuffers::Parser fbs_parser;
 
@@ -54,7 +54,7 @@ TEST_F(fbs_generation_test, generate_fbs_from_table_definition) {
 TEST_F(fbs_generation_test, generate_bfbs) {
     string test_table_name{"test_fbs_generation"};
 
-    string fbs = generate_fbs(test_table_name, test_table_fields);
+    string fbs = generate_fbs("", test_table_name, test_table_fields);
     string bfbs = generate_bfbs(fbs);
 
     // The generated bfbs is basd64 encoded.
@@ -74,5 +74,5 @@ TEST_F(fbs_generation_test, get_bfbs) {
 
     auto &schema = *reflection::GetSchema(bfbs.c_str());
     auto root_table = schema.root_table();
-    ASSERT_STREQ(root_table->name()->c_str(), test_table_name.c_str());
+    ASSERT_STREQ(root_table->name()->c_str(), (c_gaia_namespace + "." + test_table_name).c_str());
 }

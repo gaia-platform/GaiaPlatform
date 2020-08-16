@@ -1,5 +1,5 @@
 create table employee (
-    name_first: string,
+    name_first: string active,
     name_last: string,
     ssn: string,
     hire_date: int64,
@@ -20,8 +20,8 @@ create table address (
 );
 
 create table phone (
-    phone_number: string,
-    type: string,
-    primary: bool,
+    phone_number: string active,
+    type: string active,
+    primary: bool active,
     phones references address
 );

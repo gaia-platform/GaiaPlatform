@@ -38,7 +38,7 @@ add_library(gaia_rules STATIC
 add_dependencies(gaia_rules generate_rules_headers)
 set_target_properties(gaia_rules PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 target_include_directories(gaia_rules PRIVATE ${GAIA_EVENT_MANAGER_INCLUDES})
-target_link_libraries(gaia_rules PRIVATE gaia_direct)
+target_link_libraries(gaia_rules PRIVATE gaia_direct gaia_catalog)
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia_rules PROPERTY POSITION_INDEPENDENT_CODE ON)
 
@@ -55,5 +55,12 @@ add_gtest(test_rule_context "tests/test_rule_context.cpp"
   "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_rules")
 add_gtest(test_rule_checker "tests/test_rule_checker.cpp;"
   "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
+
+# The test needs gaia parser to load test DDLs.
+set(TEST_RULE_INTEGRATION_INCLUDES
+  ${GAIA_EVENT_MANAGER_INCLUDES}
+  ${GAIA_REPO}/production/catalog/parser/inc
+  ${GAIA_PARSER_GENERATED})
 add_gtest(test_rule_integration "tests/test_rule_integration.cpp"
-  "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia" "generate_addr_book_db_headers")
+  "${TEST_RULE_INTEGRATION_INCLUDES}" "rt;gaia;gaia_parser" "generate_addr_book_headers" ""
+  "DDL_FILE=${GAIA_REPO}/production/schemas/test/addr_book/addr_book.ddl")

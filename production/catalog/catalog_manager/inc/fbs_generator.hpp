@@ -24,11 +24,12 @@ class unknown_data_type : public gaia::common::gaia_exception {
  * This method has no dependency on catalog or other table definitions.
  * Note: If we begin to supoort complex types, the method will need to be updated sigificantly.
  *
+ * @param db_name database name
  * @param table_name table name
  * @param fields table fields parsing result bindings
  * @return fbs schema
  */
-string generate_fbs(const string &table_name, const ddl::field_def_list_t &fields);
+string generate_fbs(const string &db_name, const string &table_name, const ddl::field_def_list_t &fields);
 
 /**
  * Generate binary FlatBuffers schema (bfbs) in base64 encoded string format.

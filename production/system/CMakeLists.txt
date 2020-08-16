@@ -32,9 +32,18 @@ add_library(gaia STATIC src/gaia_system.cpp)
 
 target_include_directories(gaia PUBLIC ${GAIA_SYSTEM_PUBLIC_INCLUDES})
 target_include_directories(gaia PRIVATE ${GAIA_SYSTEM_PRIVATE_INCLUDES})
-target_link_libraries(gaia PUBLIC gaia_direct gaia_rules gaia_catalog)
+target_link_libraries(gaia PUBLIC gaia_direct gaia_rules)
 set_target_properties(gaia PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+# The test needs gaia parser to load test DDLs.
+set(TEST_GAIA_SYSTEM_INCLUDES
+  ${GAIA_SYSTEM_PUBLIC_INCLUDES}
+  ${GAIA_SYSTEM_PRIVATE_INCLUDES}
+  "${GAIA_INC}/internal/catalog"
+  "${GAIA_REPO}/production/catalog/parser/inc"
+  ${GAIA_PARSER_GENERATED})
 add_gtest(test_gaia_system "tests/test_gaia_system.cpp"
-  "${GAIA_SYSTEM_PUBLIC_INCLUDES};${GAIA_SYSTEM_PRIVATE_INCLUDES}" "rt;gaia" "generate_addr_book_db_headers")
+  "${TEST_GAIA_SYSTEM_INCLUDES}" "rt;gaia;gaia_parser" "generate_addr_book_headers" ""
+  "DDL_FILE=${GAIA_REPO}/production/schemas/test/addr_book/addr_book.ddl")

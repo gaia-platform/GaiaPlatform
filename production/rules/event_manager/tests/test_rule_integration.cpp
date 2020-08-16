@@ -15,9 +15,11 @@
 
 #include "rules.hpp"
 #include "gaia_system.hpp"
-#include "gaia_addr_book_db.h"
+#include "gaia_addr_book.h"
 #include "db_test_base.hpp"
+#include "gaia_catalog.h"
 #include "gaia_catalog.hpp"
+#include "gaia_catalog_internal.hpp"
 #include <thread>
 #include <atomic>
 #include <map>
@@ -27,7 +29,7 @@ using namespace gaia::db;
 using namespace gaia::direct_access;
 using namespace gaia::rules;
 using namespace std;
-using namespace gaia::addr_book_db;
+using namespace gaia::addr_book;
 using namespace gaia::catalog;
 
 const char* c_name = "John";
@@ -192,55 +194,20 @@ public:
         subscribe_rule(phone_t::s_gaia_type, triggers::event_type_t::row_update, fields, binding);
     }
 
-    void load_catalog()
-    {
-        ddl::field_def_list_t empty_fields;
-
-        // Add dummy catalog types for all our types with just dummy fields
-        for (gaia_type_t i = event_log_t::s_gaia_type; i < phone_t::s_gaia_type; i++)
-        {
-            string table_name = "dummy" + std::to_string(i);
-            gaia::catalog::create_table(table_name, empty_fields);
-        }
-
-        load_phone_table();
-    }
-
-    void load_phone_table()
-    {
-        // Our test type for field bindings (must be the last table in the addr_book_db schema so that inserting fields
-        // doesn't throw off the type ids for tables that come after it).
-        // Field positions are 0, 1, 2 and we mark them all as active in the catalog so that we can bind to them.
-        gaia::catalog::ddl::field_def_list_t phone_fields;
-        phone_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t{"phone_number", data_type_t::e_string, 1}));
-        phone_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t{"type", data_type_t::e_string, 1}));
-        phone_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t{"primary", data_type_t::e_bool, 1}));
-
-        gaia_id_t phone_table = gaia::catalog::create_table("phone_t", phone_fields);
-        auto field_ids = list_fields(phone_table);
-
-        begin_transaction();
-        {
-            for (gaia_id_t field_id : field_ids)
-            {
-                // Mark all fields as active so that we can bind to them
-                gaia_field_writer w = gaia_field_t::get(field_id).writer();
-                w.active = true;
-                w.update_row();
-            }
-        }
-        commit_transaction();
-    }
-
 protected:
-    rule_integration_test() : db_test_base_t(true) {
-    }
-
     void SetUp() override {
         if (!g_is_initialized) {
+            const char* ddl_file = getenv("DDL_FILE");
+            ASSERT_NE(ddl_file, nullptr);
+
             db_test_base_t::SetUp();
-            gaia::system::initialize();
-            load_catalog();
+
+            // NOTE: For the unit test setup, we need to init catalog and load test tables before rules engine starts.
+            //       Otherwise, the event log activities will cause out of order test table IDs.
+            load_catalog(ddl_file);
+
+            gaia::rules::initialize_rules_engine();
+
             g_is_initialized = true;
         }
     }

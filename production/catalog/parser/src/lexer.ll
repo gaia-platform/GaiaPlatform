@@ -3,12 +3,12 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
-/*-------------------------------------------------------------------------
+/**
+ * Gaia data definition language (DDL) Flex input file
  *
- * lex.ll
- *   lexer for Gaia catalog DDLs
- *
- *-------------------------------------------------------------------------
+ * Coding style for this file:
+ * - The braced C++ code follows "Gaia C++ Coding Guidelines".
+ * - Align pattens and actions as two tabular columns in the rules section.
  */
 #include <cerrno>
 #include <climits>
@@ -22,25 +22,24 @@
 %option caseless noyywrap nounput noinput batch debug
 
 %{
-  yy::parser::symbol_type
-  make_NUMBER (const std::string &s, const yy::parser::location_type& loc);
+    yy::parser::symbol_type
+    make_NUMBER (const std::string &s, const yy::parser::location_type& loc);
 %}
 
 id    [a-zA-Z][a-zA-Z_0-9]*
 int   [0-9]+
 blank [ \t\r]
 
-
 %{
-  #define YY_USER_ACTION loc.columns (yyleng);
-  #define YY_DECL yy::parser::symbol_type yylex(gaia::catalog::ddl::parser_t &gaia_parser)
+    #define YY_USER_ACTION loc.columns (yyleng);
+    #define YY_DECL yy::parser::symbol_type yylex(gaia::catalog::ddl::parser_t &gaia_parser)
 %}
 
 %%
 
 %{
-  yy::location& loc = gaia_parser.location;
-  loc.step ();
+    yy::location& loc = gaia_parser.location;
+    loc.step ();
 %}
 
 {blank}+     loc.step ();
@@ -48,8 +47,10 @@ blank [ \t\r]
 
 "CREATE"     return yy::parser::make_CREATE(loc);
 "DROP"       return yy::parser::make_DROP(loc);
+"DATABASE"   return yy::parser::make_DATABASE(loc);
 "TABLE"      return yy::parser::make_TABLE(loc);
 "REFERENCES" return yy::parser::make_REFERENCES(loc);
+"ACTIVE"     return yy::parser::make_ACTIVE(loc);
 "BOOL"       return yy::parser::make_BOOL(loc);
 "INT8"       return yy::parser::make_INT8(loc);
 "UINT8"      return yy::parser::make_UINT8(loc);
@@ -67,6 +68,7 @@ blank [ \t\r]
 "["          return yy::parser::make_LBRACKET(loc);
 "]"          return yy::parser::make_RBRACKET(loc);
 ","          return yy::parser::make_COMMA(loc);
+"."          return yy::parser::make_DOT(loc);
 ";"          return yy::parser::make_SEMICOLON(loc);
 {id}         return yy::parser::make_IDENTIFIER(yytext, loc);
 {int}        return make_NUMBER(yytext, loc);

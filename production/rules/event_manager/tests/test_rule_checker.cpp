@@ -105,8 +105,7 @@ protected:
     void SetUp() override 
     {
         db_test_base_t::SetUp();
-        gaia::catalog::initialize_catalog();
-        if (!g_loaded_catalog) 
+        if (!g_loaded_catalog)
         {
             load_catalog();
         }

@@ -27,6 +27,14 @@ namespace catalog {
  * @{
  */
 
+// The top level namespace for all the Gaia generated code.
+const string c_gaia_namespace = "gaia";
+
+// The name for global database in internal catalog representation.
+// From users' perspective, it is a database name of an empty string.
+// Think of it as a notion for empty database similar to Epsilon for empty string.
+const string c_global_db_name = "(global)";
+
 /*
  * The following enum classes are shared cross the catalog usage.
  */
@@ -114,11 +122,14 @@ struct field_definition_t {
     uint16_t length;
 
     string table_type_name;
+    string table_type_database;
+    bool active = false;
 };
 
 using field_def_list_t = vector<unique_ptr<field_definition_t>>;
 
 enum class create_type_t : uint8_t {
+    create_database,
     create_table,
 };
 
@@ -134,6 +145,8 @@ struct create_statement_t : statement_t {
     create_type_t type;
 
     string name;
+
+    string database;
 
     field_def_list_t fields;
 };
@@ -154,10 +167,36 @@ struct drop_statement_t : statement_t {
     drop_type_t type;
 
     string name;
+
+    string database;
 };
 
 /*@}*/
 } // namespace ddl
+
+/**
+ * Thrown when creating a database that already exists.
+ */
+class db_already_exists : public gaia_exception {
+  public:
+    db_already_exists(const string &name) {
+        stringstream message;
+        message << "The database \"" << name << "\" already exists.";
+        m_message = message.str();
+    }
+};
+
+/**
+ * Thrown when a specified database does not exists.
+ */
+class db_not_exists : public gaia_exception {
+  public:
+    db_not_exists(const string &name) {
+        stringstream message;
+        message << "The database \"" << name << "\" does not exist.";
+        m_message = message.str();
+    }
+};
 
 /**
  * Thrown when creating a table that already exists.
@@ -201,7 +240,27 @@ class duplicate_field : public gaia_exception {
 void initialize_catalog();
 
 /**
- * Create a table definition in the catalog.
+ * Create a database in the catalog.
+ *
+ * @param name database name
+ * @return id of the new database
+ * @throw db_already_exists
+ */
+gaia_id_t create_database(const string &name);
+
+/**
+ * Create a table definition in a given database.
+ *
+ * @param name database name
+ * @param name table name
+ * @param fields fields of the table
+ * @return id of the new table
+ * @throw table_already_exists
+ */
+gaia_id_t create_table(const string &dbname, const string &name, const ddl::field_def_list_t &fields);
+
+/**
+ * Create a table definition in the catalog's global database.
  *
  * @param name table name
  * @param fields fields of the table
@@ -211,23 +270,21 @@ void initialize_catalog();
 gaia_id_t create_table(const string &name, const ddl::field_def_list_t &fields);
 
 /**
- * Delete a table from the catalog.
+ * Delete a table in a given database.
+ *
+ * @param dbname database name
+ * @param name table name
+ * @throw table_not_exists
+ */
+void drop_table(const string &dbname, const string &name);
+
+/**
+ * Delete a table from the catalog's global database.
  *
  * @param name table name
  * @throw table_not_exists
  */
 void drop_table(const string &name);
-
-/**
- * List all tables defined in the catalog.
- *
- * The method is NOT thread safe with concurrent creating/dropping/altering table activities.
- * It has the same safety gurantee of the underlying container.
- * Use direct access APIs with transactions for thread safe access of catalog records.
- *
- * @return a set of tables ids in the catalog.
- */
-const set<gaia_id_t> &list_tables();
 
 /**
  * List all data payload fields for a given table defined in the catalog.
@@ -269,19 +326,21 @@ const vector<gaia_id_t> &list_references(gaia_id_t table_id);
 string generate_fbs(gaia_id_t table_id);
 
 /**
- * Generate FlatBuffers schema (fbs) for all catalog tables.
+ * Generate FlatBuffers schema (fbs) for all catalog tables in a given database.
  * No root type is specified in the generated schema.
  *
+ * @param dbname database name
  * @return generated fbs string
  */
-string generate_fbs();
+string generate_fbs(const string &dbname);
 
 /**
  * Generate the Extended Data Classes header file.
  *
+ * @param dbname database name
  * @return generated source
  */
-string gaia_generate(string);
+string gaia_generate(const string &dbname);
 
 /**
  * Retrieve the binary FlatBuffers schema (bfbs) for a given table.
@@ -290,6 +349,14 @@ string gaia_generate(string);
  * @return bfbs
  */
 string get_bfbs(gaia_id_t table_id);
+
+/**
+ * Find the database id given its name
+ *
+ * @param dbname database name
+ * @return database id (or INVALID_ID if the db name does not exist)
+ */
+gaia_id_t find_db_id(const string &dbname);
 
 /*@}*/
 } // namespace catalog
