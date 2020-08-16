@@ -1,14 +1,14 @@
-%{ /* -*- C++ -*- */
 /////////////////////////////////////////////
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
-/*-------------------------------------------------------------------------
+%{ /* -*- C++ -*- */
+/**
+ * Gaia data definition language (DDL) Flex input file
  *
- * lex.ll
- *   lexer for Gaia catalog DDLs
- *
- *-------------------------------------------------------------------------
+ * Coding style for this file:
+ * - The braced C++ code follows "Gaia C++ Coding Guidelines".
+ * - Align pattens and actions as two tabular columns in the rules section.
  */
 #include <cerrno>
 #include <climits>
@@ -22,25 +22,24 @@
 %option caseless noyywrap nounput noinput batch debug
 
 %{
-  yy::parser::symbol_type
-  make_NUMBER (const std::string &s, const yy::parser::location_type& loc);
+    yy::parser::symbol_type
+    make_NUMBER (const std::string &s, const yy::parser::location_type& loc);
 %}
 
 id    [a-zA-Z][a-zA-Z_0-9]*
 int   [0-9]+
 blank [ \t\r]
 
-
 %{
-  #define YY_USER_ACTION loc.columns (yyleng);
-  #define YY_DECL yy::parser::symbol_type yylex(gaia::catalog::ddl::parser_t &gaia_parser)
+    #define YY_USER_ACTION loc.columns (yyleng);
+    #define YY_DECL yy::parser::symbol_type yylex(gaia::catalog::ddl::parser_t &gaia_parser)
 %}
 
 %%
 
 %{
-  yy::location& loc = gaia_parser.location;
-  loc.step ();
+    yy::location& loc = gaia_parser.location;
+    loc.step ();
 %}
 
 {blank}+     loc.step ();

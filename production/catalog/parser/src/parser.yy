@@ -3,10 +3,10 @@
 // All rights reserved.
 /////////////////////////////////////////////
 /**
- * Gaia data definition language (DDL) grammar definition for bison
+ * Gaia data definition language (DDL) Bison input file
  *
  * Coding style for this file:
- * - The C++ code in "%code" block follows "Gaia C++ Coding Guidelines".
+ * - The braced C++ code follows "Gaia C++ Coding Guidelines".
  * - The grammar rule definition loosely follows the style used in the Bison (3.5) manual.
  **/
 %skeleton "lalr1.cc" // -*- C++ -*-

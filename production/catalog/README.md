@@ -1,9 +1,18 @@
 # Gaia Catalog
 
 This directory contains implementation of [catalog public interfaces](../inc/public/catalog/gaia_catalog.hpp).
-Including `gaia_catalog.hpp` and linking `gaia_catalog` is the standard way to use the catalog library.
-The implementation here may change without any notification.
-If you are using the headers defined here directly, make sure you know what you are doing.
+
+## API Usage
+Including headers in the following directories, and linking `gaia_catalog` is
+the most common way to use the catalog library. We recommend use direct access
+APIs to navigate and retrieve catalog records.
+
+- `{$GAIA_INC}/public/catalog`
+- `{$GAIA_INC}/internal/catalog`
+
+Linking any sub-components of catalog below are also allowed, and may even be
+necessary in certain scenarios. Use it at your own discretion as the
+implementation may change more frequently.
 
 ## Components
 
@@ -15,29 +24,42 @@ The sub-directory contains the following code.
 - `gaia_generate` implements Gaia extended data classes (EDC) generation APIs.
 
 ### Parser
-This is the scanner-parser for Gaia DDL.
-We used a lex/parser generator, `flex/bison` specifically, to generate the C++ code.
-The lexical analysis rules are defined in [`lexer.ll`](parser/src/lexer.ll).
-The grammar rules are defined in [`parser.yy`](parser/src/parser.yy).
-A helper or driver class `parser_t` of the lexer-parser is defined in [`gaia_parser.hpp`](parser/inc/gaia_parser.hpp).
-Most parsing usage should call the `gaia::catalog::ddl:parser_t` instead of `yy_lex` or `yy_parser` interfaces.
+This is the scanner-parser for Gaia DDL. We used the lex/parser generator--
+`flex/bison`--to generate the C++ code for both the lexer and parser. The
+lexical analysis rules are defined in [`lexer.ll`](parser/src/lexer.ll). The
+grammar rules are defined in [`parser.yy`](parser/src/parser.yy). A helper or
+driver class `parser_t` of the lexer-parser is defined in
+[`gaia_parser.hpp`](parser/inc/gaia_parser.hpp). Most parsing usage should call
+the `gaia::catalog::ddl:parser_t` instead of `yy_lex` or `yy_parser` interfaces.
+
+Add the following directories to the include list and link to `gaia_parser` to
+use the parser directly.
+
+- `${GAIA_REPO}/production/catalog/parser/inc`
+- `${GAIA_PARSER_GENERATED}`
 
 ### Gaiac
-This is the catalog command line tool for Gaia data definition language.
-It is used for bootstrapping the EDC definitions, manual testing and development.
+This is the catalog command line tool for Gaia data definition language. It is
+used for bootstrapping the EDC definitions, manual testing and development.
 
 The tool has three modes of operation: loading, interactive, and generation.
 
-Loading mode will only execute the DDL statements--translating them into catalog records--without any output.
+By default without specifying any mode, `gaiac` will run as loading mode to
+execute the DDL statements--translating them into catalog records--without
+generating any output.
 
-The interactive mode provides a REPL style command line interface to play with DDLs.
-The DDL typed in will be executed, and fbs output if any will be printed out to the console output.
+The interactive mode (`-i`) provides a REPL style command line interface to play
+with DDLs. The DDL typed in will be executed, and fbs output if any will be
+printed out to the console output.
 
-Under generation mode, the tool will generate the following 2 header files either from an DDL file or a specified database.
+Under generation mode (`-g`), the tool will generate the following 2 header
+files either from an DDL file or a specified database.
+
 - The FlatBuffers header for field access, `<dbname>_generated.h`
 - The EDC header file `gaia_<dbname>.h`
 
-With the two headers, a direct access source file gains access to the database as defined by the catalog.
+With the two headers, a direct access source file gains access to the database
+as defined by the catalog.
 
 #### Usage
 ```
@@ -130,8 +152,8 @@ reference to a table in the same database.
 ### Implicitly through command line argument or file name
 
 This is the way to create and specify a database before the introduction of the
-database to DDL. It is perfectly supported as well. The `gaiac` command line
-usage already documented this usage.
+database to DDL. The `gaiac` command line usage already documented the usage.
+See the following examples for more explanation and details.
 
 #### Examples
 In the following command line example, an `airport` database will be created
@@ -152,7 +174,6 @@ database name is specified via `-d`, the command will not create the database
    gaiac -d tmp_airport -g airport.ddl
 
 ```
-
 
 ## Bootstrapping the catalog
 The gaia catalog manager uses Extended Data Classes to perform operations on the
@@ -185,3 +206,11 @@ types are added or the `type_id` of the catalog tables change.
 Be sure to save the new [gaia_catalog.h](../inc/internal/catalog/gaia_catalog.h)
 and [catalog_generated.h](../inc/internal/catalog/catalog_generated.h) in place
 of the previous ones.
+
+## Creating other system tables with fixed IDs
+If you need to create a new system table with fixed ID, add the table type and
+its ID to
+[system_table_types.hpp](../inc/internal/common/system_table_types.hpp). Add the
+table definition in C++ code to `catalog_manager_t::create_system_tables()`.
+Build instructions to generate the direct access APIs for the table should go
+under `${GAIA_REPO}/production/schemas/system`.
