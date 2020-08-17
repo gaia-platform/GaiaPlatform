@@ -110,7 +110,6 @@ make -j$(nproc) VERBOSE=1
 
 ### Run Tests
 
-
 ```
 cd build/production
 
@@ -142,4 +141,3 @@ Note Clion expects a `CMakeLists.txt` at the root of the project. We don't have 
 4. Modify
    - Add `EXPECT_EQ(true, false)` to any test, press the play button, observe the
      test being compiled, executed and the obvious failure.
-
