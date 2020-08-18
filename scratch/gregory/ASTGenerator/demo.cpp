@@ -45,6 +45,11 @@ bool generationError = false;
 vector<string> rulesets;
 unordered_map<string, unordered_set<string>>  active_Fields;
 unordered_set<string>  used_Tables;
+
+unordered_set<string> used_DBs;
+unordered_map<string,string> tableDBData;
+
+
 const FunctionDecl *current_Rule_Declaration = nullptr;
 struct FieldData
 {
@@ -132,6 +137,8 @@ unordered_map<string, unordered_map<string, FieldData>> getTableData()
         for (catalog::gaia_table_t table = catalog::gaia_table_t::get_first(); 
             table; table = table.get_next())
         {
+            auto db = table.gaia_database();
+            tableDBData[table.name()] = db.name();
             unordered_map<string, FieldData> fields;
             retVal[table.name()] = fields;
         }
@@ -360,8 +367,8 @@ bool findNavigationPath(const string& src, const string& dst, vector<NavigationD
 NavigationCodeData generateNavigationCode(string anchorTable)
 {
     NavigationCodeData retVal;
-    retVal.prefix = "\ngaia::" + curRuleset+ "::" + anchorTable + "_t " + anchorTable + " = " + 
-        "gaia::" + curRuleset+ "::" + anchorTable + "_t::get(context->record);\n";
+    retVal.prefix = "\ngaia::" + tableDBData[anchorTable] + "::" + anchorTable + "_t " + anchorTable + " = " + 
+        "gaia::" + tableDBData[anchorTable] + "::" + anchorTable + "_t::get(context->record);\n";
     //single table used in the rule
     if (used_Tables.size() == 1 && used_Tables.find(anchorTable) != used_Tables.end())
     {
@@ -390,13 +397,20 @@ NavigationCodeData generateNavigationCode(string anchorTable)
     }
     auto parentItr = table_Relationship_1.equal_range(anchorTable);
     auto childItr = table_Relationship_N.equal_range(anchorTable);    
+    unordered_set<string> processedTables;
     for (string table : used_Tables)
     {
+        if (processedTables.find(table) != processedTables.end())
+        {
+            continue;
+        }
+        
         bool is1Relationship = false, isNRelationship = false;
         if (table == anchorTable)
         {
             continue;
         }
+
         string linkingField;
         for (auto it = parentItr.first; it != parentItr.second; ++it)
         {
@@ -444,14 +458,33 @@ NavigationCodeData generateNavigationCode(string anchorTable)
                 string srcTbl = anchorTable;
                 for (auto p : path)
                 {
-                    if (p.isParent)
+                    if (processedTables.find(p.name) == processedTables.end())
                     {
-                        retVal.prefix += p.name + "_t " + p.name + " = " + srcTbl + "." + p.linkingField + p.name + "_owner());\n";
-                    }
-                    else
-                    {
-                        retVal.prefix += "for (auto " + p.name + " : " + srcTbl + "." + p.linkingField + p.name + "_list)\n{\n";
-                        retVal.postfix += "}\n";
+                        processedTables.insert(p.name);
+                        if (p.isParent)
+                        {
+                            if (p.linkingField.empty())
+                            {
+                                retVal.prefix += "gaia::" + tableDBData[p.name] + "::" + p.name + "_t " + p.name + " = " + srcTbl + "." + p.name + "();\n"; 
+                            }
+                            else
+                            {
+                                retVal.prefix += "gaia::" + tableDBData[p.name] + "::" + p.name + "_t " + p.name + " = " + srcTbl + "." + p.linkingField +  "();\n";    
+                            }
+                        }
+                        else
+                        {
+                            if (p.linkingField.empty())
+                            {
+                                retVal.prefix += "for (auto " + p.name + " : " + srcTbl + "." + p.name + "_list())\n{\n";
+                            }
+                            else
+                            {
+                                retVal.prefix += "for (auto " + p.name + " : " + srcTbl + "." + p.linkingField +  "_list())\n{\n";    
+                            }
+                        
+                            retVal.postfix += "}\n";
+                        }
                     }
                     srcTbl = p.name;
                 }
@@ -467,14 +500,31 @@ NavigationCodeData generateNavigationCode(string anchorTable)
         {
             if (is1Relationship)
             {
-                retVal.prefix += table + "_t " + table + " = " + anchorTable + "." + linkingField + table + "_owner());\n";
+                if (linkingField.empty())
+                {
+                    retVal.prefix += "gaia::" + tableDBData[table] + "::" + table + "_t " + table + " = " + anchorTable + "." + table + "();\n"; 
+                }
+                else
+                {
+                    retVal.prefix += "gaia::" + tableDBData[table] + "::" + table + "_t " + table + " = " + anchorTable + "." + linkingField + "());\n";    
+                }
+                
             }
             else
             {
-                retVal.prefix += "for (auto " + table + " : " + anchorTable + "." + linkingField + table + "_list)\n{\n";
+                if (linkingField.empty())
+                {
+                    retVal.prefix += "for (auto " + table + " : " + anchorTable + "." + table + "_list())\n{\n";    
+                }
+                else
+                {
+                    retVal.prefix += "for (auto " + table + " : " + anchorTable + "." + linkingField + "_list())\n{\n";    
+                }
+                
                 retVal.postfix += "}\n";
             }
         }
+        processedTables.insert(table);
     }
 
     return retVal;
@@ -532,16 +582,16 @@ void generateRules(Rewriter &rewriter)
                 return;
             }
             FieldData fieldData = fields[field];
-           /* if (!fieldData.isActive)
+            if (!fieldData.isActive)
             {
                 llvm::errs() << "Field " << field << " is not marked as active in the catalog\n";
                 generationError = true;
                 return;
-            }*/
+            }
 
             if (!isLastOperation)
             {
-                fieldSubscriptionCode += "fields_" + ruleName + ".insert(" + to_string(fieldData.position) +");\n";
+                fieldSubscriptionCode += "fields_" + ruleName + ".push_back(" + to_string(fieldData.position) +");\n";
             }            
         }
 
@@ -557,10 +607,10 @@ void generateRules(Rewriter &rewriter)
 
         if (containsFields)
         {
-            current_Ruleset_Subscription += fieldSubscriptionCode + "subscribe_rule(gaia::" + curRuleset + "::" + table +
+            current_Ruleset_Subscription += fieldSubscriptionCode + "subscribe_rule(gaia::" + tableDBData[table] + "::" + table +
              "_t::s_gaia_type, event_type_t::row_update, fields_" + ruleName + 
                 "," + ruleName + "binding);\n";
-            current_Ruleset_UnSubscription += fieldSubscriptionCode + "unsubscribe_rule(gaia::" + curRuleset + "::" + table +
+            current_Ruleset_UnSubscription += fieldSubscriptionCode + "unsubscribe_rule(gaia::" + tableDBData[table] + "::" + table +
              "_t::s_gaia_type, event_type_t::row_update, fields_" + ruleName + 
                 "," + ruleName + "binding);\n";
         }
@@ -568,23 +618,23 @@ void generateRules(Rewriter &rewriter)
 
         if (containsLastOperation)
         {
-            current_Ruleset_Subscription += "subscribe_rule(gaia::" + curRuleset + "::" + table +
+            current_Ruleset_Subscription += "subscribe_rule(gaia::" + tableDBData[table] + "::" + table +
              "_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields," + 
                 ruleName + "binding);\n";
-            current_Ruleset_Subscription += "subscribe_rule(gaia::" + curRuleset + "::" + table +
+            current_Ruleset_Subscription += "subscribe_rule(gaia::" + tableDBData[table] + "::" + table +
              "_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields," + 
                 ruleName + "binding);\n";
-            current_Ruleset_Subscription += "subscribe_rule(gaia::" + curRuleset + "::" + table +
+            current_Ruleset_Subscription += "subscribe_rule(gaia::" + tableDBData[table] + "::" + table +
              "_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields," + 
                 ruleName + "binding);\n";
 
-            current_Ruleset_UnSubscription += "unsubscribe_rule(gaia::" + curRuleset + "::" + table +
+            current_Ruleset_UnSubscription += "unsubscribe_rule(gaia::" + tableDBData[table] + "::" + table +
              "_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields," + 
                 ruleName + "binding);\n";
-            current_Ruleset_UnSubscription += "unsubscribe_rule(gaia::" + curRuleset + "::" + table +
+            current_Ruleset_UnSubscription += "unsubscribe_rule(gaia::" + tableDBData[table] + "::" + table +
              "_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields," + 
                 ruleName + "binding);\n";
-            current_Ruleset_UnSubscription += "unsubscribe_rule(gaia::" + curRuleset + "::" + table +
+            current_Ruleset_UnSubscription += "unsubscribe_rule(gaia::" + tableDBData[table] + "::" + table +
              "_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields," + 
                 ruleName + "binding);\n";
         }
@@ -634,6 +684,7 @@ public:
             tableName = getTableName(decl);
             fieldName = decl->getName().str();
             used_Tables.insert(tableName);
+            used_DBs.insert(tableDBData[tableName]);
 
             
             if (decl->hasAttr<GaiaFieldAttr>())
@@ -657,6 +708,7 @@ public:
                 isLastOperation = declExpr->getDecl()->hasAttr<GaiaLastOperationAttr>();
 
                 used_Tables.insert(tableName);
+                used_DBs.insert(tableDBData[tableName]);
 
                 if (declExpr->getDecl()->hasAttr<GaiaFieldValueAttr>())
                 {
@@ -686,7 +738,7 @@ public:
         {
             if (isLastOperation)
             {
-                rewriter.ReplaceText(expSourceRange, "context->last_operation(gaia::" + curRuleset + "::" + tableName + "_t::s_gaia_type)");
+                rewriter.ReplaceText(expSourceRange, "context->last_operation(gaia::" + tableDBData[tableName] + "::" + tableName + "_t::s_gaia_type)");
             }
             else
             {
@@ -750,10 +802,12 @@ public:
                         
                     }
                     used_Tables.insert(tableName);
+                    used_DBs.insert(tableDBData[tableName]);
                 
                     tok::TokenKind tokenKind;
-                    std::string replacementText = "[&]() mutable {" + 
-                        tableName + "_writer w = " + tableName + ".writer(); w." + 
+                    std::string replacementText = "[&]() mutable {gaia::" + 
+                        tableDBData[tableName] + "::" + tableName + 
+                        "_writer w = " + tableName + ".writer(); w." + 
                         fieldName;
 
                     switch(op->getOpcode())
@@ -966,6 +1020,7 @@ public:
                     }
 
                     used_Tables.insert(tableName);
+                    used_DBs.insert(tableDBData[tableName]);
                     active_Fields[tableName].insert(fieldName);
                                     
                     if (op->isPostfix())
@@ -973,15 +1028,17 @@ public:
                         if (op->isIncrementOp())
                         {
                             replaceStr = "[&]() mutable {auto t=" + 
-                                tableName + "." + fieldName + "();" + 
-                                tableName + "_writer w = " + tableName + ".writer(); w." + 
+                                tableName + "." + fieldName + "();gaia::" + 
+                                tableDBData[tableName] + "::" + tableName + 
+                                "_writer w = " + tableName + ".writer(); w." + 
                                 fieldName + "++; w.update_row();return t;}()";
 
                         }
                         else if(op->isDecrementOp())
                         {
                             replaceStr = "[&]() mutable {auto t=" + 
-                                tableName + "." + fieldName + "();" + 
+                                tableName + "." + fieldName + "();gaia::" + 
+                                tableDBData[tableName] + "::" + 
                                 tableName + "_writer w = " + tableName + ".writer(); w." + 
                                 fieldName + "--; w.update_row();return t;}()";
                         }
@@ -990,14 +1047,16 @@ public:
                     {
                         if (op->isIncrementOp())
                         {
-                            replaceStr = "[&]() mutable {" + 
+                            replaceStr = "[&]() mutable {gaia::" + 
+                                tableDBData[tableName] + "::" + 
                                 tableName + "_writer w = " + tableName + ".writer(); ++ w." + 
                                 fieldName + ";w.update_row(); return w." +
                                 fieldName + ";}()";
                         }
                         else if(op->isDecrementOp())
                         {
-                            replaceStr = "[&]() mutable {" + 
+                            replaceStr = "[&]() mutable {gaia::" + 
+                                tableDBData[tableName] + "::" + 
                                 tableName + "_writer w = " + tableName + ".writer(); -- w." + 
                                 fieldName + ";w.update_row(); return w." +
                                 fieldName + ";}()";
@@ -1296,6 +1355,14 @@ public:
 
             if (!outFile.has_error())
             {
+                for (string db : used_DBs)
+                {
+                    outFile << "#include \"gaia_" << db << ".h\"\n";
+                }
+                
+                outFile << "#include \"rules.hpp\"\n";
+                outFile << "using namespace gaia::rules;\n";
+
                 rewriter.getEditBuffer(rewriter.getSourceMgr().getMainFileID())
                     .write(outFile); 
                 outFile << generated_Subscription_Code;
