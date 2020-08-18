@@ -234,33 +234,46 @@ public:
      */
     void remove_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset);
 
-    // REVIEW: should we offer a lower-level iterator interface as well
-    // as this range interface (i.e. supporting dereference, pre-increment,
-    // and equality/inequality operators)? This would be trivial to
-    // implement using the gaia::common::iterators helpers.
-
-    // This function must be implemented in the header to avoid the compiler error
     // "function with deduced return type cannot be used before it is defined".
     // The function must be defined in the same translation unit where it is used,
     // and the only way to guarantee that for our clients is to define it in the
     // header file itself.
 
     /**
-     * Returns a range object suitable for a range-based for loop,
-     * using a server-side cursor over all objects of the given
-     * type. This is essentially a proof-of-concept for server-side
+     * Returns an iterator representing a server-side cursor over all objects
+     * of the given type. This is essentially a proof-of-concept for server-side
      * cursors, which will be extended to support server-side filters.
      */
-    static auto find_all(gaia_type_t type) {
+    static auto find_all_iter(gaia_type_t type) {
+        // Get the gaia_id generator and wrap it in a gaia_ptr generator.
         std::function<std::optional<gaia_id_t>()> id_generator = get_id_generator_for_type(type);
-        auto gaia_ptr_generator = [id_generator]() -> std::optional<gaia_ptr> {
+        std::function<std::optional<gaia_ptr>()> gaia_ptr_generator = [id_generator]() -> std::optional<gaia_ptr> {
             std::optional<gaia_id_t> id_opt = id_generator();
             if (id_opt) {
                 return gaia_ptr::open(*id_opt);
             }
             return std::nullopt;
         };
-        return gaia::common::iterators::generator(gaia_ptr_generator);
+        // We need to construct an iterator from this generator rather than
+        // directly constructing a range from the generator, because we need
+        // to filter out values corresponding to deleted objects, and we can
+        // do that only by supplying a predicate to the iterator.
+        std::function<bool(gaia_ptr)> gaia_ptr_predicate = [](gaia_ptr ptr) {
+            return !ptr.is_null();
+        };
+        auto gaia_ptr_iterator = gaia::common::iterators::generator_iterator(
+            gaia_ptr_generator,
+            gaia_ptr_predicate);
+        return gaia_ptr_iterator;
+    }
+
+    /**
+     * Returns a range representing a server-side cursor over all objects
+     * of the given type. This is essentially a proof-of-concept for server-side
+     * cursors, which will be extended to support server-side filters.
+     */
+    static auto find_all_range(gaia_type_t type) {
+        return gaia::common::iterators::range(find_all_iter(type));
     }
 
 protected:

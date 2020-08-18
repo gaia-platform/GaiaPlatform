@@ -17,31 +17,42 @@ namespace gaia {
 namespace common {
 namespace iterators {
 
-template <typename T>
-struct generator_iterator {
+template <typename Output>
+class generator_iterator {
     using difference_type = void;
-    using value_type = T;
-    using pointer = T *;
-    using reference = T;
+    using value_type = Output;
+    using pointer = Output *;
+    using reference = Output;
     using iterator_category = std::input_iterator_tag;
-    std::optional<T> state;
-    std::function<std::optional<T>()> generator;
-    // we store the current element in "state" if we have one:
-    T operator*() const {
+
+  private:
+    std::optional<Output> state;
+    std::function<std::optional<Output>()> generator;
+    std::function<bool(Output)> predicate;
+
+  public:
+    // Returns current state.
+    Output operator*() const {
         return *state;
     }
-    // to advance, we invoke our generator.  If it returns a nullopt
-    // we have reached the end:
+
+    // Advance to the next valid state.
     generator_iterator &operator++() {
-        state = generator();
+        while ((state = generator())) {
+            if (predicate(*state)) {
+                break;
+            }
+        }
         return *this;
     }
+
     generator_iterator operator++(int) {
         auto r = *this;
         ++(*this);
         return r;
     }
-    // generator iterators are only equal if they are both in the "end" state:
+
+    // Generator iterators are only equal if they are both in the "end" state.
     friend bool operator==(generator_iterator const &lhs, generator_iterator const &rhs) noexcept {
         if (!lhs.state && !rhs.state) {
             return true;
@@ -51,17 +62,25 @@ struct generator_iterator {
     friend bool operator!=(generator_iterator const &lhs, generator_iterator const &rhs) noexcept {
         return !(lhs == rhs);
     }
-    // returns false when the generator is exhausted (returns nullopt):
+
+    // Returns false when the generator is exhausted (has state nullopt).
     explicit operator bool() const noexcept {
         return state.has_value();
     }
-    // We implicitly construct from a std::function with the right signature:
-    generator_iterator(std::function<std::optional<T>()> f) : generator(std::move(f)) {
-        if (generator) {
-            state = generator();
+
+    // We implicitly construct from a std::function with the right signature.
+    generator_iterator(
+        std::function<std::optional<Output>()> g,
+        std::function<bool(Output)> p = [](Output) { return true; }) : generator(std::move(g)), predicate(std::move(p)) {
+        // We need to initialize the iterator to the first valid state.
+        while ((state = generator())) {
+            if (predicate(*state)) {
+                break;
+            }
         }
     }
-    // default all special member functions:
+
+    // Default all special member functions.
     generator_iterator(generator_iterator &&) = default;
     generator_iterator(generator_iterator const &) = default;
     generator_iterator &operator=(generator_iterator &&) = default;
@@ -87,7 +106,7 @@ range_t<It> range(It b) {
 }
 
 template <typename F>
-auto generator(F f) {
+auto range_from_generator(F f) {
     using V = std::decay_t<decltype(*f())>;
     return range(generator_iterator<V>(std::move(f)));
 }
@@ -95,17 +114,17 @@ auto generator(F f) {
 // Usage:
 //
 // int main() {
-//     auto from_1_to_10 = [i = 0]() mutable -> std::optional<int>
+//     auto generator_from_1_to_10 = [i = 0]() mutable -> std::optional<int>
 //     {
 //         auto r = ++i;
 //         if (r > 10) return {};
 //         return r;
 //     };
-//     for (int i : generator(from_1_to_10)) {
+//     for (int i : range_from_generator(generator_from_1_to_10)) {
 //         std::cout << i << '\n';
 //     }
 // }
 
-}  // namespace iterators
-}  // namespace common
-}  // namespace gaia
+} // namespace iterators
+} // namespace common
+} // namespace gaia

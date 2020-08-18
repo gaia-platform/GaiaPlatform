@@ -218,7 +218,7 @@ TEST_F(storage_engine_client_test, iterate_type_cursor) {
         {
             gaia_type_t type = 1;
             gaia_id_t id = 1;
-            for (auto node : gaia_ptr::find_all(type))
+            for (auto node : gaia_ptr::find_all_range(type))
             {
                 print_node(node);
                 EXPECT_EQ(node.id(), id);
@@ -228,7 +228,7 @@ TEST_F(storage_engine_client_test, iterate_type_cursor) {
             std::cerr << std::endl;
             std::cerr << "*** Iterating over nodes of type 2:" << std::endl;
             type = 2;
-            for (auto node : gaia_ptr::find_all(type))
+            for (auto node : gaia_ptr::find_all_range(type))
             {
                 print_node(node);
                 EXPECT_EQ(node.id(), id);
