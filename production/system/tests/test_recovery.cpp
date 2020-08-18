@@ -27,7 +27,6 @@ size_t employee_record_size_bytes = 648;
 // Map of employees for which the server has returned a successful commit.
 // We maintain this map in memory & will use it to validate recovered shared memory post crash.
 std::map<gaia_id_t, employee_t> employee_map;
-std::map<gaia_id_t, employee_t> deleted_employee_map;
 
 void validate_data() {
     // begin_session();
@@ -51,12 +50,16 @@ void validate_data() {
 
         employee++;
         count++;
+
+        // cout << "Validated record with ID: " << (*employee).gaia_id() << endl << flush;
     }
 
     cout << "Total count before recovery " << employee_map.size() << endl << flush;
     cout << "Total count after recovery " << count << endl << flush;
     assert(count == employee_map.size());
     commit_transaction();
+
+    cout << "Validation complete." << endl << flush;
     // end_session();
 
 }
@@ -169,11 +172,24 @@ void delete_all() {
     // gaia::db::begin_session();
     cout << "Deleting all records" << endl << flush;
     begin_transaction();
-    int count = 0;
-    for (auto e : employee_t::list()) {
-        e.delete_row();
-        count++;
+    int total_count = 0;
+
+    // Cache entries to delete.
+    std::vector<gaia_id_t> to_delete;
+    for (auto employee = employee_t::get_first(); employee; employee = employee.get_next()) {
+        total_count++;
+        to_delete.push_back(employee.gaia_id());
     }
+    cout << "To delete " << total_count << " records "<< endl << flush;
+
+    int count = 0;
+    
+    for (gaia_id_t id : to_delete) {
+        auto e = employee_t::get(id);
+        e.delete_row();
+        count ++;
+    }
+
     commit_transaction();
     cout << "Deleted " << count << " records "<< endl << flush;
     // gaia::db::end_session();
@@ -210,7 +226,8 @@ int main(int, char *argv[]) {
         validate_data();
         // Restart server & validate data.
         end_session();
-        // restart_server(server, server_dir_path.data());
+
+        restart_server(server, server_dir_path.data());
         begin_session();
         validate_data();
         // end_session();
