@@ -181,7 +181,10 @@ void delete_all() {
         to_delete.push_back(employee.gaia_id());
     }
     cout << "To delete " << total_count << " records "<< endl << flush;
+    commit_transaction();
 
+
+    begin_transaction();
     int count = 0;
     
     for (gaia_id_t id : to_delete) {
@@ -227,10 +230,13 @@ int main(int, char *argv[]) {
         // Restart server & validate data.
         end_session();
 
-        restart_server(server, server_dir_path.data());
+        // restart_server(server, server_dir_path.data());
+        // begin_session();
+        // validate_data();
+        // end_session();
+
         begin_session();
-        validate_data();
-        end_session();
+        delete_all();
     }
 
     // 2) Load & Recover test - with data size less than write buffer size. 
@@ -259,8 +265,6 @@ int main(int, char *argv[]) {
     // 6) CRUD operations with multiple random restarts.
 
     // 7) Delete everything and validate gaia_id is not zero!
-    begin_session();
-    delete_all();
 
     // End test.
     // end_session();
