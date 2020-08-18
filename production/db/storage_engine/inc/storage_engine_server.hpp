@@ -325,6 +325,9 @@ class server : private se_base {
             // Block forever (we will be notified of shutdown).
             int ready_fd_count = epoll_wait(epoll_fd, events, array_size(events), -1);
             if (ready_fd_count == -1) {
+                if (errno == EINTR) {
+                    continue;
+                }
                 throw_system_error("epoll_wait failed");
             }
             for (int i = 0; i < ready_fd_count; i++) {
@@ -423,6 +426,9 @@ class server : private se_base {
             // Block forever (we will be notified of shutdown).
             int ready_fd_count = epoll_wait(epoll_fd, events, array_size(events), -1);
             if (ready_fd_count == -1) {
+                if (errno == EINTR) {
+                    continue;
+                }
                 throw_system_error("epoll_wait failed");
             }
             session_event_t event = session_event_t::NOP;

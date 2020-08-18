@@ -183,17 +183,18 @@ void delete_all() {
     cout << "To delete " << total_count << " records "<< endl << flush;
     commit_transaction();
 
-
-    begin_transaction();
     int count = 0;
     
     for (gaia_id_t id : to_delete) {
+        begin_transaction();
+        cout << "Begin delete commit for ID " << id << endl << flush;
         auto e = employee_t::get(id);
         e.delete_row();
         count ++;
+        commit_transaction();
+
     }
 
-    commit_transaction();
     cout << "Deleted " << count << " records "<< endl << flush;
     // gaia::db::end_session();
     // validate_data();
@@ -230,12 +231,12 @@ int main(int, char *argv[]) {
         // Restart server & validate data.
         end_session();
 
-        // restart_server(server, server_dir_path.data());
-        // begin_session();
-        // validate_data();
+        restart_server(server, server_dir_path.data());
+        begin_session();
+        validate_data();
         // end_session();
 
-        begin_session();
+        // begin_session();
         delete_all();
     }
 
@@ -267,7 +268,7 @@ int main(int, char *argv[]) {
     // 7) Delete everything and validate gaia_id is not zero!
 
     // End test.
-    // end_session();
+    end_session();
     stop_server(server);
     return res;
 }
