@@ -16,12 +16,12 @@ create table address (
     postal: string,
     country: string,
     current: bool,
-    addresses references employee
+    addressee references employee
 );
 
 create table phone (
     phone_number: string active,
     type: string active,
     primary: bool active,
-    phones references address
+    references address
 );
