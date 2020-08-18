@@ -27,7 +27,10 @@ def camel_to_snake_case(camel_str, no_first_underscore=False):
 # If a field type is a nested message, return the package and message name.
 def check_nested_msg(field_type):
     split_list = field_type.split('/')
-    return None if (len(split_list) < 2) else tuple(split_list)
+    if len(split_list) < 2:
+        return None
+    else:
+        return {"pkg":split_list[0], "type":split_list[1]}
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -48,6 +51,15 @@ parser.add_argument(
 
 args = parser.parse_args()
 json_directory = os.path.join(args.cmake_current_binary_dir, "json_msgs")
+manifest_file = os.path.join(json_directory, "manifest.txt")
+json_files = []
+
+def write_manifest(filepath):
+    global json_files
+    with io.open(filepath, 'w') as manifest:
+        for json_path in json_files:
+            manifest.write(json_path + "\n")
+        manifest.close()
 
 class Message:
     def __init__(self, name, package):
@@ -70,7 +82,7 @@ class Message:
 
     def add_field(self, field, type, pkg=None):
         if pkg:
-            self.nested_fields[field] = (type, pkg)
+            self.nested_fields[field] = {"type":type, "pkg":pkg}
         else:
             self.fields[field] = type
 
@@ -78,14 +90,17 @@ class Message:
         filename = self.package + "__" + self.name + ".json"
         Path(directory).mkdir(parents=True, exist_ok=True)
 
-        with io.open(os.path.join(directory, filename), 'w') as json_file:
+        json_path = os.path.join(directory, filename)
+        with io.open(json_path, 'w') as json_file:
             json_data = {
                 "name": self.name, "package": self.package,
                 "fields": self.fields, "nested_fields": self.nested_fields
             }
             json.dump(json_data, json_file, indent=4, sort_keys=True)
             json_file.close()
-            print(filename)
+
+            global json_files
+            json_files.append(json_path)
 
 def get_base_msg_module(msg_name, pkg, build_dir, msg_path):
     msg_py_filename = camel_to_snake_case(msg_name, False) + ".py"
@@ -107,7 +122,9 @@ def scan_msg_module(msg_name, msg_pkg, msg_module):
 
         if nested_msg_type:
             msg.add_field(
-                field=field, type=nested_msg_type[1], pkg=nested_msg_type[0]
+                field=field,
+                type=nested_msg_type["type"],
+                pkg=nested_msg_type["pkg"]
             )
         else:
             msg.add_field(field=field, type=field_type)
@@ -116,8 +133,8 @@ def scan_msg_module(msg_name, msg_pkg, msg_module):
 
     for field in msg.nested_fields:
         nested_msg = msg.nested_fields[field]
-        type = nested_msg[0]
-        pkg = nested_msg[1]
+        type = nested_msg["type"]
+        pkg = nested_msg["pkg"]
         submodule_name = "." + camel_to_snake_case(type, False)
 
         nested_module = importlib.import_module(
@@ -135,3 +152,5 @@ base_msg_module = get_base_msg_module(
 )
 
 scan_msg_module(base_msg_name, args.package_name, base_msg_module)
+write_manifest(manifest_file)
+print(manifest_file)

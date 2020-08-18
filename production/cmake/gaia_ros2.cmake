@@ -5,26 +5,26 @@
 
 #
 # Converts ROS2 .msg files into flatbuffer schemas for Gaia table creation.
+# Currently only works for one msg file. This will change later.
 #
 function(gaia_ros2_msg_to_ddl MSG_FILES)
   foreach(MSG_FILE ${MSG_FILES})
     set(MSG_FILE_ABSOLUTE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/${MSG_FILE}")
     execute_process(
       COMMAND "${PYTHON_EXECUTABLE}" scan_msg.py ${PROJECT_NAME} ${CMAKE_CURRENT_BINARY_DIR} ${MSG_FILE_ABSOLUTE_PATH}
-      OUTPUT_VARIABLE MSG_TO_DDL_OUT
+      OUTPUT_VARIABLE SCAN_MSG_OUT
       WORKING_DIRECTORY "${GAIA_REPO}/production/ros2/ddl_translator"
+      OUTPUT_STRIP_TRAILING_WHITESPACE
     )
-    message(NOTICE "${MSG_TO_DDL_OUT}")
   endforeach()
+
   message(NOTICE "========")
-
   execute_process(
-    COMMAND bash -c "tail -n +1 ${CMAKE_CURRENT_BINARY_DIR}/json_msgs/*.json"
-    OUTPUT_VARIABLE MSG_CONVERSION_DUMP
-    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    COMMAND "${PYTHON_EXECUTABLE}" generate_ddl.py ${SCAN_MSG_OUT}
+    OUTPUT_VARIABLE GENERATE_DDL_OUT
+    WORKING_DIRECTORY "${GAIA_REPO}/production/ros2/ddl_translator"
   )
-
-  message(NOTICE "${MSG_CONVERSION_DUMP}")
+  message(NOTICE "${GENERATE_DDL_OUT}")
   message(NOTICE "========")
 
   #string(REPLACE "\n" ";" NESTED_MSG_LIST "${MSG_CONVERSION_DUMP}")
