@@ -208,7 +208,7 @@ int main(int, char *argv[]) {
     // Path of directory where server executable resides.
     std::string server_dir_path = "/home/ubuntu/GaiaPlatform/production/build/db/storage_engine";//argv[1];
     employee_map.clear();
-    // restart_server(server, server_dir_path.data());
+    restart_server(server, server_dir_path.data());
     begin_session();
     delete_all();
 
@@ -230,7 +230,7 @@ int main(int, char *argv[]) {
         restart_server(server, server_dir_path.data());
         begin_session();
         validate_data();
-        // end_session();
+        end_session();
     }
 
     // 2) Load & Recover test - with data size less than write buffer size. 
@@ -259,11 +259,11 @@ int main(int, char *argv[]) {
     // 6) CRUD operations with multiple random restarts.
 
     // 7) Delete everything and validate gaia_id is not zero!
-    // begin_session();
+    begin_session();
     delete_all();
 
     // End test.
-    end_session();
+    // end_session();
     stop_server(server);
     return res;
 }
