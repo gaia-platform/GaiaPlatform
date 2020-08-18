@@ -154,7 +154,7 @@ TEST_F(gaia_object_test, read_back_scan) {
 
     begin_transaction();
     int count = 0;
-    for (auto employee = employee_t::get_first(); employee; employee.get_next()) {
+    for (auto employee = employee_t::get_first(); employee; employee = employee.get_next()) {
         if (employee.gaia_id() == eid) {
             EXPECT_STREQ("Howard", employee.name_first());
             count ++;
@@ -163,6 +163,7 @@ TEST_F(gaia_object_test, read_back_scan) {
             count ++;
         }
     }
+    assert(count == 2);
     commit_transaction();
 }
 
@@ -175,7 +176,7 @@ void UpdateReadBack(bool update_flag) {
 
     int count = 0;
     employee_writer w;
-    for (auto employee = employee_t::get_first(); employee; employee.get_next()) {
+    for (auto employee = employee_t::get_first(); employee; employee = employee.get_next()) {
         if (employee.gaia_id() == e1) {
             w = e1.writer();
             w.name_first = "Herald";
@@ -269,7 +270,7 @@ TEST_F(gaia_object_test, scan_past_end) {
 // Test pre/post increment of iterator.
 TEST_F(gaia_object_test, pre_post_iterator) {
     auto_transaction_t tx;
-    for (auto employee = employee_t::get_first(); employee; employee.get_next()) {
+    for (auto employee = employee_t::get_first(); employee; employee = employee.get_next()) {
         employee.delete_row();
     }
     tx.commit();
