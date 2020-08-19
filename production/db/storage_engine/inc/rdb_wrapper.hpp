@@ -6,6 +6,8 @@
 #pragma once
 #include "rocksdb/status.h"
 #include "rocksdb/utilities/transaction_db.h"
+#include "rdb_internal.hpp"
+#include <memory>
 
 // This file provides gaia specific functionality to persist writes to & read from 
 // RocksDB during recovery.
@@ -15,16 +17,13 @@ namespace gaia
 namespace db 
 {
 
-    class rdb_internal;
-
     class rdb_wrapper 
     {
         private:
-            rdb_internal* rdb_internal;
+            static std::unique_ptr<gaia::db::rdb_internal> rdb_internal;
 
         public:
             rdb_wrapper();
-            ~rdb_wrapper();
 
             /**
              * Open rocksdb with the correct options.
@@ -60,8 +59,6 @@ namespace db
              * Similarly, rollback will append a rollback marker to the log. 
              */
             rocksdb::Status rollback_tx(rocksdb::Transaction* trx);
-
-            void destroy();
 
     };
 }

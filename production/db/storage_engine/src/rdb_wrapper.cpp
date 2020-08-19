@@ -10,6 +10,7 @@
 #include "rdb_wrapper.hpp"
 #include "rdb_object_converter.hpp"
 #include "rdb_internal.hpp"
+#include <memory>
 
 using namespace gaia::db; 
 using namespace gaia::common;
@@ -17,17 +18,14 @@ using namespace rocksdb;
 
 // Todo (msj) Take as input to some options file.
 static const std::string data_dir = "/tmp/db";
+std::unique_ptr<gaia::db::rdb_internal> rdb_wrapper::rdb_internal;
 
 // Todo (msj) Set more granular default options.
 rdb_wrapper::rdb_wrapper() {
     rocksdb::WriteOptions writeOptions{};
     writeOptions.sync = true;
     rocksdb::TransactionDBOptions transaction_db_options{};
-    rdb_internal = new gaia::db::rdb_internal(data_dir, writeOptions, transaction_db_options);
-}
-
-rdb_wrapper::~rdb_wrapper() {
-    delete rdb_internal;
+    rdb_internal = std::unique_ptr<gaia::db::rdb_internal>(new gaia::db::rdb_internal(data_dir, writeOptions, transaction_db_options));
 }
 
 Status rdb_wrapper::open() {
@@ -40,25 +38,22 @@ Status rdb_wrapper::open() {
     // Create a new database directory if one doesn't exist.
     initoptions.create_if_missing = true;
     // Size of memtable (4 mb)
-    initoptions.write_buffer_size = 4 * 1024 * 1024; 
+    initoptions.write_buffer_size = 1 * 1024 * 1024; 
+    initoptions.db_write_buffer_size = 1 * 1024 * 1024;
+
+    // Will function as a trigger for flushing memtables to disk.
+    // https://github.com/facebook/rocksdb/issues/4180 Only relevant when we have multiple column families.
+    initoptions.max_total_wal_size = 1 * 1024 * 1024;
     // Number of memtables; 
     // The maximum number of write buffers that are built up in memory.
     // So that when 1 write buffers being flushed to storage, new writes can continue to the other
     // write buffer.
-    initoptions.max_write_buffer_number = 2;
+    initoptions.max_write_buffer_number = 1;
     return rdb_internal->open_txn_db(initoptions, options);
 }
 
 Status rdb_wrapper::close() {        
     return rdb_internal->close();
-}
-
-/**
- * This API will delete the persistent database directory.
- * Only used for testing purposes.
- */
-void rdb_wrapper::destroy() {        
-    rdb_internal->destroy();
 }
 
 void rdb_wrapper::commit_tx(rocksdb::Transaction* trx) {
@@ -132,10 +127,15 @@ Status rdb_wrapper::prepare_tx(rocksdb::Transaction* trx) {
 void rdb_wrapper::recover() {
     rocksdb::Iterator* it = rdb_internal->get_iterator();
     uint64_t max_id = se_base::get_current_id();
-    
+    int count = 0;
     for (it->SeekToFirst(); it->Valid(); it->Next()) {
         rdb_object_converter_util::decode_object(it->key(), it->value(), &max_id);
+        count ++;
     }
+
+    cout << "Recovered records count: " << count << endl << flush;
+    
+    assert(it->status().ok()); // Check for any errors found during the scan
 
     se_base::set_id(max_id + 1);
 

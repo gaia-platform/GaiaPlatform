@@ -84,7 +84,7 @@ else()
   if(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
     # FreeBSD has jemalloc as default malloc
     # but it does not have all the jemalloc files in include/...
-    set(WITH_JEMALLOC ON)
+    set(WITH_JEMALLOC OFF)
   else()
     if(WITH_JEMALLOC)
       find_package(JeMalloc REQUIRED)

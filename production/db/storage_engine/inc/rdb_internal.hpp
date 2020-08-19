@@ -70,11 +70,6 @@ class rdb_internal
             return m_txn_db->NewIterator(rocksdb::ReadOptions());
         }
 
-        void destroy() {
-            rocksdb::Options opts{};
-            rocksdb::DestroyDB(data_dir, opts);
-        }
-
     };
 }
 

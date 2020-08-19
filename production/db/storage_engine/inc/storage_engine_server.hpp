@@ -536,7 +536,8 @@ class server : private se_base {
         rocksdb::Transaction* trx = rdb->begin_tx(s_transaction_id);
         
         // Prepare tx
-        rdb->prepare_tx(trx);
+        rocksdb::Status s = rdb->prepare_tx(trx);
+        assert(s.ok());
         
         for (auto i = 0; i < s_log->count; i++) {
             auto lr = s_log->log_records + i;

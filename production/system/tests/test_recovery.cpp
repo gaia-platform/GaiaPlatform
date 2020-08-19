@@ -212,33 +212,53 @@ int main(int, char *argv[]) {
     // Path of directory where server executable resides.
     std::string server_dir_path = "/home/ubuntu/GaiaPlatform/production/build/db/storage_engine";//argv[1];
     employee_map.clear();
-    restart_server(server, server_dir_path.data());
-    begin_session();
-    delete_all();
+    // restart_server(server, server_dir_path.data());
 
-    // 1) Load & Recover test - with data size less than write buffer size. 
-    // All writes will be confined to the WAL & will not make it to SST (DB binary file)
-    // Sigkill server.
-    {
-        // Start server.
-        // end_session();
-        // restart_server(server, server_dir_path.data());
-        // begin_session();
+    for (int i = 1; i <= 5; i++) {
+        cout << "Loop number " << i << endl << flush;
+        restart_server(server, server_dir_path.data());
+        begin_session();
+        // delete_all();
+        load_data(5 * 1024 * 1024, false, server, server_dir_path.data());
         // validate_data();
-        // Load 1 MB data; write buffer size is 4MB.
-        load_data(1 * 1024 * 1024, false, server, server_dir_path.data());
-        validate_data();
         // Restart server & validate data.
         end_session();
+
+        int j = 0;
 
         restart_server(server, server_dir_path.data());
         begin_session();
         validate_data();
-        // end_session();
-
-        // begin_session();
-        delete_all();
+        // delete_all();
+        end_session();
+        // stop_server(server);
     }
+    // begin_session();
+    // delete_all();
+
+    // 1) Load & Recover test - with data size less than write buffer size. 
+    // All writes will be confined to the WAL & will not make it to SST (DB binary file)
+    // Sigkill server.
+    // {
+    //     // Start server.
+    //     // end_session();
+    //     // restart_server(server, server_dir_path.data());
+    //     // begin_session();
+    //     // validate_data();
+    //     // Load 1 MB data; write buffer size is 4MB.
+    //     load_data(1 * 1024 * 1024, false, server, server_dir_path.data());
+    //     validate_data();
+    //     // Restart server & validate data.
+    //     end_session();
+
+    //     restart_server(server, server_dir_path.data());
+    //     begin_session();
+    //     validate_data();
+    //     end_session();
+
+    //     begin_session();
+    //     // delete_all();
+    // }
 
     // 2) Load & Recover test - with data size less than write buffer size. 
     // All writes will be confined to the WAL & will never make it to SST (DB binary file)
@@ -268,7 +288,7 @@ int main(int, char *argv[]) {
     // 7) Delete everything and validate gaia_id is not zero!
 
     // End test.
-    end_session();
-    stop_server(server);
+    // end_session();
+    // stop_server(server);
     return res;
 }
