@@ -24,6 +24,7 @@ namespace db
 
         public:
             rdb_wrapper();
+            ~rdb_wrapper();
 
             /**
              * Open rocksdb with the correct options.

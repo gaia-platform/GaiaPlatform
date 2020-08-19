@@ -28,6 +28,10 @@ rdb_wrapper::rdb_wrapper() {
     rdb_internal = std::unique_ptr<gaia::db::rdb_internal>(new gaia::db::rdb_internal(data_dir, writeOptions, transaction_db_options));
 }
 
+rdb_wrapper::~rdb_wrapper() {
+    close();
+}
+
 Status rdb_wrapper::open() {
     rocksdb::TransactionDBOptions options{};
     rocksdb::Options initoptions{};

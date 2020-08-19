@@ -33,6 +33,7 @@
 # 4. make -j
 
 cmake_minimum_required(VERSION 3.5.1)
+SET( CMAKE_BUILD_TYPE Debug )
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/modules/")
 include(ReadVersion)
@@ -355,7 +356,7 @@ endif()
 
 # Used to run CI build and tests so we can run faster
 option(OPTDBG "Build optimized debug build with MSVC" OFF)
-option(WITH_RUNTIME_DEBUG "build with debug version of runtime library" OFF)
+option(WITH_RUNTIME_DEBUG "build with debug version of runtime library" ON)
 if(MSVC)
   if(OPTDBG)
     message(STATUS "Debug optimization is enabled [RocksDB]")

@@ -216,10 +216,10 @@ int main(int, char *argv[]) {
 
     for (int i = 1; i <= 5; i++) {
         cout << "Loop number " << i << endl << flush;
-        restart_server(server, server_dir_path.data());
+        // restart_server(server, server_dir_path.data());
         begin_session();
         // delete_all();
-        load_data(5 * 1024 * 1024, false, server, server_dir_path.data());
+        load_data(0.5 * 1024 * 1024, false, server, server_dir_path.data());
         // validate_data();
         // Restart server & validate data.
         end_session();
