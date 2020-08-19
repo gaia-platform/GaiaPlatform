@@ -202,7 +202,6 @@ protected:
         const char* ddl_file = getenv("DDL_FILE");
         ASSERT_NE(ddl_file, nullptr);
         begin_session();
-        //db_test_base_t::SetUpTestSuite();
 
         // NOTE: For the unit test setup, we need to init catalog and load test tables before rules engine starts.
         //       Otherwise, the event log activities will cause out of order test table IDs.
