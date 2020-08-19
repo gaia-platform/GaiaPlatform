@@ -4,9 +4,7 @@ project(ASTCodeGenerator VERSION 0.0.0)
 
 include(${CMAKE_BINARY_DIR}/../../../../production/cmake/gaia.cmake)
 
-set(CMAKE_CXX_FLAGS
-      "-std=c++0x -Wall -Wextra -ggdb -Wno-unused-parameter -DLLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING=1")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ggdb -pthread")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 
 
 include_directories(

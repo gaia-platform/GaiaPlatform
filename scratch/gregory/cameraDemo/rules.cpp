@@ -1,3 +1,6 @@
+#include "gaia_cameraDemo.h"
+#include "rules.hpp"
+using namespace gaia::rules;
 #include <chrono>
 #include <iostream>
 #include <map>
@@ -15,9 +18,9 @@ std::vector<string> processImage(const char *fileName);
 namespace cameraDemo
 {
   
-void cameraDemo_D9MOwgZCU1Lf6or_1(const rule_context_t* context)
+void cameraDemo_Y6zH5Mgi6mqsMwo_1(const rule_context_t* context)
 {
-gaia::cameraDemo::camera_image_t camera_image = gaia::cameraDemo::camera_image_t::get(context->record);
+auto camera_image = gaia::cameraDemo::camera_image_t::get(context->record);
 
         if (context->last_operation(gaia::cameraDemo::camera_image_t::s_gaia_type) == gaia::rules::last_operation_t::row_insert)
         {
@@ -41,9 +44,9 @@ gaia::cameraDemo::camera_image_t camera_image = gaia::cameraDemo::camera_image_t
     }
 
     
-void cameraDemo_hhsizBe5OacqyLr_1(const rule_context_t* context)
+void cameraDemo_hvncuiHwDkevJOs_1(const rule_context_t* context)
 {
-gaia::cameraDemo::camera_image_t camera_image = gaia::cameraDemo::camera_image_t::get(context->record);
+auto camera_image = gaia::cameraDemo::camera_image_t::get(context->record);
 
     	if (context->last_operation(gaia::cameraDemo::camera_image_t::s_gaia_type) == gaia::rules::last_operation_t::row_delete)
     	{
@@ -56,9 +59,9 @@ gaia::cameraDemo::camera_image_t camera_image = gaia::cameraDemo::camera_image_t
     }
 
     
-void cameraDemo_wfpU2v3s66Q1cTD_1(const rule_context_t* context)
+void cameraDemo_sDVRQe6U68FOQJM_1(const rule_context_t* context)
 {
-gaia::cameraDemo::object_t object = gaia::cameraDemo::object_t::get(context->record);
+auto object = gaia::cameraDemo::object_t::get(context->record);
 
         if (context->last_operation(gaia::cameraDemo::object_t::s_gaia_type) == gaia::rules::last_operation_t::row_insert)
         {
@@ -87,9 +90,9 @@ gaia::cameraDemo::object_t object = gaia::cameraDemo::object_t::get(context->rec
     }
 
     
-void cameraDemo_KUVpJU1zYF1OrQM_1(const rule_context_t* context)
+void cameraDemo_djO33ohx046eQ8l_1(const rule_context_t* context)
 {
-gaia::cameraDemo::emergency_stop_t emergency_stop = gaia::cameraDemo::emergency_stop_t::get(context->record);
+auto emergency_stop = gaia::cameraDemo::emergency_stop_t::get(context->record);
 
     	if (context->last_operation(gaia::cameraDemo::emergency_stop_t::s_gaia_type) == gaia::rules::last_operation_t::row_insert)
     	{
@@ -99,9 +102,9 @@ gaia::cameraDemo::emergency_stop_t emergency_stop = gaia::cameraDemo::emergency_
 
 
     
-void cameraDemo_4l9_1_U0J0BTq25_1(const rule_context_t* context)
+void cameraDemo_hZDPBgNfgqtCNg0_1(const rule_context_t* context)
 {
-gaia::cameraDemo::emergency_stop_t emergency_stop = gaia::cameraDemo::emergency_stop_t::get(context->record);
+auto emergency_stop = gaia::cameraDemo::emergency_stop_t::get(context->record);
 
     	if (context->last_operation(gaia::cameraDemo::emergency_stop_t::s_gaia_type) == gaia::rules::last_operation_t::row_update)
     	{
@@ -110,9 +113,9 @@ gaia::cameraDemo::emergency_stop_t emergency_stop = gaia::cameraDemo::emergency_
     }
 
     
-void cameraDemo_KWLXIRzoZS7rzbQ_1(const rule_context_t* context)
+void cameraDemo_RTjFYIHTiudPzMn_1(const rule_context_t* context)
 {
-gaia::cameraDemo::camera_image_t camera_image = gaia::cameraDemo::camera_image_t::get(context->record);
+auto camera_image = gaia::cameraDemo::camera_image_t::get(context->record);
 
     	if (context->last_operation(gaia::cameraDemo::camera_image_t::s_gaia_type) == gaia::rules::last_operation_t::row_insert)
     	{
@@ -131,57 +134,57 @@ gaia::cameraDemo::camera_image_t camera_image = gaia::cameraDemo::camera_image_t
 namespace cameraDemo{
 void subscribeRuleset_cameraDemo()
 {
-rule_binding_t cameraDemo_D9MOwgZCU1Lf6or_1binding("cameraDemo","cameraDemo_D9MOwgZCU1Lf6or_1",cameraDemo::cameraDemo_D9MOwgZCU1Lf6or_1);
-subscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,cameraDemo_D9MOwgZCU1Lf6or_1binding);
-subscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,cameraDemo_D9MOwgZCU1Lf6or_1binding);
-subscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,cameraDemo_D9MOwgZCU1Lf6or_1binding);
-rule_binding_t cameraDemo_hhsizBe5OacqyLr_1binding("cameraDemo","cameraDemo_hhsizBe5OacqyLr_1",cameraDemo::cameraDemo_hhsizBe5OacqyLr_1);
-subscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,cameraDemo_hhsizBe5OacqyLr_1binding);
-subscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,cameraDemo_hhsizBe5OacqyLr_1binding);
-subscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,cameraDemo_hhsizBe5OacqyLr_1binding);
-rule_binding_t cameraDemo_wfpU2v3s66Q1cTD_1binding("cameraDemo","cameraDemo_wfpU2v3s66Q1cTD_1",cameraDemo::cameraDemo_wfpU2v3s66Q1cTD_1);
-subscribe_rule(gaia::cameraDemo::object_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,cameraDemo_wfpU2v3s66Q1cTD_1binding);
-subscribe_rule(gaia::cameraDemo::object_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,cameraDemo_wfpU2v3s66Q1cTD_1binding);
-subscribe_rule(gaia::cameraDemo::object_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,cameraDemo_wfpU2v3s66Q1cTD_1binding);
-rule_binding_t cameraDemo_KUVpJU1zYF1OrQM_1binding("cameraDemo","cameraDemo_KUVpJU1zYF1OrQM_1",cameraDemo::cameraDemo_KUVpJU1zYF1OrQM_1);
-subscribe_rule(gaia::cameraDemo::emergency_stop_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,cameraDemo_KUVpJU1zYF1OrQM_1binding);
-subscribe_rule(gaia::cameraDemo::emergency_stop_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,cameraDemo_KUVpJU1zYF1OrQM_1binding);
-subscribe_rule(gaia::cameraDemo::emergency_stop_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,cameraDemo_KUVpJU1zYF1OrQM_1binding);
-rule_binding_t cameraDemo_4l9_1_U0J0BTq25_1binding("cameraDemo","cameraDemo_4l9_1_U0J0BTq25_1",cameraDemo::cameraDemo_4l9_1_U0J0BTq25_1);
-subscribe_rule(gaia::cameraDemo::emergency_stop_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,cameraDemo_4l9_1_U0J0BTq25_1binding);
-subscribe_rule(gaia::cameraDemo::emergency_stop_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,cameraDemo_4l9_1_U0J0BTq25_1binding);
-subscribe_rule(gaia::cameraDemo::emergency_stop_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,cameraDemo_4l9_1_U0J0BTq25_1binding);
-rule_binding_t cameraDemo_KWLXIRzoZS7rzbQ_1binding("cameraDemo","cameraDemo_KWLXIRzoZS7rzbQ_1",cameraDemo::cameraDemo_KWLXIRzoZS7rzbQ_1);
-subscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,cameraDemo_KWLXIRzoZS7rzbQ_1binding);
-subscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,cameraDemo_KWLXIRzoZS7rzbQ_1binding);
-subscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,cameraDemo_KWLXIRzoZS7rzbQ_1binding);
+rule_binding_t cameraDemo_Y6zH5Mgi6mqsMwo_1binding("cameraDemo","cameraDemo_Y6zH5Mgi6mqsMwo_1",cameraDemo::cameraDemo_Y6zH5Mgi6mqsMwo_1);
+subscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,cameraDemo_Y6zH5Mgi6mqsMwo_1binding);
+subscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,cameraDemo_Y6zH5Mgi6mqsMwo_1binding);
+subscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,cameraDemo_Y6zH5Mgi6mqsMwo_1binding);
+rule_binding_t cameraDemo_hvncuiHwDkevJOs_1binding("cameraDemo","cameraDemo_hvncuiHwDkevJOs_1",cameraDemo::cameraDemo_hvncuiHwDkevJOs_1);
+subscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,cameraDemo_hvncuiHwDkevJOs_1binding);
+subscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,cameraDemo_hvncuiHwDkevJOs_1binding);
+subscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,cameraDemo_hvncuiHwDkevJOs_1binding);
+rule_binding_t cameraDemo_sDVRQe6U68FOQJM_1binding("cameraDemo","cameraDemo_sDVRQe6U68FOQJM_1",cameraDemo::cameraDemo_sDVRQe6U68FOQJM_1);
+subscribe_rule(gaia::cameraDemo::object_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,cameraDemo_sDVRQe6U68FOQJM_1binding);
+subscribe_rule(gaia::cameraDemo::object_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,cameraDemo_sDVRQe6U68FOQJM_1binding);
+subscribe_rule(gaia::cameraDemo::object_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,cameraDemo_sDVRQe6U68FOQJM_1binding);
+rule_binding_t cameraDemo_djO33ohx046eQ8l_1binding("cameraDemo","cameraDemo_djO33ohx046eQ8l_1",cameraDemo::cameraDemo_djO33ohx046eQ8l_1);
+subscribe_rule(gaia::cameraDemo::emergency_stop_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,cameraDemo_djO33ohx046eQ8l_1binding);
+subscribe_rule(gaia::cameraDemo::emergency_stop_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,cameraDemo_djO33ohx046eQ8l_1binding);
+subscribe_rule(gaia::cameraDemo::emergency_stop_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,cameraDemo_djO33ohx046eQ8l_1binding);
+rule_binding_t cameraDemo_hZDPBgNfgqtCNg0_1binding("cameraDemo","cameraDemo_hZDPBgNfgqtCNg0_1",cameraDemo::cameraDemo_hZDPBgNfgqtCNg0_1);
+subscribe_rule(gaia::cameraDemo::emergency_stop_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,cameraDemo_hZDPBgNfgqtCNg0_1binding);
+subscribe_rule(gaia::cameraDemo::emergency_stop_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,cameraDemo_hZDPBgNfgqtCNg0_1binding);
+subscribe_rule(gaia::cameraDemo::emergency_stop_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,cameraDemo_hZDPBgNfgqtCNg0_1binding);
+rule_binding_t cameraDemo_RTjFYIHTiudPzMn_1binding("cameraDemo","cameraDemo_RTjFYIHTiudPzMn_1",cameraDemo::cameraDemo_RTjFYIHTiudPzMn_1);
+subscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,cameraDemo_RTjFYIHTiudPzMn_1binding);
+subscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,cameraDemo_RTjFYIHTiudPzMn_1binding);
+subscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,cameraDemo_RTjFYIHTiudPzMn_1binding);
 }
 void unsubscribeRuleset_cameraDemo()
 {
-rule_binding_t cameraDemo_D9MOwgZCU1Lf6or_1binding("cameraDemo","cameraDemo_D9MOwgZCU1Lf6or_1",cameraDemo::cameraDemo_D9MOwgZCU1Lf6or_1);
-unsubscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,cameraDemo_D9MOwgZCU1Lf6or_1binding);
-unsubscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,cameraDemo_D9MOwgZCU1Lf6or_1binding);
-unsubscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,cameraDemo_D9MOwgZCU1Lf6or_1binding);
-rule_binding_t cameraDemo_hhsizBe5OacqyLr_1binding("cameraDemo","cameraDemo_hhsizBe5OacqyLr_1",cameraDemo::cameraDemo_hhsizBe5OacqyLr_1);
-unsubscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,cameraDemo_hhsizBe5OacqyLr_1binding);
-unsubscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,cameraDemo_hhsizBe5OacqyLr_1binding);
-unsubscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,cameraDemo_hhsizBe5OacqyLr_1binding);
-rule_binding_t cameraDemo_wfpU2v3s66Q1cTD_1binding("cameraDemo","cameraDemo_wfpU2v3s66Q1cTD_1",cameraDemo::cameraDemo_wfpU2v3s66Q1cTD_1);
-unsubscribe_rule(gaia::cameraDemo::object_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,cameraDemo_wfpU2v3s66Q1cTD_1binding);
-unsubscribe_rule(gaia::cameraDemo::object_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,cameraDemo_wfpU2v3s66Q1cTD_1binding);
-unsubscribe_rule(gaia::cameraDemo::object_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,cameraDemo_wfpU2v3s66Q1cTD_1binding);
-rule_binding_t cameraDemo_KUVpJU1zYF1OrQM_1binding("cameraDemo","cameraDemo_KUVpJU1zYF1OrQM_1",cameraDemo::cameraDemo_KUVpJU1zYF1OrQM_1);
-unsubscribe_rule(gaia::cameraDemo::emergency_stop_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,cameraDemo_KUVpJU1zYF1OrQM_1binding);
-unsubscribe_rule(gaia::cameraDemo::emergency_stop_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,cameraDemo_KUVpJU1zYF1OrQM_1binding);
-unsubscribe_rule(gaia::cameraDemo::emergency_stop_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,cameraDemo_KUVpJU1zYF1OrQM_1binding);
-rule_binding_t cameraDemo_4l9_1_U0J0BTq25_1binding("cameraDemo","cameraDemo_4l9_1_U0J0BTq25_1",cameraDemo::cameraDemo_4l9_1_U0J0BTq25_1);
-unsubscribe_rule(gaia::cameraDemo::emergency_stop_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,cameraDemo_4l9_1_U0J0BTq25_1binding);
-unsubscribe_rule(gaia::cameraDemo::emergency_stop_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,cameraDemo_4l9_1_U0J0BTq25_1binding);
-unsubscribe_rule(gaia::cameraDemo::emergency_stop_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,cameraDemo_4l9_1_U0J0BTq25_1binding);
-rule_binding_t cameraDemo_KWLXIRzoZS7rzbQ_1binding("cameraDemo","cameraDemo_KWLXIRzoZS7rzbQ_1",cameraDemo::cameraDemo_KWLXIRzoZS7rzbQ_1);
-unsubscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,cameraDemo_KWLXIRzoZS7rzbQ_1binding);
-unsubscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,cameraDemo_KWLXIRzoZS7rzbQ_1binding);
-unsubscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,cameraDemo_KWLXIRzoZS7rzbQ_1binding);
+rule_binding_t cameraDemo_Y6zH5Mgi6mqsMwo_1binding("cameraDemo","cameraDemo_Y6zH5Mgi6mqsMwo_1",cameraDemo::cameraDemo_Y6zH5Mgi6mqsMwo_1);
+unsubscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,cameraDemo_Y6zH5Mgi6mqsMwo_1binding);
+unsubscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,cameraDemo_Y6zH5Mgi6mqsMwo_1binding);
+unsubscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,cameraDemo_Y6zH5Mgi6mqsMwo_1binding);
+rule_binding_t cameraDemo_hvncuiHwDkevJOs_1binding("cameraDemo","cameraDemo_hvncuiHwDkevJOs_1",cameraDemo::cameraDemo_hvncuiHwDkevJOs_1);
+unsubscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,cameraDemo_hvncuiHwDkevJOs_1binding);
+unsubscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,cameraDemo_hvncuiHwDkevJOs_1binding);
+unsubscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,cameraDemo_hvncuiHwDkevJOs_1binding);
+rule_binding_t cameraDemo_sDVRQe6U68FOQJM_1binding("cameraDemo","cameraDemo_sDVRQe6U68FOQJM_1",cameraDemo::cameraDemo_sDVRQe6U68FOQJM_1);
+unsubscribe_rule(gaia::cameraDemo::object_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,cameraDemo_sDVRQe6U68FOQJM_1binding);
+unsubscribe_rule(gaia::cameraDemo::object_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,cameraDemo_sDVRQe6U68FOQJM_1binding);
+unsubscribe_rule(gaia::cameraDemo::object_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,cameraDemo_sDVRQe6U68FOQJM_1binding);
+rule_binding_t cameraDemo_djO33ohx046eQ8l_1binding("cameraDemo","cameraDemo_djO33ohx046eQ8l_1",cameraDemo::cameraDemo_djO33ohx046eQ8l_1);
+unsubscribe_rule(gaia::cameraDemo::emergency_stop_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,cameraDemo_djO33ohx046eQ8l_1binding);
+unsubscribe_rule(gaia::cameraDemo::emergency_stop_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,cameraDemo_djO33ohx046eQ8l_1binding);
+unsubscribe_rule(gaia::cameraDemo::emergency_stop_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,cameraDemo_djO33ohx046eQ8l_1binding);
+rule_binding_t cameraDemo_hZDPBgNfgqtCNg0_1binding("cameraDemo","cameraDemo_hZDPBgNfgqtCNg0_1",cameraDemo::cameraDemo_hZDPBgNfgqtCNg0_1);
+unsubscribe_rule(gaia::cameraDemo::emergency_stop_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,cameraDemo_hZDPBgNfgqtCNg0_1binding);
+unsubscribe_rule(gaia::cameraDemo::emergency_stop_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,cameraDemo_hZDPBgNfgqtCNg0_1binding);
+unsubscribe_rule(gaia::cameraDemo::emergency_stop_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,cameraDemo_hZDPBgNfgqtCNg0_1binding);
+rule_binding_t cameraDemo_RTjFYIHTiudPzMn_1binding("cameraDemo","cameraDemo_RTjFYIHTiudPzMn_1",cameraDemo::cameraDemo_RTjFYIHTiudPzMn_1);
+unsubscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,cameraDemo_RTjFYIHTiudPzMn_1binding);
+unsubscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,cameraDemo_RTjFYIHTiudPzMn_1binding);
+unsubscribe_rule(gaia::cameraDemo::camera_image_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,cameraDemo_RTjFYIHTiudPzMn_1binding);
 }
 }
 namespace gaia {

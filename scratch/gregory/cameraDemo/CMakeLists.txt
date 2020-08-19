@@ -10,9 +10,8 @@ find_package(OpenCV 4.3.0 REQUIRED)
 
 include(gaia)
 set(GAIA_PROD_BUILD "${CMAKE_SOURCE_DIR}/../../../production/build")
-set(CMAKE_CXX_FLAGS
-      "-std=c++0x -Wall -Wextra -ggdb -Wno-unused-parameter -ggdb")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ggdb -pthread")
+
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 
 
 set (CAMERA_DEMO_INCLUDES

@@ -367,7 +367,7 @@ bool findNavigationPath(const string& src, const string& dst, vector<NavigationD
 NavigationCodeData generateNavigationCode(string anchorTable)
 {
     NavigationCodeData retVal;
-    retVal.prefix = "\ngaia::" + tableDBData[anchorTable] + "::" + anchorTable + "_t " + anchorTable + " = " + 
+    retVal.prefix = "\nauto " + anchorTable + " = " + 
         "gaia::" + tableDBData[anchorTable] + "::" + anchorTable + "_t::get(context->record);\n";
     //single table used in the rule
     if (used_Tables.size() == 1 && used_Tables.find(anchorTable) != used_Tables.end())
@@ -465,11 +465,11 @@ NavigationCodeData generateNavigationCode(string anchorTable)
                         {
                             if (p.linkingField.empty())
                             {
-                                retVal.prefix += "gaia::" + tableDBData[p.name] + "::" + p.name + "_t " + p.name + " = " + srcTbl + "." + p.name + "();\n"; 
+                                retVal.prefix += "auto " + p.name + " = " + srcTbl + "." + p.name + "();\n"; 
                             }
                             else
                             {
-                                retVal.prefix += "gaia::" + tableDBData[p.name] + "::" + p.name + "_t " + p.name + " = " + srcTbl + "." + p.linkingField +  "();\n";    
+                                retVal.prefix += "auto " + p.name + " = " + srcTbl + "." + p.linkingField + "_" + p.name + "();\n";    
                             }
                         }
                         else
@@ -480,7 +480,7 @@ NavigationCodeData generateNavigationCode(string anchorTable)
                             }
                             else
                             {
-                                retVal.prefix += "for (auto " + p.name + " : " + srcTbl + "." + p.linkingField +  "_list())\n{\n";    
+                                retVal.prefix += "for (auto " + p.name + " : " + srcTbl + "." + p.linkingField + "_" + p.name +  "_list())\n{\n";    
                             }
                         
                             retVal.postfix += "}\n";
@@ -502,11 +502,11 @@ NavigationCodeData generateNavigationCode(string anchorTable)
             {
                 if (linkingField.empty())
                 {
-                    retVal.prefix += "gaia::" + tableDBData[table] + "::" + table + "_t " + table + " = " + anchorTable + "." + table + "();\n"; 
+                    retVal.prefix += "auto " + table + " = " + anchorTable + "." + table + "();\n"; 
                 }
                 else
                 {
-                    retVal.prefix += "gaia::" + tableDBData[table] + "::" + table + "_t " + table + " = " + anchorTable + "." + linkingField + "());\n";    
+                    retVal.prefix += "auto " + table + " = " + anchorTable + "." + linkingField + "_" + table + "());\n";    
                 }
                 
             }
@@ -518,7 +518,7 @@ NavigationCodeData generateNavigationCode(string anchorTable)
                 }
                 else
                 {
-                    retVal.prefix += "for (auto " + table + " : " + anchorTable + "." + linkingField + "_list())\n{\n";    
+                    retVal.prefix += "for (auto " + table + " : " + anchorTable + "." + linkingField + "_" + table + "_list())\n{\n";    
                 }
                 
                 retVal.postfix += "}\n";
@@ -575,24 +575,25 @@ void generateRules(Rewriter &rewriter)
             {
                 containsFields = true;
             }
-            if (!isLastOperation && fields.find(field) == fields.end())
-            {
-                llvm::errs() << "No field " << field << " found in the catalog\n";
-                generationError = true;
-                return;
-            }
-            FieldData fieldData = fields[field];
-            if (!fieldData.isActive)
-            {
-                llvm::errs() << "Field " << field << " is not marked as active in the catalog\n";
-                generationError = true;
-                return;
-            }
-
             if (!isLastOperation)
             {
+                if (fields.find(field) == fields.end())
+                {
+                    llvm::errs() << "No field " << field << " found in the catalog\n";
+                    generationError = true;
+                    return;
+                }
+
+                FieldData fieldData = fields[field];
+                if (!fieldData.isActive)
+                {
+                    llvm::errs() << "Field " << field << " is not marked as active in the catalog\n";
+                    generationError = true;
+                    return;
+                }
+
                 fieldSubscriptionCode += "fields_" + ruleName + ".push_back(" + to_string(fieldData.position) +");\n";
-            }            
+            }         
         }
 
         if (!containsFields && !containsLastOperation)
@@ -805,9 +806,7 @@ public:
                     used_DBs.insert(tableDBData[tableName]);
                 
                     tok::TokenKind tokenKind;
-                    std::string replacementText = "[&]() mutable {gaia::" + 
-                        tableDBData[tableName] + "::" + tableName + 
-                        "_writer w = " + tableName + ".writer(); w." + 
+                    std::string replacementText = "[&]() mutable {auto w = " + tableName + ".writer(); w." + 
                         fieldName;
 
                     switch(op->getOpcode())
@@ -900,19 +899,17 @@ public:
                     rewriter.ReplaceText(
                         SourceRange(startLocation,setLocEnd.getLocWithOffset(-1)), 
                         replacementText);
-                    //rewriter.InsertTextAfterToken(op->getEndLoc(),")");
+
                     if (op->getOpcode() != BO_Assign)
                     {
                         rewriter.InsertTextAfterToken(op->getEndLoc(),
-                            "; w.update_row();return " + 
-                            tableName + "." + fieldName + "();}() ");
+                            "; w.update_row();return w." + fieldName + ";}() ");
 
                     }
                     else
                     {
                         rewriter.InsertTextAfterToken(op->getEndLoc(),
-                            "; w.update_row();return " +  
-                            tableName + "." + fieldName + "();}()");
+                            "; w.update_row();return w." + fieldName + ";}()");
                     }
                 }
                 else
@@ -1028,18 +1025,14 @@ public:
                         if (op->isIncrementOp())
                         {
                             replaceStr = "[&]() mutable {auto t=" + 
-                                tableName + "." + fieldName + "();gaia::" + 
-                                tableDBData[tableName] + "::" + tableName + 
-                                "_writer w = " + tableName + ".writer(); w." + 
+                                tableName + "." + fieldName + "();auto w = " + tableName + ".writer(); w." + 
                                 fieldName + "++; w.update_row();return t;}()";
 
                         }
                         else if(op->isDecrementOp())
                         {
                             replaceStr = "[&]() mutable {auto t=" + 
-                                tableName + "." + fieldName + "();gaia::" + 
-                                tableDBData[tableName] + "::" + 
-                                tableName + "_writer w = " + tableName + ".writer(); w." + 
+                                tableName + "." + fieldName + "();auto w = " + tableName + ".writer(); w." + 
                                 fieldName + "--; w.update_row();return t;}()";
                         }
                     }
@@ -1047,17 +1040,13 @@ public:
                     {
                         if (op->isIncrementOp())
                         {
-                            replaceStr = "[&]() mutable {gaia::" + 
-                                tableDBData[tableName] + "::" + 
-                                tableName + "_writer w = " + tableName + ".writer(); ++ w." + 
+                            replaceStr = "[&]() mutable {auto w = " + tableName + ".writer(); ++ w." + 
                                 fieldName + ";w.update_row(); return w." +
                                 fieldName + ";}()";
                         }
                         else if(op->isDecrementOp())
                         {
-                            replaceStr = "[&]() mutable {gaia::" + 
-                                tableDBData[tableName] + "::" + 
-                                tableName + "_writer w = " + tableName + ".writer(); -- w." + 
+                            replaceStr = "[&]() mutable {auto w = " + tableName + ".writer(); -- w." + 
                                 fieldName + ";w.update_row(); return w." +
                                 fieldName + ";}()";
                         }
