@@ -43,7 +43,6 @@ uint16_t c_phone_type_position = 1;
 uint16_t c_phone_primary_position = 2;
 
 atomic<int> g_wait_for_count;
-bool g_is_initialized = false;
 
 // When an employee is inserted insert an address.
 void rule_insert_address(const rule_context_t* context)
@@ -195,27 +194,32 @@ public:
     }
 
 protected:
-    void SetUp() override {
-        if (!g_is_initialized) {
-            const char* ddl_file = getenv("DDL_FILE");
-            ASSERT_NE(ddl_file, nullptr);
+    static void SetUpTestSuite()
+    {
+        // NOTE: to run this test manually, you need to set the env variable DDL_FILE
+        // to the location of addr_book.ddl.  Currently this is under production/schemas/test/addr_book.
+        reset_server();
+        const char* ddl_file = getenv("DDL_FILE");
+        ASSERT_NE(ddl_file, nullptr);
+        begin_session();
 
-            db_test_base_t::SetUp();
-
-            // NOTE: For the unit test setup, we need to init catalog and load test tables before rules engine starts.
-            //       Otherwise, the event log activities will cause out of order test table IDs.
-            load_catalog(ddl_file);
-
-            gaia::rules::initialize_rules_engine();
-
-            g_is_initialized = true;
-        }
+        // NOTE: For the unit test setup, we need to init catalog and load test tables before rules engine starts.
+        //       Otherwise, the event log activities will cause out of order test table IDs.
+        load_catalog(ddl_file);
+        gaia::rules::initialize_rules_engine();
     }
+
+    static void TearDownTestSuite()
+    {
+        end_session();
+    }
+
+    // Ensure SetUp and TearDown don't do anything.  When we run the test
+    // directly, we only want SetUpTestSuite and TearDownTestSuite 
+    void SetUp() override {}
 
     void TearDown() override {
         unsubscribe_rules();
-        // Currently a no-op.
-        db_test_base_t::TearDown();
     }
 };
 

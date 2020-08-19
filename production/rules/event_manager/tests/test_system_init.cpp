@@ -36,8 +36,9 @@ public:
     }
 
 protected:
-    system_init_test() : db_test_base_t(true) {
-    }
+    // Manage the session ourselves in this test as the
+    // gaia::system::initialize() will call begin_session.
+    system_init_test() : db_test_base_t(true) {}
 };
 
 TEST_F(system_init_test, system_not_initialized_error)

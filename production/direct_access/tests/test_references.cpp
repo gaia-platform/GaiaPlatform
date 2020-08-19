@@ -16,14 +16,6 @@ using namespace gaia::direct_access;
 using namespace gaia::addr_book;
 
 class gaia_references_test : public db_test_base_t {
-protected:
-    void SetUp() override {
-        db_test_base_t::SetUp();
-    }
-
-    void TearDown() override {
-        db_test_base_t::TearDown();
-    }
 };
 
 
