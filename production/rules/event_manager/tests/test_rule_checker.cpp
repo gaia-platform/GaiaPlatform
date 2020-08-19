@@ -106,7 +106,7 @@ protected:
     // these functions will only be called once for all tests.
     static void SetUpTestSuite()
     {
-        reset_server();
+        db_test_base_t::reset_server();
         begin_session();
         load_catalog();
     }

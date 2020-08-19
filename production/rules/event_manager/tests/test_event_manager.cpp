@@ -567,7 +567,7 @@ public:
 protected:
     static void SetUpTestSuite()
     {
-        reset_server();
+        db_test_base_t::reset_server();
         begin_session();
         event_manager_settings_t settings;
         settings.num_background_threads = 0;
