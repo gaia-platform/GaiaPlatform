@@ -18,14 +18,6 @@ using namespace gaia::addr_book;
 
 
 class gaia_object_test : public db_test_base_t {
-protected:
-    void SetUp() override {
-        db_test_base_t::SetUp();
-    }
-
-    void TearDown() override {
-        db_test_base_t::TearDown();
-    }
 };
 
 int count_rows() {

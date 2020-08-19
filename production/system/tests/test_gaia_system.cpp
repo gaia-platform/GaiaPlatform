@@ -28,24 +28,28 @@ using namespace gaia::rules;
 using namespace gaia::common;
 using namespace gaia::addr_book;
 
-static atomic<uint32_t> rule_count;
-static atomic<uint32_t> rule_per_commit_count;
+static atomic<uint32_t> s_rule_count;
+static atomic<uint32_t> s_rule_per_commit_count;
 
 void rule1(const rule_context_t *) {
-    rule_per_commit_count++;
-    rule_count++;
+    s_rule_per_commit_count++;
+    s_rule_count++;
 }
 
 extern "C" void initialize_rules() {
 }
 
 class gaia_system_test : public db_test_base_t {
-  protected:
-    void SetUp() override {
+public:
+    static void SetUpTestSuite()
+    {
+        reset_server();
+        begin_session();
+        
+        // NOTE: To run this test manually, you need to set the env variable DDL_FILE to the location of addr_book.ddl.
+        // Currently this is under production/schemas/test/addr_book.
         const char *ddl_file = getenv("DDL_FILE");
         ASSERT_NE(ddl_file, nullptr);
-
-        db_test_base_t::SetUp();
 
         // NOTE: For the unit test setup, we need to init catalog and load test tables before rules engine starts.
         //       Otherwise, the event log activities will cause out of order test table IDs.
@@ -62,10 +66,20 @@ class gaia_system_test : public db_test_base_t {
         // We only have 1 field in this test.
         fields.push_back(0);
         subscribe_rule(employee_t::s_gaia_type, event_type_t::row_update, fields, m_rule1);
-
-        rule_count = 0;
-        rule_per_commit_count = 0;
     }
+
+    static void TearDownTestSuite()
+    {
+        end_session();
+    }
+
+protected:
+    void SetUp() override {
+        s_rule_count = 0;
+        s_rule_per_commit_count = 0;
+    }
+
+    void TearDown() override {}
 };
 
 // This method will perform multiple transactions on the current client thread.
@@ -76,7 +90,7 @@ void perform_transactions(uint32_t count_transactions, uint32_t crud_operations_
     }
 
     for (uint32_t i = 0; i < count_transactions; i++) {
-        rule_per_commit_count = 0;
+        s_rule_per_commit_count = 0;
         begin_transaction();
         // Insert row.
         employee_writer w;
@@ -94,7 +108,7 @@ void perform_transactions(uint32_t count_transactions, uint32_t crud_operations_
         gaia::db::commit_transaction();
 
         // We should get crud_operations_per_tx per commit.  Wait for them.
-        while (rule_per_commit_count < crud_operations_per_tx) {
+        while (s_rule_per_commit_count < crud_operations_per_tx) {
             usleep(1);
         }
     }
@@ -105,7 +119,7 @@ void perform_transactions(uint32_t count_transactions, uint32_t crud_operations_
 }
 
 void validate_and_end_test(uint32_t count_tx, uint32_t crud_operations_per_tx, uint32_t count_threads) {
-    EXPECT_EQ(rule_count, count_tx * crud_operations_per_tx * count_threads);
+    EXPECT_EQ(s_rule_count, count_tx * crud_operations_per_tx * count_threads);
 }
 
 TEST_F(gaia_system_test, single_threaded_transactions) {
