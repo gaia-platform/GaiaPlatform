@@ -4,7 +4,6 @@
 /////////////////////////////////////////////
 
 #include "storage_engine.hpp"
-#include "storage_engine_server.hpp"
 #include "rocksdb/db.h"
 #include "rocksdb/write_batch.h"
 #include "rdb_wrapper.hpp"
@@ -35,8 +34,6 @@ rdb_wrapper::~rdb_wrapper() {
 Status rdb_wrapper::open() {
     rocksdb::TransactionDBOptions options{};
     rocksdb::Options initoptions{};
-    // Every write to the log will require an fsync.
-    initoptions.use_fsync = true;
     // Implies 2PC log writes.
     initoptions.allow_2pc = true;
     // Create a new database directory if one doesn't exist.
@@ -53,6 +50,20 @@ Status rdb_wrapper::open() {
     // So that when 1 write buffers being flushed to storage, new writes can continue to the other
     // write buffer.
     initoptions.max_write_buffer_number = 1;
+
+    // The minimum number of write buffers that will be merged together
+    // before writing to storage.  If set to 1, then
+    // all write buffers are flushed to L0 as individual files.
+    initoptions.min_write_buffer_number_to_merge = 1;
+
+    // Any IO error during WAL replay is considered as data corruption.
+    // This option assumes clean server shutdown.
+    // A crash during a WAL write may lead to the database not getting opened. (see https://github.com/cockroachdb/pebble/issues/453)
+    // Currently in place for development purposes. 
+    // The default option 'kPointInTimeRecovery' will stop the WAL playback on discovering WAL inconsistency
+    // without notifying the caller.
+    initoptions.wal_recovery_mode = WALRecoveryMode::kAbsoluteConsistency;
+
     return rdb_internal->open_txn_db(initoptions, options);
 }
 
@@ -95,7 +106,7 @@ Status rdb_wrapper::prepare_tx(rocksdb::Transaction* trx) {
         } else {
             string_writer key; 
             string_writer value;
-            void* gaia_object = server::offset_to_ptr(lr->row_id);
+            void* gaia_object = se_base::offset_to_ptr(lr->new_object);
 
             if (!gaia_object) {
                 // Object was deleted in current transaction.
@@ -111,6 +122,9 @@ Status rdb_wrapper::prepare_tx(rocksdb::Transaction* trx) {
         } 
        
     }
+
+    // Ensure that keys were inserted into the RocksDB transaction object.
+    assert(trx->GetNumKeys() == s_log->count);
 
     return rdb_internal->prepare_txn(trx);
 }
@@ -131,15 +145,11 @@ Status rdb_wrapper::prepare_tx(rocksdb::Transaction* trx) {
 void rdb_wrapper::recover() {
     rocksdb::Iterator* it = rdb_internal->get_iterator();
     uint64_t max_id = se_base::get_current_id();
-    int count = 0;
     for (it->SeekToFirst(); it->Valid(); it->Next()) {
         rdb_object_converter_util::decode_object(it->key(), it->value(), &max_id);
-        count ++;
-    }
-
-    cout << "Recovered records count: " << count << endl << flush;
-    
-    assert(it->status().ok()); // Check for any errors found during the scan
+    }    
+    // Check for any errors found during the scan
+    assert(it->status().ok());
 
     se_base::set_id(max_id + 1);
 

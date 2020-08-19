@@ -156,6 +156,10 @@ class se_base {
         gaia_xid_t xid = __sync_add_and_fetch (&s_data->transaction_id_count, 1);
         return xid;
     }
+
+    static void* offset_to_ptr(int64_t offset) {
+        return offset ? (se_base::s_data->objects + offset) : nullptr;
+    }
 };
 
 }  // namespace db
