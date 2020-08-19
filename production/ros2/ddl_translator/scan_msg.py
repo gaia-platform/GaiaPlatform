@@ -68,6 +68,13 @@ class Message:
         self.fields = {}
         self.nested_fields = {}
 
+    def __str__(self):
+        data = {
+            "name": self.name, "pkg": self.package,
+            "fields": self.fields, "nested_fields": self.nested_fields
+        }
+        return json.dumps(data)
+
     def __eq__(self, other):
         if isinstance(other, Message):
             return (self.name == other.name and self.package == other.package)
@@ -92,15 +99,11 @@ class Message:
 
         json_path = os.path.join(directory, filename)
         with io.open(json_path, 'w') as json_file:
-            json_data = {
-                "name": self.name, "package": self.package,
-                "fields": self.fields, "nested_fields": self.nested_fields
-            }
-            json.dump(json_data, json_file, indent=4, sort_keys=True)
+            json_file.write(str(self))
             json_file.close()
 
-            global json_files
-            json_files.append(json_path)
+        global json_files
+        json_files.append(json_path)
 
 def get_base_msg_module(msg_name, pkg, build_dir, msg_path):
     msg_py_filename = camel_to_snake_case(msg_name, False) + ".py"
