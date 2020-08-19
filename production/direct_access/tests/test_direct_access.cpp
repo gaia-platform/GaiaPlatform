@@ -697,3 +697,79 @@ TEST_F(gaia_object_test, thread_delete_conflict) {
     }
     commit_transaction();
 };
+
+// Pass by reference.
+void employee_func_ref(const employee_t& e, const char* first_name)
+{
+    begin_transaction();
+    {
+        if (first_name)
+        {
+            EXPECT_STREQ(e.name_first(), first_name);
+        }
+        else
+        {
+            EXPECT_THROW(e.name_first(), invalid_node_id);
+        }
+        
+    }
+    commit_transaction();
+}
+
+// Pass by value, ensures copy constructor does the right thing.
+void employee_func_val(employee_t e, const char* first_name)
+{
+    begin_transaction();
+    {
+        if (first_name)
+        {
+            EXPECT_STREQ(e.name_first(), first_name);
+        }
+        else
+        {
+            EXPECT_THROW(e.name_first(), invalid_node_id);
+        }
+        
+    }
+    commit_transaction();
+}
+
+TEST_F(gaia_object_test, default_construction) {
+    // Valid use case to create an unbacked object that
+    // you can't do anything with.  However, now you can
+    // set a variable to it later in the function, use it as 
+    // a member of a class, etc.
+    employee_t e;
+    address_t a;
+
+    employee_func_ref(e, nullptr);
+    employee_func_val(e, nullptr);
+    
+    begin_transaction();
+    {
+        EXPECT_THROW(e.name_first(), invalid_node_id);
+        // UNDONE:  should be a.employee() above
+        EXPECT_THROW(a.addresses(), invalid_node_id);
+
+        EXPECT_THROW(e.writer(), invalid_node_id);
+        EXPECT_THROW(e.manages(), invalid_node_id);
+        EXPECT_THROW(e.delete_row(), invalid_node_id);
+
+        for (auto a : e.addresses_list())
+        {
+            printf("%s\n", a.state());
+        }
+        e = create_employee("Windsor");
+        EXPECT_STREQ(e.name_first(), "Windsor");
+    }
+    commit_transaction();
+
+    employee_func_ref(e, "Windsor");
+    employee_func_val(e, "Windsor");
+
+    begin_transaction();
+    {
+        EXPECT_STREQ(e.name_first(), "Windsor");
+    }
+    commit_transaction();
+}
