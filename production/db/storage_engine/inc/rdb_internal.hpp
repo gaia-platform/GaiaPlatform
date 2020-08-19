@@ -39,6 +39,9 @@ class rdb_internal
         }
 
         rocksdb::Transaction* begin_txn(rocksdb::WriteOptions& options, const rocksdb::TransactionOptions& txnOpts, std::int64_t trid) {
+            if (!options.sync) {
+                options.sync = true;
+            }
             rocksdb::Transaction* trx = m_txn_db->BeginTransaction(options, txnOpts);
             trx->SetName(std::to_string(trid));
             return trx;

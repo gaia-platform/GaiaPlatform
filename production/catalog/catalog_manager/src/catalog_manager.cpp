@@ -122,6 +122,9 @@ void catalog_manager_t::reload_cache() {
 
     gaia::db::begin_transaction();
     for (auto table = gaia_table_t::get_first(); table; table = table.get_next()) {
+        if (table.name() == nullptr) {
+            continue;
+        }
         m_table_ids.insert(table.gaia_id());
         m_table_names[table.name()] = table.gaia_id();
         m_table_fields[table.gaia_id()] = {};

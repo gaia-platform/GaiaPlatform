@@ -55,7 +55,7 @@ class db_server_t {
     }
 
     void sigterm_stop() {
-        string cmd = "pkill ";
+        string cmd = "pkill -f ";
         cmd.append(m_server_path.c_str());
         cerr << cmd << endl;
         ::system(cmd.c_str());

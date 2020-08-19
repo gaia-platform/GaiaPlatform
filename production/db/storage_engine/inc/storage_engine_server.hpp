@@ -325,6 +325,7 @@ class server : private se_base {
             // Block forever (we will be notified of shutdown).
             int ready_fd_count = epoll_wait(epoll_fd, events, array_size(events), -1);
             if (ready_fd_count == -1) {
+                // Workaround to enable debugging the server.
                 if (errno == EINTR) {
                     continue;
                 }
@@ -426,6 +427,7 @@ class server : private se_base {
             // Block forever (we will be notified of shutdown).
             int ready_fd_count = epoll_wait(epoll_fd, events, array_size(events), -1);
             if (ready_fd_count == -1) {
+                // Workaround to enable debugging the server.
                 if (errno == EINTR) {
                     continue;
                 }
@@ -499,14 +501,6 @@ class server : private se_base {
                 apply_transition(event, fds, fd_count);
             }
         }
-    }
-
-    static void* offset_to_ptr(int64_t offset)
-    {
-        return offset && (*s_shared_offsets)[offset]
-            ? (se_base::s_data->objects
-                         + (*s_shared_offsets)[offset])
-            : nullptr;
     }
 
     // Before this method is called, we have already received the log fd from the client

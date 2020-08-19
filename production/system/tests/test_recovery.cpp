@@ -69,7 +69,7 @@ bool validate_ordering() {
     return false;
 }
 
-void restart_server(db_server_t& server, const char* path, bool sigterm = false) {
+void restart_server(db_server_t& server, const char* path, bool sigterm = true) {
     if (sigterm) {
         server.sigterm_stop();
         server.start(path, false);
@@ -214,24 +214,24 @@ int main(int, char *argv[]) {
     employee_map.clear();
     // restart_server(server, server_dir_path.data());
 
-    for (int i = 1; i <= 5; i++) {
-        cout << "Loop number " << i << endl << flush;
+    for (int i = 1; i <= 1; i++) {
+        cout << "Loop number " << i << endl << flush; // start server
+        // Just write a single record.
         // restart_server(server, server_dir_path.data());
         begin_session();
-        // delete_all();
-        load_data(0.5 * 1024 * 1024, false, server, server_dir_path.data());
+        begin_transaction();
+        auto e = generate_employee_record();
+        commit_transaction();
+        end_session();
+
+        int j = 0; // server start
+
+        // restart_server(server, server_dir_path.data());
+        // begin_session();
         // validate_data();
-        // Restart server & validate data.
-        end_session();
-
-        int j = 0;
-
-        restart_server(server, server_dir_path.data());
-        begin_session();
-        validate_data();
         // delete_all();
-        end_session();
-        // stop_server(server);
+        // end_session();
+        stop_server(server);
     }
     // begin_session();
     // delete_all();
