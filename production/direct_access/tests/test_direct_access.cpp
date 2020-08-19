@@ -748,14 +748,12 @@ TEST_F(gaia_object_test, default_construction) {
     begin_transaction();
     {
         EXPECT_THROW(e.name_first(), invalid_node_id);
-        // UNDONE:  should be a.employee() above
-        EXPECT_THROW(a.addresses(), invalid_node_id);
-
+        EXPECT_THROW(a.addressee_employee(), invalid_node_id);
+        EXPECT_THROW(e.manages_employee(), invalid_node_id);
         EXPECT_THROW(e.writer(), invalid_node_id);
-        EXPECT_THROW(e.manages(), invalid_node_id);
         EXPECT_THROW(e.delete_row(), invalid_node_id);
 
-        for (auto a : e.addresses_list())
+        for (auto a : e.addressee_address_list())
         {
             printf("%s\n", a.state());
         }
