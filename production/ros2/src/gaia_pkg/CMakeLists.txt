@@ -32,6 +32,7 @@ find_package(gaia_pkg_interfaces REQUIRED)
 
 set(MSG_FILES
   "msg/Test.msg"
+  "msg/TestTwo.msg"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
