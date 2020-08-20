@@ -130,6 +130,9 @@ int main(int argc, char *argv[]) {
                 // Require a path right after this
                 ++i;
                 const char *path_to_db_server = argv[i];
+                string cmd = "rm -rf /tmp/db";
+                cerr << cmd << endl;
+                ::system(cmd.c_str());
                 server.start(path_to_db_server);
             } else if (argv[i] == string("-o")) {
                 ++i;
