@@ -19,10 +19,7 @@ def filename_no_ext(filepath):
 
 # Converts MyFoo to _my_foo or my_foo.
 def camel_to_snake_case(camel_str, no_first_underscore=False):
-    snake_str = re.sub("[A-Z]", r"_\g<0>", camel_str).lower()
-    if no_first_underscore:
-        snake_str = snake_str.lstrip('_')
-    return snake_str
+    return re.sub("[A-Z]", r"_\g<0>", camel_str).lower().lstrip('_')
 
 # If a field type is a nested message, return the package and message name.
 def check_nested_msg(field_type):
@@ -34,11 +31,6 @@ def check_nested_msg(field_type):
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "package_name",
-    help="Name of the current ROS2 package containing the message file",
-    type=str
-)
-parser.add_argument(
     "cmake_current_binary_dir",
     help="Build directory for the current ROS2 package",
     type=str
@@ -48,15 +40,19 @@ parser.add_argument(
     help="Filepath of a ROS2 message file",
     type=str
 )
+parser.add_argument(
+    "manifest_file_path",
+    help="Filepath of a text file where to append the generated JSON paths",
+    type=str
+)
 
 args = parser.parse_args()
 json_directory = os.path.join(args.cmake_current_binary_dir, "json_msgs")
-manifest_file = os.path.join(json_directory, "manifest.txt")
 json_files = []
 
-def write_manifest(filepath):
+def append_manifest(filepath):
     global json_files
-    with io.open(filepath, 'w') as manifest:
+    with io.open(filepath, 'a') as manifest:
         for json_path in json_files:
             manifest.write(json_path + "\n")
         manifest.close()
@@ -106,7 +102,7 @@ class Message:
         json_files.append(json_path)
 
 def get_base_msg_module(msg_name, pkg, build_dir, msg_path):
-    msg_py_filename = camel_to_snake_case(msg_name, False) + ".py"
+    msg_py_filename = "_" + camel_to_snake_case(msg_name) + ".py"
     msg_py_path = build_dir + "/rosidl_generator_py/" + pkg + "/msg/" \
         + msg_py_filename
 
@@ -138,7 +134,7 @@ def scan_msg_module(msg_name, msg_pkg, msg_module):
         nested_msg = msg.nested_fields[field]
         type = nested_msg["type"]
         pkg = nested_msg["pkg"]
-        submodule_name = "." + camel_to_snake_case(type, False)
+        submodule_name = "." + "_" + camel_to_snake_case(type)
 
         nested_module = importlib.import_module(
             submodule_name, pkg + ".msg"
@@ -146,14 +142,16 @@ def scan_msg_module(msg_name, msg_pkg, msg_module):
 
         scan_msg_module(msg_name=type, msg_pkg=pkg, msg_module=nested_module)
 
+base_pkg = Path(args.msg_file_path).resolve().parents[1].stem
+
 base_msg_name = filename_no_ext(args.msg_file_path)
+
 base_msg_module = get_base_msg_module(
     msg_name=base_msg_name,
-    pkg=args.package_name,
+    pkg=base_pkg,
     build_dir=args.cmake_current_binary_dir,
     msg_path=args.msg_file_path
 )
 
-scan_msg_module(base_msg_name, args.package_name, base_msg_module)
-write_manifest(manifest_file)
-print(manifest_file)
+scan_msg_module(base_msg_name, base_pkg, base_msg_module)
+append_manifest(args.manifest_file_path)

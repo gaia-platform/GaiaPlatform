@@ -9,13 +9,17 @@ import argparse
 import io
 import json
 import os
+import re
 
 def filename(filepath):
     return os.path.basename(filepath)
 
+def camel_to_snake_case(camel_str):
+    return re.sub("[A-Z]", r"_\g<0>", camel_str).lower().lstrip('_')
+
 class Schema:
     def __init__(self, name):
-        self.name = name
+        self.name = camel_to_snake_case(name)
         self.tables = set()
 
     def __str__(self):
@@ -34,7 +38,7 @@ class Table:
     }
 
     def __init__(self, data):
-        self.name = data["pkg"] + "__" + data["name"]
+        self.name = data["pkg"] + "__" + camel_to_snake_case(data["name"])
         self.fields = {}
         self.references = {}
 
@@ -44,7 +48,7 @@ class Table:
 
         for field_name, nested_type in data["nested_fields"].items():
             self.references[field_name] = nested_type["pkg"] + "__" \
-                + nested_type["type"]
+                + camel_to_snake_case(nested_type["type"])
 
     def __str__(self):
         text = "create table " + self.name + " (\n"
@@ -64,15 +68,20 @@ class Table:
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "manifest_path",
+    "schema_name",
+    help="Name of the DDL schema",
+    type=str
+)
+parser.add_argument(
+    "manifest_file_path",
     help="File path to manifest.txt, listing JSON files generated from ROS2 messages",
     type=str
 )
 args = parser.parse_args()
 
-schema = Schema("ros_msgs")
+schema = Schema(args.schema_name)
 
-with io.open(args.manifest_path, 'r') as manifest:
+with io.open(args.manifest_file_path, 'r') as manifest:
     json_files = manifest.read().splitlines()
     manifest.close()
 

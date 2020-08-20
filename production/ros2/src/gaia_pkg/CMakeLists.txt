@@ -40,6 +40,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 )
 
 gaia_ros2_msg_to_ddl(
+  "ros_msgs"
+  "${PROJECT_BINARY_DIR}/manifest.txt"
   "${MSG_FILES}"
 )
 
