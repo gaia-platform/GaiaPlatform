@@ -69,7 +69,7 @@ bool validate_ordering() {
     return false;
 }
 
-void restart_server(db_server_t& server, const char* path, bool sigterm = false) {
+void restart_server(db_server_t& server, const char* path, bool sigterm = true) {
     if (sigterm) {
         server.sigterm_stop();
         server.start(path, false);
