@@ -115,6 +115,7 @@ int client::get_session_socket() {
 void client::begin_session() {
     // Fail if a session already exists on this thread.
     verify_no_session();
+    clear_shared_memory();
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.

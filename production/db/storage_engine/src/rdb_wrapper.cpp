@@ -164,17 +164,11 @@ Status rdb_wrapper::prepare_tx(rocksdb::Transaction* trx) {
  */
 void rdb_wrapper::recover() {
     rocksdb::Iterator* it = rdb_internal->get_iterator();
-<<<<<<< HEAD
     gaia_id_t max_id = 0;
     int count = 0;
     for (it->SeekToFirst(); it->Valid(); it->Next()) {
         rdb_object_converter_util::decode_object(it->key(), it->value(), &max_id);
         count ++;
-=======
-    uint64_t max_id = se_base::get_current_id();
-    for (it->SeekToFirst(); it->Valid(); it->Next()) {
-        rdb_object_converter_util::decode_object(it->key(), it->value(), &max_id);
->>>>>>> d6e9a43132a29a83ade52cf92a0f4c818566ccc5
     }    
     // Check for any errors found during the scan
     assert(it->status().ok());

@@ -289,7 +289,15 @@ int main(int, char *argv[]) {
 
         restart_server(server, server_dir_path.data());
         begin_session();
-        cout << get_count() << " records "<< endl << flush;
+        cout << get_count() << " records 1 "<< endl << flush;
+        end_session();
+        // assert(get_count() == 0);
+        // stop_server(server);
+
+        restart_server(server, server_dir_path.data());
+        sleep(2);
+        begin_session();
+        cout << get_count() << " records 2 "<< endl << flush;
         end_session();
         // assert(get_count() == 0);
         stop_server(server);
