@@ -116,7 +116,7 @@ class se_base {
         return 1 + __sync_fetch_and_add(&s_data->row_id_count, 1);
     }
 
-    static void inline allocate_object(int64_t row_id, size_t size, offsets* offsets) {
+    static void inline allocate_object(int64_t row_id, uint64_t size, offsets* offsets) {
         if (offsets == nullptr) {
             throw transaction_not_open();
         }

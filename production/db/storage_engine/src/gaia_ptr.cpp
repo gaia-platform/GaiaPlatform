@@ -38,12 +38,12 @@ gaia_ptr& gaia_ptr::clone() {
     return *this;
 }
 
-gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data) {
+gaia_ptr& gaia_ptr::update_payload(uint64_t data_size, const void* data) {
     auto old_this = to_ptr();
     auto old_offset = to_offset();
 
-    int32_t ref_len = old_this->num_references * sizeof(gaia_id_t);
-    int32_t total_len = data_size + ref_len;
+    uint64_t ref_len = old_this->num_references * sizeof(gaia_id_t);
+    uint64_t total_len = data_size + ref_len;
     allocate(sizeof(object) + total_len);
 
     auto new_this = to_ptr();
@@ -79,7 +79,7 @@ gaia_ptr::gaia_ptr(const gaia_id_t id) {
     row_id = gaia_hash_map::find(id);
 }
 
-gaia_ptr::gaia_ptr(const gaia_id_t id, const size_t size)
+gaia_ptr::gaia_ptr(const gaia_id_t id, const uint64_t size)
     : row_id(0) {
     se_base::hash_node* hash_node = gaia_hash_map::insert(id);
     hash_node->row_id = row_id = client::allocate_row_id(client::s_offsets);
@@ -87,7 +87,7 @@ gaia_ptr::gaia_ptr(const gaia_id_t id, const size_t size)
     client::tx_log(row_id, 0, to_offset(), se_base::gaia_operation_t::create);
 }
 
-void gaia_ptr::allocate(const size_t size) {
+void gaia_ptr::allocate(const uint64_t size) {
     client::allocate_object(row_id, size, client::s_offsets);
 }
 

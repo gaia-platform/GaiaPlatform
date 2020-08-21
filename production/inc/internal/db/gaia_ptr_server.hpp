@@ -6,6 +6,7 @@
 #pragma once
 
 #include <cstring>
+#include <iostream>
 
 #include "retail_assert.hpp"
 #include "gaia_db.hpp"
@@ -24,14 +25,14 @@ class gaia_ptr_server {
     static gaia_ptr_server create(
         gaia_id_t id,
         gaia_type_t type,
-        size_t num_refs,
-        size_t data_size,
+        uint64_t num_refs,
+        uint64_t data_size,
         const void* data) {
-        size_t refs_len = num_refs * sizeof(gaia_id_t);
-        size_t total_len = data_size + refs_len;
-        object* obj_ptr;
+        cout << "[decode; id; type; num_refs; data_size; total]" << id << ":" << type <<":" << num_refs << ":" << data_size << endl << flush;
+        uint64_t refs_len = num_refs * sizeof(gaia_id_t);
+        uint64_t total_len = data_size + refs_len;
         gaia_ptr_server obj(id, total_len + sizeof(object));
-        obj_ptr = obj.to_ptr();
+        object* obj_ptr = obj.to_ptr();
         obj_ptr->id = id;
         obj_ptr->type = type;
         obj_ptr->num_references = num_refs;
@@ -42,7 +43,7 @@ class gaia_ptr_server {
         memcpy(obj_ptr->payload + refs_len, data, data_size);
         return obj;
     }
-    gaia_ptr_server(const gaia_id_t id, const size_t size);
+    gaia_ptr_server(const gaia_id_t id, const uint64_t size);
     object* to_ptr() const;
    private:
     int64_t row_id;

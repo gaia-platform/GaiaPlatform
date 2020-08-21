@@ -11,7 +11,7 @@
 using namespace gaia::common;
 using namespace gaia::db;
 
-gaia_ptr_server::gaia_ptr_server(const gaia_id_t id, const size_t size)
+gaia_ptr_server::gaia_ptr_server(const gaia_id_t id, const uint64_t size)
     : row_id(0) {
     se_base::hash_node* hash_node = gaia_hash_map_server::insert(id);
     hash_node->row_id = row_id = server::allocate_row_id(server::s_shared_offsets);

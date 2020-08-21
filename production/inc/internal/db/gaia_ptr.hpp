@@ -6,6 +6,7 @@
 #pragma once
 
 #include <cstring>
+#include <iostream>
 
 #include "retail_assert.hpp"
 #include "gaia_db.hpp"
@@ -54,7 +55,7 @@ class gaia_ptr {
     static gaia_ptr create(
         gaia_id_t id,
         gaia_type_t type,
-        size_t data_size,
+        uint64_t data_size,
         const void* data) {
         return create(id, type, 0, data_size, data);
     }
@@ -62,12 +63,13 @@ class gaia_ptr {
     static gaia_ptr create(
         gaia_id_t id,
         gaia_type_t type,
-        size_t num_refs,
-        size_t data_size,
+        uint64_t num_refs,
+        uint64_t data_size,
         const void* data) {
-        size_t refs_len = num_refs * sizeof(gaia_id_t);
-        size_t total_len = data_size + refs_len;
+        uint64_t refs_len = num_refs * sizeof(gaia_id_t);
+        uint64_t total_len = data_size + refs_len;
         gaia_ptr obj(id, total_len + sizeof(object));
+        cout << "[Client create; id; type; num_refs; data_size; total]" << id << ":" << type <<":" << num_refs << ":" << data_size << ":" << total_len + sizeof(object) << endl << flush;
         object* obj_ptr = obj.to_ptr();
         obj_ptr->id = id;
         obj_ptr->type = type;
@@ -102,7 +104,7 @@ class gaia_ptr {
 
     gaia_ptr& clone();
 
-    gaia_ptr& update_payload(size_t data_size, const void* data);
+    gaia_ptr& update_payload(uint64_t data_size, const void* data);
 
     static gaia_ptr find_first(gaia_type_t type) {
         gaia_ptr ptr;
@@ -165,9 +167,9 @@ class gaia_ptr {
 
     gaia_ptr(const gaia_id_t id);
 
-    gaia_ptr(const gaia_id_t id, const size_t size);
+    gaia_ptr(const gaia_id_t id, const uint64_t size);
 
-    void allocate(const size_t size);
+    void allocate(const uint64_t size);
 
     object* to_ptr() const;
 

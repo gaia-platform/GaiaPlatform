@@ -222,7 +222,19 @@ int main(int, char *argv[]) {
         begin_transaction();
         generate_employee_record();
         generate_employee_record();
+        // generate_employee_record();
+        // generate_employee_record();
+        // generate_employee_record();
+        // generate_employee_record();
+        // generate_employee_record();
+        // generate_employee_record();
+        // generate_employee_record();
+        // generate_employee_record();
         commit_transaction();
+
+        begin_transaction();
+        commit_transaction();
+
         end_session();
 
         int j = 0; // server start

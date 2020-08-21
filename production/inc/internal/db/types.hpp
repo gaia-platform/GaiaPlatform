@@ -22,8 +22,8 @@ typedef uint16_t field_position_t;
 struct object {
     gaia_id_t id;
     gaia_type_t type;
-    size_t num_references;
-    size_t payload_size;
+    uint64_t num_references;
+    uint64_t payload_size;
     char payload[0];
 };
 // Field position list.
