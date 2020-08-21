@@ -23,38 +23,38 @@ class gaia_iterator_test : public db_test_base_t {
 // ================================
 
 // Is the iterator MoveConstructible?
-TEST_F(iter_test, move_constructible) {
+TEST_F(gaia_iterator_test, move_constructible) {
     EXPECT_TRUE(is_move_constructible<gaia_iterator_t<Employee*>>::value)
         << "Iterator not MoveConstructible.";
 }
 
 // Is the iterator CopyConstructible?
-TEST_F(iter_test, copy_constructible) {
+TEST_F(gaia_iterator_test, copy_constructible) {
     EXPECT_TRUE(is_copy_constructible<gaia_iterator_t<Employee*>>::value)
         << "Iterator not CopyConstructible.";
 }
 
 // Is the iterator CopyAssignable?
-TEST_F(iter_test, copy_assignable) {
+TEST_F(gaia_iterator_test, copy_assignable) {
     EXPECT_TRUE(is_copy_assignable<gaia_iterator_t<Employee*>>::value)
         << "Iterator not CopyAssignable.";
 }
 
 // Is the iterator Destructible?
-TEST_F(iter_test, destructible) {
+TEST_F(gaia_iterator_test, destructible) {
     EXPECT_TRUE(is_destructible<gaia_iterator_t<Employee*>>::value)
         << "Iterator not Destructible.";
 }
 
 // Are iterator lvalues Swappable?
-TEST_F(iter_test, swappable) {
+TEST_F(gaia_iterator_test, swappable) {
     EXPECT_TRUE(is_swappable<gaia_iterator_t<Employee*>>::value)
         << "Iterator not Swappable as an lvalue.";
 }
 
 // Does iterator_traits<gaia_iterator_t<edc*>> have member typedefs
 // value_type, difference_type, reference, pointer, and iterator_category?
-TEST_F(iter_test, iterator_traits) {
+TEST_F(gaia_iterator_test, iterator_traits) {
     // this test can only fail in compile time
     iterator_traits<gaia_iterator_t<Employee*>>::value_type vt;
     iterator_traits<gaia_iterator_t<Employee*>>::difference_type dt;
@@ -69,7 +69,7 @@ TEST_F(iter_test, iterator_traits) {
 }
 
 // Are iterator lvalues dereferenceable?
-TEST_F(iter_test, lvalue_dereferenceable) {
+TEST_F(gaia_iterator_test, lvalue_dereferenceable) {
     Employee_writer emp_writer;
     emp_writer.name_first = "Employee1";
     gaia_id_t emp_id = emp_writer.insert_row();
@@ -78,7 +78,7 @@ TEST_F(iter_test, lvalue_dereferenceable) {
 }
 
 // Are iterator lvalues pre-incrementable?
-TEST_F(iter_test, lvalue_incrementable) {
+TEST_F(gaia_iterator_test, lvalue_incrementable) {
     // this test can only fail in compile time or by segfault
     begin_transaction();
     auto emp = new Employee();
@@ -95,7 +95,7 @@ TEST_F(iter_test, lvalue_incrementable) {
 // ================================
 
 // Is the iterator EqualityComparable?
-TEST_F(iter_test, equality_comparable) {
+TEST_F(gaia_iterator_test, equality_comparable) {
     begin_transaction();
     auto emp = new Employee();
     emp-> insert_row();
@@ -118,7 +118,7 @@ TEST_F(iter_test, equality_comparable) {
 }
 
 // Does the iterator support the not-equal (!=) operator?
-TEST_F(iter_test, not_equal) {
+TEST_F(gaia_iterator_test, not_equal) {
     Employee emp1;
     Employee emp2;
 
@@ -131,7 +131,7 @@ TEST_F(iter_test, not_equal) {
 }
 
 // Is the iterator dereferenceable back to the pointer it was declared at?
-TEST_F(iter_test, dereferenceable) {
+TEST_F(gaia_iterator_test, dereferenceable) {
     Employee* ptr = new Employee;
     gaia_iterator_t<Employee*> iter(ptr);
 
@@ -142,7 +142,7 @@ TEST_F(iter_test, dereferenceable) {
 
 // When an iterator is dereferenced, can the object members be accessed?
 // Test of the arrow operator (->).
-TEST_F(iter_test, deref_arrow) {
+TEST_F(gaia_iterator_test, deref_arrow) {
     EXPECT_TRUE(true)
         << "The class member derefence operator (->) must be implemented.";
 }
