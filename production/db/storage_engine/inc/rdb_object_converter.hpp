@@ -178,7 +178,7 @@ class rdb_object_converter_util {
     static gaia_ptr_server decode_object(
         const rocksdb::Slice& key,
         const rocksdb::Slice& value,
-        uint64_t* max_id);
+        gaia_id_t* max_id);
 };
 
 }  // namespace db

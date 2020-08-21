@@ -142,30 +142,40 @@ void load_data(uint64_t total_size_bytes, bool kill_server_during_load, db_serve
         }
         commit_transaction();
 
-        begin_transaction();
-        int c = 0;
-        for (auto employee = employee_t::get_first(); employee; employee = employee.get_next()) {
-            c++;
-        }
-        cout << "Count of employees " << c << endl << flush;
-        commit_transaction();
+        // begin_transaction();
+        // int c = 0;
+        // for (auto employee = employee_t::get_first(); employee; employee = employee.get_next()) {
+        //     c++;
+        // }
+        // cout << "Count of employees " << c << endl << flush;
+        // commit_transaction();
 
-        employee_map.insert(temp_employee_map.begin(), temp_employee_map.end());
-        temp_employee_map.clear();
-        assert(temp_employee_map.size() == 0);
+        // employee_map.insert(temp_employee_map.begin(), temp_employee_map.end());
+        // temp_employee_map.clear();
+        // assert(temp_employee_map.size() == 0);
 
-        // Repeatedly crash after each transaction.
-        if (kill_server_during_load) {
-            restart_server(server, path);
-            validate_data();
-        }
+        // // Repeatedly crash after each transaction.
+        // if (kill_server_during_load) {
+        //     restart_server(server, path);
+        //     validate_data();
+        // }
 
-        if (transaction_id % 10 == 0) {
-            cout << "Loading data: Executed " << transaction_id << " transactions ..." << endl << flush;
-        }
+        // if (transaction_id % 10 == 0) {
+        //     cout << "Loading data: Executed " << transaction_id << " transactions ..." << endl << flush;
+        // }
     }
 
     cout << "Load completed." << endl << flush;
+}
+
+int get_count() {
+    int total_count = 0;
+    begin_transaction();
+    for (auto employee = employee_t::get_first(); employee; employee = employee.get_next()) {
+        total_count++;
+    }
+    commit_transaction();
+    return total_count;
 }
 
 void delete_all() {
@@ -191,7 +201,7 @@ void delete_all() {
         e.delete_row();
         count ++;
         commit_transaction();
-        cout << "Delete completed for commit ID " << id << endl << flush;
+        // cout << "Delete completed for commit ID " << id << endl << flush;
 
     }
 
@@ -214,66 +224,76 @@ int main(int, char *argv[]) {
     employee_map.clear();
     // restart_server(server, server_dir_path.data());
 
-    for (int i = 1; i <= 1; i++) {
-        cout << "Loop number " << i << endl << flush; // start server
-        // Just write a single record.
-        restart_server(server, server_dir_path.data());
-        begin_session();
-        begin_transaction();
-        generate_employee_record();
-        generate_employee_record();
-        // generate_employee_record();
-        // generate_employee_record();
-        // generate_employee_record();
-        // generate_employee_record();
-        // generate_employee_record();
-        // generate_employee_record();
-        // generate_employee_record();
-        // generate_employee_record();
-        commit_transaction();
+    // for (int i = 1; i <= 1; i++) {
+    //     cout << "Loop number " << i << endl << flush; // start server
+    //     // Just write a single record.
+    //     restart_server(server, server_dir_path.data());
+    //     begin_session();
+    //     begin_transaction();
+    //     generate_employee_record();
+    //     generate_employee_record();
+    //     // generate_employee_record();
+    //     // generate_employee_record();
+    //     // generate_employee_record();
+    //     // generate_employee_record();
+    //     // generate_employee_record();
+    //     // generate_employee_record();
+    //     // generate_employee_record();
+    //     // generate_employee_record();
+    //     commit_transaction();
 
-        begin_transaction();
-        commit_transaction();
+    //     begin_transaction();
+    //     commit_transaction();
 
-        end_session();
+    //     end_session();
 
-        int j = 0; // server start
+    //     int j = 0; // server start
 
-        restart_server(server, server_dir_path.data());
-        begin_session();
-        // begin_transaction();
-        // validate_data();
-        delete_all();
-        // commit_transaction();
-        end_session();
-        stop_server(server);
-    }
+    //     restart_server(server, server_dir_path.data());
+    //     begin_session();
+    //     // begin_transaction();
+    //     // validate_data();
+    //     // delete_all();
+    //     // commit_transaction();
+    //     end_session();
+    //     stop_server(server);
+    // }
     // begin_session();
     // delete_all();
 
     // 1) Load & Recover test - with data size less than write buffer size. 
     // All writes will be confined to the WAL & will not make it to SST (DB binary file)
     // Sigkill server.
-    // {
-    //     // Start server.
-    //     // end_session();
-    //     // restart_server(server, server_dir_path.data());
-    //     // begin_session();
-    //     // validate_data();
-    //     // Load 1 MB data; write buffer size is 4MB.
-    //     load_data(1 * 1024 * 1024, false, server, server_dir_path.data());
-    //     validate_data();
-    //     // Restart server & validate data.
-    //     end_session();
+    {
+        // Start server.
+        restart_server(server, server_dir_path.data());
+        begin_session();
+        // validate_data();
+        // Load 1 MB data; write buffer size is 4MB.
+        // load_data(1 * 1024 * 1024, false, server, server_dir_path.data());
+        // begin_transaction();
+        // generate_employee_record();
+        // generate_employee_record();
+        load_data(4 * 1024 * 1024, false, server, server_dir_path.data());
+        // commit_transaction();
 
-    //     restart_server(server, server_dir_path.data());
-    //     begin_session();
-    //     validate_data();
-    //     end_session();
+        // // validate_data();
+        end_session();
 
-    //     begin_session();
-    //     // delete_all();
-    // }
+        // // Restart server & validate data.
+        restart_server(server, server_dir_path.data());
+        begin_session();
+        // validate_data();
+        delete_all();
+        end_session();
+
+        restart_server(server, server_dir_path.data());
+        begin_session();
+        cout << get_count() << " records "<< endl << flush;
+        end_session();
+        // assert(get_count() == 0);
+        stop_server(server);
+    }
 
     // 2) Load & Recover test - with data size less than write buffer size. 
     // All writes will be confined to the WAL & will never make it to SST (DB binary file)

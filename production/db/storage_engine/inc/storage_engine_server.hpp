@@ -170,6 +170,10 @@ class server : private se_base {
         if (!rdb.get()) {
             rdb = std::unique_ptr<rdb_wrapper>(new gaia::db::rdb_wrapper());
             rocksdb::Status status = rdb->open();
+            cout << "Status code " << status.code() <<  endl << flush;
+            cout << "Status subcode " << status.subcode() <<  endl << flush;
+            cout << "Status sev " << status.severity() <<  endl << flush;
+            cout << "Status state " << status.getState() <<  endl << flush;
             assert(status.ok());
         }
         // Anonymous mapping should be blown away on each re-init (via clear_shared_memory())
@@ -538,8 +542,8 @@ class server : private se_base {
             auto lr = s_log->log_records + i;
 
             if (row_ids.insert(lr->row_id).second) {
-                cout << "(*server::s_shared_offsets)[" << lr->row_id << "]: " << (*server::s_shared_offsets)[lr->row_id] << endl << flush;
-                cout << "(lr->old_object)[" << lr->row_id << "]: " << lr->old_object << endl << flush;
+                // cout << "(*server::s_shared_offsets)[" << lr->row_id << "]: " << (*server::s_shared_offsets)[lr->row_id] << endl << flush;
+                // cout << "(lr->old_object)[" << lr->row_id << "]: " << lr->old_object << endl << flush;
                 if ((*s_shared_offsets)[lr->row_id] != lr->old_object) {
                     // Append Rollback decision to log.
                     // This isn't really required since recovery will skip deserializing transactions 

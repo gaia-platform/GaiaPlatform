@@ -28,7 +28,7 @@ class gaia_ptr_server {
         uint64_t num_refs,
         uint64_t data_size,
         const void* data) {
-        cout << "[decode; id; type; num_refs; data_size; total]" << id << ":" << type <<":" << num_refs << ":" << data_size << endl << flush;
+        // cout << "[decode; id; type; num_refs; data_size; total]" << id << ":" << type <<":" << num_refs << ":" << data_size << endl << flush;
         uint64_t refs_len = num_refs * sizeof(gaia_id_t);
         uint64_t total_len = data_size + refs_len;
         gaia_ptr_server obj(id, total_len + sizeof(object));

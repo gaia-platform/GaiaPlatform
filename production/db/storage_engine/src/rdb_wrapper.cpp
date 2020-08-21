@@ -64,7 +64,27 @@ Status rdb_wrapper::open() {
     // without notifying the caller.
     initoptions.wal_recovery_mode = WALRecoveryMode::kAbsoluteConsistency;
 
-    return rdb_internal->open_txn_db(initoptions, options);
+    Status s = rdb_internal->open_txn_db(initoptions, options);
+
+    // IOError due
+    // RocksDB error means that you're trying to open RocksDB twice on the same directory. 
+    // The second RocksDB open will fail with this error.
+    // See https://github.com/google/leveldb/blob/53e280b56866ac4c90a9f5fcfe02ebdfd4a19832/util/env_posix.cc#L466-L468
+    // This seems like a known issue: https://github.com/facebook/rocksdb/issues/4421
+    int open_db_attempt_count = 0;
+    while (s.code() == 5 && open_db_attempt_count < 10) { // Grep string for lock
+        open_db_attempt_count++;
+        if (rdb_internal->is_db_open()) {
+            cout << "DB is open, close it." << endl << flush;
+            rdb_internal->close();
+            s = rdb_internal->open_txn_db(initoptions, options);
+            cout << "Attempt " << open_db_attempt_count << " to open DB " << endl << flush;
+        } else {
+            s = rdb_internal->open_txn_db(initoptions, options);
+            cout << "Attempt " << open_db_attempt_count << " to open DB " << endl << flush;
+        }
+    }
+    return s;
 }
 
 Status rdb_wrapper::close() {        
@@ -144,7 +164,7 @@ Status rdb_wrapper::prepare_tx(rocksdb::Transaction* trx) {
  */
 void rdb_wrapper::recover() {
     rocksdb::Iterator* it = rdb_internal->get_iterator();
-    uint64_t max_id = se_base::get_current_id();
+    gaia_id_t max_id = 0;
     int count = 0;
     for (it->SeekToFirst(); it->Valid(); it->Next()) {
         rdb_object_converter_util::decode_object(it->key(), it->value(), &max_id);
@@ -153,9 +173,13 @@ void rdb_wrapper::recover() {
     // Check for any errors found during the scan
     assert(it->status().ok());
 
+    se_base::set_id(max_id + 1);
+
+    max_id = max_id + 1;
     se_base::set_id(max_id);
 
     cout << "Recovered count " << count << endl << flush;
+    cout << "Recovered max ID " << max_id << endl << flush;
 
     delete it; 
 }

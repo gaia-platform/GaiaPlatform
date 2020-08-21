@@ -40,8 +40,10 @@ class db_server_t {
         ::system(cmd.c_str());
 
         // Wait for server to initialize.
+        // Ideally the client shouldn't come up until the server is up; maybe 
+        // this should be programmed in begin_session()?
         cerr << "Waiting for server to initialize..." << endl;
-        ::sleep(1);
+        ::sleep(5);
         m_server_started = true;
     }
 

@@ -69,7 +69,7 @@ class gaia_ptr {
         uint64_t refs_len = num_refs * sizeof(gaia_id_t);
         uint64_t total_len = data_size + refs_len;
         gaia_ptr obj(id, total_len + sizeof(object));
-        cout << "[Client create; id; type; num_refs; data_size; total]" << id << ":" << type <<":" << num_refs << ":" << data_size << ":" << total_len + sizeof(object) << endl << flush;
+        // cout << "[Client create; id; type; num_refs; data_size; total]" << id << ":" << type <<":" << num_refs << ":" << data_size << ":" << total_len + sizeof(object) << endl << flush;
         object* obj_ptr = obj.to_ptr();
         obj_ptr->id = id;
         obj_ptr->type = type;
