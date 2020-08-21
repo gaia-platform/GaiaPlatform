@@ -20,26 +20,35 @@ thread_local bool rule_thread_pool_t::s_tls_can_enqueue = true;
 thread_local queue<rule_thread_pool_t::invocation_t> rule_thread_pool_t::s_tls_pending_invocations;
 
 
-void rule_thread_pool_t::log_event(const invocation_t& invocation)
+void rule_thread_pool_t::log_events(const log_events_invocation_t& invocation)
 {
+    retail_assert(invocation.events.size() == invocation.rules_invoked.size(), 
+        "Event vector and rules_invoked vector sizes must match!");
+
     gaia::db::begin_transaction();
     {
-        uint64_t timestamp = (uint64_t)time(NULL);
-
-        // TODO[GAIAPLAT-101]: add support for arrys of simple types
-        // When we have this support we can support the array of changed column fields
-        // in our event log.  Until then, just pick out the first of the list.
-        uint16_t column_id = 0;
-
-        bool rule_invoked = (invocation.rule_type == rule_type_t::log_event_subscribed);
-
-        if (invocation.fields.size() > 0)
+        for (size_t i = 0; i < invocation.events.size(); i++)
         {
-            column_id = invocation.fields[0];
-        }
+            uint64_t timestamp = (uint64_t)time(NULL);
+            uint16_t column_id = 0;
+            auto& event = invocation.events[i];
+            auto rule_invoked = invocation.rules_invoked[i];
 
-        event_log::event_log_t::insert_row((uint32_t)(invocation.event_type), (uint64_t)(invocation.gaia_type), 
-        (uint64_t)(invocation.record), column_id, timestamp, rule_invoked);
+            // TODO[GAIAPLAT-293]: add support for arrys of simple types
+            // When we have this support we can support the array of changed column fields
+            // in our event log.  Until then, just pick out the first of the list.
+            if (event.columns.size() > 0)
+            {
+                column_id = event.columns[0];
+            }
+
+            event_log::event_log_t::insert_row(
+                (uint32_t)(event.event_type), 
+                (uint64_t)(event.gaia_type),
+                (uint64_t)(event.record), 
+                column_id, 
+                timestamp, rule_invoked);
+        }
     }
     gaia::db::commit_transaction();
 }
@@ -144,16 +153,9 @@ void rule_thread_pool_t::rule_worker()
     end_session();
 }
 
-// Special handling for system "rules"
-// Currently only support logging to the event table.
-void rule_thread_pool_t::invoke_system_rule(const invocation_t& invocation)
-{
-    rule_thread_pool_t::log_event(invocation);
-}
-
 // We must worry about user-rules that throw exceptions, end the transaction
 // started by the rules engine, and log the event.
-void rule_thread_pool_t::invoke_user_rule(const invocation_t& invocation)
+void rule_thread_pool_t::invoke_user_rule(const rule_invocation_t& invocation)
 {
     s_tls_can_enqueue = false;
     bool should_schedule = false;
@@ -172,12 +174,12 @@ void rule_thread_pool_t::invoke_user_rule(const invocation_t& invocation)
         // Invoke the rule.
         invocation.rule_fn(&context);
 
+        should_schedule = true;
+        s_tls_can_enqueue = true;
         if (gaia::db::is_transaction_active())
         {
             transaction.commit();
         }
-
-        should_schedule = true;
     }
     catch(const std::exception& e)
     {
@@ -187,7 +189,6 @@ void rule_thread_pool_t::invoke_user_rule(const invocation_t& invocation)
         // rules on the floor (should_schedule == false) when we add retry logic.
     }
 
-    s_tls_can_enqueue = true;
     process_pending_invocations(should_schedule);
 }
 

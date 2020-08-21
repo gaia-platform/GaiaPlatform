@@ -5,19 +5,21 @@
 
 #include "retail_assert.hpp"
 #include "event_manager.hpp"
+#include "gaia_db_internal.hpp"
 #include "events.hpp"
 #include "triggers.hpp"
-#include "event_trigger_threadpool.hpp"
-//#include "PerfTimer.h"
+#include "PerfTimer.h"
 
 #include <cstring>
+#include <variant>
+#include <utility>
 
 using namespace gaia::rules;
 using namespace gaia::common;
 using namespace gaia::db::triggers;
 using namespace std;
 
-//bool PerfTimer::s_enabled = true;
+bool PerfTimer::s_enabled = true;
 
 /**
  * Class implementation
@@ -70,7 +72,7 @@ void event_manager_t::init(event_manager_settings_t& settings)
     auto fn = [](uint64_t transaction_id, const trigger_event_list_t& event_list) {
         event_manager_t::get().commit_trigger(transaction_id, event_list);
     };
-    event_trigger_threadpool_t::set_commit_trigger(fn);
+    gaia::db::s_tx_commit_trigger = fn;
 
     m_is_initialized = true;
 }
@@ -84,7 +86,7 @@ bool event_manager_t::process_last_operation_events(event_binding_t& binding, co
     for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it)
     {
         rules_invoked = true;
-        enqueue_invocation(event, *rules_it);
+        enqueue_invocation(event, (*rules_it)->rule);
     }
 
     return rules_invoked;
@@ -114,7 +116,7 @@ bool event_manager_t::process_field_events(event_binding_t& binding, const trigg
             for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it)
             {
                 rules_invoked = true;
-                enqueue_invocation(event, *rules_it);
+                enqueue_invocation(event, (*rules_it)->rule);
             }
         }
     }
@@ -124,14 +126,18 @@ bool event_manager_t::process_field_events(event_binding_t& binding, const trigg
 
 void event_manager_t::commit_trigger(uint64_t, const trigger_event_list_t& trigger_event_list)
 {
-    //PerfTimer timer("commit_trigger time:", [&]() {
+        PerfTimer timer("commit_trigger time:", [&]() {
         if (trigger_event_list.size() == 0)
         {
             return;
         }
 
-        // Start a transaction that will be used to log all the events that were
-        // triggered independent of whether they invoked a rule or not.
+        // TODO[GAIAPLAT-308]: Event logging is only half the story. We
+        // also need to do rule logging and the correlate the event instance
+        // to the rules that it causes to fire.  This will then remove the
+        // bool 'rule_invoked' flag.
+        vector<bool> rules_invoked_list;
+
         for (size_t i = 0; i < trigger_event_list.size(); ++i)
         {
             const trigger_event_t& event = trigger_event_list[i];
@@ -164,41 +170,44 @@ void event_manager_t::commit_trigger(uint64_t, const trigger_event_list_t& trigg
                     }
                 }
             }
-
-            rule_thread_pool_t::rule_type_t rule_type = rule_thread_pool_t::rule_type_t::log_event_unsubscribed;
-            if (rules_invoked)
-            {
-                rule_type = rule_thread_pool_t::rule_type_t::log_event_subscribed;
-            }
-            // Enqueue our log_event rule to log events that are not
-            // associated with any rule.
-            enqueue_invocation(event, nullptr, rule_type);
+            rules_invoked_list.push_back(rules_invoked);
         }
-    //});
+
+        // Enqueue a task to log all the events in this commit_trigger in a
+        // separate thread in a new transaction.
+        enqueue_invocation(trigger_event_list, rules_invoked_list);
+    });
 }
 
-void event_manager_t::enqueue_invocation(const trigger_event_t& event, 
-    const _rule_binding_t* binding, rule_thread_pool_t::rule_type_t rule_type)
+void event_manager_t::enqueue_invocation(const trigger_event_list_t& events,
+    const vector<bool>& rules_invoked_list)
 {
-    if (rule_type == rule_thread_pool_t::rule_type_t::user)
-    {
-        retail_assert(binding->rule != nullptr, "User rule function is null!");
-    }
-    else
-    {
-        retail_assert(binding == nullptr, "System rule function must have null binding!");
-    }
-    
-    rule_thread_pool_t::invocation_t invocation { 
-        rule_type,
-        binding ? binding->rule : nullptr,
-        event.gaia_type, 
-        event.event_type, 
-        event.record, 
-        event.columns 
+   rule_thread_pool_t::log_events_invocation_t event_invocation {
+       events, 
+       rules_invoked_list
+    };
+   rule_thread_pool_t::invocation_t invocation {
+       rule_thread_pool_t::invocation_type_t::log_events,
+       std::move(event_invocation)
+   };
+   m_invocations->enqueue(invocation);
+} 
+
+void event_manager_t::enqueue_invocation(const trigger_event_t& event, gaia_rule_fn rule_fn)
+{
+    rule_thread_pool_t::rule_invocation_t rule_invocation {
+        rule_fn,
+        event.gaia_type,
+        event.event_type,
+        event.record,
+        event.columns
+    };
+    rule_thread_pool_t::invocation_t invocation{
+        rule_thread_pool_t::invocation_type_t::rule,
+        std::move(rule_invocation)
     };
     m_invocations->enqueue(invocation);
-}
+} 
 
 void event_manager_t::check_subscription(
     event_type_t event_type,
@@ -492,29 +501,6 @@ std::string event_manager_t::make_rule_key(const rule_binding_t& binding)
     string rule_key = binding.ruleset_name;
     rule_key.append(binding.rule_name);
     return rule_key;
-}
-
-// Assumes that the caller will manage the transaction.
-void event_manager_t::log_to_db(const trigger_event_t& event, bool rules_invoked)
-{
-    static_assert(sizeof(uint32_t) == sizeof(event_type_t), 
-        "event_type_t needs to be sizeof uint32_t");
-
-    uint64_t timestamp = (uint64_t)time(NULL);
-
-    // TODO[GAIAPLAT-101]: add support for arrys of simple types
-    // When we have this support we can support the array of changed column fields
-    // in our event log.  Until then, just pick out the first of the list.
-    uint16_t column_id = 0;
-    if (event.columns.size() > 0)
-    {
-        column_id = event.columns[0];
-    }
-
-    {
-        event_log::event_log_t::insert_row((uint32_t)(event.event_type), (uint64_t)(event.gaia_type), 
-            (uint64_t)(event.record), column_id, timestamp, rules_invoked);
-    }
 }
 
 // Enable conversion from rule_binding_t -> internal_rules_binding_t.

@@ -26,25 +26,8 @@ namespace gaia {
 namespace db {
 
 class db_test_base_t : public ::testing::Test {
-public:
-
-    // Since ctest always launches each gtest in a new process, this same
-    // logic could have gone into void SetUp() and TearDown().  Placing
-    // this functionality in SetUpTestSuite/TearDownTestSuite methods, however,
-    // allows both ctest and running the tests directly (gtest outside
-    // of ctest) to init correctly.
-    static void SetUpTestSuite()
-    {
-        SetUpTestSuite(false);
-    }
-
-    static void SetUpTestSuite(bool client_manages_session)
-    {
-        reset_server();
-        if (!client_manages_session) {
-            begin_session();
-        }
-    }
+private:
+    bool m_client_manages_session;
 
 protected:
     static void reset_server() {

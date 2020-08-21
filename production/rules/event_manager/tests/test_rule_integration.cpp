@@ -23,7 +23,7 @@
 #include <thread>
 #include <atomic>
 #include <map>
-//#include "PerfTimer.h"
+#include "PerfTimer.h"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -47,13 +47,17 @@ atomic<int> g_wait_for_count;
 std::chrono::high_resolution_clock::time_point g_end;
 std::chrono::high_resolution_clock::time_point g_start;
 
+void measure_latency()
+{
+    g_end = std::chrono::high_resolution_clock::now();
+    auto result = std::chrono::duration_cast<std::chrono::nanoseconds>(g_end-g_start).count();
+    printf("latency:  %0.2f us\n", PerfTimer::ns_us(result));
+}
+
 // When an employee is inserted insert an address.
 void rule_insert_address(const rule_context_t* context)
 {
-  //  g_end = std::chrono::high_resolution_clock::now();
-  //  auto result = std::chrono::duration_cast<std::chrono::nanoseconds>(g_end-g_start).count();
-  //  printf("latency:  %0.2f us\n", PerfTimer::ns_us(result));
-
+    measure_latency();
     employee_t e = employee_t::get(context->record);
     EXPECT_EQ(employee_t::s_gaia_type, context->gaia_type);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_insert);
@@ -87,6 +91,7 @@ void rule_update_address(const rule_context_t* context)
 
 void rule_update(const rule_context_t* context)
 {
+    measure_latency();
     employee_t e = employee_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_update);
     EXPECT_STREQ(c_name, e.name_first());
@@ -111,6 +116,7 @@ void rule_field_phone_type(const rule_context_t* context)
 
 void rule_delete(const rule_context_t* context)
 {
+    measure_latency();
     employee_t d = employee_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_delete);
     EXPECT_THROW(d.delete_row(), invalid_node_id);
@@ -146,16 +152,6 @@ public:
 class rule_integration_test : public db_test_base_t
 {
 public:
-    static void SetUpTestSuite() {
-        db_test_base_t::SetUpTestSuite(true);
-        gaia::system::initialize();
-        load_catalog();
-    }
-
-    void TearDown() override {
-        unsubscribe_rules();
-    }
-
     void subscribe_insert()
     {
         rule_binding_t rule1{"ruleset", "rule_insert_address", rule_insert_address};
@@ -250,8 +246,9 @@ TEST_F(rule_integration_test, test_insert)
         employee_writer writer;
         writer.name_first = c_name;
         writer.insert_row();
+        g_start = std::chrono::high_resolution_clock::now();
         tx.commit();
-        //g_start = std::chrono::high_resolution_clock::now();
+        
     }
 
     // Make sure the address was added and updated by the
@@ -276,8 +273,10 @@ TEST_F(rule_integration_test, test_delete)
         employee_t e = employee_t::get(writer.insert_row());
         tx.commit();
 
+        g_start = std::chrono::high_resolution_clock::now();
         e.delete_row();
         tx.commit();
+        
     }
 }
 
@@ -294,7 +293,9 @@ TEST_F(rule_integration_test, test_update)
             writer = e.writer();
             writer.name_first = c_name;
             writer.update_row();
+        g_start = std::chrono::high_resolution_clock::now();            
         tx.commit();
+        
     }
 }
 
@@ -313,6 +314,7 @@ TEST_F(rule_integration_test, test_update_field)
             writer.phone_number = c_phone_number;
             writer.update_row();
         tx.commit();
+        g_start = std::chrono::high_resolution_clock::now();
     }
 }
 

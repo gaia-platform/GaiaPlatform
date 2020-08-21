@@ -9,7 +9,10 @@
 #include <queue>
 #include <thread>
 
+#include "gaia_event_log.h"
+#include "triggers.hpp"
 #include "rules.hpp"
+#include <variant>
 
 namespace gaia 
 {
@@ -21,28 +24,35 @@ class rule_thread_pool_t
 {
 public:
 
-    enum class rule_type_t : uint8_t 
+    enum class invocation_type_t : uint8_t 
     {
-        user = 0,
-        // System Rule to log events
-        log_event_unsubscribed = 1 << 0,
-        log_event_subscribed = 1 << 1
+        rule = 0,
+        log_events = 1
     };
 
-    struct invocation_t {
-        rule_type_t rule_type;
+   struct log_events_invocation_t {
+       const db::triggers::trigger_event_list_t events;
+       const vector<bool> rules_invoked;
+   };
+
+   struct rule_invocation_t {
         gaia_rule_fn rule_fn;
         common::gaia_type_t gaia_type;
         db::triggers::event_type_t event_type;
         gaia_id_t record;
-        const field_position_list_t fields;
+        field_position_list_t fields;
+   };
+
+    struct invocation_t {
+        invocation_type_t type;
+        std::variant<rule_invocation_t, log_events_invocation_t> args;
     };
 
     /**
      * System rules.  Currently the only system function we support
      * is logging to the event table.
      */
-    static void log_event(const invocation_t& invocation);
+    static void log_events(const log_events_invocation_t& invocation);
 
     rule_thread_pool_t() = delete;
 
@@ -90,18 +100,17 @@ private:
 
     void inline invoke_rule(const invocation_t& invocation) 
     {
-        if (rule_type_t::user == invocation.rule_type)
+        if (invocation_type_t::rule == invocation.type)
         {
-            invoke_user_rule(invocation);
+            invoke_user_rule(std::get<rule_invocation_t>(invocation.args));
         }
         else
         {
-            invoke_system_rule(invocation);
+            log_events(std::get<log_events_invocation_t>(invocation.args));
         }
     }
 
-    void invoke_user_rule(const invocation_t& invocation);
-    void invoke_system_rule(const invocation_t& invocation);
+    void invoke_user_rule(const rule_invocation_t& invocation);
     void process_pending_invocations(bool should_schedule);
 
     // Each thread has a copy of these two variables to determine

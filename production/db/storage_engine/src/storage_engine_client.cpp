@@ -15,6 +15,7 @@ using namespace flatbuffers;
 thread_local se_base::offsets *client::s_offsets = nullptr;
 thread_local int client::s_fd_log = -1;
 thread_local std::vector<trigger_event_t> client::s_events;
+commit_trigger_fn gaia::db::s_tx_commit_trigger = nullptr;
 
 std::unordered_set<gaia_type_t> client::trigger_excluded_types{
     static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table),
@@ -24,8 +25,6 @@ std::unordered_set<gaia_type_t> client::trigger_excluded_types{
     static_cast<gaia_type_t>(system_table_type_t::event_log)
 };
 
-// Should this be initialized by the rules engine instead?
-event_trigger_threadpool_t* client::event_trigger_pool = new event_trigger_threadpool_t();
 
 static void build_client_request(FlatBufferBuilder &builder, session_event_t event) {
     auto client_request = Createclient_request_t(builder, event);
@@ -305,12 +304,10 @@ void client::commit_transaction() {
     }
 
     // Execute trigger only if rules engine is initialized.
-    if (event_trigger_pool->get_commit_trigger() 
+    if (s_tx_commit_trigger 
         && event == session_event_t::DECIDE_TXN_COMMIT
         && s_events.size() > 0) {
-        auto fn = event_trigger_pool->get_commit_trigger();
-        fn(s_transaction_id, s_events);
-//        event_trigger_pool->add_trigger_task(s_transaction_id, std::move(s_events));
+        s_tx_commit_trigger(s_transaction_id, s_events);
     }
     // Reset transaction id.
     s_transaction_id = 0;
