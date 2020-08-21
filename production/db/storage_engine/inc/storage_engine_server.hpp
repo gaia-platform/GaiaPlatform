@@ -167,11 +167,10 @@ class server : private se_base {
 
     static void recover_db() {
         // Open RocksDB just once.
-        if (!rocksdb_is_open) {
+        if (!rdb.get()) {
             rdb = std::unique_ptr<rdb_wrapper>(new gaia::db::rdb_wrapper());
             rocksdb::Status status = rdb->open();
             assert(status.ok());
-            rocksdb_is_open = true;
         }
         // Anonymous mapping should be blown away on each re-init (via clear_shared_memory())
         // and therefore it is safe to repopulate gaia in-memory state in case the 'recover_db()' API 
@@ -182,6 +181,8 @@ class server : private se_base {
     // To avoid synchronization, we assume that this method is only called when
     // no sessions exist and the server is not accepting any new connections.
     static void init_shared_memory() {
+        cout << "Caught signal interrupt " << endl << flush;
+
         // The listening socket must not be open.
         retail_assert(s_connect_socket == -1);
         // We may be reinitializing the server upon receiving a SIGHUP.
@@ -537,6 +538,8 @@ class server : private se_base {
             auto lr = s_log->log_records + i;
 
             if (row_ids.insert(lr->row_id).second) {
+                cout << "(*server::s_shared_offsets)[" << lr->row_id << "]: " << (*server::s_shared_offsets)[lr->row_id] << endl << flush;
+                cout << "(lr->old_object)[" << lr->row_id << "]: " << lr->old_object << endl << flush;
                 if ((*s_shared_offsets)[lr->row_id] != lr->old_object) {
                     // Append Rollback decision to log.
                     // This isn't really required since recovery will skip deserializing transactions 

@@ -69,7 +69,7 @@ bool validate_ordering() {
     return false;
 }
 
-void restart_server(db_server_t& server, const char* path, bool sigterm = true) {
+void restart_server(db_server_t& server, const char* path, bool sigterm = false) {
     if (sigterm) {
         server.sigterm_stop();
         server.start(path, false);
@@ -187,11 +187,11 @@ void delete_all() {
     
     for (gaia_id_t id : to_delete) {
         begin_transaction();
-        cout << "Begin delete commit for ID " << id << endl << flush;
         auto e = employee_t::get(id);
         e.delete_row();
         count ++;
         commit_transaction();
+        cout << "Delete completed for commit ID " << id << endl << flush;
 
     }
 
@@ -217,20 +217,23 @@ int main(int, char *argv[]) {
     for (int i = 1; i <= 1; i++) {
         cout << "Loop number " << i << endl << flush; // start server
         // Just write a single record.
-        // restart_server(server, server_dir_path.data());
+        restart_server(server, server_dir_path.data());
         begin_session();
         begin_transaction();
-        auto e = generate_employee_record();
+        generate_employee_record();
+        generate_employee_record();
         commit_transaction();
         end_session();
 
         int j = 0; // server start
 
-        // restart_server(server, server_dir_path.data());
-        // begin_session();
+        restart_server(server, server_dir_path.data());
+        begin_session();
+        // begin_transaction();
         // validate_data();
-        // delete_all();
-        // end_session();
+        delete_all();
+        // commit_transaction();
+        end_session();
         stop_server(server);
     }
     // begin_session();

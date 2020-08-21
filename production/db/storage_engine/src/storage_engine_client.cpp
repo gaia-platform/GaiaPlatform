@@ -228,6 +228,12 @@ void client::begin_transaction() {
     });
     s_offsets = static_cast<offsets *>(map_fd(sizeof(offsets),
         PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_offsets, 0));
+    
+    cout << "(*s_offsets)[" << 0 << "]: " << (*s_offsets)[0] << endl << flush;
+    cout << "(*s_offsets)[" << 1 << "]: " << (*s_offsets)[1] << endl << flush;
+    cout << "(*s_offsets)[" << 2 << "]: " << (*s_offsets)[2] << endl << flush;
+    cout << "(*s_offsets)[" << 3 << "]: " << (*s_offsets)[3] << endl << flush;
+
 
     // Notify the server that we're in a transaction. (We don't send our log fd until commit.)
     FlatBufferBuilder builder;

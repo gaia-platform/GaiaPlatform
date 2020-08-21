@@ -145,13 +145,17 @@ Status rdb_wrapper::prepare_tx(rocksdb::Transaction* trx) {
 void rdb_wrapper::recover() {
     rocksdb::Iterator* it = rdb_internal->get_iterator();
     uint64_t max_id = se_base::get_current_id();
+    int count = 0;
     for (it->SeekToFirst(); it->Valid(); it->Next()) {
         rdb_object_converter_util::decode_object(it->key(), it->value(), &max_id);
+        count ++;
     }    
     // Check for any errors found during the scan
     assert(it->status().ok());
 
-    se_base::set_id(max_id + 1);
+    se_base::set_id(max_id);
+
+    cout << "Recovered count " << count << endl << flush;
 
     delete it; 
 }
