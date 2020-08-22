@@ -53,9 +53,10 @@ class server : private se_base {
     thread_local static session_state_t s_session_state;
     thread_local static bool s_session_shutdown;
 
-    // inherited from se_base:
-    // static int s_fd_offsets;
-    // static data *s_data;
+    static int s_fd_offsets;
+    static data* s_data;
+
+    // Inherited from se_base:
     // thread_local static log *s_log;
     // thread_local static int s_session_socket;
     // thread_local static gaia_xid_t s_transaction_id;
@@ -170,10 +171,6 @@ class server : private se_base {
         if (!rdb.get()) {
             rdb = std::unique_ptr<rdb_wrapper>(new gaia::db::rdb_wrapper());
             rocksdb::Status status = rdb->open();
-            cout << "Status code " << status.code() <<  endl << flush;
-            cout << "Status subcode " << status.subcode() <<  endl << flush;
-            cout << "Status sev " << status.severity() <<  endl << flush;
-            cout << "Status state " << status.getState() <<  endl << flush;
             assert(status.ok());
         }
         // Anonymous mapping should be blown away on each re-init (via clear_shared_memory())

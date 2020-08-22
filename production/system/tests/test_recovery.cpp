@@ -269,13 +269,13 @@ int main(int, char *argv[]) {
         restart_server(server, server_dir_path.data());
         begin_session();
         // validate_data();
-        // Load 1 MB data; write buffer size is 4MB.
+    // Load 1 MB data; write buffer size is 4MB.
         // load_data(1 * 1024 * 1024, false, server, server_dir_path.data());
-        // begin_transaction();
-        // generate_employee_record();
-        // generate_employee_record();
-        load_data(4 * 1024 * 1024, false, server, server_dir_path.data());
-        // commit_transaction();
+        begin_transaction();
+        generate_employee_record();
+        generate_employee_record();
+        // load_data(4 * 1024 * 1024, false, server, server_dir_path.data());
+        commit_transaction();
 
         // // validate_data();
         end_session();

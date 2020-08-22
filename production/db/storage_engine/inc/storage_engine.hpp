@@ -46,6 +46,8 @@ class se_base {
     friend class rdb_wrapper;
     friend class rdb_object_converter_util;
 
+   private: 
+
    protected:
     static const char* const SERVER_CONNECT_SOCKET_NAME;
     static const char* const SCH_MEM_OFFSETS;
@@ -98,13 +100,11 @@ class se_base {
         } log_records[MAX_LOG_RECS];
     };
 
-    static int s_fd_offsets;
-    static data* s_data;
     thread_local static log* s_log;
     thread_local static int s_session_socket;
     thread_local static gaia_xid_t s_transaction_id;
 
-    static inline int64_t allocate_row_id(offsets* offsets) {
+    static inline int64_t allocate_row_id(offsets* offsets, data* s_data) {
         if (offsets == nullptr) {
             throw transaction_not_open();
         }
@@ -116,7 +116,7 @@ class se_base {
         return 1 + __sync_fetch_and_add(&s_data->row_id_count, 1);
     }
 
-    static void inline allocate_object(int64_t row_id, uint64_t size, offsets* offsets) {
+    static void inline allocate_object(int64_t row_id, uint64_t size, offsets* offsets, data* s_data) {
         if (offsets == nullptr) {
             throw transaction_not_open();
         }
@@ -137,28 +137,28 @@ class se_base {
     // that the generated id is not in use
     // already by a database that is
     // restored.
-    static gaia_id_t generate_id() {
+    static gaia_id_t generate_id(data* s_data) {
         gaia_id_t id = __sync_add_and_fetch(&s_data->next_id, 1);
         return id;
     }
 
     // Only used during recovery.
-    static void set_id(gaia_id_t id) {
+    static void set_id(gaia_id_t id, data* s_data) {
         s_data->next_id = id;
     }
 
     // Only used during recovery.
-    static gaia_id_t get_current_id() {
+    static gaia_id_t get_current_id(data* s_data) {
         return s_data->next_id;
     }
 
-    static gaia_xid_t allocate_transaction_id() {
+    static gaia_xid_t allocate_transaction_id(data* s_data) {
         gaia_xid_t xid = __sync_add_and_fetch (&s_data->transaction_id_count, 1);
         return xid;
     }
 
-    static void* offset_to_ptr(int64_t offset) {
-        return offset ? (se_base::s_data->objects + offset) : nullptr;
+    static void* offset_to_ptr(int64_t offset, data* s_data) {
+        return offset ? (s_data->objects + offset) : nullptr;
     }
 };
 

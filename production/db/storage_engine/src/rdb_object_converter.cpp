@@ -31,10 +31,9 @@ void rdb_object_converter_util::encode_object(
     value->write(gaia_object->payload, gaia_object->payload_size);
 }
 
-gaia_ptr_server rdb_object_converter_util::decode_object(
+gaia_id_t rdb_object_converter_util::decode_object(
     const rocksdb::Slice& key,
-    const rocksdb::Slice& value,
-    gaia_id_t* max_id) {
+    const rocksdb::Slice& value) {
     gaia_id_t id;
     gaia_type_t type;
     uint64_t size;
@@ -45,11 +44,7 @@ gaia_ptr_server rdb_object_converter_util::decode_object(
     // Read key.
     key_.read_uint64(&id);
     assert(key_.get_remaining_len_in_bytes() == 0);
-
-    // Find the maximum gaia_id which was last serialized to disk.
-    if (id > *max_id) {
-        *max_id = id;
-    }
+    cout << "Recovered ID " << id << endl << flush;
 
     // Read value.
     value_.read_uint64(&type);
@@ -62,5 +57,6 @@ gaia_ptr_server rdb_object_converter_util::decode_object(
     // The create API expects size of the flatbuffer payload only; without reference length
     // So subtract the reference length before calling the API.
     uint64_t size_without_references = size - num_references * sizeof(gaia_id_t);
-    return gaia_ptr_server::create(id, type, num_references, size_without_references, payload);
+    gaia_ptr_server::create(id, type, num_references, size_without_references, payload);
+    return id;
 }

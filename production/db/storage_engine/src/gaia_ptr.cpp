@@ -17,7 +17,7 @@ using namespace gaia::db;
 using namespace gaia::db::triggers;
 
 gaia_id_t gaia_ptr::generate_id() {
-    return client::generate_id();
+    return client::generate_id(client::s_data);
 }
 
 gaia_ptr& gaia_ptr::clone() {
@@ -82,13 +82,13 @@ gaia_ptr::gaia_ptr(const gaia_id_t id) {
 gaia_ptr::gaia_ptr(const gaia_id_t id, const uint64_t size)
     : row_id(0) {
     se_base::hash_node* hash_node = gaia_hash_map::insert(id);
-    hash_node->row_id = row_id = client::allocate_row_id(client::s_offsets);
-    client::allocate_object(row_id, size, client::s_offsets);
+    hash_node->row_id = row_id = client::allocate_row_id(client::s_offsets, client::s_data);
+    client::allocate_object(row_id, size, client::s_offsets, client::s_data);
     client::tx_log(row_id, 0, to_offset(), se_base::gaia_operation_t::create);
 }
 
 void gaia_ptr::allocate(const uint64_t size) {
-    client::allocate_object(row_id, size, client::s_offsets);
+    client::allocate_object(row_id, size, client::s_offsets, client::s_data);
 }
 
 void gaia_ptr::create_insert_trigger(gaia_type_t type, gaia_id_t id) {

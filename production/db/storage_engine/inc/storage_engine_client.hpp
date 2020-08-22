@@ -58,6 +58,10 @@ class client : private se_base {
    private:
     thread_local static int s_fd_log;
     thread_local static offsets* s_offsets;
+    // Suffix with 'tls' for readability since there is name collision with 
+    // variables defined in the base class. 
+    thread_local static int s_fd_offsets;
+    thread_local static data* s_data;
     thread_local static std::vector<gaia::db::triggers::trigger_event_t> s_events;
 
     // Maintain a static filter in the client to disable generating events
@@ -68,8 +72,6 @@ class client : private se_base {
     static gaia::db::triggers::event_trigger_threadpool_t* event_trigger_pool;
 
     // Inherited from se_base:
-    // static int s_fd_offsets;
-    // static data *s_data;
     // thread_local static log *s_log;
     // thread_local static gaia_xid_t s_transaction_id;
 

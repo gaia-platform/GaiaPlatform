@@ -4,11 +4,13 @@
 /////////////////////////////////////////////
 
 #include "storage_engine.hpp"
+#include "storage_engine_server.hpp"
 #include "rocksdb/db.h"
 #include "rocksdb/write_batch.h"
 #include "rdb_wrapper.hpp"
 #include "rdb_object_converter.hpp"
 #include "rdb_internal.hpp"
+#include "system_table_types.hpp"
 #include <memory>
 
 using namespace gaia::db; 
@@ -75,13 +77,10 @@ Status rdb_wrapper::open() {
     while (s.code() == 5 && open_db_attempt_count < 10) { // Grep string for lock
         open_db_attempt_count++;
         if (rdb_internal->is_db_open()) {
-            cout << "DB is open, close it." << endl << flush;
             rdb_internal->close();
             s = rdb_internal->open_txn_db(initoptions, options);
-            cout << "Attempt " << open_db_attempt_count << " to open DB " << endl << flush;
         } else {
             s = rdb_internal->open_txn_db(initoptions, options);
-            cout << "Attempt " << open_db_attempt_count << " to open DB " << endl << flush;
         }
     }
     return s;
@@ -126,7 +125,7 @@ Status rdb_wrapper::prepare_tx(rocksdb::Transaction* trx) {
         } else {
             string_writer key; 
             string_writer value;
-            void* gaia_object = se_base::offset_to_ptr(lr->new_object);
+            void* gaia_object = se_base::offset_to_ptr(lr->new_object, server::s_data);
 
             if (!gaia_object) {
                 // Object was deleted in current transaction.
@@ -167,19 +166,21 @@ void rdb_wrapper::recover() {
     gaia_id_t max_id = 0;
     int count = 0;
     for (it->SeekToFirst(); it->Valid(); it->Next()) {
-        rdb_object_converter_util::decode_object(it->key(), it->value(), &max_id);
+        auto id = rdb_object_converter_util::decode_object(it->key(), it->value());
+        if (id > max_id && id < c_system_table_reserved_range_start) {
+            cout << "Setting max ID " << id << endl << flush;
+            max_id = id;
+        }
         count ++;
     }    
     // Check for any errors found during the scan
     assert(it->status().ok());
-
-    se_base::set_id(max_id + 1);
-
-    max_id = max_id + 1;
-    se_base::set_id(max_id);
+    server::s_data->next_id = max_id + 1;
 
     cout << "Recovered count " << count << endl << flush;
     cout << "Recovered max ID " << max_id << endl << flush;
+
+    cout << "Set max ID to " << server::s_data->next_id << endl << flush;
 
     delete it; 
 }

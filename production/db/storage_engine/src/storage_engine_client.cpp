@@ -14,6 +14,8 @@ using namespace flatbuffers;
 
 thread_local se_base::offsets *client::s_offsets = nullptr;
 thread_local int client::s_fd_log = -1;
+thread_local int client::s_fd_offsets = -1;
+thread_local se_base::data *client::s_data;
 thread_local std::vector<trigger_event_t> client::s_events;
 
 std::unordered_set<gaia_type_t> client::trigger_excluded_types{
@@ -149,31 +151,18 @@ void client::begin_session() {
     // (and only if they're not already initialized).
     int fd_data = fds[DATA_FD_INDEX];
     retail_assert(fd_data != -1);
-
+    
     // Set up the shared data segment mapping.
-    if (!s_data) {
-        data *data_mapping = static_cast<data *>(map_fd(
-            sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0));
-        if (!__sync_bool_compare_and_swap(&s_data, 0, data_mapping)) {
-            // We lost the race, throw away the mapping.
-            unmap_fd(data_mapping, sizeof(data));
-        }
-    }
+    s_data = static_cast<data *>(map_fd(
+        sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0));
+
     // We've already mapped the data fd, so we can close it now.
     close(fd_data);
 
     // Set up the private locator segment fd.
     int fd_offsets = fds[OFFSETS_FD_INDEX];
     retail_assert(fd_offsets != -1);
-    if (s_fd_offsets == -1) {
-        if (!__sync_bool_compare_and_swap(&s_fd_offsets, -1, fd_offsets)) {
-            // We lost the race, close the fd.
-            close(fd_offsets);
-        }
-    } else {
-        // locator fd is already initialized, close the fd.
-        close(fd_offsets);
-    }
+    s_fd_offsets = fd_offsets;
     cleanup_session_socket.dismiss();
 }
 
@@ -218,8 +207,10 @@ void client::begin_transaction() {
 
     // Now we map a private COW view of the locator shared memory segment.
     if (flock(s_fd_offsets, LOCK_SH) < 0) {
+        cout << "Client flock failed:" << s_fd_offsets << endl << flush;
         throw_system_error("flock failed");
     }
+    cout << "Client flock succeeded:" << s_fd_offsets << endl << flush;
     auto cleanup = scope_guard::make_scope_guard([]() {
         if (-1 == flock(s_fd_offsets, LOCK_UN)) {
             // Per C++11 semantics, throwing an exception from a destructor
@@ -229,6 +220,7 @@ void client::begin_transaction() {
     });
     s_offsets = (offsets *) map_fd(sizeof(offsets),
         PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_offsets, 0);
+    cout << "Client offset mapping succeeded :" << s_fd_offsets << endl << flush;
     
     // cout << "(*s_offsets)[" << 0 << "]: " << (*s_offsets)[0] << endl << flush;
     // cout << "(*s_offsets)[" << 1 << "]: " << (*s_offsets)[1] << endl << flush;
