@@ -182,8 +182,6 @@ class server : private se_base {
     // To avoid synchronization, we assume that this method is only called when
     // no sessions exist and the server is not accepting any new connections.
     static void init_shared_memory() {
-        cout << "Caught signal interrupt " << endl << flush;
-
         // The listening socket must not be open.
         retail_assert(s_connect_socket == -1);
         // We may be reinitializing the server upon receiving a SIGHUP.

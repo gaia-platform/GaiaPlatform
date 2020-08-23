@@ -29,7 +29,6 @@ size_t employee_record_size_bytes = 648;
 std::map<gaia_id_t, employee_t> employee_map;
 
 void validate_data() {
-    // begin_session();
     uint64_t count = 0;
     begin_transaction();
     auto employee = employee_t::list().begin();
@@ -50,32 +49,17 @@ void validate_data() {
 
         employee++;
         count++;
-
-        // cout << "Validated record with ID: " << (*employee).gaia_id() << endl << flush;
     }
 
     cout << "Total count before recovery " << employee_map.size() << endl << flush;
     cout << "Total count after recovery " << count << endl << flush;
     assert(count == employee_map.size());
     commit_transaction();
-
     cout << "Validation complete." << endl << flush;
-    // end_session();
-
 }
 
-// Validate that ordering when updating/deleting the same keys is maintained post recovery.
-bool validate_ordering() {
-    return false;
-}
-
-void restart_server(db_server_t& server, const char* path, bool sigterm = true) {
-    if (sigterm) {
-        server.sigterm_stop();
-        server.start(path, false);
-    } else {
-        server.start(path);
-    }
+void restart_server(db_server_t& server, const char* path) {
+    server.start(path);
 }
 
 void stop_server(db_server_t& server) {
@@ -85,7 +69,11 @@ void stop_server(db_server_t& server) {
 // Random updates & deletes.
 // Perform multiple transactions.
 void modify_data() {
-    
+    for (int i = 0; i < employee_map.size() / 3; i++) {
+        auto it = employee_map.find(rand() % employee_map.size());
+        employee_t e = employee_t::get(it->first);
+        
+    }
 }
 
 std::string generate_string( size_t length_in_bytes )
@@ -133,7 +121,6 @@ void load_data(uint64_t total_size_bytes, bool kill_server_during_load, db_serve
     for (uint64_t transaction_id = 1; transaction_id <= number_of_transactions; transaction_id++) {
         // Load a batch per transaction.
         std::map<gaia_id_t, employee_t> temp_employee_map;
-        uint64_t idd = 0;
         begin_transaction();
         for (uint64_t batch_count = 1; batch_count <= load_batch_size; batch_count++) {
             // Insert row.
@@ -142,30 +129,25 @@ void load_data(uint64_t total_size_bytes, bool kill_server_during_load, db_serve
         }
         commit_transaction();
 
-        // begin_transaction();
-        // int c = 0;
-        // for (auto employee = employee_t::get_first(); employee; employee = employee.get_next()) {
-        //     c++;
-        // }
-        // cout << "Count of employees " << c << endl << flush;
-        // commit_transaction();
+        employee_map.insert(temp_employee_map.begin(), temp_employee_map.end());
+        temp_employee_map.clear();
+        assert(temp_employee_map.size() == 0);
 
-        // employee_map.insert(temp_employee_map.begin(), temp_employee_map.end());
-        // temp_employee_map.clear();
-        // assert(temp_employee_map.size() == 0);
+        // Crash during load.
+        if (kill_server_during_load && transaction_id % 5 == 0) {
+            cout << "Crash during load" << endl << flush;
+            end_session();
+            restart_server(server, path);
+            begin_session();
+            validate_data();
+        }
 
-        // // Repeatedly crash after each transaction.
-        // if (kill_server_during_load) {
-        //     restart_server(server, path);
-        //     validate_data();
-        // }
-
-        // if (transaction_id % 10 == 0) {
-        //     cout << "Loading data: Executed " << transaction_id << " transactions ..." << endl << flush;
-        // }
+        if (transaction_id % 25 == 0) {
+            cout << "Loading data: Executed " << transaction_id << " transactions ..." << endl << flush;
+        }
     }
 
-    cout << "Load completed." << endl << flush;
+    cout << "Load completed for " << employee_map.size() << " records."<< endl << flush;
 }
 
 int get_count() {
@@ -179,7 +161,6 @@ int get_count() {
 }
 
 void delete_all() {
-    // gaia::db::begin_session();
     cout << "Deleting all records" << endl << flush;
     begin_transaction();
     int total_count = 0;
@@ -201,13 +182,42 @@ void delete_all() {
         e.delete_row();
         count ++;
         commit_transaction();
-        // cout << "Delete completed for commit ID " << id << endl << flush;
-
+        employee_map.erase(id);
     }
 
     cout << "Deleted " << count << " records "<< endl << flush;
-    // gaia::db::end_session();
-    // validate_data();
+    validate_data();
+    assert(get_count() == 0);
+}
+
+void load_recover_test(db_server_t server, std::string server_dir_path, uint64_t load_size_bytes, int crash_validate_loop_count, bool kill_during_workload) {
+    // Start server.
+    restart_server(server, server_dir_path.data());
+    begin_session();
+    delete_all();
+    load_data(load_size_bytes, kill_during_workload, server, server_dir_path.data());
+    validate_data();
+    end_session();
+
+    // Restart server & validate data.
+    for (int i = 0; i < crash_validate_loop_count; i++) {
+        restart_server(server, server_dir_path.data());
+        begin_session();
+        validate_data();
+        end_session();
+    }
+
+    restart_server(server, server_dir_path.data());
+    begin_session();
+    delete_all();
+    end_session();
+
+    // Validate all data deleted.
+    restart_server(server, server_dir_path.data());
+    begin_session();
+    assert(get_count() == 0);
+    end_session();
+    stop_server(server);
 }
 
 /**
@@ -224,114 +234,21 @@ int main(int, char *argv[]) {
     employee_map.clear();
     // restart_server(server, server_dir_path.data());
 
-    // for (int i = 1; i <= 1; i++) {
-    //     cout << "Loop number " << i << endl << flush; // start server
-    //     // Just write a single record.
-    //     restart_server(server, server_dir_path.data());
-    //     begin_session();
-    //     begin_transaction();
-    //     generate_employee_record();
-    //     generate_employee_record();
-    //     // generate_employee_record();
-    //     // generate_employee_record();
-    //     // generate_employee_record();
-    //     // generate_employee_record();
-    //     // generate_employee_record();
-    //     // generate_employee_record();
-    //     // generate_employee_record();
-    //     // generate_employee_record();
-    //     commit_transaction();
-
-    //     begin_transaction();
-    //     commit_transaction();
-
-    //     end_session();
-
-    //     int j = 0; // server start
-
-    //     restart_server(server, server_dir_path.data());
-    //     begin_session();
-    //     // begin_transaction();
-    //     // validate_data();
-    //     // delete_all();
-    //     // commit_transaction();
-    //     end_session();
-    //     stop_server(server);
-    // }
-    // begin_session();
-    // delete_all();
-
-    // 1) Load & Recover test - with data size less than write buffer size. 
+    // 1) Load & Recover test - with data size less than write buffer size; 
     // All writes will be confined to the WAL & will not make it to SST (DB binary file)
     // Sigkill server.
     {
-        // Start server.
-        restart_server(server, server_dir_path.data());
-        begin_session();
-        // validate_data();
-    // Load 1 MB data; write buffer size is 4MB.
-        // load_data(1 * 1024 * 1024, false, server, server_dir_path.data());
-        begin_transaction();
-        generate_employee_record();
-        generate_employee_record();
-        // load_data(4 * 1024 * 1024, false, server, server_dir_path.data());
-        commit_transaction();
-
-        // // validate_data();
-        end_session();
-
-        // // Restart server & validate data.
-        restart_server(server, server_dir_path.data());
-        begin_session();
-        // validate_data();
-        delete_all();
-        end_session();
-
-        restart_server(server, server_dir_path.data());
-        begin_session();
-        cout << get_count() << " records 1 "<< endl << flush;
-        end_session();
-        // assert(get_count() == 0);
-        // stop_server(server);
-
-        restart_server(server, server_dir_path.data());
-        sleep(2);
-        begin_session();
-        cout << get_count() << " records 2 "<< endl << flush;
-        end_session();
-        // assert(get_count() == 0);
-        stop_server(server);
+        load_recover_test(server, server_dir_path, 0.1 * 1024 * 1024, 2, true); 
     }
 
-    // 2) Load & Recover test - with data size less than write buffer size. 
-    // All writes will be confined to the WAL & will never make it to SST (DB binary file)
-    // Sigterm server.
-
-    // 3) Load (more data) & Recover test - with data size greater than write buffer size. 
+    // 2) Load (more data) & Recover test - with data size greater than write buffer size. 
     // Writes will exist in both the WAL & SST files.
     {
-        // Start server.
-        // restart_server(server, server_dir_path.data());
-
-        // // Load 16MB data; this will force a flush of the RocksDB write buffer to multiple (4) SST files.
-        // load_data(16 * 1024 * 1024, false);
-
-        // // Restart server & validate data.
-        // restart_server(server, server_dir_path.data());
-        // validate_data();
+        // load_recover_test(server, server_dir_path, 5 * 1024 * 1024); 
     }
 
-    // 4) Crash and recover multiple times.
+    // Todo (msj)
+    // Validate gaia_id is not recycled post Recovery.
 
-    // 5) Randomly modify (Update & Delete) entries & Recover. 
-    // Validate that ordering of events (upon Recovery) is maintained.
-
-    // 6) CRUD operations with multiple random restarts.
-
-    // 7) Delete everything and validate gaia_id is not zero!
-
-    // End test.
-    // end_session();
-    // stop_server(server);
     return res;
 }

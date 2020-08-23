@@ -168,10 +168,9 @@ void rdb_wrapper::recover() {
     for (it->SeekToFirst(); it->Valid(); it->Next()) {
         auto id = rdb_object_converter_util::decode_object(it->key(), it->value());
         if (id > max_id && id < c_system_table_reserved_range_start) {
-            cout << "Setting max ID " << id << endl << flush;
             max_id = id;
         }
-        count ++;
+        count++;
     }    
     // Check for any errors found during the scan
     assert(it->status().ok());

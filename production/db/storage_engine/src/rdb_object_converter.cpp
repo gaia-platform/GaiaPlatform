@@ -44,7 +44,6 @@ gaia_id_t rdb_object_converter_util::decode_object(
     // Read key.
     key_.read_uint64(&id);
     assert(key_.get_remaining_len_in_bytes() == 0);
-    cout << "Recovered ID " << id << endl << flush;
 
     // Read value.
     value_.read_uint64(&type);

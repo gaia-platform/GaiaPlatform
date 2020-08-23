@@ -207,10 +207,8 @@ void client::begin_transaction() {
 
     // Now we map a private COW view of the locator shared memory segment.
     if (flock(s_fd_offsets, LOCK_SH) < 0) {
-        cout << "Client flock failed:" << s_fd_offsets << endl << flush;
         throw_system_error("flock failed");
     }
-    cout << "Client flock succeeded:" << s_fd_offsets << endl << flush;
     auto cleanup = scope_guard::make_scope_guard([]() {
         if (-1 == flock(s_fd_offsets, LOCK_UN)) {
             // Per C++11 semantics, throwing an exception from a destructor
@@ -220,7 +218,6 @@ void client::begin_transaction() {
     });
     s_offsets = (offsets *) map_fd(sizeof(offsets),
         PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_offsets, 0);
-    cout << "Client offset mapping succeeded :" << s_fd_offsets << endl << flush;
     
     // cout << "(*s_offsets)[" << 0 << "]: " << (*s_offsets)[0] << endl << flush;
     // cout << "(*s_offsets)[" << 1 << "]: " << (*s_offsets)[1] << endl << flush;
