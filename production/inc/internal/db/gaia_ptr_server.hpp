@@ -29,18 +29,18 @@ class gaia_ptr_server {
         uint64_t data_size,
         const void* data) {
         // cout << "[decode; id; type; num_refs; data_size; total]" << id << ":" << type <<":" << num_refs << ":" << data_size << endl << flush;
-        uint64_t refs_len = num_refs * sizeof(gaia_id_t);
-        uint64_t total_len = data_size + refs_len;
-        gaia_ptr_server obj(id, total_len + sizeof(object));
+        // uint64_t refs_len = num_refs * sizeof(gaia_id_t);
+        // uint64_t total_len = data_size + refs_len;
+        gaia_ptr_server obj(id, data_size + sizeof(object));
         object* obj_ptr = obj.to_ptr();
         obj_ptr->id = id;
         obj_ptr->type = type;
         obj_ptr->num_references = num_refs;
-        if (num_refs) {
-            memset(obj_ptr->payload, 0, refs_len);
-        }
-        obj_ptr->payload_size = total_len;
-        memcpy(obj_ptr->payload + refs_len, data, data_size);
+        // if (num_refs) {
+        //     memset(obj_ptr->payload, 0, refs_len);
+        // }
+        obj_ptr->payload_size = data_size;
+        memcpy(obj_ptr->payload, data, data_size);
         return obj;
     }
     gaia_ptr_server(const gaia_id_t id, const uint64_t size);

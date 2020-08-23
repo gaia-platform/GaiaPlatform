@@ -55,7 +55,7 @@ gaia_id_t rdb_object_converter_util::decode_object(
 
     // The create API expects size of the flatbuffer payload only; without reference length
     // So subtract the reference length before calling the API.
-    uint64_t size_without_references = size - num_references * sizeof(gaia_id_t);
-    gaia_ptr_server::create(id, type, num_references, size_without_references, payload);
+    // uint64_t size_without_references = size - num_references * sizeof(gaia_id_t);
+    gaia_ptr_server::create(id, type, num_references, size, payload);
     return id;
 }

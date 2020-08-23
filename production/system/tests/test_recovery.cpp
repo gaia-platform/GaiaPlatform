@@ -23,10 +23,20 @@ using namespace gaia::addr_book_db;
 size_t load_batch_size = 16;
 // Size of a single record.
 size_t employee_record_size_bytes = 648;
+// Don't cache direct access objects as they will
+// point to garbage values post crash recovery.
+struct employee_copy_t {
+    string name_first; 
+    string name_last;
+    string ssn;
+    int64_t hire_date;
+    string email;
+    string web; 
+};
 
 // Map of employees for which the server has returned a successful commit.
 // We maintain this map in memory & will use it to validate recovered shared memory post crash.
-std::map<gaia_id_t, employee_t> employee_map;
+std::map<gaia_id_t, employee_copy_t> employee_map;
 
 void validate_data() {
     uint64_t count = 0;
@@ -44,14 +54,14 @@ void validate_data() {
         auto employee_expected = it->second;
 
         // Validate employee fields.
-        cout << "[emp name] is: " << employee_expected.name_first() << ":" << employee.name_first() << endl << flush;
+        // cout << "[emp name] is: " << employee_expected.name_first() << ":" << employee.name_first() << endl << flush;
 
-        assert(employee.email() && employee_expected.email() == employee.email());
-        assert(employee.name_last() && employee_expected.name_last() == employee.name_last());
-        assert(employee.name_first() && employee_expected.name_first() == employee.name_first());
-        assert(employee.ssn() && employee_expected.ssn() == employee.ssn());
-        assert(employee.hire_date() && employee_expected.hire_date() == employee.hire_date());
-        assert(employee.web() && employee_expected.web() == employee.web());
+        assert(strcmp(employee_expected.email.data(), employee.email()) == 0); 
+        assert(strcmp(employee_expected.name_last.data(), employee.name_last()) == 0);
+        assert(strcmp(employee_expected.name_first.data(), employee.name_first()) == 0);
+        assert(strcmp(employee_expected.ssn.data(), employee.ssn()) == 0);
+        assert(employee_expected.hire_date == employee.hire_date());
+        assert(strcmp(employee_expected.web.data(), employee.web()) == 0);
 
         count++;
     }
@@ -125,12 +135,12 @@ void load_data(uint64_t total_size_bytes, bool kill_server_during_load, db_serve
     // Load data in multiple transactions.
     for (uint64_t transaction_id = 1; transaction_id <= number_of_transactions; transaction_id++) {
         // Load a batch per transaction.
-        std::map<gaia_id_t, employee_t> temp_employee_map;
+        std::map<gaia_id_t, employee_copy_t> temp_employee_map;
         begin_transaction();
         for (uint64_t batch_count = 1; batch_count <= load_batch_size; batch_count++) {
             // Insert row.
             auto e = generate_employee_record();
-            temp_employee_map.insert(make_pair(e.gaia_id(), e));
+            temp_employee_map.insert(make_pair(e.gaia_id(), employee_copy_t{e.name_first(), e.name_last(), e.ssn(), e.hire_date(), e.email(), e.web()}));
         }
         commit_transaction();
 
@@ -205,8 +215,14 @@ void load_recover_test(db_server_t server, std::string server_dir_path, uint64_t
     cout << "Loading "<< endl << flush;
     auto e1 = generate_employee_record();
     auto e2 = generate_employee_record();
-    employee_map.insert(make_pair(e1.gaia_id(), e1));
-    employee_map.insert(make_pair(e2.gaia_id(), e2));
+    //     string name_first; 
+    // string name_last;
+    // string ssn;
+    // int64_t hire_date;
+    // string email;
+    // string web; 
+    employee_map.insert(make_pair(e1.gaia_id(), employee_copy_t{e1.name_first(), e1.name_last(), e1.ssn(), e1.hire_date(), e1.email(), e1.web()}));
+    employee_map.insert(make_pair(e2.gaia_id(), employee_copy_t{e2.name_first(), e2.name_last(), e2.ssn(), e2.hire_date(), e2.email(), e2.web()}));
     commit_transaction();
     validate_data();
     end_session();
