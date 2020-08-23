@@ -23,6 +23,8 @@ using namespace gaia::addr_book_db;
 size_t load_batch_size = 16;
 // Size of a single record.
 size_t employee_record_size_bytes = 648;
+// Size of a string field in a record.
+size_t field_size_bytes = 128;
 // Don't cache direct access objects as they will
 // point to garbage values post crash recovery.
 struct employee_copy_t {
@@ -41,10 +43,6 @@ std::map<gaia_id_t, employee_copy_t> employee_map;
 void validate_data() {
     uint64_t count = 0;
     begin_transaction();
-    // These are pointers, so if the shared memory gets screwed, the object gets screwed.
-    // Which is why expected employee is null, and it points to gaia_table instead.
-    // Deserialization is broken.
-    // So it should be employee map copy.
     for (auto employee = employee_t::get_first(); employee; employee = employee.get_next()) {
     // while (employee != employee_t::list().end()) {
         auto it = employee_map.find(employee.gaia_id());
@@ -52,9 +50,6 @@ void validate_data() {
         assert(it != employee_map.end());
 
         auto employee_expected = it->second;
-
-        // Validate employee fields.
-        // cout << "[emp name] is: " << employee_expected.name_first() << ":" << employee.name_first() << endl << flush;
 
         assert(strcmp(employee_expected.email.data(), employee.email()) == 0); 
         assert(strcmp(employee_expected.name_last.data(), employee.name_last()) == 0);
@@ -73,22 +68,18 @@ void validate_data() {
     cout << "Validation complete." << endl << flush;
 }
 
+gaia_id_t get_random_map_key(std::map<gaia_id_t, employee_copy_t> m) {  
+    auto it = m.begin();
+    std::advance(it, rand() % m.size());
+    return it->first;
+}
+
 void restart_server(db_server_t& server, const char* path) {
     server.start(path);
 }
 
 void stop_server(db_server_t& server) {
     server.stop();
-}
-
-// Random updates & deletes.
-// Perform multiple transactions.
-void modify_data() {
-    for (int i = 0; i < employee_map.size() / 3; i++) {
-        auto it = employee_map.find(rand() % employee_map.size());
-        employee_t e = employee_t::get(it->first);
-        
-    }
 }
 
 std::string generate_string( size_t length_in_bytes )
@@ -107,15 +98,48 @@ std::string generate_string( size_t length_in_bytes )
     return str;
 }
 
+// Random updates & deletes.
+void modify_data() {
+    std::set<gaia_id_t> to_delete_set;
+
+    for (int i = 0; i < employee_map.size() / 2; i++) {
+        begin_transaction();
+        auto to_update = employee_map.find(get_random_map_key(employee_map));
+        employee_t e1 = employee_t::get(to_update->first);
+        cout << "Modify record id: " << to_update->first << endl << flush;
+        auto w1 = e1.writer();
+        auto name_first = generate_string(field_size_bytes);
+        w1.name_first = name_first;
+        w1.update_row();
+        commit_transaction();
+        to_update->second.name_first = name_first;
+
+        auto to_delete = employee_map.find(get_random_map_key(employee_map));
+        to_delete_set.insert(to_delete->first);
+    }
+
+    cout << "[Modify record] Number of records to delete: " << to_delete_set.size() << endl << flush;
+
+    for (gaia_id_t id : to_delete_set) {
+        employee_map.erase(id);
+        begin_transaction();
+        auto e = employee_t::get(id);
+        cout << "Delete record: " << id << endl << flush;
+        e.delete_row();
+        cout << "Delete record completed: " << id << endl << flush;
+        commit_transaction();
+    }
+}
+
 // Method will generate an employee record of size 128 * 5 + 8 (648) bytes.
 employee_t generate_employee_record() {
     auto w = employee_writer();
-    w.name_first = generate_string(128);
-    w.name_last = generate_string(128);
-    w.ssn = generate_string(128);
+    w.name_first = generate_string(field_size_bytes);
+    w.name_last = generate_string(field_size_bytes);
+    w.ssn = generate_string(field_size_bytes);
     w.hire_date = rand();
-    w.email = generate_string(128);
-    w.web = generate_string(128);
+    w.email = generate_string(field_size_bytes);
+    w.web = generate_string(field_size_bytes);
 
     gaia_id_t id = w.insert_row();
     auto e = employee_t::get(id);
@@ -205,33 +229,56 @@ void delete_all() {
     assert(get_count() == 0);
 }
 
-void load_recover_test(db_server_t server, std::string server_dir_path, uint64_t load_size_bytes, int crash_validate_loop_count, bool kill_during_workload) {
+void cached_pointer_test(db_server_t& server, const char* path) {
+    gaia_id_t id;
+    std::string name_first; 
+
+    restart_server(server, path);
+    begin_session();
+    begin_transaction();
+    employee_t cached_employee = generate_employee_record();
+    id = cached_employee.gaia_id();
+    name_first = cached_employee.name_first();
+    commit_transaction();
+
+    begin_transaction();
+    auto e1 = employee_t::get(id);
+    assert(e1.name_first() == name_first);
+    assert(cached_employee.name_first() == name_first);
+    commit_transaction();
+    end_session();
+
+    restart_server(server, path);
+    begin_session();
+    begin_transaction();
+    auto e = employee_t::get(id);
+    assert(strcmp(e.name_first(), name_first.data()) == 0);
+    // cached_employee is no longer valid. Assert the same.
+    assert(strcmp(cached_employee.name_first(), name_first.data()) != 0);
+    commit_transaction();
+    delete_all();
+    end_session();
+    stop_server(server);
+}
+
+void load_modify_recover_test(db_server_t server, std::string server_dir_path, uint64_t load_size_bytes, int crash_validate_loop_count, bool kill_during_workload) {
     // Start server.
     restart_server(server, server_dir_path.data());
     begin_session();
     delete_all();
-    // load_data(load_size_bytes, kill_during_workload, server, server_dir_path.data());
-    begin_transaction();
-    cout << "Loading "<< endl << flush;
-    auto e1 = generate_employee_record();
-    auto e2 = generate_employee_record();
-    //     string name_first; 
-    // string name_last;
-    // string ssn;
-    // int64_t hire_date;
-    // string email;
-    // string web; 
-    employee_map.insert(make_pair(e1.gaia_id(), employee_copy_t{e1.name_first(), e1.name_last(), e1.ssn(), e1.hire_date(), e1.email(), e1.web()}));
-    employee_map.insert(make_pair(e2.gaia_id(), employee_copy_t{e2.name_first(), e2.name_last(), e2.ssn(), e2.hire_date(), e2.email(), e2.web()}));
-    commit_transaction();
+    load_data(load_size_bytes, kill_during_workload, server, server_dir_path.data());
     validate_data();
     end_session();
 
-    // Restart server & validate data.
+    // Restart server, modify & validate data.
     for (int i = 0; i < crash_validate_loop_count; i++) {
         restart_server(server, server_dir_path.data());
         begin_session();
         cout << "Count post recovery: " << get_count() << endl << flush;
+        validate_data();
+        cout << "Modify begin: " << endl << flush;
+        modify_data();
+        cout << "Modify complete: " << endl << flush;
         validate_data();
         end_session();
     }
@@ -261,23 +308,25 @@ int main(int, char *argv[]) {
     // Path of directory where server executable resides.
     std::string server_dir_path = "/home/ubuntu/GaiaPlatform/production/build/db/storage_engine";//argv[1];
     employee_map.clear();
-    // restart_server(server, server_dir_path.data());
 
     // 1) Load & Recover test - with data size less than write buffer size; 
     // All writes will be confined to the WAL & will not make it to SST (DB binary file)
     // Sigkill server.
     {
-        load_recover_test(server, server_dir_path, 0.1 * 1024 * 1024, 2, true); 
+        // load_modify_recover_test(server, server_dir_path, 0.1 * 1024 * 1024, 2, true); 
     }
 
     // 2) Load (more data) & Recover test - with data size greater than write buffer size. 
     // Writes will exist in both the WAL & SST files.
     {
-        // load_recover_test(server, server_dir_path, 5 * 1024 * 1024); 
+        // load_modify_recover_test(server, server_dir_path, 16 * 1024 * 1024, 1, false); 
     }
 
+    // 3) Cached user pointer gets hosed on restart/or when the client obtains a new session.
+    cached_pointer_test(server, server_dir_path.data());
+
     // Todo (msj)
-    // Validate gaia_id is not recycled post Recovery.
+    // 4) Validate gaia_id is not recycled post crash.
 
     return res;
 }

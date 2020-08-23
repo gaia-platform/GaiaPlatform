@@ -143,6 +143,7 @@ Status rdb_wrapper::prepare_tx(rocksdb::Transaction* trx) {
     }
 
     // Ensure that keys were inserted into the RocksDB transaction object.
+    // cout << "Server log count:trx_keys " << s_log->count << ":" << trx->GetNumKeys() << endl << flush;
     assert(trx->GetNumKeys() == s_log->count);
 
     return rdb_internal->prepare_txn(trx);
