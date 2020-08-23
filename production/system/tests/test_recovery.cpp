@@ -31,23 +31,28 @@ std::map<gaia_id_t, employee_t> employee_map;
 void validate_data() {
     uint64_t count = 0;
     begin_transaction();
-    auto employee = employee_t::list().begin();
-    while (employee != employee_t::list().end()) {
-        auto it = employee_map.find((*employee).gaia_id());
-        // Validate that employee is found.
+    // These are pointers, so if the shared memory gets screwed, the object gets screwed.
+    // Which is why expected employee is null, and it points to gaia_table instead.
+    // Deserialization is broken.
+    // So it should be employee map copy.
+    for (auto employee = employee_t::get_first(); employee; employee = employee.get_next()) {
+    // while (employee != employee_t::list().end()) {
+        auto it = employee_map.find(employee.gaia_id());
+        // Validate that emempployee is found.
         assert(it != employee_map.end());
 
         auto employee_expected = it->second;
 
         // Validate employee fields.
-        assert(employee_expected.email() == (*employee).email());
-        assert(employee_expected.name_last() == (*employee).name_last());
-        assert(employee_expected.name_first() == (*employee).name_first());
-        assert(employee_expected.ssn() == (*employee).ssn());
-        assert(employee_expected.hire_date() == (*employee).hire_date());
-        assert(employee_expected.web() == (*employee).web());
+        cout << "[emp name] is: " << employee_expected.name_first() << ":" << employee.name_first() << endl << flush;
 
-        employee++;
+        assert(employee.email() && employee_expected.email() == employee.email());
+        assert(employee.name_last() && employee_expected.name_last() == employee.name_last());
+        assert(employee.name_first() && employee_expected.name_first() == employee.name_first());
+        assert(employee.ssn() && employee_expected.ssn() == employee.ssn());
+        assert(employee.hire_date() && employee_expected.hire_date() == employee.hire_date());
+        assert(employee.web() && employee_expected.web() == employee.web());
+
         count++;
     }
 
@@ -195,7 +200,14 @@ void load_recover_test(db_server_t server, std::string server_dir_path, uint64_t
     restart_server(server, server_dir_path.data());
     begin_session();
     delete_all();
-    load_data(load_size_bytes, kill_during_workload, server, server_dir_path.data());
+    // load_data(load_size_bytes, kill_during_workload, server, server_dir_path.data());
+    begin_transaction();
+    cout << "Loading "<< endl << flush;
+    auto e1 = generate_employee_record();
+    auto e2 = generate_employee_record();
+    employee_map.insert(make_pair(e1.gaia_id(), e1));
+    employee_map.insert(make_pair(e2.gaia_id(), e2));
+    commit_transaction();
     validate_data();
     end_session();
 
@@ -203,6 +215,7 @@ void load_recover_test(db_server_t server, std::string server_dir_path, uint64_t
     for (int i = 0; i < crash_validate_loop_count; i++) {
         restart_server(server, server_dir_path.data());
         begin_session();
+        cout << "Count post recovery: " << get_count() << endl << flush;
         validate_data();
         end_session();
     }

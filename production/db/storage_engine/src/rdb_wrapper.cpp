@@ -181,5 +181,7 @@ void rdb_wrapper::recover() {
 
     cout << "Set max ID to " << server::s_data->next_id << endl << flush;
 
+    cout << "[Server] Row ID count on recovery " << server::s_data->row_id_count << endl << flush;
+
     delete it; 
 }

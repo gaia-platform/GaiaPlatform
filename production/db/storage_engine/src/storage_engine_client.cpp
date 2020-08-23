@@ -159,6 +159,8 @@ void client::begin_session() {
     // We've already mapped the data fd, so we can close it now.
     close(fd_data);
 
+    cout << "[Client] Row ID count on recovery " << client::s_data->row_id_count << endl << flush;
+
     // Set up the private locator segment fd.
     int fd_offsets = fds[OFFSETS_FD_INDEX];
     retail_assert(fd_offsets != -1);
