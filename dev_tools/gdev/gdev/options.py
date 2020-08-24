@@ -23,5 +23,5 @@ class Options:
     mixins: FrozenSet[str]
     mounts: FrozenSet[Mount]
     platform: str
+    registry: str
     target: str
-    upload: bool
