@@ -12,7 +12,4 @@ make -j$(nproc)
 /build/production/direct_access/test_iterators \
     || pkill gaia_se_server && echo "Stopped SE server."
 
-/build/production/direct_access/test_iterators \
-    || "Iterator tests failed or the executable does not exist."
-
 pkill gaia_se_server
