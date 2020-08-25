@@ -162,37 +162,73 @@ TEST_F(gaia_iterator_test, equality_comparable) {
     c = employee_t::list().end();
 
     EXPECT_FALSE(a == b);
+    EXPECT_FALSE(b == a);
     EXPECT_FALSE(b == c);
     EXPECT_FALSE(a == c);
 }
-/*
+
 // Does the iterator support the not-equal (!=) operator?
 TEST_F(gaia_iterator_test, not_equal) {
-    employee_t emp1;
-    employee_t emp2;
+    const char* emp_name_0 = "Employee0";
+    const char* emp_name_1 = "Employee1";
+    const char* emp_name_2 = "Employee2";
 
-    gaia_iterator_t<employee_t*> iter1(&emp1);
-    gaia_iterator_t<employee_t*> iter2(&emp2);
+    auto_transaction_t tx;
+    auto emp_writer = employee_writer();
 
-    cout << (*iter1)->gaia_id() << endl;
-    cout << (*iter2)->gaia_id() << endl;
-    EXPECT_TRUE(iter1 == iter2);
+    emp_writer.name_first = emp_name_0;
+    emp_writer.insert_row();
+    emp_writer.name_first = emp_name_1;
+    emp_writer.insert_row();
+    emp_writer.name_first = emp_name_2;
+    emp_writer.insert_row();
+    tx.commit();
+
+    gaia_iterator_t<employee_t> a = employee_t::list().begin();
+    gaia_iterator_t<employee_t> b = employee_t::list().begin();
+    ++b;
+    gaia_iterator_t<employee_t> c = employee_t::list().end();
+
+    EXPECT_FALSE(a != a);
+    EXPECT_FALSE(b != b);
+    EXPECT_FALSE(c != c);
+
+    EXPECT_TRUE(a != b);
+    EXPECT_TRUE(b != a);
+    EXPECT_TRUE(b != c);
+    EXPECT_TRUE(c != b);
+    EXPECT_TRUE(a != c);
+    EXPECT_TRUE(c != a);
 }
 
 // Is the iterator dereferenceable back to the pointer it was declared at?
 TEST_F(gaia_iterator_test, dereferenceable) {
-    employee_t* ptr = new employee_t;
-    gaia_iterator_t<employee_t*> iter(ptr);
+    const char* emp_name = "Employee0";
+    auto_transaction_t tx;
+    auto emp_writer = employee_writer();
+    emp_writer.name_first = emp_name;
+    gaia_id_t emp_id = emp_writer.insert_row();
+    tx.commit();
 
-    EXPECT_TRUE((*iter) == ptr);
+    employee_t employee = employee_t::get(emp_id);
+    gaia_iterator_t<employee_t> emp_iter_a = employee_t::list().begin();
+    gaia_iterator_t<employee_t> emp_iter_b = employee_t::list().begin();
+    ASSERT_TRUE(emp_iter_a == emp_iter_b);
 
-    delete ptr;
+    EXPECT_TRUE(*emp_iter_a == *emp_iter_b);
 }
-
+/*
 // When an iterator is dereferenced, can the object members be accessed?
 // Test of the arrow operator (->).
 TEST_F(gaia_iterator_test, deref_arrow) {
-    EXPECT_TRUE(true)
+    const char* emp_name = "Employee0";
+
+    auto_transaction_t tx;
+    auto emp_writer = employee_writer();
+    emp_writer.name_first = emp_name;
+    emp_writer.insert_row();
+    gaia_iterator_t<employee_t> emp_iter = employee_t::list().begin();
+
+    EXPECT_STREQ(emp_iter->name_first(), emp_name)
         << "The class member derefence operator (->) must be implemented.";
-}
-*/
+}*/
