@@ -3,8 +3,9 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <iostream>
 #include <cstdlib>
+#include <iostream>
+#include <string>
 
 #include "gtest/gtest.h"
 #include "gaia_addr_book.h"
@@ -94,19 +95,35 @@ TEST_F(gaia_iterator_test, lvalue_dereferenceable) {
         << "The iterator is not dereferenceable as an lvalue with the "
         "expected effects.";
 }
-/*
+
 // Are iterator lvalues pre-incrementable?
 TEST_F(gaia_iterator_test, lvalue_incrementable) {
-    // This test can only fail in compile time or by segfault.
-    begin_transaction();
-    auto emp = new employee_t();
-    emp->insert_row();
+    const int loops = 10;
+    auto_transaction_t tx;
 
-    gaia_iterator_t<employee_t*> iter(emp);
-    ++iter = nullptr;
+    auto emp_writer = employee_writer();
+    for (int i = 0; i < loops; i++)
+    {
+        string name_str = std::to_string(i);
+        const char* emp_name = name_str.c_str();
 
-    emp->delete_row();
-    commit_transaction();
+        emp_writer.name_first = emp_name;
+        emp_writer.insert_row();
+    }
+    tx.commit();
+
+    gaia_iterator_t<employee_t> emp_iter = employee_t::list().begin();
+    for(int i = 0; i < loops; i++)
+    {
+        string name_str = std::to_string(i);
+        const char* emp_name = name_str.c_str();
+
+        ASSERT_STREQ((*emp_iter).name_first(), emp_name)
+            << "The iterator is not dereferenceable as an lvalue with the "
+            "expected effects.";
+        ++emp_iter;
+    }
+    ++emp_iter;
 }
 
 // Test LegacyInputIterator conformance
@@ -114,27 +131,41 @@ TEST_F(gaia_iterator_test, lvalue_incrementable) {
 
 // Is the iterator EqualityComparable?
 TEST_F(gaia_iterator_test, equality_comparable) {
-    begin_transaction();
-    auto emp = new employee_t();
-    emp-> insert_row();
+    const char* emp_name_0 = "Employee0";
+    const char* emp_name_1 = "Employee1";
+    const char* emp_name_2 = "Employee2";
 
-    gaia_iterator_t<employee_t*> a(emp);
-    gaia_iterator_t<employee_t*> b(emp);
-    gaia_iterator_t<employee_t*> c(emp);
+    auto_transaction_t tx;
+    auto emp_writer = employee_writer();
 
-    // always: a == a
+    emp_writer.name_first = emp_name_0;
+    emp_writer.insert_row();
+    emp_writer.name_first = emp_name_1;
+    emp_writer.insert_row();
+    emp_writer.name_first = emp_name_2;
+    emp_writer.insert_row();
+
+    tx.commit();
+
+    gaia_iterator_t<employee_t> a = employee_t::list().begin();
+    gaia_iterator_t<employee_t> b = employee_t::list().begin();
+    gaia_iterator_t<employee_t> c = employee_t::list().begin();
+
+    // a == a is always true.
     EXPECT_TRUE(a == a);
-
-    // if a == b then b == a
+    // If a == b then b == a.
     EXPECT_TRUE((a == b) && (b == a));
-
-    // if a == b and b == c then a == c
+    // If a == b and b == c then a == c.
     EXPECT_TRUE((a == b) && (b == c) && (a == c));
 
-    emp->delete_row();
-    commit_transaction();
-}
+    ++b;
+    c = employee_t::list().end();
 
+    EXPECT_FALSE(a == b);
+    EXPECT_FALSE(b == c);
+    EXPECT_FALSE(a == c);
+}
+/*
 // Does the iterator support the not-equal (!=) operator?
 TEST_F(gaia_iterator_test, not_equal) {
     employee_t emp1;
