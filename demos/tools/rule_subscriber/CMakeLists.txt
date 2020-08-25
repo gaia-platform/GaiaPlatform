@@ -14,9 +14,8 @@ list(APPEND CMAKE_MODULE_PATH
   ${LLVM_LIB_PATH}/lib/cmake/llvm
  )
 
-set(CMAKE_CXX_FLAGS
-      "-std=c++0x -Wall -Wextra -ggdb -Wno-unused-parameter -fno-rtti -DLLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING=1")
-set(CMAKE_EXE_LINKER_FLAGS "-ggdb -pthread")
+
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 
 add_executable(rule_subscriber RuleSubscriber.cpp)
 
@@ -57,7 +56,14 @@ set(RULE_SUBSCRIBER_INCLUDES
   ${GAIA_REPO}/production/inc/public/rules
   ${GAIA_REPO}/production/inc/internal/rules
   ${GAIA_REPO}/production/inc/internal/common
-  ${GAIA_REPO}/production/db/storage_engine/mock
+  ${GAIA_REPO}/production/inc/internal/catalog
+  ${GAIA_REPO}/production/catalog/catalog_manager/inc
+  ${GAIA_REPO}/production/inc/public/catalog
+  ${GAIA_REPO}/production/inc/internal/common
+  ${GAIA_REPO}/production/inc/internal/db
+  ${GAIA_REPO}/production/inc/public/db
+  
+
   ${GENERATED_OUTPUTS}
 )
 

@@ -506,7 +506,7 @@ NavigationCodeData generateNavigationCode(string anchorTable)
                 }
                 else
                 {
-                    retVal.prefix += "auto " + table + " = " + anchorTable + "." + linkingField + "_" + table + "());\n";    
+                    retVal.prefix += "auto " + table + " = " + anchorTable + "." + linkingField + "_" + table + "();\n";    
                 }
                 
             }
@@ -562,20 +562,16 @@ void generateRules(Rewriter &rewriter)
         commonSubscriptionCode = "rule_binding_t " + ruleName + "binding(" +
             "\"" + curRuleset + "\",\"" + ruleName + "\"," + curRuleset + "::" + ruleName + ");\n";
         fieldSubscriptionCode =  "field_position_list_t fields_" + ruleName + ";\n";
-
-        auto fields = field_Data[table];
-        for (auto field : fd.second)
+     
+        if (fd.second.find("LastOperation") != fd.second.end())
         {
-            bool isLastOperation = field == "LastOperation";
-            if (!containsLastOperation && isLastOperation )
-            {
-                containsLastOperation = true;
-            }
-            if (!containsFields && !isLastOperation)
-            {
-                containsFields = true;
-            }
-            if (!isLastOperation)
+            containsLastOperation = true;
+        }
+        else
+        {   
+            auto fields = field_Data[table];
+            containsFields = !fd.second.empty();
+            for (auto field : fd.second)
             {
                 if (fields.find(field) == fields.end())
                 {

@@ -4,6 +4,8 @@ project(ASTCodeGenerator VERSION 0.0.0)
 
 include(${CMAKE_BINARY_DIR}/../../../../production/cmake/gaia.cmake)
 
+include(GoogleTest)
+
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 
 
@@ -18,14 +20,33 @@ include_directories(
   ${CMAKE_BINARY_DIR}/../../../../production/inc/internal/common
   ${CMAKE_BINARY_DIR}/../../../../production/inc/internal/db
   ${CMAKE_BINARY_DIR}/../../../../production/inc/public/db
-  ${CMAKE_BINARY_DIR}/../../../..//third_party/production/flatbuffers/include
-  ${CMAKE_BINARY_DIR}/../../../..//production/db/storage_engine/mock
+  ${CMAKE_BINARY_DIR}/../../../../third_party/production/flatbuffers/include 
 )
+
+
+set(TRANSLATION_ENGINE_INCLUDES
+  ${CMAKE_BINARY_DIR}/../../../../production/inc/internal/catalog
+  ${CMAKE_BINARY_DIR}/../../../../production/catalog/catalog_manager/inc
+  ${CMAKE_BINARY_DIR}/../../../../production/inc/public/common
+  ${CMAKE_BINARY_DIR}/../../../../production/inc/public/catalog
+  ${CMAKE_BINARY_DIR}/../../../../production/inc/public/direct_access
+  ${CMAKE_BINARY_DIR}/../../../../production/inc/internal/common
+  ${CMAKE_BINARY_DIR}/../../../../production/inc/internal/db
+  ${CMAKE_BINARY_DIR}/../../../../production/inc/public/db
+  ${CMAKE_BINARY_DIR}/../../../../third_party/production/flatbuffers/include
+  ${CMAKE_BINARY_DIR}/../../../../third_party/production/googletest/googletest/include
+  ${CMAKE_BINARY_DIR}/../../../../production/inc/public/rules
+  ${CMAKE_BINARY_DIR}/../../../../production/catalog/parser/inc
+  ${CMAKE_BINARY_DIR}/../../../../production/build/catalog/parser/generated
+  
+)
+
 set(ASTGENERATOR_DEMO_SRCS
   ../demo.cpp
   )
 
 link_directories(
+  ${CMAKE_BINARY_DIR}/../../../../production/build/lib
   ${CMAKE_BINARY_DIR}/../../../../../../TranslationEngineLLVM/TranslationEngineLLVM/build/lib
 )
 
@@ -224,5 +245,17 @@ set_target_properties(gaia_direct PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD
 
 add_library(gaia_types STATIC IMPORTED GLOBAL)
 set_target_properties(gaia_types PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/db/types/libgaia_types.a)
+
+add_library(gaia_rules STATIC IMPORTED GLOBAL)
+set_target_properties(gaia_rules PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/rules/event_manager/libgaia_rules.a)
+
+add_library(gaia_parser SHARED IMPORTED GLOBAL)
+set_target_properties(gaia_parser PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/catalog/parser/libgaia_parser.a)
+
+
+add_gtest(test_translation_engine 
+  "test_translation_engine.cpp;test.cpp" 
+  "${TRANSLATION_ENGINE_INCLUDES}" 
+  "rt;gaia_se_client;gaia_rules;gaia_direct;gaia_types;gaia_common;gaia_catalog;gaia_parser;flatbuffers;explain")
 
 
