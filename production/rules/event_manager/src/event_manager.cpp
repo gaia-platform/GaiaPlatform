@@ -8,7 +8,6 @@
 #include "gaia_db_internal.hpp"
 #include "events.hpp"
 #include "triggers.hpp"
-#include "PerfTimer.h"
 
 #include <cstring>
 #include <variant>
@@ -18,8 +17,6 @@ using namespace gaia::rules;
 using namespace gaia::common;
 using namespace gaia::db::triggers;
 using namespace std;
-
-bool PerfTimer::s_enabled = true;
 
 /**
  * Class implementation
@@ -126,57 +123,55 @@ bool event_manager_t::process_field_events(event_binding_t& binding, const trigg
 
 void event_manager_t::commit_trigger(uint64_t, const trigger_event_list_t& trigger_event_list)
 {
-        PerfTimer timer("commit_trigger time:", [&]() {
-        if (trigger_event_list.size() == 0)
+    if (trigger_event_list.size() == 0)
+    {
+        return;
+    }
+
+    // TODO[GAIAPLAT-308]: Event logging is only half the story. We
+    // also need to do rule logging and the correlate the event instance
+    // to the rules that it causes to fire.  This will then remove the
+    // bool 'rule_invoked' flag.
+    vector<bool> rules_invoked_list;
+
+    for (size_t i = 0; i < trigger_event_list.size(); ++i)
+    {
+        const trigger_event_t& event = trigger_event_list[i];
+        bool rules_invoked = false;
+
+        auto type_it = m_subscriptions.find(event.gaia_type);
+        if (type_it != m_subscriptions.end())
         {
-            return;
-        }
+            events_map_t& events = type_it->second;
+            auto event_it = events.find(event.event_type);
 
-        // TODO[GAIAPLAT-308]: Event logging is only half the story. We
-        // also need to do rule logging and the correlate the event instance
-        // to the rules that it causes to fire.  This will then remove the
-        // bool 'rule_invoked' flag.
-        vector<bool> rules_invoked_list;
-
-        for (size_t i = 0; i < trigger_event_list.size(); ++i)
-        {
-            const trigger_event_t& event = trigger_event_list[i];
-            bool rules_invoked = false;
-
-            auto type_it = m_subscriptions.find(event.gaia_type);
-            if (type_it != m_subscriptions.end())
+            if (event_it != events.end())
             {
-                events_map_t& events = type_it->second;
-                auto event_it = events.find(event.event_type);
+                // At least one rule is bound to this specific event.
+                // The rule may be bound at the table level via the system
+                // LastOperation field or at the column level by referencing
+                // an active field in the rule body.
+                event_binding_t& binding = event_it->second;
 
-                if (event_it != events.end())
+                // Once rules_invoked is true, we keep it there to mean
+                // that any rule was subscribed to this event.
+                if (process_last_operation_events(binding, event))
                 {
-                    // At least one rule is bound to this specific event.
-                    // The rule may be bound at the table level via the system
-                    // LastOperation field or at the column level by referencing
-                    // an active field in the rule body.
-                    event_binding_t& binding = event_it->second;
+                    rules_invoked = true;
+                }
 
-                    // Once rules_invoked is true, we keep it there to mean
-                    // that any rule was subscribed to this event.
-                    if (process_last_operation_events(binding, event))
-                    {
-                        rules_invoked = true;
-                    }
-
-                    if (process_field_events(binding, event))
-                    {
-                        rules_invoked = true;
-                    }
+                if (process_field_events(binding, event))
+                {
+                    rules_invoked = true;
                 }
             }
-            rules_invoked_list.push_back(rules_invoked);
         }
+        rules_invoked_list.push_back(rules_invoked);
+    }
 
-        // Enqueue a task to log all the events in this commit_trigger in a
-        // separate thread in a new transaction.
-        enqueue_invocation(trigger_event_list, rules_invoked_list);
-    });
+    // Enqueue a task to log all the events in this commit_trigger in a
+    // separate thread in a new transaction.
+    enqueue_invocation(trigger_event_list, rules_invoked_list);
 }
 
 void event_manager_t::enqueue_invocation(const trigger_event_list_t& events,
