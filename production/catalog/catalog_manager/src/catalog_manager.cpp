@@ -399,18 +399,16 @@ gaia_id_t catalog_manager_t::create_table_impl(
             position = field_position++;
         }
         gaia_id_t field_id = gaia_field_t::insert_row(
-            field->name.c_str(), // name
-            //table_id,                          // table_id
+            field->name.c_str(),               // name
             static_cast<uint8_t>(field->type), // type
-            //field_type_id,                     // type_id
-            field->length, // repeated_count
-            position,      // position
-            true,          // required
-            false,         // deprecated
-            field->active, // active
-            true,          // nullable
-            false,         // has_default
-            ""             // default value
+            field->length,                     // repeated_count
+            position,                          // position
+            true,                              // required
+            false,                             // deprecated
+            field->active,                     // active
+            true,                              // nullable
+            false,                             // has_default
+            ""                                 // default value
         );
         // Connect the field to the table it belongs to.
         gaia_table_t::get(table_id).gaia_field_list().insert(field_id);
