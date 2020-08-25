@@ -13,7 +13,6 @@
 #include "flatbuffers/reflection.h"
 #include "gaia_common.hpp"
 
-#include <types.hpp>
 #include <synchronization.hpp>
 
 using namespace gaia::common;

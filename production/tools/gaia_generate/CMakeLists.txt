@@ -18,10 +18,10 @@ set(GAIA_GENERATE_INCLUDES
   ${GAIA_INC}/public/common
   ${GAIA_INC}/public/direct_access
   ${GAIA_INC}/public/catalog
+  ${GAIA_INC}/internal/catalog
   ${GAIA_INC}/public/db
   ${GAIA_INC}/internal/db
   ${CMAKE_CURRENT_SOURCE_DIR}/inc
-  ${GAIA_CATALOG_GENERATED}
 )
 message(STATUS "GAIA_GENERATE_INCLUDES=${GAIA_GENERATE_INCLUDES}")
 
@@ -31,4 +31,9 @@ target_link_libraries(gaia_generate PRIVATE rt gaia_catalog gaia_parser)
 set_target_properties(gaia_generate PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaia_generate PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 
-add_gtest(test_gaia_generate "tests/test_gaia_generate.cpp" "${GAIA_GENERATE_INCLUDES}" "rt;gaia;gaia_catalog;gaia_parser")
+add_gtest(test_gaia_generate
+  "tests/test_gaia_generate.cpp"
+  "${GAIA_GENERATE_INCLUDES};${GAIA_GENERATED_SCHEMAS}"
+  "rt;gaia;gaia_catalog;gaia_parser"
+  "generate_airport_headers" ""
+  "AIRPORT_DDL_FILE=${GAIA_REPO}/production/schemas/test/airport/airport.ddl")

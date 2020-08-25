@@ -6,6 +6,7 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 
 namespace gaia {
 /**
@@ -42,6 +43,16 @@ typedef uint64_t gaia_xid_t;
  * The type of a Gaia event type.
  */
 typedef uint8_t gaia_event_t;
+
+/**
+ * The position of a field in a Gaia table.
+ */ 
+typedef uint16_t field_position_t;
+
+/**
+ * List of field positions.
+ */ 
+typedef std::vector<field_position_t> field_position_list_t;
 
 }  // namespace common
 /*@}*/

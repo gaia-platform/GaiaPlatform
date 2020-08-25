@@ -12,12 +12,12 @@
 #include "gaia_system.hpp"
 #include "gaia_db.hpp"
 #include "db_test_base.hpp"
-#include "gaia_addr_book_db.h"
+#include "gaia_addr_book.h"
 
 using namespace std;
 using namespace gaia::db;
 using namespace gaia::common;
-using namespace gaia::addr_book_db;
+using namespace gaia::addr_book;
 
 // Write 16 records in a single transaction.
 size_t load_batch_size = 16;

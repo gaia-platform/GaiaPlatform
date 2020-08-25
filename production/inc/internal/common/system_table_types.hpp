@@ -21,16 +21,16 @@ enum class catalog_table_type_t : gaia_type_t {
     gaia_table = gaia_field - 1,
     gaia_rule = gaia_table - 1,
     gaia_ruleset = gaia_rule - 1,
+    gaia_database = gaia_ruleset - 1,
 };
 
 enum class system_table_type_t : gaia_type_t {
-    catalog_table_type = static_cast<gaia_type_t>(catalog_table_type_t::gaia_table),
-    catalog_field_type = static_cast<gaia_type_t>(catalog_table_type_t::gaia_field),
-    catalog_ruleset_type = static_cast<gaia_type_t>(catalog_table_type_t::gaia_ruleset),
-    catalog_rule_type = static_cast<gaia_type_t>(catalog_table_type_t::gaia_rule),
-    // TODO: assign constant IDs to other system tables starting from lower end of the reserved range, i.e.
-    //       event_log_type = c_system_table_reserved_range_start,
-    event_log_type = 30,
+    catalog_gaia_table = static_cast<gaia_type_t>(catalog_table_type_t::gaia_table),
+    catalog_gaia_field = static_cast<gaia_type_t>(catalog_table_type_t::gaia_field),
+    catalog_gaia_ruleset = static_cast<gaia_type_t>(catalog_table_type_t::gaia_ruleset),
+    catalog_gaia_rule = static_cast<gaia_type_t>(catalog_table_type_t::gaia_rule),
+    // Assign constant IDs to other system tables starting from lower end of the reserved range.
+    event_log = c_system_table_reserved_range_start,
 };
 
 } // namespace common

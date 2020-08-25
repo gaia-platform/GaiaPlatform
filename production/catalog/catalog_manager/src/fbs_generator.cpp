@@ -153,7 +153,11 @@ static string get_data_type_name(data_type_t data_type) {
     }
 }
 
-static string generate_field_fbs(const string &name, const string &type, int count) {
+static string generate_fbs_namespace(const string &dbname) {
+    return "namespace " + c_gaia_namespace + (dbname.empty() ? "" : "." + dbname) + ";\n";
+}
+
+static string generate_fbs_field(const string &name, const string &type, int count) {
     if (count == 1) {
         return name + ":" + type;
     } else if (count == 0) {
@@ -163,10 +167,10 @@ static string generate_field_fbs(const string &name, const string &type, int cou
     }
 }
 
-static string generate_field_fbs(const gaia_field_t &field) {
+static string generate_fbs_field(const gaia_field_t &field) {
     string name{field.name()};
     string type{get_data_type_name(static_cast<data_type_t>(field.type()))};
-    return generate_field_fbs(name, type, field.repeated_count());
+    return generate_fbs_field(name, type, field.repeated_count());
 }
 
 /**
@@ -184,7 +188,7 @@ string generate_fbs(gaia_id_t table_id) {
     fbs += "table " + table_name + "{\n";
     for (gaia_id_t field_id : list_fields(table_id)) {
         gaia_field_t field = gaia_field_t::get(field_id);
-        fbs += "\t" + generate_field_fbs(field) + ";\n";
+        fbs += "\t" + generate_fbs_field(field) + ";\n";
     }
     fbs += "}\n";
     fbs += "root_type " + table_name + ";";
@@ -192,15 +196,18 @@ string generate_fbs(gaia_id_t table_id) {
     return fbs;
 }
 
-string generate_fbs() {
-    string fbs;
+string generate_fbs(const string &dbname) {
+    gaia_id_t db_id = find_db_id(dbname);
+    if (db_id == INVALID_GAIA_ID) {
+        throw db_not_exists(dbname);
+    }
+    string fbs = generate_fbs_namespace(dbname);
     gaia::db::begin_transaction();
-    for (gaia_id_t table_id : list_tables()) {
-        gaia_table_t table = gaia_table_t::get(table_id);
+    for (auto table : gaia_database_t::get(db_id).gaia_table_list()) {
         fbs += "table " + string(table.name()) + "{\n";
-        for (gaia_id_t field_id : list_fields(table_id)) {
+        for (gaia_id_t field_id : list_fields(table.gaia_id())) {
             gaia_field_t field = gaia_field_t::get(field_id);
-            fbs += "\t" + generate_field_fbs(field) + ";\n";
+            fbs += "\t" + generate_fbs_field(field) + ";\n";
         }
         fbs += "}\n\n";
     }
@@ -208,14 +215,14 @@ string generate_fbs() {
     return fbs;
 }
 
-string generate_fbs(const string &table_name, const ddl::field_def_list_t &fields) {
-    string fbs;
+string generate_fbs(const string &db_name, const string &table_name, const ddl::field_def_list_t &fields) {
+    string fbs = generate_fbs_namespace(db_name);
     fbs += "table " + table_name + "{";
     for (auto &field : fields) {
         if (field->type == data_type_t::e_references) {
             continue;
         }
-        string field_fbs = generate_field_fbs(
+        string field_fbs = generate_fbs_field(
             field->name,
             get_data_type_name(field->type),
             field->length);

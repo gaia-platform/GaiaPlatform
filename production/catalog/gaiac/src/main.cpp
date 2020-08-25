@@ -12,6 +12,7 @@
 #include "flatbuffers/idl.h"
 
 #include "catalog_manager.hpp"
+#include "gaia_catalog_internal.hpp"
 #include "gaia_parser.hpp"
 #include "gaia_system.hpp"
 #include "gaia_db.hpp"
@@ -21,56 +22,56 @@ using namespace std;
 using namespace gaia::catalog;
 using namespace gaia::catalog::ddl;
 
-void execute(vector<unique_ptr<statement_t>> &statements) {
-    for (auto &stmt : statements) {
-        if (stmt->is_type(statement_type_t::create)) {
-            auto create_stmt = dynamic_cast<create_statement_t *>(stmt.get());
-            if (create_stmt->type == create_type_t::create_table) {
-                gaia::catalog::create_table(create_stmt->name, create_stmt->fields);
-            }
-        } else if (stmt->is_type(statement_type_t::drop)) {
-            auto drop_stmt = dynamic_cast<drop_statement_t *>(stmt.get());
-            if (drop_stmt->type == drop_type_t::drop_table) {
-                gaia::catalog::drop_table(drop_stmt->name);
-            }
-        }
-    }
-}
+static const string c_error_prompt = "ERROR: ";
+static const string c_warning_prompt = "WARNING: ";
 
-void start_repl(parser_t &parser) {
+enum class operate_mode_t {
+    interactive,
+    generation,
+    loading,
+};
+
+void start_repl(parser_t &parser, const string &dbname) {
+    gaia::db::begin_session();
+
     const auto prompt = "gaiac> ";
+    const auto exit_command = "exit";
 
+    // NOTE: all REPL outputs including error messages go to standarad output.
     while (true) {
         string line;
         cout << prompt << flush;
         if (!getline(cin, line)) {
             break;
         }
-        if (line == "exit") {
+        if (line == exit_command) {
             break;
         }
         int parsing_result = parser.parse_line(line);
         if (parsing_result == EXIT_SUCCESS) {
             try {
-                execute(parser.statements);
-                cout << gaia::catalog::generate_fbs() << flush;
+                execute(dbname, parser.statements);
+                cout << gaia::catalog::generate_fbs(dbname) << flush;
             } catch (gaia_exception &e) {
-                cout << e.what() << endl
+                cout << c_error_prompt << e.what() << endl
                      << flush;
             }
         } else {
-            cout << "Invalid input." << endl
+            cout << c_error_prompt << "Invalid input." << endl
                  << flush;
         }
     }
+
+    gaia::db::end_session();
 }
 
 namespace flatbuffers {
 void LogCompilerWarn(const std::string &warn) {
-    cout << "warn: " << warn << endl;
+    cerr << c_warning_prompt << warn << endl;
 }
+
 void LogCompilerError(const std::string &err) {
-    cout << "error: " << err << endl;
+    cerr << c_warning_prompt << err << endl;
 }
 } // namespace flatbuffers
 
@@ -83,21 +84,22 @@ void generate_fbs_headers(const string &db_name, const string &output_path) {
 
     flatbuffers::Parser fbs_parser(fbs_opts);
 
-    string fbs_schema = "namespace gaia." + db_name + ";\n" +
-                        gaia::catalog::generate_fbs();
+    string fbs_schema = gaia::catalog::generate_fbs(db_name);
     if (!fbs_parser.Parse(fbs_schema.c_str())) {
-        cerr << "Fail to parse the catalog generated FlatBuffers schema. Error: "
+        cerr << c_error_prompt
+             << "Fail to parse the catalog generated FlatBuffers schema. Error: "
              << fbs_parser.error_ << endl;
     }
 
     if (!flatbuffers::GenerateCPP(fbs_parser, output_path, db_name)) {
-        cerr << "Unable to generate FlatBuffers C++ headers for " << db_name << endl;
+        cerr << c_error_prompt
+             << "Unable to generate FlatBuffers C++ headers for " << db_name << endl;
     };
 }
 
 // From the database name and catalog contents, generate the Extended Data Class definition(s).
 void generate_edc_headers(const string &db_name, const string &output_path) {
-    ofstream edc(output_path + "gaia_" + db_name + ".h");
+    ofstream edc(output_path + "gaia" + (db_name.empty() ? "" : "_" + db_name) + ".h");
     edc << gaia::catalog::gaia_generate(db_name) << endl;
     edc.close();
 }
@@ -107,74 +109,148 @@ void generate_headers(const string &db_name, const string &output_path) {
     generate_edc_headers(db_name, output_path);
 }
 
+// Add a trailing '/' if not provided.
+void terminate_path(string &path) {
+    if (path.back() != '/') {
+        path.append("/");
+    }
+}
+
+// // Temporary start server (taken and modified from db_test_helpers)
+// // Use case is always to call start() followed by stop().
+// class db_server_t {
+//   public:
+//     void start(const char *db_server_path) {
+//         set_path(db_server_path);
+//         stop();
+
+//         // Launch SE server in background.
+//         string cmd = m_server_path + " &";
+//         cerr << cmd << endl;
+//         ::system(cmd.c_str());
+
+//         // Wait for server to initialize.
+//         cerr << "Waiting for server to initialize..." << endl;
+//         ::sleep(1);
+//         m_server_started = true;
+//     }
+
+//     void stop() {
+//         // Try to kill the SE server process.
+//         // REVIEW: we should be using a proper process library for this, so we can kill by PID.
+//         string cmd = "pkill -f -KILL ";
+//         cmd.append(m_server_path.c_str());
+//         cerr << cmd << endl;
+//         ::system(cmd.c_str());
+//     }
+
+//     bool server_started() {
+//         return m_server_started;
+//     }
+
+//   private:
+//     void set_path(const char *db_server_path) {
+//         if (!db_server_path) {
+//             m_server_path = gaia::db::SE_SERVER_NAME;
+//         } else {
+//             m_server_path = db_server_path;
+//             terminate_path(m_server_path);
+//             m_server_path.append(gaia::db::SE_SERVER_NAME);
+//         }
+//     }
+
+//     string m_server_path;
+//     bool m_server_started = false;
+// };
+
+string usage() {
+    std::stringstream ss;
+    ss << "Usage: gaiac [options] [ddl_file]\n\n"
+          "  -p          Print parsing trace.\n"
+          "  -s          Print scanning trace.\n"
+          "  -d <dbname> Set the databse name.\n"
+          "  -i          Interactive prompt, as a REPL.\n"
+          "  -g          Generate fbs and gaia headers.\n"
+          "  -o <path>   Set the path to all generated files.\n"
+          "  -t          Start the SE server (for testing purposes).\n"
+          "  -h          Print help information.\n"
+          "  <ddl_file>  Process the DDLs in the file.\n"
+          "              In the absence of <dbname>, the ddl file basename will be used as the database name.\n"
+          "              The database will be created automatically.\n";
+    return ss.str();
+}
+
 int main(int argc, char *argv[]) {
-    int res = 0;
-    parser_t parser;
-    bool gen_catalog = true;
+    int res = EXIT_SUCCESS;
     db_server_t server;
     string output_path;
-    try {
-        for (int i = 1; i < argc; ++i) {
-            if (argv[i] == string("-p")) {
-                parser.trace_parsing = true;
-            } else if (argv[i] == string("-s")) {
-                parser.trace_scanning = true;
-            } else if (argv[i] == string("-i")) {
-                gaia::db::begin_session();
-                gaia::catalog::initialize_catalog();
-                start_repl(parser);
-                gen_catalog = false;
-                gaia::db::end_session();
-            } else if (argv[i] == string("-t")) {
-                // Note the order dependency.
-                // Require a path right after this
-                ++i;
-                const char *path_to_db_server = argv[i];
-                string cmd = "rm -rf /tmp/db";
-                cerr << cmd << endl;
-                ::system(cmd.c_str());
-                server.start(path_to_db_server);
-            } else if (argv[i] == string("-o")) {
-                ++i;
-                output_path = argv[i];
-                db_server_t::terminate_path(output_path);
-            } else {
-                if (!parser.parse(argv[i])) {
-                    gaia::db::begin_session();
-                    gaia::catalog::initialize_catalog();
-                    execute(parser.statements);
-                    // Strip off the path and any suffix to get database name.
-                    string db_name = string(argv[i]);
-                    if (db_name.find("/") != string::npos) {
-                        db_name = db_name.substr(db_name.find_last_of("/") + 1);
-                    }
-                    if (db_name.find(".") != string::npos) {
-                        db_name = db_name.substr(0, db_name.find_last_of("."));
-                    }
+    string db_name;
+    string ddl_filename;
+    operate_mode_t mode = operate_mode_t::loading;
+    parser_t parser;
 
-                    generate_headers(db_name, output_path);
-                    gaia::db::end_session();
-
-                } else {
-                    res = EXIT_FAILURE;
-                }
-                gen_catalog = false;
+    for (int i = 1; i < argc; ++i) {
+        if (argv[i] == string("-p")) {
+            parser.trace_parsing = true;
+        } else if (argv[i] == string("-s")) {
+            parser.trace_scanning = true;
+        } else if (argv[i] == string("-i")) {
+            mode = operate_mode_t::interactive;
+        } else if (argv[i] == string("-g")) {
+            mode = operate_mode_t::generation;
+        } else if (argv[i] == string("-t")) {
+            if (++i > argc) {
+                cerr << c_error_prompt << "Missing path to db server." << endl;
+                exit(EXIT_FAILURE);
             }
+            const char *path_to_db_server = argv[i];
+            server.start(path_to_db_server);
+        } else if (argv[i] == string("-o")) {
+            if (++i > argc) {
+                cerr << c_error_prompt << "Missing path to output directory." << endl;
+                exit(EXIT_FAILURE);
+            }
+            output_path = argv[i];
+            terminate_path(output_path);
+        } else if (argv[i] == string("-d")) {
+            if (++i > argc) {
+                cerr << c_error_prompt << "Missing database name." << endl;
+                exit(EXIT_FAILURE);
+            }
+            db_name = argv[i];
+        } else if (argv[i] == string("-h")) {
+            cout << usage() << endl;
+            exit(EXIT_SUCCESS);
+        } else {
+            ddl_filename = argv[i];
         }
-        if (gen_catalog) {
-            const string empty_path;
-            const string db_name = "catalog";
-            gaia::db::begin_session();
-            gaia::catalog::initialize_catalog();
-            generate_headers(db_name, empty_path);
-            gaia::db::end_session();
-        }
-        if (server.server_started()) {
-            server.stop();
-        }
-    } catch (gaia_exception &e) {
-        cerr << "Caught exception \"" << e.what() << "\". May need to start the storage engine server." << endl;
-        res = 1;
     }
-    return res;
+
+    if (mode == operate_mode_t::interactive) {
+        start_repl(parser, db_name);
+    } else {
+        try {
+            gaia::db::begin_session();
+
+            if (!ddl_filename.empty()) {
+                db_name = load_catalog(parser, ddl_filename, db_name);
+            }
+
+            if (mode == operate_mode_t::generation) {
+                generate_headers(db_name, output_path);
+            }
+            gaia::db::end_session();
+        } catch (gaia_exception &e) {
+            cerr << c_error_prompt << e.what() << endl;
+            if (string(e.what()).find("connect failed") != string::npos) {
+                cerr << "May need to start the storage engine server." << endl;
+            }
+            res = EXIT_FAILURE;
+        }
+    }
+    if (server.server_started()) {
+        server.stop();
+    }
+
+    exit(res);
 }
