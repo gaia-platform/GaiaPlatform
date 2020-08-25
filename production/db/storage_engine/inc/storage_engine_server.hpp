@@ -528,10 +528,12 @@ class server : private se_base {
         std::set<int64_t> row_ids;
 
         rocksdb::Transaction* trx = rdb->begin_tx(s_transaction_id);
-        
         // Prepare tx
         rocksdb::Status s = rdb->prepare_tx(trx);
-        assert(s.ok());
+        if (!s.ok()) {
+            throw_system_error(s.getState());
+        }
+        // assert(s.ok());
         
         for (auto i = 0; i < s_log->count; i++) {
             auto lr = s_log->log_records + i;

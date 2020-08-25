@@ -42,8 +42,18 @@ class rdb_internal
             if (!options.sync) {
                 options.sync = true;
             }
+            
+            auto now = std::chrono::system_clock::now();
+            auto duration = now.time_since_epoch();
+            auto nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(duration);
+            std::stringstream rdb_transaction_name;
+            rdb_transaction_name << trid << "." << nanoseconds.count();
+
             rocksdb::Transaction* trx = m_txn_db->BeginTransaction(options, txnOpts);
-            trx->SetName(std::to_string(trid));
+            rocksdb::Status s = trx->SetName(rdb_transaction_name.str());
+            if (!s.ok()) {
+                assert(false);
+            }
             return trx;
         }
 

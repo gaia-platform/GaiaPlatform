@@ -122,6 +122,7 @@ Status rdb_wrapper::prepare_tx(rocksdb::Transaction* trx) {
             string_writer key; 
             key.write_uint64(lr->id);
             trx->Delete(key.to_slice());
+            cout << "ID that was deleted: " << lr->id << endl << flush;
         } else {
             string_writer key; 
             string_writer value;
@@ -129,6 +130,7 @@ Status rdb_wrapper::prepare_tx(rocksdb::Transaction* trx) {
 
             if (!gaia_object) {
                 // Object was deleted in current transaction.
+                cout << "Operation that was skipped: operation; id " << lr->operation << ":" << lr->id << endl << flush;
                 continue;
             }
 
@@ -143,8 +145,8 @@ Status rdb_wrapper::prepare_tx(rocksdb::Transaction* trx) {
     }
 
     // Ensure that keys were inserted into the RocksDB transaction object.
-    // cout << "Server log count:trx_keys " << s_log->count << ":" << trx->GetNumKeys() << endl << flush;
-    assert(trx->GetNumKeys() == s_log->count);
+    cout << "Server log count:trx_keys " << s_log->count << ":" << trx->GetNumKeys() << endl << flush;
+    //assert(trx->GetNumPuts() +  trx->GetNumDeletes() == s_log->count);
 
     return rdb_internal->prepare_txn(trx);
 }
