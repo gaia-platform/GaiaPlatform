@@ -35,5 +35,5 @@ add_gtest(test_gaia_generate
   "tests/test_gaia_generate.cpp"
   "${GAIA_GENERATE_INCLUDES};${GAIA_GENERATED_SCHEMAS}"
   "rt;gaia;gaia_catalog;gaia_parser"
-  "generate_airport_headers"
+  "generate_airport_headers" ""
   "AIRPORT_DDL_FILE=${GAIA_REPO}/production/schemas/test/airport/airport.ddl")
