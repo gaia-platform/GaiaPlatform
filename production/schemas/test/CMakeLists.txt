@@ -9,3 +9,4 @@ cmake_minimum_required(VERSION 3.12)
 project(test_schemas)
 
 add_subdirectory(addr_book)
+add_subdirectory(airport)

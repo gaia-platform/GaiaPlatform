@@ -1,7 +1,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 import os
-from typing import Awaitable, Callable, Iterable, Union
+from typing import Awaitable, Callable, Iterable, Mapping, Union
 
 from gdev.custom.pathlib import Path
 from gdev.dependency import Dependency
@@ -56,51 +56,78 @@ class GenAbcBuild(Dependency, ABC):
         return await self._execute(command=command, err_ok=err_ok, fn=Host.execute_and_get_line)
 
     @memoize
-    async def get_git_hash(self) -> str:
-        git_hash = await Host.execute_and_get_line('git rev-parse HEAD')
+    async def get_actual_git_hash(self) -> str:
+        actual_git_hash = await self._get_actual_label_value('GitHash')
 
-        self.log.debug(f'{git_hash = }')
+        self.log.debug(f'{actual_git_hash = }')
 
-        return git_hash
+        return actual_git_hash
 
     @memoize
-    async def get_image_git_hash(self) -> str:
+    async def _get_actual_label_value(self, name: str) -> str:
         if (line := await Host.execute_and_get_line(
                 f'docker image inspect'
-                ' --format="{{.Config.Labels.GitHash}}"'
+                f' --format="{{{{.Config.Labels.{name}}}}}"'
                 f' {await self.get_tag()}'
         )) == '"<no value>"':
-            image_git_hash = ''
+            value = ''
         else:
-            image_git_hash = line.strip('"')
+            value = line.strip('"')
 
-        self.log.debug(f'{image_git_hash = }')
-
-        return image_git_hash
+        return value
 
     @memoize
-    async def get_image_sha(self) -> str:
+    async def _get_actual_label_value_by_name(self) -> Mapping[str, str]:
+        return {'GitHash': await self._get_actual_label_value(name='GitHash')}
+
+    @memoize
+    async def get_actual_label_value_by_name(self) -> Mapping[str, str]:
+        actual_label_value_by_name = await self._get_actual_label_value_by_name()
+
+        self.log.debug(f'{actual_label_value_by_name = }')
+
+        return actual_label_value_by_name
+
+    @memoize
+    async def get_base_build_names(self) -> Iterable[str]:
+        seen_dockerfiles = set()
+
+        async def inner(dockerfile: GenAbcDockerfile) -> Iterable[str]:
+            build_names = []
+            if dockerfile not in seen_dockerfiles:
+                seen_dockerfiles.add(dockerfile)
+                for input_dockerfile in await dockerfile.get_input_dockerfiles():
+                    build_names += await inner(input_dockerfile)
+                if await dockerfile.get_run_section() or dockerfile is self.dockerfile:
+                    build_names.append(await dockerfile.get_name())
+            return build_names
+
+        base_build_names = tuple(await inner(self.dockerfile))
+
+        self.log.debug(f'{base_build_names = }')
+
+        return base_build_names
+
+    @memoize
+    async def get_sha(self) -> str:
         if lines := await Host.execute_and_get_lines(
-            f'docker image ls -q --no-trunc {await self.get_tag()}'
+                f'docker image ls -q --no-trunc {await self.get_tag()}'
         ):
-            image_sha = next(iter(lines))
+            sha = next(iter(lines))
         else:
-            image_sha = ''
+            sha = ''
 
-        self.log.debug(f'{image_sha = }')
+        self.log.debug(f'{sha = }')
 
-        return image_sha
+        return sha
 
     @memoize
     async def get_tag(self) -> str:
-        name = (
-            f'{await self.dockerfile.get_name()}'
-            f':{await self.get_git_hash() if self.options.upload else "latest"}'
-        )
+        tag = f'{await self.dockerfile.get_name()}:latest'
 
-        self.log.debug(f'{name = }')
+        self.log.debug(f'{tag = }')
 
-        return name
+        return tag
 
     @memoize
     async def get_uncommitted(self) -> str:
@@ -128,11 +155,33 @@ class GenAbcBuild(Dependency, ABC):
         return uncommitted
 
     @memoize
+    async def get_wanted_git_hash(self) -> str:
+        wanted_git_hash = await Host.execute_and_get_line('git rev-parse HEAD')
+
+        self.log.debug(f'{wanted_git_hash = }')
+
+        return wanted_git_hash
+
+    async def _get_wanted_label_value_by_name(self) -> Mapping[str, str]:
+        return {'GitHash': await self.get_wanted_git_hash()}
+
+    @memoize
+    async def get_wanted_label_value_by_name(self) -> Mapping[str, str]:
+        wanted_label_value_by_name = await self._get_wanted_label_value_by_name()
+
+        self.log.debug(f'{wanted_label_value_by_name = }')
+
+        return wanted_label_value_by_name
+
+    @memoize
     async def main(self) -> None:
         if (
                 self.options.force
-                or (not await self.get_image_sha())
-                or (await self.get_git_hash() != await self.get_image_git_hash())
+                or (not await self.get_sha())
+                or (
+                    await self.get_wanted_label_value_by_name()
+                    != await self.get_actual_label_value_by_name()
+                )
         ):
             await self.dockerfile.run()
 
@@ -143,15 +192,27 @@ class GenAbcBuild(Dependency, ABC):
                 f' -f {self.dockerfile.path}'
                 f' -t {await self.get_tag()}'
 
-                f' --label GitHash={await self.get_git_hash()}'
+                f'''{''.join([
+                    f' --label {name}="{value}"'
+                    for name, value
+                    in (await self.get_wanted_label_value_by_name()).items()
+                ])}'''
 
                 # Keep metadata about layers so that they can be used as a cache source.
-                f'{" --build-arg BUILDKIT_INLINE_CACHE=1" if self.options.upload else ""}'
+                f' --build-arg BUILDKIT_INLINE_CACHE=1'
 
                 f' --platform {self.options.platform}'
 
                 # Required to run production.
                 f' --shm-size 1gb'
+
+                # Allow cloning repos with ssh.
+                f' --ssh default'
+
+                f''' --cache-from {','.join([
+                    f'{self.options.registry}/{base_build_name}:latest'
+                    for base_build_name in await self.get_base_build_names()
+                ])}'''
 
                 f' {Path.repo()}'
             )

@@ -61,7 +61,7 @@ template <gaia::db::gaia_type_t T_gaia_type,
 struct gaia_object_t : gaia_base_t
 {
 public:
-    gaia_object_t() = delete;
+    gaia_object_t(const char* gaia_typename);
 
     /**
      * Return a reference that is pre-populated with values from the row

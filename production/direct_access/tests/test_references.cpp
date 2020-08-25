@@ -16,14 +16,6 @@ using namespace gaia::direct_access;
 using namespace gaia::addr_book;
 
 class gaia_references_test : public db_test_base_t {
-protected:
-    void SetUp() override {
-        db_test_base_t::SetUp();
-    }
-
-    void TearDown() override {
-        db_test_base_t::TearDown();
-    }
 };
 
 
@@ -41,18 +33,47 @@ TEST_F(gaia_references_test, connect) {
     aw.city = "Houston";
     address_t a3 = address_t::get(aw.insert_row());
 
-    e3.addresses_list().insert(a3);
+    e3.addressee_address_list().insert(a3);
     int count = 0;
-    for (auto ap : e3.addresses_list()) {
+    for (auto ap : e3.addressee_address_list()) {
         if (ap) {
             count++;
         }
     }
     EXPECT_EQ(count, 1 );
 
-    e3.addresses_list().erase(a3);
+    e3.addressee_address_list().erase(a3);
     a3.delete_row();
     e3.delete_row();
+    commit_transaction();
+}
+
+// Repeat above test, but with gaia_id_t members only.
+TEST_F(gaia_references_test, connect_id_member) {
+    begin_transaction();
+
+    // Connect two inserted rows.
+    employee_writer ew;
+    ew.name_first = "Hidalgo";
+    employee_t e3 = employee_t::get(ew.insert_row());
+
+    address_writer aw;
+    aw.city = "Houston";
+    gaia_id_t aid3 = aw.insert_row();
+
+    e3.addressee_address_list().insert(aid3);
+    int count = 0;
+    for (auto ap : e3.addressee_address_list()) {
+        if (ap) {
+            count++;
+        }
+    }
+    EXPECT_EQ(count, 1 );
+
+    e3.addressee_address_list().erase(aid3);
+    address_t::delete_row(aid3);
+    e3.delete_row();
+    EXPECT_THROW(address_t::delete_row(12), invalid_node_id);
     commit_transaction();
 }
 
@@ -67,14 +88,14 @@ employee_t create_hierarchy() {
         auto aptr = address_t::get(
             address_t::insert_row(addr_string, addr_string, addr_string, addr_string, addr_string, addr_string, true)
         );
-        eptr.addresses_list().insert(aptr);
+        eptr.addressee_address_list().insert(aptr);
         for (int j = 0; j < 20; j++) {
             char phone_string[5];
             sprintf(phone_string, "%d", j);
             auto pptr = phone_t::get(
                     phone_t::insert_row(phone_string, phone_string, true)
             );
-            aptr.phones_list().insert(pptr);
+            aptr.phone_list().insert(pptr);
         }
     }
     return eptr;
@@ -82,9 +103,9 @@ employee_t create_hierarchy() {
 
 int scan_hierarchy(employee_t& eptr) {
     int count = 1;
-    for (auto aptr : eptr.addresses_list()) {
+    for (auto aptr : eptr.addressee_address_list()) {
         ++count;
-        for (auto pptr : aptr.phones_list()) {
+        for (auto pptr : aptr.phone_list()) {
             if (pptr) {
                 ++count;
             }
@@ -96,15 +117,15 @@ int scan_hierarchy(employee_t& eptr) {
 bool bounce_hierarchy(employee_t& eptr) {
     // Take a subset of the hierarchy and travel to the bottom. From the bottom, travel back
     // up, verifying the results on the way.
-    int count_addresses = 0;
-    for (auto aptr : eptr.addresses_list()) {
-        if ((++count_addresses % 30) == 0) {
+    int count_addressee = 0;
+    for (auto aptr : eptr.addressee_address_list()) {
+        if ((++count_addressee % 30) == 0) {
             int count_phones = 0;
-            for (auto pptr : aptr.phones_list()) {
+            for (auto pptr : aptr.phone_list()) {
                 if ((++count_phones % 4) == 0) {
-                    auto up_aptr = pptr.phones();
+                    auto up_aptr = pptr.address();
                     EXPECT_EQ(up_aptr, aptr);
-                    auto up_eptr = up_aptr.addresses();
+                    auto up_eptr = up_aptr.addressee_employee();
                     EXPECT_EQ(up_eptr, eptr);
                 }
             }
@@ -114,31 +135,31 @@ bool bounce_hierarchy(employee_t& eptr) {
 }
 
 bool delete_hierarchy(employee_t& eptr) {
-    int count_addresses = 1;
-    while (count_addresses>=1) {
-        count_addresses = 0;
+    int count_addressee = 1;
+    while (count_addressee>=1) {
+        count_addressee = 0;
         // As long as there is at least one address_t, continue
         address_t* xaptr;
-        for (auto aptr : eptr.addresses_list()) {
-            ++count_addresses;
+        for (auto aptr : eptr.addressee_address_list()) {
+            ++count_addressee;
             xaptr = &aptr;
             // Repeat: delete the last phone until all are deleted
             int count_phones = 1;
             while (count_phones>=1) {
                 count_phones = 0;
                 phone_t* xpptr;
-                for (auto pptr : aptr.phones_list()) {
+                for (auto pptr : aptr.phone_list()) {
                     ++count_phones;
                     xpptr = &pptr;
                 }
                 if (count_phones) {
-                    aptr.phones_list().erase(*xpptr);
+                    aptr.phone_list().erase(*xpptr);
                     xpptr->delete_row();
                 }
             }
         }
-        if (count_addresses) {
-            eptr.addresses_list().erase(*xaptr);
+        if (count_addressee) {
+            eptr.addressee_address_list().erase(*xaptr);
             xaptr->delete_row();
         }
     }
@@ -164,7 +185,7 @@ string first_employee() {
     return name;
 }
 
-int all_addresses() {
+int all_addressee() {
     int count = 0;
     char addr_string[6];
     for (auto address : address_t::list()) {
@@ -208,8 +229,8 @@ TEST_F(gaia_references_test, connect_scan) {
     // Scan through some rows.
     EXPECT_EQ(first_employee(), "Heidi");
 
-    // Scan through all addresses.
-    EXPECT_EQ(all_addresses(), 0);
+    // Scan through all addressee.
+    EXPECT_EQ(all_addressee(), 0);
 
     // Delete the hierarchy, every third record, until it's gone
     EXPECT_EQ(delete_hierarchy(eptr), true);
@@ -218,7 +239,7 @@ TEST_F(gaia_references_test, connect_scan) {
 
 void scan_manages(vector<string>& employee_vector, employee_t& e) {
     employee_vector.push_back(e.name_first());
-    for (auto eptr : e.manages_list()) {
+    for (auto eptr : e.manages_employee_list()) {
         scan_manages(employee_vector, eptr);
     }
 }
@@ -259,12 +280,12 @@ TEST_F(gaia_references_test, recursive_scan) {
     auto e6 = insert_employee(writer, "Hector");
     auto e7 = insert_employee(writer, "Hank");
 
-    e1.manages_list().insert(e2); // Horace to Henry
-    e2.manages_list().insert(e3); //    Henry to Hal
-    e2.manages_list().insert(e4); //    Henry to Hiram
-    e4.manages_list().insert(e5); //       Hiram to Howard
-    e1.manages_list().insert(e6); // Horace to Hector
-    e1.manages_list().insert(e7); // Horace to Hank
+    e1.manages_employee_list().insert(e2); // Horace to Henry
+    e2.manages_employee_list().insert(e3); //    Henry to Hal
+    e2.manages_employee_list().insert(e4); //    Henry to Hiram
+    e4.manages_employee_list().insert(e5); //       Hiram to Howard
+    e1.manages_employee_list().insert(e6); // Horace to Hector
+    e1.manages_employee_list().insert(e7); // Horace to Hank
 
     // Recursive walk through hierarchy
     vector<string> employee_vector;
@@ -309,8 +330,8 @@ TEST_F(gaia_references_test, connect_to_ids) {
     employee_t e1 = employee_t::get(eid1);
     address_t a1 = address_t::get(aid1);
     address_t a2 = address_t::get(aid2);
-    e1.addresses_list().insert(a1);
-    e1.addresses_list().insert(a2);
+    e1.addressee_address_list().insert(a1);
+    e1.addressee_address_list().insert(a2);
 }
 
 // Connect objects created in prior transaction.
@@ -328,9 +349,9 @@ TEST_F(gaia_references_test, connect_after_tx) {
     tx.commit();
 
     // Use the objects from the previous transaction.
-    e1.addresses_list().insert(a1);
-    e1.addresses_list().insert(a2);
-    auto addr = e1.addresses_list().begin();
+    e1.addressee_address_list().insert(a1);
+    e1.addressee_address_list().insert(a2);
+    auto addr = e1.addressee_address_list().begin();
     EXPECT_STREQ((*addr).city(), "Kirkland");
     ++addr;
     EXPECT_STREQ((*addr).city(), "Boulder");
@@ -347,14 +368,14 @@ TEST_F(gaia_references_test, disconnect_after_tx) {
     auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
     auto a2 = insert_address(address_w, "10618 129th Pl. N.E.", "Kirkland");
 
-    e1.addresses_list().insert(a1);
-    e1.addresses_list().insert(a2);
+    e1.addressee_address_list().insert(a1);
+    e1.addressee_address_list().insert(a2);
 
     // In a subsequent transaction, disconnect the objects.
     tx.commit();
 
-    e1.addresses_list().erase(a1);
-    e1.addresses_list().erase(a2);
+    e1.addressee_address_list().erase(a1);
+    e1.addressee_address_list().erase(a2);
 }
 
 // Generate an exception by attempting to insert member twice.
@@ -370,12 +391,12 @@ TEST_F(gaia_references_test, connect_twice) {
     auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
 
     // The second insert is redundant and is treated as a no-op.
-    e1.addresses_list().insert(a1);
-    e1.addresses_list().insert(a1);
+    e1.addressee_address_list().insert(a1);
+    e1.addressee_address_list().insert(a1);
 
     // The third insert is illegal because the address cannot be on the
     // same list of two owners.
-    EXPECT_THROW(e2.addresses_list().insert(a1), edc_already_inserted);
+    EXPECT_THROW(e2.addressee_address_list().insert(a1), edc_already_inserted);
 }
 
 // Generate an exception by attempting to erase un-inserted member.
@@ -389,12 +410,12 @@ TEST_F(gaia_references_test, erase_uninserted) {
     auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
 
     // The erase() should fail.
-    EXPECT_THROW(e1.addresses_list().erase(a1), edc_invalid_member);
+    EXPECT_THROW(e1.addressee_address_list().erase(a1), edc_invalid_member);
 
     // Now insert it, erase, and erase again.
-    e1.addresses_list().insert(a1);
-    e1.addresses_list().erase(a1);
-    EXPECT_THROW(e1.addresses_list().erase(a1), edc_invalid_member);
+    e1.addressee_address_list().insert(a1);
+    e1.addressee_address_list().erase(a1);
+    EXPECT_THROW(e1.addressee_address_list().erase(a1), edc_invalid_member);
 }
 
 // Make sure that erasing a member found in iterator doesn't crash.
@@ -409,29 +430,29 @@ TEST_F(gaia_references_test, erase_in_iterator) {
     auto a2 = insert_address(address_w, "10618 129th Pl. N.E.", "Kirkland");
     auto a3 = insert_address(address_w, "10805 Circle Dr.", "Bothell");
 
-    e1.addresses_list().insert(a1);
-    e1.addresses_list().insert(a2);
-    e1.addresses_list().insert(a3);
+    e1.addressee_address_list().insert(a1);
+    e1.addressee_address_list().insert(a2);
+    e1.addressee_address_list().insert(a3);
 
     // We're happy with it not crashing, even though the list is cut short.
     int count = 0;
-    for (auto a : e1.addresses_list()) {
-        e1.addresses_list().erase(a);
+    for (auto a : e1.addressee_address_list()) {
+        e1.addressee_address_list().erase(a);
         count++;
     }
     EXPECT_EQ(count,1);
 
     // There should be two on the list here, but same behavior.
     count = 0;
-    for (auto a : e1.addresses_list()) {
-        e1.addresses_list().erase(a);
+    for (auto a : e1.addressee_address_list()) {
+        e1.addressee_address_list().erase(a);
         count++;
     }
     EXPECT_EQ(count,1);
 
     // Verify that one member remains.
     count = 0;
-    for (auto a : e1.addresses_list()) {
+    for (auto a : e1.addressee_address_list()) {
         EXPECT_STREQ(a.city(), "Boulder");
         count++;
     }
@@ -450,21 +471,21 @@ TEST_F(gaia_references_test, scan_past_end) {
     auto a2 = insert_address(address_w, "10618 129th Pl. N.E.", "Kirkland");
     auto a3 = insert_address(address_w, "10805 Circle Dr.", "Bothell");
 
-    e1.addresses_list().insert(a1);
-    e1.addresses_list().insert(a2);
-    e1.addresses_list().insert(a3);
+    e1.addressee_address_list().insert(a1);
+    e1.addressee_address_list().insert(a2);
+    e1.addressee_address_list().insert(a3);
 
     int count = 0;
-    auto a = e1.addresses_list().begin();
-    while (a != e1.addresses_list().end()) {
+    auto a = e1.addressee_address_list().begin();
+    while (a != e1.addressee_address_list().end()) {
         count++;
         a++;
     }
     EXPECT_EQ(count,3);
     a++;
-    EXPECT_EQ(a == e1.addresses_list().end(), true);
+    EXPECT_EQ(a == e1.addressee_address_list().end(), true);
     a++;
-    EXPECT_EQ(a == e1.addresses_list().end(), true);
+    EXPECT_EQ(a == e1.addressee_address_list().end(), true);
 }
 
 // Attempt to insert two EDC objects in separate thread.
@@ -474,11 +495,11 @@ void insert_object(bool committed, employee_t e1, address_t a1)
     begin_transaction();
     {
         if (committed) {
-            e1.addresses_list().insert(a1);
+            e1.addressee_address_list().insert(a1);
         }
         else {
             // Nothing is committed yet.
-            EXPECT_THROW(e1.addresses_list().insert(a1), edc_invalid_state);
+            EXPECT_THROW(e1.addressee_address_list().insert(a1), edc_invalid_state);
         }
     }
     commit_transaction();
@@ -486,7 +507,7 @@ void insert_object(bool committed, employee_t e1, address_t a1)
 }
 
 // Attempt to insert objects hydrated from IDs, in separate thread.
-void insert_addresses(bool committed, gaia_id_t eid1, gaia_id_t aid1, gaia_id_t aid2, gaia_id_t aid3)
+void insert_addressee(bool committed, gaia_id_t eid1, gaia_id_t aid1, gaia_id_t aid2, gaia_id_t aid3)
 {
     begin_session();
     begin_transaction();
@@ -497,12 +518,12 @@ void insert_addresses(bool committed, gaia_id_t eid1, gaia_id_t aid1, gaia_id_t 
         auto a3 = address_t::get(aid3);
         if (committed) {
             // Note this first insert has already been done. This is no-op.
-            e1.addresses_list().insert(a1);
-            e1.addresses_list().insert(a2);
-            e1.addresses_list().insert(a3);
+            e1.addressee_address_list().insert(a1);
+            e1.addressee_address_list().insert(a2);
+            e1.addressee_address_list().insert(a3);
         }
         else {
-            EXPECT_THROW(e1.addresses_list().insert(a1), edc_invalid_state);
+            EXPECT_THROW(e1.addressee_address_list().insert(a1), edc_invalid_state);
         }
     }
     commit_transaction();
@@ -525,7 +546,7 @@ TEST_F(gaia_references_test, thread_inserts) {
     thread t = thread(insert_object, false, e1, a1);
     t.join();
 
-    t = thread(insert_addresses, false, e1.gaia_id(), a1.gaia_id(), a2.gaia_id(), a3.gaia_id());
+    t = thread(insert_addressee, false, e1.gaia_id(), a1.gaia_id(), a2.gaia_id(), a3.gaia_id());
     t.join();
 
     tx.commit();
@@ -533,12 +554,12 @@ TEST_F(gaia_references_test, thread_inserts) {
     // Retry the threads after our objects are committed.
     t = thread(insert_object, true, e1, a1);
     t.join();
-    t = thread(insert_addresses, true, e1.gaia_id(), a1.gaia_id(), a2.gaia_id(), a3.gaia_id());
+    t = thread(insert_addressee, true, e1.gaia_id(), a1.gaia_id(), a2.gaia_id(), a3.gaia_id());
     t.join();
 
     // Count the members. They should show up.
     int count = 0;
-    for (auto a : e1.addresses_list()) {
+    for (auto a : e1.addressee_address_list()) {
         count++;
     }
     EXPECT_EQ(count, 3);

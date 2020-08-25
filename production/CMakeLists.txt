@@ -35,7 +35,7 @@ set(ROCKSDB_INC "${ROCKSDB}/include")
 set(GREMLIN_CONSOLE_PATH "/usr/local/share/gremlin-console")
 set(GREMLIN_SERVER_PATH "/usr/local/share/gremlin-server")
 set(GAIA_PROD_BUILD "${CMAKE_CURRENT_BINARY_DIR}")
-set(GAIA_CATALOG_GENERATED "${PROJECT_SOURCE_DIR}/catalog/catalog_manager/inc")
+set(GAIA_PARSER_GENERATED "${GAIA_PROD_BUILD}/catalog/parser/generated")
 set(GAIA_GENERATED_SCHEMAS "${GAIA_PROD_BUILD}/schemas/generated")
 
 message(STATUS "GAIA_INC=${GAIA_INC}")

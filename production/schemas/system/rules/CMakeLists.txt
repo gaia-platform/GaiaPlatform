@@ -10,10 +10,9 @@ project(rules_schema)
 
 add_custom_command(
   OUTPUT ${GAIA_GENERATED_SCHEMAS}/gaia_event_log.h
-  COMMAND ${GAIA_GENERATE} -t ${GAIA_PROD_BUILD}/db/storage_engine -o ${GAIA_GENERATED_SCHEMAS} ${EVENT_LOG_DDL}
+  COMMAND ${GAIA_GENERATE} -t ${GAIA_PROD_BUILD}/db/storage_engine -o ${GAIA_GENERATED_SCHEMAS} -g -d event_log
   DEPENDS gaiac
-  DEPENDS ${EVENT_LOG_DDL}
-  COMMENT "Compiled ${EVENT_LOG_DDL}"
+  COMMENT "Generated event_log direct access APIs..."
 )
 
 add_custom_target(generate_rules_headers ALL
