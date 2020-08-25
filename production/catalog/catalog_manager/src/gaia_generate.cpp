@@ -39,9 +39,9 @@ static void build_references_maps(gaia_id_t db_id, references_map &references_1,
         field_vec field_strings;
         for (auto ref_id : list_references(table.gaia_id())) {
             gaia_field_t ref_record = gaia_field_t::get(ref_id);
-            auto owner_record = gaia_table_t::get(ref_record.type_id());
-            references_1[ref_record.type_id()].push_back({table.name(), ref_record.name()});
-            references_n[table.gaia_id()].push_back({owner_record.name(), ref_record.name()});
+            auto ref_table_record = ref_record.ref_gaia_table();
+            references_1[ref_record.ref_gaia_table().gaia_id()].push_back({table.name(), ref_record.name()});
+            references_n[table.gaia_id()].push_back({ref_table_record.name(), ref_record.name()});
         }
     }
 }

@@ -81,9 +81,9 @@ TEST_F(catalog_manager_test, list_fields) {
 
     gaia_id_t table_id = create_table(test_table_name, test_table_fields);
 
+    gaia::db::begin_transaction();
     EXPECT_EQ(test_table_fields.size(), list_fields(table_id).size());
 
-    gaia::db::begin_transaction();
     uint16_t position = 0;
     for (gaia_id_t field_id : list_fields(table_id)) {
         gaia_field_t field_record = gaia_field_t::get(field_id);
@@ -105,10 +105,10 @@ TEST_F(catalog_manager_test, list_references) {
 
     gaia_id_t employee_table_id = create_table(employee_table_name, employee_table_fields);
 
+    gaia::db::begin_transaction();
     EXPECT_EQ(list_fields(employee_table_id).size(), 1);
     EXPECT_EQ(list_references(employee_table_id).size(), 1);
 
-    gaia::db::begin_transaction();
     gaia_id_t field_id = list_fields(employee_table_id).front();
     gaia_field_t field_record = gaia_field_t::get(field_id);
     EXPECT_EQ(employee_table_fields[0]->name, field_record.name());
@@ -119,7 +119,7 @@ TEST_F(catalog_manager_test, list_references) {
     gaia_field_t reference_record = gaia_field_t::get(reference_id);
     EXPECT_EQ(employee_table_fields[1]->name, reference_record.name());
     EXPECT_EQ(data_type_t::e_references, static_cast<data_type_t>(reference_record.type()));
-    EXPECT_EQ(dept_table_id, reference_record.type_id());
+    EXPECT_EQ(dept_table_id, reference_record.ref_gaia_table().gaia_id());
     EXPECT_EQ(0, reference_record.position());
     gaia::db::commit_transaction();
 }
@@ -142,7 +142,7 @@ TEST_F(catalog_manager_test, create_table_self_references) {
     gaia_field_t reference_record = gaia_field_t::get(reference_id);
     EXPECT_EQ(fields.front()->name, reference_record.name());
     EXPECT_EQ(data_type_t::e_references, static_cast<data_type_t>(reference_record.type()));
-    EXPECT_EQ(table_id, reference_record.type_id());
+    EXPECT_EQ(table_id, reference_record.ref_gaia_table().gaia_id());
     EXPECT_EQ(0, reference_record.position());
     gaia::db::commit_transaction();
 }
