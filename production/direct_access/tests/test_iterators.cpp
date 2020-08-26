@@ -217,7 +217,7 @@ TEST_F(gaia_iterator_test, dereferenceable) {
 
     EXPECT_TRUE(*emp_iter_a == *emp_iter_b);
 }
-/*
+
 // When an iterator is dereferenced, can the object members be accessed?
 // Test of the arrow operator (->).
 TEST_F(gaia_iterator_test, deref_arrow) {
@@ -230,5 +230,5 @@ TEST_F(gaia_iterator_test, deref_arrow) {
     gaia_iterator_t<employee_t> emp_iter = employee_t::list().begin();
 
     EXPECT_STREQ(emp_iter->name_first(), emp_name)
-        << "The class member derefence operator (->) must be implemented.";
-}*/
+        << "The class member derefence operator->() does not work.";
+}
