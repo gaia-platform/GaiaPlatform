@@ -31,7 +31,6 @@ namespace direct_access {
 template<typename T_gaia>
 class gaia_iterator_t {
     gaia_id_t m_id;
-    T_gaia m_obj;
 public:
     using iterator_category = std::forward_iterator_tag;
     using value_type = gaia_id_t;
@@ -50,8 +49,6 @@ public:
     bool operator!=(const gaia_iterator_t& rhs) const;
 
     T_gaia operator*();
-
-    T_gaia* operator->();
 };
 
 // A gaia_container_t is defined within each EDC and used by programmers to scan

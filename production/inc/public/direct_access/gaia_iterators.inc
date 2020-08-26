@@ -63,13 +63,6 @@ T_gaia gaia_iterator_t<T_gaia>::operator*()
     return T_gaia::get(m_id);
 }
 
-template <typename T_gaia>
-T_gaia* gaia_iterator_t<T_gaia>::operator->()
-{
-    m_obj = T_gaia::get(m_id);
-    return &m_obj;
-}
-
 //
 // Implementation for gaia_container_t
 //
