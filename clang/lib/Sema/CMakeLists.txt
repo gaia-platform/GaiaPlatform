@@ -10,15 +10,15 @@ if (MSVC)
 endif()
 
 set(GAIA_CATALOG_INCLUDES
-  ../../../../../ASTCodeGeneration/GaiaPlatform/production/catalog/catalog_manager/inc
-  ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/internal/catalog
-  ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/public/common
-  ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/public/direct_access
-  ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/internal/common
-  ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/internal/db
-  ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/public/db
-  ../../../../../ASTCodeGeneration/GaiaPlatform/production/inc/public/catalog
-  ../../../../../ASTCodeGeneration/GaiaPlatform/third_party/production/flatbuffers/include
+  ${GAIA_BUILD}/production/catalog/catalog_manager/inc
+  ${GAIA_BUILD}/production/inc/internal/catalog
+  ${GAIA_BUILD}/production/inc/public/common
+  ${GAIA_BUILD}/production/inc/public/direct_access
+  ${GAIA_BUILD}/production/inc/internal/common
+  ${GAIA_BUILD}/production/inc/internal/db
+  ${GAIA_BUILD}/production/inc/public/db
+  ${GAIA_BUILD}/production/inc/public/catalog
+  ${GAIA_BUILD}/third_party/production/flatbuffers/include
 )
   
 add_clang_library(clangSema
@@ -88,19 +88,19 @@ add_clang_library(clangSema
  target_include_directories(clangSema PRIVATE ${GAIA_CATALOG_INCLUDES})
  
 add_library(flatbuffers STATIC IMPORTED GLOBAL)
-set_target_properties(flatbuffers PROPERTIES IMPORTED_LOCATION /home/gregory/src/ASTCodeGeneration/GaiaPlatform/production/build/flatbuffers/libflatbuffers.a)
+set_target_properties(flatbuffers PROPERTIES IMPORTED_LOCATION ${GAIA_BUILD}/production/build/flatbuffers/libflatbuffers.a)
 
 add_library(gaia_catalog STATIC IMPORTED GLOBAL)
-set_target_properties(gaia_catalog PROPERTIES IMPORTED_LOCATION /home/gregory/src/ASTCodeGeneration/GaiaPlatform/production/build/catalog/catalog_manager/libgaia_catalog.a)
+set_target_properties(gaia_catalog PROPERTIES IMPORTED_LOCATION ${GAIA_BUILD}/production/build/catalog/catalog_manager/libgaia_catalog.a)
 
 add_library(gaia_common STATIC IMPORTED GLOBAL)
-set_target_properties(gaia_common PROPERTIES IMPORTED_LOCATION /home/gregory/src/ASTCodeGeneration/GaiaPlatform/production/build/common/libgaia_common.a)
+set_target_properties(gaia_common PROPERTIES IMPORTED_LOCATION ${GAIA_BUILD}/production/build/common/libgaia_common.a)
 
 add_library(gaia_se_client STATIC IMPORTED GLOBAL)
-set_target_properties(gaia_se_client PROPERTIES IMPORTED_LOCATION /home/gregory/src/ASTCodeGeneration/GaiaPlatform/production/build/db/storage_engine/libgaia_se_client.a)
+set_target_properties(gaia_se_client PROPERTIES IMPORTED_LOCATION ${GAIA_BUILD}/production/build/db/storage_engine/libgaia_se_client.a)
 
 add_library(gaia_direct STATIC IMPORTED GLOBAL)
-set_target_properties(gaia_direct PROPERTIES IMPORTED_LOCATION /home/gregory/src/ASTCodeGeneration/GaiaPlatform/production/build/direct_access/libgaia_direct.a)
+set_target_properties(gaia_direct PROPERTIES IMPORTED_LOCATION ${GAIA_BUILD}/production/build/direct_access/libgaia_direct.a)
 
 add_library(gaia_types STATIC IMPORTED GLOBAL)
-set_target_properties(gaia_types PROPERTIES IMPORTED_LOCATION /home/gregory/src/ASTCodeGeneration/GaiaPlatform/production/build/db/types/libgaia_types.a)
+set_target_properties(gaia_types PROPERTIES IMPORTED_LOCATION ${GAIA_BUILD}/production/build/db/types/libgaia_types.a)
