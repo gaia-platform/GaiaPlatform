@@ -81,23 +81,8 @@ TEST_F(gaia_iterator_test, iterator_traits) {
     (void)ic;
 }
 
-// Are iterator lvalues dereferenceable?
-TEST_F(gaia_iterator_test, lvalue_dereferenceable) {
-    const char* emp_name = "Employee0";
-
-    auto_transaction_t tx;
-    auto emp_writer = employee_writer();
-    emp_writer.name_first = emp_name;
-    emp_writer.insert_row();
-    gaia_iterator_t<employee_t> emp_iter = employee_t::list().begin();
-
-    EXPECT_STREQ((*emp_iter).name_first(), emp_name)
-        << "The iterator is not dereferenceable as an lvalue with the "
-        "expected effects.";
-}
-
-// Are iterator lvalues pre-incrementable?
-TEST_F(gaia_iterator_test, lvalue_incrementable) {
+// Are iterators pre-incrementable?
+TEST_F(gaia_iterator_test, pre_incrementable) {
     const int loops = 10;
     auto_transaction_t tx;
 
@@ -119,7 +104,7 @@ TEST_F(gaia_iterator_test, lvalue_incrementable) {
         const char* emp_name = name_str.c_str();
 
         ASSERT_STREQ((*emp_iter).name_first(), emp_name)
-            << "The iterator is not dereferenceable as an lvalue with the "
+            << "The iterator is not pre-incrementable with the "
             "expected effects.";
         ++emp_iter;
     }
@@ -201,8 +186,23 @@ TEST_F(gaia_iterator_test, not_equal) {
     EXPECT_TRUE(c != a);
 }
 
-// Is the iterator dereferenceable back to the pointer it was declared at?
-TEST_F(gaia_iterator_test, dereferenceable) {
+// Are iterators dereferenceable as rvalues?
+TEST_F(gaia_iterator_test, dereferenceable_rvalue) {
+    const char* emp_name = "Employee0";
+
+    auto_transaction_t tx;
+    auto emp_writer = employee_writer();
+    emp_writer.name_first = emp_name;
+    emp_writer.insert_row();
+    gaia_iterator_t<employee_t> emp_iter = employee_t::list().begin();
+
+    EXPECT_STREQ((*emp_iter).name_first(), emp_name)
+        << "The iterator is not dereferenceable as an rvalue with the "
+        "expected effects.";
+}
+
+// If two rvalue iterators are equal then their dereferenced values are equal.
+TEST_F(gaia_iterator_test, dereferenceable_equality) {
     const char* emp_name = "Employee0";
     auto_transaction_t tx;
     auto emp_writer = employee_writer();
