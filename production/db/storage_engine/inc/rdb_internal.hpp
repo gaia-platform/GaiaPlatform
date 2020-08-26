@@ -91,7 +91,6 @@ class rdb_internal
             return m_txn_db;
         }
 
-
     };
 }
 

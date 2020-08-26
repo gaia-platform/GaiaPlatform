@@ -43,7 +43,7 @@ class db_server_t {
         // Ideally the client shouldn't come up until the server is up; maybe 
         // this should be programmed in begin_session()?
         cerr << "Waiting for server to initialize..." << endl;
-        ::sleep(5);
+        ::sleep(3);
         m_server_started = true;
     }
 
@@ -91,6 +91,13 @@ class db_server_t {
 };
 
 class db_test_base_t : public ::testing::Test {
+public:
+    static void remove_persistent_store() {
+        string cmd = "rm -rf ";
+        cmd.append(PERSISTENT_DIRECTORY_PATH);
+        cerr << cmd << endl;
+        ::system(cmd.c_str());
+    }
 private:
     bool m_client_manages_session;
 
@@ -101,6 +108,8 @@ protected:
         clear_shared_memory();
         static constexpr int POLL_INTERVAL_MILLIS = 10;
         // Reinitialize the server (forcibly disconnects all clients and clears database).
+        // Resetting the server will cause Recovery to be skipped. Recovery will only occur post 
+        // server process reboot. 
         ::system((std::string("pkill -f -HUP ") + SE_SERVER_NAME).c_str());
         // Wait a bit for the server's listening socket to be closed.
         // (Otherwise, a new session might be accepted after the signal has been sent
@@ -150,6 +159,7 @@ protected:
         if (!m_client_manages_session) {
             end_session();
         }
+        // remove_persistent_store();
     }
 };
 

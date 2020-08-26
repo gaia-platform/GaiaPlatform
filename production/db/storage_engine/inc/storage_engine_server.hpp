@@ -168,15 +168,13 @@ class server : private se_base {
 
     static void recover_db() {
         // Open RocksDB just once.
-        if (!rdb.get()) {
+        if (!rdb) {
             rdb = std::unique_ptr<rdb_wrapper>(new gaia::db::rdb_wrapper());
             rocksdb::Status status = rdb->open();
             assert(status.ok());
+            // Recovery is only invoked during process restart.
+            rdb->recover(); 
         }
-        // Anonymous mapping should be blown away on each re-init (via clear_shared_memory())
-        // and therefore it is safe to repopulate gaia in-memory state in case the 'recover_db()' API 
-        // gets called repeatedly.
-        rdb->recover(); 
     }
 
     // To avoid synchronization, we assume that this method is only called when

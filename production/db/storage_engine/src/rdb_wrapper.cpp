@@ -11,6 +11,7 @@
 #include "rdb_object_converter.hpp"
 #include "rdb_internal.hpp"
 #include "system_table_types.hpp"
+#include "gaia_db_internal.hpp"
 #include <memory>
 
 using namespace gaia::db; 
@@ -18,7 +19,7 @@ using namespace gaia::common;
 using namespace rocksdb;
 
 // Todo (msj) Take as input to some options file.
-static const std::string data_dir = "/tmp/db";
+static const std::string data_dir = PERSISTENT_DIRECTORY_PATH;
 std::unique_ptr<gaia::db::rdb_internal> rdb_wrapper::rdb_internal;
 
 // Todo (msj) Set more granular default options.

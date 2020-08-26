@@ -321,6 +321,9 @@ void load_modify_recover_test(db_server_t server,
  * 
  * Sample usage:
  * test_recovery "/home/ubuntu/GaiaPlatform/production/build/db/storage_engine"
+ * 
+ * Todo(msj) - split up this test so that some simple recovery tests run with ctest and 
+ * a longer test runs on teamcity.
  */
 int main(int, char *argv[]) {
     int res = 0;
@@ -338,12 +341,16 @@ int main(int, char *argv[]) {
 
     // 2) Load (more data) & Recover test - with data size greater than write buffer size. 
     // Writes will exist in both the WAL & SST files.
+    // Test is switched off as it takes some time to run. Ideally, recovery test should be 
+    // run on teamcity.
     {
         // load_modify_recover_test(server, server_dir_path, 16 * 1024 * 1024, 1, false); 
     }
 
     // 3) Cached user pointer gets hosed on restart/or when the client obtains a new session.
-    cached_pointer_test(server, server_dir_path.data());
+    {
+        cached_pointer_test(server, server_dir_path.data());
+    }
 
     // Todo (msj)
     // 4) Validate gaia_id is not recycled post crash.
