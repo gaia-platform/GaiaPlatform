@@ -6,7 +6,7 @@ set -e
 
 make -j$(nproc)
 
-(cd /build/production/db/storage_engine && sudo make install)
+(cd /build/production/db/storage_engine && make install)
 
 /build/production/db/storage_engine/gaia_se_server &
 /build/production/direct_access/test_iterators \
