@@ -8,7 +8,6 @@
 #include "fbs_generator.hpp"
 #include "retail_assert.hpp"
 #include "system_table_types.hpp"
-#include <algorithm>
 #include <memory>
 
 using namespace gaia::catalog::ddl;
@@ -393,7 +392,7 @@ gaia_id_t catalog_manager_t::create_table_impl(
                 // Forward declaration is not supported right now.
                 throw table_not_exists(field->table_type_name);
             }
-            // The field ID/position values must be a contiguous range from 0 onwards.
+            // The field ID/position values must be a contiguous range from 0 onward.
             position = reference_position++;
         } else {
             position = field_position++;
@@ -442,30 +441,28 @@ inline gaia_id_t catalog_manager_t::find_db_id_no_lock(const string &dbname) con
 
 vector<gaia_id_t> catalog_manager_t::list_fields(gaia_id_t table_id) const {
     vector<gaia_id_t> fields;
+    // Direct access reference list API guarantees LIFO. As long as we only
+    // allow appending new fields to table definitions, reversing the field list
+    // order should result fields in the ascending order of their positions.
     for (auto field : gaia_table_t::get(table_id).gaia_field_list()) {
         if (field.type() != static_cast<uint8_t>(data_type_t::e_references)) {
-            auto low = lower_bound(fields.begin(), fields.end(), field.gaia_id(),
-                [](gaia_id_t lhs, gaia_id_t rhs) -> bool {
-                    return gaia_field_t::get(lhs).position() < gaia_field_t::get(rhs).position();
-                });
-            fields.insert(low, field.gaia_id());
+            fields.insert(fields.begin(), field.gaia_id());
         }
     }
     return fields;
 }
 
 vector<gaia_id_t> catalog_manager_t::list_references(gaia_id_t table_id) const {
-    vector<gaia_id_t> refs;
+    vector<gaia_id_t> references;
+    // Direct access reference list API guarantees LIFO. As long as we only
+    // allow appending new fields to table definitions, reversing the field list
+    // order should result fields in the ascending order of their positions.
     for (auto field : gaia_table_t::get(table_id).gaia_field_list()) {
         if (field.type() == static_cast<uint8_t>(data_type_t::e_references)) {
-            auto low = lower_bound(refs.begin(), refs.end(), field.gaia_id(),
-                [](gaia_id_t lhs, gaia_id_t rhs) -> bool {
-                    return gaia_field_t::get(lhs).position() < gaia_field_t::get(rhs).position();
-                });
-            refs.insert(low, field.gaia_id());
+            references.insert(references.begin(), field.gaia_id());
         }
     }
-    return refs;
+    return references;
 }
 
 } // namespace catalog
