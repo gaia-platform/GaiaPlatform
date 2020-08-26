@@ -82,7 +82,7 @@ public:
 
         // NOTE: For the unit test setup, we need to init catalog and load test tables before rules engine starts.
         //       Otherwise, the event log activities will cause out of order test table IDs.
-        gaia::catalog::load_catalog(ddl_file);
+        // gaia::catalog::load_catalog(ddl_file);
 
         gaia::rules::initialize_rules_engine();
         // load_catalog();

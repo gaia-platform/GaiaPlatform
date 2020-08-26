@@ -217,7 +217,7 @@ void delete_all(int initial_record_count) {
 
     int count = 0;
     
-    while (get_count() != initial_record_count) {
+    while (get_count() != initial_record_count || get_count() != 0) {
         begin_transaction();
         auto to_delete_copy = to_delete;
         for (gaia_id_t id : to_delete_copy) {
@@ -237,42 +237,6 @@ void delete_all(int initial_record_count) {
 
     cout << "Deleted " << count << " records "<< endl << flush;
     validate_data();
-}
-
-void cached_pointer_test(db_server_t& server, const char* path) {
-    int initial_record_count; 
-    gaia_id_t id;
-    std::string name_first; 
-
-    restart_server(server, path);
-    begin_session();
-    initial_record_count = get_count();
-    delete_all(initial_record_count);
-
-    begin_transaction();
-    employee_t cached_employee = generate_employee_record();
-    id = cached_employee.gaia_id();
-    name_first = cached_employee.name_first();
-    commit_transaction();
-
-    begin_transaction();
-    auto e1 = employee_t::get(id);
-    assert(e1.name_first() == name_first);
-    assert(cached_employee.name_first() == name_first);
-    commit_transaction();
-    end_session();
-
-    restart_server(server, path);
-    begin_session();
-    begin_transaction();
-    auto e = employee_t::get(id);
-    assert(strcmp(e.name_first(), name_first.data()) == 0);
-    // cached_employee is no longer valid. Assert the same.
-    assert(strcmp(cached_employee.name_first(), name_first.data()) != 0);
-    commit_transaction();
-    delete_all(initial_record_count);
-    end_session();
-    stop_server(server);
 }
 
 void load_modify_recover_test(db_server_t server,
@@ -346,12 +310,7 @@ int main(int, char *argv[]) {
     {
         // load_modify_recover_test(server, server_dir_path, 16 * 1024 * 1024, 1, false); 
     }
-
-    // 3) Cached user pointer gets hosed on restart/or when the client obtains a new session.
-    {
-        cached_pointer_test(server, server_dir_path.data());
-    }
-
+    
     // Todo (msj)
     // 4) Validate gaia_id is not recycled post crash.
 

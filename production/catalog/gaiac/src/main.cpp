@@ -156,7 +156,7 @@ int main(int argc, char *argv[]) {
                 cerr << c_error_prompt << "Missing path to db server." << endl;
                 exit(EXIT_FAILURE);
             }
-            db_test_base_t::remove_persistent_store();
+            // db_test_base_t::remove_persistent_store();
             const char *path_to_db_server = argv[i];
             server.start(path_to_db_server);
         } else if (argv[i] == string("-o")) {
@@ -207,7 +207,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Hardcode the path to persistent store for now & expose this option later.
-    db_test_base_t::remove_persistent_store();
+    // db_test_base_t::remove_persistent_store();
 
     exit(res);
 }

@@ -18,8 +18,8 @@ using namespace gaia::catalog::ddl;
 namespace gaia {
 namespace catalog {
 
-gaia_id_t create_database(const string &name) {
-    return catalog_manager_t::get().create_database(name);
+gaia_id_t create_database(const string &name, bool throw_on_exists) {
+    return catalog_manager_t::get().create_database(name, throw_on_exists);
 }
 
 gaia_id_t create_table(const string &name,
@@ -30,9 +30,9 @@ gaia_id_t create_table(const string &name,
 gaia_id_t create_table(
     const string &dbname,
     const string &name,
-    const field_def_list_t &fields) {
-
-    return catalog_manager_t::get().create_table(dbname, name, fields);
+    const field_def_list_t &fields,
+    bool throw_on_exists) {
+    return catalog_manager_t::get().create_table(dbname, name, fields, throw_on_exists);
 }
 
 void drop_table(const string &name) {
@@ -248,8 +248,9 @@ gaia_id_t catalog_manager_t::create_database(
 gaia_id_t catalog_manager_t::create_table(
     const string &dbname,
     const string &name,
-    const field_def_list_t &fields) {
-    return create_table_impl(dbname, name, fields);
+    const field_def_list_t &fields,
+    bool throw_on_exists) {
+    return create_table_impl_(dbname, name, fields, throw_on_exists);
 }
 
 void catalog_manager_t::drop_table(
@@ -446,6 +447,14 @@ gaia_id_t catalog_manager_t::create_table_impl(
     m_table_fields[table_id] = move(field_ids);
     m_table_references[table_id] = move(reference_ids);
     return table_id;
+}
+
+gaia_id_t catalog_manager_t::create_table_impl_(
+    const string &dbname,
+    const string &table_name,
+    const field_def_list_t &fields,
+    bool throw_on_exist) {
+    return create_table_impl(dbname, table_name, fields, false, throw_on_exist, INVALID_GAIA_ID);
 }
 
 gaia_id_t catalog_manager_t::find_db_id(const string &dbname) {

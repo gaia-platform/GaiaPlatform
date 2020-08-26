@@ -30,7 +30,7 @@ class catalog_manager_t {
      * APIs for accessing catalog records
      */
     gaia_id_t create_database(const string &name, bool throw_on_exist = true);
-    gaia_id_t create_table(const string &dbname, const string &name, const ddl::field_def_list_t &fields);
+    gaia_id_t create_table(const string &dbname, const string &name, const ddl::field_def_list_t &fields, bool throw_on_exist = true);
     void drop_table(const string &dbname, const string &name);
 
     gaia_id_t find_db_id(const string& dbname);
@@ -62,6 +62,13 @@ class catalog_manager_t {
         bool is_log = false,
         bool throw_on_exist = true,
         gaia_id_t id = INVALID_GAIA_ID);
+
+    // Used as a wrapper over 'create_table_impl' to take 
+    gaia_id_t create_table_impl_(
+        const string &database_name,
+        const string &table_name,
+        const ddl::field_def_list_t &fields, 
+        bool throw_on_exist);
 
     // Find the database ID given its name.
     // The method does not use a lock.
