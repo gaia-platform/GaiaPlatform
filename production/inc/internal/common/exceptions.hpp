@@ -7,12 +7,14 @@
 
 #include <gaia_exception.hpp>
 
-namespace gaia {
+namespace gaia
+{
 /**
  * \addtogroup Gaia
  * @{
  */
-namespace common {
+namespace common
+{
 /**
  * \addtogroup Common
  * @{
@@ -21,12 +23,13 @@ namespace common {
 /**
  * An exception class used for unexpected library API failures that return error codes.
  */
-class api_error : public gaia_exception {
-   public:
+class api_error : public gaia_exception
+{
+public:
     api_error(const char* api_name, int error_code);
 };
 
 /*@}*/
-}  // namespace common
+}
 /*@}*/
-}  // namespace gaia
+}
