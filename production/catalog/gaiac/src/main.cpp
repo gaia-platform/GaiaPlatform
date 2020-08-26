@@ -116,53 +116,6 @@ void terminate_path(string &path) {
     }
 }
 
-// // Temporary start server (taken and modified from db_test_helpers)
-// // Use case is always to call start() followed by stop().
-// class db_server_t {
-//   public:
-//     void start(const char *db_server_path) {
-//         set_path(db_server_path);
-//         stop();
-
-//         // Launch SE server in background.
-//         string cmd = m_server_path + " &";
-//         cerr << cmd << endl;
-//         ::system(cmd.c_str());
-
-//         // Wait for server to initialize.
-//         cerr << "Waiting for server to initialize..." << endl;
-//         ::sleep(1);
-//         m_server_started = true;
-//     }
-
-//     void stop() {
-//         // Try to kill the SE server process.
-//         // REVIEW: we should be using a proper process library for this, so we can kill by PID.
-//         string cmd = "pkill -f -KILL ";
-//         cmd.append(m_server_path.c_str());
-//         cerr << cmd << endl;
-//         ::system(cmd.c_str());
-//     }
-
-//     bool server_started() {
-//         return m_server_started;
-//     }
-
-//   private:
-//     void set_path(const char *db_server_path) {
-//         if (!db_server_path) {
-//             m_server_path = gaia::db::SE_SERVER_NAME;
-//         } else {
-//             m_server_path = db_server_path;
-//             terminate_path(m_server_path);
-//             m_server_path.append(gaia::db::SE_SERVER_NAME);
-//         }
-//     }
-
-//     string m_server_path;
-//     bool m_server_started = false;
-// };
-
 string usage() {
     std::stringstream ss;
     ss << "Usage: gaiac [options] [ddl_file]\n\n"
@@ -203,6 +156,9 @@ int main(int argc, char *argv[]) {
                 cerr << c_error_prompt << "Missing path to db server." << endl;
                 exit(EXIT_FAILURE);
             }
+            string cmd = "rm -rf /tmp/db";
+            cerr << cmd << endl;
+            ::system(cmd.c_str());
             const char *path_to_db_server = argv[i];
             server.start(path_to_db_server);
         } else if (argv[i] == string("-o")) {

@@ -61,6 +61,11 @@ namespace db
              */
             rocksdb::Status rollback_tx(rocksdb::Transaction* trx);
 
+            /**
+             * Destroy the persistent store.
+             */
+            void destroy_db();
+
     };
 }
 

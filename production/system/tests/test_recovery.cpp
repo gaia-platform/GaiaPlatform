@@ -46,8 +46,11 @@ void validate_data() {
     for (auto employee = employee_t::get_first(); employee; employee = employee.get_next()) {
     // while (employee != employee_t::list().end()) {
         auto it = employee_map.find(employee.gaia_id());
-        // Validate that emempployee is found.
-        assert(it != employee_map.end());
+        
+        if (it == employee_map.end()) {
+            // There might be other tests that create employees. 
+            continue;
+        }
 
         auto employee_expected = it->second;
 
@@ -101,7 +104,6 @@ std::string generate_string( size_t length_in_bytes )
 // Random updates & deletes.
 void modify_data() {
     std::set<gaia_id_t> to_delete_set;
-
     for (int i = 0; i < employee_map.size() / 2; i++) {
         begin_transaction();
         auto to_update = employee_map.find(get_random_map_key(employee_map));
@@ -199,42 +201,54 @@ int get_count() {
     return total_count;
 }
 
-void delete_all() {
+void delete_all(int initial_record_count) {
     cout << "Deleting all records" << endl << flush;
     begin_transaction();
     int total_count = 0;
 
     // Cache entries to delete.
-    std::vector<gaia_id_t> to_delete;
+    std::set<gaia_id_t> to_delete;
     for (auto employee = employee_t::get_first(); employee; employee = employee.get_next()) {
         total_count++;
-        to_delete.push_back(employee.gaia_id());
+        to_delete.insert(employee.gaia_id());
     }
     cout << "To delete " << total_count << " records "<< endl << flush;
     commit_transaction();
 
     int count = 0;
     
-    for (gaia_id_t id : to_delete) {
+    while (get_count() != initial_record_count) {
         begin_transaction();
-        auto e = employee_t::get(id);
-        e.delete_row();
-        count ++;
+        auto to_delete_copy = to_delete;
+        for (gaia_id_t id : to_delete_copy) {
+            auto e = employee_t::get(id);
+            try {
+                e.delete_row();
+            } catch (const node_not_disconnected& e) {
+                continue;
+            }
+            count ++;
+            employee_map.erase(id);
+            to_delete.erase(id);    
+        }
         commit_transaction();
-        employee_map.erase(id);
+        cout << "Remaining count " << get_count() << endl << flush;
     }
 
     cout << "Deleted " << count << " records "<< endl << flush;
     validate_data();
-    assert(get_count() == 0);
 }
 
 void cached_pointer_test(db_server_t& server, const char* path) {
+    int initial_record_count; 
     gaia_id_t id;
     std::string name_first; 
 
     restart_server(server, path);
     begin_session();
+    initial_record_count = get_count();
+    delete_all(initial_record_count);
+
     begin_transaction();
     employee_t cached_employee = generate_employee_record();
     id = cached_employee.gaia_id();
@@ -256,16 +270,22 @@ void cached_pointer_test(db_server_t& server, const char* path) {
     // cached_employee is no longer valid. Assert the same.
     assert(strcmp(cached_employee.name_first(), name_first.data()) != 0);
     commit_transaction();
-    delete_all();
+    delete_all(initial_record_count);
     end_session();
     stop_server(server);
 }
 
-void load_modify_recover_test(db_server_t server, std::string server_dir_path, uint64_t load_size_bytes, int crash_validate_loop_count, bool kill_during_workload) {
+void load_modify_recover_test(db_server_t server,
+    std::string server_dir_path,
+    uint64_t load_size_bytes,
+    int crash_validate_loop_count,
+    bool kill_during_workload) {
+    int initial_record_count; 
     // Start server.
     restart_server(server, server_dir_path.data());
     begin_session();
-    delete_all();
+    initial_record_count = get_count();
+    delete_all(initial_record_count);
     load_data(load_size_bytes, kill_during_workload, server, server_dir_path.data());
     validate_data();
     end_session();
@@ -285,13 +305,13 @@ void load_modify_recover_test(db_server_t server, std::string server_dir_path, u
 
     restart_server(server, server_dir_path.data());
     begin_session();
-    delete_all();
+    delete_all(initial_record_count);
     end_session();
 
     // Validate all data deleted.
     restart_server(server, server_dir_path.data());
     begin_session();
-    assert(get_count() == 0);
+    assert(get_count() == initial_record_count);
     end_session();
     stop_server(server);
 }
@@ -313,7 +333,7 @@ int main(int, char *argv[]) {
     // All writes will be confined to the WAL & will not make it to SST (DB binary file)
     // Sigkill server.
     {
-        // load_modify_recover_test(server, server_dir_path, 0.1 * 1024 * 1024, 2, true); 
+        load_modify_recover_test(server, server_dir_path, 0.1 * 1024 * 1024, 2, true); 
     }
 
     // 2) Load (more data) & Recover test - with data size greater than write buffer size. 

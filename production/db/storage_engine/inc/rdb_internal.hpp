@@ -83,6 +83,10 @@ class rdb_internal
             return m_txn_db->NewIterator(rocksdb::ReadOptions());
         }
 
+        void destroy_db() {
+            rocksdb::DestroyDB(data_dir, rocksdb::Options{}); 
+        }
+
         bool is_db_open() {
             return m_txn_db;
         }

@@ -146,7 +146,7 @@ Status rdb_wrapper::prepare_tx(rocksdb::Transaction* trx) {
 
     // Ensure that keys were inserted into the RocksDB transaction object.
     cout << "Server log count:trx_keys " << s_log->count << ":" << trx->GetNumKeys() << endl << flush;
-    //assert(trx->GetNumPuts() +  trx->GetNumDeletes() == s_log->count);
+    assert(trx->GetNumPuts() +  trx->GetNumDeletes() == s_log->count);
 
     return rdb_internal->prepare_txn(trx);
 }
@@ -187,4 +187,8 @@ void rdb_wrapper::recover() {
     cout << "[Server] Row ID count on recovery " << server::s_data->row_id_count << endl << flush;
 
     delete it; 
+}
+
+void rdb_wrapper::destroy_db() {
+    rdb_internal->destroy_db();
 }
