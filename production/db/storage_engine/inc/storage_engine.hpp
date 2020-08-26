@@ -68,7 +68,7 @@ class se_base {
         int64_t row_id;
     };
 
-    enum gaia_operation_t: int8_t {
+    enum class gaia_operation_t: int8_t {
         create = 0x0,
         update = 0x1,
         remove = 0x2,
@@ -95,7 +95,7 @@ class se_base {
             int64_t row_id;
             int64_t old_object;
             int64_t new_object;
-            gaia_id_t id;
+            gaia_id_t deleted_id;
             gaia_operation_t operation;
         } log_records[MAX_LOG_RECS];
     };

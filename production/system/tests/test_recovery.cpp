@@ -25,6 +25,9 @@ size_t load_batch_size = 16;
 size_t employee_record_size_bytes = 648;
 // Size of a string field in a record.
 size_t field_size_bytes = 128;
+
+size_t total_validation_loop_count = 10;
+
 // Don't cache direct access objects as they will
 // point to garbage values post crash recovery.
 struct employee_copy_t {
@@ -41,7 +44,7 @@ struct employee_copy_t {
 std::map<gaia_id_t, employee_copy_t> employee_map;
 
 void validate_data() {
-    uint64_t count = 0;
+    size_t count = 0;
     begin_transaction();
     for (auto employee = employee_t::get_first(); employee; employee = employee.get_next()) {
     // while (employee != employee_t::list().end()) {
@@ -104,11 +107,10 @@ std::string generate_string( size_t length_in_bytes )
 // Random updates & deletes.
 void modify_data() {
     std::set<gaia_id_t> to_delete_set;
-    for (int i = 0; i < employee_map.size() / 2; i++) {
+    for (size_t i = 0; i < employee_map.size() / 2; i++) {
         begin_transaction();
         auto to_update = employee_map.find(get_random_map_key(employee_map));
         employee_t e1 = employee_t::get(to_update->first);
-        cout << "Modify record id: " << to_update->first << endl << flush;
         auto w1 = e1.writer();
         auto name_first = generate_string(field_size_bytes);
         w1.name_first = name_first;
@@ -126,9 +128,7 @@ void modify_data() {
         employee_map.erase(id);
         begin_transaction();
         auto e = employee_t::get(id);
-        cout << "Delete record: " << id << endl << flush;
         e.delete_row();
-        cout << "Delete record completed: " << id << endl << flush;
         commit_transaction();
     }
 }
@@ -217,7 +217,7 @@ void delete_all(int initial_record_count) {
 
     int count = 0;
     
-    while (get_count() != initial_record_count || get_count() != 0) {
+    while (true) {
         begin_transaction();
         auto to_delete_copy = to_delete;
         for (gaia_id_t id : to_delete_copy) {
@@ -233,6 +233,9 @@ void delete_all(int initial_record_count) {
         }
         commit_transaction();
         cout << "Remaining count " << get_count() << endl << flush;
+        if(get_count() == 0 || get_count() == initial_record_count) {
+            break;
+        }
     }
 
     cout << "Deleted " << count << " records "<< endl << flush;
@@ -290,10 +293,10 @@ void load_modify_recover_test(db_server_t server,
  * a longer test runs on teamcity.
  */
 int main(int, char *argv[]) {
-    int res = 0;
+    int result = 0;
     db_server_t server;
     // Path of directory where server executable resides.
-    std::string server_dir_path = "/home/ubuntu/GaiaPlatform/production/build/db/storage_engine";//argv[1];
+    std::string server_dir_path = argv[1];
     employee_map.clear();
 
     // 1) Load & Recover test - with data size less than write buffer size; 
@@ -310,9 +313,9 @@ int main(int, char *argv[]) {
     {
         // load_modify_recover_test(server, server_dir_path, 16 * 1024 * 1024, 1, false); 
     }
-    
+
     // Todo (msj)
     // 4) Validate gaia_id is not recycled post crash.
 
-    return res;
+    return result;
 }

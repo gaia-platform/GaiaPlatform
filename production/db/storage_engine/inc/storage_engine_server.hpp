@@ -172,8 +172,8 @@ class server : private se_base {
             rdb = std::unique_ptr<rdb_wrapper>(new gaia::db::rdb_wrapper());
             rocksdb::Status status = rdb->open();
             assert(status.ok());
+            rdb->recover();
         } 
-        rdb->recover();
     }
 
     // To avoid synchronization, we assume that this method is only called when
@@ -322,10 +322,6 @@ class server : private se_base {
             // Block forever (we will be notified of shutdown).
             int ready_fd_count = epoll_wait(epoll_fd, events, array_size(events), -1);
             if (ready_fd_count == -1) {
-                // Workaround to enable debugging the server.
-                if (errno == EINTR) {
-                    continue;
-                }
                 throw_system_error("epoll_wait failed");
             }
             for (int i = 0; i < ready_fd_count; i++) {
@@ -424,10 +420,6 @@ class server : private se_base {
             // Block forever (we will be notified of shutdown).
             int ready_fd_count = epoll_wait(epoll_fd, events, array_size(events), -1);
             if (ready_fd_count == -1) {
-                // Workaround to enable debugging the server.
-                if (errno == EINTR) {
-                    continue;
-                }
                 throw_system_error("epoll_wait failed");
             }
             session_event_t event = session_event_t::NOP;
@@ -540,8 +532,8 @@ class server : private se_base {
                 // cout << "(lr->old_object)[" << lr->row_id << "]: " << lr->old_object << endl << flush;
                 if ((*s_shared_offsets)[lr->row_id] != lr->old_object) {
                     // Append Rollback decision to log.
-                    // This isn't really required since recovery will skip deserializing transactions 
-                    // which don't have a commit marker; we do it for completeness anyway. 
+                    // This isn't really required because recovery will skip deserializing transactions 
+                    // that don't have a commit marker; we do it for completeness anyway. 
                     rdb->rollback_tx(trx);
                     return false;
                 }

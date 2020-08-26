@@ -17,54 +17,57 @@ namespace gaia
 namespace db 
 {
 
-    class rdb_wrapper 
-    {
-        private:
-            static std::unique_ptr<gaia::db::rdb_internal> rdb_internal;
+constexpr uint64_t c_rocksdb_io_error_code = 5;
+constexpr uint64_t c_max_open_db_attempt_count = 10;
 
-        public:
-            rdb_wrapper();
-            ~rdb_wrapper();
+class rdb_wrapper 
+{
+    private:
+    static std::unique_ptr<gaia::db::rdb_internal_t> rdb_internal;
 
-            /**
-             * Open rocksdb with the correct options.
-             */
-            rocksdb::Status open();
+    public:
+    rdb_wrapper();
+    ~rdb_wrapper();
 
-            /**
-             * Close the database.
-             */
-            rocksdb::Status close();
+    /**
+     * Open rocksdb with the correct options.
+     */
+    rocksdb::Status open();
 
-            /** 
-             * Iterate over all elements in the LSM and call SE create API 
-             * for every key/value pair obtained (after deduping keys).
-             */
-            void recover();
+    /**
+     * Close the database.
+     */
+    rocksdb::Status close();
 
-            rocksdb::Transaction* begin_tx(gaia_xid_t transaction_id);
+    /** 
+     * Iterate over all elements in the LSM and call SE create API 
+     * for every key/value pair obtained (after deduping keys).
+     */
+    void recover();
 
-            /**
-             * Prepare will serialize the transaction to the log. w
-             * Similarly, rollback will append a rollback marker to the log.
-             */ 
-            rocksdb::Status prepare_tx(rocksdb::Transaction* trx);
+    rocksdb::Transaction* begin_tx(gaia_xid_t transaction_id);
 
-            /** 
-             * This method will append a commit marker with the appropriate
-             * transaction_id to the log.
-             */
-            void commit_tx(rocksdb::Transaction* trx);
+    /**
+     * Prepare will serialize the transaction to the log. 
+     */ 
+    rocksdb::Status prepare_tx(rocksdb::Transaction* trx);
 
-            /**
-             * Similarly, rollback will append a rollback marker to the log. 
-             */
-            rocksdb::Status rollback_tx(rocksdb::Transaction* trx);
+    /** 
+     * This method will append a commit marker with the appropriate
+     * transaction_id to the log, and will additionally insert entries
+     * into the RocksDB write buffer (which then writes to disk on getting full)
+     */
+    void commit_tx(rocksdb::Transaction* trx);
 
-            /**
-             * Destroy the persistent store.
-             */
-            void destroy_db();
+    /**
+     * Similarly, rollback will append a rollback marker to the log. 
+     */
+    rocksdb::Status rollback_tx(rocksdb::Transaction* trx);
+
+    /**
+     * Destroy the persistent store.
+     */
+    void destroy_db();
 
     };
 }

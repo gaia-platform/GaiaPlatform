@@ -15,7 +15,7 @@ using namespace gaia::db;
  * Key: id (uint64)
  * Value: type, reference_count, payload_size, payload
  */
-void rdb_object_converter_util::encode_object(
+void gaia::db::encode_object(
     const object* gaia_object,
     string_writer* key,
     string_writer* value) {
@@ -31,7 +31,7 @@ void rdb_object_converter_util::encode_object(
     value->write(gaia_object->payload, gaia_object->payload_size);
 }
 
-gaia_id_t rdb_object_converter_util::decode_object(
+gaia_id_t gaia::db::decode_object(
     const rocksdb::Slice& key,
     const rocksdb::Slice& value) {
     gaia_id_t id;

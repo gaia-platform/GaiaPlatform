@@ -19,7 +19,6 @@ namespace db {
 
 // Class used for recovery purposes only.
 class gaia_ptr_server {
-    friend class rdb_object_converter_util;
     friend class rdb_wrapper;
    public:
     static gaia_ptr_server create(

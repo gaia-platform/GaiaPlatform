@@ -43,7 +43,7 @@ class db_server_t {
         // Ideally the client shouldn't come up until the server is up; maybe 
         // this should be programmed in begin_session()?
         cerr << "Waiting for server to initialize..." << endl;
-        ::sleep(3);
+        ::sleep(5);
         m_server_started = true;
     }
 

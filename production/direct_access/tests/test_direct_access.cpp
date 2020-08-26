@@ -149,10 +149,10 @@ TEST_F(gaia_object_test, read_back_scan) {
     for (auto employee = employee_t::get_first(); employee; employee = employee.get_next()) {
         if (employee.gaia_id() == eid) {
             EXPECT_STREQ("Howard", employee.name_first());
-            count ++;
+            count++;
         } else if (employee.gaia_id() == eid2) {
             EXPECT_STREQ("Henry", employee.name_first());
-            count ++;
+            count++;
         }
     }
     assert(count == 2);
@@ -176,7 +176,7 @@ void UpdateReadBack(bool update_flag) {
             if (update_flag) {
                 w.update_row();
             }
-            count ++;
+            count++;
         } else if (employee.gaia_id() == e2) {
             w = e2.writer();
             w.name_first = "Gerald";
@@ -184,7 +184,7 @@ void UpdateReadBack(bool update_flag) {
             if (update_flag) {
                 w.update_row();
             }
-            count ++;
+            count++;
         }
     }
     tx.commit();

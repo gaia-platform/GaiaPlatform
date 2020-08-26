@@ -120,13 +120,13 @@ class client : private se_base {
         gaia_operation_t operation,
         // 'id' is required to keep track of deleted keys which will be propagated to the persistent layer.
         // Memory for other operations will be unused. An alternative would be to keep a separate log for deleted keys only.
-        gaia_id_t id = 0) {
+        gaia_id_t deleted_id = 0) {
         retail_assert(s_log->count < MAX_LOG_RECS);
         log::log_record* lr = s_log->log_records + s_log->count++;
         lr->row_id = row_id;
         lr->old_object = old_object;
         lr->new_object = new_object;
-        lr->id = id;
+        lr->deleted_id = deleted_id;
         lr->operation = operation;
     }
 };

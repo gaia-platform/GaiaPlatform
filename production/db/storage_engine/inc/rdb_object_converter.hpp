@@ -166,19 +166,14 @@ class string_reader {
     }
 };
 
-/**
- * Utility class for for encoding/decoding gaia objects.
- */
-class rdb_object_converter_util {
-   public:
-    static void encode_object(
-        const object* gaia_object,
-        string_writer* key,
-        string_writer* value);
-    static gaia_id_t decode_object(
-        const rocksdb::Slice& key,
-        const rocksdb::Slice& value);
-};
+void encode_object(
+    const object* gaia_object,
+    string_writer* key,
+    string_writer* value);
+
+gaia_id_t decode_object(
+    const rocksdb::Slice& key,
+    const rocksdb::Slice& value);
 
 }  // namespace db
 }  // namespace gaia
