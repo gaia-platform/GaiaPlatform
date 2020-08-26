@@ -71,6 +71,7 @@ struct gaia_container_t {
 template <typename T_foreign, int T_foreign_slot>
 class gaia_set_iterator_t {
     gaia_id_t m_id;
+    T_foreign m_foreign_obj;
 public:
     using iterator_category = std::forward_iterator_tag;
     using value_type = gaia_id_t;
@@ -81,6 +82,8 @@ public:
     gaia_set_iterator_t(gaia_id_t id) : m_id(id) {}
 
     T_foreign operator*();
+
+    T_foreign* operator->();
 
     gaia_set_iterator_t<T_foreign, T_foreign_slot>& operator++();
 
