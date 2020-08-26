@@ -703,7 +703,6 @@ void employee_func_ref(const employee_t& e, const char* first_name)
         {
             EXPECT_THROW(e.name_first(), invalid_node_id);
         }
-
     }
     commit_transaction();
 }
@@ -765,7 +764,7 @@ TEST_F(gaia_object_test, default_construction) {
 }
 
 // Testing the arrow dereference operator->() in gaia_iterator_t.
-TEST_F(gaia_object_test, arrow_dereference) {
+TEST_F(gaia_object_test, iter_arrow_deref) {
     const char* emp_name = "Phillip";
     auto_transaction_t tx;
 
