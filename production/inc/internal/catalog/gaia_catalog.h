@@ -180,16 +180,12 @@ struct gaia_field_t : public gaia_object_t<18446744073709551615llu,gaia_field_t,
     uint8_t type() const {return GET(type);}
     uint16_t repeated_count() const {return GET(repeated_count);}
     uint16_t position() const {return GET(position);}
-    bool required() const {return GET(required);}
     bool deprecated() const {return GET(deprecated);}
     bool active() const {return GET(active);}
-    bool nullable() const {return GET(nullable);}
-    bool has_default() const {return GET(has_default);}
-    const char* default_value() const {return GET_STR(default_value);}
     using gaia_object_t::insert_row;
-    static gaia_id_t insert_row(const char* name, uint8_t type, uint16_t repeated_count, uint16_t position, bool required, bool deprecated, bool active, bool nullable, bool has_default, const char* default_value) {
+    static gaia_id_t insert_row(const char* name, uint8_t type, uint16_t repeated_count, uint16_t position, bool deprecated, bool active) {
         flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
-        b.Finish(Creategaia_fieldDirect(b, name, type, repeated_count, position, required, deprecated, active, nullable, has_default, default_value));
+        b.Finish(Creategaia_fieldDirect(b, name, type, repeated_count, position, deprecated, active));
         return gaia_object_t::insert_row(b);
     }
     gaia_table_t gaia_table() {

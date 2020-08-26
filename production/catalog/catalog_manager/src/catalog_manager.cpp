@@ -18,13 +18,15 @@ using namespace gaia::catalog::ddl;
 namespace gaia {
 namespace catalog {
 
+static constexpr char c_empty_c_str[] = "";
+
 gaia_id_t create_database(const string &name) {
     return catalog_manager_t::get().create_database(name);
 }
 
 gaia_id_t create_table(const string &name,
     const field_def_list_t &fields) {
-    return catalog_manager_t::get().create_table("", name, fields);
+    return catalog_manager_t::get().create_table(c_empty_c_str, name, fields);
 }
 
 gaia_id_t create_table(
@@ -36,7 +38,7 @@ gaia_id_t create_table(
 }
 
 void drop_table(const string &name) {
-    return catalog_manager_t::get().drop_table("", name);
+    return catalog_manager_t::get().drop_table(c_empty_c_str, name);
 }
 
 void drop_table(const string &dbname, const string &name) {
@@ -94,7 +96,7 @@ void catalog_manager_t::bootstrap_catalog() {
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"max_size", data_type_t::e_uint64, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"max_seconds", data_type_t::e_uint64, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new ddl::field_definition_t{"binary_schema", data_type_t::e_string, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"", data_type_t::e_references, 1, "catalog.gaia_database"}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_database"}));
         create_table_impl("catalog", "gaia_table", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_table));
     }
     {
@@ -103,12 +105,8 @@ void catalog_manager_t::bootstrap_catalog() {
         //     type uint8,
         //     repeated_count uint16,
         //     position uint16,
-        //     required bool,
         //     deprecated bool,
         //     active bool,
-        //     nullable bool,
-        //     has_default bool,
-        //     default_value string,
         //     references gaia_table,
         //     ref references gaia_table,
         // );
@@ -117,14 +115,10 @@ void catalog_manager_t::bootstrap_catalog() {
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"type", data_type_t::e_uint8, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"repeated_count", data_type_t::e_uint16, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"position", data_type_t::e_uint16, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"required", data_type_t::e_bool, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"deprecated", data_type_t::e_bool, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"active", data_type_t::e_bool, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"nullable", data_type_t::e_bool, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"has_default", data_type_t::e_bool, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"default_value", data_type_t::e_string, 1}));
         // The anonymous reference to the gaia_table defines the ownership.
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"", data_type_t::e_references, 1, "catalog.gaia_table"}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_table"}));
         // The "ref" named reference to the gaia_table defines the referential relationship.
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"ref", data_type_t::e_references, 1, "catalog.gaia_table"}));
         create_table_impl("catalog", "gaia_field", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_field));
@@ -153,7 +147,7 @@ void catalog_manager_t::bootstrap_catalog() {
         // );
         field_def_list_t fields;
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::e_string, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"", data_type_t::e_references, 1, "catalog.gaia_ruleset"}));
+        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_ruleset"}));
         create_table_impl("catalog", "gaia_rule", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_rule));
     }
 }
@@ -246,7 +240,7 @@ void catalog_manager_t::drop_table(
         throw db_not_exists(dbname);
     }
 
-    string full_table_name = (dbname.empty() ? "" : dbname + ".") + name;
+    string full_table_name = (dbname.empty() ? c_empty_c_str : dbname + ".") + name;
     gaia_id_t db_id = find_db_id_no_lock(dbname);
     retail_assert(db_id != INVALID_GAIA_ID);
 
@@ -318,7 +312,7 @@ gaia_id_t catalog_manager_t::create_table_impl(
         throw db_not_exists(dbname);
     }
 
-    string full_table_name = (dbname.empty() ? "" : dbname + ".") + table_name;
+    string full_table_name = (dbname.empty() ? c_empty_c_str : dbname + ".") + table_name;
     gaia_id_t db_id = find_db_id_no_lock(dbname);
     retail_assert(db_id != INVALID_GAIA_ID);
 
@@ -402,12 +396,8 @@ gaia_id_t catalog_manager_t::create_table_impl(
             static_cast<uint8_t>(field->type), // type
             field->length,                     // repeated_count
             position,                          // position
-            true,                              // required
             false,                             // deprecated
-            field->active,                     // active
-            true,                              // nullable
-            false,                             // has_default
-            ""                                 // default value
+            field->active                      // active
         );
         // Connect the field to the table it belongs to.
         gaia_table_t::get(table_id).gaia_field_list().insert(field_id);
