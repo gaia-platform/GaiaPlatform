@@ -433,7 +433,8 @@ vector<gaia_id_t> catalog_manager_t::list_fields(gaia_id_t table_id) const {
     vector<gaia_id_t> fields;
     // Direct access reference list API guarantees LIFO. As long as we only
     // allow appending new fields to table definitions, reversing the field list
-    // order should result fields in the ascending order of their positions.
+    // order should result in fields being listed in the ascending order of
+    // their positions.
     for (auto field : gaia_table_t::get(table_id).gaia_field_list()) {
         if (field.type() != static_cast<uint8_t>(data_type_t::e_references)) {
             fields.insert(fields.begin(), field.gaia_id());
@@ -446,7 +447,8 @@ vector<gaia_id_t> catalog_manager_t::list_references(gaia_id_t table_id) const {
     vector<gaia_id_t> references;
     // Direct access reference list API guarantees LIFO. As long as we only
     // allow appending new fields to table definitions, reversing the field list
-    // order should result fields in the ascending order of their positions.
+    // order should result in fields being listed in the ascending order of
+    // their positions.
     for (auto field : gaia_table_t::get(table_id).gaia_field_list()) {
         if (field.type() == static_cast<uint8_t>(data_type_t::e_references)) {
             references.insert(references.begin(), field.gaia_id());
