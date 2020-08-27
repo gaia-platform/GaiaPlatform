@@ -25,19 +25,19 @@ namespace catalog {
 constexpr int c_flatbuffer_builder_size = 128;
 
 // Constants contained in the gaia_rule object.
-constexpr int c_parent_rules_gaia_ruleset = 0;
-constexpr int c_next_rules_gaia_rule = 1;
+constexpr int c_parent_gaia_rule_gaia_ruleset = 0;
+constexpr int c_next_gaia_rule_gaia_rule = 1;
 constexpr int c_num_gaia_rule_ptrs = 2;
 
 // Constants contained in the gaia_ruleset object.
-constexpr int c_first_rules_gaia_rule = 0;
+constexpr int c_first_gaia_rule_gaia_rule = 0;
 constexpr int c_num_gaia_ruleset_ptrs = 1;
 
 // Constants contained in the gaia_field object.
-constexpr int c_parent_fields_gaia_table = 0;
-constexpr int c_next_fields_gaia_field = 1;
-constexpr int c_parent_refs_gaia_table = 2;
-constexpr int c_next_refs_gaia_field = 3;
+constexpr int c_parent_gaia_field_gaia_table = 0;
+constexpr int c_next_gaia_field_gaia_field = 1;
+constexpr int c_parent_ref_gaia_table = 2;
+constexpr int c_next_ref_gaia_field = 3;
 constexpr int c_num_gaia_field_ptrs = 4;
 
 // Constants contained in the gaia_table object.
@@ -115,11 +115,10 @@ typedef gaia_writer_t<18446744073709551613llu,gaia_rule_t,gaia_rule,gaia_ruleT,c
 struct gaia_rule_t : public gaia_object_t<18446744073709551613llu,gaia_rule_t,gaia_rule,gaia_ruleT,c_num_gaia_rule_ptrs> {
     gaia_rule_t() : gaia_object_t("gaia_rule_t") {}
     const char* name() const {return GET_STR(name);}
-    uint64_t ruleset_id() const {return GET(ruleset_id);}
     using gaia_object_t::insert_row;
-    static gaia_id_t insert_row(const char* name, uint64_t ruleset_id) {
+    static gaia_id_t insert_row(const char* name) {
         flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
-        b.Finish(Creategaia_ruleDirect(b, name, ruleset_id));
+        b.Finish(Creategaia_ruleDirect(b, name));
         return gaia_object_t::insert_row(b);
     }
     gaia_ruleset_t rules_gaia_ruleset() {
@@ -178,21 +177,15 @@ typedef gaia_writer_t<18446744073709551615llu,gaia_field_t,gaia_field,gaia_field
 struct gaia_field_t : public gaia_object_t<18446744073709551615llu,gaia_field_t,gaia_field,gaia_fieldT,c_num_gaia_field_ptrs> {
     gaia_field_t() : gaia_object_t("gaia_field_t") {}
     const char* name() const {return GET_STR(name);}
-    uint64_t table_id() const {return GET(table_id);}
     uint8_t type() const {return GET(type);}
-    uint64_t type_id() const {return GET(type_id);}
     uint16_t repeated_count() const {return GET(repeated_count);}
     uint16_t position() const {return GET(position);}
-    bool required() const {return GET(required);}
     bool deprecated() const {return GET(deprecated);}
     bool active() const {return GET(active);}
-    bool nullable() const {return GET(nullable);}
-    bool has_default() const {return GET(has_default);}
-    const char* default_value() const {return GET_STR(default_value);}
     using gaia_object_t::insert_row;
-    static gaia_id_t insert_row(const char* name, uint64_t table_id, uint8_t type, uint64_t type_id, uint16_t repeated_count, uint16_t position, bool required, bool deprecated, bool active, bool nullable, bool has_default, const char* default_value) {
+    static gaia_id_t insert_row(const char* name, uint8_t type, uint16_t repeated_count, uint16_t position, bool deprecated, bool active) {
         flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
-        b.Finish(Creategaia_fieldDirect(b, name, table_id, type, type_id, repeated_count, position, required, deprecated, active, nullable, has_default, default_value));
+        b.Finish(Creategaia_fieldDirect(b, name, type, repeated_count, position, deprecated, active));
         return gaia_object_t::insert_row(b);
     }
     gaia_table_t fields_gaia_table() {

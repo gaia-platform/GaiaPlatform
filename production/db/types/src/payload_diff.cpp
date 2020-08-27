@@ -26,11 +26,8 @@ void compute_payload_diff(gaia_id_t type_id, const uint8_t *payload1, const uint
     gaia::catalog::gaia_table_t table = gaia::catalog::gaia_table_t::get(type_id);
     string schema = gaia::catalog::get_bfbs(type_id);
 
-    // TODO[GAIAPLAT-275]: use reference list to navigate catalog
-    for (auto field = gaia::catalog::gaia_field_t::get_first(); field; field.get_next()) {
-        if (field.type() != static_cast<uint8_t>(gaia::catalog::data_type_t::e_references) &&
-            field.table_id() == type_id) {
-
+    for (auto field : gaia::catalog::gaia_table_t::get(type_id).gaia_field_list()) {
+        if (field.type() != static_cast<uint8_t>(gaia::catalog::data_type_t::e_references)) {
             field_position_t pos = field.position();
             data_holder_t data_holder1 = get_field_value(
                 type_id, payload1, reinterpret_cast<const uint8_t *>(schema.c_str()), pos);
