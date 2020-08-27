@@ -577,9 +577,8 @@ TEST_F(gaia_references_test, set_iter_arrow_deref) {
 
     address_writer addr_writer;
     addr_writer.city = addr_city;
-    address_t address = address_t::get(addr_writer.insert_row());
 
-    employee.addressee_address_list().insert(address);
+    employee.addressee_address_list().insert(addr_writer.insert_row());
     tx.commit();
 
     auto emp_addr_set_iter = employee.addressee_address_list().begin();
