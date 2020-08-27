@@ -208,4 +208,3 @@ private:
 }  // namespace gaia
 
 #endif  // GAIA_GENERATED_catalog_H_
-

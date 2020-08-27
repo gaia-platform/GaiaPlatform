@@ -703,7 +703,6 @@ void employee_func_ref(const employee_t& e, const char* first_name)
         {
             EXPECT_THROW(e.name_first(), invalid_node_id);
         }
-        
     }
     commit_transaction();
 }
@@ -721,7 +720,7 @@ void employee_func_val(employee_t e, const char* first_name)
         {
             EXPECT_THROW(e.name_first(), invalid_node_id);
         }
-        
+
     }
     commit_transaction();
 }
@@ -729,14 +728,14 @@ void employee_func_val(employee_t e, const char* first_name)
 TEST_F(gaia_object_test, default_construction) {
     // Valid use case to create an unbacked object that
     // you can't do anything with.  However, now you can
-    // set a variable to it later in the function, use it as 
+    // set a variable to it later in the function, use it as
     // a member of a class, etc.
     employee_t e;
     address_t a;
 
     employee_func_ref(e, nullptr);
     employee_func_val(e, nullptr);
-    
+
     begin_transaction();
     {
         EXPECT_THROW(e.name_first(), invalid_node_id);
@@ -762,4 +761,16 @@ TEST_F(gaia_object_test, default_construction) {
         EXPECT_STREQ(e.name_first(), "Windsor");
     }
     commit_transaction();
+}
+
+// Testing the arrow dereference operator->() in gaia_iterator_t.
+TEST_F(gaia_object_test, iter_arrow_deref) {
+    const char* emp_name = "Phillip";
+    auto_transaction_t tx;
+
+    create_employee(emp_name);
+    tx.commit();
+
+    gaia_iterator_t<employee_t> emp_iter = employee_t::list().begin();
+    EXPECT_STREQ(emp_iter->name_first(), emp_name);
 }
