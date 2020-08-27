@@ -169,7 +169,7 @@ void rdb_wrapper::recover() {
     }    
     // Check for any errors found during the scan
     assert(it->status().ok());
-    server::s_data->next_id = max_id + 1;
+    server::s_data->next_id = max_id;
 
     cout << "Recovered count " << count << endl << flush;
     cout << "Recovered max ID " << max_id << endl << flush;
