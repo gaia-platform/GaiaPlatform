@@ -45,8 +45,8 @@ void load_catalog()
     g_table_type = create_table(name, fields);
 
     // Modify the fields to have the correct active and deprecated attributes.
-    auto field_ids = list_fields(g_table_type);
     begin_transaction();
+    auto field_ids = list_fields(g_table_type);
     for (gaia_id_t field_id : field_ids)
     {
         gaia_field_t field = gaia_field_t::get(field_id);
