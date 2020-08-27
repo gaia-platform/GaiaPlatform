@@ -10,6 +10,7 @@
 #include "rocksdb/write_batch.h"
 #include "rocksdb/status.h"
 #include "rocksdb/utilities/transaction_db.h"
+#include <sstream>
 
 // Simple library over RocksDB APIs.
 namespace gaia 

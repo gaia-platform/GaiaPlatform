@@ -5,6 +5,7 @@
 
 #include "storage_engine.hpp"
 #include "storage_engine_server.hpp"
+#include "gaia_hash_map.hpp"
 #include "rocksdb/db.h"
 #include "rocksdb/write_batch.h"
 #include "rdb_wrapper.hpp"
@@ -12,6 +13,7 @@
 #include "rdb_internal.hpp"
 #include "system_table_types.hpp"
 #include "gaia_db_internal.hpp"
+#include "types.hpp"
 #include <memory>
 
 using namespace gaia::db; 
@@ -111,12 +113,12 @@ rocksdb::Status rdb_wrapper::rollback_tx(rocksdb::Transaction* trx) {
 }
 
 Status rdb_wrapper::prepare_tx(rocksdb::Transaction* trx) {
-    auto s_log = se_base::s_log;
+    auto s_log = se_base::get_txn_log();
     // The key_count variable represents the number of puts + deletes.
     size_t key_count = 0;
     for (auto i = 0; i < s_log->count; i++) {
         auto log_record = s_log->log_records + i;
-        if (log_record->operation == se_base::gaia_operation_t::remove) {
+        if (log_record->operation == gaia_operation_t::remove) {
             // Encode key to be deleted.
             string_writer key; 
             key.write_uint64(log_record->deleted_id);
@@ -131,7 +133,7 @@ Status rdb_wrapper::prepare_tx(rocksdb::Transaction* trx) {
                 // Object was deleted in current transaction.
                 continue;
             }
-            encode_object((object*) gaia_object, &key, &value);
+            encode_object(static_cast<object*>(gaia_object), &key, &value);
             // Gaia objects encoded as key-value slices shouldn't be empty.
             assert(key.get_current_position() != 0 && value.get_current_position() != 0);
             trx->Put(key.to_slice(), value.to_slice());
@@ -181,4 +183,21 @@ void rdb_wrapper::recover() {
 
 void rdb_wrapper::destroy_db() {
     rdb_internal->destroy_db();
+}
+
+void rdb_wrapper::create_object_on_recovery(
+    gaia_id_t id,
+    gaia_type_t type,
+    uint64_t num_refs,
+    uint64_t data_size,
+    const void* data) {
+    hash_node* hash_node = gaia_hash_map::insert(server::s_data, server::s_shared_offsets, id);
+    hash_node->row_id = server::allocate_row_id(server::s_shared_offsets, server::s_data);
+    server::allocate_object(hash_node->row_id, data_size + sizeof(object), server::s_shared_offsets, server::s_data);
+    object* obj_ptr = se_base::locator_to_ptr(server::s_shared_offsets, server::s_data, hash_node->row_id);
+    obj_ptr->id = id;
+    obj_ptr->type = type;
+    obj_ptr->num_references = num_refs;
+    obj_ptr->payload_size = data_size;
+    memcpy(obj_ptr->payload, data, data_size);
 }

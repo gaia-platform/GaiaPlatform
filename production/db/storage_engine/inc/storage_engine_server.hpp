@@ -35,8 +35,6 @@ class invalid_session_transition : public gaia_exception {
 
 class server : private se_base {
     friend class rdb_wrapper;
-    friend class gaia_hash_map_server;
-    friend class gaia_ptr_server;
    public:
     static void run();
 

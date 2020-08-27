@@ -4,7 +4,7 @@
 /////////////////////////////////////////////
 
 #include "rdb_object_converter.hpp"
-#include "gaia_ptr_server.hpp"
+#include "rdb_wrapper.hpp"
 #include "storage_engine.hpp"
 
 using namespace gaia::common;
@@ -56,6 +56,6 @@ gaia_id_t gaia::db::decode_object(
     // The create API expects size of the flatbuffer payload only; without reference length
     // So subtract the reference length before calling the API.
     // uint64_t size_without_references = size - num_references * sizeof(gaia_id_t);
-    gaia_ptr_server::create(id, type, num_references, size, payload);
+    rdb_wrapper::create_object_on_recovery(id, type, num_references, size, payload);
     return id;
 }

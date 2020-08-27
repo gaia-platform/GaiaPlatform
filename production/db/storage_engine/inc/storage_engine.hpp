@@ -26,6 +26,7 @@
 #include "gaia_common.hpp"
 #include "gaia_db.hpp"
 #include "gaia_exception.hpp"
+#include "types.hpp"
 
 namespace gaia {
 namespace db {
@@ -37,15 +38,24 @@ typedef uint64_t gaia_edge_type_t;
 // 1K oughta be enough for anybody...
 const size_t MAX_MSG_SIZE = 1 << 10;
 
+enum class gaia_operation_t: int8_t {
+    create = 0x0,
+    update = 0x1,
+    remove = 0x2,
+    clone  = 0x3
+};
+
+struct hash_node {
+    gaia_id_t id;
+    int64_t next;
+    int64_t row_id;
+};
+
 class se_base {
     friend class gaia_ptr;
-    friend class gaia_ptr_server;
-    template<class> friend class gaia_hash_map_base;
     friend class gaia_hash_map;
-    friend class gaia_hash_map_server;
-    friend class rdb_wrapper;
-    friend class rdb_object_converter_util;
-
+    template<class> friend class gaia_hash_map_base;
+    
    private: 
 
    protected:
@@ -61,19 +71,6 @@ class se_base {
     static const auto MAX_OBJECTS = MAX_RIDS * 8;
 
     typedef int64_t offsets[MAX_RIDS];
-
-    struct hash_node {
-        gaia_id_t id;
-        int64_t next;
-        int64_t row_id;
-    };
-
-    enum class gaia_operation_t: int8_t {
-        create = 0x0,
-        update = 0x1,
-        remove = 0x2,
-        clone  = 0x3
-    };
 
     struct data {
         // The first two fields are used as cross-process atomic counters.
@@ -159,6 +156,20 @@ class se_base {
 
     static void* offset_to_ptr(int64_t offset, data* s_data) {
         return offset ? (s_data->objects + offset) : nullptr;
+    }
+
+    static log* get_txn_log() {
+        return s_log;
+    }
+    
+    static object* locator_to_ptr(offsets* offsets, data* s_data, int64_t row_id) {
+        if (*offsets == nullptr) {
+            throw transaction_not_open();
+        }
+
+        return row_id && (*offsets)[row_id]
+            ? reinterpret_cast<object*>(s_data->objects + (*offsets)[row_id])
+            : nullptr;
     }
 };
 

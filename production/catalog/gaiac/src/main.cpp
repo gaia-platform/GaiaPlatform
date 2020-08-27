@@ -174,7 +174,11 @@ int main(int argc, char *argv[]) {
         } else if (argv[i] == string("-h")) {
             cout << usage() << endl;
             exit(EXIT_SUCCESS);
-        } else {
+        } else if (argv[i] == string("-destroy_db")) {
+            // This option isn't documented as we don't want to expose it to customers.
+            db_test_base_t::remove_persistent_store();
+        }
+        else {
             ddl_filename = argv[i];
         }
     }

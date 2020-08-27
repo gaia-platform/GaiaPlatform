@@ -69,6 +69,16 @@ class rdb_wrapper
      */
     void destroy_db();
 
+    /**
+     * This method is used to create a Gaia object using a decoded key-value pair from RocksDB.
+     */
+    static void create_object_on_recovery(
+        gaia_id_t id,
+        gaia_type_t type,
+        uint64_t num_refs,
+        uint64_t data_size,
+        const void* data);
+
     };
 }
 
