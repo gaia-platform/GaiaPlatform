@@ -17,7 +17,7 @@ namespace gaia
 {
 namespace db 
 {
-    
+// Todo(msj) Log RocksDB status for all commands.
 class rdb_internal_t
 {
     private:
@@ -55,13 +55,11 @@ class rdb_internal_t
 
             rocksdb::Transaction* txn = m_txn_db->BeginTransaction(options, txn_opts);
             rocksdb::Status s = txn->SetName(rdb_transaction_name.str());
-            if (!s.ok()) {
-                assert(false);
-            }
+            handle_rdb_error(s);
             return txn;
         }
 
-        rocksdb::Status prepare_txn(rocksdb::Transaction* txn) {
+        rocksdb::Status prepare_wal_for_write(rocksdb::Transaction* txn) {
             return txn->Prepare();
         }
 
@@ -69,11 +67,11 @@ class rdb_internal_t
             return txn->Rollback();
         }
 
-        rocksdb::Status commit_txn(rocksdb::Transaction* txn) {
+        rocksdb::Status commit(rocksdb::Transaction* txn) {
             return txn->Commit();
         }
         
-        rocksdb::Status close() {        
+        void close() {        
             if(m_txn_db.get()) {
                 m_txn_db->Close();
             }
@@ -89,6 +87,16 @@ class rdb_internal_t
 
         bool is_db_open() {
             return m_txn_db.get();
+        }
+
+        void handle_rdb_error(rocksdb::Status status) {
+            // Todo (msj) Log status information.
+            // This method could handle errors differently based on 
+            // the type of error, i.e, either return exception or abort
+            // but for now all use cases of this method require an abort.
+            if (!status.ok()) {
+                abort();
+            }
         }
 
     };

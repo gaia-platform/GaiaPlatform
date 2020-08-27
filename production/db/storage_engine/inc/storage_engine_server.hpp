@@ -19,7 +19,6 @@
 #include "socket_helpers.hpp"
 #include "messages_generated.h"
 #include "rdb_wrapper.hpp"
-#include "rocksdb/utilities/transaction_db.h"
 
 namespace gaia {
 namespace db {
@@ -168,8 +167,7 @@ class server : private se_base {
         // Open RocksDB just once.
         if (!rdb.get()) {
             rdb = std::unique_ptr<rdb_wrapper>(new gaia::db::rdb_wrapper());
-            rocksdb::Status status = rdb->open();
-            assert(status.ok());
+            rdb->open();
             rdb->recover();
         } 
     }
@@ -514,13 +512,9 @@ class server : private se_base {
 
         std::set<int64_t> row_ids;
 
-        rocksdb::Transaction* trx = rdb->begin_tx(s_transaction_id);
+        rdb_transaction txn = rdb->begin_txn(s_transaction_id);
         // Prepare tx
-        rocksdb::Status s = rdb->prepare_tx(trx);
-        if (!s.ok()) {
-            throw_system_error(s.getState());
-        }
-        // assert(s.ok());
+        rdb->prepare_wal_for_write(txn);
         
         for (auto i = 0; i < s_log->count; i++) {
             auto lr = s_log->log_records + i;
@@ -532,7 +526,7 @@ class server : private se_base {
                     // Append Rollback decision to log.
                     // This isn't really required because recovery will skip deserializing transactions 
                     // that don't have a commit marker; we do it for completeness anyway. 
-                    rdb->rollback_tx(trx);
+                    rdb->append_wal_rollback_marker(txn);
                     return false;
                 }
             }
@@ -544,7 +538,7 @@ class server : private se_base {
         }
 
         // Append commit decision to the log.
-        rdb->commit_tx(trx);
+        rdb->append_wal_commit_marker(txn);
 
         return true;
     }

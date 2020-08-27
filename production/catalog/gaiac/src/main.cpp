@@ -16,11 +16,12 @@
 #include "gaia_parser.hpp"
 #include "gaia_system.hpp"
 #include "gaia_db.hpp"
-#include "db_test_base.hpp"
+#include "db_test_helpers.hpp"
 
 using namespace std;
 using namespace gaia::catalog;
 using namespace gaia::catalog::ddl;
+using namespace gaia::db;
 
 static const string c_error_prompt = "ERROR: ";
 static const string c_warning_prompt = "WARNING: ";
@@ -126,6 +127,7 @@ string usage() {
           "  -g          Generate fbs and gaia headers.\n"
           "  -o <path>   Set the path to all generated files.\n"
           "  -t          Start the SE server (for testing purposes).\n"
+          "  -e          Create tables and databases if they don't already exist.\n"
           "  -h          Print help information.\n"
           "  <ddl_file>  Process the DDLs in the file.\n"
           "              In the absence of <dbname>, the ddl file basename will be used as the database name.\n"
@@ -141,6 +143,7 @@ int main(int argc, char *argv[]) {
     string ddl_filename;
     operate_mode_t mode = operate_mode_t::loading;
     parser_t parser;
+    bool throw_on_exist = true;
 
     for (int i = 1; i < argc; ++i) {
         if (argv[i] == string("-p")) {
@@ -176,7 +179,9 @@ int main(int argc, char *argv[]) {
             exit(EXIT_SUCCESS);
         } else if (argv[i] == string("-destroy_db")) {
             // This option isn't documented as we don't want to expose it to customers.
-            db_test_base_t::remove_persistent_store();
+            remove_persistent_store();
+        } else if (argv[i] == string("-e")) {
+            throw_on_exist = false;
         }
         else {
             ddl_filename = argv[i];
@@ -190,7 +195,7 @@ int main(int argc, char *argv[]) {
             gaia::db::begin_session();
 
             if (!ddl_filename.empty()) {
-                db_name = load_catalog(parser, ddl_filename, db_name);
+                db_name = load_catalog(parser, ddl_filename, db_name, throw_on_exist);
             }
 
             if (mode == operate_mode_t::generation) {

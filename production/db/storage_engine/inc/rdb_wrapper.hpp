@@ -20,6 +20,14 @@ namespace db
 constexpr uint64_t c_rocksdb_io_error_code = 5;
 constexpr uint64_t c_max_open_db_attempt_count = 10;
 
+// Wrapper around transaction classes so we don't leak rocksdb
+// related functionality to the storage engine.
+// This wrapper class will go away with PersistenceV2; 
+// (when we roll out our own WAL)
+struct rdb_transaction {
+    rocksdb::Transaction* txn;
+};
+
 class rdb_wrapper 
 {
     private:
@@ -32,12 +40,12 @@ class rdb_wrapper
     /**
      * Open rocksdb with the correct options.
      */
-    rocksdb::Status open();
+    void open();
 
     /**
      * Close the database.
      */
-    rocksdb::Status close();
+    void close();
 
     /** 
      * Iterate over all elements in the LSM and call SE create API 
@@ -45,24 +53,34 @@ class rdb_wrapper
      */
     void recover();
 
-    rocksdb::Transaction* begin_tx(gaia_xid_t transaction_id);
+    rdb_transaction begin_txn(gaia_xid_t transaction_id);
 
     /**
-     * Prepare will serialize the transaction to the log. 
+     * This method will serialize the transaction to the log.
+     * We expect writes to the RocksDB WAL to just work; this 
+     * method will sigabrt otherwise.
      */ 
-    rocksdb::Status prepare_tx(rocksdb::Transaction* trx);
+    void prepare_wal_for_write(rdb_transaction txn);
 
     /** 
      * This method will append a commit marker with the appropriate
      * transaction_id to the log, and will additionally insert entries
-     * into the RocksDB write buffer (which then writes to disk on getting full)
+     * into the RocksDB write buffer (which then writes KV's to disk on getting full)
+     * 
+     * We expect writes to the RocksDB WAL to just work; this
+     * method will sigabrt otherwise. This also covers the case where writing
+     * to the log succeeds but writing to the RocksDB memory buffer fails for any reason -
+     * leading to incomplete buffer writes.
+     * 
+     * The RocksDB commit API will additionally perform its own validation, but this codepath
+     * has been switched off so we don't expect any errors from the normal flow of execution.
      */
-    void commit_tx(rocksdb::Transaction* trx);
+    void append_wal_commit_marker(rdb_transaction txn);
 
     /**
-     * Similarly, rollback will append a rollback marker to the log. 
+     * Append a rollback marker to the log.
      */
-    rocksdb::Status rollback_tx(rocksdb::Transaction* trx);
+    void append_wal_rollback_marker(rdb_transaction txn);
 
     /**
      * Destroy the persistent store.
@@ -70,7 +88,7 @@ class rdb_wrapper
     void destroy_db();
 
     /**
-     * This method is used to create a Gaia object using a decoded key-value pair from RocksDB.
+     * This method is used to create a Gaia object from a decoded RocksDB key-value pair.
      */
     static void create_object_on_recovery(
         gaia_id_t id,

@@ -63,13 +63,6 @@ class catalog_manager_t {
         bool throw_on_exist = true,
         gaia_id_t id = INVALID_GAIA_ID);
 
-    // Used as a wrapper over 'create_table_impl' to take 
-    gaia_id_t create_table_impl_(
-        const string &database_name,
-        const string &table_name,
-        const ddl::field_def_list_t &fields, 
-        bool throw_on_exist);
-
     // Find the database ID given its name.
     // The method does not use a lock.
     inline gaia_id_t find_db_id_no_lock(const string& dbname) const;

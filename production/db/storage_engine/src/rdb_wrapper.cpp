@@ -36,30 +36,30 @@ rdb_wrapper::~rdb_wrapper() {
     close();
 }
 
-Status rdb_wrapper::open() {
+void rdb_wrapper::open() {
     rocksdb::TransactionDBOptions options{};
-    rocksdb::Options initoptions{};
+    rocksdb::Options init_options{};
     // Implies 2PC log writes.
-    initoptions.allow_2pc = true;
+    init_options.allow_2pc = true;
     // Create a new database directory if one doesn't exist.
-    initoptions.create_if_missing = true;
+    init_options.create_if_missing = true;
     // Size of memtable (4 mb)
-    initoptions.write_buffer_size = 1 * 1024 * 1024; 
-    initoptions.db_write_buffer_size = 1 * 1024 * 1024;
+    init_options.write_buffer_size = 1 * 1024 * 1024; 
+    init_options.db_write_buffer_size = 1 * 1024 * 1024;
 
     // Will function as a trigger for flushing memtables to disk.
     // https://github.com/facebook/rocksdb/issues/4180 Only relevant when we have multiple column families.
-    initoptions.max_total_wal_size = 1 * 1024 * 1024;
+    init_options.max_total_wal_size = 1 * 1024 * 1024;
     // Number of memtables; 
     // The maximum number of write buffers that are built up in memory.
     // So that when 1 write buffers being flushed to storage, new writes can continue to the other
     // write buffer.
-    initoptions.max_write_buffer_number = 1;
+    init_options.max_write_buffer_number = 1;
 
     // The minimum number of write buffers that will be merged together
     // before writing to storage.  If set to 1, then
     // all write buffers are flushed to L0 as individual files.
-    initoptions.min_write_buffer_number_to_merge = 1;
+    init_options.min_write_buffer_number_to_merge = 1;
 
     // Any IO error during WAL replay is considered as data corruption.
     // This option assumes clean server shutdown.
@@ -67,62 +67,60 @@ Status rdb_wrapper::open() {
     // Currently in place for development purposes. 
     // The default option 'kPointInTimeRecovery' will stop the WAL playback on discovering WAL inconsistency
     // without notifying the caller.
-    initoptions.wal_recovery_mode = WALRecoveryMode::kAbsoluteConsistency;
+    init_options.wal_recovery_mode = WALRecoveryMode::kAbsoluteConsistency;
 
-    Status s = rdb_internal->open_txn_db(initoptions, options);
+    Status s = rdb_internal->open_txn_db(init_options, options);
 
     // RocksDB throws an IOError when trying to open (recover) twice on the same directory 
     // while a process is already up. 
     // The same error is also seen when reopening the db after a large volume of deletes
     // See https://github.com/facebook/rocksdb/issues/4421
-    int open_db_attempt_count = 0;
+    size_t open_db_attempt_count = 0;
     while (s.code() == c_rocksdb_io_error_code && open_db_attempt_count < c_max_open_db_attempt_count) { 
         open_db_attempt_count++;
         if (rdb_internal->is_db_open()) {
             rdb_internal->close();
-            s = rdb_internal->open_txn_db(initoptions, options);
+            s = rdb_internal->open_txn_db(init_options, options);
         } else {
-            s = rdb_internal->open_txn_db(initoptions, options);
+            s = rdb_internal->open_txn_db(init_options, options);
         }
     }
-    return s;
+
+    rdb_internal->handle_rdb_error(s);
 }
 
-Status rdb_wrapper::close() {        
-    return rdb_internal->close();
+void rdb_wrapper::close() {        
+    rdb_internal->close();
 }
 
-void rdb_wrapper::commit_tx(rocksdb::Transaction* trx) {
-    rocksdb::Status status = rdb_internal->commit_txn(trx);
-    
-    // Ideally, this should always go through as RocksDB validation is switched off.
-    // For now, abort if commit fails.
-    if (!status.ok()) {
-        abort();
-    }
+void rdb_wrapper::append_wal_commit_marker(rdb_transaction rdb_transaction) {
+    rocksdb::Status status = rdb_internal->commit(rdb_transaction.txn);
+    rdb_internal->handle_rdb_error(status);
 }
 
-rocksdb::Transaction* rdb_wrapper::begin_tx(gaia_xid_t transaction_id) {
+rdb_transaction rdb_wrapper::begin_txn(gaia_xid_t transaction_id) {
     rocksdb::WriteOptions write_options{};
     rocksdb::TransactionOptions txn_options{};
-    return rdb_internal->begin_txn(write_options, txn_options, transaction_id);
+    auto txn = rdb_internal->begin_txn(write_options, txn_options, transaction_id);
+    return rdb_transaction{txn};
 }
 
-rocksdb::Status rdb_wrapper::rollback_tx(rocksdb::Transaction* trx) {
-    return rdb_internal->rollback(trx);
+void rdb_wrapper::append_wal_rollback_marker(rdb_transaction rdb_transaction) {
+    rocksdb::Status s = rdb_internal->rollback(rdb_transaction.txn);
+    rdb_internal->handle_rdb_error(s);
 }
 
-Status rdb_wrapper::prepare_tx(rocksdb::Transaction* trx) {
+void rdb_wrapper::prepare_wal_for_write(rdb_transaction rdb_transaction) {
     auto s_log = se_base::get_txn_log();
     // The key_count variable represents the number of puts + deletes.
-    size_t key_count = 0;
+    int64_t key_count = 0;
     for (auto i = 0; i < s_log->count; i++) {
         auto log_record = s_log->log_records + i;
         if (log_record->operation == gaia_operation_t::remove) {
             // Encode key to be deleted.
             string_writer key; 
             key.write_uint64(log_record->deleted_id);
-            trx->Delete(key.to_slice());
+            rdb_transaction.txn->Delete(key.to_slice());
             key_count++;
         } else {
             string_writer key; 
@@ -136,13 +134,14 @@ Status rdb_wrapper::prepare_tx(rocksdb::Transaction* trx) {
             encode_object(static_cast<object*>(gaia_object), &key, &value);
             // Gaia objects encoded as key-value slices shouldn't be empty.
             assert(key.get_current_position() != 0 && value.get_current_position() != 0);
-            trx->Put(key.to_slice(), value.to_slice());
+            rdb_transaction.txn->Put(key.to_slice(), value.to_slice());
             key_count++;
         } 
     }
     // Ensure that keys were inserted into the RocksDB transaction object.
     assert(key_count == s_log->count);
-    return rdb_internal->prepare_txn(trx);
+    rocksdb::Status s = rdb_internal->prepare_wal_for_write(rdb_transaction.txn);
+    rdb_internal->handle_rdb_error(s);
 }
 
 /**
@@ -170,7 +169,7 @@ void rdb_wrapper::recover() {
         count++;
     }    
     // Check for any errors found during the scan
-    assert(it->status().ok());
+    rdb_internal->handle_rdb_error(it->status());
     server::s_data->next_id = max_id;
 
     cout << "Recovered count " << count << endl << flush;
