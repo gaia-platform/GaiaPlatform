@@ -54,9 +54,6 @@ struct hash_node {
 class se_base {
     friend class gaia_ptr;
     friend class gaia_hash_map;
-    template<class> friend class gaia_hash_map_base;
-    
-   private: 
 
    protected:
     static const char* const SERVER_CONNECT_SOCKET_NAME;

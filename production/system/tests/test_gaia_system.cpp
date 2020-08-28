@@ -39,35 +39,6 @@ void rule1(const rule_context_t *) {
 extern "C" void initialize_rules() {
 }
 
-void load_catalog()
-{
-    gaia::catalog::ddl::field_def_list_t fields;
-    // Add dummy catalog types for all our types used in this test.
-    for (gaia_type_t i = employee_t::s_gaia_type; i <= phone_t::s_gaia_type; i++) 
-    {
-        string table_name = "dummy" + std::to_string(i);
-        if (i == employee_t::s_gaia_type) {
-            gaia::catalog::ddl::field_def_list_t emp_fields;
-            emp_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t{"name_first", data_type_t::e_string, 1}));
-            auto table_id = gaia::catalog::create_table("employee", emp_fields);
-            begin_transaction();
-            {
-                auto field_ids = list_fields(table_id);
-                for (gaia_id_t field_id : field_ids)
-                {
-                    // Mark all fields as active so that we can bind to them
-                    gaia_field_writer w = gaia_field_t::get(field_id).writer();
-                    w.active = true;
-                    w.update_row();
-                }
-            }
-            commit_transaction();
-        } else {
-            gaia::catalog::create_table(table_name, fields);
-        }
-    }
-}
-
 class gaia_system_test : public db_test_base_t {
 public:
     static void SetUpTestSuite()
@@ -85,8 +56,6 @@ public:
         gaia::catalog::load_catalog(ddl_file);
 
         gaia::rules::initialize_rules_engine();
-        // Todo (msj) - fix catalog interaction with persistence in our tests/build.
-        // load_catalog();
 
         // Initialize rules after loading the catalog.
         rule_binding_t m_rule1{"ruleset1_name", "rule1_name", rule1};

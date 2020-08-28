@@ -45,7 +45,6 @@ class server : private se_base {
     static std::mutex s_commit_lock;
     static int s_fd_data;
     static offsets* s_shared_offsets;
-    static bool rocksdb_is_open;
     static std::unique_ptr<rdb_wrapper> rdb;
     thread_local static session_state_t s_session_state;
     thread_local static bool s_session_shutdown;

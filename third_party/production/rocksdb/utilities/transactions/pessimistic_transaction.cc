@@ -135,7 +135,7 @@ WriteCommittedTxn::WriteCommittedTxn(TransactionDB* txn_db,
     : PessimisticTransaction(txn_db, write_options, txn_options){};
 
 Status PessimisticTransaction::CommitBatch(WriteBatch* batch) {
-  Status s;
+  Status s = Status::OK();
 
   bool can_commit = false;
 

@@ -58,8 +58,6 @@ class client : private se_base {
    private:
     thread_local static int s_fd_log;
     thread_local static offsets* s_offsets;
-    // Suffix with 'tls' for readability since there is name collision with 
-    // variables defined in the base class. 
     thread_local static int s_fd_offsets;
     thread_local static data* s_data;
     thread_local static std::vector<gaia::db::triggers::trigger_event_t> s_events;
