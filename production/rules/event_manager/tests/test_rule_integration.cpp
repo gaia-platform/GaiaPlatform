@@ -20,10 +20,12 @@
 #include "gaia_catalog.h"
 #include "gaia_catalog.hpp"
 #include "gaia_catalog_internal.hpp"
+#include "event_manager_test_helpers.hpp"
+#include "event_manager_stats.hpp"
+
 #include <thread>
 #include <atomic>
 #include <map>
-#include "PerfTimer.h"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -44,20 +46,15 @@ uint16_t c_phone_type_position = 1;
 uint16_t c_phone_primary_position = 2;
 
 atomic<int> g_wait_for_count;
-std::chrono::high_resolution_clock::time_point g_end;
-std::chrono::high_resolution_clock::time_point g_start;
 
-void measure_latency()
-{
-    g_end = std::chrono::high_resolution_clock::now();
-    auto result = std::chrono::duration_cast<std::chrono::nanoseconds>(g_end-g_start).count();
-    printf("latency:  %0.2f us\n", PerfTimer::ns_us(result));
-}
+// This is a convenient class to optionally enable
+// stats tracing.
+event_manager_stats_t g_stats;
 
 // When an employee is inserted insert an address.
 void rule_insert_address(const rule_context_t* context)
 {
-    measure_latency();
+    g_stats.log_duration("latency to rule insert_address");
     employee_t e = employee_t::get(context->record);
     EXPECT_EQ(employee_t::s_gaia_type, context->gaia_type);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_insert);
@@ -91,7 +88,7 @@ void rule_update_address(const rule_context_t* context)
 
 void rule_update(const rule_context_t* context)
 {
-    measure_latency();
+    g_stats.log_duration("latency to rule update_address");
     employee_t e = employee_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_update);
     EXPECT_STREQ(c_name, e.name_first());
@@ -100,6 +97,7 @@ void rule_update(const rule_context_t* context)
 
 void rule_field_phone_number(const rule_context_t* context)
 {
+    g_stats.log_duration("latency to rule field_phone_number");
     phone_t p = phone_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_update);
     EXPECT_STREQ(c_phone_number, p.phone_number());
@@ -108,6 +106,7 @@ void rule_field_phone_number(const rule_context_t* context)
 
 void rule_field_phone_type(const rule_context_t* context)
 {
+    g_stats.log_duration("latency to rule field_phone_type");
     phone_t p = phone_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_update);
     EXPECT_STREQ(c_phone_type, p.type());
@@ -116,7 +115,7 @@ void rule_field_phone_type(const rule_context_t* context)
 
 void rule_delete(const rule_context_t* context)
 {
-    measure_latency();
+    g_stats.log_duration("latency to rule delete");
     employee_t d = employee_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_delete);
     EXPECT_THROW(d.delete_row(), invalid_node_id);
@@ -217,9 +216,18 @@ protected:
         begin_session();
 
         // NOTE: For the unit test setup, we need to init catalog and load test tables before rules engine starts.
-        //       Otherwise, the event log activities will cause out of order test table IDs.
+        // Otherwise, the event log activities will cause out of order test table IDs.
         load_catalog(ddl_file);
-        gaia::rules::initialize_rules_engine();
+
+        // NOTE: uncomment next line to get latency measurements.
+        // g_stats.set_enabled(true);
+
+        event_manager_settings_t settings;
+
+        // NOTE: uncomment next line enable stats from the rules engine.
+        // settings.enable_stats = true;
+
+        gaia::rules::test::initialize_rules_engine(settings);
     }
 
     static void TearDownTestSuite()
@@ -246,7 +254,7 @@ TEST_F(rule_integration_test, test_insert)
         employee_writer writer;
         writer.name_first = c_name;
         writer.insert_row();
-        g_start = std::chrono::high_resolution_clock::now();
+        g_stats.save_time_point();
         tx.commit();
         
     }
@@ -272,11 +280,9 @@ TEST_F(rule_integration_test, test_delete)
         writer.name_first = c_name;
         employee_t e = employee_t::get(writer.insert_row());
         tx.commit();
-
-        g_start = std::chrono::high_resolution_clock::now();
         e.delete_row();
+        g_stats.save_time_point();
         tx.commit();
-        
     }
 }
 
@@ -293,7 +299,7 @@ TEST_F(rule_integration_test, test_update)
             writer = e.writer();
             writer.name_first = c_name;
             writer.update_row();
-        g_start = std::chrono::high_resolution_clock::now();            
+        g_stats.save_time_point();
         tx.commit();
         
     }
@@ -313,8 +319,8 @@ TEST_F(rule_integration_test, test_update_field)
             writer = p.writer();
             writer.phone_number = c_phone_number;
             writer.update_row();
+        g_stats.save_time_point();
         tx.commit();
-        g_start = std::chrono::high_resolution_clock::now();
     }
 }
 

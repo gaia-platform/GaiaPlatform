@@ -16,6 +16,7 @@
 #include "event_manager_test_helpers.hpp"
 #include "rule_thread_pool.hpp"
 #include "rule_checker.hpp"
+#include "event_manager_stats.hpp"
 
 using namespace gaia::db::triggers;
 
@@ -116,6 +117,9 @@ private:
     // Helper class to verify rule subscriptions against
     // the catalog.
     unique_ptr<rule_checker_t> m_rule_checker;
+
+    // Log performance stats if they are enabled.
+    event_manager_stats_t m_stats;
 
 private:
     // Only internal static creation is allowed.

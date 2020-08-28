@@ -8,6 +8,7 @@
 #include "gaia_db_internal.hpp"
 #include "events.hpp"
 #include "triggers.hpp"
+#include "perf_timer.hpp"
 
 #include <cstring>
 #include <variant>
@@ -49,22 +50,20 @@ void event_manager_t::init()
     // TODO[GAIAPLAT-111]: Check a configuration setting supplied by the
     // application developer for the number of threads to create.
     
+    // Apply default settings.  See explanation in event_manager_settings.hpp.
     event_manager_settings_t settings;
-    // Allow the thread pool to decide how many threads to create
-    settings.num_background_threads = SIZE_MAX;
-    // Verify rule subscriptions against the catalog
-    settings.disable_catalog_checks = false;
-
     init(settings);
 }
 
 void event_manager_t::init(event_manager_settings_t& settings)
 {
     m_invocations.reset(new rule_thread_pool_t(settings.num_background_threads));
-    if (!settings.disable_catalog_checks)
+    if (settings.enable_catalog_checks)
     {
         m_rule_checker.reset(new rule_checker_t());
     }
+
+    m_stats.set_enabled(settings.enable_stats);
 
     auto fn = [](uint64_t transaction_id, const trigger_event_list_t& event_list) {
         event_manager_t::get().commit_trigger(transaction_id, event_list);
@@ -123,10 +122,15 @@ bool event_manager_t::process_field_events(event_binding_t& binding, const trigg
 
 void event_manager_t::commit_trigger(uint64_t, const trigger_event_list_t& trigger_event_list)
 {
+    m_stats.log_function_duration([&]() {
+
     if (trigger_event_list.size() == 0)
     {
         return;
     }
+
+    // Snap the start time for use in stats later
+    m_stats.save_time_point();
 
     // TODO[GAIAPLAT-308]: Event logging is only half the story. We
     // also need to do rule logging and the correlate the event instance
@@ -172,20 +176,29 @@ void event_manager_t::commit_trigger(uint64_t, const trigger_event_list_t& trigg
     // Enqueue a task to log all the events in this commit_trigger in a
     // separate thread in a new transaction.
     enqueue_invocation(trigger_event_list, rules_invoked_list);
+
+    }, __PRETTY_FUNCTION__);
 }
 
 void event_manager_t::enqueue_invocation(const trigger_event_list_t& events,
     const vector<bool>& rules_invoked_list)
 {
-   rule_thread_pool_t::log_events_invocation_t event_invocation {
-       events, 
-       rules_invoked_list
+    rule_thread_pool_t::log_events_invocation_t event_invocation {
+        events, 
+        rules_invoked_list
     };
-   rule_thread_pool_t::invocation_t invocation {
-       rule_thread_pool_t::invocation_type_t::log_events,
-       std::move(event_invocation)
-   };
-   m_invocations->enqueue(invocation);
+    rule_thread_pool_t::invocation_t invocation {
+        rule_thread_pool_t::invocation_type_t::log_events,
+        std::move(event_invocation),
+        nullptr
+    };
+
+    if (m_stats)
+    {
+        invocation.init_stats(m_stats.get_saved_time_point());
+    }
+    
+    m_invocations->enqueue(invocation);
 } 
 
 void event_manager_t::enqueue_invocation(const trigger_event_t& event, gaia_rule_fn rule_fn)
@@ -199,8 +212,15 @@ void event_manager_t::enqueue_invocation(const trigger_event_t& event, gaia_rule
     };
     rule_thread_pool_t::invocation_t invocation{
         rule_thread_pool_t::invocation_type_t::rule,
-        std::move(rule_invocation)
+        std::move(rule_invocation),
+        nullptr
     };
+
+    if (m_stats)
+    {
+        invocation.init_stats(m_stats.get_saved_time_point());
+    }
+
     m_invocations->enqueue(invocation);
 } 
 

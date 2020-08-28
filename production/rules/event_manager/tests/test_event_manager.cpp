@@ -577,7 +577,7 @@ protected:
         begin_session();
         event_manager_settings_t settings;
         settings.num_background_threads = 0;
-        settings.disable_catalog_checks = true;
+        settings.enable_catalog_checks = false;
         test::initialize_rules_engine(settings);
         g_context_checker.get_dummy_transaction(true);
     }

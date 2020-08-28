@@ -20,19 +20,22 @@ thread_local bool rule_thread_pool_t::s_tls_can_enqueue = true;
 thread_local queue<rule_thread_pool_t::invocation_t> rule_thread_pool_t::s_tls_pending_invocations;
 
 
-void rule_thread_pool_t::log_events(const log_events_invocation_t& invocation)
+void rule_thread_pool_t::log_events(invocation_t& invocation)
 {
-    retail_assert(invocation.events.size() == invocation.rules_invoked.size(), 
+    auto& log_invocation = std::get<log_events_invocation_t>(invocation.args);
+    retail_assert(log_invocation.events.size() == log_invocation.rules_invoked.size(), 
         "Event vector and rules_invoked vector sizes must match!");
 
     gaia::db::begin_transaction();
     {
-        for (size_t i = 0; i < invocation.events.size(); i++)
+        invocation.record_rule_stats([&]() {
+
+        for (size_t i = 0; i < log_invocation.events.size(); i++)
         {
             uint64_t timestamp = (uint64_t)time(NULL);
             uint16_t column_id = 0;
-            auto& event = invocation.events[i];
-            auto rule_invoked = invocation.rules_invoked[i];
+            auto& event = log_invocation.events[i];
+            auto rule_invoked = log_invocation.rules_invoked[i];
 
             // TODO[GAIAPLAT-293]: add support for arrys of simple types
             // When we have this support we can support the array of changed column fields
@@ -49,6 +52,8 @@ void rule_thread_pool_t::log_events(const log_events_invocation_t& invocation)
                 column_id, 
                 timestamp, rule_invoked);
         }
+
+        }); // recorder
     }
     gaia::db::commit_transaction();
 }
@@ -100,24 +105,30 @@ void rule_thread_pool_t::execute_immediate()
         {
             invocation_t context = m_invocations.front();
             m_invocations.pop();
-            invoke_rule(context);
+
+            context.record_invoke_stats([&]() {
+                invoke_rule(context);
+            });
         }
     }
 }
 
-void rule_thread_pool_t::enqueue(const invocation_t& invocation)
+void rule_thread_pool_t::enqueue(invocation_t& invocation)
 {
     if (s_tls_can_enqueue)
     {
         if (m_num_threads > 0)
         {
             unique_lock<mutex> lock(m_lock);
+            // Record the time after we have acquired the lock
+            invocation.record_enqueue_stats();
             m_invocations.push(invocation);
             lock.unlock();
             m_invocations_signal.notify_one();
         }
         else
         {
+            invocation.record_enqueue_stats();
             m_invocations.push(invocation);
         }
     }
@@ -148,15 +159,19 @@ void rule_thread_pool_t::rule_worker()
         m_invocations.pop();
         lock.unlock();
 
-        invoke_rule(context);
+        context.record_invoke_stats([&]() {
+            invoke_rule(context);
+        });
+        context.log_stats();
     }
     end_session();
 }
 
 // We must worry about user-rules that throw exceptions, end the transaction
 // started by the rules engine, and log the event.
-void rule_thread_pool_t::invoke_user_rule(const rule_invocation_t& invocation)
+void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
 {
+    auto& rule_invocation = std::get<rule_invocation_t>(invocation.args);
     s_tls_can_enqueue = false;
     bool should_schedule = false;
 
@@ -165,14 +180,16 @@ void rule_thread_pool_t::invoke_user_rule(const rule_invocation_t& invocation)
         auto_transaction_t transaction(auto_transaction_t::no_auto_begin);
         rule_context_t context(
             transaction,
-            invocation.gaia_type,
-            invocation.event_type,
-            invocation.record,
-            invocation.fields
+            rule_invocation.gaia_type,
+            rule_invocation.event_type,
+            rule_invocation.record,
+            rule_invocation.fields
         );
 
         // Invoke the rule.
-        invocation.rule_fn(&context);
+        invocation.record_rule_stats([&]() {
+            rule_invocation.rule_fn(&context);
+        });
 
         should_schedule = true;
         s_tls_can_enqueue = true;
@@ -203,4 +220,82 @@ void rule_thread_pool_t::process_pending_invocations(bool should_schedule)
         }
         s_tls_pending_invocations.pop();
     }
+}
+
+void rule_thread_pool_t::invocation_t::record_enqueue_stats()
+{
+    if (stats_ptr)
+    {
+        stats_ptr->enqueue_time = perf_timer_t::get_time_point();
+    }
+}
+
+void rule_thread_pool_t::invocation_t::record_rule_stats(std::function<void ()> fn)
+{
+    if (stats_ptr)
+    {
+        stats_ptr->before_rule = perf_timer_t::get_time_point();
+        fn();
+        stats_ptr->after_rule = perf_timer_t::get_time_point();
+    }
+    else
+    {
+        fn();
+    }
+}
+
+void rule_thread_pool_t::invocation_t::record_invoke_stats(std::function<void ()> fn)
+{
+    if (stats_ptr)
+    {
+        stats_ptr->before_invoke = perf_timer_t::get_time_point();
+        fn();
+        stats_ptr->after_invoke = perf_timer_t::get_time_point();
+    }
+    else
+    {
+        fn();
+    }
+}
+
+void rule_thread_pool_t::invocation_t::init_stats(
+    std::chrono::high_resolution_clock::time_point start_time)
+{
+    stats_ptr.reset(new rule_thread_pool_t::rule_stats_t());
+    stats_ptr->start_time = start_time;
+}
+
+void rule_thread_pool_t::invocation_t::log_stats()
+{
+    if (!stats_ptr)
+    {
+        return;
+    }
+
+    //TODO[GAIAPLAT-318] Use an actual logging library when available.
+    const char* tag = (type == invocation_type_t::log_events) ? "log_events" : "user";
+    auto enq = stats_ptr->enqueue_time - stats_ptr->start_time;
+    auto signal = stats_ptr->before_invoke - stats_ptr->enqueue_time;
+    auto before = stats_ptr->before_rule - stats_ptr->before_invoke;
+    auto rule = stats_ptr->after_rule - stats_ptr->before_rule;
+    auto after = stats_ptr->after_invoke - stats_ptr->after_rule;
+    auto total = stats_ptr->after_invoke - stats_ptr->start_time;
+
+    auto result = std::chrono::duration_cast<std::chrono::nanoseconds>(enq).count();
+    printf("[(%s) commit_trigger -> enqueue]:  %0.2f us\n", tag, perf_timer_t::ns_us(result));
+    
+    result = std::chrono::duration_cast<std::chrono::nanoseconds>(signal).count();
+    printf("[(%s) enqueue -> dequeue]:  %0.2f us\n", tag, perf_timer_t::ns_us(result));
+
+    result = std::chrono::duration_cast<std::chrono::nanoseconds>(before).count();
+    printf("[(%s) dequeue -> before rule]:  %0.2f us\n", tag, perf_timer_t::ns_us(result));
+
+    result = std::chrono::duration_cast<std::chrono::nanoseconds>(rule).count();
+    printf("[(%s) before rule -> after rule]:  %0.2f us\n", tag, perf_timer_t::ns_us(result));
+
+    result = std::chrono::duration_cast<std::chrono::nanoseconds>(after).count();
+    printf("[(%s) after rule -> after invocation]:  %0.2f us\n", tag, perf_timer_t::ns_us(result));
+    
+    result = std::chrono::duration_cast<std::chrono::nanoseconds>(total).count();
+    printf("[(%s) total]:  %0.2f us\n", tag, perf_timer_t::ns_us(result));
 }
