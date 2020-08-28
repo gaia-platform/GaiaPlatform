@@ -16,7 +16,6 @@ using namespace gaia::db;
 using namespace gaia::rules;
 using namespace std;
 
-bool g_loaded_catalog = false;
 gaia_id_t g_table_type = 0;
 map<string, uint16_t> g_field_positions;
 
@@ -46,8 +45,8 @@ void load_catalog()
     g_table_type = create_table(name, fields);
 
     // Modify the fields to have the correct active and deprecated attributes.
-    auto field_ids = list_fields(g_table_type);
     begin_transaction();
+    auto field_ids = list_fields(g_table_type);
     for (gaia_id_t field_id : field_ids)
     {
         gaia_field_t field = gaia_field_t::get(field_id);
@@ -70,7 +69,6 @@ void load_catalog()
         writer.update_row();
     }
     commit_transaction();
-    g_loaded_catalog = true;
 }
 
 extern "C"
@@ -102,19 +100,23 @@ public:
     }
 
 protected:
-    void SetUp() override 
+    // Manage the database setup and teardown ourselves.  In ctest
+    // the *Suite methods will be called for every test since every
+    // test case is run in a separate process.  Outside of ctest
+    // these functions will only be called once for all tests.
+    static void SetUpTestSuite()
     {
-        db_test_base_t::SetUp();
-        if (!g_loaded_catalog)
-        {
-            load_catalog();
-        }
+        db_test_base_t::reset_server();
+        begin_session();
+        load_catalog();
+    }
+    static void TearDownTestSuite()
+    {
+        end_session();
     }
 
-    void TearDown() override 
-    {
-        db_test_base_t::TearDown();
-    }
+    void SetUp() override {}
+    void TearDown() override {}
 };
 
 TEST_F(rule_checker_test, table_not_found)

@@ -22,7 +22,7 @@ class GenAbcCfg(Dependency, ABC):
 
     @property
     def section_name(self) -> str:
-        return Path(getfile(type(self))).parent.name
+        return Path(getfile(type(self))).parent.name.strip('_')
 
     @memoize
     async def get_begin_pattern(self) -> Pattern:

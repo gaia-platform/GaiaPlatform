@@ -63,6 +63,13 @@ T_gaia gaia_iterator_t<T_gaia>::operator*()
     return T_gaia::get(m_id);
 }
 
+template <typename T_gaia>
+T_gaia* gaia_iterator_t<T_gaia>::operator->()
+{
+    m_obj = T_gaia::get(m_id);
+    return &m_obj;
+}
+
 //
 // Implementation for gaia_container_t
 //
@@ -93,6 +100,13 @@ template <typename T_foreign, int T_foreign_slot>
 T_foreign gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator*()
 {
     return T_foreign::get(m_id);
+}
+
+template <typename T_foreign, int T_foreign_slot>
+T_foreign* gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator->()
+{
+    m_foreign_obj = T_foreign::get(m_id);
+    return &m_foreign_obj;
 }
 
 template<typename T_foreign, int T_foreign_slot>

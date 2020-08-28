@@ -18,14 +18,6 @@ using namespace gaia::addr_book;
 
 
 class gaia_object_test : public db_test_base_t {
-protected:
-    void SetUp() override {
-        db_test_base_t::SetUp();
-    }
-
-    void TearDown() override {
-        db_test_base_t::TearDown();
-    }
 };
 
 int count_rows() {
@@ -697,3 +689,88 @@ TEST_F(gaia_object_test, thread_delete_conflict) {
     }
     commit_transaction();
 };
+
+// Pass by reference.
+void employee_func_ref(const employee_t& e, const char* first_name)
+{
+    begin_transaction();
+    {
+        if (first_name)
+        {
+            EXPECT_STREQ(e.name_first(), first_name);
+        }
+        else
+        {
+            EXPECT_THROW(e.name_first(), invalid_node_id);
+        }
+    }
+    commit_transaction();
+}
+
+// Pass by value, ensures copy constructor does the right thing.
+void employee_func_val(employee_t e, const char* first_name)
+{
+    begin_transaction();
+    {
+        if (first_name)
+        {
+            EXPECT_STREQ(e.name_first(), first_name);
+        }
+        else
+        {
+            EXPECT_THROW(e.name_first(), invalid_node_id);
+        }
+
+    }
+    commit_transaction();
+}
+
+TEST_F(gaia_object_test, default_construction) {
+    // Valid use case to create an unbacked object that
+    // you can't do anything with.  However, now you can
+    // set a variable to it later in the function, use it as
+    // a member of a class, etc.
+    employee_t e;
+    address_t a;
+
+    employee_func_ref(e, nullptr);
+    employee_func_val(e, nullptr);
+
+    begin_transaction();
+    {
+        EXPECT_THROW(e.name_first(), invalid_node_id);
+        EXPECT_THROW(a.addressee_employee(), invalid_node_id);
+        EXPECT_THROW(e.manages_employee(), invalid_node_id);
+        EXPECT_THROW(e.writer(), invalid_node_id);
+        EXPECT_THROW(e.delete_row(), invalid_node_id);
+
+        for (auto a : e.addressee_address_list())
+        {
+            printf("%s\n", a.state());
+        }
+        e = create_employee("Windsor");
+        EXPECT_STREQ(e.name_first(), "Windsor");
+    }
+    commit_transaction();
+
+    employee_func_ref(e, "Windsor");
+    employee_func_val(e, "Windsor");
+
+    begin_transaction();
+    {
+        EXPECT_STREQ(e.name_first(), "Windsor");
+    }
+    commit_transaction();
+}
+
+// Testing the arrow dereference operator->() in gaia_iterator_t.
+TEST_F(gaia_object_test, iter_arrow_deref) {
+    const char* emp_name = "Phillip";
+    auto_transaction_t tx;
+
+    create_employee(emp_name);
+    tx.commit();
+
+    gaia_iterator_t<employee_t> emp_iter = employee_t::list().begin();
+    EXPECT_STREQ(emp_iter->name_first(), emp_name);
+}

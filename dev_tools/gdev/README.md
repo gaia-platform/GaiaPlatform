@@ -12,7 +12,7 @@ mkdir -p ~/.local/bin && ln -s $GAIA_REPO/dev_tools/gdev/gdev.sh ~/.local/bin/gd
 Ensure your user executable path is in your `PATH` variable. If it is not, add it to your `.bashrc`.
 ```bash
 echo $PATH | grep $HOME/.local/bin \
-    || (echo 'PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc && source .bashrc)
+    || (echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc && source .bashrc)
 ```
 Install Python 3.8 and pip.
 * Ubuntu 18.04
@@ -67,12 +67,20 @@ newgrp docker
 ```
 Log out and log back in to have group membership changes take effect.
 
-Enable experimental features in Docker.
+Enable experimental features and our testing image repo in Docker.
+XXX The testing registry uses `http` and is not secure.
 * Ubuntu
     In `/etc/docker/daemon.json`, add the experimental field.
     ```
     {
-    "experimental": true
+    "experimental": true,
+    "insecure-registries": ["192.168.0.250:5000"]
+    }
+    ```
+    In `~/.docker/config.json`, add the experimental field.
+    ```
+    {
+    "experimental": "enabled"
     }
     ```
     Restart the docker daemon to make changes take effect.

@@ -1,10 +1,10 @@
 from gdev.dependency import Dependency
 from gdev.third_party.atools import memoize
-from .gen.run.build import GenRunBuild
+from .gen.run.push import GenRunPush
 
 
-class Build(Dependency):
+class Push(Dependency):
 
     @memoize
     async def cli_entrypoint(self) -> None:
-        await GenRunBuild(self.options).cli_entrypoint()
+        await GenRunPush(self.options).cli_entrypoint()

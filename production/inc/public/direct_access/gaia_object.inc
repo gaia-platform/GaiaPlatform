@@ -25,6 +25,12 @@ namespace direct_access
 #define GET_STR(field) (row()->field() ? row()->field()->c_str() : nullptr)
 
 template <gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
+gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::gaia_object_t(const char * gaia_typename)
+    : gaia_base_t(gaia_typename)
+{
+}
+
+template <gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
 gaia_object_t<T_gaia_type, T_gaia, T_fb, T_obj, N_references>::gaia_object_t(gaia_id_t id, const char * gaia_typename)
     : gaia_base_t(gaia_typename)
 {

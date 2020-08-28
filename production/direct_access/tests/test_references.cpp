@@ -16,14 +16,6 @@ using namespace gaia::direct_access;
 using namespace gaia::addr_book;
 
 class gaia_references_test : public db_test_base_t {
-protected:
-    void SetUp() override {
-        db_test_base_t::SetUp();
-    }
-
-    void TearDown() override {
-        db_test_base_t::TearDown();
-    }
 };
 
 
@@ -571,4 +563,24 @@ TEST_F(gaia_references_test, thread_inserts) {
         count++;
     }
     EXPECT_EQ(count, 3);
+}
+
+// Testing the arrow dereference operator->() in gaia_set_iterator_t.
+TEST_F(gaia_references_test, set_iter_arrow_deref) {
+    const char* emp_name = "Phillip";
+    const char* addr_city = "Redmond";
+    auto_transaction_t tx;
+
+    employee_writer emp_writer;
+    emp_writer.name_first = emp_name;
+    employee_t employee = employee_t::get(emp_writer.insert_row());
+
+    address_writer addr_writer;
+    addr_writer.city = addr_city;
+
+    employee.addressee_address_list().insert(addr_writer.insert_row());
+    tx.commit();
+
+    auto emp_addr_set_iter = employee.addressee_address_list().begin();
+    EXPECT_STREQ(emp_addr_set_iter->city(), addr_city);
 }

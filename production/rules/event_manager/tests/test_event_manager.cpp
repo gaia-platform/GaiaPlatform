@@ -425,26 +425,7 @@ static constexpr int s_rule_decl_len = sizeof(s_rule_decl)/sizeof(s_rule_decl[0]
  */
 class event_manager_test : public db_test_base_t
 {
-protected:
-    virtual void SetUp() override {
-        db_test_base_t::SetUp();
-        event_manager_settings_t settings;
-        settings.num_background_threads = 0;
-        settings.disable_catalog_checks = true;
-        test::initialize_rules_engine(settings);
-        g_context_checker.get_dummy_transaction(true);
-    }
-
-    virtual void TearDown() override {
-        unsubscribe_rules();
-        g_context_checker.reset(true);
-        // This expectation verifies that the caller provided
-        // initialize_rules function was called exactly once by
-        // the event_manager_t singleton.
-        EXPECT_EQ(1, g_initialize_rules_called);
-        db_test_base_t::TearDown();
-    }
-
+public:
     void validate_rule(
         event_type_t type,
         gaia_type_t gaia_type,
@@ -581,6 +562,34 @@ protected:
         EXPECT_EQ(row.record_id(), record_id);
         EXPECT_EQ(row.column_id(), column_id);
         EXPECT_EQ(row.rules_invoked(), rules_invoked);
+    }
+
+protected:
+    static void SetUpTestSuite()
+    {
+        db_test_base_t::reset_server();
+        begin_session();
+        event_manager_settings_t settings;
+        settings.num_background_threads = 0;
+        settings.disable_catalog_checks = true;
+        test::initialize_rules_engine(settings);
+        g_context_checker.get_dummy_transaction(true);
+    }
+
+    static void TearDownTestSuite()
+    {
+        end_session();
+    }
+
+    virtual void SetUp() override {}
+
+    virtual void TearDown() override {
+        unsubscribe_rules();
+        g_context_checker.reset(true);
+        // This expectation verifies that the caller provided
+        // initialize_rules function was called exactly once by
+        // the event_manager_t singleton.
+        EXPECT_EQ(1, g_initialize_rules_called);
     }
 
     // Table context has data within the Gaia "object".
