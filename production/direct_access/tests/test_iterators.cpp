@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include <type_traits>
 
 #include "gtest/gtest.h"
 #include "gaia_addr_book.h"
@@ -108,7 +109,11 @@ TEST_F(gaia_iterator_test, pre_incrementable) {
             "expected effects.";
         ++emp_iter;
     }
-    ++emp_iter;
+
+    // The declaration of type_check will fail in compile-time if the
+    // pre-increment operator has the wrong return type.
+    gaia_iterator_t<employee_t>& type_check = ++emp_iter;
+    (void)type_check;
 }
 
 // Test LegacyInputIterator conformance
@@ -135,6 +140,12 @@ TEST_F(gaia_iterator_test, equality_comparable) {
     gaia_iterator_t<employee_t> a = employee_t::list().begin();
     gaia_iterator_t<employee_t> b = employee_t::list().begin();
     gaia_iterator_t<employee_t> c = employee_t::list().begin();
+
+    // The declaration of type_check will fail in compile-time if the
+    // equality operator's return type cannot be implicitly converted into
+    // a bool.
+    bool type_check = (a == a);
+    (void)type_check;
 
     // a == a is always true.
     EXPECT_TRUE(a == a);
@@ -174,6 +185,12 @@ TEST_F(gaia_iterator_test, not_equal) {
     ++b;
     gaia_iterator_t<employee_t> c = employee_t::list().end();
 
+    // The declaration of type_check will fail in compile-time if the
+    // not-equal operator's return type cannot be implicitly converted into
+    // a bool.
+    bool type_check = (a != a);
+    (void)type_check;
+
     EXPECT_FALSE(a != a);
     EXPECT_FALSE(b != b);
     EXPECT_FALSE(c != c);
@@ -184,6 +201,9 @@ TEST_F(gaia_iterator_test, not_equal) {
     EXPECT_TRUE(c != b);
     EXPECT_TRUE(a != c);
     EXPECT_TRUE(c != a);
+
+    EXPECT_TRUE((a != b) == !(a == b));
+    EXPECT_TRUE((a != a) == !(a == a));
 }
 
 // Are iterators dereferenceable as rvalues?
@@ -231,4 +251,28 @@ TEST_F(gaia_iterator_test, deref_arrow) {
 
     EXPECT_STREQ(emp_iter->name_first(), emp_name)
         << "The class member derefence operator->() does not work.";
+}
+
+// Does (void)iter++ have the same effect as (void)++iter?
+TEST_F(gaia_iterator_test, pre_inc_and_post_inc) {
+    const char* emp_name_0 = "Employee0";
+    const char* emp_name_1 = "Employee1";
+
+    auto_transaction_t tx;
+    auto emp_writer = employee_writer();
+    emp_writer.name_first = emp_name_0;
+    emp_writer.insert_row();
+    emp_writer.name_first = emp_name_1;
+    emp_writer.insert_row();
+
+    gaia_iterator_t<employee_t> emp_iter_a = employee_t::list().begin();
+    gaia_iterator_t<employee_t> emp_iter_b = employee_t::list().begin();
+
+    (void)++emp_iter_a;
+    (void)emp_iter_b++;
+
+    EXPECT_EQ(emp_iter_a, emp_iter_b)
+        << "(void)++iter and (void)iter++ have different effects.";
+    EXPECT_STREQ(emp_iter_a->name_first(), emp_iter_b->name_first())
+        << "(void)++iter and (void)iter++ have different effects.";
 }
