@@ -52,7 +52,7 @@ void field_list_t::initialize() {
     auto_transaction_t tx;
 
     for (auto field = gaia::catalog::gaia_field_t::get_first(); field; field.get_next()) {
-        if (field.table_id() == m_type_id) {
+        if (field.gaia_table().gaia_id() == m_type_id) {
             num_fields++;
         }
     }

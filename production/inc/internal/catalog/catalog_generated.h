@@ -32,9 +32,7 @@ struct gaia_databaseT;
 struct gaia_ruleT : public flatbuffers::NativeTable {
   typedef gaia_rule TableType;
   gaia::direct_access::nullable_string_t name;
-  uint64_t ruleset_id;
-  gaia_ruleT()
-      : ruleset_id(0) {
+  gaia_ruleT() {
   }
 };
 
@@ -42,20 +40,15 @@ struct gaia_rule FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef gaia_ruleT NativeTableType;
   typedef gaia_ruleBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_NAME = 4,
-    VT_RULESET_ID = 6
+    VT_NAME = 4
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
-  }
-  uint64_t ruleset_id() const {
-    return GetField<uint64_t>(VT_RULESET_ID, 0);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
-           VerifyField<uint64_t>(verifier, VT_RULESET_ID) &&
            verifier.EndTable();
   }
   gaia_ruleT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -69,9 +62,6 @@ struct gaia_ruleBuilder {
   flatbuffers::uoffset_t start_;
   void add_name(flatbuffers::Offset<flatbuffers::String> name) {
     fbb_.AddOffset(gaia_rule::VT_NAME, name);
-  }
-  void add_ruleset_id(uint64_t ruleset_id) {
-    fbb_.AddElement<uint64_t>(gaia_rule::VT_RULESET_ID, ruleset_id, 0);
   }
   explicit gaia_ruleBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -87,23 +77,19 @@ struct gaia_ruleBuilder {
 
 inline flatbuffers::Offset<gaia_rule> Creategaia_rule(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
-    uint64_t ruleset_id = 0) {
+    flatbuffers::Offset<flatbuffers::String> name = 0) {
   gaia_ruleBuilder builder_(_fbb);
-  builder_.add_ruleset_id(ruleset_id);
   builder_.add_name(name);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<gaia_rule> Creategaia_ruleDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const char *name = nullptr,
-    uint64_t ruleset_id = 0) {
+    const char *name = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   return gaia::catalog::Creategaia_rule(
       _fbb,
-      name__,
-      ruleset_id);
+      name__);
 }
 
 flatbuffers::Offset<gaia_rule> Creategaia_rule(flatbuffers::FlatBufferBuilder &_fbb, const gaia_ruleT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -235,28 +221,17 @@ flatbuffers::Offset<gaia_ruleset> Creategaia_ruleset(flatbuffers::FlatBufferBuil
 struct gaia_fieldT : public flatbuffers::NativeTable {
   typedef gaia_field TableType;
   gaia::direct_access::nullable_string_t name;
-  uint64_t table_id;
   uint8_t type;
-  uint64_t type_id;
   uint16_t repeated_count;
   uint16_t position;
-  bool required;
   bool deprecated;
   bool active;
-  bool nullable;
-  bool has_default;
-  gaia::direct_access::nullable_string_t default_value;
   gaia_fieldT()
-      : table_id(0),
-        type(0),
-        type_id(0),
+      : type(0),
         repeated_count(0),
         position(0),
-        required(false),
         deprecated(false),
-        active(false),
-        nullable(false),
-        has_default(false) {
+        active(false) {
   }
 };
 
@@ -265,29 +240,17 @@ struct gaia_field FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef gaia_fieldBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
-    VT_TABLE_ID = 6,
-    VT_TYPE = 8,
-    VT_TYPE_ID = 10,
-    VT_REPEATED_COUNT = 12,
-    VT_POSITION = 14,
-    VT_REQUIRED = 16,
-    VT_DEPRECATED = 18,
-    VT_ACTIVE = 20,
-    VT_NULLABLE = 22,
-    VT_HAS_DEFAULT = 24,
-    VT_DEFAULT_VALUE = 26
+    VT_TYPE = 6,
+    VT_REPEATED_COUNT = 8,
+    VT_POSITION = 10,
+    VT_DEPRECATED = 12,
+    VT_ACTIVE = 14
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
   }
-  uint64_t table_id() const {
-    return GetField<uint64_t>(VT_TABLE_ID, 0);
-  }
   uint8_t type() const {
     return GetField<uint8_t>(VT_TYPE, 0);
-  }
-  uint64_t type_id() const {
-    return GetField<uint64_t>(VT_TYPE_ID, 0);
   }
   uint16_t repeated_count() const {
     return GetField<uint16_t>(VT_REPEATED_COUNT, 0);
@@ -295,40 +258,21 @@ struct gaia_field FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   uint16_t position() const {
     return GetField<uint16_t>(VT_POSITION, 0);
   }
-  bool required() const {
-    return GetField<uint8_t>(VT_REQUIRED, 0) != 0;
-  }
   bool deprecated() const {
     return GetField<uint8_t>(VT_DEPRECATED, 0) != 0;
   }
   bool active() const {
     return GetField<uint8_t>(VT_ACTIVE, 0) != 0;
   }
-  bool nullable() const {
-    return GetField<uint8_t>(VT_NULLABLE, 0) != 0;
-  }
-  bool has_default() const {
-    return GetField<uint8_t>(VT_HAS_DEFAULT, 0) != 0;
-  }
-  const flatbuffers::String *default_value() const {
-    return GetPointer<const flatbuffers::String *>(VT_DEFAULT_VALUE);
-  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
-           VerifyField<uint64_t>(verifier, VT_TABLE_ID) &&
            VerifyField<uint8_t>(verifier, VT_TYPE) &&
-           VerifyField<uint64_t>(verifier, VT_TYPE_ID) &&
            VerifyField<uint16_t>(verifier, VT_REPEATED_COUNT) &&
            VerifyField<uint16_t>(verifier, VT_POSITION) &&
-           VerifyField<uint8_t>(verifier, VT_REQUIRED) &&
            VerifyField<uint8_t>(verifier, VT_DEPRECATED) &&
            VerifyField<uint8_t>(verifier, VT_ACTIVE) &&
-           VerifyField<uint8_t>(verifier, VT_NULLABLE) &&
-           VerifyField<uint8_t>(verifier, VT_HAS_DEFAULT) &&
-           VerifyOffset(verifier, VT_DEFAULT_VALUE) &&
-           verifier.VerifyString(default_value()) &&
            verifier.EndTable();
   }
   gaia_fieldT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -343,14 +287,8 @@ struct gaia_fieldBuilder {
   void add_name(flatbuffers::Offset<flatbuffers::String> name) {
     fbb_.AddOffset(gaia_field::VT_NAME, name);
   }
-  void add_table_id(uint64_t table_id) {
-    fbb_.AddElement<uint64_t>(gaia_field::VT_TABLE_ID, table_id, 0);
-  }
   void add_type(uint8_t type) {
     fbb_.AddElement<uint8_t>(gaia_field::VT_TYPE, type, 0);
-  }
-  void add_type_id(uint64_t type_id) {
-    fbb_.AddElement<uint64_t>(gaia_field::VT_TYPE_ID, type_id, 0);
   }
   void add_repeated_count(uint16_t repeated_count) {
     fbb_.AddElement<uint16_t>(gaia_field::VT_REPEATED_COUNT, repeated_count, 0);
@@ -358,23 +296,11 @@ struct gaia_fieldBuilder {
   void add_position(uint16_t position) {
     fbb_.AddElement<uint16_t>(gaia_field::VT_POSITION, position, 0);
   }
-  void add_required(bool required) {
-    fbb_.AddElement<uint8_t>(gaia_field::VT_REQUIRED, static_cast<uint8_t>(required), 0);
-  }
   void add_deprecated(bool deprecated) {
     fbb_.AddElement<uint8_t>(gaia_field::VT_DEPRECATED, static_cast<uint8_t>(deprecated), 0);
   }
   void add_active(bool active) {
     fbb_.AddElement<uint8_t>(gaia_field::VT_ACTIVE, static_cast<uint8_t>(active), 0);
-  }
-  void add_nullable(bool nullable) {
-    fbb_.AddElement<uint8_t>(gaia_field::VT_NULLABLE, static_cast<uint8_t>(nullable), 0);
-  }
-  void add_has_default(bool has_default) {
-    fbb_.AddElement<uint8_t>(gaia_field::VT_HAS_DEFAULT, static_cast<uint8_t>(has_default), 0);
-  }
-  void add_default_value(flatbuffers::Offset<flatbuffers::String> default_value) {
-    fbb_.AddOffset(gaia_field::VT_DEFAULT_VALUE, default_value);
   }
   explicit gaia_fieldBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -391,29 +317,17 @@ struct gaia_fieldBuilder {
 inline flatbuffers::Offset<gaia_field> Creategaia_field(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
-    uint64_t table_id = 0,
     uint8_t type = 0,
-    uint64_t type_id = 0,
     uint16_t repeated_count = 0,
     uint16_t position = 0,
-    bool required = false,
     bool deprecated = false,
-    bool active = false,
-    bool nullable = false,
-    bool has_default = false,
-    flatbuffers::Offset<flatbuffers::String> default_value = 0) {
+    bool active = false) {
   gaia_fieldBuilder builder_(_fbb);
-  builder_.add_type_id(type_id);
-  builder_.add_table_id(table_id);
-  builder_.add_default_value(default_value);
   builder_.add_name(name);
   builder_.add_position(position);
   builder_.add_repeated_count(repeated_count);
-  builder_.add_has_default(has_default);
-  builder_.add_nullable(nullable);
   builder_.add_active(active);
   builder_.add_deprecated(deprecated);
-  builder_.add_required(required);
   builder_.add_type(type);
   return builder_.Finish();
 }
@@ -421,33 +335,20 @@ inline flatbuffers::Offset<gaia_field> Creategaia_field(
 inline flatbuffers::Offset<gaia_field> Creategaia_fieldDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
-    uint64_t table_id = 0,
     uint8_t type = 0,
-    uint64_t type_id = 0,
     uint16_t repeated_count = 0,
     uint16_t position = 0,
-    bool required = false,
     bool deprecated = false,
-    bool active = false,
-    bool nullable = false,
-    bool has_default = false,
-    const char *default_value = nullptr) {
+    bool active = false) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
-  auto default_value__ = default_value ? _fbb.CreateString(default_value) : 0;
   return gaia::catalog::Creategaia_field(
       _fbb,
       name__,
-      table_id,
       type,
-      type_id,
       repeated_count,
       position,
-      required,
       deprecated,
-      active,
-      nullable,
-      has_default,
-      default_value__);
+      active);
 }
 
 flatbuffers::Offset<gaia_field> Creategaia_field(flatbuffers::FlatBufferBuilder &_fbb, const gaia_fieldT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -677,7 +578,6 @@ inline void gaia_rule::UnPackTo(gaia_ruleT *_o, const flatbuffers::resolver_func
   (void)_o;
   (void)_resolver;
   { auto _e = name(); if (_e) _o->name = gaia::direct_access::nullable_string_t(_e->c_str(), _e->size()); }
-  { auto _e = ruleset_id(); _o->ruleset_id = _e; }
 }
 
 inline flatbuffers::Offset<gaia_rule> gaia_rule::Pack(flatbuffers::FlatBufferBuilder &_fbb, const gaia_ruleT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -689,11 +589,9 @@ inline flatbuffers::Offset<gaia_rule> Creategaia_rule(flatbuffers::FlatBufferBui
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const gaia_ruleT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _name = _o->name.empty() ? 0 : _fbb.CreateString(_o->name);
-  auto _ruleset_id = _o->ruleset_id;
   return gaia::catalog::Creategaia_rule(
       _fbb,
-      _name,
-      _ruleset_id);
+      _name);
 }
 
 inline gaia_rulesetT *gaia_ruleset::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -744,17 +642,11 @@ inline void gaia_field::UnPackTo(gaia_fieldT *_o, const flatbuffers::resolver_fu
   (void)_o;
   (void)_resolver;
   { auto _e = name(); if (_e) _o->name = gaia::direct_access::nullable_string_t(_e->c_str(), _e->size()); }
-  { auto _e = table_id(); _o->table_id = _e; }
   { auto _e = type(); _o->type = _e; }
-  { auto _e = type_id(); _o->type_id = _e; }
   { auto _e = repeated_count(); _o->repeated_count = _e; }
   { auto _e = position(); _o->position = _e; }
-  { auto _e = required(); _o->required = _e; }
   { auto _e = deprecated(); _o->deprecated = _e; }
   { auto _e = active(); _o->active = _e; }
-  { auto _e = nullable(); _o->nullable = _e; }
-  { auto _e = has_default(); _o->has_default = _e; }
-  { auto _e = default_value(); if (_e) _o->default_value = gaia::direct_access::nullable_string_t(_e->c_str(), _e->size()); }
 }
 
 inline flatbuffers::Offset<gaia_field> gaia_field::Pack(flatbuffers::FlatBufferBuilder &_fbb, const gaia_fieldT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -766,31 +658,19 @@ inline flatbuffers::Offset<gaia_field> Creategaia_field(flatbuffers::FlatBufferB
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const gaia_fieldT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _name = _o->name.empty() ? 0 : _fbb.CreateString(_o->name);
-  auto _table_id = _o->table_id;
   auto _type = _o->type;
-  auto _type_id = _o->type_id;
   auto _repeated_count = _o->repeated_count;
   auto _position = _o->position;
-  auto _required = _o->required;
   auto _deprecated = _o->deprecated;
   auto _active = _o->active;
-  auto _nullable = _o->nullable;
-  auto _has_default = _o->has_default;
-  auto _default_value = _o->default_value.empty() ? 0 : _fbb.CreateString(_o->default_value);
   return gaia::catalog::Creategaia_field(
       _fbb,
       _name,
-      _table_id,
       _type,
-      _type_id,
       _repeated_count,
       _position,
-      _required,
       _deprecated,
-      _active,
-      _nullable,
-      _has_default,
-      _default_value);
+      _active);
 }
 
 inline gaia_tableT *gaia_table::UnPack(const flatbuffers::resolver_function_t *_resolver) const {

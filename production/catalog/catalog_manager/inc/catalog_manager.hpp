@@ -15,7 +15,6 @@ namespace catalog {
 
 using db_names_t = unordered_map<string, gaia_id_t>;
 using table_names_t = unordered_map<string, gaia_id_t>;
-using table_fields_t = unordered_map<gaia_id_t, vector<gaia_id_t>>;
 
 class catalog_manager_t {
   public:
@@ -35,12 +34,8 @@ class catalog_manager_t {
 
     gaia_id_t find_db_id(const string& dbname);
 
-    // The following methods provide convenient access to catalog caches.
-    // Thread safety is only guranteed by the underlying containers.
-    // They are NOT thread safe if you are creating/dropping/modifying tables concurrently.
-    // Use direct access API with transactions to access catalog records thread-safely.
-    const vector<gaia_id_t> &list_fields(gaia_id_t table_id) const;
-    const vector<gaia_id_t> &list_references(gaia_id_t table_id) const;
+    vector<gaia_id_t> list_fields(gaia_id_t table_id) const;
+    vector<gaia_id_t> list_references(gaia_id_t table_id) const;
 
   private:
     // Only internal static creation is allowed
@@ -84,8 +79,6 @@ class catalog_manager_t {
     // We should switch to use value index when the feature is ready.
     db_names_t m_db_names;
     table_names_t m_table_names;
-    table_fields_t m_table_fields;
-    table_fields_t m_table_references;
 
     gaia_id_t m_global_db_id;
 

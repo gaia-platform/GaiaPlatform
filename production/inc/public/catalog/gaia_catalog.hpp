@@ -293,29 +293,24 @@ void drop_table(const string &name);
  * They are not part of the data payload and are ordered separately.
  *
  * Use list_references() API to get a list of all references for a given table.
- *
- * The method is NOT thread safe with concurrent creating/dropping/altering table activities.
- * It has the same safety gurantee of the underlying container.
- * Use direct access APIs with transactions for thread safe access of catalog records.
+ * The method needs to be called inside a transaction.
  *
  * @param table_id id of the table
  * @return a list of field ids in the order of their positions.
  */
-const vector<gaia_id_t> &list_fields(gaia_id_t table_id);
+vector<gaia_id_t> list_fields(gaia_id_t table_id);
 
 /**
  * List all references for a given table defined in the catalog.
  * References are foreign key constraints or table links.
  * They defines relationships between tables.
  *
- * The method is NOT thread safe with concurrent creating/dropping/altering table activities.
- * It has the same safety gurantee of the underlying container.
- * Use direct access APIs with transactions for thread safe access of catalog records.
+ * The method needs to be called inside a transaction.
  *
  * @param table_id id of the table
  * @return a list of ids of the table references in the order of their positions.
  */
-const vector<gaia_id_t> &list_references(gaia_id_t table_id);
+vector<gaia_id_t> list_references(gaia_id_t table_id);
 
 /**
  * Generate FlatBuffers schema (fbs) for a catalog table.
