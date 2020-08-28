@@ -283,6 +283,39 @@ void load_modify_recover_test(db_server_t server,
     stop_server(server);
 }
 
+// Bad FD
+void throw_after_restart_no_cleanup(db_server_t server, std::string server_dir_path) {
+    restart_server(server, server_dir_path.data());
+    begin_session();
+    begin_transaction();
+    generate_employee_record();
+    restart_server(server, server_dir_path.data());
+    // Try insert & then commit. The insert will succeed but the commit will fail.
+    generate_employee_record();
+    try {
+        commit_transaction();
+    } catch (no_session_active&) {
+        cout << "Success " << endl << flush;
+    } catch (exception&) {
+        assert(false);
+    }
+}
+
+// Bad FD
+void throw_after_restart_clean_shutdown(db_server_t server, std::string server_dir_path) {
+    restart_server(server, server_dir_path.data());
+    begin_session();
+    begin_transaction();
+    generate_employee_record();
+    commit_transaction();
+    end_session();
+
+    restart_server(server, server_dir_path.data());
+    // Try begin.
+    begin_transaction();
+    end_session();
+}
+
 /**
  * Test Recovery with a single threaded client.
  * 
@@ -299,14 +332,19 @@ int main(int, char *argv[]) {
     std::string server_dir_path = argv[1];
     employee_map.clear();
 
-    // 1) Load & Recover test - with data size less than write buffer size; 
+    // 1) Server throws exception if restart occurs during client transaction.
+    {
+        throw_after_restart_clean_shutdown(server, server_dir_path);
+    }
+
+    // 2) Load & Recover test - with data size less than write buffer size; 
     // All writes will be confined to the WAL & will not make it to SST (DB binary file)
     // Sigkill server.
     {
-        load_modify_recover_test(server, server_dir_path, 0.1 * 1024 * 1024, 2, true); 
+        // load_modify_recover_test(server, server_dir_path, 0.1 * 1024 * 1024, 2, true); 
     }
 
-    // 2) Load (more data) & Recover test - with data size greater than write buffer size. 
+    // 3) Load (more data) & Recover test - with data size greater than write buffer size. 
     // Writes will exist in both the WAL & SST files.
     // Test is switched off as it takes some time to run. Ideally, recovery test should be 
     // run on teamcity.
