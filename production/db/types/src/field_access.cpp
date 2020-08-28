@@ -43,13 +43,6 @@ unhandled_field_type::unhandled_field_type(size_t field_type)
     m_message = string_stream.str();
 }
 
-invalid_serialized_field_data::invalid_serialized_field_data(field_position_t position)
-{
-    stringstream string_stream;
-    string_stream << "Cannot deserialize data for field position: " << position << ".";
-    m_message = string_stream.str();
-}
-
 void gaia::db::types::initialize_field_cache_from_binary_schema(
     field_cache_t* field_cache,
     const uint8_t* binary_schema)
@@ -242,6 +235,54 @@ bool gaia::db::types::set_field_value(
     {
         throw unhandled_field_type(field->type()->base_type());
     }
+}
+
+// The setter method for string fields.
+vector<uint8_t> gaia::db::types::set_field_value(
+    gaia_id_t type_id,
+    const uint8_t* serialized_data,
+    size_t serialized_data_size,
+    const uint8_t* binary_schema,
+    field_position_t field_position,
+    const data_holder_t& value)
+{
+    retail_assert(binary_schema != nullptr, "binary_schema argument should not be null.");
+
+    const flatbuffers::Table* root_table = nullptr;
+    auto_field_cache_t auto_field_cache;
+    field_cache_t local_field_cache;
+    const reflection::Field* field = nullptr;
+    vector<uint8_t> updatable_serialized_data(serialized_data, serialized_data + serialized_data_size);
+
+    get_table_field_information(
+        type_id, updatable_serialized_data.data(), binary_schema, field_position,
+        root_table, auto_field_cache, local_field_cache, field);
+
+    retail_assert(
+        field->type()->base_type() == reflection::String && value.type == reflection::String,
+        "Attempt to set value of incorrect type");
+
+    const reflection::Schema* schema = reflection::GetSchema(binary_schema);
+    if (schema == nullptr)
+    {
+        throw invalid_schema();
+    }
+
+    string new_field_value(value.hold.string_value);
+
+    const flatbuffers::String* field_value = flatbuffers::GetFieldS(*root_table, *field);
+    if (field_value == nullptr)
+    {
+        throw invalid_serialized_data();
+    }
+
+    flatbuffers::SetString(
+        *schema,
+        new_field_value,
+        field_value,
+        &updatable_serialized_data);
+
+    return updatable_serialized_data;
 }
 
 // The access method for the size of a field of array type.

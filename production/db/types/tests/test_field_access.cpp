@@ -4,6 +4,7 @@
 /////////////////////////////////////////////
 
 #include <iostream>
+#include <fstream>
 
 #include "gtest/gtest.h"
 
@@ -18,7 +19,8 @@ const uint64_t c_type_id = 88;
 
 // The following values must match the values from test_record_data.json.
 const char* c_first_name = "Takeshi";
-const char* c_last_name = "Kovacs";
+const char* c_last_name = "Kovac";
+const char* c_new_last_name = "Kovacs";
 const uint8_t c_age = 242;
 const uint8_t c_new_age = 246;
 const int8_t c_has_children = 0;
@@ -79,7 +81,7 @@ void get_fields_data(
         field::last_name);
     cout << "\tlast_name = " << last_name.hold.string_value << endl;
     ASSERT_EQ(last_name.type, reflection::String);
-    ASSERT_EQ(0, strcmp(last_name.hold.string_value, c_last_name));
+    ASSERT_EQ(0, strcmp(last_name.hold.string_value, check_new_values ? c_new_last_name : c_last_name));
 
     data_holder_t age = get_field_value(
         c_type_id,
@@ -384,9 +386,32 @@ void update_flatbuffers_data()
         c_index_new_credit_amount,
         new_credit_amount);
 
+    vector<uint8_t> serialization;
+
+    cout << "\tupdating last_name to " << c_new_last_name << "..." << endl;
+    data_holder_t new_last_name;
+    new_last_name.type = reflection::String;
+    new_last_name.hold.string_value = c_new_last_name;
+    serialization = set_field_value(
+        c_type_id,
+        data_loader.get_data(),
+        data_loader.get_data_length(),
+        schema_loader.get_data(),
+        field::last_name,
+        new_last_name);
+
+    // Write out the final serialization.
+    ofstream file;
+    file.open("updated_test_record_data.bin", ios::binary | ios::out | ios::trunc);
+    file.write(reinterpret_cast<char*>(serialization.data()), serialization.size());
+    file.close();
+
     // Read back the modified data using cache information.
     // Schema information is not passed to the get_field_value() calls.
     cout << "\nReading back field values:" << endl;
+
+    // Load flatbuffers serialization.
+    data_loader.load_file_data("updated_test_record_data.bin");
 
     get_fields_data(
         data_loader,
