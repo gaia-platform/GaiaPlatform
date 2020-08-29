@@ -148,7 +148,7 @@ unordered_map<string, unordered_map<string, FieldData>> getTableData()
         {
             if (static_cast<gaia::catalog::data_type_t>(field.type()) != gaia::catalog::data_type_t::e_references)
             {
-                catalog::gaia_table_t tbl = catalog::gaia_table_t::get(field.table_id());
+                catalog::gaia_table_t tbl = catalog::gaia_table_t::get(field.gaia_table());
                 if (!tbl)
                 {
                     llvm::errs() << "Incorrect table for field " << field.name() << "\n";
@@ -170,7 +170,7 @@ unordered_map<string, unordered_map<string, FieldData>> getTableData()
             }
             else
             {
-                gaia_id_t parentTableId = field.table_id();
+                gaia_id_t parentTableId = field.gaia_table();
                 catalog::gaia_table_t parentTable = catalog::gaia_table_t::get(parentTableId);
                 if (!parentTable)
                 {
@@ -179,8 +179,7 @@ unordered_map<string, unordered_map<string, FieldData>> getTableData()
                     return unordered_map<string, unordered_map<string, FieldData>>();
                 }
 
-                gaia_id_t childTableId = field.type_id();
-                catalog::gaia_table_t childTable = catalog::gaia_table_t::get(childTableId);
+                catalog::gaia_table_t childTable = field.ref_gaia_table();
                 if (!childTable)
                 {
                     llvm::errs() << "Incorrect table referenced by field " << field.name() << "\n";
