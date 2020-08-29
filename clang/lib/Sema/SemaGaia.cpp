@@ -112,7 +112,7 @@ static unordered_map<string, unordered_map<string, QualType>> getTableData(Sema 
                 continue;
             }
             
-            catalog::gaia_table_t tbl = catalog::gaia_table_t::get(field.table_id());
+            catalog::gaia_table_t tbl = field.ref_gaia_table();
             if (!tbl)
             {
                 s->Diag(loc, diag::err_invalid_table_field) << field.name();
