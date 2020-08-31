@@ -117,6 +117,8 @@ int client::get_session_socket() {
 // In any case, send_msg_with_fds()/recv_msg_with_fds() already throw a
 // peer_disconnected exception when the other end of the socket is closed.
 void client::begin_session() {
+    // This check ensures we don't allow nested sessions & only close
+    // the session socket in case the server crashed from last begin_session() call.
     if (s_session_socket != -1 && !is_connection_alive()) {
         // Server crashed from last begin session.
         // Clean up resources.
@@ -126,6 +128,9 @@ void client::begin_session() {
     // Fail if a session already exists on this thread.
     verify_no_session();
 
+    // Cleanup & remapping of s_data could only occur when the server crashes
+    // but we do it on every begin_session() call as it is easy to reason through
+    // and with the same functionality.
     clear_shared_memory();
     tx_cleanup();
 
@@ -226,8 +231,8 @@ void client::begin_transaction() {
             throw_system_error("flock failed");
         }
     });
-    s_offsets = (offsets *) map_fd(sizeof(offsets),
-        PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_offsets, 0);
+    s_offsets = static_cast<offsets *>(map_fd(sizeof(offsets),
+        PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_offsets, 0));
 
     // Notify the server that we're in a transaction. (We don't send our log fd until commit.)
     FlatBufferBuilder builder;

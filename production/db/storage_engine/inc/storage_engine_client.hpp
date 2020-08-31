@@ -125,7 +125,7 @@ class client : private se_base {
         int64_t old_object,
         int64_t new_object,
         gaia_operation_t operation,
-        // 'id' is required to keep track of deleted keys which will be propagated to the persistent layer.
+        // 'deleted_id' is required to keep track of deleted keys which will be propagated to the persistent layer.
         // Memory for other operations will be unused. An alternative would be to keep a separate log for deleted keys only.
         gaia_id_t deleted_id = 0) {
         retail_assert(s_log->count < MAX_LOG_RECS);
