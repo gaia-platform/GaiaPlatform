@@ -40,20 +40,22 @@ void rdb_wrapper::open() {
     rocksdb::Options init_options{};
     // Implies 2PC log writes.
     init_options.allow_2pc = true;
+    // Use fsync instead of fdatasync.
+    init_options.use_fsync = true;
     // Create a new database directory if one doesn't exist.
     init_options.create_if_missing = true;
     // Size of memtable (4 mb)
-    init_options.write_buffer_size = 1 * 1024 * 1024; 
-    init_options.db_write_buffer_size = 1 * 1024 * 1024;
+    init_options.write_buffer_size = 4 * 1024 * 1024; 
+    init_options.db_write_buffer_size = 4 * 1024 * 1024;
 
     // Will function as a trigger for flushing memtables to disk.
     // https://github.com/facebook/rocksdb/issues/4180 Only relevant when we have multiple column families.
-    init_options.max_total_wal_size = 1 * 1024 * 1024;
+    init_options.max_total_wal_size = 4 * 1024 * 1024;
     // Number of memtables; 
     // The maximum number of write buffers that are built up in memory.
     // So that when 1 write buffers being flushed to storage, new writes can continue to the other
     // write buffer.
-    init_options.max_write_buffer_number = 1;
+    init_options.max_write_buffer_number = 2;
 
     // The minimum number of write buffers that will be merged together
     // before writing to storage.  If set to 1, then
@@ -66,6 +68,7 @@ void rdb_wrapper::open() {
     // Currently in place for development purposes. 
     // The default option 'kPointInTimeRecovery' will stop the WAL playback on discovering WAL inconsistency
     // without notifying the caller.
+    // Todo(Mihir) Update to 'kPointInTimeRecovery' after https://gaiaplatform.atlassian.net/browse/GAIAPLAT-321
     init_options.wal_recovery_mode = WALRecoveryMode::kAbsoluteConsistency;
 
     Status s = rdb_internal->open_txn_db(init_options, options);

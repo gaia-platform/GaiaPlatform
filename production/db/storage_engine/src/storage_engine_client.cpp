@@ -129,8 +129,7 @@ void client::begin_session() {
     verify_no_session();
 
     // Cleanup & remapping of s_data could only occur when the server crashes
-    // but we do it on every begin_session() call as it is easy to reason through
-    // and with the same functionality.
+    // but we do it on every begin_session() call anyway.
     clear_shared_memory();
     tx_cleanup();
 
