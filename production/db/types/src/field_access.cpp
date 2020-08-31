@@ -11,8 +11,13 @@
 
 using namespace std;
 using namespace gaia::common;
-using namespace gaia::db;
-using namespace gaia::db::types;
+
+namespace gaia
+{
+namespace db
+{
+namespace types
+{
 
 invalid_schema::invalid_schema()
 {
@@ -43,7 +48,7 @@ unhandled_field_type::unhandled_field_type(size_t field_type)
     m_message = string_stream.str();
 }
 
-void gaia::db::types::initialize_field_cache_from_binary_schema(
+void initialize_field_cache_from_binary_schema(
     field_cache_t* field_cache,
     const uint8_t* binary_schema)
 {
@@ -155,7 +160,7 @@ void get_table_field_array_information(
 }
 
 // The access method for scalar fields and strings.
-data_holder_t gaia::db::types::get_field_value(
+data_holder_t get_field_value(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
@@ -198,7 +203,7 @@ data_holder_t gaia::db::types::get_field_value(
 }
 
 // The setter method for scalar fields.
-bool gaia::db::types::set_field_value(
+bool set_field_value(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
@@ -238,7 +243,7 @@ bool gaia::db::types::set_field_value(
 }
 
 // The setter method for string fields.
-vector<uint8_t> gaia::db::types::set_field_value(
+vector<uint8_t> set_field_value(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     size_t serialized_data_size,
@@ -286,7 +291,7 @@ vector<uint8_t> gaia::db::types::set_field_value(
 }
 
 // The access method for the size of a field of array type.
-size_t gaia::db::types::get_field_array_size(
+size_t get_field_array_size(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
@@ -306,7 +311,7 @@ size_t gaia::db::types::get_field_array_size(
 }
 
 // The access method for an element of a field of array type.
-data_holder_t gaia::db::types::get_field_array_element(
+data_holder_t get_field_array_element(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
@@ -356,7 +361,7 @@ data_holder_t gaia::db::types::get_field_array_element(
 }
 
 // The setter method for a scalar element of a field of array type.
-void gaia::db::types::set_field_array_element(
+void set_field_array_element(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
@@ -401,7 +406,7 @@ void gaia::db::types::set_field_array_element(
 }
 
 // The setter method for a string element of a field of array type.
-std::vector<uint8_t> gaia::db::types::set_field_array_element(
+std::vector<uint8_t> set_field_array_element(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     size_t serialized_data_size,
@@ -450,4 +455,8 @@ std::vector<uint8_t> gaia::db::types::set_field_array_element(
         &updatable_serialized_data);
 
     return updatable_serialized_data;
+}
+
+}
+}
 }
