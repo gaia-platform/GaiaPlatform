@@ -20,8 +20,13 @@ int main(int argc, char *argv[]) {
 
     gaia::db::begin_session();
 
-    auto code_lines = gaia_generate(argv[1]);
-    cout << code_lines << endl;
+    try {
+        auto code_lines = gaia_generate(argv[1]);
+        cout << code_lines << endl;
+    }
+    catch (gaia_exception& e) {
+        cerr << "gaia_generate failed: " << e.what() << endl;
+    }
 
     gaia::db::end_session();
 }

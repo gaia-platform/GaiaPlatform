@@ -101,7 +101,13 @@ void generate_fbs_headers(const string &db_name, const string &output_path) {
 // From the database name and catalog contents, generate the Extended Data Class definition(s).
 void generate_edc_headers(const string &db_name, const string &output_path) {
     ofstream edc(output_path + "gaia" + (db_name.empty() ? "" : "_" + db_name) + ".h");
-    edc << gaia::catalog::gaia_generate(db_name) << endl;
+    try {
+        edc << gaia::catalog::gaia_generate(db_name) << endl;
+    }
+    catch (gaia_exception& e) {
+        cerr << "WARNING - gaia_generate failed: " << e.what() << endl;
+    }
+
     edc.close();
 }
 
