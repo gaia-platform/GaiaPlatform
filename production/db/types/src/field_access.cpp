@@ -399,3 +399,55 @@ void gaia::db::types::set_field_array_element(
         throw unhandled_field_type(field->type()->element());
     }
 }
+
+// The setter method for a string element of a field of array type.
+std::vector<uint8_t> gaia::db::types::set_field_array_element(
+    gaia_id_t type_id,
+    const uint8_t* serialized_data,
+    size_t serialized_data_size,
+    const uint8_t* binary_schema,
+    field_position_t field_position,
+    size_t array_index,
+    const data_holder_t& value)
+{
+    retail_assert(binary_schema != nullptr, "binary_schema argument should not be null.");
+
+    const flatbuffers::Table* root_table = nullptr;
+    auto_field_cache_t auto_field_cache;
+    field_cache_t local_field_cache;
+    const reflection::Field* field = nullptr;
+    const flatbuffers::VectorOfAny* field_value = nullptr;
+    vector<uint8_t> updatable_serialized_data(serialized_data, serialized_data + serialized_data_size);
+
+    get_table_field_array_information(
+        type_id, updatable_serialized_data.data(), binary_schema, field_position,
+        root_table, auto_field_cache, local_field_cache, field, field_value);
+
+    retail_assert(array_index < field_value->size(), "Attempt to index array is out-of-bounds.");
+    retail_assert(
+        field->type()->element() == reflection::String && value.type == reflection::String,
+        "Attempt to set value of incorrect type");
+
+    const reflection::Schema* schema = reflection::GetSchema(binary_schema);
+    if (schema == nullptr)
+    {
+        throw invalid_schema();
+    }
+
+    string new_field_element_value(value.hold.string_value);
+
+    const flatbuffers::String* field_element_value
+        = flatbuffers::GetAnyVectorElemPointer<const flatbuffers::String>(field_value, array_index);
+    if (field_element_value == nullptr)
+    {
+        throw invalid_serialized_data();
+    }
+
+    flatbuffers::SetString(
+        *schema,
+        new_field_element_value,
+        field_element_value,
+        &updatable_serialized_data);
+
+    return updatable_serialized_data;
+}

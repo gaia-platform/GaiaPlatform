@@ -32,7 +32,9 @@ const int64_t c_known_associates[] = { 8583390572, 8438230053, 2334850034, 57733
 const size_t c_index_new_known_associate = 1;
 const int64_t c_new_known_associate = 7234958243;
 const size_t c_count_known_aliases = 4;
-const char* c_known_aliases[] = { "Mamba Lev", "One Hand Rending", "The Icepick", "Ken Kakura" };
+const char* c_known_aliases[] = { "Mamba Lev", "One Hand Rending", "The Ice", "Ken Kakura" };
+const size_t c_index_new_known_alias = 2;
+const char* c_new_known_alias = "The Icepick";
 const double c_sleeve_cost = 769999.19;
 const double c_new_sleeve_cost = 1299999.69;
 const float c_monthly_sleeve_insurance = 149.29;
@@ -157,7 +159,16 @@ void get_fields_data(
             i);
         cout << "\t\tknown_alias[" << i << "] = " << known_alias.hold.string_value << endl;
         ASSERT_EQ(known_alias.type, reflection::String);
-        ASSERT_EQ(0, strcmp(known_alias.hold.string_value, c_known_aliases[i]));
+        if (i == c_index_new_known_alias)
+        {
+            ASSERT_EQ(0, strcmp(
+                known_alias.hold.string_value,
+                check_new_values ? c_new_known_alias : c_known_aliases[i]));
+        }
+        else
+        {
+            ASSERT_EQ(0, strcmp(known_alias.hold.string_value, c_known_aliases[i]));
+        }
     }
 
     data_holder_t sleeve_cost = get_field_value(
@@ -399,6 +410,20 @@ void update_flatbuffers_data()
         schema_loader.get_data(),
         field::last_name,
         new_last_name);
+
+    cout << "\tupdating known_alias[" << c_index_new_known_alias
+        << "] to " << c_new_known_alias << "..." << endl;
+    data_holder_t new_known_alias;
+    new_known_alias.type = reflection::String;
+    new_known_alias.hold.string_value = c_new_known_alias;
+    serialization = set_field_array_element(
+        c_type_id,
+        serialization.data(),
+        serialization.size(),
+        schema_loader.get_data(),
+        field::known_aliases,
+        c_index_new_known_alias,
+        new_known_alias);
 
     // Write out the final serialization.
     ofstream file;

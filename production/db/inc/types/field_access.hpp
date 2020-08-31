@@ -142,6 +142,20 @@ void set_field_array_element(
     size_t array_index,
     const data_holder_t& value);
 
+// Set a specific element of a string field of array type.
+//
+// An exception will be thrown if the index is out of bounds.
+//
+// This function only works for string fields.
+std::vector<uint8_t> set_field_array_element(
+    gaia_id_t type_id,
+    const uint8_t* serialized_data,
+    size_t serialized_data_size,
+    const uint8_t* binary_schema,
+    field_position_t field_position,
+    size_t array_index,
+    const data_holder_t& value);
+
 }
 }
 }
