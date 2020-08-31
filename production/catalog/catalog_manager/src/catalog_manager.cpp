@@ -275,7 +275,7 @@ void catalog_manager_t::drop_table(
 static gaia_ptr insert_gaia_table_row(
     gaia_id_t table_id,
     const char *name,
-    uint32_t type,
+    gaia_type_t type,
     bool is_system,
     uint8_t trim_action,
     uint64_t max_rows,
@@ -293,7 +293,7 @@ static gaia_ptr insert_gaia_table_row(
 
     return gaia_ptr::create(
         table_id,                       // id
-        static_cast<gaia_type_t>(type), // type
+        type,                           // type
         c_gaia_table_num_refs,          // num_refs
         fbb.GetSize(),                  // data_size
         fbb.GetBufferPointer()          // data
@@ -344,28 +344,28 @@ gaia_id_t catalog_manager_t::create_table_impl(
     gaia_id_t table_id;
     if (fixed_id == INVALID_GAIA_ID) {
         table_id = gaia_table_t::insert_row(
-            table_name.c_str(),                                      // name
+            table_name.c_str(),                               // name
             static_cast<uint32_t>(catalog_table_type_t::gaia_table), // table type
-            is_system,                                               // is_system
-            static_cast<uint8_t>(trim_action_type_t::e_none),        // trim_action
-            0,                                                       // max_rows
-            0,                                                       // max_size
-            0,                                                       // max_seconds
-            bfbs.c_str()                                             // bfbs
+            is_system,                                        // is_system
+            static_cast<uint8_t>(trim_action_type_t::e_none), // trim_action
+            0,                                                // max_rows
+            0,                                                // max_size
+            0,                                                // max_seconds
+            bfbs.c_str()                                      // bfbs
         );
     } else {
         // NOTE: table_id and table type should be independent
         table_id = fixed_id;
         insert_gaia_table_row(
-            table_id,                                                // table id
-            table_name.c_str(),                                      // name
-            static_cast<uint32_t>(catalog_table_type_t::gaia_table), // table type
-            is_system,                                               // is_system
-            static_cast<uint8_t>(trim_action_type_t::e_none),        // trim_action
-            0,                                                       // max_rows
-            0,                                                       // max_size
-            0,                                                       // max_seconds
-            bfbs.c_str()                                             // bfbs
+            table_id,                                         // table id
+            table_name.c_str(),                               // name
+            static_cast<gaia_type_t>(catalog_table_type_t::gaia_table), // table type
+            is_system,                                        // is_system
+            static_cast<uint8_t>(trim_action_type_t::e_none), // trim_action
+            0,                                                // max_rows
+            0,                                                // max_size
+            0,                                                // max_seconds
+            bfbs.c_str()                                      // bfbs
         );
     }
 
