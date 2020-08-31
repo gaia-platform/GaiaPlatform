@@ -56,7 +56,7 @@ class catalog_manager_t {
         const ddl::field_def_list_t &fields,
         bool is_log = false,
         bool throw_on_exist = true,
-        gaia_id_t id = INVALID_GAIA_ID);
+        gaia_id_t type = INVALID_GAIA_ID);
 
     // Find the database ID given its name.
     // The method does not use a lock.

@@ -21,7 +21,7 @@ enum class catalog_table_type_t : gaia_type_t {
     gaia_table = gaia_field - 1,
     gaia_rule = gaia_table - 1,
     gaia_ruleset = gaia_rule - 1,
-    gaia_database = gaia_ruleset - 1,
+    gaia_database = gaia_ruleset - 1
 };
 
 enum class system_table_type_t : gaia_type_t {

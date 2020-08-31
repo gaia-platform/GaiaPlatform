@@ -190,8 +190,8 @@ static string generate_edc_struct(gaia_type_t table_type_id, string table_name, 
     // Struct statement.
     code.SetValue("TABLE_NAME", table_name);
     code.SetValue("POSITION", to_string(table_type_id));
-    code += "typedef gaia_writer_t<{{POSITION}}llu,{{TABLE_NAME}}_t,{{TABLE_NAME}},{{TABLE_NAME}}T,c_num_{{TABLE_NAME}}_ptrs> {{TABLE_NAME}}_writer;";
-    code += "struct {{TABLE_NAME}}_t : public gaia_object_t<{{POSITION}}llu,{{TABLE_NAME}}_t,{{TABLE_NAME}},{{TABLE_NAME}}T,c_num_{{TABLE_NAME}}_ptrs> {";
+    code += "typedef gaia_writer_t<{{POSITION}},{{TABLE_NAME}}_t,{{TABLE_NAME}},{{TABLE_NAME}}T,c_num_{{TABLE_NAME}}_ptrs> {{TABLE_NAME}}_writer;";
+    code += "struct {{TABLE_NAME}}_t : public gaia_object_t<{{POSITION}},{{TABLE_NAME}}_t,{{TABLE_NAME}},{{TABLE_NAME}}T,c_num_{{TABLE_NAME}}_ptrs> {";
 
     code.IncrementIdentLevel();
 
@@ -268,9 +268,9 @@ static string generate_edc_struct(gaia_type_t table_type_id, string table_name, 
     }
 
     // The table range.
-    code += "static gaia_container_t<{{POSITION}}llu, {{TABLE_NAME}}_t>& list() {";
+    code += "static gaia_container_t<{{POSITION}}, {{TABLE_NAME}}_t>& list() {";
     code.IncrementIdentLevel();
-    code += "static gaia_container_t<{{POSITION}}llu, {{TABLE_NAME}}_t> list;";
+    code += "static gaia_container_t<{{POSITION}}, {{TABLE_NAME}}_t> list;";
     code += "return list;";
     code.DecrementIdentLevel();
     code += "}";
@@ -308,7 +308,7 @@ static string generate_edc_struct(gaia_type_t table_type_id, string table_name, 
     code.DecrementIdentLevel();
     code += "private:";
     code.IncrementIdentLevel();
-    code += "friend struct gaia_object_t<{{POSITION}}llu, {{TABLE_NAME}}_t, {{TABLE_NAME}}, {{TABLE_NAME}}T, c_num_{{TABLE_NAME}}_ptrs>;";
+    code += "friend struct gaia_object_t<{{POSITION}}, {{TABLE_NAME}}_t, {{TABLE_NAME}}, {{TABLE_NAME}}T, c_num_{{TABLE_NAME}}_ptrs>;";
 
     // The constructor.
     code += "{{TABLE_NAME}}_t(gaia_id_t id) : gaia_object_t(id, \"{{TABLE_NAME}}_t\") {";

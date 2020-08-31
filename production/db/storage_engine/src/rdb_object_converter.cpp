@@ -10,18 +10,18 @@ using namespace gaia::db;
 
 /**
  * Format:
- * Key: fbb_type, id (uint64, uint64)
+ * Key: fbb_type, id (uint32, uint64)
  * Value: value_type, payload_size, payload
  */
 void rdb_object_converter_util::encode_node(
     const uint64_t id,
-    uint64_t type,
+    uint32_t type,
     uint32_t size,
     const char* payload,
     string_writer* key,
     string_writer* value) {
     // Create key.
-    key->write_uint64(type);
+    key->write_uint32(type);
     key->write_uint64(id);
 
     // Create value.
@@ -42,7 +42,7 @@ const char* rdb_object_converter_util::decode_node(
     string_reader key_(&key);
     string_reader value_(&value);
     // Read key.
-    key_.read_uint64(type);
+    key_.read_uint32(type);
     key_.read_uint64(id);
     assert(key_.get_remaining_len_in_bytes() == 0);
 
@@ -71,7 +71,7 @@ bool rdb_object_converter_util::is_rdb_object_edge(const rocksdb::Slice& value) 
  */
 void rdb_object_converter_util::encode_edge(
     const uint64_t id,
-    uint64_t type,
+    uint32_t type,
     uint32_t size,
     const char* payload,
     const uint64_t first,
@@ -79,7 +79,7 @@ void rdb_object_converter_util::encode_edge(
     string_writer* key,
     string_writer* value) {
     // Create key.
-    key->write_uint64(type);
+    key->write_uint32(type);
     key->write_uint64(id);
 
     // Create value.
@@ -105,7 +105,7 @@ const char* rdb_object_converter_util::decode_edge(
     string_reader value_(&value);
 
     // Read key.
-    key_.read_uint64(type);
+    key_.read_uint32(type);
     key_.read_uint64(id);
 
     // Read value.

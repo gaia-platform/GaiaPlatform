@@ -180,14 +180,14 @@ class rdb_object_converter_util {
    public:
     static void encode_node(
         const uint64_t id,
-        uint64_t type,
+        uint32_t type,
         uint32_t size,
         const char* payload,
         string_writer* key,
         string_writer* value);
     static void encode_edge(
         const uint64_t id,
-        uint64_t type,
+        uint32_t type,
         uint32_t size,
         const char* payload,
         const uint64_t first,

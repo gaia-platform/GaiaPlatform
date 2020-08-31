@@ -23,7 +23,7 @@ namespace triggers {
 
 struct trigger_event_t {
     event_type_t event_type; // insert, update, delete, begin, commit, rollback
-    gaia_id_t gaia_type; // gaia table type, maybe 0 if event has no associated tables
+    gaia_type_t gaia_type; // gaia table type, maybe 0 if event has no associated tables
     gaia_id_t record; //row id, may be 0 if if there is no assocated row id
     field_position_list_t columns; // list of affected columns
 
