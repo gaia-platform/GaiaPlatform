@@ -16,10 +16,10 @@ namespace rules
 // custom settings. It is only used by unit tests today but may be made
 // public to allow customers to optimize the rules engine for their needs.
 //
-// Default event manager behavior is as follows:
-// Number of background threads equals number of hardware threads.
-// Catalog checks are enabled.
-// Gathering performance statistics is disabled.
+// Default event manager settings are:
+// Number of background threads equals number of hardware threads (SIZE_MAX).
+// Catalog checks are enabled (TRUE).
+// Gathering performance statistics is disabled (FALSE).
 struct event_manager_settings_t {
     event_manager_settings_t() 
     : num_background_threads(SIZE_MAX)

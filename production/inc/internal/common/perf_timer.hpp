@@ -27,14 +27,15 @@ public:
     // Time the function and return result in nanoseconds.
     static int64_t get_function_duration(std::function<void ()> fn);
 
-    // Time the function, and output a message to the console
-    // for the function exclusive time.
+    // Time the function and output a message to the console.
     static void log_function_duration(std::function<void ()> fn, const char* function_name);
 
     // ns -> s
     static double ns_s(int64_t nanoseconds) { return nanoseconds / (double) (1e9); }
+
     // ns -> ms
     static double ns_ms(int64_t nanoseconds) { return nanoseconds / (double) (1e6); }
+
     // ns -> us
     static double ns_us(int64_t nanoseconds) { return nanoseconds / (double) (1e3); }
 };

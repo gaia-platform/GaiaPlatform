@@ -125,10 +125,8 @@ private:
     // Only internal static creation is allowed.
     event_manager_t();
 
-    //
     // Test helper methods.  These are just the friend declarations.  These methods are 
     // implemented in a separate source file that must be compiled into the test.
-    //
     friend void gaia::rules::test::initialize_rules_engine(event_manager_settings_t& settings);
     friend void gaia::rules::test::commit_trigger(uint64_t, const trigger_event_t*, size_t count_events);
 
