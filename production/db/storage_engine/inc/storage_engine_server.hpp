@@ -519,8 +519,6 @@ class server : private se_base {
             auto lr = s_log->log_records + i;
 
             if (row_ids.insert(lr->row_id).second) {
-                // cout << "(*server::s_shared_offsets)[" << lr->row_id << "]: " << (*server::s_shared_offsets)[lr->row_id] << endl << flush;
-                // cout << "(lr->old_object)[" << lr->row_id << "]: " << lr->old_object << endl << flush;
                 if ((*s_shared_offsets)[lr->row_id] != lr->old_object) {
                     // Append Rollback decision to log.
                     // This isn't really required because recovery will skip deserializing transactions 

@@ -96,7 +96,7 @@ class gaia_hash_map {
     }
 
     static void remove(se_base::data* s_data, const gaia_id_t id) {
-        hash_node* node = get_hash_node(s_data, id % se_base::HASH_BUCKETS); 
+        hash_node* node = get_hash_node(s_data, id % se_base::HASH_BUCKETS);
 
         while (node->id) {
             if (node->id == id) {

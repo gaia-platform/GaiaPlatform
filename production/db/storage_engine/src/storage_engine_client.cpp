@@ -71,8 +71,10 @@ void client::tx_cleanup() {
     close(s_fd_log);
     s_fd_log = -1;
     // Destroy the offset mapping.
-    unmap_fd(s_offsets, sizeof(offsets));
-    s_offsets = nullptr;
+    if (s_offsets) {
+        unmap_fd(s_offsets, sizeof(offsets));
+        s_offsets = nullptr;
+    }
 }
 
 int client::get_session_socket() {
@@ -123,7 +125,9 @@ void client::begin_session() {
     }
     // Fail if a session already exists on this thread.
     verify_no_session();
+
     clear_shared_memory();
+    tx_cleanup();
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
@@ -157,15 +161,13 @@ void client::begin_session() {
     // (and only if they're not already initialized).
     int fd_data = fds[DATA_FD_INDEX];
     retail_assert(fd_data != -1);
-    
+
     // Set up the shared data segment mapping.
     s_data = static_cast<data *>(map_fd(
         sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0));
 
     // We've already mapped the data fd, so we can close it now.
     close(fd_data);
-
-    cout << "[Client] Row ID count on begin session " << client::s_data->row_id_count << endl << flush;
 
     // Set up the private locator segment fd.
     int fd_offsets = fds[OFFSETS_FD_INDEX];
@@ -226,12 +228,6 @@ void client::begin_transaction() {
     });
     s_offsets = (offsets *) map_fd(sizeof(offsets),
         PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_offsets, 0);
-    
-    // cout << "(*s_offsets)[" << 0 << "]: " << (*s_offsets)[0] << endl << flush;
-    // cout << "(*s_offsets)[" << 1 << "]: " << (*s_offsets)[1] << endl << flush;
-    // cout << "(*s_offsets)[" << 2 << "]: " << (*s_offsets)[2] << endl << flush;
-    // cout << "(*s_offsets)[" << 3 << "]: " << (*s_offsets)[3] << endl << flush;
-
 
     // Notify the server that we're in a transaction. (We don't send our log fd until commit.)
     FlatBufferBuilder builder;

@@ -39,10 +39,10 @@ typedef uint64_t gaia_edge_type_t;
 const size_t MAX_MSG_SIZE = 1 << 10;
 
 enum class gaia_operation_t: int8_t {
-    create = 0x0,
-    update = 0x1,
-    remove = 0x2,
-    clone  = 0x3
+    create = 0x1,
+    update = 0x2,
+    remove = 0x3,
+    clone  = 0x4
 };
 
 struct hash_node {

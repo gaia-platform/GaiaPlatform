@@ -55,7 +55,7 @@ class gaia_ptr {
     static gaia_ptr create(
         gaia_id_t id,
         gaia_type_t type,
-        uint64_t data_size,
+        size_t data_size,
         const void* data) {
         return create(id, type, 0, data_size, data);
     }
@@ -63,11 +63,11 @@ class gaia_ptr {
     static gaia_ptr create(
         gaia_id_t id,
         gaia_type_t type,
-        uint64_t num_refs,
-        uint64_t data_size,
+        size_t num_refs,
+        size_t data_size,
         const void* data) {
-        uint64_t refs_len = num_refs * sizeof(gaia_id_t);
-        uint64_t total_len = data_size + refs_len;
+        size_t refs_len = num_refs * sizeof(gaia_id_t);
+        size_t total_len = data_size + refs_len;
         gaia_ptr obj(id, total_len + sizeof(object));
         object* obj_ptr = obj.to_ptr();
         obj_ptr->id = id;
@@ -103,7 +103,7 @@ class gaia_ptr {
 
     gaia_ptr& clone();
 
-    gaia_ptr& update_payload(uint64_t data_size, const void* data);
+    gaia_ptr& update_payload(size_t data_size, const void* data);
 
     static gaia_ptr find_first(gaia_type_t type) {
         gaia_ptr ptr;
@@ -166,9 +166,9 @@ class gaia_ptr {
 
     gaia_ptr(const gaia_id_t id);
 
-    gaia_ptr(const gaia_id_t id, const uint64_t size);
+    gaia_ptr(const gaia_id_t id, const size_t size);
 
-    void allocate(const uint64_t size);
+    void allocate(const size_t size);
 
     object* to_ptr() const;
 

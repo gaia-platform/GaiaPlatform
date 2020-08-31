@@ -97,7 +97,6 @@ class rdb_wrapper
         uint64_t data_size,
         const void* data);
 
-    };
+};
 }
-
 }

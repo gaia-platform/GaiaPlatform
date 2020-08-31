@@ -208,11 +208,6 @@ int all_addressee() {
 TEST_F(gaia_references_test, connect_scan) {
     begin_transaction();
 
-    // Grab count before making any updates.
-    auto employee_count = count_type<employee_t>();
-    auto address_count = count_type<address_t>();
-    auto phone_count = count_type<phone_t>();
-
     // Create a hierarchy of employee to address to phone
     auto eptr = create_hierarchy();
 
@@ -227,15 +222,15 @@ TEST_F(gaia_references_test, connect_scan) {
     EXPECT_EQ(bounce_hierarchy(eptr), true);
 
     // Count the rows.
-    EXPECT_EQ(count_type<employee_t>(), 1 + employee_count);
-    EXPECT_EQ(count_type<address_t>(), 200 + address_count);
-    EXPECT_EQ(count_type<phone_t>(), 4000 + phone_count);
+    EXPECT_EQ(count_type<employee_t>(), 1);
+    EXPECT_EQ(count_type<address_t>(), 200);
+    EXPECT_EQ(count_type<phone_t>(), 4000);
 
     // Scan through some rows.
-    // EXPECT_EQ(first_employee(), "Heidi");
+    EXPECT_EQ(first_employee(), "Heidi");
 
     // Scan through all addresses.
-    EXPECT_EQ(all_addressee(), address_count);
+    EXPECT_EQ(all_addressee(), 0);
 
     // Delete the hierarchy, every third record, until it's gone
     EXPECT_EQ(delete_hierarchy(eptr), true);

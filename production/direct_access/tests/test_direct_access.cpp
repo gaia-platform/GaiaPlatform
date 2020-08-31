@@ -67,10 +67,9 @@ TEST_F(gaia_object_test, create_employee_delete) {
 // Scan multiple rows
 TEST_F(gaia_object_test, new_set_ins) {
     begin_transaction();
-    auto current_count = count_rows();
     create_employee("Harold");
     create_employee("Jameson");
-    EXPECT_EQ(current_count + 2, count_rows());
+    EXPECT_EQ(2, count_rows());
     commit_transaction();
 }
 
@@ -145,17 +144,12 @@ TEST_F(gaia_object_test, read_back_scan) {
     commit_transaction();
 
     begin_transaction();
-    int count = 0;
-    for (auto employee = employee_t::get_first(); employee; employee = employee.get_next()) {
-        if (employee.gaia_id() == eid) {
-            EXPECT_STREQ("Howard", employee.name_first());
-            count++;
-        } else if (employee.gaia_id() == eid2) {
-            EXPECT_STREQ("Henry", employee.name_first());
-            count++;
-        }
-    }
-    assert(count == 2);
+    auto e = employee_t::get_first();
+    EXPECT_EQ(eid, e.gaia_id());
+    EXPECT_STREQ("Howard", e.name_first());
+    e = e.get_next();
+    EXPECT_EQ(eid2, e.gaia_id());
+    EXPECT_STREQ("Henry", e.name_first());
     commit_transaction();
 }
 
@@ -166,49 +160,41 @@ void UpdateReadBack(bool update_flag) {
     auto e2 = create_employee("Henry");
     tx.commit();
 
-    int count = 0;
-    employee_writer w;
-    for (auto employee = employee_t::get_first(); employee; employee = employee.get_next()) {
-        if (employee.gaia_id() == e1) {
-            w = e1.writer();
-            w.name_first = "Herald";
-            w.name_last = "Hollman";
-            if (update_flag) {
-                w.update_row();
-            }
-            count++;
-        } else if (employee.gaia_id() == e2) {
-            w = e2.writer();
-            w.name_first = "Gerald";
-            w.name_last = "Glickman";
-            if (update_flag) {
-                w.update_row();
-            }
-            count++;
-        }
+    auto e = employee_t::get_first();
+    auto w = e.writer();
+    w.name_first = "Herald";
+    w.name_last = "Hollman";
+    if (update_flag) {
+        w.update_row();
+    }
+    e = e.get_next();
+
+    // get writer for next row!
+    w = e.writer();
+    w.name_first = "Gerald";
+    w.name_last = "Glickman";
+    if (update_flag) {
+        w.update_row();
     }
     tx.commit();
 
-    for (auto employee = employee_t::get_first(); employee; employee.get_next()) {
-        if (employee.gaia_id() == e1) {
-            if (update_flag) {
-                EXPECT_STREQ("Herald", employee.name_first());
-                EXPECT_STREQ("Hollman", employee.name_last());
-            } else {
-                // unchanged by previous transaction
-                EXPECT_STREQ("Howard", employee.name_first());
-                EXPECT_STREQ(nullptr, employee.name_last());
-            }
-        } else if (employee.gaia_id() == e2) {
-            if (update_flag) {
-                EXPECT_STREQ("Gerald", employee.name_first());
-                EXPECT_STREQ("Glickman", employee.name_last());
-            } else {
-                // unchanged by previous transaction
-                EXPECT_STREQ("Henry", employee.name_first());
-                EXPECT_STREQ(nullptr, employee.name_last());
-            }
-        }
+    e = employee_t::get_first();
+    if (update_flag) {
+        EXPECT_STREQ("Herald", e.name_first());
+        EXPECT_STREQ("Hollman", e.name_last());
+    } else {
+        // unchanged by previous transaction
+        EXPECT_STREQ("Howard", e.name_first());
+        EXPECT_STREQ(nullptr, e.name_last());
+    }
+    e = e.get_next();
+    if (update_flag) {
+        EXPECT_STREQ("Gerald", e.name_first());
+        EXPECT_STREQ("Glickman", e.name_last());
+    } else {
+        // unchanged by previous transaction
+        EXPECT_STREQ("Henry", e.name_first());
+        EXPECT_STREQ(nullptr, e.name_last());
     }
 }
 
@@ -244,7 +230,6 @@ TEST_F(gaia_object_test, no_tx) {
 // Scan beyond the end of the iterator.
 TEST_F(gaia_object_test, scan_past_end) {
     auto_transaction_t tx;
-    int count_at_start = count_rows();
     create_employee("Hvitserk");
     int count = 0;
     auto e = employee_t::list().begin();
@@ -252,7 +237,7 @@ TEST_F(gaia_object_test, scan_past_end) {
         count++;
         e++;
     }
-    EXPECT_EQ(count, 1 + count_at_start);
+    EXPECT_EQ(count, 1);
     e++;
     EXPECT_EQ(e == employee_t::list().end(), true);
     e++;
@@ -262,9 +247,6 @@ TEST_F(gaia_object_test, scan_past_end) {
 // Test pre/post increment of iterator.
 TEST_F(gaia_object_test, pre_post_iterator) {
     auto_transaction_t tx;
-    for (auto employee = employee_t::get_first(); employee; employee = employee.get_next()) {
-        employee.delete_row();
-    }
     tx.commit();
     create_employee("Hvitserk");
     create_employee("Hubert");

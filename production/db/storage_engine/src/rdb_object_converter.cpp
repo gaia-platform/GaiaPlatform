@@ -27,7 +27,6 @@ void gaia::db::encode_object(
     value->write_uint64(gaia_object->num_references);
     value->write_uint64(gaia_object->payload_size);
 
-    // cout << "[encode; id; type; num_refs; data_size; total]" << gaia_object->id << ":" << gaia_object->type <<":" << gaia_object->num_references << ":" << gaia_object->payload_size << endl << flush;
     value->write(gaia_object->payload, gaia_object->payload_size);
 }
 
@@ -50,8 +49,6 @@ gaia_id_t gaia::db::decode_object(
     value_.read_uint64(&num_references);
     value_.read_uint64(&size);
     auto payload = value_.read(size);
-
-    // cout << "[decode; id; type; num_refs; data_size; total]" << id << ":" << type <<":" << num_references << ":" << size << endl << flush;
 
     // The create API expects size of the flatbuffer payload only; without reference length
     // So subtract the reference length before calling the API.

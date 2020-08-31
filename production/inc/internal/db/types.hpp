@@ -26,8 +26,6 @@ struct object {
     uint64_t payload_size;
     char payload[0];
 };
-// Field position list.
-typedef std::vector<field_position_t> field_position_list_t;
 
 } // namespace db
 } // namespace gaia

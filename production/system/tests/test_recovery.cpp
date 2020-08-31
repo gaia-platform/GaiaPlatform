@@ -13,11 +13,16 @@
 #include "gaia_db.hpp"
 #include "db_test_base.hpp"
 #include "gaia_addr_book.h"
+#include "gtest/gtest.h"
 
 using namespace std;
 using namespace gaia::db;
 using namespace gaia::common;
 using namespace gaia::addr_book;
+
+// Todo (Mihir) - Run with ctest?
+// Sample usage:
+// test_recovery "/home/ubuntu/GaiaPlatform/production/build/db/storage_engine"
 
 // Write 16 records in a single transaction.
 size_t load_batch_size = 16;
@@ -278,81 +283,120 @@ void load_modify_recover_test(db_server_t server,
     // Validate all data deleted.
     restart_server(server, server_dir_path.data());
     begin_session();
+    cout << "Counts2: " << get_count() << ";" << initial_record_count << flush;
     assert(get_count() == initial_record_count);
     end_session();
     stop_server(server);
 }
 
-// Bad FD
-void throw_after_restart_no_cleanup(db_server_t server, std::string server_dir_path) {
+gaia_id_t create_row_and_restart_within_tx(db_server_t server, std::string server_dir_path) {
+    gaia_id_t id;
     restart_server(server, server_dir_path.data());
     begin_session();
     begin_transaction();
-    generate_employee_record();
+    auto e1 = generate_employee_record();
+    id = e1.gaia_id();
     restart_server(server, server_dir_path.data());
-    // Try insert & then commit. The insert will succeed but the commit will fail.
-    generate_employee_record();
-    try {
-        commit_transaction();
-    } catch (no_session_active&) {
-        cout << "Success " << endl << flush;
-    } catch (exception&) {
-        assert(false);
-    }
+    return id;
 }
 
-// Bad FD
-void throw_after_restart_clean_shutdown(db_server_t server, std::string server_dir_path) {
+void throw_no_tx_after_restart_test(db_server_t server, std::string server_dir_path) {
+    create_row_and_restart_within_tx(server, server_dir_path);
+    EXPECT_THROW(generate_employee_record(), transaction_not_open);
+}
+
+void throw_no_session_after_restart_on_commit_test(db_server_t server, std::string server_dir_path) {
+    create_row_and_restart_within_tx(server, server_dir_path);
+    EXPECT_THROW(commit_transaction(), no_session_active);
+}
+
+void throw_no_session_after_restart_on_begin_test(db_server_t server, std::string server_dir_path) {
+    create_row_and_restart_within_tx(server, server_dir_path);
+    EXPECT_THROW(begin_transaction(), no_session_active);
+}
+
+void throw_no_session_after_restart_on_rollback_test(db_server_t server, std::string server_dir_path) {
+    create_row_and_restart_within_tx(server, server_dir_path);
+    EXPECT_THROW(rollback_transaction(), no_session_active);
+}
+
+void ensure_uncommitted_value_absent_on_restart_and_commit_new_tx_test(db_server_t server, std::string server_dir_path) {
+    gaia_id_t id;
     restart_server(server, server_dir_path.data());
     begin_session();
     begin_transaction();
-    generate_employee_record();
-    commit_transaction();
-    end_session();
+    auto e1 = generate_employee_record();
+    id = e1.gaia_id();
 
     restart_server(server, server_dir_path.data());
-    // Try begin.
+    begin_session();
     begin_transaction();
+    assert(!employee_t::get(id));
+    // Check log + commit path functional.
+    auto e2 = generate_employee_record();
+    id = e2.gaia_id();
+    auto name_first = e2.name_first();
+    assert(employee_t::get(id).gaia_id() == id);
+    assert(employee_t::get(id).name_first() == name_first);
+    commit_transaction();
+    end_session();
+}
+
+void ensure_uncommitted_value_absent_on_restart_and_rollback_new_tx(db_server_t server, std::string server_dir_path) {
+    gaia_id_t id;
+    restart_server(server, server_dir_path.data());
+    begin_session();
+    begin_transaction();
+    auto e1 = generate_employee_record();
+    id = e1.gaia_id();
+
+    restart_server(server, server_dir_path.data());
+    begin_session();
+    begin_transaction();
+    assert(!employee_t::get(id));
+    // Check log + commit path functional.
+    auto e2 = generate_employee_record();
+    id = e2.gaia_id();
+    auto name_first = e2.name_first();
+    assert(employee_t::get(id).gaia_id() == id);
+    assert(employee_t::get(id).name_first() == name_first);
+    rollback_transaction();
     end_session();
 }
 
 /**
  * Test Recovery with a single threaded client.
- * 
- * Sample usage:
- * test_recovery "/home/ubuntu/GaiaPlatform/production/build/db/storage_engine"
- * 
- * Todo(msj) - split up this test so that some simple recovery tests run with ctest and 
- * a longer test runs on teamcity.
  */
 int main(int, char *argv[]) {
     int result = 0;
     db_server_t server;
     // Path of directory where server executable resides.
-    std::string server_dir_path = argv[1];
+    std::string server_dir_path =  argv[1];
     employee_map.clear();
 
-    // 1) Server throws exception if restart occurs during client transaction.
+    // 1) Throw appropriate exception if restart occurs within transaction.
     {
-        throw_after_restart_clean_shutdown(server, server_dir_path);
+        throw_no_tx_after_restart_test(server, server_dir_path);
+        throw_no_session_after_restart_on_commit_test(server, server_dir_path);
+        throw_no_session_after_restart_on_begin_test(server, server_dir_path);
+        throw_no_session_after_restart_on_rollback_test(server, server_dir_path);
     }
 
     // 2) Load & Recover test - with data size less than write buffer size; 
     // All writes will be confined to the WAL & will not make it to SST (DB binary file)
     // Sigkill server.
     {
-        // load_modify_recover_test(server, server_dir_path, 0.1 * 1024 * 1024, 2, true); 
+        load_modify_recover_test(server, server_dir_path, 0.1 * 1024 * 1024, 2, true); 
     }
 
     // 3) Load (more data) & Recover test - with data size greater than write buffer size. 
     // Writes will exist in both the WAL & SST files.
-    // Test is switched off as it takes some time to run. Ideally, recovery test should be 
-    // run on teamcity.
+    // Todo - Test is switched off as it takes some time to run. Run on teamcity.
     {
         // load_modify_recover_test(server, server_dir_path, 16 * 1024 * 1024, 1, false); 
     }
 
-    // Todo (msj)
+    // Todo (Mihir)
     // 4) Validate gaia_id is not recycled post crash.
 
     return result;

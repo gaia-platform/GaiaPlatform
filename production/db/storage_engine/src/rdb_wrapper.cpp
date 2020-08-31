@@ -20,11 +20,10 @@ using namespace gaia::db;
 using namespace gaia::common;
 using namespace rocksdb;
 
-// Todo (msj) Take as input to some options file.
+// Todo (Mihir) Take as input to some options file.
 static const std::string data_dir = PERSISTENT_DIRECTORY_PATH;
 std::unique_ptr<gaia::db::rdb_internal_t> rdb_wrapper::rdb_internal;
 
-// Todo (msj) Set more granular default options.
 rdb_wrapper::rdb_wrapper() {
     rocksdb::WriteOptions write_options{};
     write_options.sync = true;
@@ -150,7 +149,7 @@ void rdb_wrapper::prepare_wal_for_write(rdb_transaction rdb_transaction) {
  * Additionally, this method will recover the max gaia_id/transaction_id's seen by previous 
  * incarnations of the database. 
  * 
- * Todo (msj) The current implementation has an issue where deleted gaia_ids may get recycled post 
+ * Todo (Mihir) The current implementation has an issue where deleted gaia_ids may get recycled post 
  * recovery. Both the last seen gaia_id & transaction_id need to be
  * persisted to the RocksDB manifest. https://github.com/facebook/rocksdb/wiki/MANIFEST
  * 
@@ -171,13 +170,6 @@ void rdb_wrapper::recover() {
     // Check for any errors found during the scan
     rdb_internal->handle_rdb_error(it->status());
     server::s_data->next_id = max_id;
-
-    cout << "Recovered count " << count << endl << flush;
-    cout << "Recovered max ID " << max_id << endl << flush;
-
-    cout << "Set max ID to " << server::s_data->next_id << endl << flush;
-
-    cout << "[Server] Row ID count on recovery " << server::s_data->row_id_count << endl << flush;
 }
 
 void rdb_wrapper::destroy_db() {

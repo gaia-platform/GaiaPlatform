@@ -10,7 +10,7 @@ namespace db {
 
 void clear_shared_memory();
 
-// Todo (msj): Expose options to set the persistent 
+// Todo (Mihir): Expose options to set the persistent 
 // directory path & also some way to destroy it instead 
 // of hardcoding the path. 
 // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-310
