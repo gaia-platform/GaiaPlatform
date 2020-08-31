@@ -29,7 +29,7 @@ class catalog_manager_t {
      * APIs for accessing catalog records
      */
     gaia_id_t create_database(const string &name, bool throw_on_exist = true);
-    gaia_id_t create_table(const string &dbname, const string &name, const ddl::field_def_list_t &fields, bool throw_on_exist = true);
+    gaia_id_t create_table(const string &dbname, const string &name, const ddl::field_def_list_t &fields);
     void drop_table(const string &dbname, const string &name);
 
     gaia_id_t find_db_id(const string& dbname);

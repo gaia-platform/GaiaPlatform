@@ -10,7 +10,6 @@
 #include <atomic>
 #include <functional>
 
-#include "gaia_common.hpp"
 #include "events.hpp"
 
 using namespace gaia::common;

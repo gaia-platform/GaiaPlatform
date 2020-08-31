@@ -156,8 +156,8 @@ TEST_F(gaia_object_test, read_back_scan) {
 // Used twice, below
 void UpdateReadBack(bool update_flag) {
     auto_transaction_t tx;
-    auto e1 = create_employee("Howard");
-    auto e2 = create_employee("Henry");
+    create_employee("Howard");
+    create_employee("Henry");
     tx.commit();
 
     auto e = employee_t::get_first();
@@ -237,7 +237,7 @@ TEST_F(gaia_object_test, scan_past_end) {
         count++;
         e++;
     }
-    EXPECT_EQ(count, 1);
+    EXPECT_EQ(count,1);
     e++;
     EXPECT_EQ(e == employee_t::list().end(), true);
     e++;
@@ -247,7 +247,6 @@ TEST_F(gaia_object_test, scan_past_end) {
 // Test pre/post increment of iterator.
 TEST_F(gaia_object_test, pre_post_iterator) {
     auto_transaction_t tx;
-    tx.commit();
     create_employee("Hvitserk");
     create_employee("Hubert");
     create_employee("Humphrey");

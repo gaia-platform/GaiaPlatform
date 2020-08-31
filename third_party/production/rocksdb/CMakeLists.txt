@@ -84,7 +84,7 @@ else()
   if(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
     # FreeBSD has jemalloc as default malloc
     # but it does not have all the jemalloc files in include/...
-    set(WITH_JEMALLOC OFF)
+    set(WITH_JEMALLOC ON)
   else()
     if(WITH_JEMALLOC)
       find_package(JeMalloc REQUIRED)
@@ -355,7 +355,7 @@ endif()
 
 # Used to run CI build and tests so we can run faster
 option(OPTDBG "Build optimized debug build with MSVC" OFF)
-option(WITH_RUNTIME_DEBUG "build with debug version of runtime library" ON)
+option(WITH_RUNTIME_DEBUG "build with debug version of runtime library" OFF)
 if(MSVC)
   if(OPTDBG)
     message(STATUS "Debug optimization is enabled [RocksDB]")
@@ -764,9 +764,10 @@ if(WITH_FOLLY_DISTRIBUTED_MUTEX)
     third-party/folly/folly/synchronization/WaitOptions.cpp)
 endif()
 
-set(ROCKSDB_SHARED_LIB rocksdb)
+set(ROCKSDB_STATIC_LIB rocksdb${ARTIFACT_SUFFIX})
+set(ROCKSDB_SHARED_LIB rocksdb-shared${ARTIFACT_SUFFIX})
 
-option(ROCKSDB_BUILD_SHARED "Build shared versions of the RocksDB libraries" ON)
+option(ROCKSDB_BUILD_SHARED "Build shared versions of the RocksDB libraries" OFF)
 
 option(WITH_LIBRADOS "Build with librados" OFF)
 if(WITH_LIBRADOS)
@@ -780,6 +781,10 @@ if(WIN32)
 else()
   set(SYSTEM_LIBS ${CMAKE_THREAD_LIBS_INIT})
 endif()
+
+add_library(${ROCKSDB_STATIC_LIB} STATIC ${SOURCES})
+target_link_libraries(${ROCKSDB_STATIC_LIB}
+  ${THIRDPARTY_LIBS} ${SYSTEM_LIBS})
 
 if(ROCKSDB_BUILD_SHARED)
   add_library(${ROCKSDB_SHARED_LIB} SHARED ${SOURCES})
@@ -849,6 +854,14 @@ if(NOT WIN32 OR ROCKSDB_INSTALL_ON_WINDOWS)
   )
 
   install(DIRECTORY include/rocksdb COMPONENT devel DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+
+  install(
+    TARGETS ${ROCKSDB_STATIC_LIB}
+    EXPORT RocksDBTargets
+    COMPONENT devel
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+  )
 
   if(ROCKSDB_BUILD_SHARED)
     install(
@@ -1149,5 +1162,3 @@ if(WITH_TOOLS)
   add_custom_target(tools
     DEPENDS ${tool_deps})
 endif()
-
-set_target_properties(rocksdb PROPERTIES POSITION_INDEPENDENT_CODE ON)

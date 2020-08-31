@@ -6,6 +6,7 @@
 #pragma once
 
 #include "storage_engine.hpp"
+#include "storage_engine_client.hpp"
 
 namespace gaia {
 namespace db {
@@ -13,29 +14,15 @@ namespace db {
 using namespace common;
 
 class gaia_hash_map {
-   public:  
-    static hash_node* get_hash_node(se_base::data* s_data, int64_t offset) {
-        return s_data->hash_nodes + offset;
-    }
+    friend class client;
 
-    static bool locator_exists(se_base::offsets* offsets, int64_t offset) {
-        return (*offsets)[offset];
-    }
-
-    static bool check_no_active_transaction(se_base::offsets* offsets) {
-        return *offsets == nullptr;
-    }
-
-    static int64_t* get_hash_node_count(se_base::data* s_data) {
-        return &s_data->hash_node_count;
-    }
-
-    static hash_node* insert(se_base::data* s_data, se_base::offsets* offsets, const gaia_id_t id) {
-        if (check_no_active_transaction(offsets)) {
+   public:
+    static se_base::hash_node* insert(const gaia_id_t id) {
+        if (*client::s_offsets == nullptr) {
             throw transaction_not_open();
         }
 
-        hash_node* node = get_hash_node(s_data, id % se_base::HASH_BUCKETS);
+        se_base::hash_node* node = client::s_data->hash_nodes + (id % se_base::HASH_BUCKETS);
         if (node->id == 0 && __sync_bool_compare_and_swap(&node->id, 0, id)) {
             return node;
         }
@@ -47,7 +34,7 @@ class gaia_hash_map {
 
             if (node->id == id) {
                 if (node->row_id &&
-                    locator_exists(offsets, node->row_id)) {
+                    (*client::s_offsets)[node->row_id]) {
                     throw duplicate_id(id);
                 } else {
                     return node;
@@ -55,32 +42,32 @@ class gaia_hash_map {
             }
 
             if (node->next) {
-                node = get_hash_node(s_data, node->next);
+                node = client::s_data->hash_nodes + node->next;
                 continue;
             }
 
             if (!new_node_idx) {
-                retail_assert(*get_hash_node_count(s_data) + se_base::HASH_BUCKETS < se_base::HASH_LIST_ELEMENTS);
-                new_node_idx = se_base::HASH_BUCKETS + __sync_fetch_and_add(get_hash_node_count(s_data), 1);
-                (get_hash_node(s_data, new_node_idx))->id = id;
+                retail_assert(client::s_data->hash_node_count + se_base::HASH_BUCKETS < se_base::HASH_LIST_ELEMENTS);
+                new_node_idx = se_base::HASH_BUCKETS + __sync_fetch_and_add(&client::s_data->hash_node_count, 1);
+                (client::s_data->hash_nodes + new_node_idx)->id = id;
             }
 
             if (__sync_bool_compare_and_swap(&node->next, 0, new_node_idx)) {
-                return get_hash_node(s_data, new_node_idx);
+                return client::s_data->hash_nodes + new_node_idx;
             }
         }
     }
 
-    static int64_t find(se_base::data* s_data, se_base::offsets* offsets, const gaia_id_t id) {
-        if (check_no_active_transaction(offsets)) {
+    static int64_t find(const gaia_id_t id) {
+        if (*client::s_offsets == nullptr) {
             throw transaction_not_open();
         }
 
-        hash_node* node = get_hash_node(s_data, id % se_base::HASH_BUCKETS); 
+        auto node = client::s_data->hash_nodes + (id % se_base::HASH_BUCKETS);
 
         while (node) {
             if (node->id == id) {
-                if (node->row_id && locator_exists(offsets, node->row_id)) {
+                if (node->row_id && (*client::s_offsets)[node->row_id]) {
                     return node->row_id;
                 } else {
                     return 0;
@@ -88,15 +75,15 @@ class gaia_hash_map {
             }
 
             node = node->next
-                ? get_hash_node(s_data, node->next)
+                ? client::s_data->hash_nodes + node->next
                 : 0;
         }
 
         return 0;
     }
 
-    static void remove(se_base::data* s_data, const gaia_id_t id) {
-        hash_node* node = get_hash_node(s_data, id % se_base::HASH_BUCKETS);
+    static void remove(const gaia_id_t id) {
+        se_base::hash_node* node = client::s_data->hash_nodes + (id % se_base::HASH_BUCKETS);
 
         while (node->id) {
             if (node->id == id) {
@@ -108,7 +95,7 @@ class gaia_hash_map {
             if (!node->next) {
                 return;
             }
-            node = get_hash_node(s_data, node->next);
+            node = client::s_data->hash_nodes + node->next;
         }
     }
 };

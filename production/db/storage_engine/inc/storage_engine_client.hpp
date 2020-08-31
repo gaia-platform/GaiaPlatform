@@ -58,8 +58,6 @@ class client : private se_base {
    private:
     thread_local static int s_fd_log;
     thread_local static offsets* s_offsets;
-    thread_local static int s_fd_offsets;
-    thread_local static data* s_data;
     thread_local static std::vector<gaia::db::triggers::trigger_event_t> s_events;
 
     // Maintain a static filter in the client to disable generating events
@@ -70,6 +68,8 @@ class client : private se_base {
     static gaia::db::triggers::event_trigger_threadpool_t* event_trigger_pool;
 
     // Inherited from se_base:
+    // static int s_fd_offsets;
+    // static data *s_data;
     // thread_local static log *s_log;
     // thread_local static gaia_xid_t s_transaction_id;
 
@@ -85,6 +85,32 @@ class client : private se_base {
     static inline bool is_valid_event(const gaia_type_t type) {
         return !(trigger_excluded_types.find(type) != trigger_excluded_types.end()) && 
                 event_trigger_pool->get_commit_trigger() != nullptr; 
+    }
+
+    static inline int64_t allocate_row_id() {
+        if (*s_offsets == nullptr) {
+            throw transaction_not_open();
+        }
+
+        if (s_data->row_id_count >= MAX_RIDS) {
+            throw oom();
+        }
+
+        return 1 + __sync_fetch_and_add(&s_data->row_id_count, 1);
+    }
+
+    static void inline allocate_object(int64_t row_id, size_t size) {
+        if (*s_offsets == nullptr) {
+            throw transaction_not_open();
+        }
+
+        if (s_data->objects[0] >= MAX_OBJECTS) {
+            throw oom();
+        }
+
+        (*s_offsets)[row_id] = 1 + __sync_fetch_and_add(
+            &s_data->objects[0],
+            (size + sizeof(int64_t) - 1) / sizeof(int64_t));
     }
 
     static inline void verify_tx_active() {
@@ -111,30 +137,14 @@ class client : private se_base {
         }
     }
 
-    static inline bool is_connection_alive() {
-        if (s_session_socket != -1) {
-            int error_code;
-            socklen_t error_code_size = sizeof(error_code);
-            return getsockopt(s_session_socket, SOL_SOCKET, SO_ERROR, &error_code, &error_code_size) != 0;
-        }
-        return false;
-    }
-
-    static inline void tx_log(
-        int64_t row_id,
-        int64_t old_object,
-        int64_t new_object,
-        gaia_operation_t operation,
-        // 'deleted_id' is required to keep track of deleted keys which will be propagated to the persistent layer.
-        // Memory for other operations will be unused. An alternative would be to keep a separate log for deleted keys only.
-        gaia_id_t deleted_id = 0) {
+    static inline void tx_log(int64_t row_id, int64_t old_object, int64_t new_object) {
         retail_assert(s_log->count < MAX_LOG_RECS);
+
         log::log_record* lr = s_log->log_records + s_log->count++;
+
         lr->row_id = row_id;
         lr->old_object = old_object;
         lr->new_object = new_object;
-        lr->deleted_id = deleted_id;
-        lr->operation = operation;
     }
 };
 

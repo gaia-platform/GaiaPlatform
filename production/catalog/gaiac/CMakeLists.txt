@@ -16,7 +16,6 @@ set(GAIA_CATALOG_TOOL_INCLUDES
   ${GAIA_INC}/public/common
   ${GAIA_INC}/public/db
   ${GAIA_INC}/internal/db
-  ${GAIA_INC}/internal/common
   ${GAIA_INC}/public/direct_access
   ${GAIA_INC}/public/catalog
   ${GAIA_INC}/public/system

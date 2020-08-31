@@ -246,7 +246,7 @@ void initialize_catalog();
  * @return id of the new database
  * @throw db_already_exists
  */
-gaia_id_t create_database(const string &name, bool throw_on_exists = true);
+gaia_id_t create_database(const string &name);
 
 /**
  * Create a table definition in a given database.
@@ -257,7 +257,7 @@ gaia_id_t create_database(const string &name, bool throw_on_exists = true);
  * @return id of the new table
  * @throw table_already_exists
  */
-gaia_id_t create_table(const string &dbname, const string &name, const ddl::field_def_list_t &fields, bool throw_on_exist = true);
+gaia_id_t create_table(const string &dbname, const string &name, const ddl::field_def_list_t &fields);
 
 /**
  * Create a table definition in the catalog's global database.
