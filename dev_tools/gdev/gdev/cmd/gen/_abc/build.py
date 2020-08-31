@@ -207,7 +207,9 @@ class GenAbcBuild(Dependency, ABC):
                 f' --shm-size 1gb'
 
                 # Allow cloning repos with ssh.
-                f' --ssh default'
+                # FIXME TeamCity is unable to handle this, but it is required for
+                #  TranslationEngineLLVM build.
+                #f' --ssh default'
 
                 f''' --cache-from {','.join([
                     f'{self.options.registry}/{base_build_name}:latest'
