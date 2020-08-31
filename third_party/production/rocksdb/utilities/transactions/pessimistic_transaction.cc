@@ -126,18 +126,16 @@ bool PessimisticTransaction::IsExpired() const {
   return false;
 }
 
+/**
+ * Switch off validation in the RocksDB commit path.
+ */ 
 WriteCommittedTxn::WriteCommittedTxn(TransactionDB* txn_db,
                                      const WriteOptions& write_options,
                                      const TransactionOptions& txn_options)
     : PessimisticTransaction(txn_db, write_options, txn_options){};
 
 Status PessimisticTransaction::CommitBatch(WriteBatch* batch) {
-  TransactionKeyMap keys_to_unlock;
-  Status s = LockBatch(batch, &keys_to_unlock);
-
-  if (!s.ok()) {
-    return s;
-  }
+  Status s = Status::OK();
 
   bool can_commit = false;
 
@@ -163,8 +161,6 @@ Status PessimisticTransaction::CommitBatch(WriteBatch* batch) {
   } else {
     s = Status::InvalidArgument("Transaction is not in state for commit.");
   }
-
-  txn_db_impl_->UnLock(this, &keys_to_unlock);
 
   return s;
 }

@@ -14,6 +14,8 @@ using namespace flatbuffers;
 
 thread_local se_base::offsets *client::s_offsets = nullptr;
 thread_local int client::s_fd_log = -1;
+thread_local int client::s_fd_offsets = -1;
+thread_local se_base::data *client::s_data;
 thread_local std::vector<trigger_event_t> client::s_events;
 
 std::unordered_set<gaia_type_t> client::trigger_excluded_types{
@@ -69,8 +71,10 @@ void client::tx_cleanup() {
     close(s_fd_log);
     s_fd_log = -1;
     // Destroy the offset mapping.
-    unmap_fd(s_offsets, sizeof(offsets));
-    s_offsets = nullptr;
+    if (s_offsets) {
+        unmap_fd(s_offsets, sizeof(offsets));
+        s_offsets = nullptr;
+    }
 }
 
 int client::get_session_socket() {
@@ -113,8 +117,21 @@ int client::get_session_socket() {
 // In any case, send_msg_with_fds()/recv_msg_with_fds() already throw a
 // peer_disconnected exception when the other end of the socket is closed.
 void client::begin_session() {
+    // This check ensures we don't allow nested sessions & only close
+    // the session socket in case the server crashed from last begin_session() call.
+    if (s_session_socket != -1 && !is_connection_alive()) {
+        // Server crashed from last begin session.
+        // Clean up resources.
+        close(s_session_socket);
+        s_session_socket = -1;
+    }
     // Fail if a session already exists on this thread.
     verify_no_session();
+
+    // Cleanup & remapping of s_data could only occur when the server crashes
+    // but we do it on every begin_session() call anyway.
+    clear_shared_memory();
+    tx_cleanup();
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
@@ -150,29 +167,16 @@ void client::begin_session() {
     retail_assert(fd_data != -1);
 
     // Set up the shared data segment mapping.
-    if (!s_data) {
-        data *data_mapping = static_cast<data *>(map_fd(
-            sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0));
-        if (!__sync_bool_compare_and_swap(&s_data, 0, data_mapping)) {
-            // We lost the race, throw away the mapping.
-            unmap_fd(data_mapping, sizeof(data));
-        }
-    }
+    s_data = static_cast<data *>(map_fd(
+        sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0));
+
     // We've already mapped the data fd, so we can close it now.
     close(fd_data);
 
     // Set up the private locator segment fd.
     int fd_offsets = fds[OFFSETS_FD_INDEX];
     retail_assert(fd_offsets != -1);
-    if (s_fd_offsets == -1) {
-        if (!__sync_bool_compare_and_swap(&s_fd_offsets, -1, fd_offsets)) {
-            // We lost the race, close the fd.
-            close(fd_offsets);
-        }
-    } else {
-        // locator fd is already initialized, close the fd.
-        close(fd_offsets);
-    }
+    s_fd_offsets = fd_offsets;
     cleanup_session_socket.dismiss();
 }
 
@@ -246,6 +250,7 @@ void client::begin_transaction() {
 }
 
 void client::rollback_transaction() {
+    verify_session_active();
     verify_tx_active();
 
     // Ensure we destroy the shared memory segment and memory mapping before we return.
@@ -262,6 +267,7 @@ void client::rollback_transaction() {
 // It sends a message to the server containing the fd of this txn's log segment and
 // will block waiting for a reply from the server.
 void client::commit_transaction() {
+    verify_session_active();
     verify_tx_active();
 
     // Ensure we destroy the shared memory segment and memory mapping before we return.

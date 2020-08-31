@@ -26,6 +26,7 @@
 #include "gaia_common.hpp"
 #include "gaia_db.hpp"
 #include "gaia_exception.hpp"
+#include "types.hpp"
 
 namespace gaia {
 namespace db {
@@ -36,6 +37,19 @@ typedef uint64_t gaia_edge_type_t;
 
 // 1K oughta be enough for anybody...
 const size_t MAX_MSG_SIZE = 1 << 10;
+
+enum class gaia_operation_t: int8_t {
+    create = 0x1,
+    update = 0x2,
+    remove = 0x3,
+    clone  = 0x4
+};
+
+struct hash_node {
+    gaia_id_t id;
+    int64_t next;
+    int64_t row_id;
+};
 
 class se_base {
     friend class gaia_ptr;
@@ -54,12 +68,6 @@ class se_base {
     static const auto MAX_OBJECTS = MAX_RIDS * 8;
 
     typedef int64_t offsets[MAX_RIDS];
-
-    struct hash_node {
-        gaia_id_t id;
-        int64_t next;
-        int64_t row_id;
-    };
 
     struct data {
         // The first two fields are used as cross-process atomic counters.
@@ -81,14 +89,40 @@ class se_base {
             int64_t row_id;
             int64_t old_object;
             int64_t new_object;
+            gaia_id_t deleted_id;
+            gaia_operation_t operation;
         } log_records[MAX_LOG_RECS];
     };
 
-    static int s_fd_offsets;
-    static data* s_data;
     thread_local static log* s_log;
     thread_local static int s_session_socket;
     thread_local static gaia_xid_t s_transaction_id;
+
+    static inline int64_t allocate_row_id(offsets* offsets, data* s_data) {
+        if (offsets == nullptr) {
+            throw transaction_not_open();
+        }
+
+        if (s_data->row_id_count >= MAX_RIDS) {
+            throw oom();
+        }
+
+        return 1 + __sync_fetch_and_add(&s_data->row_id_count, 1);
+    }
+
+    static void inline allocate_object(int64_t row_id, uint64_t size, offsets* offsets, data* s_data) {
+        if (offsets == nullptr) {
+            throw transaction_not_open();
+        }
+
+        if (s_data->objects[0] >= MAX_OBJECTS) {
+            throw oom();
+        }
+
+        (*offsets)[row_id] = 1 + __sync_fetch_and_add(
+            &s_data->objects[0],
+            (size + sizeof(int64_t) - 1) / sizeof(int64_t));
+    }
 
    public:
     // The real implementation will need
@@ -97,14 +131,42 @@ class se_base {
     // that the generated id is not in use
     // already by a database that is
     // restored.
-    static gaia_id_t generate_id() {
+    static gaia_id_t generate_id(data* s_data) {
         gaia_id_t id = __sync_add_and_fetch(&s_data->next_id, 1);
         return id;
     }
 
-    static gaia_xid_t allocate_transaction_id() {
+    // Only used during recovery.
+    static void set_id(gaia_id_t id, data* s_data) {
+        s_data->next_id = id;
+    }
+
+    // Only used during recovery.
+    static gaia_id_t get_current_id(data* s_data) {
+        return s_data->next_id;
+    }
+
+    static gaia_xid_t allocate_transaction_id(data* s_data) {
         gaia_xid_t xid = __sync_add_and_fetch (&s_data->transaction_id_count, 1);
         return xid;
+    }
+
+    static void* offset_to_ptr(int64_t offset, data* s_data) {
+        return offset ? (s_data->objects + offset) : nullptr;
+    }
+
+    static log* get_txn_log() {
+        return s_log;
+    }
+    
+    static object* locator_to_ptr(offsets* offsets, data* s_data, int64_t row_id) {
+        if (*offsets == nullptr) {
+            throw transaction_not_open();
+        }
+
+        return row_id && (*offsets)[row_id]
+            ? reinterpret_cast<object*>(s_data->objects + (*offsets)[row_id])
+            : nullptr;
     }
 };
 

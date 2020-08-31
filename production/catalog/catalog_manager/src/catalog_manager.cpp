@@ -20,8 +20,8 @@ namespace catalog {
 
 static constexpr char c_empty_c_str[] = "";
 
-gaia_id_t create_database(const string &name) {
-    return catalog_manager_t::get().create_database(name);
+gaia_id_t create_database(const string &name, bool throw_on_exists) {
+    return catalog_manager_t::get().create_database(name, throw_on_exists);
 }
 
 gaia_id_t create_table(const string &name,
@@ -32,9 +32,9 @@ gaia_id_t create_table(const string &name,
 gaia_id_t create_table(
     const string &dbname,
     const string &name,
-    const field_def_list_t &fields) {
-
-    return catalog_manager_t::get().create_table(dbname, name, fields);
+    const field_def_list_t &fields,
+    bool throw_on_exists) {
+    return catalog_manager_t::get().create_table(dbname, name, fields, throw_on_exists);
 }
 
 void drop_table(const string &name) {
@@ -226,8 +226,9 @@ gaia_id_t catalog_manager_t::create_database(
 gaia_id_t catalog_manager_t::create_table(
     const string &dbname,
     const string &name,
-    const field_def_list_t &fields) {
-    return create_table_impl(dbname, name, fields);
+    const field_def_list_t &fields,
+    bool throw_on_exists) {
+    return create_table_impl(dbname, name, fields, false, throw_on_exists);
 }
 
 void catalog_manager_t::drop_table(

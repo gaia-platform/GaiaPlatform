@@ -6,14 +6,18 @@
 #pragma once
 
 #include <cstring>
+#include <iostream>
 
 #include "retail_assert.hpp"
 #include "gaia_db.hpp"
+#include "types.hpp"
 
 using namespace gaia::common;
 
 namespace gaia {
 namespace db {
+
+class gaia_hash_map;
 
 class gaia_ptr {
     // We need access to private implementation state of the client library.
@@ -21,14 +25,7 @@ class gaia_ptr {
 
    private:
     int64_t row_id;
-
-    struct object {
-        gaia_id_t id;
-        gaia_type_t type;
-        size_t num_references;
-        size_t payload_size;
-        char payload[0];
-    };
+    void create_insert_trigger(gaia_type_t type, gaia_id_t id);
 
    public:
     gaia_ptr(const std::nullptr_t = nullptr)
@@ -59,9 +56,8 @@ class gaia_ptr {
         gaia_id_t id,
         gaia_type_t type,
         size_t data_size,
-        const void* data,
-        bool log_updates = true) {
-        return create(id, type, 0, data_size, data, log_updates);
+        const void* data) {
+        return create(id, type, 0, data_size, data);
     }
 
     static gaia_ptr create(
@@ -69,12 +65,11 @@ class gaia_ptr {
         gaia_type_t type,
         size_t num_refs,
         size_t data_size,
-        const void* data,
-        bool log_updates = true) {
+        const void* data) {
         size_t refs_len = num_refs * sizeof(gaia_id_t);
         size_t total_len = data_size + refs_len;
-        gaia_ptr obj(id, total_len + sizeof(gaia_ptr::object), log_updates);
-        gaia_ptr::object* obj_ptr = obj.to_ptr();
+        gaia_ptr obj(id, total_len + sizeof(object));
+        object* obj_ptr = obj.to_ptr();
         obj_ptr->id = id;
         obj_ptr->type = type;
         obj_ptr->num_references = num_refs;
@@ -168,13 +163,14 @@ class gaia_ptr {
     }
 
    protected:
+
     gaia_ptr(const gaia_id_t id);
 
-    gaia_ptr(const gaia_id_t id, const size_t size, bool log_updates = true);
+    gaia_ptr(const gaia_id_t id, const size_t size);
 
     void allocate(const size_t size);
 
-    gaia_ptr::object* to_ptr() const;
+    object* to_ptr() const;
 
     int64_t to_offset() const;
 
@@ -185,9 +181,6 @@ class gaia_ptr {
     void find_next(gaia_type_t type);
 
     void reset();
-
-   private:
-    void create_insert_trigger(gaia_type_t type, gaia_id_t id);
 };
 
 }  // namespace db

@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 #include <unistd.h>
-
+#include <stdlib.h> 
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -16,10 +16,12 @@
 #include "gaia_parser.hpp"
 #include "gaia_system.hpp"
 #include "gaia_db.hpp"
+#include "db_test_helpers.hpp"
 
 using namespace std;
 using namespace gaia::catalog;
 using namespace gaia::catalog::ddl;
+using namespace gaia::db;
 
 static const string c_error_prompt = "ERROR: ";
 static const string c_warning_prompt = "WARNING: ";
@@ -115,53 +117,6 @@ void terminate_path(string &path) {
     }
 }
 
-// Temporary start server (taken and modified from db_test_helpers)
-// Use case is always to call start() followed by stop().
-class db_server_t {
-  public:
-    void start(const char *db_server_path) {
-        set_path(db_server_path);
-        stop();
-
-        // Launch SE server in background.
-        string cmd = m_server_path + " &";
-        cerr << cmd << endl;
-        ::system(cmd.c_str());
-
-        // Wait for server to initialize.
-        cerr << "Waiting for server to initialize..." << endl;
-        ::sleep(1);
-        m_server_started = true;
-    }
-
-    void stop() {
-        // Try to kill the SE server process.
-        // REVIEW: we should be using a proper process library for this, so we can kill by PID.
-        string cmd = "pkill -f -KILL ";
-        cmd.append(m_server_path.c_str());
-        cerr << cmd << endl;
-        ::system(cmd.c_str());
-    }
-
-    bool server_started() {
-        return m_server_started;
-    }
-
-  private:
-    void set_path(const char *db_server_path) {
-        if (!db_server_path) {
-            m_server_path = gaia::db::SE_SERVER_NAME;
-        } else {
-            m_server_path = db_server_path;
-            terminate_path(m_server_path);
-            m_server_path.append(gaia::db::SE_SERVER_NAME);
-        }
-    }
-
-    string m_server_path;
-    bool m_server_started = false;
-};
-
 string usage() {
     std::stringstream ss;
     ss << "Usage: gaiac [options] [ddl_file]\n\n"
@@ -172,6 +127,7 @@ string usage() {
           "  -g          Generate fbs and gaia headers.\n"
           "  -o <path>   Set the path to all generated files.\n"
           "  -t          Start the SE server (for testing purposes).\n"
+          "  -e          Create tables and databases if they don't already exist.\n"
           "  -h          Print help information.\n"
           "  <ddl_file>  Process the DDLs in the file.\n"
           "              In the absence of <dbname>, the ddl file basename will be used as the database name.\n"
@@ -187,6 +143,7 @@ int main(int argc, char *argv[]) {
     string ddl_filename;
     operate_mode_t mode = operate_mode_t::loading;
     parser_t parser;
+    bool throw_on_exist = true;
 
     for (int i = 1; i < argc; ++i) {
         if (argv[i] == string("-p")) {
@@ -220,7 +177,13 @@ int main(int argc, char *argv[]) {
         } else if (argv[i] == string("-h")) {
             cout << usage() << endl;
             exit(EXIT_SUCCESS);
-        } else {
+        } else if (argv[i] == string("-destroy_db")) {
+            // This option isn't documented as we don't want to expose it to customers.
+            remove_persistent_store();
+        } else if (argv[i] == string("-e")) {
+            throw_on_exist = false;
+        }
+        else {
             ddl_filename = argv[i];
         }
     }
@@ -232,7 +195,7 @@ int main(int argc, char *argv[]) {
             gaia::db::begin_session();
 
             if (!ddl_filename.empty()) {
-                db_name = load_catalog(parser, ddl_filename, db_name);
+                db_name = load_catalog(parser, ddl_filename, db_name, throw_on_exist);
             }
 
             if (mode == operate_mode_t::generation) {

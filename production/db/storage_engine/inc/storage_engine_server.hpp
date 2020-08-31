@@ -18,6 +18,7 @@
 #include "mmap_helpers.hpp"
 #include "socket_helpers.hpp"
 #include "messages_generated.h"
+#include "rdb_wrapper.hpp"
 
 namespace gaia {
 namespace db {
@@ -32,6 +33,7 @@ class invalid_session_transition : public gaia_exception {
 };
 
 class server : private se_base {
+    friend class rdb_wrapper;
    public:
     static void run();
 
@@ -43,12 +45,14 @@ class server : private se_base {
     static std::mutex s_commit_lock;
     static int s_fd_data;
     static offsets* s_shared_offsets;
+    static std::unique_ptr<rdb_wrapper> rdb;
     thread_local static session_state_t s_session_state;
     thread_local static bool s_session_shutdown;
 
-    // inherited from se_base:
-    // static int s_fd_offsets;
-    // static data *s_data;
+    static int s_fd_offsets;
+    static data* s_data;
+
+    // Inherited from se_base:
     // thread_local static log *s_log;
     // thread_local static int s_session_socket;
     // thread_local static gaia_xid_t s_transaction_id;
@@ -158,6 +162,15 @@ class server : private se_base {
         }
     }
 
+    static void recover_db() {
+        // Open RocksDB just once.
+        if (!rdb.get()) {
+            rdb = std::unique_ptr<rdb_wrapper>(new gaia::db::rdb_wrapper());
+            rdb->open();
+            rdb->recover();
+        } 
+    }
+
     // To avoid synchronization, we assume that this method is only called when
     // no sessions exist and the server is not accepting any new connections.
     static void init_shared_memory() {
@@ -186,6 +199,9 @@ class server : private se_base {
             PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_offsets, 0));
         s_data = static_cast<data*>(map_fd(sizeof(data),
             PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_data, 0));
+        
+        recover_db();
+
         cleanup_memory.dismiss();
     }
 
@@ -495,11 +511,19 @@ class server : private se_base {
 
         std::set<int64_t> row_ids;
 
+        rdb_transaction txn = rdb->begin_txn(s_transaction_id);
+        // Prepare tx
+        rdb->prepare_wal_for_write(txn);
+        
         for (auto i = 0; i < s_log->count; i++) {
             auto lr = s_log->log_records + i;
 
             if (row_ids.insert(lr->row_id).second) {
                 if ((*s_shared_offsets)[lr->row_id] != lr->old_object) {
+                    // Append Rollback decision to log.
+                    // This isn't really required because recovery will skip deserializing transactions 
+                    // that don't have a commit marker; we do it for completeness anyway. 
+                    rdb->append_wal_rollback_marker(txn);
                     return false;
                 }
             }
@@ -509,6 +533,9 @@ class server : private se_base {
             auto lr = s_log->log_records + i;
             (*s_shared_offsets)[lr->row_id] = lr->new_object;
         }
+
+        // Append commit decision to the log.
+        rdb->append_wal_commit_marker(txn);
 
         return true;
     }
