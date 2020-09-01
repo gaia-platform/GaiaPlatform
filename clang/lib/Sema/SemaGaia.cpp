@@ -224,11 +224,9 @@ QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc)
 
     //insert fields and methods that are not part of the schema
     addField(&Context.Idents.get("LastOperation"), Context.IntTy, RD, loc);
-    //addField(&Context.Idents.get("gaia_id"), Context.IntTy, RD, loc);
-
+    
     addMethod(&Context.Idents.get("delete_row"), DeclSpec::TST_void, nullptr, 0, attrFactory, attrs, &S, RD, loc);
     addMethod(&Context.Idents.get("gaia_id"), DeclSpec::TST_int, nullptr, 0, attrFactory, attrs, &S, RD, loc);
-
     
     ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD,
         loc, loc, attrs);
