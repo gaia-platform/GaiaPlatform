@@ -80,7 +80,7 @@ int client::get_session_socket() {
     if (session_socket == -1) {
         throw_system_error("socket creation failed");
     }
-    auto cleanup = scope_guard::make_scope_guard([session_socket]() {
+    auto cleanup_session_socket = scope_guard::make_scope_guard([session_socket]() {
         close(session_socket);
     });
     struct sockaddr_un server_addr = {0};
@@ -100,7 +100,7 @@ int client::get_session_socket() {
     if (-1 == connect(session_socket, (struct sockaddr *)&server_addr, server_addr_size)) {
         throw_system_error("connect failed");
     }
-    cleanup.dismiss();
+    cleanup_session_socket.dismiss();
     return session_socket;
 }
 
