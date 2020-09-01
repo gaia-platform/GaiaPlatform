@@ -341,6 +341,7 @@ TEST_F(rule_integration_test, test_update_field_multiple_rules)
         writer.phone_number = c_phone_number;
         writer.type = c_phone_type;
         writer.update_row();
+        g_start = g_timer.get_time_point();
         tx.commit();
     }
 }
@@ -365,6 +366,7 @@ TEST_F(rule_integration_test, test_update_field_single_rule)
             phone_writer writer = phone_t::get(phone_id).writer();
             writer.phone_number = c_phone_number;
             writer.update_row();
+            g_start = g_timer.get_time_point();
             tx.commit();
         }
 
@@ -374,6 +376,7 @@ TEST_F(rule_integration_test, test_update_field_single_rule)
             phone_writer writer = phone_t::get(phone_id).writer();
             writer.primary = true;
             writer.update_row();
+            g_start = g_timer.get_time_point();
             tx.commit();
         }
     }
@@ -401,6 +404,7 @@ TEST_F(rule_integration_test, test_two_rules)
         writer = employee_t::get(second).writer();
         writer.name_first = c_name;
         writer.update_row();
+        g_start = g_timer.get_time_point();
         tx.commit();
     }
 }
