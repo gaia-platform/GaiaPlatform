@@ -12,7 +12,7 @@
 namespace gaia {
 namespace common {
 
-class perf_timer_t
+class timer_t
 {
 public:
     // Create a new time_point to measure from
@@ -31,18 +31,18 @@ public:
     static void log_function_duration(std::function<void ()> fn, const char* function_name);
 
     // ns -> s
-    static double ns_s(int64_t nanoseconds) { return nanoseconds / (double) (1e9); }
+    static double ns_to_s(int64_t nanoseconds) { return nanoseconds / (double) (1e9); }
 
     // ns -> ms
-    static double ns_ms(int64_t nanoseconds) { return nanoseconds / (double) (1e6); }
+    static double ns_to_ms(int64_t nanoseconds) { return nanoseconds / (double) (1e6); }
 
     // ns -> us
-    static double ns_us(int64_t nanoseconds) { return nanoseconds / (double) (1e3); }
+    static double ns_to_us(int64_t nanoseconds) { return nanoseconds / (double) (1e3); }
 };
 
 // Convenience class for enabling and disabling performance measurements
 // at runtime.
-class optional_perf_timer_t
+class optional_timer_t
 {
 public:
     bool is_enabled()
@@ -59,7 +59,7 @@ public:
     {
         if (m_enabled)
         {
-            return gaia::common::perf_timer_t::get_time_point();
+            return gaia::common::timer_t::get_time_point();
         }
 
         return std::chrono::high_resolution_clock::time_point::min();
@@ -69,7 +69,7 @@ public:
     {
         if (m_enabled) 
         {
-            gaia::common::perf_timer_t::log_duration(start, message);
+            gaia::common::timer_t::log_duration(start, message);
         }
     }
 
@@ -77,7 +77,7 @@ public:
     {
         if (m_enabled)
         {
-            gaia::common::perf_timer_t::log_function_duration(fn, fn_name);
+            gaia::common::timer_t::log_function_duration(fn, fn_name);
         }
         else
         {

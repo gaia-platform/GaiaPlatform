@@ -18,7 +18,7 @@ message(STATUS "GAIA_COMMON_INCLUDES=${GAIA_COMMON_INCLUDES}")
 add_library(gaia_common STATIC
     src/exceptions.cpp
     src/file.cpp
-    src/perf_timer.cpp
+    src/timer.cpp
     src/synchronization.cpp)
 target_include_directories(gaia_common PUBLIC ${GAIA_COMMON_INCLUDES})
 set_target_properties(gaia_common PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")

@@ -9,7 +9,7 @@
 #include "gaia_db_internal.hpp"
 #include "events.hpp"
 #include "triggers.hpp"
-#include "perf_timer.hpp"
+#include "timer.hpp"
 
 #include <cstring>
 #include <variant>
@@ -19,6 +19,7 @@ using namespace gaia::rules;
 using namespace gaia::common;
 using namespace gaia::db::triggers;
 using namespace std;
+using namespace std::chrono;
 
 /**
  * Class implementation
@@ -67,7 +68,7 @@ void event_manager_t::init(event_manager_settings_t& settings)
     // Currently rule stats collection and profiling the commit_trigger
     // function are enabled with one switch.
     rule_stats_manager_t::s_enabled = settings.enable_stats;
-    m_perf_timer.set_enabled(settings.enable_stats);
+    m_timer.set_enabled(settings.enable_stats);
 
     auto fn = [](uint64_t transaction_id, const trigger_event_list_t& event_list) {
         event_manager_t::get().commit_trigger(transaction_id, event_list);
@@ -79,7 +80,7 @@ void event_manager_t::init(event_manager_settings_t& settings)
 
 
 bool event_manager_t::process_last_operation_events(event_binding_t& binding, const trigger_event_t& event,
-    std::chrono::high_resolution_clock::time_point& start_time)
+    high_resolution_clock::time_point& start_time)
 {
     bool rules_invoked = false;
     rule_list_t& rules = binding.last_operation_rules;
@@ -95,7 +96,7 @@ bool event_manager_t::process_last_operation_events(event_binding_t& binding, co
 
 bool event_manager_t::process_field_events(event_binding_t& binding,
     const trigger_event_t& event,
-    std::chrono::high_resolution_clock::time_point& start_time)
+    high_resolution_clock::time_point& start_time)
 {
     if (binding.fields_map.size() == 0 || event.columns.size() == 0)
     {
@@ -129,14 +130,14 @@ bool event_manager_t::process_field_events(event_binding_t& binding,
 
 void event_manager_t::commit_trigger(uint64_t, const trigger_event_list_t& trigger_event_list)
 {
-    m_perf_timer.log_function_duration([&]() {
+    m_timer.log_function_duration([&]() {
 
     if (trigger_event_list.size() == 0)
     {
         return;
     }
 
-    auto start_time = m_perf_timer.get_time_point();
+    auto start_time = m_timer.get_time_point();
 
     // TODO[GAIAPLAT-308]: Event logging is only half the story. We
     // also need to do rule logging and the correlate the event instance
@@ -188,7 +189,7 @@ void event_manager_t::commit_trigger(uint64_t, const trigger_event_list_t& trigg
 
 void event_manager_t::enqueue_invocation(const trigger_event_list_t& events,
     const vector<bool>& rules_invoked_list, 
-    std::chrono::high_resolution_clock::time_point& start_time)
+    high_resolution_clock::time_point& start_time)
 {
     rule_thread_pool_t::log_events_invocation_t event_invocation {
         events, 
@@ -198,13 +199,13 @@ void event_manager_t::enqueue_invocation(const trigger_event_list_t& events,
         rule_thread_pool_t::invocation_type_t::log_events,
         std::move(event_invocation),
         rule_stats_manager_t::create_rule_stats(
-            start_time, rule_stats_manager_t::s_log_event_tag)
+            start_time, rule_stats_manager_t::c_log_event_tag)
     };
     m_invocations->enqueue(invocation);
 } 
 
 void event_manager_t::enqueue_invocation(const trigger_event_t& event, gaia_rule_fn rule_fn,
-    std::chrono::high_resolution_clock::time_point& start_time)
+    high_resolution_clock::time_point& start_time)
 {
     rule_thread_pool_t::rule_invocation_t rule_invocation {
         rule_fn,
@@ -217,7 +218,7 @@ void event_manager_t::enqueue_invocation(const trigger_event_t& event, gaia_rule
         rule_thread_pool_t::invocation_type_t::rule,
         std::move(rule_invocation),
         rule_stats_manager_t::create_rule_stats(
-            start_time, rule_stats_manager_t::s_rule_tag)
+            start_time, rule_stats_manager_t::c_rule_tag)
     };
     m_invocations->enqueue(invocation);
 } 

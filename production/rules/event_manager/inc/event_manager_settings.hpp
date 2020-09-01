@@ -20,11 +20,12 @@ namespace rules
 // Number of background threads equals number of hardware threads (SIZE_MAX).
 // Catalog checks are enabled (TRUE).
 // Gathering performance statistics is disabled (FALSE).
-struct event_manager_settings_t {
+struct event_manager_settings_t 
+{
     event_manager_settings_t() 
-    : num_background_threads(SIZE_MAX)
-    , enable_catalog_checks(true)
-    , enable_stats(false)
+        : num_background_threads(SIZE_MAX)
+        , enable_catalog_checks(true)
+        , enable_stats(false)
     {
     }
 

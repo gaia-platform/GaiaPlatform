@@ -28,8 +28,9 @@ public:
 
     enum class invocation_type_t : uint8_t 
     {
-        rule = 0,
-        log_events = 1
+        not_set,
+        rule,
+        log_events
     };
 
    struct log_events_invocation_t {

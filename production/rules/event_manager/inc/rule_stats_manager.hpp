@@ -4,7 +4,7 @@
 /////////////////////////////////////////////
 #pragma once
 
-#include "perf_timer.hpp"
+#include "timer.hpp"
 
 #include <memory>
 
@@ -25,14 +25,14 @@ struct rule_stats_t
 };
 
 
-// This static class uses the perf timer to take time points
+// This static class uses the gaia::common::timer to take time points
 // and calculate durations.
 class rule_stats_manager_t 
 {
 public:
     static bool s_enabled;
-    static const char* s_rule_tag;
-    static const char* s_log_event_tag;
+    static const char* c_rule_tag;
+    static const char* c_log_event_tag;
 
     static std::shared_ptr<rule_stats_t> create_rule_stats(std::chrono::high_resolution_clock::time_point& start_time,
         const char* tag)
@@ -54,7 +54,7 @@ public:
     {
         if (s_enabled)
         {
-            stats_ptr->enqueue_time = gaia::common::perf_timer_t::get_time_point();
+            stats_ptr->enqueue_time = gaia::common::timer_t::get_time_point();
         }
     }
 
@@ -62,9 +62,9 @@ public:
     {
         if (s_enabled)
         {
-            stats_ptr->before_invoke = gaia::common::perf_timer_t::get_time_point();
+            stats_ptr->before_invoke = gaia::common::timer_t::get_time_point();
             fn();
-            stats_ptr->after_invoke = gaia::common::perf_timer_t::get_time_point();
+            stats_ptr->after_invoke = gaia::common::timer_t::get_time_point();
         }
         else
         {
@@ -76,9 +76,9 @@ public:
     {
         if (s_enabled)
         {
-            stats_ptr->before_rule = gaia::common::perf_timer_t::get_time_point();
+            stats_ptr->before_rule = gaia::common::timer_t::get_time_point();
             fn();
-            stats_ptr->after_rule = gaia::common::perf_timer_t::get_time_point();
+            stats_ptr->after_rule = gaia::common::timer_t::get_time_point();
         }
         else
         {

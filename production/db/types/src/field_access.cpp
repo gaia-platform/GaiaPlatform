@@ -72,7 +72,7 @@ void initialize_field_cache_from_binary_schema(
     // Get the collection of fields
     // and insert each element under its corresponding field id.
     auto fields = root_type->fields();
-    for (size_t i = 0; i < fields->Length(); i++)
+    for (size_t i = 0; i < fields->size(); i++)
     {
         const reflection::Field* current_field = fields->Get(i);
         field_cache->set_field(current_field->id(), current_field);

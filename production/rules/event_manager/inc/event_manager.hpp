@@ -119,7 +119,7 @@ private:
 
     // Enable profiling of rules engine function.  Also used to 
     // get time points for rules engine statistics.
-    optional_perf_timer_t m_perf_timer;
+    optional_timer_t m_timer;
 
 private:
     // Only internal static creation is allowed.

@@ -21,7 +21,7 @@
 #include "gaia_catalog.hpp"
 #include "gaia_catalog_internal.hpp"
 #include "event_manager_test_helpers.hpp"
-#include "perf_timer.hpp"
+#include "timer.hpp"
 
 #include <thread>
 #include <atomic>
@@ -34,6 +34,7 @@ using namespace gaia::rules;
 using namespace std;
 using namespace gaia::addr_book;
 using namespace gaia::catalog;
+using namespace std::chrono;
 
 const char* c_name = "John";
 const char* c_city = "Seattle";
@@ -47,8 +48,8 @@ uint16_t c_phone_primary_position = 2;
 
 atomic<int> g_wait_for_count;
 
-optional_perf_timer_t g_timer;
-std::chrono::high_resolution_clock::time_point g_start;
+optional_timer_t g_timer;
+high_resolution_clock::time_point g_start;
 
 // When an employee is inserted insert an address.
 void rule_insert_address(const rule_context_t* context)
@@ -414,8 +415,8 @@ TEST_F(rule_integration_test, test_parallel)
 {
     const int num_inserts = thread::hardware_concurrency();
     subscribe_sleep();
-    std::chrono::system_clock::time_point start;
-    std::chrono::system_clock::time_point end;
+    high_resolution_clock::time_point start_time;
+    high_resolution_clock::time_point finish_time;
     {
         rule_monitor_t monitor(num_inserts);
         auto_transaction_t tx(false);
@@ -423,11 +424,11 @@ TEST_F(rule_integration_test, test_parallel)
         {
             employee_t::insert_row("John", "Jones", "111-11-1111", i, nullptr, nullptr);
         }
-        start = std::chrono::high_resolution_clock::now();
+        start_time = high_resolution_clock::now();
         tx.commit();
     }
-    end = std::chrono::high_resolution_clock::now();
-    int64_t total_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
+    finish_time = std::chrono::high_resolution_clock::now();
+    int64_t total_time = std::chrono::duration_cast<std::chrono::nanoseconds>(finish_time - start_time).count();
     double total_seconds = total_time / (double)1e9;
     EXPECT_TRUE(total_seconds < 2.0);
 }
