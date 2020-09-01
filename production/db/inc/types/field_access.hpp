@@ -82,6 +82,12 @@ void initialize_field_cache_from_binary_schema(
     field_cache_t* field_cache,
     const uint8_t* binary_schema);
 
+// Verify that the serialized data matches the schema.
+bool verify_data_schema(
+    const uint8_t* serialized_data,
+    size_t serialized_data_size,
+    const uint8_t* binary_schema);
+
 // Get the field value of a table record payload.
 //
 data_holder_t get_field_value(

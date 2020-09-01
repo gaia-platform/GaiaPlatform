@@ -53,11 +53,7 @@ void initialize_field_cache_from_binary_schema(
     const uint8_t* binary_schema)
 {
     retail_assert(field_cache != nullptr, "field_cache argument should not be null.");
-
-    if (binary_schema == nullptr)
-    {
-        throw invalid_schema();
-    }
+    retail_assert(binary_schema != nullptr, "binary_schema argument should not be null.");
 
     // Deserialize the schema.
     const reflection::Schema* schema = reflection::GetSchema(binary_schema);
@@ -83,6 +79,32 @@ void initialize_field_cache_from_binary_schema(
     }
 }
 
+// Data validation method.
+bool verify_data_schema(
+    const uint8_t* serialized_data,
+    size_t serialized_data_size,
+    const uint8_t* binary_schema)
+{
+    retail_assert(serialized_data != nullptr, "serialized_data argument should not be null.");
+    retail_assert(binary_schema != nullptr, "binary_schema argument should not be null.");
+
+    const reflection::Schema* schema = reflection::GetSchema(binary_schema);
+    if (schema == nullptr)
+    {
+        throw invalid_schema();
+    }
+
+    // Get the type of the schema's root object.
+    const reflection::Object* root_type = schema->root_table();
+    if (root_type == nullptr)
+    {
+        throw missing_root_type();
+    }
+
+    return flatbuffers::Verify(*schema, *root_type, serialized_data, serialized_data_size);
+}
+
+
 // This is an internal helper for the field access methods.
 // It parses the flatbuffers serialization to get the root table
 // and then it retrieves the reflection::Field information
@@ -102,6 +124,8 @@ void get_table_field_information(
     field_cache_t& local_field_cache,
     const reflection::Field*& field)
 {
+    retail_assert(serialized_data != nullptr, "serialized_data argument should not be null.");
+
     // First, we parse the serialized data to get its root object.
     root_table = flatbuffers::GetAnyRoot(serialized_data);
     if (root_table == nullptr)

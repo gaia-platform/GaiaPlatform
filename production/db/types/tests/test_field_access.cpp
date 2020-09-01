@@ -236,6 +236,12 @@ void process_flatbuffers_data(bool access_fields = false)
     file_loader_t data_loader;
     data_loader.load_file_data("test_record_data.bin");
 
+    // Validate data.
+    ASSERT_EQ(true, verify_data_schema(
+        data_loader.get_data(),
+        data_loader.get_data_length(),
+        schema_loader.get_data()));
+
     // Create and initialize a field_cache.
     field_cache_t* field_cache = new field_cache_t();
     initialize_field_cache_from_binary_schema(field_cache, schema_loader.get_data());
@@ -297,6 +303,12 @@ void update_flatbuffers_data()
     // Load flatbuffers serialization.
     file_loader_t data_loader;
     data_loader.load_file_data("test_record_data.bin");
+
+    // Validate data.
+    ASSERT_EQ(true, verify_data_schema(
+        data_loader.get_data(),
+        data_loader.get_data_length(),
+        schema_loader.get_data()));
 
     // Create and initialize a field_cache.
     field_cache_t* field_cache = new field_cache_t();
@@ -437,6 +449,12 @@ void update_flatbuffers_data()
 
     // Load flatbuffers serialization.
     data_loader.load_file_data("updated_test_record_data.bin");
+
+    // Validate data.
+    ASSERT_EQ(true, verify_data_schema(
+        data_loader.get_data(),
+        data_loader.get_data_length(),
+        schema_loader.get_data()));
 
     get_fields_data(
         data_loader,
