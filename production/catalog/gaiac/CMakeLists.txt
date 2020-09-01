@@ -29,6 +29,7 @@ add_executable(gaiac
   ${FLATBUFFERS}/src/idl_gen_cpp.cpp
   ${FLATBUFFERS}/src/code_generators.cpp)
 target_include_directories(gaiac PRIVATE ${GAIA_CATALOG_TOOL_INCLUDES})
+add_dependencies(gaiac gaia_se_server)
 target_link_libraries(gaiac PRIVATE rt gaia_catalog gaia_parser flatbuffers)
 set_target_properties(gaiac PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaiac PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")

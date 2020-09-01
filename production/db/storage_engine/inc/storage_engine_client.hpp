@@ -111,15 +111,6 @@ class client : private se_base {
         }
     }
 
-    static inline bool is_connection_alive() {
-        if (s_session_socket != -1) {
-            int error_code;
-            socklen_t error_code_size = sizeof(error_code);
-            return getsockopt(s_session_socket, SOL_SOCKET, SO_ERROR, &error_code, &error_code_size) != 0;
-        }
-        return false;
-    }
-
     static inline void tx_log(
         int64_t row_id,
         int64_t old_object,

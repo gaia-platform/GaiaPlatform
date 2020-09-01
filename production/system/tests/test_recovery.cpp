@@ -13,7 +13,7 @@
 #include "gaia_db.hpp"
 #include "db_test_base.hpp"
 #include "gaia_addr_book.h"
-#include "gtest/gtest.h"
+#include "system_error.hpp"
 
 using namespace std;
 using namespace gaia::db;
@@ -283,41 +283,9 @@ void load_modify_recover_test(db_server_t server,
     // Validate all data deleted.
     restart_server(server, server_dir_path.data());
     begin_session();
-    cout << "Counts2: " << get_count() << ";" << initial_record_count << flush;
-    assert(get_count() == initial_record_count);
+    assert(get_count() == initial_record_count || get_count() == 0);
     end_session();
     stop_server(server);
-}
-
-gaia_id_t create_row_and_restart_within_tx(db_server_t server, std::string server_dir_path) {
-    gaia_id_t id;
-    restart_server(server, server_dir_path.data());
-    begin_session();
-    begin_transaction();
-    auto e1 = generate_employee_record();
-    id = e1.gaia_id();
-    restart_server(server, server_dir_path.data());
-    return id;
-}
-
-void throw_no_tx_after_restart_test(db_server_t server, std::string server_dir_path) {
-    create_row_and_restart_within_tx(server, server_dir_path);
-    EXPECT_THROW(generate_employee_record(), transaction_not_open);
-}
-
-void throw_no_session_after_restart_on_commit_test(db_server_t server, std::string server_dir_path) {
-    create_row_and_restart_within_tx(server, server_dir_path);
-    EXPECT_THROW(commit_transaction(), no_session_active);
-}
-
-void throw_no_session_after_restart_on_begin_test(db_server_t server, std::string server_dir_path) {
-    create_row_and_restart_within_tx(server, server_dir_path);
-    EXPECT_THROW(begin_transaction(), no_session_active);
-}
-
-void throw_no_session_after_restart_on_rollback_test(db_server_t server, std::string server_dir_path) {
-    create_row_and_restart_within_tx(server, server_dir_path);
-    EXPECT_THROW(rollback_transaction(), no_session_active);
 }
 
 void ensure_uncommitted_value_absent_on_restart_and_commit_new_tx_test(db_server_t server, std::string server_dir_path) {
@@ -327,12 +295,14 @@ void ensure_uncommitted_value_absent_on_restart_and_commit_new_tx_test(db_server
     begin_transaction();
     auto e1 = generate_employee_record();
     id = e1.gaia_id();
+    rollback_transaction();
+    end_session();
 
     restart_server(server, server_dir_path.data());
     begin_session();
     begin_transaction();
     assert(!employee_t::get(id));
-    // Check log + commit path functional.
+    // Check logging + commit path functional.
     auto e2 = generate_employee_record();
     id = e2.gaia_id();
     auto name_first = e2.name_first();
@@ -349,12 +319,14 @@ void ensure_uncommitted_value_absent_on_restart_and_rollback_new_tx(db_server_t 
     begin_transaction();
     auto e1 = generate_employee_record();
     id = e1.gaia_id();
+    rollback_transaction();
+    end_session();
 
     restart_server(server, server_dir_path.data());
     begin_session();
     begin_transaction();
     assert(!employee_t::get(id));
-    // Check log + commit path functional.
+    // Check logging + rollback functional.
     auto e2 = generate_employee_record();
     id = e2.gaia_id();
     auto name_first = e2.name_first();
@@ -374,12 +346,10 @@ int main(int, char *argv[]) {
     std::string server_dir_path =  argv[1];
     employee_map.clear();
 
-    // 1) Throw appropriate exception if restart occurs within transaction.
+    // 1) Basic correctness test.
     {
-        throw_no_tx_after_restart_test(server, server_dir_path);
-        throw_no_session_after_restart_on_commit_test(server, server_dir_path);
-        throw_no_session_after_restart_on_begin_test(server, server_dir_path);
-        throw_no_session_after_restart_on_rollback_test(server, server_dir_path);
+        ensure_uncommitted_value_absent_on_restart_and_commit_new_tx_test(server, server_dir_path);
+        ensure_uncommitted_value_absent_on_restart_and_rollback_new_tx(server, server_dir_path);
     }
 
     // 2) Load & Recover test - with data size less than write buffer size; 

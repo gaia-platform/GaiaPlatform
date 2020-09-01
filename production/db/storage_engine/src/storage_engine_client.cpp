@@ -117,22 +117,9 @@ int client::get_session_socket() {
 // In any case, send_msg_with_fds()/recv_msg_with_fds() already throw a
 // peer_disconnected exception when the other end of the socket is closed.
 void client::begin_session() {
-    // This check ensures we don't allow nested sessions & only close
-    // the session socket in case the server crashed from last begin_session() call.
-    if (s_session_socket != -1 && !is_connection_alive()) {
-        // Server crashed from last begin session.
-        // Clean up resources.
-        close(s_session_socket);
-        s_session_socket = -1;
-    }
     // Fail if a session already exists on this thread.
     verify_no_session();
-
-    // Cleanup & remapping of s_data could only occur when the server crashes
-    // but we do it on every begin_session() call anyway.
     clear_shared_memory();
-    tx_cleanup();
-
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
     s_session_socket = get_session_socket();
@@ -250,7 +237,6 @@ void client::begin_transaction() {
 }
 
 void client::rollback_transaction() {
-    verify_session_active();
     verify_tx_active();
 
     // Ensure we destroy the shared memory segment and memory mapping before we return.
@@ -267,7 +253,6 @@ void client::rollback_transaction() {
 // It sends a message to the server containing the fd of this txn's log segment and
 // will block waiting for a reply from the server.
 void client::commit_transaction() {
-    verify_session_active();
     verify_tx_active();
 
     // Ensure we destroy the shared memory segment and memory mapping before we return.
