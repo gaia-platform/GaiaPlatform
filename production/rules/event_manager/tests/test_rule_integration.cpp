@@ -21,7 +21,7 @@
 #include "gaia_catalog.hpp"
 #include "gaia_catalog_internal.hpp"
 #include "event_manager_test_helpers.hpp"
-#include "event_manager_stats.hpp"
+#include "perf_timer.hpp"
 
 #include <thread>
 #include <atomic>
@@ -47,14 +47,13 @@ uint16_t c_phone_primary_position = 2;
 
 atomic<int> g_wait_for_count;
 
-// This is a convenient class to optionally enable
-// stats tracing.
-event_manager_stats_t g_stats;
+optional_perf_timer_t g_timer;
+std::chrono::high_resolution_clock::time_point g_start;
 
 // When an employee is inserted insert an address.
 void rule_insert_address(const rule_context_t* context)
 {
-    g_stats.log_duration("latency to rule insert_address");
+    g_timer.log_duration(g_start, "latency to rule insert_address");
     employee_t e = employee_t::get(context->record);
     EXPECT_EQ(employee_t::s_gaia_type, context->gaia_type);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_insert);
@@ -88,7 +87,7 @@ void rule_update_address(const rule_context_t* context)
 
 void rule_update(const rule_context_t* context)
 {
-    g_stats.log_duration("latency to rule update_address");
+    g_timer.log_duration(g_start, "latency to rule update_address");
     employee_t e = employee_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_update);
     EXPECT_STREQ(c_name, e.name_first());
@@ -97,7 +96,7 @@ void rule_update(const rule_context_t* context)
 
 void rule_field_phone_number(const rule_context_t* context)
 {
-    g_stats.log_duration("latency to rule field_phone_number");
+    g_timer.log_duration(g_start, "latency to rule field_phone_number");
     phone_t p = phone_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_update);
     EXPECT_STREQ(c_phone_number, p.phone_number());
@@ -106,7 +105,7 @@ void rule_field_phone_number(const rule_context_t* context)
 
 void rule_field_phone_type(const rule_context_t* context)
 {
-    g_stats.log_duration("latency to rule field_phone_type");
+    g_timer.log_duration(g_start, "latency to rule field_phone_type");
     phone_t p = phone_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_update);
     EXPECT_STREQ(c_phone_type, p.type());
@@ -115,7 +114,7 @@ void rule_field_phone_type(const rule_context_t* context)
 
 void rule_delete(const rule_context_t* context)
 {
-    g_stats.log_duration("latency to rule delete");
+    g_timer.log_duration(g_start, "latency to rule delete");
     employee_t d = employee_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_delete);
     EXPECT_THROW(d.delete_row(), invalid_node_id);
@@ -220,12 +219,12 @@ protected:
         load_catalog(ddl_file);
 
         // NOTE: uncomment next line to get latency measurements.
-        // g_stats.set_enabled(true);
+        //g_timer.set_enabled(true);
 
         event_manager_settings_t settings;
 
         // NOTE: uncomment next line enable stats from the rules engine.
-        // settings.enable_stats = true;
+        //settings.enable_stats = true;
 
         gaia::rules::test::initialize_rules_engine(settings);
     }
@@ -254,7 +253,7 @@ TEST_F(rule_integration_test, test_insert)
         employee_writer writer;
         writer.name_first = c_name;
         writer.insert_row();
-        g_stats.save_time_point();
+        g_start = g_timer.get_time_point();
         tx.commit();
         
     }
@@ -281,7 +280,7 @@ TEST_F(rule_integration_test, test_delete)
         employee_t e = employee_t::get(writer.insert_row());
         tx.commit();
         e.delete_row();
-        g_stats.save_time_point();
+        g_start = g_timer.get_time_point();
         tx.commit();
     }
 }
@@ -299,7 +298,7 @@ TEST_F(rule_integration_test, test_update)
             writer = e.writer();
             writer.name_first = c_name;
             writer.update_row();
-        g_stats.save_time_point();
+        g_start = g_timer.get_time_point();
         tx.commit();
         
     }
@@ -319,7 +318,7 @@ TEST_F(rule_integration_test, test_update_field)
             writer = p.writer();
             writer.phone_number = c_phone_number;
             writer.update_row();
-        g_stats.save_time_point();
+            g_start = g_timer.get_time_point();
         tx.commit();
     }
 }

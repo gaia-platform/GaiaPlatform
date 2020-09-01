@@ -40,5 +40,54 @@ public:
     static double ns_us(int64_t nanoseconds) { return nanoseconds / (double) (1e3); }
 };
 
+// Convenience class for enabling and disabling performance measurements
+// at runtime.
+class optional_perf_timer_t
+{
+public:
+    bool is_enabled()
+    {
+        return m_enabled;
+    }
+
+    void set_enabled(bool enabled)
+    {
+        m_enabled = enabled;
+    }
+    
+    std::chrono::high_resolution_clock::time_point get_time_point()
+    {
+        if (m_enabled)
+        {
+            return gaia::common::perf_timer_t::get_time_point();
+        }
+
+        return std::chrono::high_resolution_clock::time_point::min();
+    }
+
+    void log_duration(std::chrono::high_resolution_clock::time_point& start, const char* message)
+    {
+        if (m_enabled) 
+        {
+            gaia::common::perf_timer_t::log_duration(start, message);
+        }
+    }
+
+    void log_function_duration(std::function<void ()> fn, const char* fn_name)
+    {
+        if (m_enabled)
+        {
+            gaia::common::perf_timer_t::log_function_duration(fn, fn_name);
+        }
+        else
+        {
+            fn();
+        }
+    }
+
+private:
+    bool m_enabled = false;
+};
+
 }
 }

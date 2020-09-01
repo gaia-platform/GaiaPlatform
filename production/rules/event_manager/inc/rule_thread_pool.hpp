@@ -12,6 +12,7 @@
 #include "gaia_event_log.h"
 #include "triggers.hpp"
 #include "rules.hpp"
+#include "rule_stats_manager.hpp"
 
 #include <variant>
 
@@ -36,15 +37,6 @@ public:
        const vector<bool> rules_invoked;
    };
 
-    struct rule_stats_t {
-        std::chrono::high_resolution_clock::time_point start_time;
-        std::chrono::high_resolution_clock::time_point enqueue_time;
-        std::chrono::high_resolution_clock::time_point before_invoke;
-        std::chrono::high_resolution_clock::time_point before_rule;
-        std::chrono::high_resolution_clock::time_point after_rule;
-        std::chrono::high_resolution_clock::time_point after_invoke;
-   };
-
    struct rule_invocation_t {
         gaia_rule_fn rule_fn;
         common::gaia_type_t gaia_type;
@@ -56,16 +48,7 @@ public:
     struct invocation_t {
         invocation_type_t type;
         std::variant<rule_invocation_t, log_events_invocation_t> args;
-
-        // Stats are only filled in if the rules engine was initialized
-        // with the enable_stats flag set to true.
-        std::shared_ptr<rule_stats_t> stats_ptr;
-        // CONSIDER: inline wrappers for these functions
-        void init_stats(std::chrono::high_resolution_clock::time_point start);
-        void record_enqueue_stats();
-        void record_rule_stats(std::function<void ()> fn);
-        void record_invoke_stats(std::function<void ()> fn);
-        void log_stats();
+        shared_ptr<rule_stats_t> stats;
     };
 
     /**

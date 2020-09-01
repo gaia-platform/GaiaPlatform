@@ -5,6 +5,7 @@
 
 #include "retail_assert.hpp"
 #include "event_manager.hpp"
+#include "rule_stats_manager.hpp"
 #include "gaia_db_internal.hpp"
 #include "events.hpp"
 #include "triggers.hpp"
@@ -63,7 +64,10 @@ void event_manager_t::init(event_manager_settings_t& settings)
         m_rule_checker.reset(new rule_checker_t());
     }
 
-    m_stats.set_enabled(settings.enable_stats);
+    // Currently rule stats collection and profiling the commit_trigger
+    // function are enabled with one switch.
+    rule_stats_manager_t::s_enabled = settings.enable_stats;
+    m_perf_timer.set_enabled(settings.enable_stats);
 
     auto fn = [](uint64_t transaction_id, const trigger_event_list_t& event_list) {
         event_manager_t::get().commit_trigger(transaction_id, event_list);
@@ -74,7 +78,8 @@ void event_manager_t::init(event_manager_settings_t& settings)
 }
 
 
-bool event_manager_t::process_last_operation_events(event_binding_t& binding, const trigger_event_t& event)
+bool event_manager_t::process_last_operation_events(event_binding_t& binding, const trigger_event_t& event,
+    std::chrono::high_resolution_clock::time_point& start_time)
 {
     bool rules_invoked = false;
     rule_list_t& rules = binding.last_operation_rules;
@@ -82,13 +87,15 @@ bool event_manager_t::process_last_operation_events(event_binding_t& binding, co
     for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it)
     {
         rules_invoked = true;
-        enqueue_invocation(event, (*rules_it)->rule);
+        enqueue_invocation(event, (*rules_it)->rule, start_time);
     }
 
     return rules_invoked;
 }
 
-bool event_manager_t::process_field_events(event_binding_t& binding, const trigger_event_t& event)
+bool event_manager_t::process_field_events(event_binding_t& binding,
+    const trigger_event_t& event,
+    std::chrono::high_resolution_clock::time_point& start_time)
 {
     if (binding.fields_map.size() == 0 || event.columns.size() == 0)
     {
@@ -112,7 +119,7 @@ bool event_manager_t::process_field_events(event_binding_t& binding, const trigg
             for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it)
             {
                 rules_invoked = true;
-                enqueue_invocation(event, (*rules_it)->rule);
+                enqueue_invocation(event, (*rules_it)->rule, start_time);
             }
         }
     }
@@ -122,15 +129,14 @@ bool event_manager_t::process_field_events(event_binding_t& binding, const trigg
 
 void event_manager_t::commit_trigger(uint64_t, const trigger_event_list_t& trigger_event_list)
 {
-    m_stats.log_function_duration([&]() {
+    m_perf_timer.log_function_duration([&]() {
 
     if (trigger_event_list.size() == 0)
     {
         return;
     }
 
-    // Snap the start time for use in stats later
-    m_stats.save_time_point();
+    auto start_time = m_perf_timer.get_time_point();
 
     // TODO[GAIAPLAT-308]: Event logging is only half the story. We
     // also need to do rule logging and the correlate the event instance
@@ -159,12 +165,12 @@ void event_manager_t::commit_trigger(uint64_t, const trigger_event_list_t& trigg
 
                 // Once rules_invoked is true, we keep it there to mean
                 // that any rule was subscribed to this event.
-                if (process_last_operation_events(binding, event))
+                if (process_last_operation_events(binding, event, start_time))
                 {
                     rules_invoked = true;
                 }
 
-                if (process_field_events(binding, event))
+                if (process_field_events(binding, event, start_time))
                 {
                     rules_invoked = true;
                 }
@@ -175,13 +181,14 @@ void event_manager_t::commit_trigger(uint64_t, const trigger_event_list_t& trigg
 
     // Enqueue a task to log all the events in this commit_trigger in a
     // separate thread in a new transaction.
-    enqueue_invocation(trigger_event_list, rules_invoked_list);
+    enqueue_invocation(trigger_event_list, rules_invoked_list, start_time);
 
     }, __PRETTY_FUNCTION__);
 }
 
 void event_manager_t::enqueue_invocation(const trigger_event_list_t& events,
-    const vector<bool>& rules_invoked_list)
+    const vector<bool>& rules_invoked_list, 
+    std::chrono::high_resolution_clock::time_point& start_time)
 {
     rule_thread_pool_t::log_events_invocation_t event_invocation {
         events, 
@@ -190,18 +197,14 @@ void event_manager_t::enqueue_invocation(const trigger_event_list_t& events,
     rule_thread_pool_t::invocation_t invocation {
         rule_thread_pool_t::invocation_type_t::log_events,
         std::move(event_invocation),
-        nullptr
+        rule_stats_manager_t::create_rule_stats(
+            start_time, rule_stats_manager_t::s_log_event_tag)
     };
-
-    if (m_stats)
-    {
-        invocation.init_stats(m_stats.get_saved_time_point());
-    }
-    
     m_invocations->enqueue(invocation);
 } 
 
-void event_manager_t::enqueue_invocation(const trigger_event_t& event, gaia_rule_fn rule_fn)
+void event_manager_t::enqueue_invocation(const trigger_event_t& event, gaia_rule_fn rule_fn,
+    std::chrono::high_resolution_clock::time_point& start_time)
 {
     rule_thread_pool_t::rule_invocation_t rule_invocation {
         rule_fn,
@@ -213,14 +216,9 @@ void event_manager_t::enqueue_invocation(const trigger_event_t& event, gaia_rule
     rule_thread_pool_t::invocation_t invocation{
         rule_thread_pool_t::invocation_type_t::rule,
         std::move(rule_invocation),
-        nullptr
+        rule_stats_manager_t::create_rule_stats(
+            start_time, rule_stats_manager_t::s_rule_tag)
     };
-
-    if (m_stats)
-    {
-        invocation.init_stats(m_stats.get_saved_time_point());
-    }
-
     m_invocations->enqueue(invocation);
 } 
 

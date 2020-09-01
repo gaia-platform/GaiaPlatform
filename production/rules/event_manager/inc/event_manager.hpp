@@ -16,7 +16,6 @@
 #include "event_manager_test_helpers.hpp"
 #include "rule_thread_pool.hpp"
 #include "rule_checker.hpp"
-#include "event_manager_stats.hpp"
 
 using namespace gaia::db::triggers;
 
@@ -118,8 +117,9 @@ private:
     // the catalog.
     unique_ptr<rule_checker_t> m_rule_checker;
 
-    // Log performance stats if they are enabled.
-    event_manager_stats_t m_stats;
+    // Enable profiling of rules engine function.  Also used to 
+    // get time points for rules engine statistics.
+    optional_perf_timer_t m_perf_timer;
 
 private:
     // Only internal static creation is allowed.
@@ -132,14 +132,18 @@ private:
 
     // Well known trigger function called by the storage engine after commit.
     void commit_trigger(uint64_t tx_id, const trigger_event_list_t& event_list);
-    bool process_last_operation_events(event_binding_t& binding, const trigger_event_t& event);
-    bool process_field_events(event_binding_t& binding, const trigger_event_t& event);
+    bool process_last_operation_events(event_binding_t& binding, const trigger_event_t& event,
+        std::chrono::high_resolution_clock::time_point& start_time);
+    bool process_field_events(event_binding_t& binding, const trigger_event_t& event,
+        std::chrono::high_resolution_clock::time_point& start_time);
     void init(event_manager_settings_t& settings);
     const _rule_binding_t* find_rule(const rules::rule_binding_t& binding); 
     void add_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     bool remove_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
-    void enqueue_invocation(const trigger_event_list_t& events, const vector<bool>& rules_invoked_list);
-    void enqueue_invocation(const trigger_event_t& event, gaia_rule_fn rule);
+    void enqueue_invocation(const trigger_event_list_t& events, const vector<bool>& rules_invoked_list,
+        std::chrono::high_resolution_clock::time_point& start_time);
+    void enqueue_invocation(const trigger_event_t& event, gaia_rule_fn rule,
+        std::chrono::high_resolution_clock::time_point& start_time);
     void check_subscription(event_type_t event_type, const field_position_list_t& fields);
     static inline void check_rule_binding(const rule_binding_t& binding)
     {
