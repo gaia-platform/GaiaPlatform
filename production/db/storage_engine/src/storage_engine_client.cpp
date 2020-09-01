@@ -80,6 +80,9 @@ int client::get_session_socket() {
     if (session_socket == -1) {
         throw_system_error("socket creation failed");
     }
+    auto cleanup = scope_guard::make_scope_guard([session_socket]() {
+        close(session_socket);
+    });
     struct sockaddr_un server_addr = {0};
     server_addr.sun_family = AF_UNIX;
     // The socket name (minus its null terminator) needs to fit into the space
@@ -97,6 +100,7 @@ int client::get_session_socket() {
     if (-1 == connect(session_socket, (struct sockaddr *)&server_addr, server_addr_size)) {
         throw_system_error("connect failed");
     }
+    cleanup.dismiss();
     return session_socket;
 }
 
@@ -291,7 +295,7 @@ void client::commit_transaction() {
     retail_assert(event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT);
 
     // Execute trigger only if rules engine is initialized.
-    if (event_trigger_pool->get_commit_trigger() && 
+    if (event_trigger_pool->get_commit_trigger() &&
             event == session_event_t::DECIDE_TXN_COMMIT &&
             s_events.size() > 0) {
         event_trigger_pool->add_trigger_task(s_transaction_id, std::move(s_events));
