@@ -14,24 +14,12 @@ using namespace common;
 
 class gaia_hash_map {
    public:  
-    static hash_node* get_hash_node(se_base::data* s_data, int64_t offset) {
-        return s_data->hash_nodes + offset;
-    }
-
-    static bool check_no_active_transaction(se_base::offsets* offsets) {
-        return *offsets == nullptr;
-    }
-
-    static int64_t* get_hash_node_count(se_base::data* s_data) {
-        return &s_data->hash_node_count;
-    }
-
     static hash_node* insert(se_base::data* s_data, se_base::offsets* offsets, const gaia_id_t id) {
-        if (check_no_active_transaction(offsets)) {
+        if (*offsets == nullptr) {
             throw transaction_not_open();
         }
 
-        hash_node* node = get_hash_node(s_data, id % se_base::HASH_BUCKETS);
+        hash_node* node = s_data->hash_nodes + (id % se_base::HASH_BUCKETS);
         if (node->id == 0 && __sync_bool_compare_and_swap(&node->id, 0, id)) {
             return node;
         }
@@ -51,28 +39,28 @@ class gaia_hash_map {
             }
 
             if (node->next) {
-                node = get_hash_node(s_data, node->next);
+                node = s_data->hash_nodes + node->next;
                 continue;
             }
 
             if (!new_node_idx) {
-                retail_assert(*get_hash_node_count(s_data) + se_base::HASH_BUCKETS < se_base::HASH_LIST_ELEMENTS);
-                new_node_idx = se_base::HASH_BUCKETS + __sync_fetch_and_add(get_hash_node_count(s_data), 1);
-                (get_hash_node(s_data, new_node_idx))->id = id;
+                retail_assert(s_data->hash_node_count + se_base::HASH_BUCKETS < se_base::HASH_LIST_ELEMENTS);
+                new_node_idx = se_base::HASH_BUCKETS + __sync_fetch_and_add(&s_data->hash_node_count, 1);
+                (s_data->hash_nodes + new_node_idx)->id = id;
             }
 
             if (__sync_bool_compare_and_swap(&node->next, 0, new_node_idx)) {
-                return get_hash_node(s_data, new_node_idx);
+                return s_data->hash_nodes + new_node_idx;
             }
         }
     }
 
     static int64_t find(se_base::data* s_data, se_base::offsets* offsets, const gaia_id_t id) {
-        if (check_no_active_transaction(offsets)) {
+        if (*offsets == nullptr) {
             throw transaction_not_open();
         }
 
-        hash_node* node = get_hash_node(s_data, id % se_base::HASH_BUCKETS); 
+        hash_node* node = s_data->hash_nodes + (id % se_base::HASH_BUCKETS);
 
         while (node) {
             if (node->id == id) {
@@ -84,7 +72,7 @@ class gaia_hash_map {
             }
 
             node = node->next
-                ? get_hash_node(s_data, node->next)
+                ? s_data->hash_nodes + node->next
                 : 0;
         }
 
@@ -92,7 +80,7 @@ class gaia_hash_map {
     }
 
     static void remove(se_base::data* s_data, const gaia_id_t id) {
-        hash_node* node = get_hash_node(s_data, id % se_base::HASH_BUCKETS);
+        hash_node* node = s_data->hash_nodes + (id % se_base::HASH_BUCKETS);
 
         while (node->id) {
             if (node->id == id) {
@@ -104,7 +92,7 @@ class gaia_hash_map {
             if (!node->next) {
                 return;
             }
-            node = get_hash_node(s_data, node->next);
+            node = s_data->hash_nodes + node->next;
         }
     }
 };
