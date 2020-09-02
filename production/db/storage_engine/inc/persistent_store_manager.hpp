@@ -4,7 +4,6 @@
 /////////////////////////////////////////////
 
 #pragma once
-#include "rdb_internal.hpp"
 #include <memory>
 
 // This file provides gaia specific functionality to persist writes to & read from 
@@ -16,13 +15,7 @@ namespace db
 {
 constexpr size_t c_max_open_db_attempt_count = 10;
 
-// Wrapper around transaction classes so we don't leak rocksdb
-// related functionality to the storage engine.
-// This wrapper class will go away with PersistenceV2; 
-// (when we roll out our own WAL)
-struct rdb_transaction {
-    rocksdb::Transaction* txn;
-};
+class rdb_internal_t;
 
 class persistent_store_manager 
 {
@@ -49,14 +42,14 @@ class persistent_store_manager
      */
     void recover();
 
-    rdb_transaction begin_txn(gaia_xid_t transaction_id);
+    std::string begin_txn(gaia_xid_t transaction_id);
 
     /**
      * This method will serialize the transaction to the log.
      * We expect writes to the RocksDB WAL to just work; this 
      * method will sigabrt otherwise.
      */ 
-    void prepare_wal_for_write(rdb_transaction txn);
+    void prepare_wal_for_write(std::string& txn_name);
 
     /** 
      * This method will append a commit marker with the appropriate
@@ -71,12 +64,12 @@ class persistent_store_manager
      * The RocksDB commit API will additionally perform its own validation, but this codepath
      * has been switched off so we don't expect any errors from the normal flow of execution.
      */
-    void append_wal_commit_marker(rdb_transaction txn);
+    void append_wal_commit_marker(std::string& txn_name);
 
     /**
      * Append a rollback marker to the log.
      */
-    void append_wal_rollback_marker(rdb_transaction txn);
+    void append_wal_rollback_marker(std::string& txn_name);
 
     /**
      * Destroy the persistent store.

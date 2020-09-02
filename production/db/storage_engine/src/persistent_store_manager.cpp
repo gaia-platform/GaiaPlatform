@@ -71,59 +71,41 @@ void persistent_store_manager::open() {
     // Todo(Mihir) Update to 'kPointInTimeRecovery' after https://gaiaplatform.atlassian.net/browse/GAIAPLAT-321
     init_options.wal_recovery_mode = WALRecoveryMode::kAbsoluteConsistency;
 
-    Status s = rdb_internal->open_txn_db(init_options, options);
-
-    // RocksDB throws an IOError when trying to open (recover) twice on the same directory 
-    // while a process is already up. 
-    // The same error is also seen when reopening the db after a large volume of deletes
-    // See https://github.com/facebook/rocksdb/issues/4421
-    size_t open_db_attempt_count = 0;
-    while (s.code() == Status::Code::kIOError && open_db_attempt_count < c_max_open_db_attempt_count) { 
-        open_db_attempt_count++;
-        if (rdb_internal->is_db_open()) {
-            rdb_internal->close();
-            s = rdb_internal->open_txn_db(init_options, options);
-        } else {
-            s = rdb_internal->open_txn_db(init_options, options);
-        }
-    }
-
-    rdb_internal->handle_rdb_error(s);
+    rdb_internal->open_txn_db(init_options, options);
 }
 
 void persistent_store_manager::close() {        
     rdb_internal->close();
 }
 
-void persistent_store_manager::append_wal_commit_marker(rdb_transaction rdb_transaction) {
-    rocksdb::Status status = rdb_internal->commit(rdb_transaction.txn);
-    rdb_internal->handle_rdb_error(status);
+void persistent_store_manager::append_wal_commit_marker(std::string& txn_name) {
+    rdb_internal->commit(txn_name);
 }
 
-rdb_transaction persistent_store_manager::begin_txn(gaia_xid_t transaction_id) {
+std::string persistent_store_manager::begin_txn(gaia_xid_t transaction_id) {
     rocksdb::WriteOptions write_options{};
     rocksdb::TransactionOptions txn_options{};
-    auto txn = rdb_internal->begin_txn(write_options, txn_options, transaction_id);
-    return rdb_transaction{txn};
+    return rdb_internal->begin_txn(write_options, txn_options, transaction_id);
 }
 
-void persistent_store_manager::append_wal_rollback_marker(rdb_transaction rdb_transaction) {
-    rocksdb::Status s = rdb_internal->rollback(rdb_transaction.txn);
-    rdb_internal->handle_rdb_error(s);
+void persistent_store_manager::append_wal_rollback_marker(std::string& txn_name) {
+    rdb_internal->rollback(txn_name);
 }
 
-void persistent_store_manager::prepare_wal_for_write(rdb_transaction rdb_transaction) {
+void persistent_store_manager::prepare_wal_for_write(std::string& txn_name) {
     auto s_log = se_base::get_txn_log();
     assert(s_log);
     // The key_count variable represents the number of puts + deletes.
     size_t key_count = 0;
+    // Obtain RocksDB transaction object.
+    auto txn = rdb_internal->get_transaction_by_name(txn_name);
     for (size_t i = 0; i < s_log->count; i++) {
         auto lr = s_log->log_records + i;
         if (lr->operation == gaia_operation_t::remove) {
             // Encode key to be deleted.
             string_writer key; 
             key.write_uint64(lr->deleted_id);
-            rdb_transaction.txn->Delete(key.to_slice());
+            txn->Delete(key.to_slice());
             key_count++;
         } else {
             string_writer key; 
@@ -137,14 +119,13 @@ void persistent_store_manager::prepare_wal_for_write(rdb_transaction rdb_transac
             encode_object(static_cast<gaia_se_object_t*>(gaia_object), &key, &value);
             // Gaia objects encoded as key-value slices shouldn't be empty.
             assert(key.get_current_position() != 0 && value.get_current_position() != 0);
-            rdb_transaction.txn->Put(key.to_slice(), value.to_slice());
+            txn->Put(key.to_slice(), value.to_slice());
             key_count++;
         } 
     }
     // Ensure that keys were inserted into the RocksDB transaction object.
     assert(key_count == s_log->count);
-    rocksdb::Status s = rdb_internal->prepare_wal_for_write(rdb_transaction.txn);
-    rdb_internal->handle_rdb_error(s);
+    rdb_internal->prepare_wal_for_write(txn);
 }
 
 /**
