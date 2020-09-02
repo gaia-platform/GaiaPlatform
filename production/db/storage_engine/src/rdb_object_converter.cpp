@@ -4,7 +4,7 @@
 /////////////////////////////////////////////
 
 #include "rdb_object_converter.hpp"
-#include "rdb_wrapper.hpp"
+#include "persistent_store_manager.hpp"
 #include "storage_engine.hpp"
 
 using namespace gaia::common;
@@ -16,7 +16,7 @@ using namespace gaia::db;
  * Value: type, reference_count, payload_size, payload
  */
 void gaia::db::encode_object(
-    const object* gaia_object,
+    const gaia_se_object_t* gaia_object,
     string_writer* key,
     string_writer* value) {
     // Create key.
@@ -49,10 +49,7 @@ gaia_id_t gaia::db::decode_object(
     value_.read_uint64(&num_references);
     value_.read_uint64(&size);
     auto payload = value_.read(size);
-
-    // The create API expects size of the flatbuffer payload only; without reference length
-    // So subtract the reference length before calling the API.
-    // uint64_t size_without_references = size - num_references * sizeof(gaia_id_t);
-    rdb_wrapper::create_object_on_recovery(id, type, num_references, size, payload);
+    // Create Object.
+    persistent_store_manager::create_object_on_recovery(id, type, num_references, size, payload);
     return id;
 }

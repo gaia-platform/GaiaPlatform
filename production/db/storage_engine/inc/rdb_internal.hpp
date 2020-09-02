@@ -41,7 +41,7 @@ class rdb_internal_t
     rocksdb::Status open_txn_db(rocksdb::Options& init_options, rocksdb::TransactionDBOptions& opts) {
         rocksdb::TransactionDB* txn_db;
         rocksdb::Status s = rocksdb::TransactionDB::Open(init_options, opts, m_data_dir, &txn_db);
-        m_txn_db = std::unique_ptr<rocksdb::TransactionDB>(txn_db);
+        m_txn_db.reset(txn_db);
         return s;
     }
 
@@ -75,7 +75,7 @@ class rdb_internal_t
     }
         
     void close() {        
-        if(m_txn_db.get()) {
+        if (m_txn_db.get()) {
             m_txn_db->Close();
         }
     }
@@ -84,12 +84,12 @@ class rdb_internal_t
         return m_txn_db->NewIterator(rocksdb::ReadOptions());
     }
 
-    void destroy_db() {
+    void destroy_persistent_store() {
         rocksdb::DestroyDB(m_data_dir, rocksdb::Options{}); 
     }
 
     bool is_db_open() {
-        return m_txn_db.get();
+        return bool(m_txn_db);
     }
 
     void handle_rdb_error(rocksdb::Status status) {

@@ -4,8 +4,6 @@
 /////////////////////////////////////////////
 
 #pragma once
-#include "rocksdb/status.h"
-#include "rocksdb/utilities/transaction_db.h"
 #include "rdb_internal.hpp"
 #include <memory>
 
@@ -16,9 +14,7 @@ namespace gaia
 {
 namespace db 
 {
-
-constexpr uint64_t c_rocksdb_io_error_code = 5;
-constexpr uint64_t c_max_open_db_attempt_count = 10;
+constexpr size_t c_max_open_db_attempt_count = 10;
 
 // Wrapper around transaction classes so we don't leak rocksdb
 // related functionality to the storage engine.
@@ -28,14 +24,14 @@ struct rdb_transaction {
     rocksdb::Transaction* txn;
 };
 
-class rdb_wrapper 
+class persistent_store_manager 
 {
     private:
     static std::unique_ptr<gaia::db::rdb_internal_t> rdb_internal;
 
     public:
-    rdb_wrapper();
-    ~rdb_wrapper();
+    persistent_store_manager();
+    ~persistent_store_manager();
 
     /**
      * Open rocksdb with the correct options.
@@ -85,7 +81,7 @@ class rdb_wrapper
     /**
      * Destroy the persistent store.
      */
-    void destroy_db();
+    void destroy_persistent_store();
 
     /**
      * This method is used to create a Gaia object from a decoded RocksDB key-value pair.
@@ -93,8 +89,8 @@ class rdb_wrapper
     static void create_object_on_recovery(
         gaia_id_t id,
         gaia_type_t type,
-        uint64_t num_refs,
-        uint64_t data_size,
+        size_t num_refs,
+        size_t data_size,
         const void* data);
 
 };

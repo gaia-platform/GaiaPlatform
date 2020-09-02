@@ -58,8 +58,10 @@ class client : private se_base {
    private:
     thread_local static int s_fd_log;
     thread_local static offsets* s_offsets;
+    // Both s_fd_offsets & s_data have session lifetime.
     thread_local static int s_fd_offsets;
     thread_local static data* s_data;
+    // s_events has transaction lifetime and is cleared after each transaction.
     thread_local static std::vector<gaia::db::triggers::trigger_event_t> s_events;
 
     // Maintain a static filter in the client to disable generating events

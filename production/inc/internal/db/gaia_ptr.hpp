@@ -17,12 +17,7 @@ using namespace gaia::common;
 namespace gaia {
 namespace db {
 
-class gaia_hash_map;
-
 class gaia_ptr {
-    // We need access to private implementation state of the client library.
-    friend class client;
-
    private:
     int64_t row_id;
     void create_insert_trigger(gaia_type_t type, gaia_id_t id);
@@ -68,8 +63,8 @@ class gaia_ptr {
         const void* data) {
         size_t refs_len = num_refs * sizeof(gaia_id_t);
         size_t total_len = data_size + refs_len;
-        gaia_ptr obj(id, total_len + sizeof(object));
-        object* obj_ptr = obj.to_ptr();
+        gaia_ptr obj(id, total_len + sizeof(gaia_se_object_t));
+        gaia_se_object_t* obj_ptr = obj.to_ptr();
         obj_ptr->id = id;
         obj_ptr->type = type;
         obj_ptr->num_references = num_refs;
@@ -170,7 +165,7 @@ class gaia_ptr {
 
     void allocate(const size_t size);
 
-    object* to_ptr() const;
+    gaia_se_object_t* to_ptr() const;
 
     int64_t to_offset() const;
 

@@ -4,7 +4,7 @@
 /////////////////////////////////////////////
 
 #include "storage_engine_server.hpp"
-#include "rdb_wrapper.hpp"
+#include "persistent_store_manager.hpp"
 
 using namespace gaia::db;
 using namespace gaia::db::messages;
@@ -16,7 +16,7 @@ int server::s_connect_socket = -1;
 std::mutex server::s_commit_lock;
 int server::s_fd_data = -1;
 se_base::offsets* server::s_shared_offsets = nullptr;
-std::unique_ptr<rdb_wrapper> server::rdb {};
+std::unique_ptr<persistent_store_manager> server::rdb {};
 thread_local session_state_t server::s_session_state = session_state_t::DISCONNECTED;
 thread_local bool server::s_session_shutdown = false;
 constexpr server::valid_transition_t server::s_valid_transitions[];

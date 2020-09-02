@@ -18,7 +18,7 @@
 #include "mmap_helpers.hpp"
 #include "socket_helpers.hpp"
 #include "messages_generated.h"
-#include "rdb_wrapper.hpp"
+#include "persistent_store_manager.hpp"
 
 namespace gaia {
 namespace db {
@@ -33,7 +33,7 @@ class invalid_session_transition : public gaia_exception {
 };
 
 class server : private se_base {
-    friend class rdb_wrapper;
+    friend class persistent_store_manager;
    public:
     static void run();
 
@@ -45,7 +45,7 @@ class server : private se_base {
     static std::mutex s_commit_lock;
     static int s_fd_data;
     static offsets* s_shared_offsets;
-    static std::unique_ptr<rdb_wrapper> rdb;
+    static std::unique_ptr<persistent_store_manager> rdb;
     thread_local static session_state_t s_session_state;
     thread_local static bool s_session_shutdown;
 
@@ -164,8 +164,8 @@ class server : private se_base {
 
     static void recover_db() {
         // Open RocksDB just once.
-        if (!rdb.get()) {
-            rdb = std::unique_ptr<rdb_wrapper>(new gaia::db::rdb_wrapper());
+        if (!rdb) {
+            rdb.reset(new gaia::db::persistent_store_manager());
             rdb->open();
             rdb->recover();
         } 
@@ -363,6 +363,13 @@ class server : private se_base {
         }
     }
 
+    static gaia_se_object_t* locator_to_ptr(offsets* offsets, data* s_data, int64_t row_id) {
+        assert(*offsets);
+        return row_id && (*offsets)[row_id]
+            ? reinterpret_cast<gaia_se_object_t*>(s_data->objects + (*offsets)[row_id])
+            : nullptr;
+    }
+
     static void session_thread(int session_socket) {
         // REVIEW: how do we gracefully close the session socket?
         // Do we need to issue a nonblocking read() first?
@@ -515,7 +522,7 @@ class server : private se_base {
         // Prepare tx
         rdb->prepare_wal_for_write(txn);
         
-        for (auto i = 0; i < s_log->count; i++) {
+        for (size_t i = 0; i < s_log->count; i++) {
             auto lr = s_log->log_records + i;
 
             if (row_ids.insert(lr->row_id).second) {
@@ -529,7 +536,7 @@ class server : private se_base {
             }
         }
 
-        for (auto i = 0; i < s_log->count; i++) {
+        for (size_t i = 0; i < s_log->count; i++) {
             auto lr = s_log->log_records + i;
             (*s_shared_offsets)[lr->row_id] = lr->new_object;
         }

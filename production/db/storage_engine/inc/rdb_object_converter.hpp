@@ -167,7 +167,7 @@ class string_reader {
 };
 
 void encode_object(
-    const object* gaia_object,
+    const gaia_se_object_t* gaia_object,
     string_writer* key,
     string_writer* value);
 

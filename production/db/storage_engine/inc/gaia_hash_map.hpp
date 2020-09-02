@@ -18,10 +18,6 @@ class gaia_hash_map {
         return s_data->hash_nodes + offset;
     }
 
-    static bool locator_exists(se_base::offsets* offsets, int64_t offset) {
-        return (*offsets)[offset];
-    }
-
     static bool check_no_active_transaction(se_base::offsets* offsets) {
         return *offsets == nullptr;
     }
@@ -47,7 +43,7 @@ class gaia_hash_map {
 
             if (node->id == id) {
                 if (node->row_id &&
-                    locator_exists(offsets, node->row_id)) {
+                    se_base::locator_exists(offsets, node->row_id)) {
                     throw duplicate_id(id);
                 } else {
                     return node;
@@ -80,7 +76,7 @@ class gaia_hash_map {
 
         while (node) {
             if (node->id == id) {
-                if (node->row_id && locator_exists(offsets, node->row_id)) {
+                if (node->row_id && se_base::locator_exists(offsets, node->row_id)) {
                     return node->row_id;
                 } else {
                     return 0;

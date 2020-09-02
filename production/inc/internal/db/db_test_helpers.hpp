@@ -29,14 +29,14 @@ void remove_persistent_store() {
 }
 
 void wait_for_server_init() {
-    static constexpr int POLL_INTERVAL_MILLIS = 10;
+    static constexpr int c_poll_interval_millis = 10;
     // Wait for server to initialize.
     while (true) {
         try {
             begin_session();
         } catch (system_error& ex) {
             if (ex.get_errno() == ECONNREFUSED) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(POLL_INTERVAL_MILLIS));
+                std::this_thread::sleep_for(std::chrono::milliseconds(c_poll_interval_millis));
                 continue;
             } else {
                 throw;
@@ -74,13 +74,6 @@ class db_server_t {
         // Try to kill the SE server process.
         // REVIEW: we should be using a proper process library for this, so we can kill by PID.
         string cmd = "pkill -f -KILL ";
-        cmd.append(m_server_path.c_str());
-        cerr << cmd << endl;
-        ::system(cmd.c_str());
-    }
-
-    void sigterm_stop() {
-        string cmd = "pkill -f ";
         cmd.append(m_server_path.c_str());
         cerr << cmd << endl;
         ::system(cmd.c_str());

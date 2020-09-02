@@ -117,6 +117,11 @@ int client::get_session_socket() {
 // In any case, send_msg_with_fds()/recv_msg_with_fds() already throw a
 // peer_disconnected exception when the other end of the socket is closed.
 void client::begin_session() {
+    // Assert relevant fd's and pointers are in clean state.
+    assert(s_fd_log == -1);
+    assert(s_log == nullptr);
+    assert(s_offsets == nullptr);
+    
     // Fail if a session already exists on this thread.
     verify_no_session();
     clear_shared_memory();

@@ -23,7 +23,7 @@ gaia_id_t gaia_ptr::generate_id() {
 gaia_ptr& gaia_ptr::clone() {
     auto old_this = to_ptr();
     auto old_offset = to_offset();
-    auto new_size = sizeof(object) + old_this->payload_size;
+    auto new_size = sizeof(gaia_se_object_t) + old_this->payload_size;
     allocate(new_size);
     auto new_this = to_ptr();
 
@@ -44,11 +44,11 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data) {
 
     size_t ref_len = old_this->num_references * sizeof(gaia_id_t);
     size_t total_len = data_size + ref_len;
-    allocate(sizeof(object) + total_len);
+    allocate(sizeof(gaia_se_object_t) + total_len);
 
     auto new_this = to_ptr();
 
-    memcpy(new_this, old_this, sizeof(object));
+    memcpy(new_this, old_this, sizeof(gaia_se_object_t));
     new_this->payload_size = total_len;
     if (old_this->num_references) {
         memcpy(new_this->payload, old_this->payload, ref_len);
@@ -82,13 +82,13 @@ gaia_ptr::gaia_ptr(const gaia_id_t id) {
 gaia_ptr::gaia_ptr(const gaia_id_t id, const size_t size)
     : row_id(0) {
     hash_node* hash_node = gaia_hash_map::insert(client::s_data, client::s_offsets, id);
-    hash_node->row_id = row_id = client::allocate_row_id(client::s_offsets, client::s_data);
-    client::allocate_object(row_id, size, client::s_offsets, client::s_data);
+    hash_node->row_id = row_id = se_base::allocate_row_id(client::s_offsets, client::s_data);
+    se_base::allocate_object(row_id, size, client::s_offsets, client::s_data);
     client::tx_log(row_id, 0, to_offset(), gaia_operation_t::create);
 }
 
 void gaia_ptr::allocate(const size_t size) {
-    client::allocate_object(row_id, size, client::s_offsets, client::s_data);
+    se_base::allocate_object(row_id, size, client::s_offsets, client::s_data);
 }
 
 void gaia_ptr::create_insert_trigger(gaia_type_t type, gaia_id_t id) {
@@ -97,11 +97,11 @@ void gaia_ptr::create_insert_trigger(gaia_type_t type, gaia_id_t id) {
     }
 }
 
-object* gaia_ptr::to_ptr() const {
+gaia_se_object_t* gaia_ptr::to_ptr() const {
     client::verify_tx_active();
 
-    return row_id && (*client::s_offsets)[row_id]
-        ? reinterpret_cast<object*>(client::s_data->objects + (*client::s_offsets)[row_id])
+    return row_id && se_base::locator_exists(client::s_offsets, row_id)
+        ? reinterpret_cast<gaia_se_object_t*>(client::s_data->objects + (*client::s_offsets)[row_id])
         : nullptr;
 }
 

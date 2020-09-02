@@ -72,11 +72,11 @@ void validate_data() {
         count++;
     }
 
-    cout << "Total count before recovery " << employee_map.size() << endl << flush;
-    cout << "Total count after recovery " << count << endl << flush;
+    cout << "Total count before recovery " << employee_map.size() << endl;
+    cout << "Total count after recovery " << count << endl;
     assert(count == employee_map.size());
     commit_transaction();
-    cout << "Validation complete." << endl << flush;
+    cout << "Validation complete." << endl;
 }
 
 gaia_id_t get_random_map_key(std::map<gaia_id_t, employee_copy_t> m) {  
@@ -127,7 +127,7 @@ void modify_data() {
         to_delete_set.insert(to_delete->first);
     }
 
-    cout << "[Modify record] Number of records to delete: " << to_delete_set.size() << endl << flush;
+    cout << "[Modify record] Number of records to delete: " << to_delete_set.size() << endl;
 
     for (gaia_id_t id : to_delete_set) {
         employee_map.erase(id);
@@ -160,8 +160,8 @@ void load_data(uint64_t total_size_bytes, bool kill_server_during_load, db_serve
     
     auto number_of_transactions = records / load_batch_size + 1;
 
-    cout << "Loading data: Total number of records " << records << endl << flush;
-    cout << "Loading data: Total number of transactions " << number_of_transactions << endl << flush;
+    cout << "Loading data: Total number of records " << records << endl;
+    cout << "Loading data: Total number of transactions " << number_of_transactions << endl;
 
     // Load data in multiple transactions.
     for (uint64_t transaction_id = 1; transaction_id <= number_of_transactions; transaction_id++) {
@@ -181,7 +181,7 @@ void load_data(uint64_t total_size_bytes, bool kill_server_during_load, db_serve
 
         // Crash during load.
         if (kill_server_during_load && transaction_id % 5 == 0) {
-            cout << "Crash during load" << endl << flush;
+            cout << "Crash during load" << endl;
             end_session();
             restart_server(server, path);
             begin_session();
@@ -189,11 +189,11 @@ void load_data(uint64_t total_size_bytes, bool kill_server_during_load, db_serve
         }
 
         if (transaction_id % 25 == 0) {
-            cout << "Loading data: Executed " << transaction_id << " transactions ..." << endl << flush;
+            cout << "Loading data: Executed " << transaction_id << " transactions ..." << endl;
         }
     }
 
-    cout << "Load completed for " << employee_map.size() << " records."<< endl << flush;
+    cout << "Load completed for " << employee_map.size() << " records."<< endl;
 }
 
 int get_count() {
@@ -207,7 +207,7 @@ int get_count() {
 }
 
 void delete_all(int initial_record_count) {
-    cout << "Deleting all records" << endl << flush;
+    cout << "Deleting all records" << endl;
     begin_transaction();
     int total_count = 0;
 
@@ -217,7 +217,7 @@ void delete_all(int initial_record_count) {
         total_count++;
         to_delete.insert(employee.gaia_id());
     }
-    cout << "To delete " << total_count << " records "<< endl << flush;
+    cout << "To delete " << total_count << " records " << endl;
     commit_transaction();
 
     int count = 0;
@@ -232,18 +232,18 @@ void delete_all(int initial_record_count) {
             } catch (const node_not_disconnected& e) {
                 continue;
             }
-            count ++;
+            count++;
             employee_map.erase(id);
             to_delete.erase(id);    
         }
         commit_transaction();
-        cout << "Remaining count " << get_count() << endl << flush;
+        cout << "Remaining count " << get_count() << endl;
         if(get_count() == 0 || get_count() == initial_record_count) {
             break;
         }
     }
 
-    cout << "Deleted " << count << " records "<< endl << flush;
+    cout << "Deleted " << count << " records " << endl;
     validate_data();
 }
 
@@ -266,11 +266,11 @@ void load_modify_recover_test(db_server_t server,
     for (int i = 0; i < crash_validate_loop_count; i++) {
         restart_server(server, server_dir_path.data());
         begin_session();
-        cout << "Count post recovery: " << get_count() << endl << flush;
+        cout << "Count post recovery: " << get_count() << endl;
         validate_data();
-        cout << "Modify begin: " << endl << flush;
+        cout << "Modify begin: " << endl;
         modify_data();
-        cout << "Modify complete: " << endl << flush;
+        cout << "Modify complete: " << endl;
         validate_data();
         end_session();
     }

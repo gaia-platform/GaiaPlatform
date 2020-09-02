@@ -19,7 +19,8 @@ namespace db
 // Type definitions for fields.
 typedef uint16_t field_position_t;
 
-struct object {
+// Storage engine internal object type.
+struct gaia_se_object_t {
     gaia_id_t id;
     gaia_type_t type;
     uint64_t num_references;

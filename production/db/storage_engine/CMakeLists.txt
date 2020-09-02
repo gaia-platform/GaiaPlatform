@@ -102,7 +102,7 @@ set_property (TARGET gaia_se_client PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 add_library(rocks_wrapper STATIC
   src/rdb_object_converter.cpp
-  src/rdb_wrapper.cpp)
+  src/persistent_store_manager.cpp)
 target_include_directories(rocks_wrapper PRIVATE
   "${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}"
   "${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}")
