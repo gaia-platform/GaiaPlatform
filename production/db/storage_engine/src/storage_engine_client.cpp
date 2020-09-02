@@ -144,14 +144,28 @@ void client::begin_session() {
     size_t bytes_read = recv_msg_with_fds(s_session_socket, fds, &fd_count, msg_buf, sizeof(msg_buf));
     retail_assert(bytes_read > 0);
     retail_assert(fd_count == FD_COUNT);
+    int fd_data = fds[DATA_FD_INDEX];
+    retail_assert(fd_data != -1);
+    int fd_offsets = fds[OFFSETS_FD_INDEX];
+    retail_assert(fd_offsets != -1);
+    auto cleanup_fds = scope_guard::make_scope_guard([fd_data, fd_offsets]() {
+        // We can unconditionally close the data fd,
+        // since it's not saved anywhere and the mapping
+        // increments the shared memory segment's refcount.
+        close(fd_data);
+        // We can only close the locator fd if it hasn't been cached.
+        if (s_fd_offsets != fd_offsets) {
+            close(fd_offsets);
+        }
+    });
+
     const message_t *msg = Getmessage_t(msg_buf);
     const server_reply_t *reply = msg->msg_as_reply();
     const session_event_t event = reply->event();
     retail_assert(event == session_event_t::CONNECT);
+
     // Since the data and locator fds are global, we need to atomically update them
-    // (and only if they're not already initialized).
-    int fd_data = fds[DATA_FD_INDEX];
-    retail_assert(fd_data != -1);
+    // (but only if they're not already initialized).
 
     // Set up the shared data segment mapping.
     if (!s_data) {
@@ -162,21 +176,9 @@ void client::begin_session() {
             unmap_fd(data_mapping, sizeof(data));
         }
     }
-    // We've already mapped the data fd, so we can close it now.
-    close(fd_data);
 
     // Set up the private locator segment fd.
-    int fd_offsets = fds[OFFSETS_FD_INDEX];
-    retail_assert(fd_offsets != -1);
-    if (s_fd_offsets == -1) {
-        if (!__sync_bool_compare_and_swap(&s_fd_offsets, -1, fd_offsets)) {
-            // We lost the race, close the fd.
-            close(fd_offsets);
-        }
-    } else {
-        // locator fd is already initialized, close the fd.
-        close(fd_offsets);
-    }
+    __sync_bool_compare_and_swap(&s_fd_offsets, -1, fd_offsets);
     cleanup_session_socket.dismiss();
 }
 
