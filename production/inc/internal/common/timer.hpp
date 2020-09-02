@@ -4,15 +4,16 @@
 /////////////////////////////////////////////
 
 #pragma once
-#include <functional>
+
 #include <chrono>
+#include <functional>
+#include <stdio.h>
 
 // Simple timer utility classes for doing profiling.
 // This class uses steady_clock based on guidance from
-// https://en.cppreference.com/w/cpp/chrono/high_resolution_clock.  Namely:
-// "The high_resolution_clock is not implemented consistently across different
-// standard library implementations, and its use should be avoided...
-// use steady_cliock for duration measurements..."
+// https://en.cppreference.com/w/cpp/chrono/high_resolution_clock.
+// Namely, use steady_clock for duration measurements instead of 
+// high_resolution_clock.
 namespace gaia {
 namespace common {
 
