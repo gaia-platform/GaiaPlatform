@@ -56,6 +56,7 @@ class client : private se_base {
     static void clear_shared_memory();
 
    private:
+    // Both s_fd_log & s_offsets have transaction lifetime.
     thread_local static int s_fd_log;
     thread_local static offsets* s_offsets;
     // Both s_fd_offsets & s_data have session lifetime.

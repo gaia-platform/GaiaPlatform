@@ -10,6 +10,7 @@
 #include "rocksdb/write_batch.h"
 #include "rocksdb/status.h"
 #include "rocksdb/utilities/transaction_db.h"
+#include "persistent_store_error.hpp"
 #include <sstream>
 
 // Simple library over RocksDB APIs.
@@ -44,15 +45,15 @@ class rdb_internal_t
         // The same error is also seen when reopening the db after a large volume of deletes
         // See https://github.com/facebook/rocksdb/issues/4421
         size_t open_db_attempt_count = 0;
-        auto s = rocksdb::Status::OK();
         rocksdb::TransactionDB* txn_db;
+        rocksdb::Status s;
         while (open_db_attempt_count < c_max_open_db_attempt_count) { 
-            rocksdb::Status s = rocksdb::TransactionDB::Open(init_options, opts, m_data_dir, &txn_db);
+            s = rocksdb::TransactionDB::Open(init_options, opts, m_data_dir, &txn_db);
             open_db_attempt_count++;
             if (s.code() == rocksdb::Status::Code::kIOError) {
                 // Try closing RocksDB so we can open on next retry.
                 s = txn_db->Close();
-                // Abort on unsuccessful close.
+                // Handle error on unsuccessful close.
                 handle_rdb_error(s);
             } else if (s.ok()) {
                 // Only set m_txn_db if opening RocksDB is successful.
@@ -100,9 +101,9 @@ class rdb_internal_t
     }
         
     void close() {     
-        if (m_txn_db.get()) {
+        if (m_txn_db) {
             // Although we could have best effort close(), lets 
-            // abort for now in case of failure.
+            // handle any returned failure.
             auto s = m_txn_db->Close();
             handle_rdb_error(s);
         }
@@ -126,12 +127,9 @@ class rdb_internal_t
     }
 
     void handle_rdb_error(rocksdb::Status status) {
-        // Todo (Mihir) Log status information.
-        // This method could handle errors differently based on 
-        // the type of error, i.e, either return exception or abort
-        // but for now all use cases of this method require an abort.
+        // Todo (Mihir) Additionally log status information.
         if (!status.ok()) {
-            abort();
+            throw_persistent_store_error(status.getState(), status.code());
         }
     }
 
