@@ -121,11 +121,11 @@ void client::begin_session() {
     verify_no_session();
 
     // Assert relevant fd's and pointers are in clean state.
-    assert(s_fd_log == -1);
-    assert(s_log == nullptr);
-    assert(s_offsets == nullptr);
+    retail_assert(s_fd_log == -1);
+    retail_assert(s_log == nullptr);
+    retail_assert(s_offsets == nullptr);
     clear_shared_memory();
-    
+
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
     s_session_socket = get_session_socket();
