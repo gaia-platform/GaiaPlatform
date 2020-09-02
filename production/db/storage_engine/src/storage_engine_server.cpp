@@ -55,6 +55,10 @@ void server::handle_commit_txn(int* fds, size_t fd_count, session_event_t event,
     // Get the log fd and mmap it.
     retail_assert(fds && fd_count == 1);
     int fd_log = *fds;
+    // Close our log fd on exit so the shared memory will be released when the client closes it.
+    auto cleanup_fd = scope_guard::make_scope_guard([fd_log]() {
+        close(fd_log);
+    });
     // Check that the log memfd was sealed for writes.
     int seals = fcntl(fd_log, F_GET_SEALS);
     if (seals == -1) {
@@ -64,8 +68,6 @@ void server::handle_commit_txn(int* fds, size_t fd_count, session_event_t event,
     // Linux won't let us create a shared read-only mapping if F_SEAL_WRITE is set,
     // which seems contrary to the manpage for fcntl(2).
     s_log = static_cast<log*>(map_fd(sizeof(log), PROT_READ, MAP_PRIVATE, fd_log, 0));
-    // Close our log fd so the shared memory will be released when the client closes it.
-    close(fd_log);
     // Actually commit the transaction.
     bool success = tx_commit();
     session_event_t decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
