@@ -16,12 +16,12 @@ namespace rules
 struct rule_stats_t 
 {
     const char* tag;
-    std::chrono::high_resolution_clock::time_point start_time;
-    std::chrono::high_resolution_clock::time_point enqueue_time;
-    std::chrono::high_resolution_clock::time_point before_invoke;
-    std::chrono::high_resolution_clock::time_point before_rule;
-    std::chrono::high_resolution_clock::time_point after_rule;
-    std::chrono::high_resolution_clock::time_point after_invoke;
+    std::chrono::steady_clock::time_point start_time;
+    std::chrono::steady_clock::time_point enqueue_time;
+    std::chrono::steady_clock::time_point before_invoke;
+    std::chrono::steady_clock::time_point before_rule;
+    std::chrono::steady_clock::time_point after_rule;
+    std::chrono::steady_clock::time_point after_invoke;
 };
 
 
@@ -34,7 +34,7 @@ public:
     static const char* c_rule_tag;
     static const char* c_log_event_tag;
 
-    static std::shared_ptr<rule_stats_t> create_rule_stats(std::chrono::high_resolution_clock::time_point& start_time,
+    static std::shared_ptr<rule_stats_t> create_rule_stats(std::chrono::steady_clock::time_point& start_time,
         const char* tag)
     {
         if (s_enabled)

@@ -20,7 +20,7 @@ void rule_stats_manager_t::log(shared_ptr<rule_stats_t>& stats_ptr)
         return;
     }
 
-    //TODO[GAIAPLAT-318] Use an actual logging library when available.
+    // TODO[GAIAPLAT-318] Use an actual logging library when available.
     auto enq = stats_ptr->enqueue_time - stats_ptr->start_time;
     auto signal = stats_ptr->before_invoke - stats_ptr->enqueue_time;
     auto before = stats_ptr->before_rule - stats_ptr->before_invoke;

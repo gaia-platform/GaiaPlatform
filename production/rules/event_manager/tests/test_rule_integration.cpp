@@ -49,7 +49,7 @@ uint16_t c_phone_primary_position = 2;
 atomic<int> g_wait_for_count;
 
 optional_timer_t g_timer;
-high_resolution_clock::time_point g_start;
+steady_clock::time_point g_start;
 
 // When an employee is inserted insert an address.
 void rule_insert_address(const rule_context_t* context)
@@ -418,21 +418,23 @@ TEST_F(rule_integration_test, test_two_rules)
 TEST_F(rule_integration_test, test_parallel)
 {
     const int num_inserts = thread::hardware_concurrency();
+
+    // Don't use the optional_timer_t here because we actually do
+    // want to get the duration of the function as part of this test.
+    gaia::common::timer_t timer;
     subscribe_sleep();
-    high_resolution_clock::time_point start_time;
-    high_resolution_clock::time_point finish_time;
-    {
-        rule_monitor_t monitor(num_inserts);
-        auto_transaction_t tx(false);
-        for (int i = 0; i < num_inserts; i++)
+
+    int64_t total_time = timer.get_function_duration([&]() {
         {
-            employee_t::insert_row("John", "Jones", "111-11-1111", i, nullptr, nullptr);
+            rule_monitor_t monitor(num_inserts);
+            auto_transaction_t tx(false);
+            for (int i = 0; i < num_inserts; i++)
+            {
+                employee_t::insert_row("John", "Jones", "111-11-1111", i, nullptr, nullptr);
+            }
+            tx.commit();
         }
-        start_time = high_resolution_clock::now();
-        tx.commit();
-    }
-    finish_time = std::chrono::high_resolution_clock::now();
-    int64_t total_time = std::chrono::duration_cast<std::chrono::nanoseconds>(finish_time - start_time).count();
-    double total_seconds = total_time / (double)1e9;
+    });
+    double total_seconds = gaia::common::timer_t::ns_to_s(total_time);
     EXPECT_TRUE(total_seconds < 2.0);
 }

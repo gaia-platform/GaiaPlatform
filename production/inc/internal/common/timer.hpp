@@ -7,8 +7,12 @@
 #include <functional>
 #include <chrono>
 
-// Simple timer utility classes for doing
-// profiling or collecting statistics.
+// Simple timer utility classes for doing profiling.
+// This class uses steady_clock based on guidance from
+// https://en.cppreference.com/w/cpp/chrono/high_resolution_clock.  Namely:
+// "The high_resolution_clock is not implemented consistently across different
+// standard library implementations, and its use should be avoided...
+// use steady_cliock for duration measurements..."
 namespace gaia {
 namespace common {
 
@@ -16,13 +20,13 @@ class timer_t
 {
 public:
     // Create a new time_point to measure from
-    static std::chrono::high_resolution_clock::time_point get_time_point();
+    static std::chrono::steady_clock::time_point get_time_point();
 
     // Return a duration calculated as now() - start
-    static int64_t get_duration(std::chrono::high_resolution_clock::time_point& start);
+    static int64_t get_duration(std::chrono::steady_clock::time_point& start_time);
 
     // Convenience method to calculate the duration and print out the result
-    static void log_duration(std::chrono::high_resolution_clock::time_point& start, const char* message);
+    static void log_duration(std::chrono::steady_clock::time_point& start_time, const char* message);
 
     // Time the function and return result in nanoseconds.
     static int64_t get_function_duration(std::function<void ()> fn);
@@ -55,23 +59,46 @@ public:
         m_enabled = enabled;
     }
     
-    std::chrono::high_resolution_clock::time_point get_time_point()
+    std::chrono::steady_clock::time_point get_time_point()
     {
         if (m_enabled)
         {
             return gaia::common::timer_t::get_time_point();
         }
 
-        return std::chrono::high_resolution_clock::time_point::min();
+        return std::chrono::steady_clock::time_point::min();
     }
 
-    void log_duration(std::chrono::high_resolution_clock::time_point& start, const char* message)
+    int64_t get_duration(std::chrono::steady_clock::time_point& start_time)
     {
         if (m_enabled) 
         {
-            gaia::common::timer_t::log_duration(start, message);
+            return gaia::common::timer_t::get_duration(start_time);
+        }
+
+        return 0;
+    }
+
+    void log_duration(std::chrono::steady_clock::time_point& start_time, const char* message)
+    {
+        if (m_enabled) 
+        {
+            gaia::common::timer_t::log_duration(start_time, message);
         }
     }
+
+    // Time the function and return result in nanoseconds.
+    int64_t get_function_duration(std::function<void ()> fn)
+    {
+        if (m_enabled)
+        {
+            return gaia::common::timer_t::get_function_duration(fn);
+        }
+
+        fn();
+        return 0;
+    }
+
 
     void log_function_duration(std::function<void ()> fn, const char* fn_name)
     {

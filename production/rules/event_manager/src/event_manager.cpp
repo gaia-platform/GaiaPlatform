@@ -80,7 +80,7 @@ void event_manager_t::init(event_manager_settings_t& settings)
 
 
 bool event_manager_t::process_last_operation_events(event_binding_t& binding, const trigger_event_t& event,
-    high_resolution_clock::time_point& start_time)
+    steady_clock::time_point& start_time)
 {
     bool rules_invoked = false;
     rule_list_t& rules = binding.last_operation_rules;
@@ -96,7 +96,7 @@ bool event_manager_t::process_last_operation_events(event_binding_t& binding, co
 
 bool event_manager_t::process_field_events(event_binding_t& binding,
     const trigger_event_t& event,
-    high_resolution_clock::time_point& start_time)
+    steady_clock::time_point& start_time)
 {
     if (binding.fields_map.size() == 0 || event.columns.size() == 0)
     {
@@ -189,7 +189,7 @@ void event_manager_t::commit_trigger(uint64_t, const trigger_event_list_t& trigg
 
 void event_manager_t::enqueue_invocation(const trigger_event_list_t& events,
     const vector<bool>& rules_invoked_list, 
-    high_resolution_clock::time_point& start_time)
+    steady_clock::time_point& start_time)
 {
     rule_thread_pool_t::log_events_invocation_t event_invocation {
         events, 
@@ -205,7 +205,7 @@ void event_manager_t::enqueue_invocation(const trigger_event_list_t& events,
 } 
 
 void event_manager_t::enqueue_invocation(const trigger_event_t& event, gaia_rule_fn rule_fn,
-    high_resolution_clock::time_point& start_time)
+    steady_clock::time_point& start_time)
 {
     rule_thread_pool_t::rule_invocation_t rule_invocation {
         rule_fn,
