@@ -115,10 +115,6 @@ class se_base {
         return xid;
     }
 
-    static void* offset_to_ptr(int64_t offset, data* s_data) {
-        return offset ? (s_data->objects + offset) : nullptr;
-    }
-
     static log* get_txn_log() {
         return s_log;
     }

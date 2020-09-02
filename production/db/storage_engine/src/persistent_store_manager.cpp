@@ -110,8 +110,7 @@ void persistent_store_manager::prepare_wal_for_write(std::string& txn_name) {
         } else {
             string_writer key; 
             string_writer value;
-            void* gaia_object = se_base::offset_to_ptr(lr->new_object, server::s_data);
-
+            void* gaia_object = lr->new_object ? (server::s_data->objects + lr->new_object) : nullptr;
             if (!gaia_object) {
                 // Object was deleted in current transaction.
                 continue;
