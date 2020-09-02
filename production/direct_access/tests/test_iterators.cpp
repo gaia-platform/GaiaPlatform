@@ -257,6 +257,7 @@ TEST_F(gaia_iterator_test, deref_arrow) {
 TEST_F(gaia_iterator_test, pre_inc_and_post_inc) {
     const char* emp_name_0 = "Employee0";
     const char* emp_name_1 = "Employee1";
+    const char* emp_name_2 = "Employee2";
 
     auto_transaction_t tx;
     auto emp_writer = employee_writer();
@@ -264,9 +265,20 @@ TEST_F(gaia_iterator_test, pre_inc_and_post_inc) {
     emp_writer.insert_row();
     emp_writer.name_first = emp_name_1;
     emp_writer.insert_row();
+    emp_writer.name_first = emp_name_2;
+    emp_writer.insert_row();
+    tx.commit();
 
     gaia_iterator_t<employee_t> emp_iter_a = employee_t::list().begin();
     gaia_iterator_t<employee_t> emp_iter_b = employee_t::list().begin();
+
+    (void)++emp_iter_a;
+    (void)emp_iter_b++;
+
+    EXPECT_TRUE(emp_iter_a == emp_iter_b)
+        << "(void)++iter and (void)iter++ have different effects.";
+    EXPECT_STREQ(emp_iter_a->name_first(), emp_iter_b->name_first())
+        << "(void)++iter and (void)iter++ have different effects.";
 
     (void)++emp_iter_a;
     (void)emp_iter_b++;
@@ -275,4 +287,39 @@ TEST_F(gaia_iterator_test, pre_inc_and_post_inc) {
         << "(void)++iter and (void)iter++ have different effects.";
     EXPECT_STREQ(emp_iter_a->name_first(), emp_iter_b->name_first())
         << "(void)++iter and (void)iter++ have different effects.";
+}
+
+// Does derefencing and postincrementing *iter++ have the expected effects?
+TEST_F(gaia_iterator_test, deref_and_postinc) {
+    const char* emp_name_0 = "Employee0";
+    const char* emp_name_1 = "Employee1";
+    const char* emp_name_2 = "Employee2";
+
+    auto_transaction_t tx;
+    auto emp_writer = employee_writer();
+    emp_writer.name_first = emp_name_0;
+    emp_writer.insert_row();
+    emp_writer.name_first = emp_name_1;
+    emp_writer.insert_row();
+    emp_writer.name_first = emp_name_2;
+    emp_writer.insert_row();
+    tx.commit();
+
+    gaia_iterator_t<employee_t> emp_iter_a = employee_t::list().begin();
+    gaia_iterator_t<employee_t> emp_iter_b = employee_t::list().begin();
+
+    employee_t employee = *emp_iter_b;
+    ++emp_iter_b;
+    EXPECT_EQ((*emp_iter_a++).name_first(), employee.name_first())
+        << "*iter++ does not have the expected effects.";
+
+    employee = *emp_iter_b;
+    ++emp_iter_b;
+    EXPECT_EQ((*emp_iter_a++).name_first(), employee.name_first())
+        << "*iter++ does not have the expected effects.";
+
+    employee = *emp_iter_b;
+    ++emp_iter_b;
+    EXPECT_EQ((*emp_iter_a++).name_first(), employee.name_first())
+        << "*iter++ does not have the expected effects.";
 }
