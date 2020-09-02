@@ -334,6 +334,64 @@ size_t get_field_array_size(
     return field_value->size();
 }
 
+// The setter method for a string element of a field of array type.
+std::vector<uint8_t> set_field_array_size(
+    gaia_id_t type_id,
+    const uint8_t* serialized_data,
+    size_t serialized_data_size,
+    const uint8_t* binary_schema,
+    field_position_t field_position,
+    size_t new_size)
+{
+    retail_assert(binary_schema != nullptr, "binary_schema argument should not be null.");
+
+    const flatbuffers::Table* root_table = nullptr;
+    auto_field_cache_t auto_field_cache;
+    field_cache_t local_field_cache;
+    const reflection::Field* field = nullptr;
+    const flatbuffers::VectorOfAny* field_value = nullptr;
+    vector<uint8_t> updatable_serialized_data(serialized_data, serialized_data + serialized_data_size);
+
+    get_table_field_array_information(
+        type_id, updatable_serialized_data.data(), binary_schema, field_position,
+        root_table, auto_field_cache, local_field_cache, field, field_value);
+
+    if (new_size == field_value->size())
+    {
+        // No change is needed.
+        return updatable_serialized_data;
+    }
+
+    const reflection::Schema* schema = reflection::GetSchema(binary_schema);
+    if (schema == nullptr)
+    {
+        throw invalid_schema();
+    }
+
+    size_t old_size = field_value->size();
+    size_t element_size = flatbuffers::GetTypeSize(field->type()->element());
+
+    // Note: field_value may be invalidated by the following call;
+    // that is why it should no longer be used.
+    uint8_t* new_vector = flatbuffers::ResizeAnyVector(
+        *schema,
+        new_size,
+        field_value,
+        old_size,
+        element_size,
+        &updatable_serialized_data);
+
+    // Set new elements to 0.
+    // int delta_size = static_cast<int>(new_size) - static_cast<int>(old_size);
+    // if (delta_size > 0)
+    // {
+    //     uint8_t* new_elements = new_vector + old_size * element_size;
+    //     memset(new_elements, 0, delta_size * element_size);
+    // }
+
+    return updatable_serialized_data;
+}
+
 // The access method for an element of a field of array type.
 data_holder_t get_field_array_element(
     gaia_id_t type_id,

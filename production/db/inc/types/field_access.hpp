@@ -89,7 +89,6 @@ bool verify_data_schema(
     const uint8_t* binary_schema);
 
 // Get the field value of a table record payload.
-//
 data_holder_t get_field_value(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
@@ -118,12 +117,21 @@ std::vector<uint8_t> set_field_value(
     const data_holder_t& value);
 
 // Get the size of a field of array type.
-//
 size_t get_field_array_size(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
     field_position_t field_position);
+
+// Set the size of a field of array type.
+// If the array is expanded, new entries will be set to 0.
+std::vector<uint8_t> set_field_array_size(
+    gaia_id_t type_id,
+    const uint8_t* serialized_data,
+    size_t serialized_data_size,
+    const uint8_t* binary_schema,
+    field_position_t field_position,
+    size_t new_size);
 
 // Get a specific element of a field of array type.
 //
