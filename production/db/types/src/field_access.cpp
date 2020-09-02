@@ -371,23 +371,18 @@ std::vector<uint8_t> set_field_array_size(
     size_t old_size = field_value->size();
     size_t element_size = flatbuffers::GetTypeSize(field->type()->element());
 
-    // Note: field_value may be invalidated by the following call;
-    // that is why it should no longer be used.
-    uint8_t* new_vector = flatbuffers::ResizeAnyVector(
+    // Note: field_value may be invalidated by the following call,
+    // so it should no longer be used past this point.
+    //
+    // If the vector is expanded,
+    // new elements will be automatically set to 0 by ResizeAnyVector.
+    flatbuffers::ResizeAnyVector(
         *schema,
         new_size,
         field_value,
         old_size,
         element_size,
         &updatable_serialized_data);
-
-    // Set new elements to 0.
-    // int delta_size = static_cast<int>(new_size) - static_cast<int>(old_size);
-    // if (delta_size > 0)
-    // {
-    //     uint8_t* new_elements = new_vector + old_size * element_size;
-    //     memset(new_elements, 0, delta_size * element_size);
-    // }
 
     return updatable_serialized_data;
 }

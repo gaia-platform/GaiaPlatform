@@ -19,33 +19,42 @@ const uint64_t c_type_id = 88;
 
 // The following values must match the values from test_record_data.json.
 const char* c_first_name = "Takeshi";
+
 const char* c_last_name = "Kovac";
 const char* c_new_last_name = "Kovacs";
+
 const uint8_t c_age = 242;
 const uint8_t c_new_age = 246;
+
 const int8_t c_has_children = 0;
 const int8_t c_new_has_children = 1;
+
 const int64_t c_identifier = 7364592217;
 const int64_t c_new_identifier = 9287332599;
+
 const size_t c_count_known_associates = 4;
 const int64_t c_known_associates[] = { 8583390572, 8438230053, 2334850034, 5773382939 };
 const size_t c_index_new_known_associate = 1;
 const int64_t c_new_known_associate = 7234958243;
 const size_t c_new_count_known_associates = 6;
+
 const size_t c_count_known_aliases = 4;
 const char* c_known_aliases[] = { "Mamba Lev", "One Hand Rending", "The Ice", "Ken Kakura" };
 const size_t c_index_new_known_alias = 2;
 const char* c_new_known_alias = "The Icepick";
 const size_t c_new_count_known_aliases = 7;
+
 const double c_sleeve_cost = 769999.19;
 const double c_new_sleeve_cost = 1299999.69;
+
 const float c_monthly_sleeve_insurance = 149.29;
 const float c_new_monthly_sleeve_insurance = 259.79;
+
 const size_t c_count_credit_amounts = 3;
 const double c_last_yearly_top_credit_amounts[] = { 190000000.39, 29900000.49, 0 };
 const size_t c_index_new_credit_amount = 1;
-const size_t c_new_count_credit_amounts = 5;
 const double c_new_credit_amount = 39900000.89;
+const size_t c_new_count_credit_amounts = 5;
 
 enum field
 {
@@ -467,7 +476,7 @@ void update_flatbuffers_data()
         c_index_new_known_alias,
         new_known_alias);
 
-    cout << "\tupdating known_associates size to " << c_new_count_known_associates << "..." << endl;
+    cout << "\tresizing known_associates to " << c_new_count_known_associates << "..." << endl;
     serialization = set_field_array_size(
         c_type_id,
         serialization.data(),
@@ -476,7 +485,7 @@ void update_flatbuffers_data()
         field::known_associates,
         c_new_count_known_associates);
 
-    cout << "\tupdating known_aliases size to " << c_new_count_known_aliases << "..." << endl;
+    cout << "\tresizing known_aliases to " << c_new_count_known_aliases << "..." << endl;
     serialization = set_field_array_size(
         c_type_id,
         serialization.data(),
@@ -485,7 +494,7 @@ void update_flatbuffers_data()
         field::known_aliases,
         c_new_count_known_aliases);
 
-    cout << "\tupdating last_yearly_top_credit_amounts size to " << c_new_count_credit_amounts << "..." << endl;
+    cout << "\tresizing last_yearly_top_credit_amounts to " << c_new_count_credit_amounts << "..." << endl;
     serialization = set_field_array_size(
         c_type_id,
         serialization.data(),
