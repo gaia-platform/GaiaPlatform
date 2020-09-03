@@ -3,7 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 #include <unistd.h>
-#include <stdlib.h> 
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -129,6 +128,7 @@ string usage() {
           "  -t          Start the SE server (for testing purposes).\n"
           "  -e          Create tables and databases if they don't already exist.\n"
           "  -h          Print help information.\n"
+          "  -destroy_db Destroy the persistent store.\n"
           "  <ddl_file>  Process the DDLs in the file.\n"
           "              In the absence of <dbname>, the ddl file basename will be used as the database name.\n"
           "              The database will be created automatically.\n";
@@ -178,7 +178,6 @@ int main(int argc, char *argv[]) {
             cout << usage() << endl;
             exit(EXIT_SUCCESS);
         } else if (argv[i] == string("-destroy_db")) {
-            // This option isn't documented as we don't want to expose it to customers.
             remove_persistent_store();
         } else if (argv[i] == string("-e")) {
             throw_on_exist = false;

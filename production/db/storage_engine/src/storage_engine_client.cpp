@@ -125,6 +125,8 @@ void client::begin_session() {
     retail_assert(s_log == nullptr);
     retail_assert(s_offsets == nullptr);
     clear_shared_memory();
+    retail_assert(s_data == nullptr);
+    retail_assert(s_fd_offsets == -1);
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
