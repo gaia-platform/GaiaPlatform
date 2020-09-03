@@ -11,9 +11,9 @@
 #include <map>
 #include "gaia_system.hpp"
 #include "gaia_db.hpp"
-#include "db_test_base.hpp"
 #include "gaia_addr_book.h"
 #include "system_error.hpp"
+#include "db_test_helpers.hpp"
 
 using namespace std;
 using namespace gaia::db;
