@@ -84,8 +84,7 @@ add_library(gaia_se_client STATIC
   src/gaia_ptr.cpp
   src/storage_engine.cpp
   src/storage_engine_client.cpp
-  src/rdb_object_converter.cpp
-  src/event_trigger_threadpool.cpp)
+  src/rdb_object_converter.cpp)
 add_dependencies(gaia_se_client "messages.fbs")
 target_include_directories(gaia_se_client PUBLIC ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES})
 target_include_directories(gaia_se_client PRIVATE ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES})
@@ -128,12 +127,14 @@ install(TARGETS gaia_se_server DESTINATION "bin")
 # PyBind11 wrapper for storage engine.
 ###############################################
 find_package(pybind11 REQUIRED)
+
 if (Python3_FOUND AND pybind11_FOUND)
   pybind11_add_module(se_client src/storage_engine_pybind_wrapper.cpp)
   target_include_directories(se_client PRIVATE ${PROJECT_SOURCE_DIR})
   target_include_directories(se_client PRIVATE ${GAIA_STORAGE_ENGINE_INCLUDES})
   target_link_libraries(se_client PRIVATE pybind11::module rt gaia_se_client)
-  set_target_properties(se_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
+  # See https://github.com/pybind/pybind11/issues/1604 for inclusion of -fsized-deallocation for C++17
+  set_target_properties(se_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter -fsized-deallocation")
   set_target_properties(se_client PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
 
   # FIXME: fix this test in https://gaiaplatform.atlassian.net/browse/GAIAPLAT-260.

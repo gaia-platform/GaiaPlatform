@@ -4,7 +4,6 @@
 /////////////////////////////////////////////
 
 #include "gaia_db.hpp"
-#include "gaia_db_internal.hpp"
 #include "storage_engine_client.hpp"
 
 bool gaia::db::is_transaction_active() {

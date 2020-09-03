@@ -1,11 +1,11 @@
 {
   first_name: "Takeshi",
-  last_name: "Kovacs",
+  last_name: "Kovac",
   age: 242,
   has_children: false,
   identifier: 7364592217,
   known_associates: [8583390572, 8438230053, 2334850034, 5773382939],
-  known_aliases: ["Mamba Lev", "One Hand Rending", "The Icepick", "Ken Kakura"],
+  known_aliases: ["Mamba Lev", "One Hand Rending", "The Ice", "Ken Kakura"],
   sleeve_cost: 769999.19,
   monthly_sleeve_insurance: 149.29,
   last_yearly_top_credit_amounts: [190000000.39, 29900000.49, 0]

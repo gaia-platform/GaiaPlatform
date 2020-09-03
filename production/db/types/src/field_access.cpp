@@ -11,8 +11,13 @@
 
 using namespace std;
 using namespace gaia::common;
-using namespace gaia::db;
-using namespace gaia::db::types;
+
+namespace gaia
+{
+namespace db
+{
+namespace types
+{
 
 invalid_schema::invalid_schema()
 {
@@ -43,23 +48,12 @@ unhandled_field_type::unhandled_field_type(size_t field_type)
     m_message = string_stream.str();
 }
 
-invalid_serialized_field_data::invalid_serialized_field_data(field_position_t position)
-{
-    stringstream string_stream;
-    string_stream << "Cannot deserialize data for field position: " << position << ".";
-    m_message = string_stream.str();
-}
-
-void gaia::db::types::initialize_field_cache_from_binary_schema(
+void initialize_field_cache_from_binary_schema(
     field_cache_t* field_cache,
     const uint8_t* binary_schema)
 {
     retail_assert(field_cache != nullptr, "field_cache argument should not be null.");
-
-    if (binary_schema == nullptr)
-    {
-        throw invalid_schema();
-    }
+    retail_assert(binary_schema != nullptr, "binary_schema argument should not be null.");
 
     // Deserialize the schema.
     const reflection::Schema* schema = reflection::GetSchema(binary_schema);
@@ -78,12 +72,38 @@ void gaia::db::types::initialize_field_cache_from_binary_schema(
     // Get the collection of fields
     // and insert each element under its corresponding field id.
     auto fields = root_type->fields();
-    for (size_t i = 0; i < fields->Length(); i++)
+    for (size_t i = 0; i < fields->size(); i++)
     {
         const reflection::Field* current_field = fields->Get(i);
         field_cache->set_field(current_field->id(), current_field);
     }
 }
+
+// Data validation method.
+bool verify_data_schema(
+    const uint8_t* serialized_data,
+    size_t serialized_data_size,
+    const uint8_t* binary_schema)
+{
+    retail_assert(serialized_data != nullptr, "serialized_data argument should not be null.");
+    retail_assert(binary_schema != nullptr, "binary_schema argument should not be null.");
+
+    const reflection::Schema* schema = reflection::GetSchema(binary_schema);
+    if (schema == nullptr)
+    {
+        throw invalid_schema();
+    }
+
+    // Get the type of the schema's root object.
+    const reflection::Object* root_type = schema->root_table();
+    if (root_type == nullptr)
+    {
+        throw missing_root_type();
+    }
+
+    return flatbuffers::Verify(*schema, *root_type, serialized_data, serialized_data_size);
+}
+
 
 // This is an internal helper for the field access methods.
 // It parses the flatbuffers serialization to get the root table
@@ -104,6 +124,8 @@ void get_table_field_information(
     field_cache_t& local_field_cache,
     const reflection::Field*& field)
 {
+    retail_assert(serialized_data != nullptr, "serialized_data argument should not be null.");
+
     // First, we parse the serialized data to get its root object.
     root_table = flatbuffers::GetAnyRoot(serialized_data);
     if (root_table == nullptr)
@@ -162,7 +184,7 @@ void get_table_field_array_information(
 }
 
 // The access method for scalar fields and strings.
-data_holder_t gaia::db::types::get_field_value(
+data_holder_t get_field_value(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
@@ -205,7 +227,7 @@ data_holder_t gaia::db::types::get_field_value(
 }
 
 // The setter method for scalar fields.
-bool gaia::db::types::set_field_value(
+bool set_field_value(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
@@ -244,8 +266,56 @@ bool gaia::db::types::set_field_value(
     }
 }
 
+// The setter method for string fields.
+vector<uint8_t> set_field_value(
+    gaia_id_t type_id,
+    const uint8_t* serialized_data,
+    size_t serialized_data_size,
+    const uint8_t* binary_schema,
+    field_position_t field_position,
+    const data_holder_t& value)
+{
+    retail_assert(binary_schema != nullptr, "binary_schema argument should not be null.");
+
+    const flatbuffers::Table* root_table = nullptr;
+    auto_field_cache_t auto_field_cache;
+    field_cache_t local_field_cache;
+    const reflection::Field* field = nullptr;
+    vector<uint8_t> updatable_serialized_data(serialized_data, serialized_data + serialized_data_size);
+
+    get_table_field_information(
+        type_id, updatable_serialized_data.data(), binary_schema, field_position,
+        root_table, auto_field_cache, local_field_cache, field);
+
+    retail_assert(
+        field->type()->base_type() == reflection::String && value.type == reflection::String,
+        "Attempt to set value of incorrect type");
+
+    const reflection::Schema* schema = reflection::GetSchema(binary_schema);
+    if (schema == nullptr)
+    {
+        throw invalid_schema();
+    }
+
+    string new_field_value(value.hold.string_value);
+
+    const flatbuffers::String* field_value = flatbuffers::GetFieldS(*root_table, *field);
+    if (field_value == nullptr)
+    {
+        throw invalid_serialized_data();
+    }
+
+    flatbuffers::SetString(
+        *schema,
+        new_field_value,
+        field_value,
+        &updatable_serialized_data);
+
+    return updatable_serialized_data;
+}
+
 // The access method for the size of a field of array type.
-size_t gaia::db::types::get_field_array_size(
+size_t get_field_array_size(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
@@ -265,7 +335,7 @@ size_t gaia::db::types::get_field_array_size(
 }
 
 // The access method for an element of a field of array type.
-data_holder_t gaia::db::types::get_field_array_element(
+data_holder_t get_field_array_element(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
@@ -315,7 +385,7 @@ data_holder_t gaia::db::types::get_field_array_element(
 }
 
 // The setter method for a scalar element of a field of array type.
-void gaia::db::types::set_field_array_element(
+void set_field_array_element(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
@@ -357,4 +427,60 @@ void gaia::db::types::set_field_array_element(
     {
         throw unhandled_field_type(field->type()->element());
     }
+}
+
+// The setter method for a string element of a field of array type.
+std::vector<uint8_t> set_field_array_element(
+    gaia_id_t type_id,
+    const uint8_t* serialized_data,
+    size_t serialized_data_size,
+    const uint8_t* binary_schema,
+    field_position_t field_position,
+    size_t array_index,
+    const data_holder_t& value)
+{
+    retail_assert(binary_schema != nullptr, "binary_schema argument should not be null.");
+
+    const flatbuffers::Table* root_table = nullptr;
+    auto_field_cache_t auto_field_cache;
+    field_cache_t local_field_cache;
+    const reflection::Field* field = nullptr;
+    const flatbuffers::VectorOfAny* field_value = nullptr;
+    vector<uint8_t> updatable_serialized_data(serialized_data, serialized_data + serialized_data_size);
+
+    get_table_field_array_information(
+        type_id, updatable_serialized_data.data(), binary_schema, field_position,
+        root_table, auto_field_cache, local_field_cache, field, field_value);
+
+    retail_assert(array_index < field_value->size(), "Attempt to index array is out-of-bounds.");
+    retail_assert(
+        field->type()->element() == reflection::String && value.type == reflection::String,
+        "Attempt to set value of incorrect type");
+
+    const reflection::Schema* schema = reflection::GetSchema(binary_schema);
+    if (schema == nullptr)
+    {
+        throw invalid_schema();
+    }
+
+    string new_field_element_value(value.hold.string_value);
+
+    const flatbuffers::String* field_element_value
+        = flatbuffers::GetAnyVectorElemPointer<const flatbuffers::String>(field_value, array_index);
+    if (field_element_value == nullptr)
+    {
+        throw invalid_serialized_data();
+    }
+
+    flatbuffers::SetString(
+        *schema,
+        new_field_element_value,
+        field_element_value,
+        &updatable_serialized_data);
+
+    return updatable_serialized_data;
+}
+
+}
+}
 }
