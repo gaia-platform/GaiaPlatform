@@ -51,7 +51,8 @@ TEST_F(component_init_test, component_initialized)
     fields.push_back(10);
 
     // Custom init disables catalog checks.
-    event_manager_settings_t settings{SIZE_MAX, true};
+    event_manager_settings_t settings;
+    settings.enable_catalog_checks = false;
     gaia::rules::test::initialize_rules_engine(settings);
 
     subscribe_rule(1000, event_type_t::row_update, fields, binding);

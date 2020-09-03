@@ -17,6 +17,7 @@ thread_local int client::s_fd_log = -1;
 thread_local int client::s_fd_offsets = -1;
 thread_local se_base::data *client::s_data;
 thread_local std::vector<trigger_event_t> client::s_events;
+commit_trigger_fn gaia::db::s_tx_commit_trigger = nullptr;
 
 std::unordered_set<gaia_type_t> client::trigger_excluded_types{
     static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table),
@@ -26,8 +27,6 @@ std::unordered_set<gaia_type_t> client::trigger_excluded_types{
     static_cast<gaia_type_t>(system_table_type_t::event_log)
 };
 
-// Should this be initialized by the rules engine instead?
-event_trigger_threadpool_t* client::event_trigger_pool = new event_trigger_threadpool_t();
 
 static void build_client_request(FlatBufferBuilder &builder, session_event_t event) {
     auto client_request = Createclient_request_t(builder, event);
@@ -84,6 +83,9 @@ int client::get_session_socket() {
     if (session_socket == -1) {
         throw_system_error("socket creation failed");
     }
+    auto cleanup_session_socket = scope_guard::make_scope_guard([session_socket]() {
+        close(session_socket);
+    });
     struct sockaddr_un server_addr = {0};
     server_addr.sun_family = AF_UNIX;
     // The socket name (minus its null terminator) needs to fit into the space
@@ -101,6 +103,7 @@ int client::get_session_socket() {
     if (-1 == connect(session_socket, (struct sockaddr *)&server_addr, server_addr_size)) {
         throw_system_error("connect failed");
     }
+    cleanup_session_socket.dismiss();
     return session_socket;
 }
 
@@ -152,14 +155,28 @@ void client::begin_session() {
     size_t bytes_read = recv_msg_with_fds(s_session_socket, fds, &fd_count, msg_buf, sizeof(msg_buf));
     retail_assert(bytes_read > 0);
     retail_assert(fd_count == FD_COUNT);
+    int fd_data = fds[DATA_FD_INDEX];
+    retail_assert(fd_data != -1);
+    int fd_offsets = fds[OFFSETS_FD_INDEX];
+    retail_assert(fd_offsets != -1);
+    auto cleanup_fds = scope_guard::make_scope_guard([fd_data, fd_offsets]() {
+        // We can unconditionally close the data fd,
+        // since it's not saved anywhere and the mapping
+        // increments the shared memory segment's refcount.
+        close(fd_data);
+        // We can only close the locator fd if it hasn't been cached.
+        if (s_fd_offsets != fd_offsets) {
+            close(fd_offsets);
+        }
+    });
+
     const message_t *msg = Getmessage_t(msg_buf);
     const server_reply_t *reply = msg->msg_as_reply();
     const session_event_t event = reply->event();
     retail_assert(event == session_event_t::CONNECT);
+
     // Since the data and locator fds are global, we need to atomically update them
-    // (and only if they're not already initialized).
-    int fd_data = fds[DATA_FD_INDEX];
-    retail_assert(fd_data != -1);
+    // (but only if they're not already initialized).
 
     // Set up the shared data segment mapping.
     s_data = static_cast<data *>(map_fd(
@@ -169,8 +186,6 @@ void client::begin_session() {
     close(fd_data);
 
     // Set up the private locator segment fd.
-    int fd_offsets = fds[OFFSETS_FD_INDEX];
-    retail_assert(fd_offsets != -1);
     s_fd_offsets = fd_offsets;
     cleanup_session_socket.dismiss();
 }
@@ -289,23 +304,23 @@ void client::commit_transaction() {
     const session_event_t event = reply->event();
     retail_assert(event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT);
 
-    // Execute trigger only if rules engine is initialized.
-    if (event_trigger_pool->get_commit_trigger() && 
-            event == session_event_t::DECIDE_TXN_COMMIT &&
-            s_events.size() > 0) {
-        event_trigger_pool->add_trigger_task(s_transaction_id, std::move(s_events));
-    }
-
-    // Reset transaction id.
-    s_transaction_id = 0;
-
-    // Reset TLS events vector for the next transaction that will run on this thread.
-    s_events.clear();
-
     // Throw an exception on server-side abort.
     // REVIEW: We could include the gaia_ids of conflicting objects in transaction_update_conflict
     // (https://gaiaplatform.atlassian.net/browse/GAIAPLAT-292).
     if (event == session_event_t::DECIDE_TXN_ABORT) {
         throw transaction_update_conflict();
     }
+
+    // Execute trigger only if rules engine is initialized.
+    if (s_tx_commit_trigger 
+        && event == session_event_t::DECIDE_TXN_COMMIT
+        && s_events.size() > 0) {
+        s_tx_commit_trigger(s_transaction_id, s_events);
+    }
+    // Reset transaction id.
+    s_transaction_id = 0;
+
+    // Reset TLS events vector for the next transaction that will run on this thread.
+    s_events.clear();
+
 }

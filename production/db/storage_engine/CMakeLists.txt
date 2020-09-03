@@ -145,6 +145,7 @@ set(GAIA_STORAGE_ENGINE_TEST_INCLUDES
 # PyBind11 wrapper for storage engine.
 ###############################################
 find_package(pybind11 REQUIRED)
+
 if (Python3_FOUND AND pybind11_FOUND)
   pybind11_add_module(se_client src/storage_engine_pybind_wrapper.cpp)
   target_include_directories(se_client PRIVATE ${PROJECT_SOURCE_DIR})
@@ -154,7 +155,8 @@ if (Python3_FOUND AND pybind11_FOUND)
   target_include_directories(se_client SYSTEM PRIVATE "${FLATBUFFERS_INC}")
   target_include_directories(se_client SYSTEM PRIVATE "${GEN_DIR}")
   target_link_libraries(se_client PRIVATE pybind11::module rt gaia_se_client)
-  set_target_properties(se_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
+  # See https://github.com/pybind/pybind11/issues/1604 for inclusion of -fsized-deallocation for C++17
+  set_target_properties(se_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter -fsized-deallocation")
   set_target_properties(se_client PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
 
   # FIXME: fix this test in https://gaiaplatform.atlassian.net/browse/GAIAPLAT-260.

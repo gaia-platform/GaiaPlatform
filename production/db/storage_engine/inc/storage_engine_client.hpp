@@ -24,7 +24,7 @@
 #include "messages_generated.h"
 #include "storage_engine.hpp"
 #include "triggers.hpp"
-#include "event_trigger_threadpool.hpp"
+#include "gaia_db_internal.hpp"
 
 using namespace std;
 using namespace gaia::common;
@@ -69,9 +69,6 @@ class client : private se_base {
     // for system types.
     static std::unordered_set<gaia_type_t> trigger_excluded_types;
 
-    // Threadpool to help invoke post-commit triggers in response to events generated in each transaction.
-    static gaia::db::triggers::event_trigger_threadpool_t* event_trigger_pool;
-
     // Inherited from se_base:
     // thread_local static log *s_log;
     // thread_local static gaia_xid_t s_transaction_id;
@@ -86,8 +83,8 @@ class client : private se_base {
      *  Check if an event should be generated for a given type.
      */ 
     static inline bool is_valid_event(const gaia_type_t type) {
-        return !(trigger_excluded_types.find(type) != trigger_excluded_types.end()) && 
-                event_trigger_pool->get_commit_trigger() != nullptr; 
+        return (gaia::db::s_tx_commit_trigger 
+            && (trigger_excluded_types.find(type) == trigger_excluded_types.end()));
     }
 
     static inline void verify_tx_active() {

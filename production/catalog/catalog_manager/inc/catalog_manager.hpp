@@ -4,7 +4,7 @@
 /////////////////////////////////////////////
 #pragma once
 
-#include <mutex>
+#include <shared_mutex>
 #include <unordered_map>
 #include <utility>
 
@@ -32,7 +32,7 @@ class catalog_manager_t {
     gaia_id_t create_table(const string &dbname, const string &name, const ddl::field_def_list_t &fields, bool throw_on_exist = true);
     void drop_table(const string &dbname, const string &name);
 
-    gaia_id_t find_db_id(const string& dbname);
+    gaia_id_t find_db_id(const string& dbname) const;
 
     vector<gaia_id_t> list_fields(gaia_id_t table_id) const;
     vector<gaia_id_t> list_references(gaia_id_t table_id) const;
@@ -83,7 +83,7 @@ class catalog_manager_t {
     gaia_id_t m_global_db_id;
 
     // Use the lock to ensure exclusive access to caches.
-    mutex m_lock;
+    mutable shared_mutex m_lock;
 };
 } // namespace catalog
 } // namespace gaia
