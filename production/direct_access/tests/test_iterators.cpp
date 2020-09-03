@@ -33,7 +33,7 @@ protected:
     }
 };
 
-// Test LegacyIterator conformance
+// Tests for LegacyIterator conformance
 // ================================
 
 // Is the iterator CopyConstructible?
@@ -116,7 +116,7 @@ TEST_F(gaia_iterator_test, pre_incrementable) {
     (void)type_check;
 }
 
-// Test LegacyInputIterator conformance
+// Tests for LegacyInputIterator conformance
 // ================================
 
 // Is the iterator EqualityComparable?
@@ -322,4 +322,84 @@ TEST_F(gaia_iterator_test, deref_and_postinc) {
     ++emp_iter_b;
     EXPECT_EQ((*emp_iter_a++).name_first(), employee.name_first())
         << "*iter++ does not have the expected effects.";
+}
+
+// Tests for LegacyForwardIterator conformance
+// ================================
+
+// Is the iterator DefaultConstructible?
+TEST_F(gaia_iterator_test, default_constructible) {
+    EXPECT_TRUE(is_default_constructible<gaia_iterator_t<employee_t>>::value)
+        << "The iterator is not DefaultConstructible.";
+}
+
+// Is equality and inequality defined over all iterators for the same
+// underlying sequence?
+TEST_F(gaia_iterator_test, equality_and_inequality_in_sequence) {
+    auto_transaction_t tx;
+    auto emp_writer = employee_writer();
+
+    for (int i = 0; i < 10; i++)
+    {
+        emp_writer.ssn = to_string(i).c_str();
+        emp_writer.insert_row();
+    }
+    tx.commit();
+
+    gaia_iterator_t<employee_t> emp_iter_a = employee_t::list().begin();
+    for (gaia_iterator_t<employee_t> emp_iter_b = employee_t::list().begin();
+            emp_iter_b != employee_t::list().end(); ++emp_iter_b)
+    {
+        ASSERT_TRUE(emp_iter_a == emp_iter_b)
+            << "Equality comparisons are not defined across all iterators in the same sequence.";
+        ++emp_iter_a;
+    }
+
+    for (gaia_iterator_t<employee_t> emp_iter = employee_t::list().begin();
+            emp_iter != employee_t::list().end(); ++emp_iter)
+    {
+        if (emp_iter == employee_t::list().begin())
+        {
+            ASSERT_TRUE(emp_iter != employee_t::list().end())
+                << "Inequality comparisons are not defined across all iterators in the same sequence.";
+        }
+        else
+        {
+            ASSERT_TRUE(emp_iter != employee_t::list().begin())
+                << "Inequality comparisons are not defined across all iterators in the same sequence.";
+        }
+    }
+}
+
+// Does post-incrementing the iterator have the expected effects?
+TEST_F(gaia_iterator_test, post_increment) {
+    const char* emp_name_0 = "Employee0";
+    const char* emp_name_1 = "Employee1";
+    const char* emp_name_2 = "Employee2";
+
+    auto_transaction_t tx;
+    auto emp_writer = employee_writer();
+    emp_writer.name_first = emp_name_0;
+    emp_writer.insert_row();
+    emp_writer.name_first = emp_name_1;
+    emp_writer.insert_row();
+    emp_writer.name_first = emp_name_2;
+    emp_writer.insert_row();
+    tx.commit();
+
+    gaia_iterator_t<employee_t> emp_iter_a = employee_t::list().begin();
+    gaia_iterator_t<employee_t> emp_iter_b = employee_t::list().begin();
+
+    EXPECT_TRUE(emp_iter_a++ == emp_iter_b);
+    emp_iter_b++;
+    EXPECT_TRUE(emp_iter_a++ == emp_iter_b);
+    emp_iter_b++;
+    EXPECT_TRUE(emp_iter_a == emp_iter_b);
+}
+
+// Can an iterator iterate over a sequence multiple times to return the same
+// values at the same positions every time? This is known as the multipass
+// guarantee.
+TEST_F(gaia_iterator_test, multipass_guarantee) {
+    
 }
