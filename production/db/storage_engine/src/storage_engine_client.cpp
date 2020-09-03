@@ -14,6 +14,8 @@ using namespace flatbuffers;
 
 thread_local se_base::offsets *client::s_offsets = nullptr;
 thread_local int client::s_fd_log = -1;
+thread_local int client::s_fd_offsets = -1;
+thread_local se_base::data *client::s_data;
 thread_local std::vector<trigger_event_t> client::s_events;
 commit_trigger_fn gaia::db::s_tx_commit_trigger = nullptr;
 
@@ -68,8 +70,10 @@ void client::tx_cleanup() {
     close(s_fd_log);
     s_fd_log = -1;
     // Destroy the offset mapping.
-    unmap_fd(s_offsets, sizeof(offsets));
-    s_offsets = nullptr;
+    if (s_offsets) {
+        unmap_fd(s_offsets, sizeof(offsets));
+        s_offsets = nullptr;
+    }
 }
 
 int client::get_session_socket() {
@@ -118,6 +122,14 @@ int client::get_session_socket() {
 void client::begin_session() {
     // Fail if a session already exists on this thread.
     verify_no_session();
+    // Clean up possible stale state from a server crash or reset.
+    clear_shared_memory();
+    // Assert relevant fd's and pointers are in clean state.
+    retail_assert(s_data == nullptr);
+    retail_assert(s_fd_offsets == -1);
+    retail_assert(s_fd_log == -1);
+    retail_assert(s_log == nullptr);
+    retail_assert(s_offsets == nullptr);
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
@@ -167,17 +179,14 @@ void client::begin_session() {
     // (but only if they're not already initialized).
 
     // Set up the shared data segment mapping.
-    if (!s_data) {
-        data *data_mapping = static_cast<data *>(map_fd(
-            sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0));
-        if (!__sync_bool_compare_and_swap(&s_data, 0, data_mapping)) {
-            // We lost the race, throw away the mapping.
-            unmap_fd(data_mapping, sizeof(data));
-        }
-    }
+    s_data = static_cast<data *>(map_fd(
+        sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0));
+
+    // We've already mapped the data fd, so we can close it now.
+    close(fd_data);
 
     // Set up the private locator segment fd.
-    __sync_bool_compare_and_swap(&s_fd_offsets, -1, fd_offsets);
+    s_fd_offsets = fd_offsets;
     cleanup_session_socket.dismiss();
 }
 

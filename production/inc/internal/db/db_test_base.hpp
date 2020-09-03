@@ -18,6 +18,7 @@
 #include "system_error.hpp"
 #include "gaia_db.hpp"
 #include "gaia_db_internal.hpp"
+#include "db_test_helpers.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -26,6 +27,7 @@ namespace gaia {
 namespace db {
 
 class db_test_base_t : public ::testing::Test {
+public:
 private:
     bool m_client_manages_session;
 
@@ -34,31 +36,15 @@ protected:
         // We need to drop all client references to shared memory before resetting the server.
         // NB: this cannot be called within an active session!
         clear_shared_memory();
-        static constexpr int POLL_INTERVAL_MILLIS = 10;
         // Reinitialize the server (forcibly disconnects all clients and clears database).
+        // Resetting the server will cause Recovery to be skipped. Recovery will only occur post 
+        // server process reboot. 
         ::system((std::string("pkill -f -HUP ") + SE_SERVER_NAME).c_str());
         // Wait a bit for the server's listening socket to be closed.
         // (Otherwise, a new session might be accepted after the signal has been sent
         // but before the server has been reinitialized.)
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        // Wait for server to initialize.
-        while (true) {
-            try {
-                begin_session();
-            } catch (system_error& ex) {
-                if (ex.get_errno() == ECONNREFUSED) {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(POLL_INTERVAL_MILLIS));
-                    continue;
-                } else {
-                    throw;
-                }
-            } catch (...) {
-                throw;
-            }
-            break;
-        }
-        // This was just a test connection, so disconnect.
-        end_session();
+        wait_for_server_init();
     }
 
     db_test_base_t(bool client_manages_session) : m_client_manages_session(client_manages_session) {
