@@ -44,7 +44,7 @@ class client : private se_base {
 
    public:
     static inline bool is_transaction_active() {
-        return (*s_offsets != nullptr);
+        return (s_offsets != nullptr);
     }
     static void begin_session();
     static void end_session();

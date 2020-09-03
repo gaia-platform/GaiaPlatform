@@ -122,10 +122,10 @@ class se_base {
     
     static inline int64_t allocate_row_id(offsets* offsets, data* s_data, bool invoked_by_server = false) {
         if (invoked_by_server) {
-            retail_assert(*offsets, "Server offsets should be non-null");
+            retail_assert(offsets, "Server offsets should be non-null");
         }
 
-        if (*offsets == nullptr) {
+        if (offsets == nullptr) {
             throw transaction_not_open();
         }
 
@@ -138,10 +138,10 @@ class se_base {
 
     static void inline allocate_object(int64_t row_id, uint64_t size, offsets* offsets, data* s_data, bool invoked_by_server = false) {
         if (invoked_by_server) {
-            retail_assert(*offsets, "Server offsets should be non-null");
+            retail_assert(offsets, "Server offsets should be non-null");
         }
 
-        if (*offsets == nullptr) {
+        if (offsets == nullptr) {
             throw transaction_not_open();
         }
 

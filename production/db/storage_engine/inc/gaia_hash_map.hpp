@@ -15,7 +15,7 @@ using namespace common;
 class gaia_hash_map {
    public:  
     static hash_node* insert(se_base::data* s_data, se_base::offsets* offsets, const gaia_id_t id) {
-        if (*offsets == nullptr) {
+        if (offsets == nullptr) {
             throw transaction_not_open();
         }
 
@@ -56,7 +56,7 @@ class gaia_hash_map {
     }
 
     static int64_t find(se_base::data* s_data, se_base::offsets* offsets, const gaia_id_t id) {
-        if (*offsets == nullptr) {
+        if (offsets == nullptr) {
             throw transaction_not_open();
         }
 

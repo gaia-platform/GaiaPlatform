@@ -20,22 +20,16 @@ namespace common {
  */
 class persistent_store_error : public gaia_exception {
    public:
-    persistent_store_error(const string& message, int err = 0)
+    persistent_store_error(const string& message, int code = 0)
         : gaia_exception(message) {
-        m_err = err;
+        m_code = code;
     }
-    int get_errno() {
-        return m_err;
+    int get_code() {
+        return m_code;
     }
    private:
-    int m_err;
+    int m_code;
 };
-
-inline void throw_persistent_store_error(const string& user_info, const int err = errno) {
-    std::stringstream ss;
-    ss << user_info << " - " << (strerror(err));
-    throw persistent_store_error(ss.str(), err);
-}
 
 }  // namespace common
 }  // namespace gaia

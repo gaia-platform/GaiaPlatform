@@ -129,7 +129,7 @@ class rdb_internal_t
     void handle_rdb_error(rocksdb::Status status) {
         // Todo (Mihir) Additionally log status information.
         if (!status.ok()) {
-            throw_persistent_store_error(status.getState(), status.code());
+            throw persistent_store_error(status.getState(), status.code());
         }
     }
 
