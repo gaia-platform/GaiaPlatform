@@ -237,7 +237,7 @@ TEST_F(gaia_object_test, scan_past_end) {
         count++;
         e++;
     }
-    EXPECT_EQ(count,1);
+    EXPECT_EQ(count, 1);
     e++;
     EXPECT_EQ(e == employee_t::list().end(), true);
     e++;

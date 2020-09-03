@@ -10,6 +10,7 @@
 #include <atomic>
 #include <functional>
 
+#include "gaia_common.hpp"
 #include "events.hpp"
 
 using namespace gaia::common;
@@ -36,7 +37,7 @@ typedef std::vector<trigger_event_t> trigger_event_list_t;
 /**
  * The type of Gaia commit trigger.
  */
-typedef void (*commit_trigger_fn) (uint64_t, trigger_event_list_t);
+typedef void (*commit_trigger_fn) (uint64_t, const trigger_event_list_t&);
 
 /**
  * Use this constant to specify that no fields are needed when generating trigger_event_t.

@@ -24,6 +24,7 @@ set(GAIA_EVENT_MANAGER_INCLUDES
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc
   ${GAIA_GENERATED_SCHEMAS}
+  tests
 )
 message(STATUS "GAIA_EVENT_MANAGER_INCLUDES=${GAIA_EVENT_MANAGER_INCLUDES}")
 
@@ -33,6 +34,7 @@ add_library(gaia_rules STATIC
   src/rule_thread_pool.cpp
   src/rule_context.cpp
   src/rule_checker.cpp
+  src/rule_stats_manager.cpp
 )
 
 add_dependencies(gaia_rules generate_rules_headers)
@@ -61,6 +63,7 @@ set(TEST_RULE_INTEGRATION_INCLUDES
   ${GAIA_EVENT_MANAGER_INCLUDES}
   ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_PARSER_GENERATED})
-add_gtest(test_rule_integration "tests/test_rule_integration.cpp"
+add_gtest(test_rule_integration 
+  "tests/test_rule_integration.cpp;tests/event_manager_test_helpers.cpp"
   "${TEST_RULE_INTEGRATION_INCLUDES}" "rt;gaia;gaia_parser" "generate_addr_book_headers" ""
   "DDL_FILE=${GAIA_REPO}/production/schemas/test/addr_book/addr_book.ddl")

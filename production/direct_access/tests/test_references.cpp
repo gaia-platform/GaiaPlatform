@@ -229,7 +229,7 @@ TEST_F(gaia_references_test, connect_scan) {
     // Scan through some rows.
     EXPECT_EQ(first_employee(), "Heidi");
 
-    // Scan through all addressee.
+    // Scan through all addresses.
     EXPECT_EQ(all_addressee(), 0);
 
     // Delete the hierarchy, every third record, until it's gone
