@@ -75,7 +75,7 @@ void catalog_manager_t::bootstrap_catalog() {
     {
         // create table gaia_database (name string);
         field_def_list_t fields;
-        fields.push_back(unique_ptr<field_definition_t>(new ddl::field_definition_t{"name", data_type_t::e_string, 1}));
+        fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
         create_table_impl("catalog", "gaia_database", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_database));
     }
     {
@@ -89,14 +89,14 @@ void catalog_manager_t::bootstrap_catalog() {
         //     references gaia_database,
         // );
         field_def_list_t fields;
-        fields.push_back(unique_ptr<field_definition_t>(new ddl::field_definition_t{"name", data_type_t::e_string, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new ddl::field_definition_t{"is_log", data_type_t::e_bool, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new ddl::field_definition_t{"trim_action", data_type_t::e_uint8, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"max_rows", data_type_t::e_uint64, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"max_size", data_type_t::e_uint64, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"max_seconds", data_type_t::e_uint64, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new ddl::field_definition_t{"binary_schema", data_type_t::e_string, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_database"}));
+        fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<field_definition_t>("is_log", data_type_t::e_bool, 1));
+        fields.emplace_back(make_unique<field_definition_t>("trim_action", data_type_t::e_uint8, 1));
+        fields.emplace_back(make_unique<field_definition_t>("max_rows", data_type_t::e_uint64, 1));
+        fields.emplace_back(make_unique<field_definition_t>("max_size", data_type_t::e_uint64, 1));
+        fields.emplace_back(make_unique<field_definition_t>("max_seconds", data_type_t::e_uint64, 1));
+        fields.emplace_back(make_unique<field_definition_t>("binary_schema", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<field_definition_t>(c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_database"));
         create_table_impl("catalog", "gaia_table", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_table));
     }
     {
@@ -111,16 +111,16 @@ void catalog_manager_t::bootstrap_catalog() {
         //     ref references gaia_table,
         // );
         field_def_list_t fields;
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::e_string, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"type", data_type_t::e_uint8, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"repeated_count", data_type_t::e_uint16, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"position", data_type_t::e_uint16, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"deprecated", data_type_t::e_bool, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"active", data_type_t::e_bool, 1}));
+        fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<field_definition_t>("type", data_type_t::e_uint8, 1));
+        fields.emplace_back(make_unique<field_definition_t>("repeated_count", data_type_t::e_uint16, 1));
+        fields.emplace_back(make_unique<field_definition_t>("position", data_type_t::e_uint16, 1));
+        fields.emplace_back(make_unique<field_definition_t>("deprecated", data_type_t::e_bool, 1));
+        fields.emplace_back(make_unique<field_definition_t>("active", data_type_t::e_bool, 1));
         // The anonymous reference to the gaia_table defines the ownership.
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_table"}));
+        fields.emplace_back(make_unique<field_definition_t>(c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_table"));
         // The "ref" named reference to the gaia_table defines the referential relationship.
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"ref", data_type_t::e_references, 1, "catalog.gaia_table"}));
+        fields.emplace_back(make_unique<field_definition_t>("ref", data_type_t::e_references, 1, "catalog.gaia_table"));
         create_table_impl("catalog", "gaia_field", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_field));
     }
     {
@@ -132,11 +132,11 @@ void catalog_manager_t::bootstrap_catalog() {
         //     serial_stream string,
         // );
         field_def_list_t fields;
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::e_string, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"active_on_startup", data_type_t::e_bool, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"table_ids", data_type_t::e_string, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"source_location", data_type_t::e_string, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"serial_stream", data_type_t::e_string, 1}));
+        fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<field_definition_t>("active_on_startup", data_type_t::e_bool, 1));
+        fields.emplace_back(make_unique<field_definition_t>("table_ids", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<field_definition_t>("source_location", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<field_definition_t>("serial_stream", data_type_t::e_string, 1));
         create_table_impl("catalog", "gaia_ruleset", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_ruleset));
     }
     {
@@ -146,8 +146,8 @@ void catalog_manager_t::bootstrap_catalog() {
         //     references gaia_ruleset,
         // );
         field_def_list_t fields;
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::e_string, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_ruleset"}));
+        fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<field_definition_t>(c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_ruleset"));
         create_table_impl("catalog", "gaia_rule", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_rule));
     }
 }
@@ -164,12 +164,12 @@ void catalog_manager_t::create_system_tables() {
         //     rules_invoked: bool
         // );
         field_def_list_t fields;
-        fields.push_back(unique_ptr<field_definition_t>(new ddl::field_definition_t{"event_type", data_type_t::e_uint32, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new ddl::field_definition_t{"type_id", data_type_t::e_uint64, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new ddl::field_definition_t{"record_id", data_type_t::e_uint64, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"column_id", data_type_t::e_uint16, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"timestamp", data_type_t::e_uint64, 1}));
-        fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"rules_invoked", data_type_t::e_bool, 1}));
+        fields.emplace_back(make_unique<field_definition_t>("event_type", data_type_t::e_uint32, 1));
+        fields.emplace_back(make_unique<field_definition_t>("type_id", data_type_t::e_uint64, 1));
+        fields.emplace_back(make_unique<field_definition_t>("record_id", data_type_t::e_uint64, 1));
+        fields.emplace_back(make_unique<field_definition_t>("column_id", data_type_t::e_uint16, 1));
+        fields.emplace_back(make_unique<field_definition_t>("timestamp", data_type_t::e_uint64, 1));
+        fields.emplace_back(make_unique<field_definition_t>("rules_invoked", data_type_t::e_bool, 1));
         create_table_impl("event_log", "event_log", fields, true, false, static_cast<gaia_id_t>(system_table_type_t::event_log));
     }
 }
@@ -188,7 +188,7 @@ void catalog_manager_t::clear_cache() {
 }
 
 void catalog_manager_t::reload_cache() {
-    unique_lock<mutex> lock(m_lock);
+    unique_lock lock(m_lock);
 
     clear_cache();
 
@@ -208,7 +208,7 @@ gaia_id_t catalog_manager_t::create_database(
     const string &name,
     bool throw_on_exist) {
 
-    unique_lock<mutex> lock(m_lock);
+    unique_lock lock(m_lock);
     if (m_db_names.find(name) != m_db_names.end()) {
         if (throw_on_exist) {
             throw db_already_exists(name);
@@ -234,7 +234,7 @@ void catalog_manager_t::drop_table(
     const string &dbname,
     const string &name) {
 
-    unique_lock<mutex> lock(m_lock);
+    unique_lock lock(m_lock);
 
     if (!dbname.empty() && m_db_names.find(dbname) == m_db_names.end()) {
         throw db_not_exists(dbname);
@@ -306,7 +306,7 @@ gaia_id_t catalog_manager_t::create_table_impl(
     bool throw_on_exist,
     gaia_id_t id) {
 
-    unique_lock<mutex> lock(m_lock);
+    unique_lock lock(m_lock);
 
     if (!dbname.empty() && m_db_names.find(dbname) == m_db_names.end()) {
         throw db_not_exists(dbname);
@@ -413,9 +413,8 @@ gaia_id_t catalog_manager_t::create_table_impl(
     return table_id;
 }
 
-gaia_id_t catalog_manager_t::find_db_id(const string &dbname) {
-    // TODO: used shared lock for read
-    unique_lock<mutex> lock(m_lock);
+gaia_id_t catalog_manager_t::find_db_id(const string &dbname) const {
+    shared_lock lock(m_lock);
     return find_db_id_no_lock(dbname);
 }
 
