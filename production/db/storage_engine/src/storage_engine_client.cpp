@@ -119,14 +119,14 @@ int client::get_session_socket() {
 void client::begin_session() {
     // Fail if a session already exists on this thread.
     verify_no_session();
-
+    // Clean up possible stale state from a server crash or reset.
+    clear_shared_memory();
     // Assert relevant fd's and pointers are in clean state.
+    retail_assert(s_data == nullptr);
+    retail_assert(s_fd_offsets == -1);
     retail_assert(s_fd_log == -1);
     retail_assert(s_log == nullptr);
     retail_assert(s_offsets == nullptr);
-    clear_shared_memory();
-    retail_assert(s_data == nullptr);
-    retail_assert(s_fd_offsets == -1);
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
