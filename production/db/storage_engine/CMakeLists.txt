@@ -85,6 +85,7 @@ add_library(gaia_se_client STATIC
   src/storage_engine.cpp
   src/storage_engine_client.cpp
   src/rdb_object_converter.cpp
+  src/gaia_types.cpp
   src/event_trigger_threadpool.cpp)
 add_dependencies(gaia_se_client "messages.fbs")
 target_include_directories(gaia_se_client PUBLIC ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES})
@@ -170,3 +171,4 @@ add_gtest(test_rdb_object_converter "tests/test_rdb_object_converter.cpp" "${GAI
 add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
 add_gtest(test_storage_engine_client "tests/test_storage_engine_client.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_se_client")
 add_gtest(test_locator_allocator tests/test_locator_allocator.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
+add_gtest(test_reference tests/test_reference.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client")
