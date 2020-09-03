@@ -9,7 +9,12 @@
 #include <queue>
 #include <thread>
 
+#include "gaia_event_log.h"
+#include "triggers.hpp"
 #include "rules.hpp"
+#include "rule_stats_manager.hpp"
+
+#include <variant>
 
 namespace gaia 
 {
@@ -21,12 +26,37 @@ class rule_thread_pool_t
 {
 public:
 
-    struct invocation_t {
+    enum class invocation_type_t : uint8_t 
+    {
+        not_set,
+        rule,
+        log_events
+    };
+
+   struct log_events_invocation_t {
+       const db::triggers::trigger_event_list_t events;
+       const vector<bool> rules_invoked;
+   };
+
+   struct rule_invocation_t {
         gaia_rule_fn rule_fn;
         common::gaia_type_t gaia_type;
         db::triggers::event_type_t event_type;
         gaia_id_t record;
+        field_position_list_t fields;
+   };
+
+    struct invocation_t {
+        invocation_type_t type;
+        std::variant<rule_invocation_t, log_events_invocation_t> args;
+        shared_ptr<rule_stats_t> stats;
     };
+
+    /**
+     * System rules.  Currently the only system function we support
+     * is logging to the event table.
+     */
+    static void log_events(invocation_t& invocation);
 
     rule_thread_pool_t() = delete;
 
@@ -54,7 +84,7 @@ public:
      * @param invocation the function pointer of the rule along with the
      *   trigger event information needed to call the rule.
      */
-    void enqueue(const invocation_t& invocation);
+    void enqueue(invocation_t& invocation);
 
     /**
      * Executes all rules in the queue.  This method can only be called
@@ -71,7 +101,20 @@ public:
 
 private:
     void rule_worker();
-    void invoke_rule(const invocation_t& invocation);
+
+    void inline invoke_rule(invocation_t& invocation) 
+    {
+        if (invocation_type_t::rule == invocation.type)
+        {
+            invoke_user_rule(invocation);
+        }
+        else
+        {
+            log_events(invocation);
+        }
+    }
+
+    void invoke_user_rule(invocation_t& invocation);
     void process_pending_invocations(bool should_schedule);
 
     // Each thread has a copy of these two variables to determine

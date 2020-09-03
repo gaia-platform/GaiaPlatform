@@ -15,6 +15,7 @@ using namespace flatbuffers;
 thread_local se_base::offsets *client::s_offsets = nullptr;
 thread_local int client::s_fd_log = -1;
 thread_local std::vector<trigger_event_t> client::s_events;
+commit_trigger_fn gaia::db::s_tx_commit_trigger = nullptr;
 
 std::unordered_set<gaia_type_t> client::trigger_excluded_types{
     static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table),
@@ -24,8 +25,6 @@ std::unordered_set<gaia_type_t> client::trigger_excluded_types{
     static_cast<gaia_type_t>(system_table_type_t::event_log)
 };
 
-// Should this be initialized by the rules engine instead?
-event_trigger_threadpool_t* client::event_trigger_pool = new event_trigger_threadpool_t();
 
 static void build_client_request(FlatBufferBuilder &builder, session_event_t event) {
     auto client_request = Createclient_request_t(builder, event);
@@ -296,23 +295,23 @@ void client::commit_transaction() {
     const session_event_t event = reply->event();
     retail_assert(event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT);
 
-    // Execute trigger only if rules engine is initialized.
-    if (event_trigger_pool->get_commit_trigger() &&
-            event == session_event_t::DECIDE_TXN_COMMIT &&
-            s_events.size() > 0) {
-        event_trigger_pool->add_trigger_task(s_transaction_id, std::move(s_events));
-    }
-
-    // Reset transaction id.
-    s_transaction_id = 0;
-
-    // Reset TLS events vector for the next transaction that will run on this thread.
-    s_events.clear();
-
     // Throw an exception on server-side abort.
     // REVIEW: We could include the gaia_ids of conflicting objects in transaction_update_conflict
     // (https://gaiaplatform.atlassian.net/browse/GAIAPLAT-292).
     if (event == session_event_t::DECIDE_TXN_ABORT) {
         throw transaction_update_conflict();
     }
+
+    // Execute trigger only if rules engine is initialized.
+    if (s_tx_commit_trigger 
+        && event == session_event_t::DECIDE_TXN_COMMIT
+        && s_events.size() > 0) {
+        s_tx_commit_trigger(s_transaction_id, s_events);
+    }
+    // Reset transaction id.
+    s_transaction_id = 0;
+
+    // Reset TLS events vector for the next transaction that will run on this thread.
+    s_events.clear();
+
 }

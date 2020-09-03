@@ -20,6 +20,9 @@
 #include "gaia_catalog.h"
 #include "gaia_catalog.hpp"
 #include "gaia_catalog_internal.hpp"
+#include "event_manager_test_helpers.hpp"
+#include "timer.hpp"
+
 #include <thread>
 #include <atomic>
 #include <map>
@@ -31,6 +34,7 @@ using namespace gaia::rules;
 using namespace std;
 using namespace gaia::addr_book;
 using namespace gaia::catalog;
+using namespace std::chrono;
 
 const char* c_name = "John";
 const char* c_city = "Seattle";
@@ -44,9 +48,13 @@ uint16_t c_phone_primary_position = 2;
 
 atomic<int> g_wait_for_count;
 
+optional_timer_t g_timer;
+steady_clock::time_point g_start;
+
 // When an employee is inserted insert an address.
 void rule_insert_address(const rule_context_t* context)
 {
+    g_timer.log_duration(g_start, "latency to rule insert_address");
     employee_t e = employee_t::get(context->record);
     EXPECT_EQ(employee_t::s_gaia_type, context->gaia_type);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_insert);
@@ -80,6 +88,7 @@ void rule_update_address(const rule_context_t* context)
 
 void rule_update(const rule_context_t* context)
 {
+    g_timer.log_duration(g_start, "latency to rule update_address");
     employee_t e = employee_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_update);
     EXPECT_STREQ(c_name, e.name_first());
@@ -88,6 +97,7 @@ void rule_update(const rule_context_t* context)
 
 void rule_field_phone_number(const rule_context_t* context)
 {
+    g_timer.log_duration(g_start, "latency to rule field_phone_number");
     phone_t p = phone_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_update);
     EXPECT_STREQ(c_phone_number, p.phone_number());
@@ -96,6 +106,7 @@ void rule_field_phone_number(const rule_context_t* context)
 
 void rule_field_phone_type(const rule_context_t* context)
 {
+    g_timer.log_duration(g_start, "latency to rule field_phone_type");
     phone_t p = phone_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_update);
     EXPECT_STREQ(c_phone_type, p.type());
@@ -104,6 +115,7 @@ void rule_field_phone_type(const rule_context_t* context)
 
 void rule_delete(const rule_context_t* context)
 {
+    g_timer.log_duration(g_start, "latency to rule delete");
     employee_t d = employee_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_delete);
     EXPECT_THROW(d.delete_row(), invalid_node_id);
@@ -204,9 +216,18 @@ protected:
         begin_session();
 
         // NOTE: For the unit test setup, we need to init catalog and load test tables before rules engine starts.
-        //       Otherwise, the event log activities will cause out of order test table IDs.
+        // Otherwise, the event log activities will cause out of order test table IDs.
         load_catalog(ddl_file);
-        gaia::rules::initialize_rules_engine();
+
+        // NOTE: uncomment next line to get latency measurements.
+        //g_timer.set_enabled(true);
+
+        event_manager_settings_t settings;
+
+        // NOTE: uncomment next line enable stats from the rules engine.
+        //settings.enable_stats = true;
+
+        gaia::rules::test::initialize_rules_engine(settings);
     }
 
     static void TearDownTestSuite()
@@ -233,7 +254,9 @@ TEST_F(rule_integration_test, test_insert)
         employee_writer writer;
         writer.name_first = c_name;
         writer.insert_row();
+        g_start = g_timer.get_time_point();
         tx.commit();
+        
     }
 
     // Make sure the address was added and updated by the
@@ -257,8 +280,8 @@ TEST_F(rule_integration_test, test_delete)
         writer.name_first = c_name;
         employee_t e = employee_t::get(writer.insert_row());
         tx.commit();
-
         e.delete_row();
+        g_start = g_timer.get_time_point();
         tx.commit();
     }
 }
@@ -276,7 +299,9 @@ TEST_F(rule_integration_test, test_update)
             writer = e.writer();
             writer.name_first = c_name;
             writer.update_row();
+        g_start = g_timer.get_time_point();
         tx.commit();
+        
     }
 }
 
@@ -294,6 +319,7 @@ TEST_F(rule_integration_test, test_update_field)
             writer = p.writer();
             writer.phone_number = c_phone_number;
             writer.update_row();
+            g_start = g_timer.get_time_point();
         tx.commit();
     }
 }
@@ -315,6 +341,7 @@ TEST_F(rule_integration_test, test_update_field_multiple_rules)
         writer.phone_number = c_phone_number;
         writer.type = c_phone_type;
         writer.update_row();
+        g_start = g_timer.get_time_point();
         tx.commit();
     }
 }
@@ -339,6 +366,7 @@ TEST_F(rule_integration_test, test_update_field_single_rule)
             phone_writer writer = phone_t::get(phone_id).writer();
             writer.phone_number = c_phone_number;
             writer.update_row();
+            g_start = g_timer.get_time_point();
             tx.commit();
         }
 
@@ -348,6 +376,7 @@ TEST_F(rule_integration_test, test_update_field_single_rule)
             phone_writer writer = phone_t::get(phone_id).writer();
             writer.primary = true;
             writer.update_row();
+            g_start = g_timer.get_time_point();
             tx.commit();
         }
     }
@@ -375,6 +404,7 @@ TEST_F(rule_integration_test, test_two_rules)
         writer = employee_t::get(second).writer();
         writer.name_first = c_name;
         writer.update_row();
+        g_start = g_timer.get_time_point();
         tx.commit();
     }
 }
@@ -388,21 +418,23 @@ TEST_F(rule_integration_test, test_two_rules)
 TEST_F(rule_integration_test, test_parallel)
 {
     const int num_inserts = thread::hardware_concurrency();
+
+    // Don't use the optional_timer_t here because we actually do
+    // want to get the duration of the function as part of this test.
+    gaia::common::timer_t timer;
     subscribe_sleep();
-    std::chrono::system_clock::time_point start;
-    std::chrono::system_clock::time_point end;
-    {
-        rule_monitor_t monitor(num_inserts);
-        auto_transaction_t tx(false);
-        for (int i = 0; i < num_inserts; i++)
+
+    int64_t total_time = timer.get_function_duration([&]() {
         {
-            employee_t::insert_row("John", "Jones", "111-11-1111", i, nullptr, nullptr);
+            rule_monitor_t monitor(num_inserts);
+            auto_transaction_t tx(false);
+            for (int i = 0; i < num_inserts; i++)
+            {
+                employee_t::insert_row("John", "Jones", "111-11-1111", i, nullptr, nullptr);
+            }
+            tx.commit();
         }
-        start = std::chrono::high_resolution_clock::now();
-        tx.commit();
-    }
-    end = std::chrono::high_resolution_clock::now();
-    int64_t total_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
-    double total_seconds = total_time / (double)1e9;
+    });
+    double total_seconds = gaia::common::timer_t::ns_to_s(total_time);
     EXPECT_TRUE(total_seconds < 2.0);
 }
