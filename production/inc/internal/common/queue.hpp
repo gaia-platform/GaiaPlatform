@@ -7,7 +7,8 @@
 
 #include <unistd.h>
 
-#include <synchronization.hpp>
+#include <shared_mutex>
+
 #include <retail_assert.hpp>
 
 namespace gaia
@@ -31,7 +32,7 @@ struct queue_element_t
     queue_element_t* next;
     queue_element_t* previous;
 
-    shared_mutex_t lock;
+    shared_mutex lock;
 
     queue_element_t() = default;
     queue_element_t(T value);

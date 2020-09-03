@@ -58,7 +58,7 @@ bool type_cache_t::remove_field_cache(uint64_t type_id)
 {
     bool removed_field_cache = false;
 
-    auto_lock_t auto_lock(m_lock);
+    unique_lock<shared_mutex> unique_lock(m_lock);
 
     type_map_t::const_iterator iterator = m_type_map.find(type_id);
     if (iterator != m_type_map.end())
@@ -78,7 +78,7 @@ bool type_cache_t::set_field_cache(uint64_t type_id, const field_cache_t* field_
 
     bool inserted_field_cache = false;
 
-    auto_lock_t auto_lock(m_lock);
+    unique_lock<shared_mutex> unique_lock(m_lock);
 
     type_map_t::const_iterator iterator = m_type_map.find(type_id);
     if (iterator == m_type_map.end())

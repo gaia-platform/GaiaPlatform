@@ -8,12 +8,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <shared_mutex>
 #include <unordered_map>
 
 #include "flatbuffers/reflection.h"
 #include "gaia_common.hpp"
-
-#include <synchronization.hpp>
 
 using namespace gaia::common;
 
@@ -107,7 +106,7 @@ protected:
     // Reads from cache will hold read locks, whereas update operations will request exclusive locks.
     // Operations that require exclusive locking are meant to be rare.
     // We can further improve implementation by preloading type information at system startup.
-    gaia::common::shared_mutex_t m_lock;
+    std::shared_mutex m_lock;
 
     // The map used by the type cache.
     type_map_t m_type_map;

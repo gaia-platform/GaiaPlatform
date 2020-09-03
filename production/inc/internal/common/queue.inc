@@ -43,7 +43,7 @@ template <class T> void queue_t<T>::enqueue(const T& value)
     new_first_element->previous = &m_head;
 
     // For next operations, we need to take an exclusive lock on the head.
-    auto_lock_t auto_head_lock(m_head.lock);
+    unique_lock<shared_mutex> unique_lock_head(m_head.lock);
 
     queue_element_t<T>* current_first_element = m_head.next;
 
@@ -51,7 +51,7 @@ template <class T> void queue_t<T>::enqueue(const T& value)
     // to protect ourselves from a dequeue() operation that may try to concurrently remove it.
     // A shared lock will be sufficient here, as it will prevent the exclusive lock
     // requested by dequeue().
-    auto_lock_t auto_first_lock(current_first_element->lock, true);
+    shared_lock<shared_mutex> shared_lock_first(current_first_element->lock);
 
     // We can now safely insert our new node.
     new_first_element->next = current_first_element;
@@ -75,7 +75,7 @@ template <class T> bool queue_t<T>::dequeue_internal(T& value)
     // Create scope for lock release.
     {
         // We need to take an exclusive lock on the tail.
-        auto_lock_t auto_tail_lock(m_tail.lock);
+        unique_lock<shared_mutex> unique_lock_tail(m_tail.lock);
 
         // Read the last element.
         queue_element_t<T>* current_last_element = m_tail.previous;
@@ -95,7 +95,7 @@ template <class T> bool queue_t<T>::dequeue_internal(T& value)
         //
         // There is a second case in which we acquire this lock before the other enqueue() thread
         // and it is us that are blocking the other thread; that case is handled by the checks below.
-        auto_lock_t auto_last_lock(current_last_element->lock);
+        unique_lock<shared_mutex> unique_lock_last(current_last_element->lock);
 
         // With our second lock, it is safe to read the new last element.
         queue_element_t<T>* new_last_element = current_last_element->previous;
@@ -111,8 +111,8 @@ template <class T> bool queue_t<T>::dequeue_internal(T& value)
         //   and a shared lock on the first element.
         // The concurrent operations on the first element are safe because they don't conflict:
         // enqueue() updates the previous link, whereas dequeue() updates the next link.
-        auto_lock_t auto_new_last_lock;
-        if (auto_new_last_lock.try_lock(new_last_element->lock, true) == false)
+        shared_lock<shared_mutex> shared_lock_new_last(new_last_element->lock, std::defer_lock);
+        if (shared_lock_new_last.try_lock() == false)
         {
             retail_assert(
                 new_last_element == &m_head,
