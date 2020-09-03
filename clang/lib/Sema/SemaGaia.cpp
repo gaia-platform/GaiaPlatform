@@ -96,23 +96,15 @@ static unordered_map<string, unordered_map<string, QualType>> getTableData(Sema 
     try 
     {
         DBMonitor monitor;
-        for(catalog::gaia_table_t table = catalog::gaia_table_t::get_first();
-            table; table = table.get_next())
-        {
-            unordered_map<string, QualType> fields;
-            retVal[table.name()] = fields;
-        }
-
-        for(catalog::gaia_field_t field = catalog::gaia_field_t::get_first(); 
-            field; field = field.get_next())
-        {
-            
+        
+        for(catalog::gaia_field_t field : catalog::gaia_field_t::list())
+        {    
             if (static_cast<catalog::data_type_t>(field.type()) == catalog::data_type_t::e_references)
             {
                 continue;
             }
             
-            catalog::gaia_table_t tbl = field.ref_gaia_table();
+            catalog::gaia_table_t tbl = field.gaia_table();
             if (!tbl)
             {
                 s->Diag(loc, diag::err_invalid_table_field) << field.name();
@@ -125,7 +117,6 @@ static unordered_map<string, unordered_map<string, QualType>> getTableData(Sema 
                 return unordered_map<string, unordered_map<string, QualType>>();
             }
             fields[field.name()] = mapFieldType(static_cast<catalog::data_type_t>(field.type()), &s->Context);
-
             retVal[tbl.name()] = fields;
         }
     }
