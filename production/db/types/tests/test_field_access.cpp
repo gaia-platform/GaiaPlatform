@@ -54,7 +54,7 @@ const size_t c_count_credit_amounts = 3;
 const double c_last_yearly_top_credit_amounts[] = { 190000000.39, 29900000.49, 0 };
 const size_t c_index_new_credit_amount = 1;
 const double c_new_credit_amount = 39900000.89;
-const size_t c_new_count_credit_amounts = 5;
+const size_t c_new_count_credit_amounts = 2;
 
 enum field
 {
