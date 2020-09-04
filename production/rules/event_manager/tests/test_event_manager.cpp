@@ -58,7 +58,7 @@ public:
 
     void reset(bool reset_sequence = false)
     {
-        event_type = event_type_t::row_delete;
+        event_type = event_type_t::not_set;
         gaia_type = 0;
         record = 0;
 
@@ -387,7 +387,7 @@ struct rule_decl_t{
  * transaction_commit: rule3, rule4
  * transaction_rollback: rule3, rule4
  */
-static constexpr rule_decl_t s_rule_decl[] = {
+static const rule_decl_t s_rule_decl[] = {
     {{ruleset1_name, rule1_name, TestGaia::s_gaia_type, event_type_t::row_delete, 0}, rule1},
     {{ruleset1_name, rule2_name, TestGaia::s_gaia_type, event_type_t::row_delete, 0}, rule2},
     {{ruleset1_name, rule2_name, TestGaia::s_gaia_type, event_type_t::row_insert, 0}, rule2},
@@ -474,7 +474,7 @@ public:
             }
 
             if (event_type_filter) {
-                if (*event_type_filter != decl.sub.type) {
+                if (*event_type_filter != decl.sub.event_type) {
                     continue;
                 }
             }
@@ -482,7 +482,7 @@ public:
             expected_subscriptions.insert(pair<string, subscription_t>(
                 make_subscription_key(decl.sub),
                 {decl.sub.ruleset_name, decl.sub.rule_name,
-                decl.sub.gaia_type, decl.sub.type, decl.sub.field}));
+                decl.sub.gaia_type, decl.sub.event_type, decl.sub.field}));
         }
 
         return expected_subscriptions;
@@ -493,7 +493,7 @@ public:
         string key = sub.ruleset_name;
         key.append(sub.rule_name);
         key.append(to_string(sub.gaia_type));
-        key.append(to_string((int)sub.type));
+        key.append(to_string((int)sub.event_type));
         return key;
     }
 
@@ -518,7 +518,7 @@ public:
         EXPECT_STREQ(a.ruleset_name, b.ruleset_name);
         EXPECT_STREQ(a.ruleset_name, b.ruleset_name);
         EXPECT_EQ(a.gaia_type, b.gaia_type);
-        EXPECT_EQ(a.type, b.type);
+        EXPECT_EQ(a.event_type, b.event_type);
     }
 
     void setup_all_rules()
@@ -531,7 +531,7 @@ public:
             binding.rule_name = decl.sub.rule_name;
             binding.rule = decl.fn;
 
-            event_type_t event = decl.sub.type;
+            event_type_t event = decl.sub.event_type;
             gaia_type_t gaia_type = decl.sub.gaia_type;
             field_position_list_t fields;
 
@@ -960,8 +960,7 @@ TEST_F(event_manager_test, list_rules_none)
 
     // Verify that the list_subscribed_rules api clears the subscription list the caller
     // passes in.
-    rules.push_back(unique_ptr<subscription_t>(new subscription_t({"a", "b", 0,
-        event_type_t::row_update, s_first_name})));
+    rules.push_back(make_unique<subscription_t>("a", "b", 0, event_type_t::row_update, s_first_name));
 
     EXPECT_EQ(1, rules.size());
 

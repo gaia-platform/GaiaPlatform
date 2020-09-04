@@ -33,13 +33,13 @@ void load_catalog()
 
     name = "Sensors";
     // not active, not deprecated
-    fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t{"inactive", data_type_t::e_string, 1}));
+    fields.push_back(make_unique<ddl::field_definition_t>("inactive", data_type_t::e_string, 1));
     // active, not deprecated
-    fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t{"active", data_type_t::e_float32, 1}));
+    fields.push_back(make_unique<ddl::field_definition_t>("active", data_type_t::e_float32, 1));
     // deprecated
-    fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t{"deprecated", data_type_t::e_uint64, 1}));
+    fields.push_back(make_unique<ddl::field_definition_t>("deprecated", data_type_t::e_uint64, 1));
     // another valid field
-    fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t{"valid", data_type_t::e_uint64, 1}));
+    fields.push_back(make_unique<ddl::field_definition_t>("valid", data_type_t::e_uint64, 1));
 
     // The type of the table is the row id of table in the catalog.
     g_table_type = create_table(name, fields);

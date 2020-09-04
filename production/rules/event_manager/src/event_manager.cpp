@@ -428,12 +428,12 @@ void event_manager_t::add_subscriptions(subscription_list_t& subscriptions,
             continue;
         }
 
-        subscriptions.push_back(unique_ptr<subscription_t>(new subscription_t({
+        subscriptions.push_back(make_unique<subscription_t>(
             rule->ruleset_name.c_str(),
             rule->rule_name.c_str(),
             gaia_type, 
             event_type,
-            field}))
+            field)
         );
     }
 }
