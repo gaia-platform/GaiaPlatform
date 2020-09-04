@@ -179,19 +179,19 @@ class string_reader {
 class rdb_object_converter_util {
    public:
     static void encode_node(
-        const uint64_t id,
-        uint32_t type,
-        uint32_t size,
+        const gaia_id_t id,
+        gaia_type_t type,
+        size_t size,
         const char* payload,
         string_writer* key,
         string_writer* value);
     static void encode_edge(
-        const uint64_t id,
-        uint32_t type,
-        uint32_t size,
+        const gaia_id_t id,
+        gaia_type_t type,
+        size_t size,
         const char* payload,
-        const uint64_t first,
-        const uint64_t second,
+        const gaia_id_t first,
+        const gaia_id_t second,
         string_writer* key,
         string_writer* value);
     static const char* decode_node(

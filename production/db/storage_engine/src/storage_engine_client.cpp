@@ -21,7 +21,8 @@ std::unordered_set<gaia_type_t> client::trigger_excluded_types{
     static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_field),
     static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_ruleset),
     static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_rule),
-    static_cast<gaia_type_t>(system_table_type_t::event_log)
+    static_cast<gaia_type_t>(system_table_type_t::event_log),
+    static_cast<gaia_type_t>(0)
 };
 
 // Should this be initialized by the rules engine instead?

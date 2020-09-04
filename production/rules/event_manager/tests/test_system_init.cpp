@@ -12,6 +12,7 @@
 #include "rules.hpp"
 #include "gaia_catalog.hpp"
 #include "gaia_base.hpp"
+#include "gaia_catalog.h"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -67,7 +68,10 @@ TEST_F(system_init_test, system_initialized)
     subscription_list_t subscriptions;
 
     gaia::system::initialize();
-    gaia_type_t type_id = load_catalog();
+    gaia_id_t table_id = load_catalog();
+    begin_transaction();
+    gaia_type_t type_id = gaia_table_t::get(table_id).type();
+    commit_transaction();
 
     subscribe_rule(type_id, event_type_t::row_update, empty_fields, binding);
     EXPECT_EQ(true, unsubscribe_rule(type_id, event_type_t::row_update, empty_fields, binding));

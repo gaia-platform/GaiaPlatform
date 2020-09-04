@@ -21,11 +21,11 @@ namespace rules
 class rule_checker_t
 {
 public:
-    void check_catalog(gaia_type_t type, const field_position_list_t& field_list);
+    void check_catalog(gaia_type_t type, gaia_id_t id, const field_position_list_t& field_list);
 
 private:
     void check_table_type(gaia_type_t type);
-    void check_fields(gaia_type_t type, const field_position_list_t& field_list);
+    void check_fields(gaia_id_t id, const field_position_list_t& field_list);
 };
 
 } // namespace rules

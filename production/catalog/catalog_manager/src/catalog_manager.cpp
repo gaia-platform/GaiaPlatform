@@ -8,6 +8,7 @@
 #include "fbs_generator.hpp"
 #include "retail_assert.hpp"
 #include "system_table_types.hpp"
+#include "system_base.hpp"
 #include <memory>
 
 using namespace gaia::catalog::ddl;
@@ -76,7 +77,7 @@ void catalog_manager_t::bootstrap_catalog() {
         // create table gaia_database (name string);
         field_def_list_t fields;
         fields.push_back(unique_ptr<field_definition_t>(new ddl::field_definition_t{"name", data_type_t::e_string, 1}));
-        create_table_impl("catalog", "gaia_database", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_database));
+        create_table_impl("catalog", "gaia_database", fields, true, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_database));
     }
     {
         // create table gaia_table (
@@ -98,7 +99,7 @@ void catalog_manager_t::bootstrap_catalog() {
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"max_seconds", data_type_t::e_uint64, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new ddl::field_definition_t{"binary_schema", data_type_t::e_string, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_database"}));
-        create_table_impl("catalog", "gaia_table", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_table));
+        create_table_impl("catalog", "gaia_table", fields, true, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_table));
     }
     {
         // create table gaia_field (
@@ -122,7 +123,7 @@ void catalog_manager_t::bootstrap_catalog() {
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_table"}));
         // The "ref" named reference to the gaia_table defines the referential relationship.
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"ref", data_type_t::e_references, 1, "catalog.gaia_table"}));
-        create_table_impl("catalog", "gaia_field", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_field));
+        create_table_impl("catalog", "gaia_field", fields, true, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_field));
     }
     {
         // create table gaia_ruleset (
@@ -138,7 +139,7 @@ void catalog_manager_t::bootstrap_catalog() {
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"table_ids", data_type_t::e_string, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"source_location", data_type_t::e_string, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"serial_stream", data_type_t::e_string, 1}));
-        create_table_impl("catalog", "gaia_ruleset", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_ruleset));
+        create_table_impl("catalog", "gaia_ruleset", fields, true, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_ruleset));
     }
     {
         // create table gaia_rule (
@@ -149,7 +150,7 @@ void catalog_manager_t::bootstrap_catalog() {
         field_def_list_t fields;
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{"name", data_type_t::e_string, 1}));
         fields.push_back(unique_ptr<field_definition_t>(new field_definition_t{c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_ruleset"}));
-        create_table_impl("catalog", "gaia_rule", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_rule));
+        create_table_impl("catalog", "gaia_rule", fields, true, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_rule));
     }
 }
 
@@ -194,6 +195,8 @@ void catalog_manager_t::reload_cache() {
     clear_cache();
 
     gaia::db::begin_transaction();
+    system_base_t system_base;
+    system_base.init_system_base();
     for (auto db : gaia_database_t::list()) {
         m_db_names[db.name()] = db.gaia_id();
     }
@@ -289,7 +292,7 @@ static gaia_ptr insert_gaia_table_row(
     static constexpr size_t c_gaia_table_num_refs = c_num_gaia_table_ptrs;
 
     flatbuffers::FlatBufferBuilder fbb(c_flatbuffer_builder_size);
-    fbb.Finish(Creategaia_tableDirect(fbb, name, type, is_system, trim_action, max_rows, max_size, max_seconds, binary_schema));
+    fbb.Finish(Creategaia_tableDirect(fbb, name, table_id, is_system, trim_action, max_rows, max_size, max_seconds, binary_schema));
 
     return gaia_ptr::create(
         table_id,                       // id
@@ -309,6 +312,7 @@ gaia_id_t catalog_manager_t::create_table_impl(
     gaia_id_t fixed_id) {
 
     unique_lock<mutex> lock(m_lock);
+    system_base_t system_base;
 
     if (!dbname.empty() && m_db_names.find(dbname) == m_db_names.end()) {
         throw db_not_exists(dbname);
@@ -345,7 +349,7 @@ gaia_id_t catalog_manager_t::create_table_impl(
     if (fixed_id == INVALID_GAIA_ID) {
         table_id = gaia_table_t::insert_row(
             table_name.c_str(),                               // name
-            static_cast<uint32_t>(catalog_table_type_t::gaia_table), // table type
+            system_base.get_next_type(),                      // table type
             is_system,                                        // is_system
             static_cast<uint8_t>(trim_action_type_t::e_none), // trim_action
             0,                                                // max_rows

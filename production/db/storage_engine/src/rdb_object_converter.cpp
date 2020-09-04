@@ -14,9 +14,9 @@ using namespace gaia::db;
  * Value: value_type, payload_size, payload
  */
 void rdb_object_converter_util::encode_node(
-    const uint64_t id,
-    uint32_t type,
-    uint32_t size,
+    const gaia_id_t id,
+    gaia_type_t type,
+    size_t size,
     const char* payload,
     string_writer* key,
     string_writer* value) {
@@ -70,12 +70,12 @@ bool rdb_object_converter_util::is_rdb_object_edge(const rocksdb::Slice& value) 
  * Value: value_type, node_first, node_second, payload_size, payload
  */
 void rdb_object_converter_util::encode_edge(
-    const uint64_t id,
-    uint32_t type,
-    uint32_t size,
+    const gaia_id_t id,
+    gaia_type_t type,
+    size_t size,
     const char* payload,
-    const uint64_t first,
-    const uint64_t second,
+    const gaia_id_t first,
+    const gaia_id_t second,
     string_writer* key,
     string_writer* value) {
     // Create key.

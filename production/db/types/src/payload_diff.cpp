@@ -13,6 +13,7 @@
 #include "field_access.hpp"
 #include "gaia_catalog.h"
 #include "gaia_catalog.hpp"
+#include "system_table_types.hpp"
 
 namespace gaia {
 namespace db {
@@ -23,20 +24,25 @@ void compute_payload_diff(gaia_id_t type_id, const uint8_t *payload1, const uint
     // Make sure caller passes valid pointer to changed_fields.
     assert(changed_fields);
     // Query the catalog for the schema
-    gaia::catalog::gaia_table_t table = gaia::catalog::gaia_table_t::get(type_id);
-    string schema = gaia::catalog::get_bfbs(type_id);
+    for (auto table = gaia::catalog::gaia_table_t::get_first();
+         table;
+         table = table.get_next()) {
+        if (table.type() == type_id) {
 
-    for (auto field : gaia::catalog::gaia_table_t::get(type_id).gaia_field_list()) {
-        if (field.type() != static_cast<uint8_t>(gaia::catalog::data_type_t::e_references)) {
-            field_position_t pos = field.position();
-            data_holder_t data_holder1 = get_field_value(
-                type_id, payload1, reinterpret_cast<const uint8_t *>(schema.c_str()), pos);
-            data_holder_t data_holder2 = get_field_value(
-                type_id, payload2, reinterpret_cast<const uint8_t *>(schema.c_str()), pos);
+            string schema = gaia::catalog::get_bfbs(table.gaia_id());
+            for (auto field : table.gaia_field_list()) {
+                if (field.type() != static_cast<uint8_t>(gaia::catalog::data_type_t::e_references)) {
+                    field_position_t pos = field.position();
+                    data_holder_t data_holder1 = get_field_value(
+                        type_id, payload1, reinterpret_cast<const uint8_t *>(schema.c_str()), pos);
+                    data_holder_t data_holder2 = get_field_value(
+                        type_id, payload2, reinterpret_cast<const uint8_t *>(schema.c_str()), pos);
 
-            // Compare values and set.
-            if (data_holder1.compare(data_holder2) != 0) {
-                changed_fields->push_back(pos);
+                    // Compare values and set.
+                    if (data_holder1.compare(data_holder2) != 0) {
+                        changed_fields->push_back(pos);
+                    }
+                }
             }
         }
     }

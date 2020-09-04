@@ -30,6 +30,7 @@ add_library(gaia_catalog STATIC
   src/catalog_manager.cpp
   src/fbs_generator.cpp
   src/gaia_generate.cpp
+  src/system_base.cpp
   ${FLATBUFFERS}/src/code_generators.cpp)
 set_target_properties(gaia_catalog PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 target_include_directories(gaia_catalog PUBLIC ${GAIA_CATALOG_LIB_PUBLIC_INCLUDES})

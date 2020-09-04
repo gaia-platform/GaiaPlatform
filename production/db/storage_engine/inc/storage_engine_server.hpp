@@ -186,6 +186,7 @@ class server : private se_base {
             PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_offsets, 0));
         s_data = static_cast<data*>(map_fd(sizeof(data),
             PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_data, 0));
+        s_data->next_id = 1;
         cleanup_memory.dismiss();
     }
 
