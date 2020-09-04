@@ -206,6 +206,19 @@ TEST_F(gaia_iterator_test, not_equal) {
     EXPECT_TRUE((a != a) == !(a == a));
 }
 
+// Is the reference iterator trait convertible into the value_type iterator
+// trait?
+TEST_F(gaia_iterator_test, reference_convertibility) {
+    typedef iterator_traits<gaia_iterator_t<employee_t>>::reference from_t;
+    typedef iterator_traits<gaia_iterator_t<employee_t>>::value_type to_t;
+
+    bool convertible = is_convertible<from_t, to_t>::value;
+
+    EXPECT_TRUE(convertible)
+        << "The reference iterator trait is not convertible into the "
+        "value_type iterator trait.";
+}
+
 // Are iterators dereferenceable as rvalues?
 TEST_F(gaia_iterator_test, dereferenceable_rvalue) {
     const char* emp_name = "Employee0";

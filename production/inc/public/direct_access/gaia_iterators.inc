@@ -12,6 +12,12 @@ namespace direct_access
 // Implementation for gaia_iterator_t.
 //
 template <typename T_gaia>
+gaia_iterator_t<T_gaia>::gaia_iterator_t(gaia_id_t id) : m_id(id) {}
+
+template <typename T_gaia>
+gaia_iterator_t<T_gaia>::gaia_iterator_t() : m_id(0) {}
+
+template <typename T_gaia>
 gaia_iterator_t<T_gaia>& gaia_iterator_t<T_gaia>::operator++()
 {
     if (!m_id)
@@ -58,13 +64,14 @@ bool gaia_iterator_t<T_gaia>::operator!=(const gaia_iterator_t& rhs) const
 }
 
 template <typename T_gaia>
-T_gaia gaia_iterator_t<T_gaia>::operator*()
+typename gaia_iterator_t<T_gaia>::reference gaia_iterator_t<T_gaia>::operator*()
 {
-    return T_gaia::get(m_id);
+    m_obj = T_gaia::get(m_id);
+    return m_obj;
 }
 
 template <typename T_gaia>
-T_gaia* gaia_iterator_t<T_gaia>::operator->()
+typename gaia_iterator_t<T_gaia>::pointer gaia_iterator_t<T_gaia>::operator->()
 {
     m_obj = T_gaia::get(m_id);
     return &m_obj;

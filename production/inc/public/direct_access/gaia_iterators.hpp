@@ -33,13 +33,14 @@ class gaia_iterator_t {
     gaia_id_t m_id;
     T_gaia m_obj;
 public:
-    using iterator_category = std::forward_iterator_tag;
-    using value_type = gaia_id_t;
     using difference_type = std::ptrdiff_t;
-    using pointer = gaia_id_t*;
-    using reference = gaia_id_t&;
+    using value_type = T_gaia;
+    using pointer = T_gaia*;
+    using reference = T_gaia&;
+    using iterator_category = std::forward_iterator_tag;
 
-    gaia_iterator_t(gaia_id_t id) : m_id(id) {}
+    gaia_iterator_t(gaia_id_t id);
+    gaia_iterator_t();
 
     gaia_iterator_t<T_gaia>& operator++();
 
@@ -49,9 +50,9 @@ public:
 
     bool operator!=(const gaia_iterator_t& rhs) const;
 
-    T_gaia operator*();
+    reference operator*();
 
-    T_gaia* operator->();
+    pointer operator->();
 };
 
 // A gaia_container_t is defined within each EDC and used by programmers to scan
