@@ -192,7 +192,7 @@ void event_manager_t::subscribe_rule(
     // set to true in its settings.
     if (m_rule_checker)
     {
-        // WLW find the id of the table defining gaia_type.
+        // Find the id of the table defining gaia_type.
         gaia_id_t table_id = INVALID_GAIA_ID;
         bool is_transaction_owner = !is_transaction_active();
         if (is_transaction_owner) {

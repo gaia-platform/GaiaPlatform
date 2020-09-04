@@ -285,7 +285,7 @@ static string generate_edc_struct(gaia_type_t table_type_id, string table_name, 
 
             code += "reference_chain_container_t<{{TABLE_NAME}}_t, {{REF_TABLE}}_t, c_parent_{{REF_NAME}}_{{TABLE_NAME}}, "
                     "c_first_{{REF_NAME}}_{{REF_TABLE}}, c_next_{{REF_NAME}}_{{REF_TABLE}}> m_{{REF_NAME}}_{{REF_TABLE}}_list;";
-            code += "reference_chain_container_t<{{TABLE_NAME}}_t,{{REF_TABLE}}_t,c_parent_{{REF_NAME}}_{{TABLE_NAME}}, "
+            code += "reference_chain_container_t<{{TABLE_NAME}}_t, {{REF_TABLE}}_t, c_parent_{{REF_NAME}}_{{TABLE_NAME}}, "
                     "c_first_{{REF_NAME}}_{{REF_TABLE}}, c_next_{{REF_NAME}}_{{REF_TABLE}}>& {{REF_NAME}}_{{REF_TABLE}}_list() {";
 
             code.IncrementIdentLevel();
@@ -294,9 +294,9 @@ static string generate_edc_struct(gaia_type_t table_type_id, string table_name, 
             // This relationship is anonymous.
             code.SetValue("REF_NAME", ref.name);
 
-            code += "reference_chain_container_t<{{TABLE_NAME}}_t,{{REF_TABLE}}_t,c_parent_{{REF_TABLE}}_{{TABLE_NAME}}, "
+            code += "reference_chain_container_t<{{TABLE_NAME}}_t, {{REF_TABLE}}_t, c_parent_{{REF_TABLE}}_{{TABLE_NAME}}, "
                     "c_first_{{REF_NAME}}_{{REF_TABLE}}, c_next_{{REF_NAME}}_{{REF_TABLE}}> m_{{REF_NAME}}_list;";
-            code += "reference_chain_container_t<{{TABLE_NAME}}_t,{{REF_TABLE}}_t,c_parent_{{REF_TABLE}}_{{TABLE_NAME}}, "
+            code += "reference_chain_container_t<{{TABLE_NAME}}_t, {{REF_TABLE}}_t, c_parent_{{REF_TABLE}}_{{TABLE_NAME}}, "
                     "c_first_{{REF_NAME}}_{{REF_TABLE}}, c_next_{{REF_NAME}}_{{REF_TABLE}}>& {{REF_NAME}}_list() {";
 
             code.IncrementIdentLevel();

@@ -76,8 +76,8 @@ struct gaia_database_t : public gaia_object_t<c_gaia_type_gaia_database, gaia_da
         static gaia_container_t<c_gaia_type_gaia_database, gaia_database_t> list;
         return list;
     }
-    reference_chain_container_t<gaia_database_t,gaia_table_t,c_parent_gaia_table_gaia_database, c_first_gaia_table_gaia_table, c_next_gaia_table_gaia_table> m_gaia_table_list;
-    reference_chain_container_t<gaia_database_t,gaia_table_t,c_parent_gaia_table_gaia_database, c_first_gaia_table_gaia_table, c_next_gaia_table_gaia_table>& gaia_table_list() {
+    reference_chain_container_t<gaia_database_t, gaia_table_t, c_parent_gaia_table_gaia_database, c_first_gaia_table_gaia_table, c_next_gaia_table_gaia_table> m_gaia_table_list;
+    reference_chain_container_t<gaia_database_t, gaia_table_t, c_parent_gaia_table_gaia_database, c_first_gaia_table_gaia_table, c_next_gaia_table_gaia_table>& gaia_table_list() {
         return m_gaia_table_list;
     }
 private:
@@ -105,8 +105,8 @@ struct gaia_ruleset_t : public gaia_object_t<c_gaia_type_gaia_ruleset, gaia_rule
         static gaia_container_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t> list;
         return list;
     }
-    reference_chain_container_t<gaia_ruleset_t,gaia_rule_t,c_parent_gaia_rule_gaia_ruleset, c_first_gaia_rule_gaia_rule, c_next_gaia_rule_gaia_rule> m_gaia_rule_list;
-    reference_chain_container_t<gaia_ruleset_t,gaia_rule_t,c_parent_gaia_rule_gaia_ruleset, c_first_gaia_rule_gaia_rule, c_next_gaia_rule_gaia_rule>& gaia_rule_list() {
+    reference_chain_container_t<gaia_ruleset_t, gaia_rule_t, c_parent_gaia_rule_gaia_ruleset, c_first_gaia_rule_gaia_rule, c_next_gaia_rule_gaia_rule> m_gaia_rule_list;
+    reference_chain_container_t<gaia_ruleset_t, gaia_rule_t, c_parent_gaia_rule_gaia_ruleset, c_first_gaia_rule_gaia_rule, c_next_gaia_rule_gaia_rule>& gaia_rule_list() {
         return m_gaia_rule_list;
     }
 private:
@@ -163,12 +163,12 @@ struct gaia_table_t : public gaia_object_t<c_gaia_type_gaia_table, gaia_table_t,
         static gaia_container_t<c_gaia_type_gaia_table, gaia_table_t> list;
         return list;
     }
-    reference_chain_container_t<gaia_table_t,gaia_field_t,c_parent_gaia_field_gaia_table, c_first_gaia_field_gaia_field, c_next_gaia_field_gaia_field> m_gaia_field_list;
-    reference_chain_container_t<gaia_table_t,gaia_field_t,c_parent_gaia_field_gaia_table, c_first_gaia_field_gaia_field, c_next_gaia_field_gaia_field>& gaia_field_list() {
+    reference_chain_container_t<gaia_table_t, gaia_field_t, c_parent_gaia_field_gaia_table, c_first_gaia_field_gaia_field, c_next_gaia_field_gaia_field> m_gaia_field_list;
+    reference_chain_container_t<gaia_table_t, gaia_field_t, c_parent_gaia_field_gaia_table, c_first_gaia_field_gaia_field, c_next_gaia_field_gaia_field>& gaia_field_list() {
         return m_gaia_field_list;
     }
     reference_chain_container_t<gaia_table_t, gaia_field_t, c_parent_ref_gaia_table, c_first_ref_gaia_field, c_next_ref_gaia_field> m_ref_gaia_field_list;
-    reference_chain_container_t<gaia_table_t,gaia_field_t,c_parent_ref_gaia_table, c_first_ref_gaia_field, c_next_ref_gaia_field>& ref_gaia_field_list() {
+    reference_chain_container_t<gaia_table_t, gaia_field_t, c_parent_ref_gaia_table, c_first_ref_gaia_field, c_next_ref_gaia_field>& ref_gaia_field_list() {
         return m_ref_gaia_field_list;
     }
 private:
