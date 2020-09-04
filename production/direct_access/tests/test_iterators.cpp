@@ -401,5 +401,5 @@ TEST_F(gaia_iterator_test, post_increment) {
 // values at the same positions every time? This is known as the multipass
 // guarantee.
 TEST_F(gaia_iterator_test, multipass_guarantee) {
-    
+
 }
