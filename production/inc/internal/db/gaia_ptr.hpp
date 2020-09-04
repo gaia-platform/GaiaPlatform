@@ -157,7 +157,18 @@ class gaia_ptr {
         return to_ptr()->num_references;
     }
 
-   protected:
+    /**
+     * Adds a child reference to a parent object. Fails if there is no relation
+     * between the two objects.
+     *
+     * @param child_id: The id of the children.
+     * @param first_child: The offset in the payload where the pointer to the child is placed.
+     * @throws Exceptions there is no relation between the parent and the child.
+     */
+    void add_child_reference(gaia_id_t child_id, relation_offset_t first_child);
+
+
+  protected:
 
     gaia_ptr(const gaia_id_t id);
 

@@ -11,6 +11,7 @@
 #include "payload_diff.hpp"
 #include "field_list.hpp"
 #include "triggers.hpp"
+#include "gaia_types.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -61,7 +62,7 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data) {
     if (client::is_valid_event(new_this->type)) {
         auto old_data = (const uint8_t*) old_this->payload;
 
-        const uint8_t* old_data_payload; 
+        const uint8_t* old_data_payload;
 
         if (old_this->num_references) {
             old_data_payload = old_data + sizeof(gaia_id_t) * old_this->num_references;
@@ -131,4 +132,52 @@ void gaia_ptr::reset() {
     }
     (*client::s_offsets)[row_id] = 0;
     row_id = 0;
+}
+
+void gaia_ptr::add_child_reference(gaia_id_t child_id, relation_offset_t first_child) {
+    auto parent_type = type();
+    auto parent_metadata = type_registry_t::instance().get_metadata(type());
+    auto parent_relation_opt = parent_metadata.find_parent_relation(parent_type);
+
+    if (!parent_relation_opt.has_value()) {
+        throw invalid_relation_offset_t(parent_type, first_child);
+    }
+
+    // CHECK TYPES
+
+    auto relation = parent_relation_opt.value();
+
+    if (relation.parent_type != parent_type) {
+        throw invalid_relation_type_t(first_child, parent_type, relation.parent_type);
+    }
+
+    auto child_ptr = gaia_ptr(child_id);
+
+    if (relation.child_type != child_ptr.type()) {
+        throw invalid_relation_type_t(first_child, child_ptr.type(), relation.child_type);
+    }
+
+    // CHECK CARDINALITY
+
+    if (references()[first_child] != INVALID_GAIA_ID) {
+        // this parent already has a child for this relation.
+        // If the relation is one-to-one we fail.
+        if (relation.cardinality == cardinality_t::one) {
+            throw single_cardinality_violation_t(parent_type, first_child);
+        }
+    }
+
+    // Note: we check only for parent under the assumption that the relational integrity
+    // is preserved thus if there are no parent references there are no next_child either
+    if (child_ptr.references()[relation.parent] != INVALID_GAIA_ID) {
+        // ATM we don't allow a reference to be re-assigned on the fly.
+        // Users need to explicitly delete the existing reference.
+        // In future we may introduce flags/parameters that allow to do so.
+        throw child_already_in_relation_t(child_ptr.type(), relation.parent);
+    }
+
+    // BUILD THE REFERENCES
+    child_ptr.references()[relation.next_child] = references()[first_child];
+    references()[first_child] = child_ptr.id();
+    child_ptr.references()[relation.parent] = id();
 }
