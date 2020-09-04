@@ -32,7 +32,7 @@ struct queue_element_t
     queue_element_t* next;
     queue_element_t* previous;
 
-    shared_mutex lock;
+    mutable shared_mutex lock;
 
     queue_element_t() = default;
     queue_element_t(T value);
@@ -53,7 +53,7 @@ public:
     // If the queue is empty, the value will be left unset.
     void dequeue(T& value);
 
-    bool is_empty();
+    bool is_empty() const;
 
 protected:
 

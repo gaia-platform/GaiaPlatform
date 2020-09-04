@@ -43,7 +43,7 @@ public:
     ~record_range_t();
 
     // Tells whether the range is full.
-    bool is_full();
+    bool is_full() const;
 
     // Compact a range by removing deleted entries.
     void compact();
@@ -73,7 +73,7 @@ protected:
     record_range_t* m_next_range;
 
     // A lock for synchronizing operations on a range.
-    std::shared_mutex m_lock;
+    mutable std::shared_mutex m_lock;
 };
 
 struct record_iterator_t

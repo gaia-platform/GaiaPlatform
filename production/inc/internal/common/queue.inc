@@ -141,7 +141,7 @@ template <class T> bool queue_t<T>::dequeue_internal(T& value)
     return true;
 }
 
-template <class T> bool queue_t<T>::is_empty()
+template <class T> bool queue_t<T>::is_empty() const
 {
     return (m_tail.previous == &m_head);
 }
