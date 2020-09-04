@@ -11,7 +11,7 @@
 #include "payload_diff.hpp"
 #include "field_list.hpp"
 #include "triggers.hpp"
-#include "gaia_types.hpp"
+#include "type_metadata.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -136,8 +136,8 @@ void gaia_ptr::reset() {
 
 void gaia_ptr::add_child_reference(gaia_id_t child_id, relation_offset_t first_child) {
     auto parent_type = type();
-    auto parent_metadata = type_registry_t::instance().get_metadata(type());
-    auto parent_relation_opt = parent_metadata.find_parent_relation(parent_type);
+    auto parent_metadata = type_registry_t::instance().get_metadata(parent_type);
+    auto parent_relation_opt = parent_metadata.find_parent_relation(first_child);
 
     if (!parent_relation_opt.has_value()) {
         throw invalid_relation_offset_t(parent_type, first_child);
@@ -177,6 +177,7 @@ void gaia_ptr::add_child_reference(gaia_id_t child_id, relation_offset_t first_c
     }
 
     // BUILD THE REFERENCES
+
     child_ptr.references()[relation.next_child] = references()[first_child];
     references()[first_child] = child_ptr.id();
     child_ptr.references()[relation.parent] = id();

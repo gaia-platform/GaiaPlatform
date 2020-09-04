@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gaia_types.hpp"
+#include "type_metadata.hpp"
 
 using std::map;
 
@@ -40,23 +40,24 @@ void type_metadata_t::add_child_relation(relation_offset_t offset, shared_ptr<re
 gaia_type_t type_metadata_t::get_type() const {
     return m_type;
 }
+size_t type_metadata_t::num_references() {
+    return m_parent_relations.size() + (2 * m_child_relations.size());
+}
 
-const type_metadata_t &type_registry_t::get_metadata(gaia_type_t type) const {
+type_metadata_t &type_registry_t::get_metadata(gaia_type_t type) {
     auto metadata = m_metadata_registry.find(type);
 
     if (metadata == m_metadata_registry.end()) {
-        throw metadata_not_found(type);
+        auto new_metadata = make_unique<type_metadata_t>(type);
+        m_metadata_registry.insert({type, std::move(new_metadata)});
+        return *(m_metadata_registry[type].get());
     }
 
     return *metadata->second;
 }
 
-void type_registry_t::add_metadata(gaia_type_t type, unique_ptr<type_metadata_t> metadata) {
-    if (m_metadata_registry.find(type) != m_metadata_registry.end()) {
-        throw duplicated_metadata(type);
-    }
-
-    m_metadata_registry.insert({type, std::move(metadata)});
+void type_registry_t::clear() {
+    m_metadata_registry.clear();
 }
 
 } // namespace gaia::db

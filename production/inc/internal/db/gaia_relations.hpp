@@ -32,7 +32,8 @@ enum class modality_t {
 
 /**
  * Describe one single relation between two types. By definition, a relation involves two types;
- * therefore, a reference to this structure will be available on both sides of the relation.
+ * therefore, a reference to this structure will be associated with the types on both sides of
+ * the relation.
  */
 struct relation_t {
     gaia_type_t parent_type;

@@ -37,26 +37,18 @@ class type_metadata_t {
     void add_child_relation(relation_offset_t offset, shared_ptr<relation_t> relation);
     void add_parent_relation(relation_offset_t offset, shared_ptr<relation_t> relation);
 
+    /**
+     * Counts the number of reference this type has both as parent and child.
+     * Note: child references count 2X, since 2 pointers are necessary to express them.
+     */
+    size_t num_references();
+
   private:
     gaia_type_t m_type;
 
     // the relation_t objects are shared between the parent and the child side of the relation.
     map<relation_offset_t, shared_ptr<relation_t>> m_parent_relations;
     map<relation_offset_t, shared_ptr<relation_t>> m_child_relations;
-};
-
-/**
- * Thrown when user look up metadata for a non-existent type.
- * There should not be a case when you try to lookup for a type id that
- * does not exist.
- */
-class metadata_not_found : public gaia_exception {
-  public:
-    explicit metadata_not_found(const gaia_type_t type) {
-        stringstream message;
-        message << "Metadata not found for Gaia type \"" << type << "\"";
-        m_message = message.str();
-    }
 };
 
 class duplicated_metadata : public gaia_exception {
@@ -69,8 +61,8 @@ class duplicated_metadata : public gaia_exception {
 };
 
 /**
- * Maintain the instances of type_metadata_t. This class owns the objects and
- * will release them when destroyed.
+ * Maintain the instances of type_metadata_t. This class creates and owns
+ * the metadata.
  */
 class type_registry_t {
   public:
@@ -91,15 +83,18 @@ class type_registry_t {
     type_registry_t() : m_metadata_registry(){};
 
     /**
-     * Returns an instance of type_metadata_t or throws
-     * an exception if the type does not exist.
+     * Returns an instance of type_metadata_t. If no metadata existed for the
+     * given type, a new instance is created an returned. Clients are allowed
+     * to modify the returned metadata, although the registry keeps ownership.
      */
-    const type_metadata_t &get_metadata(gaia_type_t type) const;
+    type_metadata_t &get_metadata(gaia_type_t type);
 
     /**
-     * Add metadata for a given type. Throw an exception if already existing.
+     * FOR TESTING. There are situation where its not possible
+     * to use a mocked version of this class (gaia_ptr). This
+     * method allow cleaning the registry between tests.
      */
-    void add_metadata(gaia_type_t type, unique_ptr<type_metadata_t> metadata);
+    void clear();
 
   private:
     map<gaia_type_t, unique_ptr<type_metadata_t>> m_metadata_registry;
