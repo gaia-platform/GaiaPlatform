@@ -401,5 +401,29 @@ TEST_F(gaia_iterator_test, post_increment) {
 // values at the same positions every time? This is known as the multipass
 // guarantee.
 TEST_F(gaia_iterator_test, multipass_guarantee) {
+    const int LENGTH = 10;
+    const int PASSES = 10;
 
+    auto_transaction_t tx;
+    auto emp_writer = employee_writer();
+    employee_t employees[LENGTH];
+
+    for (int i = 0; i < LENGTH; i++)
+    {
+        emp_writer.ssn = to_string(i).c_str();
+        employees[i] = employee_t::get(emp_writer.insert_row());
+    }
+    tx.commit();
+
+    gaia_iterator_t<employee_t> emp_iter = employee_t::list().begin();
+    for (int i = 0; i < PASSES; i++)
+    {
+        for (int j = 0; j < LENGTH; j++)
+        {
+            ASSERT_TRUE(*emp_iter == employees[j])
+                << "The iterator does not support a multipass guarantee.";
+            ++emp_iter;
+        }
+        emp_iter = employee_t::list().begin();
+    }
 }
