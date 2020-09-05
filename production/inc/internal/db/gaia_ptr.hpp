@@ -244,7 +244,9 @@ public:
      * of the given type. This is essentially a proof-of-concept for server-side
      * cursors, which will be extended to support server-side filters.
      */
-    static auto find_all_iter(gaia_type_t type) {
+    static auto find_all_iter(
+        gaia_type_t type,
+        std::function<bool(gaia_ptr)> user_predicate = [](gaia_ptr) { return true; }) {
         // Get the gaia_id generator and wrap it in a gaia_ptr generator.
         std::function<std::optional<gaia_id_t>()> id_generator = get_id_generator_for_type(type);
         std::function<std::optional<gaia_ptr>()> gaia_ptr_generator = [id_generator]() -> std::optional<gaia_ptr> {
@@ -258,8 +260,11 @@ public:
         // directly constructing a range from the generator, because we need
         // to filter out values corresponding to deleted objects, and we can
         // do that only by supplying a predicate to the iterator.
-        std::function<bool(gaia_ptr)> gaia_ptr_predicate = [](gaia_ptr ptr) {
-            return !ptr.is_null();
+        // REVIEW: this can filter out objects that do not exist in the client view,
+        // but it cannot return objects that only exist in the client view.
+        // That will require merging the client's transaction log.
+        std::function<bool(gaia_ptr)> gaia_ptr_predicate = [user_predicate](gaia_ptr ptr) {
+            return !ptr.is_null() && user_predicate(ptr);
         };
         auto gaia_ptr_iterator = gaia::common::iterators::generator_iterator(
             gaia_ptr_generator,
@@ -272,8 +277,10 @@ public:
      * of the given type. This is essentially a proof-of-concept for server-side
      * cursors, which will be extended to support server-side filters.
      */
-    static auto find_all_range(gaia_type_t type) {
-        return gaia::common::iterators::range(find_all_iter(type));
+    static auto find_all_range(
+        gaia_type_t type,
+        std::function<bool(gaia_ptr)> user_predicate = [](gaia_ptr) { return true; }) {
+        return gaia::common::iterators::range(find_all_iter(type, user_predicate));
     }
 
 protected:

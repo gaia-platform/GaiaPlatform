@@ -211,13 +211,13 @@ TEST_F(storage_engine_client_test, iterate_type) {
 TEST_F(storage_engine_client_test, iterate_type_cursor) {
     begin_transaction();
     {
-        std::cerr << std::endl;
-        std::cerr << "*** Iterating over nodes of type 1:" << std::endl;
-
         try
         {
-            gaia_type_t type = 1;
             gaia_id_t id = 1;
+
+            std::cerr << std::endl;
+            std::cerr << "*** Iterating over nodes of type 1:" << std::endl;
+            gaia_type_t type = 1;
             for (auto node : gaia_ptr::find_all_range(type))
             {
                 print_node(node);
@@ -233,6 +233,16 @@ TEST_F(storage_engine_client_test, iterate_type_cursor) {
                 print_node(node);
                 EXPECT_EQ(node.id(), id);
                 id++;
+            }
+
+            std::cerr << std::endl;
+            std::cerr << "*** Iterating over nodes with predicate:" << std::endl;
+            type = 1;
+            for (auto node : gaia_ptr::find_all_range(type,
+                [](gaia_ptr ptr) { return ptr.id() == 1; }))
+            {
+                print_node(node);
+                EXPECT_EQ(node.id(), 1);
             }
 
             std::cerr << std::endl;
