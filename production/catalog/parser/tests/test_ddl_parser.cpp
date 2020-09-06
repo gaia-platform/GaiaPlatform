@@ -21,6 +21,21 @@ TEST(catalog_ddl_parser_test, create_table) {
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_table);
     EXPECT_EQ(create_stmt->name, "t");
+    EXPECT_FALSE(create_stmt->if_not_exists);
+}
+
+TEST(catalog_ddl_parser_test, create_table_if_not_exists) {
+    parser_t parser;
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE IF NOT EXISTS t (c INT32);"));
+
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+
+    auto create_stmt = dynamic_cast<create_statement_t *>(parser.statements[0].get());
+
+    EXPECT_EQ(create_stmt->type, create_type_t::create_table);
+    EXPECT_EQ(create_stmt->name, "t");
+    EXPECT_TRUE(create_stmt->if_not_exists);
 }
 
 TEST(catalog_ddl_parser_test, create_table_multiple_fields) {
@@ -140,6 +155,21 @@ TEST(catalog_ddl_parser_test, create_database) {
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_database);
     EXPECT_EQ(create_stmt->name, "db");
+    EXPECT_FALSE(create_stmt->if_not_exists);
+}
+
+TEST(catalog_ddl_parser_test, create_database_if_not_exists) {
+    parser_t parser;
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE DATABASE IF NOT EXISTS db;"));
+
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
+
+    auto create_stmt = dynamic_cast<create_statement_t *>(parser.statements[0].get());
+
+    EXPECT_EQ(create_stmt->type, create_type_t::create_database);
+    EXPECT_EQ(create_stmt->name, "db");
+    EXPECT_TRUE(create_stmt->if_not_exists);
 }
 
 TEST(catalog_ddl_parser_test, create_table_in_database) {

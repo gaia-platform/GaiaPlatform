@@ -149,6 +149,8 @@ struct create_statement_t : statement_t {
     string database;
 
     field_def_list_t fields;
+
+    bool if_not_exists;
 };
 
 enum class drop_type_t : uint8_t {
