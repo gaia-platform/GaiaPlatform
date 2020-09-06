@@ -11,29 +11,33 @@
 namespace gaia {
 namespace catalog {
 
-void execute(const string &dbname, vector<unique_ptr<ddl::statement_t>> &statements, bool throw_on_exist = true) {
+void execute(const string &dbname, vector<unique_ptr<ddl::statement_t>> &statements) {
     for (auto &stmt : statements) {
         if (stmt->is_type(ddl::statement_type_t::create)) {
             auto create_stmt = dynamic_cast<ddl::create_statement_t *>(stmt.get());
+            bool throw_on_exist = true;
+            if (create_stmt->if_not_exists) {
+                throw_on_exist = false;
+            }
             if (create_stmt->type == ddl::create_type_t::create_table) {
                 if (!create_stmt->database.empty()) {
-                    gaia::catalog::create_table(create_stmt->database, create_stmt->name, create_stmt->fields, throw_on_exist);
+                    create_table(create_stmt->database, create_stmt->name, create_stmt->fields, throw_on_exist);
                 } else {
-                    gaia::catalog::create_table(dbname, create_stmt->name, create_stmt->fields, throw_on_exist);
+                    create_table(dbname, create_stmt->name, create_stmt->fields, throw_on_exist);
                 }
             } else if (create_stmt->type == ddl::create_type_t::create_database) {
-                gaia::catalog::create_database(create_stmt->name, throw_on_exist);
+                create_database(create_stmt->name, throw_on_exist);
             }
         } else if (stmt->is_type(ddl::statement_type_t::drop)) {
             auto drop_stmt = dynamic_cast<ddl::drop_statement_t *>(stmt.get());
             if (drop_stmt->type == ddl::drop_type_t::drop_table) {
-                gaia::catalog::drop_table(drop_stmt->database, drop_stmt->name);
+                drop_table(drop_stmt->database, drop_stmt->name);
             }
         }
     }
 }
 
-string load_catalog(parser_t &parser, const string &ddl_filename, const string &name, bool throw_on_exist = true) {
+string load_catalog(parser_t &parser, const string &ddl_filename, const string &name) {
     string db(name);
     retail_assert(!ddl_filename.empty(), "No ddl file specified.");
 
@@ -49,10 +53,10 @@ string load_catalog(parser_t &parser, const string &ddl_filename, const string &
         if (db.find(".") != string::npos) {
             db= db.substr(0, db.find_last_of("."));
         }
-        create_database(db, throw_on_exist);
+        create_database(db, false);
     }
 
-    execute(db, parser.statements, throw_on_exist);
+    execute(db, parser.statements);
     return db;
 }
 
