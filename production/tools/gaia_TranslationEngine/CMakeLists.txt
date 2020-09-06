@@ -212,9 +212,13 @@ target_link_libraries(gaiat
   explain
 )
 
-#add_gtest(test_translation_engine 
-#  "tests/test_translation_engine.cpp;tests/test.cpp" 
-#  "${TRANSLATION_ENGINE_INCLUDES}" 
-#  "rt;gaia_se_client;gaia_rules;gaia_direct;gaia_types;gaia_common;gaia_catalog;gaia_parser;flatbuffers;explain")
+add_gtest(test_translation_engine 
+  "tests/test_translation_engine.cpp;${GAIA_GENERATED_SCHEMAS}/test.cpp" 
+  "${TRANSLATION_ENGINE_INCLUDES};${GAIA_GENERATED_SCHEMAS}" 
+  "rt;gaia_se_client;gaia_rules;gaia_direct;gaia_types;gaia_common;gaia_catalog;gaia_parser;flatbuffers;explain"
+  "generate_incubator_headers" ""
+  "INCUBATOR_DDL_FILE=${GAIA_REPO}/production/schemas/test/incubator/barn_storage.ddl"
+  )
+  
 
 

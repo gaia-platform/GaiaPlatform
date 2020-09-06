@@ -127,6 +127,12 @@ class DBMonitor
         }
 };
 
+void fillTableDBData(catalog::gaia_table_t &table)
+{
+    auto db = table.gaia_database();
+    tableDBData[table.name()] = db.name();
+}
+
 unordered_map<string, unordered_map<string, FieldData>> getTableData()
 {
     unordered_map<string, unordered_map<string, FieldData>> retVal;
@@ -134,27 +140,18 @@ unordered_map<string, unordered_map<string, FieldData>> getTableData()
     {
         DBMonitor monitor;
     
-        for (catalog::gaia_table_t table = catalog::gaia_table_t::get_first(); 
-            table; table = table.get_next())
-        {
-            auto db = table.gaia_database();
-            tableDBData[table.name()] = db.name();
-            unordered_map<string, FieldData> fields;
-            retVal[table.name()] = fields;
-        }
-
-        for (catalog::gaia_field_t field = catalog::gaia_field_t::get_first(); 
-            field; field = field.get_next())
+        for (catalog::gaia_field_t field : catalog::gaia_field_t::list())
         {
             if (static_cast<gaia::catalog::data_type_t>(field.type()) != gaia::catalog::data_type_t::e_references)
             {
-                catalog::gaia_table_t tbl = catalog::gaia_table_t::get(field.gaia_table());
+                catalog::gaia_table_t tbl = field.gaia_table();
                 if (!tbl)
                 {
                     llvm::errs() << "Incorrect table for field " << field.name() << "\n";
                     generationError = true;
                     return unordered_map<string, unordered_map<string, FieldData>>();
                 }
+                
                 unordered_map<string, FieldData> fields = retVal[tbl.name()];
                 if (fields.find(field.name()) != fields.end())
                 {
@@ -167,11 +164,11 @@ unordered_map<string, unordered_map<string, FieldData>> getTableData()
                 fieldData.position = field.position();
                 fields[field.name()] = fieldData;
                 retVal[tbl.name()] = fields;
+                fillTableDBData(tbl);
             }
             else
             {
-                gaia_id_t parentTableId = field.gaia_table();
-                catalog::gaia_table_t parentTable = catalog::gaia_table_t::get(parentTableId);
+                catalog::gaia_table_t parentTable = field.gaia_table();
                 if (!parentTable)
                 {
                     llvm::errs() << "Incorrect table for field " << field.name() << "\n";
@@ -195,8 +192,10 @@ unordered_map<string, unordered_map<string, FieldData>> getTableData()
 
                 table_Relationship_1.emplace(parentTable.name(), linkData1);
                 table_Relationship_N.emplace(childTable.name(), linkDataN);
+
+                fillTableDBData(parentTable);
+                fillTableDBData(childTable);
             }
-            
         }
     }
     catch (exception e)

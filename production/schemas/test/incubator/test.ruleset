@@ -5,9 +5,7 @@ int update_called = 0;
 
 ruleset test 
 {
- {
-   rule_called ++;
-   
+ {  
    max_temp = sensor.value+4;
    if (sensor.LastOperation == INSERT)
    {
@@ -15,13 +13,14 @@ ruleset test
    }
    
    if (sensor.LastOperation == UPDATE)
-   {
-   	update_called ++;
+   {	
    	if (sensor.value > 5)
    	{
    		actuator.value = 1000;
    	}
+   	update_called ++;
    }
+   rule_called ++;
   }
 }
 

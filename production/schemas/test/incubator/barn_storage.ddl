@@ -6,18 +6,16 @@ CREATE TABLE incubator (
 );
 
 CREATE TABLE  sensor (
-      incubator_id UINT64,
       name STRING,
       timestamp UINT64,
       value FLOAT32 active,
-      i_ REFERENCES incubator
+      REFERENCES incubator
 );
 
 CREATE TABLE  actuator (
-      incubator_id UINT64,
       name STRING,
       timestamp UINT64,
       value FLOAT32,
-      i_ REFERENCES incubator
+      REFERENCES incubator
 );
 
