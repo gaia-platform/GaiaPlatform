@@ -195,8 +195,6 @@ void catalog_manager_t::reload_cache() {
     clear_cache();
 
     gaia::db::begin_transaction();
-    system_base_t system_base;
-    system_base.init_system_base();
     for (auto db : gaia_database_t::list()) {
         m_db_names[db.name()] = db.gaia_id();
     }
@@ -312,7 +310,6 @@ gaia_id_t catalog_manager_t::create_table_impl(
     gaia_id_t fixed_id) {
 
     unique_lock lock(m_lock);
-    system_base_t system_base;
 
     if (!dbname.empty() && m_db_names.find(dbname) == m_db_names.end()) {
         throw db_not_exists(dbname);
@@ -349,7 +346,7 @@ gaia_id_t catalog_manager_t::create_table_impl(
     if (fixed_id == INVALID_GAIA_ID) {
         table_id = gaia_table_t::insert_row(
             table_name.c_str(),                               // name
-            system_base.get_next_type(),                      // table type
+            system_base_t::get().get_next_type(),             // table type
             is_system,                                        // is_system
             static_cast<uint8_t>(trim_action_type_t::e_none), // trim_action
             0,                                                // max_rows
