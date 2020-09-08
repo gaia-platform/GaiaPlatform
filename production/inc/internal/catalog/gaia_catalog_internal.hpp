@@ -36,7 +36,6 @@ void execute(const string &dbname, vector<unique_ptr<ddl::statement_t>> &stateme
 string load_catalog(parser_t &parser, const string &ddl_filename, const string &name, bool throw_on_exist = true) {
     string db(name);
     retail_assert(!ddl_filename.empty(), "No ddl file specified.");
-fprintf(stderr, "load_catalog(ddl_filename=%s, name=%s)\n", ddl_filename.c_str(), name.c_str());
 
     int parsing_result = parser.parse(ddl_filename);
     retail_assert(parsing_result == EXIT_SUCCESS, "Fail to parse the ddl file '" + ddl_filename + "'");

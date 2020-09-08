@@ -198,7 +198,6 @@ void catalog_manager_t::reload_cache() {
     system_base_t system_base;
     system_base.init_system_base();
     for (auto db : gaia_database_t::list()) {
-fprintf(stderr, "catalog_manager_t::reload_cache, m_db_names[%s] = %ld\n", db.name(), db.gaia_id());
         m_db_names[db.name()] = db.gaia_id();
     }
 
