@@ -35,6 +35,7 @@ message(STATUS "GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES=${GAIA_STORAGE_ENGINE_PUBLIC
 set(GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES
   "${GAIA_INC}/internal/common"
   "${GAIA_DB_INC}/storage_engine"
+  "${GAIA_DB_INC}/storage_engine/inc"
   "${ROCKSDB_INC}"
   "${PROJECT_SOURCE_DIR}/inc"
 )
@@ -83,9 +84,7 @@ add_library(gaia_se_client STATIC
   src/gaia_db.cpp
   src/gaia_ptr.cpp
   src/storage_engine.cpp
-  src/storage_engine_client.cpp
-  src/rdb_object_converter.cpp
-  src/event_trigger_threadpool.cpp)
+  src/storage_engine_client.cpp)
 add_dependencies(gaia_se_client "messages.fbs")
 target_include_directories(gaia_se_client PUBLIC ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES})
 target_include_directories(gaia_se_client PRIVATE ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES})
@@ -99,6 +98,18 @@ target_link_libraries(gaia_se_client PUBLIC gaia_common)
 target_link_libraries(gaia_se_client PRIVATE explain gaia_types)
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia_se_client PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+add_library(rocks_wrapper STATIC
+  src/rdb_object_converter.cpp
+  src/persistent_store_manager.cpp)
+target_include_directories(rocks_wrapper PRIVATE
+  "${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}"
+  "${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}")
+target_include_directories(rocks_wrapper SYSTEM PRIVATE "${FLATBUFFERS_INC}")
+target_include_directories(rocks_wrapper SYSTEM PRIVATE "${GEN_DIR}")
+# The client is required to create gaia objects on recovery.
+target_link_libraries(rocks_wrapper rocksdb)
+set_target_properties(rocks_wrapper PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 
 set(GAIA_SE_SERVER_SOURCES
   src/storage_engine.cpp
@@ -118,22 +129,33 @@ target_include_directories(gaia_se_server SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(gaia_se_server SYSTEM PRIVATE "${GEN_DIR}")
 # Suppress spurious warnings about zero-initialized structs.
 set_target_properties(gaia_se_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
-target_link_libraries(gaia_se_server PRIVATE gaia_common Threads::Threads explain)
+target_link_libraries(gaia_se_server PRIVATE gaia_common Threads::Threads explain rocks_wrapper)
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   target_link_libraries(gaia_se_server PUBLIC Backward::Backward)
 endif()
 install(TARGETS gaia_se_server DESTINATION "bin")
 
+set(GAIA_STORAGE_ENGINE_TEST_INCLUDES
+  ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}
+  ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}
+)
+
 ###############################################
 # PyBind11 wrapper for storage engine.
 ###############################################
 find_package(pybind11 REQUIRED)
+
 if (Python3_FOUND AND pybind11_FOUND)
   pybind11_add_module(se_client src/storage_engine_pybind_wrapper.cpp)
   target_include_directories(se_client PRIVATE ${PROJECT_SOURCE_DIR})
-  target_include_directories(se_client PRIVATE ${GAIA_STORAGE_ENGINE_INCLUDES})
+  target_include_directories(se_client PRIVATE
+  "${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}"
+  "${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}")
+  target_include_directories(se_client SYSTEM PRIVATE "${FLATBUFFERS_INC}")
+  target_include_directories(se_client SYSTEM PRIVATE "${GEN_DIR}")
   target_link_libraries(se_client PRIVATE pybind11::module rt gaia_se_client)
-  set_target_properties(se_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
+  # See https://github.com/pybind/pybind11/issues/1604 for inclusion of -fsized-deallocation for C++17
+  set_target_properties(se_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter -fsized-deallocation")
   set_target_properties(se_client PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
 
   # FIXME: fix this test in https://gaiaplatform.atlassian.net/browse/GAIAPLAT-260.
@@ -161,12 +183,7 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   set_target_properties(jni_se_client PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 endif()
 
-set(GAIA_STORAGE_ENGINE_TEST_INCLUDES
-  ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}
-  ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}
-)
-
-add_gtest(test_rdb_object_converter "tests/test_rdb_object_converter.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_se_client")
+add_gtest(test_rdb_object_converter "tests/test_rdb_object_converter.cpp" "${FLATBUFFERS_INC};${GEN_DIR};${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "rocks_wrapper")
 add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
 add_gtest(test_storage_engine_client "tests/test_storage_engine_client.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_se_client")
 add_gtest(test_locator_allocator tests/test_locator_allocator.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")

@@ -21,12 +21,12 @@ class gaia_generate_test : public db_test_base_t {
 
 // Using the catalog manager's create_table(), create a catalog and an EDC header from that.
 TEST_F(gaia_generate_test, use_create_table) {
-    create_database("airport");
+    create_database("airport_test");
     ddl::field_def_list_t fields;
     fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t{"name", data_type_t::e_string, 1}));
-    create_table("airport", "airport", fields);
+    create_table("airport_test", "airport", fields);
 
-    auto header_str = gaia_generate("airport");
+    auto header_str = gaia_generate("airport_test");
     EXPECT_NE(0, header_str.find("struct airport_t"));
 }
 

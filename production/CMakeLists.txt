@@ -18,7 +18,7 @@ include(gaia)
 include(GoogleTest)
 
 # Specify the C++ standard.
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # Set some global variables.
@@ -144,6 +144,10 @@ if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
 #       -cp ${CMAKE_JAVA_INCLUDE_PATH}:${GAIA_TINKERPOP_JAR}:${GAIA_TESTS_JAR}
 #       com.gaiaplatform.tests.database.cachegraph.TestCacheGraph graphml)
 endif()
+
+# Add rocksdb
+# https://gaiaplatform.atlassian.net/browse/GAIAPLAT-338
+add_subdirectory(${ROCKSDB} rocksdb)
 
 # Add flatbuffers
 add_subdirectory(${FLATBUFFERS} flatbuffers)

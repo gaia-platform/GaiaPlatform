@@ -24,7 +24,7 @@
 #include "messages_generated.h"
 #include "storage_engine.hpp"
 #include "triggers.hpp"
-#include "event_trigger_threadpool.hpp"
+#include "gaia_db_internal.hpp"
 
 using namespace std;
 using namespace gaia::common;
@@ -44,7 +44,7 @@ class client : private se_base {
 
    public:
     static inline bool is_transaction_active() {
-        return (*s_offsets != nullptr);
+        return (s_offsets != nullptr);
     }
     static void begin_session();
     static void end_session();
@@ -56,20 +56,20 @@ class client : private se_base {
     static void clear_shared_memory();
 
    private:
+    // Both s_fd_log & s_offsets have transaction lifetime.
     thread_local static int s_fd_log;
     thread_local static offsets* s_offsets;
+    // Both s_fd_offsets & s_data have session lifetime.
+    thread_local static int s_fd_offsets;
+    thread_local static data* s_data;
+    // s_events has transaction lifetime and is cleared after each transaction.
     thread_local static std::vector<gaia::db::triggers::trigger_event_t> s_events;
 
     // Maintain a static filter in the client to disable generating events
     // for system types.
     static std::unordered_set<gaia_type_t> trigger_excluded_types;
 
-    // Threadpool to help invoke post-commit triggers in response to events generated in each transaction.
-    static gaia::db::triggers::event_trigger_threadpool_t* event_trigger_pool;
-
     // Inherited from se_base:
-    // static int s_fd_offsets;
-    // static data *s_data;
     // thread_local static log *s_log;
     // thread_local static gaia_xid_t s_transaction_id;
 
@@ -83,34 +83,8 @@ class client : private se_base {
      *  Check if an event should be generated for a given type.
      */ 
     static inline bool is_valid_event(const gaia_type_t type) {
-        return !(trigger_excluded_types.find(type) != trigger_excluded_types.end()) && 
-                event_trigger_pool->get_commit_trigger() != nullptr; 
-    }
-
-    static inline int64_t allocate_row_id() {
-        if (*s_offsets == nullptr) {
-            throw transaction_not_open();
-        }
-
-        if (s_data->row_id_count >= MAX_RIDS) {
-            throw oom();
-        }
-
-        return 1 + __sync_fetch_and_add(&s_data->row_id_count, 1);
-    }
-
-    static void inline allocate_object(int64_t row_id, size_t size) {
-        if (*s_offsets == nullptr) {
-            throw transaction_not_open();
-        }
-
-        if (s_data->objects[0] >= MAX_OBJECTS) {
-            throw oom();
-        }
-
-        (*s_offsets)[row_id] = 1 + __sync_fetch_and_add(
-            &s_data->objects[0],
-            (size + sizeof(int64_t) - 1) / sizeof(int64_t));
+        return (gaia::db::s_tx_commit_trigger 
+            && (trigger_excluded_types.find(type) == trigger_excluded_types.end()));
     }
 
     static inline void verify_tx_active() {
@@ -137,14 +111,21 @@ class client : private se_base {
         }
     }
 
-    static inline void tx_log(int64_t row_id, int64_t old_object, int64_t new_object) {
+    static inline void tx_log(
+        int64_t row_id,
+        int64_t old_object,
+        int64_t new_object,
+        gaia_operation_t operation,
+        // 'deleted_id' is required to keep track of deleted keys which will be propagated to the persistent layer.
+        // Memory for other operations will be unused. An alternative would be to keep a separate log for deleted keys only.
+        gaia_id_t deleted_id = 0) {
         retail_assert(s_log->count < MAX_LOG_RECS);
-
         log::log_record* lr = s_log->log_records + s_log->count++;
-
         lr->row_id = row_id;
         lr->old_object = old_object;
         lr->new_object = new_object;
+        lr->deleted_id = deleted_id;
+        lr->operation = operation;
     }
 };
 

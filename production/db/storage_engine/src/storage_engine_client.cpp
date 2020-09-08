@@ -14,7 +14,10 @@ using namespace flatbuffers;
 
 thread_local se_base::offsets *client::s_offsets = nullptr;
 thread_local int client::s_fd_log = -1;
+thread_local int client::s_fd_offsets = -1;
+thread_local se_base::data *client::s_data;
 thread_local std::vector<trigger_event_t> client::s_events;
+commit_trigger_fn gaia::db::s_tx_commit_trigger = nullptr;
 
 std::unordered_set<gaia_type_t> client::trigger_excluded_types{
     static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table),
@@ -25,8 +28,6 @@ std::unordered_set<gaia_type_t> client::trigger_excluded_types{
     static_cast<gaia_type_t>(0)
 };
 
-// Should this be initialized by the rules engine instead?
-event_trigger_threadpool_t* client::event_trigger_pool = new event_trigger_threadpool_t();
 
 static void build_client_request(FlatBufferBuilder &builder, session_event_t event) {
     auto client_request = Createclient_request_t(builder, event);
@@ -70,8 +71,10 @@ void client::tx_cleanup() {
     close(s_fd_log);
     s_fd_log = -1;
     // Destroy the offset mapping.
-    unmap_fd(s_offsets, sizeof(offsets));
-    s_offsets = nullptr;
+    if (s_offsets) {
+        unmap_fd(s_offsets, sizeof(offsets));
+        s_offsets = nullptr;
+    }
 }
 
 int client::get_session_socket() {
@@ -81,6 +84,9 @@ int client::get_session_socket() {
     if (session_socket == -1) {
         throw_system_error("socket creation failed");
     }
+    auto cleanup_session_socket = scope_guard::make_scope_guard([session_socket]() {
+        close(session_socket);
+    });
     struct sockaddr_un server_addr = {0};
     server_addr.sun_family = AF_UNIX;
     // The socket name (minus its null terminator) needs to fit into the space
@@ -98,6 +104,7 @@ int client::get_session_socket() {
     if (-1 == connect(session_socket, (struct sockaddr *)&server_addr, server_addr_size)) {
         throw_system_error("connect failed");
     }
+    cleanup_session_socket.dismiss();
     return session_socket;
 }
 
@@ -116,6 +123,14 @@ int client::get_session_socket() {
 void client::begin_session() {
     // Fail if a session already exists on this thread.
     verify_no_session();
+    // Clean up possible stale state from a server crash or reset.
+    clear_shared_memory();
+    // Assert relevant fd's and pointers are in clean state.
+    retail_assert(s_data == nullptr);
+    retail_assert(s_fd_offsets == -1);
+    retail_assert(s_fd_log == -1);
+    retail_assert(s_log == nullptr);
+    retail_assert(s_offsets == nullptr);
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
@@ -141,39 +156,38 @@ void client::begin_session() {
     size_t bytes_read = recv_msg_with_fds(s_session_socket, fds, &fd_count, msg_buf, sizeof(msg_buf));
     retail_assert(bytes_read > 0);
     retail_assert(fd_count == FD_COUNT);
+    int fd_data = fds[DATA_FD_INDEX];
+    retail_assert(fd_data != -1);
+    int fd_offsets = fds[OFFSETS_FD_INDEX];
+    retail_assert(fd_offsets != -1);
+    auto cleanup_fds = scope_guard::make_scope_guard([fd_data, fd_offsets]() {
+        // We can unconditionally close the data fd,
+        // since it's not saved anywhere and the mapping
+        // increments the shared memory segment's refcount.
+        close(fd_data);
+        // We can only close the locator fd if it hasn't been cached.
+        if (s_fd_offsets != fd_offsets) {
+            close(fd_offsets);
+        }
+    });
+
     const message_t *msg = Getmessage_t(msg_buf);
     const server_reply_t *reply = msg->msg_as_reply();
     const session_event_t event = reply->event();
     retail_assert(event == session_event_t::CONNECT);
+
     // Since the data and locator fds are global, we need to atomically update them
-    // (and only if they're not already initialized).
-    int fd_data = fds[DATA_FD_INDEX];
-    retail_assert(fd_data != -1);
+    // (but only if they're not already initialized).
 
     // Set up the shared data segment mapping.
-    if (!s_data) {
-        data *data_mapping = static_cast<data *>(map_fd(
-            sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0));
-        if (!__sync_bool_compare_and_swap(&s_data, 0, data_mapping)) {
-            // We lost the race, throw away the mapping.
-            unmap_fd(data_mapping, sizeof(data));
-        }
-    }
+    s_data = static_cast<data *>(map_fd(
+        sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0));
+
     // We've already mapped the data fd, so we can close it now.
     close(fd_data);
 
     // Set up the private locator segment fd.
-    int fd_offsets = fds[OFFSETS_FD_INDEX];
-    retail_assert(fd_offsets != -1);
-    if (s_fd_offsets == -1) {
-        if (!__sync_bool_compare_and_swap(&s_fd_offsets, -1, fd_offsets)) {
-            // We lost the race, close the fd.
-            close(fd_offsets);
-        }
-    } else {
-        // locator fd is already initialized, close the fd.
-        close(fd_offsets);
-    }
+    s_fd_offsets = fd_offsets;
     cleanup_session_socket.dismiss();
 }
 
@@ -207,28 +221,40 @@ void client::begin_transaction() {
     verify_no_tx();
 
     // First we allocate a new log segment and map it in our own process.
-    s_fd_log = memfd_create(SCH_MEM_LOG, MFD_ALLOW_SEALING);
-    if (s_fd_log == -1) {
+    int fd_log = memfd_create(SCH_MEM_LOG, MFD_ALLOW_SEALING);
+    if (fd_log == -1) {
         throw_system_error("memfd_create failed");
     }
-    if (-1 == ftruncate(s_fd_log, sizeof(log))) {
+    auto cleanup_fd = scope_guard::make_scope_guard([fd_log]() {
+        close(fd_log);
+    });
+    if (-1 == ftruncate(fd_log, sizeof(log))) {
         throw_system_error("ftruncate failed");
     }
-    s_log = static_cast<log *>(map_fd(sizeof(log), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_log, 0));
+    s_log = static_cast<log *>(map_fd(sizeof(log), PROT_READ | PROT_WRITE, MAP_SHARED, fd_log, 0));
+    auto cleanup_log_mapping = scope_guard::make_scope_guard([]() {
+        unmap_fd(s_log, sizeof(log));
+        s_log = nullptr;
+    });
 
     // Now we map a private COW view of the locator shared memory segment.
     if (flock(s_fd_offsets, LOCK_SH) < 0) {
         throw_system_error("flock failed");
     }
-    auto cleanup = scope_guard::make_scope_guard([]() {
+    auto cleanup_flock = scope_guard::make_scope_guard([]() {
         if (-1 == flock(s_fd_offsets, LOCK_UN)) {
             // Per C++11 semantics, throwing an exception from a destructor
             // will just call std::terminate(), no undefined behavior.
             throw_system_error("flock failed");
         }
     });
+
     s_offsets = static_cast<offsets *>(map_fd(sizeof(offsets),
         PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_offsets, 0));
+    auto cleanup_locator_mapping = scope_guard::make_scope_guard([]() {
+        unmap_fd(s_offsets, sizeof(offsets));
+        s_offsets = nullptr;
+    });
 
     // Notify the server that we're in a transaction. (We don't send our log fd until commit.)
     FlatBufferBuilder builder;
@@ -244,6 +270,13 @@ void client::begin_transaction() {
     const message_t *msg = Getmessage_t(msg_buf);
     const server_reply_t *reply = msg->msg_as_reply();
     s_transaction_id = reply->transaction_id();
+
+    // Save the log fd to send to the server on commit.
+    s_fd_log = fd_log;
+
+    cleanup_fd.dismiss();
+    cleanup_log_mapping.dismiss();
+    cleanup_locator_mapping.dismiss();
 }
 
 void client::rollback_transaction() {
@@ -291,23 +324,23 @@ void client::commit_transaction() {
     const session_event_t event = reply->event();
     retail_assert(event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT);
 
-    // Execute trigger only if rules engine is initialized.
-    if (event_trigger_pool->get_commit_trigger() && 
-            event == session_event_t::DECIDE_TXN_COMMIT &&
-            s_events.size() > 0) {
-        event_trigger_pool->add_trigger_task(s_transaction_id, std::move(s_events));
-    }
-
-    // Reset transaction id.
-    s_transaction_id = 0;
-
-    // Reset TLS events vector for the next transaction that will run on this thread.
-    s_events.clear();
-
     // Throw an exception on server-side abort.
     // REVIEW: We could include the gaia_ids of conflicting objects in transaction_update_conflict
     // (https://gaiaplatform.atlassian.net/browse/GAIAPLAT-292).
     if (event == session_event_t::DECIDE_TXN_ABORT) {
         throw transaction_update_conflict();
     }
+
+    // Execute trigger only if rules engine is initialized.
+    if (s_tx_commit_trigger
+        && event == session_event_t::DECIDE_TXN_COMMIT
+        && s_events.size() > 0) {
+        s_tx_commit_trigger(s_transaction_id, s_events);
+    }
+    // Reset transaction id.
+    s_transaction_id = 0;
+
+    // Reset TLS events vector for the next transaction that will run on this thread.
+    s_events.clear();
+
 }

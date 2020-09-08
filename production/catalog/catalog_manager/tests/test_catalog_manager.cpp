@@ -76,8 +76,8 @@ TEST_F(catalog_manager_test, list_fields) {
     string test_table_name{"list_fields_test"};
 
     ddl::field_def_list_t test_table_fields;
-    test_table_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("id", data_type_t::e_int8, 1)));
-    test_table_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("name", data_type_t::e_string, 1)));
+    test_table_fields.emplace_back(make_unique<ddl::field_definition_t>("id", data_type_t::e_int8, 1));
+    test_table_fields.emplace_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
 
     gaia_id_t table_id = create_table(test_table_name, test_table_fields);
 
@@ -95,13 +95,13 @@ TEST_F(catalog_manager_test, list_fields) {
 TEST_F(catalog_manager_test, list_references) {
     string dept_table_name{"list_references_test_department"};
     ddl::field_def_list_t dept_table_fields;
-    dept_table_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("name", data_type_t::e_string, 1)));
+    dept_table_fields.emplace_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
     gaia_id_t dept_table_id = create_table(dept_table_name, dept_table_fields);
 
     string employee_table_name{"list_references_test_employee"};
     ddl::field_def_list_t employee_table_fields;
-    employee_table_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("name", data_type_t::e_string, 1)));
-    employee_table_fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("department", data_type_t::e_references, 1, dept_table_name)));
+    employee_table_fields.emplace_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
+    employee_table_fields.emplace_back(make_unique<ddl::field_definition_t>("department", data_type_t::e_references, 1, dept_table_name));
 
     gaia_id_t employee_table_id = create_table(employee_table_name, employee_table_fields);
 
@@ -127,14 +127,14 @@ TEST_F(catalog_manager_test, list_references) {
 TEST_F(catalog_manager_test, create_table_references_not_exist) {
     string test_table_name{"ref_not_exist_test"};
     ddl::field_def_list_t fields;
-    fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("ref_field", data_type_t::e_references, 1, "unknown")));
+    fields.emplace_back(make_unique<ddl::field_definition_t>("ref_field", data_type_t::e_references, 1, "unknown"));
     EXPECT_THROW(create_table(test_table_name, fields), table_not_exists);
 }
 
 TEST_F(catalog_manager_test, create_table_self_references) {
     string test_table_name{"self_ref_table_test"};
     ddl::field_def_list_t fields;
-    fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("self_ref_field", data_type_t::e_references, 1, test_table_name)));
+    fields.emplace_back(make_unique<ddl::field_definition_t>("self_ref_field", data_type_t::e_references, 1, test_table_name));
 
     gaia_id_t table_id = create_table(test_table_name, fields);
     gaia::db::begin_transaction();
@@ -162,8 +162,8 @@ TEST_F(catalog_manager_test, create_table_case_sensitivity) {
     check_table_name(mixed_case_table_id, mixed_case_table_name);
 
     string test_field_case_table_name{"test_field_case_table"};
-    fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("field1", data_type_t::e_string, 1)));
-    fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("Field1", data_type_t::e_string, 1)));
+    fields.emplace_back(make_unique<ddl::field_definition_t>("field1", data_type_t::e_string, 1));
+    fields.emplace_back(make_unique<ddl::field_definition_t>("Field1", data_type_t::e_string, 1));
     gaia_id_t test_field_case_table_id = create_table(test_field_case_table_name, fields);
     check_table_name(test_field_case_table_id, test_field_case_table_name);
 }
@@ -171,8 +171,8 @@ TEST_F(catalog_manager_test, create_table_case_sensitivity) {
 TEST_F(catalog_manager_test, create_table_duplicate_field) {
     string test_duplicate_field_table_name{"test_duplicate_field_table"};
     ddl::field_def_list_t fields;
-    fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("field1", data_type_t::e_string, 1)));
-    fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t("field1", data_type_t::e_string, 1)));
+    fields.emplace_back(make_unique<ddl::field_definition_t>("field1", data_type_t::e_string, 1));
+    fields.emplace_back(make_unique<ddl::field_definition_t>("field1", data_type_t::e_string, 1));
     EXPECT_THROW(create_table(test_duplicate_field_table_name, fields), duplicate_field);
 }
 
