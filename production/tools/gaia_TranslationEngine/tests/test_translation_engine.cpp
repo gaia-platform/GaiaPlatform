@@ -32,7 +32,8 @@ void init_storage() {
     gaia::db::begin_transaction();
     auto incubator = gaia::barn_storage::incubator_t::get(insert_incubator("TestIncubator", 99.0, 102.0));
     incubator.sensor_list().insert(gaia::barn_storage::sensor_t::insert_row("TestSensor1", 0, 0.0));
-    //incubator.actuator_list().insert(gaia::barn_storage::actuator_t::insert_row("TestActuator1", 0, 0.0));
+    
+    incubator.actuator_list().insert(gaia::barn_storage::actuator_t::insert_row("TestActuator1", 0, 0.0));
 
     gaia::db::commit_transaction();
 }
@@ -56,7 +57,7 @@ TEST(translation_engine, subscribe_valid_ruleset)
     
     init_storage();
 
-while (rule_called == 0) {usleep(1);}
+    while (rule_called == 0) {usleep(50000);}
 
     EXPECT_EQ(rule_called,1);
     EXPECT_EQ(insert_called,1);
@@ -89,7 +90,9 @@ while (rule_called == 0) {usleep(1);}
         w.update_row();
     }
     gaia::db::commit_transaction();
-//while (rule_called == 1) {usleep(1);}
+
+    while (rule_called == 1) {usleep(50000);}
+
     EXPECT_EQ(rule_called,2);
     EXPECT_EQ(insert_called,1);
     EXPECT_EQ(update_called,1);
