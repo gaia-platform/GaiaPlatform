@@ -64,7 +64,7 @@ public:
 
         field_position_list_t fields;
         // We only have 1 field in this test.
-        fields.push_back(0);
+        fields.emplace_back(0);
         subscribe_rule(employee_t::s_gaia_type, event_type_t::row_update, fields, m_rule1);
     }
 

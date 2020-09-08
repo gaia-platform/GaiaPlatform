@@ -66,7 +66,7 @@ rule_thread_pool_t::rule_thread_pool_t(size_t num_threads)
     for (uint32_t i = 0; i < m_num_threads; i++)
     {
         thread worker([this]{ rule_worker(); });
-        m_threads.push_back(move(worker));
+        m_threads.emplace_back(move(worker));
     }
 }
 

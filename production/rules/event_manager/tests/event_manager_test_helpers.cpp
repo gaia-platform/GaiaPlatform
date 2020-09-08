@@ -22,7 +22,7 @@ void gaia::rules::test::commit_trigger(
     trigger_event_list_t trigger_event_list;
     for (size_t i = 0; i < count_events; i++)
     {
-        trigger_event_list.push_back(trigger_events[i]);
+        trigger_event_list.emplace_back(trigger_events[i]);
     }
 
     event_manager_t::get().commit_trigger(transaction_id, trigger_event_list);
