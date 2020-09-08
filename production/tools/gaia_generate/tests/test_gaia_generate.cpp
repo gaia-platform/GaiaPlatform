@@ -23,7 +23,7 @@ class gaia_generate_test : public db_test_base_t {
 TEST_F(gaia_generate_test, use_create_table) {
     create_database("airport");
     ddl::field_def_list_t fields;
-    fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t{"name", data_type_t::e_string, 1}));
+    fields.push_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
     create_table("airport", "airport", fields);
 
     auto header_str = gaia_generate("airport");

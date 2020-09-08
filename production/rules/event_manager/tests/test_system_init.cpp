@@ -30,7 +30,7 @@ public:
     {
         // Add a dummy type so that the event manager doesn't cry foul when subscribing a rule.
         ddl::field_def_list_t fields;
-        fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t{"id", data_type_t::e_string, 1}));
+        fields.emplace_back(make_unique<ddl::field_definition_t>("id", data_type_t::e_string, 1));
         // The type of the table is the row id of table in the catalog.
         return create_table("system_init_test", fields);
     }
