@@ -44,6 +44,7 @@ void compute_payload_diff(gaia_id_t type_id, const uint8_t *payload1, const uint
                     }
                 }
             }
+            break;
         }
     }
 }

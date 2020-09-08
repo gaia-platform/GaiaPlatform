@@ -178,7 +178,7 @@ void event_manager_t::commit_trigger(uint64_t, const trigger_event_list_t& trigg
                 }
             }
         }
-        rules_invoked_list.push_back(rules_invoked);
+        rules_invoked_list.emplace_back(rules_invoked);
     }
 
     // Enqueue a task to log all the events in this commit_trigger in a
@@ -449,12 +449,12 @@ void event_manager_t::add_subscriptions(subscription_list_t& subscriptions,
             continue;
         }
 
-        subscriptions.push_back(unique_ptr<subscription_t>(new subscription_t({
+        subscriptions.emplace_back(make_unique<subscription_t>(
             rule->ruleset_name.c_str(),
             rule->rule_name.c_str(),
             gaia_type,
             event_type,
-            field}))
+            field)
         );
     }
 }
@@ -498,7 +498,7 @@ void event_manager_t::add_rule(
     }
 
     // Add the rule to the subscription list.
-    rules.push_back(this_rule);
+    rules.emplace_back(this_rule);
 }
 
 bool event_manager_t::remove_rule(

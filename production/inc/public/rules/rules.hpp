@@ -68,11 +68,13 @@ extern "C" void unsubscribe_ruleset(const char* ruleset_name);
  * The caller must supply the ruleset_name, rule_name, and the function pointer for the rule.
  * The ruleset_name and the rule_name must uniquely identify the rule.
   */
-struct rule_binding_t {
-    rule_binding_t() 
+struct rule_binding_t 
+{
+    rule_binding_t()
         : ruleset_name(nullptr)
         , rule_name(nullptr), 
-        rule(nullptr) {}
+        rule(nullptr) 
+    {}
     
     rule_binding_t(
         const char* a_ruleset_name, 
@@ -80,7 +82,8 @@ struct rule_binding_t {
         gaia_rule_fn a_rule)
         : ruleset_name(a_ruleset_name)
         , rule_name(a_rule_name)
-        , rule(a_rule) {}
+        , rule(a_rule) 
+    {}
     
     const char* ruleset_name;
     const char* rule_name;
@@ -91,12 +94,36 @@ struct rule_binding_t {
  * This type is returned in a caller-supplied vector when
  * the list_rules api is called
  */ 
-struct subscription_t {
+struct subscription_t 
+{
+    subscription_t()
+        : ruleset_name(nullptr)
+        , rule_name(nullptr)
+        , gaia_type(INVALID_GAIA_TYPE)
+        , event_type(event_type_t::not_set)
+        , field(0) 
+    {
+    }
+
+    subscription_t(
+        const char* a_ruleset_name,
+        const char* a_rule_name,
+        gaia_type_t a_gaia_type,
+        event_type_t an_event_type,
+        field_position_t a_field)
+        : ruleset_name(a_ruleset_name)
+        , rule_name(a_rule_name)
+        , gaia_type(a_gaia_type)
+        , event_type(an_event_type)
+        , field(a_field) 
+    {
+    }
+
     const char* ruleset_name;
     const char* rule_name;
-    gaia::common::gaia_type_t gaia_type;
-    gaia::db::triggers::event_type_t type;
-    const uint16_t field;
+    gaia_type_t gaia_type;
+    event_type_t event_type;
+    const field_position_t field;
 };
 
 /**
@@ -119,7 +146,8 @@ const field_position_list_t empty_fields;
  * table. See the rule_context_t::last_operation() method for further
  * explanation.
  */
-enum class last_operation_t : uint8_t {
+enum class last_operation_t : uint8_t 
+{
     none,
     row_update,
     row_insert,
@@ -150,11 +178,11 @@ public:
         db::triggers::event_type_t a_event_type,
         gaia_id_t a_record,
         const field_position_list_t& a_field_list)
-    : transaction(a_transaction)
-    , gaia_type(a_gaia_type)
-    , event_type(a_event_type)
-    , record(a_record)
-    , fields(a_field_list)
+        : transaction(a_transaction)
+        , gaia_type(a_gaia_type)
+        , event_type(a_event_type)
+        , record(a_record)
+        , fields(a_field_list)
     {
     }
     
