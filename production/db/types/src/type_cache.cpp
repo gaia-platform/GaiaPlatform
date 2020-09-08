@@ -36,7 +36,7 @@ type_cache_t* type_cache_t::get()
     return &s_type_cache;
 }
 
-void type_cache_t::get_field_cache(uint64_t type_id, auto_field_cache_t& auto_field_cache)
+void type_cache_t::get_field_cache(uint64_t type_id, auto_field_cache_t& auto_field_cache) const
 {
     // We keep a shared lock while the field_cache is in use,
     // to ensure that its information is not being updated by another thread.
@@ -58,7 +58,7 @@ bool type_cache_t::remove_field_cache(uint64_t type_id)
 {
     bool removed_field_cache = false;
 
-    auto_lock_t auto_lock(m_lock);
+    unique_lock unique_lock(m_lock);
 
     type_map_t::const_iterator iterator = m_type_map.find(type_id);
     if (iterator != m_type_map.end())
@@ -78,7 +78,7 @@ bool type_cache_t::set_field_cache(uint64_t type_id, const field_cache_t* field_
 
     bool inserted_field_cache = false;
 
-    auto_lock_t auto_lock(m_lock);
+    unique_lock unique_lock(m_lock);
 
     type_map_t::const_iterator iterator = m_type_map.find(type_id);
     if (iterator == m_type_map.end())
@@ -90,7 +90,7 @@ bool type_cache_t::set_field_cache(uint64_t type_id, const field_cache_t* field_
     return inserted_field_cache;
 }
 
-size_t type_cache_t::size()
+size_t type_cache_t::size() const
 {
     return m_type_map.size();
 }

@@ -6,9 +6,8 @@
 #pragma once
 
 #include <list>
+#include <shared_mutex>
 #include <vector>
-
-#include <synchronization.hpp>
 
 namespace gaia
 {
@@ -44,7 +43,7 @@ public:
     ~record_range_t();
 
     // Tells whether the range is full.
-    bool is_full();
+    bool is_full() const;
 
     // Compact a range by removing deleted entries.
     void compact();
@@ -74,7 +73,7 @@ protected:
     record_range_t* m_next_range;
 
     // A lock for synchronizing operations on a range.
-    gaia::common::shared_mutex_t m_lock;
+    mutable std::shared_mutex m_lock;
 };
 
 struct record_iterator_t

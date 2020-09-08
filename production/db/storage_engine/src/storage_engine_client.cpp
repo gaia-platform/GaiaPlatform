@@ -220,28 +220,40 @@ void client::begin_transaction() {
     verify_no_tx();
 
     // First we allocate a new log segment and map it in our own process.
-    s_fd_log = memfd_create(SCH_MEM_LOG, MFD_ALLOW_SEALING);
-    if (s_fd_log == -1) {
+    int fd_log = memfd_create(SCH_MEM_LOG, MFD_ALLOW_SEALING);
+    if (fd_log == -1) {
         throw_system_error("memfd_create failed");
     }
-    if (-1 == ftruncate(s_fd_log, sizeof(log))) {
+    auto cleanup_fd = scope_guard::make_scope_guard([fd_log]() {
+        close(fd_log);
+    });
+    if (-1 == ftruncate(fd_log, sizeof(log))) {
         throw_system_error("ftruncate failed");
     }
-    s_log = static_cast<log *>(map_fd(sizeof(log), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_log, 0));
+    s_log = static_cast<log *>(map_fd(sizeof(log), PROT_READ | PROT_WRITE, MAP_SHARED, fd_log, 0));
+    auto cleanup_log_mapping = scope_guard::make_scope_guard([]() {
+        unmap_fd(s_log, sizeof(log));
+        s_log = nullptr;
+    });
 
     // Now we map a private COW view of the locator shared memory segment.
     if (flock(s_fd_offsets, LOCK_SH) < 0) {
         throw_system_error("flock failed");
     }
-    auto cleanup = scope_guard::make_scope_guard([]() {
+    auto cleanup_flock = scope_guard::make_scope_guard([]() {
         if (-1 == flock(s_fd_offsets, LOCK_UN)) {
             // Per C++11 semantics, throwing an exception from a destructor
             // will just call std::terminate(), no undefined behavior.
             throw_system_error("flock failed");
         }
     });
+
     s_offsets = static_cast<offsets *>(map_fd(sizeof(offsets),
         PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_offsets, 0));
+    auto cleanup_locator_mapping = scope_guard::make_scope_guard([]() {
+        unmap_fd(s_offsets, sizeof(offsets));
+        s_offsets = nullptr;
+    });
 
     // Notify the server that we're in a transaction. (We don't send our log fd until commit.)
     FlatBufferBuilder builder;
@@ -257,6 +269,13 @@ void client::begin_transaction() {
     const message_t *msg = Getmessage_t(msg_buf);
     const server_reply_t *reply = msg->msg_as_reply();
     s_transaction_id = reply->transaction_id();
+
+    // Save the log fd to send to the server on commit.
+    s_fd_log = fd_log;
+
+    cleanup_fd.dismiss();
+    cleanup_log_mapping.dismiss();
+    cleanup_locator_mapping.dismiss();
 }
 
 void client::rollback_transaction() {

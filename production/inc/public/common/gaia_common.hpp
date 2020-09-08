@@ -35,7 +35,7 @@ constexpr gaia_id_t INVALID_GAIA_ID = 0;
 typedef uint64_t gaia_type_t;
 
 /**
- * The value of an invalid Gaia type
+ * The value of an invalid gaia_type.
  */
 constexpr gaia_type_t INVALID_GAIA_TYPE = 0;
 
