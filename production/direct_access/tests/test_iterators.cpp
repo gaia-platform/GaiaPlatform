@@ -7,6 +7,7 @@
 #include <iostream>
 #include <string>
 #include <type_traits>
+#include <vector>
 
 #include "gtest/gtest.h"
 #include "gaia_addr_book.h"
@@ -19,6 +20,11 @@ using namespace gaia::common;
 using namespace gaia::addr_book;
 
 class gaia_iterator_test : public db_test_base_t {
+public:
+    typedef employee_t record_t;
+    typedef gaia_iterator_t<record_t> iterator_t;
+    typedef vector<record_t> record_vec_t;
+
 protected:
     void SetUp() override
     {
@@ -31,6 +37,49 @@ protected:
         // More tear-down goes before base tear-down.
         db_test_base_t::TearDown();
     }
+
+    string get_index_string(const int index)
+    {
+        return to_string(index);
+    }
+
+    record_vec_t insert_records(const int amount)
+    {
+        auto emp_writer = employee_writer();
+        record_vec_t vec;
+
+        for (int i = 0; i < amount; i++)
+        {
+            emp_writer.name_first = get_index_string(i);
+            vec.push_back(record_t::get(
+                emp_writer.insert_row()));
+        }
+        return vec;
+    }
+
+    string deref_iter_for_string(iterator_t& iter)
+    {
+        string str((*iter).name_first());
+        return str;
+    }
+
+    string deref_and_postinc_iter_for_string(iterator_t& iter)
+    {
+        string str((*iter++).name_first());
+        return str;
+    }
+
+    string iter_member_string(iterator_t& iter)
+    {
+        string str(iter->name_first());
+        return str;
+    }
+
+    string get_string_from_record(record_t& record)
+    {
+        string str(record.name_first());
+        return str;
+    }
 };
 
 // Tests for LegacyIterator conformance
@@ -40,25 +89,25 @@ protected:
 // A test for MoveConstructible is not required because it is a prerequisite
 // to be CopyConstructible.
 TEST_F(gaia_iterator_test, copy_constructible) {
-    EXPECT_TRUE(is_copy_constructible<gaia_iterator_t<employee_t>>::value)
+    EXPECT_TRUE(is_copy_constructible<iterator_t>::value)
         << "The iterator is not CopyConstructible.";
 }
 
 // Is the iterator CopyAssignable?
 TEST_F(gaia_iterator_test, copy_assignable) {
-    EXPECT_TRUE(is_copy_assignable<gaia_iterator_t<employee_t>>::value)
+    EXPECT_TRUE(is_copy_assignable<iterator_t>::value)
         << "The iterator is not CopyAssignable.";
 }
 
 // Is the iterator Destructible?
 TEST_F(gaia_iterator_test, destructible) {
-    EXPECT_TRUE(is_destructible<gaia_iterator_t<employee_t>>::value)
+    EXPECT_TRUE(is_destructible<iterator_t>::value)
         << "The iterator is not Destructible.";
 }
 
 // Are iterator lvalues Swappable?
 TEST_F(gaia_iterator_test, swappable) {
-    EXPECT_TRUE(is_swappable<gaia_iterator_t<employee_t*>>::value)
+    EXPECT_TRUE(is_swappable<iterator_t>::value)
         << "The iterator is not Swappable as an lvalue.";
 }
 
@@ -66,11 +115,11 @@ TEST_F(gaia_iterator_test, swappable) {
 // value_type, difference_type, reference, pointer, and iterator_category?
 TEST_F(gaia_iterator_test, iterator_traits) {
     // This test can only fail in compile time.
-    iterator_traits<gaia_iterator_t<employee_t>>::value_type vt;
-    iterator_traits<gaia_iterator_t<employee_t>>::difference_type dt;
-    iterator_traits<gaia_iterator_t<employee_t>>::reference r = vt;
-    iterator_traits<gaia_iterator_t<employee_t>>::pointer p;
-    iterator_traits<gaia_iterator_t<employee_t>>::iterator_category ic;
+    iterator_traits<iterator_t>::value_type vt;
+    iterator_traits<iterator_t>::difference_type dt;
+    iterator_traits<iterator_t>::reference r = vt;
+    iterator_traits<iterator_t>::pointer p;
+    iterator_traits<iterator_t>::iterator_category ic;
     // Perhaps SFINAE can be exploited in the future to detect typedefs and
     // return boolean values for GTest.
 
@@ -84,36 +133,25 @@ TEST_F(gaia_iterator_test, iterator_traits) {
 
 // Are iterators pre-incrementable?
 TEST_F(gaia_iterator_test, pre_incrementable) {
-    const int loops = 10;
+    const int LOOPS = 10;
     auto_transaction_t tx;
+    insert_records(LOOPS);
 
-    auto emp_writer = employee_writer();
-    for (int i = 0; i < loops; i++)
+    iterator_t iter = record_t::list().begin();
+    for(int i = 0; i < LOOPS; i++)
     {
-        string name_str = std::to_string(i);
-        const char* emp_name = name_str.c_str();
-
-        emp_writer.name_first = emp_name;
-        emp_writer.insert_row();
-    }
-    tx.commit();
-
-    gaia_iterator_t<employee_t> emp_iter = employee_t::list().begin();
-    for(int i = 0; i < loops; i++)
-    {
-        string name_str = std::to_string(i);
-        const char* emp_name = name_str.c_str();
-
-        ASSERT_STREQ((*emp_iter).name_first(), emp_name)
+        ASSERT_EQ(deref_iter_for_string(iter), get_index_string(i))
             << "The iterator is not pre-incrementable with the "
             "expected effects.";
-        ++emp_iter;
+        ++iter;
     }
 
-    // The declaration of type_check will fail in compile-time if the
+    // The declaration of end_record will fail in compile-time if the
     // pre-increment operator has the wrong return type.
-    gaia_iterator_t<employee_t>& type_check = ++emp_iter;
-    (void)type_check;
+    iterator_t& end_record = ++iter;
+    EXPECT_EQ(end_record, record_t::list().end())
+        << "The iterator is not pre-incrementable with the "
+        "expected effects.";
 }
 
 // Tests for LegacyInputIterator conformance
@@ -121,25 +159,12 @@ TEST_F(gaia_iterator_test, pre_incrementable) {
 
 // Is the iterator EqualityComparable?
 TEST_F(gaia_iterator_test, equality_comparable) {
-    const char* emp_name_0 = "Employee0";
-    const char* emp_name_1 = "Employee1";
-    const char* emp_name_2 = "Employee2";
-
     auto_transaction_t tx;
-    auto emp_writer = employee_writer();
+    insert_records(3);
 
-    emp_writer.name_first = emp_name_0;
-    emp_writer.insert_row();
-    emp_writer.name_first = emp_name_1;
-    emp_writer.insert_row();
-    emp_writer.name_first = emp_name_2;
-    emp_writer.insert_row();
-
-    tx.commit();
-
-    gaia_iterator_t<employee_t> a = employee_t::list().begin();
-    gaia_iterator_t<employee_t> b = employee_t::list().begin();
-    gaia_iterator_t<employee_t> c = employee_t::list().begin();
+    iterator_t a = record_t::list().begin();
+    iterator_t b = record_t::list().begin();
+    iterator_t c = record_t::list().begin();
 
     // The declaration of type_check will fail in compile-time if the
     // equality operator's return type cannot be implicitly converted into
@@ -155,7 +180,7 @@ TEST_F(gaia_iterator_test, equality_comparable) {
     EXPECT_TRUE((a == b) && (b == c) && (a == c));
 
     ++b;
-    c = employee_t::list().end();
+    c = record_t::list().end();
 
     EXPECT_FALSE(a == b);
     EXPECT_FALSE(b == a);
@@ -165,25 +190,13 @@ TEST_F(gaia_iterator_test, equality_comparable) {
 
 // Does the iterator support the not-equal (!=) operator?
 TEST_F(gaia_iterator_test, not_equal) {
-    const char* emp_name_0 = "Employee0";
-    const char* emp_name_1 = "Employee1";
-    const char* emp_name_2 = "Employee2";
-
     auto_transaction_t tx;
-    auto emp_writer = employee_writer();
+    insert_records(3);
 
-    emp_writer.name_first = emp_name_0;
-    emp_writer.insert_row();
-    emp_writer.name_first = emp_name_1;
-    emp_writer.insert_row();
-    emp_writer.name_first = emp_name_2;
-    emp_writer.insert_row();
-    tx.commit();
-
-    gaia_iterator_t<employee_t> a = employee_t::list().begin();
-    gaia_iterator_t<employee_t> b = employee_t::list().begin();
+    iterator_t a = record_t::list().begin();
+    iterator_t b = record_t::list().begin();
     ++b;
-    gaia_iterator_t<employee_t> c = employee_t::list().end();
+    iterator_t c = record_t::list().end();
 
     // The declaration of type_check will fail in compile-time if the
     // not-equal operator's return type cannot be implicitly converted into
@@ -209,8 +222,8 @@ TEST_F(gaia_iterator_test, not_equal) {
 // Is the reference iterator trait convertible into the value_type iterator
 // trait?
 TEST_F(gaia_iterator_test, reference_convertibility) {
-    typedef iterator_traits<gaia_iterator_t<employee_t>>::reference from_t;
-    typedef iterator_traits<gaia_iterator_t<employee_t>>::value_type to_t;
+    typedef iterator_traits<iterator_t>::reference from_t;
+    typedef iterator_traits<iterator_t>::value_type to_t;
 
     bool convertible = is_convertible<from_t, to_t>::value;
 
@@ -221,119 +234,88 @@ TEST_F(gaia_iterator_test, reference_convertibility) {
 
 // Are iterators dereferenceable as rvalues?
 TEST_F(gaia_iterator_test, dereferenceable_rvalue) {
-    const char* emp_name = "Employee0";
-
     auto_transaction_t tx;
-    auto emp_writer = employee_writer();
-    emp_writer.name_first = emp_name;
-    emp_writer.insert_row();
-    gaia_iterator_t<employee_t> emp_iter = employee_t::list().begin();
+    insert_records(1);
 
-    EXPECT_STREQ((*emp_iter).name_first(), emp_name)
+    iterator_t iter = record_t::list().begin();
+
+    EXPECT_EQ(deref_iter_for_string(iter), get_index_string(0))
         << "The iterator is not dereferenceable as an rvalue with the "
         "expected effects.";
 }
 
 // If two rvalue iterators are equal then their dereferenced values are equal.
 TEST_F(gaia_iterator_test, dereferenceable_equality) {
-    const char* emp_name = "Employee0";
     auto_transaction_t tx;
-    auto emp_writer = employee_writer();
-    emp_writer.name_first = emp_name;
-    gaia_id_t emp_id = emp_writer.insert_row();
-    tx.commit();
+    insert_records(1);
 
-    employee_t employee = employee_t::get(emp_id);
-    gaia_iterator_t<employee_t> emp_iter_a = employee_t::list().begin();
-    gaia_iterator_t<employee_t> emp_iter_b = employee_t::list().begin();
-    ASSERT_TRUE(emp_iter_a == emp_iter_b);
+    iterator_t iter_a = record_t::list().begin();
+    iterator_t iter_b = record_t::list().begin();
 
-    EXPECT_TRUE(*emp_iter_a == *emp_iter_b);
+    ASSERT_TRUE(iter_a == iter_b);
+    EXPECT_TRUE(*iter_a == *iter_b);
 }
 
 // When an iterator is dereferenced, can the object members be accessed?
 // Test of the arrow operator (->).
 TEST_F(gaia_iterator_test, deref_arrow) {
-    const char* emp_name = "Employee0";
-
     auto_transaction_t tx;
-    auto emp_writer = employee_writer();
-    emp_writer.name_first = emp_name;
-    emp_writer.insert_row();
-    gaia_iterator_t<employee_t> emp_iter = employee_t::list().begin();
+    insert_records(1);
 
-    EXPECT_STREQ(emp_iter->name_first(), emp_name)
+    iterator_t iter = record_t::list().begin();
+    EXPECT_EQ(iter_member_string(iter), get_index_string(0))
         << "The class member derefence operator->() does not work.";
 }
 
 // Does (void)iter++ have the same effect as (void)++iter?
 TEST_F(gaia_iterator_test, pre_inc_and_post_inc) {
-    const char* emp_name_0 = "Employee0";
-    const char* emp_name_1 = "Employee1";
-    const char* emp_name_2 = "Employee2";
-
     auto_transaction_t tx;
-    auto emp_writer = employee_writer();
-    emp_writer.name_first = emp_name_0;
-    emp_writer.insert_row();
-    emp_writer.name_first = emp_name_1;
-    emp_writer.insert_row();
-    emp_writer.name_first = emp_name_2;
-    emp_writer.insert_row();
-    tx.commit();
+    insert_records(3);
 
-    gaia_iterator_t<employee_t> emp_iter_a = employee_t::list().begin();
-    gaia_iterator_t<employee_t> emp_iter_b = employee_t::list().begin();
+    iterator_t iter_a = record_t::list().begin();
+    iterator_t iter_b = record_t::list().begin();
 
-    (void)++emp_iter_a;
-    (void)emp_iter_b++;
+    (void)++iter_a;
+    (void)iter_b++;
 
-    EXPECT_TRUE(emp_iter_a == emp_iter_b)
+    EXPECT_TRUE(iter_a == iter_b)
         << "(void)++iter and (void)iter++ have different effects.";
-    EXPECT_STREQ(emp_iter_a->name_first(), emp_iter_b->name_first())
+    EXPECT_EQ(iter_member_string(iter_a), iter_member_string(iter_b))
         << "(void)++iter and (void)iter++ have different effects.";
 
-    (void)++emp_iter_a;
-    (void)emp_iter_b++;
+    (void)++iter_a;
+    (void)iter_b++;
 
-    EXPECT_EQ(emp_iter_a, emp_iter_b)
+    EXPECT_EQ(iter_a, iter_b)
         << "(void)++iter and (void)iter++ have different effects.";
-    EXPECT_STREQ(emp_iter_a->name_first(), emp_iter_b->name_first())
+    EXPECT_EQ(iter_member_string(iter_a), iter_member_string(iter_b))
         << "(void)++iter and (void)iter++ have different effects.";
 }
 
 // Does derefencing and postincrementing *iter++ have the expected effects?
 TEST_F(gaia_iterator_test, deref_and_postinc) {
-    const char* emp_name_0 = "Employee0";
-    const char* emp_name_1 = "Employee1";
-    const char* emp_name_2 = "Employee2";
-
     auto_transaction_t tx;
-    auto emp_writer = employee_writer();
-    emp_writer.name_first = emp_name_0;
-    emp_writer.insert_row();
-    emp_writer.name_first = emp_name_1;
-    emp_writer.insert_row();
-    emp_writer.name_first = emp_name_2;
-    emp_writer.insert_row();
-    tx.commit();
+    insert_records(3);
 
-    gaia_iterator_t<employee_t> emp_iter_a = employee_t::list().begin();
-    gaia_iterator_t<employee_t> emp_iter_b = employee_t::list().begin();
+    iterator_t iter_a = record_t::list().begin();
+    iterator_t iter_b = record_t::list().begin();
 
-    employee_t employee = *emp_iter_b;
-    ++emp_iter_b;
-    EXPECT_EQ((*emp_iter_a++).name_first(), employee.name_first())
+    record_t record = *iter_b;
+    ++iter_b;
+    EXPECT_EQ(deref_and_postinc_iter_for_string(iter_a),
+        get_string_from_record(record))
         << "*iter++ does not have the expected effects.";
 
-    employee = *emp_iter_b;
-    ++emp_iter_b;
-    EXPECT_EQ((*emp_iter_a++).name_first(), employee.name_first())
+    record = *iter_b;
+    ++iter_b;
+    EXPECT_EQ(deref_and_postinc_iter_for_string(iter_a),
+        get_string_from_record(record))
         << "*iter++ does not have the expected effects.";
 
-    employee = *emp_iter_b;
-    ++emp_iter_b;
-    EXPECT_EQ((*emp_iter_a++).name_first(), employee.name_first())
+    record = *iter_b;
+    ++iter_b;
+    EXPECT_EQ(deref_and_postinc_iter_for_string(iter_a),
+        get_string_from_record(record))
         << "*iter++ does not have the expected effects.";
 }
 
@@ -342,7 +324,7 @@ TEST_F(gaia_iterator_test, deref_and_postinc) {
 
 // Is the iterator DefaultConstructible?
 TEST_F(gaia_iterator_test, default_constructible) {
-    EXPECT_TRUE(is_default_constructible<gaia_iterator_t<employee_t>>::value)
+    EXPECT_TRUE(is_default_constructible<iterator_t>::value)
         << "The iterator is not DefaultConstructible.";
 }
 
@@ -350,35 +332,28 @@ TEST_F(gaia_iterator_test, default_constructible) {
 // underlying sequence?
 TEST_F(gaia_iterator_test, equality_and_inequality_in_sequence) {
     auto_transaction_t tx;
-    auto emp_writer = employee_writer();
+    insert_records(10);
 
-    for (int i = 0; i < 10; i++)
+    iterator_t iter_a = record_t::list().begin();
+    for (iterator_t iter_b = record_t::list().begin();
+            iter_b != record_t::list().end(); ++iter_b)
     {
-        emp_writer.ssn = to_string(i).c_str();
-        emp_writer.insert_row();
-    }
-    tx.commit();
-
-    gaia_iterator_t<employee_t> emp_iter_a = employee_t::list().begin();
-    for (gaia_iterator_t<employee_t> emp_iter_b = employee_t::list().begin();
-            emp_iter_b != employee_t::list().end(); ++emp_iter_b)
-    {
-        ASSERT_TRUE(emp_iter_a == emp_iter_b)
+        ASSERT_TRUE(iter_a == iter_b)
             << "Equality comparisons are not defined across all iterators in the same sequence.";
-        ++emp_iter_a;
+        ++iter_a;
     }
 
-    for (gaia_iterator_t<employee_t> emp_iter = employee_t::list().begin();
-            emp_iter != employee_t::list().end(); ++emp_iter)
+    for (iterator_t iter = record_t::list().begin();
+            iter != record_t::list().end(); ++iter)
     {
-        if (emp_iter == employee_t::list().begin())
+        if (iter == record_t::list().begin())
         {
-            ASSERT_TRUE(emp_iter != employee_t::list().end())
+            ASSERT_TRUE(iter != record_t::list().end())
                 << "Inequality comparisons are not defined across all iterators in the same sequence.";
         }
         else
         {
-            ASSERT_TRUE(emp_iter != employee_t::list().begin())
+            ASSERT_TRUE(iter != record_t::list().begin())
                 << "Inequality comparisons are not defined across all iterators in the same sequence.";
         }
     }
@@ -386,28 +361,17 @@ TEST_F(gaia_iterator_test, equality_and_inequality_in_sequence) {
 
 // Does post-incrementing the iterator have the expected effects?
 TEST_F(gaia_iterator_test, post_increment) {
-    const char* emp_name_0 = "Employee0";
-    const char* emp_name_1 = "Employee1";
-    const char* emp_name_2 = "Employee2";
-
     auto_transaction_t tx;
-    auto emp_writer = employee_writer();
-    emp_writer.name_first = emp_name_0;
-    emp_writer.insert_row();
-    emp_writer.name_first = emp_name_1;
-    emp_writer.insert_row();
-    emp_writer.name_first = emp_name_2;
-    emp_writer.insert_row();
-    tx.commit();
+    insert_records(3);
 
-    gaia_iterator_t<employee_t> emp_iter_a = employee_t::list().begin();
-    gaia_iterator_t<employee_t> emp_iter_b = employee_t::list().begin();
+    iterator_t iter_a = record_t::list().begin();
+    iterator_t iter_b = record_t::list().begin();
 
-    EXPECT_TRUE(emp_iter_a++ == emp_iter_b);
-    emp_iter_b++;
-    EXPECT_TRUE(emp_iter_a++ == emp_iter_b);
-    emp_iter_b++;
-    EXPECT_TRUE(emp_iter_a == emp_iter_b);
+    EXPECT_TRUE(iter_a++ == iter_b);
+    iter_b++;
+    EXPECT_TRUE(iter_a++ == iter_b);
+    iter_b++;
+    EXPECT_TRUE(iter_a == iter_b);
 }
 
 // Can an iterator iterate over a sequence multiple times to return the same
@@ -418,25 +382,17 @@ TEST_F(gaia_iterator_test, multipass_guarantee) {
     const int PASSES = 10;
 
     auto_transaction_t tx;
-    auto emp_writer = employee_writer();
-    employee_t employees[LENGTH];
+    record_vec_t records = insert_records(LENGTH);
 
-    for (int i = 0; i < LENGTH; i++)
-    {
-        emp_writer.ssn = to_string(i).c_str();
-        employees[i] = employee_t::get(emp_writer.insert_row());
-    }
-    tx.commit();
-
-    gaia_iterator_t<employee_t> emp_iter = employee_t::list().begin();
+    iterator_t iter = record_t::list().begin();
     for (int i = 0; i < PASSES; i++)
     {
         for (int j = 0; j < LENGTH; j++)
         {
-            ASSERT_TRUE(*emp_iter == employees[j])
+            ASSERT_TRUE(*iter == records.at(j))
                 << "The iterator does not support a multipass guarantee.";
-            ++emp_iter;
+            ++iter;
         }
-        emp_iter = employee_t::list().begin();
+        iter = record_t::list().begin();
     }
 }

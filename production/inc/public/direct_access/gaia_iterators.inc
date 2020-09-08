@@ -104,13 +104,23 @@ gaia_iterator_t<T_gaia> gaia_container_t<T_gaia_type, T_gaia>::end()
 // Implementation for gaia_set_iterator_t.
 //
 template <typename T_foreign, int T_foreign_slot>
-T_foreign gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator*()
+gaia_set_iterator_t<T_foreign, T_foreign_slot>::gaia_set_iterator_t(gaia_id_t id)
+    : m_id(id) {}
+
+template <typename T_foreign, int T_foreign_slot>
+gaia_set_iterator_t<T_foreign, T_foreign_slot>::gaia_set_iterator_t()
+    : m_id(0) {}
+
+
+template <typename T_foreign, int T_foreign_slot>
+typename gaia_set_iterator_t<T_foreign, T_foreign_slot>::reference gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator*()
 {
-    return T_foreign::get(m_id);
+    m_foreign_obj = T_foreign::get(m_id);
+    return m_foreign_obj;
 }
 
 template <typename T_foreign, int T_foreign_slot>
-T_foreign* gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator->()
+typename gaia_set_iterator_t<T_foreign, T_foreign_slot>::pointer gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator->()
 {
     m_foreign_obj = T_foreign::get(m_id);
     return &m_foreign_obj;

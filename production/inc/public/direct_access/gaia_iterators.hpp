@@ -74,17 +74,18 @@ class gaia_set_iterator_t {
     gaia_id_t m_id;
     T_foreign m_foreign_obj;
 public:
-    using iterator_category = std::forward_iterator_tag;
-    using value_type = gaia_id_t;
     using difference_type = std::ptrdiff_t;
-    using pointer = gaia_id_t*;
-    using reference = gaia_id_t&;
+    using value_type = T_foreign;
+    using pointer = T_foreign*;
+    using reference = T_foreign&;
+    using iterator_category = std::forward_iterator_tag;
 
-    gaia_set_iterator_t(gaia_id_t id) : m_id(id) {}
+    gaia_set_iterator_t(gaia_id_t id);
+    gaia_set_iterator_t();
 
-    T_foreign operator*();
+    reference operator*();
 
-    T_foreign* operator->();
+    pointer operator->();
 
     gaia_set_iterator_t<T_foreign, T_foreign_slot>& operator++();
 
