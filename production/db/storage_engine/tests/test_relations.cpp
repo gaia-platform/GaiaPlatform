@@ -10,86 +10,96 @@
 using namespace std;
 using namespace gaia::db;
 using namespace gaia::common;
+using namespace gaia::db::test;
 
 TEST(relations, registry_creates_metadata_when_type_does_not_exist) {
     type_registry_t test_registry;
-    auto metadata = test_registry.get_metadata(NON_EXISTENT_TYPE);
-    ASSERT_EQ(metadata.get_type(), NON_EXISTENT_TYPE);
+    auto metadata = test_registry.get_or_create(c_non_existent_type);
+    ASSERT_EQ(metadata.get_type(), c_non_existent_type);
 }
-
 
 TEST(relations, metadata_one_to_many) {
     type_registry_t test_registry;
 
     relation_builder_t::one_to_many()
-        .parent(DOCTOR_TYPE)
-        .child(PATIENT_TYPE)
+        .parent(c_doctor_type)
+        .child(c_patient_type)
         .add_to_registry(test_registry);
 
-    auto parent = test_registry.get_metadata(DOCTOR_TYPE);
-    auto child = test_registry.get_metadata(PATIENT_TYPE);
+    auto& parent = test_registry.get_or_create(c_doctor_type);
+    auto& child = test_registry.get_or_create(c_patient_type);
 
-    ASSERT_EQ(parent.get_type(), DOCTOR_TYPE);
-    ASSERT_EQ(child.get_type(), PATIENT_TYPE);
+    ASSERT_EQ(parent.get_type(), c_doctor_type);
+    ASSERT_EQ(child.get_type(), c_patient_type);
 
     ASSERT_EQ(parent.num_references(), 1);
     ASSERT_EQ(child.num_references(), 2);
 
-    auto parent_rel_opt = parent.find_parent_relation(FIRST_PATIENT_OFFSET);
-    ASSERT_TRUE(parent_rel_opt.has_value());
-    auto parent_rel = parent_rel_opt.value();
+    auto parent_rel = parent.find_parent_relationship(c_first_patient_offset);
+    ASSERT_TRUE(parent_rel != nullptr);
 
-    auto child_rel_opt = child.find_child_relation(NEXT_PATIENT_OFFSET);
-    ASSERT_TRUE(child_rel_opt.has_value());
-    auto child_rel = child_rel_opt.value();
+    auto child_rel = child.find_child_relationship(c_parent_doctor_offset);
+    ASSERT_TRUE(child_rel != nullptr);
 
-    // parent and child should be sharing the same relation
-    // TODO these 2 should be the same but are somewhat different.
-    // ASSERT_EQ(&parent_rel, &child_rel);
+    // Parent and child should be sharing the same relation.
+    ASSERT_EQ(parent_rel, child_rel);
 
-    ASSERT_EQ(parent_rel.parent_type, DOCTOR_TYPE);
-    ASSERT_EQ(parent_rel.child_type, PATIENT_TYPE);
-    ASSERT_EQ(parent_rel.first_child, FIRST_PATIENT_OFFSET);
-    ASSERT_EQ(parent_rel.next_child, NEXT_PATIENT_OFFSET);
-    ASSERT_EQ(parent_rel.parent, PARENT_DOCTOR_OFFSET);
-    ASSERT_EQ(parent_rel.modality, modality_t::zero);
-    ASSERT_EQ(parent_rel.cardinality, cardinality_t::many);
+    ASSERT_EQ(parent_rel->parent_type, c_doctor_type);
+    ASSERT_EQ(parent_rel->child_type, c_patient_type);
+    ASSERT_EQ(parent_rel->first_child, c_first_patient_offset);
+    ASSERT_EQ(parent_rel->next_child, c_next_patient_offset);
+    ASSERT_EQ(parent_rel->parent, c_parent_doctor_offset);
+    ASSERT_EQ(parent_rel->modality, modality_t::zero);
+    ASSERT_EQ(parent_rel->cardinality, cardinality_t::many);
 }
 
 TEST(relations, metadata_one_to_one) {
     type_registry_t test_registry;
 
     relation_builder_t::one_to_one()
-        .parent(DOCTOR_TYPE)
-        .child(PATIENT_TYPE)
+        .parent(c_doctor_type)
+        .child(c_patient_type)
         .add_to_registry(test_registry);
 
-    auto parent = test_registry.get_metadata(DOCTOR_TYPE);
-    auto child = test_registry.get_metadata(PATIENT_TYPE);
+    auto parent = test_registry.get_or_create(c_doctor_type);
+    auto child = test_registry.get_or_create(c_patient_type);
 
-    ASSERT_EQ(parent.get_type(), DOCTOR_TYPE);
-    ASSERT_EQ(child.get_type(), PATIENT_TYPE);
+    ASSERT_EQ(parent.get_type(), c_doctor_type);
+    ASSERT_EQ(child.get_type(), c_patient_type);
 
     ASSERT_EQ(parent.num_references(), 1);
     ASSERT_EQ(child.num_references(), 2);
 
-    auto parent_rel_opt = parent.find_parent_relation(FIRST_PATIENT_OFFSET);
-    ASSERT_TRUE(parent_rel_opt.has_value());
-    auto parent_rel = parent_rel_opt.value();
+    auto parent_rel = parent.find_parent_relationship(c_first_patient_offset);
+    ASSERT_TRUE(parent_rel != nullptr);
 
-    auto child_rel_opt = child.find_child_relation(NEXT_PATIENT_OFFSET);
-    ASSERT_TRUE(child_rel_opt.has_value());
-    auto child_rel = child_rel_opt.value();
+    auto child_rel = child.find_child_relationship(c_parent_doctor_offset);
+    ASSERT_TRUE(child_rel != nullptr);
 
-    // parent and child should be sharing the same relation
-    // TODO these 2 should be the same but are somewhat different.
-    // ASSERT_EQ(&parent_rel, &child_rel);
+    // Parent and child should be sharing the same relation.
+    ASSERT_EQ(parent_rel, child_rel);
 
-    ASSERT_EQ(parent_rel.parent_type, DOCTOR_TYPE);
-    ASSERT_EQ(parent_rel.child_type, PATIENT_TYPE);
-    ASSERT_EQ(parent_rel.first_child, FIRST_PATIENT_OFFSET);
-    ASSERT_EQ(parent_rel.next_child, NEXT_PATIENT_OFFSET);
-    ASSERT_EQ(parent_rel.parent, PARENT_DOCTOR_OFFSET);
-    ASSERT_EQ(parent_rel.modality, modality_t::zero);
-    ASSERT_EQ(parent_rel.cardinality, cardinality_t::one);
+    ASSERT_EQ(parent_rel->parent_type, c_doctor_type);
+    ASSERT_EQ(parent_rel->child_type, c_patient_type);
+    ASSERT_EQ(parent_rel->first_child, c_first_patient_offset);
+    ASSERT_EQ(parent_rel->next_child, c_next_patient_offset);
+    ASSERT_EQ(parent_rel->parent, c_parent_doctor_offset);
+    ASSERT_EQ(parent_rel->modality, modality_t::zero);
+    ASSERT_EQ(parent_rel->cardinality, cardinality_t::one);
+}
+
+TEST(relations, child_relation_do_not_use_next_child) {
+    type_registry_t test_registry;
+
+    relation_builder_t::one_to_one()
+        .parent(c_doctor_type)
+        .child(c_patient_type)
+        .add_to_registry(test_registry);
+
+    auto child = test_registry.get_or_create(c_patient_type);
+    // although next_patient offset exists in child, it is not the one used
+    // to identify the relation
+    auto child_rel = child.find_child_relationship(c_next_patient_offset);
+
+    ASSERT_TRUE(child_rel == nullptr);
 }

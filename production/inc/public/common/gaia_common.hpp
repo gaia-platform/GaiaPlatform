@@ -37,7 +37,7 @@ typedef uint64_t gaia_type_t;
 /**
  * The value of an invalid Gaia type
  */
-constexpr gaia_type_t INVALID_GAIA_TYPE = -1;
+constexpr gaia_type_t INVALID_GAIA_TYPE = 0;
 
 /**
  * The type of a Gaia transaction id.
@@ -62,9 +62,9 @@ typedef std::vector<field_position_t> field_position_list_t;
 /**
  * Locates the pointer to a relation within the Gaia Object payload.
  *
- * @see gaia::common::db::relation_t
+ * @see gaia::common::db::relationship_t
  */
-typedef uint16_t relation_offset_t;
+typedef uint16_t relationship_offset_t;
 
 } // namespace common
 /*@}*/

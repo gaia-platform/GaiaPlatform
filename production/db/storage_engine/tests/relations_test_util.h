@@ -1,6 +1,8 @@
-//
-// Created by simone on 9/4/20.
-//
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 
 #pragma once
 
@@ -10,22 +12,26 @@
 using namespace gaia::db;
 using namespace gaia::common;
 
-// Here we model an hypothetical relation between Doctors and Patients
-// The relation can be both 1:1 or 1:n depending on the test.
+namespace gaia::db::test {
+
+// Here we model an hypothetical relationship between Doctors and Patients
+// The relationship can be both 1:1 or 1:n depending on the test.
 // Doctor --> Patient
-// This relation is used in most relation/references tests.
+// This relationship is used in most relationship/references tests.
 
-constexpr gaia_type_t DOCTOR_TYPE = 0;
-constexpr gaia_type_t PATIENT_TYPE = 1;
-constexpr gaia_type_t NON_EXISTENT_TYPE = 1001;
+constexpr gaia_type_t c_doctor_type = 1;
+constexpr gaia_type_t c_patient_type = 2;
+constexpr gaia_type_t c_non_existent_type = 1001;
 
-constexpr relation_offset_t FIRST_PATIENT_OFFSET = 0;
-constexpr relation_offset_t NEXT_PATIENT_OFFSET = 0;
-constexpr relation_offset_t PARENT_DOCTOR_OFFSET = 1;
-constexpr relation_offset_t NON_EXISTENT_OFFSET = 1024;
+constexpr gaia_id_t c_non_existent_id = 10000000;
+
+constexpr relationship_offset_t c_first_patient_offset = 0;
+constexpr relationship_offset_t c_next_patient_offset = 0;
+constexpr relationship_offset_t c_parent_doctor_offset = 1;
+constexpr relationship_offset_t c_non_existent_offset = 1024;
 
 /**
- * Facilitate the creation of relation objects and their insertion into
+ * Facilitate the creation of relationship objects and their insertion into
  * the registry.
  */
 class relation_builder_t {
@@ -52,24 +58,24 @@ class relation_builder_t {
         return *this;
     }
 
-    relation_builder_t first_child_offset(relation_offset_t first_child) {
+    relation_builder_t first_child_offset(relationship_offset_t first_child) {
         this->m_first_child = first_child;
         return *this;
     }
 
-    relation_builder_t next_child_offset(relation_offset_t next_child) {
+    relation_builder_t next_child_offset(relationship_offset_t next_child) {
         this->m_next_child = next_child;
         return *this;
     }
 
-    relation_builder_t parent_offset(relation_offset_t parent) {
+    relation_builder_t parent_offset(relationship_offset_t parent) {
         this->m_parent = parent;
         return *this;
     }
 
     // does not use the singleton instance to avoid strange test
     // behaviors
-    void add_to_registry(type_registry_t &registry) {
+    void add_to_registry(type_registry_t& registry) {
         if (m_parent_type == INVALID_GAIA_TYPE) {
             throw invalid_argument("parent_type must be set");
         }
@@ -78,7 +84,11 @@ class relation_builder_t {
             throw invalid_argument("child_type must be set");
         }
 
-        auto rel = make_shared<relation_t>(relation_t{
+        if (m_cardinality == cardinality_t::not_set) {
+            throw invalid_argument("cardinality must be set");
+        }
+
+        auto rel = make_shared<relationship_t>(relationship_t{
             .parent_type = this->m_parent_type,
             .child_type = this->m_child_type,
             .first_child = this->m_first_child,
@@ -87,27 +97,35 @@ class relation_builder_t {
             .cardinality = this->m_cardinality,
             .modality = this->m_modality});
 
-        // TODO don't understand why if I use auto here, it returns a copy and not a reference.
-        type_metadata_t &parent_meta = registry.get_metadata(m_parent_type);
-        parent_meta.add_parent_relation(m_first_child, rel);
+        //        auto rel = make_shared<relationship_t>(
+//            this->m_parent_type,
+//            this->m_child_type,
+//            this->m_first_child,
+//            this->m_next_child,
+//            this->m_parent,
+//            this->m_cardinality,
+//            this->m_modality);
 
-        type_metadata_t &child_meta = registry.get_metadata(m_child_type);
-        child_meta.add_child_relation(m_next_child, rel);
+        auto& parent_meta = registry.get_or_create(m_parent_type);
+        parent_meta.add_parent_relationship(m_first_child, rel);
+
+        auto& child_meta = registry.get_or_create(m_child_type);
+        child_meta.add_child_relationship(m_parent, rel);
     }
 
   private:
     relation_builder_t() = default;
 
     // mandatory values
-    cardinality_t m_cardinality = cardinality_t::one;
+    cardinality_t m_cardinality = cardinality_t::not_set;
     gaia_type_t m_parent_type = INVALID_GAIA_TYPE;
     gaia_type_t m_child_type = INVALID_GAIA_TYPE;
 
     // default values add methods for those.
     modality_t m_modality = modality_t::zero;
-    relation_offset_t m_first_child = FIRST_PATIENT_OFFSET;
-    relation_offset_t m_next_child = NEXT_PATIENT_OFFSET;
-    relation_offset_t m_parent = PARENT_DOCTOR_OFFSET;
+    relationship_offset_t m_first_child = c_first_patient_offset;
+    relationship_offset_t m_next_child = c_next_patient_offset;
+    relationship_offset_t m_parent = c_parent_doctor_offset;
 };
 
 /**
@@ -116,9 +134,9 @@ class relation_builder_t {
  *
  * TODO maybe some of this logic should be moved inside gaia_ptr
  */
-gaia_ptr create_object(gaia_type_t type, size_t data_size, const void *data) {
+gaia_ptr create_object(gaia_type_t type, size_t data_size, const void* data) {
     gaia_id_t id = gaia_ptr::generate_id();
-    auto metadata = type_registry_t::instance().get_metadata(type);
+    auto metadata = type_registry_t::instance().get_or_create(type);
     size_t num_references = metadata.num_references();
     return gaia_ptr::create(id, type, num_references, data_size, data);
 }
@@ -126,3 +144,9 @@ gaia_ptr create_object(gaia_type_t type, size_t data_size, const void *data) {
 gaia_ptr create_object(gaia_type_t type, std::string payload) {
     return create_object(type, payload.size(), payload.data());
 }
+
+void clean_type_registry() {
+    type_registry_t::instance().clear();
+}
+
+} // namespace gaia::db::test

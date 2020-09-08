@@ -3,57 +3,54 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <iostream>
 #include "type_metadata.hpp"
 
 using std::map;
 
 namespace gaia::db {
 
-optional<relation_t> type_metadata_t::find_parent_relation(relation_offset_t offset) const {
-    auto parent_rel = m_parent_relations.find(offset);
+// Child relationship contains 2 pointer for every relationship.
+constexpr std::size_t CHILD_RELATION_NUM_PTRS = 2;
 
-    if (parent_rel == m_parent_relations.end()) {
-        return {};
+relationship_t* type_metadata_t::find_parent_relationship(relationship_offset_t offset) const {
+    auto parent_relation = m_parent_relationships.find(offset);
+
+    if (parent_relation == m_parent_relationships.end()) {
+        return nullptr;
     }
 
-    return std::ref(*parent_rel->second);
+    return parent_relation->second.get();
 }
 
-optional<relation_t> type_metadata_t::find_child_relation(relation_offset_t offset) const {
-    auto child_rel = m_child_relations.find(offset);
+relationship_t* type_metadata_t::find_child_relationship(relationship_offset_t offset) const {
+    auto child_relation = m_child_relationships.find(offset);
 
-    if (child_rel == m_child_relations.end()) {
-        return {};
+    if (child_relation == m_child_relationships.end()) {
+        return nullptr;
     }
 
-    return std::ref(*child_rel->second);
+    return child_relation->second.get();
 }
 
-void type_metadata_t::add_parent_relation(relation_offset_t offset, shared_ptr<relation_t> relation) {
-    m_parent_relations.insert({offset, relation});
+void type_metadata_t::add_parent_relationship(relationship_offset_t first_child, const shared_ptr<relationship_t>& relationship) {
+    m_parent_relationships.insert({first_child, relationship});
 }
 
-void type_metadata_t::add_child_relation(relation_offset_t offset, shared_ptr<relation_t> relation) {
-    m_child_relations.insert({offset, relation});
+void type_metadata_t::add_child_relationship(relationship_offset_t parent, const shared_ptr<relationship_t>& relationship) {
+    m_child_relationships.insert({parent, relationship});
 }
 
 gaia_type_t type_metadata_t::get_type() const {
     return m_type;
 }
 size_t type_metadata_t::num_references() {
-    return m_parent_relations.size() + (2 * m_child_relations.size());
+    return m_parent_relationships.size() + (CHILD_RELATION_NUM_PTRS * m_child_relationships.size());
 }
 
-type_metadata_t &type_registry_t::get_metadata(gaia_type_t type) {
-    auto metadata = m_metadata_registry.find(type);
-
-    if (metadata == m_metadata_registry.end()) {
-        auto new_metadata = make_unique<type_metadata_t>(type);
-        m_metadata_registry.insert({type, std::move(new_metadata)});
-        return *(m_metadata_registry[type].get());
-    }
-
-    return *metadata->second;
+type_metadata_t& type_registry_t::get_or_create(gaia_type_t type) {
+    auto [it, result] = m_metadata_registry.try_emplace(type, type);
+    return it->second;
 }
 
 void type_registry_t::clear() {

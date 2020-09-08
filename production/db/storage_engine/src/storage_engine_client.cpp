@@ -125,11 +125,11 @@ void client::begin_session() {
     // Clean up possible stale state from a server crash or reset.
     clear_shared_memory();
     // Assert relevant fd's and pointers are in clean state.
-    retail_assert(s_data == nullptr);
-    retail_assert(s_fd_offsets == -1);
-    retail_assert(s_fd_log == -1);
-    retail_assert(s_log == nullptr);
-    retail_assert(s_offsets == nullptr);
+    retail_assert(s_data == nullptr, "Invalid session state");
+    retail_assert(s_fd_offsets == -1, "Invalid session state");
+    retail_assert(s_fd_log == -1, "Invalid session state");
+    retail_assert(s_log == nullptr, "Invalid session state");
+    retail_assert(s_offsets == nullptr, "Invalid session state");
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
@@ -312,7 +312,7 @@ void client::commit_transaction() {
     }
 
     // Execute trigger only if rules engine is initialized.
-    if (s_tx_commit_trigger 
+    if (s_tx_commit_trigger
         && event == session_event_t::DECIDE_TXN_COMMIT
         && s_events.size() > 0) {
         s_tx_commit_trigger(s_transaction_id, s_events);

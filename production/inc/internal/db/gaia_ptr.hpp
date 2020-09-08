@@ -158,14 +158,30 @@ class gaia_ptr {
     }
 
     /**
-     * Adds a child reference to a parent object. Fails if there is no relation
-     * between the two objects.
+     * Adds a child reference to a parent object.
+     *
+     * Calling `parent.add_child_reference(child)` is the same as calling
+     * `child.add_parent_reference(parent)`.
      *
      * @param child_id: The id of the children.
      * @param first_child: The offset in the payload where the pointer to the child is placed.
-     * @throws Exceptions there is no relation between the parent and the child.
+     * @throws Exceptions there is no relation between the parent and the child or if other
+     *         integrity constraints are violated.
      */
-    void add_child_reference(gaia_id_t child_id, relation_offset_t first_child);
+    void add_child_reference(gaia_id_t child_id, relationship_offset_t first_child);
+
+    /**
+     * Add a parent reference to a child object.
+     *
+     * Note: Children objects have 2 pointers per relation (next_child, parent)  only one (parent)
+     * is used to denote the relation with parent.
+     *
+     * @param parent_id: The id of the parent
+     * @param parent: The offset in the payload where the pointer to the parent is placed.
+     * @throws Exceptions there is no relation between the parent and the child  or if other
+     *         integrity constraints are violated.
+     */
+    void add_parent_reference(gaia_id_t parent_id, relationship_offset_t parent);
 
 
   protected:
