@@ -8,10 +8,12 @@
 
 using std::map;
 
-namespace gaia::db {
+namespace gaia {
+
+namespace db {
 
 // Child relationship contains 2 pointer for every relationship.
-constexpr std::size_t CHILD_RELATION_NUM_PTRS = 2;
+constexpr std::size_t c_child_relation_num_ptrs = 2;
 
 relationship_t* type_metadata_t::find_parent_relationship(relationship_offset_t first_child) const {
     auto parent_relation = m_parent_relationships.find(first_child);
@@ -45,7 +47,7 @@ gaia_type_t type_metadata_t::get_type() const {
     return m_type;
 }
 size_t type_metadata_t::num_references() {
-    return m_parent_relationships.size() + (CHILD_RELATION_NUM_PTRS * m_child_relationships.size());
+    return m_parent_relationships.size() + (c_child_relation_num_ptrs * m_child_relationships.size());
 }
 
 type_metadata_t& type_registry_t::get_or_create(gaia_type_t type) {
@@ -57,4 +59,5 @@ void type_registry_t::clear() {
     m_metadata_registry.clear();
 }
 
-} // namespace gaia::db
+} // namespace db
+} // namespace gaia

@@ -66,6 +66,7 @@ typedef std::vector<field_position_t> field_position_list_t;
  */
 typedef uint16_t relationship_offset_t;
 
+/*@}*/
 } // namespace common
 /*@}*/
 } // namespace gaia
