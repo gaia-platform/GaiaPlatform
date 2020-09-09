@@ -17,7 +17,7 @@ TEST(catalog_ddl_parser_test, create_table) {
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
 
-    auto create_stmt = dynamic_cast<create_statement_t *>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_table);
     EXPECT_EQ(create_stmt->name, "t");
@@ -31,7 +31,7 @@ TEST(catalog_ddl_parser_test, create_table_if_not_exists) {
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
 
-    auto create_stmt = dynamic_cast<create_statement_t *>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_table);
     EXPECT_EQ(create_stmt->name, "t");
@@ -45,7 +45,7 @@ TEST(catalog_ddl_parser_test, create_table_multiple_fields) {
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
 
-    auto create_stmt = dynamic_cast<create_statement_t *>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_table);
     EXPECT_EQ(create_stmt->name, "t");
@@ -73,7 +73,7 @@ TEST(catalog_ddl_parser_test, create_table_references) {
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
 
-    auto create_stmt = dynamic_cast<create_statement_t *>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_table);
     EXPECT_EQ(create_stmt->name, "t");
@@ -102,7 +102,7 @@ TEST(catalog_ddl_parser_test, drop_table) {
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::drop);
 
-    auto drop_stmt = dynamic_cast<drop_statement_t *>(parser.statements[0].get());
+    auto drop_stmt = dynamic_cast<drop_statement_t*>(parser.statements[0].get());
 
     EXPECT_EQ(drop_stmt->type, drop_type_t::drop_table);
     EXPECT_EQ(drop_stmt->name, "t");
@@ -127,7 +127,7 @@ TEST(catalog_ddl_parser_test, create_active_field) {
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
 
-    auto create_stmt = dynamic_cast<create_statement_t *>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_table);
     EXPECT_EQ(create_stmt->name, "t");
@@ -151,7 +151,7 @@ TEST(catalog_ddl_parser_test, create_database) {
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
 
-    auto create_stmt = dynamic_cast<create_statement_t *>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_database);
     EXPECT_EQ(create_stmt->name, "db");
@@ -165,7 +165,7 @@ TEST(catalog_ddl_parser_test, create_database_if_not_exists) {
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
 
-    auto create_stmt = dynamic_cast<create_statement_t *>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_database);
     EXPECT_EQ(create_stmt->name, "db");
@@ -179,7 +179,7 @@ TEST(catalog_ddl_parser_test, create_table_in_database) {
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
 
-    auto create_stmt = dynamic_cast<create_statement_t *>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(parser.statements[0].get());
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_table);
     EXPECT_EQ(create_stmt->name, "t");
