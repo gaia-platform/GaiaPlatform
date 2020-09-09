@@ -126,7 +126,7 @@ private:
         session_event_t event,
         session_state_t old_state,
         session_state_t new_state,
-        gaia_txn_id_t txn_id);
+        gaia_txn_id_t txn_id = 0);
 
     static void clear_shared_memory();
 
@@ -140,10 +140,6 @@ private:
             rdb->recover();
         }
     }
-
-
-        recover_db();
-
 
     static sigset_t mask_signals();
 

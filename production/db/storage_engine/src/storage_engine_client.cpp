@@ -58,13 +58,18 @@ int client::get_id_cursor_socket_for_type(gaia_type_t type) {
 // This generator wraps a socket which reads a stream of gaia_id values from the server.
 std::function<std::optional<gaia_id_t>()>
 client::get_id_generator_for_type(gaia_type_t type) {
+    // Currently, we associate an ID cursor with a snapshot view, i.e., a transaction.
+    verify_tx_active();
     int stream_socket_fd = get_id_cursor_socket_for_type(type);
     auto cleanup_stream_socket = make_scope_guard([stream_socket_fd]() {
         ::close(stream_socket_fd);
     });
-    auto id_generator = [stream_socket_fd]() mutable -> std::optional<gaia_id_t> {
+    gaia_xid_t owning_transaction_id = s_transaction_id;
+    auto id_generator = [stream_socket_fd, owning_transaction_id]() mutable -> std::optional<gaia_id_t> {
         // We shouldn't be called again after we received EOF from the server.
         retail_assert(stream_socket_fd != -1);
+        // The cursor should only be called from within the scope of its owning transaction.
+        retail_assert(s_transaction_id == owning_transaction_id);
         gaia_id_t next_id;
         ssize_t bytes_read = ::read(stream_socket_fd, &next_id, sizeof(next_id));
         if (bytes_read == -1) {
@@ -330,6 +335,12 @@ void client::rollback_transaction() {
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::ROLLBACK_TXN);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
+
+    // Reset transaction id.
+    s_transaction_id = 0;
+
+    // Reset TLS events vector for the next transaction that will run on this thread.
+    s_events.clear();
 }
 
 // This method returns void on a commit decision and throws on an abort decision.

@@ -48,7 +48,8 @@ void server::handle_rollback_txn(int *, size_t, session_event_t event, const voi
     retail_assert(event == session_event_t::ROLLBACK_TXN);
     // This message should only be received while a transaction is in progress.
     retail_assert(old_state == session_state_t::TXN_IN_PROGRESS && new_state == session_state_t::CONNECTED);
-    // Currently we don't need to alter any server-side state for rolling back a transaction.
+    // We just need to reset the session thread's xid without replying to the client.
+    s_transaction_id = 0;
 }
 
 void server::handle_commit_txn(int *fds, size_t fd_count, session_event_t event, const void *, session_state_t old_state, session_state_t new_state) {
@@ -141,7 +142,7 @@ void server::handle_request_stream(int *, size_t, session_event_t event, const v
     // Any exceptions after this point will close the server socket, ensuring the producer thread terminates.
     // However, its destructor will not run until the session thread exits and joins the producer thread.
     FlatBufferBuilder builder;
-    build_server_reply(builder, event, old_state, new_state, s_transaction_id);
+    build_server_reply(builder, event, old_state, new_state);
     send_msg_with_fds(s_session_socket, &client_socket, 1, builder.GetBufferPointer(), builder.GetSize());
     // Close the client socket in our process since we duplicated it.
     ::close(client_socket);
@@ -185,9 +186,15 @@ void server::build_server_reply(
     session_state_t old_state,
     session_state_t new_state,
     gaia_xid_t transaction_id) {
-    const auto transaction_info = Createtransaction_info_t(builder, transaction_id);
-    const auto server_reply = Createserver_reply_t(builder, event, old_state, new_state,
-        reply_data_t::transaction_info, transaction_info.Union());
+    const auto server_reply = [&]{
+        if (transaction_id) {
+            const auto transaction_info = Createtransaction_info_t(builder, transaction_id);
+            return Createserver_reply_t(builder, event, old_state, new_state,
+                reply_data_t::transaction_info, transaction_info.Union());
+        } else {
+            return Createserver_reply_t(builder, event, old_state, new_state);
+        }
+    }();
     const auto message = Createmessage_t(builder, any_message_t::reply, server_reply.Union());
     builder.Finish(message);
 }
