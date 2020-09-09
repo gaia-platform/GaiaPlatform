@@ -13,8 +13,8 @@ namespace gaia::db {
 // Child relationship contains 2 pointer for every relationship.
 constexpr std::size_t CHILD_RELATION_NUM_PTRS = 2;
 
-relationship_t* type_metadata_t::find_parent_relationship(relationship_offset_t offset) const {
-    auto parent_relation = m_parent_relationships.find(offset);
+relationship_t* type_metadata_t::find_parent_relationship(relationship_offset_t first_child) const {
+    auto parent_relation = m_parent_relationships.find(first_child);
 
     if (parent_relation == m_parent_relationships.end()) {
         return nullptr;
@@ -23,8 +23,8 @@ relationship_t* type_metadata_t::find_parent_relationship(relationship_offset_t 
     return parent_relation->second.get();
 }
 
-relationship_t* type_metadata_t::find_child_relationship(relationship_offset_t offset) const {
-    auto child_relation = m_child_relationships.find(offset);
+relationship_t* type_metadata_t::find_child_relationship(relationship_offset_t parent) const {
+    auto child_relation = m_child_relationships.find(parent);
 
     if (child_relation == m_child_relationships.end()) {
         return nullptr;

@@ -203,3 +203,78 @@ void gaia_ptr::add_parent_reference(gaia_id_t parent_id, relationship_offset_t p
 
     parent_ptr.add_child_reference(id(), child_relation->first_child);
 }
+
+void gaia_ptr::remove_child_reference(gaia_id_t child_id, relationship_offset_t first_child) {
+    auto parent_type = type();
+    auto parent_metadata = type_registry_t::instance().get_or_create(parent_type);
+    auto relation = parent_metadata.find_parent_relationship(first_child);
+
+    if (!relation) {
+        throw invalid_relation_offset_t(parent_type, first_child);
+    }
+
+    // CHECK TYPES
+    // TODO Note this check could be removed, or the failure could be gracefully handled
+    //   I still prefer to fail because calling this method with worng arguments means there
+    //   is something seriously ill in the caller code.
+
+    auto child_ptr = gaia_ptr(child_id);
+
+    if (!child_ptr) {
+        throw invalid_node_id(child_id);
+    }
+
+    if (relation->parent_type != parent_type) {
+        throw invalid_relation_type_t(first_child, parent_type, relation->parent_type);
+    }
+
+    if (relation->child_type != child_ptr.type()) {
+        throw invalid_relation_type_t(first_child, child_ptr.type(), relation->child_type);
+    }
+
+    // REMOVE REFERENCE
+    gaia_id_t prev_child = INVALID_GAIA_ID;
+    gaia_id_t curr_child = references()[first_child];
+
+    while (curr_child != child_id) {
+        prev_child = curr_child;
+        curr_child = gaia_ptr(prev_child).references()[relation->next_child];
+    }
+
+    // match found
+    if (curr_child == child_id) {
+        auto curr_ptr = gaia_ptr(curr_child);
+
+        if (!prev_child) {
+            // first child in the linked list, need to update the parent
+            references()[first_child] = curr_ptr.references()[relation->next_child];
+        } else {
+            // non-first child in the linked list, update the previous child
+            auto prev_ptr = gaia_ptr(prev_child);
+            prev_ptr.references()[relation->next_child] = curr_ptr.references()[relation->next_child];
+        }
+
+        curr_ptr.references()[relation->parent] = INVALID_GAIA_ID;
+        curr_ptr.references()[relation->next_child] = INVALID_GAIA_ID;
+    }
+}
+
+void gaia_ptr::remove_parent_reference(gaia_id_t parent_id, relationship_offset_t parent) {
+    auto child_type = type();
+
+    auto child_metadata = type_registry_t::instance().get_or_create(child_type);
+    auto relationship = child_metadata.find_child_relationship(parent);
+
+    if (!relationship) {
+        throw invalid_relation_offset_t(child_type, parent);
+    }
+
+    auto parent_ptr = gaia_ptr(parent_id);
+
+    if (!parent_ptr) {
+        throw invalid_node_id(parent_ptr);
+    }
+
+    // REMOVE REFERENCE
+    parent_ptr.remove_child_reference(id(), relationship->first_child);
+}

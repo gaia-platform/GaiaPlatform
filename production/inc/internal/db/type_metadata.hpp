@@ -31,10 +31,19 @@ class type_metadata_t {
     explicit type_metadata_t(gaia_type_t type) : m_type(type) {}
 
     gaia_type_t get_type() const;
-    relationship_t* find_parent_relationship(relationship_offset_t offset) const;
-    relationship_t* find_child_relationship(relationship_offset_t offset) const;
+    relationship_t* find_parent_relationship(relationship_offset_t first_child) const;
+    relationship_t* find_child_relationship(relationship_offset_t parent) const;
 
+    /**
+     * Mark this type as the parent side of the relationship.
+     * The relationship_t object will be stored in the child metadata as well.
+     */
     void add_parent_relationship(relationship_offset_t first_child, const shared_ptr<relationship_t>& relationship);
+
+    /**
+     * Mark this type as the child side of the relationship.
+     * The relationship_t object will be stored in the parent metadata as well.
+     */
     void add_child_relationship(relationship_offset_t parent, const shared_ptr<relationship_t>& relationship);
 
     /**
@@ -106,7 +115,6 @@ class type_registry_t {
 
   private:
     map<gaia_type_t, type_metadata_t> m_metadata_registry;
-
 };
 
 } // namespace gaia::db

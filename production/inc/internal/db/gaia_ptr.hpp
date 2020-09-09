@@ -157,14 +157,16 @@ class gaia_ptr {
         return to_ptr()->num_references;
     }
 
+    // TODO better documentation for relationship_offset_t
+
     /**
      * Adds a child reference to a parent object.
      *
      * Calling `parent.add_child_reference(child)` is the same as calling
      * `child.add_parent_reference(parent)`.
      *
-     * @param child_id: The id of the children.
-     * @param first_child: The offset in the payload where the pointer to the child is placed.
+     * @param child_id The id of the children.
+     * @param first_child The offset in the payload where the pointer to the child is placed.
      * @throws Exceptions there is no relation between the parent and the child or if other
      *         integrity constraints are violated.
      */
@@ -176,13 +178,30 @@ class gaia_ptr {
      * Note: Children objects have 2 pointers per relation (next_child, parent)  only one (parent)
      * is used to denote the relation with parent.
      *
-     * @param parent_id: The id of the parent
-     * @param parent: The offset in the payload where the pointer to the parent is placed.
+     * @param parent_id The id of the parent
+     * @param parent The offset in the payload where the pointer to the parent is placed.
      * @throws Exceptions there is no relation between the parent and the child  or if other
      *         integrity constraints are violated.
      */
     void add_parent_reference(gaia_id_t parent_id, relationship_offset_t parent);
 
+    /**
+     * Removes a child reference from a parent object. Without an index this operation
+     * could have O(n) time complexity where n is the number of children.
+     *
+     * @param child_id The id of the children to be removed.
+     * @param first_child The offset, in the payload, of the pointer to the first child.
+     */
+    void remove_child_reference(gaia_id_t child_id, relationship_offset_t first_child);
+
+    /**
+     * Removes a parent reference from a child object. Without an index this operation
+     * could have O(n) time complexity where n is the number of children.
+     *
+     * @param parent_id The id of the parent to be removed.
+     * @param parent The offset, in the payload, of the pointer to the parent.
+     */
+    void remove_parent_reference(gaia_id_t parent_id, relationship_offset_t parent);
 
   protected:
 

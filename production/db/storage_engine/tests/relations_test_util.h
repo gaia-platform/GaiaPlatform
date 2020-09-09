@@ -97,15 +97,6 @@ class relation_builder_t {
             .cardinality = this->m_cardinality,
             .modality = this->m_modality});
 
-        //        auto rel = make_shared<relationship_t>(
-//            this->m_parent_type,
-//            this->m_child_type,
-//            this->m_first_child,
-//            this->m_next_child,
-//            this->m_parent,
-//            this->m_cardinality,
-//            this->m_modality);
-
         auto& parent_meta = registry.get_or_create(m_parent_type);
         parent_meta.add_parent_relationship(m_first_child, rel);
 
