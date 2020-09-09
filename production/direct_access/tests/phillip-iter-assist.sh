@@ -11,7 +11,7 @@ make -j$(nproc)
 /build/production/db/storage_engine/gaia_se_server &
 # Delay to wait for the Storage Engine to start up.
 sleep 0.1
-/build/production/direct_access/test_iterators \
+/build/production/direct_access/test_set_iterator \
     || pkill gaia_se_server && echo "Stopped SE server."
 
 pkill gaia_se_server
