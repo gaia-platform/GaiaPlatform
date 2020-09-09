@@ -40,11 +40,11 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   DEPENDENCIES builtin_interfaces gaia_pkg_interfaces
 )
 
-gaia_ros2_msg_to_ddl(
-  "ros_msgs"
-  "${PROJECT_BINARY_DIR}/manifest.txt"
-  "${MSG_FILES}"
-)
+#gaia_ros2_msg_to_ddl(
+#  "ros_msgs"
+#  "${PROJECT_BINARY_DIR}/manifest.txt"
+#  "${MSG_FILES}"
+#)
 
 ament_export_dependencies(rosidl_default_runtime)
 
