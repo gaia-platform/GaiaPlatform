@@ -103,13 +103,14 @@ class type_registry_t {
     void clear();
 
     /**
-     * Returns an instance of type_metadata_t. If no metadata existed for the
-     * given type, a new instance is created an returned. Clients are allowed
+     * Returns an instance of type_metadata_t. If no metadata exists for the
+     * given type, a new instance is created and returned. Clients are allowed
      * to modify the returned metadata, although the registry keeps ownership.
      *
-     * NOTE: This code creates instances of type_metadata_t is not thread-safe.
-     * This should be acceptable because all the types are initialized
-     * in the Catalog during the startup. This assumption could change though.
+     * TODO: This code creates instances of type_metadata_t is not thread-safe.
+     *   This should be acceptable because all the types are initialized
+     *   in the Catalog during the startup. This assumption will change though,
+     *   as we will support modifying the catalog at runtime.
      */
     type_metadata_t& get_or_create(gaia_type_t type);
 
