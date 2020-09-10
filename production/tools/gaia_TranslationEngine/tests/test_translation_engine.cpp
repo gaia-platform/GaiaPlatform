@@ -18,7 +18,6 @@ extern int rule_called;
 extern int insert_called;
 extern int update_called;
 
-
 gaia_id_t insert_incubator(const char * name, float min_temp, float max_temp) 
 {
     gaia::barn_storage::incubator_writer w;
@@ -32,33 +31,56 @@ void init_storage() {
     gaia::db::begin_transaction();
     auto incubator = gaia::barn_storage::incubator_t::get(insert_incubator("TestIncubator", 99.0, 102.0));
     incubator.sensor_list().insert(gaia::barn_storage::sensor_t::insert_row("TestSensor1", 0, 0.0));
-    
     incubator.actuator_list().insert(gaia::barn_storage::actuator_t::insert_row("TestActuator1", 0, 0.0));
-
     gaia::db::commit_transaction();
 }
 
-TEST(translation_engine, subscribe_invalid_ruleset)
+class translation_engine_test : public db_test_base_t
+{
+    protected:
+    static void SetUpTestSuite()
+    {
+        // NOTE: to run this test manually, you need to set the env variable DDL_FILE
+        // to the location of addr_book.ddl.  Currently this is under production/schemas/test/addr_book.
+        reset_server();
+        const char *incubator_ddl_file = getenv("INCUBATOR_DDL_FILE");
+        ASSERT_NE(incubator_ddl_file, nullptr);
+        gaia::db::begin_session();
+    
+        gaia::catalog::load_catalog(incubator_ddl_file);
+    
+        gaia::rules::initialize_rules_engine();
+    }
+
+    static void TearDownTestSuite()
+    {
+        gaia::db::end_session();
+    }
+
+    // Ensure SetUp and TearDown don't do anything.  When we run the test
+    // directly, we only want SetUpTestSuite and TearDownTestSuite 
+    void SetUp() override {}
+
+    void TearDown() override 
+    {
+        unsubscribe_rules();
+    }
+};
+
+
+
+TEST_F(translation_engine_test, subscribe_invalid_ruleset)
 { 
     EXPECT_THROW(subscribe_ruleset("bogus"), ruleset_not_found);
     EXPECT_THROW(unsubscribe_ruleset("bogus"), ruleset_not_found);
 }
 
-TEST(translation_engine, subscribe_valid_ruleset)
+TEST_F(translation_engine_test, subscribe_valid_ruleset)
 {
-    const char *incubator_ddl_file = getenv("INCUBATOR_DDL_FILE");
-    ASSERT_NE(incubator_ddl_file, nullptr);
-  
-    gaia::db::begin_session();
-    
-    gaia::catalog::load_catalog(incubator_ddl_file);
-    
-    gaia::rules::initialize_rules_engine();
-    
     init_storage();
-
+    
     while (rule_called == 0) {usleep(50000);}
-
+    
     EXPECT_EQ(rule_called,1);
     EXPECT_EQ(insert_called,1);
     EXPECT_EQ(update_called,0);
