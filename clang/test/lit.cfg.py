@@ -197,13 +197,6 @@ if os.path.exists('/etc/gentoo-release'):
 try:
     import psutil
     lit_config.note('Found python psutil module')
-    for p in psutil.process_iter(['name']):
-        if p.info['name'] == 'gaia_se_server':
-            p.kill()
-    if os.path.exists('/home/gregory/src/ASTCodeGeneration/GaiaPlatform/production/build/db/storage_engine'):
-        psutil.Popen(["/home/gregory/src/ASTCodeGeneration/GaiaPlatform/production/build/db/storage_engine/gaia_se_server"])
-    if os.path.exists('/home/gregory/src/ASTCodeGeneration/GaiaPlatform/production/build/catalog/gaiac'):
-        psutil.Popen(["/home/gregory/src/ASTCodeGeneration/GaiaPlatform/production/build/catalog/gaiac/gaiac", "/home/gregory/src/TranslationEngineLLVM/TranslationEngineLLVM/clang/test/Parser/barn_storage.ddl"])
 except ImportError:
     lit_config.warning('Could not import psutil. Some tests will be skipped and'
                        ' the --timeout command line argument will not work.')
