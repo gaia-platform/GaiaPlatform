@@ -3,3 +3,7 @@ IndentWidth: 4
 SortIncludes: false
 AlignAfterOpenBracket: DontAlign
 ColumnLimit: 0
+
+# Force pointers to the type for C++.
+DerivePointerAlignment: false
+PointerAlignment: Left

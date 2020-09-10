@@ -16,6 +16,7 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 
 include(gaia)
 include(GoogleTest)
+include(ExternalProject)
 
 # Specify the C++ standard.
 set(CMAKE_CXX_STANDARD 17)
@@ -37,6 +38,9 @@ set(GREMLIN_SERVER_PATH "/usr/local/share/gremlin-server")
 set(GAIA_PROD_BUILD "${CMAKE_CURRENT_BINARY_DIR}")
 set(GAIA_PARSER_GENERATED "${GAIA_PROD_BUILD}/catalog/parser/generated")
 set(GAIA_GENERATED_SCHEMAS "${GAIA_PROD_BUILD}/schemas/generated")
+
+set(SPDLOG ${GAIA_REPO}/third_party/production/spdlog)
+set(SPDLOG_SETUP ${GAIA_REPO}/third_party/evaluation/spdlog_setup)
 
 message(STATUS "GAIA_INC=${GAIA_INC}")
 
