@@ -14,6 +14,8 @@ using namespace flatbuffers;
 
 thread_local se_base::offsets *client::s_offsets = nullptr;
 thread_local int client::s_fd_log = -1;
+thread_local int client::s_fd_offsets = -1;
+thread_local se_base::data *client::s_data;
 thread_local std::vector<trigger_event_t> client::s_events;
 commit_trigger_fn gaia::db::s_tx_commit_trigger = nullptr;
 
@@ -68,8 +70,10 @@ void client::tx_cleanup() {
     close(s_fd_log);
     s_fd_log = -1;
     // Destroy the offset mapping.
-    unmap_fd(s_offsets, sizeof(offsets));
-    s_offsets = nullptr;
+    if (s_offsets) {
+        unmap_fd(s_offsets, sizeof(offsets));
+        s_offsets = nullptr;
+    }
 }
 
 int client::get_session_socket() {
@@ -118,6 +122,14 @@ int client::get_session_socket() {
 void client::begin_session() {
     // Fail if a session already exists on this thread.
     verify_no_session();
+    // Clean up possible stale state from a server crash or reset.
+    clear_shared_memory();
+    // Assert relevant fd's and pointers are in clean state.
+    retail_assert(s_data == nullptr);
+    retail_assert(s_fd_offsets == -1);
+    retail_assert(s_fd_log == -1);
+    retail_assert(s_log == nullptr);
+    retail_assert(s_offsets == nullptr);
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
@@ -167,17 +179,14 @@ void client::begin_session() {
     // (but only if they're not already initialized).
 
     // Set up the shared data segment mapping.
-    if (!s_data) {
-        data *data_mapping = static_cast<data *>(map_fd(
-            sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0));
-        if (!__sync_bool_compare_and_swap(&s_data, 0, data_mapping)) {
-            // We lost the race, throw away the mapping.
-            unmap_fd(data_mapping, sizeof(data));
-        }
-    }
+    s_data = static_cast<data *>(map_fd(
+        sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0));
+
+    // We've already mapped the data fd, so we can close it now.
+    close(fd_data);
 
     // Set up the private locator segment fd.
-    __sync_bool_compare_and_swap(&s_fd_offsets, -1, fd_offsets);
+    s_fd_offsets = fd_offsets;
     cleanup_session_socket.dismiss();
 }
 
@@ -211,28 +220,40 @@ void client::begin_transaction() {
     verify_no_tx();
 
     // First we allocate a new log segment and map it in our own process.
-    s_fd_log = memfd_create(SCH_MEM_LOG, MFD_ALLOW_SEALING);
-    if (s_fd_log == -1) {
+    int fd_log = memfd_create(SCH_MEM_LOG, MFD_ALLOW_SEALING);
+    if (fd_log == -1) {
         throw_system_error("memfd_create failed");
     }
-    if (-1 == ftruncate(s_fd_log, sizeof(log))) {
+    auto cleanup_fd = scope_guard::make_scope_guard([fd_log]() {
+        close(fd_log);
+    });
+    if (-1 == ftruncate(fd_log, sizeof(log))) {
         throw_system_error("ftruncate failed");
     }
-    s_log = static_cast<log *>(map_fd(sizeof(log), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_log, 0));
+    s_log = static_cast<log *>(map_fd(sizeof(log), PROT_READ | PROT_WRITE, MAP_SHARED, fd_log, 0));
+    auto cleanup_log_mapping = scope_guard::make_scope_guard([]() {
+        unmap_fd(s_log, sizeof(log));
+        s_log = nullptr;
+    });
 
     // Now we map a private COW view of the locator shared memory segment.
     if (flock(s_fd_offsets, LOCK_SH) < 0) {
         throw_system_error("flock failed");
     }
-    auto cleanup = scope_guard::make_scope_guard([]() {
+    auto cleanup_flock = scope_guard::make_scope_guard([]() {
         if (-1 == flock(s_fd_offsets, LOCK_UN)) {
             // Per C++11 semantics, throwing an exception from a destructor
             // will just call std::terminate(), no undefined behavior.
             throw_system_error("flock failed");
         }
     });
+
     s_offsets = static_cast<offsets *>(map_fd(sizeof(offsets),
         PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_offsets, 0));
+    auto cleanup_locator_mapping = scope_guard::make_scope_guard([]() {
+        unmap_fd(s_offsets, sizeof(offsets));
+        s_offsets = nullptr;
+    });
 
     // Notify the server that we're in a transaction. (We don't send our log fd until commit.)
     FlatBufferBuilder builder;
@@ -248,6 +269,13 @@ void client::begin_transaction() {
     const message_t *msg = Getmessage_t(msg_buf);
     const server_reply_t *reply = msg->msg_as_reply();
     s_transaction_id = reply->transaction_id();
+
+    // Save the log fd to send to the server on commit.
+    s_fd_log = fd_log;
+
+    cleanup_fd.dismiss();
+    cleanup_log_mapping.dismiss();
+    cleanup_locator_mapping.dismiss();
 }
 
 void client::rollback_transaction() {
@@ -303,7 +331,7 @@ void client::commit_transaction() {
     }
 
     // Execute trigger only if rules engine is initialized.
-    if (s_tx_commit_trigger 
+    if (s_tx_commit_trigger
         && event == session_event_t::DECIDE_TXN_COMMIT
         && s_events.size() > 0) {
         s_tx_commit_trigger(s_transaction_id, s_events);

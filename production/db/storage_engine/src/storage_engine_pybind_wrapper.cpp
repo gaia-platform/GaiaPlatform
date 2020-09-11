@@ -137,8 +137,8 @@ PYBIND11_MODULE(se_client, m) {
     register_exception<gaia::db::node_not_disconnected>(m, "node_not_disconnected");
 
     class_<gaia_ptr>(m, "gaia_ptr")
-        .def_static("create", static_cast<gaia_ptr (*)(gaia_id_t, gaia_type_t, size_t, const void*, bool)>(&gaia_ptr::create))
-        .def_static("create", static_cast<gaia_ptr (*)(gaia_id_t, gaia_type_t, size_t, size_t, const void*, bool)>(&gaia_ptr::create))
+        .def_static("create", static_cast<gaia_ptr (*)(gaia_id_t, gaia_type_t, size_t, const void*)>(&gaia_ptr::create))
+        .def_static("create", static_cast<gaia_ptr (*)(gaia_id_t, gaia_type_t, size_t, size_t, const void*)>(&gaia_ptr::create))
         .def_static("open", &gaia_ptr::open)
         .def("id", &gaia_ptr::id)
         .def("type", &gaia_ptr::type)

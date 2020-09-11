@@ -13,19 +13,12 @@
 
 #include "gaia_common.hpp"
 #include "rocksdb/slice.h"
+#include "types.hpp"
 
 using namespace gaia::common;
 
 namespace gaia {
 namespace db {
-
-/**
- * Enum to represent gaia object types. Currently, the only types are nodes and edges.
- */
-enum GaiaObjectType : uint8_t {
-    node = 0x0,
-    edge = 0x1
-};
 
 /**
  * String writer library containing a byte buffer and current length; used for serializing
@@ -173,43 +166,14 @@ class string_reader {
     }
 };
 
-/**
- * Utility class for for encoding/decoding gaia objects.
- */
-class rdb_object_converter_util {
-   public:
-    static void encode_node(
-        const uint64_t id,
-        uint64_t type,
-        uint32_t size,
-        const char* payload,
-        string_writer* key,
-        string_writer* value);
-    static void encode_edge(
-        const uint64_t id,
-        uint64_t type,
-        uint32_t size,
-        const char* payload,
-        const uint64_t first,
-        const uint64_t second,
-        string_writer* key,
-        string_writer* value);
-    static const char* decode_node(
-        const rocksdb::Slice& key,
-        const rocksdb::Slice& value,
-        gaia_id_t* id,
-        gaia_type_t* type,
-        uint32_t* size);
-    static const char* decode_edge(
-        const rocksdb::Slice& key,
-        const rocksdb::Slice& value,
-        gaia_id_t* id,
-        gaia_type_t* type,
-        uint32_t* size,
-        gaia_id_t* first,
-        gaia_id_t* second);
-    static bool is_rdb_object_edge(const rocksdb::Slice& value);
-};
+void encode_object(
+    const gaia_se_object_t* gaia_object,
+    string_writer* key,
+    string_writer* value);
+
+gaia_id_t decode_object(
+    const rocksdb::Slice& key,
+    const rocksdb::Slice& value);
 
 }  // namespace db
 }  // namespace gaia

@@ -186,8 +186,8 @@ public:
     void subscribe_field(uint16_t field_position)
     {
         field_position_list_t fields;
-        fields.push_back(field_position);
-        fields.push_back(c_phone_primary_position);
+        fields.emplace_back(field_position);
+        fields.emplace_back(c_phone_primary_position);
 
         rule_binding_t binding{"ruleset", nullptr, nullptr};
 

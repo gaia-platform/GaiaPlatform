@@ -4,6 +4,7 @@
 /////////////////////////////////////////////
 
 #include "storage_engine_server.hpp"
+#include "persistent_store_manager.hpp"
 
 using namespace gaia::db;
 using namespace gaia::db::messages;
@@ -15,9 +16,12 @@ int server::s_connect_socket = -1;
 std::mutex server::s_commit_lock;
 int server::s_fd_data = -1;
 se_base::offsets* server::s_shared_offsets = nullptr;
+std::unique_ptr<persistent_store_manager> server::rdb {};
 thread_local session_state_t server::s_session_state = session_state_t::DISCONNECTED;
 thread_local bool server::s_session_shutdown = false;
 constexpr server::valid_transition_t server::s_valid_transitions[];
+int server::s_fd_offsets = -1;
+se_base::data* server::s_data = nullptr;
 
 void server::handle_connect(int*, size_t, session_event_t event, session_state_t old_state, session_state_t new_state) {
     retail_assert(event == session_event_t::CONNECT);
@@ -36,7 +40,7 @@ void server::handle_begin_txn(int*, size_t, session_event_t event, session_state
     retail_assert(old_state == session_state_t::CONNECTED && new_state == session_state_t::TXN_IN_PROGRESS);
     // Currently we don't need to alter any server-side state for opening a transaction.
     FlatBufferBuilder builder;
-    s_transaction_id = allocate_transaction_id();
+    s_transaction_id = allocate_transaction_id(s_data);
     build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_transaction_id);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }

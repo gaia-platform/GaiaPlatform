@@ -33,13 +33,13 @@ void load_catalog()
 
     name = "Sensors";
     // not active, not deprecated
-    fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t{"inactive", data_type_t::e_string, 1}));
+    fields.emplace_back(make_unique<ddl::field_definition_t>("inactive", data_type_t::e_string, 1));
     // active, not deprecated
-    fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t{"active", data_type_t::e_float32, 1}));
+    fields.emplace_back(make_unique<ddl::field_definition_t>("active", data_type_t::e_float32, 1));
     // deprecated
-    fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t{"deprecated", data_type_t::e_uint64, 1}));
+    fields.emplace_back(make_unique<ddl::field_definition_t>("deprecated", data_type_t::e_uint64, 1));
     // another valid field
-    fields.push_back(unique_ptr<ddl::field_definition_t>(new ddl::field_definition_t{"valid", data_type_t::e_uint64, 1}));
+    fields.emplace_back(make_unique<ddl::field_definition_t>("valid", data_type_t::e_uint64, 1));
 
     // The type of the table is the row id of table in the catalog.
     g_table_type = create_table(name, fields);
@@ -138,7 +138,7 @@ TEST_F(rule_checker_test, field_not_found)
 {
     rule_checker_t rule_checker;
     field_position_list_t fields;
-    fields.push_back(1000);
+    fields.emplace_back(1000);
     const char* message = "Field (position:1000) was not found in table";
     verify_exception(message, [&](){
         rule_checker.check_catalog(g_table_type, fields);
@@ -150,7 +150,7 @@ TEST_F(rule_checker_test, active_field)
     rule_checker_t rule_checker;
 
     field_position_list_t fields;
-    fields.push_back(g_field_positions["active"]);
+    fields.emplace_back(g_field_positions["active"]);
     rule_checker.check_catalog(g_table_type, fields);
 }
 
@@ -158,7 +158,7 @@ TEST_F(rule_checker_test, inactive_field)
 {
     rule_checker_t rule_checker;
     field_position_list_t fields;
-    fields.push_back(g_field_positions["inactive"]);
+    fields.emplace_back(g_field_positions["inactive"]);
     const char* message = "not marked as active";
 
     verify_exception(message, [&](){
@@ -170,7 +170,7 @@ TEST_F(rule_checker_test, deprecated_field)
 {
     rule_checker_t rule_checker;
     field_position_list_t fields;
-    fields.push_back(g_field_positions["deprecated"]);
+    fields.emplace_back(g_field_positions["deprecated"]);
     const char* message = "deprecated";
 
     verify_exception(message, [&](){
@@ -182,8 +182,8 @@ TEST_F(rule_checker_test, multiple_valid_fields)
 {
     rule_checker_t rule_checker;
     field_position_list_t fields;
-    fields.push_back(g_field_positions["active"]);
-    fields.push_back(g_field_positions["valid"]);
+    fields.emplace_back(g_field_positions["active"]);
+    fields.emplace_back(g_field_positions["valid"]);
     rule_checker.check_catalog(g_table_type, fields);
 }
 
@@ -191,8 +191,8 @@ TEST_F(rule_checker_test, multiple_invalid_fields)
 {
     rule_checker_t rule_checker;
     field_position_list_t fields;
-    fields.push_back(g_field_positions["inactive"]);
-    fields.push_back(g_field_positions["deprecated"]);
+    fields.emplace_back(g_field_positions["inactive"]);
+    fields.emplace_back(g_field_positions["deprecated"]);
     // Mainly checking we get any field exception here so just
     // search for the (position: substring without specifying
     // which of the two fields above failed first.
@@ -207,8 +207,8 @@ TEST_F(rule_checker_test, multiple_fields)
 {
     rule_checker_t rule_checker;
     field_position_list_t fields;
-    fields.push_back(g_field_positions["active"]);
-    fields.push_back(g_field_positions["inactive"]);
+    fields.emplace_back(g_field_positions["active"]);
+    fields.emplace_back(g_field_positions["inactive"]);
     const char* message = "not marked as active";
 
     verify_exception(message, [&](){

@@ -244,6 +244,8 @@ class Dependency:
             import sys
             sys.exit(1)
 
+        if parsed_args['args'] and parsed_args['args'][0] == '--':
+            parsed_args['args'] = parsed_args['args'][1:]
         parsed_args['args'] = ' '.join(parsed_args['args'])
         parsed_args['mixins'] = frozenset(parsed_args['mixins'])
 
