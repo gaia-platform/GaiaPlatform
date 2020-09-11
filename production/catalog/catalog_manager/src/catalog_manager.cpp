@@ -167,7 +167,7 @@ void catalog_manager_t::create_system_tables() {
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<field_definition_t>("event_type", data_type_t::e_uint32, 1));
-        fields.emplace_back(make_unique<field_definition_t>("type_id", data_type_t::e_uint64, 1));
+        fields.emplace_back(make_unique<field_definition_t>("type_id", data_type_t::e_uint32, 1));
         fields.emplace_back(make_unique<field_definition_t>("record_id", data_type_t::e_uint64, 1));
         fields.emplace_back(make_unique<field_definition_t>("column_id", data_type_t::e_uint16, 1));
         fields.emplace_back(make_unique<field_definition_t>("timestamp", data_type_t::e_uint64, 1));

@@ -23,7 +23,7 @@ thread_local queue<rule_thread_pool_t::invocation_t> rule_thread_pool_t::s_tls_p
 void rule_thread_pool_t::log_events(invocation_t& invocation)
 {
     auto& log_invocation = std::get<log_events_invocation_t>(invocation.args);
-    retail_assert(log_invocation.events.size() == log_invocation.rules_invoked.size(), 
+    retail_assert(log_invocation.events.size() == log_invocation.rules_invoked.size(),
         "Event vector and rules_invoked vector sizes must match!");
 
     gaia::db::begin_transaction();
@@ -46,10 +46,10 @@ void rule_thread_pool_t::log_events(invocation_t& invocation)
             }
 
             event_log::event_log_t::insert_row(
-                (uint32_t)(event.event_type), 
-                (uint64_t)(event.gaia_type),
-                (uint64_t)(event.record), 
-                column_id, 
+                (uint32_t)(event.event_type),
+                (gaia_type_t)(event.gaia_type),
+                (uint64_t)(event.record),
+                column_id,
                 timestamp, rule_invoked);
         }
 
@@ -61,7 +61,7 @@ void rule_thread_pool_t::log_events(invocation_t& invocation)
 rule_thread_pool_t::rule_thread_pool_t(size_t num_threads)
 {
     m_exit = false;
-    m_num_threads = (num_threads == SIZE_MAX) ? thread::hardware_concurrency() : num_threads; 
+    m_num_threads = (num_threads == SIZE_MAX) ? thread::hardware_concurrency() : num_threads;
 
     for (uint32_t i = 0; i < m_num_threads; i++)
     {
