@@ -20,28 +20,32 @@ namespace catalog {
 
 static constexpr char c_empty_c_str[] = "";
 
-gaia_id_t create_database(const string &name, bool throw_on_exists) {
+void initialize_catalog() {
+    catalog_manager_t::get();
+}
+
+gaia_id_t create_database(const string& name, bool throw_on_exists) {
     return catalog_manager_t::get().create_database(name, throw_on_exists);
 }
 
-gaia_id_t create_table(const string &name,
-    const field_def_list_t &fields) {
+gaia_id_t create_table(const string& name,
+    const field_def_list_t& fields) {
     return catalog_manager_t::get().create_table(c_empty_c_str, name, fields);
 }
 
 gaia_id_t create_table(
-    const string &dbname,
-    const string &name,
-    const field_def_list_t &fields,
+    const string& dbname,
+    const string& name,
+    const field_def_list_t& fields,
     bool throw_on_exists) {
     return catalog_manager_t::get().create_table(dbname, name, fields, throw_on_exists);
 }
 
-void drop_table(const string &name) {
+void drop_table(const string& name) {
     return catalog_manager_t::get().drop_table(c_empty_c_str, name);
 }
 
-void drop_table(const string &dbname, const string &name) {
+void drop_table(const string& dbname, const string& name) {
     return catalog_manager_t::get().drop_table(dbname, name);
 }
 
@@ -53,7 +57,7 @@ vector<gaia_id_t> list_references(gaia_id_t table_id) {
     return catalog_manager_t::get().list_references(table_id);
 }
 
-gaia_id_t find_db_id(const string &dbname) {
+gaia_id_t find_db_id(const string& dbname) {
     return catalog_manager_t::get().find_db_id(dbname);
 }
 
@@ -65,7 +69,7 @@ catalog_manager_t::catalog_manager_t() {
     init();
 }
 
-catalog_manager_t &catalog_manager_t::get() {
+catalog_manager_t& catalog_manager_t::get() {
     static catalog_manager_t s_instance;
     return s_instance;
 }
@@ -205,7 +209,7 @@ void catalog_manager_t::reload_cache() {
 }
 
 gaia_id_t catalog_manager_t::create_database(
-    const string &name,
+    const string& name,
     bool throw_on_exist) {
 
     unique_lock lock(m_lock);
@@ -224,16 +228,16 @@ gaia_id_t catalog_manager_t::create_database(
 }
 
 gaia_id_t catalog_manager_t::create_table(
-    const string &dbname,
-    const string &name,
-    const field_def_list_t &fields,
+    const string& dbname,
+    const string& name,
+    const field_def_list_t& fields,
     bool throw_on_exists) {
     return create_table_impl(dbname, name, fields, false, throw_on_exists);
 }
 
 void catalog_manager_t::drop_table(
-    const string &dbname,
-    const string &name) {
+    const string& dbname,
+    const string& name) {
 
     unique_lock lock(m_lock);
 
@@ -274,13 +278,13 @@ void catalog_manager_t::drop_table(
 
 static gaia_ptr insert_gaia_table_row(
     gaia_id_t table_id,
-    const char *name,
+    const char* name,
     bool is_log,
     uint8_t trim_action,
     uint64_t max_rows,
     uint64_t max_size,
     uint64_t max_seconds,
-    const char *binary_schema) {
+    const char* binary_schema) {
 
     // NOTE: The number of table references must be updated manually for bootstrapping,
     //       when the references of the gaia_table change. The constant from existing catalog
@@ -300,9 +304,9 @@ static gaia_ptr insert_gaia_table_row(
 }
 
 gaia_id_t catalog_manager_t::create_table_impl(
-    const string &dbname,
-    const string &table_name,
-    const field_def_list_t &fields,
+    const string& dbname,
+    const string& table_name,
+    const field_def_list_t& fields,
     bool is_log,
     bool throw_on_exist,
     gaia_id_t id) {
@@ -330,7 +334,7 @@ gaia_id_t catalog_manager_t::create_table_impl(
     // also does not allow duplicate field names and we may generate
     // invalid fbs without checking duplication first.
     set<string> field_names;
-    for (auto &field : fields) {
+    for (auto& field : fields) {
         if (field_names.find(field->name) != field_names.end()) {
             throw duplicate_field(field->name);
         }
@@ -369,7 +373,7 @@ gaia_id_t catalog_manager_t::create_table_impl(
     gaia_database_t::get(db_id).gaia_table_list().insert(table_id);
 
     uint16_t field_position = 0, reference_position = 0;
-    for (auto &field : fields) {
+    for (auto& field : fields) {
         gaia_id_t field_type_id{0};
         uint16_t position;
         if (field->type == data_type_t::e_references) {
@@ -414,12 +418,12 @@ gaia_id_t catalog_manager_t::create_table_impl(
     return table_id;
 }
 
-gaia_id_t catalog_manager_t::find_db_id(const string &dbname) const {
+gaia_id_t catalog_manager_t::find_db_id(const string& dbname) const {
     shared_lock lock(m_lock);
     return find_db_id_no_lock(dbname);
 }
 
-inline gaia_id_t catalog_manager_t::find_db_id_no_lock(const string &dbname) const {
+inline gaia_id_t catalog_manager_t::find_db_id_no_lock(const string& dbname) const {
     if (dbname.empty()) {
         return m_global_db_id;
     } else if (m_db_names.count(dbname)) {

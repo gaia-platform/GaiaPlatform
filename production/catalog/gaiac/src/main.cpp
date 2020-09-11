@@ -10,6 +10,7 @@
 #include "flatbuffers/idl.h"
 
 #include "catalog_manager.hpp"
+#include "command.hpp"
 #include "gaia_catalog_internal.hpp"
 #include "gaia_parser.hpp"
 #include "gaia_system.hpp"
@@ -32,6 +33,7 @@ enum class operate_mode_t {
 
 void start_repl(parser_t& parser, const string& dbname) {
     gaia::db::begin_session();
+    initialize_catalog();
 
     const auto prompt = "gaiac> ";
     const auto exit_command = "exit";
@@ -46,17 +48,20 @@ void start_repl(parser_t& parser, const string& dbname) {
         if (line == exit_command) {
             break;
         }
-        int parsing_result = parser.parse_line(line);
-        if (parsing_result == EXIT_SUCCESS) {
-            try {
+        try {
+            if (line.length() > 0 && line.at(0) == c_command_prefix) {
+                handle_slash_command(line);
+                continue;
+            }
+            int parsing_result = parser.parse_line(line);
+            if (parsing_result == EXIT_SUCCESS) {
                 execute(dbname, parser.statements);
-                cout << gaia::catalog::generate_fbs(dbname) << flush;
-            } catch (gaia_exception& e) {
-                cout << c_error_prompt << e.what() << endl
+            } else {
+                cout << c_error_prompt << "Invalid input." << endl
                      << flush;
             }
-        } else {
-            cout << c_error_prompt << "Invalid input." << endl
+        } catch (gaia_exception& e) {
+            cout << c_error_prompt << e.what() << endl
                  << flush;
         }
     }
@@ -191,6 +196,7 @@ int main(int argc, char* argv[]) {
     } else {
         try {
             gaia::db::begin_session();
+            initialize_catalog();
 
             if (!ddl_filename.empty()) {
                 db_name = load_catalog(parser, ddl_filename, db_name);

@@ -8,6 +8,7 @@ project(gaiac)
 
 set(GAIA_CATALOG_TOOL_INCLUDES
   ${FLATBUFFERS_INC}
+  ${GAIA_REPO}/third_party/production/tabulate/include
   ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_REPO}/production/catalog/catalog_manager/inc
   ${GAIA_INC}/public/common
@@ -18,12 +19,15 @@ set(GAIA_CATALOG_TOOL_INCLUDES
   ${GAIA_INC}/public/catalog
   ${GAIA_INC}/public/system
   ${GAIA_PARSER_GENERATED}
+  ${GAIA_GENERATED_SCHEMAS}
+  ${PROJECT_SOURCE_DIR}/inc
 )
 
 message(VERBOSE "GAIA_CATALOG_TOOL_INCLUDES=${GAIA_CATALOG_TOOL_INCLUDES}")
 
 add_executable(gaiac
   src/main.cpp
+  src/command.cpp
   ${FLATBUFFERS}/src/idl_gen_cpp.cpp
   ${FLATBUFFERS}/src/code_generators.cpp)
 target_include_directories(gaiac PRIVATE ${GAIA_CATALOG_TOOL_INCLUDES})
