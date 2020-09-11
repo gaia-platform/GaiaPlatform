@@ -12,9 +12,9 @@
 namespace gaia {
 namespace common {
 
-constexpr uint64_t c_system_table_reserved_range = 4096;
-constexpr uint64_t c_system_table_reserved_range_end = std::numeric_limits<gaia_type_t>::max();
-constexpr uint64_t c_system_table_reserved_range_start = c_system_table_reserved_range_end - c_system_table_reserved_range + 1;
+constexpr gaia_type_t c_system_table_reserved_range = 4096;
+constexpr gaia_type_t c_system_table_reserved_range_end = std::numeric_limits<gaia_type_t>::max();
+constexpr gaia_type_t c_system_table_reserved_range_start = c_system_table_reserved_range_end - c_system_table_reserved_range + 1;
 
 enum class catalog_table_type_t : gaia_type_t {
     gaia_field = c_system_table_reserved_range_end,

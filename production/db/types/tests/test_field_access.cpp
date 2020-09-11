@@ -15,7 +15,7 @@ using namespace std;
 using namespace gaia::common;
 using namespace gaia::db::types;
 
-const uint64_t c_type_id = 88;
+const gaia_type_t c_type_id = 88;
 
 // The following values must match the values from test_record_data.json.
 const char* c_first_name = "Takeshi";

@@ -36,7 +36,7 @@ type_cache_t* type_cache_t::get()
     return &s_type_cache;
 }
 
-void type_cache_t::get_field_cache(uint64_t type_id, auto_field_cache_t& auto_field_cache) const
+void type_cache_t::get_field_cache(gaia_type_t type_id, auto_field_cache_t& auto_field_cache) const
 {
     // We keep a shared lock while the field_cache is in use,
     // to ensure that its information is not being updated by another thread.
@@ -54,7 +54,7 @@ void type_cache_t::get_field_cache(uint64_t type_id, auto_field_cache_t& auto_fi
     }
 }
 
-bool type_cache_t::remove_field_cache(uint64_t type_id)
+bool type_cache_t::remove_field_cache(gaia_type_t type_id)
 {
     bool removed_field_cache = false;
 
@@ -72,7 +72,7 @@ bool type_cache_t::remove_field_cache(uint64_t type_id)
     return removed_field_cache;
 }
 
-bool type_cache_t::set_field_cache(uint64_t type_id, const field_cache_t* field_cache)
+bool type_cache_t::set_field_cache(gaia_type_t type_id, const field_cache_t* field_cache)
 {
     retail_assert(field_cache != nullptr, "type_cache_t::set_field_cache() should not be called with a null cache!");
 
