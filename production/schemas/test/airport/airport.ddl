@@ -1,17 +1,17 @@
-create table airport
+create table if not exists airport
 (
     name string,
     city string,
     iata string
 );
 
-create table flight
+create table if not exists flight
 (
     number int32,
     miles_flown int32
 );
 
-create table segment
+create table if not exists segment
 (
     miles int32,
     status int8,
@@ -21,7 +21,7 @@ create table segment
     dst references airport
 );
 
-create table trip_segment
+create table if not exists trip_segment
 (
     who string,
     references segment

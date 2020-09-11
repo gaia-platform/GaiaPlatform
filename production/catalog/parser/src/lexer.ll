@@ -49,6 +49,9 @@ blank [ \t\r]
 "DROP"       return yy::parser::make_DROP(loc);
 "DATABASE"   return yy::parser::make_DATABASE(loc);
 "TABLE"      return yy::parser::make_TABLE(loc);
+"IF"         return yy::parser::make_IF(loc);
+"NOT"        return yy::parser::make_NOT(loc);
+"EXISTS"     return yy::parser::make_EXISTS(loc);
 "REFERENCES" return yy::parser::make_REFERENCES(loc);
 "ACTIVE"     return yy::parser::make_ACTIVE(loc);
 "BOOL"       return yy::parser::make_BOOL(loc);
