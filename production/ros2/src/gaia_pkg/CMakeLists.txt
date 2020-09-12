@@ -35,10 +35,26 @@ set(MSG_FILES
   "msg/TestTwo.msg"
 )
 
+set(MSG_DEPENDENCIES
+  "builtin_interfaces"
+  "gaia_pkg_interfaces"
+)
+
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${MSG_FILES}
   DEPENDENCIES builtin_interfaces gaia_pkg_interfaces
 )
+
+message(NOTICE "")
+
+ros2_msg_to_gaia_ddl(
+  "${PROJECT_NAME}"
+  "${MSG_FILES}"
+  "${MSG_DEPENDENCIES}"
+)
+
+message(NOTICE "")
+message(FATAL_ERROR "~~ STOP ~~")
 
 #gaia_ros2_msg_to_ddl(
 #  "ros_msgs"

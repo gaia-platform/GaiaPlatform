@@ -4,27 +4,60 @@
 #############################################
 
 #
-# Converts ROS2 .msg files into flatbuffer schemas for Gaia table creation.
+# Converts ROS2 .msg files into DDL schemas for Gaia table creation.
 #
-function(gaia_ros2_msg_to_ddl SCHEMA_NAME MANIFEST_FILE MSG_FILES)
-  # Overwrite the previous manifest file, if it existed.
-  file(WRITE ${MANIFEST_FILE} "")
+function(ros2_msg_to_gaia_ddl ros2_pkg interface_files dependencies)
+  set(interface_list "")
+  find_package(${ros2_pkg})
 
-  foreach(MSG_FILE ${MSG_FILES})
-    set(MSG_FILE_ABSOLUTE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/${MSG_FILE}")
-    execute_process(
-      COMMAND "${PYTHON_EXECUTABLE}" scan_msg.py ${CMAKE_CURRENT_BINARY_DIR} ${MSG_FILE_ABSOLUTE_PATH} ${MANIFEST_FILE}
-      OUTPUT_VARIABLE SCAN_MSG_OUT
-      WORKING_DIRECTORY "${GAIA_REPO}/production/ros2/ddl_translator"
-    )
+  foreach(interface_file ${interface_files})
+    list(APPEND interface_list "${ros2_pkg} ${interface_file}")
+
+    set(nested_msgs "")
+    get_nested_msgs(${ros2_pkg} ${interface_file} nested_msgs)
+
+    foreach(nested_msg ${nested_msgs})
+      list(APPEND interface_list "NESTED: ${nested_msg}")
+    endforeach()
   endforeach()
 
-  execute_process(
-    COMMAND "${PYTHON_EXECUTABLE}" generate_ddl.py ${SCHEMA_NAME} ${MANIFEST_FILE}
-    OUTPUT_VARIABLE GENERATE_DDL_OUT
-    WORKING_DIRECTORY "${GAIA_REPO}/production/ros2/ddl_translator"
-  )
-  message(NOTICE "${GENERATE_DDL_OUT}")
+  print_list("${interface_list}")
+endfunction(ros2_msg_to_gaia_ddl)
 
-  message(FATAL_ERROR "Stopping for testing purposes.") # remove this later
-endfunction(gaia_ros2_msg_to_ddl)
+#
+# Reads a ROS2 interface file to find field types that are ROS2 messages.
+#
+function(get_nested_msgs ros2_pkg interface_file nested_msgs_result)
+  find_package(${ros2_pkg})
+  set(interface_file_path "${${ros2_pkg}_DIR}/../${interface_file}")
+  set(nested_msgs "")
+  set(file_lines "")
+
+  file(STRINGS ${interface_file_path} file_lines REGEX "^[^#]")
+
+  foreach(file_line ${file_lines})
+    # TODO: How to get rid of opening square brackets?
+    #string(REPLACE " " "#" file_line ${file_line})
+    list(APPEND nested_msgs "${file_line}")
+  endforeach()
+
+  set(${nested_msgs_result} "${nested_msgs}" PARENT_SCOPE)
+endfunction(get_nested_msgs)
+
+#
+# Prints a cmake list to stderr.
+#
+function(print_list list_to_print)
+  foreach(element ${list_to_print})
+    message(NOTICE ${element})
+  endforeach()
+endfunction(print_list)
+
+#foreach(dependency ${DEPENDENCIES})
+#  find_package(${dependency})
+#  message(NOTICE ">> dep: ${dependency}")
+#  message(NOTICE "recursive dependencies: ${${dependency}_RECURSIVE_DEPENDENCIES}")
+#  foreach(dependency_interface_file ${${dependency}_INTERFACE_FILES})
+#    message(NOTICE "  -- ${${dependency}_DIR}/../${dependency_interface_file}")
+#  endforeach()
+#endforeach()
