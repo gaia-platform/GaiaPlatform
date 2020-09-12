@@ -12,7 +12,6 @@
 #include "command.hpp"
 #include "gaia_catalog.h"
 #include "gaia_catalog.hpp"
-#include "gaia_event_log.h"
 
 using namespace gaia::catalog;
 
@@ -23,8 +22,12 @@ constexpr const char c_describe_command = 'd';
 constexpr const char c_generate_command = 'g';
 constexpr const char c_list_command = 'l';
 
-template <typename T_obj, typename T_predicator, typename T_fetcher>
-void list_catalog_obj(const row_t& header, T_predicator is_match, T_fetcher get_row) {
+template <typename T_obj>
+void list_catalog_obj(
+    const row_t& header,
+    function<bool(T_obj&)> is_match,
+    function<row_t(T_obj&)> get_row) {
+
     tabulate::Table output_table;
     output_table.add_row(header);
     {
@@ -37,18 +40,14 @@ void list_catalog_obj(const row_t& header, T_predicator is_match, T_fetcher get_
     }
 
     output_table.print(cout);
-    std::cout << endl
-              << flush;
+    std::cout << endl;
 }
 
 void list_tables(const regex& re) {
     list_catalog_obj<gaia_table_t>(
         {"Database", "Name", "ID"},
-        [&re](gaia_table_t& t) -> bool {
-            return regex_match(t.name(), re);
-        },
-        [](gaia_table_t& t)
-            -> row_t {
+        [&re](gaia_table_t& t) -> bool { return regex_match(t.name(), re); },
+        [](gaia_table_t& t) -> row_t {
             return {t.gaia_database().name(), t.name(), to_string(t.gaia_id())};
         });
 }
@@ -56,9 +55,7 @@ void list_tables(const regex& re) {
 void list_databases(const regex& re) {
     list_catalog_obj<gaia_database_t>(
         {"Name", "ID"},
-        [&re](gaia_database_t& d) -> bool {
-            return regex_match(d.name(), re);
-        },
+        [&re](gaia_database_t& d) -> bool { return regex_match(d.name(), re); },
         [](gaia_database_t& d) -> row_t {
             return {d.name(), to_string(d.gaia_id())};
         });
@@ -94,20 +91,6 @@ void list_references(const regex& re) {
         });
 }
 
-void show_event_log() {
-    list_catalog_obj<gaia::event_log::event_log_t>(
-        {"Event Type", "Type", "Record ID", "Column", "Timestamp", "Rules Invoked"},
-        [](gaia::event_log::event_log_t&) -> bool { return true; },
-        [](gaia::event_log::event_log_t& e) -> row_t {
-            return {to_string(e.event_type()),
-                gaia_table_t::get(e.type_id()).name(),
-                to_string(e.record_id()),
-                e.column_id() == INVALID_GAIA_ID ? "" : gaia_field_t::get(e.column_id()).name(),
-                to_string(e.timestamp()),
-                to_string(e.rules_invoked())};
-        });
-}
-
 void describe_database(const string& name) {
     tabulate::Table output_table;
     output_table.add_row({"Name"});
@@ -117,7 +100,6 @@ void describe_database(const string& name) {
         for (auto db : gaia_database_t::list()) {
             if (string(db.name()) == name) {
                 for (auto table : db.gaia_table_list()) {
-                    cout << name << endl;
                     output_table.add_row({table.name()});
                 }
                 db_exists = true;
@@ -129,9 +111,9 @@ void describe_database(const string& name) {
         throw db_not_exists(name);
     }
 
-    cout << "Information of database \"" << name << "\"" << endl;
+    cout << "Database \"" << name << "\":" << endl;
     cout << endl;
-    cout << "List of tables:" << endl;
+    cout << "Tables:" << endl;
     output_table.print(cout);
     cout << endl;
     cout << flush;
@@ -166,13 +148,13 @@ void describe_table(const string& name) {
         throw table_not_exists(name);
     }
 
-    cout << "Information of table \"" << name << "\"" << endl;
+    cout << "Table \"" << name << "\":" << endl;
     cout << endl;
-    cout << "List of fields:" << endl;
+    cout << "Fields:" << endl;
     output_fields.print(cout);
     cout << endl;
     cout << endl;
-    cout << "List of references:" << endl;
+    cout << "References:" << endl;
     output_references.print(cout);
     cout << endl;
     cout << flush;
@@ -198,7 +180,6 @@ void generate_table_fbs(const string& name) {
     cout << flush;
 }
 
-
 regex parse_pattern(const string& cmd, size_t pos) {
     if (cmd.length() <= pos) {
         return regex(c_match_all_pattern);
@@ -206,10 +187,10 @@ regex parse_pattern(const string& cmd, size_t pos) {
     if (cmd[pos] != ' ') {
         throw invalid_command(cmd);
     }
-    std::size_t found = cmd.find_first_not_of(' ', pos);
-    if (found != string::npos) {
+    size_t found_pos = cmd.find_first_not_of(' ', pos);
+    if (found_pos != string::npos) {
         try {
-            return regex(cmd.substr(found));
+            return regex(cmd.substr(found_pos));
         } catch (std::regex_error& e) {
             throw invalid_command(cmd, e);
         }
@@ -267,9 +248,6 @@ void handle_list_command(const string& cmd) {
     case 'd':
         list_databases(parse_pattern(cmd, 3));
         break;
-    case 'e':
-        show_event_log();
-        break;
     case 'f':
         list_fields(parse_pattern(cmd, 3));
         break;
@@ -310,7 +288,6 @@ string command_usage() {
           "  \\dd   NAME      Describe the database of the given NAME.\n"
           "  \\d[t] NAME      Describe the table of the given NAME.\n"
           "  \\ld   [PATTERN] List databases optionally filtering by the PATTERN.\n"
-          "  \\le             List event log entries.\n"
           "  \\lf   [PATTERN] List data fields optionally filtering by the PATTERN.\n"
           "  \\lr   [PATTERN] List references optionally filtering by the PATTERN.\n"
           "  \\l[t] [PATTERN] List tables optionally filtering by the PATTERN.\n"
