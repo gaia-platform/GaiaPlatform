@@ -200,13 +200,13 @@ void server::build_server_reply(
 }
 
 void server::clear_shared_memory() {
-    if (s_shared_offsets) {
-        unmap_fd(s_shared_offsets, sizeof(offsets));
-        s_shared_offsets = nullptr;
+    if (s_shared_locators) {
+        unmap_fd(s_shared_locators, sizeof(locators));
+        s_shared_locators = nullptr;
     }
-    if (s_fd_offsets != -1) {
-        ::close(s_fd_offsets);
-        s_fd_offsets = -1;
+    if (s_fd_locators != -1) {
+        ::close(s_fd_locators);
+        s_fd_locators = -1;
     }
     if (s_data) {
         unmap_fd(s_data, sizeof(data));
@@ -229,21 +229,21 @@ void server::init_shared_memory() {
     auto cleanup_memory = make_scope_guard([]() {
         clear_shared_memory();
     });
-    retail_assert(s_fd_data == -1 && s_fd_offsets == -1);
-    retail_assert(!s_data && !s_shared_offsets);
-    s_fd_offsets = ::memfd_create(SCH_MEM_OFFSETS, MFD_ALLOW_SEALING);
-    if (s_fd_offsets == -1) {
+    retail_assert(s_fd_data == -1 && s_fd_locators == -1);
+    retail_assert(!s_data && !s_shared_locators);
+    s_fd_locators = ::memfd_create(SCH_MEM_LOCATORS, MFD_ALLOW_SEALING);
+    if (s_fd_locators == -1) {
         throw_system_error("memfd_create failed");
     }
     s_fd_data = ::memfd_create(SCH_MEM_DATA, MFD_ALLOW_SEALING);
     if (s_fd_data == -1) {
         throw_system_error("memfd_create failed");
     }
-    if (-1 == ::ftruncate(s_fd_offsets, sizeof(offsets)) || -1 == ::ftruncate(s_fd_data, sizeof(data))) {
+    if (-1 == ::ftruncate(s_fd_locators, sizeof(locators)) || -1 == ::ftruncate(s_fd_data, sizeof(data))) {
         throw_system_error("ftruncate failed");
     }
-    s_shared_offsets = static_cast<offsets *>(map_fd(sizeof(offsets),
-        PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_offsets, 0));
+    s_shared_locators = static_cast<locators *>(map_fd(sizeof(locators),
+        PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_locators, 0));
     s_data = static_cast<data *>(map_fd(sizeof(data),
         PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_data, 0));
     cleanup_memory.dismiss();
@@ -748,15 +748,15 @@ void server::start_stream_producer_thread(const int server_socket, const int can
     // When we add more stream types, we should add a switch statement on stream_type.
     retail_assert(request->data_type() == request_data_t::table_scan);
     const gaia_type_t table_type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
-    gaia_locator_t row_id = 0;
-    auto table_scan_id_generator = [table_type, row_id]() mutable -> std::optional<gaia_id_t> {
+    gaia_locator_t locator = 0;
+    auto table_scan_id_generator = [table_type, locator]() mutable -> std::optional<gaia_id_t> {
         // We need to ensure that we're not reading the locator segment
         // while a committing transaction is writing to it.
         std::shared_lock lock(s_locators_lock);
-        while (++row_id && row_id < s_data->row_id_count + 1) {
-            gaia_offset_t offset = (*s_shared_offsets)[row_id];
+        while (++locator && locator < s_data->locator_count + 1) {
+            gaia_offset_t offset = (*s_shared_locators)[locator];
             if (offset) {
-                object *obj = reinterpret_cast<object *>(s_data->objects + (*s_shared_offsets)[row_id]);
+                object *obj = reinterpret_cast<object *>(s_data->objects + (*s_shared_locators)[locator]);
                 if (obj->type == table_type) {
                     return obj->id;
                 }
@@ -778,13 +778,13 @@ bool server::tx_commit() {
     // guarantees there are no clients mapping the locator segment. It does not
     // guarantee there are no other threads in this process that have acquired
     // an exclusive lock, though (hence the additional mutex).
-    if (-1 == ::flock(s_fd_offsets, LOCK_EX)) {
+    if (-1 == ::flock(s_fd_locators, LOCK_EX)) {
         throw_system_error("flock failed");
     }
     // Within our own process, we must have exclusive access to the locator segment.
     std::unique_lock lock(s_locators_lock);
     auto cleanup = make_scope_guard([]() {
-        if (-1 == ::flock(s_fd_offsets, LOCK_UN)) {
+        if (-1 == ::flock(s_fd_locators, LOCK_UN)) {
             // Per C++11 semantics, throwing an exception from a destructor
             // will just call std::terminate(), no undefined behavior.
             throw_system_error("flock failed");
@@ -792,13 +792,13 @@ bool server::tx_commit() {
         unmap_fd(s_log, sizeof(s_log));
     });
 
-    std::set<gaia_locator_t> row_ids;
+    std::set<gaia_locator_t> locators;
 
     for (size_t i = 0; i < s_log->count; i++) {
         auto lr = s_log->log_records + i;
 
-        if (row_ids.insert(lr->row_id).second) {
-            if ((*s_shared_offsets)[lr->row_id] != lr->old_object) {
+        if (locators.insert(lr->locator).second) {
+            if ((*s_shared_locators)[lr->locator] != lr->old_offset) {
                 return false;
             }
         }
@@ -806,7 +806,7 @@ bool server::tx_commit() {
 
     for (size_t i = 0; i < s_log->count; i++) {
         auto lr = s_log->log_records + i;
-        (*s_shared_offsets)[lr->row_id] = lr->new_object;
+        (*s_shared_locators)[lr->locator] = lr->new_offset;
     }
 
     return true;

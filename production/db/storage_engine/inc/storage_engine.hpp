@@ -62,9 +62,7 @@ protected:
 
     static constexpr size_t MAX_LOCATORS = 32 * 128L * 1024L;
     static constexpr size_t HASH_BUCKETS = 12289;
-    static constexpr size_t HASH_BUCKETS = 12289;
     static constexpr size_t HASH_LIST_ELEMENTS = MAX_LOCATORS;
-    static constexpr size_t MAX_LOG_RECS = 1000000;
     static constexpr size_t MAX_LOG_RECS = 1000000;
     static constexpr size_t MAX_OBJECTS = MAX_LOCATORS * 8;
 
@@ -73,7 +71,7 @@ protected:
     struct hash_node {
         gaia_id_t id;
         size_t next;
-        gaia_locator_t row_id;
+        gaia_locator_t locator;
     };
 
     struct data {
