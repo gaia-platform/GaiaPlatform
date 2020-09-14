@@ -212,6 +212,9 @@ void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_
     foreign_ptr.references()[T_foreign_slot] = node_ptr.references()[T_primary_slot];
     foreign_ptr.references()[T_parent_slot]  = oid;
     node_ptr.references()[T_primary_slot] = foreign_id;
+
+    node_ptr.update_in_place();
+    foreign_ptr.update_in_place();
 }
 
 template <typename T_primary, typename T_foreign, int T_parent_slot, int T_primary_slot, int T_foreign_slot>
@@ -254,6 +257,9 @@ void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_
         // Clean up the removed child.
         foreign_ptr.references()[T_foreign_slot] = 0;
         foreign_ptr.references()[T_parent_slot] = 0;
+
+        node_ptr.update_in_place();
+        foreign_ptr.update_in_place();
     }
     else
     {
@@ -271,6 +277,9 @@ void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_
                 // Clean up the removed child.
                 foreign_ptr.references()[T_foreign_slot] = 0;
                 foreign_ptr.references()[T_parent_slot] = 0;
+
+                node_ptr.update_in_place();
+                foreign_ptr.update_in_place();
                 return;
             }
             // Move to the next child.

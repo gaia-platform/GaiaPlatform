@@ -75,6 +75,10 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data) {
     return *this;
 }
 
+void gaia_ptr::update_in_place() {
+    client::tx_log(row_id, to_offset(), to_offset(), gaia_operation_t::update);
+}
+
 gaia_ptr::gaia_ptr(const gaia_id_t id) {
     row_id = gaia_hash_map::find(client::s_data, client::s_offsets, id);
 }
