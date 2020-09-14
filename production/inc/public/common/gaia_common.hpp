@@ -60,11 +60,12 @@ typedef uint16_t field_position_t;
 typedef std::vector<field_position_t> field_position_list_t;
 
 /**
- * Locates the pointer to a relation within the Gaia Object payload.
+ * Locates the pointer to a reference within the references array
+ * in the Gaia Object.
  *
  * @see gaia::common::db::relationship_t
  */
-typedef uint16_t relationship_offset_t;
+typedef uint16_t reference_offset_t;
 
 /*@}*/
 } // namespace common

@@ -125,11 +125,11 @@ void client::begin_session() {
     // Clean up possible stale state from a server crash or reset.
     clear_shared_memory();
     // Assert relevant fd's and pointers are in clean state.
-    retail_assert(s_data == nullptr, "Invalid session state");
-    retail_assert(s_fd_offsets == -1, "Invalid session state");
-    retail_assert(s_fd_log == -1, "Invalid session state");
-    retail_assert(s_log == nullptr, "Invalid session state");
-    retail_assert(s_offsets == nullptr, "Invalid session state");
+    retail_assert(s_data == nullptr, "Data segment uninitialized");
+    retail_assert(s_fd_offsets == -1, "Offsets file descriptor uninitialized");
+    retail_assert(s_fd_log == -1, "Log file descriptor uninitialized");
+    retail_assert(s_log == nullptr, "Log uninitialized");
+    retail_assert(s_offsets == nullptr, "Offset uninitialized");
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.

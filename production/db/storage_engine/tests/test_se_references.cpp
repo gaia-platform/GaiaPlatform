@@ -23,12 +23,10 @@ class gaia_se_references_test : public db_test_base_t {
 TEST_F(gaia_se_references_test, add_child_reference__one_to_one) {
     begin_transaction();
 
-    type_registry_t& registry = type_registry_t::instance();
-
-    relation_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
         .child(c_patient_type)
-        .add_to_registry(registry);
+        .create_relationship();
 
     gaia_ptr parent = create_object(c_doctor_type, "Dr. House");
     gaia_ptr child = create_object(c_patient_type, "John Doe");
@@ -45,12 +43,10 @@ TEST_F(gaia_se_references_test, add_child_reference__one_to_one) {
 TEST_F(gaia_se_references_test, add_child_reference__one_to_many) {
     begin_transaction();
 
-    type_registry_t& registry = type_registry_t::instance();
-
-    relation_builder_t::one_to_many()
+    relationship_builder_t::one_to_many()
         .parent(c_doctor_type)
         .child(c_patient_type)
-        .add_to_registry(registry);
+        .create_relationship();
 
     gaia_ptr parent = create_object(c_doctor_type, "Dr. House");
     gaia_ptr child = create_object(c_patient_type, "John Doe");
@@ -71,12 +67,10 @@ TEST_F(gaia_se_references_test, add_child_reference__one_to_many) {
 TEST_F(gaia_se_references_test, add_child_reference__single_cardinality_violation) {
     begin_transaction();
 
-    type_registry_t& registry = type_registry_t::instance();
-
-    relation_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
         .child(c_patient_type)
-        .add_to_registry(registry);
+        .create_relationship();
 
     gaia_ptr parent = create_object(c_doctor_type, "Dr. House");
     gaia_ptr child = create_object(c_patient_type, "John Doe");
@@ -86,7 +80,7 @@ TEST_F(gaia_se_references_test, add_child_reference__single_cardinality_violatio
 
     EXPECT_THROW(
         parent.add_child_reference(child2.id(), c_first_patient_offset),
-        single_cardinality_violation_t);
+        single_cardinality_violation);
 
     commit_transaction();
 }
@@ -94,19 +88,17 @@ TEST_F(gaia_se_references_test, add_child_reference__single_cardinality_violatio
 TEST_F(gaia_se_references_test, add_child_reference__invalid_relation_offset) {
     begin_transaction();
 
-    type_registry_t& registry = type_registry_t::instance();
-
-    relation_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
         .child(c_patient_type)
-        .add_to_registry(registry);
+        .create_relationship();
 
     gaia_ptr parent = create_object(c_doctor_type, "Dr. House");
     gaia_ptr child = create_object(c_patient_type, "John Doe");
 
     EXPECT_THROW(
         parent.add_child_reference(child.id(), c_non_existent_offset),
-        invalid_relation_offset_t);
+        invalid_reference_offset);
 
     commit_transaction();
 }
@@ -114,36 +106,34 @@ TEST_F(gaia_se_references_test, add_child_reference__invalid_relation_offset) {
 TEST_F(gaia_se_references_test, add_child_reference__invalid_relation_type_parent) {
     begin_transaction();
 
-    type_registry_t& registry = type_registry_t::instance();
-
     gaia_type_t ADDRESS_TYPE = 101;
-    relationship_offset_t FIRST_ADDRESS_OFFSET = c_parent_doctor_offset + 1;
-    relationship_offset_t NEXT_ADDRESS_OFFSET = 0;
-    relationship_offset_t PARENT_PATIENT_OFFSET = 1;
+    reference_offset_t FIRST_ADDRESS_OFFSET = c_parent_doctor_offset + 1;
+    reference_offset_t NEXT_ADDRESS_OFFSET = 0;
+    reference_offset_t PARENT_PATIENT_OFFSET = 1;
 
-    registry.get_or_create(ADDRESS_TYPE);
+    type_registry_t::instance().get_or_create(ADDRESS_TYPE);
 
-    relation_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
         .child(c_patient_type)
-        .add_to_registry(registry);
+        .create_relationship();
 
-    // Need to create the relation to create the pointers in the payload
-    // otherwise the invalid_relation_offset_t would be thrown.
-    relation_builder_t::one_to_one()
+    // Need to create the relationship to create the pointers in the payload
+    // otherwise the invalid_reference_offset would be thrown.
+    relationship_builder_t::one_to_one()
         .parent(c_patient_type)
         .child(ADDRESS_TYPE)
         .first_child_offset(FIRST_ADDRESS_OFFSET)
         .next_child_offset(NEXT_ADDRESS_OFFSET)
         .parent_offset(PARENT_PATIENT_OFFSET)
-        .add_to_registry(registry);
+        .create_relationship();
 
     gaia_ptr doctor = create_object(c_doctor_type, "Dr. House");
     gaia_ptr patient = create_object(c_patient_type, "Jane Doe");
 
     EXPECT_THROW(
         patient.add_child_reference(doctor.id(), FIRST_ADDRESS_OFFSET),
-        invalid_relation_type_t);
+        invalid_relationship_type);
 
     commit_transaction();
 }
@@ -151,22 +141,20 @@ TEST_F(gaia_se_references_test, add_child_reference__invalid_relation_type_paren
 TEST_F(gaia_se_references_test, add_child_reference__invalid_relation_type_child) {
     begin_transaction();
 
-    type_registry_t& registry = type_registry_t::instance();
-
     gaia_type_t CLINIC_TYPE = 101;
-    registry.get_or_create(CLINIC_TYPE);
+    type_registry_t::instance().get_or_create(CLINIC_TYPE);
 
-    relation_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
         .child(c_patient_type)
-        .add_to_registry(registry);
+        .create_relationship();
 
     gaia_ptr parent = create_object(c_doctor_type, "Dr. House");
     gaia_ptr clinic = create_object(CLINIC_TYPE, "Buena Vista Urgent Care");
 
     EXPECT_THROW(
         parent.add_child_reference(clinic.id(), c_first_patient_offset),
-        invalid_relation_type_t);
+        invalid_relationship_type);
 
     commit_transaction();
 }
@@ -174,12 +162,10 @@ TEST_F(gaia_se_references_test, add_child_reference__invalid_relation_type_child
 TEST_F(gaia_se_references_test, add_child_reference__child_already_in_relation) {
     begin_transaction();
 
-    type_registry_t& registry = type_registry_t::instance();
-
-    relation_builder_t::one_to_many()
+    relationship_builder_t::one_to_many()
         .parent(c_doctor_type)
         .child(c_patient_type)
-        .add_to_registry(registry);
+        .create_relationship();
 
     gaia_ptr parent = create_object(c_doctor_type, "Dr. House");
     gaia_ptr child = create_object(c_patient_type, "John Doe");
@@ -187,7 +173,7 @@ TEST_F(gaia_se_references_test, add_child_reference__child_already_in_relation) 
     parent.add_child_reference(child.id(), c_first_patient_offset);
     EXPECT_THROW(
         parent.add_child_reference(child.id(), c_first_patient_offset),
-        child_already_in_relation_t);
+        child_already_referenced);
 
     commit_transaction();
 }
@@ -195,12 +181,10 @@ TEST_F(gaia_se_references_test, add_child_reference__child_already_in_relation) 
 TEST_F(gaia_se_references_test, add_parent_reference__one_to_many) {
     begin_transaction();
 
-    type_registry_t& registry = type_registry_t::instance();
-
-    relation_builder_t::one_to_many()
+    relationship_builder_t::one_to_many()
         .parent(c_doctor_type)
         .child(c_patient_type)
-        .add_to_registry(registry);
+        .create_relationship();
 
     gaia_ptr parent = create_object(c_doctor_type, "Dr. House");
     gaia_ptr child = create_object(c_patient_type, "John Doe");
@@ -217,19 +201,17 @@ TEST_F(gaia_se_references_test, add_parent_reference__one_to_many) {
 TEST_F(gaia_se_references_test, add_parent_reference__fail_on_wrong_offset) {
     begin_transaction();
 
-    type_registry_t& registry = type_registry_t::instance();
-
-    relation_builder_t::one_to_many()
+    relationship_builder_t::one_to_many()
         .parent(c_doctor_type)
         .child(c_patient_type)
-        .add_to_registry(registry);
+        .create_relationship();
 
     gaia_ptr parent = create_object(c_doctor_type, "Dr. House");
     gaia_ptr child = create_object(c_patient_type, "John Doe");
 
     EXPECT_THROW(
         child.add_parent_reference(parent, c_next_patient_offset),
-        invalid_relation_offset_t);
+        invalid_reference_offset);
 
     commit_transaction();
 }
@@ -237,12 +219,10 @@ TEST_F(gaia_se_references_test, add_parent_reference__fail_on_wrong_offset) {
 TEST_F(gaia_se_references_test, add_child_reference__invalid_node_id) {
     begin_transaction();
 
-    type_registry_t& registry = type_registry_t::instance();
-
-    relation_builder_t::one_to_many()
+    relationship_builder_t::one_to_many()
         .parent(c_doctor_type)
         .child(c_patient_type)
-        .add_to_registry(registry);
+        .create_relationship();
 
     gaia_ptr parent = create_object(c_doctor_type, "Dr. House");
 
@@ -256,12 +236,10 @@ TEST_F(gaia_se_references_test, add_child_reference__invalid_node_id) {
 TEST_F(gaia_se_references_test, add_parent_reference__invalid_node_id) {
     begin_transaction();
 
-    type_registry_t& registry = type_registry_t::instance();
-
-    relation_builder_t::one_to_many()
+    relationship_builder_t::one_to_many()
         .parent(c_doctor_type)
         .child(c_patient_type)
-        .add_to_registry(registry);
+        .create_relationship();
 
     gaia_ptr child = create_object(c_patient_type, "John Doe");
 
@@ -277,12 +255,10 @@ TEST_F(gaia_se_references_test, remove_child_reference__one_to_one) {
 
     // GIVEN
 
-    type_registry_t& registry = type_registry_t::instance();
-
-    relation_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
         .child(c_patient_type)
-        .add_to_registry(registry);
+        .create_relationship();
 
     gaia_ptr parent = create_object(c_doctor_type, "Dr. House");
     gaia_ptr child = create_object(c_patient_type, "John Doe");
@@ -307,12 +283,10 @@ TEST_F(gaia_se_references_test, remove_child_reference__many_to_many_from_back) 
 
     // GIVEN
 
-    type_registry_t& registry = type_registry_t::instance();
-
-    relation_builder_t::one_to_many()
+    relationship_builder_t::one_to_many()
         .parent(c_doctor_type)
         .child(c_patient_type)
-        .add_to_registry(registry);
+        .create_relationship();
 
     gaia_ptr parent = create_object(c_doctor_type, "Dr. House");
 
@@ -350,12 +324,10 @@ TEST_F(gaia_se_references_test, remove_child_reference__many_to_many_from_head) 
 
     // GIVEN
 
-    type_registry_t& registry = type_registry_t::instance();
-
-    relation_builder_t::one_to_many()
+    relationship_builder_t::one_to_many()
         .parent(c_doctor_type)
         .child(c_patient_type)
-        .add_to_registry(registry);
+        .create_relationship();
 
     gaia_ptr parent = create_object(c_doctor_type, "Dr. House");
 
@@ -389,19 +361,17 @@ TEST_F(gaia_se_references_test, remove_child_reference__many_to_many_from_head) 
 TEST_F(gaia_se_references_test, remove_child_reference__invalid_relation_offset) {
     begin_transaction();
 
-    type_registry_t& registry = type_registry_t::instance();
-
-    relation_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
         .child(c_patient_type)
-        .add_to_registry(registry);
+        .create_relationship();
 
     gaia_ptr parent = create_object(c_doctor_type, "Dr. House");
     gaia_ptr child = create_object(c_patient_type, "John Doe");
 
     EXPECT_THROW(
         parent.remove_child_reference(child.id(), c_non_existent_offset),
-        invalid_relation_offset_t);
+        invalid_reference_offset);
 
     commit_transaction();
 }
@@ -409,12 +379,10 @@ TEST_F(gaia_se_references_test, remove_child_reference__invalid_relation_offset)
 TEST_F(gaia_se_references_test, remove_child_reference__invalid_node_id) {
     begin_transaction();
 
-    type_registry_t& registry = type_registry_t::instance();
-
-    relation_builder_t::one_to_many()
+    relationship_builder_t::one_to_many()
         .parent(c_doctor_type)
         .child(c_patient_type)
-        .add_to_registry(registry);
+        .create_relationship();
 
     gaia_ptr parent = create_object(c_doctor_type, "Dr. House");
 
@@ -428,36 +396,34 @@ TEST_F(gaia_se_references_test, remove_child_reference__invalid_node_id) {
 TEST_F(gaia_se_references_test, remove_child_reference__invalid_relation_type_parent) {
     begin_transaction();
 
-    type_registry_t& registry = type_registry_t::instance();
-
     gaia_type_t ADDRESS_TYPE = 101;
-    relationship_offset_t FIRST_ADDRESS_OFFSET = c_parent_doctor_offset + 1;
-    relationship_offset_t NEXT_ADDRESS_OFFSET = 0;
-    relationship_offset_t PARENT_PATIENT_OFFSET = 1;
+    reference_offset_t FIRST_ADDRESS_OFFSET = c_parent_doctor_offset + 1;
+    reference_offset_t NEXT_ADDRESS_OFFSET = 0;
+    reference_offset_t PARENT_PATIENT_OFFSET = 1;
 
-    registry.get_or_create(ADDRESS_TYPE);
+    type_registry_t::instance().get_or_create(ADDRESS_TYPE);
 
-    relation_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
         .child(c_patient_type)
-        .add_to_registry(registry);
+        .create_relationship();
 
-    // Need to create the relation to create the pointers in the payload
-    // otherwise the invalid_relation_offset_t would be thrown.
-    relation_builder_t::one_to_one()
+    // Need to create the relationship to create the pointers in the payload
+    // otherwise the invalid_reference_offset would be thrown.
+    relationship_builder_t::one_to_one()
         .parent(c_patient_type)
         .child(ADDRESS_TYPE)
         .first_child_offset(FIRST_ADDRESS_OFFSET)
         .next_child_offset(NEXT_ADDRESS_OFFSET)
         .parent_offset(PARENT_PATIENT_OFFSET)
-        .add_to_registry(registry);
+        .create_relationship();
 
     gaia_ptr doctor = create_object(c_doctor_type, "Dr. House");
     gaia_ptr patient = create_object(c_patient_type, "Jane Doe");
 
     EXPECT_THROW(
         patient.remove_child_reference(doctor.id(), FIRST_ADDRESS_OFFSET),
-        invalid_relation_type_t);
+        invalid_relationship_type);
 
     commit_transaction();
 }
@@ -465,38 +431,33 @@ TEST_F(gaia_se_references_test, remove_child_reference__invalid_relation_type_pa
 TEST_F(gaia_se_references_test, remove_child_reference__invalid_relation_type_child) {
     begin_transaction();
 
-    type_registry_t& registry = type_registry_t::instance();
-
     gaia_type_t CLINIC_TYPE = 101;
-    registry.get_or_create(CLINIC_TYPE);
+    type_registry_t::instance().get_or_create(CLINIC_TYPE);
 
-    relation_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
         .child(c_patient_type)
-        .add_to_registry(registry);
+        .create_relationship();
 
     gaia_ptr parent = create_object(c_doctor_type, "Dr. House");
     gaia_ptr clinic = create_object(CLINIC_TYPE, "Buena Vista Urgent Care");
 
     EXPECT_THROW(
         parent.remove_child_reference(clinic.id(), c_first_patient_offset),
-        invalid_relation_type_t);
+        invalid_relationship_type);
 
     commit_transaction();
 }
-
 
 TEST_F(gaia_se_references_test, remove_parent_reference__one_to_one) {
     begin_transaction();
 
     // GIVEN
 
-    type_registry_t& registry = type_registry_t::instance();
-
-    relation_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
         .child(c_patient_type)
-        .add_to_registry(registry);
+        .create_relationship();
 
     gaia_ptr parent = create_object(c_doctor_type, "Dr. House");
     gaia_ptr child = create_object(c_patient_type, "John Doe");

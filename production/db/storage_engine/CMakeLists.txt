@@ -188,5 +188,5 @@ add_gtest(test_rdb_object_converter "tests/test_rdb_object_converter.cpp" "${FLA
 add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
 add_gtest(test_storage_engine_client "tests/test_storage_engine_client.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_se_client")
 add_gtest(test_locator_allocator tests/test_locator_allocator.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
-add_gtest(test_relations tests/test_relations.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client")
+add_gtest(test_relations tests/test_relationships.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client")
 add_gtest(test_se_references tests/test_se_references.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client")

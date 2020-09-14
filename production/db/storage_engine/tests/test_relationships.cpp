@@ -12,19 +12,24 @@ using namespace gaia::db;
 using namespace gaia::common;
 using namespace gaia::db::test;
 
-TEST(relations, registry_creates_metadata_when_type_does_not_exist) {
-    type_registry_t test_registry;
-    auto metadata = test_registry.get_or_create(c_non_existent_type);
+class gaia_relationships_test : public ::testing::Test {
+    void TearDown() override {
+        clean_type_registry();
+    }
+};
+
+TEST_F(gaia_relationships_test, registry_creates_metadata_when_type_does_not_exist) {
+    auto metadata = type_registry_t::instance().get_or_create(c_non_existent_type);
     ASSERT_EQ(metadata.get_type(), c_non_existent_type);
 }
 
-TEST(relations, metadata_one_to_many) {
-    type_registry_t test_registry;
+TEST_F(gaia_relationships_test, metadata_one_to_many) {
+    type_registry_t& test_registry = type_registry_t::instance();
 
-    relation_builder_t::one_to_many()
+    relationship_builder_t::one_to_many()
         .parent(c_doctor_type)
         .child(c_patient_type)
-        .add_to_registry(test_registry);
+        .create_relationship();
 
     auto& parent = test_registry.get_or_create(c_doctor_type);
     auto& child = test_registry.get_or_create(c_patient_type);
@@ -46,20 +51,20 @@ TEST(relations, metadata_one_to_many) {
 
     ASSERT_EQ(parent_rel->parent_type, c_doctor_type);
     ASSERT_EQ(parent_rel->child_type, c_patient_type);
-    ASSERT_EQ(parent_rel->first_child, c_first_patient_offset);
-    ASSERT_EQ(parent_rel->next_child, c_next_patient_offset);
-    ASSERT_EQ(parent_rel->parent, c_parent_doctor_offset);
-    ASSERT_EQ(parent_rel->modality, modality_t::zero);
+    ASSERT_EQ(parent_rel->first_child_offset, c_first_patient_offset);
+    ASSERT_EQ(parent_rel->next_child_offset, c_next_patient_offset);
+    ASSERT_EQ(parent_rel->parent_offset, c_parent_doctor_offset);
+    ASSERT_EQ(parent_rel->parent_required, false);
     ASSERT_EQ(parent_rel->cardinality, cardinality_t::many);
 }
 
-TEST(relations, metadata_one_to_one) {
-    type_registry_t test_registry;
+TEST_F(gaia_relationships_test, metadata_one_to_one) {
+    type_registry_t& test_registry = type_registry_t::instance();
 
-    relation_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
         .child(c_patient_type)
-        .add_to_registry(test_registry);
+        .create_relationship();
 
     auto parent = test_registry.get_or_create(c_doctor_type);
     auto child = test_registry.get_or_create(c_patient_type);
@@ -81,20 +86,20 @@ TEST(relations, metadata_one_to_one) {
 
     ASSERT_EQ(parent_rel->parent_type, c_doctor_type);
     ASSERT_EQ(parent_rel->child_type, c_patient_type);
-    ASSERT_EQ(parent_rel->first_child, c_first_patient_offset);
-    ASSERT_EQ(parent_rel->next_child, c_next_patient_offset);
-    ASSERT_EQ(parent_rel->parent, c_parent_doctor_offset);
-    ASSERT_EQ(parent_rel->modality, modality_t::zero);
+    ASSERT_EQ(parent_rel->first_child_offset, c_first_patient_offset);
+    ASSERT_EQ(parent_rel->next_child_offset, c_next_patient_offset);
+    ASSERT_EQ(parent_rel->parent_offset, c_parent_doctor_offset);
+    ASSERT_EQ(parent_rel->parent_required, false);
     ASSERT_EQ(parent_rel->cardinality, cardinality_t::one);
 }
 
-TEST(relations, child_relation_do_not_use_next_child) {
-    type_registry_t test_registry;
+TEST_F(gaia_relationships_test, child_relation_do_not_use_next_child) {
+    type_registry_t& test_registry = type_registry_t::instance();
 
-    relation_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
         .child(c_patient_type)
-        .add_to_registry(test_registry);
+        .create_relationship();
 
     auto child = test_registry.get_or_create(c_patient_type);
     // although next_patient offset exists in child, it is not the one used
