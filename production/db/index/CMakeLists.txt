@@ -13,7 +13,7 @@ set(GAIA_INDEX_INCLUDES
   "${GAIA_INC}/internal/common"
   "${GAIA_INC}/internal/db"
   "${GAIA_DB_INC}/index"
-  "${GAIA_DB_INC}/types"
+  "${GAIA_DB_INC}/payload_types"
   "${FLATBUFFERS_INC}")
 
 message(STATUS "GAIA_INDEX_INCLUDES=${GAIA_INDEX_INCLUDES}")

@@ -18,7 +18,7 @@ namespace gaia
 {
 namespace db
 {
-namespace types
+namespace payload_types
 {
 
 class invalid_schema: public gaia::common::gaia_exception
