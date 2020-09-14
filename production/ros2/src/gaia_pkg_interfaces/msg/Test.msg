@@ -6,4 +6,4 @@ uint32[<=5] arr_bounded
 uint32[] arr_unbounded
 string<=10 str_bounded "beans"
 builtin_interfaces/Time stamp
-gaia_pkg_interfaces/Foo[<=10] msg_foo
+Foo[<=10] msg_foo

@@ -26,7 +26,6 @@ include(gaia_ros2)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(gaia_pkg_interfaces REQUIRED)
 
@@ -40,23 +39,16 @@ set(MSG_DEPENDENCIES
   "gaia_pkg_interfaces"
 )
 
-rosidl_generate_interfaces(${PROJECT_NAME}
-  ${MSG_FILES}
-  DEPENDENCIES builtin_interfaces gaia_pkg_interfaces
-)
-
 message(NOTICE "")
 
 ros2_msg_to_gaia_ddl(
-  "${PROJECT_NAME}"
+  "gaia_pkg_interfaces"
   "${MSG_FILES}"
   "${MSG_DEPENDENCIES}"
 )
 
 message(NOTICE "")
 message(FATAL_ERROR "~~ STOP ~~")
-
-ament_export_dependencies(rosidl_default_runtime)
 
 add_library(gaia_pkg_shared_lib SHARED
   src/gaia_node.cpp
@@ -69,6 +61,7 @@ target_compile_definitions(gaia_pkg_shared_lib
 ament_target_dependencies(gaia_pkg_shared_lib
   rclcpp
   rclcpp_components
+  gaia_pkg_interfaces
 )
 
 rclcpp_components_register_node(gaia_pkg_shared_lib
@@ -79,10 +72,6 @@ rclcpp_components_register_node(gaia_pkg_shared_lib
 target_include_directories(gaia_pkg_shared_lib PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
-)
-
-rosidl_target_interfaces(gaia_pkg_shared_lib
-  ${PROJECT_NAME} "rosidl_typesupport_cpp"
 )
 
 install(TARGETS

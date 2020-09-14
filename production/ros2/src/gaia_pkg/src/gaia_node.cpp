@@ -17,7 +17,8 @@ gaia_node::gaia_node(const NodeOptions& options)
         gaia_node::shutdown_callback();
     });
 
-    m_pub_test = this->create_publisher<msg::Test>("test", ParametersQoS());
+    m_pub_test = this->create_publisher<gaia_pkg_interfaces::msg::Test>(
+        "test", ParametersQoS());
 }
 
 void gaia_node::shutdown_callback()

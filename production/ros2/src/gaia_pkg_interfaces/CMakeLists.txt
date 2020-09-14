@@ -19,6 +19,8 @@ find_package(builtin_interfaces REQUIRED)
 
 set(msg_files
   "msg/Foo.msg"
+  "msg/Test.msg"
+  "msg/TestTwo.msg"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
