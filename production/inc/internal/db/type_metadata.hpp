@@ -27,8 +27,8 @@ public:
     explicit type_metadata_t(gaia_type_t type) : m_type(type) {}
 
     gaia_type_t get_type() const;
-    relationship_t* find_parent_relationship(reference_offset_t first_child) const;
-    relationship_t* find_child_relationship(reference_offset_t parent) const;
+    relationship_t* find_parent_relationship(reference_offset_t first_child_offset) const;
+    relationship_t* find_child_relationship(reference_offset_t parent_offset) const;
 
     /**
      * Mark this type as the parent side of the relationship.

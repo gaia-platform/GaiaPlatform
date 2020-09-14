@@ -13,24 +13,24 @@ namespace db {
 // Child relationship contains 2 pointer for every relationship.
 constexpr std::size_t c_child_relation_num_ptrs = 2;
 
-relationship_t* type_metadata_t::find_parent_relationship(reference_offset_t first_child) const {
-    auto parent_relation = m_parent_relationships.find(first_child);
+relationship_t* type_metadata_t::find_parent_relationship(reference_offset_t first_child_offset) const {
+    auto parent_relationship = m_parent_relationships.find(first_child_offset);
 
-    if (parent_relation == m_parent_relationships.end()) {
+    if (parent_relationship == m_parent_relationships.end()) {
         return nullptr;
     }
 
-    return parent_relation->second.get();
+    return parent_relationship->second.get();
 }
 
-relationship_t* type_metadata_t::find_child_relationship(reference_offset_t parent) const {
-    auto child_relation = m_child_relationships.find(parent);
+relationship_t* type_metadata_t::find_child_relationship(reference_offset_t parent_offset) const {
+    auto child_relationship = m_child_relationships.find(parent_offset);
 
-    if (child_relation == m_child_relationships.end()) {
+    if (child_relationship == m_child_relationships.end()) {
         return nullptr;
     }
 
-    return child_relation->second.get();
+    return child_relationship->second.get();
 }
 
 void type_metadata_t::add_parent_relationship(reference_offset_t first_child, const shared_ptr<relationship_t>& relationship) {

@@ -190,9 +190,9 @@ void gaia_ptr::add_parent_reference(gaia_id_t parent_id, reference_offset_t pare
     auto child_type = type();
 
     auto child_metadata = type_registry_t::instance().get_or_create(child_type);
-    auto child_relation = child_metadata.find_child_relationship(parent_offset);
+    auto child_relationship = child_metadata.find_child_relationship(parent_offset);
 
-    if (!child_relation) {
+    if (!child_relationship) {
         throw invalid_reference_offset(child_type, parent_offset);
     }
 
@@ -202,7 +202,7 @@ void gaia_ptr::add_parent_reference(gaia_id_t parent_id, reference_offset_t pare
         throw invalid_node_id(parent_ptr);
     }
 
-    parent_ptr.add_child_reference(id(), child_relation->first_child_offset);
+    parent_ptr.add_child_reference(id(), child_relationship->first_child_offset);
 }
 
 void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset) {
