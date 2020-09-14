@@ -3,6 +3,8 @@
 # All rights reserved.
 #############################################
 
+set(built_in_types "bool;byte;char;float32;float64;int8;uint8;int16;uint16;int32;uint32;int64;uint64;string;wstring")
+
 #
 # Converts ROS2 .msg files into DDL schemas for Gaia table creation.
 #
@@ -36,9 +38,11 @@ function(get_nested_msgs ros2_pkg interface_file nested_msgs_result)
   file(STRINGS ${interface_file_path} file_lines REGEX "^[^#]")
 
   foreach(file_line ${file_lines})
-    # TODO: How to get rid of opening square brackets?
-    #string(REPLACE " " "#" file_line ${file_line})
-    list(APPEND nested_msgs "${file_line}")
+    string(REGEX MATCH "^[A-Za-z0-9_\\/]*" file_line ${file_line})
+
+    if(NOT "${file_line}" IN_LIST built_in_types)
+      list(APPEND nested_msgs "${file_line}")
+    endif()
   endforeach()
 
   set(${nested_msgs_result} "${nested_msgs}" PARENT_SCOPE)
