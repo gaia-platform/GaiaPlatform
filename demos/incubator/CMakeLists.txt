@@ -25,12 +25,6 @@ set(GAIA_INCUBATOR_DEMO_INCLUDES
   ${GENERATED_OUTPUTS}
 )
 
-gaia_gen_rule_subscriptions(
-    "${CMAKE_CURRENT_SOURCE_DIR}/rules.cpp"
-    "${GENERATED_OUTPUTS}/rules_init.cpp"
-    "${GAIA_INCUBATOR_DEMO_INCLUDES}"
-)
-
 add_custom_target(make_generated_incubator_dir ALL
   COMMAND ${CMAKE_COMMAND} -E make_directory ${GENERATED_OUTPUTS}
 )

@@ -31,8 +31,6 @@ set (CAMERA_DEMO_INCLUDES
 
 include_directories(${CAMERA_DEMO_INCLUDES})
 
-# GAIA_DEMO_BUILD used by gaia_gen_rule_subscriptions.
-
 set(CAMERA_DEMO_SRCS 
   "${CMAKE_SOURCE_DIR}/rules.cpp"
   "${CMAKE_SOURCE_DIR}/demo.cpp"
