@@ -10,4 +10,4 @@ enable_testing()
 project(tools)
 
 add_subdirectory(gaia_generate)
-add_subdirectory(gaia_TranslationEngine)
+add_subdirectory(gaia_translate)

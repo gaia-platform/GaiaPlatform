@@ -136,3 +136,4 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
     gaia::db::commit_transaction();
     gaia::db::end_session();
 }
+
