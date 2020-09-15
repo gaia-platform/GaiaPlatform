@@ -20,17 +20,21 @@ gaia_id_t gaia_ptr::generate_id() {
     return client::generate_id(client::s_data);
 }
 
-gaia_ptr& gaia_ptr::clone() {
+void gaia_ptr::clone_without_tx() {
     auto old_this = to_ptr();
-    auto old_offset = to_offset();
     auto new_size = sizeof(gaia_se_object_t) + old_this->payload_size;
     allocate(new_size);
     auto new_this = to_ptr();
-
     memcpy(new_this, old_this, new_size);
+}
+
+gaia_ptr& gaia_ptr::clone() {
+    auto old_offset = to_offset();
+    clone_without_tx();
 
     client::tx_log(row_id, old_offset, to_offset(), gaia_operation_t::clone);
 
+    auto new_this = to_ptr();
     if (client::is_valid_event(new_this->type)) {
         client::s_events.push_back(trigger_event_t {event_type_t::row_insert, new_this->type, new_this->id, empty_position_list});
     }
@@ -75,20 +79,25 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data) {
     return *this;
 }
 
-gaia_ptr& gaia_ptr::update_references(vector<pair<uint64_t, gaia_id_t>> slot_id_pairs) {
-    auto old_this = to_ptr();
+gaia_ptr& gaia_ptr::update_parent_references(size_t primary_slot, gaia_id_t id) {
     auto old_offset = to_offset();
+    clone_without_tx();
 
-    size_t total_size = sizeof(gaia_se_object_t) + old_this->payload_size;
-    allocate(total_size);
-    auto new_this = to_ptr();
-    memcpy(new_this, old_this, total_size);
+    references()[primary_slot] = id;
 
-    for (auto slot_id_pair : slot_id_pairs) {
-        references()[slot_id_pair.first] = slot_id_pair.second;
-    }
     client::tx_log(row_id, old_offset, to_offset(), gaia_operation_t::update);
+    return *this;
+}
 
+gaia_ptr& gaia_ptr::update_child_references(
+    size_t foreign_slot, gaia_id_t foreign_id, size_t parent_slot, gaia_id_t parent_id) {
+    auto old_offset = to_offset();
+    clone_without_tx();
+
+    references()[foreign_slot] = foreign_id;
+    references()[parent_slot] = parent_id;
+
+    client::tx_log(row_id, old_offset, to_offset(), gaia_operation_t::update);
     return *this;
 }
 

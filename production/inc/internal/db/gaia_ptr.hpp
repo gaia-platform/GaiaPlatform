@@ -21,6 +21,7 @@ class gaia_ptr {
    private:
     int64_t row_id;
     void create_insert_trigger(gaia_type_t type, gaia_id_t id);
+    void clone_without_tx();
 
    public:
     gaia_ptr(const std::nullptr_t = nullptr)
@@ -100,7 +101,10 @@ class gaia_ptr {
 
     gaia_ptr& update_payload(size_t data_size, const void* data);
 
-    gaia_ptr& update_references(vector<pair<uint64_t, gaia_id_t>> slot_id_pairs);
+    gaia_ptr& update_parent_references(size_t primary_slot, gaia_id_t id);
+
+    gaia_ptr& update_child_references(
+        size_t foreign_slot, gaia_id_t foreign_id, size_t parent_slot, gaia_id_t parent_id);
 
     static gaia_ptr find_first(gaia_type_t type) {
         gaia_ptr ptr;

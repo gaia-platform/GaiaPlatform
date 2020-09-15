@@ -210,10 +210,8 @@ void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_
         throw edc_already_inserted(foreign_ptr.references()[T_parent_slot], expected.gaia_typename());
     }
 
-    foreign_ptr.update_references(
-        {make_pair(T_foreign_slot, node_ptr.references()[T_primary_slot]), make_pair(T_parent_slot, oid)});
-
-    node_ptr.update_references({make_pair(T_primary_slot, foreign_id)});
+    foreign_ptr.update_child_references(T_foreign_slot, node_ptr.references()[T_primary_slot], T_parent_slot, oid);
+    node_ptr.update_parent_references(T_primary_slot, foreign_id);
 }
 
 template <typename T_primary, typename T_foreign, int T_parent_slot, int T_primary_slot, int T_foreign_slot>
@@ -252,9 +250,9 @@ void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_
     if (node_ptr.references()[T_primary_slot] == foreign_id)
     {
         // It's the first one in the list, point the "first" to the current "next".
-        node_ptr.update_references({make_pair(T_primary_slot, foreign_ptr.references()[T_foreign_slot])});
+        node_ptr.update_parent_references(T_primary_slot, foreign_ptr.references()[T_foreign_slot]);
         // Clean up the removed child.
-        foreign_ptr.update_references({make_pair(T_foreign_slot, INVALID_GAIA_ID), make_pair(T_parent_slot, INVALID_GAIA_ID)});
+        foreign_ptr.update_child_references(T_foreign_slot, INVALID_GAIA_ID, T_parent_slot, INVALID_GAIA_ID);
     }
     else
     {
@@ -267,9 +265,9 @@ void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_
             if (next_id == foreign_id)
             {
                 // Point the current child to the child following the next.
-                cur_child_ptr.update_references({make_pair(T_foreign_slot, foreign_ptr.references()[T_foreign_slot])});
+                cur_child_ptr.update_parent_references(T_foreign_slot, foreign_ptr.references()[T_foreign_slot]);
                 // Clean up the removed child.
-                foreign_ptr.update_references({make_pair(T_foreign_slot, INVALID_GAIA_ID), make_pair(T_parent_slot, INVALID_GAIA_ID)});
+                foreign_ptr.update_child_references(T_foreign_slot, INVALID_GAIA_ID, T_parent_slot, INVALID_GAIA_ID);
                 return;
             }
             // Move to the next child.
