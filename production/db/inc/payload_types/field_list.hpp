@@ -19,7 +19,7 @@ namespace gaia
 {
 namespace db
 {
-namespace types
+namespace payload_types
 {
 
 class field_list_index_out_of_bounds : gaia::common::gaia_exception {

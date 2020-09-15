@@ -9,7 +9,7 @@
 #include <field_access.hpp>
 
 using namespace gaia::common;
-using namespace gaia::db::types;
+using namespace gaia::db::payload_types;
 
 data_holder_t::data_holder_t()
 {

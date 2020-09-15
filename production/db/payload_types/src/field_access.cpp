@@ -16,7 +16,7 @@ namespace gaia
 {
 namespace db
 {
-namespace types
+namespace payload_types
 {
 
 invalid_schema::invalid_schema()

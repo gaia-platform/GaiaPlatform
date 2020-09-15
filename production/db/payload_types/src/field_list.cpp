@@ -11,7 +11,7 @@
 #include "gaia_catalog.h"
 #include "retail_assert.hpp"
 
-using namespace gaia::db::types;
+using namespace gaia::db::payload_types;
 using namespace gaia::common;
 using namespace std;
 

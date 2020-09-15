@@ -16,7 +16,7 @@
 
 namespace gaia {
 namespace db {
-namespace types {
+namespace payload_types {
 
 // TODO: add unit tests for this function
 void compute_payload_diff(gaia_id_t type_id, const uint8_t *payload1, const uint8_t *payload2, field_position_list_t *changed_fields) {

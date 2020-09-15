@@ -62,7 +62,7 @@
 %define api.token.prefix {TOK_}
 
 %token BOOL INT8 UINT8 INT16 UINT16 INT32 UINT32 INT64 UINT64 FLOAT32 FLOAT64 STRING
-%token CREATE DROP DATABASE TABLE REFERENCES ACTIVE
+%token CREATE DROP DATABASE TABLE IF NOT EXISTS REFERENCES ACTIVE
 %token END 0
 %token LPAREN "("
 %token RPAREN ")"
@@ -81,6 +81,7 @@
 %type <std::unique_ptr<field_type_t>> field_type
 
 %type <int> opt_array
+%type <bool> opt_if_not_exists
 %type <std::unique_ptr<field_definition_t>> field_def
 %type <std::unique_ptr<field_def_list_t>> field_def_commalist
 %type <std::unique_ptr<statement_list_t>> statement_list
@@ -118,19 +119,23 @@ statement_list:
   }
 ;
 
+opt_if_not_exists: IF NOT EXISTS { $$ = true; } | { $$ = false; };
+
 statement:
   create_statement { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
 | drop_statement { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
 ;
 
 create_statement:
-  CREATE DATABASE IDENTIFIER {
-      $$ = std::unique_ptr<create_statement_t>{new create_statement_t(create_type_t::create_database, $3)};
+  CREATE DATABASE opt_if_not_exists IDENTIFIER {
+      $$ = std::unique_ptr<create_statement_t>{new create_statement_t(create_type_t::create_database, $4)};
+      $$->if_not_exists = $3;
   }
-| CREATE TABLE composite_name "(" field_def_commalist ")" {
-      $$ = std::unique_ptr<create_statement_t>{new create_statement_t(create_type_t::create_table, $3.second)};
-      $$->database = std::move($3.first);
-      $$->fields = std::move(*$5);
+| CREATE TABLE opt_if_not_exists composite_name "(" field_def_commalist ")" {
+      $$ = std::unique_ptr<create_statement_t>{new create_statement_t(create_type_t::create_table, $4.second)};
+      $$->if_not_exists = $3;
+      $$->database = std::move($4.first);
+      $$->fields = std::move(*$6);
   }
 ;
 
