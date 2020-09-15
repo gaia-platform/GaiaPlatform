@@ -61,14 +61,14 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data) {
     if (client::is_valid_event(new_this->type)) {
         auto old_data = (const uint8_t*) old_this->payload;
 
-        const uint8_t* old_data_payload; 
+        const uint8_t* old_data_payload;
 
         if (old_this->num_references) {
             old_data_payload = old_data + sizeof(gaia_id_t) * old_this->num_references;
         }
         // Compute field diff
         field_position_list_t position_list;
-        gaia::db::types::compute_payload_diff(new_this->type, old_data_payload, (const uint8_t*) data, &position_list);
+        gaia::db::payload_types::compute_payload_diff(new_this->type, old_data_payload, (const uint8_t*) data, &position_list);
         client::s_events.push_back(trigger_event_t {event_type_t::row_update, new_this->type, new_this->id, position_list});
     }
 

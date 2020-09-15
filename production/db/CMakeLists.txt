@@ -14,6 +14,6 @@ message(STATUS "GAIA_DB_INC=${GAIA_DB_INC}")
 # Add individual component folders.
 add_subdirectory(memory_manager)
 add_subdirectory(storage_engine)
-add_subdirectory(types)
+add_subdirectory(payload_types)
 add_subdirectory(index)
 add_subdirectory(triggers)

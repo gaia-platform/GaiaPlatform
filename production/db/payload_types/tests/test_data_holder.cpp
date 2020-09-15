@@ -10,9 +10,9 @@
 #include "data_holder.hpp"
 
 using namespace std;
-using namespace gaia::db::types;
+using namespace gaia::db::payload_types;
 
-TEST(types, is_signed_integer)
+TEST(payload_types, is_signed_integer)
 {
     ASSERT_TRUE(is_signed_integer(reflection::Byte));
     ASSERT_FALSE(is_signed_integer(reflection::UByte));
@@ -26,7 +26,7 @@ TEST(types, is_signed_integer)
     ASSERT_FALSE(is_signed_integer(reflection::String));
 }
 
-TEST(types, type_holder_string)
+TEST(payload_types, type_holder_string)
 {
     data_holder_t value;
     data_holder_t other_value;
@@ -40,7 +40,7 @@ TEST(types, type_holder_string)
     ASSERT_EQ(0, value.compare(value));
 }
 
-TEST(types, type_holder_signed_integer)
+TEST(payload_types, type_holder_signed_integer)
 {
     data_holder_t value;
     data_holder_t other_value;
@@ -55,7 +55,7 @@ TEST(types, type_holder_signed_integer)
     ASSERT_EQ(0, value.compare(value));
 }
 
-TEST(types, type_holder_unsigned_integer)
+TEST(payload_types, type_holder_unsigned_integer)
 {
     data_holder_t value;
     data_holder_t other_value;
@@ -70,7 +70,7 @@ TEST(types, type_holder_unsigned_integer)
     ASSERT_EQ(0, value.compare(value));
 }
 
-TEST(types, type_holder_float)
+TEST(payload_types, type_holder_float)
 {
     data_holder_t value;
     data_holder_t other_value;

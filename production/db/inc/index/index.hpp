@@ -21,7 +21,7 @@ namespace index
 
 struct index_record_t
 {
-    std::vector<gaia::db::types::data_holder_t> key_values;
+    std::vector<gaia::db::payload_types::data_holder_t> key_values;
     uint64_t row_id;
     uint64_t transaction_id;
     uint8_t deleted;

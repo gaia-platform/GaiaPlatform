@@ -14,7 +14,7 @@ namespace gaia
 {
 namespace db
 {
-namespace types
+namespace payload_types
 {
 
 // Return true if the type is a signed integer type.
