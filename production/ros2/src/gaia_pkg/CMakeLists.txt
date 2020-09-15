@@ -29,22 +29,11 @@ find_package(rclcpp_components REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(gaia_pkg_interfaces REQUIRED)
 
-set(MSG_FILES
-  "msg/Test.msg"
-  "msg/TestTwo.msg"
-)
-
-set(MSG_DEPENDENCIES
-  "builtin_interfaces"
-  "gaia_pkg_interfaces"
-)
-
 message(NOTICE "")
 
 ros2_msg_to_gaia_ddl(
-  "gaia_pkg_interfaces"
-  "${MSG_FILES}"
-  "${MSG_DEPENDENCIES}"
+  "gaia_pkg_interfaces msg/Test.msg"
+  "gaia_pkg_interfaces msg/TestTwo.msg"
 )
 
 message(NOTICE "")

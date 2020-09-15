@@ -16,6 +16,7 @@ add_compile_options(-Wall -Wextra -Wpedantic)
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(builtin_interfaces REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 set(msg_files
   "msg/Foo.msg"
@@ -23,9 +24,14 @@ set(msg_files
   "msg/TestTwo.msg"
 )
 
+set(msg_dependencies
+  "builtin_interfaces"
+  "sensor_msgs"
+)
+
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${msg_files}
-  DEPENDENCIES builtin_interfaces
+  DEPENDENCIES ${msg_dependencies}
 )
 
 if(BUILD_TESTING)
