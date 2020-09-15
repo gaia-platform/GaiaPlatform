@@ -532,37 +532,47 @@ void insert_addressee(bool committed, gaia_id_t eid1, gaia_id_t aid1, gaia_id_t 
 
 // Create objects in one thread, connect them in another, verify in first thread.
 TEST_F(gaia_references_test, thread_inserts) {
-    auto_transaction_t tx;
+    gaia_id_t employee_id{INVALID_GAIA_ID};
+    {
+        auto_transaction_t tx;
 
-    employee_writer employee_w;
-    auto e1 = insert_employee(employee_w, "Horace");
+        employee_writer employee_w;
+        auto e1 = insert_employee(employee_w, "Horace");
+        employee_id = e1.gaia_id();
 
-    address_writer address_w;
-    auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
-    auto a2 = insert_address(address_w, "10618 129th Pl. N.E.", "Kirkland");
-    auto a3 = insert_address(address_w, "10805 Circle Dr.", "Bothell");
+        address_writer address_w;
+        auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
+        auto a2 = insert_address(address_w, "10618 129th Pl. N.E.", "Kirkland");
+        auto a3 = insert_address(address_w, "10805 Circle Dr.", "Bothell");
 
-    // These threads should have problems since the objects aren't committed yet.
-    thread t = thread(insert_object, false, e1, a1);
-    t.join();
+        // These threads should have problems since the objects aren't committed yet.
+        thread t = thread(insert_object, false, e1, a1);
+        t.join();
 
-    t = thread(insert_addressee, false, e1.gaia_id(), a1.gaia_id(), a2.gaia_id(), a3.gaia_id());
-    t.join();
+        t = thread(insert_addressee, false, e1.gaia_id(), a1.gaia_id(), a2.gaia_id(), a3.gaia_id());
+        t.join();
 
-    tx.commit();
+        tx.commit();
 
-    // Retry the threads after our objects are committed.
-    t = thread(insert_object, true, e1, a1);
-    t.join();
-    t = thread(insert_addressee, true, e1.gaia_id(), a1.gaia_id(), a2.gaia_id(), a3.gaia_id());
-    t.join();
-
-    // Count the members. They should show up.
-    int count = 0;
-    for (auto a : e1.addressee_address_list()) {
-        count++;
+        // Retry the threads after our objects are committed.
+        t = thread(insert_object, true, e1, a1);
+        t.join();
+        t = thread(insert_addressee, true, e1.gaia_id(), a1.gaia_id(), a2.gaia_id(), a3.gaia_id());
+        t.join();
     }
-    EXPECT_EQ(count, 3);
+
+    ASSERT_NE(employee_id, INVALID_GAIA_ID);
+    {
+        // Get a new transaction so we can get new view of employee instead of
+        // the old view under the previous transaction.
+        auto_transaction_t tx;
+        // Count the members. They should show up.
+        int count = 0;
+        for (auto a : employee_t::get(employee_id).addressee_address_list()) {
+            count++;
+        }
+        EXPECT_EQ(count, 3);
+    }
 }
 
 // Testing the arrow dereference operator->() in gaia_set_iterator_t.

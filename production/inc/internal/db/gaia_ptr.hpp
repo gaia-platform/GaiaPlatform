@@ -100,7 +100,7 @@ class gaia_ptr {
 
     gaia_ptr& update_payload(size_t data_size, const void* data);
 
-    void log_in_place_update();
+    gaia_ptr& update_references(vector<pair<uint64_t, gaia_id_t>> slot_id_pairs);
 
     static gaia_ptr find_first(gaia_type_t type) {
         gaia_ptr ptr;

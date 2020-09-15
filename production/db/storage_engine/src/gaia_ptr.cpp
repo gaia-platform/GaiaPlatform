@@ -75,8 +75,21 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data) {
     return *this;
 }
 
-void gaia_ptr::log_in_place_update() {
-    client::tx_log(row_id, to_offset(), to_offset(), gaia_operation_t::update);
+gaia_ptr& gaia_ptr::update_references(vector<pair<uint64_t, gaia_id_t>> slot_id_pairs) {
+    auto old_this = to_ptr();
+    auto old_offset = to_offset();
+
+    size_t total_size = sizeof(gaia_se_object_t) + old_this->payload_size;
+    allocate(total_size);
+    auto new_this = to_ptr();
+    memcpy(new_this, old_this, total_size);
+
+    for (auto slot_id_pair : slot_id_pairs) {
+        references()[slot_id_pair.first] = slot_id_pair.second;
+    }
+    client::tx_log(row_id, old_offset, to_offset(), gaia_operation_t::update);
+
+    return *this;
 }
 
 gaia_ptr::gaia_ptr(const gaia_id_t id) {

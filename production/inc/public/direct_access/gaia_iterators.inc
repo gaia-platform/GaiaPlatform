@@ -73,7 +73,7 @@ T_gaia* gaia_iterator_t<T_gaia>::operator->()
 //
 // Implementation for gaia_container_t
 //
-template<gaia_type_t T_gaia_type, typename T_gaia>
+template <gaia_type_t T_gaia_type, typename T_gaia>
 gaia_iterator_t<T_gaia> gaia_container_t<T_gaia_type, T_gaia>::begin()
 {
     gaia_id_t id = 0;
@@ -86,12 +86,11 @@ gaia_iterator_t<T_gaia> gaia_container_t<T_gaia_type, T_gaia>::begin()
     return gaia_iterator_t<T_gaia>(id);
 }
 
-template<gaia_type_t T_gaia_type, typename T_gaia>
+template <gaia_type_t T_gaia_type, typename T_gaia>
 gaia_iterator_t<T_gaia> gaia_container_t<T_gaia_type, T_gaia>::end()
 {
     return gaia_iterator_t<T_gaia>(0);
 }
-
 
 //
 // Implementation for gaia_set_iterator_t.
@@ -109,7 +108,7 @@ T_foreign* gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator->()
     return &m_foreign_obj;
 }
 
-template<typename T_foreign, int T_foreign_slot>
+template <typename T_foreign, int T_foreign_slot>
 gaia_set_iterator_t<T_foreign, T_foreign_slot>& gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator++()
 {
     if (!m_id)
@@ -148,7 +147,6 @@ bool gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator!=(const gaia_set_i
     return m_id != rhs.m_id;
 }
 
-
 //
 // Implementation for reference_chain_container_t.
 //
@@ -180,7 +178,8 @@ void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_
     auto oid = m_primary_id;
 
     // The gaia_id() will be zero if the row hasn't been inserted into the SE.
-    if (foreign_id == 0 || oid == 0) {
+    if (foreign_id == 0 || oid == 0)
+    {
         T_primary expected = T_primary::get(0);
         T_foreign received = T_foreign::get(0);
         throw edc_invalid_state(expected.gaia_typename(), received.gaia_typename());
@@ -199,22 +198,22 @@ void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_
     }
 
     // This is a no-op if it is already connected to this owner.
-    if (foreign_ptr.references()[T_parent_slot] == oid) {
+    if (foreign_ptr.references()[T_parent_slot] == oid)
+    {
         return;
     }
 
     // Cannot connect a foreign object that is already connected to a differrent owner.
-    if (foreign_ptr.references()[T_parent_slot] != 0 && foreign_ptr.references()[T_parent_slot] != oid) {
+    if (foreign_ptr.references()[T_parent_slot] != 0 && foreign_ptr.references()[T_parent_slot] != oid)
+    {
         T_primary expected = T_primary::get(0);
         throw edc_already_inserted(foreign_ptr.references()[T_parent_slot], expected.gaia_typename());
     }
 
-    foreign_ptr.references()[T_foreign_slot] = node_ptr.references()[T_primary_slot];
-    foreign_ptr.references()[T_parent_slot]  = oid;
-    node_ptr.references()[T_primary_slot] = foreign_id;
+    foreign_ptr.update_references(
+        {make_pair(T_foreign_slot, node_ptr.references()[T_primary_slot]), make_pair(T_parent_slot, oid)});
 
-    node_ptr.log_in_place_update();
-    foreign_ptr.log_in_place_update();
+    node_ptr.update_references({make_pair(T_primary_slot, foreign_id)});
 }
 
 template <typename T_primary, typename T_foreign, int T_parent_slot, int T_primary_slot, int T_foreign_slot>
@@ -253,33 +252,24 @@ void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_
     if (node_ptr.references()[T_primary_slot] == foreign_id)
     {
         // It's the first one in the list, point the "first" to the current "next".
-        node_ptr.references()[T_primary_slot] = foreign_ptr.references()[T_foreign_slot];
+        node_ptr.update_references({make_pair(T_primary_slot, foreign_ptr.references()[T_foreign_slot])});
         // Clean up the removed child.
-        foreign_ptr.references()[T_foreign_slot] = 0;
-        foreign_ptr.references()[T_parent_slot] = 0;
-
-        node_ptr.log_in_place_update();
-        foreign_ptr.log_in_place_update();
+        foreign_ptr.update_references({make_pair(T_foreign_slot, INVALID_GAIA_ID), make_pair(T_parent_slot, INVALID_GAIA_ID)});
     }
     else
     {
         // Need to scan the list to find this one because it's not first on the list.
         auto cur_child_ptr = gaia_ptr::open(node_ptr.references()[T_primary_slot]);
 
-        //auto cur_child = T_foreign::get(m_outer.references()[T_primary_slot]);
         while (cur_child_ptr && cur_child_ptr.references()[T_foreign_slot])
         {
             gaia_id_t next_id = cur_child_ptr.references()[T_foreign_slot];
             if (next_id == foreign_id)
             {
                 // Point the current child to the child following the next.
-                cur_child_ptr.references()[T_foreign_slot] = foreign_ptr.references()[T_foreign_slot];
+                cur_child_ptr.update_references({make_pair(T_foreign_slot, foreign_ptr.references()[T_foreign_slot])});
                 // Clean up the removed child.
-                foreign_ptr.references()[T_foreign_slot] = 0;
-                foreign_ptr.references()[T_parent_slot] = 0;
-
-                node_ptr.log_in_place_update();
-                foreign_ptr.log_in_place_update();
+                foreign_ptr.update_references({make_pair(T_foreign_slot, INVALID_GAIA_ID), make_pair(T_parent_slot, INVALID_GAIA_ID)});
                 return;
             }
             // Move to the next child.
@@ -288,10 +278,10 @@ void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_
         // If we end up here, the child was not found in the chain. This is an error because
         // the pointers have become inconsistent (the child's parent pointer was correct).
         throw edc_inconsistent_list(
-                    m_primary_id,
-                    T_primary::get(0).gaia_typename(),
-                    foreign_id,
-                    T_foreign::get(0).gaia_typename());
+            m_primary_id,
+            T_primary::get(0).gaia_typename(),
+            foreign_id,
+            T_foreign::get(0).gaia_typename());
     }
 }
 
@@ -301,5 +291,5 @@ void reference_chain_container_t<T_primary, T_foreign, T_parent_slot, T_primary_
     erase(foreign_edc.gaia_id());
 }
 
-} // direct_access
-} // gaia
+} // namespace direct_access
+} // namespace gaia
