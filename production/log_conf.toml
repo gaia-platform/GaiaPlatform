@@ -15,7 +15,7 @@ create_parent_dir = true
 [[sink]]
 name = "syslog"
 type = "syslog_sink_mt"
-# generally no need to fill in the optional fields below
+# Generally no need to fill in the optional fields below.
 # ident = "" (default)
 # syslog_option = 0 (default)
 # syslog_facility = LOG_USER (default macro value)

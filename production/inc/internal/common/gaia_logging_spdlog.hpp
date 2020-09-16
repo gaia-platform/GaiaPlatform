@@ -44,7 +44,7 @@ shared_ptr<spdlog::logger> create_spdlog_logger(const std::string& logger_name);
 spdlog::level::level_enum to_spdlog_level(gaia_log::log_level_t gaia_level);
 
 class log_impl_t {
-  public:
+public:
     explicit log_impl_t(const std::string& logger_name) {
         auto logger = spdlog::get(logger_name);
 
@@ -59,7 +59,7 @@ class log_impl_t {
         return *m_logger;
     }
 
-  private:
+private:
     shared_ptr<spdlog::logger> m_logger;
 };
 

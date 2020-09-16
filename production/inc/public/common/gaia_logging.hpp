@@ -9,6 +9,7 @@
 #include <sstream>
 #include <unordered_map>
 #include <shared_mutex>
+
 #include "gaia_exception.hpp"
 
 namespace gaia {
@@ -77,7 +78,7 @@ class log_impl_t;
 * Gaia Logger API.
 */
 class gaia_logger_t {
-  public:
+public:
     /**
      * Initialize a logger with the given name. If the logger already
      * exists in the underlying framework it reuses it. Otherwsie a
@@ -89,7 +90,7 @@ class gaia_logger_t {
     // usage of the pimpl idiom (log_impl_t)
     ~gaia_logger_t();
 
-    const std::string& get_name();
+    const std::string& get_name() const;
 
     template <typename... Args>
     void log(log_level_t level, const char* format, const Args&... args);
@@ -119,13 +120,13 @@ class gaia_logger_t {
     void critical(const char* format, const Args&... args);
     void critical(const char* msg);
 
-  private:
+private:
     std::string m_logger_name;
     std::unique_ptr<log_impl_t> m_pimpl;
 };
 
 class logger_exception_t : public gaia_exception {
-  public:
+public:
     explicit logger_exception_t(const std::string& message) {
         m_message = message;
     }
@@ -140,8 +141,8 @@ class logger_exception_t : public gaia_exception {
 void register_logger(const std::shared_ptr<gaia_logger_t>& logger);
 
 /**
-    * Returns the logger with the given name or nullptr.
-    */
+* Returns the logger with the given name or nullptr.
+*/
 std::shared_ptr<gaia_logger_t> get(const std::string& logger_name);
 
 /**

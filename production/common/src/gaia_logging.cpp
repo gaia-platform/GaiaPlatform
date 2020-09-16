@@ -31,7 +31,7 @@ bool init_logging();
 static bool init = init_logging();
 
 class logger_registry_t {
-  public:
+public:
     logger_registry_t(const logger_registry_t&) = delete;
     logger_registry_t& operator=(const logger_registry_t&) = delete;
     logger_registry_t(logger_registry_t&&) = delete;
@@ -86,13 +86,13 @@ class logger_registry_t {
         m_loggers.clear();
     }
 
-  private:
+private:
     std::unordered_map<std::string, std::shared_ptr<gaia_logger_t>> m_loggers;
     mutable shared_mutex m_lock;
 };
 
 class logger_initializer_t {
-  public:
+public:
     logger_initializer_t(const logger_initializer_t&) = delete;
     logger_initializer_t& operator=(const logger_initializer_t&) = delete;
     logger_initializer_t(logger_initializer_t&&) = delete;
@@ -151,7 +151,7 @@ class logger_initializer_t {
         return true;
     }
 
-  private:
+private:
     logger_initializer_t() = default;
     shared_mutex m_log_init_mutex;
     bool m_is_log_initialized = false;
@@ -171,7 +171,7 @@ gaia_logger_t::gaia_logger_t(const string& logger_name) : m_logger_name(logger_n
 
 gaia_logger_t::~gaia_logger_t() = default;
 
-const std::string& gaia_logger_t::get_name() {
+const std::string& gaia_logger_t::get_name() const {
     return m_logger_name;
 }
 
