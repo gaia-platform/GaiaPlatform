@@ -20,7 +20,7 @@ class stack_allocator_t : public base_memory_manager_t
 {
     friend class memory_manager_t;
 
-    private:
+public:
 
     // Only a memory_manager_t can create stack_allocator_t instances.
     stack_allocator_t();
@@ -32,8 +32,6 @@ class stack_allocator_t : public base_memory_manager_t
     // The start of the buffer is specified as an offset from a base address.
     // This is also only callable by a memory_manager_t.
     error_code_t initialize(uint8_t* base_memory_address, address_offset_t memory_offset, size_t memory_size);
-
-    public:
 
     // Allocate a new memory block that will be designated by the provided slot id.
     // The old memory offset of the slot id is also provided, for later garbage collection.
@@ -63,7 +61,7 @@ class stack_allocator_t : public base_memory_manager_t
     // Find the offset where we can make the next allocation.
     address_offset_t get_next_allocation_offset() const;
 
-    private:
+private:
 
     // A pointer to our metadata information, stored in the same memory that we manage.
     // Unlike the memory manager, which stores its metadata at the start of the buffer,
@@ -73,7 +71,7 @@ class stack_allocator_t : public base_memory_manager_t
     // Our execution flags.
     execution_flags_t m_execution_flags;
 
-    private:
+private:
 
     void output_debugging_information(const std::string& context_description) const;
 };
