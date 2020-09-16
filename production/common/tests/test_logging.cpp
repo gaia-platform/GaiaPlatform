@@ -7,6 +7,9 @@
 #include "gtest/gtest.h"
 #include "gaia_logging.hpp"
 
+//remove the registry
+//move the global variables into a class
+
 static const char* const_char_msg = "const char star message";
 static const std::string string_msg = "string message";
 static const int64_t int_msg = 1234;
@@ -18,7 +21,7 @@ class test_logging_t : public ::testing::Test {
         // at time of writing it is not yet decided where the logging should be
         // initialized. This is a safe guard.
         if (!gaia_log::is_logging_initialized()) {
-            gaia_log::init_logging("log_conf.toml");
+            gaia_log::init_logging(gaia_log::c_default_log_conf_path);
         }
     }
 
@@ -27,7 +30,7 @@ class test_logging_t : public ::testing::Test {
         // some tests register the bubu_logger in the registry.
         // Removing it to prevent tests from interfering with
         // each other.
-        gaia_log::logger_registry_t::instance().unregister_logger(bubu_logger);
+        gaia_log::unregister_logger(bubu_logger);
     }
 };
 
@@ -83,23 +86,23 @@ TEST_F(test_logging_t, create_new_logger) {
 }
 
 TEST_F(test_logging_t, default_logger_available) {
-    auto logger = gaia_log::logger_registry_t::instance().default_logger();
+    auto logger = gaia_log::default_logger();
     logger->trace("Message from default logger");
 }
 
 TEST_F(test_logging_t, register_new_logger) {
     auto logger = make_shared<gaia_log::gaia_logger_t>(bubu_logger);
-    gaia_log::logger_registry_t::instance().register_logger(logger);
-    gaia_log::logger_registry_t::instance().get(bubu_logger)->trace("Message from the registry");
+    gaia_log::register_logger(logger);
+    gaia_log::get(bubu_logger)->trace("Message from the registry");
 }
 
 TEST_F(test_logging_t, register_duplicated_logger) {
     auto logger1 = make_shared<gaia_log::gaia_logger_t>(bubu_logger);
-    gaia_log::logger_registry_t::instance().register_logger(logger1);
+    gaia_log::register_logger(logger1);
 
     auto logger2 = make_shared<gaia_log::gaia_logger_t>(bubu_logger);
 
     EXPECT_THROW(
-        gaia_log::logger_registry_t::instance().register_logger(logger1),
+        gaia_log::register_logger(logger1),
         gaia_log::logger_exception_t);
 }

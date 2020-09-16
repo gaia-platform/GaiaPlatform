@@ -8,14 +8,6 @@ cmake_minimum_required(VERSION 3.12)
 # Set the project name.
 project(common)
 
-find_package(Threads REQUIRED)
-
-find_package(spdlog PATHS ${SPDLOG}/lib/lib/cmake/spdlog/ NO_DEFAULT_PATH REQUIRED)
-
-# Add spdlog_setup
-set(spdlog_setup_DIR ${SPDLOG_SETUP}/build-release/install/lib/cmake/spdlog_setup/)
-find_package(spdlog_setup REQUIRED)
-
 set(GAIA_COMMON_INCLUDES
   "${GAIA_INC}/internal/common"
   "${GAIA_INC}/public/common")
@@ -26,11 +18,12 @@ message(STATUS "GAIA_COMMON_INCLUDES=${GAIA_COMMON_INCLUDES}")
 add_library(gaia_common STATIC
     src/exceptions.cpp
     src/file.cpp
-    src/timer.cpp)
+    src/timer.cpp
+    src/gaia_logging.cpp)
 
 target_include_directories(gaia_common PUBLIC ${GAIA_COMMON_INCLUDES})
-target_link_libraries(gaia_common PUBLIC spdlog::spdlog spdlog_setup::spdlog_setup)
-set_target_properties(gaia_common PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -DSPDLOG_ENABLE_SYSLOG")
+target_link_libraries(gaia_common PUBLIC)
+set_target_properties(gaia_common PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -DSPDLOG_ENABLE_SYSLOG=ON")
 
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia_common PROPERTY POSITION_INDEPENDENT_CODE ON)

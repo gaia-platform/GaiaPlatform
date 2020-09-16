@@ -11,14 +11,6 @@
 #include <shared_mutex>
 #include "gaia_exception.hpp"
 
-#define GAIA_LOG_LEVEL_TRACE 0
-#define GAIA_LOG_LEVEL_DEBUG 1
-#define GAIA_LOG_LEVEL_INFO 2
-#define GAIA_LOG_LEVEL_WARN 3
-#define GAIA_LOG_LEVEL_ERROR 4
-#define GAIA_LOG_LEVEL_CRITICAL 5
-#define GAIA_LOG_LEVEL_OFF 6
-
 namespace gaia {
 /**
  * \addtogroup Gaia
@@ -63,14 +55,18 @@ constexpr const char* c_gaia_root_logger = "gaia-root";
 /** Default logging path used if none is specified via configuration. */
 constexpr const char* c_default_log_path = "logs/gaia.log";
 
+/** Default location of the log configuration file */
+// TODO it is unclear to me how we can provide this
+constexpr const char* c_default_log_conf_path = "log_conf.toml";
+
 enum class log_level_t {
-    trace = GAIA_LOG_LEVEL_TRACE,
-    debug = GAIA_LOG_LEVEL_DEBUG,
-    info = GAIA_LOG_LEVEL_INFO,
-    warn = GAIA_LOG_LEVEL_WARN,
-    err = GAIA_LOG_LEVEL_ERROR,
-    critical = GAIA_LOG_LEVEL_CRITICAL,
-    off = GAIA_LOG_LEVEL_OFF,
+    trace = 0,
+    debug = 1,
+    info = 2,
+    warn = 3,
+    err = 4,
+    critical = 5,
+    off = 6,
 };
 
 /**
@@ -94,10 +90,9 @@ bool is_logging_initialized();
 
 /**
 * Stops the logging system, cleaning up all the loggers.
-*
-* @throws logging_exception_t if the logging is not initialized
+ * Returns true if the operation succeed, false otherwise.
 */
-void stop_logging();
+bool stop_logging();
 
 /**
 * Gaia Logger API.
@@ -147,54 +142,7 @@ class gaia_logger_t {
 
   private:
     std::string m_logger_name;
-    std::unique_ptr<log_impl_t> p_impl;
-};
-
-class logger_registry_t {
-  public:
-    logger_registry_t(const logger_registry_t&) = delete;
-    logger_registry_t& operator=(const logger_registry_t&) = delete;
-    logger_registry_t(logger_registry_t&&) = delete;
-    logger_registry_t& operator=(logger_registry_t&&) = delete;
-
-    static logger_registry_t& instance() {
-        static logger_registry_t type_registry;
-        return type_registry;
-    }
-
-    logger_registry_t() = default;
-
-    /**
-     * Registers a new logger.
-     *
-     * @throws logger_exception_t if a logger with the same name
-     * already exists.
-     */
-    void register_logger(const std::shared_ptr<gaia_logger_t>& logger);
-
-    /**
-     * Returns the logger with the given name or nullptr.
-     */
-    std::shared_ptr<gaia_logger_t> get(const std::string& logger_name);
-
-    /**
-     * Unregister the logger with the given name. If the logger
-     * does not exists this function is a no-op.
-     */
-    void unregister_logger(const std::string& logger_name);
-
-    /**
-     * Returns the c_gaia_root_logger. This logger should always be available.
-     */
-    std::shared_ptr<gaia_logger_t> default_logger();
-
-    void clear();
-
-  private:
-    std::unordered_map<std::string, std::shared_ptr<gaia_logger_t>> m_loggers;
-
-    // Use the lock to ensure exclusive access to loggers.
-    mutable shared_mutex m_lock;
+    std::unique_ptr<log_impl_t> m_impl_ptr;
 };
 
 class logger_exception_t : public gaia_exception {
@@ -204,67 +152,91 @@ class logger_exception_t : public gaia_exception {
     }
 };
 
+/**
+ * Registers a new logger.
+ *
+ * @throws logger_exception_t if a logger with the same name
+ * already exists.
+ */
+void register_logger(const std::shared_ptr<gaia_logger_t>& logger);
+
+/**
+    * Returns the logger with the given name or nullptr.
+    */
+std::shared_ptr<gaia_logger_t> get(const std::string& logger_name);
+
+/**
+ * Unregister the logger with the given name. If the logger
+ * does not exists this function is a no-op.
+ */
+void unregister_logger(const std::string& logger_name);
+
+/**
+ * Returns the c_gaia_root_logger. This logger should always be available.
+ */
+std::shared_ptr<gaia_logger_t> default_logger();
+
 template <typename... Args>
 inline void log(log_level_t level, const char* format, const Args&... args) {
-    logger_registry_t::instance().default_logger()->log(level, format, args...);
+    default_logger()->log(level, format, args...);
 }
 
 inline void log(log_level_t level, const char* msg) {
-    logger_registry_t::instance().default_logger()->log(level, msg);
+    default_logger()->log(level, msg);
 }
 
 template <typename... Args>
 inline void trace(const char* format, const Args&... args) {
-    logger_registry_t::instance().default_logger()->trace(format, args...);
+    default_logger()->trace(format, args...);
 }
 
 inline void trace(const char* msg) {
-    logger_registry_t::instance().default_logger()->trace(msg);
+    default_logger()->trace(msg);
 }
 
 template <typename... Args>
 inline void debug(const char* format, const Args&... args) {
-    logger_registry_t::instance().default_logger()->debug(format, args...);
+    default_logger()->debug(format, args...);
 }
 
 inline void debug(const char* msg) {
-    logger_registry_t::instance().default_logger()->debug(msg);
+    default_logger()->debug(msg);
 }
 
 template <typename... Args>
 inline void info(const char* format, const Args&... args) {
-    logger_registry_t::instance().default_logger()->info(format, args...);
+    default_logger()->info(format, args...);
 }
 
 inline void info(const char* msg) {
-    logger_registry_t::instance().default_logger()->info(msg);
+    default_logger()->info(msg);
 }
 
 template <typename... Args>
 inline void warn(const char* format, const Args&... args) {
-    logger_registry_t::instance().default_logger()->warn(format, args...);
+    default_logger()->warn(format, args...);
 }
 
 inline void warn(const char* msg) {
-    logger_registry_t::instance().default_logger()->warn(msg);
+    default_logger()->warn(msg);
 }
 
 template <typename... Args>
 inline void error(const char* format, const Args&... args) {
-    logger_registry_t::instance().default_logger()->error(format, args...);
+    default_logger()->error(format, args...);
 }
 
 inline void error(const char* msg) {
-    logger_registry_t::instance().default_logger()->error(msg);
+    default_logger()->error(msg);
 }
 
 template <typename... Args>
 inline void critical(const char* format, const Args&... args) {
-    logger_registry_t::instance().default_logger()->critical(format, args...);
+    default_logger()->critical(format, args...);
 }
 
 inline void critical(const char* msg) {
-    logger_registry_t::instance().default_logger()->critical(msg);
+    default_logger()->critical(msg);
 }
 
 /*@}*/
