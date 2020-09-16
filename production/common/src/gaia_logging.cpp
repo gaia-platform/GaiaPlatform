@@ -189,6 +189,8 @@ void create_log_dir_if_not_exists(const char* log_file_path) {
     fs::create_directories(parent);
 }
 
+// TODO decide the default configuration. ATM we configure 3 sinks, that is probably overkilling.
+//   https://gaiaplatform.atlassian.net/browse/GAIAPLAT-358
 void configure_spdlog_default() {
     std::cerr << c_gaia_root_logger << " logger not found, creating it with default configuration:" << endl;
 
@@ -231,7 +233,7 @@ shared_ptr<spdlog::logger> create_spdlog_logger(const string& logger_name) {
     return root_logger->clone(logger_name);
 }
 
-spdlog::level::level_enum to_spdlog_level(gaia::common::logging::log_level_t gaia_level) {
+spdlog::level::level_enum to_spdlog_level(gaia_log::log_level_t gaia_level) {
     switch (gaia_level) {
     case log_level_t::trace:
         return spdlog::level::trace;
