@@ -29,15 +29,13 @@ find_package(rclcpp_components REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(gaia_pkg_interfaces REQUIRED)
 
-message(NOTICE "")
-
-ros2_msg_to_gaia_ddl(
-  "gaia_pkg_interfaces msg/Test.msg"
-  "gaia_pkg_interfaces msg/TestTwo.msg"
-)
-
-message(NOTICE "")
-message(FATAL_ERROR "~~ STOP ~~")
+#message(NOTICE "")
+#ros2_msg_to_gaia_ddl(
+#  "gaia_pkg_interfaces msg/Test.msg"
+#  "gaia_pkg_interfaces msg/TestTwo.msg"
+#)
+#message(NOTICE "")
+#message(FATAL_ERROR "~~ STOP ~~")
 
 add_library(gaia_pkg_shared_lib SHARED
   src/gaia_node.cpp
@@ -58,10 +56,10 @@ rclcpp_components_register_node(gaia_pkg_shared_lib
   EXECUTABLE gaia_node
 )
 
-target_include_directories(gaia_pkg_shared_lib PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
-)
+#target_include_directories(gaia_pkg_shared_lib PUBLIC
+#  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+#  $<INSTALL_INTERFACE:include>
+#)
 
 install(TARGETS
   gaia_pkg_shared_lib

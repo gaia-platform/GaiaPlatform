@@ -5,23 +5,56 @@
 
 #include <iostream>
 
-#include "gaia_pkg/gaia_node.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "rclcpp_components/register_node_macro.hpp"
 
-gaia_node::gaia_node(const NodeOptions& options)
-: Node("gaia_node", options)
+#include "gaia_pkg_interfaces/msg/test.hpp"
+
+using namespace std;
+using namespace rclcpp;
+
+class gaia_node : public Node
 {
-    cout << "Hello World!" << endl;
-
-    on_shutdown([&]
+public:
+    gaia_node(const NodeOptions& options) : Node("gaia_node", options)
     {
-        gaia_node::shutdown_callback();
-    });
+        cout << "Hello World!" << endl;
 
-    m_pub_test = this->create_publisher<gaia_pkg_interfaces::msg::Test>(
-        "test", ParametersQoS());
-}
+        on_shutdown([&]
+        {
+            shutdown_callback();
+        });
+    }
 
-void gaia_node::shutdown_callback()
-{
-    cout << "Stopping node." << endl;
-}
+private:
+    void shutdown_callback()
+    {
+        cout << "Stopping node." << endl;
+    }
+
+    template<typename T_msg>
+    void basic_scalar_insert(const typename T_msg::SharedPtr msg)
+    {
+        (void) msg;
+    }
+
+    template<typename T_msg>
+    void subscriber_callback(const typename T_msg::SharedPtr msg)
+    {
+        (void) msg;
+    }
+
+    template<typename T_msg>
+    void generate_subscriber(const char* topic_name)
+    {
+        typename Subscription<T_msg>::SharedPtr sub = this->create_subscription<T_msg>(
+            topic_name, SystemDefaultsQoS(),
+            [&](const typename T_msg::SharedPtr msg)
+            {
+                this->subscriber_callback<T_msg>(msg);
+            }
+        );
+    }
+};
+
+RCLCPP_COMPONENTS_REGISTER_NODE(gaia_node)
