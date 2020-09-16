@@ -242,10 +242,10 @@ void configure_spdlog_default() {
     create_log_dir_if_not_exists(c_default_log_path);
     auto file_sink = make_shared<spdlog::sinks::basic_file_sink_mt>(c_default_log_path, true);
 
-    string syslog_ident = "gaia";
+    string syslog_identifier = "gaia";
     int syslog_option = 0;
     int syslog_facility = LOG_USER;
-    auto syslog_sink = make_shared<spdlog::sinks::syslog_sink_mt>(syslog_ident, syslog_option, syslog_facility);
+    auto syslog_sink = make_shared<spdlog::sinks::syslog_sink_mt>(syslog_identifier, syslog_option, syslog_facility);
 
     spdlog::sinks_init_list sink_list{file_sink, console_sink, syslog_sink};
 

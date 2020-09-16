@@ -14,7 +14,7 @@ static const char* bubu_logger = "BUBU Logger";
 
 class test_logging_t : public ::testing::Test {
 
-  protected:
+protected:
     void SetUp() override {
         // Some tests register the bubu_logger in the registry.
         // Removing it to prevent tests from interfering with

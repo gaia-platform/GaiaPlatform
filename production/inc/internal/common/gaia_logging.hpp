@@ -60,12 +60,30 @@ constexpr const char* c_default_log_path = "logs/gaia.log";
 constexpr const char* c_default_log_conf_path = "log_conf.toml";
 
 enum class log_level_t {
+
+    /* Finer-grained informational events than debug. */
     trace = 1,
+
+    /* Fine-grained informational events that are most
+     * useful to debug an application. */
     debug = 2,
+
+    /* Informational messages that highlight the progress
+     * of the application at coarse-grained level. */
     info = 3,
+
+    /* Potentially harmful situations. */
     warn = 4,
+
+    /* Error events that might still allow the application to
+     * continue running */
     err = 5,
+
+    /* Very severe error events that will presumably lead the
+     * application to abort */
     critical = 6,
+
+    /* Turn the logging off */
     off = 0,
 };
 
