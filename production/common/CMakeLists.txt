@@ -22,8 +22,7 @@ add_library(gaia_common STATIC
     src/gaia_logging.cpp)
 
 target_include_directories(gaia_common PUBLIC ${GAIA_COMMON_INCLUDES})
-target_link_libraries(gaia_common PUBLIC)
-set_target_properties(gaia_common PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -DSPDLOG_ENABLE_SYSLOG=ON")
+set_target_properties(gaia_common PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -DSPDLOG_ENABLE_SYSLOG")
 
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia_common PROPERTY POSITION_INDEPENDENT_CODE ON)
