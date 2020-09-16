@@ -3,24 +3,21 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "gaia_logging.hpp"
+
 #include <filesystem>
 #include <iostream>
-
-#include "gaia_logging.hpp"
-#include "gaia_logging_spdlog.hpp"
 
 #include "spdlog/async.h"
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/sinks/basic_file_sink.h"
 #include "spdlog/sinks/syslog_sink.h"
 #include "spdlog_setup/conf.h"
+#include "gaia_logging_spdlog.hpp"
 
 namespace fs = std::filesystem;
 
 namespace gaia::common::logging {
-
-static shared_mutex log_init_mutex;
-static bool log_initialized = false;
 
 class logger_registry_t {
   public:
@@ -29,9 +26,9 @@ class logger_registry_t {
     logger_registry_t(logger_registry_t&&) = delete;
     logger_registry_t& operator=(logger_registry_t&&) = delete;
 
-    static logger_registry_t& instance() {
-        static logger_registry_t type_registry;
-        return type_registry;
+    static logger_registry_t& get() {
+        static logger_registry_t instance;
+        return instance;
     }
 
     logger_registry_t() = default;
@@ -46,7 +43,7 @@ class logger_registry_t {
         m_loggers.insert({logger->get_name(), logger});
     }
 
-    std::shared_ptr<gaia_logger_t> get(const std::string& logger_name) {
+    std::shared_ptr<gaia_logger_t> get(const std::string& logger_name) const {
         shared_lock lock(m_lock);
         auto logger = m_loggers.find(logger_name);
 
@@ -62,8 +59,15 @@ class logger_registry_t {
         m_loggers.erase(logger_name);
     }
 
-    std::shared_ptr<gaia_logger_t> default_logger() {
-        return get(c_gaia_root_logger);
+    std::shared_ptr<gaia_logger_t> default_logger() const {
+        auto logger = get(c_gaia_root_logger);
+
+        if (!logger) {
+            // TODO instead of failing should we setup the default config?
+            throw logger_exception_t("Logging not initialized, call gaia_log::init_logging()");
+        }
+
+        return logger;
     }
 
     void clear() {
@@ -73,60 +77,87 @@ class logger_registry_t {
 
   private:
     std::unordered_map<std::string, std::shared_ptr<gaia_logger_t>> m_loggers;
-
-    // Use the lock to ensure exclusive access to loggers.
     mutable shared_mutex m_lock;
 };
 
+class logger_initializer_t {
+  public:
+    logger_initializer_t(const logger_initializer_t&) = delete;
+    logger_initializer_t& operator=(const logger_initializer_t&) = delete;
+    logger_initializer_t(logger_initializer_t&&) = delete;
+    logger_initializer_t& operator=(logger_initializer_t&&) = delete;
+
+    static logger_initializer_t& get() {
+        static logger_initializer_t instance;
+        return instance;
+    }
+
+    void init_logging(const string& config_path) {
+        unique_lock lock(log_init_mutex);
+
+        if (is_log_initialized) {
+            throw logger_exception_t("Logging already initialized");
+        }
+
+        try {
+            spdlog_setup::from_file(config_path);
+        } catch (spdlog_setup::setup_error& e) {
+            cerr << "An error occurred while configuring logger from file '" << config_path << "': " << e.what() << endl;
+        }
+
+        if (!spdlog::get(c_gaia_root_logger)) {
+            configure_spdlog_default();
+        }
+
+        std::vector<std::string> logger_names;
+        spdlog::apply_all([&](const std::shared_ptr<spdlog::logger>& l) {
+            logger_names.push_back(l->name());
+        });
+
+        for (const std::string& logger_name : logger_names) {
+            logger_registry_t::get().register_logger(make_shared<gaia_logger_t>(logger_name));
+        }
+
+        is_log_initialized = true;
+    }
+
+    bool is_logging_initialized() {
+        return is_log_initialized;
+    }
+
+    bool stop_logging() {
+        unique_lock lock(log_init_mutex);
+
+        if (!is_log_initialized) {
+            return false;
+        }
+
+        logger_registry_t::get().clear();
+        spdlog::shutdown();
+        is_log_initialized = false;
+        return true;
+    }
+
+  private:
+    logger_initializer_t() = default;
+    shared_mutex log_init_mutex;
+    bool is_log_initialized = false;
+};
+
 void init_logging(const string& config_path) {
-    unique_lock lock(log_init_mutex);
-
-    if (log_initialized) {
-        throw logger_exception_t("Logging already initialized");
-    }
-
-    try {
-        spdlog_setup::from_file(config_path);
-    } catch (spdlog_setup::setup_error& e) {
-        cerr << "An error occurred while configuring logger from file '" << config_path << "': " << e.what() << endl;
-    }
-
-    if (!spdlog::get(c_gaia_root_logger)) {
-        configure_spdlog_default();
-    }
-
-    std::vector<std::string> logger_names;
-    spdlog::apply_all([&](const std::shared_ptr<spdlog::logger>& l) {
-        logger_names.push_back(l->name());
-    });
-
-    for (const std::string& logger_name : logger_names) {
-        logger_registry_t::instance().register_logger(make_shared<gaia_logger_t>(logger_name));
-    }
-
-    log_initialized = true;
+    logger_initializer_t::get().init_logging(config_path);
 }
 
 bool is_logging_initialized() {
-    shared_lock lock(log_init_mutex);
-    return log_initialized;
+    return logger_initializer_t::get().is_logging_initialized();
 }
 
 bool stop_logging() {
-    unique_lock lock(log_init_mutex);
-
-    if (!log_initialized) {
-        return false;
-    }
-
-    logger_registry_t::instance().clear();
-    spdlog::shutdown();
-    log_initialized = false;
-    return true;
+    return logger_initializer_t::get().stop_logging();
 }
 
 gaia_logger_t::gaia_logger_t(const string& logger_name) : m_logger_name(logger_name) {
-    m_impl_ptr = make_unique<log_impl_t>(logger_name);
+    m_pimpl = make_unique<log_impl_t>(logger_name);
 }
 
 gaia_logger_t::~gaia_logger_t() = default;
@@ -136,51 +167,51 @@ const std::string& gaia_logger_t::get_name() {
 }
 
 void gaia_logger_t::log(log_level_t level, const char* msg) {
-    m_impl_ptr->get_logger().log(to_spdlog_level(level), msg);
+    m_pimpl->get_logger().log(to_spdlog_level(level), msg);
 }
 
 void gaia_logger_t::trace(const char* msg) {
-    m_impl_ptr->get_logger().trace(msg);
+    m_pimpl->get_logger().trace(msg);
 }
 
 void gaia_logger_t::debug(const char* msg) {
-    m_impl_ptr->get_logger().debug(msg);
+    m_pimpl->get_logger().debug(msg);
 }
 
 void gaia_logger_t::info(const char* msg) {
-    m_impl_ptr->get_logger().info(msg);
+    m_pimpl->get_logger().info(msg);
 }
 
 void gaia_logger_t::warn(const char* msg) {
-    m_impl_ptr->get_logger().warn(msg);
+    m_pimpl->get_logger().warn(msg);
 }
 
 void gaia_logger_t::error(const char* msg) {
-    m_impl_ptr->get_logger().error(msg);
+    m_pimpl->get_logger().error(msg);
 }
 
 void gaia_logger_t::critical(const char* msg) {
-    m_impl_ptr->get_logger().critical(msg);
+    m_pimpl->get_logger().critical(msg);
 }
 
 void register_logger(const std::shared_ptr<gaia_logger_t>& logger) {
-    logger_registry_t::instance().register_logger(logger);
+    logger_registry_t::get().register_logger(logger);
 }
 
 std::shared_ptr<gaia_logger_t> get(const std::string& logger_name) {
-    return logger_registry_t::instance().get(logger_name);
+    return logger_registry_t::get().get(logger_name);
 }
 
 void unregister_logger(const std::string& logger_name) {
-    logger_registry_t::instance().unregister_logger(logger_name);
+    logger_registry_t::get().unregister_logger(logger_name);
 }
 
 std::shared_ptr<gaia_logger_t> default_logger() {
-    return logger_registry_t::instance().default_logger();
+    return logger_registry_t::get().default_logger();
 }
 
 void clear_loggers() {
-    logger_registry_t::instance().clear();
+    logger_registry_t::get().clear();
 }
 
 void create_log_dir_if_not_exists(const char* log_file_path) {

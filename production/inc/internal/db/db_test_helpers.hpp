@@ -15,11 +15,12 @@
 #include "system_error.hpp"
 #include "gaia_db.hpp"
 #include "gaia_db_internal.hpp"
+#include "gaia_logging.hpp"
 
 namespace gaia {
 namespace db {
 
-constexpr char const *c_daemonize_command = "daemonize ";
+constexpr char const* c_daemonize_command = "daemonize ";
 
 void remove_persistent_store() {
     string cmd = "rm -rf ";
@@ -29,13 +30,26 @@ void remove_persistent_store() {
 }
 
 void wait_for_server_init() {
+    // this is the only place I found that capture where initializing the logger actually initialize the logger.
+    // Ideally we should have a common starting point, and this code should be in here.
+    if (!gaia_log::is_logging_initialized()) {
+        gaia_log::init_logging(gaia_log::c_default_log_conf_path);
+    }
+
     static constexpr int c_poll_interval_millis = 10;
+    int counter = 0;
     // Wait for server to initialize.
     while (true) {
         try {
             begin_session();
         } catch (system_error& ex) {
             if (ex.get_errno() == ECONNREFUSED) {
+                if (counter % 1000 == 0) {
+                    gaia_log::warn("Impossible to connect to Gaia Server, you may need to start the gaia_se_server process");
+                    counter = 1;
+                } else {
+                    counter++;
+                }
                 std::this_thread::sleep_for(std::chrono::milliseconds(c_poll_interval_millis));
                 continue;
             } else {
@@ -54,7 +68,7 @@ class db_server_t {
   public:
     void start(const char *db_server_path, bool stop_server = true) {
         set_path(db_server_path);
-        
+
         if (stop_server) {
             stop();
         }
@@ -84,15 +98,14 @@ class db_server_t {
     }
 
     // Add a trailing '/' if not provided.
-    static void terminate_path(string &path) {
+    static void terminate_path(string& path) {
         if (path.back() != '/') {
             path.append("/");
         }
     }
 
   private:
-    
-    void set_path(const char *db_server_path) {
+    void set_path(const char* db_server_path) {
         if (!db_server_path) {
             m_server_path = gaia::db::SE_SERVER_NAME;
         } else {
@@ -106,5 +119,5 @@ class db_server_t {
     bool m_server_started = false;
 };
 
-}
-}
+} // namespace db
+} // namespace gaia

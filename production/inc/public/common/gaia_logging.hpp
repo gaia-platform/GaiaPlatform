@@ -60,13 +60,13 @@ constexpr const char* c_default_log_path = "logs/gaia.log";
 constexpr const char* c_default_log_conf_path = "log_conf.toml";
 
 enum class log_level_t {
-    trace = 0,
-    debug = 1,
-    info = 2,
-    warn = 3,
-    err = 4,
-    critical = 5,
-    off = 6,
+    trace = 1,
+    debug = 2,
+    info = 3,
+    warn = 4,
+    err = 5,
+    critical = 6,
+    off = 0,
 };
 
 /**
@@ -142,7 +142,7 @@ class gaia_logger_t {
 
   private:
     std::string m_logger_name;
-    std::unique_ptr<log_impl_t> m_impl_ptr;
+    std::unique_ptr<log_impl_t> m_pimpl;
 };
 
 class logger_exception_t : public gaia_exception {

@@ -7,9 +7,6 @@
 #include "gtest/gtest.h"
 #include "gaia_logging.hpp"
 
-//remove the registry
-//move the global variables into a class
-
 static const char* const_char_msg = "const char star message";
 static const std::string string_msg = "string message";
 static const int64_t int_msg = 1234;
@@ -18,7 +15,7 @@ static const char* bubu_logger = "BUBU Logger";
 class test_logging_t : public ::testing::Test {
   public:
     static void SetUpTestSuite() {
-        // at time of writing it is not yet decided where the logging should be
+        // At time of writing it is not yet decided where the logging should be
         // initialized. This is a safe guard.
         if (!gaia_log::is_logging_initialized()) {
             gaia_log::init_logging(gaia_log::c_default_log_conf_path);
@@ -27,7 +24,7 @@ class test_logging_t : public ::testing::Test {
 
   protected:
     void SetUp() override {
-        // some tests register the bubu_logger in the registry.
+        // Some tests register the bubu_logger in the registry.
         // Removing it to prevent tests from interfering with
         // each other.
         gaia_log::unregister_logger(bubu_logger);
