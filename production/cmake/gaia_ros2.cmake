@@ -25,7 +25,7 @@ function(ros2_msg_to_gaia_ddl)
   list(REMOVE_DUPLICATES interface_list)
   list(SORT interface_list)
 
-  print_list("${interface_list}")
+  write_interfaces_to_ddl("${CMAKE_BINARY_DIR}/gaia_ddl_manifest.txt" "${interface_list}")
 endfunction(ros2_msg_to_gaia_ddl)
 
 #
@@ -92,10 +92,20 @@ function(get_nested_msgs interface_arg nested_msgs_result)
 endfunction(get_nested_msgs)
 
 #
-# Prints a cmake list to stderr.
+# Creates a DDL file from a list of ROS2 interfaces.
 #
-function(print_list list_to_print)
-  foreach(element ${list_to_print})
-    message(NOTICE ${element})
-  endforeach()
-endfunction(print_list)
+function(write_interfaces_to_ddl ddl_path)
+  string(REPLACE ";" "\n" file_lines "${ARGN}")
+  string(APPEND file_lines "\n")
+
+  file(WRITE "${ddl_path}" "${file_lines}")
+
+  execute_process(
+    COMMAND "${PYTHON_EXECUTABLE}" generate_ddl.py "ros_schema" "${ddl_path}"
+    OUTPUT_VARIABLE GENERATE_DDL_OUT
+    WORKING_DIRECTORY "${GAIA_REPO}/production/ros2/ddl_translator"
+  )
+
+  message(NOTICE "${GENERATE_DDL_OUT}")
+
+endfunction(write_interfaces_to_ddl)

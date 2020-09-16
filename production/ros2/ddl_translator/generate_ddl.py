@@ -7,64 +7,112 @@
 
 import argparse
 import io
-import json
+import importlib.util
 import os
 import re
-
-def filename(filepath):
-    return os.path.basename(filepath)
+import rosidl_parser.definition
 
 def camel_to_snake_case(camel_str):
     return re.sub("[A-Z]", r"_\g<0>", camel_str).lower().lstrip('_')
 
-class Schema:
-    def __init__(self, name):
-        self.name = camel_to_snake_case(name)
-        self.tables = set()
+class InterfaceField:
+    def __init__(self, name, type):
+        self.name = name.lstrip("_")
+        self.type = type
 
     def __str__(self):
-        text = "namespace " + self.name + ";\n\n"
-        for table in self.tables:
-            text += str(table) + "\n\n"
+        if type(self.type) is rosidl_parser.definition.BasicType:
+            return self.type.typename + " " + self.name
+        elif type(self.type) is rosidl_parser.definition.NamespacedType:
+            return self.type.namespaces[0] + "/" + self.type.name + " " + self.name
+        else:
+            return str(self.type) + " " + self.name
+
+    def __hash__(self):
+        return hash(self.type + self.name)
+
+class InterfaceFile:
+    def __init__(self, package, name, type="msg"):
+        self.package = package
+        self.name = name
+        self.type = type
+
+        module_name = "." + "_" + camel_to_snake_case(self.name)
+        interface_module = importlib.import_module(
+            module_name,
+            self.package + "." + self.type
+        )
+
+        slots = getattr(interface_module, self.name).__slots__
+        slot_types = getattr(interface_module, self.name).SLOT_TYPES
+        self.fields = []
+
+        for i in range(0, len(slots)):
+            field = InterfaceField(slots[i], slot_types[i])
+            self.fields.append(field)
+
+    def __str__(self):
+        text = self.package + " " + self.type + "/" + self.name + "." + self.type
         return text
 
-    def add_table(self, table):
-        self.tables.add(table)
+    def __hash__(self):
+        return hash(self.package + self.name + self.type)
 
-class Table:
-    valid_types = {
-        "bool", "byte", "char", "float32", "float64", "int8", "uint8",
+def read_interface_file(manifest_line):
+    (package, type_and_name) = manifest_line.split(" ", maxsplit=1)
+    (type, file_name) = type_and_name.split("/", maxsplit=1)
+    name = file_name.split(".", maxsplit=1)[0]
+    interface_file = InterfaceFile(package, name, type)
+    return interface_file
+
+class TableField:
+    gaia__basic_types = {
+        "bool", "byte", "char", "float", "double", "int8", "uint8",
         "int16", "uint16", "int32", "uint32", "int64", "uint64", "string"
     }
 
-    def __init__(self, data):
-        self.name = data["pkg"] + "__" + camel_to_snake_case(data["name"])
-        self.fields = {}
-        self.references = {}
+    def __init__(self, name, type):
+        self.name = name
+        if type in TableField.gaia__basic_types:
+            self.type = type
 
-        for field_name, field_type in data["fields"].items():
-            if field_type in Table.valid_types:
-                self.fields[field_name] = field_type
-
-        for field_name, nested_type in data["nested_fields"].items():
-            self.references[field_name] = nested_type["pkg"] + "__" \
-                + camel_to_snake_case(nested_type["type"])
 
     def __str__(self):
-        text = "create table " + self.name + " (\n"
+        text = self.name + ": " + self.type
+        return text
 
-        for field_name, field_type in self.fields.items():
-            text += "    " + field_name + ": " + field_type + ",\n"
+    def __hash__(self):
+        return hash(self.type + self.name)
 
-        for ref_name, ref_table in self.references.items():
-            text += "    " + ref_name + " references " + ref_table + ",\n"
+class Table:
+    def __init__(self, name, fields):
+        self.name = name
+        self.fields = fields
 
-        text = text.rstrip(",\n")
-        text += "\n);"
+    def __str__(self):
+        text = self.name
         return text
 
     def __hash__(self):
         return hash(self.name)
+
+class Schema:
+    def __init__(self, name, interface_files):
+        self.name = camel_to_snake_case(name)
+        self.interface_files = interface_files
+
+    def __str__(self):
+        text = "~~ " + self.name + " ~~\n\n"
+
+        for interface_file in self.interface_files:
+            text += str(interface_file) + ":\n"
+
+            for field in interface_file.fields:
+                text += ">> " + str(field) + "\n"
+
+            text += "\n"
+
+        return text
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -74,25 +122,20 @@ parser.add_argument(
 )
 parser.add_argument(
     "manifest_file_path",
-    help="File path to manifest.txt, listing JSON files generated from ROS2 messages",
+    help="File path to the .txt manifest listing one interface file per line",
     type=str
 )
 args = parser.parse_args()
 
-schema = Schema(args.schema_name)
+interface_files = []
 
 with io.open(args.manifest_file_path, 'r') as manifest:
-    json_files = manifest.read().splitlines()
+    lines = manifest.read().splitlines()
     manifest.close()
 
-for json_path in json_files:
-    json_filename = filename(json_path)
+for line in lines:
+    interface_file = read_interface_file(line)
+    interface_files.append(interface_file)
 
-    with io.open(json_path, 'r') as json_file:
-        json_data = json.load(json_file)
-        json_file.close()
-
-    table = Table(json_data)
-    schema.add_table(table)
-
-print(str(schema))
+schema = Schema(args.schema_name, interface_files)
+print(schema)
