@@ -30,12 +30,6 @@ void remove_persistent_store() {
 }
 
 void wait_for_server_init() {
-    // this is the only place I found that capture where initializing the logger actually initialize the logger.
-    // Ideally we should have a common starting point, and this code should be in here.
-    if (!gaia_log::is_logging_initialized()) {
-        gaia_log::init_logging(gaia_log::c_default_log_conf_path);
-    }
-
     static constexpr int c_poll_interval_millis = 10;
     int counter = 0;
     // Wait for server to initialize.
@@ -45,7 +39,7 @@ void wait_for_server_init() {
         } catch (system_error& ex) {
             if (ex.get_errno() == ECONNREFUSED) {
                 if (counter % 1000 == 0) {
-                    gaia_log::warn("Impossible to connect to Gaia Server, you may need to start the gaia_se_server process");
+                    gaia_log::warn("Cannot connect to Gaia Server, you may need to start the gaia_se_server process");
                     counter = 1;
                 } else {
                     counter++;

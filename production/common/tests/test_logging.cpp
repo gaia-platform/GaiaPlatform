@@ -13,14 +13,6 @@ static const int64_t int_msg = 1234;
 static const char* bubu_logger = "BUBU Logger";
 
 class test_logging_t : public ::testing::Test {
-  public:
-    static void SetUpTestSuite() {
-        // At time of writing it is not yet decided where the logging should be
-        // initialized. This is a safe guard.
-        if (!gaia_log::is_logging_initialized()) {
-            gaia_log::init_logging(gaia_log::c_default_log_conf_path);
-        }
-    }
 
   protected:
     void SetUp() override {

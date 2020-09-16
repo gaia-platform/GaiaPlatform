@@ -19,6 +19,17 @@ namespace fs = std::filesystem;
 
 namespace gaia::common::logging {
 
+/**
+ * Inits the logging system. This is invoked once when the module is included.
+ *
+ * TODO currently the configuration logic is pretty naive, it checks
+ *   for the existence of one file and fallback to the default configuration.
+ *   There is a JIRA to track improvement of this logic:
+ *   https://gaiaplatform.atlassian.net/browse/GAIAPLAT-358
+*/
+bool init_logging();
+static bool init = init_logging();
+
 class logger_registry_t {
   public:
     logger_registry_t(const logger_registry_t&) = delete;
@@ -92,16 +103,17 @@ class logger_initializer_t {
         return instance;
     }
 
-    void init_logging(const string& config_path) {
-        unique_lock lock(log_init_mutex);
+    bool init_logging(const string& config_path) {
+        unique_lock lock(m_log_init_mutex);
 
-        if (is_log_initialized) {
-            throw logger_exception_t("Logging already initialized");
+        if (m_is_log_initialized) {
+            return false;
         }
 
         try {
             spdlog_setup::from_file(config_path);
         } catch (spdlog_setup::setup_error& e) {
+            // exception not thrown because we want ot fallback to the default configuration
             cerr << "An error occurred while configuring logger from file '" << config_path << "': " << e.what() << endl;
         }
 
@@ -118,42 +130,39 @@ class logger_initializer_t {
             logger_registry_t::get().register_logger(make_shared<gaia_logger_t>(logger_name));
         }
 
-        is_log_initialized = true;
+        m_is_log_initialized = true;
+        return true;
     }
 
-    bool is_logging_initialized() {
-        return is_log_initialized;
+    bool is_logging_initialized() const {
+        return m_is_log_initialized;
     }
 
     bool stop_logging() {
-        unique_lock lock(log_init_mutex);
+        unique_lock lock(m_log_init_mutex);
 
-        if (!is_log_initialized) {
+        if (!m_is_log_initialized) {
             return false;
         }
 
         logger_registry_t::get().clear();
         spdlog::shutdown();
-        is_log_initialized = false;
+        m_is_log_initialized = false;
         return true;
     }
 
   private:
     logger_initializer_t() = default;
-    shared_mutex log_init_mutex;
-    bool is_log_initialized = false;
+    shared_mutex m_log_init_mutex;
+    bool m_is_log_initialized = false;
 };
 
-void init_logging(const string& config_path) {
-    logger_initializer_t::get().init_logging(config_path);
+bool init_logging() {
+    return logger_initializer_t::get().init_logging(c_default_log_conf_path);
 }
 
 bool is_logging_initialized() {
     return logger_initializer_t::get().is_logging_initialized();
-}
-
-bool stop_logging() {
-    return logger_initializer_t::get().stop_logging();
 }
 
 gaia_logger_t::gaia_logger_t(const string& logger_name) : m_logger_name(logger_name) {
@@ -223,25 +232,20 @@ void create_log_dir_if_not_exists(const char* log_file_path) {
 // TODO decide the default configuration. ATM we configure 3 sinks, that is probably overkilling.
 //   https://gaiaplatform.atlassian.net/browse/GAIAPLAT-358
 void configure_spdlog_default() {
-    std::cerr << c_gaia_root_logger << " logger not found, creating it with default configuration:" << endl;
+    std::cerr << "Using default log configuration" << endl
+              << flush;
 
     spdlog::init_thread_pool(c_default_spdlog_queue_size, c_default_spdlog_thread_count);
 
-    std::cerr << " -queue_size: " << c_default_spdlog_queue_size << endl;
-    std::cerr << " -thread_pool_size: " << c_default_spdlog_thread_count << endl;
-
     auto console_sink = make_shared<spdlog::sinks::stdout_sink_mt>();
-    std::cerr << " -console_sink: stdout" << endl;
 
     create_log_dir_if_not_exists(c_default_log_path);
     auto file_sink = make_shared<spdlog::sinks::basic_file_sink_mt>(c_default_log_path, true);
-    std::cerr << " -file_sink: " << c_default_log_path << endl;
 
     string syslog_ident = "gaia";
     int syslog_option = 0;
     int syslog_facility = LOG_USER;
     auto syslog_sink = make_shared<spdlog::sinks::syslog_sink_mt>(syslog_ident, syslog_option, syslog_facility);
-    std::cerr << " -syslog_sink: " << syslog_ident << endl;
 
     spdlog::sinks_init_list sink_list{file_sink, console_sink, syslog_sink};
 
@@ -250,11 +254,6 @@ void configure_spdlog_default() {
         sink_list.begin(), sink_list.end(), spdlog::thread_pool(), spdlog::async_overflow_policy::block);
     logger->set_level(c_default_spdlog_level);
     logger->set_pattern(c_default_spdlog_pattern);
-
-    std::cerr << " -level: info " << endl;
-    std::cerr << " -pattern: " << c_default_spdlog_pattern << endl;
-    std::cerr << " Created async logger." << endl
-              << std::flush;
 
     spdlog::register_logger(logger);
 }

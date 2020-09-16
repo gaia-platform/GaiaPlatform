@@ -26,8 +26,7 @@ namespace logging {
  * Contains Gaia logging API. At the moment it is a wrapper around spdlog logger.
  * This namespace is aliased to gaia_log.
  *
- * You must call the init_logging(const string& config_path) method before using
- * the API. This method should be called at the Gaia startup (TODO where it is?).
+ * The logging system is automatically initialized on the first API call.
  *
  * The logging is performed via gaia_logger_t objects. Each instance of this
  * class represent a separated logger. Ideally, different submodules should use
@@ -73,26 +72,6 @@ enum class log_level_t {
 * Use the PIMPL idiom to hide the logging implementation details.
 */
 class log_impl_t;
-
-/**
-* Inits the logging system using the configuration file provided.
-* If the config file does not exists or it is invalid the system
-* fallback on a default configuration.
-*
-* @throws logging_exception_t if the logging is already initialized
-*/
-void init_logging(const string& config_path);
-
-/**
-* Returns true if the logging is initialized
-*/
-bool is_logging_initialized();
-
-/**
-* Stops the logging system, cleaning up all the loggers.
- * Returns true if the operation succeed, false otherwise.
-*/
-bool stop_logging();
 
 /**
 * Gaia Logger API.
