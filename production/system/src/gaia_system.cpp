@@ -21,5 +21,7 @@ void gaia::system::initialize()
     //    2. Search in some local folders (eg. the current working directory log_conf.toml or some subdirectory config/log_conf.toml)
     //    3. Search in some system paths (eg /etc/gaia/log_conf.toml)
     //    4. You don't find it and fallback to the default configuration.
-    gaia_log::init_logging(gaia_log::c_gaia_root_logger);
+    if (!gaia_log::is_logging_initialized()) {
+        gaia_log::init_logging(gaia_log::c_default_log_conf_path);
+    }
 }
