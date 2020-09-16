@@ -20,7 +20,7 @@ gaia_id_t gaia_ptr::generate_id() {
     return client::generate_id(client::s_data);
 }
 
-void gaia_ptr::clone_without_tx() {
+void gaia_ptr::clone_no_tx() {
     auto old_this = to_ptr();
     auto new_size = sizeof(gaia_se_object_t) + old_this->payload_size;
     allocate(new_size);
@@ -30,7 +30,7 @@ void gaia_ptr::clone_without_tx() {
 
 gaia_ptr& gaia_ptr::clone() {
     auto old_offset = to_offset();
-    clone_without_tx();
+    clone_no_tx();
 
     client::tx_log(row_id, old_offset, to_offset(), gaia_operation_t::clone);
 
@@ -79,22 +79,23 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data) {
     return *this;
 }
 
-gaia_ptr& gaia_ptr::update_parent_references(size_t primary_slot, gaia_id_t id) {
+gaia_ptr& gaia_ptr::update_parent_references(size_t first_child_slot, gaia_id_t first_child_id) {
     auto old_offset = to_offset();
-    clone_without_tx();
+    clone_no_tx();
 
-    references()[primary_slot] = id;
+    references()[first_child_slot] = first_child_id;
 
     client::tx_log(row_id, old_offset, to_offset(), gaia_operation_t::update);
     return *this;
 }
 
 gaia_ptr& gaia_ptr::update_child_references(
-    size_t foreign_slot, gaia_id_t foreign_id, size_t parent_slot, gaia_id_t parent_id) {
+    size_t next_child_slot, gaia_id_t next_child_id,
+    size_t parent_slot, gaia_id_t parent_id) {
     auto old_offset = to_offset();
-    clone_without_tx();
+    clone_no_tx();
 
-    references()[foreign_slot] = foreign_id;
+    references()[next_child_slot] = next_child_id;
     references()[parent_slot] = parent_id;
 
     client::tx_log(row_id, old_offset, to_offset(), gaia_operation_t::update);

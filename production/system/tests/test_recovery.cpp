@@ -116,7 +116,7 @@ string generate_string(size_t length_in_bytes) {
 
 // Random updates & deletes.
 void modify_data() {
-    set<gaia_id_t> to_delete_set;
+    std::set<gaia_id_t> to_delete_set;
     for (size_t i = 0; i < employee_map.size() / 2; i++) {
         begin_transaction();
         auto to_update = employee_map.find(get_random_map_key(employee_map));
