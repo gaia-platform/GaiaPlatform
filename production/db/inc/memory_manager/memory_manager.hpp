@@ -19,7 +19,7 @@ namespace memory_manager
 
 class memory_manager_t : public base_memory_manager_t
 {
-    public:
+public:
 
     memory_manager_t();
 
@@ -48,10 +48,6 @@ class memory_manager_t : public base_memory_manager_t
     // such as in the case when we load the database objects from disk.
     error_code_t allocate(size_t memory_size, address_offset_t& allocated_memory_offset) const;
 
-    // Creates a stack_allocator_t object that will be used with transactions.
-    // This interface will be used to allocate memory during regular database operation.
-    error_code_t create_stack_allocator(size_t memory_size, stack_allocator_t*& stack_allocator) const;
-
     // Once a transaction commits, calling this method will achieve several goals:
     // (i) it will insert the block into a linked list of allocations
     // that is sorted by the associated serialization number.
@@ -73,7 +69,7 @@ class memory_manager_t : public base_memory_manager_t
     error_code_t update_unserialized_allocations_list_head(
         address_offset_t next_unserialized_allocation_record_offset) const;
 
-    private:
+private:
 
     // All data tracked by the memory manager can be accessed from here.
     // The metadata information structure is stored at the beginning of the managed memory,
@@ -99,7 +95,7 @@ class memory_manager_t : public base_memory_manager_t
         }
     };
 
-    private:
+private:
 
     // A pointer to our metadata information, stored in the same memory that we manage.
     metadata_t* m_metadata;
@@ -114,7 +110,7 @@ class memory_manager_t : public base_memory_manager_t
     // Our execution flags.
     execution_flags_t m_execution_flags;
 
-    private:
+private:
 
     size_t get_main_memory_available_size(bool include_system_reserved_size) const;
 

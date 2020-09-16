@@ -21,11 +21,11 @@ const char* const c_debug_output_separator_line_end = "<<<<<<<<<<<<<<<<<<<<<<<<<
 
 class base_memory_manager_t
 {
-    public:
+public:
 
     static const size_t c_memory_alignment = sizeof(uint64_t);
 
-    public:
+public:
 
     base_memory_manager_t();
 
@@ -100,7 +100,7 @@ class base_memory_manager_t
     // Inserts a memory record in order by either offset or size value.
     void insert_memory_record(memory_record_t* list_head, memory_record_t* memory_record, bool sort_by_offset) const;
 
-    protected:
+protected:
 
     // The base memory address relative to which we compute our offsets.
     uint8_t* m_base_memory_address;
@@ -111,7 +111,7 @@ class base_memory_manager_t
     // The total size of the memory segment in which we operate.
     size_t m_total_memory_size;
 
-    protected:
+protected:
 
     // Helper function that attempts to advance the current record past the previous one.
     //
