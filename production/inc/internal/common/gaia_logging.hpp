@@ -62,35 +62,35 @@ constexpr const char* c_default_log_conf_path = "log_conf.toml";
 enum class log_level_t {
 
     /* Finer-grained informational events than debug. */
-    trace = 1,
+    trace = 0,
 
     /* Fine-grained informational events that are most
      * useful to debug an application. */
-    debug = 2,
+    debug = 1,
 
     /* Informational messages that highlight the progress
      * of the application at coarse-grained level. */
-    info = 3,
+    info = 2,
 
     /* Potentially harmful situations. */
-    warn = 4,
+    warn = 3,
 
     /* Error events that might still allow the application to
      * continue running */
-    error = 5,
+    error = 4,
 
     /* Very severe error events that will presumably lead the
      * application to abort */
-    critical = 6,
+    critical = 5,
 
     /* Turn the logging off */
-    off = 0,
+    off = 6
 };
 
 /**
 * Use the PIMPL idiom to hide the logging implementation details.
 */
-class log_impl_t;
+class log_wrapper_t;
 
 /**
 * Gaia Logger API.
@@ -140,7 +140,7 @@ public:
 
 private:
     std::string m_logger_name;
-    std::unique_ptr<log_impl_t> m_pimpl;
+    std::unique_ptr<log_wrapper_t> m_pimpl;
 };
 
 class logger_exception_t : public gaia_exception {

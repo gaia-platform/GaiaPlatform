@@ -166,7 +166,7 @@ bool is_logging_initialized() {
 }
 
 gaia_logger_t::gaia_logger_t(const string& logger_name) : m_logger_name(logger_name) {
-    m_pimpl = make_unique<log_impl_t>(logger_name);
+    m_pimpl = make_unique<log_wrapper_t>(logger_name);
 }
 
 gaia_logger_t::~gaia_logger_t() = default;
