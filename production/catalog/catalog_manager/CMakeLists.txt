@@ -20,6 +20,7 @@ set(GAIA_CATALOG_LIB_PRIVATE_INCLUDES
   ${GAIA_INC}/public/direct_access
   ${GAIA_INC}/internal/common
   ${GAIA_INC}/internal/db
+  ${GAIA_REPO}/production/db/storage_engine/inc
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc
 )
@@ -30,7 +31,6 @@ add_library(gaia_catalog STATIC
   src/catalog_manager.cpp
   src/fbs_generator.cpp
   src/gaia_generate.cpp
-  src/system_base.cpp
   ${FLATBUFFERS}/src/code_generators.cpp)
 set_target_properties(gaia_catalog PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 target_include_directories(gaia_catalog PUBLIC ${GAIA_CATALOG_LIB_PUBLIC_INCLUDES})

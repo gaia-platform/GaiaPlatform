@@ -260,6 +260,9 @@ void event_manager_t::subscribe_rule(
         if (is_transaction_owner) {
             begin_transaction();
         }
+
+        // WLW Note: This is incorrect. if table_id is never assigned, there
+        // is no error.
         for (catalog::gaia_table_t table = catalog::gaia_table_t::get_first() ;
             table;
             table = table.get_next())

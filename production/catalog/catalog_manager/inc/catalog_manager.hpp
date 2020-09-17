@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "gaia_catalog.hpp"
+#include "gaia_boot.hpp"
 
 namespace gaia {
 namespace catalog {

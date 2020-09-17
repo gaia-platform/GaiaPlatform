@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/file.h>
+#include <sys/types.h>
 
 #include <iostream>
 #include <iomanip>
@@ -25,6 +26,7 @@
 #include "system_error.hpp"
 #include "gaia_common.hpp"
 #include "gaia_db.hpp"
+#include "gaia_boot.hpp"
 #include "gaia_exception.hpp"
 #include "types.hpp"
 #include "retail_assert.hpp"
@@ -100,17 +102,6 @@ class se_base {
     thread_local static gaia_xid_t s_transaction_id;
 
    public:
-    // The real implementation will need
-    // to do something better than increment
-    // a counter.  It will need to guarantee
-    // that the generated id is not in use
-    // already by a database that is
-    // restored.
-    static gaia_id_t generate_id(data* s_data) {
-        gaia_id_t id = __sync_add_and_fetch(&s_data->next_id, 1);
-        return id;
-    }
-
     static gaia_xid_t allocate_transaction_id(data* s_data) {
         gaia_xid_t xid = __sync_add_and_fetch (&s_data->transaction_id_count, 1);
         return xid;

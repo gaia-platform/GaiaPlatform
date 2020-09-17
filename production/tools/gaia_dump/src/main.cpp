@@ -13,47 +13,55 @@
 using namespace gaia::db;
 using namespace std;
 
-void hex_dump16(uint32_t offset, void* b, int len) {
+constexpr int c_group_size = 8;
+constexpr int c_line_size = 2*c_group_size;
+
+void hex_dump16(uint32_t offset, void* binary_buff, int binary_length) {
     printf("      %08x: ", offset);
-    int eight = 0;
-    uint8_t* bp = (uint8_t*)b;
-    int l = len;
-    if (l > 16)
-        l = 16;
-    while (l--) {
-        if (eight == 8)
-            printf(" ");
-        eight++;
-        printf("%02x ", *bp++);
+    int line_position = 0;
+    uint8_t* binary_ptr = (uint8_t*)binary_buff;
+    int remaining_length = binary_length;
+    if (remaining_length > c_line_size) {
+        remaining_length = c_line_size;
     }
-    if (eight <= 8)
-        printf(" ");
-    while (eight++ < 16)
-        printf("   ");
-    printf("| ");
-    l = len;
-    eight = 0;
-    bp = (uint8_t*)b;
-    if (l > 16)
-        l = 16;
-    while (l--) {
-        if (eight == 8)
+    while (remaining_length--) {
+        if (line_position == c_group_size) {
             printf(" ");
-        eight++;
-        printf("%c ", *bp>=' ' && *bp<='~'? *bp: '.');
-        bp++;
+        }
+        line_position++;
+        printf("%02x ", *binary_ptr++);
+    }
+    if (line_position <= c_group_size) {
+        printf(" ");
+    }
+    while (line_position++ < c_line_size) {
+        printf("   ");
+    }
+    printf("| ");
+    remaining_length = binary_length;
+    line_position = 0;
+    binary_ptr = (uint8_t*)binary_buff;
+    if (remaining_length > c_line_size) {
+        remaining_length = c_line_size;
+    }
+    while (remaining_length--) {
+        if (line_position == c_group_size) {
+            printf(" ");
+        }
+        line_position++;
+        printf("%c ", *binary_ptr>=' ' && *binary_ptr<='~'? *binary_ptr: '.');
+        binary_ptr++;
     }
     printf("\n");
 }
 
-void hex_dump(const char*, void* b, int len) {
+void hex_dump(void* binary_buff, int binary_length) {
     uint32_t offset = 0;
-    uint8_t* bp = (uint8_t*)b;
-    // printf("      %s:\n", label);
-    while (len > 0) {
-        hex_dump16(offset, bp, len);
-        bp += 16;
-        len -= 16;
+    uint8_t* binary_ptr = (uint8_t*)binary_buff;
+    while (binary_length > 0) {
+        hex_dump16(offset, binary_ptr, binary_length);
+        binary_ptr += 16;
+        binary_length -= 16;
         offset += 16;
     }
 }
@@ -65,12 +73,13 @@ void dump_node(gaia_ptr& node_ptr, bool references, bool payload) {
     printf(", payload=%04zx, references=%02zx\n", node_ptr.data_size(), num_references);
     if (references && num_references) {
         auto references = node_ptr.references();
-        for (size_t i=0; i<num_references; i++) {
+        for (size_t i = 0; i < num_references; i++) {
             printf("      %02zx: %016lx\n", i, references[i]);
         }
     }
-    if (payload)
-        hex_dump("payload", node_ptr.data(), node_ptr.data_size());
+    if (payload) {
+        hex_dump(node_ptr.data(), node_ptr.data_size());
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -83,25 +92,27 @@ int main(int argc, char *argv[]) {
 
     // Usage:
     //  gaia_dump --start=ID --end=ID --references --payload --catalog
-    for (auto i=1; i<argc; i++) {
+    for (auto i = 1; i < argc; i++) {
         string arg(argv[i]);
-        if (arg.compare("--references") == 0)
+        if (arg.compare("--references") == 0) {
             references = true;
-        else if (arg.compare("--payload") == 0)
+        } else if (arg.compare("--payload") == 0) {
             payload = true;
-        else if (arg.compare("--catalog") == 0)
+        } else if (arg.compare("--catalog") == 0) {
             catalog = true;
-        else if (arg.compare(0, 7, "--start") == 0) {
-            if (arg.length() == 7)
+        } else if (arg.compare(0, 7, "--start") == 0) {
+            if (arg.length() == 7) {
                 low = atoi(argv[++i]);
-            else
+            } else {
                 low = atoi(arg.substr(8).c_str());
+            }
         }
         else if (arg.compare(0, 5, "--end") == 0) {
-            if (arg.length() == 5)
+            if (arg.length() == 5) {
                 high = atoi(argv[++i]);
-            else
+            } else {
                 high = atoi(arg.substr(6).c_str());
+            }
         }
         else {
             fprintf(stderr, "Invalid command-line option: %s\n", argv[i]);
@@ -119,7 +130,7 @@ int main(int argc, char *argv[]) {
 
     begin_transaction();
 
-    for (id=low; id<=high; id++) {
+    for (id = low; id <= high; id++) {
         try {
             auto node_ptr = gaia_ptr::open(id);
             if (node_ptr) {
@@ -135,7 +146,7 @@ int main(int argc, char *argv[]) {
     }
     // Catalog is optional.
     if (catalog) {
-        for (id=c_system_table_reserved_range_start; id<c_system_table_reserved_range_end; id++) {
+        for (id = c_system_table_reserved_range_start; id <= c_system_table_reserved_range_end; id++) {
             try {
                 auto node_ptr = gaia_ptr::open(id);
                 if (node_ptr) {

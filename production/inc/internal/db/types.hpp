@@ -23,8 +23,9 @@ typedef uint16_t field_position_t;
 struct gaia_se_object_t {
     gaia_id_t id;
     gaia_type_t type;
-    uint64_t num_references;
-    uint64_t payload_size;
+    // Flatbuffer size limit is 2GB (signed 32-bit).
+    uint32_t payload_size;
+    uint16_t num_references;
     char payload[0];
 };
 

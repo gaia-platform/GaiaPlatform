@@ -5,35 +5,36 @@
 #pragma once
 
 #include <shared_mutex>
+#include <stdio.h>
 
-#include "gaia_catalog.hpp"
 #include "gaia_ptr.hpp"
-
-constexpr gaia_type_t c_system_base_type = 0;
-constexpr gaia_type_t c_system_base_id = 1;
+#include "system_error.hpp"
+#include "gaia_db_internal.hpp"
 
 namespace gaia {
-namespace catalog {
+namespace db {
 
-class system_base_t {
+class gaia_boot_t {
 public:
-    system_base_t(system_base_t&) = delete;
-    void operator=(system_base_t const&) = delete;
-    static system_base_t& get();
+    gaia_boot_t(gaia_boot_t&) = delete;
+    void operator=(gaia_boot_t const&) = delete;
+    static gaia_boot_t& get();
 
-    void init_system_base();
+    gaia_id_t get_next_id();
     gaia_type_t get_next_type();
     uint32_t get_next_version();
-    void save_system_base();
+    void save_gaia_boot();
 private:
-    system_base_t();
-    ~system_base_t() {}
+    gaia_boot_t();
+    ~gaia_boot_t();
+    FILE* m_boot_file;
     struct {
+        gaia_id_t next_id;
         uint32_t version;
         gaia_type_t next_type;
-    } m_base_data;
+    } m_boot_data;
     mutable shared_mutex m_lock;
 };
 
-} // namespace catalog
+} // namespace db
 } // namespace gaia
