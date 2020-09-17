@@ -273,7 +273,7 @@ spdlog::level::level_enum to_spdlog_level(gaia_log::log_level_t gaia_level) {
         return spdlog::level::info;
     case log_level_t::warn:
         return spdlog::level::warn;
-    case log_level_t::err:
+    case log_level_t::error:
         return spdlog::level::err;
     case log_level_t::critical:
         return spdlog::level::critical;

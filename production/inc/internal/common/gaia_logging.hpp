@@ -77,7 +77,7 @@ enum class log_level_t {
 
     /* Error events that might still allow the application to
      * continue running */
-    err = 5,
+    error = 5,
 
     /* Very severe error events that will presumably lead the
      * application to abort */
