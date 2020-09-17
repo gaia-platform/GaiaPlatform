@@ -235,7 +235,7 @@ void configure_spdlog_default() {
     std::cerr << "Using default log configuration" << endl
               << flush;
 
-    spdlog::init_thread_pool(c_default_spdlog_queue_size, c_default_spdlog_thread_count);
+    spdlog::init_thread_pool(spdlog_defaults::c_default_queue_size, spdlog_defaults::c_default_thread_count);
 
     auto console_sink = make_shared<spdlog::sinks::stdout_sink_mt>();
 
@@ -252,8 +252,8 @@ void configure_spdlog_default() {
     // It has to be a shared pointer. This is by design because the logger is shared with the logging thread.
     auto logger = make_shared<spdlog::async_logger>(c_gaia_root_logger,
         sink_list.begin(), sink_list.end(), spdlog::thread_pool(), spdlog::async_overflow_policy::block);
-    logger->set_level(c_default_spdlog_level);
-    logger->set_pattern(c_default_spdlog_pattern);
+    logger->set_level(spdlog_defaults::c_default_level);
+    logger->set_pattern(spdlog_defaults::c_default_pattern);
 
     spdlog::register_logger(logger);
 }
