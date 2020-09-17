@@ -61,29 +61,31 @@ constexpr const char* c_default_log_conf_path = "log_conf.toml";
 
 enum class log_level_t {
 
-    /* Finer-grained informational events than debug. */
+    /** Finer-grained informational events than debug.
+     *  The enum is initialized to this value if nothing
+     *  is specified.*/
     trace = 0,
 
-    /* Fine-grained informational events that are most
-     * useful to debug an application. */
+    /** Fine-grained informational events that are most
+     *  useful to debug an application. */
     debug = 1,
 
-    /* Informational messages that highlight the progress
-     * of the application at coarse-grained level. */
+    /** Informational messages that highlight the progress
+     *  of the application at coarse-grained level. */
     info = 2,
 
-    /* Potentially harmful situations. */
+    /** Potentially harmful situations. */
     warn = 3,
 
-    /* Error events that might still allow the application to
-     * continue running */
+    /** Error events that might still allow the application to
+     *  continue running */
     error = 4,
 
-    /* Very severe error events that will presumably lead the
-     * application to abort */
+    /** Very severe error events that will presumably lead the
+     *  application to abort */
     critical = 5,
 
-    /* Turn the logging off */
+    /** Turn the logging off */
     off = 6
 };
 
@@ -110,32 +112,32 @@ public:
 
     const std::string& get_name() const;
 
-    template <typename... Args>
-    void log(log_level_t level, const char* format, const Args&... args);
+    template <typename... T_args>
+    void log(log_level_t level, const char* format, const T_args&... args);
     void log(log_level_t level, const char* msg);
 
-    template <typename... Args>
-    void trace(const char* format, const Args&... args);
+    template <typename... T_args>
+    void trace(const char* format, const T_args&... args);
     void trace(const char* msg);
 
-    template <typename... Args>
-    void debug(const char* format, const Args&... args);
+    template <typename... T_args>
+    void debug(const char* format, const T_args&... args);
     void debug(const char* msg);
 
-    template <typename... Args>
-    void info(const char* format, const Args&... args);
+    template <typename... T_args>
+    void info(const char* format, const T_args&... args);
     void info(const char* msg);
 
-    template <typename... Args>
-    void warn(const char* format, const Args&... args);
+    template <typename... T_args>
+    void warn(const char* format, const T_args&... args);
     void warn(const char* msg);
 
-    template <typename... Args>
-    void error(const char* format, const Args&... args);
+    template <typename... T_args>
+    void error(const char* format, const T_args&... args);
     void error(const char* msg);
 
-    template <typename... Args>
-    void critical(const char* format, const Args&... args);
+    template <typename... T_args>
+    void critical(const char* format, const T_args&... args);
     void critical(const char* msg);
 
 private:
@@ -174,8 +176,8 @@ void unregister_logger(const std::string& logger_name);
  */
 std::shared_ptr<gaia_logger_t> default_logger();
 
-template <typename... Args>
-inline void log(log_level_t level, const char* format, const Args&... args) {
+template <typename... T_args>
+inline void log(log_level_t level, const char* format, const T_args&... args) {
     default_logger()->log(level, format, args...);
 }
 
@@ -183,8 +185,8 @@ inline void log(log_level_t level, const char* msg) {
     default_logger()->log(level, msg);
 }
 
-template <typename... Args>
-inline void trace(const char* format, const Args&... args) {
+template <typename... T_args>
+inline void trace(const char* format, const T_args&... args) {
     default_logger()->trace(format, args...);
 }
 
@@ -192,8 +194,8 @@ inline void trace(const char* msg) {
     default_logger()->trace(msg);
 }
 
-template <typename... Args>
-inline void debug(const char* format, const Args&... args) {
+template <typename... T_args>
+inline void debug(const char* format, const T_args&... args) {
     default_logger()->debug(format, args...);
 }
 
@@ -201,8 +203,8 @@ inline void debug(const char* msg) {
     default_logger()->debug(msg);
 }
 
-template <typename... Args>
-inline void info(const char* format, const Args&... args) {
+template <typename... T_args>
+inline void info(const char* format, const T_args&... args) {
     default_logger()->info(format, args...);
 }
 
@@ -210,8 +212,8 @@ inline void info(const char* msg) {
     default_logger()->info(msg);
 }
 
-template <typename... Args>
-inline void warn(const char* format, const Args&... args) {
+template <typename... T_args>
+inline void warn(const char* format, const T_args&... args) {
     default_logger()->warn(format, args...);
 }
 
@@ -219,8 +221,8 @@ inline void warn(const char* msg) {
     default_logger()->warn(msg);
 }
 
-template <typename... Args>
-inline void error(const char* format, const Args&... args) {
+template <typename... T_args>
+inline void error(const char* format, const T_args&... args) {
     default_logger()->error(format, args...);
 }
 
@@ -228,8 +230,8 @@ inline void error(const char* msg) {
     default_logger()->error(msg);
 }
 
-template <typename... Args>
-inline void critical(const char* format, const Args&... args) {
+template <typename... T_args>
+inline void critical(const char* format, const T_args&... args) {
     default_logger()->critical(format, args...);
 }
 
