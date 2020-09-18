@@ -5,7 +5,7 @@
 #include "gaia_system.hpp"
 #include "gaia_db.hpp"
 #include "rules.hpp"
-#include "gaia_logging.hpp"
+#include "logger.hpp"
 
 void gaia::system::initialize()
 {

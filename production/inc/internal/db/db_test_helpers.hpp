@@ -15,7 +15,7 @@
 #include "system_error.hpp"
 #include "gaia_db.hpp"
 #include "gaia_db_internal.hpp"
-#include "gaia_logging.hpp"
+#include "logger.hpp"
 
 namespace gaia {
 namespace db {
@@ -32,6 +32,8 @@ void remove_persistent_store() {
 void wait_for_server_init() {
     static constexpr int c_poll_interval_millis = 10;
     int counter = 0;
+    // HACK:  init logging system here for now
+    gaia_log::initialize({});
     // Wait for server to initialize.
     while (true) {
         try {
@@ -39,7 +41,7 @@ void wait_for_server_init() {
         } catch (system_error& ex) {
             if (ex.get_errno() == ECONNREFUSED) {
                 if (counter % 1000 == 0) {
-                    gaia_log::warn("Cannot connect to Gaia Server, you may need to start the gaia_se_server process");
+                    gaia_log::g_sys.warn("Cannot connect to Gaia Server, you may need to start the gaia_se_server process");
                     counter = 1;
                 } else {
                     counter++;

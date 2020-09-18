@@ -5,12 +5,12 @@
 
 #include <iostream>
 #include "gtest/gtest.h"
-#include "gaia_logging.hpp"
+#include "logger.hpp"
 
 static const char* const_char_msg = "const char star message";
 static const std::string string_msg = "string message";
 static const int64_t int_msg = 1234;
-static const char* bubu_logger = "BUBU Logger";
+//static const char* bubu_logger = "BUBU Logger";
 
 class test_logging_t : public ::testing::Test {
 
@@ -19,31 +19,39 @@ protected:
         // Some tests register the bubu_logger in the registry.
         // Removing it to prevent tests from interfering with
         // each other.
-        gaia_log::unregister_logger(bubu_logger);
+        //gaia_log::unregister_logger(bubu_logger);
+
+        // DAX: should probably go in SetupTestSuite    
+        // gaia_log::initialize(string());
     }
 };
 
 TEST_F(test_logging_t, logger_api) {
-    gaia_log::gaia_logger_t logger(gaia_log::c_gaia_root_logger);
+    //gaia_log::gaia_logger_t logger(gaia_log::c_gaia_root_logger);
 
-    logger.trace("trace");
-    logger.trace("trace const char*: '{}', std::string: '{}', number: '{}'", const_char_msg, string_msg, int_msg);
-    logger.debug("debug");
-    logger.debug("debug const char*: '{}', std::string: '{}', number: '{}'", const_char_msg, string_msg, int_msg);
-    logger.info("info");
-    logger.info("info const char*: '{}', std::string: '{}', number: '{}'", const_char_msg, string_msg, int_msg);
-    logger.warn("warn");
-    logger.warn("warn const char*: '{}', std::string: '{}', number: '{}'", const_char_msg, string_msg, int_msg);
-    logger.error("error");
-    logger.error("error const char*: '{}', std::string: '{}', number: '{}'", const_char_msg, string_msg, int_msg);
-    logger.critical("critical");
-    logger.critical("critical const char*: '{}', std::string: '{}', number: '{}'", const_char_msg, string_msg, int_msg);
+    // DAX: should probably go in SetupTestSuite
+    gaia_log::initialize(string());
 
-    logger.log(gaia_log::log_level_t::info, "Static message");
-    logger.log(gaia_log::log_level_t::info, "Dynamic const char*: '{}', std::string: '{}', number: '{}'", const_char_msg, string_msg, int_msg);
+    gaia_log::g_sys.trace("trace");
+    gaia_log::g_sys.trace("trace const char*: '{}', std::string: '{}', number: '{}'", const_char_msg, string_msg, int_msg);
+    gaia_log::g_sys.debug("debug");
+    gaia_log::g_sys.debug("debug const char*: '{}', std::string: '{}', number: '{}'", const_char_msg, string_msg, int_msg);
+    gaia_log::g_sys.info("info");
+    gaia_log::g_sys.info("info const char*: '{}', std::string: '{}', number: '{}'", const_char_msg, string_msg, int_msg);
+    gaia_log::g_sys.warn("warn");
+    gaia_log::g_sys.warn("warn const char*: '{}', std::string: '{}', number: '{}'", const_char_msg, string_msg, int_msg);
+    gaia_log::g_sys.error("error");
+    gaia_log::g_sys.error("error const char*: '{}', std::string: '{}', number: '{}'", const_char_msg, string_msg, int_msg);
+    gaia_log::g_sys.critical("critical");
+    gaia_log::g_sys.critical("critical const char*: '{}', std::string: '{}', number: '{}'", const_char_msg, string_msg, int_msg);
+
+    gaia_log::g_sys.log(gaia_log::log_level_t::info, "Static message");
+    gaia_log::g_sys.log(gaia_log::log_level_t::info, "Dynamic const char*: '{}', std::string: '{}', number: '{}'", const_char_msg, string_msg, int_msg);
 }
 
+/*
 TEST_F(test_logging_t, default_logger_api) {
+    gaia_log::g_default.trace
     gaia_log::trace("trace");
     gaia_log::trace("trace const char*: '{}', std::string: '{}', number: '{}'", const_char_msg, string_msg, int_msg);
     gaia_log::debug("debug");
@@ -95,3 +103,4 @@ TEST_F(test_logging_t, register_duplicated_logger) {
         gaia_log::register_logger(logger1),
         gaia_log::logger_exception_t);
 }
+*/

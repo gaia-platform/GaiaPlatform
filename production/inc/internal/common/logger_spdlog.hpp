@@ -9,7 +9,6 @@
 #include <string>
 #include <spdlog/spdlog.h>
 
-#include "gaia_logging.hpp"
 
 namespace gaia::common::logging {
 
@@ -36,32 +35,5 @@ namespace spdlog_defaults {
  * the configuration from file fails.
  */
 void configure_spdlog_default();
-
-/**
- * Creates a clone of the root_logger with the given name.
- */
-shared_ptr<spdlog::logger> create_spdlog_logger(const std::string& logger_name);
-
-spdlog::level::level_enum to_spdlog_level(gaia_log::log_level_t gaia_level);
-
-class log_wrapper_t {
-public:
-    explicit log_wrapper_t(const std::string& logger_name) {
-        auto logger = spdlog::get(logger_name);
-
-        if (logger) {
-            m_logger = logger;
-        } else {
-            m_logger = create_spdlog_logger(logger_name);
-        }
-    }
-
-    spdlog::logger& get_logger() {
-        return *m_logger;
-    }
-
-private:
-    shared_ptr<spdlog::logger> m_logger;
-};
 
 } // namespace gaia::common::logging
