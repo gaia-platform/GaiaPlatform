@@ -32,6 +32,12 @@ private:
     bool m_client_manages_session;
 
 protected:
+
+    static void SetUpTestSuite() {
+        gaia_log::initialize(string());
+    }
+
+
     static void reset_server() {
         // We need to drop all client references to shared memory before resetting the server.
         // NB: this cannot be called within an active session!

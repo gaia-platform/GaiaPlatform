@@ -27,11 +27,12 @@ namespace logging {
 
 class logger_factory_t {
 public:
-    /** Name of the root logger. This is the logger used if no specific logger is specified. */
-    
     constexpr static const char* c_uninitialized_logger = "uninitialized";
-    // DAX: rename to c_sys_logger?
-    constexpr static const char* c_gaia_root_logger = "gaia-root";
+
+    constexpr static const char* c_sys_logger = "sys";
+    constexpr static const char* c_db_logger = "db";
+    constexpr static const char* c_scheduler_logger = "scheduler";
+    constexpr static const char* c_catalog_logger = "catalog";
 
     /** Default logging path used if none is specified via configuration. */
     constexpr static const char* c_default_log_path = "logs/gaia.log";
@@ -50,12 +51,9 @@ public:
     bool init_logging(const string& config_path);
     bool is_logging_initialized() const;
     bool stop_logging();
- 
+
 private:
-    void create_log_dir_if_not_exists(const char* log_file_path);
-    void configure_spdlog_default();
-    // DAX:  need both this and get() above?
-    shared_ptr<spdlog::logger> create_spdlog_logger(const string& logger_name);
+    static void create_log_dir_if_not_exists(const char* log_file_path);
 
 private:
     logger_factory_t() = default;
@@ -63,10 +61,10 @@ private:
     bool m_is_log_initialized = false;
 
     // well-known loggers
-    shared_ptr<logger_t> m_sys;
-
-    //logger_t_ptr m_db;
-    //logger_t_ptr m_sceduler;
+    logger_ptr_t m_sys;
+    logger_ptr_t m_db;
+    logger_ptr_t m_scheduler;
+    logger_ptr_t m_catalog;
 };
 
 /*@}*/

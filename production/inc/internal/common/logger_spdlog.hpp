@@ -27,13 +27,14 @@ namespace spdlog_defaults {
     constexpr const char* c_default_pattern = "[%Y-%m-%dT%T%z] [%l] p:%P t:%t <%n>: %v";
 
     constexpr const size_t c_default_queue_size = 8192;
-    constexpr const size_t c_default_thread_count = 2;
+    constexpr const size_t c_default_thread_count = 1;
     constexpr const spdlog::level::level_enum c_default_level = spdlog::level::info;
+
+    /**
+     * Creates an instance of spdlog::logger with some convenient defaults. This is function
+     * is used to create loggers whenever they are not defined in the log configuration.
+     */
+    shared_ptr<spdlog::logger> create_default_logger(const std::string& logger_name);
 }
-/**
- * Configures spdlog to a default configuration. This function is called if
- * the configuration from file fails.
- */
-void configure_spdlog_default();
 
 } // namespace gaia::common::logging

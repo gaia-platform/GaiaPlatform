@@ -5,18 +5,11 @@
 
 #include "logger.hpp"
 
-#include <filesystem>
 #include <iostream>
 
-#include "spdlog/async.h"
-#include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/sinks/basic_file_sink.h"
-#include "spdlog/sinks/syslog_sink.h"
-#include "spdlog_setup/conf.h"
 #include "logger_spdlog.hpp"
 #include "logger_factory.hpp"
-
-namespace fs = std::filesystem;
 
 namespace gaia::common::logging {
 
@@ -24,20 +17,19 @@ namespace gaia::common::logging {
 // logger_t implementation.
 //
 logger_t::logger_t(const string& logger_name) : m_logger_name(logger_name) {
-    auto logger = spdlog::get(logger_name);
-    if (logger) {
-        m_spdlogger = logger;
-        return;
-    } 
-
     // Allow uninitialized instances to be created
     // for bootstrapping.
-    if (0 == logger_name.compare(logger_factory_t::c_uninitialized_logger)) {
+    if (logger_factory_t::c_uninitialized_logger == logger_name) {
         return;
     }
 
-    string message = "logger '" + logger_name + "' not found.";
-    throw logger_exception_t(message);
+    auto logger = spdlog::get(logger_name);
+
+    if (logger) {
+        m_spdlogger = logger;
+    } else {
+        m_spdlogger = spdlog_defaults::create_default_logger(logger_name);
+    }
 }
 
 spdlog::level::level_enum logger_t::to_spdlog_level(gaia_log::log_level_t gaia_level) {
@@ -60,15 +52,22 @@ spdlog::level::level_enum logger_t::to_spdlog_level(gaia_log::log_level_t gaia_l
         throw logger_exception_t("Unsupported logging level: " + std::to_string(static_cast<std::underlying_type_t<log_level_t>>(gaia_level)));
     }
 }
-uninitialized_logger_t uninitialized_logger;
-logger_t& g_sys = uninitialized_logger;
+
+uninitialized_logger_t uninitialized_sys;
+uninitialized_logger_t uninitialized_db;
+uninitialized_logger_t uninitialized_scheduler;
+uninitialized_logger_t uninitialized_catalog;
+
+logger_t& g_sys = uninitialized_sys;
+logger_t& g_db = uninitialized_db;
+logger_t& g_scheduler = uninitialized_scheduler;
+logger_t& g_catalog = uninitialized_catalog;
 
 //
-// Topl level API implemetnation
+// Top level API implementation
 //
-void initialize(const string& config_path)
-{
-   logger_factory_t::get().init_logging(config_path);
+void initialize(const string& config_path) {
+    logger_factory_t::get().init_logging(config_path);
 }
 
 } // namespace gaia::common::logging

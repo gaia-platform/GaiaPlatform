@@ -28,23 +28,26 @@ namespace logging {
  * Contains Gaia logging API. At the moment it is a wrapper around spdlog logger.
  * This namespace is aliased to gaia_log.
  *
- * The logging system is automatically initialized on the first API call.
+ * The logging system MUST be initialized calling `initialize(const string& config_path)`.
  *
- * The logging is performed via logger_t objects. Each instance of this
- * class represent a separated logger. Ideally, different submodules should use
- * different loggers:
+ * The logging is performed via logger_t objects. Each instance of this class represent
+ * a separated logger. Different submodules should use different loggers.
+ * Constants for the different submodules are provided: g_sys, g_db, g_scheduler etc..
  *
- *  [2020-09-15T11:00:23-04:00] [info] [392311 392311] <gaia-root>: I'm the generic root logger
- *  [2020-09-15T11:00:23-04:00] [info] [392311 392311] <gaia-se>: I'm the Storage Engine logger
- *  [2020-09-15T11:00:23-04:00] [info] [392311 392311] <gaia-rules>: I'm the Rules logger
+ * Calling:
  *
- * All the loggers should be registered in the logger_registry_t to make them available in
- * any point of the application.
+ *  gaia_log::g_sys.info("I'm the Sys logger")
+ *  gaia_log::g_db.info("I'm the Storage Engine logger")
+ *  gaia_log::g_scheduler.info("I'm the Rules logger")
  *
- * The framework always provide a default logger named 'gaia-root'. This is used in the
- * static api:
+ * Outputs:
  *
- *  gaia_log::warn("Message");
+ *  [2020-09-15T11:00:23-04:00] [info] [392311 392311] <sys>: I'm the Sys logger
+ *  [2020-09-15T11:00:23-04:00] [info] [392311 392311] <db>: I'm the Storage Engine logger
+ *  [2020-09-15T11:00:23-04:00] [info] [392311 392311] <scheduler>: I'm the Rules logger
+ *
+ * Dynamic creation of logger is not supported and generally discouraged. If you want to
+ * add a new logger add a constant in this file.
  *
  * \addtogroup Logging
  * @{
@@ -94,10 +97,6 @@ public:
      * new logger is created cloning `gaia-root' logger.
      */
     explicit logger_t(const std::string& logger_name);
-
-    // Need to explicitly define the destructor because of the
-    // usage of the pimpl idiom (log_impl_t)
-    ~logger_t() = default;
 
     const std::string& get_name() const {
         return m_logger_name;
@@ -155,12 +154,12 @@ public:
 /**
  * Throws an exception if any of the loggers are used
  *  before the logging system is initialize
- */ 
+ */
 class uninitialized_logger_t : public logger_t {
 public:
     explicit uninitialized_logger_t()
         : logger_t("uninitialized") {
-     }
+    }
 
     template <typename... T_args>
     void log(log_level_t, const char*, const T_args&...) {
@@ -203,17 +202,11 @@ private:
     }
 };
 
-
-
 /**
  * 
- * Initializes all loggers from the passed in configuration.
- * 
- * The following well-known loggers are created:
- * // Do we mandate that they be in the toml file?
- * gaia_root
- * // gaia_db
- * // gaia_rules
+ * Initializes all loggers from the passed in configuration. If the configuration
+ * does not contain one of the required loggers (g_sys etc..) a default logger is
+ * instantiated.
  */
 void initialize(const string& config_path);
 void shutdown();
@@ -224,7 +217,7 @@ void shutdown();
 extern logger_t& g_sys;
 extern logger_t& g_db;
 extern logger_t& g_scheduler;
-
+extern logger_t& g_catalog;
 
 /*@}*/
 } // namespace logging
