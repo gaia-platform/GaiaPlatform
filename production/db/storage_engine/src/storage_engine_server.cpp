@@ -115,13 +115,10 @@ void server::handle_request_stream(int *, size_t, session_event_t event, const v
     retail_assert(event == session_event_t::REQUEST_STREAM);
     // This event never changes session state.
     retail_assert(old_state == new_state);
-    // We should logically receive an object corresponding to the request_data_t union,
-    // but the FlatBuffers API doesn't have any object corresponding to a union.
-    const client_request_t *request = static_cast<const client_request_t *>(event_data);
-    // Create a connected pair of stream sockets, one of which we will keep and the other we will send to the client.
+    // Create a connected pair of datagram sockets, one of which we will keep and the other we will send to the client.
     int socket_pair[2];
     constexpr int server = 0, client = 1;
-    if (-1 == ::socketpair(PF_UNIX, SOCK_STREAM, 0, socket_pair)) {
+    if (-1 == ::socketpair(PF_UNIX, SOCK_DGRAM, 0, socket_pair)) {
         throw_system_error("socketpair failed");
     }
     int server_socket = socket_pair[server];
@@ -130,7 +127,7 @@ void server::handle_request_stream(int *, size_t, session_event_t event, const v
         ::close(server_socket);
         ::close(client_socket);
     });
-    // Set server socket to be nonblocking, since we need to use it with epoll in edge-triggered mode.
+    // Set server socket to be nonblocking, since we use it within an epoll loop.
     int flags = ::fcntl(server_socket, F_GETFL);
     if (flags == -1) {
         throw_system_error("fcntl(F_GETFL) failed");
@@ -138,7 +135,14 @@ void server::handle_request_stream(int *, size_t, session_event_t event, const v
     if (-1 == ::fcntl(server_socket, F_SETFL, flags | O_NONBLOCK)) {
         throw_system_error("fcntl(F_SETFL) failed");
     }
-    start_stream_producer_thread(server_socket, s_server_shutdown_eventfd, request);
+    // The only currently supported stream type is table scans.
+    // When we add more stream types, we should add a switch statement on data_type.
+    // We should logically receive an object corresponding to the request_data_t union,
+    // but the FlatBuffers API doesn't have any object corresponding to a union.
+    const client_request_t *request = static_cast<const client_request_t *>(event_data);
+    retail_assert(request->data_type() == request_data_t::table_scan);
+    const gaia_type_t type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
+    start_id_producer_for_type(server_socket, type);
     // Any exceptions after this point will close the server socket, ensuring the producer thread terminates.
     // However, its destructor will not run until the session thread exits and joins the producer thread.
     FlatBufferBuilder builder;
@@ -286,10 +290,9 @@ int server::get_client_dispatch_fd() {
     // We use SOCK_SEQPACKET to get connection-oriented *and* datagram semantics.
     // This socket needs to be nonblocking so we can use epoll to wait on the
     // shutdown eventfd as well (the connected sockets it spawns will inherit
-    // nonblocking mode). Actually, nonblocking mode may not be visible in level-
-    // triggered epoll mode, but it's very important for edge-triggered mode,
-    // and it might be useful if we ever wanted to do partial reads (e.g. on a
-    // stream socket), so it seems like the right choice.
+    // nonblocking mode). Actually, nonblocking mode may not have any effect in
+    // level-triggered epoll mode, but it's good to ensure we can never block,
+    // in case of bugs or surprising semantics in epoll.
     int connect_socket = ::socket(PF_UNIX, SOCK_SEQPACKET | SOCK_NONBLOCK, 0);
     if (connect_socket == -1) {
         throw_system_error("socket creation failed");
@@ -587,7 +590,6 @@ void server::session_handler(int session_socket) {
 template <typename element_type>
 void server::stream_producer_handler(int stream_socket, int cancel_eventfd,
     std::function<std::optional<element_type>()> generator_fn) {
-    constexpr size_t max_writes_before_cancellation_check = 1 << 10;
     // We only support fixed-width integer types for now to avoid framing.
     static_assert(std::is_integral<element_type>::value, "Generator function must return an integer.");
     auto gen_iter = generator_iterator<element_type>(generator_fn);
@@ -596,7 +598,7 @@ void server::stream_producer_handler(int stream_socket, int cancel_eventfd,
         // since we hold the only fd pointing to this socket.
         ::close(stream_socket);
     });
-    // Check if our stream socket is non-blocking (it must be for edge-triggered epoll).
+    // Check if our stream socket is non-blocking (so we don't accidentally block in write()).
     int flags = ::fcntl(stream_socket, F_GETFL, 0);
     if (flags == -1) {
         throw_system_error("fcntl(F_GETFL) failed");
@@ -609,19 +611,10 @@ void server::stream_producer_handler(int stream_socket, int cancel_eventfd,
     auto epoll_cleanup = make_scope_guard([epoll_fd]() {
         ::close(epoll_fd);
     });
-    // We're only using epoll so we can poll the cancellation eventfd at the same time as the socket,
-    // otherwise we'd just loop in a blocking write(). Since we need to use EPOLLOUT to poll on write
-    // readiness of the socket, we should use edge-triggered mode to avoid notifications on every loop
-    // iteration, which could easily consume 100% CPU. (This is in contrast to polling for read readiness,
-    // where we generally want level-triggered mode.) Logically, we can just write to the socket until
-    // write() returns EAGAIN/EWOULDBLOCK, and return to epoll_wait(). However, we need to poll the
-    // eventfd at the same time, and we don't want to wait until the socket is no longer writable to
-    // poll the eventfd again, or we could wait an unbounded time before receiving the eventfd notification.
-    // So we do a nonblocking read() on the eventfd after a fixed number of writes to the socket.
-    // Later, we should add buffering to minimize syscalls, which means we only need to do a single write()
-    // to the socket on each write-readiness notification, so we can switch to level-triggered mode and avoid
-    // reading the eventfd at all except on read-readiness notifications.
-    epoll_event sock_ev{.events = EPOLLOUT | EPOLLET, .data.fd = stream_socket};
+    // We poll for write availability of the stream socket in level-triggered mode,
+    // and only write at most one buffer of data before polling again, to avoid read
+    // starvation of the cancellation eventfd.
+    epoll_event sock_ev{.events = EPOLLOUT, .data.fd = stream_socket};
     if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, stream_socket, &sock_ev)) {
         throw_system_error("epoll_ctl failed");
     }
@@ -631,6 +624,8 @@ void server::stream_producer_handler(int stream_socket, int cancel_eventfd,
     }
     epoll_event events[2];
     bool producer_shutdown = false;
+    // The userspace buffer that we use to construct a batch datagram message.
+    std::vector<gaia_id_t> batch_buffer(STREAM_BATCH_SIZE);
     while (!producer_shutdown) {
         // Block forever (we will be notified of shutdown).
         int ready_fd_count = ::epoll_wait(epoll_fd, events, array_size(events), -1);
@@ -666,57 +661,45 @@ void server::stream_producer_handler(int stream_socket, int cancel_eventfd,
                     producer_shutdown = true;
                 } else if (ev.events & EPOLLOUT) {
                     retail_assert(!(ev.events & (EPOLLERR | EPOLLHUP)));
-                    // Write to the socket in a loop until we get EAGAIN/EWOULDBLOCK.
-                    // (How do we check the cancellation event within the loop?)
-                    // When we've exhausted the iterator, either call shutdown(SHUT_WR)
-                    // or close() to make the client's next read() return EOF.
-                    // We can't use the dereference operator to test for end of iteration,
-                    // since that would be dereferencing std::nullopt, which is undefined.
-                    size_t write_count = 0;
-                    while (gen_iter) {
+                    // Write to the send buffer until we exhaust either the iterator or the buffer free space.
+                    while (gen_iter && batch_buffer.size() < STREAM_BATCH_SIZE) {
                         element_type next_val = *gen_iter;
-                        ssize_t bytes_written = ::write(stream_socket, &next_val, sizeof(next_val));
+                        batch_buffer.push_back(next_val);
+                        ++gen_iter;
+                    }
+                    // We need to send any pending data in the buffer, followed by EOF
+                    // if we reached end of iteration. We let the client decide when to
+                    // close the socket, since their next read may be arbitrarily delayed
+                    // (and they may still have pending data).
+                    // First send any remaining data in the buffer.
+                    if (batch_buffer.size() > 0) {
+                        // To simplify client state management by allowing client to
+                        // dequeue entries in FIFO order using std::vector.pop_back(),
+                        // we reverse the order of entries in the buffer.
+                        std::reverse(std::begin(batch_buffer), std::end(batch_buffer));
+                        // We don't want to handle signals, so set
+                        // MSG_NOSIGNAL to convert SIGPIPE to EPIPE.
+                        ssize_t bytes_written = ::send(
+                            stream_socket, batch_buffer.data(),
+                            batch_buffer.size() * sizeof(element_type), MSG_NOSIGNAL);
                         if (bytes_written == -1) {
-                            if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                                // Socket is no longer writable, go back to polling.
-                                break;
-                            } else {
-                                // Log the error and break out of the poll loop.
-                                cerr << "stream socket error: " << ::strerror(errno) << endl;
-                                producer_shutdown = true;
-                                break;
-                            }
+                            // It should never happen that the socket is no longer writable
+                            // after we receive EPOLLOUT, since we are the only writer and
+                            // the receive buffer is always large enough for a batch.
+                            retail_assert(errno != EAGAIN && errno != EWOULDBLOCK);
+                            // Log the error and break out of the poll loop.
+                            cerr << "stream socket error: " << ::strerror(errno) << endl;
+                            producer_shutdown = true;
                         } else {
-                            // We successfully wrote to the socket, so advance the iterator.
-                            ++gen_iter;
-                            // Periodically read the cancellation eventfd, to avoid read starvation from
-                            // a fast reader on the client socket.
-                            // REVIEW: This is only necessary because we're using edge-triggered mode. Later,
-                            // when we add buffering to minimize syscalls, we should be able to switch to
-                            // level-triggered mode (one write per write-readiness notification), and remove
-                            // this hack.
-                            if (++write_count % max_writes_before_cancellation_check == 0) {
-                                // We should always read the value 1 from a semaphore eventfd.
-                                uint64_t val;
-                                ssize_t bytes_read = ::read(cancel_eventfd, &val, sizeof(val));
-                                if (bytes_read == -1) {
-                                    // Since we didn't get a readiness notification on the eventfd,
-                                    // this read will normally return EAGAIN/EWOULDBLOCK.
-                                    if (errno != EAGAIN && errno != EWOULDBLOCK) {
-                                        throw_system_error("read(eventfd) failed");
-                                    }
-                                } else {
-                                    retail_assert(bytes_read == sizeof(val));
-                                    retail_assert(val == 1);
-                                    producer_shutdown = true;
-                                    break;
-                                }
-                            }
+                            // We successfully wrote to the socket, so clear the buffer.
+                            // (Partial writes are impossible with datagram sockets.)
+                            batch_buffer.clear();
                         }
                     }
-                    // If we reached end of iteration, we need to send the client EOF.
-                    // We let the client decide when to close the socket, since their next read
-                    // may be arbitrarily delayed (and they may still have pending data).
+                    // If we reached end of iteration, send EOF to client.
+                    // (We still need to wait for the client to close their socket,
+                    // since they may still have unread data, so we don't set the
+                    // producer_shutdown flag.)
                     if (!gen_iter) {
                         ::shutdown(stream_socket, SHUT_WR);
                     }
@@ -743,13 +726,9 @@ void server::stream_producer_handler(int stream_socket, int cancel_eventfd,
     }
 }
 
-void server::start_stream_producer_thread(const int server_socket, const int cancel_eventfd, const client_request_t *request) {
-    // The only currently supported stream type is table scans.
-    // When we add more stream types, we should add a switch statement on stream_type.
-    retail_assert(request->data_type() == request_data_t::table_scan);
-    const gaia_type_t table_type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
+void server::start_id_producer_for_type(const int server_socket, gaia_type_t type) {
     gaia_locator_t locator = 0;
-    auto table_scan_id_generator = [table_type, locator]() mutable -> std::optional<gaia_id_t> {
+    auto table_scan_id_generator = [type, locator]() mutable -> std::optional<gaia_id_t> {
         // We need to ensure that we're not reading the locator segment
         // while a committing transaction is writing to it.
         std::shared_lock lock(s_locators_lock);
@@ -757,7 +736,7 @@ void server::start_stream_producer_thread(const int server_socket, const int can
             gaia_offset_t offset = (*s_shared_locators)[locator];
             if (offset) {
                 object *obj = reinterpret_cast<object *>(s_data->objects + (*s_shared_locators)[locator]);
-                if (obj->type == table_type) {
+                if (obj->type == type) {
                     return obj->id;
                 }
             }
@@ -767,7 +746,7 @@ void server::start_stream_producer_thread(const int server_socket, const int can
     };
     // Give the session ownership of the new stream thread.
     s_session_owned_threads.emplace_back(stream_producer_handler<gaia_id_t>,
-        server_socket, cancel_eventfd, table_scan_id_generator);
+        server_socket, s_session_shutdown_eventfd, table_scan_id_generator);
 }
 
 // Before this method is called, we have already received the log fd from the client

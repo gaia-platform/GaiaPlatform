@@ -42,53 +42,105 @@ int client::get_id_cursor_socket_for_type(gaia_type_t type) {
 
     // Extract the stream socket fd from the server's response.
     uint8_t msg_buf[MAX_MSG_SIZE] = {0};
-    int stream_socket_fd = -1;
+    int stream_socket = -1;
     size_t fd_count = 1;
-    size_t bytes_read = recv_msg_with_fds(s_session_socket, &stream_socket_fd, &fd_count, msg_buf, sizeof(msg_buf));
+    size_t bytes_read = recv_msg_with_fds(s_session_socket, &stream_socket, &fd_count, msg_buf, sizeof(msg_buf));
     retail_assert(bytes_read > 0);
     retail_assert(fd_count == 1);
+    retail_assert(stream_socket != -1);
+    auto cleanup_stream_socket = make_scope_guard([stream_socket]() {
+        ::close(stream_socket);
+    });
+
+    // Deserialize the server message.
     const message_t *msg = Getmessage_t(msg_buf);
     const server_reply_t *reply = msg->msg_as_reply();
     const session_event_t event = reply->event();
     retail_assert(event == session_event_t::REQUEST_STREAM);
-    retail_assert(stream_socket_fd != -1);
-    return stream_socket_fd;
+
+    // Check that our stream socket is blocking (since we need to perform blocking reads).
+    int flags = ::fcntl(stream_socket, F_GETFL, 0);
+    if (flags == -1) {
+        throw_system_error("fcntl(F_GETFL) failed");
+    }
+    retail_assert(~(flags & O_NONBLOCK));
+
+    cleanup_stream_socket.dismiss();
+    return stream_socket;
 }
 
-// This generator wraps a socket which reads a stream of gaia_id values from the server.
-std::function<std::optional<gaia_id_t>()>
-client::get_id_generator_for_type(gaia_type_t type) {
-    // Currently, we associate an ID cursor with a snapshot view, i.e., a transaction.
+// This generator wraps a socket which reads a stream of values of `element_type` from the server.
+template <typename element_type>
+std::function<std::optional<element_type>()>
+client::get_stream_generator_for_socket(int stream_socket) {
+    // Currently, we associate a cursor with a snapshot view, i.e., a transaction.
     verify_tx_active();
-    int stream_socket_fd = get_id_cursor_socket_for_type(type);
-    auto cleanup_stream_socket = make_scope_guard([stream_socket_fd]() {
-        ::close(stream_socket_fd);
-    });
     gaia_xid_t owning_transaction_id = s_transaction_id;
-    auto id_generator = [stream_socket_fd, owning_transaction_id]() mutable -> std::optional<gaia_id_t> {
+    // The userspace buffer that we use to receive a batch datagram message.
+    std::vector<element_type> batch_buffer;
+    auto value_generator = [stream_socket, owning_transaction_id, batch_buffer]() mutable -> std::optional<element_type> {
         // We shouldn't be called again after we received EOF from the server.
-        retail_assert(stream_socket_fd != -1);
+        retail_assert(stream_socket != -1);
         // The cursor should only be called from within the scope of its owning transaction.
         retail_assert(s_transaction_id == owning_transaction_id);
-        gaia_id_t next_id;
-        ssize_t bytes_read = ::read(stream_socket_fd, &next_id, sizeof(next_id));
-        if (bytes_read == -1) {
-            throw_system_error("read failed");
+        // If buffer is empty, block until a new batch is available.
+        if (batch_buffer.size() == 0) {
+            // Get the datagram size, and grow the buffer if necessary.
+            // This decouples the client from the server (i.e., client
+            // doesn't need to know server batch size), at the expense
+            // of an extra system call per batch.
+            // We set MSG_PEEK to avoid reading the datagram into our buffer,
+            // and we set MSG_TRUNC to return the actual buffer size needed.
+            ssize_t datagram_size = ::recv(stream_socket, nullptr, 0, MSG_PEEK | MSG_TRUNC);
+            if (datagram_size == -1) {
+                throw_system_error("recv(MSG_PEEK) failed");
+            }
+            if (datagram_size == 0) {
+                // We received EOF from the server, so close
+                // client socket and stop iteration.
+                ::close(stream_socket);
+                // Set the socket fd to an invalid value so we can
+                // immediately abort if this is called again.
+                stream_socket = -1;
+                // Tell the caller to stop iteration.
+                return std::nullopt;
+            }
+            // Grow the buffer to the datagram size, if necessary.
+            batch_buffer.reserve(datagram_size);
+            // Get the actual data.
+            // This is a nonblocking read, since the previous blocking
+            // read will not return until data is available.
+            ssize_t bytes_read = ::recv(stream_socket,
+                batch_buffer.data(), batch_buffer.size(), MSG_DONTWAIT);
+            if (bytes_read == -1) {
+                // Per above, we should never have to block here.
+                retail_assert(errno != EAGAIN && errno != EWOULDBLOCK);
+                throw_system_error("recv failed");
+            }
+            // We must have read a nonzero-length datagram,
+            // since the zero-length case returns early.
+            retail_assert(bytes_read > 0);
+            // The buffer must be an integer multiple of our datum size.
+            retail_assert(bytes_read % sizeof(element_type) == 0);
         }
-        if (bytes_read == 0) {
-            // We received EOF from the server, so close
-            // client socket and stop iteration.
-            ::close(stream_socket_fd);
-            // Set the socket fd to an invalid value so we can
-            // immediately abort if this is called again.
-            stream_socket_fd = -1;
-            // Tell the caller to stop iteration.
-            return std::nullopt;
-        }
-        retail_assert(bytes_read == sizeof(next_id));
-        retail_assert(next_id != INVALID_GAIA_ID);
-        return next_id;
+        // At this point we know our buffer is non-empty.
+        retail_assert(batch_buffer.size() > 0);
+        // Loop through the buffer and return entries in FIFO order
+        // (the server reversed the original buffer before sending).
+        element_type next_value = batch_buffer.back();
+        batch_buffer.pop_back();
+        return next_value;
     };
+    return value_generator;
+}
+
+std::function<std::optional<gaia_id_t>()>
+client::get_id_generator_for_type(gaia_type_t type) {
+    int stream_socket = get_id_cursor_socket_for_type(type);
+    auto cleanup_stream_socket = make_scope_guard([stream_socket]() {
+        ::close(stream_socket);
+    });
+    auto id_generator = get_stream_generator_for_socket<gaia_id_t>(stream_socket);
     cleanup_stream_socket.dismiss();
     return id_generator;
 }
@@ -374,6 +426,8 @@ void client::commit_transaction() {
     const server_reply_t* reply = msg->msg_as_reply();
     session_event_t event = reply->event();
     retail_assert(event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT);
+    const transaction_info_t *txn_info = reply->data_as_transaction_info();
+    retail_assert(txn_info->transaction_id() == s_transaction_id);
 
     // Throw an exception on server-side abort.
     // REVIEW: We could include the gaia_ids of conflicting objects in transaction_update_conflict

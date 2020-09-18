@@ -65,8 +65,7 @@ public:
     static void rollback_transaction();
     static void commit_transaction();
 
-    // This is a helper for higher-level methods that use
-    // this generator to build a range or iterator object.
+    // This returns a generator object for gaia_ids of a given type.
     static std::function<std::optional<gaia_id_t>()> get_id_generator_for_type(gaia_type_t type);
 
 private:
@@ -96,6 +95,12 @@ private:
     static int get_session_socket();
 
     static int get_id_cursor_socket_for_type(gaia_type_t type);
+
+    // This is a helper for higher-level methods that use
+    // this generator to build a range or iterator object.
+    template <typename element_type>
+    static std::function<std::optional<element_type>()>
+    get_stream_generator_for_socket(int stream_socket);
 
     /**
      *  Check if an event should be generated for a given type.

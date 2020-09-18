@@ -49,6 +49,8 @@ public:
 private:
     // from https://www.man7.org/linux/man-pages/man2/eventfd.2.html
 1    static constexpr uint64_t MAX_SEMAPHORE_COUNT = std::numeric_limits<uint64_t>::max() - 1;
+    // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
+    static constexpr size_t STREAM_BATCH_SIZE = 1 << 10;
     static int s_server_shutdown_eventfd;
     static int s_connect_socket;
     static std::shared_mutex s_locators_lock;
@@ -159,7 +161,7 @@ private:
         std::function<std::optional<element_type>()> generator_fn);
 
 
-    static void start_stream_producer_thread(const int server_socket, const int cancel_eventfd, const client_request_t *request);
+    static void start_id_producer_for_type(const int server_socket, gaia_type_t type);
 
     static bool tx_commit();
 };
