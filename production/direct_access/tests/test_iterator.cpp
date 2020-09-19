@@ -13,74 +13,26 @@
 #include "gaia_addr_book.h"
 #include "db_test_base.hpp"
 #include "gaia_iterators.hpp"
+#include "iterator_test_helper.hpp"
 
 using namespace std;
 using namespace gaia::db;
 using namespace gaia::common;
 using namespace gaia::addr_book;
 
+template <typename T_iterator_test_helper>
 class gaia_iterator_test : public db_test_base_t {
 public:
-    typedef employee_t record_t;
-    typedef gaia_iterator_t<record_t> iterator_t;
-    typedef vector<record_t> record_vec_t;
+    using iterator_t = typename T_iterator_test_helper::iterator_t;
+    using record_t = typename T_iterator_test_helper::record_t;
+    using record_list_t = typename T_iterator_test_helper::record_list_t;
 
 protected:
-    void SetUp() override
-    {
-        db_test_base_t::SetUp();
-        // More set-up goes after base set-up.
-    }
-
-    void TearDown() override
-    {
-        // More tear-down goes before base tear-down.
-        db_test_base_t::TearDown();
-    }
-
-    string get_index_string(const int index)
-    {
-        return to_string(index);
-    }
-
-    record_vec_t insert_records(const int amount)
-    {
-        auto emp_writer = employee_writer();
-        record_vec_t vec;
-
-        for (int i = 0; i < amount; i++)
-        {
-            emp_writer.name_first = get_index_string(i);
-            vec.push_back(record_t::get(
-                emp_writer.insert_row()));
-        }
-        return vec;
-    }
-
-    string deref_iter_for_string(iterator_t& iter)
-    {
-        string str((*iter).name_first());
-        return str;
-    }
-
-    string deref_and_postinc_iter_for_string(iterator_t& iter)
-    {
-        string str((*iter++).name_first());
-        return str;
-    }
-
-    string iter_member_string(iterator_t& iter)
-    {
-        string str(iter->name_first());
-        return str;
-    }
-
-    string get_string_from_record(record_t& record)
-    {
-        string str(record.name_first());
-        return str;
-    }
+    T_iterator_test_helper s_iterator_helper;
 };
+
+using iterator_suite_t = ::testing::Types<iterator_test_helper_t>;
+TYPED_TEST_SUITE(gaia_iterator_test, iterator_suite_t);
 
 // Tests for LegacyIterator conformance
 // ================================
@@ -88,38 +40,48 @@ protected:
 // Is the iterator CopyConstructible?
 // A test for MoveConstructible is not required because it is a prerequisite
 // to be CopyConstructible.
-TEST_F(gaia_iterator_test, copy_constructible) {
+TYPED_TEST(gaia_iterator_test, copy_constructible) {
+    using iterator_t = typename TestFixture::iterator_t;
+
     EXPECT_TRUE(is_copy_constructible<iterator_t>::value)
         << "The iterator is not CopyConstructible.";
 }
 
 // Is the iterator CopyAssignable?
-TEST_F(gaia_iterator_test, copy_assignable) {
+TYPED_TEST(gaia_iterator_test, copy_assignable) {
+    using iterator_t = typename TestFixture::iterator_t;
+
     EXPECT_TRUE(is_copy_assignable<iterator_t>::value)
         << "The iterator is not CopyAssignable.";
 }
 
 // Is the iterator Destructible?
-TEST_F(gaia_iterator_test, destructible) {
+TYPED_TEST(gaia_iterator_test, destructible) {
+    using iterator_t = typename TestFixture::iterator_t;
+
     EXPECT_TRUE(is_destructible<iterator_t>::value)
         << "The iterator is not Destructible.";
 }
 
 // Are iterator lvalues Swappable?
-TEST_F(gaia_iterator_test, swappable) {
+TYPED_TEST(gaia_iterator_test, swappable) {
+    using iterator_t = typename TestFixture::iterator_t;
+
     EXPECT_TRUE(is_swappable<iterator_t>::value)
         << "The iterator is not Swappable as an lvalue.";
 }
 
 // Does iterator_traits<gaia_iterator_t<edc*>> have member typedefs
 // value_type, difference_type, reference, pointer, and iterator_category?
-TEST_F(gaia_iterator_test, iterator_traits) {
+TYPED_TEST(gaia_iterator_test, iterator_traits) {
+    using iterator_t = typename TestFixture::iterator_t;
+
     // This test can only fail in compile time.
-    iterator_traits<iterator_t>::value_type vt;
-    iterator_traits<iterator_t>::difference_type dt;
-    iterator_traits<iterator_t>::reference r = vt;
-    iterator_traits<iterator_t>::pointer p;
-    iterator_traits<iterator_t>::iterator_category ic;
+    typename iterator_traits<iterator_t>::value_type vt;
+    typename iterator_traits<iterator_t>::difference_type dt;
+    typename iterator_traits<iterator_t>::reference r = vt;
+    typename iterator_traits<iterator_t>::pointer p;
+    typename iterator_traits<iterator_t>::iterator_category ic;
     // Perhaps SFINAE can be exploited in the future to detect typedefs and
     // return boolean values for GTest.
 
@@ -132,15 +94,19 @@ TEST_F(gaia_iterator_test, iterator_traits) {
 }
 
 // Are iterators pre-incrementable?
-TEST_F(gaia_iterator_test, pre_incrementable) {
-    const int LOOPS = 10;
+TYPED_TEST(gaia_iterator_test, pre_incrementable) {
+    using record_t = typename TestFixture::record_t;
+    using iterator_t = typename TestFixture::iterator_t;
+
+    const int c_loops = 10;
     auto_transaction_t tx;
-    insert_records(LOOPS);
+    this->s_iterator_helper.insert_records(c_loops);
 
     iterator_t iter = record_t::list().begin();
-    for(int i = 0; i < LOOPS; i++)
+    for(int i = 0; i < c_loops; i++)
     {
-        ASSERT_EQ(deref_iter_for_string(iter), get_index_string(i))
+        ASSERT_EQ(this->s_iterator_helper.deref_iter_for_string(iter),
+            this->s_iterator_helper.get_string(i))
             << "The iterator is not pre-incrementable with the "
             "expected effects.";
         ++iter;
@@ -158,9 +124,12 @@ TEST_F(gaia_iterator_test, pre_incrementable) {
 // ================================
 
 // Is the iterator EqualityComparable?
-TEST_F(gaia_iterator_test, equality_comparable) {
+TYPED_TEST(gaia_iterator_test, equality_comparable) {
+    using record_t = typename TestFixture::record_t;
+    using iterator_t = typename TestFixture::iterator_t;
+
     auto_transaction_t tx;
-    insert_records(3);
+    this->s_iterator_helper.insert_records(3);
 
     iterator_t a = record_t::list().begin();
     iterator_t b = record_t::list().begin();
@@ -189,9 +158,12 @@ TEST_F(gaia_iterator_test, equality_comparable) {
 }
 
 // Does the iterator support the not-equal (!=) operator?
-TEST_F(gaia_iterator_test, not_equal) {
+TYPED_TEST(gaia_iterator_test, not_equal) {
+    using record_t = typename TestFixture::record_t;
+    using iterator_t = typename TestFixture::iterator_t;
+
     auto_transaction_t tx;
-    insert_records(3);
+    this->s_iterator_helper.insert_records(3);
 
     iterator_t a = record_t::list().begin();
     iterator_t b = record_t::list().begin();
@@ -221,33 +193,42 @@ TEST_F(gaia_iterator_test, not_equal) {
 
 // Is the reference iterator trait convertible into the value_type iterator
 // trait?
-TEST_F(gaia_iterator_test, reference_convertibility) {
-    typedef iterator_traits<iterator_t>::reference from_t;
-    typedef iterator_traits<iterator_t>::value_type to_t;
+TYPED_TEST(gaia_iterator_test, reference_convertibility) {
+    using iterator_t = typename TestFixture::iterator_t;
+
+    typedef typename iterator_traits<iterator_t>::reference from_t;
+    typedef typename iterator_traits<iterator_t>::value_type to_t;
 
     bool convertible = is_convertible<from_t, to_t>::value;
 
     EXPECT_TRUE(convertible)
-        << "The reference iterator trait is not convertible into the "
-        "value_type iterator trait.";
+        << "The reference iterator trait is not convertible into the"
+        " value_type iterator trait.";
 }
 
 // Are iterators dereferenceable as rvalues?
-TEST_F(gaia_iterator_test, dereferenceable_rvalue) {
+TYPED_TEST(gaia_iterator_test, dereferenceable_rvalue) {
+    using record_t = typename TestFixture::record_t;
+    using iterator_t = typename TestFixture::iterator_t;
+
     auto_transaction_t tx;
-    insert_records(1);
+    this->s_iterator_helper.insert_records(1);
 
     iterator_t iter = record_t::list().begin();
 
-    EXPECT_EQ(deref_iter_for_string(iter), get_index_string(0))
-        << "The iterator is not dereferenceable as an rvalue with the "
-        "expected effects.";
+    EXPECT_EQ(this->s_iterator_helper.deref_iter_for_string(iter),
+        this->s_iterator_helper.get_string(0))
+        << "The iterator is not dereferenceable as an rvalue with the"
+        " expected effects.";
 }
 
 // If two rvalue iterators are equal then their dereferenced values are equal.
-TEST_F(gaia_iterator_test, dereferenceable_equality) {
+TYPED_TEST(gaia_iterator_test, dereferenceable_equality) {
+    using record_t = typename TestFixture::record_t;
+    using iterator_t = typename TestFixture::iterator_t;
+
     auto_transaction_t tx;
-    insert_records(1);
+    this->s_iterator_helper.insert_records(1);
 
     iterator_t iter_a = record_t::list().begin();
     iterator_t iter_b = record_t::list().begin();
@@ -258,19 +239,26 @@ TEST_F(gaia_iterator_test, dereferenceable_equality) {
 
 // When an iterator is dereferenced, can the object members be accessed?
 // Test of the arrow operator (->).
-TEST_F(gaia_iterator_test, deref_arrow) {
+TYPED_TEST(gaia_iterator_test, deref_arrow) {
+    using record_t = typename TestFixture::record_t;
+    using iterator_t = typename TestFixture::iterator_t;
+
     auto_transaction_t tx;
-    insert_records(1);
+    this->s_iterator_helper.insert_records(1);
 
     iterator_t iter = record_t::list().begin();
-    EXPECT_EQ(iter_member_string(iter), get_index_string(0))
+    EXPECT_EQ(this->s_iterator_helper.iter_member_string(iter),
+        this->s_iterator_helper.get_string(0))
         << "The class member derefence operator->() does not work.";
 }
 
 // Does (void)iter++ have the same effect as (void)++iter?
-TEST_F(gaia_iterator_test, pre_inc_and_post_inc) {
+TYPED_TEST(gaia_iterator_test, pre_inc_and_post_inc) {
+    using record_t = typename TestFixture::record_t;
+    using iterator_t = typename TestFixture::iterator_t;
+
     auto_transaction_t tx;
-    insert_records(3);
+    this->s_iterator_helper.insert_records(3);
 
     iterator_t iter_a = record_t::list().begin();
     iterator_t iter_b = record_t::list().begin();
@@ -280,7 +268,8 @@ TEST_F(gaia_iterator_test, pre_inc_and_post_inc) {
 
     EXPECT_TRUE(iter_a == iter_b)
         << "(void)++iter and (void)iter++ have different effects.";
-    EXPECT_EQ(iter_member_string(iter_a), iter_member_string(iter_b))
+    EXPECT_EQ(this->s_iterator_helper.iter_member_string(iter_a),
+        this->s_iterator_helper.iter_member_string(iter_b))
         << "(void)++iter and (void)iter++ have different effects.";
 
     (void)++iter_a;
@@ -288,34 +277,41 @@ TEST_F(gaia_iterator_test, pre_inc_and_post_inc) {
 
     EXPECT_EQ(iter_a, iter_b)
         << "(void)++iter and (void)iter++ have different effects.";
-    EXPECT_EQ(iter_member_string(iter_a), iter_member_string(iter_b))
+    EXPECT_EQ(this->s_iterator_helper.iter_member_string(iter_a),
+        this->s_iterator_helper.iter_member_string(iter_b))
         << "(void)++iter and (void)iter++ have different effects.";
 }
 
 // Does derefencing and postincrementing *iter++ have the expected effects?
-TEST_F(gaia_iterator_test, deref_and_postinc) {
+TYPED_TEST(gaia_iterator_test, deref_and_postinc) {
+    using record_t = typename TestFixture::record_t;
+    using iterator_t = typename TestFixture::iterator_t;
+
     auto_transaction_t tx;
-    insert_records(3);
+    this->s_iterator_helper.insert_records(3);
 
     iterator_t iter_a = record_t::list().begin();
     iterator_t iter_b = record_t::list().begin();
 
     record_t record = *iter_b;
     ++iter_b;
-    EXPECT_EQ(deref_and_postinc_iter_for_string(iter_a),
-        get_string_from_record(record))
+    EXPECT_EQ(
+        this->s_iterator_helper.deref_and_postinc_iter_for_string(iter_a),
+        this->s_iterator_helper.get_string_from_record(record))
         << "*iter++ does not have the expected effects.";
 
     record = *iter_b;
     ++iter_b;
-    EXPECT_EQ(deref_and_postinc_iter_for_string(iter_a),
-        get_string_from_record(record))
+    EXPECT_EQ(
+        this->s_iterator_helper.deref_and_postinc_iter_for_string(iter_a),
+        this->s_iterator_helper.get_string_from_record(record))
         << "*iter++ does not have the expected effects.";
 
     record = *iter_b;
     ++iter_b;
-    EXPECT_EQ(deref_and_postinc_iter_for_string(iter_a),
-        get_string_from_record(record))
+    EXPECT_EQ(
+        this->s_iterator_helper.deref_and_postinc_iter_for_string(iter_a),
+        this->s_iterator_helper.get_string_from_record(record))
         << "*iter++ does not have the expected effects.";
 }
 
@@ -323,23 +319,29 @@ TEST_F(gaia_iterator_test, deref_and_postinc) {
 // ================================
 
 // Is the iterator DefaultConstructible?
-TEST_F(gaia_iterator_test, default_constructible) {
+TYPED_TEST(gaia_iterator_test, default_constructible) {
+    using iterator_t = typename TestFixture::iterator_t;
+
     EXPECT_TRUE(is_default_constructible<iterator_t>::value)
         << "The iterator is not DefaultConstructible.";
 }
 
 // Is equality and inequality defined over all iterators for the same
 // underlying sequence?
-TEST_F(gaia_iterator_test, equality_and_inequality_in_sequence) {
+TYPED_TEST(gaia_iterator_test, equality_and_inequality_in_sequence) {
+    using record_t = typename TestFixture::record_t;
+    using iterator_t = typename TestFixture::iterator_t;
+
     auto_transaction_t tx;
-    insert_records(10);
+    this->s_iterator_helper.insert_records(10);
 
     iterator_t iter_a = record_t::list().begin();
     for (iterator_t iter_b = record_t::list().begin();
             iter_b != record_t::list().end(); ++iter_b)
     {
         ASSERT_TRUE(iter_a == iter_b)
-            << "Equality comparisons are not defined across all iterators in the same sequence.";
+            << "Equality comparisons are not defined across all"
+            " iterators in the same sequence.";
         ++iter_a;
     }
 
@@ -349,20 +351,25 @@ TEST_F(gaia_iterator_test, equality_and_inequality_in_sequence) {
         if (iter == record_t::list().begin())
         {
             ASSERT_TRUE(iter != record_t::list().end())
-                << "Inequality comparisons are not defined across all iterators in the same sequence.";
+                << "Inequality comparisons are not defined across all"
+                " iterators in the same sequence.";
         }
         else
         {
             ASSERT_TRUE(iter != record_t::list().begin())
-                << "Inequality comparisons are not defined across all iterators in the same sequence.";
+                << "Inequality comparisons are not defined across all"
+                " iterators in the same sequence.";
         }
     }
 }
 
 // Does post-incrementing the iterator have the expected effects?
-TEST_F(gaia_iterator_test, post_increment) {
+TYPED_TEST(gaia_iterator_test, post_increment) {
+    using record_t = typename TestFixture::record_t;
+    using iterator_t = typename TestFixture::iterator_t;
+
     auto_transaction_t tx;
-    insert_records(3);
+    this->s_iterator_helper.insert_records(3);
 
     iterator_t iter_a = record_t::list().begin();
     iterator_t iter_b = record_t::list().begin();
@@ -377,17 +384,21 @@ TEST_F(gaia_iterator_test, post_increment) {
 // Can an iterator iterate over a sequence multiple times to return the same
 // values at the same positions every time? This is known as the multipass
 // guarantee.
-TEST_F(gaia_iterator_test, multipass_guarantee) {
-    const int LENGTH = 10;
-    const int PASSES = 10;
+TYPED_TEST(gaia_iterator_test, multipass_guarantee) {
+    using record_t = typename TestFixture::record_t;
+    using iterator_t = typename TestFixture::iterator_t;
+    using record_list_t = typename TestFixture::record_list_t;
+
+    const int c_length = 10;
+    const int c_passes = 10;
 
     auto_transaction_t tx;
-    record_vec_t records = insert_records(LENGTH);
+    record_list_t records = this->s_iterator_helper.insert_records(c_length);
 
     iterator_t iter = record_t::list().begin();
-    for (int i = 0; i < PASSES; i++)
+    for (int i = 0; i < c_passes; i++)
     {
-        for (int j = 0; j < LENGTH; j++)
+        for (int j = 0; j < c_length; j++)
         {
             ASSERT_TRUE(*iter == records.at(j))
                 << "The iterator does not support a multipass guarantee.";

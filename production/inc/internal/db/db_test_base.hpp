@@ -37,8 +37,8 @@ protected:
         // NB: this cannot be called within an active session!
         clear_shared_memory();
         // Reinitialize the server (forcibly disconnects all clients and clears database).
-        // Resetting the server will cause Recovery to be skipped. Recovery will only occur post 
-        // server process reboot. 
+        // Resetting the server will cause Recovery to be skipped. Recovery will only occur post
+        // server process reboot.
         ::system((std::string("pkill -f -HUP ") + SE_SERVER_NAME).c_str());
         // Wait a bit for the server's listening socket to be closed.
         // (Otherwise, a new session might be accepted after the signal has been sent

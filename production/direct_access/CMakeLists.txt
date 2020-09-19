@@ -19,6 +19,7 @@ message(STATUS "GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES=${GAIA_DIRECT_ACCESS_PUBLIC_I
 set(GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES
   ${GAIA_INC}/internal/common
   ${GAIA_INC}/internal/db
+  ${GAIA_INC}/internal/direct_access
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}
 )
@@ -46,4 +47,3 @@ set (DIRECT_ACCESS_TEST_INCLUDES
 add_gtest(test_direct_access "tests/test_direct_access.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct" "generate_addr_book_headers")
 add_gtest(test_references "tests/test_references.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct" "generate_addr_book_headers")
 add_gtest(test_iterator "tests/test_iterator.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct" "generate_addr_book_headers")
-add_gtest(test_set_iterator "tests/test_set_iterator.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct" "generate_addr_book_headers")
