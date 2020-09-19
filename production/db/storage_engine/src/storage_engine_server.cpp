@@ -625,7 +625,9 @@ void server::stream_producer_handler(int stream_socket, int cancel_eventfd,
     epoll_event events[2];
     bool producer_shutdown = false;
     // The userspace buffer that we use to construct a batch datagram message.
-    std::vector<gaia_id_t> batch_buffer(STREAM_BATCH_SIZE);
+    std::vector<gaia_id_t> batch_buffer;
+    // We need to call reserve() rather than the "sized" constructor to avoid changing size().
+    batch_buffer.reserve(STREAM_BATCH_SIZE);
     while (!producer_shutdown) {
         // Block forever (we will be notified of shutdown).
         int ready_fd_count = ::epoll_wait(epoll_fd, events, array_size(events), -1);
@@ -673,7 +675,7 @@ void server::stream_producer_handler(int stream_socket, int cancel_eventfd,
                     // (and they may still have pending data).
                     // First send any remaining data in the buffer.
                     if (batch_buffer.size() > 0) {
-                        // To simplify client state management by allowing client to
+                        // To simplify client state management by allowing the client to
                         // dequeue entries in FIFO order using std::vector.pop_back(),
                         // we reverse the order of entries in the buffer.
                         std::reverse(std::begin(batch_buffer), std::end(batch_buffer));
@@ -693,6 +695,9 @@ void server::stream_producer_handler(int stream_socket, int cancel_eventfd,
                         } else {
                             // We successfully wrote to the socket, so clear the buffer.
                             // (Partial writes are impossible with datagram sockets.)
+                            // The standard is somewhat unclear, but apparently clear() will
+                            // not change the capacity in any recent implementation of the
+                            // standard library (https://cplusplus.github.io/LWG/issue1102).
                             batch_buffer.clear();
                         }
                     }
