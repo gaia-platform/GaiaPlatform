@@ -13,7 +13,9 @@
 #include "gaia_addr_book.h"
 #include "db_test_base.hpp"
 #include "gaia_iterators.hpp"
+
 #include "iterator_test_helper.hpp"
+#include "set_iterator_test_helper.hpp"
 
 using namespace std;
 using namespace gaia::db;
@@ -31,7 +33,8 @@ protected:
     T_iterator_test_helper s_iterator_helper;
 };
 
-using iterator_suite_t = ::testing::Types<iterator_test_helper_t>;
+using iterator_suite_t = ::testing::Types<iterator_test_helper_t,
+    set_iterator_test_helper_t>;
 TYPED_TEST_SUITE(gaia_iterator_test, iterator_suite_t);
 
 // Tests for LegacyIterator conformance
