@@ -32,7 +32,7 @@ constexpr gaia_id_t INVALID_GAIA_ID = 0;
 /**
  * The type of a Gaia type identifier.
  */
-typedef uint32_t gaia_table_t;
+typedef uint32_t gaia_type_t;
 
 /**
  * The value of an invalid gaia_type_t.
