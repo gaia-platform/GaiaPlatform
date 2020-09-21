@@ -29,6 +29,9 @@ public:
 
     base_memory_manager_t();
 
+    // Sets stack_allocator_t execution flags.
+    void set_execution_flags(const execution_flags_t& execution_flags);
+
     // Sanity checks.
     bool validate_address_alignment(const uint8_t* const memory_address) const;
     bool validate_offset_alignment(address_offset_t memory_offset) const;
@@ -57,6 +60,9 @@ protected:
 
     // The total size of the memory segment in which we operate.
     size_t m_total_memory_size;
+
+    // Our execution flags.
+    execution_flags_t m_execution_flags;
 };
 
 }

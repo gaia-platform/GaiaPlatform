@@ -24,9 +24,6 @@ public:
 
     stack_allocator_t();
 
-    // Sets stack_allocator_t execution flags.
-    void set_execution_flags(const execution_flags_t& execution_flags);
-
     // Initialize the stack_allocator_t with a specific memory buffer from which to allocate memory.
     // The start of the buffer is specified as an offset from a base address.
     // This is also only callable by a memory_manager_t.
@@ -66,9 +63,6 @@ private:
     // Unlike the memory manager, which stores its metadata at the start of the buffer,
     // the stack allocator stores it at the end.
     stack_allocator_metadata_t* m_metadata;
-
-    // Our execution flags.
-    execution_flags_t m_execution_flags;
 
 private:
 

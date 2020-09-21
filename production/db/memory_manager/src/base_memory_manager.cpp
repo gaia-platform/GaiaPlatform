@@ -19,6 +19,11 @@ base_memory_manager_t::base_memory_manager_t()
     m_total_memory_size = 0;
 }
 
+void base_memory_manager_t::set_execution_flags(const execution_flags_t& execution_flags)
+{
+    m_execution_flags = execution_flags;
+}
+
 bool base_memory_manager_t::validate_address_alignment(const uint8_t* const memory_address) const
 {
     size_t memoryAddressAsInteger = reinterpret_cast<size_t>(memory_address);

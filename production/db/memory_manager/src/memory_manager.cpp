@@ -20,33 +20,13 @@ using namespace std;
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;
 
-memory_manager_t::memory_manager_t()
+memory_manager_t::memory_manager_t() : base_memory_manager_t()
 {
-    m_metadata = nullptr;
-
-    // Sanity check.
-    const size_t c_expected_metadata_size_in_bytes = 112;
-    std::stringstream message_stream;
-
-    message_stream
-     << "Metadata information structure representation does not have the expected size on this system: "
-     << sizeof(metadata_t) << "!";
-
-    retail_assert(
-        sizeof(metadata_t) == c_expected_metadata_size_in_bytes,
-        message_stream.str());
-}
-
-void memory_manager_t::set_execution_flags(const execution_flags_t& execution_flags)
-{
-    m_execution_flags = execution_flags;
 }
 
 error_code_t memory_manager_t::manage(
     uint8_t* memory_address,
-    size_t memory_size,
-    size_t main_memory_system_reserved_size,
-    bool initialize)
+    size_t memory_size)
 {
     // Sanity checks.
     if (memory_address == nullptr || memory_size == 0)
@@ -64,38 +44,16 @@ error_code_t memory_manager_t::manage(
         return error_code_t::memory_size_not_aligned;
     }
 
-    if (memory_size < sizeof(metadata_t) + main_memory_system_reserved_size
-        || sizeof(metadata_t) + main_memory_system_reserved_size < main_memory_system_reserved_size)
-    {
-        return error_code_t::insufficient_memory_size;
-    }
-
     // Save our parameters.
     m_base_memory_address = memory_address;
     m_total_memory_size = memory_size;
-    m_main_memory_system_reserved_size = main_memory_system_reserved_size;
-
-    // Map the metadata information for quick reference.
-    m_metadata = reinterpret_cast<metadata_t*>(m_base_memory_address);
-
-    // If necessary, initialize our metadata.
-    if (initialize)
-    {
-        m_metadata->clear(
-            sizeof(metadata_t),
-            m_total_memory_size);
-    }
 
     if (m_execution_flags.enable_console_output)
     {
-        cout << "  Configuration - main_memory_system_reserved_size = " << m_main_memory_system_reserved_size << endl;
         cout << "  Configuration - enable_extra_validations = " << m_execution_flags.enable_extra_validations << endl;
 
         output_debugging_information("manage");
     }
-
-    // The master manager is the one that initializes the memory.
-    m_is_master_manager = initialize;
 
     return error_code_t::success;
 }
@@ -105,11 +63,6 @@ error_code_t memory_manager_t::allocate(
     address_offset_t& allocated_memory_offset) const
 {
     allocated_memory_offset = 0;
-
-    if (m_metadata == nullptr)
-    {
-        return error_code_t::not_initialized;
-    }
 
     error_code_t error_code = validate_size(memory_size);
     if (error_code != error_code_t::success)
@@ -142,35 +95,20 @@ error_code_t memory_manager_t::allocate(
 }
 
 error_code_t memory_manager_t::commit_stack_allocator(
-    stack_allocator_t* stack_allocator,
-    serialization_number_t serialization_number) const
+    unique_ptr<stack_allocator_t> stack_allocator) const
 {
-    if (m_metadata == nullptr)
-    {
-        return error_code_t::not_initialized;
-    }
-
     if (stack_allocator == nullptr)
     {
         return error_code_t::invalid_argument_value;
     }
 
-    // Ensure that the stack allocator memory gets reclaimed.
-    unique_ptr<stack_allocator_t> unique_stack_allocator(stack_allocator);
-
     size_t count_allocations = stack_allocator->get_allocation_count();
 
     // Get metadata record for the entire stack allocator memory block.
-    memory_allocation_metadata_t* first_stack_allocation_metadata = read_allocation_metadata(stack_allocator->m_base_memory_offset);
+    memory_allocation_metadata_t* first_stack_allocation_metadata
+        = read_allocation_metadata(stack_allocator->m_base_memory_offset);
     address_offset_t first_stack_allocation_metadata_offset
         = get_offset(reinterpret_cast<uint8_t *>(first_stack_allocation_metadata));
-
-    // Get metadata for the stack allocator.
-    stack_allocator_metadata_t* stack_allocator_metadata = stack_allocator->get_metadata();
-    retail_assert(stack_allocator_metadata != nullptr, "An unexpected null metadata record was retrieved!");
-
-    // Write serialization number.
-    stack_allocator_metadata->serialization_number = serialization_number;
 
     if (count_allocations == 0)
     {
@@ -188,23 +126,14 @@ error_code_t memory_manager_t::commit_stack_allocator(
         }
 
         // Try to mark memory as free. This operation can only fail if we run out of memory.
-        memory_record_t* free_memory_record
-            = get_free_memory_record(first_stack_allocation_metadata_offset, first_stack_allocation_metadata->allocation_size);
-        if (free_memory_record == nullptr)
-        {
-            return error_code_t::insufficient_memory_size;
-        }
-        else
-        {
-            insert_free_memory_record(free_memory_record);
-        }
+        unique_lock unique_free_memory_list_lock(m_free_memory_list_lock);
+        m_free_memory_list.emplace_back(
+            first_stack_allocation_metadata_offset,
+            first_stack_allocation_metadata->allocation_size);
     }
     else
     {
         // Iterate over all stack_allocator_t allocations and collect old memory offsets in free memory records.
-        // However, we will not insert any of these records into the free memory list
-        // until we know that our processing can no longer fail.
-        unique_ptr<memory_record_t*[]> free_memory_records(new memory_record_t*[count_allocations]());
         for (size_t allocation_number = 1; allocation_number <= count_allocations; allocation_number++)
         {
             stack_allocator_allocation_t* allocation_record = stack_allocator->get_allocation_record(allocation_number);
@@ -215,43 +144,36 @@ error_code_t memory_manager_t::commit_stack_allocator(
                 memory_allocation_metadata_t* allocation_metadata = read_allocation_metadata(allocation_record->old_memory_offset);
                 address_offset_t allocation_metadata_offset = get_offset(reinterpret_cast<uint8_t*>(allocation_metadata));
 
-                // Mark memory block as free.
-                // If we cannot do this, then we ran out of memory;
-                // in that case we'll just reclaim all records we collected so far.
-                memory_record_t* free_memory_record
-                    = get_free_memory_record(allocation_metadata_offset, allocation_metadata->allocation_size);
-                if (free_memory_record == nullptr)
-                {
-                    reclaim_records(free_memory_records.get(), count_allocations);
-                    return error_code_t::insufficient_memory_size;
-                }
-                else
-                {
-                    free_memory_records[allocation_number - 1] = free_memory_record;
-                }
+                // Add allocation to free memory block list.
+                unique_lock unique_free_memory_list_lock(m_free_memory_list_lock);
+                m_free_memory_list.emplace_back(
+                    allocation_metadata_offset,
+                    allocation_metadata->allocation_size);
             }
         }
 
-        // Insert metadata block in the unserialized allocation list.
-        // If we fail, reclaim all the records that we have collected so far.
-        // But if we succeed, then we can insert all our collected records into the list of free memory records.
-        error_code_t error_code = track_stack_allocator_metadata_for_serialization(stack_allocator_metadata);
-        if (error_code != error_code_t::success)
-        {
-            reclaim_records(free_memory_records.get(), count_allocations);
-            return error_code;
-        }
-        else
-        {
-            insert_free_memory_records(free_memory_records.get(), count_allocations);
-        }
-
         // Patch metadata information of the first allocation.
-        // We will deallocate the unused memory after serialization,
-        // because the stack allocator metadata is still needed until then
-        // and is now tracked by the unserialized allocation list.
         first_stack_allocation_metadata->allocation_size
             = stack_allocator_metadata->first_allocation_size + sizeof(memory_allocation_metadata_t);
+
+        // Now we need to release the unused stack allocator memory.
+        // Get the stack_allocator_t metadata.
+        stack_allocator_metadata_t* stack_metadata = stack_allocator->get_metadata();
+        address_offset_t stack_metadata_offset = get_offset(reinterpret_cast<uint8_t*>(stack_metadata));
+
+        // Determine the boundaries of the memory block that we can free from the stack_allocator_t.
+        address_offset_t start_memory_offset = stack_metadata->next_allocation_offset;
+        address_offset_t end_memory_offset = stack_metadata_offset + sizeof(stack_allocator_metadata_t);
+        retail_assert(validate_offset(start_memory_offset) == error_code_t::success, "Calculated start memory offset is invalid");
+        retail_assert(validate_offset(end_memory_offset) == error_code_t::success, "Calculated end memory offset is invalid");
+
+        size_t memory_size = end_memory_offset - start_memory_offset;
+
+        // Add block information to free memory block list.
+        unique_lock unique_free_memory_list_lock(m_free_memory_list_lock);
+        m_free_memory_list.emplace_back(
+            start_memory_offset,
+            memory_size);
     }
 
     if (m_execution_flags.enable_console_output)
@@ -263,61 +185,15 @@ error_code_t memory_manager_t::commit_stack_allocator(
     return error_code_t::success;
 }
 
-size_t memory_manager_t::get_main_memory_available_size(bool include_system_reserved_size) const
+size_t memory_manager_t::get_main_memory_available_size() const
 {
-    size_t available_size = 0;
-
-    // Ignore return value; we just want the available size.
-    is_main_memory_exhausted(
-        m_metadata->start_main_available_memory,
-        m_metadata->lowest_metadata_memory_use,
-        include_system_reserved_size,
-        available_size);
+    size_t available_size = m_base_memory_offset + m_total_memory_size - m_next_allocation_offset;
 
     return available_size;
 }
 
-bool memory_manager_t::is_main_memory_exhausted(
-    address_offset_t start_memory_offset,
-    address_offset_t end_memory_offset,
-    bool include_system_reserved_size) const
-{
-    size_t available_size = 0;
-
-    return is_main_memory_exhausted(
-        start_memory_offset,
-        end_memory_offset,
-        include_system_reserved_size,
-        available_size);
-}
-
-bool memory_manager_t::is_main_memory_exhausted(
-    address_offset_t start_memory_offset,
-    address_offset_t end_memory_offset,
-    bool include_system_reserved_size,
-    size_t& available_size) const
-{
-    retail_assert(m_metadata != nullptr, "Memory manager has not been initialized!");
-
-    available_size = 0;
-
-    size_t reserved_size = include_system_reserved_size ? 0 : m_main_memory_system_reserved_size;
-
-    if (start_memory_offset + reserved_size > end_memory_offset
-        || start_memory_offset + reserved_size < start_memory_offset)
-    {
-        return true;
-    }
-
-    available_size = end_memory_offset - start_memory_offset - reserved_size;
-
-    return false;
-}
-
 address_offset_t memory_manager_t::process_allocation(address_offset_t allocation_offset, size_t size_to_allocate) const
 {
-    retail_assert(allocation_offset != 0, "process_allocation() was called for an empty allocation!");
-
     // Write the allocation metadata.
     uint8_t* allocation_metadata_address = get_address(allocation_offset);
     memory_allocation_metadata_t* allocation_metadata
@@ -331,35 +207,27 @@ address_offset_t memory_manager_t::process_allocation(address_offset_t allocatio
 
 address_offset_t memory_manager_t::allocate_from_main_memory(size_t size_to_allocate) const
 {
-    retail_assert(m_metadata != nullptr, "Memory manager has not been initialized!");
-
-    // Main memory allocations should not use the reserved space.
-    bool include_system_reserved_size = false;
-
     // If the allocation exhausts our memory, we cannot perform it.
-    if (get_main_memory_available_size(include_system_reserved_size) < size_to_allocate)
+    if (get_main_memory_available_size() < size_to_allocate)
     {
         return 0;
     }
 
     // Claim the space.
-    address_offset_t old_start_main_available_memory = __sync_fetch_and_add(
-        &m_metadata->start_main_available_memory,
+    address_offset_t old_next_allocation_offset = __sync_fetch_and_add(
+        &m_next_allocation_offset,
         size_to_allocate);
-    address_offset_t new_start_main_available_memory = old_start_main_available_memory + size_to_allocate;
+    address_offset_t new_next_allocation_offset = old_next_allocation_offset + size_to_allocate;
 
     // Check again if our memory got exhausted by this allocation,
     // which can happen if someone else got the space before us.
-    if (is_main_memory_exhausted(
-        new_start_main_available_memory,
-        m_metadata->lowest_metadata_memory_use,
-        include_system_reserved_size))
+    if (new_next_allocation_offset > m_base_memory_address + m_total_memory_size)
     {
         // We exhausted the main memory so we must undo our update.
         while (!__sync_bool_compare_and_swap(
-            &m_metadata->start_main_available_memory,
-            new_start_main_available_memory,
-            old_start_main_available_memory))
+            &m_next_allocation_offset,
+            new_next_allocation_offset,
+            old_next_allocation_offset))
         {
             // A failure indicates that another thread has done the same.
             // Sleep to allow it to undo its change, so we can do the same.
@@ -372,7 +240,7 @@ address_offset_t memory_manager_t::allocate_from_main_memory(size_t size_to_allo
     }
 
     // Our allocation has succeeded.
-    address_offset_t allocation_offset = old_start_main_available_memory;
+    address_offset_t allocation_offset = old_next_allocation_offset;
     address_offset_t adjusted_allocation_offset = process_allocation(allocation_offset, size_to_allocate);
 
     if (m_execution_flags.enable_console_output)

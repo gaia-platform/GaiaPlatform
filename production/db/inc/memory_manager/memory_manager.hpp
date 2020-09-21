@@ -25,9 +25,6 @@ public:
 
     memory_manager_t();
 
-    // Sets memory_manager_t execution flags.
-    void set_execution_flags(const execution_flags_t& execution_flags);
-
     // Tells the memory manager which memory area it should manage.
     //
     // All addresses will be offsets relative to the beginning of this block and will be represented as address_offset_t.
@@ -43,13 +40,13 @@ public:
     // Once a transaction commits, calling this method will
     // add the stack allocator's unused memory to the list of free memory.
     error_code_t commit_stack_allocator(
-        stack_allocator_t* stack_allocator) const;
+        unique_ptr<stack_allocator_t> stack_allocator) const;
 
 private:
 
     struct memory_record_t
     {
-        uint8_t* memory_address;
+        address_offset_t memory_offset;
         size_t memory_size;
 
         memory_record_t()
@@ -57,35 +54,30 @@ private:
             clear();
         }
 
+        memory_record_t(address_offset_t memory_offset, size_t memory_size)
+        {
+            this->memory_offset = memory_offset;
+            this->memory_size = memory_size;
+        }
+
         void clear()
         {
-            memory_address = nullptr;
+            memory_offset = 0;
             memory_size = 0;
         }
     };
 
-    address_offset_t start_main_available_memory;
+    // As we keep allocating memory, the remaining contiguous available memory block
+    // will keep shrinking. We'll use this offset to track the start of the block.
+    address_offset_t m_next_allocation_offset;
 
-    std::list<memory_record_t> free_memory_list;
-    mutable std::shared_mutex free_memory_list_lock;
-
-    // Our execution flags.
-    execution_flags_t m_execution_flags;
+    // Free memory list.
+    std::list<memory_record_t> m_free_memory_list;
+    mutable std::shared_mutex m_free_memory_list_lock;
 
 private:
 
-    size_t get_main_memory_available_size(bool include_system_reserved_size) const;
-
-    bool is_main_memory_exhausted(
-        address_offset_t start_memory_offset,
-        address_offset_t end_memory_offset,
-        bool include_system_reserved_size) const;
-
-    bool is_main_memory_exhausted(
-        address_offset_t start_memory_offset,
-        address_offset_t end_memory_offset,
-        bool include_system_reserved_size,
-        size_t& available_size) const;
+    size_t get_main_memory_available_size() const;
 
     // Given an allocation offset, set up the allocation metadata and returns the offset past it.
     address_offset_t process_allocation(address_offset_t allocation_offset, size_t size_to_allocate) const;

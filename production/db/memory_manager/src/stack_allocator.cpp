@@ -15,11 +15,6 @@ stack_allocator_t::stack_allocator_t()
     m_metadata = nullptr;
 }
 
-void stack_allocator_t::set_execution_flags(const execution_flags_t& execution_flags)
-{
-    m_execution_flags = execution_flags;
-}
-
 error_code_t stack_allocator_t::initialize(
     uint8_t* base_memory_address,
     address_offset_t memory_offset,

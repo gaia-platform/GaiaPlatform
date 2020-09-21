@@ -37,15 +37,11 @@ struct stack_allocator_metadata_t
     // Offset where we can make the next allocation.
     address_offset_t next_allocation_offset;
 
-    // Serialization number associated with this allocator; this will be set late.
-    serialization_number_t serialization_number;
-
     void clear()
     {
         count_allocations = 0;
         first_allocation_size = 0;
         next_allocation_offset = 0;
-        serialization_number = 0;
     }
 };
 
