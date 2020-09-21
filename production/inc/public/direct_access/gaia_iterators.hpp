@@ -30,8 +30,6 @@ namespace direct_access {
 //   @tparam T_gaia_ptr a pointer to the Extended Data Class type
 template<typename T_gaia>
 class gaia_iterator_t {
-    gaia_id_t m_id;
-    T_gaia m_obj;
 public:
     using difference_type = std::ptrdiff_t;
     using value_type = T_gaia;
@@ -53,6 +51,10 @@ public:
     reference operator*();
 
     pointer operator->();
+
+private:
+    gaia_id_t m_id;
+    T_gaia m_obj;
 };
 
 // A gaia_container_t is defined within each EDC and used by programmers to scan
@@ -71,8 +73,6 @@ struct gaia_container_t {
 //   @tparam T_foreign_slot an integer indexing the list of references in the T_foreign type
 template <typename T_foreign, int T_foreign_slot>
 class gaia_set_iterator_t {
-    gaia_id_t m_id;
-    T_foreign m_foreign_obj;
 public:
     using difference_type = std::ptrdiff_t;
     using value_type = T_foreign;
@@ -94,6 +94,10 @@ public:
     bool operator==(const gaia_set_iterator_t& rhs) const;
 
     bool operator!=(const gaia_set_iterator_t& rhs) const;
+
+private:
+    gaia_id_t m_id;
+    T_foreign m_foreign_obj;
 };
 
 // A reference_chain_container_t is defined within each EDC that is a parent ("primary") in a "set" relationship.

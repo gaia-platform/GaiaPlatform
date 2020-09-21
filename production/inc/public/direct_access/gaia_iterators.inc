@@ -12,10 +12,14 @@ namespace direct_access
 // Implementation for gaia_iterator_t.
 //
 template <typename T_gaia>
-gaia_iterator_t<T_gaia>::gaia_iterator_t(gaia_id_t id) : m_id(id) {}
+gaia_iterator_t<T_gaia>::gaia_iterator_t(gaia_id_t id)
+    : m_id(id),
+    m_obj(T_gaia::get(id)) {}
 
 template <typename T_gaia>
-gaia_iterator_t<T_gaia>::gaia_iterator_t() : m_id(0) {}
+gaia_iterator_t<T_gaia>::gaia_iterator_t()
+    : m_id(0),
+    m_obj(T_gaia::get(0)) {}
 
 template <typename T_gaia>
 gaia_iterator_t<T_gaia>& gaia_iterator_t<T_gaia>::operator++()
@@ -29,6 +33,7 @@ gaia_iterator_t<T_gaia>& gaia_iterator_t<T_gaia>::operator++()
     if (!ptr)
     {
         m_id = 0;
+        m_obj = T_gaia::get(m_id);
         return *this;
     }
 
@@ -36,10 +41,12 @@ gaia_iterator_t<T_gaia>& gaia_iterator_t<T_gaia>::operator++()
     if (!ptr_next)
     {
         m_id = 0;
+        m_obj = T_gaia::get(m_id);
         return *this;
     }
 
     m_id = ptr_next.id();
+    m_obj = T_gaia::get(m_id);
     return *this;
 }
 
@@ -66,14 +73,12 @@ bool gaia_iterator_t<T_gaia>::operator!=(const gaia_iterator_t& rhs) const
 template <typename T_gaia>
 typename gaia_iterator_t<T_gaia>::reference gaia_iterator_t<T_gaia>::operator*()
 {
-    m_obj = T_gaia::get(m_id);
     return m_obj;
 }
 
 template <typename T_gaia>
 typename gaia_iterator_t<T_gaia>::pointer gaia_iterator_t<T_gaia>::operator->()
 {
-    m_obj = T_gaia::get(m_id);
     return &m_obj;
 }
 
@@ -105,24 +110,24 @@ gaia_iterator_t<T_gaia> gaia_container_t<T_gaia_type, T_gaia>::end()
 //
 template <typename T_foreign, int T_foreign_slot>
 gaia_set_iterator_t<T_foreign, T_foreign_slot>::gaia_set_iterator_t(gaia_id_t id)
-    : m_id(id) {}
+    : m_id(id),
+    m_foreign_obj(T_foreign::get(id)) {}
 
 template <typename T_foreign, int T_foreign_slot>
 gaia_set_iterator_t<T_foreign, T_foreign_slot>::gaia_set_iterator_t()
-    : m_id(0) {}
+    : m_id(0),
+    m_foreign_obj(T_foreign::get(0)) {}
 
 
 template <typename T_foreign, int T_foreign_slot>
 typename gaia_set_iterator_t<T_foreign, T_foreign_slot>::reference gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator*()
 {
-    m_foreign_obj = T_foreign::get(m_id);
     return m_foreign_obj;
 }
 
 template <typename T_foreign, int T_foreign_slot>
 typename gaia_set_iterator_t<T_foreign, T_foreign_slot>::pointer gaia_set_iterator_t<T_foreign, T_foreign_slot>::operator->()
 {
-    m_foreign_obj = T_foreign::get(m_id);
     return &m_foreign_obj;
 }
 
@@ -138,10 +143,12 @@ gaia_set_iterator_t<T_foreign, T_foreign_slot>& gaia_set_iterator_t<T_foreign, T
     if (!ptr)
     {
         m_id = 0;
+        m_foreign_obj = T_foreign::get(m_id);
         return *this;
     }
 
     m_id = ptr.references()[T_foreign_slot];
+    m_foreign_obj = T_foreign::get(m_id);
     return *this;
 }
 

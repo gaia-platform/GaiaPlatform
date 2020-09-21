@@ -3,6 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <algorithm>
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -23,7 +24,7 @@ using namespace gaia::common;
 using namespace gaia::addr_book;
 
 template <typename T_iterator_test_helper>
-class gaia_iterator_test : public db_test_base_t {
+class gaia_iterator_conformance : public db_test_base_t {
 public:
     using iterator_t = typename T_iterator_test_helper::iterator_t;
     using record_t = typename T_iterator_test_helper::record_t;
@@ -35,7 +36,7 @@ protected:
 
 using iterator_suite_t = ::testing::Types<iterator_test_helper_t,
     set_iterator_test_helper_t>;
-TYPED_TEST_SUITE(gaia_iterator_test, iterator_suite_t);
+TYPED_TEST_SUITE(gaia_iterator_conformance, iterator_suite_t);
 
 // Tests for LegacyIterator conformance
 // ================================
@@ -43,7 +44,7 @@ TYPED_TEST_SUITE(gaia_iterator_test, iterator_suite_t);
 // Is the iterator CopyConstructible?
 // A test for MoveConstructible is not required because it is a prerequisite
 // to be CopyConstructible.
-TYPED_TEST(gaia_iterator_test, copy_constructible) {
+TYPED_TEST(gaia_iterator_conformance, copy_constructible) {
     using iterator_t = typename TestFixture::iterator_t;
 
     EXPECT_TRUE(is_copy_constructible<iterator_t>::value)
@@ -51,7 +52,7 @@ TYPED_TEST(gaia_iterator_test, copy_constructible) {
 }
 
 // Is the iterator CopyAssignable?
-TYPED_TEST(gaia_iterator_test, copy_assignable) {
+TYPED_TEST(gaia_iterator_conformance, copy_assignable) {
     using iterator_t = typename TestFixture::iterator_t;
 
     EXPECT_TRUE(is_copy_assignable<iterator_t>::value)
@@ -59,7 +60,7 @@ TYPED_TEST(gaia_iterator_test, copy_assignable) {
 }
 
 // Is the iterator Destructible?
-TYPED_TEST(gaia_iterator_test, destructible) {
+TYPED_TEST(gaia_iterator_conformance, destructible) {
     using iterator_t = typename TestFixture::iterator_t;
 
     EXPECT_TRUE(is_destructible<iterator_t>::value)
@@ -67,7 +68,7 @@ TYPED_TEST(gaia_iterator_test, destructible) {
 }
 
 // Are iterator lvalues Swappable?
-TYPED_TEST(gaia_iterator_test, swappable) {
+TYPED_TEST(gaia_iterator_conformance, swappable) {
     using iterator_t = typename TestFixture::iterator_t;
 
     EXPECT_TRUE(is_swappable<iterator_t>::value)
@@ -76,7 +77,7 @@ TYPED_TEST(gaia_iterator_test, swappable) {
 
 // Does iterator_traits<gaia_iterator_t<edc*>> have member typedefs
 // value_type, difference_type, reference, pointer, and iterator_category?
-TYPED_TEST(gaia_iterator_test, iterator_traits) {
+TYPED_TEST(gaia_iterator_conformance, iterator_traits) {
     using iterator_t = typename TestFixture::iterator_t;
 
     // This test can only fail in compile time.
@@ -97,7 +98,7 @@ TYPED_TEST(gaia_iterator_test, iterator_traits) {
 }
 
 // Are iterators pre-incrementable?
-TYPED_TEST(gaia_iterator_test, pre_incrementable) {
+TYPED_TEST(gaia_iterator_conformance, pre_incrementable) {
     using record_t = typename TestFixture::record_t;
     using iterator_t = typename TestFixture::iterator_t;
 
@@ -127,7 +128,7 @@ TYPED_TEST(gaia_iterator_test, pre_incrementable) {
 // ================================
 
 // Is the iterator EqualityComparable?
-TYPED_TEST(gaia_iterator_test, equality_comparable) {
+TYPED_TEST(gaia_iterator_conformance, equality_comparable) {
     using record_t = typename TestFixture::record_t;
     using iterator_t = typename TestFixture::iterator_t;
 
@@ -161,7 +162,7 @@ TYPED_TEST(gaia_iterator_test, equality_comparable) {
 }
 
 // Does the iterator support the not-equal (!=) operator?
-TYPED_TEST(gaia_iterator_test, not_equal) {
+TYPED_TEST(gaia_iterator_conformance, not_equal) {
     using record_t = typename TestFixture::record_t;
     using iterator_t = typename TestFixture::iterator_t;
 
@@ -196,7 +197,7 @@ TYPED_TEST(gaia_iterator_test, not_equal) {
 
 // Is the reference iterator trait convertible into the value_type iterator
 // trait?
-TYPED_TEST(gaia_iterator_test, reference_convertibility) {
+TYPED_TEST(gaia_iterator_conformance, reference_convertibility) {
     using iterator_t = typename TestFixture::iterator_t;
 
     typedef typename iterator_traits<iterator_t>::reference from_t;
@@ -210,7 +211,7 @@ TYPED_TEST(gaia_iterator_test, reference_convertibility) {
 }
 
 // Are iterators dereferenceable as rvalues?
-TYPED_TEST(gaia_iterator_test, dereferenceable_rvalue) {
+TYPED_TEST(gaia_iterator_conformance, dereferenceable_rvalue) {
     using record_t = typename TestFixture::record_t;
     using iterator_t = typename TestFixture::iterator_t;
 
@@ -226,7 +227,7 @@ TYPED_TEST(gaia_iterator_test, dereferenceable_rvalue) {
 }
 
 // If two rvalue iterators are equal then their dereferenced values are equal.
-TYPED_TEST(gaia_iterator_test, dereferenceable_equality) {
+TYPED_TEST(gaia_iterator_conformance, dereferenceable_equality) {
     using record_t = typename TestFixture::record_t;
     using iterator_t = typename TestFixture::iterator_t;
 
@@ -242,7 +243,7 @@ TYPED_TEST(gaia_iterator_test, dereferenceable_equality) {
 
 // When an iterator is dereferenced, can the object members be accessed?
 // Test of the arrow operator (->).
-TYPED_TEST(gaia_iterator_test, deref_arrow) {
+TYPED_TEST(gaia_iterator_conformance, deref_arrow) {
     using record_t = typename TestFixture::record_t;
     using iterator_t = typename TestFixture::iterator_t;
 
@@ -256,7 +257,7 @@ TYPED_TEST(gaia_iterator_test, deref_arrow) {
 }
 
 // Does (void)iter++ have the same effect as (void)++iter?
-TYPED_TEST(gaia_iterator_test, pre_inc_and_post_inc) {
+TYPED_TEST(gaia_iterator_conformance, pre_inc_and_post_inc) {
     using record_t = typename TestFixture::record_t;
     using iterator_t = typename TestFixture::iterator_t;
 
@@ -286,7 +287,7 @@ TYPED_TEST(gaia_iterator_test, pre_inc_and_post_inc) {
 }
 
 // Does derefencing and postincrementing *iter++ have the expected effects?
-TYPED_TEST(gaia_iterator_test, deref_and_postinc) {
+TYPED_TEST(gaia_iterator_conformance, deref_and_postinc) {
     using record_t = typename TestFixture::record_t;
     using iterator_t = typename TestFixture::iterator_t;
 
@@ -322,7 +323,7 @@ TYPED_TEST(gaia_iterator_test, deref_and_postinc) {
 // ================================
 
 // Is the iterator DefaultConstructible?
-TYPED_TEST(gaia_iterator_test, default_constructible) {
+TYPED_TEST(gaia_iterator_conformance, default_constructible) {
     using iterator_t = typename TestFixture::iterator_t;
 
     EXPECT_TRUE(is_default_constructible<iterator_t>::value)
@@ -331,7 +332,7 @@ TYPED_TEST(gaia_iterator_test, default_constructible) {
 
 // Is equality and inequality defined over all iterators for the same
 // underlying sequence?
-TYPED_TEST(gaia_iterator_test, equality_and_inequality_in_sequence) {
+TYPED_TEST(gaia_iterator_conformance, equality_and_inequality_in_sequence) {
     using record_t = typename TestFixture::record_t;
     using iterator_t = typename TestFixture::iterator_t;
 
@@ -367,7 +368,7 @@ TYPED_TEST(gaia_iterator_test, equality_and_inequality_in_sequence) {
 }
 
 // Does post-incrementing the iterator have the expected effects?
-TYPED_TEST(gaia_iterator_test, post_increment) {
+TYPED_TEST(gaia_iterator_conformance, post_increment) {
     using record_t = typename TestFixture::record_t;
     using iterator_t = typename TestFixture::iterator_t;
 
@@ -387,7 +388,7 @@ TYPED_TEST(gaia_iterator_test, post_increment) {
 // Can an iterator iterate over a sequence multiple times to return the same
 // values at the same positions every time? This is known as the multipass
 // guarantee.
-TYPED_TEST(gaia_iterator_test, multipass_guarantee) {
+TYPED_TEST(gaia_iterator_conformance, multipass_guarantee) {
     using record_t = typename TestFixture::record_t;
     using iterator_t = typename TestFixture::iterator_t;
     using record_list_t = typename TestFixture::record_list_t;
@@ -409,4 +410,12 @@ TYPED_TEST(gaia_iterator_test, multipass_guarantee) {
         }
         iter = record_t::list().begin();
     }
+}
+
+// Iterator tests that are not directly for conformance
+// ================================
+
+// Transforms make use of iterators and are a good use case to verify.
+TYPED_TEST(gaia_iterator_conformance, std_transform) {
+    // TODO: write a test using std::transform.
 }

@@ -16,17 +16,13 @@ namespace gaia
 namespace direct_access
 {
 
-class iterator_test_helper_t : public base_iterator_test_helper_t<gaia_iterator_t<employee_t>>
+class iterator_test_helper_t
+    : public base_iterator_test_helper_t<gaia_iterator_t<employee_t>>
 {
 public:
     using iterator_t = gaia_iterator_t<employee_t>;
     using record_t = iterator_traits<iterator_t>::value_type;
     using record_list_t = vector<record_t>;
-
-    string get_string(const int index)
-    {
-        return to_string(index);
-    }
 
     record_list_t insert_records(const int amount)
     {
@@ -36,8 +32,7 @@ public:
         for (int i = 0; i < amount; i++)
         {
             emp_writer.name_first = get_string(i);
-            list.push_back(record_t::get(
-                emp_writer.insert_row()));
+            list.push_back(record_t::get(emp_writer.insert_row()));
         }
         return list;
     }

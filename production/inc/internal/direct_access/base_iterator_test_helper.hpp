@@ -22,7 +22,10 @@ public:
     using record_t = typename iterator_traits<iterator_t>::value_type;
     using record_list_t = vector<record_t>;
 
-    virtual string get_string(const int index) = 0;
+    string get_string(const int index)
+    {
+        return to_string(index);
+    }
 
     virtual record_list_t insert_records(const int amount) = 0;
 
