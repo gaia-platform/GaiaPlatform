@@ -3,4 +3,15 @@ IndentWidth: 4
 SortIncludes: false
 AlignAfterOpenBracket: DontAlign
 ColumnLimit: 0
+
+# Force pointers to the type for C++.
+DerivePointerAlignment: false
 PointerAlignment: Left
+
+# Align public/final/protected on the left.
+AccessModifierOffset: -4
+
+# Parenthesis placement. Stroustrup style puts the braces on the new line (Laurentiu/Dax way)
+# BreakBeforeBraces: Stroustrup
+# https://stackoverflow.com/questions/29477654/how-to-make-clang-format-add-new-line-before-opening-brace-of-a-function
+# I'd suggest using Linux: Like Attach, but break before braces on function, namespace and class definitions.
