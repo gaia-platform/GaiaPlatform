@@ -22,7 +22,6 @@ class stack_allocator_t : public base_memory_manager_t
 
 public:
 
-    // Only a memory_manager_t can create stack_allocator_t instances.
     stack_allocator_t();
 
     // Sets stack_allocator_t execution flags.

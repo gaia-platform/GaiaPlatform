@@ -24,36 +24,6 @@ struct memory_allocation_metadata_t
     uint64_t allocation_size;
 };
 
-// Common structure of an in-memory linked list node
-// that includes an access_control_t field for synchronization.
-struct memory_list_node_t
-{
-    address_offset_t next;
-    access_control_t access_control;
-
-    void clear()
-    {
-        next = 0;
-        access_control.clear();
-    }
-};
-
-// Generic structure meant for tracking various memory objects,
-// such as freed memory blocks or stack_allocator_t metadata records.
-struct memory_record_t : memory_list_node_t
-{
-    address_offset_t memory_offset;
-    size_t memory_size;
-
-    void clear()
-    {
-        memory_list_node_t::clear();
-
-        memory_offset = 0;
-        memory_size = 0;
-    }
-};
-
 // A stack_allocator_t's metadata information.
 struct stack_allocator_metadata_t
 {
