@@ -157,8 +157,10 @@ public:
  */
 class uninitialized_logger_t : public logger_t {
 public:
+    constexpr static const char* c_uninitialized_logger = "uninitialized";
+
     explicit uninitialized_logger_t()
-        : logger_t("uninitialized") {
+        : logger_t(c_uninitialized_logger) {
     }
 
     template <typename... T_args>

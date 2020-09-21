@@ -34,7 +34,7 @@ private:
 protected:
 
     static void SetUpTestSuite() {
-        gaia_log::initialize(string());
+        gaia_log::initialize({});
     }
 
 

@@ -27,8 +27,6 @@ namespace logging {
 
 class logger_factory_t {
 public:
-    constexpr static const char* c_uninitialized_logger = "uninitialized";
-
     constexpr static const char* c_sys_logger = "sys";
     constexpr static const char* c_db_logger = "db";
     constexpr static const char* c_scheduler_logger = "scheduler";

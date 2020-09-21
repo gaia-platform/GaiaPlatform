@@ -15,7 +15,7 @@ class test_logging_t : public ::testing::Test {
 
 protected:
     static void SetUpTestSuite() {
-        gaia_log::initialize(string());
+        gaia_log::initialize({});
     }
 };
 

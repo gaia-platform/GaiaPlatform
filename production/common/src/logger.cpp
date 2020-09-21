@@ -19,7 +19,7 @@ namespace gaia::common::logging {
 logger_t::logger_t(const string& logger_name) : m_logger_name(logger_name) {
     // Allow uninitialized instances to be created
     // for bootstrapping.
-    if (logger_factory_t::c_uninitialized_logger == logger_name) {
+    if (uninitialized_logger_t::c_uninitialized_logger == logger_name) {
         return;
     }
 
