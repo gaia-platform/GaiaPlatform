@@ -11,6 +11,7 @@
 #include "retail_assert.hpp"
 #include "gaia_db.hpp"
 #include "types.hpp"
+#include "type_metadata.hpp"
 
 using namespace gaia::common;
 
@@ -18,12 +19,12 @@ namespace gaia {
 namespace db {
 
 class gaia_ptr {
-  private:
+private:
     int64_t row_id;
     void create_insert_trigger(gaia_type_t type, gaia_id_t id);
     void clone_no_tx();
 
-  public:
+public:
     gaia_ptr(const std::nullptr_t = nullptr)
         : row_id(0) {}
 
@@ -49,11 +50,27 @@ class gaia_ptr {
     static gaia_id_t generate_id();
 
     static gaia_ptr create(
+        gaia_type_t type,
+        size_t data_size,
+        const void* data) {
+
+        gaia_id_t id = gaia_ptr::generate_id();
+        auto metadata = type_registry_t::instance().get_or_create(type);
+        size_t num_references = metadata.num_references();
+
+        return create(id, type, num_references, data_size, data);
+    }
+
+    static gaia_ptr create(
         gaia_id_t id,
         gaia_type_t type,
         size_t data_size,
         const void* data) {
-        return create(id, type, 0, data_size, data);
+
+        auto metadata = type_registry_t::instance().get_or_create(type);
+        size_t num_references = metadata.num_references();
+
+        return create(id, type, num_references, data_size, data);
     }
 
     static gaia_ptr create(
@@ -164,7 +181,51 @@ class gaia_ptr {
         return to_ptr()->num_references;
     }
 
-  protected:
+    /**
+     * Adds a child reference to a parent object.
+     *
+     * Calling `parent.add_child_reference(child)` is the same as calling
+     * `child.add_parent_reference(parent)`.
+     *
+     * @param child_id The id of the children.
+     * @param first_child_offset The offset in the references array where the pointer to the child is placed.
+     * @throws Exceptions there is no relationship between the parent and the child or if other
+     *         integrity constraints are violated.
+     */
+    void add_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset);
+
+    /**
+     * Add a parent reference to a child object.
+     *
+     * Note: Children objects have 2 pointers per relationship (next_child_offset, parent_offset)
+     * only one (parent_offset) is used to denote the relationship with parent.
+     *
+     * @param parent_id The id of the parent
+     * @param parent_offset The offset in the references array where the pointer to the parent is placed.
+     * @throws Exceptions there is no relationship between the parent and the child  or if other
+     *         integrity constraints are violated.
+     */
+    void add_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset);
+
+    /**
+     * Removes a child reference from a parent object. Without an index this operation
+     * could have O(n) time complexity where n is the number of children.
+     *
+     * @param child_id The id of the children to be removed.
+     * @param first_child_offset The offset, in the references array, of the pointer to the first child.
+     */
+    void remove_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset);
+
+    /**
+     * Removes a parent reference from a child object. Without an index this operation
+     * could have O(n) time complexity where n is the number of children.
+     *
+     * @param parent_id The id of the parent to be removed.
+     * @param parent_offset The offset, in the references array, of the pointer to the parent.
+     */
+    void remove_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset);
+
+protected:
     gaia_ptr(const gaia_id_t id);
 
     gaia_ptr(const gaia_id_t id, const size_t size);
