@@ -141,38 +141,6 @@ error_code_t memory_manager_t::allocate(
     return error_code_t::success;
 }
 
-error_code_t memory_manager_t::create_stack_allocator(
-    size_t memory_size,
-    stack_allocator_t*& stack_allocator) const
-{
-    stack_allocator = nullptr;
-
-    if (m_metadata == nullptr)
-    {
-        return error_code_t::not_initialized;
-    }
-
-    address_offset_t memory_offset = 0;
-    error_code_t error_code = allocate(memory_size, memory_offset);
-    if (error_code != error_code_t::success)
-    {
-        return error_code;
-    }
-
-    stack_allocator = new stack_allocator_t();
-
-    stack_allocator->set_execution_flags(m_execution_flags);
-
-    error_code = stack_allocator->initialize(m_base_memory_address, memory_offset, memory_size);
-    if (error_code != error_code_t::success)
-    {
-        delete stack_allocator;
-        stack_allocator = nullptr;
-    }
-
-    return error_code;
-}
-
 error_code_t memory_manager_t::commit_stack_allocator(
     stack_allocator_t* stack_allocator,
     serialization_number_t serialization_number) const

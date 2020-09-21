@@ -557,6 +557,11 @@ TEST_F(gaia_references_test, thread_inserts) {
     t = thread(insert_addressee, true, e1.gaia_id(), a1.gaia_id(), a2.gaia_id(), a3.gaia_id());
     t.join();
 
+    // Get a new transaction so we can get a new view of the employee instead of
+    // the old view under the previous transaction. We will not be able to see
+    // references updated in outside transactions.
+    tx.commit();
+
     // Count the members. They should show up.
     int count = 0;
     for (auto a : e1.addressee_address_list()) {

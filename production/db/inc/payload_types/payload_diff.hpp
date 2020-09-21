@@ -9,10 +9,10 @@ namespace gaia
 {
 namespace db
 {
-namespace types
+namespace payload_types
 {
 
-/** 
+/**
  * This API assumes we're already in transaction scope.
  * Pass in non-null position_list to cache field positions.
  */

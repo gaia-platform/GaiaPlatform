@@ -38,6 +38,7 @@ TEST(memory_manager, stack_allocator)
     const size_t memory_size = 8000;
     const size_t main_memory_system_reserved_size = 1000;
     uint8_t memory[memory_size];
+    address_offset_t memory_offset = 0;
 
     memory_manager_t memory_manager;
 
@@ -54,8 +55,11 @@ TEST(memory_manager, stack_allocator)
 
     size_t stack_allocator_memory_size = 2000;
 
-    stack_allocator_t* stack_allocator = nullptr;
-    error_code = memory_manager.create_stack_allocator(stack_allocator_memory_size, stack_allocator);
+    stack_allocator_t* stack_allocator = new stack_allocator_t();
+    stack_allocator->set_execution_flags(execution_flags);
+    error_code = memory_manager.allocate(stack_allocator_memory_size, memory_offset);
+    ASSERT_EQ(error_code_t::success, error_code);
+    error_code = stack_allocator->initialize(memory, memory_offset, stack_allocator_memory_size);
     ASSERT_EQ(error_code_t::success, error_code);
 
     size_t first_allocation_size = 64;

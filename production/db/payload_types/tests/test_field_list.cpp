@@ -10,7 +10,7 @@
 #include "db_test_base.hpp"
 
 using namespace std;
-using namespace gaia::db::types;
+using namespace gaia::db::payload_types;
 
 class field_list : public db_test_base_t {
 protected:
