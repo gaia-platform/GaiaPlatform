@@ -20,7 +20,7 @@ namespace gaia
 {
 namespace db
 {
-namespace types
+namespace payload_types
 {
 
 typedef std::unordered_map<field_position_t, const reflection::Field*> field_map_t;

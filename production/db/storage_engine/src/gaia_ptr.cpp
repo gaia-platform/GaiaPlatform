@@ -20,17 +20,21 @@ gaia_id_t gaia_ptr::generate_id() {
     return gaia_boot_t::get().get_next_id();
 }
 
-gaia_ptr& gaia_ptr::clone() {
+void gaia_ptr::clone_no_tx() {
     auto old_this = to_ptr();
-    auto old_offset = to_offset();
     auto new_size = sizeof(gaia_se_object_t) + old_this->payload_size;
     allocate(new_size);
     auto new_this = to_ptr();
-
     memcpy(new_this, old_this, new_size);
+}
+
+gaia_ptr& gaia_ptr::clone() {
+    auto old_offset = to_offset();
+    clone_no_tx();
 
     client::tx_log(row_id, old_offset, to_offset(), gaia_operation_t::clone);
 
+    auto new_this = to_ptr();
     if (client::is_valid_event(new_this->type)) {
         client::s_events.push_back(trigger_event_t {event_type_t::row_insert, new_this->type, new_this->id, empty_position_list});
     }
@@ -61,17 +65,40 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data) {
     if (client::is_valid_event(new_this->type)) {
         auto old_data = (const uint8_t*) old_this->payload;
 
-        const uint8_t* old_data_payload; 
+        const uint8_t* old_data_payload;
 
         if (old_this->num_references) {
             old_data_payload = old_data + sizeof(gaia_id_t) * old_this->num_references;
         }
         // Compute field diff
         field_position_list_t position_list;
-        gaia::db::types::compute_payload_diff(new_this->type, old_data_payload, (const uint8_t*) data, &position_list);
+        gaia::db::payload_types::compute_payload_diff(new_this->type, old_data_payload, (const uint8_t*) data, &position_list);
         client::s_events.push_back(trigger_event_t {event_type_t::row_update, new_this->type, new_this->id, position_list});
     }
 
+    return *this;
+}
+
+gaia_ptr& gaia_ptr::update_parent_references(size_t child_slot, gaia_id_t child_id) {
+    auto old_offset = to_offset();
+    clone_no_tx();
+
+    references()[child_slot] = child_id;
+
+    client::tx_log(row_id, old_offset, to_offset(), gaia_operation_t::update);
+    return *this;
+}
+
+gaia_ptr& gaia_ptr::update_child_references(
+    size_t next_child_slot, gaia_id_t next_child_id,
+    size_t parent_slot, gaia_id_t parent_id) {
+    auto old_offset = to_offset();
+    clone_no_tx();
+
+    references()[next_child_slot] = next_child_id;
+    references()[parent_slot] = parent_id;
+
+    client::tx_log(row_id, old_offset, to_offset(), gaia_operation_t::update);
     return *this;
 }
 

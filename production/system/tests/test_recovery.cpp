@@ -9,77 +9,84 @@
 #include <string>
 #include <vector>
 #include <map>
+
+#include "gtest/gtest.h"
+
 #include "gaia_system.hpp"
 #include "gaia_db.hpp"
 #include "gaia_addr_book.h"
 #include "system_error.hpp"
 #include "db_test_helpers.hpp"
 
-using namespace std;
 using namespace gaia::db;
 using namespace gaia::common;
 using namespace gaia::addr_book;
 
-// Todo (Mihir) - Run with ctest?
+using std::string;
+
+// TODO (Mihir) - Run with ctest?
 // Sample usage:
 // test_recovery "/home/ubuntu/GaiaPlatform/production/build/db/storage_engine"
 
-// Write 16 records in a single transaction.
-size_t load_batch_size = 16;
-// Size of a single record.
-size_t employee_record_size_bytes = 648;
-// Size of a string field in a record.
-size_t field_size_bytes = 128;
+namespace { // Using unnamed namespace to limit scope of global variables
 
-size_t total_validation_loop_count = 10;
+// Path to the storage engine server executable.
+string g_server_dir_path;
+// Write 16 records in a single transaction.
+size_t c_load_batch_size = 16;
+// Size of a single record.
+size_t c_employee_record_size_bytes = 648;
+// Size of a string field in a record.
+size_t c_field_size_bytes = 128;
 
 // Don't cache direct access objects as they will
 // point to garbage values post crash recovery.
 struct employee_copy_t {
-    string name_first; 
+    string name_first;
     string name_last;
     string ssn;
     int64_t hire_date;
     string email;
-    string web; 
+    string web;
 };
 
 // Map of employees for which the server has returned a successful commit.
 // We maintain this map in memory & will use it to validate recovered shared memory post crash.
 std::map<gaia_id_t, employee_copy_t> employee_map;
 
+} // namespace
+
 void validate_data() {
     size_t count = 0;
     begin_transaction();
     for (auto employee = employee_t::get_first(); employee; employee = employee.get_next()) {
-    // while (employee != employee_t::list().end()) {
         auto it = employee_map.find(employee.gaia_id());
-        
+
         if (it == employee_map.end()) {
-            // There might be other tests that create employees. 
+            // There might be other tests that create employees.
             continue;
         }
 
         auto employee_expected = it->second;
 
-        assert(strcmp(employee_expected.email.data(), employee.email()) == 0); 
-        assert(strcmp(employee_expected.name_last.data(), employee.name_last()) == 0);
-        assert(strcmp(employee_expected.name_first.data(), employee.name_first()) == 0);
-        assert(strcmp(employee_expected.ssn.data(), employee.ssn()) == 0);
-        assert(employee_expected.hire_date == employee.hire_date());
-        assert(strcmp(employee_expected.web.data(), employee.web()) == 0);
+        ASSERT_STREQ(employee_expected.email.data(), employee.email());
+        ASSERT_STREQ(employee_expected.name_last.data(), employee.name_last());
+        ASSERT_STREQ(employee_expected.name_first.data(), employee.name_first());
+        ASSERT_STREQ(employee_expected.ssn.data(), employee.ssn());
+        ASSERT_EQ(employee_expected.hire_date, employee.hire_date());
+        ASSERT_STREQ(employee_expected.web.data(), employee.web());
 
         count++;
     }
 
     cout << "Total count before recovery " << employee_map.size() << endl;
     cout << "Total count after recovery " << count << endl;
-    assert(count == employee_map.size());
+    ASSERT_EQ(count, employee_map.size());
     commit_transaction();
     cout << "Validation complete." << endl;
 }
 
-gaia_id_t get_random_map_key(std::map<gaia_id_t, employee_copy_t> m) {  
+gaia_id_t get_random_map_key(map<gaia_id_t, employee_copy_t> m) {
     auto it = m.begin();
     std::advance(it, rand() % m.size());
     return it->first;
@@ -93,19 +100,17 @@ void stop_server(db_server_t& server) {
     server.stop();
 }
 
-std::string generate_string( size_t length_in_bytes )
-{
-    auto randchar = []() -> char
-    {
+string generate_string(size_t length_in_bytes) {
+    auto randchar = []() -> char {
         const char charset[] =
-        "0123456789"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz";
+            "0123456789"
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "abcdefghijklmnopqrstuvwxyz";
         const size_t max_index = (sizeof(charset) - 1);
-        return charset[ rand() % max_index ];
+        return charset[rand() % max_index];
     };
-    std::string str(length_in_bytes,0);
-    std::generate_n(str.begin(), length_in_bytes, randchar);
+    string str(length_in_bytes, 0);
+    generate_n(str.begin(), length_in_bytes, randchar);
     return str;
 }
 
@@ -117,7 +122,7 @@ void modify_data() {
         auto to_update = employee_map.find(get_random_map_key(employee_map));
         employee_t e1 = employee_t::get(to_update->first);
         auto w1 = e1.writer();
-        auto name_first = generate_string(field_size_bytes);
+        auto name_first = generate_string(c_field_size_bytes);
         w1.name_first = name_first;
         w1.update_row();
         commit_transaction();
@@ -141,24 +146,21 @@ void modify_data() {
 // Method will generate an employee record of size 128 * 5 + 8 (648) bytes.
 employee_t generate_employee_record() {
     auto w = employee_writer();
-    w.name_first = generate_string(field_size_bytes);
-    w.name_last = generate_string(field_size_bytes);
-    w.ssn = generate_string(field_size_bytes);
+    w.name_first = generate_string(c_field_size_bytes);
+    w.name_last = generate_string(c_field_size_bytes);
+    w.ssn = generate_string(c_field_size_bytes);
     w.hire_date = rand();
-    w.email = generate_string(field_size_bytes);
-    w.web = generate_string(field_size_bytes);
+    w.email = generate_string(c_field_size_bytes);
+    w.web = generate_string(c_field_size_bytes);
 
     gaia_id_t id = w.insert_row();
-    auto e = employee_t::get(id);
-
-    assert(e.name_first() == w.name_first);
-    return e;
+    return employee_t::get(id);
 }
 
 void load_data(uint64_t total_size_bytes, bool kill_server_during_load, db_server_t& server, const char* path) {
-    auto records = total_size_bytes / employee_record_size_bytes + 1;
-    
-    auto number_of_transactions = records / load_batch_size + 1;
+    auto records = total_size_bytes / c_employee_record_size_bytes + 1;
+
+    auto number_of_transactions = records / c_load_batch_size + 1;
 
     cout << "Loading data: Total number of records " << records << endl;
     cout << "Loading data: Total number of transactions " << number_of_transactions << endl;
@@ -168,7 +170,7 @@ void load_data(uint64_t total_size_bytes, bool kill_server_during_load, db_serve
         // Load a batch per transaction.
         std::map<gaia_id_t, employee_copy_t> temp_employee_map;
         begin_transaction();
-        for (uint64_t batch_count = 1; batch_count <= load_batch_size; batch_count++) {
+        for (uint64_t batch_count = 1; batch_count <= c_load_batch_size; batch_count++) {
             // Insert row.
             auto e = generate_employee_record();
             temp_employee_map.insert(make_pair(e.gaia_id(), employee_copy_t{e.name_first(), e.name_last(), e.ssn(), e.hire_date(), e.email(), e.web()}));
@@ -177,7 +179,7 @@ void load_data(uint64_t total_size_bytes, bool kill_server_during_load, db_serve
 
         employee_map.insert(temp_employee_map.begin(), temp_employee_map.end());
         temp_employee_map.clear();
-        assert(temp_employee_map.size() == 0);
+        ASSERT_EQ(temp_employee_map.size(), 0);
 
         // Crash during load.
         if (kill_server_during_load && transaction_id % 5 == 0) {
@@ -193,7 +195,7 @@ void load_data(uint64_t total_size_bytes, bool kill_server_during_load, db_serve
         }
     }
 
-    cout << "Load completed for " << employee_map.size() << " records."<< endl;
+    cout << "Load completed for " << employee_map.size() << " records." << endl;
 }
 
 int get_count() {
@@ -221,7 +223,7 @@ void delete_all(int initial_record_count) {
     commit_transaction();
 
     int count = 0;
-    
+
     while (true) {
         begin_transaction();
         auto to_delete_copy = to_delete;
@@ -234,11 +236,11 @@ void delete_all(int initial_record_count) {
             }
             count++;
             employee_map.erase(id);
-            to_delete.erase(id);    
+            to_delete.erase(id);
         }
         commit_transaction();
         cout << "Remaining count " << get_count() << endl;
-        if(get_count() == 0 || get_count() == initial_record_count) {
+        if (get_count() == 0 || get_count() == initial_record_count) {
             break;
         }
     }
@@ -248,11 +250,11 @@ void delete_all(int initial_record_count) {
 }
 
 void load_modify_recover_test(db_server_t server,
-    std::string server_dir_path,
+    string server_dir_path,
     uint64_t load_size_bytes,
     int crash_validate_loop_count,
     bool kill_during_workload) {
-    int initial_record_count; 
+    int initial_record_count;
     // Start server.
     restart_server(server, server_dir_path.data());
     begin_session();
@@ -283,12 +285,12 @@ void load_modify_recover_test(db_server_t server,
     // Validate all data deleted.
     restart_server(server, server_dir_path.data());
     begin_session();
-    assert(get_count() == initial_record_count || get_count() == 0);
+    ASSERT_TRUE(get_count() == initial_record_count || get_count() == 0);
     end_session();
     stop_server(server);
 }
 
-void ensure_uncommitted_value_absent_on_restart_and_commit_new_tx_test(db_server_t server, std::string server_dir_path) {
+void ensure_uncommitted_value_absent_on_restart_and_commit_new_tx_test(db_server_t server, string server_dir_path) {
     gaia_id_t id;
     restart_server(server, server_dir_path.data());
     begin_session();
@@ -301,18 +303,18 @@ void ensure_uncommitted_value_absent_on_restart_and_commit_new_tx_test(db_server
     restart_server(server, server_dir_path.data());
     begin_session();
     begin_transaction();
-    assert(!employee_t::get(id));
+    ASSERT_FALSE(employee_t::get(id));
     // Check logging + commit path functional.
     auto e2 = generate_employee_record();
     id = e2.gaia_id();
     auto name_first = e2.name_first();
-    assert(employee_t::get(id).gaia_id() == id);
-    assert(employee_t::get(id).name_first() == name_first);
+    ASSERT_EQ(employee_t::get(id).gaia_id(), id);
+    ASSERT_STREQ(employee_t::get(id).name_first(), name_first);
     commit_transaction();
     end_session();
 }
 
-void ensure_uncommitted_value_absent_on_restart_and_rollback_new_tx(db_server_t server, std::string server_dir_path) {
+void ensure_uncommitted_value_absent_on_restart_and_rollback_new_tx(db_server_t server, string server_dir_path) {
     gaia_id_t id;
     restart_server(server, server_dir_path.data());
     begin_session();
@@ -325,49 +327,124 @@ void ensure_uncommitted_value_absent_on_restart_and_rollback_new_tx(db_server_t 
     restart_server(server, server_dir_path.data());
     begin_session();
     begin_transaction();
-    assert(!employee_t::get(id));
+    ASSERT_FALSE(employee_t::get(id));
     // Check logging + rollback functional.
     auto e2 = generate_employee_record();
     id = e2.gaia_id();
     auto name_first = e2.name_first();
-    assert(employee_t::get(id).gaia_id() == id);
-    assert(employee_t::get(id).name_first() == name_first);
+    ASSERT_EQ(employee_t::get(id).gaia_id(), id);
+    ASSERT_STREQ(employee_t::get(id).name_first(), name_first);
     rollback_transaction();
     end_session();
 }
 
-/**
- * Test Recovery with a single threaded client.
- */
-int main(int, char *argv[]) {
-    int result = 0;
-    db_server_t server;
-    // Path of directory where server executable resides.
-    std::string server_dir_path =  argv[1];
-    employee_map.clear();
+class recovery_test : public ::testing::Test {
+  protected:
+    static db_server_t m_server;
+};
 
-    // 1) Basic correctness test.
-    {
-        ensure_uncommitted_value_absent_on_restart_and_commit_new_tx_test(server, server_dir_path);
-        ensure_uncommitted_value_absent_on_restart_and_rollback_new_tx(server, server_dir_path);
-    }
+db_server_t recovery_test::m_server;
 
-    // 2) Load & Recover test - with data size less than write buffer size; 
+TEST_F(recovery_test, basic_correctness_test) {
+    // Basic correctness test.
+    ensure_uncommitted_value_absent_on_restart_and_commit_new_tx_test(m_server, g_server_dir_path);
+    ensure_uncommitted_value_absent_on_restart_and_rollback_new_tx(m_server, g_server_dir_path);
+}
+
+TEST_F(recovery_test, load_and_recover_test) {
+    // Load & Recover test - with data size less than write buffer size;
     // All writes will be confined to the WAL & will not make it to SST (DB binary file)
     // Sigkill server.
-    {
-        load_modify_recover_test(server, server_dir_path, 0.1 * 1024 * 1024, 2, true); 
-    }
+    load_modify_recover_test(m_server, g_server_dir_path, 0.1 * 1024 * 1024, 2, true);
+}
 
-    // 3) Load (more data) & Recover test - with data size greater than write buffer size. 
+TEST_F(recovery_test, DISABLED_load_more_data_and_recover_test) {
+    // Load (more data) & Recover test - with data size greater than write buffer size.
     // Writes will exist in both the WAL & SST files.
-    // Todo - Test is switched off as it takes some time to run. Run on teamcity.
+    // TODO - Test is switched off as it takes some time to run. Run on teamcity.
+    load_modify_recover_test(m_server, g_server_dir_path, 16 * 1024 * 1024, 1, false);
+}
+
+// TODO (Mihir) Validate gaia_id is not recycled post crash.
+
+TEST_F(recovery_test, reference_update_test) {
+    restart_server(m_server, g_server_dir_path.c_str());
+    begin_session();
+    gaia_id_t address_id{INVALID_GAIA_ID};
     {
-        // load_modify_recover_test(server, server_dir_path, 16 * 1024 * 1024, 1, false); 
+        // Add an address.
+        auto_transaction_t tx;
+        address_writer w;
+        w.street = generate_string(c_field_size_bytes);
+        w.apt_suite = generate_string(c_field_size_bytes);
+        w.city = generate_string(c_field_size_bytes);
+        w.state = generate_string(c_field_size_bytes);
+        w.postal = generate_string(c_field_size_bytes);
+        w.country = generate_string(c_field_size_bytes);
+        w.current = true;
+        address_id = w.insert_row();
+        tx.commit();
     }
+    ASSERT_NE(address_id, INVALID_GAIA_ID);
 
-    // Todo (Mihir)
-    // 4) Validate gaia_id is not recycled post crash.
+    std::set<gaia_id_t> phone_ids;
+    {
+        // Insert some phone records.
+        auto_transaction_t tx;
+        for (size_t i = 0; i < 10; i++) {
+            phone_writer w;
+            w.phone_number = generate_string(c_field_size_bytes);
+            w.type = generate_string(c_field_size_bytes);
+            w.primary = true;
+            gaia_id_t phone_id = w.insert_row();
+            ASSERT_NE(phone_id, INVALID_GAIA_ID);
+            phone_ids.insert(phone_id);
+        }
+        tx.commit();
+    }
+    {
+        // Link the phone records to the address.
+        auto_transaction_t tx;
+        for (gaia_id_t phone_id : phone_ids) {
+            address_t::get(address_id).phone_list().insert(phone_id);
+        }
+        tx.commit();
+    }
+    end_session();
 
-    return result;
+    restart_server(m_server, g_server_dir_path.c_str());
+    begin_session();
+    std::set<gaia_id_t> recovered_phone_ids;
+    {
+        auto_transaction_t tx;
+        // Make sure address cannot be deleted upon recovery.
+        ASSERT_THROW(address_t::get(address_id).delete_row(), node_not_disconnected);
+        for (auto phone : address_t::get(address_id).phone_list()) {
+            recovered_phone_ids.insert(phone.gaia_id());
+        }
+        // Make sure the references are recovered.
+        ASSERT_EQ(phone_ids, recovered_phone_ids);
+
+        // Delete links between the phone records and the address record.
+        for (gaia_id_t phone_id : recovered_phone_ids) {
+            address_t::get(address_id).phone_list().erase(phone_id);
+        }
+        tx.commit();
+    }
+    end_session();
+
+    restart_server(m_server, g_server_dir_path.c_str());
+    begin_session();
+    begin_transaction();
+    auto phone_list = address_t::get(address_id).phone_list();
+    // Make sure the references are deleted on recovery.
+    ASSERT_EQ(phone_list.begin(), phone_list.end());
+    commit_transaction();
+    end_session();
+}
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    g_server_dir_path = argv[1];
+    return RUN_ALL_TESTS();
 }

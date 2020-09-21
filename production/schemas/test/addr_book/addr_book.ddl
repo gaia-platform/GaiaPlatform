@@ -1,4 +1,4 @@
-create table employee (
+create table if not exists employee (
     name_first: string active,
     name_last: string,
     ssn: string,
@@ -8,7 +8,7 @@ create table employee (
     manages references employee
 );
 
-create table address (
+create table if not exists address (
     street: string,
     apt_suite: string,
     city: string,
@@ -19,7 +19,7 @@ create table address (
     addressee references employee
 );
 
-create table phone (
+create table if not exists phone (
     phone_number: string active,
     type: string active,
     primary: bool active,

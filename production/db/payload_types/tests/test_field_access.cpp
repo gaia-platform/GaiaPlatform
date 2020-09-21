@@ -13,7 +13,7 @@
 
 using namespace std;
 using namespace gaia::common;
-using namespace gaia::db::types;
+using namespace gaia::db::payload_types;
 
 const gaia_type_t c_type_id = 88;
 
@@ -323,12 +323,12 @@ void process_flatbuffers_data(bool access_fields = false)
     ASSERT_EQ(0, type_cache_t::get()->size());
 }
 
-TEST(types, type_cache)
+TEST(payload_types, payload_type_cache)
 {
     process_flatbuffers_data();
 }
 
-TEST(types, field_access)
+TEST(payload_types, field_access)
 {
     process_flatbuffers_data(true);
 }
@@ -534,7 +534,7 @@ void update_flatbuffers_data()
     ASSERT_EQ(1, type_cache_t::get()->size());
 }
 
-TEST(types, field_update)
+TEST(payload_types, field_update)
 {
     update_flatbuffers_data();
 }

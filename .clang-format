@@ -3,3 +3,4 @@ IndentWidth: 4
 SortIncludes: false
 AlignAfterOpenBracket: DontAlign
 ColumnLimit: 0
+PointerAlignment: Left

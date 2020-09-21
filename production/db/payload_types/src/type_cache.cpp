@@ -9,7 +9,7 @@
 
 using namespace std;
 using namespace gaia::common;
-using namespace gaia::db::types;
+using namespace gaia::db::payload_types;
 
 type_cache_t type_cache_t::s_type_cache;
 

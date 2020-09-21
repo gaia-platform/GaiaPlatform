@@ -175,10 +175,19 @@ void catalog_manager_t::create_system_tables() {
     }
 }
 
+void catalog_manager_t::create_type_map() {
+    gaia::db::begin_transaction();
+    for (auto table = gaia_table_t::get_first(); table; table = table.get_next()) {
+        m_type_map[table.type()] = table.gaia_id();
+    }
+    gaia::db::commit_transaction();
+}
+
 void catalog_manager_t::init() {
     reload_cache();
     bootstrap_catalog();
     create_system_tables();
+    create_type_map();
     // Create the special global database.
     // Tables created without specifying a database name will belong to the global database.
     m_global_db_id = create_database(c_global_db_name, false);
@@ -272,41 +281,13 @@ void catalog_manager_t::drop_table(
     m_table_names.erase(full_table_name);
 }
 
-static gaia_ptr insert_gaia_table_row(
-    gaia_id_t table_id,
-    const char *name,
-    gaia_type_t type,
-    bool is_system,
-    uint8_t trim_action,
-    uint64_t max_rows,
-    uint64_t max_size,
-    uint64_t max_seconds,
-    const char *binary_schema) {
-
-    // NOTE: The number of table references must be updated manually for bootstrapping,
-    //       when the references of the gaia_table change. The constant from existing catalog
-    //       extended data classes "gaia_catalog.h" may be incorrect when that happens.
-    static constexpr size_t c_gaia_table_num_refs = c_num_gaia_table_ptrs;
-
-    flatbuffers::FlatBufferBuilder fbb(c_flatbuffer_builder_size);
-    fbb.Finish(Creategaia_tableDirect(fbb, name, table_id, is_system, trim_action, max_rows, max_size, max_seconds, binary_schema));
-
-    return gaia_ptr::create(
-        table_id,                       // id
-        type,                           // type
-        c_gaia_table_num_refs,          // num_refs
-        fbb.GetSize(),                  // data_size
-        fbb.GetBufferPointer()          // data
-    );
-}
-
 gaia_id_t catalog_manager_t::create_table_impl(
     const string &dbname,
     const string &table_name,
     const field_def_list_t &fields,
     bool is_system,
     bool throw_on_exist,
-    gaia_id_t fixed_id) {
+    gaia_type_t fixed_type) {
 
     unique_lock lock(m_lock);
 
@@ -341,33 +322,17 @@ gaia_id_t catalog_manager_t::create_table_impl(
     string bfbs{generate_bfbs(generate_fbs(dbname, table_name, fields))};
 
     gaia::db::begin_transaction();
-    gaia_id_t table_id;
-    if (fixed_id == INVALID_GAIA_ID) {
-        table_id = gaia_table_t::insert_row(
-            table_name.c_str(),                               // name
-            gaia_boot_t::get().get_next_type(),               // table type
-            is_system,                                        // is_system
-            static_cast<uint8_t>(trim_action_type_t::e_none), // trim_action
-            0,                                                // max_rows
-            0,                                                // max_size
-            0,                                                // max_seconds
-            bfbs.c_str()                                      // bfbs
-        );
-    } else {
-        // NOTE: table_id and table type should be independent
-        table_id = fixed_id;
-        insert_gaia_table_row(
-            table_id,                                         // table id
-            table_name.c_str(),                               // name
-            static_cast<gaia_type_t>(catalog_table_type_t::gaia_table), // table type
-            is_system,                                        // is_system
-            static_cast<uint8_t>(trim_action_type_t::e_none), // trim_action
-            0,                                                // max_rows
-            0,                                                // max_size
-            0,                                                // max_seconds
-            bfbs.c_str()                                      // bfbs
-        );
-    }
+    gaia_type_t table_type = fixed_type == INVALID_GAIA_TYPE ? gaia_boot_t::get().get_next_type() : fixed_type;
+    gaia_id_t table_id = gaia_table_t::insert_row(
+        table_name.c_str(),                               // name
+        table_type,                                       // table type
+        is_system,                                        // is_system
+        static_cast<uint8_t>(trim_action_type_t::e_none), // trim_action
+        0,                                                // max_rows
+        0,                                                // max_size
+        0,                                                // max_seconds
+        bfbs.c_str()                                      // bfbs
+    );
 
     // Connect the table to the database
     gaia_database_t::get(db_id).gaia_table_list().insert(table_id);
@@ -415,6 +380,7 @@ gaia_id_t catalog_manager_t::create_table_impl(
     gaia::db::commit_transaction();
 
     m_table_names[full_table_name] = table_id;
+    m_type_map[table_type] = table_id;
     return table_id;
 }
 
@@ -431,6 +397,14 @@ inline gaia_id_t catalog_manager_t::find_db_id_no_lock(const string &dbname) con
     } else {
         return INVALID_GAIA_ID;
     }
+}
+
+gaia_id_t catalog_manager_t::find_table_id(gaia_type_t type) {
+    shared_lock lock(m_lock);
+    if (m_type_map.find(type) == m_type_map.end()) {
+        throw_system_error("Trying to look up non-existant table");
+    }
+    return m_type_map[type];
 }
 
 vector<gaia_id_t> catalog_manager_t::list_fields(gaia_id_t table_id) const {
