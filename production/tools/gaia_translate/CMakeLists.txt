@@ -5,10 +5,13 @@ project(gaiat VERSION 0.0.0)
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 
 set(TRANSLATION_ENGINE_INCLUDES
-  ${GAIA_PROD_BUILD}/../third_party/private/TranslationEngineLLVM/TranslationEngineLLVM/clang/include
-  ${GAIA_PROD_BUILD}/../third_party/private/TranslationEngineLLVM/TranslationEngineLLVM/llvm/include
-  ${GAIA_PROD_BUILD}/../third_party/private/TranslationEngineLLVM/tools/clang/include
-  ${GAIA_PROD_BUILD}/../third_party/private/TranslationEngineLLVM/include
+  ${TE_REPO}/clang/include
+  ${TE_REPO}/llvm/include
+  ${TE_REPO}/tools/clang/include
+  ${TE_BUILD}/include
+  ${TE_BUILD}/tools/clang/include
+  ${TE_BUILD}/TranslationEngineLLVM/clang/include
+  ${TE_BUILD}/TranslationEngineLLVM/llvm/include
   ${GAIA_INC}/internal/catalog
   ${GAIA_REPO}/production/catalog/catalog_manager/inc
   ${GAIA_INC}/public/common
@@ -29,7 +32,7 @@ set(GAIAT_SRCS
 
 link_directories(
   ${GAIA_PROD_BUILD}/lib
-  ${GAIA_PROD_BUILD}/../third_party/private/TranslationEngineLLVM/lib
+  ${TE_BUILD}/lib
 )
 
 
@@ -217,7 +220,7 @@ add_custom_command(
   COMMAND ${GAIA_PROD_BUILD}/db/storage_engine/gaia_se_server &
   COMMAND sleep 1
   COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac -destroy_db ${INCUBATOR_DDL}
-  COMMAND ${GAIA_PROD_BUILD}/tools/gaia_TranslationEngine/gaiat ${INCUBATOR_RULESET} -output ${GAIA_GENERATED_SCHEMAS}/test.cpp
+  COMMAND ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${INCUBATOR_RULESET} -output ${GAIA_GENERATED_SCHEMAS}/test.cpp
   COMMAND pkill -f -KILL gaia_se_server &
   DEPENDS gaiac 
   DEPENDS gaiat 
@@ -240,6 +243,3 @@ add_gtest(test_translation_engine
   "generate_incubator_rules" ""
   "INCUBATOR_DDL_FILE=${GAIA_REPO}/production/schemas/test/incubator/barn_storage.ddl"
   )
-  
-
-
