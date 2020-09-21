@@ -51,14 +51,23 @@ typedef uint8_t gaia_event_t;
 
 /**
  * The position of a field in a Gaia table.
- */ 
+ */
 typedef uint16_t field_position_t;
 
 /**
  * List of field positions.
- */ 
+ */
 typedef std::vector<field_position_t> field_position_list_t;
 
-}  // namespace common
+/**
+ * Locates the pointer to a reference within the references array
+ * in the Gaia Object.
+ *
+ * @see gaia::common::db::relationship_t
+ */
+typedef uint16_t reference_offset_t;
+
 /*@}*/
-}  // namespace gaia
+} // namespace common
+/*@}*/
+} // namespace gaia
