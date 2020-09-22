@@ -21,21 +21,25 @@ if(NOT DEFINED "${GAIA_BUILD_DIR}")
 endif()
 set(CMAKE_MODULE_PATH "${GAIA_REPO}/production/cmake;${CMAKE_MODULE_PATH}")
 
+# Gaia cmake modules
+include(gaia)
 include(gaia_ros2)
 
+# gaia variables
+set(GAIA_PROD_BUILD "${GAIA_BUILD_DIR}/production")
+set(GAIA_DEMO_BUILD "${GAIA_BUILD_DIR}/demos")
+set(GAIA_PROD "${GAIA_REPO}/production")
+set(GAIA_INC "${GAIA_PROD}/inc")
+set(FLATBUFFERS "${GAIA_REPO}/third_party/production/flatbuffers")
+set(FLATBUFFERS_INC "${FLATBUFFERS}/include")
+set(GENERATED_OUTPUTS "${CMAKE_CURRENT_BINARY_DIR}/generated")
+
+# ROS2 packages
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(gaia_pkg_interfaces REQUIRED)
-
-#message(NOTICE "")
-#ros2_msg_to_gaia_ddl(
-#  "gaia_pkg_interfaces msg/Test.msg"
-#  "gaia_pkg_interfaces msg/TestTwo.msg"
-#)
-#message(NOTICE "")
-#message(FATAL_ERROR "~~ STOP ~~")
 
 add_library(gaia_pkg_shared_lib SHARED
   src/gaia_node.cpp
@@ -78,6 +82,14 @@ if(BUILD_TESTING)
   #set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
+
+#message(NOTICE "")
+#ros2_msg_to_gaia_ddl(
+#  "gaia_pkg_interfaces msg/Test.msg"
+#  "gaia_pkg_interfaces msg/TestTwo.msg"
+#)
+#message(NOTICE "")
+#message(FATAL_ERROR "~~ STOP ~~")
 
 install(DIRECTORY
   launch
