@@ -115,10 +115,14 @@ void server::handle_request_stream(int *, size_t, session_event_t event, const v
     retail_assert(event == session_event_t::REQUEST_STREAM);
     // This event never changes session state.
     retail_assert(old_state == new_state);
-    // Create a connected pair of datagram sockets, one of which we will keep and the other we will send to the client.
+    // Create a connected pair of datagram sockets, one of which we will keep
+    // and the other we will send to the client.
+    // We use SOCK_SEQPACKET because it supports both datagram and connection
+    // semantics: datagrams allow buffering without framing, and a connection
+    // ensures that client returns EOF after server has called shutdown(SHUT_WR).
     int socket_pair[2];
     constexpr int server = 0, client = 1;
-    if (-1 == ::socketpair(PF_UNIX, SOCK_DGRAM, 0, socket_pair)) {
+    if (-1 == ::socketpair(PF_UNIX, SOCK_SEQPACKET, 0, socket_pair)) {
         throw_system_error("socketpair failed");
     }
     int server_socket = socket_pair[server];
@@ -305,7 +309,7 @@ int server::get_client_dispatch_fd() {
     // The socket name (minus its null terminator) needs to fit into the space
     // in the server address structure after the prefix null byte.
     // This should be static_assert(), but strlen() doesn't return a constexpr.
-    retail_assert(strlen(SE_SERVER_NAME) <= sizeof(server_addr.sun_path) - 1);
+    retail_assert(::strlen(SE_SERVER_NAME) <= sizeof(server_addr.sun_path) - 1);
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
     // filesystem.
@@ -314,7 +318,7 @@ int server::get_client_dispatch_fd() {
     // The socket name is not null-terminated in the address structure, but
     // we need to add an extra byte for the null byte prefix.
     socklen_t server_addr_size =
-        sizeof(server_addr.sun_family) + 1 + strlen(&server_addr.sun_path[1]);
+        sizeof(server_addr.sun_family) + 1 + ::strlen(&server_addr.sun_path[1]);
     if (-1 == ::bind(connect_socket, (struct sockaddr *)&server_addr, server_addr_size)) {
         throw_system_error("bind failed");
     }
@@ -348,7 +352,7 @@ bool server::authenticate_client_socket(int socket) {
         throw_system_error("getsockopt(SO_PEERCRED) failed");
     }
     // Client must have same effective user ID as server.
-    return (cred.uid == geteuid());
+    return (cred.uid == ::geteuid());
 }
 
 void server::client_dispatch_handler() {
@@ -664,7 +668,7 @@ void server::stream_producer_handler(int stream_socket, int cancel_eventfd,
                 } else if (ev.events & EPOLLOUT) {
                     retail_assert(!(ev.events & (EPOLLERR | EPOLLHUP)));
                     // Write to the send buffer until we exhaust either the iterator or the buffer free space.
-                    while (gen_iter && batch_buffer.size() < STREAM_BATCH_SIZE) {
+                    while (gen_iter && (batch_buffer.size() < STREAM_BATCH_SIZE)) {
                         element_type next_val = *gen_iter;
                         batch_buffer.push_back(next_val);
                         ++gen_iter;
@@ -836,7 +840,7 @@ void server::run() {
         // We can't close this fd until all readers and writers have exited.
         // The only readers are the client dispatch thread and the session
         // threads, and the only writer is the signal handler thread.
-        close(s_server_shutdown_eventfd);
+        ::close(s_server_shutdown_eventfd);
         s_server_shutdown_eventfd = -1;
         // We shouldn't get here unless the signal handler thread has caught a signal.
         retail_assert(caught_signal != 0);
@@ -849,8 +853,8 @@ void server::run() {
             // terminate the process before we can re-raise the caught signal.
             // That is benign, since we've already performed cleanup actions
             // and the exit status will still be valid.
-            pthread_sigmask(SIG_UNBLOCK, &handled_signals, nullptr);
-            raise(caught_signal);
+            ::pthread_sigmask(SIG_UNBLOCK, &handled_signals, nullptr);
+            ::raise(caught_signal);
         }
     }
 }

@@ -105,8 +105,9 @@ client::get_stream_generator_for_socket(int stream_socket) {
                 // Tell the caller to stop iteration.
                 return std::nullopt;
             }
-            // Grow the buffer to the datagram size, if necessary.
-            batch_buffer.reserve(datagram_size);
+            // Align the end of the buffer to the datagram size.
+            // Per the C++ standard, this will never reduce capacity.
+            batch_buffer.resize(datagram_size);
             // Get the actual data.
             // This is a nonblocking read, since the previous blocking
             // read will not return until data is available.
