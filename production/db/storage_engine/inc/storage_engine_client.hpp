@@ -66,7 +66,7 @@ public:
     static void commit_transaction();
 
     // This returns a generator object for gaia_ids of a given type.
-    static std::function<std::optional<gaia_id_t>()> get_id_generator_for_type(gaia_type_t type);
+    static std::function<std::optional<gaia_id_t>()> get_id_generator_for_type(const gaia_type_t type);
 
 private:
     // Both s_fd_log & s_locators have transaction lifetime.
@@ -94,7 +94,7 @@ private:
 
     static int get_session_socket();
 
-    static int get_id_cursor_socket_for_type(gaia_type_t type);
+    static int get_id_cursor_socket_for_type(const gaia_type_t type);
 
     // This is a helper for higher-level methods that use
     // this generator to build a range or iterator object.
@@ -108,7 +108,7 @@ private:
     static inline bool is_valid_event(gaia_type_t type) {
         return (s_txn_commit_trigger
             && (trigger_excluded_types.find(type) == trigger_excluded_types.end()));
-    static void inline allocate_object(gaia_locator_t locator, size_t size) {
+    static void inline allocate_object(const gaia_locator_t locator, const size_t size) {
                                        (size + sizeof(gaia_offset_t) - 1) / sizeof(gaia_offset_t));
     }
 

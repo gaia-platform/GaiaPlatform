@@ -31,7 +31,7 @@ std::unordered_set<gaia_type_t> client::trigger_excluded_types{
     static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_rule),
     static_cast<gaia_type_t>(system_table_type_t::event_log)};
 
-int client::get_id_cursor_socket_for_type(gaia_type_t type) {
+int client::get_id_cursor_socket_for_type(const gaia_type_t type) {
     // Send the server the cursor socket request.
     FlatBufferBuilder builder;
     auto table_scan_info = Createtable_scan_info_t(builder, type);
@@ -78,7 +78,8 @@ client::get_stream_generator_for_socket(int stream_socket) {
     gaia_xid_t owning_transaction_id = s_transaction_id;
     // The userspace buffer that we use to receive a batch datagram message.
     std::vector<element_type> batch_buffer;
-    auto value_generator = [stream_socket, owning_transaction_id, batch_buffer]() mutable -> std::optional<element_type> {
+    // The definition of the generator we return.
+    return [stream_socket, owning_transaction_id, batch_buffer]() mutable -> std::optional<element_type> {
         // We shouldn't be called again after we received EOF from the server.
         retail_assert(stream_socket != -1);
         // The cursor should only be called from within the scope of its owning transaction.
@@ -105,6 +106,8 @@ client::get_stream_generator_for_socket(int stream_socket) {
                 // Tell the caller to stop iteration.
                 return std::nullopt;
             }
+            // The datagram size must be an integer multiple of our datum size.
+            retail_assert(datagram_size % sizeof(element_type) == 0);
             // Align the end of the buffer to the datagram size.
             // Per the C++ standard, this will never reduce capacity.
             batch_buffer.resize(datagram_size);
@@ -118,11 +121,9 @@ client::get_stream_generator_for_socket(int stream_socket) {
                 retail_assert(errno != EAGAIN && errno != EWOULDBLOCK);
                 throw_system_error("recv failed");
             }
-            // We must have read a nonzero-length datagram,
-            // since the zero-length case returns early.
-            retail_assert(bytes_read > 0);
-            // The buffer must be an integer multiple of our datum size.
-            retail_assert(bytes_read % sizeof(element_type) == 0);
+            // Since our buffer is exactly the same size as the datagram,
+            // we should read exactly the number of bytes in the datagram.
+            retail_assert(bytes_read == datagram_size);
         }
         // At this point we know our buffer is non-empty.
         retail_assert(batch_buffer.size() > 0);
@@ -132,12 +133,11 @@ client::get_stream_generator_for_socket(int stream_socket) {
         batch_buffer.pop_back();
         return next_value;
     };
-    return value_generator;
 }
 
 std::function<std::optional<gaia_id_t>()>
-client::get_id_generator_for_type(gaia_type_t type) {
-    int stream_socket = get_id_cursor_socket_for_type(type);
+client::get_id_generator_for_type(const gaia_type_t type) {
+    const int stream_socket = get_id_cursor_socket_for_type(type);
     auto cleanup_stream_socket = make_scope_guard([stream_socket]() {
         ::close(stream_socket);
     });

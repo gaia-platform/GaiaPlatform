@@ -25,12 +25,12 @@ gaia_id_t gaia_ptr::generate_id() {
 void gaia_ptr::clone_no_txn() {
     gaia_se_object_t* old_this = to_ptr();
     size_t new_size = sizeof(gaia_se_object_t) + old_this->payload_size;
-    size_t num_refs,
-    size_t data_size,
+    const size_t num_refs,
+    const size_t data_size,
     const void* data,
-    bool log_updates) {
-    size_t refs_len = num_refs * sizeof(gaia_id_t);
-    size_t total_len = data_size + refs_len;
+    const bool log_updates) {
+    const size_t refs_len = num_refs * sizeof(gaia_id_t);
+    const size_t total_len = data_size + refs_len;
     gaia_ptr obj(id, total_len + sizeof(object), log_updates);
     object* obj_ptr = obj.to_ptr();
     obj_ptr->id = id;
@@ -66,7 +66,7 @@ gaia_ptr& gaia_ptr::clone() {
     return *this;
 }
 
-gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data) {
+gaia_ptr& gaia_ptr::update_payload(const size_t data_size, const void* data) {
     gaia_se_object_t* old_this = to_ptr();
     gaia_offset_t old_offset = to_offset();
 
@@ -161,7 +161,7 @@ gaia_offset_t gaia_ptr::to_offset() const {
                : 0;
 }
 
-void gaia_ptr::find_next(gaia_type_t type) {
+void gaia_ptr::find_next(const gaia_type_t type) {
     // search for rows of this type within the range of used slots
     while (++m_locator && m_locator < client::s_data->locator_count + 1) {
         if (is(type)) {
@@ -182,7 +182,7 @@ void gaia_ptr::reset() {
 }
 
 // This trivial implementation is necessary to avoid calling into client code from the header file.
-std::function<std::optional<gaia_id_t>()> gaia_ptr::get_id_generator_for_type(gaia_type_t type) {
+std::function<std::optional<gaia_id_t>()> gaia_ptr::get_id_generator_for_type(const gaia_type_t type) {
     return client::get_id_generator_for_type(type);
 }
 
