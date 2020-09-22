@@ -1,8 +1,9 @@
 BasedOnStyle: LLVM
+UseCRLF: false
+UseTab: Never
 IndentWidth: 4
-SortIncludes: false
 AlignAfterOpenBracket: DontAlign
-ColumnLimit: 0
+ColumnLimit: 0 # I would put some reasonable limit such as 120 columns
 
 # Force pointers to the type for C++.
 DerivePointerAlignment: false
@@ -12,6 +13,27 @@ PointerAlignment: Left
 AccessModifierOffset: -4
 
 # Parenthesis placement. Stroustrup style puts the braces on the new line (Laurentiu/Dax way)
-# BreakBeforeBraces: Stroustrup
+BreakBeforeBraces: Allman
 # https://stackoverflow.com/questions/29477654/how-to-make-clang-format-add-new-line-before-opening-brace-of-a-function
 # I'd suggest using Linux: Like Attach, but break before braces on function, namespace and class definitions.
+
+AllowAllConstructorInitializersOnNextLine: true
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+BreakConstructorInitializers: BeforeColon
+ConstructorInitializerIndentWidth: 2
+
+AllowShortFunctionsOnASingleLine: None
+
+# If false, all arguments will either be all on the same line or will have one line each.
+BinPackArguments: false
+BinPackParameters: false
+
+# Merge multiple #include blocks together and sort as one. Then split into groups based on category priority:
+# 1. main include (file.hpp)
+# 2. "" includes
+# 3. <> includes
+IncludeBlocks: Regroup
+
+KeepEmptyLinesAtTheStartOfBlocks: false
+SpaceAfterCStyleCast: true
+
