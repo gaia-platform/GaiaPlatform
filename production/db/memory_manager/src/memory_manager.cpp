@@ -60,7 +60,7 @@ error_code_t memory_manager_t::manage(
 
 error_code_t memory_manager_t::allocate(
     size_t memory_size,
-    address_offset_t& allocated_memory_offset) const
+    address_offset_t& allocated_memory_offset)
 {
     allocated_memory_offset = 0;
 
@@ -95,7 +95,7 @@ error_code_t memory_manager_t::allocate(
 }
 
 error_code_t memory_manager_t::commit_stack_allocator(
-    unique_ptr<stack_allocator_t> stack_allocator) const
+    unique_ptr<stack_allocator_t> stack_allocator)
 {
     if (stack_allocator == nullptr)
     {
@@ -152,18 +152,18 @@ error_code_t memory_manager_t::commit_stack_allocator(
             }
         }
 
+        // Get the stack_allocator_t metadata.
+        stack_allocator_metadata_t* stack_allocator_metadata = stack_allocator->get_metadata();
+        address_offset_t stack_allocator_metadata_offset = get_offset(reinterpret_cast<uint8_t*>(stack_allocator_metadata));
+
         // Patch metadata information of the first allocation.
         first_stack_allocation_metadata->allocation_size
             = stack_allocator_metadata->first_allocation_size + sizeof(memory_allocation_metadata_t);
 
         // Now we need to release the unused stack allocator memory.
-        // Get the stack_allocator_t metadata.
-        stack_allocator_metadata_t* stack_metadata = stack_allocator->get_metadata();
-        address_offset_t stack_metadata_offset = get_offset(reinterpret_cast<uint8_t*>(stack_metadata));
-
         // Determine the boundaries of the memory block that we can free from the stack_allocator_t.
-        address_offset_t start_memory_offset = stack_metadata->next_allocation_offset;
-        address_offset_t end_memory_offset = stack_metadata_offset + sizeof(stack_allocator_metadata_t);
+        address_offset_t start_memory_offset = stack_allocator_metadata->next_allocation_offset;
+        address_offset_t end_memory_offset = stack_allocator_metadata_offset + sizeof(stack_allocator_metadata_t);
         retail_assert(validate_offset(start_memory_offset) == error_code_t::success, "Calculated start memory offset is invalid");
         retail_assert(validate_offset(end_memory_offset) == error_code_t::success, "Calculated end memory offset is invalid");
 
@@ -205,7 +205,7 @@ address_offset_t memory_manager_t::process_allocation(address_offset_t allocatio
     return allocation_offset;
 }
 
-address_offset_t memory_manager_t::allocate_from_main_memory(size_t size_to_allocate) const
+address_offset_t memory_manager_t::allocate_from_main_memory(size_t size_to_allocate)
 {
     // If the allocation exhausts our memory, we cannot perform it.
     if (get_main_memory_available_size() < size_to_allocate)
@@ -221,7 +221,7 @@ address_offset_t memory_manager_t::allocate_from_main_memory(size_t size_to_allo
 
     // Check again if our memory got exhausted by this allocation,
     // which can happen if someone else got the space before us.
-    if (new_next_allocation_offset > m_base_memory_address + m_total_memory_size)
+    if (new_next_allocation_offset > m_total_memory_size)
     {
         // We exhausted the main memory so we must undo our update.
         while (!__sync_bool_compare_and_swap(
@@ -252,7 +252,7 @@ address_offset_t memory_manager_t::allocate_from_main_memory(size_t size_to_allo
     return adjusted_allocation_offset;
 }
 
-address_offset_t memory_manager_t::allocate_from_freed_memory(size_t size_to_allocate) const
+address_offset_t memory_manager_t::allocate_from_freed_memory(size_t size_to_allocate)
 {
     address_offset_t allocation_offset = 0;
 
@@ -309,11 +309,11 @@ void memory_manager_t::output_debugging_information(const string& context_descri
     cout << "  Main memory start = " << m_next_allocation_offset << endl;
     cout << "  Available main memory = " << get_main_memory_available_size() << endl;
     cout << "  Free memory list: " << endl;
-    output_free_memory();
+    output_free_memory_list();
     cout << c_debug_output_separator_line_end << endl;
 }
 
-void memory_manager_t::output_free_memory() const
+void memory_manager_t::output_free_memory_list() const
 {
     size_t record_count = 0;
     shared_lock shared_free_memory_list_lock(m_free_memory_list_lock);

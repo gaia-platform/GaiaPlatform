@@ -290,6 +290,5 @@ void stack_allocator_t::output_debugging_information(const string& context_descr
     cout << "    Count allocations = " << m_metadata->count_allocations << endl;
     cout << "    First allocation size = " << m_metadata->first_allocation_size << endl;
     cout << "    Next allocation offset = " << m_metadata->next_allocation_offset << endl;
-    cout << "    Serialization number = " << m_metadata->serialization_number << endl;
     cout << c_debug_output_separator_line_end << endl;
 }
