@@ -254,63 +254,35 @@ address_offset_t memory_manager_t::allocate_from_main_memory(size_t size_to_allo
 
 address_offset_t memory_manager_t::allocate_from_freed_memory(size_t size_to_allocate) const
 {
-    retail_assert(m_metadata != nullptr, "Memory manager has not been initialized!");
-
-    iteration_context_t context;
-    start(&m_metadata->free_memory_list_head, context);
     address_offset_t allocation_offset = 0;
 
-    // Iterate over the free memory list and try to find a large enough block for this allocation.
-    while (context.current_record != nullptr)
+    unique_lock unique_free_memory_list_lock(m_free_memory_list_lock);
+    for (auto it = m_free_memory_list.begin(); it != m_free_memory_list.end(); ++it)
     {
-        if (context.current_record->memory_size >= size_to_allocate)
+        memory_record_t& current_record = *it;
+
+        if (current_record.memory_size >= size_to_allocate)
         {
+            allocation_offset = current_record.memory_offset;
+
             // We have 2 situations: the memory block is exactly our required size or it is larger.
-            // In both cases, we need to check the size of the block again after acquiring the locks,
-            // because another thread may have managed to update it before we could lock it.
-            if (context.current_record->memory_size == size_to_allocate)
+            if (current_record.memory_size == size_to_allocate)
             {
-                if (try_to_lock_access(context, access_lock_type_t::update_remove)
-                    && context.auto_access_current_record.try_to_lock_access(access_lock_type_t::remove)
-                    && context.current_record->memory_size == size_to_allocate)
-                {
-                    retail_assert(
-                        context.current_record->memory_size == size_to_allocate,
-                        "Internal error - we are attempting to allocate from a block that is too small!");
-
-                    // Jolly good! We've found a memory block of exactly the size that we were looking for.
-                    remove(context);
-
-                    allocation_offset = context.current_record->memory_offset;
-
-                    // Reclaim the memory record for later reuse;
-                    insert_reclaimed_memory_record(context.current_record);
-
-                    break;
-                }
+                // We can use the entire block,
+                // so we can remove it from the free memory list.
+                m_free_memory_list.erase(it);
             }
             else
             {
-                if (try_to_lock_access(context, access_lock_type_t::update)
-                    && context.current_record->memory_size > size_to_allocate)
-                {
-                    retail_assert(
-                        context.current_record->memory_size > size_to_allocate,
-                        "Internal error - we are attempting to allocate from a block that is too small!");
-
-                    allocation_offset = context.current_record->memory_offset;
-
-                    // We have more space than we needed, so update the record
-                    // to track the remaining space.
-                    context.current_record->memory_offset += size_to_allocate;
-                    context.current_record->memory_size -= size_to_allocate;
-
-                    break;
-                }
+                // We have more space than we needed, so update the record
+                // to track the remaining space.
+                current_record.memory_offset += size_to_allocate;
+                current_record.memory_size -= size_to_allocate;
             }
-        }
 
-        move_next(context);
+            // Either way, we're done iterating.
+            break;
+        }
     }
 
     if (allocation_offset == 0)
@@ -334,42 +306,24 @@ void memory_manager_t::output_debugging_information(const string& context_descri
     cout << endl << c_debug_output_separator_line_start << endl;
     cout << "Debugging output for context: " << context_description << ":" << endl;
 
-    if (m_metadata == nullptr)
-    {
-        cout << "  Memory manager has not been initialized." << endl;
-    }
-
-    cout << "  Main memory start = " << m_metadata->start_main_available_memory << endl;
-    cout << "  Metadata start = " << m_metadata->lowest_metadata_memory_use << endl;
-    cout << "  Available main memory including reserved space = " << get_main_memory_available_size(true) << endl;
-    cout << "  Available main memory excluding reserved space = " << get_main_memory_available_size(false) << endl;
+    cout << "  Main memory start = " << m_next_allocation_offset << endl;
+    cout << "  Available main memory = " << get_main_memory_available_size() << endl;
     cout << "  Free memory list: " << endl;
-    output_list_content(m_metadata->free_memory_list_head);
-    cout << "  Reclaimed records list: " << endl;
-    output_list_content(m_metadata->reclaimed_records_list_head);
-    cout << "  Unserialized allocations list: " << endl;
-    output_list_content(m_metadata->unserialized_allocations_list_head);
+    output_free_memory();
     cout << c_debug_output_separator_line_end << endl;
 }
 
-void memory_manager_t::output_list_content(memory_record_t list_head) const
+void memory_manager_t::output_free_memory() const
 {
     size_t record_count = 0;
-    address_offset_t current_record_offset = list_head.next;
-    while (current_record_offset != 0)
+    shared_lock shared_free_memory_list_lock(m_free_memory_list_lock);
+    for (const memory_record_t& current_record : m_free_memory_list)
     {
         record_count++;
 
-        memory_record_t* current_record = read_memory_record(current_record_offset);
-
-        cout << "    Record[" << record_count << "] at offset " << current_record_offset << ":" << endl;
-        cout << "      offset = " << current_record->memory_offset;
-        cout << " size = " << current_record->memory_size;
-        cout << " readers_count = " << current_record->access_control.readers_count;
-        cout << " access_lock = " << static_cast<int8_t>(current_record->access_control.access_lock);
-        cout << " next = " << current_record->next << endl;
-
-        current_record_offset = current_record->next;
+        cout << "    Record[" << record_count << "]:" << endl;
+        cout << "      offset = " << current_record.memory_offset;
+        cout << " size = " << current_record.memory_size << endl;
     }
 
     cout << "    List contains " << record_count << " records." << endl;

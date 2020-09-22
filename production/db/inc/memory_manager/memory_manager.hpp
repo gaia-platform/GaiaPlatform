@@ -90,7 +90,7 @@ private:
 
     void output_debugging_information(const std::string& context_description) const;
 
-    void output_list_content(memory_record_t list_head) const;
+    void output_free_memory() const;
 };
 
 }
