@@ -149,19 +149,24 @@ private:
 
     static int get_client_dispatch_fd();
 
-    static bool authenticate_client_socket(int socket);
+    static bool authenticate_client_socket(const int socket);
 
     static void client_dispatch_handler();
 
-    static void session_handler(int session_socket);
+    static void session_handler(const int session_socket);
 
 
     template <typename element_type>
-    static void stream_producer_handler(int stream_socket, int cancel_eventfd,
+    static void stream_producer_handler(const int stream_socket, const int cancel_eventfd,
         std::function<std::optional<element_type>()> generator_fn);
 
 
-    static void start_id_producer_for_type(const int server_socket, gaia_type_t type);
+    template <typename element_type>
+    static void start_stream_producer(const int stream_socket,
+        std::function<std::optional<element_type>()> generator_fn);
+
+    static std::function<std::optional<gaia_id_t>()>
+    get_id_generator_for_type(const gaia_type_t type);
 
     static bool tx_commit();
 };

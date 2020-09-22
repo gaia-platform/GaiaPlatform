@@ -125,8 +125,8 @@ void server::handle_request_stream(int *, size_t, session_event_t event, const v
     if (-1 == ::socketpair(PF_UNIX, SOCK_SEQPACKET, 0, socket_pair)) {
         throw_system_error("socketpair failed");
     }
-    int server_socket = socket_pair[server];
-    int client_socket = socket_pair[client];
+    const int server_socket = socket_pair[server];
+    const int client_socket = socket_pair[client];
     auto socket_cleanup = make_scope_guard([server_socket, client_socket]() {
         ::close(server_socket);
         ::close(client_socket);
@@ -146,7 +146,8 @@ void server::handle_request_stream(int *, size_t, session_event_t event, const v
     const client_request_t *request = static_cast<const client_request_t *>(event_data);
     retail_assert(request->data_type() == request_data_t::table_scan);
     const gaia_type_t type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
-    start_id_producer_for_type(server_socket, type);
+    auto id_generator = get_id_generator_for_type(type);
+    start_stream_producer(server_socket, id_generator);
     // Any exceptions after this point will close the server socket, ensuring the producer thread terminates.
     // However, its destructor will not run until the session thread exits and joins the producer thread.
     FlatBufferBuilder builder;
@@ -345,7 +346,7 @@ int server::get_client_dispatch_fd() {
     return epoll_fd;
 }
 
-bool server::authenticate_client_socket(int socket) {
+bool server::authenticate_client_socket(const int socket) {
     struct ucred cred;
     socklen_t cred_len = sizeof(cred);
     if (-1 == ::getsockopt(socket, SOL_SOCKET, SO_PEERCRED, &cred, &cred_len)) {
@@ -427,7 +428,7 @@ void server::client_dispatch_handler() {
     }
 }
 
-void server::session_handler(int session_socket) {
+void server::session_handler(const int session_socket) {
     // REVIEW: how do we gracefully close the session socket?
     // Do we need to issue a nonblocking read() first?
     // Then do we need to call shutdown() before close()?
@@ -592,7 +593,7 @@ void server::session_handler(int session_socket) {
 }
 
 template <typename element_type>
-void server::stream_producer_handler(int stream_socket, int cancel_eventfd,
+void server::stream_producer_handler(const int stream_socket, const int cancel_eventfd,
     std::function<std::optional<element_type>()> generator_fn) {
     // We only support fixed-width integer types for now to avoid framing.
     static_assert(std::is_integral<element_type>::value, "Generator function must return an integer.");
@@ -735,9 +736,18 @@ void server::stream_producer_handler(int stream_socket, int cancel_eventfd,
     }
 }
 
-void server::start_id_producer_for_type(const int server_socket, gaia_type_t type) {
+template <typename element_type>
+void server::start_stream_producer(const int stream_socket,
+    std::function<std::optional<element_type>()> generator_fn) {
+    // Give the session ownership of the new stream thread.
+    s_session_owned_threads.emplace_back(stream_producer_handler<element_type>,
+        stream_socket, s_session_shutdown_eventfd, generator_fn);
+}
+
+std::function<std::optional<gaia_id_t>()>
+server::get_id_generator_for_type(const gaia_type_t type) {
     gaia_locator_t locator = 0;
-    auto table_scan_id_generator = [type, locator]() mutable -> std::optional<gaia_id_t> {
+    return [type, locator]() mutable -> std::optional<gaia_id_t> {
         // We need to ensure that we're not reading the locator segment
         // while a committing transaction is writing to it.
         std::shared_lock lock(s_locators_lock);
@@ -753,9 +763,6 @@ void server::start_id_producer_for_type(const int server_socket, gaia_type_t typ
         // Signal end of iteration.
         return std::nullopt;
     };
-    // Give the session ownership of the new stream thread.
-    s_session_owned_threads.emplace_back(stream_producer_handler<gaia_id_t>,
-        server_socket, s_session_shutdown_eventfd, table_scan_id_generator);
 }
 
 // Before this method is called, we have already received the log fd from the client
