@@ -40,7 +40,7 @@ public:
     // Once a transaction commits, calling this method will
     // add the stack allocator's unused memory to the list of free memory.
     error_code_t commit_stack_allocator(
-        std::unique_ptr<stack_allocator_t> stack_allocator);
+        std::unique_ptr<stack_allocator_t>& stack_allocator);
 
 private:
 

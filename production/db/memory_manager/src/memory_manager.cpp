@@ -95,7 +95,7 @@ error_code_t memory_manager_t::allocate(
 }
 
 error_code_t memory_manager_t::commit_stack_allocator(
-    unique_ptr<stack_allocator_t> stack_allocator)
+    unique_ptr<stack_allocator_t>& stack_allocator)
 {
     if (stack_allocator == nullptr)
     {
