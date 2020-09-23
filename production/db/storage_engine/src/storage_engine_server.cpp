@@ -141,6 +141,11 @@ void server::handle_request_stream(int*, size_t, session_event_t event, const vo
     }
     // The only currently supported stream type is table scans.
     // When we add more stream types, we should add a switch statement on data_type.
+    // It would be nice to delegate to a helper returning a different generator for each
+    // data_type, and then invoke start_stream_producer() with that generator, but in
+    // general each data_type corresponds to a generator with a different element_type,
+    // so we need to invoke start_stream_producer() separately for each data_type
+    // (because start_stream_producer() is templated on the generator's element_type).
     // We should logically receive an object corresponding to the request_data_t union,
     // but the FlatBuffers API doesn't have any object corresponding to a union.
     const client_request_t* request = static_cast<const client_request_t*>(event_data);
