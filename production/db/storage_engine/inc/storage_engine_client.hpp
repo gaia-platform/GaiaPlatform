@@ -109,11 +109,10 @@ private:
         return (s_txn_commit_trigger
             && (trigger_excluded_types.find(type) == trigger_excluded_types.end()));
     static void inline allocate_object(const gaia_locator_t locator, const size_t size) {
-                                         (size + sizeof(gaia_offset_t) - 1) / sizeof(gaia_offset_t));
+                                     (size + sizeof(gaia_offset_t) - 1) / sizeof(gaia_offset_t));
     }
 
     static inline void verify_txn_active() {
-    static inline void verify_tx_active() {
         if (!is_transaction_active()) {
             throw transaction_not_open();
         }
