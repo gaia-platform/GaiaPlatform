@@ -22,7 +22,7 @@ constexpr server::valid_transition_t server::s_valid_transitions[];
 int server::s_fd_locators = -1;
 se_base::data* server::s_data = nullptr;
 
-void server::handle_connect(int *, size_t, session_event_t event, const void *, session_state_t old_state, session_state_t new_state) {
+void server::handle_connect(int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state) {
     retail_assert(event == session_event_t::CONNECT);
     // This message should only be received after the client thread was first initialized.
     retail_assert(old_state == session_state_t::DISCONNECTED && new_state == session_state_t::CONNECTED);
@@ -33,7 +33,7 @@ void server::handle_connect(int *, size_t, session_event_t event, const void *, 
     send_msg_with_fds(s_session_socket, send_fds, std::size(send_fds), builder.GetBufferPointer(), builder.GetSize());
 }
 
-void server::handle_begin_txn(int *, size_t, session_event_t event, const void *, session_state_t old_state, session_state_t new_state) {
+void server::handle_begin_txn(int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state) {
     retail_assert(event == session_event_t::BEGIN_TXN);
     // This message should only be received while a transaction is in progress.
     retail_assert(old_state == session_state_t::CONNECTED && new_state == session_state_t::TXN_IN_PROGRESS);
@@ -44,7 +44,7 @@ void server::handle_begin_txn(int *, size_t, session_event_t event, const void *
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
 
-void server::handle_rollback_txn(int *, size_t, session_event_t event, const void *, session_state_t old_state, session_state_t new_state) {
+void server::handle_rollback_txn(int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state) {
     retail_assert(event == session_event_t::ROLLBACK_TXN);
     // This message should only be received while a transaction is in progress.
     retail_assert(old_state == session_state_t::TXN_IN_PROGRESS && new_state == session_state_t::CONNECTED);
@@ -52,7 +52,7 @@ void server::handle_rollback_txn(int *, size_t, session_event_t event, const voi
     s_transaction_id = 0;
 }
 
-void server::handle_commit_txn(int *fds, size_t fd_count, session_event_t event, const void *, session_state_t old_state, session_state_t new_state) {
+void server::handle_commit_txn(int* fds, size_t fd_count, session_event_t event, const void*, session_state_t old_state, session_state_t new_state) {
     retail_assert(event == session_event_t::COMMIT_TXN);
     // This message should only be received while a transaction is in progress.
     retail_assert(old_state == session_state_t::TXN_IN_PROGRESS && new_state == session_state_t::TXN_COMMITTING);
@@ -71,7 +71,7 @@ void server::handle_commit_txn(int *fds, size_t fd_count, session_event_t event,
     retail_assert(seals & F_SEAL_WRITE);
     // Linux won't let us create a shared read-only mapping if F_SEAL_WRITE is set,
     // which seems contrary to the manpage for fcntl(2).
-    s_log = static_cast<log *>(map_fd(sizeof(log), PROT_READ, MAP_PRIVATE, fd_log, 0));
+    s_log = static_cast<log*>(map_fd(sizeof(log), PROT_READ, MAP_PRIVATE, fd_log, 0));
     // Actually commit the transaction.
     bool success = txn_commit();
     session_event_t decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
@@ -79,7 +79,7 @@ void server::handle_commit_txn(int *fds, size_t fd_count, session_event_t event,
     apply_transition(decision, nullptr, nullptr, 0);
 }
 
-void server::handle_decide_txn(int *, size_t, session_event_t event, const void *, session_state_t old_state, session_state_t new_state) {
+void server::handle_decide_txn(int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state) {
     retail_assert(event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT);
     retail_assert(old_state == session_state_t::TXN_COMMITTING && new_state == session_state_t::CONNECTED);
     FlatBufferBuilder builder;
@@ -88,7 +88,7 @@ void server::handle_decide_txn(int *, size_t, session_event_t event, const void 
     s_transaction_id = 0;
 }
 
-void server::handle_client_shutdown(int *, size_t, session_event_t event, const void *, session_state_t, session_state_t new_state) {
+void server::handle_client_shutdown(int*, size_t, session_event_t event, const void*, session_state_t, session_state_t new_state) {
     retail_assert(event == session_event_t::CLIENT_SHUTDOWN);
     retail_assert(new_state == session_state_t::DISCONNECTED);
     // If this event is received, the client must have closed the write end of the socket
@@ -101,7 +101,7 @@ void server::handle_client_shutdown(int *, size_t, session_event_t event, const 
     s_session_shutdown = true;
 }
 
-void server::handle_server_shutdown(int *, size_t, session_event_t event, const void *, session_state_t, session_state_t new_state) {
+void server::handle_server_shutdown(int*, size_t, session_event_t event, const void*, session_state_t, session_state_t new_state) {
     retail_assert(event == session_event_t::SERVER_SHUTDOWN);
     retail_assert(new_state == session_state_t::DISCONNECTED);
     // This transition should only be triggered on notification of the server shutdown event.
@@ -111,7 +111,7 @@ void server::handle_server_shutdown(int *, size_t, session_event_t event, const 
     s_session_shutdown = true;
 }
 
-void server::handle_request_stream(int *, size_t, session_event_t event, const void *event_data, session_state_t old_state, session_state_t new_state) {
+void server::handle_request_stream(int*, size_t, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state) {
     retail_assert(event == session_event_t::REQUEST_STREAM);
     // This event never changes session state.
     retail_assert(old_state == new_state);
@@ -143,7 +143,7 @@ void server::handle_request_stream(int *, size_t, session_event_t event, const v
     // When we add more stream types, we should add a switch statement on data_type.
     // We should logically receive an object corresponding to the request_data_t union,
     // but the FlatBuffers API doesn't have any object corresponding to a union.
-    const client_request_t *request = static_cast<const client_request_t *>(event_data);
+    const client_request_t* request = static_cast<const client_request_t*>(event_data);
     retail_assert(request->data_type() == request_data_t::table_scan);
     const gaia_type_t type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
     auto id_generator = get_id_generator_for_type(type);
@@ -158,7 +158,7 @@ void server::handle_request_stream(int *, size_t, session_event_t event, const v
     socket_cleanup.dismiss();
 }
 
-void server::apply_transition(session_event_t event, const void *event_data, int *fds, size_t fd_count) {
+void server::apply_transition(session_event_t event, const void* event_data, int* fds, size_t fd_count) {
     if (event == session_event_t::NOP) {
         return;
     }
@@ -190,12 +190,12 @@ void server::apply_transition(session_event_t event, const void *event_data, int
 }
 
 void server::build_server_reply(
-    FlatBufferBuilder &builder,
+    FlatBufferBuilder& builder,
     session_event_t event,
     session_state_t old_state,
     session_state_t new_state,
     gaia_xid_t transaction_id) {
-    const auto server_reply = [&]{
+    const auto server_reply = [&] {
         if (transaction_id) {
             const auto transaction_info = Createtransaction_info_t(builder, transaction_id);
             return Createserver_reply_t(builder, event, old_state, new_state,
@@ -251,9 +251,9 @@ void server::init_shared_memory() {
     if (-1 == ::ftruncate(s_fd_locators, sizeof(locators)) || -1 == ::ftruncate(s_fd_data, sizeof(data))) {
         throw_system_error("ftruncate failed");
     }
-    s_shared_locators = static_cast<locators *>(map_fd(sizeof(locators),
+    s_shared_locators = static_cast<locators*>(map_fd(sizeof(locators),
         PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_locators, 0));
-    s_data = static_cast<data *>(map_fd(sizeof(data),
+    s_data = static_cast<data*>(map_fd(sizeof(data),
         PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_data, 0));
     cleanup_memory.dismiss();
 }
@@ -273,7 +273,7 @@ sigset_t server::mask_signals() {
     return sigset;
 }
 
-void server::signal_handler(sigset_t sigset, int &signum) {
+void server::signal_handler(sigset_t sigset, int& signum) {
     // Wait until a signal is delivered.
     // REVIEW: do we have any use for sigwaitinfo()?
     ::sigwait(&sigset, &signum);
@@ -320,7 +320,7 @@ int server::get_client_dispatch_fd() {
     // we need to add an extra byte for the null byte prefix.
     socklen_t server_addr_size =
         sizeof(server_addr.sun_family) + 1 + ::strlen(&server_addr.sun_path[1]);
-    if (-1 == ::bind(connect_socket, (struct sockaddr *)&server_addr, server_addr_size)) {
+    if (-1 == ::bind(connect_socket, (struct sockaddr*)&server_addr, server_addr_size)) {
         throw_system_error("bind failed");
     }
     if (-1 == ::listen(connect_socket, 0)) {
@@ -366,7 +366,7 @@ void server::client_dispatch_handler() {
         // sessions can be established while we wait for all session threads to exit.
         ::close(s_connect_socket);
         s_connect_socket = -1;
-        for (std::thread &t : session_threads) {
+        for (std::thread& t : session_threads) {
             t.join();
         }
     });
@@ -393,7 +393,7 @@ void server::client_dispatch_handler() {
                     int error = 0;
                     socklen_t err_len = sizeof(error);
                     // Ignore errors getting error message and default to generic error message.
-                    ::getsockopt(s_connect_socket, SOL_SOCKET, SO_ERROR, (void *)&error, &err_len);
+                    ::getsockopt(s_connect_socket, SOL_SOCKET, SO_ERROR, (void*)&error, &err_len);
                     throw_system_error("client socket error", error);
                 } else if (ev.data.fd == s_server_shutdown_eventfd) {
                     throw_system_error("shutdown eventfd error");
@@ -492,7 +492,7 @@ void server::session_handler(const int session_socket) {
         }
         retail_assert(bytes_written == sizeof(MAX_SEMAPHORE_COUNT));
         // Wait for all session-owned threads to terminate.
-        for (std::thread &t : s_session_owned_threads) {
+        for (std::thread& t : s_session_owned_threads) {
             t.join();
         }
     });
@@ -510,8 +510,8 @@ void server::session_handler(const int session_socket) {
             throw_system_error("epoll_wait failed");
         }
         session_event_t event = session_event_t::NOP;
-        const void *event_data = nullptr;
-        int *fds = nullptr;
+        const void* event_data = nullptr;
+        int* fds = nullptr;
         size_t fd_count = 0;
         for (int i = 0; i < ready_fd_count; i++) {
             const epoll_event ev = events[i];
@@ -525,7 +525,7 @@ void server::session_handler(const int session_socket) {
                     int error = 0;
                     socklen_t err_len = sizeof(error);
                     // Ignore errors getting error message and default to generic error message.
-                    ::getsockopt(s_session_socket, SOL_SOCKET, SO_ERROR, (void *)&error, &err_len);
+                    ::getsockopt(s_session_socket, SOL_SOCKET, SO_ERROR, (void*)&error, &err_len);
                     cerr << "client socket error: " << ::strerror(error) << endl;
                     event = session_event_t::CLIENT_SHUTDOWN;
                 } else if (ev.events & EPOLLHUP) {
@@ -554,14 +554,14 @@ void server::session_handler(const int session_socket) {
                     // after we have already woken up on EPOLLIN, in which case we would
                     // legitimately read 0 bytes and this assert would be invalid.
                     retail_assert(bytes_read > 0);
-                    const message_t *msg = Getmessage_t(msg_buf);
-                    const client_request_t *request = msg->msg_as_request();
+                    const message_t* msg = Getmessage_t(msg_buf);
+                    const client_request_t* request = msg->msg_as_request();
                     event = request->event();
                     // We need to pass auxiliary data identifying the requested stream type and properties.
                     if (event == session_event_t::REQUEST_STREAM) {
                         // We should logically pass an object corresponding to the request_data_t union,
                         // but the FlatBuffers API doesn't have any object corresponding to a union.
-                        event_data = static_cast<const void *>(request);
+                        event_data = static_cast<const void*>(request);
                     }
                     if (fd_buf_size > 0) {
                         fds = fd_buf;
@@ -658,7 +658,7 @@ void server::stream_producer_handler(const int stream_socket, const int cancel_e
                     int error = 0;
                     socklen_t err_len = sizeof(error);
                     // Ignore errors getting error message and default to generic error message.
-                    ::getsockopt(stream_socket, SOL_SOCKET, SO_ERROR, (void *)&error, &err_len);
+                    ::getsockopt(stream_socket, SOL_SOCKET, SO_ERROR, (void*)&error, &err_len);
                     cerr << "stream socket error: " << ::strerror(error) << endl;
                     producer_shutdown = true;
                 } else if (ev.events & EPOLLHUP) {
@@ -754,7 +754,7 @@ server::get_id_generator_for_type(const gaia_type_t type) {
         while (++locator && locator < s_data->locator_count + 1) {
             gaia_offset_t offset = (*s_shared_locators)[locator];
             if (offset) {
-                object *obj = reinterpret_cast<object *>(s_data->objects + (*s_shared_locators)[locator]);
+                object* obj = reinterpret_cast<object*>(s_data->objects + (*s_shared_locators)[locator]);
                 if (obj->type == type) {
                     return obj->id;
                 }

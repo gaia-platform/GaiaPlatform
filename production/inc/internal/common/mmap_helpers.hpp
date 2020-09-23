@@ -35,5 +35,5 @@ inline void unmap_fd(void* addr, size_t length) {
     }
 }
 
-}  // namespace common
-}  // namespace gaia
+} // namespace common
+} // namespace gaia

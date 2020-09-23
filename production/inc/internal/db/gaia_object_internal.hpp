@@ -24,5 +24,5 @@ struct object {
     char payload[0];
 };
 
-}  // namespace db
-}  // namespace gaia
+} // namespace db
+} // namespace gaia

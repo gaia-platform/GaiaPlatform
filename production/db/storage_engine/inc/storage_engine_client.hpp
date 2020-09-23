@@ -109,7 +109,7 @@ private:
         return (s_txn_commit_trigger
             && (trigger_excluded_types.find(type) == trigger_excluded_types.end()));
     static void inline allocate_object(const gaia_locator_t locator, const size_t size) {
-                                       (size + sizeof(gaia_offset_t) - 1) / sizeof(gaia_offset_t));
+                                         (size + sizeof(gaia_offset_t) - 1) / sizeof(gaia_offset_t));
     }
 
     static inline void verify_txn_active() {
@@ -146,7 +146,7 @@ private:
         // Memory for other operations will be unused. An alternative would be to keep a separate log for deleted keys only.
         gaia_id_t deleted_id = 0) {
         retail_assert(s_log->count < MAX_LOG_RECS);
-        log::log_record *lr = s_log->log_records + s_log->count++;
+        log::log_record* lr = s_log->log_records + s_log->count++;
         lr->locator = locator;
         lr->old_offset = old_offset;
         lr->new_offset = new_offset;

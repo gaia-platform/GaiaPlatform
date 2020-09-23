@@ -17,42 +17,42 @@ namespace db {
 using namespace common;
 
 class session_exists : public gaia_exception {
-   public:
+public:
     session_exists() {
         m_message = "Close the current session before creating a new one.";
     }
 };
 
 class no_session_active : public gaia_exception {
-   public:
+public:
     no_session_active() {
         m_message = "Create a new session before opening a transaction.";
     }
 };
 
 class transaction_in_progress : public gaia_exception {
-   public:
+public:
     transaction_in_progress() {
         m_message = "Commit or roll back the current transaction before beginning a new transaction.";
     }
 };
 
 class transaction_not_open : public gaia_exception {
-   public:
+public:
     transaction_not_open() {
         m_message = "Begin a transaction before performing data access.";
     }
 };
 
 class transaction_update_conflict : public gaia_exception {
-   public:
+public:
     transaction_update_conflict() {
         m_message = "Transaction was aborted due to a serialization error.";
     }
 };
 
 class duplicate_id : public gaia_exception {
-   public:
+public:
     duplicate_id(gaia_id_t id) {
         std::stringstream strs;
         strs << "An object with the same ID (" << id << ") already exists.";
@@ -61,14 +61,14 @@ class duplicate_id : public gaia_exception {
 };
 
 class oom : public gaia_exception {
-   public:
+public:
     oom() {
         m_message = "Out of memory.";
     }
 };
 
 class invalid_node_id : public gaia_exception {
-   public:
+public:
     invalid_node_id(gaia_id_t id) {
         std::stringstream strs;
         strs << "Cannot find a node with ID " << id << ".";
@@ -77,7 +77,7 @@ class invalid_node_id : public gaia_exception {
 };
 
 class invalid_id_value : public gaia_exception {
-   public:
+public:
     invalid_id_value(gaia_id_t id) {
         std::stringstream strs;
         strs << "ID value " << id << " is larger than the maximum ID value 2^63.";
@@ -86,7 +86,7 @@ class invalid_id_value : public gaia_exception {
 };
 
 class node_not_disconnected : public gaia_exception {
-   public:
+public:
     node_not_disconnected(gaia_id_t id, gaia_type_t object_type) {
         stringstream msg;
         msg << "Cannot delete object " << id << ", type " << object_type << " because it is still connected to another object.";
@@ -101,5 +101,5 @@ void begin_transaction();
 void rollback_transaction();
 void commit_transaction();
 
-}  // namespace db
-}  // namespace gaia
+} // namespace db
+} // namespace gaia

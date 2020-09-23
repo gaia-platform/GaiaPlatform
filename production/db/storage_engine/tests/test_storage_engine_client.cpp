@@ -14,7 +14,7 @@ using namespace gaia::db;
 // duplicated from production/db/storage_engine/inc/storage_engine_server.hpp
 constexpr size_t STREAM_BATCH_SIZE = 1 << 10;
 
-void print_payload(std::ostream &o, const size_t size, const char *payload) {
+void print_payload(std::ostream& o, const size_t size, const char* payload) {
     if (size) {
         o << " Payload: ";
     }
@@ -30,7 +30,7 @@ void print_payload(std::ostream &o, const size_t size, const char *payload) {
     }
 }
 
-void print_node(const gaia_ptr &node, const bool indent = false) {
+void print_node(const gaia_ptr& node, const bool indent = false) {
     if (!node) {
         return;
     }
@@ -69,7 +69,7 @@ gaia_type_t type2 = 2;
  * and TearDown() is called after each test case is done.
  */
 class storage_engine_client_test : public db_test_base_t {
-  private:
+private:
     void init_data() {
         begin_transaction();
         {
@@ -87,7 +87,7 @@ class storage_engine_client_test : public db_test_base_t {
         commit_transaction();
     }
 
-  protected:
+protected:
     void SetUp() override {
         db_test_base_t::SetUp();
         init_data();

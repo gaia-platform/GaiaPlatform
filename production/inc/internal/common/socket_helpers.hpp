@@ -24,7 +24,7 @@ const size_t MAX_FD_COUNT = 2;
 // We throw this exception on either EPIPE/SIGPIPE caught from a write
 // or EOF returned from a read (where a 0-length read is impossible).
 class peer_disconnected : public gaia_exception {
-   public:
+public:
     peer_disconnected() {
         m_message = "The socket peer is disconnected.";
     }
@@ -163,5 +163,5 @@ inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* dat
     return static_cast<size_t>(bytes_read);
 }
 
-}  // namespace common
-}  // namespace gaia
+} // namespace common
+} // namespace gaia

@@ -21,23 +21,23 @@ template <typename Output>
 class generator_iterator {
     using difference_type = void;
     using value_type = Output;
-    using pointer = Output *;
+    using pointer = Output*;
     using reference = Output;
     using iterator_category = std::input_iterator_tag;
 
-  private:
+private:
     std::optional<Output> state;
     std::function<std::optional<Output>()> generator;
     std::function<bool(Output)> predicate;
 
-  public:
+public:
     // Returns current state.
     Output operator*() const {
         return *state;
     }
 
     // Advance to the next valid state.
-    generator_iterator &operator++() {
+    generator_iterator& operator++() {
         while ((state = generator())) {
             if (predicate(*state)) {
                 break;
@@ -53,13 +53,13 @@ class generator_iterator {
     }
 
     // Generator iterators are only equal if they are both in the "end" state.
-    friend bool operator==(generator_iterator const &lhs, generator_iterator const &rhs) noexcept {
+    friend bool operator==(generator_iterator const& lhs, generator_iterator const& rhs) noexcept {
         if (!lhs.state && !rhs.state) {
             return true;
         }
         return false;
     }
-    friend bool operator!=(generator_iterator const &lhs, generator_iterator const &rhs) noexcept {
+    friend bool operator!=(generator_iterator const& lhs, generator_iterator const& rhs) noexcept {
         return !(lhs == rhs);
     }
 
@@ -81,10 +81,10 @@ class generator_iterator {
     }
 
     // Default all special member functions.
-    generator_iterator(generator_iterator &&) = default;
-    generator_iterator(generator_iterator const &) = default;
-    generator_iterator &operator=(generator_iterator &&) = default;
-    generator_iterator &operator=(generator_iterator const &) = default;
+    generator_iterator(generator_iterator&&) = default;
+    generator_iterator(generator_iterator const&) = default;
+    generator_iterator& operator=(generator_iterator&&) = default;
+    generator_iterator& operator=(generator_iterator const&) = default;
     generator_iterator() = default;
 };
 

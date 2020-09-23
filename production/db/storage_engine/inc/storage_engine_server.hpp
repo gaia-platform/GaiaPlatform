@@ -37,7 +37,7 @@ using namespace scope_guard;
 
 class invalid_session_transition : public gaia_exception {
 public:
-    invalid_session_transition(const string &message) : gaia_exception(message) {}
+    invalid_session_transition(const string& message) : gaia_exception(message) {}
 };
 
 class server : private se_base {
@@ -72,16 +72,16 @@ private:
 
     // function pointer type that executes side effects of a state transition
     // REVIEW: replace void* with std::any?
-    typedef void (*transition_handler_fn)(int *fds, size_t fd_count, session_event_t event,
-        const void *event_data, session_state_t old_state, session_state_t new_state);
-    static void handle_connect(int *, size_t, session_event_t, const void *, session_state_t, session_state_t);
-    static void handle_begin_txn(int *, size_t, session_event_t, const void *, session_state_t, session_state_t);
-    static void handle_rollback_txn(int *, size_t, session_event_t, const void *, session_state_t, session_state_t);
-    static void handle_commit_txn(int *, size_t, session_event_t, const void *, session_state_t, session_state_t);
-    static void handle_decide_txn(int *, size_t, session_event_t, const void *, session_state_t, session_state_t);
-    static void handle_client_shutdown(int *, size_t, session_event_t, const void *, session_state_t, session_state_t);
-    static void handle_server_shutdown(int *, size_t, session_event_t, const void *, session_state_t, session_state_t);
-    static void handle_request_stream(int *, size_t, session_event_t, const void *, session_state_t, session_state_t);
+    typedef void (*transition_handler_fn)(int* fds, size_t fd_count, session_event_t event,
+        const void* event_data, session_state_t old_state, session_state_t new_state);
+    static void handle_connect(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
+    static void handle_begin_txn(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
+    static void handle_rollback_txn(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
+    static void handle_commit_txn(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
+    static void handle_decide_txn(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
+    static void handle_client_shutdown(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
+    static void handle_server_shutdown(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
+    static void handle_request_stream(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
 
     struct transition_t {
         session_state_t new_state;
@@ -121,7 +121,7 @@ private:
         {session_state_t::ANY, session_event_t::REQUEST_STREAM, {session_state_t::ANY, handle_request_stream}},
     };
 
-    static void apply_transition(session_event_t event, const void *event_data, int *fds, size_t fd_count);
+    static void apply_transition(session_event_t event, const void* event_data, int* fds, size_t fd_count);
 
     static void build_server_reply(
         FlatBufferBuilder& builder,
@@ -145,7 +145,7 @@ private:
 
     static sigset_t mask_signals();
 
-    static void signal_handler(sigset_t sigset, int &signum);
+    static void signal_handler(sigset_t sigset, int& signum);
 
     static int get_client_dispatch_fd();
 

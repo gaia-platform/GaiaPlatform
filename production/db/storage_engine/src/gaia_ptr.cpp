@@ -25,10 +25,10 @@ gaia_id_t gaia_ptr::generate_id() {
 void gaia_ptr::clone_no_txn() {
     gaia_se_object_t* old_this = to_ptr();
     size_t new_size = sizeof(gaia_se_object_t) + old_this->payload_size;
-    const size_t num_refs,
-    const size_t data_size,
-    const void* data,
-    const bool log_updates) {
+const size_t num_refs,
+const size_t data_size,
+const void* data,
+const bool log_updates) {
     const size_t refs_len = num_refs * sizeof(gaia_id_t);
     const size_t total_len = data_size + refs_len;
     gaia_ptr obj(id, total_len + sizeof(object), log_updates);

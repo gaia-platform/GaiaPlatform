@@ -53,8 +53,8 @@ int client::get_id_cursor_socket_for_type(const gaia_type_t type) {
     });
 
     // Deserialize the server message.
-    const message_t *msg = Getmessage_t(msg_buf);
-    const server_reply_t *reply = msg->msg_as_reply();
+    const message_t* msg = Getmessage_t(msg_buf);
+    const server_reply_t* reply = msg->msg_as_reply();
     const session_event_t event = reply->event();
     retail_assert(event == session_event_t::REQUEST_STREAM);
 
@@ -217,7 +217,7 @@ int client::get_session_socket() {
     // The socket name is not null-terminated in the address structure, but
     // we need to add an extra byte for the null byte prefix.
     socklen_t server_addr_size = sizeof(server_addr.sun_family) + 1 + strlen(&server_addr.sun_path[1]);
-    if (-1 == connect(session_socket, (struct sockaddr*)&server_addr, server_addr_size)) {
+    if (-1 == ::connect(session_socket, (struct sockaddr*)&server_addr, server_addr_size)) {
         throw_system_error("connect failed");
     }
     cleanup_session_socket.dismiss();
@@ -367,7 +367,7 @@ void client::begin_transaction() {
     // Extract the transaction id and cache it; it needs to be reset for the next transaction.
     const message_t* msg = Getmessage_t(msg_buf);
     const server_reply_t* reply = msg->msg_as_reply();
-    const transaction_info_t *txn_info = reply->data_as_transaction_info();
+    const transaction_info_t* txn_info = reply->data_as_transaction_info();
     s_txn_id = txn_info->txn_id();
     // Save the log fd to send to the server on commit.
     s_fd_log = fd_log;
@@ -427,7 +427,7 @@ void client::commit_transaction() {
     const server_reply_t* reply = msg->msg_as_reply();
     session_event_t event = reply->event();
     retail_assert(event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT);
-    const transaction_info_t *txn_info = reply->data_as_transaction_info();
+    const transaction_info_t* txn_info = reply->data_as_transaction_info();
     retail_assert(txn_info->transaction_id() == s_transaction_id);
 
     // Throw an exception on server-side abort.

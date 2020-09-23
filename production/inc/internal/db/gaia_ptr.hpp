@@ -30,12 +30,12 @@ public:
     gaia_ptr(const std::nullptr_t = nullptr)
         : m_locator(0) {}
 
-    gaia_ptr(const gaia_ptr &other)
+    gaia_ptr(const gaia_ptr& other)
         : m_locator(other.m_locator) {}
 
     gaia_ptr& operator=(const gaia_ptr& other) = default;
 
-    bool operator==(const gaia_ptr &other) const {
+    bool operator==(const gaia_ptr& other) const {
         return m_locator == other.m_locator;
     }
 
@@ -88,12 +88,12 @@ public:
         return gaia_ptr(id);
     }
 
-    static void remove(gaia_ptr &node) {
+    static void remove(gaia_ptr& node) {
         if (!node) {
             return;
         }
 
-        const gaia_id_t *references = node.references();
+        const gaia_id_t* references = node.references();
         for (size_t i = 0; i < node.num_references(); i++) {
             if (references[i] != INVALID_GAIA_ID) {
                 throw node_not_disconnected(node.id(), node.type());
@@ -102,9 +102,9 @@ public:
         node.reset();
     }
 
-    gaia_ptr &clone();
+    gaia_ptr& clone();
 
-    gaia_ptr &update_payload(const size_t data_size, const void *data);
+    gaia_ptr& update_payload(const size_t data_size, const void* data);
 
     /**
      * Update the next child and parent reference slots in a child.
@@ -167,8 +167,8 @@ public:
         return to_ptr()->type;
     }
 
-    char *data() const {
-        return data_size() ? (char *)(to_ptr()->payload + (to_ptr()->num_references * sizeof(gaia_id_t))) : nullptr;
+    char* data() const {
+        return data_size() ? (char*)(to_ptr()->payload + (to_ptr()->num_references * sizeof(gaia_id_t))) : nullptr;
     }
 
     size_t data_size() const {
@@ -178,8 +178,8 @@ public:
         return data_size;
     }
 
-    gaia_id_t *references() const {
-        return reinterpret_cast<gaia_id_t *>(to_ptr()->payload);
+    gaia_id_t* references() const {
+        return reinterpret_cast<gaia_id_t*>(to_ptr()->payload);
     }
 
     size_t num_references() const {

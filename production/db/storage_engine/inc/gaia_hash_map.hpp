@@ -72,7 +72,6 @@ public:
 
             node = node->next_offset
                 ? s_data->hash_nodes + node->next_offset
-                : 0;
         }
 
         return 0;
