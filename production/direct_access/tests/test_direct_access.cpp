@@ -6,6 +6,8 @@
 #include <iostream>
 #include <cstdlib>
 #include <thread>
+#include <sys/ipc.h>
+#include <sys/msg.h>
 
 #include "gtest/gtest.h"
 #include "gaia_addr_book.h"
@@ -773,4 +775,125 @@ TEST_F(gaia_object_test, iter_arrow_deref) {
 
     gaia_iterator_t<employee_t> emp_iter = employee_t::list().begin();
     EXPECT_STREQ(emp_iter->name_first(), emp_name);
+}
+
+// Structure for message queue
+constexpr int c_message_text_length = 1;
+typedef struct {
+    long type;
+    char text[c_message_text_length];
+} message_buffer_t;
+
+// Test parallel multi-process creation of objects.
+TEST_F(gaia_object_test, multi_process_inserts) {
+    message_buffer_t message;
+
+    // Common parent/child setup for a message queue.
+    key_t queue_key = ftok("/tmp", 2020);
+    int message_id = msgget(queue_key, 0666 | IPC_CREAT);
+    pid_t child_pid = fork();
+    message.type = 1;
+
+    if (child_pid) {
+        // PARENT PROCESS.
+
+        // EXCHANGE 1: serialized transactions.
+        //   Add two employees in the parent. Commit.
+        //   Add two employees in the child. Commit.
+        //   Read and verify all employees in the parent.
+
+        // Parent process adds two employees.
+        begin_transaction();
+        create_employee("Howard").gaia_id();
+        create_employee("Henry").gaia_id();
+        commit_transaction();
+
+        // The child will add two employees. Wait for it to complete.
+        msgsnd(message_id, &message, c_message_text_length, 0);
+        alarm(1);
+        msgrcv(message_id, &message, c_message_text_length, 0, 0);
+        alarm(0);
+
+        // Scan through all resulting rows.
+        // See if all objects exist.
+        begin_transaction();
+        auto employee = employee_t::get_first();
+        EXPECT_STREQ(employee.name_first(), "Howard");
+        employee = employee.get_next();
+        EXPECT_STREQ(employee.name_first(), "Henry");
+        employee = employee.get_next();
+        EXPECT_STREQ(employee.name_first(), "Harold");
+        employee = employee.get_next();
+        EXPECT_STREQ(employee.name_first(), "Hank");
+        commit_transaction();
+
+        // EXCHANGE 2: concurrent transactions.
+        //   Begin transaction in parent. Add one employee.
+        //   Begin child transaction. Add one employee. Commit.
+        //   Commit transaction in parent. Verify employees.
+
+        begin_transaction();
+        create_employee("Hugo").gaia_id();
+
+        msgsnd(message_id, &message, c_message_text_length, 0);
+        // If the child process fails, this will hang forever. Set up an alarm
+        // so that it will break out after a second.
+        alarm(1);
+        // If msgrcv is interrupted by the alarm, it returns -1.
+        EXPECT_GT(msgrcv(message_id, &message, c_message_text_length, 0, 0), 0);
+        alarm(0);
+
+        commit_transaction();
+
+        // Scan through all resulting rows.
+        // See if all objects exist.
+        begin_transaction();
+        employee = employee_t::get_first();
+        EXPECT_STREQ(employee.name_first(), "Howard");
+        employee = employee.get_next();
+        EXPECT_STREQ(employee.name_first(), "Henry");
+        employee = employee.get_next();
+        EXPECT_STREQ(employee.name_first(), "Harold");
+        employee = employee.get_next();
+        EXPECT_STREQ(employee.name_first(), "Hank");
+        employee = employee.get_next();
+        EXPECT_STREQ(employee.name_first(), "Hugo");
+        // employee = employee.get_next();
+        // EXPECT_STREQ(employee.name_first(), "Hubert");
+        commit_transaction();
+
+        wait(&child_pid);
+        // Clean up the message queue.
+        msgctl(message_id, IPC_RMID, NULL);
+
+    }
+    else {
+        // CHILD PROCESS.
+
+        // EXCHANGE 1: serialized transactions.
+
+        // Wait for the "go".
+        msgrcv(message_id, &message, c_message_text_length, 0, 0);
+
+        begin_transaction();
+        create_employee("Harold").gaia_id();
+        create_employee("Hank").gaia_id();
+        commit_transaction();
+
+        // Tell parent to "go".
+        msgsnd(message_id, &message, c_message_text_length, 0);
+
+        // EXCHANGE 2: concurrent transactions.
+        msgrcv(message_id, &message, c_message_text_length, 0, 0);
+
+        begin_transaction();
+        create_employee("Hubert").gaia_id();
+        commit_transaction();
+
+        msgsnd(message_id, &message, c_message_text_length, 0);
+
+        // The parent process is waiting for this one to terminate.
+        exit(0);
+    }
+
 }
