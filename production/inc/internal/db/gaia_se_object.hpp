@@ -16,7 +16,7 @@ using namespace common;
 
 // This was factored out of gaia_ptr.hpp because the server needs to know
 // the object format but doesn't need any gaia_ptr functionality.
-struct gaia_se_object {
+struct gaia_se_object_t {
     gaia_id_t id;
     gaia_type_t type;
     size_t num_references;

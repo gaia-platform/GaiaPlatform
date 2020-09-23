@@ -23,6 +23,7 @@ namespace gaia
 {
 namespace rules
 {
+
 /**
  * Implementation class for event and rule APIs defined
  * in events.hpp and rules.hpp respectively.  See documentation

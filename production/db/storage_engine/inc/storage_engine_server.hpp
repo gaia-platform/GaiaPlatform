@@ -52,7 +52,7 @@ private:
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t STREAM_BATCH_SIZE = 1 << 10;
     static int s_server_shutdown_eventfd;
-    static int s_connect_socket;
+    static int s_listening_socket;
     static std::shared_mutex s_locators_lock;
     static int s_fd_data;
     static locators* s_shared_locators;
@@ -147,7 +147,7 @@ private:
 
     static void signal_handler(sigset_t sigset, int& signum);
 
-    static int get_client_dispatch_fd();
+    static void init_listening_socket();
 
     static bool authenticate_client_socket(const int socket);
 

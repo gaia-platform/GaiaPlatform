@@ -31,7 +31,7 @@ const void* data,
 const bool log_updates) {
     const size_t refs_len = num_refs * sizeof(gaia_id_t);
     const size_t total_len = data_size + refs_len;
-    gaia_ptr obj(id, total_len + sizeof(gaia_se_object), log_updates);
+    gaia_ptr obj(id, total_len + sizeof(gaia_se_object_t), log_updates);
     auto obj_ptr = obj.to_ptr();
     obj_ptr->id = id;
     obj_ptr->type = type;
@@ -50,7 +50,7 @@ const bool log_updates) {
 gaia_ptr& gaia_ptr::clone() {
     auto old_this = to_ptr();
     auto old_offset = to_offset();
-    auto new_size = sizeof(gaia_se_object) + old_this->payload_size;
+    auto new_size = sizeof(gaia_se_object_t) + old_this->payload_size;
     allocate(new_size);
     gaia_se_object_t* new_this = to_ptr();
     memcpy(new_this, old_this, new_size);
@@ -146,7 +146,7 @@ void gaia_ptr::allocate(size_t size) {
     se_base::allocate_object(m_locator, size, client::s_locators, client::s_data);
 }
 
-gaia_se_object* gaia_ptr::to_ptr() const {
+gaia_se_object_t* gaia_ptr::to_ptr() const {
     if (client::is_valid_event(type)) {
         client::s_events.push_back(trigger_event_t{event_type_t::row_insert, type, id, empty_position_list});
 gaia_se_object_t* gaia_ptr::to_ptr() const {

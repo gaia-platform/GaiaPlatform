@@ -9,7 +9,7 @@
 using namespace gaia::db;
 using namespace gaia::db::messages;
 
-int server::s_connect_socket = -1;
+int server::s_listening_socket = -1;
 std::shared_mutex server::s_locators_lock;
 int server::s_fd_data = -1;
 se_base::locators* server::s_shared_locators = nullptr;
@@ -22,7 +22,8 @@ constexpr server::valid_transition_t server::s_valid_transitions[];
 int server::s_fd_locators = -1;
 se_base::data* server::s_data = nullptr;
 
-void server::handle_connect(int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state) {
+void server::handle_connect(
+    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state) {
     retail_assert(event == session_event_t::CONNECT);
     // This message should only be received after the client thread was first initialized.
     retail_assert(old_state == session_state_t::DISCONNECTED && new_state == session_state_t::CONNECTED);
@@ -33,7 +34,8 @@ void server::handle_connect(int*, size_t, session_event_t event, const void*, se
     send_msg_with_fds(s_session_socket, send_fds, std::size(send_fds), builder.GetBufferPointer(), builder.GetSize());
 }
 
-void server::handle_begin_txn(int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state) {
+void server::handle_begin_txn(
+    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state) {
     retail_assert(event == session_event_t::BEGIN_TXN);
     // This message should only be received while a transaction is in progress.
     retail_assert(old_state == session_state_t::CONNECTED && new_state == session_state_t::TXN_IN_PROGRESS);
@@ -44,7 +46,8 @@ void server::handle_begin_txn(int*, size_t, session_event_t event, const void*, 
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
 
-void server::handle_rollback_txn(int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state) {
+void server::handle_rollback_txn(
+    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state) {
     retail_assert(event == session_event_t::ROLLBACK_TXN);
     // This message should only be received while a transaction is in progress.
     retail_assert(old_state == session_state_t::TXN_IN_PROGRESS && new_state == session_state_t::CONNECTED);
@@ -52,7 +55,9 @@ void server::handle_rollback_txn(int*, size_t, session_event_t event, const void
     s_transaction_id = 0;
 }
 
-void server::handle_commit_txn(int* fds, size_t fd_count, session_event_t event, const void*, session_state_t old_state, session_state_t new_state) {
+void server::handle_commit_txn(
+    int* fds, size_t fd_count, session_event_t event, const void*, session_state_t old_state,
+    session_state_t new_state) {
     retail_assert(event == session_event_t::COMMIT_TXN);
     // This message should only be received while a transaction is in progress.
     retail_assert(old_state == session_state_t::TXN_IN_PROGRESS && new_state == session_state_t::TXN_COMMITTING);
@@ -79,7 +84,8 @@ void server::handle_commit_txn(int* fds, size_t fd_count, session_event_t event,
     apply_transition(decision, nullptr, nullptr, 0);
 }
 
-void server::handle_decide_txn(int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state) {
+void server::handle_decide_txn(
+    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state) {
     retail_assert(event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT);
     retail_assert(old_state == session_state_t::TXN_COMMITTING && new_state == session_state_t::CONNECTED);
     FlatBufferBuilder builder;
@@ -88,7 +94,8 @@ void server::handle_decide_txn(int*, size_t, session_event_t event, const void*,
     s_transaction_id = 0;
 }
 
-void server::handle_client_shutdown(int*, size_t, session_event_t event, const void*, session_state_t, session_state_t new_state) {
+void server::handle_client_shutdown(
+    int*, size_t, session_event_t event, const void*, session_state_t, session_state_t new_state) {
     retail_assert(event == session_event_t::CLIENT_SHUTDOWN);
     retail_assert(new_state == session_state_t::DISCONNECTED);
     // If this event is received, the client must have closed the write end of the socket
@@ -101,7 +108,8 @@ void server::handle_client_shutdown(int*, size_t, session_event_t event, const v
     s_session_shutdown = true;
 }
 
-void server::handle_server_shutdown(int*, size_t, session_event_t event, const void*, session_state_t, session_state_t new_state) {
+void server::handle_server_shutdown(
+    int*, size_t, session_event_t event, const void*, session_state_t, session_state_t new_state) {
     retail_assert(event == session_event_t::SERVER_SHUTDOWN);
     retail_assert(new_state == session_state_t::DISCONNECTED);
     // This transition should only be triggered on notification of the server shutdown event.
@@ -111,7 +119,8 @@ void server::handle_server_shutdown(int*, size_t, session_event_t event, const v
     s_session_shutdown = true;
 }
 
-void server::handle_request_stream(int*, size_t, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state) {
+void server::handle_request_stream(
+    int*, size_t, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state) {
     retail_assert(event == session_event_t::REQUEST_STREAM);
     // This event never changes session state.
     retail_assert(old_state == new_state);
@@ -188,23 +197,18 @@ void server::apply_transition(session_event_t event, const void* event_data, int
     // If we get here, we haven't found any compatible transition.
     // TODO: consider propagating exception back to client?
     throw invalid_session_transition(
-        "no allowed state transition from state '" +
-        std::string(EnumNamesession_state_t(s_session_state)) +
-        "' with event '" +
-        std::string(EnumNamesession_event_t(event)) + "'");
+        "no allowed state transition from state '" + std::string(EnumNamesession_state_t(s_session_state))
+        + "' with event '" + std::string(EnumNamesession_event_t(event)) + "'");
 }
 
 void server::build_server_reply(
-    FlatBufferBuilder& builder,
-    session_event_t event,
-    session_state_t old_state,
-    session_state_t new_state,
+    FlatBufferBuilder& builder, session_event_t event, session_state_t old_state, session_state_t new_state,
     gaia_xid_t transaction_id) {
     const auto server_reply = [&] {
         if (transaction_id) {
             const auto transaction_info = Createtransaction_info_t(builder, transaction_id);
-            return Createserver_reply_t(builder, event, old_state, new_state,
-                reply_data_t::transaction_info, transaction_info.Union());
+            return Createserver_reply_t(
+                builder, event, old_state, new_state, reply_data_t::transaction_info, transaction_info.Union());
         } else {
             return Createserver_reply_t(builder, event, old_state, new_state);
         }
@@ -236,13 +240,11 @@ void server::clear_shared_memory() {
 // no sessions exist and the server is not accepting any new connections.
 void server::init_shared_memory() {
     // The listening socket must not be open.
-    retail_assert(s_connect_socket == -1);
+    retail_assert(s_listening_socket == -1);
     // We may be reinitializing the server upon receiving a SIGHUP.
     clear_shared_memory();
     // Clear all shared memory if an exception is thrown.
-    auto cleanup_memory = make_scope_guard([]() {
-        clear_shared_memory();
-    });
+    auto cleanup_memory = make_scope_guard([]() { clear_shared_memory(); });
     retail_assert(s_fd_data == -1 && s_fd_locators == -1);
     retail_assert(!s_data && !s_shared_locators);
     s_fd_locators = ::memfd_create(SCH_MEM_LOCATORS, MFD_ALLOW_SEALING);
@@ -256,10 +258,9 @@ void server::init_shared_memory() {
     if (-1 == ::ftruncate(s_fd_locators, sizeof(locators)) || -1 == ::ftruncate(s_fd_data, sizeof(data))) {
         throw_system_error("ftruncate failed");
     }
-    s_shared_locators = static_cast<locators*>(map_fd(sizeof(locators),
-        PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_locators, 0));
-    s_data = static_cast<data*>(map_fd(sizeof(data),
-        PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_data, 0));
+    s_shared_locators =
+        static_cast<locators*>(map_fd(sizeof(locators), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_locators, 0));
+    s_data = static_cast<data*>(map_fd(sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_data, 0));
     cleanup_memory.dismiss();
 }
 
@@ -287,15 +288,14 @@ void server::signal_handler(sigset_t sigset, int& signum) {
     // This value is large enough that no thread will
     // decrement it to zero, so every waiting thread
     // should see a nonzero value.
-    ssize_t bytes_written = ::write(
-        s_server_shutdown_eventfd, &MAX_SEMAPHORE_COUNT, sizeof(MAX_SEMAPHORE_COUNT));
+    ssize_t bytes_written = ::write(s_server_shutdown_eventfd, &MAX_SEMAPHORE_COUNT, sizeof(MAX_SEMAPHORE_COUNT));
     if (bytes_written == -1) {
         throw_system_error("write to eventfd failed");
     }
     retail_assert(bytes_written == sizeof(MAX_SEMAPHORE_COUNT));
 }
 
-int server::get_client_dispatch_fd() {
+void server::init_listening_socket() {
     // Launch a connection-based listening Unix socket on a well-known address.
     // We use SOCK_SEQPACKET to get connection-oriented *and* datagram semantics.
     // This socket needs to be nonblocking so we can use epoll to wait on the
@@ -303,13 +303,13 @@ int server::get_client_dispatch_fd() {
     // nonblocking mode). Actually, nonblocking mode may not have any effect in
     // level-triggered epoll mode, but it's good to ensure we can never block,
     // in case of bugs or surprising semantics in epoll.
-    int connect_socket = ::socket(PF_UNIX, SOCK_SEQPACKET | SOCK_NONBLOCK, 0);
-    if (connect_socket == -1) {
+    int listening_socket = ::socket(PF_UNIX, SOCK_SEQPACKET | SOCK_NONBLOCK, 0);
+    if (listening_socket == -1) {
         throw_system_error("socket creation failed");
     }
-    auto socket_cleanup = make_scope_guard([connect_socket]() {
-        ::close(connect_socket);
-    });
+    auto socket_cleanup = make_scope_guard([listening_socket]() { ::close(listening_socket); });
+
+    // Initialize the socket address structure.
     struct sockaddr_un server_addr = {0};
     server_addr.sun_family = AF_UNIX;
     // The socket name (minus its null terminator) needs to fit into the space
@@ -319,36 +319,21 @@ int server::get_client_dispatch_fd() {
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
     // filesystem.
-    ::strncpy(&server_addr.sun_path[1], SE_SERVER_NAME,
-        sizeof(server_addr.sun_path) - 1);
+    ::strncpy(&server_addr.sun_path[1], SE_SERVER_NAME, sizeof(server_addr.sun_path) - 1);
+
+    // Bind the socket to the address and start listening for connections.
     // The socket name is not null-terminated in the address structure, but
     // we need to add an extra byte for the null byte prefix.
-    socklen_t server_addr_size =
-        sizeof(server_addr.sun_family) + 1 + ::strlen(&server_addr.sun_path[1]);
-    if (-1 == ::bind(connect_socket, (struct sockaddr*)&server_addr, server_addr_size)) {
+    socklen_t server_addr_size = sizeof(server_addr.sun_family) + 1 + ::strlen(&server_addr.sun_path[1]);
+    if (-1 == ::bind(listening_socket, (struct sockaddr*)&server_addr, server_addr_size)) {
         throw_system_error("bind failed");
     }
-    if (-1 == ::listen(connect_socket, 0)) {
+    if (-1 == ::listen(listening_socket, 0)) {
         throw_system_error("listen failed");
     }
-    int epoll_fd = ::epoll_create1(0);
-    if (epoll_fd == -1) {
-        throw_system_error("epoll_create1 failed");
-    }
-    auto epoll_cleanup = make_scope_guard([epoll_fd]() {
-        ::close(epoll_fd);
-    });
-    int fds[] = {connect_socket, s_server_shutdown_eventfd};
-    for (size_t i = 0; i < array_size(fds); i++) {
-        epoll_event ev{.events = EPOLLIN, .data.fd = fds[i]};
-        if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fds[i], &ev)) {
-            throw_system_error("epoll_ctl failed");
-        }
-    }
-    epoll_cleanup.dismiss();
+
     socket_cleanup.dismiss();
-    s_connect_socket = connect_socket;
-    return epoll_fd;
+    s_listening_socket = listening_socket;
 }
 
 bool server::authenticate_client_socket(const int socket) {
@@ -362,20 +347,45 @@ bool server::authenticate_client_socket(const int socket) {
 }
 
 void server::client_dispatch_handler() {
-    int epoll_fd = get_client_dispatch_fd();
+    // Initialize session thread list first, so we can clean it up last.
     std::vector<std::thread> session_threads;
-    auto cleanup = make_scope_guard([epoll_fd, &session_threads]() {
-        // Close the epoll fd first so we stop polling the listening socket.
-        ::close(epoll_fd);
-        // Close the listening socket before waiting for session threads, so no new
-        // sessions can be established while we wait for all session threads to exit.
-        ::close(s_connect_socket);
-        s_connect_socket = -1;
+    auto session_cleanup = make_scope_guard([&session_threads]() {
         for (std::thread& t : session_threads) {
             t.join();
         }
     });
-    epoll_event events[2];
+
+    // Start listening for incoming client connections.
+    init_listening_socket();
+    // We close the listening socket before waiting for session threads to exit,
+    // so no new sessions can be established while we wait for all session
+    // threads to exit (we assume they received the same server shutdown
+    // notification that we did).
+    auto listener_cleanup = make_scope_guard([]() {
+        ::close(s_listening_socket);
+        s_listening_socket = -1;
+    });
+
+    // Set up the epoll loop.
+    int epoll_fd = ::epoll_create1(0);
+    if (epoll_fd == -1) {
+        throw_system_error("epoll_create1 failed");
+    }
+    // We close the epoll descriptor before closing the listening socket, so any
+    // connections that arrive before the listening socket is closed will
+    // receive ECONNRESET rather than ECONNREFUSED. This is perhaps unfortunate
+    // but shouldn't really matter in practice.
+    auto epoll_cleanup = make_scope_guard([epoll_fd]() { ::close(epoll_fd); });
+    int registered_fds[] = {s_listening_socket, s_server_shutdown_eventfd};
+    for (size_t i = 0; i < array_size(registered_fds); i++) {
+        epoll_event ev{.events = EPOLLIN, .data.fd = registered_fds[i]};
+        if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, registered_fds[i], &ev)) {
+            throw_system_error("epoll_ctl failed");
+        }
+    }
+    epoll_event events[array_size(registered_fds)];
+
+    // Enter the epoll loop.
     while (true) {
         // Block forever (we will be notified of shutdown).
         int ready_fd_count = ::epoll_wait(epoll_fd, events, array_size(events), -1);
@@ -394,11 +404,11 @@ void server::client_dispatch_handler() {
             // We never register for anything but EPOLLIN,
             // but EPOLLERR will always be delivered.
             if (ev.events & EPOLLERR) {
-                if (ev.data.fd == s_connect_socket) {
+                if (ev.data.fd == s_listening_socket) {
                     int error = 0;
                     socklen_t err_len = sizeof(error);
                     // Ignore errors getting error message and default to generic error message.
-                    ::getsockopt(s_connect_socket, SOL_SOCKET, SO_ERROR, (void*)&error, &err_len);
+                    ::getsockopt(s_listening_socket, SOL_SOCKET, SO_ERROR, (void*)&error, &err_len);
                     throw_system_error("client socket error", error);
                 } else if (ev.data.fd == s_server_shutdown_eventfd) {
                     throw_system_error("shutdown eventfd error");
@@ -406,8 +416,8 @@ void server::client_dispatch_handler() {
             }
             // At this point, we should only get EPOLLIN.
             retail_assert(ev.events == EPOLLIN);
-            if (ev.data.fd == s_connect_socket) {
-                int session_socket = ::accept(s_connect_socket, NULL, NULL);
+            if (ev.data.fd == s_listening_socket) {
+                int session_socket = ::accept(s_listening_socket, NULL, NULL);
                 if (session_socket == -1) {
                     throw_system_error("accept failed");
                 }
@@ -434,42 +444,28 @@ void server::client_dispatch_handler() {
 }
 
 void server::session_handler(const int session_socket) {
-    // REVIEW: how do we gracefully close the session socket?
-    // Do we need to issue a nonblocking read() first?
-    // Then do we need to call shutdown() before close()?
-    // With TCP, shutdown() will send a FIN packet, but what
-    // does it do for a Unix socket? Or should we do a
-    // shutdown(), then a blocking read(), then a close()?
-    // http://web.deu.edu.tr/doc/soket/:
-    // "Generally the difference between close() and shutdown() is: close()
-    // closes the socket id for the process but the connection is still
-    // opened if another process shares this socket id. The connection
-    // stays opened both for read and write, and sometimes this is very
-    // important. shutdown() breaks the connection for all processes sharing
-    // the socket id. Those who try to read will detect EOF, and those who
-    // try to write will receive SIGPIPE, possibly delayed while the kernel
-    // socket buffer will be filled. Additionally, shutdown() has a second
-    // argument which denotes how to close the connection: 0 means to
-    // disable further reading, 1 to disable writing and 2 disables both."
-    // https://linux.die.net/man/2/shutdown:
-    // "The constants SHUT_RD, SHUT_WR, SHUT_RDWR have the value 0, 1, 2,
-    // respectively, and are defined in <sys/socket.h>."
+    // Set up session socket.
     s_session_shutdown = false;
     s_session_socket = session_socket;
     auto socket_cleanup = make_scope_guard([]() {
-        // We can rely on close() to perform the equivalent of shutdown(SHUT_RDWR),
-        // since we hold the only fd pointing to this socket.
+        // We can rely on close() to perform the equivalent of
+        // shutdown(SHUT_RDWR), since we hold the only fd pointing to this
+        // socket. That should allow the client to read EOF if they're in a
+        // blocking read and exit gracefully. (If they try to write to the
+        // socket after we've closed our end, they'll receive EPIPE.) We don't
+        // want to try to read any pending data from the client, since we're
+        // trying to shut down as quickly as possible.
         ::close(s_session_socket);
         // Assign an invalid fd to the socket variable so it can't be reused.
         s_session_socket = -1;
     });
+
+    // Set up epoll loop.
     int epoll_fd = ::epoll_create1(0);
     if (epoll_fd == -1) {
         throw_system_error("epoll_create1 failed");
     }
-    auto epoll_cleanup = make_scope_guard([epoll_fd]() {
-        ::close(epoll_fd);
-    });
+    auto epoll_cleanup = make_scope_guard([epoll_fd]() { ::close(epoll_fd); });
     int fds[] = {s_session_socket, s_server_shutdown_eventfd};
     for (size_t i = 0; i < array_size(fds); i++) {
         // We should only get EPOLLRDHUP from the client socket, but oh well.
@@ -490,8 +486,7 @@ void server::session_handler(const int session_socket) {
         // This value is large enough that no thread will
         // decrement it to zero, so every waiting thread
         // should see a nonzero value.
-        ssize_t bytes_written = ::write(
-            s_session_shutdown_eventfd, &MAX_SEMAPHORE_COUNT, sizeof(MAX_SEMAPHORE_COUNT));
+        ssize_t bytes_written = ::write(s_session_shutdown_eventfd, &MAX_SEMAPHORE_COUNT, sizeof(MAX_SEMAPHORE_COUNT));
         if (bytes_written == -1) {
             throw_system_error("write to eventfd failed");
         }
@@ -501,6 +496,8 @@ void server::session_handler(const int session_socket) {
             t.join();
         }
     });
+
+    // Enter epoll loop.
     while (!s_session_shutdown) {
         // Block forever (we will be notified of shutdown).
         int ready_fd_count = ::epoll_wait(epoll_fd, events, array_size(events), -1);
@@ -553,7 +550,8 @@ void server::session_handler(const int session_socket) {
                     int fd_buf[MAX_FD_COUNT] = {-1};
                     size_t fd_buf_size = array_size(fd_buf);
                     // Read client message with possible file descriptors.
-                    size_t bytes_read = recv_msg_with_fds(s_session_socket, fd_buf, &fd_buf_size, msg_buf, sizeof(msg_buf));
+                    size_t bytes_read =
+                        recv_msg_with_fds(s_session_socket, fd_buf, &fd_buf_size, msg_buf, sizeof(msg_buf));
                     // We shouldn't get EOF unless EPOLLRDHUP is set.
                     // REVIEW: it might be possible for the client to call shutdown(SHUT_WR)
                     // after we have already woken up on EPOLLIN, in which case we would
@@ -598,13 +596,13 @@ void server::session_handler(const int session_socket) {
 }
 
 template <typename element_type>
-void server::stream_producer_handler(const int stream_socket, const int cancel_eventfd,
-    std::function<std::optional<element_type>()> generator_fn) {
+void server::stream_producer_handler(
+    const int stream_socket, const int cancel_eventfd, std::function<std::optional<element_type>()> generator_fn) {
     // We only support fixed-width integer types for now to avoid framing.
     static_assert(std::is_integral<element_type>::value, "Generator function must return an integer.");
     // Verify the socket is the correct type for the semantics we assume.
     check_socket_type(stream_socket, SOCK_SEQPACKET);
-    auto gen_iter = generator_iterator<element_type>(generator_fn);
+    auto gen_iter = generator_iterator_t<element_type>(generator_fn);
     auto socket_cleanup = make_scope_guard([stream_socket]() {
         // We can rely on close() to perform the equivalent of shutdown(SHUT_RDWR),
         // since we hold the only fd pointing to this socket.
@@ -620,9 +618,7 @@ void server::stream_producer_handler(const int stream_socket, const int cancel_e
     if (epoll_fd == -1) {
         throw_system_error("epoll_create1 failed");
     }
-    auto epoll_cleanup = make_scope_guard([epoll_fd]() {
-        ::close(epoll_fd);
-    });
+    auto epoll_cleanup = make_scope_guard([epoll_fd]() { ::close(epoll_fd); });
     // We poll for write availability of the stream socket in level-triggered mode,
     // and only write at most one buffer of data before polling again, to avoid read
     // starvation of the cancellation eventfd.
@@ -694,8 +690,8 @@ void server::stream_producer_handler(const int stream_socket, const int cancel_e
                         // We don't want to handle signals, so set
                         // MSG_NOSIGNAL to convert SIGPIPE to EPIPE.
                         ssize_t bytes_written = ::send(
-                            stream_socket, batch_buffer.data(),
-                            batch_buffer.size() * sizeof(element_type), MSG_NOSIGNAL);
+                            stream_socket, batch_buffer.data(), batch_buffer.size() * sizeof(element_type),
+                            MSG_NOSIGNAL);
                         if (bytes_written == -1) {
                             // It should never happen that the socket is no longer writable
                             // after we receive EPOLLOUT, since we are the only writer and
@@ -744,15 +740,13 @@ void server::stream_producer_handler(const int stream_socket, const int cancel_e
 }
 
 template <typename element_type>
-void server::start_stream_producer(const int stream_socket,
-    std::function<std::optional<element_type>()> generator_fn) {
+void server::start_stream_producer(const int stream_socket, std::function<std::optional<element_type>()> generator_fn) {
     // Give the session ownership of the new stream thread.
-    s_session_owned_threads.emplace_back(stream_producer_handler<element_type>,
-        stream_socket, s_session_shutdown_eventfd, generator_fn);
+    s_session_owned_threads.emplace_back(
+        stream_producer_handler<element_type>, stream_socket, s_session_shutdown_eventfd, generator_fn);
 }
 
-std::function<std::optional<gaia_id_t>()>
-server::get_id_generator_for_type(const gaia_type_t type) {
+std::function<std::optional<gaia_id_t>()> server::get_id_generator_for_type(const gaia_type_t type) {
     gaia_locator_t locator = 0;
     return [type, locator]() mutable -> std::optional<gaia_id_t> {
         // We need to ensure that we're not reading the locator segment
@@ -761,7 +755,8 @@ server::get_id_generator_for_type(const gaia_type_t type) {
         while (++locator && locator < s_data->locator_count + 1) {
             gaia_offset_t offset = (*s_shared_locators)[locator];
             if (offset) {
-                gaia_se_object* obj = reinterpret_cast<gaia_se_object*>(s_data->objects + (*s_shared_locators)[locator]);
+                gaia_se_object_t* obj =
+                    reinterpret_cast<gaia_se_object_t*>(s_data->objects + (*s_shared_locators)[locator]);
                 if (obj->type == type) {
                     return obj->id;
                 }

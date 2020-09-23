@@ -109,7 +109,17 @@ private:
         return (s_txn_commit_trigger
             && (trigger_excluded_types.find(type) == trigger_excluded_types.end()));
     static void inline allocate_object(const gaia_locator_t locator, const size_t size) {
-                                     (size + sizeof(gaia_offset_t) - 1) / sizeof(gaia_offset_t));
+        if (s_locators == nullptr) {
+            throw transaction_not_open();
+        }
+
+        if (s_data->objects[0] >= MAX_OBJECTS) {
+            throw oom();
+        }
+
+        (*s_locators)[locator] = 1 + __sync_fetch_and_add(
+            &s_data->objects[0],
+            (size + sizeof(gaia_offset_t) - 1) / sizeof(gaia_offset_t));
     }
 
     static inline void verify_txn_active() {

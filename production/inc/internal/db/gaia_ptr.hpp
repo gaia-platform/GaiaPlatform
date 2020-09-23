@@ -262,7 +262,7 @@ public:
         std::function<bool(gaia_ptr)> gaia_ptr_predicate = [user_predicate](gaia_ptr ptr) {
             return !ptr.is_null() && user_predicate(ptr);
         };
-        auto gaia_ptr_iterator = gaia::common::iterators::generator_iterator(
+        auto gaia_ptr_iterator = gaia::common::iterators::generator_iterator_t(
             gaia_ptr_generator,
             gaia_ptr_predicate);
         return gaia_ptr_iterator;
