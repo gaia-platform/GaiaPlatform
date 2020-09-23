@@ -788,6 +788,8 @@ typedef struct {
 TEST_F(gaia_object_test, multi_process_inserts) {
     message_buffer_t message;
 
+    end_session();
+
     // Common parent/child setup for a message queue.
     key_t queue_key = ftok("/tmp", 2020);
     int message_id = msgget(queue_key, 0666 | IPC_CREAT);
@@ -796,6 +798,7 @@ TEST_F(gaia_object_test, multi_process_inserts) {
 
     if (child_pid) {
         // PARENT PROCESS.
+        begin_session();
 
         // EXCHANGE 1: serialized transactions.
         //   Add two employees in the parent. Commit.
@@ -869,6 +872,7 @@ TEST_F(gaia_object_test, multi_process_inserts) {
     }
     else {
         // CHILD PROCESS.
+        begin_session();
 
         // EXCHANGE 1: serialized transactions.
 
@@ -893,6 +897,7 @@ TEST_F(gaia_object_test, multi_process_inserts) {
         msgsnd(message_id, &message, c_message_text_length, 0);
 
         // The parent process is waiting for this one to terminate.
+        end_session();
         exit(0);
     }
 
