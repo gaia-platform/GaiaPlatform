@@ -73,6 +73,8 @@ int client::get_id_cursor_socket_for_type(const gaia_type_t type) {
 template <typename element_type>
 std::function<std::optional<element_type>()>
 client::get_stream_generator_for_socket(int stream_socket) {
+    // Verify the socket is the correct type for the semantics we assume.
+    check_socket_type(stream_socket, SOCK_SEQPACKET);
     // Currently, we associate a cursor with a snapshot view, i.e., a transaction.
     verify_tx_active();
     gaia_xid_t owning_transaction_id = s_transaction_id;

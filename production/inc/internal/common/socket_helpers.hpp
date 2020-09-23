@@ -163,5 +163,16 @@ inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* dat
     return static_cast<size_t>(bytes_read);
 }
 
+inline void check_socket_type(const int socket, const int expected_socket_type) {
+    int real_socket_type;
+    socklen_t type_len = sizeof(real_socket_type);
+    if (-1 == ::getsockopt(socket, SOL_SOCKET, SO_TYPE, &real_socket_type, &type_len)) {
+        throw_system_error("getsockopt(SO_TYPE) failed");
+    }
+    // type_len is an inout parameter which can indicate truncation.
+    retail_assert(type_len == sizeof(real_socket_type));
+    retail_assert(real_socket_type == expected_socket_type);
+}
+
 } // namespace common
 } // namespace gaia

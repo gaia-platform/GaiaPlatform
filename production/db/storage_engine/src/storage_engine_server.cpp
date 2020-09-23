@@ -597,6 +597,8 @@ void server::stream_producer_handler(const int stream_socket, const int cancel_e
     std::function<std::optional<element_type>()> generator_fn) {
     // We only support fixed-width integer types for now to avoid framing.
     static_assert(std::is_integral<element_type>::value, "Generator function must return an integer.");
+    // Verify the socket is the correct type for the semantics we assume.
+    check_socket_type(stream_socket, SOCK_SEQPACKET);
     auto gen_iter = generator_iterator<element_type>(generator_fn);
     auto socket_cleanup = make_scope_guard([stream_socket]() {
         // We can rely on close() to perform the equivalent of shutdown(SHUT_RDWR),
