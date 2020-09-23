@@ -75,11 +75,11 @@ protected:
     };
 
     struct data {
-        // The first two fields are used as cross-process atomic counters.
-        // We don't need something like a cross-process mutex for this,
-        // as long as we use atomic intrinsics for mutating the counters.
-        // This is because the instructions targeted by the intrinsics
-        // operate at the level of physical memory, not virtual addresses.
+        // The first two fields are used as cross-process atomic counters. We
+        // don't need something like a cross-process mutex for this, as long as
+        // we use atomic intrinsics for mutating the counters. This is because
+        // the instructions targeted by the intrinsics operate at the level of
+        // physical memory, not virtual addresses.
         gaia_id_t next_id;
         gaia_txn_id_t next_txn_id;
         size_t locator_count;

@@ -761,7 +761,7 @@ server::get_id_generator_for_type(const gaia_type_t type) {
         while (++locator && locator < s_data->locator_count + 1) {
             gaia_offset_t offset = (*s_shared_locators)[locator];
             if (offset) {
-                object* obj = reinterpret_cast<object*>(s_data->objects + (*s_shared_locators)[locator]);
+                gaia_se_object* obj = reinterpret_cast<gaia_se_object*>(s_data->objects + (*s_shared_locators)[locator]);
                 if (obj->type == type) {
                     return obj->id;
                 }

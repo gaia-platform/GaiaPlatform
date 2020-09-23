@@ -20,7 +20,7 @@
 #include "generator_iterator.hpp"
 
 #include "storage_engine.hpp"
-#include "gaia_object_internal.hpp"
+#include "gaia_se_object.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
 #include "gaia_se_object.hpp"

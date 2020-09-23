@@ -5,24 +5,22 @@
 
 #pragma once
 
-#include <cstdint>
-#include <vector>
+#include <cstddef>
 
 #include "gaia_common.hpp"
 
-using namespace gaia::common;
+namespace gaia {
+namespace db {
 
-namespace gaia
-{
-namespace db
-{
+using namespace common;
 
-// Storage engine internal object type.
-struct gaia_se_object_t {
+// This was factored out of gaia_ptr.hpp because the server needs to know
+// the object format but doesn't need any gaia_ptr functionality.
+struct gaia_se_object {
     gaia_id_t id;
     gaia_type_t type;
-    uint64_t num_references;
-    uint64_t payload_size;
+    size_t num_references;
+    size_t payload_size;
     char payload[0];
 };
 
