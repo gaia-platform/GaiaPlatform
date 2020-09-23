@@ -125,7 +125,7 @@ error_code_t memory_manager_t::commit_stack_allocator(
                 "Allocation metadata size does not match manually computed size!");
         }
 
-        // Try to mark memory as free. This operation can only fail if we run out of memory.
+        // Mark memory block as free.
         unique_lock unique_free_memory_list_lock(m_free_memory_list_lock);
         m_free_memory_list.emplace_back(
             first_stack_allocation_metadata_offset,

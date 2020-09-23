@@ -27,14 +27,15 @@ public:
 
     // Tells the memory manager which memory area it should manage.
     //
-    // All addresses will be offsets relative to the beginning of this block and will be represented as address_offset_t.
+    // All addresses will be offsets relative to the beginning of this block
+    // and will be represented as address_offset_t.
     error_code_t manage(
         uint8_t* memory_address,
         size_t memory_size);
 
     // Allocates a new block of memory.
-    // This interface is meant to be used when the size of the block is known in advance,
-    // such as in the case when we load the database objects from disk.
+    // This is used both for initial load of data in memory
+    // as well as for allocating memory blocks to be used with stack allocators.
     error_code_t allocate(size_t memory_size, address_offset_t& allocated_memory_offset);
 
     // Once a transaction commits, calling this method will
@@ -44,26 +45,16 @@ public:
 
 private:
 
+    // This structure is used for tracking information about a memory block.
     struct memory_record_t
     {
         address_offset_t memory_offset;
         size_t memory_size;
 
-        memory_record_t()
-        {
-            clear();
-        }
-
         memory_record_t(address_offset_t memory_offset, size_t memory_size)
         {
             this->memory_offset = memory_offset;
             this->memory_size = memory_size;
-        }
-
-        void clear()
-        {
-            memory_offset = 0;
-            memory_size = 0;
         }
     };
 

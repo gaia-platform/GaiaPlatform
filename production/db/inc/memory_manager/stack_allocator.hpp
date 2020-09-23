@@ -54,8 +54,8 @@ public:
     // Allocation numbers start at 1.
     stack_allocator_allocation_t* get_allocation_record(size_t allocation_number) const;
 
-    // Find the offset where we can make the next allocation.
-    address_offset_t get_next_allocation_offset() const;
+    // Calculate the offset where we can make the next allocation.
+    address_offset_t calculate_next_allocation_offset() const;
 
 private:
 
