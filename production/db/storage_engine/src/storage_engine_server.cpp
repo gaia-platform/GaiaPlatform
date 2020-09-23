@@ -632,7 +632,7 @@ void server::stream_producer_handler(const int stream_socket, const int cancel_e
     epoll_event events[2];
     bool producer_shutdown = false;
     // The userspace buffer that we use to construct a batch datagram message.
-    std::vector<gaia_id_t> batch_buffer;
+    std::vector<element_type> batch_buffer;
     // We need to call reserve() rather than the "sized" constructor to avoid changing size().
     batch_buffer.reserve(STREAM_BATCH_SIZE);
     while (!producer_shutdown) {
