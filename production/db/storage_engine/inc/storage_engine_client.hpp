@@ -19,7 +19,6 @@
 #include <flatbuffers/flatbuffers.h>
 
 #include "scope_guard.hpp"
-#include "array_size.hpp"
 #include "retail_assert.hpp"
 #include "system_error.hpp"
 #include "mmap_helpers.hpp"

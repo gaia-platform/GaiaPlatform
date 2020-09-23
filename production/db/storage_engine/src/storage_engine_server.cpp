@@ -178,7 +178,7 @@ void server::apply_transition(session_event_t event, const void* event_data, int
     }
     // "Wildcard" transitions (current state = session_state_t::ANY) must be listed after
     // non-wildcard transitions with the same event, or the latter will never be applied.
-    for (size_t i = 0; i < array_size(s_valid_transitions); i++) {
+    for (size_t i = 0; i < std::size(s_valid_transitions); i++) {
         valid_transition_t t = s_valid_transitions[i];
         if (t.event == event && (t.state == s_session_state || t.state == session_state_t::ANY)) {
             session_state_t new_state = t.transition.new_state;
@@ -377,18 +377,18 @@ void server::client_dispatch_handler() {
     // but shouldn't really matter in practice.
     auto epoll_cleanup = make_scope_guard([epoll_fd]() { ::close(epoll_fd); });
     int registered_fds[] = {s_listening_socket, s_server_shutdown_eventfd};
-    for (size_t i = 0; i < array_size(registered_fds); i++) {
+    for (size_t i = 0; i < std::size(registered_fds); i++) {
         epoll_event ev{.events = EPOLLIN, .data.fd = registered_fds[i]};
         if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, registered_fds[i], &ev)) {
             throw_system_error("epoll_ctl failed");
         }
     }
-    epoll_event events[array_size(registered_fds)];
+    epoll_event events[std::size(registered_fds)];
 
     // Enter the epoll loop.
     while (true) {
         // Block forever (we will be notified of shutdown).
-        int ready_fd_count = ::epoll_wait(epoll_fd, events, array_size(events), -1);
+        int ready_fd_count = ::epoll_wait(epoll_fd, events, std::size(events), -1);
         if (ready_fd_count == -1) {
             // Attaching the debugger will send a SIGSTOP which we can't block.
             // Any signal which we block will set the shutdown eventfd and will
@@ -467,14 +467,14 @@ void server::session_handler(const int session_socket) {
     }
     auto epoll_cleanup = make_scope_guard([epoll_fd]() { ::close(epoll_fd); });
     int fds[] = {s_session_socket, s_server_shutdown_eventfd};
-    for (size_t i = 0; i < array_size(fds); i++) {
+    for (size_t i = 0; i < std::size(fds); i++) {
         // We should only get EPOLLRDHUP from the client socket, but oh well.
         epoll_event ev{.events = EPOLLIN | EPOLLRDHUP, .data.fd = fds[i]};
         if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fds[i], &ev)) {
             throw_system_error("epoll_ctl failed");
         }
     }
-    epoll_event events[array_size(fds)];
+    epoll_event events[std::size(fds)];
     // Event to signal session-owned threads to terminate.
     int session_shutdown_eventfd = ::eventfd(0, EFD_NONBLOCK | EFD_SEMAPHORE);
     if (session_shutdown_eventfd == -1) {
@@ -500,7 +500,7 @@ void server::session_handler(const int session_socket) {
     // Enter epoll loop.
     while (!s_session_shutdown) {
         // Block forever (we will be notified of shutdown).
-        int ready_fd_count = ::epoll_wait(epoll_fd, events, array_size(events), -1);
+        int ready_fd_count = ::epoll_wait(epoll_fd, events, std::size(events), -1);
         if (ready_fd_count == -1) {
             // Attaching the debugger will send a SIGSTOP which we can't block.
             // Any signal which we block will set the shutdown eventfd and will
@@ -548,7 +548,7 @@ void server::session_handler(const int session_socket) {
                     uint8_t msg_buf[MAX_MSG_SIZE] = {0};
                     // Buffer used to receive file descriptors.
                     int fd_buf[MAX_FD_COUNT] = {-1};
-                    size_t fd_buf_size = array_size(fd_buf);
+                    size_t fd_buf_size = std::size(fd_buf);
                     // Read client message with possible file descriptors.
                     size_t bytes_read =
                         recv_msg_with_fds(s_session_socket, fd_buf, &fd_buf_size, msg_buf, sizeof(msg_buf));
@@ -638,7 +638,7 @@ void server::stream_producer_handler(
     batch_buffer.reserve(STREAM_BATCH_SIZE);
     while (!producer_shutdown) {
         // Block forever (we will be notified of shutdown).
-        int ready_fd_count = ::epoll_wait(epoll_fd, events, array_size(events), -1);
+        int ready_fd_count = ::epoll_wait(epoll_fd, events, std::size(events), -1);
         if (ready_fd_count == -1) {
             // Attaching the debugger will send a SIGSTOP which we can't block.
             // Any signal which we block will set the shutdown eventfd and will
