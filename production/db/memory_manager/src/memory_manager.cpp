@@ -22,6 +22,7 @@ using namespace gaia::db::memory_manager;
 
 memory_manager_t::memory_manager_t() : base_memory_manager_t()
 {
+    m_next_allocation_offset = 0;
 }
 
 error_code_t memory_manager_t::manage(
