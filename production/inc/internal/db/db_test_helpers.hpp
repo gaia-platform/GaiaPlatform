@@ -33,6 +33,9 @@ void wait_for_server_init() {
     static constexpr int c_poll_interval_millis = 10;
     int counter = 0;
 
+    // quick fix to initialize the server.
+    gaia_log::initialize({});
+
     // Wait for server to initialize.
     while (true) {
         try {
