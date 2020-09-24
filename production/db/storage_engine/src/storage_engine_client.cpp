@@ -301,8 +301,6 @@ void client::begin_session() {
     s_data = static_cast<data*>(map_fd(
         sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0));
 
-    // We've already mapped the data fd, so we can close it now.
-    ::close(fd_data);
 
     // Set up the private locator segment fd.
     s_fd_locators = fd_locators;
@@ -321,14 +319,14 @@ void client::begin_transaction() {
     verify_no_txn();
 
     // First we allocate a new log segment and map it in our own process.
-    s_fd_log = ::memfd_create(SCH_MEM_LOG, MFD_ALLOW_SEALING);
+    int fd_log = ::memfd_create(SCH_MEM_LOG, MFD_ALLOW_SEALING);
     if (fd_log == -1) {
         throw_system_error("memfd_create failed");
     }
     auto cleanup_fd = make_scope_guard([fd_log]() {
         close(fd_log);
     });
-    if (-1 == ftruncate(fd_log, sizeof(log))) {
+    if (-1 == ::ftruncate(fd_log, sizeof(log))) {
         throw_system_error("ftruncate failed");
     }
     s_log = static_cast<log*>(map_fd(sizeof(log), PROT_READ | PROT_WRITE, MAP_SHARED, fd_log, 0));
