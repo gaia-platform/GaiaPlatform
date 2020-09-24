@@ -6,7 +6,9 @@
 #include <iostream>
 #include <cstdlib>
 #include <thread>
-#include <sys/ipc.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <semaphore.h>
 #include <sys/msg.h>
 
 #include "gtest/gtest.h"
@@ -777,24 +779,28 @@ TEST_F(gaia_object_test, iter_arrow_deref) {
     EXPECT_STREQ(emp_iter->name_first(), emp_name);
 }
 
-// Structure for message queue
-constexpr int c_message_text_length = 1;
-typedef struct {
-    long type;
-    char text[c_message_text_length];
-} message_buffer_t;
+constexpr const char* c_go_child = "go_child";
+constexpr const char* c_go_parent = "go_parent";
 
-// Test parallel multi-process creation of objects.
+// Test parallel multi-process transactions.
 TEST_F(gaia_object_test, multi_process_inserts) {
-    message_buffer_t message;
+    sem_t* sem_go_child;
+    sem_t* sem_go_parent;
 
+    // Both processes will start their own sessions.
     end_session();
 
-    // Common parent/child setup for a message queue.
-    key_t queue_key = ftok("/tmp", 2020);
-    int message_id = msgget(queue_key, 0666 | IPC_CREAT);
+    // Common parent/child setup for semaphore synchronization.
+    // Semaphore must be opened before second process starts because it assumes
+    // that the semaphore exists.
+    sem_unlink(c_go_child);
+    sem_unlink(c_go_parent);
+    sem_go_child = sem_open(c_go_child, O_CREAT, S_IWUSR|S_IRUSR, 0);
+    if (sem_go_child == SEM_FAILED) {
+        fprintf(stderr, "sem_open errorno %d\n", errno);
+    }
+    sem_go_parent = sem_open(c_go_parent, O_CREAT, S_IRUSR | S_IWUSR, 0);
     pid_t child_pid = fork();
-    message.type = 1;
 
     if (child_pid) {
         // PARENT PROCESS.
@@ -812,10 +818,8 @@ TEST_F(gaia_object_test, multi_process_inserts) {
         commit_transaction();
 
         // The child will add two employees. Wait for it to complete.
-        msgsnd(message_id, &message, c_message_text_length, 0);
-        alarm(1);
-        msgrcv(message_id, &message, c_message_text_length, 0, 0);
-        alarm(0);
+        sem_post(sem_go_child);
+        sem_wait(sem_go_parent);
 
         // Scan through all resulting rows.
         // See if all objects exist.
@@ -838,13 +842,8 @@ TEST_F(gaia_object_test, multi_process_inserts) {
         begin_transaction();
         create_employee("Hugo").gaia_id();
 
-        msgsnd(message_id, &message, c_message_text_length, 0);
-        // If the child process fails, this will hang forever. Set up an alarm
-        // so that it will break out after a second.
-        alarm(1);
-        // If msgrcv is interrupted by the alarm, it returns -1.
-        EXPECT_GT(msgrcv(message_id, &message, c_message_text_length, 0, 0), 0);
-        alarm(0);
+        sem_post(sem_go_child);
+        sem_wait(sem_go_parent);
 
         commit_transaction();
 
@@ -861,23 +860,31 @@ TEST_F(gaia_object_test, multi_process_inserts) {
         EXPECT_STREQ(employee.name_first(), "Hank");
         employee = employee.get_next();
         EXPECT_STREQ(employee.name_first(), "Hugo");
-        // employee = employee.get_next();
-        // EXPECT_STREQ(employee.name_first(), "Hubert");
+        employee = employee.get_next();
+        EXPECT_STREQ(employee.name_first(), "Hubert");
         commit_transaction();
 
         wait(&child_pid);
-        // Clean up the message queue.
-        msgctl(message_id, IPC_RMID, NULL);
+
+        // Clean up the semaphores.
+        sem_close(sem_go_child);
+        sem_close(sem_go_parent);
+        sem_unlink(c_go_child);
+        sem_unlink(c_go_parent);
 
     }
     else {
+        // Open a pre-existing semaphore.
+        sem_go_child = sem_open(c_go_child, 0);
+        sem_go_parent = sem_open(c_go_parent, 0);
+
         // CHILD PROCESS.
         begin_session();
 
         // EXCHANGE 1: serialized transactions.
 
         // Wait for the "go".
-        msgrcv(message_id, &message, c_message_text_length, 0, 0);
+        sem_wait(sem_go_child);
 
         begin_transaction();
         create_employee("Harold").gaia_id();
@@ -885,16 +892,150 @@ TEST_F(gaia_object_test, multi_process_inserts) {
         commit_transaction();
 
         // Tell parent to "go".
-        msgsnd(message_id, &message, c_message_text_length, 0);
+        sem_post(sem_go_parent);
 
         // EXCHANGE 2: concurrent transactions.
-        msgrcv(message_id, &message, c_message_text_length, 0, 0);
+        sem_wait(sem_go_child);
 
         begin_transaction();
         create_employee("Hubert").gaia_id();
         commit_transaction();
 
-        msgsnd(message_id, &message, c_message_text_length, 0);
+        sem_post(sem_go_parent);
+
+        // The parent process is waiting for this one to terminate.
+        end_session();
+        exit(0);
+    }
+
+}
+
+// Test parallel multi-process transactions and aborts.
+TEST_F(gaia_object_test, multi_process_aborts) {
+    sem_t* sem_go_child;
+    sem_t* sem_go_parent;
+
+    // Both processes will start their own sessions.
+    end_session();
+
+    // Common parent/child setup for semaphore synchronization.
+    // Semaphore must be opened before second process starts because it assumes
+    // that the semaphore exists.
+    sem_unlink(c_go_child);
+    sem_unlink(c_go_parent);
+    sem_go_child = sem_open(c_go_child, O_CREAT, S_IWUSR|S_IRUSR, 0);
+    if (sem_go_child == SEM_FAILED) {
+        fprintf(stderr, "sem_open errorno %d\n", errno);
+    }
+    sem_go_parent = sem_open(c_go_parent, O_CREAT, S_IRUSR | S_IWUSR, 0);
+    pid_t child_pid = fork();
+
+    if (child_pid) {
+        // PARENT PROCESS.
+        begin_session();
+
+        // EXCHANGE 1: serialized transactions.
+        //   Add two employees in the parent. Commit.
+        //   Add an employee in the child. Abort.
+        //   Add another employee in the child. Commit.
+        //   Read and verify all employees in the parent.
+
+        // Parent process adds two employees.
+        begin_transaction();
+        create_employee("Howard").gaia_id();
+        create_employee("Henry").gaia_id();
+        commit_transaction();
+
+        // The child will add two employees. Wait for it to complete.
+        sem_post(sem_go_child);
+        sem_wait(sem_go_parent);
+
+        // Scan through all resulting rows.
+        // See if all objects exist.
+        begin_transaction();
+        auto employee = employee_t::get_first();
+        EXPECT_STREQ(employee.name_first(), "Howard");
+        employee = employee.get_next();
+        EXPECT_STREQ(employee.name_first(), "Henry");
+        employee = employee.get_next();
+        EXPECT_STREQ(employee.name_first(), "Hank");
+        auto e = employee_t::list().begin();
+        EXPECT_STREQ((*e).name_first(), "Howard");
+        ++e;
+        EXPECT_STREQ((*e).name_first(), "Henry");
+        e++;
+        // Make sure we have hit the end of the list.
+        EXPECT_STREQ((*e).name_first(), "Hank");
+        e++;
+        EXPECT_EQ(true, e == employee_t::list().end());
+        commit_transaction();
+
+        // EXCHANGE 2: concurrent transactions.
+        //   Begin transaction in parent. Add one employee.
+        //   Begin child transaction. Add one employee. Commit.
+        //   Abort transaction in parent. Verify employees.
+
+        begin_transaction();
+        create_employee("Hugo").gaia_id();
+
+        sem_post(sem_go_child);
+        sem_wait(sem_go_parent);
+
+        rollback_transaction();
+
+        // Scan through all resulting rows.
+        // See if all objects exist.
+        begin_transaction();
+        employee = employee_t::get_first();
+        EXPECT_STREQ(employee.name_first(), "Howard");
+        employee = employee.get_next();
+        EXPECT_STREQ(employee.name_first(), "Henry");
+        employee = employee.get_next();
+        EXPECT_STREQ(employee.name_first(), "Hank");
+        employee = employee.get_next();
+        EXPECT_STREQ(employee.name_first(), "Hubert");
+        commit_transaction();
+
+        wait(&child_pid);
+
+        // Clean up the semaphores.
+        sem_close(sem_go_child);
+        sem_close(sem_go_parent);
+        sem_unlink(c_go_child);
+        sem_unlink(c_go_parent);
+
+    }
+    else {
+        // Open a pre-existing semaphore.
+        sem_go_child = sem_open(c_go_child, 0);
+        sem_go_parent = sem_open(c_go_parent, 0);
+
+        // CHILD PROCESS.
+        begin_session();
+
+        // EXCHANGE 1: serialized transactions.
+
+        // Wait for the "go".
+        sem_wait(sem_go_child);
+
+        begin_transaction();
+        create_employee("Harold").gaia_id();
+        rollback_transaction();
+        begin_transaction();
+        create_employee("Hank").gaia_id();
+        commit_transaction();
+
+        // Tell parent to "go".
+        sem_post(sem_go_parent);
+
+        // EXCHANGE 2: concurrent transactions.
+        sem_wait(sem_go_child);
+
+        begin_transaction();
+        create_employee("Hubert").gaia_id();
+        commit_transaction();
+
+        sem_post(sem_go_parent);
 
         // The parent process is waiting for this one to terminate.
         end_session();
