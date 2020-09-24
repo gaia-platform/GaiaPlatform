@@ -211,6 +211,10 @@ private:
  * instantiated.
  */
 void initialize(const string& config_path);
+
+/**
+ * Release the resources used by the logging framework.
+ */
 void shutdown();
 
 /**

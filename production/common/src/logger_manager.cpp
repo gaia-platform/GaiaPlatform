@@ -74,7 +74,26 @@ bool logger_manager_t::stop_logging() {
         return false;
     }
 
+    // If we see we need more loggers we could find a more flexible pattern.
+    // For now, considering the limited number of loggers we have, it is ok
+    // to do this way.
+    m_catalog_logger = nullptr;
+    m_db_logger = nullptr;
+    m_sys_logger = nullptr;
+    m_scheduler_logger = nullptr;
+
+    uninitialized_logger_t uninitialized_sys;
+    uninitialized_logger_t uninitialized_db;
+    uninitialized_logger_t uninitialized_scheduler;
+    uninitialized_logger_t uninitialized_catalog;
+
+    g_sys = uninitialized_sys;
+    g_db = uninitialized_db;
+    g_scheduler = uninitialized_scheduler;
+    g_catalog = uninitialized_catalog;
+
     spdlog::shutdown();
+
     m_is_log_initialized = false;
     return true;
 }

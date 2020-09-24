@@ -70,4 +70,8 @@ void initialize(const string& config_path) {
     logger_manager_t::get().init_logging(config_path);
 }
 
+void shutdown() {
+    logger_manager_t::get().stop_logging();
+}
+
 } // namespace gaia::common::logging
