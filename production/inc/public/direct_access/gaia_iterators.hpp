@@ -53,6 +53,14 @@ class gaia_iterator_t {
     T_gaia operator*();
 
     T_gaia* operator->();
+
+    gaia_iterator_t<T_gaia> filter(std::function<bool(T_gaia)> predicate) {
+         class filtering_iterator: public gaia_iterator_t {
+
+        } thingy;
+
+        return thingy;
+    }
 };
 
 // A gaia_container_t is defined within each EDC and used by programmers to scan

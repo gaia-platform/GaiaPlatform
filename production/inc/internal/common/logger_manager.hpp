@@ -26,6 +26,7 @@ namespace common {
 namespace logging {
 
 class logger_manager_t {
+
 public:
     constexpr static const char* c_sys_logger = "sys";
     constexpr static const char* c_db_logger = "db";
@@ -36,7 +37,7 @@ public:
     constexpr static const char* c_default_log_path = "logs/gaia.log";
 
     /** Default location of the log configuration file */
-    // TODO it is unclear to me how we can provide this
+    // REVIEW it is unclear to me how we can provide this
     constexpr static const char* c_default_log_conf_path = "log_conf.toml";
 
     logger_manager_t(const logger_manager_t&) = delete;
@@ -59,6 +60,11 @@ private:
     bool m_is_log_initialized = false;
 
     // well-known loggers
+    friend logger_t& gaia_log::sys();
+    friend logger_t& gaia_log::db();
+    friend logger_t& gaia_log::scheduler();
+    friend logger_t& gaia_log::catalog();
+
     logger_ptr_t m_sys_logger;
     logger_ptr_t m_db_logger;
     logger_ptr_t m_scheduler_logger;

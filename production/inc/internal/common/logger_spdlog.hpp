@@ -26,9 +26,9 @@ namespace spdlog_defaults {
      */
     constexpr const char* c_default_pattern = "[%Y-%m-%dT%T%z] [%l] p:%P t:%t <%n>: %v";
 
-    constexpr const size_t c_default_queue_size = 8192;
-    constexpr const size_t c_default_thread_count = 1;
-    constexpr const spdlog::level::level_enum c_default_level = spdlog::level::info;
+    constexpr size_t c_default_queue_size = 8192;
+    constexpr size_t c_default_thread_count = 1;
+    constexpr spdlog::level::level_enum c_default_level = spdlog::level::info;
 
     /**
      * Creates an instance of spdlog::logger with some convenient defaults. This is function

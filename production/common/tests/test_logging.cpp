@@ -21,7 +21,7 @@ protected:
 
 TEST_F(test_logging_t, logger_api) {
 
-    vector<gaia_log::logger_t> loggers = {gaia_log::g_sys, gaia_log::g_catalog, gaia_log::g_scheduler, gaia_log::g_db};
+    vector<gaia_log::logger_t> loggers = {gaia_log::sys(), gaia_log::catalog(), gaia_log::scheduler(), gaia_log::db()};
 
     for (auto logger : loggers) {
         logger.trace("trace");

@@ -153,7 +153,7 @@ public:
 
 /**
  * Throws an exception if any of the loggers are used
- *  before the logging system is initialize
+ *  before the logging system is initialized
  */
 class uninitialized_logger_t : public logger_t {
 public:
@@ -220,10 +220,10 @@ void shutdown();
 /**
  * Exposed loggers. Filled in by initialize and destroyed on shutdown.
  */
-extern logger_t& g_sys;
-extern logger_t& g_db;
-extern logger_t& g_scheduler;
-extern logger_t& g_catalog;
+logger_t& sys();
+logger_t& db();
+logger_t& scheduler();
+logger_t& catalog();
 
 /*@}*/
 } // namespace logging

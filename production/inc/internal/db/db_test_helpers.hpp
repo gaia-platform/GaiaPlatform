@@ -43,7 +43,7 @@ void wait_for_server_init() {
         } catch (system_error& ex) {
             if (ex.get_errno() == ECONNREFUSED) {
                 if (counter % 1000 == 0) {
-                    gaia_log::g_sys.warn("Cannot connect to Gaia Server, you may need to start the gaia_se_server process");
+                    gaia_log::sys().warn("Cannot connect to Gaia Server, you may need to start the gaia_se_server process");
                     counter = 1;
                 } else {
                     counter++;

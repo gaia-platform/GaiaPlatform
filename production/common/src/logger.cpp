@@ -53,16 +53,6 @@ spdlog::level::level_enum logger_t::to_spdlog_level(gaia_log::log_level_t gaia_l
     }
 }
 
-uninitialized_logger_t uninitialized_sys;
-uninitialized_logger_t uninitialized_db;
-uninitialized_logger_t uninitialized_scheduler;
-uninitialized_logger_t uninitialized_catalog;
-
-logger_t& g_sys = uninitialized_sys;
-logger_t& g_db = uninitialized_db;
-logger_t& g_scheduler = uninitialized_scheduler;
-logger_t& g_catalog = uninitialized_catalog;
-
 //
 // Top level API implementation
 //
@@ -72,6 +62,22 @@ void initialize(const string& config_path) {
 
 void shutdown() {
     logger_manager_t::get().stop_logging();
+}
+
+logger_t& sys() {
+    return *logger_manager_t::get().m_sys_logger;
+}
+
+logger_t& db() {
+    return *logger_manager_t::get().m_db_logger;
+}
+
+logger_t& scheduler() {
+    return *logger_manager_t::get().m_scheduler_logger;
+}
+
+logger_t& catalog() {
+    return *logger_manager_t::get().m_catalog_logger;
 }
 
 } // namespace gaia::common::logging

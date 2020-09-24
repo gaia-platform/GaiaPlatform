@@ -47,16 +47,9 @@ bool logger_manager_t::init_logging(const string& config_path) {
     }
 
     m_sys_logger = make_shared<logger_t>(c_sys_logger);
-    g_sys = *m_sys_logger;
-
     m_db_logger = make_shared<logger_t>(c_db_logger);
-    g_db = *m_db_logger;
-
     m_scheduler_logger = make_shared<logger_t>(c_scheduler_logger);
-    g_scheduler = *m_scheduler_logger;
-
     m_catalog_logger = make_shared<logger_t>(c_catalog_logger);
-    g_catalog = *m_catalog_logger;
 
     m_is_log_initialized = true;
 
@@ -81,16 +74,6 @@ bool logger_manager_t::stop_logging() {
     m_db_logger = nullptr;
     m_sys_logger = nullptr;
     m_scheduler_logger = nullptr;
-
-    uninitialized_logger_t uninitialized_sys;
-    uninitialized_logger_t uninitialized_db;
-    uninitialized_logger_t uninitialized_scheduler;
-    uninitialized_logger_t uninitialized_catalog;
-
-    g_sys = uninitialized_sys;
-    g_db = uninitialized_db;
-    g_scheduler = uninitialized_scheduler;
-    g_catalog = uninitialized_catalog;
 
     spdlog::shutdown();
 
