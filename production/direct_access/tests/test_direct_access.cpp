@@ -786,6 +786,11 @@ constexpr const char* c_go_parent = "go_parent";
 TEST_F(gaia_object_test, multi_process_inserts) {
     sem_t* sem_go_child;
     sem_t* sem_go_parent;
+    struct timespec timeout;
+
+    // NOTE: even on slower CPUs, 4 seconds should be adequate for this test.
+    clock_gettime(CLOCK_REALTIME, &timeout);
+    timeout.tv_sec += 4;
 
     // Both processes will start their own sessions.
     end_session();
@@ -819,7 +824,7 @@ TEST_F(gaia_object_test, multi_process_inserts) {
 
         // The child will add two employees. Wait for it to complete.
         sem_post(sem_go_child);
-        sem_wait(sem_go_parent);
+        EXPECT_EQ(sem_timedwait(sem_go_parent, &timeout), 0);
 
         // Scan through all resulting rows.
         // See if all objects exist.
@@ -843,7 +848,7 @@ TEST_F(gaia_object_test, multi_process_inserts) {
         create_employee("Hugo").gaia_id();
 
         sem_post(sem_go_child);
-        sem_wait(sem_go_parent);
+        EXPECT_EQ(sem_timedwait(sem_go_parent, &timeout), 0);
 
         commit_transaction();
 
@@ -884,7 +889,7 @@ TEST_F(gaia_object_test, multi_process_inserts) {
         // EXCHANGE 1: serialized transactions.
 
         // Wait for the "go".
-        sem_wait(sem_go_child);
+        EXPECT_EQ(sem_timedwait(sem_go_child, &timeout), 0);
 
         begin_transaction();
         create_employee("Harold").gaia_id();
@@ -895,7 +900,7 @@ TEST_F(gaia_object_test, multi_process_inserts) {
         sem_post(sem_go_parent);
 
         // EXCHANGE 2: concurrent transactions.
-        sem_wait(sem_go_child);
+        EXPECT_EQ(sem_timedwait(sem_go_child, &timeout), 0);
 
         begin_transaction();
         create_employee("Hubert").gaia_id();
@@ -914,6 +919,11 @@ TEST_F(gaia_object_test, multi_process_inserts) {
 TEST_F(gaia_object_test, multi_process_aborts) {
     sem_t* sem_go_child;
     sem_t* sem_go_parent;
+    struct timespec timeout;
+
+    // NOTE: even on slower CPUs, 4 seconds should be adequate for this test.
+    clock_gettime(CLOCK_REALTIME, &timeout);
+    timeout.tv_sec += 4;
 
     // Both processes will start their own sessions.
     end_session();
@@ -948,7 +958,7 @@ TEST_F(gaia_object_test, multi_process_aborts) {
 
         // The child will add two employees. Wait for it to complete.
         sem_post(sem_go_child);
-        sem_wait(sem_go_parent);
+        EXPECT_EQ(sem_timedwait(sem_go_parent, &timeout), 0);
 
         // Scan through all resulting rows.
         // See if all objects exist.
@@ -979,7 +989,7 @@ TEST_F(gaia_object_test, multi_process_aborts) {
         create_employee("Hugo").gaia_id();
 
         sem_post(sem_go_child);
-        sem_wait(sem_go_parent);
+        EXPECT_EQ(sem_timedwait(sem_go_parent, &timeout), 0);
 
         rollback_transaction();
 
@@ -1016,7 +1026,7 @@ TEST_F(gaia_object_test, multi_process_aborts) {
         // EXCHANGE 1: serialized transactions.
 
         // Wait for the "go".
-        sem_wait(sem_go_child);
+        EXPECT_EQ(sem_timedwait(sem_go_child, &timeout), 0);
 
         begin_transaction();
         create_employee("Harold").gaia_id();
@@ -1029,7 +1039,7 @@ TEST_F(gaia_object_test, multi_process_aborts) {
         sem_post(sem_go_parent);
 
         // EXCHANGE 2: concurrent transactions.
-        sem_wait(sem_go_child);
+        EXPECT_EQ(sem_timedwait(sem_go_child, &timeout), 0);
 
         begin_transaction();
         create_employee("Hubert").gaia_id();
