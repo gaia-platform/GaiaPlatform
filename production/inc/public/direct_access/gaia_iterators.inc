@@ -11,8 +11,8 @@ namespace direct_access
 //
 // Implementation for gaia_iterator_t.
 //
-template <typename T_gaia>
-gaia_iterator_t<T_gaia>& gaia_iterator_t<T_gaia>::operator++()
+template <typename T_class>
+gaia_iterator_t<T_class>& gaia_iterator_t<T_class>::operator++()
 {
     if (!m_id)
     {
@@ -37,59 +37,59 @@ gaia_iterator_t<T_gaia>& gaia_iterator_t<T_gaia>::operator++()
     return *this;
 }
 
-template <typename T_gaia>
-gaia_iterator_t<T_gaia> gaia_iterator_t<T_gaia>::operator++(int)
+template <typename T_class>
+gaia_iterator_t<T_class> gaia_iterator_t<T_class>::operator++(int)
 {
-    gaia_iterator_t<T_gaia> old(m_id);
+    gaia_iterator_t<T_class> old(m_id);
     operator++();
     return old;
 }
 
-template <typename T_gaia>
-bool gaia_iterator_t<T_gaia>::operator==(const gaia_iterator_t& rhs) const
+template <typename T_class>
+bool gaia_iterator_t<T_class>::operator==(const gaia_iterator_t& rhs) const
 {
     return m_id == rhs.m_id;
 }
 
-template <typename T_gaia>
-bool gaia_iterator_t<T_gaia>::operator!=(const gaia_iterator_t& rhs) const
+template <typename T_class>
+bool gaia_iterator_t<T_class>::operator!=(const gaia_iterator_t& rhs) const
 {
     return m_id != rhs.m_id;
 }
 
-template <typename T_gaia>
-T_gaia gaia_iterator_t<T_gaia>::operator*()
+template <typename T_class>
+T_class gaia_iterator_t<T_class>::operator*()
 {
-    return T_gaia::get(m_id);
+    return T_class::get(m_id);
 }
 
-template <typename T_gaia>
-T_gaia* gaia_iterator_t<T_gaia>::operator->()
+template <typename T_class>
+T_class* gaia_iterator_t<T_class>::operator->()
 {
-    m_obj = T_gaia::get(m_id);
+    m_obj = T_class::get(m_id);
     return &m_obj;
 }
 
 //
 // Implementation for gaia_container_t
 //
-template <gaia_type_t T_gaia_type, typename T_gaia>
-gaia_iterator_t<T_gaia> gaia_container_t<T_gaia_type, T_gaia>::begin()
+template <gaia_type_t T_container, typename T_class>
+gaia_iterator_t<T_class> gaia_container_t<T_container, T_class>::begin()
 {
     gaia_id_t id = 0;
-    auto node_ptr = gaia_ptr::find_first(T_gaia_type);
+    auto node_ptr = gaia_ptr::find_first(T_container);
     if (node_ptr)
     {
         id = node_ptr.id();
     }
 
-    return gaia_iterator_t<T_gaia>(id);
+    return gaia_iterator_t<T_class>(id);
 }
 
-template <gaia_type_t T_gaia_type, typename T_gaia>
-gaia_iterator_t<T_gaia> gaia_container_t<T_gaia_type, T_gaia>::end()
+template <gaia_type_t T_container, typename T_class>
+gaia_iterator_t<T_class> gaia_container_t<T_container, T_class>::end()
 {
-    return gaia_iterator_t<T_gaia>(0);
+    return gaia_iterator_t<T_class>(0);
 }
 
 //
