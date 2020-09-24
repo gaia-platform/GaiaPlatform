@@ -5,6 +5,11 @@
 
 #include <iostream>
 #include <fstream>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <semaphore.h>
+#include <sys/msg.h>
+
 #include "gtest/gtest.h"
 #include "gaia_addr_book.h"
 #include "db_test_base.hpp"
@@ -568,6 +573,186 @@ TEST_F(gaia_references_test, thread_inserts) {
         count++;
     }
     EXPECT_EQ(count, 3);
+}
+
+constexpr const char* c_go_child = "go_child";
+constexpr const char* c_go_parent = "go_parent";
+
+// Create objects in one process, connect them in another, verify in first process.
+TEST_F(gaia_references_test, multi_process_conflict) {
+    pid_t child_pid;
+    sem_t* sem_go_child;
+    sem_t* sem_go_parent;
+    struct timespec timeout;
+
+    // NOTE: even on slower CPUs, 4 seconds should be adequate for this test.
+    clock_gettime(CLOCK_REALTIME, &timeout);
+    timeout.tv_sec += 4;
+
+    // Both processes will start their own sessions.
+    end_session();
+
+    // Common parent/child setup for semaphore synchronization.
+    // Semaphore must be opened before second process starts because it assumes
+    // that the semaphore exists.
+    sem_unlink(c_go_child);
+    sem_unlink(c_go_parent);
+    sem_go_child = sem_open(c_go_child, O_CREAT, S_IWUSR | S_IRUSR, 0);
+    EXPECT_NE(sem_go_child, SEM_FAILED);
+    sem_go_parent = sem_open(c_go_parent, O_CREAT, S_IRUSR | S_IWUSR, 0);
+    EXPECT_NE(sem_go_parent, SEM_FAILED);
+
+    if ((child_pid = fork())) {
+        // PARENT PROCESS.
+        begin_session();
+
+        begin_transaction();
+        employee_writer employee_w;
+        auto e1 = insert_employee(employee_w, "Horace");
+        commit_transaction();
+        begin_transaction();
+        address_writer address_w;
+        auto a2 = insert_address(address_w, "10618 129th Pl. N.E.", "Kirkland");
+        auto a3 = insert_address(address_w, "10805 Circle Dr.", "Bothell");
+        e1.addressee_address_list().insert(a2);
+        e1.addressee_address_list().insert(a3);
+
+        // Let the child process run and complete during this transaction.
+        sem_post(sem_go_child);
+        EXPECT_EQ(sem_timedwait(sem_go_parent, &timeout), 0);
+
+        EXPECT_THROW(commit_transaction(), transaction_update_conflict);
+
+        wait(&child_pid);
+
+        // Count the members. Only one succeeded.
+        begin_transaction();
+        int count = 0;
+        for (auto a : e1.addressee_address_list()) {
+            count++;
+        }
+        commit_transaction();
+        EXPECT_EQ(count, 1);
+
+        sem_close(sem_go_child);
+        sem_close(sem_go_parent);
+        sem_unlink(c_go_child);
+        sem_unlink(c_go_parent);
+    }
+    else {
+        // CHILD PROCESS.
+
+        // Open pre-existing semaphores.
+        sem_go_child = sem_open(c_go_child, 0);
+        sem_go_parent = sem_open(c_go_parent, 0);
+
+        begin_session();
+
+        // Wait for the "go".
+        EXPECT_EQ(sem_timedwait(sem_go_child, &timeout), 0);
+
+        begin_transaction();
+        // Locate the employee object.
+        auto e1 = employee_t::get_first();
+        address_writer address_w;
+        auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
+        e1.addressee_address_list().insert(a1);
+        commit_transaction();
+
+        sem_post(sem_go_parent);
+
+        // The parent process is waiting for this one to terminate.
+        end_session();
+        exit(0);
+    }
+}
+
+// Create objects in one process, connect them in another, verify in first process.
+TEST_F(gaia_references_test, multi_process_commit) {
+    pid_t child_pid;
+    sem_t* sem_go_child;
+    sem_t* sem_go_parent;
+    struct timespec timeout;
+
+    // NOTE: even on slower CPUs, 4 seconds should be adequate for this test.
+    clock_gettime(CLOCK_REALTIME, &timeout);
+    timeout.tv_sec += 4;
+
+    // Both processes will start their own sessions.
+    end_session();
+
+    // Common parent/child setup for semaphore synchronization.
+    // Semaphore must be opened before second process starts because it assumes
+    // that the semaphore exists.
+    sem_unlink(c_go_child);
+    sem_unlink(c_go_parent);
+    sem_go_child = sem_open(c_go_child, O_CREAT, S_IWUSR | S_IRUSR, 0);
+    EXPECT_NE(sem_go_child, SEM_FAILED);
+    sem_go_parent = sem_open(c_go_parent, O_CREAT, S_IRUSR | S_IWUSR, 0);
+    EXPECT_NE(sem_go_parent, SEM_FAILED);
+
+    if ((child_pid = fork())) {
+        // PARENT PROCESS.
+        begin_session();
+
+        begin_transaction();
+        employee_writer employee_w;
+        auto e1 = insert_employee(employee_w, "Horace");
+        commit_transaction();
+        begin_transaction();
+        address_writer address_w;
+        auto a2 = insert_address(address_w, "10618 129th Pl. N.E.", "Kirkland");
+        auto a3 = insert_address(address_w, "10805 Circle Dr.", "Bothell");
+        e1.addressee_address_list().insert(a2);
+        e1.addressee_address_list().insert(a3);
+        commit_transaction();
+
+        // Let the child process run and complete during this transaction.
+        sem_post(sem_go_child);
+        EXPECT_EQ(sem_timedwait(sem_go_parent, &timeout), 0);
+
+        wait(&child_pid);
+
+        // Count the members. All should have succeeded.
+        begin_transaction();
+        int count = 0;
+        for (auto a : e1.addressee_address_list()) {
+            count++;
+        }
+        commit_transaction();
+        EXPECT_EQ(count, 3);
+
+        sem_close(sem_go_child);
+        sem_close(sem_go_parent);
+        sem_unlink(c_go_child);
+        sem_unlink(c_go_parent);
+    }
+    else {
+        // CHILD PROCESS.
+
+        // Open pre-existing semaphores.
+        sem_go_child = sem_open(c_go_child, 0);
+        sem_go_parent = sem_open(c_go_parent, 0);
+
+        begin_session();
+
+        // Wait for the "go".
+        EXPECT_EQ(sem_timedwait(sem_go_child, &timeout), 0);
+
+        begin_transaction();
+        // Locate the employee object.
+        auto e1 = employee_t::get_first();
+        address_writer address_w;
+        auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
+        e1.addressee_address_list().insert(a1);
+        commit_transaction();
+
+        sem_post(sem_go_parent);
+
+        // The parent process is waiting for this one to terminate.
+        end_session();
+        exit(0);
+    }
 }
 
 // Testing the arrow dereference operator->() in gaia_set_iterator_t.

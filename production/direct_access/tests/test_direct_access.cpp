@@ -800,7 +800,7 @@ TEST_F(gaia_object_test, multi_process_inserts) {
     // that the semaphore exists.
     sem_unlink(c_go_child);
     sem_unlink(c_go_parent);
-    sem_go_child = sem_open(c_go_child, O_CREAT, S_IWUSR|S_IRUSR, 0);
+    sem_go_child = sem_open(c_go_child, O_CREAT, S_IWUSR | S_IRUSR, 0);
     if (sem_go_child == SEM_FAILED) {
         fprintf(stderr, "sem_open errorno %d\n", errno);
     }
@@ -879,11 +879,12 @@ TEST_F(gaia_object_test, multi_process_inserts) {
 
     }
     else {
-        // Open a pre-existing semaphore.
+        // CHILD PROCESS.
+
+        // Open pre-existing semaphores.
         sem_go_child = sem_open(c_go_child, 0);
         sem_go_parent = sem_open(c_go_parent, 0);
 
-        // CHILD PROCESS.
         begin_session();
 
         // EXCHANGE 1: serialized transactions.
@@ -933,7 +934,7 @@ TEST_F(gaia_object_test, multi_process_aborts) {
     // that the semaphore exists.
     sem_unlink(c_go_child);
     sem_unlink(c_go_parent);
-    sem_go_child = sem_open(c_go_child, O_CREAT, S_IWUSR|S_IRUSR, 0);
+    sem_go_child = sem_open(c_go_child, O_CREAT, S_IWUSR | S_IRUSR, 0);
     if (sem_go_child == SEM_FAILED) {
         fprintf(stderr, "sem_open errorno %d\n", errno);
     }
@@ -1016,11 +1017,12 @@ TEST_F(gaia_object_test, multi_process_aborts) {
 
     }
     else {
-        // Open a pre-existing semaphore.
+        // CHILD PROCESS.
+
+        // Open pre-existing semaphores.
         sem_go_child = sem_open(c_go_child, 0);
         sem_go_parent = sem_open(c_go_parent, 0);
 
-        // CHILD PROCESS.
         begin_session();
 
         // EXCHANGE 1: serialized transactions.
