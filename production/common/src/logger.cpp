@@ -9,7 +9,7 @@
 
 #include "spdlog/sinks/basic_file_sink.h"
 #include "logger_spdlog.hpp"
-#include "logger_factory.hpp"
+#include "logger_manager.hpp"
 
 namespace gaia::common::logging {
 
@@ -67,7 +67,7 @@ logger_t& g_catalog = uninitialized_catalog;
 // Top level API implementation
 //
 void initialize(const string& config_path) {
-    logger_factory_t::get().init_logging(config_path);
+    logger_manager_t::get().init_logging(config_path);
 }
 
 } // namespace gaia::common::logging

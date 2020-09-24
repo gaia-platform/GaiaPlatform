@@ -20,7 +20,7 @@ add_library(gaia_common STATIC
     src/file.cpp
     src/timer.cpp
     src/logger.cpp
-    src/logger_factory.cpp)
+    src/logger_manager.cpp)
 
 target_include_directories(gaia_common PUBLIC ${GAIA_COMMON_INCLUDES})
 set_target_properties(gaia_common PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -DSPDLOG_ENABLE_SYSLOG")

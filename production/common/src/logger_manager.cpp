@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "logger_factory.hpp"
+#include "logger_manager.hpp"
 
 #include <filesystem>
 #include <iostream>
@@ -19,14 +19,14 @@ namespace fs = std::filesystem;
 namespace gaia::common::logging {
 
 //
-// Implementation of logger_factory_t
+// Implementation of logger_manager_t
 //
-logger_factory_t& logger_factory_t::get() {
-    static logger_factory_t instance;
+logger_manager_t& logger_manager_t::get() {
+    static logger_manager_t instance;
     return instance;
 }
 
-bool logger_factory_t::init_logging(const string& config_path) {
+bool logger_manager_t::init_logging(const string& config_path) {
     unique_lock lock(m_log_init_mutex);
 
     if (m_is_log_initialized) {
@@ -46,28 +46,28 @@ bool logger_factory_t::init_logging(const string& config_path) {
         spdlog::init_thread_pool(spdlog_defaults::c_default_queue_size, spdlog_defaults::c_default_thread_count);
     }
 
-    m_sys = make_shared<logger_t>(c_sys_logger);
-    g_sys = *m_sys;
+    m_sys_logger = make_shared<logger_t>(c_sys_logger);
+    g_sys = *m_sys_logger;
 
-    m_db = make_shared<logger_t>(c_db_logger);
-    g_db = *m_db;
+    m_db_logger = make_shared<logger_t>(c_db_logger);
+    g_db = *m_db_logger;
 
-    m_scheduler = make_shared<logger_t>(c_scheduler_logger);
-    g_scheduler = *m_scheduler;
+    m_scheduler_logger = make_shared<logger_t>(c_scheduler_logger);
+    g_scheduler = *m_scheduler_logger;
 
-    m_catalog = make_shared<logger_t>(c_catalog_logger);
-    g_catalog = *m_catalog;
+    m_catalog_logger = make_shared<logger_t>(c_catalog_logger);
+    g_catalog = *m_catalog_logger;
 
     m_is_log_initialized = true;
 
     return true;
 }
 
-bool logger_factory_t::is_logging_initialized() const {
+bool logger_manager_t::is_logging_initialized() const {
     return m_is_log_initialized;
 }
 
-bool logger_factory_t::stop_logging() {
+bool logger_manager_t::stop_logging() {
     unique_lock lock(m_log_init_mutex);
 
     if (!m_is_log_initialized) {
@@ -79,7 +79,7 @@ bool logger_factory_t::stop_logging() {
     return true;
 }
 
-void logger_factory_t::create_log_dir_if_not_exists(const char* log_file_path) {
+void logger_manager_t::create_log_dir_if_not_exists(const char* log_file_path) {
     fs::path path(log_file_path);
     fs::path parent = path.parent_path();
     fs::create_directories(parent);
