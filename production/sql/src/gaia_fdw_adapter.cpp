@@ -7,8 +7,6 @@
 
 #include <fstream>
 
-#include "array_size.hpp"
-
 using namespace std;
 using namespace gaia::db;
 using namespace gaia::fdw;
@@ -139,7 +137,7 @@ List* adapter_t::get_ddl_command_list(const char* server_name)
         c_event_log_ddl_stmt_fmt,
     };
 
-    for (size_t i = 0; i < array_size(ddl_formatted_statements); i++)
+    for (size_t i = 0; i < std::size(ddl_formatted_statements); i++)
     {
         // Length of format string + length of server name - 2 chars for format
         // specifier + 1 char for null terminator.

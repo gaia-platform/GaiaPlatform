@@ -16,9 +16,9 @@
 
 #include <flatbuffers/flatbuffers.h>
 
-#include "array_size.hpp"
 #include "retail_assert.hpp"
 #include "system_error.hpp"
+#include "scope_guard.hpp"
 #include "mmap_helpers.hpp"
 #include "socket_helpers.hpp"
 #include "messages_generated.h"
@@ -44,7 +44,7 @@ class client : private se_base {
 
    public:
     static inline bool is_transaction_active() {
-        return (s_offsets != nullptr);
+        return (s_locators != nullptr);
     }
     static void begin_session();
     static void end_session();
@@ -56,11 +56,11 @@ class client : private se_base {
     static void clear_shared_memory();
 
    private:
-    // Both s_fd_log & s_offsets have transaction lifetime.
+    // Both s_fd_log & s_locators have transaction lifetime.
     thread_local static int s_fd_log;
-    thread_local static offsets* s_offsets;
-    // Both s_fd_offsets & s_data have session lifetime.
-    thread_local static int s_fd_offsets;
+    thread_local static locators* s_locators;
+    // Both s_fd_locators & s_data have session lifetime.
+    thread_local static int s_fd_locators;
     thread_local static data* s_data;
     // s_events has transaction lifetime and is cleared after each transaction.
     thread_local static std::vector<gaia::db::triggers::trigger_event_t> s_events;
@@ -112,18 +112,18 @@ class client : private se_base {
     }
 
     static inline void tx_log(
-        int64_t row_id,
-        int64_t old_object,
-        int64_t new_object,
-        gaia_operation_t operation,
+        const gaia_locator_t locator,
+        const gaia_offset_t old_offset,
+        const gaia_offset_t new_offset,
+        const gaia_operation_t operation,
         // 'deleted_id' is required to keep track of deleted keys which will be propagated to the persistent layer.
         // Memory for other operations will be unused. An alternative would be to keep a separate log for deleted keys only.
         gaia_id_t deleted_id = 0) {
         retail_assert(s_log->count < MAX_LOG_RECS);
         log::log_record* lr = s_log->log_records + s_log->count++;
-        lr->row_id = row_id;
-        lr->old_object = old_object;
-        lr->new_object = new_object;
+        lr->locator = locator;
+        lr->old_offset = old_offset;
+        lr->new_offset = new_offset;
         lr->deleted_id = deleted_id;
         lr->operation = operation;
     }

@@ -561,7 +561,7 @@ public:
       return rows_cleared;
     }
 
-    void verify_event_log_row(const gaia::event_log::event_log_t& row, event_type_t event_type, uint64_t gaia_type,
+    void verify_event_log_row(const gaia::event_log::event_log_t& row, event_type_t event_type, gaia_type_t gaia_type,
         gaia_id_t record_id, uint16_t column_id, bool rules_invoked)
     {
         EXPECT_EQ(row.event_type(), (uint32_t) event_type);

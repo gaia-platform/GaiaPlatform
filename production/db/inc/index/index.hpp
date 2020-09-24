@@ -10,6 +10,7 @@
 
 #include <vector>
 
+#include <gaia_db_internal.hpp>
 #include <data_holder.hpp>
 
 namespace gaia
@@ -22,8 +23,8 @@ namespace index
 struct index_record_t
 {
     std::vector<gaia::db::payload_types::data_holder_t> key_values;
-    uint64_t row_id;
-    uint64_t transaction_id;
+    gaia_locator_t locator;
+    gaia_xid_t transaction_id;
     uint8_t deleted;
 
     index_record_t() = default;

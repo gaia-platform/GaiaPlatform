@@ -20,21 +20,21 @@ namespace db {
 
 class gaia_ptr {
 private:
-    int64_t row_id;
+    gaia_locator_t m_locator;
     void create_insert_trigger(gaia_type_t type, gaia_id_t id);
     void clone_no_tx();
 
 public:
     gaia_ptr(const std::nullptr_t = nullptr)
-        : row_id(0) {}
+        : m_locator(0) {}
 
     gaia_ptr(const gaia_ptr& other)
-        : row_id(other.row_id) {}
+        : m_locator(other.m_locator) {}
 
     gaia_ptr& operator=(const gaia_ptr& other) = default;
 
     bool operator==(const gaia_ptr& other) const {
-        return row_id == other.row_id;
+        return m_locator == other.m_locator;
     }
 
     bool operator==(const std::nullptr_t) const {
@@ -52,37 +52,37 @@ public:
     static gaia_id_t generate_id();
 
     static gaia_ptr create(
-        gaia_type_t type,
-        size_t data_size,
+        const gaia_type_t type,
+        const size_t data_size,
         const void* data) {
 
-        gaia_id_t id = gaia_ptr::generate_id();
+        const gaia_id_t id = gaia_ptr::generate_id();
         auto metadata = type_registry_t::instance().get_or_create(type);
-        size_t num_references = metadata.num_references();
+        const size_t num_references = metadata.num_references();
 
         return create(id, type, num_references, data_size, data);
     }
 
     static gaia_ptr create(
-        gaia_id_t id,
-        gaia_type_t type,
-        size_t data_size,
+        const gaia_id_t id,
+        const gaia_type_t type,
+        const size_t data_size,
         const void* data) {
 
         auto metadata = type_registry_t::instance().get_or_create(type);
-        size_t num_references = metadata.num_references();
+        const size_t num_references = metadata.num_references();
 
         return create(id, type, num_references, data_size, data);
     }
 
     static gaia_ptr create(
-        gaia_id_t id,
-        gaia_type_t type,
-        size_t num_refs,
-        size_t data_size,
+        const gaia_id_t id,
+        const gaia_type_t type,
+        const size_t num_refs,
+        const size_t data_size,
         const void* data) {
-        size_t refs_len = num_refs * sizeof(gaia_id_t);
-        size_t total_len = data_size + refs_len;
+        const size_t refs_len = num_refs * sizeof(gaia_id_t);
+        const size_t total_len = data_size + refs_len;
         gaia_ptr obj(id, total_len + sizeof(gaia_se_object_t));
         gaia_se_object_t* obj_ptr = obj.to_ptr();
         obj_ptr->id = id;
@@ -97,8 +97,7 @@ public:
         return obj;
     }
 
-    static gaia_ptr open(
-        gaia_id_t id) {
+    static gaia_ptr open(const gaia_id_t id) {
         return gaia_ptr(id);
     }
 
@@ -118,17 +117,17 @@ public:
 
     gaia_ptr& clone();
 
-    gaia_ptr& update_payload(size_t data_size, const void* data);
+    gaia_ptr& update_payload(const size_t data_size, const void* data);
 
-    gaia_ptr& update_parent_references(size_t child_slot, gaia_id_t child_id);
+    gaia_ptr& update_parent_references(const size_t child_slot, const gaia_id_t child_id);
 
     gaia_ptr& update_child_references(
-        size_t next_child_slot, gaia_id_t next_child_id,
-        size_t parent_slot, gaia_id_t parent_id);
+        const size_t next_child_slot, const gaia_id_t next_child_id,
+        const size_t parent_slot, const gaia_id_t parent_id);
 
-    static gaia_ptr find_first(gaia_type_t type) {
+    static gaia_ptr find_first(const gaia_type_t type) {
         gaia_ptr ptr;
-        ptr.row_id = 1;
+        ptr.m_locator = 1;
 
         if (!ptr.is(type)) {
             ptr.find_next(type);
@@ -138,7 +137,7 @@ public:
     }
 
     gaia_ptr find_next() {
-        if (row_id) {
+        if (m_locator) {
             find_next(to_ptr()->type);
         }
 
@@ -146,14 +145,14 @@ public:
     }
 
     gaia_ptr operator++() {
-        if (row_id) {
+        if (m_locator) {
             find_next(to_ptr()->type);
         }
         return *this;
     }
 
     bool is_null() const {
-        return row_id == 0;
+        return m_locator == 0;
     }
 
     gaia_id_t id() const {
@@ -194,7 +193,7 @@ public:
      * @throws Exceptions there is no relationship between the parent and the child or if other
      *         integrity constraints are violated.
      */
-    void add_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset);
+    void add_child_reference(const gaia_id_t child_id, const reference_offset_t first_child_offset);
 
     /**
      * Add a parent reference to a child object.
@@ -207,16 +206,16 @@ public:
      * @throws Exceptions there is no relationship between the parent and the child  or if other
      *         integrity constraints are violated.
      */
-    void add_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset);
+    void add_parent_reference(const gaia_id_t parent_id, const reference_offset_t parent_offset);
 
     /**
      * Removes a child reference from a parent object. Without an index this operation
      * could have O(n) time complexity where n is the number of children.
-     *
+     *a
      * @param child_id The id of the children to be removed.
      * @param first_child_offset The offset, in the references array, of the pointer to the first child.
      */
-    void remove_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset);
+    void remove_child_reference(const gaia_id_t child_id, const reference_offset_t first_child_offset);
 
     /**
      * Removes a parent reference from a child object. Without an index this operation
@@ -225,7 +224,7 @@ public:
      * @param parent_id The id of the parent to be removed.
      * @param parent_offset The offset, in the references array, of the pointer to the parent.
      */
-    void remove_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset);
+    void remove_parent_reference(const gaia_id_t parent_id, const reference_offset_t parent_offset);
 
 protected:
     gaia_ptr(const gaia_id_t id);
@@ -236,13 +235,13 @@ protected:
 
     gaia_se_object_t* to_ptr() const;
 
-    int64_t to_offset() const;
+    gaia_offset_t to_offset() const;
 
-    bool is(gaia_type_t type) const {
+    bool is(const gaia_type_t type) const {
         return to_ptr() && to_ptr()->type == type;
     }
 
-    void find_next(gaia_type_t type);
+    void find_next(const gaia_type_t type);
 
     void reset();
 };

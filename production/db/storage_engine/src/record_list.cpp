@@ -9,6 +9,7 @@
 #include <locator_allocator.hpp>
 
 using namespace gaia::common;
+using namespace gaia::db;
 using namespace gaia::db::storage;
 
 record_data_t::record_data_t()
@@ -17,7 +18,7 @@ record_data_t::record_data_t()
     is_deleted = false;
 }
 
-void record_data_t::set(uint64_t locator)
+void record_data_t::set(gaia_locator_t locator)
 {
     retail_assert(locator != c_invalid_locator, "An invalid locator was passed to record_data_t::set()!");
 
@@ -67,7 +68,7 @@ void record_range_t::compact()
     m_has_deletions = false;
 }
 
-void record_range_t::add(uint64_t locator)
+void record_range_t::add(gaia_locator_t locator)
 {
     retail_assert(locator != c_invalid_locator, "An invalid locator was passed to record_range_t::add()!");
     retail_assert(!is_full(), "Range is full!");
@@ -151,7 +152,7 @@ void record_list_t::compact()
     }
 }
 
-void record_list_t::add(uint64_t locator)
+void record_list_t::add(gaia_locator_t locator)
 {
     retail_assert(locator != c_invalid_locator, "An invalid locator was passed to record_list_t::add()!");
 
@@ -244,7 +245,7 @@ bool record_list_t::move_next(record_iterator_t& iterator)
     return (iterator.at_end() == false);
 }
 
-uint64_t record_list_t::get_record_locator(record_iterator_t& iterator)
+gaia_locator_t record_list_t::get_record_locator(record_iterator_t& iterator)
 {
     retail_assert(iterator.at_end() == false, "Attempt to access invalid iterator state!");
 

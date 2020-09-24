@@ -4,8 +4,6 @@
 /////////////////////////////////////////////
 
 #include "gaia_fdw.hpp"
-
-#include "array_size.hpp"
 #include "gaia_fdw_adapter.hpp"
 
 using namespace std;

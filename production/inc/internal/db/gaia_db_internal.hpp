@@ -4,19 +4,35 @@
 /////////////////////////////////////////////
 
 #pragma once
-#include "triggers.hpp"
 
 namespace gaia {
 namespace db {
 
-// Set by the rules engine
-extern triggers::commit_trigger_fn s_tx_commit_trigger;
+/**
+ * The type of a Gaia transaction id.
+ */
+typedef uint64_t gaia_xid_t;
 
+/**
+ * The type of a Gaia locator id.
+ */
+typedef uint64_t gaia_locator_t;
+
+/**
+ * The type of a Gaia data offset.
+ */
+typedef uint64_t gaia_offset_t;
+
+/**
+ * Reinitializes the DB client's shared memory structures.
+ * For use only by test code, in combination with the DB
+ * server's reinitialization feature.
+ */
 void clear_shared_memory();
 
-// Todo (Mihir): Expose options to set the persistent 
-// directory path & also some way to destroy it instead 
-// of hardcoding the path. 
+// Todo (Mihir): Expose options to set the persistent
+// directory path & also some way to destroy it instead
+// of hardcoding the path.
 // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-310
 const char* const PERSISTENT_DIRECTORY_PATH = "/tmp/gaia_db";
 
