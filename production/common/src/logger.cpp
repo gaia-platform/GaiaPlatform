@@ -17,12 +17,6 @@ namespace gaia::common::logging {
 // logger_t implementation.
 //
 logger_t::logger_t(const string& logger_name) : m_logger_name(logger_name) {
-    // Allow uninitialized instances to be created
-    // for bootstrapping.
-    if (uninitialized_logger_t::c_uninitialized_logger == logger_name) {
-        return;
-    }
-
     auto logger = spdlog::get(logger_name);
 
     if (logger) {
@@ -65,19 +59,19 @@ void shutdown() {
 }
 
 logger_t& sys() {
-    return *logger_manager_t::get().m_sys_logger;
+    return logger_manager_t::get().sys_logger();
 }
 
 logger_t& db() {
-    return *logger_manager_t::get().m_db_logger;
+    return logger_manager_t::get().db_logger();
 }
 
 logger_t& scheduler() {
-    return *logger_manager_t::get().m_scheduler_logger;
+    return logger_manager_t::get().scheduler_logger();
 }
 
 logger_t& catalog() {
-    return *logger_manager_t::get().m_catalog_logger;
+    return logger_manager_t::get().catalog_logger();
 }
 
 } // namespace gaia::common::logging

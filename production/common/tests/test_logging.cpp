@@ -11,15 +11,17 @@ static const char* c_const_char_msg = "const char star message";
 static const std::string c_string_msg = "string message";
 static const int64_t c_int_msg = 1234;
 
-class test_logging_t : public ::testing::Test {
+void verify_uninitialized_loggers() {
+    EXPECT_THROW(gaia_log::sys(), gaia_log::logger_exception_t);
+    EXPECT_THROW(gaia_log::db(), gaia_log::logger_exception_t);
+    EXPECT_THROW(gaia_log::scheduler(), gaia_log::logger_exception_t);
+    EXPECT_THROW(gaia_log::catalog(), gaia_log::logger_exception_t);
+}
 
-protected:
-    static void SetUpTestSuite() {
-        gaia_log::initialize({});
-    }
-};
+TEST(logger_test, logger_api) {
+    verify_uninitialized_loggers();
 
-TEST_F(test_logging_t, logger_api) {
+    gaia_log::initialize({});
 
     vector<gaia_log::logger_t> loggers = {gaia_log::sys(), gaia_log::catalog(), gaia_log::scheduler(), gaia_log::db()};
 
@@ -40,4 +42,9 @@ TEST_F(test_logging_t, logger_api) {
         logger.log(gaia_log::log_level_t::info, "Static message");
         logger.log(gaia_log::log_level_t::info, "Dynamic const char*: '{}', std::string: '{}', number: '{}'", c_const_char_msg, c_string_msg, c_int_msg);
     }
+
+    gaia_log::shutdown();
+
+    // Sanity check that we are unitialized now.
+    verify_uninitialized_loggers();
 }

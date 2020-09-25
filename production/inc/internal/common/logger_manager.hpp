@@ -47,24 +47,46 @@ public:
 
     static logger_manager_t& get();
 
+    // Retrieve well-known loggers instances.
+    logger_t& sys_logger() {
+        if (!m_is_log_initialized) {
+            uninitialized_failure();
+        }
+        return *m_sys_logger;
+    };
+    logger_t& db_logger() {
+        if (!m_is_log_initialized) {
+            uninitialized_failure();
+        }
+        return *m_db_logger;
+    }
+    logger_t& scheduler_logger() {
+        if (!m_is_log_initialized) {
+            uninitialized_failure();
+        }
+        return *m_scheduler_logger;
+    }
+    logger_t& catalog_logger() {
+        if (!m_is_log_initialized) {
+            uninitialized_failure();
+        }
+        return *m_catalog_logger;
+    }
     bool init_logging(const string& config_path);
-    bool is_logging_initialized() const;
     bool stop_logging();
 
 private:
+    logger_manager_t() = default;
     static void create_log_dir_if_not_exists(const char* log_file_path);
+    static void uninitialized_failure() {
+        throw logger_exception_t("Logger sub-system not initialized!");
+    }
 
 private:
-    logger_manager_t() = default;
     shared_mutex m_log_init_mutex;
-    bool m_is_log_initialized = false;
+    atomic_bool m_is_log_initialized = false;
 
-    // well-known loggers
-    friend logger_t& gaia_log::sys();
-    friend logger_t& gaia_log::db();
-    friend logger_t& gaia_log::scheduler();
-    friend logger_t& gaia_log::catalog();
-
+    // Well-known loggers
     logger_ptr_t m_sys_logger;
     logger_ptr_t m_db_logger;
     logger_ptr_t m_scheduler_logger;

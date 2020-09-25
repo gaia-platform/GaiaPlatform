@@ -34,12 +34,8 @@ bool logger_manager_t::init_logging(const string& config_path) {
     }
 
     if (!config_path.empty()) {
-        try {
-            spdlog_setup::from_file(config_path);
-        } catch (spdlog_setup::setup_error& e) {
-            // exception not thrown because we want ot fallback to the default configuration
-            cerr << "An error occurred while configuring logger from file '" << config_path << "': " << e.what() << endl;
-        }
+        // This may throw if the configuration path is incorrect.
+        spdlog_setup::from_file(config_path);
     }
 
     if (!spdlog::thread_pool()) {
@@ -54,10 +50,6 @@ bool logger_manager_t::init_logging(const string& config_path) {
     m_is_log_initialized = true;
 
     return true;
-}
-
-bool logger_manager_t::is_logging_initialized() const {
-    return m_is_log_initialized;
 }
 
 bool logger_manager_t::stop_logging() {

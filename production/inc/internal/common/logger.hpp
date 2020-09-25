@@ -152,59 +152,6 @@ public:
 };
 
 /**
- * Throws an exception if any of the loggers are used
- *  before the logging system is initialized
- */
-class uninitialized_logger_t : public logger_t {
-public:
-    constexpr static const char* c_uninitialized_logger = "uninitialized";
-
-    explicit uninitialized_logger_t()
-        : logger_t(c_uninitialized_logger) {
-    }
-
-    template <typename... T_args>
-    void log(log_level_t, const char*, const T_args&...) {
-        fail();
-    }
-
-    template <typename... T_args>
-    void trace(const char*, const T_args&...) {
-        fail();
-    }
-
-    template <typename... T_args>
-    void debug(const char*, const T_args&...) {
-        fail();
-    }
-
-    template <typename... T_args>
-    void info(const char*, const T_args&...) {
-        fail();
-    }
-
-    template <typename... T_args>
-    void warn(const char*, const T_args&...) {
-        fail();
-    }
-
-    template <typename... T_args>
-    void error(const char*, const T_args&...) {
-        fail();
-    }
-
-    template <typename... T_args>
-    void critical(const char*, const T_args&...) {
-        fail();
-    }
-
-private:
-    void fail() const {
-        throw logger_exception_t("Logger sub-system not initialized!");
-    }
-};
-
-/**
  * 
  * Initializes all loggers from the passed in configuration. If the configuration
  * does not contain one of the required loggers (g_sys etc..) a default logger is
