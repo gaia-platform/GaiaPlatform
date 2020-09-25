@@ -12,7 +12,7 @@ set(GAIA_COMMON_INCLUDES
   "${GAIA_INC}/internal/common"
   "${GAIA_INC}/public/common")
 
-message(STATUS "GAIA_COMMON_INCLUDES=${GAIA_COMMON_INCLUDES}")
+# message(STATUS "GAIA_COMMON_INCLUDES=${GAIA_COMMON_INCLUDES}")
 
 # Our main target.
 add_library(gaia_common STATIC

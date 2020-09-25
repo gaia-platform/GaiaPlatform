@@ -12,7 +12,7 @@ set(GAIA_MEMORY_MANAGER_INCLUDES
   "${GAIA_INC}/public/common"
   "${GAIA_DB_INC}/memory_manager")
 
-message(STATUS "GAIA_MEMORY_MANAGER_INCLUDES=${GAIA_MEMORY_MANAGER_INCLUDES}")
+# message(STATUS "GAIA_MEMORY_MANAGER_INCLUDES=${GAIA_MEMORY_MANAGER_INCLUDES}")
 
 # Our main target.
 add_library(gaia_memorymanager SHARED
