@@ -20,7 +20,7 @@ namespace db
 namespace storage
 {
 
-static const gaia_locator_t c_invalid_locator = 0;
+constexpr gaia_locator_t c_invalid_locator = 0;
 
 class locator_allocator_t
 {

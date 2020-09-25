@@ -16,10 +16,10 @@ using namespace gaia::db::storage;
 
 TEST(storage, record_list)
 {
-    const size_t c_range_size = 3;
-    const gaia_locator_t c_starting_locator = 1000;
-    const gaia_locator_t c_count_locators = 10;
-    const gaia_locator_t c_new_locator = 88;
+    constexpr size_t c_range_size = 3;
+    constexpr gaia_locator_t c_starting_locator = 1000;
+    constexpr gaia_locator_t c_count_locators = 10;
+    constexpr gaia_locator_t c_new_locator = 88;
 
     record_list_t record_list(c_range_size);
 

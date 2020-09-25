@@ -29,18 +29,19 @@ using namespace messages;
 using namespace flatbuffers;
 
 class invalid_session_transition : public gaia_exception {
-   public:
+public:
     invalid_session_transition(const string& message) : gaia_exception(message) {}
 };
 
 class server : private se_base {
     friend class persistent_store_manager;
-   public:
+
+public:
     static void run();
 
-   private:
-    // FIXME: this really should be constexpr, but C++11 seems broken in that respect.
-    static const uint64_t MAX_SEMAPHORE_COUNT;
+private:
+    // from https://www.man7.org/linux/man-pages/man2/eventfd.2.html
+    static constexpr uint64_t MAX_SEMAPHORE_COUNT = 0xfffffffffffffffe;
     static int s_server_shutdown_event_fd;
     static int s_connect_socket;
     static std::mutex s_commit_lock;
@@ -367,8 +368,8 @@ class server : private se_base {
     static gaia_se_object_t* locator_to_ptr(locators* locators, data* s_data, gaia_locator_t locator) {
         assert(locators);
         return locator && (*locators)[locator]
-            ? reinterpret_cast<gaia_se_object_t*>(s_data->objects + (*locators)[locator])
-            : nullptr;
+                   ? reinterpret_cast<gaia_se_object_t*>(s_data->objects + (*locators)[locator])
+                   : nullptr;
     }
 
     static void session_thread(int session_socket) {
@@ -549,5 +550,5 @@ class server : private se_base {
     }
 };
 
-}  // namespace db
-}  // namespace gaia
+} // namespace db
+} // namespace gaia

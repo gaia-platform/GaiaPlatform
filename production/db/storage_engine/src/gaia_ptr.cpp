@@ -43,7 +43,7 @@ gaia_ptr& gaia_ptr::clone() {
     return *this;
 }
 
-gaia_ptr& gaia_ptr::update_payload(const size_t data_size, const void* data) {
+gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data) {
     auto old_this = to_ptr();
     auto old_offset = to_offset();
 
@@ -80,7 +80,7 @@ gaia_ptr& gaia_ptr::update_payload(const size_t data_size, const void* data) {
     return *this;
 }
 
-gaia_ptr& gaia_ptr::update_parent_references(const size_t child_slot, const gaia_id_t child_id) {
+gaia_ptr& gaia_ptr::update_parent_references(size_t child_slot, gaia_id_t child_id) {
     auto old_offset = to_offset();
     clone_no_tx();
 
@@ -91,8 +91,8 @@ gaia_ptr& gaia_ptr::update_parent_references(const size_t child_slot, const gaia
 }
 
 gaia_ptr& gaia_ptr::update_child_references(
-    const size_t next_child_slot, const gaia_id_t next_child_id,
-    const size_t parent_slot, const gaia_id_t parent_id) {
+    size_t next_child_slot, gaia_id_t next_child_id,
+    size_t parent_slot, gaia_id_t parent_id) {
     const auto old_offset = to_offset();
     clone_no_tx();
 
@@ -103,11 +103,11 @@ gaia_ptr& gaia_ptr::update_child_references(
     return *this;
 }
 
-gaia_ptr::gaia_ptr(const gaia_id_t id) {
+gaia_ptr::gaia_ptr(gaia_id_t id) {
     m_locator = gaia_hash_map::find(client::s_data, client::s_locators, id);
 }
 
-gaia_ptr::gaia_ptr(const gaia_id_t id, const size_t size)
+gaia_ptr::gaia_ptr(gaia_id_t id, size_t size)
     : m_locator(0) {
     hash_node* hash_node = gaia_hash_map::insert(client::s_data, client::s_locators, id);
     hash_node->locator = m_locator = se_base::allocate_locator(client::s_locators, client::s_data);
@@ -115,11 +115,11 @@ gaia_ptr::gaia_ptr(const gaia_id_t id, const size_t size)
     client::tx_log(m_locator, 0, to_offset(), gaia_operation_t::create);
 }
 
-void gaia_ptr::allocate(const size_t size) {
+void gaia_ptr::allocate(size_t size) {
     se_base::allocate_object(m_locator, size, client::s_locators, client::s_data);
 }
 
-void gaia_ptr::create_insert_trigger(const gaia_type_t type, const gaia_id_t id) {
+void gaia_ptr::create_insert_trigger(gaia_type_t type, gaia_id_t id) {
     if (client::is_valid_event(type)) {
         client::s_events.push_back(trigger_event_t{event_type_t::row_insert, type, id, empty_position_list});
     }
@@ -139,7 +139,7 @@ gaia_offset_t gaia_ptr::to_offset() const {
     return m_locator ? (*client::s_locators)[m_locator] : 0;
 }
 
-void gaia_ptr::find_next(const gaia_type_t type) {
+void gaia_ptr::find_next(gaia_type_t type) {
     // search for rows of this type within the range of used slots
     while (++m_locator && m_locator < client::s_data->locator_count + 1) {
         if (is(type)) {
@@ -159,7 +159,7 @@ void gaia_ptr::reset() {
     m_locator = 0;
 }
 
-void gaia_ptr::add_child_reference(const gaia_id_t child_id, const reference_offset_t first_child_offset) {
+void gaia_ptr::add_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset) {
     auto parent_type = type();
     auto parent_metadata = type_registry_t::instance().get_or_create(parent_type);
     auto relationship = parent_metadata.find_parent_relationship(first_child_offset);
@@ -211,7 +211,7 @@ void gaia_ptr::add_child_reference(const gaia_id_t child_id, const reference_off
     child_ptr.references()[relationship->parent_offset] = id();
 }
 
-void gaia_ptr::add_parent_reference(const gaia_id_t parent_id, const reference_offset_t parent_offset) {
+void gaia_ptr::add_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset) {
     auto child_type = type();
 
     auto child_metadata = type_registry_t::instance().get_or_create(child_type);
@@ -230,7 +230,7 @@ void gaia_ptr::add_parent_reference(const gaia_id_t parent_id, const reference_o
     parent_ptr.add_child_reference(id(), child_relationship->first_child_offset);
 }
 
-void gaia_ptr::remove_child_reference(const gaia_id_t child_id, const reference_offset_t first_child_offset) {
+void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset) {
     auto parent_type = type();
     auto parent_metadata = type_registry_t::instance().get_or_create(parent_type);
     auto relationship = parent_metadata.find_parent_relationship(first_child_offset);
@@ -285,7 +285,7 @@ void gaia_ptr::remove_child_reference(const gaia_id_t child_id, const reference_
     }
 }
 
-void gaia_ptr::remove_parent_reference(const gaia_id_t parent_id, const reference_offset_t parent_offset) {
+void gaia_ptr::remove_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset) {
     auto child_type = type();
 
     auto child_metadata = type_registry_t::instance().get_or_create(child_type);

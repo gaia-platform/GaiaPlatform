@@ -27,7 +27,7 @@ std::unordered_set<gaia_type_t> client::trigger_excluded_types{
     static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_rule),
     static_cast<gaia_type_t>(system_table_type_t::event_log)};
 
-static void build_client_request(FlatBufferBuilder& builder, const session_event_t event) {
+static void build_client_request(FlatBufferBuilder& builder, session_event_t event) {
     auto client_request = Createclient_request_t(builder, event);
     auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
     builder.Finish(message);

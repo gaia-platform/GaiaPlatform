@@ -52,34 +52,34 @@ public:
     static gaia_id_t generate_id();
 
     static gaia_ptr create(
-        const gaia_type_t type,
-        const size_t data_size,
+        gaia_type_t type,
+        size_t data_size,
         const void* data) {
 
-        const gaia_id_t id = gaia_ptr::generate_id();
+        gaia_id_t id = gaia_ptr::generate_id();
         auto metadata = type_registry_t::instance().get_or_create(type);
-        const size_t num_references = metadata.num_references();
+        size_t num_references = metadata.num_references();
 
         return create(id, type, num_references, data_size, data);
     }
 
     static gaia_ptr create(
-        const gaia_id_t id,
-        const gaia_type_t type,
-        const size_t data_size,
+        gaia_id_t id,
+        gaia_type_t type,
+        size_t data_size,
         const void* data) {
 
         auto metadata = type_registry_t::instance().get_or_create(type);
-        const size_t num_references = metadata.num_references();
+        size_t num_references = metadata.num_references();
 
         return create(id, type, num_references, data_size, data);
     }
 
     static gaia_ptr create(
-        const gaia_id_t id,
-        const gaia_type_t type,
-        const size_t num_refs,
-        const size_t data_size,
+        gaia_id_t id,
+        gaia_type_t type,
+        size_t num_refs,
+        size_t data_size,
         const void* data) {
         const size_t refs_len = num_refs * sizeof(gaia_id_t);
         const size_t total_len = data_size + refs_len;
@@ -97,7 +97,7 @@ public:
         return obj;
     }
 
-    static gaia_ptr open(const gaia_id_t id) {
+    static gaia_ptr open(gaia_id_t id) {
         return gaia_ptr(id);
     }
 
@@ -117,15 +117,15 @@ public:
 
     gaia_ptr& clone();
 
-    gaia_ptr& update_payload(const size_t data_size, const void* data);
+    gaia_ptr& update_payload(size_t data_size, const void* data);
 
-    gaia_ptr& update_parent_references(const size_t child_slot, const gaia_id_t child_id);
+    gaia_ptr& update_parent_references(size_t child_slot, gaia_id_t child_id);
 
     gaia_ptr& update_child_references(
-        const size_t next_child_slot, const gaia_id_t next_child_id,
-        const size_t parent_slot, const gaia_id_t parent_id);
+        size_t next_child_slot, gaia_id_t next_child_id,
+        size_t parent_slot, gaia_id_t parent_id);
 
-    static gaia_ptr find_first(const gaia_type_t type) {
+    static gaia_ptr find_first(gaia_type_t type) {
         gaia_ptr ptr;
         ptr.m_locator = 1;
 
@@ -193,7 +193,7 @@ public:
      * @throws Exceptions there is no relationship between the parent and the child or if other
      *         integrity constraints are violated.
      */
-    void add_child_reference(const gaia_id_t child_id, const reference_offset_t first_child_offset);
+    void add_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset);
 
     /**
      * Add a parent reference to a child object.
@@ -206,7 +206,7 @@ public:
      * @throws Exceptions there is no relationship between the parent and the child  or if other
      *         integrity constraints are violated.
      */
-    void add_parent_reference(const gaia_id_t parent_id, const reference_offset_t parent_offset);
+    void add_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset);
 
     /**
      * Removes a child reference from a parent object. Without an index this operation
@@ -215,7 +215,7 @@ public:
      * @param child_id The id of the children to be removed.
      * @param first_child_offset The offset, in the references array, of the pointer to the first child.
      */
-    void remove_child_reference(const gaia_id_t child_id, const reference_offset_t first_child_offset);
+    void remove_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset);
 
     /**
      * Removes a parent reference from a child object. Without an index this operation
@@ -224,24 +224,24 @@ public:
      * @param parent_id The id of the parent to be removed.
      * @param parent_offset The offset, in the references array, of the pointer to the parent.
      */
-    void remove_parent_reference(const gaia_id_t parent_id, const reference_offset_t parent_offset);
+    void remove_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset);
 
 protected:
-    gaia_ptr(const gaia_id_t id);
+    gaia_ptr(gaia_id_t id);
 
-    gaia_ptr(const gaia_id_t id, const size_t size);
+    gaia_ptr(gaia_id_t id, size_t size);
 
-    void allocate(const size_t size);
+    void allocate(size_t size);
 
     gaia_se_object_t* to_ptr() const;
 
     gaia_offset_t to_offset() const;
 
-    bool is(const gaia_type_t type) const {
+    bool is(gaia_type_t type) const {
         return to_ptr() && to_ptr()->type == type;
     }
 
-    void find_next(const gaia_type_t type);
+    void find_next(gaia_type_t type);
 
     void reset();
 };

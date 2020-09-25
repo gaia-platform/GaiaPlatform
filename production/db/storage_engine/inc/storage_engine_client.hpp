@@ -82,7 +82,7 @@ class client : private se_base {
     /**
      *  Check if an event should be generated for a given type.
      */
-    static inline bool is_valid_event(const gaia_type_t type) {
+    static inline bool is_valid_event(gaia_type_t type) {
         return (gaia::db::s_tx_commit_trigger
             && (trigger_excluded_types.find(type) == trigger_excluded_types.end()));
     }
@@ -112,10 +112,10 @@ class client : private se_base {
     }
 
     static inline void tx_log(
-        const gaia_locator_t locator,
-        const gaia_offset_t old_offset,
-        const gaia_offset_t new_offset,
-        const gaia_operation_t operation,
+        gaia_locator_t locator,
+        gaia_offset_t old_offset,
+        gaia_offset_t new_offset,
+        gaia_operation_t operation,
         // 'deleted_id' is required to keep track of deleted keys which will be propagated to the persistent layer.
         // Memory for other operations will be unused. An alternative would be to keep a separate log for deleted keys only.
         gaia_id_t deleted_id = 0) {

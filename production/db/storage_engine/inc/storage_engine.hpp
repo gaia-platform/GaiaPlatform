@@ -34,13 +34,13 @@ namespace db {
 using namespace common;
 
 // 1K oughta be enough for anybody...
-const size_t MAX_MSG_SIZE = 1 << 10;
+constexpr size_t MAX_MSG_SIZE = 1 << 10;
 
-enum class gaia_operation_t: uint8_t {
+enum class gaia_operation_t : uint8_t {
     create = 0x1,
     update = 0x2,
     remove = 0x3,
-    clone  = 0x4
+    clone = 0x4
 };
 
 struct hash_node {
@@ -53,11 +53,11 @@ class se_base {
     friend class gaia_ptr;
     friend class gaia_hash_map;
 
-   protected:
-    static const char* const SERVER_CONNECT_SOCKET_NAME;
-    static const char* const SCH_MEM_LOCATORS;
-    static const char* const SCH_MEM_DATA;
-    static const char* const SCH_MEM_LOG;
+protected:
+    static constexpr char SERVER_CONNECT_SOCKET_NAME[] = "gaia_se_server";
+    static constexpr char SCH_MEM_LOCATORS[] = "gaia_mem_locators";
+    static constexpr char SCH_MEM_DATA[] = "gaia_mem_data";
+    static constexpr char SCH_MEM_LOG[] = "gaia_mem_log";
 
     static constexpr size_t MAX_LOCATORS = 32 * 128L * 1024L;
     static constexpr size_t HASH_BUCKETS = 12289;
@@ -101,7 +101,7 @@ class se_base {
     thread_local static int s_session_socket;
     thread_local static gaia_xid_t s_transaction_id;
 
-   public:
+public:
     // The real implementation will need to do something better than increment a
     // counter.  It will need to guarantee that the generated id is not in use
     // already by a database that is restored.
@@ -111,7 +111,7 @@ class se_base {
     }
 
     static gaia_xid_t allocate_transaction_id(data* s_data) {
-        gaia_xid_t xid = __sync_add_and_fetch (&s_data->next_transaction_id, 1);
+        gaia_xid_t xid = __sync_add_and_fetch(&s_data->next_transaction_id, 1);
         return xid;
     }
 
@@ -158,5 +158,5 @@ class se_base {
     }
 };
 
-}  // namespace db
-}  // namespace gaia
+} // namespace db
+} // namespace gaia

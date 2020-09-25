@@ -101,7 +101,7 @@ void begin_transaction();
 void rollback_transaction();
 void commit_transaction();
 
-const char* const SE_SERVER_NAME = "gaia_se_server";
+constexpr char SE_SERVER_NAME[] = "gaia_se_server";
 
 } // namespace db
 } // namespace gaia

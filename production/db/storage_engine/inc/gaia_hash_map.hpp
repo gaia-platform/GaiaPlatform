@@ -14,7 +14,7 @@ using namespace common;
 
 class gaia_hash_map {
    public:
-    static hash_node* insert(se_base::data* data, se_base::locators* locators, const gaia_id_t id) {
+    static hash_node* insert(se_base::data* data, se_base::locators* locators, gaia_id_t id) {
         if (locators == nullptr) {
             throw transaction_not_open();
         }
@@ -55,7 +55,7 @@ class gaia_hash_map {
         }
     }
 
-    static gaia_locator_t find(se_base::data* data, se_base::locators* locators, const gaia_id_t id) {
+    static gaia_locator_t find(se_base::data* data, se_base::locators* locators, gaia_id_t id) {
         if (locators == nullptr) {
             throw transaction_not_open();
         }
@@ -77,7 +77,7 @@ class gaia_hash_map {
         return 0;
     }
 
-    static void remove(se_base::data* data, const gaia_id_t id) {
+    static void remove(se_base::data* data, gaia_id_t id) {
         hash_node* node = data->hash_nodes + (id % se_base::HASH_BUCKETS);
 
         while (node->id) {
