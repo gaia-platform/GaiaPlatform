@@ -16,7 +16,7 @@ set(GAIA_INDEX_INCLUDES
   "${GAIA_DB_INC}/payload_types"
   "${FLATBUFFERS_INC}")
 
-# message(STATUS "GAIA_INDEX_INCLUDES=${GAIA_INDEX_INCLUDES}")
+message(VERBOSE "GAIA_INDEX_INCLUDES=${GAIA_INDEX_INCLUDES}")
 
 # Our main target.
 add_library(gaia_index SHARED
