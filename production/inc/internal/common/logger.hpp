@@ -32,13 +32,13 @@ namespace logging {
  *
  * The logging is performed via logger_t objects. Each instance of this class represent
  * a separated logger. Different submodules should use different loggers.
- * Constants for the different submodules are provided: g_sys, g_db, g_scheduler etc..
+ * FUnctions for the different submodules are provided: sys(), db(), scheduler() etc..
  *
  * Calling:
  *
- *  gaia_log::g_sys.info("I'm the Sys logger")
- *  gaia_log::g_db.info("I'm the Storage Engine logger")
- *  gaia_log::g_scheduler.info("I'm the Rules logger")
+ *  gaia_log::sys().info("I'm the Sys logger")
+ *  gaia_log::db().info("I'm the Storage Engine logger")
+ *  gaia_log::scheduler().info("I'm the Rules logger")
  *
  * Outputs:
  *

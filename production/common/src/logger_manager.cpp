@@ -59,7 +59,8 @@ bool logger_manager_t::stop_logging() {
         return false;
     }
 
-    // If we see we need more loggers we could find a more flexible pattern.
+    // If we see we need more loggers we could re-introduce the logger registry
+    // concept (see spdlog registry).
     // For now, considering the limited number of loggers we have, it is ok
     // to do this way.
     m_catalog_logger = nullptr;
