@@ -38,7 +38,7 @@ set(GAIA_PROD_BUILD "${CMAKE_CURRENT_BINARY_DIR}")
 set(GAIA_PARSER_GENERATED "${GAIA_PROD_BUILD}/catalog/parser/generated")
 set(GAIA_GENERATED_SCHEMAS "${GAIA_PROD_BUILD}/schemas/generated")
 
-message(STATUS "GAIA_INC=${GAIA_INC}")
+# message(STATUS "GAIA_INC=${GAIA_INC}")
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 message (STATUS "Python3_FOUND=${Python3_FOUND}")
