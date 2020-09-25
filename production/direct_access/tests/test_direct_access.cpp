@@ -9,7 +9,6 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <semaphore.h>
-#include <sys/msg.h>
 
 #include "gtest/gtest.h"
 #include "gaia_addr_book.h"
@@ -779,11 +778,36 @@ TEST_F(gaia_object_test, iter_arrow_deref) {
     EXPECT_STREQ(emp_iter->name_first(), emp_name);
 }
 
-constexpr const char* c_go_child = "go_child";
-constexpr const char* c_go_parent = "go_parent";
+constexpr const char c_go_child[] = "go_child";
+constexpr const char c_go_parent[] = "go_parent";
+
+class gaia_multi_process_test : public gaia_object_test {
+protected:
+    // The base class automatically begins and ends sessions.
+    // The multi_process tests will be beginning and ending their own sessions.
+    void SetUp() override {
+        reset_server();
+        sem_unlink(c_go_child);
+        sem_unlink(c_go_parent);
+    }
+    void TearDown() override {
+    }
+};
+
+// Check the exit() status from the child process. If this is called
+// after an error in the parent, it's because the child has probably
+// had an error. This function will detect which error it was.
+void check_child_pid(pid_t pid) {
+    int status;
+    waitpid(pid, &status, 0);
+    // Did the child exit()?
+    ASSERT_EQ(WIFEXITED(status), true);
+    // If so, did it exit witout an error?
+    ASSERT_EQ(WEXITSTATUS(status), 0);
+}
 
 // Test parallel multi-process transactions.
-TEST_F(gaia_object_test, multi_process_inserts) {
+TEST_F(gaia_multi_process_test, multi_process_inserts) {
     sem_t* sem_go_child;
     sem_t* sem_go_parent;
     struct timespec timeout;
@@ -792,19 +816,14 @@ TEST_F(gaia_object_test, multi_process_inserts) {
     clock_gettime(CLOCK_REALTIME, &timeout);
     timeout.tv_sec += 4;
 
-    // Both processes will start their own sessions.
-    end_session();
-
     // Common parent/child setup for semaphore synchronization.
     // Semaphore must be opened before second process starts because it assumes
     // that the semaphore exists.
-    sem_unlink(c_go_child);
-    sem_unlink(c_go_parent);
     sem_go_child = sem_open(c_go_child, O_CREAT, S_IWUSR | S_IRUSR, 0);
-    if (sem_go_child == SEM_FAILED) {
-        fprintf(stderr, "sem_open errorno %d\n", errno);
-    }
+    ASSERT_NE(sem_go_child, SEM_FAILED) << "failed to open sem_go_child";
     sem_go_parent = sem_open(c_go_parent, O_CREAT, S_IRUSR | S_IWUSR, 0);
+    ASSERT_NE(sem_go_parent, SEM_FAILED) << "failed to open sem_go_parent";
+
     pid_t child_pid = fork();
 
     if (child_pid) {
@@ -824,7 +843,10 @@ TEST_F(gaia_object_test, multi_process_inserts) {
 
         // The child will add two employees. Wait for it to complete.
         sem_post(sem_go_child);
-        EXPECT_EQ(sem_timedwait(sem_go_parent, &timeout), 0);
+        if (sem_timedwait(sem_go_parent, &timeout) != 0) {
+            end_session();
+            check_child_pid(child_pid);
+        }
 
         // Scan through all resulting rows.
         // See if all objects exist.
@@ -848,7 +870,10 @@ TEST_F(gaia_object_test, multi_process_inserts) {
         create_employee("Hugo").gaia_id();
 
         sem_post(sem_go_child);
-        EXPECT_EQ(sem_timedwait(sem_go_parent, &timeout), 0);
+        if (sem_timedwait(sem_go_parent, &timeout) != 0) {
+            end_session();
+            check_child_pid(child_pid);
+        }
 
         commit_transaction();
 
@@ -869,7 +894,9 @@ TEST_F(gaia_object_test, multi_process_inserts) {
         EXPECT_STREQ(employee.name_first(), "Hubert");
         commit_transaction();
 
-        wait(&child_pid);
+        end_session();
+
+        check_child_pid(child_pid);
 
         // Clean up the semaphores.
         sem_close(sem_go_child);
@@ -890,7 +917,9 @@ TEST_F(gaia_object_test, multi_process_inserts) {
         // EXCHANGE 1: serialized transactions.
 
         // Wait for the "go".
-        EXPECT_EQ(sem_timedwait(sem_go_child, &timeout), 0);
+        if (sem_timedwait(sem_go_child, &timeout) != 0) {
+            exit(1);
+        }
 
         begin_transaction();
         create_employee("Harold").gaia_id();
@@ -901,7 +930,9 @@ TEST_F(gaia_object_test, multi_process_inserts) {
         sem_post(sem_go_parent);
 
         // EXCHANGE 2: concurrent transactions.
-        EXPECT_EQ(sem_timedwait(sem_go_child, &timeout), 0);
+        if (sem_timedwait(sem_go_child, &timeout) != 0) {
+            exit(2);
+        }
 
         begin_transaction();
         create_employee("Hubert").gaia_id();
@@ -917,7 +948,7 @@ TEST_F(gaia_object_test, multi_process_inserts) {
 }
 
 // Test parallel multi-process transactions and aborts.
-TEST_F(gaia_object_test, multi_process_aborts) {
+TEST_F(gaia_multi_process_test, multi_process_aborts) {
     sem_t* sem_go_child;
     sem_t* sem_go_parent;
     struct timespec timeout;
@@ -926,19 +957,14 @@ TEST_F(gaia_object_test, multi_process_aborts) {
     clock_gettime(CLOCK_REALTIME, &timeout);
     timeout.tv_sec += 4;
 
-    // Both processes will start their own sessions.
-    end_session();
-
     // Common parent/child setup for semaphore synchronization.
     // Semaphore must be opened before second process starts because it assumes
     // that the semaphore exists.
-    sem_unlink(c_go_child);
-    sem_unlink(c_go_parent);
     sem_go_child = sem_open(c_go_child, O_CREAT, S_IWUSR | S_IRUSR, 0);
-    if (sem_go_child == SEM_FAILED) {
-        fprintf(stderr, "sem_open errorno %d\n", errno);
-    }
+    ASSERT_NE(sem_go_child, SEM_FAILED) << "failed to open sem_go_child";
     sem_go_parent = sem_open(c_go_parent, O_CREAT, S_IRUSR | S_IWUSR, 0);
+    ASSERT_NE(sem_go_parent, SEM_FAILED) << "failed to open sem_go_parent";
+
     pid_t child_pid = fork();
 
     if (child_pid) {
@@ -959,7 +985,10 @@ TEST_F(gaia_object_test, multi_process_aborts) {
 
         // The child will add two employees. Wait for it to complete.
         sem_post(sem_go_child);
-        EXPECT_EQ(sem_timedwait(sem_go_parent, &timeout), 0);
+        if (sem_timedwait(sem_go_parent, &timeout) != 0) {
+            end_session();
+            check_child_pid(child_pid);
+        }
 
         // Scan through all resulting rows.
         // See if all objects exist.
@@ -990,7 +1019,10 @@ TEST_F(gaia_object_test, multi_process_aborts) {
         create_employee("Hugo").gaia_id();
 
         sem_post(sem_go_child);
-        EXPECT_EQ(sem_timedwait(sem_go_parent, &timeout), 0);
+        if (sem_timedwait(sem_go_parent, &timeout) != 0) {
+            end_session();
+            check_child_pid(child_pid);
+        }
 
         rollback_transaction();
 
@@ -1007,7 +1039,14 @@ TEST_F(gaia_object_test, multi_process_aborts) {
         EXPECT_STREQ(employee.name_first(), "Hubert");
         commit_transaction();
 
-        wait(&child_pid);
+        end_session();
+
+        int child_status;
+        waitpid(child_pid, &child_status, 0);
+        // Did the child exit()?
+        EXPECT_EQ(WIFEXITED(child_status), true);
+        // If so, did it exit witout an error?
+        EXPECT_EQ(WEXITSTATUS(child_status), 0);
 
         // Clean up the semaphores.
         sem_close(sem_go_child);
@@ -1028,7 +1067,9 @@ TEST_F(gaia_object_test, multi_process_aborts) {
         // EXCHANGE 1: serialized transactions.
 
         // Wait for the "go".
-        EXPECT_EQ(sem_timedwait(sem_go_child, &timeout), 0);
+        if (sem_timedwait(sem_go_child, &timeout) != 0) {
+            exit(1);
+        }
 
         begin_transaction();
         create_employee("Harold").gaia_id();
@@ -1041,7 +1082,9 @@ TEST_F(gaia_object_test, multi_process_aborts) {
         sem_post(sem_go_parent);
 
         // EXCHANGE 2: concurrent transactions.
-        EXPECT_EQ(sem_timedwait(sem_go_child, &timeout), 0);
+        if (sem_timedwait(sem_go_child, &timeout) != 0) {
+            exit(2);
+        }
 
         begin_transaction();
         create_employee("Hubert").gaia_id();

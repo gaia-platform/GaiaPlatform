@@ -8,7 +8,6 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <semaphore.h>
-#include <sys/msg.h>
 
 #include "gtest/gtest.h"
 #include "gaia_addr_book.h"
@@ -575,11 +574,36 @@ TEST_F(gaia_references_test, thread_inserts) {
     EXPECT_EQ(count, 3);
 }
 
-constexpr const char* c_go_child = "go_child";
-constexpr const char* c_go_parent = "go_parent";
+constexpr const char c_go_child[] = "go_child";
+constexpr const char c_go_parent[] = "go_parent";
+
+class gaia_multi_process_references_test : public gaia_references_test {
+protected:
+    // The multi_process tests will be beginning and ending their own sessions.
+    // These are overriding methods that automatically do that.
+    void SetUp() override {
+        reset_server();
+        sem_unlink(c_go_child);
+        sem_unlink(c_go_parent);
+    }
+    void TearDown() override {
+    }
+};
+
+// Check the exit() status from the child process. If this is called
+// after an error in the parent, it's because the child has probably
+// had an error. This function will detect which error it was.
+void check_child_pid(pid_t pid) {
+    int status;
+    waitpid(pid, &status, 0);
+    // Did the child exit()?
+    ASSERT_EQ(WIFEXITED(status), true);
+    // If so, did it exit witout an error?
+    ASSERT_EQ(WEXITSTATUS(status), 0);
+}
 
 // Create objects in one process, connect them in another, verify in first process.
-TEST_F(gaia_references_test, multi_process_conflict) {
+TEST_F(gaia_multi_process_references_test, multi_process_conflict) {
     pid_t child_pid;
     sem_t* sem_go_child;
     sem_t* sem_go_parent;
@@ -589,18 +613,13 @@ TEST_F(gaia_references_test, multi_process_conflict) {
     clock_gettime(CLOCK_REALTIME, &timeout);
     timeout.tv_sec += 4;
 
-    // Both processes will start their own sessions.
-    end_session();
-
     // Common parent/child setup for semaphore synchronization.
     // Semaphore must be opened before second process starts because it assumes
     // that the semaphore exists.
-    sem_unlink(c_go_child);
-    sem_unlink(c_go_parent);
     sem_go_child = sem_open(c_go_child, O_CREAT, S_IWUSR | S_IRUSR, 0);
-    EXPECT_NE(sem_go_child, SEM_FAILED);
+    ASSERT_NE(sem_go_child, SEM_FAILED);
     sem_go_parent = sem_open(c_go_parent, O_CREAT, S_IRUSR | S_IWUSR, 0);
-    EXPECT_NE(sem_go_parent, SEM_FAILED);
+    ASSERT_NE(sem_go_parent, SEM_FAILED);
 
     if ((child_pid = fork())) {
         // PARENT PROCESS.
@@ -619,11 +638,19 @@ TEST_F(gaia_references_test, multi_process_conflict) {
 
         // Let the child process run and complete during this transaction.
         sem_post(sem_go_child);
-        EXPECT_EQ(sem_timedwait(sem_go_parent, &timeout), 0);
+        if (sem_timedwait(sem_go_parent, &timeout) != 0) {
+            end_session();
+            check_child_pid(child_pid);
+        }
 
         EXPECT_THROW(commit_transaction(), transaction_update_conflict);
 
-        wait(&child_pid);
+        int child_status;
+        waitpid(child_pid, &child_status, 0);
+        // Did the child exit()?
+        EXPECT_EQ(WIFEXITED(child_status), true);
+        // If so, did it exit witout an error?
+        EXPECT_EQ(WEXITSTATUS(child_status), 0);
 
         // Count the members. Only one succeeded.
         begin_transaction();
@@ -633,6 +660,8 @@ TEST_F(gaia_references_test, multi_process_conflict) {
         }
         commit_transaction();
         EXPECT_EQ(count, 1);
+
+        end_session();
 
         sem_close(sem_go_child);
         sem_close(sem_go_parent);
@@ -649,7 +678,10 @@ TEST_F(gaia_references_test, multi_process_conflict) {
         begin_session();
 
         // Wait for the "go".
-        EXPECT_EQ(sem_timedwait(sem_go_child, &timeout), 0);
+        if (sem_timedwait(sem_go_child, &timeout) != 0) {
+            end_session();
+            exit(1);
+        }
 
         begin_transaction();
         // Locate the employee object.
@@ -668,7 +700,7 @@ TEST_F(gaia_references_test, multi_process_conflict) {
 }
 
 // Create objects in one process, connect them in another, verify in first process.
-TEST_F(gaia_references_test, multi_process_commit) {
+TEST_F(gaia_multi_process_references_test, multi_process_commit) {
     pid_t child_pid;
     sem_t* sem_go_child;
     sem_t* sem_go_parent;
@@ -678,18 +710,13 @@ TEST_F(gaia_references_test, multi_process_commit) {
     clock_gettime(CLOCK_REALTIME, &timeout);
     timeout.tv_sec += 4;
 
-    // Both processes will start their own sessions.
-    end_session();
-
     // Common parent/child setup for semaphore synchronization.
     // Semaphore must be opened before second process starts because it assumes
     // that the semaphore exists.
-    sem_unlink(c_go_child);
-    sem_unlink(c_go_parent);
     sem_go_child = sem_open(c_go_child, O_CREAT, S_IWUSR | S_IRUSR, 0);
-    EXPECT_NE(sem_go_child, SEM_FAILED);
+    ASSERT_NE(sem_go_child, SEM_FAILED);
     sem_go_parent = sem_open(c_go_parent, O_CREAT, S_IRUSR | S_IWUSR, 0);
-    EXPECT_NE(sem_go_parent, SEM_FAILED);
+    ASSERT_NE(sem_go_parent, SEM_FAILED);
 
     if ((child_pid = fork())) {
         // PARENT PROCESS.
@@ -709,9 +736,17 @@ TEST_F(gaia_references_test, multi_process_commit) {
 
         // Let the child process run and complete during this transaction.
         sem_post(sem_go_child);
-        EXPECT_EQ(sem_timedwait(sem_go_parent, &timeout), 0);
+        if (sem_timedwait(sem_go_parent, &timeout) != 0) {
+            end_session();
+            check_child_pid(child_pid);
+        }
 
-        wait(&child_pid);
+        int child_status;
+        waitpid(child_pid, &child_status, 0);
+        // Did the child exit()?
+        EXPECT_EQ(WIFEXITED(child_status), true);
+        // If so, did it exit witout an error?
+        EXPECT_EQ(WEXITSTATUS(child_status), 0);
 
         // Count the members. All should have succeeded.
         begin_transaction();
@@ -721,6 +756,8 @@ TEST_F(gaia_references_test, multi_process_commit) {
         }
         commit_transaction();
         EXPECT_EQ(count, 3);
+
+        end_session();
 
         sem_close(sem_go_child);
         sem_close(sem_go_parent);
@@ -737,7 +774,9 @@ TEST_F(gaia_references_test, multi_process_commit) {
         begin_session();
 
         // Wait for the "go".
-        EXPECT_EQ(sem_timedwait(sem_go_child, &timeout), 0);
+        if (sem_timedwait(sem_go_child, &timeout) != 0) {
+            exit(1);
+        }
 
         begin_transaction();
         // Locate the employee object.
