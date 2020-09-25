@@ -22,6 +22,7 @@ TEST(flatbuffers, json_compilation)
     string json;
     flatbuffers::LoadFile("test_record_data.json", true, &json);
 
+    // Set up parser.
     flatbuffers::IDLOptions options;
     options.force_defaults = true;
     flatbuffers::Parser parser(options);
@@ -53,6 +54,7 @@ TEST(flatbuffers, json_compilation)
     string our_output;
     flatbuffers::LoadFile("manual_test_record.bin", true, &our_output);
 
+    // Check that the outputs are identical.
     ASSERT_EQ(build_output.size(), our_output.size());
     ASSERT_EQ(0, build_output.compare(our_output));
 }
