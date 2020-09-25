@@ -11,7 +11,7 @@ project(triggers)
 set(GAIA_TRIGGERS_INCLUDES
   "${GAIA_DB_INC}/triggers")
 
-# message(STATUS "GAIA_TRIGGERS_INCLUDES=${GAIA_TRIGGERS_INCLUDES}")
+message(VERBOSE "GAIA_TRIGGERS_INCLUDES=${GAIA_TRIGGERS_INCLUDES}")
 
 # Our main target.
 add_library(gaia_triggers SHARED
