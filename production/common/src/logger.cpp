@@ -22,7 +22,7 @@ logger_t::logger_t(const string& logger_name) : m_logger_name(logger_name) {
     if (logger) {
         m_spdlogger = logger;
     } else {
-        m_spdlogger = spdlog_defaults::create_default_logger(logger_name);
+        m_spdlogger = spdlog_defaults::create_logger_with_default_settings(logger_name);
     }
 }
 

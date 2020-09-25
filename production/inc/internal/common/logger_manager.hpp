@@ -8,7 +8,7 @@
 #include <string>
 #include <sstream>
 #include <unordered_map>
-#include <shared_mutex>
+#include <mutex>
 
 #include "gaia_exception.hpp"
 #include "logger.hpp"
@@ -87,7 +87,7 @@ private:
     }
 
 private:
-    shared_mutex m_log_init_mutex;
+    mutex m_log_init_mutex;
     atomic_bool m_is_log_initialized = false;
 
     // Well-known loggers

@@ -31,10 +31,10 @@ namespace spdlog_defaults {
     constexpr spdlog::level::level_enum c_default_level = spdlog::level::info;
 
     /**
-     * Creates an instance of spdlog::logger with some convenient defaults. This is function
+     * Creates an instance of spdlog::logger with some convenient defaults. This function
      * is used to create loggers whenever they are not defined in the log configuration.
      */
-    shared_ptr<spdlog::logger> create_default_logger(const std::string& logger_name);
+    shared_ptr<spdlog::logger> create_logger_with_default_settings(const std::string& logger_name);
 }
 
 } // namespace gaia::common::logging

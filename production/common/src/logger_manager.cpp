@@ -80,7 +80,7 @@ void logger_manager_t::create_log_dir_if_not_exists(const char* log_file_path) {
     fs::create_directories(parent);
 }
 
-shared_ptr<spdlog::logger> spdlog_defaults::create_default_logger(const std::string& logger_name) {
+shared_ptr<spdlog::logger> spdlog_defaults::create_logger_with_default_settings(const std::string& logger_name) {
 
     auto console_sink = make_shared<spdlog::sinks::stdout_sink_mt>();
 
