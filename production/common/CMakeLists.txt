@@ -16,9 +16,9 @@ message(VERBOSE "GAIA_COMMON_INCLUDES=${GAIA_COMMON_INCLUDES}")
 
 # Our main target.
 add_library(gaia_common STATIC
-    src/exceptions.cpp
-    src/file.cpp
-    src/timer.cpp)
+  src/exceptions.cpp
+  src/file.cpp
+  src/timer.cpp)
 target_include_directories(gaia_common PUBLIC ${GAIA_COMMON_INCLUDES})
 set_target_properties(gaia_common PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 # This static library must be compatible with linking in a shared library.
