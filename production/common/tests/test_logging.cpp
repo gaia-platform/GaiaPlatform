@@ -45,6 +45,6 @@ TEST(logger_test, logger_api) {
 
     gaia_log::shutdown();
 
-    // Sanity check that we are unitialized now.
+    // Sanity check that we are uninitialized now.
     verify_uninitialized_loggers();
 }

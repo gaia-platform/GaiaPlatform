@@ -54,24 +54,28 @@ public:
         }
         return *m_sys_logger;
     };
+
     logger_t& db_logger() {
         if (!m_is_log_initialized) {
             uninitialized_failure();
         }
         return *m_db_logger;
     }
+
     logger_t& scheduler_logger() {
         if (!m_is_log_initialized) {
             uninitialized_failure();
         }
         return *m_scheduler_logger;
     }
+
     logger_t& catalog_logger() {
         if (!m_is_log_initialized) {
             uninitialized_failure();
         }
         return *m_catalog_logger;
     }
+
     bool init_logging(const string& config_path);
     bool stop_logging();
 
