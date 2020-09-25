@@ -12,7 +12,6 @@
 
 using namespace std;
 
-
 const char* const c_fbs_filename = "test_record.fbs";
 const char* const c_json_filename = "test_record_data.json";
 const char* const c_programmatic_bin_filename = "programmatic_test_record_data.bin";
