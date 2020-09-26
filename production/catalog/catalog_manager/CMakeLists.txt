@@ -3,9 +3,6 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.12)
-enable_testing()
-
 project(catalog_manager)
 
 set(GAIA_CATALOG_PUBLIC_INCLUDES

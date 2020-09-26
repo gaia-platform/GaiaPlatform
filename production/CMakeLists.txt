@@ -3,7 +3,7 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.17)
 
 include(UseJava)
 
@@ -40,19 +40,19 @@ set(GAIA_GENERATED_SCHEMAS "${GAIA_PROD_BUILD}/schemas/generated")
 
 message(VERBOSE "GAIA_INC=${GAIA_INC}")
 
-message(STATUS "Looking for Python3")
+message(CHECK_START "Looking for Python3")
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 if(Python3_FOUND)
   list(APPEND CMAKE_MESSAGE_INDENT "  ")
   message(VERBOSE "Python3_EXECUTABLE=${Python3_EXECUTABLE}")
   message(VERBOSE "Python3_INCLUDE_DIRS=${Python3_INCLUDE_DIRS}")
   list(POP_BACK CMAKE_MESSAGE_INDENT)
-  message(STATUS "Looking for Python3 - found")
+  message(CHECK_PASS "found")
 else()
-  message(STATUS "Looking for Python3 - not found")
+  message(CHECK_FAIL "not found")
 endif()
 
-message(STATUS "Looking for Java")
+message(CHECK_START "Looking for Java")
 find_package(Java)
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 if(JAVA_FOUND)
@@ -60,12 +60,12 @@ if(JAVA_FOUND)
   message (VERBOSE "Java_JAVAC_EXECUTABLE=${Java_JAVAC_EXECUTABLE}")
   message (VERBOSE "Java_JAVA_EXECUTABLE=${Java_JAVA_EXECUTABLE}")
   list(POP_BACK CMAKE_MESSAGE_INDENT)
-  message(STATUS "Looking for Java - found")
+  message(CHECK_PASS "found")
 else()
-  message(STATUS "Looking for Java - not found")
+  message(CHECK_FAIL "not found")
 endif()
 
-message(STATUS "Looking for JNI")
+message(CHECK_START "Looking for JNI")
 find_package(JNI)
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 if(JNI_FOUND)
@@ -73,9 +73,9 @@ if(JNI_FOUND)
   message (VERBOSE "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
   message (VERBOSE "JNI_LIBRARIES=${JNI_LIBRARIES}")
   list(POP_BACK CMAKE_MESSAGE_INDENT)
-  message(STATUS "Looking for JNI - found")
+  message(CHECK_PASS "found")
 else()
-  message(STATUS "Looking for JNI - not found")
+  message(CHECK_FAIL "not found")
 endif()
 
 # Java Tinkerpop project.
