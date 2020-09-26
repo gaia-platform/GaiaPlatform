@@ -11,7 +11,7 @@ project(incubator)
 set(INCUBATOR_DDL "${PROJECT_SOURCE_DIR}/barn_storage.ddl")
 
 #
-# Generate stand alone airport.
+# Generate stand alone incubator.
 #
 add_custom_command(
   OUTPUT ${GAIA_GENERATED_SCHEMAS}/gaia_barn_storage.h 
