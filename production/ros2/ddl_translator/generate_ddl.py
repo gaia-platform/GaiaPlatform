@@ -12,51 +12,49 @@ import os
 import re
 import rosidl_parser.definition
 
+from field_types import *
+
 def camel_to_snake_case(camel_str):
     return re.sub("[A-Z]", r"_\g<0>", camel_str).lower().lstrip('_')
 
-class InterfaceField:
-    def __init__(self, name, type):
-        self.name = name.lstrip("_")
-        self.type = type
-
-    def __str__(self):
-        if type(self.type) is rosidl_parser.definition.BasicType:
-            return self.type.typename + " " + self.name
-        elif type(self.type) is rosidl_parser.definition.NamespacedType:
-            return self.type.namespaces[0] + "/" + self.type.name + " " + self.name
-        else:
-            return str(self.type) + " " + self.name
-
-    def __hash__(self):
-        return hash(self.type + self.name)
-
 class InterfaceFile:
-    def __init__(self, package, name, type="msg"):
+    def __init__(self, package, name, interface_type="msg"):
         self.package = package
         self.name = name
-        self.type = type
+        self.interface_type = interface_type
 
         module_name = "." + "_" + camel_to_snake_case(self.name)
         interface_module = importlib.import_module(
             module_name,
-            self.package + "." + self.type
+            self.package + "." + self.interface_type
         )
 
         slots = getattr(interface_module, self.name).__slots__
         slot_types = getattr(interface_module, self.name).SLOT_TYPES
-        self.fields = []
+
+        self.basic_scalars = []
+        self.complex_scalars = []
+        self.basic_arrays = []
+        self.complex_arrays = []
 
         for i in range(0, len(slots)):
-            field = InterfaceField(slots[i], slot_types[i])
-            self.fields.append(field)
+            slot = slots[i]
+            slot_type = slot_types[i]
+
+            if type(slot_type) is rosidl_parser.definition.BasicType:
+                field = BasicScalarField(slot, slot_type.typename)
+                self.basic_scalars.append(field)
+            elif type(slot_type) is rosidl_parser.definition.BoundedString \
+            or type(slot_type) is rosidl_parser.definition.UnboundedString:
+                field = BasicScalarField(slot, "string")
+                self.basic_scalars.append(field)
 
     def __str__(self):
-        text = self.package + " " + self.type + "/" + self.name + "." + self.type
+        text = self.package + " " + self.interface_type + "/" + self.name + "." + self.interface_type
         return text
 
     def __hash__(self):
-        return hash(self.package + self.name + self.type)
+        return hash(self.package + self.name + self.interface_type)
 
 def read_interface_file(manifest_line):
     (package, type_and_name) = manifest_line.split(" ", maxsplit=1)
@@ -107,7 +105,7 @@ class Schema:
         for interface_file in self.interface_files:
             text += str(interface_file) + ":\n"
 
-            for field in interface_file.fields:
+            for field in interface_file.basic_scalars:
                 text += ">> " + str(field) + "\n"
 
             text += "\n"

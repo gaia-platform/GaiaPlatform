@@ -41,6 +41,14 @@ find_package(rclcpp_components REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(gaia_pkg_interfaces REQUIRED)
 
+message(NOTICE "")
+ros2_msg_to_gaia_ddl(
+  "gaia_pkg_interfaces msg/Test.msg"
+  "gaia_pkg_interfaces msg/TestTwo.msg"
+)
+message(NOTICE "")
+message(FATAL_ERROR "~~ STOP ~~")
+
 add_library(gaia_pkg_shared_lib SHARED
   src/gaia_node.cpp
 )
@@ -82,14 +90,6 @@ if(BUILD_TESTING)
   #set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
-
-#message(NOTICE "")
-#ros2_msg_to_gaia_ddl(
-#  "gaia_pkg_interfaces msg/Test.msg"
-#  "gaia_pkg_interfaces msg/TestTwo.msg"
-#)
-#message(NOTICE "")
-#message(FATAL_ERROR "~~ STOP ~~")
 
 install(DIRECTORY
   launch
