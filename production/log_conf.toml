@@ -1,5 +1,7 @@
 global_pattern = "[%Y-%m-%dT%T%z] [%l] [%P %t] <%n>: %v"
 
+# Sinks
+
 [[sink]]
 name = "console"
 type = "stdout_sink_mt"
@@ -12,19 +14,22 @@ max_size = "1M"
 max_files = 10
 create_parent_dir = true
 
-[[sink]]
-name = "syslog"
-type = "syslog_sink_mt"
+# syslog currently disabled: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-387
+#[[sink]]
+#name = "syslog"
+#type = "syslog_sink_mt"
 # Generally no need to fill in the optional fields below.
 # ident = "" (default)
 # syslog_option = 0 (default)
 # syslog_facility = LOG_USER (default macro value)
 
+# Loggers
+
 [[logger]]
-name = "gaia-root"
+name = "sys"
 sinks = [
     "console",
-    "file_rotating",
-    "syslog"
+    "file_rotating"
+    #    "syslog"
 ]
 level = "info"
