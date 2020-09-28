@@ -39,8 +39,14 @@ set(GAIA_PROD_BUILD "${CMAKE_CURRENT_BINARY_DIR}")
 set(GAIA_PARSER_GENERATED "${GAIA_PROD_BUILD}/catalog/parser/generated")
 set(GAIA_GENERATED_SCHEMAS "${GAIA_PROD_BUILD}/schemas/generated")
 
-## Force spdlog to use not use the embedded version of fmt.
-#set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -DSPDLOG_FMT_EXTERNAL")
+# Force spdlog to use an external version of fmt.
+# TODO this flag should only be set in common/CMakeLists.txt. The flag is
+#  necessary here too, otherwise the compilation fail. The reason could
+#  be that logger.hpp imports the spdlog headers, therefore, every file
+#  that imports logger.hpp, also imports spdlog.h, which imports fmt.h.
+#  Each time spdlog need to evaluate the flag SPDLOG_FMT_EXTERNAL to
+#  decide whether to use the external version of fmt.
+set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -DSPDLOG_FMT_EXTERNAL")
 
 message(STATUS "GAIA_INC=${GAIA_INC}")
 

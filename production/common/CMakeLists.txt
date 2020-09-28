@@ -24,10 +24,10 @@ add_library(gaia_common STATIC
 
 target_include_directories(gaia_common PUBLIC ${GAIA_COMMON_INCLUDES})
 
-find_package(fmt)
+find_package(fmt REQUIRED)
 target_link_libraries(gaia_common fmt::fmt)
 
-find_package(spdlog)
+find_package(spdlog REQUIRED)
 target_link_libraries(gaia_common spdlog::spdlog)
 
 # SYSLOG logging is temporarily disabled: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-387
