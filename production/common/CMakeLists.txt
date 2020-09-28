@@ -3,8 +3,6 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.12)
-
 # Set the project name.
 project(common)
 
@@ -12,16 +10,15 @@ set(GAIA_COMMON_INCLUDES
   "${GAIA_INC}/internal/common"
   "${GAIA_INC}/public/common")
 
-message(STATUS "GAIA_COMMON_INCLUDES=${GAIA_COMMON_INCLUDES}")
+message(VERBOSE "GAIA_COMMON_INCLUDES=${GAIA_COMMON_INCLUDES}")
 
 # Our main target.
 add_library(gaia_common STATIC
-    src/exceptions.cpp
-    src/file.cpp
-    src/timer.cpp
-    src/logger.cpp
-    src/logger_manager.cpp)
-
+  src/exceptions.cpp
+  src/file.cpp
+  src/timer.cpp
+  src/logger.cpp
+  src/logger_manager.cpp)
 target_include_directories(gaia_common PUBLIC ${GAIA_COMMON_INCLUDES})
 
 find_package(fmt REQUIRED)
