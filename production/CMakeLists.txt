@@ -39,8 +39,8 @@ set(GAIA_PROD_BUILD "${CMAKE_CURRENT_BINARY_DIR}")
 set(GAIA_PARSER_GENERATED "${GAIA_PROD_BUILD}/catalog/parser/generated")
 set(GAIA_GENERATED_SCHEMAS "${GAIA_PROD_BUILD}/schemas/generated")
 
-# Force spdlog to use not use the embedded version of fmt.
-set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -DSPDLOG_FMT_EXTERNAL")
+## Force spdlog to use not use the embedded version of fmt.
+#set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -DSPDLOG_FMT_EXTERNAL")
 
 message(STATUS "GAIA_INC=${GAIA_INC}")
 
