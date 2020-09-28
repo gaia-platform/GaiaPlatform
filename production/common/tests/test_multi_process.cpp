@@ -70,7 +70,7 @@ protected:
         int status;
         waitpid(pid, &status, 0);
         // Did the child exit()?
-        EXPECT_EQ(WIFEXITED(status), true);
+        ASSERT_EQ(WIFEXITED(status), true);
         // If so, did it exit witout an error?
         EXPECT_EQ(WEXITSTATUS(status), 0);
     }
@@ -126,7 +126,8 @@ TEST_F(gaia_multi_process_test, multi_process_inserts) {
 
         // The child will add two employees. Wait for it to complete.
         sem_post(sem_go_child);
-        if (sem_timedwait(sem_go_parent, &timeout) == -1 && errno == ETIMEDOUT) {
+        if (sem_timedwait(sem_go_parent, &timeout) == -1) {
+            ASSERT_NE(errno, ETIMEDOUT);
             end_session();
             check_child_pid(child_pid);
         }
@@ -153,7 +154,8 @@ TEST_F(gaia_multi_process_test, multi_process_inserts) {
         create_employee("Hugo");
 
         sem_post(sem_go_child);
-        if (sem_timedwait(sem_go_parent, &timeout) == -1 && errno == ETIMEDOUT) {
+        if (sem_timedwait(sem_go_parent, &timeout) == -1) {
+            ASSERT_NE(errno, ETIMEDOUT);
             end_session();
             check_child_pid(child_pid);
         }
@@ -196,7 +198,7 @@ TEST_F(gaia_multi_process_test, multi_process_inserts) {
         // EXCHANGE 1: serialized transactions.
 
         // Wait for the "go".
-        if (sem_timedwait(sem_go_child, &timeout) == -1 && errno == ETIMEDOUT) {
+        if (sem_timedwait(sem_go_child, &timeout) == -1) {
             exit(1);
         }
 
@@ -209,7 +211,7 @@ TEST_F(gaia_multi_process_test, multi_process_inserts) {
         sem_post(sem_go_parent);
 
         // EXCHANGE 2: concurrent transactions.
-        if (sem_timedwait(sem_go_child, &timeout) == -1 && errno == ETIMEDOUT) {
+        if (sem_timedwait(sem_go_child, &timeout) == -1) {
             exit(2);
         }
 
@@ -276,7 +278,8 @@ TEST_F(gaia_multi_process_test, multi_process_aborts) {
         create_employee("Hugo");
 
         sem_post(sem_go_child);
-        if (sem_timedwait(sem_go_parent, &timeout) == -1 && errno == ETIMEDOUT) {
+        if (sem_timedwait(sem_go_parent, &timeout) == -1) {
+            ASSERT_NE(errno, ETIMEDOUT);
             end_session();
             check_child_pid(child_pid);
         }
@@ -312,7 +315,7 @@ TEST_F(gaia_multi_process_test, multi_process_aborts) {
         // EXCHANGE 1: serialized transactions.
 
         // Wait for the "go".
-        if (sem_timedwait(sem_go_child, &timeout) == -1 && errno == ETIMEDOUT) {
+        if (sem_timedwait(sem_go_child, &timeout) == -1) {
             exit(1);
         }
 
@@ -327,7 +330,7 @@ TEST_F(gaia_multi_process_test, multi_process_aborts) {
         sem_post(sem_go_parent);
 
         // EXCHANGE 2: concurrent transactions.
-        if (sem_timedwait(sem_go_child, &timeout) == -1 && errno == ETIMEDOUT) {
+        if (sem_timedwait(sem_go_child, &timeout) == -1) {
             exit(2);
         }
 
@@ -364,7 +367,8 @@ TEST_F(gaia_multi_process_test, multi_process_conflict) {
 
         // Let the child process run and complete during this transaction.
         sem_post(sem_go_child);
-        if (sem_timedwait(sem_go_parent, &timeout) == -1 && errno == ETIMEDOUT) {
+        if (sem_timedwait(sem_go_parent, &timeout) == -1) {
+            ASSERT_NE(errno, ETIMEDOUT);
             end_session();
             check_child_pid(child_pid);
         }
@@ -398,7 +402,7 @@ TEST_F(gaia_multi_process_test, multi_process_conflict) {
         begin_session();
 
         // Wait for the "go".
-        if (sem_timedwait(sem_go_child, &timeout) == -1 && errno == ETIMEDOUT) {
+        if (sem_timedwait(sem_go_child, &timeout) == -1) {
             end_session();
             exit(1);
         }
@@ -441,7 +445,8 @@ TEST_F(gaia_multi_process_test, multi_process_commit) {
 
         // Let the child process run and complete during this transaction.
         sem_post(sem_go_child);
-        if (sem_timedwait(sem_go_parent, &timeout) == -1 && errno == ETIMEDOUT) {
+        if (sem_timedwait(sem_go_parent, &timeout) == -1) {
+            ASSERT_NE(errno, ETIMEDOUT);
             end_session();
             check_child_pid(child_pid);
         }
@@ -473,7 +478,7 @@ TEST_F(gaia_multi_process_test, multi_process_commit) {
         begin_session();
 
         // Wait for the "go".
-        if (sem_timedwait(sem_go_child, &timeout) == -1 && errno == ETIMEDOUT) {
+        if (sem_timedwait(sem_go_child, &timeout) == -1) {
             exit(1);
         }
 
