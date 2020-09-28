@@ -3,7 +3,7 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.17)
 
 include(UseJava)
 
@@ -39,30 +39,48 @@ set(GAIA_PROD_BUILD "${CMAKE_CURRENT_BINARY_DIR}")
 set(GAIA_PARSER_GENERATED "${GAIA_PROD_BUILD}/catalog/parser/generated")
 set(GAIA_GENERATED_SCHEMAS "${GAIA_PROD_BUILD}/schemas/generated")
 
-message(STATUS "GAIA_INC=${GAIA_INC}")
+message(VERBOSE "GAIA_INC=${GAIA_INC}")
 
+message(CHECK_START "Looking for Python3")
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
-message (STATUS "Python3_FOUND=${Python3_FOUND}")
-if (Python3_FOUND)
-  message (STATUS "Python3_EXECUTABLE=${Python3_EXECUTABLE}")
-  message (STATUS "Python3_INCLUDE_DIRS=${Python3_INCLUDE_DIRS}")
+if(Python3_FOUND)
+  list(APPEND CMAKE_MESSAGE_INDENT "  ")
+  message(VERBOSE "Python3_EXECUTABLE=${Python3_EXECUTABLE}")
+  message(VERBOSE "Python3_INCLUDE_DIRS=${Python3_INCLUDE_DIRS}")
+  list(POP_BACK CMAKE_MESSAGE_INDENT)
+  message(CHECK_PASS "found")
+else()
+  message(CHECK_FAIL "not found")
 endif()
 
+message(CHECK_START "Looking for Java")
 find_package(Java)
-find_package(JNI)
-
-if (JAVA_FOUND)
-  message (STATUS "Java_JAVAC_EXECUTABLE=${Java_JAVAC_EXECUTABLE}")
-  message (STATUS "Java_JAVA_EXECUTABLE=${Java_JAVA_EXECUTABLE}")
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+if(JAVA_FOUND)
+  list(APPEND CMAKE_MESSAGE_INDENT "  ")
+  message (VERBOSE "Java_JAVAC_EXECUTABLE=${Java_JAVAC_EXECUTABLE}")
+  message (VERBOSE "Java_JAVA_EXECUTABLE=${Java_JAVA_EXECUTABLE}")
+  list(POP_BACK CMAKE_MESSAGE_INDENT)
+  message(CHECK_PASS "found")
+else()
+  message(CHECK_FAIL "not found")
 endif()
 
-if (JNI_FOUND)
-  message (STATUS "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
-  message (STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
+message(CHECK_START "Looking for JNI")
+find_package(JNI)
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+if(JNI_FOUND)
+  list(APPEND CMAKE_MESSAGE_INDENT "  ")
+  message (VERBOSE "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
+  message (VERBOSE "JNI_LIBRARIES=${JNI_LIBRARIES}")
+  list(POP_BACK CMAKE_MESSAGE_INDENT)
+  message(CHECK_PASS "found")
+else()
+  message(CHECK_FAIL "not found")
 endif()
 
 # Java Tinkerpop project.
-if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
+if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   set(CMAKE_JAVA_INCLUDE_PATH ${GREMLIN_CONSOLE_PATH}/lib/*:${GREMLIN_CONSOLE_PATH}/ext/tinkergraph-gremlin/lib/*:${PROJECT_BINARY_DIR}/*)
 
   # Java Tinkerpop graph provider implementation. This also generates native headers for the COW wrapper.

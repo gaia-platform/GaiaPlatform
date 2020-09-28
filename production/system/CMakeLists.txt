@@ -3,8 +3,6 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.12)
-
 # Set the project name.
 project(system)
 
@@ -17,7 +15,8 @@ set(GAIA_SYSTEM_PUBLIC_INCLUDES
   "${GAIA_INC}/public/rules"
   "${GAIA_GENERATED_SCHEMAS}"
 )
-message(STATUS "GAIA_SYSTEM_PUBLIC_INCLUDES=${GAIA_SYSTEM_PUBLIC_INCLUDES}")
+
+message(VERBOSE "GAIA_SYSTEM_PUBLIC_INCLUDES=${GAIA_SYSTEM_PUBLIC_INCLUDES}")
 
 set(GAIA_SYSTEM_PRIVATE_INCLUDES
   "${GAIA_INC}/internal/common"
@@ -25,7 +24,8 @@ set(GAIA_SYSTEM_PRIVATE_INCLUDES
   "${FLATBUFFERS_INC}"
   "${GAIA_REPO}/production/rules/event_manager/inc"
 )
-message(STATUS "GAIA_SYSTEM_PRIVATE_INCLUDES=${GAIA_SYSTEM_PRIVATE_INCLUDES}")
+
+message(VERBOSE "GAIA_SYSTEM_PRIVATE_INCLUDES=${GAIA_SYSTEM_PRIVATE_INCLUDES}")
 
 # Our main target.
 add_library(gaia STATIC src/gaia_system.cpp)
