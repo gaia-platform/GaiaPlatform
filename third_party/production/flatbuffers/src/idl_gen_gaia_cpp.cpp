@@ -577,21 +577,21 @@ namespace flatbuffers
                     "   for(uint16_t id : _fieldOffsets) {\n"
                     "       _columns.push_back(id);\n"
                     "   }\n"
-                    "   gaia::db::triggers::trigger_event_t event = {gaia::db::triggers::event_type_t::row_update, this->gaia_type(),\n"
+                    "   gaia::db::triggers::trigger_event_t event = {gaia::db::triggers::event_type_t::row_update, this->container_id(),\n"
                     "       this->gaia_id(), _columns.data()};\n"
                     "}\n"
 
                     // Insert function
                     "void insert_row(){\n"
                     "   gaia_object_t::insert_row();\n"
-                    "   gaia::db::triggers::trigger_event_t event = {gaia::db::triggers::event_type_t::row_insert, this->gaia_type(),\n"
+                    "   gaia::db::triggers::trigger_event_t event = {gaia::db::triggers::event_type_t::row_insert, this->container_id(),\n"
                     "       this->gaia_id(), empty_position_list};\n"
                     "}\n"
 
                     // Delete function
                     "void delete_row(){\n"
                     "   gaia_object_t::delete_row();\n"
-                    "   gaia::db::triggers::trigger_event_t event = {gaia::db::triggers::event_type_t::row_delete, this->gaia_type(),\n"
+                    "   gaia::db::triggers::trigger_event_t event = {gaia::db::triggers::event_type_t::row_delete, this->container_id(),\n"
                     "       this->gaia_id(), empty_position_list};\n"
                     "}";
 

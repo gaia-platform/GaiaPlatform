@@ -11,7 +11,7 @@
 #include "retail_assert.hpp"
 #include "gaia_db.hpp"
 #include "types.hpp"
-#include "type_metadata.hpp"
+#include "container_metadata.hpp"
 
 using namespace gaia::common;
 
@@ -21,7 +21,7 @@ namespace db {
 class gaia_ptr {
 private:
     int64_t row_id;
-    void create_insert_trigger(gaia_container_id_t type, gaia_id_t id);
+    void create_insert_trigger(gaia_container_id_t container_id, gaia_id_t id);
     void clone_no_tx();
 
 public:
@@ -50,32 +50,32 @@ public:
     static gaia_id_t generate_id();
 
     static gaia_ptr create(
-        gaia_container_id_t type,
+        gaia_container_id_t container_id,
         size_t data_size,
         const void* data) {
 
         gaia_id_t id = gaia_ptr::generate_id();
-        auto metadata = container_registry_t::instance().get_or_create(type);
+        auto metadata = container_registry_t::instance().get_or_create(container_id);
         size_t num_references = metadata.num_references();
 
-        return create(id, type, num_references, data_size, data);
+        return create(id, container_id, num_references, data_size, data);
     }
 
     static gaia_ptr create(
         gaia_id_t id,
-        gaia_container_id_t type,
+        gaia_container_id_t container_id,
         size_t data_size,
         const void* data) {
 
-        auto metadata = container_registry_t::instance().get_or_create(type);
+        auto metadata = container_registry_t::instance().get_or_create(container_id);
         size_t num_references = metadata.num_references();
 
-        return create(id, type, num_references, data_size, data);
+        return create(id, container_id, num_references, data_size, data);
     }
 
     static gaia_ptr create(
         gaia_id_t id,
-        gaia_container_id_t type,
+        gaia_container_id_t container_id,
         size_t num_refs,
         size_t data_size,
         const void* data) {
@@ -84,14 +84,14 @@ public:
         gaia_ptr obj(id, total_len + sizeof(gaia_se_object_t));
         gaia_se_object_t* obj_ptr = obj.to_ptr();
         obj_ptr->id = id;
-        obj_ptr->type = type;
+        obj_ptr->container_id = container_id;
         obj_ptr->num_references = num_refs;
         if (num_refs) {
             memset(obj_ptr->payload, 0, refs_len);
         }
         obj_ptr->payload_size = total_len;
         memcpy(obj_ptr->payload + refs_len, data, data_size);
-        obj.create_insert_trigger(type, id);
+        obj.create_insert_trigger(container_id, id);
         return obj;
     }
 
@@ -108,7 +108,7 @@ public:
         const gaia_id_t* references = node.references();
         for (size_t i = 0; i < node.num_references(); i++) {
             if (references[i] != INVALID_GAIA_ID) {
-                throw node_not_disconnected(node.id(), node.type());
+                throw node_not_disconnected(node.id(), node.container_id());
             }
         }
         node.reset();
@@ -124,12 +124,12 @@ public:
         size_t next_child_slot, gaia_id_t next_child_id,
         size_t parent_slot, gaia_id_t parent_id);
 
-    static gaia_ptr find_first(gaia_container_id_t type) {
+    static gaia_ptr find_first(gaia_container_id_t container_id) {
         gaia_ptr ptr;
         ptr.row_id = 1;
 
-        if (!ptr.is(type)) {
-            ptr.find_next(type);
+        if (!ptr.is(container_id)) {
+            ptr.find_next(container_id);
         }
 
         return ptr;
@@ -137,7 +137,7 @@ public:
 
     gaia_ptr find_next() {
         if (row_id) {
-            find_next(to_ptr()->type);
+            find_next(to_ptr()->container_id);
         }
 
         return *this;
@@ -145,7 +145,7 @@ public:
 
     gaia_ptr operator++() {
         if (row_id) {
-            find_next(to_ptr()->type);
+            find_next(to_ptr()->container_id);
         }
         return *this;
     }
@@ -158,8 +158,8 @@ public:
         return to_ptr()->id;
     }
 
-    gaia_container_id_t type() const {
-        return to_ptr()->type;
+    gaia_container_id_t container_id() const {
+        return to_ptr()->container_id;
     }
 
     char* data() const {
@@ -236,11 +236,11 @@ protected:
 
     int64_t to_offset() const;
 
-    bool is(gaia_container_id_t type) const {
-        return to_ptr() && to_ptr()->type == type;
+    bool is(gaia_container_id_t container_id) const {
+        return to_ptr() && to_ptr()->container_id == container_id;
     }
 
-    void find_next(gaia_container_id_t type);
+    void find_next(gaia_container_id_t container_id);
 
     void reset();
 };

@@ -85,7 +85,7 @@ add_library(gaia_se_client STATIC
   src/gaia_ptr.cpp
   src/storage_engine.cpp
   src/storage_engine_client.cpp
-  src/type_metadata.cpp)
+        src/container_metadata.cpp)
 add_dependencies(gaia_se_client "messages.fbs")
 target_include_directories(gaia_se_client PUBLIC ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES})
 target_include_directories(gaia_se_client PRIVATE ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES})

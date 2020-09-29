@@ -49,7 +49,7 @@ void print_node(const gaia_ptr& node, const bool indent = false) {
     cout
         << "Node id:"
         << node.id() << ", type:"
-        << node.type();
+        << node.container_id();
 
     print_payload(cout, node.data_size(), node.data());
 
@@ -141,7 +141,7 @@ PYBIND11_MODULE(se_client, m) {
         .def_static("create", static_cast<gaia_ptr (*)(gaia_id_t, gaia_container_id_t, size_t, size_t, const void*)>(&gaia_ptr::create))
         .def_static("open", &gaia_ptr::open)
         .def("id", &gaia_ptr::id)
-        .def("type", &gaia_ptr::type)
+        .def("type", &gaia_ptr::container_id)
         .def("data", &gaia_ptr::data, return_value_policy::reference)
         .def("data_size", &gaia_ptr::data_size)
         .def("references", &gaia_ptr::references, return_value_policy::reference)

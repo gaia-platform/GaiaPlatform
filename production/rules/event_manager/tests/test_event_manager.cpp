@@ -40,18 +40,18 @@ public:
     void set(const rule_context_t* context)
     {
         event_type = context->event_type;
-        gaia_type = context->gaia_type;
+        container_id = context->container_id;
         record = context->record;
         sequence.emplace_back(*context);
     }
 
     void validate(
         event_type_t a_event_type,
-        gaia_container_id_t a_gaia_type,
+        gaia_container_id_t a_container_id,
         gaia_id_t a_record)
     {
         EXPECT_EQ(event_type, a_event_type);
-        EXPECT_EQ(gaia_type, a_gaia_type);
+        EXPECT_EQ(container_id, a_container_id);
         EXPECT_EQ(record, a_record);
         reset();
     }
@@ -59,7 +59,7 @@ public:
     void reset(bool reset_sequence = false)
     {
         event_type = event_type_t::not_set;
-        gaia_type = 0;
+        container_id = 0;
         record = 0;
 
         if (reset_sequence)
@@ -70,7 +70,7 @@ public:
 
     void compare_contexts(rule_context_t& a, rule_context_t& b)
     {
-        EXPECT_EQ(a.gaia_type, b.gaia_type);
+        EXPECT_EQ(a.container_id, b.container_id);
         EXPECT_EQ(a.event_type, b.event_type);
     }
 
@@ -115,7 +115,7 @@ public:
         return s_dummy;
     }
 
-    gaia_container_id_t gaia_type;
+    gaia_container_id_t container_id;
     gaia_id_t record;
     const char* ruleset_name;
     const char* rule_name;
@@ -255,8 +255,8 @@ void rule4(const rule_context_t* context)
 
 /**
  * Rule 5 handles an TestGaia::update event
- * Attempts to forward chain to TestGaia::update (disallowed: same gaia_type and event_type)
- * [Rule 6] Forward chains to TestGaia2::update (allowed: different gaia_type)
+ * Attempts to forward chain to TestGaia::update (disallowed: same container_id and event_type)
+ * [Rule 6] Forward chains to TestGaia2::update (allowed: different container_id)
  * [Rule 7] Forward chains to TestGaia::insert (allowed: different event_type)
  */
 void rule5(const rule_context_t* context)
@@ -269,11 +269,11 @@ void rule5(const rule_context_t* context)
         // Allow same event, we should not be re-entrant cause rules are only fired
         // after the rule invocation returns
         // TODO[GAIAPLAT-155]: Determine how the rule schedule deals with cycles
-        //{context->event_type, context->gaia_type, context->record, nullptr, 0},
-        // Allow event call on different gaia_type.
+        //{context->event_type, context->container_id, context->record, nullptr, 0},
+        // Allow event call on different container_id.
         {context->event_type, TestGaia2::s_container_id, context->record, empty_position_list},
         // Allow event call on different event_type.
-        {event_type_t::row_insert, context->gaia_type, test_gaia_ptr->gaia_id(), empty_position_list}
+        {event_type_t::row_insert, context->container_id, test_gaia_ptr->gaia_id(), empty_position_list}
     };
     test::commit_trigger(0, trigger_events, 2);
 }
@@ -468,7 +468,7 @@ public:
             }
 
             if (gaia_type_filter) {
-                if (*gaia_type_filter != decl.sub.gaia_type) {
+                if (*gaia_type_filter != decl.sub.container_id) {
                     continue;
                 }
             }
@@ -482,7 +482,7 @@ public:
             expected_subscriptions.insert(pair<string, subscription_t>(
                 make_subscription_key(decl.sub),
                 {decl.sub.ruleset_name, decl.sub.rule_name,
-                decl.sub.gaia_type, decl.sub.event_type, decl.sub.field}));
+                decl.sub.container_id, decl.sub.event_type, decl.sub.field}));
         }
 
         return expected_subscriptions;
@@ -492,7 +492,7 @@ public:
     {
         string key = sub.ruleset_name;
         key.append(sub.rule_name);
-        key.append(to_string(sub.gaia_type));
+        key.append(to_string(sub.container_id));
         key.append(to_string((int)sub.event_type));
         return key;
     }
@@ -517,7 +517,7 @@ public:
     {
         EXPECT_STREQ(a.ruleset_name, b.ruleset_name);
         EXPECT_STREQ(a.ruleset_name, b.ruleset_name);
-        EXPECT_EQ(a.gaia_type, b.gaia_type);
+        EXPECT_EQ(a.container_id, b.container_id);
         EXPECT_EQ(a.event_type, b.event_type);
     }
 
@@ -532,7 +532,7 @@ public:
             binding.rule = decl.fn;
 
             event_type_t event = decl.sub.event_type;
-            gaia_container_id_t gaia_type = decl.sub.gaia_type;
+            gaia_container_id_t gaia_type = decl.sub.container_id;
             field_position_list_t fields;
 
             if (decl.sub.field)

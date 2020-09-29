@@ -183,13 +183,13 @@ static string generate_declarations(const gaia_id_t db_id) {
     return str;
 }
 
-static string generate_edc_struct(gaia_container_id_t table_type_id, string table_name, field_vec &field_strings,
+static string generate_edc_struct(gaia_container_id_t container_id, const string& table_name, field_vec &field_strings,
     references_vec &references_1, references_vec &references_n) {
     flatbuffers::CodeWriter code(indent_string);
 
     // Struct statement.
     code.SetValue("TABLE_NAME", table_name);
-    code.SetValue("POSITION", to_string(table_type_id));
+    code.SetValue("POSITION", to_string(container_id));
     code += "typedef gaia_writer_t<{{POSITION}}llu,{{TABLE_NAME}}_t,{{TABLE_NAME}},{{TABLE_NAME}}T,c_num_{{TABLE_NAME}}_ptrs> {{TABLE_NAME}}_writer;";
     code += "struct {{TABLE_NAME}}_t : public gaia_object_t<{{POSITION}}llu,{{TABLE_NAME}}_t,{{TABLE_NAME}},{{TABLE_NAME}}T,c_num_{{TABLE_NAME}}_ptrs> {";
 

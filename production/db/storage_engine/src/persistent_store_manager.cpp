@@ -162,7 +162,7 @@ void persistent_store_manager::destroy_persistent_store() {
 
 void persistent_store_manager::create_object_on_recovery(
     gaia_id_t id,
-    gaia_container_id_t type,
+    gaia_container_id_t container_id,
     size_t num_refs,
     size_t data_size,
     const void* data) {
@@ -171,7 +171,7 @@ void persistent_store_manager::create_object_on_recovery(
     se_base::allocate_object(hash_node->row_id, data_size + sizeof(gaia_se_object_t), server::s_shared_offsets, server::s_data, true);
     gaia_se_object_t* obj_ptr = server::locator_to_ptr(server::s_shared_offsets, server::s_data, hash_node->row_id);
     obj_ptr->id = id;
-    obj_ptr->type = type;
+    obj_ptr->container_id = container_id;
     obj_ptr->num_references = num_refs;
     obj_ptr->payload_size = data_size;
     memcpy(obj_ptr->payload, data, data_size);

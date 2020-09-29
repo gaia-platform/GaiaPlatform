@@ -99,7 +99,7 @@ struct subscription_t
     subscription_t()
         : ruleset_name(nullptr)
         , rule_name(nullptr)
-        , gaia_type(INVALID_GAIA_CONTAINER)
+        , container_id(INVALID_GAIA_CONTAINER)
         , event_type(event_type_t::not_set)
         , field(0) 
     {
@@ -108,12 +108,12 @@ struct subscription_t
     subscription_t(
         const char* a_ruleset_name,
         const char* a_rule_name,
-        gaia_container_id_t a_gaia_type,
+        gaia_container_id_t a_container_id,
         event_type_t an_event_type,
         field_position_t a_field)
         : ruleset_name(a_ruleset_name)
         , rule_name(a_rule_name)
-        , gaia_type(a_gaia_type)
+        , container_id(a_container_id)
         , event_type(an_event_type)
         , field(a_field) 
     {
@@ -121,7 +121,7 @@ struct subscription_t
 
     const char* ruleset_name;
     const char* rule_name;
-    gaia_container_id_t gaia_type;
+    gaia_container_id_t container_id;
     event_type_t event_type;
     const field_position_t field;
 };
@@ -174,12 +174,12 @@ struct rule_context_t
 public:
     rule_context_t(
         direct_access::auto_transaction_t& a_transaction,
-        common::gaia_container_id_t a_gaia_type,
+        common::gaia_container_id_t a_container_id,
         db::triggers::event_type_t a_event_type,
         gaia_id_t a_record,
         const field_position_list_t& a_field_list)
         : transaction(a_transaction)
-        , gaia_type(a_gaia_type)
+        , container_id(a_container_id)
         , event_type(a_event_type)
         , record(a_record)
         , fields(a_field_list)
@@ -201,10 +201,10 @@ public:
      * This method will return last_operation_t::none if this rule was not
      * invoked due to an operation on X.
      */
-    last_operation_t last_operation(gaia_container_id_t gaia_type) const;
+    last_operation_t last_operation(gaia_container_id_t container_id) const;
 
     direct_access::auto_transaction_t& transaction;
-    common::gaia_container_id_t gaia_type;
+    common::gaia_container_id_t container_id;
     db::triggers::event_type_t event_type;
     gaia_id_t record;
     const field_position_list_t& fields;
@@ -230,7 +230,7 @@ public:
  * a different rule definition then this exception is thrown.  
  * 
  * Second, if a user attempts to subscribe the same rule to the same 
- * gaia type and event  type then this event is thrown.  
+ * gaia container id and event  type then this event is thrown.
  */ 
 class duplicate_rule: public gaia::common::gaia_exception
 {
@@ -260,9 +260,9 @@ public:
     // Table type not found.
     invalid_subscription(gaia_container_id_t container_id);
     // Field not found.
-    invalid_subscription(gaia_container_id_t gaia_type, const char* table, uint16_t position);
+    invalid_subscription(gaia_container_id_t container_id, const char* table, uint16_t position);
     // Field not active or has been deprecated
-    invalid_subscription(gaia_container_id_t gaia_type, const char* table, uint16_t position,
+    invalid_subscription(gaia_container_id_t container_id, const char* table, uint16_t position,
         const char* field_name, bool is_deprecated);
 };
 
@@ -290,7 +290,7 @@ void initialize_rules_engine();
  * field references (update a specific field)
  * 
  * 
- * @param gaia_type table type to bind the rule to
+ * @param container_id table type to bind the rule to
  * @param event_type read or write field event
  * @param fields the set of fields that will cause this rule to be fired if changed.
  * @param rule_binding caller-supplied rule information; this call will populate rule_name
@@ -299,15 +299,15 @@ void initialize_rules_engine();
  * @throw initialization_error
  */
 void subscribe_rule(
-    gaia::common::gaia_container_id_t gaia_type,
+    gaia::common::gaia_container_id_t container_id,
     gaia::db::triggers::event_type_t event_type,
     const field_position_list_t& fields,
     const rule_binding_t& rule_binding);
 
 /**
- * Unsubscribes this rule from the specified table event scoped by the gaia_type.
+ * Unsubscribes this rule from the specified table event scoped by the container_id.
  * 
- * @param gaia_type table type to bind the rule to
+ * @param container_id table type to bind the rule to
  * @param type the event type to bind this rule to
  * @param fields the set of columns to unsubscribe the rule from
  * @param rule_binding caller-supplied rule information
@@ -316,7 +316,7 @@ void subscribe_rule(
  * @throw initialization_error
  */
 bool unsubscribe_rule(
-    gaia::common::gaia_container_id_t gaia_type,
+    gaia::common::gaia_container_id_t container_id,
     gaia::db::triggers::event_type_t type, 
     const field_position_list_t& fields,
     const rule_binding_t& rule_binding);
@@ -331,10 +331,10 @@ void unsubscribe_rules();
 /**
  * List all rules already subscribed to events.  
  * 
- * Enable filtering on ruleset name, gaia_type, event_type, and field.
+ * Enable filtering on ruleset name, container_id, event_type, and field.
  * 
  * @param ruleset_name Scope returned rules to specified rulset if provided.  May be null.
- * @param gaia_type Filter results by the object they refer to.  May be null.
+ * @param container_id Filter results by the object they refer to.  May be null.
  * @param event_type Filter by event you want.
  * @param field Filter by the field ordinal.
  * @param subscriptions Caller provided vector to hold the results.  This method will clear any existing
@@ -343,7 +343,7 @@ void unsubscribe_rules();
  */
 void list_subscribed_rules(
     const char* ruleset_name, 
-    const gaia::common::gaia_container_id_t* gaia_type,
+    const gaia::common::gaia_container_id_t* container_id,
     const gaia::db::triggers::event_type_t* event_type,
     const uint16_t* field, 
     subscription_list_t& subscriptions);

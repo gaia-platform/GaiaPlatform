@@ -150,7 +150,7 @@ void event_manager_t::commit_trigger(uint64_t, const trigger_event_list_t& trigg
         const trigger_event_t& event = trigger_event_list[i];
         bool rules_invoked = false;
 
-        auto type_it = m_subscriptions.find(event.gaia_type);
+        auto type_it = m_subscriptions.find(event.container);
         if (type_it != m_subscriptions.end())
         {
             events_map_t& events = type_it->second;
@@ -209,7 +209,7 @@ void event_manager_t::enqueue_invocation(const trigger_event_t& event, gaia_rule
 {
     rule_thread_pool_t::rule_invocation_t rule_invocation {
         rule_fn,
-        event.gaia_type,
+        event.container,
         event.event_type,
         event.record,
         event.columns
@@ -238,7 +238,7 @@ void event_manager_t::check_subscription(
 }
 
 void event_manager_t::subscribe_rule(
-    gaia_container_id_t gaia_type,
+    gaia_container_id_t container_id,
     event_type_t event_type,
     const field_position_list_t& fields,
     const rule_binding_t& rule_binding)
@@ -253,16 +253,16 @@ void event_manager_t::subscribe_rule(
     // set to true in its settings.
     if (m_rule_checker)
     {
-        m_rule_checker->check_catalog(gaia_type, fields);
+        m_rule_checker->check_catalog(container_id, fields);
     }
 
-    // Look up the gaia_type in our type map.  If we do not find it
+    // Look up the container_id in our type map.  If we do not find it
     // then we create a new empty event map map.
-    auto type_it = m_subscriptions.find(gaia_type);
+    auto type_it = m_subscriptions.find(container_id);
     if (type_it == m_subscriptions.end()) 
     {
         auto inserted_type = m_subscriptions.insert(
-            make_pair(gaia_type, events_map_t()));
+            make_pair(container_id, events_map_t()));
         type_it = inserted_type.first;
     }
 
@@ -308,7 +308,7 @@ void event_manager_t::subscribe_rule(
 }
 
 bool event_manager_t::unsubscribe_rule(
-    gaia_container_id_t gaia_type,
+    gaia_container_id_t container_id,
     event_type_t event_type, 
     const field_position_list_t& fields,
     const rule_binding_t& rule_binding)
@@ -317,7 +317,7 @@ bool event_manager_t::unsubscribe_rule(
 
     // If we haven't seen any subscriptions for this type
     // then no rule was bound.
-    auto type_it = m_subscriptions.find(gaia_type);
+    auto type_it = m_subscriptions.find(container_id);
     if (type_it == m_subscriptions.end())
     {
         return false;
@@ -369,17 +369,17 @@ void event_manager_t::unsubscribe_rules()
 
 void event_manager_t::list_subscribed_rules(
     const char* ruleset_name, 
-    const gaia_container_id_t* gaia_type_ptr,
+    const gaia_container_id_t* container_id,
     const event_type_t* event_type_ptr,
     const uint16_t* field_ptr,
     subscription_list_t& subscriptions)
 {
     subscriptions.clear();
 
-    // Filter first by gaia_type, then event_type, then fields, then ruleset_name.
+    // Filter first by container_id, then event_type, then fields, then ruleset_name.
     for (auto type_it : m_subscriptions)
     {
-        if (gaia_type_ptr && type_it.first != *gaia_type_ptr)
+        if (container_id && type_it.first != *container_id)
         {
             continue;
         }
@@ -415,7 +415,7 @@ void event_manager_t::list_subscribed_rules(
 
 void event_manager_t::add_subscriptions(subscription_list_t& subscriptions, 
     const rule_list_t& rules,
-    gaia_container_id_t gaia_type,
+    gaia_container_id_t container_id,
     event_type_t event_type,
     uint16_t field,
     const char* ruleset_filter)
@@ -431,7 +431,7 @@ void event_manager_t::add_subscriptions(subscription_list_t& subscriptions,
         subscriptions.emplace_back(make_unique<subscription_t>(
             rule->ruleset_name.c_str(),
             rule->rule_name.c_str(),
-            gaia_type, 
+            container_id,
             event_type,
             field)
         );
@@ -559,21 +559,21 @@ void gaia::rules::initialize_rules_engine()
 }
 
 void gaia::rules::subscribe_rule(
-    gaia_container_id_t gaia_type,
+    gaia_container_id_t container_id,
     event_type_t event_type,
     const field_position_list_t& fields,
     const rule_binding_t& rule_binding)
 {
-    event_manager_t::get().subscribe_rule(gaia_type, event_type, fields, rule_binding);
+    event_manager_t::get().subscribe_rule(container_id, event_type, fields, rule_binding);
 }
 
 bool gaia::rules::unsubscribe_rule(
-    gaia_container_id_t gaia_type,
+    gaia_container_id_t container_id,
     event_type_t event_type,
     const field_position_list_t& fields, 
     const gaia::rules::rule_binding_t& rule_binding)
 {
-    return event_manager_t::get().unsubscribe_rule(gaia_type, event_type, fields, rule_binding);
+    return event_manager_t::get().unsubscribe_rule(container_id, event_type, fields, rule_binding);
 }
 
 void gaia::rules::unsubscribe_rules()
@@ -583,11 +583,11 @@ void gaia::rules::unsubscribe_rules()
 
 void gaia::rules::list_subscribed_rules(
     const char* ruleset_name, 
-    const gaia_container_id_t* gaia_type,
+    const gaia_container_id_t* container_id,
     const event_type_t* event_type,
     const uint16_t* field, 
     subscription_list_t& subscriptions)
 {
-    event_manager_t::get().list_subscribed_rules(ruleset_name, gaia_type,
+    event_manager_t::get().list_subscribed_rules(ruleset_name, container_id,
         event_type, field, subscriptions);
 }

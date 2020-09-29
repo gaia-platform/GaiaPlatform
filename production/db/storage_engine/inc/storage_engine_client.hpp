@@ -67,7 +67,7 @@ class client : private se_base {
 
     // Maintain a static filter in the client to disable generating events
     // for system types.
-    static std::unordered_set<gaia_container_id_t> trigger_excluded_types;
+    static std::unordered_set<gaia_container_id_t> trigger_excluded_containers;
 
     // Inherited from se_base:
     // thread_local static log *s_log;
@@ -82,9 +82,9 @@ class client : private se_base {
     /**
      *  Check if an event should be generated for a given type.
      */ 
-    static inline bool is_valid_event(const gaia_container_id_t type) {
+    static inline bool is_valid_event(const gaia_container_id_t container_id) {
         return (gaia::db::s_tx_commit_trigger 
-            && (trigger_excluded_types.find(type) == trigger_excluded_types.end()));
+            && (trigger_excluded_containers.find(container_id) == trigger_excluded_containers.end()));
     }
 
     static inline void verify_tx_active() {

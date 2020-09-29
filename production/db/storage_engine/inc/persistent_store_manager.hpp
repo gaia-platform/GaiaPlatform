@@ -81,7 +81,7 @@ class persistent_store_manager
      */
     static void create_object_on_recovery(
         gaia_id_t id,
-        gaia_container_id_t type,
+        gaia_container_id_t container_id,
         size_t num_refs,
         size_t data_size,
         const void* data);

@@ -56,7 +56,7 @@ void rule_insert_address(const rule_context_t* context)
 {
     g_timer.log_duration(g_start, "latency to rule insert_address");
     employee_t e = employee_t::get(context->record);
-    EXPECT_EQ(employee_t::s_container_id, context->gaia_type);
+    EXPECT_EQ(employee_t::s_container_id, context->container_id);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_insert);
 
     if (0 == strcmp(c_name, e.name_first()))
@@ -71,7 +71,7 @@ void rule_insert_address(const rule_context_t* context)
 // inserted address.
 void rule_update_address(const rule_context_t* context)
 {
-    EXPECT_EQ(address_t::s_container_id, context->gaia_type);
+    EXPECT_EQ(address_t::s_container_id, context->container_id);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_insert);
     address_t a = address_t::get(context->record);
     address_writer aw = a.writer();

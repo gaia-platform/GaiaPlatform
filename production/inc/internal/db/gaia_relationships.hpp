@@ -9,7 +9,7 @@
 #include "gaia_common.hpp"
 
 using gaia::common::gaia_exception;
-using gaia::common::gaia_exception;
+using gaia::common::gaia_container_id_t;
 using gaia::common::reference_offset_t;
 
 namespace gaia::db {

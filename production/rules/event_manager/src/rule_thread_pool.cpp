@@ -47,7 +47,7 @@ void rule_thread_pool_t::log_events(invocation_t& invocation)
 
             event_log::event_log_t::insert_row(
                 (uint32_t)(event.event_type), 
-                (uint64_t)(event.gaia_type),
+                (uint64_t)(event.container),
                 (uint64_t)(event.record), 
                 column_id, 
                 timestamp, rule_invoked);
@@ -181,7 +181,7 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
         auto_transaction_t transaction(auto_transaction_t::no_auto_begin);
         rule_context_t context(
             transaction,
-            rule_invocation.gaia_type,
+            rule_invocation.container_id,
             rule_invocation.event_type,
             rule_invocation.record,
             rule_invocation.fields

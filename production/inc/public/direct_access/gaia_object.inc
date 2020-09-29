@@ -149,13 +149,13 @@ T_class gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N
     if (node_ptr)
     {
         // Make sure the types match
-        if (node_ptr.type() != T_class::s_container_id)
+        if (node_ptr.container_id() != T_class::s_container_id)
         {
             T_class expected = T_class::get(0);
             throw edc_invalid_object_type(node_ptr.id(),
                 T_class::s_container_id,
                 expected.gaia_typename(),
-                node_ptr.type());
+                node_ptr.container_id());
         }
         id = node_ptr.id();
     }

@@ -87,9 +87,9 @@ class invalid_id_value : public gaia_exception {
 
 class node_not_disconnected : public gaia_exception {
    public:
-    node_not_disconnected(gaia_id_t id, gaia_container_id_t object_type) {
+    node_not_disconnected(gaia_id_t id, gaia_container_id_t container_id) {
         stringstream msg;
-        msg << "Cannot delete object " << id << ", type " << object_type << " because it is still connected to another object.";
+        msg << "Cannot delete object " << id << ", container id " << container_id << " because it is still connected to another object.";
         m_message = msg.str();
     }
 };

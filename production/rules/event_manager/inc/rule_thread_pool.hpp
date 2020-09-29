@@ -40,7 +40,7 @@ public:
 
    struct rule_invocation_t {
         gaia_rule_fn rule_fn;
-        common::gaia_container_id_t gaia_type;
+        common::gaia_container_id_t container_id;
         db::triggers::event_type_t event_type;
         gaia_id_t record;
         field_position_list_t fields;

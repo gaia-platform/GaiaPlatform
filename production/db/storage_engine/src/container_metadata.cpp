@@ -4,7 +4,7 @@
 /////////////////////////////////////////////
 
 #include <mutex>
-#include "type_metadata.hpp"
+#include "container_metadata.hpp"
 
 namespace gaia {
 

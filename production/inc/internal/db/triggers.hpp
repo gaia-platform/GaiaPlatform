@@ -5,6 +5,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <utility>
 #include <vector>
 #include <memory>
 #include <atomic>
@@ -24,12 +25,12 @@ namespace triggers {
 
 struct trigger_event_t {
     event_type_t event_type; // insert, update, delete, begin, commit, rollback
-    gaia_id_t gaia_type; // gaia table type, maybe 0 if event has no associated tables
-    gaia_id_t record; //row id, may be 0 if if there is no assocated row id
+    gaia_id_t container; // gaia table type, maybe 0 if event has no associated tables
+    gaia_id_t record; //row id, may be 0 if there is no associated row id
     field_position_list_t columns; // list of affected columns
 
-    trigger_event_t(event_type_t event_type, gaia_id_t gaia_type, gaia_id_t record, field_position_list_t columns):
-        event_type(event_type), gaia_type(gaia_type), record(record), columns(columns) {}
+    trigger_event_t(event_type_t event_type, gaia_id_t container, gaia_id_t record, field_position_list_t columns):
+        event_type(event_type), container(container), record(record), columns(std::move(columns)) {}
 };
 
 typedef std::vector<trigger_event_t> trigger_event_list_t;

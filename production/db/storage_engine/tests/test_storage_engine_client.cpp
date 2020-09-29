@@ -54,7 +54,7 @@ void print_node(const gaia_ptr& node, const bool indent=false)
     std::cerr
         << "Node id:"
         << node.id() << ", type:"
-        << node.type();
+        << node.container_id();
 
     print_payload (std::cerr, node.data_size(), node.data());
 
