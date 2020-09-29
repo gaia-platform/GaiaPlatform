@@ -7,7 +7,7 @@
 #include "storage_engine_client.hpp"
 #include "gaia_hash_map.hpp"
 #include "gaia_ptr.hpp"
-#include "types.hpp"
+#include "gaia_record.hpp"
 #include "payload_diff.hpp"
 #include "field_list.hpp"
 #include "triggers.hpp"

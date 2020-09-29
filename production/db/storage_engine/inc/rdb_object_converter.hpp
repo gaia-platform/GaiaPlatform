@@ -13,7 +13,7 @@
 
 #include "gaia_common.hpp"
 #include "rocksdb/slice.h"
-#include "types.hpp"
+#include "gaia_record.hpp"
 
 using namespace gaia::common;
 

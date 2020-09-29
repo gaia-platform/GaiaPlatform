@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "types.hpp"
+#include "memory_types.hpp"
 #include "error_codes.hpp"
 #include "structures.hpp"
 
