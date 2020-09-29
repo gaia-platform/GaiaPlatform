@@ -32,6 +32,11 @@ private:
     bool m_client_manages_session;
 
 protected:
+
+    static void SetUpTestSuite() {
+    }
+
+
     static void reset_server() {
         // We need to drop all client references to shared memory before resetting the server.
         // NB: this cannot be called within an active session!
@@ -44,7 +49,7 @@ protected:
         // (Otherwise, a new session might be accepted after the signal has been sent
         // but before the server has been reinitialized.)
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        wait_for_server_init();
+        wait_for_server_init(false);
     }
 
     db_test_base_t(bool client_manages_session) : m_client_manages_session(client_manages_session) {

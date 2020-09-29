@@ -18,8 +18,6 @@ typedef size_t slot_id_t;
 
 typedef size_t address_offset_t;
 
-typedef size_t serialization_number_t;
-
 }
 }
 }

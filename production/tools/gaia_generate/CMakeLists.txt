@@ -3,9 +3,6 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.12)
-enable_testing()
-
 # Set the project name.
 project(gaia_generate)
 
@@ -23,7 +20,8 @@ set(GAIA_GENERATE_INCLUDES
   ${GAIA_INC}/internal/db
   ${CMAKE_CURRENT_SOURCE_DIR}/inc
 )
-message(STATUS "GAIA_GENERATE_INCLUDES=${GAIA_GENERATE_INCLUDES}")
+
+message(VERBOSE "GAIA_GENERATE_INCLUDES=${GAIA_GENERATE_INCLUDES}")
 
 add_executable(gaia_generate src/main.cpp)
 target_include_directories(gaia_generate PRIVATE ${GAIA_GENERATE_INCLUDES})

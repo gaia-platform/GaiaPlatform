@@ -22,11 +22,7 @@ class stack_allocator_t : public base_memory_manager_t
 
 public:
 
-    // Only a memory_manager_t can create stack_allocator_t instances.
     stack_allocator_t();
-
-    // Sets stack_allocator_t execution flags.
-    void set_execution_flags(const execution_flags_t& execution_flags);
 
     // Initialize the stack_allocator_t with a specific memory buffer from which to allocate memory.
     // The start of the buffer is specified as an offset from a base address.
@@ -58,8 +54,8 @@ public:
     // Allocation numbers start at 1.
     stack_allocator_allocation_t* get_allocation_record(size_t allocation_number) const;
 
-    // Find the offset where we can make the next allocation.
-    address_offset_t get_next_allocation_offset() const;
+    // Calculate the offset where we can make the next allocation.
+    address_offset_t calculate_next_allocation_offset() const;
 
 private:
 
@@ -67,9 +63,6 @@ private:
     // Unlike the memory manager, which stores its metadata at the start of the buffer,
     // the stack allocator stores it at the end.
     stack_allocator_metadata_t* m_metadata;
-
-    // Our execution flags.
-    execution_flags_t m_execution_flags;
 
 private:
 

@@ -15,11 +15,6 @@ stack_allocator_t::stack_allocator_t()
     m_metadata = nullptr;
 }
 
-void stack_allocator_t::set_execution_flags(const execution_flags_t& execution_flags)
-{
-    m_execution_flags = execution_flags;
-}
-
 error_code_t stack_allocator_t::initialize(
     uint8_t* base_memory_address,
     address_offset_t memory_offset,
@@ -201,7 +196,7 @@ error_code_t stack_allocator_t::deallocate(size_t count_allocations_to_keep) con
     }
 
     // Recalculate the next offset at which we can allocate memory.
-    m_metadata->next_allocation_offset = get_next_allocation_offset();
+    m_metadata->next_allocation_offset = calculate_next_allocation_offset();
 
     if (m_execution_flags.enable_console_output)
     {
@@ -245,7 +240,7 @@ stack_allocator_allocation_t* stack_allocator_t::get_allocation_record(size_t al
     return allocation_record;
 }
 
-address_offset_t stack_allocator_t::get_next_allocation_offset() const
+address_offset_t stack_allocator_t::calculate_next_allocation_offset() const
 {
     if (m_metadata == nullptr)
     {
@@ -295,6 +290,5 @@ void stack_allocator_t::output_debugging_information(const string& context_descr
     cout << "    Count allocations = " << m_metadata->count_allocations << endl;
     cout << "    First allocation size = " << m_metadata->first_allocation_size << endl;
     cout << "    Next allocation offset = " << m_metadata->next_allocation_offset << endl;
-    cout << "    Serialization number = " << m_metadata->serialization_number << endl;
     cout << c_debug_output_separator_line_end << endl;
 }
