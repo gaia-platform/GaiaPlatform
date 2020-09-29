@@ -50,7 +50,6 @@ TEST(memory_manager, stack_allocator)
     memory_manager.set_execution_flags(execution_flags);
     error_code = memory_manager.manage(memory, memory_size);
     ASSERT_EQ(error_code_t::success, error_code);
-    cout << "PASSED: Manager initialization was successful!" << endl;
 
     size_t stack_allocator_memory_size = 2000;
 
@@ -110,9 +109,9 @@ TEST(memory_manager, stack_allocator)
 
     ASSERT_EQ(3, stack_allocator->get_allocation_count());
 
+    cout << endl << "Deallocate all but the first allocation." << endl;
     error_code = stack_allocator->deallocate(1);
     ASSERT_EQ(error_code_t::success, error_code);
-    cout << endl << "Deallocate all but the first allocation." << endl;
 
     ASSERT_EQ(1, stack_allocator->get_allocation_count());
 
@@ -133,9 +132,9 @@ TEST(memory_manager, stack_allocator)
 
     ASSERT_EQ(3, stack_allocator->get_allocation_count());
 
+    cout << endl << "Deallocate all allocations." << endl;
     stack_allocator->deallocate(0);
     ASSERT_EQ(error_code_t::success, error_code);
-    cout << endl << "Deallocate all allocations." << endl;
 
     ASSERT_EQ(0, stack_allocator->get_allocation_count());
 
