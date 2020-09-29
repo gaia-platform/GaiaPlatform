@@ -20,7 +20,7 @@
 namespace gaia {
 namespace db {
 
-constexpr char const* c_daemonize_command = "daemonize ";
+constexpr char c_daemonize_command[] = "daemonize ";
 
 void remove_persistent_store() {
     string cmd = "rm -rf ";
@@ -30,7 +30,7 @@ void remove_persistent_store() {
 }
 
 void wait_for_server_init() {
-    static constexpr int c_poll_interval_millis = 10;
+    constexpr int c_poll_interval_millis = 10;
     int counter = 0;
 
     // quick fix to initialize the server.
@@ -60,6 +60,24 @@ void wait_for_server_init() {
     }
     // This was just a test connection, so disconnect.
     end_session();
+}
+
+void reset_server() {
+    // We need to allow enough time after the signal is sent for the process to
+    // receive and process the signal.
+    constexpr int c_wait_signal_millis = 10;
+    // We need to drop all client references to shared memory before resetting the server.
+    // NB: this cannot be called within an active session!
+    clear_shared_memory();
+    // Reinitialize the server (forcibly disconnects all clients and clears database).
+    // Resetting the server will cause Recovery to be skipped. Recovery will only occur post
+    // server process reboot.
+    ::system((std::string("pkill -f -HUP ") + SE_SERVER_NAME).c_str());
+    // Wait a bit for the server's listening socket to be closed.
+    // (Otherwise, a new session might be accepted after the signal has been sent
+    // but before the server has been reinitialized.)
+    std::this_thread::sleep_for(std::chrono::milliseconds(c_wait_signal_millis));
+    wait_for_server_init();
 }
 
 class db_server_t {
