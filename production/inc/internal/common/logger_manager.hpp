@@ -28,17 +28,17 @@ namespace logging {
 class logger_manager_t {
 
 public:
-    constexpr static const char* c_sys_logger = "sys";
-    constexpr static const char* c_db_logger = "db";
-    constexpr static const char* c_scheduler_logger = "scheduler";
-    constexpr static const char* c_catalog_logger = "catalog";
+    constexpr static char c_sys_logger[] = "sys";
+    constexpr static char c_db_logger[] = "db";
+    constexpr static char c_scheduler_logger[] = "scheduler";
+    constexpr static char c_catalog_logger[] = "catalog";
 
     /** Default logging path used if none is specified via configuration. */
-    constexpr static const char* c_default_log_path = "logs/gaia.log";
+    constexpr static char c_default_log_path[] = "logs/gaia.log";
 
     /** Default location of the log configuration file */
     // REVIEW it is unclear to me how we can provide this
-    constexpr static const char* c_default_log_conf_path = "log_conf.toml";
+    constexpr static char c_default_log_conf_path[] = "log_conf.toml";
 
     logger_manager_t(const logger_manager_t&) = delete;
     logger_manager_t& operator=(const logger_manager_t&) = delete;

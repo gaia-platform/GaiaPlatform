@@ -18,10 +18,10 @@ using namespace gaia::db::payload_types;
 const uint64_t c_type_id = 88;
 
 // The following values must match the values from test_record_data.json.
-const char* c_first_name = "Takeshi";
+constexpr char c_first_name[] = "Takeshi";
 
-const char* c_last_name = "Kovac";
-const char* c_new_last_name = "Kovacs";
+constexpr char c_last_name[] = "Kovac";
+constexpr char c_new_last_name[] = "Kovacs";
 
 const uint8_t c_age = 242;
 const uint8_t c_new_age = 246;
@@ -39,9 +39,9 @@ const int64_t c_new_known_associate = 7234958243;
 const size_t c_new_count_known_associates = 6;
 
 const size_t c_count_known_aliases = 4;
-const char* c_known_aliases[] = { "Mamba Lev", "One Hand Rending", "The Ice", "Ken Kakura" };
+constexpr char* const c_known_aliases[] = { "Mamba Lev", "One Hand Rending", "The Ice", "Ken Kakura" };
 const size_t c_index_new_known_alias = 2;
-const char* c_new_known_alias = "The Icepick";
+constexpr char c_new_known_alias[] = "The Icepick";
 const size_t c_new_count_known_aliases = 7;
 
 const double c_sleeve_cost = 769999.19;

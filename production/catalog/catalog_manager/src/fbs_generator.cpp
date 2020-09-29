@@ -85,7 +85,7 @@ static string base64_decode(string encoded_string) {
 static string base64_encode(uint8_t const *bytes_to_encode, uint32_t in_len) {
     uint32_t len_encoded = (in_len + 2) / 3 * 4;
     unsigned char trailing_char = '=';
-    static const char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    constexpr char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                        "abcdefghijklmnopqrstuvwxyz"
                                        "0123456789"
                                        "+/";

@@ -55,7 +55,7 @@ static constexpr attribute_t c_route_attributes[] = {
     {"equipment", route_get_equipment, route_add_equipment},
 };
 
-constexpr relation_attribute_mapping_t c_airport_mapping = {
+const relation_attribute_mapping_t c_airport_mapping = {
     "airports",
     airport_demo_types::c_airports_type,
     gaia_airport_airports_as_root,
@@ -65,7 +65,7 @@ constexpr relation_attribute_mapping_t c_airport_mapping = {
     std::size(c_airport_attributes),
 };
 
-constexpr relation_attribute_mapping_t c_airline_mapping = {
+const relation_attribute_mapping_t c_airline_mapping = {
     "airlines",
     airport_demo_types::c_airlines_type,
     gaia_airport_airlines_as_root,
@@ -75,7 +75,7 @@ constexpr relation_attribute_mapping_t c_airline_mapping = {
     std::size(c_airline_attributes),
 };
 
-constexpr relation_attribute_mapping_t c_route_mapping = {
+const relation_attribute_mapping_t c_route_mapping = {
     "routes",
     airport_demo_types::c_routes_type,
     gaia_airport_routes_as_root,
@@ -84,29 +84,3 @@ constexpr relation_attribute_mapping_t c_route_mapping = {
     c_route_attributes,
     std::size(c_route_attributes),
 };
-
-constexpr char c_airport_ddl_stmt_fmt[] =
-    "create foreign table airports( "
-    "gaia_id bigint, "
-    "ap_id int, name text, city text, country text, iata char(3), icao "
-    "char(4), "
-    "latitude double precision, longitude double precision, altitude int, "
-    "timezone float, dst char(1), tztext text, type text, source text) "
-    "server %s;";
-
-constexpr char c_airline_ddl_stmt_fmt[] =
-    "create foreign table airlines( "
-    "gaia_id bigint, "
-    "al_id int, "
-    "name text, alias text, iata char(3), icao char(5), "
-    "callsign text, country text, active char(1)) "
-    "server %s;";
-
-constexpr char c_route_ddl_stmt_fmt[] =
-    "create foreign table routes( "
-    "gaia_id bigint, gaia_al_id bigint, gaia_src_id bigint, gaia_dst_id "
-    "bigint, "
-    "airline text, al_id int, "
-    "src_ap varchar(4), src_ap_id int, dst_ap varchar(4), dst_ap_id int, "
-    "codeshare char(1), stops int, equipment text) "
-    "server %s;";

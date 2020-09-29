@@ -26,7 +26,7 @@ namespace gaia
 namespace fdw
 {
 
-const char* const c_gaia_id = "gaia_id";
+constexpr char c_gaia_id[] = "gaia_id";
 
 typedef void (*option_handler_fn)(const char* option_name, const char* option_value, Oid context_id);
 

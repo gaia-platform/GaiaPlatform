@@ -24,7 +24,7 @@ namespace spdlog_defaults {
      * - t: thread
      * - gaia-root: logger name
      */
-    constexpr const char* c_default_pattern = "[%Y-%m-%dT%T%z] [%l] p:%P t:%t <%n>: %v";
+    constexpr char c_default_pattern[] = "[%Y-%m-%dT%T%z] [%l] p:%P t:%t <%n>: %v";
 
     constexpr size_t c_default_queue_size = 8192;
     constexpr size_t c_default_thread_count = 1;
