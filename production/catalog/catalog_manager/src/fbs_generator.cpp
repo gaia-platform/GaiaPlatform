@@ -184,6 +184,7 @@ string generate_fbs(gaia_id_t table_id) {
     string fbs;
     gaia::db::begin_transaction();
     gaia_table_t table = gaia_table_t::get(table_id);
+    fbs += generate_fbs_namespace(table.gaia_database().name());
     string table_name{table.name()};
     fbs += "table " + table_name + "{\n";
     for (gaia_id_t field_id : list_fields(table_id)) {

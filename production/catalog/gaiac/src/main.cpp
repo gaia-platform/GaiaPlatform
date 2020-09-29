@@ -22,8 +22,11 @@ using namespace gaia::catalog;
 using namespace gaia::catalog::ddl;
 using namespace gaia::db;
 
-static const string c_error_prompt = "ERROR: ";
-static const string c_warning_prompt = "WARNING: ";
+
+namespace { // Use unnamed namespace to restrict external linkage.
+
+const string c_error_prompt = "ERROR: ";
+const string c_warning_prompt = "WARNING: ";
 
 enum class operate_mode_t {
     interactive,
@@ -68,16 +71,6 @@ void start_repl(parser_t& parser, const string& dbname) {
 
     gaia::db::end_session();
 }
-
-namespace flatbuffers {
-void LogCompilerWarn(const std::string& warn) {
-    cerr << c_warning_prompt << warn << endl;
-}
-
-void LogCompilerError(const std::string& err) {
-    cerr << c_warning_prompt << err << endl;
-}
-} // namespace flatbuffers
 
 // From the database name and catalog contents, generate the FlatBuffers C++ header file(s).
 void generate_fbs_headers(const string& db_name, const string& output_path) {
@@ -142,6 +135,20 @@ string usage() {
           "              The database will be created automatically.\n";
     return ss.str();
 }
+
+} // namespace
+
+namespace flatbuffers {
+
+void LogCompilerWarn(const std::string& warn) {
+    cerr << c_warning_prompt << warn << endl;
+}
+
+void LogCompilerError(const std::string& err) {
+    cerr << c_warning_prompt << err << endl;
+}
+
+} // namespace flatbuffers
 
 int main(int argc, char* argv[]) {
     int res = EXIT_SUCCESS;

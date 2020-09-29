@@ -10,7 +10,7 @@
 
 #include "gaia_exception.hpp"
 
-constexpr const char c_command_prefix = '\\';
+inline constexpr char c_command_prefix = '\\';
 
 using namespace gaia::common;
 

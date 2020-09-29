@@ -17,19 +17,41 @@ using namespace gaia::catalog;
 
 typedef std::vector<variant<std::string, const char*, tabulate::Table>> row_t;
 
-constexpr const char c_match_all_pattern[] = ".*";
-constexpr const char c_describe_command = 'd';
-constexpr const char c_generate_command = 'g';
-constexpr const char c_list_command = 'l';
+namespace { // Use unnamed namespace to restrict external linkage.
+
+// The regular expression pattern to match everything.
+constexpr char c_match_all_pattern[] = ".*";
+
+// Character literals for slash command parsing.
+constexpr char c_describe_command = 'd';
+constexpr char c_generate_command = 'g';
+constexpr char c_list_command = 'l';
+constexpr char c_command_separator = ' ';
+
+// Misc size and index constants that are used to parse command strings.
+constexpr size_t c_cmd_minimum_length = 2;
+constexpr size_t c_cmd_prefix_index = 0;
+constexpr size_t c_command_index = 1;
+constexpr size_t c_subcommand_index = 2;
+
+// Title names for catalog table columns.
+constexpr char c_name_title[] = "Name";
+constexpr char c_id_title[] = "ID";
+constexpr char c_database_title[] = "Database";
+constexpr char c_table_title[] = "Table";
+constexpr char c_type_title[] = "Type";
+constexpr char c_position_title[] = "Position";
+constexpr char c_repeated_count_title[] = "Repeated Count";
+constexpr char c_parent_title[] = "Parent";
 
 template <typename T_obj>
 void list_catalog_obj(
     const row_t& header,
     function<bool(T_obj&)> is_match,
     function<row_t(T_obj&)> get_row) {
-
     tabulate::Table output_table;
     output_table.add_row(header);
+
     {
         auto_transaction_t tx;
         for (auto obj : T_obj::list()) {
@@ -45,7 +67,7 @@ void list_catalog_obj(
 
 void list_tables(const regex& re) {
     list_catalog_obj<gaia_table_t>(
-        {"Database", "Name", "ID"},
+        {c_database_title, c_name_title, c_id_title},
         [&re](gaia_table_t& t) -> bool { return regex_match(t.name(), re); },
         [](gaia_table_t& t) -> row_t {
             return {t.gaia_database().name(), t.name(), to_string(t.gaia_id())};
@@ -54,7 +76,7 @@ void list_tables(const regex& re) {
 
 void list_databases(const regex& re) {
     list_catalog_obj<gaia_database_t>(
-        {"Name", "ID"},
+        {c_name_title, c_id_title},
         [&re](gaia_database_t& d) -> bool { return regex_match(d.name(), re); },
         [](gaia_database_t& d) -> row_t {
             return {d.name(), to_string(d.gaia_id())};
@@ -63,7 +85,7 @@ void list_databases(const regex& re) {
 
 void list_fields(const regex& re) {
     list_catalog_obj<gaia_field_t>(
-        {"Table", "Name", "Type", "Repeated Count", "Position", "ID"},
+        {c_table_title, c_name_title, c_type_title, c_repeated_count_title, c_position_title, c_id_title},
         [&re](gaia_field_t& f) -> bool {
             if (f.type() == static_cast<uint8_t>(data_type_t::e_references)) {
                 return false;
@@ -78,7 +100,7 @@ void list_fields(const regex& re) {
 
 void list_references(const regex& re) {
     list_catalog_obj<gaia_field_t>(
-        {"Table", "Name", "Parent", "Position", "ID"},
+        {c_table_title, c_name_title, c_parent_title, c_position_title, c_id_title},
         [&re](gaia_field_t& f) -> bool {
             if (f.type() != static_cast<uint8_t>(data_type_t::e_references)) {
                 return false;
@@ -93,25 +115,18 @@ void list_references(const regex& re) {
 
 void describe_database(const string& name) {
     tabulate::Table output_table;
-    output_table.add_row({"Name"});
-    bool db_exists = false;
-    {
-        auto_transaction_t tx;
-        for (auto db : gaia_database_t::list()) {
-            if (string(db.name()) == name) {
-                for (auto table : db.gaia_table_list()) {
-                    output_table.add_row({table.name()});
-                }
-                db_exists = true;
-                break;
-            }
-        }
-    }
-    if (!db_exists) {
+    output_table.add_row({c_name_title});
+    gaia_id_t db_id = find_db_id(name);
+    if (db_id == INVALID_GAIA_ID) {
         throw db_not_exists(name);
     }
-
-    cout << "Database \"" << name << "\":" << endl;
+    {
+        auto_transaction_t txn;
+        for (auto table : gaia_database_t::get(db_id).gaia_table_list()) {
+            output_table.add_row({table.name()});
+        }
+    }
+    cout << "Database \"" << (name.empty() ? c_global_db_name : name) << "\":" << endl;
     cout << endl;
     cout << "Tables:" << endl;
     output_table.print(cout);
@@ -121,8 +136,8 @@ void describe_database(const string& name) {
 
 void describe_table(const string& name) {
     tabulate::Table output_fields, output_references;
-    output_fields.add_row({"Name", "Type", "Repeated Count", "Position"});
-    output_references.add_row({"Name", "Parent", "Position"});
+    output_fields.add_row({c_name_title, c_type_title, c_repeated_count_title, c_position_title});
+    output_references.add_row({c_name_title, c_parent_title, c_position_title});
     bool table_exists = false;
     {
         auto_transaction_t tx;
@@ -147,7 +162,6 @@ void describe_table(const string& name) {
     if (!table_exists) {
         throw table_not_exists(name);
     }
-
     cout << "Table \"" << name << "\":" << endl;
     cout << endl;
     cout << "Fields:" << endl;
@@ -184,10 +198,10 @@ regex parse_pattern(const string& cmd, size_t pos) {
     if (cmd.length() <= pos) {
         return regex(c_match_all_pattern);
     }
-    if (cmd[pos] != ' ') {
+    if (cmd[pos] != c_command_separator) {
         throw invalid_command(cmd);
     }
-    size_t found_pos = cmd.find_first_not_of(' ', pos);
+    size_t found_pos = cmd.find_first_not_of(c_command_separator, pos);
     if (found_pos != string::npos) {
         try {
             return regex(cmd.substr(found_pos));
@@ -198,14 +212,18 @@ regex parse_pattern(const string& cmd, size_t pos) {
     return regex(c_match_all_pattern);
 }
 
-string parse_name(const string& cmd, size_t pos) {
+string parse_name(const string& cmd, size_t pos, bool throw_on_empty = true) {
+    if (!throw_on_empty &&
+        cmd.find_first_not_of(c_command_separator, pos) == string::npos) {
+        return "";
+    }
     if (cmd.length() <= pos) {
         throw invalid_command(cmd);
     }
-    if (cmd[pos] != ' ') {
+    if (cmd[pos] != c_command_separator) {
         throw invalid_command(cmd);
     }
-    std::size_t found = cmd.find_first_not_of(' ', pos);
+    std::size_t found = cmd.find_first_not_of(c_command_separator, pos);
     if (found != string::npos) {
         return cmd.substr(found);
     }
@@ -213,19 +231,20 @@ string parse_name(const string& cmd, size_t pos) {
 }
 
 void handle_describe_command(const string& cmd) {
-    retail_assert(cmd.length() > 2);
-    retail_assert(cmd[0] == c_command_prefix);
-    retail_assert(cmd[1] == c_describe_command);
+    retail_assert(cmd.length() > c_cmd_minimum_length);
+    retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix);
+    retail_assert(cmd[c_command_index] == c_describe_command);
 
-    switch (cmd[2]) {
-    case ' ':
-        describe_table(parse_name(cmd, 2));
+    switch (cmd[c_subcommand_index]) {
+    case c_command_separator:
+        describe_table(parse_name(cmd, c_subcommand_index));
         break;
     case 'd':
-        describe_database(parse_name(cmd, 3));
+        // Describe database can take an empty db name.
+        describe_database(parse_name(cmd, c_subcommand_index + 1, false));
         break;
     case 't':
-        describe_table(parse_name(cmd, 3));
+        describe_table(parse_name(cmd, c_subcommand_index + 1));
         break;
     default:
         throw invalid_command(cmd);
@@ -234,53 +253,57 @@ void handle_describe_command(const string& cmd) {
 
 void handle_list_command(const string& cmd) {
     retail_assert(cmd.length() > 1);
-    retail_assert(cmd[0] == c_command_prefix);
-    retail_assert(cmd[1] == c_list_command);
+    retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix);
+    retail_assert(cmd[c_command_index] == c_list_command);
 
-    if (cmd.length() == 2) {
+    if (cmd.length() == c_cmd_minimum_length) {
         return list_tables(regex(c_match_all_pattern));
     }
 
-    switch (cmd[2]) {
-    case ' ':
-        list_tables(parse_pattern(cmd, 2));
+    switch (cmd[c_subcommand_index]) {
+    case c_command_separator:
+        list_tables(parse_pattern(cmd, c_subcommand_index));
         break;
     case 'd':
-        list_databases(parse_pattern(cmd, 3));
+        list_databases(parse_pattern(cmd, c_subcommand_index + 1));
         break;
     case 'f':
-        list_fields(parse_pattern(cmd, 3));
+        list_fields(parse_pattern(cmd, c_subcommand_index + 1));
         break;
     case 'r':
-        list_references(parse_pattern(cmd, 3));
+        list_references(parse_pattern(cmd, c_subcommand_index + 1));
         break;
     case 't':
-        list_tables(parse_pattern(cmd, 3));
+        list_tables(parse_pattern(cmd, c_subcommand_index + 1));
         break;
     default:
         throw invalid_command(cmd);
     }
 }
 
+#ifdef DEBUG
 void handle_generate_command(const string& cmd) {
-    retail_assert(cmd.length() > 2);
-    retail_assert(cmd[0] == c_command_prefix);
-    retail_assert(cmd[1] == c_generate_command);
+    retail_assert(cmd.length() > c_cmd_minimum_length);
+    retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix);
+    retail_assert(cmd[c_command_index] == c_generate_command);
 
-    switch (cmd[2]) {
-    case ' ':
-        generate_fbs(parse_name(cmd, 2));
+    switch (cmd[c_subcommand_index]) {
+    case c_command_separator:
+        // Generate fbs can take an empty db name.
+        cout << generate_fbs(parse_name(cmd, c_subcommand_index, false)) << endl;
         break;
     case 'd':
-        generate_fbs(parse_name(cmd, 3));
+        // Generate fbs can take an empty db name.
+        cout << generate_fbs(parse_name(cmd, c_subcommand_index + 1, false)) << endl;
         break;
     case 't':
-        generate_table_fbs(parse_name(cmd, 3));
+        generate_table_fbs(parse_name(cmd, c_subcommand_index + 1));
         break;
     default:
         throw invalid_command(cmd);
     }
 }
+#endif
 
 string command_usage() {
     std::stringstream ss;
@@ -291,28 +314,35 @@ string command_usage() {
           "  \\lf   [PATTERN] List data fields optionally filtering by the PATTERN.\n"
           "  \\lr   [PATTERN] List references optionally filtering by the PATTERN.\n"
           "  \\l[t] [PATTERN] List tables optionally filtering by the PATTERN.\n"
+#ifdef DEBUG
           "  \\g[d] NAME      Generate fbs for a given database.\n"
           "  \\gt   NAME      Generate fbs for a given table.\n"
+#endif
           "  \\h              Print help information.\n";
     return ss.str();
 }
 
+} // namespace
+
 void handle_slash_command(const string& cmd) {
     retail_assert(!cmd.empty(), "Slash command should not be empty.");
-    retail_assert(cmd[0] == '\\', "Slash command should start with a forward slash.");
-    if (cmd.length() < 2) {
+    retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix, "Slash command should start with a backslash.");
+
+    if (cmd.length() < c_cmd_minimum_length) {
         throw invalid_command(cmd);
     }
-    switch (cmd[1]) {
+    switch (cmd[c_command_index]) {
     case c_list_command:
         handle_list_command(cmd);
         break;
     case c_describe_command:
         handle_describe_command(cmd);
         break;
+#ifdef DEBUG
     case c_generate_command:
         handle_generate_command(cmd);
         break;
+#endif
     case 'h':
         cout << command_usage() << endl
              << flush;
