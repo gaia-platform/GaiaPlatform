@@ -4,25 +4,29 @@
 /////////////////////////////////////////////
 
 #pragma once
+
 #include <memory>
 
-// This file provides gaia specific functionality to persist writes to & read from 
+#include "gaia_common.hpp"
+
+// This file provides gaia specific functionality to persist writes to & read from
 // RocksDB during recovery.
 // This file will be called by the storage engine & leverages the simple RocksDB internal library (rdb_internal.hpp)
-namespace gaia 
+namespace gaia
 {
-namespace db 
+namespace db
 {
+
 constexpr size_t c_max_open_db_attempt_count = 10;
 
 class rdb_internal_t;
 
-class persistent_store_manager 
+class persistent_store_manager
 {
-    private:
+private:
     static std::unique_ptr<gaia::db::rdb_internal_t> rdb_internal;
 
-    public:
+public:
     persistent_store_manager();
     ~persistent_store_manager();
 
@@ -36,31 +40,31 @@ class persistent_store_manager
      */
     void close();
 
-    /** 
-     * Iterate over all elements in the LSM and call SE create API 
+    /**
+     * Iterate over all elements in the LSM and call SE create API
      * for every key/value pair obtained (after deduping keys).
      */
     void recover();
 
-    std::string begin_txn(gaia_xid_t transaction_id);
+    std::string begin_txn(gaia::common::gaia_xid_t transaction_id);
 
     /**
      * This method will serialize the transaction to the log.
-     * We expect writes to the RocksDB WAL to just work; this 
+     * We expect writes to the RocksDB WAL to just work; this
      * method will sigabrt otherwise.
-     */ 
+     */
     void prepare_wal_for_write(std::string& txn_name);
 
-    /** 
+    /**
      * This method will append a commit marker with the appropriate
      * transaction_id to the log, and will additionally insert entries
      * into the RocksDB write buffer (which then writes KV's to disk on getting full)
-     * 
+     *
      * We expect writes to the RocksDB WAL to just work; this
      * method will sigabrt otherwise. This also covers the case where writing
      * to the log succeeds but writing to the RocksDB memory buffer fails for any reason -
      * leading to incomplete buffer writes.
-     * 
+     *
      * The RocksDB commit API will additionally perform its own validation, but this codepath
      * has been switched off so we don't expect any errors from the normal flow of execution.
      */
@@ -80,12 +84,12 @@ class persistent_store_manager
      * This method is used to create a Gaia object from a decoded RocksDB key-value pair.
      */
     static void create_object_on_recovery(
-        gaia_id_t id,
-        gaia_type_t type,
+        gaia::common::gaia_id_t id,
+        gaia::common::gaia_type_t type,
         size_t num_refs,
         size_t data_size,
         const void* data);
-
 };
+
 }
 }

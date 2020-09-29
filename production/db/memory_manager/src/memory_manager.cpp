@@ -12,7 +12,7 @@
 
 #include "retail_assert.hpp"
 
-#include "types.hpp"
+#include "memory_types.hpp"
 #include "access_control.hpp"
 
 using namespace std;
