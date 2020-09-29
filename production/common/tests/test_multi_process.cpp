@@ -72,7 +72,7 @@ protected:
         // Did the child exit()?
         ASSERT_EQ(WIFEXITED(status), true);
         // If so, did it exit witout an error?
-        EXPECT_EQ(WEXITSTATUS(status), 0);
+        ASSERT_EQ(WEXITSTATUS(status), 0);
     }
     // Preparation/creation of semaphores, used by parent process.
     void semaphore_startup() {
@@ -127,7 +127,7 @@ TEST_F(gaia_multi_process_test, multi_process_inserts) {
         // The child will add two employees. Wait for it to complete.
         sem_post(sem_go_child);
         if (sem_timedwait(sem_go_parent, &timeout) == -1) {
-            ASSERT_NE(errno, ETIMEDOUT);
+            ASSERT_EQ(errno, ETIMEDOUT);
             end_session();
             check_child_pid(child_pid);
         }
@@ -155,7 +155,7 @@ TEST_F(gaia_multi_process_test, multi_process_inserts) {
 
         sem_post(sem_go_child);
         if (sem_timedwait(sem_go_parent, &timeout) == -1) {
-            ASSERT_NE(errno, ETIMEDOUT);
+            ASSERT_EQ(errno, ETIMEDOUT);
             end_session();
             check_child_pid(child_pid);
         }
@@ -202,22 +202,34 @@ TEST_F(gaia_multi_process_test, multi_process_inserts) {
             exit(1);
         }
 
-        begin_transaction();
-        create_employee("Harold");
-        create_employee("Hank");
-        commit_transaction();
+        try {
+            begin_transaction();
+            create_employee("Harold");
+            create_employee("Hank");
+            commit_transaction();
+        }
+        catch (gaia_exception& e) {
+            cerr << "Error in child process: " << e.what() << endl;
+            exit(2);
+        }
 
         // Tell parent to "go".
         sem_post(sem_go_parent);
 
         // EXCHANGE 2: concurrent transactions.
         if (sem_timedwait(sem_go_child, &timeout) == -1) {
-            exit(2);
+            exit(3);
         }
 
-        begin_transaction();
-        create_employee("Hubert");
-        commit_transaction();
+        try {
+            begin_transaction();
+            create_employee("Hubert");
+            commit_transaction();
+        }
+        catch (gaia_exception& e) {
+            cerr << "Error in child process: " << e.what() << endl;
+            exit(4);
+        }
 
         sem_post(sem_go_parent);
 
@@ -279,7 +291,7 @@ TEST_F(gaia_multi_process_test, multi_process_aborts) {
 
         sem_post(sem_go_child);
         if (sem_timedwait(sem_go_parent, &timeout) == -1) {
-            ASSERT_NE(errno, ETIMEDOUT);
+            ASSERT_EQ(errno, ETIMEDOUT);
             end_session();
             check_child_pid(child_pid);
         }
@@ -319,24 +331,36 @@ TEST_F(gaia_multi_process_test, multi_process_aborts) {
             exit(1);
         }
 
-        begin_transaction();
-        create_employee("Harold");
-        rollback_transaction();
-        begin_transaction();
-        create_employee("Hank");
-        commit_transaction();
+        try {
+            begin_transaction();
+            create_employee("Harold");
+            rollback_transaction();
+            begin_transaction();
+            create_employee("Hank");
+            commit_transaction();
+        }
+        catch (gaia_exception& e) {
+            cerr << "Error in child process: " << e.what() << endl;
+            exit(2);
+        }
 
         // Tell parent to "go".
         sem_post(sem_go_parent);
 
         // EXCHANGE 2: concurrent transactions.
         if (sem_timedwait(sem_go_child, &timeout) == -1) {
-            exit(2);
+            exit(3);
         }
 
-        begin_transaction();
-        create_employee("Hubert");
-        commit_transaction();
+        try {
+            begin_transaction();
+            create_employee("Hubert");
+            commit_transaction();
+        }
+        catch (gaia_exception& e) {
+            cerr << "Error in child process: " << e.what() << endl;
+            exit(4);
+        }
 
         sem_post(sem_go_parent);
 
@@ -368,7 +392,7 @@ TEST_F(gaia_multi_process_test, multi_process_conflict) {
         // Let the child process run and complete during this transaction.
         sem_post(sem_go_child);
         if (sem_timedwait(sem_go_parent, &timeout) == -1) {
-            ASSERT_NE(errno, ETIMEDOUT);
+            ASSERT_EQ(errno, ETIMEDOUT);
             end_session();
             check_child_pid(child_pid);
         }
@@ -407,13 +431,19 @@ TEST_F(gaia_multi_process_test, multi_process_conflict) {
             exit(1);
         }
 
-        begin_transaction();
-        // Locate the employee object.
-        auto e1 = employee_t::get_first();
-        address_writer address_w;
-        auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
-        e1.addressee_address_list().insert(a1);
-        commit_transaction();
+        try {
+            begin_transaction();
+            // Locate the employee object.
+            auto e1 = employee_t::get_first();
+            address_writer address_w;
+            auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
+            e1.addressee_address_list().insert(a1);
+            commit_transaction();
+        }
+        catch (gaia_exception& e) {
+            cerr << "Error in child process: " << e.what() << endl;
+            exit(2);
+        }
 
         sem_post(sem_go_parent);
 
@@ -446,7 +476,7 @@ TEST_F(gaia_multi_process_test, multi_process_commit) {
         // Let the child process run and complete during this transaction.
         sem_post(sem_go_child);
         if (sem_timedwait(sem_go_parent, &timeout) == -1) {
-            ASSERT_NE(errno, ETIMEDOUT);
+            ASSERT_EQ(errno, ETIMEDOUT);
             end_session();
             check_child_pid(child_pid);
         }
@@ -482,13 +512,19 @@ TEST_F(gaia_multi_process_test, multi_process_commit) {
             exit(1);
         }
 
-        begin_transaction();
-        // Locate the employee object.
-        auto e1 = employee_t::get_first();
-        address_writer address_w;
-        auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
-        e1.addressee_address_list().insert(a1);
-        commit_transaction();
+        try {
+            begin_transaction();
+            // Locate the employee object.
+            auto e1 = employee_t::get_first();
+            address_writer address_w;
+            auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
+            e1.addressee_address_list().insert(a1);
+            commit_transaction();
+        }
+        catch (gaia_exception& e) {
+            cerr << "Error in child process: " << e.what() << endl;
+            exit(2);
+        }
 
         sem_post(sem_go_parent);
 
