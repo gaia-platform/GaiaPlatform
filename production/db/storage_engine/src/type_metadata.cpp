@@ -3,11 +3,11 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <mutex>
 #include "type_metadata.hpp"
 
-namespace gaia {
+#include <mutex>
 
+namespace gaia {
 namespace db {
 
 // Child relationship contains 2 pointer for every relationship.

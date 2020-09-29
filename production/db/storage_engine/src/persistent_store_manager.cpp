@@ -3,18 +3,19 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "persistent_store_manager.hpp"
+
+#include "rocksdb/db.h"
+#include "rocksdb/write_batch.h"
+
+#include "gaia_se_object.hpp"
 #include "storage_engine.hpp"
 #include "storage_engine_server.hpp"
 #include "gaia_hash_map.hpp"
-#include "rocksdb/db.h"
-#include "rocksdb/write_batch.h"
-#include "persistent_store_manager.hpp"
 #include "rdb_object_converter.hpp"
 #include "rdb_internal.hpp"
 #include "system_table_types.hpp"
 #include "gaia_db_internal.hpp"
-#include "gaia_record.hpp"
-#include <memory>
 
 using namespace gaia::db;
 using namespace gaia::common;

@@ -26,7 +26,6 @@
 #include "gaia_common.hpp"
 #include "gaia_db.hpp"
 #include "gaia_exception.hpp"
-#include "gaia_record.hpp"
 #include "retail_assert.hpp"
 
 namespace gaia {
