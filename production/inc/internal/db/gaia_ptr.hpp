@@ -31,6 +31,8 @@ public:
     gaia_ptr(const gaia_ptr& other)
         : row_id(other.row_id) {}
 
+    gaia_ptr& operator=(const gaia_ptr& other) = default;
+
     bool operator==(const gaia_ptr& other) const {
         return row_id == other.row_id;
     }
