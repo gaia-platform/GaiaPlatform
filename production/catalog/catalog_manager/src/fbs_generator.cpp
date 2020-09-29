@@ -82,7 +82,7 @@ static string base64_decode(string encoded_string) {
  * This is for temporary workaround to encode binary into string before EDC support arrays.
  * Do not use it elsewhere.
  **/
-static string base64_encode(uint8_t const *bytes_to_encode, uint32_t in_len) {
+static string base64_encode(uint8_t const* bytes_to_encode, uint32_t in_len) {
     uint32_t len_encoded = (in_len + 2) / 3 * 4;
     unsigned char trailing_char = '=';
     static const char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -153,11 +153,15 @@ static string get_data_type_name(data_type_t data_type) {
     }
 }
 
-static string generate_fbs_namespace(const string &dbname) {
-    return "namespace " + c_gaia_namespace + (dbname.empty() ? "" : "." + dbname) + ";\n";
+static string generate_fbs_namespace(const string& db_name) {
+    if (db_name.empty() || db_name == c_global_db_name) {
+        return "namespace " + c_gaia_namespace + ";\n";
+    } else {
+        return "namespace " + c_gaia_namespace + "." + db_name + ";\n";
+    }
 }
 
-static string generate_fbs_field(const string &name, const string &type, int count) {
+static string generate_fbs_field(const string& name, const string& type, int count) {
     if (count == 1) {
         return name + ":" + type;
     } else if (count == 0) {
@@ -167,7 +171,7 @@ static string generate_fbs_field(const string &name, const string &type, int cou
     }
 }
 
-static string generate_fbs_field(const gaia_field_t &field) {
+static string generate_fbs_field(const gaia_field_t& field) {
     string name{field.name()};
     string type{get_data_type_name(static_cast<data_type_t>(field.type()))};
     return generate_fbs_field(name, type, field.repeated_count());
@@ -197,7 +201,7 @@ string generate_fbs(gaia_id_t table_id) {
     return fbs;
 }
 
-string generate_fbs(const string &dbname) {
+string generate_fbs(const string& dbname) {
     gaia_id_t db_id = find_db_id(dbname);
     if (db_id == INVALID_GAIA_ID) {
         throw db_not_exists(dbname);
@@ -216,10 +220,10 @@ string generate_fbs(const string &dbname) {
     return fbs;
 }
 
-string generate_fbs(const string &db_name, const string &table_name, const ddl::field_def_list_t &fields) {
+string generate_fbs(const string& db_name, const string& table_name, const ddl::field_def_list_t& fields) {
     string fbs = generate_fbs_namespace(db_name);
     fbs += "table " + table_name + "{";
-    for (auto &field : fields) {
+    for (auto& field : fields) {
         if (field->type == data_type_t::e_references) {
             continue;
         }
@@ -234,7 +238,7 @@ string generate_fbs(const string &db_name, const string &table_name, const ddl::
     return fbs;
 }
 
-string generate_bfbs(const string &fbs) {
+string generate_bfbs(const string& fbs) {
     flatbuffers::Parser fbs_parser;
     bool parsing_result = fbs_parser.Parse(fbs.c_str());
     retail_assert(parsing_result == true, "Invalid FlatBuffers schema!");
