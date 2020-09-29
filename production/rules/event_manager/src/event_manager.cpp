@@ -238,7 +238,7 @@ void event_manager_t::check_subscription(
 }
 
 void event_manager_t::subscribe_rule(
-    gaia_type_t gaia_type, 
+    gaia_container_id_t gaia_type,
     event_type_t event_type,
     const field_position_list_t& fields,
     const rule_binding_t& rule_binding)
@@ -308,7 +308,7 @@ void event_manager_t::subscribe_rule(
 }
 
 bool event_manager_t::unsubscribe_rule(
-    gaia_type_t gaia_type,
+    gaia_container_id_t gaia_type,
     event_type_t event_type, 
     const field_position_list_t& fields,
     const rule_binding_t& rule_binding)
@@ -369,7 +369,7 @@ void event_manager_t::unsubscribe_rules()
 
 void event_manager_t::list_subscribed_rules(
     const char* ruleset_name, 
-    const gaia_type_t* gaia_type_ptr, 
+    const gaia_container_id_t* gaia_type_ptr,
     const event_type_t* event_type_ptr,
     const uint16_t* field_ptr,
     subscription_list_t& subscriptions)
@@ -415,7 +415,7 @@ void event_manager_t::list_subscribed_rules(
 
 void event_manager_t::add_subscriptions(subscription_list_t& subscriptions, 
     const rule_list_t& rules,
-    gaia_type_t gaia_type,
+    gaia_container_id_t gaia_type,
     event_type_t event_type,
     uint16_t field,
     const char* ruleset_filter)
@@ -559,7 +559,7 @@ void gaia::rules::initialize_rules_engine()
 }
 
 void gaia::rules::subscribe_rule(
-    gaia_type_t gaia_type,
+    gaia_container_id_t gaia_type,
     event_type_t event_type,
     const field_position_list_t& fields,
     const rule_binding_t& rule_binding)
@@ -568,7 +568,7 @@ void gaia::rules::subscribe_rule(
 }
 
 bool gaia::rules::unsubscribe_rule(
-    gaia_type_t gaia_type, 
+    gaia_container_id_t gaia_type,
     event_type_t event_type,
     const field_position_list_t& fields, 
     const gaia::rules::rule_binding_t& rule_binding)
@@ -583,7 +583,7 @@ void gaia::rules::unsubscribe_rules()
 
 void gaia::rules::list_subscribed_rules(
     const char* ruleset_name, 
-    const gaia_type_t* gaia_type, 
+    const gaia_container_id_t* gaia_type,
     const event_type_t* event_type,
     const uint16_t* field, 
     subscription_list_t& subscriptions)

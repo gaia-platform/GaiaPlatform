@@ -73,7 +73,7 @@ T_class* gaia_iterator_t<T_class>::operator->()
 //
 // Implementation for gaia_container_t
 //
-template <gaia_type_t T_container, typename T_class>
+template <gaia_container_id_t T_container, typename T_class>
 gaia_iterator_t<T_class> gaia_container_t<T_container, T_class>::begin()
 {
     gaia_id_t id = 0;
@@ -86,7 +86,7 @@ gaia_iterator_t<T_class> gaia_container_t<T_container, T_class>::begin()
     return gaia_iterator_t<T_class>(id);
 }
 
-template <gaia_type_t T_container, typename T_class>
+template <gaia_container_id_t T_container, typename T_class>
 gaia_iterator_t<T_class> gaia_container_t<T_container, T_class>::end()
 {
     return gaia_iterator_t<T_class>(0);
@@ -235,9 +235,9 @@ void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot,
         T_child received = T_child::get(0);
         throw edc_invalid_member(
             m_parent_id,
-            T_parent::s_gaia_type,
+            T_parent::s_container_id,
             expected.gaia_typename(),
-            received.gaia_type(),
+            received.container_id(),
             received.gaia_typename());
     }
 

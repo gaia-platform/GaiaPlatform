@@ -34,7 +34,7 @@ gaia_id_t gaia::db::decode_object(
     const rocksdb::Slice& key,
     const rocksdb::Slice& value) {
     gaia_id_t id;
-    gaia_type_t type;
+    gaia_container_id_t type;
     uint64_t size;
     uint64_t num_references;
     string_reader key_(&key);

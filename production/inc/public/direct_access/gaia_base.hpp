@@ -45,11 +45,11 @@ struct gaia_base_t
     gaia_base_t(const char* gaia_typename) : m_typename(gaia_typename) {}
 
     const char* gaia_typename() { return m_typename; }
-    virtual gaia_type_t gaia_type() = 0;
+    virtual gaia_container_id_t container_id() = 0;
     virtual ~gaia_base_t() = default;
 
 protected:
-    // The typename for this gaia type
+    // The name for this gaia container
     const char * m_typename;
 };
 
@@ -58,9 +58,9 @@ class edc_invalid_object_type: public gaia_exception
 {
 public:
     edc_invalid_object_type(gaia_id_t id,
-        gaia_type_t expected_type,
+        gaia_container_id_t expected,
         const char* expected_typename,
-        gaia_type_t actual_type);
+        gaia_container_id_t actual);
 };
 
 // A child's parent pointer must match the parent record we have.
@@ -69,9 +69,9 @@ class edc_invalid_member: public gaia_exception
 public:
     edc_invalid_member(
         gaia_id_t id,
-        gaia_type_t parent,
+        gaia_container_id_t parent,
         const char* parent_type,
-        gaia_type_t child,
+        gaia_container_id_t child,
         const char* child_name);
 };
 

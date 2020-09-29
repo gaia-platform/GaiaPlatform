@@ -20,36 +20,36 @@ using namespace gaia::common;
 namespace gaia::db {
 
 /**
- * Contains metadata about a specific gaia type.
+ * Contains metadata about a gaia container.
  */
-class type_metadata_t {
+class container_metadata_t {
 public:
-    explicit type_metadata_t(gaia_type_t type) : m_type(type) {}
+    explicit container_metadata_t(gaia_container_id_t container_id) : m_container_id(container_id) {}
 
-    gaia_type_t get_type() const;
+    gaia_container_id_t get_container_id() const;
     relationship_t* find_parent_relationship(reference_offset_t first_child_offset) const;
     relationship_t* find_child_relationship(reference_offset_t parent_offset) const;
 
     /**
-     * Mark this type as the parent side of the relationship.
+     * Mark this container as the parent side of the relationship.
      * The relationship_t object will be stored in the child metadata as well.
      */
     void add_parent_relationship(reference_offset_t first_child, const shared_ptr<relationship_t>& relationship);
 
     /**
-     * Mark this type as the child side of the relationship.
+     * Mark this container as the child side of the relationship.
      * The relationship_t object will be stored in the parent metadata as well.
      */
     void add_child_relationship(reference_offset_t parent, const shared_ptr<relationship_t>& relationship);
 
     /**
-     * Counts the number of reference this type has both as parent and child.
+     * Counts the number of reference this container has, both as parent and child.
      * Note: child references count 2X, since 2 pointers are necessary to express them.
      */
     size_t num_references();
 
 private:
-    gaia_type_t m_type;
+    gaia_container_id_t m_container_id;
 
     // the relationship_t objects are shared between the parent and the child side of the relationship.
     unordered_map<reference_offset_t, shared_ptr<relationship_t>> m_parent_relationships;
@@ -58,27 +58,27 @@ private:
 
 class duplicate_metadata : public gaia_exception {
 public:
-    explicit duplicate_metadata(const gaia_type_t type) {
+    explicit duplicate_metadata(const gaia_container_id_t container_id) {
         stringstream message;
-        message << "Metadata already existent for Gaia type \"" << type << "\"";
+        message << "Metadata already existent for Gaia container id \"" << container_id << "\"";
         m_message = message.str();
     }
 };
 
 /**
- * Maintain the instances of type_metadata_t. This class creates and owns
+ * Maintain the instances of container_metadata_t. This class creates and owns
  * the metadata.
  */
-class type_registry_t {
+class container_registry_t {
 public:
-    type_registry_t(const type_registry_t&) = delete;
-    type_registry_t& operator=(const type_registry_t&) = delete;
-    type_registry_t(type_registry_t&&) = delete;
-    type_registry_t& operator=(type_registry_t&&) = delete;
+    container_registry_t(const container_registry_t&) = delete;
+    container_registry_t& operator=(const container_registry_t&) = delete;
+    container_registry_t(container_registry_t&&) = delete;
+    container_registry_t& operator=(container_registry_t&&) = delete;
 
-    static type_registry_t& instance() {
-        static type_registry_t type_registry;
-        return type_registry;
+    static container_registry_t& instance() {
+        static container_registry_t container_registry;
+        return container_registry;
     }
 
     /**
@@ -89,16 +89,16 @@ public:
     void clear();
 
     /**
-     * Returns an instance of type_metadata_t. If no metadata exists for the
-     * given type, a new instance is created and returned. Clients are allowed
+     * Returns an instance of container_metadata_t. If no metadata exists for the
+     * given container_id, a new instance is created and returned. Clients are allowed
      * to modify the returned metadata, although the registry keeps ownership.
      */
-    type_metadata_t& get_or_create(gaia_type_t type);
+    container_metadata_t& get_or_create(gaia_container_id_t container_id);
 
 private:
-    type_registry_t() = default;
+    container_registry_t() = default;
 
-    unordered_map<gaia_type_t, type_metadata_t> m_metadata_registry;
+    unordered_map<gaia_container_id_t, container_metadata_t> m_metadata_registry;
 
     //ensures exclusive access to the registry
     shared_mutex m_registry_lock;

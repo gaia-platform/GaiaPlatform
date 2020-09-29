@@ -183,7 +183,7 @@ static string generate_declarations(const gaia_id_t db_id) {
     return str;
 }
 
-static string generate_edc_struct(gaia_type_t table_type_id, string table_name, field_vec &field_strings,
+static string generate_edc_struct(gaia_container_id_t table_type_id, string table_name, field_vec &field_strings,
     references_vec &references_1, references_vec &references_n) {
     flatbuffers::CodeWriter code(indent_string);
 

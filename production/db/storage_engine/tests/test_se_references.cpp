@@ -106,12 +106,12 @@ TEST_F(gaia_se_references_test, add_child_reference__invalid_relation_offset) {
 TEST_F(gaia_se_references_test, add_child_reference__invalid_relation_type_parent) {
     begin_transaction();
 
-    gaia_type_t ADDRESS_TYPE = 101;
+    gaia_container_id_t ADDRESS_TYPE = 101;
     reference_offset_t FIRST_ADDRESS_OFFSET = c_parent_doctor_offset + 1;
     reference_offset_t NEXT_ADDRESS_OFFSET = 0;
     reference_offset_t PARENT_PATIENT_OFFSET = 1;
 
-    type_registry_t::instance().get_or_create(ADDRESS_TYPE);
+    container_registry_t::instance().get_or_create(ADDRESS_TYPE);
 
     relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
@@ -133,7 +133,7 @@ TEST_F(gaia_se_references_test, add_child_reference__invalid_relation_type_paren
 
     EXPECT_THROW(
         patient.add_child_reference(doctor.id(), FIRST_ADDRESS_OFFSET),
-        invalid_relationship_type);
+        invalid_relationship_container);
 
     commit_transaction();
 }
@@ -141,8 +141,8 @@ TEST_F(gaia_se_references_test, add_child_reference__invalid_relation_type_paren
 TEST_F(gaia_se_references_test, add_child_reference__invalid_relation_type_child) {
     begin_transaction();
 
-    gaia_type_t CLINIC_TYPE = 101;
-    type_registry_t::instance().get_or_create(CLINIC_TYPE);
+    gaia_container_id_t CLINIC_TYPE = 101;
+    container_registry_t::instance().get_or_create(CLINIC_TYPE);
 
     relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
@@ -154,7 +154,7 @@ TEST_F(gaia_se_references_test, add_child_reference__invalid_relation_type_child
 
     EXPECT_THROW(
         parent.add_child_reference(clinic.id(), c_first_patient_offset),
-        invalid_relationship_type);
+        invalid_relationship_container);
 
     commit_transaction();
 }
@@ -396,12 +396,12 @@ TEST_F(gaia_se_references_test, remove_child_reference__invalid_node_id) {
 TEST_F(gaia_se_references_test, remove_child_reference__invalid_relation_type_parent) {
     begin_transaction();
 
-    gaia_type_t ADDRESS_TYPE = 101;
+    gaia_container_id_t ADDRESS_TYPE = 101;
     reference_offset_t FIRST_ADDRESS_OFFSET = c_parent_doctor_offset + 1;
     reference_offset_t NEXT_ADDRESS_OFFSET = 0;
     reference_offset_t PARENT_PATIENT_OFFSET = 1;
 
-    type_registry_t::instance().get_or_create(ADDRESS_TYPE);
+    container_registry_t::instance().get_or_create(ADDRESS_TYPE);
 
     relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
@@ -423,7 +423,7 @@ TEST_F(gaia_se_references_test, remove_child_reference__invalid_relation_type_pa
 
     EXPECT_THROW(
         patient.remove_child_reference(doctor.id(), FIRST_ADDRESS_OFFSET),
-        invalid_relationship_type);
+        invalid_relationship_container);
 
     commit_transaction();
 }
@@ -431,8 +431,8 @@ TEST_F(gaia_se_references_test, remove_child_reference__invalid_relation_type_pa
 TEST_F(gaia_se_references_test, remove_child_reference__invalid_relation_type_child) {
     begin_transaction();
 
-    gaia_type_t CLINIC_TYPE = 101;
-    type_registry_t::instance().get_or_create(CLINIC_TYPE);
+    gaia_container_id_t CLINIC_TYPE = 101;
+    container_registry_t::instance().get_or_create(CLINIC_TYPE);
 
     relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
@@ -444,7 +444,7 @@ TEST_F(gaia_se_references_test, remove_child_reference__invalid_relation_type_ch
 
     EXPECT_THROW(
         parent.remove_child_reference(clinic.id(), c_first_patient_offset),
-        invalid_relationship_type);
+        invalid_relationship_container);
 
     commit_transaction();
 }

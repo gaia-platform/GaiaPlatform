@@ -19,12 +19,12 @@ thread_local se_base::data *client::s_data;
 thread_local std::vector<trigger_event_t> client::s_events;
 commit_trigger_fn gaia::db::s_tx_commit_trigger = nullptr;
 
-std::unordered_set<gaia_type_t> client::trigger_excluded_types{
-    static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table),
-    static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_field),
-    static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_ruleset),
-    static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_rule),
-    static_cast<gaia_type_t>(system_table_type_t::event_log)
+std::unordered_set<gaia_container_id_t> client::trigger_excluded_types{
+    static_cast<gaia_container_id_t>(system_table_type_t::catalog_gaia_table),
+    static_cast<gaia_container_id_t>(system_table_type_t::catalog_gaia_field),
+    static_cast<gaia_container_id_t>(system_table_type_t::catalog_gaia_ruleset),
+    static_cast<gaia_container_id_t>(system_table_type_t::catalog_gaia_rule),
+    static_cast<gaia_container_id_t>(system_table_type_t::event_log)
 };
 
 

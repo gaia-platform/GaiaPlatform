@@ -99,7 +99,7 @@ struct subscription_t
     subscription_t()
         : ruleset_name(nullptr)
         , rule_name(nullptr)
-        , gaia_type(INVALID_GAIA_TYPE)
+        , gaia_type(INVALID_GAIA_CONTAINER)
         , event_type(event_type_t::not_set)
         , field(0) 
     {
@@ -108,7 +108,7 @@ struct subscription_t
     subscription_t(
         const char* a_ruleset_name,
         const char* a_rule_name,
-        gaia_type_t a_gaia_type,
+        gaia_container_id_t a_gaia_type,
         event_type_t an_event_type,
         field_position_t a_field)
         : ruleset_name(a_ruleset_name)
@@ -121,7 +121,7 @@ struct subscription_t
 
     const char* ruleset_name;
     const char* rule_name;
-    gaia_type_t gaia_type;
+    gaia_container_id_t gaia_type;
     event_type_t event_type;
     const field_position_t field;
 };
@@ -139,7 +139,7 @@ typedef std::vector<std::unique_ptr<subscription_t>> subscription_list_t;
 const field_position_list_t empty_fields;
 
 /**
- * Enumeration for the last database operation performed for a given gaia type.
+ * Enumeration for the last database operation performed for a given gaia container.
  * This is a different enum type than the event type because there may be
  * events that are not caused by a table operation.  In addition, a 'none'
  * enum value is provided to indicate that no operation was performed on a
@@ -174,7 +174,7 @@ struct rule_context_t
 public:
     rule_context_t(
         direct_access::auto_transaction_t& a_transaction,
-        common::gaia_type_t a_gaia_type,
+        common::gaia_container_id_t a_gaia_type,
         db::triggers::event_type_t a_event_type,
         gaia_id_t a_record,
         const field_position_list_t& a_field_list)
@@ -201,10 +201,10 @@ public:
      * This method will return last_operation_t::none if this rule was not
      * invoked due to an operation on X.
      */
-    last_operation_t last_operation(gaia_type_t gaia_type) const;
+    last_operation_t last_operation(gaia_container_id_t gaia_type) const;
 
     direct_access::auto_transaction_t& transaction;
-    common::gaia_type_t gaia_type;
+    common::gaia_container_id_t gaia_type;
     db::triggers::event_type_t event_type;
     gaia_id_t record;
     const field_position_list_t& fields;
@@ -258,11 +258,11 @@ public:
     // Invalid event type specified.
     invalid_subscription(event_type_t event_type, const char* reason);
     // Table type not found.
-    invalid_subscription(gaia_type_t gaia_type);
+    invalid_subscription(gaia_container_id_t container_id);
     // Field not found.
-    invalid_subscription(gaia_type_t gaia_type, const char* table, uint16_t position);
+    invalid_subscription(gaia_container_id_t gaia_type, const char* table, uint16_t position);
     // Field not active or has been deprecated
-    invalid_subscription(gaia_type_t gaia_type, const char* table, uint16_t position, 
+    invalid_subscription(gaia_container_id_t gaia_type, const char* table, uint16_t position,
         const char* field_name, bool is_deprecated);
 };
 
@@ -299,7 +299,7 @@ void initialize_rules_engine();
  * @throw initialization_error
  */
 void subscribe_rule(
-    gaia::common::gaia_type_t gaia_type, 
+    gaia::common::gaia_container_id_t gaia_type,
     gaia::db::triggers::event_type_t event_type,
     const field_position_list_t& fields,
     const rule_binding_t& rule_binding);
@@ -316,7 +316,7 @@ void subscribe_rule(
  * @throw initialization_error
  */
 bool unsubscribe_rule(
-    gaia::common::gaia_type_t gaia_type, 
+    gaia::common::gaia_container_id_t gaia_type,
     gaia::db::triggers::event_type_t type, 
     const field_position_list_t& fields,
     const rule_binding_t& rule_binding);
@@ -343,7 +343,7 @@ void unsubscribe_rules();
  */
 void list_subscribed_rules(
     const char* ruleset_name, 
-    const gaia::common::gaia_type_t* gaia_type, 
+    const gaia::common::gaia_container_id_t* gaia_type,
     const gaia::db::triggers::event_type_t* event_type,
     const uint16_t* field, 
     subscription_list_t& subscriptions);

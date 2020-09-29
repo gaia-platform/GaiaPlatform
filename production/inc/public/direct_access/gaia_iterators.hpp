@@ -59,7 +59,7 @@ class gaia_iterator_t {
 // through all instances of the type in the database.
 //
 // @tparam T_gaia the Extended Data Class type
-template <gaia_type_t T_gaia_type, typename T_gaia>
+template <gaia_container_id_t T_gaia_type, typename T_gaia>
 struct gaia_container_t {
     static gaia_iterator_t<T_gaia> begin();
     static gaia_iterator_t<T_gaia> end();

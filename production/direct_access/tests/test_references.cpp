@@ -171,7 +171,7 @@ template <typename T_type>
 int count_type() {
     int count = 0;
     for (auto row : T_type::list()) {
-        row.gaia_type();
+        row.container_id();
         count++;
     }
     return count;

@@ -8,7 +8,7 @@
 using namespace gaia::rules;
 using namespace gaia::common;
 
-last_operation_t rule_context_t::last_operation(gaia_type_t other_gaia_type) const
+last_operation_t rule_context_t::last_operation(gaia_container_id_t other_gaia_type) const
 {
     last_operation_t operation = last_operation_t::none;
 

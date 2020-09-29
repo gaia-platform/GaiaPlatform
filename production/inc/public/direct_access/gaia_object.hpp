@@ -37,7 +37,7 @@ namespace direct_access {
  * for CRUD operations on the database.
  */
 
-template<gaia::db::gaia_type_t T_gaia_type,
+template<gaia::db::gaia_container_id_t T_gaia_type,
     typename T_gaia,
     typename T_fb,
     typename T_obj,
@@ -47,13 +47,13 @@ struct gaia_writer_t;
 /**
  * The gaia_object_t that must be specialized to operate on a flatbuffer type.
  *
- * @tparam T_gaia_type an integer (gaia_type_t) uniquely identifying the flatbuffer table type
+ * @tparam T_gaia_type an integer (gaia_container_id_t) uniquely identifying the flatbuffer table type
  * @tparam T_gaia the subclass type derived from this template
  * @tparam T_fb the flatbuffer table type to be implemented
  * @tparam T_obj the mutable flatbuffer type to be implemented
  * @tparam N_references the number of reference slots this type supports
  */
-template <gaia::db::gaia_type_t T_gaia_type,
+template <gaia::db::gaia_container_id_t T_gaia_type,
     typename T_gaia,
     typename T_fb,
     typename T_obj,
@@ -72,13 +72,13 @@ public:
      * This can be used for subscribing to rules when you don't
      * have a specific instance of the type.
      */
-    static gaia_type_t s_gaia_type;
+    static gaia_container_id_t s_container_id;
 
     /**
      * This can be used when you are passed a gaia_base_t
      * object and want to know the type at runtime.
      */
-    gaia_type_t gaia_type() override { return T_gaia_type; }
+    gaia_container_id_t container_id() override { return T_gaia_type; }
 
     /**
      * Ask for the first object of a flatbuffer type, T_gaia_type.
@@ -153,7 +153,7 @@ private:
     gaia_ptr m_record;
 };
 
-template <gaia::db::gaia_type_t T_gaia_type,
+template <gaia::db::gaia_container_id_t T_gaia_type,
     typename T_gaia,
     typename T_fb,
     typename T_obj,

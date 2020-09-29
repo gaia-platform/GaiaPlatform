@@ -52,7 +52,7 @@ struct relation_attribute_mapping_t
 {
     const char* relation;
 
-    gaia::common::gaia_type_t gaia_type_id;
+    gaia::common::gaia_container_id_t gaia_type_id;
 
     root_object_deserializer_fn deserializer;
 

@@ -56,7 +56,7 @@ void rule_insert_address(const rule_context_t* context)
 {
     g_timer.log_duration(g_start, "latency to rule insert_address");
     employee_t e = employee_t::get(context->record);
-    EXPECT_EQ(employee_t::s_gaia_type, context->gaia_type);
+    EXPECT_EQ(employee_t::s_container_id, context->gaia_type);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_insert);
 
     if (0 == strcmp(c_name, e.name_first()))
@@ -71,7 +71,7 @@ void rule_insert_address(const rule_context_t* context)
 // inserted address.
 void rule_update_address(const rule_context_t* context)
 {
-    EXPECT_EQ(address_t::s_gaia_type, context->gaia_type);
+    EXPECT_EQ(address_t::s_container_id, context->gaia_type);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_insert);
     address_t a = address_t::get(context->record);
     address_writer aw = a.writer();
@@ -155,26 +155,26 @@ public:
     {
         rule_binding_t rule1{"ruleset", "rule_insert_address", rule_insert_address};
         rule_binding_t rule2{"ruleset", "rule_update_address", rule_update_address};
-        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule1);
-        subscribe_rule(address_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule2);
+        subscribe_rule(employee_t::s_container_id, triggers::event_type_t::row_insert, empty_fields, rule1);
+        subscribe_rule(address_t::s_container_id, triggers::event_type_t::row_insert, empty_fields, rule2);
     }
 
     void subscribe_delete()
     {
         rule_binding_t rule{"ruleset", "rule_delete", rule_delete};
-        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_delete, empty_fields, rule);
+        subscribe_rule(employee_t::s_container_id, triggers::event_type_t::row_delete, empty_fields, rule);
     }
 
     void subscribe_update()
     {
         rule_binding_t rule{"ruleset", "rule_update", rule_update};
-        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_update, empty_fields, rule);
+        subscribe_rule(employee_t::s_container_id, triggers::event_type_t::row_update, empty_fields, rule);
     }
 
     void subscribe_sleep()
     {
         rule_binding_t rule{"ruleset", "rule_sleep", rule_sleep};
-        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule);
+        subscribe_rule(employee_t::s_container_id, triggers::event_type_t::row_insert, empty_fields, rule);
     }
 
     // We have two rules:  rule_field_phone_number and rule_phone_type.
@@ -202,7 +202,7 @@ public:
             binding.rule = rule_field_phone_type;
         }
 
-        subscribe_rule(phone_t::s_gaia_type, triggers::event_type_t::row_update, fields, binding);
+        subscribe_rule(phone_t::s_container_id, triggers::event_type_t::row_update, fields, binding);
     }
 
 protected:

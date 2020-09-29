@@ -26,7 +26,7 @@ extern "C" void initialize_rules()
 
 class system_init_test : public db_test_base_t {
 public:
-    gaia_type_t load_catalog()
+    gaia_container_id_t load_catalog()
     {
         // Add a dummy type so that the event manager doesn't cry foul when subscribing a rule.
         ddl::field_def_list_t fields;
@@ -67,7 +67,7 @@ TEST_F(system_init_test, system_initialized)
     subscription_list_t subscriptions;
 
     gaia::system::initialize();
-    gaia_type_t type_id = load_catalog();
+    gaia_container_id_t type_id = load_catalog();
 
     subscribe_rule(type_id, event_type_t::row_update, empty_fields, binding);
     EXPECT_EQ(true, unsubscribe_rule(type_id, event_type_t::row_update, empty_fields, binding));

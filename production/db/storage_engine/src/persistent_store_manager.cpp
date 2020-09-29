@@ -162,7 +162,7 @@ void persistent_store_manager::destroy_persistent_store() {
 
 void persistent_store_manager::create_object_on_recovery(
     gaia_id_t id,
-    gaia_type_t type,
+    gaia_container_id_t type,
     size_t num_refs,
     size_t data_size,
     const void* data) {

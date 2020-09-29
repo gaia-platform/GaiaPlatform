@@ -24,26 +24,26 @@ namespace direct_access
 #define GET(field) (row()->field())
 #define GET_STR(field) (row()->field() ? row()->field()->c_str() : nullptr)
 
-template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
+template <gaia_container_id_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
 gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::gaia_object_t(const char * gaia_typename)
     : gaia_base_t(gaia_typename)
 {
 }
 
-template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
+template <gaia_container_id_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
 gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::gaia_object_t(gaia_id_t id, const char * gaia_typename)
     : gaia_base_t(gaia_typename)
 {
     m_record = gaia_ptr::open(id);
 }
 
-template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
+template <gaia_container_id_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
 gaia_id_t gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::gaia_id() const
 {
     return m_record ? m_record.id() : INVALID_GAIA_ID;
 }
 
-template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
+template <gaia_container_id_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
 const T_flatbuffer* gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::row() const
 {
     if (!m_record)
@@ -53,14 +53,14 @@ const T_flatbuffer* gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuff
     return flatbuffers::GetRoot<T_flatbuffer>(m_record.data());
 }
 
-template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
+template <gaia_container_id_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
 gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::operator bool() const
 {
     return m_record;
 }
 
 
-template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
+template <gaia_container_id_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
 gaia_id_t* gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::references()
 {
     if (!m_record)
@@ -70,7 +70,7 @@ gaia_id_t* gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object
     return m_record.references();
 }
 
-template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
+template <gaia_container_id_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
 gaia_writer_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>
 gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::writer()
 {
@@ -85,14 +85,14 @@ gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_referen
     return writer;
 }
 
-template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
+template <gaia_container_id_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
 T_class gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::get_first()
 {
     auto node_ptr = gaia_ptr::find_first(T_container);
     return get_object(node_ptr);
 }
 
-template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
+template <gaia_container_id_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
 T_class gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::get_next()
 {
     if (!m_record)
@@ -104,14 +104,14 @@ T_class gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N
     return get_object(next_ptr);
 }
 
-template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
+template <gaia_container_id_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
 T_class gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::get(gaia_id_t id)
 {
     auto node_ptr = gaia_ptr::open(id);
     return get_object(node_ptr);
 }
 
-template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
+template <gaia_container_id_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
 gaia_id_t gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::insert_row(flatbuffers::FlatBufferBuilder& fbb)
 {
     gaia_id_t node_id = gaia_ptr::generate_id();
@@ -119,7 +119,7 @@ gaia_id_t gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object,
     return node_id;
 }
 
-template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
+template <gaia_container_id_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
 void gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::delete_row()
 {
     if (!m_record)
@@ -130,7 +130,7 @@ void gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_re
     delete_row(gaia_id());
 }
 
-template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
+template <gaia_container_id_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
 void gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::delete_row(gaia_id_t id)
 {
     auto node_ptr = gaia_ptr::open(id);
@@ -142,18 +142,18 @@ void gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_re
     gaia_ptr::remove(node_ptr);
 }
 
-template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
+template <gaia_container_id_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
 T_class gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::get_object(gaia_ptr& node_ptr)
 {
     gaia_id_t id = 0;
     if (node_ptr)
     {
         // Make sure the types match
-        if (node_ptr.type() != T_class::s_gaia_type)
+        if (node_ptr.type() != T_class::s_container_id)
         {
             T_class expected = T_class::get(0);
             throw edc_invalid_object_type(node_ptr.id(),
-                T_class::s_gaia_type,
+                T_class::s_container_id,
                 expected.gaia_typename(),
                 node_ptr.type());
         }
@@ -162,13 +162,13 @@ T_class gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N
     return T_class(id);
 }
 
-template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
-gaia_type_t gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::s_gaia_type = T_container;
+template <gaia_container_id_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
+gaia_container_id_t gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::s_container_id = T_container;
 
 //
 // The gaia_writer_t implementation.
 //
-template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
+template <gaia_container_id_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
 gaia_id_t gaia_writer_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::insert_row()
 {
     gaia_ptr node_ptr;
@@ -183,7 +183,7 @@ gaia_id_t gaia_writer_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object,
     return id;
 }
 
-template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
+template <gaia_container_id_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
 void gaia_writer_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::update_row()
 {
     auto node_ptr = gaia_ptr::open(m_gaia.id);

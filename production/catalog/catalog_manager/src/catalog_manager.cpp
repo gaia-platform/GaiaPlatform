@@ -292,7 +292,7 @@ static gaia_ptr insert_gaia_table_row(
 
     return gaia_ptr::create(
         table_id,                                                   // id
-        static_cast<gaia_type_t>(catalog_table_type_t::gaia_table), // type
+        static_cast<gaia_container_id_t>(catalog_table_type_t::gaia_table), // type
         c_gaia_table_num_refs,                                      // num_refs
         fbb.GetSize(),                                              // data_size
         fbb.GetBufferPointer()                                      // data

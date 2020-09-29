@@ -119,7 +119,7 @@ void gaia_ptr::allocate(const size_t size) {
     se_base::allocate_object(row_id, size, client::s_offsets, client::s_data);
 }
 
-void gaia_ptr::create_insert_trigger(gaia_type_t type, gaia_id_t id) {
+void gaia_ptr::create_insert_trigger(gaia_container_id_t type, gaia_id_t id) {
     if (client::is_valid_event(type)) {
         client::s_events.push_back(trigger_event_t{event_type_t::row_insert, type, id, empty_position_list});
     }
@@ -141,7 +141,7 @@ int64_t gaia_ptr::to_offset() const {
                : 0;
 }
 
-void gaia_ptr::find_next(gaia_type_t type) {
+void gaia_ptr::find_next(gaia_container_id_t type) {
     // search for rows of this type within the range of used slots
     while (++row_id && row_id < client::s_data->row_id_count + 1) {
         if (is(type)) {
@@ -163,7 +163,7 @@ void gaia_ptr::reset() {
 
 void gaia_ptr::add_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset) {
     auto parent_type = type();
-    auto parent_metadata = type_registry_t::instance().get_or_create(parent_type);
+    auto parent_metadata = container_registry_t::instance().get_or_create(parent_type);
     auto relationship = parent_metadata.find_parent_relationship(first_child_offset);
 
     if (!relationship) {
@@ -178,12 +178,12 @@ void gaia_ptr::add_child_reference(gaia_id_t child_id, reference_offset_t first_
         throw invalid_node_id(child_id);
     }
 
-    if (relationship->parent_type != parent_type) {
-        throw invalid_relationship_type(first_child_offset, parent_type, relationship->parent_type);
+    if (relationship->parent_container != parent_type) {
+        throw invalid_relationship_container(first_child_offset, parent_type, relationship->parent_container);
     }
 
-    if (relationship->child_type != child_ptr.type()) {
-        throw invalid_relationship_type(first_child_offset, child_ptr.type(), relationship->child_type);
+    if (relationship->child_container != child_ptr.type()) {
+        throw invalid_relationship_container(first_child_offset, child_ptr.type(), relationship->child_container);
     }
 
     // CHECK CARDINALITY
@@ -216,7 +216,7 @@ void gaia_ptr::add_child_reference(gaia_id_t child_id, reference_offset_t first_
 void gaia_ptr::add_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset) {
     auto child_type = type();
 
-    auto child_metadata = type_registry_t::instance().get_or_create(child_type);
+    auto child_metadata = container_registry_t::instance().get_or_create(child_type);
     auto child_relationship = child_metadata.find_child_relationship(parent_offset);
 
     if (!child_relationship) {
@@ -234,7 +234,7 @@ void gaia_ptr::add_parent_reference(gaia_id_t parent_id, reference_offset_t pare
 
 void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset) {
     auto parent_type = type();
-    auto parent_metadata = type_registry_t::instance().get_or_create(parent_type);
+    auto parent_metadata = container_registry_t::instance().get_or_create(parent_type);
     auto relationship = parent_metadata.find_parent_relationship(first_child_offset);
 
     if (!relationship) {
@@ -252,12 +252,12 @@ void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t fir
         throw invalid_node_id(child_id);
     }
 
-    if (relationship->parent_type != parent_type) {
-        throw invalid_relationship_type(first_child_offset, parent_type, relationship->parent_type);
+    if (relationship->parent_container != parent_type) {
+        throw invalid_relationship_container(first_child_offset, parent_type, relationship->parent_container);
     }
 
-    if (relationship->child_type != child_ptr.type()) {
-        throw invalid_relationship_type(first_child_offset, child_ptr.type(), relationship->child_type);
+    if (relationship->child_container != child_ptr.type()) {
+        throw invalid_relationship_container(first_child_offset, child_ptr.type(), relationship->child_container);
     }
 
     // REMOVE REFERENCE
@@ -290,7 +290,7 @@ void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t fir
 void gaia_ptr::remove_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset) {
     auto child_type = type();
 
-    auto child_metadata = type_registry_t::instance().get_or_create(child_type);
+    auto child_metadata = container_registry_t::instance().get_or_create(child_type);
     auto relationship = child_metadata.find_child_relationship(parent_offset);
 
     if (!relationship) {

@@ -45,13 +45,13 @@ public:
     void init();
 
     void subscribe_rule(
-        gaia::common::gaia_type_t gaia_type,
+        gaia::common::gaia_container_id_t gaia_type,
         event_type_t event_type,
         const field_position_list_t& fields,
         const rule_binding_t& rule_binding);
 
     bool unsubscribe_rule(
-      gaia::common::gaia_type_t gaia_type, 
+      gaia::common::gaia_container_id_t gaia_type,
       event_type_t event_type,
       const field_position_list_t& fields,
       const rule_binding_t& rule_binding);
@@ -60,7 +60,7 @@ public:
 
     void list_subscribed_rules(
       const char* ruleset_name, 
-      const gaia::common::gaia_type_t* gaia_type, 
+      const gaia::common::gaia_container_id_t* gaia_type,
       const event_type_t* event_type,
       const uint16_t* field,
       subscription_list_t& subscriptions);
@@ -105,9 +105,9 @@ private:
     // Map the event type to the event binding.
     typedef std::unordered_map<event_type_t, event_binding_t> events_map_t;
 
-    // List of all rule subscriptions by gaia type, event type,
+    // List of all rule subscriptions by gaia container, event type,
     // and column if appropriate
-    std::unordered_map<common::gaia_type_t, events_map_t> m_subscriptions;
+    std::unordered_map<common::gaia_container_id_t, events_map_t> m_subscriptions;
 
     // Thread pool to handle invocation of rules on
     // N threads.
@@ -158,7 +158,7 @@ private:
     static std::string make_rule_key(const rules::rule_binding_t& binding);
     static void add_subscriptions(rules::subscription_list_t& subscriptions, 
         const rule_list_t& rules,
-        gaia::common::gaia_type_t gaia_type,
+        gaia::common::gaia_container_id_t gaia_type,
         event_type_t event_type,
         uint16_t field,
         const char* ruleset_filter);

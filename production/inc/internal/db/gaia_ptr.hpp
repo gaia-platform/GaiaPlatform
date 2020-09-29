@@ -21,7 +21,7 @@ namespace db {
 class gaia_ptr {
 private:
     int64_t row_id;
-    void create_insert_trigger(gaia_type_t type, gaia_id_t id);
+    void create_insert_trigger(gaia_container_id_t type, gaia_id_t id);
     void clone_no_tx();
 
 public:
@@ -50,12 +50,12 @@ public:
     static gaia_id_t generate_id();
 
     static gaia_ptr create(
-        gaia_type_t type,
+        gaia_container_id_t type,
         size_t data_size,
         const void* data) {
 
         gaia_id_t id = gaia_ptr::generate_id();
-        auto metadata = type_registry_t::instance().get_or_create(type);
+        auto metadata = container_registry_t::instance().get_or_create(type);
         size_t num_references = metadata.num_references();
 
         return create(id, type, num_references, data_size, data);
@@ -63,11 +63,11 @@ public:
 
     static gaia_ptr create(
         gaia_id_t id,
-        gaia_type_t type,
+        gaia_container_id_t type,
         size_t data_size,
         const void* data) {
 
-        auto metadata = type_registry_t::instance().get_or_create(type);
+        auto metadata = container_registry_t::instance().get_or_create(type);
         size_t num_references = metadata.num_references();
 
         return create(id, type, num_references, data_size, data);
@@ -75,7 +75,7 @@ public:
 
     static gaia_ptr create(
         gaia_id_t id,
-        gaia_type_t type,
+        gaia_container_id_t type,
         size_t num_refs,
         size_t data_size,
         const void* data) {
@@ -124,7 +124,7 @@ public:
         size_t next_child_slot, gaia_id_t next_child_id,
         size_t parent_slot, gaia_id_t parent_id);
 
-    static gaia_ptr find_first(gaia_type_t type) {
+    static gaia_ptr find_first(gaia_container_id_t type) {
         gaia_ptr ptr;
         ptr.row_id = 1;
 
@@ -158,7 +158,7 @@ public:
         return to_ptr()->id;
     }
 
-    gaia_type_t type() const {
+    gaia_container_id_t type() const {
         return to_ptr()->type;
     }
 
@@ -236,11 +236,11 @@ protected:
 
     int64_t to_offset() const;
 
-    bool is(gaia_type_t type) const {
+    bool is(gaia_container_id_t type) const {
         return to_ptr() && to_ptr()->type == type;
     }
 
-    void find_next(gaia_type_t type);
+    void find_next(gaia_container_id_t type);
 
     void reset();
 };

@@ -59,13 +59,13 @@ public:
 
         // Initialize rules after loading the catalog.
         rule_binding_t m_rule1{"ruleset1_name", "rule1_name", rule1};
-        subscribe_rule(employee_t::s_gaia_type, event_type_t::row_insert, empty_fields, m_rule1);
-        subscribe_rule(employee_t::s_gaia_type, event_type_t::row_delete, empty_fields, m_rule1);
+        subscribe_rule(employee_t::s_container_id, event_type_t::row_insert, empty_fields, m_rule1);
+        subscribe_rule(employee_t::s_container_id, event_type_t::row_delete, empty_fields, m_rule1);
 
         field_position_list_t fields;
         // We only have 1 field in this test.
         fields.emplace_back(0);
-        subscribe_rule(employee_t::s_gaia_type, event_type_t::row_update, fields, m_rule1);
+        subscribe_rule(employee_t::s_container_id, event_type_t::row_update, fields, m_rule1);
     }
 
     static void TearDownTestSuite()

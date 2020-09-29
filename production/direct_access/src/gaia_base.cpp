@@ -15,21 +15,21 @@ namespace direct_access
 //
 edc_invalid_object_type::edc_invalid_object_type(
     gaia_id_t id,
-    gaia_type_t expected_type,
+    gaia_container_id_t expected,
     const char* expected_typename,
-    gaia_type_t actual_type)
+    gaia_container_id_t actual)
 {
     stringstream msg;
-    msg << "Requesting Gaia type " << expected_typename << "(" << expected_type << ") but object identified by "
-        << id << " is type " "(" << actual_type << ").";
+    msg << "Requesting Gaia type " << expected_typename << "(" << expected << ") but object identified by "
+        << id << " is type " "(" << actual << ").";
     m_message = msg.str();
 }
 
 edc_invalid_member::edc_invalid_member(
     gaia_id_t id,
-    gaia_type_t parent,
+    gaia_container_id_t parent,
     const char* parent_type,
-    gaia_type_t child,
+    gaia_container_id_t child,
     const char* child_name)
 {
     stringstream msg;

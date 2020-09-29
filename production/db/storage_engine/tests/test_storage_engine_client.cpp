@@ -71,8 +71,8 @@ gaia_id_t node2_id = 2;
 gaia_id_t node3_id = 3;
 gaia_id_t node4_id = 4;
 
-gaia_type_t type1 = 1;
-gaia_type_t type2 = 2;
+gaia_container_id_t type1 = 1;
+gaia_container_id_t type2 = 2;
 
 /**
  * Google test fixture object.  This class is used by each
@@ -182,7 +182,7 @@ TEST_F(storage_engine_client_test, iterate_type) {
         std::cerr << std::endl;
         std::cerr << "*** Iterating over nodes of type 1:" << std::endl;
 
-        gaia_type_t type = type1;
+        gaia_container_id_t type = type1;
         gaia_id_t id = node1_id;
         for (auto node_iter = gaia_ptr::find_first(type);
             node_iter;

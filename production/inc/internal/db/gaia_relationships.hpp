@@ -9,7 +9,7 @@
 #include "gaia_common.hpp"
 
 using gaia::common::gaia_exception;
-using gaia::common::gaia_type_t;
+using gaia::common::gaia_exception;
 using gaia::common::reference_offset_t;
 
 namespace gaia::db {
@@ -24,8 +24,8 @@ enum class cardinality_t {
 };
 
 /**
- * A relationship describes the logical connection between two Gaia types:
- *  - A relationship always has a parent type and a child type.
+ * A relationship describes the logical connection between two Gaia containers:
+ *  - A relationship always has a parent container and a child container.
  *  - A parent can be connected to one or more children (cardinality).
  *  - A parent can always be created before the children, a children may require
  *   the parent to exists in order to be created (modality).
@@ -38,12 +38,12 @@ enum class cardinality_t {
  * (child)-[next_child_offset]->(child)
  * (child)-[parent_offset]->(parent)
  *
- * By definition, a relationship involves two types; therefore, a reference to this
- * structure will be associated with the types on both sides of the relationship.
+ * By definition, a relationship involves two containers; therefore, a reference to the
+ * same relationship_t will be associated to both parent and child container.
  */
 struct relationship_t {
-    gaia_type_t parent_type;
-    gaia_type_t child_type;
+    gaia_container_id_t parent_container;
+    gaia_container_id_t child_container;
 
     // Locates, in the parent reference array, the pointer to the first child
     reference_offset_t first_child_offset;
@@ -65,24 +65,24 @@ struct relationship_t {
  */
 class invalid_reference_offset : public gaia_exception {
 public:
-    invalid_reference_offset(gaia_type_t type, reference_offset_t offset) {
+    invalid_reference_offset(gaia_container_id_t container_id, reference_offset_t offset) {
         stringstream message;
-        message << "Gaia type \"" << type << "\" has no relationship for the offset \"" << offset << "\"";
+        message << "Gaia container with id \"" << container_id << "\" has no relationship for the offset \"" << offset << "\"";
         m_message = message.str();
     }
 };
 
 /**
- * Thrown when adding a reference to an offset that exists but the type of the object
- * that is being added is of the wrong type according to the relationship definition.
+ * Thrown when adding a reference to an offset that exists but the object that is being
+ * added belongs to the wrong container, according to the relationship definition.
  * This can happen when the relationships are modified at runtime and the EDC classes
  * are not up to date with it.
  */
-class invalid_relationship_type : public gaia_exception {
+class invalid_relationship_container : public gaia_exception {
 public:
-    invalid_relationship_type(reference_offset_t offset, gaia_type_t expected_type, gaia_type_t found_type) {
+    invalid_relationship_container(reference_offset_t offset, gaia_container_id_t expected_container, gaia_container_id_t found_container) {
         stringstream message;
-        message << "Relationship with offset \"" << offset << "\" requires type \"" << expected_type << "\" but found \"" << found_type << "\" ";
+        message << "Relationship with offset \"" << offset << "\" requires container \"" << expected_container << "\" but found \"" << found_container << "\" ";
         m_message = message.str();
     }
 };
@@ -94,9 +94,9 @@ public:
  */
 class single_cardinality_violation : public gaia_exception {
 public:
-    single_cardinality_violation(gaia_type_t type, reference_offset_t offset) {
+    single_cardinality_violation(gaia_container_id_t container_id, reference_offset_t offset) {
         stringstream message;
-        message << "Gaia type \"" << type << "\" has single cardinality for the relationship with offset \"" << offset << "\"  but multiple children are being added";
+        message << "Gaia container_ with id \"" << container_id << "\" has single cardinality for the relationship with offset \"" << offset << "\"  but multiple children are being added";
         m_message = message.str();
     }
 };
@@ -106,9 +106,9 @@ public:
  */
 class child_already_referenced : public gaia_exception {
 public:
-    child_already_referenced(gaia_type_t child_type, reference_offset_t offset) {
+    child_already_referenced(gaia_container_id_t child_container, reference_offset_t offset) {
         stringstream message;
-        message << "Gaia type \"" << child_type << "\" has already a reference for the relationship with offset \"" << offset << "\"";
+        message << "Gaia container \"" << child_container << "\" has already a reference for the relationship with offset \"" << offset << "\"";
         m_message = message.str();
     }
 };
