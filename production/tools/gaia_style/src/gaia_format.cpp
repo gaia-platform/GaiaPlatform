@@ -3,11 +3,10 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "../inc/gaia_format.hpp"
+#include "gaia_format.hpp"
 
 #include "gaia_common.hpp"
-#include "spdlog/spdlog.h"
-#include "spdlog_setup/conf.h"
+#include "gaia_db.hpp"
 
 #include <algorithm>
 #include <iostream>

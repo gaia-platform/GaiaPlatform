@@ -20,6 +20,7 @@ include(GoogleTest)
 # Specify the C++ standard.
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+#set(CMAKE_CXX_CLANG_TIDY clang-tidy -header-filter=. -checks=-*;)
 
 # Set some global variables.
 get_repo_root(${PROJECT_SOURCE_DIR} GAIA_REPO)

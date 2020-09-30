@@ -7,4 +7,4 @@
 project(tools)
 
 add_subdirectory(gaia_generate)
-add_subdirectory(gaia_style)
+#add_subdirectory(gaia_style)
