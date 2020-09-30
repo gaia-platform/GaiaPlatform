@@ -395,14 +395,14 @@ bool modify_state_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
             ereport(ERROR,
                 (errcode(ERRCODE_FDW_ERROR),
                 errmsg("Error creating gaia object."),
-                errhint(e.what())));
+                errhint("%s", e.what())));
         }
         else if (edit_state == edit_state_t::update)
         {
             ereport(ERROR,
                 (errcode(ERRCODE_FDW_ERROR),
                 errmsg("Error updating gaia object."),
-                errhint(e.what())));
+                errhint("%s", e.what())));
         }
 
         return false;
@@ -430,11 +430,11 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
         auto node = gaia_ptr::open(gaia_id);
         if (!node)
         {
-            elog(DEBUG1, "Node for gaia_id %d is invalid.", gaia_id);
+            elog(DEBUG1, "Node for gaia_id %ld is invalid.", gaia_id);
             return false;
         }
 
-        elog(DEBUG1, "Calling remove() on node for gaia_id %d.", gaia_id);
+        elog(DEBUG1, "Calling remove() on node for gaia_id %ld.", gaia_id);
         gaia_ptr::remove(node);
 
         return true;
@@ -444,7 +444,7 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
         ereport(ERROR,
             (errcode(ERRCODE_FDW_ERROR),
             errmsg("Error deleting gaia object."),
-            errhint(e.what())));
+            errhint("%s", e.what())));
     }
 
     return false;

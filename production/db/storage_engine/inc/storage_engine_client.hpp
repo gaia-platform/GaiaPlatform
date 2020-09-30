@@ -81,9 +81,9 @@ class client : private se_base {
 
     /**
      *  Check if an event should be generated for a given type.
-     */ 
+     */
     static inline bool is_valid_event(const gaia_type_t type) {
-        return (gaia::db::s_tx_commit_trigger 
+        return (gaia::db::s_tx_commit_trigger
             && (trigger_excluded_types.find(type) == trigger_excluded_types.end()));
     }
 

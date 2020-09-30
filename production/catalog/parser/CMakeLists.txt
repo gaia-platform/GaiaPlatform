@@ -3,9 +3,6 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.12)
-enable_testing()
-
 # Set the project name.
 project(parser)
 
@@ -22,7 +19,8 @@ set(GAIA_PARSER_INCLUDES
   ${PROJECT_SOURCE_DIR}/inc
   ${GAIA_PARSER_GENERATED}
 )
-message(STATUS "GAIA_PARSER_INCLUDES=${GAIA_PARSER_INCLUDES}")
+
+message(VERBOSE "GAIA_PARSER_INCLUDES=${GAIA_PARSER_INCLUDES}")
 
 find_package(BISON REQUIRED)
 find_package(FLEX REQUIRED)

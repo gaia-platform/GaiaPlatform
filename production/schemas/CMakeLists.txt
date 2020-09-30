@@ -3,8 +3,6 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.12)
-
 project(schemas)
 
 set(GAIA_SCHEMAS_INC "${PROJECT_SOURCE_DIR}")

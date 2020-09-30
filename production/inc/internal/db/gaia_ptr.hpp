@@ -10,7 +10,7 @@
 
 #include "retail_assert.hpp"
 #include "gaia_db.hpp"
-#include "types.hpp"
+#include "gaia_se_object.hpp"
 #include "type_metadata.hpp"
 
 using namespace gaia::common;
@@ -30,6 +30,8 @@ public:
 
     gaia_ptr(const gaia_ptr& other)
         : row_id(other.row_id) {}
+
+    gaia_ptr& operator=(const gaia_ptr& other) = default;
 
     bool operator==(const gaia_ptr& other) const {
         return row_id == other.row_id;

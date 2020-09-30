@@ -15,11 +15,6 @@ stack_allocator_t::stack_allocator_t()
     m_metadata = nullptr;
 }
 
-void stack_allocator_t::set_execution_flags(const execution_flags_t& execution_flags)
-{
-    m_execution_flags = execution_flags;
-}
-
 error_code_t stack_allocator_t::initialize(
     uint8_t* base_memory_address,
     address_offset_t memory_offset,
@@ -201,7 +196,7 @@ error_code_t stack_allocator_t::deallocate(size_t count_allocations_to_keep) con
     }
 
     // Recalculate the next offset at which we can allocate memory.
-    m_metadata->next_allocation_offset = get_next_allocation_offset();
+    m_metadata->next_allocation_offset = calculate_next_allocation_offset();
 
     if (m_execution_flags.enable_console_output)
     {
@@ -245,7 +240,7 @@ stack_allocator_allocation_t* stack_allocator_t::get_allocation_record(size_t al
     return allocation_record;
 }
 
-address_offset_t stack_allocator_t::get_next_allocation_offset() const
+address_offset_t stack_allocator_t::calculate_next_allocation_offset() const
 {
     if (m_metadata == nullptr)
     {
@@ -253,30 +248,38 @@ address_offset_t stack_allocator_t::get_next_allocation_offset() const
     }
 
     size_t count_allocations = m_metadata->count_allocations;
+    size_t first_allocation_size = (count_allocations > 0) ? m_metadata->first_allocation_size : 0;
 
-    // Iterate over our allocation entries
-    // and find out the offset at which we can next allocate memory.
-    // We skip the first record because its size is stored differently.
-    address_offset_t next_allocation_offset = m_base_memory_offset + m_metadata->first_allocation_size;
-    for (size_t allocation_number = 2; allocation_number <= count_allocations; allocation_number++)
+    // Iterate backwards over our allocation entries
+    // and find out the offset at which we can next allocate memory
+    // using the last allocation record information.
+    // We skip the first record because its size is stored differently
+    // and is already factored in the initialization of next_allocation_offset.
+    address_offset_t next_allocation_offset = m_base_memory_offset + first_allocation_size;
+    for (size_t allocation_number = count_allocations; allocation_number >= 2; --allocation_number)
     {
-        // Get allocation information object.
+        // Get the allocation information object.
         stack_allocator_allocation_t* allocation_record = get_allocation_record(allocation_number);
 
-        // Get actual allocation offset.
+        // Get the actual allocation offset.
         address_offset_t allocation_offset = allocation_record->memory_offset;
 
-        // Skip allocation records that indicate deletes.
+        // Skip the allocation records that indicate deletes.
         if (allocation_offset == 0)
         {
             continue;
         }
 
-        // Get allocation prefix pointer, to get the allocation size.
+        // Get the allocation metadata pointer, to get the allocation size.
         memory_allocation_metadata_t* allocation_metadata = read_allocation_metadata(allocation_offset);
 
-        // Add allocation size.
-        next_allocation_offset += allocation_metadata->allocation_size;
+        // The next allocation offset should follow this allocation,
+        // so add its size to its offset and adjust for the size of the allocation metadata.
+        next_allocation_offset = allocation_offset + allocation_metadata->allocation_size
+            - sizeof(memory_allocation_metadata_t);
+
+        // We're done - we've found the last actual allocation record.
+        break;
     }
 
     return next_allocation_offset;
@@ -295,6 +298,5 @@ void stack_allocator_t::output_debugging_information(const string& context_descr
     cout << "    Count allocations = " << m_metadata->count_allocations << endl;
     cout << "    First allocation size = " << m_metadata->first_allocation_size << endl;
     cout << "    Next allocation offset = " << m_metadata->next_allocation_offset << endl;
-    cout << "    Serialization number = " << m_metadata->serialization_number << endl;
     cout << c_debug_output_separator_line_end << endl;
 }
