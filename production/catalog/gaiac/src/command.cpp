@@ -359,7 +359,7 @@ string command_usage() {
 void handle_slash_command(const string& cmd) {
     retail_assert(!cmd.empty(), "Meta command should not be empty.");
     retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix,
-                  "Meta command should start with a '" + string(1, c_command_prefix) + "'.");
+        "Meta command should start with a '" + string(1, c_command_prefix) + "'.");
 
     if (cmd.length() < c_cmd_minimum_length) {
         throw invalid_command(cmd);
