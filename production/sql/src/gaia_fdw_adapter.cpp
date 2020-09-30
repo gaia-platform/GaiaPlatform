@@ -146,15 +146,6 @@ List* adapter_t::get_ddl_command_list(const char* server_name)
     return commands;
 }
 
-template <class S>
-S* adapter_t::get_state(
-    const char* table_name, size_t count_accessors)
-{
-    S* state = (S*)palloc0(sizeof(S));
-
-    return state->initialize(table_name, count_accessors) ? state : nullptr;
-}
-
 bool state_t::initialize(const char* table_name, size_t count_accessors)
 {
     if (strcmp(table_name, "airports") == 0)
