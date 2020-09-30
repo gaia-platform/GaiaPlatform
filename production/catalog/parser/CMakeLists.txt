@@ -8,6 +8,11 @@ project(parser)
 
 file(MAKE_DIRECTORY ${GAIA_PARSER_GENERATED})
 
+# We want to disable all clang-tidy checks for generated code.
+# However, if no checks are specified, clang-tidy will assume we
+# did not configure it correctly. Just add one check that will never be found.
+file(WRITE ${GAIA_PARSER_GENERATED}/.clang-tidy "Checks: '-*,llvm-twine-local'\n")
+
 set(GAIA_PARSER_INCLUDES
   ${GAIA_INC}/public/common
   ${GAIA_INC}/public/db

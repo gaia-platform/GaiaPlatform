@@ -20,7 +20,6 @@ include(GoogleTest)
 # Specify the C++ standard.
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-#set(CMAKE_CXX_CLANG_TIDY clang-tidy -header-filter=. -checks=-*;)
 
 # Set some global variables.
 get_repo_root(${PROJECT_SOURCE_DIR} GAIA_REPO)
@@ -181,6 +180,9 @@ add_subdirectory(${ROCKSDB} rocksdb)
 # Add flatbuffers
 add_subdirectory(${FLATBUFFERS} flatbuffers)
 set_property (TARGET flatbuffers PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+# Setting clang-tidy here to avoid it being applied to flatbuffers, rocksdb etc..
+set(CMAKE_CXX_CLANG_TIDY clang-tidy)
 
 # Add individual component folders.
 add_subdirectory(common)

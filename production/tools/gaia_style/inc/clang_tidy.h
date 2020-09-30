@@ -10,6 +10,7 @@
 #include "gaia_common.hpp"
 
 using namespace gaia::common;
+using namespace std;
 
 // should have c_ prefix
 constexpr int constant_global = 2;
@@ -30,6 +31,7 @@ namespace Gaia
 // should have _t suffix. We can't catch that because of exceptions
 class clang_tidy
 {
+    // Single-argument constructors must be marked explicit to avoid unintentional implicit conversions
     clang_tidy(int _member)
       : member(_member){};
 
@@ -66,6 +68,18 @@ struct Uglier_t
 class my_problem : public std::exception {
 
 };
+
+// should be T_type
+template <typename type>
+void type_template(type obj) {
+
+}
+
+// should be value
+template <int T_value>
+int value_template() {
+   return T_value * 2;
+}
 
 } // namespace Gaia
 #endif //PRODUCTION_CLANG_TIDY_H

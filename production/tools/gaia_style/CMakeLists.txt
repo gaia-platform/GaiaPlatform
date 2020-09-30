@@ -17,8 +17,18 @@ set(GAIA_GENERATE_INCLUDES
         )
 
 
-set(CMAKE_CXX_CLANG_TIDY clang-tidy -checks=-*,clang-analyzer-*,-clang-analyzer-cplusplus*)
+set(CMAKE_CXX_CLANG_TIDY clang-tidy)
 
+add_executable(gaia_format src/gaia_format.cpp)
 
-add_executable(gaia_style src/gaia_format.cpp src/clang_tidy.cpp)
-target_include_directories(gaia_style PRIVATE ${GAIA_GENERATE_INCLUDES})
+target_include_directories(gaia_format PRIVATE ${GAIA_GENERATE_INCLUDES})
+target_link_libraries(gaia_format PRIVATE rt gaia_catalog gaia_parser)
+set_target_properties(gaia_format PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+set_target_properties(gaia_format PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+
+add_executable(gaia_tidy src/clang_tidy.cpp)
+
+target_include_directories(gaia_tidy PRIVATE ${GAIA_GENERATE_INCLUDES})
+target_link_libraries(gaia_tidy PRIVATE rt gaia_catalog gaia_parser)
+set_target_properties(gaia_tidy PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+set_target_properties(gaia_tidy PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
