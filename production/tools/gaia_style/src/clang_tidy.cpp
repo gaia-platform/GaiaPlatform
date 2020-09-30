@@ -34,20 +34,22 @@ void Gaia::clang_tidy::other_method(int BadArgument)
     int magic_number = BadArgument * 3.14;
 }
 
-void narrowing_conversion() {
+void narrowing_conversion()
+{
     int i = 0;
     // narrowing conversion from double to int
     i += 0.1;
 }
 
-void no_malloc() {
+void no_malloc()
+{
     // use container or smart pointer
     char* some_string = (char*) malloc(sizeof(char) * 20);
     free(some_string);
 }
 
-
-void pure_anarchy() {
+void pure_anarchy()
+{
     // Next three statements will not produce warnings
     int i = 42; // NOLINT
 
@@ -59,7 +61,6 @@ void pure_anarchy() {
     // produces a warning, the actual check that fail is: cppcoreguidelines-avoid-magic-numbers
     int k = 42; // NOLINT(google-runtime-operator)
 }
-
 
 int main(int argc, char* argv[])
 {
