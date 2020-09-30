@@ -1,4 +1,10 @@
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
 #!/bin/bash
+
 set -euo pipefail
 IFS=$'\n\t'
 
