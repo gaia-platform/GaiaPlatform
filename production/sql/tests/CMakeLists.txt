@@ -18,10 +18,11 @@ if(BASH_PROGRAM
       NAME test_sql_queries
       COMMAND
         ${BASH_PROGRAM} ${CMAKE_CURRENT_SOURCE_DIR}/test.sh
-        ${GAIA_REPO}/data/internal/airport ${PG_CLIENT}
-        ${CMAKE_CURRENT_SOURCE_DIR}/setup.sql
-        ${CMAKE_CURRENT_SOURCE_DIR}/test.sql
-        ${CMAKE_CURRENT_SOURCE_DIR}/expected.txt)
+          ${GAIA_REPO}/data/internal/airport
+          ${PG_CLIENT}
+          ${CMAKE_CURRENT_SOURCE_DIR}/setup.sql
+          ${CMAKE_CURRENT_SOURCE_DIR}/test.sql
+          ${CMAKE_CURRENT_SOURCE_DIR}/expected.txt)
   else()
     message(WARNING "Postgres server does not appear to be running.")
   endif(pg_up EQUAL 0)
