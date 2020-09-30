@@ -16,6 +16,7 @@ set(GAIA_MULTI_PROCESS_INCLUDES
   ${GAIA_INC}/public/db
   ${GAIA_INC}/public/common
   ${GAIA_INC}/internal/db
+  ${FLATBUFFERS_INC}
   ${GAIA_GENERATED_SCHEMAS}
 )
 
@@ -47,5 +48,5 @@ set_property (TARGET gaia_common PROPERTY POSITION_INDEPENDENT_CODE ON)
 # Tests.
 add_gtest(test_retail_assert tests/test_retail_assert.cpp "${GAIA_COMMON_INCLUDES}" "")
 add_gtest(test_queue tests/test_queue.cpp "${GAIA_COMMON_INCLUDES}" "gaia_common")
-add_gtest(test_multi_process tests/test_multi_process.cpp "${GAIA_MULTI_PROCESS_INCLUDES}" "rt;gaia_direct")
+add_gtest(test_multi_process tests/test_multi_process.cpp "${GAIA_MULTI_PROCESS_INCLUDES}" "rt;gaia_direct" "generate_addr_book_headers")
 add_gtest(test_logging tests/test_logging.cpp "${GAIA_COMMON_INCLUDES}" "gaia_common")
