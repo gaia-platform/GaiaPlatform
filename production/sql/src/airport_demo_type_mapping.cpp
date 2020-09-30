@@ -59,7 +59,7 @@ static const attribute_t c_route_attributes[] = {
 
 const relation_attribute_mapping_t c_airport_mapping = {
     "airports",
-    airport_demo_types::c_airports_type,
+    airport_demo_types::c_airports_container_id,
     gaia_airport_airports_as_root,
     gaia_airport_airports_start_as_root,
     gaia_airport_airports_end_as_root,
@@ -69,7 +69,7 @@ const relation_attribute_mapping_t c_airport_mapping = {
 
 const relation_attribute_mapping_t c_airline_mapping = {
     "airlines",
-    airport_demo_types::c_airlines_type,
+    airport_demo_types::c_airlines_container_id,
     gaia_airport_airlines_as_root,
     gaia_airport_airlines_start_as_root,
     gaia_airport_airlines_end_as_root,
@@ -79,7 +79,7 @@ const relation_attribute_mapping_t c_airline_mapping = {
 
 const relation_attribute_mapping_t c_route_mapping = {
     "routes",
-    airport_demo_types::c_routes_type,
+    airport_demo_types::c_routes_container_id,
     gaia_airport_routes_as_root,
     gaia_airport_routes_start_as_root,
     gaia_airport_routes_end_as_root,

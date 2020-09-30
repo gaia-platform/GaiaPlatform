@@ -267,7 +267,7 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState *node, int eflags) {
     }
 
     // Set up mapping of attnos to flatbuffer accessor functions.
-    for (int i = 0; i < tupleDesc->natts; i++) {
+    for (int i = 0; i < tupleDesc->natts; ++i) {
         // User attributes are indexed starting from 1.
         // AttrNumber attnum = i + 1.
         char *attr_name = NameStr(TupleDescAttr(tupleDesc, i)->attname);
@@ -282,7 +282,7 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState *node, int eflags) {
 
     // Retrieve the first node of the requested type
     // (this can't currently throw).
-    if (scan_state->initialize_scan()) {
+    if (!scan_state->initialize_scan()) {
         elog(ERROR, "Failed to scan initialization for table '%s'.", table_name);
     }
 }
@@ -323,7 +323,7 @@ extern "C" TupleTableSlot *gaia_iterate_foreign_scan(ForeignScanState *node) {
     ExecClearTuple(slot);
 
     // Get the next record, if any, and fill in the slot.
-    for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; attr_idx++) {
+    for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; ++attr_idx) {
         // char *attr_name = NameStr(
         //     TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->attname);
 
@@ -404,7 +404,7 @@ extern "C" void gaia_add_foreign_update_targets(
     //
     // Loop through all columns of the foreign table.
     bool key_found = false;
-    for (int i = 0; i < tupleDesc->natts; i++) {
+    for (int i = 0; i < tupleDesc->natts; ++i) {
         Form_pg_attribute attr = TupleDescAttr(tupleDesc, i);
         char *attr_name = NameStr(attr->attname);
 
@@ -543,7 +543,7 @@ extern "C" void gaia_begin_foreign_modify(
     }
 
     // Set up mapping of attnos to flatbuffer attribute builder functions.
-    for (int i = 0; i < tupleDesc->natts; i++) {
+    for (int i = 0; i < tupleDesc->natts; ++i) {
         // User attributes are indexed starting from 1.
         // AttrNumber attnum = i + 1.
         char *attr_name = NameStr(TupleDescAttr(tupleDesc, i)->attname);
@@ -600,7 +600,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_insert(
     // be empty!).
     // TODO: use slot_getattr()?
     slot_getallattrs(slot);
-    for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; attr_idx++) {
+    for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; ++attr_idx) {
         // char *attr_name = NameStr(
         //     TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->attname);
 
@@ -677,7 +677,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_update(
     // be empty!).
     // TODO: use slot_getattr()?
     slot_getallattrs(slot);
-    for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; attr_idx++) {
+    for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; ++attr_idx) {
         if (!(slot->tts_isnull[attr_idx])) {
             Datum attr_val = slot->tts_values[attr_idx];
 
