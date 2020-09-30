@@ -22,7 +22,7 @@ namespace { // Use unnamed namespace to restrict external linkage.
 // The regular expression pattern to match everything.
 constexpr char c_match_all_pattern[] = ".*";
 
-// Character literals for slash command parsing.
+// Character literals for meta command parsing.
 constexpr char c_describe_command = 'd';
 constexpr char c_generate_command = 'g';
 constexpr char c_list_command = 'l';
@@ -357,8 +357,9 @@ string command_usage() {
 } // namespace
 
 void handle_slash_command(const string& cmd) {
-    retail_assert(!cmd.empty(), "Slash command should not be empty.");
-    retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix, "Slash command should start with a backslash.");
+    retail_assert(!cmd.empty(), "Meta command should not be empty.");
+    retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix,
+                  "Meta command should start with a '" + string(1, c_command_prefix) + "'.");
 
     if (cmd.length() < c_cmd_minimum_length) {
         throw invalid_command(cmd);
