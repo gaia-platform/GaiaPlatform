@@ -220,7 +220,7 @@ protected:
     // 0-based index of gaia_id attribute in tuple descriptor.
     int m_pk_attr_idx;
 
-    gaia_type_t m_gaia_type_id;
+    gaia_type_t m_gaia_container_id;
 };
 
 }
