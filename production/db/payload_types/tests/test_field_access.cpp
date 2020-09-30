@@ -39,7 +39,7 @@ const int64_t c_new_known_associate = 7234958243;
 const size_t c_new_count_known_associates = 6;
 
 const size_t c_count_known_aliases = 4;
-constexpr char* const c_known_aliases[] = { "Mamba Lev", "One Hand Rending", "The Ice", "Ken Kakura" };
+constexpr const char* const c_known_aliases[] = { "Mamba Lev", "One Hand Rending", "The Ice", "Ken Kakura" };
 const size_t c_index_new_known_alias = 2;
 constexpr char c_new_known_alias[] = "The Icepick";
 const size_t c_new_count_known_aliases = 7;

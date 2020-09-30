@@ -21,10 +21,11 @@
 #include <string>
 #include <sstream>
 
+#include "scope_guard.hpp"
+#include "system_error.hpp"
 #include "gaia_common.hpp"
 #include "gaia_db.hpp"
 #include "gaia_db_internal.hpp"
-#include "types.hpp"
 #include "gaia_exception.hpp"
 #include "retail_assert.hpp"
 

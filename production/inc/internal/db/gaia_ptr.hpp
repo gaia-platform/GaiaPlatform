@@ -10,6 +10,7 @@
 
 #include "retail_assert.hpp"
 #include "gaia_db.hpp"
+#include "gaia_db_internal.hpp"
 #include "gaia_se_object.hpp"
 #include "type_metadata.hpp"
 

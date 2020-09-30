@@ -5,7 +5,7 @@
 #pragma once
 
 #include "events.hpp"
-#include <stdint.h>
+#include <cstdint>
 #include <vector>
 #include <memory>
 #include <atomic>
@@ -18,11 +18,11 @@
 
 using namespace gaia::common;
 
-namespace gaia 
+namespace gaia
 {
 namespace db
 {
-namespace triggers 
+namespace triggers
 {
 // Class used to clean up resources per thread.
 // Begin_session() is not invoked in the constructor as the SE server may not be up yet.
@@ -37,12 +37,12 @@ class session_destructor {
 /**
  * Threadpool used to enque trigger event execution callbacks to the Rules Engine.
  * Todo (msj) Make this threadpool generic to handle waitable tasks too.
- */ 
+ */
 class event_trigger_threadpool_t {
     private:
         // Rules engine needs access to this variable.
         static commit_trigger_fn s_tx_commit_trigger;
-        
+
         // Flag serves as a way to create a server session.
         thread_local static bool session_active;
 
@@ -65,8 +65,8 @@ class event_trigger_threadpool_t {
                 task();
             }
         }
- 
-        public: 
+
+        public:
             event_trigger_threadpool_t() {
                 has_execution_completed = false;
                 for (uint32_t i = 0; i < std::thread::hardware_concurrency(); i++) {
@@ -82,8 +82,8 @@ class event_trigger_threadpool_t {
             }
 
             /**
-            * Invoked by the Rules Engine on system initialization. 
-            */ 
+            * Invoked by the Rules Engine on system initialization.
+            */
             static void set_commit_trigger(commit_trigger_fn commit_trigger) {
                 s_tx_commit_trigger = commit_trigger;
             }
@@ -103,7 +103,7 @@ class event_trigger_threadpool_t {
                 tasks.push([=] () {
                     s_tx_commit_trigger(transaction_id, events);
                 });
-            }        
+            }
     };
 }
 }
