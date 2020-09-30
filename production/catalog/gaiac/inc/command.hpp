@@ -12,12 +12,10 @@
 
 inline constexpr char c_command_prefix = '\\';
 
-using namespace gaia::common;
-
 /**
  * Thrown when the given command is invalid
  */
-class invalid_command : public gaia_exception {
+class invalid_command : public gaia::common::gaia_exception {
   public:
     invalid_command(const string& cmd) {
         stringstream message;
