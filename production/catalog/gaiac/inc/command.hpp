@@ -16,7 +16,7 @@ inline constexpr char c_command_prefix = '\\';
  * Thrown when the given command is invalid
  */
 class invalid_command : public gaia::common::gaia_exception {
-  public:
+public:
     invalid_command(const string& cmd) {
         stringstream message;
         message << "Invalid command: " << cmd << ".";
@@ -25,8 +25,9 @@ class invalid_command : public gaia::common::gaia_exception {
 
     invalid_command(const string& cmd, const regex_error& error) {
         stringstream message;
-        message << "Invalid command: " << cmd << ". "
-                << "Regular expression error " << error.code() << ": " << error.what() << ".";
+        message
+            << "Invalid command: " << cmd << ". "
+            << "Regular expression error " << error.code() << ": " << error.what() << ".";
         m_message = message.str();
     }
 };

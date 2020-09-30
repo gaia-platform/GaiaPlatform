@@ -41,7 +41,6 @@ void start_repl(parser_t& parser, const string& dbname) {
     const auto prompt = "gaiac> ";
     const auto exit_command = "exit";
 
-    // NOTE: all REPL outputs including error messages go to standarad output.
     while (true) {
         string line;
         cout << prompt << flush;
@@ -60,12 +59,10 @@ void start_repl(parser_t& parser, const string& dbname) {
             if (parsing_result == EXIT_SUCCESS) {
                 execute(dbname, parser.statements);
             } else {
-                cout << c_error_prompt << "Invalid input." << endl
-                     << flush;
+                cerr << c_error_prompt << "Invalid input." << endl;
             }
         } catch (gaia_exception& e) {
-            cout << c_error_prompt << e.what() << endl
-                 << flush;
+            cerr << c_error_prompt << e.what() << endl;
         }
     }
 

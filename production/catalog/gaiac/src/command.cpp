@@ -26,7 +26,13 @@ constexpr char c_match_all_pattern[] = ".*";
 constexpr char c_describe_command = 'd';
 constexpr char c_generate_command = 'g';
 constexpr char c_list_command = 'l';
+constexpr char c_help_command = 'h';
 constexpr char c_command_separator = ' ';
+
+constexpr char c_db_subcommand = 'd';
+constexpr char c_table_subcommand = 't';
+constexpr char c_field_subcommand = 'f';
+constexpr char c_ref_subcommand = 'r';
 
 // Misc size and index constants that are used to parse command strings.
 constexpr size_t c_cmd_minimum_length = 2;
@@ -213,8 +219,8 @@ regex parse_pattern(const string& cmd, size_t pos) {
 }
 
 string parse_name(const string& cmd, size_t pos, bool throw_on_empty = true) {
-    if (!throw_on_empty &&
-        cmd.find_first_not_of(c_command_separator, pos) == string::npos) {
+    if (!throw_on_empty
+        && cmd.find_first_not_of(c_command_separator, pos) == string::npos) {
         return "";
     }
     if (cmd.length() <= pos) {
@@ -239,11 +245,11 @@ void handle_describe_command(const string& cmd) {
     case c_command_separator:
         describe_table(parse_name(cmd, c_subcommand_index));
         break;
-    case 'd':
+    case c_db_subcommand:
         // Describe database can take an empty db name.
         describe_database(parse_name(cmd, c_subcommand_index + 1, false));
         break;
-    case 't':
+    case c_table_subcommand:
         describe_table(parse_name(cmd, c_subcommand_index + 1));
         break;
     default:
@@ -264,16 +270,16 @@ void handle_list_command(const string& cmd) {
     case c_command_separator:
         list_tables(parse_pattern(cmd, c_subcommand_index));
         break;
-    case 'd':
+    case c_db_subcommand:
         list_databases(parse_pattern(cmd, c_subcommand_index + 1));
         break;
-    case 'f':
+    case c_field_subcommand:
         list_fields(parse_pattern(cmd, c_subcommand_index + 1));
         break;
-    case 'r':
+    case c_ref_subcommand:
         list_references(parse_pattern(cmd, c_subcommand_index + 1));
         break;
-    case 't':
+    case c_table_subcommand:
         list_tables(parse_pattern(cmd, c_subcommand_index + 1));
         break;
     default:
@@ -305,20 +311,46 @@ void handle_generate_command(const string& cmd) {
 }
 #endif
 
+inline string optionalize(const string& s) {
+    return "[" + s + "]";
+}
+
+inline string optionalize(const char c) {
+    return optionalize(string(1, c));
+}
+
 string command_usage() {
     std::stringstream ss;
-    ss << "Usage\n"
-          "  \\dd   NAME      Describe the database of the given NAME.\n"
-          "  \\d[t] NAME      Describe the table of the given NAME.\n"
-          "  \\ld   [PATTERN] List databases optionally filtering by the PATTERN.\n"
-          "  \\lf   [PATTERN] List data fields optionally filtering by the PATTERN.\n"
-          "  \\lr   [PATTERN] List references optionally filtering by the PATTERN.\n"
-          "  \\l[t] [PATTERN] List tables optionally filtering by the PATTERN.\n"
+    ss << "Usage\n";
+
+    const string name = "NAME";
+    const string pattern = "PATTERN";
+
+    tabulate::Table output_table;
+    output_table.add_row({string() + c_command_prefix + c_describe_command + c_db_subcommand,
+        optionalize(name), "Describe the database of the given " + name + "."});
+    output_table.add_row({"", "", "Without specifying a name, it will show tables in the " + c_global_db_name + " database."});
+    output_table.add_row({string() + c_command_prefix + c_describe_command + optionalize(c_table_subcommand),
+        name, "Describe the table of the given " + name + "."});
+    output_table.add_row({string() + c_command_prefix + c_list_command + c_db_subcommand,
+        optionalize(pattern), "List databases optionally filtering by the " + pattern + "."});
+    output_table.add_row({string() + c_command_prefix + c_list_command + c_field_subcommand,
+        optionalize(pattern), "List data fields optionally filtering by the " + pattern + "."});
+    output_table.add_row({string() + c_command_prefix + c_list_command + c_ref_subcommand,
+        optionalize(pattern), "List references optionally filtering by the " + pattern + "."});
+    output_table.add_row({string() + c_command_prefix + c_list_command + optionalize(c_table_subcommand),
+        optionalize(pattern), "List tables optionally filtering by the " + pattern + "."});
 #ifdef DEBUG
-          "  \\g[d] NAME      Generate fbs for a given database.\n"
-          "  \\gt   NAME      Generate fbs for a given table.\n"
+    output_table.add_row({string() + c_command_prefix + c_generate_command + optionalize(c_db_subcommand),
+        name, "Generate fbs for a given database."});
+    output_table.add_row({string() + c_command_prefix + c_generate_command + c_table_subcommand,
+        name, "Generate fbs for a given database."});
 #endif
-          "  \\h              Print help information.\n";
+    output_table.add_row({string() + c_command_prefix + c_help_command,
+        "", "Print help information."});
+
+    output_table.format().hide_border();
+    output_table.print(ss);
     return ss.str();
 }
 
