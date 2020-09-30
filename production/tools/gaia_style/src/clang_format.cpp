@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gaia_format.hpp"
+#include "clang_format.hpp"
 
 #include "gaia_common.hpp"
 #include "gaia_db.hpp"

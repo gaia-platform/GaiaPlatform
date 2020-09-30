@@ -3,8 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#ifndef PRODUCTION_CLANG_TIDY_H
-#define PRODUCTION_CLANG_TIDY_H
+#ifndef PRODUCTION_CLANG_TIDY_HPP
+#define PRODUCTION_CLANG_TIDY_HPP
 
 #include <exception>
 #include "gaia_common.hpp"
@@ -16,7 +16,7 @@ using namespace std;
 constexpr int constant_global = 2;
 
 // should have c_ prefix
-extern const int extern_constant = 6;
+extern const int c_extern_constant = 6;
 
 // should have g_ prefix
 extern int global;
@@ -82,4 +82,4 @@ int value_template() {
 }
 
 } // namespace Gaia
-#endif //PRODUCTION_CLANG_TIDY_H
+#endif //PRODUCTION_CLANG_TIDY_HPP

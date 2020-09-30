@@ -3,9 +3,9 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#ifndef PRODUCTION_GAIA_FORMAT_HPP
-#define PRODUCTION_GAIA_FORMAT_HPP
+#ifndef PRODUCTION_CLANG_FORMAT_HPP
+#define PRODUCTION_CLANG_FORMAT_HPP
 
 constexpr int c_something = 1;
 
-#endif //PRODUCTION_GAIA_FORMAT_HPP
+#endif //PRODUCTION_CLANG_FORMAT_HPP

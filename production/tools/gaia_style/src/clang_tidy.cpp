@@ -3,10 +3,10 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "clang_tidy.h"
+#include "clang_tidy.hpp"
 
-#include <iostream>
 #include <cstdlib>
+#include <iostream>
 
 // should use constexpr
 #define PI 3.14
@@ -45,6 +45,21 @@ void no_malloc() {
     char* some_string = (char*) malloc(sizeof(char) * 20);
     free(some_string);
 }
+
+
+void pure_anarchy() {
+    // Next three statements will not produce warnings
+    int i = 42; // NOLINT
+
+    // NOLINTNEXTLINE
+    int j = 42;
+
+    int y = 42; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+
+    // produces a warning, the actual check that fail is: cppcoreguidelines-avoid-magic-numbers
+    int k = 42; // NOLINT(google-runtime-operator)
+}
+
 
 int main(int argc, char* argv[])
 {
