@@ -184,6 +184,11 @@ add_subdirectory(${ROCKSDB} rocksdb)
 add_subdirectory(${FLATBUFFERS} flatbuffers)
 set_property (TARGET flatbuffers PROPERTY POSITION_INDEPENDENT_CODE ON)
 
+include(ExternalProject)
+set(DEPENDENCIES_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/deps)
+# Add tabulate
+add_subdirectory("${GAIA_REPO}/third_party/production/tabulate" tabulate)
+
 # Add individual component folders.
 add_subdirectory(common)
 add_subdirectory(db)
