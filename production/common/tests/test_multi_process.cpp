@@ -82,8 +82,10 @@ protected:
     static void after_fork() {
         gaia_log::initialize({});
     }
+    // The effect is the logger will be shut down before the fork, then both
+    // parent and child will initialize their own logger.
     static void SetUpTestSuite() {
-        pthread_atfork(before_fork, after_fork, NULL);
+        pthread_atfork(before_fork, after_fork, after_fork);
     }
     void SetUp() override {
         reset_server();
@@ -225,9 +227,9 @@ TEST_F(gaia_multi_process_test, multi_process_inserts) {
         begin_session();
 
         // EXCHANGE 1: serialized transactions.
-
         // Wait for the "go".
         if (sem_timedwait(sem_go_child, &timeout) == -1) {
+            gaia_log::db().error("Exiting child process, pid={}: semaphore timeout", getpid());
             exit(1);
         }
 
@@ -238,7 +240,7 @@ TEST_F(gaia_multi_process_test, multi_process_inserts) {
             commit_transaction();
         }
         catch (gaia_exception& e) {
-            cerr << "Error in child process: " << e.what() << endl;
+            gaia_log::db().error("Exiting child process, pid={}: exception: {}", getpid(), e.what());
             exit(2);
         }
 
@@ -247,6 +249,7 @@ TEST_F(gaia_multi_process_test, multi_process_inserts) {
 
         // EXCHANGE 2: concurrent transactions.
         if (sem_timedwait(sem_go_child, &timeout) == -1) {
+            gaia_log::db().error("Exiting child process, pid={}: semaphore timeout", getpid());
             exit(3);
         }
 
@@ -256,7 +259,7 @@ TEST_F(gaia_multi_process_test, multi_process_inserts) {
             commit_transaction();
         }
         catch (gaia_exception& e) {
-            cerr << "Error in child process: " << e.what() << endl;
+            gaia_log::db().error("Exiting child process, pid={}: exception: {}", getpid(), e.what());
             exit(4);
         }
 
@@ -357,6 +360,7 @@ TEST_F(gaia_multi_process_test, multi_process_aborts) {
 
         // Wait for the "go".
         if (sem_timedwait(sem_go_child, &timeout) == -1) {
+            gaia_log::db().error("Exiting child process, pid={}: semaphore timeout", getpid());
             exit(1);
         }
 
@@ -369,7 +373,7 @@ TEST_F(gaia_multi_process_test, multi_process_aborts) {
             commit_transaction();
         }
         catch (gaia_exception& e) {
-            cerr << "Error in child process: " << e.what() << endl;
+            gaia_log::db().error("Exiting child process, pid={}: exception: {}", getpid(), e.what());
             exit(2);
         }
 
@@ -378,6 +382,7 @@ TEST_F(gaia_multi_process_test, multi_process_aborts) {
 
         // EXCHANGE 2: concurrent transactions.
         if (sem_timedwait(sem_go_child, &timeout) == -1) {
+            gaia_log::db().error("Exiting child process, pid={}: semaphore timeout", getpid());
             exit(3);
         }
 
@@ -387,7 +392,7 @@ TEST_F(gaia_multi_process_test, multi_process_aborts) {
             commit_transaction();
         }
         catch (gaia_exception& e) {
-            cerr << "Error in child process: " << e.what() << endl;
+            gaia_log::db().error("Exiting child process, pid={}: exception: {}", getpid(), e.what());
             exit(4);
         }
 
@@ -456,7 +461,7 @@ TEST_F(gaia_multi_process_test, multi_process_conflict) {
 
         // Wait for the "go".
         if (sem_timedwait(sem_go_child, &timeout) == -1) {
-            end_session();
+            gaia_log::db().error("Exiting child process, pid={}: semaphore timeout", getpid());
             exit(1);
         }
 
@@ -470,7 +475,7 @@ TEST_F(gaia_multi_process_test, multi_process_conflict) {
             commit_transaction();
         }
         catch (gaia_exception& e) {
-            cerr << "Error in child process: " << e.what() << endl;
+            gaia_log::db().error("Exiting child process, pid={}: exception: {}", getpid(), e.what());
             exit(2);
         }
 
@@ -538,6 +543,7 @@ TEST_F(gaia_multi_process_test, multi_process_commit) {
 
         // Wait for the "go".
         if (sem_timedwait(sem_go_child, &timeout) == -1) {
+            gaia_log::db().error("Exiting child process, pid={}: semaphore timeout", getpid());
             exit(1);
         }
 
@@ -551,7 +557,7 @@ TEST_F(gaia_multi_process_test, multi_process_commit) {
             commit_transaction();
         }
         catch (gaia_exception& e) {
-            cerr << "Error in child process: " << e.what() << endl;
+            gaia_log::db().error("Exiting child process, pid={}: exception: {}", getpid(), e.what());
             exit(2);
         }
 
