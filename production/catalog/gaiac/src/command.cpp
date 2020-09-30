@@ -298,11 +298,11 @@ void handle_generate_command(const string& cmd) {
         // Generate fbs can take an empty db name.
         cout << generate_fbs(parse_name(cmd, c_subcommand_index, false)) << endl;
         break;
-    case 'd':
+    case c_db_subcommand:
         // Generate fbs can take an empty db name.
         cout << generate_fbs(parse_name(cmd, c_subcommand_index + 1, false)) << endl;
         break;
-    case 't':
+    case c_table_subcommand:
         generate_table_fbs(parse_name(cmd, c_subcommand_index + 1));
         break;
     default:
@@ -375,9 +375,8 @@ void handle_slash_command(const string& cmd) {
         handle_generate_command(cmd);
         break;
 #endif
-    case 'h':
-        cout << command_usage() << endl
-             << flush;
+    case c_help_command:
+        cout << command_usage() << endl;
         break;
     default:
         throw gaia_exception("Invalid command " + string(cmd));
