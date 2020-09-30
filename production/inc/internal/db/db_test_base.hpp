@@ -34,6 +34,7 @@ private:
 protected:
 
     static void SetUpTestSuite() {
+        gaia_log::initialize({});
     }
 
     db_test_base_t(bool client_manages_session) : m_client_manages_session(client_manages_session) {

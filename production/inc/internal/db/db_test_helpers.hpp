@@ -29,14 +29,12 @@ void remove_persistent_store() {
     ::system(cmd.c_str());
 }
 
-void wait_for_server_init(bool init_logger) {
+void wait_for_server_init() {
     constexpr int c_poll_interval_millis = 10;
     int counter = 0;
 
     // quick fix to initialize the server.
-    if (init_logger) {
-        gaia_log::initialize({});
-    }
+    gaia_log::initialize({});
 
     // Wait for server to initialize.
     while (true) {
@@ -45,9 +43,7 @@ void wait_for_server_init(bool init_logger) {
         } catch (system_error& ex) {
             if (ex.get_errno() == ECONNREFUSED) {
                 if (counter % 1000 == 0) {
-                    if (init_logger) {
-                        gaia_log::sys().warn("Cannot connect to Gaia Server, you may need to start the gaia_se_server process");
-                    }
+                    gaia_log::sys().warn("Cannot connect to Gaia Server, you may need to start the gaia_se_server process");
                     counter = 1;
                 } else {
                     counter++;
@@ -66,7 +62,7 @@ void wait_for_server_init(bool init_logger) {
     end_session();
 }
 
-void reset_server(bool init_logger = true) {
+void reset_server() {
     // We need to allow enough time after the signal is sent for the process to
     // receive and process the signal.
     constexpr int c_wait_signal_millis = 10;
@@ -81,7 +77,7 @@ void reset_server(bool init_logger = true) {
     // (Otherwise, a new session might be accepted after the signal has been sent
     // but before the server has been reinitialized.)
     std::this_thread::sleep_for(std::chrono::milliseconds(c_wait_signal_millis));
-    wait_for_server_init(init_logger);
+    wait_for_server_init();
 }
 
 class db_server_t {
@@ -100,7 +96,7 @@ class db_server_t {
 
         // Wait for server to initialize.
         cerr << "Waiting for server to initialize..." << endl;
-        wait_for_server_init(true);
+        wait_for_server_init();
         m_server_started = true;
     }
 

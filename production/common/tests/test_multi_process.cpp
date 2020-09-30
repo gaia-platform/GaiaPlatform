@@ -72,8 +72,21 @@ protected:
     sem_t* sem_go_child;
     sem_t* sem_go_parent;
     timespec timeout;
+    // It's necessary to shut down logging before the fork() because the
+    // child process inherits the initialized logger object, which cannot
+    // properly shut down when the child exits.
+    static void before_fork() {
+        gaia_log::shutdown();
+    }
+    // This allows the parent process to use the logger.
+    static void after_fork() {
+        gaia_log::initialize({});
+    }
+    static void SetUpTestSuite() {
+        pthread_atfork(before_fork, after_fork, NULL);
+    }
     void SetUp() override {
-        reset_server(false);
+        reset_server();
         sem_unlink(c_go_child);
         sem_unlink(c_go_parent);
     }
