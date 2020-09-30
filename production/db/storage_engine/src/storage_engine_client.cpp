@@ -4,6 +4,7 @@
 /////////////////////////////////////////////
 
 #include "storage_engine_client.hpp"
+
 #include "system_table_types.hpp"
 
 using namespace gaia::common;

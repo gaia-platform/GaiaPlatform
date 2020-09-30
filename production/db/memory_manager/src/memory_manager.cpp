@@ -12,7 +12,7 @@
 
 #include "retail_assert.hpp"
 
-#include "types.hpp"
+#include "memory_types.hpp"
 #include "access_control.hpp"
 
 using namespace std;
@@ -135,7 +135,7 @@ error_code_t memory_manager_t::commit_stack_allocator(
     else
     {
         // Iterate over all stack_allocator_t allocations and collect old memory offsets in free memory records.
-        for (size_t allocation_number = 1; allocation_number <= count_allocations; allocation_number++)
+        for (size_t allocation_number = 1; allocation_number <= count_allocations; ++allocation_number)
         {
             stack_allocator_allocation_t* allocation_record = stack_allocator->get_allocation_record(allocation_number);
             retail_assert(allocation_record != nullptr, "An unexpected null allocation record was retrieved!");

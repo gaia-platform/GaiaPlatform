@@ -7,7 +7,7 @@
 
 #include <stdint.h>
 
-#include "types.hpp"
+#include "memory_types.hpp"
 #include "access_control.hpp"
 
 namespace gaia

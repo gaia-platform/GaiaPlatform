@@ -236,7 +236,7 @@ protected:
     }
 
     // Ensure SetUp and TearDown don't do anything.  When we run the test
-    // directly, we only want SetUpTestSuite and TearDownTestSuite 
+    // directly, we only want SetUpTestSuite and TearDownTestSuite
     void SetUp() override {}
 
     void TearDown() override {
@@ -256,7 +256,7 @@ TEST_F(rule_integration_test, test_insert)
         writer.insert_row();
         g_start = g_timer.get_time_point();
         tx.commit();
-        
+
     }
 
     // Make sure the address was added and updated by the
@@ -301,7 +301,7 @@ TEST_F(rule_integration_test, test_update)
             writer.update_row();
         g_start = g_timer.get_time_point();
         tx.commit();
-        
+
     }
 }
 

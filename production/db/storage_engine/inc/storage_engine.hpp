@@ -26,7 +26,6 @@
 #include "gaia_common.hpp"
 #include "gaia_db.hpp"
 #include "gaia_exception.hpp"
-#include "types.hpp"
 #include "retail_assert.hpp"
 
 namespace gaia {
@@ -119,7 +118,7 @@ class se_base {
     static log* get_txn_log() {
         return s_log;
     }
-    
+
     static inline int64_t allocate_row_id(offsets* offsets, data* s_data, bool invoked_by_server = false) {
         if (invoked_by_server) {
             retail_assert(offsets, "Server offsets should be non-null");

@@ -3,6 +3,22 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+// NOTE to future generatons:
+// This test spawns child processes to serve as a second user in the database.
+// The child must be "clean" in the sense that it cannot be started with
+// handles and threads from the parent process that require separate cleanup.
+// For this reason, it purposely does not initialize the logger, which
+// spawns a pool of threads that interfere with the child process as it tries
+// to exit.
+//
+// A better solution may be to create a separate program than can be started
+// by this test program.
+//
+// If this test starts hanging while it runs, it is probably another form of
+// this same issue.
+//
+// Please delete this note after you fix this.
+
 #include <iostream>
 #include <cstdlib>
 #include <thread>
@@ -57,7 +73,7 @@ protected:
     sem_t* sem_go_parent;
     timespec timeout;
     void SetUp() override {
-        reset_server();
+        reset_server(false);
         sem_unlink(c_go_child);
         sem_unlink(c_go_parent);
     }
