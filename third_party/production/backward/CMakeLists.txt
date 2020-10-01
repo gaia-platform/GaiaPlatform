@@ -2,14 +2,14 @@
 # "libdw provides access to DWARF debug information stored inside ELF files."
 find_library(LIBDW_LIBRARY dw REQUIRED)
 
-message(STATUS "Looking for backward dependency")
+message(CHECK_START "Looking for backward")
 find_package(Backward QUIET CONFIG)
 if (Backward_FOUND)
-  message(STATUS "Looking for backward dependency -- found")
+  message(CHECK_PASS "found")
   add_library(backward INTERFACE)
   target_link_libraries(backward INTERFACE Backward::Backward)
 else ()
-  message(STATUS "Looking for backward dependency -- not found")
+  message(CHECK_FAIL "not found")
   set(BACKWARD_VERSION "1.5")
   set(BACKWARD_ROOT ${DEPENDENCIES_INSTALL_PREFIX}/backward)
   add_library(backward INTERFACE)
