@@ -56,6 +56,16 @@ void append_context_option_names(Oid context_id, StringInfoData& string_info)
     }
 }
 
+void adapter_t::begin_session()
+{
+    gaia::db::begin_session();
+}
+
+void adapter_t::end_session()
+{
+    gaia::db::end_session();
+}
+
 bool adapter_t::is_transaction_open()
 {
     assert(s_transaction_reference_count >= 0);
@@ -100,10 +110,13 @@ bool adapter_t::commit_transaction()
     return closed_transaction;
 }
 
-// Generate random gaia_id for INSERTs using /dev/urandom.
-// NB: because this is a 64-bit value, we will expect collisions
-// as the number of generated keys approaches 2^32! This is just
-// a temporary hack until the gaia_id type becomes a 128-bit GUID.
+bool adapter_t::is_gaia_id_name(const char* name)
+{
+    static const char* const c_gaia_id = "gaia_id";
+
+    return strcmp(c_gaia_id, name) == 0;
+}
+
 uint64_t adapter_t::get_new_gaia_id()
 {
     return gaia_ptr::generate_id();
@@ -297,7 +310,7 @@ bool modify_state_t::set_builder_index(const char* builder_name, size_t builder_
 
             m_indexed_builders[builder_index] = m_mapping->attributes[i].builder;
 
-            if (strcmp(builder_name, c_gaia_id) == 0)
+            if (adapter_t::is_gaia_id_name(builder_name))
             {
                 m_pk_attr_idx = builder_index;
             }
