@@ -210,11 +210,14 @@ int main(int argc, char* argv[]) {
                 generate_headers(db_name, output_path);
             }
             gaia::db::end_session();
+        } catch (gaia::common::system_error& e) {
+            cerr << c_error_prompt << e.what() << endl;
+            if (e.get_errno() == ECONNREFUSED) {
+                cerr << "Unable to connect to the storage engine server." << endl;
+            }
+            res = EXIT_FAILURE;
         } catch (gaia_exception& e) {
             cerr << c_error_prompt << e.what() << endl;
-            if (string(e.what()).find("connect failed") != string::npos) {
-                cerr << "May need to start the storage engine server." << endl;
-            }
             res = EXIT_FAILURE;
         }
     }
