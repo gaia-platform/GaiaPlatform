@@ -190,6 +190,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   # Add backward for debug build
   add_subdirectory("${GAIA_REPO}/third_party/production/backward" backward)
 endif()
+# Add spdlog_setup
+add_subdirectory("${GAIA_REPO}/third_party/production/spdlog_setup" spdlog_setup)
 # Add tabulate
 add_subdirectory("${GAIA_REPO}/third_party/production/tabulate" tabulate)
 

@@ -27,6 +27,8 @@ target_link_libraries(gaia_common fmt::fmt)
 find_package(spdlog REQUIRED)
 target_link_libraries(gaia_common spdlog::spdlog)
 
+target_link_libraries(gaia_common spdlog_setup)
+
 # SYSLOG logging is temporarily disabled: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-387
 # (To enable syslog logging -DSPDLOG_ENABLE_SYSLOG)
 set_target_properties(gaia_common PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -DSPDLOG_FMT_EXTERNAL")
