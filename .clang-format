@@ -12,6 +12,9 @@ PointerAlignment: Left
 # Align public/final/protected on the left.
 AccessModifierOffset: -4
 
+AlignOperands: AlignAfterOperator
+BreakBeforeBinaryOperators: All
+
 # Parenthesis placement. Stroustrup style puts the braces on the new line (Laurentiu/Dax way)
 BreakBeforeBraces: Allman
 # https://stackoverflow.com/questions/29477654/how-to-make-clang-format-add-new-line-before-opening-brace-of-a-function
@@ -20,7 +23,7 @@ BreakBeforeBraces: Allman
 AllowAllConstructorInitializersOnNextLine: true
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 BreakConstructorInitializers: BeforeColon
-ConstructorInitializerIndentWidth: 2
+ConstructorInitializerIndentWidth: 4
 
 AllowShortFunctionsOnASingleLine: None
 
@@ -35,5 +38,5 @@ BinPackParameters: false
 IncludeBlocks: Regroup
 
 KeepEmptyLinesAtTheStartOfBlocks: false
-SpaceAfterCStyleCast: true
+SpaceAfterCStyleCast: false
 

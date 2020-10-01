@@ -24,9 +24,9 @@ class class_name_t
 {
 public:
     class_name_t(int private_member1, int private_member2, int private_member3)
-      : m_private_member1(private_member1),
-        m_private_member2(private_member2),
-        m_private_member3(private_member3){};
+        : m_private_member1(private_member1),
+          m_private_member2(private_member2),
+          m_private_member3(private_member3){};
 
     int method_name(int argument);
 
@@ -57,10 +57,10 @@ double class_name_t::method_with_many_arguments(
     double arg3,
     long long int arg4)
 {
-    return arg1 +
-           arg2 +
-           arg3 +
-           arg4;
+    return arg1
+         + arg2
+         + arg3
+         + arg4;
 }
 
 void short_statements()
@@ -93,9 +93,7 @@ void short_lambdas()
 
 std::string continue_indentation_width()
 {
-    std::string s("Something " +
-                  std::string("plus" +
-                              std::string("something else")));
+    std::string s("Something " + std::string("plus" + std::string("something else")));
     return s;
 }
 
@@ -114,7 +112,7 @@ void braced_style()
 int space_after_c_cast()
 {
     double var = 3.14;
-    return (int) var;
+    return (int)var;
 }
 
 bool space_after_not()

@@ -3,8 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#ifndef PRODUCTION_CLANG_TIDY_HPP
-#define PRODUCTION_CLANG_TIDY_HPP
+#pragma once
 
 #include "gaia_common.hpp"
 
@@ -32,7 +31,7 @@ class clang_tidy
 {
     // Single-argument constructors must be marked explicit to avoid unintentional implicit conversions
     clang_tidy(int _member)
-      : member(_member){};
+        : member(_member){};
 
     // wrong casing
     void Method();
@@ -82,4 +81,3 @@ int value_template()
 }
 
 } // namespace Gaia
-#endif //PRODUCTION_CLANG_TIDY_HPP

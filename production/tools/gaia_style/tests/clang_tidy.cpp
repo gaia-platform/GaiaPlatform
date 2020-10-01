@@ -43,9 +43,17 @@ void narrowing_conversion()
 
 void no_malloc()
 {
+    // do not use c-style cast to convert between unrelated types
     // use container or smart pointer
-    char* some_string = (char*) malloc(sizeof(char) * 20);
+    char* some_string = (char*)malloc(sizeof(char) * 20);
     free(some_string);
+}
+
+int no_c_style_casts()
+{
+    double var = 3.14;
+    // avoid c-style cast
+    return (int)var;
 }
 
 void pure_anarchy()
