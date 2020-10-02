@@ -32,23 +32,9 @@ private:
     bool m_client_manages_session;
 
 protected:
-    static void reset_server() {
-        // We need to drop all client references to shared memory before resetting the server.
-        // NB: this cannot be called within an active session!
-        clear_shared_memory();
-        // Reinitialize the server (forcibly disconnects all clients and clears database).
-        // Resetting the server will cause Recovery to be skipped. Recovery will only occur post 
-        // server process reboot. 
-        ::system((std::string("pkill -f -HUP ") + SE_SERVER_NAME).c_str());
-        // Wait a bit for the server's listening socket to be closed.
-        // (Otherwise, a new session might be accepted after the signal has been sent
-        // but before the server has been reinitialized.)
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        // WLW Note: This is temporary.
-        string boot_file_name(PERSISTENT_DIRECTORY_PATH);
-        boot_file_name += "/boot_parameters.bin";
-        unlink(boot_file_name.c_str());
-        wait_for_server_init();
+
+    static void SetUpTestSuite() {
+        gaia_log::initialize({});
     }
 
     db_test_base_t(bool client_manages_session) : m_client_manages_session(client_manages_session) {

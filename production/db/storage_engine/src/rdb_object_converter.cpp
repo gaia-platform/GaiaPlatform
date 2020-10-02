@@ -4,6 +4,7 @@
 /////////////////////////////////////////////
 
 #include "rdb_object_converter.hpp"
+
 #include "persistent_store_manager.hpp"
 #include "storage_engine.hpp"
 

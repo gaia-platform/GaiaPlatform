@@ -6,6 +6,7 @@
 #include "gtest/gtest.h"
 #include "rules.hpp"
 #include "db_test_base.hpp"
+#include "db_test_helpers.hpp"
 #include "rule_checker.hpp"
 #include "gaia_catalog.hpp"
 #include "gaia_catalog.h"
@@ -109,7 +110,7 @@ protected:
     // these functions will only be called once for all tests.
     static void SetUpTestSuite()
     {
-        db_test_base_t::reset_server();
+        reset_server();
         begin_session();
         load_catalog();
     }

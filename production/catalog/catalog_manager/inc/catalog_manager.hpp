@@ -57,7 +57,7 @@ class catalog_manager_t {
         const string &database_name,
         const string &table_name,
         const ddl::field_def_list_t &fields,
-        bool is_log = false,
+        bool is_system = false,
         bool throw_on_exist = true,
         gaia_type_t type = INVALID_GAIA_TYPE);
 

@@ -10,6 +10,7 @@
 #include "flatbuffers/idl.h"
 
 #include "catalog_manager.hpp"
+#include "command.hpp"
 #include "gaia_catalog_internal.hpp"
 #include "gaia_parser.hpp"
 #include "gaia_system.hpp"
@@ -22,8 +23,11 @@ using namespace gaia::catalog;
 using namespace gaia::catalog::ddl;
 using namespace gaia::db;
 
-static const string c_error_prompt = "ERROR: ";
-static const string c_warning_prompt = "WARNING: ";
+
+namespace { // Use unnamed namespace to restrict external linkage.
+
+const string c_error_prompt = "ERROR: ";
+const string c_warning_prompt = "WARNING: ";
 
 enum class operate_mode_t {
     interactive,
@@ -33,11 +37,11 @@ enum class operate_mode_t {
 
 void start_repl(parser_t& parser, const string& dbname) {
     gaia::db::begin_session();
+    initialize_catalog();
 
     const auto prompt = "gaiac> ";
     const auto exit_command = "exit";
 
-    // NOTE: all REPL outputs including error messages go to standarad output.
     while (true) {
         string line;
         cout << prompt << flush;
@@ -47,33 +51,24 @@ void start_repl(parser_t& parser, const string& dbname) {
         if (line == exit_command) {
             break;
         }
-        int parsing_result = parser.parse_line(line);
-        if (parsing_result == EXIT_SUCCESS) {
-            try {
-                execute(dbname, parser.statements);
-                cout << gaia::catalog::generate_fbs(dbname) << flush;
-            } catch (gaia_exception& e) {
-                cout << c_error_prompt << e.what() << endl
-                     << flush;
+        try {
+            if (line.length() > 0 && line.at(0) == c_command_prefix) {
+                handle_slash_command(line);
+                continue;
             }
-        } else {
-            cout << c_error_prompt << "Invalid input." << endl
-                 << flush;
+            int parsing_result = parser.parse_line(line);
+            if (parsing_result == EXIT_SUCCESS) {
+                execute(dbname, parser.statements);
+            } else {
+                cerr << c_error_prompt << "Invalid input." << endl;
+            }
+        } catch (gaia_exception& e) {
+            cerr << c_error_prompt << e.what() << endl;
         }
     }
 
     gaia::db::end_session();
 }
-
-namespace flatbuffers {
-void LogCompilerWarn(const std::string& warn) {
-    cerr << c_warning_prompt << warn << endl;
-}
-
-void LogCompilerError(const std::string& err) {
-    cerr << c_warning_prompt << err << endl;
-}
-} // namespace flatbuffers
 
 // From the database name and catalog contents, generate the FlatBuffers C++ header file(s).
 void generate_fbs_headers(const string& db_name, const string& output_path) {
@@ -139,6 +134,20 @@ string usage() {
     return ss.str();
 }
 
+} // namespace
+
+namespace flatbuffers {
+
+void LogCompilerWarn(const std::string& warn) {
+    cerr << c_warning_prompt << warn << endl;
+}
+
+void LogCompilerError(const std::string& err) {
+    cerr << c_warning_prompt << err << endl;
+}
+
+} // namespace flatbuffers
+
 int main(int argc, char* argv[]) {
     int res = EXIT_SUCCESS;
     db_server_t server;
@@ -192,6 +201,8 @@ int main(int argc, char* argv[]) {
     } else {
         try {
             gaia::db::begin_session();
+            initialize_catalog();
+
             if (!ddl_filename.empty()) {
                 db_name = load_catalog(parser, ddl_filename, db_name);
             }
@@ -200,11 +211,14 @@ int main(int argc, char* argv[]) {
                 generate_headers(db_name, output_path);
             }
             gaia::db::end_session();
+        } catch (gaia::common::system_error& e) {
+            cerr << c_error_prompt << e.what() << endl;
+            if (e.get_errno() == ECONNREFUSED) {
+                cerr << "Unable to connect to the storage engine server." << endl;
+            }
+            res = EXIT_FAILURE;
         } catch (gaia_exception& e) {
             cerr << c_error_prompt << e.what() << endl;
-            if (string(e.what()).find("connect failed") != string::npos) {
-                cerr << "May need to start the storage engine server." << endl;
-            }
             res = EXIT_FAILURE;
         }
     }

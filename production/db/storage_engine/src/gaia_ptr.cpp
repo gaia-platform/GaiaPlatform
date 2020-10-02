@@ -3,11 +3,11 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "gaia_ptr.hpp"
+
 #include "storage_engine.hpp"
 #include "storage_engine_client.hpp"
 #include "gaia_hash_map.hpp"
-#include "gaia_ptr.hpp"
-#include "types.hpp"
 #include "payload_diff.hpp"
 #include "field_list.hpp"
 #include "triggers.hpp"

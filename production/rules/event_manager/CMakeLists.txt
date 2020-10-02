@@ -3,9 +3,6 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.12)
-enable_testing()
-
 # Set the project name.
 project(event_manager)
 
@@ -26,7 +23,8 @@ set(GAIA_EVENT_MANAGER_INCLUDES
   ${GAIA_GENERATED_SCHEMAS}
   tests
 )
-message(STATUS "GAIA_EVENT_MANAGER_INCLUDES=${GAIA_EVENT_MANAGER_INCLUDES}")
+
+message(VERBOSE "GAIA_EVENT_MANAGER_INCLUDES=${GAIA_EVENT_MANAGER_INCLUDES}")
 
 # main target
 add_library(gaia_rules STATIC
@@ -63,7 +61,7 @@ set(TEST_RULE_INTEGRATION_INCLUDES
   ${GAIA_EVENT_MANAGER_INCLUDES}
   ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_PARSER_GENERATED})
-add_gtest(test_rule_integration 
+add_gtest(test_rule_integration
   "tests/test_rule_integration.cpp;tests/event_manager_test_helpers.cpp"
   "${TEST_RULE_INTEGRATION_INCLUDES}" "rt;gaia;gaia_parser" "generate_addr_book_headers" ""
   "DDL_FILE=${GAIA_REPO}/production/schemas/test/addr_book/addr_book.ddl")

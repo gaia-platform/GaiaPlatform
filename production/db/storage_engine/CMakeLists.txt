@@ -3,8 +3,6 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.12)
-
 # Set the project name.
 project(storage_engine)
 
@@ -14,12 +12,12 @@ set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
 # Enable stack traces in debug builds for the storage engine server.
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   # backward-cpp stack trace library.
   find_package(Backward REQUIRED)
   # backward-cpp dependencies (one of several options):
   # "libdw provides access to DWARF debug information stored inside ELF files."
-  find_library(dw REQUIRED)
+  find_library(LIBDW_LIBRARY dw REQUIRED)
 endif()
 
 set(GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES
@@ -30,7 +28,8 @@ set(GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES
   # which is consumed by internal clients.
   "${GAIA_INC}/internal/db"
 )
-message(STATUS "GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES=${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}")
+
+message(VERBOSE "GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES=${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}")
 
 set(GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES
   "${GAIA_INC}/internal/common"
@@ -39,7 +38,8 @@ set(GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES
   "${ROCKSDB_INC}"
   "${PROJECT_SOURCE_DIR}/inc"
 )
-message(STATUS "GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES=${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}")
+
+message(VERBOSE "GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES=${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}")
 
 ###############################################
 # Generate flatbuffers headers.
@@ -70,8 +70,8 @@ endforeach(FBS_SOURCE)
 # Our main target.
 ###############################################
 add_library(gaia_storage SHARED
-    src/locator_allocator.cpp
-    src/record_list.cpp)
+  src/locator_allocator.cpp
+  src/record_list.cpp)
 target_include_directories(gaia_storage PUBLIC ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES})
 target_include_directories(gaia_storage PRIVATE ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES})
 set_target_properties(gaia_storage PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
@@ -118,21 +118,25 @@ set(GAIA_SE_SERVER_SOURCES
   src/storage_engine_server.cpp
   src/storage_engine_server_exec.cpp
 )
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   list(APPEND GAIA_SE_SERVER_SOURCES src/backward.cpp)
 endif()
+
 add_executable(gaia_se_server ${GAIA_SE_SERVER_SOURCES})
 add_dependencies(gaia_se_server "messages.fbs")
 target_include_directories(gaia_se_server PRIVATE
   "${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}"
   "${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}")
+
 # For flatbuffers generated code.
 target_include_directories(gaia_se_server SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(gaia_se_server SYSTEM PRIVATE "${GEN_DIR}")
+
 # Suppress spurious warnings about zero-initialized structs.
 set_target_properties(gaia_se_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 target_link_libraries(gaia_se_server PRIVATE gaia_common Threads::Threads explain rocks_wrapper)
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   target_link_libraries(gaia_se_server PUBLIC Backward::Backward)
 endif()
 install(TARGETS gaia_se_server DESTINATION "bin")
@@ -147,7 +151,7 @@ set(GAIA_STORAGE_ENGINE_TEST_INCLUDES
 ###############################################
 find_package(pybind11 REQUIRED)
 
-if (Python3_FOUND AND pybind11_FOUND)
+if(Python3_FOUND AND pybind11_FOUND)
   pybind11_add_module(se_client src/storage_engine_pybind_wrapper.cpp)
   target_include_directories(se_client PRIVATE ${PROJECT_SOURCE_DIR})
   target_include_directories(se_client PRIVATE
@@ -170,7 +174,7 @@ endif()
 ###############################################
 # JNI wrapper for storage engine.
 ###############################################
-if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
+if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   # Configure build of native C++ wrapper library.
   add_library(jni_se_client SHARED src/storage_engine_jni_wrapper.cpp)
   target_include_directories(jni_se_client PRIVATE ${PROJECT_SOURCE_DIR})

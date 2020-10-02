@@ -19,6 +19,7 @@
 #include "gaia_addr_book.h"
 #include "triggers.hpp"
 #include "db_test_base.hpp"
+#include "db_test_helpers.hpp"
 
 using namespace std;
 using namespace gaia::db;
@@ -43,9 +44,9 @@ class gaia_system_test : public db_test_base_t {
 public:
     static void SetUpTestSuite()
     {
-        db_test_base_t::reset_server();
+        reset_server();
         begin_session();
-        
+
         // NOTE: To run this test manually, you need to set the env variable DDL_FILE to the location of addr_book.ddl.
         // Currently this is under production/schemas/test/addr_book.
         const char *ddl_file = getenv("DDL_FILE");

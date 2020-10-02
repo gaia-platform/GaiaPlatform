@@ -14,22 +14,6 @@ namespace db
 namespace memory_manager
 {
 
-// Encapsulates the set of variables needed for iterating over a memory list.
-struct iteration_context_t
-{
-    memory_record_t* previous_record;
-    auto_access_control_t auto_access_previous_record;
-
-    memory_record_t* current_record;
-    auto_access_control_t auto_access_current_record;
-
-    iteration_context_t()
-    {
-        previous_record = nullptr;
-        current_record = nullptr;
-    }
-};
-
 // A collection of execution flags.
 struct execution_flags_t
 {

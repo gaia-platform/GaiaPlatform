@@ -19,6 +19,7 @@
 #include "socket_helpers.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
+#include "gaia_se_object.hpp"
 
 namespace gaia {
 namespace db {
@@ -168,7 +169,7 @@ class server : private se_base {
             rdb.reset(new gaia::db::persistent_store_manager());
             rdb->open();
             rdb->recover();
-        } 
+        }
     }
 
     // To avoid synchronization, we assume that this method is only called when
@@ -199,7 +200,7 @@ class server : private se_base {
             PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_offsets, 0));
         s_data = static_cast<data*>(map_fd(sizeof(data),
             PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_data, 0));
-        
+
         recover_db();
         if (s_data->next_id == 0)
             s_data->next_id = 1;
@@ -523,15 +524,15 @@ class server : private se_base {
         auto txn_name = rdb->begin_txn(s_transaction_id);
         // Prepare tx
         rdb->prepare_wal_for_write(txn_name);
-        
+
         for (size_t i = 0; i < s_log->count; i++) {
             auto lr = s_log->log_records + i;
 
             if (row_ids.insert(lr->row_id).second) {
                 if ((*s_shared_offsets)[lr->row_id] != lr->old_object) {
                     // Append Rollback decision to log.
-                    // This isn't really required because recovery will skip deserializing transactions 
-                    // that don't have a commit marker; we do it for completeness anyway. 
+                    // This isn't really required because recovery will skip deserializing transactions
+                    // that don't have a commit marker; we do it for completeness anyway.
                     rdb->append_wal_rollback_marker(txn_name);
                     return false;
                 }

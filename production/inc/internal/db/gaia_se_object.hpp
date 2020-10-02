@@ -6,8 +6,9 @@
 #pragma once
 
 #include <cstdint>
-#include "gaia_common.hpp"
 #include <vector>
+
+#include "gaia_common.hpp"
 
 using namespace gaia::common;
 
@@ -15,9 +16,6 @@ namespace gaia
 {
 namespace db
 {
-
-// Type definitions for fields.
-typedef uint16_t field_position_t;
 
 // Storage engine internal object type.
 struct gaia_se_object_t {

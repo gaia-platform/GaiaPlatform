@@ -23,7 +23,6 @@ void output_allocation_information(size_t size, address_offset_t offset)
 TEST(memory_manager, basic_operation)
 {
     const size_t memory_size = 8000;
-    const size_t main_memory_system_reserved_size = 1000;
     uint8_t memory[memory_size];
 
     memory_manager_t memory_manager;
@@ -36,7 +35,7 @@ TEST(memory_manager, basic_operation)
     execution_flags.enable_console_output = true;
 
     memory_manager.set_execution_flags(execution_flags);
-    error_code = memory_manager.manage(memory, memory_size, main_memory_system_reserved_size, true);
+    error_code = memory_manager.manage(memory, memory_size);
     ASSERT_EQ(error_code_t::success, error_code);
 
     size_t first_allocation_size = 64;
@@ -70,7 +69,6 @@ TEST(memory_manager, basic_operation)
 TEST(memory_manager, advanced_operation)
 {
     const size_t memory_size = 8000;
-    const size_t main_memory_system_reserved_size = 1000;
     uint8_t memory[memory_size];
     address_offset_t memory_offset = 0;
 
@@ -84,13 +82,13 @@ TEST(memory_manager, advanced_operation)
     execution_flags.enable_console_output = true;
 
     memory_manager.set_execution_flags(execution_flags);
-    error_code = memory_manager.manage(memory, memory_size, main_memory_system_reserved_size, true);
+    error_code = memory_manager.manage(memory, memory_size);
     ASSERT_EQ(error_code_t::success, error_code);
 
     size_t stack_allocator_memory_size = 2000;
 
     // Make 3 allocations using a stack_allocator_t.
-    stack_allocator_t* stack_allocator = new stack_allocator_t();
+    unique_ptr<stack_allocator_t> stack_allocator = make_unique<stack_allocator_t>();
     stack_allocator->set_execution_flags(execution_flags);
     error_code = memory_manager.allocate(stack_allocator_memory_size, memory_offset);
     ASSERT_EQ(error_code_t::success, error_code);
@@ -127,20 +125,14 @@ TEST(memory_manager, advanced_operation)
     ASSERT_EQ(3, stack_allocator->get_allocation_count());
 
     // Commit stack allocator.
-    size_t serialization_number = 331;
-    cout << endl << "Commit first stack allocator with serialization number " << serialization_number << "..." << endl;
-    error_code = memory_manager.commit_stack_allocator(stack_allocator, serialization_number);
+    cout << endl << "Commit first stack allocator..." << endl;
+    error_code = memory_manager.commit_stack_allocator(stack_allocator);
     ASSERT_EQ(error_code_t::success, error_code);
-
-    memory_list_node_t* first_read_of_list_head = nullptr;
-    error_code = memory_manager.get_unserialized_allocations_list_head(first_read_of_list_head);
-    ASSERT_EQ(error_code_t::success, error_code);
-    ASSERT_NE(nullptr, first_read_of_list_head);
 
     // Make 2 more allocations using a new stack_allocator_t.
     // Both allocations will replace earlier allocations (4th replaces 2nd and 5th replaces 1st),
     // which will get garbage collected at commit time.
-    stack_allocator = new stack_allocator_t();
+    stack_allocator = make_unique<stack_allocator_t>();
     stack_allocator->set_execution_flags(execution_flags);
     error_code = memory_manager.allocate(stack_allocator_memory_size, memory_offset);
     ASSERT_EQ(error_code_t::success, error_code);
@@ -165,36 +157,9 @@ TEST(memory_manager, advanced_operation)
         fourth_allocation_offset + fourth_allocation_size + sizeof(memory_allocation_metadata_t));
 
     // Commit stack allocator.
-    serialization_number = 332;
-    cout << endl << "Commit second stack allocator with serialization number " << serialization_number << "..." << endl;
-    error_code = memory_manager.commit_stack_allocator(stack_allocator, serialization_number);
+    cout << endl << "Commit second stack allocator..." << endl;
+    error_code = memory_manager.commit_stack_allocator(stack_allocator);
     ASSERT_EQ(error_code_t::success, error_code);
-
-    memory_list_node_t* second_read_of_list_head = nullptr;
-    error_code = memory_manager.get_unserialized_allocations_list_head(second_read_of_list_head);
-    ASSERT_EQ(error_code_t::success, error_code);
-    ASSERT_NE(nullptr, second_read_of_list_head);
-
-    ASSERT_EQ(first_read_of_list_head->next, second_read_of_list_head->next);
-
-    // Validate content of unserialized allocations list.
-    ASSERT_NE(0, second_read_of_list_head->next);
-    memory_record_t* first_unserialized_record = memory_manager.read_memory_record(second_read_of_list_head->next);
-    ASSERT_NE(0, first_unserialized_record->next);
-    address_offset_t second_unserialized_record_offset = first_unserialized_record->next;
-
-    // Update unserialized allocations list.
-    cout << endl << "Calling update_unserialized_allocations_list_head() with parameter: ";
-    cout << second_unserialized_record_offset << "." << endl;
-    error_code = memory_manager.update_unserialized_allocations_list_head(first_unserialized_record->next);
-    ASSERT_EQ(error_code_t::success, error_code);
-
-    memory_list_node_t* third_read_of_list_head = nullptr;
-    error_code = memory_manager.get_unserialized_allocations_list_head(third_read_of_list_head);
-    ASSERT_EQ(error_code_t::success, error_code);
-    ASSERT_NE(nullptr, third_read_of_list_head);
-
-    ASSERT_EQ(second_unserialized_record_offset, third_read_of_list_head->next);
 
     // Test allocating from freed memory.
     // First, we reclaim a full freed block.

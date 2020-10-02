@@ -3,8 +3,6 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.12)
-
 # Set the project name.
 project(memory_manager)
 
@@ -12,7 +10,7 @@ set(GAIA_MEMORY_MANAGER_INCLUDES
   "${GAIA_INC}/public/common"
   "${GAIA_DB_INC}/memory_manager")
 
-message(STATUS "GAIA_MEMORY_MANAGER_INCLUDES=${GAIA_MEMORY_MANAGER_INCLUDES}")
+message(VERBOSE "GAIA_MEMORY_MANAGER_INCLUDES=${GAIA_MEMORY_MANAGER_INCLUDES}")
 
 # Our main target.
 add_library(gaia_memorymanager SHARED

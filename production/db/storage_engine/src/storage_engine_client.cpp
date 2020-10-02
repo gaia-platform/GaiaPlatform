@@ -4,6 +4,7 @@
 /////////////////////////////////////////////
 
 #include "storage_engine_client.hpp"
+
 #include "system_table_types.hpp"
 
 using namespace gaia::common;
@@ -192,28 +193,10 @@ void client::begin_session() {
 }
 
 void client::end_session() {
-    // Send the server EOF.
-    shutdown(s_session_socket, SHUT_WR);
-
-    auto cleanup_session_socket = scope_guard::make_scope_guard([]() {
-        close(s_session_socket);
-        s_session_socket = -1;
-    });
-
-    // Discard all pending messages from the server and block until EOF.
-    // REVIEW: Is there any reason not to just close the socket to begin with?
-    // That *should* deliver EPOLLRDHUP to the other side (but needs testing).
-    while (true) {
-        uint8_t msg_buf[MAX_MSG_SIZE] = {0};
-        // POSIX says we should never get SIGPIPE except on writes,
-        // but set MSG_NOSIGNAL just in case.
-        ssize_t bytes_read = recv(s_session_socket, msg_buf, sizeof(msg_buf), MSG_NOSIGNAL);
-        if (bytes_read == -1) {
-            throw_system_error("read failed");
-        } else if (bytes_read == 0) {
-            break;
-        }
-    }
+    // This will gracefully shut down the server-side session thread
+    // and all other threads that session thread owns.
+    ::close(s_session_socket);
+    s_session_socket = -1;
 }
 
 void client::begin_transaction() {

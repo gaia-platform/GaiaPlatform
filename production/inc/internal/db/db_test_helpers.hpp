@@ -15,11 +15,12 @@
 #include "system_error.hpp"
 #include "gaia_db.hpp"
 #include "gaia_db_internal.hpp"
+#include "logger.hpp"
 
 namespace gaia {
 namespace db {
 
-constexpr char const *c_daemonize_command = "daemonize ";
+constexpr char c_daemonize_command[] = "daemonize ";
 
 void remove_persistent_store() {
     string cmd = "rm -rf ";
@@ -29,13 +30,24 @@ void remove_persistent_store() {
 }
 
 void wait_for_server_init() {
-    static constexpr int c_poll_interval_millis = 10;
+    constexpr int c_poll_interval_millis = 10;
+    int counter = 0;
+
+    // quick fix to initialize the server.
+    gaia_log::initialize({});
+
     // Wait for server to initialize.
     while (true) {
         try {
             begin_session();
         } catch (system_error& ex) {
             if (ex.get_errno() == ECONNREFUSED) {
+                if (counter % 1000 == 0) {
+                    gaia_log::sys().warn("Cannot connect to Gaia Server, you may need to start the gaia_se_server process");
+                    counter = 1;
+                } else {
+                    counter++;
+                }
                 std::this_thread::sleep_for(std::chrono::milliseconds(c_poll_interval_millis));
                 continue;
             } else {
@@ -50,11 +62,33 @@ void wait_for_server_init() {
     end_session();
 }
 
+void reset_server() {
+    // We need to allow enough time after the signal is sent for the process to
+    // receive and process the signal.
+    constexpr int c_wait_signal_millis = 10;
+    // We need to drop all client references to shared memory before resetting the server.
+    // NB: this cannot be called within an active session!
+    clear_shared_memory();
+    // Reinitialize the server (forcibly disconnects all clients and clears database).
+    // Resetting the server will cause Recovery to be skipped. Recovery will only occur post
+    // server process reboot.
+    ::system((std::string("pkill -f -HUP ") + SE_SERVER_NAME).c_str());
+    // Wait a bit for the server's listening socket to be closed.
+    // (Otherwise, a new session might be accepted after the signal has been sent
+    // but before the server has been reinitialized.)
+    std::this_thread::sleep_for(std::chrono::milliseconds(c_wait_signal_millis));
+    // WLW Note: This is temporary.
+    string boot_file_name(PERSISTENT_DIRECTORY_PATH);
+    boot_file_name += "/boot_parameters.bin";
+    unlink(boot_file_name.c_str());
+    wait_for_server_init();
+}
+
 class db_server_t {
   public:
     void start(const char *db_server_path, bool stop_server = true) {
         set_path(db_server_path);
-        
+
         if (stop_server) {
             stop();
         }
@@ -84,15 +118,14 @@ class db_server_t {
     }
 
     // Add a trailing '/' if not provided.
-    static void terminate_path(string &path) {
+    static void terminate_path(string& path) {
         if (path.back() != '/') {
             path.append("/");
         }
     }
 
   private:
-    
-    void set_path(const char *db_server_path) {
+    void set_path(const char* db_server_path) {
         if (!db_server_path) {
             m_server_path = gaia::db::SE_SERVER_NAME;
         } else {
@@ -106,5 +139,5 @@ class db_server_t {
     bool m_server_started = false;
 };
 
-}
-}
+} // namespace db
+} // namespace gaia
