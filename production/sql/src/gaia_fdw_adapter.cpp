@@ -17,7 +17,7 @@ namespace gaia
 namespace fdw
 {
 
-const int c_invalid_index = -1;
+constexpr int c_invalid_index = -1;
 
 // Valid options for gaia_fdw.
 const option_t valid_options[] =
@@ -60,12 +60,36 @@ void append_context_option_names(Oid context_id, StringInfoData& string_info)
 
 void adapter_t::begin_session()
 {
-    gaia::db::begin_session();
+    elog(LOG, "Opening COW-SE session...");
+
+    try
+    {
+        gaia::db::begin_session();
+    }
+    catch(gaia_exception e)
+    {
+        ereport(ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+            errmsg("Error opening COW-SE session."),
+            errhint("%s", e.what())));
+    }
 }
 
 void adapter_t::end_session()
 {
-    gaia::db::end_session();
+    elog(LOG, "Closing COW-SE session...");
+
+    try
+    {
+        gaia::db::end_session();
+    }
+    catch(gaia_exception e)
+    {
+        ereport(ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+            errmsg("Error closing COW-SE session."),
+            errhint("%s", e.what())));
+    }
 }
 
 bool adapter_t::is_transaction_open()
@@ -114,7 +138,7 @@ bool adapter_t::commit_transaction()
 
 bool adapter_t::is_gaia_id_name(const char* name)
 {
-    static const char* const c_gaia_id = "gaia_id";
+    constexpr char c_gaia_id[] = "gaia_id";
 
     return strcmp(c_gaia_id, name) == 0;
 }
@@ -141,7 +165,7 @@ List* adapter_t::get_ddl_command_list(const char* server_name)
         // Length of format string + length of server name - 2 chars for format
         // specifier + 1 char for null terminator.
         size_t statement_length = strlen(ddl_formatted_statements[i])
-            + strlen(server_name) - sizeof("%s") + 1;
+            + strlen(server_name) - strlen("%s") + 1;
         char* statement_buffer = (char*)palloc(statement_length);
 
         // sprintf returns number of chars written, not including null
@@ -446,7 +470,6 @@ void modify_state_t::finalize_modify()
         m_has_initialized_builder = false;
     }
 }
-
 
 }
 }
