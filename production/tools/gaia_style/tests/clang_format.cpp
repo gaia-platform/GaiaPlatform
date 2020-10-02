@@ -66,18 +66,19 @@ double class_name_t::method_with_many_arguments(
     double arg3,
     long long int arg4)
 {
-    return arg1 + arg2 + arg3 + arg4;
+    return arg1 + arg2 + arg3 + arg4; //NOLINT
 }
 
 void short_statements()
 {
     int a = 3;
+    //NOLINTNEXTLINE
     if (true)
     {
         a = 4;
     }
 
-    while (true)
+    while (a-- > 0)
     {
         continue;
     }
@@ -103,22 +104,22 @@ std::string continue_indentation_width()
     return s;
 }
 
-template <typename T>
-T template_indentation(T argument)
+template <typename T_type>
+T_type template_indentation(T_type argument)
 {
     return argument + argument;
 }
 
-template <typename T>
+template <typename T_type>
 void braced_style()
 {
-    std::vector<T> v{{}, {}, {}};
+    std::vector<T_type> v{{}, {}, {}};
 }
 
 int space_after_c_cast()
 {
-    double var = 3.14;
-    return (int)var;
+    double var = 3.14; //NOLINT
+    return (int)var;   //NOLINT
 }
 
 bool space_after_not()
@@ -131,7 +132,7 @@ void pure_anarchy()
 {
     // Note: some IDE such as Clion need an explicit configuration to support this tag
     // clang-format off
-    int a1 =     3; int a2=2; if (true) { return;};
+    int a1 =     3; int a2=2; if (true) { return;}; //NOLINT
     // clang-format on
 }
 
