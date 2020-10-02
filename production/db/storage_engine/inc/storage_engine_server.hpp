@@ -57,7 +57,7 @@ private:
     // Inherited from se_base:
     // thread_local static log *s_log;
     // thread_local static int s_session_socket;
-    // thread_local static gaia_xid_t s_transaction_id;
+    // thread_local static gaia_txn_id_t s_transaction_id;
 
     // function pointer type that executes side effects of a state transition
     typedef void (*transition_handler_t)(int* fds, size_t fd_count, session_event_t event, session_state_t old_state, session_state_t new_state);
@@ -139,7 +139,7 @@ private:
         session_event_t event,
         session_state_t old_state,
         session_state_t new_state,
-        gaia_xid_t transaction_id) {
+        gaia_txn_id_t transaction_id) {
         auto server_reply = Createserver_reply_t(builder, event, old_state, new_state, transaction_id);
         auto message = Createmessage_t(builder, any_message_t::reply, server_reply.Union());
         builder.Finish(message);
@@ -322,7 +322,7 @@ private:
                 throw_system_error("epoll_wait failed");
             }
             for (int i = 0; i < ready_fd_count; i++) {
-                const epoll_event ev = events[i];
+                epoll_event ev = events[i];
                 // We never register for anything but EPOLLIN,
                 // but EPOLLERR will always be delivered.
                 if (ev.events & EPOLLERR) {
@@ -346,6 +346,7 @@ private:
                     if (authenticate_client_socket(session_socket)) {
                         session_threads.emplace_back(session_thread, session_socket);
                     } else {
+                        cerr << "Failed to authenticate client, closing connection..." << endl;
                         close(session_socket);
                     }
                 } else if (ev.data.fd == s_server_shutdown_event_fd) {
@@ -430,7 +431,7 @@ private:
             int* fds = nullptr;
             size_t fd_count = 0;
             for (int i = 0; i < ready_fd_count; i++) {
-                const epoll_event ev = events[i];
+                epoll_event ev = events[i];
                 if (ev.data.fd == s_session_socket) {
                     // NB: Since many event flags are set in combination with others, the
                     // order we test them in matters! E.g., EPOLLIN seems to always be set
@@ -499,7 +500,7 @@ private:
     // Before this method is called, we have already received the log fd from the client
     // and mmapped it.
     // This method returns true for a commit decision and false for an abort decision.
-    static bool tx_commit() {
+    static bool txn_commit() {
         // At the process level, acquiring an advisory file lock in exclusive mode
         // guarantees there are no clients mapping the locator segment. It does not
         // guarantee there are no other threads in this process that have acquired
@@ -508,7 +509,7 @@ private:
             throw_system_error("flock failed");
         }
         // Within our own process, we must have exclusive access to the locator segment.
-        const std::lock_guard<std::mutex> lock(s_commit_lock);
+        std::lock_guard<std::mutex> lock(s_commit_lock);
         auto cleanup = scope_guard::make_scope_guard([]() {
             if (-1 == flock(s_fd_locators, LOCK_UN)) {
                 // Per C++11 semantics, throwing an exception from a destructor

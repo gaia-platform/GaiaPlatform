@@ -290,7 +290,7 @@ void load_modify_recover_test(db_server_t server,
     stop_server(server);
 }
 
-void ensure_uncommitted_value_absent_on_restart_and_commit_new_tx_test(db_server_t server, string server_dir_path) {
+void ensure_uncommitted_value_absent_on_restart_and_commit_new_txn_test(db_server_t server, string server_dir_path) {
     gaia_id_t id;
     restart_server(server, server_dir_path.data());
     begin_session();
@@ -314,7 +314,7 @@ void ensure_uncommitted_value_absent_on_restart_and_commit_new_tx_test(db_server
     end_session();
 }
 
-void ensure_uncommitted_value_absent_on_restart_and_rollback_new_tx(db_server_t server, string server_dir_path) {
+void ensure_uncommitted_value_absent_on_restart_and_rollback_new_txn(db_server_t server, string server_dir_path) {
     gaia_id_t id;
     restart_server(server, server_dir_path.data());
     begin_session();
@@ -347,8 +347,8 @@ db_server_t recovery_test::m_server;
 
 TEST_F(recovery_test, basic_correctness_test) {
     // Basic correctness test.
-    ensure_uncommitted_value_absent_on_restart_and_commit_new_tx_test(m_server, g_server_dir_path);
-    ensure_uncommitted_value_absent_on_restart_and_rollback_new_tx(m_server, g_server_dir_path);
+    ensure_uncommitted_value_absent_on_restart_and_commit_new_txn_test(m_server, g_server_dir_path);
+    ensure_uncommitted_value_absent_on_restart_and_rollback_new_txn(m_server, g_server_dir_path);
 }
 
 TEST_F(recovery_test, load_and_recover_test) {
@@ -373,7 +373,7 @@ TEST_F(recovery_test, reference_update_test) {
     gaia_id_t address_id{INVALID_GAIA_ID};
     {
         // Add an address.
-        auto_transaction_t tx;
+        auto_transaction_t txn;
         address_writer w;
         w.street = generate_string(c_field_size_bytes);
         w.apt_suite = generate_string(c_field_size_bytes);
@@ -383,14 +383,14 @@ TEST_F(recovery_test, reference_update_test) {
         w.country = generate_string(c_field_size_bytes);
         w.current = true;
         address_id = w.insert_row();
-        tx.commit();
+        txn.commit();
     }
     ASSERT_NE(address_id, INVALID_GAIA_ID);
 
     std::set<gaia_id_t> phone_ids;
     {
         // Insert some phone records.
-        auto_transaction_t tx;
+        auto_transaction_t txn;
         for (size_t i = 0; i < 10; i++) {
             phone_writer w;
             w.phone_number = generate_string(c_field_size_bytes);
@@ -400,15 +400,15 @@ TEST_F(recovery_test, reference_update_test) {
             ASSERT_NE(phone_id, INVALID_GAIA_ID);
             phone_ids.insert(phone_id);
         }
-        tx.commit();
+        txn.commit();
     }
     {
         // Link the phone records to the address.
-        auto_transaction_t tx;
+        auto_transaction_t txn;
         for (gaia_id_t phone_id : phone_ids) {
             address_t::get(address_id).phone_list().insert(phone_id);
         }
-        tx.commit();
+        txn.commit();
     }
     end_session();
 
@@ -416,7 +416,7 @@ TEST_F(recovery_test, reference_update_test) {
     begin_session();
     std::set<gaia_id_t> recovered_phone_ids;
     {
-        auto_transaction_t tx;
+        auto_transaction_t txn;
         // Make sure address cannot be deleted upon recovery.
         ASSERT_THROW(address_t::get(address_id).delete_row(), node_not_disconnected);
         for (auto phone : address_t::get(address_id).phone_list()) {
@@ -429,7 +429,7 @@ TEST_F(recovery_test, reference_update_test) {
         for (gaia_id_t phone_id : recovered_phone_ids) {
             address_t::get(address_id).phone_list().erase(phone_id);
         }
-        tx.commit();
+        txn.commit();
     }
     end_session();
 

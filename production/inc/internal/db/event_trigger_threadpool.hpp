@@ -41,7 +41,7 @@ class session_destructor {
 class event_trigger_threadpool_t {
     private:
         // Rules engine needs access to this variable.
-        static commit_trigger_fn s_tx_commit_trigger;
+        static commit_trigger_fn s_txn_commit_trigger;
 
         // Flag serves as a way to create a server session.
         thread_local static bool session_active;
@@ -85,7 +85,7 @@ class event_trigger_threadpool_t {
             * Invoked by the Rules Engine on system initialization.
             */
             static void set_commit_trigger(commit_trigger_fn commit_trigger) {
-                s_tx_commit_trigger = commit_trigger;
+                s_txn_commit_trigger = commit_trigger;
             }
 
             /**
@@ -93,15 +93,15 @@ class event_trigger_threadpool_t {
              * been initialized. We don't need synchronization here as the rules engine will be activated on startup.
              */
             static commit_trigger_fn get_commit_trigger() {
-                return s_tx_commit_trigger;
+                return s_txn_commit_trigger;
             }
 
-            void add_trigger_task(gaia_xid_t transaction_id, std::vector<triggers::trigger_event_t> events) {
+            void add_trigger_task(gaia_txn_id_t transaction_id, std::vector<triggers::trigger_event_t> events) {
                 // Pass vector of events by copy to capture for now.
                 // We can avoid the copy with a custom allocator - if copying becomes a problem.
                 // Todo (msj) deep copy?
                 tasks.push([=] () {
-                    s_tx_commit_trigger(transaction_id, events);
+                    s_txn_commit_trigger(transaction_id, events);
                 });
             }
     };

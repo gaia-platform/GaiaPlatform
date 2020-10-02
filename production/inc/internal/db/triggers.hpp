@@ -38,7 +38,7 @@ typedef std::vector<trigger_event_t> trigger_event_list_t;
 /**
  * The type of Gaia commit trigger.
  */
-typedef void (*commit_trigger_fn)(gaia_xid_t xid, const trigger_event_list_t&);
+typedef void (*commit_trigger_fn)(gaia_txn_id_t txn_id, const trigger_event_list_t&);
 
 /**
  * Use this constant to specify that no fields are needed when generating trigger_event_t.
@@ -50,7 +50,7 @@ const field_position_list_t empty_position_list = {};
 /**
  * Set by the rules engine.
  */
-extern triggers::commit_trigger_fn s_tx_commit_trigger;
+extern triggers::commit_trigger_fn s_txn_commit_trigger;
 
 } // namespace db
 } // namespace gaia

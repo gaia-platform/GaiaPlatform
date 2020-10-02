@@ -217,7 +217,7 @@ public final class CacheGraph implements Graph
         return createElementIterator(Edge.class, edges, edgeIdManager, edgeIds);
     }
 
-    public Transaction tx()
+    public Transaction txn()
     {
         return this.transaction;
     }

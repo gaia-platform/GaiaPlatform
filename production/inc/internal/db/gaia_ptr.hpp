@@ -23,7 +23,7 @@ class gaia_ptr {
 private:
     gaia_locator_t m_locator;
     void create_insert_trigger(gaia_type_t type, gaia_id_t id);
-    void clone_no_tx();
+    void clone_no_txn();
 
 public:
     gaia_ptr(const std::nullptr_t = nullptr)
@@ -82,8 +82,8 @@ public:
         size_t num_refs,
         size_t data_size,
         const void* data) {
-        const size_t refs_len = num_refs * sizeof(gaia_id_t);
-        const size_t total_len = data_size + refs_len;
+        size_t refs_len = num_refs * sizeof(gaia_id_t);
+        size_t total_len = data_size + refs_len;
         gaia_ptr obj(id, total_len + sizeof(gaia_se_object_t));
         gaia_se_object_t* obj_ptr = obj.to_ptr();
         obj_ptr->id = id;
@@ -107,7 +107,7 @@ public:
             return;
         }
 
-        const gaia_id_t* references = node.references();
+        gaia_id_t* references = node.references();
         for (size_t i = 0; i < node.num_references(); i++) {
             if (references[i] != INVALID_GAIA_ID) {
                 throw node_not_disconnected(node.id(), node.type());

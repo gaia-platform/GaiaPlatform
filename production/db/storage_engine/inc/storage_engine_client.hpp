@@ -71,9 +71,9 @@ class client : private se_base {
 
     // Inherited from se_base:
     // thread_local static log *s_log;
-    // thread_local static gaia_xid_t s_transaction_id;
+    // thread_local static gaia_txn_id_t s_transaction_id;
 
-    static void tx_cleanup();
+    static void txn_cleanup();
 
     static void destroy_log_mapping();
 
@@ -83,17 +83,17 @@ class client : private se_base {
      *  Check if an event should be generated for a given type.
      */
     static inline bool is_valid_event(gaia_type_t type) {
-        return (gaia::db::s_tx_commit_trigger
+        return (gaia::db::s_txn_commit_trigger
             && (trigger_excluded_types.find(type) == trigger_excluded_types.end()));
     }
 
-    static inline void verify_tx_active() {
+    static inline void verify_txn_active() {
         if (!is_transaction_active()) {
             throw transaction_not_open();
         }
     }
 
-    static inline void verify_no_tx() {
+    static inline void verify_no_txn() {
         if (is_transaction_active()) {
             throw transaction_in_progress();
         }
@@ -111,7 +111,7 @@ class client : private se_base {
         }
     }
 
-    static inline void tx_log(
+    static inline void txn_log(
         gaia_locator_t locator,
         gaia_offset_t old_offset,
         gaia_offset_t new_offset,

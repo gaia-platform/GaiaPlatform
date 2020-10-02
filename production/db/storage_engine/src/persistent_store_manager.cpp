@@ -83,7 +83,7 @@ void persistent_store_manager::append_wal_commit_marker(std::string& txn_name) {
     rdb_internal->commit(txn_name);
 }
 
-std::string persistent_store_manager::begin_txn(gaia_xid_t transaction_id) {
+std::string persistent_store_manager::begin_txn(gaia_txn_id_t transaction_id) {
     rocksdb::WriteOptions write_options{};
     rocksdb::TransactionOptions txn_options{};
     return rdb_internal->begin_txn(write_options, txn_options, transaction_id);

@@ -49,14 +49,14 @@ field_position_t field_list_t::operator[](size_t idx) const {
 void field_list_t::initialize() {
     retail_assert(m_data == nullptr, "field list already initialized");
     size_t num_fields = 0;
-    auto_transaction_t tx;
+    auto_transaction_t txn;
 
     for (auto field = gaia::catalog::gaia_field_t::get_first(); field; field.get_next()) {
         if (field.gaia_table().gaia_id() == m_type_id) {
             num_fields++;
         }
     }
-    tx.commit();
+    txn.commit();
 
     size_t reserve_size = (c_max_vector_reserve < num_fields) ? c_max_vector_reserve : num_fields;
     // change the following to make_unique with C++14 and above.

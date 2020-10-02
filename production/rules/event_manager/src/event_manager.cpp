@@ -70,10 +70,10 @@ void event_manager_t::init(event_manager_settings_t& settings)
     rule_stats_manager_t::s_enabled = settings.enable_stats;
     m_timer.set_enabled(settings.enable_stats);
 
-    auto fn = [](gaia_xid_t transaction_id, const trigger_event_list_t& event_list) {
+    auto fn = [](gaia_txn_id_t transaction_id, const trigger_event_list_t& event_list) {
         event_manager_t::get().commit_trigger(transaction_id, event_list);
     };
-    gaia::db::s_tx_commit_trigger = fn;
+    gaia::db::s_txn_commit_trigger = fn;
 
     m_is_initialized = true;
 }
@@ -128,7 +128,7 @@ bool event_manager_t::process_field_events(event_binding_t& binding,
     return rules_invoked;
 }
 
-void event_manager_t::commit_trigger(gaia_xid_t, const trigger_event_list_t& trigger_event_list)
+void event_manager_t::commit_trigger(gaia_txn_id_t, const trigger_event_list_t& trigger_event_list)
 {
     m_timer.log_function_duration([&]() {
 
