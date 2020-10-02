@@ -187,12 +187,16 @@ set_property (TARGET flatbuffers PROPERTY POSITION_INDEPENDENT_CODE ON)
 include(ExternalProject)
 set(DEPENDENCIES_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/deps)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  # Add backward for debug build
+  # Add backward for debug build.
   add_subdirectory("${GAIA_REPO}/third_party/production/backward" backward)
 endif()
-# Add spdlog_setup
+# Add fmt.
+add_subdirectory("${GAIA_REPO}/third_party/production/fmt" fmt)
+# Add spdlog.
+add_subdirectory("${GAIA_REPO}/third_party/production/spdlog" spdlog)
+# Add spdlog_setup.
 add_subdirectory("${GAIA_REPO}/third_party/production/spdlog_setup" spdlog_setup)
-# Add tabulate
+# Add tabulate.
 add_subdirectory("${GAIA_REPO}/third_party/production/tabulate" tabulate)
 
 # Add individual component folders.
