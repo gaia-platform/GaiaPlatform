@@ -4,12 +4,13 @@
 /////////////////////////////////////////////
 #pragma once
 
-#include <shared_mutex>
-#include <stdio.h>
+#include <cstdio>
+#include <sys/file.h>
 
 #include "gaia_ptr.hpp"
 #include "system_error.hpp"
 #include "gaia_db_internal.hpp"
+// #include "logger.hpp"
 
 namespace gaia {
 namespace db {
@@ -27,13 +28,18 @@ public:
 private:
     gaia_boot_t();
     ~gaia_boot_t();
+    static constexpr int32_t c_block_delta = 1000;
     FILE* m_boot_file;
+    int m_boot_fd;
+    // Persisted values.
     struct {
-        gaia_id_t next_id;
-        uint32_t version;
+        gaia_id_t limit;
         gaia_type_t next_type;
+        uint32_t version;
     } m_boot_data;
-    mutable shared_mutex m_lock;
+    // The next ID doesn't need to be persisted because it always starts out
+    // at the beginning of a new block.
+    gaia_id_t m_next_id;
 };
 
 } // namespace db
