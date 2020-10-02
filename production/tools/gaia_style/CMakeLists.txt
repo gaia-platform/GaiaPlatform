@@ -11,7 +11,9 @@ set(GAIA_GENERATE_INCLUDES
   ${GAIA_INC}/public/direct_access
   ${GAIA_INC}/public/catalog
   ${GAIA_INC}/public/db
-)
+  )
+
+message(VERBOSE "GAIA_GENERATE_INCLUDES=${GAIA_GENERATE_INCLUDES}")
 
 set(CMAKE_CXX_CLANG_TIDY clang-tidy)
 

@@ -5,17 +5,26 @@
 
 #include "clang_format.hpp"
 
-#include "gaia_common.hpp"
-#include "gaia_db.hpp"
+#include <cblas.h>
+#include <evrpc.h>
 
 #include <algorithm>
 #include <iostream>
 #include <vector>
 
+#include "flatbuffers/base.h"
+#include "spdlog/spdlog.h"
+
+#include "gaia_common.hpp"
+#include "gaia_db.hpp"
+
 using std::abs;
 using std::bind;
 using std::cout;
 
+/**
+ * Showcase how our .clang-format configuration works.
+ */
 namespace gaia
 {
 namespace style
@@ -57,10 +66,7 @@ double class_name_t::method_with_many_arguments(
     double arg3,
     long long int arg4)
 {
-    return arg1
-         + arg2
-         + arg3
-         + arg4;
+    return arg1 + arg2 + arg3 + arg4;
 }
 
 void short_statements()

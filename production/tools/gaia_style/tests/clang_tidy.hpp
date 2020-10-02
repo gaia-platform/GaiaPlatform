@@ -5,75 +5,79 @@
 
 #pragma once
 
+#include <exception>
+
 #include "gaia_common.hpp"
 
-#include <exception>
+/**
+ * Showcase how our .clang-tidy configuration works.
+ */
 
 using namespace gaia::common;
 using namespace std;
 
-// should have c_ prefix
+// Should have c_ prefix.
 constexpr int constant_global = 2;
 
-// should have c_ prefix
+// Should have c_ prefix.
 extern const int c_extern_constant = 6;
 
-// should have g_ prefix
+// Should have g_ prefix.
 extern int global;
 
 typedef long long int int_sixty_Four;
 
-// should be lower case
+// Should be lower case.
 namespace Gaia
 {
-// should have _t suffix. We can't catch that because of exceptions
+// Should have _t suffix. We can't catch that because of exceptions.
 class clang_tidy
 {
-    // Single-argument constructors must be marked explicit to avoid unintentional implicit conversions
+    // Single-argument constructors must be marked explicit to avoid unintentional implicit conversions.
     clang_tidy(int _member)
         : member(_member){};
 
-    // wrong casing
+    // Wrong casing.
     void Method();
 
-    // argument wrong casing
+    // Argument wrong casing.
     void other_method(int BadArgument);
 
-    // should have implementation
+    // Should have implementation.
     void no_implementation();
 
 private:
-    // should have m_ prefix
+    // Should have m_ prefix.
     int member;
 };
 
-// should have _t suffix
+// Should have _t suffix.
 struct structure
 {
 };
 
-// wrong casing
+// Wrong casing.
 class Ugly_t
 {
 };
 
-// wrong casing
+// Wrong casing.
 struct Uglier_t
 {
 };
 
-// exception gives no problems, as expected.
+// Exception gives no problems, as expected.
 class my_problem : public std::exception
 {
 };
 
-// should be T_type
+// Should be T_type.
 template <typename type>
 void type_template(type obj)
 {
 }
 
-// should be value
+// Should be value.
 template <int T_value>
 int value_template()
 {
