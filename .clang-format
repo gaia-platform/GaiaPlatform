@@ -12,6 +12,7 @@ PointerAlignment: Left
 # Align public/final/protected on the left.
 AccessModifierOffset: -4
 
+# This does not work with some clang-format versions. (below 11)
 #AlignOperands: AlignAfterOperator
 BreakBeforeBinaryOperators: All
 
