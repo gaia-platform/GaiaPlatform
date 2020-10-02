@@ -6,6 +6,8 @@
 
 #include <cstdio>
 #include <sys/file.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "gaia_ptr.hpp"
 #include "system_error.hpp"
@@ -24,12 +26,13 @@ public:
     gaia_id_t get_next_id();
     gaia_type_t get_next_type();
     uint32_t get_next_version();
-    void save_gaia_boot();
+    void reset_gaia_boot();
+    void open_gaia_boot();
 private:
     gaia_boot_t();
     ~gaia_boot_t();
+    void save_gaia_boot();
     static constexpr int32_t c_block_delta = 1000;
-    FILE* m_boot_file;
     int m_boot_fd;
     // Persisted values.
     struct {
