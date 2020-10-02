@@ -14,7 +14,7 @@
 #include <atomic>
 #include <unordered_set>
 
-#include "array_size.hpp"
+#include <flatbuffers/flatbuffers.h>
 #include "retail_assert.hpp"
 #include "system_error.hpp"
 #include "mmap_helpers.hpp"
