@@ -32,7 +32,7 @@ add_library(gaia STATIC src/gaia_system.cpp)
 
 target_include_directories(gaia PUBLIC ${GAIA_SYSTEM_PUBLIC_INCLUDES})
 target_include_directories(gaia PRIVATE ${GAIA_SYSTEM_PRIVATE_INCLUDES})
-target_link_libraries(gaia PUBLIC gaia_direct gaia_rules)
+target_link_libraries(gaia PUBLIC gaia_catalog gaia_direct gaia_rules)
 set_target_properties(gaia PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia PROPERTY POSITION_INDEPENDENT_CODE ON)
