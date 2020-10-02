@@ -20,7 +20,7 @@ EXPECTED_FILE="$5"
 export PGUSER=${PGUSER-postgres}
 # export PGPASSWORD=
 
-# unzip data files to temp dir
+# Unzip data files to a folder under /tmp.
 TMP_DIR=$(mktemp -d -t airport-data-XXXXXXXXXX)
 chmod 755 "$TMP_DIR"
 pushd "$DATA_DIR"
@@ -28,10 +28,10 @@ for f in *gz; do
     gzip -dkc < $f > "$TMP_DIR/${f%%.gz}"
 done
 popd
-# set up database tables
+# Set up database tables and import airport data.
 "$PG_CLIENT" --set=data_dir="$TMP_DIR" -f "$SETUP_SCRIPT"
-# execute test queries
+# Execute test queries.
 OUTPUT=$("$PG_CLIENT" -A -F , -X -t -f "$TEST_SCRIPT")
 EXPECTED=$(cat "$EXPECTED_FILE")
-# exit with 0 or 1 depending on comparison result
+# Exit with 0 or 1 depending on comparison result.
 [[ "$OUTPUT" = "$EXPECTED" ]]
