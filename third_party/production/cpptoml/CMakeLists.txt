@@ -1,0 +1,27 @@
+message(CHECK_START "Looking for cpptoml")
+find_package(cpptoml QUIET CONFIG)
+if (cpptoml_FOUND)
+  message(CHECK_PASS "found")
+  add_library(cpptoml INTERFACE)
+else ()
+  message(CHECK_FAIL "not found")
+  set(CPPTOML_VERSION "0.1.1")
+  set(CPPTOML_ROOT ${DEPENDENCIES_INSTALL_PREFIX}/cpptoml)
+  add_library(cpptoml INTERFACE)
+  add_dependencies(cpptoml cpptoml_dependency)
+  target_include_directories(cpptoml INTERFACE ${CPPTOML_ROOT}/include)
+  ExternalProject_Add(cpptoml_dependency
+    URL
+      https://github.com/skystrife/cpptoml/archive/v${CPPTOML_VERSION}.tar.gz
+    URL_HASH
+      SHA256=23af72468cfd4040984d46a0dd2a609538579c78ddc429d6b8fd7a10a6e24403
+    EXCLUDE_FROM_ALL
+      TRUE
+    CMAKE_ARGS
+      -DCMAKE_BUILD_TYPE=None
+      -DENABLE_LIBCXX:BOOL=OFF
+      -DCPPTOML_BUILD_EXAMPLES:BOOL=OFF
+      -DCMAKE_EXPORT_NO_PACKAGE_REGISTRY:BOOL=ON
+      -DCMAKE_INSTALL_PREFIX:PATH=${CPPTOML_ROOT}
+    )
+endif ()

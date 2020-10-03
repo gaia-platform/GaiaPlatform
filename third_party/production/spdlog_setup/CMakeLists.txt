@@ -9,6 +9,8 @@ else ()
   set(SPDLOG_SETUP_ROOT ${DEPENDENCIES_INSTALL_PREFIX}/spdlog_setup)
   add_library(spdlog_setup INTERFACE)
   add_dependencies(spdlog_setup spdlog_setup_dependency)
+  add_dependencies(spdlog_setup cpptoml)
+  add_dependencies(spdlog_setup spdlog)
   target_include_directories(spdlog_setup INTERFACE ${SPDLOG_SETUP_ROOT}/include)
   ExternalProject_Add(spdlog_setup_dependency
     URL
@@ -16,7 +18,7 @@ else ()
     URL_HASH
       SHA256=d0cfa7d306ff65596e36be42e23c231a1b8f84e8fe339b94c15fca58c67516e3
     DEPENDS
-      spdlog
+      spdlog cpptoml
     CMAKE_ARGS
       -DCMAKE_BUILD_TYPE=Release
       -DCMAKE_THREAD_LIBS_INIT="-lpthread"
