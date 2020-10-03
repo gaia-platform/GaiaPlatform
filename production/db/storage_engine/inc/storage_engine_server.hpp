@@ -12,7 +12,6 @@
 #include <thread>
 
 #include "storage_engine.hpp"
-#include "array_size.hpp"
 #include "retail_assert.hpp"
 #include "system_error.hpp"
 #include "mmap_helpers.hpp"
@@ -111,7 +110,7 @@ class server : private se_base {
         }
         // "Wildcard" transitions (current state = session_state_t::ANY) must be listed after
         // non-wildcard transitions with the same event, or the latter will never be applied.
-        for (size_t i = 0; i < array_size(s_valid_transitions); i++) {
+        for (size_t i = 0; i < std::size(s_valid_transitions); i++) {
             valid_transition_t t = s_valid_transitions[i];
             if (t.event == event && (t.state == s_session_state || t.state == session_state_t::ANY)) {
                 // It would be nice to statically enforce this on the transition_t type.
@@ -277,7 +276,7 @@ class server : private se_base {
             throw_system_error("epoll_create1 failed");
         }
         int fds[] = {connect_socket, s_server_shutdown_event_fd};
-        for (size_t i = 0; i < array_size(fds); i++) {
+        for (size_t i = 0; i < std::size(fds); i++) {
             struct epoll_event ev;
             ev.events = EPOLLIN;
             ev.data.fd = fds[i];
@@ -316,7 +315,7 @@ class server : private se_base {
         struct epoll_event events[2];
         while (true) {
             // Block forever (we will be notified of shutdown).
-            int ready_fd_count = epoll_wait(epoll_fd, events, array_size(events), -1);
+            int ready_fd_count = epoll_wait(epoll_fd, events, std::size(events), -1);
             if (ready_fd_count == -1) {
                 throw_system_error("epoll_wait failed");
             }
@@ -409,7 +408,7 @@ class server : private se_base {
             close(epoll_fd);
         });
         int fds[] = {s_session_socket, s_server_shutdown_event_fd};
-        for (size_t i = 0; i < array_size(fds); i++) {
+        for (size_t i = 0; i < std::size(fds); i++) {
             struct epoll_event ev;
             // We should only get EPOLLRDHUP from the client socket, but oh well.
             ev.events = EPOLLIN | EPOLLRDHUP;
@@ -418,10 +417,10 @@ class server : private se_base {
                 throw_system_error("epoll_ctl failed");
             }
         }
-        struct epoll_event events[array_size(fds)];
+        struct epoll_event events[std::size(fds)];
         while (!s_session_shutdown) {
             // Block forever (we will be notified of shutdown).
-            int ready_fd_count = epoll_wait(epoll_fd, events, array_size(events), -1);
+            int ready_fd_count = epoll_wait(epoll_fd, events, std::size(events), -1);
             if (ready_fd_count == -1) {
                 throw_system_error("epoll_wait failed");
             }
@@ -461,7 +460,7 @@ class server : private se_base {
                         uint8_t msg_buf[MAX_MSG_SIZE] = {0};
                         // Buffer used to receive file descriptors.
                         int fd_buf[MAX_FD_COUNT] = {-1};
-                        size_t fd_buf_size = array_size(fd_buf);
+                        size_t fd_buf_size = std::size(fd_buf);
                         // Read client message with possible file descriptors.
                         size_t bytes_read = recv_msg_with_fds(s_session_socket, fd_buf, &fd_buf_size, msg_buf, sizeof(msg_buf));
                         // We shouldn't get EOF unless EPOLLRDHUP is set.

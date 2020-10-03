@@ -31,7 +31,7 @@ void server::handle_connect(int*, size_t, session_event_t event, session_state_t
     FlatBufferBuilder builder;
     build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_transaction_id);
     const int send_fds[] = {s_fd_data, s_fd_locators};
-    send_msg_with_fds(s_session_socket, send_fds, array_size(send_fds), builder.GetBufferPointer(), builder.GetSize());
+    send_msg_with_fds(s_session_socket, send_fds, std::size(send_fds), builder.GetBufferPointer(), builder.GetSize());
 }
 
 void server::handle_begin_txn(int*, size_t, session_event_t event, session_state_t old_state, session_state_t new_state) {
