@@ -15,7 +15,6 @@ else ()
   add_library(backward INTERFACE)
   add_dependencies(backward backward_dependency)
   target_include_directories(backward INTERFACE ${BACKWARD_ROOT}/include)
-  target_link_directories(backward INTERFACE ${BACKWARD_ROOT}/lib)
   ExternalProject_Add(backward_dependency
     URL
       https://github.com/bombela/backward-cpp/archive/v${BACKWARD_VERSION}.tar.gz

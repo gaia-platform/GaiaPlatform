@@ -11,7 +11,7 @@ else ()
   add_library(fmt INTERFACE)
   add_dependencies(fmt fmt_dependency)
   target_include_directories(fmt INTERFACE ${FMT_ROOT}/include)
-  target_link_directories(fmt INTERFACE ${FMT_ROOT}/lib)
+  target_link_libraries(fmt INTERFACE ${FMT_ROOT}/lib/libfmt.a)
   ExternalProject_Add(fmt_dependency
     URL
       https://github.com/fmtlib/fmt/archive/${FMT_VERSION}.tar.gz
@@ -22,6 +22,7 @@ else ()
       -DFMT_TEST:BOOL=OFF
       -DFMT_FUZZ:BOOL=OFF
       -DFMT_DOC:BOOL=OFF
+      -DBUILD_SHARED_LIBS:BOOL=OFF
       -DCMAKE_INSTALL_PREFIX:PATH=${FMT_ROOT}
     )
 endif ()
