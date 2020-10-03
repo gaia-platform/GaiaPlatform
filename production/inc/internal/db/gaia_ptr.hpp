@@ -10,6 +10,7 @@
 
 #include "retail_assert.hpp"
 #include "gaia_db.hpp"
+#include "db_types.hpp"
 #include "gaia_se_object.hpp"
 #include "type_metadata.hpp"
 
@@ -20,21 +21,21 @@ namespace db {
 
 class gaia_ptr {
 private:
-    int64_t row_id;
+    gaia_locator_t m_locator;
     void create_insert_trigger(gaia_type_t type, gaia_id_t id);
     void clone_no_tx();
 
 public:
     gaia_ptr(const std::nullptr_t = nullptr)
-        : row_id(0) {}
+        : m_locator(0) {}
 
     gaia_ptr(const gaia_ptr& other)
-        : row_id(other.row_id) {}
+        : m_locator(other.m_locator) {}
 
     gaia_ptr& operator=(const gaia_ptr& other) = default;
 
     bool operator==(const gaia_ptr& other) const {
-        return row_id == other.row_id;
+        return m_locator == other.m_locator;
     }
 
     bool operator==(const std::nullptr_t) const {
@@ -128,7 +129,7 @@ public:
 
     static gaia_ptr find_first(gaia_type_t type) {
         gaia_ptr ptr;
-        ptr.row_id = 1;
+        ptr.m_locator = 1;
 
         if (!ptr.is(type)) {
             ptr.find_next(type);
@@ -138,7 +139,7 @@ public:
     }
 
     gaia_ptr find_next() {
-        if (row_id) {
+        if (m_locator) {
             find_next(to_ptr()->type);
         }
 
@@ -146,14 +147,14 @@ public:
     }
 
     gaia_ptr operator++() {
-        if (row_id) {
+        if (m_locator) {
             find_next(to_ptr()->type);
         }
         return *this;
     }
 
     bool is_null() const {
-        return row_id == 0;
+        return m_locator == 0;
     }
 
     gaia_id_t id() const {
@@ -236,7 +237,7 @@ protected:
 
     gaia_se_object_t* to_ptr() const;
 
-    int64_t to_offset() const;
+    gaia_offset_t to_offset() const;
 
     bool is(gaia_type_t type) const {
         return to_ptr() && to_ptr()->type == type;

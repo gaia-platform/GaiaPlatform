@@ -9,6 +9,8 @@
 #include <shared_mutex>
 #include <vector>
 
+#include <db_types.hpp>
+
 namespace gaia
 {
 namespace db
@@ -19,14 +21,14 @@ namespace storage
 struct record_data_t
 {
     // Provides the record's locator.
-    uint64_t locator;
+    gaia::db::gaia_locator_t locator;
 
     // Tells whether the record has been deleted.
     bool is_deleted;
 
     record_data_t();
 
-    void set(uint64_t locator);
+    void set(gaia::db::gaia_locator_t locator);
 };
 
 struct record_iterator_t;
@@ -49,7 +51,7 @@ public:
     void compact();
 
     // Add and get an element.
-    void add(uint64_t locator);
+    void add(gaia::db::gaia_locator_t locator);
     record_data_t& get(size_t index);
 
     // Add and read the next range.
@@ -101,7 +103,7 @@ public:
     void compact();
 
     // Add a recod's locator to our record list.
-    void add(uint64_t locator);
+    void add(gaia::db::gaia_locator_t locator);
 
     // Start an iteration.
     // Return true if the iterator was positioned on a valid record
@@ -114,7 +116,7 @@ public:
     static bool move_next(record_iterator_t& iterator);
 
     // Read the record locator for the current iterator position.
-    static uint64_t get_record_locator(record_iterator_t& iterator);
+    static gaia::db::gaia_locator_t get_record_locator(record_iterator_t& iterator);
 
     // Mark the record currently referenced by the iterator as deleted.
     static void delete_record(record_iterator_t& iterator);
