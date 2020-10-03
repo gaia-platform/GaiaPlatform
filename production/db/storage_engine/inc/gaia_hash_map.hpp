@@ -13,9 +13,9 @@ namespace db {
 using namespace common;
 
 class gaia_hash_map {
-   public:  
-    static hash_node* insert(se_base::data* s_data, se_base::offsets* offsets, const gaia_id_t id) {
-        if (offsets == nullptr) {
+public:
+    static hash_node* insert(se_base::data* s_data, se_base::locators* locators, const gaia_id_t id) {
+        if (locators == nullptr) {
             throw transaction_not_open();
         }
 
@@ -24,22 +24,21 @@ class gaia_hash_map {
             return node;
         }
 
-        int64_t new_node_idx = 0;
+        size_t new_node_idx = 0;
 
         for (;;) {
             __sync_synchronize();
 
             if (node->id == id) {
-                if (node->row_id &&
-                    se_base::locator_exists(offsets, node->row_id)) {
+                if (node->locator && se_base::locator_exists(locators, node->locator)) {
                     throw duplicate_id(id);
                 } else {
                     return node;
                 }
             }
 
-            if (node->next) {
-                node = s_data->hash_nodes + node->next;
+            if (node->next_offset) {
+                node = s_data->hash_nodes + node->next_offset;
                 continue;
             }
 
@@ -49,14 +48,14 @@ class gaia_hash_map {
                 (s_data->hash_nodes + new_node_idx)->id = id;
             }
 
-            if (__sync_bool_compare_and_swap(&node->next, 0, new_node_idx)) {
+            if (__sync_bool_compare_and_swap(&node->next_offset, 0, new_node_idx)) {
                 return s_data->hash_nodes + new_node_idx;
             }
         }
     }
 
-    static int64_t find(se_base::data* s_data, se_base::offsets* offsets, const gaia_id_t id) {
-        if (offsets == nullptr) {
+    static int64_t find(se_base::data* s_data, se_base::locators* locators, const gaia_id_t id) {
+        if (locators == nullptr) {
             throw transaction_not_open();
         }
 
@@ -64,15 +63,15 @@ class gaia_hash_map {
 
         while (node) {
             if (node->id == id) {
-                if (node->row_id && se_base::locator_exists(offsets, node->row_id)) {
-                    return node->row_id;
+                if (node->locator && se_base::locator_exists(locators, node->locator)) {
+                    return node->locator;
                 } else {
                     return 0;
                 }
             }
 
-            node = node->next
-                ? s_data->hash_nodes + node->next
+            node = node->next_offset
+                ? s_data->hash_nodes + node->next_offset
                 : 0;
         }
 
@@ -84,18 +83,18 @@ class gaia_hash_map {
 
         while (node->id) {
             if (node->id == id) {
-                if (node->row_id) {
-                    node->row_id = 0;
+                if (node->locator) {
+                    node->locator = 0;
                 }
                 return;
             }
-            if (!node->next) {
+            if (!node->next_offset) {
                 return;
             }
-            node = s_data->hash_nodes + node->next;
+            node = s_data->hash_nodes + node->next_offset;
         }
     }
 };
 
-}  // namespace db
-}  // namespace gaia
+} // namespace db
+} // namespace gaia
