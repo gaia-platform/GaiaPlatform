@@ -32,4 +32,4 @@ public:
     }
 };
 
-void handle_slash_command(const string& line);
+void handle_meta_command(const string& line);

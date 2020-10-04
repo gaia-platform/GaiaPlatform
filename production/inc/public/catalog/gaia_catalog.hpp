@@ -14,7 +14,8 @@
 #include "gaia_common.hpp"
 #include "gaia_exception.hpp"
 
-using namespace gaia::common;
+using gaia::common::gaia_exception;
+using gaia::common::gaia_id_t;
 
 namespace gaia {
 /**
@@ -174,6 +175,23 @@ struct drop_statement_t : statement_t {
 
     string database;
 };
+
+/**
+ * Thrown when seeing an unknown data type
+ */
+class unknown_data_type : public gaia_exception {
+public:
+    unknown_data_type();
+};
+
+/**
+ * Get the data type name for fbs
+ *
+ * @param catalog data type
+ * @return fbs data type name
+ * @throw unknown_data_type
+ */
+string get_data_type_name(data_type_t data_type);
 
 /*@}*/
 } // namespace ddl

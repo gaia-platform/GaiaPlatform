@@ -39,10 +39,10 @@ void execute(const string& db_name, vector<unique_ptr<ddl::statement_t>>& statem
 
 string load_catalog(parser_t& parser, const string& ddl_filename, const string& name) {
     string db(name);
-    retail_assert(!ddl_filename.empty(), "No ddl file specified.");
+    common::retail_assert(!ddl_filename.empty(), "No ddl file specified.");
 
     int parsing_result = parser.parse(ddl_filename);
-    retail_assert(parsing_result == EXIT_SUCCESS, "Fail to parse the ddl file '" + ddl_filename + "'");
+    common::retail_assert(parsing_result == EXIT_SUCCESS, "Fail to parse the ddl file '" + ddl_filename + "'");
 
     if (db.empty()) {
         // Strip off the path and any suffix to get database name if database name is not specified.

@@ -52,7 +52,7 @@ void start_repl(parser_t& parser, const string& dbname) {
         }
         try {
             if (line.length() > 0 && line.at(0) == c_command_prefix) {
-                handle_slash_command(line);
+                handle_meta_command(line);
                 continue;
             }
             int parsing_result = parser.parse_line(line);
