@@ -103,6 +103,16 @@ gaia_ptr& gaia_ptr::update_child_references(
     return *this;
 }
 
+gaia_ptr& gaia_ptr::update_child_references(size_t next_child_slot, gaia_id_t next_child_id) {
+    auto old_offset = to_offset();
+    clone_no_tx();
+
+    references()[next_child_slot] = next_child_id;
+
+    client::tx_log(row_id, old_offset, to_offset(), gaia_operation_t::update);
+    return *this;
+}
+
 gaia_ptr::gaia_ptr(const gaia_id_t id) {
     row_id = gaia_hash_map::find(client::s_data, client::s_offsets, id);
 }

@@ -265,7 +265,7 @@ void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot,
             if (next_id == child_id)
             {
                 // Point the current child to the child following the next.
-                cur_child_ptr.update_parent_references(T_next_slot, child_ptr.references()[T_next_slot]);
+                cur_child_ptr.update_child_references(T_next_slot, child_ptr.references()[T_next_slot]);
                 // Clean up the removed child.
                 child_ptr.update_child_references(T_next_slot, INVALID_GAIA_ID, T_parent_slot, INVALID_GAIA_ID);
                 return;

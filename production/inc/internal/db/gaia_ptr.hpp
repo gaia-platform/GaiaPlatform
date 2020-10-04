@@ -126,6 +126,8 @@ public:
         size_t next_child_slot, gaia_id_t next_child_id,
         size_t parent_slot, gaia_id_t parent_id);
 
+    gaia_ptr& update_child_references(size_t next_child_slot, gaia_id_t next_child_id);
+
     static gaia_ptr find_first(gaia_type_t type) {
         gaia_ptr ptr;
         ptr.row_id = 1;
