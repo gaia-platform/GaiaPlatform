@@ -1,8 +1,11 @@
 message(CHECK_START "Looking for cpptoml")
-find_package(cpptoml QUIET CONFIG)
-if (cpptoml_FOUND)
+# Use 'find_path' instead of 'find_package' to detect cpptoml because its cmake config is broken.
+# It exports the 'cpptoml' INTERFACE library and sets the wrong linkage (-lcpptoml).
+find_path(CPPTOML_INCLUDE "cpptoml.h")
+if (CPPTOML_INCLUDE)
   message(CHECK_PASS "found")
   add_library(cpptoml INTERFACE)
+  target_include_directories(cpptoml INTERFACE ${CPPTOML_INCLUDE})
 else ()
   message(CHECK_FAIL "not found")
   set(CPPTOML_VERSION "0.1.1")
