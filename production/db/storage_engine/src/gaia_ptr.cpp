@@ -103,7 +103,7 @@ gaia_ptr& gaia_ptr::update_child_references(
     return *this;
 }
 
-gaia_ptr& gaia_ptr::update_child_references(size_t next_child_slot, gaia_id_t next_child_id) {
+gaia_ptr& gaia_ptr::update_next_child_reference(size_t next_child_slot, gaia_id_t next_child_id) {
     auto old_offset = to_offset();
     clone_no_tx();
 
