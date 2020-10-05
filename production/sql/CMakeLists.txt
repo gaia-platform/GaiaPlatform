@@ -94,5 +94,9 @@ add_subdirectory(src)
 
 # Add tests.
 
-# Tests are disabled until they get rewritten.
+# To run the FDW tests, you must first install the FDW
+# by executing 'make install' under the build/sql folder.
+# You should also ensure that postgres authentication is set to 'trust'
+# in file /etc/postgresql/12/main/pg_hba.conf
+# and that the Postgres service is started.
 # add_subdirectory(tests)
