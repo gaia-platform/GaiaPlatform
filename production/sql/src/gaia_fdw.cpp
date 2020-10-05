@@ -266,7 +266,7 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState *node, int eflags) {
     }
 
     // Set up mapping of attnos to flatbuffer accessor functions.
-    for (int i = 0; i < tupleDesc->natts; i++) {
+    for (int i = 0; i < tupleDesc->natts; ++i) {
         // User attributes are indexed starting from 1.
         // AttrNumber attnum = i + 1.
         char *attr_name = NameStr(TupleDescAttr(tupleDesc, i)->attname);
@@ -281,7 +281,7 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState *node, int eflags) {
 
     // Retrieve the first node of the requested type
     // (this can't currently throw).
-    if (scan_state->initialize_scan()) {
+    if (!scan_state->initialize_scan()) {
         elog(ERROR, "Failed to scan initialization for table '%s'.", table_name);
     }
 }
@@ -322,7 +322,7 @@ extern "C" TupleTableSlot *gaia_iterate_foreign_scan(ForeignScanState *node) {
     ExecClearTuple(slot);
 
     // Get the next record, if any, and fill in the slot.
-    for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; attr_idx++) {
+    for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; ++attr_idx) {
         // char *attr_name = NameStr(
         //     TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->attname);
 
@@ -403,12 +403,12 @@ extern "C" void gaia_add_foreign_update_targets(
     //
     // Loop through all columns of the foreign table.
     bool key_found = false;
-    for (int i = 0; i < tupleDesc->natts; i++) {
+    for (int i = 0; i < tupleDesc->natts; ++i) {
         Form_pg_attribute attr = TupleDescAttr(tupleDesc, i);
         char *attr_name = NameStr(attr->attname);
 
         // If primary key, add a resjunk for this column.
-        if (strcmp(gaia::fdw::c_gaia_id, attr_name) == 0) {
+        if (gaia::fdw::adapter_t::is_gaia_id_name(attr_name)) {
             key_found = true;
 
             // Make a Var representing the desired value.
@@ -486,7 +486,7 @@ extern "C" List *gaia_plan_foreign_modify(
             }
 
             char *attr_name = NameStr(TupleDescAttr(tupleDesc, attno - 1)->attname);
-            if (strcmp(attr_name, gaia::fdw::c_gaia_id) == 0) {
+            if (gaia::fdw::adapter_t::is_gaia_id_name(attr_name)) {
                 ereport(ERROR,
                     (errcode(ERRCODE_FDW_INVALID_COLUMN_NAME),
                     errmsg("Cannot insert into or update system column gaia_id.")));
@@ -542,7 +542,7 @@ extern "C" void gaia_begin_foreign_modify(
     }
 
     // Set up mapping of attnos to flatbuffer attribute builder functions.
-    for (int i = 0; i < tupleDesc->natts; i++) {
+    for (int i = 0; i < tupleDesc->natts; ++i) {
         // User attributes are indexed starting from 1.
         // AttrNumber attnum = i + 1.
         char *attr_name = NameStr(TupleDescAttr(tupleDesc, i)->attname);
@@ -599,7 +599,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_insert(
     // be empty!).
     // TODO: use slot_getattr()?
     slot_getallattrs(slot);
-    for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; attr_idx++) {
+    for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; ++attr_idx) {
         // char *attr_name = NameStr(
         //     TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->attname);
 
@@ -676,7 +676,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_update(
     // be empty!).
     // TODO: use slot_getattr()?
     slot_getallattrs(slot);
-    for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; attr_idx++) {
+    for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; ++attr_idx) {
         if (!(slot->tts_isnull[attr_idx])) {
             Datum attr_val = slot->tts_values[attr_idx];
 
@@ -740,7 +740,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_delete(
     Form_pg_attribute attr = TupleDescAttr(tupleDesc, 0);
     AttrNumber attnum = attr->attnum;
     char *attr_name = NameStr(attr->attname);
-    assert(strcmp(gaia::fdw::c_gaia_id, attr_name) == 0);
+    assert(gaia::fdw::adapter_t::is_gaia_id_name(attr_name));
 
     bool is_null;
     Datum pk_val = slot_getattr(plan_slot, attnum, &is_null);
@@ -1056,12 +1056,11 @@ extern "C" List *gaia_import_foreign_schema(
 // Perform all module-level initialization here.
 extern "C" void _PG_init() {
     elog(DEBUG1, "Entering function %s...", __func__);
-    // Initialize COW-SE without deleting all data.
-    gaia::db::begin_session();
+    gaia::fdw::adapter_t::begin_session();
 }
 
 // Perform all module-level finalization here.
 extern "C" void _PG_fini() {
     elog(DEBUG1, "Entering function %s...", __func__);
-    gaia::db::end_session();
+    gaia::fdw::adapter_t::end_session();
 }
