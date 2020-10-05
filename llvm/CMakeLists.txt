@@ -1249,9 +1249,11 @@ set( GAIA_DLLS
 
 
 foreach(file_i ${GAIA_DLLS})
-     get_filename_component(file_name ${file_i} NAME)     
+     get_filename_component(file_name ${file_i} NAME)    
+     STRING(REGEX REPLACE "^lib" "" component ${file_name}) 
+     STRING(REGEX REPLACE ".a" "" component_name ${component}) 
      add_custom_command(
-     	DEPENDS ${LLVM_LIBRARY_DIR}/${file_name}
+     	DEPENDS ${component_name}
   	OUTPUT  ${file_i}
      	COMMAND cmake -E copy_if_different ${LLVM_LIBRARY_DIR}/${file_name} "${file_i}"
      )    
