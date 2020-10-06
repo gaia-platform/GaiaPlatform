@@ -26,7 +26,7 @@ TEST_F(fdw_test, airport)
 
     char* command = reinterpret_cast<char*>(command_loader.get_data());
 
-    cout << "Command executed by test is:" << endl << command << endl;
+    cerr << "Command executed by test is:" << endl << command << endl;
 
     // Execute the command and validate its return value.
     int return_value = system(command);
