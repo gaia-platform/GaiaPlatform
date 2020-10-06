@@ -125,6 +125,13 @@ TYPED_TEST(iterator_conformance_t, pre_incrementable) {
     TypeParam it = this->get_begin(it);
     unordered_set<const char *> set;
 
+    const char * a = (*it).street();
+    const char * b = (*++it).street();
+    EXPECT_STRNE(a, b)
+            << "The iterator is not pre-incrementable with the "
+            "expected effects.";
+
+    it = this->get_begin(it);
     for(size_t i = 0; i < c_loops; i++)
     {
         // 
@@ -405,9 +412,8 @@ TYPED_TEST(iterator_conformance_t, multipass_guarantee) {
     }
 }
 
-// Can an iterator iterate over a sequence multiple times to return the same
-// values at the same positions every time? This is known as the multipass
-// guarantee.
+// Sanity check that our iterators can work with a std::algorithms container
+// method.  Transforms list of characters into list of numbers.
 TYPED_TEST(iterator_conformance_t, algorithm_test) {
     const int c_count = 10;
     vector<int> transform_list;
@@ -417,8 +423,6 @@ TYPED_TEST(iterator_conformance_t, algorithm_test) {
     
     this->insert_records(c_count);
 
-    // Sanity check that our iterators can work with a std::algorithms container
-    // method.
     std::transform(this->get_begin(iter), 
         this->get_end(iter), 
         back_inserter(transform_list), 
