@@ -12,11 +12,11 @@ individual directories for all depdendencies except legacy source depdendencies.
 
 3. (Optional) for light weight C++ dependencies, consider adding a `CMakeLists.txt` for local
 build. Examples can be found in the following dependencies:
-- [backward](production/backward/CMakeLists.txt)
-- [cpptoml](production/cpptoml/CMakeLists.txt)
-- [fmt](production/fmt/CMakeLists.txt)
-- [spdlog](production/spdlog/CMakeLists.txt)
-- [spdlog_setup](production/spdlog_setup/CMakeLists.txt)
-- [tabulate](production/tabulate/CMakeLists.txt)
+    - [backward](production/backward/CMakeLists.txt)
+    - [cpptoml](production/cpptoml/CMakeLists.txt)
+    - [fmt](production/fmt/CMakeLists.txt)
+    - [spdlog](production/spdlog/CMakeLists.txt)
+    - [spdlog_setup](production/spdlog_setup/CMakeLists.txt)
+    - [tabulate](production/tabulate/CMakeLists.txt)
 
 
