@@ -71,7 +71,7 @@ target_include_directories(gaia_fdw SYSTEM PRIVATE "${PGSQL_INCLUDEDIR_SERVER}")
 target_link_libraries(gaia_fdw PRIVATE flatccrt)
 target_link_libraries(gaia_fdw PRIVATE gaia_se_client)
 
-# Extension config.
+# Extension configuration.
 
 set(GAIA_FDW_INSTALL_EXTENSIONS
   "${PROJECT_BINARY_DIR}/pgsql/gaia_fdw--${PG_GAIA_FDW_VERSION}.sql"
@@ -83,7 +83,7 @@ configure_file(
 
 configure_file(gaia_fdw.control "${PROJECT_BINARY_DIR}/pgsql/gaia_fdw.control")
 
-# Install config and binaries.
+# Installation steps for configuration and binaries.
 
 install(TARGETS gaia_fdw DESTINATION ${PGSQL_PKGLIBDIR})
 

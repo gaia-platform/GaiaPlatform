@@ -12,6 +12,8 @@ enable_testing()
 # Set the project name.
 project(production)
 
+option(EXECUTE_FDW_TESTS "Execute FDW tests" OFF)
+
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 
 include(gaia)
@@ -203,5 +205,5 @@ file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
   CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_se_server>\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_se_server\")\n"
 )
 
-
+# Copy logging configuration.
 configure_file(log_conf.toml "${PROJECT_BINARY_DIR}/common/log_conf.toml")
