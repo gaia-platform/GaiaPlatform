@@ -30,7 +30,6 @@ namespace direct_access {
 // @tparam T_class the Extended Data Class type
 template <typename T_class>
 class gaia_iterator_t {
-    gaia_id_t m_id;
     T_class m_obj;
 
 public:
@@ -41,7 +40,7 @@ public:
     using iterator_category = std::forward_iterator_tag;
 
     gaia_iterator_t(gaia_id_t id);
-    gaia_iterator_t();
+    gaia_iterator_t() = default;
 
     gaia_iterator_t<T_class>& operator++();
 
@@ -76,7 +75,6 @@ struct gaia_container_t {
 // @tparam T_child_slot an integer indexing the list of references in the T_child type
 template <typename T_child, size_t T_child_slot>
 class gaia_set_iterator_t {
-    gaia_id_t m_id;
     T_child m_child_obj;
 
 public:
@@ -87,7 +85,7 @@ public:
     using iterator_category = std::forward_iterator_tag;
 
     gaia_set_iterator_t(gaia_id_t id);
-    gaia_set_iterator_t();
+    gaia_set_iterator_t() = default;
 
     reference operator*();
 
