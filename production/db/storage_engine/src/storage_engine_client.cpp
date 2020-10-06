@@ -4,6 +4,10 @@
 /////////////////////////////////////////////
 
 #include "storage_engine_client.hpp"
+
+#include <flatbuffers/flatbuffers.h>
+
+#include "messages_generated.h"
 #include "system_table_types.hpp"
 
 using namespace gaia::common;
@@ -12,23 +16,21 @@ using namespace gaia::db::triggers;
 using namespace gaia::db::messages;
 using namespace flatbuffers;
 
-thread_local se_base::offsets *client::s_offsets = nullptr;
+thread_local se_base::locators* client::s_locators = nullptr;
 thread_local int client::s_fd_log = -1;
-thread_local int client::s_fd_offsets = -1;
-thread_local se_base::data *client::s_data;
+thread_local int client::s_fd_locators = -1;
+thread_local se_base::data* client::s_data;
 thread_local std::vector<trigger_event_t> client::s_events;
-commit_trigger_fn gaia::db::s_tx_commit_trigger = nullptr;
+commit_trigger_fn client::s_tx_commit_trigger = nullptr;
 
 std::unordered_set<gaia_type_t> client::trigger_excluded_types{
     static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table),
     static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_field),
     static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_ruleset),
     static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_rule),
-    static_cast<gaia_type_t>(system_table_type_t::event_log)
-};
+    static_cast<gaia_type_t>(system_table_type_t::event_log)};
 
-
-static void build_client_request(FlatBufferBuilder &builder, session_event_t event) {
+static void build_client_request(FlatBufferBuilder& builder, session_event_t event) {
     auto client_request = Createclient_request_t(builder, event);
     auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
     builder.Finish(message);
@@ -55,11 +57,11 @@ void client::clear_shared_memory() {
         unmap_fd(s_data, sizeof(data));
         s_data = nullptr;
     }
-    // If the server has already closed its fd for the offset segment
+    // If the server has already closed its fd for the locator segment
     // (and there are no other clients), this will release it.
-    if (s_fd_offsets != -1) {
-        close(s_fd_offsets);
-        s_fd_offsets = -1;
+    if (s_fd_locators != -1) {
+        close(s_fd_locators);
+        s_fd_locators = -1;
     }
 }
 
@@ -69,10 +71,10 @@ void client::tx_cleanup() {
     // Destroy the log fd.
     close(s_fd_log);
     s_fd_log = -1;
-    // Destroy the offset mapping.
-    if (s_offsets) {
-        unmap_fd(s_offsets, sizeof(offsets));
-        s_offsets = nullptr;
+    // Destroy the locator mapping.
+    if (s_locators) {
+        unmap_fd(s_locators, sizeof(locators));
+        s_locators = nullptr;
     }
 }
 
@@ -98,9 +100,8 @@ int client::get_session_socket() {
         sizeof(server_addr.sun_path) - 1);
     // The socket name is not null-terminated in the address structure, but
     // we need to add an extra byte for the null byte prefix.
-    socklen_t server_addr_size =
-        sizeof(server_addr.sun_family) + 1 + strlen(&server_addr.sun_path[1]);
-    if (-1 == connect(session_socket, (struct sockaddr *)&server_addr, server_addr_size)) {
+    socklen_t server_addr_size = sizeof(server_addr.sun_family) + 1 + strlen(&server_addr.sun_path[1]);
+    if (-1 == connect(session_socket, (struct sockaddr*)&server_addr, server_addr_size)) {
         throw_system_error("connect failed");
     }
     cleanup_session_socket.dismiss();
@@ -125,11 +126,11 @@ void client::begin_session() {
     // Clean up possible stale state from a server crash or reset.
     clear_shared_memory();
     // Assert relevant fd's and pointers are in clean state.
-    retail_assert(s_data == nullptr);
-    retail_assert(s_fd_offsets == -1);
-    retail_assert(s_fd_log == -1);
-    retail_assert(s_log == nullptr);
-    retail_assert(s_offsets == nullptr);
+    retail_assert(s_data == nullptr, "Data segment uninitialized");
+    retail_assert(s_fd_locators == -1, "Locators file descriptor uninitialized");
+    retail_assert(s_fd_log == -1, "Log file descriptor uninitialized");
+    retail_assert(s_log == nullptr, "Log segment uninitialized");
+    retail_assert(s_locators == nullptr, "Locators segment uninitialized");
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
@@ -151,27 +152,27 @@ void client::begin_session() {
     int fds[FD_COUNT] = {-1};
     size_t fd_count = FD_COUNT;
     const size_t DATA_FD_INDEX = 0;
-    const size_t OFFSETS_FD_INDEX = 1;
+    const size_t LOCATORS_FD_INDEX = 1;
     size_t bytes_read = recv_msg_with_fds(s_session_socket, fds, &fd_count, msg_buf, sizeof(msg_buf));
     retail_assert(bytes_read > 0);
     retail_assert(fd_count == FD_COUNT);
     int fd_data = fds[DATA_FD_INDEX];
     retail_assert(fd_data != -1);
-    int fd_offsets = fds[OFFSETS_FD_INDEX];
-    retail_assert(fd_offsets != -1);
-    auto cleanup_fds = scope_guard::make_scope_guard([fd_data, fd_offsets]() {
+    int fd_locators = fds[LOCATORS_FD_INDEX];
+    retail_assert(fd_locators != -1);
+    auto cleanup_fds = scope_guard::make_scope_guard([fd_data, fd_locators]() {
         // We can unconditionally close the data fd,
         // since it's not saved anywhere and the mapping
         // increments the shared memory segment's refcount.
         close(fd_data);
         // We can only close the locator fd if it hasn't been cached.
-        if (s_fd_offsets != fd_offsets) {
-            close(fd_offsets);
+        if (s_fd_locators != fd_locators) {
+            close(fd_locators);
         }
     });
 
-    const message_t *msg = Getmessage_t(msg_buf);
-    const server_reply_t *reply = msg->msg_as_reply();
+    const message_t* msg = Getmessage_t(msg_buf);
+    const server_reply_t* reply = msg->msg_as_reply();
     const session_event_t event = reply->event();
     retail_assert(event == session_event_t::CONNECT);
 
@@ -179,40 +180,22 @@ void client::begin_session() {
     // (but only if they're not already initialized).
 
     // Set up the shared data segment mapping.
-    s_data = static_cast<data *>(map_fd(
+    s_data = static_cast<data*>(map_fd(
         sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0));
 
     // We've already mapped the data fd, so we can close it now.
     close(fd_data);
 
     // Set up the private locator segment fd.
-    s_fd_offsets = fd_offsets;
+    s_fd_locators = fd_locators;
     cleanup_session_socket.dismiss();
 }
 
 void client::end_session() {
-    // Send the server EOF.
-    shutdown(s_session_socket, SHUT_WR);
-
-    auto cleanup_session_socket = scope_guard::make_scope_guard([]() {
-        close(s_session_socket);
-        s_session_socket = -1;
-    });
-
-    // Discard all pending messages from the server and block until EOF.
-    // REVIEW: Is there any reason not to just close the socket to begin with?
-    // That *should* deliver EPOLLRDHUP to the other side (but needs testing).
-    while (true) {
-        uint8_t msg_buf[MAX_MSG_SIZE] = {0};
-        // POSIX says we should never get SIGPIPE except on writes,
-        // but set MSG_NOSIGNAL just in case.
-        ssize_t bytes_read = recv(s_session_socket, msg_buf, sizeof(msg_buf), MSG_NOSIGNAL);
-        if (bytes_read == -1) {
-            throw_system_error("read failed");
-        } else if (bytes_read == 0) {
-            break;
-        }
-    }
+    // This will gracefully shut down the server-side session thread
+    // and all other threads that session thread owns.
+    ::close(s_session_socket);
+    s_session_socket = -1;
 }
 
 void client::begin_transaction() {
@@ -230,29 +213,29 @@ void client::begin_transaction() {
     if (-1 == ftruncate(fd_log, sizeof(log))) {
         throw_system_error("ftruncate failed");
     }
-    s_log = static_cast<log *>(map_fd(sizeof(log), PROT_READ | PROT_WRITE, MAP_SHARED, fd_log, 0));
+    s_log = static_cast<log*>(map_fd(sizeof(log), PROT_READ | PROT_WRITE, MAP_SHARED, fd_log, 0));
     auto cleanup_log_mapping = scope_guard::make_scope_guard([]() {
         unmap_fd(s_log, sizeof(log));
         s_log = nullptr;
     });
 
     // Now we map a private COW view of the locator shared memory segment.
-    if (flock(s_fd_offsets, LOCK_SH) < 0) {
+    if (flock(s_fd_locators, LOCK_SH) < 0) {
         throw_system_error("flock failed");
     }
     auto cleanup_flock = scope_guard::make_scope_guard([]() {
-        if (-1 == flock(s_fd_offsets, LOCK_UN)) {
+        if (-1 == flock(s_fd_locators, LOCK_UN)) {
             // Per C++11 semantics, throwing an exception from a destructor
             // will just call std::terminate(), no undefined behavior.
             throw_system_error("flock failed");
         }
     });
 
-    s_offsets = static_cast<offsets *>(map_fd(sizeof(offsets),
-        PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_offsets, 0));
+    s_locators = static_cast<locators*>(map_fd(sizeof(locators),
+        PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_locators, 0));
     auto cleanup_locator_mapping = scope_guard::make_scope_guard([]() {
-        unmap_fd(s_offsets, sizeof(offsets));
-        s_offsets = nullptr;
+        unmap_fd(s_locators, sizeof(locators));
+        s_locators = nullptr;
     });
 
     // Notify the server that we're in a transaction. (We don't send our log fd until commit.)
@@ -266,8 +249,8 @@ void client::begin_transaction() {
     retail_assert(bytes_read > 0);
 
     // Extract the transaction id and cache it; it needs to be reset for the next transaction.
-    const message_t *msg = Getmessage_t(msg_buf);
-    const server_reply_t *reply = msg->msg_as_reply();
+    const message_t* msg = Getmessage_t(msg_buf);
+    const server_reply_t* reply = msg->msg_as_reply();
     s_transaction_id = reply->transaction_id();
 
     // Save the log fd to send to the server on commit.
@@ -318,8 +301,8 @@ void client::commit_transaction() {
     retail_assert(bytes_read > 0);
 
     // Extract the commit decision from the server's reply and return it.
-    const message_t *msg = Getmessage_t(msg_buf);
-    const server_reply_t *reply = msg->msg_as_reply();
+    const message_t* msg = Getmessage_t(msg_buf);
+    const server_reply_t* reply = msg->msg_as_reply();
     const session_event_t event = reply->event();
     retail_assert(event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT);
 
@@ -341,5 +324,4 @@ void client::commit_transaction() {
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
-
 }

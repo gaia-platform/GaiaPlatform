@@ -50,14 +50,14 @@ struct access_control_t
 //
 class auto_access_control_t
 {
-    private:
+private:
 
     access_control_t* m_access_control;
     access_lock_type_t m_locked_access;
     bool m_has_marked_access;
     bool m_has_locked_access;
 
-    public:
+public:
 
     auto_access_control_t();
     ~auto_access_control_t();
@@ -85,7 +85,7 @@ class auto_access_control_t
         return m_has_locked_access;
     }
 
-    private:
+private:
 
     void clear();
 };

@@ -5,7 +5,6 @@
 
 #include "system_catalog_type_mapping.hpp"
 
-#include "array_size.hpp"
 #include "system_table_types.hpp"
 
 static const attribute_t c_event_log_attributes[] = {
@@ -24,7 +23,7 @@ const relation_attribute_mapping_t c_event_log_mapping = {
     (builder_initializer_fn)gaia_rules_event_log_start_as_root,
     (builder_finalizer_fn)gaia_rules_event_log_end_as_root,
     c_event_log_attributes,
-    array_size(c_event_log_attributes),
+    std::size(c_event_log_attributes),
 };
 
 const char *c_event_log_ddl_stmt_fmt =

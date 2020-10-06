@@ -3,9 +3,6 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.12)
-enable_testing()
-
 # Set the project name.
 project(gaiac)
 
@@ -21,11 +18,14 @@ set(GAIA_CATALOG_TOOL_INCLUDES
   ${GAIA_INC}/public/catalog
   ${GAIA_INC}/public/system
   ${GAIA_PARSER_GENERATED}
+  ${PROJECT_SOURCE_DIR}/inc
 )
-message(STATUS "GAIA_CATALOG_TOOL_INCLUDES=${GAIA_CATALOG_TOOL_INCLUDES}")
+
+message(VERBOSE "GAIA_CATALOG_TOOL_INCLUDES=${GAIA_CATALOG_TOOL_INCLUDES}")
 
 add_executable(gaiac
   src/main.cpp
+  src/command.cpp
   ${FLATBUFFERS}/src/idl_gen_cpp.cpp
   ${FLATBUFFERS}/src/code_generators.cpp)
 target_include_directories(gaiac PRIVATE ${GAIA_CATALOG_TOOL_INCLUDES})

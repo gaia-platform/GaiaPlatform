@@ -34,7 +34,6 @@ enum class error_code_t
     already_initialized = 101,
     allocation_count_too_large = 102,
     invalid_argument_value = 103,
-    operation_available_only_to_master_manager = 104,
 };
 
 }

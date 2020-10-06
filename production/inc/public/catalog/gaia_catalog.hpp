@@ -30,9 +30,11 @@ namespace catalog {
 // The top level namespace for all the Gaia generated code.
 const string c_gaia_namespace = "gaia";
 
-// The name for global database in internal catalog representation.
-// From users' perspective, it is a database name of an empty string.
-// Think of it as a notion for empty database similar to Epsilon for empty string.
+// Catalog's notion for the empty database similar to Epsilon for the empty
+// string. Specifically, when a user create a table without specifying a
+// database, it is created in the "(global)" database. Users cannot use '()' in
+// database names so there will be no ambiguity, i.e. there will never exist a
+// user created database called "(global)".
 const string c_global_db_name = "(global)";
 
 /*
@@ -99,7 +101,7 @@ struct statement_t {
 
     virtual ~statement_t(){};
 
-  private:
+private:
     statement_type_t m_type;
 };
 
@@ -149,6 +151,8 @@ struct create_statement_t : statement_t {
     string database;
 
     field_def_list_t fields;
+
+    bool if_not_exists;
 };
 
 enum class drop_type_t : uint8_t {
@@ -178,8 +182,8 @@ struct drop_statement_t : statement_t {
  * Thrown when creating a database that already exists.
  */
 class db_already_exists : public gaia_exception {
-  public:
-    db_already_exists(const string &name) {
+public:
+    db_already_exists(const string& name) {
         stringstream message;
         message << "The database \"" << name << "\" already exists.";
         m_message = message.str();
@@ -190,8 +194,8 @@ class db_already_exists : public gaia_exception {
  * Thrown when a specified database does not exists.
  */
 class db_not_exists : public gaia_exception {
-  public:
-    db_not_exists(const string &name) {
+public:
+    db_not_exists(const string& name) {
         stringstream message;
         message << "The database \"" << name << "\" does not exist.";
         m_message = message.str();
@@ -202,8 +206,8 @@ class db_not_exists : public gaia_exception {
  * Thrown when creating a table that already exists.
  */
 class table_already_exists : public gaia_exception {
-  public:
-    table_already_exists(const string &name) {
+public:
+    table_already_exists(const string& name) {
         stringstream message;
         message << "The table \"" << name << "\" already exists.";
         m_message = message.str();
@@ -214,8 +218,8 @@ class table_already_exists : public gaia_exception {
  * Thrown when a specified table does not exists.
  */
 class table_not_exists : public gaia_exception {
-  public:
-    table_not_exists(const string &name) {
+public:
+    table_not_exists(const string& name) {
         stringstream message;
         message << "The table \"" << name << "\" does not exist.";
         m_message = message.str();
@@ -226,8 +230,8 @@ class table_not_exists : public gaia_exception {
  * Thrown when a field is specified more than once
  */
 class duplicate_field : public gaia_exception {
-  public:
-    duplicate_field(const string &name) {
+public:
+    duplicate_field(const string& name) {
         stringstream message;
         message << "The field \"" << name << "\" is specified more than once.";
         m_message = message.str();
@@ -246,7 +250,7 @@ void initialize_catalog();
  * @return id of the new database
  * @throw db_already_exists
  */
-gaia_id_t create_database(const string &name, bool throw_on_exists = true);
+gaia_id_t create_database(const string& name, bool throw_on_exists = true);
 
 /**
  * Create a table definition in a given database.
@@ -257,7 +261,7 @@ gaia_id_t create_database(const string &name, bool throw_on_exists = true);
  * @return id of the new table
  * @throw table_already_exists
  */
-gaia_id_t create_table(const string &dbname, const string &name, const ddl::field_def_list_t &fields, bool throw_on_exist = true);
+gaia_id_t create_table(const string& dbname, const string& name, const ddl::field_def_list_t& fields, bool throw_on_exist = true);
 
 /**
  * Create a table definition in the catalog's global database.
@@ -267,7 +271,7 @@ gaia_id_t create_table(const string &dbname, const string &name, const ddl::fiel
  * @return id of the new table
  * @throw table_already_exists
  */
-gaia_id_t create_table(const string &name, const ddl::field_def_list_t &fields);
+gaia_id_t create_table(const string& name, const ddl::field_def_list_t& fields);
 
 /**
  * Delete a table in a given database.
@@ -276,7 +280,7 @@ gaia_id_t create_table(const string &name, const ddl::field_def_list_t &fields);
  * @param name table name
  * @throw table_not_exists
  */
-void drop_table(const string &dbname, const string &name);
+void drop_table(const string& dbname, const string& name);
 
 /**
  * Delete a table from the catalog's global database.
@@ -284,7 +288,7 @@ void drop_table(const string &dbname, const string &name);
  * @param name table name
  * @throw table_not_exists
  */
-void drop_table(const string &name);
+void drop_table(const string& name);
 
 /**
  * List all data payload fields for a given table defined in the catalog.
@@ -327,7 +331,7 @@ string generate_fbs(gaia_id_t table_id);
  * @param dbname database name
  * @return generated fbs string
  */
-string generate_fbs(const string &dbname);
+string generate_fbs(const string& dbname);
 
 /**
  * Generate the Extended Data Classes header file.
@@ -335,7 +339,7 @@ string generate_fbs(const string &dbname);
  * @param dbname database name
  * @return generated source
  */
-string gaia_generate(const string &dbname);
+string gaia_generate(const string& dbname);
 
 /**
  * Retrieve the binary FlatBuffers schema (bfbs) for a given table.
@@ -351,7 +355,7 @@ string get_bfbs(gaia_id_t table_id);
  * @param dbname database name
  * @return database id (or INVALID_ID if the db name does not exist)
  */
-gaia_id_t find_db_id(const string &dbname);
+gaia_id_t find_db_id(const string& dbname);
 
 /*@}*/
 } // namespace catalog
