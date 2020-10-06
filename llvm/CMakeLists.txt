@@ -1086,7 +1086,6 @@ set(TEMP_PACKAGE_FOLDER "${CMAKE_CURRENT_BINARY_DIR}/tmp")
 
 set( GAIA_DLLS
   ${TEMP_PACKAGE_FOLDER}/build/third_party/private/TranslationEngineLLVM/lib/libclangTooling.a
-  ${TEMP_PACKAGE_FOLDER}/build/third_party/private/TranslationEngineLLVM/lib/libclang.so
   ${TEMP_PACKAGE_FOLDER}/build/third_party/private/TranslationEngineLLVM/lib/libclangDriver.a
   ${TEMP_PACKAGE_FOLDER}/build/third_party/private/TranslationEngineLLVM/lib/libclangFrontend.a
   ${TEMP_PACKAGE_FOLDER}/build/third_party/private/TranslationEngineLLVM/lib/libclangSerialization.a
@@ -1251,13 +1250,19 @@ set( GAIA_DLLS
 foreach(file_i ${GAIA_DLLS})
      get_filename_component(file_name ${file_i} NAME)    
      STRING(REGEX REPLACE "^lib" "" component ${file_name}) 
-     STRING(REGEX REPLACE ".a" "" component_name ${component}) 
+     STRING(REGEX REPLACE "[.]a$" "" component_name ${component}) 
      add_custom_command(
      	DEPENDS ${component_name}
   	OUTPUT  ${file_i}
      	COMMAND cmake -E copy_if_different ${LLVM_LIBRARY_DIR}/${file_name} "${file_i}"
      )    
 endforeach()
+
+add_custom_command(
+     	DEPENDS libclang
+  	OUTPUT  ${TEMP_PACKAGE_FOLDER}/build/third_party/private/TranslationEngineLLVM/lib/libclang.so
+     	COMMAND cmake -E copy_if_different ${LLVM_LIBRARY_DIR}/libclang.so ${TEMP_PACKAGE_FOLDER}/build/third_party/private/TranslationEngineLLVM/lib/libclang.so
+     ) 
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/gaiaPlatformLLVM.deb
@@ -1272,6 +1277,7 @@ add_custom_command(
   COMMAND cmake -E rm -r ${TEMP_PACKAGE_FOLDER}
   
   DEPENDS ${GAIA_DLLS}
+  DEPENDS ${TEMP_PACKAGE_FOLDER}/build/third_party/private/TranslationEngineLLVM/lib/libclang.so
 )
 
 
