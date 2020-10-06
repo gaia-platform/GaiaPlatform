@@ -89,12 +89,3 @@ install(TARGETS gaia_fdw DESTINATION ${PGSQL_PKGLIBDIR})
 
 install(FILES ${GAIA_FDW_INSTALL_EXTENSIONS}
   DESTINATION "${PGSQL_SHAREDIR}/extension")
-
-# Perform the actual installation steps for the FDW.
-
-add_custom_command(TARGET gaia_fdw POST_BUILD
-  COMMAND service ARGS postgresql stop
-  COMMAND make ARGS install
-  COMMAND service ARGS postgresql start
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/..
-)
