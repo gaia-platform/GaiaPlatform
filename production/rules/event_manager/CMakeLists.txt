@@ -50,9 +50,9 @@ add_gtest(test_event_manager "tests/test_event_manager.cpp;tests/event_manager_t
 add_gtest(test_system_init "tests/test_system_init.cpp"
   "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
 add_gtest(test_component_init "tests/test_component_init.cpp;tests/event_manager_test_helpers.cpp"
-  "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_rules;gaia_catalog")
+  "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_common;gaia_rules;gaia_catalog")
 add_gtest(test_rule_context "tests/test_rule_context.cpp"
-  "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_rules")
+  "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_common;gaia_rules")
 add_gtest(test_rule_checker "tests/test_rule_checker.cpp;"
   "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
 
