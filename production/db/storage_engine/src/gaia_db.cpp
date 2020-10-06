@@ -3,7 +3,9 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "db_types.hpp"
 #include "gaia_db.hpp"
+#include "gaia_db_internal.hpp"
 
 #include "storage_engine_client.hpp"
 
@@ -29,6 +31,10 @@ void gaia::db::rollback_transaction() {
 
 void gaia::db::commit_transaction() {
     gaia::db::client::commit_transaction();
+}
+
+bool gaia::db::set_commit_trigger(commit_trigger_fn trigger_fn) {
+    return gaia::db::client::set_commit_trigger(trigger_fn);
 }
 
 void gaia::db::clear_shared_memory() {

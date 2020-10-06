@@ -94,5 +94,4 @@ add_subdirectory(src)
 
 # Add tests.
 
-# Tests are disabled until they get rewritten.
-# add_subdirectory(tests)
+add_subdirectory(tests)

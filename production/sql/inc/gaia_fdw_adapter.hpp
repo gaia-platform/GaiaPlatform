@@ -26,8 +26,6 @@ namespace gaia
 namespace fdw
 {
 
-const char* const c_gaia_id = "gaia_id";
-
 typedef void (*option_handler_fn)(const char* option_name, const char* option_value, Oid context_id);
 
 // Describes the valid options for objects that use this wrapper.
@@ -77,9 +75,14 @@ protected:
 
 public:
 
+    static void begin_session();
+    static void end_session();
+
     static bool is_transaction_open();
     static bool begin_transaction();
     static bool commit_transaction();
+
+    static bool is_gaia_id_name(const char* name);
 
     static uint64_t get_new_gaia_id();
 
@@ -87,7 +90,12 @@ public:
 
     template <class S>
     static S* get_state(
-        const char* table_name, size_t count_accessors);
+        const char* table_name, size_t count_accessors)
+    {
+        S* state = (S*)palloc0(sizeof(S));
+
+        return state->initialize(table_name, count_accessors) ? state : nullptr;
+    }
 
 protected:
 
@@ -220,7 +228,7 @@ protected:
     // 0-based index of gaia_id attribute in tuple descriptor.
     int m_pk_attr_idx;
 
-    gaia_type_t m_gaia_type_id;
+    gaia_type_t m_gaia_container_id;
 };
 
 }
