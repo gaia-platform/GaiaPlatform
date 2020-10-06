@@ -99,7 +99,7 @@ void list_fields(const regex& re) {
             return regex_match(f.name(), re);
         },
         [](gaia_field_t& f) -> row_t {
-            return {f.gaia_table().name(), f.name(), to_string(f.type()),
+            return {f.gaia_table().name(), f.name(), ddl::get_data_type_name(static_cast<data_type_t>(f.type())),
                 to_string(f.repeated_count()), to_string(f.position()), to_string(f.gaia_id())};
         });
 }
@@ -153,7 +153,8 @@ void describe_table(const string& name) {
             if (name == table_name || name == (db_name + "." + table_name)) {
                 for (auto field : table.gaia_field_list()) {
                     if (field.type() != static_cast<uint8_t>(data_type_t::e_references)) {
-                        output_fields.add_row({field.name(), to_string(field.type()),
+                        output_fields.add_row({field.name(),
+                            ddl::get_data_type_name(static_cast<data_type_t>(field.type())),
                             to_string(field.repeated_count()), to_string(field.position())});
                     } else {
                         output_references.add_row({field.name(),
@@ -356,7 +357,7 @@ string command_usage() {
 
 } // namespace
 
-void handle_slash_command(const string& cmd) {
+void handle_meta_command(const string& cmd) {
     retail_assert(!cmd.empty(), "Meta command should not be empty.");
     retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix,
         "Meta command should start with a '" + string(1, c_command_prefix) + "'.");
