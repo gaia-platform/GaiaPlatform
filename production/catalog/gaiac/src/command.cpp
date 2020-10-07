@@ -24,7 +24,10 @@ constexpr char c_match_all_pattern[] = ".*";
 
 // Character literals for meta command parsing.
 constexpr char c_describe_command = 'd';
+#ifdef DEBUG
+// Hide FlatBuffers related commands in release build.
 constexpr char c_generate_command = 'g';
+#endif
 constexpr char c_list_command = 'l';
 constexpr char c_help_command = 'h';
 constexpr char c_command_separator = ' ';
@@ -181,6 +184,8 @@ void describe_table(const string& name) {
     cout << flush;
 }
 
+#ifdef DEBUG
+// Hide FlatBuffers related commands in release build.
 void generate_table_fbs(const string& name) {
     gaia_id_t table_id = INVALID_GAIA_ID;
     {
@@ -200,6 +205,7 @@ void generate_table_fbs(const string& name) {
     cout << generate_fbs(table_id) << endl;
     cout << flush;
 }
+#endif
 
 regex parse_pattern(const string& cmd, size_t pos) {
     if (cmd.length() <= pos) {
@@ -289,6 +295,7 @@ void handle_list_command(const string& cmd) {
 }
 
 #ifdef DEBUG
+// Hide FlatBuffers related commands in release build.
 void handle_generate_command(const string& cmd) {
     retail_assert(cmd.length() > c_cmd_minimum_length);
     retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix);
@@ -342,6 +349,7 @@ string command_usage() {
     output_table.add_row({string() + c_command_prefix + c_list_command + optionalize(c_table_subcommand),
         optionalize(pattern), "List tables optionally filtering by the " + pattern + "."});
 #ifdef DEBUG
+    // Hide FlatBuffers related commands in release build.
     output_table.add_row({string() + c_command_prefix + c_generate_command + optionalize(c_db_subcommand),
         name, "Generate fbs for a given database."});
     output_table.add_row({string() + c_command_prefix + c_generate_command + c_table_subcommand,
@@ -373,6 +381,7 @@ void handle_meta_command(const string& cmd) {
         handle_describe_command(cmd);
         break;
 #ifdef DEBUG
+    // Hide FlatBuffers related commands in release build.
     case c_generate_command:
         handle_generate_command(cmd);
         break;
