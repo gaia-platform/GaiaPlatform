@@ -200,7 +200,7 @@ void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot,
     }
 
     child_ptr.update_child_references(T_next_slot, node_ptr.references()[T_child_slot], T_parent_slot, oid);
-    node_ptr.update_parent_references(T_child_slot, child_id);
+    node_ptr.update_child_reference(T_child_slot, child_id);
 }
 
 template <typename T_parent, typename T_child, size_t T_parent_slot, size_t T_child_slot, size_t T_next_slot>
@@ -239,7 +239,7 @@ void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot,
     if (node_ptr.references()[T_child_slot] == child_id)
     {
         // It's the first one in the list, point the "first" to the current "next".
-        node_ptr.update_parent_references(T_child_slot, child_ptr.references()[T_next_slot]);
+        node_ptr.update_child_reference(T_child_slot, child_ptr.references()[T_next_slot]);
         // Clean up the removed child.
         child_ptr.update_child_references(T_next_slot, INVALID_GAIA_ID, T_parent_slot, INVALID_GAIA_ID);
     }
@@ -254,7 +254,7 @@ void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot,
             if (next_id == child_id)
             {
                 // Point the current child to the child following the next.
-                cur_child_ptr.update_next_child_reference(T_next_slot, child_ptr.references()[T_next_slot]);
+                cur_child_ptr.update_child_reference(T_next_slot, child_ptr.references()[T_next_slot]);
                 // Clean up the removed child.
                 child_ptr.update_child_references(T_next_slot, INVALID_GAIA_ID, T_parent_slot, INVALID_GAIA_ID);
                 return;

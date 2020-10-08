@@ -80,16 +80,6 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data) {
     return *this;
 }
 
-gaia_ptr& gaia_ptr::update_parent_references(size_t child_slot, gaia_id_t child_id) {
-    gaia_offset_t old_offset = to_offset();
-    clone_no_tx();
-
-    references()[child_slot] = child_id;
-
-    client::tx_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
-    return *this;
-}
-
 gaia_ptr& gaia_ptr::update_child_references(
     size_t next_child_slot, gaia_id_t next_child_id,
     size_t parent_slot, gaia_id_t parent_id) {
@@ -103,13 +93,13 @@ gaia_ptr& gaia_ptr::update_child_references(
     return *this;
 }
 
-gaia_ptr& gaia_ptr::update_next_child_reference(size_t next_child_slot, gaia_id_t next_child_id) {
+gaia_ptr& gaia_ptr::update_child_reference(size_t child_slot, gaia_id_t child_id) {
     auto old_offset = to_offset();
     clone_no_tx();
 
-    references()[next_child_slot] = next_child_id;
+    references()[child_slot] = child_id;
 
-    client::tx_log(row_id, old_offset, to_offset(), gaia_operation_t::update);
+    client::tx_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
     return *this;
 }
 
