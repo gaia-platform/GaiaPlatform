@@ -5,9 +5,6 @@
 
 #include <iostream>
 #include <fstream>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <semaphore.h>
 
 #include "gtest/gtest.h"
 #include "gaia_addr_book.h"

@@ -6,9 +6,6 @@
 #include <iostream>
 #include <cstdlib>
 #include <thread>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <semaphore.h>
 
 #include "gtest/gtest.h"
 #include "gaia_addr_book.h"
@@ -268,8 +265,7 @@ TEST_F(gaia_object_test, pre_post_iterator) {
 // Create row, try getting row from wrong type
 TEST_F(gaia_object_test, read_wrong_type) {
     begin_transaction();
-    auto e = create_employee("Howard");
-    auto eid = e;
+    gaia_id_t eid = create_employee("Howard");
     commit_transaction();
 
     begin_transaction();
@@ -360,12 +356,11 @@ TEST_F(gaia_object_test, found_del_ins) {
 // Delete a found object then update
 TEST_F(gaia_object_test, found_del_update) {
     begin_transaction();
-    auto e = create_employee("Hector");
-    auto eid = e;
+    gaia_id_t eid = create_employee("Hector");
     commit_transaction();
 
     begin_transaction();
-    e = employee_t::get(eid);
+    auto e = employee_t::get(eid);
     auto w = e.writer();
     e.delete_row();
     EXPECT_THROW(w.update_row(), invalid_node_id);

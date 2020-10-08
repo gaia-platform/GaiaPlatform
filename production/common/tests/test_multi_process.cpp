@@ -7,17 +7,12 @@
 // This test spawns child processes to serve as a second user in the database.
 // The child must be "clean" in the sense that it cannot be started with
 // handles and threads from the parent process that require separate cleanup.
-// For this reason, it purposely does not initialize the logger, which
-// spawns a pool of threads that interfere with the child process as it tries
-// to exit.
-//
-// A better solution may be to create a separate program than can be started
-// by this test program.
+// For this reason, the function pthread_atfork() is used in the definition
+// of the fixture 'gaia_multi_process_test'. It causes the logger to be shut
+// down before the fork, then restarts it in the separate processes.
 //
 // If this test starts hanging while it runs, it is probably another form of
 // this same issue.
-//
-// Please delete this note after you fix this.
 
 #include <iostream>
 #include <cstdlib>
@@ -68,17 +63,16 @@ constexpr const char c_go_parent[] = "go_parent";
 // it needs to control when begin_session() and end_session() are called.
 class gaia_multi_process_test : public db_test_base_t {
 protected:
-    pid_t child_pid;
-    sem_t* sem_go_child;
-    sem_t* sem_go_parent;
-    timespec timeout;
+    sem_t* m_sem_go_child;
+    sem_t* m_sem_go_parent;
+    timespec m_timeout;
     // It's necessary to shut down logging before the fork() because the
-    // child process inherits the initialized logger object, which cannot
-    // properly shut down when the child exits.
+    // child process inherits the initialized logger object. Instead, the
+    // child must initialize the logger while it starts up.
     static void before_fork() {
         gaia_log::shutdown();
     }
-    // This allows the parent process to use the logger.
+    // This allows the process to use the logger.
     static void after_fork() {
         gaia_log::initialize({});
     }
@@ -105,29 +99,29 @@ protected:
         // If so, did it exit witout an error?
         ASSERT_EQ(WEXITSTATUS(status), 0);
     }
-    // Preparation/creation of semaphores, used by parent process.
-    void semaphore_startup() {
+    // Preparation/creation of semaphores, called before the fork.
+    void semaphore_initialize() {
         // NOTE: even on slower CPUs, 4 seconds should be adequate for these tests.
-        clock_gettime(CLOCK_REALTIME, &timeout);
-        timeout.tv_sec += 4;
+        clock_gettime(CLOCK_REALTIME, &m_timeout);
+        m_timeout.tv_sec += 4;
 
         // Common parent/child setup for semaphore synchronization.
         // Semaphore must be opened before second process starts because it assumes
         // that the semaphore exists.
-        sem_go_child = sem_open(c_go_child, O_CREAT, S_IWUSR | S_IRUSR, 0);
-        ASSERT_NE(sem_go_child, SEM_FAILED) << "failed to open sem_go_child";
-        sem_go_parent = sem_open(c_go_parent, O_CREAT, S_IRUSR | S_IWUSR, 0);
-        ASSERT_NE(sem_go_parent, SEM_FAILED) << "failed to open sem_go_parent";
+        m_sem_go_child = sem_open(c_go_child, O_CREAT, S_IWUSR | S_IRUSR, 0);
+        ASSERT_NE(m_sem_go_child, SEM_FAILED) << "failed to open m_sem_go_child";
+        m_sem_go_parent = sem_open(c_go_parent, O_CREAT, S_IRUSR | S_IWUSR, 0);
+        ASSERT_NE(m_sem_go_parent, SEM_FAILED) << "failed to open m_sem_go_parent";
     }
     // Open existing semaphores, used by child process.
     void semaphore_open() {
-        sem_go_child = sem_open(c_go_child, 0);
-        sem_go_parent = sem_open(c_go_parent, 0);
+        m_sem_go_child = sem_open(c_go_child, 0);
+        m_sem_go_parent = sem_open(c_go_parent, 0);
     }
     // Close & remove semaphore names, used by parent process.
     void semaphore_cleanup() {
-        sem_close(sem_go_child);
-        sem_close(sem_go_parent);
+        sem_close(m_sem_go_child);
+        sem_close(m_sem_go_parent);
         sem_unlink(c_go_child);
         sem_unlink(c_go_parent);
     }
@@ -135,8 +129,7 @@ protected:
 
 // Test parallel multi-process transactions.
 TEST_F(gaia_multi_process_test, multi_process_inserts) {
-
-    semaphore_startup();
+    semaphore_initialize();
 
     pid_t child_pid = fork();
 
@@ -156,8 +149,8 @@ TEST_F(gaia_multi_process_test, multi_process_inserts) {
         commit_transaction();
 
         // The child will add two employees. Wait for it to complete.
-        sem_post(sem_go_child);
-        if (sem_timedwait(sem_go_parent, &timeout) == -1) {
+        sem_post(m_sem_go_child);
+        if (sem_timedwait(m_sem_go_parent, &m_timeout) == -1) {
             ASSERT_EQ(errno, ETIMEDOUT);
             end_session();
             check_child_pid(child_pid);
@@ -184,8 +177,8 @@ TEST_F(gaia_multi_process_test, multi_process_inserts) {
         begin_transaction();
         create_employee("Hugo");
 
-        sem_post(sem_go_child);
-        if (sem_timedwait(sem_go_parent, &timeout) == -1) {
+        sem_post(m_sem_go_child);
+        if (sem_timedwait(m_sem_go_parent, &m_timeout) == -1) {
             ASSERT_EQ(errno, ETIMEDOUT);
             end_session();
             check_child_pid(child_pid);
@@ -228,7 +221,7 @@ TEST_F(gaia_multi_process_test, multi_process_inserts) {
 
         // EXCHANGE 1: serialized transactions.
         // Wait for the "go".
-        if (sem_timedwait(sem_go_child, &timeout) == -1) {
+        if (sem_timedwait(m_sem_go_child, &m_timeout) == -1) {
             gaia_log::db().error("Exiting child process, sem_timedwait(): {}", strerror(errno));
             exit(1);
         }
@@ -245,10 +238,10 @@ TEST_F(gaia_multi_process_test, multi_process_inserts) {
         }
 
         // Tell parent to "go".
-        sem_post(sem_go_parent);
+        sem_post(m_sem_go_parent);
 
         // EXCHANGE 2: concurrent transactions.
-        if (sem_timedwait(sem_go_child, &timeout) == -1) {
+        if (sem_timedwait(m_sem_go_child, &m_timeout) == -1) {
             gaia_log::db().error("Exiting child process, sem_timedwait(): {}", strerror(errno));
             exit(3);
         }
@@ -263,7 +256,7 @@ TEST_F(gaia_multi_process_test, multi_process_inserts) {
             exit(4);
         }
 
-        sem_post(sem_go_parent);
+        sem_post(m_sem_go_parent);
 
         // The parent process is waiting for this one to terminate.
         end_session();
@@ -274,7 +267,7 @@ TEST_F(gaia_multi_process_test, multi_process_inserts) {
 
 // Test parallel multi-process transactions and aborts.
 TEST_F(gaia_multi_process_test, multi_process_aborts) {
-    semaphore_startup();
+    semaphore_initialize();
 
     pid_t child_pid = fork();
 
@@ -295,8 +288,8 @@ TEST_F(gaia_multi_process_test, multi_process_aborts) {
         commit_transaction();
 
         // The child will add two employees, rolling back one of them. Wait for it to complete.
-        sem_post(sem_go_child);
-        if (sem_timedwait(sem_go_parent, &timeout) != 0) {
+        sem_post(m_sem_go_child);
+        if (sem_timedwait(m_sem_go_parent, &m_timeout) != 0) {
             end_session();
             check_child_pid(child_pid);
         }
@@ -311,6 +304,7 @@ TEST_F(gaia_multi_process_test, multi_process_aborts) {
         EXPECT_STREQ((*empl_iterator).name_first(), "Hank");
         empl_iterator++;
         EXPECT_EQ(true, empl_iterator == employee_t::list().end());
+        EXPECT_EQ(empl_iterator, employee_t::list().end());
         commit_transaction();
 
         // EXCHANGE 2: concurrent transactions.
@@ -321,8 +315,8 @@ TEST_F(gaia_multi_process_test, multi_process_aborts) {
         begin_transaction();
         create_employee("Hugo");
 
-        sem_post(sem_go_child);
-        if (sem_timedwait(sem_go_parent, &timeout) == -1) {
+        sem_post(m_sem_go_child);
+        if (sem_timedwait(m_sem_go_parent, &m_timeout) == -1) {
             ASSERT_EQ(errno, ETIMEDOUT);
             end_session();
             check_child_pid(child_pid);
@@ -359,7 +353,7 @@ TEST_F(gaia_multi_process_test, multi_process_aborts) {
         // EXCHANGE 1: serialized transactions.
 
         // Wait for the "go".
-        if (sem_timedwait(sem_go_child, &timeout) == -1) {
+        if (sem_timedwait(m_sem_go_child, &m_timeout) == -1) {
             gaia_log::db().error("Exiting child process, sem_timedwait(): {}", strerror(errno));
             exit(1);
         }
@@ -378,10 +372,10 @@ TEST_F(gaia_multi_process_test, multi_process_aborts) {
         }
 
         // Tell parent to "go".
-        sem_post(sem_go_parent);
+        sem_post(m_sem_go_parent);
 
         // EXCHANGE 2: concurrent transactions.
-        if (sem_timedwait(sem_go_child, &timeout) == -1) {
+        if (sem_timedwait(m_sem_go_child, &m_timeout) == -1) {
             gaia_log::db().error("Exiting child process, sem_timedwait(): {}", strerror(errno));
             exit(3);
         }
@@ -396,7 +390,7 @@ TEST_F(gaia_multi_process_test, multi_process_aborts) {
             exit(4);
         }
 
-        sem_post(sem_go_parent);
+        sem_post(m_sem_go_parent);
 
         // The parent process is waiting for this one to terminate.
         end_session();
@@ -406,9 +400,11 @@ TEST_F(gaia_multi_process_test, multi_process_aborts) {
 
 // Create objects in one process, connect them in another, verify in first process.
 TEST_F(gaia_multi_process_test, multi_process_conflict) {
-    semaphore_startup();
+    semaphore_initialize();
 
-    if ((child_pid = fork())) {
+    pid_t child_pid = fork();
+
+    if (child_pid) {
         // PARENT PROCESS.
         begin_session();
 
@@ -424,8 +420,8 @@ TEST_F(gaia_multi_process_test, multi_process_conflict) {
         e1.addressee_address_list().insert(a3);
 
         // Let the child process run and complete during this transaction.
-        sem_post(sem_go_child);
-        if (sem_timedwait(sem_go_parent, &timeout) == -1) {
+        sem_post(m_sem_go_child);
+        if (sem_timedwait(m_sem_go_parent, &m_timeout) == -1) {
             ASSERT_EQ(errno, ETIMEDOUT);
             end_session();
             check_child_pid(child_pid);
@@ -446,8 +442,8 @@ TEST_F(gaia_multi_process_test, multi_process_conflict) {
 
         end_session();
 
-        sem_close(sem_go_child);
-        sem_close(sem_go_parent);
+        sem_close(m_sem_go_child);
+        sem_close(m_sem_go_parent);
         sem_unlink(c_go_child);
         sem_unlink(c_go_parent);
     }
@@ -460,7 +456,7 @@ TEST_F(gaia_multi_process_test, multi_process_conflict) {
         begin_session();
 
         // Wait for the "go".
-        if (sem_timedwait(sem_go_child, &timeout) == -1) {
+        if (sem_timedwait(m_sem_go_child, &m_timeout) == -1) {
             gaia_log::db().error("Exiting child process, sem_timedwait(): {}", strerror(errno));
             exit(1);
         }
@@ -479,7 +475,7 @@ TEST_F(gaia_multi_process_test, multi_process_conflict) {
             exit(2);
         }
 
-        sem_post(sem_go_parent);
+        sem_post(m_sem_go_parent);
 
         // The parent process is waiting for this one to terminate.
         end_session();
@@ -489,9 +485,11 @@ TEST_F(gaia_multi_process_test, multi_process_conflict) {
 
 // Create objects in one process, connect them in another, verify in first process.
 TEST_F(gaia_multi_process_test, multi_process_commit) {
-    semaphore_startup();
+    semaphore_initialize();
 
-    if ((child_pid = fork())) {
+    pid_t child_pid = fork();
+
+    if (child_pid) {
         // PARENT PROCESS.
         begin_session();
 
@@ -508,8 +506,8 @@ TEST_F(gaia_multi_process_test, multi_process_commit) {
         commit_transaction();
 
         // Let the child process run and complete during this transaction.
-        sem_post(sem_go_child);
-        if (sem_timedwait(sem_go_parent, &timeout) == -1) {
+        sem_post(m_sem_go_child);
+        if (sem_timedwait(m_sem_go_parent, &m_timeout) == -1) {
             ASSERT_EQ(errno, ETIMEDOUT);
             end_session();
             check_child_pid(child_pid);
@@ -528,8 +526,8 @@ TEST_F(gaia_multi_process_test, multi_process_commit) {
 
         end_session();
 
-        sem_close(sem_go_child);
-        sem_close(sem_go_parent);
+        sem_close(m_sem_go_child);
+        sem_close(m_sem_go_parent);
         sem_unlink(c_go_child);
         sem_unlink(c_go_parent);
     }
@@ -542,7 +540,7 @@ TEST_F(gaia_multi_process_test, multi_process_commit) {
         begin_session();
 
         // Wait for the "go".
-        if (sem_timedwait(sem_go_child, &timeout) == -1) {
+        if (sem_timedwait(m_sem_go_child, &m_timeout) == -1) {
             gaia_log::db().error("Exiting child process, sem_timedwait(): {}", strerror(errno));
             exit(1);
         }
@@ -561,7 +559,7 @@ TEST_F(gaia_multi_process_test, multi_process_commit) {
             exit(2);
         }
 
-        sem_post(sem_go_parent);
+        sem_post(m_sem_go_parent);
 
         // The parent process is waiting for this one to terminate.
         end_session();
