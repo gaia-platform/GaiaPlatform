@@ -5,7 +5,6 @@
 
 #include <iostream>
 #include <fstream>
-
 #include "gtest/gtest.h"
 #include "gaia_addr_book.h"
 #include "db_test_base.hpp"
