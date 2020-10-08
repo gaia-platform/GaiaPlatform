@@ -68,7 +68,7 @@ class rdb_internal_t
         }
     }
 
-    std::string begin_txn(rocksdb::WriteOptions& options, const rocksdb::TransactionOptions& txn_opts, gaia_xid_t txn_id) {
+    std::string begin_txn(rocksdb::WriteOptions& options, const rocksdb::TransactionOptions& txn_opts, gaia_txn_id_t txn_id) {
         // RocksDB supplies its own transaction id but expects a unique transaction name.
         // We map gaia_transaction_id to a RocksDB transaction name. Transaction id isn't
         // persisted across server reboots currently so this is a temporary fix till we have

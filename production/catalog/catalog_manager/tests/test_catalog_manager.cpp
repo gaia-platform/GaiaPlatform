@@ -184,7 +184,7 @@ TEST_F(catalog_manager_test, drop_table) {
 
     drop_table(test_table_name);
     {
-        auto_transaction_t tx;
+        auto_transaction_t txn;
         auto table = gaia_table_t::get(table_id);
         EXPECT_FALSE(table);
     }

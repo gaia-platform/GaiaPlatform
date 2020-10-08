@@ -73,7 +73,7 @@ void server::handle_commit_txn(int* fds, size_t fd_count, session_event_t event,
     // which seems contrary to the manpage for fcntl(2).
     s_log = static_cast<log*>(map_fd(sizeof(log), PROT_READ, MAP_PRIVATE, fd_log, 0));
     // Actually commit the transaction.
-    bool success = tx_commit();
+    bool success = txn_commit();
     session_event_t decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
     // Server-initiated state transition! (Any issues with reentrant handlers?)
     apply_transition(decision, nullptr, 0);

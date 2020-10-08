@@ -88,7 +88,7 @@ public final class CacheFactory
 
     public static void generateClassic(final CacheGraph graph)
     {
-        graph.tx().open();
+        graph.txn().open();
 
         final Vertex marko = graph.addVertex(T.id, 1, "name", "marko", "age", 29);
         final Vertex vadas = graph.addVertex(T.id, 2, "name", "vadas", "age", 27);
@@ -104,7 +104,7 @@ public final class CacheFactory
         josh.addEdge(LABEL_CREATED, lop, T.id, 11, "weight", 0.4f);
         peter.addEdge(LABEL_CREATED, lop, T.id, 12, "weight", 0.2f);
 
-        graph.tx().commit();
+        graph.txn().commit();
     }
 
     // Modern graph data set.
@@ -117,7 +117,7 @@ public final class CacheFactory
 
     public static void generateModern(final CacheGraph graph)
     {
-        graph.tx().open();
+        graph.txn().open();
 
         final Vertex marko = graph.addVertex(T.id, 1, T.label, "person", "name", "marko", "age", 29);
         final Vertex vadas = graph.addVertex(T.id, 2, T.label, "person", "name", "vadas", "age", 27);
@@ -133,7 +133,7 @@ public final class CacheFactory
         josh.addEdge(LABEL_CREATED, lop, T.id, 11, "weight", 0.4d);
         peter.addEdge(LABEL_CREATED, lop, T.id, 12, "weight", 0.2d);
 
-        graph.tx().commit();
+        graph.txn().commit();
     }
 
     // The Crew data set.
@@ -154,7 +154,7 @@ public final class CacheFactory
 
     public static void generateTheCrew(final CacheGraph graph)
     {
-        graph.tx().open();
+        graph.txn().open();
 
         final Vertex marko = graph.addVertex(T.id, 1, T.label, "person", "name", "marko");
         final Vertex stephen = graph.addVertex(T.id, 7, T.label, "person", "name", "stephen");
@@ -204,7 +204,7 @@ public final class CacheFactory
         graph.variables().set("lastModified", 2014);
         graph.variables().set("comment", "this graph was created to provide examples and test coverage for tinkerpop3 api advances");
 
-        graph.tx().commit();
+        graph.txn().commit();
     }
 
     // Kitchen Sink data set.
@@ -217,7 +217,7 @@ public final class CacheFactory
 
     public static void generateKitchenSink(final CacheGraph graph)
     {
-        graph.tx().open();
+        graph.txn().open();
 
         final GraphTraversalSource g = graph.traversal();
 
@@ -230,7 +230,7 @@ public final class CacheFactory
             .addE("link").from("a").to("b").property(T.id, 2002)
             .addE("link").from("a").to("a").property(T.id, 2003).iterate();
 
-        graph.tx().commit();
+        graph.txn().commit();
     }
 
     private static CacheGraph getDefaultCacheGraph()
@@ -266,7 +266,7 @@ public final class CacheFactory
 
     public static void generateCowSample(final CacheGraph graph)
     {
-        graph.tx().open();
+        graph.txn().open();
 
         final Vertex node1 = graph.addVertex(T.id, 1, T.label, "1", "payload", "n1");
         final Vertex node2 = graph.addVertex(T.id, 2, T.label, "1", "payload", "n2");
@@ -278,7 +278,7 @@ public final class CacheFactory
         node4.addEdge("4", node1, T.id, 7, "payload", "e7=n4->n1");
         node2.addEdge("4", node3, T.id, 8, "payload", "e8=n2->n3");
 
-        graph.tx().commit();
+        graph.txn().commit();
     }
 
     // Tiny airport data set.
@@ -298,7 +298,7 @@ public final class CacheFactory
 
     public static void generateTinyAirport(final CacheGraph graph)
     {
-        graph.tx().open();
+        graph.txn().open();
 
         final Vertex ams = graph.addVertex(T.label, LABEL_AIRPORT,
             "id", "580", "iata", "AMS", "name", "Amsterdam Airport Schiphol", "city", "Amsterdam", "country", "NLD");
@@ -387,7 +387,7 @@ public final class CacheFactory
         setFlightEdges(klm, otp, ams, klm_otp_ams);
         setFlightEdges(klm, sea, ams, klm_sea_ams);
 
-        graph.tx().commit();
+        graph.txn().commit();
     }
 
     // Tiny airport data set with Q1 schema.
@@ -406,7 +406,7 @@ public final class CacheFactory
 
     public static void generateTinyQ1Airport(final CacheGraph graph)
     {
-        graph.tx().open();
+        graph.txn().open();
 
         final Vertex aal = graph.addVertex(T.label, LABEL_AIRLINE,
             "al_id", "24", "iata", "AA", "icao", "AAL", "name", "American Airlines");
@@ -448,7 +448,7 @@ public final class CacheFactory
         setRouteEdge(ams, otp, "KL", "737");
         setRouteEdge(ams, sea, "KL", "A330");
 
-        graph.tx().commit();
+        graph.txn().commit();
     }
 
     public static void enableDebuggingMessages(final CacheGraph graph, boolean enabled)
@@ -475,17 +475,17 @@ public final class CacheFactory
         //
         // For now, we don't advertise transaction support,
         // so we have to call commit() and rollback() ourselves.
-        graph.tx().open();
+        graph.txn().open();
         try
         {
             graph.io(graphml()).readGraph(filename);
-            graph.tx().commit();
+            graph.txn().commit();
 
             return true;
         }
         catch (Exception e)
         {
-            graph.tx().rollback();
+            graph.txn().rollback();
             System.out.println(
                 "An error happened while attempting to load " + filename + ": "
                 + e.getMessage());

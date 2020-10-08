@@ -23,7 +23,7 @@ class gaia_ptr {
 private:
     gaia_locator_t m_locator;
     void create_insert_trigger(gaia_type_t type, gaia_id_t id);
-    void clone_no_tx();
+    void clone_no_txn();
 
 public:
     gaia_ptr(const std::nullptr_t = nullptr)

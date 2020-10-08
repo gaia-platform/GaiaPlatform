@@ -47,7 +47,7 @@ public:
      */
     void recover();
 
-    std::string begin_txn(gaia::db::gaia_xid_t transaction_id);
+    std::string begin_txn(gaia::db::gaia_txn_id_t transaction_id);
 
     /**
      * This method will serialize the transaction to the log.

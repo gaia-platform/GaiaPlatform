@@ -45,7 +45,7 @@ public:
     }
 
     static inline bool set_commit_trigger(commit_trigger_fn trigger_fn) {
-        return __sync_val_compare_and_swap(&s_tx_commit_trigger, nullptr, trigger_fn);
+        return __sync_val_compare_and_swap(&s_txn_commit_trigger, nullptr, trigger_fn);
     }
 
     // This test-only function is exported from gaia_db_internal.hpp.
@@ -68,7 +68,7 @@ private:
     // s_events has transaction lifetime and is cleared after each transaction.
     thread_local static std::vector<gaia::db::triggers::trigger_event_t> s_events;
     // Set by the rules engine.
-    static commit_trigger_fn s_tx_commit_trigger;
+    static commit_trigger_fn s_txn_commit_trigger;
 
     // Maintain a static filter in the client to disable generating events
     // for system types.
@@ -76,9 +76,9 @@ private:
 
     // Inherited from se_base:
     // thread_local static log *s_log;
-    // thread_local static gaia_xid_t s_transaction_id;
+    // thread_local static gaia_txn_id_t s_transaction_id;
 
-    static void tx_cleanup();
+    static void txn_cleanup();
 
     static void destroy_log_mapping();
 
@@ -88,17 +88,17 @@ private:
      *  Check if an event should be generated for a given type.
      */
     static inline bool is_valid_event(const gaia_type_t type) {
-        return (s_tx_commit_trigger
+        return (s_txn_commit_trigger
             && (trigger_excluded_types.find(type) == trigger_excluded_types.end()));
     }
 
-    static inline void verify_tx_active() {
+    static inline void verify_txn_active() {
         if (!is_transaction_active()) {
             throw transaction_not_open();
         }
     }
 
-    static inline void verify_no_tx() {
+    static inline void verify_no_txn() {
         if (is_transaction_active()) {
             throw transaction_in_progress();
         }
@@ -116,7 +116,7 @@ private:
         }
     }
 
-    static inline void tx_log(
+    static inline void txn_log(
         gaia_locator_t locator,
         gaia_offset_t old_offset,
         gaia_offset_t new_offset,

@@ -21,7 +21,7 @@ thread_local int client::s_fd_log = -1;
 thread_local int client::s_fd_locators = -1;
 thread_local se_base::data* client::s_data;
 thread_local std::vector<trigger_event_t> client::s_events;
-commit_trigger_fn client::s_tx_commit_trigger = nullptr;
+commit_trigger_fn client::s_txn_commit_trigger = nullptr;
 
 std::unordered_set<gaia_type_t> client::trigger_excluded_types{
     static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table),
@@ -65,7 +65,7 @@ void client::clear_shared_memory() {
     }
 }
 
-void client::tx_cleanup() {
+void client::txn_cleanup() {
     // Destroy the log memory mapping.
     destroy_log_mapping();
     // Destroy the log fd.
@@ -200,7 +200,7 @@ void client::end_session() {
 
 void client::begin_transaction() {
     verify_session_active();
-    verify_no_tx();
+    verify_no_txn();
 
     // First we allocate a new log segment and map it in our own process.
     int fd_log = memfd_create(SCH_MEM_LOG, MFD_ALLOW_SEALING);
@@ -262,10 +262,10 @@ void client::begin_transaction() {
 }
 
 void client::rollback_transaction() {
-    verify_tx_active();
+    verify_txn_active();
 
     // Ensure we destroy the shared memory segment and memory mapping before we return.
-    auto cleanup = scope_guard::make_scope_guard(tx_cleanup);
+    auto cleanup = scope_guard::make_scope_guard(txn_cleanup);
 
     // Notify the server that we rolled back this transaction.
     // (We don't expect the server to reply to this message.)
@@ -278,10 +278,10 @@ void client::rollback_transaction() {
 // It sends a message to the server containing the fd of this txn's log segment and
 // will block waiting for a reply from the server.
 void client::commit_transaction() {
-    verify_tx_active();
+    verify_txn_active();
 
     // Ensure we destroy the shared memory segment and memory mapping before we return.
-    auto cleanup = scope_guard::make_scope_guard(tx_cleanup);
+    auto cleanup = scope_guard::make_scope_guard(txn_cleanup);
 
     // Unmap the log segment so we can seal it.
     destroy_log_mapping();
@@ -314,10 +314,10 @@ void client::commit_transaction() {
     }
 
     // Execute trigger only if rules engine is initialized.
-    if (s_tx_commit_trigger
+    if (s_txn_commit_trigger
         && event == session_event_t::DECIDE_TXN_COMMIT
         && s_events.size() > 0) {
-        s_tx_commit_trigger(s_transaction_id, s_events);
+        s_txn_commit_trigger(s_transaction_id, s_events);
     }
     // Reset transaction id.
     s_transaction_id = 0;

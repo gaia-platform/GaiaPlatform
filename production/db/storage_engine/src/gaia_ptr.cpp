@@ -21,7 +21,7 @@ gaia_id_t gaia_ptr::generate_id() {
     return client::generate_id(client::s_data);
 }
 
-void gaia_ptr::clone_no_tx() {
+void gaia_ptr::clone_no_txn() {
     gaia_se_object_t* old_this = to_ptr();
     size_t new_size = sizeof(gaia_se_object_t) + old_this->payload_size;
     allocate(new_size);
@@ -31,9 +31,9 @@ void gaia_ptr::clone_no_tx() {
 
 gaia_ptr& gaia_ptr::clone() {
     gaia_offset_t old_offset = to_offset();
-    clone_no_tx();
+    clone_no_txn();
 
-    client::tx_log(m_locator, old_offset, to_offset(), gaia_operation_t::clone);
+    client::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::clone);
 
     gaia_se_object_t* new_this = to_ptr();
     if (client::is_valid_event(new_this->type)) {
@@ -61,7 +61,7 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data) {
     new_this->num_references = old_this->num_references;
     memcpy(new_this->payload + ref_len, data, data_size);
 
-    client::tx_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
+    client::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
 
     if (client::is_valid_event(new_this->type)) {
         const uint8_t* old_data = (const uint8_t*)old_this->payload;
@@ -84,22 +84,22 @@ gaia_ptr& gaia_ptr::update_child_references(
     size_t next_child_slot, gaia_id_t next_child_id,
     size_t parent_slot, gaia_id_t parent_id) {
     gaia_offset_t old_offset = to_offset();
-    clone_no_tx();
+    clone_no_txn();
 
     references()[next_child_slot] = next_child_id;
     references()[parent_slot] = parent_id;
 
-    client::tx_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
+    client::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
     return *this;
 }
 
 gaia_ptr& gaia_ptr::update_child_reference(size_t child_slot, gaia_id_t child_id) {
     auto old_offset = to_offset();
-    clone_no_tx();
+    clone_no_txn();
 
     references()[child_slot] = child_id;
 
-    client::tx_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
+    client::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
     return *this;
 }
 
@@ -112,7 +112,7 @@ gaia_ptr::gaia_ptr(const gaia_id_t id, const size_t size)
     hash_node* hash_node = gaia_hash_map::insert(client::s_data, client::s_locators, id);
     hash_node->locator = m_locator = se_base::allocate_locator(client::s_locators, client::s_data);
     se_base::allocate_object(m_locator, size, client::s_locators, client::s_data);
-    client::tx_log(m_locator, 0, to_offset(), gaia_operation_t::create);
+    client::txn_log(m_locator, 0, to_offset(), gaia_operation_t::create);
 }
 
 void gaia_ptr::allocate(const size_t size) {
@@ -126,7 +126,7 @@ void gaia_ptr::create_insert_trigger(gaia_type_t type, gaia_id_t id) {
 }
 
 gaia_se_object_t* gaia_ptr::to_ptr() const {
-    client::verify_tx_active();
+    client::verify_txn_active();
 
     return m_locator && se_base::locator_exists(client::s_locators, m_locator)
                ? reinterpret_cast<gaia_se_object_t*>(client::s_data->objects + (*client::s_locators)[m_locator])
@@ -134,7 +134,7 @@ gaia_se_object_t* gaia_ptr::to_ptr() const {
 }
 
 gaia_offset_t gaia_ptr::to_offset() const {
-    client::verify_tx_active();
+    client::verify_txn_active();
 
     return m_locator
                ? (*client::s_locators)[m_locator]
@@ -152,7 +152,7 @@ void gaia_ptr::find_next(gaia_type_t type) {
 }
 
 void gaia_ptr::reset() {
-    client::tx_log(m_locator, to_offset(), 0, gaia_operation_t::remove, to_ptr()->id);
+    client::txn_log(m_locator, to_offset(), 0, gaia_operation_t::remove, to_ptr()->id);
 
     if (client::is_valid_event(to_ptr()->type)) {
         client::s_events.push_back(trigger_event_t{event_type_t::row_delete, to_ptr()->type, to_ptr()->id, empty_position_list});
