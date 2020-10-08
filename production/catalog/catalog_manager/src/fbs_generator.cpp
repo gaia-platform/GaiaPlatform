@@ -115,14 +115,38 @@ static string base64_encode(uint8_t const* bytes_to_encode, uint32_t in_len) {
     return ret;
 }
 
+static string generate_fbs_namespace(const string& db_name) {
+    if (db_name.empty() || db_name == c_global_db_name) {
+        return "namespace " + c_gaia_namespace + ";\n";
+    } else {
+        return "namespace " + c_gaia_namespace + "." + db_name + ";\n";
+    }
+}
+
+static string generate_fbs_field(const string& name, const string& type, int count) {
+    if (count == 1) {
+        return name + ":" + type;
+    } else if (count == 0) {
+        return name + ":[" + type + "]";
+    } else {
+        return name + ":[" + type + ":" + to_string(count) + "]";
+    }
+}
+
+static string generate_fbs_field(const gaia_field_t& field) {
+    string name{field.name()};
+    string type{ddl::get_data_type_name(static_cast<data_type_t>(field.type()))};
+    return generate_fbs_field(name, type, field.repeated_count());
+}
+
 /**
- * Get the data type name for fbs
- *
- * @param catalog data type
- * @return fbs data type name
- * @throw unknown_data_type
- */
-static string get_data_type_name(data_type_t data_type) {
+ * Public interfaces
+ **/
+ddl::unknown_data_type::unknown_data_type() {
+    m_message = "Unknown data type.";
+}
+
+string ddl::get_data_type_name(data_type_t data_type) {
     switch (data_type) {
     case data_type_t::e_bool:
         return "bool";
@@ -151,37 +175,6 @@ static string get_data_type_name(data_type_t data_type) {
     default:
         throw ddl::unknown_data_type();
     }
-}
-
-static string generate_fbs_namespace(const string& db_name) {
-    if (db_name.empty() || db_name == c_global_db_name) {
-        return "namespace " + c_gaia_namespace + ";\n";
-    } else {
-        return "namespace " + c_gaia_namespace + "." + db_name + ";\n";
-    }
-}
-
-static string generate_fbs_field(const string& name, const string& type, int count) {
-    if (count == 1) {
-        return name + ":" + type;
-    } else if (count == 0) {
-        return name + ":[" + type + "]";
-    } else {
-        return name + ":[" + type + ":" + to_string(count) + "]";
-    }
-}
-
-static string generate_fbs_field(const gaia_field_t& field) {
-    string name{field.name()};
-    string type{get_data_type_name(static_cast<data_type_t>(field.type()))};
-    return generate_fbs_field(name, type, field.repeated_count());
-}
-
-/**
- * Public interfaces
- **/
-ddl::unknown_data_type::unknown_data_type() {
-    m_message = "Unknown data type.";
 }
 
 string generate_fbs(gaia_id_t table_id) {
@@ -229,7 +222,7 @@ string generate_fbs(const string& db_name, const string& table_name, const ddl::
         }
         string field_fbs = generate_fbs_field(
             field->name,
-            get_data_type_name(field->type),
+            ddl::get_data_type_name(field->type),
             field->length);
         fbs += field_fbs + ";";
     }

@@ -7,13 +7,15 @@
 
 #include <fstream>
 
-#include "array_size.hpp"
-
 using namespace std;
 using namespace gaia::db;
-using namespace gaia::fdw;
 
-const int c_invalid_index = -1;
+namespace gaia
+{
+namespace fdw
+{
+
+constexpr int c_invalid_index = -1;
 
 // Valid options for gaia_fdw.
 const option_t valid_options[] =
@@ -26,7 +28,7 @@ int adapter_t::s_transaction_reference_count = 0;
 
 bool validate_and_apply_option(const char* option_name, const char* value, Oid context_id)
 {
-    for (const option_t* option = valid_options; option->name; option++)
+    for (const option_t* option = valid_options; option->name; ++option)
     {
         if (option->context_id == context_id && strcmp(option->name, option_name) == 0)
         {
@@ -41,7 +43,7 @@ bool validate_and_apply_option(const char* option_name, const char* value, Oid c
 void append_context_option_names(Oid context_id, StringInfoData& string_info)
 {
     initStringInfo(&string_info);
-    for (const option_t* option = valid_options; option->name; option++)
+    for (const option_t* option = valid_options; option->name; ++option)
     {
         if (context_id == option->context_id)
         {
@@ -51,6 +53,40 @@ void append_context_option_names(Oid context_id, StringInfoData& string_info)
                 (string_info.len > 0) ? ", " : "",
                 option->name);
         }
+    }
+}
+
+void adapter_t::begin_session()
+{
+    elog(LOG, "Opening COW-SE session...");
+
+    try
+    {
+        gaia::db::begin_session();
+    }
+    catch(gaia_exception e)
+    {
+        ereport(ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+            errmsg("Error opening COW-SE session."),
+            errhint("%s", e.what())));
+    }
+}
+
+void adapter_t::end_session()
+{
+    elog(LOG, "Closing COW-SE session...");
+
+    try
+    {
+        gaia::db::end_session();
+    }
+    catch(gaia_exception e)
+    {
+        ereport(ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+            errmsg("Error closing COW-SE session."),
+            errhint("%s", e.what())));
     }
 }
 
@@ -98,33 +134,16 @@ bool adapter_t::commit_transaction()
     return closed_transaction;
 }
 
-// Generate random gaia_id for INSERTs using /dev/urandom.
-// NB: because this is a 64-bit value, we will expect collisions
-// as the number of generated keys approaches 2^32! This is just
-// a temporary hack until the gaia_id type becomes a 128-bit GUID.
+bool adapter_t::is_gaia_id_name(const char* name)
+{
+    constexpr char c_gaia_id[] = "gaia_id";
+
+    return strcmp(c_gaia_id, name) == 0;
+}
+
 uint64_t adapter_t::get_new_gaia_id()
 {
-    ifstream urandom("/dev/urandom", ios::in | ios::binary);
-    if (!urandom)
-    {
-        elog(ERROR, "Failed to open /dev/urandom.");
-        return 0;
-    }
-
-    uint64_t random_value;
-    urandom.read(reinterpret_cast<char*>(&random_value), sizeof(random_value));
-    if (!urandom)
-    {
-        urandom.close();
-        elog(ERROR, "Failed to read from /dev/urandom.");
-        return 0;
-    }
-
-    urandom.close();
-
-    // Generating 0 should be statistically impossible.
-    assert(random_value != 0);
-    return random_value;
+    return gaia_ptr::generate_id();
 }
 
 List* adapter_t::get_ddl_command_list(const char* server_name)
@@ -139,12 +158,12 @@ List* adapter_t::get_ddl_command_list(const char* server_name)
         c_event_log_ddl_stmt_fmt,
     };
 
-    for (size_t i = 0; i < array_size(ddl_formatted_statements); i++)
+    for (size_t i = 0; i < std::size(ddl_formatted_statements); ++i)
     {
         // Length of format string + length of server name - 2 chars for format
         // specifier + 1 char for null terminator.
         size_t statement_length = strlen(ddl_formatted_statements[i])
-            + strlen(server_name) - sizeof("%s") + 1;
+            + strlen(server_name) - strlen("%s") + 1;
         char* statement_buffer = (char*)palloc(statement_length);
 
         // sprintf returns number of chars written, not including null
@@ -160,15 +179,6 @@ List* adapter_t::get_ddl_command_list(const char* server_name)
     }
 
     return commands;
-}
-
-template <class S>
-S* adapter_t::get_state(
-    const char* table_name, size_t count_accessors)
-{
-    S* state = (S*)palloc0(sizeof(S));
-
-    return state->initialize(table_name, count_accessors) ? state : nullptr;
 }
 
 bool state_t::initialize(const char* table_name, size_t count_accessors)
@@ -224,7 +234,7 @@ bool scan_state_t::set_accessor_index(const char* accessor_name, size_t accessor
     }
 
     bool found_accessor = false;
-    for (size_t i = 0; i < m_mapping->attribute_count; i++)
+    for (size_t i = 0; i < m_mapping->attribute_count; ++i)
     {
         if (strcmp(accessor_name, m_mapping->attributes[i].name) == 0)
         {
@@ -239,7 +249,7 @@ bool scan_state_t::set_accessor_index(const char* accessor_name, size_t accessor
 
 bool scan_state_t::initialize_scan()
 {
-    m_current_node = gaia_ptr::find_first(m_mapping->gaia_type_id);
+    m_current_node = gaia_ptr::find_first(m_mapping->gaia_container_id);
 
     return true;
 }
@@ -294,7 +304,7 @@ bool modify_state_t::initialize(const char* table_name, size_t count_accessors)
 
     m_pk_attr_idx = c_invalid_index;
 
-    m_gaia_type_id = m_mapping->gaia_type_id;
+    m_gaia_container_id = m_mapping->gaia_container_id;
     m_initializer = m_mapping->initializer;
     m_finalizer = m_mapping->finalizer;
 
@@ -316,7 +326,7 @@ bool modify_state_t::set_builder_index(const char* builder_name, size_t builder_
     }
 
     bool found_builder = false;
-    for (size_t i = 0; i < m_mapping->attribute_count; i++)
+    for (size_t i = 0; i < m_mapping->attribute_count; ++i)
     {
         if (strcmp(builder_name, m_mapping->attributes[i].name) == 0)
         {
@@ -324,7 +334,7 @@ bool modify_state_t::set_builder_index(const char* builder_name, size_t builder_
 
             m_indexed_builders[builder_index] = m_mapping->attributes[i].builder;
 
-            if (strcmp(builder_name, c_gaia_id) == 0)
+            if (adapter_t::is_gaia_id_name(builder_name))
             {
                 m_pk_attr_idx = builder_index;
             }
@@ -374,7 +384,7 @@ bool modify_state_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
         {
             gaia_ptr::create(
                 gaia_id,
-                m_gaia_type_id,
+                m_gaia_container_id,
                 record_payload_size,
                 record_payload);
         }
@@ -457,4 +467,7 @@ void modify_state_t::finalize_modify()
         flatcc_builder_clear(&m_builder);
         m_has_initialized_builder = false;
     }
+}
+
+}
 }

@@ -17,9 +17,11 @@ DROP INDEX IF EXISTS rawdata_route_uidx;
 
 CREATE EXTENSION gaia_fdw;
 
-CREATE SERVER gaia FOREIGN DATA WRAPPER gaia_fdw OPTIONS (
-    RESET 'true'
-);
+CREATE SERVER gaia FOREIGN DATA WRAPPER gaia_fdw
+-- OPTIONS (
+--    RESET 'true'
+--)
+;
 
 CREATE SCHEMA airport_demo;
 

@@ -15,12 +15,12 @@ int server::s_server_shutdown_event_fd = -1;
 int server::s_connect_socket = -1;
 std::mutex server::s_commit_lock;
 int server::s_fd_data = -1;
-se_base::offsets* server::s_shared_offsets = nullptr;
+se_base::locators* server::s_shared_locators = nullptr;
 std::unique_ptr<persistent_store_manager> server::rdb {};
 thread_local session_state_t server::s_session_state = session_state_t::DISCONNECTED;
 thread_local bool server::s_session_shutdown = false;
 constexpr server::valid_transition_t server::s_valid_transitions[];
-int server::s_fd_offsets = -1;
+int server::s_fd_locators = -1;
 se_base::data* server::s_data = nullptr;
 
 void server::handle_connect(int*, size_t, session_event_t event, session_state_t old_state, session_state_t new_state) {
@@ -30,8 +30,8 @@ void server::handle_connect(int*, size_t, session_event_t event, session_state_t
     // We need to reply to the client with the fds for the data/locator segments.
     FlatBufferBuilder builder;
     build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_transaction_id);
-    const int send_fds[] = {s_fd_data, s_fd_offsets};
-    send_msg_with_fds(s_session_socket, send_fds, array_size(send_fds), builder.GetBufferPointer(), builder.GetSize());
+    const int send_fds[] = {s_fd_data, s_fd_locators};
+    send_msg_with_fds(s_session_socket, send_fds, std::size(send_fds), builder.GetBufferPointer(), builder.GetSize());
 }
 
 void server::handle_begin_txn(int*, size_t, session_event_t event, session_state_t old_state, session_state_t new_state) {

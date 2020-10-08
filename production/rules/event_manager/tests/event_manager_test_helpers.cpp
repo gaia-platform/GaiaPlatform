@@ -15,9 +15,9 @@ void gaia::rules::test::initialize_rules_engine(event_manager_settings_t& settin
 }
 
 void gaia::rules::test::commit_trigger(
-    uint64_t transaction_id,
+    gaia_xid_t transaction_id,
     const trigger_event_t* trigger_events,
-    size_t count_events) 
+    size_t count_events)
 {
     trigger_event_list_t trigger_event_list;
     for (size_t i = 0; i < count_events; i++)

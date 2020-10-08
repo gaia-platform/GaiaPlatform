@@ -15,6 +15,7 @@
 #include "system_error.hpp"
 #include "gaia_db.hpp"
 #include "gaia_db_internal.hpp"
+#include "db_types.hpp"
 #include "logger.hpp"
 
 namespace gaia {

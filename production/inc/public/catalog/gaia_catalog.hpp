@@ -14,8 +14,6 @@
 #include "gaia_common.hpp"
 #include "gaia_exception.hpp"
 
-using namespace gaia::common;
-
 namespace gaia {
 /**
  * \addtogroup Gaia
@@ -175,13 +173,30 @@ struct drop_statement_t : statement_t {
     string database;
 };
 
+/**
+ * Thrown when seeing an unknown data type
+ */
+class unknown_data_type : public gaia::common::gaia_exception {
+public:
+    unknown_data_type();
+};
+
+/**
+ * Get the data type name for fbs
+ *
+ * @param catalog data type
+ * @return fbs data type name
+ * @throw unknown_data_type
+ */
+string get_data_type_name(data_type_t data_type);
+
 /*@}*/
 } // namespace ddl
 
 /**
  * Thrown when creating a database that already exists.
  */
-class db_already_exists : public gaia_exception {
+class db_already_exists : public gaia::common::gaia_exception {
 public:
     db_already_exists(const string& name) {
         stringstream message;
@@ -193,7 +208,7 @@ public:
 /**
  * Thrown when a specified database does not exists.
  */
-class db_not_exists : public gaia_exception {
+class db_not_exists : public gaia::common::gaia_exception {
 public:
     db_not_exists(const string& name) {
         stringstream message;
@@ -205,7 +220,7 @@ public:
 /**
  * Thrown when creating a table that already exists.
  */
-class table_already_exists : public gaia_exception {
+class table_already_exists : public gaia::common::gaia_exception {
 public:
     table_already_exists(const string& name) {
         stringstream message;
@@ -217,7 +232,7 @@ public:
 /**
  * Thrown when a specified table does not exists.
  */
-class table_not_exists : public gaia_exception {
+class table_not_exists : public gaia::common::gaia_exception {
 public:
     table_not_exists(const string& name) {
         stringstream message;
@@ -229,7 +244,7 @@ public:
 /**
  * Thrown when a field is specified more than once
  */
-class duplicate_field : public gaia_exception {
+class duplicate_field : public gaia::common::gaia_exception {
 public:
     duplicate_field(const string& name) {
         stringstream message;
@@ -250,7 +265,7 @@ void initialize_catalog();
  * @return id of the new database
  * @throw db_already_exists
  */
-gaia_id_t create_database(const string& name, bool throw_on_exists = true);
+gaia::common::gaia_id_t create_database(const string& name, bool throw_on_exists = true);
 
 /**
  * Create a table definition in a given database.
@@ -261,7 +276,9 @@ gaia_id_t create_database(const string& name, bool throw_on_exists = true);
  * @return id of the new table
  * @throw table_already_exists
  */
-gaia_id_t create_table(const string& dbname, const string& name, const ddl::field_def_list_t& fields, bool throw_on_exist = true);
+gaia::common::gaia_id_t create_table(
+    const string& db_name, const string& name,
+    const ddl::field_def_list_t& fields, bool throw_on_exist = true);
 
 /**
  * Create a table definition in the catalog's global database.
@@ -271,7 +288,7 @@ gaia_id_t create_table(const string& dbname, const string& name, const ddl::fiel
  * @return id of the new table
  * @throw table_already_exists
  */
-gaia_id_t create_table(const string& name, const ddl::field_def_list_t& fields);
+gaia::common::gaia_id_t create_table(const string& name, const ddl::field_def_list_t& fields);
 
 /**
  * Delete a table in a given database.
@@ -302,7 +319,7 @@ void drop_table(const string& name);
  * @param table_id id of the table
  * @return a list of field ids in the order of their positions.
  */
-vector<gaia_id_t> list_fields(gaia_id_t table_id);
+vector<gaia::common::gaia_id_t> list_fields(gaia::common::gaia_id_t table_id);
 
 /**
  * List all references for a given table defined in the catalog.
@@ -314,7 +331,7 @@ vector<gaia_id_t> list_fields(gaia_id_t table_id);
  * @param table_id id of the table
  * @return a list of ids of the table references in the order of their positions.
  */
-vector<gaia_id_t> list_references(gaia_id_t table_id);
+vector<gaia::common::gaia_id_t> list_references(gaia::common::gaia_id_t table_id);
 
 /**
  * Generate FlatBuffers schema (fbs) for a catalog table.
@@ -322,7 +339,7 @@ vector<gaia_id_t> list_references(gaia_id_t table_id);
  *
  * @return generated fbs string
  */
-string generate_fbs(gaia_id_t table_id);
+string generate_fbs(gaia::common::gaia_id_t table_id);
 
 /**
  * Generate FlatBuffers schema (fbs) for all catalog tables in a given database.
@@ -347,7 +364,7 @@ string gaia_generate(const string& dbname);
  * @param table_id id of the table
  * @return bfbs
  */
-string get_bfbs(gaia_id_t table_id);
+string get_bfbs(gaia::common::gaia_id_t table_id);
 
 /**
  * Find the database id given its name
@@ -355,7 +372,7 @@ string get_bfbs(gaia_id_t table_id);
  * @param dbname database name
  * @return database id (or INVALID_ID if the db name does not exist)
  */
-gaia_id_t find_db_id(const string& dbname);
+gaia::common::gaia_id_t find_db_id(const string& dbname);
 
 /*@}*/
 } // namespace catalog

@@ -59,6 +59,11 @@ gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_referen
     return m_record;
 }
 
+template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
+bool gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::operator==(const gaia_object_t& other) const
+{
+    return m_record == other.m_record;
+}
 
 template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
 gaia_id_t* gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::references()

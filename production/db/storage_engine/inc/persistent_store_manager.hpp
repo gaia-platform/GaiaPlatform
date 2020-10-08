@@ -8,6 +8,7 @@
 #include <memory>
 
 #include "gaia_common.hpp"
+#include "db_types.hpp"
 
 // This file provides gaia specific functionality to persist writes to & read from
 // RocksDB during recovery.
@@ -46,7 +47,7 @@ public:
      */
     void recover();
 
-    std::string begin_txn(gaia::common::gaia_xid_t transaction_id);
+    std::string begin_txn(gaia::db::gaia_xid_t transaction_id);
 
     /**
      * This method will serialize the transaction to the log.
