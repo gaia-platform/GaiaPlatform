@@ -29,7 +29,7 @@ void clear_shared_memory();
 // directory path & also some way to destroy it instead
 // of hardcoding the path.
 // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-310
-const char* const PERSISTENT_DIRECTORY_PATH = "/tmp/gaia_db";
+constexpr char PERSISTENT_DIRECTORY_PATH[] = "/tmp/gaia_db";
 
 }  // namespace db
 }  // namespace gaia

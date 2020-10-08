@@ -28,18 +28,19 @@ using namespace messages;
 using namespace flatbuffers;
 
 class invalid_session_transition : public gaia_exception {
-   public:
+public:
     invalid_session_transition(const string& message) : gaia_exception(message) {}
 };
 
 class server : private se_base {
     friend class persistent_store_manager;
-   public:
+
+public:
     static void run();
 
-   private:
-    // FIXME: this really should be constexpr, but C++11 seems broken in that respect.
-    static const uint64_t MAX_SEMAPHORE_COUNT;
+private:
+    // from https://www.man7.org/linux/man-pages/man2/eventfd.2.html
+    static constexpr uint64_t MAX_SEMAPHORE_COUNT = std::numeric_limits<uint64_t>::max() - 1;
     static int s_server_shutdown_event_fd;
     static int s_connect_socket;
     static std::mutex s_commit_lock;
@@ -126,10 +127,7 @@ class server : private se_base {
         // If we get here, we haven't found any compatible transition.
         // TODO: consider propagating exception back to client?
         throw invalid_session_transition(
-            "no allowed state transition from state '" +
-            std::string(EnumNamesession_state_t(s_session_state)) +
-            "' with event '" +
-            std::string(EnumNamesession_event_t(event)) + "'");
+            "no allowed state transition from state '" + std::string(EnumNamesession_state_t(s_session_state)) + "' with event '" + std::string(EnumNamesession_event_t(event)) + "'");
     }
 
     static void build_server_reply(
@@ -263,8 +261,7 @@ class server : private se_base {
             sizeof(server_addr.sun_path) - 1);
         // The socket name is not null-terminated in the address structure, but
         // we need to add an extra byte for the null byte prefix.
-        socklen_t server_addr_size =
-            sizeof(server_addr.sun_family) + 1 + strlen(&server_addr.sun_path[1]);
+        socklen_t server_addr_size = sizeof(server_addr.sun_family) + 1 + strlen(&server_addr.sun_path[1]);
         if (-1 == ::bind(connect_socket, (struct sockaddr*)&server_addr, server_addr_size)) {
             throw_system_error("bind failed");
         }
@@ -344,7 +341,7 @@ class server : private se_base {
                     // Disable client authentication until we can figure out
                     // how to fix the Postgres tests.
                     // if (authenticate_client_socket(session_socket)) {
-                        session_threads.emplace_back(session_thread, session_socket);
+                    session_threads.emplace_back(session_thread, session_socket);
                     // } else {
                     //     close(session_socket);
                     // }
@@ -550,5 +547,5 @@ class server : private se_base {
     }
 };
 
-}  // namespace db
-}  // namespace gaia
+} // namespace db
+} // namespace gaia

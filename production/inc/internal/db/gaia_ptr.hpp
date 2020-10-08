@@ -247,11 +247,11 @@ public:
     void remove_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset);
 
 protected:
-    gaia_ptr(const gaia_id_t id);
+    gaia_ptr(gaia_id_t id);
 
-    gaia_ptr(const gaia_id_t id, const size_t size);
+    gaia_ptr(gaia_id_t id, size_t size);
 
-    void allocate(const size_t size);
+    void allocate(size_t size);
 
     gaia_se_object_t* to_ptr() const;
 

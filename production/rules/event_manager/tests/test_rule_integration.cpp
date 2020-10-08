@@ -36,15 +36,15 @@ using namespace gaia::addr_book;
 using namespace gaia::catalog;
 using namespace std::chrono;
 
-const char* c_name = "John";
-const char* c_city = "Seattle";
-const char* c_state = "WA";
-const char* c_phone_number = "867-5309";
-const char* c_phone_type = "satellite";
+constexpr char c_name[] = "John";
+constexpr char c_city[] = "Seattle";
+constexpr char c_state[] = "WA";
+constexpr char c_phone_number[] = "867-5309";
+constexpr char c_phone_type[] = "satellite";
 
-uint16_t c_phone_number_position = 0;
-uint16_t c_phone_type_position = 1;
-uint16_t c_phone_primary_position = 2;
+constexpr uint16_t c_phone_number_position = 0;
+constexpr uint16_t c_phone_type_position = 1;
+constexpr uint16_t c_phone_primary_position = 2;
 
 atomic<int> g_wait_for_count;
 

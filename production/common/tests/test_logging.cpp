@@ -7,9 +7,9 @@
 #include "gtest/gtest.h"
 #include "logger.hpp"
 
-static const char* c_const_char_msg = "const char star message";
+static constexpr char c_const_char_msg[] = "const char star message";
 static const std::string c_string_msg = "string message";
-static const int64_t c_int_msg = 1234;
+static constexpr int64_t c_int_msg = 1234;
 
 void verify_uninitialized_loggers() {
     EXPECT_THROW(gaia_log::sys(), gaia_log::logger_exception_t);
