@@ -55,7 +55,7 @@ class server : private se_base {
     // Inherited from se_base:
     // thread_local static log *s_log;
     // thread_local static int s_session_socket;
-    // thread_local static gaia_xid_t s_transaction_id;
+    // thread_local static gaia_txn_id_t s_txn_id;
 
     // function pointer type that executes side effects of a state transition
     typedef void (*transition_handler_t)(int* fds, size_t fd_count, session_event_t event, session_state_t old_state, session_state_t new_state);
@@ -137,8 +137,8 @@ class server : private se_base {
         session_event_t event,
         session_state_t old_state,
         session_state_t new_state,
-        gaia_xid_t transaction_id) {
-        auto server_reply = Createserver_reply_t(builder, event, old_state, new_state, transaction_id);
+        gaia_txn_id_t txn_id) {
+        auto server_reply = Createserver_reply_t(builder, event, old_state, new_state, txn_id);
         auto message = Createmessage_t(builder, any_message_t::reply, server_reply.Union());
         builder.Finish(message);
     }
@@ -499,7 +499,7 @@ class server : private se_base {
     // Before this method is called, we have already received the log fd from the client
     // and mmapped it.
     // This method returns true for a commit decision and false for an abort decision.
-    static bool tx_commit() {
+    static bool txn_commit() {
         // At the process level, acquiring an advisory file lock in exclusive mode
         // guarantees there are no clients mapping the locator segment. It does not
         // guarantee there are no other threads in this process that have acquired
@@ -520,7 +520,7 @@ class server : private se_base {
 
         std::set<gaia_locator_t> locators;
 
-        auto txn_name = rdb->begin_txn(s_transaction_id);
+        auto txn_name = rdb->begin_txn(s_txn_id);
         // Prepare tx
         rdb->prepare_wal_for_write(txn_name);
 

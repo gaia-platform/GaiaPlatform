@@ -456,12 +456,12 @@ public final class CacheHelper
     // Returns true if we started a transaction and false if one was already started.
     private static boolean startTransaction(CacheGraph graph)
     {
-        if (graph.tx().isOpen())
+        if (graph.txn().isOpen())
         {
             return false;
         }
 
-        graph.tx().open();
+        graph.txn().open();
         return true;
     }
 
@@ -473,11 +473,11 @@ public final class CacheHelper
         {
             if (operationResult)
             {
-                graph.tx().commit();
+                graph.txn().commit();
             }
             else
             {
-                graph.tx().rollback();
+                graph.txn().rollback();
             }
         }
 

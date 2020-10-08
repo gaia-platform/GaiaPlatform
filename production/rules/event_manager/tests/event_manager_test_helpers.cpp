@@ -15,7 +15,7 @@ void gaia::rules::test::initialize_rules_engine(event_manager_settings_t& settin
 }
 
 void gaia::rules::test::commit_trigger(
-    gaia_xid_t transaction_id,
+    gaia_txn_id_t txn_id,
     const trigger_event_t* trigger_events,
     size_t count_events)
 {
@@ -25,7 +25,7 @@ void gaia::rules::test::commit_trigger(
         trigger_event_list.emplace_back(trigger_events[i]);
     }
 
-    event_manager_t::get().commit_trigger(transaction_id, trigger_event_list);
+    event_manager_t::get().commit_trigger(txn_id, trigger_event_list);
 
     // execute the rules synchronously now
     event_manager_t::get().m_invocations->execute_immediate();

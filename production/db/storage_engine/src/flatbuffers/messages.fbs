@@ -33,7 +33,7 @@ table server_reply_t {
     event: session_event_t;
     old_state: session_state_t;
     new_state: session_state_t;
-    transaction_id: uint64;
+    txn_id: uint64;
 }
 
 union any_message_t {

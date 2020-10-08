@@ -47,7 +47,7 @@ public:
      */
     void recover();
 
-    std::string begin_txn(gaia::db::gaia_xid_t transaction_id);
+    std::string begin_txn(gaia::db::gaia_txn_id_t txn_id);
 
     /**
      * This method will serialize the transaction to the log.
@@ -58,7 +58,7 @@ public:
 
     /**
      * This method will append a commit marker with the appropriate
-     * transaction_id to the log, and will additionally insert entries
+     * txn_id to the log, and will additionally insert entries
      * into the RocksDB write buffer (which then writes KV's to disk on getting full)
      *
      * We expect writes to the RocksDB WAL to just work; this

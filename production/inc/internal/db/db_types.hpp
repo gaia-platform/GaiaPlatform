@@ -16,7 +16,7 @@ namespace db {
  * This type is used for both transaction begin and commit timestamps, which are
  * obtained by incrementing a global atomic counter in shared memory.
  */
-typedef uint64_t gaia_xid_t;
+typedef uint64_t gaia_txn_id_t;
 
 /**
  * The type of a Gaia locator id.

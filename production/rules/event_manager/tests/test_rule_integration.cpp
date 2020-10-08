@@ -82,7 +82,7 @@ void rule_update_address(const rule_context_t* context)
     // to the test thread when we decrement our count and the test would fail.
     // This also tests that the rules scheduler does the right thing when the
     // rule author commits the transaction in a rule.
-    context->transaction.commit();
+    context->txn.commit();
     g_wait_for_count--;
 }
 
@@ -250,19 +250,19 @@ TEST_F(rule_integration_test, test_insert)
     {
         rule_monitor_t monitor(1);
 
-        auto_transaction_t tx(false);
+        auto_transaction_t txn(false);
         employee_writer writer;
         writer.name_first = c_name;
         writer.insert_row();
         g_start = g_timer.get_time_point();
-        tx.commit();
+        txn.commit();
 
     }
 
     // Make sure the address was added and updated by the
     // rule that was fired above.
     {
-        auto_transaction_t tx(false);
+        auto_transaction_t txn(false);
         address_t a = address_t::get_first();
         EXPECT_STREQ(a.city(), c_city);
         EXPECT_STREQ(a.state(), c_state);
@@ -275,14 +275,14 @@ TEST_F(rule_integration_test, test_delete)
     {
         rule_monitor_t monitor(1);
 
-        auto_transaction_t tx(true);
+        auto_transaction_t txn(true);
         employee_writer writer;
         writer.name_first = c_name;
         employee_t e = employee_t::get(writer.insert_row());
-        tx.commit();
+        txn.commit();
         e.delete_row();
         g_start = g_timer.get_time_point();
-        tx.commit();
+        txn.commit();
     }
 }
 
@@ -291,16 +291,16 @@ TEST_F(rule_integration_test, test_update)
     subscribe_update();
     {
         rule_monitor_t monitor(1);
-        auto_transaction_t tx(true);
+        auto_transaction_t txn(true);
             employee_writer writer;
             writer.name_first = "Ignore";
             employee_t e = employee_t::get(writer.insert_row());
-        tx.commit();
+        txn.commit();
             writer = e.writer();
             writer.name_first = c_name;
             writer.update_row();
         g_start = g_timer.get_time_point();
-        tx.commit();
+        txn.commit();
 
     }
 }
@@ -311,16 +311,16 @@ TEST_F(rule_integration_test, test_update_field)
     subscribe_field(c_phone_number_position);
     {
         rule_monitor_t monitor(1);
-        auto_transaction_t tx(true);
+        auto_transaction_t txn(true);
             phone_writer writer;
             writer.phone_number = "111-1111";
             phone_t p = phone_t::get(writer.insert_row());
-        tx.commit();
+        txn.commit();
             writer = p.writer();
             writer.phone_number = c_phone_number;
             writer.update_row();
             g_start = g_timer.get_time_point();
-        tx.commit();
+        txn.commit();
     }
 }
 
@@ -331,18 +331,18 @@ TEST_F(rule_integration_test, test_update_field_multiple_rules)
     subscribe_field(c_phone_type_position);
     {
         rule_monitor_t monitor(2);
-        auto_transaction_t tx(true);
+        auto_transaction_t txn(true);
         phone_writer writer;
         writer.phone_number = "111-1111";
         //writer.type = "home";
         phone_t p = phone_t::get(writer.insert_row());
-        tx.commit();
+        txn.commit();
         writer = p.writer();
         writer.phone_number = c_phone_number;
         writer.type = c_phone_type;
         writer.update_row();
         g_start = g_timer.get_time_point();
-        tx.commit();
+        txn.commit();
     }
 }
 
@@ -352,13 +352,13 @@ TEST_F(rule_integration_test, test_update_field_single_rule)
     subscribe_field(c_phone_number_position);
     {
         gaia_id_t phone_id;
-        auto_transaction_t tx;
+        auto_transaction_t txn;
 
         phone_writer writer;
         writer.phone_number = "111-1111";
         writer.primary = false;
         phone_id = writer.insert_row();
-        tx.commit();
+        txn.commit();
 
         {
             // Changing the phone number should fire a rule.
@@ -367,7 +367,7 @@ TEST_F(rule_integration_test, test_update_field_single_rule)
             writer.phone_number = c_phone_number;
             writer.update_row();
             g_start = g_timer.get_time_point();
-            tx.commit();
+            txn.commit();
         }
 
         {
@@ -377,7 +377,7 @@ TEST_F(rule_integration_test, test_update_field_single_rule)
             writer.primary = true;
             writer.update_row();
             g_start = g_timer.get_time_point();
-            tx.commit();
+            txn.commit();
         }
     }
 }
@@ -391,13 +391,13 @@ TEST_F(rule_integration_test, test_two_rules)
         gaia_id_t first;
         gaia_id_t second;
 
-        auto_transaction_t tx(true);
+        auto_transaction_t txn(true);
         employee_writer writer;
         writer.name_first = "Ignore";
         first = writer.insert_row();
         writer.name_first = "Me Too";
         second = writer.insert_row();
-        tx.commit();
+        txn.commit();
 
         // Delete first row and update second.
         employee_t::delete_row(first);
@@ -405,7 +405,7 @@ TEST_F(rule_integration_test, test_two_rules)
         writer.name_first = c_name;
         writer.update_row();
         g_start = g_timer.get_time_point();
-        tx.commit();
+        txn.commit();
     }
 }
 
@@ -427,12 +427,12 @@ TEST_F(rule_integration_test, test_parallel)
     int64_t total_time = timer.get_function_duration([&]() {
         {
             rule_monitor_t monitor(num_inserts);
-            auto_transaction_t tx(false);
+            auto_transaction_t txn(false);
             for (int i = 0; i < num_inserts; i++)
             {
                 employee_t::insert_row("John", "Jones", "111-11-1111", i, nullptr, nullptr);
             }
-            tx.commit();
+            txn.commit();
         }
     });
     double total_seconds = gaia::common::timer_t::ns_to_s(total_time);

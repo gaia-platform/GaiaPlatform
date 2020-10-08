@@ -24,7 +24,7 @@ const option_t valid_options[] =
     { NULL, InvalidOid, NULL }
 };
 
-int adapter_t::s_transaction_reference_count = 0;
+int adapter_t::s_txn_reference_count = 0;
 
 bool validate_and_apply_option(const char* option_name, const char* value, Oid context_id)
 {
@@ -92,18 +92,18 @@ void adapter_t::end_session()
 
 bool adapter_t::is_transaction_open()
 {
-    assert(s_transaction_reference_count >= 0);
-    return s_transaction_reference_count > 0;
+    assert(s_txn_reference_count >= 0);
+    return s_txn_reference_count > 0;
 }
 
 bool adapter_t::begin_transaction()
 {
     elog(DEBUG1, "Opening COW-SE transaction...");
 
-    assert(s_transaction_reference_count >= 0);
+    assert(s_txn_reference_count >= 0);
 
     bool opened_transaction = false;
-    int previous_count = s_transaction_reference_count++;
+    int previous_count = s_txn_reference_count++;
     if (previous_count == 0)
     {
         opened_transaction = true;
@@ -119,10 +119,10 @@ bool adapter_t::commit_transaction()
 {
     elog(DEBUG1, "Closing COW-SE transaction...");
 
-    assert(s_transaction_reference_count > 0);
+    assert(s_txn_reference_count > 0);
 
     bool closed_transaction = false;
-    int previous_count = s_transaction_reference_count--;
+    int previous_count = s_txn_reference_count--;
     if (previous_count == 1)
     {
         closed_transaction = true;
