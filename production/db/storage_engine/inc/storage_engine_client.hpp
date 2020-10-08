@@ -15,6 +15,7 @@
 #include <unordered_set>
 
 #include <flatbuffers/flatbuffers.h>
+
 #include "retail_assert.hpp"
 #include "system_error.hpp"
 #include "mmap_helpers.hpp"
@@ -23,6 +24,7 @@
 #include "storage_engine.hpp"
 #include "triggers.hpp"
 #include "db_types.hpp"
+#include "gaia_db_internal.hpp"
 
 using namespace std;
 using namespace gaia::common;
@@ -87,7 +89,7 @@ private:
     /**
      *  Check if an event should be generated for a given type.
      */
-    static inline bool is_valid_event(const gaia_type_t type) {
+    static inline bool is_valid_event(gaia_type_t type) {
         return (s_txn_commit_trigger
             && (trigger_excluded_types.find(type) == trigger_excluded_types.end()));
     }

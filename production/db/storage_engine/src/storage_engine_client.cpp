@@ -92,11 +92,11 @@ int client::get_session_socket() {
     server_addr.sun_family = AF_UNIX;
     // The socket name (minus its null terminator) needs to fit into the space
     // in the server address structure after the prefix null byte.
-    retail_assert(strlen(SE_SERVER_NAME) <= sizeof(server_addr.sun_path) - 1);
+    retail_assert(strlen(SE_SERVER_SOCKET_NAME) <= sizeof(server_addr.sun_path) - 1);
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
     // filesystem.
-    strncpy(&server_addr.sun_path[1], SE_SERVER_NAME,
+    strncpy(&server_addr.sun_path[1], SE_SERVER_SOCKET_NAME,
         sizeof(server_addr.sun_path) - 1);
     // The socket name is not null-terminated in the address structure, but
     // we need to add an extra byte for the null byte prefix.
@@ -148,11 +148,11 @@ void client::begin_session() {
 
     // Extract the data and locator shared memory segment fds from the server's response.
     uint8_t msg_buf[MAX_MSG_SIZE] = {0};
-    const size_t FD_COUNT = 2;
+    constexpr size_t FD_COUNT = 2;
     int fds[FD_COUNT] = {-1};
     size_t fd_count = FD_COUNT;
-    const size_t DATA_FD_INDEX = 0;
-    const size_t LOCATORS_FD_INDEX = 1;
+    constexpr size_t DATA_FD_INDEX = 0;
+    constexpr size_t LOCATORS_FD_INDEX = 1;
     size_t bytes_read = recv_msg_with_fds(s_session_socket, fds, &fd_count, msg_buf, sizeof(msg_buf));
     retail_assert(bytes_read > 0);
     retail_assert(fd_count == FD_COUNT);
@@ -173,7 +173,7 @@ void client::begin_session() {
 
     const message_t* msg = Getmessage_t(msg_buf);
     const server_reply_t* reply = msg->msg_as_reply();
-    const session_event_t event = reply->event();
+    session_event_t event = reply->event();
     retail_assert(event == session_event_t::CONNECT);
 
     // Since the data and locator fds are global, we need to atomically update them
@@ -303,7 +303,7 @@ void client::commit_transaction() {
     // Extract the commit decision from the server's reply and return it.
     const message_t* msg = Getmessage_t(msg_buf);
     const server_reply_t* reply = msg->msg_as_reply();
-    const session_event_t event = reply->event();
+    session_event_t event = reply->event();
     retail_assert(event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT);
 
     // Throw an exception on server-side abort.

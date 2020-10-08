@@ -19,6 +19,7 @@
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
 #include "gaia_se_object.hpp"
+#include "gaia_db_internal.hpp"
 
 namespace gaia {
 namespace db {
@@ -28,18 +29,19 @@ using namespace messages;
 using namespace flatbuffers;
 
 class invalid_session_transition : public gaia_exception {
-   public:
+public:
     invalid_session_transition(const string& message) : gaia_exception(message) {}
 };
 
 class server : private se_base {
     friend class persistent_store_manager;
-   public:
+
+public:
     static void run();
 
-   private:
-    // FIXME: this really should be constexpr, but C++11 seems broken in that respect.
-    static const uint64_t MAX_SEMAPHORE_COUNT;
+private:
+    // from https://www.man7.org/linux/man-pages/man2/eventfd.2.html
+    static constexpr uint64_t MAX_SEMAPHORE_COUNT = std::numeric_limits<uint64_t>::max() - 1;
     static int s_server_shutdown_event_fd;
     static int s_connect_socket;
     static std::mutex s_commit_lock;
@@ -126,10 +128,10 @@ class server : private se_base {
         // If we get here, we haven't found any compatible transition.
         // TODO: consider propagating exception back to client?
         throw invalid_session_transition(
-            "no allowed state transition from state '" +
-            std::string(EnumNamesession_state_t(s_session_state)) +
-            "' with event '" +
-            std::string(EnumNamesession_event_t(event)) + "'");
+            "no allowed state transition from state '"
+            + std::string(EnumNamesession_state_t(s_session_state))
+            + "' with event '" + std::string(EnumNamesession_event_t(event))
+            + "'");
     }
 
     static void build_server_reply(
@@ -255,16 +257,15 @@ class server : private se_base {
         // The socket name (minus its null terminator) needs to fit into the space
         // in the server address structure after the prefix null byte.
         // This should be static_assert(), but strlen() doesn't return a constexpr.
-        retail_assert(strlen(SE_SERVER_NAME) <= sizeof(server_addr.sun_path) - 1);
+        retail_assert(strlen(SE_SERVER_SOCKET_NAME) <= sizeof(server_addr.sun_path) - 1);
         // We prepend a null byte to the socket name so the address is in the
         // (Linux-exclusive) "abstract namespace", i.e., not bound to the
         // filesystem.
-        strncpy(&server_addr.sun_path[1], SE_SERVER_NAME,
+        strncpy(&server_addr.sun_path[1], SE_SERVER_SOCKET_NAME,
             sizeof(server_addr.sun_path) - 1);
         // The socket name is not null-terminated in the address structure, but
         // we need to add an extra byte for the null byte prefix.
-        socklen_t server_addr_size =
-            sizeof(server_addr.sun_family) + 1 + strlen(&server_addr.sun_path[1]);
+        socklen_t server_addr_size = sizeof(server_addr.sun_family) + 1 + strlen(&server_addr.sun_path[1]);
         if (-1 == ::bind(connect_socket, (struct sockaddr*)&server_addr, server_addr_size)) {
             throw_system_error("bind failed");
         }
@@ -294,8 +295,11 @@ class server : private se_base {
         if (-1 == getsockopt(socket, SOL_SOCKET, SO_PEERCRED, &cred, &cred_len)) {
             throw_system_error("getsockopt(SO_PEERCRED) failed");
         }
+        // Disable client authentication until we can figure out
+        // how to fix the Postgres tests.
         // Client must have same effective user ID as server.
-        return (cred.uid == geteuid());
+        // return (cred.uid == geteuid());
+        return true;
     }
 
     static void client_dispatch_handler() {
@@ -341,13 +345,11 @@ class server : private se_base {
                     if (session_socket == -1) {
                         throw_system_error("accept failed");
                     }
-                    // Disable client authentication until we can figure out
-                    // how to fix the Postgres tests.
-                    // if (authenticate_client_socket(session_socket)) {
+                    if (authenticate_client_socket(session_socket)) {
                         session_threads.emplace_back(session_thread, session_socket);
-                    // } else {
-                    //     close(session_socket);
-                    // }
+                    } else {
+                        close(session_socket);
+                    }
                 } else if (ev.data.fd == s_server_shutdown_event_fd) {
                     uint64_t val;
                     ssize_t bytes_read = read(s_server_shutdown_event_fd, &val, sizeof(val));
@@ -550,5 +552,5 @@ class server : private se_base {
     }
 };
 
-}  // namespace db
-}  // namespace gaia
+} // namespace db
+} // namespace gaia

@@ -85,29 +85,3 @@ const relation_attribute_mapping_t c_route_mapping = {
     c_route_attributes,
     std::size(c_route_attributes),
 };
-
-const char *c_airport_ddl_stmt_fmt =
-    "create foreign table airports( "
-    "gaia_id bigint, "
-    "ap_id int, name text, city text, country text, iata char(3), icao "
-    "char(4), "
-    "latitude double precision, longitude double precision, altitude int, "
-    "timezone float, dst char(1), tztext text, type text, source text) "
-    "server %s;";
-
-const char *c_airline_ddl_stmt_fmt =
-    "create foreign table airlines( "
-    "gaia_id bigint, "
-    "al_id int, "
-    "name text, alias text, iata char(3), icao char(5), "
-    "callsign text, country text, active char(1)) "
-    "server %s;";
-
-const char *c_route_ddl_stmt_fmt =
-    "create foreign table routes( "
-    "gaia_id bigint, gaia_al_id bigint, gaia_src_id bigint, gaia_dst_id "
-    "bigint, "
-    "airline text, al_id int, "
-    "src_ap varchar(4), src_ap_id int, dst_ap varchar(4), dst_ap_id int, "
-    "codeshare char(1), stops int, equipment text) "
-    "server %s;";

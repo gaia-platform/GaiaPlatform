@@ -19,7 +19,7 @@ namespace catalog {
 /**
  * Return the position of chr within base64_encode()
  */
-static unsigned int pos_of_char(const unsigned char chr) {
+static unsigned int pos_of_char(unsigned char chr) {
     if (chr >= 'A' && chr <= 'Z') {
         return chr - 'A';
     } else if (chr >= 'a' && chr <= 'z') {
@@ -82,10 +82,10 @@ static string base64_decode(string encoded_string) {
  * This is for temporary workaround to encode binary into string before EDC support arrays.
  * Do not use it elsewhere.
  **/
-static string base64_encode(uint8_t const* bytes_to_encode, uint32_t in_len) {
+static string base64_encode(const uint8_t* bytes_to_encode, uint32_t in_len) {
     uint32_t len_encoded = (in_len + 2) / 3 * 4;
-    unsigned char trailing_char = '=';
-    static const char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    constexpr unsigned char trailing_char = '=';
+    constexpr char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                        "abcdefghijklmnopqrstuvwxyz"
                                        "0123456789"
                                        "+/";

@@ -103,11 +103,11 @@ gaia_ptr& gaia_ptr::update_child_reference(size_t child_slot, gaia_id_t child_id
     return *this;
 }
 
-gaia_ptr::gaia_ptr(const gaia_id_t id) {
+gaia_ptr::gaia_ptr(gaia_id_t id) {
     m_locator = gaia_hash_map::find(client::s_data, client::s_locators, id);
 }
 
-gaia_ptr::gaia_ptr(const gaia_id_t id, const size_t size)
+gaia_ptr::gaia_ptr(gaia_id_t id, size_t size)
     : m_locator(0) {
     hash_node* hash_node = gaia_hash_map::insert(client::s_data, client::s_locators, id);
     hash_node->locator = m_locator = se_base::allocate_locator(client::s_locators, client::s_data);
@@ -115,7 +115,7 @@ gaia_ptr::gaia_ptr(const gaia_id_t id, const size_t size)
     client::txn_log(m_locator, 0, to_offset(), gaia_operation_t::create);
 }
 
-void gaia_ptr::allocate(const size_t size) {
+void gaia_ptr::allocate(size_t size) {
     se_base::allocate_object(m_locator, size, client::s_locators, client::s_data);
 }
 

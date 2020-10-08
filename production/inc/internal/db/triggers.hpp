@@ -43,7 +43,7 @@ typedef void (*commit_trigger_fn) (gaia::db::gaia_txn_id_t, const trigger_event_
 /**
  * Use this constant to specify that no fields are needed when generating trigger_event_t.
  */
-const field_position_list_t empty_position_list;
+const field_position_list_t empty_position_list = {};
 
 }
 }

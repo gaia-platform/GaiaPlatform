@@ -9,8 +9,6 @@
 using namespace gaia::db;
 using namespace gaia::db::messages;
 
-// from https://www.man7.org/linux/man-pages/man2/eventfd.2.html
-const uint64_t server::MAX_SEMAPHORE_COUNT = 0xfffffffffffffffe;
 int server::s_server_shutdown_event_fd = -1;
 int server::s_connect_socket = -1;
 std::mutex server::s_commit_lock;
