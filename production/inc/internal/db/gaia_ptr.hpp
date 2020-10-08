@@ -143,7 +143,7 @@ public:
      * @param child_id gaia id of the child references
      * @return pointer to the updated node
     */
-    gaia_ptr& update_child_reference(size_t next_child_slot, gaia_id_t next_child_id);
+    gaia_ptr& update_child_reference(size_t child_slot, gaia_id_t child_id);
 
     static gaia_ptr find_first(gaia_type_t type) {
         gaia_ptr ptr;
