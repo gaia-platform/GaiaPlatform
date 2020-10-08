@@ -27,42 +27,43 @@ namespace direct_access {
 // A gaia_iterator_t contains the methods that satisfy an iterator interface.
 // Only used from gaia_container_t template, which defines the begin() and end().
 //
-// @tparam T_gaia_ptr a pointer to the Extended Data Class type
-template <typename T_gaia>
+// @tparam T_class the Extended Data Class type
+template <typename T_class>
 class gaia_iterator_t {
-    gaia_id_t m_id;
-    T_gaia m_obj;
+    T_class m_obj;
 
-  public:
-    using iterator_category = std::forward_iterator_tag;
-    using value_type = gaia_id_t;
+public:
     using difference_type = std::ptrdiff_t;
-    using pointer = gaia_id_t*;
-    using reference = gaia_id_t&;
+    using value_type = T_class;
+    using pointer = T_class*;
+    using reference = T_class&;
+    using iterator_category = std::forward_iterator_tag;
 
-    gaia_iterator_t(gaia_id_t id) : m_id(id) {}
+    gaia_iterator_t(gaia_id_t id);
+    gaia_iterator_t() = default;
 
-    gaia_iterator_t<T_gaia>& operator++();
+    gaia_iterator_t<T_class>& operator++();
 
-    gaia_iterator_t<T_gaia> operator++(int);
+    gaia_iterator_t<T_class> operator++(int);
 
     bool operator==(const gaia_iterator_t& rhs) const;
 
     bool operator!=(const gaia_iterator_t& rhs) const;
 
-    T_gaia operator*();
+    reference operator*();
 
-    T_gaia* operator->();
+    pointer operator->();
 };
 
 // A gaia_container_t is defined within each EDC and used by programmers to scan
 // through all instances of the type in the database.
 //
-// @tparam T_gaia the Extended Data Class type
-template <gaia_type_t T_gaia_type, typename T_gaia>
+// @tparam T_container the type identifier of Extended Data Class
+// @tparam T_class the class of the Extended Data Class
+template <gaia_type_t T_container, typename T_class>
 struct gaia_container_t {
-    static gaia_iterator_t<T_gaia> begin();
-    static gaia_iterator_t<T_gaia> end();
+    static gaia_iterator_t<T_class> begin();
+    static gaia_iterator_t<T_class> end();
 };
 
 // A gaia_set_iterator_t is only used from reference_chain_container_t. It
@@ -74,21 +75,21 @@ struct gaia_container_t {
 // @tparam T_child_slot an integer indexing the list of references in the T_child type
 template <typename T_child, size_t T_child_slot>
 class gaia_set_iterator_t {
-    gaia_id_t m_id;
     T_child m_child_obj;
 
-  public:
-    using iterator_category = std::forward_iterator_tag;
-    using value_type = gaia_id_t;
+public:
     using difference_type = std::ptrdiff_t;
-    using pointer = gaia_id_t*;
-    using reference = gaia_id_t&;
+    using value_type = T_child;
+    using pointer = T_child*;
+    using reference = T_child&;
+    using iterator_category = std::forward_iterator_tag;
 
-    gaia_set_iterator_t(gaia_id_t id) : m_id(id) {}
+    gaia_set_iterator_t(gaia_id_t id);
+    gaia_set_iterator_t() = default;
 
-    T_child operator*();
+    reference operator*();
 
-    T_child* operator->();
+    pointer operator->();
 
     gaia_set_iterator_t<T_child, T_child_slot>& operator++();
 
