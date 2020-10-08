@@ -40,13 +40,13 @@ gaia_iterator_t<T_class> gaia_iterator_t<T_class>::operator++(int)
 template <typename T_class>
 bool gaia_iterator_t<T_class>::operator==(const gaia_iterator_t& rhs) const
 {
-    return m_obj.gaia_id() == rhs.m_obj.gaia_id();
+    return m_obj == rhs.m_obj;
 }
 
 template <typename T_class>
 bool gaia_iterator_t<T_class>::operator!=(const gaia_iterator_t& rhs) const
 {
-    return m_obj.gaia_id() != rhs.m_obj.gaia_id();
+    return !(m_obj == rhs.m_obj);
 }
 
 template <typename T_class>
@@ -127,13 +127,13 @@ gaia_set_iterator_t<T_child, T_child_slot> gaia_set_iterator_t<T_child, T_child_
 template <typename T_child, size_t T_child_slot>
 bool gaia_set_iterator_t<T_child, T_child_slot>::operator==(const gaia_set_iterator_t& rhs) const
 {
-    return m_child_obj.gaia_id() == rhs.m_child_obj.gaia_id();
+    return m_child_obj == rhs.m_child_obj;
 }
 
 template <typename T_child, size_t T_child_slot>
 bool gaia_set_iterator_t<T_child, T_child_slot>::operator!=(const gaia_set_iterator_t& rhs) const
 {
-    return m_child_obj.gaia_id() != rhs.m_child_obj.gaia_id();
+    return !(m_child_obj == rhs.m_child_obj);
 }
 
 //

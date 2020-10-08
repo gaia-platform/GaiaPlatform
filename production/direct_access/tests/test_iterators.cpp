@@ -132,7 +132,7 @@ TYPED_TEST(iterator_conformance_t, pre_incrementable) {
             "expected effects.";
 
     it = this->get_begin(it);
-    for(size_t i = 0; i < c_loops; i++)
+    for (size_t i = 0; i < c_loops; i++)
     {
         // 
         EXPECT_TRUE(set.find((*it).street()) == set.end())
@@ -249,7 +249,7 @@ TYPED_TEST(iterator_conformance_t, dereferenceable_equality) {
 
     TypeParam iter_a = this->get_begin(iter_a);
     TypeParam iter_b = this->get_begin(iter_b);
-    ASSERT_TRUE(iter_a == iter_b);
+    EXPECT_TRUE(iter_a == iter_b);
     EXPECT_TRUE(*iter_a == *iter_b);
 }
 
@@ -261,7 +261,7 @@ TYPED_TEST(iterator_conformance_t, deref_arrow) {
 
     TypeParam it = this->get_begin(it);
 
-    EXPECT_EQ(string((*it).street()), to_string(0))
+    EXPECT_EQ(string(it->street()), to_string(0))
         << "The class member derefence operator->() does not work.";
 }
 
@@ -290,7 +290,7 @@ TYPED_TEST(iterator_conformance_t, pre_inc_and_post_inc) {
         << "(void)++iter and (void)iter++ have different effects.";
 }
 
-// Does derefencing and postincrementing *iter++ have the expected effects?
+// Does dereferencing and postincrementing *iter++ have the expected effects?
 TYPED_TEST(iterator_conformance_t, deref_and_postinc) {
     auto_transaction_t tx;
     this->insert_records(3);
@@ -336,7 +336,7 @@ TYPED_TEST(iterator_conformance_t, equality_and_inequality_in_sequence) {
 
     for (; iter_b != iter_end; ++iter_b)
     {
-        ASSERT_TRUE(iter_a == iter_b)
+        EXPECT_TRUE(iter_a == iter_b)
             << "Equality comparisons are not defined across all"
             " iterators in the same sequence.";
         ++iter_a;
@@ -349,13 +349,13 @@ TYPED_TEST(iterator_conformance_t, equality_and_inequality_in_sequence) {
     {
         if (iter == iter_begin)
         {
-            ASSERT_TRUE(iter != iter_end)
+            EXPECT_TRUE(iter != iter_end)
                 << "Inequality comparisons are not defined across all"
                 " iterators in the same sequence.";
         }
         else
         {
-            ASSERT_TRUE(iter != iter_end)
+            EXPECT_TRUE(iter != iter_end)
                 << "Inequality comparisons are not defined across all"
                 " iterators in the same sequence.";
         }
@@ -396,7 +396,7 @@ TYPED_TEST(iterator_conformance_t, multipass_guarantee) {
     iter = this->get_begin(iter);
     for (j = 0; j < c_count; j++)
     {
-        sequence.push_back(*iter);
+        sequence.push_back(*iter++);
     }
 
     // Now ensure the sequence is the same over two iterations
@@ -405,9 +405,8 @@ TYPED_TEST(iterator_conformance_t, multipass_guarantee) {
         iter = this->get_begin(iter);
         for (j = 0; j < c_count; j++)
         {
-            ASSERT_TRUE(*iter == sequence.at(j))
+            EXPECT_TRUE(*iter++ == sequence.at(j))
                 << "The iterator does not support a multipass guarantee.";
-            ++iter;
         }
     }
 }
