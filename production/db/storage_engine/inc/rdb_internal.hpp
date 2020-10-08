@@ -70,19 +70,19 @@ class rdb_internal_t
 
     std::string begin_txn(rocksdb::WriteOptions& options, const rocksdb::TransactionOptions& txn_opts, gaia_txn_id_t txn_id) {
         // RocksDB supplies its own transaction id but expects a unique transaction name.
-        // We map gaia_transaction_id to a RocksDB transaction name. Transaction id isn't
+        // We map gaia_txn_id to a RocksDB transaction name. Transaction id isn't
         // persisted across server reboots currently so this is a temporary fix till we have
         // a solution in place. Regardless, RocksDB transactions will go away in Persistence V2.
         auto now = std::chrono::system_clock::now();
         auto duration = now.time_since_epoch();
         auto nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(duration);
-        std::stringstream rdb_transaction_name;
-        rdb_transaction_name << txn_id << "." << nanoseconds.count();
+        std::stringstream rdb_txn_name;
+        rdb_txn_name << txn_id << "." << nanoseconds.count();
 
         rocksdb::Transaction* txn = m_txn_db->BeginTransaction(options, txn_opts);
-        rocksdb::Status s = txn->SetName(rdb_transaction_name.str());
+        rocksdb::Status s = txn->SetName(rdb_txn_name.str());
         handle_rdb_error(s);
-        return rdb_transaction_name.str();
+        return rdb_txn_name.str();
     }
 
     void prepare_wal_for_write(rocksdb::Transaction* txn) {
@@ -91,13 +91,13 @@ class rdb_internal_t
     }
 
     void rollback(std::string& txn_name) {
-        auto txn = get_transaction_by_name(txn_name);
+        auto txn = get_txn_by_name(txn_name);
         auto s = txn->Rollback();
         handle_rdb_error(s);
     }
 
     void commit(std::string& txn_name) {
-        auto txn = get_transaction_by_name(txn_name);
+        auto txn = get_txn_by_name(txn_name);
         auto s = txn->Commit();
         handle_rdb_error(s);
     }
@@ -123,7 +123,7 @@ class rdb_internal_t
         return bool(m_txn_db);
     }
 
-    rocksdb::Transaction* get_transaction_by_name(std::string& txn_name) {
+    rocksdb::Transaction* get_txn_by_name(std::string& txn_name) {
         assert(m_txn_db);
         return m_txn_db->GetTransactionByName(txn_name);
     }

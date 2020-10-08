@@ -24,7 +24,7 @@ struct index_record_t
 {
     std::vector<gaia::db::payload_types::data_holder_t> key_values;
     gaia_locator_t locator;
-    gaia_txn_id_t transaction_id;
+    gaia_txn_id_t txn_id;
     uint8_t deleted;
 
     index_record_t() = default;

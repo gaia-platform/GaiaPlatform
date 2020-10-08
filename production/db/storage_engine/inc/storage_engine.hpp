@@ -75,7 +75,7 @@ protected:
         // This is because the instructions targeted by the intrinsics
         // operate at the level of physical memory, not virtual addresses.
         gaia_id_t next_id;
-        gaia_txn_id_t next_transaction_id;
+        gaia_txn_id_t next_txn_id;
         size_t locator_count;
         size_t hash_node_count;
         hash_node hash_nodes[HASH_BUCKETS + HASH_LIST_ELEMENTS];
@@ -100,7 +100,7 @@ protected:
 
     thread_local static log* s_log;
     thread_local static int s_session_socket;
-    thread_local static gaia_txn_id_t s_transaction_id;
+    thread_local static gaia_txn_id_t s_txn_id;
 
 public:
     // REVIEW: this counter needs to be initialized from persistent storage.
@@ -109,8 +109,8 @@ public:
         return id;
     }
 
-    static gaia_txn_id_t allocate_transaction_id(data* s_data) {
-        gaia_txn_id_t txn_id = __sync_add_and_fetch(&s_data->next_transaction_id, 1);
+    static gaia_txn_id_t allocate_txn_id(data* s_data) {
+        gaia_txn_id_t txn_id = __sync_add_and_fetch(&s_data->next_txn_id, 1);
         return txn_id;
     }
 

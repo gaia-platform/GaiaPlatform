@@ -251,7 +251,7 @@ void client::begin_transaction() {
     // Extract the transaction id and cache it; it needs to be reset for the next transaction.
     const message_t* msg = Getmessage_t(msg_buf);
     const server_reply_t* reply = msg->msg_as_reply();
-    s_transaction_id = reply->transaction_id();
+    s_txn_id = reply->txn_id();
 
     // Save the log fd to send to the server on commit.
     s_fd_log = fd_log;
@@ -317,10 +317,10 @@ void client::commit_transaction() {
     if (s_txn_commit_trigger
         && event == session_event_t::DECIDE_TXN_COMMIT
         && s_events.size() > 0) {
-        s_txn_commit_trigger(s_transaction_id, s_events);
+        s_txn_commit_trigger(s_txn_id, s_events);
     }
     // Reset transaction id.
-    s_transaction_id = 0;
+    s_txn_id = 0;
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();

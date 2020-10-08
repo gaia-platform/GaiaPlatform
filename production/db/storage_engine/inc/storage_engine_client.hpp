@@ -76,7 +76,7 @@ private:
 
     // Inherited from se_base:
     // thread_local static log *s_log;
-    // thread_local static gaia_txn_id_t s_transaction_id;
+    // thread_local static gaia_txn_id_t s_txn_id;
 
     static void txn_cleanup();
 

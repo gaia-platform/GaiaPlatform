@@ -28,14 +28,14 @@ duplicate_rule::duplicate_rule(const rule_binding_t& binding, bool duplicate_key
     if (duplicate_key_found)
     {
         message << binding.ruleset_name << "::"
-            << binding.rule_name 
+            << binding.rule_name
             << " already subscribed with the same key "
             "but different rule function.";
     }
     else
     {
         message << binding.ruleset_name << "::"
-            << binding.rule_name 
+            << binding.rule_name
             << " already subscribed to the same rule list.";
     }
     m_message = message.str();
@@ -70,7 +70,7 @@ invalid_subscription::invalid_subscription(gaia_type_t gaia_type)
 }
 
 // Field not found.
-invalid_subscription::invalid_subscription(gaia_type_t gaia_type, const char* table, 
+invalid_subscription::invalid_subscription(gaia_type_t gaia_type, const char* table,
     uint16_t position)
 {
     std::stringstream message;
@@ -81,14 +81,14 @@ invalid_subscription::invalid_subscription(gaia_type_t gaia_type, const char* ta
 }
 
 // Field not active or deprecated.
-invalid_subscription::invalid_subscription(gaia_type_t gaia_type, const char* table, 
+invalid_subscription::invalid_subscription(gaia_type_t gaia_type, const char* table,
     uint16_t position, const char* field, bool is_deprecated)
 {
     std::stringstream message;
     const char * reason = is_deprecated ? "deprecated" : "not marked as active";
-    message << "Field '" << field 
+    message << "Field '" << field
         << "' (position:" << position << ")"
-        << " in table '" << table 
+        << " in table '" << table
         << "' (type:" << gaia_type << ")"
         << " is " << reason << ".";
     m_message = message.str();
@@ -102,11 +102,11 @@ ruleset_not_found::ruleset_not_found(const char* ruleset_name)
 }
 
 //
-// Rule Checker implementation. 
-// 
+// Rule Checker implementation.
+//
 void rule_checker_t::check_catalog(gaia_type_t type, const field_position_list_t& field_list)
 {
-    auto_transaction_t transaction;
+    auto_transaction_t txn;
     check_table_type(type);
     check_fields(type, field_list);
 }
@@ -115,9 +115,9 @@ void rule_checker_t::check_catalog(gaia_type_t type, const field_position_list_t
 void rule_checker_t::check_table_type(gaia_type_t type)
 {
     bool found_type = false;
-    // CONSIDER: when reference code gets generated 
+    // CONSIDER: when reference code gets generated
     // then use the list method.
-    for (gaia_table_t table = gaia_table_t::get_first() ; 
+    for (gaia_table_t table = gaia_table_t::get_first() ;
         table;
         table = table.get_next())
     {

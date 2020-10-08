@@ -107,7 +107,7 @@ protected:
     // global counter is ok since there's no concurrency within a postgres backend.
     //
     // Use signed int so we can assert it is non-negative.
-    static int s_transaction_reference_count;
+    static int s_txn_reference_count;
 };
 
 class state_t

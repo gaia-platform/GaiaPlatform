@@ -84,10 +84,10 @@ void persistent_store_manager::append_wal_commit_marker(std::string& txn_name) {
     rdb_internal->commit(txn_name);
 }
 
-std::string persistent_store_manager::begin_txn(gaia_txn_id_t transaction_id) {
+std::string persistent_store_manager::begin_txn(gaia_txn_id_t txn_id) {
     rocksdb::WriteOptions write_options{};
     rocksdb::TransactionOptions txn_options{};
-    return rdb_internal->begin_txn(write_options, txn_options, transaction_id);
+    return rdb_internal->begin_txn(write_options, txn_options, txn_id);
 }
 
 void persistent_store_manager::append_wal_rollback_marker(std::string& txn_name) {
@@ -100,7 +100,7 @@ void persistent_store_manager::prepare_wal_for_write(std::string& txn_name) {
     // The key_count variable represents the number of puts + deletes.
     size_t key_count = 0;
     // Obtain RocksDB transaction object.
-    auto txn = rdb_internal->get_transaction_by_name(txn_name);
+    auto txn = rdb_internal->get_txn_by_name(txn_name);
     for (size_t i = 0; i < log->count; i++) {
         auto lr = log->log_records + i;
         if (lr->operation == gaia_operation_t::remove) {
@@ -132,11 +132,11 @@ void persistent_store_manager::prepare_wal_for_write(std::string& txn_name) {
 /**
  * This API will read the entire LSM in sorted order and construct
  * gaia_objects using the create API.
- * Additionally, this method will recover the max gaia_id/transaction_id's seen by previous
+ * Additionally, this method will recover the max gaia_id/txn_id's seen by previous
  * incarnations of the database.
  *
  * Todo (Mihir) The current implementation has an issue where deleted gaia_ids may get recycled post
- * recovery. Both the last seen gaia_id & transaction_id need to be
+ * recovery. Both the last seen gaia_id & txn_id need to be
  * persisted to the RocksDB manifest. https://github.com/facebook/rocksdb/wiki/MANIFEST
  *
  * Note that, for now we skip validating the existence of object references on recovery,

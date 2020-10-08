@@ -82,7 +82,7 @@ void rule_update_address(const rule_context_t* context)
     // to the test thread when we decrement our count and the test would fail.
     // This also tests that the rules scheduler does the right thing when the
     // rule author commits the transaction in a rule.
-    context->transaction.commit();
+    context->txn.commit();
     g_wait_for_count--;
 }
 

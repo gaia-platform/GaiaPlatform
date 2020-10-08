@@ -72,8 +72,8 @@ void event_manager_t::init(event_manager_settings_t& settings)
     rule_stats_manager_t::s_enabled = settings.enable_stats;
     m_timer.set_enabled(settings.enable_stats);
 
-    auto fn = [](gaia_txn_id_t transaction_id, const trigger_event_list_t& event_list) {
-        event_manager_t::get().commit_trigger(transaction_id, event_list);
+    auto fn = [](gaia_txn_id_t txn_id, const trigger_event_list_t& event_list) {
+        event_manager_t::get().commit_trigger(txn_id, event_list);
     };
     set_commit_trigger(fn);
 

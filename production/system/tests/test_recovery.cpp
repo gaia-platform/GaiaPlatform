@@ -166,7 +166,7 @@ void load_data(uint64_t total_size_bytes, bool kill_server_during_load, db_serve
     cout << "Loading data: Total number of transactions " << number_of_transactions << endl;
 
     // Load data in multiple transactions.
-    for (uint64_t transaction_id = 1; transaction_id <= number_of_transactions; transaction_id++) {
+    for (uint64_t txn_id = 1; txn_id <= number_of_transactions; txn_id++) {
         // Load a batch per transaction.
         std::map<gaia_id_t, employee_copy_t> temp_employee_map;
         begin_transaction();
@@ -182,7 +182,7 @@ void load_data(uint64_t total_size_bytes, bool kill_server_during_load, db_serve
         ASSERT_EQ(temp_employee_map.size(), 0);
 
         // Crash during load.
-        if (kill_server_during_load && transaction_id % 5 == 0) {
+        if (kill_server_during_load && txn_id % 5 == 0) {
             cout << "Crash during load" << endl;
             end_session();
             restart_server(server, path);
@@ -190,8 +190,8 @@ void load_data(uint64_t total_size_bytes, bool kill_server_during_load, db_serve
             validate_data();
         }
 
-        if (transaction_id % 25 == 0) {
-            cout << "Loading data: Executed " << transaction_id << " transactions ..." << endl;
+        if (txn_id % 25 == 0) {
+            cout << "Loading data: Executed " << txn_id << " transactions ..." << endl;
         }
     }
 
