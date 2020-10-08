@@ -15,6 +15,7 @@
 #include <unordered_set>
 
 #include <flatbuffers/flatbuffers.h>
+
 #include "retail_assert.hpp"
 #include "system_error.hpp"
 #include "mmap_helpers.hpp"
@@ -23,6 +24,7 @@
 #include "storage_engine.hpp"
 #include "triggers.hpp"
 #include "db_types.hpp"
+#include "gaia_db_internal.hpp"
 
 using namespace std;
 using namespace gaia::common;
