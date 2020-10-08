@@ -38,7 +38,6 @@ class gaia_hash_map;
 class client : private se_base {
     friend class gaia_ptr;
     friend class gaia_hash_map;
-    friend class event_trigger_threadpool_t;
 
 public:
     static inline bool is_transaction_active() {
