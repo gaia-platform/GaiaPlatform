@@ -17,22 +17,22 @@ namespace gaia {
 namespace common {
 namespace iterators {
 
-template <typename Output>
+template <typename T_output>
 class generator_iterator_t {
     using difference_type = void;
-    using value_type = Output;
-    using pointer = Output*;
-    using reference = Output;
+    using value_type = T_output;
+    using pointer = T_output*;
+    using reference = T_output;
     using iterator_category = std::input_iterator_tag;
 
 private:
-    std::optional<Output> m_state;
-    std::function<std::optional<Output>()> m_generator;
-    std::function<bool(Output)> m_predicate;
+    std::optional<T_output> m_state;
+    std::function<std::optional<T_output>()> m_generator;
+    std::function<bool(T_output)> m_predicate;
 
 public:
     // Returns current state.
-    Output operator*() const {
+    T_output operator*() const {
         return *m_state;
     }
 
@@ -70,8 +70,8 @@ public:
 
     // We implicitly construct from a std::function with the right signature.
     generator_iterator_t(
-        std::function<std::optional<Output>()> g,
-        std::function<bool(Output)> p = [](Output) { return true; }) : m_generator(std::move(g)), m_predicate(std::move(p)) {
+        std::function<std::optional<T_output>()> g,
+        std::function<bool(T_output)> p = [](T_output) { return true; }) : m_generator(std::move(g)), m_predicate(std::move(p)) {
         // We need to initialize the iterator to the first valid state.
         while ((m_state = m_generator())) {
             if (m_predicate(*m_state)) {
@@ -88,27 +88,27 @@ public:
     generator_iterator_t() = default;
 };
 
-template <typename It>
+template <typename T_iter>
 struct range_t {
-    It b, e;
-    It begin() const { return b; }
-    It end() const { return e; }
+    T_iter b, e;
+    T_iter begin() const { return b; }
+    T_iter end() const { return e; }
 };
 
-template <typename It>
-range_t<It> range(It b, It e) {
+template <typename T_iter>
+range_t<T_iter> range(T_iter b, T_iter e) {
     return {std::move(b), std::move(e)};
 }
 
-template <typename It>
-range_t<It> range(It b) {
-    return range(std::move(b), It{});
+template <typename T_iter>
+range_t<T_iter> range(T_iter b) {
+    return range(std::move(b), T_iter{});
 }
 
-template <typename F>
-auto range_from_generator(F f) {
-    using V = std::decay_t<decltype(*f())>;
-    return range(generator_iterator_t<V>(std::move(f)));
+template <typename T_fn>
+auto range_from_generator(T_fn fn) {
+    using T_val = std::decay_t<decltype(*fn())>;
+    return range(generator_iterator_t<T_val>(std::move(fn)));
 }
 
 // Usage:
