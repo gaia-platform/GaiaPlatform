@@ -133,7 +133,7 @@ TEST_F(gaia_multi_process_test, multi_process_inserts) {
 
     pid_t child_pid = fork();
 
-    if (child_pid) {
+    if (child_pid > 0) {
         // PARENT PROCESS.
         begin_session();
 
@@ -209,9 +209,8 @@ TEST_F(gaia_multi_process_test, multi_process_inserts) {
 
         // Clean up the semaphores.
         semaphore_cleanup();
-
     }
-    else {
+    else if (child_pid == 0) {
         // CHILD PROCESS.
 
         // Open pre-existing semaphores.
@@ -262,7 +261,11 @@ TEST_F(gaia_multi_process_test, multi_process_inserts) {
         end_session();
         exit(0);
     }
-
+    else {
+        // Failure in fork().
+        gaia_log::db().error("Failure spawning child with fork(): {}", strerror(errno));
+        EXPECT_GE(child_pid, 0);
+    }
 }
 
 // Test parallel multi-process transactions and aborts.
@@ -271,7 +274,7 @@ TEST_F(gaia_multi_process_test, multi_process_aborts) {
 
     pid_t child_pid = fork();
 
-    if (child_pid) {
+    if (child_pid > 0) {
         // PARENT PROCESS.
         begin_session();
 
@@ -342,7 +345,7 @@ TEST_F(gaia_multi_process_test, multi_process_aborts) {
         semaphore_cleanup();
 
     }
-    else {
+    else if (child_pid == 0) {
         // CHILD PROCESS.
 
         // Open pre-existing semaphores.
@@ -396,6 +399,11 @@ TEST_F(gaia_multi_process_test, multi_process_aborts) {
         end_session();
         exit(0);
     }
+    else {
+        // Failure in fork().
+        gaia_log::db().error("Failure spawning child with fork(): {}", strerror(errno));
+        EXPECT_GE(child_pid, 0);
+    }
 }
 
 // Create objects in one process, connect them in another, verify in first process.
@@ -404,7 +412,7 @@ TEST_F(gaia_multi_process_test, multi_process_conflict) {
 
     pid_t child_pid = fork();
 
-    if (child_pid) {
+    if (child_pid > 0) {
         // PARENT PROCESS.
         begin_session();
 
@@ -447,7 +455,7 @@ TEST_F(gaia_multi_process_test, multi_process_conflict) {
         sem_unlink(c_go_child);
         sem_unlink(c_go_parent);
     }
-    else {
+    else if (child_pid == 0) {
         // CHILD PROCESS.
 
         // Open pre-existing semaphores.
@@ -481,6 +489,11 @@ TEST_F(gaia_multi_process_test, multi_process_conflict) {
         end_session();
         exit(0);
     }
+    else {
+        // Failure in fork().
+        gaia_log::db().error("Failure spawning child with fork(): {}", strerror(errno));
+        EXPECT_GE(child_pid, 0);
+    }
 }
 
 // Create objects in one process, connect them in another, verify in first process.
@@ -489,7 +502,7 @@ TEST_F(gaia_multi_process_test, multi_process_commit) {
 
     pid_t child_pid = fork();
 
-    if (child_pid) {
+    if (child_pid > 0) {
         // PARENT PROCESS.
         begin_session();
 
@@ -531,7 +544,7 @@ TEST_F(gaia_multi_process_test, multi_process_commit) {
         sem_unlink(c_go_child);
         sem_unlink(c_go_parent);
     }
-    else {
+    else if (child_pid == 0) {
         // CHILD PROCESS.
 
         // Open pre-existing semaphores.
@@ -564,5 +577,10 @@ TEST_F(gaia_multi_process_test, multi_process_commit) {
         // The parent process is waiting for this one to terminate.
         end_session();
         exit(0);
+    }
+    else {
+        // Failure in fork().
+        gaia_log::db().error("Failure spawning child with fork(): {}", strerror(errno));
+        EXPECT_GE(child_pid, 0);
     }
 }
