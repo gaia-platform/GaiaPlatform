@@ -8,7 +8,8 @@
 #include <string>
 
 // All Postgres headers and function declarations must have C linkage.
-extern "C" {
+extern "C"
+{
 
 #include "postgres.h"
 
