@@ -106,7 +106,7 @@ ruleset_not_found::ruleset_not_found(const char* ruleset_name)
 //
 void rule_checker_t::check_catalog(gaia_type_t type, gaia_id_t id, const field_position_list_t& field_list)
 {
-    auto_transaction_t transaction;
+    auto_transaction_t txn;
     check_table_type(type);
     check_fields(id, field_list);
 }

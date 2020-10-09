@@ -6,6 +6,7 @@
 #include "retail_assert.hpp"
 #include "event_manager.hpp"
 #include "rule_stats_manager.hpp"
+#include "db_types.hpp"
 #include "gaia_db_internal.hpp"
 #include "events.hpp"
 #include "triggers.hpp"
@@ -18,6 +19,7 @@
 
 using namespace gaia::rules;
 using namespace gaia::common;
+using namespace gaia::db;
 using namespace gaia::db::triggers;
 using namespace std;
 using namespace std::chrono;
@@ -31,12 +33,12 @@ event_manager_t& event_manager_t::get(bool is_initializing)
 
     // Initialize errors can happen for two reasons:
     //
-    // If we are currently trying to initialize then is_initializing
+    // If we are currently trying to initialize, then is_initializing
     // will be true. At this point, we don't expect the instance to be
     // initialized yet.
     //
-    // If we are not intializing then we expect the instance to already be
-    // initialized
+    // If we are not initializing, then we expect the instance to already be
+    // initialized.
     if (is_initializing == s_instance.m_is_initialized)
     {
         throw initialization_error(is_initializing);
@@ -52,7 +54,7 @@ void event_manager_t::init()
 {
     // TODO[GAIAPLAT-111]: Check a configuration setting supplied by the
     // application developer for the number of threads to create.
-    
+
     // Apply default settings.  See explanation in event_manager_settings.hpp.
     event_manager_settings_t settings;
     init(settings);
@@ -71,14 +73,13 @@ void event_manager_t::init(event_manager_settings_t& settings)
     rule_stats_manager_t::s_enabled = settings.enable_stats;
     m_timer.set_enabled(settings.enable_stats);
 
-    auto fn = [](uint64_t transaction_id, const trigger_event_list_t& event_list) {
-        event_manager_t::get().commit_trigger(transaction_id, event_list);
+    auto fn = [](gaia_txn_id_t txn_id, const trigger_event_list_t& event_list) {
+        event_manager_t::get().commit_trigger(txn_id, event_list);
     };
-    gaia::db::s_tx_commit_trigger = fn;
+    set_commit_trigger(fn);
 
     m_is_initialized = true;
 }
-
 
 bool event_manager_t::process_last_operation_events(event_binding_t& binding, const trigger_event_t& event,
     steady_clock::time_point& start_time)
@@ -129,7 +130,7 @@ bool event_manager_t::process_field_events(event_binding_t& binding,
     return rules_invoked;
 }
 
-void event_manager_t::commit_trigger(uint64_t, const trigger_event_list_t& trigger_event_list)
+void event_manager_t::commit_trigger(gaia_txn_id_t, const trigger_event_list_t& trigger_event_list)
 {
     m_timer.log_function_duration([&]() {
 
@@ -189,11 +190,11 @@ void event_manager_t::commit_trigger(uint64_t, const trigger_event_list_t& trigg
 }
 
 void event_manager_t::enqueue_invocation(const trigger_event_list_t& events,
-    const vector<bool>& rules_invoked_list, 
+    const vector<bool>& rules_invoked_list,
     steady_clock::time_point& start_time)
 {
     rule_thread_pool_t::log_events_invocation_t event_invocation {
-        events, 
+        events,
         rules_invoked_list
     };
     rule_thread_pool_t::invocation_t invocation {
@@ -203,7 +204,7 @@ void event_manager_t::enqueue_invocation(const trigger_event_list_t& events,
             start_time, rule_stats_manager_t::c_log_event_tag)
     };
     m_invocations->enqueue(invocation);
-} 
+}
 
 void event_manager_t::enqueue_invocation(const trigger_event_t& event, gaia_rule_fn rule_fn,
     steady_clock::time_point& start_time)
@@ -222,7 +223,7 @@ void event_manager_t::enqueue_invocation(const trigger_event_t& event, gaia_rule
             start_time, rule_stats_manager_t::c_rule_tag)
     };
     m_invocations->enqueue(invocation);
-} 
+}
 
 void event_manager_t::check_subscription(
     event_type_t event_type,
@@ -549,13 +550,13 @@ event_manager_t::_rule_binding_t::_rule_binding_t(
 }
 
 event_manager_t::_rule_binding_t::_rule_binding_t(
-    const char* a_ruleset_name, 
-    const char* a_rule_name, 
+    const char* a_ruleset_name,
+    const char* a_rule_name,
     gaia_rule_fn a_rule)
 {
     ruleset_name = a_ruleset_name;
     rule = a_rule;
-    if (a_rule_name != nullptr) 
+    if (a_rule_name != nullptr)
     {
         rule_name = a_rule_name;
     }

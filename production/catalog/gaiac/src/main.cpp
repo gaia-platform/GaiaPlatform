@@ -53,7 +53,7 @@ void start_repl(parser_t& parser, const string& dbname) {
         }
         try {
             if (line.length() > 0 && line.at(0) == c_command_prefix) {
-                handle_slash_command(line);
+                handle_meta_command(line);
                 continue;
             }
             int parsing_result = parser.parse_line(line);
@@ -62,7 +62,7 @@ void start_repl(parser_t& parser, const string& dbname) {
             } else {
                 cerr << c_error_prompt << "Invalid input." << endl;
             }
-        } catch (gaia_exception& e) {
+        } catch (gaia::common::gaia_exception& e) {
             cerr << c_error_prompt << e.what() << endl;
         }
     }
@@ -97,7 +97,7 @@ void generate_edc_headers(const string& db_name, const string& output_path) {
     ofstream edc(output_path + "gaia" + (db_name.empty() ? "" : "_" + db_name) + ".h");
     try {
         edc << gaia::catalog::gaia_generate(db_name) << endl;
-    } catch (gaia_exception& e) {
+    } catch (gaia::common::gaia_exception& e) {
         cerr << "WARNING - gaia_generate failed: " << e.what() << endl;
     }
 

@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 #include <shared_mutex>
 #include <unordered_map>

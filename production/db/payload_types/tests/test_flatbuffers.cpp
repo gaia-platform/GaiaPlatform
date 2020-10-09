@@ -12,10 +12,10 @@
 
 using namespace std;
 
-const char* const c_fbs_filename = "test_record.fbs";
-const char* const c_json_filename = "test_record_data.json";
-const char* const c_programmatic_bin_filename = "programmatic_test_record_data.bin";
-const char* const c_build_bin_filename = "test_record_data.bin";
+constexpr char c_fbs_filename[] = "test_record.fbs";
+constexpr char c_json_filename[] = "test_record_data.json";
+constexpr char c_programmatic_bin_filename[] = "programmatic_test_record_data.bin";
+constexpr char c_build_bin_filename[] = "test_record_data.bin";
 
 TEST(flatbuffers, json_compilation)
 {

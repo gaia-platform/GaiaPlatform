@@ -7,6 +7,7 @@
 
 #include "gtest/gtest.h"
 
+#include <db_types.hpp>
 #include <locator_allocator.hpp>
 
 using namespace std;
@@ -15,7 +16,7 @@ using namespace gaia::db::storage;
 TEST(storage, locator_allocator)
 {
     // Allocate a few locators: they should be allocated incrementally from 1.
-    uint64_t locator = locator_allocator_t::get()->allocate_locator();
+    gaia::db::gaia_locator_t locator = locator_allocator_t::get()->allocate_locator();
     ASSERT_EQ(1, locator);
 
     locator = locator_allocator_t::get()->allocate_locator();

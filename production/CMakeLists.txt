@@ -12,6 +12,8 @@ enable_testing()
 # Set the project name.
 project(production)
 
+option(EXECUTE_FDW_TESTS "Execute FDW tests" OFF)
+
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 
 include(gaia)
@@ -184,6 +186,23 @@ add_subdirectory(${ROCKSDB} rocksdb)
 add_subdirectory(${FLATBUFFERS} flatbuffers)
 set_property (TARGET flatbuffers PROPERTY POSITION_INDEPENDENT_CODE ON)
 
+include(ExternalProject)
+set(DEPENDENCIES_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/deps)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  # Add backward for debug build.
+  add_subdirectory("${GAIA_REPO}/third_party/production/backward" backward)
+endif()
+# Add cpptoml.
+add_subdirectory("${GAIA_REPO}/third_party/production/cpptoml" cpptoml)
+# Add fmt.
+add_subdirectory("${GAIA_REPO}/third_party/production/fmt" fmt)
+# Add spdlog.
+add_subdirectory("${GAIA_REPO}/third_party/production/spdlog" spdlog)
+# Add spdlog_setup.
+add_subdirectory("${GAIA_REPO}/third_party/production/spdlog_setup" spdlog_setup)
+# Add tabulate.
+add_subdirectory("${GAIA_REPO}/third_party/production/tabulate" tabulate)
+
 # Add individual component folders.
 add_subdirectory(common)
 add_subdirectory(db)
@@ -203,5 +222,5 @@ file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
   CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_se_server>\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_se_server\")\n"
 )
 
-
+# Copy logging configuration.
 configure_file(log_conf.toml "${PROJECT_BINARY_DIR}/common/log_conf.toml")

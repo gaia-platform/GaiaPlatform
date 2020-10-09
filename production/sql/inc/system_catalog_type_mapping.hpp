@@ -101,4 +101,9 @@ inline void event_log_add_rules_invoked(flatbuffers_builder_t *builder,
 
 extern const relation_attribute_mapping_t c_event_log_mapping;
 
-extern const char *c_event_log_ddl_stmt_fmt;
+constexpr char c_event_log_ddl_stmt_fmt[] =
+    "create foreign table event_log( "
+    "event_type int, type_id bigint, record_id bigint, "
+    "column_id smallint, timestamp bigint, "
+    "rules_invoked boolean) "
+    "server %s;";

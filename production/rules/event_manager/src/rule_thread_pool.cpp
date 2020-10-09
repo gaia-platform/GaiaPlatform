@@ -178,9 +178,9 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
 
     try
     {
-        auto_transaction_t transaction(auto_transaction_t::no_auto_begin);
+        auto_transaction_t txn(auto_transaction_t::no_auto_begin);
         rule_context_t context(
-            transaction,
+            txn,
             rule_invocation.gaia_type,
             rule_invocation.event_type,
             rule_invocation.record,
@@ -196,7 +196,7 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
         s_tls_can_enqueue = true;
         if (gaia::db::is_transaction_active())
         {
-            transaction.commit();
+            txn.commit();
         }
     }
     catch(const std::exception& e)

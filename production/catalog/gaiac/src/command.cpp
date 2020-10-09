@@ -24,7 +24,10 @@ constexpr char c_match_all_pattern[] = ".*";
 
 // Character literals for meta command parsing.
 constexpr char c_describe_command = 'd';
+#ifdef DEBUG
+// Hide FlatBuffers related commands in release build.
 constexpr char c_generate_command = 'g';
+#endif
 constexpr char c_list_command = 'l';
 constexpr char c_help_command = 'h';
 constexpr char c_command_separator = ' ';
@@ -99,7 +102,7 @@ void list_fields(const regex& re) {
             return regex_match(f.name(), re);
         },
         [](gaia_field_t& f) -> row_t {
-            return {f.gaia_table().name(), f.name(), to_string(f.type()),
+            return {f.gaia_table().name(), f.name(), ddl::get_data_type_name(static_cast<data_type_t>(f.type())),
                 to_string(f.repeated_count()), to_string(f.position()), to_string(f.gaia_id())};
         });
 }
@@ -153,7 +156,8 @@ void describe_table(const string& name) {
             if (name == table_name || name == (db_name + "." + table_name)) {
                 for (auto field : table.gaia_field_list()) {
                     if (field.type() != static_cast<uint8_t>(data_type_t::e_references)) {
-                        output_fields.add_row({field.name(), to_string(field.type()),
+                        output_fields.add_row({field.name(),
+                            ddl::get_data_type_name(static_cast<data_type_t>(field.type())),
                             to_string(field.repeated_count()), to_string(field.position())});
                     } else {
                         output_references.add_row({field.name(),
@@ -180,6 +184,8 @@ void describe_table(const string& name) {
     cout << flush;
 }
 
+#ifdef DEBUG
+// Hide FlatBuffers related commands in release build.
 void generate_table_fbs(const string& name) {
     gaia_id_t table_id = INVALID_GAIA_ID;
     {
@@ -199,6 +205,7 @@ void generate_table_fbs(const string& name) {
     cout << generate_fbs(table_id) << endl;
     cout << flush;
 }
+#endif
 
 regex parse_pattern(const string& cmd, size_t pos) {
     if (cmd.length() <= pos) {
@@ -288,6 +295,7 @@ void handle_list_command(const string& cmd) {
 }
 
 #ifdef DEBUG
+// Hide FlatBuffers related commands in release build.
 void handle_generate_command(const string& cmd) {
     retail_assert(cmd.length() > c_cmd_minimum_length);
     retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix);
@@ -341,6 +349,7 @@ string command_usage() {
     output_table.add_row({string() + c_command_prefix + c_list_command + optionalize(c_table_subcommand),
         optionalize(pattern), "List tables optionally filtering by the " + pattern + "."});
 #ifdef DEBUG
+    // Hide FlatBuffers related commands in release build.
     output_table.add_row({string() + c_command_prefix + c_generate_command + optionalize(c_db_subcommand),
         name, "Generate fbs for a given database."});
     output_table.add_row({string() + c_command_prefix + c_generate_command + c_table_subcommand,
@@ -356,7 +365,7 @@ string command_usage() {
 
 } // namespace
 
-void handle_slash_command(const string& cmd) {
+void handle_meta_command(const string& cmd) {
     retail_assert(!cmd.empty(), "Meta command should not be empty.");
     retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix,
         "Meta command should start with a '" + string(1, c_command_prefix) + "'.");
@@ -372,6 +381,7 @@ void handle_slash_command(const string& cmd) {
         handle_describe_command(cmd);
         break;
 #ifdef DEBUG
+    // Hide FlatBuffers related commands in release build.
     case c_generate_command:
         handle_generate_command(cmd);
         break;

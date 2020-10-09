@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
         auto code_lines = gaia_generate(argv[1]);
         cout << code_lines << endl;
     }
-    catch (gaia_exception& e) {
+    catch (gaia::common::gaia_exception& e) {
         cerr << "gaia_generate failed: " << e.what() << endl;
     }
 

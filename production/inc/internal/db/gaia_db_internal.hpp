@@ -4,21 +4,38 @@
 /////////////////////////////////////////////
 
 #pragma once
+
 #include "triggers.hpp"
 
 namespace gaia {
 namespace db {
 
-// Set by the rules engine
-extern triggers::commit_trigger_fn s_tx_commit_trigger;
+/**
+ * Sets the DB client's commit trigger function.
+ * Can only be called once.
+ * Returns true if the trigger was successfully initialized,
+ * false if it was already set.
+ */
+bool set_commit_trigger(gaia::db::triggers::commit_trigger_fn trigger_fn);
 
+/**
+ * Reinitializes the DB client's shared memory structures.
+ * For use only by test code, in combination with the DB
+ * server's reinitialization feature.
+ */
 void clear_shared_memory();
 
-// Todo (Mihir): Expose options to set the persistent 
-// directory path & also some way to destroy it instead 
-// of hardcoding the path. 
+// Todo (Mihir): Expose options to set the persistent
+// directory path & also some way to destroy it instead
+// of hardcoding the path.
 // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-310
-const char* const PERSISTENT_DIRECTORY_PATH = "/tmp/gaia_db";
+constexpr char PERSISTENT_DIRECTORY_PATH[] = "/tmp/gaia_db";
+
+// The name of the SE server binary.
+constexpr char SE_SERVER_EXEC_NAME[] = "gaia_se_server";
+
+// Used by the SE server and client to bind and connect to the server's listening socket.
+constexpr char SE_SERVER_SOCKET_NAME[] = "gaia_se_server_socket";
 
 }  // namespace db
 }  // namespace gaia

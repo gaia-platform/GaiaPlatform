@@ -26,6 +26,7 @@
 #include "system_error.hpp"
 #include "gaia_common.hpp"
 #include "gaia_db.hpp"
+#include "db_types.hpp"
 #include "gaia_boot.hpp"
 #include "gaia_exception.hpp"
 #include "retail_assert.hpp"
@@ -35,41 +36,39 @@ namespace db {
 
 using namespace common;
 
-typedef uint64_t gaia_edge_type_t;
-
 // 1K oughta be enough for anybody...
-const size_t MAX_MSG_SIZE = 1 << 10;
+constexpr size_t MAX_MSG_SIZE = 1 << 10;
 
-enum class gaia_operation_t: uint8_t {
+enum class gaia_operation_t : uint8_t {
     create = 0x1,
     update = 0x2,
     remove = 0x3,
-    clone  = 0x4
+    clone = 0x4
 };
 
 struct hash_node {
     gaia_id_t id;
-    int64_t next;
-    int64_t row_id;
+    size_t next_offset;
+    gaia_locator_t locator;
 };
 
 class se_base {
     friend class gaia_ptr;
     friend class gaia_hash_map;
 
-   protected:
-    static const char* const SERVER_CONNECT_SOCKET_NAME;
-    static const char* const SCH_MEM_OFFSETS;
-    static const char* const SCH_MEM_DATA;
-    static const char* const SCH_MEM_LOG;
+protected:
+    static constexpr char SERVER_CONNECT_SOCKET_NAME[] = "gaia_se_server";
+    static constexpr char SCH_MEM_LOCATORS[] = "gaia_mem_locators";
+    static constexpr char SCH_MEM_DATA[] = "gaia_mem_data";
+    static constexpr char SCH_MEM_LOG[] = "gaia_mem_log";
 
-    auto static const MAX_RIDS = 32 * 128L * 1024L;
-    static const auto HASH_BUCKETS = 12289;
-    static const auto HASH_LIST_ELEMENTS = MAX_RIDS;
-    static const auto MAX_LOG_RECS = 1000000;
-    static const auto MAX_OBJECTS = MAX_RIDS * 8;
+    static constexpr size_t MAX_LOCATORS = 32 * 128L * 1024L;
+    static constexpr size_t HASH_BUCKETS = 12289;
+    static constexpr size_t HASH_LIST_ELEMENTS = MAX_LOCATORS;
+    static constexpr size_t MAX_LOG_RECS = 1000000;
+    static constexpr size_t MAX_OBJECTS = MAX_LOCATORS * 8;
 
-    typedef int64_t offsets[MAX_RIDS];
+    typedef gaia_locator_t locators[MAX_LOCATORS];
 
     struct data {
         // The first two fields are used as cross-process atomic counters.
@@ -78,19 +77,24 @@ class se_base {
         // This is because the instructions targeted by the intrinsics
         // operate at the level of physical memory, not virtual addresses.
         gaia_id_t next_id;
-        int64_t transaction_id_count;
-        int64_t row_id_count;
-        int64_t hash_node_count;
+        gaia_txn_id_t next_txn_id;
+        size_t locator_count;
+        size_t hash_node_count;
         hash_node hash_nodes[HASH_BUCKETS + HASH_LIST_ELEMENTS];
-        int64_t objects[MAX_RIDS * 8];
+        // This array is actually an untyped array of bytes, but it's defined as
+        // an array of uint64_t just to enforce 8-byte alignment. Allocating
+        // (MAX_LOCATORS * 8) 8-byte words for this array means we reserve 64
+        // bytes on average for each object we allocate (or 1 cache line on
+        // every common architecture).
+        uint64_t objects[MAX_LOCATORS * 8];
     };
 
     struct log {
         size_t count;
         struct log_record {
-            int64_t row_id;
-            int64_t old_object;
-            int64_t new_object;
+            gaia_locator_t locator;
+            gaia_offset_t old_offset;
+            gaia_offset_t new_offset;
             gaia_id_t deleted_id;
             gaia_operation_t operation;
         } log_records[MAX_LOG_RECS];
@@ -98,40 +102,40 @@ class se_base {
 
     thread_local static log* s_log;
     thread_local static int s_session_socket;
-    thread_local static gaia_xid_t s_transaction_id;
+    thread_local static gaia_txn_id_t s_txn_id;
 
-   public:
-    static gaia_xid_t allocate_transaction_id(data* s_data) {
-        gaia_xid_t xid = __sync_add_and_fetch (&s_data->transaction_id_count, 1);
-        return xid;
+public:
+    static gaia_txn_id_t allocate_txn_id(data* s_data) {
+        gaia_txn_id_t txn_id = __sync_add_and_fetch(&s_data->next_txn_id, 1);
+        return txn_id;
     }
 
     static log* get_txn_log() {
         return s_log;
     }
 
-    static inline int64_t allocate_row_id(offsets* offsets, data* s_data, bool invoked_by_server = false) {
+    static inline gaia_locator_t allocate_locator(locators* locators, data* s_data, bool invoked_by_server = false) {
         if (invoked_by_server) {
-            retail_assert(offsets, "Server offsets should be non-null");
+            retail_assert(locators, "Server locators should be non-null");
         }
 
-        if (offsets == nullptr) {
+        if (locators == nullptr) {
             throw transaction_not_open();
         }
 
-        if (s_data->row_id_count >= MAX_RIDS) {
+        if (s_data->locator_count >= MAX_LOCATORS) {
             throw oom();
         }
 
-        return 1 + __sync_fetch_and_add(&s_data->row_id_count, 1);
+        return 1 + __sync_fetch_and_add(&s_data->locator_count, 1);
     }
 
-    static void inline allocate_object(int64_t row_id, uint64_t size, offsets* offsets, data* s_data, bool invoked_by_server = false) {
+    static void inline allocate_object(gaia_locator_t locator, size_t size, locators* locators, data* s_data, bool invoked_by_server = false) {
         if (invoked_by_server) {
-            retail_assert(offsets, "Server offsets should be non-null");
+            retail_assert(locators, "Server locators should be non-null");
         }
 
-        if (offsets == nullptr) {
+        if (locators == nullptr) {
             throw transaction_not_open();
         }
 
@@ -139,15 +143,13 @@ class se_base {
             throw oom();
         }
 
-        (*offsets)[row_id] = 1 + __sync_fetch_and_add(
-            &s_data->objects[0],
-            (size + sizeof(int64_t) - 1) / sizeof(int64_t));
+        (*locators)[locator] = 1 + __sync_fetch_and_add(&s_data->objects[0], (size + sizeof(uint64_t) - 1) / sizeof(uint64_t));
     }
 
-    static bool locator_exists(se_base::offsets* offsets, int64_t offset) {
-        return (*offsets)[offset];
+    static bool locator_exists(se_base::locators* locators, gaia_locator_t locator) {
+        return (*locators)[locator];
     }
 };
 
-}  // namespace db
-}  // namespace gaia
+} // namespace db
+} // namespace gaia

@@ -122,9 +122,15 @@ public:
     gaia_id_t gaia_id() const;
 
     /**
-     * Returns true if there is an an underlying storage engine object
+     * Returns true if there is an an underlying storage engine object.
      */
     operator bool () const;
+
+    /**
+     * Returns true if the gaia locator these objects represent
+     * is the same.
+     */
+    bool operator==(const gaia_object_t& other) const;
 
 protected:
     /**

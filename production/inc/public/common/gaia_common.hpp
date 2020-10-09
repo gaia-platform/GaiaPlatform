@@ -40,11 +40,6 @@ typedef uint32_t gaia_type_t;
 constexpr gaia_type_t INVALID_GAIA_TYPE = 0;
 
 /**
- * The type of a Gaia transaction id.
- */
-typedef uint64_t gaia_xid_t;
-
-/**
  * The type of a Gaia event type.
  */
 typedef uint8_t gaia_event_t;

@@ -19,14 +19,14 @@
 
 using namespace gaia::db::triggers;
 
-namespace gaia 
+namespace gaia
 {
 namespace rules
 {
 /**
  * Implementation class for event and rule APIs defined
  * in events.hpp and rules.hpp respectively.  See documentation
- * for this API in those headers.  
+ * for this API in those headers.
  */
 class event_manager_t
 {
@@ -38,10 +38,10 @@ public:
     event_manager_t(event_manager_t&) = delete;
     void operator=(event_manager_t const&) = delete;
     static event_manager_t& get(bool is_initializing = false);
-    
+
     /**
      * Rule APIs
-     */ 
+     */
     void init();
 
     void subscribe_rule(
@@ -51,7 +51,7 @@ public:
         const rule_binding_t& rule_binding);
 
     bool unsubscribe_rule(
-      gaia::common::gaia_type_t gaia_type, 
+      gaia::common::gaia_type_t gaia_type,
       event_type_t event_type,
       const field_position_list_t& fields,
       const rule_binding_t& rule_binding);
@@ -59,8 +59,8 @@ public:
     void unsubscribe_rules();
 
     void list_subscribed_rules(
-      const char* ruleset_name, 
-      const gaia::common::gaia_type_t* gaia_type, 
+      const char* ruleset_name,
+      const gaia::common::gaia_type_t* gaia_type,
       const event_type_t* event_type,
       const uint16_t* field,
       subscription_list_t& subscriptions);
@@ -117,7 +117,7 @@ private:
     // the catalog.
     unique_ptr<rule_checker_t> m_rule_checker;
 
-    // Enable profiling of rules engine function.  Also used to 
+    // Enable profiling of rules engine function.  Also used to
     // get time points for rules engine statistics.
     optional_timer_t m_timer;
 
@@ -125,19 +125,19 @@ private:
     // Only internal static creation is allowed.
     event_manager_t();
 
-    // Test helper methods.  These are just the friend declarations.  These methods are 
+    // Test helper methods.  These are just the friend declarations.  These methods are
     // implemented in a separate source file that must be compiled into the test.
     friend void gaia::rules::test::initialize_rules_engine(event_manager_settings_t& settings);
-    friend void gaia::rules::test::commit_trigger(uint64_t, const trigger_event_t*, size_t count_events);
+    friend void gaia::rules::test::commit_trigger(gaia_txn_id_t, const trigger_event_t*, size_t count_events);
 
     // Well known trigger function called by the storage engine after commit.
-    void commit_trigger(uint64_t tx_id, const trigger_event_list_t& event_list);
+    void commit_trigger(gaia_txn_id_t txn_id, const trigger_event_list_t& event_list);
     bool process_last_operation_events(event_binding_t& binding, const trigger_event_t& event,
         std::chrono::steady_clock::time_point& start_time);
     bool process_field_events(event_binding_t& binding, const trigger_event_t& event,
         std::chrono::steady_clock::time_point& start_time);
     void init(event_manager_settings_t& settings);
-    const _rule_binding_t* find_rule(const rules::rule_binding_t& binding); 
+    const _rule_binding_t* find_rule(const rules::rule_binding_t& binding);
     void add_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     bool remove_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     void enqueue_invocation(const trigger_event_list_t& events, const vector<bool>& rules_invoked_list,
@@ -147,7 +147,7 @@ private:
     void check_subscription(event_type_t event_type, const field_position_list_t& fields);
     static inline void check_rule_binding(const rule_binding_t& binding)
     {
-        if (nullptr == binding.rule 
+        if (nullptr == binding.rule
             || nullptr == binding.rule_name
             || nullptr == binding.ruleset_name)
         {
@@ -156,7 +156,7 @@ private:
     }
     static bool is_valid_rule_binding(const rules::rule_binding_t& binding);
     static std::string make_rule_key(const rules::rule_binding_t& binding);
-    static void add_subscriptions(rules::subscription_list_t& subscriptions, 
+    static void add_subscriptions(rules::subscription_list_t& subscriptions,
         const rule_list_t& rules,
         gaia::common::gaia_type_t gaia_type,
         event_type_t event_type,

@@ -12,35 +12,27 @@ namespace direct_access
 // Implementation for gaia_iterator_t.
 //
 template <typename T_class>
+gaia_iterator_t<T_class>::gaia_iterator_t(gaia_id_t id)
+{
+    m_obj = T_class::get(id);
+}
+
+template <typename T_class>
 gaia_iterator_t<T_class>& gaia_iterator_t<T_class>::operator++()
 {
-    if (!m_id)
+    if (!m_obj)
     {
         return *this;
     }
 
-    auto ptr = gaia_ptr::open(m_id);
-    if (!ptr)
-    {
-        m_id = 0;
-        return *this;
-    }
-
-    auto ptr_next = ptr.find_next();
-    if (!ptr_next)
-    {
-        m_id = 0;
-        return *this;
-    }
-
-    m_id = ptr_next.id();
+    m_obj = m_obj.get_next();
     return *this;
 }
 
 template <typename T_class>
 gaia_iterator_t<T_class> gaia_iterator_t<T_class>::operator++(int)
 {
-    gaia_iterator_t<T_class> old(m_id);
+    gaia_iterator_t<T_class> old = *this;
     operator++();
     return old;
 }
@@ -48,25 +40,24 @@ gaia_iterator_t<T_class> gaia_iterator_t<T_class>::operator++(int)
 template <typename T_class>
 bool gaia_iterator_t<T_class>::operator==(const gaia_iterator_t& rhs) const
 {
-    return m_id == rhs.m_id;
+    return m_obj == rhs.m_obj;
 }
 
 template <typename T_class>
 bool gaia_iterator_t<T_class>::operator!=(const gaia_iterator_t& rhs) const
 {
-    return m_id != rhs.m_id;
+    return !(m_obj == rhs.m_obj);
 }
 
 template <typename T_class>
-T_class gaia_iterator_t<T_class>::operator*()
+typename gaia_iterator_t<T_class>::reference gaia_iterator_t<T_class>::operator*()
 {
-    return T_class::get(m_id);
+    return m_obj;
 }
 
 template <typename T_class>
-T_class* gaia_iterator_t<T_class>::operator->()
+typename gaia_iterator_t<T_class>::pointer gaia_iterator_t<T_class>::operator->()
 {
-    m_obj = T_class::get(m_id);
     return &m_obj;
 }
 
@@ -96,41 +87,39 @@ gaia_iterator_t<T_class> gaia_container_t<T_container, T_class>::end()
 // Implementation for gaia_set_iterator_t.
 //
 template <typename T_child, size_t T_child_slot>
-T_child gaia_set_iterator_t<T_child, T_child_slot>::operator*()
+gaia_set_iterator_t<T_child, T_child_slot>::gaia_set_iterator_t(gaia_id_t id)
 {
-    return T_child::get(m_id);
+    m_child_obj = T_child::get(id);
 }
 
 template <typename T_child, size_t T_child_slot>
-T_child* gaia_set_iterator_t<T_child, T_child_slot>::operator->()
+typename gaia_set_iterator_t<T_child, T_child_slot>::reference gaia_set_iterator_t<T_child, T_child_slot>::operator*()
 {
-    m_child_obj = T_child::get(m_id);
+    return m_child_obj;
+}
+
+template <typename T_child, size_t T_child_slot>
+typename gaia_set_iterator_t<T_child, T_child_slot>::pointer gaia_set_iterator_t<T_child, T_child_slot>::operator->()
+{
     return &m_child_obj;
 }
 
 template <typename T_child, size_t T_child_slot>
 gaia_set_iterator_t<T_child, T_child_slot>& gaia_set_iterator_t<T_child, T_child_slot>::operator++()
 {
-    if (!m_id)
+    if (!m_child_obj)
     {
         return *this;
     }
 
-    auto ptr = gaia_ptr::open(m_id);
-    if (!ptr)
-    {
-        m_id = 0;
-        return *this;
-    }
-
-    m_id = ptr.references()[T_child_slot];
+    m_child_obj = T_child::get(m_child_obj.references()[T_child_slot]);
     return *this;
 }
 
 template <typename T_child, size_t T_child_slot>
 gaia_set_iterator_t<T_child, T_child_slot> gaia_set_iterator_t<T_child, T_child_slot>::operator++(int)
 {
-    gaia_set_iterator_t<T_child, T_child_slot> old(m_id);
+    gaia_set_iterator_t<T_child, T_child_slot> old = *this;
     operator++();
     return old;
 }
@@ -138,13 +127,13 @@ gaia_set_iterator_t<T_child, T_child_slot> gaia_set_iterator_t<T_child, T_child_
 template <typename T_child, size_t T_child_slot>
 bool gaia_set_iterator_t<T_child, T_child_slot>::operator==(const gaia_set_iterator_t& rhs) const
 {
-    return m_id == rhs.m_id;
+    return m_child_obj == rhs.m_child_obj;
 }
 
 template <typename T_child, size_t T_child_slot>
 bool gaia_set_iterator_t<T_child, T_child_slot>::operator!=(const gaia_set_iterator_t& rhs) const
 {
-    return m_id != rhs.m_id;
+    return !(m_child_obj == rhs.m_child_obj);
 }
 
 //
@@ -211,7 +200,7 @@ void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot,
     }
 
     child_ptr.update_child_references(T_next_slot, node_ptr.references()[T_child_slot], T_parent_slot, oid);
-    node_ptr.update_parent_references(T_child_slot, child_id);
+    node_ptr.update_child_reference(T_child_slot, child_id);
 }
 
 template <typename T_parent, typename T_child, size_t T_parent_slot, size_t T_child_slot, size_t T_next_slot>
@@ -250,7 +239,7 @@ void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot,
     if (node_ptr.references()[T_child_slot] == child_id)
     {
         // It's the first one in the list, point the "first" to the current "next".
-        node_ptr.update_parent_references(T_child_slot, child_ptr.references()[T_next_slot]);
+        node_ptr.update_child_reference(T_child_slot, child_ptr.references()[T_next_slot]);
         // Clean up the removed child.
         child_ptr.update_child_references(T_next_slot, INVALID_GAIA_ID, T_parent_slot, INVALID_GAIA_ID);
     }
@@ -265,7 +254,7 @@ void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot,
             if (next_id == child_id)
             {
                 // Point the current child to the child following the next.
-                cur_child_ptr.update_parent_references(T_next_slot, child_ptr.references()[T_next_slot]);
+                cur_child_ptr.update_child_reference(T_next_slot, child_ptr.references()[T_next_slot]);
                 // Clean up the removed child.
                 child_ptr.update_child_references(T_next_slot, INVALID_GAIA_ID, T_parent_slot, INVALID_GAIA_ID);
                 return;

@@ -16,7 +16,6 @@
 
 #include <flatbuffers/flatbuffers.h>
 
-#include "array_size.hpp"
 #include "retail_assert.hpp"
 #include "system_error.hpp"
 #include "mmap_helpers.hpp"
@@ -24,6 +23,7 @@
 #include "messages_generated.h"
 #include "storage_engine.hpp"
 #include "triggers.hpp"
+#include "db_types.hpp"
 #include "gaia_db_internal.hpp"
 
 using namespace std;
@@ -40,30 +40,37 @@ class gaia_hash_map;
 class client : private se_base {
     friend class gaia_ptr;
     friend class gaia_hash_map;
-    friend class event_trigger_threadpool_t;
 
-   public:
+public:
     static inline bool is_transaction_active() {
-        return (s_offsets != nullptr);
+        return (s_locators != nullptr);
     }
+
+    static inline bool set_commit_trigger(commit_trigger_fn trigger_fn) {
+        return __sync_val_compare_and_swap(&s_txn_commit_trigger, nullptr, trigger_fn);
+    }
+
+    // This test-only function is exported from gaia_db_internal.hpp.
+    static void clear_shared_memory();
+
+    // These public functions are exported from and documented in gaia_db.hpp.
     static void begin_session();
     static void end_session();
     static void begin_transaction();
     static void rollback_transaction();
     static void commit_transaction();
 
-    // This is test-only functionality, intended to be exposed only in internal headers.
-    static void clear_shared_memory();
-
-   private:
-    // Both s_fd_log & s_offsets have transaction lifetime.
+private:
+    // Both s_fd_log & s_locators have transaction lifetime.
     thread_local static int s_fd_log;
-    thread_local static offsets* s_offsets;
-    // Both s_fd_offsets & s_data have session lifetime.
-    thread_local static int s_fd_offsets;
+    thread_local static locators* s_locators;
+    // Both s_fd_locators & s_data have session lifetime.
+    thread_local static int s_fd_locators;
     thread_local static data* s_data;
     // s_events has transaction lifetime and is cleared after each transaction.
     thread_local static std::vector<gaia::db::triggers::trigger_event_t> s_events;
+    // Set by the rules engine.
+    static commit_trigger_fn s_txn_commit_trigger;
 
     // Maintain a static filter in the client to disable generating events
     // for system types.
@@ -71,9 +78,9 @@ class client : private se_base {
 
     // Inherited from se_base:
     // thread_local static log *s_log;
-    // thread_local static gaia_xid_t s_transaction_id;
+    // thread_local static gaia_txn_id_t s_txn_id;
 
-    static void tx_cleanup();
+    static void txn_cleanup();
 
     static void destroy_log_mapping();
 
@@ -82,18 +89,18 @@ class client : private se_base {
     /**
      *  Check if an event should be generated for a given type.
      */
-    static inline bool is_valid_event(const gaia_type_t type) {
-        return (gaia::db::s_tx_commit_trigger
+    static inline bool is_valid_event(gaia_type_t type) {
+        return (s_txn_commit_trigger
             && (trigger_excluded_types.find(type) == trigger_excluded_types.end()));
     }
 
-    static inline void verify_tx_active() {
+    static inline void verify_txn_active() {
         if (!is_transaction_active()) {
             throw transaction_not_open();
         }
     }
 
-    static inline void verify_no_tx() {
+    static inline void verify_no_txn() {
         if (is_transaction_active()) {
             throw transaction_in_progress();
         }
@@ -111,23 +118,23 @@ class client : private se_base {
         }
     }
 
-    static inline void tx_log(
-        int64_t row_id,
-        int64_t old_object,
-        int64_t new_object,
+    static inline void txn_log(
+        gaia_locator_t locator,
+        gaia_offset_t old_offset,
+        gaia_offset_t new_offset,
         gaia_operation_t operation,
         // 'deleted_id' is required to keep track of deleted keys which will be propagated to the persistent layer.
         // Memory for other operations will be unused. An alternative would be to keep a separate log for deleted keys only.
         gaia_id_t deleted_id = 0) {
         retail_assert(s_log->count < MAX_LOG_RECS);
         log::log_record* lr = s_log->log_records + s_log->count++;
-        lr->row_id = row_id;
-        lr->old_object = old_object;
-        lr->new_object = new_object;
+        lr->locator = locator;
+        lr->old_offset = old_offset;
+        lr->new_offset = new_offset;
         lr->deleted_id = deleted_id;
         lr->operation = operation;
     }
 };
 
-}  // namespace db
-}  // namespace gaia
+} // namespace db
+} // namespace gaia
