@@ -143,8 +143,8 @@ string generate_bfbs(const string& fbs) {
     // because fbs assumes strings are null terminated while the binary schema
     // buffers may have null characters in them.
     //
-    // The following const defines the output line wrap length of the encoded
-    // hex text. We do not need this but fbs method requires it.
+    // The following const defines the line wrap length of the encoded hex text.
+    // We do not need this but fbs method requires it.
     constexpr size_t c_binary_schema_hex_text_len = 80;
     return flatbuffers::BufferToHexText(
         fbs_parser.builder_.GetBufferPointer(),
@@ -160,6 +160,8 @@ string get_bfbs(gaia_id_t table_id) {
     // "flatbuffers::BufferToHexText" method, which uses prefix "0x" plus two
     // characters to encode a byte like "0x23".
     constexpr size_t c_hex_str_len = 4;
+    // The delimitation character used by the fbs hex encoding method.
+    constexpr char c_hex_text_delim = ',';
     size_t i = 0;
     while (true) {
         if (hex_binary_schema[i] == '\0') {
@@ -167,7 +169,7 @@ string get_bfbs(gaia_id_t table_id) {
         } else if (hex_binary_schema[i] == '\n') {
             i++;
             continue;
-        } else if (hex_binary_schema[i] == ',') {
+        } else if (hex_binary_schema[i] == c_hex_text_delim) {
             i++;
             continue;
         } else {
