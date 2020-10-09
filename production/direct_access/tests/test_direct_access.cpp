@@ -80,7 +80,7 @@ TEST_F(gaia_object_test, net_set_get) {
     w.name_last = "Smith";
     EXPECT_STREQ(w.name_last.c_str(), "Smith");
 
-    auto_transaction_t tx;
+    auto_transaction_t txn;
     auto eid = w.insert_row();
     EXPECT_STREQ(w.name_last.c_str(), "Smith");
     auto employee = employee_t::get(eid);
@@ -155,10 +155,10 @@ TEST_F(gaia_object_test, read_back_scan) {
 
 // Used twice, below
 void UpdateReadBack(bool update_flag) {
-    auto_transaction_t tx;
+    auto_transaction_t txn;
     create_employee("Howard");
     create_employee("Henry");
-    tx.commit();
+    txn.commit();
 
     auto e = employee_t::get_first();
     auto w = e.writer();
@@ -176,7 +176,7 @@ void UpdateReadBack(bool update_flag) {
     if (update_flag) {
         w.update_row();
     }
-    tx.commit();
+    txn.commit();
 
     e = employee_t::get_first();
     if (update_flag) {
@@ -222,14 +222,14 @@ TEST_F(gaia_object_test, new_delete_insert) {
 // ====================
 
 // Attempt to create a row outside of a transaction
-TEST_F(gaia_object_test, no_tx) {
+TEST_F(gaia_object_test, no_txn) {
     EXPECT_THROW(create_employee("Harold"), transaction_not_open);
     // NOTE: the employee_t object is leaked here
 }
 
 // Scan beyond the end of the iterator.
 TEST_F(gaia_object_test, scan_past_end) {
-    auto_transaction_t tx;
+    auto_transaction_t txn;
     create_employee("Hvitserk");
     int count = 0;
     auto e = employee_t::list().begin();
@@ -246,7 +246,7 @@ TEST_F(gaia_object_test, scan_past_end) {
 
 // Test pre/post increment of iterator.
 TEST_F(gaia_object_test, pre_post_iterator) {
-    auto_transaction_t tx;
+    auto_transaction_t txn;
     create_employee("Hvitserk");
     create_employee("Hubert");
     create_employee("Humphrey");
@@ -282,11 +282,11 @@ TEST_F(gaia_object_test, read_wrong_type) {
 
 // Create, write two rows, read back by ID and verify
 TEST_F(gaia_object_test, read_back_id) {
-    auto_transaction_t tx;
+    auto_transaction_t txn;
     auto eid = create_employee("Howard").gaia_id();
     auto eid2 = create_employee("Henry").gaia_id();
 
-    tx.commit();
+    txn.commit();
 
     auto e = employee_t::get(eid);
     EXPECT_STREQ("Howard", e.name_first());
@@ -394,15 +394,15 @@ TEST_F(gaia_object_test, new_del_del) {
     commit_transaction();
 }
 
-TEST_F(gaia_object_test, auto_tx_begin) {
+TEST_F(gaia_object_test, auto_txn_begin) {
 
     // Default constructor enables auto_begin semantics
-    auto_transaction_t tx;
+    auto_transaction_t txn;
 
     auto writer = employee_writer();
     writer.name_last = "Hawkins";
     employee_t e = employee_t::get(writer.insert_row());
-    tx.commit();
+    txn.commit();
 
     EXPECT_STREQ(e.name_last(), "Hawkins");
 
@@ -410,19 +410,19 @@ TEST_F(gaia_object_test, auto_tx_begin) {
     writer = e.writer();
     writer.name_last = "Clinton";
     writer.update_row();
-    tx.commit();
+    txn.commit();
 
     EXPECT_STREQ(e.name_last(), "Clinton");
 }
 
-TEST_F(gaia_object_test, auto_tx) {
+TEST_F(gaia_object_test, auto_txn) {
     // Specify auto_begin = false
-    auto_transaction_t tx(false);
+    auto_transaction_t txn(false);
     auto writer = employee_writer();
 
     writer.name_last = "Hawkins";
     employee_t e = employee_t::get(writer.insert_row());
-    tx.commit();
+    txn.commit();
 
     // Expect an exception since we're not in a transaction
     EXPECT_THROW(e.name_last(), transaction_not_open);
@@ -432,19 +432,19 @@ TEST_F(gaia_object_test, auto_tx) {
     EXPECT_STREQ(e.name_last(), "Hawkins");
 
     // This is legal.
-    tx.commit();
+    txn.commit();
 }
 
-TEST_F(gaia_object_test, auto_tx_rollback) {
+TEST_F(gaia_object_test, auto_txn_rollback) {
     gaia_id_t id;
     {
-        auto_transaction_t tx;
+        auto_transaction_t txn;
         auto writer = employee_writer();
         writer.name_last = "Hawkins";
         id = writer.insert_row();
     }
     // Transaction was rolled back
-    auto_transaction_t tx;
+    auto_transaction_t txn;
     employee_t e = employee_t::get(id);
     EXPECT_FALSE(e);
 }
@@ -764,10 +764,10 @@ TEST_F(gaia_object_test, default_construction) {
 // Testing the arrow dereference operator->() in gaia_iterator_t.
 TEST_F(gaia_object_test, iter_arrow_deref) {
     const char* emp_name = "Phillip";
-    auto_transaction_t tx;
+    auto_transaction_t txn;
 
     create_employee(emp_name);
-    tx.commit();
+    txn.commit();
 
     gaia_iterator_t<employee_t> emp_iter = employee_t::list().begin();
     EXPECT_STREQ(emp_iter->name_first(), emp_name);

@@ -5,11 +5,12 @@
 
 #pragma once
 
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 #include <vector>
 
+#include <db_types.hpp>
 #include <data_holder.hpp>
 
 namespace gaia
@@ -22,8 +23,8 @@ namespace index
 struct index_record_t
 {
     std::vector<gaia::db::payload_types::data_holder_t> key_values;
-    uint64_t row_id;
-    uint64_t transaction_id;
+    gaia_locator_t locator;
+    gaia_txn_id_t txn_id;
     uint8_t deleted;
 
     index_record_t() = default;

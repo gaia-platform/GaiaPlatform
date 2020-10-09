@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 
 #include "memory_types.hpp"
 #include "access_control.hpp"

@@ -16,14 +16,14 @@ namespace db
 namespace memory_manager
 {
 
-const char* const c_debug_output_separator_line_start = ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
-const char* const c_debug_output_separator_line_end = "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
+constexpr char c_debug_output_separator_line_start[] = ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
+constexpr char c_debug_output_separator_line_end[] = "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
 
 class base_memory_manager_t
 {
 public:
 
-    static const size_t c_memory_alignment = sizeof(uint64_t);
+    static constexpr size_t c_memory_alignment = sizeof(uint64_t);
 
 public:
 
