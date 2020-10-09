@@ -149,7 +149,6 @@ public final class CacheGraph implements Graph
         return new CacheGraph(configuration);
     }
 
-    @Override
     public Vertex addVertex(final Object... keyValues)
     {
         CacheHelper.debugPrint(this, "graph::addVertex()");
@@ -186,21 +185,18 @@ public final class CacheGraph implements Graph
         return vertex;
     }
 
-    @Override
     public <C extends GraphComputer> C compute(final Class<C> graphComputerClass)
     throws IllegalArgumentException
     {
         throw Graph.Exceptions.graphDoesNotSupportProvidedGraphComputer(graphComputerClass);
     }
 
-    @Override
     public GraphComputer compute()
     throws IllegalArgumentException
     {
         throw new UnsupportedOperationException("CacheGraph does not support Tinkerpop OLAP interfaces.");
     }
 
-    @Override
     public Graph.Variables variables()
     {
         if (this.variables == null)
@@ -211,43 +207,36 @@ public final class CacheGraph implements Graph
         return this.variables;
     }
 
-    @Override
     public Iterator<Vertex> vertices(final Object... vertexIds)
     {
         return createElementIterator(Vertex.class, vertices, vertexIdManager, vertexIds);
     }
 
-    @Override
     public Iterator<Edge> edges(final Object... edgeIds)
     {
         return createElementIterator(Edge.class, edges, edgeIdManager, edgeIds);
     }
 
-    @Override
     public Transaction tx()
     {
         return this.transaction;
     }
 
-    @Override
     public void close()
     {
         // Nothing to do here yet.
     }
 
-    @Override
     public Configuration configuration()
     {
         return this.configuration;
     }
 
-    @Override
     public Features features()
     {
         return this.features;
     }
 
-    @Override
     public String toString()
     {
         return StringFactory.graphString(
@@ -310,19 +299,16 @@ public final class CacheGraph implements Graph
         {
         }
 
-        @Override
         public GraphFeatures graph()
         {
             return graphFeatures;
         }
 
-        @Override
         public EdgeFeatures edge()
         {
             return edgeFeatures;
         }
 
-        @Override
         public VertexFeatures vertex()
         {
             return vertexFeatures;
@@ -338,49 +324,41 @@ public final class CacheGraph implements Graph
         {
         }
 
-        @Override
         public Features.VertexPropertyFeatures properties()
         {
             return vertexPropertyFeatures;
         }
 
-        @Override
         public boolean supportsMultiProperties()
         {
             return false;
         }
 
-        @Override
         public boolean supportsMetaProperties()
         {
             return false;
         }
 
-        @Override
         public boolean supportsStringIds()
         {
             return false;
         }
 
-        @Override
         public boolean supportsUuidIds()
         {
             return false;
         }
 
-        @Override
         public boolean supportsCustomIds()
         {
             return false;
         }
 
-        @Override
         public boolean willAllowId(final Object id)
         {
             return vertexIdManager.allow(id);
         }
 
-        @Override
         public VertexProperty.Cardinality getCardinality(final String key)
         {
             return defaultVertexPropertyCardinality;
@@ -393,25 +371,21 @@ public final class CacheGraph implements Graph
         {
         }
 
-        @Override
         public boolean supportsStringIds()
         {
             return false;
         }
 
-        @Override
         public boolean supportsUuidIds()
         {
             return false;
         }
 
-        @Override
         public boolean supportsCustomIds()
         {
             return false;
         }
 
-        @Override
         public boolean willAllowId(final Object id)
         {
             return edgeIdManager.allow(id);
@@ -424,25 +398,21 @@ public final class CacheGraph implements Graph
         {
         }
 
-        @Override
         public boolean supportsComputer()
         {
             return false;
         }
 
-        @Override
         public boolean supportsPersistence()
         {
             return false;
         }
 
-        @Override
         public boolean supportsConcurrentAccess()
         {
             return false;
         }
 
-        @Override
         public boolean supportsTransactions()
         {
             // CacheTransaction only handles COW transactions,
@@ -450,19 +420,16 @@ public final class CacheGraph implements Graph
             return false;
         }
 
-        @Override
         public boolean supportsThreadedTransactions()
         {
             return false;
         }
 
-        @Override
         public boolean supportsIoRead()
         {
             return false;
         }
 
-        @Override
         public boolean supportsIoWrite()
         {
             return false;
@@ -475,19 +442,16 @@ public final class CacheGraph implements Graph
         {
         }
 
-        @Override
         public boolean supportsUserSuppliedIds()
         {
             return false;
         }
 
-        @Override
         public boolean supportsCustomIds()
         {
             return false;
         }
 
-        @Override
         public boolean willAllowId(final Object id)
         {
             return true;
@@ -535,7 +499,6 @@ public final class CacheGraph implements Graph
     {
         LONG
         {
-            @Override
             public Long getNextId(final CacheGraph graph)
             {
                 return Stream.generate(() -> (graph.lastId.incrementAndGet()))
@@ -543,7 +506,6 @@ public final class CacheGraph implements Graph
                     .findAny().get();
             }
 
-            @Override
             public Object convert(final Object id)
             {
                 if (id == null)
@@ -575,7 +537,6 @@ public final class CacheGraph implements Graph
                 }
             }
 
-            @Override
             public boolean allow(final Object id)
             {
                 return id instanceof Number || id instanceof String;
@@ -584,7 +545,6 @@ public final class CacheGraph implements Graph
 
         INTEGER
         {
-            @Override
             public Integer getNextId(final CacheGraph graph)
             {
                 return Stream.generate(() -> (graph.lastId.incrementAndGet()))
@@ -593,7 +553,6 @@ public final class CacheGraph implements Graph
                     .findAny().get();
             }
 
-            @Override
             public Object convert(final Object id)
             {
                 if (id == null)
@@ -625,7 +584,6 @@ public final class CacheGraph implements Graph
                 }
             }
 
-            @Override
             public boolean allow(final Object id)
             {
                 return id instanceof Number || id instanceof String;
@@ -634,13 +592,11 @@ public final class CacheGraph implements Graph
 
         UUID
         {
-            @Override
             public UUID getNextId(final CacheGraph graph)
             {
                 return java.util.UUID.randomUUID();
             }
 
-            @Override
             public Object convert(final Object id)
             {
                 if (id == null)
@@ -668,7 +624,6 @@ public final class CacheGraph implements Graph
                 }
             }
 
-            @Override
             public boolean allow(final Object id)
             {
                 return id instanceof UUID || id instanceof String;
@@ -677,7 +632,6 @@ public final class CacheGraph implements Graph
 
         ANY
         {
-            @Override
             public Long getNextId(final CacheGraph graph)
             {
                 return Stream.generate(() -> (graph.lastId.incrementAndGet()))
@@ -685,13 +639,11 @@ public final class CacheGraph implements Graph
                     .findAny().get();
             }
 
-            @Override
             public Object convert(final Object id)
             {
                 return id;
             }
 
-            @Override
             public boolean allow(final Object id)
             {
                 return true;
