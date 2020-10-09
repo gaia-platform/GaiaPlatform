@@ -21,10 +21,9 @@
 
 #include "storage_engine.hpp"
 #include "gaia_se_object.hpp"
-#include "messages_generated.h"
-#include "persistent_store_manager.hpp"
-#include "gaia_se_object.hpp"
 #include "gaia_db_internal.hpp"
+#include "persistent_store_manager.hpp"
+#include "messages_generated.h"
 
 namespace gaia {
 namespace db {
@@ -48,7 +47,7 @@ public:
 
 private:
     // from https://www.man7.org/linux/man-pages/man2/eventfd.2.html
-1    static constexpr uint64_t MAX_SEMAPHORE_COUNT = std::numeric_limits<uint64_t>::max() - 1;
+    static constexpr uint64_t MAX_SEMAPHORE_COUNT = std::numeric_limits<uint64_t>::max() - 1;
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t STREAM_BATCH_SIZE = 1 << 10;
     static int s_server_shutdown_eventfd;
@@ -134,14 +133,7 @@ private:
 
     static void init_shared_memory();
 
-    static void recover_db() {
-        // Open RocksDB just once.
-        if (!rdb) {
-            rdb.reset(new gaia::db::persistent_store_manager());
-            rdb->open();
-            rdb->recover();
-        }
-    }
+    static void recover_db();
 
     static sigset_t mask_signals();
 
@@ -155,11 +147,9 @@ private:
 
     static void session_handler(const int session_socket);
 
-
     template <typename element_type>
     static void stream_producer_handler(const int stream_socket, const int cancel_eventfd,
         std::function<std::optional<element_type>()> generator_fn);
-
 
     template <typename element_type>
     static void start_stream_producer(const int stream_socket,
@@ -168,7 +158,7 @@ private:
     static std::function<std::optional<gaia_id_t>()>
     get_id_generator_for_type(const gaia_type_t type);
 
-    static bool tx_commit();
+    static bool txn_commit();
 };
 
 } // namespace db

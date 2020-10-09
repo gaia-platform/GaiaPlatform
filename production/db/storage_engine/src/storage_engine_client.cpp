@@ -31,7 +31,7 @@ std::unordered_set<gaia_type_t> client::trigger_excluded_types{
     static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_rule),
     static_cast<gaia_type_t>(system_table_type_t::event_log)};
 
-int client::get_id_cursor_socket_for_type(const gaia_type_t type) {
+int client::get_id_cursor_socket_for_type(gaia_type_t type) {
     // Send the server the cursor socket request.
     FlatBufferBuilder builder;
     auto table_scan_info = Createtable_scan_info_t(builder, type);
@@ -76,16 +76,16 @@ client::get_stream_generator_for_socket(int stream_socket) {
     // Verify the socket is the correct type for the semantics we assume.
     check_socket_type(stream_socket, SOCK_SEQPACKET);
     // Currently, we associate a cursor with a snapshot view, i.e., a transaction.
-    verify_tx_active();
-    gaia_xid_t owning_transaction_id = s_transaction_id;
+    verify_txn_active();
+    gaia_txn_id_t owning_txn_id = s_txn_id;
     // The userspace buffer that we use to receive a batch datagram message.
     std::vector<element_type> batch_buffer;
     // The definition of the generator we return.
-    return [stream_socket, owning_transaction_id, batch_buffer]() mutable -> std::optional<element_type> {
+    return [stream_socket, owning_txn_id, batch_buffer]() mutable -> std::optional<element_type> {
         // We shouldn't be called again after we received EOF from the server.
         retail_assert(stream_socket != -1);
         // The cursor should only be called from within the scope of its owning transaction.
-        retail_assert(s_transaction_id == owning_transaction_id);
+        retail_assert(s_txn_id == owning_txn_id);
         // If buffer is empty, block until a new batch is available.
         if (batch_buffer.size() == 0) {
             // Get the datagram size, and grow the buffer if necessary.
@@ -138,8 +138,8 @@ client::get_stream_generator_for_socket(int stream_socket) {
 }
 
 std::function<std::optional<gaia_id_t>()>
-client::get_id_generator_for_type(const gaia_type_t type) {
-    const int stream_socket = get_id_cursor_socket_for_type(type);
+client::get_id_generator_for_type(gaia_type_t type) {
+    int stream_socket = get_id_cursor_socket_for_type(type);
     auto cleanup_stream_socket = make_scope_guard([stream_socket]() {
         ::close(stream_socket);
     });
@@ -203,7 +203,7 @@ int client::get_session_socket() {
     if (session_socket == -1) {
         throw_system_error("socket creation failed");
     }
-    auto cleanup_session_socket = scope_guard::make_scope_guard([session_socket]() {
+    auto cleanup_session_socket = make_scope_guard([session_socket]() {
         close(session_socket);
     });
     struct sockaddr_un server_addr = {0};
@@ -278,7 +278,7 @@ void client::begin_session() {
     retail_assert(fd_data != -1);
     int fd_locators = fds[LOCATORS_FD_INDEX];
     retail_assert(fd_locators != -1);
-    auto cleanup_fds = scope_guard::make_scope_guard([fd_data, fd_locators]() {
+    auto cleanup_fds = make_scope_guard([fd_data, fd_locators]() {
         // We can unconditionally close the data fd,
         // since it's not saved anywhere and the mapping
         // increments the shared memory segment's refcount.
@@ -330,7 +330,7 @@ void client::begin_transaction() {
         throw_system_error("ftruncate failed");
     }
     s_log = static_cast<log*>(map_fd(sizeof(log), PROT_READ | PROT_WRITE, MAP_SHARED, fd_log, 0));
-    auto cleanup_log_mapping = scope_guard::make_scope_guard([]() {
+    auto cleanup_log_mapping = make_scope_guard([]() {
         unmap_fd(s_log, sizeof(log));
         s_log = nullptr;
     });
@@ -368,7 +368,7 @@ void client::begin_transaction() {
     const message_t* msg = Getmessage_t(msg_buf);
     const server_reply_t* reply = msg->msg_as_reply();
     const transaction_info_t* txn_info = reply->data_as_transaction_info();
-    s_txn_id = txn_info->txn_id();
+    s_txn_id = txn_info->transaction_id();
     // Save the log fd to send to the server on commit.
     s_fd_log = fd_log;
 
@@ -390,7 +390,7 @@ void client::rollback_transaction() {
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Reset transaction id.
-    s_transaction_id = 0;
+    s_txn_id = 0;
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
@@ -428,7 +428,7 @@ void client::commit_transaction() {
     session_event_t event = reply->event();
     retail_assert(event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT);
     const transaction_info_t* txn_info = reply->data_as_transaction_info();
-    retail_assert(txn_info->transaction_id() == s_transaction_id);
+    retail_assert(txn_info->transaction_id() == s_txn_id);
 
     // Throw an exception on server-side abort.
     // REVIEW: We could include the gaia_ids of conflicting objects in transaction_update_conflict

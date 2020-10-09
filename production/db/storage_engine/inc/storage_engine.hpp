@@ -44,12 +44,6 @@ enum class gaia_operation_t : uint8_t {
     clone = 0x4
 };
 
-struct hash_node {
-    gaia_id_t id;
-    size_t next_offset;
-    gaia_locator_t locator;
-};
-
 class se_base {
     friend class gaia_ptr;
     friend class gaia_hash_map;
@@ -70,7 +64,7 @@ protected:
 
     struct hash_node {
         gaia_id_t id;
-        size_t next;
+        size_t next_offset;
         gaia_locator_t locator;
     };
 
@@ -95,7 +89,6 @@ protected:
 
     struct log {
         size_t count;
-        size_t count;
         struct log_record {
             gaia_locator_t locator;
             gaia_offset_t old_offset;
@@ -111,13 +104,13 @@ protected:
 
 public:
     // REVIEW: this counter needs to be initialized from persistent storage.
-    static gaia_id_t generate_id(data* s_data) {
-        gaia_id_t id = __sync_add_and_fetch(&s_data->next_id, 1);
+    static gaia_id_t generate_id(data* data) {
+        gaia_id_t id = __sync_add_and_fetch(&data->next_id, 1);
         return id;
     }
 
-    static gaia_txn_id_t allocate_txn_id(data* s_data) {
-        gaia_txn_id_t txn_id = __sync_add_and_fetch(&s_data->next_txn_id, 1);
+    static gaia_txn_id_t allocate_txn_id(data* data) {
+        gaia_txn_id_t txn_id = __sync_add_and_fetch(&data->next_txn_id, 1);
         return txn_id;
     }
 
@@ -125,7 +118,7 @@ public:
         return s_log;
     }
 
-    static inline gaia_locator_t allocate_locator(locators* locators, data* s_data, bool invoked_by_server = false) {
+    static inline gaia_locator_t allocate_locator(locators* locators, data* data, bool invoked_by_server = false) {
         if (invoked_by_server) {
             retail_assert(locators, "Server locators should be non-null");
         }
@@ -134,14 +127,14 @@ public:
             throw transaction_not_open();
         }
 
-        if (s_data->locator_count >= MAX_LOCATORS) {
+        if (data->locator_count >= MAX_LOCATORS) {
             throw oom();
         }
 
-        return 1 + __sync_fetch_and_add(&s_data->locator_count, 1);
+        return 1 + __sync_fetch_and_add(&data->locator_count, 1);
     }
 
-    static void inline allocate_object(gaia_locator_t locator, size_t size, locators* locators, data* s_data, bool invoked_by_server = false) {
+    static inline void allocate_object(gaia_locator_t locator, size_t size, locators* locators, data* data, bool invoked_by_server = false) {
         if (invoked_by_server) {
             retail_assert(locators, "Server locators should be non-null");
         }
@@ -150,15 +143,22 @@ public:
             throw transaction_not_open();
         }
 
-        if (s_data->objects[0] >= MAX_OBJECTS) {
+        if (data->objects[0] >= MAX_OBJECTS) {
             throw oom();
         }
 
-        (*locators)[locator] = 1 + __sync_fetch_and_add(&s_data->objects[0], (size + sizeof(uint64_t) - 1) / sizeof(uint64_t));
+        (*locators)[locator] = 1 + __sync_fetch_and_add(&data->objects[0], (size + sizeof(uint64_t) - 1) / sizeof(uint64_t));
     }
 
-    static bool locator_exists(se_base::locators* locators, gaia_locator_t locator) {
+    static inline bool locator_exists(se_base::locators* locators, gaia_locator_t locator) {
         return (*locators)[locator];
+    }
+
+    static gaia_se_object_t* locator_to_ptr(locators* locators, data* data, gaia_locator_t locator) {
+        assert(locators);
+        return (locator && (*locators)[locator])
+            ? reinterpret_cast<gaia_se_object_t*>(data->objects + (*locators)[locator])
+            : nullptr;
     }
 };
 

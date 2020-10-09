@@ -193,6 +193,10 @@ TEST_F(storage_engine_client_test, iterate_type) {
             EXPECT_EQ(node_iter.id(), id);
             id++;
         }
+    }
+    commit_transaction();
+}
+
 TEST_F(storage_engine_client_test, iterate_type_cursor) {
     constexpr size_t BUFFER_SIZE_EXACT = STREAM_BATCH_SIZE;
     constexpr size_t BUFFER_SIZE_EXACT_MULTIPLE = STREAM_BATCH_SIZE * 2;
