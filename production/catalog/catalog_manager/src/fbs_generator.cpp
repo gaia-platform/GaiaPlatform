@@ -7,6 +7,7 @@
 #include "gaia_catalog.h"
 #include "fbs_generator.hpp"
 #include "flatbuffers/idl.h"
+#include "flatbuffers/util.h"
 #include "retail_assert.hpp"
 
 namespace gaia {
@@ -16,107 +17,8 @@ namespace catalog {
 * Helper functions
 **/
 
-/**
- * Return the position of chr within base64_encode()
- */
-static unsigned int pos_of_char(unsigned char chr) {
-    if (chr >= 'A' && chr <= 'Z') {
-        return chr - 'A';
-    } else if (chr >= 'a' && chr <= 'z') {
-        return chr - 'a' + ('Z' - 'A') + 1;
-    } else if (chr >= '0' && chr <= '9') {
-        return chr - '0' + ('Z' - 'A') + ('z' - 'a') + 2;
-    } else if (chr == '+' || chr == '-') {
-        return 62;
-    } else if (chr == '/' || chr == '_') {
-        return 63;
-    }
-
-    retail_assert(false, "Unknown base64 char!");
-    return 0;
-}
-
-/**
- * base64 decode function adapted from the following implementation.
- * https://renenyffenegger.ch/notes/development/Base64/Encoding-and-decoding-base-64-with-cpp/
- *
- * This is for temporary workaround to decode string into binary buffer before EDC support arrays.
- * Do not use it elsewhere.
- **/
-static string base64_decode(string encoded_string) {
-    size_t length_of_string = encoded_string.length();
-    if (!length_of_string) {
-        return string("");
-    }
-
-    size_t input_length = length_of_string;
-    size_t pos = 0;
-
-    // The approximate length (bytes) of the decoded string might be one ore
-    // two bytes smaller, depending on the amount of trailing equal signs
-    // in the encoded string. This approximation is needed to reserve
-    // enough space in the string to be returned.
-    size_t approx_length_of_decoded_string = length_of_string / 4 * 3;
-    string ret;
-    ret.reserve(approx_length_of_decoded_string);
-
-    while (pos < input_length) {
-        unsigned int pos_of_char_1 = pos_of_char(encoded_string[pos + 1]);
-        ret.push_back(static_cast<std::string::value_type>(((pos_of_char(encoded_string[pos + 0])) << 2) + ((pos_of_char_1 & 0x30) >> 4)));
-        if (encoded_string[pos + 2] != '=') {
-            unsigned int pos_of_char_2 = pos_of_char(encoded_string[pos + 2]);
-            ret.push_back(static_cast<std::string::value_type>(((pos_of_char_1 & 0x0f) << 4) + ((pos_of_char_2 & 0x3c) >> 2)));
-            if (encoded_string[pos + 3] != '=') {
-                ret.push_back(static_cast<std::string::value_type>(((pos_of_char_2 & 0x03) << 6) + pos_of_char(encoded_string[pos + 3])));
-            }
-        }
-        pos += 4;
-    }
-    return ret;
-}
-
-/**
- * base64 encode function adapted from the following implementation.
- * https://renenyffenegger.ch/notes/development/Base64/Encoding-and-decoding-base-64-with-cpp/
- *
- * This is for temporary workaround to encode binary into string before EDC support arrays.
- * Do not use it elsewhere.
- **/
-static string base64_encode(const uint8_t* bytes_to_encode, uint32_t in_len) {
-    uint32_t len_encoded = (in_len + 2) / 3 * 4;
-    constexpr unsigned char trailing_char = '=';
-    constexpr char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                       "abcdefghijklmnopqrstuvwxyz"
-                                       "0123456789"
-                                       "+/";
-
-    string ret;
-    ret.reserve(len_encoded);
-
-    unsigned int pos = 0;
-    while (pos < in_len) {
-        ret.push_back(base64_chars[(bytes_to_encode[pos + 0] & 0xfc) >> 2]);
-        if (pos + 1 < in_len) {
-            ret.push_back(base64_chars[((bytes_to_encode[pos + 0] & 0x03) << 4) + ((bytes_to_encode[pos + 1] & 0xf0) >> 4)]);
-            if (pos + 2 < in_len) {
-                ret.push_back(base64_chars[((bytes_to_encode[pos + 1] & 0x0f) << 2) + ((bytes_to_encode[pos + 2] & 0xc0) >> 6)]);
-                ret.push_back(base64_chars[bytes_to_encode[pos + 2] & 0x3f]);
-            } else {
-                ret.push_back(base64_chars[(bytes_to_encode[pos + 1] & 0x0f) << 2]);
-                ret.push_back(trailing_char);
-            }
-        } else {
-            ret.push_back(base64_chars[(bytes_to_encode[pos + 0] & 0x03) << 4]);
-            ret.push_back(trailing_char);
-            ret.push_back(trailing_char);
-        }
-        pos += 3;
-    }
-    return ret;
-}
-
 static string generate_fbs_namespace(const string& db_name) {
-    if (db_name.empty() || db_name == c_global_db_name) {
+    if (db_name.empty() || db_name == c_empty_db_name) {
         return "namespace " + c_gaia_namespace + ";\n";
     } else {
         return "namespace " + c_gaia_namespace + "." + db_name + ";\n";
@@ -135,18 +37,18 @@ static string generate_fbs_field(const string& name, const string& type, int cou
 
 static string generate_fbs_field(const gaia_field_t& field) {
     string name{field.name()};
-    string type{ddl::get_data_type_name(static_cast<data_type_t>(field.type()))};
+    string type{get_data_type_name(static_cast<data_type_t>(field.type()))};
     return generate_fbs_field(name, type, field.repeated_count());
 }
 
 /**
  * Public interfaces
  **/
-ddl::unknown_data_type::unknown_data_type() {
+unknown_data_type::unknown_data_type() {
     m_message = "Unknown data type.";
 }
 
-string ddl::get_data_type_name(data_type_t data_type) {
+string get_data_type_name(data_type_t data_type) {
     switch (data_type) {
     case data_type_t::e_bool:
         return "bool";
@@ -166,14 +68,14 @@ string ddl::get_data_type_name(data_type_t data_type) {
         return "int64";
     case data_type_t::e_uint64:
         return "uint64";
-    case data_type_t::e_float32:
-        return "float32";
-    case data_type_t::e_float64:
-        return "float64";
+    case data_type_t::e_float:
+        return "float";
+    case data_type_t::e_double:
+        return "double";
     case data_type_t::e_string:
         return "string";
     default:
-        throw ddl::unknown_data_type();
+        throw unknown_data_type();
     }
 }
 
@@ -222,7 +124,7 @@ string generate_fbs(const string& db_name, const string& table_name, const ddl::
         }
         string field_fbs = generate_fbs_field(
             field->name,
-            ddl::get_data_type_name(field->type),
+            get_data_type_name(field->type),
             field->length);
         fbs += field_fbs + ";";
     }
@@ -236,20 +138,48 @@ string generate_bfbs(const string& fbs) {
     bool parsing_result = fbs_parser.Parse(fbs.c_str());
     retail_assert(parsing_result == true, "Invalid FlatBuffers schema!");
     fbs_parser.Serialize();
-    return base64_encode(fbs_parser.builder_.GetBufferPointer(), fbs_parser.builder_.GetSize());
+    // Use the fbs method ""flatbuffers::BufferToHexText" to encode the buffer.
+    // Some encoding is needed to store the binary as string in fbs payload
+    // because fbs assumes strings are null terminated while the binary schema
+    // buffers may have null characters in them.
+    //
+    // The following const defines the output line wrap length of the encoded
+    // hex text. We do not need this but fbs method requires it.
+    constexpr size_t c_binary_schema_hex_text_len = 80;
+    return flatbuffers::BufferToHexText(
+        fbs_parser.builder_.GetBufferPointer(),
+        fbs_parser.builder_.GetSize(),
+        c_binary_schema_hex_text_len, "", "");
 }
 
 string get_bfbs(gaia_id_t table_id) {
-    bool is_txn_owner = !gaia::db::is_transaction_active();
-    if (is_txn_owner) {
-        gaia::db::begin_transaction();
-    }
     gaia_table_t table = gaia_table_t::get(table_id);
-    string base64_binary_schema = table.binary_schema();
-    if (is_txn_owner) {
-        gaia::db::commit_transaction();
+    const char* hex_binary_schema = table.binary_schema();
+    string binary_schema;
+    // Length of hex string to represent a byte in the binary buffer used by the
+    // "flatbuffers::BufferToHexText" method, which uses prefix "0x" plus two
+    // characters to encode a byte like "0x23".
+    constexpr size_t c_hex_str_len = 4;
+    size_t i = 0;
+    while (true) {
+        if (hex_binary_schema[i] == '\0') {
+            break;
+        } else if (hex_binary_schema[i] == '\n') {
+            i++;
+            continue;
+        } else if (hex_binary_schema[i] == ',') {
+            i++;
+            continue;
+        } else {
+            stringstream ss;
+            ss << hex << string(hex_binary_schema + i, c_hex_str_len);
+            unsigned byte;
+            ss >> byte;
+            binary_schema.push_back(byte);
+            i += c_hex_str_len;
+        }
     }
-    return base64_decode(base64_binary_schema);
+    return binary_schema;
 }
 
 } // namespace catalog

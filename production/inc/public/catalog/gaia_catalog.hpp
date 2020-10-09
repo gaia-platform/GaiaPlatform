@@ -30,10 +30,10 @@ const string c_gaia_namespace = "gaia";
 
 // Catalog's notion for the empty database similar to Epsilon for the empty
 // string. Specifically, when a user create a table without specifying a
-// database, it is created in the "(global)" database. Users cannot use '()' in
-// database names so there will be no ambiguity, i.e. there will never exist a
-// user created database called "(global)".
-const string c_global_db_name = "(global)";
+// database, it is created in this construct. Users cannot use '()' in database
+// names so there will be no ambiguity, i.e. there will never exist a user
+// created database called "()".
+const string c_empty_db_name = "()";
 
 /*
  * The following enum classes are shared cross the catalog usage.
@@ -52,11 +52,28 @@ enum class data_type_t : uint8_t {
     e_uint32,
     e_int64,
     e_uint64,
-    e_float32,
-    e_float64,
+    e_float,
+    e_double,
     e_string,
     e_references
 };
+
+/**
+ * Thrown when seeing an unknown data type
+ */
+class unknown_data_type : public gaia::common::gaia_exception {
+public:
+    unknown_data_type();
+};
+
+/**
+ * Get the data type name
+ *
+ * @param catalog data type
+ * @return fbs data type name
+ * @throw unknown_data_type
+ */
+string get_data_type_name(data_type_t data_type);
 
 /*
  * Trim action for log tables.
@@ -172,23 +189,6 @@ struct drop_statement_t : statement_t {
 
     string database;
 };
-
-/**
- * Thrown when seeing an unknown data type
- */
-class unknown_data_type : public gaia::common::gaia_exception {
-public:
-    unknown_data_type();
-};
-
-/**
- * Get the data type name for fbs
- *
- * @param catalog data type
- * @return fbs data type name
- * @throw unknown_data_type
- */
-string get_data_type_name(data_type_t data_type);
 
 /*@}*/
 } // namespace ddl

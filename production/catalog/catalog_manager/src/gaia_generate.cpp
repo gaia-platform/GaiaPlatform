@@ -66,9 +66,9 @@ static string field_cpp_type_string(data_type_t data_type) {
         return "int64_t";
     case data_type_t::e_uint64:
         return "uint64_t";
-    case data_type_t::e_float32:
+    case data_type_t::e_float:
         return "float";
-    case data_type_t::e_float64:
+    case data_type_t::e_double:
         return "double";
     case data_type_t::e_string:
         return "const char*";

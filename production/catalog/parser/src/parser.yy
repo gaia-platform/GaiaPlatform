@@ -37,9 +37,8 @@
     } // namespace catalog
     } // namespace gaia
 
-    using namespace gaia::catalog::ddl;
-    using field_def_list_t = std::vector<std::unique_ptr<field_definition_t>>;
-    using statement_list_t = std::vector<std::unique_ptr<statement_t>>;
+    using field_def_list_t = std::vector<std::unique_ptr<gaia::catalog::ddl::field_definition_t>>;
+    using statement_list_t = std::vector<std::unique_ptr<gaia::catalog::ddl::statement_t>>;
     using data_type_t = gaia::catalog::data_type_t;
     using composite_name_t = std::pair<std::string, std::string>;
 }
@@ -56,12 +55,13 @@
     #include "gaia_parser.hpp"
     #include "gaia_catalog.hpp"
 
-    yy::parser::symbol_type yylex(gaia::catalog::ddl::parser_t &);
+    using namespace gaia::catalog::ddl;
+    yy::parser::symbol_type yylex(parser_t &);
 }
 
 %define api.token.prefix {TOK_}
 
-%token BOOL INT8 UINT8 INT16 UINT16 INT32 UINT32 INT64 UINT64 FLOAT32 FLOAT64 STRING
+%token BOOL INT8 UINT8 INT16 UINT16 INT32 UINT32 INT64 UINT64 FLOAT DOUBLE STRING
 %token CREATE DROP DATABASE TABLE IF NOT EXISTS REFERENCES ACTIVE
 %token END 0
 %token LPAREN "("
@@ -75,14 +75,14 @@
 %token <std::string> IDENTIFIER "identifier"
 %token <int> NUMBER "number"
 
-%type <std::unique_ptr<statement_t>> statement
-%type <std::unique_ptr<create_statement_t>> create_statement
-%type <std::unique_ptr<drop_statement_t>> drop_statement
-%type <std::unique_ptr<field_type_t>> field_type
+%type <std::unique_ptr<gaia::catalog::ddl::statement_t>> statement
+%type <std::unique_ptr<gaia::catalog::ddl::create_statement_t>> create_statement
+%type <std::unique_ptr<gaia::catalog::ddl::drop_statement_t>> drop_statement
+%type <std::unique_ptr<gaia::catalog::ddl::field_type_t>> field_type
 
 %type <int> opt_array
 %type <bool> opt_if_not_exists
-%type <std::unique_ptr<field_definition_t>> field_def
+%type <std::unique_ptr<gaia::catalog::ddl::field_definition_t>> field_def
 %type <std::unique_ptr<field_def_list_t>> field_def_commalist
 %type <std::unique_ptr<statement_list_t>> statement_list
 %type <composite_name_t> composite_name
@@ -192,8 +192,8 @@ field_type:
 | UINT32 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_uint32)}; }
 | INT64 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_int64)}; }
 | UINT64 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_uint64)}; }
-| FLOAT32 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_float32)}; }
-| FLOAT64 { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_float64)}; }
+| FLOAT { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_float)}; }
+| DOUBLE { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_double)}; }
 | STRING { $$ = std::unique_ptr<field_type_t>{new field_type_t(data_type_t::e_string)}; }
 ;
 
