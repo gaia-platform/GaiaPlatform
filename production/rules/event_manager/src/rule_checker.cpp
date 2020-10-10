@@ -104,35 +104,22 @@ ruleset_not_found::ruleset_not_found(const char* ruleset_name)
 //
 // Rule Checker implementation.
 //
-void rule_checker_t::check_catalog(gaia_type_t type, gaia_id_t id, const field_position_list_t& field_list)
+void rule_checker_t::check_catalog(gaia_type_t type, const field_position_list_t& field_list)
 {
     auto_transaction_t txn;
-    check_table_type(type);
-    check_fields(id, field_list);
-}
-
-// This function assumes that a transaction has been started.
-void rule_checker_t::check_table_type(gaia_type_t type)
-{
-    bool found_type = false;
-    // CONSIDER: when reference code gets generated
-    // then use the list method.
-    for (gaia_table_t table = gaia_table_t::get_first() ;
-        table;
-        table = table.get_next())
+    // Find the id of the table defining gaia_type.
+    for (auto table : catalog::gaia_table_t::list())
     {
         // The gaia_id() of the gaia_table_t is the type id.
         if (type == table.type())
         {
-            found_type = true;
-            break;
+            check_fields(table.gaia_id(), field_list);
+            return;
         }
     }
 
-    if (!found_type)
-    {
-        throw invalid_subscription(type);
-    }
+    // Table type not found.
+    throw invalid_subscription(type);
 }
 
 // This function assumes that a transaction has been started and that the table
@@ -144,7 +131,6 @@ void rule_checker_t::check_fields(gaia_id_t id, const field_position_list_t& fie
         return;
     }
 
-    // This function assumes that check_table_type was just called
     gaia_table_t gaia_table = gaia_table_t::get(id);
     auto field_ids = list_fields(id);
 

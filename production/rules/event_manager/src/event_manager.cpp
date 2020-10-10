@@ -10,7 +10,6 @@
 #include "gaia_db_internal.hpp"
 #include "events.hpp"
 #include "triggers.hpp"
-#include "gaia_catalog.h"
 #include "timer.hpp"
 
 #include <cstring>
@@ -255,30 +254,7 @@ void event_manager_t::subscribe_rule(
     // set to true in its settings.
     if (m_rule_checker)
     {
-        // Find the id of the table defining gaia_type.
-        gaia_id_t table_id = INVALID_GAIA_ID;
-        bool is_transaction_owner = !is_transaction_active();
-        if (is_transaction_owner) {
-            begin_transaction();
-        }
-
-        // WLW Note: This is incorrect. if table_id is never assigned, there
-        // is no error.
-        for (catalog::gaia_table_t table = catalog::gaia_table_t::get_first() ;
-            table;
-            table = table.get_next())
-        {
-            // The gaia_id() of the gaia_table_t is the type id.
-            if (gaia_type == table.type())
-            {
-                table_id = table.gaia_id();
-                break;
-            }
-        }
-        if (is_transaction_owner) {
-            commit_transaction();
-        }
-        m_rule_checker->check_catalog(gaia_type, table_id, fields);
+        m_rule_checker->check_catalog(gaia_type, fields);
     }
 
     // Look up the gaia_type in our type map.  If we do not find it

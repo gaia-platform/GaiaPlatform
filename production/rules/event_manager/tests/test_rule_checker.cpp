@@ -19,7 +19,6 @@ using namespace gaia::rules;
 using namespace std;
 
 gaia_type_t g_table_type = INVALID_GAIA_TYPE;
-gaia_id_t g_table_id = INVALID_GAIA_ID;
 map<string, uint16_t> g_field_positions;
 
 void load_catalog()
@@ -33,6 +32,7 @@ void load_catalog()
     //}
     ddl::field_def_list_t fields;
     string name;
+    gaia_id_t table_id = INVALID_GAIA_ID;
 
     name = "Sensors";
     // not active, not deprecated
@@ -45,12 +45,12 @@ void load_catalog()
     fields.emplace_back(make_unique<ddl::field_definition_t>("valid", data_type_t::e_uint64, 1));
 
     // The type of the table is the row id of table in the catalog.
-    g_table_id = create_table(name, fields);
+    table_id = create_table(name, fields);
 
     // Modify the fields to have the correct active and deprecated attributes.
     begin_transaction();
-    g_table_type = gaia_table_t::get(g_table_id).type();
-    auto field_ids = list_fields(g_table_id);
+    g_table_type = gaia_table_t::get(table_id).type();
+    auto field_ids = list_fields(table_id);
     for (gaia_id_t field_id : field_ids)
     {
         gaia_field_t field = gaia_field_t::get(field_id);
@@ -128,14 +128,14 @@ TEST_F(rule_checker_test, table_not_found)
     rule_checker_t rule_checker;
     const char* message = "Table (type:1000) was not found";
     verify_exception(message, [&](){
-        rule_checker.check_catalog(1000, g_table_id, empty_fields);
+        rule_checker.check_catalog(1000, empty_fields);
     });
 }
 
 TEST_F(rule_checker_test, table_found)
 {
     rule_checker_t rule_checker;
-    rule_checker.check_catalog(g_table_type, g_table_id, empty_fields);
+    rule_checker.check_catalog(g_table_type, empty_fields);
 }
 
 TEST_F(rule_checker_test, field_not_found)
@@ -145,7 +145,7 @@ TEST_F(rule_checker_test, field_not_found)
     fields.emplace_back(1000);
     const char* message = "Field (position:1000) was not found in table";
     verify_exception(message, [&](){
-        rule_checker.check_catalog(g_table_type, g_table_id, fields);
+        rule_checker.check_catalog(g_table_type, fields);
     });
 }
 
@@ -155,7 +155,7 @@ TEST_F(rule_checker_test, active_field)
 
     field_position_list_t fields;
     fields.emplace_back(g_field_positions["active"]);
-    rule_checker.check_catalog(g_table_type, g_table_id, fields);
+    rule_checker.check_catalog(g_table_type, fields);
 }
 
 TEST_F(rule_checker_test, inactive_field)
@@ -166,7 +166,7 @@ TEST_F(rule_checker_test, inactive_field)
     const char* message = "not marked as active";
 
     verify_exception(message, [&](){
-        rule_checker.check_catalog(g_table_type, g_table_id, fields);
+        rule_checker.check_catalog(g_table_type, fields);
     });
 }
 
@@ -178,7 +178,7 @@ TEST_F(rule_checker_test, deprecated_field)
     const char* message = "deprecated";
 
     verify_exception(message, [&](){
-        rule_checker.check_catalog(g_table_type, g_table_id, fields);
+        rule_checker.check_catalog(g_table_type, fields);
     });
 }
 
@@ -188,7 +188,7 @@ TEST_F(rule_checker_test, multiple_valid_fields)
     field_position_list_t fields;
     fields.emplace_back(g_field_positions["active"]);
     fields.emplace_back(g_field_positions["valid"]);
-    rule_checker.check_catalog(g_table_type, g_table_id, fields);
+    rule_checker.check_catalog(g_table_type, fields);
 }
 
 TEST_F(rule_checker_test, multiple_invalid_fields)
@@ -203,7 +203,7 @@ TEST_F(rule_checker_test, multiple_invalid_fields)
     const char* message = "(position:";
 
     verify_exception(message, [&](){
-        rule_checker.check_catalog(g_table_type, g_table_id, fields);
+        rule_checker.check_catalog(g_table_type, fields);
     });
 }
 
@@ -216,6 +216,6 @@ TEST_F(rule_checker_test, multiple_fields)
     const char* message = "not marked as active";
 
     verify_exception(message, [&](){
-        rule_checker.check_catalog(g_table_type, g_table_id, fields);
+        rule_checker.check_catalog(g_table_type, fields);
     });
 }
