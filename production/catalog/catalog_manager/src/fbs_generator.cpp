@@ -153,32 +153,24 @@ string generate_bfbs(const string& fbs) {
 }
 
 string get_bfbs(gaia_id_t table_id) {
-    gaia_table_t table = gaia_table_t::get(table_id);
-    const char* hex_binary_schema = table.binary_schema();
     string binary_schema;
-    // Length of hex string to represent a byte in the binary buffer used by the
-    // "flatbuffers::BufferToHexText" method, which uses prefix "0x" plus two
-    // characters to encode a byte like "0x23".
-    constexpr size_t c_hex_str_len = 4;
+    gaia_table_t table = gaia_table_t::get(table_id);
     // The delimitation character used by the fbs hex encoding method.
     constexpr char c_hex_text_delim = ',';
-    size_t i = 0;
-    while (true) {
-        if (hex_binary_schema[i] == '\0') {
-            break;
-        } else if (hex_binary_schema[i] == '\n') {
-            i++;
+    const char* p = table.binary_schema();
+    while (*p != '\0') {
+        if (*p == '\n') {
+            p++;
             continue;
-        } else if (hex_binary_schema[i] == c_hex_text_delim) {
-            i++;
+        } else if (*p == c_hex_text_delim) {
+            p++;
             continue;
         } else {
-            stringstream ss;
-            ss << hex << string(hex_binary_schema + i, c_hex_str_len);
-            unsigned byte;
-            ss >> byte;
+            char* endptr;
+            unsigned byte = std::strtoul(p, &endptr, 0);
+            retail_assert(endptr != p && errno != ERANGE, "Invalid hex binary schema!");
             binary_schema.push_back(byte);
-            i += c_hex_str_len;
+            p = endptr;
         }
     }
     return binary_schema;
