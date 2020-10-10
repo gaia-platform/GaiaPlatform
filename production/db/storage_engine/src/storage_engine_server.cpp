@@ -264,6 +264,8 @@ void server::init_shared_memory() {
     }
     s_shared_locators = static_cast<locators*>(map_fd(sizeof(locators), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_locators, 0));
     s_data = static_cast<data*>(map_fd(sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_data, 0));
+    // Populate shared memory from the persistent log and snapshot.
+    recover_db();
     cleanup_memory.dismiss();
 }
 
@@ -803,11 +805,19 @@ bool server::txn_commit() {
 
     std::set<gaia_locator_t> locators;
 
+    auto txn_name = rdb->begin_txn(s_txn_id);
+    // Prepare log for transaction.
+    rdb->prepare_wal_for_write(txn_name);
+
     for (size_t i = 0; i < s_log->count; i++) {
         auto lr = s_log->log_records + i;
 
         if (locators.insert(lr->locator).second) {
             if ((*s_shared_locators)[lr->locator] != lr->old_offset) {
+                // Append rollback decision to log.
+                // This isn't really required because recovery will skip deserializing transactions
+                // that don't have a commit marker; we do it for completeness anyway.
+                rdb->append_wal_rollback_marker(txn_name);
                 return false;
             }
         }
@@ -817,6 +827,9 @@ bool server::txn_commit() {
         auto lr = s_log->log_records + i;
         (*s_shared_locators)[lr->locator] = lr->new_offset;
     }
+
+    // Append commit decision to the log.
+    rdb->append_wal_commit_marker(txn_name);
 
     return true;
 }
