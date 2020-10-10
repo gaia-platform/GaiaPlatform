@@ -32,7 +32,7 @@ private:
     int m_err;
 };
 
-inline void throw_system_error(const string& user_info, const int err = errno) {
+inline void throw_system_error(const string& user_info, int err = errno) {
     std::stringstream ss;
     ss << user_info << " - " << (::strerror(err));
     throw system_error(ss.str(), err);

@@ -31,7 +31,7 @@ void server::handle_connect(
     // We need to reply to the client with the fds for the data/locator segments.
     FlatBufferBuilder builder;
     build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_txn_id);
-    const int send_fds[] = {s_fd_data, s_fd_locators};
+    int send_fds[] = {s_fd_data, s_fd_locators};
     send_msg_with_fds(s_session_socket, send_fds, std::size(send_fds), builder.GetBufferPointer(), builder.GetSize());
 }
 
@@ -135,8 +135,8 @@ void server::handle_request_stream(
     if (-1 == ::socketpair(PF_UNIX, SOCK_SEQPACKET, 0, socket_pair)) {
         throw_system_error("socketpair failed");
     }
-    const int server_socket = socket_pair[server];
-    const int client_socket = socket_pair[client];
+    int server_socket = socket_pair[server];
+    int client_socket = socket_pair[client];
     auto socket_cleanup = make_scope_guard([server_socket, client_socket]() {
         ::close(server_socket);
         ::close(client_socket);
@@ -160,7 +160,7 @@ void server::handle_request_stream(
     // but the FlatBuffers API doesn't have any object corresponding to a union.
     const client_request_t* request = static_cast<const client_request_t*>(event_data);
     retail_assert(request->data_type() == request_data_t::table_scan);
-    const gaia_type_t type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
+    gaia_type_t type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
     auto id_generator = get_id_generator_for_type(type);
     start_stream_producer(server_socket, id_generator);
     // Any exceptions after this point will close the server socket, ensuring the producer thread terminates.
@@ -347,7 +347,7 @@ void server::init_listening_socket() {
     s_listening_socket = listening_socket;
 }
 
-bool server::authenticate_client_socket(const int socket) {
+bool server::authenticate_client_socket(int socket) {
     struct ucred cred;
     socklen_t cred_len = sizeof(cred);
     if (-1 == ::getsockopt(socket, SOL_SOCKET, SO_PEERCRED, &cred, &cred_len)) {
@@ -414,7 +414,7 @@ void server::client_dispatch_handler() {
             throw_system_error("epoll_wait failed");
         }
         for (int i = 0; i < ready_fd_count; i++) {
-            const epoll_event ev = events[i];
+            epoll_event ev = events[i];
             // We never register for anything but EPOLLIN,
             // but EPOLLERR will always be delivered.
             if (ev.events & EPOLLERR) {
@@ -457,7 +457,7 @@ void server::client_dispatch_handler() {
     }
 }
 
-void server::session_handler(const int session_socket) {
+void server::session_handler(int session_socket) {
     // Set up session socket.
     s_session_shutdown = false;
     s_session_socket = session_socket;
@@ -530,7 +530,7 @@ void server::session_handler(const int session_socket) {
         int* fds = nullptr;
         size_t fd_count = 0;
         for (int i = 0; i < ready_fd_count; i++) {
-            const epoll_event ev = events[i];
+            epoll_event ev = events[i];
             if (ev.data.fd == s_session_socket) {
                 // NB: Since many event flags are set in combination with others, the
                 // order we test them in matters! E.g., EPOLLIN seems to always be set
@@ -610,7 +610,7 @@ void server::session_handler(const int session_socket) {
 
 template <typename element_type>
 void server::stream_producer_handler(
-    const int stream_socket, const int cancel_eventfd, std::function<std::optional<element_type>()> generator_fn) {
+    int stream_socket, int cancel_eventfd, std::function<std::optional<element_type>()> generator_fn) {
     // We only support fixed-width integer types for now to avoid framing.
     static_assert(std::is_integral<element_type>::value, "Generator function must return an integer.");
     // Verify the socket is the correct type for the semantics we assume.
@@ -663,7 +663,7 @@ void server::stream_producer_handler(
             throw_system_error("epoll_wait failed");
         }
         for (int i = 0; i < ready_fd_count; i++) {
-            const epoll_event ev = events[i];
+            epoll_event ev = events[i];
             if (ev.data.fd == stream_socket) {
                 // NB: Since many event flags are set in combination with others, the
                 // order we test them in matters! E.g., EPOLLIN seems to always be set
@@ -753,13 +753,13 @@ void server::stream_producer_handler(
 }
 
 template <typename element_type>
-void server::start_stream_producer(const int stream_socket, std::function<std::optional<element_type>()> generator_fn) {
+void server::start_stream_producer(int stream_socket, std::function<std::optional<element_type>()> generator_fn) {
     // Give the session ownership of the new stream thread.
     s_session_owned_threads.emplace_back(
         stream_producer_handler<element_type>, stream_socket, s_session_shutdown_eventfd, generator_fn);
 }
 
-std::function<std::optional<gaia_id_t>()> server::get_id_generator_for_type(const gaia_type_t type) {
+std::function<std::optional<gaia_id_t>()> server::get_id_generator_for_type(gaia_type_t type) {
     gaia_locator_t locator = 0;
     return [type, locator]() mutable -> std::optional<gaia_id_t> {
         // We need to ensure that we're not reading the locator segment

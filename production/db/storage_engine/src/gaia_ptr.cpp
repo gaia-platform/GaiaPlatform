@@ -142,7 +142,7 @@ gaia_offset_t gaia_ptr::to_offset() const {
                : 0;
 }
 
-void gaia_ptr::find_next(const gaia_type_t type) {
+void gaia_ptr::find_next(gaia_type_t type) {
     // search for rows of this type within the range of used slots
     while (++m_locator && m_locator < client::s_data->locator_count + 1) {
         if (is(type)) {

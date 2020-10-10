@@ -14,7 +14,7 @@ using namespace gaia::db;
 // duplicated from production/db/storage_engine/inc/storage_engine_server.hpp
 constexpr size_t STREAM_BATCH_SIZE = 1 << 10;
 
-void print_payload(std::ostream& o, const size_t size, const char* payload) {
+void print_payload(std::ostream& o, size_t size, const char* payload) {
     if (size) {
         o << " Payload: ";
     }
@@ -30,7 +30,7 @@ void print_payload(std::ostream& o, const size_t size, const char* payload) {
     }
 }
 
-void print_node(const gaia_ptr& node, const bool indent = false) {
+void print_node(const gaia_ptr& node, bool indent = false) {
     if (!node) {
         return;
     }

@@ -163,7 +163,7 @@ List* adapter_t::get_ddl_command_list(const char* server_name)
         // Length of format string + length of server name - 2 chars for format
         // specifier + 1 char for null terminator.
         size_t statement_length = strlen(ddl_formatted_statements[i])
-            + strlen(server_name) - sizeof("%s") + 1;
+            + strlen(server_name) - strlen("%s") + 1;
         char* statement_buffer = (char*)palloc(statement_length);
 
         // sprintf returns number of chars written, not including null

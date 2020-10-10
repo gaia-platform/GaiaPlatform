@@ -120,7 +120,7 @@ public:
 
     gaia_ptr& clone();
 
-    gaia_ptr& update_payload(const size_t data_size, const void* data);
+    gaia_ptr& update_payload(size_t data_size, const void* data);
 
     /**
      * Update the next child and parent reference slots in a child.
@@ -258,7 +258,7 @@ public:
      * cursors, which will be extended to support server-side filters.
      */
     static auto find_all_iter(
-        const gaia_type_t type,
+        gaia_type_t type,
         std::function<bool(gaia_ptr)> user_predicate = [](gaia_ptr) { return true; }) {
         // Get the gaia_id generator and wrap it in a gaia_ptr generator.
         std::function<std::optional<gaia_id_t>()> id_generator = get_id_generator_for_type(type);
@@ -291,7 +291,7 @@ public:
      * cursors, which will be extended to support server-side filters.
      */
     static auto find_all_range(
-        const gaia_type_t type,
+        gaia_type_t type,
         std::function<bool(gaia_ptr)> user_predicate = [](gaia_ptr) { return true; }) {
         return gaia::common::iterators::range(find_all_iter(type, user_predicate));
     }
@@ -307,17 +307,17 @@ protected:
 
     gaia_offset_t to_offset() const;
 
-    bool is(const gaia_type_t type) const {
+    bool is(gaia_type_t type) const {
         return to_ptr() && to_ptr()->type == type;
     }
 
-    void find_next(const gaia_type_t type);
+    void find_next(gaia_type_t type);
 
     void reset();
 private:
     // This is just a trivial wrapper for a gaia::db::client API,
     // to avoid calling into SE client code from this header file.
-    static std::function<std::optional<gaia_id_t>()> get_id_generator_for_type(const gaia_type_t type);
+    static std::function<std::optional<gaia_id_t>()> get_id_generator_for_type(gaia_type_t type);
 };
 
 } // namespace db
