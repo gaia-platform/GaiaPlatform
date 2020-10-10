@@ -18,6 +18,20 @@
 #include "gaia_common.hpp"
 #include "gaia_db.hpp"
 
+// does not move include with comments
+#include <iterator>
+#include <list>
+#include <string>
+
+#include "gaia_exception.hpp"
+
+#ifdef VAR
+#include <filesystem>
+#include <functional>
+
+#include "gaia_catalog.h"
+#endif
+
 using std::abs;
 using std::bind;
 using std::cout;
@@ -27,15 +41,23 @@ using std::cout;
  */
 namespace gaia
 {
+
+class inner_namespace_t
+{
+};
+
 namespace style
 {
 class class_name_t
 {
+
 public:
-    class_name_t(int private_member1, int private_member2, int private_member3)
-        : m_private_member1(private_member1),
-          m_private_member2(private_member2),
-          m_private_member3(private_member3){};
+    class_name_t(int private_member1,
+                 int private_member2,
+                 int private_member3)
+        : m_private_member1(private_member1)
+        , m_private_member2(private_member2)
+        , m_private_member3(private_member3){};
 
     int method_name(int argument);
 
@@ -53,20 +75,28 @@ int class_name_t::method_name(int argument)
     {
         argument *= 2;
     }
-    else
+    else if (argument < 4)
     {
         argument *= 3;
+    }
+    else
+    {
+        argument *= 0;
     }
     return argument * 2;
 }
 
+// the arguments are either all on the same line or all on a new line.
 double class_name_t::method_with_many_arguments(
     int arg1,
     double arg2,
     double arg3,
     long long int arg4)
 {
-    return arg1 + arg2 + arg3 + arg4; //NOLINT
+    // breaks before binary operator
+    return arg1
+           + arg2
+           + arg3 + arg4; // NOLINT
 }
 
 void short_statements()
@@ -84,7 +114,7 @@ void short_statements()
     }
 }
 
-void short_function()
+void short_function(int a)
 {
     return;
 }
@@ -100,8 +130,18 @@ void short_lambdas()
 
 std::string continue_indentation_width()
 {
-    std::string s("Something " + std::string("plus" + std::string("something else")));
-    return s;
+    std::string variable_with_rather_weird_name(
+        "Something "
+        + std::string(
+            "plus"
+            + std::string("something else")));
+
+    std::string var("Something " + std::string("plus" + std::string("something else")));
+
+    short_function(
+        3 + 4);
+
+    return variable_with_rather_weird_name;
 }
 
 template <typename T_type>
@@ -110,13 +150,12 @@ T_type template_indentation(T_type argument)
     return argument + argument;
 }
 
-template <typename T_type>
 void braced_style()
 {
-    std::vector<T_type> v{{}, {}, {}};
+    std::vector<int> v{{}, {}, {}};
 }
 
-int space_after_c_cast()
+int no_space_after_c_cast()
 {
     double var = 3.14; //NOLINT
     return (int)var;   //NOLINT
@@ -126,6 +165,19 @@ bool space_after_not()
 {
     bool yes = true;
     return !yes;
+}
+
+int ternary_operator(int a)
+{
+    // To align this way need clang11 which supports AlignOperands: AlignAfterOperator
+    //    return a == 1
+    //             ? 2
+    //             : 3;
+    // For now ubuntu20 (used by gdev) has clang10 so we keep it this way
+    // (I'm trying to install clang11/12 on gdev)
+    return a == 1
+               ? 2
+               : 3;
 }
 
 void pure_anarchy()

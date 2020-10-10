@@ -8,6 +8,7 @@
 #include <cstdlib>
 
 #include <iostream>
+#include <map>
 
 // should use constexpr
 #define PI 3.14
@@ -15,9 +16,7 @@
 // should use using-declarations
 using namespace gaia::common;
 using namespace std;
-
-// Avoid non-const global variable.
-char a;
+using std::map; // good
 
 /**
  * Showcase how our .clang-tidy configuration works.
@@ -32,10 +31,20 @@ void Gaia::clang_tidy::Method()
 
     cout << PascalCase << endl;
 }
+
 void Gaia::clang_tidy::other_method(int BadArgument)
 {
-    // Magic number bad.
-    int magic_number = BadArgument * 3.14;
+}
+
+void magic_numbers(int arg) {
+
+    // Complain 3.14 is a magic number.
+    int magic_number = arg * 3.14; // NOLINT
+
+    // does not complain about 0/2/1
+    for (int i = 0; i < arg / 2; i = i + 1)
+    {
+    }
 }
 
 void narrowing_conversion()
@@ -45,11 +54,26 @@ void narrowing_conversion()
     i += 0.1;
 }
 
+template <typename T1, typename T2>
+map<int, int>* thingy()
+{
+    return nullptr;
+}
+
+void use_auto() {
+    // should use auto since the type is explicit on the right side.
+    map<int, int>* m = new map<int, int>();
+
+    // should not use auto because we don't know the type of "thingy"
+    map<int, int>* m2 = thingy<int, int>();
+}
+
 void no_malloc()
 {
     // Do not use c-style cast to convert between unrelated types
     // use container or smart pointer.
     char* some_string = (char*)malloc(sizeof(char) * 20);
+
     free(some_string);
 }
 
@@ -68,7 +92,7 @@ void pure_anarchy()
     // NOLINTNEXTLINE
     int j = 42;
 
-    int y = 42; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+    int YYY = 42; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
 
     // Produces a warning, the actual check that fail is: cppcoreguidelines-avoid-magic-numbers.
     int k = 42; // NOLINT(google-runtime-operator)
