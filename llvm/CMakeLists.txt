@@ -1270,8 +1270,8 @@ add_custom_command(
   COMMAND cmake -E copy_if_different ${PROJECT_SOURCE_DIR}/changelog ${TEMP_PACKAGE_FOLDER}/DEBIAN/changelog
   COMMAND cmake -E copy_directory ${LLVM_LIBRARY_DIR}/../tools/clang/include ${TEMP_PACKAGE_FOLDER}/build/third_party/private/TranslationEngineLLVM/tools/clang/include
   COMMAND cmake -E copy_directory ${LLVM_LIBRARY_DIR}/../include ${TEMP_PACKAGE_FOLDER}/build/third_party/private/TranslationEngineLLVM/include
-  COMMAND cmake -E copy_directory ${LLVM_LIBRARY_DIR}/../TranslationEngineLLVM/clang/include ${TEMP_PACKAGE_FOLDER}/build/third_party/private/TranslationEngineLLVM/TranslationEngineLLVM/clang/include
-  COMMAND cmake -E copy_directory ${LLVM_LIBRARY_DIR}/../TranslationEngineLLVM/llvm/include ${TEMP_PACKAGE_FOLDER}/build/third_party/private/TranslationEngineLLVM/TranslationEngineLLVM/llvm/include
+  COMMAND cmake -E copy_directory ${LLVM_LIBRARY_DIR}/../clang/include ${TEMP_PACKAGE_FOLDER}/build/third_party/private/TranslationEngineLLVM/TranslationEngineLLVM/clang/include
+  COMMAND cmake -E copy_directory ${LLVM_LIBRARY_DIR}/../llvm/include ${TEMP_PACKAGE_FOLDER}/build/third_party/private/TranslationEngineLLVM/TranslationEngineLLVM/llvm/include
   COMMAND dpkg-deb --build ${TEMP_PACKAGE_FOLDER} ${CMAKE_CURRENT_BINARY_DIR}/gaiaPlatformLLVM.deb
   
   COMMAND cmake -E rm -r ${TEMP_PACKAGE_FOLDER}
