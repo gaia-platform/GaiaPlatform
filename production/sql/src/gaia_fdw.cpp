@@ -4,7 +4,6 @@
 /////////////////////////////////////////////
 
 #include "gaia_fdw.hpp"
-
 #include "gaia_fdw_adapter.hpp"
 
 using namespace std;

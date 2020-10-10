@@ -168,10 +168,10 @@ void persistent_store_manager::create_object_on_recovery(
     size_t num_refs,
     size_t data_size,
     const void* data) {
-    hash_node* hash_node = gaia_hash_map::insert(server::s_data, server::s_shared_locators, id);
+    server::hash_node* hash_node = gaia_hash_map::insert(server::s_data, server::s_shared_locators, id);
     hash_node->locator = se_base::allocate_locator(server::s_shared_locators, server::s_data, true);
     se_base::allocate_object(hash_node->locator, data_size + sizeof(gaia_se_object_t), server::s_shared_locators, server::s_data, true);
-    gaia_se_object_t* obj_ptr = server::locator_to_ptr(server::s_shared_locators, server::s_data, hash_node->locator);
+    gaia_se_object_t* obj_ptr = se_base::locator_to_ptr(server::s_shared_locators, server::s_data, hash_node->locator);
     obj_ptr->id = id;
     obj_ptr->type = type;
     obj_ptr->num_references = num_refs;

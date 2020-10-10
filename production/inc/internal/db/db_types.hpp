@@ -19,6 +19,11 @@ namespace db {
 typedef uint64_t gaia_txn_id_t;
 
 /**
+ * The value of an invalid gaia_txn_id.
+ */
+constexpr gaia_txn_id_t INVALID_GAIA_TXN_ID = 0;
+
+/**
  * The type of a Gaia locator id.
  *
  * A locator is an array index in a global shared memory segment, whose entry
@@ -29,6 +34,11 @@ typedef uint64_t gaia_txn_id_t;
 typedef uint64_t gaia_locator_t;
 
 /**
+ * The value of an invalid gaia_locator.
+ */
+constexpr gaia_locator_t INVALID_GAIA_LOCATOR = 0;
+
+/**
  * The type of a Gaia data offset.
  *
  * This represents the offset of a gaia_se_object in the global data shared
@@ -36,6 +46,11 @@ typedef uint64_t gaia_locator_t;
  * data segment to obtain a valid local pointer to the object.
  */
 typedef uint64_t gaia_offset_t;
+
+/**
+ * The value of an invalid gaia_offset.
+ */
+constexpr gaia_offset_t INVALID_GAIA_OFFSET = 0;
 
 }  // namespace db
 }  // namespace gaia

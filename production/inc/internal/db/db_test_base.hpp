@@ -64,5 +64,5 @@ protected:
     }
 };
 
-}  // namespace db
-}  // namespace gaia
+} // namespace db
+} // namespace gaia

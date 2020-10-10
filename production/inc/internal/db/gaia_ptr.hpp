@@ -9,6 +9,7 @@
 #include <iostream>
 
 #include "retail_assert.hpp"
+#include "generator_iterator.hpp"
 #include "gaia_db.hpp"
 #include "db_types.hpp"
 #include "gaia_se_object.hpp"
@@ -246,6 +247,55 @@ public:
      */
     void remove_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset);
 
+    // "function with deduced return type cannot be used before it is defined".
+    // The function must be defined in the same translation unit where it is used,
+    // and the only way to guarantee that for our clients is to define it in the
+    // header file itself.
+
+    /**
+     * Returns an iterator representing a server-side cursor over all objects
+     * of the given type. This is essentially a proof-of-concept for server-side
+     * cursors, which will be extended to support server-side filters.
+     */
+    static auto find_all_iter(
+        gaia_type_t type,
+        std::function<bool(gaia_ptr)> user_predicate = [](gaia_ptr) { return true; }) {
+        // Get the gaia_id generator and wrap it in a gaia_ptr generator.
+        std::function<std::optional<gaia_id_t>()> id_generator = get_id_generator_for_type(type);
+        std::function<std::optional<gaia_ptr>()> gaia_ptr_generator = [id_generator]() -> std::optional<gaia_ptr> {
+            std::optional<gaia_id_t> id_opt = id_generator();
+            if (id_opt) {
+                return gaia_ptr::open(*id_opt);
+            }
+            return std::nullopt;
+        };
+        // We need to construct an iterator from this generator rather than
+        // directly constructing a range from the generator, because we need
+        // to filter out values corresponding to deleted objects, and we can
+        // do that only by supplying a predicate to the iterator.
+        // REVIEW: this can filter out objects that do not exist in the client view,
+        // but it cannot return objects that only exist in the client view.
+        // That will require merging the client's transaction log.
+        std::function<bool(gaia_ptr)> gaia_ptr_predicate = [user_predicate](gaia_ptr ptr) {
+            return !ptr.is_null() && user_predicate(ptr);
+        };
+        auto gaia_ptr_iterator = gaia::common::iterators::generator_iterator_t(
+            gaia_ptr_generator,
+            gaia_ptr_predicate);
+        return gaia_ptr_iterator;
+    }
+
+    /**
+     * Returns a range representing a server-side cursor over all objects
+     * of the given type. This is essentially a proof-of-concept for server-side
+     * cursors, which will be extended to support server-side filters.
+     */
+    static auto find_all_range(
+        gaia_type_t type,
+        std::function<bool(gaia_ptr)> user_predicate = [](gaia_ptr) { return true; }) {
+        return gaia::common::iterators::range(find_all_iter(type, user_predicate));
+    }
+
 protected:
     gaia_ptr(gaia_id_t id);
 
@@ -264,6 +314,10 @@ protected:
     void find_next(gaia_type_t type);
 
     void reset();
+private:
+    // This is just a trivial wrapper for a gaia::db::client API,
+    // to avoid calling into SE client code from this header file.
+    static std::function<std::optional<gaia_id_t>()> get_id_generator_for_type(gaia_type_t type);
 };
 
 } // namespace db

@@ -13,18 +13,22 @@
 #include <thread>
 #include <atomic>
 #include <unordered_set>
+#include <functional>
+#include <optional>
 
 #include <flatbuffers/flatbuffers.h>
 
+#include "scope_guard.hpp"
 #include "retail_assert.hpp"
 #include "system_error.hpp"
 #include "mmap_helpers.hpp"
 #include "socket_helpers.hpp"
+#include "generator_iterator.hpp"
 #include "messages_generated.h"
 #include "storage_engine.hpp"
 #include "triggers.hpp"
 #include "db_types.hpp"
-#include "gaia_db_internal.hpp"
+#include "system_table_types.hpp"
 
 using namespace std;
 using namespace gaia::common;
@@ -60,6 +64,9 @@ public:
     static void rollback_transaction();
     static void commit_transaction();
 
+    // This returns a generator object for gaia_ids of a given type.
+    static std::function<std::optional<gaia_id_t>()> get_id_generator_for_type(gaia_type_t type);
+
 private:
     // Both s_fd_log & s_locators have transaction lifetime.
     thread_local static int s_fd_log;
@@ -85,6 +92,14 @@ private:
     static void destroy_log_mapping();
 
     static int get_session_socket();
+
+    static int get_id_cursor_socket_for_type(gaia_type_t type);
+
+    // This is a helper for higher-level methods that use
+    // this generator to build a range or iterator object.
+    template <typename element_type>
+    static std::function<std::optional<element_type>()>
+    get_stream_generator_for_socket(int stream_socket);
 
     /**
      *  Check if an event should be generated for a given type.
