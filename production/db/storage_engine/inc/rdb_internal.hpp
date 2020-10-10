@@ -13,6 +13,7 @@
 #include "rocksdb/status.h"
 #include "rocksdb/utilities/transaction_db.h"
 
+#include "retail_assert.hpp"
 #include "persistent_store_error.hpp"
 
 // Simple library over RocksDB APIs.
@@ -66,6 +67,7 @@ class rdb_internal_t
                 handle_rdb_error(s);
             }
         }
+        retail_assert(m_txn_db != nullptr, "RocksDB database is not initialized.");
     }
 
     std::string begin_txn(rocksdb::WriteOptions& options, const rocksdb::TransactionOptions& txn_opts, gaia_txn_id_t txn_id) {
@@ -78,7 +80,7 @@ class rdb_internal_t
         auto nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(duration);
         std::stringstream rdb_txn_name;
         rdb_txn_name << txn_id << "." << nanoseconds.count();
-
+        retail_assert(m_txn_db != nullptr, "RocksDB database is not initialized.");
         rocksdb::Transaction* txn = m_txn_db->BeginTransaction(options, txn_opts);
         rocksdb::Status s = txn->SetName(rdb_txn_name.str());
         handle_rdb_error(s);
@@ -112,6 +114,7 @@ class rdb_internal_t
     }
 
     rocksdb::Iterator* get_iterator() {
+        retail_assert(m_txn_db != nullptr, "RocksDB database is not initialized.");
         return m_txn_db->NewIterator(rocksdb::ReadOptions());
     }
 
@@ -124,7 +127,7 @@ class rdb_internal_t
     }
 
     rocksdb::Transaction* get_txn_by_name(std::string& txn_name) {
-        assert(m_txn_db);
+        retail_assert(m_txn_db != nullptr, "RocksDB database is not initialized.");
         return m_txn_db->GetTransactionByName(txn_name);
     }
 
