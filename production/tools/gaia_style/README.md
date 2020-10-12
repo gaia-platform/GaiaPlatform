@@ -7,7 +7,7 @@ what the new change is about.
 
 * `clang_format.cpp|clang_format.hpp`: show the formatting rules. You can create methods that showcase a formatting rule.
    For instance, to show how indentation of short statements work, you could create a `short_statements()` method.
-* `clang_tyidy.cpp|clang_tidy.hpp`: show the linter rules. These files contain code that triggers the linter. 
+* `clang_tyidy.cpp|clang_tidy.hpp`: show the linter rules. These files contain code that trigger the linter. 
    For instance: 
    ```
     // Should have _t suffix.
@@ -15,4 +15,3 @@ what the new change is about.
     {
     };
   ```
-

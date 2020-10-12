@@ -3,6 +3,7 @@ UseCRLF: false
 UseTab: Never
 IndentWidth: 4
 ColumnLimit: 0 # I would put some reasonable limit such as 120 columns
+BreakBeforeBraces: Allman
 
 # Force pointers to the type for C++.
 DerivePointerAlignment: false
@@ -16,10 +17,6 @@ AlignOperands: false
 BreakBeforeBinaryOperators: All
 BreakBeforeTernaryOperators: true
 
-# Parenthesis placement. Stroustrup style puts the braces on the new line (Laurentiu/Dax way)
-BreakBeforeBraces: Allman
-# https://stackoverflow.com/questions/29477654/how-to-make-clang-format-add-new-line-before-opening-brace-of-a-function
-# I'd suggest using Linux: Like Attach, but break before braces on function, namespace and class definitions.
 
 AllowAllConstructorInitializersOnNextLine: true
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
