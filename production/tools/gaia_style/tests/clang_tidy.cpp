@@ -5,7 +5,8 @@
 
 #include "clang_tidy.hpp"
 
-#include <cstdlib>
+// deprecated
+#include <stdlib.h>
 
 #include <iostream>
 #include <map>
@@ -36,7 +37,8 @@ void Gaia::clang_tidy::other_method(int BadArgument)
 {
 }
 
-void magic_numbers(int arg) {
+void magic_numbers(int arg)
+{
 
     // Complain 3.14 is a magic number.
     int magic_number = arg * 3.14; // NOLINT
@@ -60,7 +62,8 @@ map<int, int>* thingy()
     return nullptr;
 }
 
-void use_auto() {
+void use_auto()
+{
     // should use auto since the type is explicit on the right side.
     map<int, int>* m = new map<int, int>();
 
