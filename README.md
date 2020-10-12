@@ -29,12 +29,15 @@ The following folder structure is recommended for C++ projects:
 
 ## Formatter and Linter
 
-- `clang-format` is invoked on each commit as a git pre-commit hook. The pre-commit is 
+### Formatter
+`clang-format` is invoked on each commit as a git pre-commit hook. The pre-commit is 
 automatically installed by CMake. The `clang-format` version in use is `10.0`.
+
 Note: `clang-format` reorders the includes which could break the build. There are ways
 to avoid it. Please read: https://stackoverflow.com/questions/37927553/can-clang-format-break-my-code
 
-- `clang-tidy` is integrated with CMake and is invoked on each build. At the moment it
+### Linter
+`clang-tidy` is integrated with CMake and is invoked on each build. At the moment it
 only print the warnings in the compiler output. `clang-tidy` is not enforced, which means
 that warnings to not lead to build failures, keep in mind though, that this is the desired 
 behavior in the long term. Do your best to reduce the number of warnings by either fixing

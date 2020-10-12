@@ -205,7 +205,7 @@ add_subdirectory("${GAIA_REPO}/third_party/production/tabulate" tabulate)
 # Add googletest
 add_subdirectory(${GOOGLE_TEST} googletest)
 
-# Setting clang-tidy here to avoid it being applied to flatbuffers, rocksdb etc..
+# Setting clang-tidy here to avoid it being applied to flatbuffers, rocksdb etc...
 # TODO Maybe we could force each subproject to set this flag?
 set(CMAKE_CXX_CLANG_TIDY clang-tidy)
 
@@ -232,12 +232,9 @@ file(
   DESTINATION ${PROJECT_BINARY_DIR}/common/
 )
 
-# TODO /dev_tools/hooks/pre-commit is not available on gdev, thus this command will fail.
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../dev_tools/hooks/pre-commit)
-  # Copy the git-hooks. git-hooks are local to any git repo and
-  # are not copied over when you clone a repo.
-  file(
-    COPY ${CMAKE_CURRENT_SOURCE_DIR}/../dev_tools/hooks/pre-commit
-    DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../.git/hooks
-  )
-endif()
+# Copy the git-hooks. git-hooks are local to any git repo and
+# are not copied over when you clone a repo.
+file(
+  COPY ${CMAKE_CURRENT_SOURCE_DIR}/../dev_tools/hooks/pre-commit
+  DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../.git/hooks
+)

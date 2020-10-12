@@ -13,7 +13,7 @@ set(GAIA_GENERATE_INCLUDES
   ${GAIA_INC}/public/direct_access
   ${GAIA_INC}/public/
   ${FLATBUFFERS_INC}
-  )
+)
 
 message(VERBOSE "GAIA_GENERATE_INCLUDES=${GAIA_GENERATE_INCLUDES}")
 

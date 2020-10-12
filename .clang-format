@@ -17,7 +17,6 @@ AlignOperands: false
 BreakBeforeBinaryOperators: All
 BreakBeforeTernaryOperators: true
 
-
 AllowAllConstructorInitializersOnNextLine: true
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 BreakConstructorInitializers: BeforeComma

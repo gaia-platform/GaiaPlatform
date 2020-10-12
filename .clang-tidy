@@ -17,8 +17,8 @@ google-runtime-operator,
 google-readability-casting,
 -performance-unnecessary-value-param,
 -modernize-use-trailing-return-type,
--modernize-avoid-c-arrays
--modernize-concat-nested-namespaces
+-modernize-avoid-c-arrays,
+-modernize-concat-nested-namespaces,
 '
 
 HeaderFilterRegex: "*.hpp"
