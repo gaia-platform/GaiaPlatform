@@ -41,6 +41,10 @@ gaia_id_t create_table(
     return catalog_manager_t::get().create_table(dbname, name, fields, throw_on_exists);
 }
 
+void drop_database(const string& name) {
+    return catalog_manager_t::get().drop_database(name);
+}
+
 void drop_table(const string& name) {
     return catalog_manager_t::get().drop_table(c_empty_c_str, name);
 }
@@ -226,25 +230,73 @@ gaia_id_t catalog_manager_t::create_database(
 }
 
 gaia_id_t catalog_manager_t::create_table(
-    const string& dbname,
+    const string& db_name,
     const string& name,
     const field_def_list_t& fields,
     bool throw_on_exists) {
-    return create_table_impl(dbname, name, fields, false, throw_on_exists);
+    return create_table_impl(db_name, name, fields, false, throw_on_exists);
+}
+
+void catalog_manager_t::drop_table_no_txn(gaia_id_t table_id) {
+    auto table_record = gaia_table_t::get(table_id);
+
+    for (gaia_id_t field_id : list_fields(table_id)) {
+        // Unlink the field and the table.
+        table_record.gaia_field_list().erase(field_id);
+        // Remove the field.
+        gaia_field_t::get(field_id).delete_row();
+    }
+
+    for (gaia_id_t reference_id : list_references(table_id)) {
+        // Unlink the reference and the owner table.
+        table_record.gaia_field_list().erase(reference_id);
+        auto reference_record = gaia_field_t::get(reference_id);
+        // Unlink the reference and the referred table.
+        reference_record.ref_gaia_table().ref_gaia_field_list().erase(reference_id);
+        // Remove the reference.
+        reference_record.delete_row();
+    }
+
+    // Unlink the table from its database.
+    table_record.gaia_database().gaia_table_list().erase(table_record);
+    // Remove the table.
+    table_record.delete_row();
+}
+
+void catalog_manager_t::drop_database(const string& name) {
+    unique_lock lock(m_lock);
+    gaia_id_t db_id = find_db_id_no_lock(name);
+    if (db_id == INVALID_GAIA_ID) {
+        throw db_not_exists(name);
+    }
+    {
+        auto_transaction_t txn;
+        auto db_record = gaia_database_t::get(db_id);
+        vector<gaia_id_t> table_ids;
+        for (auto table : db_record.gaia_table_list()) {
+            table_ids.push_back(table.gaia_id());
+        }
+        for (gaia_id_t table_id : table_ids) {
+            drop_table_no_txn(table_id);
+        }
+        db_record.delete_row();
+        txn.commit();
+    }
+    m_db_names.erase(name);
 }
 
 void catalog_manager_t::drop_table(
-    const string& dbname,
+    const string& db_name,
     const string& name) {
 
     unique_lock lock(m_lock);
 
-    if (!dbname.empty() && m_db_names.find(dbname) == m_db_names.end()) {
-        throw db_not_exists(dbname);
+    if (!db_name.empty() && m_db_names.find(db_name) == m_db_names.end()) {
+        throw db_not_exists(db_name);
     }
 
-    string full_table_name = (dbname.empty() ? c_empty_c_str : dbname + ".") + name;
-    gaia_id_t db_id = find_db_id_no_lock(dbname);
+    string full_table_name = (db_name.empty() ? c_empty_c_str : db_name + ".") + name;
+    gaia_id_t db_id = find_db_id_no_lock(db_name);
     retail_assert(db_id != INVALID_GAIA_ID);
 
     if (m_table_names.find(full_table_name) == m_table_names.end()) {
@@ -252,23 +304,11 @@ void catalog_manager_t::drop_table(
     }
     gaia_id_t table_id = m_table_names[full_table_name];
 
-    // Remove all records belong to the table in the catalog tables.
-    gaia::db::begin_transaction();
-    for (gaia_id_t field_id : list_fields(table_id)) {
-        auto field_record = gaia_field_t::get(field_id);
-        field_record.delete_row();
+    {
+        auto_transaction_t txn;
+        drop_table_no_txn(table_id);
+        txn.commit();
     }
-    for (gaia_id_t reference_id : list_references(table_id)) {
-        auto reference_record = gaia_field_t::get(reference_id);
-        reference_record.delete_row();
-    }
-
-    auto table_record = gaia_table_t::get(table_id);
-    // Unlink the table from its database.
-    gaia_database_t::get(db_id).gaia_table_list().erase(table_record);
-    // Remove the table.
-    table_record.delete_row();
-    gaia::db::commit_transaction();
 
     // Invalidate catalog caches.
     m_table_names.erase(full_table_name);
