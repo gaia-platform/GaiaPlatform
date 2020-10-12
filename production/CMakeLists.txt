@@ -226,7 +226,7 @@ file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
 )
 
 # Copy log configuration file to make it visible during
-# common/ tests (currently not in use). Living this for reference
+# common/ tests (currently not in use). Leaving this for reference
 file(
   COPY ${CMAKE_CURRENT_SOURCE_DIR}/log_conf.toml
   DESTINATION ${PROJECT_BINARY_DIR}/common/
