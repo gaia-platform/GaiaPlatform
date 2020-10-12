@@ -1,7 +1,7 @@
 # Gaia Style
 
 This package folder contains source code that showcases how Gaia `.clang-tidy` and `.clang-format` configurations work.
-Use `BUILD_GAIA_STYLE_TESTS=ON` option to enable building this project.
+Invoke cmake with the command-line argument `-DBUILD_GAIA_STYLE_TESTS=ON` to enable building this project.
 
 Whenever you modify `.clang-tidy` or `.clang-format` you should update the files in this folder accordingly to "show"
 what the new change is about.
