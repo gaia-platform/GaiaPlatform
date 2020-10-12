@@ -15,6 +15,7 @@
 #include "system_error.hpp"
 #include "gaia_db.hpp"
 #include "gaia_db_internal.hpp"
+#include "db_types.hpp"
 #include "logger.hpp"
 
 namespace gaia {
@@ -72,7 +73,7 @@ void reset_server() {
     // Reinitialize the server (forcibly disconnects all clients and clears database).
     // Resetting the server will cause Recovery to be skipped. Recovery will only occur post
     // server process reboot.
-    ::system((std::string("pkill -f -HUP ") + SE_SERVER_NAME).c_str());
+    ::system((std::string("pkill -f -HUP ") + SE_SERVER_EXEC_NAME).c_str());
     // Wait a bit for the server's listening socket to be closed.
     // (Otherwise, a new session might be accepted after the signal has been sent
     // but before the server has been reinitialized.)
@@ -123,11 +124,11 @@ class db_server_t {
   private:
     void set_path(const char* db_server_path) {
         if (!db_server_path) {
-            m_server_path = gaia::db::SE_SERVER_NAME;
+            m_server_path = gaia::db::SE_SERVER_EXEC_NAME;
         } else {
             m_server_path = db_server_path;
             terminate_path(m_server_path);
-            m_server_path.append(gaia::db::SE_SERVER_NAME);
+            m_server_path.append(gaia::db::SE_SERVER_EXEC_NAME);
         }
     }
 

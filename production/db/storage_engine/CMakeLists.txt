@@ -11,15 +11,6 @@ set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
-# Enable stack traces in debug builds for the storage engine server.
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  # backward-cpp stack trace library.
-  find_package(Backward REQUIRED)
-  # backward-cpp dependencies (one of several options):
-  # "libdw provides access to DWARF debug information stored inside ELF files."
-  find_library(LIBDW_LIBRARY dw REQUIRED)
-endif()
-
 set(GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES
   "${GAIA_INC}/public/common"
   "${GAIA_INC}/public/db"
@@ -136,7 +127,7 @@ target_include_directories(gaia_se_server SYSTEM PRIVATE "${GEN_DIR}")
 set_target_properties(gaia_se_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 target_link_libraries(gaia_se_server PRIVATE gaia_common Threads::Threads explain rocks_wrapper)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  target_link_libraries(gaia_se_server PUBLIC Backward::Backward)
+  target_link_libraries(gaia_se_server PUBLIC backward)
 endif()
 install(TARGETS gaia_se_server DESTINATION "bin")
 

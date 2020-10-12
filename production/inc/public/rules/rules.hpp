@@ -18,20 +18,20 @@
 using namespace gaia::db::triggers;
 using namespace gaia::common;
 
-namespace gaia 
+namespace gaia
 {
 /**
  * \addtogroup Gaia
  * @{
  */
 
-namespace rules 
+namespace rules
 {
 
 /**
  * \addtogroup Rules
  * @{
- * 
+ *
  * Provides facilities for subscribing and unsubscribing rules
  * to events.
  */
@@ -48,19 +48,19 @@ typedef void (* gaia_rule_fn)(const rule_context_t * context);
 /**
  * The application must provide an implementation of initialize_rules().  This
  * function is invoked when the event manager singleton is created.
- */ 
+ */
 extern "C" void initialize_rules();
 
 /**
  * The application may provide an implementation of subscribe_ruleset().  This
  * is a convenience method to subscribe all the rules in a ruleset at once.
- */ 
+ */
 extern "C" void subscribe_ruleset(const char* ruleset_name);
 
 /**
  * The application may provide an implementation of unsubscribe_ruleset().  This
  * is a convenience method to unsubscribe all the rules in a ruleset at once.
- */ 
+ */
 extern "C" void unsubscribe_ruleset(const char* ruleset_name);
 
 /**
@@ -68,23 +68,23 @@ extern "C" void unsubscribe_ruleset(const char* ruleset_name);
  * The caller must supply the ruleset_name, rule_name, and the function pointer for the rule.
  * The ruleset_name and the rule_name must uniquely identify the rule.
   */
-struct rule_binding_t 
+struct rule_binding_t
 {
     rule_binding_t()
         : ruleset_name(nullptr)
-        , rule_name(nullptr), 
-        rule(nullptr) 
+        , rule_name(nullptr),
+        rule(nullptr)
     {}
-    
+
     rule_binding_t(
-        const char* a_ruleset_name, 
-        const char* a_rule_name, 
+        const char* a_ruleset_name,
+        const char* a_rule_name,
         gaia_rule_fn a_rule)
         : ruleset_name(a_ruleset_name)
         , rule_name(a_rule_name)
-        , rule(a_rule) 
+        , rule(a_rule)
     {}
-    
+
     const char* ruleset_name;
     const char* rule_name;
     gaia_rule_fn rule;
@@ -93,15 +93,15 @@ struct rule_binding_t
 /**
  * This type is returned in a caller-supplied vector when
  * the list_rules api is called
- */ 
-struct subscription_t 
+ */
+struct subscription_t
 {
     subscription_t()
         : ruleset_name(nullptr)
         , rule_name(nullptr)
         , gaia_type(INVALID_GAIA_TYPE)
         , event_type(event_type_t::not_set)
-        , field(0) 
+        , field(0)
     {
     }
 
@@ -115,7 +115,7 @@ struct subscription_t
         , rule_name(a_rule_name)
         , gaia_type(a_gaia_type)
         , event_type(an_event_type)
-        , field(a_field) 
+        , field(a_field)
     {
     }
 
@@ -135,7 +135,7 @@ typedef std::vector<std::unique_ptr<subscription_t>> subscription_list_t;
 /**
  * Use this constant to specify that no fields are needed for the
  * subscribe_rule call.
- */ 
+ */
 const field_position_list_t empty_fields;
 
 /**
@@ -146,7 +146,7 @@ const field_position_list_t empty_fields;
  * table. See the rule_context_t::last_operation() method for further
  * explanation.
  */
-enum class last_operation_t : uint8_t 
+enum class last_operation_t : uint8_t
 {
     none,
     row_update,
@@ -155,55 +155,55 @@ enum class last_operation_t : uint8_t
 };
 
 /**
- * The rule context wraps the event (or data) context as well as information 
- * about the event and rule metadata.  In the future the rule context may also 
- * maintain the error state of the rule invocation.  Therefore, the rule 
- * contexts map 1:1 to each rule that is bound to an event.  
- * Data contexts may apply to more than one rule. 
- * 
+ * The rule context wraps the event (or data) context as well as information
+ * about the event and rule metadata.  In the future the rule context may also
+ * maintain the error state of the rule invocation.  Therefore, the rule
+ * contexts map 1:1 to each rule that is bound to an event.
+ * Data contexts may apply to more than one rule.
+ *
  * Note:  A single event may be bound to multiple rules or a rule may be bound
- * to multiple events. Rules may also be invoked both synchronously or 
- * asynchronously.  For this reason, events and rules are decoupled in 
+ * to multiple events. Rules may also be invoked both synchronously or
+ * asynchronously.  For this reason, events and rules are decoupled in
  * the system.
- * 
+ *
  * The rule binding is included for debugging and may be removed in a later
  * iteration.
  */
-struct rule_context_t 
+struct rule_context_t
 {
 public:
     rule_context_t(
-        direct_access::auto_transaction_t& a_transaction,
+        direct_access::auto_transaction_t& a_txn,
         common::gaia_type_t a_gaia_type,
         db::triggers::event_type_t a_event_type,
         gaia_id_t a_record,
         const field_position_list_t& a_field_list)
-        : transaction(a_transaction)
+        : txn(a_txn)
         , gaia_type(a_gaia_type)
         , event_type(a_event_type)
         , record(a_record)
         , fields(a_field_list)
     {
     }
-    
+
     rule_context_t() = delete;
 
     /**
      * Helper to enable a declarative rule to check what the last database
      * operation was for the passed-in type. For example, consider a rule that
      * may be invoked either from a table operation on type X or a change to
-     * a field reference in table Y. This method enables the rule author to 
+     * a field reference in table Y. This method enables the rule author to
      * determine the reason for the rule being invoked.
-     * 
+     *
      * if (X.last_operation == last_operation_t::row_update) { do A stuff }
-     * else { do B stuff } 
-     * 
+     * else { do B stuff }
+     *
      * This method will return last_operation_t::none if this rule was not
      * invoked due to an operation on X.
      */
     last_operation_t last_operation(gaia_type_t gaia_type) const;
 
-    direct_access::auto_transaction_t& transaction;
+    direct_access::auto_transaction_t& txn;
     common::gaia_type_t gaia_type;
     db::triggers::event_type_t event_type;
     gaia_id_t record;
@@ -212,10 +212,10 @@ public:
 
 /**
  * Thrown when the caller provides an incomplete rule_binding_t structure.
- * 
+ *
  * The system needs the function pointer, rule_name, and ruleset_name to
  * be provided by the caller.
- */ 
+ */
 class invalid_rule_binding: public gaia::common::gaia_exception
 {
 public:
@@ -223,15 +223,15 @@ public:
 };
 
 /**
- * Thrown under two circumstances.  
- * 
- * First, the ruleset_name and rule_name must be unique across the system.  
- * If a caller submits a rule_binding that generates the same key but has 
- * a different rule definition then this exception is thrown.  
- * 
- * Second, if a user attempts to subscribe the same rule to the same 
- * gaia type and event  type then this event is thrown.  
- */ 
+ * Thrown under two circumstances.
+ *
+ * First, the ruleset_name and rule_name must be unique across the system.
+ * If a caller submits a rule_binding that generates the same key but has
+ * a different rule definition then this exception is thrown.
+ *
+ * Second, if a user attempts to subscribe the same rule to the same
+ * gaia type and event  type then this event is thrown.
+ */
 class duplicate_rule: public gaia::common::gaia_exception
 {
 public:
@@ -241,7 +241,7 @@ public:
 /**
  * Thrown when the caller either does not initialize the event manager
  * or attempts to initialize an already initialized event manager.
- */ 
+ */
 class initialization_error : public gaia::common::gaia_exception
 {
 public:
@@ -251,7 +251,7 @@ public:
 /**
  * Thrown when the caller provides an invalid subscription.  See the
  * constructor methods for the reasons that his could occur.
- */ 
+ */
 class invalid_subscription : public gaia::common::gaia_exception
 {
 public:
@@ -262,7 +262,7 @@ public:
     // Field not found.
     invalid_subscription(gaia_type_t gaia_type, const char* table, uint16_t position);
     // Field not active or has been deprecated
-    invalid_subscription(gaia_type_t gaia_type, const char* table, uint16_t position, 
+    invalid_subscription(gaia_type_t gaia_type, const char* table, uint16_t position,
         const char* field_name, bool is_deprecated);
 };
 
@@ -278,7 +278,7 @@ public:
 /**
  * Initializes the rules engine.  Should only be called once
  * per process.
- * 
+ *
  * @throw initialization_error
  */
 void initialize_rules_engine();
@@ -288,8 +288,8 @@ void initialize_rules_engine();
  * transaction operation (begin, commit, rollback)
  * table operation (insert, update, delete)
  * field references (update a specific field)
- * 
- * 
+ *
+ *
  * @param gaia_type table type to bind the rule to
  * @param event_type read or write field event
  * @param fields the set of fields that will cause this rule to be fired if changed.
@@ -299,14 +299,14 @@ void initialize_rules_engine();
  * @throw initialization_error
  */
 void subscribe_rule(
-    gaia::common::gaia_type_t gaia_type, 
+    gaia::common::gaia_type_t gaia_type,
     gaia::db::triggers::event_type_t event_type,
     const field_position_list_t& fields,
     const rule_binding_t& rule_binding);
 
 /**
  * Unsubscribes this rule from the specified table event scoped by the gaia_type.
- * 
+ *
  * @param gaia_type table type to bind the rule to
  * @param type the event type to bind this rule to
  * @param fields the set of columns to unsubscribe the rule from
@@ -316,8 +316,8 @@ void subscribe_rule(
  * @throw initialization_error
  */
 bool unsubscribe_rule(
-    gaia::common::gaia_type_t gaia_type, 
-    gaia::db::triggers::event_type_t type, 
+    gaia::common::gaia_type_t gaia_type,
+    gaia::db::triggers::event_type_t type,
     const field_position_list_t& fields,
     const rule_binding_t& rule_binding);
 
@@ -329,10 +329,10 @@ bool unsubscribe_rule(
 void unsubscribe_rules();
 
 /**
- * List all rules already subscribed to events.  
- * 
+ * List all rules already subscribed to events.
+ *
  * Enable filtering on ruleset name, gaia_type, event_type, and field.
- * 
+ *
  * @param ruleset_name Scope returned rules to specified rulset if provided.  May be null.
  * @param gaia_type Filter results by the object they refer to.  May be null.
  * @param event_type Filter by event you want.
@@ -342,10 +342,10 @@ void unsubscribe_rules();
  * @throw initialization_error
  */
 void list_subscribed_rules(
-    const char* ruleset_name, 
-    const gaia::common::gaia_type_t* gaia_type, 
+    const char* ruleset_name,
+    const gaia::common::gaia_type_t* gaia_type,
     const gaia::db::triggers::event_type_t* event_type,
-    const uint16_t* field, 
+    const uint16_t* field,
     subscription_list_t& subscriptions);
 
 /*@}*/

@@ -19,7 +19,7 @@ namespace catalog {
 /**
  * Return the position of chr within base64_encode()
  */
-static unsigned int pos_of_char(const unsigned char chr) {
+static unsigned int pos_of_char(unsigned char chr) {
     if (chr >= 'A' && chr <= 'Z') {
         return chr - 'A';
     } else if (chr >= 'a' && chr <= 'z') {
@@ -82,10 +82,10 @@ static string base64_decode(string encoded_string) {
  * This is for temporary workaround to encode binary into string before EDC support arrays.
  * Do not use it elsewhere.
  **/
-static string base64_encode(uint8_t const* bytes_to_encode, uint32_t in_len) {
+static string base64_encode(const uint8_t* bytes_to_encode, uint32_t in_len) {
     uint32_t len_encoded = (in_len + 2) / 3 * 4;
-    unsigned char trailing_char = '=';
-    static const char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    constexpr unsigned char trailing_char = '=';
+    constexpr char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                        "abcdefghijklmnopqrstuvwxyz"
                                        "0123456789"
                                        "+/";
@@ -115,14 +115,38 @@ static string base64_encode(uint8_t const* bytes_to_encode, uint32_t in_len) {
     return ret;
 }
 
+static string generate_fbs_namespace(const string& db_name) {
+    if (db_name.empty() || db_name == c_global_db_name) {
+        return "namespace " + c_gaia_namespace + ";\n";
+    } else {
+        return "namespace " + c_gaia_namespace + "." + db_name + ";\n";
+    }
+}
+
+static string generate_fbs_field(const string& name, const string& type, int count) {
+    if (count == 1) {
+        return name + ":" + type;
+    } else if (count == 0) {
+        return name + ":[" + type + "]";
+    } else {
+        return name + ":[" + type + ":" + to_string(count) + "]";
+    }
+}
+
+static string generate_fbs_field(const gaia_field_t& field) {
+    string name{field.name()};
+    string type{ddl::get_data_type_name(static_cast<data_type_t>(field.type()))};
+    return generate_fbs_field(name, type, field.repeated_count());
+}
+
 /**
- * Get the data type name for fbs
- *
- * @param catalog data type
- * @return fbs data type name
- * @throw unknown_data_type
- */
-static string get_data_type_name(data_type_t data_type) {
+ * Public interfaces
+ **/
+ddl::unknown_data_type::unknown_data_type() {
+    m_message = "Unknown data type.";
+}
+
+string ddl::get_data_type_name(data_type_t data_type) {
     switch (data_type) {
     case data_type_t::e_bool:
         return "bool";
@@ -151,37 +175,6 @@ static string get_data_type_name(data_type_t data_type) {
     default:
         throw ddl::unknown_data_type();
     }
-}
-
-static string generate_fbs_namespace(const string& db_name) {
-    if (db_name.empty() || db_name == c_global_db_name) {
-        return "namespace " + c_gaia_namespace + ";\n";
-    } else {
-        return "namespace " + c_gaia_namespace + "." + db_name + ";\n";
-    }
-}
-
-static string generate_fbs_field(const string& name, const string& type, int count) {
-    if (count == 1) {
-        return name + ":" + type;
-    } else if (count == 0) {
-        return name + ":[" + type + "]";
-    } else {
-        return name + ":[" + type + ":" + to_string(count) + "]";
-    }
-}
-
-static string generate_fbs_field(const gaia_field_t& field) {
-    string name{field.name()};
-    string type{get_data_type_name(static_cast<data_type_t>(field.type()))};
-    return generate_fbs_field(name, type, field.repeated_count());
-}
-
-/**
- * Public interfaces
- **/
-ddl::unknown_data_type::unknown_data_type() {
-    m_message = "Unknown data type.";
 }
 
 string generate_fbs(gaia_id_t table_id) {
@@ -229,7 +222,7 @@ string generate_fbs(const string& db_name, const string& table_name, const ddl::
         }
         string field_fbs = generate_fbs_field(
             field->name,
-            get_data_type_name(field->type),
+            ddl::get_data_type_name(field->type),
             field->length);
         fbs += field_fbs + ";";
     }
@@ -247,13 +240,13 @@ string generate_bfbs(const string& fbs) {
 }
 
 string get_bfbs(gaia_id_t table_id) {
-    bool is_transaction_owner = !gaia::db::is_transaction_active();
-    if (is_transaction_owner) {
+    bool is_txn_owner = !gaia::db::is_transaction_active();
+    if (is_txn_owner) {
         gaia::db::begin_transaction();
     }
     gaia_table_t table = gaia_table_t::get(table_id);
     string base64_binary_schema = table.binary_schema();
-    if (is_transaction_owner) {
+    if (is_txn_owner) {
         gaia::db::commit_transaction();
     }
     return base64_decode(base64_binary_schema);

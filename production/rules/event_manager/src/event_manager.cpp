@@ -6,6 +6,7 @@
 #include "retail_assert.hpp"
 #include "event_manager.hpp"
 #include "rule_stats_manager.hpp"
+#include "db_types.hpp"
 #include "gaia_db_internal.hpp"
 #include "events.hpp"
 #include "triggers.hpp"
@@ -17,6 +18,7 @@
 
 using namespace gaia::rules;
 using namespace gaia::common;
+using namespace gaia::db;
 using namespace gaia::db::triggers;
 using namespace std;
 using namespace std::chrono;
@@ -29,13 +31,13 @@ event_manager_t& event_manager_t::get(bool is_initializing)
     static event_manager_t s_instance;
 
     // Initialize errors can happen for two reasons:
-    // 
-    // If we are currently trying to initialize then is_initializing 
-    // will be true. At this point, we don't expect the instance to be 
+    //
+    // If we are currently trying to initialize, then is_initializing
+    // will be true. At this point, we don't expect the instance to be
     // initialized yet.
     //
-    // If we are not intializing then we expect the instance to already be
-    // initialized
+    // If we are not initializing, then we expect the instance to already be
+    // initialized.
     if (is_initializing == s_instance.m_is_initialized)
     {
         throw initialization_error(is_initializing);
@@ -43,7 +45,7 @@ event_manager_t& event_manager_t::get(bool is_initializing)
     return s_instance;
 }
 
-event_manager_t::event_manager_t() 
+event_manager_t::event_manager_t()
 {
 }
 
@@ -51,7 +53,7 @@ void event_manager_t::init()
 {
     // TODO[GAIAPLAT-111]: Check a configuration setting supplied by the
     // application developer for the number of threads to create.
-    
+
     // Apply default settings.  See explanation in event_manager_settings.hpp.
     event_manager_settings_t settings;
     init(settings);
@@ -70,14 +72,13 @@ void event_manager_t::init(event_manager_settings_t& settings)
     rule_stats_manager_t::s_enabled = settings.enable_stats;
     m_timer.set_enabled(settings.enable_stats);
 
-    auto fn = [](uint64_t transaction_id, const trigger_event_list_t& event_list) {
-        event_manager_t::get().commit_trigger(transaction_id, event_list);
+    auto fn = [](gaia_txn_id_t txn_id, const trigger_event_list_t& event_list) {
+        event_manager_t::get().commit_trigger(txn_id, event_list);
     };
-    gaia::db::s_tx_commit_trigger = fn;
+    set_commit_trigger(fn);
 
     m_is_initialized = true;
 }
-
 
 bool event_manager_t::process_last_operation_events(event_binding_t& binding, const trigger_event_t& event,
     steady_clock::time_point& start_time)
@@ -128,7 +129,7 @@ bool event_manager_t::process_field_events(event_binding_t& binding,
     return rules_invoked;
 }
 
-void event_manager_t::commit_trigger(uint64_t, const trigger_event_list_t& trigger_event_list)
+void event_manager_t::commit_trigger(gaia_txn_id_t, const trigger_event_list_t& trigger_event_list)
 {
     m_timer.log_function_duration([&]() {
 
@@ -188,11 +189,11 @@ void event_manager_t::commit_trigger(uint64_t, const trigger_event_list_t& trigg
 }
 
 void event_manager_t::enqueue_invocation(const trigger_event_list_t& events,
-    const vector<bool>& rules_invoked_list, 
+    const vector<bool>& rules_invoked_list,
     steady_clock::time_point& start_time)
 {
     rule_thread_pool_t::log_events_invocation_t event_invocation {
-        events, 
+        events,
         rules_invoked_list
     };
     rule_thread_pool_t::invocation_t invocation {
@@ -202,7 +203,7 @@ void event_manager_t::enqueue_invocation(const trigger_event_list_t& events,
             start_time, rule_stats_manager_t::c_log_event_tag)
     };
     m_invocations->enqueue(invocation);
-} 
+}
 
 void event_manager_t::enqueue_invocation(const trigger_event_t& event, gaia_rule_fn rule_fn,
     steady_clock::time_point& start_time)
@@ -221,7 +222,7 @@ void event_manager_t::enqueue_invocation(const trigger_event_t& event, gaia_rule
             start_time, rule_stats_manager_t::c_rule_tag)
     };
     m_invocations->enqueue(invocation);
-} 
+}
 
 void event_manager_t::check_subscription(
     event_type_t event_type,
@@ -238,7 +239,7 @@ void event_manager_t::check_subscription(
 }
 
 void event_manager_t::subscribe_rule(
-    gaia_type_t gaia_type, 
+    gaia_type_t gaia_type,
     event_type_t event_type,
     const field_position_list_t& fields,
     const rule_binding_t& rule_binding)
@@ -259,7 +260,7 @@ void event_manager_t::subscribe_rule(
     // Look up the gaia_type in our type map.  If we do not find it
     // then we create a new empty event map map.
     auto type_it = m_subscriptions.find(gaia_type);
-    if (type_it == m_subscriptions.end()) 
+    if (type_it == m_subscriptions.end())
     {
         auto inserted_type = m_subscriptions.insert(
             make_pair(gaia_type, events_map_t()));
@@ -309,7 +310,7 @@ void event_manager_t::subscribe_rule(
 
 bool event_manager_t::unsubscribe_rule(
     gaia_type_t gaia_type,
-    event_type_t event_type, 
+    event_type_t event_type,
     const field_position_list_t& fields,
     const rule_binding_t& rule_binding)
 {
@@ -368,8 +369,8 @@ void event_manager_t::unsubscribe_rules()
 }
 
 void event_manager_t::list_subscribed_rules(
-    const char* ruleset_name, 
-    const gaia_type_t* gaia_type_ptr, 
+    const char* ruleset_name,
+    const gaia_type_t* gaia_type_ptr,
     const event_type_t* event_type_ptr,
     const uint16_t* field_ptr,
     subscription_list_t& subscriptions)
@@ -400,7 +401,7 @@ void event_manager_t::list_subscribed_rules(
                     continue;
                 }
                 const rule_list_t& rules = field.second;
-                add_subscriptions(subscriptions, rules, type_it.first, 
+                add_subscriptions(subscriptions, rules, type_it.first,
                     event_it.first, field.first, ruleset_name);
             }
 
@@ -413,7 +414,7 @@ void event_manager_t::list_subscribed_rules(
     }
 }
 
-void event_manager_t::add_subscriptions(subscription_list_t& subscriptions, 
+void event_manager_t::add_subscriptions(subscription_list_t& subscriptions,
     const rule_list_t& rules,
     gaia_type_t gaia_type,
     event_type_t event_type,
@@ -431,7 +432,7 @@ void event_manager_t::add_subscriptions(subscription_list_t& subscriptions,
         subscriptions.emplace_back(make_unique<subscription_t>(
             rule->ruleset_name.c_str(),
             rule->rule_name.c_str(),
-            gaia_type, 
+            gaia_type,
             event_type,
             field)
         );
@@ -446,7 +447,7 @@ void event_manager_t::add_rule(
     // key as another rule but is bound to a different
     // rule function.
     const _rule_binding_t* rule_ptr = find_rule(binding);
-    if (rule_ptr != nullptr && rule_ptr->rule != binding.rule) 
+    if (rule_ptr != nullptr && rule_ptr->rule != binding.rule)
     {
         throw duplicate_rule(binding, true);
     }
@@ -455,23 +456,23 @@ void event_manager_t::add_rule(
     // This is most likely a programming error.
     for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it)
     {
-        if (*rules_it == rule_ptr) 
+        if (*rules_it == rule_ptr)
         {
             throw duplicate_rule(binding, false);
         }
     }
 
     // If we already have seen this rule, then
-    // add it to the list.  Otherwise, create a new 
+    // add it to the list.  Otherwise, create a new
     // rule binding entry and put it in our global list.
     _rule_binding_t* this_rule = nullptr;
-    if (rule_ptr == nullptr) 
+    if (rule_ptr == nullptr)
     {
         const string& key = make_rule_key(binding);
         this_rule = new _rule_binding_t(binding);
         m_rules.insert(make_pair(key, unique_ptr<_rule_binding_t>(this_rule)));
     }
-    else 
+    else
     {
         this_rule = const_cast<_rule_binding_t*>(rule_ptr);
     }
@@ -525,13 +526,13 @@ event_manager_t::_rule_binding_t::_rule_binding_t(
 }
 
 event_manager_t::_rule_binding_t::_rule_binding_t(
-    const char* a_ruleset_name, 
-    const char* a_rule_name, 
+    const char* a_ruleset_name,
+    const char* a_rule_name,
     gaia_rule_fn a_rule)
 {
     ruleset_name = a_ruleset_name;
     rule = a_rule;
-    if (a_rule_name != nullptr) 
+    if (a_rule_name != nullptr)
     {
         rule_name = a_rule_name;
     }
@@ -550,7 +551,7 @@ void gaia::rules::initialize_rules_engine()
     event_manager_t::get(is_initializing).init();
 
     /**
-     * This function must be provided by the 
+     * This function must be provided by the
      * rules application.  This function is
      * generated by the gaia preprocessor on
      * behalf of the user.
@@ -568,9 +569,9 @@ void gaia::rules::subscribe_rule(
 }
 
 bool gaia::rules::unsubscribe_rule(
-    gaia_type_t gaia_type, 
+    gaia_type_t gaia_type,
     event_type_t event_type,
-    const field_position_list_t& fields, 
+    const field_position_list_t& fields,
     const gaia::rules::rule_binding_t& rule_binding)
 {
     return event_manager_t::get().unsubscribe_rule(gaia_type, event_type, fields, rule_binding);
@@ -582,10 +583,10 @@ void gaia::rules::unsubscribe_rules()
 }
 
 void gaia::rules::list_subscribed_rules(
-    const char* ruleset_name, 
-    const gaia_type_t* gaia_type, 
+    const char* ruleset_name,
+    const gaia_type_t* gaia_type,
     const event_type_t* event_type,
-    const uint16_t* field, 
+    const uint16_t* field,
     subscription_list_t& subscriptions)
 {
     event_manager_t::get().list_subscribed_rules(ruleset_name, gaia_type,

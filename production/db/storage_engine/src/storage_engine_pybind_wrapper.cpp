@@ -12,6 +12,7 @@
 
 #include "gaia_common.hpp"
 #include "gaia_db.hpp"
+#include "storage_engine.hpp"
 #include "gaia_ptr.hpp"
 
 using namespace std;

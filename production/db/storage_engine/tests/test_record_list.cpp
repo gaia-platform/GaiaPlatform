@@ -7,22 +7,25 @@
 
 #include "gtest/gtest.h"
 
+#include "db_types.hpp"
+
 #include <record_list.hpp>
 
 using namespace std;
+using namespace gaia::db;
 using namespace gaia::db::storage;
 
 TEST(storage, record_list)
 {
-    const size_t c_range_size = 3;
-    const uint64_t c_starting_locator = 1000;
-    const uint64_t c_count_locators = 10;
-    const uint64_t c_new_locator = 88;
+    constexpr size_t c_range_size = 3;
+    constexpr gaia_locator_t c_starting_locator = 1000;
+    constexpr gaia_locator_t c_count_locators = 10;
+    constexpr gaia_locator_t c_new_locator = 88;
 
     record_list_t record_list(c_range_size);
 
     // Add some locator values to our list.
-    for (uint64_t locator = c_starting_locator; locator < c_starting_locator + c_count_locators; locator++)
+    for (gaia_locator_t locator = c_starting_locator; locator < c_starting_locator + c_count_locators; locator++)
     {
         record_list.add(locator);
     }
@@ -33,7 +36,7 @@ TEST(storage, record_list)
     ASSERT_EQ(true, return_value);
     ASSERT_EQ(false, iterator.at_end());
 
-    uint64_t expected_locator = c_starting_locator;
+    gaia_locator_t expected_locator = c_starting_locator;
     record_range_t* current_range = iterator.current_range;
 
     // Iterate over the list and verify content and range changes.
@@ -99,7 +102,7 @@ TEST(storage, record_list)
     do
     {
         // Skip our checks if we encounter the new locator value.
-        uint64_t current_locator = record_list_t::get_record_locator(iterator);
+        gaia_locator_t current_locator = record_list_t::get_record_locator(iterator);
         if (current_locator != c_new_locator)
         {
             ASSERT_EQ(expected_locator, current_locator);

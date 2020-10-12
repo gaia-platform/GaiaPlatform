@@ -15,44 +15,44 @@ using namespace gaia::db;
 using namespace gaia::rules;
 
 void check_all_event_types(
-    gaia_type_t context_type, 
-    gaia_type_t test_type, 
+    gaia_type_t context_type,
+    gaia_type_t test_type,
     last_operation_t* expected)
 {
-    gaia::direct_access::auto_transaction_t transaction;
+    gaia::direct_access::auto_transaction_t txn;
     field_position_list_t fields;
 
-    rule_context_t context(transaction, context_type, event_type_t::row_delete, 0, fields);
+    rule_context_t context(txn, context_type, event_type_t::row_delete, 0, fields);
 
     // Test the insert/update/delete events which map to last operation types.
-    EXPECT_EQ(expected ? *expected : last_operation_t::row_delete, 
+    EXPECT_EQ(expected ? *expected : last_operation_t::row_delete,
         context.last_operation(test_type));
 
     context.event_type = event_type_t::row_update;
-    EXPECT_EQ(expected ? *expected : last_operation_t::row_update, 
+    EXPECT_EQ(expected ? *expected : last_operation_t::row_update,
         context.last_operation(test_type));
 
     context.event_type = event_type_t::row_insert;
-    EXPECT_EQ(expected ? *expected : last_operation_t::row_insert, 
+    EXPECT_EQ(expected ? *expected : last_operation_t::row_insert,
         context.last_operation(test_type));
 
     // TODO[GAIAPLAT-194]: Transaction events are out of scope for Q2
 
     // Test event types that are not table operations.
     //context.event_type = event_type_t::transaction_begin;
-    //EXPECT_EQ(expected ? *expected : last_operation_t::none, 
+    //EXPECT_EQ(expected ? *expected : last_operation_t::none,
     //    context.last_operation(test_type));
-    
+
     //context.event_type = event_type_t::transaction_commit;
-    //EXPECT_EQ(expected ? *expected : last_operation_t::none, 
+    //EXPECT_EQ(expected ? *expected : last_operation_t::none,
     //    context.last_operation(test_type));
 
     //context.event_type = event_type_t::transaction_rollback;
-    //EXPECT_EQ(expected ? *expected : last_operation_t::none, 
+    //EXPECT_EQ(expected ? *expected : last_operation_t::none,
     //    context.last_operation(test_type));
 }
 
-class rule_context_test : public db_test_base_t 
+class rule_context_test : public db_test_base_t
 {
 };
 
@@ -74,10 +74,10 @@ TEST_F(rule_context_test, last_operation_type_mismatch)
 // Sanity check on compilation for const rule_context_t
 TEST_F(rule_context_test, last_operation_type_const)
 {
-    gaia::direct_access::auto_transaction_t transaction(false);
+    gaia::direct_access::auto_transaction_t txn(false);
     field_position_list_t fields;
 
-    const rule_context_t context(transaction, 42, event_type_t::row_update, 33, fields);
+    const rule_context_t context(txn, 42, event_type_t::row_update, 33, fields);
     EXPECT_EQ(last_operation_t::row_update, context.last_operation(42));
-    EXPECT_NO_THROW(context.transaction.commit());
+    EXPECT_NO_THROW(context.txn.commit());
 }

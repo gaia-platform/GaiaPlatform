@@ -8,7 +8,8 @@
 #include <string>
 
 // All Postgres headers and function declarations must have C linkage.
-extern "C" {
+extern "C"
+{
 
 #include "postgres.h"
 
@@ -25,8 +26,6 @@ namespace gaia
 {
 namespace fdw
 {
-
-const char* const c_gaia_id = "gaia_id";
 
 typedef void (*option_handler_fn)(const char* option_name, const char* option_value, Oid context_id);
 
@@ -77,9 +76,14 @@ protected:
 
 public:
 
+    static void begin_session();
+    static void end_session();
+
     static bool is_transaction_open();
     static bool begin_transaction();
     static bool commit_transaction();
+
+    static bool is_gaia_id_name(const char* name);
 
     static uint64_t get_new_gaia_id();
 
@@ -87,7 +91,12 @@ public:
 
     template <class S>
     static S* get_state(
-        const char* table_name, size_t count_accessors);
+        const char* table_name, size_t count_accessors)
+    {
+        S* state = (S*)palloc0(sizeof(S));
+
+        return state->initialize(table_name, count_accessors) ? state : nullptr;
+    }
 
 protected:
 
@@ -99,7 +108,7 @@ protected:
     // global counter is ok since there's no concurrency within a postgres backend.
     //
     // Use signed int so we can assert it is non-negative.
-    static int s_transaction_reference_count;
+    static int s_txn_reference_count;
 };
 
 class state_t
@@ -220,7 +229,7 @@ protected:
     // 0-based index of gaia_id attribute in tuple descriptor.
     int m_pk_attr_idx;
 
-    gaia_type_t m_gaia_type_id;
+    gaia_type_t m_gaia_container_id;
 };
 
 }

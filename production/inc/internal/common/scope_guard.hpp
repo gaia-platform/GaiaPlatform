@@ -49,16 +49,16 @@ namespace detail {
 
 // Type trait determining whether a type is callable with no arguments
 template <typename T, typename = void>
-struct is_noarg_callable_t : public std::false_type {};  // in general, false
+struct is_noarg_callable_t : public std::false_type {}; // in general, false
 
 template <typename T>
-struct is_noarg_callable_t<T, decltype(std::declval<T &&>()())>
-    : public std::true_type {};  // only true when call expression valid
+struct is_noarg_callable_t<T, decltype(std::declval<T&&>()())>
+    : public std::true_type {}; // only true when call expression valid
 
 // Type trait determining whether a no-argument callable returns void
 template <typename T>
 struct returns_void_t
-    : public std::is_same<void, decltype(std::declval<T &&>()())> {};
+    : public std::is_same<void, decltype(std::declval<T&&>()())> {};
 
 /* Type trait determining whether a no-arg callable is nothrow invocable if
 required. This is where SG_REQUIRE_NOEXCEPT logic is encapsulated. */
@@ -79,11 +79,11 @@ struct is_nothrow_invocable_if_required_t
 // logic AND of two or more type traits
 template <typename A, typename B, typename... C>
 struct and_t : public and_t<A, and_t<B, C...>> {
-};  // for more than two arguments
+}; // for more than two arguments
 
 template <typename A, typename B>
 struct and_t<A, B> : public std::conditional<A::value, B, A>::type {
-};  // for two arguments
+}; // for two arguments
 
 // Type trait determining whether a type is a proper scope_guard callback.
 template <typename T>
@@ -102,8 +102,8 @@ class scope_guard;
 /* --- Now the friend maker --- */
 
 template <typename Callback>
-detail::scope_guard<Callback> make_scope_guard(Callback &&callback) noexcept(
-    std::is_nothrow_constructible<Callback, Callback &&>::value); /*
+detail::scope_guard<Callback> make_scope_guard(Callback&& callback) noexcept(
+    std::is_nothrow_constructible<Callback, Callback&&>::value); /*
 we need this in the inner namespace due to MSVC bugs preventing
 sg::detail::scope_guard from befriending a sg::make_scope_guard
 template instance in the parent namespace (see https://is.gd/xFfFhE). */
@@ -112,51 +112,51 @@ template instance in the parent namespace (see https://is.gd/xFfFhE). */
 
 template <typename Callback>
 class scope_guard<Callback> final {
-   public:
+public:
     typedef Callback callback_type;
 
-    scope_guard(scope_guard &&other) noexcept(
-        std::is_nothrow_constructible<Callback, Callback &&>::value);
+    scope_guard(scope_guard&& other) noexcept(
+        std::is_nothrow_constructible<Callback, Callback&&>::value);
 
-    ~scope_guard() noexcept;  // highlight noexcept dtor
+    ~scope_guard() noexcept; // highlight noexcept dtor
 
     void dismiss() noexcept;
 
-   public:
+public:
     scope_guard() = delete;
-    scope_guard(const scope_guard &) = delete;
-    scope_guard &operator=(const scope_guard &) = delete;
-    scope_guard &operator=(scope_guard &&) = delete;
+    scope_guard(const scope_guard&) = delete;
+    scope_guard& operator=(const scope_guard&) = delete;
+    scope_guard& operator=(scope_guard&&) = delete;
 
-   private:
-    explicit scope_guard(Callback &&callback) noexcept(
-        std::is_nothrow_constructible<Callback, Callback &&>::value); /*
+private:
+    explicit scope_guard(Callback&& callback) noexcept(
+        std::is_nothrow_constructible<Callback, Callback&&>::value); /*
                                                 meant for friends only */
 
     friend scope_guard<Callback>
-    make_scope_guard<Callback>(Callback &&) noexcept(
-        std::is_nothrow_constructible<Callback, Callback &&>::value); /*
+    make_scope_guard<Callback>(Callback&&) noexcept(
+        std::is_nothrow_constructible<Callback, Callback&&>::value); /*
 only make_scope_guard can create scope_guards from scratch (i.e. non-move)
 */
 
-   private:
+private:
     Callback m_callback;
     bool m_active;
 };
 
-}  // namespace detail
+} // namespace detail
 
 /* --- Now the single public maker function --- */
 
-using detail::make_scope_guard;  // see comment on declaration above
+using detail::make_scope_guard; // see comment on declaration above
 
-}  // namespace scope_guard
+} // namespace scope_guard
 
 ////////////////////////////////////////////////////////////////////////////////
 template <typename Callback>
 scope_guard::detail::scope_guard<Callback>::
-    scope_guard(Callback &&callback) noexcept(
-        std::is_nothrow_constructible<Callback, Callback &&>::value)
+    scope_guard(Callback&& callback) noexcept(
+        std::is_nothrow_constructible<Callback, Callback&&>::value)
     : m_callback(std::forward<Callback>(callback)) /* use () instead of {}
       because of DR 1467 (https://is.gd/WHmWuo), which still impacts older
       compilers (e.g. GCC 4.x and clang <=3.6, see https://godbolt.org/g/TE9tPJ
@@ -174,9 +174,9 @@ scope_guard::detail::scope_guard<Callback>::~scope_guard() noexcept {
 ////////////////////////////////////////////////////////////////////////////////
 template <typename Callback>
 scope_guard::detail::scope_guard<Callback>::
-    scope_guard(scope_guard &&other) noexcept(
-        std::is_nothrow_constructible<Callback, Callback &&>::value)
-    : m_callback(std::forward<Callback>(other.m_callback))  // idem
+    scope_guard(scope_guard&& other) noexcept(
+        std::is_nothrow_constructible<Callback, Callback&&>::value)
+    : m_callback(std::forward<Callback>(other.m_callback)) // idem
       ,
       m_active{std::move(other.m_active)} {
     other.m_active = false;
@@ -190,11 +190,11 @@ inline void scope_guard::detail::scope_guard<Callback>::dismiss() noexcept {
 
 ////////////////////////////////////////////////////////////////////////////////
 template <typename Callback>
-inline auto scope_guard::detail::make_scope_guard(Callback &&callback) noexcept(
-    std::is_nothrow_constructible<Callback, Callback &&>::value)
+inline auto scope_guard::detail::make_scope_guard(Callback&& callback) noexcept(
+    std::is_nothrow_constructible<Callback, Callback&&>::value)
     -> detail::scope_guard<Callback> {
     return detail::scope_guard<Callback>{std::forward<Callback>(callback)};
 }
 
-}  // namespace common
-}  // namespace gaia
+} // namespace common
+} // namespace gaia
