@@ -18,7 +18,7 @@
 #include "gaia_common.hpp"
 #include "gaia_db.hpp"
 
-// does not move include with comments
+// Does not move include with comments.
 #include <iterator>
 #include <list>
 #include <string>
