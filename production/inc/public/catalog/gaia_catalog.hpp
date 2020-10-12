@@ -294,9 +294,9 @@ gaia::common::gaia_id_t create_table(const string& name, const ddl::field_def_li
 /**
  * Delete a database.
  *
- * This method will only erase the database definition in the catalog. There are
- * no way to remove the user data other than the direct access API which is not
- * avaialble to the catalog implementation.
+ * This method will only remove the database definition from the catalog. There
+ * is no way to remove the database's data, other than through the direct access
+ * API, which is not available to the catalog implementation.
  *
  * @param name database name
  * @param name table name
@@ -307,9 +307,9 @@ void drop_database(const string& name);
 /**
  * Delete a table in a given database.
  *
- * This method will only erase the table definition in the catalog. There are no
- * way to remove the user data other than the direct access API which is not
- * avaialble to the catalog implementation.
+ * This method will only remove the table definition from the catalog. There is
+ * no way to delete the table's data, other than through the direct access API,
+ * which is not available to the catalog implementation.
  *
  * @param db_name database name
  * @param name table name
@@ -320,9 +320,9 @@ void drop_table(const string& db_name, const string& name);
 /**
  * Delete a table from the catalog's global database.
  *
- * This method will only erase the table definition in the catalog. There are no
- * way to remove the user data other than the direct access API which is not
- * avaialble to the catalog implementation.
+ * This method will only remove the table definition from the catalog. There is
+ * no way to delete the table's data, other than through the direct access API,
+ * which is not available to the catalog implementation.
  *
  * @param name table name
  * @throw table_not_exists
