@@ -27,6 +27,10 @@ The following folder structure is recommended for C++ projects:
   * tests (component level)
 * tests (cross-component)
 
+## Formatter and Linter
+
+`.clang-format` is automatically invoked at each 
+
 ## Copyright notes
 
 Use the following copyright note with your code. Several language specific versions are provided below.

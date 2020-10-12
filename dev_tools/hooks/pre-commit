@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# Note: if the project is open-soured this could cause problems on non ubuntu machines. It is acceptable at the moment.
+
+# Allows us to read user input below, assigns stdin to keyboard
+exec < /dev/tty
+
+# check if clang-format is installed. If not, gives the option to install it
+if ! command -v clang-format &> /dev/null
+then
+    while true
+    do
+      read -rp "clang-format could not be found, do you wish to install it? [y/n]: " yn
+      case $yn in
+          [Yy]* ) sudo apt-get install clang-format; break;;
+          [Nn]* ) exit 1;;
+      esac
+    done
+fi
+
+# Runs clang-format only on files that:
+# 1. Are in the index (git add)
+# 2. Are in the production/ directory
+# 3. End with .hpp/.cpp
+for file in $(git diff --cached --name-only | cat | grep -E "^production.*(.hpp|.cpp)")
+do
+  clang-format -i "$file"
+  git add "$file"
+done

@@ -95,8 +95,8 @@ double class_name_t::method_with_many_arguments(
 {
     // breaks before binary operator
     return arg1
-           + arg2
-           + arg3 + arg4; // NOLINT
+        + arg2
+        + arg3 + arg4; // NOLINT
 }
 
 void short_statements()
@@ -136,7 +136,9 @@ std::string continue_indentation_width()
             "plus"
             + std::string("something else")));
 
-    std::string var("Something " + std::string("plus" + std::string("something else")));
+    std::string variable_with_rather_weird_name2("Something "
+                                                 + std::string("plus"
+                                                               + std::string("something else")));
 
     short_function(
         3 + 4);
@@ -176,8 +178,8 @@ int ternary_operator(int a)
     // For now ubuntu20 (used by gdev) has clang10 so we keep it this way
     // (I'm trying to install clang11/12 on gdev)
     return a == 1
-               ? 2
-               : 3;
+        ? 2
+        : 3;
 }
 
 void pure_anarchy()
