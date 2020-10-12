@@ -26,15 +26,15 @@ fi
 
 # Files excluded from clang-format (interpreted as regex against the full path of the file)
 excluded_files=(
-    "gaia_catalog.h"
-    "catalog_generated.h"
+    "gaia_catalog\.h"
+    "catalog_generated\.h"
 )
 
 # Runs clang-format only on files that:
 # 1. Are in the index (git add)
 # 2. Are in the production/ directory
 # 3. End with .hpp/.cpp
-for file in $(git diff --cached --name-only | cat | grep -E "^production.*(.hpp|.cpp|.h)"); do
+for file in $(git diff --cached --name-only | cat | grep -E "^production.*(.hpp|.cpp|.h|.inc)"); do
     format_file=true
 
     for exclude_pattern in "${excluded_files[@]}"; do
@@ -49,4 +49,3 @@ for file in $(git diff --cached --name-only | cat | grep -E "^production.*(.hpp|
         git add "$file"
     fi
 done
-exit 1

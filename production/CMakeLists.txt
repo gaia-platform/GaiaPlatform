@@ -238,3 +238,8 @@ file(
   COPY ${CMAKE_CURRENT_SOURCE_DIR}/../dev_tools/hooks/pre-commit
   DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../.git/hooks
 )
+
+# We want to disable all clang-tidy checks for generated code.
+# However, if no checks are specified, clang-tidy will assume we
+# did not configure it correctly. Just add one check that will never be found.
+file(WRITE ${GAIA_PARSER_GENERATED}/.clang-tidy "Checks: '-*,llvm-twine-local'\n")
