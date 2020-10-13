@@ -31,7 +31,8 @@ public:
     gaia::common::gaia_id_t create_database(const string& name, bool throw_on_exist = true);
     gaia::common::gaia_id_t create_table(const string& db_name,
         const string& name, const ddl::field_def_list_t& fields, bool throw_on_exist = true);
-    void drop_table(const string& dbname, const string& name);
+    void drop_table(const string& db_name, const string& name);
+    void drop_database(const string& name);
 
     gaia::common::gaia_id_t find_db_id(const string& dbname) const;
 
@@ -58,6 +59,10 @@ private:
         bool is_log = false,
         bool throw_on_exist = true,
         gaia::common::gaia_id_t id = gaia::common::INVALID_GAIA_ID);
+
+    // Internal drop table implementation. Callers need to acquire a transaction
+    // before calling this method.
+    void drop_table_no_txn(gaia::common::gaia_id_t table_id);
 
     // Find the database ID given its name.
     // The method does not use a lock.

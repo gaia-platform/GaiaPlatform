@@ -32,6 +32,8 @@ void execute(const string& db_name, vector<unique_ptr<ddl::statement_t>>& statem
             auto drop_stmt = dynamic_cast<ddl::drop_statement_t*>(stmt.get());
             if (drop_stmt->type == ddl::drop_type_t::drop_table) {
                 drop_table(drop_stmt->database, drop_stmt->name);
+            } else if (drop_stmt->type == ddl::drop_type_t::drop_database) {
+                drop_database(drop_stmt->name);
             }
         }
     }

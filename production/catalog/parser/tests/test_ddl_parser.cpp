@@ -185,3 +185,16 @@ TEST(catalog_ddl_parser_test, create_table_in_database) {
     EXPECT_EQ(create_stmt->name, "t");
     EXPECT_EQ(create_stmt->database, "d");
 }
+
+TEST(catalog_ddl_parser_test, drop_database) {
+    parser_t parser;
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("DROP DATABASE d;"));
+
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::drop);
+
+    auto drop_stmt = dynamic_cast<drop_statement_t*>(parser.statements[0].get());
+
+    EXPECT_EQ(drop_stmt->type, drop_type_t::drop_database);
+    EXPECT_EQ(drop_stmt->name, "d");
+}

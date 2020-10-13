@@ -144,6 +144,9 @@ drop_statement:
       $$ = std::unique_ptr<drop_statement_t>{new drop_statement_t(drop_type_t::drop_table, $3.second)};
       $$->database = std::move($3.first);
   }
+| DROP DATABASE IDENTIFIER {
+      $$ = std::make_unique<drop_statement_t>(drop_type_t::drop_database, $3);
+  }
 ;
 
 field_def_commalist:

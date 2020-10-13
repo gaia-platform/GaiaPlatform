@@ -20,8 +20,8 @@ using namespace gaia::catalog;
 using namespace std;
 
 class catalog_manager_test : public db_test_base_t {
-  protected:
-    void check_table_name(gaia_id_t id, const string &name) {
+protected:
+    void check_table_name(gaia_id_t id, const string& name) {
         gaia::db::begin_transaction();
         gaia_table_t t = gaia_table_t::get(id);
         EXPECT_EQ(name, t.name());
@@ -179,6 +179,7 @@ TEST_F(catalog_manager_test, create_table_duplicate_field) {
 TEST_F(catalog_manager_test, drop_table) {
     string test_table_name{"drop_table_test"};
     ddl::field_def_list_t fields;
+    fields.emplace_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
     gaia_id_t table_id = create_table(test_table_name, fields);
     check_table_name(table_id, test_table_name);
 
@@ -193,4 +194,50 @@ TEST_F(catalog_manager_test, drop_table) {
 TEST_F(catalog_manager_test, drop_table_not_exist) {
     string test_table_name{"a_not_existed_table"};
     EXPECT_THROW(drop_table(test_table_name), table_not_exists);
+}
+
+TEST_F(catalog_manager_test, drop_table_with_reference) {
+    string test_table_name{"self_ref_table"};
+    ddl::field_def_list_t fields;
+    fields.emplace_back(make_unique<ddl::field_definition_t>("self_ref", data_type_t::e_references, 1));
+    fields.back()->table_type_name = test_table_name;
+    gaia_id_t table_id = create_table(test_table_name, fields);
+    check_table_name(table_id, test_table_name);
+
+    drop_table(test_table_name);
+    {
+        auto_transaction_t txn;
+        auto table = gaia_table_t::get(table_id);
+        EXPECT_FALSE(table);
+    }
+}
+
+TEST_F(catalog_manager_test, drop_database) {
+    string test_db_name{"drop_database_test"};
+    gaia_id_t db_id = create_database(test_db_name);
+    {
+        auto_transaction_t txn;
+        EXPECT_EQ(gaia_database_t::get(db_id).name(), test_db_name);
+    }
+
+    string self_ref_table_name{"self_ref_table"};
+    ddl::field_def_list_t fields;
+    fields.emplace_back(make_unique<ddl::field_definition_t>("self_ref", data_type_t::e_references, 1));
+    fields.back()->table_type_name = self_ref_table_name;
+    gaia_id_t self_ref_table_id = create_table(test_db_name, self_ref_table_name, fields);
+    check_table_name(self_ref_table_id, self_ref_table_name);
+
+    string test_table_name{"test_table"};
+    fields.clear();
+    fields.emplace_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
+    gaia_id_t test_table_id = create_table(test_db_name, test_table_name, fields);
+    check_table_name(test_table_id, test_table_name);
+
+    drop_database(test_db_name);
+    {
+        auto_transaction_t txn;
+        EXPECT_FALSE(gaia_table_t::get(self_ref_table_id));
+        EXPECT_FALSE(gaia_table_t::get(test_table_id));
+        EXPECT_FALSE(gaia_database_t::get(db_id));
+    }
 }

@@ -172,6 +172,7 @@ struct create_statement_t : statement_t {
 
 enum class drop_type_t : uint8_t {
     drop_table,
+    drop_database,
 };
 
 struct drop_statement_t : statement_t {
@@ -291,16 +292,37 @@ gaia::common::gaia_id_t create_table(
 gaia::common::gaia_id_t create_table(const string& name, const ddl::field_def_list_t& fields);
 
 /**
- * Delete a table in a given database.
+ * Delete a database.
  *
- * @param dbname database name
+ * This method will only remove the database definition from the catalog. There
+ * is no way to remove the database's data, other than through the direct access
+ * API, which is not available to the catalog implementation.
+ *
+ * @param name database name
  * @param name table name
  * @throw table_not_exists
  */
-void drop_table(const string& dbname, const string& name);
+void drop_database(const string& name);
+
+/**
+ * Delete a table in a given database.
+ *
+ * This method will only remove the table definition from the catalog. There is
+ * no way to delete the table's data, other than through the direct access API,
+ * which is not available to the catalog implementation.
+ *
+ * @param db_name database name
+ * @param name table name
+ * @throw table_not_exists
+ */
+void drop_table(const string& db_name, const string& name);
 
 /**
  * Delete a table from the catalog's global database.
+ *
+ * This method will only remove the table definition from the catalog. There is
+ * no way to delete the table's data, other than through the direct access API,
+ * which is not available to the catalog implementation.
  *
  * @param name table name
  * @throw table_not_exists
