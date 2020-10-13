@@ -175,45 +175,37 @@ class GenAbcBuild(Dependency, ABC):
 
     @memoize
     async def main(self) -> None:
-        if (
-                self.options.force
-                or (not await self.get_sha())
-                or (
-                    await self.get_wanted_label_value_by_name()
-                    != await self.get_actual_label_value_by_name()
-                )
-        ):
-            await self.dockerfile.run()
+        await self.dockerfile.run()
 
-            # TODO query remotely for cached build sources.
-            self.log.info(f'Creating image "{await self.get_tag()}"')
-            await Host.execute(
-                f'docker build'
-                f' -f {self.dockerfile.path}'
-                f' -t {await self.get_tag()}'
+        # TODO query remotely for cached build sources.
+        self.log.info(f'Creating image "{await self.get_tag()}"')
+        await Host.execute(
+            f'docker build'
+            f' -f {self.dockerfile.path}'
+            f' -t {await self.get_tag()}'
 
-                f'''{''.join([
-                    f' --label {name}="{value}"'
-                    for name, value
-                    in (await self.get_wanted_label_value_by_name()).items()
-                ])}'''
+            f'''{''.join([
+                f' --label {name}="{value}"'
+                for name, value
+                in (await self.get_wanted_label_value_by_name()).items()
+            ])}'''
 
-                # Keep metadata about layers so that they can be used as a cache source.
-                f' --build-arg BUILDKIT_INLINE_CACHE=1'
+            # Keep metadata about layers so that they can be used as a cache source.
+            f' --build-arg BUILDKIT_INLINE_CACHE=1'
 
-                f' --platform {self.options.platform}'
+            f' --platform {self.options.platform}'
 
-                # Required to run production.
-                f' --shm-size 1gb'
+            # Required to run production.
+            f' --shm-size 1gb'
 
-                # Allow cloning repos with ssh.
-                f' --ssh default'
+            # Allow cloning repos with ssh.
+            f' --ssh default'
 
-                f''' --cache-from {','.join([
-                    f'{self.options.registry}/{base_build_name}:latest'
-                    for base_build_name in await self.get_base_build_names()
-                ])}'''
+            f''' --cache-from {','.join([
+                f'{self.options.registry}/{base_build_name}:latest'
+                for base_build_name in await self.get_base_build_names()
+            ])}'''
 
-                f' {Path.repo()}'
-            )
-            await Host.execute(f'docker image prune -f')
+            f' {Path.repo()}'
+        )
+        await Host.execute(f'docker image prune -f')
