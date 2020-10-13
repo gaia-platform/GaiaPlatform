@@ -102,7 +102,7 @@ void list_fields(const regex& re) {
             return regex_match(f.name(), re);
         },
         [](gaia_field_t& f) -> row_t {
-            return {f.gaia_table().name(), f.name(), ddl::get_data_type_name(static_cast<data_type_t>(f.type())),
+            return {f.gaia_table().name(), f.name(), get_data_type_name(static_cast<data_type_t>(f.type())),
                 to_string(f.repeated_count()), to_string(f.position()), to_string(f.gaia_id())};
         });
 }
@@ -135,7 +135,7 @@ void describe_database(const string& name) {
             output_table.add_row({table.name()});
         }
     }
-    cout << "Database \"" << (name.empty() ? c_global_db_name : name) << "\":" << endl;
+    cout << "Database \"" << (name.empty() ? c_empty_db_name : name) << "\":" << endl;
     cout << endl;
     cout << "Tables:" << endl;
     output_table.print(cout);
@@ -147,30 +147,30 @@ void describe_table(const string& name) {
     tabulate::Table output_fields, output_references;
     output_fields.add_row({c_name_title, c_type_title, c_repeated_count_title, c_position_title});
     output_references.add_row({c_name_title, c_parent_title, c_position_title});
-    bool table_exists = false;
+    gaia_id_t table_id = INVALID_GAIA_ID;
     {
         auto_transaction_t tx;
         for (auto table : gaia_table_t::list()) {
             string table_name(table.name());
             string db_name(table.gaia_database().name());
             if (name == table_name || name == (db_name + "." + table_name)) {
-                for (auto field : table.gaia_field_list()) {
-                    if (field.type() != static_cast<uint8_t>(data_type_t::e_references)) {
-                        output_fields.add_row({field.name(),
-                            ddl::get_data_type_name(static_cast<data_type_t>(field.type())),
-                            to_string(field.repeated_count()), to_string(field.position())});
-                    } else {
-                        output_references.add_row({field.name(),
-                            field.ref_gaia_table().name(), to_string(field.position())});
-                    }
-                }
-                table_exists = true;
+                table_id = table.gaia_id();
                 break;
             }
         }
-    }
-    if (!table_exists) {
-        throw table_not_exists(name);
+        if (table_id == INVALID_GAIA_ID) {
+            throw table_not_exists(name);
+        }
+        for (auto field : gaia_table_t::get(table_id).gaia_field_list()) {
+            if (field.type() != static_cast<uint8_t>(data_type_t::e_references)) {
+                output_fields.add_row({field.name(),
+                    get_data_type_name(static_cast<data_type_t>(field.type())),
+                    to_string(field.repeated_count()), to_string(field.position())});
+            } else {
+                output_references.add_row({field.name(),
+                    field.ref_gaia_table().name(), to_string(field.position())});
+            }
+        }
     }
     cout << "Table \"" << name << "\":" << endl;
     cout << endl;
@@ -181,7 +181,15 @@ void describe_table(const string& name) {
     cout << "References:" << endl;
     output_references.print(cout);
     cout << endl;
-    cout << flush;
+#ifdef DEBUG
+// Hide FlatBuffers related content in release build.
+    {
+        cout << endl;
+        cout << "Binary FlatBuffers Schema (in hex):" << endl;
+        auto_transaction_t tx;
+        cout << gaia_table_t::get(table_id).binary_schema() << endl;
+    }
+#endif
 }
 
 #ifdef DEBUG
@@ -337,7 +345,7 @@ string command_usage() {
     tabulate::Table output_table;
     output_table.add_row({string() + c_command_prefix + c_describe_command + c_db_subcommand,
         optionalize(name), "Describe the database of the given " + name + "."});
-    output_table.add_row({"", "", "Without specifying a name, it will show tables in the " + c_global_db_name + " database."});
+    output_table.add_row({"", "", "Without specifying a name, it will show tables in the " + c_empty_db_name + " database."});
     output_table.add_row({string() + c_command_prefix + c_describe_command + optionalize(c_table_subcommand),
         name, "Describe the table of the given " + name + "."});
     output_table.add_row({string() + c_command_prefix + c_list_command + c_db_subcommand,

@@ -182,9 +182,7 @@ void catalog_manager_t::init() {
     reload_cache();
     bootstrap_catalog();
     create_system_tables();
-    // Create the special global database.
-    // Tables created without specifying a database name will belong to the global database.
-    m_global_db_id = create_database(c_global_db_name, false);
+    m_empty_db_id = create_database(c_empty_db_name, false);
 }
 
 void catalog_manager_t::clear_cache() {
@@ -425,7 +423,7 @@ gaia_id_t catalog_manager_t::find_db_id(const string& dbname) const {
 
 inline gaia_id_t catalog_manager_t::find_db_id_no_lock(const string& dbname) const {
     if (dbname.empty()) {
-        return m_global_db_id;
+        return m_empty_db_id;
     } else if (m_db_names.count(dbname)) {
         return m_db_names.at(dbname);
     } else {

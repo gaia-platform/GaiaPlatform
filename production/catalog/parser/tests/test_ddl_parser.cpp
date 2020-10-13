@@ -40,7 +40,7 @@ TEST(catalog_ddl_parser_test, create_table_if_not_exists) {
 
 TEST(catalog_ddl_parser_test, create_table_multiple_fields) {
     parser_t parser;
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t (c1 INT32[], c2 FLOAT64[2]);"));
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t (c1 INT32[], c2 DOUBLE[2]);"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
@@ -57,7 +57,7 @@ TEST(catalog_ddl_parser_test, create_table_multiple_fields) {
     EXPECT_EQ(create_stmt->fields.at(0)->active, false);
 
     EXPECT_EQ(create_stmt->fields.at(1)->name, "c2");
-    EXPECT_EQ(create_stmt->fields.at(1)->type, data_type_t::e_float64);
+    EXPECT_EQ(create_stmt->fields.at(1)->type, data_type_t::e_double);
     EXPECT_EQ(create_stmt->fields.at(1)->length, 2);
     EXPECT_EQ(create_stmt->fields.at(0)->active, false);
 }

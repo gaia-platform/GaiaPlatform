@@ -81,7 +81,7 @@ private:
     db_names_t m_db_names;
     table_names_t m_table_names;
 
-    gaia::common::gaia_id_t m_global_db_id;
+    gaia::common::gaia_id_t m_empty_db_id;
 
     // Use the lock to ensure exclusive access to caches.
     mutable shared_mutex m_lock;

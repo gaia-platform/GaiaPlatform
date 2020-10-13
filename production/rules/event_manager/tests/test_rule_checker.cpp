@@ -36,7 +36,7 @@ void load_catalog()
     // not active, not deprecated
     fields.emplace_back(make_unique<ddl::field_definition_t>("inactive", data_type_t::e_string, 1));
     // active, not deprecated
-    fields.emplace_back(make_unique<ddl::field_definition_t>("active", data_type_t::e_float32, 1));
+    fields.emplace_back(make_unique<ddl::field_definition_t>("active", data_type_t::e_float, 1));
     // deprecated
     fields.emplace_back(make_unique<ddl::field_definition_t>("deprecated", data_type_t::e_uint64, 1));
     // another valid field

@@ -37,7 +37,7 @@ void execute(const string& db_name, vector<unique_ptr<ddl::statement_t>>& statem
     }
 }
 
-string load_catalog(parser_t& parser, const string& ddl_filename, const string& name) {
+string load_catalog(ddl::parser_t& parser, const string& ddl_filename, const string& name) {
     string db(name);
     common::retail_assert(!ddl_filename.empty(), "No ddl file specified.");
 
@@ -61,7 +61,7 @@ string load_catalog(parser_t& parser, const string& ddl_filename, const string& 
 }
 
 void load_catalog(const char* ddl_filename) {
-    parser_t parser;
+    ddl::parser_t parser;
     string filename(ddl_filename);
     string db_name;
     db_name = load_catalog(parser, filename, db_name);
