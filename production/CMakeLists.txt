@@ -202,6 +202,12 @@ add_subdirectory("${GAIA_REPO}/third_party/production/spdlog" spdlog)
 add_subdirectory("${GAIA_REPO}/third_party/production/spdlog_setup" spdlog_setup)
 # Add tabulate.
 add_subdirectory("${GAIA_REPO}/third_party/production/tabulate" tabulate)
+# Add googletest
+add_subdirectory(${GOOGLE_TEST} googletest)
+
+# Setting clang-tidy here to avoid it being applied to flatbuffers, rocksdb etc...
+# TODO Maybe we could force each subproject to set this flag?
+set(CMAKE_CXX_CLANG_TIDY clang-tidy)
 
 # Add individual component folders.
 add_subdirectory(common)
@@ -214,13 +220,26 @@ add_subdirectory(system)
 add_subdirectory(catalog)
 add_subdirectory(tools)
 
-# Add googletest
-add_subdirectory(${GOOGLE_TEST} googletest)
-
 # Customize test commands.
 file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
   CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_se_server>\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_se_server\")\n"
 )
 
-# Copy logging configuration.
-configure_file(log_conf.toml "${PROJECT_BINARY_DIR}/common/log_conf.toml")
+# Copy log configuration file to make it visible during
+# common/ tests (currently not in use). Leaving this for reference
+file(
+  COPY ${CMAKE_CURRENT_SOURCE_DIR}/log_conf.toml
+  DESTINATION ${PROJECT_BINARY_DIR}/common/
+)
+
+# Copy the git-hooks. git-hooks are local to any git repo and
+# are not copied over when you clone a repo.
+file(
+  COPY ${CMAKE_CURRENT_SOURCE_DIR}/../dev_tools/hooks/pre-commit
+  DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../.git/hooks
+)
+
+# We want to disable all clang-tidy checks for generated code.
+# However, if no checks are specified, clang-tidy will assume we
+# did not configure it correctly. Just add one check that will never be found.
+file(WRITE ${GAIA_PARSER_GENERATED}/.clang-tidy "Checks: '-*,llvm-twine-local'\n")

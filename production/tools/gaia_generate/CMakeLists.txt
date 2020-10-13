@@ -23,6 +23,8 @@ set(GAIA_GENERATE_INCLUDES
 
 message(VERBOSE "GAIA_GENERATE_INCLUDES=${GAIA_GENERATE_INCLUDES}")
 
+set(CMAKE_CXX_CLANG_TIDY clang-tidy)
+
 add_executable(gaia_generate src/main.cpp)
 target_include_directories(gaia_generate PRIVATE ${GAIA_GENERATE_INCLUDES})
 target_link_libraries(gaia_generate PRIVATE rt gaia_catalog gaia_parser)
