@@ -242,4 +242,4 @@ file(
 # We want to disable all clang-tidy checks for generated code.
 # However, if no checks are specified, clang-tidy will assume we
 # did not configure it correctly. Just add one check that will never be found.
-file(WRITE ${GAIA_PARSER_GENERATED}/.clang-tidy "Checks: '-*,llvm-twine-local'\n")
+file(WRITE ${GAIA_PROD_BUILD}/.clang-tidy "Checks: '-*,llvm-twine-local'\n")
