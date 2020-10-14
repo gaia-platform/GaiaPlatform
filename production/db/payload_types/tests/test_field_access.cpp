@@ -3,8 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
 #include "gtest/gtest.h"
 
@@ -33,13 +33,13 @@ constexpr int64_t c_identifier = 7364592217;
 constexpr int64_t c_new_identifier = 9287332599;
 
 constexpr size_t c_count_known_associates = 4;
-constexpr int64_t c_known_associates[] = { 8583390572, 8438230053, 2334850034, 5773382939 };
+constexpr int64_t c_known_associates[] = {8583390572, 8438230053, 2334850034, 5773382939};
 constexpr size_t c_index_new_known_associate = 1;
 constexpr int64_t c_new_known_associate = 7234958243;
 constexpr size_t c_new_count_known_associates = 6;
 
 constexpr size_t c_count_known_aliases = 4;
-constexpr char* const c_known_aliases[] = { "Mamba Lev", "One Hand Rending", "The Ice", "Ken Kakura" };
+constexpr const char* c_known_aliases[] = {"Mamba Lev", "One Hand Rending", "The Ice", "Ken Kakura"};
 constexpr size_t c_index_new_known_alias = 2;
 constexpr char c_new_known_alias[] = "The Icepick";
 constexpr size_t c_new_count_known_aliases = 7;
@@ -51,7 +51,7 @@ constexpr float c_monthly_sleeve_insurance = 149.29;
 constexpr float c_new_monthly_sleeve_insurance = 259.79;
 
 constexpr size_t c_count_credit_amounts = 3;
-constexpr double c_last_yearly_top_credit_amounts[] = { 190000000.39, 29900000.49, 0 };
+constexpr double c_last_yearly_top_credit_amounts[] = {190000000.39, 29900000.49, 0};
 constexpr size_t c_index_new_credit_amount = 1;
 constexpr double c_new_credit_amount = 39900000.89;
 constexpr size_t c_new_count_credit_amounts = 2;
@@ -154,7 +154,7 @@ void get_fields_data(
         if (i == c_index_new_known_associate)
         {
             ASSERT_EQ(check_new_values ? c_new_known_associate : c_known_associates[i],
-                known_associate.hold.integer_value);
+                      known_associate.hold.integer_value);
         }
         else
         {
@@ -191,9 +191,7 @@ void get_fields_data(
 
         if (i == c_index_new_known_alias)
         {
-            ASSERT_EQ(0, strcmp(
-                known_alias.hold.string_value,
-                check_new_values ? c_new_known_alias : c_known_aliases[i]));
+            ASSERT_EQ(0, strcmp(known_alias.hold.string_value, check_new_values ? c_new_known_alias : c_known_aliases[i]));
         }
         else
         {
@@ -219,9 +217,9 @@ void get_fields_data(
     cout << "\tmonthly_sleeve_insurance = " << monthly_sleeve_insurance.hold.float_value << endl;
     ASSERT_EQ(monthly_sleeve_insurance.type, reflection::Float);
     ASSERT_TRUE(monthly_sleeve_insurance.hold.float_value
-        >= (check_new_values ? c_new_monthly_sleeve_insurance : c_monthly_sleeve_insurance));
+                >= (check_new_values ? c_new_monthly_sleeve_insurance : c_monthly_sleeve_insurance));
     ASSERT_TRUE(monthly_sleeve_insurance.hold.float_value
-        <= (check_new_values ? c_new_monthly_sleeve_insurance : c_monthly_sleeve_insurance) + 1);
+                <= (check_new_values ? c_new_monthly_sleeve_insurance : c_monthly_sleeve_insurance) + 1);
 
     size_t count_credit_amounts = get_field_array_size(
         c_type_id,
@@ -253,9 +251,9 @@ void get_fields_data(
         if (i == c_index_new_credit_amount)
         {
             ASSERT_TRUE(credit_amount.hold.float_value
-                >= (check_new_values ? c_new_credit_amount : c_last_yearly_top_credit_amounts[i]));
+                        >= (check_new_values ? c_new_credit_amount : c_last_yearly_top_credit_amounts[i]));
             ASSERT_TRUE(credit_amount.hold.float_value
-                <= (check_new_values ? c_new_credit_amount : c_last_yearly_top_credit_amounts[i]) + 1);
+                        <= (check_new_values ? c_new_credit_amount : c_last_yearly_top_credit_amounts[i]) + 1);
         }
         else
         {
@@ -276,13 +274,10 @@ void process_flatbuffers_data(bool access_fields = false)
     data_loader.load_file_data("test_record_data.bin");
 
     // Validate data.
-    ASSERT_EQ(true, verify_data_schema(
-        data_loader.get_data(),
-        data_loader.get_data_length(),
-        schema_loader.get_data()));
+    ASSERT_EQ(true, verify_data_schema(data_loader.get_data(), data_loader.get_data_length(), schema_loader.get_data()));
 
     // Create and initialize a field_cache.
-    field_cache_t* field_cache = new field_cache_t();
+    auto field_cache = new field_cache_t();
     initialize_field_cache_from_binary_schema(field_cache, schema_loader.get_data());
     ASSERT_EQ(field::count_fields, field_cache->size());
 
@@ -344,13 +339,10 @@ void update_flatbuffers_data()
     data_loader.load_file_data("test_record_data.bin");
 
     // Validate data.
-    ASSERT_EQ(true, verify_data_schema(
-        data_loader.get_data(),
-        data_loader.get_data_length(),
-        schema_loader.get_data()));
+    ASSERT_EQ(true, verify_data_schema(data_loader.get_data(), data_loader.get_data_length(), schema_loader.get_data()));
 
     // Create and initialize a field_cache.
-    field_cache_t* field_cache = new field_cache_t();
+    auto field_cache = new field_cache_t();
     initialize_field_cache_from_binary_schema(field_cache, schema_loader.get_data());
     ASSERT_EQ(field::count_fields, field_cache->size());
 
@@ -362,7 +354,7 @@ void update_flatbuffers_data()
     // We pass nullptr for schema because the cache is initialized already.
     cout << "\nUpdating fields..." << endl;
 
-    cout << "\tupdating age to " << (int)c_new_age << "..." << endl;
+    cout << "\tupdating age to " << static_cast<int>(c_new_age) << "..." << endl;
     data_holder_t new_age;
     new_age.type = reflection::UByte;
     new_age.hold.integer_value = c_new_age;
@@ -374,7 +366,7 @@ void update_flatbuffers_data()
         new_age);
     ASSERT_EQ(true, set_result);
 
-    cout << "\tupdating has_children to " << (int)c_new_has_children << "..." << endl;
+    cout << "\tupdating has_children to " << static_cast<int>(c_new_has_children) << "..." << endl;
     data_holder_t new_has_children;
     new_has_children.type = reflection::Bool;
     new_has_children.hold.integer_value = c_new_has_children;
@@ -399,7 +391,7 @@ void update_flatbuffers_data()
     ASSERT_EQ(true, set_result);
 
     cout << "\tupdating known_associate[" << c_index_new_known_associate
-        << "] to " << c_new_known_associate << "..." << endl;
+         << "] to " << c_new_known_associate << "..." << endl;
     data_holder_t new_known_associate;
     new_known_associate.type = reflection::Long;
     new_known_associate.hold.integer_value = c_new_known_associate;
@@ -436,7 +428,7 @@ void update_flatbuffers_data()
     ASSERT_EQ(true, set_result);
 
     cout << "\tupdating credit_amount[" << c_index_new_credit_amount
-        << "] to " << c_new_credit_amount << "..." << endl;
+         << "] to " << c_new_credit_amount << "..." << endl;
     data_holder_t new_credit_amount;
     new_credit_amount.type = reflection::Double;
     new_credit_amount.hold.float_value = c_new_credit_amount;
@@ -463,7 +455,7 @@ void update_flatbuffers_data()
         new_last_name);
 
     cout << "\tupdating known_alias[" << c_index_new_known_alias
-        << "] to " << c_new_known_alias << "..." << endl;
+         << "] to " << c_new_known_alias << "..." << endl;
     data_holder_t new_known_alias;
     new_known_alias.type = reflection::String;
     new_known_alias.hold.string_value = c_new_known_alias;
@@ -517,10 +509,7 @@ void update_flatbuffers_data()
     data_loader.load_file_data("updated_test_record_data.bin");
 
     // Validate data.
-    ASSERT_EQ(true, verify_data_schema(
-        data_loader.get_data(),
-        data_loader.get_data_length(),
-        schema_loader.get_data()));
+    ASSERT_EQ(true, verify_data_schema(data_loader.get_data(), data_loader.get_data_length(), schema_loader.get_data()));
 
     get_fields_data(
         data_loader,

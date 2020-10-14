@@ -21,6 +21,7 @@ google-readability-casting,
 -modernize-concat-nested-namespaces,
 -modernize-use-using,
 -modernize-use-nodiscard
+-cppcoreguidelines-init-variables
 '
 
 # TODO: headers are disabled for now, they produce too many warnings.

@@ -4,10 +4,8 @@
 /////////////////////////////////////////////
 
 #include <field_access.hpp>
-
-#include <sstream>
-
 #include <retail_assert.hpp>
+#include <sstream>
 
 using namespace std;
 using namespace gaia::common;
@@ -104,7 +102,6 @@ bool verify_data_schema(
     return flatbuffers::Verify(*schema, *root_type, serialized_data, serialized_data_size);
 }
 
-
 // This is an internal helper for the field access methods.
 // It parses the flatbuffers serialization to get the root table
 // and then it retrieves the reflection::Field information
@@ -135,7 +132,7 @@ void get_table_field_information(
 
     // Get hold of the type cache and lookup the field cache for our type.
     type_cache_t* type_cache = type_cache_t::get();
-    type_cache->get_field_cache (type_id, auto_field_cache);
+    type_cache->get_field_cache(type_id, auto_field_cache);
     const field_cache_t* field_cache = auto_field_cache.get();
 
     // If data is not available for our type, we load it locally from the binary schema provided to us.
@@ -168,8 +165,7 @@ void get_table_field_array_information(
     const flatbuffers::VectorOfAny*& field_value)
 {
     get_table_field_information(
-        type_id, serialized_data, binary_schema, field_position,
-        root_table, auto_field_cache, local_field_cache, field);
+        type_id, serialized_data, binary_schema, field_position, root_table, auto_field_cache, local_field_cache, field);
 
     if (field->type()->base_type() != reflection::Vector)
     {
@@ -196,8 +192,7 @@ data_holder_t get_field_value(
     const reflection::Field* field = nullptr;
 
     get_table_field_information(
-        type_id, serialized_data, binary_schema, field_position,
-        root_table, auto_field_cache, local_field_cache, field);
+        type_id, serialized_data, binary_schema, field_position, root_table, auto_field_cache, local_field_cache, field);
 
     // Read field value according to its type.
     data_holder_t result;
@@ -240,16 +235,15 @@ bool set_field_value(
     const reflection::Field* field = nullptr;
 
     get_table_field_information(
-        type_id, serialized_data, binary_schema, field_position,
-        const_root_table, auto_field_cache, local_field_cache, field);
+        type_id, serialized_data, binary_schema, field_position, const_root_table, auto_field_cache, local_field_cache, field);
 
     retail_assert(
         (flatbuffers::IsInteger(field->type()->base_type()) && flatbuffers::IsInteger(value.type))
-        || (flatbuffers::IsFloat(field->type()->base_type()) && flatbuffers::IsFloat(value.type)),
+            || (flatbuffers::IsFloat(field->type()->base_type()) && flatbuffers::IsFloat(value.type)),
         "Attempt to set value of incorrect type");
 
     // We need to update the root_table, so we need to remove the const qualifier.
-    flatbuffers::Table* root_table = const_cast<flatbuffers::Table*>(const_root_table);
+    auto root_table = const_cast<flatbuffers::Table*>(const_root_table);
 
     // Write field value according to its type.
     if (flatbuffers::IsInteger(field->type()->base_type()))
@@ -284,8 +278,7 @@ vector<uint8_t> set_field_value(
     vector<uint8_t> updatable_serialized_data(serialized_data, serialized_data + serialized_data_size);
 
     get_table_field_information(
-        type_id, updatable_serialized_data.data(), binary_schema, field_position,
-        root_table, auto_field_cache, local_field_cache, field);
+        type_id, updatable_serialized_data.data(), binary_schema, field_position, root_table, auto_field_cache, local_field_cache, field);
 
     retail_assert(
         field->type()->base_type() == reflection::String && value.type == reflection::String,
@@ -328,8 +321,7 @@ size_t get_field_array_size(
     const flatbuffers::VectorOfAny* field_value = nullptr;
 
     get_table_field_array_information(
-        type_id, serialized_data, binary_schema, field_position,
-        root_table, auto_field_cache, local_field_cache, field, field_value);
+        type_id, serialized_data, binary_schema, field_position, root_table, auto_field_cache, local_field_cache, field, field_value);
 
     return field_value->size();
 }
@@ -353,8 +345,7 @@ std::vector<uint8_t> set_field_array_size(
     vector<uint8_t> updatable_serialized_data(serialized_data, serialized_data + serialized_data_size);
 
     get_table_field_array_information(
-        type_id, updatable_serialized_data.data(), binary_schema, field_position,
-        root_table, auto_field_cache, local_field_cache, field, field_value);
+        type_id, updatable_serialized_data.data(), binary_schema, field_position, root_table, auto_field_cache, local_field_cache, field, field_value);
 
     if (new_size == field_value->size())
     {
@@ -402,8 +393,7 @@ data_holder_t get_field_array_element(
     const flatbuffers::VectorOfAny* field_value = nullptr;
 
     get_table_field_array_information(
-        type_id, serialized_data, binary_schema, field_position,
-        root_table, auto_field_cache, local_field_cache, field, field_value);
+        type_id, serialized_data, binary_schema, field_position, root_table, auto_field_cache, local_field_cache, field, field_value);
 
     retail_assert(array_index < field_value->size(), "Attempt to index array is out-of-bounds.");
 
@@ -422,7 +412,7 @@ data_holder_t get_field_array_element(
     }
     else if (field->type()->element() == reflection::String)
     {
-        const flatbuffers::String* field_element_value
+        const auto field_element_value
             = flatbuffers::GetAnyVectorElemPointer<const flatbuffers::String>(field_value, array_index);
 
         // For null strings, the field_value will come back as nullptr,
@@ -453,17 +443,16 @@ void set_field_array_element(
     const flatbuffers::VectorOfAny* const_field_value = nullptr;
 
     get_table_field_array_information(
-        type_id, serialized_data, binary_schema, field_position,
-        const_root_table, auto_field_cache, local_field_cache, field, const_field_value);
+        type_id, serialized_data, binary_schema, field_position, const_root_table, auto_field_cache, local_field_cache, field, const_field_value);
 
     retail_assert(array_index < const_field_value->size(), "Attempt to index array is out-of-bounds.");
     retail_assert(
         (flatbuffers::IsInteger(field->type()->element()) && flatbuffers::IsInteger(value.type))
-        || (flatbuffers::IsFloat(field->type()->element()) && flatbuffers::IsFloat(value.type)),
+            || (flatbuffers::IsFloat(field->type()->element()) && flatbuffers::IsFloat(value.type)),
         "Attempt to set value of incorrect type");
 
     // We need to update the serialization, so we need to remove the const qualifier.
-    flatbuffers::VectorOfAny* field_value = const_cast<flatbuffers::VectorOfAny* >(const_field_value);
+    auto field_value = const_cast<flatbuffers::VectorOfAny*>(const_field_value);
 
     // Write field value according to its type.
     if (flatbuffers::IsInteger(field->type()->element()))
@@ -502,8 +491,7 @@ std::vector<uint8_t> set_field_array_element(
     vector<uint8_t> updatable_serialized_data(serialized_data, serialized_data + serialized_data_size);
 
     get_table_field_array_information(
-        type_id, updatable_serialized_data.data(), binary_schema, field_position,
-        root_table, auto_field_cache, local_field_cache, field, field_value);
+        type_id, updatable_serialized_data.data(), binary_schema, field_position, root_table, auto_field_cache, local_field_cache, field, field_value);
 
     retail_assert(array_index < field_value->size(), "Attempt to index array is out-of-bounds.");
     retail_assert(
@@ -518,7 +506,7 @@ std::vector<uint8_t> set_field_array_element(
 
     string new_field_element_value(value.hold.string_value);
 
-    const flatbuffers::String* field_element_value
+    auto field_element_value
         = flatbuffers::GetAnyVectorElemPointer<const flatbuffers::String>(field_value, array_index);
     if (field_element_value == nullptr)
     {
@@ -534,6 +522,6 @@ std::vector<uint8_t> set_field_array_element(
     return updatable_serialized_data;
 }
 
-}
-}
-}
+} // namespace payload_types
+} // namespace db
+} // namespace gaia
