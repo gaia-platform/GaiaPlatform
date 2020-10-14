@@ -3,10 +3,10 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <data_holder.hpp>
+#include "data_holder.hpp"
 
-#include <retail_assert.hpp>
-#include <field_access.hpp>
+#include "field_access.hpp"
+#include "retail_assert.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db::payload_types;
@@ -56,8 +56,8 @@ int data_holder_t::compare(const data_holder_t& other) const
                 return 0;
             }
 
-            const uint64_t* unsigned_integer_value = reinterpret_cast<const uint64_t*>(&hold.integer_value);
-            const uint64_t* other_unsigned_integer_value = reinterpret_cast<const uint64_t*>(&other.hold.integer_value);
+            auto unsigned_integer_value = reinterpret_cast<const uint64_t*>(&hold.integer_value);
+            auto other_unsigned_integer_value = reinterpret_cast<const uint64_t*>(&other.hold.integer_value);
 
             return (*unsigned_integer_value > *other_unsigned_integer_value) ? 1 : -1;
         }

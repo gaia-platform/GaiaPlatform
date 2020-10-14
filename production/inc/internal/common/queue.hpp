@@ -9,7 +9,7 @@
 
 #include <shared_mutex>
 
-#include <retail_assert.hpp>
+#include "retail_assert.hpp"
 
 namespace gaia
 {
@@ -34,7 +34,7 @@ struct queue_element_t
 
     mutable shared_mutex lock;
 
-    queue_element_t() = default;
+    queue_element_t();
     queue_element_t(T value);
 };
 
@@ -42,7 +42,6 @@ template <class T>
 class queue_t
 {
 public:
-
     queue_t();
     ~queue_t();
 
@@ -56,7 +55,6 @@ public:
     bool is_empty() const;
 
 protected:
-
     queue_element_t<T> m_head;
     queue_element_t<T> m_tail;
 
@@ -69,6 +67,6 @@ protected:
 #include "queue.inc"
 
 /*@}*/
-}
+} // namespace common
 /*@}*/
-}
+} // namespace gaia
