@@ -108,20 +108,20 @@ enum class statement_type_t : uint8_t {
 
 struct statement_t {
 
-    statement_t(statement_type_t type) : m_type(type){};
+    explicit statement_t(statement_type_t type) : m_type(type){};
 
-    statement_type_t type() const { return m_type; };
+    [[nodiscard]] statement_type_t type() const { return m_type; };
 
-    bool is_type(statement_type_t type) const { return m_type == type; };
+    [[nodiscard]] bool is_type(statement_type_t type) const { return m_type == type; };
 
-    virtual ~statement_t(){};
+    virtual ~statement_t() = default;
 
 private:
     statement_type_t m_type;
 };
 
 struct field_type_t {
-    field_type_t(data_type_t type) : type(type){};
+    explicit field_type_t(data_type_t type) : type(type){};
 
     data_type_t type;
     string name;
@@ -151,13 +151,13 @@ enum class create_type_t : uint8_t {
 };
 
 struct create_statement_t : statement_t {
-    create_statement_t(create_type_t type)
+    explicit create_statement_t(create_type_t type)
         : statement_t(statement_type_t::create), type(type){};
 
     create_statement_t(create_type_t type, string name)
         : statement_t(statement_type_t::create), type(type), name(move(name)){};
 
-    virtual ~create_statement_t() {}
+    ~create_statement_t() override = default;
 
     create_type_t type;
 
@@ -176,13 +176,13 @@ enum class drop_type_t : uint8_t {
 };
 
 struct drop_statement_t : statement_t {
-    drop_statement_t(drop_type_t type)
+    explicit drop_statement_t(drop_type_t type)
         : statement_t(statement_type_t::drop), type(type){};
 
     drop_statement_t(drop_type_t type, string name)
         : statement_t(statement_type_t::drop), type(type), name(move(name)){};
 
-    virtual ~drop_statement_t() {}
+    ~drop_statement_t() override = default;
 
     drop_type_t type;
 
@@ -199,7 +199,7 @@ struct drop_statement_t : statement_t {
  */
 class db_already_exists : public gaia::common::gaia_exception {
 public:
-    db_already_exists(const string& name) {
+    explicit db_already_exists(const string& name) {
         stringstream message;
         message << "The database \"" << name << "\" already exists.";
         m_message = message.str();
@@ -211,7 +211,7 @@ public:
  */
 class db_not_exists : public gaia::common::gaia_exception {
 public:
-    db_not_exists(const string& name) {
+    explicit db_not_exists(const string& name) {
         stringstream message;
         message << "The database \"" << name << "\" does not exist.";
         m_message = message.str();
@@ -223,7 +223,7 @@ public:
  */
 class table_already_exists : public gaia::common::gaia_exception {
 public:
-    table_already_exists(const string& name) {
+    explicit table_already_exists(const string& name) {
         stringstream message;
         message << "The table \"" << name << "\" already exists.";
         m_message = message.str();
@@ -235,7 +235,7 @@ public:
  */
 class table_not_exists : public gaia::common::gaia_exception {
 public:
-    table_not_exists(const string& name) {
+    explicit table_not_exists(const string& name) {
         stringstream message;
         message << "The table \"" << name << "\" does not exist.";
         m_message = message.str();
@@ -247,7 +247,7 @@ public:
  */
 class duplicate_field : public gaia::common::gaia_exception {
 public:
-    duplicate_field(const string& name) {
+    explicit duplicate_field(const string& name) {
         stringstream message;
         message << "The field \"" << name << "\" is specified more than once.";
         m_message = message.str();
