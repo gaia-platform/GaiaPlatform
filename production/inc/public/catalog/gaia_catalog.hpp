@@ -116,7 +116,6 @@ enum class statement_type_t : uint8_t
 
 struct statement_t
 {
-
     explicit statement_t(statement_type_t type)
         : m_type(type){};
 

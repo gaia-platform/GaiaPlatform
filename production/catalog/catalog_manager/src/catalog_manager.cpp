@@ -213,12 +213,12 @@ void catalog_manager_t::reload_cache()
     clear_cache();
 
     gaia::db::begin_transaction();
-    for (auto& db : gaia_database_t::list())
+    for (const auto& db : gaia_database_t::list())
     {
         m_db_names[db.name()] = db.gaia_id();
     }
 
-    for (auto table : gaia_table_t::list())
+    for (auto& table : gaia_table_t::list())
     {
         string full_table_name = string(table.gaia_database().name()) + "." + string(table.name());
         m_table_names[full_table_name] = table.gaia_id();
@@ -362,12 +362,11 @@ static gaia_ptr insert_gaia_table_row(
     fbb.Finish(Creategaia_tableDirect(fbb, name, is_log, binary_schema));
 
     return gaia_ptr::create(
-        table_id,                                                   // id
-        static_cast<gaia_type_t>(catalog_table_type_t::gaia_table), // type
-        c_gaia_table_num_refs,                                      // num_refs
-        fbb.GetSize(),                                              // data_size
-        fbb.GetBufferPointer()                                      // data
-    );
+        table_id,
+        static_cast<gaia_type_t>(catalog_table_type_t::gaia_table),
+        c_gaia_table_num_refs,
+        fbb.GetSize(),
+        fbb.GetBufferPointer());
 }
 
 gaia_id_t catalog_manager_t::create_table_impl(
@@ -407,7 +406,7 @@ gaia_id_t catalog_manager_t::create_table_impl(
     // also does not allow duplicate field names and we may generate
     // invalid fbs without checking duplication first.
     set<string> field_names;
-    for (auto& field : fields)
+    for (const auto& field : fields)
     {
         if (field_names.find(field->name) != field_names.end())
         {
@@ -423,27 +422,25 @@ gaia_id_t catalog_manager_t::create_table_impl(
     if (id == INVALID_GAIA_ID)
     {
         table_id = gaia_table_t::insert_row(
-            table_name.c_str(), // name
-            is_log,             // is_log
-            bfbs.c_str()        // bfbs
-        );
+            table_name.c_str(),
+            is_log,
+            bfbs.c_str());
     }
     else
     {
         table_id = id;
         insert_gaia_table_row(
-            table_id,           // table id
-            table_name.c_str(), // name
-            is_log,             // is_log
-            bfbs.c_str()        // bfbs
-        );
+            table_id,
+            table_name.c_str(),
+            is_log,
+            bfbs.c_str());
     }
 
     // Connect the table to the database
     gaia_database_t::get(db_id).gaia_table_list().insert(table_id);
 
     uint16_t field_position = 0, reference_position = 0;
-    for (auto& field : fields)
+    for (const auto& field : fields)
     {
         gaia_id_t field_type_id{0};
         uint16_t position;
@@ -478,13 +475,12 @@ gaia_id_t catalog_manager_t::create_table_impl(
             position = field_position++;
         }
         gaia_id_t field_id = gaia_field_t::insert_row(
-            field->name.c_str(),               // name
-            static_cast<uint8_t>(field->type), // type
-            field->length,                     // repeated_count
-            position,                          // position
-            false,                             // deprecated
-            field->active                      // active
-        );
+            field->name.c_str(),
+            static_cast<uint8_t>(field->type),
+            field->length,
+            position,
+            false,
+            field->active);
         // Connect the field to the table it belongs to.
         gaia_table_t::get(table_id).gaia_field_list().insert(field_id);
 
@@ -529,7 +525,7 @@ vector<gaia_id_t> catalog_manager_t::list_fields(gaia_id_t table_id) const
     // allow appending new fields to table definitions, reversing the field list
     // order should result in fields being listed in the ascending order of
     // their positions.
-    for (auto& field : gaia_table_t::get(table_id).gaia_field_list())
+    for (const auto& field : gaia_table_t::get(table_id).gaia_field_list())
     {
         if (field.type() != static_cast<uint8_t>(data_type_t::e_references))
         {
@@ -546,7 +542,7 @@ vector<gaia_id_t> catalog_manager_t::list_references(gaia_id_t table_id) const
     // allow appending new references to table definitions, reversing the
     // reference field list order should result in references being listed in
     // the ascending order of their positions.
-    for (auto& field : gaia_table_t::get(table_id).gaia_field_list())
+    for (const auto& field : gaia_table_t::get(table_id).gaia_field_list())
     {
         if (field.type() == static_cast<uint8_t>(data_type_t::e_references))
         {
