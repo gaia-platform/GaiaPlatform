@@ -2,34 +2,41 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
-#include "gaia_catalog.h"
 #include "catalog_manager.hpp"
-#include "gaia_exception.hpp"
+
+#include <memory>
+
 #include "fbs_generator.hpp"
+#include "gaia_catalog.h"
+#include "gaia_exception.hpp"
 #include "retail_assert.hpp"
 #include "system_table_types.hpp"
-#include <memory>
 
 using namespace gaia::catalog::ddl;
 
 /**
  * Catalog public APIs
  **/
-namespace gaia {
-namespace catalog {
+namespace gaia
+{
+namespace catalog
+{
 
 static constexpr char c_empty_c_str[] = "";
 
-void initialize_catalog() {
+void initialize_catalog()
+{
     catalog_manager_t::get();
 }
 
-gaia_id_t create_database(const string& name, bool throw_on_exists) {
+gaia_id_t create_database(const string& name, bool throw_on_exists)
+{
     return catalog_manager_t::get().create_database(name, throw_on_exists);
 }
 
 gaia_id_t create_table(const string& name,
-    const field_def_list_t& fields) {
+                       const field_def_list_t& fields)
+{
     return catalog_manager_t::get().create_table(c_empty_c_str, name, fields);
 }
 
@@ -37,31 +44,38 @@ gaia_id_t create_table(
     const string& dbname,
     const string& name,
     const field_def_list_t& fields,
-    bool throw_on_exists) {
+    bool throw_on_exists)
+{
     return catalog_manager_t::get().create_table(dbname, name, fields, throw_on_exists);
 }
 
-void drop_database(const string& name) {
+void drop_database(const string& name)
+{
     return catalog_manager_t::get().drop_database(name);
 }
 
-void drop_table(const string& name) {
+void drop_table(const string& name)
+{
     return catalog_manager_t::get().drop_table(c_empty_c_str, name);
 }
 
-void drop_table(const string& dbname, const string& name) {
+void drop_table(const string& dbname, const string& name)
+{
     return catalog_manager_t::get().drop_table(dbname, name);
 }
 
-vector<gaia_id_t> list_fields(gaia_id_t table_id) {
+vector<gaia_id_t> list_fields(gaia_id_t table_id)
+{
     return catalog_manager_t::get().list_fields(table_id);
 }
 
-vector<gaia_id_t> list_references(gaia_id_t table_id) {
+vector<gaia_id_t> list_references(gaia_id_t table_id)
+{
     return catalog_manager_t::get().list_references(table_id);
 }
 
-gaia_id_t find_db_id(const string& dbname) {
+gaia_id_t find_db_id(const string& dbname)
+{
     return catalog_manager_t::get().find_db_id(dbname);
 }
 
@@ -69,16 +83,19 @@ gaia_id_t find_db_id(const string& dbname) {
  * Class methods
  **/
 
-catalog_manager_t::catalog_manager_t() {
+catalog_manager_t::catalog_manager_t()
+{
     init();
 }
 
-catalog_manager_t& catalog_manager_t::get() {
+catalog_manager_t& catalog_manager_t::get()
+{
     static catalog_manager_t s_instance;
     return s_instance;
 }
 
-void catalog_manager_t::bootstrap_catalog() {
+void catalog_manager_t::bootstrap_catalog()
+{
     create_database("catalog", false);
     {
         // create table gaia_database (name string);
@@ -90,19 +107,12 @@ void catalog_manager_t::bootstrap_catalog() {
         // create table gaia_table (
         //     name string,
         //     is_log bool,
-        //     max_rows uint64,
-        //     max_size uint64,
-        //     max_seconds uint64,
         //     binary_schema string,
         //     references gaia_database,
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<field_definition_t>("is_log", data_type_t::e_bool, 1));
-        fields.emplace_back(make_unique<field_definition_t>("trim_action", data_type_t::e_uint8, 1));
-        fields.emplace_back(make_unique<field_definition_t>("max_rows", data_type_t::e_uint64, 1));
-        fields.emplace_back(make_unique<field_definition_t>("max_size", data_type_t::e_uint64, 1));
-        fields.emplace_back(make_unique<field_definition_t>("max_seconds", data_type_t::e_uint64, 1));
         fields.emplace_back(make_unique<field_definition_t>("binary_schema", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<field_definition_t>(c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_database"));
         create_table_impl("catalog", "gaia_table", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_table));
@@ -160,7 +170,8 @@ void catalog_manager_t::bootstrap_catalog() {
     }
 }
 
-void catalog_manager_t::create_system_tables() {
+void catalog_manager_t::create_system_tables()
+{
     create_database("event_log", false);
     {
         // create table event_log (
@@ -182,28 +193,33 @@ void catalog_manager_t::create_system_tables() {
     }
 }
 
-void catalog_manager_t::init() {
+void catalog_manager_t::init()
+{
     reload_cache();
     bootstrap_catalog();
     create_system_tables();
     m_empty_db_id = create_database(c_empty_db_name, false);
 }
 
-void catalog_manager_t::clear_cache() {
+void catalog_manager_t::clear_cache()
+{
     m_table_names.clear();
 }
 
-void catalog_manager_t::reload_cache() {
+void catalog_manager_t::reload_cache()
+{
     unique_lock lock(m_lock);
 
     clear_cache();
 
     gaia::db::begin_transaction();
-    for (auto db : gaia_database_t::list()) {
+    for (const auto& db : gaia_database_t::list())
+    {
         m_db_names[db.name()] = db.gaia_id();
     }
 
-    for (auto table : gaia_table_t::list()) {
+    for (auto& table : gaia_table_t::list())
+    {
         string full_table_name = string(table.gaia_database().name()) + "." + string(table.name());
         m_table_names[full_table_name] = table.gaia_id();
     }
@@ -212,13 +228,18 @@ void catalog_manager_t::reload_cache() {
 
 gaia_id_t catalog_manager_t::create_database(
     const string& name,
-    bool throw_on_exist) {
+    bool throw_on_exist)
+{
 
     unique_lock lock(m_lock);
-    if (m_db_names.find(name) != m_db_names.end()) {
-        if (throw_on_exist) {
+    if (m_db_names.find(name) != m_db_names.end())
+    {
+        if (throw_on_exist)
+        {
             throw db_already_exists(name);
-        } else {
+        }
+        else
+        {
             return m_db_names.at(name);
         }
     }
@@ -233,21 +254,25 @@ gaia_id_t catalog_manager_t::create_table(
     const string& db_name,
     const string& name,
     const field_def_list_t& fields,
-    bool throw_on_exists) {
+    bool throw_on_exists)
+{
     return create_table_impl(db_name, name, fields, false, throw_on_exists);
 }
 
-void catalog_manager_t::drop_table_no_txn(gaia_id_t table_id) {
+void catalog_manager_t::drop_table_no_txn(gaia_id_t table_id)
+{
     auto table_record = gaia_table_t::get(table_id);
 
-    for (gaia_id_t field_id : list_fields(table_id)) {
+    for (gaia_id_t field_id : list_fields(table_id))
+    {
         // Unlink the field and the table.
         table_record.gaia_field_list().erase(field_id);
         // Remove the field.
         gaia_field_t::get(field_id).delete_row();
     }
 
-    for (gaia_id_t reference_id : list_references(table_id)) {
+    for (gaia_id_t reference_id : list_references(table_id))
+    {
         // Unlink the reference and the owner table.
         table_record.gaia_field_list().erase(reference_id);
         auto reference_record = gaia_field_t::get(reference_id);
@@ -263,20 +288,24 @@ void catalog_manager_t::drop_table_no_txn(gaia_id_t table_id) {
     table_record.delete_row();
 }
 
-void catalog_manager_t::drop_database(const string& name) {
+void catalog_manager_t::drop_database(const string& name)
+{
     unique_lock lock(m_lock);
     gaia_id_t db_id = find_db_id_no_lock(name);
-    if (db_id == INVALID_GAIA_ID) {
+    if (db_id == INVALID_GAIA_ID)
+    {
         throw db_not_exists(name);
     }
     {
         auto_transaction_t txn;
         auto db_record = gaia_database_t::get(db_id);
         vector<gaia_id_t> table_ids;
-        for (auto table : db_record.gaia_table_list()) {
+        for (auto& table : db_record.gaia_table_list())
+        {
             table_ids.push_back(table.gaia_id());
         }
-        for (gaia_id_t table_id : table_ids) {
+        for (gaia_id_t table_id : table_ids)
+        {
             drop_table_no_txn(table_id);
         }
         db_record.delete_row();
@@ -287,11 +316,13 @@ void catalog_manager_t::drop_database(const string& name) {
 
 void catalog_manager_t::drop_table(
     const string& db_name,
-    const string& name) {
+    const string& name)
+{
 
     unique_lock lock(m_lock);
 
-    if (!db_name.empty() && m_db_names.find(db_name) == m_db_names.end()) {
+    if (!db_name.empty() && m_db_names.find(db_name) == m_db_names.end())
+    {
         throw db_not_exists(db_name);
     }
 
@@ -299,7 +330,8 @@ void catalog_manager_t::drop_table(
     gaia_id_t db_id = find_db_id_no_lock(db_name);
     retail_assert(db_id != INVALID_GAIA_ID);
 
-    if (m_table_names.find(full_table_name) == m_table_names.end()) {
+    if (m_table_names.find(full_table_name) == m_table_names.end())
+    {
         throw table_not_exists(name);
     }
     gaia_id_t table_id = m_table_names[full_table_name];
@@ -318,11 +350,8 @@ static gaia_ptr insert_gaia_table_row(
     gaia_id_t table_id,
     const char* name,
     bool is_log,
-    uint8_t trim_action,
-    uint64_t max_rows,
-    uint64_t max_size,
-    uint64_t max_seconds,
-    const char* binary_schema) {
+    const char* binary_schema)
+{
 
     // NOTE: The number of table references must be updated manually for bootstrapping,
     //       when the references of the gaia_table change. The constant from existing catalog
@@ -330,15 +359,14 @@ static gaia_ptr insert_gaia_table_row(
     static constexpr size_t c_gaia_table_num_refs = c_num_gaia_table_ptrs;
 
     flatbuffers::FlatBufferBuilder fbb(c_flatbuffer_builder_size);
-    fbb.Finish(Creategaia_tableDirect(fbb, name, is_log, trim_action, max_rows, max_size, max_seconds, binary_schema));
+    fbb.Finish(Creategaia_tableDirect(fbb, name, is_log, binary_schema));
 
     return gaia_ptr::create(
-        table_id,                                                   // id
-        static_cast<gaia_type_t>(catalog_table_type_t::gaia_table), // type
-        c_gaia_table_num_refs,                                      // num_refs
-        fbb.GetSize(),                                              // data_size
-        fbb.GetBufferPointer()                                      // data
-    );
+        table_id,
+        static_cast<gaia_type_t>(catalog_table_type_t::gaia_table),
+        c_gaia_table_num_refs,
+        fbb.GetSize(),
+        fbb.GetBufferPointer());
 }
 
 gaia_id_t catalog_manager_t::create_table_impl(
@@ -347,11 +375,13 @@ gaia_id_t catalog_manager_t::create_table_impl(
     const field_def_list_t& fields,
     bool is_log,
     bool throw_on_exist,
-    gaia_id_t id) {
+    gaia_id_t id)
+{
 
     unique_lock lock(m_lock);
 
-    if (!dbname.empty() && m_db_names.find(dbname) == m_db_names.end()) {
+    if (!dbname.empty() && m_db_names.find(dbname) == m_db_names.end())
+    {
         throw db_not_exists(dbname);
     }
 
@@ -359,10 +389,14 @@ gaia_id_t catalog_manager_t::create_table_impl(
     gaia_id_t db_id = find_db_id_no_lock(dbname);
     retail_assert(db_id != INVALID_GAIA_ID);
 
-    if (m_table_names.find(full_table_name) != m_table_names.end()) {
-        if (throw_on_exist) {
+    if (m_table_names.find(full_table_name) != m_table_names.end())
+    {
+        if (throw_on_exist)
+        {
             throw table_already_exists(full_table_name);
-        } else {
+        }
+        else
+        {
             return m_table_names.at(full_table_name);
         }
     }
@@ -372,8 +406,10 @@ gaia_id_t catalog_manager_t::create_table_impl(
     // also does not allow duplicate field names and we may generate
     // invalid fbs without checking duplication first.
     set<string> field_names;
-    for (auto& field : fields) {
-        if (field_names.find(field->name) != field_names.end()) {
+    for (const auto& field : fields)
+    {
+        if (field_names.find(field->name) != field_names.end())
+        {
             throw duplicate_field(field->name);
         }
         field_names.insert(field->name);
@@ -383,69 +419,73 @@ gaia_id_t catalog_manager_t::create_table_impl(
 
     gaia::db::begin_transaction();
     gaia_id_t table_id;
-    if (id == INVALID_GAIA_ID) {
+    if (id == INVALID_GAIA_ID)
+    {
         table_id = gaia_table_t::insert_row(
-            table_name.c_str(),                               // name
-            is_log,                                           // is_log
-            static_cast<uint8_t>(trim_action_type_t::e_none), // trim_action
-            0,                                                // max_rows
-            0,                                                // max_size
-            0,                                                // max_seconds
-            bfbs.c_str()                                      // bfbs
-        );
-    } else {
+            table_name.c_str(),
+            is_log,
+            bfbs.c_str());
+    }
+    else
+    {
         table_id = id;
         insert_gaia_table_row(
-            table_id,                                         // table id
-            table_name.c_str(),                               // name
-            is_log,                                           // is_log
-            static_cast<uint8_t>(trim_action_type_t::e_none), // trim_action
-            0,                                                // max_rows
-            0,                                                // max_size
-            0,                                                // max_seconds
-            bfbs.c_str()                                      // bfbs
-        );
+            table_id,
+            table_name.c_str(),
+            is_log,
+            bfbs.c_str());
     }
 
     // Connect the table to the database
     gaia_database_t::get(db_id).gaia_table_list().insert(table_id);
 
     uint16_t field_position = 0, reference_position = 0;
-    for (auto& field : fields) {
+    for (const auto& field : fields)
+    {
         gaia_id_t field_type_id{0};
         uint16_t position;
-        if (field->type == data_type_t::e_references) {
-            if (field->table_type_name == full_table_name || field->table_type_name == table_name) {
+        if (field->type == data_type_t::e_references)
+        {
+            if (field->table_type_name == full_table_name || field->table_type_name == table_name)
+            {
                 // We allow a table definition to reference itself (self-referencing).
                 field_type_id = table_id;
-            } else if (m_table_names.find(field->table_type_name) != m_table_names.end()) {
+            }
+            else if (m_table_names.find(field->table_type_name) != m_table_names.end())
+            {
                 // A table definition can reference any of existing tables.
                 field_type_id = m_table_names[field->table_type_name];
-            } else if (!dbname.empty() && m_table_names.count(dbname + "." + field->table_type_name)) {
+            }
+            else if (!dbname.empty() && m_table_names.count(dbname + "." + field->table_type_name))
+            {
                 // A table definition can reference existing tables in its own database without specifying the database name.
                 field_type_id = m_table_names[dbname + "." + field->table_type_name];
-            } else {
+            }
+            else
+            {
                 // We cannot find the referenced table.
                 // Forward declaration is not supported right now.
                 throw table_not_exists(field->table_type_name);
             }
             // The field ID/position values must be a contiguous range from 0 onward.
             position = reference_position++;
-        } else {
+        }
+        else
+        {
             position = field_position++;
         }
         gaia_id_t field_id = gaia_field_t::insert_row(
-            field->name.c_str(),               // name
-            static_cast<uint8_t>(field->type), // type
-            field->length,                     // repeated_count
-            position,                          // position
-            false,                             // deprecated
-            field->active                      // active
-        );
+            field->name.c_str(),
+            static_cast<uint8_t>(field->type),
+            field->length,
+            position,
+            false,
+            field->active);
         // Connect the field to the table it belongs to.
         gaia_table_t::get(table_id).gaia_field_list().insert(field_id);
 
-        if (field->type == data_type_t::e_references) {
+        if (field->type == data_type_t::e_references)
+        {
             // Connect the referred table to the reference field.
             gaia_table_t::get(field_type_id).ref_gaia_field_list().insert(field_id);
         }
@@ -456,43 +496,56 @@ gaia_id_t catalog_manager_t::create_table_impl(
     return table_id;
 }
 
-gaia_id_t catalog_manager_t::find_db_id(const string& dbname) const {
+gaia_id_t catalog_manager_t::find_db_id(const string& dbname) const
+{
     shared_lock lock(m_lock);
     return find_db_id_no_lock(dbname);
 }
 
-inline gaia_id_t catalog_manager_t::find_db_id_no_lock(const string& dbname) const {
-    if (dbname.empty()) {
+inline gaia_id_t catalog_manager_t::find_db_id_no_lock(const string& dbname) const
+{
+    if (dbname.empty())
+    {
         return m_empty_db_id;
-    } else if (m_db_names.count(dbname)) {
+    }
+    else if (m_db_names.count(dbname))
+    {
         return m_db_names.at(dbname);
-    } else {
+    }
+    else
+    {
         return INVALID_GAIA_ID;
     }
 }
 
-vector<gaia_id_t> catalog_manager_t::list_fields(gaia_id_t table_id) const {
+vector<gaia_id_t> catalog_manager_t::list_fields(gaia_id_t table_id) const
+{
     vector<gaia_id_t> fields;
     // Direct access reference list API guarantees LIFO. As long as we only
     // allow appending new fields to table definitions, reversing the field list
     // order should result in fields being listed in the ascending order of
     // their positions.
-    for (auto field : gaia_table_t::get(table_id).gaia_field_list()) {
-        if (field.type() != static_cast<uint8_t>(data_type_t::e_references)) {
+    for (const auto& field : gaia_table_t::get(table_id).gaia_field_list())
+    {
+        if (field.type() != static_cast<uint8_t>(data_type_t::e_references))
+        {
             fields.insert(fields.begin(), field.gaia_id());
         }
     }
     return fields;
 }
 
-vector<gaia_id_t> catalog_manager_t::list_references(gaia_id_t table_id) const {
+vector<gaia_id_t> catalog_manager_t::list_references(gaia_id_t table_id) const
+{
     vector<gaia_id_t> references;
     // Direct access reference list API guarantees LIFO. As long as we only
-    // allow appending new fields to table definitions, reversing the field list
-    // order should result in fields being listed in the ascending order of
-    // their positions.
-    for (auto field : gaia_table_t::get(table_id).gaia_field_list()) {
-        if (field.type() == static_cast<uint8_t>(data_type_t::e_references)) {
+    // allow appending new references to table definitions, reversing the
+    // reference field list order should result in references being listed in
+    // the ascending order of their positions.
+    for (const auto& field : gaia_table_t::get(table_id).gaia_field_list())
+    {
+        if (field.type() == static_cast<uint8_t>(data_type_t::e_references))
+        {
             references.insert(references.begin(), field.gaia_id());
         }
     }
