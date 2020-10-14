@@ -14,6 +14,7 @@ from .dockerfile import GenAbcDockerfile
 # We require buildkit support for inline caching of multi-stage dockerfiles. It's also way faster
 # and the terminal output is relatively sane.
 os.environ['DOCKER_BUILDKIT'] = '1'
+os.environ['DOCKER_CLI_EXPERIMENTAL'] = 'enabled'
 
 
 class GenAbcBuild(Dependency, ABC):
@@ -180,7 +181,7 @@ class GenAbcBuild(Dependency, ABC):
         # TODO query remotely for cached build sources.
         self.log.info(f'Creating image "{await self.get_tag()}"')
         await Host.execute(
-            f'docker build'
+            f'docker buildx build'
             f' -f {self.dockerfile.path}'
             f' -t {await self.get_tag()}'
 
@@ -193,7 +194,7 @@ class GenAbcBuild(Dependency, ABC):
             # Keep metadata about layers so that they can be used as a cache source.
             f' --build-arg BUILDKIT_INLINE_CACHE=1'
 
-            f' --platform {self.options.platform}'
+            f' --platform linux/{self.options.platform}'
 
             # Required to run production.
             f' --shm-size 1gb'

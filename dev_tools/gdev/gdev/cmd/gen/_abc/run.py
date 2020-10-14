@@ -32,7 +32,7 @@ class GenAbcRun(Dependency, ABC):
             f'--entrypoint /bin/bash',
 
             f'--hostname {await self.build.dockerfile.get_name()}',
-            f'--platform {self.options.platform}',
+            f'--platform linux/{self.options.platform}',
 
             # We use shared memory in production. Just assume we'll always need this.
             f'--shm-size 1gb',
