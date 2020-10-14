@@ -241,3 +241,198 @@ TEST_F(catalog_manager_test, drop_database) {
         EXPECT_FALSE(gaia_database_t::get(db_id));
     }
 }
+
+template <typename T_container>
+    size_t container_size(T_container container)
+{
+size_t size{0};
+auto first = container.begin();
+auto last = container.end();
+
+for (; first != last; ++first)
+{
+++size;
+}
+
+return size;
+}
+
+template <typename T_container>
+gaia_field_t find_field(T_container fields, const std::string& field_name)
+{
+    auto it = std::find_if(fields.begin(), fields.end(), [&](const gaia_field_t& field) {
+      return field_name == field.name();
+    });
+
+    if (it == fields.end())
+    {
+        throw gaia_exception(std::string("Expected field not found: ") + field_name);
+    }
+
+    return *it;
+}
+
+template <typename T_container>
+gaia_relationship_t find_relationship(
+    T_container relationships,
+    const std::string& parent_table,
+    const std::string& child_table,
+    const std::string& child_field)
+{
+
+    auto it = std::find_if(relationships.begin(), relationships.end(), [&](gaia_relationship_t relationship) {
+      return relationship.parent_gaia_table().name() == parent_table
+             && relationship.child_gaia_field().name() == child_field
+             && relationship.child_gaia_field().gaia_table().name() == child_table;
+    });
+
+    if (it == relationships.end())
+    {
+        stringstream message;
+        message << "Expected relationship not found: " << parent_table << " --> " << child_table << "." << child_field;
+        throw gaia_exception(message.str());
+    }
+
+    return *it;
+}
+
+TEST_F(catalog_manager_test, create_relationships)
+{
+    string db_name = {"hospital"};
+    create_database(db_name, true);
+
+    // (clinic) 1 --> N (doctor) 1 --> N (patient) N <-- 1 (clinic)
+
+    string clinic_table_name{"clinic"};
+    ddl::field_def_list_t clinic_table_fields;
+    clinic_table_fields.emplace_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
+    clinic_table_fields.emplace_back(make_unique<ddl::field_definition_t>("location", data_type_t::e_string, 1));
+    gaia_id_t clinic_table_id = create_table(db_name, clinic_table_name, clinic_table_fields);
+
+    string doctor_table_name{"doctor"};
+    ddl::field_def_list_t doctor_table_fields;
+    doctor_table_fields.emplace_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
+    doctor_table_fields.emplace_back(make_unique<ddl::field_definition_t>("surname", data_type_t::e_string, 1));
+    doctor_table_fields.emplace_back(make_unique<ddl::field_definition_t>("clinic", data_type_t::e_references, 1, "hospital.clinic"));
+    gaia_id_t doctor_table_id = create_table(db_name, doctor_table_name, doctor_table_fields);
+
+    string patient_table_name{"patient"};
+    ddl::field_def_list_t patient_table_fields;
+    patient_table_fields.emplace_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
+    patient_table_fields.emplace_back(make_unique<ddl::field_definition_t>("doctor", data_type_t::e_references, 1, "hospital.doctor"));
+    patient_table_fields.emplace_back(make_unique<ddl::field_definition_t>("clinic", data_type_t::e_references, 1, "hospital.clinic"));
+    gaia_id_t patient_table_id = create_table(db_name, patient_table_name, patient_table_fields);
+
+    auto_transaction_t txn;
+    gaia_table_t clinic_table = gaia_table_t::get(clinic_table_id);
+    gaia_table_t doctor_table = gaia_table_t::get(doctor_table_id);
+    gaia_table_t patient_table = gaia_table_t::get(patient_table_id);
+
+    gaia_field_t doctor_clinic_field = find_field(doctor_table.gaia_field_list(), "clinic");
+    gaia_field_t patient_doctor_field = find_field(patient_table.gaia_field_list(), "doctor");
+    gaia_field_t patient_clinic_field = find_field(patient_table.gaia_field_list(), "clinic");
+
+    // Clinic appears twice as parent side of a relationship.
+    ASSERT_EQ(2, container_size(clinic_table.parent_gaia_relationship_list()));
+
+    // Doctor appears once as parent side of a relationship
+    // and once as child side.
+    ASSERT_EQ(1, container_size(doctor_table.parent_gaia_relationship_list()));
+    ASSERT_EQ(1, container_size(doctor_clinic_field.child_gaia_relationship_list()));
+
+    // Patient never appear as parent side of a relationship
+    // and twice as child side.
+    ASSERT_EQ(0, container_size(patient_table.parent_gaia_relationship_list()));
+    ASSERT_EQ(1, container_size(patient_doctor_field.child_gaia_relationship_list()));
+    ASSERT_EQ(1, container_size(patient_clinic_field.child_gaia_relationship_list()));
+
+    // check clinic --> doctor
+
+    // The relationship object must exists on both sides.
+    gaia_relationship_t clinic_doctor_relationship = find_relationship(
+        clinic_table.parent_gaia_relationship_list(), "clinic", "doctor", "clinic");
+
+    gaia_relationship_t clinic_doctor_relationship2 = find_relationship(
+        doctor_clinic_field.child_gaia_relationship_list(), "clinic", "doctor", "clinic");
+
+    ASSERT_EQ(clinic_doctor_relationship.gaia_id(), clinic_doctor_relationship2.gaia_id());
+
+    ASSERT_EQ(uint8_t{0}, clinic_doctor_relationship.first_child_offset()); // clinic
+    ASSERT_EQ(uint8_t{0}, clinic_doctor_relationship.next_child_offset());  // doctor
+    ASSERT_EQ(uint8_t{1}, clinic_doctor_relationship.parent_offset());      // doctor
+
+    // check doctor --> patient
+
+    gaia_relationship_t doctor_patient_relationship = find_relationship(
+        doctor_table.parent_gaia_relationship_list(), "doctor", "patient", "doctor");
+
+    gaia_relationship_t doctor_patient_relationship2 = find_relationship(
+        patient_doctor_field.child_gaia_relationship_list(), "doctor", "patient", "doctor");
+
+    ASSERT_EQ(doctor_patient_relationship.gaia_id(), doctor_patient_relationship2.gaia_id());
+
+    ASSERT_EQ(uint8_t{2}, doctor_patient_relationship.first_child_offset()); // doctor
+    ASSERT_EQ(uint8_t{0}, doctor_patient_relationship.next_child_offset());  // patient
+    ASSERT_EQ(uint8_t{1}, doctor_patient_relationship.parent_offset());      // patient
+
+    // check clinic --> patient
+
+    gaia_relationship_t clinic_patient_relationship = find_relationship(
+        clinic_table.parent_gaia_relationship_list(), "clinic", "patient", "clinic");
+
+    gaia_relationship_t clinic_patient_relationship2 = find_relationship(
+        patient_clinic_field.child_gaia_relationship_list(), "clinic", "patient", "clinic");
+
+    ASSERT_EQ(clinic_patient_relationship.gaia_id(), clinic_patient_relationship2.gaia_id());
+
+    ASSERT_EQ(uint8_t{1}, clinic_patient_relationship.first_child_offset()); // clinic
+    ASSERT_EQ(uint8_t{2}, clinic_patient_relationship.next_child_offset());  // patient
+    ASSERT_EQ(uint8_t{3}, clinic_patient_relationship.parent_offset());      // patient
+}
+
+TEST_F(catalog_manager_test, metadata) {
+    string db_name = {"hospital"};
+    create_database(db_name, true);
+
+    // (clinic) 1 --> N (doctor) 1 --> N (patient) N <-- 1 (clinic)
+
+    string clinic_table_name{"clinic"};
+    ddl::field_def_list_t clinic_table_fields;
+    gaia_id_t clinic_table_id = create_table(db_name, clinic_table_name, clinic_table_fields);
+
+    string doctor_table_name{"doctor"};
+    ddl::field_def_list_t doctor_table_fields;
+    doctor_table_fields.emplace_back(make_unique<ddl::field_definition_t>("clinic", data_type_t::e_references, 1, "hospital.clinic"));
+    gaia_id_t doctor_table_id = create_table(db_name, doctor_table_name, doctor_table_fields);
+
+    string patient_table_name{"patient"};
+    ddl::field_def_list_t patient_table_fields;
+    patient_table_fields.emplace_back(make_unique<ddl::field_definition_t>("doctor", data_type_t::e_references, 1, "hospital.doctor"));
+    patient_table_fields.emplace_back(make_unique<ddl::field_definition_t>("clinic", data_type_t::e_references, 1, "hospital.clinic"));
+    gaia_id_t patient_table_id = create_table(db_name, patient_table_name, patient_table_fields);
+
+    auto_transaction_t txn;
+    vector<gaia_id_t> table_ids = {clinic_table_id, doctor_table_id, patient_table_id};
+    for (gaia_id_t table_id : table_ids) {
+        gaia_table_t child_table = gaia_table_t::get(table_id);
+
+        type_metadata_t metadata = type_registry_t::instance().get(child_table.gaia_id());
+
+        for (gaia_field_t field : child_table.gaia_field_list()) {
+            if (field.type() == static_cast<uint8_t>(data_type_t::e_references)) {
+                // we know that for a particular field there is only one relationship.
+                gaia_relationship_t relationship = *field.child_gaia_relationship_list().begin();
+                auto relationship_metadata = metadata.find_child_relationship(relationship.parent_offset());
+
+                ASSERT_NE(nullptr, relationship_metadata);
+
+                ASSERT_EQ(child_table.gaia_id(), relationship_metadata->child_type);
+                ASSERT_EQ(relationship.parent_gaia_table().gaia_id(), relationship_metadata->parent_type);
+
+                ASSERT_EQ(relationship.first_child_offset(), static_cast<uint8_t>(relationship_metadata->first_child_offset));
+                ASSERT_EQ(relationship.next_child_offset(), static_cast<uint8_t>(relationship_metadata->next_child_offset));
+                ASSERT_EQ(relationship.parent_offset(), static_cast<uint8_t>(relationship_metadata->parent_offset));
+            }
+        }
+    }
+}

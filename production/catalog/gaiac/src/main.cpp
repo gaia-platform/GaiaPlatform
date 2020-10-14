@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <filesystem>
 
 #include "flatbuffers/idl.h"
 
@@ -16,6 +17,7 @@
 #include "gaia_system.hpp"
 #include "gaia_db.hpp"
 #include "db_test_helpers.hpp"
+#include "logger.hpp"
 
 using namespace std;
 using namespace gaia::catalog;
@@ -93,7 +95,11 @@ void generate_fbs_headers(const string& db_name, const string& output_path) {
 
 // From the database name and catalog contents, generate the Extended Data Class definition(s).
 void generate_edc_headers(const string& db_name, const string& output_path) {
-    ofstream edc(output_path + "gaia" + (db_name.empty() ? "" : "_" + db_name) + ".h");
+    std::string header_path = output_path + "gaia" + (db_name.empty() ? "" : "_" + db_name) + ".h";
+
+    cout << "Generating EDC headers in: " << std::filesystem::absolute(header_path).string() << endl;
+
+    ofstream edc(header_path);
     try {
         edc << gaia::catalog::gaia_generate(db_name) << endl;
     } catch (gaia::common::gaia_exception& e) {
@@ -148,6 +154,8 @@ void LogCompilerError(const std::string& err) {
 } // namespace flatbuffers
 
 int main(int argc, char* argv[]) {
+    gaia_log::initialize({});
+
     int res = EXIT_SUCCESS;
     db_server_t server;
     string output_path;

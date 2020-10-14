@@ -170,7 +170,7 @@ gaia_ptr::get_id_generator_for_type(gaia_type_t type) {
 
 void gaia_ptr::add_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset) {
     gaia_type_t parent_type = type();
-    auto parent_metadata = type_registry_t::instance().get_or_create(parent_type);
+    auto parent_metadata = type_registry_t::instance().get(parent_type);
     auto relationship = parent_metadata.find_parent_relationship(first_child_offset);
 
     if (!relationship) {
@@ -179,7 +179,7 @@ void gaia_ptr::add_child_reference(gaia_id_t child_id, reference_offset_t first_
 
     // CHECK TYPES
 
-    gaia_ptr child_ptr = gaia_ptr(child_id);
+    auto child_ptr = gaia_ptr(child_id);
 
     if (!child_ptr) {
         throw invalid_node_id(child_id);
@@ -223,14 +223,14 @@ void gaia_ptr::add_child_reference(gaia_id_t child_id, reference_offset_t first_
 void gaia_ptr::add_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset) {
     gaia_type_t child_type = type();
 
-    auto child_metadata = type_registry_t::instance().get_or_create(child_type);
+    auto child_metadata = type_registry_t::instance().get(child_type);
     auto child_relationship = child_metadata.find_child_relationship(parent_offset);
 
     if (!child_relationship) {
         throw invalid_reference_offset(child_type, parent_offset);
     }
 
-    gaia_ptr parent_ptr = gaia_ptr(parent_id);
+    auto parent_ptr = gaia_ptr(parent_id);
 
     if (!parent_ptr) {
         throw invalid_node_id(parent_ptr);
@@ -241,7 +241,7 @@ void gaia_ptr::add_parent_reference(gaia_id_t parent_id, reference_offset_t pare
 
 void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset) {
     gaia_type_t parent_type = type();
-    auto parent_metadata = type_registry_t::instance().get_or_create(parent_type);
+    auto parent_metadata = type_registry_t::instance().get(parent_type);
     auto relationship = parent_metadata.find_parent_relationship(first_child_offset);
 
     if (!relationship) {
@@ -253,7 +253,7 @@ void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t fir
     //   I still prefer to fail because calling this method with worng arguments means there
     //   is something seriously ill in the caller code.
 
-    gaia_ptr child_ptr = gaia_ptr(child_id);
+    auto child_ptr = gaia_ptr(child_id);
 
     if (!child_ptr) {
         throw invalid_node_id(child_id);
@@ -297,14 +297,14 @@ void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t fir
 void gaia_ptr::remove_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset) {
     gaia_type_t child_type = type();
 
-    auto child_metadata = type_registry_t::instance().get_or_create(child_type);
+    auto child_metadata = type_registry_t::instance().get(child_type);
     auto relationship = child_metadata.find_child_relationship(parent_offset);
 
     if (!relationship) {
         throw invalid_reference_offset(child_type, parent_offset);
     }
 
-    gaia_ptr parent_ptr = gaia_ptr(parent_id);
+    auto parent_ptr = gaia_ptr(parent_id);
 
     if (!parent_ptr) {
         throw invalid_node_id(parent_ptr);

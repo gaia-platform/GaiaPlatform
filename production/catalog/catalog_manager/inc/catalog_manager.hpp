@@ -72,6 +72,8 @@ private:
     void clear_cache();
     // Reload all the caches from catalog records in storage engine.
     void reload_cache();
+    // Reload metadata
+    void load_metadata();
 
     // Bootstrap catalog with its own tables.
     void bootstrap_catalog();

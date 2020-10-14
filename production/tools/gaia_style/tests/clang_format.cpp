@@ -52,9 +52,10 @@ class class_name_t
 {
 
 public:
-    class_name_t(int private_member1,
-                 int private_member2,
-                 int private_member3)
+    class_name_t(
+        int private_member1,
+        int private_member2,
+        int private_member3)
         : m_private_member1(private_member1)
         , m_private_member2(private_member2)
         , m_private_member3(private_member3){};

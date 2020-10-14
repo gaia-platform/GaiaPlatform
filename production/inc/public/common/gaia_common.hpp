@@ -6,6 +6,8 @@
 #pragma once
 
 #include <cstdint>
+
+#include <limits>
 #include <vector>
 
 namespace gaia {
@@ -60,7 +62,13 @@ typedef std::vector<field_position_t> field_position_list_t;
  *
  * @see gaia::common::db::relationship_t
  */
+ // TODO this should be changed to unit8_t to match the Catalog (or vice-versa)
 typedef uint16_t reference_offset_t;
+
+/**
+ * The value of an invalid reference_offset_t.
+ */
+constexpr reference_offset_t INVALID_REFERENCE_OFFSET = std::numeric_limits<reference_offset_t>::max(); // NOLINT
 
 /*@}*/
 } // namespace common

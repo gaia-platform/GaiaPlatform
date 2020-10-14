@@ -27,6 +27,7 @@ commit_trigger_fn client::s_txn_commit_trigger = nullptr;
 std::unordered_set<gaia_type_t> client::trigger_excluded_types{
     static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table),
     static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_field),
+    static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_relationship),
     static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_ruleset),
     static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_rule),
     static_cast<gaia_type_t>(system_table_type_t::event_log)};

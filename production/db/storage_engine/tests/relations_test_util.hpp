@@ -5,13 +5,14 @@
 
 #pragma once
 
-#include "type_metadata.hpp"
 #include "gaia_ptr.hpp"
+#include "type_metadata.hpp"
 
 using namespace gaia::db;
 using namespace gaia::common;
 
-namespace gaia::db::test {
+namespace gaia::db::test
+{
 
 // Here we model an hypothetical relationship between Doctors and Patients
 // The relationship can be both 1:1 or 1:n depending on the test.
@@ -31,62 +32,86 @@ constexpr reference_offset_t c_non_existent_offset = 1024;
 
 /**
  * Facilitate the creation of relationship objects and their insertion into
- * the registry.
+ * the registry. It also create entries in the registry if not available.
  */
-class relationship_builder_t {
+class test_relationship_builder_t
+{
 public:
-    static relationship_builder_t one_to_one() {
-        auto metadata = relationship_builder_t();
+    static test_relationship_builder_t one_to_one()
+    {
+        auto metadata = test_relationship_builder_t();
         metadata.m_cardinality = cardinality_t::one;
         return metadata;
     }
 
-    static relationship_builder_t one_to_many() {
-        auto metadata = relationship_builder_t();
+    static test_relationship_builder_t one_to_many()
+    {
+        auto metadata = test_relationship_builder_t();
         metadata.m_cardinality = cardinality_t::many;
         return metadata;
     }
 
-    relationship_builder_t parent(gaia_type_t parent) {
+    test_relationship_builder_t parent(gaia_type_t parent)
+    {
         this->m_parent_type = parent;
         return *this;
     }
 
-    relationship_builder_t child(gaia_type_t child) {
+    test_relationship_builder_t child(gaia_type_t child)
+    {
         this->m_child_type = child;
         return *this;
     }
 
-    relationship_builder_t first_child_offset(reference_offset_t first_child_offset) {
+    test_relationship_builder_t first_child_offset(reference_offset_t first_child_offset)
+    {
         this->m_first_child_offset = first_child_offset;
         return *this;
     }
 
-    relationship_builder_t next_child_offset(reference_offset_t next_child_offset) {
+    test_relationship_builder_t next_child_offset(reference_offset_t next_child_offset)
+    {
         this->m_next_child_offset = next_child_offset;
         return *this;
     }
 
-    relationship_builder_t parent_offset(reference_offset_t parent_offset) {
+    test_relationship_builder_t parent_offset(reference_offset_t parent_offset)
+    {
         this->m_parent_offset = parent_offset;
         return *this;
     }
 
+    bool registry_contains_type(gaia_type_t type)
+    {
+        try
+        {
+            type_registry_t::instance().get(type);
+            return true;
+        }
+        catch (const metadata_not_found& e)
+        {
+            return false;
+        }
+    }
+
     // Creates all the object necessary to describe the relationship and
     // updates the type registry.
-    void create_relationship() {
-        if (m_parent_type == INVALID_GAIA_TYPE) {
+    void create_relationship()
+    {
+        if (m_parent_type == INVALID_GAIA_TYPE)
+        {
             throw invalid_argument("parent_type must be set");
         }
 
-        if (m_child_type == INVALID_GAIA_TYPE) {
+        if (m_child_type == INVALID_GAIA_TYPE)
+        {
             throw invalid_argument("child_type must be set");
         }
 
-        if (m_cardinality == cardinality_t::not_set) {
+        if (m_cardinality == cardinality_t::not_set)
+        {
             throw invalid_argument("cardinality must be set");
         }
-
 
         auto rel = make_shared<relationship_t>(relationship_t{
             .parent_type = this->m_parent_type,
@@ -97,15 +122,35 @@ public:
             .cardinality = this->m_cardinality,
             .parent_required = this->m_parent_required});
 
-        auto& parent_meta = type_registry_t::instance().get_or_create(m_parent_type);
-        parent_meta.add_parent_relationship(m_first_child_offset, rel);
+        auto& registry = type_registry_t::instance();
 
-        auto& child_meta = type_registry_t::instance().get_or_create(m_child_type);
-        child_meta.add_child_relationship(m_parent_offset, rel);
+        if (registry_contains_type(m_parent_type))
+        {
+            registry.get(m_parent_type)
+                .add_parent_relationship(m_first_child_offset, rel);
+        }
+        else
+        {
+            auto metadata = new type_metadata_t(m_parent_type);
+            metadata->add_parent_relationship(m_first_child_offset, rel);
+            registry.add(metadata);
+        }
+
+        if (registry_contains_type(m_child_type))
+        {
+            registry.get(m_child_type)
+                .add_child_relationship(m_parent_offset, rel);
+        }
+        else
+        {
+            auto metadata = new type_metadata_t(m_child_type);
+            metadata->add_child_relationship(m_parent_offset, rel);
+            registry.add(metadata);
+        }
     }
 
 private:
-    relationship_builder_t() = default;
+    test_relationship_builder_t() = default;
 
     // mandatory values
     cardinality_t m_cardinality = cardinality_t::not_set;
@@ -125,18 +170,21 @@ private:
  *
  * TODO maybe some of this logic should be moved inside gaia_ptr
  */
-gaia_ptr create_object(gaia_type_t type, size_t data_size, const void* data) {
+gaia_ptr create_object(gaia_type_t type, size_t data_size, const void* data)
+{
     gaia_id_t id = gaia_ptr::generate_id();
-    auto metadata = type_registry_t::instance().get_or_create(type);
+    auto metadata = type_registry_t::instance().get(type);
     size_t num_references = metadata.num_references();
     return gaia_ptr::create(id, type, num_references, data_size, data);
 }
 
-gaia_ptr create_object(gaia_type_t type, std::string payload) {
+gaia_ptr create_object(gaia_type_t type, std::string payload)
+{
     return create_object(type, payload.size(), payload.data());
 }
 
-void clean_type_registry() {
+void clean_type_registry()
+{
     type_registry_t::instance().clear();
 }
 

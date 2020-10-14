@@ -127,9 +127,38 @@ void catalog_manager_t::bootstrap_catalog() {
         fields.emplace_back(make_unique<field_definition_t>("active", data_type_t::e_bool, 1));
         // The anonymous reference to the gaia_table defines the ownership.
         fields.emplace_back(make_unique<field_definition_t>(c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_table"));
+        // TODO this will be deprecated in favor to the gaia_relationship table.
         // The "ref" named reference to the gaia_table defines the referential relationship.
         fields.emplace_back(make_unique<field_definition_t>("ref", data_type_t::e_references, 1, "catalog.gaia_table"));
         create_table_impl("catalog", "gaia_field", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_field));
+    }
+    {
+        // create table gaia_relationship (
+        //     parent references gaia_field,
+        //     child references gaia_field,
+        //     cardinality unit8,
+        //     parent_required bool,
+        //     deprecated bool,
+        //     first_child_offset unit8,
+        //     next_child_offset unit8,
+        //     parent_offset unit8,
+        // );
+
+        field_def_list_t fields;
+        // TODO since we have pointers on both sides of the relationship and we generate the relatioship field in the parent in EDC, I believe we should
+        //  explicitly track the relationship on the parent side too. This will also come in handy to customize the generated EDC:
+        //  - table_t::gaia_field_list() which is arguably ugly could be table_t::fields()
+        //  - database_t::gaia_table_list() which is arguably ugly could be database_t::fields()
+        //  I will remove this comment and create a JIRA before pushing the code.
+        fields.emplace_back(make_unique<field_definition_t>("parent", data_type_t::e_references, 1, "catalog.gaia_table"));
+        fields.emplace_back(make_unique<field_definition_t>("child", data_type_t::e_references, 1, "catalog.gaia_field"));
+        fields.emplace_back(make_unique<field_definition_t>("cardinality", data_type_t::e_uint8, 1));
+        fields.emplace_back(make_unique<field_definition_t>("parent_required", data_type_t::e_bool, 1));
+        fields.emplace_back(make_unique<field_definition_t>("deprecated", data_type_t::e_bool, 1));
+        fields.emplace_back(make_unique<field_definition_t>("first_child_offset", data_type_t::e_uint8, 1));
+        fields.emplace_back(make_unique<field_definition_t>("next_child_offset", data_type_t::e_uint8, 1));
+        fields.emplace_back(make_unique<field_definition_t>("parent_offset", data_type_t::e_uint8, 1));
+        create_table_impl("catalog", "gaia_relationship", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_relationship));
     }
     {
         // create table gaia_ruleset (
@@ -184,6 +213,7 @@ void catalog_manager_t::create_system_tables() {
 
 void catalog_manager_t::init() {
     reload_cache();
+    load_metadata();
     bootstrap_catalog();
     create_system_tables();
     m_empty_db_id = create_database(c_empty_db_name, false);
@@ -199,13 +229,65 @@ void catalog_manager_t::reload_cache() {
     clear_cache();
 
     gaia::db::begin_transaction();
-    for (auto db : gaia_database_t::list()) {
+    for (const auto& db : gaia_database_t::list()) {
         m_db_names[db.name()] = db.gaia_id();
     }
 
-    for (auto table : gaia_table_t::list()) {
+    for (auto& table : gaia_table_t::list()) {
         string full_table_name = string(table.gaia_database().name()) + "." + string(table.name());
         m_table_names[full_table_name] = table.gaia_id();
+    }
+    gaia::db::commit_transaction();
+}
+
+void register_table_in_metadata(gaia_id_t table_id) {
+    // TODO I think that instead of keep polluting the Catalog code with unrelated code
+    //  we should aim towards a pub-sub architecture. The catalog publish events when
+    //  something change, the subscribers (caches, metadata, etc..) get notified and act
+    //  accordingly. This way the catalog does only one job. Chuan mentioned that something
+    //  similar is available in the SE.
+    gaia::db::begin_transaction();
+    gaia_table_t child_table = gaia_table_t::get(table_id);
+
+    auto metadata = new type_metadata_t(table_id);
+
+    for (auto& field : child_table.gaia_field_list())
+    {
+        if (field.type() == static_cast<uint8_t>(data_type_t::e_references))
+        {
+            for (auto& relationship : field.child_gaia_relationship_list())
+            {
+                gaia_table_t parent_table = relationship.parent_gaia_table();
+
+                auto rel = make_shared<relationship_t>(relationship_t{
+                    .parent_type = parent_table.gaia_id(),
+                    .child_type = child_table.gaia_id(),
+                    .first_child_offset = relationship.first_child_offset(),
+                    .next_child_offset = relationship.next_child_offset(),
+                    .parent_offset = relationship.parent_offset(),
+                    .cardinality = cardinality_t::many,
+                    .parent_required = false});
+
+                auto& parent_meta = type_registry_t::instance().get(parent_table.gaia_id());
+                parent_meta.add_parent_relationship(relationship.first_child_offset(), rel);
+
+                metadata->add_child_relationship(relationship.parent_offset(), rel);
+            }
+        }
+    }
+
+    type_registry_t::instance().add(metadata);
+
+    gaia::db::commit_transaction();
+}
+
+void catalog_manager_t::load_metadata()
+{
+    gaia::db::begin_transaction();
+    type_registry_t::instance().clear();
+
+    for (const auto& table : gaia_table_t::list()) {
+        register_table_in_metadata(table.gaia_id());
     }
     gaia::db::commit_transaction();
 }
@@ -341,6 +423,61 @@ static gaia_ptr insert_gaia_table_row(
     );
 }
 
+/**
+ * Find the next available offset in a container of relationship_t.
+ * relationship_t contain the offset for both parent and child
+ * side of the relationship, for this reason you need to specify
+ * what side of the relationship you are considering.
+ */
+template <typename T_relationship_container>
+uint8_t find_available_offset(T_relationship_container& relationships, bool parent)
+{
+    uint8_t max_offset{0};
+
+    if (relationships.begin() != relationships.end())
+    {
+
+        for (const auto& relationship : relationships)
+        {
+            if (parent)
+            {
+                max_offset = std::max(max_offset, relationship.first_child_offset());
+            }
+            else
+            {
+                max_offset = std::max(
+                    max_offset,
+                    std::max(relationship.next_child_offset(), relationship.parent_offset()));
+            }
+        }
+
+        max_offset++;
+    }
+
+    return max_offset;
+}
+
+uint8_t find_available_offset(gaia_table_t& table)
+{
+    uint8_t max_offset{0};
+
+    // scan child relationships
+    for (auto field : table.gaia_field_list())
+    {
+        if (field.type() == static_cast<uint8_t>(data_type_t::e_references))
+        {
+            max_offset = std::max(
+                max_offset,
+                find_available_offset(field.child_gaia_relationship_list(), false));
+        }
+    }
+
+    // scan parent relationships
+    return std::max(
+        max_offset,
+        find_available_offset(table.parent_gaia_relationship_list(), true));
+}
+
 gaia_id_t catalog_manager_t::create_table_impl(
     const string& dbname,
     const string& table_name,
@@ -360,6 +497,7 @@ gaia_id_t catalog_manager_t::create_table_impl(
     retail_assert(db_id != INVALID_GAIA_ID);
 
     if (m_table_names.find(full_table_name) != m_table_names.end()) {
+        gaia_log::catalog().debug("Table '{}' already exists", full_table_name);
         if (throw_on_exist) {
             throw table_already_exists(full_table_name);
         } else {
@@ -383,7 +521,10 @@ gaia_id_t catalog_manager_t::create_table_impl(
 
     gaia::db::begin_transaction();
     gaia_id_t table_id;
-    if (id == INVALID_GAIA_ID) {
+    if (id == INVALID_GAIA_ID)
+    {
+        gaia_log::catalog().debug("Creating table: {}", full_table_name);
+
         table_id = gaia_table_t::insert_row(
             table_name.c_str(),                               // name
             is_log,                                           // is_log
@@ -393,7 +534,11 @@ gaia_id_t catalog_manager_t::create_table_impl(
             0,                                                // max_seconds
             bfbs.c_str()                                      // bfbs
         );
-    } else {
+    }
+    else
+    {
+        gaia_log::catalog().info("Creating system table {}", full_table_name);
+
         table_id = id;
         insert_gaia_table_row(
             table_id,                                         // table id
@@ -411,27 +556,38 @@ gaia_id_t catalog_manager_t::create_table_impl(
     gaia_database_t::get(db_id).gaia_table_list().insert(table_id);
 
     uint16_t field_position = 0, reference_position = 0;
-    for (auto& field : fields) {
-        gaia_id_t field_type_id{0};
+    for (auto& field : fields)
+    {
+        gaia_id_t parent_type_id{0};
         uint16_t position;
-        if (field->type == data_type_t::e_references) {
-            if (field->table_type_name == full_table_name || field->table_type_name == table_name) {
+        if (field->type == data_type_t::e_references)
+        {
+            if (field->table_type_name == full_table_name || field->table_type_name == table_name)
+            {
                 // We allow a table definition to reference itself (self-referencing).
-                field_type_id = table_id;
-            } else if (m_table_names.find(field->table_type_name) != m_table_names.end()) {
+                parent_type_id = table_id;
+            }
+            else if (m_table_names.find(field->table_type_name) != m_table_names.end())
+            {
                 // A table definition can reference any of existing tables.
-                field_type_id = m_table_names[field->table_type_name];
-            } else if (!dbname.empty() && m_table_names.count(dbname + "." + field->table_type_name)) {
+                parent_type_id = m_table_names[field->table_type_name];
+            }
+            else if (!dbname.empty() && m_table_names.count(dbname + "." + field->table_type_name))
+            {
                 // A table definition can reference existing tables in its own database without specifying the database name.
-                field_type_id = m_table_names[dbname + "." + field->table_type_name];
-            } else {
+                parent_type_id = m_table_names[dbname + "." + field->table_type_name];
+            }
+            else
+            {
                 // We cannot find the referenced table.
                 // Forward declaration is not supported right now.
                 throw table_not_exists(field->table_type_name);
             }
             // The field ID/position values must be a contiguous range from 0 onward.
             position = reference_position++;
-        } else {
+        }
+        else
+        {
             position = field_position++;
         }
         gaia_id_t field_id = gaia_field_t::insert_row(
@@ -443,16 +599,40 @@ gaia_id_t catalog_manager_t::create_table_impl(
             field->active                      // active
         );
         // Connect the field to the table it belongs to.
-        gaia_table_t::get(table_id).gaia_field_list().insert(field_id);
+        gaia_table_t table = gaia_table_t::get(table_id);
+        table.gaia_field_list().insert(field_id);
 
-        if (field->type == data_type_t::e_references) {
+        if (field->type == data_type_t::e_references)
+        {
+            gaia_table_t parent_table = gaia_table_t::get(parent_type_id);
+            gaia_field_t child_field = gaia_field_t::get(field_id);
+
             // Connect the referred table to the reference field.
-            gaia_table_t::get(field_type_id).ref_gaia_field_list().insert(field_id);
+            parent_table.ref_gaia_field_list().insert(field_id);
+
+            uint8_t parent_available_offset = find_available_offset(parent_table);
+            uint8_t child_max_offset = find_available_offset(table);
+
+            gaia_id_t relationship_id = gaia_relationship_t::insert_row(
+                static_cast<uint8_t>(2),                            // cardinality
+                false,                                              // parent_required
+                false,                                              // deprecated
+                static_cast<uint8_t>(parent_available_offset),      // first_child_offset
+                static_cast<uint8_t>(child_max_offset),             // next_child_offset
+                static_cast<uint8_t>(child_max_offset + uint8_t{1}) // parent_offset
+            );
+            auto rel = gaia_relationship_t::get(relationship_id);
+
+            child_field.child_gaia_relationship_list().insert(relationship_id);
+            parent_table.parent_gaia_relationship_list().insert(relationship_id);
         }
     }
     gaia::db::commit_transaction();
 
+    // update cache/metadata
+    register_table_in_metadata(table_id);
     m_table_names[full_table_name] = table_id;
+
     return table_id;
 }
 
@@ -477,7 +657,7 @@ vector<gaia_id_t> catalog_manager_t::list_fields(gaia_id_t table_id) const {
     // allow appending new fields to table definitions, reversing the field list
     // order should result in fields being listed in the ascending order of
     // their positions.
-    for (auto field : gaia_table_t::get(table_id).gaia_field_list()) {
+    for (const auto& field : gaia_table_t::get(table_id).gaia_field_list()) {
         if (field.type() != static_cast<uint8_t>(data_type_t::e_references)) {
             fields.insert(fields.begin(), field.gaia_id());
         }
@@ -491,7 +671,7 @@ vector<gaia_id_t> catalog_manager_t::list_references(gaia_id_t table_id) const {
     // allow appending new fields to table definitions, reversing the field list
     // order should result in fields being listed in the ascending order of
     // their positions.
-    for (auto field : gaia_table_t::get(table_id).gaia_field_list()) {
+    for (const auto& field : gaia_table_t::get(table_id).gaia_field_list()) {
         if (field.type() == static_cast<uint8_t>(data_type_t::e_references)) {
             references.insert(references.begin(), field.gaia_id());
         }

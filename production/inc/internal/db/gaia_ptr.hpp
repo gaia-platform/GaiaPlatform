@@ -59,7 +59,7 @@ public:
         const void* data) {
 
         gaia_id_t id = gaia_ptr::generate_id();
-        auto metadata = type_registry_t::instance().get_or_create(type);
+        auto metadata = type_registry_t::instance().get(type);
         size_t num_references = metadata.num_references();
 
         return create(id, type, num_references, data_size, data);
@@ -71,7 +71,7 @@ public:
         size_t data_size,
         const void* data) {
 
-        auto metadata = type_registry_t::instance().get_or_create(type);
+        auto metadata = type_registry_t::instance().get(type);
         size_t num_references = metadata.num_references();
 
         return create(id, type, num_references, data_size, data);

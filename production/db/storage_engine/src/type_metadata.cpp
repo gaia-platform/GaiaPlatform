@@ -48,13 +48,40 @@ size_t type_metadata_t::num_references() {
     return m_parent_relationships.size() + (c_child_relation_num_ptrs * m_child_relationships.size());
 }
 
-type_metadata_t& type_registry_t::get_or_create(gaia_type_t type) {
-    // to improve read performance it is possible add a read only method
-    // that uses a shared_lock(). Such method should be call when it is
-    // possible to assume that the registry has already been populated.
+type_metadata_t& type_registry_t::get(gaia_type_t type) {
+    shared_lock lock(m_registry_lock);
+
+    auto metadata = m_metadata_registry.find(type);
+
+    if (metadata == m_metadata_registry.end()) {
+        throw metadata_not_found(type);
+    }
+
+    return *metadata->second;
+}
+
+void type_registry_t::add(type_metadata_t* metadata) {
     scoped_lock lock(m_registry_lock);
-    auto [it, result] = m_metadata_registry.try_emplace(type, type);
-    return it->second;
+
+    auto old_metadata = m_metadata_registry.find(metadata->get_type());
+
+    if (old_metadata != m_metadata_registry.end()) {
+        throw duplicate_metadata(metadata->get_type());
+    }
+
+    m_metadata_registry.insert({metadata->get_type(), unique_ptr<type_metadata_t>(metadata)});
+}
+
+void type_registry_t::update(gaia_type_t type, std::function<void(type_metadata_t&)> update_op) {
+    scoped_lock lock(m_registry_lock);
+
+    auto metadata = m_metadata_registry.find(type);
+
+    if (metadata == m_metadata_registry.end()) {
+        throw metadata_not_found(type);
+    }
+
+    update_op(*metadata->second);
 }
 
 void type_registry_t::clear() {

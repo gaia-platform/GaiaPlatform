@@ -13,6 +13,7 @@
 
 #include "gaia_common.hpp"
 #include "gaia_exception.hpp"
+#include "logger.hpp"
 
 namespace gaia {
 /**
