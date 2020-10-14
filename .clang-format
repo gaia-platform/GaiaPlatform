@@ -47,7 +47,7 @@ IncludeCategories:
   - Regex:           '^<.*'
     Priority:        12
   # Third party.
-  - Regex:           'spdlog|flatbuffers|llvm|flatcc|cpptoml|gtest'
+  - Regex:           'spdlog|flatbuffers|llvm|flatcc|cpptoml|gtest|pybind11'
     Priority:        13
   # Everything else (gaia headers mostly).
   # Note: it would be helpful if gaia dependencies where under gaia/
