@@ -7,8 +7,9 @@
 
 #include <unistd.h>
 
-#include <retail_assert.hpp>
 #include <shared_mutex>
+
+#include "retail_assert.hpp"
 
 namespace gaia
 {

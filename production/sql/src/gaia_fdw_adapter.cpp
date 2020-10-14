@@ -3,8 +3,9 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "gaia_fdw_adapter.hpp"
+
 #include <fstream>
-#include <gaia_fdw_adapter.hpp>
 
 using namespace std;
 using namespace gaia::db;

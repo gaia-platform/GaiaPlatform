@@ -3,15 +3,14 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+
 #include <iomanip>
 
-// #define PY_SSIZE_T_CLEAN
-// #include <Python.h>
 #include "gaia_common.hpp"
 #include "gaia_db.hpp"
 #include "gaia_ptr.hpp"
-#include "pybind11/pybind11.h"
-#include "pybind11/stl.h"
 #include "storage_engine.hpp"
 
 using namespace std;

@@ -3,8 +3,9 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <retail_assert.hpp>
-#include <type_cache.hpp>
+#include "type_cache.hpp"
+
+#include "retail_assert.hpp"
 
 using namespace std;
 using namespace gaia::common;
