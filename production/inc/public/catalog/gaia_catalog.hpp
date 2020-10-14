@@ -14,12 +14,14 @@
 #include "gaia_common.hpp"
 #include "gaia_exception.hpp"
 
-namespace gaia {
+namespace gaia
+{
 /**
  * \addtogroup Gaia
  * @{
  */
-namespace catalog {
+namespace catalog
+{
 /**
  * \addtogroup catalog
  * @{
@@ -42,7 +44,8 @@ const string c_empty_db_name = "()";
 /*
  * Data types for Gaia field records.
  */
-enum class data_type_t : uint8_t {
+enum class data_type_t : uint8_t
+{
     e_bool,
     e_int8,
     e_uint8,
@@ -61,7 +64,8 @@ enum class data_type_t : uint8_t {
 /**
  * Thrown when seeing an unknown data type
  */
-class unknown_data_type : public gaia::common::gaia_exception {
+class unknown_data_type : public gaia::common::gaia_exception
+{
 public:
     unknown_data_type();
 };
@@ -78,7 +82,8 @@ string get_data_type_name(data_type_t data_type);
 /*
  * Trim action for log tables.
  */
-enum class trim_action_type_t : uint8_t {
+enum class trim_action_type_t : uint8_t
+{
     e_none,
     e_delete,
     e_archive,
@@ -87,12 +92,14 @@ enum class trim_action_type_t : uint8_t {
 /*
  * Value index types.
  */
-enum value_index_type_t : uint8_t {
+enum value_index_type_t : uint8_t
+{
     hash,
     range
 };
 
-namespace ddl {
+namespace ddl
+{
 /**
  * \addtogroup ddl
  * @{
@@ -100,19 +107,28 @@ namespace ddl {
  * Definitions for parse result bindings
  */
 
-enum class statement_type_t : uint8_t {
+enum class statement_type_t : uint8_t
+{
     create,
     drop,
     alter
 };
 
-struct statement_t {
+struct statement_t
+{
 
-    explicit statement_t(statement_type_t type) : m_type(type){};
+    explicit statement_t(statement_type_t type)
+        : m_type(type){};
 
-    [[nodiscard]] statement_type_t type() const { return m_type; };
+    [[nodiscard]] statement_type_t type() const
+    {
+        return m_type;
+    };
 
-    [[nodiscard]] bool is_type(statement_type_t type) const { return m_type == type; };
+    [[nodiscard]] bool is_type(statement_type_t type) const
+    {
+        return m_type == type;
+    };
 
     virtual ~statement_t() = default;
 
@@ -120,14 +136,17 @@ private:
     statement_type_t m_type;
 };
 
-struct field_type_t {
-    explicit field_type_t(data_type_t type) : type(type){};
+struct field_type_t
+{
+    explicit field_type_t(data_type_t type)
+        : type(type){};
 
     data_type_t type;
     string name;
 };
 
-struct field_definition_t {
+struct field_definition_t
+{
     field_definition_t(string name, data_type_t type, uint16_t length)
         : name(move(name)), type(type), length(length){};
 
@@ -145,12 +164,14 @@ struct field_definition_t {
 
 using field_def_list_t = vector<unique_ptr<field_definition_t>>;
 
-enum class create_type_t : uint8_t {
+enum class create_type_t : uint8_t
+{
     create_database,
     create_table,
 };
 
-struct create_statement_t : statement_t {
+struct create_statement_t : statement_t
+{
     explicit create_statement_t(create_type_t type)
         : statement_t(statement_type_t::create), type(type){};
 
@@ -170,12 +191,14 @@ struct create_statement_t : statement_t {
     bool if_not_exists;
 };
 
-enum class drop_type_t : uint8_t {
+enum class drop_type_t : uint8_t
+{
     drop_table,
     drop_database,
 };
 
-struct drop_statement_t : statement_t {
+struct drop_statement_t : statement_t
+{
     explicit drop_statement_t(drop_type_t type)
         : statement_t(statement_type_t::drop), type(type){};
 
@@ -197,9 +220,11 @@ struct drop_statement_t : statement_t {
 /**
  * Thrown when creating a database that already exists.
  */
-class db_already_exists : public gaia::common::gaia_exception {
+class db_already_exists : public gaia::common::gaia_exception
+{
 public:
-    explicit db_already_exists(const string& name) {
+    explicit db_already_exists(const string& name)
+    {
         stringstream message;
         message << "The database \"" << name << "\" already exists.";
         m_message = message.str();
@@ -209,9 +234,11 @@ public:
 /**
  * Thrown when a specified database does not exists.
  */
-class db_not_exists : public gaia::common::gaia_exception {
+class db_not_exists : public gaia::common::gaia_exception
+{
 public:
-    explicit db_not_exists(const string& name) {
+    explicit db_not_exists(const string& name)
+    {
         stringstream message;
         message << "The database \"" << name << "\" does not exist.";
         m_message = message.str();
@@ -221,9 +248,11 @@ public:
 /**
  * Thrown when creating a table that already exists.
  */
-class table_already_exists : public gaia::common::gaia_exception {
+class table_already_exists : public gaia::common::gaia_exception
+{
 public:
-    explicit table_already_exists(const string& name) {
+    explicit table_already_exists(const string& name)
+    {
         stringstream message;
         message << "The table \"" << name << "\" already exists.";
         m_message = message.str();
@@ -233,9 +262,11 @@ public:
 /**
  * Thrown when a specified table does not exists.
  */
-class table_not_exists : public gaia::common::gaia_exception {
+class table_not_exists : public gaia::common::gaia_exception
+{
 public:
-    explicit table_not_exists(const string& name) {
+    explicit table_not_exists(const string& name)
+    {
         stringstream message;
         message << "The table \"" << name << "\" does not exist.";
         m_message = message.str();
@@ -245,9 +276,11 @@ public:
 /**
  * Thrown when a field is specified more than once
  */
-class duplicate_field : public gaia::common::gaia_exception {
+class duplicate_field : public gaia::common::gaia_exception
+{
 public:
-    explicit duplicate_field(const string& name) {
+    explicit duplicate_field(const string& name)
+    {
         stringstream message;
         message << "The field \"" << name << "\" is specified more than once.";
         m_message = message.str();
@@ -278,8 +311,7 @@ gaia::common::gaia_id_t create_database(const string& name, bool throw_on_exists
  * @throw table_already_exists
  */
 gaia::common::gaia_id_t create_table(
-    const string& db_name, const string& name,
-    const ddl::field_def_list_t& fields, bool throw_on_exist = true);
+    const string& db_name, const string& name, const ddl::field_def_list_t& fields, bool throw_on_exist = true);
 
 /**
  * Create a table definition in the catalog's global database.

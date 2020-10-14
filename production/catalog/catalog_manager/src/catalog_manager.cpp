@@ -107,19 +107,12 @@ void catalog_manager_t::bootstrap_catalog()
         // create table gaia_table (
         //     name string,
         //     is_log bool,
-        //     max_rows uint64,
-        //     max_size uint64,
-        //     max_seconds uint64,
         //     binary_schema string,
         //     references gaia_database,
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<field_definition_t>("is_log", data_type_t::e_bool, 1));
-        fields.emplace_back(make_unique<field_definition_t>("trim_action", data_type_t::e_uint8, 1));
-        fields.emplace_back(make_unique<field_definition_t>("max_rows", data_type_t::e_uint64, 1));
-        fields.emplace_back(make_unique<field_definition_t>("max_size", data_type_t::e_uint64, 1));
-        fields.emplace_back(make_unique<field_definition_t>("max_seconds", data_type_t::e_uint64, 1));
         fields.emplace_back(make_unique<field_definition_t>("binary_schema", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<field_definition_t>(c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_database"));
         create_table_impl("catalog", "gaia_table", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_table));
@@ -357,10 +350,6 @@ static gaia_ptr insert_gaia_table_row(
     gaia_id_t table_id,
     const char* name,
     bool is_log,
-    uint8_t trim_action,
-    uint64_t max_rows,
-    uint64_t max_size,
-    uint64_t max_seconds,
     const char* binary_schema)
 {
 
@@ -370,7 +359,7 @@ static gaia_ptr insert_gaia_table_row(
     static constexpr size_t c_gaia_table_num_refs = c_num_gaia_table_ptrs;
 
     flatbuffers::FlatBufferBuilder fbb(c_flatbuffer_builder_size);
-    fbb.Finish(Creategaia_tableDirect(fbb, name, is_log, trim_action, max_rows, max_size, max_seconds, binary_schema));
+    fbb.Finish(Creategaia_tableDirect(fbb, name, is_log, binary_schema));
 
     return gaia_ptr::create(
         table_id,                                                   // id
@@ -434,27 +423,19 @@ gaia_id_t catalog_manager_t::create_table_impl(
     if (id == INVALID_GAIA_ID)
     {
         table_id = gaia_table_t::insert_row(
-            table_name.c_str(),                               // name
-            is_log,                                           // is_log
-            static_cast<uint8_t>(trim_action_type_t::e_none), // trim_action
-            0,                                                // max_rows
-            0,                                                // max_size
-            0,                                                // max_seconds
-            bfbs.c_str()                                      // bfbs
+            table_name.c_str(), // name
+            is_log,             // is_log
+            bfbs.c_str()        // bfbs
         );
     }
     else
     {
         table_id = id;
         insert_gaia_table_row(
-            table_id,                                         // table id
-            table_name.c_str(),                               // name
-            is_log,                                           // is_log
-            static_cast<uint8_t>(trim_action_type_t::e_none), // trim_action
-            0,                                                // max_rows
-            0,                                                // max_size
-            0,                                                // max_seconds
-            bfbs.c_str()                                      // bfbs
+            table_id,           // table id
+            table_name.c_str(), // name
+            is_log,             // is_log
+            bfbs.c_str()        // bfbs
         );
     }
 
