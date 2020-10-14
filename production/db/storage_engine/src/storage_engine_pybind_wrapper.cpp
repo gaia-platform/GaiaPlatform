@@ -3,10 +3,10 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <iomanip>
+
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-
-#include <iomanip>
 
 #include "gaia_common.hpp"
 #include "gaia_db.hpp"
