@@ -95,10 +95,11 @@ extern "C" Datum gaia_fdw_validator(PG_FUNCTION_ARGS)
     List* options_list = untransformRelOptions(PG_GETARG_DATUM(0));
     if (list_length(options_list) > 1)
     {
-        ereport(ERROR,
-                (errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
-                 errmsg("Invalid options."),
-                 errhint("gaia FDW supports only the `data_dir` option.")));
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
+             errmsg("Invalid options."),
+             errhint("gaia FDW supports only the `data_dir` option.")));
         PG_RETURN_VOID();
     }
 
@@ -229,16 +230,19 @@ extern "C" ForeignScan* gaia_get_foreign_plan(
     scan_clauses = extract_actual_clauses(scan_clauses, false);
 
     // Create the ForeignScan node.
-    return make_foreignscan(tlist, scan_clauses, scan_relid,
-                            // No expressions to evaluate.
-                            NIL,
-                            // No private data.
-                            NIL,
-                            // No custom tlist.
-                            NIL,
-                            // No remote quals.
-                            NIL,
-                            outer_plan);
+    return make_foreignscan(
+        tlist,
+        scan_clauses,
+        scan_relid,
+        // No expressions to evaluate.
+        NIL,
+        // No private data.
+        NIL,
+        // No custom tlist.
+        NIL,
+        // No remote quals.
+        NIL,
+        outer_plan);
 }
 
 extern "C" void gaia_begin_foreign_scan(ForeignScanState* node, int eflags)
@@ -518,9 +522,10 @@ extern "C" List* gaia_plan_foreign_modify(
             char* attr_name = NameStr(TupleDescAttr(tuple_desc, attno - 1)->attname);
             if (gaia::fdw::adapter_t::is_gaia_id_name(attr_name))
             {
-                ereport(ERROR,
-                        (errcode(ERRCODE_FDW_INVALID_COLUMN_NAME),
-                         errmsg("Cannot insert into or update system column gaia_id.")));
+                ereport(
+                    ERROR,
+                    (errcode(ERRCODE_FDW_INVALID_COLUMN_NAME),
+                     errmsg("Cannot insert into or update system column gaia_id.")));
             }
         }
     }
@@ -818,14 +823,16 @@ extern "C" void gaia_end_foreign_modify(EState* estate, ResultRelInfo* rinfo)
     gaia::fdw::adapter_t::commit_transaction();
 }
 
-extern "C" void gaia_begin_foreign_insert(ModifyTableState* mtstate,
-                                          ResultRelInfo* result_rel_info)
+extern "C" void gaia_begin_foreign_insert(
+    ModifyTableState* mtstate,
+    ResultRelInfo* result_rel_info)
 {
     elog(DEBUG1, "Entering function %s...", __func__);
 }
 
-extern "C" void gaia_end_foreign_insert(EState* estate,
-                                        ResultRelInfo* result_rel_info)
+extern "C" void gaia_end_foreign_insert(
+    EState* estate,
+    ResultRelInfo* result_rel_info)
 {
     elog(DEBUG1, "Entering function %s...", __func__);
 }

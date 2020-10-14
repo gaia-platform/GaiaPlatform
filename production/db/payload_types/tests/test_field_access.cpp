@@ -153,8 +153,9 @@ void get_fields_data(
 
         if (i == c_index_new_known_associate)
         {
-            ASSERT_EQ(check_new_values ? c_new_known_associate : c_known_associates[i],
-                      known_associate.hold.integer_value);
+            ASSERT_EQ(
+                check_new_values ? c_new_known_associate : c_known_associates[i],
+                known_associate.hold.integer_value);
         }
         else
         {
@@ -216,10 +217,12 @@ void get_fields_data(
         field::monthly_sleeve_insurance);
     cout << "\tmonthly_sleeve_insurance = " << monthly_sleeve_insurance.hold.float_value << endl;
     ASSERT_EQ(monthly_sleeve_insurance.type, reflection::Float);
-    ASSERT_TRUE(monthly_sleeve_insurance.hold.float_value
-                >= (check_new_values ? c_new_monthly_sleeve_insurance : c_monthly_sleeve_insurance));
-    ASSERT_TRUE(monthly_sleeve_insurance.hold.float_value
-                <= (check_new_values ? c_new_monthly_sleeve_insurance : c_monthly_sleeve_insurance) + 1);
+    ASSERT_TRUE(
+        monthly_sleeve_insurance.hold.float_value
+        >= (check_new_values ? c_new_monthly_sleeve_insurance : c_monthly_sleeve_insurance));
+    ASSERT_TRUE(
+        monthly_sleeve_insurance.hold.float_value
+        <= (check_new_values ? c_new_monthly_sleeve_insurance : c_monthly_sleeve_insurance) + 1);
 
     size_t count_credit_amounts = get_field_array_size(
         c_type_id,
@@ -250,10 +253,12 @@ void get_fields_data(
 
         if (i == c_index_new_credit_amount)
         {
-            ASSERT_TRUE(credit_amount.hold.float_value
-                        >= (check_new_values ? c_new_credit_amount : c_last_yearly_top_credit_amounts[i]));
-            ASSERT_TRUE(credit_amount.hold.float_value
-                        <= (check_new_values ? c_new_credit_amount : c_last_yearly_top_credit_amounts[i]) + 1);
+            ASSERT_TRUE(
+                credit_amount.hold.float_value
+                >= (check_new_values ? c_new_credit_amount : c_last_yearly_top_credit_amounts[i]));
+            ASSERT_TRUE(
+                credit_amount.hold.float_value
+                <= (check_new_values ? c_new_credit_amount : c_last_yearly_top_credit_amounts[i]) + 1);
         }
         else
         {

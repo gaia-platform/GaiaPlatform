@@ -63,10 +63,11 @@ void adapter_t::begin_session()
     }
     catch (gaia_exception e)
     {
-        ereport(ERROR,
-                (errcode(ERRCODE_FDW_ERROR),
-                 errmsg("Error opening COW-SE session."),
-                 errhint("%s", e.what())));
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("Error opening COW-SE session."),
+             errhint("%s", e.what())));
     }
 }
 
@@ -80,10 +81,11 @@ void adapter_t::end_session()
     }
     catch (gaia_exception e)
     {
-        ereport(ERROR,
-                (errcode(ERRCODE_FDW_ERROR),
-                 errmsg("Error closing COW-SE session."),
-                 errhint("%s", e.what())));
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("Error closing COW-SE session."),
+             errhint("%s", e.what())));
     }
 }
 
@@ -396,17 +398,19 @@ bool modify_state_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
 
         if (edit_state == edit_state_t::create)
         {
-            ereport(ERROR,
-                    (errcode(ERRCODE_FDW_ERROR),
-                     errmsg("Error creating gaia object."),
-                     errhint("%s", e.what())));
+            ereport(
+                ERROR,
+                (errcode(ERRCODE_FDW_ERROR),
+                 errmsg("Error creating gaia object."),
+                 errhint("%s", e.what())));
         }
         else if (edit_state == edit_state_t::update)
         {
-            ereport(ERROR,
-                    (errcode(ERRCODE_FDW_ERROR),
-                     errmsg("Error updating gaia object."),
-                     errhint("%s", e.what())));
+            ereport(
+                ERROR,
+                (errcode(ERRCODE_FDW_ERROR),
+                 errmsg("Error updating gaia object."),
+                 errhint("%s", e.what())));
         }
 
         return false;
@@ -445,10 +449,11 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
     }
     catch (const std::exception& e)
     {
-        ereport(ERROR,
-                (errcode(ERRCODE_FDW_ERROR),
-                 errmsg("Error deleting gaia object."),
-                 errhint("%s", e.what())));
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("Error deleting gaia object."),
+             errhint("%s", e.what())));
     }
 
     return false;

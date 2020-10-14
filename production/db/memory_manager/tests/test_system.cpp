@@ -63,15 +63,16 @@ TEST(system, pointer_arithmetic)
         reinterpret_cast<uint8_t*>(&integers.uint64),
         reinterpret_cast<uint8_t*>(&integers) + sizeof(small_integers_t));
 
-    constexpr size_t starting_value = -8;
-    constexpr size_t additional_value = 20;
+    constexpr size_t c_starting_value = -8;
+    constexpr size_t c_additional_value = 20;
+    constexpr size_t c_expected_result = 12;
 
     cout << endl
          << "Test integer overflow:" << endl;
-    size_t value = starting_value;
+    size_t value = c_starting_value;
     cout << "Large value, 8 away from overflow: " << value;
-    value += additional_value;
-    cout << " + " << additional_value << " = " << value << endl;
+    value += c_additional_value;
+    cout << " + " << c_additional_value << " = " << value << endl;
 
-    ASSERT_EQ(12, value);
+    ASSERT_EQ(c_expected_result, value);
 }
