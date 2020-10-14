@@ -79,7 +79,7 @@ pybind11::bytes get_bytes(const pybind11::object& o)
 
     if (PyUnicode_Check(o.ptr()))
     {
-        ptr = (char*)PyUnicode_DATA(o.ptr());
+        ptr = reinterpret_cast<char*>(PyUnicode_DATA(o.ptr()));
         size = PyUnicode_GetLength(o.ptr());
     }
     else if (PyBytes_Check(o.ptr()))

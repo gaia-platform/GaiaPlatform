@@ -1117,6 +1117,7 @@ extern "C" List* gaia_import_foreign_schema(
 }
 
 // Perform all module-level initialization here.
+// NOLINTNEXTLINE(readability-identifier-naming)
 extern "C" void _PG_init()
 {
     elog(DEBUG1, "Entering function %s...", __func__);
@@ -1124,6 +1125,7 @@ extern "C" void _PG_init()
 }
 
 // Perform all module-level finalization here.
+// NOLINTNEXTLINE(readability-identifier-naming)
 extern "C" void _PG_fini()
 {
     elog(DEBUG1, "Entering function %s...", __func__);
