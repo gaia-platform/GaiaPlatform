@@ -5,10 +5,23 @@
 # Allows us to read user input below, assigns stdin to keyboard
 exec </dev/tty
 
-# check if clang-format is installed.
+# check if clang-format is installed. If not, gives the option to install it (on debian based systems)
 if ! command -v clang-format &>/dev/null; then
-    ehco "Please install clang-format 10.0"
-    exit 1
+    if [ ! -f "/etc/debian_version" ]; then
+        ehco "Please install clang-format 10.0"
+        exit 1
+    fi
+
+    while true; do
+        read -rp "clang-format could not be found, do you wish to install it? [y/n]: " yn
+        case $yn in
+        [Yy]*)
+            sudo apt-get install clang-format
+            break
+            ;;
+        [Nn]*) exit 1 ;;
+        esac
+    done
 fi
 
 # Files excluded from clang-format (interpreted as regex against the full path of the file)
@@ -21,7 +34,7 @@ excluded_files=(
 # 1. Are in the index (git add)
 # 2. Are in the production/ directory
 # 3. End with .hpp/.cpp
-for file in $(git --no-pager diff --cached --name-only | grep -E "^production.*(\.hpp|\.cpp|\.h|\.inc)$"); do
+for file in $(git --no-pager diff --cached --name-only | grep -E "^production.*(.hpp|.cpp|.h|.inc)"); do
     format_file=true
 
     for exclude_pattern in "${excluded_files[@]}"; do
