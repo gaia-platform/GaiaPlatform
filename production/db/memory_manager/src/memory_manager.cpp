@@ -95,7 +95,40 @@ error_code_t memory_manager_t::allocate(
 }
 
 error_code_t memory_manager_t::commit_stack_allocator(
-    unique_ptr<stack_allocator_t>& stack_allocator)
+    const unique_ptr<stack_allocator_t>& stack_allocator)
+{
+    if (stack_allocator == nullptr)
+    {
+        return error_code_t::invalid_argument_value;
+    }
+
+    size_t count_allocations = stack_allocator->get_allocation_count();
+    if (count_allocations > 0)
+    {
+        // Get metadata record for the entire stack allocator memory block.
+        memory_allocation_metadata_t* first_stack_allocation_metadata
+            = read_allocation_metadata(stack_allocator->m_base_memory_offset);
+
+        // Get the stack_allocator's metadata.
+        stack_allocator_metadata_t* stack_allocator_metadata = stack_allocator->get_metadata();
+
+        // Patch metadata information of the first allocation.
+        first_stack_allocation_metadata->allocation_size
+            = stack_allocator_metadata->first_allocation_size + sizeof(memory_allocation_metadata_t);
+    }
+
+    if (m_execution_flags.enable_console_output)
+    {
+        output_debugging_information("commit_stack_allocator");
+        stack_allocator->output_debugging_information("commit_stack_allocator");
+    }
+
+    return error_code_t::success;
+}
+
+error_code_t memory_manager_t::free_stack_allocator(
+    const unique_ptr<stack_allocator_t>& stack_allocator,
+    bool free_all)
 {
     if (stack_allocator == nullptr)
     {
@@ -110,7 +143,7 @@ error_code_t memory_manager_t::commit_stack_allocator(
     address_offset_t first_stack_allocation_metadata_offset
         = get_offset(reinterpret_cast<uint8_t*>(first_stack_allocation_metadata));
 
-    if (count_allocations == 0)
+    if (free_all || count_allocations == 0)
     {
         // Special case: all allocations have been reverted, so we need to mark the entire memory block as free.
         if (m_execution_flags.enable_extra_validations)
@@ -119,17 +152,27 @@ error_code_t memory_manager_t::commit_stack_allocator(
                 first_stack_allocation_metadata_offset
                     == stack_allocator->m_base_memory_offset - sizeof(memory_allocation_metadata_t),
                 "Allocation metadata offset does not match manually computed size!");
-            retail_assert(
-                first_stack_allocation_metadata->allocation_size
-                    == stack_allocator->m_total_memory_size + sizeof(memory_allocation_metadata_t),
-                "Allocation metadata size does not match manually computed size!");
+
+            // The next check will usually not be valid in scenarios
+            // in which we're getting called with free_all set to true.
+            if (free_all == false)
+            {
+                retail_assert(
+                    first_stack_allocation_metadata->allocation_size
+                        == stack_allocator->m_total_memory_size + sizeof(memory_allocation_metadata_t),
+                    "Allocation metadata size does not match manually computed size!");
+            }
         }
 
-        // Mark memory block as free.
+        // Mark the entire memory block as free.
+        //
+        // first_stack_allocation_metadata->allocation_size may have
+        // already been patched by commit, so we'll just recompute the size of the entire block
+        // using the stack_allocator's internal information.
         unique_lock unique_free_memory_list_lock(m_free_memory_list_lock);
         m_free_memory_list.emplace_back(
             first_stack_allocation_metadata_offset,
-            first_stack_allocation_metadata->allocation_size);
+            stack_allocator->m_total_memory_size + sizeof(memory_allocation_metadata_t));
     }
     else
     {
@@ -141,8 +184,10 @@ error_code_t memory_manager_t::commit_stack_allocator(
 
             if (allocation_record->old_memory_offset != 0)
             {
-                memory_allocation_metadata_t* allocation_metadata = read_allocation_metadata(allocation_record->old_memory_offset);
-                address_offset_t allocation_metadata_offset = get_offset(reinterpret_cast<uint8_t*>(allocation_metadata));
+                memory_allocation_metadata_t* allocation_metadata
+                    = read_allocation_metadata(allocation_record->old_memory_offset);
+                address_offset_t allocation_metadata_offset
+                    = get_offset(reinterpret_cast<uint8_t*>(allocation_metadata));
 
                 // Add allocation to free memory block list.
                 unique_lock unique_free_memory_list_lock(m_free_memory_list_lock);
@@ -156,16 +201,16 @@ error_code_t memory_manager_t::commit_stack_allocator(
         stack_allocator_metadata_t* stack_allocator_metadata = stack_allocator->get_metadata();
         address_offset_t stack_allocator_metadata_offset = get_offset(reinterpret_cast<uint8_t*>(stack_allocator_metadata));
 
-        // Patch metadata information of the first allocation.
-        first_stack_allocation_metadata->allocation_size
-            = stack_allocator_metadata->first_allocation_size + sizeof(memory_allocation_metadata_t);
-
         // Now we need to release the unused stack allocator memory.
         // Determine the boundaries of the memory block that we can free from the stack_allocator_t.
         address_offset_t start_memory_offset = stack_allocator_metadata->next_allocation_offset;
         address_offset_t end_memory_offset = stack_allocator_metadata_offset + sizeof(stack_allocator_metadata_t);
-        retail_assert(validate_offset(start_memory_offset) == error_code_t::success, "Calculated start memory offset is invalid");
-        retail_assert(validate_offset(end_memory_offset) == error_code_t::success, "Calculated end memory offset is invalid");
+        retail_assert(
+            validate_offset(start_memory_offset) == error_code_t::success,
+            "Calculated start memory offset is invalid");
+        retail_assert(
+            validate_offset(end_memory_offset) == error_code_t::success,
+            "Calculated end memory offset is invalid");
 
         size_t memory_size = end_memory_offset - start_memory_offset;
 
@@ -178,8 +223,8 @@ error_code_t memory_manager_t::commit_stack_allocator(
 
     if (m_execution_flags.enable_console_output)
     {
-        output_debugging_information("commit_stack_allocator");
-        stack_allocator->output_debugging_information("commit_stack_allocator");
+        output_debugging_information("free_stack_allocator");
+        stack_allocator->output_debugging_information("free_stack_allocator");
     }
 
     return error_code_t::success;

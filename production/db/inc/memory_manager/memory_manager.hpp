@@ -22,7 +22,6 @@ namespace memory_manager
 class memory_manager_t : public base_memory_manager_t
 {
 public:
-
     memory_manager_t();
 
     // Tells the memory manager which memory area it should manage.
@@ -39,12 +38,17 @@ public:
     error_code_t allocate(size_t memory_size, address_offset_t& allocated_memory_offset);
 
     // Once a transaction commits, calling this method will
-    // add the stack allocator's unused memory to the list of free memory.
+    // ensure that the stack allocator's allocations
+    // are consistent with all other memory manager allocations.
     error_code_t commit_stack_allocator(
-        std::unique_ptr<stack_allocator_t>& stack_allocator);
+        const std::unique_ptr<stack_allocator_t>& stack_allocator);
+
+    // Adds the stack allocator's unused memory to the list of free memory.
+    error_code_t free_stack_allocator(
+        const std::unique_ptr<stack_allocator_t>& stack_allocator,
+        bool free_all = false);
 
 private:
-
     // This structure is used for tracking information about a memory block.
     struct memory_record_t
     {
@@ -67,7 +71,6 @@ private:
     mutable std::shared_mutex m_free_memory_list_lock;
 
 private:
-
     size_t get_main_memory_available_size() const;
 
     // Given an allocation offset, set up the allocation metadata and returns the offset past it.
@@ -84,6 +87,6 @@ private:
     void output_free_memory_list() const;
 };
 
-}
-}
-}
+} // namespace memory_manager
+} // namespace db
+} // namespace gaia

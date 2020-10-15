@@ -130,6 +130,8 @@ TEST(memory_manager, advanced_operation)
          << "Commit first stack allocator..." << endl;
     error_code = memory_manager.commit_stack_allocator(stack_allocator);
     ASSERT_EQ(error_code_t::success, error_code);
+    error_code = memory_manager.free_stack_allocator(stack_allocator);
+    ASSERT_EQ(error_code_t::success, error_code);
 
     // Make 2 more allocations using a new stack_allocator_t.
     // Both allocations will replace earlier allocations (4th replaces 2nd and 5th replaces 1st),
@@ -162,6 +164,8 @@ TEST(memory_manager, advanced_operation)
     cout << endl
          << "Commit second stack allocator..." << endl;
     error_code = memory_manager.commit_stack_allocator(stack_allocator);
+    ASSERT_EQ(error_code_t::success, error_code);
+    error_code = memory_manager.free_stack_allocator(stack_allocator);
     ASSERT_EQ(error_code_t::success, error_code);
 
     // Test allocating from freed memory.
