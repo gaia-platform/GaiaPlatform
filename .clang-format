@@ -25,7 +25,7 @@ ConstructorInitializerIndentWidth: 4
 AllowShortFunctionsOnASingleLine: None
 
 # If false, all arguments will either be all on the same line or will have one line each.
-BinPackArguments: false
+BinPackArguments: true
 BinPackParameters: false
 AlignAfterOpenBracket: Align
 
@@ -38,6 +38,9 @@ AlignAfterOpenBracket: Align
 # Note this could break the code, read: https://stackoverflow.com/questions/37927553/can-clang-format-break-my-code
 IncludeBlocks: Regroup
 IncludeCategories:
+  # Third party.
+  - Regex:           'spdlog|flatbuffers|llvm|flatcc|cpptoml|gtest|pybind11'
+    Priority:        13
   # C system headers.
   - Regex:           '^<.*\.h>'
     Priority:        1
@@ -46,9 +49,6 @@ IncludeCategories:
   # C++ library header.
   - Regex:           '^<.*'
     Priority:        12
-  # Third party.
-  - Regex:           'spdlog|flatbuffers|llvm|flatcc|cpptoml|gtest'
-    Priority:        13
   # Everything else (gaia headers mostly).
   # Note: it would be helpful if gaia dependencies where under gaia/
   - Regex:           '.*'

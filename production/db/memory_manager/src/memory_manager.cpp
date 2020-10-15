@@ -7,20 +7,19 @@
 
 #include <unistd.h>
 
-#include <sstream>
 #include <memory>
-
-#include "retail_assert.hpp"
+#include <sstream>
 
 #include "memory_types.hpp"
-#include "access_control.hpp"
+#include "retail_assert.hpp"
 
 using namespace std;
 
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;
 
-memory_manager_t::memory_manager_t() : base_memory_manager_t()
+memory_manager_t::memory_manager_t()
+    : base_memory_manager_t()
 {
     m_next_allocation_offset = 0;
 }
@@ -109,7 +108,7 @@ error_code_t memory_manager_t::commit_stack_allocator(
     memory_allocation_metadata_t* first_stack_allocation_metadata
         = read_allocation_metadata(stack_allocator->m_base_memory_offset);
     address_offset_t first_stack_allocation_metadata_offset
-        = get_offset(reinterpret_cast<uint8_t *>(first_stack_allocation_metadata));
+        = get_offset(reinterpret_cast<uint8_t*>(first_stack_allocation_metadata));
 
     if (count_allocations == 0)
     {
@@ -118,11 +117,11 @@ error_code_t memory_manager_t::commit_stack_allocator(
         {
             retail_assert(
                 first_stack_allocation_metadata_offset
-                == stack_allocator->m_base_memory_offset - sizeof(memory_allocation_metadata_t),
+                    == stack_allocator->m_base_memory_offset - sizeof(memory_allocation_metadata_t),
                 "Allocation metadata offset does not match manually computed size!");
             retail_assert(
                 first_stack_allocation_metadata->allocation_size
-                == stack_allocator->m_total_memory_size + sizeof(memory_allocation_metadata_t),
+                    == stack_allocator->m_total_memory_size + sizeof(memory_allocation_metadata_t),
                 "Allocation metadata size does not match manually computed size!");
         }
 
@@ -197,8 +196,7 @@ address_offset_t memory_manager_t::process_allocation(address_offset_t allocatio
 {
     // Write the allocation metadata.
     uint8_t* allocation_metadata_address = get_address(allocation_offset);
-    memory_allocation_metadata_t* allocation_metadata
-        = reinterpret_cast<memory_allocation_metadata_t*>(allocation_metadata_address);
+    auto allocation_metadata = reinterpret_cast<memory_allocation_metadata_t*>(allocation_metadata_address);
     allocation_metadata->allocation_size = size_to_allocate;
 
     // We return the offset past the metadata.
@@ -246,7 +244,8 @@ address_offset_t memory_manager_t::allocate_from_main_memory(size_t size_to_allo
 
     if (m_execution_flags.enable_console_output)
     {
-        cout << endl << "Allocated " << size_to_allocate << " bytes at offset " << allocation_offset;
+        cout << endl
+             << "Allocated " << size_to_allocate << " bytes at offset " << allocation_offset;
         cout << " from main memory." << endl;
     }
 
@@ -295,7 +294,8 @@ address_offset_t memory_manager_t::allocate_from_freed_memory(size_t size_to_all
 
     if (m_execution_flags.enable_console_output)
     {
-        cout << endl << "Allocated " << size_to_allocate << " bytes at offset " << allocation_offset;
+        cout << endl
+             << "Allocated " << size_to_allocate << " bytes at offset " << allocation_offset;
         cout << " from freed memory." << endl;
     }
 
@@ -304,7 +304,8 @@ address_offset_t memory_manager_t::allocate_from_freed_memory(size_t size_to_all
 
 void memory_manager_t::output_debugging_information(const string& context_description) const
 {
-    cout << endl << c_debug_output_separator_line_start << endl;
+    cout << endl
+         << c_debug_output_separator_line_start << endl;
     cout << "Debugging output for context: " << context_description << ":" << endl;
 
     cout << "  Main memory start = " << m_next_allocation_offset << endl;

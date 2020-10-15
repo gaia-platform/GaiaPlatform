@@ -26,8 +26,8 @@ void base_memory_manager_t::set_execution_flags(const execution_flags_t& executi
 
 bool base_memory_manager_t::validate_address_alignment(const uint8_t* const memory_address) const
 {
-    size_t memoryAddressAsInteger = reinterpret_cast<size_t>(memory_address);
-    return (memoryAddressAsInteger % c_memory_alignment == 0);
+    auto memory_address_as_integer = reinterpret_cast<size_t>(memory_address);
+    return (memory_address_as_integer % c_memory_alignment == 0);
 }
 
 bool base_memory_manager_t::validate_offset_alignment(address_offset_t memory_offset) const
@@ -126,8 +126,7 @@ memory_allocation_metadata_t* base_memory_manager_t::read_allocation_metadata(ad
 
     address_offset_t allocation_metadata_offset = memory_offset - sizeof(memory_allocation_metadata_t);
     uint8_t* allocation_metadata_address = get_address(allocation_metadata_offset);
-    memory_allocation_metadata_t* allocation_metadata
-        = reinterpret_cast<memory_allocation_metadata_t*>(allocation_metadata_address);
+    auto allocation_metadata = reinterpret_cast<memory_allocation_metadata_t*>(allocation_metadata_address);
 
     return allocation_metadata;
 }

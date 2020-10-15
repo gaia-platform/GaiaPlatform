@@ -120,8 +120,7 @@ error_code_t stack_allocator_t::allocate(
         else
         {
             uint8_t* next_allocation_address = get_address(next_allocation_offset);
-            memory_allocation_metadata_t* next_allocation_metadata
-                = reinterpret_cast<memory_allocation_metadata_t*>(next_allocation_address);
+            auto next_allocation_metadata = reinterpret_cast<memory_allocation_metadata_t*>(next_allocation_address);
             next_allocation_metadata->allocation_size = size_to_allocate;
         }
     }
@@ -236,7 +235,7 @@ stack_allocator_allocation_t* stack_allocator_t::get_allocation_record(size_t al
     address_offset_t metadata_offset = get_offset(reinterpret_cast<uint8_t*>(m_metadata));
     address_offset_t allocation_record_offset = metadata_offset - allocation_number * sizeof(stack_allocator_allocation_t);
     uint8_t* allocation_record_address = get_address(allocation_record_offset);
-    stack_allocator_allocation_t* allocation_record = reinterpret_cast<stack_allocator_allocation_t*>(allocation_record_address);
+    auto allocation_record = reinterpret_cast<stack_allocator_allocation_t*>(allocation_record_address);
     return allocation_record;
 }
 
@@ -287,7 +286,8 @@ address_offset_t stack_allocator_t::calculate_next_allocation_offset() const
 
 void stack_allocator_t::output_debugging_information(const string& context_description) const
 {
-    cout << endl << c_debug_output_separator_line_start << endl;
+    cout << endl
+         << c_debug_output_separator_line_start << endl;
     cout << "  Stack allocator information for context: " << context_description << ":" << endl;
 
     if (m_metadata == nullptr)

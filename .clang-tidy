@@ -5,7 +5,6 @@ performance-*,
 modernize-*,
 readability-identifier-naming,
 cppcoreguidelines-avoid-magic-numbers,
-cppcoreguidelines-init-variables,
 cppcoreguidelines-macro-usage,
 cppcoreguidelines-narrowing-conversions,
 cppcoreguidelines-no-malloc,
@@ -19,9 +18,12 @@ google-readability-casting,
 -modernize-use-trailing-return-type,
 -modernize-avoid-c-arrays,
 -modernize-concat-nested-namespaces,
+-modernize-use-using,
+-modernize-use-nodiscard
 '
 
-HeaderFilterRegex: "*.hpp"
+# TODO: headers are disabled for now, they produce too many warnings.
+#HeaderFilterRegex: "GaiaPlatform/production/.*inc/.*(hpp|inc|h)$"
 
 CheckOptions:
   #  - { key: readability-identifier-naming.ClassSuffix,           value: _t } can't do this because of exceptions
