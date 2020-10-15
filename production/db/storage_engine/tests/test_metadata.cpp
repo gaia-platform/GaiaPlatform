@@ -25,6 +25,12 @@ TEST_F(gaia_metadata_test, throws_error_on_get_metadata_not_exist)
         metadata_not_found);
 }
 
+TEST_F(gaia_metadata_test, creates_metadata_when_type_does_not_exist)
+{
+    auto metadata = type_registry_t::instance().get_or_create(c_non_existent_type);
+    ASSERT_EQ(metadata.get_type(), c_non_existent_type);
+}
+
 TEST_F(gaia_metadata_test, throws_error_on_add_metadata_already_exist)
 {
     type_registry_t::instance().add(new type_metadata_t(c_patient_type));

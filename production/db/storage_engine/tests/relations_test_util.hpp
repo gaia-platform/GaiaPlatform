@@ -81,19 +81,6 @@ public:
         return *this;
     }
 
-    bool registry_contains_type(gaia_type_t type)
-    {
-        try
-        {
-            type_registry_t::instance().get(type);
-            return true;
-        }
-        catch (const metadata_not_found& e)
-        {
-            return false;
-        }
-    }
-
     // Creates all the object necessary to describe the relationship and
     // updates the type registry.
     void create_relationship()
@@ -122,31 +109,11 @@ public:
             .cardinality = this->m_cardinality,
             .parent_required = this->m_parent_required});
 
-        auto& registry = type_registry_t::instance();
+        auto& parent_meta = type_registry_t::instance().get_or_create(m_parent_type);
+        parent_meta.add_parent_relationship(m_first_child_offset, rel);
 
-        if (registry_contains_type(m_parent_type))
-        {
-            registry.get(m_parent_type)
-                .add_parent_relationship(m_first_child_offset, rel);
-        }
-        else
-        {
-            auto metadata = new type_metadata_t(m_parent_type);
-            metadata->add_parent_relationship(m_first_child_offset, rel);
-            registry.add(metadata);
-        }
-
-        if (registry_contains_type(m_child_type))
-        {
-            registry.get(m_child_type)
-                .add_child_relationship(m_parent_offset, rel);
-        }
-        else
-        {
-            auto metadata = new type_metadata_t(m_child_type);
-            metadata->add_child_relationship(m_parent_offset, rel);
-            registry.add(metadata);
-        }
+        auto& child_meta = type_registry_t::instance().get_or_create(m_child_type);
+        child_meta.add_child_relationship(m_parent_offset, rel);
     }
 
 private:

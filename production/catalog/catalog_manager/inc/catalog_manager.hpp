@@ -10,13 +10,16 @@
 
 #include "gaia_catalog.hpp"
 
-namespace gaia {
-namespace catalog {
+namespace gaia
+{
+namespace catalog
+{
 
 using db_names_t = unordered_map<string, gaia::common::gaia_id_t>;
 using table_names_t = unordered_map<string, gaia::common::gaia_id_t>;
 
-class catalog_manager_t {
+class catalog_manager_t
+{
 public:
     /**
      * Catalog manager scaffolding to ensure we have one global static instance
@@ -30,7 +33,9 @@ public:
      */
     gaia::common::gaia_id_t create_database(const string& name, bool throw_on_exist = true);
     gaia::common::gaia_id_t create_table(const string& db_name,
-        const string& name, const ddl::field_def_list_t& fields, bool throw_on_exist = true);
+                                         const string& name,
+                                         const ddl::field_def_list_t& fields,
+                                         bool throw_on_exist = true);
     void drop_table(const string& db_name, const string& name);
     void drop_database(const string& name);
 
@@ -42,7 +47,9 @@ public:
 private:
     // Only internal static creation is allowed
     catalog_manager_t();
-    ~catalog_manager_t() {}
+    ~catalog_manager_t()
+    {
+    }
 
     // Initialize the catalog manager.
     void init();
@@ -73,7 +80,7 @@ private:
     // Reload all the caches from catalog records in storage engine.
     void reload_cache();
     // Reload metadata
-    void load_metadata();
+    void reload_metadata();
 
     // Bootstrap catalog with its own tables.
     void bootstrap_catalog();

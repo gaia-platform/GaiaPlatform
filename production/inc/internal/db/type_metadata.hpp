@@ -18,14 +18,19 @@
 using namespace std;
 using namespace gaia::common;
 
-namespace gaia::db {
+namespace gaia::db
+{
 
 /**
  * Contains metadata about a specific gaia type.
  */
-class type_metadata_t {
+class type_metadata_t
+{
 public:
-    explicit type_metadata_t(gaia_type_t type) : m_type(type) {}
+    explicit type_metadata_t(gaia_type_t type)
+        : m_type(type)
+    {
+    }
 
     gaia_type_t get_type() const;
 
@@ -68,9 +73,11 @@ private:
     unordered_map<reference_offset_t, shared_ptr<relationship_t>> m_child_relationships;
 };
 
-class duplicate_metadata : public gaia_exception {
+class duplicate_metadata : public gaia_exception
+{
 public:
-    explicit duplicate_metadata(const gaia_type_t type) {
+    explicit duplicate_metadata(const gaia_type_t type)
+    {
         stringstream message;
         message << "Metadata already existent for Gaia type \"" << type << "\"";
         m_message = message.str();
@@ -91,22 +98,26 @@ public:
 /**
  * Maintain the instances of type_metadata_t.
  */
-class type_registry_t {
+class type_registry_t
+{
 public:
     type_registry_t(const type_registry_t&) = delete;
     type_registry_t& operator=(const type_registry_t&) = delete;
     type_registry_t(type_registry_t&&) = delete;
     type_registry_t& operator=(type_registry_t&&) = delete;
 
-    static type_registry_t& instance() {
+    static type_registry_t& instance()
+    {
         static type_registry_t type_registry;
         return type_registry;
     }
 
     /**
      * Returns an instance of type_metadata_t. If no metadata exists for the
-     * given type, a new instance is created and returned. Clients are allowed
-     * to modify the returned metadata, although the registry keeps ownership.
+     * given type, throws an exception. It should be used in those when
+     * the presence of the metadata is expected (eg. gaia_ptr).
+     *
+     * This method acquires a shared lock thus should be faster than get_or_create.
      */
     type_metadata_t& get(gaia_type_t type);
 
@@ -114,10 +125,20 @@ public:
     //  Need to figure the best way to do so (friend class?)
 
     /**
-     * Add metadata to the registry
+     * Returns an instance of type_metadata_t. If no metadata exists for the
+     * given type, a new instance is created and returned.
      *
-     * @throws metadata_not_found if there is no metadata for the given type.
+     * Clients are NOT allowed to modify the returned metadata, use update()
+     * for this purpose.
+     *
+     * The registry owns the lifecycle of this object.
      */
+    type_metadata_t& get_or_create(gaia_type_t type);
+
+    /**
+     * Add metadata to the registry. The registry owns the lifecycle of this object.
+     */
+    // TODO should this be unique_ptr to communicate the transfer of ownership?
     void add(type_metadata_t* metadata);
 
     /**
