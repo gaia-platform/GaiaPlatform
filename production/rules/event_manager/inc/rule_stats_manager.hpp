@@ -5,88 +5,46 @@
 #pragma once
 
 #include "timer.hpp"
+#include "logger.hpp"
+#include "scheduler_stats.hpp"
 
-#include <memory>
+#include <map>
+#include <thread>
 
 namespace gaia
 {
 namespace rules
 {
 
-struct rule_stats_t 
-{
-    const char* tag;
-    std::chrono::steady_clock::time_point start_time;
-    std::chrono::steady_clock::time_point enqueue_time;
-    std::chrono::steady_clock::time_point before_invoke;
-    std::chrono::steady_clock::time_point before_rule;
-    std::chrono::steady_clock::time_point after_rule;
-    std::chrono::steady_clock::time_point after_invoke;
-};
-
-
-// This static class uses the gaia::common::timer to take time points
-// and calculate durations.
-class rule_stats_manager_t 
+class rule_stats_manager_t
 {
 public:
-    static bool s_enabled;
-    static const char* c_rule_tag;
-    static const char* c_log_event_tag;
+    void initialize(bool enable_rule_stats, uint32_t count_threads, uint32_t stats_log_interval);
+    void shutdown();
+    void inc_executed(const char* rule_id);
+    void inc_scheduled(const char* rule_id);
+    void inc_retries(const char* rule_id);
+    void inc_abandoned(const char* rule_id);
+    void inc_pending(const char* rule_id);
+    void inc_exceptions(const char* rule_id);
+    void add_rule_invocation_latency(const char* rule_id, std::chrono::steady_clock::time_point& start_time);
+    void add_rule_execution_time(const char* rule_id, std::chrono::steady_clock::time_point& start_time);
+    void add_thread_execution_time(std::chrono::steady_clock::time_point& start_time);
+    void insert_rule_stats(const char* rule_id);
 
-    static std::shared_ptr<rule_stats_t> create_rule_stats(std::chrono::steady_clock::time_point& start_time,
-        const char* tag)
-    {
-        if (s_enabled)
-        {
-            auto ptr = std::make_shared<rule_stats_t>();
-            ptr->tag = tag;
-            ptr->start_time = start_time;
-            return ptr;
-        }
-        else
-        {
-            return nullptr;
-        }
-    }
+private:
+    void log_stats_thread_fn();
+    void log_scheduler_stats();
+    void log_rule_stats();
 
-    static void record_enqueue_time(std::shared_ptr<rule_stats_t>& stats_ptr)
-    {
-        if (s_enabled)
-        {
-            stats_ptr->enqueue_time = gaia::common::timer_t::get_time_point();
-        }
-    }
-
-    static void record_invoke_time(std::shared_ptr<rule_stats_t>& stats_ptr, std::function<void()>fn)
-    {
-        if (s_enabled)
-        {
-            stats_ptr->before_invoke = gaia::common::timer_t::get_time_point();
-            fn();
-            stats_ptr->after_invoke = gaia::common::timer_t::get_time_point();
-        }
-        else
-        {
-            fn();
-        }
-    }
-
-    static void record_rule_fn_time(std::shared_ptr<rule_stats_t>& stats_ptr, std::function<void()>fn)
-    {
-        if (s_enabled)
-        {
-            stats_ptr->before_rule = gaia::common::timer_t::get_time_point();
-            fn();
-            stats_ptr->after_rule = gaia::common::timer_t::get_time_point();
-        }
-        else
-        {
-            fn();
-        }
-    }
-
-    static void log(std::shared_ptr<rule_stats_t>& stats_ptr);
+private:
+    scheduler_stats_t m_scheduler_stats;
+    uint32_t m_log_interval;
+    uint32_t m_count_rule_worker_threads;
+    std::chrono::steady_clock::time_point m_log_interval_start;
+    std::map<string, rule_stats_t> m_rule_stats_map;
+    mutex m_rule_stats_lock;
+    bool m_rule_stats_enabled;
 };
 
 } // rules

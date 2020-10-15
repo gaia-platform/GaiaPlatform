@@ -212,6 +212,9 @@ public:
 protected:
     static void SetUpTestSuite()
     {
+        // Do this before resetting the server to initialize the logger.
+        gaia_log::initialize("./log_conf.toml");
+
         // NOTE: to run this test manually, you need to set the env variable DDL_FILE
         // to the location of addr_book.ddl.  Currently this is under production/schemas/test/addr_book.
         reset_server();
@@ -228,15 +231,16 @@ protected:
 
         event_manager_settings_t settings;
 
-        // NOTE: uncomment next line enable stats from the rules engine.
-        // settings.enable_stats = true;
-
+        // NOTE: comment out the next line to disable individual rule stats from the rules engine.
+        settings.enable_rule_stats = true;
         gaia::rules::test::initialize_rules_engine(settings);
     }
 
     static void TearDownTestSuite()
     {
         end_session();
+        shutdown_rules_engine();
+        gaia_log::shutdown();
     }
 
     // Ensure SetUp and TearDown don't do anything.  When we run the test

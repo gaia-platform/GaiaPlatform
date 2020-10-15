@@ -44,8 +44,9 @@ bool logger_manager_t::init_logging(const string& config_path) {
 
     m_sys_logger = make_shared<logger_t>(c_sys_logger);
     m_db_logger = make_shared<logger_t>(c_db_logger);
-    m_scheduler_logger = make_shared<logger_t>(c_scheduler_logger);
+    m_rules_logger = make_shared<logger_t>(c_rules_logger);
     m_catalog_logger = make_shared<logger_t>(c_catalog_logger);
+    m_rules_stats_logger = make_shared<logger_t>(c_rules_stats_logger);
 
     m_is_log_initialized = true;
 
@@ -66,7 +67,8 @@ bool logger_manager_t::stop_logging() {
     m_catalog_logger = nullptr;
     m_db_logger = nullptr;
     m_sys_logger = nullptr;
-    m_scheduler_logger = nullptr;
+    m_rules_logger = nullptr;
+    m_rules_stats_logger = nullptr;
 
     spdlog::shutdown();
 

@@ -49,7 +49,8 @@ public:
     struct invocation_t {
         invocation_type_t type;
         std::variant<rule_invocation_t, log_events_invocation_t> args;
-        shared_ptr<rule_stats_t> stats;
+        const char* rule_id;
+        std::chrono::steady_clock::time_point start_time;
     };
 
     /**
@@ -68,7 +69,7 @@ public:
      * mode and no worker threads are created. If SIZE_MAX is specified
      * then create the pool with the number of available hardware threads.
      */ 
-    rule_thread_pool_t(size_t num_threads);
+    rule_thread_pool_t(size_t num_threads, rule_stats_manager_t& stats_manager);
 
     /**
      * Will notify and wait for all workers in the thread pool
@@ -104,13 +105,19 @@ private:
 
     void inline invoke_rule(invocation_t& invocation) 
     {
+        const char* rule_id = invocation.rule_id;
+        m_stats_manager.inc_executed(rule_id);
         if (invocation_type_t::rule == invocation.type)
         {
             invoke_user_rule(invocation);
         }
         else
         {
+            m_stats_manager.add_rule_invocation_latency(rule_id, invocation.start_time);
+            auto fn_start = gaia::common::timer_t::get_time_point();
             log_events(invocation);
+            m_stats_manager.add_rule_execution_time(rule_id, fn_start);
+
         }
     }
 
@@ -128,6 +135,13 @@ private:
      * Queue from which worker thread draw their invocations.
      */
     queue<invocation_t> m_invocations;
+
+    /**
+     * Helper to calculate and log statistics for
+     * the rules engine scheduler and each individual
+     * user rule if desired.
+     */
+    rule_stats_manager_t& m_stats_manager;
 
     /**
      * OS threads waiting to do work

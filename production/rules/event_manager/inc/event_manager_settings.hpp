@@ -18,14 +18,16 @@ namespace rules
 //
 // Default event manager settings are:
 // Number of background threads equals number of hardware threads (SIZE_MAX).
-// Catalog checks are enabled (TRUE).
-// Gathering performance statistics is disabled (FALSE).
+// Catalog checks are enabled.
+// Gathering performance statistcs for individual rules is disabled.
+// Log performance statistics every 10s.
 struct event_manager_settings_t
 {
     event_manager_settings_t()
         : num_background_threads(SIZE_MAX)
         , enable_catalog_checks(true)
-        , enable_stats(false)
+        , enable_rule_stats(false)
+        , stats_log_interval(10)
     {
     }
 
@@ -36,8 +38,11 @@ struct event_manager_settings_t
     // Specifying true will allow rule subscriptions without comparing the table
     // and fields to existing catalog definitions.
     bool enable_catalog_checks;
-    // Enable logging of event_manager performance statistics
-    bool enable_stats;
+    // Enable logging of rule specific statistcs.
+    bool enable_rule_stats;
+    // Specifies the interval in seconds that performance statistics
+    // are logged to the logger file. Set to 0 to disable logging statistics.
+    uint32_t stats_log_interval;
 };
 
 } // rules

@@ -39,17 +39,26 @@ public:
     event_manager_t(event_manager_t&) = delete;
     void operator=(event_manager_t const&) = delete;
     static event_manager_t& get(bool is_initializing = false);
+    static const char* s_gaia_log_event_rule;
 
     /**
      * Rule APIs
      */
     void init();
 
-    void subscribe_rule(gaia::common::gaia_type_t gaia_type, event_type_t event_type,
-                        const field_position_list_t& fields, const rule_binding_t& rule_binding);
+    void shutdown();
 
-    bool unsubscribe_rule(gaia::common::gaia_type_t gaia_type, event_type_t event_type,
-                          const field_position_list_t& fields, const rule_binding_t& rule_binding);
+    void subscribe_rule(
+        gaia::common::gaia_type_t gaia_type,
+        event_type_t event_type,
+        const field_position_list_t& fields,
+        const rule_binding_t& rule_binding);
+
+    bool unsubscribe_rule(
+        gaia::common::gaia_type_t gaia_type,
+        event_type_t event_type,
+        const field_position_list_t& fields,
+        const rule_binding_t& rule_binding);
 
     void unsubscribe_rules();
 
@@ -109,9 +118,9 @@ private:
     // the catalog.
     unique_ptr<rule_checker_t> m_rule_checker;
 
-    // Enable profiling of rules engine function.  Also used to
-    // get time points for rules engine statistics.
-    optional_timer_t m_timer;
+    // Helper class to manager gathering and logging performance statistics
+    // for both the rules engine scheduler and individual rules.
+    rule_stats_manager_t m_stats_manager;
 
 private:
     // Only internal static creation is allowed.
@@ -133,9 +142,11 @@ private:
     void add_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     bool remove_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     void enqueue_invocation(const trigger_event_list_t& events, const vector<bool>& rules_invoked_list,
-                            std::chrono::steady_clock::time_point& start_time);
-    void enqueue_invocation(const trigger_event_t& event, gaia_rule_fn rule,
-                            std::chrono::steady_clock::time_point& start_time);
+        std::chrono::steady_clock::time_point& start_time);
+    void enqueue_invocation(
+        const trigger_event_t& event,
+        const _rule_binding_t* rule_binding,
+        std::chrono::steady_clock::time_point& start_time);
     void check_subscription(event_type_t event_type, const field_position_list_t& fields);
     static inline void check_rule_binding(const rule_binding_t& binding)
     {
