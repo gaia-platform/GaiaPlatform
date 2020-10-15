@@ -362,8 +362,10 @@ void catalog_manager_t::drop_table_no_txn(gaia_id_t table_id)
         reference_record.delete_row();
     }
 
-    // Unlink the table from its database.
-    table_record.gaia_database().gaia_table_list().erase(table_record);
+    for (relationship_t relationship : table_record.re)
+
+        // Unlink the table from its database.
+        table_record.gaia_database().gaia_table_list().erase(table_record);
     // Remove the table.
     table_record.delete_row();
 }
@@ -579,7 +581,7 @@ gaia_id_t catalog_manager_t::create_table_impl(
     gaia_database_t::get(db_id).gaia_table_list().insert(table_id);
 
     uint16_t field_position = 0, reference_position = 0;
-    for (auto& field : fields)
+    for (const auto& field : fields)
     {
         gaia_id_t parent_type_id{0};
         uint16_t position;

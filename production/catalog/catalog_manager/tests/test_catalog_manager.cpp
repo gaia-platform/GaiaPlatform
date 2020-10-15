@@ -212,7 +212,7 @@ TEST_F(catalog_manager_test, drop_table_not_exist)
     EXPECT_THROW(drop_table(test_table_name), table_not_exists);
 }
 
-TEST_F(catalog_manager_test, drop_table_with_reference)
+TEST_F(catalog_manager_test, drop_table_with_self_reference)
 {
     string test_table_name{"self_ref_table"};
     ddl::field_def_list_t fields;
@@ -225,6 +225,25 @@ TEST_F(catalog_manager_test, drop_table_with_reference)
     {
         auto_transaction_t txn;
         auto table = gaia_table_t::get(table_id);
+        EXPECT_FALSE(table);
+    }
+}
+
+TEST_F(catalog_manager_test, drop_table_parent_reference)
+{
+    string parent_table_name{"parent_table"};
+    ddl::field_def_list_t parent_fields;
+    gaia_id_t parent_table_id = create_table(parent_table_name, parent_fields);
+
+    string child_table_name{"child_table"};
+    ddl::field_def_list_t child_fields;
+    gaia_id_t child_table_id = create_table(child_table_name, child_fields);
+    child_fields.emplace_back(make_unique<ddl::field_definition_t>("parent", data_type_t::e_references, 1, "parent_table"));
+
+    drop_table(child_table_name);
+    {
+        auto_transaction_t txn;
+        auto table = gaia_table_t::get(child_table_id);
         EXPECT_FALSE(table);
     }
 }
