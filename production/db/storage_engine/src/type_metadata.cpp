@@ -115,6 +115,16 @@ void type_registry_t::update(gaia_type_t type, std::function<void(type_metadata_
     update_op(*metadata->second);
 }
 
+void type_registry_t::remove(gaia_type_t type)
+{
+    scoped_lock lock(m_registry_lock);
+
+    if (!m_metadata_registry.erase(type))
+    {
+        throw metadata_not_found(type);
+    }
+}
+
 void type_registry_t::clear()
 {
     m_metadata_registry.clear();

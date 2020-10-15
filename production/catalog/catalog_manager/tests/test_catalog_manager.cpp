@@ -61,7 +61,8 @@ TEST_F(catalog_manager_test, list_tables)
 {
     ddl::field_def_list_t fields;
     set<gaia_id_t> table_ids;
-    for (int i = 0; i < 10; i++)
+    constexpr int c_num_fields = 10;
+    for (int i = 0; i < c_num_fields; i++)
     {
         table_ids.insert(create_table("list_tables_test_" + to_string(i), fields));
     }
@@ -69,7 +70,7 @@ TEST_F(catalog_manager_test, list_tables)
     set<gaia_id_t> list_result;
     auto_transaction_t txn;
     {
-        for (auto table : gaia_database_t::get(find_db_id("")).gaia_table_list())
+        for (const auto& table : gaia_database_t::get(find_db_id("")).gaia_table_list())
         {
             list_result.insert(table.gaia_id());
         }

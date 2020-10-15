@@ -28,9 +28,7 @@ class type_metadata_t
 {
 public:
     explicit type_metadata_t(gaia_type_t type)
-        : m_type(type)
-    {
-    }
+        : m_type(type){};
 
     gaia_type_t get_type() const;
 
@@ -43,6 +41,12 @@ public:
      * Find a relationship from the child side.
      */
     relationship_t* find_child_relationship(reference_offset_t parent_offset) const;
+
+    /**
+     * Counts the number of reference this type has both as parent and child.
+     * Note: child references count 2X, since 2 pointers are necessary to express them.
+     */
+    size_t num_references();
 
     // TODO the two following function should be called only by the registry.
     //  Need to figure the best way to do so (friend class?)
@@ -58,12 +62,6 @@ public:
      * The relationship_t object will be stored in the parent metadata as well.
      */
     void add_child_relationship(reference_offset_t parent, const shared_ptr<relationship_t>& relationship);
-
-    /**
-     * Counts the number of reference this type has both as parent and child.
-     * Note: child references count 2X, since 2 pointers are necessary to express them.
-     */
-    size_t num_references();
 
 private:
     gaia_type_t m_type;
@@ -97,7 +95,7 @@ public:
 
 /**
  * Maintain the instances of type_metadata_t and manages their lifecycle.
- * type_metadata_t should be created/edited only by the catalog (with the
+ * type_metadata_t should be created/edited/deleted only by the catalog (with the
  * exception of tests).
  */
 class type_registry_t
@@ -120,6 +118,8 @@ public:
      * the presence of the metadata is expected (eg. gaia_ptr).
      *
      * This method acquires a shared lock thus should be faster than get_or_create.
+     *
+     * @throws metadata_not_found
      */
     type_metadata_t& get(gaia_type_t type);
 
@@ -144,17 +144,25 @@ public:
     void add(type_metadata_t* metadata);
 
     /**
-     * Update the metadata
+     * Update the metadata.
      *
      * @param type the type that is being updated
      * @param update_op update operation run in a thread safe fashion
+     * @throws metadata_not_found
      */
     void update(gaia_type_t type, std::function<void(type_metadata_t&)> update_op);
+
+    /**
+     * Removes the medata.
+     *
+     * @throws metadata_not_found
+     */
+    void remove(gaia_type_t type);
 
     // TESTING
 
     /**
-     * FOR TESTING. This method allow cleaning the registry between tests.
+     * FOR TESTING. Allow cleaning the registry between tests.
      */
     void clear();
 

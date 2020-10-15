@@ -18,7 +18,7 @@ class gaia_metadata_test : public ::testing::Test
     }
 };
 
-TEST_F(gaia_metadata_test, throws_error_on_get_metadata_not_exist)
+TEST_F(gaia_metadata_test, get_throws_if_metadata_not_exist)
 {
     ASSERT_THROW(
         type_registry_t::instance().get(c_non_existent_type),
@@ -31,7 +31,7 @@ TEST_F(gaia_metadata_test, creates_metadata_when_type_does_not_exist)
     ASSERT_EQ(metadata.get_type(), c_non_existent_type);
 }
 
-TEST_F(gaia_metadata_test, throws_error_on_add_metadata_already_exist)
+TEST_F(gaia_metadata_test, add_thorws_if_metadata_already_exist)
 {
     type_registry_t::instance().add(new type_metadata_t(c_patient_type));
 
@@ -57,7 +57,7 @@ TEST_F(gaia_metadata_test, edit_metadata)
     ASSERT_EQ(metadata.find_parent_relationship(c_parent_doctor_offset), relationship.get());
 }
 
-TEST_F(gaia_metadata_test, throws_error_on_edit_metadata_not_exist)
+TEST_F(gaia_metadata_test, edit_throws_if_metadata_not_exist)
 {
     const auto relationship = make_shared<relationship_t>();
 
@@ -66,5 +66,24 @@ TEST_F(gaia_metadata_test, throws_error_on_edit_metadata_not_exist)
             .update(c_non_existent_type, [&](type_metadata_t& metadata) {
                 metadata.add_parent_relationship(c_parent_doctor_offset, relationship);
             }),
+        metadata_not_found);
+}
+
+TEST_F(gaia_metadata_test, remvoes_metada)
+{
+    type_registry_t::instance()
+        .add(new type_metadata_t(c_patient_type));
+
+    type_registry_t::instance().remove(c_patient_type);
+
+    ASSERT_THROW(
+        type_registry_t::instance().get(c_patient_type),
+        metadata_not_found);
+}
+
+TEST_F(gaia_metadata_test, remvoes_metada_thorws_if_metadata_not_exist)
+{
+    ASSERT_THROW(
+        type_registry_t::instance().remove(c_non_existent_type),
         metadata_not_found);
 }
