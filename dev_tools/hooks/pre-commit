@@ -7,7 +7,7 @@ exec </dev/tty
 
 # check if clang-format is installed.
 if ! command -v clang-format &>/dev/null; then
-    ehco "Please install clang-format 10.0"
+    echo "Please install clang-format 10.0"
     exit 1
 fi
 
@@ -21,7 +21,7 @@ excluded_files=(
 # 1. Are in the index (git add)
 # 2. Are in the production/ directory
 # 3. End with .hpp/.cpp/etc..
-for file in $(git --no-pager diff --cached --name-only | grep -E "^production.*(\.hpp|\.cpp|\.h|\.inc)$"); do
+for file in $(git --no-pager diff --cached --name-only | grep -E "^production.*(\.hpp|\.cpp|\.inc)$"); do
     format_file=true
 
     for exclude_pattern in "${excluded_files[@]}"; do
