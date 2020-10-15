@@ -33,15 +33,14 @@ public:
         size_t memory_size);
 
     // Allocates a new block of memory.
-    // This is used both for initial load of data in memory
-    // as well as for allocating memory blocks to be used with stack allocators.
+    // This is used for the initial load of data in memory.
+    // Each allocation will get prefixed by a metadata block.
     error_code_t allocate(size_t memory_size, address_offset_t& allocated_memory_offset);
 
-    // Once a transaction commits, calling this method will
-    // ensure that the stack allocator's allocations
-    // are consistent with all other memory manager allocations.
-    error_code_t commit_stack_allocator(
-        const std::unique_ptr<stack_allocator_t>& stack_allocator);
+    // Allocates a new block of memory.
+    // This is used both for allocating memory blocks to be used with stack allocators.
+    // These allocations are NOT prefixed with a metadata block.
+    error_code_t allocate_raw(size_t memory_size, address_offset_t& allocated_memory_offset);
 
     // Adds the stack allocator's unused memory to the list of free memory.
     error_code_t free_stack_allocator(
@@ -74,13 +73,23 @@ private:
     size_t get_main_memory_available_size() const;
 
     // Given an allocation offset, set up the allocation metadata and returns the offset past it.
-    address_offset_t process_allocation(address_offset_t allocation_offset, size_t size_to_allocate) const;
+    // If add_allocation_metadata is set to false, the memory allocation won't get prefixed by a metadata block.
+    address_offset_t process_allocation(
+        address_offset_t allocation_offset,
+        size_t size_to_allocate,
+        bool add_allocation_metadata) const;
+
+    // Allocates a new block of memory.
+    error_code_t allocate_internal(
+        size_t memory_size,
+        address_offset_t& allocated_memory_offset,
+        bool add_allocation_metadata);
 
     // Attempt to allocate from our main memory block.
-    address_offset_t allocate_from_main_memory(size_t size_to_allocate);
+    address_offset_t allocate_from_main_memory(size_t size_to_allocate, bool add_allocation_metadata);
 
     // Attempt to allocate from one of the already allocated and freed memory blocks.
-    address_offset_t allocate_from_freed_memory(size_t size_to_allocate);
+    address_offset_t allocate_from_freed_memory(size_t size_to_allocate, bool add_allocation_metadata);
 
     void output_debugging_information(const std::string& context_description) const;
 

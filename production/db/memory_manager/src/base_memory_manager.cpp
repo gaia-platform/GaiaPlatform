@@ -15,7 +15,7 @@ using namespace gaia::db::memory_manager;
 base_memory_manager_t::base_memory_manager_t()
 {
     m_base_memory_address = nullptr;
-    m_base_memory_offset = 0;
+    m_base_memory_offset = c_invalid_offset;
     m_total_memory_size = 0;
 }
 
@@ -78,7 +78,8 @@ error_code_t base_memory_manager_t::validate_offset(address_offset_t memory_offs
         return error_code_t::memory_offset_not_aligned;
     }
 
-    if (memory_offset < m_base_memory_offset
+    if (memory_offset == c_invalid_offset
+        || memory_offset < m_base_memory_offset
         || memory_offset > m_base_memory_offset + m_total_memory_size)
     {
         return error_code_t::memory_offset_out_of_range;

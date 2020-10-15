@@ -38,7 +38,7 @@ TEST(memory_manager, stack_allocator)
 {
     constexpr size_t c_memory_size = 8000;
     uint8_t memory[c_memory_size];
-    address_offset_t memory_offset = 0;
+    address_offset_t memory_offset = c_invalid_offset;
 
     memory_manager_t memory_manager;
 
@@ -56,7 +56,7 @@ TEST(memory_manager, stack_allocator)
 
     unique_ptr<stack_allocator_t> stack_allocator = make_unique<stack_allocator_t>();
     stack_allocator->set_execution_flags(execution_flags);
-    error_code = memory_manager.allocate(c_stack_allocator_memory_size, memory_offset);
+    error_code = memory_manager.allocate_raw(c_stack_allocator_memory_size, memory_offset);
     ASSERT_EQ(error_code_t::success, error_code);
     error_code = stack_allocator->initialize(memory, memory_offset, c_stack_allocator_memory_size);
     ASSERT_EQ(error_code_t::success, error_code);
@@ -82,13 +82,17 @@ TEST(memory_manager, stack_allocator)
     constexpr slot_id_t c_deleted_slot_id = 88;
     constexpr address_offset_t c_deleted_old_offset = 1080;
 
-    address_offset_t first_allocation_offset = 0;
+    address_offset_t first_allocation_offset = c_invalid_offset;
     error_code = stack_allocator->allocate(c_first_slot_id, c_first_old_offset, c_first_allocation_size, first_allocation_offset);
     ASSERT_EQ(error_code_t::success, error_code);
     output_allocation_information(c_first_allocation_size, first_allocation_offset);
     validate_allocation_record(stack_allocator, 1, c_first_slot_id, first_allocation_offset, c_first_old_offset);
 
-    address_offset_t second_allocation_offset = 0;
+    ASSERT_EQ(
+        sizeof(memory_allocation_metadata_t),
+        first_allocation_offset);
+
+    address_offset_t second_allocation_offset = c_invalid_offset;
     error_code = stack_allocator->allocate(c_second_slot_id, c_second_old_offset, c_second_allocation_size, second_allocation_offset);
     ASSERT_EQ(error_code_t::success, error_code);
     output_allocation_information(c_second_allocation_size, second_allocation_offset);
@@ -98,7 +102,7 @@ TEST(memory_manager, stack_allocator)
         first_allocation_offset + c_first_allocation_size + sizeof(memory_allocation_metadata_t),
         second_allocation_offset);
 
-    address_offset_t third_allocation_offset = 0;
+    address_offset_t third_allocation_offset = c_invalid_offset;
     error_code = stack_allocator->allocate(c_third_slot_id, c_third_old_offset, c_third_allocation_size, third_allocation_offset);
     ASSERT_EQ(error_code_t::success, error_code);
     output_allocation_information(c_third_allocation_size, third_allocation_offset);
@@ -117,7 +121,7 @@ TEST(memory_manager, stack_allocator)
 
     ASSERT_EQ(1, stack_allocator->get_allocation_count());
 
-    address_offset_t fourth_allocation_offset = 0;
+    address_offset_t fourth_allocation_offset = c_invalid_offset;
     error_code = stack_allocator->allocate(c_fourth_slot_id, c_fourth_old_offset, c_fourth_allocation_size, fourth_allocation_offset);
     ASSERT_EQ(error_code_t::success, error_code);
     output_allocation_information(c_fourth_allocation_size, fourth_allocation_offset);
@@ -130,7 +134,7 @@ TEST(memory_manager, stack_allocator)
     ASSERT_EQ(2, stack_allocator->get_allocation_count());
 
     stack_allocator->deallocate(c_deleted_slot_id, c_deleted_old_offset);
-    validate_allocation_record(stack_allocator, 3, c_deleted_slot_id, 0, c_deleted_old_offset);
+    validate_allocation_record(stack_allocator, 3, c_deleted_slot_id, c_invalid_offset, c_deleted_old_offset);
 
     ASSERT_EQ(3, stack_allocator->get_allocation_count());
 
@@ -141,7 +145,7 @@ TEST(memory_manager, stack_allocator)
 
     ASSERT_EQ(0, stack_allocator->get_allocation_count());
 
-    address_offset_t fifth_allocation_offset = 0;
+    address_offset_t fifth_allocation_offset = c_invalid_offset;
     stack_allocator->allocate(c_fifth_slot_id, c_fifth_old_offset, c_fifth_allocation_size, fifth_allocation_offset);
     ASSERT_EQ(error_code_t::success, error_code);
     output_allocation_information(c_fifth_allocation_size, fifth_allocation_offset);
@@ -150,4 +154,13 @@ TEST(memory_manager, stack_allocator)
     ASSERT_EQ(fifth_allocation_offset, first_allocation_offset);
 
     ASSERT_EQ(1, stack_allocator->get_allocation_count());
+
+    // Create a stack allocator that reads the allocations made by the original allocator.
+    unique_ptr<stack_allocator_t> read_stack_allocator = make_unique<stack_allocator_t>();
+    read_stack_allocator->set_execution_flags(execution_flags);
+    error_code = read_stack_allocator->load(memory, memory_offset, c_stack_allocator_memory_size);
+    ASSERT_EQ(error_code_t::success, error_code);
+
+    // Verify that the allocator is seeing our 2 earlier allocations.
+    ASSERT_EQ(1, read_stack_allocator->get_allocation_count());
 }
