@@ -2,13 +2,9 @@
 # Copyright (c) Gaia Platform LLC. All rights reserved.
 # ##############################################################################
 
-cmake_minimum_required(VERSION 3.12)
-
 # Set the project name.
 
 project(sql)
-
-enable_testing()
 
 # Use existence of pg_config as a proxy for postgres being installed.
 
@@ -98,5 +94,4 @@ add_subdirectory(src)
 
 # Add tests.
 
-# Tests are disabled until they get rewritten.
-# add_subdirectory(tests)
+add_subdirectory(tests)

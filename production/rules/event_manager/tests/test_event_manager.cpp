@@ -13,6 +13,7 @@
 #include "gaia_event_log.h"
 #include "triggers.hpp"
 #include "db_test_base.hpp"
+#include "db_test_helpers.hpp"
 #include "event_manager_test_helpers.hpp"
 
 using namespace gaia::common;
@@ -105,7 +106,7 @@ public:
         return s_fields;
     }
 
-    auto_transaction_t& get_dummy_transaction(bool init=false) 
+    auto_transaction_t& get_dummy_transaction(bool init=false)
     {
         // Create a transaction that won't do anything
         static auto_transaction_t s_dummy(auto_transaction_t::no_auto_begin);
@@ -281,7 +282,7 @@ void rule5(const rule_context_t* context)
 /**
  * Rule 6 handles TestGaia2::update
  * [Rule 8] Forward chains to Transaction::commit event (allowed: different event class)
- * 
+ *
  * TODO[GAIAPLAT-194]: Transaction events are out of scope for Q2
 void rule6(const rule_context_t* context)
 {
@@ -560,7 +561,7 @@ public:
       return rows_cleared;
     }
 
-    void verify_event_log_row(const gaia::event_log::event_log_t& row, event_type_t event_type, uint64_t gaia_type,
+    void verify_event_log_row(const gaia::event_log::event_log_t& row, event_type_t event_type, gaia_type_t gaia_type,
         gaia_id_t record_id, uint16_t column_id, bool rules_invoked)
     {
         EXPECT_EQ(row.event_type(), (uint32_t) event_type);
@@ -573,7 +574,7 @@ public:
 protected:
     static void SetUpTestSuite()
     {
-        db_test_base_t::reset_server();
+        reset_server();
         begin_session();
         event_manager_settings_t settings;
         settings.num_background_threads = 0;
@@ -622,7 +623,7 @@ TEST_F(event_manager_test, invalid_subscription)
 {
     field_position_list_t fields;
     fields.emplace_back(1);
-    
+
     // TODO[GAIAPLAT-194]: Transaction Events are out of scope for Q2
 
     // Transaction event subscriptions can't specify a gaia type
@@ -811,7 +812,7 @@ TEST_F(event_manager_test, log_event_multi_rule_multi_event)
     add_context_sequence(sequence, TestGaia::s_gaia_type, event_type_t::row_update);
     add_context_sequence(sequence, TestGaia::s_gaia_type, event_type_t::row_delete);
     add_context_sequence(sequence, TestGaia::s_gaia_type, event_type_t::row_delete);
-    
+
     // TODO[GAIAPLAT-194]: Transaction Events are out of scope for Q2
     //add_context_sequence(sequence, 0, event_type_t::transaction_commit);
     //add_context_sequence(sequence, 0, event_type_t::transaction_commit);
@@ -1215,7 +1216,7 @@ TEST_F(event_manager_test, event_logging_no_subscriptions)
 
     gaia::db::begin_transaction();
     auto entry = gaia::event_log::event_log_t::get_first();
-    verify_event_log_row(entry, event_type_t::row_update, 
+    verify_event_log_row(entry, event_type_t::row_update,
         TestGaia::s_gaia_type, record, s_last_name, false);
 
     EXPECT_FALSE(entry.get_next());
@@ -1240,7 +1241,7 @@ TEST_F(event_manager_test, event_logging_subscriptions)
 
     gaia::db::begin_transaction();
     auto entry = gaia::event_log::event_log_t::get_first();
-    verify_event_log_row(entry, event_type_t::row_update, 
+    verify_event_log_row(entry, event_type_t::row_update,
         TestGaia2::s_gaia_type, record, s_first_name, true);
 
     entry = entry.get_next();

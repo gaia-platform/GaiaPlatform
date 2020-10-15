@@ -357,17 +357,9 @@ struct gaia_tableT : public flatbuffers::NativeTable {
   typedef gaia_table TableType;
   gaia::direct_access::nullable_string_t name;
   bool is_log;
-  uint8_t trim_action;
-  uint64_t max_rows;
-  uint64_t max_size;
-  uint64_t max_seconds;
   gaia::direct_access::nullable_string_t binary_schema;
   gaia_tableT()
-      : is_log(false),
-        trim_action(0),
-        max_rows(0),
-        max_size(0),
-        max_seconds(0) {
+      : is_log(false) {
   }
 };
 
@@ -377,29 +369,13 @@ struct gaia_table FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
     VT_IS_LOG = 6,
-    VT_TRIM_ACTION = 8,
-    VT_MAX_ROWS = 10,
-    VT_MAX_SIZE = 12,
-    VT_MAX_SECONDS = 14,
-    VT_BINARY_SCHEMA = 16
+    VT_BINARY_SCHEMA = 8
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
   }
   bool is_log() const {
     return GetField<uint8_t>(VT_IS_LOG, 0) != 0;
-  }
-  uint8_t trim_action() const {
-    return GetField<uint8_t>(VT_TRIM_ACTION, 0);
-  }
-  uint64_t max_rows() const {
-    return GetField<uint64_t>(VT_MAX_ROWS, 0);
-  }
-  uint64_t max_size() const {
-    return GetField<uint64_t>(VT_MAX_SIZE, 0);
-  }
-  uint64_t max_seconds() const {
-    return GetField<uint64_t>(VT_MAX_SECONDS, 0);
   }
   const flatbuffers::String *binary_schema() const {
     return GetPointer<const flatbuffers::String *>(VT_BINARY_SCHEMA);
@@ -409,10 +385,6 @@ struct gaia_table FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
            VerifyField<uint8_t>(verifier, VT_IS_LOG) &&
-           VerifyField<uint8_t>(verifier, VT_TRIM_ACTION) &&
-           VerifyField<uint64_t>(verifier, VT_MAX_ROWS) &&
-           VerifyField<uint64_t>(verifier, VT_MAX_SIZE) &&
-           VerifyField<uint64_t>(verifier, VT_MAX_SECONDS) &&
            VerifyOffset(verifier, VT_BINARY_SCHEMA) &&
            verifier.VerifyString(binary_schema()) &&
            verifier.EndTable();
@@ -431,18 +403,6 @@ struct gaia_tableBuilder {
   }
   void add_is_log(bool is_log) {
     fbb_.AddElement<uint8_t>(gaia_table::VT_IS_LOG, static_cast<uint8_t>(is_log), 0);
-  }
-  void add_trim_action(uint8_t trim_action) {
-    fbb_.AddElement<uint8_t>(gaia_table::VT_TRIM_ACTION, trim_action, 0);
-  }
-  void add_max_rows(uint64_t max_rows) {
-    fbb_.AddElement<uint64_t>(gaia_table::VT_MAX_ROWS, max_rows, 0);
-  }
-  void add_max_size(uint64_t max_size) {
-    fbb_.AddElement<uint64_t>(gaia_table::VT_MAX_SIZE, max_size, 0);
-  }
-  void add_max_seconds(uint64_t max_seconds) {
-    fbb_.AddElement<uint64_t>(gaia_table::VT_MAX_SECONDS, max_seconds, 0);
   }
   void add_binary_schema(flatbuffers::Offset<flatbuffers::String> binary_schema) {
     fbb_.AddOffset(gaia_table::VT_BINARY_SCHEMA, binary_schema);
@@ -463,18 +423,10 @@ inline flatbuffers::Offset<gaia_table> Creategaia_table(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
     bool is_log = false,
-    uint8_t trim_action = 0,
-    uint64_t max_rows = 0,
-    uint64_t max_size = 0,
-    uint64_t max_seconds = 0,
     flatbuffers::Offset<flatbuffers::String> binary_schema = 0) {
   gaia_tableBuilder builder_(_fbb);
-  builder_.add_max_seconds(max_seconds);
-  builder_.add_max_size(max_size);
-  builder_.add_max_rows(max_rows);
   builder_.add_binary_schema(binary_schema);
   builder_.add_name(name);
-  builder_.add_trim_action(trim_action);
   builder_.add_is_log(is_log);
   return builder_.Finish();
 }
@@ -483,10 +435,6 @@ inline flatbuffers::Offset<gaia_table> Creategaia_tableDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
     bool is_log = false,
-    uint8_t trim_action = 0,
-    uint64_t max_rows = 0,
-    uint64_t max_size = 0,
-    uint64_t max_seconds = 0,
     const char *binary_schema = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto binary_schema__ = binary_schema ? _fbb.CreateString(binary_schema) : 0;
@@ -494,10 +442,6 @@ inline flatbuffers::Offset<gaia_table> Creategaia_tableDirect(
       _fbb,
       name__,
       is_log,
-      trim_action,
-      max_rows,
-      max_size,
-      max_seconds,
       binary_schema__);
 }
 
@@ -684,10 +628,6 @@ inline void gaia_table::UnPackTo(gaia_tableT *_o, const flatbuffers::resolver_fu
   (void)_resolver;
   { auto _e = name(); if (_e) _o->name = gaia::direct_access::nullable_string_t(_e->c_str(), _e->size()); }
   { auto _e = is_log(); _o->is_log = _e; }
-  { auto _e = trim_action(); _o->trim_action = _e; }
-  { auto _e = max_rows(); _o->max_rows = _e; }
-  { auto _e = max_size(); _o->max_size = _e; }
-  { auto _e = max_seconds(); _o->max_seconds = _e; }
   { auto _e = binary_schema(); if (_e) _o->binary_schema = gaia::direct_access::nullable_string_t(_e->c_str(), _e->size()); }
 }
 
@@ -701,19 +641,11 @@ inline flatbuffers::Offset<gaia_table> Creategaia_table(flatbuffers::FlatBufferB
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const gaia_tableT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _name = _o->name.empty() ? 0 : _fbb.CreateString(_o->name);
   auto _is_log = _o->is_log;
-  auto _trim_action = _o->trim_action;
-  auto _max_rows = _o->max_rows;
-  auto _max_size = _o->max_size;
-  auto _max_seconds = _o->max_seconds;
   auto _binary_schema = _o->binary_schema.empty() ? 0 : _fbb.CreateString(_o->binary_schema);
   return gaia::catalog::Creategaia_table(
       _fbb,
       _name,
       _is_log,
-      _trim_action,
-      _max_rows,
-      _max_size,
-      _max_seconds,
       _binary_schema);
 }
 

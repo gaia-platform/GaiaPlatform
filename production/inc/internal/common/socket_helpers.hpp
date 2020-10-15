@@ -19,12 +19,12 @@ namespace gaia {
 namespace common {
 
 // Current protocols never send or receive > 2 fds at a time.
-const size_t MAX_FD_COUNT = 2;
+constexpr size_t MAX_FD_COUNT = 2;
 
 // We throw this exception on either EPIPE/SIGPIPE caught from a write
 // or EOF returned from a read (where a 0-length read is impossible).
 class peer_disconnected : public gaia_exception {
-   public:
+public:
     peer_disconnected() {
         m_message = "The socket peer is disconnected.";
     }
@@ -75,7 +75,7 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
     // On BSD platforms we could use the SO_SIGNOPIPE socket option,
     // otherwise we need to suppress SIGPIPE (portable code here:
     // https://github.com/kroki/XProbes/blob/1447f3d93b6dbf273919af15e59f35cca58fcc23/src/libxprobes.c#L156).
-    ssize_t bytes_written_or_error = sendmsg(sock, &msg, MSG_NOSIGNAL);
+    ssize_t bytes_written_or_error = ::sendmsg(sock, &msg, MSG_NOSIGNAL);
     // Since we assert that we never send 0 bytes, we should never return 0 bytes written.
     retail_assert(bytes_written_or_error != 0,
         "sendmsg() should never return 0 bytes written unless we write 0 bytes.");
@@ -123,7 +123,7 @@ inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* dat
         msg.msg_control = control.buf;
         msg.msg_controllen = sizeof(control.buf);
     }
-    ssize_t bytes_read = recvmsg(sock, &msg, 0);
+    ssize_t bytes_read = ::recvmsg(sock, &msg, 0);
     retail_assert(bytes_read >= -1,
         "recvmsg() should never return a negative value except for -1.");
     if (bytes_read == -1) {
@@ -163,5 +163,16 @@ inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* dat
     return static_cast<size_t>(bytes_read);
 }
 
-}  // namespace common
-}  // namespace gaia
+inline void check_socket_type(int socket, int expected_socket_type) {
+    int real_socket_type;
+    socklen_t type_len = sizeof(real_socket_type);
+    if (-1 == ::getsockopt(socket, SOL_SOCKET, SO_TYPE, &real_socket_type, &type_len)) {
+        throw_system_error("getsockopt(SO_TYPE) failed");
+    }
+    // type_len is an inout parameter which can indicate truncation.
+    retail_assert(type_len == sizeof(real_socket_type));
+    retail_assert(real_socket_type == expected_socket_type);
+}
+
+} // namespace common
+} // namespace gaia

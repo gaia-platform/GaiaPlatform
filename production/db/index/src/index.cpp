@@ -9,7 +9,7 @@
 #include <field_access.hpp>
 
 using namespace gaia::common;
-using namespace gaia::db::types;
+using namespace gaia::db::payload_types;
 using namespace gaia::db::index;
 
 int index_record_t::compare(const index_record_t& other) const

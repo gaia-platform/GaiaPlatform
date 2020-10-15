@@ -27,6 +27,23 @@ The following folder structure is recommended for C++ projects:
   * tests (component level)
 * tests (cross-component)
 
+## Formatter and Linter
+
+### Formatter
+`clang-format` is invoked on each commit as a git pre-commit hook. The pre-commit is 
+automatically installed by CMake. The `clang-format` version in use is `10.0`.
+
+Note: `clang-format` reorders the includes which could break the build. There are ways
+to avoid it. Please read: https://stackoverflow.com/questions/37927553/can-clang-format-break-my-code
+
+### Linter
+`clang-tidy` is integrated with CMake and is invoked on each build. At the moment it
+only print the warnings in the compiler output. `clang-tidy` is not enforced, which means
+that warnings to not lead to build failures, keep in mind though, that this is the desired 
+behavior in the long term. Do your best to reduce the number of warnings by either fixing
+them or by updating the rules in the `.clang-tidy` file. The `clang-tidy` version in use 
+is `10.0`.
+
 ## Copyright notes
 
 Use the following copyright note with your code. Several language specific versions are provided below.

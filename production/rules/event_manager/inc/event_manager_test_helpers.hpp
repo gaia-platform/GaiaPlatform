@@ -2,8 +2,10 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #pragma once
 
+#include "db_types.hpp"
 #include "triggers.hpp"
 #include "event_manager_settings.hpp"
 
@@ -17,8 +19,8 @@ namespace test
     void initialize_rules_engine(event_manager_settings_t& settings);
 
     void commit_trigger(
-        uint64_t transaction_id,
-        const db::triggers::trigger_event_t* triggger_events,
+        gaia_txn_id_t txn_id,
+        const db::triggers::trigger_event_t* trigger_events,
         size_t count_events);
 
 } // test

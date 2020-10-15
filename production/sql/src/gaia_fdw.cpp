@@ -5,25 +5,26 @@
 
 #include "gaia_fdw.hpp"
 
-#include "array_size.hpp"
 #include "gaia_fdw_adapter.hpp"
 
 using namespace std;
 using namespace gaia::db;
 
 // Magic block for extension library.
-extern "C" {
-PG_MODULE_MAGIC;
+extern "C"
+{
+    PG_MODULE_MAGIC;
 }
 
 // The FDW handler function returns a palloc'd FdwRoutine struct containing
 // pointers to the callback functions that will be called by the planner,
 // executor, and various maintenance commands. The scan-related functions are
 // required, the rest are optional.
-extern "C" Datum gaia_fdw_handler(PG_FUNCTION_ARGS) {
+extern "C" Datum gaia_fdw_handler(PG_FUNCTION_ARGS)
+{
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    FdwRoutine *routine = makeNode(FdwRoutine);
+    FdwRoutine* routine = makeNode(FdwRoutine);
 
     // Functions for scanning foreign tables.
     routine->GetForeignRelSize = gaia_get_foreign_rel_size;
@@ -87,27 +88,32 @@ extern "C" Datum gaia_fdw_handler(PG_FUNCTION_ARGS) {
 // ForeignServerRelationId, UserMappingRelationId, or ForeignTableRelationId).
 // If no validator function is supplied, options are not checked at object
 // creation time or object alteration time.
-extern "C" Datum gaia_fdw_validator(PG_FUNCTION_ARGS) {
+extern "C" Datum gaia_fdw_validator(PG_FUNCTION_ARGS)
+{
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    List *options_list = untransformRelOptions(PG_GETARG_DATUM(0));
-    if (list_length(options_list) > 1) {
-        ereport(ERROR,
+    List* options_list = untransformRelOptions(PG_GETARG_DATUM(0));
+    if (list_length(options_list) > 1)
+    {
+        ereport(
+            ERROR,
             (errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
-            errmsg("Invalid options."),
-            errhint("gaia FDW supports only the `data_dir` option.")));
+             errmsg("Invalid options."),
+             errhint("gaia FDW supports only the `data_dir` option.")));
         PG_RETURN_VOID();
     }
 
     Oid catalog_id = PG_GETARG_OID(1);
-    ListCell *cell;
-    foreach (cell, options_list) {
-        DefElem *def = (DefElem *)lfirst(cell);
-        char *opt_name = def->defname;
-        char *opt_val = defGetString(def);
+    ListCell* cell = nullptr;
+    foreach (cell, options_list)
+    {
+        auto def = reinterpret_cast<DefElem*>(lfirst(cell));
+        char* opt_name = def->defname;
+        char* opt_val = defGetString(def);
         elog(DEBUG1, "Option name: %s, option value: %s.", opt_name, opt_val);
 
-        if (!gaia::fdw::validate_and_apply_option(opt_name, opt_val, catalog_id)) {
+        if (!gaia::fdw::validate_and_apply_option(opt_name, opt_val, catalog_id))
+        {
             // Unknown option specified, complain about it. Provide a hint
             // with list of valid options for the object.
             StringInfoData buf;
@@ -116,10 +122,10 @@ extern "C" Datum gaia_fdw_validator(PG_FUNCTION_ARGS) {
             ereport(
                 ERROR,
                 (errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
-                errmsg("Invalid option \"%s\".", opt_name),
-                buf.len > 0
-                    ? errhint("Valid options in this context are: %s.", buf.data)
-                    : errhint("There are no valid options in this context.")));
+                 errmsg("Invalid option \"%s\".", opt_name),
+                 buf.len > 0
+                     ? errhint("Valid options in this context are: %s.", buf.data)
+                     : errhint("There are no valid options in this context.")));
 
             PG_RETURN_VOID();
         }
@@ -129,9 +135,10 @@ extern "C" Datum gaia_fdw_validator(PG_FUNCTION_ARGS) {
 }
 
 extern "C" void gaia_get_foreign_rel_size(
-    PlannerInfo *root,
-    RelOptInfo *base_rel,
-    Oid foreign_table_id) {
+    PlannerInfo* root,
+    RelOptInfo* base_rel,
+    Oid foreign_table_id)
+{
     // Obtain relation size estimates for a foreign table. This is called at
     // the beginning of planning for a query that scans a foreign table. root
     // is the planner's global information about the query; base_rel is the
@@ -152,9 +159,10 @@ extern "C" void gaia_get_foreign_rel_size(
 }
 
 extern "C" void gaia_get_foreign_paths(
-    PlannerInfo *root,
-    RelOptInfo *base_rel,
-    Oid foreign_table_id) {
+    PlannerInfo* root,
+    RelOptInfo* base_rel,
+    Oid foreign_table_id)
+{
     // Create possible access paths for a scan on a foreign table. This is
     // called during query planning. The parameters are the same as for
     // GetForeignRelSize, which has already been called.
@@ -172,35 +180,36 @@ extern "C" void gaia_get_foreign_paths(
     Cost startup_cost = 0;
     Cost total_cost = startup_cost + base_rel->rows;
 
-    Path* foreign_scan_path = (Path *)create_foreignscan_path(
+    Path* foreign_scan_path = reinterpret_cast<Path*>(create_foreignscan_path(
         root,
         base_rel,
         // Default pathtarget.
-        NULL,
+        nullptr,
         base_rel->rows,
         startup_cost,
         total_cost,
         // No pathkeys.
         NIL,
         // No outer rel either.
-        NULL,
+        nullptr,
         // No extra plan.
-        NULL,
+        nullptr,
         // No per-path private info.
-        NULL);
+        nullptr));
 
     // Create a ForeignPath node and add it as only possible path.
     add_path(base_rel, foreign_scan_path);
 }
 
-extern "C" ForeignScan *gaia_get_foreign_plan(
-    PlannerInfo *root,
-    RelOptInfo *base_rel,
+extern "C" ForeignScan* gaia_get_foreign_plan(
+    PlannerInfo* root,
+    RelOptInfo* base_rel,
     Oid foreign_table_id,
-    ForeignPath *best_path,
-    List *tlist,
-    List *scan_clauses,
-    Plan *outer_plan) {
+    ForeignPath* best_path,
+    List* tlist,
+    List* scan_clauses,
+    Plan* outer_plan)
+{
     // Create a ForeignScan plan node from the selected foreign access path.
     // This is called at the end of query planning. The parameters are as for
     // GetForeignRelSize, plus the selected ForeignPath (previously produced
@@ -221,7 +230,10 @@ extern "C" ForeignScan *gaia_get_foreign_plan(
     scan_clauses = extract_actual_clauses(scan_clauses, false);
 
     // Create the ForeignScan node.
-    return make_foreignscan(tlist, scan_clauses, scan_relid,
+    return make_foreignscan(
+        tlist,
+        scan_clauses,
+        scan_relid,
         // No expressions to evaluate.
         NIL,
         // No private data.
@@ -233,12 +245,13 @@ extern "C" ForeignScan *gaia_get_foreign_plan(
         outer_plan);
 }
 
-extern "C" void gaia_begin_foreign_scan(ForeignScanState *node, int eflags) {
+extern "C" void gaia_begin_foreign_scan(ForeignScanState* node, int eflags)
+{
     // Begin executing a foreign scan. This is called during executor startup.
     // It should perform any initialization needed before the scan can start,
     // but not start executing the actual scan (that should be done upon the
     // first call to IterateForeignScan). The ForeignScanState node has
-    // already been created, but its fdw_state field is still NULL.
+    // already been created, but its fdw_state field is still nullptr.
     // Information about the table to scan is accessible through the
     // ForeignScanState node (in particular, from the underlying ForeignScan
     // plan node, which contains any FDW-private information provided by
@@ -251,26 +264,28 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState *node, int eflags) {
     // ExplainForeignScan and EndForeignScan.
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    ForeignScan *plan = (ForeignScan *)node->ss.ps.plan;
+    auto plan = reinterpret_cast<ForeignScan*>(node->ss.ps.plan);
     Index rtindex = plan->scan.scanrelid;
-    EState *estate = node->ss.ps.state;
-    RangeTblEntry *rte = exec_rt_fetch(rtindex, estate);
-    char *table_name = get_rel_name(rte->relid);
+    EState* estate = node->ss.ps.state;
+    RangeTblEntry* rte = exec_rt_fetch(rtindex, estate);
+    char* table_name = get_rel_name(rte->relid);
 
-    TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
-    TupleDesc tupleDesc = slot->tts_tupleDescriptor;
+    TupleTableSlot* slot = node->ss.ss_ScanTupleSlot;
+    TupleDesc tuple_desc = slot->tts_tupleDescriptor;
 
-    gaia::fdw::scan_state_t *scan_state = gaia::fdw::adapter_t::get_state<gaia::fdw::scan_state_t>(
-        table_name, (size_t)tupleDesc->natts);
-    if (scan_state == nullptr) {
+    auto scan_state = gaia::fdw::adapter_t::get_state<gaia::fdw::scan_state_t>(
+        table_name, (size_t)tuple_desc->natts);
+    if (scan_state == nullptr)
+    {
         elog(ERROR, "Unknown table name '%s'.", table_name);
     }
 
     // Set up mapping of attnos to flatbuffer accessor functions.
-    for (int i = 0; i < tupleDesc->natts; i++) {
+    for (int i = 0; i < tuple_desc->natts; ++i)
+    {
         // User attributes are indexed starting from 1.
         // AttrNumber attnum = i + 1.
-        char *attr_name = NameStr(TupleDescAttr(tupleDesc, i)->attname);
+        char* attr_name = NameStr(TupleDescAttr(tuple_desc, i)->attname);
 
         scan_state->set_accessor_index(attr_name, (size_t)i);
     }
@@ -282,15 +297,17 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState *node, int eflags) {
 
     // Retrieve the first node of the requested type
     // (this can't currently throw).
-    if (scan_state->initialize_scan()) {
+    if (!scan_state->initialize_scan())
+    {
         elog(ERROR, "Failed to scan initialization for table '%s'.", table_name);
     }
 }
 
-extern "C" TupleTableSlot *gaia_iterate_foreign_scan(ForeignScanState *node) {
+extern "C" TupleTableSlot* gaia_iterate_foreign_scan(ForeignScanState* node)
+{
     // Fetch one row from the foreign source, returning it in a tuple table
     // slot (the node's ScanTupleSlot should be used for this purpose). Return
-    // NULL if no more rows are available. The tuple table slot infrastructure
+    // nullptr if no more rows are available. The tuple table slot infrastructure
     // allows either a physical or virtual tuple to be returned; in most cases
     // the latter choice is preferable from a performance standpoint. Note
     // that this is called in a short-lived memory context that will be reset
@@ -303,27 +320,29 @@ extern "C" TupleTableSlot *gaia_iterate_foreign_scan(ForeignScanState *node) {
     // not needed, you should insert nulls in those column positions.
     //
     // Note that PostgreSQL's executor doesn't care whether the rows returned
-    // violate any NOT NULL constraints that were defined on the foreign table
+    // violate any NOT nullptr constraints that were defined on the foreign table
     // columns — but the planner does care, and may optimize queries
-    // incorrectly if NULL values are present in a column declared not to
-    // contain them. If a NULL value is encountered when the user has declared
+    // incorrectly if nullptr values are present in a column declared not to
+    // contain them. If a nullptr value is encountered when the user has declared
     // that none should be present, it may be appropriate to raise an error
     // (just as you would need to do in the case of a data type mismatch).
     // elog(DEBUG1, "Entering function %s...", __func__);
 
-    gaia::fdw::scan_state_t *scan_state = (gaia::fdw::scan_state_t *)node->fdw_state;
+    auto scan_state = reinterpret_cast<gaia::fdw::scan_state_t*>(node->fdw_state);
 
-    // Return NULL if we reach the end of iteration.
-    if (scan_state->has_scan_ended()) {
-        return NULL;
+    // Return nullptr if we reach the end of iteration.
+    if (scan_state->has_scan_ended())
+    {
+        return nullptr;
     }
 
     // Mark the slot empty.
-    TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
+    TupleTableSlot* slot = node->ss.ss_ScanTupleSlot;
     ExecClearTuple(slot);
 
     // Get the next record, if any, and fill in the slot.
-    for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; attr_idx++) {
+    for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; ++attr_idx)
+    {
         // char *attr_name = NameStr(
         //     TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->attname);
 
@@ -344,20 +363,22 @@ extern "C" TupleTableSlot *gaia_iterate_foreign_scan(ForeignScanState *node) {
     return slot;
 }
 
-extern "C" void gaia_rescan_foreign_scan(ForeignScanState *node) {
+extern "C" void gaia_rescan_foreign_scan(ForeignScanState* node)
+{
     // Restart the scan from the beginning. Note that any parameters the scan
     // depends on may have changed value, so the new scan does not necessarily
     // return exactly the same rows.
     elog(DEBUG1, "Entering function %s...", __func__);
 }
 
-extern "C" void gaia_end_foreign_scan(ForeignScanState *node) {
+extern "C" void gaia_end_foreign_scan(ForeignScanState* node)
+{
     // End the scan and release resources. It is normally not important to
     // release palloc'd memory, but for example open files and connections to
     // remote servers should be cleaned up.
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    gaia::fdw::scan_state_t *scan_state = (gaia::fdw::scan_state_t *)node->fdw_state;
+    auto scan_state = reinterpret_cast<gaia::fdw::scan_state_t*>(node->fdw_state);
 
     // We should have reached the end of iteration.
     assert(scan_state->has_scan_ended());
@@ -367,9 +388,10 @@ extern "C" void gaia_end_foreign_scan(ForeignScanState *node) {
 }
 
 extern "C" void gaia_add_foreign_update_targets(
-    Query *parse_tree,
-    RangeTblEntry *target_rte,
-    Relation target_relation) {
+    Query* parse_tree,
+    RangeTblEntry* target_rte,
+    Relation target_relation)
+{
     // UPDATE and DELETE operations are performed against rows previously
     // fetched by the table-scanning functions. The FDW may need extra
     // information, such as a row ID or the values of primary-key columns, to
@@ -390,13 +412,13 @@ extern "C" void gaia_add_foreign_update_targets(
     // command, while target_rte and target_relation describe the target
     // foreign table.
     //
-    // If the AddForeignUpdateTargets pointer is set to NULL, no extra target
+    // If the AddForeignUpdateTargets pointer is set to nullptr, no extra target
     // expressions are added. (This will make it impossible to implement
     // DELETE operations, though UPDATE may still be feasible if the FDW
     // relies on an unchanging primary key to identify rows.)
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    TupleDesc tupleDesc = target_relation->rd_att;
+    TupleDesc tuple_desc = target_relation->rd_att;
 
     // FIXME: we really shouldn't hardcode the primary key like this,
     // instead check the attribute-level CREATE FOREIGN TABLE options
@@ -404,16 +426,18 @@ extern "C" void gaia_add_foreign_update_targets(
     //
     // Loop through all columns of the foreign table.
     bool key_found = false;
-    for (int i = 0; i < tupleDesc->natts; i++) {
-        Form_pg_attribute attr = TupleDescAttr(tupleDesc, i);
-        char *attr_name = NameStr(attr->attname);
+    for (int i = 0; i < tuple_desc->natts; ++i)
+    {
+        Form_pg_attribute attr = TupleDescAttr(tuple_desc, i);
+        char* attr_name = NameStr(attr->attname);
 
         // If primary key, add a resjunk for this column.
-        if (strcmp(gaia::fdw::c_gaia_id, attr_name) == 0) {
+        if (gaia::fdw::adapter_t::is_gaia_id_name(attr_name))
+        {
             key_found = true;
 
             // Make a Var representing the desired value.
-            Var *var = makeVar(
+            Var* var = makeVar(
                 parse_tree->resultRelation,
                 attr->attnum,
                 attr->atttypid,
@@ -422,9 +446,11 @@ extern "C" void gaia_add_foreign_update_targets(
                 0);
 
             // Wrap it in a resjunk TLE with the right name.
-            TargetEntry *tle = makeTargetEntry(
-                (Expr *)var, list_length(parse_tree->targetList) + 1,
-                pstrdup(NameStr(attr->attname)), true);
+            TargetEntry* tle = makeTargetEntry(
+                reinterpret_cast<Expr*>(var),
+                list_length(parse_tree->targetList) + 1,
+                pstrdup(NameStr(attr->attname)),
+                true);
 
             // And add it to the query's targetlist.
             parse_tree->targetList = lappend(parse_tree->targetList, tle);
@@ -432,17 +458,18 @@ extern "C" void gaia_add_foreign_update_targets(
         }
     }
 
-    if (!key_found) {
-        elog(ERROR, "Could not find 'gaia_id' column in table '%s'.",
-            RelationGetRelationName(target_relation));
+    if (!key_found)
+    {
+        elog(ERROR, "Could not find 'gaia_id' column in table '%s'.", RelationGetRelationName(target_relation));
     }
 }
 
-extern "C" List *gaia_plan_foreign_modify(
-    PlannerInfo *root,
-    ModifyTable *plan,
+extern "C" List* gaia_plan_foreign_modify(
+    PlannerInfo* root,
+    ModifyTable* plan,
     Index result_relation,
-    int subplan_index) {
+    int subplan_index)
+{
     // Perform any additional planning actions needed for an insert, update,
     // or delete on a foreign table. This function generates the FDW-private
     // information that will be attached to the ModifyTable plan node that
@@ -457,7 +484,7 @@ extern "C" List *gaia_plan_foreign_modify(
     // ModifyTable plan node this is, counting from zero; use this if you want
     // to index into plan->plans or other substructure of the plan node.
     //
-    // If the PlanForeignModify pointer is set to NULL, no additional
+    // If the PlanForeignModify pointer is set to nullptr, no additional
     // plan-time actions are taken, and the fdw_private list delivered to
     // BeginForeignModify will be NIL.
     elog(DEBUG1, "Entering function %s...", __func__);
@@ -465,47 +492,56 @@ extern "C" List *gaia_plan_foreign_modify(
     // We don't return any private data from this method, just check that
     // gaia_id is not an INSERT or UPDATE target.
     CmdType operation = plan->operation;
-    RangeTblEntry *rte = planner_rt_fetch(result_relation, root);
+    RangeTblEntry* rte = planner_rt_fetch(result_relation, root);
     Relation rel = table_open(rte->relid, NoLock);
-    TupleDesc tupleDesc = RelationGetDescr(rel);
-    Bitmapset *modifiedCols = NULL;
+    TupleDesc tuple_desc = RelationGetDescr(rel);
+    Bitmapset* modified_cols = nullptr;
     int col = -1;
 
-    if (operation == CMD_INSERT) {
-        modifiedCols = rte->insertedCols;
-    } else if (operation == CMD_UPDATE) {
-        modifiedCols = rte->updatedCols;
+    if (operation == CMD_INSERT)
+    {
+        modified_cols = rte->insertedCols;
+    }
+    else if (operation == CMD_UPDATE)
+    {
+        modified_cols = rte->updatedCols;
     }
 
-    if (modifiedCols) {
-        while ((col = bms_next_member(modifiedCols, col)) >= 0) {
+    if (modified_cols)
+    {
+        while ((col = bms_next_member(modified_cols, col)) >= 0)
+        {
             // Bit numbers are offset by FirstLowInvalidHeapAttributeNumber.
             AttrNumber attno = col + FirstLowInvalidHeapAttributeNumber;
-            if (attno <= InvalidAttrNumber) {
+            if (attno <= InvalidAttrNumber)
+            {
                 // Shouldn't happen.
                 elog(ERROR, "System-column insert or update is not supported.");
             }
 
-            char *attr_name = NameStr(TupleDescAttr(tupleDesc, attno - 1)->attname);
-            if (strcmp(attr_name, gaia::fdw::c_gaia_id) == 0) {
-                ereport(ERROR,
+            char* attr_name = NameStr(TupleDescAttr(tuple_desc, attno - 1)->attname);
+            if (gaia::fdw::adapter_t::is_gaia_id_name(attr_name))
+            {
+                ereport(
+                    ERROR,
                     (errcode(ERRCODE_FDW_INVALID_COLUMN_NAME),
-                    errmsg("Cannot insert into or update system column gaia_id.")));
+                     errmsg("Cannot insert into or update system column gaia_id.")));
             }
         }
     }
 
     table_close(rel, NoLock);
 
-    return NULL;
+    return nullptr;
 }
 
 extern "C" void gaia_begin_foreign_modify(
-    ModifyTableState *mtstate,
-    ResultRelInfo *rinfo,
-    List *fdw_private,
+    ModifyTableState* mtstate,
+    ResultRelInfo* rinfo,
+    List* fdw_private,
     int subplan_index,
-    int eflags) {
+    int eflags)
+{
     // Begin executing a foreign table modification operation. This routine is
     // called during executor startup. It should perform any initialization
     // needed prior to the actual table modifications. Subsequently,
@@ -527,26 +563,28 @@ extern "C" void gaia_begin_foreign_modify(
     // the minimum required to make the node state valid for
     // ExplainForeignModify and EndForeignModify.
     //
-    // If the BeginForeignModify pointer is set to NULL, no action is taken
+    // If the BeginForeignModify pointer is set to nullptr, no action is taken
     // during executor startup.
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    RangeTblEntry *rte
+    RangeTblEntry* rte
         = exec_rt_fetch(rinfo->ri_RangeTableIndex, mtstate->ps.state);
-    char *table_name = get_rel_name(rte->relid);
-    TupleDesc tupleDesc = rinfo->ri_RelationDesc->rd_att;
+    char* table_name = get_rel_name(rte->relid);
+    TupleDesc tuple_desc = rinfo->ri_RelationDesc->rd_att;
 
-    gaia::fdw::modify_state_t *modify_state = gaia::fdw::adapter_t::get_state<gaia::fdw::modify_state_t>(
-        table_name, (size_t)tupleDesc->natts);
-    if (modify_state == nullptr) {
+    auto modify_state = gaia::fdw::adapter_t::get_state<gaia::fdw::modify_state_t>(
+        table_name, (size_t)tuple_desc->natts);
+    if (modify_state == nullptr)
+    {
         elog(ERROR, "Unknown table name '%s'.", table_name);
     }
 
     // Set up mapping of attnos to flatbuffer attribute builder functions.
-    for (int i = 0; i < tupleDesc->natts; i++) {
+    for (int i = 0; i < tuple_desc->natts; ++i)
+    {
         // User attributes are indexed starting from 1.
         // AttrNumber attnum = i + 1.
-        char *attr_name = NameStr(TupleDescAttr(tupleDesc, i)->attname);
+        char* attr_name = NameStr(TupleDescAttr(tuple_desc, i)->attname);
 
         modify_state->set_builder_index(attr_name, (size_t)i);
     }
@@ -556,11 +594,12 @@ extern "C" void gaia_begin_foreign_modify(
     gaia::fdw::adapter_t::begin_transaction();
 }
 
-extern "C" TupleTableSlot *gaia_exec_foreign_insert(
-    EState *estate,
-    ResultRelInfo *rinfo,
-    TupleTableSlot *slot,
-    TupleTableSlot *plan_slot) {
+extern "C" TupleTableSlot* gaia_exec_foreign_insert(
+    EState* estate,
+    ResultRelInfo* rinfo,
+    TupleTableSlot* slot,
+    TupleTableSlot* plan_slot)
+{
     // Insert one tuple into the foreign table. estate is global execution
     // state for the query. rinfo is the ResultRelInfo struct describing the
     // target foreign table. slot contains the tuple to be inserted; it will
@@ -572,7 +611,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_insert(
     //
     // The return value is either a slot containing the data that was actually
     // inserted (this might differ from the data supplied, for example as a
-    // result of trigger actions), or NULL if no row was actually inserted
+    // result of trigger actions), or nullptr if no row was actually inserted
     // (again, typically as a result of triggers). The passed-in slot can be
     // re-used for this purpose.
     //
@@ -582,11 +621,11 @@ extern "C" TupleTableSlot *gaia_exec_foreign_insert(
     // RETURNING clause. However, some slot must be returned to indicate
     // success, or the query's reported rowcount will be wrong.
     //
-    // If the ExecForeignInsert pointer is set to NULL, attempts to insert
+    // If the ExecForeignInsert pointer is set to nullptr, attempts to insert
     // into the foreign table will fail with an error message.
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    gaia::fdw::modify_state_t *modify_state = (gaia::fdw::modify_state_t *)rinfo->ri_FdwState;
+    auto modify_state = reinterpret_cast<gaia::fdw::modify_state_t*>(rinfo->ri_FdwState);
 
     modify_state->initialize_modify();
 
@@ -600,7 +639,8 @@ extern "C" TupleTableSlot *gaia_exec_foreign_insert(
     // be empty!).
     // TODO: use slot_getattr()?
     slot_getallattrs(slot);
-    for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; attr_idx++) {
+    for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; ++attr_idx)
+    {
         // char *attr_name = NameStr(
         //     TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->attname);
 
@@ -608,20 +648,24 @@ extern "C" TupleTableSlot *gaia_exec_foreign_insert(
         // (this should have already been checked in gaia_plan_foreign_modify), and
         // the storage engine doesn't yet generate gaia_ids, so we generate a
         // random gaia_id ourselves.
-        Datum attr_val;
-        if (modify_state->is_gaia_id_field_index((size_t)attr_idx)) {
+        Datum attr_val = {};
+        if (modify_state->is_gaia_id_field_index((size_t)attr_idx))
+        {
             assert(slot->tts_isnull[attr_idx]);
 
             gaia_id = gaia::fdw::adapter_t::get_new_gaia_id();
             attr_val = UInt64GetDatum(gaia_id);
 
             slot->tts_isnull[attr_idx] = false;
-        } else if (!(slot->tts_isnull[attr_idx])) {
+        }
+        else if (!(slot->tts_isnull[attr_idx]))
+        {
             attr_val = slot->tts_values[attr_idx];
         }
 
         // If we have a null value, just don't bother to set it in the builder.
-        if (!slot->tts_isnull[attr_idx]) {
+        if (!slot->tts_isnull[attr_idx])
+        {
             modify_state->set_field_value(attr_idx, attr_val);
         }
     }
@@ -633,11 +677,12 @@ extern "C" TupleTableSlot *gaia_exec_foreign_insert(
     return slot;
 }
 
-extern "C" TupleTableSlot *gaia_exec_foreign_update(
-    EState *estate,
-    ResultRelInfo *rinfo,
-    TupleTableSlot *slot,
-    TupleTableSlot *plan_slot) {
+extern "C" TupleTableSlot* gaia_exec_foreign_update(
+    EState* estate,
+    ResultRelInfo* rinfo,
+    TupleTableSlot* slot,
+    TupleTableSlot* plan_slot)
+{
     // Update one tuple in the foreign table. estate is global execution state
     // for the query. rinfo is the ResultRelInfo struct describing the target
     // foreign table. slot contains the new data for the tuple; it will match
@@ -649,7 +694,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_update(
     //
     // The return value is either a slot containing the row as it was actually
     // updated (this might differ from the data supplied, for example as a
-    // result of trigger actions), or NULL if no row was actually updated
+    // result of trigger actions), or nullptr if no row was actually updated
     // (again, typically as a result of triggers). The passed-in slot can be
     // re-used for this purpose.
     //
@@ -659,11 +704,11 @@ extern "C" TupleTableSlot *gaia_exec_foreign_update(
     // RETURNING clause. However, some slot must be returned to indicate
     // success, or the query's reported rowcount will be wrong.
     //
-    // If the ExecForeignUpdate pointer is set to NULL, attempts to update the
+    // If the ExecForeignUpdate pointer is set to nullptr, attempts to update the
     // foreign table will fail with an error message.
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    gaia::fdw::modify_state_t *modify_state = (gaia::fdw::modify_state_t *)rinfo->ri_FdwState;
+    auto modify_state = reinterpret_cast<gaia::fdw::modify_state_t*>(rinfo->ri_FdwState);
 
     modify_state->initialize_modify();
 
@@ -677,11 +722,14 @@ extern "C" TupleTableSlot *gaia_exec_foreign_update(
     // be empty!).
     // TODO: use slot_getattr()?
     slot_getallattrs(slot);
-    for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; attr_idx++) {
-        if (!(slot->tts_isnull[attr_idx])) {
+    for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; ++attr_idx)
+    {
+        if (!(slot->tts_isnull[attr_idx]))
+        {
             Datum attr_val = slot->tts_values[attr_idx];
 
-            if (modify_state->is_gaia_id_field_index((size_t)attr_idx)) {
+            if (modify_state->is_gaia_id_field_index((size_t)attr_idx))
+            {
                 gaia_id = DatumGetUInt64(attr_val);
             }
 
@@ -697,11 +745,12 @@ extern "C" TupleTableSlot *gaia_exec_foreign_update(
     return slot;
 }
 
-extern "C" TupleTableSlot *gaia_exec_foreign_delete(
-    EState *estate,
-    ResultRelInfo *rinfo,
-    TupleTableSlot *slot,
-    TupleTableSlot *plan_slot) {
+extern "C" TupleTableSlot* gaia_exec_foreign_delete(
+    EState* estate,
+    ResultRelInfo* rinfo,
+    TupleTableSlot* slot,
+    TupleTableSlot* plan_slot)
+{
     // Delete one tuple from the foreign table. estate is global execution
     // state for the query. rinfo is the ResultRelInfo struct describing the
     // target foreign table. slot contains nothing useful upon call, but can
@@ -712,7 +761,7 @@ extern "C" TupleTableSlot *gaia_exec_foreign_delete(
     // the tuple to be deleted.
     //
     // The return value is either a slot containing the row that was deleted,
-    // or NULL if no row was deleted (typically as a result of triggers). The
+    // or nullptr if no row was deleted (typically as a result of triggers). The
     // passed-in slot can be used to hold the tuple to be returned.
     //
     // The data in the returned slot is used only if the DELETE query has a
@@ -721,27 +770,27 @@ extern "C" TupleTableSlot *gaia_exec_foreign_delete(
     // RETURNING clause. However, some slot must be returned to indicate
     // success, or the query's reported rowcount will be wrong.
     //
-    // If the ExecForeignDelete pointer is set to NULL, attempts to delete
+    // If the ExecForeignDelete pointer is set to nullptr, attempts to delete
     // from the foreign table will fail with an error message.
 
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    TupleTableSlot *return_slot = slot;
+    TupleTableSlot* return_slot = slot;
 
-    gaia::fdw::modify_state_t *modify_state = (gaia::fdw::modify_state_t *)rinfo->ri_FdwState;
+    auto modify_state = reinterpret_cast<gaia::fdw::modify_state_t*>(rinfo->ri_FdwState);
 
     // Relation rel = rinfo->ri_RelationDesc;
     // Oid foreignTableId = RelationGetRelid(rel);
 
     // Get primary key (gaia_id) from plan slot.
-    TupleDesc tupleDesc = plan_slot->tts_tupleDescriptor;
+    TupleDesc tuple_desc = plan_slot->tts_tupleDescriptor;
     // plan_slot should have only 1 attr (gaia_id).
-    assert(tupleDesc->natts == 1);
+    assert(tuple_desc->natts == 1);
 
-    Form_pg_attribute attr = TupleDescAttr(tupleDesc, 0);
+    Form_pg_attribute attr = TupleDescAttr(tuple_desc, 0);
     AttrNumber attnum = attr->attnum;
-    char *attr_name = NameStr(attr->attname);
-    assert(strcmp(gaia::fdw::c_gaia_id, attr_name) == 0);
+    char* attr_name = NameStr(attr->attname);
+    assert(gaia::fdw::adapter_t::is_gaia_id_name(attr_name));
 
     bool is_null;
     Datum pk_val = slot_getattr(plan_slot, attnum, &is_null);
@@ -750,22 +799,23 @@ extern "C" TupleTableSlot *gaia_exec_foreign_delete(
 
     if (!modify_state->delete_record(gaia_id))
     {
-        return_slot = NULL;
+        return_slot = nullptr;
     }
 
     return return_slot;
 }
 
-extern "C" void gaia_end_foreign_modify(EState *estate, ResultRelInfo *rinfo) {
+extern "C" void gaia_end_foreign_modify(EState* estate, ResultRelInfo* rinfo)
+{
     // End the table update and release resources. It is normally not
     // important to release palloc'd memory, but for example open files and
     // connections to remote servers should be cleaned up.
     //
-    // If the EndForeignModify pointer is set to NULL, no action is taken
+    // If the EndForeignModify pointer is set to nullptr, no action is taken
     // during executor shutdown.
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    gaia::fdw::modify_state_t *modify_state = (gaia::fdw::modify_state_t *)rinfo->ri_FdwState;
+    auto modify_state = reinterpret_cast<gaia::fdw::modify_state_t*>(rinfo->ri_FdwState);
 
     modify_state->finalize_modify();
 
@@ -773,24 +823,29 @@ extern "C" void gaia_end_foreign_modify(EState *estate, ResultRelInfo *rinfo) {
     gaia::fdw::adapter_t::commit_transaction();
 }
 
-extern "C" void gaia_begin_foreign_insert(ModifyTableState *mtstate,
-    ResultRelInfo *resultRelInfo) {
+extern "C" void gaia_begin_foreign_insert(
+    ModifyTableState* mtstate,
+    ResultRelInfo* result_rel_info)
+{
     elog(DEBUG1, "Entering function %s...", __func__);
 }
 
-extern "C" void gaia_end_foreign_insert(EState *estate,
-    ResultRelInfo *resultRelInfo) {
+extern "C" void gaia_end_foreign_insert(
+    EState* estate,
+    ResultRelInfo* result_rel_info)
+{
     elog(DEBUG1, "Entering function %s...", __func__);
 }
 
-extern "C" int gaia_is_foreign_rel_updatable(Relation rel) {
+extern "C" int gaia_is_foreign_rel_updatable(Relation rel)
+{
     // Report which update operations the specified foreign table supports.
     // The return value should be a bit mask of rule event numbers indicating
     // which operations are supported by the foreign table, using the CmdType
     // enumeration; that is, (1 << CMD_UPDATE) = 4 for UPDATE, (1 <<
     // CMD_INSERT) = 8 for INSERT, and (1 << CMD_DELETE) = 16 for DELETE.
     //
-    // If the IsForeignRelUpdatable pointer is set to NULL, foreign tables are
+    // If the IsForeignRelUpdatable pointer is set to nullptr, foreign tables are
     // assumed to be insertable, updatable, or deletable if the FDW provides
     // ExecForeignInsert, ExecForeignUpdate, or ExecForeignDelete
     // respectively. This function is only needed if the FDW supports some
@@ -804,48 +859,54 @@ extern "C" int gaia_is_foreign_rel_updatable(Relation rel) {
 }
 
 extern "C" bool gaia_plan_direct_modify(
-    PlannerInfo *root,
-    ModifyTable *plan,
+    PlannerInfo* root,
+    ModifyTable* plan,
     Index result_relation,
-    int subplan_index) {
+    int subplan_index)
+{
     elog(DEBUG1, "Entering function %s...", __func__);
 
     return false;
 }
 
-extern "C" void gaia_begin_direct_modify(ForeignScanState *node, int eflags) {
+extern "C" void gaia_begin_direct_modify(ForeignScanState* node, int eflags)
+{
     elog(DEBUG1, "Entering function %s...", __func__);
 }
 
-extern "C" TupleTableSlot *gaia_iterate_direct_modify(ForeignScanState *node) {
+extern "C" TupleTableSlot* gaia_iterate_direct_modify(ForeignScanState* node)
+{
     elog(DEBUG1, "Entering function %s...", __func__);
-    return NULL;
+    return nullptr;
 }
 
-extern "C" void gaia_end_direct_modify(ForeignScanState *node) {
+extern "C" void gaia_end_direct_modify(ForeignScanState* node)
+{
     elog(DEBUG1, "Entering function %s...", __func__);
 }
 
 extern "C" void gaia_explain_foreign_scan(
-    ForeignScanState *node,
-    struct ExplainState *es) {
+    ForeignScanState* node,
+    struct ExplainState* es)
+{
     // Print additional EXPLAIN output for a foreign table scan. This function
     // can call ExplainPropertyText and related functions to add fields to the
     // EXPLAIN output. The flag fields in es can be used to determine what to
     // print, and the state of the ForeignScanState node can be inspected to
     // provide run-time statistics in the EXPLAIN ANALYZE case.
     //
-    // If the ExplainForeignScan pointer is set to NULL, no additional
+    // If the ExplainForeignScan pointer is set to nullptr, no additional
     // information is printed during EXPLAIN.
     elog(DEBUG1, "Entering function %s...", __func__);
 }
 
 extern "C" void gaia_explain_foreign_modify(
-    ModifyTableState *mtstate,
-    ResultRelInfo *rinfo,
-    List *fdw_private,
+    ModifyTableState* mtstate,
+    ResultRelInfo* rinfo,
+    List* fdw_private,
     int subplan_index,
-    struct ExplainState *es) {
+    struct ExplainState* es)
+{
     // Print additional EXPLAIN output for a foreign table update. This
     // function can call ExplainPropertyText and related functions to add
     // fields to the EXPLAIN output. The flag fields in es can be used to
@@ -853,7 +914,7 @@ extern "C" void gaia_explain_foreign_modify(
     // be inspected to provide run-time statistics in the EXPLAIN ANALYZE
     // case. The first four arguments are the same as for BeginForeignModify.
     //
-    // If the ExplainForeignModify pointer is set to NULL, no additional
+    // If the ExplainForeignModify pointer is set to nullptr, no additional
     // information is printed during EXPLAIN.
     elog(DEBUG1, "Entering function %s...", __func__);
 
@@ -861,15 +922,17 @@ extern "C" void gaia_explain_foreign_modify(
 }
 
 extern "C" void gaia_explain_direct_modify(
-    ForeignScanState *node,
-    struct ExplainState *es) {
+    ForeignScanState* node,
+    struct ExplainState* es)
+{
     elog(DEBUG1, "Entering function %s...", __func__);
 }
 
 extern "C" bool gaia_analyze_foreign_table(
     Relation relation,
-    AcquireSampleRowsFunc *func,
-    BlockNumber *total_pages) {
+    AcquireSampleRowsFunc* func,
+    BlockNumber* total_pages)
+{
     // This function is called when ANALYZE is executed on a foreign table. If
     // the FDW can collect statistics for this foreign table, it should return
     // true, and provide a pointer to a function that will collect sample rows
@@ -877,7 +940,7 @@ extern "C" bool gaia_analyze_foreign_table(
     // in total_pages. Otherwise, return false.
     //
     // If the FDW does not support collecting statistics for any tables, the
-    // AnalyzeForeignTable pointer can be set to NULL.
+    // AnalyzeForeignTable pointer can be set to nullptr.
     //
     // If provided, the sample collection function must have the signature:
     //
@@ -899,12 +962,13 @@ extern "C" bool gaia_analyze_foreign_table(
 }
 
 extern "C" void gaia_get_foreign_join_paths(
-    PlannerInfo *root,
-    RelOptInfo *join_rel,
-    RelOptInfo *outer_rel,
-    RelOptInfo *inner_rel,
+    PlannerInfo* root,
+    RelOptInfo* join_rel,
+    RelOptInfo* outer_rel,
+    RelOptInfo* inner_rel,
     JoinType join_type,
-    JoinPathExtraData *extra) {
+    JoinPathExtraData* extra)
+{
     // Create possible access paths for a join of two (or more) foreign tables
     // that all belong to the same foreign server. This optional function is
     // called during query planning. As with GetForeignPaths, this function
@@ -936,25 +1000,28 @@ extern "C" void gaia_get_foreign_join_paths(
 }
 
 extern "C" void gaia_get_foreign_upper_paths(
-    PlannerInfo *root,
+    PlannerInfo* root,
     UpperRelationKind stage,
-    RelOptInfo *input_rel,
-    RelOptInfo *output_rel,
-    void *extra) {
+    RelOptInfo* input_rel,
+    RelOptInfo* output_rel,
+    void* extra)
+{
     elog(DEBUG1, "Entering function %s...", __func__);
 }
 
 extern "C" bool gaia_recheck_foreign_scan(
-    ForeignScanState *node,
-    TupleTableSlot *slot) {
+    ForeignScanState* node,
+    TupleTableSlot* slot)
+{
     elog(DEBUG1, "Entering function %s...", __func__);
 
     return false;
 }
 
 extern "C" RowMarkType gaia_get_foreign_row_mark_type(
-    RangeTblEntry *rte,
-    LockClauseStrength strength) {
+    RangeTblEntry* rte,
+    LockClauseStrength strength)
+{
     // Report which row-marking option to use for a foreign table. rte is the
     // RangeTblEntry node for the table and strength describes the lock
     // strength requested by the relevant FOR UPDATE/SHARE clause, if any. The
@@ -964,7 +1031,7 @@ extern "C" RowMarkType gaia_get_foreign_row_mark_type(
     // that appears in an UPDATE, DELETE, or SELECT FOR UPDATE/SHARE query and
     // is not the target of UPDATE or DELETE.
     //
-    // If the GetForeignRowMarkType pointer is set to NULL, the ROW_MARK_COPY
+    // If the GetForeignRowMarkType pointer is set to nullptr, the ROW_MARK_COPY
     // option is always used. (This implies that RefetchForeignRow will never
     // be called, so it need not be provided either.)
     elog(DEBUG1, "Entering function %s...", __func__);
@@ -973,11 +1040,12 @@ extern "C" RowMarkType gaia_get_foreign_row_mark_type(
 }
 
 extern "C" void gaia_refetch_foreign_row(
-    EState *estate,
-    ExecRowMark *erm,
+    EState* estate,
+    ExecRowMark* erm,
     Datum rowid,
-    TupleTableSlot *slot,
-    bool *updated) {
+    TupleTableSlot* slot,
+    bool* updated)
+{
     // Re-fetch one tuple from the foreign table, after locking it if
     // required. estate is global execution state for the query. erm is the
     // ExecRowMark struct describing the target foreign table and the row lock
@@ -985,7 +1053,7 @@ extern "C" void gaia_refetch_foreign_row(
     // updated is an output parameter.
     //
     // This function should return a palloc'ed copy of the fetched tuple, or
-    // NULL if the row lock couldn't be obtained. The row lock type to acquire
+    // nullptr if the row lock couldn't be obtained. The row lock type to acquire
     // is defined by erm->markType, which is the value previously returned by
     // GetForeignRowMarkType. (ROW_MARK_REFERENCE means to just re-fetch the
     // tuple without acquiring any lock, and ROW_MARK_COPY will never be seen
@@ -997,7 +1065,7 @@ extern "C" void gaia_refetch_foreign_row(
     // is recommended.)
     //
     // Note that by default, failure to acquire a row lock should result in
-    // raising an error; a NULL return is only appropriate if the SKIP LOCKED
+    // raising an error; a nullptr return is only appropriate if the SKIP LOCKED
     // option is specified by erm->waitPolicy.
     //
     // The rowid is the ctid value previously read for the row to be
@@ -1005,16 +1073,17 @@ extern "C" void gaia_refetch_foreign_row(
     // currently only be a tid. The function API is chosen in hopes that it
     // may be possible to allow other datatypes for row IDs in future.
     //
-    // If the RefetchForeignRow pointer is set to NULL, attempts to re-fetch
+    // If the RefetchForeignRow pointer is set to nullptr, attempts to re-fetch
     // rows will fail with an error message.
     elog(DEBUG1, "Entering function %s...", __func__);
 }
 
 // We may want to use IMPORT FOREIGN SCHEMA to automatically create the foreign
 // tables corresponding to registered types in the storage engine.
-extern "C" List *gaia_import_foreign_schema(
-    ImportForeignSchemaStmt *stmt,
-    Oid server_oid) {
+extern "C" List* gaia_import_foreign_schema(
+    ImportForeignSchemaStmt* stmt,
+    Oid server_oid)
+{
     // Obtain a list of foreign table creation commands. This function is
     // called when executing IMPORT FOREIGN SCHEMA, and is passed the parse
     // tree for that statement, as well as the OID of the foreign server to
@@ -1031,7 +1100,7 @@ extern "C" List *gaia_import_foreign_schema(
     // exclude the tables listed in table_list. options is a list of options
     // used for the import process. The meanings of the options are up to the
     // FDW. For example, an FDW could use an option to define whether the NOT
-    // NULL attributes of columns should be imported. These options need not
+    // nullptr attributes of columns should be imported. These options need not
     // have anything to do with those supported by the FDW as database object
     // options.
     //
@@ -1048,21 +1117,24 @@ extern "C" List *gaia_import_foreign_schema(
     // foreign-table name will pass the filter.
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    ForeignServer *server = GetForeignServer(server_oid);
-    const char *server_name = server->servername;
+    ForeignServer* server = GetForeignServer(server_oid);
+    const char* server_name = server->servername;
 
     return gaia::fdw::adapter_t::get_ddl_command_list(server_name);
 }
 
 // Perform all module-level initialization here.
-extern "C" void _PG_init() {
+// NOLINTNEXTLINE(readability-identifier-naming)
+extern "C" void _PG_init()
+{
     elog(DEBUG1, "Entering function %s...", __func__);
-    // Initialize COW-SE without deleting all data.
-    gaia::db::begin_session();
+    gaia::fdw::adapter_t::begin_session();
 }
 
 // Perform all module-level finalization here.
-extern "C" void _PG_fini() {
+// NOLINTNEXTLINE(readability-identifier-naming)
+extern "C" void _PG_fini()
+{
     elog(DEBUG1, "Entering function %s...", __func__);
-    gaia::db::end_session();
+    gaia::fdw::adapter_t::end_session();
 }

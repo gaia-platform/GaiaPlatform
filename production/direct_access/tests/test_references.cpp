@@ -308,7 +308,7 @@ TEST_F(gaia_references_test, recursive_scan) {
 
 // Re-hydrate IDs created in prior transaction, then connect.
 TEST_F(gaia_references_test, connect_to_ids) {
-    auto_transaction_t tx;
+    auto_transaction_t txn;
 
     /* Create some unconnected Employee and Address objects */
     employee_writer employee_w;
@@ -324,7 +324,7 @@ TEST_F(gaia_references_test, connect_to_ids) {
     address_w.city = "Kirkland";
     gaia_id_t aid2 = address_w.insert_row();
 
-    tx.commit();
+    txn.commit();
 
     // Generate the object from the ids.
     employee_t e1 = employee_t::get(eid1);
@@ -335,8 +335,8 @@ TEST_F(gaia_references_test, connect_to_ids) {
 }
 
 // Connect objects created in prior transaction.
-TEST_F(gaia_references_test, connect_after_tx) {
-    auto_transaction_t tx;
+TEST_F(gaia_references_test, connect_after_txn) {
+    auto_transaction_t txn;
 
     employee_writer employee_w;
     auto e1 = insert_employee(employee_w, "Horace");
@@ -346,7 +346,7 @@ TEST_F(gaia_references_test, connect_after_tx) {
     auto a2 = insert_address(address_w, "10618 129th Pl. N.E.", "Kirkland");
 
     // In a subsequent transaction, connect the objects.
-    tx.commit();
+    txn.commit();
 
     // Use the objects from the previous transaction.
     e1.addressee_address_list().insert(a1);
@@ -358,8 +358,8 @@ TEST_F(gaia_references_test, connect_after_tx) {
 }
 
 // Erase list members inserted in prior transaction.
-TEST_F(gaia_references_test, disconnect_after_tx) {
-    auto_transaction_t tx;
+TEST_F(gaia_references_test, disconnect_after_txn) {
+    auto_transaction_t txn;
 
     employee_writer employee_w;
     auto e1 = insert_employee(employee_w, "Horace");
@@ -372,7 +372,7 @@ TEST_F(gaia_references_test, disconnect_after_tx) {
     e1.addressee_address_list().insert(a2);
 
     // In a subsequent transaction, disconnect the objects.
-    tx.commit();
+    txn.commit();
 
     e1.addressee_address_list().erase(a1);
     e1.addressee_address_list().erase(a2);
@@ -380,7 +380,7 @@ TEST_F(gaia_references_test, disconnect_after_tx) {
 
 // Generate an exception by attempting to insert member twice.
 TEST_F(gaia_references_test, connect_twice) {
-    auto_transaction_t tx;
+    auto_transaction_t txn;
 
     /* Create some unconnected Employee and Address objects */
     employee_writer employee_w;
@@ -401,7 +401,7 @@ TEST_F(gaia_references_test, connect_twice) {
 
 // Generate an exception by attempting to erase un-inserted member.
 TEST_F(gaia_references_test, erase_uninserted) {
-    auto_transaction_t tx;
+    auto_transaction_t txn;
 
     employee_writer employee_w;
     auto e1 = insert_employee(employee_w, "Horace");
@@ -420,7 +420,7 @@ TEST_F(gaia_references_test, erase_uninserted) {
 
 // Make sure that erasing a member found in iterator doesn't crash.
 TEST_F(gaia_references_test, erase_in_iterator) {
-    auto_transaction_t tx;
+    auto_transaction_t txn;
 
     employee_writer employee_w;
     auto e1 = insert_employee(employee_w, "Horace");
@@ -461,7 +461,7 @@ TEST_F(gaia_references_test, erase_in_iterator) {
 
 // Scan beyond the end of the iterator.
 TEST_F(gaia_references_test, scan_past_end) {
-    auto_transaction_t tx;
+    auto_transaction_t txn;
 
     employee_writer employee_w;
     auto e1 = insert_employee(employee_w, "Horace");
@@ -532,7 +532,7 @@ void insert_addressee(bool committed, gaia_id_t eid1, gaia_id_t aid1, gaia_id_t 
 
 // Create objects in one thread, connect them in another, verify in first thread.
 TEST_F(gaia_references_test, thread_inserts) {
-    auto_transaction_t tx;
+    auto_transaction_t txn;
 
     employee_writer employee_w;
     auto e1 = insert_employee(employee_w, "Horace");
@@ -549,13 +549,18 @@ TEST_F(gaia_references_test, thread_inserts) {
     t = thread(insert_addressee, false, e1.gaia_id(), a1.gaia_id(), a2.gaia_id(), a3.gaia_id());
     t.join();
 
-    tx.commit();
+    txn.commit();
 
     // Retry the threads after our objects are committed.
     t = thread(insert_object, true, e1, a1);
     t.join();
     t = thread(insert_addressee, true, e1.gaia_id(), a1.gaia_id(), a2.gaia_id(), a3.gaia_id());
     t.join();
+
+    // Get a new transaction so we can get a new view of the employee instead of
+    // the old view under the previous transaction. We will not be able to see
+    // references updated in outside transactions.
+    txn.commit();
 
     // Count the members. They should show up.
     int count = 0;
@@ -569,7 +574,7 @@ TEST_F(gaia_references_test, thread_inserts) {
 TEST_F(gaia_references_test, set_iter_arrow_deref) {
     const char* emp_name = "Phillip";
     const char* addr_city = "Redmond";
-    auto_transaction_t tx;
+    auto_transaction_t txn;
 
     employee_writer emp_writer;
     emp_writer.name_first = emp_name;
@@ -579,7 +584,7 @@ TEST_F(gaia_references_test, set_iter_arrow_deref) {
     addr_writer.city = addr_city;
 
     employee.addressee_address_list().insert(addr_writer.insert_row());
-    tx.commit();
+    txn.commit();
 
     auto emp_addr_set_iter = employee.addressee_address_list().begin();
     EXPECT_STREQ(emp_addr_set_iter->city(), addr_city);

@@ -5,18 +5,21 @@
 
 #pragma once
 
+#include <sstream>
+
 #include "rocksdb/db.h"
 #include "rocksdb/slice.h"
 #include "rocksdb/write_batch.h"
 #include "rocksdb/status.h"
 #include "rocksdb/utilities/transaction_db.h"
+
+#include "retail_assert.hpp"
 #include "persistent_store_error.hpp"
-#include <sstream>
 
 // Simple library over RocksDB APIs.
-namespace gaia 
+namespace gaia
 {
-namespace db 
+namespace db
 {
 class rdb_internal_t
 {
@@ -38,16 +41,16 @@ class rdb_internal_t
     ~rdb_internal_t() {
         close();
     }
-    
+
     void open_txn_db(rocksdb::Options& init_options, rocksdb::TransactionDBOptions& opts) {
-        // RocksDB throws an IOError when trying to open (recover) twice on the same directory 
-        // while a process is already up. 
+        // RocksDB throws an IOError when trying to open (recover) twice on the same directory
+        // while a process is already up.
         // The same error is also seen when reopening the db after a large volume of deletes
         // See https://github.com/facebook/rocksdb/issues/4421
         size_t open_db_attempt_count = 0;
         rocksdb::TransactionDB* txn_db;
         rocksdb::Status s;
-        while (open_db_attempt_count < c_max_open_db_attempt_count) { 
+        while (open_db_attempt_count < c_max_open_db_attempt_count) {
             s = rocksdb::TransactionDB::Open(init_options, opts, m_data_dir, &txn_db);
             open_db_attempt_count++;
             if (s.code() == rocksdb::Status::Code::kIOError) {
@@ -64,23 +67,24 @@ class rdb_internal_t
                 handle_rdb_error(s);
             }
         }
+        retail_assert(m_txn_db != nullptr, "RocksDB database is not initialized.");
     }
 
-    std::string begin_txn(rocksdb::WriteOptions& options, const rocksdb::TransactionOptions& txn_opts, gaia_xid_t txn_id) {      
+    std::string begin_txn(rocksdb::WriteOptions& options, const rocksdb::TransactionOptions& txn_opts, gaia_txn_id_t txn_id) {
         // RocksDB supplies its own transaction id but expects a unique transaction name.
-        // We map gaia_transaction_id to a RocksDB transaction name. Transaction id isn't 
+        // We map gaia_txn_id to a RocksDB transaction name. Transaction id isn't
         // persisted across server reboots currently so this is a temporary fix till we have
-        // a solution in place. Regardless, RocksDB transactions will go away in Persistence V2.      
+        // a solution in place. Regardless, RocksDB transactions will go away in Persistence V2.
         auto now = std::chrono::system_clock::now();
         auto duration = now.time_since_epoch();
         auto nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(duration);
-        std::stringstream rdb_transaction_name;
-        rdb_transaction_name << txn_id << "." << nanoseconds.count();
-
+        std::stringstream rdb_txn_name;
+        rdb_txn_name << txn_id << "." << nanoseconds.count();
+        retail_assert(m_txn_db != nullptr, "RocksDB database is not initialized.");
         rocksdb::Transaction* txn = m_txn_db->BeginTransaction(options, txn_opts);
-        rocksdb::Status s = txn->SetName(rdb_transaction_name.str());
+        rocksdb::Status s = txn->SetName(rdb_txn_name.str());
         handle_rdb_error(s);
-        return rdb_transaction_name.str();
+        return rdb_txn_name.str();
     }
 
     void prepare_wal_for_write(rocksdb::Transaction* txn) {
@@ -89,20 +93,20 @@ class rdb_internal_t
     }
 
     void rollback(std::string& txn_name) {
-        auto txn = get_transaction_by_name(txn_name);
+        auto txn = get_txn_by_name(txn_name);
         auto s = txn->Rollback();
         handle_rdb_error(s);
     }
 
     void commit(std::string& txn_name) {
-        auto txn = get_transaction_by_name(txn_name);
+        auto txn = get_txn_by_name(txn_name);
         auto s = txn->Commit();
         handle_rdb_error(s);
     }
-        
-    void close() {     
+
+    void close() {
         if (m_txn_db) {
-            // Although we could have best effort close(), lets 
+            // Although we could have best effort close(), lets
             // handle any returned failure.
             auto s = m_txn_db->Close();
             handle_rdb_error(s);
@@ -110,19 +114,20 @@ class rdb_internal_t
     }
 
     rocksdb::Iterator* get_iterator() {
+        retail_assert(m_txn_db != nullptr, "RocksDB database is not initialized.");
         return m_txn_db->NewIterator(rocksdb::ReadOptions());
     }
 
     void destroy_persistent_store() {
-        rocksdb::DestroyDB(m_data_dir, rocksdb::Options{}); 
+        rocksdb::DestroyDB(m_data_dir, rocksdb::Options{});
     }
 
     bool is_db_open() {
         return bool(m_txn_db);
     }
 
-    rocksdb::Transaction* get_transaction_by_name(std::string& txn_name) {
-        assert(m_txn_db);
+    rocksdb::Transaction* get_txn_by_name(std::string& txn_name) {
+        retail_assert(m_txn_db != nullptr, "RocksDB database is not initialized.");
         return m_txn_db->GetTransactionByName(txn_name);
     }
 

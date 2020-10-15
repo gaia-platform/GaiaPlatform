@@ -1,6 +1,6 @@
 namespace gaia.db.messages;
 
-enum session_state_t: byte {
+enum session_state_t: uint8 {
     ANY,
     CONNECTED,
     DISCONNECTED,
@@ -8,7 +8,7 @@ enum session_state_t: byte {
     TXN_COMMITTING,
 }
 
-enum session_event_t: byte {
+enum session_event_t: uint8 {
     NOP,
     CONNECT,
     // For now we signal shutdown on either side by calling shutdown(SHUT_WR),
@@ -21,10 +21,30 @@ enum session_event_t: byte {
     COMMIT_TXN,
     DECIDE_TXN_COMMIT,
     DECIDE_TXN_ABORT,
+    REQUEST_STREAM,
+}
+
+// FlatBuffers doesn't allow scalar fields in a union.
+table table_scan_info_t {
+    type_id: uint64;
+}
+
+union request_data_t {
+    table_scan: table_scan_info_t,
 }
 
 table client_request_t {
     event: session_event_t;
+    data: request_data_t;
+}
+
+// FlatBuffers doesn't allow scalar fields in a union.
+table transaction_info_t {
+    transaction_id: uint64;
+}
+
+union reply_data_t {
+    transaction_info: transaction_info_t,
 }
 
 table server_reply_t {
@@ -33,7 +53,7 @@ table server_reply_t {
     event: session_event_t;
     old_state: session_state_t;
     new_state: session_state_t;
-    transaction_id: uint64;
+    data: reply_data_t;
 }
 
 union any_message_t {

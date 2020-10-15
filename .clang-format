@@ -1,6 +1,59 @@
 BasedOnStyle: LLVM
+UseCRLF: false
+UseTab: Never
 IndentWidth: 4
-SortIncludes: false
-AlignAfterOpenBracket: DontAlign
-ColumnLimit: 0
+ColumnLimit: 0 # I would put some reasonable limit such as 120 columns
+BreakBeforeBraces: Allman
+
+# Force pointers to the type for C++.
+DerivePointerAlignment: false
 PointerAlignment: Left
+
+# Align public/final/protected on the left.
+AccessModifierOffset: -4
+
+# From clang-format-11 there are more fine grained options for this setting.
+AlignOperands: false
+BreakBeforeBinaryOperators: All
+BreakBeforeTernaryOperators: true
+
+AllowAllConstructorInitializersOnNextLine: true
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+BreakConstructorInitializers: BeforeComma
+ConstructorInitializerIndentWidth: 4
+
+AllowShortFunctionsOnASingleLine: None
+
+# If false, all arguments will either be all on the same line or will have one line each.
+BinPackArguments: true
+BinPackParameters: false
+AlignAfterOpenBracket: Align
+
+# Merge multiple #include blocks together and sort as one. Then split into groups based on category priority:
+# 1. Associated file header (XYZ.hpp)
+# 2. C system headers.
+# 3. C++ standard library headers.
+# 4. third party library headers.
+# 5. your other project headers.
+# Note this could break the code, read: https://stackoverflow.com/questions/37927553/can-clang-format-break-my-code
+IncludeBlocks: Regroup
+IncludeCategories:
+  # Third party.
+  - Regex:           'spdlog|flatbuffers|llvm|flatcc|cpptoml|gtest|pybind11'
+    Priority:        13
+  # C system headers.
+  - Regex:           '^<.*\.h>'
+    Priority:        1
+  - Regex:           '^<c.*'
+    Priority:        2
+  # C++ library header.
+  - Regex:           '^<.*'
+    Priority:        12
+  # Everything else (gaia headers mostly).
+  # Note: it would be helpful if gaia dependencies where under gaia/
+  - Regex:           '.*'
+    Priority:        14
+
+KeepEmptyLinesAtTheStartOfBlocks: true
+SpaceAfterCStyleCast: false
+ContinuationIndentWidth: 4

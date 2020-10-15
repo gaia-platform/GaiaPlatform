@@ -3,7 +3,7 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.17)
 
 include(UseJava)
 
@@ -11,6 +11,8 @@ enable_testing()
 
 # Set the project name.
 project(production)
+
+option(EXECUTE_FDW_TESTS "Execute FDW tests" OFF)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 
@@ -21,8 +23,12 @@ include(GoogleTest)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+# Ensure debug builds have the DEBUG flag defined.
+add_compile_options("$<$<CONFIG:DEBUG>:-DDEBUG>")
+
 # Set some global variables.
 get_repo_root(${PROJECT_SOURCE_DIR} GAIA_REPO)
+
 set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
 set(GAIA_LINK_FLAGS "-ggdb -pthread")
 set(GAIA_INC "${PROJECT_SOURCE_DIR}/inc")
@@ -38,30 +44,57 @@ set(GAIA_PROD_BUILD "${CMAKE_CURRENT_BINARY_DIR}")
 set(GAIA_PARSER_GENERATED "${GAIA_PROD_BUILD}/catalog/parser/generated")
 set(GAIA_GENERATED_SCHEMAS "${GAIA_PROD_BUILD}/schemas/generated")
 
-message(STATUS "GAIA_INC=${GAIA_INC}")
+# Force spdlog to use an external version of fmt.
+# TODO this flag should only be set in common/CMakeLists.txt. The flag is
+#  necessary here too, otherwise the compilation fail. The reason could
+#  be that logger.hpp imports the spdlog headers, therefore, every file
+#  that imports logger.hpp, also imports spdlog.h, which imports fmt.h.
+#  Each time spdlog need to evaluate the flag SPDLOG_FMT_EXTERNAL to
+#  decide whether to use the external version of fmt.
+set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -DSPDLOG_FMT_EXTERNAL")
 
+message(VERBOSE "GAIA_INC=${GAIA_INC}")
+
+message(CHECK_START "Looking for Python3")
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
-message (STATUS "Python3_FOUND=${Python3_FOUND}")
-if (Python3_FOUND)
-  message (STATUS "Python3_EXECUTABLE=${Python3_EXECUTABLE}")
-  message (STATUS "Python3_INCLUDE_DIRS=${Python3_INCLUDE_DIRS}")
+if(Python3_FOUND)
+  list(APPEND CMAKE_MESSAGE_INDENT "  ")
+  message(VERBOSE "Python3_EXECUTABLE=${Python3_EXECUTABLE}")
+  message(VERBOSE "Python3_INCLUDE_DIRS=${Python3_INCLUDE_DIRS}")
+  list(POP_BACK CMAKE_MESSAGE_INDENT)
+  message(CHECK_PASS "found")
+else()
+  message(CHECK_FAIL "not found")
 endif()
 
+message(CHECK_START "Looking for Java")
 find_package(Java)
-find_package(JNI)
-
-if (JAVA_FOUND)
-  message (STATUS "Java_JAVAC_EXECUTABLE=${Java_JAVAC_EXECUTABLE}")
-  message (STATUS "Java_JAVA_EXECUTABLE=${Java_JAVA_EXECUTABLE}")
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+if(JAVA_FOUND)
+  list(APPEND CMAKE_MESSAGE_INDENT "  ")
+  message (VERBOSE "Java_JAVAC_EXECUTABLE=${Java_JAVAC_EXECUTABLE}")
+  message (VERBOSE "Java_JAVA_EXECUTABLE=${Java_JAVA_EXECUTABLE}")
+  list(POP_BACK CMAKE_MESSAGE_INDENT)
+  message(CHECK_PASS "found")
+else()
+  message(CHECK_FAIL "not found")
 endif()
 
-if (JNI_FOUND)
-  message (STATUS "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
-  message (STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
+message(CHECK_START "Looking for JNI")
+find_package(JNI)
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+if(JNI_FOUND)
+  list(APPEND CMAKE_MESSAGE_INDENT "  ")
+  message (VERBOSE "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
+  message (VERBOSE "JNI_LIBRARIES=${JNI_LIBRARIES}")
+  list(POP_BACK CMAKE_MESSAGE_INDENT)
+  message(CHECK_PASS "found")
+else()
+  message(CHECK_FAIL "not found")
 endif()
 
 # Java Tinkerpop project.
-if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
+if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   set(CMAKE_JAVA_INCLUDE_PATH ${GREMLIN_CONSOLE_PATH}/lib/*:${GREMLIN_CONSOLE_PATH}/ext/tinkergraph-gremlin/lib/*:${PROJECT_BINARY_DIR}/*)
 
   # Java Tinkerpop graph provider implementation. This also generates native headers for the COW wrapper.
@@ -153,6 +186,29 @@ add_subdirectory(${ROCKSDB} rocksdb)
 add_subdirectory(${FLATBUFFERS} flatbuffers)
 set_property (TARGET flatbuffers PROPERTY POSITION_INDEPENDENT_CODE ON)
 
+include(ExternalProject)
+set(DEPENDENCIES_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/deps)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  # Add backward for debug build.
+  add_subdirectory("${GAIA_REPO}/third_party/production/backward" backward)
+endif()
+# Add cpptoml.
+add_subdirectory("${GAIA_REPO}/third_party/production/cpptoml" cpptoml)
+# Add fmt.
+add_subdirectory("${GAIA_REPO}/third_party/production/fmt" fmt)
+# Add spdlog.
+add_subdirectory("${GAIA_REPO}/third_party/production/spdlog" spdlog)
+# Add spdlog_setup.
+add_subdirectory("${GAIA_REPO}/third_party/production/spdlog_setup" spdlog_setup)
+# Add tabulate.
+add_subdirectory("${GAIA_REPO}/third_party/production/tabulate" tabulate)
+# Add googletest
+add_subdirectory(${GOOGLE_TEST} googletest)
+
+# Setting clang-tidy here to avoid it being applied to flatbuffers, rocksdb etc...
+# TODO Maybe we could force each subproject to set this flag?
+set(CMAKE_CXX_CLANG_TIDY clang-tidy)
+
 # Add individual component folders.
 add_subdirectory(common)
 add_subdirectory(db)
@@ -164,10 +220,26 @@ add_subdirectory(system)
 add_subdirectory(catalog)
 add_subdirectory(tools)
 
-# Add googletest
-add_subdirectory(${GOOGLE_TEST} googletest)
-
 # Customize test commands.
 file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
   CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_se_server>\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_se_server\")\n"
 )
+
+# Copy log configuration file to make it visible during
+# common/ tests (currently not in use). Leaving this for reference
+file(
+  COPY ${CMAKE_CURRENT_SOURCE_DIR}/log_conf.toml
+  DESTINATION ${PROJECT_BINARY_DIR}/common/
+)
+
+# Copy the git-hooks. git-hooks are local to any git repo and
+# are not copied over when you clone a repo.
+file(
+  COPY ${CMAKE_CURRENT_SOURCE_DIR}/../dev_tools/hooks/pre-commit
+  DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../.git/hooks
+)
+
+# We want to disable all clang-tidy checks for generated code.
+# However, if no checks are specified, clang-tidy will assume we
+# did not configure it correctly. Just add one check that will never be found.
+file(WRITE ${GAIA_PROD_BUILD}/.clang-tidy "Checks: '-*,llvm-twine-local'\n")

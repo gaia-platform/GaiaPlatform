@@ -3,11 +3,16 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.12)
-enable_testing()
-
 # Set the project name.
 project(tools)
 
 add_subdirectory(gaia_generate)
 add_subdirectory(gaia_translate)
+
+# This should be enabled only for testing and improving .clang-tidy and .clang-format
+# we don't want to build it as part of the normal build.
+option(BUILD_GAIA_STYLE_TESTS "Build clang-tidy/clang-format tests" OFF)
+
+if(BUILD_GAIA_STYLE_TESTS)
+  add_subdirectory(gaia_style)
+endif()

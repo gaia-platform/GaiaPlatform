@@ -3,8 +3,6 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.12)
-
 # Set the project name.
 project(direct_access)
 
@@ -14,7 +12,8 @@ set(GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES
   ${GAIA_INC}/public/common
   ${GAIA_GENERATED_SCHEMAS}
 )
-message(STATUS "GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES=${GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES}")
+
+message(VERBOSE "GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES=${GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES}")
 
 set(GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES
   ${GAIA_INC}/internal/common
@@ -22,7 +21,8 @@ set(GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}
 )
-message(STATUS "GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES=${GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES}")
+
+message(VERBOSE "GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES=${GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES}")
 
 # Our main target.
 add_library(gaia_direct STATIC
@@ -38,10 +38,11 @@ set_target_properties(gaia_direct PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS
 set_property (TARGET gaia_direct PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # Start unit tests.
-set (DIRECT_ACCESS_TEST_INCLUDES
+set(DIRECT_ACCESS_TEST_INCLUDES
   ${GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES}
   ${GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES}
 )
 
 add_gtest(test_direct_access "tests/test_direct_access.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct" "generate_addr_book_headers")
 add_gtest(test_references "tests/test_references.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct" "generate_addr_book_headers")
+add_gtest(test_iterators "tests/test_iterators.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct" "generate_addr_book_headers")

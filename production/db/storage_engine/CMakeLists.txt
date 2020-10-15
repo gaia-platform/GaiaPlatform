@@ -3,8 +3,6 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.12)
-
 # Set the project name.
 project(storage_engine)
 
@@ -12,15 +10,6 @@ project(storage_engine)
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
-
-# Enable stack traces in debug builds for the storage engine server.
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-  # backward-cpp stack trace library.
-  find_package(Backward REQUIRED)
-  # backward-cpp dependencies (one of several options):
-  # "libdw provides access to DWARF debug information stored inside ELF files."
-  find_library(dw REQUIRED)
-endif()
 
 set(GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES
   "${GAIA_INC}/public/common"
@@ -30,7 +19,8 @@ set(GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES
   # which is consumed by internal clients.
   "${GAIA_INC}/internal/db"
 )
-message(STATUS "GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES=${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}")
+
+message(VERBOSE "GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES=${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}")
 
 set(GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES
   "${GAIA_INC}/internal/common"
@@ -39,7 +29,8 @@ set(GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES
   "${ROCKSDB_INC}"
   "${PROJECT_SOURCE_DIR}/inc"
 )
-message(STATUS "GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES=${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}")
+
+message(VERBOSE "GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES=${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}")
 
 ###############################################
 # Generate flatbuffers headers.
@@ -70,8 +61,8 @@ endforeach(FBS_SOURCE)
 # Our main target.
 ###############################################
 add_library(gaia_storage SHARED
-    src/locator_allocator.cpp
-    src/record_list.cpp)
+  src/locator_allocator.cpp
+  src/record_list.cpp)
 target_include_directories(gaia_storage PUBLIC ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES})
 target_include_directories(gaia_storage PRIVATE ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES})
 set_target_properties(gaia_storage PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
@@ -84,7 +75,8 @@ add_library(gaia_se_client STATIC
   src/gaia_db.cpp
   src/gaia_ptr.cpp
   src/storage_engine.cpp
-  src/storage_engine_client.cpp)
+  src/storage_engine_client.cpp
+  src/type_metadata.cpp)
 add_dependencies(gaia_se_client "messages.fbs")
 target_include_directories(gaia_se_client PUBLIC ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES})
 target_include_directories(gaia_se_client PRIVATE ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES})
@@ -95,7 +87,7 @@ target_include_directories(gaia_se_client SYSTEM PRIVATE "${GEN_DIR}")
 # Suppress spurious warnings about zero-initialized structs.
 set_target_properties(gaia_se_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 target_link_libraries(gaia_se_client PUBLIC gaia_common)
-target_link_libraries(gaia_se_client PRIVATE explain gaia_types)
+target_link_libraries(gaia_se_client PRIVATE explain gaia_payload_types)
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia_se_client PROPERTY POSITION_INDEPENDENT_CODE ON)
 
@@ -116,22 +108,26 @@ set(GAIA_SE_SERVER_SOURCES
   src/storage_engine_server.cpp
   src/storage_engine_server_exec.cpp
 )
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   list(APPEND GAIA_SE_SERVER_SOURCES src/backward.cpp)
 endif()
+
 add_executable(gaia_se_server ${GAIA_SE_SERVER_SOURCES})
 add_dependencies(gaia_se_server "messages.fbs")
 target_include_directories(gaia_se_server PRIVATE
   "${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}"
   "${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}")
+
 # For flatbuffers generated code.
 target_include_directories(gaia_se_server SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(gaia_se_server SYSTEM PRIVATE "${GEN_DIR}")
+
 # Suppress spurious warnings about zero-initialized structs.
 set_target_properties(gaia_se_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 target_link_libraries(gaia_se_server PRIVATE gaia_common Threads::Threads explain rocks_wrapper)
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-  target_link_libraries(gaia_se_server PUBLIC Backward::Backward)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  target_link_libraries(gaia_se_server PUBLIC backward)
 endif()
 install(TARGETS gaia_se_server DESTINATION "bin")
 
@@ -145,7 +141,7 @@ set(GAIA_STORAGE_ENGINE_TEST_INCLUDES
 ###############################################
 find_package(pybind11 REQUIRED)
 
-if (Python3_FOUND AND pybind11_FOUND)
+if(Python3_FOUND AND pybind11_FOUND)
   pybind11_add_module(se_client src/storage_engine_pybind_wrapper.cpp)
   target_include_directories(se_client PRIVATE ${PROJECT_SOURCE_DIR})
   target_include_directories(se_client PRIVATE
@@ -168,7 +164,7 @@ endif()
 ###############################################
 # JNI wrapper for storage engine.
 ###############################################
-if (JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
+if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   # Configure build of native C++ wrapper library.
   add_library(jni_se_client SHARED src/storage_engine_jni_wrapper.cpp)
   target_include_directories(jni_se_client PRIVATE ${PROJECT_SOURCE_DIR})
@@ -187,3 +183,5 @@ add_gtest(test_rdb_object_converter "tests/test_rdb_object_converter.cpp" "${FLA
 add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
 add_gtest(test_storage_engine_client "tests/test_storage_engine_client.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_se_client")
 add_gtest(test_locator_allocator tests/test_locator_allocator.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
+add_gtest(test_relationships tests/test_relationships.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client")
+add_gtest(test_se_references tests/test_se_references.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client")

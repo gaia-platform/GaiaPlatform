@@ -6,6 +6,7 @@
 #include "gtest/gtest.h"
 #include "rules.hpp"
 #include "db_test_base.hpp"
+#include "db_test_helpers.hpp"
 #include "rule_checker.hpp"
 #include "gaia_catalog.hpp"
 #include "gaia_catalog.h"
@@ -35,7 +36,7 @@ void load_catalog()
     // not active, not deprecated
     fields.emplace_back(make_unique<ddl::field_definition_t>("inactive", data_type_t::e_string, 1));
     // active, not deprecated
-    fields.emplace_back(make_unique<ddl::field_definition_t>("active", data_type_t::e_float32, 1));
+    fields.emplace_back(make_unique<ddl::field_definition_t>("active", data_type_t::e_float, 1));
     // deprecated
     fields.emplace_back(make_unique<ddl::field_definition_t>("deprecated", data_type_t::e_uint64, 1));
     // another valid field
@@ -53,7 +54,7 @@ void load_catalog()
         gaia_field_writer writer = field.writer();
         g_field_positions[field.name()] = field.position();
 
-        if (0 == strcmp(field.name(), "active") 
+        if (0 == strcmp(field.name(), "active")
             || (0 == strcmp(field.name(), "valid")))
         {
             writer.active = true;
@@ -82,11 +83,11 @@ public:
     void verify_exception(const char* expected_message, std::function<void ()> fn)
     {
         bool did_throw = false;
-        try 
+        try
         {
             fn();
         }
-        catch (const exception& e) 
+        catch (const exception& e)
         {
             // Find a relevant substring for this message
             string str = e.what();
@@ -106,7 +107,7 @@ protected:
     // these functions will only be called once for all tests.
     static void SetUpTestSuite()
     {
-        db_test_base_t::reset_server();
+        reset_server();
         begin_session();
         load_catalog();
     }

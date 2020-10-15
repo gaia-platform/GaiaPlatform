@@ -32,7 +32,7 @@ TEST_F(gaia_generate_test, use_create_table) {
 
 // Start from Gaia DDL to create an EDC header.
 TEST_F(gaia_generate_test, parse_ddl) {
-    parser_t parser;
+    ddl::parser_t parser;
 
     EXPECT_EQ(EXIT_SUCCESS, parser.parse_line("create table tmp_airport ( name string );"));
     create_database("tmp_airport");
