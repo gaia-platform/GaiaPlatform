@@ -107,7 +107,7 @@ error_code_t memory_manager_t::commit_stack_allocator(
     {
         // Get metadata record for the entire stack allocator memory block.
         memory_allocation_metadata_t* first_stack_allocation_metadata
-            = read_allocation_metadata(stack_allocator->m_base_memory_offset);
+            = read_allocation_metadata(stack_allocator->get_base_memory_offset());
 
         // Get the stack_allocator's metadata.
         stack_allocator_metadata_t* stack_allocator_metadata = stack_allocator->get_metadata();
@@ -128,7 +128,7 @@ error_code_t memory_manager_t::commit_stack_allocator(
 
 error_code_t memory_manager_t::free_stack_allocator(
     const unique_ptr<stack_allocator_t>& stack_allocator,
-    bool free_all)
+    bool free_everything)
 {
     if (stack_allocator == nullptr)
     {
@@ -139,27 +139,27 @@ error_code_t memory_manager_t::free_stack_allocator(
 
     // Get metadata record for the entire stack allocator memory block.
     memory_allocation_metadata_t* first_stack_allocation_metadata
-        = read_allocation_metadata(stack_allocator->m_base_memory_offset);
+        = read_allocation_metadata(stack_allocator->get_base_memory_offset());
     address_offset_t first_stack_allocation_metadata_offset
         = get_offset(reinterpret_cast<uint8_t*>(first_stack_allocation_metadata));
 
-    if (free_all || count_allocations == 0)
+    if (free_everything || count_allocations == 0)
     {
         // Special case: all allocations have been reverted, so we need to mark the entire memory block as free.
         if (m_execution_flags.enable_extra_validations)
         {
             retail_assert(
                 first_stack_allocation_metadata_offset
-                    == stack_allocator->m_base_memory_offset - sizeof(memory_allocation_metadata_t),
+                    == stack_allocator->get_base_memory_offset() - sizeof(memory_allocation_metadata_t),
                 "Allocation metadata offset does not match manually computed size!");
 
             // The next check will usually not be valid in scenarios
-            // in which we're getting called with free_all set to true.
-            if (free_all == false)
+            // in which we're getting called with free_everything set to true.
+            if (free_everything == false)
             {
                 retail_assert(
                     first_stack_allocation_metadata->allocation_size
-                        == stack_allocator->m_total_memory_size + sizeof(memory_allocation_metadata_t),
+                        == stack_allocator->get_total_memory_size() + sizeof(memory_allocation_metadata_t),
                     "Allocation metadata size does not match manually computed size!");
             }
         }
@@ -172,7 +172,7 @@ error_code_t memory_manager_t::free_stack_allocator(
         unique_lock unique_free_memory_list_lock(m_free_memory_list_lock);
         m_free_memory_list.emplace_back(
             first_stack_allocation_metadata_offset,
-            stack_allocator->m_total_memory_size + sizeof(memory_allocation_metadata_t));
+            stack_allocator->get_total_memory_size() + sizeof(memory_allocation_metadata_t));
     }
     else
     {
@@ -199,7 +199,8 @@ error_code_t memory_manager_t::free_stack_allocator(
 
         // Get the stack_allocator_t metadata.
         stack_allocator_metadata_t* stack_allocator_metadata = stack_allocator->get_metadata();
-        address_offset_t stack_allocator_metadata_offset = get_offset(reinterpret_cast<uint8_t*>(stack_allocator_metadata));
+        address_offset_t stack_allocator_metadata_offset
+            = get_offset(reinterpret_cast<uint8_t*>(stack_allocator_metadata));
 
         // Now we need to release the unused stack allocator memory.
         // Determine the boundaries of the memory block that we can free from the stack_allocator_t.

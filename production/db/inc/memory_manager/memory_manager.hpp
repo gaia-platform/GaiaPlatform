@@ -46,7 +46,7 @@ public:
     // Adds the stack allocator's unused memory to the list of free memory.
     error_code_t free_stack_allocator(
         const std::unique_ptr<stack_allocator_t>& stack_allocator,
-        bool free_all = false);
+        bool free_everything = false);
 
 private:
     // This structure is used for tracking information about a memory block.

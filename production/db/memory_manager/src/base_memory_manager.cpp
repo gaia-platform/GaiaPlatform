@@ -19,6 +19,21 @@ base_memory_manager_t::base_memory_manager_t()
     m_total_memory_size = 0;
 }
 
+uint8_t* base_memory_manager_t::get_base_memory_address() const
+{
+    return m_base_memory_address;
+}
+
+address_offset_t base_memory_manager_t::get_base_memory_offset() const
+{
+    return m_base_memory_offset;
+}
+
+size_t base_memory_manager_t::get_total_memory_size() const
+{
+    return m_total_memory_size;
+}
+
 void base_memory_manager_t::set_execution_flags(const execution_flags_t& execution_flags)
 {
     m_execution_flags = execution_flags;

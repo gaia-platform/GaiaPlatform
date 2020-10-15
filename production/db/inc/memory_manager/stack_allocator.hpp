@@ -18,10 +18,7 @@ namespace memory_manager
 
 class stack_allocator_t : public base_memory_manager_t
 {
-    friend class memory_manager_t;
-
 public:
-
     stack_allocator_t();
 
     // Initialize the stack_allocator_t with a specific memory buffer from which to allocate memory.
@@ -57,18 +54,16 @@ public:
     // Calculate the offset where we can make the next allocation.
     address_offset_t calculate_next_allocation_offset() const;
 
-private:
+    // Public, so it can get called by the memory manager.
+    void output_debugging_information(const std::string& context_description) const;
 
+private:
     // A pointer to our metadata information, stored in the same memory that we manage.
     // Unlike the memory manager, which stores its metadata at the start of the buffer,
     // the stack allocator stores it at the end.
     stack_allocator_metadata_t* m_metadata;
-
-private:
-
-    void output_debugging_information(const std::string& context_description) const;
 };
 
-}
-}
-}
+} // namespace memory_manager
+} // namespace db
+} // namespace gaia
