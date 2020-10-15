@@ -14,7 +14,7 @@
 #Generate stand alone address_book.
 #
                 add_custom_command(
-                    OUTPUT ${GAIA_GENERATED_SCHEMAS} / gaia_addr_book.h COMMAND ${GAIA_GENERATE} - t ${GAIA_PROD_BUILD} / db / storage_engine - o ${GAIA_GENERATED_SCHEMAS} - g ${ADDR_BOOK_DDL} DEPENDS gaiac DEPENDS ${ADDR_BOOK_DDL} COMMENT "Compiling addr_book.ddl...")
+                    OUTPUT ${GAIA_GENERATED_SCHEMAS} / gaia_addr_book.h COMMAND ${GAIA_GENERATE} - t ${GAIA_PROD_BUILD} / db / storage_engine - o ${GAIA_GENERATED_SCHEMAS} - g ${ADDR_BOOK_DDL} DEPENDS gaiac DEPENDS ${ADDR_BOOK_DDL} COMMENT "Compiled addr_book.ddl.")
 
                     add_custom_target(generate_addr_book_headers ALL
                                           DEPENDS ${GAIA_GENERATED_SCHEMAS}
