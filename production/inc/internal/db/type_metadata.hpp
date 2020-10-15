@@ -96,7 +96,9 @@ public:
 };
 
 /**
- * Maintain the instances of type_metadata_t.
+ * Maintain the instances of type_metadata_t and manages their lifecycle.
+ * type_metadata_t should be created/edited only by the catalog (with the
+ * exception of tests).
  */
 class type_registry_t
 {

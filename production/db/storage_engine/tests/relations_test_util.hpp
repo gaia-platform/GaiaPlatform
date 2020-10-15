@@ -32,7 +32,8 @@ constexpr reference_offset_t c_non_existent_offset = 1024;
 
 /**
  * Facilitate the creation of relationship objects and their insertion into
- * the registry. It also create entries in the registry if not available.
+ * the registry. It also creates the instances of type_metadata_t in
+ * the registry if not available.
  */
 class test_relationship_builder_t
 {
