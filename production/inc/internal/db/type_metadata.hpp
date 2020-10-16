@@ -5,11 +5,11 @@
 
 #pragma once
 
-#include <unordered_map>
-#include <optional>
 #include <memory>
-#include <sstream>
+#include <optional>
 #include <shared_mutex>
+#include <sstream>
+#include <unordered_map>
 
 #include "gaia_exception.hpp"
 #include "gaia_relationships.hpp"
@@ -17,14 +17,19 @@
 using namespace std;
 using namespace gaia::common;
 
-namespace gaia::db {
+namespace gaia::db
+{
 
 /**
  * Contains metadata about a specific gaia type.
  */
-class type_metadata_t {
+class type_metadata_t
+{
 public:
-    explicit type_metadata_t(gaia_type_t type) : m_type(type) {}
+    explicit type_metadata_t(gaia_type_t type)
+        : m_type(type)
+    {
+    }
 
     gaia_type_t get_type() const;
     relationship_t* find_parent_relationship(reference_offset_t first_child_offset) const;
@@ -56,9 +61,11 @@ private:
     unordered_map<reference_offset_t, shared_ptr<relationship_t>> m_child_relationships;
 };
 
-class duplicate_metadata : public gaia_exception {
+class duplicate_metadata : public gaia_exception
+{
 public:
-    explicit duplicate_metadata(const gaia_type_t type) {
+    explicit duplicate_metadata(const gaia_type_t type)
+    {
         stringstream message;
         message << "Metadata already existent for Gaia type \"" << type << "\"";
         m_message = message.str();
@@ -69,14 +76,16 @@ public:
  * Maintain the instances of type_metadata_t. This class creates and owns
  * the metadata.
  */
-class type_registry_t {
+class type_registry_t
+{
 public:
     type_registry_t(const type_registry_t&) = delete;
     type_registry_t& operator=(const type_registry_t&) = delete;
     type_registry_t(type_registry_t&&) = delete;
     type_registry_t& operator=(type_registry_t&&) = delete;
 
-    static type_registry_t& instance() {
+    static type_registry_t& instance()
+    {
         static type_registry_t type_registry;
         return type_registry;
     }
