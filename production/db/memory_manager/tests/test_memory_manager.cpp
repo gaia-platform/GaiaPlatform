@@ -15,10 +15,11 @@ using namespace std;
 
 using namespace gaia::db::memory_manager;
 
-void output_allocation_information(size_t size, address_offset_t offset)
+void output_allocation_information(size_t requested_size, size_t allocated_size, address_offset_t offset)
 {
     cout << endl
-         << size << " bytes were allocated at offset " << offset << "." << endl;
+         << requested_size << " bytes were requested and "
+         << allocated_size << " bytes were allocated at offset " << offset << "." << endl;
 }
 
 TEST(memory_manager, basic_operation)
@@ -43,27 +44,37 @@ TEST(memory_manager, basic_operation)
     constexpr size_t c_second_allocation_size = 256;
     constexpr size_t c_third_allocation_size = 128;
 
+    size_t first_adjusted_allocation_size
+        = base_memory_manager_t::calculate_allocation_size(c_first_allocation_size);
+    size_t second_adjusted_allocation_size
+        = base_memory_manager_t::calculate_allocation_size(c_second_allocation_size);
+    size_t third_adjusted_allocation_size
+        = base_memory_manager_t::calculate_allocation_size(c_third_allocation_size);
+
     address_offset_t first_allocation_offset = c_invalid_offset;
     error_code = memory_manager.allocate(c_first_allocation_size, first_allocation_offset);
     ASSERT_EQ(error_code_t::success, error_code);
-    output_allocation_information(c_first_allocation_size, first_allocation_offset);
+    output_allocation_information(
+        c_first_allocation_size, first_adjusted_allocation_size, first_allocation_offset);
 
     address_offset_t second_allocation_offset = c_invalid_offset;
     error_code = memory_manager.allocate(c_second_allocation_size, second_allocation_offset);
     ASSERT_EQ(error_code_t::success, error_code);
-    output_allocation_information(c_second_allocation_size, second_allocation_offset);
+    output_allocation_information(
+        c_second_allocation_size, second_adjusted_allocation_size, second_allocation_offset);
 
     ASSERT_EQ(
-        first_allocation_offset + c_first_allocation_size + sizeof(memory_allocation_metadata_t),
+        first_allocation_offset + first_adjusted_allocation_size + sizeof(memory_allocation_metadata_t),
         second_allocation_offset);
 
     address_offset_t third_allocation_offset = c_invalid_offset;
     error_code = memory_manager.allocate(c_third_allocation_size, third_allocation_offset);
     ASSERT_EQ(error_code_t::success, error_code);
-    output_allocation_information(c_third_allocation_size, third_allocation_offset);
+    output_allocation_information(
+        c_third_allocation_size, third_adjusted_allocation_size, third_allocation_offset);
 
     ASSERT_EQ(
-        second_allocation_offset + c_second_allocation_size + sizeof(memory_allocation_metadata_t),
+        second_allocation_offset + second_adjusted_allocation_size + sizeof(memory_allocation_metadata_t),
         third_allocation_offset);
 }
 
@@ -100,27 +111,37 @@ TEST(memory_manager, advanced_operation)
     constexpr size_t c_second_allocation_size = 256;
     constexpr size_t c_third_allocation_size = 128;
 
+    size_t first_adjusted_allocation_size
+        = base_memory_manager_t::calculate_allocation_size(c_first_allocation_size);
+    size_t second_adjusted_allocation_size
+        = base_memory_manager_t::calculate_allocation_size(c_second_allocation_size);
+    size_t third_adjusted_allocation_size
+        = base_memory_manager_t::calculate_allocation_size(c_third_allocation_size);
+
     address_offset_t first_allocation_offset = c_invalid_offset;
     error_code = stack_allocator->allocate(0, c_invalid_offset, c_first_allocation_size, first_allocation_offset);
     ASSERT_EQ(error_code_t::success, error_code);
-    output_allocation_information(c_first_allocation_size, first_allocation_offset);
+    output_allocation_information(
+        c_first_allocation_size, first_adjusted_allocation_size, first_allocation_offset);
 
     address_offset_t second_allocation_offset = c_invalid_offset;
     error_code = stack_allocator->allocate(0, c_invalid_offset, c_second_allocation_size, second_allocation_offset);
     ASSERT_EQ(error_code_t::success, error_code);
-    output_allocation_information(c_second_allocation_size, second_allocation_offset);
+    output_allocation_information(
+        c_second_allocation_size, second_adjusted_allocation_size, second_allocation_offset);
 
     ASSERT_EQ(
-        first_allocation_offset + c_first_allocation_size + sizeof(memory_allocation_metadata_t),
+        first_allocation_offset + first_adjusted_allocation_size + sizeof(memory_allocation_metadata_t),
         second_allocation_offset);
 
     address_offset_t third_allocation_offset = c_invalid_offset;
     error_code = stack_allocator->allocate(0, c_invalid_offset, c_third_allocation_size, third_allocation_offset);
     ASSERT_EQ(error_code_t::success, error_code);
-    output_allocation_information(c_third_allocation_size, third_allocation_offset);
+    output_allocation_information(
+        c_third_allocation_size, third_adjusted_allocation_size, third_allocation_offset);
 
     ASSERT_EQ(
-        second_allocation_offset + c_second_allocation_size + sizeof(memory_allocation_metadata_t),
+        second_allocation_offset + second_adjusted_allocation_size + sizeof(memory_allocation_metadata_t),
         third_allocation_offset);
 
     ASSERT_EQ(3, stack_allocator->get_allocation_count());
@@ -144,19 +165,26 @@ TEST(memory_manager, advanced_operation)
     constexpr size_t c_fourth_allocation_size = 256;
     constexpr size_t c_fifth_allocation_size = 64;
 
+    size_t fourth_adjusted_allocation_size
+        = base_memory_manager_t::calculate_allocation_size(c_fourth_allocation_size);
+    size_t fifth_adjusted_allocation_size
+        = base_memory_manager_t::calculate_allocation_size(c_fifth_allocation_size);
+
     address_offset_t fourth_allocation_offset = c_invalid_offset;
     error_code = stack_allocator->allocate(0, second_allocation_offset, c_fourth_allocation_size, fourth_allocation_offset);
     ASSERT_EQ(error_code_t::success, error_code);
-    output_allocation_information(c_fourth_allocation_size, fourth_allocation_offset);
+    output_allocation_information(
+        c_fourth_allocation_size, fourth_adjusted_allocation_size, fourth_allocation_offset);
 
     address_offset_t fifth_allocation_offset = c_invalid_offset;
     error_code = stack_allocator->allocate(0, first_allocation_offset, c_fifth_allocation_size, fifth_allocation_offset);
     ASSERT_EQ(error_code_t::success, error_code);
-    output_allocation_information(c_fifth_allocation_size, fifth_allocation_offset);
+    output_allocation_information(
+        c_fifth_allocation_size, fifth_adjusted_allocation_size, fifth_allocation_offset);
 
     ASSERT_EQ(
-        fifth_allocation_offset,
-        fourth_allocation_offset + c_fourth_allocation_size + sizeof(memory_allocation_metadata_t));
+        fourth_allocation_offset + fourth_adjusted_allocation_size + sizeof(memory_allocation_metadata_t),
+        fifth_allocation_offset);
 
     // Free stack allocator.
     cout << endl
@@ -173,11 +201,13 @@ TEST(memory_manager, advanced_operation)
     address_offset_t offset_first_free_allocation = c_invalid_offset;
     error_code = memory_manager.allocate(c_second_allocation_size, offset_first_free_allocation);
     ASSERT_EQ(error_code_t::success, error_code);
-    output_allocation_information(c_second_allocation_size, offset_first_free_allocation);
+    output_allocation_information(
+        c_second_allocation_size, second_adjusted_allocation_size, offset_first_free_allocation);
 
     // Second, we reclaim a part of a freed block.
     address_offset_t offset_second_free_allocation = c_invalid_offset;
     error_code = memory_manager.allocate(c_third_allocation_size, offset_second_free_allocation);
     ASSERT_EQ(error_code_t::success, error_code);
-    output_allocation_information(c_third_allocation_size, offset_second_free_allocation);
+    output_allocation_information(
+        c_third_allocation_size, third_adjusted_allocation_size, offset_second_free_allocation);
 }

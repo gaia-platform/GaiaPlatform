@@ -49,8 +49,11 @@ error_code_t memory_manager_t::manage(
     m_total_memory_size = memory_size;
 
     // Also initialize our offsets.
+    //
+    // A minimum allocation size block at the start of the memory
+    // will get unused throughout the life of the memory manager.
     m_base_memory_offset = 0;
-    m_next_allocation_offset = 0;
+    m_next_allocation_offset = c_minimum_allocation_size;
 
     if (m_execution_flags.enable_console_output)
     {
@@ -91,8 +94,23 @@ error_code_t memory_manager_t::allocate_internal(
         return error_code;
     }
 
+    // Adjust the requested memory size, to ensure proper alignment.
+    if (add_allocation_metadata)
+    {
+        memory_size = calculate_allocation_size(memory_size);
+    }
+    else
+    {
+        memory_size = calculate_raw_allocation_size(memory_size);
+    }
+
+    // Then factor in the metadata size, if we need to add that.
     size_t size_to_allocate = memory_size
         + (add_allocation_metadata ? sizeof(memory_allocation_metadata_t) : 0);
+
+    retail_assert(
+        size_to_allocate % c_allocation_alignment == 0,
+        "The size of allocations should always be a multiple of the alignment value.");
 
     // First, attempt to reuse freed memory blocks, if possible.
     allocated_memory_offset = allocate_from_freed_memory(size_to_allocate, add_allocation_metadata);
@@ -111,6 +129,23 @@ error_code_t memory_manager_t::allocate_internal(
     if (allocated_memory_offset == c_invalid_offset)
     {
         return error_code_t::insufficient_memory_size;
+    }
+
+    if (m_execution_flags.enable_extra_validations)
+    {
+        // Verify proper allocation alignment.
+        if (add_allocation_metadata)
+        {
+            retail_assert(
+                allocated_memory_offset % c_allocation_alignment == 0,
+                "Memory allocation was not made on a 64B boundary!");
+        }
+        else
+        {
+            retail_assert(
+                allocated_memory_offset % c_allocation_alignment == c_minimum_allocation_size,
+                "Raw memory allocation is not offset by 56B from a 64B boundary!");
+        }
     }
 
     return error_code_t::success;

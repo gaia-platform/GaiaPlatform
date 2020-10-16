@@ -15,10 +15,11 @@ using namespace std;
 
 using namespace gaia::db::memory_manager;
 
-void output_allocation_information(size_t size, address_offset_t offset)
+void output_allocation_information(size_t requested_size, size_t allocated_size, address_offset_t offset)
 {
     cout << endl
-         << size << " bytes were allocated at offset " << offset << "." << endl;
+         << requested_size << " bytes were requested and "
+         << allocated_size << " bytes were allocated at offset " << offset << "." << endl;
 }
 
 void validate_allocation_record(
@@ -82,34 +83,47 @@ TEST(memory_manager, stack_allocator)
     constexpr slot_id_t c_deleted_slot_id = 88;
     constexpr address_offset_t c_deleted_old_offset = 1080;
 
+    size_t first_adjusted_allocation_size
+        = base_memory_manager_t::calculate_allocation_size(c_first_allocation_size);
+    size_t second_adjusted_allocation_size
+        = base_memory_manager_t::calculate_allocation_size(c_second_allocation_size);
+    size_t third_adjusted_allocation_size
+        = base_memory_manager_t::calculate_allocation_size(c_third_allocation_size);
+    size_t fourth_adjusted_allocation_size
+        = base_memory_manager_t::calculate_allocation_size(c_fourth_allocation_size);
+    size_t fifth_adjusted_allocation_size
+        = base_memory_manager_t::calculate_allocation_size(c_fifth_allocation_size);
+
     address_offset_t first_allocation_offset = c_invalid_offset;
-    error_code = stack_allocator->allocate(c_first_slot_id, c_first_old_offset, c_first_allocation_size, first_allocation_offset);
+    error_code = stack_allocator->allocate(
+        c_first_slot_id, c_first_old_offset, c_first_allocation_size, first_allocation_offset);
     ASSERT_EQ(error_code_t::success, error_code);
-    output_allocation_information(c_first_allocation_size, first_allocation_offset);
+    output_allocation_information(
+        c_first_allocation_size, first_adjusted_allocation_size, first_allocation_offset);
     validate_allocation_record(stack_allocator, 1, c_first_slot_id, first_allocation_offset, c_first_old_offset);
 
-    ASSERT_EQ(
-        sizeof(memory_allocation_metadata_t),
-        first_allocation_offset);
-
     address_offset_t second_allocation_offset = c_invalid_offset;
-    error_code = stack_allocator->allocate(c_second_slot_id, c_second_old_offset, c_second_allocation_size, second_allocation_offset);
+    error_code = stack_allocator->allocate(
+        c_second_slot_id, c_second_old_offset, c_second_allocation_size, second_allocation_offset);
     ASSERT_EQ(error_code_t::success, error_code);
-    output_allocation_information(c_second_allocation_size, second_allocation_offset);
+    output_allocation_information(
+        c_second_allocation_size, second_adjusted_allocation_size, second_allocation_offset);
     validate_allocation_record(stack_allocator, 2, c_second_slot_id, second_allocation_offset, c_second_old_offset);
 
     ASSERT_EQ(
-        first_allocation_offset + c_first_allocation_size + sizeof(memory_allocation_metadata_t),
+        first_allocation_offset + first_adjusted_allocation_size + sizeof(memory_allocation_metadata_t),
         second_allocation_offset);
 
     address_offset_t third_allocation_offset = c_invalid_offset;
-    error_code = stack_allocator->allocate(c_third_slot_id, c_third_old_offset, c_third_allocation_size, third_allocation_offset);
+    error_code = stack_allocator->allocate(
+        c_third_slot_id, c_third_old_offset, c_third_allocation_size, third_allocation_offset);
     ASSERT_EQ(error_code_t::success, error_code);
-    output_allocation_information(c_third_allocation_size, third_allocation_offset);
+    output_allocation_information(
+        c_third_allocation_size, third_adjusted_allocation_size, third_allocation_offset);
     validate_allocation_record(stack_allocator, 3, c_third_slot_id, third_allocation_offset, c_third_old_offset);
 
     ASSERT_EQ(
-        second_allocation_offset + c_second_allocation_size + sizeof(memory_allocation_metadata_t),
+        second_allocation_offset + second_adjusted_allocation_size + sizeof(memory_allocation_metadata_t),
         third_allocation_offset);
 
     ASSERT_EQ(3, stack_allocator->get_allocation_count());
@@ -122,13 +136,15 @@ TEST(memory_manager, stack_allocator)
     ASSERT_EQ(1, stack_allocator->get_allocation_count());
 
     address_offset_t fourth_allocation_offset = c_invalid_offset;
-    error_code = stack_allocator->allocate(c_fourth_slot_id, c_fourth_old_offset, c_fourth_allocation_size, fourth_allocation_offset);
+    error_code = stack_allocator->allocate(
+        c_fourth_slot_id, c_fourth_old_offset, c_fourth_allocation_size, fourth_allocation_offset);
     ASSERT_EQ(error_code_t::success, error_code);
-    output_allocation_information(c_fourth_allocation_size, fourth_allocation_offset);
+    output_allocation_information(
+        c_fourth_allocation_size, fourth_adjusted_allocation_size, fourth_allocation_offset);
     validate_allocation_record(stack_allocator, 2, c_fourth_slot_id, fourth_allocation_offset, c_fourth_old_offset);
 
     ASSERT_EQ(
-        first_allocation_offset + c_first_allocation_size + sizeof(memory_allocation_metadata_t),
+        first_allocation_offset + first_adjusted_allocation_size + sizeof(memory_allocation_metadata_t),
         fourth_allocation_offset);
 
     ASSERT_EQ(2, stack_allocator->get_allocation_count());
@@ -146,12 +162,14 @@ TEST(memory_manager, stack_allocator)
     ASSERT_EQ(0, stack_allocator->get_allocation_count());
 
     address_offset_t fifth_allocation_offset = c_invalid_offset;
-    stack_allocator->allocate(c_fifth_slot_id, c_fifth_old_offset, c_fifth_allocation_size, fifth_allocation_offset);
+    error_code = stack_allocator->allocate(
+        c_fifth_slot_id, c_fifth_old_offset, c_fifth_allocation_size, fifth_allocation_offset);
     ASSERT_EQ(error_code_t::success, error_code);
-    output_allocation_information(c_fifth_allocation_size, fifth_allocation_offset);
+    output_allocation_information(
+        c_fifth_allocation_size, fifth_adjusted_allocation_size, fifth_allocation_offset);
     validate_allocation_record(stack_allocator, 1, c_fifth_slot_id, fifth_allocation_offset, c_fifth_old_offset);
 
-    ASSERT_EQ(fifth_allocation_offset, first_allocation_offset);
+    ASSERT_EQ(first_allocation_offset, fifth_allocation_offset);
 
     ASSERT_EQ(1, stack_allocator->get_allocation_count());
 
