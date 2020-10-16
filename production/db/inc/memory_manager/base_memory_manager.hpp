@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "memory_types.hpp"
 #include "error_codes.hpp"
+#include "memory_types.hpp"
 #include "structures.hpp"
 
 namespace gaia
@@ -22,12 +22,15 @@ constexpr char c_debug_output_separator_line_end[] = "<<<<<<<<<<<<<<<<<<<<<<<<<<
 class base_memory_manager_t
 {
 public:
-
     static constexpr size_t c_memory_alignment = sizeof(uint64_t);
 
 public:
-
     base_memory_manager_t();
+
+    // Basic accessors.
+    uint8_t* get_base_memory_address() const;
+    address_offset_t get_base_memory_offset() const;
+    size_t get_total_memory_size() const;
 
     // Sets stack_allocator_t execution flags.
     void set_execution_flags(const execution_flags_t& execution_flags);
@@ -51,7 +54,6 @@ public:
     memory_allocation_metadata_t* read_allocation_metadata(address_offset_t memory_offset) const;
 
 protected:
-
     // The base memory address relative to which we compute our offsets.
     uint8_t* m_base_memory_address;
 
@@ -65,6 +67,6 @@ protected:
     execution_flags_t m_execution_flags;
 };
 
-}
-}
-}
+} // namespace memory_manager
+} // namespace db
+} // namespace gaia
