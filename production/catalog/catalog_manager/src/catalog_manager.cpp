@@ -816,7 +816,7 @@ vector<gaia_id_t> catalog_manager_t::list_child_relationships(gaia_id_t table_id
     return relationships;
 }
 
-vector<gaia::common::gaia_id_t> catalog_manager_t::list_parent_relationships(gaia::common::gaia_id_t table_id) const
+vector<gaia_id_t> catalog_manager_t::list_parent_relationships(gaia_id_t table_id) const
 {
     vector<gaia_id_t> relationships;
 

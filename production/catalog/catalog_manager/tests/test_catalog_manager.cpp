@@ -265,6 +265,7 @@ TEST_F(catalog_manager_test, drop_table)
         auto_transaction_t txn;
         auto table = gaia_table_t::get(table_id);
         EXPECT_FALSE(table);
+        txn.commit();
     }
 }
 
@@ -289,6 +290,7 @@ TEST_F(catalog_manager_test, DISABLED_drop_table_with_self_reference)
         auto_transaction_t txn;
         auto table = gaia_table_t::get(table_id);
         EXPECT_FALSE(table);
+        txn.commit();
     }
 }
 
@@ -312,6 +314,7 @@ TEST_F(catalog_manager_test, drop_table_parent_reference_fail)
     auto table = gaia_table_t::get(parent_table_id);
     EXPECT_TRUE(table);
     ASSERT_EQ(1, container_size(table.parent_gaia_relationship_list()));
+    txn.commit();
 }
 
 TEST_F(catalog_manager_test, drop_table_child_reference)
@@ -359,6 +362,7 @@ TEST_F(catalog_manager_test, drop_database)
     {
         auto_transaction_t txn;
         EXPECT_EQ(gaia_database_t::get(db_id).name(), test_db_name);
+        txn.commit();
     }
 
     string self_ref_table_name{"self_ref_table"};
@@ -380,6 +384,7 @@ TEST_F(catalog_manager_test, drop_database)
         EXPECT_FALSE(gaia_table_t::get(self_ref_table_id));
         EXPECT_FALSE(gaia_table_t::get(test_table_id));
         EXPECT_FALSE(gaia_database_t::get(db_id));
+        txn.commit();
     }
 }
 
@@ -475,6 +480,7 @@ TEST_F(catalog_manager_test, create_relationships)
     ASSERT_EQ(uint8_t{1}, clinic_patient_relationship.first_child_offset()); // clinic
     ASSERT_EQ(uint8_t{2}, clinic_patient_relationship.next_child_offset());  // patient
     ASSERT_EQ(uint8_t{3}, clinic_patient_relationship.parent_offset());      // patient
+    txn.commit();
 }
 
 TEST_F(catalog_manager_test, metadata)
@@ -527,4 +533,5 @@ TEST_F(catalog_manager_test, metadata)
             }
         }
     }
+    txn.commit();
 }

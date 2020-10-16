@@ -485,8 +485,7 @@ TEST_F(recovery_test, reference_update_test)
     end_session();
 }
 
-// TODO not working yet.
-TEST_F(recovery_test, DISABLED_reference_update_test_new)
+TEST_F(recovery_test, reference_update_test_new)
 {
     constexpr int c_num_children = 10;
     gaia_id_t parent_id;
@@ -523,6 +522,7 @@ TEST_F(recovery_test, DISABLED_reference_update_test_new)
                 child.add_parent_reference(parent_id, c_parent_doctor_offset);
             }
         }
+        txn.commit();
     }
     end_session();
 
@@ -541,11 +541,12 @@ TEST_F(recovery_test, DISABLED_reference_update_test_new)
         // Find the children.
         gaia_ptr first_child = gaia_ptr::open(parent.references()[c_first_patient_offset]);
         children_ids.push_back(first_child);
+        gaia_ptr next_child = gaia_ptr::open(first_child.references()[c_next_patient_offset]);
 
-        while (gaia_ptr next_child
-               = gaia_ptr::open(first_child.references()[c_next_patient_offset]))
+        while (next_child)
         {
             children_ids.push_back(next_child.id());
+            next_child = gaia_ptr::open(next_child.references()[c_next_patient_offset]);
         }
 
         // Ensure parent has all the children
@@ -568,12 +569,13 @@ TEST_F(recovery_test, DISABLED_reference_update_test_new)
                 child.remove_parent_reference(parent_id, c_parent_doctor_offset);
             }
         }
+        txn.commit();
     }
-
     end_session();
-    restart_server(m_server, g_server_dir_path.c_str());
-    begin_session();
 
+    restart_server(m_server, g_server_dir_path.c_str());
+
+    begin_session();
     {
         auto_transaction_t txn;
 
@@ -582,21 +584,23 @@ TEST_F(recovery_test, DISABLED_reference_update_test_new)
 
         // Ensure the parent does not have children
         ASSERT_EQ(INVALID_GAIA_ID, parent.references()[c_first_patient_offset]);
+        txn.commit();
     }
+    end_session();
 }
 
 int main(int argc, char** argv)
 {
     gaia_log::initialize({});
 
-    if (argc != 2)
-    {
-        gaia_log::db().critical("You must specify the gaia_se_server path. eg:\n\n "
-                                " test_recovery \"production/build/db/storage_engine\"");
-        exit(1);
-    }
+    //    if (argc != 2)
+    //    {
+    //        gaia_log::db().critical("You must specify the gaia_se_server path. eg:\n\n "
+    //                                " test_recovery \"production/build/db/storage_engine\"");
+    //        exit(1);
+    //    }
 
     ::testing::InitGoogleTest(&argc, argv);
-    g_server_dir_path = argv[1];
+    g_server_dir_path = "/home/simone/repos/GaiaPlatform/production/cmake-build-debug/db/storage_engine/"; //argv[1];
     return RUN_ALL_TESTS();
 }
