@@ -505,8 +505,13 @@ void catalog_manager_t::drop_table(
         txn.commit();
     }
 
-    // Invalidate catalog caches.
-    m_table_names.erase(full_table_name);
+    {
+        // Invalidate catalog caches.
+        m_table_names.erase(full_table_name);
+
+        auto_transaction_t txn;
+        type_registry_t::instance().remove(table_id);
+    }
 }
 
 static gaia_ptr insert_gaia_table_row(

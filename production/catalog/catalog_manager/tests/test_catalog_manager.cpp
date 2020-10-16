@@ -275,22 +275,22 @@ TEST_F(catalog_manager_test, drop_table_not_exist)
 }
 
 // TODO this test should fail, you should first delete the field (which is currently not supported)
-//TEST_F(catalog_manager_test, drop_table_with_self_reference)
-//{
-//    string test_table_name{"self_ref_table"};
-//    ddl::field_def_list_t fields;
-//    fields.emplace_back(make_unique<ddl::field_definition_t>("self_ref", data_type_t::e_references, 1));
-//    fields.back()->table_type_name = test_table_name;
-//    gaia_id_t table_id = create_table(test_table_name, fields);
-//    check_table_name(table_id, test_table_name);
-//
-//    drop_table(test_table_name);
-//    {
-//        auto_transaction_t txn;
-//        auto table = gaia_table_t::get(table_id);
-//        EXPECT_FALSE(table);
-//    }
-//}
+TEST_F(catalog_manager_test, DISABLED_drop_table_with_self_reference)
+{
+    string test_table_name{"self_ref_table"};
+    ddl::field_def_list_t fields;
+    fields.emplace_back(make_unique<ddl::field_definition_t>("self_ref", data_type_t::e_references, 1));
+    fields.back()->table_type_name = test_table_name;
+    gaia_id_t table_id = create_table(test_table_name, fields);
+    check_table_name(table_id, test_table_name);
+
+    drop_table(test_table_name);
+    {
+        auto_transaction_t txn;
+        auto table = gaia_table_t::get(table_id);
+        EXPECT_FALSE(table);
+    }
+}
 
 TEST_F(catalog_manager_test, drop_table_parent_reference_fail)
 {

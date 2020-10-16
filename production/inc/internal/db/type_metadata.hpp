@@ -11,7 +11,6 @@
 #include <sstream>
 #include <unordered_map>
 
-//#include "catalog_manager.hpp"
 #include "gaia_exception.hpp"
 #include "gaia_relationships.hpp"
 
@@ -95,8 +94,8 @@ public:
 
 /**
  * Maintain the instances of type_metadata_t and manages their lifecycle.
- * type_metadata_t should be created/edited/deleted only by the catalog (with the
- * exception of tests).
+ * type_metadata_t should be created/edited/deleted only by the catalog (with
+ * the exception of tests).
  */
 class type_registry_t
 {
@@ -174,127 +173,5 @@ private:
     //ensures exclusive access to the registry
     shared_mutex m_registry_lock;
 };
-
-///**
-// * Facilitate the creation of relationship objects and their insertion into
-// * the registry.
-// */
-//class relationship_builder_t
-//{
-//public:
-//    static relationship_builder_t one_to_one()
-//    {
-//        auto metadata = relationship_builder_t();
-//        metadata.m_cardinality = cardinality_t::one;
-//        return metadata;
-//    }
-//
-//    static relationship_builder_t one_to_many()
-//    {
-//        auto metadata = relationship_builder_t();
-//        metadata.m_cardinality = cardinality_t::many;
-//        return metadata;
-//    }
-//
-//    relationship_builder_t& parent(gaia_type_t parent)
-//    {
-//        this->m_parent_type = parent;
-//        return *this;
-//    }
-//
-//    relationship_builder_t& child(gaia_type_t child)
-//    {
-//        this->m_child_type = child;
-//        return *this;
-//    }
-//
-//    relationship_builder_t& first_child_offset(reference_offset_t first_child_offset)
-//    {
-//        this->m_first_child_offset = first_child_offset;
-//        return *this;
-//    }
-//
-//    relationship_builder_t& next_child_offset(reference_offset_t next_child_offset)
-//    {
-//        this->m_next_child_offset = next_child_offset;
-//        return *this;
-//    }
-//
-//    relationship_builder_t& parent_offset(reference_offset_t parent_offset)
-//    {
-//        this->m_parent_offset = parent_offset;
-//        return *this;
-//    }
-//
-//    relationship_builder_t& require_parent(bool parent_required)
-//    {
-//        this->m_parent_required = parent_required;
-//        return *this;
-//    }
-//
-//    // Creates all the object necessary to describe the relationship and
-//    // updates the type registry.
-//    void create_relationship()
-//    {
-//        if (m_parent_type == INVALID_GAIA_TYPE)
-//        {
-//            throw invalid_argument("parent_type must be set");
-//        }
-//
-//        if (m_child_type == INVALID_GAIA_TYPE)
-//        {
-//            throw invalid_argument("child_type must be set");
-//        }
-//
-//        if (m_cardinality == cardinality_t::not_set)
-//        {
-//            throw invalid_argument("cardinality must be set");
-//        }
-//
-//        if (m_first_child_offset == INVALID_REFERENCE_OFFSET)
-//        {
-//            throw invalid_argument("first_child_offset must be set");
-//        }
-//
-//        if (m_next_child_offset == INVALID_REFERENCE_OFFSET)
-//        {
-//            throw invalid_argument("next_child_offset must be set");
-//        }
-//
-//        if (m_parent_offset == INVALID_REFERENCE_OFFSET)
-//        {
-//            throw invalid_argument("parent_offset must be set");
-//        }
-//
-//        auto rel = make_shared<relationship_t>(relationship_t{
-//            .parent_type = this->m_parent_type,
-//            .child_type = this->m_child_type,
-//            .first_child_offset = this->m_first_child_offset,
-//            .next_child_offset = this->m_next_child_offset,
-//            .parent_offset = this->m_parent_offset,
-//            .cardinality = this->m_cardinality,
-//            .parent_required = this->m_parent_required});
-//
-//        auto& parent_meta = type_registry_t::instance().get_or_create(m_parent_type);
-//        parent_meta.add_parent_relationship(m_first_child_offset, rel);
-//
-//        auto& child_meta = type_registry_t::instance().get_or_create(m_child_type);
-//        child_meta.add_child_relationship(m_parent_offset, rel);
-//    }
-//
-//private:
-//    relationship_builder_t() = default;
-//
-//    // mandatory values
-//    cardinality_t m_cardinality = cardinality_t::not_set;
-//    gaia_type_t m_parent_type = INVALID_GAIA_TYPE;
-//    gaia_type_t m_child_type = INVALID_GAIA_TYPE;
-//
-//    // default values add methods for those.
-//    bool m_parent_required = false;
-//    reference_offset_t m_first_child_offset = INVALID_REFERENCE_OFFSET;
-//    reference_offset_t m_next_child_offset = INVALID_REFERENCE_OFFSET;
-//    reference_offset_t m_parent_offset = INVALID_REFERENCE_OFFSET;
-//};
 
 } // namespace gaia::db
