@@ -275,8 +275,7 @@ TEST_F(catalog_manager_test, drop_table_not_exist)
     EXPECT_THROW(drop_table(test_table_name), table_not_exists);
 }
 
-// TODO this test should fail, you should first delete the field (which is currently not supported)
-TEST_F(catalog_manager_test, DISABLED_drop_table_with_self_reference)
+TEST_F(catalog_manager_test, drop_table_with_self_reference)
 {
     string test_table_name{"self_ref_table"};
     ddl::field_def_list_t fields;
@@ -305,7 +304,6 @@ TEST_F(catalog_manager_test, drop_table_parent_reference_fail)
     child_fields.emplace_back(make_unique<ddl::field_definition_t>("parent", data_type_t::e_references, 1, "parent_table"));
     create_table(child_table_name, child_fields);
 
-    // should throw an exception
     EXPECT_THROW(
         drop_table(parent_table_name),
         referential_integrity_violation);

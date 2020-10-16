@@ -342,14 +342,20 @@ gaia_id_t catalog_manager_t::create_table(
 void drop_relationship_no_ri(gaia_relationship_t relationship)
 {
     // unlink parent
-    relationship.parent_gaia_table()
-        .parent_gaia_relationship_list()
-        .erase(relationship);
+    if (relationship.parent_gaia_table())
+    {
+        relationship.parent_gaia_table()
+            .parent_gaia_relationship_list()
+            .erase(relationship);
+    }
 
     // unlink child
-    relationship.child_gaia_field()
-        .child_gaia_relationship_list()
-        .erase(relationship);
+    if (relationship.child_gaia_field())
+    {
+        relationship.child_gaia_field()
+            .child_gaia_relationship_list()
+            .erase(relationship);
+    }
 
     relationship.delete_row();
 }
@@ -368,21 +374,22 @@ void catalog_manager_t::drop_relationships_no_txn(gaia_id_t table_id, bool refer
             continue;
         }
 
-        // The link with the children still exists, fail.
-        if (relationship.child_gaia_field())
+        // The link with the children still exists, and it is not a self-reference, fail.
+        if (relationship.child_gaia_field()
+            && (relationship.child_gaia_field().gaia_table().gaia_id() != table_id))
         {
             throw referential_integrity_violation::drop_parent_table(
                 table_record.name(),
                 relationship.child_gaia_field().gaia_table().name());
         }
 
-        // The child side of this relationship has already been deleted.
-        // Now we are deleting the parent, hence the relationship object
-        // can be deleted too
-        relationship.parent_gaia_table()
-            .parent_gaia_relationship_list()
-            .erase(relationship);
-        relationship.delete_row();
+        // There are 2 options here:
+        // 1. The child side of this relationship has already been deleted.
+        //    Now we are deleting the parent, hence the relationship object
+        //    can be deleted too
+        // 2. This is a self-reference hence both links have to be removed
+        //    before deleting it.
+        drop_relationship_no_ri(relationship);
     }
 
     // unlink the child side of the relationship
