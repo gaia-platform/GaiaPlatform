@@ -161,6 +161,7 @@ void catalog_manager_t::bootstrap_catalog()
         //  - table_t::gaia_field_list() which is arguably ugly could be table_t::fields()
         //  - database_t::gaia_table_list() which is arguably ugly could be database_t::fields()
         //  I will remove this comment and create a JIRA before pushing the code.
+        fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<field_definition_t>("parent", data_type_t::e_references, 1, "catalog.gaia_table"));
         fields.emplace_back(make_unique<field_definition_t>("child", data_type_t::e_references, 1, "catalog.gaia_field"));
         fields.emplace_back(make_unique<field_definition_t>("cardinality", data_type_t::e_uint8, 1));
@@ -728,7 +729,11 @@ gaia_id_t catalog_manager_t::create_table_impl(
             uint8_t parent_available_offset = find_available_offset(parent_table);
             uint8_t child_max_offset = find_available_offset(table);
 
+            stringstream relationship_name;
+            relationship_name << parent_table.name() << "->" << table.name() << "." << child_field.name();
+
             gaia_id_t relationship_id = gaia_relationship_t::insert_row(
+                relationship_name.str().c_str(),                    // name
                 static_cast<uint8_t>(2),                            // cardinality
                 false,                                              // parent_required
                 false,                                              // deprecated

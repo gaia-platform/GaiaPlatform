@@ -14,6 +14,7 @@
 #include "gaia_catalog_internal.hpp"
 #include "gaia_db.hpp"
 #include "gaia_parser.hpp"
+#include "logger.hpp"
 
 using namespace std;
 using namespace gaia::catalog;
@@ -177,6 +178,8 @@ void LogCompilerError(const std::string& err)
 
 int main(int argc, char* argv[])
 {
+    gaia_log::initialize({});
+
     int res = EXIT_SUCCESS;
     db_server_t server;
     string output_path;

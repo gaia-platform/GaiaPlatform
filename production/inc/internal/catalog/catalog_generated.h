@@ -224,6 +224,7 @@ flatbuffers::Offset<gaia_ruleset> Creategaia_ruleset(flatbuffers::FlatBufferBuil
 
 struct gaia_relationshipT : public flatbuffers::NativeTable {
   typedef gaia_relationship TableType;
+  gaia::direct_access::nullable_string_t name;
   uint8_t cardinality;
   bool parent_required;
   bool deprecated;
@@ -244,13 +245,17 @@ struct gaia_relationship FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef gaia_relationshipT NativeTableType;
   typedef gaia_relationshipBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_CARDINALITY = 4,
-    VT_PARENT_REQUIRED = 6,
-    VT_DEPRECATED = 8,
-    VT_FIRST_CHILD_OFFSET = 10,
-    VT_NEXT_CHILD_OFFSET = 12,
-    VT_PARENT_OFFSET = 14
+    VT_NAME = 4,
+    VT_CARDINALITY = 6,
+    VT_PARENT_REQUIRED = 8,
+    VT_DEPRECATED = 10,
+    VT_FIRST_CHILD_OFFSET = 12,
+    VT_NEXT_CHILD_OFFSET = 14,
+    VT_PARENT_OFFSET = 16
   };
+  const flatbuffers::String *name() const {
+    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  }
   uint8_t cardinality() const {
     return GetField<uint8_t>(VT_CARDINALITY, 0);
   }
@@ -271,6 +276,8 @@ struct gaia_relationship FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_NAME) &&
+           verifier.VerifyString(name()) &&
            VerifyField<uint8_t>(verifier, VT_CARDINALITY) &&
            VerifyField<uint8_t>(verifier, VT_PARENT_REQUIRED) &&
            VerifyField<uint8_t>(verifier, VT_DEPRECATED) &&
@@ -288,6 +295,9 @@ struct gaia_relationshipBuilder {
   typedef gaia_relationship Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
+  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
+    fbb_.AddOffset(gaia_relationship::VT_NAME, name);
+  }
   void add_cardinality(uint8_t cardinality) {
     fbb_.AddElement<uint8_t>(gaia_relationship::VT_CARDINALITY, cardinality, 0);
   }
@@ -320,6 +330,7 @@ struct gaia_relationshipBuilder {
 
 inline flatbuffers::Offset<gaia_relationship> Creategaia_relationship(
     flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> name = 0,
     uint8_t cardinality = 0,
     bool parent_required = false,
     bool deprecated = false,
@@ -327,6 +338,7 @@ inline flatbuffers::Offset<gaia_relationship> Creategaia_relationship(
     uint8_t next_child_offset = 0,
     uint8_t parent_offset = 0) {
   gaia_relationshipBuilder builder_(_fbb);
+  builder_.add_name(name);
   builder_.add_parent_offset(parent_offset);
   builder_.add_next_child_offset(next_child_offset);
   builder_.add_first_child_offset(first_child_offset);
@@ -334,6 +346,27 @@ inline flatbuffers::Offset<gaia_relationship> Creategaia_relationship(
   builder_.add_parent_required(parent_required);
   builder_.add_cardinality(cardinality);
   return builder_.Finish();
+}
+
+inline flatbuffers::Offset<gaia_relationship> Creategaia_relationshipDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const char *name = nullptr,
+    uint8_t cardinality = 0,
+    bool parent_required = false,
+    bool deprecated = false,
+    uint8_t first_child_offset = 0,
+    uint8_t next_child_offset = 0,
+    uint8_t parent_offset = 0) {
+  auto name__ = name ? _fbb.CreateString(name) : 0;
+  return gaia::catalog::Creategaia_relationship(
+      _fbb,
+      name__,
+      cardinality,
+      parent_required,
+      deprecated,
+      first_child_offset,
+      next_child_offset,
+      parent_offset);
 }
 
 flatbuffers::Offset<gaia_relationship> Creategaia_relationship(flatbuffers::FlatBufferBuilder &_fbb, const gaia_relationshipT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -705,6 +738,7 @@ inline gaia_relationshipT *gaia_relationship::UnPack(const flatbuffers::resolver
 inline void gaia_relationship::UnPackTo(gaia_relationshipT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
+  { auto _e = name(); if (_e) _o->name = gaia::direct_access::nullable_string_t(_e->c_str(), _e->size()); }
   { auto _e = cardinality(); _o->cardinality = _e; }
   { auto _e = parent_required(); _o->parent_required = _e; }
   { auto _e = deprecated(); _o->deprecated = _e; }
@@ -721,6 +755,7 @@ inline flatbuffers::Offset<gaia_relationship> Creategaia_relationship(flatbuffer
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const gaia_relationshipT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _name = _o->name.empty() ? 0 : _fbb.CreateString(_o->name);
   auto _cardinality = _o->cardinality;
   auto _parent_required = _o->parent_required;
   auto _deprecated = _o->deprecated;
@@ -729,6 +764,7 @@ inline flatbuffers::Offset<gaia_relationship> Creategaia_relationship(flatbuffer
   auto _parent_offset = _o->parent_offset;
   return gaia::catalog::Creategaia_relationship(
       _fbb,
+      _name,
       _cardinality,
       _parent_required,
       _deprecated,
@@ -840,3 +876,4 @@ inline flatbuffers::Offset<gaia_database> Creategaia_database(flatbuffers::FlatB
 }  // namespace gaia
 
 #endif  // FLATBUFFERS_GENERATED_CATALOG_GAIA_CATALOG_H_
+

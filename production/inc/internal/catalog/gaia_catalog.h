@@ -223,6 +223,7 @@ private:
 typedef gaia_writer_t<18446744073709551610llu,gaia_relationship_t,gaia_relationship,gaia_relationshipT,c_num_gaia_relationship_ptrs> gaia_relationship_writer;
 struct gaia_relationship_t : public gaia_object_t<18446744073709551610llu,gaia_relationship_t,gaia_relationship,gaia_relationshipT,c_num_gaia_relationship_ptrs> {
     gaia_relationship_t() : gaia_object_t("gaia_relationship_t") {}
+    const char* name() const {return GET_STR(name);}
     uint8_t cardinality() const {return GET(cardinality);}
     bool parent_required() const {return GET(parent_required);}
     bool deprecated() const {return GET(deprecated);}
@@ -230,9 +231,9 @@ struct gaia_relationship_t : public gaia_object_t<18446744073709551610llu,gaia_r
     uint8_t next_child_offset() const {return GET(next_child_offset);}
     uint8_t parent_offset() const {return GET(parent_offset);}
     using gaia_object_t::insert_row;
-    static gaia_id_t insert_row(uint8_t cardinality, bool parent_required, bool deprecated, uint8_t first_child_offset, uint8_t next_child_offset, uint8_t parent_offset) {
+    static gaia_id_t insert_row(const char* name, uint8_t cardinality, bool parent_required, bool deprecated, uint8_t first_child_offset, uint8_t next_child_offset, uint8_t parent_offset) {
         flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
-        b.Finish(Creategaia_relationship(b, cardinality, parent_required, deprecated, first_child_offset, next_child_offset, parent_offset));
+        b.Finish(Creategaia_relationshipDirect(b, name, cardinality, parent_required, deprecated, first_child_offset, next_child_offset, parent_offset));
         return gaia_object_t::insert_row(b);
     }
     gaia_table_t parent_gaia_table() {

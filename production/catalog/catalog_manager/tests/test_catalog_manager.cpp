@@ -447,6 +447,7 @@ TEST_F(catalog_manager_test, create_relationships)
 
     ASSERT_EQ(clinic_doctor_relationship.gaia_id(), clinic_doctor_relationship2.gaia_id());
 
+    ASSERT_STREQ("clinic->doctor.clinic", clinic_doctor_relationship.name());
     ASSERT_EQ(uint8_t{0}, clinic_doctor_relationship.first_child_offset()); // clinic
     ASSERT_EQ(uint8_t{0}, clinic_doctor_relationship.next_child_offset());  // doctor
     ASSERT_EQ(uint8_t{1}, clinic_doctor_relationship.parent_offset());      // doctor
@@ -461,6 +462,7 @@ TEST_F(catalog_manager_test, create_relationships)
 
     ASSERT_EQ(doctor_patient_relationship.gaia_id(), doctor_patient_relationship2.gaia_id());
 
+    ASSERT_STREQ("doctor->patient.doctor", doctor_patient_relationship.name());
     ASSERT_EQ(uint8_t{2}, doctor_patient_relationship.first_child_offset()); // doctor
     ASSERT_EQ(uint8_t{0}, doctor_patient_relationship.next_child_offset());  // patient
     ASSERT_EQ(uint8_t{1}, doctor_patient_relationship.parent_offset());      // patient
@@ -475,6 +477,7 @@ TEST_F(catalog_manager_test, create_relationships)
 
     ASSERT_EQ(clinic_patient_relationship.gaia_id(), clinic_patient_relationship2.gaia_id());
 
+    ASSERT_STREQ("clinic->patient.clinic", clinic_patient_relationship.name());
     ASSERT_EQ(uint8_t{1}, clinic_patient_relationship.first_child_offset()); // clinic
     ASSERT_EQ(uint8_t{2}, clinic_patient_relationship.next_child_offset());  // patient
     ASSERT_EQ(uint8_t{3}, clinic_patient_relationship.parent_offset());      // patient
