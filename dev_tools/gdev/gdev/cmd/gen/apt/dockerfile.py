@@ -19,12 +19,12 @@ class GenAptDockerfile(GenAbcDockerfile):
 
     @memoize
     async def get_run_section(self) -> str:
-        if lines := await self.cfg.get_lines():
+        if section_lines := await self.cfg.get_section_lines():
             run_section = (
                     'RUN apt-get update'
                     + ' \\\n    && DEBIAN_FRONTEND=noninteractive apt-get install -y'
                     + ' \\\n        '
-                    + ' \\\n        '.join(lines)
+                    + ' \\\n        '.join(section_lines)
                     + ' \\\n    && apt-get clean'
             )
         else:

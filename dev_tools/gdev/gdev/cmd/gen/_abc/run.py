@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 import os
 import shlex
 import sys
-from typing import Iterable
 
 from gdev.custom.pathlib import Path
 from gdev.dependency import Dependency

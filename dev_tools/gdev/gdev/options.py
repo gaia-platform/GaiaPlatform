@@ -18,6 +18,7 @@ class Mount:
 class Options:
     args: str
     base_image: str
+    cfg_enables: FrozenSet[str]
     force: bool
     log_level: str
     mixins: FrozenSet[str]

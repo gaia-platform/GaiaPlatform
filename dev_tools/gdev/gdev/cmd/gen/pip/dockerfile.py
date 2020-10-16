@@ -19,10 +19,10 @@ class GenPipDockerfile(GenAbcDockerfile):
 
     @memoize
     async def get_run_section(self) -> str:
-        if lines := await self.cfg.get_lines():
+        if section_lines := await self.cfg.get_section_lines():
             run_section = (
                 'RUN python3 -m pip install '
-                + ' \\\n        '.join(lines)
+                + ' \\\n        '.join(section_lines)
                 + ' \\\n    && apt-get remove --autoremove -y python3-pip'
             )
         else:
