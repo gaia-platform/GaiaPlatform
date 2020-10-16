@@ -13,6 +13,7 @@ using namespace gaia::db::memory_manager;
 stack_allocator_t::stack_allocator_t()
 {
     m_metadata = nullptr;
+    m_has_been_freed = false;
 }
 
 error_code_t stack_allocator_t::initialize(
@@ -281,6 +282,16 @@ address_offset_t stack_allocator_t::calculate_next_allocation_offset() const
     }
 
     return next_allocation_offset;
+}
+
+void stack_allocator_t::mark_as_freed()
+{
+    m_has_been_freed = true;
+}
+
+bool stack_allocator_t::has_been_freed()
+{
+    return m_has_been_freed;
 }
 
 void stack_allocator_t::output_debugging_information(const string& context_description) const

@@ -64,12 +64,21 @@ public:
     // Calculate the offset where we can make the next allocation.
     address_offset_t calculate_next_allocation_offset() const;
 
+    // Mark the allocator as freed.
+    void mark_as_freed();
+
+    // Check whether the allocator has already been freed.
+    bool has_been_freed();
+
     // Public, so it can get called by the memory manager.
     void output_debugging_information(const std::string& context_description) const;
 
 private:
     // A pointer to our metadata information, stored at the end of the memory block that we manage.
     stack_allocator_metadata_t* m_metadata;
+
+    // For protecting against double freeing.
+    bool m_has_been_freed;
 
 private:
     // Initialize the stack_allocator_t with a specific memory buffer from which to allocate memory.

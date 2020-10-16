@@ -164,6 +164,10 @@ TEST(memory_manager, advanced_operation)
     error_code = memory_manager.free_stack_allocator(stack_allocator);
     ASSERT_EQ(error_code_t::success, error_code);
 
+    // Verify that double freeing fails.
+    error_code = memory_manager.free_stack_allocator(stack_allocator);
+    ASSERT_EQ(error_code_t::invalid_argument_value, error_code);
+
     // Test allocating from freed memory.
     // First, we reclaim a full freed block.
     address_offset_t offset_first_free_allocation = c_invalid_offset;

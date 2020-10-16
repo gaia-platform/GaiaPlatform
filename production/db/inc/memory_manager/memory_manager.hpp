@@ -38,14 +38,13 @@ public:
     error_code_t allocate(size_t memory_size, address_offset_t& allocated_memory_offset);
 
     // Allocates a new block of memory.
-    // This is used both for allocating memory blocks to be used with stack allocators.
+    // This is used for allocating memory blocks to be used with stack allocators.
     // These allocations are NOT prefixed with a metadata block.
     error_code_t allocate_raw(size_t memory_size, address_offset_t& allocated_memory_offset);
 
     // Adds the stack allocator's unused memory to the list of free memory.
     error_code_t free_stack_allocator(
-        const std::unique_ptr<stack_allocator_t>& stack_allocator,
-        bool free_everything = false);
+        const std::unique_ptr<stack_allocator_t>& stack_allocator);
 
 private:
     // This structure is used for tracking information about a memory block.

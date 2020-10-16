@@ -117,17 +117,17 @@ error_code_t memory_manager_t::allocate_internal(
 }
 
 error_code_t memory_manager_t::free_stack_allocator(
-    const unique_ptr<stack_allocator_t>& stack_allocator,
-    bool free_everything)
+    const unique_ptr<stack_allocator_t>& stack_allocator)
 {
-    if (stack_allocator == nullptr)
+    if (stack_allocator == nullptr
+        || stack_allocator->has_been_freed())
     {
         return error_code_t::invalid_argument_value;
     }
 
     size_t count_allocations = stack_allocator->get_allocation_count();
 
-    if (free_everything || count_allocations == 0)
+    if (count_allocations == 0)
     {
         // Mark the entire memory block as free.
         //
@@ -186,6 +186,10 @@ error_code_t memory_manager_t::free_stack_allocator(
             start_memory_offset,
             memory_size);
     }
+
+    // This doesn't prevent another copy of this stack allocator from attempting to do a redundant free,
+    // but it's better than no protection at all.
+    stack_allocator->mark_as_freed();
 
     if (m_execution_flags.enable_console_output)
     {

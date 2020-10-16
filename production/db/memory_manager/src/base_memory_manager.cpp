@@ -73,13 +73,17 @@ error_code_t base_memory_manager_t::validate_address(const uint8_t* const memory
 
 error_code_t base_memory_manager_t::validate_offset(address_offset_t memory_offset) const
 {
+    if (memory_offset == c_invalid_offset)
+    {
+        return error_code_t::invalid_memory_offset;
+    }
+
     if (!validate_offset_alignment(memory_offset))
     {
         return error_code_t::memory_offset_not_aligned;
     }
 
-    if (memory_offset == c_invalid_offset
-        || memory_offset < m_base_memory_offset
+    if (memory_offset < m_base_memory_offset
         || memory_offset > m_base_memory_offset + m_total_memory_size)
     {
         return error_code_t::memory_offset_out_of_range;

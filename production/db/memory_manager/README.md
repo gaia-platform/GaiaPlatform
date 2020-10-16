@@ -12,11 +12,11 @@ The Memory Manager contains two main components: the memory manager itself and a
   * After the data is loaded, during normal database operations, the memory manager is mainly used to allocate memory for stack allocators and to free their unused memory.
   * During the freeing of the unused stack allocator memory, the memory manager will also collect all released memory (the old versions of updated entities) and will mark them as free.
 * Stack allocator (SA) component:
-  * This is used during normal database operation, to allocate memory within a transaction from a large block that is managed through the stack allocator. It is also use to deallocate older allocations.
+  * This is used during normal database operation, to allocate memory within a transaction from a large block that is managed through the stack allocator. It is also used to deallocate older allocations.
   * It supports rollback of the last allocations/deletions.
   * Its metadata is public, to allow it to be processed by different components.
   * Given that only a part of the memory managed by the stack allocator will be used by its corresponding transaction, the remainder will be freed by a call to the MM.
-  * A stack allocator is allocated on the heap and is meant to be used by a single thread at a time (but could be used by multiple threads sequentially).
+  * A stack allocator is allocated on the heap and is meant to be used by a single thread at a time.
 
 The MM is a server component. The SA can be initialized on either server or client. On client it can manage the memory assigned to the client session. On server it can be initialized to help read the memory written by a client.
 
@@ -43,7 +43,7 @@ The MM is a server component. The SA can be initialized on either server or clie
     * The count of allocations made so far.
     * The memory location where the next allocation can be made.
 * MM memory allocation
-  * Each block allocated by the MM using allocate() (but not allocate_raw()) is prefixed by a small metadata block that records its size. This allows us to find the size of an allocation given its starting offset.
+  * Each block allocated by the MM using allocate() is prefixed by a small metadata block that records its size. This allows us to find the size of an allocation given its starting offset. This behavior differentiates allocate() from allocate_raw().
 
 ### Access synchronization
 
