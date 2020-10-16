@@ -286,6 +286,24 @@ public:
     }
 };
 
+class referential_integrity_violation : public gaia::common::gaia_exception
+{
+public:
+    explicit referential_integrity_violation(const string& message)
+    {
+        m_message = message;
+    }
+
+    static referential_integrity_violation drop_parent_table(
+        const string& parent_table,
+        const string& child_table)
+    {
+        stringstream message;
+        message << "Cannot drop table \"" << parent_table << "\" because it is referenced by \"" << child_table << "\"";
+        return referential_integrity_violation{message.str()};
+    }
+};
+
 /**
  * Initialize the catalog.
 */

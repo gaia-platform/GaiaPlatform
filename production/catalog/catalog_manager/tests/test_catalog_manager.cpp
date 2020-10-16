@@ -17,6 +17,68 @@
 using namespace gaia::catalog;
 using namespace std;
 
+/*
+ * Utilities
+ */
+
+template <typename T_container>
+size_t container_size(T_container container)
+{
+    size_t size{0};
+    auto first = container.begin();
+    auto last = container.end();
+
+    for (; first != last; ++first)
+    {
+        ++size;
+    }
+
+    return size;
+}
+
+template <typename T_container>
+gaia_field_t find_field(T_container fields, const std::string& field_name)
+{
+    auto it = std::find_if(fields.begin(), fields.end(), [&](const gaia_field_t& field) {
+        return field_name == field.name();
+    });
+
+    if (it == fields.end())
+    {
+        throw gaia_exception(std::string("Expected field not found: ") + field_name);
+    }
+
+    return *it;
+}
+
+template <typename T_container>
+gaia_relationship_t find_relationship(
+    T_container relationships,
+    const std::string& parent_table,
+    const std::string& child_table,
+    const std::string& child_field)
+{
+
+    auto it = std::find_if(relationships.begin(), relationships.end(), [&](gaia_relationship_t relationship) {
+        return relationship.parent_gaia_table().name() == parent_table
+            && relationship.child_gaia_field().name() == child_field
+            && relationship.child_gaia_field().gaia_table().name() == child_table;
+    });
+
+    if (it == relationships.end())
+    {
+        stringstream message;
+        message << "Expected relationship not found: " << parent_table << " --> " << child_table << "." << child_field;
+        throw gaia_exception(message.str());
+    }
+
+    return *it;
+}
+
+/*
+ * Tests
+ */
+
 class catalog_manager_test : public db_test_base_t
 {
 protected:
@@ -212,24 +274,25 @@ TEST_F(catalog_manager_test, drop_table_not_exist)
     EXPECT_THROW(drop_table(test_table_name), table_not_exists);
 }
 
-TEST_F(catalog_manager_test, drop_table_with_self_reference)
-{
-    string test_table_name{"self_ref_table"};
-    ddl::field_def_list_t fields;
-    fields.emplace_back(make_unique<ddl::field_definition_t>("self_ref", data_type_t::e_references, 1));
-    fields.back()->table_type_name = test_table_name;
-    gaia_id_t table_id = create_table(test_table_name, fields);
-    check_table_name(table_id, test_table_name);
+// TODO this test should fail, you should first delete the field (which is currently not supported)
+//TEST_F(catalog_manager_test, drop_table_with_self_reference)
+//{
+//    string test_table_name{"self_ref_table"};
+//    ddl::field_def_list_t fields;
+//    fields.emplace_back(make_unique<ddl::field_definition_t>("self_ref", data_type_t::e_references, 1));
+//    fields.back()->table_type_name = test_table_name;
+//    gaia_id_t table_id = create_table(test_table_name, fields);
+//    check_table_name(table_id, test_table_name);
+//
+//    drop_table(test_table_name);
+//    {
+//        auto_transaction_t txn;
+//        auto table = gaia_table_t::get(table_id);
+//        EXPECT_FALSE(table);
+//    }
+//}
 
-    drop_table(test_table_name);
-    {
-        auto_transaction_t txn;
-        auto table = gaia_table_t::get(table_id);
-        EXPECT_FALSE(table);
-    }
-}
-
-TEST_F(catalog_manager_test, drop_table_parent_reference)
+TEST_F(catalog_manager_test, drop_table_parent_reference_fail)
 {
     string parent_table_name{"parent_table"};
     ddl::field_def_list_t parent_fields;
@@ -237,15 +300,56 @@ TEST_F(catalog_manager_test, drop_table_parent_reference)
 
     string child_table_name{"child_table"};
     ddl::field_def_list_t child_fields;
-    gaia_id_t child_table_id = create_table(child_table_name, child_fields);
     child_fields.emplace_back(make_unique<ddl::field_definition_t>("parent", data_type_t::e_references, 1, "parent_table"));
+    create_table(child_table_name, child_fields);
+
+    // should throw an exception
+    EXPECT_THROW(
+        drop_table(parent_table_name),
+        referential_integrity_violation);
+
+    auto_transaction_t txn;
+    auto table = gaia_table_t::get(parent_table_id);
+    EXPECT_TRUE(table);
+    ASSERT_EQ(1, container_size(table.parent_gaia_relationship_list()));
+}
+
+TEST_F(catalog_manager_test, drop_table_child_reference)
+{
+    string parent_table_name{"parent_table"};
+    ddl::field_def_list_t parent_fields;
+    gaia_id_t parent_table_id = create_table(parent_table_name, parent_fields);
+
+    string child_table_name{"child_table"};
+    ddl::field_def_list_t child_fields;
+    child_fields.emplace_back(make_unique<ddl::field_definition_t>("parent", data_type_t::e_references, 1, "parent_table"));
+    gaia_id_t child_table_id = create_table(child_table_name, child_fields);
+
+    begin_transaction();
+    gaia_table_t parent_table = gaia_table_t::get(parent_table_id);
+    gaia_table_t child_table = gaia_table_t::get(child_table_id);
+    commit_transaction();
 
     drop_table(child_table_name);
-    {
-        auto_transaction_t txn;
-        auto table = gaia_table_t::get(child_table_id);
-        EXPECT_FALSE(table);
-    }
+
+    begin_transaction();
+    EXPECT_FALSE(gaia_table_t::get(child_table_id));
+
+    // the relationship has been marked deprecated and the child has been unlinked.
+    ASSERT_EQ(1, container_size(parent_table.parent_gaia_relationship_list()));
+    gaia_relationship_t relationship = *parent_table.parent_gaia_relationship_list().begin();
+    gaia_id_t relationship_id = relationship.gaia_id();
+
+    ASSERT_TRUE(relationship.deprecated());
+    EXPECT_FALSE(relationship.child_gaia_field());
+    commit_transaction();
+
+    drop_table(parent_table_name);
+
+    begin_transaction();
+    EXPECT_FALSE(gaia_table_t::get(parent_table_id));
+    EXPECT_FALSE(gaia_relationship_t::get(relationship_id));
+    commit_transaction();
 }
 
 TEST_F(catalog_manager_test, drop_database)
@@ -277,60 +381,6 @@ TEST_F(catalog_manager_test, drop_database)
         EXPECT_FALSE(gaia_table_t::get(test_table_id));
         EXPECT_FALSE(gaia_database_t::get(db_id));
     }
-}
-
-template <typename T_container>
-size_t container_size(T_container container)
-{
-    size_t size{0};
-    auto first = container.begin();
-    auto last = container.end();
-
-    for (; first != last; ++first)
-    {
-        ++size;
-    }
-
-    return size;
-}
-
-template <typename T_container>
-gaia_field_t find_field(T_container fields, const std::string& field_name)
-{
-    auto it = std::find_if(fields.begin(), fields.end(), [&](const gaia_field_t& field) {
-        return field_name == field.name();
-    });
-
-    if (it == fields.end())
-    {
-        throw gaia_exception(std::string("Expected field not found: ") + field_name);
-    }
-
-    return *it;
-}
-
-template <typename T_container>
-gaia_relationship_t find_relationship(
-    T_container relationships,
-    const std::string& parent_table,
-    const std::string& child_table,
-    const std::string& child_field)
-{
-
-    auto it = std::find_if(relationships.begin(), relationships.end(), [&](gaia_relationship_t relationship) {
-        return relationship.parent_gaia_table().name() == parent_table
-            && relationship.child_gaia_field().name() == child_field
-            && relationship.child_gaia_field().gaia_table().name() == child_table;
-    });
-
-    if (it == relationships.end())
-    {
-        stringstream message;
-        message << "Expected relationship not found: " << parent_table << " --> " << child_table << "." << child_field;
-        throw gaia_exception(message.str());
-    }
-
-    return *it;
 }
 
 TEST_F(catalog_manager_test, create_relationships)
@@ -454,13 +504,14 @@ TEST_F(catalog_manager_test, metadata)
     for (gaia_id_t table_id : table_ids)
     {
         gaia_table_t child_table = gaia_table_t::get(table_id);
-
         type_metadata_t metadata = type_registry_t::instance().get(child_table.gaia_id());
 
         for (gaia_field_t field : child_table.gaia_field_list())
         {
             if (field.type() == static_cast<uint8_t>(data_type_t::e_references))
             {
+                gaia_log::catalog().info("field {}.{}", child_table.name(), field.name());
+
                 // we know that for a particular field there is only one relationship.
                 gaia_relationship_t relationship = *field.child_gaia_relationship_list().begin();
                 auto relationship_metadata = metadata.find_child_relationship(relationship.parent_offset());

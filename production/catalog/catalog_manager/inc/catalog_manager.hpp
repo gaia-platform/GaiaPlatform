@@ -44,6 +44,8 @@ public:
 
     vector<gaia::common::gaia_id_t> list_fields(gaia::common::gaia_id_t table_id) const;
     vector<gaia::common::gaia_id_t> list_references(gaia::common::gaia_id_t table_id) const;
+    vector<gaia::common::gaia_id_t> list_parent_relationships(gaia::common::gaia_id_t table_id) const;
+    vector<gaia::common::gaia_id_t> list_child_relationships(gaia::common::gaia_id_t table_id) const;
 
 private:
     // Only internal static creation is allowed
@@ -68,7 +70,12 @@ private:
 
     // Internal drop table implementation. Callers need to acquire a transaction
     // before calling this method.
-    void drop_table_no_txn(gaia::common::gaia_id_t table_id);
+    // If referential integrity is false it does not check referential integrity, fails otherwise.
+    void drop_table_no_txn(gaia::common::gaia_id_t table_id, bool referential_integrity);
+
+    // Drops the relationships associated with this table.
+    // If referential integrity is false it does not check referential integrity, fails otherwise.
+    void drop_relationships_no_txn(gaia::common::gaia_id_t table_id, bool referential_integrity);
 
     // Find the database ID given its name.
     // The method does not use a lock.

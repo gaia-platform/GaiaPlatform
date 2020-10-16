@@ -266,7 +266,7 @@ void register_table_in_metadata(gaia_id_t table_id)
     //  similar is available in the SE (triggers?)
     gaia_table_t child_table = gaia_table_t::get(table_id);
 
-    auto metadata = type_registry_t::instance().get_or_create(table_id);
+    auto& metadata = type_registry_t::instance().get_or_create(table_id);
 
     for (auto& field : child_table.gaia_field_list())
     {
@@ -339,9 +339,92 @@ gaia_id_t catalog_manager_t::create_table(
     return create_table_impl(db_name, name, fields, false, throw_on_exists);
 }
 
-void catalog_manager_t::drop_table_no_txn(gaia_id_t table_id)
+void drop_relationship_no_ri(gaia_relationship_t relationship)
+{
+    // unlink parent
+    relationship.parent_gaia_table()
+        .parent_gaia_relationship_list()
+        .erase(relationship);
+
+    // unlink child
+    relationship.child_gaia_field()
+        .child_gaia_relationship_list()
+        .erase(relationship);
+
+    relationship.delete_row();
+}
+
+void catalog_manager_t::drop_relationships_no_txn(gaia_id_t table_id, bool referential_integrity)
 {
     auto table_record = gaia_table_t::get(table_id);
+
+    for (auto& relationship_id : list_parent_relationships(table_id))
+    {
+        auto relationship = gaia_relationship_t::get(relationship_id);
+
+        if (!referential_integrity)
+        {
+            drop_relationship_no_ri(relationship);
+            continue;
+        }
+
+        // The link with the children still exists, fail.
+        if (relationship.child_gaia_field())
+        {
+            throw referential_integrity_violation::drop_parent_table(
+                table_record.name(),
+                relationship.child_gaia_field().gaia_table().name());
+        }
+
+        // The child side of this relationship has already been deleted.
+        // Now we are deleting the parent, hence the relationship object
+        // can be deleted too
+        relationship.parent_gaia_table()
+            .parent_gaia_relationship_list()
+            .erase(relationship);
+        relationship.delete_row();
+    }
+
+    // unlink the child side of the relationship
+    for (gaia_id_t relationship_id : list_child_relationships(table_id))
+    {
+        auto relationship = gaia_relationship_t::get(relationship_id);
+
+        if (!referential_integrity)
+        {
+            drop_relationship_no_ri(relationship);
+            continue;
+        }
+
+        // If the parent side of the relationship still exists we can't
+        // delete the relationship object. The parent table need to keep
+        // track of the total amount of relationships to correctly
+        // maintain the references array.
+        if (relationship.parent_gaia_table())
+        {
+            // Mark the relationship as deprecated.
+            auto rel_writer = relationship.writer();
+            rel_writer.deprecated = true;
+            rel_writer.update_row();
+
+            // unlink the child side of the relationship.
+            relationship.child_gaia_field()
+                .child_gaia_relationship_list()
+                .erase(relationship);
+        }
+        else
+        {
+            // Parent is already unlinked (maybe the field has been deleted)
+            relationship.delete_row();
+        }
+    }
+}
+
+void catalog_manager_t::drop_table_no_txn(gaia_id_t table_id, bool referential_integrity)
+{
+    auto table_record = gaia_table_t::get(table_id);
+
+    drop_relationships_no_txn(table_id, referential_integrity);
 
     for (gaia_id_t field_id : list_fields(table_id))
     {
@@ -362,10 +445,8 @@ void catalog_manager_t::drop_table_no_txn(gaia_id_t table_id)
         reference_record.delete_row();
     }
 
-    for (relationship_t relationship : table_record.re)
-
-        // Unlink the table from its database.
-        table_record.gaia_database().gaia_table_list().erase(table_record);
+    // Unlink the table from its database.
+    table_record.gaia_database().gaia_table_list().erase(table_record);
     // Remove the table.
     table_record.delete_row();
 }
@@ -388,7 +469,7 @@ void catalog_manager_t::drop_database(const string& name)
         }
         for (gaia_id_t table_id : table_ids)
         {
-            drop_table_no_txn(table_id);
+            drop_table_no_txn(table_id, false);
         }
         db_record.delete_row();
         txn.commit();
@@ -420,7 +501,7 @@ void catalog_manager_t::drop_table(
 
     {
         auto_transaction_t txn;
-        drop_table_no_txn(table_id);
+        drop_table_no_txn(table_id, true);
         txn.commit();
     }
 
@@ -717,6 +798,35 @@ vector<gaia_id_t> catalog_manager_t::list_references(gaia_id_t table_id) const
         }
     }
     return references;
+}
+
+vector<gaia_id_t> catalog_manager_t::list_child_relationships(gaia_id_t table_id) const
+{
+    vector<gaia_id_t> relationships;
+
+    for (gaia_id_t ref_id : list_references(table_id))
+    {
+        for (const gaia_relationship_t& child_relationship :
+             gaia_field_t::get(ref_id).child_gaia_relationship_list())
+        {
+            relationships.push_back(child_relationship.gaia_id());
+        }
+    }
+
+    return relationships;
+}
+
+vector<gaia::common::gaia_id_t> catalog_manager_t::list_parent_relationships(gaia::common::gaia_id_t table_id) const
+{
+    vector<gaia_id_t> relationships;
+
+    for (const gaia_relationship_t& parent_relationship :
+         gaia_table_t::get(table_id).parent_gaia_relationship_list())
+    {
+        relationships.push_back(parent_relationship.gaia_id());
+    }
+
+    return relationships;
 }
 
 } // namespace catalog
