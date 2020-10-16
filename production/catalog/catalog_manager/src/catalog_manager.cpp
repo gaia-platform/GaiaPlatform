@@ -145,7 +145,7 @@ void catalog_manager_t::bootstrap_catalog()
     }
     {
         // create table gaia_relationship (
-        //     parent references gaia_field,
+        //     parent references gaia_table,
         //     child references gaia_field,
         //     cardinality unit8,
         //     parent_required bool,
@@ -508,8 +508,6 @@ void catalog_manager_t::drop_table(
     {
         // Invalidate catalog caches.
         m_table_names.erase(full_table_name);
-
-        auto_transaction_t txn;
         type_registry_t::instance().remove(table_id);
     }
 }
@@ -737,10 +735,7 @@ gaia_id_t catalog_manager_t::create_table_impl(
             parent_table.parent_gaia_relationship_list().insert(relationship_id);
         }
     }
-    gaia::db::commit_transaction();
 
-    // update cache/metadata
-    gaia::db::begin_transaction();
     register_table_in_metadata(table_id);
     gaia::db::commit_transaction();
 
