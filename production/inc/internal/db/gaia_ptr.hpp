@@ -32,14 +32,10 @@ private:
 
 public:
     gaia_ptr(const std::nullptr_t = nullptr)
-        : m_locator(0)
-    {
-    }
+        : m_locator(0){};
 
     gaia_ptr(const gaia_ptr& other)
-        : m_locator(other.m_locator)
-    {
-    }
+        : m_locator(other.m_locator){};
 
     gaia_ptr& operator=(const gaia_ptr& other) = default;
 
@@ -125,6 +121,7 @@ public:
         return gaia_ptr(id);
     }
 
+    // TODO this should either accept a gaia_id_t or be an instance method.
     static void remove(gaia_ptr& node)
     {
         if (!node)
