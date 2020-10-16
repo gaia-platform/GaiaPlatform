@@ -120,6 +120,7 @@ error_code_t memory_manager_t::free_stack_allocator(
     const unique_ptr<stack_allocator_t>& stack_allocator)
 {
     if (stack_allocator == nullptr
+        || stack_allocator->get_base_memory_offset() == c_invalid_offset
         || stack_allocator->has_been_freed())
     {
         return error_code_t::invalid_argument_value;
