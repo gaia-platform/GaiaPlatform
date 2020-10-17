@@ -4,12 +4,11 @@
 /////////////////////////////////////////////
 
 #include <iostream>
+#include <record_list.hpp>
 
 #include "gtest/gtest.h"
 
 #include "db_types.hpp"
-
-#include <record_list.hpp>
 
 using namespace std;
 using namespace gaia::db;
@@ -60,8 +59,7 @@ TEST(storage, record_list)
         }
 
         expected_locator++;
-    }
-    while (record_list_t::move_next(iterator));
+    } while (record_list_t::move_next(iterator));
 
     ASSERT_EQ(true, iterator.at_end());
 
@@ -79,8 +77,7 @@ TEST(storage, record_list)
         ASSERT_EQ(expected_locator, record_list_t::get_record_locator(iterator));
 
         expected_locator += 2;
-    }
-    while (record_list_t::move_next(iterator));
+    } while (record_list_t::move_next(iterator));
 
     ASSERT_EQ(true, iterator.at_end());
 
@@ -108,8 +105,7 @@ TEST(storage, record_list)
             ASSERT_EQ(expected_locator, current_locator);
             expected_locator += 2;
         }
-    }
-    while (record_list_t::move_next(iterator));
+    } while (record_list_t::move_next(iterator));
 
     ASSERT_EQ(true, iterator.at_end());
 }

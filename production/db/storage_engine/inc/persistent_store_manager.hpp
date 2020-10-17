@@ -7,8 +7,8 @@
 
 #include <memory>
 
-#include "gaia_common.hpp"
 #include "db_types.hpp"
+#include "gaia_common.hpp"
 
 // This file provides gaia specific functionality to persist writes to & read from
 // RocksDB during recovery.
@@ -92,5 +92,5 @@ public:
         const void* data);
 };
 
-}
-}
+} // namespace db
+} // namespace gaia

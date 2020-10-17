@@ -5,39 +5,50 @@
 
 #include "gtest/gtest.h"
 
+#include "db_test_base.hpp"
 #include "gaia_db.hpp"
 #include "gaia_ptr.hpp"
-#include "db_test_base.hpp"
 
 using namespace gaia::db;
 
 // duplicated from production/db/storage_engine/inc/storage_engine_server.hpp
 constexpr size_t STREAM_BATCH_SIZE = 1 << 10;
 
-void print_payload(std::ostream& o, size_t size, const char* payload) {
-    if (size) {
+void print_payload(std::ostream& o, size_t size, const char* payload)
+{
+    if (size)
+    {
         o << " Payload: ";
     }
 
-    for (size_t i = 0; i < size; i++) {
-        if ('\\' == payload[i]) {
+    for (size_t i = 0; i < size; i++)
+    {
+        if ('\\' == payload[i])
+        {
             o << "\\\\";
-        } else if (isprint(payload[i])) {
+        }
+        else if (isprint(payload[i]))
+        {
             o << payload[i];
-        } else {
+        }
+        else
+        {
             o << "\\x" << std::setw(2) << std::setfill('0') << std::hex << short(payload[i]) << std::dec;
         }
     }
 }
 
-void print_node(const gaia_ptr& node, bool indent = false) {
-    if (!node) {
+void print_node(const gaia_ptr& node, bool indent = false)
+{
+    if (!node)
+    {
         return;
     }
 
     std::cerr << std::endl;
 
-    if (indent) {
+    if (indent)
+    {
         std::cerr << "  ";
     }
 
@@ -48,7 +59,8 @@ void print_node(const gaia_ptr& node, bool indent = false) {
 
     print_payload(std::cerr, node.data_size(), node.data());
 
-    if (indent) {
+    if (indent)
+    {
         return;
     }
 
@@ -68,9 +80,11 @@ gaia_type_t type2 = 2;
  * test case below.  SetUp() is called before each test is run
  * and TearDown() is called after each test case is done.
  */
-class storage_engine_client_test : public db_test_base_t {
+class storage_engine_client_test : public db_test_base_t
+{
 private:
-    void init_data() {
+    void init_data()
+    {
         begin_transaction();
         {
             std::cerr << std::endl;
@@ -88,13 +102,15 @@ private:
     }
 
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         db_test_base_t::SetUp();
         init_data();
     }
 };
 
-TEST_F(storage_engine_client_test, read_data) {
+TEST_F(storage_engine_client_test, read_data)
+{
     begin_transaction();
     {
         std::cerr << std::endl;
@@ -115,7 +131,8 @@ TEST_F(storage_engine_client_test, read_data) {
     commit_transaction();
 }
 
-TEST_F(storage_engine_client_test, update_payload) {
+TEST_F(storage_engine_client_test, update_payload)
+{
     auto payload = "payload str";
     begin_transaction();
     {
@@ -140,7 +157,8 @@ TEST_F(storage_engine_client_test, update_payload) {
     commit_transaction();
 }
 
-TEST_F(storage_engine_client_test, update_payload_rollback) {
+TEST_F(storage_engine_client_test, update_payload_rollback)
+{
     auto payload = "payload str";
     begin_transaction();
     {
@@ -165,7 +183,8 @@ TEST_F(storage_engine_client_test, update_payload_rollback) {
     commit_transaction();
 }
 
-TEST_F(storage_engine_client_test, iterate_type) {
+TEST_F(storage_engine_client_test, iterate_type)
+{
     begin_transaction();
     {
         std::cerr << std::endl;
@@ -174,8 +193,8 @@ TEST_F(storage_engine_client_test, iterate_type) {
         gaia_type_t type = type1;
         gaia_id_t id = node1_id;
         for (auto node_iter = gaia_ptr::find_first(type);
-            node_iter;
-            node_iter = node_iter.find_next())
+             node_iter;
+             node_iter = node_iter.find_next())
         {
             print_node(node_iter);
             EXPECT_EQ(node_iter.id(), id);
@@ -186,8 +205,8 @@ TEST_F(storage_engine_client_test, iterate_type) {
         std::cerr << "*** Iterating over nodes of type 2:" << std::endl;
         type = type2;
         for (auto node_iter = gaia_ptr::find_first(type);
-            node_iter;
-            node_iter = node_iter.find_next())
+             node_iter;
+             node_iter = node_iter.find_next())
         {
             print_node(node_iter);
             EXPECT_EQ(node_iter.id(), id);
@@ -197,7 +216,8 @@ TEST_F(storage_engine_client_test, iterate_type) {
     commit_transaction();
 }
 
-TEST_F(storage_engine_client_test, iterate_type_cursor) {
+TEST_F(storage_engine_client_test, iterate_type_cursor)
+{
     constexpr size_t BUFFER_SIZE_EXACT = STREAM_BATCH_SIZE;
     constexpr size_t BUFFER_SIZE_EXACT_MULTIPLE = STREAM_BATCH_SIZE * 2;
     constexpr size_t BUFFER_SIZE_INEXACT_MULTIPLE = STREAM_BATCH_SIZE * 2 + 3;
@@ -216,27 +236,32 @@ TEST_F(storage_engine_client_test, iterate_type_cursor) {
         gaia_ptr::create(next_id++, next_type, 0, 0);
         // "exact buffer size" test
         ++next_type;
-        for (size_t i = 0; i < BUFFER_SIZE_EXACT; i++) {
+        for (size_t i = 0; i < BUFFER_SIZE_EXACT; i++)
+        {
             gaia_ptr::create(next_id++, next_type, 0, 0);
         }
         // "exact multiple of buffer size" test
         ++next_type;
-        for (size_t i = 0; i < BUFFER_SIZE_EXACT_MULTIPLE; i++) {
+        for (size_t i = 0; i < BUFFER_SIZE_EXACT_MULTIPLE; i++)
+        {
             gaia_ptr::create(next_id++, next_type, 0, 0);
         }
         // "inexact multiple of buffer size" test
         ++next_type;
-        for (size_t i = 0; i < BUFFER_SIZE_INEXACT_MULTIPLE; i++) {
+        for (size_t i = 0; i < BUFFER_SIZE_INEXACT_MULTIPLE; i++)
+        {
             gaia_ptr::create(next_id++, next_type, 0, 0);
         }
         // "one less than buffer size" test
         ++next_type;
-        for (size_t i = 0; i < BUFFER_SIZE_MINUS_ONE; i++) {
+        for (size_t i = 0; i < BUFFER_SIZE_MINUS_ONE; i++)
+        {
             gaia_ptr::create(next_id++, next_type, 0, 0);
         }
         // "one more than buffer size" test
         ++next_type;
-        for (size_t i = 0; i < BUFFER_SIZE_PLUS_ONE; i++) {
+        for (size_t i = 0; i < BUFFER_SIZE_PLUS_ONE; i++)
+        {
             gaia_ptr::create(next_id++, next_type, 0, 0);
         }
     }
@@ -249,7 +274,8 @@ TEST_F(storage_engine_client_test, iterate_type_cursor) {
 
         std::cerr << std::endl;
         std::cerr << "*** Iterating over nodes of type 1:" << std::endl;
-        for (auto node : gaia_ptr::find_all_range(type)) {
+        for (auto node : gaia_ptr::find_all_range(type))
+        {
             print_node(node);
             EXPECT_EQ(node.id(), id);
             id++;
@@ -258,7 +284,8 @@ TEST_F(storage_engine_client_test, iterate_type_cursor) {
         std::cerr << std::endl;
         std::cerr << "*** Iterating over nodes of type 2:" << std::endl;
         type = 2;
-        for (auto node : gaia_ptr::find_all_range(type)) {
+        for (auto node : gaia_ptr::find_all_range(type))
+        {
             print_node(node);
             EXPECT_EQ(node.id(), id);
             id++;
@@ -268,7 +295,8 @@ TEST_F(storage_engine_client_test, iterate_type_cursor) {
         std::cerr << "*** Iterating over nodes in type with predicate:" << std::endl;
         type = 1;
         for (auto node : gaia_ptr::find_all_range(type,
-                 [](gaia_ptr ptr) { return ptr.id() == 1; })) {
+                                                  [](gaia_ptr ptr) { return ptr.id() == 1; }))
+        {
             print_node(node);
             EXPECT_EQ(node.id(), 1);
         }
@@ -280,7 +308,8 @@ TEST_F(storage_engine_client_test, iterate_type_cursor) {
         type = 3;
         count = 0;
         expected_count = 0;
-        for (auto node : gaia_ptr::find_all_range(type)) {
+        for (auto node : gaia_ptr::find_all_range(type))
+        {
             EXPECT_EQ(node.type(), type);
             count++;
         }
@@ -291,7 +320,8 @@ TEST_F(storage_engine_client_test, iterate_type_cursor) {
         type = 4;
         count = 0;
         expected_count = 1;
-        for (auto node : gaia_ptr::find_all_range(type)) {
+        for (auto node : gaia_ptr::find_all_range(type))
+        {
             EXPECT_EQ(node.type(), type);
             count++;
         }
@@ -302,7 +332,8 @@ TEST_F(storage_engine_client_test, iterate_type_cursor) {
         type = 5;
         count = 0;
         expected_count = BUFFER_SIZE_EXACT;
-        for (auto node : gaia_ptr::find_all_range(type)) {
+        for (auto node : gaia_ptr::find_all_range(type))
+        {
             EXPECT_EQ(node.type(), type);
             count++;
         }
@@ -313,7 +344,8 @@ TEST_F(storage_engine_client_test, iterate_type_cursor) {
         type = 6;
         count = 0;
         expected_count = BUFFER_SIZE_EXACT_MULTIPLE;
-        for (auto node : gaia_ptr::find_all_range(type)) {
+        for (auto node : gaia_ptr::find_all_range(type))
+        {
             EXPECT_EQ(node.type(), type);
             count++;
         }
@@ -324,7 +356,8 @@ TEST_F(storage_engine_client_test, iterate_type_cursor) {
         type = 7;
         count = 0;
         expected_count = BUFFER_SIZE_INEXACT_MULTIPLE;
-        for (auto node : gaia_ptr::find_all_range(type)) {
+        for (auto node : gaia_ptr::find_all_range(type))
+        {
             EXPECT_EQ(node.type(), type);
             count++;
         }
@@ -335,7 +368,8 @@ TEST_F(storage_engine_client_test, iterate_type_cursor) {
         type = 8;
         count = 0;
         expected_count = BUFFER_SIZE_MINUS_ONE;
-        for (auto node : gaia_ptr::find_all_range(type)) {
+        for (auto node : gaia_ptr::find_all_range(type))
+        {
             EXPECT_EQ(node.type(), type);
             count++;
         }
@@ -346,7 +380,8 @@ TEST_F(storage_engine_client_test, iterate_type_cursor) {
         type = 9;
         count = 0;
         expected_count = BUFFER_SIZE_PLUS_ONE;
-        for (auto node : gaia_ptr::find_all_range(type)) {
+        for (auto node : gaia_ptr::find_all_range(type))
+        {
             EXPECT_EQ(node.type(), type);
             count++;
         }
@@ -357,7 +392,8 @@ TEST_F(storage_engine_client_test, iterate_type_cursor) {
     commit_transaction();
 }
 
-TEST_F(storage_engine_client_test, iterate_type_delete) {
+TEST_F(storage_engine_client_test, iterate_type_delete)
+{
     begin_transaction();
     {
         std::cerr << std::endl;
