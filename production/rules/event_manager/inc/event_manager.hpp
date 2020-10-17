@@ -46,8 +46,6 @@ public:
      */
     void init();
 
-    void shutdown();
-
     void subscribe_rule(
         gaia::common::gaia_type_t gaia_type,
         event_type_t event_type,

@@ -40,6 +40,7 @@ public:
     void add_rule_execution_time(const int64_t& duration);
     void add_rule_invocation_latency(const int64_t& duration);
     void log();
+    void log(float load);
     void compute_averages(float& latency, float& execution_time);
 };
 

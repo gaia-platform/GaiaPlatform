@@ -98,7 +98,7 @@ public:
      * 
      * @return number of threads
      */
-    uint32_t get_num_threads();
+    size_t get_num_threads();
 
 private:
     void rule_worker();

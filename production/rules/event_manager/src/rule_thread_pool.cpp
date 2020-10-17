@@ -75,7 +75,7 @@ rule_thread_pool_t::rule_thread_pool_t(size_t num_threads, rule_stats_manager_t&
     }
 }
 
-uint32_t rule_thread_pool_t::get_num_threads()
+size_t rule_thread_pool_t::get_num_threads()
 {
     return m_num_threads;
 }

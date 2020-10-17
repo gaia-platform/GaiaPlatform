@@ -284,14 +284,6 @@ public:
 void initialize_rules_engine();
 
 /**
- * Shutdown the rules engine.  Should only be called once
- * per process.
- *
- * @throw initialization_error
- */
-void shutdown_rules_engine();
-
-/**
  * Subscribes this rule to one of:
  * transaction operation (begin, commit, rollback)
  * table operation (insert, update, delete)

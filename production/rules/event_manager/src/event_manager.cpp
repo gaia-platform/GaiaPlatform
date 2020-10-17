@@ -68,7 +68,7 @@ void event_manager_t::init(event_manager_settings_t& settings)
     {
         m_rule_checker = make_unique<rule_checker_t>();
     }
-    m_stats_manager.initialize(settings.enable_rule_stats, settings.stats_log_interval, m_invocations->get_num_threads());
+    m_stats_manager.initialize(settings.enable_rule_stats, m_invocations->get_num_threads(), settings.stats_log_interval);
 
     auto fn = [](gaia_txn_id_t txn_id, const trigger_event_list_t& event_list) {
         event_manager_t::get().commit_trigger(txn_id, event_list);
@@ -78,15 +78,9 @@ void event_manager_t::init(event_manager_settings_t& settings)
     m_is_initialized = true;
 }
 
-void event_manager_t::shutdown()
-{
-    m_is_initialized = false;
-    m_stats_manager.shutdown();
-}
-
 bool event_manager_t::process_last_operation_events(
-    event_binding_t& binding, 
-    const trigger_event_t& event, 
+    event_binding_t& binding,
+    const trigger_event_t& event,
     steady_clock::time_point& start_time)
 {
     bool rules_invoked = false;
@@ -517,11 +511,6 @@ void gaia::rules::initialize_rules_engine()
      * behalf of the user.
      */
     initialize_rules();
-}
-
-void gaia::rules::shutdown_rules_engine()
-{
-    event_manager_t::get().shutdown();
 }
 
 void gaia::rules::subscribe_rule(

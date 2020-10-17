@@ -19,11 +19,14 @@ namespace rules
 class scheduler_stats_t : public rule_stats_t
 {
 public:
-    scheduler_stats_t();
     std::atomic<int64_t> total_thread_execution_time;
-
+    void initialize(uint32_t log_interval, size_t count_threads);
     void reset_counters();
-    void log(const int64_t& interval, uint32_t count_threads);
+    void log(bool print_header);
+
+private:
+    int64_t m_log_interval_ns;
+    size_t m_count_worker_threads;
 };
 
 } // rules

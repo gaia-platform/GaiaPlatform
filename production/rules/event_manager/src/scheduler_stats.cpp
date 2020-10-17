@@ -10,8 +10,10 @@ using namespace gaia::common;
 using namespace std;
 using namespace gaia::rules;
 
-scheduler_stats_t::scheduler_stats_t()
+void scheduler_stats_t::initialize(uint32_t log_interval_s, size_t count_worker_threads)
 {
+    m_log_interval_ns = log_interval_s * 1e9;
+    m_count_worker_threads = count_worker_threads;
     reset_counters();
 }
 
@@ -21,28 +23,17 @@ void scheduler_stats_t::reset_counters()
     rule_stats_t::reset_counters();
 }
 
-void scheduler_stats_t::log(const int64_t& interval, uint32_t count_threads)
+void scheduler_stats_t::log(bool print_header)
 {
-    float avg_latency;
-    float avg_execution_time;
-    compute_averages(avg_latency, avg_execution_time);
+     // Estimate the CPU utilization time of the threads in the thread pool
+    float load = ((total_thread_execution_time / m_log_interval_ns) * 100) / m_count_worker_threads;
 
-    // Estimate the CPU utilization time of the threads in the thread pool
-    float utilization_time = ((total_thread_execution_time / interval) * 100) / count_threads;
+    if (print_header)
+    {
+        gaia_log::rules_stats().info("{:->25}{: >6}{: >6}{: >6}{: >6}{: >6}{: >6}{: >13}{: >13}{: >13}{: >13}", 
+            "", "sched", "invoc", "pend", "aband", "retry", "excep", "avg lat", "max lat", "avg exec", "max exec");
+    }
 
-    gaia_log::rules_stats().info("thread utilization: {:02.2f}%, scheduled: {}, executed: {}, pending: {}, abandoned: {}, retries: {}, exceptions {}, "
-        "average latency: {:03.2f} ms, max latency: {:03.2f} ms, average execution time: {:03.2f} ms, max execution time: {:03.2f} ms.",
-        utilization_time,
-        count_scheduled,
-        count_executed,
-        count_pending,
-        count_abandoned,
-        count_retries,
-        count_exceptions,
-        gaia::common::timer_t::ns_to_ms(avg_latency),
-        gaia::common::timer_t::ns_to_ms(max_rule_invocation_latency),
-        gaia::common::timer_t::ns_to_ms(avg_execution_time),
-        gaia::common::timer_t::ns_to_ms(max_rule_execution_time));
-
+    rule_stats_t::log(load);
     reset_counters();
 }
