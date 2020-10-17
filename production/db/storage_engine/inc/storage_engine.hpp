@@ -38,7 +38,7 @@ namespace db
 using namespace common;
 
 // 1K oughta be enough for anybody...
-constexpr size_t MAX_MSG_SIZE = 1 << 10;
+constexpr size_t c_max_msg_size = 1 << 10;
 
 enum class gaia_operation_t : uint8_t
 {

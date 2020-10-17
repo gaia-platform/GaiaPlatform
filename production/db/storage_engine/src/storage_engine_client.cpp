@@ -42,7 +42,7 @@ int client::get_id_cursor_socket_for_type(gaia_type_t type)
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Extract the stream socket fd from the server's response.
-    uint8_t msg_buf[MAX_MSG_SIZE] = {0};
+    uint8_t msg_buf[c_max_msg_size] = {0};
     int stream_socket = -1;
     size_t fd_count = 1;
     size_t bytes_read = recv_msg_with_fds(s_session_socket, &stream_socket, &fd_count, msg_buf, sizeof(msg_buf));
@@ -285,7 +285,7 @@ void client::begin_session()
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Extract the data and locator shared memory segment fds from the server's response.
-    uint8_t msg_buf[MAX_MSG_SIZE] = {0};
+    uint8_t msg_buf[c_max_msg_size] = {0};
     constexpr size_t c_fd_count = 2;
     int fds[c_fd_count] = {-1};
     size_t fd_count = c_fd_count;
@@ -386,7 +386,7 @@ void client::begin_transaction()
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Block to receive transaction id from the server.
-    uint8_t msg_buf[MAX_MSG_SIZE] = {0};
+    uint8_t msg_buf[c_max_msg_size] = {0};
     size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
     retail_assert(bytes_read > 0);
 
@@ -447,7 +447,7 @@ void client::commit_transaction()
     send_msg_with_fds(s_session_socket, &s_fd_log, 1, builder.GetBufferPointer(), builder.GetSize());
 
     // Block on the server's commit decision.
-    uint8_t msg_buf[MAX_MSG_SIZE] = {0};
+    uint8_t msg_buf[c_max_msg_size] = {0};
     size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
     retail_assert(bytes_read > 0);
 

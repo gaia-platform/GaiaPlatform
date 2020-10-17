@@ -647,9 +647,9 @@ void server::session_handler(int session_socket)
                 {
                     retail_assert(!(ev.events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)));
                     // Buffer used to send and receive all message data.
-                    uint8_t msg_buf[MAX_MSG_SIZE] = {0};
+                    uint8_t msg_buf[c_max_msg_size] = {0};
                     // Buffer used to receive file descriptors.
-                    int fd_buf[MAX_FD_COUNT] = {-1};
+                    int fd_buf[c_max_fd_count] = {-1};
                     size_t fd_buf_size = std::size(fd_buf);
                     // Read client message with possible file descriptors.
                     size_t bytes_read = recv_msg_with_fds(s_session_socket, fd_buf, &fd_buf_size, msg_buf, sizeof(msg_buf));
