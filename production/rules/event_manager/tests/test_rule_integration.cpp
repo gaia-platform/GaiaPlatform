@@ -231,15 +231,14 @@ protected:
 
         event_manager_settings_t settings;
 
-        // NOTE: comment out the next line to disable individual rule stats from the rules engine.
-        settings.enable_rule_stats = true;
+        // NOTE: uncomment the next line to enable individual rule stats from the rules engine.
+        // settings.enable_rule_stats = true;
         gaia::rules::test::initialize_rules_engine(settings);
     }
 
     static void TearDownTestSuite()
     {
         end_session();
-        shutdown_rules_engine();
         gaia_log::shutdown();
     }
 

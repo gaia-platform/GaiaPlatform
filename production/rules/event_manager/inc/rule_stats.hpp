@@ -39,9 +39,24 @@ public:
     void reset_counters();
     void add_rule_execution_time(const int64_t& duration);
     void add_rule_invocation_latency(const int64_t& duration);
-    void log();
-    void log(float load);
-    void compute_averages(float& latency, float& execution_time);
+
+    // Log individual rule stats.
+    void log() 
+    {
+        log_(c_rule_stats, rule_id.c_str());
+    }
+    // Log cumulative rule statistics for schedulere stats.
+    void log(float load)
+    {
+        log_(c_cumulative_rule_stats, load);
+    }
+
+private:
+    static const char* c_cumulative_rule_stats;
+    static const char* c_rule_stats;
+
+    template <typename T>
+    void log_(const char* stats_format, T first_param);
 };
 
 } // rules
