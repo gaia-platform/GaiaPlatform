@@ -32,40 +32,40 @@ using namespace llvm;
 using namespace clang::ast_matchers;
 using namespace gaia;
 
-cl::OptionCategory translation_engine_category("Use translation engine options");
-cl::opt<string> translation_engine_output_option("output", cl::init(""),
-    cl::desc("output file name"), cl::cat(translation_engine_category));
-cl::opt<bool> translation_engine_verbose_option("v",
-    cl::desc("print parse tokens"), cl::cat(translation_engine_category));
+cl::OptionCategory g_translation_engine_category("Use translation engine options");
+cl::opt<string> g_translation_engine_output_option("output", cl::init(""),
+    cl::desc("output file name"), cl::cat(g_translation_engine_category));
+cl::opt<bool> g_translation_engine_verbose_option("v",
+    cl::desc("print parse tokens"), cl::cat(g_translation_engine_category));
 
-std::string current_ruleset;
+std::string g_current_ruleset;
 bool g_verbose = false;
-bool generation_error = false;
+bool g_generation_error = false;
 
-vector<string> rulesets;
-unordered_map<string, unordered_set<string>> active_fields;
-unordered_set<string> used_tables;
+vector<string> g_rulesets;
+unordered_map<string, unordered_set<string>> g_active_fields;
+unordered_set<string> g_used_tables;
 
-unordered_set<string> used_dbs;
-unordered_map<string, string> table_db_data;
+unordered_set<string> g_used_dbs;
+unordered_map<string, string> g_table_db_data;
 
-const FunctionDecl *current_rule_declaration = nullptr;
+const FunctionDecl *g_current_rule_declaration = nullptr;
 struct field_data_t
 {
     bool is_active;
     int position;
 };
-unordered_map<string, unordered_map<string, field_data_t>> field_data;
-string current_ruleset_subscription;
-string generated_subscription_code;
-string current_ruleset_unsubscription;
+unordered_map<string, unordered_map<string, field_data_t>> g_field_data;
+string g_current_ruleset_subscription;
+string g_generated_subscription_code;
+string g_current_ruleset_unsubscription;
 struct table_link_data_t
 {
     string table;
     string field;
 };
-unordered_multimap<string, table_link_data_t> table_relationship_1;
-unordered_multimap<string, table_link_data_t> table_relationship_n;
+unordered_multimap<string, table_link_data_t> g_table_relationship_1;
+unordered_multimap<string, table_link_data_t> g_table_relationship_n;
 
 struct navigation_data_t
 {
@@ -84,26 +84,28 @@ string generate_general_subscription_code()
 {
     string return_value = "namespace gaia {\n namespace rules{\nextern \"C\" void subscribe_ruleset(const char* ruleset_name)\n{\n";
 
-    for (string ruleset : rulesets)
+    for (const string& ruleset : g_rulesets)
     {
-        return_value += "if (strcmp(ruleset_name, \"" + ruleset + "\") == 0)\n" \
-            "{\n::" + ruleset + "::subscribeRuleset_" + ruleset + "();\nreturn;\n}\n";
+        return_value.append("if (strcmp(ruleset_name, \"").append(ruleset)
+            .append("\") == 0)\n{\n::").append(ruleset).append("::subscribeRuleset_")
+            .append(ruleset).append("();\nreturn;\n}\n");
     }
 
     return_value += "throw ruleset_not_found(ruleset_name);\n}\n" \
         "extern \"C\" void unsubscribe_ruleset(const char* ruleset_name)\n{\n";
 
-    for (string ruleset : rulesets)
+    for (const string& ruleset : g_rulesets)
     {
-        return_value += "if (strcmp(ruleset_name, \"" + ruleset + "\") == 0)\n" \
-            "{\n::" + ruleset + "::unsubscribeRuleset_" + ruleset + "();\nreturn;\n}\n";
+        return_value.append("if (strcmp(ruleset_name, \"").append(ruleset)
+            .append("\") == 0)\n{\n::").append(ruleset).append("::unsubscribeRuleset_")
+            .append(ruleset).append("();\nreturn;\n}\n");
     }
 
     return_value += "throw ruleset_not_found(ruleset_name);\n}\n" \
         "extern \"C\" void initialize_rules()\n{\n";
-    for (string ruleset : rulesets)
+    for (const string& ruleset : g_rulesets)
     {
-        return_value += "::" + ruleset + "::subscribeRuleset_" + ruleset + "();\n" ;
+        return_value.append("::").append(ruleset).append("::subscribeRuleset_").append(ruleset).append("();\n") ;
     }
     return_value += "}\n}\n}";
 
@@ -129,7 +131,7 @@ class db_monitor
 void fill_table_db_data(catalog::gaia_table_t &table)
 {
     auto db = table.gaia_database();
-    table_db_data[table.name()] = db.name();
+    g_table_db_data[table.name()] = db.name();
 }
 
 unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
@@ -147,7 +149,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
                 if (!tbl)
                 {
                     llvm::errs() << "Incorrect table for field " << field.name() << "\n";
-                    generation_error = true;
+                    g_generation_error = true;
                     return unordered_map<string, unordered_map<string, field_data_t>>();
                 }
 
@@ -155,13 +157,13 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
                 if (fields.find(field.name()) != fields.end())
                 {
                     llvm::errs() << "Duplicate field " << field.name() << "\n";
-                    generation_error = true;
+                    g_generation_error = true;
                     return unordered_map<string, unordered_map<string, field_data_t>>();
                 }
-                field_data_t field_data;
-                field_data.is_active = field.active();
-                field_data.position = field.position();
-                fields[field.name()] = field_data;
+                field_data_t g_field_data;
+                g_field_data.is_active = field.active();
+                g_field_data.position = field.position();
+                fields[field.name()] = g_field_data;
                 return_value[tbl.name()] = fields;
                 fill_table_db_data(tbl);
             }
@@ -171,7 +173,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
                 if (!parent_table)
                 {
                     llvm::errs() << "Incorrect table for field " << field.name() << "\n";
-                    generation_error = true;
+                    g_generation_error = true;
                     return unordered_map<string, unordered_map<string, field_data_t>>();
                 }
 
@@ -179,7 +181,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
                 if (!child_table)
                 {
                     llvm::errs() << "Incorrect table referenced by field " << field.name() << "\n";
-                    generation_error = true;
+                    g_generation_error = true;
                     return unordered_map<string, unordered_map<string, field_data_t>>();
                 }
                 table_link_data_t link_data_1;
@@ -189,8 +191,8 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
                 link_data_n.table = parent_table.name();
                 link_data_n.field = field.name();
 
-                table_relationship_1.emplace(parent_table.name(), link_data_1);
-                table_relationship_n.emplace(child_table.name(), link_data_n);
+                g_table_relationship_1.emplace(parent_table.name(), link_data_1);
+                g_table_relationship_n.emplace(child_table.name(), link_data_n);
 
                 fill_table_db_data(parent_table);
                 fill_table_db_data(child_table);
@@ -200,7 +202,7 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
     catch (exception e)
     {
         llvm::errs() << "Exception while processing the catalog " << e.what() << "\n";
-        generation_error = true;
+        g_generation_error = true;
         return unordered_map<string, unordered_map<string, field_data_t>>();
     }
     return return_value;
@@ -226,7 +228,7 @@ string get_closest_table(const unordered_map<string, int>& table_distance)
 {
     int min_distance = INT_MAX;
     string return_value;
-    for (auto d : table_distance)
+    for (const auto& d : table_distance)
     {
         if (d.second < min_distance)
         {
@@ -249,7 +251,7 @@ bool find_navigation_path(const string& src, const string& dst, vector<navigatio
     unordered_map<string, string> table_prev;
     unordered_map<string, navigation_data_t> table_navigation;
 
-    for (auto fd : field_data)
+    for (const auto& fd : g_field_data)
     {
         table_distance[fd.first] = INT_MAX;
     }
@@ -274,10 +276,10 @@ bool find_navigation_path(const string& src, const string& dst, vector<navigatio
 
         table_distance.erase(closest_table);
 
-        auto parent_itr = table_relationship_1.equal_range(closest_table);
+        auto parent_itr = g_table_relationship_1.equal_range(closest_table);
         for (auto it = parent_itr.first; it != parent_itr.second; ++it)
         {
-            if (it != table_relationship_1.end())
+            if (it != g_table_relationship_1.end())
             {
                 string tbl = it->second.table;
                 if (table_distance.find(tbl) != table_distance.end())
@@ -293,10 +295,10 @@ bool find_navigation_path(const string& src, const string& dst, vector<navigatio
             }
         }
 
-        auto child_itr = table_relationship_n.equal_range(closest_table);
+        auto child_itr = g_table_relationship_n.equal_range(closest_table);
         for (auto it = child_itr.first; it != child_itr.second; ++it)
         {
-            if (it != table_relationship_n.end())
+            if (it != g_table_relationship_n.end())
             {
                 string tbl = it->second.table;
                 if (table_distance.find(tbl) != table_distance.end())
@@ -326,37 +328,37 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
 {
     navigation_code_data_t return_value;
     return_value.prefix = "\nauto " + anchor_table + " = " +
-        "gaia::" + table_db_data[anchor_table] + "::" + anchor_table + "_t::get(context->record);\n";
+        "gaia::" + g_table_db_data[anchor_table] + "::" + anchor_table + "_t::get(context->record);\n";
     //single table used in the rule
-    if (used_tables.size() == 1 && used_tables.find(anchor_table) != used_tables.end())
+    if (g_used_tables.size() == 1 && g_used_tables.find(anchor_table) != g_used_tables.end())
     {
         return return_value;
     }
 
-    if (used_tables.empty())
+    if (g_used_tables.empty())
     {
-        generation_error = true;
+        g_generation_error = true;
         llvm::errs() << "No tables are used in the rule \n";
         return navigation_code_data_t();
     }
-    if (used_tables.find(anchor_table) == used_tables.end())
+    if (g_used_tables.find(anchor_table) == g_used_tables.end())
     {
-        generation_error = true;
+        g_generation_error = true;
         llvm::errs() << "Table " << anchor_table <<" is not used in the rule \n";
         return navigation_code_data_t();
     }
 
-    if (table_relationship_1.find(anchor_table) == table_relationship_1.end() &&
-        table_relationship_n.find(anchor_table) == table_relationship_n.end())
+    if (g_table_relationship_1.find(anchor_table) == g_table_relationship_1.end() &&
+        g_table_relationship_n.find(anchor_table) == g_table_relationship_n.end())
     {
-        generation_error = true;
+        g_generation_error = true;
         llvm::errs() << "Table " << anchor_table << " doesn't reference any table and not referenced by any other tables";
         return navigation_code_data_t();
     }
-    auto parent_itr = table_relationship_1.equal_range(anchor_table);
-    auto child_itr = table_relationship_n.equal_range(anchor_table);
+    auto parent_itr = g_table_relationship_1.equal_range(anchor_table);
+    auto child_itr = g_table_relationship_n.equal_range(anchor_table);
     unordered_set<string> processed_tables;
-    for (string table : used_tables)
+    for (const string& table : g_used_tables)
     {
         if (processed_tables.find(table) != processed_tables.end())
         {
@@ -372,11 +374,11 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
         string linking_field;
         for (auto it = parent_itr.first; it != parent_itr.second; ++it)
         {
-            if (it != table_relationship_1.end() && it->second.table == table)
+            if (it != g_table_relationship_1.end() && it->second.table == table)
             {
                 if (is_1_relationship)
                 {
-                    generation_error = true;
+                    g_generation_error = true;
                     llvm::errs() << "More then one field that links " << anchor_table << " and " << table << "\n";
                     return navigation_code_data_t();
                 }
@@ -387,11 +389,11 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
 
         for (auto it = child_itr.first; it != child_itr.second; ++it)
         {
-            if (it != table_relationship_n.end() && it->second.table == table)
+            if (it != g_table_relationship_n.end() && it->second.table == table)
             {
                 if (is_n_relationship)
                 {
-                    generation_error = true;
+                    g_generation_error = true;
                     llvm::errs() << "More then one field that links " << anchor_table << " and " << table << "\n";
                     return navigation_code_data_t();
                 }
@@ -402,7 +404,7 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
 
         if (is_1_relationship && is_n_relationship)
         {
-            generation_error = true;
+            g_generation_error = true;
             llvm::errs() << "Both relationships exist between tables " << anchor_table << " and " << table << "\n";
             return navigation_code_data_t();
         }
@@ -413,7 +415,7 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
             if (find_navigation_path(anchor_table, table, path))
             {
                 string source_table = anchor_table;
-                for (auto p : path)
+                for (const auto& p : path)
                 {
                     if (processed_tables.find(p.name) == processed_tables.end())
                     {
@@ -448,7 +450,7 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
             }
             else
             {
-                generation_error = true;
+                g_generation_error = true;
                 llvm::errs() << "No path between tables " << anchor_table << " and " << table << "\n";
                 return navigation_code_data_t();
             }
@@ -459,11 +461,13 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
             {
                 if (linking_field.empty())
                 {
-                    return_value.prefix += "auto " + table + " = " + anchor_table + "." + table + "();\n";
+                    return_value.prefix.append("auto ").append(table).append(" = ").append(anchor_table )
+                        .append(".").append(table).append("();\n");
                 }
                 else
                 {
-                    return_value.prefix += "auto " + table + " = " + anchor_table + "." + linking_field + "_" + table + "();\n";
+                    return_value.prefix.append("auto ").append(table).append(" = ").append(anchor_table)
+                        .append(".").append(linking_field).append("_").append(table).append("();\n");
                 }
 
             }
@@ -471,11 +475,13 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
             {
                 if (linking_field.empty())
                 {
-                    return_value.prefix += "for (auto " + table + " : " + anchor_table + "." + table + "_list())\n{\n";
+                    return_value.prefix.append("for (auto ").append(table).append(" : ").append(anchor_table)
+                        .append(".").append(table).append("_list())\n{\n");
                 }
                 else
                 {
-                    return_value.prefix += "for (auto " + table + " : " + anchor_table + "." + linking_field + "_" + table + "_list())\n{\n";
+                    return_value.prefix.append("for (auto ").append(table).append(" : ").append(anchor_table)
+                        .append(".").append(linking_field).append("_").append(table).append("_list())\n{\n");
                 }
 
                 return_value.postfix += "}\n";
@@ -489,35 +495,36 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
 
 void generate_rules(Rewriter &rewriter)
 {
-    if (current_rule_declaration == nullptr)
+    if (g_current_rule_declaration == nullptr)
     {
         return;
     }
-    if (active_fields.empty())
+    if (g_active_fields.empty())
     {
         llvm::errs() << "No active fields for the rule\n";
-        generation_error = true;
+        g_generation_error = true;
         return;
     }
 
-    string rule_code = rewriter.getRewrittenText(current_rule_declaration->getSourceRange());
+    string rule_code = rewriter.getRewrittenText(g_current_rule_declaration->getSourceRange());
     int rule_count = 1;
-    for (auto fd : active_fields)
+    for (auto fd : g_active_fields)
     {
         string table = fd.first;
         bool contains_last_operation = false;
         bool contains_fields = false;
         string field_subscription_code;
         string common_subscription_code;
-        if (field_data.find(table) == field_data.end())
+        if (g_field_data.find(table) == g_field_data.end())
         {
             llvm::errs() << "No table " << table << " found in the catalog\n";
-            generation_error = true;
+            g_generation_error = true;
             return;
         }
-        string rule_name = current_ruleset + "_" + current_rule_declaration->getName().str() + "_" + to_string(rule_count);
-        common_subscription_code = "rule_binding_t " + rule_name + "binding(" +
-            "\"" + current_ruleset + "\",\"" + rule_name + "\"," + current_ruleset + "::" + rule_name + ");\n";
+        string rule_name = g_current_ruleset + "_" + g_current_rule_declaration->getName().str() + "_" + to_string(rule_count);
+        common_subscription_code.append("rule_binding_t ").append(rule_name).append("binding(\"")
+            .append(g_current_ruleset).append("\",\"").append(rule_name).append("\",")
+            .append(g_current_ruleset).append("::").append(rule_name).append(");\n");
         field_subscription_code =  "field_position_list_t fields_" + rule_name + ";\n";
 
         if (fd.second.find("LastOperation") != fd.second.end())
@@ -526,84 +533,88 @@ void generate_rules(Rewriter &rewriter)
         }
         else
         {
-            auto fields = field_data[table];
+            auto fields = g_field_data[table];
             contains_fields = !fd.second.empty();
-            for (auto field : fd.second)
+            for (const auto& field : fd.second)
             {
                 if (fields.find(field) == fields.end())
                 {
                     llvm::errs() << "No field " << field << " found in the catalog\n";
-                    generation_error = true;
+                    g_generation_error = true;
                     return;
                 }
 
-                field_data_t field_data = fields[field];
-                if (!field_data.is_active)
+                field_data_t g_field_data = fields[field];
+                if (!g_field_data.is_active)
                 {
                     llvm::errs() << "Field " << field << " is not marked as active in the catalog\n";
-                    generation_error = true;
+                    g_generation_error = true;
                     return;
                 }
 
-                field_subscription_code += "fields_" + rule_name + ".push_back(" + to_string(field_data.position) +");\n";
+                field_subscription_code += "fields_" + rule_name + ".push_back(" + to_string(g_field_data.position) +");\n";
             }
         }
 
         if (!contains_fields && !contains_last_operation)
         {
             llvm::errs() << "No fields referred by table " + table +"\n";
-            generation_error = true;
+            g_generation_error = true;
             return;
         }
 
-        current_ruleset_subscription += common_subscription_code;
-        current_ruleset_unsubscription += common_subscription_code;
+        g_current_ruleset_subscription += common_subscription_code;
+        g_current_ruleset_unsubscription += common_subscription_code;
 
         if (contains_fields)
         {
-            current_ruleset_subscription += field_subscription_code + "subscribe_rule(gaia::" + table_db_data[table] + "::" + table +
-             "_t::s_gaia_type, event_type_t::row_update, fields_" + rule_name +
-                "," + rule_name + "binding);\n";
-            current_ruleset_unsubscription += field_subscription_code + "unsubscribe_rule(gaia::" + table_db_data[table] + "::" + table +
-             "_t::s_gaia_type, event_type_t::row_update, fields_" + rule_name +
-                "," + rule_name + "binding);\n";
+            g_current_ruleset_subscription.append(field_subscription_code).append("subscribe_rule(gaia::")
+                .append(g_table_db_data[table]).append("::").append(table)
+                .append("_t::s_gaia_type, event_type_t::row_update, fields_").append(rule_name)
+                .append(",").append(rule_name).append("binding);\n");
+            g_current_ruleset_unsubscription.append(field_subscription_code).append("unsubscribe_rule(gaia::")
+                .append(g_table_db_data[table]).append("::").append(table)
+                .append("_t::s_gaia_type, event_type_t::row_update, fields_").append(rule_name)
+                .append(",").append(rule_name).append("binding);\n");
         }
 
 
         if (contains_last_operation)
         {
-            current_ruleset_subscription += "subscribe_rule(gaia::" + table_db_data[table] + "::" + table +
-             "_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields," +
-                rule_name + "binding);\n";
-            current_ruleset_subscription += "subscribe_rule(gaia::" + table_db_data[table] + "::" + table +
-             "_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields," +
-                rule_name + "binding);\n";
-            current_ruleset_subscription += "subscribe_rule(gaia::" + table_db_data[table] + "::" + table +
-             "_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields," +
-                rule_name + "binding);\n";
+            g_current_ruleset_subscription.append("subscribe_rule(gaia::").append(g_table_db_data[table])
+                .append("::").append(table)
+                .append("_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,")
+                .append(rule_name).append("binding);\nsubscribe_rule(gaia::").append(g_table_db_data[table])
+                .append("::").append(table)
+                .append("_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,")
+                .append(rule_name).append("binding);\nsubscribe_rule(gaia::").append(g_table_db_data[table])
+                .append("::").append(table)
+                .append("_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,")
+                .append(rule_name).append("binding);\n");
 
-            current_ruleset_unsubscription += "unsubscribe_rule(gaia::" + table_db_data[table] + "::" + table +
-             "_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields," +
-                rule_name + "binding);\n";
-            current_ruleset_unsubscription += "unsubscribe_rule(gaia::" + table_db_data[table] + "::" + table +
-             "_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields," +
-                rule_name + "binding);\n";
-            current_ruleset_unsubscription += "unsubscribe_rule(gaia::" + table_db_data[table] + "::" + table +
-             "_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields," +
-                rule_name + "binding);\n";
+            g_current_ruleset_unsubscription.append("unsubscribe_rule(gaia::").append(g_table_db_data[table])
+                .append("::").append(table)
+                .append("_t::s_gaia_type, event_type_t::row_update, gaia::rules::empty_fields,")
+                .append(rule_name).append("binding);\nunsubscribe_rule(gaia::").append(g_table_db_data[table])
+                .append("::").append(table)
+                .append("_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,")
+                .append(rule_name).append("binding);\nunsubscribe_rule(gaia::").append(g_table_db_data[table])
+                .append("::").append(table)
+                .append("_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,")
+                .append(rule_name).append("binding);\n");
         }
 
         navigation_code_data_t navigation_code = generate_navigation_code(table);
 
         if(rule_count == 1)
         {
-            rewriter.InsertText(current_rule_declaration->getLocation(), "\nvoid " + rule_name + "(const rule_context_t* context)\n");
-            rewriter.InsertTextAfterToken(current_rule_declaration->getLocation(), navigation_code.prefix);
-            rewriter.InsertText(current_rule_declaration->getEndLoc(), navigation_code.postfix);
+            rewriter.InsertText(g_current_rule_declaration->getLocation(), "\nvoid " + rule_name + "(const rule_context_t* context)\n");
+            rewriter.InsertTextAfterToken(g_current_rule_declaration->getLocation(), navigation_code.prefix);
+            rewriter.InsertText(g_current_rule_declaration->getEndLoc(), navigation_code.postfix);
         }
         else
         {
-            rewriter.InsertTextBefore(current_rule_declaration->getLocation(), "\nvoid " + rule_name + "(const rule_context_t* context)\n"
+            rewriter.InsertTextBefore(g_current_rule_declaration->getLocation(), "\nvoid " + rule_name + "(const rule_context_t* context)\n"
                + insert_rule_preamble (rule_code + navigation_code.postfix, navigation_code.prefix));
         }
 
@@ -614,15 +625,15 @@ void generate_rules(Rewriter &rewriter)
 class field_get_match_handler_t : public MatchFinder::MatchCallback
 {
 public:
-    field_get_match_handler_t (Rewriter &r) : rewriter (r){}
-    virtual void run (const MatchFinder::MatchResult &Result)
+    explicit field_get_match_handler_t (Rewriter &r) : m_rewriter (r){}
+    void run (const MatchFinder::MatchResult &result) override
     {
-        if (generation_error)
+        if (g_generation_error)
         {
             return;
         }
-        const DeclRefExpr *expression = Result.Nodes.getNodeAs<DeclRefExpr>("fieldGet");
-        const MemberExpr  *member_expression = Result.Nodes.getNodeAs<MemberExpr>("tableFieldGet");
+        const auto *expression = result.Nodes.getNodeAs<DeclRefExpr>("fieldGet");
+        const auto  *member_expression = result.Nodes.getNodeAs<MemberExpr>("tableFieldGet");
         string table_name;
         string field_name;
         SourceRange expression_source_range;
@@ -637,13 +648,13 @@ public:
 
             table_name = get_table_name(decl);
             field_name = decl->getName().str();
-            used_tables.insert(table_name);
-            used_dbs.insert(table_db_data[table_name]);
+            g_used_tables.insert(table_name);
+            g_used_dbs.insert(g_table_db_data[table_name]);
 
             if (decl->hasAttr<GaiaFieldAttr>())
             {
                 expression_source_range = SourceRange(expression->getLocation(), expression->getEndLoc());
-                active_fields[table_name].insert(field_name);
+                g_active_fields[table_name].insert(field_name);
             }
             else if (decl->hasAttr<GaiaFieldValueAttr>())
             {
@@ -652,7 +663,7 @@ public:
         }
         else if (member_expression != nullptr)
         {
-            DeclRefExpr *declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
+            auto* declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
             if (declaration_expression != nullptr)
             {
                 field_name = member_expression->getMemberNameInfo().getName().getAsString();
@@ -660,8 +671,8 @@ public:
 
                 is_last_operation = declaration_expression->getDecl()->hasAttr<GaiaLastOperationAttr>();
 
-                used_tables.insert(table_name);
-                used_dbs.insert(table_db_data[table_name]);
+                g_used_tables.insert(table_name);
+                g_used_dbs.insert(g_table_db_data[table_name]);
 
                 if (declaration_expression->getDecl()->hasAttr<GaiaFieldValueAttr>())
                 {
@@ -672,56 +683,56 @@ public:
                 {
                     expression_source_range = SourceRange(member_expression->getBeginLoc(),
                         member_expression->getEndLoc());
-                    active_fields[table_name].insert(field_name);
+                    g_active_fields[table_name].insert(field_name);
                 }
             }
             else
             {
                 llvm::errs() << "Incorrect Base Type of generated type\n";
-                generation_error = true;
+                g_generation_error = true;
             }
         }
         else
         {
             llvm::errs() << "Incorrect matched expression\n";
-            generation_error = true;
+            g_generation_error = true;
         }
 
         if (expression_source_range.isValid())
         {
             if (is_last_operation)
             {
-                rewriter.ReplaceText(expression_source_range, "context->last_operation(gaia::" + table_db_data[table_name] + "::" + table_name + "_t::s_gaia_type)");
+                m_rewriter.ReplaceText(expression_source_range, "context->last_operation(gaia::" + g_table_db_data[table_name] + "::" + table_name + "_t::s_gaia_type)");
             }
             else
             {
-                rewriter.ReplaceText(expression_source_range, table_name + "." + field_name + "()");
+                m_rewriter.ReplaceText(expression_source_range, table_name + "." + field_name + "()");
             }
         }
     }
 
 private:
-    Rewriter &rewriter;
+    Rewriter &m_rewriter;
 };
 
 class field_set_match_handler_t: public MatchFinder::MatchCallback
 {
 public:
-    field_set_match_handler_t (Rewriter &r) : rewriter (r){}
-    virtual void run (const MatchFinder::MatchResult &Result)
+    explicit field_set_match_handler_t (Rewriter &r) : m_rewriter (r){}
+    void run (const MatchFinder::MatchResult &result) override
     {
-        if (generation_error)
+        if (g_generation_error)
         {
             return;
         }
-        const BinaryOperator *op = Result.Nodes.getNodeAs<BinaryOperator>("fieldSet");
+        const auto *op = result.Nodes.getNodeAs<BinaryOperator>("fieldSet");
         if (op != nullptr)
         {
             const Expr *operator_expression = op->getLHS();
             if (operator_expression != nullptr)
             {
-                const DeclRefExpr *left_declaration_expression = dyn_cast<DeclRefExpr>(operator_expression);
-                const MemberExpr  *member_expression = dyn_cast<MemberExpr>(operator_expression);
+                const auto *left_declaration_expression = dyn_cast<DeclRefExpr>(operator_expression);
+                const auto  *member_expression = dyn_cast<MemberExpr>(operator_expression);
 
                 string table_name;
                 string field_name;
@@ -742,11 +753,11 @@ public:
                     }
                     else
                     {
-                        DeclRefExpr *declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
+                        auto* declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
                         if (declaration_expression == nullptr)
                         {
                             llvm::errs() << "Incorrect Base Type of generated type\n";
-                            generation_error = true;
+                            g_generation_error = true;
                             return;
                         }
                         field_name = member_expression->getMemberNameInfo().getName().getAsString();
@@ -754,8 +765,8 @@ public:
                         set_start_location = member_expression->getBeginLoc();
 
                     }
-                    used_tables.insert(table_name);
-                    used_dbs.insert(table_db_data[table_name]);
+                    g_used_tables.insert(table_name);
+                    g_used_dbs.insert(g_table_db_data[table_name]);
 
                     tok::TokenKind token_kind;
                     std::string replacement_text = "[&]() mutable {auto w = " + table_name + ".writer(); w." +
@@ -820,7 +831,7 @@ public:
                         }
                         default:
                             llvm::errs() << "Incorrect Operator type\n";
-                            generation_error = true;
+                            g_generation_error = true;
                             return;
                     }
 
@@ -829,48 +840,48 @@ public:
                     if (left_declaration_expression != nullptr)
                     {
                         set_end_location = Lexer::findLocationAfterToken(
-                            set_start_location, token_kind, rewriter.getSourceMgr(),
-                            rewriter.getLangOpts(), true);
+                            set_start_location, token_kind, m_rewriter.getSourceMgr(),
+                            m_rewriter.getLangOpts(), true);
                     }
                     else
                     {
                         set_end_location = Lexer::findLocationAfterToken(
-                            member_expression->getExprLoc(), token_kind, rewriter.getSourceMgr(),
-                            rewriter.getLangOpts(), true);
+                            member_expression->getExprLoc(), token_kind, m_rewriter.getSourceMgr(),
+                            m_rewriter.getLangOpts(), true);
                     }
 
-                    rewriter.ReplaceText(
+                    m_rewriter.ReplaceText(
                         SourceRange(set_start_location, set_end_location.getLocWithOffset(-1)),
                         replacement_text);
 
                     if (op->getOpcode() != BO_Assign)
                     {
-                        rewriter.InsertTextAfterToken(op->getEndLoc(),
+                        m_rewriter.InsertTextAfterToken(op->getEndLoc(),
                             "; w.update_row();return w." + field_name + ";}() ");
 
                     }
                     else
                     {
-                        rewriter.InsertTextAfterToken(op->getEndLoc(),
+                        m_rewriter.InsertTextAfterToken(op->getEndLoc(),
                             "; w.update_row();return w." + field_name + ";}()");
                     }
                 }
                 else
                 {
                     llvm::errs() << "Incorrect Operator Expression Type\n";
-                    generation_error = true;
+                    g_generation_error = true;
                 }
             }
             else
             {
                 llvm::errs() << "Incorrect Operator Expression\n";
-                generation_error = true;
+                g_generation_error = true;
             }
         }
         else
         {
             llvm::errs() << "Incorrect Matched operator\n";
-            generation_error = true;
+            g_generation_error = true;
         }
     }
 
@@ -903,32 +914,32 @@ private:
                 return  "|=";
             default:
                 llvm::errs() << "Incorrect Operator Code " << op_code <<"\n";
-                generation_error = true;
+                g_generation_error = true;
                 return "";
         }
     }
 
-    Rewriter &rewriter;
+    Rewriter &m_rewriter;
 };
 
 class field_unary_operator_match_handler_t : public MatchFinder::MatchCallback
 {
 public:
-    field_unary_operator_match_handler_t(Rewriter &r) : rewriter (r){}
-    virtual void run (const MatchFinder::MatchResult &Result)
+    explicit field_unary_operator_match_handler_t(Rewriter &r) : m_rewriter (r){}
+    void run (const MatchFinder::MatchResult &result) override
     {
-        if (generation_error)
+        if (g_generation_error)
         {
             return;
         }
-        const UnaryOperator *op = Result.Nodes.getNodeAs<UnaryOperator>("fieldUnaryOp");
+        const auto* op = result.Nodes.getNodeAs<UnaryOperator>("fieldUnaryOp");
         if (op != nullptr)
         {
             const Expr *operator_expression = op->getSubExpr();
             if (operator_expression != nullptr)
             {
-                const DeclRefExpr *declaration_expression = dyn_cast<DeclRefExpr>(operator_expression);
-                const MemberExpr  *member_expression = dyn_cast<MemberExpr>(operator_expression);
+                const auto* declaration_expression = dyn_cast<DeclRefExpr>(operator_expression);
+                const auto* member_expression = dyn_cast<MemberExpr>(operator_expression);
 
                 if (declaration_expression != nullptr || member_expression != nullptr)
                 {
@@ -950,20 +961,20 @@ public:
                     }
                     else
                     {
-                        DeclRefExpr *declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
+                        auto* declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
                         if (declaration_expression == nullptr)
                         {
                             llvm::errs() << "Incorrect Base Type of generated type\n";
-                            generation_error = true;
+                            g_generation_error = true;
                             return;
                         }
                         field_name = member_expression->getMemberNameInfo().getName().getAsString();
                         table_name = declaration_expression->getDecl()->getName().str();
                     }
 
-                    used_tables.insert(table_name);
-                    used_dbs.insert(table_db_data[table_name]);
-                    active_fields[table_name].insert(field_name);
+                    g_used_tables.insert(table_name);
+                    g_used_dbs.insert(g_table_db_data[table_name]);
+                    g_active_fields[table_name].insert(field_name);
 
                     if (op->isPostfix())
                     {
@@ -997,186 +1008,186 @@ public:
                         }
                     }
 
-                    rewriter.ReplaceText(
+                    m_rewriter.ReplaceText(
                         SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(1)),
                         replace_string);
                 }
                 else
                 {
                     llvm::errs() << "Incorrect Operator Expression Type\n";
-                    generation_error = true;
+                    g_generation_error = true;
                 }
             }
             else
             {
                 llvm::errs() << "Incorrect Operator Expression\n";
-                generation_error = true;
+                g_generation_error = true;
             }
         }
         else
         {
             llvm::errs() << "Incorrect Matched Operator\n";
-            generation_error = true;
+            g_generation_error = true;
         }
     }
 
 private:
-    Rewriter &rewriter;
+    Rewriter &m_rewriter;
 };
 
 class rule_match_handler_t : public MatchFinder::MatchCallback
 {
 public:
-    rule_match_handler_t(Rewriter &r) : rewriter (r){}
-    virtual void run (const MatchFinder::MatchResult &Result)
+    explicit rule_match_handler_t(Rewriter &r) : m_rewriter (r){}
+    void run (const MatchFinder::MatchResult &result) override
     {
-        if (generation_error)
+        if (g_generation_error)
         {
             return;
         }
-        const FunctionDecl * rule_declaration = Result.Nodes.getNodeAs<FunctionDecl>("ruleDecl");
-        generate_rules(rewriter);
-        if (generation_error)
+        const auto* rule_declaration = result.Nodes.getNodeAs<FunctionDecl>("ruleDecl");
+        generate_rules(m_rewriter);
+        if (g_generation_error)
         {
             return;
         }
-        current_rule_declaration = rule_declaration;
-        used_tables.clear();
-        active_fields.clear();
+        g_current_rule_declaration = rule_declaration;
+        g_used_tables.clear();
+        g_active_fields.clear();
     }
 
 private:
-    Rewriter &rewriter;
+    Rewriter &m_rewriter;
 };
 
 class ruleset_match_handler_t : public MatchFinder::MatchCallback
 {
 public:
-    ruleset_match_handler_t(Rewriter &r) : rewriter (r){}
-    virtual void run (const MatchFinder::MatchResult &Result)
+    explicit ruleset_match_handler_t(Rewriter &r) : m_rewriter (r){}
+    void run (const MatchFinder::MatchResult &result) override
     {
-        if (generation_error)
+        if (g_generation_error)
         {
             return;
         }
-        generate_rules(rewriter);
-        if (generation_error)
+        generate_rules(m_rewriter);
+        if (g_generation_error)
         {
             return;
         }
-        current_rule_declaration = nullptr;
-        used_tables.clear();
-        active_fields.clear();
+        g_current_rule_declaration = nullptr;
+        g_used_tables.clear();
+        g_active_fields.clear();
 
-        const RulesetDecl * ruleset_declaration = Result.Nodes.getNodeAs<RulesetDecl>("rulesetDecl");
+        const auto* ruleset_declaration = result.Nodes.getNodeAs<RulesetDecl>("rulesetDecl");
         if (ruleset_declaration != nullptr)
         {
-            if (!current_ruleset.empty())
+            if (!g_current_ruleset.empty())
             {
-                generated_subscription_code += "namespace " + current_ruleset +
+                g_generated_subscription_code += "namespace " + g_current_ruleset +
                     "{\nvoid subscribeRuleset_" +
-                    ruleset_declaration->getName().str() + "()\n{\n" + current_ruleset_subscription +
+                    ruleset_declaration->getName().str() + "()\n{\n" + g_current_ruleset_subscription +
                     "}\nvoid unsubscribeRuleset_" +
-                    ruleset_declaration->getName().str() + "()\n{\n" + current_ruleset_unsubscription +
+                    ruleset_declaration->getName().str() + "()\n{\n" + g_current_ruleset_unsubscription +
                     "}\n}\n";
             }
-            current_ruleset = ruleset_declaration->getName().str();
-            rulesets.push_back(current_ruleset);
-            current_ruleset_subscription.clear();
-            current_ruleset_unsubscription.clear();
-            rewriter.ReplaceText(
+            g_current_ruleset = ruleset_declaration->getName().str();
+            g_rulesets.push_back(g_current_ruleset);
+            g_current_ruleset_subscription.clear();
+            g_current_ruleset_unsubscription.clear();
+            m_rewriter.ReplaceText(
                 SourceRange(ruleset_declaration->getBeginLoc(), ruleset_declaration->decls_begin()->getBeginLoc().getLocWithOffset(-2)),
-                "namespace " + current_ruleset + "\n{\n");
+                "namespace " + g_current_ruleset + "\n{\n");
         }
     }
 
 private:
-    Rewriter &rewriter;
+    Rewriter &m_rewriter;
 };
 
 class update_match_handler_t : public MatchFinder::MatchCallback
 {
 public:
-    update_match_handler_t(Rewriter &r) : rewriter (r){}
-    virtual void run (const MatchFinder::MatchResult &Result)
+    explicit update_match_handler_t(Rewriter &r) : m_rewriter (r){}
+    void run (const MatchFinder::MatchResult &result) override
     {
-        const DeclRefExpr *exp = Result.Nodes.getNodeAs<DeclRefExpr>("UPDATE");
+        const auto* exp = result.Nodes.getNodeAs<DeclRefExpr>("UPDATE");
         if (exp != nullptr)
         {
-            rewriter.ReplaceText(
+            m_rewriter.ReplaceText(
                 SourceRange(exp->getLocation(), exp->getEndLoc()),
                 "gaia::rules::last_operation_t::row_update");
         }
     }
 
 private:
-    Rewriter &rewriter;
+    Rewriter &m_rewriter;
 };
 
 class insert_match_handler_t : public MatchFinder::MatchCallback
 {
 public:
-    insert_match_handler_t(Rewriter &r) : rewriter (r){}
-    virtual void run (const MatchFinder::MatchResult &Result)
+    explicit insert_match_handler_t(Rewriter &r) : m_rewriter (r){}
+    void run (const MatchFinder::MatchResult &result) override
     {
-        const DeclRefExpr *exp = Result.Nodes.getNodeAs<DeclRefExpr>("INSERT");
+        const auto* exp = result.Nodes.getNodeAs<DeclRefExpr>("INSERT");
         if (exp != nullptr)
         {
-            rewriter.ReplaceText(
+            m_rewriter.ReplaceText(
                 SourceRange(exp->getLocation(), exp->getEndLoc()),
                 "gaia::rules::last_operation_t::row_insert");
         }
     }
 
 private:
-    Rewriter &rewriter;
+    Rewriter &m_rewriter;
 };
 
 class delete_match_handler_t : public MatchFinder::MatchCallback
 {
 public:
-    delete_match_handler_t(Rewriter &r) : rewriter (r){}
-    virtual void run (const MatchFinder::MatchResult &Result)
+    explicit delete_match_handler_t(Rewriter &r) : m_rewriter (r){}
+    void run (const MatchFinder::MatchResult &result) override
     {
-        const DeclRefExpr *exp = Result.Nodes.getNodeAs<DeclRefExpr>("DELETE");
+        const auto* exp = result.Nodes.getNodeAs<DeclRefExpr>("DELETE");
         if (exp != nullptr)
         {
-            rewriter.ReplaceText(
+            m_rewriter.ReplaceText(
                 SourceRange(exp->getLocation(), exp->getEndLoc()),
                 "gaia::rules::last_operation_t::row_delete");
         }
     }
 
 private:
-    Rewriter &rewriter;
+    Rewriter &m_rewriter;
 };
 
 class none_match_handler_t : public MatchFinder::MatchCallback
 {
 public:
-    none_match_handler_t(Rewriter &r) : rewriter (r){}
-    virtual void run (const MatchFinder::MatchResult &Result)
+    explicit none_match_handler_t(Rewriter &r) : m_rewriter (r){}
+    void run (const MatchFinder::MatchResult &result) override
     {
-        const DeclRefExpr *exp = Result.Nodes.getNodeAs<DeclRefExpr>("NONE");
+        const auto* exp = result.Nodes.getNodeAs<DeclRefExpr>("NONE");
         if (exp != nullptr)
         {
-            rewriter.ReplaceText(
+            m_rewriter.ReplaceText(
                 SourceRange(exp->getLocation(), exp->getEndLoc()),
                 "gaia::rules::last_operation_t::row_none");
         }
     }
 
 private:
-    Rewriter &rewriter;
+    Rewriter &m_rewriter;
 };
 
 class translation_engine_consumer_t : public clang::ASTConsumer
 {
 public:
     explicit translation_engine_consumer_t(ASTContext *context, Rewriter &r)
-        : field_get_match_handler(r), field_set_match_handler(r), rule_match_handler(r),
-        ruleset_match_handler(r), field_unary_operator_match_handler(r),
-        update_match_handler(r), insert_match_handler(r), delete_match_handler(r), none_match_handler(r)
+        : m_field_get_match_handler(r), m_field_set_match_handler(r), m_rule_match_handler(r),
+        m_ruleset_match_handler(r), m_field_unary_operator_match_handler(r),
+        m_update_match_handler(r), m_insert_match_handler(r), m_delete_match_handler(r), m_none_match_handler(r)
 
     {
         StatementMatcher field_get_matcher =
@@ -1216,73 +1227,73 @@ public:
         StatementMatcher none_matcher =
             declRefExpr(to(varDecl(hasAttr(attr::GaiaLastOperationNONE)))).bind("NONE");
 
-        matcher.addMatcher(field_get_matcher, &field_get_match_handler);
-        matcher.addMatcher(table_field_get_matcher, &field_get_match_handler);
+        m_matcher.addMatcher(field_get_matcher, &m_field_get_match_handler);
+        m_matcher.addMatcher(table_field_get_matcher, &m_field_get_match_handler);
 
-        matcher.addMatcher(field_set_matcher, &field_set_match_handler);
-        matcher.addMatcher(table_field_set_matcher, &field_set_match_handler);
+        m_matcher.addMatcher(field_set_matcher, &m_field_set_match_handler);
+        m_matcher.addMatcher(table_field_set_matcher, &m_field_set_match_handler);
 
-        matcher.addMatcher(rule_matcher, &rule_match_handler);
-        matcher.addMatcher(ruleset_matcher, &ruleset_match_handler);
-        matcher.addMatcher(field_unary_operator_matcher, &field_unary_operator_match_handler);
+        m_matcher.addMatcher(rule_matcher, &m_rule_match_handler);
+        m_matcher.addMatcher(ruleset_matcher, &m_ruleset_match_handler);
+        m_matcher.addMatcher(field_unary_operator_matcher, &m_field_unary_operator_match_handler);
 
-        matcher.addMatcher(table_field_unary_operator_matcher, &field_unary_operator_match_handler);
+        m_matcher.addMatcher(table_field_unary_operator_matcher, &m_field_unary_operator_match_handler);
 
-        matcher.addMatcher(update_matcher, &update_match_handler);
-        matcher.addMatcher(insert_matcher, &insert_match_handler);
-        matcher.addMatcher(delete_matcher, &delete_match_handler);
-        matcher.addMatcher(none_matcher, &none_match_handler);
+        m_matcher.addMatcher(update_matcher, &m_update_match_handler);
+        m_matcher.addMatcher(insert_matcher, &m_insert_match_handler);
+        m_matcher.addMatcher(delete_matcher, &m_delete_match_handler);
+        m_matcher.addMatcher(none_matcher, &m_none_match_handler);
     }
 
-    virtual void HandleTranslationUnit(clang::ASTContext &context)
+    void HandleTranslationUnit(clang::ASTContext &context) override
     {
-        matcher.matchAST(context);
+        m_matcher.matchAST(context);
     }
 private:
-    MatchFinder matcher;
-    field_get_match_handler_t field_get_match_handler;
-    field_set_match_handler_t field_set_match_handler;
-    rule_match_handler_t     rule_match_handler;
-    ruleset_match_handler_t  ruleset_match_handler;
-    field_unary_operator_match_handler_t field_unary_operator_match_handler;
-    update_match_handler_t update_match_handler;
-    insert_match_handler_t insert_match_handler;
-    delete_match_handler_t delete_match_handler;
-    none_match_handler_t none_match_handler;
+    MatchFinder m_matcher;
+    field_get_match_handler_t m_field_get_match_handler;
+    field_set_match_handler_t m_field_set_match_handler;
+    rule_match_handler_t     m_rule_match_handler;
+    ruleset_match_handler_t  m_ruleset_match_handler;
+    field_unary_operator_match_handler_t m_field_unary_operator_match_handler;
+    update_match_handler_t m_update_match_handler;
+    insert_match_handler_t m_insert_match_handler;
+    delete_match_handler_t m_delete_match_handler;
+    none_match_handler_t m_none_match_handler;
 };
 
 class translation_engine_action_t : public clang::ASTFrontendAction
 {
 public:
-    virtual std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
-        clang::CompilerInstance &compiler, llvm::StringRef inFile)
+    std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
+        clang::CompilerInstance &compiler, llvm::StringRef in_file) override
     {
-        rewriter.setSourceMgr(compiler.getSourceManager(), compiler.getLangOpts());
+        m_rewriter.setSourceMgr(compiler.getSourceManager(), compiler.getLangOpts());
         return std::unique_ptr<clang::ASTConsumer>(
-            new translation_engine_consumer_t(&compiler.getASTContext(), rewriter));
+            new translation_engine_consumer_t(&compiler.getASTContext(), m_rewriter));
     }
-    void EndSourceFileAction()
+    void EndSourceFileAction() override
     {
-        generate_rules(rewriter);
-        if (generation_error)
+        generate_rules(m_rewriter);
+        if (g_generation_error)
         {
             return;
         }
 
-        generated_subscription_code += "namespace " + current_ruleset + "{\nvoid subscribeRuleset_" +
-                    current_ruleset + "()\n{\n" + current_ruleset_subscription +
+        g_generated_subscription_code += "namespace " + g_current_ruleset + "{\nvoid subscribeRuleset_" +
+                    g_current_ruleset + "()\n{\n" + g_current_ruleset_subscription +
                     "}\n" + "void unsubscribeRuleset_" +
-                    current_ruleset + "()\n{\n" + current_ruleset_unsubscription +
+                    g_current_ruleset + "()\n{\n" + g_current_ruleset_unsubscription +
                     "}\n}\n" + generate_general_subscription_code();
 
-        if (!shouldEraseOutputFiles() && !generation_error && !translation_engine_output_option.empty())
+        if (!shouldEraseOutputFiles() && !g_generation_error && !g_translation_engine_output_option.empty())
         {
             std::error_code error_code;
-            llvm::raw_fd_ostream output_file(translation_engine_output_option, error_code, llvm::sys::fs::F_None);
+            llvm::raw_fd_ostream output_file(g_translation_engine_output_option, error_code, llvm::sys::fs::F_None);
 
             if (!output_file.has_error())
             {
-                for (string db : used_dbs)
+                for (const string& db : g_used_dbs)
                 {
                     output_file << "#include \"gaia_" << db << ".h\"\n";
                 }
@@ -1290,24 +1301,24 @@ public:
                 output_file << "#include \"rules.hpp\"\n";
                 output_file << "using namespace gaia::rules;\n";
 
-                rewriter.getEditBuffer(rewriter.getSourceMgr().getMainFileID())
+                m_rewriter.getEditBuffer(m_rewriter.getSourceMgr().getMainFileID())
                     .write(output_file);
-                output_file << generated_subscription_code;
+                output_file << g_generated_subscription_code;
             }
 
             output_file.close();
         }
     }
 private:
-    Rewriter rewriter;
+    Rewriter m_rewriter;
 };
 
 int main(int argc, const char **argv)
 {
-    field_data = get_table_data();
+    g_field_data = get_table_data();
     // Parse the command-line args passed to your code.
-    CommonOptionsParser op(argc, argv, translation_engine_category);
-    if (translation_engine_verbose_option)
+    CommonOptionsParser op(argc, argv, g_translation_engine_category);
+    if (g_translation_engine_verbose_option)
     {
         g_verbose = true;
     }

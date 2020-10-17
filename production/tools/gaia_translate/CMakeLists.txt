@@ -5,13 +5,11 @@ project(gaiat VERSION 0.0.0)
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 
 set(TRANSLATION_ENGINE_INCLUDES
-  ${TE_REPO}/clang/include
-  ${TE_REPO}/llvm/include
-  ${TE_REPO}/tools/clang/include
-  ${TE_BUILD}/include
-  ${TE_BUILD}/tools/clang/include
-  ${TE_BUILD}/TranslationEngineLLVM/clang/include
-  ${TE_BUILD}/TranslationEngineLLVM/llvm/include
+  ${GAIA_REPO}/third_party/private/TranslationEngineLLVM/clang/include
+  ${GAIA_REPO}/third_party/private/TranslationEngineLLVM/llvm/include
+  ${GAIA_PROD_BUILD}/llvm/include
+  ${GAIA_PROD_BUILD}/llvm/tools/clang/include
+  ${GAIA_PROD_BUILD}/llvm/include
   ${GAIA_INC}/internal/catalog
   ${GAIA_REPO}/production/catalog/catalog_manager/inc
   ${GAIA_INC}/public/common
@@ -32,7 +30,7 @@ set(GAIAT_SRCS
 
 link_directories(
   ${GAIA_PROD_BUILD}/lib
-  ${TE_BUILD}/lib
+  #${TE_BUILD}/lib
 )
 
 
@@ -70,7 +68,6 @@ target_link_libraries(gaiat
   LLVMDlltoolDriver
   LLVMXRay
   LLVMOrcJIT
-  LLVMTestingSupport
   LLVMXCoreDisassembler
   LLVMXCoreCodeGen
   LLVMXCoreDesc
@@ -204,13 +201,14 @@ target_link_libraries(gaiat
   LLVMSupport
   LLVMDemangle
   gaia_se_client
-  gaia_direct
-  gaia_types
+  gaia_payload_types  
   gaia_common
   gaia_catalog
+  gaia_direct
   flatbuffers
   explain
 )
+
 set(INCUBATOR_DDL "${GAIA_REPO}/production/schemas/test/incubator/barn_storage.ddl")
 set(INCUBATOR_RULESET "${GAIA_REPO}/production/schemas/test/incubator/test.ruleset")
 
@@ -239,7 +237,7 @@ add_custom_target(generate_incubator_rules ALL
 add_gtest(test_translation_engine
   "tests/test_translation_engine.cpp;${GAIA_GENERATED_SCHEMAS}/test.cpp"
   "${TRANSLATION_ENGINE_INCLUDES};${GAIA_GENERATED_SCHEMAS}"
-  "rt;gaia_se_client;gaia_rules;gaia_direct;gaia_types;gaia_common;gaia_catalog;gaia_parser;flatbuffers;explain"
+  "rt;gaia_se_client;gaia_rules;gaia_direct;gaia_payload_types;gaia_common;gaia_catalog;gaia_parser;flatbuffers;explain"
   "generate_incubator_rules" ""
   "INCUBATOR_DDL_FILE=${GAIA_REPO}/production/schemas/test/incubator/barn_storage.ddl"
   )

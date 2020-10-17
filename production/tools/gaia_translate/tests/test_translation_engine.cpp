@@ -13,14 +13,14 @@ using namespace std;
 using namespace gaia::rules;
 using namespace gaia::common;
 
-extern int rule_called;
-extern int insert_called;
-extern int update_called;
+extern int g_rule_called;
+extern int g_insert_called;
+extern int g_update_called;
 
 class translation_engine_test : public db_test_base_t
 {
 public:
-    gaia_id_t insert_incubator(const char * name, float min_temp, float max_temp) 
+    gaia_id_t insert_incubator(const char * name, float min_temp, float max_temp)
     {
         gaia::barn_storage::incubator_writer w;
         w.name = name;
@@ -29,7 +29,7 @@ public:
         return w.insert_row();
     }
 
-    void init_storage() 
+    void init_storage()
     {
         gaia::db::begin_transaction();
         auto incubator = gaia::barn_storage::incubator_t::get(insert_incubator("TestIncubator", 99.0, 102.0));
@@ -57,10 +57,10 @@ protected:
     }
 
     // Ensure SetUp and TearDown don't do anything.  When we run the test
-    // directly, we only want SetUpTestSuite and TearDownTestSuite 
+    // directly, we only want SetUpTestSuite and TearDownTestSuite
     void SetUp() override {}
 
-    void TearDown() override 
+    void TearDown() override
     {
         unsubscribe_rules();
     }
@@ -68,7 +68,7 @@ protected:
 
 
 TEST_F(translation_engine_test, subscribe_invalid_ruleset)
-{ 
+{
     EXPECT_THROW(subscribe_ruleset("bogus"), ruleset_not_found);
     EXPECT_THROW(unsubscribe_ruleset("bogus"), ruleset_not_found);
 }
@@ -76,34 +76,34 @@ TEST_F(translation_engine_test, subscribe_invalid_ruleset)
 TEST_F(translation_engine_test, subscribe_valid_ruleset)
 {
     init_storage();
-    while (rule_called == 0) {usleep(50000);}
-    
-    EXPECT_EQ(rule_called,1);
-    EXPECT_EQ(insert_called,1);
-    EXPECT_EQ(update_called,0);
+    while (g_rule_called == 0) {usleep(50000);}
+
+    EXPECT_EQ(g_rule_called,1);
+    EXPECT_EQ(g_insert_called,1);
+    EXPECT_EQ(g_update_called,0);
 
     gaia::db::begin_transaction();
 
-    for (auto i : gaia::barn_storage::incubator_t::list()) 
+    for (const auto& i : gaia::barn_storage::incubator_t::list())
     {
         EXPECT_EQ(i.max_temp(),4);
     }
 
-    for (auto a : gaia::barn_storage::actuator_t::list()) 
+    for (const auto& a : gaia::barn_storage::actuator_t::list())
     {
         EXPECT_EQ(a.value(),0);
     }
 
-    for (auto s : gaia::barn_storage::sensor_t::list()) 
+    for (const auto& s : gaia::barn_storage::sensor_t::list())
     {
         EXPECT_EQ(s.value(),0);
     }
-   
+
     gaia::db::commit_transaction();
 
     gaia::db::begin_transaction();
-    
-    for (auto s : gaia::barn_storage::sensor_t::list()) 
+
+    for (auto s : gaia::barn_storage::sensor_t::list())
     {
         auto w = s.writer();
         w.value = 6;
@@ -111,29 +111,28 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
     }
     gaia::db::commit_transaction();
 
-    while (rule_called == 1) {usleep(50000);}
+    while (g_rule_called == 1) {usleep(50000);}
 
-    EXPECT_EQ(rule_called,2);
-    EXPECT_EQ(insert_called,1);
-    EXPECT_EQ(update_called,1);
+    EXPECT_EQ(g_rule_called,2);
+    EXPECT_EQ(g_insert_called,1);
+    EXPECT_EQ(g_update_called,1);
 
     gaia::db::begin_transaction();
-    
-    for (auto i : gaia::barn_storage::incubator_t::list()) 
+
+    for (const auto& i : gaia::barn_storage::incubator_t::list())
     {
         EXPECT_EQ(i.max_temp(),10);
     }
 
-    for (auto s : gaia::barn_storage::sensor_t::list()) 
+    for (const auto& s : gaia::barn_storage::sensor_t::list())
     {
         EXPECT_EQ(s.value(),6);
     }
 
-    for (auto a : gaia::barn_storage::actuator_t::list()) 
+    for (const auto& a : gaia::barn_storage::actuator_t::list())
     {
         EXPECT_EQ(a.value(),1000);
     }
     gaia::db::commit_transaction();
     gaia::db::end_session();
 }
-
