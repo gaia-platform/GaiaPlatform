@@ -70,7 +70,7 @@ public:
         }
     }
 
-    static int64_t find(se_base::data* data, se_base::locators* locators, gaia_id_t id)
+    static gaia_locator_t find(se_base::data* data, se_base::locators* locators, gaia_id_t id)
     {
         if (locators == nullptr)
         {
@@ -89,16 +89,16 @@ public:
                 }
                 else
                 {
-                    return 0;
+                    return INVALID_GAIA_LOCATOR;
                 }
             }
 
             node = node->next_offset
                 ? data->hash_nodes + node->next_offset
-                : 0;
+                : nullptr;
         }
 
-        return 0;
+        return INVALID_GAIA_LOCATOR;
     }
 
     static void remove(se_base::data* data, gaia_id_t id)

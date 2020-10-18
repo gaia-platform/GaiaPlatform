@@ -39,7 +39,7 @@ AlignAfterOpenBracket: Align
 IncludeBlocks: Regroup
 IncludeCategories:
   # Third party.
-  - Regex:           'spdlog|flatbuffers|llvm|flatcc|cpptoml|gtest|pybind11'
+  - Regex:           'spdlog|flatbuffers|llvm|flatcc|cpptoml|gtest|pybind11|rocksdb'
     Priority:        13
   # C system headers.
   - Regex:           '^<.*\.h>'

@@ -7,13 +7,14 @@
 
 #include <sstream>
 
-#include "persistent_store_error.hpp"
-#include "retail_assert.hpp"
 #include "rocksdb/db.h"
 #include "rocksdb/slice.h"
 #include "rocksdb/status.h"
 #include "rocksdb/utilities/transaction_db.h"
 #include "rocksdb/write_batch.h"
+
+#include "persistent_store_error.hpp"
+#include "retail_assert.hpp"
 
 // Simple library over RocksDB APIs.
 namespace gaia
@@ -22,13 +23,6 @@ namespace db
 {
 class rdb_internal_t
 {
-private:
-    std::unique_ptr<rocksdb::TransactionDB> m_txn_db;
-
-    std::string m_data_dir;
-    rocksdb::WriteOptions m_write_options;
-    rocksdb::TransactionDBOptions m_txn_options;
-
 public:
     rdb_internal_t(std::string dir, rocksdb::WriteOptions write_opts, rocksdb::TransactionDBOptions txn_opts)
     {
@@ -157,6 +151,14 @@ public:
             throw persistent_store_error(status.getState(), status.code());
         }
     }
+
+private:
+    std::unique_ptr<rocksdb::TransactionDB> m_txn_db;
+
+    std::string m_data_dir;
+    rocksdb::WriteOptions m_write_options;
+    rocksdb::TransactionDBOptions m_txn_options;
 };
+
 } // namespace db
 } // namespace gaia
