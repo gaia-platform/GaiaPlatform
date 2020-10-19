@@ -62,7 +62,7 @@ size_t base_memory_manager_t::calculate_allocation_size(size_t requested_size)
     }
     else
     {
-        // Extra exceeds te minimum allocation, so replace it with that plus an extra 64B block.
+        // Extra exceeds the minimum allocation, so replace it with that plus an extra 64B block.
         allocation_size = requested_size - extra_block_size + c_allocation_alignment + c_minimum_allocation_size;
     }
 
