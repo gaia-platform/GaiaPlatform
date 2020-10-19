@@ -5,9 +5,7 @@
 
 #include "gaia_ptr.hpp"
 
-#include "field_list.hpp"
 #include "gaia_hash_map.hpp"
-#include "generator_iterator.hpp"
 #include "payload_diff.hpp"
 #include "storage_engine.hpp"
 #include "storage_engine_client.hpp"
@@ -55,6 +53,8 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data)
 
     size_t ref_len = old_this->num_references * sizeof(gaia_id_t);
     size_t total_len = data_size + ref_len;
+
+    // updates m_locator to point to the new object
     allocate(sizeof(gaia_se_object_t) + total_len);
 
     gaia_se_object_t* new_this = to_ptr();
@@ -244,14 +244,19 @@ void gaia_ptr::add_child_reference(gaia_id_t child_id, reference_offset_t first_
     }
 
     // BUILD THE REFERENCES
-    gaia_offset_t old_offset = to_offset();
+    // TODO (Mihir) if the parent/child have been created in the same txn the clone may not be necessary
+    gaia_offset_t old_parent_offset = to_offset();
     clone_no_txn();
+
+    gaia_offset_t old_child_offset = child_ptr.to_offset();
+    child_ptr.clone_no_txn();
 
     child_ptr.references()[relationship->next_child_offset] = references()[first_child_offset];
     references()[first_child_offset] = child_ptr.id();
     child_ptr.references()[relationship->parent_offset] = id();
 
-    client::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
+    client::txn_log(m_locator, old_parent_offset, to_offset(), gaia_operation_t::update);
+    client::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset(), gaia_operation_t::update);
 }
 
 void gaia_ptr::add_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset)
@@ -310,8 +315,10 @@ void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t fir
     }
 
     // REMOVE REFERENCE
-    gaia_offset_t old_offset = to_offset();
+    gaia_offset_t old_parent_offset = to_offset();
     clone_no_txn();
+    gaia_offset_t old_child_offset = child_ptr.to_offset();
+    child_ptr.clone_no_txn();
 
     gaia_id_t prev_child = INVALID_GAIA_ID;
     gaia_id_t curr_child = references()[first_child_offset];
@@ -343,7 +350,8 @@ void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t fir
         curr_ptr.references()[relationship->next_child_offset] = INVALID_GAIA_ID;
     }
 
-    client::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
+    client::txn_log(m_locator, old_parent_offset, to_offset(), gaia_operation_t::update);
+    client::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset(), gaia_operation_t::update);
 }
 
 void gaia_ptr::remove_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset)

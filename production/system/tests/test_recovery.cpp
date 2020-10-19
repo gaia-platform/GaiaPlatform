@@ -540,7 +540,7 @@ TEST_F(recovery_test, reference_update_test_new)
 
         // Find the children.
         gaia_ptr first_child = gaia_ptr::open(parent.references()[c_first_patient_offset]);
-        children_ids.push_back(first_child);
+        children_ids.push_back(first_child.id());
         gaia_ptr next_child = gaia_ptr::open(first_child.references()[c_next_patient_offset]);
 
         while (next_child)
@@ -593,14 +593,14 @@ int main(int argc, char** argv)
 {
     gaia_log::initialize({});
 
-    //    if (argc != 2)
-    //    {
-    //        gaia_log::db().critical("You must specify the gaia_se_server path. eg:\n\n "
-    //                                " test_recovery \"production/build/db/storage_engine\"");
-    //        exit(1);
-    //    }
+    if (argc != 2)
+    {
+        gaia_log::db().critical("You must specify the gaia_se_server path. eg:\n\n "
+                                " test_recovery \"production/build/db/storage_engine\"");
+        exit(1);
+    }
 
     ::testing::InitGoogleTest(&argc, argv);
-    g_server_dir_path = "/home/simone/repos/GaiaPlatform/production/cmake-build-debug/db/storage_engine/"; //argv[1];
+    g_server_dir_path = argv[1];
     return RUN_ALL_TESTS();
 }

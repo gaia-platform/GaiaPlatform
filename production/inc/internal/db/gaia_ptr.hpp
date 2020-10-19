@@ -25,11 +25,6 @@ namespace db
 
 class gaia_ptr
 {
-private:
-    gaia_locator_t m_locator;
-    void create_insert_trigger(gaia_type_t type, gaia_id_t id);
-    void clone_no_txn();
-
 public:
     gaia_ptr(const std::nullptr_t = nullptr)
         : m_locator(0){};
@@ -354,9 +349,13 @@ protected:
     void reset();
 
 private:
+    gaia_locator_t m_locator;
+
     // This is just a trivial wrapper for a gaia::db::client API,
     // to avoid calling into SE client code from this header file.
     static std::function<std::optional<gaia_id_t>()> get_id_generator_for_type(gaia_type_t type);
+    void create_insert_trigger(gaia_type_t type, gaia_id_t id);
+    void clone_no_txn();
 };
 
 } // namespace db
