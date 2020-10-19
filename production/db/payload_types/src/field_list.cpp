@@ -6,7 +6,6 @@
 #include "field_list.hpp"
 
 #include <algorithm>
-#include <memory>
 
 #include "auto_transaction.hpp"
 #include "gaia_catalog.h"
@@ -28,13 +27,13 @@ field_list_t::field_list_t(gaia_id_t type_id)
 
 field_list_t::field_list_t(const field_list_t& other)
     : m_type_id(other.m_type_id),
-    m_data((other.m_data) ? make_unique< vector<field_position_t> >(*other.m_data) : nullptr) {
+    m_data((other.m_data) ? new vector<field_position_t>(*other.m_data) : nullptr) {
 }
 
 field_list_t& field_list_t::operator=(const field_list_t& other) {
     if (this != &other) {
         m_type_id = other.m_type_id;
-        m_data = (other.m_data) ? make_unique< vector<field_position_t> >(*other.m_data) : nullptr;
+        m_data.reset((other.m_data) ? new vector<field_position_t>(*other.m_data) : nullptr);
     }
     return *this;
 }
@@ -52,7 +51,7 @@ void field_list_t::initialize() {
     size_t num_fields = 0;
     auto_transaction_t txn;
 
-    for (auto field : gaia::catalog::gaia_field_t::list()) {
+    for (auto field = gaia::catalog::gaia_field_t::get_first(); field; field.get_next()) {
         if (field.gaia_table().gaia_id() == m_type_id) {
             num_fields++;
         }
@@ -60,7 +59,8 @@ void field_list_t::initialize() {
     txn.commit();
 
     size_t reserve_size = (c_max_vector_reserve < num_fields) ? c_max_vector_reserve : num_fields;
-    m_data = make_unique< vector<field_position_t> >();
+    // change the following to make_unique with C++14 and above.
+    m_data.reset(new vector<field_position_t>());
     m_data->reserve(reserve_size);
 }
 
