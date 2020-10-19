@@ -190,6 +190,19 @@ void pure_anarchy()
     // clang-format on
 }
 
+void const_position()
+{
+    // Current version of clang-format only support west-const positioning.
+    // Read this about the east/west const debate:
+    // https://mariusbancila.ro/blog/2018/11/23/join-the-east-const-revolution/
+    // https://reviews.llvm.org/D69764
+
+    int* p1 = nullptr;             // p1 is a mutable pointer to a mutable int
+    int const* p2 = nullptr;       // p2 is a mutable pointer to a constant int
+    int* const p3 = nullptr;       // p3 is a constant pointer to a mutable int
+    const int* const p4 = nullptr; // p4 is a constant pointer to a constant int
+}
+
 class base_t
 {
 };
