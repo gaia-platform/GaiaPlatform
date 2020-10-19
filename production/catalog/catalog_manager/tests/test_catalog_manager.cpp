@@ -484,6 +484,55 @@ TEST_F(catalog_manager_test, create_relationships)
     txn.commit();
 }
 
+TEST_F(catalog_manager_test, create_anonymous_relationships)
+{
+    string db_name = {"hospital"};
+    create_database(db_name, true);
+
+    // (clinic) 1 -[anonymous]-> N (doctor)
+
+    string clinic_table_name{"clinic"};
+    ddl::field_def_list_t clinic_table_fields;
+    gaia_id_t clinic_table_id = create_table(db_name, clinic_table_name, clinic_table_fields);
+
+    string doctor_table_name{"doctor"};
+    ddl::field_def_list_t doctor_table_fields;
+    doctor_table_fields.emplace_back(make_unique<ddl::field_definition_t>("", data_type_t::e_references, 1, "hospital.clinic"));
+    gaia_id_t doctor_table_id = create_table(db_name, doctor_table_name, doctor_table_fields);
+
+    auto_transaction_t txn;
+    gaia_table_t clinic_table = gaia_table_t::get(clinic_table_id);
+    gaia_table_t doctor_table = gaia_table_t::get(doctor_table_id);
+
+    gaia_field_t doctor_clinic_field = find_field(doctor_table.gaia_field_list(), "");
+
+    ASSERT_EQ(1, container_size(clinic_table.parent_gaia_relationship_list()));
+    ASSERT_EQ(1, container_size(doctor_clinic_field.child_gaia_relationship_list()));
+    txn.commit();
+}
+
+TEST_F(catalog_manager_test, create_self_relationships)
+{
+    string db_name = {"hospital"};
+    create_database(db_name, true);
+
+    // (doctor) 1 -[anonymous]-> N (doctor)
+
+    string doctor_table_name{"doctor"};
+    ddl::field_def_list_t doctor_table_fields;
+    doctor_table_fields.emplace_back(make_unique<ddl::field_definition_t>("self", data_type_t::e_references, 1, "hospital.doctor"));
+    gaia_id_t doctor_table_id = create_table(db_name, doctor_table_name, doctor_table_fields);
+
+    auto_transaction_t txn;
+    gaia_table_t doctor_table = gaia_table_t::get(doctor_table_id);
+
+    gaia_field_t doctor_clinic_field = find_field(doctor_table.gaia_field_list(), "self");
+
+    ASSERT_EQ(1, container_size(doctor_table.parent_gaia_relationship_list()));
+    ASSERT_EQ(1, container_size(doctor_clinic_field.child_gaia_relationship_list()));
+    txn.commit();
+}
+
 TEST_F(catalog_manager_test, metadata)
 {
     string db_name = {"hospital"};
