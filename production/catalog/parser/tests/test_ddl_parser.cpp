@@ -3,14 +3,16 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "gtest/gtest.h"
+
 #include "gaia_catalog.hpp"
 #include "gaia_parser.hpp"
 #include "yy_parser.hpp"
-#include "gtest/gtest.h"
 
 using namespace gaia::catalog::ddl;
 
-TEST(catalog_ddl_parser_test, create_table) {
+TEST(catalog_ddl_parser_test, create_table)
+{
     parser_t parser;
     ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t (c INT32);"));
 
@@ -24,7 +26,8 @@ TEST(catalog_ddl_parser_test, create_table) {
     EXPECT_FALSE(create_stmt->if_not_exists);
 }
 
-TEST(catalog_ddl_parser_test, create_table_if_not_exists) {
+TEST(catalog_ddl_parser_test, create_table_if_not_exists)
+{
     parser_t parser;
     ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE IF NOT EXISTS t (c INT32);"));
 
@@ -38,9 +41,10 @@ TEST(catalog_ddl_parser_test, create_table_if_not_exists) {
     EXPECT_TRUE(create_stmt->if_not_exists);
 }
 
-TEST(catalog_ddl_parser_test, create_table_multiple_fields) {
+TEST(catalog_ddl_parser_test, create_table_multiple_fields)
+{
     parser_t parser;
-    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t (c1 INT32[], c2 FLOAT64[2]);"));
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t (c1 INT32[], c2 DOUBLE[2]);"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create);
@@ -57,12 +61,13 @@ TEST(catalog_ddl_parser_test, create_table_multiple_fields) {
     EXPECT_EQ(create_stmt->fields.at(0)->active, false);
 
     EXPECT_EQ(create_stmt->fields.at(1)->name, "c2");
-    EXPECT_EQ(create_stmt->fields.at(1)->type, data_type_t::e_float64);
+    EXPECT_EQ(create_stmt->fields.at(1)->type, data_type_t::e_double);
     EXPECT_EQ(create_stmt->fields.at(1)->length, 2);
     EXPECT_EQ(create_stmt->fields.at(0)->active, false);
 }
 
-TEST(catalog_ddl_parser_test, create_table_references) {
+TEST(catalog_ddl_parser_test, create_table_references)
+{
     parser_t parser;
     string ddl = string(
         "CREATE TABLE t "
@@ -95,7 +100,8 @@ TEST(catalog_ddl_parser_test, create_table_references) {
     EXPECT_EQ(create_stmt->fields.at(1)->active, false);
 }
 
-TEST(catalog_ddl_parser_test, drop_table) {
+TEST(catalog_ddl_parser_test, drop_table)
+{
     parser_t parser;
     ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("DROP TABLE t;"));
 
@@ -108,7 +114,8 @@ TEST(catalog_ddl_parser_test, drop_table) {
     EXPECT_EQ(drop_stmt->name, "t");
 }
 
-TEST(catalog_ddl_parser_test, case_sensitivity) {
+TEST(catalog_ddl_parser_test, case_sensitivity)
+{
     parser_t parser;
     ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t (c INT32);"));
     ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("create table t (c int32);"));
@@ -120,7 +127,8 @@ TEST(catalog_ddl_parser_test, case_sensitivity) {
     ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("DrOp TaBle T;"));
 }
 
-TEST(catalog_ddl_parser_test, create_active_field) {
+TEST(catalog_ddl_parser_test, create_active_field)
+{
     parser_t parser;
     ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE t (id INT32[] ACTIVE, name STRING ACTIVE);"));
 
@@ -144,7 +152,8 @@ TEST(catalog_ddl_parser_test, create_active_field) {
     EXPECT_EQ(create_stmt->fields.at(1)->active, true);
 }
 
-TEST(catalog_ddl_parser_test, create_database) {
+TEST(catalog_ddl_parser_test, create_database)
+{
     parser_t parser;
     ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE DATABASE db;"));
 
@@ -158,7 +167,8 @@ TEST(catalog_ddl_parser_test, create_database) {
     EXPECT_FALSE(create_stmt->if_not_exists);
 }
 
-TEST(catalog_ddl_parser_test, create_database_if_not_exists) {
+TEST(catalog_ddl_parser_test, create_database_if_not_exists)
+{
     parser_t parser;
     ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE DATABASE IF NOT EXISTS db;"));
 
@@ -172,7 +182,8 @@ TEST(catalog_ddl_parser_test, create_database_if_not_exists) {
     EXPECT_TRUE(create_stmt->if_not_exists);
 }
 
-TEST(catalog_ddl_parser_test, create_table_in_database) {
+TEST(catalog_ddl_parser_test, create_table_in_database)
+{
     parser_t parser;
     ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("CREATE TABLE d.t (id INT32);"));
 
@@ -184,4 +195,18 @@ TEST(catalog_ddl_parser_test, create_table_in_database) {
     EXPECT_EQ(create_stmt->type, create_type_t::create_table);
     EXPECT_EQ(create_stmt->name, "t");
     EXPECT_EQ(create_stmt->database, "d");
+}
+
+TEST(catalog_ddl_parser_test, drop_database)
+{
+    parser_t parser;
+    ASSERT_EQ(EXIT_SUCCESS, parser.parse_line("DROP DATABASE d;"));
+
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::drop);
+
+    auto drop_stmt = dynamic_cast<drop_statement_t*>(parser.statements[0].get());
+
+    EXPECT_EQ(drop_stmt->type, drop_type_t::drop_database);
+    EXPECT_EQ(drop_stmt->name, "d");
 }

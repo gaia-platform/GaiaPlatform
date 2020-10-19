@@ -2,152 +2,73 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
-#include <string>
-#include <algorithm>
-#include "gaia_catalog.h"
 #include "fbs_generator.hpp"
+
+#include <algorithm>
+#include <string>
+
 #include "flatbuffers/idl.h"
+#include "flatbuffers/util.h"
+
+#include "gaia_catalog.h"
 #include "retail_assert.hpp"
 
-namespace gaia {
-namespace catalog {
+namespace gaia
+{
+namespace catalog
+{
 
 /**
 * Helper functions
 **/
 
-/**
- * Return the position of chr within base64_encode()
- */
-static unsigned int pos_of_char(unsigned char chr) {
-    if (chr >= 'A' && chr <= 'Z') {
-        return chr - 'A';
-    } else if (chr >= 'a' && chr <= 'z') {
-        return chr - 'a' + ('Z' - 'A') + 1;
-    } else if (chr >= '0' && chr <= '9') {
-        return chr - '0' + ('Z' - 'A') + ('z' - 'a') + 2;
-    } else if (chr == '+' || chr == '-') {
-        return 62;
-    } else if (chr == '/' || chr == '_') {
-        return 63;
-    }
-
-    retail_assert(false, "Unknown base64 char!");
-    return 0;
-}
-
-/**
- * base64 decode function adapted from the following implementation.
- * https://renenyffenegger.ch/notes/development/Base64/Encoding-and-decoding-base-64-with-cpp/
- *
- * This is for temporary workaround to decode string into binary buffer before EDC support arrays.
- * Do not use it elsewhere.
- **/
-static string base64_decode(string encoded_string) {
-    size_t length_of_string = encoded_string.length();
-    if (!length_of_string) {
-        return string("");
-    }
-
-    size_t input_length = length_of_string;
-    size_t pos = 0;
-
-    // The approximate length (bytes) of the decoded string might be one ore
-    // two bytes smaller, depending on the amount of trailing equal signs
-    // in the encoded string. This approximation is needed to reserve
-    // enough space in the string to be returned.
-    size_t approx_length_of_decoded_string = length_of_string / 4 * 3;
-    string ret;
-    ret.reserve(approx_length_of_decoded_string);
-
-    while (pos < input_length) {
-        unsigned int pos_of_char_1 = pos_of_char(encoded_string[pos + 1]);
-        ret.push_back(static_cast<std::string::value_type>(((pos_of_char(encoded_string[pos + 0])) << 2) + ((pos_of_char_1 & 0x30) >> 4)));
-        if (encoded_string[pos + 2] != '=') {
-            unsigned int pos_of_char_2 = pos_of_char(encoded_string[pos + 2]);
-            ret.push_back(static_cast<std::string::value_type>(((pos_of_char_1 & 0x0f) << 4) + ((pos_of_char_2 & 0x3c) >> 2)));
-            if (encoded_string[pos + 3] != '=') {
-                ret.push_back(static_cast<std::string::value_type>(((pos_of_char_2 & 0x03) << 6) + pos_of_char(encoded_string[pos + 3])));
-            }
-        }
-        pos += 4;
-    }
-    return ret;
-}
-
-/**
- * base64 encode function adapted from the following implementation.
- * https://renenyffenegger.ch/notes/development/Base64/Encoding-and-decoding-base-64-with-cpp/
- *
- * This is for temporary workaround to encode binary into string before EDC support arrays.
- * Do not use it elsewhere.
- **/
-static string base64_encode(const uint8_t* bytes_to_encode, uint32_t in_len) {
-    uint32_t len_encoded = (in_len + 2) / 3 * 4;
-    constexpr unsigned char trailing_char = '=';
-    constexpr char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                       "abcdefghijklmnopqrstuvwxyz"
-                                       "0123456789"
-                                       "+/";
-
-    string ret;
-    ret.reserve(len_encoded);
-
-    unsigned int pos = 0;
-    while (pos < in_len) {
-        ret.push_back(base64_chars[(bytes_to_encode[pos + 0] & 0xfc) >> 2]);
-        if (pos + 1 < in_len) {
-            ret.push_back(base64_chars[((bytes_to_encode[pos + 0] & 0x03) << 4) + ((bytes_to_encode[pos + 1] & 0xf0) >> 4)]);
-            if (pos + 2 < in_len) {
-                ret.push_back(base64_chars[((bytes_to_encode[pos + 1] & 0x0f) << 2) + ((bytes_to_encode[pos + 2] & 0xc0) >> 6)]);
-                ret.push_back(base64_chars[bytes_to_encode[pos + 2] & 0x3f]);
-            } else {
-                ret.push_back(base64_chars[(bytes_to_encode[pos + 1] & 0x0f) << 2]);
-                ret.push_back(trailing_char);
-            }
-        } else {
-            ret.push_back(base64_chars[(bytes_to_encode[pos + 0] & 0x03) << 4]);
-            ret.push_back(trailing_char);
-            ret.push_back(trailing_char);
-        }
-        pos += 3;
-    }
-    return ret;
-}
-
-static string generate_fbs_namespace(const string& db_name) {
-    if (db_name.empty() || db_name == c_global_db_name) {
+static string generate_fbs_namespace(const string& db_name)
+{
+    if (db_name.empty() || db_name == c_empty_db_name)
+    {
         return "namespace " + c_gaia_namespace + ";\n";
-    } else {
+    }
+    else
+    {
         return "namespace " + c_gaia_namespace + "." + db_name + ";\n";
     }
 }
 
-static string generate_fbs_field(const string& name, const string& type, int count) {
-    if (count == 1) {
+static string generate_fbs_field(const string& name, const string& type, int count)
+{
+    if (count == 1)
+    {
         return name + ":" + type;
-    } else if (count == 0) {
+    }
+    else if (count == 0)
+    {
         return name + ":[" + type + "]";
-    } else {
+    }
+    else
+    {
         return name + ":[" + type + ":" + to_string(count) + "]";
     }
 }
 
-static string generate_fbs_field(const gaia_field_t& field) {
+static string generate_fbs_field(const gaia_field_t& field)
+{
     string name{field.name()};
-    string type{ddl::get_data_type_name(static_cast<data_type_t>(field.type()))};
+    string type{get_data_type_name(static_cast<data_type_t>(field.type()))};
     return generate_fbs_field(name, type, field.repeated_count());
 }
 
 /**
  * Public interfaces
  **/
-ddl::unknown_data_type::unknown_data_type() {
+unknown_data_type::unknown_data_type()
+{
     m_message = "Unknown data type.";
 }
 
-string ddl::get_data_type_name(data_type_t data_type) {
-    switch (data_type) {
+string get_data_type_name(data_type_t data_type)
+{
+    switch (data_type)
+    {
     case data_type_t::e_bool:
         return "bool";
     case data_type_t::e_int8:
@@ -166,25 +87,27 @@ string ddl::get_data_type_name(data_type_t data_type) {
         return "int64";
     case data_type_t::e_uint64:
         return "uint64";
-    case data_type_t::e_float32:
-        return "float32";
-    case data_type_t::e_float64:
-        return "float64";
+    case data_type_t::e_float:
+        return "float";
+    case data_type_t::e_double:
+        return "double";
     case data_type_t::e_string:
         return "string";
     default:
-        throw ddl::unknown_data_type();
+        throw unknown_data_type();
     }
 }
 
-string generate_fbs(gaia_id_t table_id) {
+string generate_fbs(gaia_id_t table_id)
+{
     string fbs;
     gaia::db::begin_transaction();
     gaia_table_t table = gaia_table_t::get(table_id);
     fbs += generate_fbs_namespace(table.gaia_database().name());
     string table_name{table.name()};
     fbs += "table " + table_name + "{\n";
-    for (gaia_id_t field_id : list_fields(table_id)) {
+    for (gaia_id_t field_id : list_fields(table_id))
+    {
         gaia_field_t field = gaia_field_t::get(field_id);
         fbs += "\t" + generate_fbs_field(field) + ";\n";
     }
@@ -194,16 +117,20 @@ string generate_fbs(gaia_id_t table_id) {
     return fbs;
 }
 
-string generate_fbs(const string& dbname) {
+string generate_fbs(const string& dbname)
+{
     gaia_id_t db_id = find_db_id(dbname);
-    if (db_id == INVALID_GAIA_ID) {
+    if (db_id == INVALID_GAIA_ID)
+    {
         throw db_not_exists(dbname);
     }
     string fbs = generate_fbs_namespace(dbname);
     gaia::db::begin_transaction();
-    for (auto table : gaia_database_t::get(db_id).gaia_table_list()) {
+    for (auto table : gaia_database_t::get(db_id).gaia_table_list())
+    {
         fbs += "table " + string(table.name()) + "{\n";
-        for (gaia_id_t field_id : list_fields(table.gaia_id())) {
+        for (gaia_id_t field_id : list_fields(table.gaia_id()))
+        {
             gaia_field_t field = gaia_field_t::get(field_id);
             fbs += "\t" + generate_fbs_field(field) + ";\n";
         }
@@ -213,16 +140,19 @@ string generate_fbs(const string& dbname) {
     return fbs;
 }
 
-string generate_fbs(const string& db_name, const string& table_name, const ddl::field_def_list_t& fields) {
+string generate_fbs(const string& db_name, const string& table_name, const ddl::field_def_list_t& fields)
+{
     string fbs = generate_fbs_namespace(db_name);
     fbs += "table " + table_name + "{";
-    for (auto& field : fields) {
-        if (field->type == data_type_t::e_references) {
+    for (auto& field : fields)
+    {
+        if (field->type == data_type_t::e_references)
+        {
             continue;
         }
         string field_fbs = generate_fbs_field(
             field->name,
-            ddl::get_data_type_name(field->type),
+            get_data_type_name(field->type),
             field->length);
         fbs += field_fbs + ";";
     }
@@ -231,25 +161,55 @@ string generate_fbs(const string& db_name, const string& table_name, const ddl::
     return fbs;
 }
 
-string generate_bfbs(const string& fbs) {
+string generate_bfbs(const string& fbs)
+{
     flatbuffers::Parser fbs_parser;
     bool parsing_result = fbs_parser.Parse(fbs.c_str());
     retail_assert(parsing_result == true, "Invalid FlatBuffers schema!");
     fbs_parser.Serialize();
-    return base64_encode(fbs_parser.builder_.GetBufferPointer(), fbs_parser.builder_.GetSize());
+    // Use the fbs method ""flatbuffers::BufferToHexText" to encode the buffer.
+    // Some encoding is needed to store the binary as string in fbs payload
+    // because fbs assumes strings are null terminated while the binary schema
+    // buffers may have null characters in them.
+    //
+    // The following const defines the line wrap length of the encoded hex text.
+    // We do not need this but fbs method requires it.
+    constexpr size_t c_binary_schema_hex_text_len = 80;
+    return flatbuffers::BufferToHexText(
+        fbs_parser.builder_.GetBufferPointer(),
+        fbs_parser.builder_.GetSize(),
+        c_binary_schema_hex_text_len, "", "");
 }
 
-string get_bfbs(gaia_id_t table_id) {
-    bool is_txn_owner = !gaia::db::is_transaction_active();
-    if (is_txn_owner) {
-        gaia::db::begin_transaction();
-    }
+string get_bfbs(gaia_id_t table_id)
+{
+    string binary_schema;
     gaia_table_t table = gaia_table_t::get(table_id);
-    string base64_binary_schema = table.binary_schema();
-    if (is_txn_owner) {
-        gaia::db::commit_transaction();
+    // The delimitation character used by the fbs hex encoding method.
+    constexpr char c_hex_text_delim = ',';
+    const char* p = table.binary_schema();
+    while (*p != '\0')
+    {
+        if (*p == '\n')
+        {
+            p++;
+            continue;
+        }
+        else if (*p == c_hex_text_delim)
+        {
+            p++;
+            continue;
+        }
+        else
+        {
+            char* endptr;
+            unsigned byte = std::strtoul(p, &endptr, 0);
+            retail_assert(endptr != p && errno != ERANGE, "Invalid hex binary schema!");
+            binary_schema.push_back(byte);
+            p = endptr;
+        }
     }
-    return base64_decode(base64_binary_schema);
+    return binary_schema;
 }
 
 } // namespace catalog

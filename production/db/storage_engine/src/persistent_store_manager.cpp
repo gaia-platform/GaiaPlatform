@@ -5,18 +5,17 @@
 
 #include "persistent_store_manager.hpp"
 
+#include "db_types.hpp"
+#include "gaia_db_internal.hpp"
+#include "gaia_hash_map.hpp"
+#include "gaia_se_object.hpp"
+#include "rdb_internal.hpp"
+#include "rdb_object_converter.hpp"
 #include "rocksdb/db.h"
 #include "rocksdb/write_batch.h"
-
-#include "gaia_db_internal.hpp"
-#include "gaia_se_object.hpp"
 #include "storage_engine.hpp"
 #include "storage_engine_server.hpp"
-#include "gaia_hash_map.hpp"
-#include "rdb_object_converter.hpp"
-#include "rdb_internal.hpp"
 #include "system_table_types.hpp"
-#include "db_types.hpp"
 
 using namespace gaia::db;
 using namespace gaia::common;
@@ -26,18 +25,21 @@ using namespace rocksdb;
 static const std::string data_dir = PERSISTENT_DIRECTORY_PATH;
 std::unique_ptr<gaia::db::rdb_internal_t> persistent_store_manager::rdb_internal;
 
-persistent_store_manager::persistent_store_manager() {
+persistent_store_manager::persistent_store_manager()
+{
     rocksdb::WriteOptions write_options{};
     write_options.sync = true;
     rocksdb::TransactionDBOptions transaction_db_options{};
     rdb_internal.reset(new gaia::db::rdb_internal_t(data_dir, write_options, transaction_db_options));
 }
 
-persistent_store_manager::~persistent_store_manager() {
+persistent_store_manager::~persistent_store_manager()
+{
     close();
 }
 
-void persistent_store_manager::open() {
+void persistent_store_manager::open()
+{
     rocksdb::TransactionDBOptions options{};
     rocksdb::Options init_options{};
     // Implies 2PC log writes.
@@ -76,44 +78,54 @@ void persistent_store_manager::open() {
     rdb_internal->open_txn_db(init_options, options);
 }
 
-void persistent_store_manager::close() {
+void persistent_store_manager::close()
+{
     rdb_internal->close();
 }
 
-void persistent_store_manager::append_wal_commit_marker(std::string& txn_name) {
+void persistent_store_manager::append_wal_commit_marker(std::string& txn_name)
+{
     rdb_internal->commit(txn_name);
 }
 
-std::string persistent_store_manager::begin_txn(gaia_txn_id_t txn_id) {
+std::string persistent_store_manager::begin_txn(gaia_txn_id_t txn_id)
+{
     rocksdb::WriteOptions write_options{};
     rocksdb::TransactionOptions txn_options{};
     return rdb_internal->begin_txn(write_options, txn_options, txn_id);
 }
 
-void persistent_store_manager::append_wal_rollback_marker(std::string& txn_name) {
+void persistent_store_manager::append_wal_rollback_marker(std::string& txn_name)
+{
     rdb_internal->rollback(txn_name);
 }
 
-void persistent_store_manager::prepare_wal_for_write(std::string& txn_name) {
+void persistent_store_manager::prepare_wal_for_write(std::string& txn_name)
+{
     auto log = se_base::get_txn_log();
     assert(log);
     // The key_count variable represents the number of puts + deletes.
     size_t key_count = 0;
     // Obtain RocksDB transaction object.
     auto txn = rdb_internal->get_txn_by_name(txn_name);
-    for (size_t i = 0; i < log->count; i++) {
+    for (size_t i = 0; i < log->count; i++)
+    {
         auto lr = log->log_records + i;
-        if (lr->operation == gaia_operation_t::remove) {
+        if (lr->operation == gaia_operation_t::remove)
+        {
             // Encode key to be deleted.
             string_writer key;
             key.write_uint64(lr->deleted_id);
             txn->Delete(key.to_slice());
             key_count++;
-        } else {
+        }
+        else
+        {
             string_writer key;
             string_writer value;
             void* gaia_object = lr->new_offset ? (server::s_data->objects + lr->new_offset) : nullptr;
-            if (!gaia_object) {
+            if (!gaia_object)
+            {
                 // Object was deleted in current transaction.
                 continue;
             }
@@ -142,13 +154,16 @@ void persistent_store_manager::prepare_wal_for_write(std::string& txn_name) {
  * Note that, for now we skip validating the existence of object references on recovery,
  * since these aren't validated during object creation either.
  */
-void persistent_store_manager::recover() {
+void persistent_store_manager::recover()
+{
     auto it = std::unique_ptr<rocksdb::Iterator>(rdb_internal->get_iterator());
     gaia_id_t max_id = 0;
     size_t count = 0;
-    for (it->SeekToFirst(); it->Valid(); it->Next()) {
+    for (it->SeekToFirst(); it->Valid(); it->Next())
+    {
         auto id = decode_object(it->key(), it->value());
-        if (id > max_id && id < c_system_table_reserved_range_start) {
+        if (id > max_id && id < c_system_table_reserved_range_start)
+        {
             max_id = id;
         }
         count++;
@@ -158,7 +173,8 @@ void persistent_store_manager::recover() {
     server::s_data->next_id = max_id;
 }
 
-void persistent_store_manager::destroy_persistent_store() {
+void persistent_store_manager::destroy_persistent_store()
+{
     rdb_internal->destroy_persistent_store();
 }
 
@@ -167,11 +183,12 @@ void persistent_store_manager::create_object_on_recovery(
     gaia_type_t type,
     size_t num_refs,
     size_t data_size,
-    const void* data) {
-    hash_node* hash_node = gaia_hash_map::insert(server::s_data, server::s_shared_locators, id);
+    const void* data)
+{
+    server::hash_node* hash_node = gaia_hash_map::insert(server::s_data, server::s_shared_locators, id);
     hash_node->locator = se_base::allocate_locator(server::s_shared_locators, server::s_data, true);
     se_base::allocate_object(hash_node->locator, data_size + sizeof(gaia_se_object_t), server::s_shared_locators, server::s_data, true);
-    gaia_se_object_t* obj_ptr = server::locator_to_ptr(server::s_shared_locators, server::s_data, hash_node->locator);
+    gaia_se_object_t* obj_ptr = se_base::locator_to_ptr(server::s_shared_locators, server::s_data, hash_node->locator);
     obj_ptr->id = id;
     obj_ptr->type = type;
     obj_ptr->num_references = num_refs;

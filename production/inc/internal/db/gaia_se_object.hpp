@@ -5,20 +5,21 @@
 
 #pragma once
 
-#include <cstdint>
-#include <vector>
+#include <cstddef>
 
 #include "gaia_common.hpp"
-
-using namespace gaia::common;
 
 namespace gaia
 {
 namespace db
 {
 
-// Storage engine internal object type.
-struct gaia_se_object_t {
+using namespace common;
+
+// This was factored out of gaia_ptr.hpp because the server needs to know
+// the object format but doesn't need any gaia_ptr functionality.
+struct gaia_se_object_t
+{
     gaia_id_t id;
     gaia_type_t type;
     // The Flatbuffer size limit is 2GB (signed 32-bit). With a 16-bit payload size,

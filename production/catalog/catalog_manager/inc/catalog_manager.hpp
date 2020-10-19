@@ -8,17 +8,20 @@
 #include <unordered_map>
 #include <utility>
 
-#include "gaia_catalog.hpp"
 #include "gaia_boot.hpp"
+#include "gaia_catalog.hpp"
 
-namespace gaia {
-namespace catalog {
+namespace gaia
+{
+namespace catalog
+{
 
 using db_names_t = unordered_map<string, gaia::common::gaia_id_t>;
 using table_names_t = unordered_map<string, gaia::common::gaia_id_t>;
 using type_map_t = unordered_map<gaia_type_t, gaia::common::gaia_id_t>;
 
-class catalog_manager_t {
+class catalog_manager_t
+{
 public:
     /**
      * Catalog manager scaffolding to ensure we have one global static instance
@@ -31,9 +34,13 @@ public:
      * APIs for accessing catalog records
      */
     gaia::common::gaia_id_t create_database(const string& name, bool throw_on_exist = true);
-    gaia::common::gaia_id_t create_table(const string& db_name,
-        const string& name, const ddl::field_def_list_t& fields, bool throw_on_exist = true);
-    void drop_table(const string& dbname, const string& name);
+    gaia::common::gaia_id_t create_table(
+        const string& db_name,
+        const string& name,
+        const ddl::field_def_list_t& fields,
+        bool throw_on_exist = true);
+    void drop_table(const string& db_name, const string& name);
+    void drop_database(const string& name);
 
     gaia::common::gaia_id_t find_db_id(const string& dbname) const;
     gaia::common::gaia_id_t find_table_id(gaia_type_t);
@@ -44,7 +51,7 @@ public:
 private:
     // Only internal static creation is allowed
     catalog_manager_t();
-    ~catalog_manager_t() {}
+    ~catalog_manager_t() = default;
 
     // Initialize the catalog manager.
     void init();
@@ -61,6 +68,10 @@ private:
         bool is_log = false,
         bool throw_on_exist = true,
         gaia_type_t type = INVALID_GAIA_TYPE);
+
+    // Internal drop table implementation. Callers need to acquire a transaction
+    // before calling this method.
+    void drop_table_no_txn(gaia::common::gaia_id_t table_id);
 
     // Find the database ID given its name.
     // The method does not use a lock.
@@ -88,7 +99,7 @@ private:
     table_names_t m_table_names;
     type_map_t m_type_map;
 
-    gaia::common::gaia_id_t m_global_db_id;
+    gaia::common::gaia_id_t m_empty_db_id;
 
     // Use the lock to ensure exclusive access to caches.
     mutable shared_mutex m_lock;

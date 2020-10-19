@@ -5,22 +5,26 @@
 
 #include <fstream>
 #include <iostream>
+
 #include "gtest/gtest.h"
+
+#include "db_test_base.hpp"
 #include "gaia_airport.h"
 #include "gaia_catalog.hpp"
 #include "gaia_catalog_internal.hpp"
 #include "gaia_parser.hpp"
-#include "db_test_base.hpp"
 
 using namespace gaia::catalog;
 using namespace gaia::db;
 using namespace std;
 
-class gaia_generate_test : public db_test_base_t {
+class gaia_generate_test : public db_test_base_t
+{
 };
 
 // Using the catalog manager's create_table(), create a catalog and an EDC header from that.
-TEST_F(gaia_generate_test, use_create_table) {
+TEST_F(gaia_generate_test, use_create_table)
+{
     create_database("airport_test");
     ddl::field_def_list_t fields;
     fields.emplace_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
@@ -31,8 +35,9 @@ TEST_F(gaia_generate_test, use_create_table) {
 }
 
 // Start from Gaia DDL to create an EDC header.
-TEST_F(gaia_generate_test, parse_ddl) {
-    parser_t parser;
+TEST_F(gaia_generate_test, parse_ddl)
+{
+    ddl::parser_t parser;
 
     EXPECT_EQ(EXIT_SUCCESS, parser.parse_line("create table tmp_airport ( name string );"));
     create_database("tmp_airport");
@@ -42,8 +47,9 @@ TEST_F(gaia_generate_test, parse_ddl) {
     EXPECT_NE(0, header_str.find("struct tmp_airport_t"));
 }
 
-TEST_F(gaia_generate_test, airport_example) {
-    const char *airport_ddl_file = getenv("AIRPORT_DDL_FILE");
+TEST_F(gaia_generate_test, airport_example)
+{
+    const char* airport_ddl_file = getenv("AIRPORT_DDL_FILE");
     ASSERT_NE(airport_ddl_file, nullptr);
     gaia::catalog::load_catalog(airport_ddl_file);
 
@@ -92,8 +98,10 @@ TEST_F(gaia_generate_test, airport_example) {
 
     begin_transaction();
     stringstream ss;
-    for (auto flight : gaia::airport::flight_t::list()) {
-        for (auto segment : flight.segment_list()) {
+    for (auto flight : gaia::airport::flight_t::list())
+    {
+        for (auto segment : flight.segment_list())
+        {
             ss << "Segment distance: " << segment.miles() << endl;
             auto src_airport = segment.src_airport();
             auto dst_airport = segment.dst_airport();
@@ -108,11 +116,11 @@ TEST_F(gaia_generate_test, airport_example) {
                   "Segment distance: 888\n"
                   "Source airport: Denver International\n"
                   "Destination airport: Chicago O'Hare International\n")),
-        string::npos);
+              string::npos);
 
     EXPECT_NE(ss.str().find(string(
                   "Segment distance: 606\n"
                   "Source airport: Chicago O'Hare International\n"
                   "Destination airport: Atlanta International\n")),
-        string::npos);
+              string::npos);
 }

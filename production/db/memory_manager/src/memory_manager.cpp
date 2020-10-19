@@ -7,22 +7,21 @@
 
 #include <unistd.h>
 
-#include <sstream>
 #include <memory>
-
-#include "retail_assert.hpp"
+#include <sstream>
 
 #include "memory_types.hpp"
-#include "access_control.hpp"
+#include "retail_assert.hpp"
 
 using namespace std;
 
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;
 
-memory_manager_t::memory_manager_t() : base_memory_manager_t()
+memory_manager_t::memory_manager_t()
+    : base_memory_manager_t()
 {
-    m_next_allocation_offset = 0;
+    m_next_allocation_offset = c_invalid_offset;
 }
 
 error_code_t memory_manager_t::manage(
@@ -49,6 +48,13 @@ error_code_t memory_manager_t::manage(
     m_base_memory_address = memory_address;
     m_total_memory_size = memory_size;
 
+    // Also initialize our offsets.
+    //
+    // A minimum allocation size block at the start of the memory
+    // will get unused throughout the life of the memory manager.
+    m_base_memory_offset = 0;
+    m_next_allocation_offset = c_minimum_allocation_size;
+
     if (m_execution_flags.enable_console_output)
     {
         cout << "  Configuration - enable_extra_validations = " << m_execution_flags.enable_extra_validations << endl;
@@ -63,7 +69,24 @@ error_code_t memory_manager_t::allocate(
     size_t memory_size,
     address_offset_t& allocated_memory_offset)
 {
-    allocated_memory_offset = 0;
+    bool add_allocation_metadata = true;
+    return allocate_internal(memory_size, allocated_memory_offset, add_allocation_metadata);
+}
+
+error_code_t memory_manager_t::allocate_raw(
+    size_t memory_size,
+    address_offset_t& allocated_memory_offset)
+{
+    bool add_allocation_metadata = false;
+    return allocate_internal(memory_size, allocated_memory_offset, add_allocation_metadata);
+}
+
+error_code_t memory_manager_t::allocate_internal(
+    size_t memory_size,
+    address_offset_t& allocated_memory_offset,
+    bool add_allocation_metadata)
+{
+    allocated_memory_offset = c_invalid_offset;
 
     error_code_t error_code = validate_size(memory_size);
     if (error_code != error_code_t::success)
@@ -71,66 +94,86 @@ error_code_t memory_manager_t::allocate(
         return error_code;
     }
 
-    size_t size_to_allocate = memory_size + sizeof(memory_allocation_metadata_t);
+    // Adjust the requested memory size, to ensure proper alignment.
+    if (add_allocation_metadata)
+    {
+        memory_size = calculate_allocation_size(memory_size);
+    }
+    else
+    {
+        memory_size = calculate_raw_allocation_size(memory_size);
+    }
+
+    // Then factor in the metadata size, if we need to add that.
+    size_t size_to_allocate = memory_size
+        + (add_allocation_metadata ? sizeof(memory_allocation_metadata_t) : 0);
+
+    retail_assert(
+        size_to_allocate % c_allocation_alignment == 0,
+        "The size of allocations should always be a multiple of the alignment value.");
 
     // First, attempt to reuse freed memory blocks, if possible.
-    allocated_memory_offset = allocate_from_freed_memory(size_to_allocate);
+    allocated_memory_offset = allocate_from_freed_memory(size_to_allocate, add_allocation_metadata);
 
     // Otherwise, fall back to allocating from our main memory block.
-    if (allocated_memory_offset == 0)
+    if (allocated_memory_offset == c_invalid_offset)
     {
-        allocated_memory_offset = allocate_from_main_memory(size_to_allocate);
+        allocated_memory_offset = allocate_from_main_memory(size_to_allocate, add_allocation_metadata);
     }
 
     if (m_execution_flags.enable_console_output)
     {
-        output_debugging_information("allocate");
+        output_debugging_information(add_allocation_metadata ? "allocate" : "allocate_raw");
     }
 
-    if (allocated_memory_offset == 0)
+    if (allocated_memory_offset == c_invalid_offset)
     {
         return error_code_t::insufficient_memory_size;
+    }
+
+    if (m_execution_flags.enable_extra_validations)
+    {
+        // Verify proper allocation alignment.
+        if (add_allocation_metadata)
+        {
+            retail_assert(
+                allocated_memory_offset % c_allocation_alignment == 0,
+                "Memory allocation was not made on a 64B boundary!");
+        }
+        else
+        {
+            retail_assert(
+                allocated_memory_offset % c_allocation_alignment == c_minimum_allocation_size,
+                "Raw memory allocation is not offset by 56B from a 64B boundary!");
+        }
     }
 
     return error_code_t::success;
 }
 
-error_code_t memory_manager_t::commit_stack_allocator(
-    unique_ptr<stack_allocator_t>& stack_allocator)
+error_code_t memory_manager_t::free_stack_allocator(
+    const unique_ptr<stack_allocator_t>& stack_allocator)
 {
-    if (stack_allocator == nullptr)
+    if (stack_allocator == nullptr
+        || stack_allocator->get_base_memory_offset() == c_invalid_offset
+        || stack_allocator->has_been_freed())
     {
         return error_code_t::invalid_argument_value;
     }
 
     size_t count_allocations = stack_allocator->get_allocation_count();
 
-    // Get metadata record for the entire stack allocator memory block.
-    memory_allocation_metadata_t* first_stack_allocation_metadata
-        = read_allocation_metadata(stack_allocator->m_base_memory_offset);
-    address_offset_t first_stack_allocation_metadata_offset
-        = get_offset(reinterpret_cast<uint8_t *>(first_stack_allocation_metadata));
-
     if (count_allocations == 0)
     {
-        // Special case: all allocations have been reverted, so we need to mark the entire memory block as free.
-        if (m_execution_flags.enable_extra_validations)
-        {
-            retail_assert(
-                first_stack_allocation_metadata_offset
-                == stack_allocator->m_base_memory_offset - sizeof(memory_allocation_metadata_t),
-                "Allocation metadata offset does not match manually computed size!");
-            retail_assert(
-                first_stack_allocation_metadata->allocation_size
-                == stack_allocator->m_total_memory_size + sizeof(memory_allocation_metadata_t),
-                "Allocation metadata size does not match manually computed size!");
-        }
-
-        // Mark memory block as free.
+        // Mark the entire memory block as free.
+        //
+        // first_stack_allocation_metadata->allocation_size may have
+        // already been patched by commit, so we'll just recompute the size of the entire block
+        // using the stack_allocator's internal information.
         unique_lock unique_free_memory_list_lock(m_free_memory_list_lock);
         m_free_memory_list.emplace_back(
-            first_stack_allocation_metadata_offset,
-            first_stack_allocation_metadata->allocation_size);
+            stack_allocator->get_base_memory_offset(),
+            stack_allocator->get_total_memory_size());
     }
     else
     {
@@ -140,10 +183,12 @@ error_code_t memory_manager_t::commit_stack_allocator(
             stack_allocator_allocation_t* allocation_record = stack_allocator->get_allocation_record(allocation_number);
             retail_assert(allocation_record != nullptr, "An unexpected null allocation record was retrieved!");
 
-            if (allocation_record->old_memory_offset != 0)
+            if (allocation_record->old_memory_offset != c_invalid_offset)
             {
-                memory_allocation_metadata_t* allocation_metadata = read_allocation_metadata(allocation_record->old_memory_offset);
-                address_offset_t allocation_metadata_offset = get_offset(reinterpret_cast<uint8_t*>(allocation_metadata));
+                memory_allocation_metadata_t* allocation_metadata
+                    = read_allocation_metadata(allocation_record->old_memory_offset);
+                address_offset_t allocation_metadata_offset
+                    = get_offset(reinterpret_cast<uint8_t*>(allocation_metadata));
 
                 // Add allocation to free memory block list.
                 unique_lock unique_free_memory_list_lock(m_free_memory_list_lock);
@@ -155,18 +200,19 @@ error_code_t memory_manager_t::commit_stack_allocator(
 
         // Get the stack_allocator_t metadata.
         stack_allocator_metadata_t* stack_allocator_metadata = stack_allocator->get_metadata();
-        address_offset_t stack_allocator_metadata_offset = get_offset(reinterpret_cast<uint8_t*>(stack_allocator_metadata));
-
-        // Patch metadata information of the first allocation.
-        first_stack_allocation_metadata->allocation_size
-            = stack_allocator_metadata->first_allocation_size + sizeof(memory_allocation_metadata_t);
+        address_offset_t stack_allocator_metadata_offset
+            = get_offset(reinterpret_cast<uint8_t*>(stack_allocator_metadata));
 
         // Now we need to release the unused stack allocator memory.
         // Determine the boundaries of the memory block that we can free from the stack_allocator_t.
         address_offset_t start_memory_offset = stack_allocator_metadata->next_allocation_offset;
         address_offset_t end_memory_offset = stack_allocator_metadata_offset + sizeof(stack_allocator_metadata_t);
-        retail_assert(validate_offset(start_memory_offset) == error_code_t::success, "Calculated start memory offset is invalid");
-        retail_assert(validate_offset(end_memory_offset) == error_code_t::success, "Calculated end memory offset is invalid");
+        retail_assert(
+            validate_offset(start_memory_offset) == error_code_t::success,
+            "Calculated start memory offset is invalid");
+        retail_assert(
+            validate_offset(end_memory_offset) == error_code_t::success,
+            "Calculated end memory offset is invalid");
 
         size_t memory_size = end_memory_offset - start_memory_offset;
 
@@ -177,10 +223,14 @@ error_code_t memory_manager_t::commit_stack_allocator(
             memory_size);
     }
 
+    // This doesn't prevent another copy of this stack allocator from attempting to do a redundant free,
+    // but it's better than no protection at all.
+    stack_allocator->mark_as_freed();
+
     if (m_execution_flags.enable_console_output)
     {
-        output_debugging_information("commit_stack_allocator");
-        stack_allocator->output_debugging_information("commit_stack_allocator");
+        output_debugging_information("free_stack_allocator");
+        stack_allocator->output_debugging_information("free_stack_allocator");
     }
 
     return error_code_t::success;
@@ -193,25 +243,31 @@ size_t memory_manager_t::get_main_memory_available_size() const
     return available_size;
 }
 
-address_offset_t memory_manager_t::process_allocation(address_offset_t allocation_offset, size_t size_to_allocate) const
+address_offset_t memory_manager_t::process_allocation(
+    address_offset_t allocation_offset,
+    size_t size_to_allocate,
+    bool add_allocation_metadata) const
 {
-    // Write the allocation metadata.
-    uint8_t* allocation_metadata_address = get_address(allocation_offset);
-    memory_allocation_metadata_t* allocation_metadata
-        = reinterpret_cast<memory_allocation_metadata_t*>(allocation_metadata_address);
-    allocation_metadata->allocation_size = size_to_allocate;
+    if (add_allocation_metadata)
+    {
+        // Write the allocation metadata.
+        uint8_t* allocation_metadata_address = get_address(allocation_offset);
+        auto allocation_metadata = reinterpret_cast<memory_allocation_metadata_t*>(allocation_metadata_address);
+        allocation_metadata->allocation_size = size_to_allocate;
 
-    // We return the offset past the metadata.
-    allocation_offset += sizeof(memory_allocation_metadata_t);
+        // We return the offset past the metadata.
+        allocation_offset += sizeof(memory_allocation_metadata_t);
+    }
+
     return allocation_offset;
 }
 
-address_offset_t memory_manager_t::allocate_from_main_memory(size_t size_to_allocate)
+address_offset_t memory_manager_t::allocate_from_main_memory(size_t size_to_allocate, bool add_allocation_metadata)
 {
     // If the allocation exhausts our memory, we cannot perform it.
     if (get_main_memory_available_size() < size_to_allocate)
     {
-        return 0;
+        return c_invalid_offset;
     }
 
     // Claim the space.
@@ -237,25 +293,27 @@ address_offset_t memory_manager_t::allocate_from_main_memory(size_t size_to_allo
             usleep(1);
         }
 
-        return 0;
+        return c_invalid_offset;
     }
 
     // Our allocation has succeeded.
     address_offset_t allocation_offset = old_next_allocation_offset;
-    address_offset_t adjusted_allocation_offset = process_allocation(allocation_offset, size_to_allocate);
+    address_offset_t adjusted_allocation_offset
+        = process_allocation(allocation_offset, size_to_allocate, add_allocation_metadata);
 
     if (m_execution_flags.enable_console_output)
     {
-        cout << endl << "Allocated " << size_to_allocate << " bytes at offset " << allocation_offset;
+        cout << endl
+             << "Allocated " << size_to_allocate << " bytes at offset " << allocation_offset;
         cout << " from main memory." << endl;
     }
 
     return adjusted_allocation_offset;
 }
 
-address_offset_t memory_manager_t::allocate_from_freed_memory(size_t size_to_allocate)
+address_offset_t memory_manager_t::allocate_from_freed_memory(size_t size_to_allocate, bool add_allocation_metadata)
 {
-    address_offset_t allocation_offset = 0;
+    address_offset_t allocation_offset = c_invalid_offset;
 
     unique_lock unique_free_memory_list_lock(m_free_memory_list_lock);
     for (auto it = m_free_memory_list.begin(); it != m_free_memory_list.end(); ++it)
@@ -286,16 +344,18 @@ address_offset_t memory_manager_t::allocate_from_freed_memory(size_t size_to_all
         }
     }
 
-    if (allocation_offset == 0)
+    if (allocation_offset == c_invalid_offset)
     {
-        return 0;
+        return c_invalid_offset;
     }
 
-    address_offset_t adjusted_allocation_offset = process_allocation(allocation_offset, size_to_allocate);
+    address_offset_t adjusted_allocation_offset
+        = process_allocation(allocation_offset, size_to_allocate, add_allocation_metadata);
 
     if (m_execution_flags.enable_console_output)
     {
-        cout << endl << "Allocated " << size_to_allocate << " bytes at offset " << allocation_offset;
+        cout << endl
+             << "Allocated " << size_to_allocate << " bytes at offset " << allocation_offset;
         cout << " from freed memory." << endl;
     }
 
@@ -304,7 +364,8 @@ address_offset_t memory_manager_t::allocate_from_freed_memory(size_t size_to_all
 
 void memory_manager_t::output_debugging_information(const string& context_description) const
 {
-    cout << endl << c_debug_output_separator_line_start << endl;
+    cout << endl
+         << c_debug_output_separator_line_start << endl;
     cout << "Debugging output for context: " << context_description << ":" << endl;
 
     cout << "  Main memory start = " << m_next_allocation_offset << endl;

@@ -7,8 +7,10 @@
 
 #include <cstdint>
 
-namespace gaia {
-namespace db {
+namespace gaia
+{
+namespace db
+{
 
 /**
  * The type of a Gaia transaction id.
@@ -17,6 +19,11 @@ namespace db {
  * obtained by incrementing a global atomic counter in shared memory.
  */
 typedef uint64_t gaia_txn_id_t;
+
+/**
+ * The value of an invalid gaia_txn_id.
+ */
+constexpr gaia_txn_id_t INVALID_GAIA_TXN_ID = 0;
 
 /**
  * The type of a Gaia locator id.
@@ -29,6 +36,11 @@ typedef uint64_t gaia_txn_id_t;
 typedef uint64_t gaia_locator_t;
 
 /**
+ * The value of an invalid gaia_locator.
+ */
+constexpr gaia_locator_t INVALID_GAIA_LOCATOR = 0;
+
+/**
  * The type of a Gaia data offset.
  *
  * This represents the offset of a gaia_se_object in the global data shared
@@ -37,5 +49,10 @@ typedef uint64_t gaia_locator_t;
  */
 typedef uint64_t gaia_offset_t;
 
-}  // namespace db
-}  // namespace gaia
+/**
+ * The value of an invalid gaia_offset.
+ */
+constexpr gaia_offset_t INVALID_GAIA_OFFSET = 0;
+
+} // namespace db
+} // namespace gaia

@@ -8,15 +8,14 @@
 #include <string>
 
 // All Postgres headers and function declarations must have C linkage.
-extern "C" {
-
-#include "postgres.h"
+extern "C"
+{
 
 #include "catalog/pg_type.h"
 #include "nodes/pg_list.h"
+#include "postgres.h"
 
 } // extern "C"
-
 
 #include "airport_demo_type_mapping.hpp"
 #include "system_catalog_type_mapping.hpp"
@@ -46,7 +45,7 @@ bool validate_and_apply_option(const char* option_name, const char* option_value
 
 void append_context_option_names(Oid context_id, StringInfoData& string_data);
 
-enum class edit_state_t: int8_t
+enum class edit_state_t : int8_t
 {
     none = 0,
 
@@ -67,14 +66,12 @@ class adapter_t
     friend class modify_state_t;
 
 protected:
-
     // adapter_t is just a container for static methods,
     // so its constructor is protected
     // to prevent the creation of any instances.
     adapter_t() = default;
 
 public:
-
     static void begin_session();
     static void end_session();
 
@@ -98,7 +95,6 @@ public:
     }
 
 protected:
-
     // HACKHACK: global counter to simulate nested transactions. Because a DELETE
     // plan is nested within a scan, committing the write txn will invalidate the
     // read txn. We get around this by using a refcount to track the txn nesting
@@ -113,7 +109,6 @@ protected:
 class state_t
 {
 protected:
-
     // state_t is just a base class,
     // so its constructor is protected
     // to prevent the creation of any instances.
@@ -122,10 +117,8 @@ protected:
     bool initialize(const char* table_name, size_t count_accessors);
 
 protected:
-
     const relation_attribute_mapping_t* m_mapping;
 };
-
 
 // The scan state is set up in gaia_begin_foreign_scan,
 // is stashed away in node->fdw_private,
@@ -135,7 +128,6 @@ class scan_state_t : public state_t
     friend class adapter_t;
 
 protected:
-
     // Do not allow copies to be made;
     // disable copy constructor and assignment operator.
     scan_state_t(const scan_state_t&) = delete;
@@ -148,7 +140,6 @@ protected:
     void deserialize_record();
 
 public:
-
     // Provides the index corresponding to each accessor.
     // This enables future calls to use index values.
     bool set_accessor_index(const char* accessor_name, size_t accessor_index);
@@ -160,7 +151,6 @@ public:
     bool scan_forward();
 
 protected:
-
     root_object_deserializer_fn m_deserializer;
 
     // flatbuffer accessor functions indexed by attrnum.
@@ -183,7 +173,6 @@ class modify_state_t : public state_t
     friend class adapter_t;
 
 protected:
-
     // Do not allow copies to be made;
     // disable copy constructor and assignment operator.
     modify_state_t(const modify_state_t&) = delete;
@@ -197,7 +186,6 @@ protected:
     bool edit_record(uint64_t gaia_id, edit_state_t edit_state);
 
 public:
-
     // Provides the index corresponding to each builder.
     // This enables future calls to use index values.
     bool set_builder_index(const char* builder_name, size_t builder_index);
@@ -212,7 +200,6 @@ public:
     void finalize_modify();
 
 protected:
-
     builder_initializer_fn m_initializer;
     builder_finalizer_fn m_finalizer;
 
@@ -231,5 +218,5 @@ protected:
     gaia_type_t m_gaia_container_id;
 };
 
-}
-}
+} // namespace fdw
+} // namespace gaia

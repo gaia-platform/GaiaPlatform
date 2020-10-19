@@ -2,22 +2,24 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
-#include <queue>
-#include <functional>
+#include "command.hpp"
+
 #include <algorithm>
+#include <functional>
+#include <queue>
 
 #include "flatbuffers/idl.h"
-#include "tabulate/table.hpp"
 
-#include "command.hpp"
 #include "gaia_catalog.h"
 #include "gaia_catalog.hpp"
+#include "tabulate/table.hpp"
 
 using namespace gaia::catalog;
 
 typedef std::vector<variant<std::string, const char*, tabulate::Table>> row_t;
 
-namespace { // Use unnamed namespace to restrict external linkage.
+namespace
+{ // Use unnamed namespace to restrict external linkage.
 
 // The regular expression pattern to match everything.
 constexpr char c_match_all_pattern[] = ".*";
@@ -57,14 +59,17 @@ template <typename T_obj>
 void list_catalog_obj(
     const row_t& header,
     function<bool(T_obj&)> is_match,
-    function<row_t(T_obj&)> get_row) {
+    function<row_t(T_obj&)> get_row)
+{
     tabulate::Table output_table;
     output_table.add_row(header);
 
     {
         auto_transaction_t tx;
-        for (auto obj : T_obj::list()) {
-            if (is_match(obj)) {
+        for (auto obj : T_obj::list())
+        {
+            if (is_match(obj))
+            {
                 output_table.add_row(get_row(obj));
             }
         }
@@ -74,7 +79,8 @@ void list_catalog_obj(
     std::cout << endl;
 }
 
-void list_tables(const regex& re) {
+void list_tables(const regex& re)
+{
     list_catalog_obj<gaia_table_t>(
         {c_database_title, c_name_title, c_id_title},
         [&re](gaia_table_t& t) -> bool { return regex_match(t.name(), re); },
@@ -83,7 +89,8 @@ void list_tables(const regex& re) {
         });
 }
 
-void list_databases(const regex& re) {
+void list_databases(const regex& re)
+{
     list_catalog_obj<gaia_database_t>(
         {c_name_title, c_id_title},
         [&re](gaia_database_t& d) -> bool { return regex_match(d.name(), re); },
@@ -92,50 +99,57 @@ void list_databases(const regex& re) {
         });
 }
 
-void list_fields(const regex& re) {
+void list_fields(const regex& re)
+{
     list_catalog_obj<gaia_field_t>(
         {c_table_title, c_name_title, c_type_title, c_repeated_count_title, c_position_title, c_id_title},
         [&re](gaia_field_t& f) -> bool {
-            if (f.type() == static_cast<uint8_t>(data_type_t::e_references)) {
+            if (f.type() == static_cast<uint8_t>(data_type_t::e_references))
+            {
                 return false;
             }
             return regex_match(f.name(), re);
         },
         [](gaia_field_t& f) -> row_t {
-            return {f.gaia_table().name(), f.name(), ddl::get_data_type_name(static_cast<data_type_t>(f.type())),
-                to_string(f.repeated_count()), to_string(f.position()), to_string(f.gaia_id())};
+            return {f.gaia_table().name(), f.name(), get_data_type_name(static_cast<data_type_t>(f.type())),
+                    to_string(f.repeated_count()), to_string(f.position()), to_string(f.gaia_id())};
         });
 }
 
-void list_references(const regex& re) {
+void list_references(const regex& re)
+{
     list_catalog_obj<gaia_field_t>(
         {c_table_title, c_name_title, c_parent_title, c_position_title, c_id_title},
         [&re](gaia_field_t& f) -> bool {
-            if (f.type() != static_cast<uint8_t>(data_type_t::e_references)) {
+            if (f.type() != static_cast<uint8_t>(data_type_t::e_references))
+            {
                 return false;
             }
             return regex_match(f.name(), re);
         },
         [](gaia_field_t& f) -> row_t {
             return {f.gaia_table().name(), f.name(),
-                f.ref_gaia_table().name(), to_string(f.position()), to_string(f.gaia_id())};
+                    f.ref_gaia_table().name(), to_string(f.position()), to_string(f.gaia_id())};
         });
 }
 
-void describe_database(const string& name) {
+void describe_database(const string& name)
+{
     tabulate::Table output_table;
     output_table.add_row({c_name_title});
     gaia_id_t db_id = find_db_id(name);
-    if (db_id == INVALID_GAIA_ID) {
+    if (db_id == INVALID_GAIA_ID)
+    {
         throw db_not_exists(name);
     }
     {
         auto_transaction_t txn;
-        for (auto table : gaia_database_t::get(db_id).gaia_table_list()) {
+        for (auto table : gaia_database_t::get(db_id).gaia_table_list())
+        {
             output_table.add_row({table.name()});
         }
     }
-    cout << "Database \"" << (name.empty() ? c_global_db_name : name) << "\":" << endl;
+    cout << "Database \"" << (name.empty() ? c_empty_db_name : name) << "\":" << endl;
     cout << endl;
     cout << "Tables:" << endl;
     output_table.print(cout);
@@ -143,34 +157,42 @@ void describe_database(const string& name) {
     cout << flush;
 }
 
-void describe_table(const string& name) {
+void describe_table(const string& name)
+{
     tabulate::Table output_fields, output_references;
     output_fields.add_row({c_name_title, c_type_title, c_repeated_count_title, c_position_title});
     output_references.add_row({c_name_title, c_parent_title, c_position_title});
-    bool table_exists = false;
+    gaia_id_t table_id = INVALID_GAIA_ID;
     {
         auto_transaction_t tx;
-        for (auto table : gaia_table_t::list()) {
+        for (auto table : gaia_table_t::list())
+        {
             string table_name(table.name());
             string db_name(table.gaia_database().name());
-            if (name == table_name || name == (db_name + "." + table_name)) {
-                for (auto field : table.gaia_field_list()) {
-                    if (field.type() != static_cast<uint8_t>(data_type_t::e_references)) {
-                        output_fields.add_row({field.name(),
-                            ddl::get_data_type_name(static_cast<data_type_t>(field.type())),
-                            to_string(field.repeated_count()), to_string(field.position())});
-                    } else {
-                        output_references.add_row({field.name(),
-                            field.ref_gaia_table().name(), to_string(field.position())});
-                    }
-                }
-                table_exists = true;
+            if (name == table_name || name == (db_name + "." + table_name))
+            {
+                table_id = table.gaia_id();
                 break;
             }
         }
-    }
-    if (!table_exists) {
-        throw table_not_exists(name);
+        if (table_id == INVALID_GAIA_ID)
+        {
+            throw table_not_exists(name);
+        }
+        for (auto field : gaia_table_t::get(table_id).gaia_field_list())
+        {
+            if (field.type() != static_cast<uint8_t>(data_type_t::e_references))
+            {
+                output_fields.add_row({field.name(),
+                                       get_data_type_name(static_cast<data_type_t>(field.type())),
+                                       to_string(field.repeated_count()), to_string(field.position())});
+            }
+            else
+            {
+                output_references.add_row({field.name(),
+                                           field.ref_gaia_table().name(), to_string(field.position())});
+            }
+        }
     }
     cout << "Table \"" << name << "\":" << endl;
     cout << endl;
@@ -181,25 +203,37 @@ void describe_table(const string& name) {
     cout << "References:" << endl;
     output_references.print(cout);
     cout << endl;
-    cout << flush;
+#ifdef DEBUG
+    // Hide FlatBuffers related content in release build.
+    {
+        cout << endl;
+        cout << "Binary FlatBuffers Schema (in hex):" << endl;
+        auto_transaction_t tx;
+        cout << gaia_table_t::get(table_id).binary_schema() << endl;
+    }
+#endif
 }
 
 #ifdef DEBUG
 // Hide FlatBuffers related commands in release build.
-void generate_table_fbs(const string& name) {
+void generate_table_fbs(const string& name)
+{
     gaia_id_t table_id = INVALID_GAIA_ID;
     {
         auto_transaction_t tx;
-        for (auto table : gaia_table_t::list()) {
+        for (auto table : gaia_table_t::list())
+        {
             string table_name(table.name());
             string db_name(table.gaia_database().name());
-            if (name == table_name || name == (db_name + "." + table_name)) {
+            if (name == table_name || name == (db_name + "." + table_name))
+            {
                 table_id = table.gaia_id();
                 break;
             }
         }
     }
-    if (table_id == INVALID_GAIA_ID) {
+    if (table_id == INVALID_GAIA_ID)
+    {
         throw table_not_exists(name);
     }
     cout << generate_fbs(table_id) << endl;
@@ -207,48 +241,62 @@ void generate_table_fbs(const string& name) {
 }
 #endif
 
-regex parse_pattern(const string& cmd, size_t pos) {
-    if (cmd.length() <= pos) {
+regex parse_pattern(const string& cmd, size_t pos)
+{
+    if (cmd.length() <= pos)
+    {
         return regex(c_match_all_pattern);
     }
-    if (cmd[pos] != c_command_separator) {
+    if (cmd[pos] != c_command_separator)
+    {
         throw invalid_command(cmd);
     }
     size_t found_pos = cmd.find_first_not_of(c_command_separator, pos);
-    if (found_pos != string::npos) {
-        try {
+    if (found_pos != string::npos)
+    {
+        try
+        {
             return regex(cmd.substr(found_pos));
-        } catch (std::regex_error& e) {
+        }
+        catch (std::regex_error& e)
+        {
             throw invalid_command(cmd, e);
         }
     }
     return regex(c_match_all_pattern);
 }
 
-string parse_name(const string& cmd, size_t pos, bool throw_on_empty = true) {
+string parse_name(const string& cmd, size_t pos, bool throw_on_empty = true)
+{
     if (!throw_on_empty
-        && cmd.find_first_not_of(c_command_separator, pos) == string::npos) {
+        && cmd.find_first_not_of(c_command_separator, pos) == string::npos)
+    {
         return "";
     }
-    if (cmd.length() <= pos) {
+    if (cmd.length() <= pos)
+    {
         throw invalid_command(cmd);
     }
-    if (cmd[pos] != c_command_separator) {
+    if (cmd[pos] != c_command_separator)
+    {
         throw invalid_command(cmd);
     }
     std::size_t found = cmd.find_first_not_of(c_command_separator, pos);
-    if (found != string::npos) {
+    if (found != string::npos)
+    {
         return cmd.substr(found);
     }
     throw invalid_command(cmd);
 }
 
-void handle_describe_command(const string& cmd) {
+void handle_describe_command(const string& cmd)
+{
     retail_assert(cmd.length() > c_cmd_minimum_length);
     retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix);
     retail_assert(cmd[c_command_index] == c_describe_command);
 
-    switch (cmd[c_subcommand_index]) {
+    switch (cmd[c_subcommand_index])
+    {
     case c_command_separator:
         describe_table(parse_name(cmd, c_subcommand_index));
         break;
@@ -264,16 +312,19 @@ void handle_describe_command(const string& cmd) {
     }
 }
 
-void handle_list_command(const string& cmd) {
+void handle_list_command(const string& cmd)
+{
     retail_assert(cmd.length() > 1);
     retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix);
     retail_assert(cmd[c_command_index] == c_list_command);
 
-    if (cmd.length() == c_cmd_minimum_length) {
+    if (cmd.length() == c_cmd_minimum_length)
+    {
         return list_tables(regex(c_match_all_pattern));
     }
 
-    switch (cmd[c_subcommand_index]) {
+    switch (cmd[c_subcommand_index])
+    {
     case c_command_separator:
         list_tables(parse_pattern(cmd, c_subcommand_index));
         break;
@@ -296,12 +347,14 @@ void handle_list_command(const string& cmd) {
 
 #ifdef DEBUG
 // Hide FlatBuffers related commands in release build.
-void handle_generate_command(const string& cmd) {
+void handle_generate_command(const string& cmd)
+{
     retail_assert(cmd.length() > c_cmd_minimum_length);
     retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix);
     retail_assert(cmd[c_command_index] == c_generate_command);
 
-    switch (cmd[c_subcommand_index]) {
+    switch (cmd[c_subcommand_index])
+    {
     case c_command_separator:
         // Generate fbs can take an empty db name.
         cout << generate_fbs(parse_name(cmd, c_subcommand_index, false)) << endl;
@@ -319,15 +372,18 @@ void handle_generate_command(const string& cmd) {
 }
 #endif
 
-inline string optionalize(const string& s) {
+inline string optionalize(const string& s)
+{
     return "[" + s + "]";
 }
 
-inline string optionalize(const char c) {
+inline string optionalize(const char c)
+{
     return optionalize(string(1, c));
 }
 
-string command_usage() {
+string command_usage()
+{
     std::stringstream ss;
     ss << "Usage\n";
 
@@ -336,27 +392,27 @@ string command_usage() {
 
     tabulate::Table output_table;
     output_table.add_row({string() + c_command_prefix + c_describe_command + c_db_subcommand,
-        optionalize(name), "Describe the database of the given " + name + "."});
-    output_table.add_row({"", "", "Without specifying a name, it will show tables in the " + c_global_db_name + " database."});
+                          optionalize(name), "Describe the database of the given " + name + "."});
+    output_table.add_row({"", "", "Without specifying a name, it will show tables in the " + c_empty_db_name + " database."});
     output_table.add_row({string() + c_command_prefix + c_describe_command + optionalize(c_table_subcommand),
-        name, "Describe the table of the given " + name + "."});
+                          name, "Describe the table of the given " + name + "."});
     output_table.add_row({string() + c_command_prefix + c_list_command + c_db_subcommand,
-        optionalize(pattern), "List databases optionally filtering by the " + pattern + "."});
+                          optionalize(pattern), "List databases optionally filtering by the " + pattern + "."});
     output_table.add_row({string() + c_command_prefix + c_list_command + c_field_subcommand,
-        optionalize(pattern), "List data fields optionally filtering by the " + pattern + "."});
+                          optionalize(pattern), "List data fields optionally filtering by the " + pattern + "."});
     output_table.add_row({string() + c_command_prefix + c_list_command + c_ref_subcommand,
-        optionalize(pattern), "List references optionally filtering by the " + pattern + "."});
+                          optionalize(pattern), "List references optionally filtering by the " + pattern + "."});
     output_table.add_row({string() + c_command_prefix + c_list_command + optionalize(c_table_subcommand),
-        optionalize(pattern), "List tables optionally filtering by the " + pattern + "."});
+                          optionalize(pattern), "List tables optionally filtering by the " + pattern + "."});
 #ifdef DEBUG
     // Hide FlatBuffers related commands in release build.
     output_table.add_row({string() + c_command_prefix + c_generate_command + optionalize(c_db_subcommand),
-        name, "Generate fbs for a given database."});
+                          name, "Generate fbs for a given database."});
     output_table.add_row({string() + c_command_prefix + c_generate_command + c_table_subcommand,
-        name, "Generate fbs for a given database."});
+                          name, "Generate fbs for a given database."});
 #endif
     output_table.add_row({string() + c_command_prefix + c_help_command,
-        "", "Print help information."});
+                          "", "Print help information."});
 
     output_table.format().hide_border();
     output_table.print(ss);
@@ -365,15 +421,18 @@ string command_usage() {
 
 } // namespace
 
-void handle_meta_command(const string& cmd) {
+void handle_meta_command(const string& cmd)
+{
     retail_assert(!cmd.empty(), "Meta command should not be empty.");
     retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix,
-        "Meta command should start with a '" + string(1, c_command_prefix) + "'.");
+                  "Meta command should start with a '" + string(1, c_command_prefix) + "'.");
 
-    if (cmd.length() < c_cmd_minimum_length) {
+    if (cmd.length() < c_cmd_minimum_length)
+    {
         throw invalid_command(cmd);
     }
-    switch (cmd[c_command_index]) {
+    switch (cmd[c_command_index])
+    {
     case c_list_command:
         handle_list_command(cmd);
         break;

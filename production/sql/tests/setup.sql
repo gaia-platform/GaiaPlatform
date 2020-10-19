@@ -7,13 +7,13 @@ DROP EXTENSION IF EXISTS gaia_fdw CASCADE;
 
 DROP SCHEMA IF EXISTS airport_demo CASCADE;
 
+DROP INDEX IF EXISTS rawdata_route_uidx;
+
 DROP TABLE IF EXISTS rawdata_airports;
 
 DROP TABLE IF EXISTS rawdata_airlines;
 
 DROP TABLE IF EXISTS rawdata_routes;
-
-DROP INDEX IF EXISTS rawdata_route_uidx;
 
 CREATE EXTENSION gaia_fdw;
 

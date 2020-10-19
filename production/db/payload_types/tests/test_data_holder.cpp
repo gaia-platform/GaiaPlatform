@@ -12,6 +12,12 @@
 using namespace std;
 using namespace gaia::db::payload_types;
 
+constexpr int64_t c_integer_value = 7;
+constexpr int64_t c_negated_integer_value = -c_integer_value;
+
+constexpr double c_float_value = -12.345;
+constexpr double c_another_float_value = 67.890;
+
 TEST(payload_types, is_signed_integer)
 {
     ASSERT_TRUE(is_signed_integer(reflection::Byte));
@@ -47,8 +53,8 @@ TEST(payload_types, type_holder_signed_integer)
 
     // Test signed comparison.
     value.type = other_value.type = reflection::Int;
-    value.hold.integer_value = -7;
-    other_value.hold.integer_value = 7;
+    value.hold.integer_value = c_negated_integer_value;
+    other_value.hold.integer_value = c_integer_value;
 
     ASSERT_EQ(-1, value.compare(other_value));
     ASSERT_EQ(1, other_value.compare(value));
@@ -62,8 +68,8 @@ TEST(payload_types, type_holder_unsigned_integer)
 
     // Test unsigned comparison.
     value.type = other_value.type = reflection::UInt;
-    value.hold.integer_value = -7;
-    other_value.hold.integer_value = 7;
+    value.hold.integer_value = c_negated_integer_value;
+    other_value.hold.integer_value = c_integer_value;
 
     ASSERT_EQ(1, value.compare(other_value));
     ASSERT_EQ(-1, other_value.compare(value));
@@ -76,8 +82,8 @@ TEST(payload_types, type_holder_float)
     data_holder_t other_value;
 
     value.type = other_value.type = reflection::Float;
-    value.hold.float_value = -12.345;
-    other_value.hold.float_value = 67.890;
+    value.hold.float_value = c_float_value;
+    other_value.hold.float_value = c_another_float_value;
 
     ASSERT_EQ(-1, value.compare(other_value));
     ASSERT_EQ(1, other_value.compare(value));

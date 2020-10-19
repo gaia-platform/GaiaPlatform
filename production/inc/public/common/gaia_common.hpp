@@ -6,14 +6,17 @@
 #pragma once
 
 #include <cstdint>
+
 #include <vector>
 
-namespace gaia {
+namespace gaia
+{
 /**
  * \addtogroup Gaia
  * @{
  */
-namespace common {
+namespace common
+{
 /**
  * \addtogroup Common
  * @{

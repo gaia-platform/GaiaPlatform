@@ -3,9 +3,9 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <type_cache.hpp>
+#include "type_cache.hpp"
 
-#include <retail_assert.hpp>
+#include "retail_assert.hpp"
 
 using namespace std;
 using namespace gaia::common;
@@ -15,7 +15,7 @@ type_cache_t type_cache_t::s_type_cache;
 
 const reflection::Field* field_cache_t::get_field(field_position_t field_position) const
 {
-    field_map_t::const_iterator iterator = m_field_map.find(field_position);
+    auto iterator = m_field_map.find(field_position);
     return (iterator == m_field_map.end()) ? nullptr : iterator->second;
 }
 
@@ -42,7 +42,7 @@ void type_cache_t::get_field_cache(gaia_type_t type_id, auto_field_cache_t& auto
     // to ensure that its information is not being updated by another thread.
     m_lock.lock_shared();
 
-    type_map_t::const_iterator iterator = m_type_map.find(type_id);
+    auto iterator = m_type_map.find(type_id);
 
     if (iterator == m_type_map.end())
     {
@@ -60,7 +60,7 @@ bool type_cache_t::remove_field_cache(gaia_type_t type_id)
 
     unique_lock unique_lock(m_lock);
 
-    type_map_t::const_iterator iterator = m_type_map.find(type_id);
+    auto iterator = m_type_map.find(type_id);
     if (iterator != m_type_map.end())
     {
         const field_cache_t* field_cache = iterator->second;
@@ -80,7 +80,7 @@ bool type_cache_t::set_field_cache(gaia_type_t type_id, const field_cache_t* fie
 
     unique_lock unique_lock(m_lock);
 
-    type_map_t::const_iterator iterator = m_type_map.find(type_id);
+    auto iterator = m_type_map.find(type_id);
     if (iterator == m_type_map.end())
     {
         m_type_map.insert(make_pair(type_id, field_cache));

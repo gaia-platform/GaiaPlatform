@@ -93,15 +93,11 @@ struct gaia_table_t : public gaia_object_t<c_gaia_type_gaia_table, gaia_table_t,
     const char* name() const {return GET_STR(name);}
     uint32_t type() const {return GET(type);}
     bool is_system() const {return GET(is_system);}
-    uint8_t trim_action() const {return GET(trim_action);}
-    uint64_t max_rows() const {return GET(max_rows);}
-    uint64_t max_size() const {return GET(max_size);}
-    uint64_t max_seconds() const {return GET(max_seconds);}
     const char* binary_schema() const {return GET_STR(binary_schema);}
     using gaia_object_t::insert_row;
-    static gaia_id_t insert_row(const char* name, uint32_t type, bool is_system, uint8_t trim_action, uint64_t max_rows, uint64_t max_size, uint64_t max_seconds, const char* binary_schema) {
+    static gaia_id_t insert_row(const char* name, uint32_t type, bool is_system, const char* binary_schema) {
         flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
-        b.Finish(Creategaia_tableDirect(b, name, type, is_system, trim_action, max_rows, max_size, max_seconds, binary_schema));
+        b.Finish(Creategaia_tableDirect(b, name, type, is_system, binary_schema));
         return gaia_object_t::insert_row(b);
     }
     gaia_database_t gaia_database() {
@@ -214,4 +210,3 @@ private:
 }  // namespace gaia
 
 #endif  // GAIA_GENERATED_catalog_H_
-

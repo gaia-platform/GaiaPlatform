@@ -4,12 +4,13 @@
 /////////////////////////////////////////////
 
 #include "gtest/gtest.h"
-#include "rules.hpp"
+
 #include "db_test_base.hpp"
 #include "db_test_helpers.hpp"
-#include "rule_checker.hpp"
-#include "gaia_catalog.hpp"
 #include "gaia_catalog.h"
+#include "gaia_catalog.hpp"
+#include "rule_checker.hpp"
+#include "rules.hpp"
 #include "system_table_types.hpp"
 
 using namespace gaia::common;
@@ -38,7 +39,7 @@ void load_catalog()
     // not active, not deprecated
     fields.emplace_back(make_unique<ddl::field_definition_t>("inactive", data_type_t::e_string, 1));
     // active, not deprecated
-    fields.emplace_back(make_unique<ddl::field_definition_t>("active", data_type_t::e_float32, 1));
+    fields.emplace_back(make_unique<ddl::field_definition_t>("active", data_type_t::e_float, 1));
     // deprecated
     fields.emplace_back(make_unique<ddl::field_definition_t>("deprecated", data_type_t::e_uint64, 1));
     // another valid field
@@ -75,15 +76,14 @@ void load_catalog()
     commit_transaction();
 }
 
-extern "C"
-void initialize_rules()
+extern "C" void initialize_rules()
 {
 }
 
 class rule_checker_test : public db_test_base_t
 {
 public:
-    void verify_exception(const char* expected_message, std::function<void ()> fn)
+    void verify_exception(const char* expected_message, std::function<void()> fn)
     {
         bool did_throw = false;
         try
@@ -119,15 +119,19 @@ protected:
         end_session();
     }
 
-    void SetUp() override {}
-    void TearDown() override {}
+    void SetUp() override
+    {
+    }
+    void TearDown() override
+    {
+    }
 };
 
 TEST_F(rule_checker_test, table_not_found)
 {
     rule_checker_t rule_checker;
     const char* message = "Table (type:1000) was not found";
-    verify_exception(message, [&](){
+    verify_exception(message, [&]() {
         rule_checker.check_catalog(1000, empty_fields);
     });
 }
@@ -144,7 +148,7 @@ TEST_F(rule_checker_test, field_not_found)
     field_position_list_t fields;
     fields.emplace_back(1000);
     const char* message = "Field (position:1000) was not found in table";
-    verify_exception(message, [&](){
+    verify_exception(message, [&]() {
         rule_checker.check_catalog(g_table_type, fields);
     });
 }
@@ -165,7 +169,7 @@ TEST_F(rule_checker_test, inactive_field)
     fields.emplace_back(g_field_positions["inactive"]);
     const char* message = "not marked as active";
 
-    verify_exception(message, [&](){
+    verify_exception(message, [&]() {
         rule_checker.check_catalog(g_table_type, fields);
     });
 }
@@ -177,7 +181,7 @@ TEST_F(rule_checker_test, deprecated_field)
     fields.emplace_back(g_field_positions["deprecated"]);
     const char* message = "deprecated";
 
-    verify_exception(message, [&](){
+    verify_exception(message, [&]() {
         rule_checker.check_catalog(g_table_type, fields);
     });
 }
@@ -202,7 +206,7 @@ TEST_F(rule_checker_test, multiple_invalid_fields)
     // which of the two fields above failed first.
     const char* message = "(position:";
 
-    verify_exception(message, [&](){
+    verify_exception(message, [&]() {
         rule_checker.check_catalog(g_table_type, fields);
     });
 }
@@ -215,7 +219,7 @@ TEST_F(rule_checker_test, multiple_fields)
     fields.emplace_back(g_field_positions["inactive"]);
     const char* message = "not marked as active";
 
-    verify_exception(message, [&](){
+    verify_exception(message, [&]() {
         rule_checker.check_catalog(g_table_type, fields);
     });
 }

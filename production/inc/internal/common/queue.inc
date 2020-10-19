@@ -5,7 +5,14 @@
 
 #pragma once
 
-template <class T> queue_element_t<T>::queue_element_t(T value)
+template <class T>
+queue_element_t<T>::queue_element_t()
+    : value{}
+{
+}
+
+template <class T>
+queue_element_t<T>::queue_element_t(T value)
 {
     this->value = value;
 
@@ -13,7 +20,8 @@ template <class T> queue_element_t<T>::queue_element_t(T value)
     previous = nullptr;
 }
 
-template <class T> queue_t<T>::queue_t()
+template <class T>
+queue_t<T>::queue_t()
 {
     m_head.next = &m_tail;
     m_head.previous = nullptr;
@@ -22,7 +30,8 @@ template <class T> queue_t<T>::queue_t()
     m_tail.previous = &m_head;
 }
 
-template <class T> queue_t<T>::~queue_t()
+template <class T>
+queue_t<T>::~queue_t()
 {
     // Walk through the queue elements and deallocate them.
     queue_element_t<T>* walker = m_head.next;
@@ -34,7 +43,8 @@ template <class T> queue_t<T>::~queue_t()
     }
 }
 
-template <class T> void queue_t<T>::enqueue(const T& value)
+template <class T>
+void queue_t<T>::enqueue(const T& value)
 {
     // Create element to hold new value.
     queue_element_t<T>* new_first_element = new queue_element_t<T>(value);
@@ -59,7 +69,8 @@ template <class T> void queue_t<T>::enqueue(const T& value)
     current_first_element->previous = new_first_element;
 }
 
-template <class T> void queue_t<T>::dequeue(T& value)
+template <class T>
+void queue_t<T>::dequeue(T& value)
 {
     while (!dequeue_internal(value))
     {
@@ -68,7 +79,8 @@ template <class T> void queue_t<T>::dequeue(T& value)
     }
 }
 
-template <class T> bool queue_t<T>::dequeue_internal(T& value)
+template <class T>
+bool queue_t<T>::dequeue_internal(T& value)
 {
     queue_element_t<T>* current_last_element = nullptr;
 
@@ -141,7 +153,8 @@ template <class T> bool queue_t<T>::dequeue_internal(T& value)
     return true;
 }
 
-template <class T> bool queue_t<T>::is_empty() const
+template <class T>
+bool queue_t<T>::is_empty() const
 {
     return (m_tail.previous == &m_head);
 }

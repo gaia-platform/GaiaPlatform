@@ -63,8 +63,8 @@ blank [ \t\r]
 "UINT32"     return yy::parser::make_UINT32(loc);
 "INT64"      return yy::parser::make_INT64(loc);
 "UINT64"     return yy::parser::make_UINT64(loc);
-"FLOAT32"    return yy::parser::make_FLOAT32(loc);
-"FLOAT64"    return yy::parser::make_FLOAT64(loc);
+"FLOAT"      return yy::parser::make_FLOAT(loc);
+"DOUBLE"     return yy::parser::make_DOUBLE(loc);
 "STRING"     return yy::parser::make_STRING(loc);
 "("          return yy::parser::make_LPAREN(loc);
 ")"          return yy::parser::make_RPAREN(loc);

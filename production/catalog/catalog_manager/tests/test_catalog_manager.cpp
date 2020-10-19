@@ -5,23 +5,25 @@
 
 #include <algorithm>
 #include <memory>
-#include <vector>
 #include <set>
+#include <vector>
 
-#include "gtest/gtest.h"
 #include "flatbuffers/reflection.h"
+#include "gtest/gtest.h"
 
-#include "gaia_catalog.hpp"
-#include "gaia_catalog.h"
-#include "fbs_generator.hpp"
 #include "db_test_base.hpp"
+#include "fbs_generator.hpp"
+#include "gaia_catalog.h"
+#include "gaia_catalog.hpp"
 
 using namespace gaia::catalog;
 using namespace std;
 
-class catalog_manager_test : public db_test_base_t {
-  protected:
-    void check_table_name(gaia_id_t id, const string &name) {
+class catalog_manager_test : public db_test_base_t
+{
+protected:
+    void check_table_name(gaia_id_t id, const string& name)
+    {
         gaia::db::begin_transaction();
         gaia_table_t t = gaia_table_t::get(id);
         EXPECT_EQ(name, t.name());
@@ -29,7 +31,8 @@ class catalog_manager_test : public db_test_base_t {
     }
 };
 
-TEST_F(catalog_manager_test, create_database) {
+TEST_F(catalog_manager_test, create_database)
+{
     string test_db_name{"create_database_test"};
     gaia_id_t db_id = create_database(test_db_name);
     begin_transaction();
@@ -37,7 +40,8 @@ TEST_F(catalog_manager_test, create_database) {
     commit_transaction();
 }
 
-TEST_F(catalog_manager_test, create_table) {
+TEST_F(catalog_manager_test, create_table)
+{
     string test_table_name{"create_table_test"};
     ddl::field_def_list_t fields;
 
@@ -46,7 +50,8 @@ TEST_F(catalog_manager_test, create_table) {
     check_table_name(table_id, test_table_name);
 }
 
-TEST_F(catalog_manager_test, create_existing_table) {
+TEST_F(catalog_manager_test, create_existing_table)
+{
     string test_table_name{"create_existing_table"};
     ddl::field_def_list_t fields;
 
@@ -54,17 +59,20 @@ TEST_F(catalog_manager_test, create_existing_table) {
     EXPECT_THROW(create_table(test_table_name, fields), table_already_exists);
 }
 
-TEST_F(catalog_manager_test, list_tables) {
+TEST_F(catalog_manager_test, list_tables)
+{
     ddl::field_def_list_t fields;
     set<gaia_id_t> table_ids;
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++)
+    {
         table_ids.insert(create_table("list_tables_test_" + to_string(i), fields));
     }
 
     set<gaia_id_t> list_result;
     auto_transaction_t txn;
     {
-        for (auto table : gaia_database_t::get(find_db_id("")).gaia_table_list()) {
+        for (auto table : gaia_database_t::get(find_db_id("")).gaia_table_list())
+        {
             list_result.insert(table.gaia_id());
         }
     }
@@ -72,7 +80,8 @@ TEST_F(catalog_manager_test, list_tables) {
     EXPECT_TRUE(includes(list_result.begin(), list_result.end(), table_ids.begin(), table_ids.end()));
 }
 
-TEST_F(catalog_manager_test, list_fields) {
+TEST_F(catalog_manager_test, list_fields)
+{
     string test_table_name{"list_fields_test"};
 
     ddl::field_def_list_t test_table_fields;
@@ -85,14 +94,16 @@ TEST_F(catalog_manager_test, list_fields) {
     EXPECT_EQ(test_table_fields.size(), list_fields(table_id).size());
 
     uint16_t position = 0;
-    for (gaia_id_t field_id : list_fields(table_id)) {
+    for (gaia_id_t field_id : list_fields(table_id))
+    {
         gaia_field_t field_record = gaia_field_t::get(field_id);
         EXPECT_EQ(test_table_fields[position++]->name, field_record.name());
     }
     gaia::db::commit_transaction();
 }
 
-TEST_F(catalog_manager_test, list_references) {
+TEST_F(catalog_manager_test, list_references)
+{
     string dept_table_name{"list_references_test_department"};
     ddl::field_def_list_t dept_table_fields;
     dept_table_fields.emplace_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
@@ -124,14 +135,16 @@ TEST_F(catalog_manager_test, list_references) {
     gaia::db::commit_transaction();
 }
 
-TEST_F(catalog_manager_test, create_table_references_not_exist) {
+TEST_F(catalog_manager_test, create_table_references_not_exist)
+{
     string test_table_name{"ref_not_exist_test"};
     ddl::field_def_list_t fields;
     fields.emplace_back(make_unique<ddl::field_definition_t>("ref_field", data_type_t::e_references, 1, "unknown"));
     EXPECT_THROW(create_table(test_table_name, fields), table_not_exists);
 }
 
-TEST_F(catalog_manager_test, create_table_self_references) {
+TEST_F(catalog_manager_test, create_table_self_references)
+{
     string test_table_name{"self_ref_table_test"};
     ddl::field_def_list_t fields;
     fields.emplace_back(make_unique<ddl::field_definition_t>("self_ref_field", data_type_t::e_references, 1, test_table_name));
@@ -147,7 +160,8 @@ TEST_F(catalog_manager_test, create_table_self_references) {
     gaia::db::commit_transaction();
 }
 
-TEST_F(catalog_manager_test, create_table_case_sensitivity) {
+TEST_F(catalog_manager_test, create_table_case_sensitivity)
+{
     string lower_case_table_name{"case_test_table"};
     string upper_case_table_name{"CASE_TEST_TABLE"};
     string mixed_case_table_name{"cAsE_teST_TablE"};
@@ -168,7 +182,8 @@ TEST_F(catalog_manager_test, create_table_case_sensitivity) {
     check_table_name(test_field_case_table_id, test_field_case_table_name);
 }
 
-TEST_F(catalog_manager_test, create_table_duplicate_field) {
+TEST_F(catalog_manager_test, create_table_duplicate_field)
+{
     string test_duplicate_field_table_name{"test_duplicate_field_table"};
     ddl::field_def_list_t fields;
     fields.emplace_back(make_unique<ddl::field_definition_t>("field1", data_type_t::e_string, 1));
@@ -176,9 +191,11 @@ TEST_F(catalog_manager_test, create_table_duplicate_field) {
     EXPECT_THROW(create_table(test_duplicate_field_table_name, fields), duplicate_field);
 }
 
-TEST_F(catalog_manager_test, drop_table) {
+TEST_F(catalog_manager_test, drop_table)
+{
     string test_table_name{"drop_table_test"};
     ddl::field_def_list_t fields;
+    fields.emplace_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
     gaia_id_t table_id = create_table(test_table_name, fields);
     check_table_name(table_id, test_table_name);
 
@@ -190,7 +207,56 @@ TEST_F(catalog_manager_test, drop_table) {
     }
 }
 
-TEST_F(catalog_manager_test, drop_table_not_exist) {
+TEST_F(catalog_manager_test, drop_table_not_exist)
+{
     string test_table_name{"a_not_existed_table"};
     EXPECT_THROW(drop_table(test_table_name), table_not_exists);
+}
+
+TEST_F(catalog_manager_test, drop_table_with_reference)
+{
+    string test_table_name{"self_ref_table"};
+    ddl::field_def_list_t fields;
+    fields.emplace_back(make_unique<ddl::field_definition_t>("self_ref", data_type_t::e_references, 1));
+    fields.back()->table_type_name = test_table_name;
+    gaia_id_t table_id = create_table(test_table_name, fields);
+    check_table_name(table_id, test_table_name);
+
+    drop_table(test_table_name);
+    {
+        auto_transaction_t txn;
+        auto table = gaia_table_t::get(table_id);
+        EXPECT_FALSE(table);
+    }
+}
+
+TEST_F(catalog_manager_test, drop_database)
+{
+    string test_db_name{"drop_database_test"};
+    gaia_id_t db_id = create_database(test_db_name);
+    {
+        auto_transaction_t txn;
+        EXPECT_EQ(gaia_database_t::get(db_id).name(), test_db_name);
+    }
+
+    string self_ref_table_name{"self_ref_table"};
+    ddl::field_def_list_t fields;
+    fields.emplace_back(make_unique<ddl::field_definition_t>("self_ref", data_type_t::e_references, 1));
+    fields.back()->table_type_name = self_ref_table_name;
+    gaia_id_t self_ref_table_id = create_table(test_db_name, self_ref_table_name, fields);
+    check_table_name(self_ref_table_id, self_ref_table_name);
+
+    string test_table_name{"test_table"};
+    fields.clear();
+    fields.emplace_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
+    gaia_id_t test_table_id = create_table(test_db_name, test_table_name, fields);
+    check_table_name(test_table_id, test_table_name);
+
+    drop_database(test_db_name);
+    {
+        auto_transaction_t txn;
+        EXPECT_FALSE(gaia_table_t::get(self_ref_table_id));
+        EXPECT_FALSE(gaia_table_t::get(test_table_id));
+        EXPECT_FALSE(gaia_database_t::get(db_id));
+    }
 }

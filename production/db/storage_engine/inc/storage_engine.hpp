@@ -6,53 +6,52 @@
 #pragma once
 
 #include <string.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
 #include <sys/file.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 
-#include <iostream>
-#include <iomanip>
 #include <cassert>
-#include <set>
-#include <thread>
+
+#include <iomanip>
+#include <iostream>
 #include <mutex>
+#include <set>
+#include <sstream>
 #include <stdexcept>
 #include <string>
-#include <sstream>
+#include <thread>
 
-#include "scope_guard.hpp"
-#include "system_error.hpp"
-#include "gaia_common.hpp"
-#include "gaia_db.hpp"
 #include "db_types.hpp"
 #include "gaia_boot.hpp"
+#include "gaia_common.hpp"
+#include "gaia_db.hpp"
+#include "gaia_db_internal.hpp"
 #include "gaia_exception.hpp"
+#include "gaia_se_object.hpp"
 #include "retail_assert.hpp"
 
-namespace gaia {
-namespace db {
+namespace gaia
+{
+namespace db
+{
 
 using namespace common;
 
 // 1K oughta be enough for anybody...
 constexpr size_t MAX_MSG_SIZE = 1 << 10;
 
-enum class gaia_operation_t : uint8_t {
+enum class gaia_operation_t : uint8_t
+{
     create = 0x1,
     update = 0x2,
     remove = 0x3,
     clone = 0x4
 };
 
-struct hash_node {
-    gaia_id_t id;
-    size_t next_offset;
-    gaia_locator_t locator;
-};
-
-class se_base {
+class se_base
+{
     friend class gaia_ptr;
     friend class gaia_hash_map;
 
@@ -70,12 +69,20 @@ protected:
 
     typedef gaia_locator_t locators[MAX_LOCATORS];
 
-    struct data {
-        // The first two fields are used as cross-process atomic counters.
-        // We don't need something like a cross-process mutex for this,
-        // as long as we use atomic intrinsics for mutating the counters.
-        // This is because the instructions targeted by the intrinsics
-        // operate at the level of physical memory, not virtual addresses.
+    struct hash_node
+    {
+        gaia_id_t id;
+        size_t next_offset;
+        gaia_locator_t locator;
+    };
+
+    struct data
+    {
+        // The first two fields are used as cross-process atomic counters. We
+        // don't need something like a cross-process mutex for this, as long as
+        // we use atomic intrinsics for mutating the counters. This is because
+        // the instructions targeted by the intrinsics operate at the level of
+        // physical memory, not virtual addresses.
         gaia_id_t next_id;
         gaia_txn_id_t next_txn_id;
         size_t locator_count;
@@ -89,9 +96,11 @@ protected:
         uint64_t objects[MAX_LOCATORS * 8];
     };
 
-    struct log {
+    struct log
+    {
         size_t count;
-        struct log_record {
+        struct log_record
+        {
             gaia_locator_t locator;
             gaia_offset_t old_offset;
             gaia_offset_t new_offset;
@@ -105,49 +114,68 @@ protected:
     thread_local static gaia_txn_id_t s_txn_id;
 
 public:
-    static gaia_txn_id_t allocate_txn_id(data* s_data) {
+    static gaia_txn_id_t allocate_txn_id(data* s_data)
+    {
         gaia_txn_id_t txn_id = __sync_add_and_fetch(&s_data->next_txn_id, 1);
         return txn_id;
     }
 
-    static log* get_txn_log() {
+    static log* get_txn_log()
+    {
         return s_log;
     }
 
-    static inline gaia_locator_t allocate_locator(locators* locators, data* s_data, bool invoked_by_server = false) {
-        if (invoked_by_server) {
+    static inline gaia_locator_t allocate_locator(locators* locators, data* data, bool invoked_by_server = false)
+    {
+        if (invoked_by_server)
+        {
             retail_assert(locators, "Server locators should be non-null");
         }
 
-        if (locators == nullptr) {
+        if (locators == nullptr)
+        {
             throw transaction_not_open();
         }
 
-        if (s_data->locator_count >= MAX_LOCATORS) {
+        if (data->locator_count >= MAX_LOCATORS)
+        {
             throw oom();
         }
 
-        return 1 + __sync_fetch_and_add(&s_data->locator_count, 1);
+        return 1 + __sync_fetch_and_add(&data->locator_count, 1);
     }
 
-    static void inline allocate_object(gaia_locator_t locator, size_t size, locators* locators, data* s_data, bool invoked_by_server = false) {
-        if (invoked_by_server) {
+    static inline void allocate_object(gaia_locator_t locator, size_t size, locators* locators, data* data, bool invoked_by_server = false)
+    {
+        if (invoked_by_server)
+        {
             retail_assert(locators, "Server locators should be non-null");
         }
 
-        if (locators == nullptr) {
+        if (locators == nullptr)
+        {
             throw transaction_not_open();
         }
 
-        if (s_data->objects[0] >= MAX_OBJECTS) {
+        if (data->objects[0] >= MAX_OBJECTS)
+        {
             throw oom();
         }
 
-        (*locators)[locator] = 1 + __sync_fetch_and_add(&s_data->objects[0], (size + sizeof(uint64_t) - 1) / sizeof(uint64_t));
+        (*locators)[locator] = 1 + __sync_fetch_and_add(&data->objects[0], (size + sizeof(uint64_t) - 1) / sizeof(uint64_t));
     }
 
-    static bool locator_exists(se_base::locators* locators, gaia_locator_t locator) {
+    static inline bool locator_exists(se_base::locators* locators, gaia_locator_t locator)
+    {
         return (*locators)[locator];
+    }
+
+    static gaia_se_object_t* locator_to_ptr(locators* locators, data* data, gaia_locator_t locator)
+    {
+        assert(locators);
+        return (locator && (*locators)[locator])
+            ? reinterpret_cast<gaia_se_object_t*>(data->objects + (*locators)[locator])
+            : nullptr;
     }
 };
 

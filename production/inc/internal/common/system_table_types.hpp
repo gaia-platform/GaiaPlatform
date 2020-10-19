@@ -9,14 +9,17 @@
 
 #include "gaia_common.hpp"
 
-namespace gaia {
-namespace common {
+namespace gaia
+{
+namespace common
+{
 
 constexpr gaia_type_t c_system_table_reserved_range = 4096;
 constexpr gaia_type_t c_system_table_reserved_range_end = std::numeric_limits<gaia_type_t>::max();
 constexpr gaia_type_t c_system_table_reserved_range_start = c_system_table_reserved_range_end - c_system_table_reserved_range + 1;
 
-enum class catalog_table_type_t : gaia_type_t {
+enum class catalog_table_type_t : gaia_type_t
+{
     gaia_field = c_system_table_reserved_range_end,
     gaia_table = gaia_field - 1,
     gaia_rule = gaia_table - 1,
@@ -24,7 +27,8 @@ enum class catalog_table_type_t : gaia_type_t {
     gaia_database = gaia_ruleset - 1
 };
 
-enum class system_table_type_t : gaia_type_t {
+enum class system_table_type_t : gaia_type_t
+{
     catalog_gaia_table = static_cast<gaia_type_t>(catalog_table_type_t::gaia_table),
     catalog_gaia_field = static_cast<gaia_type_t>(catalog_table_type_t::gaia_field),
     catalog_gaia_ruleset = static_cast<gaia_type_t>(catalog_table_type_t::gaia_ruleset),

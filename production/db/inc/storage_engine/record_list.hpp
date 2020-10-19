@@ -5,11 +5,11 @@
 
 #pragma once
 
+#include <db_types.hpp>
+#include <gaia_db_internal.hpp>
 #include <list>
 #include <shared_mutex>
 #include <vector>
-
-#include <db_types.hpp>
 
 namespace gaia
 {
@@ -40,7 +40,6 @@ class record_range_t
     friend class record_list_t;
 
 public:
-
     record_range_t(size_t range_size);
     ~record_range_t();
 
@@ -59,7 +58,6 @@ public:
     record_range_t* next_range();
 
 protected:
-
     size_t m_range_size;
 
     // The record range: an array of record_data_t structures.
@@ -95,7 +93,6 @@ struct record_iterator_t
 class record_list_t
 {
 public:
-
     record_list_t(size_t range_size);
     ~record_list_t();
 
@@ -122,7 +119,6 @@ public:
     static void delete_record(record_iterator_t& iterator);
 
 protected:
-
     size_t m_range_size;
 
     record_range_t* m_record_ranges;
@@ -133,6 +129,6 @@ protected:
     static void seek(record_iterator_t& iterator);
 };
 
-}
-}
-}
+} // namespace storage
+} // namespace db
+} // namespace gaia
