@@ -192,7 +192,7 @@ void pure_anarchy()
 
 void const_position()
 {
-    // Current version of clang-format only support west-const positioning.
+    // The current version of clang-format only supports west-const positioning.
     // Read this about the east/west const debate:
     // https://mariusbancila.ro/blog/2018/11/23/join-the-east-const-revolution/
     // https://reviews.llvm.org/D69764
