@@ -147,16 +147,16 @@ void catalog_manager_t::bootstrap_catalog()
         // create table gaia_relationship (
         //     parent references gaia_table,
         //     child references gaia_field,
-        //     cardinality unit8,
+        //     cardinality uint8,
         //     parent_required bool,
         //     deprecated bool,
-        //     first_child_offset unit8,
-        //     next_child_offset unit8,
-        //     parent_offset unit8,
+        //     first_child_offset uint8,
+        //     next_child_offset uint8,
+        //     parent_offset uint8,
         // );
 
         field_def_list_t fields;
-        // TODO since we have pointers on both sides of the relationship and we generate the relatioship field in the parent in EDC, I believe we should
+        // TODO since we have pointers on both sides of the relationship and we generate the relationship field in the parent in EDC, I believe we should
         //  explicitly track the relationship on the parent side too. This will also come in handy to customize the generated EDC:
         //  - table_t::gaia_field_list() which is arguably ugly could be table_t::fields()
         //  - database_t::gaia_table_list() which is arguably ugly could be database_t::fields()
@@ -167,8 +167,12 @@ void catalog_manager_t::bootstrap_catalog()
         fields.emplace_back(make_unique<field_definition_t>("cardinality", data_type_t::e_uint8, 1));
         fields.emplace_back(make_unique<field_definition_t>("parent_required", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<field_definition_t>("deprecated", data_type_t::e_bool, 1));
+        // See gaia::db::relationship_t for more details about relationships.
+        // (parent)-[first_child_offset]->(child)
         fields.emplace_back(make_unique<field_definition_t>("first_child_offset", data_type_t::e_uint8, 1));
+        // (child)-[next_child_offset]->(child)
         fields.emplace_back(make_unique<field_definition_t>("next_child_offset", data_type_t::e_uint8, 1));
+        // (child)-[parent_offset]->(parent)
         fields.emplace_back(make_unique<field_definition_t>("parent_offset", data_type_t::e_uint8, 1));
         create_table_impl("catalog", "gaia_relationship", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_relationship));
     }
@@ -261,10 +265,10 @@ void catalog_manager_t::reload_cache()
 void register_table_in_metadata(gaia_id_t table_id)
 {
     // TODO I think that instead of keep polluting the Catalog code with responsibilities
-    //  we should aim towards a pub-sub architecture. The catalog publish events when
-    //  something change, the subscribers (caches, metadata, etc..) get notified and act
+    //  we should aim towards a pub-sub architecture. The catalog publishes events when
+    //  something changes; the subscribers (caches, metadata, etc..) get notified and act
     //  accordingly. This way the catalog does only one job. Chuan mentioned that something
-    //  similar is available in the SE (triggers?)
+    //  similar is available in the SE (triggers?).
     gaia_table_t child_table = gaia_table_t::get(table_id);
 
     auto& metadata = type_registry_t::instance().get_or_create(table_id);
@@ -342,7 +346,7 @@ gaia_id_t catalog_manager_t::create_table(
 
 void drop_relationship_no_ri(gaia_relationship_t relationship)
 {
-    // unlink parent
+    // Unlink parent.
     if (relationship.parent_gaia_table())
     {
         relationship.parent_gaia_table()
@@ -350,7 +354,7 @@ void drop_relationship_no_ri(gaia_relationship_t relationship)
             .erase(relationship);
     }
 
-    // unlink child
+    // Unlink child.
     if (relationship.child_gaia_field())
     {
         relationship.child_gaia_field()
@@ -361,7 +365,7 @@ void drop_relationship_no_ri(gaia_relationship_t relationship)
     relationship.delete_row();
 }
 
-void catalog_manager_t::drop_relationships_no_txn(gaia_id_t table_id, bool referential_integrity)
+void catalog_manager_t::drop_relationships_no_txn(gaia_id_t table_id, bool enforce_referential_integrity)
 {
     auto table_record = gaia_table_t::get(table_id);
 
@@ -369,7 +373,7 @@ void catalog_manager_t::drop_relationships_no_txn(gaia_id_t table_id, bool refer
     {
         auto relationship = gaia_relationship_t::get(relationship_id);
 
-        if (!referential_integrity)
+        if (!enforce_referential_integrity)
         {
             drop_relationship_no_ri(relationship);
             continue;
@@ -387,7 +391,7 @@ void catalog_manager_t::drop_relationships_no_txn(gaia_id_t table_id, bool refer
         // There are 2 options here:
         // 1. The child side of this relationship has already been deleted.
         //    Now we are deleting the parent, hence the relationship object
-        //    can be deleted too
+        //    can be deleted too.
         // 2. This is a self-reference hence both links have to be removed
         //    before deleting it.
         drop_relationship_no_ri(relationship);
@@ -398,7 +402,7 @@ void catalog_manager_t::drop_relationships_no_txn(gaia_id_t table_id, bool refer
     {
         auto relationship = gaia_relationship_t::get(relationship_id);
 
-        if (!referential_integrity)
+        if (!enforce_referential_integrity)
         {
             drop_relationship_no_ri(relationship);
             continue;
@@ -415,24 +419,24 @@ void catalog_manager_t::drop_relationships_no_txn(gaia_id_t table_id, bool refer
             rel_writer.deprecated = true;
             rel_writer.update_row();
 
-            // unlink the child side of the relationship.
+            // Unlink the child side of the relationship.
             relationship.child_gaia_field()
                 .child_gaia_relationship_list()
                 .erase(relationship);
         }
         else
         {
-            // Parent is already unlinked (maybe the field has been deleted)
+            // Parent is already unlinked (maybe the field has been deleted).
             relationship.delete_row();
         }
     }
 }
 
-void catalog_manager_t::drop_table_no_txn(gaia_id_t table_id, bool referential_integrity)
+void catalog_manager_t::drop_table_no_txn(gaia_id_t table_id, bool enforce_referential_integrity)
 {
     auto table_record = gaia_table_t::get(table_id);
 
-    drop_relationships_no_txn(table_id, referential_integrity);
+    drop_relationships_no_txn(table_id, enforce_referential_integrity);
 
     for (gaia_id_t field_id : list_fields(table_id))
     {
@@ -581,7 +585,7 @@ uint8_t find_available_offset(gaia_table_t& table)
 {
     uint8_t max_offset{0};
 
-    // scan child relationships
+    // Scan child relationships.
     for (auto field : table.gaia_field_list())
     {
         if (field.type() == static_cast<uint8_t>(data_type_t::e_references))
@@ -592,7 +596,7 @@ uint8_t find_available_offset(gaia_table_t& table)
         }
     }
 
-    // scan parent relationships
+    // Scan parent relationships.
     return std::max(
         max_offset,
         find_available_offset(table.parent_gaia_relationship_list(), true));
@@ -669,7 +673,7 @@ gaia_id_t catalog_manager_t::create_table_impl(
             bfbs.c_str());
     }
 
-    // Connect the table to the database
+    // Connect the table to the database.
     gaia_database_t::get(db_id).gaia_table_list().insert(table_id);
 
     uint16_t field_position = 0, reference_position = 0;

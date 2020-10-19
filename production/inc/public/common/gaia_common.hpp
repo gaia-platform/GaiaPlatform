@@ -10,12 +10,14 @@
 #include <limits>
 #include <vector>
 
-namespace gaia {
+namespace gaia
+{
 /**
  * \addtogroup Gaia
  * @{
  */
-namespace common {
+namespace common
+{
 /**
  * \addtogroup Common
  * @{
@@ -62,7 +64,7 @@ typedef std::vector<field_position_t> field_position_list_t;
  *
  * @see gaia::common::db::relationship_t
  */
- // TODO this should be changed to unit8_t to match the Catalog (or vice-versa)
+// TODO this should be changed to uint8_t to match the Catalog (or vice-versa)
 typedef uint16_t reference_offset_t;
 
 /**

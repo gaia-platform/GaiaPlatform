@@ -70,12 +70,12 @@ private:
 
     // Internal drop table implementation. Callers need to acquire a transaction
     // before calling this method.
-    // If referential integrity is false it does not check referential integrity, fails otherwise.
-    void drop_table_no_txn(gaia::common::gaia_id_t table_id, bool referential_integrity);
+    // If enforce_referential_integrity is false it does not check referential integrity, fails otherwise.
+    void drop_table_no_txn(gaia::common::gaia_id_t table_id, bool enforce_referential_integrity);
 
     // Drops the relationships associated with this table.
-    // If referential integrity is false it does not check referential integrity, fails otherwise.
-    void drop_relationships_no_txn(gaia::common::gaia_id_t table_id, bool referential_integrity);
+    // If enforce_referential_integrity is false it does not check referential integrity, fails otherwise.
+    void drop_relationships_no_txn(gaia::common::gaia_id_t table_id, bool enforce_referential_integrity);
 
     // Find the database ID given its name.
     // The method does not use a lock.
