@@ -16,6 +16,11 @@ using namespace gaia::common;
 extern int g_rule_called;
 extern int g_insert_called;
 extern int g_update_called;
+const int c_g_rule_execution_delay = 50000;
+const float c_g_incubator_min_temperature = 99.0;
+const float c_g_incubator_max_temperature = 102.0;
+const int c_g_expected_sensor_value = 6;
+const int c_g_expected_actuator_value = 1000;
 
 class translation_engine_test : public db_test_base_t
 {
@@ -32,7 +37,8 @@ public:
     void init_storage()
     {
         gaia::db::begin_transaction();
-        auto incubator = gaia::barn_storage::incubator_t::get(insert_incubator("TestIncubator", 99.0, 102.0));
+        auto incubator = gaia::barn_storage::incubator_t::get(insert_incubator("TestIncubator",
+            c_g_incubator_min_temperature, c_g_incubator_max_temperature));
         incubator.sensor_list().insert(gaia::barn_storage::sensor_t::insert_row("TestSensor1", 0, 0.0));
         incubator.actuator_list().insert(gaia::barn_storage::actuator_t::insert_row("TestActuator1", 0, 0.0));
         gaia::db::commit_transaction();
@@ -76,7 +82,7 @@ TEST_F(translation_engine_test, subscribe_invalid_ruleset)
 TEST_F(translation_engine_test, subscribe_valid_ruleset)
 {
     init_storage();
-    while (g_rule_called == 0) {usleep(50000);}
+    while (g_rule_called == 0) {usleep(c_g_rule_execution_delay);}
 
     EXPECT_EQ(g_rule_called,1);
     EXPECT_EQ(g_insert_called,1);
@@ -106,12 +112,12 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
     for (auto s : gaia::barn_storage::sensor_t::list())
     {
         auto w = s.writer();
-        w.value = 6;
+        w.value = c_g_expected_sensor_value;
         w.update_row();
     }
     gaia::db::commit_transaction();
 
-    while (g_rule_called == 1) {usleep(50000);}
+    while (g_rule_called == 1) {usleep(c_g_rule_execution_delay);}
 
     EXPECT_EQ(g_rule_called,2);
     EXPECT_EQ(g_insert_called,1);
@@ -126,12 +132,12 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
 
     for (const auto& s : gaia::barn_storage::sensor_t::list())
     {
-        EXPECT_EQ(s.value(),6);
+        EXPECT_EQ(s.value(),c_g_expected_sensor_value);
     }
 
     for (const auto& a : gaia::barn_storage::actuator_t::list())
     {
-        EXPECT_EQ(a.value(),1000);
+        EXPECT_EQ(a.value(),c_g_expected_actuator_value);
     }
     gaia::db::commit_transaction();
     gaia::db::end_session();
