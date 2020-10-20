@@ -7,6 +7,7 @@
 // we don't have a dependency on the internal implementation.
 
 #include "gtest/gtest.h"
+
 #include "db_test_base.hpp"
 #include "event_manager_test_helpers.hpp"
 #include "rules.hpp"
@@ -20,7 +21,8 @@ extern "C" void initialize_rules()
 {
 }
 
-class component_init_test : public db_test_base_t {
+class component_init_test : public db_test_base_t
+{
 };
 
 TEST_F(component_init_test, component_not_initialized_error)
@@ -30,13 +32,13 @@ TEST_F(component_init_test, component_not_initialized_error)
     field_position_list_t ignore;
 
     EXPECT_THROW(subscribe_rule(0, event_type_t::row_update, ignore, dont_care),
-        initialization_error);
+                 initialization_error);
     EXPECT_THROW(unsubscribe_rule(0, event_type_t::row_update, ignore, dont_care),
-        initialization_error);
+                 initialization_error);
     EXPECT_THROW(unsubscribe_rules(),
-        initialization_error);
+                 initialization_error);
     EXPECT_THROW(list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, still_dont_care),
-        initialization_error);
+                 initialization_error);
 }
 
 void rule(const rule_context_t*)
@@ -48,15 +50,18 @@ TEST_F(component_init_test, component_initialized)
     rule_binding_t binding("ruleset", "rulename", rule);
     subscription_list_t subscriptions;
     field_position_list_t fields;
-    fields.emplace_back(10);
+    const field_position_t position = 10;
+    fields.emplace_back(position);
 
     // Custom init disables catalog checks.
     event_manager_settings_t settings;
     settings.enable_catalog_checks = false;
     gaia::rules::test::initialize_rules_engine(settings);
 
-    subscribe_rule(1000, event_type_t::row_update, fields, binding);
-    EXPECT_EQ(true, unsubscribe_rule(1000, event_type_t::row_update, fields, binding));
+    const gaia_type_t gaia_type = 1000;
+
+    subscribe_rule(gaia_type, event_type_t::row_update, fields, binding);
+    EXPECT_EQ(true, unsubscribe_rule(gaia_type, event_type_t::row_update, fields, binding));
     unsubscribe_rules();
     list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subscriptions);
 }

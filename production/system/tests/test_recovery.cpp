@@ -34,11 +34,11 @@ namespace
 // Path to the storage engine server executable.
 string g_server_dir_path;
 // Write 16 records in a single transaction.
-size_t c_load_batch_size = 16;
+const size_t c_load_batch_size = 16;
 // Size of a single record.
-size_t c_employee_record_size_bytes = 648;
+const size_t c_employee_record_size_bytes = 648;
 // Size of a string field in a record.
-size_t c_field_size_bytes = 128;
+const size_t c_field_size_bytes = 128;
 
 // Don't cache direct access objects as they will
 // point to garbage values post crash recovery.
@@ -54,7 +54,7 @@ struct employee_copy_t
 
 // Map of employees for which the server has returned a successful commit.
 // We maintain this map in memory & will use it to validate recovered shared memory post crash.
-std::map<gaia_id_t, employee_copy_t> employee_map;
+std::map<gaia_id_t, employee_copy_t> g_employee_map;
 
 } // namespace
 
@@ -64,9 +64,9 @@ void validate_data()
     begin_transaction();
     for (auto employee = employee_t::get_first(); employee; employee = employee.get_next())
     {
-        auto it = employee_map.find(employee.gaia_id());
+        auto it = g_employee_map.find(employee.gaia_id());
 
-        if (it == employee_map.end())
+        if (it == g_employee_map.end())
         {
             // There might be other tests that create employees.
             continue;
@@ -84,9 +84,9 @@ void validate_data()
         count++;
     }
 
-    cout << "Total count before recovery " << employee_map.size() << endl;
+    cout << "Total count before recovery " << g_employee_map.size() << endl;
     cout << "Total count after recovery " << count << endl;
-    ASSERT_EQ(count, employee_map.size());
+    ASSERT_EQ(count, g_employee_map.size());
     commit_transaction();
     cout << "Validation complete." << endl;
 }
@@ -126,10 +126,10 @@ string generate_string(size_t length_in_bytes)
 void modify_data()
 {
     std::set<gaia_id_t> to_delete_set;
-    for (size_t i = 0; i < employee_map.size() / 2; i++)
+    for (size_t i = 0; i < g_employee_map.size() / 2; i++)
     {
         begin_transaction();
-        auto to_update = employee_map.find(get_random_map_key(employee_map));
+        auto to_update = g_employee_map.find(get_random_map_key(g_employee_map));
         employee_t e1 = employee_t::get(to_update->first);
         auto w1 = e1.writer();
         auto name_first = generate_string(c_field_size_bytes);
@@ -138,7 +138,7 @@ void modify_data()
         commit_transaction();
         to_update->second.name_first = name_first;
 
-        auto to_delete = employee_map.find(get_random_map_key(employee_map));
+        auto to_delete = g_employee_map.find(get_random_map_key(g_employee_map));
         to_delete_set.insert(to_delete->first);
     }
 
@@ -146,7 +146,7 @@ void modify_data()
 
     for (gaia_id_t id : to_delete_set)
     {
-        employee_map.erase(id);
+        g_employee_map.erase(id);
         begin_transaction();
         auto e = employee_t::get(id);
         e.delete_row();
@@ -192,12 +192,13 @@ void load_data(uint64_t total_size_bytes, bool kill_server_during_load, db_serve
         }
         commit_transaction();
 
-        employee_map.insert(temp_employee_map.begin(), temp_employee_map.end());
+        g_employee_map.insert(temp_employee_map.begin(), temp_employee_map.end());
         temp_employee_map.clear();
         ASSERT_EQ(temp_employee_map.size(), 0);
 
         // Crash during load.
-        if (kill_server_during_load && txn_id % 5 == 0)
+        const uint8_t count_crash = 5;
+        if (kill_server_during_load && txn_id % count_crash == 0)
         {
             cout << "Crash during load" << endl;
             end_session();
@@ -206,13 +207,14 @@ void load_data(uint64_t total_size_bytes, bool kill_server_during_load, db_serve
             validate_data();
         }
 
-        if (txn_id % 25 == 0)
+        const uint8_t count_tx_interval = 25;
+        if (txn_id % count_tx_interval == 0)
         {
             cout << "Loading data: Executed " << txn_id << " transactions ..." << endl;
         }
     }
 
-    cout << "Load completed for " << employee_map.size() << " records." << endl;
+    cout << "Load completed for " << g_employee_map.size() << " records." << endl;
 }
 
 int get_count()
@@ -261,7 +263,7 @@ void delete_all(int initial_record_count)
                 continue;
             }
             count++;
-            employee_map.erase(id);
+            g_employee_map.erase(id);
             to_delete.erase(id);
         }
         commit_transaction();
@@ -389,15 +391,17 @@ TEST_F(recovery_test, load_and_recover_test)
     // Load & Recover test - with data size less than write buffer size;
     // All writes will be confined to the WAL & will not make it to SST (DB binary file)
     // Sigkill server.
-    load_modify_recover_test(m_server, g_server_dir_path, 0.1 * 1024 * 1024, 2, true);
+    const uint64_t load_size = 0.1 * 1024 * 1024;
+    load_modify_recover_test(m_server, g_server_dir_path, load_size, 2, true);
 }
 
 TEST_F(recovery_test, DISABLED_load_more_data_and_recover_test)
 {
+    const uint64_t load_size = 16 * 1024 * 1024;
     // Load (more data) & Recover test - with data size greater than write buffer size.
     // Writes will exist in both the WAL & SST files.
     // TODO - Test is switched off as it takes some time to run. Run on teamcity.
-    load_modify_recover_test(m_server, g_server_dir_path, 16 * 1024 * 1024, 1, false);
+    load_modify_recover_test(m_server, g_server_dir_path, load_size, 1, false);
 }
 
 // TODO (Mihir) Validate gaia_id is not recycled post crash.
@@ -426,8 +430,9 @@ TEST_F(recovery_test, reference_update_test)
     std::set<gaia_id_t> phone_ids;
     {
         // Insert some phone records.
+        const size_t count_rows = 10;
         auto_transaction_t txn;
-        for (size_t i = 0; i < 10; i++)
+        for (size_t i = 0; i < count_rows; i++)
         {
             phone_writer w;
             w.phone_number = generate_string(c_field_size_bytes);
@@ -457,7 +462,7 @@ TEST_F(recovery_test, reference_update_test)
         auto_transaction_t txn;
         // Make sure address cannot be deleted upon recovery.
         ASSERT_THROW(address_t::get(address_id).delete_row(), node_not_disconnected);
-        for (auto phone : address_t::get(address_id).phone_list())
+        for (auto const& phone : address_t::get(address_id).phone_list())
         {
             recovered_phone_ids.insert(phone.gaia_id());
         }

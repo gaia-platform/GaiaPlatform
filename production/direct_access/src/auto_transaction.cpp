@@ -4,9 +4,9 @@
 /////////////////////////////////////////////
 #include "auto_transaction.hpp"
 
-namespace gaia 
+namespace gaia
 {
-namespace direct_access 
+namespace direct_access
 {
 
 auto_transaction_t::auto_transaction_t(bool auto_begin)
@@ -27,7 +27,7 @@ void auto_transaction_t::commit()
 auto_transaction_t::~auto_transaction_t()
 {
     // Someone could have ended the current transaction with an explicit
-    // call to gaia::db::commit_transaction or 
+    // call to gaia::db::commit_transaction or
     // gaia::db::rollback_transaction. Ensure we check this case so that
     // we don't cause an exception here in the destructor.
     if (gaia::db::is_transaction_active())
@@ -36,5 +36,5 @@ auto_transaction_t::~auto_transaction_t()
     }
 }
 
-} // direct_access
-} // gaia
+} // namespace direct_access
+} // namespace gaia

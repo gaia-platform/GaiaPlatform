@@ -3,23 +3,25 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <iostream>
 #include <unistd.h>
-#include <thread>
+
 #include <chrono>
+
 #include <atomic>
+#include <iostream>
+#include <thread>
 
 #include "gtest/gtest.h"
 
-#include "gaia_system.hpp"
+#include "db_test_base.hpp"
+#include "db_test_helpers.hpp"
+#include "gaia_addr_book.h"
 #include "gaia_catalog.h"
 #include "gaia_catalog.hpp"
 #include "gaia_catalog_internal.hpp"
+#include "gaia_system.hpp"
 #include "rules.hpp"
-#include "gaia_addr_book.h"
 #include "triggers.hpp"
-#include "db_test_base.hpp"
-#include "db_test_helpers.hpp"
 
 using namespace std;
 using namespace gaia::db;
@@ -29,18 +31,21 @@ using namespace gaia::rules;
 using namespace gaia::common;
 using namespace gaia::addr_book;
 
-static atomic<uint32_t> s_rule_count;
-static atomic<uint32_t> s_rule_per_commit_count;
+static atomic<uint32_t> g_rule_count;
+static atomic<uint32_t> g_rule_per_commit_count;
 
-void rule1(const rule_context_t *) {
-    s_rule_per_commit_count++;
-    s_rule_count++;
+void rule1(const rule_context_t*)
+{
+    g_rule_per_commit_count++;
+    g_rule_count++;
 }
 
-extern "C" void initialize_rules() {
+extern "C" void initialize_rules()
+{
 }
 
-class gaia_system_test : public db_test_base_t {
+class gaia_system_test : public db_test_base_t
+{
 public:
     static void SetUpTestSuite()
     {
@@ -49,7 +54,7 @@ public:
 
         // NOTE: To run this test manually, you need to set the env variable DDL_FILE to the location of addr_book.ddl.
         // Currently this is under production/schemas/test/addr_book.
-        const char *ddl_file = getenv("DDL_FILE");
+        const char* ddl_file = getenv("DDL_FILE");
         ASSERT_NE(ddl_file, nullptr);
 
         // NOTE: For the unit test setup, we need to init catalog and load test tables before rules engine starts.
@@ -75,23 +80,29 @@ public:
     }
 
 protected:
-    void SetUp() override {
-        s_rule_count = 0;
-        s_rule_per_commit_count = 0;
+    void SetUp() override
+    {
+        g_rule_count = 0;
+        g_rule_per_commit_count = 0;
     }
 
-    void TearDown() override {}
+    void TearDown() override
+    {
+    }
 };
 
 // This method will perform multiple transactions on the current client thread.
 // Each transaction performs 3 operations.
-void perform_transactions(uint32_t count_transactions, uint32_t crud_operations_per_txn, bool new_thread) {
-    if (new_thread) {
+void perform_transactions(uint32_t count_transactions, uint32_t crud_operations_per_txn, bool new_thread)
+{
+    if (new_thread)
+    {
         begin_session();
     }
 
-    for (uint32_t i = 0; i < count_transactions; i++) {
-        s_rule_per_commit_count = 0;
+    for (uint32_t i = 0; i < count_transactions; i++)
+    {
+        g_rule_per_commit_count = 0;
         begin_transaction();
         // Insert row.
         employee_writer w;
@@ -109,32 +120,38 @@ void perform_transactions(uint32_t count_transactions, uint32_t crud_operations_
         gaia::db::commit_transaction();
 
         // We should get crud_operations_per_txn per commit.  Wait for them.
-        while (s_rule_per_commit_count < crud_operations_per_txn) {
+        while (g_rule_per_commit_count < crud_operations_per_txn)
+        {
             usleep(1);
         }
     }
 
-    if (new_thread) {
+    if (new_thread)
+    {
         end_session();
     }
 }
 
-void validate_and_end_test(uint32_t count_txn, uint32_t crud_operations_per_txn, uint32_t count_threads) {
-    EXPECT_EQ(s_rule_count, count_txn * crud_operations_per_txn * count_threads);
+void validate_and_end_test(uint32_t count_txn, uint32_t crud_operations_per_txn, uint32_t count_threads)
+{
+    EXPECT_EQ(g_rule_count, count_txn * crud_operations_per_txn * count_threads);
 }
 
-TEST_F(gaia_system_test, single_threaded_transactions) {
+TEST_F(gaia_system_test, single_threaded_transactions)
+{
     uint32_t count_txn = 2;
     uint32_t crud_operations_per_txn = 3;
     perform_transactions(count_txn, crud_operations_per_txn, false);
     validate_and_end_test(count_txn, crud_operations_per_txn, 1);
 }
 
-TEST_F(gaia_system_test, multi_threaded_transactions) {
+TEST_F(gaia_system_test, multi_threaded_transactions)
+{
     uint32_t count_txn_per_thread = 1;
     uint32_t crud_operations_per_txn = 3;
-    uint32_t count_threads = 10;
-    for (uint32_t i = 0; i < count_threads; i++) {
+    const uint32_t count_threads = 10;
+    for (uint32_t i = 0; i < count_threads; i++)
+    {
         auto t = std::thread(perform_transactions, count_txn_per_thread, crud_operations_per_txn, true);
         t.join();
     }
