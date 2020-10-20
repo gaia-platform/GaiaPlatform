@@ -6,6 +6,7 @@
 #include "data_holder.hpp"
 
 #include "gaia_internal/common/retail_assert.hpp"
+#include <functional>
 
 #include "field_access.hpp"
 
@@ -15,6 +16,56 @@ using namespace gaia::db::payload_types;
 data_holder_t::data_holder_t()
 {
     clear();
+}
+
+data_holder_t::data_holder_t(float value)
+{
+    type = reflection::Float;
+    hold.float_value = value;
+}
+
+data_holder_t::data_holder_t(double value)
+{
+    type = reflection::Double;
+    hold.float_value = value;
+}
+
+data_holder_t::data_holder_t(const char* value)
+{
+    type = reflection::String;
+    hold.string_value = value;
+}
+
+data_holder_t::operator uint64_t() const
+{
+    retail_assert(flatbuffers::IsInteger(type) && !is_signed_integer(type), "Unbox failed: type needs to be unsigned integer.");
+    auto integer_ptr = reinterpret_cast<const uint64_t*>(&hold.integer_value);
+    return *integer_ptr;
+}
+
+data_holder_t::operator int64_t() const
+{
+    retail_assert(is_signed_integer(type), "Unbox failed: type needs to be signed integer.");
+    return hold.integer_value;
+}
+
+data_holder_t::operator float() const
+{
+    retail_assert(flatbuffers::IsFloat(type), "Unbox failed: type needs to be float.");
+    auto float_ptr = reinterpret_cast<const float*>(&hold.float_value);
+    return *float_ptr;
+}
+
+data_holder_t::operator double() const
+{
+    retail_assert(flatbuffers::IsFloat(type), "Unbox failed: type needs to be double.");
+    return hold.float_value;
+}
+
+data_holder_t::operator const char*() const
+{
+    retail_assert(type == reflection::String, "Unbox failed: type needs to be String.");
+    return hold.string_value;
 }
 
 void data_holder_t::clear()
@@ -68,6 +119,33 @@ int data_holder_t::compare(const data_holder_t& other) const
         return (hold.float_value == other.hold.float_value)
             ? 0
             : (hold.float_value > other.hold.float_value) ? 1 : -1;
+    }
+    else
+    {
+        throw unhandled_field_type(type);
+    }
+}
+
+std::size_t data_holder_t::hash() const
+{
+    if (type == reflection::String)
+    {
+        if (hold.string_value == nullptr)
+        {
+            return 0;
+        }
+        else
+        {
+            return std::hash<std::string>{}(hold.string_value);
+        }
+    }
+    else if (flatbuffers::IsInteger(type))
+    {
+        return std::hash<int64_t>{}(hold.integer_value);
+    }
+    else if (flatbuffers::IsFloat(type))
+    {
+        return std::hash<double>{}(hold.float_value);
     }
     else
     {

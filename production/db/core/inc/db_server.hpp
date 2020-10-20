@@ -14,6 +14,8 @@
 #include <thread>
 
 #include "flatbuffers/flatbuffers.h"
+#include <sys/epoll.h>
+#include <sys/eventfd.h>
 
 #include "gaia/exception.hpp"
 
@@ -23,6 +25,8 @@
 #include "memory_manager.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
+#include "db_txn.hpp"
+#include "server_index_impl.hpp"
 #include "stack_allocator.hpp"
 
 namespace gaia
@@ -52,6 +56,8 @@ class server
     friend gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
         gaia_locator_t locator,
         size_t size);
+    friend gaia::db::index::indexes_t* gaia::db::get_indexes();
+    friend gaia::db::gaia_txn_id_t gaia::db::get_txn_id();
 
 public:
     enum class persistence_mode_t : uint8_t
@@ -217,7 +223,9 @@ private:
     // which was claimed for deallocation by a maintenance thread).
     static constexpr uint16_t c_invalid_txn_log_fd_bits{std::numeric_limits<uint16_t>::max()};
 
-    // Function pointer type that executes side effects of a session state transition.
+    static inline index::indexes_t s_shared_indexes;
+
+    // function pointer type that executes side effects of a state transition
     // REVIEW: replace void* with std::any?
     typedef void (*transition_handler_fn)(int* fds, size_t fd_count, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state);
 
@@ -297,6 +305,10 @@ private:
     static void request_memory();
 
     static void init_txn_info();
+
+    static void init_indexes();
+    static void update_indexes_from_log();
+    static void clear_indexes();
 
     static void recover_db();
 

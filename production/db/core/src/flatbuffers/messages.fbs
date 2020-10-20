@@ -30,9 +30,14 @@ table table_scan_info_t {
     type_id: uint64;
 }
 
+table index_scan_info_t {
+    index_id: uint64;
+}
+
 union request_data_t {
     table_scan: table_scan_info_t,
     memory_info: memory_allocation_info_t,
+    index_scan: index_scan_info_t,
 }
 
 table client_request_t {

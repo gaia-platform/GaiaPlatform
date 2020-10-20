@@ -223,6 +223,7 @@ public:
      * of the given type. This is essentially a proof-of-concept for server-side
      * cursors, which will be extended to support server-side filters.
      */
+    /*
     static auto find_all_iter(
         gaia_type_t type,
         std::function<bool(gaia_ptr)> user_predicate = [](gaia_ptr) { return true; })
@@ -251,19 +252,20 @@ public:
             gaia_ptr_generator,
             gaia_ptr_predicate);
         return gaia_ptr_iterator;
-    }
+    }*/
 
     /**
      * Returns a range representing a server-side cursor over all objects
      * of the given type. This is essentially a proof-of-concept for server-side
      * cursors, which will be extended to support server-side filters.
      */
+    /*
     static auto find_all_range(
         gaia_type_t type,
         std::function<bool(gaia_ptr)> user_predicate = [](gaia_ptr) { return true; })
     {
         return gaia::common::iterators::range(find_all_iter(type, user_predicate));
-    }
+    }*/
 
 protected:
     gaia_ptr(gaia_locator_t locator, gaia_offset_t offset);

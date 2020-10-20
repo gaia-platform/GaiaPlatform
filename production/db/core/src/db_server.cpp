@@ -35,10 +35,10 @@
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
 
-#include "db_hash_map.hpp"
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
 #include "db_shared_data.hpp"
+#include "gaia_internal/index/index_builder.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
 
@@ -429,8 +429,6 @@ void server::handle_request_stream(
         old_state == new_state,
         c_message_current_event_is_inconsistent_with_state_transition);
 
-    // The only currently supported stream type is table scans.
-    // When we add more stream types, we should add a switch statement on data_type.
     // It would be nice to delegate to a helper returning a different generator for each
     // data_type, and then invoke start_stream_producer() with that generator, but in
     // general each data_type corresponds to a generator with a different T_element_type,
@@ -439,12 +437,6 @@ void server::handle_request_stream(
     // We should logically receive an object corresponding to the request_data_t union,
     // but the FlatBuffers API doesn't have any object corresponding to a union.
     auto request = static_cast<const client_request_t*>(event_data);
-    retail_assert(
-        request->data_type() == request_data_t::table_scan,
-        c_message_unexpected_request_data_type);
-
-    auto type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
-    auto id_generator = get_id_generator_for_type(type);
 
     // We can't use structured binding names in a lambda capture list.
     int client_socket, server_socket;
@@ -460,10 +452,29 @@ void server::handle_request_stream(
         close_fd(server_socket);
     });
 
-    start_stream_producer(server_socket, id_generator);
+    switch (request->data_type())
+    {
+    case request_data_t::table_scan:
+    {
+        auto type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
+        auto id_generator = get_id_generator_for_type(type);
+        start_stream_producer(server_socket, id_generator);
+    }
 
-    // Transfer ownership of the server socket to the stream producer thread.
-    server_socket_cleanup.dismiss();
+    break;
+/*
+    case request_data_t::index_scan:
+    {
+        auto index = static_cast<gaia_id_t>(request->data_as_index_scan()->index_id());
+        start_stream_producer(
+            server_socket,
+            index::server_index_stream::get_record_generator_for_index(index));
+    }
+    break;
+*/
+    default:
+        retail_assert(false, "scan type missing for stream");
+    }
 
     // Any exceptions after this point will close the server socket, ensuring the producer thread terminates.
     // However, its destructor will not run until the session thread exits and joins the producer thread.
@@ -553,6 +564,28 @@ void server::clear_shared_memory()
 
     unmap_fd(s_id_index, sizeof(*s_id_index));
     close_fd(s_fd_id_index);
+
+    clear_indexes();
+}
+
+// Initialize indexes
+void server::init_indexes()
+{
+}
+
+// Clear indexes from shmem
+void server::clear_indexes()
+{
+    s_shared_indexes.clear();
+}
+
+// Update indexes from s_log
+void server::update_indexes_from_log()
+{
+    for (auto& log : s_log->log_records)
+    {
+        // Get indexes for lr
+    }
 }
 
 // To avoid synchronization, we assume that this method is only called when
@@ -636,6 +669,8 @@ void server::init_shared_memory()
 
     // Populate shared memory from the persistent log and snapshot.
     recover_db();
+
+    init_indexes();
 
     cleanup_memory.dismiss();
 }
@@ -1238,10 +1273,10 @@ template <typename T_element_type>
 void server::stream_producer_handler(
     int stream_socket, int cancel_eventfd, std::function<std::optional<T_element_type>()> generator_fn)
 {
-    // We only support fixed-width integer types for now to avoid framing.
-    static_assert(std::is_integral<T_element_type>::value, "Generator function must return an integer.");
-
-    // The session thread gave the producer thread ownership of this socket.
+    static_assert(std::is_integral<T_element_type>::value || std::is_pod<T_element_type>::value, "Generator function must return fixed width type.");
+    // Verify the socket is the correct type for the semantics we assume.
+    check_socket_type(stream_socket, SOCK_SEQPACKET);
+    auto gen_iter = generator_iterator_t<T_element_type>(generator_fn);
     auto socket_cleanup = make_scope_guard([&]() {
         // We can rely on close_fd() to perform the equivalent of shutdown(SHUT_RDWR),
         // since we hold the only fd pointing to this socket.
@@ -1253,8 +1288,6 @@ void server::stream_producer_handler(
 
     // Check that our stream socket is non-blocking (so we don't accidentally block in write()).
     retail_assert(is_non_blocking(stream_socket), "Stream socket is in blocking mode!");
-
-    auto gen_iter = generator_iterator_t<T_element_type>(generator_fn);
 
     int epoll_fd = ::epoll_create1(0);
     if (epoll_fd == -1)
@@ -2905,6 +2938,12 @@ bool server::txn_commit()
 
     // Validate the committing txn.
     bool committed = validate_txn(commit_ts);
+
+    // Update in-memory shared indexes
+    if (committed)
+    {
+        update_indexes_from_log();
+    }
 
     // Update the txn entry with our commit decision.
     update_txn_decision(commit_ts, committed);

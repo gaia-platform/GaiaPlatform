@@ -21,6 +21,9 @@ message(VERBOSE "GAIA_DB_CORE_PUBLIC_INCLUDES=${GAIA_DB_CORE_PUBLIC_INCLUDES}")
 set(GAIA_DB_CORE_PRIVATE_INCLUDES
   "${GAIA_DB_INC}/core"
   "${GAIA_DB_INC}/core/inc"
+  "${GAIA_INTERNAL_INC}/index"
+  "${GAIA_DB_INC}/index"
+  "${GAIA_DB_INC}/payload_types"
   "${GAIA_DB_INC}/inc/memory_manager"
   "${GAIA_REPO}/production/db/inc/memory_manager"
   "${ROCKSDB_INC}"
@@ -80,7 +83,13 @@ add_library(gaia_db_client STATIC
   src/db_client.cpp
   src/db_shared_data_client.cpp
   src/type_metadata.cpp
-  src/type_id_mapping.cpp)
+  src/type_id_mapping.cpp
+  src/db_txn_client.cpp
+  src/server_index_impl.cpp
+  src/type_metadata.cpp
+  src/type_id_mapping.cpp
+  src/index_builder.cpp
+  src/client_index_impl.cpp)
 add_dependencies(gaia_db_client "messages.fbs" "gaia_table.fbs" "gaia_field.fbs" "gaia_relationship.fbs")
 target_include_directories(gaia_db_client PUBLIC ${GAIA_DB_CORE_PUBLIC_INCLUDES})
 target_include_directories(gaia_db_client PRIVATE ${GAIA_DB_CORE_PRIVATE_INCLUDES})
@@ -92,7 +101,8 @@ target_include_directories(gaia_db_client SYSTEM PRIVATE "${GEN_DIR}")
 set_target_properties(gaia_db_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 set_target_properties(gaia_db_client PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaia_db_client PUBLIC gaia_common)
-target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
+target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl gaia_index)
+
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia_db_client PROPERTY POSITION_INDEPENDENT_CODE ON)
 
@@ -115,6 +125,11 @@ set(GAIA_DB_SERVER_SOURCES
   src/db_server.cpp
   src/db_shared_data_server.cpp
   src/db_server_exec.cpp
+  src/db_txn_server.cpp
+  src/server_index_impl.cpp
+  src/catalog_core.cpp
+  src/index_builder.cpp
+  src/server_index_impl.cpp
 )
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -134,7 +149,8 @@ target_include_directories(gaia_db_server SYSTEM PRIVATE "${GEN_DIR}")
 # Suppress spurious warnings about zero-initialized structs.
 set_target_properties(gaia_db_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 set_target_properties(gaia_db_server PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
-target_link_libraries(gaia_db_server PRIVATE gaia_common Threads::Threads rocks_wrapper gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
+target_link_libraries(gaia_db_server PRIVATE gaia_common Threads::Threads rocks_wrapper gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl gaia_index)
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   target_link_libraries(gaia_db_server PUBLIC backward)
 endif()

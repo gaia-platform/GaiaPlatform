@@ -37,6 +37,7 @@
 #include "db_internal_types.hpp"
 #include "db_shared_data.hpp"
 #include "messages_generated.h"
+#include "server_index_impl.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -54,41 +55,6 @@ static const std::string c_message_stream_socket_is_invalid = "Stream socket is 
 static const std::string c_message_unexpected_datagram_size = "Unexpected datagram size!";
 static const std::string c_message_empty_batch_buffer_detected = "Empty batch buffer detected!";
 static const std::string c_message_fcntl_add_seals_failed = "fcntl(F_ADD_SEALS) failed!";
-
-int client::get_id_cursor_socket_for_type(gaia_type_t type)
-{
-    // Send the server the cursor socket request.
-    FlatBufferBuilder builder;
-    auto table_scan_info = Createtable_scan_info_t(builder, type);
-    auto client_request = Createclient_request_t(builder, session_event_t::REQUEST_STREAM, request_data_t::table_scan, table_scan_info.Union());
-    auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
-    builder.Finish(message);
-    send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
-
-    // Extract the stream socket fd from the server's response.
-    uint8_t msg_buf[c_max_msg_size] = {0};
-    int stream_socket = -1;
-    size_t fd_count = 1;
-    size_t bytes_read = recv_msg_with_fds(s_session_socket, &stream_socket, &fd_count, msg_buf, sizeof(msg_buf));
-    retail_assert(bytes_read > 0, c_message_failed_to_read_message);
-    retail_assert(fd_count == 1, c_message_unexpected_fd_count);
-    retail_assert(stream_socket != -1, c_message_invalid_stream_socket);
-    auto cleanup_stream_socket = make_scope_guard([&]() {
-        close_fd(stream_socket);
-    });
-
-    // Deserialize the server message.
-    const message_t* msg = Getmessage_t(msg_buf);
-    const server_reply_t* reply = msg->msg_as_reply();
-    const session_event_t event = reply->event();
-    retail_assert(event == session_event_t::REQUEST_STREAM, c_message_unexpected_event_received);
-
-    // Check that our stream socket is blocking (since we need to perform blocking reads).
-    retail_assert(!is_non_blocking(stream_socket), "Stream socket is not set to blocking!");
-
-    cleanup_stream_socket.dismiss();
-    return stream_socket;
-}
 
 // This generator wraps a socket which reads a stream of values of `T_element_type` from the server.
 template <typename T_element_type>
@@ -237,7 +203,7 @@ client::get_fd_stream_generator_for_socket(int stream_socket)
         return next_fd;
     };
 }
-
+/*
 std::function<std::optional<gaia_id_t>()>
 client::get_id_generator_for_type(gaia_type_t type)
 {
@@ -249,6 +215,7 @@ client::get_id_generator_for_type(gaia_type_t type)
     cleanup_stream_socket.dismiss();
     return id_generator;
 }
+*/
 
 static void build_client_request(
     FlatBufferBuilder& builder,
@@ -361,6 +328,7 @@ void client::clear_shared_memory()
     // If the server has already closed its fd for the locator segment
     // (and there are no other clients), this will release it.
     close_fd(s_fd_locators);
+    get_indexes()->clear();
 }
 
 void client::txn_cleanup()
@@ -634,6 +602,8 @@ void client::rollback_transaction()
         build_client_request(builder, session_event_t::ROLLBACK_TXN);
         send_msg_with_fds(s_session_socket, &s_fd_log, 1, builder.GetBufferPointer(), builder.GetSize());
     }
+    // Reset local index cache.
+    get_indexes()->clear();
 }
 
 // This method returns void on a commit decision and throws on an abort decision.
@@ -710,6 +680,8 @@ void client::commit_transaction()
     {
         throw transaction_update_conflict();
     }
+    // Reset Local index cache
+    get_indexes()->clear();
 }
 
 address_offset_t client::request_memory(size_t object_size)

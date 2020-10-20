@@ -72,3 +72,8 @@ gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
 {
     return gaia::db::client::allocate_object(locator, size);
 }
+    
+gaia::db::index::indexes_t* gaia::db::get_indexes()
+{
+    return &gaia::db::client::s_thread_index;
+}
