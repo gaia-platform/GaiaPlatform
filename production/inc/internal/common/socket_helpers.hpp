@@ -21,7 +21,7 @@ namespace common
 {
 
 // Current protocols never send or receive > 2 fds at a time.
-constexpr size_t MAX_FD_COUNT = 2;
+constexpr size_t c_max_fd_count = 2;
 
 // We throw this exception on either EPIPE/SIGPIPE caught from a write
 // or EOF returned from a read (where a 0-length read is impossible).
@@ -43,7 +43,7 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
     // and all fds we send must fit in control.buf below.
     if (fds)
     {
-        retail_assert(fd_count && fd_count <= MAX_FD_COUNT);
+        retail_assert(fd_count && fd_count <= c_max_fd_count);
     }
 
     struct msghdr msg;
@@ -53,7 +53,7 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
     {
         // This is a dummy field for alignment only.
         struct cmsghdr dummy;
-        char buf[CMSG_SPACE(sizeof(int) * MAX_FD_COUNT)];
+        char buf[CMSG_SPACE(sizeof(int) * c_max_fd_count)];
     } control;
     iov.iov_base = data;
     iov.iov_len = data_size;
@@ -68,7 +68,7 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
     {
         msg.msg_control = control.buf;
         msg.msg_controllen = sizeof(control.buf);
-        struct cmsghdr* cmsg = CMSG_FIRSTHDR(&msg);
+        struct cmsghdr* cmsg = CMSG_FIRSTHDR(&msg); // NOLINT (macro expansion)
         cmsg->cmsg_len = CMSG_LEN(sizeof(int) * fd_count);
         cmsg->cmsg_level = SOL_SOCKET;
         cmsg->cmsg_type = SCM_RIGHTS;
@@ -85,10 +85,12 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
     // https://github.com/kroki/XProbes/blob/1447f3d93b6dbf273919af15e59f35cca58fcc23/src/libxprobes.c#L156).
     ssize_t bytes_written_or_error = ::sendmsg(sock, &msg, MSG_NOSIGNAL);
     // Since we assert that we never send 0 bytes, we should never return 0 bytes written.
-    retail_assert(bytes_written_or_error != 0,
-                  "sendmsg() should never return 0 bytes written unless we write 0 bytes.");
-    retail_assert(bytes_written_or_error >= -1,
-                  "sendmsg() should never return a negative value except for -1.");
+    retail_assert(
+        bytes_written_or_error != 0,
+        "sendmsg() should never return 0 bytes written unless we write 0 bytes.");
+    retail_assert(
+        bytes_written_or_error >= -1,
+        "sendmsg() should never return a negative value except for -1.");
     if (bytes_written_or_error == -1)
     {
         if (errno == EPIPE)
@@ -100,9 +102,10 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
             throw_system_error("sendmsg failed");
         }
     }
-    size_t bytes_written = static_cast<size_t>(bytes_written_or_error);
-    retail_assert(bytes_written == data_size,
-                  "sendmsg() payload was truncated but we didn't get EMSGSIZE.");
+    auto bytes_written = static_cast<size_t>(bytes_written_or_error);
+    retail_assert(
+        bytes_written == data_size,
+        "sendmsg() payload was truncated but we didn't get EMSGSIZE.");
 
     return bytes_written;
 }
@@ -113,7 +116,7 @@ inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* dat
     // and all fds we receive must fit in control.buf below.
     if (fds)
     {
-        retail_assert(pfd_count && *pfd_count && *pfd_count <= MAX_FD_COUNT);
+        retail_assert(pfd_count && *pfd_count && *pfd_count <= c_max_fd_count);
     }
     struct msghdr msg;
     struct iovec iov;
@@ -122,7 +125,7 @@ inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* dat
     {
         // This is a dummy field for alignment only.
         struct cmsghdr dummy;
-        char buf[CMSG_SPACE(sizeof(int) * MAX_FD_COUNT)];
+        char buf[CMSG_SPACE(sizeof(int) * c_max_fd_count)];
     } control;
     iov.iov_base = data;
     iov.iov_len = data_size;
@@ -139,8 +142,9 @@ inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* dat
         msg.msg_controllen = sizeof(control.buf);
     }
     ssize_t bytes_read = ::recvmsg(sock, &msg, 0);
-    retail_assert(bytes_read >= -1,
-                  "recvmsg() should never return a negative value except for -1.");
+    retail_assert(
+        bytes_read >= -1,
+        "recvmsg() should never return a negative value except for -1.");
     if (bytes_read == -1)
     {
         throw_system_error("recvmsg failed");
@@ -160,7 +164,7 @@ inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* dat
 
     if (fds)
     {
-        struct cmsghdr* cmsg = CMSG_FIRSTHDR(&msg);
+        struct cmsghdr* cmsg = CMSG_FIRSTHDR(&msg); // NOLINT (macro expansion)
         if (cmsg)
         {
             // message contains some fds, extract them

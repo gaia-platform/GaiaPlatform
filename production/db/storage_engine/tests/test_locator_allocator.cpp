@@ -9,6 +9,9 @@
 
 #include "gtest/gtest.h"
 
+#include "db_types.hpp"
+#include "locator_allocator.hpp"
+
 using namespace std;
 using namespace gaia::db;
 using namespace gaia::db::storage;

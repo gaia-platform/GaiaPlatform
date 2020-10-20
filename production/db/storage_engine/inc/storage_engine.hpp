@@ -9,7 +9,6 @@
 #include <sys/file.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <unistd.h>
 
 #include <cassert>
@@ -40,7 +39,7 @@ namespace db
 using namespace common;
 
 // 1K oughta be enough for anybody...
-constexpr size_t MAX_MSG_SIZE = 1 << 10;
+constexpr size_t c_max_msg_size = 1 << 10;
 
 enum class gaia_operation_t : uint8_t
 {
@@ -56,18 +55,18 @@ class se_base
     friend class gaia_hash_map;
 
 protected:
-    static constexpr char SERVER_CONNECT_SOCKET_NAME[] = "gaia_se_server";
-    static constexpr char SCH_MEM_LOCATORS[] = "gaia_mem_locators";
-    static constexpr char SCH_MEM_DATA[] = "gaia_mem_data";
-    static constexpr char SCH_MEM_LOG[] = "gaia_mem_log";
+    static constexpr char c_server_connect_socket_name[] = "gaia_se_server";
+    static constexpr char c_sch_mem_locators[] = "gaia_mem_locators";
+    static constexpr char c_sch_mem_data[] = "gaia_mem_data";
+    static constexpr char c_sch_mem_log[] = "gaia_mem_log";
 
-    static constexpr size_t MAX_LOCATORS = 32 * 128L * 1024L;
-    static constexpr size_t HASH_BUCKETS = 12289;
-    static constexpr size_t HASH_LIST_ELEMENTS = MAX_LOCATORS;
-    static constexpr size_t MAX_LOG_RECS = 1000000;
-    static constexpr size_t MAX_OBJECTS = MAX_LOCATORS * 8;
+    static constexpr size_t c_max_locators = 32 * 128L * 1024L;
+    static constexpr size_t c_hash_buckets = 12289;
+    static constexpr size_t c_hash_list_elements = c_max_locators;
+    static constexpr size_t c_max_log_records = 1000000;
+    static constexpr size_t c_max_objects = c_max_locators * 8;
 
-    typedef gaia_locator_t locators[MAX_LOCATORS];
+    typedef gaia_locator_t locators[c_max_locators];
 
     struct hash_node
     {
@@ -87,13 +86,13 @@ protected:
         gaia_txn_id_t next_txn_id;
         size_t locator_count;
         size_t hash_node_count;
-        hash_node hash_nodes[HASH_BUCKETS + HASH_LIST_ELEMENTS];
+        hash_node hash_nodes[c_hash_buckets + c_hash_list_elements];
         // This array is actually an untyped array of bytes, but it's defined as
         // an array of uint64_t just to enforce 8-byte alignment. Allocating
-        // (MAX_LOCATORS * 8) 8-byte words for this array means we reserve 64
+        // (c_max_locators * 8) 8-byte words for this array means we reserve 64
         // bytes on average for each object we allocate (or 1 cache line on
         // every common architecture).
-        uint64_t objects[MAX_LOCATORS * 8];
+        uint64_t objects[c_max_locators * 8];
     };
 
     struct log
@@ -106,7 +105,7 @@ protected:
             gaia_offset_t new_offset;
             gaia_id_t deleted_id;
             gaia_operation_t operation;
-        } log_records[MAX_LOG_RECS];
+        } log_records[c_max_log_records];
     };
 
     thread_local static log* s_log;
@@ -137,7 +136,7 @@ public:
             throw transaction_not_open();
         }
 
-        if (data->locator_count >= MAX_LOCATORS)
+        if (data->locator_count >= c_max_locators)
         {
             throw oom();
         }
@@ -157,7 +156,7 @@ public:
             throw transaction_not_open();
         }
 
-        if (data->objects[0] >= MAX_OBJECTS)
+        if (data->objects[0] >= c_max_objects)
         {
             throw oom();
         }
@@ -172,7 +171,7 @@ public:
 
     static gaia_se_object_t* locator_to_ptr(locators* locators, data* data, gaia_locator_t locator)
     {
-        assert(locators);
+        retail_assert(locators);
         return (locator && (*locators)[locator])
             ? reinterpret_cast<gaia_se_object_t*>(data->objects + (*locators)[locator])
             : nullptr;

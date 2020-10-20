@@ -26,7 +26,7 @@ public:
             throw transaction_not_open();
         }
 
-        hash_node* node = data->hash_nodes + (id % se_base::HASH_BUCKETS);
+        hash_node* node = data->hash_nodes + (id % se_base::c_hash_buckets);
         if (node->id == 0 && __sync_bool_compare_and_swap(&node->id, 0, id))
         {
             return node;
@@ -58,8 +58,8 @@ public:
 
             if (!new_node_idx)
             {
-                retail_assert(data->hash_node_count + se_base::HASH_BUCKETS < se_base::HASH_LIST_ELEMENTS);
-                new_node_idx = se_base::HASH_BUCKETS + __sync_fetch_and_add(&data->hash_node_count, 1);
+                retail_assert(data->hash_node_count + se_base::c_hash_buckets < se_base::c_hash_list_elements);
+                new_node_idx = se_base::c_hash_buckets + __sync_fetch_and_add(&data->hash_node_count, 1);
                 (data->hash_nodes + new_node_idx)->id = id;
             }
 
@@ -70,14 +70,14 @@ public:
         }
     }
 
-    static int64_t find(se_base::data* data, se_base::locators* locators, gaia_id_t id)
+    static gaia_locator_t find(se_base::data* data, se_base::locators* locators, gaia_id_t id)
     {
         if (locators == nullptr)
         {
             throw transaction_not_open();
         }
 
-        hash_node* node = data->hash_nodes + (id % se_base::HASH_BUCKETS);
+        hash_node* node = data->hash_nodes + (id % se_base::c_hash_buckets);
 
         while (node)
         {
@@ -89,21 +89,21 @@ public:
                 }
                 else
                 {
-                    return 0;
+                    return INVALID_GAIA_LOCATOR;
                 }
             }
 
             node = node->next_offset
                 ? data->hash_nodes + node->next_offset
-                : 0;
+                : nullptr;
         }
 
-        return 0;
+        return INVALID_GAIA_LOCATOR;
     }
 
     static void remove(se_base::data* data, gaia_id_t id)
     {
-        hash_node* node = data->hash_nodes + (id % se_base::HASH_BUCKETS);
+        hash_node* node = data->hash_nodes + (id % se_base::c_hash_buckets);
 
         while (node->id)
         {

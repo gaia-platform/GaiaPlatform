@@ -165,14 +165,14 @@ void server::handle_request_stream(
     // When we add more stream types, we should add a switch statement on data_type.
     // It would be nice to delegate to a helper returning a different generator for each
     // data_type, and then invoke start_stream_producer() with that generator, but in
-    // general each data_type corresponds to a generator with a different element_type,
+    // general each data_type corresponds to a generator with a different T_element_type,
     // so we need to invoke start_stream_producer() separately for each data_type
-    // (because start_stream_producer() is templated on the generator's element_type).
+    // (because start_stream_producer() is templated on the generator's T_element_type).
     // We should logically receive an object corresponding to the request_data_t union,
     // but the FlatBuffers API doesn't have any object corresponding to a union.
-    const client_request_t* request = static_cast<const client_request_t*>(event_data);
+    auto request = static_cast<const client_request_t*>(event_data);
     retail_assert(request->data_type() == request_data_t::table_scan);
-    gaia_type_t type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
+    auto type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
     auto id_generator = get_id_generator_for_type(type);
     start_stream_producer(server_socket, id_generator);
     // Any exceptions after this point will close the server socket, ensuring the producer thread terminates.
@@ -193,9 +193,8 @@ void server::apply_transition(session_event_t event, const void* event_data, int
     }
     // "Wildcard" transitions (current state = session_state_t::ANY) must be listed after
     // non-wildcard transitions with the same event, or the latter will never be applied.
-    for (size_t i = 0; i < std::size(s_valid_transitions); i++)
+    for (auto t : s_valid_transitions)
     {
-        valid_transition_t t = s_valid_transitions[i];
         if (t.event == event && (t.state == s_session_state || t.state == session_state_t::ANY))
         {
             session_state_t new_state = t.transition.new_state;
@@ -278,12 +277,12 @@ void server::init_shared_memory()
     auto cleanup_memory = make_scope_guard([]() { clear_shared_memory(); });
     retail_assert(s_fd_data == -1 && s_fd_locators == -1);
     retail_assert(!s_data && !s_shared_locators);
-    s_fd_locators = ::memfd_create(SCH_MEM_LOCATORS, MFD_ALLOW_SEALING);
+    s_fd_locators = ::memfd_create(c_sch_mem_locators, MFD_ALLOW_SEALING);
     if (s_fd_locators == -1)
     {
         throw_system_error("memfd_create failed");
     }
-    s_fd_data = ::memfd_create(SCH_MEM_DATA, MFD_ALLOW_SEALING);
+    s_fd_data = ::memfd_create(c_sch_mem_data, MFD_ALLOW_SEALING);
     if (s_fd_data == -1)
     {
         throw_system_error("memfd_create failed");
@@ -304,7 +303,7 @@ void server::recover_db()
     // Open RocksDB just once.
     if (!rdb)
     {
-        rdb.reset(new gaia::db::persistent_store_manager());
+        rdb = make_unique<gaia::db::persistent_store_manager>();
         rdb->open();
         rdb->recover();
     }
@@ -361,7 +360,7 @@ void server::init_listening_socket()
     auto socket_cleanup = make_scope_guard([listening_socket]() { ::close(listening_socket); });
 
     // Initialize the socket address structure.
-    struct sockaddr_un server_addr = {0};
+    sockaddr_un server_addr = {0};
     server_addr.sun_family = AF_UNIX;
     // The socket name (minus its null terminator) needs to fit into the space
     // in the server address structure after the prefix null byte.
@@ -375,7 +374,7 @@ void server::init_listening_socket()
     // The socket name is not null-terminated in the address structure, but
     // we need to add an extra byte for the null byte prefix.
     socklen_t server_addr_size = sizeof(server_addr.sun_family) + 1 + ::strlen(&server_addr.sun_path[1]);
-    if (-1 == ::bind(listening_socket, (struct sockaddr*)&server_addr, server_addr_size))
+    if (-1 == ::bind(listening_socket, reinterpret_cast<struct sockaddr*>(&server_addr), server_addr_size))
     {
         throw_system_error("bind failed");
     }
@@ -437,10 +436,12 @@ void server::client_dispatch_handler()
     // but shouldn't really matter in practice.
     auto epoll_cleanup = make_scope_guard([epoll_fd]() { ::close(epoll_fd); });
     int registered_fds[] = {s_listening_socket, s_server_shutdown_eventfd};
-    for (size_t i = 0; i < std::size(registered_fds); i++)
+    for (int registered_fd : registered_fds)
     {
-        epoll_event ev{.events = EPOLLIN, .data.fd = registered_fds[i]};
-        if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, registered_fds[i], &ev))
+        epoll_event ev = {0};
+        ev.events = EPOLLIN;
+        ev.data.fd = registered_fd;
+        if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, registered_fd, &ev))
         {
             throw_system_error("epoll_ctl failed");
         }
@@ -476,7 +477,7 @@ void server::client_dispatch_handler()
                     int error = 0;
                     socklen_t err_len = sizeof(error);
                     // Ignore errors getting error message and default to generic error message.
-                    ::getsockopt(s_listening_socket, SOL_SOCKET, SO_ERROR, (void*)&error, &err_len);
+                    ::getsockopt(s_listening_socket, SOL_SOCKET, SO_ERROR, static_cast<void*>(&error), &err_len);
                     throw_system_error("client socket error", error);
                 }
                 else if (ev.data.fd == s_server_shutdown_eventfd)
@@ -488,7 +489,7 @@ void server::client_dispatch_handler()
             retail_assert(ev.events == EPOLLIN);
             if (ev.data.fd == s_listening_socket)
             {
-                int session_socket = ::accept(s_listening_socket, NULL, NULL);
+                int session_socket = ::accept(s_listening_socket, nullptr, nullptr);
                 if (session_socket == -1)
                 {
                     throw_system_error("accept failed");
@@ -549,11 +550,13 @@ void server::session_handler(int session_socket)
     }
     auto epoll_cleanup = make_scope_guard([epoll_fd]() { ::close(epoll_fd); });
     int fds[] = {s_session_socket, s_server_shutdown_eventfd};
-    for (size_t i = 0; i < std::size(fds); i++)
+    for (int fd : fds)
     {
         // We should only get EPOLLRDHUP from the client socket, but oh well.
-        epoll_event ev{.events = EPOLLIN | EPOLLRDHUP, .data.fd = fds[i]};
-        if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fds[i], &ev))
+        epoll_event ev = {0};
+        ev.events = EPOLLIN | EPOLLRDHUP;
+        ev.data.fd = fd;
+        if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev))
         {
             throw_system_error("epoll_ctl failed");
         }
@@ -620,7 +623,7 @@ void server::session_handler(int session_socket)
                     int error = 0;
                     socklen_t err_len = sizeof(error);
                     // Ignore errors getting error message and default to generic error message.
-                    ::getsockopt(s_session_socket, SOL_SOCKET, SO_ERROR, (void*)&error, &err_len);
+                    ::getsockopt(s_session_socket, SOL_SOCKET, SO_ERROR, static_cast<void*>(&error), &err_len);
                     cerr << "client socket error: " << ::strerror(error) << endl;
                     event = session_event_t::CLIENT_SHUTDOWN;
                 }
@@ -644,9 +647,9 @@ void server::session_handler(int session_socket)
                 {
                     retail_assert(!(ev.events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)));
                     // Buffer used to send and receive all message data.
-                    uint8_t msg_buf[MAX_MSG_SIZE] = {0};
+                    uint8_t msg_buf[c_max_msg_size] = {0};
                     // Buffer used to receive file descriptors.
-                    int fd_buf[MAX_FD_COUNT] = {-1};
+                    int fd_buf[c_max_fd_count] = {-1};
                     size_t fd_buf_size = std::size(fd_buf);
                     // Read client message with possible file descriptors.
                     size_t bytes_read = recv_msg_with_fds(s_session_socket, fd_buf, &fd_buf_size, msg_buf, sizeof(msg_buf));
@@ -702,15 +705,15 @@ void server::session_handler(int session_socket)
     }
 }
 
-template <typename element_type>
+template <typename T_element_type>
 void server::stream_producer_handler(
-    int stream_socket, int cancel_eventfd, std::function<std::optional<element_type>()> generator_fn)
+    int stream_socket, int cancel_eventfd, std::function<std::optional<T_element_type>()> generator_fn)
 {
     // We only support fixed-width integer types for now to avoid framing.
-    static_assert(std::is_integral<element_type>::value, "Generator function must return an integer.");
+    static_assert(std::is_integral<T_element_type>::value, "Generator function must return an integer.");
     // Verify the socket is the correct type for the semantics we assume.
     check_socket_type(stream_socket, SOCK_SEQPACKET);
-    auto gen_iter = generator_iterator_t<element_type>(generator_fn);
+    auto gen_iter = generator_iterator_t<T_element_type>(generator_fn);
     auto socket_cleanup = make_scope_guard([stream_socket]() {
         // We can rely on close() to perform the equivalent of shutdown(SHUT_RDWR),
         // since we hold the only fd pointing to this socket.
@@ -732,12 +735,16 @@ void server::stream_producer_handler(
     // We poll for write availability of the stream socket in level-triggered mode,
     // and only write at most one buffer of data before polling again, to avoid read
     // starvation of the cancellation eventfd.
-    epoll_event sock_ev{.events = EPOLLOUT, .data.fd = stream_socket};
+    epoll_event sock_ev = {0};
+    sock_ev.events = EPOLLOUT;
+    sock_ev.data.fd = stream_socket;
     if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, stream_socket, &sock_ev))
     {
         throw_system_error("epoll_ctl failed");
     }
-    epoll_event cancel_ev{.events = EPOLLIN, .data.fd = cancel_eventfd};
+    epoll_event cancel_ev = {0};
+    cancel_ev.events = EPOLLIN;
+    cancel_ev.data.fd = cancel_eventfd;
     if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, cancel_eventfd, &cancel_ev))
     {
         throw_system_error("epoll_ctl failed");
@@ -745,7 +752,7 @@ void server::stream_producer_handler(
     epoll_event events[2];
     bool producer_shutdown = false;
     // The userspace buffer that we use to construct a batch datagram message.
-    std::vector<element_type> batch_buffer;
+    std::vector<T_element_type> batch_buffer;
     // We need to call reserve() rather than the "sized" constructor to avoid changing size().
     batch_buffer.reserve(STREAM_BATCH_SIZE);
     while (!producer_shutdown)
@@ -779,7 +786,7 @@ void server::stream_producer_handler(
                     int error = 0;
                     socklen_t err_len = sizeof(error);
                     // Ignore errors getting error message and default to generic error message.
-                    ::getsockopt(stream_socket, SOL_SOCKET, SO_ERROR, (void*)&error, &err_len);
+                    ::getsockopt(stream_socket, SOL_SOCKET, SO_ERROR, static_cast<void*>(&error), &err_len);
                     cerr << "stream socket error: " << ::strerror(error) << endl;
                     producer_shutdown = true;
                 }
@@ -796,7 +803,7 @@ void server::stream_producer_handler(
                     // Write to the send buffer until we exhaust either the iterator or the buffer free space.
                     while (gen_iter && (batch_buffer.size() < STREAM_BATCH_SIZE))
                     {
-                        element_type next_val = *gen_iter;
+                        T_element_type next_val = *gen_iter;
                         batch_buffer.push_back(next_val);
                         ++gen_iter;
                     }
@@ -814,7 +821,7 @@ void server::stream_producer_handler(
                         // We don't want to handle signals, so set
                         // MSG_NOSIGNAL to convert SIGPIPE to EPIPE.
                         ssize_t bytes_written = ::send(
-                            stream_socket, batch_buffer.data(), batch_buffer.size() * sizeof(element_type),
+                            stream_socket, batch_buffer.data(), batch_buffer.size() * sizeof(T_element_type),
                             MSG_NOSIGNAL);
                         if (bytes_written == -1)
                         {
@@ -874,12 +881,12 @@ void server::stream_producer_handler(
     }
 }
 
-template <typename element_type>
-void server::start_stream_producer(int stream_socket, std::function<std::optional<element_type>()> generator_fn)
+template <typename T_element_type>
+void server::start_stream_producer(int stream_socket, std::function<std::optional<T_element_type>()> generator_fn)
 {
     // Give the session ownership of the new stream thread.
     s_session_owned_threads.emplace_back(
-        stream_producer_handler<element_type>, stream_socket, s_session_shutdown_eventfd, generator_fn);
+        stream_producer_handler<T_element_type>, stream_socket, s_session_shutdown_eventfd, generator_fn);
 }
 
 std::function<std::optional<gaia_id_t>()> server::get_id_generator_for_type(gaia_type_t type)
@@ -894,7 +901,7 @@ std::function<std::optional<gaia_id_t>()> server::get_id_generator_for_type(gaia
             gaia_offset_t offset = (*s_shared_locators)[locator];
             if (offset)
             {
-                gaia_se_object_t* obj = reinterpret_cast<gaia_se_object_t*>(s_data->objects + (*s_shared_locators)[locator]);
+                auto obj = reinterpret_cast<gaia_se_object_t*>(s_data->objects + (*s_shared_locators)[locator]);
                 if (obj->type == type)
                 {
                     return obj->id;

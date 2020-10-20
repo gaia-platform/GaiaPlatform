@@ -15,7 +15,11 @@ using namespace std;
 using namespace gaia::common;
 using namespace gaia::db::payload_types;
 
-constexpr gaia_type_t c_type_id = 88;
+constexpr char c_updated_bin_filename[] = "updated_test_record_data.bin";
+constexpr char c_bin_filename[] = "test_record_data.bin";
+constexpr char c_bfbs_filename[] = "test_record.bfbs";
+
+constexpr uint64_t c_type_id = 88;
 
 // The following values must match the values from test_record_data.json.
 constexpr char c_first_name[] = "Takeshi";
@@ -272,11 +276,11 @@ void process_flatbuffers_data(bool access_fields = false)
 {
     // Load binary flatbuffers schema.
     file_loader_t schema_loader;
-    schema_loader.load_file_data("test_record.bfbs");
+    schema_loader.load_file_data(c_bfbs_filename);
 
     // Load flatbuffers serialization.
     file_loader_t data_loader;
-    data_loader.load_file_data("test_record_data.bin");
+    data_loader.load_file_data(c_bin_filename);
 
     // Validate data.
     ASSERT_EQ(true, verify_data_schema(data_loader.get_data(), data_loader.get_data_length(), schema_loader.get_data()));
@@ -337,11 +341,11 @@ void update_flatbuffers_data()
 {
     // Load binary flatbuffers schema.
     file_loader_t schema_loader;
-    schema_loader.load_file_data("test_record.bfbs");
+    schema_loader.load_file_data(c_bfbs_filename);
 
     // Load flatbuffers serialization.
     file_loader_t data_loader;
-    data_loader.load_file_data("test_record_data.bin");
+    data_loader.load_file_data(c_bin_filename);
 
     // Validate data.
     ASSERT_EQ(true, verify_data_schema(data_loader.get_data(), data_loader.get_data_length(), schema_loader.get_data()));
@@ -502,7 +506,7 @@ void update_flatbuffers_data()
 
     // Write out the final serialization.
     ofstream file;
-    file.open("updated_test_record_data.bin", ios::binary | ios::out | ios::trunc);
+    file.open(c_updated_bin_filename, ios::binary | ios::out | ios::trunc);
     file.write(reinterpret_cast<char*>(serialization.data()), serialization.size());
     file.close();
 
@@ -511,7 +515,7 @@ void update_flatbuffers_data()
     cout << "\nReading back field values:" << endl;
 
     // Load flatbuffers serialization.
-    data_loader.load_file_data("updated_test_record_data.bin");
+    data_loader.load_file_data(c_updated_bin_filename);
 
     // Validate data.
     ASSERT_EQ(true, verify_data_schema(data_loader.get_data(), data_loader.get_data_length(), schema_loader.get_data()));
