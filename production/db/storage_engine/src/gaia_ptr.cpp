@@ -5,7 +5,6 @@
 
 #include "gaia_ptr.hpp"
 
-#include "field_list.hpp"
 #include "gaia_hash_map.hpp"
 #include "generator_iterator.hpp"
 #include "payload_diff.hpp"

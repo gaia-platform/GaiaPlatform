@@ -39,7 +39,8 @@ set(GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
 # The names of the following source files should be unique because they'll be used as targets.
 set(FBS_SOURCES
-  "${PROJECT_SOURCE_DIR}/src/flatbuffers/messages.fbs")
+  "${PROJECT_SOURCE_DIR}/src/flatbuffers/messages.fbs"
+  "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_table.fbs")
 
 foreach(FBS_SOURCE ${FBS_SOURCES})
   get_filename_component(FBS_SOURCE_FILENAME ${FBS_SOURCE} NAME)
@@ -75,10 +76,11 @@ add_library(gaia_se_client STATIC
   src/gaia_db.cpp
   src/gaia_ptr.cpp
   src/gaia_boot.cpp
+  src/gaia_se_catalog.cpp
   src/storage_engine.cpp
   src/storage_engine_client.cpp
   src/type_metadata.cpp)
-add_dependencies(gaia_se_client "messages.fbs")
+add_dependencies(gaia_se_client "messages.fbs" "gaia_table.fbs")
 target_include_directories(gaia_se_client PUBLIC ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES})
 target_include_directories(gaia_se_client PRIVATE ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES})
 
@@ -184,5 +186,5 @@ add_gtest(test_rdb_object_converter "tests/test_rdb_object_converter.cpp" "${FLA
 add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
 add_gtest(test_storage_engine_client "tests/test_storage_engine_client.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_se_client")
 add_gtest(test_locator_allocator tests/test_locator_allocator.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
-add_gtest(test_relationships tests/test_relationships.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client")
+add_gtest(test_relationships tests/test_relationships.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client;")
 add_gtest(test_se_references tests/test_se_references.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client")

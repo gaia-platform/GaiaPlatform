@@ -10,6 +10,7 @@
 #include <iostream>
 
 #include "db_types.hpp"
+#include "gaia_common.hpp"
 #include "gaia_db.hpp"
 #include "gaia_se_object.hpp"
 #include "generator_iterator.hpp"
@@ -200,7 +201,7 @@ public:
 
     char* data() const
     {
-        return data_size() ? (char*)(to_ptr()->payload + (to_ptr()->num_references * sizeof(gaia_id_t))) : nullptr;
+        return data_size() ? const_cast<char*>(to_ptr()->data()) : nullptr;
     }
 
     size_t data_size() const
@@ -213,7 +214,7 @@ public:
 
     gaia_id_t* references() const
     {
-        return reinterpret_cast<gaia_id_t*>(to_ptr()->payload);
+        return const_cast<gaia_id_t*>(to_ptr()->references());
     }
 
     size_t num_references() const

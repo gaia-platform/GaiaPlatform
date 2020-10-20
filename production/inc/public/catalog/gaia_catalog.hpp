@@ -44,22 +44,8 @@ const string c_empty_db_name = "()";
 /*
  * Data types for Gaia field records.
  */
-enum class data_type_t : uint8_t
-{
-    e_bool,
-    e_int8,
-    e_uint8,
-    e_int16,
-    e_uint16,
-    e_int32,
-    e_uint32,
-    e_int64,
-    e_uint64,
-    e_float,
-    e_double,
-    e_string,
-    e_references
-};
+
+using data_type_t = gaia::common::data_type_t;
 
 /**
  * Thrown when seeing an unknown data type
@@ -425,7 +411,7 @@ string gaia_generate(const string& dbname);
  * @param table_id id of the table
  * @return bfbs
  */
-string get_bfbs(gaia::common::gaia_id_t table_id);
+vector<uint8_t> get_bfbs(gaia::common::gaia_id_t table_id);
 
 /**
  * Retrieve the serialization template (bin) for a given table.

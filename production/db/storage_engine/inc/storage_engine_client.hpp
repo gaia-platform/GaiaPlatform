@@ -48,6 +48,7 @@ class client : private se_base
 {
     friend class gaia_ptr;
     friend class gaia_hash_map;
+    friend class gaia_catalog_t;
 
 public:
     static inline bool is_transaction_active()

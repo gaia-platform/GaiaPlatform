@@ -1,0 +1,7 @@
+namespace gaia.db.catalog;
+table gaia_table{
+        name:string;
+        is_log:bool;
+        binary_schema:string;
+}
+root_type gaia_table;

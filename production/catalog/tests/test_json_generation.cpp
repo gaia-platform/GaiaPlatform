@@ -95,11 +95,11 @@ TEST_F(json_generation_test, get_bin)
     gaia_id_t table_id = create_table(test_table_name, test_table_fields);
 
     begin_transaction();
-    string bfbs = get_bfbs(table_id);
+    vector<uint8_t> bfbs = get_bfbs(table_id);
     string bin = get_bin(table_id);
     commit_transaction();
 
-    const uint8_t* binary_schema = reinterpret_cast<const uint8_t*>(bfbs.c_str());
+    const uint8_t* binary_schema = reinterpret_cast<const uint8_t*>(bfbs.data());
     const uint8_t* serialized_data = reinterpret_cast<const uint8_t*>(bin.c_str());
     size_t serialized_data_size = bin.size();
 

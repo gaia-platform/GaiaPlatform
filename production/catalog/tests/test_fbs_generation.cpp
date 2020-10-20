@@ -70,14 +70,14 @@ TEST_F(fbs_generation_test, get_bfbs)
 
     gaia_id_t table_id = create_table(test_table_name, test_table_fields);
     begin_transaction();
-    string bfbs = get_bfbs(table_id);
+    vector<uint8_t> bfbs = get_bfbs(table_id);
     commit_transaction();
 
     ASSERT_GT(bfbs.size(), 0);
-    flatbuffers::Verifier verifier(reinterpret_cast<const uint8_t*>(bfbs.c_str()), bfbs.length());
+    flatbuffers::Verifier verifier(bfbs.data(), bfbs.size());
     EXPECT_TRUE(reflection::VerifySchemaBuffer(verifier));
 
-    auto& schema = *reflection::GetSchema(bfbs.c_str());
+    auto& schema = *reflection::GetSchema(bfbs.data());
     auto root_table = schema.root_table();
     ASSERT_STREQ(root_table->name()->c_str(), (c_gaia_namespace + "." + test_table_name).c_str());
 }
