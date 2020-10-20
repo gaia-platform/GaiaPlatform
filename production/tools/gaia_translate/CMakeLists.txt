@@ -30,7 +30,6 @@ set(GAIAT_SRCS
 
 link_directories(
   ${GAIA_PROD_BUILD}/lib
-  #${TE_BUILD}/lib
 )
 
 

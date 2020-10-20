@@ -13,6 +13,7 @@ enable_testing()
 project(production)
 
 option(EXECUTE_FDW_TESTS "Execute FDW tests" OFF)
+option(BUILD_GAIA_RELEASE "Build Gaia Release packages and binaries" OFF)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 
@@ -204,9 +205,9 @@ add_subdirectory("${GAIA_REPO}/third_party/production/spdlog_setup" spdlog_setup
 add_subdirectory("${GAIA_REPO}/third_party/production/tabulate" tabulate)
 # Add googletest
 add_subdirectory(${GOOGLE_TEST} googletest)
-
+if (BUILD_GAIA_RELEASE)
 add_subdirectory("${GAIA_REPO}/third_party/private/TranslationEngineLLVM/llvm" llvm)
-
+endif()
 # Setting clang-tidy here to avoid it being applied to flatbuffers, rocksdb etc...
 # TODO Maybe we could force each subproject to set this flag?
 set(CMAKE_CXX_CLANG_TIDY clang-tidy)
