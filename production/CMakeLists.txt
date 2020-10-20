@@ -92,8 +92,8 @@ set(GAIA_CONFIG "${PROJECT_SOURCE_DIR}/gaia.conf")
 set(GAIA_LOG_CONFIG "${PROJECT_SOURCE_DIR}/gaia_log.conf")
 
 message(CHECK_START "Looking for libexplain and libcap")
-find_library(LIB_EXPLAIN NAMES libexplain.a)
-find_library(LIB_CAP NAMES libcap.a cap)
+find_library(LIB_EXPLAIN NAMES explain)
+find_library(LIB_CAP NAMES cap)
 if (LIB_EXPLAIN AND LIB_CAP)
   message(CHECK_PASS "found")
 else()
@@ -199,8 +199,11 @@ if(BUILD_GAIA_RELEASE)
   set(CMAKE_CXX_CLANG_TIDY clang-tidy)
 endif()
 
-# Query processors.
+# SQL.
 add_subdirectory(sql)
+
+# Query Processor
+add_subdirectory(query_processor)
 
 # SDK
 # Be sure to add the SDK directory after the sql directory because the package mechanism

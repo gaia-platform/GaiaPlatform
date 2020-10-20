@@ -29,6 +29,7 @@
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
 #include "messages_generated.h"
+#include "server_index_impl.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -156,6 +157,7 @@ client_t::get_stream_generator_for_socket(int stream_socket)
     };
 }
 
+/*
 std::function<std::optional<gaia_id_t>()>
 client_t::get_id_generator_for_type(gaia_type_t type)
 {
@@ -169,6 +171,7 @@ client_t::get_id_generator_for_type(gaia_type_t type)
 
     return id_generator;
 }
+*/
 
 static void build_client_request(
     FlatBufferBuilder& builder,
@@ -197,6 +200,11 @@ void client_t::sort_log()
         });
 }
 
+void client_t::clear_caches()
+{
+    type_id_mapping_t::instance().clear();
+}
+
 // This function must be called before establishing a new session. It ensures
 // that if the server restarts or is reset, no session will start with a stale
 // data mapping or locator fd.
@@ -213,6 +221,8 @@ void client_t::clear_shared_memory()
     // If the server has already closed its fd for the locator segment
     // (and there are no other clients), this will release it.
     close_fd(s_fd_locators);
+
+    clear_caches();
 }
 
 void client_t::txn_cleanup()
@@ -228,6 +238,10 @@ void client_t::txn_cleanup()
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
+
+    // Reset index state
+    get_indexes()->clear();
+    s_need_rebuild_index = false;
 }
 
 int client_t::get_session_socket()
@@ -309,7 +323,7 @@ void client_t::begin_session()
     build_client_request(builder, session_event_t::CONNECT);
 
     client_messenger_t client_messenger;
-    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 4);
+    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, client_messenger_t::c_num_connect_fds);
 
     int fd_locators = client_messenger.received_fd(client_messenger_t::c_index_locators);
     int fd_counters = client_messenger.received_fd(client_messenger_t::c_index_counters);
@@ -367,8 +381,7 @@ void client_t::begin_transaction()
     auto cleanup_private_locators = make_scope_guard([&]() {
         s_private_locators.close();
     });
-    bool manage_fd = false;
-    s_private_locators.open(s_fd_locators, manage_fd);
+    s_private_locators.open(s_fd_locators, false, sizeof(locators_t), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_NORESERVE);
 
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::BEGIN_TXN);
@@ -423,11 +436,7 @@ void client_t::apply_txn_log(int log_fd)
     mapped_log_t txn_log;
     txn_log.open(log_fd);
 
-    for (size_t i = 0; i < txn_log.data()->record_count; ++i)
-    {
-        const auto& lr = txn_log.data()->log_records[i];
-        (*s_private_locators.data())[lr.locator] = lr.new_offset;
-    }
+    apply_logs_to_locators(s_private_locators.data(), txn_log.data());
 }
 
 void client_t::rollback_transaction()
@@ -465,6 +474,9 @@ void client_t::rollback_transaction()
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::ROLLBACK_TXN);
     send_msg_with_fds(s_session_socket, fds, fd_count, builder.GetBufferPointer(), builder.GetSize());
+
+    // Reset local index cache.
+    get_indexes()->clear();
 }
 
 // This method returns void on a commit decision and throws on an abort decision.
@@ -542,6 +554,9 @@ void client_t::commit_transaction()
     // to the server at the time it requests the commit of the transaction.
     // The call here is just a reminder that this work needs to be done somewhere.
     // commit_chunk_manager_allocations();
+
+    // Reset Local index cache
+    get_indexes()->clear();
 }
 
 void client_t::init_memory_manager()

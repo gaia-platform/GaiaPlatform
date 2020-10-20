@@ -136,7 +136,7 @@ void persistent_store_manager::prepare_wal_for_write(gaia::db::txn_log_t* log, c
             txn->Delete(key.to_slice());
             key_count++;
         }
-        else
+        else if (!is_logical_operation(lr->operation))
         {
             string_writer_t key;
             string_writer_t value;

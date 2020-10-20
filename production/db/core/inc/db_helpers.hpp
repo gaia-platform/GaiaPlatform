@@ -144,5 +144,24 @@ inline gaia_txn_id_t get_last_txn_id()
     return counters->last_txn_id;
 }
 
+inline index::db_index_t id_to_index(common::gaia_id_t index_id)
+{
+    auto it = get_indexes()->find(index_id);
+
+    return (it != get_indexes()->end()) ? it->second : nullptr;
+}
+
+inline void apply_logs_to_locators(locators_t* locators, txn_log_t* logs)
+{
+    for (size_t i = 0; i < logs->record_count; ++i)
+    {
+        auto& lr = logs->log_records[i];
+        if (!is_logical_operation(lr.operation))
+        {
+            (*locators)[lr.locator] = lr.new_offset;
+        }
+    }
+}
+
 } // namespace db
 } // namespace gaia

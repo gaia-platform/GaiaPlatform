@@ -5,23 +5,38 @@
 
 #pragma once
 
+#include <algorithm>
+
+#include <flatbuffers/flatbuffers.h>
+#include <sys/epoll.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+
 #include "gaia/db/db.hpp"
 
 #include "gaia_internal/common/mmap_helpers.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
+#include "gaia_internal/db/catalog_core.hpp"
+#include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/triggers.hpp"
+#include "gaia_internal/index/index_builder.hpp"
 
+#include "client_index_impl.hpp"
 #include "db_shared_data.hpp"
 #include "mapped_data.hpp"
 #include "memory_manager.hpp"
-#include "messages_generated.h"
+#include "memory_types.hpp"
+#include "qp_operator.hpp"
+#include "type_id_mapping.hpp"
 
 namespace gaia
 {
 
 namespace db
 {
+
+class index_scan_iterator_base_t;
 
 class client_t
 {
@@ -39,9 +54,15 @@ class client_t
     friend gaia::db::data_t* gaia::db::get_data();
     friend gaia::db::id_index_t* gaia::db::get_id_index();
 
-    friend gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
+    friend class gaia::qp::physical_operator_t;
+
+    friend gaia::db::memory_manager::address_offset_t
+    gaia::db::allocate_object(
         gaia_locator_t locator,
         size_t size);
+
+    friend gaia::db::index::indexes_t* gaia::db::get_indexes();
+    friend bool gaia::db::need_rebuild_indexes();
 
 public:
     static inline bool is_transaction_active();
@@ -52,7 +73,7 @@ public:
      */
     static inline void set_commit_trigger(triggers::commit_trigger_fn trigger_fn);
 
-    // This test-only function is exported from gaia_db_internal.hpp.
+    static void clear_caches();
     static void clear_shared_memory();
 
     // These public functions are exported from and documented in db.hpp.
@@ -83,14 +104,19 @@ private:
 
     thread_local static inline int s_session_socket = -1;
 
-    // s_events has transaction lifetime and is cleared after each transaction.
     // Set by the rules engine.
-    thread_local static inline std::vector<gaia::db::triggers::trigger_event_t> s_events{};
+    // s_events has transaction lifetime and is cleared after each transaction.
+    thread_local static inline std::vector<gaia::db::triggers::trigger_event_t>
+        s_events{};
     static inline triggers::commit_trigger_fn s_txn_commit_trigger = nullptr;
 
     thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
     thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
     thread_local static inline std::vector<gaia::db::memory_manager::chunk_manager_t> s_previous_chunk_managers{};
+
+    // s_indexes have transaction lifetime and is cleared after each transaction.
+    thread_local static inline gaia::db::index::indexes_t s_thread_index{};
+    thread_local static inline bool s_need_rebuild_index = false;
 
     // Maintain a static filter in the client to disable generating events
     // for system types.
@@ -122,6 +148,24 @@ private:
 
     static int get_id_cursor_socket_for_type(common::gaia_type_t type);
 
+    static void rebuild_local_indexes_from_log()
+    {
+        if (!s_need_rebuild_index)
+        {
+            return;
+        }
+
+        // Clear the indexes
+        for (auto idx : s_thread_index)
+        {
+            idx.second->clear();
+        }
+
+        index::index_builder::update_indexes_from_logs(*s_log.data());
+
+        s_need_rebuild_index = false;
+    }
+
     // This is a helper for higher-level methods that use
     // this generator to build a range or iterator object.
     template <typename T_element_type>
@@ -138,7 +182,6 @@ private:
 
     static inline void verify_txn_active();
     static inline void verify_no_txn();
-
     static inline void verify_session_active();
     static inline void verify_no_session();
 

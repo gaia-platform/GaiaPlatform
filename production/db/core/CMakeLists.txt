@@ -21,10 +21,14 @@ message(VERBOSE "GAIA_DB_CORE_PUBLIC_INCLUDES=${GAIA_DB_CORE_PUBLIC_INCLUDES}")
 set(GAIA_DB_CORE_PRIVATE_INCLUDES
   "${GAIA_DB_INC}/core"
   "${GAIA_DB_INC}/core/inc"
+  "${GAIA_INTERNAL_INC}/index"
+  "${GAIA_DB_INC}/index"
+  "${GAIA_DB_INC}/payload_types"
   "${GAIA_DB_INC}/inc/memory_manager"
   "${GAIA_REPO}/production/db/inc/memory_manager"
   "${ROCKSDB_INC}"
   "${PROJECT_SOURCE_DIR}/inc"
+  "${GAIA_REPO}/production/query_processor/inc"
 )
 
 message(VERBOSE "GAIA_DB_CORE_PRIVATE_INCLUDES=${GAIA_DB_CORE_PRIVATE_INCLUDES}")
@@ -39,7 +43,8 @@ set(FBS_SOURCES
   "${PROJECT_SOURCE_DIR}/src/flatbuffers/messages.fbs"
   "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_table.fbs"
   "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_field.fbs"
-  "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_relationship.fbs")
+  "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_relationship.fbs"
+  "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_index.fbs")
 
 foreach(FBS_SOURCE ${FBS_SOURCES})
   get_filename_component(FBS_SOURCE_FILENAME ${FBS_SOURCE} NAME)
@@ -82,8 +87,19 @@ add_library(gaia_db_client STATIC
   src/db_client.cpp
   src/db_shared_data_client.cpp
   src/type_metadata.cpp
-  src/type_id_mapping.cpp)
-add_dependencies(gaia_db_client "messages.fbs" "gaia_table.fbs" "gaia_field.fbs" "gaia_relationship.fbs")
+  src/type_id_mapping.cpp
+  src/txn_metadata.cpp
+  src/txn_metadata_client.cpp
+  src/server_index_impl.cpp
+  src/type_id_mapping.cpp
+  src/index_builder.cpp
+  src/client_index_impl.cpp)
+add_dependencies(gaia_db_client
+  "messages.fbs"
+  "gaia_table.fbs"
+  "gaia_field.fbs"
+  "gaia_relationship.fbs"
+  "gaia_index.fbs")
 target_include_directories(gaia_db_client PUBLIC ${GAIA_DB_CORE_PUBLIC_INCLUDES})
 target_include_directories(gaia_db_client PRIVATE ${GAIA_DB_CORE_PRIVATE_INCLUDES})
 
@@ -94,7 +110,8 @@ target_include_directories(gaia_db_client SYSTEM PRIVATE "${GEN_DIR}")
 set_target_properties(gaia_db_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 set_target_properties(gaia_db_client PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaia_db_client PUBLIC gaia_common)
-target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
+target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl gaia_index)
+
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia_db_client PROPERTY POSITION_INDEPENDENT_CODE ON)
 
@@ -116,9 +133,15 @@ set_property (TARGET rocks_wrapper PROPERTY POSITION_INDEPENDENT_CODE ON)
 set(GAIA_DB_SERVER_SOURCES
   src/mapped_data.cpp
   src/txn_metadata.cpp
+  src/txn_metadata_server.cpp
   src/db_server.cpp
   src/db_shared_data_server.cpp
   src/db_server_exec.cpp
+  src/server_index_impl.cpp
+  src/catalog_core.cpp
+  src/type_id_mapping.cpp
+  src/index_builder.cpp
+  src/server_index_impl.cpp
 )
 
 if(ENABLE_STACKTRACE AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
@@ -138,7 +161,7 @@ target_include_directories(gaia_db_server SYSTEM PRIVATE "${GEN_DIR}")
 # Suppress spurious warnings about zero-initialized structs.
 set_target_properties(gaia_db_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 set_target_properties(gaia_db_server PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
-target_link_libraries(gaia_db_server PRIVATE gaia_common Threads::Threads rocks_wrapper gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl)
+target_link_libraries(gaia_db_server PRIVATE gaia_common Threads::Threads rocks_wrapper gaia_memory_manager ${LIB_EXPLAIN} ${LIB_CAP} dl gaia_index gaia_catalog)
 if(ENABLE_STACKTRACE AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
   target_link_libraries(gaia_db_server PUBLIC backward)
 endif()
@@ -218,7 +241,7 @@ set_target_properties(gaia_db_catalog_test PROPERTIES LINK_FLAGS "${GAIA_LINK_FL
 add_gtest(test_rdb_object_converter tests/test_rdb_object_converter.cpp "${FLATBUFFERS_INC};${GEN_DIR};${GAIA_DB_CORE_TEST_INCLUDES}" "rocks_wrapper")
 add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_storage")
 add_gtest(test_db_client tests/test_db_client.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_db_client;gaia_direct")
-add_gtest(test_db_internals tests/test_db_internals.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_storage;gaia_db_client")
+add_gtest(test_db_internals tests/test_db_internals.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_storage;gaia_db_client;explain")
 add_gtest(test_locator_allocator tests/test_locator_allocator.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_storage")
 add_gtest(test_db_references tests/test_db_references.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_db_client;gaia_direct")
 

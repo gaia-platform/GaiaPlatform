@@ -122,7 +122,6 @@ protected:
         init_data();
     }
 };
-
 TEST_F(db_client_test, creation_fail_for_invalid_type)
 {
     begin_transaction();
@@ -276,6 +275,7 @@ TEST_F(db_client_test, iterate_type)
     commit_transaction();
 }
 
+/*
 // Temporarily disabling because server-side cursors can no longer be made transactional.
 TEST_F(db_client_test, DISABLED_iterate_type_cursor)
 {
@@ -437,6 +437,7 @@ TEST_F(db_client_test, DISABLED_iterate_type_cursor)
     }
     commit_transaction();
 }
+*/
 
 TEST_F(db_client_test, iterate_type_delete)
 {

@@ -10,6 +10,7 @@
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/triggers.hpp"
 #include "gaia_internal/db/type_metadata.hpp"
+#include "gaia_internal/index/index_builder.hpp"
 
 #include "db_client.hpp"
 #include "db_hash_map.hpp"
@@ -21,6 +22,7 @@ using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::db::memory_manager;
 using namespace gaia::db::triggers;
+using namespace gaia::db::index;
 
 gaia_id_t gaia_ptr_t::generate_id()
 {
@@ -119,6 +121,7 @@ gaia_ptr_t& gaia_ptr_t::clone()
     client_t::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::clone);
 
     db_object_t* new_this = to_ptr();
+
     if (client_t::is_valid_event(new_this->type))
     {
         client_t::s_events.emplace_back(event_type_t::row_insert, new_this->type, new_this->id, empty_position_list, get_txn_id());
@@ -141,7 +144,6 @@ gaia_ptr_t& gaia_ptr_t::update_payload(size_t data_size, const void* data)
 
     // Updates m_locator to point to the new object.
     client_t::allocate_object(m_locator, sizeof(db_object_t) + total_payload_size);
-
     db_object_t* new_this = to_ptr();
 
     memcpy(new_this, old_this, sizeof(db_object_t));
@@ -157,14 +159,19 @@ gaia_ptr_t& gaia_ptr_t::update_payload(size_t data_size, const void* data)
 
     if (client_t::is_valid_event(new_this->type))
     {
+        field_position_list_t position_list;
         auto new_data = reinterpret_cast<const uint8_t*>(data);
         auto old_data = reinterpret_cast<const uint8_t*>(old_this->payload);
         const uint8_t* old_data_payload = old_data + references_size;
 
-        // Compute field difference.
-        field_position_list_t position_list;
+        if (old_this->num_references)
+        {
+            old_data_payload = old_data + sizeof(gaia_id_t) * old_this->num_references;
+        }
+
         compute_payload_diff(new_this->type, old_data_payload, new_data, &position_list);
-        client_t::s_events.emplace_back(event_type_t::row_update, new_this->type, new_this->id, position_list, get_txn_id());
+
+	client_t::s_events.emplace_back(event_type_t::row_update, new_this->type, new_this->id, position_list, get_txn_id());
     }
 
     return *this;
@@ -181,6 +188,11 @@ void gaia_ptr_t::create_insert_trigger(gaia_type_t type, gaia_id_t id)
 gaia_ptr_t::gaia_ptr_t(gaia_id_t id)
 {
     m_locator = db_hash_map::find(id);
+}
+
+gaia_ptr_t::gaia_ptr_t(gaia_locator_t loc, bool)
+{
+    m_locator = loc;
 }
 
 gaia_ptr_t::gaia_ptr_t(gaia_locator_t locator, address_offset_t offset)
@@ -231,13 +243,6 @@ void gaia_ptr_t::reset()
     }
     (*locators)[m_locator] = c_invalid_gaia_offset;
     m_locator = c_invalid_gaia_locator;
-}
-
-// This trivial implementation is necessary to avoid calling into client_t code from the header file.
-std::function<std::optional<gaia_id_t>()>
-gaia_ptr_t::get_id_generator_for_type(gaia_type_t type)
-{
-    return client_t::get_id_generator_for_type(type);
 }
 
 void gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset)

@@ -29,14 +29,18 @@
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/common/socket_helpers.hpp"
 #include "gaia_internal/common/system_error.hpp"
+#include "gaia_internal/db/catalog_core.hpp"
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
+#include "gaia_internal/index/index_builder.hpp"
 
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
+#include "db_shared_data.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
 #include "txn_metadata.hpp"
+#include "type_id_mapping.hpp"
 
 using namespace std;
 
@@ -178,6 +182,7 @@ void server_t::handle_connect(
     build_server_reply(builder, session_event_t::CONNECT, old_state, new_state);
 
     int send_fds[] = {s_shared_locators.fd(), s_shared_counters.fd(), s_shared_data.fd(), s_shared_id_index.fd()};
+
     send_msg_with_fds(s_session_socket, send_fds, std::size(send_fds), builder.GetBufferPointer(), builder.GetSize());
 }
 
@@ -486,8 +491,6 @@ void server_t::handle_request_stream(
         old_state == new_state,
         c_message_current_event_is_inconsistent_with_state_transition);
 
-    // The only currently supported stream type is table scans.
-    // When we add more stream types, we should add a switch statement on data_type.
     // It would be nice to delegate to a helper returning a different generator for each
     // data_type, and then invoke start_stream_producer() with that generator, but in
     // general each data_type corresponds to a generator with a different T_element_type,
@@ -517,10 +520,28 @@ void server_t::handle_request_stream(
         close_fd(server_socket);
     });
 
-    start_stream_producer(server_socket, id_generator);
+    switch (request->data_type())
+    {
+    case request_data_t::table_scan:
+    {
+        auto type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
+        auto id_generator = get_id_generator_for_type(type);
+        start_stream_producer(server_socket, id_generator);
+    }
 
-    // Transfer ownership of the server socket to the stream producer thread.
-    server_socket_cleanup.dismiss();
+    break;
+    case request_data_t::index_scan:
+    {
+        /*
+        auto index = static_cast<gaia_id_t>(request->data_as_index_scan()->index_id());
+        start_stream_producer(
+            server_socket,
+            index::server_index_stream::get_record_generator_for_index(index));*/
+    }
+    break;
+    default:
+        ASSERT_UNREACHABLE("scan type missing for stream");
+    }
 
     // Any exceptions after this point will close the server socket, ensuring the producer thread terminates.
     // However, its destructor will not run until the session thread exits and joins the producer thread.
@@ -586,12 +607,110 @@ void server_t::build_server_reply(
     builder.Finish(message);
 }
 
+void server_t::clear_caches()
+{
+    type_id_mapping_t::instance().clear();
+}
+
 void server_t::clear_shared_memory()
 {
     s_shared_locators.close();
     s_shared_counters.close();
     s_shared_data.close();
     s_shared_id_index.close();
+    clear_caches();
+    clear_local_snapshot();
+    clear_indexes();
+}
+
+// Create a local snapshot from the shared locators
+void server_t::create_local_snapshot(bool apply_logs)
+{
+    ASSERT_PRECONDITION(!s_local_snapshot_locators.is_set(), "Local snapshot initialized.");
+
+    if (apply_logs)
+    {
+        ASSERT_PRECONDITION(s_log != nullptr, "Logs not initialized.");
+        std::vector<int> txn_log_fds;
+        get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds);
+
+        s_local_snapshot_locators.open(s_shared_locators.fd(), false, sizeof(locators_t), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_NORESERVE);
+        // Apply txn_logs for the snapshot
+        for (auto it = txn_log_fds.rbegin(); it != txn_log_fds.rend(); ++it)
+        {
+            mapped_log_t txn_log;
+            txn_log.open(*it);
+
+            apply_logs_to_locators(s_local_snapshot_locators.data(), txn_log.data());
+        }
+
+        // Apply s_log to the local snapshot
+        apply_logs_to_locators(s_local_snapshot_locators.data(), s_log);
+    }
+    else
+    {
+        s_local_snapshot_locators.open(s_shared_locators.fd(), false, sizeof(locators_t), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_NORESERVE);
+    }
+}
+
+// Initialize indexes
+void server_t::init_indexes()
+{
+    // Noop if persistence is not enabled.
+    if (s_persistence_mode != persistence_mode_t::e_disabled)
+    {
+        auto cleanup = make_scope_guard([]() { txn_internal_end(); });
+        // Allocate new txn id for initializing indexes
+        s_txn_id = txn_internal_begin();
+
+        gaia_locator_t locator = 0;
+        gaia_locator_t last_locator = s_shared_counters.data()->last_locator;
+
+        while (++locator && locator <= last_locator)
+        {
+            auto obj = locator_to_ptr(locator);
+
+            gaia_id_t type_record_id
+                = type_id_mapping_t::instance().get_record_id(obj->type);
+
+            ASSERT_INVARIANT(
+                type_record_id != c_invalid_gaia_id,
+                "The type '" + std::to_string(obj->type) + "' does not exist in the catalog!");
+
+            for (auto idx : catalog_core_t::list_indexes(type_record_id))
+            {
+                if (!index::index_builder::index_exists(idx.id()))
+                {
+                    index::index_builder::create_empty_index(idx.id(), idx.type());
+                }
+
+                index::index_builder::populate_index(idx.id(), obj->type, locator);
+            }
+        }
+    }
+}
+
+// Clear local snapshot from shmem
+void server_t::clear_local_snapshot()
+{
+    s_local_snapshot_locators.close();
+}
+
+// Clear indexes
+void server_t::clear_indexes()
+{
+    s_shared_indexes.clear();
+}
+
+// Update indexes from s_log.
+void server_t::update_indexes_from_log()
+{
+    ASSERT_PRECONDITION(s_log != nullptr, "Logs not initialized.");
+
+    create_local_snapshot(true);
+    auto cleanup_local_snapshot = make_scope_guard([]() { clear_local_snapshot(); });
+
+    index::index_builder::update_indexes_from_logs(*s_log);
 }
 
 // To avoid synchronization, we assume that this method is only called when
@@ -628,8 +747,17 @@ void server_t::init_shared_memory()
 
     init_memory_manager();
 
+    // Create snapshot for db recovery and index population
+    create_local_snapshot(false);
+
     // Populate shared memory from the persistent log and snapshot.
     recover_db();
+
+    // Initialize indexes
+    init_indexes();
+
+    // Done initializing, clear our local snapshot
+    clear_local_snapshot();
 
     cleanup_memory.dismiss();
 }
@@ -1188,10 +1316,10 @@ template <typename T_element>
 void server_t::stream_producer_handler(
     int stream_socket, int cancel_eventfd, std::function<std::optional<T_element>()> generator_fn)
 {
-    // We only support fixed-width integer types for now to avoid framing.
-    static_assert(std::is_integral<T_element>::value, "Generator function must return an integer.");
-
-    // The session thread gave the producer thread ownership of this socket.
+    static_assert(std::is_integral<T_element>::value || std::is_pod<T_element>::value, "Generator function must return fixed width type.");
+    // Verify the socket is the correct type for the semantics we assume.
+    check_socket_type(stream_socket, SOCK_SEQPACKET);
+    auto gen_iter = generator_iterator_t<T_element>(generator_fn);
     auto socket_cleanup = make_scope_guard([&]() {
         // We can rely on close_fd() to perform the equivalent of shutdown(SHUT_RDWR),
         // because we hold the only fd pointing to this socket.
@@ -1203,8 +1331,6 @@ void server_t::stream_producer_handler(
 
     // Check that our stream socket is non-blocking (so we don't accidentally block in write()).
     ASSERT_PRECONDITION(is_non_blocking(stream_socket), "Stream socket is in blocking mode!");
-
-    auto gen_iter = generator_iterator_t<T_element>(generator_fn);
 
     int epoll_fd = ::epoll_create1(0);
     if (epoll_fd == -1)
@@ -1806,18 +1932,14 @@ void server_t::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
         txn_log.data()->begin_ts == txn_metadata_t::get_begin_ts(commit_ts),
         "txn log begin_ts must match begin_ts reference in commit_ts metadata!");
 
-    for (size_t i = 0; i < txn_log.data()->record_count; ++i)
-    {
-        // Update the shared locator view with each redo version (i.e., the
-        // version created or updated by the txn). This is safe as long as the
-        // committed txn being applied has commit_ts older than the oldest
-        // active txn's begin_ts (so it can't overwrite any versions visible in
-        // that txn's snapshot). This update is non-atomic because log application
-        // is idempotent and therefore a txn log can be re-applied over the same
-        // txn's partially-applied log during snapshot reconstruction.
-        txn_log_t::log_record_t* lr = &(txn_log.data()->log_records[i]);
-        (*s_shared_locators.data())[lr->locator] = lr->new_offset;
-    }
+    // Update the shared locator view with each redo version (i.e., the
+    // version created or updated by the txn). This is safe as long as the
+    // committed txn being applied has commit_ts older than the oldest
+    // active txn's begin_ts (so it can't overwrite any versions visible in
+    // that txn's snapshot). This update is non-atomic since log application
+    // is idempotent and therefore a txn log can be re-applied over the same
+    // txn's partially-applied log during snapshot reconstruction.
+    apply_logs_to_locators(s_shared_locators.data(), txn_log.data());
 
     // We're using the otherwise-unused first entry of the "locators" array to
     // track the last-applied commit_ts (purely for diagnostic purposes).
@@ -2298,7 +2420,13 @@ bool server_t::txn_commit()
     // Validate the txn against all other committed txns in the conflict window.
     bool is_committed = validate_txn(commit_ts);
 
-    // Update the txn metadata with our commit decision.
+    // Update in-memory shared indexes
+    if (is_committed)
+    {
+        update_indexes_from_log();
+    }
+
+    // Update the txn entry with our commit decision.
     txn_metadata_t::update_txn_decision(commit_ts, is_committed);
 
     // Persist the commit decision.
@@ -2324,6 +2452,55 @@ bool server_t::txn_commit()
     }
 
     return is_committed;
+}
+
+// This method allocates a new begin_ts and initializes its entry in the txn
+// table.
+gaia_txn_id_t server_t::txn_internal_begin()
+{
+    return txn_metadata_t::txn_begin();
+}
+
+// This method allocates a new begin_ts and initializes its entry in the txn
+// table.
+void server_t::txn_internal_end()
+{
+    // empty log
+    mapped_log_t log;
+    log.create(c_gaia_internal_txn_log);
+
+    int fd;
+    size_t log_size;
+
+    // Initialize the new record.
+    log.data()->begin_ts = s_txn_id;
+
+    txn_log_t::log_record_t* lr = log.data()->log_records + log.data()->record_count++;
+    lr->locator = c_invalid_gaia_locator;
+    lr->old_offset = c_invalid_gaia_offset;
+    lr->new_offset = c_invalid_gaia_offset;
+    lr->deleted_id = c_invalid_gaia_id;
+    lr->operation = gaia_operation_t::noop;
+
+    log.truncate_seal_and_close(fd, log_size);
+    s_fd_log = fd;
+
+    // Register the committing txn under a new commit timestamp.
+    gaia_txn_id_t commit_ts
+        = submit_txn(s_txn_id, fd);
+
+    bool committed = validate_txn(commit_ts);
+
+    // Validate the committing txn.
+    ASSERT_POSTCONDITION(committed, "Cannot commit internal txn");
+
+    // Update the txn entry with our commit decision.
+    txn_metadata_t::update_txn_decision(commit_ts, true);
+
+    perform_maintenance();
+
+    s_txn_id = c_invalid_gaia_txn_id;
+    s_fd_log = -1;
 }
 
 // this must be run on main thread
@@ -2354,13 +2531,15 @@ void server_t::run(persistence_mode_t persistence_mode)
         std::thread signal_handler_thread(signal_handler, handled_signals, std::ref(caught_signal));
 
         // Initialize global data structures.
-        init_shared_memory();
         txn_metadata_t::init_txn_metadata_map();
 
         // Initialize watermarks.
         s_last_applied_commit_ts_upper_bound = c_invalid_gaia_txn_id;
         s_last_applied_commit_ts_lower_bound = c_invalid_gaia_txn_id;
         s_last_freed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
+
+        // Initialize global data structures.
+        init_shared_memory();
 
         // Launch thread to listen for client connections and create session threads.
         std::thread client_dispatch_thread(client_dispatch_handler);

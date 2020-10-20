@@ -9,6 +9,7 @@
 
 #include <atomic>
 #include <ostream>
+#include <unordered_map>
 
 #include "gaia/common.hpp"
 
@@ -16,6 +17,7 @@
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/db_types.hpp"
 
+#include "base_index.hpp"
 namespace gaia
 {
 namespace db
@@ -27,8 +29,14 @@ enum class gaia_operation_t : uint8_t
     create = 0x1,
     update = 0x2,
     remove = 0x3,
-    clone = 0x4
+    clone = 0x4,
+    noop = 0x5
 };
+
+inline bool is_logical_operation(gaia_operation_t op)
+{
+    return op == gaia_operation_t::noop || op == gaia_operation_t::not_set;
+}
 
 inline std::ostream& operator<<(std::ostream& os, const gaia_operation_t& o)
 {
@@ -49,6 +57,9 @@ inline std::ostream& operator<<(std::ostream& os, const gaia_operation_t& o)
     case gaia_operation_t::clone:
         os << "clone";
         break;
+    case gaia_operation_t::noop:
+        os << "no op";
+        break;
     default:
         ASSERT_UNREACHABLE("Unknown value of gaia_operation_t!");
     }
@@ -62,8 +73,9 @@ constexpr char c_gaia_mem_counters[] = "gaia_mem_counters";
 constexpr char c_gaia_mem_data[] = "gaia_mem_data";
 constexpr char c_gaia_mem_id_index[] = "gaia_mem_id_index";
 
+constexpr char c_gaia_mem_txn_info[] = "gaia_mem_txn_info";
 constexpr char c_gaia_mem_txn_log[] = "gaia_mem_txn_log";
-
+constexpr char c_gaia_internal_txn_log[] = "gaia_internal_txn_log";
 // We allow as many locators as the number of 64B objects (the minimum size)
 // that will fit into 256GB, or 2^38 / 2^6 = 2^32.
 constexpr size_t c_max_locators = 1ULL << 32;
@@ -184,5 +196,12 @@ struct id_index_t
     size_t hash_node_count;
     hash_node_t hash_nodes[c_hash_buckets + c_max_locators];
 };
+
+namespace index
+{
+typedef std::shared_ptr<base_index_t> db_index_t;
+typedef std::unordered_map<gaia::common::gaia_id_t, db_index_t> indexes_t;
+} // namespace index
+
 } // namespace db
 } // namespace gaia

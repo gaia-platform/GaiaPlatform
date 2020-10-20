@@ -63,6 +63,8 @@ public:
 
     static void dump_txn_metadata(gaia_txn_id_t ts);
 
+    static gaia_txn_id_t get_current_txn_id();
+
 private:
     // This is an effectively infinite array of timestamp entries, indexed by
     // the txn timestamp counter and containing metadata for every txn that has
@@ -245,6 +247,9 @@ private:
 
     // The first 3 bits of this value do not correspond to any valid txn status value.
     static constexpr txn_metadata_entry_t c_value_sealed{0b101ULL << c_txn_status_flags_shift};
+
+    // We reserve 2^45 bytes = 32TB of virtual address space. YOLO.
+    static constexpr size_t c_txn_metadata_size = (1ULL << c_txn_ts_bits) * sizeof(*s_txn_metadata_map);
 
 private:
     txn_metadata_t() noexcept;

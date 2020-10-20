@@ -14,13 +14,18 @@
 #include <thread>
 
 #include "flatbuffers/flatbuffers.h"
+#include <sys/epoll.h>
+#include <sys/eventfd.h>
 
 #include "gaia/exception.hpp"
 
+#include "db_internal_types.hpp"
 #include "mapped_data.hpp"
 #include "memory_manager.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
+#include "server_index_impl.hpp"
+#include "txn_metadata.hpp"
 
 namespace gaia
 {
@@ -46,6 +51,8 @@ class server_t
     friend gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
         gaia_locator_t locator,
         size_t size);
+    friend gaia::db::index::indexes_t* gaia::db::get_indexes();
+    friend gaia_txn_id_t txn_metadata_t::get_current_txn_id();
 
 public:
     enum class persistence_mode_t : uint8_t
@@ -83,6 +90,9 @@ private:
     // These fields have transaction lifetime.
     thread_local static inline int s_fd_log = -1;
     thread_local static inline txn_log_t* s_log = nullptr;
+
+    // Local snapshot
+    thread_local static inline mapped_data_t<locators_t> s_local_snapshot_locators{};
 
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
 
@@ -137,6 +147,8 @@ private:
     static inline std::function<void(gaia_offset_t)> s_object_deallocator_fn{};
 
 private:
+    static inline index::indexes_t s_shared_indexes;
+
     // Function pointer type that executes side effects of a session state transition.
     // REVIEW: replace void* with std::any?
     typedef void (*transition_handler_fn)(
@@ -193,6 +205,7 @@ private:
         gaia_txn_id_t txn_id = 0,
         size_t log_fd_count = 0);
 
+    static void clear_caches();
     static void clear_shared_memory();
 
     static void init_memory_manager();
@@ -200,6 +213,14 @@ private:
     static void free_uncommitted_allocations(messages::session_event_t txn_status);
 
     static void init_shared_memory();
+
+    static void request_memory();
+
+    static void init_indexes();
+    static void update_indexes_from_log();
+    static void clear_indexes();
+    static void create_local_snapshot(bool apply_logs);
+    static void clear_local_snapshot();
 
     static void recover_db();
 
@@ -232,6 +253,9 @@ private:
     static void txn_rollback();
 
     static bool txn_commit();
+
+    static gaia_txn_id_t txn_internal_begin();
+    static void txn_internal_end();
 
     static gaia::db::memory_manager::address_offset_t allocate_object(
         gaia_locator_t locator,

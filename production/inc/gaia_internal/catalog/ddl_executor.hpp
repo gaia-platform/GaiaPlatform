@@ -53,6 +53,15 @@ public:
     void drop_table(const std::string& db_name, const std::string& name, bool throw_unless_exists);
 
     void drop_database(const std::string& name, bool throw_unless_exists);
+    gaia::common::gaia_id_t create_index(
+        const std::string& index_name,
+        bool unique,
+        index_type_t type,
+        const std::string& db_name,
+        const std::string& table_name,
+        const std::vector<std::string>& field_names);
+    void drop_table(const std::string& db_name, const std::string& name);
+    void drop_database(const std::string& name);
 
     void switch_db_context(const std::string& db_name);
 

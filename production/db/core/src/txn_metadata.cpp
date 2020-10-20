@@ -85,9 +85,6 @@ void txn_metadata_t::init_txn_metadata_map()
         std::atomic<txn_metadata_entry_t>::is_always_lock_free,
         "std::atomic<txn_metadata_entry_t> implementation was expected to be lock free!");
 
-    // We reserve 2^45 bytes = 32TB of virtual address space. YOLO.
-    constexpr size_t c_size_in_bytes = (1ULL << c_txn_ts_bits) * sizeof(*s_txn_metadata_map);
-
     // Create an anonymous private mapping with MAP_NORESERVE to indicate that
     // we don't care about reserving swap space.
     // REVIEW: If this causes problems on systems that disable overcommit, we
@@ -95,12 +92,12 @@ void txn_metadata_t::init_txn_metadata_map()
     // need it.
     if (s_txn_metadata_map)
     {
-        common::unmap_fd_data(s_txn_metadata_map, c_size_in_bytes);
+        common::unmap_fd_data(s_txn_metadata_map, c_txn_metadata_size);
     }
 
     common::map_fd_data(
         s_txn_metadata_map,
-        c_size_in_bytes,
+        c_txn_metadata_size,
         PROT_READ | PROT_WRITE,
         MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE,
         -1,

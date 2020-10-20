@@ -42,6 +42,7 @@ public:
     inline T_data* data();
     inline int fd();
     inline bool is_set();
+    T_data& operator[](size_t i);
 
 protected:
     bool m_is_set;
@@ -69,17 +70,13 @@ public:
     ~mapped_data_t() = default;
 
     // Creates a memory-mapping for a data structure.
-    void create(const char* name);
+    void create(const char* name, std::size_t size = sizeof(T_data), int prot = PROT_READ | PROT_WRITE, int flags = MAP_SHARED | MAP_NORESERVE);
 
     // Opens a memory-mapped structure using a file descriptor.
     //
     // manage_fd is used to indicate whether the fd should be managed
     // (i.e. closed at destruction time) by this class or not.
-    //
-    // Note: manage_fd also impacts the type of mapping: SHARED if true; PRIVATE otherwise.
-    // This is done for coding convenience because it suits current implementation,
-    // but could be changed in the future if we wish more control over this behavior.
-    void open(int fd, bool manage_fd = true);
+    void open(int fd, bool manage_fd = true, std::size_t size = sizeof(T_data), int prot = PROT_READ | PROT_WRITE, int flags = MAP_SHARED | MAP_NORESERVE);
 };
 
 // This class is similar to mapped_data_t, but is specialized for operation on log data structures.

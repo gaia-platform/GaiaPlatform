@@ -37,6 +37,8 @@ public:
     static const int c_index_counters = 1;
     static const int c_index_data = 2;
     static const int c_index_id_index = 3;
+    static const int c_index_txn_info = 4;
+    static const int c_num_connect_fds = 4;
 
 public:
     client_messenger_t() = default;

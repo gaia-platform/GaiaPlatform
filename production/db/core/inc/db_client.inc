@@ -85,4 +85,7 @@ inline void client_t::txn_log(
     lr.new_offset = new_offset;
     lr.deleted_id = deleted_id;
     lr.operation = operation;
+
+    // Set local indexes to stale
+    s_need_rebuild_index = true;
 }

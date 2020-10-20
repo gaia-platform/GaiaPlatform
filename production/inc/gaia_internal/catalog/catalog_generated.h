@@ -12,6 +12,10 @@ namespace gaia {
 namespace catalog {
 namespace internal {
 
+struct gaia_index;
+struct gaia_indexBuilder;
+struct gaia_indexT;
+
 struct gaia_rule;
 struct gaia_ruleBuilder;
 struct gaia_ruleT;
@@ -35,6 +39,114 @@ struct gaia_tableT;
 struct gaia_database;
 struct gaia_databaseBuilder;
 struct gaia_databaseT;
+
+struct gaia_indexT : public flatbuffers::NativeTable {
+  typedef gaia_index TableType;
+  gaia::direct_access::nullable_string_t name;
+  bool unique;
+  uint8_t type;
+  gaia::direct_access::nullable_string_t fields;
+  gaia_indexT()
+      : unique(false),
+        type(0) {
+  }
+};
+
+struct gaia_index FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef gaia_indexT NativeTableType;
+  typedef gaia_indexBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_NAME = 4,
+    VT_UNIQUE = 6,
+    VT_TYPE = 8,
+    VT_FIELDS = 10
+  };
+  const flatbuffers::String *name() const {
+    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  }
+  bool unique() const {
+    return GetField<uint8_t>(VT_UNIQUE, 0) != 0;
+  }
+  uint8_t type() const {
+    return GetField<uint8_t>(VT_TYPE, 0);
+  }
+  const flatbuffers::String *fields() const {
+    return GetPointer<const flatbuffers::String *>(VT_FIELDS);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_NAME) &&
+           verifier.VerifyString(name()) &&
+           VerifyField<uint8_t>(verifier, VT_UNIQUE) &&
+           VerifyField<uint8_t>(verifier, VT_TYPE) &&
+           VerifyOffset(verifier, VT_FIELDS) &&
+           verifier.VerifyString(fields()) &&
+           verifier.EndTable();
+  }
+  gaia_indexT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(gaia_indexT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<gaia_index> Pack(flatbuffers::FlatBufferBuilder &_fbb, const gaia_indexT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct gaia_indexBuilder {
+  typedef gaia_index Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
+    fbb_.AddOffset(gaia_index::VT_NAME, name);
+  }
+  void add_unique(bool unique) {
+    fbb_.AddElement<uint8_t>(gaia_index::VT_UNIQUE, static_cast<uint8_t>(unique), 0);
+  }
+  void add_type(uint8_t type) {
+    fbb_.AddElement<uint8_t>(gaia_index::VT_TYPE, type, 0);
+  }
+  void add_fields(flatbuffers::Offset<flatbuffers::String> fields) {
+    fbb_.AddOffset(gaia_index::VT_FIELDS, fields);
+  }
+  explicit gaia_indexBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  gaia_indexBuilder &operator=(const gaia_indexBuilder &);
+  flatbuffers::Offset<gaia_index> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<gaia_index>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<gaia_index> Creategaia_index(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> name = 0,
+    bool unique = false,
+    uint8_t type = 0,
+    flatbuffers::Offset<flatbuffers::String> fields = 0) {
+  gaia_indexBuilder builder_(_fbb);
+  builder_.add_fields(fields);
+  builder_.add_name(name);
+  builder_.add_type(type);
+  builder_.add_unique(unique);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<gaia_index> Creategaia_indexDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const char *name = nullptr,
+    bool unique = false,
+    uint8_t type = 0,
+    const char *fields = nullptr) {
+  auto name__ = name ? _fbb.CreateString(name) : 0;
+  auto fields__ = fields ? _fbb.CreateString(fields) : 0;
+  return gaia::catalog::internal::Creategaia_index(
+      _fbb,
+      name__,
+      unique,
+      type,
+      fields__);
+}
+
+flatbuffers::Offset<gaia_index> Creategaia_index(flatbuffers::FlatBufferBuilder &_fbb, const gaia_indexT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
 struct gaia_ruleT : public flatbuffers::NativeTable {
   typedef gaia_rule TableType;
@@ -726,6 +838,41 @@ inline flatbuffers::Offset<gaia_database> Creategaia_databaseDirect(
 }
 
 flatbuffers::Offset<gaia_database> Creategaia_database(flatbuffers::FlatBufferBuilder &_fbb, const gaia_databaseT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+inline gaia_indexT *gaia_index::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  std::unique_ptr<gaia::catalog::internal::gaia_indexT> _o = std::unique_ptr<gaia::catalog::internal::gaia_indexT>(new gaia_indexT());
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void gaia_index::UnPackTo(gaia_indexT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = name(); if (_e) _o->name = gaia::direct_access::nullable_string_t(_e->c_str(), _e->size()); }
+  { auto _e = unique(); _o->unique = _e; }
+  { auto _e = type(); _o->type = _e; }
+  { auto _e = fields(); if (_e) _o->fields = gaia::direct_access::nullable_string_t(_e->c_str(), _e->size()); }
+}
+
+inline flatbuffers::Offset<gaia_index> gaia_index::Pack(flatbuffers::FlatBufferBuilder &_fbb, const gaia_indexT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return Creategaia_index(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<gaia_index> Creategaia_index(flatbuffers::FlatBufferBuilder &_fbb, const gaia_indexT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const gaia_indexT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _name = _o->name.empty() ? 0 : _fbb.CreateString(_o->name);
+  auto _unique = _o->unique;
+  auto _type = _o->type;
+  auto _fields = _o->fields.empty() ? 0 : _fbb.CreateString(_o->fields);
+  return gaia::catalog::internal::Creategaia_index(
+      _fbb,
+      _name,
+      _unique,
+      _type,
+      _fields);
+}
 
 inline gaia_ruleT *gaia_rule::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   std::unique_ptr<gaia::catalog::internal::gaia_ruleT> _o = std::unique_ptr<gaia::catalog::internal::gaia_ruleT>(new gaia_ruleT());

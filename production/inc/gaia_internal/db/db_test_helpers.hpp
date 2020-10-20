@@ -140,11 +140,9 @@ public:
             cmd.append(" ");
             cmd.append(c_data_dir_flag);
         }
-        std::cerr << cmd << std::endl;
         ::system(cmd.c_str());
 
         // Wait for server to initialize.
-        std::cerr << "Waiting for server to initialize..." << std::endl;
         wait_for_server_init();
         m_server_started = true;
     }
@@ -161,7 +159,7 @@ public:
         // REVIEW: we should be using a proper process library for this, so we can kill by PID.
         std::string cmd = "pkill -f -KILL ";
         cmd.append(m_server_path.string());
-        std::cerr << cmd << std::endl;
+        cmd.append(m_server_path);
         ::system(cmd.c_str());
     }
 

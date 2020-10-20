@@ -22,5 +22,5 @@ add_custom_command(
 add_custom_target(generate_prerequisites_headers ALL
   DEPENDS ${GAIA_GENERATED_SCHEMAS}/gaia_prerequisites.h
   # Add previous target to serialize parallel builds.
-  DEPENDS generate_incubator_headers
+  DEPENDS generate_index_sandbox_headers
 )

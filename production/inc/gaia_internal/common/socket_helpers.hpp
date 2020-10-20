@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <fcntl.h>
+
 #include <ostream>
 #include <stdexcept>
 
@@ -94,10 +96,11 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
     struct msghdr msg = {0};
     struct iovec iov = {0};
     // This is a union only to guarantee alignment for cmsghdr.
+
     union
     {
         // This is a dummy field for alignment only.
-        struct cmsghdr dummy;
+        struct cmsghdr dummy = {0};
         char buf[CMSG_SPACE(sizeof(int) * c_max_fd_count)];
     } control;
     ::memset(&control.buf, 0, sizeof(control.buf));

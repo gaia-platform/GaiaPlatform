@@ -74,7 +74,7 @@ bool base_mapped_data_t<T_data>::is_set()
 }
 
 template <typename T_data>
-void mapped_data_t<T_data>::create(const char* name)
+void mapped_data_t<T_data>::create(const char* name, size_t size, int prot, int flags)
 {
     ASSERT_PRECONDITION(
         !this->m_is_set,
@@ -86,7 +86,7 @@ void mapped_data_t<T_data>::create(const char* name)
         common::throw_system_error("memfd_create() failed in mapped_data_t::create()!");
     }
 
-    this->m_mapped_data_size = sizeof(T_data);
+    this->m_mapped_data_size = size;
 
     common::truncate_fd(this->m_fd, this->m_mapped_data_size);
 
@@ -105,8 +105,8 @@ void mapped_data_t<T_data>::create(const char* name)
     common::map_fd_data(
         this->m_data,
         this->m_mapped_data_size,
-        PROT_READ | PROT_WRITE,
-        MAP_SHARED | MAP_NORESERVE,
+        prot,
+        flags,
         this->m_fd,
         0);
 
@@ -114,7 +114,7 @@ void mapped_data_t<T_data>::create(const char* name)
 }
 
 template <typename T_data>
-void mapped_data_t<T_data>::open(int fd, bool manage_fd)
+void mapped_data_t<T_data>::open(int fd, bool manage_fd, size_t size, int prot, int flags)
 {
     ASSERT_PRECONDITION(
         !this->m_is_set,
@@ -122,7 +122,7 @@ void mapped_data_t<T_data>::open(int fd, bool manage_fd)
 
     ASSERT_PRECONDITION(fd != -1, "mapped_data_t::open() was called with an invalid fd!");
 
-    this->m_mapped_data_size = sizeof(T_data);
+    this->m_mapped_data_size = size;
 
     if (manage_fd)
     {
@@ -131,8 +131,8 @@ void mapped_data_t<T_data>::open(int fd, bool manage_fd)
         common::map_fd_data(
             this->m_data,
             this->m_mapped_data_size,
-            PROT_READ | PROT_WRITE,
-            MAP_SHARED | MAP_NORESERVE,
+            prot,
+            flags,
             this->m_fd,
             0);
 
@@ -143,8 +143,8 @@ void mapped_data_t<T_data>::open(int fd, bool manage_fd)
         common::map_fd_data(
             this->m_data,
             this->m_mapped_data_size,
-            PROT_READ | PROT_WRITE,
-            MAP_PRIVATE | MAP_NORESERVE,
+            prot,
+            flags,
             fd,
             0);
     }

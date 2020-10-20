@@ -21,6 +21,7 @@ class gaia_ptr_t
 public:
     gaia_ptr_t() = default;
     explicit gaia_ptr_t(common::gaia_id_t id);
+    explicit gaia_ptr_t(gaia_locator_t loc, bool unused);
 
     bool operator==(const gaia_ptr_t& other) const
     {
@@ -219,6 +220,7 @@ public:
      * of the given type. This is essentially a proof-of-concept for server-side
      * cursors, which will be extended to support server-side filters.
      */
+    /*
     static auto find_all_iter(
         common::gaia_type_t type,
         std::function<bool(gaia_ptr_t)> user_predicate = [](gaia_ptr_t) { return true; })
@@ -247,19 +249,20 @@ public:
             gaia_ptr_generator,
             gaia_ptr_predicate);
         return gaia_ptr_iterator;
-    }
+    }*/
 
     /**
      * Returns a range representing a server-side cursor over all objects
      * of the given type. This is essentially a proof-of-concept for server-side
      * cursors, which will be extended to support server-side filters.
      */
+    /*
     static auto find_all_range(
         common::gaia_type_t type,
         std::function<bool(gaia_ptr_t)> user_predicate = [](gaia_ptr_t) { return true; })
     {
         return gaia::common::iterators::range(find_all_iter(type, user_predicate));
-    }
+    }*/
 
 protected:
     gaia_ptr_t(gaia_locator_t locator, gaia_offset_t offset);
