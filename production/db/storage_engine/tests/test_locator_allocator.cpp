@@ -7,8 +7,8 @@
 
 #include "gtest/gtest.h"
 
-#include <db_types.hpp>
-#include <locator_allocator.hpp>
+#include "db_types.hpp"
+#include "locator_allocator.hpp"
 
 using namespace std;
 using namespace gaia::db;

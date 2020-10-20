@@ -26,7 +26,7 @@ AllowShortFunctionsOnASingleLine: None
 
 # If false, all arguments will either be all on the same line or will have one line each.
 BinPackArguments: true
-BinPackParameters: false
+BinPackParameters: true
 AlignAfterOpenBracket: Align
 
 # Merge multiple #include blocks together and sort as one. Then split into groups based on category priority:
@@ -39,7 +39,7 @@ AlignAfterOpenBracket: Align
 IncludeBlocks: Regroup
 IncludeCategories:
   # Third party.
-  - Regex:           'spdlog|flatbuffers|llvm|flatcc|cpptoml|gtest|pybind11'
+  - Regex:           'spdlog|flatbuffers|llvm|flatcc|cpptoml|gtest|pybind11|rocksdb'
     Priority:        13
   # C system headers.
   - Regex:           '^<.*\.h>'
