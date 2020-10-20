@@ -277,12 +277,12 @@ void server::init_shared_memory()
     auto cleanup_memory = make_scope_guard([]() { clear_shared_memory(); });
     retail_assert(s_fd_data == -1 && s_fd_locators == -1);
     retail_assert(!s_data && !s_shared_locators);
-    s_fd_locators = ::memfd_create(SCH_MEM_LOCATORS, MFD_ALLOW_SEALING);
+    s_fd_locators = ::memfd_create(c_sch_mem_locators, MFD_ALLOW_SEALING);
     if (s_fd_locators == -1)
     {
         throw_system_error("memfd_create failed");
     }
-    s_fd_data = ::memfd_create(SCH_MEM_DATA, MFD_ALLOW_SEALING);
+    s_fd_data = ::memfd_create(c_sch_mem_data, MFD_ALLOW_SEALING);
     if (s_fd_data == -1)
     {
         throw_system_error("memfd_create failed");

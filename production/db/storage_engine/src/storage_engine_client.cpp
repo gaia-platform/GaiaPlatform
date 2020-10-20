@@ -341,7 +341,7 @@ void client::begin_transaction()
     verify_no_txn();
 
     // First we allocate a new log segment and map it in our own process.
-    int fd_log = ::memfd_create(SCH_MEM_LOG, MFD_ALLOW_SEALING);
+    int fd_log = ::memfd_create(c_sch_mem_log, MFD_ALLOW_SEALING);
     if (fd_log == -1)
     {
         throw_system_error("memfd_create failed");

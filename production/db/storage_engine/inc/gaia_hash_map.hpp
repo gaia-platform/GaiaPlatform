@@ -26,7 +26,7 @@ public:
             throw transaction_not_open();
         }
 
-        hash_node* node = data->hash_nodes + (id % se_base::HASH_BUCKETS);
+        hash_node* node = data->hash_nodes + (id % se_base::c_hash_buckets);
         if (node->id == 0 && __sync_bool_compare_and_swap(&node->id, 0, id))
         {
             return node;
@@ -58,8 +58,8 @@ public:
 
             if (!new_node_idx)
             {
-                retail_assert(data->hash_node_count + se_base::HASH_BUCKETS < se_base::HASH_LIST_ELEMENTS);
-                new_node_idx = se_base::HASH_BUCKETS + __sync_fetch_and_add(&data->hash_node_count, 1);
+                retail_assert(data->hash_node_count + se_base::c_hash_buckets < se_base::c_hash_list_elements);
+                new_node_idx = se_base::c_hash_buckets + __sync_fetch_and_add(&data->hash_node_count, 1);
                 (data->hash_nodes + new_node_idx)->id = id;
             }
 
@@ -77,7 +77,7 @@ public:
             throw transaction_not_open();
         }
 
-        hash_node* node = data->hash_nodes + (id % se_base::HASH_BUCKETS);
+        hash_node* node = data->hash_nodes + (id % se_base::c_hash_buckets);
 
         while (node)
         {
@@ -103,7 +103,7 @@ public:
 
     static void remove(se_base::data* data, gaia_id_t id)
     {
-        hash_node* node = data->hash_nodes + (id % se_base::HASH_BUCKETS);
+        hash_node* node = data->hash_nodes + (id % se_base::c_hash_buckets);
 
         while (node->id)
         {

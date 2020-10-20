@@ -4,11 +4,11 @@
 /////////////////////////////////////////////
 
 #include <iostream>
-#include <record_list.hpp>
 
 #include "gtest/gtest.h"
 
 #include "db_types.hpp"
+#include "record_list.hpp"
 
 using namespace std;
 using namespace gaia::db;

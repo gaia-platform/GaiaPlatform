@@ -5,14 +5,15 @@
 
 #include "persistent_store_manager.hpp"
 
+#include "rocksdb/db.h"
+#include "rocksdb/write_batch.h"
+
 #include "db_types.hpp"
 #include "gaia_db_internal.hpp"
 #include "gaia_hash_map.hpp"
 #include "gaia_se_object.hpp"
 #include "rdb_internal.hpp"
 #include "rdb_object_converter.hpp"
-#include "rocksdb/db.h"
-#include "rocksdb/write_batch.h"
 #include "storage_engine.hpp"
 #include "storage_engine_server.hpp"
 #include "system_table_types.hpp"
@@ -42,39 +43,49 @@ void persistent_store_manager::open()
 {
     rocksdb::TransactionDBOptions options{};
     rocksdb::Options init_options{};
-    // Implies 2PC log writes.
-    init_options.allow_2pc = true;
-    // Use fsync instead of fdatasync.
-    init_options.use_fsync = true;
-    // Create a new database directory if one doesn't exist.
-    init_options.create_if_missing = true;
-    // Size of memtable (4 mb)
-    init_options.write_buffer_size = 4 * 1024 * 1024;    // NOLINT
-    init_options.db_write_buffer_size = 4 * 1024 * 1024; // NOLINT
 
+    // Implies 2PC log writes.
+    constexpr bool c_allow_2pc = true;
+    // Use fsync instead of fdatasync.
+    constexpr bool c_use_fsync = true;
+    // Create a new database directory if one doesn't exist.
+    constexpr bool c_create_if_missing = true;
+    // Size of memtable (4MB).
+    constexpr size_t c_write_buffer_size = 4 * 1024 * 1024;
+    // Size of memtable across all column families.
+    constexpr size_t c_db_write_buffer_size = c_write_buffer_size;
     // Will function as a trigger for flushing memtables to disk.
     // https://github.com/facebook/rocksdb/issues/4180 Only relevant when we have multiple column families.
-    // Same size as memtable (4 mb)
-    init_options.max_total_wal_size = 4 * 1024 * 1024; // NOLINT
-    // Number of memtables;
-    // The maximum number of write buffers that are built up in memory.
-    // So that when one write buffer is being flushed to storage, new writes can continue to the other
-    // write buffer.
-    init_options.max_write_buffer_number = 2; // NOLINT
+    // Same size as memtable.
+    constexpr size_t c_max_total_wal_size = c_write_buffer_size;
+    // Number of memtables.
+    // We use 2 memtables, so that while one memtable is being flushed to
+    // storage, the other memtable can continue accepting writes.
+    constexpr size_t c_max_write_buffer_number = 2;
+    // The minimum number of memtables that will be merged together before
+    // writing to storage.  If set to 1, then all memtables are flushed to L0 as
+    // individual files.
+    constexpr size_t c_min_write_buffer_number_to_merge = 1;
+    // Any IO error during WAL replay is considered as data corruption. This
+    // option assumes clean server shutdown. A crash during a WAL write may lead
+    // to the database not getting opened. (see
+    // https://github.com/cockroachdb/pebble/issues/453).
+    // Currently in place for development purposes. The default option
+    // 'kPointInTimeRecovery' will stop the WAL playback on discovering WAL
+    // inconsistency without notifying the caller.
+    // TODO (Mihir): Update to 'kPointInTimeRecovery' after
+    // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-321.
+    constexpr auto c_wal_recovery_mode = WALRecoveryMode::kAbsoluteConsistency;
 
-    // The minimum number of write buffers that will be merged together
-    // before writing to storage.  If set to 1, then
-    // all write buffers are flushed to L0 as individual files.
-    init_options.min_write_buffer_number_to_merge = 1; // NOLINT
-
-    // Any IO error during WAL replay is considered as data corruption.
-    // This option assumes clean server shutdown.
-    // A crash during a WAL write may lead to the database not getting opened. (see https://github.com/cockroachdb/pebble/issues/453)
-    // Currently in place for development purposes.
-    // The default option 'kPointInTimeRecovery' will stop the WAL playback on discovering WAL inconsistency
-    // without notifying the caller.
-    // Todo(Mihir) Update to 'kPointInTimeRecovery' after https://gaiaplatform.atlassian.net/browse/GAIAPLAT-321
-    init_options.wal_recovery_mode = WALRecoveryMode::kAbsoluteConsistency;
+    init_options.allow_2pc = c_allow_2pc;
+    init_options.use_fsync = c_use_fsync;
+    init_options.create_if_missing = c_create_if_missing;
+    init_options.write_buffer_size = c_write_buffer_size;
+    init_options.db_write_buffer_size = c_db_write_buffer_size;
+    init_options.max_total_wal_size = c_max_total_wal_size;
+    init_options.max_write_buffer_number = c_max_write_buffer_number;
+    init_options.min_write_buffer_number_to_merge = c_min_write_buffer_number_to_merge;
+    init_options.wal_recovery_mode = c_wal_recovery_mode;
 
     rdb_internal->open_txn_db(init_options, options);
 }

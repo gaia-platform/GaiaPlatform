@@ -68,7 +68,7 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
     {
         msg.msg_control = control.buf;
         msg.msg_controllen = sizeof(control.buf);
-        struct cmsghdr* cmsg = CMSG_FIRSTHDR(&msg); // NOLINT
+        struct cmsghdr* cmsg = CMSG_FIRSTHDR(&msg); // NOLINT (macro expansion)
         cmsg->cmsg_len = CMSG_LEN(sizeof(int) * fd_count);
         cmsg->cmsg_level = SOL_SOCKET;
         cmsg->cmsg_type = SCM_RIGHTS;
@@ -85,10 +85,12 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
     // https://github.com/kroki/XProbes/blob/1447f3d93b6dbf273919af15e59f35cca58fcc23/src/libxprobes.c#L156).
     ssize_t bytes_written_or_error = ::sendmsg(sock, &msg, MSG_NOSIGNAL);
     // Since we assert that we never send 0 bytes, we should never return 0 bytes written.
-    retail_assert(bytes_written_or_error != 0,
-                  "sendmsg() should never return 0 bytes written unless we write 0 bytes.");
-    retail_assert(bytes_written_or_error >= -1,
-                  "sendmsg() should never return a negative value except for -1.");
+    retail_assert(
+        bytes_written_or_error != 0,
+        "sendmsg() should never return 0 bytes written unless we write 0 bytes.");
+    retail_assert(
+        bytes_written_or_error >= -1,
+        "sendmsg() should never return a negative value except for -1.");
     if (bytes_written_or_error == -1)
     {
         if (errno == EPIPE)
@@ -101,8 +103,9 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
         }
     }
     auto bytes_written = static_cast<size_t>(bytes_written_or_error);
-    retail_assert(bytes_written == data_size,
-                  "sendmsg() payload was truncated but we didn't get EMSGSIZE.");
+    retail_assert(
+        bytes_written == data_size,
+        "sendmsg() payload was truncated but we didn't get EMSGSIZE.");
 
     return bytes_written;
 }
@@ -139,8 +142,9 @@ inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* dat
         msg.msg_controllen = sizeof(control.buf);
     }
     ssize_t bytes_read = ::recvmsg(sock, &msg, 0);
-    retail_assert(bytes_read >= -1,
-                  "recvmsg() should never return a negative value except for -1.");
+    retail_assert(
+        bytes_read >= -1,
+        "recvmsg() should never return a negative value except for -1.");
     if (bytes_read == -1)
     {
         throw_system_error("recvmsg failed");
@@ -160,7 +164,7 @@ inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* dat
 
     if (fds)
     {
-        struct cmsghdr* cmsg = CMSG_FIRSTHDR(&msg); // NOLINT
+        struct cmsghdr* cmsg = CMSG_FIRSTHDR(&msg); // NOLINT (macro expansion)
         if (cmsg)
         {
             // message contains some fds, extract them

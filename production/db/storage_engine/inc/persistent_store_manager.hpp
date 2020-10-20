@@ -24,8 +24,6 @@ class rdb_internal_t;
 
 class persistent_store_manager
 {
-private:
-    static std::unique_ptr<gaia::db::rdb_internal_t> rdb_internal;
 
 public:
     persistent_store_manager();
@@ -90,6 +88,9 @@ public:
         size_t num_refs,
         size_t data_size,
         const void* data);
+
+private:
+    static std::unique_ptr<gaia::db::rdb_internal_t> rdb_internal;
 };
 
 } // namespace db
