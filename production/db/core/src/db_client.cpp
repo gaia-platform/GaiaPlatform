@@ -32,8 +32,13 @@
 #include "mmap_helpers.hpp"
 #include "retail_assert.hpp"
 #include "scope_guard.hpp"
+#include "db_helpers.hpp"
+#include "db_shared_data.hpp"
+#include "db_types.hpp"
+#include "server_index_impl.hpp"
 #include "socket_helpers.hpp"
 #include "system_error.hpp"
+#include "system_table_types.hpp"
 #include "triggers.hpp"
 
 using namespace gaia::common;
@@ -44,15 +49,9 @@ using namespace gaia::db::memory_manager;
 using namespace flatbuffers;
 using namespace scope_guard;
 
-int client::get_id_cursor_socket_for_type(gaia_type_t type)
+int client::get_stream_socket(void* message, size_t size)
 {
-    // Send the server the cursor socket request.
-    FlatBufferBuilder builder;
-    auto table_scan_info = Createtable_scan_info_t(builder, type);
-    auto client_request = Createclient_request_t(builder, session_event_t::REQUEST_STREAM, request_data_t::table_scan, table_scan_info.Union());
-    auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
-    builder.Finish(message);
-    send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
+    send_msg_with_fds(s_session_socket, nullptr, 0, message, size);
 
     // Extract the stream socket fd from the server's response.
     uint8_t msg_buf[c_max_msg_size] = {0};
@@ -77,6 +76,17 @@ int client::get_id_cursor_socket_for_type(gaia_type_t type)
 
     cleanup_stream_socket.dismiss();
     return stream_socket;
+}
+
+int client::get_id_cursor_socket_for_type(gaia_type_t type)
+{
+    // Send the server the cursor socket request.
+    FlatBufferBuilder builder;
+    auto table_scan_info = Createtable_scan_info_t(builder, type);
+    auto client_request = Createclient_request_t(builder, session_event_t::REQUEST_STREAM, request_data_t::table_scan, table_scan_info.Union());
+    auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
+    builder.Finish(message);
+    return get_stream_socket(builder.GetBufferPointer(), builder.GetSize());
 }
 
 // This generator wraps a socket which reads a stream of values of `T_element_type` from the server.
@@ -349,6 +359,7 @@ void client::clear_shared_memory()
     // If the server has already closed its fd for the locator segment
     // (and there are no other clients), this will release it.
     close_fd(s_fd_locators);
+    get_indexes()->clear();
 }
 
 void client::txn_cleanup()
@@ -631,10 +642,14 @@ void client::rollback_transaction()
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
+    
     // Reset current stack allocator.
     s_current_stack_allocator.reset();
     // Reset initial memory allocation size for the current transaction.
     s_txn_memory_request_size = c_initial_txn_memory_size_bytes;
+
+    // Reset local index cache.
+    get_indexes()->clear();
 }
 
 // This method returns void on a commit decision and throws on an abort decision.
@@ -720,6 +735,9 @@ void client::commit_transaction()
     s_current_stack_allocator.reset();
     // Reset initial memory allocation size for the current transaction.
     s_txn_memory_request_size = c_initial_txn_memory_size_bytes;
+
+    // Reset Local index cache
+    get_indexes()->clear();
 }
 
 void client::request_memory()

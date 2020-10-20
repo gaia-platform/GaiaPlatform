@@ -5,12 +5,24 @@
 
 #pragma once
 
+#include <flatbuffers/flatbuffers.h>
+#include <sys/epoll.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+
 #include "gaia/db/db.hpp"
-#include "db_shared_data.hpp"
+#include "client_index_impl.hpp"
+#include "db_types.hpp"
+#include "index_builder.hpp"
 #include "memory_types.hpp"
 #include "messages_generated.h"
 #include "retail_assert.hpp"
+#include "scope_guard.hpp"
+#include "db_shared_data.hpp"
+#include "db_txn.hpp"
+#include "socket_helpers.hpp"
 #include "stack_allocator.hpp"
+#include "system_error.hpp"
 #include "system_table_types.hpp"
 #include "triggers.hpp"
 
@@ -19,6 +31,8 @@ namespace gaia
 
 namespace db
 {
+
+class index_scan_iterator_base_t;
 
 class client
 {
@@ -40,6 +54,11 @@ class client
         gaia_locator_t locator,
         gaia::db::memory_manager::address_offset_t old_slot_offset,
         size_t size);
+    friend gaia::db::index::indexes_t* gaia::db::get_indexes();
+    friend gaia::db::gaia_txn_id_t gaia::db::get_txn_id();
+    friend gaia::db::gaia_txn_id_t gaia::db::get_begin_ts();
+
+    friend class index::client_index_stream;
 
 public:
     static inline bool is_transaction_active()
@@ -67,7 +86,7 @@ public:
     static void commit_transaction();
 
     // This returns a generator object for gaia_ids of a given type.
-    static std::function<std::optional<gaia::common::gaia_id_t>()> get_id_generator_for_type(gaia_type_t type);
+    static std::function<std::optional<gaia_id_t>()> get_id_generator_for_type(gaia_type_t type);
 
     // Make IPC call to the server requesting more memory for the current transaction
     // in case the client runs out of memory mid transaction.
@@ -88,10 +107,13 @@ private:
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
     thread_local static inline std::unique_ptr<gaia::db::memory_manager::stack_allocator_t> s_current_stack_allocator{};
 
-    // s_events has transaction lifetime and is cleared after each transaction.
     // Set by the rules engine.
+    // s_events has transaction lifetime and is cleared after each transaction.
     thread_local static inline std::vector<gaia::db::triggers::trigger_event_t> s_events{};
     static inline triggers::commit_trigger_fn s_txn_commit_trigger = nullptr;
+
+    // s_indexes have transaction lifetime and is cleared after each transaction.
+    thread_local static inline gaia::db::index::indexes_t s_thread_index{};
 
     // Maintain a static filter in the client to disable generating events
     // for system types.
@@ -139,6 +161,7 @@ private:
 
     static int get_session_socket();
 
+    static int get_stream_socket(void* message, size_t size);
     static int get_id_cursor_socket_for_type(gaia_type_t type);
 
     // This is a helper for higher-level methods that use
@@ -157,6 +180,31 @@ private:
     {
         constexpr const gaia_type_t* c_end = c_trigger_excluded_types + std::size(c_trigger_excluded_types);
         return (s_txn_commit_trigger && (std::find(c_trigger_excluded_types, c_end, type) == c_end));
+    }
+    /**
+     * Is this type indexed?
+     */
+    static inline bool is_indexed_type(gaia_type_t type)
+    {
+        return false;
+    }
+
+    /**
+     * needs index update?
+     */
+    static inline bool needs_index_update(gaia_id_t index_id, gaia_type_t type, field_position_list_t& field_list)
+    {
+        if (field_list.empty())
+            return false;
+        return false;
+    }
+
+    /**
+     * Check if we should compute an update diff
+     */
+    static inline bool should_compute_diff(gaia_type_t type)
+    {
+        return is_valid_event(type) || is_indexed_type(type);
     }
 
     static inline void verify_txn_active()

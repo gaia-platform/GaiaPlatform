@@ -8,6 +8,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#include <type_traits>
+
 #include "flatbuffers/reflection.h"
 
 namespace gaia
@@ -45,12 +47,39 @@ struct data_holder_t
     value_holder_t hold;
 
     data_holder_t();
+    data_holder_t(const data_holder_t&) = default;
+    data_holder_t(data_holder_t&&) = default;
+
+    // Convenience ctors to allow implicit conversion from native types
+    template <typename T>
+    data_holder_t(T value, typename std::enable_if_t<std::is_integral_v<T> && std::is_signed_v<T>>* = nullptr)
+    {
+        type = reflection::Int;
+        hold.integer_value = value;
+    }
+    template <typename T>
+    data_holder_t(T value, typename std::enable_if_t<std::is_integral_v<T> && !std::is_signed_v<T>>* = nullptr)
+    {
+        type = reflection::UInt;
+        hold.integer_value = value;
+    }
+    data_holder_t(float value);
+    data_holder_t(double value);
+    data_holder_t(const char* value);
 
     void clear();
 
     int compare(const data_holder_t& other) const;
+    std::size_t hash() const;
+
+    // Convenience implicit conversions to native types
+    operator uint64_t() const;
+    operator int64_t() const;
+    operator float() const;
+    operator double() const;
+    operator const char*() const;
 };
 
-}
-}
-}
+} // namespace payload_types
+} // namespace db
+} // namespace gaia

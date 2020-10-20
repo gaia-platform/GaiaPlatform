@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <fcntl.h>
+
 #include <iostream>
 #include <ostream>
 #include <stdexcept>

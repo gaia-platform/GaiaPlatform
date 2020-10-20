@@ -31,5 +31,8 @@ gaia::db::memory_manager::address_offset_t allocate_object(
     gaia::db::memory_manager::address_offset_t old_slot_offset,
     size_t size);
 
+// Returns a pointer to the indexes.
+gaia::db::index::indexes_t* get_indexes();
+
 } // namespace db
 } // namespace gaia

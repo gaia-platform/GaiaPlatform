@@ -11,6 +11,7 @@
 #include "db_hash_map.hpp"
 #include "db_helpers.hpp"
 #include "memory_types.hpp"
+#include "index_builder.hpp"
 #include "payload_diff.hpp"
 #include "retail_assert.hpp"
 #include "stack_allocator.hpp"
@@ -21,6 +22,7 @@ using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::db::memory_manager;
 using namespace gaia::db::triggers;
+using namespace gaia::db::index;
 
 gaia_id_t gaia_ptr::generate_id()
 {
@@ -120,6 +122,13 @@ gaia_ptr& gaia_ptr::clone()
     client::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::clone);
 
     se_object_t* new_this = to_ptr();
+
+    if (client::is_indexed_type(new_this->type))
+    {
+        gaia_id_t index_id = 0;
+        index_builder::update_index(index_id, client::s_log->log_records[client::s_log->count - 1]);
+    }
+
     if (client::is_valid_event(new_this->type))
     {
         client::s_events.emplace_back(event_type_t::row_insert, new_this->type, new_this->id, empty_position_list);
@@ -156,16 +165,33 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data)
 
     client::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
 
-    if (client::is_valid_event(new_this->type))
+    if (client::should_compute_diff(new_this->type))
     {
+        // Compute field diff
+        field_position_list_t position_list;
         auto new_data = reinterpret_cast<const uint8_t*>(data);
         auto old_data = reinterpret_cast<const uint8_t*>(old_this->payload);
         const uint8_t* old_data_payload = old_data + ref_len;
 
-        // Compute field diff
-        field_position_list_t position_list;
+        if (old_this->num_references)
+        {
+            old_data_payload = old_data + sizeof(gaia_id_t) * old_this->num_references;
+        }
+
         compute_payload_diff(new_this->type, old_data_payload, new_data, &position_list);
-        client::s_events.emplace_back(event_type_t::row_update, new_this->type, new_this->id, position_list);
+        gaia_id_t index_id = 0;
+
+        if (client::needs_index_update(index_id, new_this->type, position_list))
+        {
+            // TODO: yiwen (foreach index)
+
+            index_builder::update_index(index_id, client::s_log->log_records[client::s_log->count - 1]);
+        }
+
+        if (client::is_valid_event(new_this->type))
+        {
+            client::s_events.emplace_back(trigger_event_t{event_type_t::row_update, new_this->type, new_this->id, position_list});
+        }
     }
 
     return *this;
@@ -225,6 +251,13 @@ void gaia_ptr::reset()
 {
     gaia::db::locators_t* locators = gaia::db::get_shared_locators();
     client::txn_log(m_locator, to_offset(), 0, gaia_operation_t::remove, to_ptr()->id);
+
+    if (client::is_indexed_type(to_ptr()->type))
+    {
+        // TODO: yiwen (foreach index)
+        gaia_id_t index_id = 0;
+        index_builder::update_index(index_id, client::s_log->log_records[client::s_log->count - 1]);
+    }
 
     if (client::is_valid_event(to_ptr()->type))
     {

@@ -11,6 +11,11 @@
 #include <ostream>
 
 #include "gaia/common.hpp"
+#include <memory>
+#include <unordered_map>
+
+#include "retail_assert.hpp"
+#include "base_index.hpp"
 #include "db_types.hpp"
 #include "retail_assert.hpp"
 
@@ -176,6 +181,12 @@ struct shared_id_index_t
     size_t hash_node_count;
     hash_node_t hash_nodes[c_hash_buckets + c_max_locators];
 };
+
+namespace index
+{
+typedef std::shared_ptr<base_index_t> se_index_t;
+typedef std::unordered_map<gaia::common::gaia_id_t, se_index_t> indexes_t;
+} // namespace index
 
 } // namespace db
 } // namespace gaia
