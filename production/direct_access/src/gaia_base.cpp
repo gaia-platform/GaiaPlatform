@@ -22,9 +22,7 @@ edc_invalid_object_type::edc_invalid_object_type(
 {
     stringstream msg;
     msg << "Requesting Gaia type " << expected_typename << "(" << expected_type << ") but object identified by "
-        << id << " is type "
-                 "("
-        << actual_type << ").";
+        << id << " is type (" << actual_type << ").";
     m_message = msg.str();
 }
 

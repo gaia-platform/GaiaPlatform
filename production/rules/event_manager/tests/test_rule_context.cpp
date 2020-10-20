@@ -26,16 +26,13 @@ void check_all_event_types(
     rule_context_t context(txn, context_type, event_type_t::row_delete, 0, fields);
 
     // Test the insert/update/delete events which map to last operation types.
-    EXPECT_EQ(expected ? *expected : last_operation_t::row_delete,
-              context.last_operation(test_type));
+    EXPECT_EQ(expected ? *expected : last_operation_t::row_delete, context.last_operation(test_type));
 
     context.event_type = event_type_t::row_update;
-    EXPECT_EQ(expected ? *expected : last_operation_t::row_update,
-              context.last_operation(test_type));
+    EXPECT_EQ(expected ? *expected : last_operation_t::row_update, context.last_operation(test_type));
 
     context.event_type = event_type_t::row_insert;
-    EXPECT_EQ(expected ? *expected : last_operation_t::row_insert,
-              context.last_operation(test_type));
+    EXPECT_EQ(expected ? *expected : last_operation_t::row_insert, context.last_operation(test_type));
 
     // TODO[GAIAPLAT-194]: Transaction events are out of scope for Q2
 

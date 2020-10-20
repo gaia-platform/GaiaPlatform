@@ -33,8 +33,7 @@ int64_t gaia::common::timer_t::get_function_duration(std::function<void()> fn)
 
 // TODO[GAIAPLAT-318] Use an actual logging library when available and replace
 // the console output below with actual log calls.
-void gaia::common::timer_t::log_duration(steady_clock::time_point& start_time,
-                                         const char* message)
+void gaia::common::timer_t::log_duration(steady_clock::time_point& start_time, const char* message)
 {
     int64_t duration = get_duration(start_time);
     printf("[%s]: %0.2f us\n", message, timer_t::ns_to_us(duration));

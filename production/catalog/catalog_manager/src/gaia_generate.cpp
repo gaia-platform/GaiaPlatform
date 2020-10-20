@@ -20,19 +20,19 @@ namespace catalog
 
 const string c_indent_string("    ");
 
-typedef struct
+struct field_strings_t
 {
     string name;
     data_type_t type;
-} field_strings_t;
+};
 
 typedef vector<field_strings_t> field_vec;
 
-typedef struct
+struct table_references_t
 {
     string name;
     string ref_name;
-} table_references_t;
+};
 
 typedef vector<table_references_t> references_vec;
 typedef map<gaia_id_t, references_vec> references_map;

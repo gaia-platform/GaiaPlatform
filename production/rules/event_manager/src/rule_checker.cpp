@@ -18,8 +18,7 @@ using namespace std;
 //
 invalid_rule_binding::invalid_rule_binding()
 {
-    m_message = "Invalid rule binding. "
-                "Verify that the ruleset_name, rule_name and rule are provided.";
+    m_message = "Invalid rule binding. Verify that the ruleset_name, rule_name and rule are provided.";
 }
 
 duplicate_rule::duplicate_rule(const rule_binding_t& binding, bool duplicate_key_found)
@@ -29,8 +28,7 @@ duplicate_rule::duplicate_rule(const rule_binding_t& binding, bool duplicate_key
     {
         message << binding.ruleset_name << "::"
                 << binding.rule_name
-                << " already subscribed with the same key "
-                   "but different rule function.";
+                << " already subscribed with the same key but different rule function.";
     }
     else
     {
@@ -64,8 +62,7 @@ invalid_subscription::invalid_subscription(gaia::db::triggers::event_type_t even
 invalid_subscription::invalid_subscription(gaia_type_t gaia_type)
 {
     std::stringstream message;
-    message << "Table (type:" << gaia_type << ") "
-            << "was not found in the catalog.";
+    message << "Table (type:" << gaia_type << ") was not found in the catalog.";
     m_message = message.str();
 }
 
@@ -73,9 +70,8 @@ invalid_subscription::invalid_subscription(gaia_type_t gaia_type)
 invalid_subscription::invalid_subscription(gaia_type_t gaia_type, const char* table, uint16_t position)
 {
     std::stringstream message;
-    message << "Field (position:" << position << ") "
-            << "was not found in table '" << table << "' "
-            << "(type:" << gaia_type << ").";
+    message << "Field (position:" << position << ") was not found in table '"
+            << table << "' (type:" << gaia_type << ").";
     m_message = message.str();
 }
 
@@ -85,10 +81,8 @@ invalid_subscription::invalid_subscription(gaia_type_t gaia_type, const char* ta
     std::stringstream message;
     const char* reason = is_deprecated ? "deprecated" : "not marked as active";
     message << "Field '" << field
-            << "' (position:" << position << ")"
-            << " in table '" << table
-            << "' (type:" << gaia_type << ")"
-            << " is " << reason << ".";
+            << "' (position:" << position << ") in table '" << table
+            << "' (type:" << gaia_type << ") is " << reason << ".";
     m_message = message.str();
 }
 

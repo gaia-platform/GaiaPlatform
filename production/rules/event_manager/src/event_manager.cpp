@@ -92,9 +92,10 @@ bool event_manager_t::process_last_operation_events(event_binding_t& binding, co
     return rules_invoked;
 }
 
-bool event_manager_t::process_field_events(event_binding_t& binding,
-                                           const trigger_event_t& event,
-                                           steady_clock::time_point& start_time)
+bool event_manager_t::process_field_events(
+    event_binding_t& binding,
+    const trigger_event_t& event,
+    steady_clock::time_point& start_time)
 {
     if (binding.fields_map.size() == 0 || event.columns.size() == 0)
     {
@@ -183,9 +184,10 @@ void event_manager_t::commit_trigger(gaia_txn_id_t, const trigger_event_list_t& 
                                   __PRETTY_FUNCTION__);
 }
 
-void event_manager_t::enqueue_invocation(const trigger_event_list_t& events,
-                                         const vector<bool>& rules_invoked_list,
-                                         steady_clock::time_point& start_time)
+void event_manager_t::enqueue_invocation(
+    const trigger_event_list_t& events,
+    const vector<bool>& rules_invoked_list,
+    steady_clock::time_point& start_time)
 {
     rule_thread_pool_t::log_events_invocation_t event_invocation{
         events,
@@ -391,25 +393,24 @@ void event_manager_t::list_subscribed_rules(
                     continue;
                 }
                 const rule_list_t& rules = field.second;
-                add_subscriptions(subscriptions, rules, type_it.first,
-                                  event_it.first, field.first, ruleset_name);
+                add_subscriptions(subscriptions, rules, type_it.first, event_it.first, field.first, ruleset_name);
             }
 
             // If no field_ptr filter was passed in then also
             // return any rules bound to the last operation.
             const rule_list_t& rules = event_binding.last_operation_rules;
-            add_subscriptions(subscriptions, rules, type_it.first,
-                              event_it.first, 0, ruleset_name);
+            add_subscriptions(subscriptions, rules, type_it.first, event_it.first, 0, ruleset_name);
         }
     }
 }
 
-void event_manager_t::add_subscriptions(subscription_list_t& subscriptions,
-                                        const rule_list_t& rules,
-                                        gaia_type_t gaia_type,
-                                        event_type_t event_type,
-                                        uint16_t field,
-                                        const char* ruleset_filter)
+void event_manager_t::add_subscriptions(
+    subscription_list_t& subscriptions,
+    const rule_list_t& rules,
+    gaia_type_t gaia_type,
+    event_type_t event_type,
+    uint16_t field,
+    const char* ruleset_filter)
 {
     for (auto rule : rules)
     {
@@ -576,6 +577,5 @@ void gaia::rules::list_subscribed_rules(
     const uint16_t* field,
     subscription_list_t& subscriptions)
 {
-    event_manager_t::get().list_subscribed_rules(ruleset_name, gaia_type,
-                                                 event_type, field, subscriptions);
+    event_manager_t::get().list_subscribed_rules(ruleset_name, gaia_type, event_type, field, subscriptions);
 }

@@ -100,7 +100,7 @@ private:
     struct event_binding_t
     {
         rule_list_t last_operation_rules; // rules bound to this operation
-        fields_map_t fields_map;          // referenced fields of this type
+        fields_map_t fields_map; // referenced fields of this type
     };
 
     // Map the event type to the event binding.
@@ -153,12 +153,13 @@ private:
     }
     static bool is_valid_rule_binding(const rules::rule_binding_t& binding);
     static std::string make_rule_key(const rules::rule_binding_t& binding);
-    static void add_subscriptions(rules::subscription_list_t& subscriptions,
-                                  const rule_list_t& rules,
-                                  gaia::common::gaia_type_t gaia_type,
-                                  event_type_t event_type,
-                                  uint16_t field,
-                                  const char* ruleset_filter);
+    static void add_subscriptions(
+        rules::subscription_list_t& subscriptions,
+        const rule_list_t& rules,
+        gaia::common::gaia_type_t gaia_type,
+        event_type_t event_type,
+        uint16_t field,
+        const char* ruleset_filter);
 };
 
 } // namespace rules

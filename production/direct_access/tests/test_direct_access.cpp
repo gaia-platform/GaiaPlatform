@@ -297,7 +297,7 @@ TEST_F(gaia_object_test, pre_post_iterator)
 TEST_F(gaia_object_test, read_wrong_type)
 {
     begin_transaction();
-    gaia_id_t eid = create_employee("Howard");
+    gaia_id_t eid = create_employee("Howard").gaia_id();
     commit_transaction();
 
     begin_transaction();
@@ -395,7 +395,7 @@ TEST_F(gaia_object_test, found_del_ins)
 TEST_F(gaia_object_test, found_del_update)
 {
     begin_transaction();
-    gaia_id_t eid = create_employee("Hector");
+    gaia_id_t eid = create_employee("Hector").gaia_id();
     commit_transaction();
 
     begin_transaction();
