@@ -13,6 +13,7 @@
 #include "db_test_base.hpp"
 #include "gaia_catalog.h"
 #include "gaia_catalog.hpp"
+#include "type_metadata.hpp"
 
 using namespace gaia::catalog;
 using namespace std;

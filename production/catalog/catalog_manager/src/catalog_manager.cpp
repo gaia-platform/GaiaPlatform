@@ -12,6 +12,7 @@
 #include "logger.hpp"
 #include "retail_assert.hpp"
 #include "system_table_types.hpp"
+#include "type_metadata.hpp"
 
 using namespace gaia::catalog::ddl;
 
