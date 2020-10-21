@@ -41,11 +41,7 @@ namespace direct_access
  * for CRUD operations on the database.
  */
 
-template <gaia::db::gaia_type_t T_gaia_type,
-          typename T_gaia,
-          typename T_fb,
-          typename T_obj,
-          size_t N_references>
+template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
 struct gaia_writer_t;
 
 /**
@@ -57,11 +53,7 @@ struct gaia_writer_t;
  * @tparam T_obj the mutable flatbuffer type to be implemented
  * @tparam N_references the number of reference slots this type supports
  */
-template <gaia::db::gaia_type_t T_gaia_type,
-          typename T_gaia,
-          typename T_fb,
-          typename T_obj,
-          size_t N_references>
+template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
 struct gaia_object_t : gaia_base_t
 {
 public:
@@ -166,11 +158,7 @@ private:
     gaia_ptr m_record;
 };
 
-template <gaia::db::gaia_type_t T_gaia_type,
-          typename T_gaia,
-          typename T_fb,
-          typename T_obj,
-          size_t N_references>
+template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
 struct gaia_writer_t : public T_obj
 {
     gaia_writer_t() = default;

@@ -22,8 +22,7 @@ using namespace gaia::db;
 using namespace gaia::common;
 using namespace gaia::addr_book;
 
-template <typename T_iterator>
-class iterator_conformance_t : public db_test_base_t
+template <typename T_iterator> class iterator_conformance_t : public db_test_base_t
 {
 public:
     void insert_records(size_t count)
@@ -70,9 +69,8 @@ private:
 };
 
 // Set up the test suite to test the gaia_iterator and gaia_set_iterator types.
-using iterator_types = ::testing::Types<
-    gaia_iterator_t<address_t>,
-    gaia_set_iterator_t<address_t, c_next_addressee_address>>;
+using iterator_types
+    = ::testing::Types<gaia_iterator_t<address_t>, gaia_set_iterator_t<address_t, c_next_addressee_address>>;
 TYPED_TEST_SUITE(iterator_conformance_t, iterator_types);
 
 // Tests for LegacyIterator conformance
@@ -83,29 +81,25 @@ TYPED_TEST_SUITE(iterator_conformance_t, iterator_types);
 // to be CopyConstructible.
 TYPED_TEST(iterator_conformance_t, copy_constructible)
 {
-    EXPECT_TRUE(is_copy_constructible<TypeParam>::value)
-        << "The iterator is not CopyConstructible.";
+    EXPECT_TRUE(is_copy_constructible<TypeParam>::value) << "The iterator is not CopyConstructible.";
 }
 
 // Is the iterator CopyAssignable?
 TYPED_TEST(iterator_conformance_t, copy_assignable)
 {
-    EXPECT_TRUE(is_copy_assignable<TypeParam>::value)
-        << "The iterator is not CopyAssignable.";
+    EXPECT_TRUE(is_copy_assignable<TypeParam>::value) << "The iterator is not CopyAssignable.";
 }
 
 // Is the iterator Destructible?
 TYPED_TEST(iterator_conformance_t, destructible)
 {
-    EXPECT_TRUE(is_destructible<TypeParam>::value)
-        << "The iterator is not Destructible.";
+    EXPECT_TRUE(is_destructible<TypeParam>::value) << "The iterator is not Destructible.";
 }
 
 // Are iterator lvalues Swappable?
 TYPED_TEST(iterator_conformance_t, swappable)
 {
-    EXPECT_TRUE(is_swappable<TypeParam>::value)
-        << "The iterator is not Swappable as an lvalue.";
+    EXPECT_TRUE(is_swappable<TypeParam>::value) << "The iterator is not Swappable as an lvalue.";
 }
 
 // Does iterator_traits<gaia_iterator_t<edc*>> have member typedefs
@@ -143,14 +137,12 @@ TYPED_TEST(iterator_conformance_t, pre_incrementable)
 
     const char* a = (*it).street();
     const char* b = (*++it).street();
-    EXPECT_STRNE(a, b)
-        << pre_inc_error;
+    EXPECT_STRNE(a, b) << pre_inc_error;
 
     it = this->get_begin(it);
     for (size_t i = 0; i < c_loops; i++)
     {
-        EXPECT_TRUE(set.find((*it).street()) == set.end())
-            << pre_inc_error;
+        EXPECT_TRUE(set.find((*it).street()) == set.end()) << pre_inc_error;
         set.insert((*it).street());
         ++it;
     }
@@ -161,8 +153,7 @@ TYPED_TEST(iterator_conformance_t, pre_incrementable)
     // pre-increment operator has the wrong return type.
     TypeParam end_record;
     this->get_end(end_record);
-    EXPECT_EQ(++it, end_record)
-        << pre_inc_error;
+    EXPECT_EQ(++it, end_record) << pre_inc_error;
 }
 
 // Tests for LegacyInputIterator conformance
@@ -241,8 +232,7 @@ TYPED_TEST(iterator_conformance_t, reference_convertibility)
 
     bool convertible = is_convertible<from_t, to_t>::value;
 
-    EXPECT_TRUE(convertible)
-        << "The reference iterator trait is not convertible into the value_type iterator trait.";
+    EXPECT_TRUE(convertible) << "The reference iterator trait is not convertible into the value_type iterator trait.";
 }
 
 // Are iterators dereferenceable as rvalues?
@@ -277,8 +267,7 @@ TYPED_TEST(iterator_conformance_t, deref_arrow)
 
     TypeParam it = this->get_begin(it);
 
-    EXPECT_EQ(string(it->street()), to_string(0))
-        << "The class member derefence operator->() does not work.";
+    EXPECT_EQ(string(it->street()), to_string(0)) << "The class member derefence operator->() does not work.";
 }
 
 // Does (void)iter++ have the same effect as (void)++iter?
@@ -293,20 +282,16 @@ TYPED_TEST(iterator_conformance_t, pre_inc_and_post_inc)
     (void)++iter_a;
     (void)iter_b++;
 
-    const char* inc_error = "(void)++iter and (void)iter++ have different effects.";
+    const char* c_inc_error = "(void)++iter and (void)iter++ have different effects.";
 
-    EXPECT_TRUE(iter_a == iter_b)
-        << inc_error;
-    EXPECT_STREQ(iter_a->street(), iter_b->street())
-        << inc_error;
+    EXPECT_TRUE(iter_a == iter_b) << c_inc_error;
+    EXPECT_STREQ(iter_a->street(), iter_b->street()) << c_inc_error;
 
     (void)++iter_a;
     (void)iter_b++;
 
-    EXPECT_EQ(iter_a, iter_b)
-        << inc_error;
-    EXPECT_EQ(string(iter_a->street()), string(iter_b->street()))
-        << inc_error;
+    EXPECT_EQ(iter_a, iter_b) << c_inc_error;
+    EXPECT_EQ(string(iter_a->street()), string(iter_b->street())) << c_inc_error;
 }
 
 // Does dereferencing and postincrementing *iter++ have the expected effects?
@@ -321,19 +306,16 @@ TYPED_TEST(iterator_conformance_t, deref_and_postinc)
     address_t address = *iter_b;
     ++iter_b;
 
-    const char* post_inc_error = "*iter++ does not have the expected effects.";
-    EXPECT_STREQ((*iter_a++).street(), address.street())
-        << post_inc_error;
+    const char* c_post_inc_error = "*iter++ does not have the expected effects.";
+    EXPECT_STREQ((*iter_a++).street(), address.street()) << c_post_inc_error;
 
     address = *iter_b;
     ++iter_b;
-    EXPECT_STREQ((*iter_a++).street(), address.street())
-        << post_inc_error;
+    EXPECT_STREQ((*iter_a++).street(), address.street()) << c_post_inc_error;
 
     address = *iter_b;
     ++iter_b;
-    EXPECT_STREQ((*iter_a++).street(), address.street())
-        << post_inc_error;
+    EXPECT_STREQ((*iter_a++).street(), address.street()) << c_post_inc_error;
 }
 
 // Tests for LegacyForwardIterator conformance
@@ -342,8 +324,7 @@ TYPED_TEST(iterator_conformance_t, deref_and_postinc)
 // Is the iterator DefaultConstructible?
 TYPED_TEST(iterator_conformance_t, default_constructible)
 {
-    EXPECT_TRUE(is_default_constructible<TypeParam>::value)
-        << "The iterator is not DefaultConstructible.";
+    EXPECT_TRUE(is_default_constructible<TypeParam>::value) << "The iterator is not DefaultConstructible.";
 }
 
 // Is equality and inequality defined over all iterators for the same
@@ -359,13 +340,13 @@ TYPED_TEST(iterator_conformance_t, equality_and_inequality_in_sequence)
     TypeParam iter_begin;
     TypeParam iter_end = this->get_end(iter_end);
 
-    const char* equality_error = "Equality comparisons are not defined across all iterators in the same sequence.";
-    const char* inequality_error = "Inequality comparisons are not defined across all iterators in the same sequence.";
+    const char* c_equality_error = "Equality comparisons are not defined across all iterators in the same sequence.";
+    const char* c_inequality_error
+        = "Inequality comparisons are not defined across all iterators in the same sequence.";
 
     for (; iter_b != iter_end; ++iter_b)
     {
-        EXPECT_TRUE(iter_a == iter_b)
-            << equality_error;
+        EXPECT_TRUE(iter_a == iter_b) << c_equality_error;
         ++iter_a;
     }
 
@@ -376,13 +357,11 @@ TYPED_TEST(iterator_conformance_t, equality_and_inequality_in_sequence)
     {
         if (iter == iter_begin)
         {
-            EXPECT_TRUE(iter != iter_end)
-                << inequality_error;
+            EXPECT_TRUE(iter != iter_end) << c_inequality_error;
         }
         else
         {
-            EXPECT_TRUE(iter != iter_end)
-                << inequality_error;
+            EXPECT_TRUE(iter != iter_end) << c_inequality_error;
         }
     }
 }
@@ -432,8 +411,7 @@ TYPED_TEST(iterator_conformance_t, multipass_guarantee)
         iter = this->get_begin(iter);
         for (j = 0; j < c_count; j++)
         {
-            EXPECT_TRUE(*iter++ == sequence.at(j))
-                << "The iterator does not support a multipass guarantee.";
+            EXPECT_TRUE(*iter++ == sequence.at(j)) << "The iterator does not support a multipass guarantee.";
         }
     }
 }
@@ -450,11 +428,8 @@ TYPED_TEST(iterator_conformance_t, algorithm_test)
 
     this->insert_records(c_count);
 
-    std::transform(
-        this->get_begin(iter),
-        this->get_end(iter),
-        back_inserter(transform_list),
-        [](const address_t& address) -> int { return atoi(address.street()); });
+    std::transform(this->get_begin(iter), this->get_end(iter), back_inserter(transform_list),
+                   [](const address_t& address) -> int { return atoi(address.street()); });
 
     EXPECT_EQ(transform_list.size(), c_count);
 }
