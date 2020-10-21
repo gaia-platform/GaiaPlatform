@@ -179,8 +179,12 @@ void catalog_manager_t::bootstrap_catalog()
         fields.emplace_back(
             make_unique<field_definition_t>(c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_ruleset"));
         create_table_impl(
+<<<<<<< HEAD
             "catalog", "gaia_rule", fields, true, false,
             static_cast<gaia_id_t>(catalog_table_type_t::gaia_rule));
+=======
+            "catalog", "gaia_rule", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_rule));
+>>>>>>> Fix test #3
     }
 }
 
