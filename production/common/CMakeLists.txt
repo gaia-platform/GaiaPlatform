@@ -16,6 +16,7 @@ set(GAIA_MULTI_PROCESS_INCLUDES
   ${GAIA_INC}/public/db
   ${GAIA_INC}/public/common
   ${GAIA_INC}/internal/db
+  ${GAIA_REPO}/production/db/storage_engine/inc
   ${FLATBUFFERS_INC}
   ${GAIA_GENERATED_SCHEMAS}
 )

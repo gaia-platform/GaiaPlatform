@@ -12,7 +12,7 @@
 
 #include "gaia_db_internal.hpp"
 #include "gaia_ptr.hpp"
-#include "logger.hpp"
+// #include "logger.hpp"
 #include "system_error.hpp"
 
 namespace gaia

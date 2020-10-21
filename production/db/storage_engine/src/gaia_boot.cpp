@@ -6,7 +6,7 @@
 #include "gaia_boot.hpp"
 
 using namespace gaia::db;
-using namespace gaia::common::logging;
+// using namespace gaia::common::logging;
 
 namespace gaia
 {
@@ -30,7 +30,7 @@ void gaia_boot_t::open_gaia_boot()
     errno = 0;
     if ((m_boot_fd = open(boot_file_name.c_str(), O_RDWR | O_CREAT, 0664)) == -1)
     {
-        gaia_log::db().critical("I/O failure, cannot create {}, error: {}\n", boot_file_name, strerror(errno));
+        // gaia_log::db().critical("I/O failure, cannot create {}, error: {}\n", boot_file_name, strerror(errno));
         throw_system_error("cannot create " + boot_file_name);
     }
     errno = 0;
@@ -43,13 +43,13 @@ void gaia_boot_t::open_gaia_boot()
         m_boot_data.version = 1;
         m_boot_data.next_type = 1;
         m_boot_data.limit = c_block_delta;
-        gaia_log::db().info("Created new boot record");
+        // gaia_log::db().info("Created new boot record");
     }
     else
     {
         m_boot_data.limit += c_block_delta;
         m_next_id = m_boot_data.limit - c_block_delta + 1;
-        gaia_log::db().info("New ID block allocated, limit {}", m_boot_data.limit);
+        // gaia_log::db().info("New ID block allocated, limit {}", m_boot_data.limit);
     }
     save_gaia_boot();
     flock(m_boot_fd, LOCK_UN);
@@ -86,8 +86,7 @@ void gaia_boot_t::save_gaia_boot()
     size_t count = write(m_boot_fd, (const char*)&m_boot_data, sizeof(m_boot_data));
     if (count == 0)
     {
-        gaia_log::db().error("I/O failure '{}', {} bytes read", strerror(errno), count);
-        fprintf(stderr, "I/O failure '%s', %zu bytes read, pid=%d\n", strerror(errno), count, getpid());
+        // gaia_log::db().error("I/O failure '{}', {} bytes read", strerror(errno), count);
         throw_system_error("cannot write to system boot record");
     }
 }
@@ -111,7 +110,7 @@ gaia_id_t gaia_boot_t::get_next_id()
         save_gaia_boot();
         // First id of the next block.
         m_next_id = m_boot_data.limit - c_block_delta + 1;
-        gaia_log::db().info("New ID block allocated, limit %lu", m_boot_data.limit);
+        // gaia_log::db().info("New ID block allocated, limit %lu", m_boot_data.limit);
         flock(m_boot_fd, LOCK_UN);
     }
     // If other threads request an ID after the block is allocated, they must
