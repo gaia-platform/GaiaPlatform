@@ -3,11 +3,12 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "retail_assert.hpp"
 #include "rule_thread_pool.hpp"
-#include "event_manager.hpp"
 
 #include <cstring>
+
+#include "event_manager.hpp"
+#include "retail_assert.hpp"
 
 using namespace gaia::rules;
 using namespace gaia::common;
@@ -19,40 +20,37 @@ using namespace std;
 thread_local bool rule_thread_pool_t::s_tls_can_enqueue = true;
 thread_local queue<rule_thread_pool_t::invocation_t> rule_thread_pool_t::s_tls_pending_invocations;
 
-
 void rule_thread_pool_t::log_events(invocation_t& invocation)
 {
     auto& log_invocation = std::get<log_events_invocation_t>(invocation.args);
     retail_assert(log_invocation.events.size() == log_invocation.rules_invoked.size(),
-        "Event vector and rules_invoked vector sizes must match!");
+                  "Event vector and rules_invoked vector sizes must match!");
 
     gaia::db::begin_transaction();
     {
         rule_stats_manager_t::record_rule_fn_time(invocation.stats, [&]() {
-
-        for (size_t i = 0; i < log_invocation.events.size(); i++)
-        {
-            uint64_t timestamp = (uint64_t)time(NULL);
-            uint16_t column_id = 0;
-            auto& event = log_invocation.events[i];
-            auto rule_invoked = log_invocation.rules_invoked[i];
-
-            // TODO[GAIAPLAT-293]: add support for arrys of simple types
-            // When we have this support we can support the array of changed column fields
-            // in our event log.  Until then, just pick out the first of the list.
-            if (event.columns.size() > 0)
+            for (size_t i = 0; i < log_invocation.events.size(); i++)
             {
-                column_id = event.columns[0];
+                auto timestamp = static_cast<uint64_t>(time(nullptr));
+                uint16_t column_id = 0;
+                auto& event = log_invocation.events[i];
+                auto rule_invoked = log_invocation.rules_invoked[i];
+
+                // TODO[GAIAPLAT-293]: add support for arrys of simple types
+                // When we have this support we can support the array of changed column fields
+                // in our event log.  Until then, just pick out the first of the list.
+                if (event.columns.size() > 0)
+                {
+                    column_id = event.columns[0];
+                }
+
+                event_log::event_log_t::insert_row(
+                    static_cast<uint32_t>(event.event_type),
+                    static_cast<uint64_t>(event.gaia_type),
+                    static_cast<uint64_t>(event.record),
+                    column_id,
+                    timestamp, rule_invoked);
             }
-
-            event_log::event_log_t::insert_row(
-                (uint32_t)(event.event_type),
-                (uint64_t)(event.gaia_type),
-                (uint64_t)(event.record),
-                column_id,
-                timestamp, rule_invoked);
-        }
-
         }); // recorder
     }
     gaia::db::commit_transaction();
@@ -65,7 +63,7 @@ rule_thread_pool_t::rule_thread_pool_t(size_t num_threads)
 
     for (uint32_t i = 0; i < m_num_threads; i++)
     {
-        thread worker([this]{ rule_worker(); });
+        thread worker([this] { rule_worker(); });
         m_threads.emplace_back(move(worker));
     }
 }
@@ -184,8 +182,7 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
             rule_invocation.gaia_type,
             rule_invocation.event_type,
             rule_invocation.record,
-            rule_invocation.fields
-        );
+            rule_invocation.fields);
 
         // Invoke the rule.
         rule_stats_manager_t::record_rule_fn_time(invocation.stats, [&]() {
@@ -199,7 +196,7 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
             txn.commit();
         }
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
         // TODO[GAIAPLAT-129]: Log an error in an error table here.
         // TODO[GAIAPLAT-158]: Determine retry/error handling logic
@@ -212,7 +209,7 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
 
 void rule_thread_pool_t::process_pending_invocations(bool should_schedule)
 {
-    while(!s_tls_pending_invocations.empty())
+    while (!s_tls_pending_invocations.empty())
     {
         if (should_schedule)
         {

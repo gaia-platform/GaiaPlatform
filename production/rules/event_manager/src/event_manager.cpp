@@ -3,18 +3,20 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "retail_assert.hpp"
 #include "event_manager.hpp"
-#include "rule_stats_manager.hpp"
-#include "db_types.hpp"
-#include "gaia_db_internal.hpp"
-#include "events.hpp"
-#include "triggers.hpp"
-#include "timer.hpp"
 
 #include <cstring>
-#include <variant>
+
 #include <utility>
+#include <variant>
+
+#include "db_types.hpp"
+#include "events.hpp"
+#include "gaia_db_internal.hpp"
+#include "retail_assert.hpp"
+#include "rule_stats_manager.hpp"
+#include "timer.hpp"
+#include "triggers.hpp"
 
 using namespace gaia::rules;
 using namespace gaia::common;
@@ -45,10 +47,6 @@ event_manager_t& event_manager_t::get(bool is_initializing)
     return s_instance;
 }
 
-event_manager_t::event_manager_t()
-{
-}
-
 void event_manager_t::init()
 {
     // TODO[GAIAPLAT-111]: Check a configuration setting supplied by the
@@ -61,10 +59,10 @@ void event_manager_t::init()
 
 void event_manager_t::init(event_manager_settings_t& settings)
 {
-    m_invocations.reset(new rule_thread_pool_t(settings.num_background_threads));
+    m_invocations = make_unique<rule_thread_pool_t>(settings.num_background_threads);
     if (settings.enable_catalog_checks)
     {
-        m_rule_checker.reset(new rule_checker_t());
+        m_rule_checker = make_unique<rule_checker_t>();
     }
 
     // Currently rule stats collection and profiling the commit_trigger
@@ -80,22 +78,22 @@ void event_manager_t::init(event_manager_settings_t& settings)
     m_is_initialized = true;
 }
 
-bool event_manager_t::process_last_operation_events(event_binding_t& binding, const trigger_event_t& event,
-    steady_clock::time_point& start_time)
+bool event_manager_t::process_last_operation_events(event_binding_t& binding, const trigger_event_t& event, steady_clock::time_point& start_time)
 {
     bool rules_invoked = false;
     rule_list_t& rules = binding.last_operation_rules;
 
-    for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it)
+    for (auto const& binding : rules)
     {
         rules_invoked = true;
-        enqueue_invocation(event, (*rules_it)->rule, start_time);
+        enqueue_invocation(event, binding->rule, start_time);
     }
 
     return rules_invoked;
 }
 
-bool event_manager_t::process_field_events(event_binding_t& binding,
+bool event_manager_t::process_field_events(
+    event_binding_t& binding,
     const trigger_event_t& event,
     steady_clock::time_point& start_time)
 {
@@ -118,10 +116,10 @@ bool event_manager_t::process_field_events(event_binding_t& binding,
             // referenced by at least one rule.  Schedule those rules
             // for invocation now.
             rule_list_t& rules = field_it->second;
-            for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it)
+            for (auto const& binding : rules)
             {
                 rules_invoked = true;
-                enqueue_invocation(event, (*rules_it)->rule, start_time);
+                enqueue_invocation(event, binding->rule, start_time);
             }
         }
     }
@@ -132,95 +130,89 @@ bool event_manager_t::process_field_events(event_binding_t& binding,
 void event_manager_t::commit_trigger(gaia_txn_id_t, const trigger_event_list_t& trigger_event_list)
 {
     m_timer.log_function_duration([&]() {
-
-    if (trigger_event_list.size() == 0)
-    {
-        return;
-    }
-
-    auto start_time = m_timer.get_time_point();
-
-    // TODO[GAIAPLAT-308]: Event logging is only half the story. We
-    // also need to do rule logging and the correlate the event instance
-    // to the rules that it causes to fire.  This will then remove the
-    // bool 'rule_invoked' flag.
-    vector<bool> rules_invoked_list;
-
-    for (size_t i = 0; i < trigger_event_list.size(); ++i)
-    {
-        const trigger_event_t& event = trigger_event_list[i];
-        bool rules_invoked = false;
-
-        auto type_it = m_subscriptions.find(event.gaia_type);
-        if (type_it != m_subscriptions.end())
+        if (trigger_event_list.size() == 0)
         {
-            events_map_t& events = type_it->second;
-            auto event_it = events.find(event.event_type);
+            return;
+        }
 
-            if (event_it != events.end())
+        auto start_time = m_timer.get_time_point();
+
+        // TODO[GAIAPLAT-308]: Event logging is only half the story. We
+        // also need to do rule logging and the correlate the event instance
+        // to the rules that it causes to fire.  This will then remove the
+        // bool 'rule_invoked' flag.
+        vector<bool> rules_invoked_list;
+
+        for (const auto& event : trigger_event_list)
+        {
+            bool rules_invoked = false;
+
+            auto type_it = m_subscriptions.find(event.gaia_type);
+            if (type_it != m_subscriptions.end())
             {
-                // At least one rule is bound to this specific event.
-                // The rule may be bound at the table level via the system
-                // LastOperation field or at the column level by referencing
-                // an active field in the rule body.
-                event_binding_t& binding = event_it->second;
+                events_map_t& events = type_it->second;
+                auto event_it = events.find(event.event_type);
 
-                // Once rules_invoked is true, we keep it there to mean
-                // that any rule was subscribed to this event.
-                if (process_last_operation_events(binding, event, start_time))
+                if (event_it != events.end())
                 {
-                    rules_invoked = true;
-                }
+                    // At least one rule is bound to this specific event.
+                    // The rule may be bound at the table level via the system
+                    // LastOperation field or at the column level by referencing
+                    // an active field in the rule body.
+                    event_binding_t& binding = event_it->second;
 
-                if (process_field_events(binding, event, start_time))
-                {
-                    rules_invoked = true;
+                    // Once rules_invoked is true, we keep it there to mean
+                    // that any rule was subscribed to this event.
+                    if (process_last_operation_events(binding, event, start_time))
+                    {
+                        rules_invoked = true;
+                    }
+
+                    if (process_field_events(binding, event, start_time))
+                    {
+                        rules_invoked = true;
+                    }
                 }
             }
+            rules_invoked_list.emplace_back(rules_invoked);
         }
-        rules_invoked_list.emplace_back(rules_invoked);
-    }
 
-    // Enqueue a task to log all the events in this commit_trigger in a
-    // separate thread in a new transaction.
-    enqueue_invocation(trigger_event_list, rules_invoked_list, start_time);
-
-    }, __PRETTY_FUNCTION__);
+        // Enqueue a task to log all the events in this commit_trigger in a
+        // separate thread in a new transaction.
+        enqueue_invocation(trigger_event_list, rules_invoked_list, start_time);
+    },
+                                  __PRETTY_FUNCTION__);
 }
 
-void event_manager_t::enqueue_invocation(const trigger_event_list_t& events,
+void event_manager_t::enqueue_invocation(
+    const trigger_event_list_t& events,
     const vector<bool>& rules_invoked_list,
     steady_clock::time_point& start_time)
 {
-    rule_thread_pool_t::log_events_invocation_t event_invocation {
+    rule_thread_pool_t::log_events_invocation_t event_invocation{
         events,
-        rules_invoked_list
-    };
-    rule_thread_pool_t::invocation_t invocation {
+        rules_invoked_list};
+    rule_thread_pool_t::invocation_t invocation{
         rule_thread_pool_t::invocation_type_t::log_events,
         std::move(event_invocation),
         rule_stats_manager_t::create_rule_stats(
-            start_time, rule_stats_manager_t::c_log_event_tag)
-    };
+            start_time, rule_stats_manager_t::c_log_event_tag)};
     m_invocations->enqueue(invocation);
 }
 
-void event_manager_t::enqueue_invocation(const trigger_event_t& event, gaia_rule_fn rule_fn,
-    steady_clock::time_point& start_time)
+void event_manager_t::enqueue_invocation(const trigger_event_t& event, gaia_rule_fn rule_fn, steady_clock::time_point& start_time)
 {
-    rule_thread_pool_t::rule_invocation_t rule_invocation {
+    rule_thread_pool_t::rule_invocation_t rule_invocation{
         rule_fn,
         event.gaia_type,
         event.event_type,
         event.record,
-        event.columns
-    };
+        event.columns};
     rule_thread_pool_t::invocation_t invocation{
         rule_thread_pool_t::invocation_type_t::rule,
         std::move(rule_invocation),
         rule_stats_manager_t::create_rule_stats(
-            start_time, rule_stats_manager_t::c_rule_tag)
-    };
+            start_time, rule_stats_manager_t::c_rule_tag)};
     m_invocations->enqueue(invocation);
 }
 
@@ -378,7 +370,7 @@ void event_manager_t::list_subscribed_rules(
     subscriptions.clear();
 
     // Filter first by gaia_type, then event_type, then fields, then ruleset_name.
-    for (auto type_it : m_subscriptions)
+    for (auto const& type_it : m_subscriptions)
     {
         if (gaia_type_ptr && type_it.first != *gaia_type_ptr)
         {
@@ -386,7 +378,7 @@ void event_manager_t::list_subscribed_rules(
         }
 
         const events_map_t& events = type_it.second;
-        for (auto event_it : events)
+        for (auto const& event_it : events)
         {
             if (event_type_ptr && event_it.first != *event_type_ptr)
             {
@@ -394,27 +386,26 @@ void event_manager_t::list_subscribed_rules(
             }
 
             const event_binding_t& event_binding = event_it.second;
-            for (auto field : event_binding.fields_map)
+            for (auto const& field : event_binding.fields_map)
             {
                 if (field_ptr && field.first != *field_ptr)
                 {
                     continue;
                 }
                 const rule_list_t& rules = field.second;
-                add_subscriptions(subscriptions, rules, type_it.first,
-                    event_it.first, field.first, ruleset_name);
+                add_subscriptions(subscriptions, rules, type_it.first, event_it.first, field.first, ruleset_name);
             }
 
             // If no field_ptr filter was passed in then also
             // return any rules bound to the last operation.
             const rule_list_t& rules = event_binding.last_operation_rules;
-            add_subscriptions(subscriptions, rules, type_it.first,
-                event_it.first, 0, ruleset_name);
+            add_subscriptions(subscriptions, rules, type_it.first, event_it.first, 0, ruleset_name);
         }
     }
 }
 
-void event_manager_t::add_subscriptions(subscription_list_t& subscriptions,
+void event_manager_t::add_subscriptions(
+    subscription_list_t& subscriptions,
     const rule_list_t& rules,
     gaia_type_t gaia_type,
     event_type_t event_type,
@@ -434,8 +425,7 @@ void event_manager_t::add_subscriptions(subscription_list_t& subscriptions,
             rule->rule_name.c_str(),
             gaia_type,
             event_type,
-            field)
-        );
+            field));
     }
 }
 
@@ -454,9 +444,9 @@ void event_manager_t::add_rule(
 
     // Do not allow the caller to bind the same rule to the same rule list.
     // This is most likely a programming error.
-    for (auto rules_it = rules.begin(); rules_it != rules.end(); ++rules_it)
+    for (auto const& rule : rules)
     {
-        if (*rules_it == rule_ptr)
+        if (rule == rule_ptr)
         {
             throw duplicate_rule(binding, false);
         }
@@ -491,8 +481,7 @@ bool event_manager_t::remove_rule(
     if (rule_ptr)
     {
         auto size = rules.size();
-        rules.remove_if([&] (const _rule_binding_t* ptr)
-        {
+        rules.remove_if([&](const _rule_binding_t* ptr) {
             return (ptr == rule_ptr);
         });
         removed_rule = (size != rules.size());
@@ -504,7 +493,8 @@ bool event_manager_t::remove_rule(
 const event_manager_t::_rule_binding_t* event_manager_t::find_rule(const rule_binding_t& binding)
 {
     auto rule_it = m_rules.find(make_rule_key(binding));
-    if (rule_it != m_rules.end()){
+    if (rule_it != m_rules.end())
+    {
         return rule_it->second.get();
     }
 
@@ -521,7 +511,7 @@ std::string event_manager_t::make_rule_key(const rule_binding_t& binding)
 // Enable conversion from rule_binding_t -> internal_rules_binding_t.
 event_manager_t::_rule_binding_t::_rule_binding_t(
     const rule_binding_t& binding)
-: _rule_binding_t(binding.ruleset_name, binding.rule_name, binding.rule)
+    : _rule_binding_t(binding.ruleset_name, binding.rule_name, binding.rule)
 {
 }
 
@@ -537,8 +527,6 @@ event_manager_t::_rule_binding_t::_rule_binding_t(
         rule_name = a_rule_name;
     }
 }
-
-
 
 // Enable construction
 
@@ -589,6 +577,5 @@ void gaia::rules::list_subscribed_rules(
     const uint16_t* field,
     subscription_list_t& subscriptions)
 {
-    event_manager_t::get().list_subscribed_rules(ruleset_name, gaia_type,
-        event_type, field, subscriptions);
+    event_manager_t::get().list_subscribed_rules(ruleset_name, gaia_type, event_type, field, subscriptions);
 }

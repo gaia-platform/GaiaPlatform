@@ -2,8 +2,9 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
-#include "gaia_db.hpp"
 #include "gaia_base.hpp"
+
+#include "gaia_db.hpp"
 
 namespace gaia
 {
@@ -21,7 +22,7 @@ edc_invalid_object_type::edc_invalid_object_type(
 {
     stringstream msg;
     msg << "Requesting Gaia type " << expected_typename << "(" << expected_type << ") but object identified by "
-        << id << " is type " "(" << actual_type << ").";
+        << id << " is type (" << actual_type << ").";
     m_message = msg.str();
 }
 
@@ -65,9 +66,10 @@ edc_already_inserted::edc_already_inserted(
 {
     stringstream msg;
     msg << "The object being inserted is a member of this same list type but a different owner. "
-        "The owner object type is " << parent_type << ", and id is " << parent << ".";
+           "The owner object type is "
+        << parent_type << ", and id is " << parent << ".";
     m_message = msg.str();
 }
 
-} // direct_access
-} // gaia
+} // namespace direct_access
+} // namespace gaia

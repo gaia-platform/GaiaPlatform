@@ -8,24 +8,21 @@
 
 #include <unistd.h>
 
-#include <thread>
 #include <atomic>
+#include <map>
+#include <thread>
 
 #include "gtest/gtest.h"
 
-#include "rules.hpp"
-#include "gaia_system.hpp"
-#include "gaia_addr_book.h"
 #include "db_test_base.hpp"
+#include "event_manager_test_helpers.hpp"
+#include "gaia_addr_book.h"
 #include "gaia_catalog.h"
 #include "gaia_catalog.hpp"
 #include "gaia_catalog_internal.hpp"
-#include "event_manager_test_helpers.hpp"
+#include "gaia_system.hpp"
+#include "rules.hpp"
 #include "timer.hpp"
-
-#include <thread>
-#include <atomic>
-#include <map>
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -128,19 +125,26 @@ void rule_sleep(const rule_context_t*)
     g_wait_for_count--;
 }
 
-extern "C"
-void initialize_rules()
+extern "C" void initialize_rules()
 {
 }
-
 
 // Waits for the rules to be called by checking
 // for the counter to reach 0.
 class rule_monitor_t
 {
 public:
-    rule_monitor_t(int count) { g_wait_for_count = count; }
-    ~rule_monitor_t() { while (g_wait_for_count > 0) { usleep(1); } }
+    explicit rule_monitor_t(int count)
+    {
+        g_wait_for_count = count;
+    }
+    ~rule_monitor_t()
+    {
+        while (g_wait_for_count > 0)
+        {
+            usleep(1);
+        }
+    }
 };
 
 /**
@@ -237,9 +241,12 @@ protected:
 
     // Ensure SetUp and TearDown don't do anything.  When we run the test
     // directly, we only want SetUpTestSuite and TearDownTestSuite
-    void SetUp() override {}
+    void SetUp() override
+    {
+    }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         unsubscribe_rules();
     }
 };
@@ -256,7 +263,6 @@ TEST_F(rule_integration_test, test_insert)
         writer.insert_row();
         g_start = g_timer.get_time_point();
         txn.commit();
-
     }
 
     // Make sure the address was added and updated by the
@@ -292,16 +298,15 @@ TEST_F(rule_integration_test, test_update)
     {
         rule_monitor_t monitor(1);
         auto_transaction_t txn(true);
-            employee_writer writer;
-            writer.name_first = "Ignore";
-            employee_t e = employee_t::get(writer.insert_row());
+        employee_writer writer;
+        writer.name_first = "Ignore";
+        employee_t e = employee_t::get(writer.insert_row());
         txn.commit();
-            writer = e.writer();
-            writer.name_first = c_name;
-            writer.update_row();
+        writer = e.writer();
+        writer.name_first = c_name;
+        writer.update_row();
         g_start = g_timer.get_time_point();
         txn.commit();
-
     }
 }
 
@@ -312,14 +317,14 @@ TEST_F(rule_integration_test, test_update_field)
     {
         rule_monitor_t monitor(1);
         auto_transaction_t txn(true);
-            phone_writer writer;
-            writer.phone_number = "111-1111";
-            phone_t p = phone_t::get(writer.insert_row());
+        phone_writer writer;
+        writer.phone_number = "111-1111";
+        phone_t p = phone_t::get(writer.insert_row());
         txn.commit();
-            writer = p.writer();
-            writer.phone_number = c_phone_number;
-            writer.update_row();
-            g_start = g_timer.get_time_point();
+        writer = p.writer();
+        writer.phone_number = c_phone_number;
+        writer.update_row();
+        g_start = g_timer.get_time_point();
         txn.commit();
     }
 }
@@ -417,7 +422,7 @@ TEST_F(rule_integration_test, test_two_rules)
 // we invoke the sleep function.
 TEST_F(rule_integration_test, test_parallel)
 {
-    const int num_inserts = thread::hardware_concurrency();
+    const size_t num_inserts = thread::hardware_concurrency();
 
     // Don't use the optional_timer_t here because we actually do
     // want to get the duration of the function as part of this test.
@@ -428,7 +433,7 @@ TEST_F(rule_integration_test, test_parallel)
         {
             rule_monitor_t monitor(num_inserts);
             auto_transaction_t txn(false);
-            for (int i = 0; i < num_inserts; i++)
+            for (size_t i = 0; i < num_inserts; i++)
             {
                 employee_t::insert_row("John", "Jones", "111-11-1111", i, nullptr, nullptr);
             }
