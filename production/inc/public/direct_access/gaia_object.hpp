@@ -5,29 +5,33 @@
 
 #pragma once
 
-#include <cstring>
 #include <cstdint>
-#include <list>
-#include "flatbuffers/flatbuffers.h"
-#include "nullable_string.hpp"
+#include <cstring>
 
-#include "gaia_common.hpp"
-#include "gaia_base.hpp"
+#include <list>
+
+#include "flatbuffers/flatbuffers.h"
+
 #include "auto_transaction.hpp"
+#include "gaia_base.hpp"
+#include "gaia_common.hpp"
 #include "gaia_ptr.hpp"
+#include "nullable_string.hpp"
 
 using namespace std;
 using namespace gaia::common;
 using namespace gaia::db;
 
-namespace gaia {
+namespace gaia
+{
 
 /**
  * \addtogroup Gaia
  * @{
  */
 
-namespace direct_access {
+namespace direct_access
+{
 
 /**
  * \addtogroup Direct
@@ -37,11 +41,7 @@ namespace direct_access {
  * for CRUD operations on the database.
  */
 
-template<gaia::db::gaia_type_t T_gaia_type,
-    typename T_gaia,
-    typename T_fb,
-    typename T_obj,
-    size_t N_references>
+template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
 struct gaia_writer_t;
 
 /**
@@ -53,11 +53,7 @@ struct gaia_writer_t;
  * @tparam T_obj the mutable flatbuffer type to be implemented
  * @tparam N_references the number of reference slots this type supports
  */
-template <gaia::db::gaia_type_t T_gaia_type,
-    typename T_gaia,
-    typename T_fb,
-    typename T_obj,
-    size_t N_references>
+template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
 struct gaia_object_t : gaia_base_t
 {
 public:
@@ -78,7 +74,10 @@ public:
      * This can be used when you are passed a gaia_base_t
      * object and want to know the type at runtime.
      */
-    gaia_type_t gaia_type() override { return T_gaia_type; }
+    gaia_type_t gaia_type() override
+    {
+        return T_gaia_type;
+    }
 
     /**
      * Ask for the first object of a flatbuffer type, T_gaia_type.
@@ -124,7 +123,7 @@ public:
     /**
      * Returns true if there is an an underlying storage engine object.
      */
-    operator bool () const;
+    explicit operator bool() const;
 
     /**
      * Returns true if the gaia locator these objects represent
@@ -137,9 +136,9 @@ protected:
      * This constructor supports creating new objects from existing
      * nodes in the database.  It is called by our get_object below.
      */
-    gaia_object_t(gaia_id_t id, const char * gaia_typename);
+    gaia_object_t(gaia_id_t id, const char* gaia_typename);
 
-     /**
+    /**
      * Insert a mutable flatbuffer into a newly created storage engine object. This will be
      * used by the generated type-specific insert_row() method.
      */
@@ -159,11 +158,7 @@ private:
     gaia_ptr m_record;
 };
 
-template <gaia::db::gaia_type_t T_gaia_type,
-    typename T_gaia,
-    typename T_fb,
-    typename T_obj,
-    size_t N_references>
+template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>
 struct gaia_writer_t : public T_obj
 {
     gaia_writer_t() = default;
@@ -182,7 +177,8 @@ struct gaia_writer_t : public T_obj
 private:
     flatbuffers::FlatBufferBuilder m_builder;
 
-    struct {
+    struct
+    {
         gaia_id_t id;
     } m_gaia;
 
@@ -190,9 +186,9 @@ private:
 };
 
 /*@}*/
-} // direct_access
+} // namespace direct_access
 /*@}*/
-} // gaia
+} // namespace gaia
 
 // Pick up our template implementation.  These still
 // need to be in the header so that template specializations

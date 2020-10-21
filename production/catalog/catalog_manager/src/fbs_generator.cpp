@@ -19,8 +19,8 @@ namespace catalog
 {
 
 /**
-* Helper functions
-**/
+ * Helper functions
+ **/
 
 static string generate_fbs_namespace(const string& db_name)
 {
@@ -126,7 +126,7 @@ string generate_fbs(const string& dbname)
     }
     string fbs = generate_fbs_namespace(dbname);
     gaia::db::begin_transaction();
-    for (auto table : gaia_database_t::get(db_id).gaia_table_list())
+    for (auto const& table : gaia_database_t::get(db_id).gaia_table_list())
     {
         fbs += "table " + string(table.name()) + "{\n";
         for (gaia_id_t field_id : list_fields(table.gaia_id()))
@@ -150,10 +150,7 @@ string generate_fbs(const string& db_name, const string& table_name, const ddl::
         {
             continue;
         }
-        string field_fbs = generate_fbs_field(
-            field->name,
-            get_data_type_name(field->type),
-            field->length);
+        string field_fbs = generate_fbs_field(field->name, get_data_type_name(field->type), field->length);
         fbs += field_fbs + ";";
     }
     fbs += "}";
@@ -175,10 +172,8 @@ string generate_bfbs(const string& fbs)
     // The following const defines the line wrap length of the encoded hex text.
     // We do not need this but fbs method requires it.
     constexpr size_t c_binary_schema_hex_text_len = 80;
-    return flatbuffers::BufferToHexText(
-        fbs_parser.builder_.GetBufferPointer(),
-        fbs_parser.builder_.GetSize(),
-        c_binary_schema_hex_text_len, "", "");
+    return flatbuffers::BufferToHexText(fbs_parser.builder_.GetBufferPointer(), fbs_parser.builder_.GetSize(),
+                                        c_binary_schema_hex_text_len, "", "");
 }
 
 string get_bfbs(gaia_id_t table_id)

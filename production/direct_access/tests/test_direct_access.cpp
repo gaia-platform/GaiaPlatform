@@ -169,7 +169,7 @@ TEST_F(gaia_object_test, read_back_scan)
 }
 
 // Used twice, below
-void UpdateReadBack(bool update_flag)
+void update_read_back(bool update_flag)
 {
     auto_transaction_t txn;
     create_employee("Howard");
@@ -225,13 +225,13 @@ void UpdateReadBack(bool update_flag)
 // Create, write two rows, set fields, update, read, verify
 TEST_F(gaia_object_test, update_read_back)
 {
-    UpdateReadBack(true);
+    update_read_back(true);
 }
 
 // Create, write two rows, set fields, update, read, verify
 TEST_F(gaia_object_test, no_update_read_back)
 {
-    UpdateReadBack(false);
+    update_read_back(false);
 }
 
 // Delete an inserted object then insert after; the new row is good.
@@ -797,7 +797,7 @@ TEST_F(gaia_object_test, default_construction)
         EXPECT_THROW(e.writer(), invalid_node_id);
         EXPECT_THROW(e.delete_row(), invalid_node_id);
 
-        for (auto a : e.addressee_address_list())
+        for (auto const& a : e.addressee_address_list())
         {
             printf("%s\n", a.state());
         }

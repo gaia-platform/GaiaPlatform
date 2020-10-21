@@ -57,22 +57,13 @@ TEST_F(gaia_generate_test, airport_example)
     // Create one segment with source and destination airports. This segment
     // flies from Denver to Chicago. A segment 888 miles long, no status, no
     // miles flown.
-    auto seg = gaia::airport::segment_t::get(
-        gaia::airport::segment_t::insert_row(
-            888,
-            0,
-            0));
+    const int32_t c_miles1 = 888;
+    auto seg = gaia::airport::segment_t::get(gaia::airport::segment_t::insert_row(c_miles1, 0, 0));
     // An airport.
-    auto ap1 = gaia::airport::airport_t::get(
-        gaia::airport::airport_t::insert_row(
-            "Denver International",
-            "Denver",
-            "DEN"));
+    auto ap1
+        = gaia::airport::airport_t::get(gaia::airport::airport_t::insert_row("Denver International", "Denver", "DEN"));
     auto ap2 = gaia::airport::airport_t::get(
-        gaia::airport::airport_t::insert_row(
-            "Chicago O'Hare International",
-            "Chicago",
-            "ORD"));
+        gaia::airport::airport_t::insert_row("Chicago O'Hare International", "Chicago", "ORD"));
     // Connect the segment to the source and destination airports.
     ap1.src_segment_list().insert(seg);
     ap2.dst_segment_list().insert(seg);
@@ -80,17 +71,16 @@ TEST_F(gaia_generate_test, airport_example)
 
     begin_transaction();
     // A 606 mile segment.
-    auto seg2 = gaia::airport::segment_t::get(gaia::airport::segment_t::insert_row(606, 0, 0));
+    const int c_miles2 = 606;
+    auto seg2 = gaia::airport::segment_t::get(gaia::airport::segment_t::insert_row(c_miles2, 0, 0));
     auto ap3 = gaia::airport::airport_t::get(
-        gaia::airport::airport_t::insert_row(
-            "Atlanta International",
-            "Atlanta",
-            "ATL"));
+        gaia::airport::airport_t::insert_row("Atlanta International", "Atlanta", "ATL"));
     ap2.src_segment_list().insert(seg2);
     ap3.dst_segment_list().insert(seg2);
 
     // Create the flight #58 that spans two segments.
-    auto f1 = gaia::airport::flight_t::get(gaia::airport::flight_t::insert_row(58, 0));
+    const int c_flight = 58;
+    auto f1 = gaia::airport::flight_t::get(gaia::airport::flight_t::insert_row(c_flight, 0));
     // Insert both segments to the flight's list of segments.
     f1.segment_list().insert(seg);
     f1.segment_list().insert(seg2);
@@ -106,21 +96,18 @@ TEST_F(gaia_generate_test, airport_example)
             auto src_airport = segment.src_airport();
             auto dst_airport = segment.dst_airport();
             ss << "Source airport: " << src_airport.name() << endl;
-            ss << "Destination airport: " << dst_airport.name() << endl
-               << endl;
+            ss << "Destination airport: " << dst_airport.name() << endl << endl;
         }
     }
     commit_transaction();
 
-    EXPECT_NE(ss.str().find(string(
-                  "Segment distance: 888\n"
-                  "Source airport: Denver International\n"
-                  "Destination airport: Chicago O'Hare International\n")),
+    EXPECT_NE(ss.str().find(string("Segment distance: 888\n"
+                                   "Source airport: Denver International\n"
+                                   "Destination airport: Chicago O'Hare International\n")),
               string::npos);
 
-    EXPECT_NE(ss.str().find(string(
-                  "Segment distance: 606\n"
-                  "Source airport: Chicago O'Hare International\n"
-                  "Destination airport: Atlanta International\n")),
+    EXPECT_NE(ss.str().find(string("Segment distance: 606\n"
+                                   "Source airport: Chicago O'Hare International\n"
+                                   "Destination airport: Atlanta International\n")),
               string::npos);
 }
