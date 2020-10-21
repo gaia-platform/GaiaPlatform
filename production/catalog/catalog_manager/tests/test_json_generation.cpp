@@ -37,14 +37,15 @@ protected:
 
 field_def_list_t json_generation_test::test_table_fields{};
 
-constexpr char c_expected_json[] = "{\n" // NOLINT
-                                   "id:0,\n"
-                                   "name:\"\",\n"
-                                   "value:0.0,\n"
-                                   "is_active:false,\n"
-                                   "phone_numbers:[\"\"],\n"
-                                   "last_zipcodes:[0]\n"
-                                   "}\n";
+constexpr char c_expected_json[] // NOLINT
+    = "{\n"
+      "id:0,\n"
+      "name:\"\",\n"
+      "value:0.0,\n"
+      "is_active:false,\n"
+      "phone_numbers:[\"\"],\n"
+      "last_zipcodes:[0]\n"
+      "}\n";
 
 void validate_through_flatbuffers_parser(string fbs, string json)
 {
