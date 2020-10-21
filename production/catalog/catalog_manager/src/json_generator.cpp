@@ -38,7 +38,7 @@ static string generate_json_field(const string& name, const string& default_type
     else
     {
         stringstream string_stream;
-        string_stream << name + ":[" + default_type_value;
+        string_stream << name << ":[" << default_type_value;
 
         for (int i = 1; i < count; ++i)
         {
