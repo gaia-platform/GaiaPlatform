@@ -140,10 +140,11 @@ struct gaia_table_t : public gaia_object_t<18446744073709551614llu,gaia_table_t,
     const char* name() const {return GET_STR(name);}
     bool is_log() const {return GET(is_log);}
     const char* binary_schema() const {return GET_STR(binary_schema);}
+    const char* serialization_template() const {return GET_STR(serialization_template);}
     using gaia_object_t::insert_row;
-    static gaia_id_t insert_row(const char* name, bool is_log, const char* binary_schema) {
+    static gaia_id_t insert_row(const char* name, bool is_log, const char* binary_schema, const char* serialization_template) {
         flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
-        b.Finish(Creategaia_tableDirect(b, name, is_log, binary_schema));
+        b.Finish(Creategaia_tableDirect(b, name, is_log, binary_schema, serialization_template));
         return gaia_object_t::insert_row(b);
     }
     gaia_database_t gaia_database() {
@@ -204,4 +205,3 @@ private:
 }  // namespace gaia
 
 #endif  // GAIA_GENERATED_catalog_H_
-
