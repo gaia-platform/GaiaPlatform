@@ -37,7 +37,7 @@ protected:
 
 field_def_list_t json_generation_test::test_table_fields{};
 
-constexpr char c_expected_json[] = "{\n"
+constexpr char c_expected_json[] = "{\n" // NOLINT
                                    "id:0,\n"
                                    "name:\"\",\n"
                                    "value:0.0,\n"

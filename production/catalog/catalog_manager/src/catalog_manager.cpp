@@ -452,8 +452,8 @@ gaia_id_t catalog_manager_t::create_table_impl(
             }
             else if (!dbname.empty() && m_table_names.count(dbname + "." + field->table_type_name))
             {
-                // A table definition can reference existing tables in its own database without specifying the database
-                // name.
+                // A table definition can reference existing tables in its own database
+                // without specifying the database name.
                 field_type_id = m_table_names[dbname + "." + field->table_type_name];
             }
             else
