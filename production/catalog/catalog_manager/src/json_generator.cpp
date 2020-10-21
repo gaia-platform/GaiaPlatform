@@ -166,8 +166,8 @@ string generate_bin(const string& fbs, const string& json)
     // The following const defines the line wrap length of the encoded hex text.
     // We do not need this but fbs method requires it.
     constexpr size_t c_encoding_hex_text_len = 80;
-    return flatbuffers::BufferToHexText(parser.builder_.GetBufferPointer(), parser.builder_.GetSize(),
-                                        c_encoding_hex_text_len, "", "");
+    return flatbuffers::BufferToHexText(
+        parser.builder_.GetBufferPointer(), parser.builder_.GetSize(), c_encoding_hex_text_len, "", "");
 }
 
 string get_bin(gaia_id_t table_id)

@@ -143,7 +143,8 @@ void catalog_manager_t::bootstrap_catalog()
         // The "ref" named reference to the gaia_table defines the referential relationship.
         fields.emplace_back(make_unique<field_definition_t>("ref", data_type_t::e_references, 1, "catalog.gaia_table"));
         create_table_impl(
-            "catalog", "gaia_field", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_field));
+            "catalog", "gaia_field", fields, false, false, // NOLINT
+            static_cast<gaia_id_t>(catalog_table_type_t::gaia_field));
     }
     {
         // create table gaia_ruleset (
@@ -174,7 +175,8 @@ void catalog_manager_t::bootstrap_catalog()
         fields.emplace_back(
             make_unique<field_definition_t>(c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_ruleset"));
         create_table_impl(
-            "catalog", "gaia_rule", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_rule));
+            "catalog", "gaia_rule", fields, false, false, // NOLINT
+            static_cast<gaia_id_t>(catalog_table_type_t::gaia_rule));
     }
 }
 
@@ -198,7 +200,8 @@ void catalog_manager_t::create_system_tables()
         fields.emplace_back(make_unique<field_definition_t>("timestamp", data_type_t::e_uint64, 1));
         fields.emplace_back(make_unique<field_definition_t>("rules_invoked", data_type_t::e_bool, 1));
         create_table_impl(
-            "event_log", "event_log", fields, true, false, static_cast<gaia_id_t>(system_table_type_t::event_log));
+            "event_log", "event_log", fields, true, false, // NOLINT
+            static_cast<gaia_id_t>(system_table_type_t::event_log));
     }
 }
 
@@ -361,8 +364,8 @@ static gaia_ptr insert_gaia_table_row(
     fbb.Finish(Creategaia_tableDirect(fbb, name, is_log, binary_schema, serialization_template));
 
     return gaia_ptr::create(
-        table_id, static_cast<gaia_type_t>(catalog_table_type_t::gaia_table), c_gaia_table_num_refs, fbb.GetSize(),
-        fbb.GetBufferPointer());
+        table_id, static_cast<gaia_type_t>(catalog_table_type_t::gaia_table), c_gaia_table_num_refs, // NOLINT
+        fbb.GetSize(), fbb.GetBufferPointer());
 }
 
 gaia_id_t catalog_manager_t::create_table_impl(
@@ -445,8 +448,8 @@ gaia_id_t catalog_manager_t::create_table_impl(
             }
             else if (!dbname.empty() && m_table_names.count(dbname + "." + field->table_type_name))
             {
-                // A table definition can reference existing tables in its own database without specifying the database
-                // name.
+                // A table definition can reference existing tables in its own database
+                // without specifying the database name.
                 field_type_id = m_table_names[dbname + "." + field->table_type_name];
             }
             else
