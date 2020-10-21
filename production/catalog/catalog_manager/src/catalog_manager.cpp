@@ -355,7 +355,12 @@ void catalog_manager_t::drop_table(const string& db_name, const string& name)
     m_table_names.erase(full_table_name);
 }
 
-static gaia_ptr insert_gaia_table_row(gaia_id_t table_id, const char* name, bool is_log, const char* binary_schema, const char* serialization_template)
+static gaia_ptr insert_gaia_table_row(
+    gaia_id_t table_id,
+    const char* name,
+    bool is_log,
+    const char* binary_schema,
+    const char* serialization_template)
 {
 
     // NOTE: The number of table references must be updated manually for bootstrapping,
