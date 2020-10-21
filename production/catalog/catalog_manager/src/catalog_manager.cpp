@@ -117,8 +117,7 @@ void catalog_manager_t::bootstrap_catalog()
         fields.emplace_back(
             make_unique<field_definition_t>(c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_database"));
         create_table_impl(
-            "catalog", "gaia_table", fields, false, false,
-            static_cast<gaia_id_t>(catalog_table_type_t::gaia_table));
+            "catalog", "gaia_table", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_table));
     }
     {
         // create table gaia_field (
@@ -144,8 +143,7 @@ void catalog_manager_t::bootstrap_catalog()
         // The "ref" named reference to the gaia_table defines the referential relationship.
         fields.emplace_back(make_unique<field_definition_t>("ref", data_type_t::e_references, 1, "catalog.gaia_table"));
         create_table_impl(
-            "catalog", "gaia_field", fields, false, false, // NOLINT
-            static_cast<gaia_id_t>(catalog_table_type_t::gaia_field));
+            "catalog", "gaia_field", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_field));
     }
     {
         // create table gaia_ruleset (
