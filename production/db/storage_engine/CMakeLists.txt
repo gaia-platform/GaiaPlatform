@@ -40,7 +40,8 @@ set(GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 # The names of the following source files should be unique because they'll be used as targets.
 set(FBS_SOURCES
   "${PROJECT_SOURCE_DIR}/src/flatbuffers/messages.fbs"
-  "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_table.fbs")
+  "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_table.fbs"
+  "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_field.fbs")
 
 foreach(FBS_SOURCE ${FBS_SOURCES})
   get_filename_component(FBS_SOURCE_FILENAME ${FBS_SOURCE} NAME)
@@ -80,7 +81,7 @@ add_library(gaia_se_client STATIC
   src/storage_engine.cpp
   src/storage_engine_client.cpp
   src/type_metadata.cpp)
-add_dependencies(gaia_se_client "messages.fbs" "gaia_table.fbs")
+add_dependencies(gaia_se_client "messages.fbs" "gaia_table.fbs" "gaia_field.fbs")
 target_include_directories(gaia_se_client PUBLIC ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES})
 target_include_directories(gaia_se_client PRIVATE ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES})
 

@@ -21,16 +21,10 @@ namespace db
 class gaia_field_t
 {
 private:
-    static constexpr gaia_type_t m_gaia_field_type = static_cast<gaia_type_t>(catalog_table_type_t::gaia_field);
-    static constexpr field_position_t m_name_position = 0;
-    static constexpr field_position_t m_type_position = 1;
-    static constexpr field_position_t m_position_position = 3;
-
     const uint8_t* m_payload;
-    const uint8_t* m_schema;
 
 public:
-    gaia_field_t(const uint8_t* payload, const uint8_t* schema);
+    explicit gaia_field_t(const uint8_t* payload);
     [[nodiscard]] const char* name() const;
     [[nodiscard]] data_type_t type() const;
     [[nodiscard]] field_position_t position() const;
