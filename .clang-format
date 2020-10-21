@@ -25,8 +25,8 @@ ConstructorInitializerIndentWidth: 4
 AllowShortFunctionsOnASingleLine: None
 
 # If false, all arguments will either be all on the same line or will have one line each.
-BinPackArguments: true
-BinPackParameters: true
+BinPackArguments: false
+BinPackParameters: false
 AlignAfterOpenBracket: AlwaysBreak
 AllowAllArgumentsOnNextLine: true
 AllowAllParametersOfDeclarationOnNextLine: true

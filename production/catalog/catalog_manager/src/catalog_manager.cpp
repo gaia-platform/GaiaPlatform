@@ -98,7 +98,11 @@ void catalog_manager_t::bootstrap_catalog()
         field_def_list_t fields;
         fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
         create_table_impl(
-            "catalog", "gaia_database", fields, false, false,
+            "catalog",
+            "gaia_database",
+            fields,
+            false,
+            false,
             static_cast<gaia_id_t>(catalog_table_type_t::gaia_database));
     }
     {
@@ -160,7 +164,11 @@ void catalog_manager_t::bootstrap_catalog()
         fields.emplace_back(make_unique<field_definition_t>("source_location", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<field_definition_t>("serial_stream", data_type_t::e_string, 1));
         create_table_impl(
-            "catalog", "gaia_ruleset", fields, false, false,
+            "catalog",
+            "gaia_ruleset",
+            fields,
+            false,
+            false,
             static_cast<gaia_id_t>(catalog_table_type_t::gaia_ruleset));
     }
     {
@@ -174,7 +182,11 @@ void catalog_manager_t::bootstrap_catalog()
         fields.emplace_back(
             make_unique<field_definition_t>(c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_ruleset"));
         create_table_impl(
-            "catalog", "gaia_rule", fields, false, false, // NOLINT
+            "catalog",
+            "gaia_rule",
+            fields,
+            false,
+            false, // NOLINT
             static_cast<gaia_id_t>(catalog_table_type_t::gaia_rule));
     }
 }
@@ -199,7 +211,11 @@ void catalog_manager_t::create_system_tables()
         fields.emplace_back(make_unique<field_definition_t>("timestamp", data_type_t::e_uint64, 1));
         fields.emplace_back(make_unique<field_definition_t>("rules_invoked", data_type_t::e_bool, 1));
         create_table_impl(
-            "event_log", "event_log", fields, true, false, // NOLINT
+            "event_log",
+            "event_log",
+            fields,
+            true,
+            false, // NOLINT
             static_cast<gaia_id_t>(system_table_type_t::event_log));
     }
 }
@@ -363,12 +379,19 @@ static gaia_ptr insert_gaia_table_row(
     fbb.Finish(Creategaia_tableDirect(fbb, name, is_log, binary_schema, serialization_template));
 
     return gaia_ptr::create(
-        table_id, static_cast<gaia_type_t>(catalog_table_type_t::gaia_table), c_gaia_table_num_refs, // NOLINT
-        fbb.GetSize(), fbb.GetBufferPointer());
+        table_id,
+        static_cast<gaia_type_t>(catalog_table_type_t::gaia_table),
+        c_gaia_table_num_refs, // NOLINT
+        fbb.GetSize(),
+        fbb.GetBufferPointer());
 }
 
 gaia_id_t catalog_manager_t::create_table_impl(
-    const string& dbname, const string& table_name, const field_def_list_t& fields, bool is_log, bool throw_on_exist,
+    const string& dbname,
+    const string& table_name,
+    const field_def_list_t& fields,
+    bool is_log,
+    bool throw_on_exist,
     gaia_id_t id)
 {
 
