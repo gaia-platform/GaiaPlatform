@@ -26,10 +26,10 @@ gaia_ptr gaia_ptr::create(gaia_type_t type, size_t data_size, const void* data)
 
     gaia_id_t id = gaia_ptr::generate_id();
 
-    // TODO we should use get() instead of get_or_create() because by
+    // TODO we should use get() instead of get() because by
     //   the time we get here the metadata should have already been
     //   created by the registry. Some tests though skip the registry.
-    auto metadata = type_registry_t::instance().get_or_create(type);
+    auto& metadata = type_registry_t::instance().get(type);
     size_t num_references = metadata.num_references();
 
     return create(id, type, num_references, data_size, data);
@@ -38,7 +38,7 @@ gaia_ptr gaia_ptr::create(gaia_type_t type, size_t data_size, const void* data)
 gaia_ptr gaia_ptr::create(gaia_id_t id, gaia_type_t type, size_t data_size, const void* data)
 {
 
-    auto metadata = type_registry_t::instance().get_or_create(type);
+    auto& metadata = type_registry_t::instance().get(type);
     size_t num_references = metadata.num_references();
 
     return create(id, type, num_references, data_size, data);
@@ -253,7 +253,7 @@ gaia_ptr::get_id_generator_for_type(gaia_type_t type)
 void gaia_ptr::add_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset)
 {
     gaia_type_t parent_type = type();
-    auto parent_metadata = type_registry_t::instance().get(parent_type);
+    auto& parent_metadata = type_registry_t::instance().get(parent_type);
     auto relationship = parent_metadata.find_parent_relationship(first_child_offset);
 
     if (!relationship)
@@ -323,7 +323,7 @@ void gaia_ptr::add_parent_reference(gaia_id_t parent_id, reference_offset_t pare
 {
     gaia_type_t child_type = type();
 
-    auto child_metadata = type_registry_t::instance().get(child_type);
+    auto& child_metadata = type_registry_t::instance().get(child_type);
     auto child_relationship = child_metadata.find_child_relationship(parent_offset);
 
     if (!child_relationship)
@@ -344,7 +344,7 @@ void gaia_ptr::add_parent_reference(gaia_id_t parent_id, reference_offset_t pare
 void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset)
 {
     gaia_type_t parent_type = type();
-    auto parent_metadata = type_registry_t::instance().get(parent_type);
+    auto& parent_metadata = type_registry_t::instance().get(parent_type);
     auto relationship = parent_metadata.find_parent_relationship(first_child_offset);
 
     if (!relationship)
@@ -418,7 +418,7 @@ void gaia_ptr::remove_parent_reference(gaia_id_t parent_id, reference_offset_t p
 {
     gaia_type_t child_type = type();
 
-    auto child_metadata = type_registry_t::instance().get(child_type);
+    auto& child_metadata = type_registry_t::instance().get(child_type);
     auto relationship = child_metadata.find_child_relationship(parent_offset);
 
     if (!relationship)

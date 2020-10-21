@@ -110,10 +110,10 @@ public:
             .cardinality = this->m_cardinality,
             .parent_required = this->m_parent_required});
 
-        auto& parent_meta = type_registry_t::instance().get_or_create(m_parent_type);
+        auto& parent_meta = type_registry_t::instance().get(m_parent_type);
         parent_meta.add_parent_relationship(m_first_child_offset, rel);
 
-        auto& child_meta = type_registry_t::instance().get_or_create(m_child_type);
+        auto& child_meta = type_registry_t::instance().get(m_child_type);
         child_meta.add_child_relationship(m_parent_offset, rel);
     }
 
@@ -141,7 +141,7 @@ private:
 gaia_ptr create_object(gaia_type_t type, size_t data_size, const void* data)
 {
     gaia_id_t id = gaia_ptr::generate_id();
-    auto metadata = type_registry_t::instance().get(type);
+    auto& metadata = type_registry_t::instance().get(type);
     size_t num_references = metadata.num_references();
     return gaia_ptr::create(id, type, num_references, data_size, data);
 }

@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <shared_mutex>
@@ -17,8 +18,12 @@
 using namespace std;
 using namespace gaia::common;
 
-namespace gaia::db
+namespace gaia
 {
+namespace db
+{
+
+class type_registry_t;
 
 /**
  * Contains metadata about a specific gaia type.
@@ -27,7 +32,7 @@ class type_metadata_t
 {
 public:
     explicit type_metadata_t(gaia_type_t type)
-        : m_type(type){};
+        : m_type(type), initialized(false){};
 
     gaia_type_t get_type() const;
 
@@ -65,9 +70,17 @@ public:
 private:
     gaia_type_t m_type;
 
-    // the relationship_t objects are shared between the parent and the child side of the relationship.
+    // type_registry_t creates the instances of this object. Sometimes instances of this object are
+    // created without filling all the details.
+    std::atomic_bool initialized;
+
+    // The relationship_t objects are shared between the parent and the child side of the relationship.
     unordered_map<reference_offset_t, shared_ptr<relationship_t>> m_parent_relationships;
     unordered_map<reference_offset_t, shared_ptr<relationship_t>> m_child_relationships;
+
+    friend class type_registry_t;
+    bool is_initialized();
+    void set_initialized();
 };
 
 class duplicate_metadata : public gaia_exception
@@ -93,9 +106,13 @@ public:
 };
 
 /**
- * Maintain the instances of type_metadata_t and manages their lifecycle.
- * type_metadata_t should be created/edited/deleted only by the catalog (with
- * the exception of tests).
+ * Creates and maintain the instances of type_metadata_t and manages their lifecycle.
+ * Instances of type_metadata_t are lazily created the first time the corresponding
+ * gaia_type_t is accessed.
+ *
+ * Note: this class assumes that the Catalog cannot change during the execution of
+ * a Gaia application. Changing the Catalog leads to a system restart and a recompilation
+ * of the EDC classes. This will change after 11/2020 release.
  */
 class type_registry_t
 {
@@ -113,20 +130,6 @@ public:
 
     /**
      * Returns an instance of type_metadata_t. If no metadata exists for the
-     * given type, throws an exception. It should be used in those when
-     * the presence of the metadata is expected (eg. gaia_ptr).
-     *
-     * This method acquires a shared lock thus should be faster than get_or_create.
-     *
-     * @throws metadata_not_found
-     */
-    type_metadata_t& get(gaia_type_t type);
-
-    // TODO the two following function should be called only by the registry.
-    //  Need to figure the best way to do so (friend class?)
-
-    /**
-     * Returns an instance of type_metadata_t. If no metadata exists for the
      * given type, a new instance is created and returned.
      *
      * Clients are NOT allowed to modify the returned metadata, use update()
@@ -134,29 +137,7 @@ public:
      *
      * The registry owns the lifecycle of this object.
      */
-    type_metadata_t& get_or_create(gaia_type_t type);
-
-    /**
-     * Add metadata to the registry. The registry owns the lifecycle of this object.
-     */
-    // TODO should this be unique_ptr to communicate the transfer of ownership?
-    void add(type_metadata_t* metadata);
-
-    /**
-     * Update the metadata.
-     *
-     * @param type the type that is being updated
-     * @param update_op update operation run in a thread safe fashion
-     * @throws metadata_not_found
-     */
-    void update(gaia_type_t type, std::function<void(type_metadata_t&)> update_op);
-
-    /**
-     * Removes the medata.
-     *
-     * @throws metadata_not_found
-     */
-    void remove(gaia_type_t type);
+    type_metadata_t& get(gaia_type_t type);
 
     // TESTING
 
@@ -168,10 +149,15 @@ public:
 private:
     type_registry_t() = default;
 
+    type_metadata_t& create(gaia_type_t table_id);
+
+    type_metadata_t& get_or_create_no_lock(gaia_type_t type);
+
     unordered_map<gaia_type_t, unique_ptr<type_metadata_t>> m_metadata_registry;
 
     //ensures exclusive access to the registry
     shared_mutex m_registry_lock;
 };
 
-} // namespace gaia::db
+} // namespace db
+} // namespace gaia

@@ -66,8 +66,8 @@ TEST_F(gaia_relationships_test, metadata_one_to_one)
         .child(c_patient_type)
         .create_relationship();
 
-    auto parent = test_registry.get(c_doctor_type);
-    auto child = test_registry.get(c_patient_type);
+    auto& parent = test_registry.get(c_doctor_type);
+    auto& child = test_registry.get(c_patient_type);
 
     ASSERT_EQ(parent.get_type(), c_doctor_type);
     ASSERT_EQ(child.get_type(), c_patient_type);
@@ -102,7 +102,7 @@ TEST_F(gaia_relationships_test, child_relation_do_not_use_next_child)
         .child(c_patient_type)
         .create_relationship();
 
-    auto child = test_registry.get(c_patient_type);
+    auto& child = test_registry.get(c_patient_type);
     // although next_patient offset exists in child, it is not the one used
     // to identify the relation
     auto child_rel = child.find_child_relationship(c_next_patient_offset);

@@ -5,8 +5,9 @@
 #pragma once
 
 #include <shared_mutex>
+#include <string>
 #include <unordered_map>
-#include <utility>
+#include <vector>
 
 #include "gaia_catalog.hpp"
 
@@ -85,8 +86,6 @@ private:
     void clear_cache();
     // Reload all the caches from catalog records in storage engine.
     void reload_cache();
-    // Reload metadata
-    void reload_metadata();
 
     // Bootstrap catalog with its own tables.
     void bootstrap_catalog();

@@ -119,7 +119,7 @@ TEST_F(gaia_se_references_test, add_child_reference__invalid_relation_type_paren
     constexpr reference_offset_t c_next_address_offset = 0;
     constexpr reference_offset_t c_parent_patient_offset = 1;
 
-    type_registry_t::instance().add(new type_metadata_t(c_address_type));
+    type_registry_t::instance().get(c_address_type);
 
     test_relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
@@ -151,7 +151,7 @@ TEST_F(gaia_se_references_test, add_child_reference__invalid_relation_type_child
     begin_transaction();
 
     constexpr gaia_type_t c_clinic_type = 101;
-    type_registry_t::instance().add(new type_metadata_t(c_clinic_type));
+    type_registry_t::instance().get(c_clinic_type);
 
     test_relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
@@ -427,7 +427,7 @@ TEST_F(gaia_se_references_test, remove_child_reference__invalid_relation_type_pa
     constexpr reference_offset_t c_next_address_offset = 0;
     constexpr reference_offset_t c_parent_patient_offset = 1;
 
-    type_registry_t::instance().add(new type_metadata_t(c_address_type));
+    type_registry_t::instance().get(c_address_type);
 
     test_relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
@@ -459,7 +459,7 @@ TEST_F(gaia_se_references_test, remove_child_reference__invalid_relation_type_ch
     begin_transaction();
 
     constexpr gaia_type_t c_clinic_type = 101;
-    type_registry_t::instance().add(new type_metadata_t(c_clinic_type));
+    type_registry_t::instance().get(c_clinic_type);
 
     test_relationship_builder_t::one_to_one()
         .parent(c_doctor_type)

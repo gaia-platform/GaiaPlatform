@@ -561,7 +561,7 @@ TEST_F(catalog_manager_test, metadata)
     for (gaia_id_t table_id : table_ids)
     {
         gaia_table_t child_table = gaia_table_t::get(table_id);
-        type_metadata_t metadata = type_registry_t::instance().get(child_table.gaia_id());
+        type_metadata_t& metadata = type_registry_t::instance().get(child_table.gaia_id());
 
         for (gaia_field_t field : child_table.gaia_field_list())
         {

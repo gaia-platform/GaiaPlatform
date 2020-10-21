@@ -57,3 +57,5 @@ IncludeCategories:
 KeepEmptyLinesAtTheStartOfBlocks: true
 SpaceAfterCStyleCast: false
 ContinuationIndentWidth: 4
+
+MaxEmptyLinesToKeep: 1

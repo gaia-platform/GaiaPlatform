@@ -8,11 +8,9 @@
 
 #include "fbs_generator.hpp"
 #include "gaia_catalog.h"
-#include "gaia_exception.hpp"
 #include "logger.hpp"
 #include "retail_assert.hpp"
 #include "system_table_types.hpp"
-#include "type_metadata.hpp"
 
 using namespace gaia::catalog::ddl;
 
@@ -232,7 +230,6 @@ void catalog_manager_t::create_system_tables()
 void catalog_manager_t::init()
 {
     reload_cache();
-    reload_metadata();
     bootstrap_catalog();
     create_system_tables();
     m_empty_db_id = create_database(c_empty_db_name, false);
@@ -259,55 +256,6 @@ void catalog_manager_t::reload_cache()
     {
         string full_table_name = string(table.gaia_database().name()) + "." + string(table.name());
         m_table_names[full_table_name] = table.gaia_id();
-    }
-    gaia::db::commit_transaction();
-}
-
-void register_table_in_metadata(gaia_id_t table_id)
-{
-    // TODO I think that instead of keep polluting the Catalog code with responsibilities
-    //  we should aim towards a pub-sub architecture. The catalog publishes events when
-    //  something changes; the subscribers (caches, metadata, etc..) get notified and act
-    //  accordingly. This way the catalog does only one job. Chuan mentioned that something
-    //  similar is available in the SE (triggers?).
-    gaia_table_t child_table = gaia_table_t::get(table_id);
-
-    auto& metadata = type_registry_t::instance().get_or_create(table_id);
-
-    for (auto& field : child_table.gaia_field_list())
-    {
-        if (field.type() == static_cast<uint8_t>(data_type_t::e_references))
-        {
-            for (auto& relationship : field.child_gaia_relationship_list())
-            {
-                gaia_table_t parent_table = relationship.parent_gaia_table();
-
-                auto rel = make_shared<relationship_t>(relationship_t{
-                    .parent_type = parent_table.gaia_id(),
-                    .child_type = child_table.gaia_id(),
-                    .first_child_offset = relationship.first_child_offset(),
-                    .next_child_offset = relationship.next_child_offset(),
-                    .parent_offset = relationship.parent_offset(),
-                    .cardinality = cardinality_t::many,
-                    .parent_required = false});
-
-                auto& parent_meta = type_registry_t::instance().get_or_create(parent_table.gaia_id());
-                parent_meta.add_parent_relationship(relationship.first_child_offset(), rel);
-
-                metadata.add_child_relationship(relationship.parent_offset(), rel);
-            }
-        }
-    }
-}
-
-void catalog_manager_t::reload_metadata()
-{
-    gaia::db::begin_transaction();
-    type_registry_t::instance().clear();
-
-    for (const auto& table : gaia_table_t::list())
-    {
-        register_table_in_metadata(table.gaia_id());
     }
     gaia::db::commit_transaction();
 }
@@ -521,7 +469,6 @@ void catalog_manager_t::drop_table(
     {
         // Invalidate catalog caches.
         m_table_names.erase(full_table_name);
-        type_registry_t::instance().remove(table_id);
     }
 }
 
@@ -752,8 +699,6 @@ gaia_id_t catalog_manager_t::create_table_impl(
             parent_table.parent_gaia_relationship_list().insert(relationship_id);
         }
     }
-
-    register_table_in_metadata(table_id);
     gaia::db::commit_transaction();
 
     m_table_names[full_table_name] = table_id;
