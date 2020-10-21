@@ -25,9 +25,11 @@ public:
     void log(bool print_header);
 
 private:
+    static const int c_percent = 100;
+    static const int c_nanoseconds_per_s = 1e9;
     int64_t m_log_interval_ns;
     size_t m_count_worker_threads;
 };
 
-} // rules
-} // gaia
+} // namespace rules
+} // namespace gaia

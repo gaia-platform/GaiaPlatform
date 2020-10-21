@@ -68,7 +68,8 @@ void event_manager_t::init(event_manager_settings_t& settings)
     {
         m_rule_checker = make_unique<rule_checker_t>();
     }
-    m_stats_manager.initialize(settings.enable_rule_stats, m_invocations->get_num_threads(), settings.stats_log_interval);
+    m_stats_manager.initialize(settings.enable_rule_stats, m_invocations->get_num_threads(),
+                               settings.stats_log_interval);
 
     auto fn = [](gaia_txn_id_t txn_id, const trigger_event_list_t& event_list) {
         event_manager_t::get().commit_trigger(txn_id, event_list);
@@ -78,10 +79,8 @@ void event_manager_t::init(event_manager_settings_t& settings)
     m_is_initialized = true;
 }
 
-bool event_manager_t::process_last_operation_events(
-    event_binding_t& binding,
-    const trigger_event_t& event,
-    steady_clock::time_point& start_time)
+bool event_manager_t::process_last_operation_events(event_binding_t& binding, const trigger_event_t& event,
+                                                    steady_clock::time_point& start_time)
 {
     bool rules_invoked = false;
     rule_list_t& rules = binding.last_operation_rules;
@@ -89,7 +88,7 @@ bool event_manager_t::process_last_operation_events(
     for (auto const& binding : rules)
     {
         rules_invoked = true;
-        enqueue_invocation(event, binding->rule, start_time);
+        enqueue_invocation(event, binding, start_time);
     }
 
     return rules_invoked;
@@ -120,7 +119,7 @@ bool event_manager_t::process_field_events(event_binding_t& binding, const trigg
             for (auto const& binding : rules)
             {
                 rules_invoked = true;
-                enqueue_invocation(event, binding->rule, start_time);
+                enqueue_invocation(event, binding, start_time);
             }
         }
     }
@@ -182,36 +181,25 @@ void event_manager_t::commit_trigger(gaia_txn_id_t, const trigger_event_list_t& 
     enqueue_invocation(trigger_event_list, rules_invoked_list, start_time);
 }
 
-void event_manager_t::enqueue_invocation(
-    const trigger_event_list_t& events,
-    const vector<bool>& rules_invoked_list,
-    steady_clock::time_point& start_time)
+void event_manager_t::enqueue_invocation(const trigger_event_list_t& events, const vector<bool>& rules_invoked_list,
+                                         steady_clock::time_point& start_time)
 {
     rule_thread_pool_t::log_events_invocation_t event_invocation{events, rules_invoked_list};
-    rule_thread_pool_t::invocation_t invocation{
+    rule_thread_pool_t::invocation_t invocation
+    {
         rule_thread_pool_t::invocation_type_t::log_events,
-        std::move(event_invocation),
-        s_gaia_log_event_rule,
-        start_time
+        std::move(event_invocation), s_gaia_log_event_rule, start_time
     };
     m_invocations->enqueue(invocation);
 }
 
 void event_manager_t::enqueue_invocation(const trigger_event_t& event, const _rule_binding_t* rule_binding,
-    steady_clock::time_point& start_time)
+                                         steady_clock::time_point& start_time)
 {
-    rule_thread_pool_t::rule_invocation_t rule_invocation {
-        rule_binding->rule,
-        event.gaia_type,
-        event.event_type,
-        event.record,
-        event.columns};
-    rule_thread_pool_t::invocation_t invocation{
-        rule_thread_pool_t::invocation_type_t::rule,
-        std::move(rule_invocation),
-        rule_binding->rule_name.c_str(),
-        start_time
-    };
+    rule_thread_pool_t::rule_invocation_t rule_invocation{rule_binding->rule, event.gaia_type, event.event_type,
+                                                          event.record, event.columns};
+    rule_thread_pool_t::invocation_t invocation{rule_thread_pool_t::invocation_type_t::rule, std::move(rule_invocation),
+                                                rule_binding->rule_name.c_str(), start_time};
     m_invocations->enqueue(invocation);
 }
 
@@ -513,11 +501,8 @@ void gaia::rules::initialize_rules_engine()
     initialize_rules();
 }
 
-void gaia::rules::subscribe_rule(
-    gaia_type_t gaia_type,
-    event_type_t event_type,
-    const field_position_list_t& fields,
-    const rule_binding_t& rule_binding)
+void gaia::rules::subscribe_rule(gaia_type_t gaia_type, event_type_t event_type, const field_position_list_t& fields,
+                                 const rule_binding_t& rule_binding)
 {
     event_manager_t::get().subscribe_rule(gaia_type, event_type, fields, rule_binding);
 }

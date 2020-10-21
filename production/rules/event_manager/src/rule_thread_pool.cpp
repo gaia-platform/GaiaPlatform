@@ -30,7 +30,7 @@ void rule_thread_pool_t::log_events(invocation_t& invocation)
     {
         for (size_t i = 0; i < log_invocation.events.size(); i++)
         {
-            uint64_t timestamp = (uint64_t)time(NULL);
+            auto timestamp = static_cast<uint64_t>(time(nullptr));
             uint16_t column_id = 0;
             auto& event = log_invocation.events[i];
             auto rule_invoked = log_invocation.rules_invoked[i];
@@ -40,23 +40,13 @@ void rule_thread_pool_t::log_events(invocation_t& invocation)
             // in our event log.  Until then, just pick out the first of the list.
             if (event.columns.size() > 0)
             {
-                auto timestamp = static_cast<uint64_t>(time(nullptr));
-                uint16_t column_id = 0;
-                auto& event = log_invocation.events[i];
-                auto rule_invoked = log_invocation.rules_invoked[i];
-
-                // TODO[GAIAPLAT-293]: add support for arrys of simple types
-                // When we have this support we can support the array of changed column fields
-                // in our event log.  Until then, just pick out the first of the list.
-                if (event.columns.size() > 0)
-                {
-                    column_id = event.columns[0];
-                }
-
-                event_log::event_log_t::insert_row(
-                    static_cast<uint32_t>(event.event_type), static_cast<uint64_t>(event.gaia_type),
-                    static_cast<uint64_t>(event.record), column_id, timestamp, rule_invoked);
+                column_id = event.columns[0];
             }
+
+            event_log::event_log_t::insert_row(
+                static_cast<uint32_t>(event.event_type),
+                static_cast<uint64_t>(event.gaia_type),
+                static_cast<uint64_t>(event.record), column_id, timestamp, rule_invoked);
         }
     }
     gaia::db::commit_transaction();

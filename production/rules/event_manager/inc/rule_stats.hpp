@@ -43,20 +43,19 @@ public:
     // Log individual rule stats and reset the counters.
     void log()
     {
-        log_(c_rule_stats, rule_id.c_str());
+        log(c_rule_stats, rule_id.c_str());
     }
     // Log cumulative rule statistics for scheduler stats and reset the counters.
     void log(float worker_thread_utilization)
     {
-        log_(c_cumulative_rule_stats, worker_thread_utilization);
+        log(c_cumulative_rule_stats, worker_thread_utilization);
     }
 
 private:
     static const char* c_cumulative_rule_stats;
     static const char* c_rule_stats;
 
-    template <typename T>
-    void log_(const char* stats_format, T first_param);
+    template <typename T_param> void log(const char* stats_format, T_param first_param);
 };
 
 } // namespace rules
