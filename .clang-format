@@ -2,7 +2,7 @@ BasedOnStyle: LLVM
 UseCRLF: false
 UseTab: Never
 IndentWidth: 4
-ColumnLimit: 120
+ColumnLimit: 0
 BreakBeforeBraces: Allman
 
 # Force pointers to the type for C++.
@@ -25,8 +25,8 @@ ConstructorInitializerIndentWidth: 4
 AllowShortFunctionsOnASingleLine: None
 
 # If false, all arguments will either be all on the same line or will have one line each.
-BinPackArguments: false
-BinPackParameters: false
+BinPackArguments: true
+BinPackParameters: true
 AlignAfterOpenBracket: AlwaysBreak
 AllowAllArgumentsOnNextLine: true
 AllowAllParametersOfDeclarationOnNextLine: true

@@ -37,7 +37,7 @@ protected:
 
 field_def_list_t json_generation_test::test_table_fields{};
 
-constexpr char c_expected_json[] // NOLINT
+constexpr char c_expected_json[]
     = "{\n"
       "id:0,\n"
       "name:\"\",\n"
@@ -64,9 +64,11 @@ TEST_F(json_generation_test, generate_json_from_catalog)
     gaia_id_t table_id = create_table(test_table_name, test_table_fields);
 
     string fbs = generate_fbs(table_id);
-    cout << "fbs:\n" << fbs << endl;
+    cout << "fbs:\n"
+         << fbs << endl;
     string json = generate_json(table_id);
-    cout << "json:\n" << json << endl;
+    cout << "json:\n"
+         << json << endl;
 
     validate_through_flatbuffers_parser(fbs, json);
 }
