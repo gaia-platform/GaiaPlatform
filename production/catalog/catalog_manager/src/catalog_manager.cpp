@@ -98,11 +98,7 @@ void catalog_manager_t::bootstrap_catalog()
         field_def_list_t fields;
         fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
         create_table_impl(
-            "catalog",
-            "gaia_database",
-            fields,
-            false,
-            false,
+            "catalog", "gaia_database", fields, false, false,
             static_cast<gaia_id_t>(catalog_table_type_t::gaia_database));
     }
     {
@@ -121,7 +117,8 @@ void catalog_manager_t::bootstrap_catalog()
         fields.emplace_back(
             make_unique<field_definition_t>(c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_database"));
         create_table_impl(
-            "catalog", "gaia_table", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_table));
+            "catalog", "gaia_table", fields, false, false,
+            static_cast<gaia_id_t>(catalog_table_type_t::gaia_table));
     }
     {
         // create table gaia_field (
@@ -147,7 +144,8 @@ void catalog_manager_t::bootstrap_catalog()
         // The "ref" named reference to the gaia_table defines the referential relationship.
         fields.emplace_back(make_unique<field_definition_t>("ref", data_type_t::e_references, 1, "catalog.gaia_table"));
         create_table_impl(
-            "catalog", "gaia_field", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_field));
+            "catalog", "gaia_field", fields, false, false,
+            static_cast<gaia_id_t>(catalog_table_type_t::gaia_field));
     }
     {
         // create table gaia_ruleset (
@@ -164,11 +162,7 @@ void catalog_manager_t::bootstrap_catalog()
         fields.emplace_back(make_unique<field_definition_t>("source_location", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<field_definition_t>("serial_stream", data_type_t::e_string, 1));
         create_table_impl(
-            "catalog",
-            "gaia_ruleset",
-            fields,
-            false,
-            false,
+            "catalog", "gaia_ruleset", fields, false, false,
             static_cast<gaia_id_t>(catalog_table_type_t::gaia_ruleset));
     }
     {
@@ -182,7 +176,8 @@ void catalog_manager_t::bootstrap_catalog()
         fields.emplace_back(
             make_unique<field_definition_t>(c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_ruleset"));
         create_table_impl(
-            "catalog", "gaia_rule", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_rule));
+            "catalog", "gaia_rule", fields, false, false,
+            static_cast<gaia_id_t>(catalog_table_type_t::gaia_rule));
     }
 }
 
@@ -206,7 +201,8 @@ void catalog_manager_t::create_system_tables()
         fields.emplace_back(make_unique<field_definition_t>("timestamp", data_type_t::e_uint64, 1));
         fields.emplace_back(make_unique<field_definition_t>("rules_invoked", data_type_t::e_bool, 1));
         create_table_impl(
-            "event_log", "event_log", fields, true, false, static_cast<gaia_id_t>(system_table_type_t::event_log));
+            "event_log", "event_log", fields, true, false,
+            static_cast<gaia_id_t>(system_table_type_t::event_log));
     }
 }
 
@@ -266,7 +262,10 @@ gaia_id_t catalog_manager_t::create_database(const string& name, bool throw_on_e
 }
 
 gaia_id_t catalog_manager_t::create_table(
-    const string& db_name, const string& name, const field_def_list_t& fields, bool throw_on_exists)
+    const string& db_name,
+    const string& name,
+    const field_def_list_t& fields,
+    bool throw_on_exists)
 {
     return create_table_impl(db_name, name, fields, false, throw_on_exists);
 }
@@ -357,7 +356,11 @@ void catalog_manager_t::drop_table(const string& db_name, const string& name)
 }
 
 static gaia_ptr insert_gaia_table_row(
-    gaia_id_t table_id, const char* name, bool is_log, const char* binary_schema, const char* serialization_template)
+    gaia_id_t table_id,
+    const char* name,
+    bool is_log,
+    const char* binary_schema,
+    const char* serialization_template)
 {
 
     // NOTE: The number of table references must be updated manually for bootstrapping,

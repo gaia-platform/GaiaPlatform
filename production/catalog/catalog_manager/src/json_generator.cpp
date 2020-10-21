@@ -107,10 +107,12 @@ string generate_json(gaia_id_t table_id)
         has_output_first_field = true;
 
         gaia_field_t field = gaia_field_t::get(field_id);
-        json_string_stream << endl << generate_json_field(field);
+        json_string_stream << endl
+                           << generate_json_field(field);
     }
 
-    json_string_stream << endl << "}" << endl;
+    json_string_stream << endl
+                       << "}" << endl;
 
     gaia::db::commit_transaction();
 
@@ -138,10 +140,12 @@ string generate_json(const string& db_name, const string& table_name, const ddl:
 
         string field_json = generate_json_field(field->name, get_data_type_default_value(field->type), field->length);
 
-        json_string_stream << endl << field_json;
+        json_string_stream << endl
+                           << field_json;
     }
 
-    json_string_stream << endl << "}" << endl;
+    json_string_stream << endl
+                       << "}" << endl;
 
     return json_string_stream.str();
 }
@@ -167,7 +171,7 @@ string generate_bin(const string& fbs, const string& json)
     // We do not need this but fbs method requires it.
     constexpr size_t c_encoding_hex_text_len = 80;
     return flatbuffers::BufferToHexText(
-        parser.builder_.GetBufferPointer(), parser.builder_.GetSize(), // NOLINT
+        parser.builder_.GetBufferPointer(), parser.builder_.GetSize(),
         c_encoding_hex_text_len, "", "");
 }
 
