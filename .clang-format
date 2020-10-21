@@ -28,7 +28,8 @@ AllowShortFunctionsOnASingleLine: None
 BinPackArguments: true
 BinPackParameters: true
 AlignAfterOpenBracket: AlwaysBreak
-AllowAllParametersOfDeclarationOnNextLine=true
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
 
 # Merge multiple #include blocks together and sort as one. Then split into groups based on category priority:
 # 1. Associated file header (XYZ.hpp)
