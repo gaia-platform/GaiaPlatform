@@ -3,8 +3,9 @@
 // All rights reserved.
 /////////////////////////////////////////////
 #include "scheduler_stats.hpp"
-#include "timer.hpp"
+
 #include "logger.hpp"
+#include "timer.hpp"
 
 using namespace gaia::common;
 using namespace std;
@@ -23,17 +24,19 @@ void scheduler_stats_t::reset_counters()
     rule_stats_t::reset_counters();
 }
 
+// If print_header is true then the following row is output:
+// ------------------------- sched invoc  pend aband retry excep      avg lat      max lat     avg exec     max exec
 void scheduler_stats_t::log(bool print_header)
 {
-     // Estimate the CPU utilization time of the threads in the thread pool
-    float load = ((total_thread_execution_time / m_log_interval_ns) * 100) / m_count_worker_threads;
+    // Estimate the CPU utilization time of the threads in the thread pool
+    float thread_load = ((total_thread_execution_time / m_log_interval_ns) * 100) / m_count_worker_threads;
 
     if (print_header)
     {
-        gaia_log::rules_stats().info("{:->25}{: >6}{: >6}{: >6}{: >6}{: >6}{: >6}{: >13}{: >13}{: >13}{: >13}", 
-            "", "sched", "invoc", "pend", "aband", "retry", "excep", "avg lat", "max lat", "avg exec", "max exec");
+        gaia_log::rules_stats().info("{:->25}{: >6}{: >6}{: >6}{: >6}{: >6}{: >6}{: >13}{: >13}{: >13}{: >13}",
+                                     "", "sched", "invoc", "pend", "aband", "retry", "excep", "avg lat", "max lat", "avg exec", "max exec");
     }
 
-    rule_stats_t::log(load);
+    rule_stats_t::log(thread_load);
     reset_counters();
 }

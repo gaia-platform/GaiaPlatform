@@ -63,7 +63,7 @@ void rule_thread_pool_t::log_events(invocation_t& invocation)
 }
 
 rule_thread_pool_t::rule_thread_pool_t(size_t num_threads, rule_stats_manager_t& stats_manager)
-: m_stats_manager(stats_manager)
+    : m_stats_manager(stats_manager)
 {
     m_exit = false;
     m_num_threads = (num_threads == SIZE_MAX) ? thread::hardware_concurrency() : num_threads;
@@ -112,7 +112,7 @@ void rule_thread_pool_t::execute_immediate()
             invocation_t invocation = m_invocations.front();
             m_invocations.pop();
             invoke_rule(invocation);
-            m_stats_manager.add_thread_execution_time(start_thread_execution_time);
+            m_stats_manager.compute_thread_execution_time(start_thread_execution_time);
         }
     }
 }
@@ -164,7 +164,7 @@ void rule_thread_pool_t::rule_worker()
         m_invocations.pop();
         lock.unlock();
         invoke_rule(invocation);
-        m_stats_manager.add_thread_execution_time(start_thread_execution_time);
+        m_stats_manager.compute_thread_execution_time(start_thread_execution_time);
     }
     end_session();
 }
@@ -184,12 +184,14 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
         rule_context_t context(txn, rule_invocation.gaia_type, rule_invocation.event_type, rule_invocation.record,
                                rule_invocation.fields);
 
-        
-        m_stats_manager.add_rule_invocation_latency(rule_id, invocation.start_time);
+        // Invoke the rule.
+        m_stats_manager.compute_rule_invocation_latency(rule_id, invocation.start_time);
+
         auto fn_start = gaia::common::timer_t::get_time_point();
 
         // Invoke the rule.
         rule_invocation.rule_fn(&context);
+        m_stats_manager.compute_rule_execution_time(rule_id, fn_start);
 
         m_stats_manager.add_rule_execution_time(rule_id,fn_start);
         should_schedule = true;

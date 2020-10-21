@@ -21,7 +21,7 @@ class rule_stats_t
 public:
     rule_stats_t();
     rule_stats_t(const char* a_rule_id);
-    
+
     std::string rule_id;
     std::atomic<uint32_t> count_executed;
     std::atomic<uint32_t> count_scheduled;
@@ -37,18 +37,18 @@ public:
     int64_t max_rule_execution_time;
 
     void reset_counters();
-    void add_rule_execution_time(const int64_t& duration);
-    void add_rule_invocation_latency(const int64_t& duration);
+    void add_rule_execution_time(int64_t duration);
+    void add_rule_invocation_latency(int64_t duration);
 
-    // Log individual rule stats.
-    void log() 
+    // Log individual rule stats and reset the counters.
+    void log()
     {
         log_(c_rule_stats, rule_id.c_str());
     }
-    // Log cumulative rule statistics for schedulere stats.
-    void log(float load)
+    // Log cumulative rule statistics for scheduler stats and reset the counters.
+    void log(float worker_thread_utilization)
     {
-        log_(c_cumulative_rule_stats, load);
+        log_(c_cumulative_rule_stats, worker_thread_utilization);
     }
 
 private:
@@ -59,5 +59,5 @@ private:
     void log_(const char* stats_format, T first_param);
 };
 
-} // rules
-} // gaia
+} // namespace rules
+} // namespace gaia
