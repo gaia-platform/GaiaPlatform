@@ -64,11 +64,7 @@ TEST_F(json_generation_test, generate_json_from_catalog)
     gaia_id_t table_id = create_table(test_table_name, test_table_fields);
 
     string fbs = generate_fbs(table_id);
-    cout << "fbs:\n"
-         << fbs << endl;
     string json = generate_json(table_id);
-    cout << "json:\n"
-         << json << endl;
 
     validate_through_flatbuffers_parser(fbs, json);
 }
