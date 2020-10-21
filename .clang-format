@@ -27,7 +27,7 @@ AllowShortFunctionsOnASingleLine: None
 # If false, all arguments will either be all on the same line or will have one line each.
 BinPackArguments: true
 BinPackParameters: true
-AlignAfterOpenBracket: Align
+AlignAfterOpenBracket: AlwaysBreak
 
 # Merge multiple #include blocks together and sort as one. Then split into groups based on category priority:
 # 1. Associated file header (XYZ.hpp)
@@ -66,4 +66,3 @@ KeepEmptyLinesAtTheStartOfBlocks: true
 SpaceAfterCStyleCast: false
 ContinuationIndentWidth: 4
 AlignTrailingComments: false
-

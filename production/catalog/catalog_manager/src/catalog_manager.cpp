@@ -469,8 +469,8 @@ gaia_id_t catalog_manager_t::create_table_impl(
         {
             position = field_position++;
         }
-        gaia_id_t field_id = gaia_field_t::insert_row(field->name.c_str(), static_cast<uint8_t>(field->type),
-                                                      field->length, position, false, field->active);
+        gaia_id_t field_id = gaia_field_t::insert_row(
+            field->name.c_str(), static_cast<uint8_t>(field->type), field->length, position, false, field->active);
         // Connect the field to the table it belongs to.
         gaia_table_t::get(table_id).gaia_field_list().insert(field_id);
 
