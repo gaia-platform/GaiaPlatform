@@ -75,12 +75,10 @@ string get_data_type_default_value(data_type_t data_type)
         return c_default_string_value;
 
     default:
-    {
         stringstream message;
         message << "Unhandled data_type_t value " << static_cast<int>(data_type)
                 << " in get_data_type_default_value()!";
         retail_assert(false, message.str());
-    }
     }
 }
 
