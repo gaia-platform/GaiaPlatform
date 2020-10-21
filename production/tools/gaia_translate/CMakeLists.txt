@@ -38,8 +38,6 @@ target_include_directories(gaiat PRIVATE ${TRANSLATION_ENGINE_INCLUDES})
 target_link_libraries(gaiat
   PRIVATE
   rt
-  z
-  ncurses
   clangTooling
   gaia_se_client
   gaia_payload_types  
@@ -51,7 +49,7 @@ target_link_libraries(gaiat
 )
 
 set(INCUBATOR_DDL "${GAIA_REPO}/production/schemas/test/incubator/barn_storage.ddl")
-set(INCUBATOR_RULESET "${GAIA_REPO}/production/schemas/test/incubator/test.ruleset")
+set(INCUBATOR_RULESET "${GAIA_REPO}/production/tools/gaia_translate/tests/test.ruleset")
 
 
 add_custom_command(

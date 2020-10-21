@@ -64,6 +64,8 @@ static QualType mapFieldType(catalog::data_type_t dbType, ASTContext *context)
         case catalog::data_type_t::e_uint64:
             return context->UnsignedLongLongTy;
         case catalog::data_type_t::e_float:
+            return context->FloatTy;
+        case catalog::data_type_t::e_double:
             return context->DoubleTy;
         case catalog::data_type_t::e_string:
             return context->getPointerType((context->CharTy).withConst());
