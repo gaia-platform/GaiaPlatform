@@ -107,7 +107,6 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
     {
         EXPECT_EQ(s.value(),0);
     }
-auto s_id = gaia::barn_storage::sensor_t::insert_row("TestSensor2", 0, 0.0);
     gaia::db::commit_transaction();
 
     gaia::db::begin_transaction();
@@ -148,12 +147,10 @@ auto s_id = gaia::barn_storage::sensor_t::insert_row("TestSensor2", 0, 0.0);
     gaia::db::commit_transaction();
 
     gaia::db::begin_transaction();
-
     auto s_id = gaia::barn_storage::sensor_t::insert_row("TestSensor2", 0, 0.0);
     gaia::db::commit_transaction();
 
-    usleep(c_g_rule_execution_delay * 5);
-    //while (g_rule_called == 2) {usleep(c_g_rule_execution_delay);}
+    while (g_rule_called == 2) {usleep(c_g_rule_execution_delay);}
     gaia::db::begin_transaction();
     auto s = gaia::barn_storage::sensor_t::get(s_id);
     s.delete_row();
