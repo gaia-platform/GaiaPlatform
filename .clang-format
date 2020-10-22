@@ -33,36 +33,35 @@ AllowAllParametersOfDeclarationOnNextLine: true
 
 # Merge multiple #include blocks together and sort as one. Then split into groups based on category priority:
 # 1. Associated file header (XYZ.hpp)
-# 2. C system headers.
-# 3. C++ standard library headers.
-# 4. third party library headers.
-# 5. your other project headers.
+# 2. C system headers. (Priority: 1/2)
+# 3. C++ standard library headers (Priority: 3)
+# 4. third party library headers (Priority: 10)
+# 5. your other project headers (Priority: 20)
 # Note this could break the code, read: https://stackoverflow.com/questions/37927553/can-clang-format-break-my-code
 IncludeBlocks: Regroup
-
 IncludeCategories:
-  # Third party.
-  - Regex:           'spdlog|flatbuffers|llvm|flatcc|cpptoml|gtest|pybind11|rocksdb'
-    Priority:        13
-    SortPriority:    1
-  - Regex:           'postgres'
-    Priority:        12
-    SortPriority:    2
-  - Regex:           'pg_'
-    Priority:        12
-    SortPriority:    3
+  # Third-party.
+  - Regex: 'spdlog|flatbuffers|llvm|flatcc|cpptoml|gtest|pybind11|rocksdb'
+    Priority: 10
+    SortPriority: 10
+  - Regex: 'postgres'
+    Priority: 10
+    SortPriority: 11
+  - Regex: 'pg_'
+    Priority: 10
+    SortPriority: 12
   # C system headers.
-  - Regex:           '^<.*\.h>'
-    Priority:        1
-  - Regex:           '^<c.*'
-    Priority:        2
+  - Regex: '^<.*\.h>'
+    Priority: 1
+  - Regex: '^<c.*'
+    Priority: 2
   # C++ library header.
-  - Regex:           '^<.*'
-    Priority:        3
+  - Regex: '^<.*'
+    Priority: 3
   # Everything else (gaia headers mostly).
   # Note: it would be helpful if gaia dependencies where under gaia/
-  - Regex:           '.*'
-    Priority:        14
+  - Regex: '.*'
+    Priority: 20
 
 KeepEmptyLinesAtTheStartOfBlocks: true
 SpaceAfterCStyleCast: false
