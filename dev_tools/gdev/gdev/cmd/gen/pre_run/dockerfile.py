@@ -24,9 +24,9 @@ class GenPreRunDockerfile(GenAbcDockerfile):
                 seen_env_dockerfiles.add(env_dockerfile)
                 for input_env_dockerfile in await env_dockerfile.get_input_dockerfiles():
                     env_section_parts += await inner(GenEnvDockerfile(input_env_dockerfile.options))
-                if lines := await env_dockerfile.cfg.get_lines():
+                if section_lines := await env_dockerfile.cfg.get_section_lines():
                     env_section_parts.append(f'# {env_dockerfile}')
-                    for line in lines:
+                    for line in section_lines:
                         env_section_parts.append(f'ENV {line}')
             return env_section_parts
 
@@ -60,10 +60,10 @@ class GenPreRunDockerfile(GenAbcDockerfile):
 
     @memoize
     async def get_run_section(self) -> str:
-        if lines := await self.cfg.get_lines():
+        if section_lines := await self.cfg.get_section_lines():
             run_section = (
                     'RUN '
-                    + ' \\\n    && '.join(lines)
+                    + ' \\\n    && '.join(section_lines)
             )
         else:
             run_section = ''

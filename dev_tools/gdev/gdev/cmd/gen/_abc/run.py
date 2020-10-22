@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 import os
 import shlex
 import sys
-from typing import Iterable
 
 from gdev.custom.pathlib import Path
 from gdev.dependency import Dependency
@@ -32,7 +31,7 @@ class GenAbcRun(Dependency, ABC):
             f'--entrypoint /bin/bash',
 
             f'--hostname {await self.build.dockerfile.get_name()}',
-            f'--platform {self.options.platform}',
+            f'--platform linux/{self.options.platform}',
 
             # We use shared memory in production. Just assume we'll always need this.
             f'--shm-size 1gb',
@@ -69,9 +68,15 @@ class GenAbcRun(Dependency, ABC):
 
     @memoize
     async def main(self) -> None:
-        # Equivalent to calling `gdev build` before calling `gdev run`. This returns extremely fast
-        # if nothing needs to be built, so it is worth always running here.
-        await self.build.run()
+        if (
+                self.options.force
+                or (not await self.build.get_sha())
+                or (
+                    await self.build.get_wanted_label_value_by_name()
+                    != await self.build.get_actual_label_value_by_name()
+                )
+        ):
+            await self.build.run()
 
         if self.options.mounts:
             for mount in self.options.mounts:

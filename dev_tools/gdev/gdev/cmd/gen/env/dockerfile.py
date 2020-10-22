@@ -17,8 +17,8 @@ class GenEnvDockerfile(GenAbcDockerfile):
         from ..gaia.dockerfile import GenGaiaDockerfile
 
         input_dockerfiles = []
-        for line in await GenGaiaDockerfile(self.options).cfg.get_lines():
-            input_dockerfiles.append(GenEnvDockerfile(replace(self.options, target=line)))
+        for section_line in await GenGaiaDockerfile(self.options).cfg.get_section_lines():
+            input_dockerfiles.append(GenEnvDockerfile(replace(self.options, target=section_line)))
         input_dockerfiles = tuple(input_dockerfiles)
 
         self.log.debug(f'{input_dockerfiles}')
