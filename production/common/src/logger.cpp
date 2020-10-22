@@ -66,12 +66,19 @@ logger_t& db() {
     return logger_manager_t::get().db_logger();
 }
 
-logger_t& scheduler() {
-    return logger_manager_t::get().scheduler_logger();
+logger_t& rules() {
+    return logger_manager_t::get().rules_logger();
 }
 
 logger_t& catalog() {
     return logger_manager_t::get().catalog_logger();
+}
+
+//
+// Stats loggers.
+//
+logger_t& rules_stats() {
+    return logger_manager_t::get().rules_stats_logger();
 }
 
 } // namespace gaia::common::logging

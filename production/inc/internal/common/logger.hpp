@@ -169,8 +169,9 @@ void shutdown();
  */
 logger_t& sys();
 logger_t& db();
-logger_t& scheduler();
+logger_t& rules();
 logger_t& catalog();
+logger_t& rules_stats();
 
 /*@}*/
 } // namespace logging

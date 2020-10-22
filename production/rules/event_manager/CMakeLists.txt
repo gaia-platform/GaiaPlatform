@@ -32,6 +32,8 @@ add_library(gaia_rules STATIC
   src/rule_thread_pool.cpp
   src/rule_context.cpp
   src/rule_checker.cpp
+  src/rule_stats.cpp
+  src/scheduler_stats.cpp
   src/rule_stats_manager.cpp
 )
 
@@ -55,6 +57,9 @@ add_gtest(test_rule_context "tests/test_rule_context.cpp"
   "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_common;gaia_rules")
 add_gtest(test_rule_checker "tests/test_rule_checker.cpp;"
   "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
+
+# The rules integration test needs the logger configuration file.
+configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/log_conf.toml")
 
 # The test needs gaia parser to load test DDLs.
 set(TEST_RULE_INTEGRATION_INCLUDES
