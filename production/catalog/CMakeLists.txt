@@ -39,8 +39,8 @@ target_include_directories(gaia_catalog PRIVATE ${GAIA_CATALOG_PRIVATE_INCLUDES}
 target_link_libraries(gaia_catalog PRIVATE gaia_direct flatbuffers)
 set_property (TARGET gaia_catalog PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-add_gtest(test_catalog_manager
-  "tests/test_catalog_manager.cpp"
+add_gtest(test_ddl_executor
+  "tests/test_ddl_executor.cpp"
   "${GAIA_CATALOG_PUBLIC_INCLUDES};${GAIA_CATALOG_PRIVATE_INCLUDES}"
   "rt;gaia;gaia_catalog"
   gaia_catalog)
