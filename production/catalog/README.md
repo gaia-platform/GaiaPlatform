@@ -212,7 +212,7 @@ Be sure to save the new [gaia_catalog.h](../inc/internal/catalog/gaia_catalog.h)
 and [catalog_generated.h](../inc/internal/catalog/catalog_generated.h) in place
 of the previous ones.
 
-#### Sequence of catalog update steps
+### Sequence of catalog update steps
 
 * Start by only making necessary catalog schema changes to `bootstrap_catalog()`.
 * Build, then execute `gaiac -d catalog -g` (you may need to start the server).
