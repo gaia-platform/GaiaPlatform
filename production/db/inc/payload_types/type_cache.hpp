@@ -53,7 +53,7 @@ protected:
     field_map_t m_field_map;
 };
 
-typedef std::unordered_map<uint64_t, const field_cache_t*> type_map_t;
+typedef std::unordered_map<gaia_type_t, const field_cache_t*> type_map_t;
 
 class auto_field_cache_t;
 
@@ -83,17 +83,17 @@ public:
     // To ensure the release of that lock once the field cache is no longer used,
     // it is returned in an auto_field_cache_t wrapper that will release the lock
     // at the time the wrapper gets destroyed.
-    void get_field_cache(gaia_id_t type_id, auto_field_cache_t& auto_field_cache) const;
+    void get_field_cache(gaia_type_t type_id, auto_field_cache_t& auto_field_cache) const;
 
     // This method should be called whenever the information for a type is being changed.
     // It will return true if the entry was found and deleted, and false if it was not found
     // (another thread may have deleted it first or the information may never have been cached at all).
-    bool remove_field_cache(gaia_id_t type_id);
+    bool remove_field_cache(gaia_type_t type_id);
 
     // This method should be used to load new type information in the cache.
     // It expects the cache to contain no data for the type.
     // It returns true if the cache was updated and false if an entry for the type was found to exist already.
-    bool set_field_cache(gaia_id_t type_id, const field_cache_t* field_cache);
+    bool set_field_cache(gaia_type_t type_id, const field_cache_t* field_cache);
 
     // Return the size of the internal map.
     size_t size() const;

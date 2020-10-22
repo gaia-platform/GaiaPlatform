@@ -113,7 +113,8 @@ TEST_F(catalog_manager_test, list_references)
     string employee_table_name{"list_references_test_employee"};
     ddl::field_def_list_t employee_table_fields;
     employee_table_fields.emplace_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
-    employee_table_fields.emplace_back(make_unique<ddl::field_definition_t>("department", data_type_t::e_references, 1, dept_table_name));
+    employee_table_fields.emplace_back(
+        make_unique<ddl::field_definition_t>("department", data_type_t::e_references, 1, dept_table_name));
 
     gaia_id_t employee_table_id = create_table(employee_table_name, employee_table_fields);
 
@@ -148,7 +149,8 @@ TEST_F(catalog_manager_test, create_table_self_references)
 {
     string test_table_name{"self_ref_table_test"};
     ddl::field_def_list_t fields;
-    fields.emplace_back(make_unique<ddl::field_definition_t>("self_ref_field", data_type_t::e_references, 1, test_table_name));
+    fields.emplace_back(
+        make_unique<ddl::field_definition_t>("self_ref_field", data_type_t::e_references, 1, test_table_name));
 
     gaia_id_t table_id = create_table(test_table_name, fields);
     gaia::db::begin_transaction();

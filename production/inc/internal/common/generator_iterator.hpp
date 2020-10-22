@@ -7,18 +7,22 @@
 
 #pragma once
 
-#include <utility>
-#include <type_traits>
-#include <iterator>
 #include <functional>
+#include <iterator>
 #include <optional>
+#include <type_traits>
+#include <utility>
 
-namespace gaia {
-namespace common {
-namespace iterators {
+namespace gaia
+{
+namespace common
+{
+namespace iterators
+{
 
 template <typename T_output>
-class generator_iterator_t {
+class generator_iterator_t
+{
     using difference_type = void;
     using value_type = T_output;
     using pointer = T_output*;
@@ -32,49 +36,62 @@ private:
 
 public:
     // Returns current state.
-    T_output operator*() const {
+    T_output operator*() const
+    {
         return *m_state;
     }
 
     // Advance to the next valid state.
-    generator_iterator_t& operator++() {
-        while ((m_state = m_generator())) {
-            if (m_predicate(*m_state)) {
+    generator_iterator_t& operator++()
+    {
+        while ((m_state = m_generator()))
+        {
+            if (m_predicate(*m_state))
+            {
                 break;
             }
         }
         return *this;
     }
 
-    generator_iterator_t operator++(int) {
+    generator_iterator_t operator++(int)
+    {
         auto r = *this;
         ++(*this);
         return r;
     }
 
     // Generator iterators are only equal if they are both in the "end" state.
-    friend bool operator==(generator_iterator_t const& lhs, generator_iterator_t const& rhs) noexcept {
-        if (!lhs.m_state && !rhs.m_state) {
+    friend bool operator==(generator_iterator_t const& lhs, generator_iterator_t const& rhs) noexcept
+    {
+        if (!lhs.m_state && !rhs.m_state)
+        {
             return true;
         }
         return false;
     }
-    friend bool operator!=(generator_iterator_t const& lhs, generator_iterator_t const& rhs) noexcept {
+    friend bool operator!=(generator_iterator_t const& lhs, generator_iterator_t const& rhs) noexcept
+    {
         return !(lhs == rhs);
     }
 
     // Returns false when the generator is exhausted (has state nullopt).
-    explicit operator bool() const noexcept {
+    explicit operator bool() const noexcept
+    {
         return m_state.has_value();
     }
 
     // We implicitly construct from a std::function with the right signature.
     generator_iterator_t(
         std::function<std::optional<T_output>()> g,
-        std::function<bool(T_output)> p = [](T_output) { return true; }) : m_generator(std::move(g)), m_predicate(std::move(p)) {
+        std::function<bool(T_output)> p = [](T_output) { return true; })
+        : m_generator(std::move(g)), m_predicate(std::move(p))
+    {
         // We need to initialize the iterator to the first valid state.
-        while ((m_state = m_generator())) {
-            if (m_predicate(*m_state)) {
+        while ((m_state = m_generator()))
+        {
+            if (m_predicate(*m_state))
+            {
                 break;
             }
         }
@@ -89,24 +106,34 @@ public:
 };
 
 template <typename T_iter>
-struct range_t {
+struct range_t
+{
     T_iter b, e;
-    T_iter begin() const { return b; }
-    T_iter end() const { return e; }
+    T_iter begin() const
+    {
+        return b;
+    }
+    T_iter end() const
+    {
+        return e;
+    }
 };
 
 template <typename T_iter>
-range_t<T_iter> range(T_iter b, T_iter e) {
+range_t<T_iter> range(T_iter b, T_iter e)
+{
     return {std::move(b), std::move(e)};
 }
 
 template <typename T_iter>
-range_t<T_iter> range(T_iter b) {
+range_t<T_iter> range(T_iter b)
+{
     return range(std::move(b), T_iter{});
 }
 
 template <typename T_fn>
-auto range_from_generator(T_fn fn) {
+auto range_from_generator(T_fn fn)
+{
     using T_val = std::decay_t<decltype(*fn())>;
     return range(generator_iterator_t<T_val>(std::move(fn)));
 }

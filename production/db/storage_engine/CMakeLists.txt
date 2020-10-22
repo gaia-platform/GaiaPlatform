@@ -74,6 +74,7 @@ target_link_libraries(gaia_storage PRIVATE gaia_common)
 add_library(gaia_se_client STATIC
   src/gaia_db.cpp
   src/gaia_ptr.cpp
+  src/gaia_boot.cpp
   src/storage_engine.cpp
   src/storage_engine_client.cpp
   src/type_metadata.cpp)

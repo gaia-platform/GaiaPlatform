@@ -224,12 +224,12 @@ protected:
         load_catalog(ddl_file);
 
         // NOTE: uncomment next line to get latency measurements.
-        //g_timer.set_enabled(true);
+        // g_timer.set_enabled(true);
 
         event_manager_settings_t settings;
 
         // NOTE: uncomment next line enable stats from the rules engine.
-        //settings.enable_stats = true;
+        // settings.enable_stats = true;
 
         gaia::rules::test::initialize_rules_engine(settings);
     }
@@ -339,7 +339,7 @@ TEST_F(rule_integration_test, test_update_field_multiple_rules)
         auto_transaction_t txn(true);
         phone_writer writer;
         writer.phone_number = "111-1111";
-        //writer.type = "home";
+        // writer.type = "home";
         phone_t p = phone_t::get(writer.insert_row());
         txn.commit();
         writer = p.writer();

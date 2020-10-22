@@ -78,6 +78,10 @@ void reset_server() {
     // (Otherwise, a new session might be accepted after the signal has been sent
     // but before the server has been reinitialized.)
     std::this_thread::sleep_for(std::chrono::milliseconds(c_wait_signal_millis));
+    // WLW Note: This is temporary.
+    string boot_file_name(PERSISTENT_DIRECTORY_PATH);
+    boot_file_name += "/boot_parameters.bin";
+    unlink(boot_file_name.c_str());
     wait_for_server_init();
 }
 

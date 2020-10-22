@@ -25,9 +25,9 @@ void gaia::db::encode_object(
     key->write_uint64(gaia_object->id);
 
     // Create value.
-    value->write_uint64(gaia_object->type);
-    value->write_uint64(gaia_object->num_references);
-    value->write_uint64(gaia_object->payload_size);
+    value->write_uint32(gaia_object->type);
+    value->write_uint16(gaia_object->num_references);
+    value->write_uint16(gaia_object->payload_size);
 
     value->write(gaia_object->payload, gaia_object->payload_size);
 }
@@ -38,8 +38,8 @@ gaia_id_t gaia::db::decode_object(
 {
     gaia_id_t id;
     gaia_type_t type;
-    uint64_t size;
-    uint64_t num_references;
+    uint16_t size;
+    uint16_t num_references;
     string_reader_t key_reader(&key);
     string_reader_t value_reader(&value);
 
@@ -48,9 +48,9 @@ gaia_id_t gaia::db::decode_object(
     retail_assert(key_reader.get_remaining_len_in_bytes() == 0);
 
     // Read value.
-    value_reader.read_uint64(&type);
-    value_reader.read_uint64(&num_references);
-    value_reader.read_uint64(&size);
+    value_reader.read_uint32(&type);
+    value_reader.read_uint16(&num_references);
+    value_reader.read_uint16(&size);
     auto payload = value_reader.read(size);
     // Create Object.
     persistent_store_manager::create_object_on_recovery(id, type, num_references, size, payload);

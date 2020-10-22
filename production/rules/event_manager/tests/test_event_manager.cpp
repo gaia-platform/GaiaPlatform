@@ -48,10 +48,7 @@ public:
         sequence.emplace_back(*context);
     }
 
-    void validate(
-        event_type_t a_event_type,
-        gaia_type_t a_gaia_type,
-        gaia_id_t a_record)
+    void validate(event_type_t a_event_type, gaia_type_t a_gaia_type, gaia_id_t a_record)
     {
         EXPECT_EQ(event_type, a_event_type);
         EXPECT_EQ(gaia_type, a_gaia_type);
@@ -136,14 +133,11 @@ rule_context_checker_t g_context_checker;
 class test_gaia_t : public gaia_base_t
 {
 public:
-    test_gaia_t()
-        : test_gaia_t(0)
+    test_gaia_t() : test_gaia_t(0)
     {
     }
 
-    explicit test_gaia_t(gaia_id_t record)
-        : gaia_base_t("test_gaia_t")
-        , m_id(record)
+    explicit test_gaia_t(gaia_id_t record) : gaia_base_t("test_gaia_t"), m_id(record)
     {
     }
 
@@ -168,14 +162,11 @@ typedef unique_ptr<test_gaia_t> test_gaia_ptr_t;
 class test_gaia_other_t : public gaia_base_t
 {
 public:
-    test_gaia_other_t()
-        : test_gaia_other_t(0)
+    test_gaia_other_t() : test_gaia_other_t(0)
     {
     }
 
-    explicit test_gaia_other_t(gaia_id_t record)
-        : gaia_base_t("test_gaia_other_t")
-        , m_id(record)
+    explicit test_gaia_other_t(gaia_id_t record) : gaia_base_t("test_gaia_other_t"), m_id(record)
     {
     }
 
@@ -209,7 +200,7 @@ static constexpr char rule2_name[] = "rule2";
 static constexpr char rule3_name[] = "rule3";
 static constexpr char rule4_name[] = "rule4";
 static constexpr char rule5_name[] = "rule5";
-//static constexpr char rule6_name[] = "rule6";
+// static constexpr char rule6_name[] = "rule6";
 static constexpr char rule7_name[] = "rule7";
 static constexpr char rule8_name[] = "rule8";
 static constexpr char rule9_name[] = "rule9";
@@ -274,15 +265,15 @@ void rule5(const rule_context_t* context)
     const gaia_id_t c_id = 42;
 
     test_gaia_other_t obj2(c_id);
-    trigger_event_t trigger_events[] = {
-        // Allow same event, we should not be re-entrant cause rules are only fired
-        // after the rule invocation returns
-        // TODO[GAIAPLAT-155]: Determine how the rule schedule deals with cycles
-        //{context->event_type, context->gaia_type, context->record, nullptr, 0},
-        // Allow event call on different gaia_type.
-        {context->event_type, test_gaia_other_t::s_gaia_type, context->record, empty_position_list},
-        // Allow event call on different event_type.
-        {event_type_t::row_insert, context->gaia_type, test_gaia_ptr->gaia_id(), empty_position_list}};
+    trigger_event_t trigger_events[]
+        = {// Allow same event, we should not be re-entrant cause rules are only fired
+           // after the rule invocation returns
+           // TODO[GAIAPLAT-155]: Determine how the rule schedule deals with cycles
+           //{context->event_type, context->gaia_type, context->record, nullptr, 0},
+           // Allow event call on different gaia_type.
+           {context->event_type, test_gaia_other_t::s_gaia_type, context->record, empty_position_list},
+           // Allow event call on different event_type.
+           {event_type_t::row_insert, context->gaia_type, test_gaia_ptr->gaia_id(), empty_position_list}};
     test::commit_trigger(0, trigger_events, 2);
 }
 
@@ -328,7 +319,8 @@ void rule8(const rule_context_t* context)
     g_context_checker.set(context);
 
     test_gaia_t row;
-    trigger_event_t trigger_event = {event_type_t::row_update, test_gaia_t::s_gaia_type, row.gaia_id(), empty_position_list};
+    trigger_event_t trigger_event
+        = {event_type_t::row_update, test_gaia_t::s_gaia_type, row.gaia_id(), empty_position_list};
     test::commit_trigger(0, &trigger_event, 1);
 }
 
@@ -362,9 +354,9 @@ void rule10(const rule_context_t* context)
 {
     g_context_checker.set(context);
 
-    //TODO[GAIAPLAT-155]
-    //trigger_event_t event = {event_type_t::row_update, test_gaia_t::s_gaia_type, context->record, &c_value, 1};
-    //commit_trigger(0, &event, 1);
+    // TODO[GAIAPLAT-155]
+    // trigger_event_t event = {event_type_t::row_update, test_gaia_t::s_gaia_type, context->record, &c_value, 1};
+    // commit_trigger(0, &event, 1);
 }
 
 /**
@@ -439,10 +431,7 @@ extern "C" void initialize_rules()
 class event_manager_test : public db_test_base_t
 {
 public:
-    void validate_rule(
-        event_type_t type,
-        gaia_type_t gaia_type,
-        gaia_id_t record)
+    void validate_rule(event_type_t type, gaia_type_t gaia_type, gaia_id_t record)
 
     {
         g_context_checker.validate(type, gaia_type, record);
@@ -458,10 +447,8 @@ public:
         g_context_checker.validate_rule_sequence(expected);
     }
 
-    map_subscriptions_t get_expected_subscriptions(
-        const char* ruleset_filter,
-        const gaia_type_t* gaia_type_filter,
-        const event_type_t* event_type_filter)
+    map_subscriptions_t get_expected_subscriptions(const char* ruleset_filter, const gaia_type_t* gaia_type_filter,
+                                                   const event_type_t* event_type_filter)
     {
         map_subscriptions_t expected_subscriptions;
 
@@ -493,8 +480,7 @@ public:
 
             expected_subscriptions.insert(pair<string, subscription_t>(
                 make_subscription_key(decl.sub),
-                {decl.sub.ruleset_name, decl.sub.rule_name,
-                 decl.sub.gaia_type, decl.sub.event_type, decl.sub.field}));
+                {decl.sub.ruleset_name, decl.sub.rule_name, decl.sub.gaia_type, decl.sub.event_type, decl.sub.field}));
         }
 
         return expected_subscriptions;
@@ -509,9 +495,7 @@ public:
         return key;
     }
 
-    void validate_rule_list(
-        const subscription_list_t& subscriptions,
-        const map_subscriptions_t& expected_subscriptions)
+    void validate_rule_list(const subscription_list_t& subscriptions, const map_subscriptions_t& expected_subscriptions)
     {
         EXPECT_EQ(subscriptions.size(), expected_subscriptions.size());
 
@@ -571,7 +555,8 @@ public:
         return rows_cleared;
     }
 
-    void verify_event_log_row(const gaia::event_log::event_log_t& row, event_type_t event_type, gaia_type_t gaia_type, gaia_id_t record_id, uint16_t column_id, bool rules_invoked)
+    void verify_event_log_row(const gaia::event_log::event_log_t& row, event_type_t event_type, gaia_type_t gaia_type,
+                              gaia_id_t record_id, uint16_t column_id, bool rules_invoked)
     {
         EXPECT_EQ(row.event_type(), (uint32_t)event_type);
         EXPECT_EQ(row.type_id(), gaia_type);
@@ -624,7 +609,7 @@ protected:
     rule_binding_t m_rule3{ruleset2_name, rule3_name, rule3};
     rule_binding_t m_rule4{ruleset2_name, rule4_name, rule4};
     rule_binding_t m_rule5{ruleset3_name, rule5_name, rule5};
-    //rule_binding_t m_rule6{ruleset3_name, rule6_name, rule6};
+    // rule_binding_t m_rule6{ruleset3_name, rule6_name, rule6};
     rule_binding_t m_rule7{ruleset3_name, rule7_name, rule7};
     rule_binding_t m_rule8{ruleset3_name, rule8_name, rule8};
     rule_binding_t m_rule9{ruleset3_name, rule9_name, rule9};
@@ -639,19 +624,23 @@ TEST_F(event_manager_test, invalid_subscription)
     // TODO[GAIAPLAT-194]: Transaction Events are out of scope for Q2
 
     // Transaction event subscriptions can't specify a gaia type
-    //EXPECT_THROW(subscribe_rule(test_gaia_other_t::s_gaia_type, event_type_t::transaction_begin, empty_fields, m_rule1), invalid_subscription);
-    //EXPECT_THROW(subscribe_rule(test_gaia_other_t::s_gaia_type, event_type_t::transaction_commit, empty_fields, m_rule1), invalid_subscription);
-    //EXPECT_THROW(subscribe_rule(test_gaia_other_t::s_gaia_type, event_type_t::transaction_rollback, empty_fields, m_rule1), invalid_subscription);
+    // EXPECT_THROW(subscribe_rule(test_gaia_other_t::s_gaia_type, event_type_t::transaction_begin, empty_fields,
+    // m_rule1), invalid_subscription); EXPECT_THROW(subscribe_rule(test_gaia_other_t::s_gaia_type,
+    // event_type_t::transaction_commit, empty_fields, m_rule1), invalid_subscription);
+    // EXPECT_THROW(subscribe_rule(test_gaia_other_t::s_gaia_type, event_type_t::transaction_rollback, empty_fields,
+    // m_rule1), invalid_subscription);
 
     // Transactions events subscriptions can't specify fields.
-    //EXPECT_THROW(subscribe_rule(0, event_type_t::transaction_begin, fields, m_rule1), invalid_subscription);
-    //EXPECT_THROW(subscribe_rule(0, event_type_t::transaction_commit, fields, m_rule1), invalid_subscription);
-    //EXPECT_THROW(subscribe_rule(0, event_type_t::transaction_rollback, fields, m_rule1), invalid_subscription);
+    // EXPECT_THROW(subscribe_rule(0, event_type_t::transaction_begin, fields, m_rule1), invalid_subscription);
+    // EXPECT_THROW(subscribe_rule(0, event_type_t::transaction_commit, fields, m_rule1), invalid_subscription);
+    // EXPECT_THROW(subscribe_rule(0, event_type_t::transaction_rollback, fields, m_rule1), invalid_subscription);
 
     // Table delete event cannot specify any fields
-    EXPECT_THROW(subscribe_rule(test_gaia_other_t::s_gaia_type, event_type_t::row_delete, fields, m_rule1), invalid_subscription);
+    EXPECT_THROW(subscribe_rule(test_gaia_other_t::s_gaia_type, event_type_t::row_delete, fields, m_rule1),
+                 invalid_subscription);
     // Table insert cannot specify any fields
-    EXPECT_THROW(subscribe_rule(test_gaia_other_t::s_gaia_type, event_type_t::row_insert, fields, m_rule1), invalid_subscription);
+    EXPECT_THROW(subscribe_rule(test_gaia_other_t::s_gaia_type, event_type_t::row_insert, fields, m_rule1),
+                 invalid_subscription);
 }
 
 TEST_F(event_manager_test, log_event_no_rules)
@@ -675,9 +664,8 @@ TEST_F(event_manager_test, log_database_event_single_event_single_rule)
     // fire an insert event and an update event; verify the rule was only fired for update event
     const gaia_id_t new_record = 20;
     const gaia_id_t record = 55;
-    trigger_event_t events[] = {
-        {event_type_t::row_insert, test_gaia_t::s_gaia_type, new_record, empty_position_list},
-        {event_type_t::row_update, test_gaia_t::s_gaia_type, record, empty_position_list}};
+    trigger_event_t events[] = {{event_type_t::row_insert, test_gaia_t::s_gaia_type, new_record, empty_position_list},
+                                {event_type_t::row_update, test_gaia_t::s_gaia_type, record, empty_position_list}};
     test::commit_trigger(0, events, 2);
 
     validate_rule_sequence(sequence);
@@ -698,9 +686,8 @@ TEST_F(event_manager_test, log_field_event_single_event_single_rule)
 
     // Verify an update to a different column doesn't fire the rule
     // And then verify an update to the correct column does fire the rule
-    trigger_event_t update_field_events[] = {
-        {event_type_t::row_update, test_gaia_t::s_gaia_type, 1, g_first_name},
-        {event_type_t::row_update, test_gaia_t::s_gaia_type, record, g_last_name}};
+    trigger_event_t update_field_events[] = {{event_type_t::row_update, test_gaia_t::s_gaia_type, 1, g_first_name},
+                                             {event_type_t::row_update, test_gaia_t::s_gaia_type, record, g_last_name}};
     test::commit_trigger(0, update_field_events, 2);
     validate_rule_sequence(sequence);
     validate_rule(event_type_t::row_update, test_gaia_t::s_gaia_type, record);
@@ -779,10 +766,9 @@ TEST_F(event_manager_test, log_database_event_single_rule_multi_event)
 
     // Log delete, update, and insert.  Sequence should be update followed by insert
     // because we didn't bind a rule to delete.
-    trigger_event_t events[] = {
-        {event_type_t::row_delete, test_gaia_t::s_gaia_type, record, empty_position_list},
-        {event_type_t::row_update, test_gaia_t::s_gaia_type, record + 1, empty_position_list},
-        {event_type_t::row_insert, test_gaia_t::s_gaia_type, record + 2, empty_position_list}};
+    trigger_event_t events[] = {{event_type_t::row_delete, test_gaia_t::s_gaia_type, record, empty_position_list},
+                                {event_type_t::row_update, test_gaia_t::s_gaia_type, record + 1, empty_position_list},
+                                {event_type_t::row_insert, test_gaia_t::s_gaia_type, record + 2, empty_position_list}};
     test::commit_trigger(0, events, 3);
     validate_rule_sequence(sequence);
 }
@@ -826,8 +812,8 @@ TEST_F(event_manager_test, log_event_multi_rule_multi_event)
     add_context_sequence(sequence, test_gaia_t::s_gaia_type, event_type_t::row_delete);
 
     // TODO[GAIAPLAT-194]: Transaction Events are out of scope for Q2
-    //add_context_sequence(sequence, 0, event_type_t::transaction_commit);
-    //add_context_sequence(sequence, 0, event_type_t::transaction_commit);
+    // add_context_sequence(sequence, 0, event_type_t::transaction_commit);
+    // add_context_sequence(sequence, 0, event_type_t::transaction_commit);
     const gaia_id_t record = 100;
 
     trigger_event_t events[] = {
@@ -854,7 +840,8 @@ TEST_F(event_manager_test, log_event_multi_rule_multi_event)
     add_context_sequence(sequence, test_gaia_t::s_gaia_type, event_type_t::row_insert);
 
     const gaia_id_t another_record = 205;
-    trigger_event_t single_event = {event_type_t::row_insert, test_gaia_t::s_gaia_type, another_record, empty_position_list};
+    trigger_event_t single_event
+        = {event_type_t::row_insert, test_gaia_t::s_gaia_type, another_record, empty_position_list};
     test::commit_trigger(0, &single_event, 1);
     validate_rule_sequence(sequence);
     validate_rule(event_type_t::row_insert, test_gaia_t::s_gaia_type, another_record);
@@ -871,16 +858,16 @@ TEST_F(event_manager_test, log_event_multi_rule_multi_event)
     // TODO[GAIAPLAT-194]: Transaction Events are out of scope for Q2
 
     // Rollback should invoke rule3, rule4.
-    //add_context_sequence(sequence, 0, event_type_t::transaction_rollback);
-    //add_context_sequence(sequence, 0, event_type_t::transaction_rollback);
-    //validate_rule_sequence(sequence);
+    // add_context_sequence(sequence, 0, event_type_t::transaction_rollback);
+    // add_context_sequence(sequence, 0, event_type_t::transaction_rollback);
+    // validate_rule_sequence(sequence);
 
     // Begin should invoke rule3 only.
-    //add_context_sequence(sequence, 0, event_type_t::transaction_begin);
-    //trigger_event_t transaction_event = {event_type_t::transaction_begin, 0, 0, nullptr, 0};
-    //test::commit_trigger(0, &transaction_event, 1);
-    //validate_rule_sequence(sequence);
-    //validate_rule(event_type_t::transaction_begin, 0, 0);
+    // add_context_sequence(sequence, 0, event_type_t::transaction_begin);
+    // trigger_event_t transaction_event = {event_type_t::transaction_begin, 0, 0, nullptr, 0};
+    // test::commit_trigger(0, &transaction_event, 1);
+    // validate_rule_sequence(sequence);
+    // validate_rule(event_type_t::transaction_begin, 0, 0);
 }
 
 TEST_F(event_manager_test, subscribe_rule_invalid_rule_binding)
@@ -888,15 +875,18 @@ TEST_F(event_manager_test, subscribe_rule_invalid_rule_binding)
     rule_binding_t rb;
 
     // Empty binding.
-    EXPECT_THROW(subscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_insert, empty_fields, rb), invalid_rule_binding);
+    EXPECT_THROW(subscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_insert, empty_fields, rb),
+                 invalid_rule_binding);
 
     // No rule_name or rule set.
     rb.ruleset_name = ruleset1_name;
-    EXPECT_THROW(subscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_update, empty_fields, rb), invalid_rule_binding);
+    EXPECT_THROW(subscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_update, empty_fields, rb),
+                 invalid_rule_binding);
 
     // No rule set.
     rb.rule_name = rule1_name;
-    EXPECT_THROW(subscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_delete, empty_fields, rb), invalid_rule_binding);
+    EXPECT_THROW(subscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_delete, empty_fields, rb),
+                 invalid_rule_binding);
 }
 
 TEST_F(event_manager_test, unsubscribe_rule_invalid_rule_binding)
@@ -904,15 +894,18 @@ TEST_F(event_manager_test, unsubscribe_rule_invalid_rule_binding)
     rule_binding_t rb;
 
     // Empty binding
-    EXPECT_THROW(unsubscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_delete, empty_fields, rb), invalid_rule_binding);
+    EXPECT_THROW(unsubscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_delete, empty_fields, rb),
+                 invalid_rule_binding);
 
     // No rule_name or rule set.
     rb.ruleset_name = ruleset1_name;
-    EXPECT_THROW(unsubscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_delete, empty_fields, rb), invalid_rule_binding);
+    EXPECT_THROW(unsubscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_delete, empty_fields, rb),
+                 invalid_rule_binding);
 
     // No rule set.
     rb.rule_name = rule1_name;
-    EXPECT_THROW(unsubscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_delete, empty_fields, rb), invalid_rule_binding);
+    EXPECT_THROW(unsubscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_delete, empty_fields, rb),
+                 invalid_rule_binding);
 }
 
 TEST_F(event_manager_test, subscribe_rule_duplicate_rule)
@@ -1008,9 +1001,9 @@ TEST_F(event_manager_test, list_rules_event_type_filter)
     setup_all_rules();
 
     // TODO[GAIAPLAT-194]: Transaction Events are out of scope for Q2
-    //event_type_t event_filter = event_type_t::transaction_begin;
-    //list_subscribed_rules(nullptr, nullptr, &event_filter, nullptr, rules);
-    //validate_rule_list(rules, get_expected_subscriptions(nullptr, nullptr, &event_filter));
+    // event_type_t event_filter = event_type_t::transaction_begin;
+    // list_subscribed_rules(nullptr, nullptr, &event_filter, nullptr, rules);
+    // validate_rule_list(rules, get_expected_subscriptions(nullptr, nullptr, &event_filter));
 
     event_type_t event_filter = event_type_t::row_insert;
     list_subscribed_rules(nullptr, nullptr, &event_filter, nullptr, rules);
@@ -1215,8 +1208,7 @@ TEST_F(event_manager_test, event_logging_no_subscriptions)
     const gaia_id_t record = 11;
 
     // Ensure the event was logged even if it had no subscribers.
-    trigger_event_t events[] = {
-        {event_type_t::row_update, test_gaia_t::s_gaia_type, record, g_last_name}};
+    trigger_event_t events[] = {{event_type_t::row_update, test_gaia_t::s_gaia_type, record, g_last_name}};
     test::commit_trigger(0, events, 1);
 
     gaia::db::begin_transaction();

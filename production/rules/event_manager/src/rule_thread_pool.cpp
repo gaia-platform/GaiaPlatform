@@ -45,11 +45,8 @@ void rule_thread_pool_t::log_events(invocation_t& invocation)
                 }
 
                 event_log::event_log_t::insert_row(
-                    static_cast<uint32_t>(event.event_type),
-                    static_cast<uint64_t>(event.gaia_type),
-                    static_cast<uint64_t>(event.record),
-                    column_id,
-                    timestamp, rule_invoked);
+                    static_cast<uint32_t>(event.event_type), static_cast<uint64_t>(event.gaia_type),
+                    static_cast<uint64_t>(event.record), column_id, timestamp, rule_invoked);
             }
         }); // recorder
     }
@@ -104,9 +101,7 @@ void rule_thread_pool_t::execute_immediate()
             invocation_t context = m_invocations.front();
             m_invocations.pop();
 
-            rule_stats_manager_t::record_invoke_time(context.stats, [&]() {
-                invoke_rule(context);
-            });
+            rule_stats_manager_t::record_invoke_time(context.stats, [&]() { invoke_rule(context); });
         }
     }
 }
@@ -144,9 +139,7 @@ void rule_thread_pool_t::rule_worker()
     while (true)
     {
         lock.lock();
-        m_invocations_signal.wait(lock, [this] {
-            return (m_invocations.size() > 0 || m_exit);
-        });
+        m_invocations_signal.wait(lock, [this] { return (m_invocations.size() > 0 || m_exit); });
 
         if (m_exit)
         {
@@ -157,9 +150,7 @@ void rule_thread_pool_t::rule_worker()
         m_invocations.pop();
         lock.unlock();
 
-        rule_stats_manager_t::record_invoke_time(context.stats, [&]() {
-            invoke_rule(context);
-        });
+        rule_stats_manager_t::record_invoke_time(context.stats, [&]() { invoke_rule(context); });
 
         rule_stats_manager_t::log(context.stats);
     }
@@ -177,17 +168,11 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
     try
     {
         auto_transaction_t txn(auto_transaction_t::no_auto_begin);
-        rule_context_t context(
-            txn,
-            rule_invocation.gaia_type,
-            rule_invocation.event_type,
-            rule_invocation.record,
-            rule_invocation.fields);
+        rule_context_t context(txn, rule_invocation.gaia_type, rule_invocation.event_type, rule_invocation.record,
+                               rule_invocation.fields);
 
         // Invoke the rule.
-        rule_stats_manager_t::record_rule_fn_time(invocation.stats, [&]() {
-            rule_invocation.rule_fn(&context);
-        });
+        rule_stats_manager_t::record_rule_fn_time(invocation.stats, [&]() { rule_invocation.rule_fn(&context); });
 
         should_schedule = true;
         s_tls_can_enqueue = true;

@@ -26,15 +26,12 @@ duplicate_rule::duplicate_rule(const rule_binding_t& binding, bool duplicate_key
     std::stringstream message;
     if (duplicate_key_found)
     {
-        message << binding.ruleset_name << "::"
-                << binding.rule_name
+        message << binding.ruleset_name << "::" << binding.rule_name
                 << " already subscribed with the same key but different rule function.";
     }
     else
     {
-        message << binding.ruleset_name << "::"
-                << binding.rule_name
-                << " already subscribed to the same rule list.";
+        message << binding.ruleset_name << "::" << binding.rule_name << " already subscribed to the same rule list.";
     }
     m_message = message.str();
 }
@@ -70,19 +67,19 @@ invalid_subscription::invalid_subscription(gaia_type_t gaia_type)
 invalid_subscription::invalid_subscription(gaia_type_t gaia_type, const char* table, uint16_t position)
 {
     std::stringstream message;
-    message << "Field (position:" << position << ") was not found in table '"
-            << table << "' (type:" << gaia_type << ").";
+    message << "Field (position:" << position << ") was not found in table '" << table << "' (type:" << gaia_type
+            << ").";
     m_message = message.str();
 }
 
 // Field not active or deprecated.
-invalid_subscription::invalid_subscription(gaia_type_t gaia_type, const char* table, uint16_t position, const char* field, bool is_deprecated)
+invalid_subscription::invalid_subscription(gaia_type_t gaia_type, const char* table, uint16_t position,
+                                           const char* field, bool is_deprecated)
 {
     std::stringstream message;
     const char* reason = is_deprecated ? "deprecated" : "not marked as active";
-    message << "Field '" << field
-            << "' (position:" << position << ") in table '" << table
-            << "' (type:" << gaia_type << ") is " << reason << ".";
+    message << "Field '" << field << "' (position:" << position << ") in table '" << table << "' (type:" << gaia_type
+            << ") is " << reason << ".";
     m_message = message.str();
 }
 
@@ -99,46 +96,32 @@ ruleset_not_found::ruleset_not_found(const char* ruleset_name)
 void rule_checker_t::check_catalog(gaia_type_t type, const field_position_list_t& field_list)
 {
     auto_transaction_t txn;
-    check_table_type(type);
-    check_fields(type, field_list);
-}
-
-// This function assumes that a transaction has been started.
-void rule_checker_t::check_table_type(gaia_type_t type)
-{
-    bool found_type = false;
-    // CONSIDER: when reference code gets generated
-    // then use the list method.
-    for (gaia_table_t table = gaia_table_t::get_first();
-         table;
-         table = table.get_next())
+    // Find the id of the table defining gaia_type.
+    for (const auto& table : catalog::gaia_table_t::list())
     {
         // The gaia_id() of the gaia_table_t is the type id.
-        if (type == table.gaia_id())
+        if (type == table.type())
         {
-            found_type = true;
-            break;
+            check_fields(table.gaia_id(), field_list);
+            return;
         }
     }
 
-    if (!found_type)
-    {
-        throw invalid_subscription(type);
-    }
+    // Table type not found.
+    throw invalid_subscription(type);
 }
 
 // This function assumes that a transaction has been started and that the table
 // type exists in the catalog.
-void rule_checker_t::check_fields(gaia_type_t type, const field_position_list_t& field_list)
+void rule_checker_t::check_fields(gaia_id_t id, const field_position_list_t& field_list)
 {
     if (0 == field_list.size())
     {
         return;
     }
 
-    // This function assumes that check_table_type was just called
-    gaia_table_t gaia_table = gaia_table_t::get(type);
-    auto field_ids = list_fields(type);
+    gaia_table_t gaia_table = gaia_table_t::get(id);
+    auto field_ids = list_fields(id);
 
     // Walk through all the requested fields and check them against
     // the catalog fields.  Make sure the field exists, is not deprecated
@@ -156,12 +139,8 @@ void rule_checker_t::check_fields(gaia_type_t type, const field_position_list_t&
                 // and not active, report it as being deprecated.
                 if (gaia_field.deprecated() || !gaia_field.active())
                 {
-                    throw invalid_subscription(
-                        type,
-                        gaia_table.name(),
-                        requested_position,
-                        gaia_field.name(),
-                        gaia_field.deprecated());
+                    throw invalid_subscription(id, gaia_table.name(), requested_position, gaia_field.name(),
+                                               gaia_field.deprecated());
                 }
                 found_requested_field = true;
                 break;
@@ -170,10 +149,7 @@ void rule_checker_t::check_fields(gaia_type_t type, const field_position_list_t&
 
         if (!found_requested_field)
         {
-            throw invalid_subscription(
-                type,
-                gaia_table.name(),
-                requested_position);
+            throw invalid_subscription(id, gaia_table.name(), requested_position);
         }
     }
 }

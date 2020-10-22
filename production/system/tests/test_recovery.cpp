@@ -188,7 +188,9 @@ void load_data(uint64_t total_size_bytes, bool kill_server_during_load, db_serve
         {
             // Insert row.
             auto e = generate_employee_record();
-            temp_employee_map.insert(make_pair(e.gaia_id(), employee_copy_t{e.name_first(), e.name_last(), e.ssn(), e.hire_date(), e.email(), e.web()}));
+            temp_employee_map.insert(
+                make_pair(e.gaia_id(),
+                          employee_copy_t{e.name_first(), e.name_last(), e.ssn(), e.hire_date(), e.email(), e.web()}));
         }
         commit_transaction();
 
@@ -278,11 +280,8 @@ void delete_all(int initial_record_count)
     validate_data();
 }
 
-void load_modify_recover_test(db_server_t server,
-                              string server_dir_path,
-                              uint64_t load_size_bytes,
-                              int crash_validate_loop_count,
-                              bool kill_during_workload)
+void load_modify_recover_test(db_server_t server, string server_dir_path, uint64_t load_size_bytes,
+                              int crash_validate_loop_count, bool kill_during_workload)
 {
     int initial_record_count;
     // Start server.

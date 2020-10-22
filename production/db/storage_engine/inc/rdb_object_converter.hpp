@@ -13,9 +13,10 @@
 
 #include <vector>
 
+#include "rocksdb/slice.h"
+
 #include "gaia_se_object.hpp"
 #include "persistent_store_error.hpp"
-#include "rocksdb/slice.h"
 
 using namespace gaia::common;
 
@@ -69,6 +70,14 @@ public:
         // Convert to network order (big endian).
         u_int32_t result = htobe32(value);
         memcpy(m_buffer.data() + m_position - sizeof(uint32_t), &result, sizeof(result));
+    }
+
+    void write_uint16(const uint16_t value)
+    {
+        allocate(sizeof(uint16_t));
+        // Convert to network order (big endian).
+        u_int16_t result = htobe16(value);
+        memcpy(m_buffer.data() + m_position - sizeof(uint16_t), &result, sizeof(result));
     }
 
     void write_uint8(const uint8_t value)
@@ -160,6 +169,24 @@ public:
         else
         {
             throw persistent_store_error("Unable to deserialize uint32 value.");
+        }
+    }
+
+    void read_uint16(uint16_t* out)
+    {
+        const uint8_t* casted_res
+            = reinterpret_cast<const uint8_t*>(read(sizeof(uint16_t)));
+
+        if (casted_res)
+        {
+            uint16_t temp;
+            memcpy(&temp, casted_res, sizeof(uint16_t));
+            // Convert to little endian.
+            *out = be16toh(temp);
+        }
+        else
+        {
+            throw persistent_store_error("Unable to deserialize uint16 value.");
         }
     }
 

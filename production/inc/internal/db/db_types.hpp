@@ -7,8 +7,10 @@
 
 #include <cstdint>
 
-namespace gaia {
-namespace db {
+namespace gaia
+{
+namespace db
+{
 
 /**
  * The type of a Gaia transaction id.
@@ -52,5 +54,5 @@ typedef uint64_t gaia_offset_t;
  */
 constexpr gaia_offset_t INVALID_GAIA_OFFSET = 0;
 
-}  // namespace db
-}  // namespace gaia
+} // namespace db
+} // namespace gaia

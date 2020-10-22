@@ -92,8 +92,8 @@ employee_t create_hierarchy()
     const int count_phones = 20;
     const int addr_size = 6;
     const int phone_size = 5;
-    auto eptr = employee_t::get(
-        employee_t::insert_row("Heidi", "Humphry", "555-22-4444", hire_date, "heidi@gmail.com", ""));
+    auto eptr
+        = employee_t::get(employee_t::insert_row("Heidi", "Humphry", "555-22-4444", hire_date, "heidi@gmail.com", ""));
     for (int i = 0; i < count_addresses; i++)
     {
         char addr_string[addr_size];
@@ -105,8 +105,7 @@ employee_t create_hierarchy()
         {
             char phone_string[phone_size];
             sprintf(phone_string, "%d", j);
-            auto pptr = phone_t::get(
-                phone_t::insert_row(phone_string, phone_string, true));
+            auto pptr = phone_t::get(phone_t::insert_row(phone_string, phone_string, true));
             aptr.phone_list().insert(pptr);
         }
     }
@@ -196,8 +195,7 @@ bool delete_hierarchy(employee_t& eptr)
     return true;
 }
 
-template <typename T_type>
-int count_type()
+template <typename T_type> int count_type()
 {
     int count = 0;
     for (auto row : T_type::list())
@@ -333,7 +331,8 @@ TEST_F(gaia_references_test, recursive_scan)
     scan_manages(employee_vector, e1);
     for (auto const& it : employee_vector)
     {
-        if (it != "Horace" && it != "Henry" && it != "Hal" && it != "Hiram" && it != "Howard" && it != "Hector" && it != "Hank")
+        if (it != "Horace" && it != "Henry" && it != "Hal" && it != "Hiram" && it != "Howard" && it != "Hector"
+            && it != "Hank")
         {
             EXPECT_STREQ(it.c_str(), "") << "Name was not found in hierarchy";
         }

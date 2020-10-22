@@ -101,21 +101,23 @@ void catalog_manager_t::bootstrap_catalog()
         // create table gaia_database (name string);
         field_def_list_t fields;
         fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
-        create_table_impl("catalog", "gaia_database", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_database));
+        create_table_impl("catalog", "gaia_database", fields, true, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_database));
     }
     {
         // create table gaia_table (
         //     name string,
-        //     is_log bool,
+        //     type uint32,
+        //     is_system bool,
         //     binary_schema string,
         //     references gaia_database,
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
-        fields.emplace_back(make_unique<field_definition_t>("is_log", data_type_t::e_bool, 1));
+        fields.emplace_back(make_unique<field_definition_t>("type", data_type_t::e_uint32, 1));
+        fields.emplace_back(make_unique<field_definition_t>("is_system", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<field_definition_t>("binary_schema", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<field_definition_t>(c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_database"));
-        create_table_impl("catalog", "gaia_table", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_table));
+        create_table_impl("catalog", "gaia_table", fields, true, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_table));
     }
     {
         // create table gaia_field (
@@ -139,7 +141,7 @@ void catalog_manager_t::bootstrap_catalog()
         fields.emplace_back(make_unique<field_definition_t>(c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_table"));
         // The "ref" named reference to the gaia_table defines the referential relationship.
         fields.emplace_back(make_unique<field_definition_t>("ref", data_type_t::e_references, 1, "catalog.gaia_table"));
-        create_table_impl("catalog", "gaia_field", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_field));
+        create_table_impl("catalog", "gaia_field", fields, true, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_field));
     }
     {
         // create table gaia_ruleset (
@@ -155,7 +157,7 @@ void catalog_manager_t::bootstrap_catalog()
         fields.emplace_back(make_unique<field_definition_t>("table_ids", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<field_definition_t>("source_location", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<field_definition_t>("serial_stream", data_type_t::e_string, 1));
-        create_table_impl("catalog", "gaia_ruleset", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_ruleset));
+        create_table_impl("catalog", "gaia_ruleset", fields, true, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_ruleset));
     }
     {
         // create table gaia_rule (
@@ -166,7 +168,7 @@ void catalog_manager_t::bootstrap_catalog()
         field_def_list_t fields;
         fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<field_definition_t>(c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_ruleset"));
-        create_table_impl("catalog", "gaia_rule", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_rule));
+        create_table_impl("catalog", "gaia_rule", fields, true, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_rule));
     }
 }
 
@@ -184,7 +186,7 @@ void catalog_manager_t::create_system_tables()
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<field_definition_t>("event_type", data_type_t::e_uint32, 1));
-        fields.emplace_back(make_unique<field_definition_t>("type_id", data_type_t::e_uint64, 1));
+        fields.emplace_back(make_unique<field_definition_t>("type_id", data_type_t::e_uint32, 1));
         fields.emplace_back(make_unique<field_definition_t>("record_id", data_type_t::e_uint64, 1));
         fields.emplace_back(make_unique<field_definition_t>("column_id", data_type_t::e_uint16, 1));
         fields.emplace_back(make_unique<field_definition_t>("timestamp", data_type_t::e_uint64, 1));
@@ -193,11 +195,24 @@ void catalog_manager_t::create_system_tables()
     }
 }
 
+void catalog_manager_t::create_type_map()
+{
+    gaia::db::begin_transaction();
+    for (auto table = gaia_table_t::get_first(); table; table = table.get_next())
+    {
+        m_type_map[table.type()] = table.gaia_id();
+    }
+    gaia::db::commit_transaction();
+}
+
 void catalog_manager_t::init()
 {
     reload_cache();
     bootstrap_catalog();
     create_system_tables();
+    create_type_map();
+    // Create the special global database.
+    // Tables created without specifying a database name will belong to the global database.
     m_empty_db_id = create_database(c_empty_db_name, false);
 }
 
@@ -346,36 +361,13 @@ void catalog_manager_t::drop_table(
     m_table_names.erase(full_table_name);
 }
 
-static gaia_ptr insert_gaia_table_row(
-    gaia_id_t table_id,
-    const char* name,
-    bool is_log,
-    const char* binary_schema)
-{
-
-    // NOTE: The number of table references must be updated manually for bootstrapping,
-    //       when the references of the gaia_table change. The constant from existing catalog
-    //       extended data classes "gaia_catalog.h" may be incorrect when that happens.
-    static constexpr size_t c_gaia_table_num_refs = c_num_gaia_table_ptrs;
-
-    flatbuffers::FlatBufferBuilder fbb(c_flatbuffer_builder_size);
-    fbb.Finish(Creategaia_tableDirect(fbb, name, is_log, binary_schema));
-
-    return gaia_ptr::create(
-        table_id,
-        static_cast<gaia_type_t>(catalog_table_type_t::gaia_table),
-        c_gaia_table_num_refs,
-        fbb.GetSize(),
-        fbb.GetBufferPointer());
-}
-
 gaia_id_t catalog_manager_t::create_table_impl(
     const string& dbname,
     const string& table_name,
     const field_def_list_t& fields,
-    bool is_log,
+    bool is_system,
     bool throw_on_exist,
-    gaia_id_t id)
+    gaia_type_t fixed_type)
 {
 
     unique_lock lock(m_lock);
@@ -418,23 +410,13 @@ gaia_id_t catalog_manager_t::create_table_impl(
     string bfbs{generate_bfbs(generate_fbs(dbname, table_name, fields))};
 
     gaia::db::begin_transaction();
-    gaia_id_t table_id;
-    if (id == INVALID_GAIA_ID)
-    {
-        table_id = gaia_table_t::insert_row(
-            table_name.c_str(),
-            is_log,
-            bfbs.c_str());
-    }
-    else
-    {
-        table_id = id;
-        insert_gaia_table_row(
-            table_id,
-            table_name.c_str(),
-            is_log,
-            bfbs.c_str());
-    }
+    gaia_type_t table_type = fixed_type == INVALID_GAIA_TYPE ? gaia_boot_t::get().get_next_type() : fixed_type;
+    gaia_id_t table_id = gaia_table_t::insert_row(
+        table_name.c_str(), // name
+        table_type,         // table type
+        is_system,          // is_system
+        bfbs.c_str()        // bfbs
+    );
 
     // Connect the table to the database
     gaia_database_t::get(db_id).gaia_table_list().insert(table_id);
@@ -493,6 +475,7 @@ gaia_id_t catalog_manager_t::create_table_impl(
     gaia::db::commit_transaction();
 
     m_table_names[full_table_name] = table_id;
+    m_type_map[table_type] = table_id;
     return table_id;
 }
 
@@ -516,6 +499,16 @@ inline gaia_id_t catalog_manager_t::find_db_id_no_lock(const string& dbname) con
     {
         return INVALID_GAIA_ID;
     }
+}
+
+gaia_id_t catalog_manager_t::find_table_id(gaia_type_t type)
+{
+    shared_lock lock(m_lock);
+    if (m_type_map.find(type) == m_type_map.end())
+    {
+        throw_system_error("Trying to look up non-existant table");
+    }
+    return m_type_map[type];
 }
 
 vector<gaia_id_t> catalog_manager_t::list_fields(gaia_id_t table_id) const

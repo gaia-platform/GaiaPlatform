@@ -15,10 +15,7 @@ using namespace std;
 using namespace gaia::db;
 using namespace gaia::rules;
 
-void check_all_event_types(
-    gaia_type_t context_type,
-    gaia_type_t test_type,
-    last_operation_t* expected)
+void check_all_event_types(gaia_type_t context_type, gaia_type_t test_type, last_operation_t* expected)
 {
     gaia::direct_access::auto_transaction_t txn;
     field_position_list_t fields;
@@ -37,16 +34,16 @@ void check_all_event_types(
     // TODO[GAIAPLAT-194]: Transaction events are out of scope for Q2
 
     // Test event types that are not table operations.
-    //context.event_type = event_type_t::transaction_begin;
-    //EXPECT_EQ(expected ? *expected : last_operation_t::none,
+    // context.event_type = event_type_t::transaction_begin;
+    // EXPECT_EQ(expected ? *expected : last_operation_t::none,
     //    context.last_operation(test_type));
 
-    //context.event_type = event_type_t::transaction_commit;
-    //EXPECT_EQ(expected ? *expected : last_operation_t::none,
+    // context.event_type = event_type_t::transaction_commit;
+    // EXPECT_EQ(expected ? *expected : last_operation_t::none,
     //    context.last_operation(test_type));
 
-    //context.event_type = event_type_t::transaction_rollback;
-    //EXPECT_EQ(expected ? *expected : last_operation_t::none,
+    // context.event_type = event_type_t::transaction_rollback;
+    // EXPECT_EQ(expected ? *expected : last_operation_t::none,
     //    context.last_operation(test_type));
 }
 

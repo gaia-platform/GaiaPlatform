@@ -23,6 +23,7 @@
 #include <thread>
 
 #include "db_types.hpp"
+#include "gaia_boot.hpp"
 #include "gaia_common.hpp"
 #include "gaia_db.hpp"
 #include "gaia_db_internal.hpp"
@@ -112,16 +113,9 @@ protected:
     thread_local static gaia_txn_id_t s_txn_id;
 
 public:
-    // REVIEW: this counter needs to be initialized from persistent storage.
-    static gaia_id_t generate_id(data* data)
+    static gaia_txn_id_t allocate_txn_id(data* s_data)
     {
-        gaia_id_t id = __sync_add_and_fetch(&data->next_id, 1);
-        return id;
-    }
-
-    static gaia_txn_id_t allocate_txn_id(data* data)
-    {
-        gaia_txn_id_t txn_id = __sync_add_and_fetch(&data->next_txn_id, 1);
+        gaia_txn_id_t txn_id = __sync_add_and_fetch(&s_data->next_txn_id, 1);
         return txn_id;
     }
 
