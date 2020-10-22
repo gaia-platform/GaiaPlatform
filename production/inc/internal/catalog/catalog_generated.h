@@ -442,8 +442,12 @@ struct gaia_tableBuilder {
 inline flatbuffers::Offset<gaia_table> Creategaia_table(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
+<<<<<<< HEAD
     uint32_t type = 0,
     bool is_system = false,
+=======
+    bool is_log = false,
+>>>>>>> 430e678152762909f9d0aacd111b87261dd5441d
     flatbuffers::Offset<flatbuffers::String> binary_schema = 0,
     flatbuffers::Offset<flatbuffers::String> serialization_template = 0) {
   gaia_tableBuilder builder_(_fbb);

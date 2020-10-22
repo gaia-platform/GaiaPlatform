@@ -175,7 +175,6 @@ void catalog_manager_t::bootstrap_catalog()
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
-        fields.emplace_back(make_unique<field_definition_t>(c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_ruleset"));
         fields.emplace_back(
             make_unique<field_definition_t>(c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_ruleset"));
         create_table_impl(
@@ -427,8 +426,7 @@ gaia_id_t catalog_manager_t::create_table_impl(
         table_type,
         is_system,
         bfbs.c_str(),
-        bin.c_str()
-    );
+        bin.c_str());
 
     // Connect the table to the database
     gaia_database_t::get(db_id).gaia_table_list().insert(table_id);
