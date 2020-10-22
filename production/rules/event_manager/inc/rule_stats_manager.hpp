@@ -4,90 +4,57 @@
 /////////////////////////////////////////////
 #pragma once
 
-#include "timer.hpp"
+#include <map>
+#include <thread>
 
-#include <memory>
+#include "logger.hpp"
+#include "scheduler_stats.hpp"
+#include "timer.hpp"
 
 namespace gaia
 {
 namespace rules
 {
 
-struct rule_stats_t 
-{
-    const char* tag;
-    std::chrono::steady_clock::time_point start_time;
-    std::chrono::steady_clock::time_point enqueue_time;
-    std::chrono::steady_clock::time_point before_invoke;
-    std::chrono::steady_clock::time_point before_rule;
-    std::chrono::steady_clock::time_point after_rule;
-    std::chrono::steady_clock::time_point after_invoke;
-};
-
-
-// This static class uses the gaia::common::timer to take time points
-// and calculate durations.
-class rule_stats_manager_t 
+// Calculates statistics over a user-specified time interval (10s if not defined) and lazily writes them to a
+// stats log file.
+// TODO[GAIAPLAT-431] Consider gathering more useful statistics like median and percentile instead of just
+// average and max calculations.
+class rule_stats_manager_t
 {
 public:
-    static bool s_enabled;
-    static const char* c_rule_tag;
-    static const char* c_log_event_tag;
+    void initialize(bool enable_rule_stats, size_t count_threads, uint32_t stats_log_interval);
+    void inc_executed(const char* rule_id);
+    void inc_scheduled(const char* rule_id);
+    void inc_retries(const char* rule_id);
+    void inc_abandoned(const char* rule_id);
+    void inc_pending(const char* rule_id);
+    void inc_exceptions(const char* rule_id);
+    void compute_rule_invocation_latency(const char* rule_id, std::chrono::steady_clock::time_point& start_time);
+    void compute_rule_execution_time(const char* rule_id, std::chrono::steady_clock::time_point& start_time);
+    void compute_thread_execution_time(std::chrono::steady_clock::time_point& start_time);
+    void insert_rule_stats(const char* rule_id);
 
-    static std::shared_ptr<rule_stats_t> create_rule_stats(std::chrono::steady_clock::time_point& start_time,
-        const char* tag)
-    {
-        if (s_enabled)
-        {
-            auto ptr = std::make_shared<rule_stats_t>();
-            ptr->tag = tag;
-            ptr->start_time = start_time;
-            return ptr;
-        }
-        else
-        {
-            return nullptr;
-        }
-    }
+private:
+    void log_stats_thread_fn(uint32_t count_threads);
+    void log_stats();
 
-    static void record_enqueue_time(std::shared_ptr<rule_stats_t>& stats_ptr)
-    {
-        if (s_enabled)
-        {
-            stats_ptr->enqueue_time = gaia::common::timer_t::get_time_point();
-        }
-    }
+private:
+    // Write column headers every c_stats_group_size.
+    static const uint8_t c_stats_group_size;
 
-    static void record_invoke_time(std::shared_ptr<rule_stats_t>& stats_ptr, std::function<void()>fn)
-    {
-        if (s_enabled)
-        {
-            stats_ptr->before_invoke = gaia::common::timer_t::get_time_point();
-            fn();
-            stats_ptr->after_invoke = gaia::common::timer_t::get_time_point();
-        }
-        else
-        {
-            fn();
-        }
-    }
-
-    static void record_rule_fn_time(std::shared_ptr<rule_stats_t>& stats_ptr, std::function<void()>fn)
-    {
-        if (s_enabled)
-        {
-            stats_ptr->before_rule = gaia::common::timer_t::get_time_point();
-            fn();
-            stats_ptr->after_rule = gaia::common::timer_t::get_time_point();
-        }
-        else
-        {
-            fn();
-        }
-    }
-
-    static void log(std::shared_ptr<rule_stats_t>& stats_ptr);
+    // Manages the total stats for all rules over each log interval
+    scheduler_stats_t m_scheduler_stats;
+    // Manages individual rule statistics.  The key is generated from the translation engine.
+    std::map<string, rule_stats_t> m_rule_stats_map;
+    // Protects adding rules to the map above.
+    mutex m_rule_stats_lock;
+    // Individual rule stats are off by default.  Must be explicitly enabled by the user.
+    bool m_rule_stats_enabled;
+    // Tracks how many log rows have been written out.  We write a header initially and
+    // then every c_stats_group_size thereafter.
+    uint8_t m_count_entries_logged;
 };
 
-} // rules
-} // gaia
+} // namespace rules
+} // namespace gaia

@@ -5,51 +5,53 @@
 #pragma once
 
 #include <condition_variable>
+
 #include <mutex>
 #include <queue>
 #include <thread>
-
-#include "gaia_event_log.h"
-#include "triggers.hpp"
-#include "rules.hpp"
-#include "rule_stats_manager.hpp"
-
 #include <variant>
 
-namespace gaia 
+#include "gaia_event_log.h"
+#include "rule_stats_manager.hpp"
+#include "rules.hpp"
+#include "triggers.hpp"
+
+namespace gaia
 {
 namespace rules
 {
 
-
 class rule_thread_pool_t
 {
 public:
-
-    enum class invocation_type_t : uint8_t 
+    enum class invocation_type_t : uint8_t
     {
         not_set,
         rule,
         log_events
     };
 
-   struct log_events_invocation_t {
-       const db::triggers::trigger_event_list_t events;
-       const vector<bool> rules_invoked;
-   };
+    struct log_events_invocation_t
+    {
+        const db::triggers::trigger_event_list_t events;
+        const vector<bool> rules_invoked;
+    };
 
-   struct rule_invocation_t {
+    struct rule_invocation_t
+    {
         gaia_rule_fn rule_fn;
         common::gaia_type_t gaia_type;
         db::triggers::event_type_t event_type;
         gaia_id_t record;
         field_position_list_t fields;
-   };
+    };
 
-    struct invocation_t {
+    struct invocation_t
+    {
         invocation_type_t type;
         std::variant<rule_invocation_t, log_events_invocation_t> args;
-        shared_ptr<rule_stats_t> stats;
+        const char* rule_id;
+        std::chrono::steady_clock::time_point start_time;
     };
 
     /**
@@ -67,8 +69,8 @@ public:
      * If 0 threads are specified then the thread pool is in "immediate"
      * mode and no worker threads are created. If SIZE_MAX is specified
      * then create the pool with the number of available hardware threads.
-     */ 
-    rule_thread_pool_t(size_t num_threads);
+     */
+    rule_thread_pool_t(size_t num_threads, rule_stats_manager_t& stats_manager);
 
     /**
      * Will notify and wait for all workers in the thread pool
@@ -97,20 +99,25 @@ public:
      * 
      * @return number of threads
      */
-    uint32_t get_num_threads();
+    size_t get_num_threads();
 
 private:
     void rule_worker();
 
-    void inline invoke_rule(invocation_t& invocation) 
+    void inline invoke_rule(invocation_t& invocation)
     {
+        const char* rule_id = invocation.rule_id;
+        m_stats_manager.inc_executed(rule_id);
         if (invocation_type_t::rule == invocation.type)
         {
             invoke_user_rule(invocation);
         }
         else
         {
+            m_stats_manager.compute_rule_invocation_latency(rule_id, invocation.start_time);
+            auto fn_start = gaia::common::timer_t::get_time_point();
             log_events(invocation);
+            m_stats_manager.compute_rule_execution_time(rule_id, fn_start);
         }
     }
 
@@ -130,15 +137,22 @@ private:
     queue<invocation_t> m_invocations;
 
     /**
+     * Helper to calculate and log statistics for
+     * the rules engine scheduler and each individual
+     * user rule if desired.
+     */
+    rule_stats_manager_t& m_stats_manager;
+
+    /**
      * OS threads waiting to do work
-     */ 
+     */
     vector<thread> m_threads;
 
     /**
      * This lock together with the condition variable ensure synchronized 
      * access and signaling between the enqueue function and the worker
      * threads.
-     */ 
+     */
     mutex m_lock;
     condition_variable m_invocations_signal;
     bool m_exit;

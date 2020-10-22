@@ -30,7 +30,8 @@ class logger_manager_t {
 public:
     static constexpr char c_sys_logger[] = "sys";
     static constexpr char c_db_logger[] = "db";
-    static constexpr char c_scheduler_logger[] = "scheduler";
+    static constexpr char c_rules_logger[] = "rules";
+    static constexpr char c_rules_stats_logger[] = "rules_stats";
     static constexpr char c_catalog_logger[] = "catalog";
 
     /** Default logging path used if none is specified via configuration. */
@@ -62,11 +63,11 @@ public:
         return *m_db_logger;
     }
 
-    logger_t& scheduler_logger() {
+    logger_t& rules_logger() {
         if (!m_is_log_initialized) {
             uninitialized_failure();
         }
-        return *m_scheduler_logger;
+        return *m_rules_logger;
     }
 
     logger_t& catalog_logger() {
@@ -74,6 +75,13 @@ public:
             uninitialized_failure();
         }
         return *m_catalog_logger;
+    }
+
+    logger_t& rules_stats_logger() {
+        if (!m_is_log_initialized) {
+            uninitialized_failure();
+        }
+        return *m_rules_stats_logger;
     }
 
     bool init_logging(const string& config_path);
@@ -93,7 +101,8 @@ private:
     // Well-known loggers
     logger_ptr_t m_sys_logger;
     logger_ptr_t m_db_logger;
-    logger_ptr_t m_scheduler_logger;
+    logger_ptr_t m_rules_logger;
+    logger_ptr_t m_rules_stats_logger;
     logger_ptr_t m_catalog_logger;
 };
 

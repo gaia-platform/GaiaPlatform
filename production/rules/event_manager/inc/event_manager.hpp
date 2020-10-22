@@ -39,23 +39,32 @@ public:
     event_manager_t(event_manager_t&) = delete;
     void operator=(event_manager_t const&) = delete;
     static event_manager_t& get(bool is_initializing = false);
+    static const char* s_gaia_log_event_rule;
 
     /**
      * Rule APIs
      */
     void init();
 
-    void subscribe_rule(gaia::common::gaia_type_t gaia_type, event_type_t event_type,
-                        const field_position_list_t& fields, const rule_binding_t& rule_binding);
+    void subscribe_rule(
+        gaia::common::gaia_type_t gaia_type,
+        event_type_t event_type,
+        const field_position_list_t& fields,
+        const rule_binding_t& rule_binding);
 
-    bool unsubscribe_rule(gaia::common::gaia_type_t gaia_type, event_type_t event_type,
-                          const field_position_list_t& fields, const rule_binding_t& rule_binding);
+    bool unsubscribe_rule(
+        gaia::common::gaia_type_t gaia_type,
+        event_type_t event_type,
+        const field_position_list_t& fields,
+        const rule_binding_t& rule_binding);
 
     void unsubscribe_rules();
 
-    void list_subscribed_rules(const char* ruleset_name, const gaia::common::gaia_type_t* gaia_type,
-                               const event_type_t* event_type, const uint16_t* field,
-                               subscription_list_t& subscriptions);
+    void list_subscribed_rules(
+        const char* ruleset_name,
+        const gaia::common::gaia_type_t* gaia_type,
+        const event_type_t* event_type, const uint16_t* field,
+        subscription_list_t& subscriptions);
 
 private:
     // Internal rule binding to copy the callers
@@ -109,9 +118,9 @@ private:
     // the catalog.
     unique_ptr<rule_checker_t> m_rule_checker;
 
-    // Enable profiling of rules engine function.  Also used to
-    // get time points for rules engine statistics.
-    optional_timer_t m_timer;
+    // Helper class to manager gathering and logging performance statistics
+    // for both the rules engine scheduler and individual rules.
+    rule_stats_manager_t m_stats_manager;
 
 private:
     // Only internal static creation is allowed.
@@ -124,18 +133,23 @@ private:
 
     // Well known trigger function called by the storage engine after commit.
     void commit_trigger(gaia_txn_id_t txn_id, const trigger_event_list_t& event_list);
-    bool process_last_operation_events(event_binding_t& binding, const trigger_event_t& event,
-                                       std::chrono::steady_clock::time_point& start_time);
-    bool process_field_events(event_binding_t& binding, const trigger_event_t& event,
-                              std::chrono::steady_clock::time_point& start_time);
+    bool process_last_operation_events(
+        event_binding_t& binding,
+        const trigger_event_t& event,
+        std::chrono::steady_clock::time_point& start_time);
+    bool process_field_events(
+        event_binding_t& binding,
+        const trigger_event_t& event,
+        std::chrono::steady_clock::time_point& start_time);
     void init(event_manager_settings_t& settings);
     const _rule_binding_t* find_rule(const rules::rule_binding_t& binding);
     void add_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     bool remove_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
-    void enqueue_invocation(const trigger_event_list_t& events, const vector<bool>& rules_invoked_list,
-                            std::chrono::steady_clock::time_point& start_time);
-    void enqueue_invocation(const trigger_event_t& event, gaia_rule_fn rule,
-                            std::chrono::steady_clock::time_point& start_time);
+    void enqueue_invocation(const trigger_event_list_t& events, const vector<bool>& rules_invoked_list, std::chrono::steady_clock::time_point& start_time);
+    void enqueue_invocation(
+        const trigger_event_t& event,
+        const _rule_binding_t* rule_binding,
+        std::chrono::steady_clock::time_point& start_time);
     void check_subscription(event_type_t event_type, const field_position_list_t& fields);
     static inline void check_rule_binding(const rule_binding_t& binding)
     {
@@ -146,9 +160,13 @@ private:
     }
     static bool is_valid_rule_binding(const rules::rule_binding_t& binding);
     static std::string make_rule_key(const rules::rule_binding_t& binding);
-    static void add_subscriptions(rules::subscription_list_t& subscriptions, const rule_list_t& rules,
-                                  gaia::common::gaia_type_t gaia_type, event_type_t event_type, uint16_t field,
-                                  const char* ruleset_filter);
+    static void add_subscriptions(
+        rules::subscription_list_t& subscriptions,
+        const rule_list_t& rules,
+        gaia::common::gaia_type_t gaia_type,
+        event_type_t event_type,
+        uint16_t field,
+        const char* ruleset_filter);
 };
 
 } // namespace rules
