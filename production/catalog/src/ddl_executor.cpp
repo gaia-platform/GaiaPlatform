@@ -2,7 +2,7 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
-#include "catalog_manager.hpp"
+#include "ddl_executor.hpp"
 
 #include <memory>
 
@@ -276,11 +276,8 @@ gaia_id_t catalog_manager_t::create_database(const string& name, bool throw_on_e
     return id;
 }
 
-gaia_id_t catalog_manager_t::create_table(
-    const string& db_name,
-    const string& name,
-    const field_def_list_t& fields,
-    bool throw_on_exists)
+gaia_id_t catalog_manager_t::create_table(const string& db_name, const string& name, const field_def_list_t& fields,
+                                          bool throw_on_exists)
 {
     return create_table_impl(db_name, name, fields, false, throw_on_exists);
 }
@@ -370,13 +367,9 @@ void catalog_manager_t::drop_table(const string& db_name, const string& name)
     m_table_names.erase(full_table_name);
 }
 
-gaia_id_t catalog_manager_t::create_table_impl(
-    const string& dbname,
-    const string& table_name,
-    const field_def_list_t& fields,
-    bool is_system,
-    bool throw_on_exist,
-    gaia_type_t fixed_type)
+gaia_id_t catalog_manager_t::create_table_impl(const string& dbname, const string& table_name,
+                                               const field_def_list_t& fields, bool is_system, bool throw_on_exist,
+                                               gaia_type_t fixed_type)
 {
     unique_lock lock(m_lock);
 

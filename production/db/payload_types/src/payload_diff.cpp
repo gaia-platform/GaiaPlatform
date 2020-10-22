@@ -9,8 +9,8 @@
 #include <vector>
 
 #include "auto_transaction.hpp"
-#include "catalog_manager.hpp"
 #include "data_holder.hpp"
+#include "ddl_executor.hpp"
 #include "field_access.hpp"
 #include "gaia_catalog.h"
 #include "gaia_catalog.hpp"

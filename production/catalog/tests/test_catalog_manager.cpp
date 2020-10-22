@@ -3,13 +3,13 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "flatbuffers/reflection.h"
+#include "gtest/gtest.h"
+
 #include <algorithm>
 #include <memory>
 #include <set>
 #include <vector>
-
-#include "flatbuffers/reflection.h"
-#include "gtest/gtest.h"
 
 #include "db_test_base.hpp"
 #include "fbs_generator.hpp"

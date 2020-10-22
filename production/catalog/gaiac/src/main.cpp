@@ -9,7 +9,6 @@
 #include <string>
 #include <vector>
 
-#include "catalog_manager.hpp"
 #include "command.hpp"
 #include "db_test_helpers.hpp"
 #include "gaia_catalog_internal.hpp"
