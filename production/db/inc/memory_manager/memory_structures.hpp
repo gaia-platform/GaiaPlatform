@@ -7,8 +7,8 @@
 
 #include <cstdint>
 
-#include "memory_types.hpp"
 #include "access_control.hpp"
+#include "memory_types.hpp"
 
 namespace gaia
 {
@@ -30,18 +30,13 @@ struct stack_allocator_metadata_t
     // Total allocation count.
     size_t count_allocations;
 
-    // The size of the first allocation.
-    // This is needed because the first allocation is not prefixed initially with its size.
-    size_t first_allocation_size;
-
     // Offset where we can make the next allocation.
     address_offset_t next_allocation_offset;
 
     void clear()
     {
         count_allocations = 0;
-        first_allocation_size = 0;
-        next_allocation_offset = 0;
+        next_allocation_offset = c_invalid_offset;
     }
 };
 
@@ -62,11 +57,11 @@ struct stack_allocator_allocation_t
     void clear()
     {
         slot_id = 0;
-        memory_offset = 0;
-        old_memory_offset = 0;
+        memory_offset = c_invalid_offset;
+        old_memory_offset = c_invalid_offset;
     }
 };
 
-}
-}
-}
+} // namespace memory_manager
+} // namespace db
+} // namespace gaia

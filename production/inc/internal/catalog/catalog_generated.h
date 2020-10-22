@@ -356,10 +356,13 @@ flatbuffers::Offset<gaia_field> Creategaia_field(flatbuffers::FlatBufferBuilder 
 struct gaia_tableT : public flatbuffers::NativeTable {
   typedef gaia_table TableType;
   gaia::direct_access::nullable_string_t name;
-  bool is_log;
+  uint32_t type;
+  bool is_system;
   gaia::direct_access::nullable_string_t binary_schema;
+  gaia::direct_access::nullable_string_t serialization_template;
   gaia_tableT()
-      : is_log(false) {
+      : type(0),
+        is_system(false) {
   }
 };
 
@@ -368,25 +371,36 @@ struct gaia_table FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef gaia_tableBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
-    VT_IS_LOG = 6,
-    VT_BINARY_SCHEMA = 8
+    VT_TYPE = 6,
+    VT_IS_SYSTEM = 8,
+    VT_BINARY_SCHEMA = 10,
+    VT_SERIALIZATION_TEMPLATE = 12
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
   }
-  bool is_log() const {
-    return GetField<uint8_t>(VT_IS_LOG, 0) != 0;
+  uint32_t type() const {
+    return GetField<uint32_t>(VT_TYPE, 0);
+  }
+  bool is_system() const {
+    return GetField<uint8_t>(VT_IS_SYSTEM, 0) != 0;
   }
   const flatbuffers::String *binary_schema() const {
     return GetPointer<const flatbuffers::String *>(VT_BINARY_SCHEMA);
+  }
+  const flatbuffers::String *serialization_template() const {
+    return GetPointer<const flatbuffers::String *>(VT_SERIALIZATION_TEMPLATE);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
-           VerifyField<uint8_t>(verifier, VT_IS_LOG) &&
+           VerifyField<uint32_t>(verifier, VT_TYPE) &&
+           VerifyField<uint8_t>(verifier, VT_IS_SYSTEM) &&
            VerifyOffset(verifier, VT_BINARY_SCHEMA) &&
            verifier.VerifyString(binary_schema()) &&
+           VerifyOffset(verifier, VT_SERIALIZATION_TEMPLATE) &&
+           verifier.VerifyString(serialization_template()) &&
            verifier.EndTable();
   }
   gaia_tableT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -401,11 +415,17 @@ struct gaia_tableBuilder {
   void add_name(flatbuffers::Offset<flatbuffers::String> name) {
     fbb_.AddOffset(gaia_table::VT_NAME, name);
   }
-  void add_is_log(bool is_log) {
-    fbb_.AddElement<uint8_t>(gaia_table::VT_IS_LOG, static_cast<uint8_t>(is_log), 0);
+  void add_type(uint32_t type) {
+    fbb_.AddElement<uint32_t>(gaia_table::VT_TYPE, type, 0);
+  }
+  void add_is_system(bool is_system) {
+    fbb_.AddElement<uint8_t>(gaia_table::VT_IS_SYSTEM, static_cast<uint8_t>(is_system), 0);
   }
   void add_binary_schema(flatbuffers::Offset<flatbuffers::String> binary_schema) {
     fbb_.AddOffset(gaia_table::VT_BINARY_SCHEMA, binary_schema);
+  }
+  void add_serialization_template(flatbuffers::Offset<flatbuffers::String> serialization_template) {
+    fbb_.AddOffset(gaia_table::VT_SERIALIZATION_TEMPLATE, serialization_template);
   }
   explicit gaia_tableBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -422,27 +442,36 @@ struct gaia_tableBuilder {
 inline flatbuffers::Offset<gaia_table> Creategaia_table(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
-    bool is_log = false,
-    flatbuffers::Offset<flatbuffers::String> binary_schema = 0) {
+    uint32_t type = 0,
+    bool is_system = false,
+    flatbuffers::Offset<flatbuffers::String> binary_schema = 0,
+    flatbuffers::Offset<flatbuffers::String> serialization_template = 0) {
   gaia_tableBuilder builder_(_fbb);
+  builder_.add_serialization_template(serialization_template);
   builder_.add_binary_schema(binary_schema);
+  builder_.add_type(type);
   builder_.add_name(name);
-  builder_.add_is_log(is_log);
+  builder_.add_is_system(is_system);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<gaia_table> Creategaia_tableDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
-    bool is_log = false,
-    const char *binary_schema = nullptr) {
+    uint32_t type = 0,
+    bool is_system = false,
+    const char *binary_schema = nullptr,
+    const char *serialization_template = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto binary_schema__ = binary_schema ? _fbb.CreateString(binary_schema) : 0;
+  auto serialization_template__ = serialization_template ? _fbb.CreateString(serialization_template) : 0;
   return gaia::catalog::Creategaia_table(
       _fbb,
       name__,
-      is_log,
-      binary_schema__);
+      type,
+      is_system,
+      binary_schema__,
+      serialization_template__);
 }
 
 flatbuffers::Offset<gaia_table> Creategaia_table(flatbuffers::FlatBufferBuilder &_fbb, const gaia_tableT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -627,8 +656,10 @@ inline void gaia_table::UnPackTo(gaia_tableT *_o, const flatbuffers::resolver_fu
   (void)_o;
   (void)_resolver;
   { auto _e = name(); if (_e) _o->name = gaia::direct_access::nullable_string_t(_e->c_str(), _e->size()); }
-  { auto _e = is_log(); _o->is_log = _e; }
+  { auto _e = type(); _o->type = _e; }
+  { auto _e = is_system(); _o->is_system = _e; }
   { auto _e = binary_schema(); if (_e) _o->binary_schema = gaia::direct_access::nullable_string_t(_e->c_str(), _e->size()); }
+  { auto _e = serialization_template(); if (_e) _o->serialization_template = gaia::direct_access::nullable_string_t(_e->c_str(), _e->size()); }
 }
 
 inline flatbuffers::Offset<gaia_table> gaia_table::Pack(flatbuffers::FlatBufferBuilder &_fbb, const gaia_tableT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -640,13 +671,17 @@ inline flatbuffers::Offset<gaia_table> Creategaia_table(flatbuffers::FlatBufferB
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const gaia_tableT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _name = _o->name.empty() ? 0 : _fbb.CreateString(_o->name);
-  auto _is_log = _o->is_log;
+  auto _type = _o->type;
+  auto _is_system = _o->is_system;
   auto _binary_schema = _o->binary_schema.empty() ? 0 : _fbb.CreateString(_o->binary_schema);
+  auto _serialization_template = _o->serialization_template.empty() ? 0 : _fbb.CreateString(_o->serialization_template);
   return gaia::catalog::Creategaia_table(
       _fbb,
       _name,
-      _is_log,
-      _binary_schema);
+      _type,
+      _is_system,
+      _binary_schema,
+      _serialization_template);
 }
 
 inline gaia_databaseT *gaia_database::UnPack(const flatbuffers::resolver_function_t *_resolver) const {

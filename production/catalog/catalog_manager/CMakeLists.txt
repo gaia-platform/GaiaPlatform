@@ -18,6 +18,7 @@ set(GAIA_CATALOG_PRIVATE_INCLUDES
   ${GAIA_INC}/public/direct_access
   ${GAIA_INC}/internal/common
   ${GAIA_INC}/internal/db
+  ${GAIA_REPO}/production/db/storage_engine/inc
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc
 )
@@ -28,6 +29,7 @@ message(VERBOSE "GAIA_CATALOG_PRIVATE_INCLUDES=${GAIA_CATALOG_PRIVATE_INCLUDES}"
 add_library(gaia_catalog STATIC
   src/catalog_manager.cpp
   src/fbs_generator.cpp
+  src/json_generator.cpp
   src/gaia_generate.cpp
   ${FLATBUFFERS}/src/code_generators.cpp)
 set_target_properties(gaia_catalog PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
@@ -44,6 +46,12 @@ add_gtest(test_catalog_manager
 
 add_gtest(test_fbs_generation
   "tests/test_fbs_generation.cpp"
+  "${GAIA_CATALOG_PUBLIC_INCLUDES};${GAIA_CATALOG_PRIVATE_INCLUDES}"
+  "rt;gaia;gaia_catalog"
+  gaia_catalog)
+
+add_gtest(test_json_generation
+  "tests/test_json_generation.cpp"
   "${GAIA_CATALOG_PUBLIC_INCLUDES};${GAIA_CATALOG_PRIVATE_INCLUDES}"
   "rt;gaia;gaia_catalog"
   gaia_catalog)

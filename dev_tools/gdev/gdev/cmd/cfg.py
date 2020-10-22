@@ -6,4 +6,11 @@ class Cfg(GenRunCfg):
 
     @memoize
     async def cli_entrypoint(self) -> None:
-        print(self.path.read_text())
+        print(
+            '\n'.join(
+                await self.get_lines(
+                    cfg_enables=self.options.cfg_enables,
+                    path=self.path
+                )
+            )
+        )

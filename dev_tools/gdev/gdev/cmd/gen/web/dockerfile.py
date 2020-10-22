@@ -19,10 +19,10 @@ class GenWebDockerfile(GenAbcDockerfile):
 
     @memoize
     async def get_run_section(self) -> str:
-        if lines := await self.cfg.get_lines():
+        if section_lines := await self.cfg.get_section_lines():
             run_statement = (
                 f'RUN wget '
-                + ' \\\n        '.join(lines)
+                + ' \\\n        '.join(section_lines)
                 + ' \\\n    && apt-get remove --autoremove -y wget'
             )
         else:

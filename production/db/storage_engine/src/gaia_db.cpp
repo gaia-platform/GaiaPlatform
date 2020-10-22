@@ -3,40 +3,48 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "db_types.hpp"
 #include "gaia_db.hpp"
-#include "gaia_db_internal.hpp"
 
+#include "db_types.hpp"
+#include "gaia_db_internal.hpp"
 #include "storage_engine_client.hpp"
 
-bool gaia::db::is_transaction_active() {
+bool gaia::db::is_transaction_active()
+{
     return gaia::db::client::is_transaction_active();
 }
 
-void gaia::db::begin_session() {
+void gaia::db::begin_session()
+{
     gaia::db::client::begin_session();
 }
 
-void gaia::db::end_session() {
+void gaia::db::end_session()
+{
     gaia::db::client::end_session();
 }
 
-void gaia::db::begin_transaction() {
+void gaia::db::begin_transaction()
+{
     gaia::db::client::begin_transaction();
 }
 
-void gaia::db::rollback_transaction() {
+void gaia::db::rollback_transaction()
+{
     gaia::db::client::rollback_transaction();
 }
 
-void gaia::db::commit_transaction() {
+void gaia::db::commit_transaction()
+{
     gaia::db::client::commit_transaction();
 }
 
-bool gaia::db::set_commit_trigger(commit_trigger_fn trigger_fn) {
+bool gaia::db::set_commit_trigger(commit_trigger_fn trigger_fn)
+{
     return gaia::db::client::set_commit_trigger(trigger_fn);
 }
 
-void gaia::db::clear_shared_memory() {
+void gaia::db::clear_shared_memory()
+{
     gaia::db::client::clear_shared_memory();
 }

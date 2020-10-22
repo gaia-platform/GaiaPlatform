@@ -6,20 +6,23 @@
 #include "flatbuffers/idl.h"
 #include "gtest/gtest.h"
 
-#include "gaia_catalog.hpp"
-#include "fbs_generator.hpp"
 #include "db_test_base.hpp"
+#include "fbs_generator.hpp"
+#include "gaia_catalog.hpp"
 
 using namespace gaia::catalog;
 
-class fbs_generation_test : public db_test_base_t {
+class fbs_generation_test : public db_test_base_t
+{
 protected:
-    static void SetUpTestSuite() {
+    static void SetUpTestSuite()
+    {
         test_table_fields.emplace_back(make_unique<ddl::field_definition_t>("id", data_type_t::e_int8, 1));
         test_table_fields.emplace_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
     }
 
-    void SetUp() override {
+    void SetUp() override
+    {
         db_test_base_t::SetUp();
     }
 
@@ -28,7 +31,8 @@ protected:
 
 ddl::field_def_list_t fbs_generation_test::test_table_fields{};
 
-TEST_F(fbs_generation_test, generate_fbs_from_catalog) {
+TEST_F(fbs_generation_test, generate_fbs_from_catalog)
+{
     string test_table_name{"test_fbs_generation"};
 
     gaia_id_t table_id = create_table(test_table_name, test_table_fields);
@@ -40,7 +44,8 @@ TEST_F(fbs_generation_test, generate_fbs_from_catalog) {
     ASSERT_TRUE(fbs_parser.Parse(fbs.c_str()));
 }
 
-TEST_F(fbs_generation_test, generate_fbs_from_table_definition) {
+TEST_F(fbs_generation_test, generate_fbs_from_table_definition)
+{
     string test_table_name{"test_fbs_generation"};
 
     string fbs = generate_fbs("", test_table_name, test_table_fields);
@@ -51,7 +56,8 @@ TEST_F(fbs_generation_test, generate_fbs_from_table_definition) {
     ASSERT_TRUE(fbs_parser.Parse(fbs.c_str()));
 }
 
-TEST_F(fbs_generation_test, generate_bfbs) {
+TEST_F(fbs_generation_test, generate_bfbs)
+{
     string test_table_name{"test_fbs_generation"};
 
     string fbs = generate_fbs("", test_table_name, test_table_fields);
@@ -63,7 +69,8 @@ TEST_F(fbs_generation_test, generate_bfbs) {
     ASSERT_GT(bfbs.size(), 0);
 }
 
-TEST_F(fbs_generation_test, get_bfbs) {
+TEST_F(fbs_generation_test, get_bfbs)
+{
     string test_table_name{"bfbs_test"};
 
     gaia_id_t table_id = create_table(test_table_name, test_table_fields);

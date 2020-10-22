@@ -4,7 +4,6 @@
 /////////////////////////////////////////////
 
 #include <locator_allocator.hpp>
-
 #include <retail_assert.hpp>
 
 using namespace std;

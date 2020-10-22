@@ -21,6 +21,8 @@ typedef size_t slot_id_t;
 // For representing offsets from a base memory address.
 typedef size_t address_offset_t;
 
-}
-}
-}
+constexpr address_offset_t c_invalid_offset = -1;
+
+} // namespace memory_manager
+} // namespace db
+} // namespace gaia

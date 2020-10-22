@@ -10,47 +10,53 @@
 #include <sys/un.h>
 
 #include <csignal>
-#include <thread>
+
 #include <atomic>
-#include <unordered_set>
 #include <functional>
 #include <optional>
+#include <thread>
+#include <unordered_set>
 
 #include <flatbuffers/flatbuffers.h>
 
-#include "scope_guard.hpp"
-#include "retail_assert.hpp"
-#include "system_error.hpp"
-#include "mmap_helpers.hpp"
-#include "socket_helpers.hpp"
+#include "db_types.hpp"
 #include "generator_iterator.hpp"
 #include "messages_generated.h"
+#include "mmap_helpers.hpp"
+#include "retail_assert.hpp"
+#include "scope_guard.hpp"
+#include "socket_helpers.hpp"
 #include "storage_engine.hpp"
-#include "triggers.hpp"
-#include "db_types.hpp"
+#include "system_error.hpp"
 #include "system_table_types.hpp"
+#include "triggers.hpp"
 
 using namespace std;
 using namespace gaia::common;
 using namespace gaia::db::triggers;
 
-namespace gaia {
+namespace gaia
+{
 
-namespace db {
+namespace db
+{
 
 // We need to forward-declare this class to avoid a circular dependency.
 class gaia_hash_map;
 
-class client : private se_base {
+class client : private se_base
+{
     friend class gaia_ptr;
     friend class gaia_hash_map;
 
 public:
-    static inline bool is_transaction_active() {
+    static inline bool is_transaction_active()
+    {
         return (s_locators != nullptr);
     }
 
-    static inline bool set_commit_trigger(commit_trigger_fn trigger_fn) {
+    static inline bool set_commit_trigger(commit_trigger_fn trigger_fn)
+    {
         return __sync_val_compare_and_swap(&s_txn_commit_trigger, nullptr, trigger_fn);
     }
 
@@ -104,31 +110,40 @@ private:
     /**
      *  Check if an event should be generated for a given type.
      */
-    static inline bool is_valid_event(gaia_type_t type) {
+    static inline bool is_valid_event(gaia_type_t type)
+    {
         return (s_txn_commit_trigger
-            && (trigger_excluded_types.find(type) == trigger_excluded_types.end()));
+                && (trigger_excluded_types.find(type) == trigger_excluded_types.end()));
     }
 
-    static inline void verify_txn_active() {
-        if (!is_transaction_active()) {
+    static inline void verify_txn_active()
+    {
+        if (!is_transaction_active())
+        {
             throw transaction_not_open();
         }
     }
 
-    static inline void verify_no_txn() {
-        if (is_transaction_active()) {
+    static inline void verify_no_txn()
+    {
+        if (is_transaction_active())
+        {
             throw transaction_in_progress();
         }
     }
 
-    static inline void verify_session_active() {
-        if (s_session_socket == -1) {
+    static inline void verify_session_active()
+    {
+        if (s_session_socket == -1)
+        {
             throw no_session_active();
         }
     }
 
-    static inline void verify_no_session() {
-        if (s_session_socket != -1) {
+    static inline void verify_no_session()
+    {
+        if (s_session_socket != -1)
+        {
             throw session_exists();
         }
     }
@@ -140,8 +155,9 @@ private:
         gaia_operation_t operation,
         // 'deleted_id' is required to keep track of deleted keys which will be propagated to the persistent layer.
         // Memory for other operations will be unused. An alternative would be to keep a separate log for deleted keys only.
-        gaia_id_t deleted_id = 0) {
-        retail_assert(s_log->count < MAX_LOG_RECS);
+        gaia_id_t deleted_id = 0)
+    {
+        retail_assert(s_log->count < c_max_log_records);
         log::log_record* lr = s_log->log_records + s_log->count++;
         lr->locator = locator;
         lr->old_offset = old_offset;

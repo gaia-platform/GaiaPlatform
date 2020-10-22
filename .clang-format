@@ -2,7 +2,7 @@ BasedOnStyle: LLVM
 UseCRLF: false
 UseTab: Never
 IndentWidth: 4
-ColumnLimit: 0 # I would put some reasonable limit such as 120 columns
+ColumnLimit: 0
 BreakBeforeBraces: Allman
 
 # Force pointers to the type for C++.
@@ -26,8 +26,10 @@ AllowShortFunctionsOnASingleLine: None
 
 # If false, all arguments will either be all on the same line or will have one line each.
 BinPackArguments: true
-BinPackParameters: false
-AlignAfterOpenBracket: Align
+BinPackParameters: true
+AlignAfterOpenBracket: AlwaysBreak
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
 
 # Merge multiple #include blocks together and sort as one. Then split into groups based on category priority:
 # 1. Associated file header (XYZ.hpp)
@@ -37,10 +39,18 @@ AlignAfterOpenBracket: Align
 # 5. your other project headers.
 # Note this could break the code, read: https://stackoverflow.com/questions/37927553/can-clang-format-break-my-code
 IncludeBlocks: Regroup
+
 IncludeCategories:
   # Third party.
-  - Regex:           'spdlog|flatbuffers|llvm|flatcc|cpptoml|gtest|pybind11'
+  - Regex:           'spdlog|flatbuffers|llvm|flatcc|cpptoml|gtest|pybind11|rocksdb'
     Priority:        13
+    SortPriority:    1
+  - Regex:           'postgres'
+    Priority:        12
+    SortPriority:    2
+  - Regex:           'pg_'
+    Priority:        12
+    SortPriority:    3
   # C system headers.
   - Regex:           '^<.*\.h>'
     Priority:        1
@@ -48,7 +58,7 @@ IncludeCategories:
     Priority:        2
   # C++ library header.
   - Regex:           '^<.*'
-    Priority:        12
+    Priority:        3
   # Everything else (gaia headers mostly).
   # Note: it would be helpful if gaia dependencies where under gaia/
   - Regex:           '.*'
@@ -57,3 +67,4 @@ IncludeCategories:
 KeepEmptyLinesAtTheStartOfBlocks: true
 SpaceAfterCStyleCast: false
 ContinuationIndentWidth: 4
+AlignTrailingComments: false

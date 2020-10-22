@@ -27,6 +27,7 @@ enum class error_code_t
 
     memory_address_out_of_range = 6,
     memory_offset_out_of_range = 7,
+    invalid_memory_offset = 8,
 
     insufficient_memory_size = 10,
 
@@ -37,5 +38,5 @@ enum class error_code_t
 };
 
 }
-}
-}
+} // namespace db
+} // namespace gaia

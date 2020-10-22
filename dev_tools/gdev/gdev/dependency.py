@@ -9,6 +9,7 @@ from importlib.util import find_spec
 from inspect import getdoc, isabstract, iscoroutinefunction
 import logging
 from pkgutil import iter_modules
+import platform
 import sys
 from typing import FrozenSet, Sequence, Set, Tuple
 
@@ -130,6 +131,16 @@ class Dependency:
                 default=base_image_default,
                 help=f'Base image for build. Default: "{base_image_default}"'
             )
+            cfg_enables_default = []
+            parser.add_argument(
+                '--cfg-enables',
+                default=cfg_enables_default,
+                nargs='*',
+                help=(
+                    f'Enable lines in gdev.cfg files gated by `enable_if`, `enable_if_any`, and'
+                    f' `enable_if_all` functions. Default: "{cfg_enables_default}"'
+                )
+            )
             log_level_default = 'INFO'
             parser.add_argument(
                 '--log-level',
@@ -142,7 +153,6 @@ class Dependency:
                 action='store_true',
                 help='Force Docker to build with local changes.'
             )
-
             mixins_default = []
             parser.add_argument(
                 '--mixins',
@@ -174,11 +184,14 @@ class Dependency:
                     f' "{" ".join(mounts_default)}"'
                 )
             )
-            platform_default = 'linux/amd64'
+            platform_default = {
+                'x86_64': 'amd64',
+                'aarch64': 'arm64',
+            }[platform.machine()]
             parser.add_argument(
                 '--platform',
                 default=platform_default,
-                choices=['linux/amd64', 'linux/arm64'],
+                choices=['amd64', 'arm64'],
                 help=f'Platform to build upon. Default: "{platform_default}"'
             )
             registry_default = '192.168.0.250:5000'
@@ -247,6 +260,7 @@ class Dependency:
         if parsed_args['args'] and parsed_args['args'][0] == '--':
             parsed_args['args'] = parsed_args['args'][1:]
         parsed_args['args'] = ' '.join(parsed_args['args'])
+        parsed_args['cfg_enables'] = frozenset(parsed_args['cfg_enables'])
         parsed_args['mixins'] = frozenset(parsed_args['mixins'])
 
         mounts = []

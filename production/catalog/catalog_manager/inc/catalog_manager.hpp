@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "gaia_boot.hpp"
 #include "gaia_catalog.hpp"
 
 namespace gaia
@@ -17,6 +18,7 @@ namespace catalog
 
 using db_names_t = unordered_map<string, gaia::common::gaia_id_t>;
 using table_names_t = unordered_map<string, gaia::common::gaia_id_t>;
+using type_map_t = unordered_map<gaia_type_t, gaia::common::gaia_id_t>;
 
 class catalog_manager_t
 {
@@ -41,6 +43,7 @@ public:
     void drop_database(const string& name);
 
     gaia::common::gaia_id_t find_db_id(const string& dbname) const;
+    gaia::common::gaia_id_t find_table_id(gaia_type_t);
 
     vector<gaia::common::gaia_id_t> list_fields(gaia::common::gaia_id_t table_id) const;
     vector<gaia::common::gaia_id_t> list_references(gaia::common::gaia_id_t table_id) const;
@@ -64,7 +67,7 @@ private:
         const ddl::field_def_list_t& fields,
         bool is_log = false,
         bool throw_on_exist = true,
-        gaia::common::gaia_id_t id = gaia::common::INVALID_GAIA_ID);
+        gaia_type_t type = INVALID_GAIA_TYPE);
 
     // Internal drop table implementation. Callers need to acquire a transaction
     // before calling this method.
@@ -85,12 +88,16 @@ private:
     // Create other system tables that need constant IDs.
     void create_system_tables();
 
+    // Create a map that allows table definitions to found via their types.
+    void create_type_map();
+
     // Maintain some in-memory cache for fast lookup.
     // This is only intended for single process usage.
     // We cannot guarantee the cache is consistent across mutiple processes.
     // We should switch to use value index when the feature is ready.
     db_names_t m_db_names;
     table_names_t m_table_names;
+    type_map_t m_type_map;
 
     gaia::common::gaia_id_t m_empty_db_id;
 
