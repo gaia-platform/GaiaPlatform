@@ -27,70 +27,70 @@ static constexpr char c_empty_c_str[] = "";
 
 void initialize_catalog()
 {
-    catalog_manager_t::get();
+    ddl_executor_t::get();
 }
 
 gaia_id_t create_database(const string& name, bool throw_on_exists)
 {
-    return catalog_manager_t::get().create_database(name, throw_on_exists);
+    return ddl_executor_t::get().create_database(name, throw_on_exists);
 }
 
 gaia_id_t create_table(const string& name, const field_def_list_t& fields)
 {
-    return catalog_manager_t::get().create_table(c_empty_c_str, name, fields);
+    return ddl_executor_t::get().create_table(c_empty_c_str, name, fields);
 }
 
 gaia_id_t create_table(const string& dbname, const string& name, const field_def_list_t& fields, bool throw_on_exists)
 {
-    return catalog_manager_t::get().create_table(dbname, name, fields, throw_on_exists);
+    return ddl_executor_t::get().create_table(dbname, name, fields, throw_on_exists);
 }
 
 void drop_database(const string& name)
 {
-    return catalog_manager_t::get().drop_database(name);
+    return ddl_executor_t::get().drop_database(name);
 }
 
 void drop_table(const string& name)
 {
-    return catalog_manager_t::get().drop_table(c_empty_c_str, name);
+    return ddl_executor_t::get().drop_table(c_empty_c_str, name);
 }
 
 void drop_table(const string& dbname, const string& name)
 {
-    return catalog_manager_t::get().drop_table(dbname, name);
+    return ddl_executor_t::get().drop_table(dbname, name);
 }
 
 vector<gaia_id_t> list_fields(gaia_id_t table_id)
 {
-    return catalog_manager_t::get().list_fields(table_id);
+    return ddl_executor_t::get().list_fields(table_id);
 }
 
 vector<gaia_id_t> list_references(gaia_id_t table_id)
 {
-    return catalog_manager_t::get().list_references(table_id);
+    return ddl_executor_t::get().list_references(table_id);
 }
 
 gaia_id_t find_db_id(const string& dbname)
 {
-    return catalog_manager_t::get().find_db_id(dbname);
+    return ddl_executor_t::get().find_db_id(dbname);
 }
 
 /**
  * Class methods
  **/
 
-catalog_manager_t::catalog_manager_t()
+ddl_executor_t::ddl_executor_t()
 {
     init();
 }
 
-catalog_manager_t& catalog_manager_t::get()
+ddl_executor_t& ddl_executor_t::get()
 {
-    static catalog_manager_t s_instance;
+    static ddl_executor_t s_instance;
     return s_instance;
 }
 
-void catalog_manager_t::bootstrap_catalog()
+void ddl_executor_t::bootstrap_catalog()
 {
     create_database("catalog", false);
     {
@@ -183,7 +183,7 @@ void catalog_manager_t::bootstrap_catalog()
     }
 }
 
-void catalog_manager_t::create_system_tables()
+void ddl_executor_t::create_system_tables()
 {
     create_database("event_log", false);
     {
@@ -208,7 +208,7 @@ void catalog_manager_t::create_system_tables()
     }
 }
 
-void catalog_manager_t::create_type_map()
+void ddl_executor_t::create_type_map()
 {
     gaia::db::begin_transaction();
     for (auto table = gaia_table_t::get_first(); table; table = table.get_next())
@@ -218,7 +218,7 @@ void catalog_manager_t::create_type_map()
     gaia::db::commit_transaction();
 }
 
-void catalog_manager_t::init()
+void ddl_executor_t::init()
 {
     reload_cache();
     bootstrap_catalog();
@@ -229,12 +229,12 @@ void catalog_manager_t::init()
     m_empty_db_id = create_database(c_empty_db_name, false);
 }
 
-void catalog_manager_t::clear_cache()
+void ddl_executor_t::clear_cache()
 {
     m_table_names.clear();
 }
 
-void catalog_manager_t::reload_cache()
+void ddl_executor_t::reload_cache()
 {
     unique_lock lock(m_lock);
 
@@ -254,7 +254,7 @@ void catalog_manager_t::reload_cache()
     gaia::db::commit_transaction();
 }
 
-gaia_id_t catalog_manager_t::create_database(const string& name, bool throw_on_exist)
+gaia_id_t ddl_executor_t::create_database(const string& name, bool throw_on_exist)
 {
 
     unique_lock lock(m_lock);
@@ -276,13 +276,13 @@ gaia_id_t catalog_manager_t::create_database(const string& name, bool throw_on_e
     return id;
 }
 
-gaia_id_t catalog_manager_t::create_table(const string& db_name, const string& name, const field_def_list_t& fields,
-                                          bool throw_on_exists)
+gaia_id_t ddl_executor_t::create_table(const string& db_name, const string& name, const field_def_list_t& fields,
+                                       bool throw_on_exists)
 {
     return create_table_impl(db_name, name, fields, false, throw_on_exists);
 }
 
-void catalog_manager_t::drop_table_no_txn(gaia_id_t table_id)
+void ddl_executor_t::drop_table_no_txn(gaia_id_t table_id)
 {
     auto table_record = gaia_table_t::get(table_id);
 
@@ -311,7 +311,7 @@ void catalog_manager_t::drop_table_no_txn(gaia_id_t table_id)
     table_record.delete_row();
 }
 
-void catalog_manager_t::drop_database(const string& name)
+void ddl_executor_t::drop_database(const string& name)
 {
     unique_lock lock(m_lock);
     gaia_id_t db_id = find_db_id_no_lock(name);
@@ -337,7 +337,7 @@ void catalog_manager_t::drop_database(const string& name)
     m_db_names.erase(name);
 }
 
-void catalog_manager_t::drop_table(const string& db_name, const string& name)
+void ddl_executor_t::drop_table(const string& db_name, const string& name)
 {
 
     unique_lock lock(m_lock);
@@ -367,9 +367,9 @@ void catalog_manager_t::drop_table(const string& db_name, const string& name)
     m_table_names.erase(full_table_name);
 }
 
-gaia_id_t catalog_manager_t::create_table_impl(const string& dbname, const string& table_name,
-                                               const field_def_list_t& fields, bool is_system, bool throw_on_exist,
-                                               gaia_type_t fixed_type)
+gaia_id_t ddl_executor_t::create_table_impl(const string& dbname, const string& table_name,
+                                            const field_def_list_t& fields, bool is_system, bool throw_on_exist,
+                                            gaia_type_t fixed_type)
 {
     unique_lock lock(m_lock);
 
@@ -478,13 +478,13 @@ gaia_id_t catalog_manager_t::create_table_impl(const string& dbname, const strin
     return table_id;
 }
 
-gaia_id_t catalog_manager_t::find_db_id(const string& dbname) const
+gaia_id_t ddl_executor_t::find_db_id(const string& dbname) const
 {
     shared_lock lock(m_lock);
     return find_db_id_no_lock(dbname);
 }
 
-inline gaia_id_t catalog_manager_t::find_db_id_no_lock(const string& dbname) const
+inline gaia_id_t ddl_executor_t::find_db_id_no_lock(const string& dbname) const
 {
     if (dbname.empty())
     {
@@ -500,7 +500,7 @@ inline gaia_id_t catalog_manager_t::find_db_id_no_lock(const string& dbname) con
     }
 }
 
-gaia_id_t catalog_manager_t::find_table_id(gaia_type_t type)
+gaia_id_t ddl_executor_t::find_table_id(gaia_type_t type)
 {
     shared_lock lock(m_lock);
     if (m_type_map.find(type) == m_type_map.end())
@@ -510,7 +510,7 @@ gaia_id_t catalog_manager_t::find_table_id(gaia_type_t type)
     return m_type_map[type];
 }
 
-vector<gaia_id_t> catalog_manager_t::list_fields(gaia_id_t table_id) const
+vector<gaia_id_t> ddl_executor_t::list_fields(gaia_id_t table_id) const
 {
     vector<gaia_id_t> fields;
     // Direct access reference list API guarantees LIFO. As long as we only
@@ -527,7 +527,7 @@ vector<gaia_id_t> catalog_manager_t::list_fields(gaia_id_t table_id) const
     return fields;
 }
 
-vector<gaia_id_t> catalog_manager_t::list_references(gaia_id_t table_id) const
+vector<gaia_id_t> ddl_executor_t::list_references(gaia_id_t table_id) const
 {
     vector<gaia_id_t> references;
     // Direct access reference list API guarantees LIFO. As long as we only

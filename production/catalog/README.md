@@ -225,6 +225,6 @@ The following are the steps to create a new system table with fixed ID:
 
 - Add the table type and its ID to
 [system_table_types.hpp](../inc/internal/common/system_table_types.hpp).
-- Add the table definition in C++ code to `catalog_manager_t::create_system_tables()`.
+- Add the table definition in C++ code to `ddl_executor_t::create_system_tables()`.
 - Add build instructions to generate the direct access APIs under
   `${GAIA_REPO}/production/schemas/system`.

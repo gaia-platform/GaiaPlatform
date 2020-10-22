@@ -20,15 +20,15 @@ using db_names_t = unordered_map<string, gaia::common::gaia_id_t>;
 using table_names_t = unordered_map<string, gaia::common::gaia_id_t>;
 using type_map_t = unordered_map<gaia_type_t, gaia::common::gaia_id_t>;
 
-class catalog_manager_t
+class ddl_executor_t
 {
 public:
     /**
      * Catalog manager scaffolding to ensure we have one global static instance
      */
-    catalog_manager_t(catalog_manager_t&) = delete;
-    void operator=(catalog_manager_t const&) = delete;
-    static catalog_manager_t& get();
+    ddl_executor_t(ddl_executor_t&) = delete;
+    void operator=(ddl_executor_t const&) = delete;
+    static ddl_executor_t& get();
 
     /**
      * APIs for accessing catalog records
@@ -47,8 +47,8 @@ public:
 
 private:
     // Only internal static creation is allowed
-    catalog_manager_t();
-    ~catalog_manager_t() = default;
+    ddl_executor_t();
+    ~ddl_executor_t() = default;
 
     // Initialize the catalog manager.
     void init();
