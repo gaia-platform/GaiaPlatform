@@ -2,16 +2,29 @@
 int g_rule_called = 0;
 int g_insert_called = 0;
 int g_update_called = 0;
+int g_delete_called = 0;
+int g_actuator_rule_called = 0;
 
 ruleset test
 {
  {
    max_temp = sensor.value+4;
+   
+   if (@actuator.value > 0)
+   {
+   	g_actuator_rule_called ++;
+   }
+   
    if (sensor.LastOperation == INSERT)
    {
    	g_insert_called ++;
    }
 
+   if (sensor.LastOperation == DELETE)
+   {
+   	g_delete_called ++;
+   }
+   
    if (sensor.LastOperation == UPDATE)
    {
    	if (sensor.value > 5)
