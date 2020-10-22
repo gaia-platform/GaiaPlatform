@@ -208,7 +208,7 @@ add_subdirectory(${GOOGLE_TEST} googletest)
 
 # Setting clang-tidy here to avoid it being applied to flatbuffers, rocksdb etc...
 # TODO Maybe we could force each subproject to set this flag?
-#set(CMAKE_CXX_CLANG_TIDY clang-tidy)
+set(CMAKE_CXX_CLANG_TIDY clang-tidy)
 
 # Add individual component folders.
 add_subdirectory(common)
