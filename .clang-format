@@ -2,7 +2,7 @@ BasedOnStyle: LLVM
 UseCRLF: false
 UseTab: Never
 IndentWidth: 4
-ColumnLimit: 120
+ColumnLimit: 0
 BreakBeforeBraces: Allman
 
 # Force pointers to the type for C++.
@@ -27,7 +27,9 @@ AllowShortFunctionsOnASingleLine: None
 # If false, all arguments will either be all on the same line or will have one line each.
 BinPackArguments: true
 BinPackParameters: true
-AlignAfterOpenBracket: Align
+AlignAfterOpenBracket: AlwaysBreak
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
 
 # Merge multiple #include blocks together and sort as one. Then split into groups based on category priority:
 # 1. Associated file header (XYZ.hpp)
@@ -66,4 +68,3 @@ KeepEmptyLinesAtTheStartOfBlocks: true
 SpaceAfterCStyleCast: false
 ContinuationIndentWidth: 4
 AlignTrailingComments: false
-
