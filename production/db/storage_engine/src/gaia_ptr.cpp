@@ -85,8 +85,8 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data)
     return *this;
 }
 
-gaia_ptr& gaia_ptr::update_child_references(
-    size_t next_child_slot, gaia_id_t next_child_id, size_t parent_slot, gaia_id_t parent_id)
+gaia_ptr& gaia_ptr::update_child_references(size_t next_child_slot, gaia_id_t next_child_id, size_t parent_slot,
+                                            gaia_id_t parent_id)
 {
     gaia_offset_t old_offset = to_offset();
     clone_no_txn();
@@ -123,7 +123,6 @@ gaia_ptr::gaia_ptr(gaia_id_t id)
 }
 
 gaia_ptr::gaia_ptr(gaia_id_t id, size_t size)
-    : m_locator(0)
 {
     se_base::hash_node* hash_node = gaia_hash_map::insert(client::s_data, client::s_locators, id);
     hash_node->locator = m_locator = se_base::allocate_locator(client::s_locators, client::s_data);
@@ -149,9 +148,7 @@ gaia_offset_t gaia_ptr::to_offset() const
 {
     client::verify_txn_active();
 
-    return m_locator
-        ? (*client::s_locators)[m_locator]
-        : 0;
+    return m_locator ? (*client::s_locators)[m_locator] : 0;
 }
 
 void gaia_ptr::find_next(gaia_type_t type)
@@ -180,8 +177,7 @@ void gaia_ptr::reset()
 }
 
 // This trivial implementation is necessary to avoid calling into client code from the header file.
-std::function<std::optional<gaia_id_t>()>
-gaia_ptr::get_id_generator_for_type(gaia_type_t type)
+std::function<std::optional<gaia_id_t>()> gaia_ptr::get_id_generator_for_type(gaia_type_t type)
 {
     return client::get_id_generator_for_type(type);
 }
@@ -325,7 +321,8 @@ void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t fir
         {
             // non-first child in the linked list, update the previous child
             auto prev_ptr = gaia_ptr(prev_child);
-            prev_ptr.references()[relationship->next_child_offset] = curr_ptr.references()[relationship->next_child_offset];
+            prev_ptr.references()[relationship->next_child_offset]
+                = curr_ptr.references()[relationship->next_child_offset];
         }
 
         curr_ptr.references()[relationship->parent_offset] = INVALID_GAIA_ID;

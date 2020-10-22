@@ -28,14 +28,14 @@ void gaia_boot_t::open_gaia_boot()
     string boot_file_name(PERSISTENT_DIRECTORY_PATH);
     boot_file_name += "/boot_parameters.bin";
     errno = 0;
-    if ((m_boot_fd = open(boot_file_name.c_str(), O_RDWR | O_CREAT, 0664)) == -1)
+    if ((m_boot_fd = open(boot_file_name.c_str(), O_RDWR | O_CREAT, c_rw_rw_r)) == -1)
     {
         // gaia_log::db().critical("I/O failure, cannot create {}, error: {}\n", boot_file_name, strerror(errno));
         throw_system_error("cannot create " + boot_file_name);
     }
     errno = 0;
     flock(m_boot_fd, LOCK_EX);
-    size_t count = read(m_boot_fd, (char*)&m_boot_data, sizeof(m_boot_data));
+    size_t count = read(m_boot_fd, reinterpret_cast<char*>(&m_boot_data), sizeof(m_boot_data));
     if (count <= 0)
     {
         // The boot file didn't exist.
@@ -83,7 +83,7 @@ void gaia_boot_t::reset_gaia_boot()
 void gaia_boot_t::save_gaia_boot()
 {
     lseek(m_boot_fd, 0, SEEK_SET);
-    size_t count = write(m_boot_fd, (const char*)&m_boot_data, sizeof(m_boot_data));
+    size_t count = write(m_boot_fd, reinterpret_cast<const char*>(&m_boot_data), sizeof(m_boot_data));
     if (count == 0)
     {
         // gaia_log::db().error("I/O failure '{}', {} bytes read", strerror(errno), count);
@@ -104,7 +104,7 @@ gaia_id_t gaia_boot_t::get_next_id()
     if (next_id == m_boot_data.limit)
     {
         flock(m_boot_fd, LOCK_EX);
-        read(m_boot_fd, (char*)&m_boot_data, sizeof(m_boot_data));
+        read(m_boot_fd, reinterpret_cast<char*>(&m_boot_data), sizeof(m_boot_data));
         // Note that the limit may have been bumped by other processes.
         m_boot_data.limit += c_block_delta;
         save_gaia_boot();

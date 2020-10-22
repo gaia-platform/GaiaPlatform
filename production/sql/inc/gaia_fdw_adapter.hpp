@@ -11,9 +11,11 @@
 extern "C"
 {
 
+#include "postgres.h"
+
+// postgre.h must be included prior to these headers.
 #include "catalog/pg_type.h"
 #include "nodes/pg_list.h"
-#include "postgres.h"
 
 } // extern "C"
 

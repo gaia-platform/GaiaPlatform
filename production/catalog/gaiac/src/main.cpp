@@ -2,12 +2,12 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+#include "flatbuffers/idl.h"
+
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
-
-#include "flatbuffers/idl.h"
 
 #include "catalog_manager.hpp"
 #include "command.hpp"
@@ -94,15 +94,13 @@ void generate_fbs_headers(const string& db_name, const string& output_path)
     string fbs_schema = gaia::catalog::generate_fbs(db_name);
     if (!fbs_parser.Parse(fbs_schema.c_str()))
     {
-        cerr << c_error_prompt
-             << "Fail to parse the catalog generated FlatBuffers schema. Error: "
-             << fbs_parser.error_ << endl;
+        cerr << c_error_prompt << "Fail to parse the catalog generated FlatBuffers schema. Error: " << fbs_parser.error_
+             << endl;
     }
 
     if (!flatbuffers::GenerateCPP(fbs_parser, output_path, db_name))
     {
-        cerr << c_error_prompt
-             << "Unable to generate FlatBuffers C++ headers for " << db_name << endl;
+        cerr << c_error_prompt << "Unable to generate FlatBuffers C++ headers for " << db_name << endl;
     };
 }
 
@@ -161,14 +159,16 @@ string usage()
 namespace flatbuffers
 {
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void LogCompilerWarn(const std::string& warn)
 {
     cerr << c_warning_prompt << warn << endl;
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void LogCompilerError(const std::string& err)
 {
-    cerr << c_warning_prompt << err << endl;
+    cerr << c_error_prompt << err << endl;
 }
 
 } // namespace flatbuffers
