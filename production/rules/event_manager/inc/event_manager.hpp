@@ -60,9 +60,11 @@ public:
 
     void unsubscribe_rules();
 
-    void list_subscribed_rules(const char* ruleset_name, const gaia::common::gaia_type_t* gaia_type,
-                               const event_type_t* event_type, const uint16_t* field,
-                               subscription_list_t& subscriptions);
+    void list_subscribed_rules(
+        const char* ruleset_name,
+        const gaia::common::gaia_type_t* gaia_type,
+        const event_type_t* event_type, const uint16_t* field,
+        subscription_list_t& subscriptions);
 
 private:
     // Internal rule binding to copy the callers
@@ -131,16 +133,19 @@ private:
 
     // Well known trigger function called by the storage engine after commit.
     void commit_trigger(gaia_txn_id_t txn_id, const trigger_event_list_t& event_list);
-    bool process_last_operation_events(event_binding_t& binding, const trigger_event_t& event,
-                                       std::chrono::steady_clock::time_point& start_time);
-    bool process_field_events(event_binding_t& binding, const trigger_event_t& event,
-                              std::chrono::steady_clock::time_point& start_time);
+    bool process_last_operation_events(
+        event_binding_t& binding,
+        const trigger_event_t& event,
+        std::chrono::steady_clock::time_point& start_time);
+    bool process_field_events(
+        event_binding_t& binding,
+        const trigger_event_t& event,
+        std::chrono::steady_clock::time_point& start_time);
     void init(event_manager_settings_t& settings);
     const _rule_binding_t* find_rule(const rules::rule_binding_t& binding);
     void add_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     bool remove_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
-    void enqueue_invocation(const trigger_event_list_t& events, const vector<bool>& rules_invoked_list,
-        std::chrono::steady_clock::time_point& start_time);
+    void enqueue_invocation(const trigger_event_list_t& events, const vector<bool>& rules_invoked_list, std::chrono::steady_clock::time_point& start_time);
     void enqueue_invocation(
         const trigger_event_t& event,
         const _rule_binding_t* rule_binding,
@@ -155,9 +160,13 @@ private:
     }
     static bool is_valid_rule_binding(const rules::rule_binding_t& binding);
     static std::string make_rule_key(const rules::rule_binding_t& binding);
-    static void add_subscriptions(rules::subscription_list_t& subscriptions, const rule_list_t& rules,
-                                  gaia::common::gaia_type_t gaia_type, event_type_t event_type, uint16_t field,
-                                  const char* ruleset_filter);
+    static void add_subscriptions(
+        rules::subscription_list_t& subscriptions,
+        const rule_list_t& rules,
+        gaia::common::gaia_type_t gaia_type,
+        event_type_t event_type,
+        uint16_t field,
+        const char* ruleset_filter);
 };
 
 } // namespace rules

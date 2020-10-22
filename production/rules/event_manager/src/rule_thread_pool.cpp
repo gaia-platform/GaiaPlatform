@@ -23,8 +23,9 @@ thread_local queue<rule_thread_pool_t::invocation_t> rule_thread_pool_t::s_tls_p
 void rule_thread_pool_t::log_events(invocation_t& invocation)
 {
     auto& log_invocation = std::get<log_events_invocation_t>(invocation.args);
-    retail_assert(log_invocation.events.size() == log_invocation.rules_invoked.size(),
-                  "Event vector and rules_invoked vector sizes must match!");
+    retail_assert(
+        log_invocation.events.size() == log_invocation.rules_invoked.size(),
+        "Event vector and rules_invoked vector sizes must match!");
 
     gaia::db::begin_transaction();
     {
@@ -43,9 +44,13 @@ void rule_thread_pool_t::log_events(invocation_t& invocation)
                 column_id = event.columns[0];
             }
 
-            event_log::event_log_t::insert_row(static_cast<uint32_t>(event.event_type),
-                                               static_cast<uint64_t>(event.gaia_type),
-                                               static_cast<uint64_t>(event.record), column_id, timestamp, rule_invoked);
+            event_log::event_log_t::insert_row(
+                static_cast<uint32_t>(event.event_type),
+                static_cast<uint64_t>(event.gaia_type),
+                static_cast<uint64_t>(event.record),
+                column_id,
+                timestamp,
+                rule_invoked);
         }
     }
     gaia::db::commit_transaction();
@@ -170,8 +175,12 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
     try
     {
         auto_transaction_t txn(auto_transaction_t::no_auto_begin);
-        rule_context_t context(txn, rule_invocation.gaia_type, rule_invocation.event_type, rule_invocation.record,
-                               rule_invocation.fields);
+        rule_context_t context(
+            txn,
+            rule_invocation.gaia_type,
+            rule_invocation.event_type,
+            rule_invocation.record,
+            rule_invocation.fields);
 
         // Invoke the rule.
         m_stats_manager.compute_rule_invocation_latency(rule_id, invocation.start_time);
