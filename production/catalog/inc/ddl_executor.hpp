@@ -42,9 +42,6 @@ public:
     gaia::common::gaia_id_t find_db_id(const string& dbname) const;
     gaia::common::gaia_id_t find_table_id(gaia_type_t);
 
-    vector<gaia::common::gaia_id_t> list_fields(gaia::common::gaia_id_t table_id) const;
-    vector<gaia::common::gaia_id_t> list_references(gaia::common::gaia_id_t table_id) const;
-
 private:
     // Only internal static creation is allowed
     ddl_executor_t();

@@ -5,32 +5,39 @@
 
 #pragma once
 
+#include <unistd.h>
+
+#include <chrono>
 #include <cstdlib>
-#include <string>
+
 #include <iostream>
 #include <memory>
+#include <string>
 #include <thread>
-#include <chrono>
 
-#include "system_error.hpp"
+#include "db_types.hpp"
 #include "gaia_db.hpp"
 #include "gaia_db_internal.hpp"
-#include "db_types.hpp"
 #include "logger.hpp"
+#include "system_error.hpp"
 
-namespace gaia {
-namespace db {
+namespace gaia
+{
+namespace db
+{
 
 constexpr char c_daemonize_command[] = "daemonize ";
 
-void remove_persistent_store() {
+void remove_persistent_store()
+{
     string cmd = "rm -rf ";
     cmd.append(PERSISTENT_DIRECTORY_PATH);
     cerr << cmd << endl;
     ::system(cmd.c_str());
 }
 
-void wait_for_server_init() {
+void wait_for_server_init()
+{
     constexpr int c_poll_interval_millis = 10;
     int counter = 0;
 
@@ -38,23 +45,36 @@ void wait_for_server_init() {
     gaia_log::initialize({});
 
     // Wait for server to initialize.
-    while (true) {
-        try {
+    while (true)
+    {
+        try
+        {
             begin_session();
-        } catch (system_error& ex) {
-            if (ex.get_errno() == ECONNREFUSED) {
-                if (counter % 1000 == 0) {
-                    gaia_log::sys().warn("Cannot connect to Gaia Server, you may need to start the gaia_se_server process");
+        }
+        catch (system_error& ex)
+        {
+            if (ex.get_errno() == ECONNREFUSED)
+            {
+                if (counter % 1000 == 0)
+                {
+                    gaia_log::sys().warn(
+                        "Cannot connect to Gaia Server, you may need to start the gaia_se_server process");
                     counter = 1;
-                } else {
+                }
+                else
+                {
                     counter++;
                 }
                 std::this_thread::sleep_for(std::chrono::milliseconds(c_poll_interval_millis));
                 continue;
-            } else {
+            }
+            else
+            {
                 throw;
             }
-        } catch (...) {
+        }
+        catch (...)
+        {
             throw;
         }
         break;
@@ -63,7 +83,8 @@ void wait_for_server_init() {
     end_session();
 }
 
-void reset_server() {
+void reset_server()
+{
     // We need to allow enough time after the signal is sent for the process to
     // receive and process the signal.
     constexpr int c_wait_signal_millis = 10;
@@ -85,12 +106,15 @@ void reset_server() {
     wait_for_server_init();
 }
 
-class db_server_t {
-  public:
-    void start(const char *db_server_path, bool stop_server = true) {
+class db_server_t
+{
+public:
+    void start(const char* db_server_path, bool stop_server = true)
+    {
         set_path(db_server_path);
 
-        if (stop_server) {
+        if (stop_server)
+        {
             stop();
         }
 
@@ -105,7 +129,8 @@ class db_server_t {
         m_server_started = true;
     }
 
-    void stop() {
+    void stop()
+    {
         // Try to kill the SE server process.
         // REVIEW: we should be using a proper process library for this, so we can kill by PID.
         string cmd = "pkill -f -KILL ";
@@ -114,22 +139,29 @@ class db_server_t {
         ::system(cmd.c_str());
     }
 
-    bool server_started() {
+    bool server_started()
+    {
         return m_server_started;
     }
 
     // Add a trailing '/' if not provided.
-    static void terminate_path(string& path) {
-        if (path.back() != '/') {
+    static void terminate_path(string& path)
+    {
+        if (path.back() != '/')
+        {
             path.append("/");
         }
     }
 
-  private:
-    void set_path(const char* db_server_path) {
-        if (!db_server_path) {
+private:
+    void set_path(const char* db_server_path)
+    {
+        if (!db_server_path)
+        {
             m_server_path = gaia::db::SE_SERVER_EXEC_NAME;
-        } else {
+        }
+        else
+        {
             m_server_path = db_server_path;
             terminate_path(m_server_path);
             m_server_path.append(gaia::db::SE_SERVER_EXEC_NAME);

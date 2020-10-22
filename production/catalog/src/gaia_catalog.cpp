@@ -49,22 +49,12 @@ void drop_table(const string& dbname, const string& name)
     return ddl_executor_t::get().drop_table(dbname, name);
 }
 
-vector<gaia_id_t> list_fields(gaia_id_t table_id)
-{
-    return ddl_executor_t::get().list_fields(table_id);
-}
-
-vector<gaia_id_t> list_references(gaia_id_t table_id)
-{
-    return ddl_executor_t::get().list_references(table_id);
-}
-
 gaia_id_t find_db_id(const string& dbname)
 {
     return ddl_executor_t::get().find_db_id(dbname);
 }
 
-vector<gaia_id_t> ddl_executor_t::list_fields(gaia_id_t table_id) const
+vector<gaia_id_t> list_fields(gaia_id_t table_id)
 {
     vector<gaia_id_t> fields;
     // Direct access reference list API guarantees LIFO. As long as we only
@@ -81,7 +71,7 @@ vector<gaia_id_t> ddl_executor_t::list_fields(gaia_id_t table_id) const
     return fields;
 }
 
-vector<gaia_id_t> ddl_executor_t::list_references(gaia_id_t table_id) const
+vector<gaia_id_t> list_references(gaia_id_t table_id)
 {
     vector<gaia_id_t> references;
     // Direct access reference list API guarantees LIFO. As long as we only
