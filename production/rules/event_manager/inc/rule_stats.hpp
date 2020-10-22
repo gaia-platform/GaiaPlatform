@@ -31,10 +31,8 @@ public:
     std::atomic<uint32_t> count_exceptions;
     std::atomic<int64_t> total_rule_invocation_latency;
     std::atomic<int64_t> total_rule_execution_time;
-    // These aggregates are only accessed via the stats
-    // logger thread.
-    int64_t max_rule_invocation_latency;
-    int64_t max_rule_execution_time;
+    std::atomic<int64_t> max_rule_invocation_latency;
+    std::atomic<int64_t> max_rule_execution_time;
 
     void reset_counters();
     void add_rule_execution_time(int64_t duration);

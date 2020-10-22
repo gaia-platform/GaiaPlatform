@@ -43,10 +43,9 @@ void rule_thread_pool_t::log_events(invocation_t& invocation)
                 column_id = event.columns[0];
             }
 
-            event_log::event_log_t::insert_row(
-                static_cast<uint32_t>(event.event_type),
-                static_cast<uint64_t>(event.gaia_type),
-                static_cast<uint64_t>(event.record), column_id, timestamp, rule_invoked);
+            event_log::event_log_t::insert_row(static_cast<uint32_t>(event.event_type),
+                                               static_cast<uint64_t>(event.gaia_type),
+                                               static_cast<uint64_t>(event.record), column_id, timestamp, rule_invoked);
         }
     }
     gaia::db::commit_transaction();
@@ -177,13 +176,11 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
         // Invoke the rule.
         m_stats_manager.compute_rule_invocation_latency(rule_id, invocation.start_time);
 
-        auto fn_start = gaia::common::timer_t::get_time_point();
-
         // Invoke the rule.
+        auto fn_start = gaia::common::timer_t::get_time_point();
         rule_invocation.rule_fn(&context);
         m_stats_manager.compute_rule_execution_time(rule_id, fn_start);
 
-        m_stats_manager.add_rule_execution_time(rule_id,fn_start);
         should_schedule = true;
         s_tls_can_enqueue = true;
         if (gaia::db::is_transaction_active())

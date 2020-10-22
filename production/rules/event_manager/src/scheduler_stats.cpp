@@ -13,7 +13,7 @@ using namespace gaia::rules;
 
 void scheduler_stats_t::initialize(uint32_t log_interval_s, size_t count_worker_threads)
 {
-    m_log_interval_ns = log_interval_s * c_nanoseconds_per_s;
+    m_log_interval_ns = static_cast<int64_t>(log_interval_s) * c_nanoseconds_per_s;
 
     // If 0 worker threads are specified then we only have a single thread in terms of our
     // thread utilization % calculation.
