@@ -31,6 +31,7 @@ add_library(gaia_catalog STATIC
   src/ddl_executor.cpp
   src/fbs_generator.cpp
   src/json_generator.cpp
+  src/gaia_catalog.cpp
   src/gaia_generate.cpp
   ${FLATBUFFERS}/src/code_generators.cpp)
 set_target_properties(gaia_catalog PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")

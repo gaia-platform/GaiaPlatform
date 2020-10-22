@@ -15,69 +15,10 @@
 
 using namespace gaia::catalog::ddl;
 
-/**
- * Catalog public APIs
- **/
 namespace gaia
 {
 namespace catalog
 {
-
-static constexpr char c_empty_c_str[] = "";
-
-void initialize_catalog()
-{
-    ddl_executor_t::get();
-}
-
-gaia_id_t create_database(const string& name, bool throw_on_exists)
-{
-    return ddl_executor_t::get().create_database(name, throw_on_exists);
-}
-
-gaia_id_t create_table(const string& name, const field_def_list_t& fields)
-{
-    return ddl_executor_t::get().create_table(c_empty_c_str, name, fields);
-}
-
-gaia_id_t create_table(const string& dbname, const string& name, const field_def_list_t& fields, bool throw_on_exists)
-{
-    return ddl_executor_t::get().create_table(dbname, name, fields, throw_on_exists);
-}
-
-void drop_database(const string& name)
-{
-    return ddl_executor_t::get().drop_database(name);
-}
-
-void drop_table(const string& name)
-{
-    return ddl_executor_t::get().drop_table(c_empty_c_str, name);
-}
-
-void drop_table(const string& dbname, const string& name)
-{
-    return ddl_executor_t::get().drop_table(dbname, name);
-}
-
-vector<gaia_id_t> list_fields(gaia_id_t table_id)
-{
-    return ddl_executor_t::get().list_fields(table_id);
-}
-
-vector<gaia_id_t> list_references(gaia_id_t table_id)
-{
-    return ddl_executor_t::get().list_references(table_id);
-}
-
-gaia_id_t find_db_id(const string& dbname)
-{
-    return ddl_executor_t::get().find_db_id(dbname);
-}
-
-/**
- * Class methods
- **/
 
 ddl_executor_t::ddl_executor_t()
 {
@@ -117,7 +58,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<field_definition_t>("binary_schema", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<field_definition_t>("serialization_template", data_type_t::e_string, 1));
         fields.emplace_back(
-            make_unique<field_definition_t>(c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_database"));
+            make_unique<field_definition_t>("", data_type_t::e_references, 1, "catalog.gaia_database"));
         create_table_impl(
             "catalog", "gaia_table", fields, true, false,
             static_cast<gaia_id_t>(catalog_table_type_t::gaia_table));
@@ -141,8 +82,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<field_definition_t>("deprecated", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<field_definition_t>("active", data_type_t::e_bool, 1));
         // The anonymous reference to the gaia_table defines the ownership.
-        fields.emplace_back(
-            make_unique<field_definition_t>(c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_table"));
+        fields.emplace_back(make_unique<field_definition_t>("", data_type_t::e_references, 1, "catalog.gaia_table"));
         // The "ref" named reference to the gaia_table defines the referential relationship.
         fields.emplace_back(make_unique<field_definition_t>("ref", data_type_t::e_references, 1, "catalog.gaia_table"));
         create_table_impl(
@@ -176,7 +116,7 @@ void ddl_executor_t::bootstrap_catalog()
         field_def_list_t fields;
         fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
         fields.emplace_back(
-            make_unique<field_definition_t>(c_empty_c_str, data_type_t::e_references, 1, "catalog.gaia_ruleset"));
+            make_unique<field_definition_t>("", data_type_t::e_references, 1, "catalog.gaia_ruleset"));
         create_table_impl(
             "catalog", "gaia_rule", fields, true, false,
             static_cast<gaia_id_t>(catalog_table_type_t::gaia_rule));
@@ -347,7 +287,7 @@ void ddl_executor_t::drop_table(const string& db_name, const string& name)
         throw db_not_exists(db_name);
     }
 
-    string full_table_name = (db_name.empty() ? c_empty_c_str : db_name + ".") + name;
+    string full_table_name = (db_name.empty() ? "" : db_name + ".") + name;
     gaia_id_t db_id = find_db_id_no_lock(db_name);
     retail_assert(db_id != INVALID_GAIA_ID);
 
@@ -378,7 +318,7 @@ gaia_id_t ddl_executor_t::create_table_impl(const string& dbname, const string& 
         throw db_not_exists(dbname);
     }
 
-    string full_table_name = (dbname.empty() ? c_empty_c_str : dbname + ".") + table_name;
+    string full_table_name = (dbname.empty() ? "" : dbname + ".") + table_name;
     gaia_id_t db_id = find_db_id_no_lock(dbname);
     retail_assert(db_id != INVALID_GAIA_ID);
 
@@ -508,40 +448,6 @@ gaia_id_t ddl_executor_t::find_table_id(gaia_type_t type)
         throw_system_error("Trying to look up non-existant table");
     }
     return m_type_map[type];
-}
-
-vector<gaia_id_t> ddl_executor_t::list_fields(gaia_id_t table_id) const
-{
-    vector<gaia_id_t> fields;
-    // Direct access reference list API guarantees LIFO. As long as we only
-    // allow appending new fields to table definitions, reversing the field list
-    // order should result in fields being listed in the ascending order of
-    // their positions.
-    for (const auto& field : gaia_table_t::get(table_id).gaia_field_list())
-    {
-        if (field.type() != static_cast<uint8_t>(data_type_t::e_references))
-        {
-            fields.insert(fields.begin(), field.gaia_id());
-        }
-    }
-    return fields;
-}
-
-vector<gaia_id_t> ddl_executor_t::list_references(gaia_id_t table_id) const
-{
-    vector<gaia_id_t> references;
-    // Direct access reference list API guarantees LIFO. As long as we only
-    // allow appending new references to table definitions, reversing the
-    // reference field list order should result in references being listed in
-    // the ascending order of their positions.
-    for (const auto& field : gaia_table_t::get(table_id).gaia_field_list())
-    {
-        if (field.type() == static_cast<uint8_t>(data_type_t::e_references))
-        {
-            references.insert(references.begin(), field.gaia_id());
-        }
-    }
-    return references;
 }
 
 } // namespace catalog
