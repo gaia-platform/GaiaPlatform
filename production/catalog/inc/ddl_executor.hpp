@@ -34,13 +34,16 @@ public:
      * APIs for accessing catalog records
      */
     gaia::common::gaia_id_t create_database(const string& name, bool throw_on_exist = true);
-    gaia::common::gaia_id_t create_table(const string& db_name, const string& name, const ddl::field_def_list_t& fields,
-                                         bool throw_on_exist = true);
+    gaia::common::gaia_id_t create_table(
+        const string& db_name,
+        const string& name,
+        const ddl::field_def_list_t& fields,
+        bool throw_on_exist = true);
     void drop_table(const string& db_name, const string& name);
     void drop_database(const string& name);
 
     gaia::common::gaia_id_t find_db_id(const string& dbname) const;
-    gaia::common::gaia_id_t find_table_id(gaia_type_t);
+    gaia::common::gaia_id_t find_table_id(gaia_type_t) const;
 
 private:
     // Only internal static creation is allowed
@@ -55,9 +58,13 @@ private:
     // The call to create a table with a given ID is only intended for system tables.
     // 'throw_on_exist' indicates if an exception should be thrown when the table of
     // the given name already exists.
-    gaia::common::gaia_id_t create_table_impl(const string& database_name, const string& table_name,
-                                              const ddl::field_def_list_t& fields, bool is_log = false,
-                                              bool throw_on_exist = true, gaia_type_t type = INVALID_GAIA_TYPE);
+    gaia::common::gaia_id_t create_table_impl(
+        const string& database_name,
+        const string& table_name,
+        const ddl::field_def_list_t& fields,
+        bool is_log = false,
+        bool throw_on_exist = true,
+        gaia_type_t type = INVALID_GAIA_TYPE);
 
     // Internal drop table implementation. Callers need to acquire a transaction
     // before calling this method.

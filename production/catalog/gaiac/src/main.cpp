@@ -2,12 +2,12 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
-#include "flatbuffers/idl.h"
-
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
+
+#include "flatbuffers/idl.h"
 
 #include "command.hpp"
 #include "db_test_helpers.hpp"

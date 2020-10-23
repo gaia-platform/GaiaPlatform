@@ -216,8 +216,7 @@ gaia_id_t ddl_executor_t::create_database(const string& name, bool throw_on_exis
     return id;
 }
 
-gaia_id_t ddl_executor_t::create_table(const string& db_name, const string& name, const field_def_list_t& fields,
-                                       bool throw_on_exists)
+gaia_id_t ddl_executor_t::create_table(const string& db_name, const string& name, const field_def_list_t& fields, bool throw_on_exists)
 {
     return create_table_impl(db_name, name, fields, false, throw_on_exists);
 }
@@ -307,9 +306,7 @@ void ddl_executor_t::drop_table(const string& db_name, const string& name)
     m_table_names.erase(full_table_name);
 }
 
-gaia_id_t ddl_executor_t::create_table_impl(const string& dbname, const string& table_name,
-                                            const field_def_list_t& fields, bool is_system, bool throw_on_exist,
-                                            gaia_type_t fixed_type)
+gaia_id_t ddl_executor_t::create_table_impl(const string& dbname, const string& table_name, const field_def_list_t& fields, bool is_system, bool throw_on_exist, gaia_type_t fixed_type)
 {
     unique_lock lock(m_lock);
 
@@ -440,14 +437,11 @@ inline gaia_id_t ddl_executor_t::find_db_id_no_lock(const string& dbname) const
     }
 }
 
-gaia_id_t ddl_executor_t::find_table_id(gaia_type_t type)
+gaia_id_t ddl_executor_t::find_table_id(gaia_type_t type) const
 {
     shared_lock lock(m_lock);
-    if (m_type_map.find(type) == m_type_map.end())
-    {
-        throw_system_error("Trying to look up non-existant table");
-    }
-    return m_type_map[type];
+    retail_assert(m_type_map.count(type), "Trying to look up non-existant table");
+    return m_type_map.at(type);
 }
 
 } // namespace catalog
