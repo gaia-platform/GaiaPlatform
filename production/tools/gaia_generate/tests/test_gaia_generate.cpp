@@ -96,8 +96,7 @@ TEST_F(gaia_generate_test, airport_example)
             auto src_airport = segment.src_airport();
             auto dst_airport = segment.dst_airport();
             ss << "Source airport: " << src_airport.name() << endl;
-            ss << "Destination airport: " << dst_airport.name() << endl
-               << endl;
+            ss << "Destination airport: " << dst_airport.name() << endl << endl;
         }
     }
     commit_transaction();

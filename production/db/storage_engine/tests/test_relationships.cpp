@@ -25,7 +25,7 @@ TEST_F(gaia_relationships_test, metadata_one_to_many)
 {
     type_registry_t& test_registry = type_registry_t::instance();
 
-    test_relationship_builder_t::one_to_many()
+    relationship_builder_t::one_to_many()
         .parent(c_doctor_type)
         .child(c_patient_type)
         .create_relationship();
@@ -61,7 +61,7 @@ TEST_F(gaia_relationships_test, metadata_one_to_one)
 {
     type_registry_t& test_registry = type_registry_t::instance();
 
-    test_relationship_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
         .child(c_patient_type)
         .create_relationship();
@@ -97,7 +97,7 @@ TEST_F(gaia_relationships_test, child_relation_do_not_use_next_child)
 {
     type_registry_t& test_registry = type_registry_t::instance();
 
-    test_relationship_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
         .child(c_patient_type)
         .create_relationship();

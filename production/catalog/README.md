@@ -1,4 +1,4 @@
-#Gaia Catalog
+# Gaia Catalog
 
 This directory contains implementation of Gaia data definition language (DDL)
 and catalog.
@@ -41,10 +41,7 @@ Add the following directories to the include list and link `gaia_parser` to use
 the parser directly.
 
 - `${GAIA_REPO}/production/catalog/parser/inc`
-- `$
-{
-    GAIA_PARSER_GENERATED
-}`
+- `${GAIA_PARSER_GENERATED}`
 
 ### `gaiac`
 This is the catalog command line tool for Gaia data definition language. It is
@@ -56,8 +53,7 @@ By default without specifying any mode, `gaiac` will run under loading mode to
 execute the DDL statements--translating them into catalog records--without
 generating any output.
 
-The interactive mode (`-i`) provides a REPL style command line interface to
-try
+The interactive mode (`-i`) provides a REPL style command line interface to try
 out the DDL. The DDL typed in will be executed, and fbs output if any will be
 printed out to the console output.
 
@@ -112,61 +108,52 @@ Generate catalog direct access APIs. This is the command used for bootstrapping.
 ## Databases
 
 There are two ways to create a database and specifying a table in a database:
-first, using DDL;
-second, using `gaiac` command.When both are specified, the DDL definition will override the `gaiac` settings.
+first, using DDL; second, using `gaiac` command. When both are specified, the
+DDL definition will override the `gaiac` settings.
 
-                                                       ## #Use DDL
+### Use DDL
 
-                                                           The DDL to create database is `create database`.
+The DDL to create database is `create database`.
 
-                                                       To specifying a table in a database,
-    using the composite name of the format
+To specifying a table in a database, using the composite name of the format
 `[database].[table]`.
 
-    ####Examples
-        A database `addr_book` can be created using the following statement.
+#### Examples
+A database `addr_book` can be created using the following statement.
 
-``` create database addr_book;
+```
+    create database addr_book;
 ```
 
-    Use the following statement to create an `employee` table in `addr_book` database.
+Use the following statement to create an `employee` table in `addr_book`
+database.
 
-``` create table addr_book.employee(
-        name_first
-        : string active,
-          name_last
-        : string,
-          ssn
-        : string,
-          hire_date
-        : int64,
-          email
-        : string,
-          web
-        : string,
-          manages references addr_book.employee);
+```
+create table addr_book.employee (
+    name_first: string active,
+    name_last: string,
+    ssn: string,
+    hire_date: int64,
+    email: string,
+    web: string,
+    manages references addr_book.employee
+);
 ```
 
-    As a syntactic sugar,
-    the database name can be omitted when specifying a
-        reference to a table in the same database.
+As a syntactic sugar, the database name can be omitted when specifying a
+reference to a table in the same database.
 
-``` create table addr_book.address(
-            street
-            : string,
-              apt_suite
-            : string,
-              city
-            : string,
-              state
-            : string,
-              postal
-            : string,
-              country
-            : string,
-              current
-            : bool,
-              addresses references employee);
+```
+    create table addr_book.address (
+        street: string,
+        apt_suite: string,
+        city: string,
+        state: string,
+        postal: string,
+        country: string,
+        current: bool,
+        addresses references employee
+    );
 ```
 
 ### Use `gaiac`

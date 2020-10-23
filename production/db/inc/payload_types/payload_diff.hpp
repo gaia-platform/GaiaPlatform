@@ -18,6 +18,6 @@ namespace payload_types
  */
 void compute_payload_diff(gaia_type_t type_id, const uint8_t* payload1, const uint8_t* payload2, field_position_list_t* position_list);
 
-} // namespace payload_types
-} // namespace db
-} // namespace gaia
+}
+}
+}

@@ -20,8 +20,7 @@ const char* rule_stats_t::c_cumulative_rule_stats
 // rule_field_phone_number      54    54     0     0     0     0     49.59 ms     86.68 ms      0.05 ms      1.96 ms
 const char* rule_stats_t::c_rule_stats = "{: <25}{:6}{:6}{:6}{:6}{:6}{:6}{:10.2f} ms{:10.2f} ms{:10.2f} ms{:10.2f} ms";
 
-rule_stats_t::rule_stats_t()
-    : rule_stats_t(nullptr)
+rule_stats_t::rule_stats_t() : rule_stats_t(nullptr)
 {
 }
 
@@ -68,8 +67,7 @@ void rule_stats_t::add_rule_execution_time(int64_t duration)
     total_rule_execution_time += duration;
 }
 
-template <typename T_param>
-void rule_stats_t::log(const char* stats_format, T_param first_param)
+template <typename T_param> void rule_stats_t::log(const char* stats_format, T_param first_param)
 {
     auto avg_latency = count_scheduled ? static_cast<float>(total_rule_invocation_latency / count_scheduled) : 0.0;
     auto avg_execution_time = count_executed ? static_cast<float>(total_rule_execution_time / count_executed) : 0.0;

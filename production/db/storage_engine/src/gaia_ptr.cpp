@@ -42,10 +42,6 @@ gaia_ptr gaia_ptr::create(gaia_id_t id, gaia_type_t type, size_t data_size, cons
 
 gaia_ptr gaia_ptr::create(gaia_id_t id, gaia_type_t type, size_t num_refs, size_t data_size, const void* data)
 {
-    //    if (!type_registry_t::instance().exists(type)) {
-    //        throw invalid_type(id, type);
-    //    }
-
     size_t refs_len = num_refs * sizeof(gaia_id_t);
     size_t total_len = data_size + refs_len;
     gaia_ptr obj(id, total_len + sizeof(gaia_se_object_t));

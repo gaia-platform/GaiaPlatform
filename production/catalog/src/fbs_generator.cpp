@@ -172,7 +172,8 @@ string generate_bfbs(const string& fbs)
     // The following const defines the line wrap length of the encoded hex text.
     // We do not need this but fbs method requires it.
     constexpr size_t c_binary_schema_hex_text_len = 80;
-    return flatbuffers::BufferToHexText(fbs_parser.builder_.GetBufferPointer(), fbs_parser.builder_.GetSize(), c_binary_schema_hex_text_len, "", "");
+    return flatbuffers::BufferToHexText(fbs_parser.builder_.GetBufferPointer(), fbs_parser.builder_.GetSize(),
+                                        c_binary_schema_hex_text_len, "", "");
 }
 
 string get_bfbs(gaia_id_t table_id)

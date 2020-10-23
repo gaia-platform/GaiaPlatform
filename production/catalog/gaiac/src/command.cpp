@@ -105,7 +105,12 @@ void list_fields(const regex& re)
             return regex_match(f.name(), re);
         },
         [](gaia_field_t& f) -> row_t {
-            return {f.gaia_table().name(), f.name(), get_data_type_name(static_cast<data_type_t>(f.type())), to_string(f.repeated_count()), to_string(f.position()), to_string(f.gaia_id())};
+            return {f.gaia_table().name(),
+                    f.name(),
+                    get_data_type_name(static_cast<data_type_t>(f.type())),
+                    to_string(f.repeated_count()),
+                    to_string(f.position()),
+                    to_string(f.gaia_id())};
         });
 }
 
@@ -121,7 +126,8 @@ void list_references(const regex& re)
             return regex_match(f.name(), re);
         },
         [](gaia_field_t& f) -> row_t {
-            return {f.gaia_table().name(), f.name(), f.ref_gaia_table().name(), to_string(f.position()), to_string(f.gaia_id())};
+            return {f.gaia_table().name(), f.name(), f.ref_gaia_table().name(), to_string(f.position()),
+                    to_string(f.gaia_id())};
         });
 }
 
@@ -178,7 +184,8 @@ void describe_table(const string& name)
         {
             if (field.type() != static_cast<uint8_t>(data_type_t::e_references))
             {
-                output_fields.add_row({field.name(), get_data_type_name(static_cast<data_type_t>(field.type())), to_string(field.repeated_count()), to_string(field.position())});
+                output_fields.add_row({field.name(), get_data_type_name(static_cast<data_type_t>(field.type())),
+                                       to_string(field.repeated_count()), to_string(field.position())});
             }
             else
             {
@@ -382,18 +389,26 @@ string command_usage()
     const string pattern = "PATTERN";
 
     tabulate::Table output_table;
-    output_table.add_row({string() + c_command_prefix + c_describe_command + c_db_subcommand, optionalize(name), "Describe the database of the given " + name + "."});
+    output_table.add_row({string() + c_command_prefix + c_describe_command + c_db_subcommand, optionalize(name),
+                          "Describe the database of the given " + name + "."});
     output_table.add_row(
         {"", "", "Without specifying a name, it will show tables in the " + c_empty_db_name + " database."});
-    output_table.add_row({string() + c_command_prefix + c_describe_command + optionalize(c_table_subcommand), name, "Describe the table of the given " + name + "."});
-    output_table.add_row({string() + c_command_prefix + c_list_command + c_db_subcommand, optionalize(pattern), "List databases optionally filtering by the " + pattern + "."});
-    output_table.add_row({string() + c_command_prefix + c_list_command + c_field_subcommand, optionalize(pattern), "List data fields optionally filtering by the " + pattern + "."});
-    output_table.add_row({string() + c_command_prefix + c_list_command + c_ref_subcommand, optionalize(pattern), "List references optionally filtering by the " + pattern + "."});
-    output_table.add_row({string() + c_command_prefix + c_list_command + optionalize(c_table_subcommand), optionalize(pattern), "List tables optionally filtering by the " + pattern + "."});
+    output_table.add_row({string() + c_command_prefix + c_describe_command + optionalize(c_table_subcommand), name,
+                          "Describe the table of the given " + name + "."});
+    output_table.add_row({string() + c_command_prefix + c_list_command + c_db_subcommand, optionalize(pattern),
+                          "List databases optionally filtering by the " + pattern + "."});
+    output_table.add_row({string() + c_command_prefix + c_list_command + c_field_subcommand, optionalize(pattern),
+                          "List data fields optionally filtering by the " + pattern + "."});
+    output_table.add_row({string() + c_command_prefix + c_list_command + c_ref_subcommand, optionalize(pattern),
+                          "List references optionally filtering by the " + pattern + "."});
+    output_table.add_row({string() + c_command_prefix + c_list_command + optionalize(c_table_subcommand),
+                          optionalize(pattern), "List tables optionally filtering by the " + pattern + "."});
 #ifdef DEBUG
     // Hide FlatBuffers related commands in release build.
-    output_table.add_row({string() + c_command_prefix + c_generate_command + optionalize(c_db_subcommand), name, "Generate fbs for a given database."});
-    output_table.add_row({string() + c_command_prefix + c_generate_command + c_table_subcommand, name, "Generate fbs for a given database."});
+    output_table.add_row({string() + c_command_prefix + c_generate_command + optionalize(c_db_subcommand), name,
+                          "Generate fbs for a given database."});
+    output_table.add_row({string() + c_command_prefix + c_generate_command + c_table_subcommand, name,
+                          "Generate fbs for a given database."});
 #endif
     output_table.add_row({string() + c_command_prefix + c_help_command, "", "Print help information."});
 
@@ -407,7 +422,8 @@ string command_usage()
 void handle_meta_command(const string& cmd)
 {
     retail_assert(!cmd.empty(), "Meta command should not be empty.");
-    retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix, "Meta command should start with a '" + string(1, c_command_prefix) + "'.");
+    retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix,
+                  "Meta command should start with a '" + string(1, c_command_prefix) + "'.");
 
     if (cmd.length() < c_cmd_minimum_length)
     {

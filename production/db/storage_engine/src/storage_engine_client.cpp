@@ -123,7 +123,8 @@ client::get_stream_generator_for_socket(int stream_socket)
             // Get the actual data.
             // This is a nonblocking read, since the previous blocking
             // read will not return until data is available.
-            ssize_t bytes_read = ::recv(stream_socket, batch_buffer.data(), batch_buffer.size(), MSG_DONTWAIT);
+            ssize_t bytes_read = ::recv(stream_socket,
+                batch_buffer.data(), batch_buffer.size(), MSG_DONTWAIT);
             if (bytes_read == -1)
             {
                 // Per above, we should never have to block here.
@@ -232,7 +233,8 @@ int client::get_session_socket()
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
     // filesystem.
-    ::strncpy(&server_addr.sun_path[1], SE_SERVER_SOCKET_NAME, sizeof(server_addr.sun_path) - 1);
+    ::strncpy(&server_addr.sun_path[1], SE_SERVER_SOCKET_NAME,
+        sizeof(server_addr.sun_path) - 1);
     // The socket name is not null-terminated in the address structure, but
     // we need to add an extra byte for the null byte prefix.
     socklen_t server_addr_size = sizeof(server_addr.sun_family) + 1 + strlen(&server_addr.sun_path[1]);
@@ -372,7 +374,8 @@ void client::begin_transaction()
         }
     });
 
-    s_locators = static_cast<locators*>(map_fd(sizeof(locators), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_locators, 0));
+    s_locators = static_cast<locators*>(map_fd(sizeof(locators),
+        PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_locators, 0));
     auto cleanup_locator_mapping = make_scope_guard([]() {
         unmap_fd(s_locators, sizeof(locators));
         s_locators = nullptr;

@@ -499,7 +499,7 @@ TEST_F(recovery_test, reference_update_test_new)
         auto_transaction_t txn;
 
         // Create the relationship.
-        test_relationship_builder_t::one_to_many()
+        relationship_builder_t::one_to_many()
             .parent(c_doctor_type)
             .child(c_patient_type)
             .create_relationship();

@@ -87,8 +87,7 @@ public:
 
     static List* get_ddl_command_list(const char* server_name);
 
-    template <class S>
-    static S* get_state(const char* table_name, size_t count_accessors)
+    template <class S> static S* get_state(const char* table_name, size_t count_accessors)
     {
         S* state = (S*)palloc0(sizeof(S));
 

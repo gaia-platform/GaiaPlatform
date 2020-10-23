@@ -106,7 +106,9 @@ struct is_proper_sg_callback_t
 
 /* --- The actual scope_guard template --- */
 
-template <typename Callback, typename = typename std::enable_if<is_proper_sg_callback_t<Callback>::value>::type>
+template <typename Callback,
+          typename = typename std::enable_if<
+              is_proper_sg_callback_t<Callback>::value>::type>
 class scope_guard;
 
 /* --- Now the friend maker --- */

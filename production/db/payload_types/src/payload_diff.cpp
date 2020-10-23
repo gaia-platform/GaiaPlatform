@@ -26,7 +26,8 @@ namespace payload_types
 using namespace gaia::catalog;
 
 // TODO: add unit tests for this function
-void compute_payload_diff(gaia_type_t type_id, const uint8_t* payload1, const uint8_t* payload2, field_position_list_t* changed_fields)
+void compute_payload_diff(gaia_type_t type_id, const uint8_t* payload1, const uint8_t* payload2,
+                          field_position_list_t* changed_fields)
 {
     // Make sure caller passes valid pointer to changed_fields.
     assert(changed_fields);

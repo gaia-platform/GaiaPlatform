@@ -35,48 +35,48 @@ constexpr reference_offset_t c_non_existent_offset = 1024;
  * the registry. It also creates the instances of type_metadata_t in
  * the registry if not available.
  */
-class test_relationship_builder_t
+class relationship_builder_t
 {
 public:
-    static test_relationship_builder_t one_to_one()
+    static relationship_builder_t one_to_one()
     {
-        auto metadata = test_relationship_builder_t();
+        auto metadata = relationship_builder_t();
         metadata.m_cardinality = cardinality_t::one;
         return metadata;
     }
 
-    static test_relationship_builder_t one_to_many()
+    static relationship_builder_t one_to_many()
     {
-        auto metadata = test_relationship_builder_t();
+        auto metadata = relationship_builder_t();
         metadata.m_cardinality = cardinality_t::many;
         return metadata;
     }
 
-    test_relationship_builder_t parent(gaia_type_t parent)
+    relationship_builder_t parent(gaia_type_t parent)
     {
         this->m_parent_type = parent;
         return *this;
     }
 
-    test_relationship_builder_t child(gaia_type_t child)
+    relationship_builder_t child(gaia_type_t child)
     {
         this->m_child_type = child;
         return *this;
     }
 
-    test_relationship_builder_t first_child_offset(reference_offset_t first_child_offset)
+    relationship_builder_t first_child_offset(reference_offset_t first_child_offset)
     {
         this->m_first_child_offset = first_child_offset;
         return *this;
     }
 
-    test_relationship_builder_t next_child_offset(reference_offset_t next_child_offset)
+    relationship_builder_t next_child_offset(reference_offset_t next_child_offset)
     {
         this->m_next_child_offset = next_child_offset;
         return *this;
     }
 
-    test_relationship_builder_t parent_offset(reference_offset_t parent_offset)
+    relationship_builder_t parent_offset(reference_offset_t parent_offset)
     {
         this->m_parent_offset = parent_offset;
         return *this;
@@ -118,7 +118,7 @@ public:
     }
 
 private:
-    test_relationship_builder_t() = default;
+    relationship_builder_t() = default;
 
     // mandatory values
     cardinality_t m_cardinality = cardinality_t::not_set;

@@ -45,5 +45,5 @@ struct event_manager_settings_t
     uint32_t stats_log_interval;
 };
 
-} // namespace rules
-} // namespace gaia
+} // rules
+} // gaia

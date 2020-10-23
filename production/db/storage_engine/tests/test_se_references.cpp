@@ -27,7 +27,7 @@ TEST_F(gaia_se_references_test, add_child_reference__one_to_one)
 {
     begin_transaction();
 
-    test_relationship_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
         .child(c_patient_type)
         .create_relationship();
@@ -48,7 +48,7 @@ TEST_F(gaia_se_references_test, add_child_reference__one_to_many)
 {
     begin_transaction();
 
-    test_relationship_builder_t::one_to_many()
+    relationship_builder_t::one_to_many()
         .parent(c_doctor_type)
         .child(c_patient_type)
         .create_relationship();
@@ -73,7 +73,7 @@ TEST_F(gaia_se_references_test, add_child_reference__single_cardinality_violatio
 {
     begin_transaction();
 
-    test_relationship_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
         .child(c_patient_type)
         .create_relationship();
@@ -95,7 +95,7 @@ TEST_F(gaia_se_references_test, add_child_reference__invalid_relation_offset)
 {
     begin_transaction();
 
-    test_relationship_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
         .child(c_patient_type)
         .create_relationship();
@@ -121,14 +121,14 @@ TEST_F(gaia_se_references_test, add_child_reference__invalid_relation_type_paren
 
     type_registry_t::instance().get(c_address_type);
 
-    test_relationship_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
         .child(c_patient_type)
         .create_relationship();
 
     // Need to create the relationship to create the pointers in the payload
     // otherwise the invalid_reference_offset would be thrown.
-    test_relationship_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_patient_type)
         .child(c_address_type)
         .first_child_offset(c_first_address_offset)
@@ -153,7 +153,7 @@ TEST_F(gaia_se_references_test, add_child_reference__invalid_relation_type_child
     constexpr gaia_type_t c_clinic_type = 101;
     type_registry_t::instance().get(c_clinic_type);
 
-    test_relationship_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
         .child(c_patient_type)
         .create_relationship();
@@ -172,7 +172,7 @@ TEST_F(gaia_se_references_test, add_child_reference__child_already_in_relation)
 {
     begin_transaction();
 
-    test_relationship_builder_t::one_to_many()
+    relationship_builder_t::one_to_many()
         .parent(c_doctor_type)
         .child(c_patient_type)
         .create_relationship();
@@ -192,7 +192,7 @@ TEST_F(gaia_se_references_test, add_parent_reference__one_to_many)
 {
     begin_transaction();
 
-    test_relationship_builder_t::one_to_many()
+    relationship_builder_t::one_to_many()
         .parent(c_doctor_type)
         .child(c_patient_type)
         .create_relationship();
@@ -213,7 +213,7 @@ TEST_F(gaia_se_references_test, add_parent_reference__fail_on_wrong_offset)
 {
     begin_transaction();
 
-    test_relationship_builder_t::one_to_many()
+    relationship_builder_t::one_to_many()
         .parent(c_doctor_type)
         .child(c_patient_type)
         .create_relationship();
@@ -232,7 +232,7 @@ TEST_F(gaia_se_references_test, add_child_reference__invalid_node_id)
 {
     begin_transaction();
 
-    test_relationship_builder_t::one_to_many()
+    relationship_builder_t::one_to_many()
         .parent(c_doctor_type)
         .child(c_patient_type)
         .create_relationship();
@@ -250,7 +250,7 @@ TEST_F(gaia_se_references_test, add_parent_reference__invalid_node_id)
 {
     begin_transaction();
 
-    test_relationship_builder_t::one_to_many()
+    relationship_builder_t::one_to_many()
         .parent(c_doctor_type)
         .child(c_patient_type)
         .create_relationship();
@@ -270,7 +270,7 @@ TEST_F(gaia_se_references_test, remove_child_reference__one_to_one)
 
     // GIVEN
 
-    test_relationship_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
         .child(c_patient_type)
         .create_relationship();
@@ -299,7 +299,7 @@ TEST_F(gaia_se_references_test, remove_child_reference__many_to_many_from_back)
 
     // GIVEN
 
-    test_relationship_builder_t::one_to_many()
+    relationship_builder_t::one_to_many()
         .parent(c_doctor_type)
         .child(c_patient_type)
         .create_relationship();
@@ -344,7 +344,7 @@ TEST_F(gaia_se_references_test, remove_child_reference__many_to_many_from_head)
 
     // GIVEN
 
-    test_relationship_builder_t::one_to_many()
+    relationship_builder_t::one_to_many()
         .parent(c_doctor_type)
         .child(c_patient_type)
         .create_relationship();
@@ -385,7 +385,7 @@ TEST_F(gaia_se_references_test, remove_child_reference__invalid_relation_offset)
 {
     begin_transaction();
 
-    test_relationship_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
         .child(c_patient_type)
         .create_relationship();
@@ -404,7 +404,7 @@ TEST_F(gaia_se_references_test, remove_child_reference__invalid_node_id)
 {
     begin_transaction();
 
-    test_relationship_builder_t::one_to_many()
+    relationship_builder_t::one_to_many()
         .parent(c_doctor_type)
         .child(c_patient_type)
         .create_relationship();
@@ -429,14 +429,14 @@ TEST_F(gaia_se_references_test, remove_child_reference__invalid_relation_type_pa
 
     type_registry_t::instance().get(c_address_type);
 
-    test_relationship_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
         .child(c_patient_type)
         .create_relationship();
 
     // Need to create the relationship to create the pointers in the payload
     // otherwise the invalid_reference_offset would be thrown.
-    test_relationship_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_patient_type)
         .child(c_address_type)
         .first_child_offset(c_first_address_offset)
@@ -461,7 +461,7 @@ TEST_F(gaia_se_references_test, remove_child_reference__invalid_relation_type_ch
     constexpr gaia_type_t c_clinic_type = 101;
     type_registry_t::instance().get(c_clinic_type);
 
-    test_relationship_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
         .child(c_patient_type)
         .create_relationship();
@@ -482,7 +482,7 @@ TEST_F(gaia_se_references_test, remove_parent_reference__one_to_one)
 
     // GIVEN
 
-    test_relationship_builder_t::one_to_one()
+    relationship_builder_t::one_to_one()
         .parent(c_doctor_type)
         .child(c_patient_type)
         .create_relationship();

@@ -37,7 +37,9 @@ void scheduler_stats_t::log(bool print_header)
 
     if (print_header)
     {
-        gaia_log::rules_stats().info("{:->25}{: >6}{: >6}{: >6}{: >6}{: >6}{: >6}{: >13}{: >13}{: >13}{: >13}", "", "sched", "invoc", "pend", "aband", "retry", "excep", "avg lat", "max lat", "avg exec", "max exec");
+        gaia_log::rules_stats().info("{:->25}{: >6}{: >6}{: >6}{: >6}{: >6}{: >6}{: >13}{: >13}{: >13}{: >13}", "",
+                                     "sched", "invoc", "pend", "aband", "retry", "excep", "avg lat", "max lat",
+                                     "avg exec", "max exec");
     }
 
     rule_stats_t::log(thread_load);

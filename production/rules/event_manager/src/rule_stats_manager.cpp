@@ -77,7 +77,8 @@ void rule_stats_manager_t::inc_exceptions(const char* rule_id)
     }
 }
 
-void rule_stats_manager_t::compute_rule_invocation_latency(const char* rule_id, std::chrono::steady_clock::time_point& start_time)
+void rule_stats_manager_t::compute_rule_invocation_latency(const char* rule_id,
+                                                           std::chrono::steady_clock::time_point& start_time)
 {
     int64_t duration = gaia::common::timer_t::get_duration(start_time);
     m_scheduler_stats.add_rule_invocation_latency(duration);
@@ -87,7 +88,8 @@ void rule_stats_manager_t::compute_rule_invocation_latency(const char* rule_id, 
     }
 }
 
-void rule_stats_manager_t::compute_rule_execution_time(const char* rule_id, std::chrono::steady_clock::time_point& start_time)
+void rule_stats_manager_t::compute_rule_execution_time(const char* rule_id,
+                                                       std::chrono::steady_clock::time_point& start_time)
 {
     int64_t duration = gaia::common::timer_t::get_duration(start_time);
     m_scheduler_stats.add_rule_execution_time(duration);

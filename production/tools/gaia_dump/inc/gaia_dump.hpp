@@ -6,7 +6,6 @@
 #pragma once
 
 #include <iostream>
-
 #include "gaia_ptr.hpp"
 
 using namespace std;
