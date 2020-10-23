@@ -1,39 +1,28 @@
-#############################################
-# Copyright (c) Gaia Platform LLC
-# All rights reserved.
-#############################################
+############################################ #
+#Copyright(c) Gaia Platform LLC
+#All rights reserved.
+    ############################################ #
 
-cmake_minimum_required(VERSION 3.12)
-enable_testing()
+    cmake_minimum_required(VERSION 3.12)
+        enable_testing()
 
-# Set the project name.
-project(gaia_dump)
+#Set the project name.
+            project(gaia_dump)
 
-set(GAIA_DUMP_INCLUDES
-  ${FLATBUFFERS_INC}
-  ${GAIA_REPO}/production/db/storage_engine/src
-  ${GAIA_PROD_BUILD}/catalog/parser/generated
-  ${GAIA_REPO}/third_party/production/flatbuffers/include
-  ${GAIA_REPO}/production/catalog/parser/inc
-  ${GAIA_INC}/public/common
-  ${GAIA_INC}/public/direct_access
-  ${GAIA_INC}/public/catalog
-  ${GAIA_INC}/internal/catalog
-  ${GAIA_INC}/internal/common
-  ${GAIA_INC}/public/db
-  ${GAIA_INC}/internal/db
-  ${CMAKE_CURRENT_SOURCE_DIR}/inc
-)
-message(STATUS "GAIA_DUMP_INCLUDES=${GAIA_DUMP_INCLUDES}")
+                set(GAIA_DUMP_INCLUDES
+                        ${FLATBUFFERS_INC} ${GAIA_REPO}
+                    / production / db / storage_engine / src ${GAIA_PROD_BUILD} / catalog / parser / generated ${GAIA_REPO} / third_party / production / flatbuffers / include ${GAIA_REPO} / production / catalog / parser / inc ${GAIA_INC} / public / common ${GAIA_INC} / public / direct_access ${GAIA_INC} / public / catalog ${GAIA_INC} / internal / catalog ${GAIA_INC} / internal / common ${GAIA_INC} / public / db ${GAIA_INC} / internal / db ${CMAKE_CURRENT_SOURCE_DIR} / inc)
+                    message(VERBOSE "GAIA_DUMP_INCLUDES=${GAIA_DUMP_INCLUDES}")
 
-add_executable(gaia_dump src/main.cpp src/gaia_dump.cpp)
-target_include_directories(gaia_dump PRIVATE ${GAIA_DUMP_INCLUDES})
-target_link_libraries(gaia_dump PRIVATE rt gaia_catalog gaia_parser)
-set_target_properties(gaia_dump PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
-set_target_properties(gaia_dump PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+                        add_executable(gaia_dump src / main.cpp src / gaia_dump.cpp)
+                            target_include_directories(gaia_dump PRIVATE ${GAIA_DUMP_INCLUDES})
+                                target_link_libraries(gaia_dump PRIVATE rt gaia_catalog gaia_parser)
+                                    set_target_properties(gaia_dump PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+                                        set_target_properties(gaia_dump PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 
-add_gtest(test_gaia_dump
-  "tests/test_gaia_dump.cpp;src/gaia_dump.cpp"
-  "${GAIA_DUMP_INCLUDES};${GAIA_GENERATED_SCHEMAS}"
-  "rt;gaia;gaia_catalog;gaia_parser"
-  "generate_airport_headers" "")
+                                            add_gtest(test_gaia_dump
+                                                      "tests/test_gaia_dump.cpp;src/gaia_dump.cpp"
+                                                      "${GAIA_DUMP_INCLUDES};${GAIA_GENERATED_SCHEMAS}"
+                                                      "rt;gaia;gaia_catalog;gaia_parser"
+                                                      "generate_airport_headers"
+                                                      "")
