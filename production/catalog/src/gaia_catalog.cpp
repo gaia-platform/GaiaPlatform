@@ -28,8 +28,11 @@ gaia_id_t create_table(const string& name, const ddl::field_def_list_t& fields)
     return ddl_executor_t::get().create_table("", name, fields);
 }
 
-gaia_id_t create_table(const string& dbname, const string& name, const ddl::field_def_list_t& fields,
-                       bool throw_on_exists)
+gaia_id_t create_table(
+    const string& dbname,
+    const string& name,
+    const ddl::field_def_list_t& fields,
+    bool throw_on_exists)
 {
     return ddl_executor_t::get().create_table(dbname, name, fields, throw_on_exists);
 }
