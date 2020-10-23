@@ -201,7 +201,6 @@ void ddl_executor_t::reload_cache()
 
 gaia_id_t ddl_executor_t::create_database(const string& name, bool throw_on_exist)
 {
-
     unique_lock lock(m_lock);
     if (m_db_names.find(name) != m_db_names.end())
     {
@@ -221,7 +220,11 @@ gaia_id_t ddl_executor_t::create_database(const string& name, bool throw_on_exis
     return id;
 }
 
-gaia_id_t ddl_executor_t::create_table(const string& db_name, const string& name, const field_def_list_t& fields, bool throw_on_exists)
+gaia_id_t ddl_executor_t::create_table(
+    const string& db_name,
+    const string& name,
+    const field_def_list_t& fields,
+    bool throw_on_exists)
 {
     return create_table_impl(db_name, name, fields, false, throw_on_exists);
 }
