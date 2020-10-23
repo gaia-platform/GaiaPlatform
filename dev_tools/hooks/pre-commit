@@ -31,7 +31,7 @@ for file in $(git --no-pager diff --cached --name-only | grep -E "^production.*(
         fi
     done
 
-    # If .clang-format has been changes formats clang_format.cpp/hpp to show the outcome.
+    # If .clang-format has been changed, formats clang_format.cpp/hpp to show the outcome.
     if echo "$file" | grep -qE "(\.clang-format)$"; then
         clang-format -i "production/tools/gaia_style/tests/clang_format.cpp"
         clang-format -i "production/tools/gaia_style/tests/clang_format.hpp"
