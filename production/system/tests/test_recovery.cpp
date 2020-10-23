@@ -17,7 +17,7 @@
 #include "gaia_catalog.hpp"
 #include "gaia_db.hpp"
 #include "logger.hpp"
-#include "metadata_test_util.hpp"
+#include "se_test_util.hpp"
 
 using namespace gaia::db;
 using namespace gaia::common;

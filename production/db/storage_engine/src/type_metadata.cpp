@@ -71,17 +71,24 @@ size_t type_metadata_t::num_references()
 
 bool type_metadata_t::is_initialized()
 {
-    return initialized;
+    return m_initialized;
 }
 
 void type_metadata_t::set_initialized()
 {
-    initialized.store(false);
+    m_initialized.store(true);
 }
 
 /*
  * type_registry_t
  */
+
+bool type_registry_t::exists(gaia_type_t type)
+{
+    shared_lock lock(m_registry_lock);
+
+    return m_metadata_registry.find(type) != m_metadata_registry.end();
+}
 
 type_metadata_t& type_registry_t::get(gaia_type_t type)
 {
@@ -99,6 +106,13 @@ type_metadata_t& type_registry_t::get(gaia_type_t type)
 void type_registry_t::clear()
 {
     m_metadata_registry.clear();
+}
+
+type_metadata_t& type_registry_t::test_get_or_create(gaia_type_t type)
+{
+    auto& metadata = get_or_create_no_lock(type);
+    metadata.set_initialized();
+    return metadata;
 }
 
 type_metadata_t& type_registry_t::create(gaia_type_t table_id)

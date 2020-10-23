@@ -23,12 +23,8 @@ gaia_id_t gaia_ptr::generate_id()
 
 gaia_ptr gaia_ptr::create(gaia_type_t type, size_t data_size, const void* data)
 {
-
     gaia_id_t id = gaia_ptr::generate_id();
 
-    // TODO we should use get() instead of get() because by
-    //   the time we get here the metadata should have already been
-    //   created by the registry. Some tests though skip the registry.
     auto& metadata = type_registry_t::instance().get(type);
     size_t num_references = metadata.num_references();
 
@@ -46,6 +42,10 @@ gaia_ptr gaia_ptr::create(gaia_id_t id, gaia_type_t type, size_t data_size, cons
 
 gaia_ptr gaia_ptr::create(gaia_id_t id, gaia_type_t type, size_t num_refs, size_t data_size, const void* data)
 {
+    //    if (!type_registry_t::instance().exists(type)) {
+    //        throw invalid_type(id, type);
+    //    }
+
     size_t refs_len = num_refs * sizeof(gaia_id_t);
     size_t total_len = data_size + refs_len;
     gaia_ptr obj(id, total_len + sizeof(gaia_se_object_t));

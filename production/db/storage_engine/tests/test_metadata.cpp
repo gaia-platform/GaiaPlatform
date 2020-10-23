@@ -5,30 +5,29 @@
 
 #include "gtest/gtest.h"
 
-#include "metadata_test_util.hpp"
+#include "db_test_base.hpp"
+#include "se_test_util.hpp"
 #include "type_metadata.hpp"
 
 using namespace gaia::db::test;
 
-class gaia_metadata_test : public ::testing::Test
+class gaia_metadata_test : public db_test_base_t
 {
     void TearDown() override
     {
+        db_test_base_t::TearDown();
         clean_type_registry();
     }
 };
 
-TEST_F(gaia_metadata_test, get_throws_if_metadata_not_exist)
-{
-    ASSERT_THROW(
-        type_registry_t::instance().get(c_non_existent_type),
-        metadata_not_found);
-}
-
 TEST_F(gaia_metadata_test, creates_metadata_when_type_does_not_exist)
 {
+    begin_transaction();
+
     auto& metadata = type_registry_t::instance().get(c_non_existent_type);
     ASSERT_EQ(metadata.get_type(), c_non_existent_type);
+
+    commit_transaction();
 }
 
 //TEST_F(gaia_metadata_test, add_thorws_if_metadata_already_exist)

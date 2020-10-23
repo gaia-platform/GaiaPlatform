@@ -23,8 +23,6 @@ namespace gaia
 namespace db
 {
 
-class type_registry_t;
-
 /**
  * Contains metadata about a specific gaia type.
  */
@@ -32,7 +30,7 @@ class type_metadata_t
 {
 public:
     explicit type_metadata_t(gaia_type_t type)
-        : m_type(type), initialized(false){};
+        : m_type(type), m_initialized(false){};
 
     gaia_type_t get_type() const;
 
@@ -53,7 +51,7 @@ public:
     size_t num_references();
 
     // TODO the two following function should be called only by the registry.
-    //  Need to figure the best way to do so (friend class?)
+    //  Need to figure the best way to do so since these are used in tests too
 
     /**
      * Mark this type as the parent side of the relationship.
@@ -70,9 +68,9 @@ public:
 private:
     gaia_type_t m_type;
 
-    // type_registry_t creates the instances of this object. Sometimes instances of this object are
-    // created without filling all the details.
-    std::atomic_bool initialized;
+    // type_registry_t creates the instances of this object. Instances can be partially created
+    // to avoid traversing the entire dependency graph when modeling relationships.
+    std::atomic_bool m_initialized;
 
     // The relationship_t objects are shared between the parent and the child side of the relationship.
     unordered_map<reference_offset_t, shared_ptr<relationship_t>> m_parent_relationships;
@@ -129,8 +127,13 @@ public:
     }
 
     /**
+     * Checks the existence of a given type in the metadata.
+     */
+    bool exists(gaia_type_t type);
+
+    /**
      * Returns an instance of type_metadata_t. If no metadata exists for the
-     * given type, a new instance is created and returned.
+     * given type, a new instance is created loading the data from the catalog.
      *
      * Clients are NOT allowed to modify the returned metadata, use update()
      * for this purpose.
@@ -146,17 +149,25 @@ public:
      */
     void clear();
 
+    /**
+     * Creates an instance of type_metadata_t in the registry skipping the Catalog.
+     */
+    type_metadata_t& test_get_or_create(gaia_type_t type_id);
+
 private:
     type_registry_t() = default;
-
-    type_metadata_t& create(gaia_type_t table_id);
-
-    type_metadata_t& get_or_create_no_lock(gaia_type_t type);
 
     unordered_map<gaia_type_t, unique_ptr<type_metadata_t>> m_metadata_registry;
 
     //ensures exclusive access to the registry
     shared_mutex m_registry_lock;
+
+    /**
+     * Creates an instance of type_metadata_t fetching the information from the Catalog.
+     */
+    type_metadata_t& create(gaia_type_t table_id);
+
+    type_metadata_t& get_or_create_no_lock(gaia_type_t type);
 };
 
 } // namespace db

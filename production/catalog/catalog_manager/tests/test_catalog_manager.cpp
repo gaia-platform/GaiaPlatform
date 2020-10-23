@@ -10,6 +10,7 @@
 
 #include "gtest/gtest.h"
 
+#include "catalog_tests_helper.hpp"
 #include "db_test_base.hpp"
 #include "gaia_catalog.h"
 #include "gaia_catalog.hpp"
@@ -389,30 +390,27 @@ TEST_F(catalog_manager_test, drop_database)
 
 TEST_F(catalog_manager_test, create_relationships)
 {
-    string db_name = {"hospital"};
-    create_database(db_name, true);
-
     // (clinic) 1 --> N (doctor) 1 --> N (patient) N <-- 1 (clinic)
 
-    string clinic_table_name{"clinic"};
-    ddl::field_def_list_t clinic_table_fields;
-    clinic_table_fields.emplace_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
-    clinic_table_fields.emplace_back(make_unique<ddl::field_definition_t>("location", data_type_t::e_string, 1));
-    gaia_id_t clinic_table_id = create_table(db_name, clinic_table_name, clinic_table_fields);
+    gaia_id_t clinic_table_id = table_buildr_t::new_table("clinic")
+                                    .database("hospital")
+                                    .field("name", data_type_t::e_string)
+                                    .field("location", data_type_t::e_string)
+                                    .create();
 
-    string doctor_table_name{"doctor"};
-    ddl::field_def_list_t doctor_table_fields;
-    doctor_table_fields.emplace_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
-    doctor_table_fields.emplace_back(make_unique<ddl::field_definition_t>("surname", data_type_t::e_string, 1));
-    doctor_table_fields.emplace_back(make_unique<ddl::field_definition_t>("clinic", data_type_t::e_references, 1, "hospital.clinic"));
-    gaia_id_t doctor_table_id = create_table(db_name, doctor_table_name, doctor_table_fields);
+    gaia_id_t doctor_table_id = table_buildr_t::new_table("doctor")
+                                    .database("hospital")
+                                    .field("name", data_type_t::e_string)
+                                    .field("surname", data_type_t::e_string)
+                                    .reference("clinic", "hospital.clinic")
+                                    .create();
 
-    string patient_table_name{"patient"};
-    ddl::field_def_list_t patient_table_fields;
-    patient_table_fields.emplace_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
-    patient_table_fields.emplace_back(make_unique<ddl::field_definition_t>("doctor", data_type_t::e_references, 1, "hospital.doctor"));
-    patient_table_fields.emplace_back(make_unique<ddl::field_definition_t>("clinic", data_type_t::e_references, 1, "hospital.clinic"));
-    gaia_id_t patient_table_id = create_table(db_name, patient_table_name, patient_table_fields);
+    gaia_id_t patient_table_id = table_buildr_t::new_table("patient")
+                                     .database("hospital")
+                                     .field("name", data_type_t::e_string)
+                                     .reference("doctor", "hospital.doctor")
+                                     .reference("clinic", "hospital.clinic")
+                                     .create();
 
     auto_transaction_t txn;
     gaia_table_t clinic_table = gaia_table_t::get(clinic_table_id);
@@ -487,19 +485,16 @@ TEST_F(catalog_manager_test, create_relationships)
 
 TEST_F(catalog_manager_test, create_anonymous_relationships)
 {
-    string db_name = {"hospital"};
-    create_database(db_name, true);
-
     // (clinic) 1 -[anonymous]-> N (doctor)
 
-    string clinic_table_name{"clinic"};
-    ddl::field_def_list_t clinic_table_fields;
-    gaia_id_t clinic_table_id = create_table(db_name, clinic_table_name, clinic_table_fields);
+    gaia_id_t clinic_table_id = table_buildr_t::new_table("clinic")
+                                    .database("hospital")
+                                    .create();
 
-    string doctor_table_name{"doctor"};
-    ddl::field_def_list_t doctor_table_fields;
-    doctor_table_fields.emplace_back(make_unique<ddl::field_definition_t>("", data_type_t::e_references, 1, "hospital.clinic"));
-    gaia_id_t doctor_table_id = create_table(db_name, doctor_table_name, doctor_table_fields);
+    gaia_id_t doctor_table_id = table_buildr_t::new_table("doctor")
+                                    .database("hospital")
+                                    .reference("hospital.clinic")
+                                    .create();
 
     auto_transaction_t txn;
     gaia_table_t clinic_table = gaia_table_t::get(clinic_table_id);
@@ -514,15 +509,12 @@ TEST_F(catalog_manager_test, create_anonymous_relationships)
 
 TEST_F(catalog_manager_test, create_self_relationships)
 {
-    string db_name = {"hospital"};
-    create_database(db_name, true);
-
     // (doctor) 1 -[anonymous]-> N (doctor)
 
-    string doctor_table_name{"doctor"};
-    ddl::field_def_list_t doctor_table_fields;
-    doctor_table_fields.emplace_back(make_unique<ddl::field_definition_t>("self", data_type_t::e_references, 1, "hospital.doctor"));
-    gaia_id_t doctor_table_id = create_table(db_name, doctor_table_name, doctor_table_fields);
+    gaia_id_t doctor_table_id = table_buildr_t::new_table("doctor")
+                                    .database("hospital")
+                                    .reference("self", "hospital.doctor")
+                                    .create();
 
     auto_transaction_t txn;
     gaia_table_t doctor_table = gaia_table_t::get(doctor_table_id);
@@ -536,25 +528,29 @@ TEST_F(catalog_manager_test, create_self_relationships)
 
 TEST_F(catalog_manager_test, metadata)
 {
-    string db_name = {"hospital"};
-    create_database(db_name, true);
+    // TODO this test should be in the SE, but since it depends on the Catalog we need to keep it here.
 
     // (clinic) 1 --> N (doctor) 1 --> N (patient) N <-- 1 (clinic)
 
-    string clinic_table_name{"clinic"};
-    ddl::field_def_list_t clinic_table_fields;
-    gaia_id_t clinic_table_id = create_table(db_name, clinic_table_name, clinic_table_fields);
+    gaia_id_t clinic_table_id = table_buildr_t::new_table("clinic")
+                                    .database("hospital")
+                                    .field("name", data_type_t::e_string)
+                                    .field("location", data_type_t::e_string)
+                                    .create();
 
-    string doctor_table_name{"doctor"};
-    ddl::field_def_list_t doctor_table_fields;
-    doctor_table_fields.emplace_back(make_unique<ddl::field_definition_t>("clinic", data_type_t::e_references, 1, "hospital.clinic"));
-    gaia_id_t doctor_table_id = create_table(db_name, doctor_table_name, doctor_table_fields);
+    gaia_id_t doctor_table_id = table_buildr_t::new_table("doctor")
+                                    .database("hospital")
+                                    .field("name", data_type_t::e_string)
+                                    .field("surname", data_type_t::e_string)
+                                    .reference("clinic", "hospital.clinic")
+                                    .create();
 
-    string patient_table_name{"patient"};
-    ddl::field_def_list_t patient_table_fields;
-    patient_table_fields.emplace_back(make_unique<ddl::field_definition_t>("doctor", data_type_t::e_references, 1, "hospital.doctor"));
-    patient_table_fields.emplace_back(make_unique<ddl::field_definition_t>("clinic", data_type_t::e_references, 1, "hospital.clinic"));
-    gaia_id_t patient_table_id = create_table(db_name, patient_table_name, patient_table_fields);
+    gaia_id_t patient_table_id = table_buildr_t::new_table("patient")
+                                     .database("hospital")
+                                     .field("name", data_type_t::e_string)
+                                     .reference("doctor", "hospital.doctor")
+                                     .reference("clinic", "hospital.clinic")
+                                     .create();
 
     auto_transaction_t txn;
     vector<gaia_id_t> table_ids = {clinic_table_id, doctor_table_id, patient_table_id};

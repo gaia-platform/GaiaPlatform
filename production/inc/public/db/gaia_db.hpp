@@ -10,86 +10,119 @@
 #include "gaia_common.hpp"
 #include "gaia_exception.hpp"
 
-namespace gaia {
+namespace gaia
+{
 
-namespace db {
+namespace db
+{
 
 using namespace common;
 
-class session_exists : public gaia_exception {
+class session_exists : public gaia_exception
+{
 public:
-    session_exists() {
+    session_exists()
+    {
         m_message = "Close the current session before creating a new one.";
     }
 };
 
-class no_session_active : public gaia_exception {
+class no_session_active : public gaia_exception
+{
 public:
-    no_session_active() {
+    no_session_active()
+    {
         m_message = "Create a new session before opening a transaction.";
     }
 };
 
-class transaction_in_progress : public gaia_exception {
+class transaction_in_progress : public gaia_exception
+{
 public:
-    transaction_in_progress() {
+    transaction_in_progress()
+    {
         m_message = "Commit or roll back the current transaction before beginning a new transaction.";
     }
 };
 
-class transaction_not_open : public gaia_exception {
+class transaction_not_open : public gaia_exception
+{
 public:
-    transaction_not_open() {
+    transaction_not_open()
+    {
         m_message = "Begin a transaction before performing data access.";
     }
 };
 
-class transaction_update_conflict : public gaia_exception {
+class transaction_update_conflict : public gaia_exception
+{
 public:
-    transaction_update_conflict() {
+    transaction_update_conflict()
+    {
         m_message = "Transaction was aborted due to a serialization error.";
     }
 };
 
-class duplicate_id : public gaia_exception {
+class duplicate_id : public gaia_exception
+{
 public:
-    duplicate_id(gaia_id_t id) {
+    duplicate_id(gaia_id_t id)
+    {
         std::stringstream strs;
         strs << "An object with the same ID (" << id << ") already exists.";
         m_message = strs.str();
     }
 };
 
-class oom : public gaia_exception {
+class oom : public gaia_exception
+{
 public:
-    oom() {
+    oom()
+    {
         m_message = "Out of memory.";
     }
 };
 
-class invalid_node_id : public gaia_exception {
+class invalid_node_id : public gaia_exception
+{
 public:
-    invalid_node_id(gaia_id_t id) {
+    invalid_node_id(gaia_id_t id)
+    {
         std::stringstream strs;
         strs << "Cannot find a node with ID " << id << ".";
         m_message = strs.str();
     }
 };
 
-class invalid_id_value : public gaia_exception {
+class invalid_id_value : public gaia_exception
+{
 public:
-    invalid_id_value(gaia_id_t id) {
+    invalid_id_value(gaia_id_t id)
+    {
         std::stringstream strs;
         strs << "ID value " << id << " is larger than the maximum ID value 2^63.";
         m_message = strs.str();
     }
 };
 
-class node_not_disconnected : public gaia_exception {
+class node_not_disconnected : public gaia_exception
+{
 public:
-    node_not_disconnected(gaia_id_t id, gaia_type_t object_type) {
+    node_not_disconnected(gaia_id_t id, gaia_type_t object_type)
+    {
         stringstream msg;
         msg << "Cannot delete object " << id << ", type " << object_type << " because it is still connected to another object.";
+        m_message = msg.str();
+    }
+};
+
+class invalid_type : public gaia_exception
+{
+public:
+    invalid_type(gaia_id_t id, gaia_type_t type)
+    {
+        stringstream msg;
+        msg << "Cannot create object with ID " << id << "and type " << type << ". The type does not exist in the metadata.";
         m_message = msg.str();
     }
 };

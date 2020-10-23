@@ -110,10 +110,10 @@ public:
             .cardinality = this->m_cardinality,
             .parent_required = this->m_parent_required});
 
-        auto& parent_meta = type_registry_t::instance().get(m_parent_type);
+        auto& parent_meta = type_registry_t::instance().test_get_or_create(m_parent_type);
         parent_meta.add_parent_relationship(m_first_child_offset, rel);
 
-        auto& child_meta = type_registry_t::instance().get(m_child_type);
+        auto& child_meta = type_registry_t::instance().test_get_or_create(m_child_type);
         child_meta.add_child_relationship(m_parent_offset, rel);
     }
 

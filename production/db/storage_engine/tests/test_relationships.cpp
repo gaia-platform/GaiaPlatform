@@ -5,7 +5,7 @@
 
 #include "gtest/gtest.h"
 
-#include "metadata_test_util.hpp"
+#include "se_test_util.hpp"
 #include "type_metadata.hpp"
 
 using namespace std;
