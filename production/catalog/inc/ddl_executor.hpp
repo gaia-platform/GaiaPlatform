@@ -88,6 +88,9 @@ private:
     // Create a map that allows table definitions to found via their types.
     void create_type_map();
 
+    // Get the full name for a table composed of db and table names.
+    static inline string get_full_table_name(const string& db, const string& table);
+
     // Maintain some in-memory cache for fast lookup.
     // This is only intended for single process usage.
     // We cannot guarantee the cache is consistent across mutiple processes.

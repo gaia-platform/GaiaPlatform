@@ -193,8 +193,7 @@ void ddl_executor_t::reload_cache()
 
     for (auto& table : gaia_table_t::list())
     {
-        string full_table_name = string(table.gaia_database().name()) + "." + string(table.name());
-        m_table_names[full_table_name] = table.gaia_id();
+        m_table_names[get_full_table_name(table.gaia_database().name(), table.name())] = table.gaia_id();
     }
     gaia::db::commit_transaction();
 }
@@ -294,7 +293,7 @@ void ddl_executor_t::drop_table(const string& db_name, const string& name)
         throw db_not_exists(db_name);
     }
 
-    string full_table_name = (db_name.empty() ? "" : db_name + ".") + name;
+    string full_table_name = get_full_table_name(db_name, name);
     gaia_id_t db_id = find_db_id_no_lock(db_name);
     retail_assert(db_id != INVALID_GAIA_ID);
 
@@ -329,7 +328,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
         throw db_not_exists(dbname);
     }
 
-    string full_table_name = (dbname.empty() ? "" : dbname + ".") + table_name;
+    string full_table_name = get_full_table_name(dbname, table_name);
     gaia_id_t db_id = find_db_id_no_lock(dbname);
     retail_assert(db_id != INVALID_GAIA_ID);
 
@@ -456,6 +455,20 @@ gaia_id_t ddl_executor_t::find_table_id(gaia_type_t type) const
     shared_lock lock(m_lock);
     retail_assert(m_type_map.count(type), "Trying to look up non-existant table");
     return m_type_map.at(type);
+}
+
+string ddl_executor_t::get_full_table_name(const string& db, const string& table)
+{
+    // The symbol used to connect the database and table names to get the full name (for a table).
+    const string c_db_table_name_connector = ".";
+    if (db.empty())
+    {
+        return table;
+    }
+    else
+    {
+        return db + c_db_table_name_connector + table;
+    }
 }
 
 } // namespace catalog
