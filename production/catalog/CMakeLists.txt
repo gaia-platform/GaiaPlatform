@@ -26,7 +26,6 @@ set(GAIA_CATALOG_PRIVATE_INCLUDES
 
 message(VERBOSE "GAIA_CATALOG_PRIVATE_INCLUDES=${GAIA_CATALOG_PRIVATE_INCLUDES}")
 
-# main target
 add_library(gaia_catalog STATIC
   src/ddl_executor.cpp
   src/fbs_generator.cpp
