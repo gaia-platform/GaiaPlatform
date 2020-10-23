@@ -33,6 +33,8 @@ ddl_executor_t& ddl_executor_t::get()
 
 void ddl_executor_t::bootstrap_catalog()
 {
+    constexpr char anonymous_reference_field_name[] = "";
+
     create_database("catalog", false);
     {
         // create table gaia_database (name string);
@@ -58,7 +60,8 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<field_definition_t>("binary_schema", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<field_definition_t>("serialization_template", data_type_t::e_string, 1));
         fields.emplace_back(
-            make_unique<field_definition_t>("", data_type_t::e_references, 1, "catalog.gaia_database"));
+            make_unique<field_definition_t>(
+                anonymous_reference_field_name, data_type_t::e_references, 1, "catalog.gaia_database"));
         create_table_impl(
             "catalog", "gaia_table", fields, true, false,
             static_cast<gaia_id_t>(catalog_table_type_t::gaia_table));
@@ -82,7 +85,8 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<field_definition_t>("deprecated", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<field_definition_t>("active", data_type_t::e_bool, 1));
         // The anonymous reference to the gaia_table defines the ownership.
-        fields.emplace_back(make_unique<field_definition_t>("", data_type_t::e_references, 1, "catalog.gaia_table"));
+        fields.emplace_back(make_unique<field_definition_t>(
+            anonymous_reference_field_name, data_type_t::e_references, 1, "catalog.gaia_table"));
         // The "ref" named reference to the gaia_table defines the referential relationship.
         fields.emplace_back(make_unique<field_definition_t>("ref", data_type_t::e_references, 1, "catalog.gaia_table"));
         create_table_impl(
@@ -116,7 +120,8 @@ void ddl_executor_t::bootstrap_catalog()
         field_def_list_t fields;
         fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
         fields.emplace_back(
-            make_unique<field_definition_t>("", data_type_t::e_references, 1, "catalog.gaia_ruleset"));
+            make_unique<field_definition_t>(
+                anonymous_reference_field_name, data_type_t::e_references, 1, "catalog.gaia_ruleset"));
         create_table_impl(
             "catalog", "gaia_rule", fields, true, false,
             static_cast<gaia_id_t>(catalog_table_type_t::gaia_rule));
@@ -306,7 +311,13 @@ void ddl_executor_t::drop_table(const string& db_name, const string& name)
     m_table_names.erase(full_table_name);
 }
 
-gaia_id_t ddl_executor_t::create_table_impl(const string& dbname, const string& table_name, const field_def_list_t& fields, bool is_system, bool throw_on_exist, gaia_type_t fixed_type)
+gaia_id_t ddl_executor_t::create_table_impl(
+    const string& dbname,
+    const string& table_name,
+    const field_def_list_t& fields,
+    bool is_system,
+    bool throw_on_exist,
+    gaia_type_t fixed_type)
 {
     unique_lock lock(m_lock);
 
