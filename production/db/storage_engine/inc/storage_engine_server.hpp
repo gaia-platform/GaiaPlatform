@@ -9,24 +9,26 @@
 #include <sys/eventfd.h>
 
 #include <csignal>
-#include <thread>
+
 #include <shared_mutex>
+#include <thread>
 
-#include "scope_guard.hpp"
-#include "retail_assert.hpp"
-#include "system_error.hpp"
-#include "mmap_helpers.hpp"
-#include "socket_helpers.hpp"
-#include "generator_iterator.hpp"
-
-#include "storage_engine.hpp"
-#include "gaia_se_object.hpp"
 #include "gaia_db_internal.hpp"
-#include "persistent_store_manager.hpp"
+#include "gaia_se_object.hpp"
+#include "generator_iterator.hpp"
 #include "messages_generated.h"
+#include "mmap_helpers.hpp"
+#include "persistent_store_manager.hpp"
+#include "retail_assert.hpp"
+#include "scope_guard.hpp"
+#include "socket_helpers.hpp"
+#include "storage_engine.hpp"
+#include "system_error.hpp"
 
-namespace gaia {
-namespace db {
+namespace gaia
+{
+namespace db
+{
 
 using namespace gaia::common;
 using namespace gaia::common::iterators;
@@ -34,12 +36,17 @@ using namespace gaia::db::messages;
 using namespace flatbuffers;
 using namespace scope_guard;
 
-class invalid_session_transition : public gaia_exception {
+class invalid_session_transition : public gaia_exception
+{
 public:
-    invalid_session_transition(const string& message) : gaia_exception(message) {}
+    invalid_session_transition(const string& message)
+        : gaia_exception(message)
+    {
+    }
 };
 
-class server : private se_base {
+class server : private se_base
+{
     friend class persistent_store_manager;
 
 public:
@@ -71,8 +78,7 @@ private:
 
     // function pointer type that executes side effects of a state transition
     // REVIEW: replace void* with std::any?
-    typedef void (*transition_handler_fn)(int* fds, size_t fd_count, session_event_t event,
-        const void* event_data, session_state_t old_state, session_state_t new_state);
+    typedef void (*transition_handler_fn)(int* fds, size_t fd_count, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state);
     static void handle_connect(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
     static void handle_begin_txn(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
     static void handle_rollback_txn(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
@@ -82,12 +88,14 @@ private:
     static void handle_server_shutdown(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
     static void handle_request_stream(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
 
-    struct transition_t {
+    struct transition_t
+    {
         session_state_t new_state;
         transition_handler_fn handler;
     };
 
-    struct valid_transition_t {
+    struct valid_transition_t
+    {
         session_state_t state;
         session_event_t event;
         transition_t transition;
@@ -148,12 +156,10 @@ private:
     static void session_handler(int session_socket);
 
     template <typename element_type>
-    static void stream_producer_handler(int stream_socket, int cancel_eventfd,
-        std::function<std::optional<element_type>()> generator_fn);
+    static void stream_producer_handler(int stream_socket, int cancel_eventfd, std::function<std::optional<element_type>()> generator_fn);
 
     template <typename element_type>
-    static void start_stream_producer(int stream_socket,
-        std::function<std::optional<element_type>()> generator_fn);
+    static void start_stream_producer(int stream_socket, std::function<std::optional<element_type>()> generator_fn);
 
     static std::function<std::optional<gaia_id_t>()>
     get_id_generator_for_type(gaia_type_t type);

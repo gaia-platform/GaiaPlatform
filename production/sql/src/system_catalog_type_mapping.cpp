@@ -4,6 +4,7 @@
 /////////////////////////////////////////////
 
 #include "system_catalog_type_mapping.hpp"
+
 #include "system_table_types.hpp"
 
 static const attribute_t c_event_log_attributes[] = {

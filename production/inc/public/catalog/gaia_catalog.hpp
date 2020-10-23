@@ -413,6 +413,14 @@ vector<gaia::common::gaia_id_t> list_references(gaia::common::gaia_id_t table_id
 string generate_fbs(gaia::common::gaia_id_t table_id);
 
 /**
+ * Generate JSON template data (json) for a catalog table.
+ * The given table is the root type of the generated schema.
+ *
+ * @return generated JSON string
+ */
+string generate_json(gaia::common::gaia_id_t table_id);
+
+/**
  * Generate FlatBuffers schema (fbs) for all catalog tables in a given database.
  * No root type is specified in the generated schema.
  *
@@ -436,6 +444,14 @@ string gaia_generate(const string& dbname);
  * @return bfbs
  */
 string get_bfbs(gaia::common::gaia_id_t table_id);
+
+/**
+ * Retrieve the serialization template (bin) for a given table.
+ *
+ * @param table_id id of the table
+ * @return bin
+ */
+string get_bin(gaia::common::gaia_id_t table_id);
 
 /**
  * Find the database id given its name

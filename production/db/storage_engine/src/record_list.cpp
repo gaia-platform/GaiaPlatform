@@ -3,10 +3,9 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <record_list.hpp>
-
-#include <retail_assert.hpp>
 #include <locator_allocator.hpp>
+#include <record_list.hpp>
+#include <retail_assert.hpp>
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -39,7 +38,7 @@ record_range_t::record_range_t(size_t range_size)
 
 record_range_t::~record_range_t()
 {
-    delete [] m_record_range;
+    delete[] m_record_range;
 }
 
 bool record_range_t::is_full() const
@@ -142,8 +141,8 @@ void record_list_t::compact()
 {
     // Iterate over our list and compact each range.
     for (record_range_t* current_range = m_record_ranges;
-        current_range != nullptr;
-        current_range = current_range->next_range())
+         current_range != nullptr;
+         current_range = current_range->next_range())
     {
         // Take an exclusive lock before compacting the range.
         unique_lock unique_range_lock(current_range->m_lock);
@@ -191,7 +190,7 @@ void record_list_t::seek(record_iterator_t& iterator)
     while (!iterator.at_end())
     {
         // Search for a non-deleted record in the current range.
-        for ( ; iterator.current_index < iterator.current_range->m_next_available_index; iterator.current_index++)
+        for (; iterator.current_index < iterator.current_range->m_next_available_index; iterator.current_index++)
         {
             if (iterator.current_range->get(iterator.current_index).is_deleted == false)
             {

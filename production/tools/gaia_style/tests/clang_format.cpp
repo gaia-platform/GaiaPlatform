@@ -52,9 +52,7 @@ class class_name_t
 {
 
 public:
-    class_name_t(int private_member1,
-                 int private_member2,
-                 int private_member3)
+    class_name_t(int private_member1, int private_member2, int private_member3)
         : m_private_member1(private_member1)
         , m_private_member2(private_member2)
         , m_private_member3(private_member3){};
@@ -136,9 +134,7 @@ std::string continue_indentation_width()
             "plus"
             + std::string("something else")));
 
-    std::string variable_with_rather_weird_name2("Something "
-                                                 + std::string("plus"
-                                                               + std::string("something else")));
+    std::string variable_with_rather_weird_name2("Something " + std::string("plus" + std::string("something else")));
 
     short_function(
         3 + 4);
@@ -160,7 +156,7 @@ void braced_style()
 int no_space_after_c_cast()
 {
     double var = 3.14; //NOLINT
-    return (int)var;   //NOLINT
+    return (int)var; //NOLINT
 }
 
 bool space_after_not()
@@ -188,6 +184,19 @@ void pure_anarchy()
     // clang-format off
     int a1 =     3; int a2=2; if (true) { return;}; //NOLINT
     // clang-format on
+}
+
+void const_position()
+{
+    // The current version of clang-format only supports west-const positioning.
+    // Read this about the east/west const debate:
+    // https://mariusbancila.ro/blog/2018/11/23/join-the-east-const-revolution/
+    // https://reviews.llvm.org/D69764
+
+    int* p1 = nullptr; // p1 is a mutable pointer to a mutable int
+    int const* p2 = nullptr; // p2 is a mutable pointer to a constant int
+    int* const p3 = nullptr; // p3 is a constant pointer to a mutable int
+    const int* const p4 = nullptr; // p4 is a constant pointer to a constant int
 }
 
 class base_t

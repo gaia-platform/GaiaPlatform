@@ -6,12 +6,14 @@
 // Do not include event_manager.hpp to ensure that
 // we don't have a dependency on the internal implementation.
 
-#include "db_test_base.hpp"
-#include "gaia_system.hpp"
 #include "gtest/gtest.h"
-#include "rules.hpp"
-#include "gaia_catalog.hpp"
+
+#include "db_test_base.hpp"
 #include "gaia_base.hpp"
+#include "gaia_catalog.h"
+#include "gaia_catalog.hpp"
+#include "gaia_system.hpp"
+#include "rules.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -24,7 +26,8 @@ extern "C" void initialize_rules()
 {
 }
 
-class system_init_test : public db_test_base_t {
+class system_init_test : public db_test_base_t
+{
 public:
     gaia_type_t load_catalog()
     {
@@ -38,7 +41,10 @@ public:
 protected:
     // Manage the session ourselves in this test as the
     // gaia::system::initialize() will call begin_session.
-    system_init_test() : db_test_base_t(true) {}
+    system_init_test()
+        : db_test_base_t(true)
+    {
+    }
 };
 
 TEST_F(system_init_test, system_not_initialized_error)
@@ -47,14 +53,10 @@ TEST_F(system_init_test, system_not_initialized_error)
     subscription_list_t still_dont_care;
     field_position_list_t ignore;
 
-    EXPECT_THROW(subscribe_rule(0, event_type_t::row_update, ignore, dont_care),
-        initialization_error);
-    EXPECT_THROW(unsubscribe_rule(0, event_type_t::row_update, ignore, dont_care),
-        initialization_error);
-    EXPECT_THROW(unsubscribe_rules(),
-        initialization_error);
-    EXPECT_THROW(list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, still_dont_care),
-        initialization_error);
+    EXPECT_THROW(subscribe_rule(0, event_type_t::row_update, ignore, dont_care), initialization_error);
+    EXPECT_THROW(unsubscribe_rule(0, event_type_t::row_update, ignore, dont_care), initialization_error);
+    EXPECT_THROW(unsubscribe_rules(), initialization_error);
+    EXPECT_THROW(list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, still_dont_care), initialization_error);
 }
 
 void rule(const rule_context_t*)
@@ -67,7 +69,10 @@ TEST_F(system_init_test, system_initialized)
     subscription_list_t subscriptions;
 
     gaia::system::initialize();
-    gaia_type_t type_id = load_catalog();
+    gaia_id_t table_id = load_catalog();
+    begin_transaction();
+    gaia_type_t type_id = gaia_table_t::get(table_id).type();
+    commit_transaction();
 
     subscribe_rule(type_id, event_type_t::row_update, empty_fields, binding);
     EXPECT_EQ(true, unsubscribe_rule(type_id, event_type_t::row_update, empty_fields, binding));

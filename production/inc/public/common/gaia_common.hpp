@@ -29,17 +29,17 @@ namespace common
 typedef uint64_t gaia_id_t;
 
 /**
- * The value of an invalid gaia_id.
+ * The value of an invalid gaia_id_t.
  */
 constexpr gaia_id_t INVALID_GAIA_ID = 0;
 
 /**
  * The type of a Gaia type identifier.
  */
-typedef uint64_t gaia_type_t;
+typedef uint32_t gaia_type_t;
 
 /**
- * The value of an invalid gaia_type.
+ * The value of an invalid gaia_type_t.
  */
 constexpr gaia_type_t INVALID_GAIA_TYPE = 0;
 

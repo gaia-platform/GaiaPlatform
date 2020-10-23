@@ -5,32 +5,37 @@
 
 #pragma once
 
-#include <string>
-#include <sstream>
-#include <unordered_map>
 #include <mutex>
+#include <sstream>
+#include <string>
+#include <unordered_map>
 
 #include "gaia_exception.hpp"
 #include "logger.hpp"
 
-namespace gaia {
+namespace gaia
+{
 /**
  * \addtogroup Gaia
  * @{
  */
-namespace common {
+namespace common
+{
 /**
  * \addtogroup Common
  * @{
  */
-namespace logging {
+namespace logging
+{
 
-class logger_manager_t {
+class logger_manager_t
+{
 
 public:
     static constexpr char c_sys_logger[] = "sys";
     static constexpr char c_db_logger[] = "db";
-    static constexpr char c_scheduler_logger[] = "scheduler";
+    static constexpr char c_rules_logger[] = "rules";
+    static constexpr char c_rules_stats_logger[] = "rules_stats";
     static constexpr char c_catalog_logger[] = "catalog";
 
     /** Default logging path used if none is specified via configuration. */
@@ -48,32 +53,49 @@ public:
     static logger_manager_t& get();
 
     // Retrieve well-known loggers instances.
-    logger_t& sys_logger() {
-        if (!m_is_log_initialized) {
+    logger_t& sys_logger()
+    {
+        if (!m_is_log_initialized)
+        {
             uninitialized_failure();
         }
         return *m_sys_logger;
     };
 
-    logger_t& db_logger() {
-        if (!m_is_log_initialized) {
+    logger_t& db_logger()
+    {
+        if (!m_is_log_initialized)
+        {
             uninitialized_failure();
         }
         return *m_db_logger;
     }
 
-    logger_t& scheduler_logger() {
-        if (!m_is_log_initialized) {
+    logger_t& rules_logger()
+    {
+        if (!m_is_log_initialized)
+        {
             uninitialized_failure();
         }
-        return *m_scheduler_logger;
+        return *m_rules_logger;
     }
 
-    logger_t& catalog_logger() {
-        if (!m_is_log_initialized) {
+    logger_t& catalog_logger()
+    {
+        if (!m_is_log_initialized)
+        {
             uninitialized_failure();
         }
         return *m_catalog_logger;
+    }
+
+    logger_t& rules_stats_logger()
+    {
+        if (!m_is_log_initialized)
+        {
+            uninitialized_failure();
+        }
+        return *m_rules_stats_logger;
     }
 
     bool init_logging(const string& config_path);
@@ -82,7 +104,8 @@ public:
 private:
     logger_manager_t() = default;
     static void create_log_dir_if_not_exists(const char* log_file_path);
-    static void uninitialized_failure() {
+    static void uninitialized_failure()
+    {
         throw logger_exception_t("Logger sub-system not initialized!");
     }
 
@@ -93,7 +116,8 @@ private:
     // Well-known loggers
     logger_ptr_t m_sys_logger;
     logger_ptr_t m_db_logger;
-    logger_ptr_t m_scheduler_logger;
+    logger_ptr_t m_rules_logger;
+    logger_ptr_t m_rules_stats_logger;
     logger_ptr_t m_catalog_logger;
 };
 

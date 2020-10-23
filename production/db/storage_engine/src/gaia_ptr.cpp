@@ -18,7 +18,7 @@ using namespace gaia::db::triggers;
 
 gaia_id_t gaia_ptr::generate_id()
 {
-    return client::generate_id(client::s_data);
+    return gaia_boot_t::get().get_next_id();
 }
 
 gaia_ptr gaia_ptr::create(gaia_type_t type, size_t data_size, const void* data)
@@ -100,7 +100,7 @@ gaia_ptr& gaia_ptr::clone()
     gaia_se_object_t* new_this = to_ptr();
     if (client::is_valid_event(new_this->type))
     {
-        client::s_events.push_back(trigger_event_t{event_type_t::row_insert, new_this->type, new_this->id, empty_position_list});
+        client::s_events.emplace_back(event_type_t::row_insert, new_this->type, new_this->id, empty_position_list);
     }
 
     return *this;
@@ -121,7 +121,7 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data)
 
     memcpy(new_this, old_this, sizeof(gaia_se_object_t));
     new_this->payload_size = total_len;
-    if (old_this->num_references)
+    if (old_this->num_references > 0)
     {
         memcpy(new_this->payload, old_this->payload, ref_len);
     }
@@ -132,17 +132,13 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data)
 
     if (client::is_valid_event(new_this->type))
     {
-        const auto* old_data = reinterpret_cast<const uint8_t*>(old_this->payload);
+        auto new_data = reinterpret_cast<const uint8_t*>(data);
+        auto old_data = reinterpret_cast<const uint8_t*>(old_this->payload);
+        const uint8_t* old_data_payload = old_data + ref_len;
 
-        const uint8_t* old_data_payload = nullptr;
-
-        if (old_this->num_references)
-        {
-            old_data_payload = old_data + sizeof(gaia_id_t) * old_this->num_references;
-        }
         // Compute field diff
         field_position_list_t position_list;
-        gaia::db::payload_types::compute_payload_diff(new_this->type, old_data_payload, static_cast<const uint8_t*>(data), &position_list);
+        gaia::db::payload_types::compute_payload_diff(new_this->type, old_data_payload, new_data, &position_list);
         client::s_events.emplace_back(event_type_t::row_update, new_this->type, new_this->id, position_list);
     }
 
@@ -164,7 +160,7 @@ gaia_ptr& gaia_ptr::update_child_references(
 
 gaia_ptr& gaia_ptr::update_child_reference(size_t child_slot, gaia_id_t child_id)
 {
-    auto old_offset = to_offset();
+    gaia_offset_t old_offset = to_offset();
     clone_no_txn();
 
     references()[child_slot] = child_id;
@@ -187,7 +183,6 @@ gaia_ptr::gaia_ptr(gaia_id_t id)
 }
 
 gaia_ptr::gaia_ptr(gaia_id_t id, size_t size)
-    : m_locator(0)
 {
     se_base::hash_node* hash_node = gaia_hash_map::insert(client::s_data, client::s_locators, id);
     hash_node->locator = m_locator = se_base::allocate_locator(client::s_locators, client::s_data);
@@ -213,9 +208,7 @@ gaia_offset_t gaia_ptr::to_offset() const
 {
     client::verify_txn_active();
 
-    return m_locator
-        ? (*client::s_locators)[m_locator]
-        : 0;
+    return m_locator ? (*client::s_locators)[m_locator] : 0;
 }
 
 void gaia_ptr::find_next(gaia_type_t type)
@@ -237,7 +230,7 @@ void gaia_ptr::reset()
 
     if (client::is_valid_event(to_ptr()->type))
     {
-        client::s_events.push_back(trigger_event_t{event_type_t::row_delete, to_ptr()->type, to_ptr()->id, empty_position_list});
+        client::s_events.emplace_back(event_type_t::row_delete, to_ptr()->type, to_ptr()->id, empty_position_list);
     }
     (*client::s_locators)[m_locator] = 0;
     m_locator = 0;
@@ -392,7 +385,7 @@ void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t fir
     // match found
     if (curr_child == child_id)
     {
-        gaia_ptr curr_ptr = gaia_ptr(curr_child);
+        auto curr_ptr = gaia_ptr(curr_child);
 
         if (!prev_child)
         {
@@ -402,8 +395,9 @@ void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t fir
         else
         {
             // non-first child in the linked list, update the previous child
-            gaia_ptr prev_ptr = gaia_ptr(prev_child);
-            prev_ptr.references()[relationship->next_child_offset] = curr_ptr.references()[relationship->next_child_offset];
+            auto prev_ptr = gaia_ptr(prev_child);
+            prev_ptr.references()[relationship->next_child_offset]
+                = curr_ptr.references()[relationship->next_child_offset];
         }
 
         curr_ptr.references()[relationship->parent_offset] = INVALID_GAIA_ID;

@@ -19,10 +19,12 @@ class GenGitDockerfile(GenAbcDockerfile):
 
     @memoize
     async def get_run_section(self) -> str:
-        if lines := await self.cfg.get_lines():
+        if section_lines := await self.cfg.get_section_lines():
             run_section = (
                     'RUN '
-                    + ' \\\n    && '.join([f'git clone --depth 1 {line}' for line in lines])
+                    + ' \\\n    && '.join(
+                        [f'git clone --depth 1 {section_line}' for section_line in section_lines]
+                    )
                     + ' \\\n    && rm -rf */.git'
                     + ' \\\n    && apt-get remove --autoremove -y git'
             )

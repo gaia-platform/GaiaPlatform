@@ -32,6 +32,10 @@ The MM is a server component. The SA can be initialized on either server or clie
   * For each allocation or deallocation, the SA also writes a record after its metadata block, so these records get added right->left.
   * The metadata block together with the allocation records form a complete allocation record. The SA interface provides access to this data.
 
+MM performs two types of allocations:
+* Regular allocations - these return an offset to the allocated memory block. This block is prefixed by a metadata block.
+* Raw allocations - these also return an offset to an allocated memory block, but this block is not prefixed by a metadata block. When using such allocations with a stack allocator, the stack allocator will then perform regular allocations that will get prefixed by metadata blocks.
+
 ### Metadata
 
 * MM

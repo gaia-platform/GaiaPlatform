@@ -43,7 +43,7 @@ int client::get_id_cursor_socket_for_type(gaia_type_t type)
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Extract the stream socket fd from the server's response.
-    uint8_t msg_buf[MAX_MSG_SIZE] = {0};
+    uint8_t msg_buf[c_max_msg_size] = {0};
     int stream_socket = -1;
     size_t fd_count = 1;
     size_t bytes_read = recv_msg_with_fds(s_session_socket, &stream_socket, &fd_count, msg_buf, sizeof(msg_buf));
@@ -72,9 +72,9 @@ int client::get_id_cursor_socket_for_type(gaia_type_t type)
     return stream_socket;
 }
 
-// This generator wraps a socket which reads a stream of values of `element_type` from the server.
-template <typename element_type>
-std::function<std::optional<element_type>()>
+// This generator wraps a socket which reads a stream of values of `T_element_type` from the server.
+template <typename T_element_type>
+std::function<std::optional<T_element_type>()>
 client::get_stream_generator_for_socket(int stream_socket)
 {
     // Verify the socket is the correct type for the semantics we assume.
@@ -83,9 +83,9 @@ client::get_stream_generator_for_socket(int stream_socket)
     verify_txn_active();
     gaia_txn_id_t owning_txn_id = s_txn_id;
     // The userspace buffer that we use to receive a batch datagram message.
-    std::vector<element_type> batch_buffer;
+    std::vector<T_element_type> batch_buffer;
     // The definition of the generator we return.
-    return [stream_socket, owning_txn_id, batch_buffer]() mutable -> std::optional<element_type> {
+    return [stream_socket, owning_txn_id, batch_buffer]() mutable -> std::optional<T_element_type> {
         // We shouldn't be called again after we received EOF from the server.
         retail_assert(stream_socket != -1);
         // The cursor should only be called from within the scope of its owning transaction.
@@ -116,15 +116,14 @@ client::get_stream_generator_for_socket(int stream_socket)
                 return std::nullopt;
             }
             // The datagram size must be an integer multiple of our datum size.
-            retail_assert(datagram_size % sizeof(element_type) == 0);
+            retail_assert(datagram_size % sizeof(T_element_type) == 0);
             // Align the end of the buffer to the datagram size.
             // Per the C++ standard, this will never reduce capacity.
             batch_buffer.resize(datagram_size);
             // Get the actual data.
             // This is a nonblocking read, since the previous blocking
             // read will not return until data is available.
-            ssize_t bytes_read = ::recv(stream_socket,
-                                        batch_buffer.data(), batch_buffer.size(), MSG_DONTWAIT);
+            ssize_t bytes_read = ::recv(stream_socket, batch_buffer.data(), batch_buffer.size(), MSG_DONTWAIT);
             if (bytes_read == -1)
             {
                 // Per above, we should never have to block here.
@@ -139,7 +138,7 @@ client::get_stream_generator_for_socket(int stream_socket)
         retail_assert(batch_buffer.size() > 0);
         // Loop through the buffer and return entries in FIFO order
         // (the server reversed the original buffer before sending).
-        element_type next_value = batch_buffer.back();
+        T_element_type next_value = batch_buffer.back();
         batch_buffer.pop_back();
         return next_value;
     };
@@ -225,7 +224,7 @@ int client::get_session_socket()
     auto cleanup_session_socket = make_scope_guard([session_socket]() {
         close(session_socket);
     });
-    struct sockaddr_un server_addr = {0};
+    sockaddr_un server_addr = {0};
     server_addr.sun_family = AF_UNIX;
     // The socket name (minus its null terminator) needs to fit into the space
     // in the server address structure after the prefix null byte.
@@ -233,12 +232,11 @@ int client::get_session_socket()
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
     // filesystem.
-    ::strncpy(&server_addr.sun_path[1], SE_SERVER_SOCKET_NAME,
-              sizeof(server_addr.sun_path) - 1);
+    ::strncpy(&server_addr.sun_path[1], SE_SERVER_SOCKET_NAME, sizeof(server_addr.sun_path) - 1);
     // The socket name is not null-terminated in the address structure, but
     // we need to add an extra byte for the null byte prefix.
     socklen_t server_addr_size = sizeof(server_addr.sun_family) + 1 + strlen(&server_addr.sun_path[1]);
-    if (-1 == ::connect(session_socket, (struct sockaddr*)&server_addr, server_addr_size))
+    if (-1 == ::connect(session_socket, reinterpret_cast<sockaddr*>(&server_addr), server_addr_size))
     {
         throw_system_error("connect failed");
     }
@@ -286,18 +284,18 @@ void client::begin_session()
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Extract the data and locator shared memory segment fds from the server's response.
-    uint8_t msg_buf[MAX_MSG_SIZE] = {0};
-    constexpr size_t FD_COUNT = 2;
-    int fds[FD_COUNT] = {-1};
-    size_t fd_count = FD_COUNT;
-    constexpr size_t DATA_FD_INDEX = 0;
-    constexpr size_t LOCATORS_FD_INDEX = 1;
+    uint8_t msg_buf[c_max_msg_size] = {0};
+    constexpr size_t c_fd_count = 2;
+    int fds[c_fd_count] = {-1};
+    size_t fd_count = c_fd_count;
+    constexpr size_t c_data_fd_index = 0;
+    constexpr size_t c_locators_fd_index = 1;
     size_t bytes_read = recv_msg_with_fds(s_session_socket, fds, &fd_count, msg_buf, sizeof(msg_buf));
     retail_assert(bytes_read > 0);
-    retail_assert(fd_count == FD_COUNT);
-    int fd_data = fds[DATA_FD_INDEX];
+    retail_assert(fd_count == c_fd_count);
+    int fd_data = fds[c_data_fd_index];
     retail_assert(fd_data != -1);
-    int fd_locators = fds[LOCATORS_FD_INDEX];
+    int fd_locators = fds[c_locators_fd_index];
     retail_assert(fd_locators != -1);
     auto cleanup_fds = make_scope_guard([fd_data, fd_locators]() {
         // We can unconditionally close the data fd,
@@ -342,7 +340,7 @@ void client::begin_transaction()
     verify_no_txn();
 
     // First we allocate a new log segment and map it in our own process.
-    int fd_log = ::memfd_create(SCH_MEM_LOG, MFD_ALLOW_SEALING);
+    int fd_log = ::memfd_create(c_sch_mem_log, MFD_ALLOW_SEALING);
     if (fd_log == -1)
     {
         throw_system_error("memfd_create failed");
@@ -374,8 +372,7 @@ void client::begin_transaction()
         }
     });
 
-    s_locators = static_cast<locators*>(map_fd(sizeof(locators),
-                                               PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_locators, 0));
+    s_locators = static_cast<locators*>(map_fd(sizeof(locators), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_locators, 0));
     auto cleanup_locator_mapping = make_scope_guard([]() {
         unmap_fd(s_locators, sizeof(locators));
         s_locators = nullptr;
@@ -387,7 +384,7 @@ void client::begin_transaction()
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Block to receive transaction id from the server.
-    uint8_t msg_buf[MAX_MSG_SIZE] = {0};
+    uint8_t msg_buf[c_max_msg_size] = {0};
     size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
     retail_assert(bytes_read > 0);
 
@@ -448,7 +445,7 @@ void client::commit_transaction()
     send_msg_with_fds(s_session_socket, &s_fd_log, 1, builder.GetBufferPointer(), builder.GetSize());
 
     // Block on the server's commit decision.
-    uint8_t msg_buf[MAX_MSG_SIZE] = {0};
+    uint8_t msg_buf[c_max_msg_size] = {0};
     size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
     retail_assert(bytes_read > 0);
 

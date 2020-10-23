@@ -3,11 +3,12 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "retail_assert.hpp"
 #include "rule_thread_pool.hpp"
-#include "event_manager.hpp"
 
 #include <cstring>
+
+#include "event_manager.hpp"
+#include "retail_assert.hpp"
 
 using namespace gaia::rules;
 using namespace gaia::common;
@@ -19,20 +20,18 @@ using namespace std;
 thread_local bool rule_thread_pool_t::s_tls_can_enqueue = true;
 thread_local queue<rule_thread_pool_t::invocation_t> rule_thread_pool_t::s_tls_pending_invocations;
 
-
 void rule_thread_pool_t::log_events(invocation_t& invocation)
 {
     auto& log_invocation = std::get<log_events_invocation_t>(invocation.args);
-    retail_assert(log_invocation.events.size() == log_invocation.rules_invoked.size(),
+    retail_assert(
+        log_invocation.events.size() == log_invocation.rules_invoked.size(),
         "Event vector and rules_invoked vector sizes must match!");
 
     gaia::db::begin_transaction();
     {
-        rule_stats_manager_t::record_rule_fn_time(invocation.stats, [&]() {
-
         for (size_t i = 0; i < log_invocation.events.size(); i++)
         {
-            uint64_t timestamp = (uint64_t)time(NULL);
+            auto timestamp = static_cast<uint64_t>(time(nullptr));
             uint16_t column_id = 0;
             auto& event = log_invocation.events[i];
             auto rule_invoked = log_invocation.rules_invoked[i];
@@ -46,31 +45,31 @@ void rule_thread_pool_t::log_events(invocation_t& invocation)
             }
 
             event_log::event_log_t::insert_row(
-                (uint32_t)(event.event_type),
-                (uint64_t)(event.gaia_type),
-                (uint64_t)(event.record),
+                static_cast<uint32_t>(event.event_type),
+                static_cast<uint64_t>(event.gaia_type),
+                static_cast<uint64_t>(event.record),
                 column_id,
-                timestamp, rule_invoked);
+                timestamp,
+                rule_invoked);
         }
-
-        }); // recorder
     }
     gaia::db::commit_transaction();
 }
 
-rule_thread_pool_t::rule_thread_pool_t(size_t num_threads)
+rule_thread_pool_t::rule_thread_pool_t(size_t num_threads, rule_stats_manager_t& stats_manager)
+    : m_stats_manager(stats_manager)
 {
     m_exit = false;
     m_num_threads = (num_threads == SIZE_MAX) ? thread::hardware_concurrency() : num_threads;
 
     for (uint32_t i = 0; i < m_num_threads; i++)
     {
-        thread worker([this]{ rule_worker(); });
+        thread worker([this] { rule_worker(); });
         m_threads.emplace_back(move(worker));
     }
 }
 
-uint32_t rule_thread_pool_t::get_num_threads()
+size_t rule_thread_pool_t::get_num_threads()
 {
     return m_num_threads;
 }
@@ -103,37 +102,36 @@ void rule_thread_pool_t::execute_immediate()
     {
         while (!m_invocations.empty())
         {
-            invocation_t context = m_invocations.front();
+            auto start_thread_execution_time = gaia::common::timer_t::get_time_point();
+            invocation_t invocation = m_invocations.front();
             m_invocations.pop();
-
-            rule_stats_manager_t::record_invoke_time(context.stats, [&]() {
-                invoke_rule(context);
-            });
+            invoke_rule(invocation);
+            m_stats_manager.compute_thread_execution_time(start_thread_execution_time);
         }
     }
 }
 
 void rule_thread_pool_t::enqueue(invocation_t& invocation)
 {
+    m_stats_manager.insert_rule_stats(invocation.rule_id);
     if (s_tls_can_enqueue)
     {
+        m_stats_manager.inc_scheduled(invocation.rule_id);
         if (m_num_threads > 0)
         {
             unique_lock<mutex> lock(m_lock);
-            // Record the time after we have acquired the lock
-            rule_stats_manager_t::record_enqueue_time(invocation.stats);
             m_invocations.push(invocation);
             lock.unlock();
             m_invocations_signal.notify_one();
         }
         else
         {
-            rule_stats_manager_t::record_enqueue_time(invocation.stats);
             m_invocations.push(invocation);
         }
     }
     else
     {
+        m_stats_manager.inc_pending(invocation.rule_id);
         s_tls_pending_invocations.push(invocation);
     }
 }
@@ -146,24 +144,21 @@ void rule_thread_pool_t::rule_worker()
     while (true)
     {
         lock.lock();
-        m_invocations_signal.wait(lock, [this] {
-            return (m_invocations.size() > 0 || m_exit);
-        });
+        m_invocations_signal.wait(lock, [this] { return (m_invocations.size() > 0 || m_exit); });
 
         if (m_exit)
         {
             break;
         }
 
-        invocation_t context = m_invocations.front();
+        // Calculate the amount of time spent doing actual work
+        // in this thread.
+        auto start_thread_execution_time = gaia::common::timer_t::get_time_point();
+        invocation_t invocation = m_invocations.front();
         m_invocations.pop();
         lock.unlock();
-
-        rule_stats_manager_t::record_invoke_time(context.stats, [&]() {
-            invoke_rule(context);
-        });
-
-        rule_stats_manager_t::log(context.stats);
+        invoke_rule(invocation);
+        m_stats_manager.compute_thread_execution_time(start_thread_execution_time);
     }
     end_session();
 }
@@ -175,6 +170,7 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
     auto& rule_invocation = std::get<rule_invocation_t>(invocation.args);
     s_tls_can_enqueue = false;
     bool should_schedule = false;
+    const char* rule_id = invocation.rule_id;
 
     try
     {
@@ -184,13 +180,15 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
             rule_invocation.gaia_type,
             rule_invocation.event_type,
             rule_invocation.record,
-            rule_invocation.fields
-        );
+            rule_invocation.fields);
 
         // Invoke the rule.
-        rule_stats_manager_t::record_rule_fn_time(invocation.stats, [&]() {
-            rule_invocation.rule_fn(&context);
-        });
+        m_stats_manager.compute_rule_invocation_latency(rule_id, invocation.start_time);
+
+        // Invoke the rule.
+        auto fn_start = gaia::common::timer_t::get_time_point();
+        rule_invocation.rule_fn(&context);
+        m_stats_manager.compute_rule_execution_time(rule_id, fn_start);
 
         should_schedule = true;
         s_tls_can_enqueue = true;
@@ -199,8 +197,9 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
             txn.commit();
         }
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
+        m_stats_manager.inc_exceptions(rule_id);
         // TODO[GAIAPLAT-129]: Log an error in an error table here.
         // TODO[GAIAPLAT-158]: Determine retry/error handling logic
         // Catch all exceptions or let terminate happen? Don't drop pending
@@ -212,12 +211,16 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
 
 void rule_thread_pool_t::process_pending_invocations(bool should_schedule)
 {
-    while(!s_tls_pending_invocations.empty())
+    while (!s_tls_pending_invocations.empty())
     {
+        invocation_t invocation = s_tls_pending_invocations.front();
         if (should_schedule)
         {
-            invocation_t invocation = s_tls_pending_invocations.front();
             enqueue(invocation);
+        }
+        else
+        {
+            m_stats_manager.inc_abandoned(invocation.rule_id);
         }
         s_tls_pending_invocations.pop();
     }

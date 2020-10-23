@@ -19,19 +19,20 @@ namespace direct_access
 // The gaia_object_t implementation.
 //
 
-// Macros for strongly types field accessors used by
-// gaia_object_t objects below.
+// Macros for strongly types field accessors used by gaia_object_t objects below.
 #define GET(field) (row()->field())
 #define GET_STR(field) (row()->field() ? row()->field()->c_str() : nullptr)
 
 template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
-gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::gaia_object_t(const char * gaia_typename)
+gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::gaia_object_t(
+    const char* gaia_typename)
     : gaia_base_t(gaia_typename)
 {
 }
 
 template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
-gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::gaia_object_t(gaia_id_t id, const char * gaia_typename)
+gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::gaia_object_t(
+    gaia_id_t id, const char* gaia_typename)
     : gaia_base_t(gaia_typename)
 {
     m_record = gaia_ptr::open(id);
@@ -56,11 +57,12 @@ const T_flatbuffer* gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuff
 template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
 gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::operator bool() const
 {
-    return m_record;
+    return static_cast<bool>(m_record);
 }
 
 template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
-bool gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::operator==(const gaia_object_t& other) const
+bool gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::operator==(
+    const gaia_object_t& other) const
 {
     return m_record == other.m_record;
 }
@@ -117,7 +119,8 @@ T_class gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N
 }
 
 template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
-gaia_id_t gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::insert_row(flatbuffers::FlatBufferBuilder& fbb)
+gaia_id_t gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::insert_row(
+    flatbuffers::FlatBufferBuilder& fbb)
 {
     gaia_id_t node_id = gaia_ptr::generate_id();
     gaia_ptr::create(node_id, T_container, N_references, fbb.GetSize(), fbb.GetBufferPointer());
@@ -148,7 +151,8 @@ void gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_re
 }
 
 template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
-T_class gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::get_object(gaia_ptr& node_ptr)
+T_class
+gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::get_object(gaia_ptr& node_ptr)
 {
     gaia_id_t id = 0;
     if (node_ptr)
@@ -157,10 +161,7 @@ T_class gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N
         if (node_ptr.type() != T_class::s_gaia_type)
         {
             T_class expected = T_class::get(0);
-            throw edc_invalid_object_type(node_ptr.id(),
-                T_class::s_gaia_type,
-                expected.gaia_typename(),
-                node_ptr.type());
+            throw edc_invalid_object_type(node_ptr.id(), T_class::s_gaia_type, expected.gaia_typename(), node_ptr.type());
         }
         id = node_ptr.id();
     }
@@ -168,7 +169,8 @@ T_class gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N
 }
 
 template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
-gaia_type_t gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::s_gaia_type = T_container;
+gaia_type_t gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::s_gaia_type
+    = T_container;
 
 //
 // The gaia_writer_t implementation.
@@ -181,8 +183,7 @@ gaia_id_t gaia_writer_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object,
     gaia_id_t id = gaia_ptr::generate_id();
     auto u = T_flatbuffer::Pack(m_builder, this);
     m_builder.Finish(u);
-    node_ptr = gaia_ptr::create(id, T_container, N_references, m_builder.GetSize(),
-        m_builder.GetBufferPointer());
+    node_ptr = gaia_ptr::create(id, T_container, N_references, m_builder.GetSize(), m_builder.GetBufferPointer());
     m_builder.Clear();
 
     return id;
@@ -203,5 +204,5 @@ void gaia_writer_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_re
     m_builder.Clear();
 }
 
-} // direct_access
-} // gaia
+} // namespace direct_access
+} // namespace gaia

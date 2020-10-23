@@ -22,7 +22,24 @@ constexpr char c_debug_output_separator_line_end[] = "<<<<<<<<<<<<<<<<<<<<<<<<<<
 class base_memory_manager_t
 {
 public:
+    // This alignment applies to all addresses, sizes, and offsets.
     static constexpr size_t c_memory_alignment = sizeof(uint64_t);
+
+    // This alignment only applies to individual allocations that
+    // get prefixed with a metadata block.
+    // In particular, this does NOT apply to raw allocations,
+    // which will need to get offset by 56B (64-8) from a 64B boundary.
+    static constexpr size_t c_allocation_alignment = 8 * sizeof(uint64_t);
+
+    // Sanity check - our formulas need to be changed if the metadata block
+    // is ever increased in size above 64B.
+    static_assert(sizeof(memory_allocation_metadata_t) < c_allocation_alignment);
+
+    // The minimum allocation size on a 64B boundary is 64B - 8B = 56B,
+    // so that it leaves place for another metadata block before the next 64B boundary.
+    // This is also the offset from a 64B boundary that raw allocations need to have.
+    static constexpr size_t c_minimum_allocation_size
+        = c_allocation_alignment - sizeof(memory_allocation_metadata_t);
 
 public:
     base_memory_manager_t();
@@ -35,10 +52,14 @@ public:
     // Sets stack_allocator_t execution flags.
     void set_execution_flags(const execution_flags_t& execution_flags);
 
+    // Helper functions for allocation alignment.
+    static size_t calculate_allocation_size(size_t requested_size);
+    static size_t calculate_raw_allocation_size(size_t requested_size);
+
     // Sanity checks.
-    bool validate_address_alignment(const uint8_t* const memory_address) const;
-    bool validate_offset_alignment(address_offset_t memory_offset) const;
-    bool validate_size_alignment(size_t memory_size) const;
+    static bool validate_address_alignment(const uint8_t* const memory_address);
+    static bool validate_offset_alignment(address_offset_t memory_offset);
+    static bool validate_size_alignment(size_t memory_size);
 
     error_code_t validate_address(const uint8_t* const memory_address) const;
     error_code_t validate_offset(address_offset_t memory_offset) const;

@@ -8,54 +8,63 @@
 #include <filesystem>
 #include <iostream>
 
-#include "spdlog/async.h"
-#include "spdlog/sinks/stdout_sinks.h"
-#include "spdlog/sinks/basic_file_sink.h"
-#include "spdlog_setup/conf.h"
 #include "logger_spdlog.hpp"
+#include "spdlog/async.h"
+#include "spdlog/sinks/basic_file_sink.h"
+#include "spdlog/sinks/stdout_sinks.h"
+#include "spdlog_setup/conf.h"
 
 namespace fs = std::filesystem;
 
-namespace gaia::common::logging {
+namespace gaia::common::logging
+{
 
 //
 // Implementation of logger_manager_t
 //
-logger_manager_t& logger_manager_t::get() {
+logger_manager_t& logger_manager_t::get()
+{
     static logger_manager_t instance;
     return instance;
 }
 
-bool logger_manager_t::init_logging(const string& config_path) {
+bool logger_manager_t::init_logging(const string& config_path)
+{
     unique_lock lock(m_log_init_mutex);
 
-    if (m_is_log_initialized) {
+    if (m_is_log_initialized)
+    {
         return false;
     }
 
-    if (!config_path.empty()) {
+    if (!config_path.empty())
+    {
         // This may throw if the configuration path is incorrect.
         spdlog_setup::from_file(config_path);
     }
 
-    if (!spdlog::thread_pool()) {
+    if (!spdlog::thread_pool())
+    {
         spdlog::init_thread_pool(spdlog_defaults::c_default_queue_size, spdlog_defaults::c_default_thread_count);
     }
 
     m_sys_logger = make_shared<logger_t>(c_sys_logger);
     m_db_logger = make_shared<logger_t>(c_db_logger);
-    m_scheduler_logger = make_shared<logger_t>(c_scheduler_logger);
+    m_rules_logger = make_shared<logger_t>(c_rules_logger);
     m_catalog_logger = make_shared<logger_t>(c_catalog_logger);
+    m_rules_stats_logger = make_shared<logger_t>(c_rules_stats_logger);
 
     m_is_log_initialized = true;
 
     return true;
 }
 
-bool logger_manager_t::stop_logging() {
+bool logger_manager_t::stop_logging()
+{
     unique_lock lock(m_log_init_mutex);
 
-    if (!m_is_log_initialized) {
+    if (!m_is_log_initialized)
+    {
         return false;
     }
 
@@ -66,7 +75,8 @@ bool logger_manager_t::stop_logging() {
     m_catalog_logger = nullptr;
     m_db_logger = nullptr;
     m_sys_logger = nullptr;
-    m_scheduler_logger = nullptr;
+    m_rules_logger = nullptr;
+    m_rules_stats_logger = nullptr;
 
     spdlog::shutdown();
 
@@ -74,13 +84,15 @@ bool logger_manager_t::stop_logging() {
     return true;
 }
 
-void logger_manager_t::create_log_dir_if_not_exists(const char* log_file_path) {
+void logger_manager_t::create_log_dir_if_not_exists(const char* log_file_path)
+{
     fs::path path(log_file_path);
     fs::path parent = path.parent_path();
     fs::create_directories(parent);
 }
 
-shared_ptr<spdlog::logger> spdlog_defaults::create_logger_with_default_settings(const std::string& logger_name) {
+shared_ptr<spdlog::logger> spdlog_defaults::create_logger_with_default_settings(const std::string& logger_name)
+{
 
     auto console_sink = make_shared<spdlog::sinks::stdout_sink_mt>();
 
@@ -97,8 +109,7 @@ shared_ptr<spdlog::logger> spdlog_defaults::create_logger_with_default_settings(
     spdlog::sinks_init_list sink_list{console_sink /* ,file_sink, syslog_sink*/};
 
     // It has to be a shared pointer. This is by design because the logger is shared with the logging thread.
-    auto logger = make_shared<spdlog::async_logger>(logger_name,
-        sink_list.begin(), sink_list.end(), spdlog::thread_pool(), spdlog::async_overflow_policy::block);
+    auto logger = make_shared<spdlog::async_logger>(logger_name, sink_list.begin(), sink_list.end(), spdlog::thread_pool(), spdlog::async_overflow_policy::block);
 
     logger->set_level(spdlog_defaults::c_default_level);
     logger->set_pattern(spdlog_defaults::c_default_pattern);

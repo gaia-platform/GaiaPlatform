@@ -115,6 +115,12 @@ error_code_t stack_allocator_t::allocate(
         return error_code_t::memory_offset_not_aligned;
     }
 
+    // Adjust the requested memory size, to ensure proper alignment.
+    if (memory_size != 0)
+    {
+        memory_size = calculate_allocation_size(memory_size);
+    }
+
     // Each allocation will get its own metadata.
     size_t size_to_allocate = (memory_size == 0) ? 0 : memory_size + sizeof(memory_allocation_metadata_t);
     size_t count_allocations = m_metadata->count_allocations;
@@ -152,6 +158,14 @@ error_code_t stack_allocator_t::allocate(
     {
         allocation_record->memory_offset = next_allocation_offset + sizeof(memory_allocation_metadata_t);
         allocated_memory_offset = allocation_record->memory_offset;
+
+        if (m_execution_flags.enable_extra_validations)
+        {
+            // Verify proper allocation alignment.
+            retail_assert(
+                allocated_memory_offset % c_allocation_alignment == 0,
+                "Stack allocator memory allocation was not made on a 64B boundary!");
+        }
     }
 
     m_metadata->next_allocation_offset += size_to_allocate;

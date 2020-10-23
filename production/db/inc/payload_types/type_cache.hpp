@@ -12,6 +12,7 @@
 #include <unordered_map>
 
 #include "flatbuffers/reflection.h"
+
 #include "gaia_common.hpp"
 
 using namespace gaia::common;
@@ -30,7 +31,6 @@ typedef std::unordered_map<field_position_t, const reflection::Field*> field_map
 class field_cache_t
 {
 public:
-
     field_cache_t() = default;
 
     // Return field information if the field could be found or nullptr otherwise.
@@ -48,12 +48,11 @@ public:
     size_t size();
 
 protected:
-
     // The map used by the field cache.
     field_map_t m_field_map;
 };
 
-typedef std::unordered_map<uint64_t, const field_cache_t*> type_map_t;
+typedef std::unordered_map<gaia_type_t, const field_cache_t*> type_map_t;
 
 class auto_field_cache_t;
 
@@ -64,7 +63,6 @@ class type_cache_t
     friend class auto_field_cache_t;
 
 protected:
-
     // Do not allow copies to be made;
     // disable copy constructor and assignment operator.
     type_cache_t(const type_cache_t&) = delete;
@@ -74,7 +72,6 @@ protected:
     type_cache_t() = default;
 
 public:
-
     // Return a pointer to the singleton instance.
     static type_cache_t* get();
 
@@ -83,23 +80,22 @@ public:
     // To ensure the release of that lock once the field cache is no longer used,
     // it is returned in an auto_field_cache_t wrapper that will release the lock
     // at the time the wrapper gets destroyed.
-    void get_field_cache(gaia_id_t type_id, auto_field_cache_t& auto_field_cache) const;
+    void get_field_cache(gaia_type_t type_id, auto_field_cache_t& auto_field_cache) const;
 
     // This method should be called whenever the information for a type is being changed.
     // It will return true if the entry was found and deleted, and false if it was not found
     // (another thread may have deleted it first or the information may never have been cached at all).
-    bool remove_field_cache(gaia_id_t type_id);
+    bool remove_field_cache(gaia_type_t type_id);
 
     // This method should be used to load new type information in the cache.
     // It expects the cache to contain no data for the type.
     // It returns true if the cache was updated and false if an entry for the type was found to exist already.
-    bool set_field_cache(gaia_id_t type_id, const field_cache_t* field_cache);
+    bool set_field_cache(gaia_type_t type_id, const field_cache_t* field_cache);
 
     // Return the size of the internal map.
     size_t size() const;
 
 protected:
-
     // The singleton instance.
     static type_cache_t s_type_cache;
 
@@ -118,7 +114,6 @@ class auto_field_cache_t
     friend class type_cache_t;
 
 public:
-
     auto_field_cache_t();
     ~auto_field_cache_t();
 
@@ -130,12 +125,11 @@ public:
     const field_cache_t* get();
 
 protected:
-
     const field_cache_t* m_field_cache;
 
     void set(const field_cache_t* field_cache);
 };
 
-}
-}
-}
+} // namespace payload_types
+} // namespace db
+} // namespace gaia

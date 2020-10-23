@@ -93,6 +93,14 @@ XXX The testing registry uses `http` and is not secure.
 
     Click `Apply and Restart` to make the changes take effect.
 
+(Optional, Linux only) Enable multiarch building.
+```bash
+docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+docker buildx create --name gdev_builder
+docker buildx use gdev_builder
+docker buildx inspect --bootstrap
+```
+
 ## Creating build rules with `gdev.cfg` files
 `gdev.cfg` files are simple configuration files. They belong in the same directory as the associated
 code that they describe how to build.

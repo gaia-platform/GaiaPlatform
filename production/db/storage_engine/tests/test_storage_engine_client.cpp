@@ -303,8 +303,8 @@ TEST_F(storage_engine_client_test, iterate_type_cursor)
         std::cerr << std::endl;
         std::cerr << "*** Iterating over nodes in type with predicate:" << std::endl;
         type = 1;
-        for (auto node : gaia_ptr::find_all_range(type,
-                                                  [](gaia_ptr ptr) { return ptr.id() == 1; }))
+        for (auto node : gaia_ptr::find_all_range(
+                 type, [](gaia_ptr ptr) { return ptr.id() == 1; }))
         {
             print_node(node);
             EXPECT_EQ(node.id(), 1);

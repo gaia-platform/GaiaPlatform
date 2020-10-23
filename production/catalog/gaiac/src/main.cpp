@@ -6,9 +6,11 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "flatbuffers/idl.h"
 
+#include "catalog_manager.hpp"
 #include "command.hpp"
 #include "db_test_helpers.hpp"
 #include "gaia_catalog_internal.hpp"
@@ -164,14 +166,16 @@ string usage()
 namespace flatbuffers
 {
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void LogCompilerWarn(const std::string& warn)
 {
     cerr << c_warning_prompt << warn << endl;
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void LogCompilerError(const std::string& err)
 {
-    cerr << c_warning_prompt << err << endl;
+    cerr << c_error_prompt << err << endl;
 }
 
 } // namespace flatbuffers
