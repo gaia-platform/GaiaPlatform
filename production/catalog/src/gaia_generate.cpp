@@ -8,8 +8,8 @@
 
 #include "flatbuffers/code_generators.h"
 
-#include "catalog_manager.hpp"
 #include "gaia_catalog.h"
+#include "gaia_catalog.hpp"
 
 using namespace std;
 
@@ -210,8 +210,12 @@ static string generate_declarations(const gaia_id_t db_id)
     return str;
 }
 
-static string generate_edc_struct(gaia_type_t table_type_id, string table_name, field_vec& field_strings,
-                                  references_vec& references_1, references_vec& references_n)
+static string generate_edc_struct(
+    gaia_type_t table_type_id,
+    string table_name,
+    field_vec& field_strings,
+    references_vec& references_1,
+    references_vec& references_n)
 {
     flatbuffers::CodeWriter code(c_indent_string);
 
@@ -436,8 +440,12 @@ string gaia_generate(const string& dbname)
         {
             gaia_field_t ref_record = gaia_field_t::get(ref_id);
         }
-        code_lines += generate_edc_struct(table_id, table_record.name(), field_strings, references_1[table_id],
-                                          references_n[table_id]);
+        code_lines += generate_edc_struct(
+            table_id,
+            table_record.name(),
+            field_strings,
+            references_1[table_id],
+            references_n[table_id]);
     }
     commit_transaction();
 

@@ -20,15 +20,15 @@ using db_names_t = unordered_map<string, gaia::common::gaia_id_t>;
 using table_names_t = unordered_map<string, gaia::common::gaia_id_t>;
 using type_map_t = unordered_map<gaia_type_t, gaia::common::gaia_id_t>;
 
-class catalog_manager_t
+class ddl_executor_t
 {
 public:
     /**
      * Catalog manager scaffolding to ensure we have one global static instance
      */
-    catalog_manager_t(catalog_manager_t&) = delete;
-    void operator=(catalog_manager_t const&) = delete;
-    static catalog_manager_t& get();
+    ddl_executor_t(ddl_executor_t&) = delete;
+    void operator=(ddl_executor_t const&) = delete;
+    static ddl_executor_t& get();
 
     /**
      * APIs for accessing catalog records
@@ -43,15 +43,12 @@ public:
     void drop_database(const string& name);
 
     gaia::common::gaia_id_t find_db_id(const string& dbname) const;
-    gaia::common::gaia_id_t find_table_id(gaia_type_t);
-
-    vector<gaia::common::gaia_id_t> list_fields(gaia::common::gaia_id_t table_id) const;
-    vector<gaia::common::gaia_id_t> list_references(gaia::common::gaia_id_t table_id) const;
+    gaia::common::gaia_id_t find_table_id(gaia_type_t) const;
 
 private:
     // Only internal static creation is allowed
-    catalog_manager_t();
-    ~catalog_manager_t() = default;
+    ddl_executor_t();
+    ~ddl_executor_t() = default;
 
     // Initialize the catalog manager.
     void init();
@@ -90,6 +87,9 @@ private:
 
     // Create a map that allows table definitions to found via their types.
     void create_type_map();
+
+    // Get the full name for a table composed of db and table names.
+    static inline string get_full_table_name(const string& db, const string& table);
 
     // Maintain some in-memory cache for fast lookup.
     // This is only intended for single process usage.
