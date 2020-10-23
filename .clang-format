@@ -41,7 +41,7 @@ AllowAllParametersOfDeclarationOnNextLine: true
 IncludeBlocks: Regroup
 IncludeCategories:
   # Third-party.
-  - Regex: 'spdlog|flatbuffers|llvm|flatcc|cpptoml|gtest|pybind11|rocksdb'
+  - Regex: 'spdlog|flatbuffers|llvm|flatcc|cpptoml|gtest|pybind11|rocksdb|tabulate'
     Priority: 10
     SortPriority: 10
   - Regex: 'postgres'

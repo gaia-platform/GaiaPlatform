@@ -199,6 +199,30 @@ void const_position()
     const int* const p4 = nullptr; // p4 is a constant pointer to a constant int
 }
 
+void chained_calls()
+{
+    // Unfortunately clang-format handle chained calls in a pretty ugly way.
+
+    // Option number 1
+    auto str = std::string("something")
+                   .append("1")
+                   .append("2")
+                   .append("3")
+                   .append("4")
+                   .append("5")
+                   .append("6");
+
+    // Option number 2
+    auto str2
+        = std::string("something")
+              .append("1")
+              .append("2")
+              .append("3")
+              .append("4")
+              .append("5")
+              .append("6");
+}
+
 class base_t
 {
 };
