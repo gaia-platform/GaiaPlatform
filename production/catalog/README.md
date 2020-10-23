@@ -1,4 +1,4 @@
-# Gaia Catalog
+#Gaia Catalog
 
 This directory contains implementation of Gaia data definition language (DDL)
 and catalog.
@@ -17,10 +17,12 @@ implementation may change more frequently.
 
 ## Components
 
-### `catalog_manager`
-The sub-directory contains the following code.
+### `src`
+This is the source code directory for `gaia_catalog` lib and it contains the
+following files.
 
-- `catalog_manager` is a singleton class that implements all the catalog DDL APIs.
+- `gaia_catalog` implements all the `gaia_catalog` public interfaces.
+- `ddl_executor` is a singleton class that implements all the DDL APIs.
 - `fbs_generator` implements FlatBuffers schema (fbs) generation APIs.
 - `json_generator` implements FlatBuffers default data (json) generation APIs.
 - `gaia_generate` implements Gaia extended data classes (EDC) generation APIs.
@@ -39,7 +41,10 @@ Add the following directories to the include list and link `gaia_parser` to use
 the parser directly.
 
 - `${GAIA_REPO}/production/catalog/parser/inc`
-- `${GAIA_PARSER_GENERATED}`
+- `$
+{
+    GAIA_PARSER_GENERATED
+}`
 
 ### `gaiac`
 This is the catalog command line tool for Gaia data definition language. It is
@@ -51,7 +56,8 @@ By default without specifying any mode, `gaiac` will run under loading mode to
 execute the DDL statements--translating them into catalog records--without
 generating any output.
 
-The interactive mode (`-i`) provides a REPL style command line interface to try
+The interactive mode (`-i`) provides a REPL style command line interface to
+try
 out the DDL. The DDL typed in will be executed, and fbs output if any will be
 printed out to the console output.
 
@@ -106,52 +112,61 @@ Generate catalog direct access APIs. This is the command used for bootstrapping.
 ## Databases
 
 There are two ways to create a database and specifying a table in a database:
-first, using DDL; second, using `gaiac` command. When both are specified, the
-DDL definition will override the `gaiac` settings.
+first, using DDL;
+second, using `gaiac` command.When both are specified, the DDL definition will override the `gaiac` settings.
 
-### Use DDL
+                                                       ## #Use DDL
 
-The DDL to create database is `create database`.
+                                                           The DDL to create database is `create database`.
 
-To specifying a table in a database, using the composite name of the format
+                                                       To specifying a table in a database,
+    using the composite name of the format
 `[database].[table]`.
 
-#### Examples
-A database `addr_book` can be created using the following statement.
+    ####Examples
+        A database `addr_book` can be created using the following statement.
 
-```
-    create database addr_book;
-```
-
-Use the following statement to create an `employee` table in `addr_book`
-database.
-
-```
-create table addr_book.employee (
-    name_first: string active,
-    name_last: string,
-    ssn: string,
-    hire_date: int64,
-    email: string,
-    web: string,
-    manages references addr_book.employee
-);
+``` create database addr_book;
 ```
 
-As a syntactic sugar, the database name can be omitted when specifying a
-reference to a table in the same database.
+    Use the following statement to create an `employee` table in `addr_book` database.
 
+``` create table addr_book.employee(
+        name_first
+        : string active,
+          name_last
+        : string,
+          ssn
+        : string,
+          hire_date
+        : int64,
+          email
+        : string,
+          web
+        : string,
+          manages references addr_book.employee);
 ```
-    create table addr_book.address (
-        street: string,
-        apt_suite: string,
-        city: string,
-        state: string,
-        postal: string,
-        country: string,
-        current: bool,
-        addresses references employee
-    );
+
+    As a syntactic sugar,
+    the database name can be omitted when specifying a
+        reference to a table in the same database.
+
+``` create table addr_book.address(
+            street
+            : string,
+              apt_suite
+            : string,
+              city
+            : string,
+              state
+            : string,
+              postal
+            : string,
+              country
+            : string,
+              current
+            : bool,
+              addresses references employee);
 ```
 
 ### Use `gaiac`
@@ -181,8 +196,8 @@ database name is specified via `-d`, the command will not create the database
 ```
 
 ## Catalog bootstrapping issue
-The gaia catalog manager uses Extended Data Classes to perform operations on the
-catalog itself. Compiling the catalog manager requires header files to define
+The ddl executor uses Extended Data Classes to perform operations on the
+catalog itself. Compiling the `gaia_catalog` requires header files to define
 the EDC classes that are used. This creates a bootstrapping issue where the
 original EDC definitions must be generated first. The "code generation"
 functions require `gaia_catalog.h` and `catalog_generated.h` to exist before
@@ -190,7 +205,7 @@ they can be compiled.
 
 The current solution to this is to run the `gaiac` utility (which calls
 functions in the above mentioned files) with `-d catalog -g` to generate the
-catalog strictly through the catalog manager API. The catalog initialization
+catalog strictly through the ddl executor API. The catalog initialization
 invokes a function called `bootstrap_catalog()`. To build `gaiac` the first
 time, a `gaia_catalog.h` was created by hand and `catalog_generated.h` was
 generated from a handcrafted fbs definition, sufficient for the code generating
@@ -225,6 +240,6 @@ The following are the steps to create a new system table with fixed ID:
 
 - Add the table type and its ID to
 [system_table_types.hpp](../inc/internal/common/system_table_types.hpp).
-- Add the table definition in C++ code to `catalog_manager_t::create_system_tables()`.
+- Add the table definition in C++ code to `ddl_executor_t::create_system_tables()`.
 - Add build instructions to generate the direct access APIs under
   `${GAIA_REPO}/production/schemas/system`.

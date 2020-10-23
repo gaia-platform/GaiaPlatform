@@ -6,8 +6,10 @@
 
 #include "gaia_catalog.hpp"
 
-namespace gaia {
-namespace catalog {
+namespace gaia
+{
+namespace catalog
+{
 
 /**
  * Generate FlatBuffers schema (fbs) from parsing result of a table.

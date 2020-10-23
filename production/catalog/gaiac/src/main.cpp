@@ -2,15 +2,14 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <vector>
 
 #include "flatbuffers/idl.h"
 
-#include "catalog_manager.hpp"
 #include "command.hpp"
 #include "db_test_helpers.hpp"
 #include "gaia_catalog_internal.hpp"

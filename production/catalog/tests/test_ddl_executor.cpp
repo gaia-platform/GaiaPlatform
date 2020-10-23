@@ -81,7 +81,7 @@ gaia_relationship_t find_relationship(
  * Tests
  */
 
-class catalog_manager_test : public db_test_base_t
+class ddl_executor_test : public db_test_base_t
 {
 protected:
     void check_table_name(gaia_id_t id, const string& name)
@@ -93,7 +93,7 @@ protected:
     }
 };
 
-TEST_F(catalog_manager_test, create_database)
+TEST_F(ddl_executor_test, create_database)
 {
     string test_db_name{"create_database_test"};
     gaia_id_t db_id = create_database(test_db_name);
@@ -102,7 +102,7 @@ TEST_F(catalog_manager_test, create_database)
     commit_transaction();
 }
 
-TEST_F(catalog_manager_test, create_table)
+TEST_F(ddl_executor_test, create_table)
 {
     string test_table_name{"create_table_test"};
     ddl::field_def_list_t fields;
@@ -112,7 +112,7 @@ TEST_F(catalog_manager_test, create_table)
     check_table_name(table_id, test_table_name);
 }
 
-TEST_F(catalog_manager_test, create_existing_table)
+TEST_F(ddl_executor_test, create_existing_table)
 {
     string test_table_name{"create_existing_table"};
     ddl::field_def_list_t fields;
@@ -121,7 +121,7 @@ TEST_F(catalog_manager_test, create_existing_table)
     EXPECT_THROW(create_table(test_table_name, fields), table_already_exists);
 }
 
-TEST_F(catalog_manager_test, list_tables)
+TEST_F(ddl_executor_test, list_tables)
 {
     ddl::field_def_list_t fields;
     set<gaia_id_t> table_ids;
@@ -143,7 +143,7 @@ TEST_F(catalog_manager_test, list_tables)
     EXPECT_TRUE(includes(list_result.begin(), list_result.end(), table_ids.begin(), table_ids.end()));
 }
 
-TEST_F(catalog_manager_test, list_fields)
+TEST_F(ddl_executor_test, list_fields)
 {
     string test_table_name{"list_fields_test"};
 
@@ -165,7 +165,7 @@ TEST_F(catalog_manager_test, list_fields)
     gaia::db::commit_transaction();
 }
 
-TEST_F(catalog_manager_test, list_references)
+TEST_F(ddl_executor_test, list_references)
 {
     string dept_table_name{"list_references_test_department"};
     ddl::field_def_list_t dept_table_fields;
@@ -199,7 +199,7 @@ TEST_F(catalog_manager_test, list_references)
     gaia::db::commit_transaction();
 }
 
-TEST_F(catalog_manager_test, create_table_references_not_exist)
+TEST_F(ddl_executor_test, create_table_references_not_exist)
 {
     string test_table_name{"ref_not_exist_test"};
     ddl::field_def_list_t fields;
@@ -207,7 +207,7 @@ TEST_F(catalog_manager_test, create_table_references_not_exist)
     EXPECT_THROW(create_table(test_table_name, fields), table_not_exists);
 }
 
-TEST_F(catalog_manager_test, create_table_self_references)
+TEST_F(ddl_executor_test, create_table_self_references)
 {
     string test_table_name{"self_ref_table_test"};
     ddl::field_def_list_t fields;
@@ -225,7 +225,7 @@ TEST_F(catalog_manager_test, create_table_self_references)
     gaia::db::commit_transaction();
 }
 
-TEST_F(catalog_manager_test, create_table_case_sensitivity)
+TEST_F(ddl_executor_test, create_table_case_sensitivity)
 {
     string lower_case_table_name{"case_test_table"};
     string upper_case_table_name{"CASE_TEST_TABLE"};
@@ -247,7 +247,7 @@ TEST_F(catalog_manager_test, create_table_case_sensitivity)
     check_table_name(test_field_case_table_id, test_field_case_table_name);
 }
 
-TEST_F(catalog_manager_test, create_table_duplicate_field)
+TEST_F(ddl_executor_test, create_table_duplicate_field)
 {
     string test_duplicate_field_table_name{"test_duplicate_field_table"};
     ddl::field_def_list_t fields;
@@ -256,7 +256,7 @@ TEST_F(catalog_manager_test, create_table_duplicate_field)
     EXPECT_THROW(create_table(test_duplicate_field_table_name, fields), duplicate_field);
 }
 
-TEST_F(catalog_manager_test, drop_table)
+TEST_F(ddl_executor_test, drop_table)
 {
     string test_table_name{"drop_table_test"};
     ddl::field_def_list_t fields;
@@ -273,13 +273,13 @@ TEST_F(catalog_manager_test, drop_table)
     }
 }
 
-TEST_F(catalog_manager_test, drop_table_not_exist)
+TEST_F(ddl_executor_test, drop_table_not_exist)
 {
     string test_table_name{"a_not_existed_table"};
     EXPECT_THROW(drop_table(test_table_name), table_not_exists);
 }
 
-TEST_F(catalog_manager_test, drop_table_with_self_reference)
+TEST_F(ddl_executor_test, drop_table_with_self_reference)
 {
     string test_table_name{"self_ref_table"};
     ddl::field_def_list_t fields;
@@ -297,7 +297,7 @@ TEST_F(catalog_manager_test, drop_table_with_self_reference)
     }
 }
 
-TEST_F(catalog_manager_test, drop_table_parent_reference_fail)
+TEST_F(ddl_executor_test, drop_table_parent_reference_fail)
 {
     string parent_table_name{"parent_table"};
     ddl::field_def_list_t parent_fields;
@@ -319,7 +319,7 @@ TEST_F(catalog_manager_test, drop_table_parent_reference_fail)
     txn.commit();
 }
 
-TEST_F(catalog_manager_test, drop_table_child_reference)
+TEST_F(ddl_executor_test, drop_table_child_reference)
 {
     string parent_table_name{"parent_table"};
     ddl::field_def_list_t parent_fields;
@@ -357,7 +357,7 @@ TEST_F(catalog_manager_test, drop_table_child_reference)
     commit_transaction();
 }
 
-TEST_F(catalog_manager_test, drop_database)
+TEST_F(ddl_executor_test, drop_database)
 {
     string test_db_name{"drop_database_test"};
     gaia_id_t db_id = create_database(test_db_name);
@@ -390,7 +390,7 @@ TEST_F(catalog_manager_test, drop_database)
     }
 }
 
-TEST_F(catalog_manager_test, create_relationships)
+TEST_F(ddl_executor_test, create_relationships)
 {
     // (clinic) 1 --> N (doctor) 1 --> N (patient) N <-- 1 (clinic)
 
@@ -488,7 +488,7 @@ TEST_F(catalog_manager_test, create_relationships)
     txn.commit();
 }
 
-TEST_F(catalog_manager_test, create_anonymous_relationships)
+TEST_F(ddl_executor_test, create_anonymous_relationships)
 {
     // (clinic) 1 -[anonymous]-> N (doctor)
 
@@ -514,7 +514,7 @@ TEST_F(catalog_manager_test, create_anonymous_relationships)
     txn.commit();
 }
 
-TEST_F(catalog_manager_test, create_self_relationships)
+TEST_F(ddl_executor_test, create_self_relationships)
 {
     // (doctor) 1 -[anonymous]-> N (doctor)
 
@@ -534,7 +534,7 @@ TEST_F(catalog_manager_test, create_self_relationships)
     txn.commit();
 }
 
-TEST_F(catalog_manager_test, metadata)
+TEST_F(ddl_executor_test, metadata)
 {
     // TODO this test should be in the SE, but since it depends on the Catalog we need to keep it here.
 
