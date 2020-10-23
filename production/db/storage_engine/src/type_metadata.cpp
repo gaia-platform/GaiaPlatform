@@ -135,8 +135,8 @@ type_metadata_t& type_registry_t::create(gaia_type_t table_id)
                 gaia_table_t parent_table = relationship.parent_gaia_table();
 
                 auto rel = make_shared<relationship_t>(relationship_t{
-                    .parent_type = parent_table.gaia_id(),
-                    .child_type = child_table.gaia_id(),
+                    .parent_type = static_cast<gaia_type_t>(parent_table.gaia_id()),
+                    .child_type = static_cast<gaia_type_t>(child_table.gaia_id()),
                     .first_child_offset = relationship.first_child_offset(),
                     .next_child_offset = relationship.next_child_offset(),
                     .parent_offset = relationship.parent_offset(),

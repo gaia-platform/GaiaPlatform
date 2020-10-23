@@ -394,25 +394,28 @@ TEST_F(catalog_manager_test, create_relationships)
 {
     // (clinic) 1 --> N (doctor) 1 --> N (patient) N <-- 1 (clinic)
 
-    gaia_id_t clinic_table_id = table_buildr_t::new_table("clinic")
-                                    .database("hospital")
-                                    .field("name", data_type_t::e_string)
-                                    .field("location", data_type_t::e_string)
-                                    .create();
+    gaia_id_t clinic_table_id
+        = table_buildr_t::new_table("clinic")
+              .database("hospital")
+              .field("name", data_type_t::e_string)
+              .field("location", data_type_t::e_string)
+              .create();
 
-    gaia_id_t doctor_table_id = table_buildr_t::new_table("doctor")
-                                    .database("hospital")
-                                    .field("name", data_type_t::e_string)
-                                    .field("surname", data_type_t::e_string)
-                                    .reference("clinic", "hospital.clinic")
-                                    .create();
+    gaia_id_t doctor_table_id
+        = table_buildr_t::new_table("doctor")
+              .database("hospital")
+              .field("name", data_type_t::e_string)
+              .field("surname", data_type_t::e_string)
+              .reference("clinic", "hospital.clinic")
+              .create();
 
-    gaia_id_t patient_table_id = table_buildr_t::new_table("patient")
-                                     .database("hospital")
-                                     .field("name", data_type_t::e_string)
-                                     .reference("doctor", "hospital.doctor")
-                                     .reference("clinic", "hospital.clinic")
-                                     .create();
+    gaia_id_t patient_table_id
+        = table_buildr_t::new_table("patient")
+              .database("hospital")
+              .field("name", data_type_t::e_string)
+              .reference("doctor", "hospital.doctor")
+              .reference("clinic", "hospital.clinic")
+              .create();
 
     auto_transaction_t txn;
     gaia_table_t clinic_table = gaia_table_t::get(clinic_table_id);
@@ -489,14 +492,16 @@ TEST_F(catalog_manager_test, create_anonymous_relationships)
 {
     // (clinic) 1 -[anonymous]-> N (doctor)
 
-    gaia_id_t clinic_table_id = table_buildr_t::new_table("clinic")
-                                    .database("hospital")
-                                    .create();
+    gaia_id_t clinic_table_id
+        = table_buildr_t::new_table("clinic")
+              .database("hospital")
+              .create();
 
-    gaia_id_t doctor_table_id = table_buildr_t::new_table("doctor")
-                                    .database("hospital")
-                                    .reference("hospital.clinic")
-                                    .create();
+    gaia_id_t doctor_table_id
+        = table_buildr_t::new_table("doctor")
+              .database("hospital")
+              .reference("hospital.clinic")
+              .create();
 
     auto_transaction_t txn;
     gaia_table_t clinic_table = gaia_table_t::get(clinic_table_id);
@@ -513,10 +518,11 @@ TEST_F(catalog_manager_test, create_self_relationships)
 {
     // (doctor) 1 -[anonymous]-> N (doctor)
 
-    gaia_id_t doctor_table_id = table_buildr_t::new_table("doctor")
-                                    .database("hospital")
-                                    .reference("self", "hospital.doctor")
-                                    .create();
+    gaia_id_t doctor_table_id
+        = table_buildr_t::new_table("doctor")
+              .database("hospital")
+              .reference("self", "hospital.doctor")
+              .create();
 
     auto_transaction_t txn;
     gaia_table_t doctor_table = gaia_table_t::get(doctor_table_id);
@@ -534,25 +540,28 @@ TEST_F(catalog_manager_test, metadata)
 
     // (clinic) 1 --> N (doctor) 1 --> N (patient) N <-- 1 (clinic)
 
-    gaia_id_t clinic_table_id = table_buildr_t::new_table("clinic")
-                                    .database("hospital")
-                                    .field("name", data_type_t::e_string)
-                                    .field("location", data_type_t::e_string)
-                                    .create();
+    gaia_id_t clinic_table_id
+        = table_buildr_t::new_table("clinic")
+              .database("hospital")
+              .field("name", data_type_t::e_string)
+              .field("location", data_type_t::e_string)
+              .create();
 
-    gaia_id_t doctor_table_id = table_buildr_t::new_table("doctor")
-                                    .database("hospital")
-                                    .field("name", data_type_t::e_string)
-                                    .field("surname", data_type_t::e_string)
-                                    .reference("clinic", "hospital.clinic")
-                                    .create();
+    gaia_id_t doctor_table_id
+        = table_buildr_t::new_table("doctor")
+              .database("hospital")
+              .field("name", data_type_t::e_string)
+              .field("surname", data_type_t::e_string)
+              .reference("clinic", "hospital.clinic")
+              .create();
 
-    gaia_id_t patient_table_id = table_buildr_t::new_table("patient")
-                                     .database("hospital")
-                                     .field("name", data_type_t::e_string)
-                                     .reference("doctor", "hospital.doctor")
-                                     .reference("clinic", "hospital.clinic")
-                                     .create();
+    gaia_id_t patient_table_id
+        = table_buildr_t::new_table("patient")
+              .database("hospital")
+              .field("name", data_type_t::e_string)
+              .reference("doctor", "hospital.doctor")
+              .reference("clinic", "hospital.clinic")
+              .create();
 
     auto_transaction_t txn;
     vector<gaia_id_t> table_ids = {clinic_table_id, doctor_table_id, patient_table_id};

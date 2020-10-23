@@ -5,10 +5,9 @@
 #include "gaia_dump.hpp"
 
 #include <memory>
-#include <set>
 #include <vector>
 
-#include "gaia_catalog.hpp"
+#include "gaia_db.hpp"
 #include "system_table_types.hpp"
 
 constexpr int c_group_size = 8;
