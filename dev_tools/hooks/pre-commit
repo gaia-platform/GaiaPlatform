@@ -24,8 +24,16 @@ excluded_files=(
 for file in $(git --no-pager diff --cached --name-only | grep -E "^production.*(\.hpp|\.cpp|\.inc)$|^\.clang-format$"); do
     format_file=true
 
+    # Check if the file exists (renamed files they may not exists)
     if [ ! -f "$file" ]; then
-      continue
+        continue
+    fi
+
+    # If the content of the file is the same as master, do not run the formatter.
+    # The file is likely to be the result of a merge.
+    if [[ -z "$(git --no-pager diff origin/master -- $file)" ]]; then
+        echo "Skip formatting file, likely coming from merge: $file"
+        continue
     fi
 
     for exclude_pattern in "${excluded_files[@]}"; do
