@@ -80,7 +80,7 @@ string get_data_type_default_value(data_type_t data_type)
             << "Unhandled data_type_t value " << static_cast<int>(data_type)
             << " in get_data_type_default_value()!";
         // If we use retail_assert(false), the compiler can't figure out
-        // that it will throw an exception and will warn about us about
+        // that it will throw an exception and will warn us about
         // potentially exiting the method without returning a value.
         throw retail_assertion_failure(message.str());
     }
