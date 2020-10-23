@@ -79,7 +79,10 @@ string get_data_type_default_value(data_type_t data_type)
         message
             << "Unhandled data_type_t value " << static_cast<int>(data_type)
             << " in get_data_type_default_value()!";
-        retail_assert(false, message.str());
+        // If we use retail_assert(false), the compiler can't figure out
+        // that it will throw an exception and will warn us about
+        // potentially exiting the method without returning a value.
+        throw retail_assertion_failure(message.str());
     }
 }
 
@@ -122,7 +125,7 @@ string generate_json(gaia_id_t table_id)
     return json_string_stream.str();
 }
 
-string generate_json(const string& db_name, const string& table_name, const ddl::field_def_list_t& fields)
+string generate_json(const ddl::field_def_list_t& fields)
 {
     stringstream json_string_stream;
     json_string_stream << "{";

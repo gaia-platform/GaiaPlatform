@@ -541,7 +541,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
 
     string fbs{generate_fbs(dbname, table_name, fields)};
     string bfbs{generate_bfbs(fbs)};
-    string bin{generate_bin(fbs, generate_json(dbname, table_name, fields))};
+    string bin{generate_bin(fbs, generate_json(fields))};
 
     gaia::db::begin_transaction();
     gaia_type_t table_type = fixed_type == INVALID_GAIA_TYPE ? gaia_boot_t::get().get_next_type() : fixed_type;

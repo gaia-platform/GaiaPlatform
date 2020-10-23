@@ -3,9 +3,6 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.12)
-enable_testing()
-
 # Set the project name.
 project(gaia_dump)
 
@@ -24,7 +21,8 @@ set(GAIA_DUMP_INCLUDES
   ${GAIA_INC}/internal/db
   ${CMAKE_CURRENT_SOURCE_DIR}/inc
 )
-message(STATUS "GAIA_DUMP_INCLUDES=${GAIA_DUMP_INCLUDES}")
+
+message(VERBOSE "GAIA_DUMP_INCLUDES=${GAIA_DUMP_INCLUDES}")
 
 add_executable(gaia_dump src/main.cpp src/gaia_dump.cpp)
 target_include_directories(gaia_dump PRIVATE ${GAIA_DUMP_INCLUDES})
