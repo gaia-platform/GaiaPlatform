@@ -21,8 +21,12 @@ excluded_files=(
 # 1. Are in the index (git add)
 # 2. Are in the production/ directory
 # 3. End with .hpp/.cpp/etc..
-for file in $(git --no-pager diff --cached --name-only | grep -E "^production.*(\.hpp|\.cpp|\.inc|)$|^\.clang-format$"); do
+for file in $(git --no-pager diff --cached --name-only | grep -E "^production.*(\.hpp|\.cpp|\.inc)$|^\.clang-format$"); do
     format_file=true
+
+    if [ ! -f "$file" ]; then
+      continue
+    fi
 
     for exclude_pattern in "${excluded_files[@]}"; do
         if echo "$file" | grep -qE "$exclude_pattern"; then
@@ -41,6 +45,7 @@ for file in $(git --no-pager diff --cached --name-only | grep -E "^production.*(
     fi
 
     if [ "$format_file" = "true" ]; then
+        echo "Formatting file: $file"
         clang-format -i "$file"
         git add "$file"
     fi
