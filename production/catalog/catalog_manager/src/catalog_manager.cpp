@@ -150,6 +150,39 @@ void catalog_manager_t::bootstrap_catalog()
             static_cast<gaia_id_t>(catalog_table_type_t::gaia_field));
     }
     {
+        // create table gaia_relationship (
+        //     parent references gaia_table,
+        //     child references gaia_field,
+        //     cardinality uint8,
+        //     parent_required bool,
+        //     deprecated bool,
+        //     first_child_offset uint8,
+        //     next_child_offset uint8,
+        //     parent_offset uint8,
+        // );
+
+        field_def_list_t fields;
+        // TODO since we have pointers on both sides of the relationship and we generate the relationship field in the parent in EDC, I believe we should
+        //  explicitly track the relationship on the parent side too. This will also come in handy to customize the generated EDC:
+        //  - table_t::gaia_field_list() which is arguably ugly could be table_t::fields()
+        //  - database_t::gaia_table_list() which is arguably ugly could be database_t::fields()
+        //  I will remove this comment and create a JIRA before pushing the code.
+        fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<field_definition_t>("parent", data_type_t::e_references, 1, "catalog.gaia_table"));
+        fields.emplace_back(make_unique<field_definition_t>("child", data_type_t::e_references, 1, "catalog.gaia_field"));
+        fields.emplace_back(make_unique<field_definition_t>("cardinality", data_type_t::e_uint8, 1));
+        fields.emplace_back(make_unique<field_definition_t>("parent_required", data_type_t::e_bool, 1));
+        fields.emplace_back(make_unique<field_definition_t>("deprecated", data_type_t::e_bool, 1));
+        // See gaia::db::relationship_t for more details about relationships.
+        // (parent)-[first_child_offset]->(child)
+        fields.emplace_back(make_unique<field_definition_t>("first_child_offset", data_type_t::e_uint8, 1));
+        // (child)-[next_child_offset]->(child)
+        fields.emplace_back(make_unique<field_definition_t>("next_child_offset", data_type_t::e_uint8, 1));
+        // (child)-[parent_offset]->(parent)
+        fields.emplace_back(make_unique<field_definition_t>("parent_offset", data_type_t::e_uint8, 1));
+        create_table_impl("catalog", "gaia_relationship", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_relationship));
+    }
+    {
         // create table gaia_ruleset (
         //     name string,
         //     active_on_startup bool,
