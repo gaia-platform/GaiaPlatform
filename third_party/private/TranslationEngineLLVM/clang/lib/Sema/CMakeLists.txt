@@ -85,5 +85,12 @@ add_clang_library(clangSema
   flatbuffers
   explain
   )
-
+install (TARGETS
+  gaia_se_client
+  gaia_payload_types
+  gaia_common
+  gaia_catalog
+  gaia_direct
+  flatbuffers
+  explain)
 target_include_directories(clangSema PRIVATE ${GAIA_CATALOG_INCLUDES})
