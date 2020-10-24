@@ -534,7 +534,6 @@ TEST_F(recovery_test, reference_update_test_new)
     {
         auto_transaction_t txn;
 
-        // TODO the parent does not survive recovery. Poor thingy.
         // Get the parent.
         gaia_ptr parent = gaia_ptr::open(parent_id);
         // Make sure address cannot be deleted upon recovery.

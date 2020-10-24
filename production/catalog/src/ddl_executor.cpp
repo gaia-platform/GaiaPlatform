@@ -613,11 +613,8 @@ gaia_id_t ddl_executor_t::create_table_impl(
             uint8_t parent_available_offset = find_available_offset(parent_table);
             uint8_t child_max_offset = find_available_offset(table);
 
-            stringstream relationship_name;
-            relationship_name << parent_table.name() << "->" << table.name() << "." << child_field.name();
-
             gaia_id_t relationship_id = gaia_relationship_t::insert_row(
-                relationship_name.str().c_str(), // name
+                child_field.name(), // name
                 static_cast<uint8_t>(2), // cardinality
                 false, // parent_required
                 false, // deprecated
