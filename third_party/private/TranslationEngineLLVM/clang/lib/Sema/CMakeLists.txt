@@ -20,15 +20,6 @@ set(GAIA_CATALOG_INCLUDES
   ${GAIA_SOURCE}/production/inc/public/catalog
   ${GAIA_SOURCE}/third_party/production/flatbuffers/include
 )
-export (TARGETS
-  gaia_se_client
-  gaia_payload_types
-  gaia_common
-  gaia_catalog
-  gaia_direct
-  flatbuffers
-  FILE FILE ${clang_cmake_builddir}/ClangGaiaTargets.cmake
- )
 
 add_clang_library(clangSema
   AnalysisBasedWarnings.cpp
@@ -94,5 +85,10 @@ add_clang_library(clangSema
   flatbuffers
   explain
   )
-
+target_link_libraries(clangSema PRIVATE gaia_se_client)
+target_link_libraries(clangSema PRIVATE gaia_payload_types)
+target_link_libraries(clangSema PRIVATE gaia_common)
+target_link_libraries(clangSema PRIVATE gaia_catalog)
+target_link_libraries(clangSema PRIVATE gaia_direct)
+target_link_libraries(clangSema PRIVATE flatbuffers)
 target_include_directories(clangSema PRIVATE ${GAIA_CATALOG_INCLUDES})
