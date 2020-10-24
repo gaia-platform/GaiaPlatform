@@ -8,3 +8,6 @@ project(test_schemas)
 
 add_subdirectory(addr_book)
 add_subdirectory(airport)
+if (BUILD_GAIA_RELEASE)
+add_subdirectory(incubator)
+endif()

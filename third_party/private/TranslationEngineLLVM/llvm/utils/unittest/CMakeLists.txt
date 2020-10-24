@@ -50,7 +50,7 @@ if (LLVM_PTHREAD_LIBRARY_PATH)
   list(APPEND LIBS pthread)
 endif()
 
-add_llvm_library(gtest
+add_llvm_library(llvm_gtest
   googletest/src/gtest-all.cc
   googlemock/src/gmock-all.cc
 

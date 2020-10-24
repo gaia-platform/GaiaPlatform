@@ -71,26 +71,6 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
 endfunction(add_gtest)
 
 #
-# Helper to invoke the rule_subscriber; only used by builds under GaiaPlatform/demos
-#
-function(gaia_gen_rule_subscriptions INPUT_FILE GEN_OUTPUT INCLUDES)
-  foreach(include ${INCLUDES})
-    set(INCLUDE_ARGS "${INCLUDE_ARGS}" "-I${include}")
-  endforeach(include)
-
-  add_custom_command(
-    OUTPUT "${GEN_OUTPUT}"
-    COMMAND "${GAIA_DEMO_BUILD}/tools/rule_subscriber/rule_subscriber"
-      ${INPUT_FILE}
-      -output=${GEN_OUTPUT}
-      -- ${INCLUDE_ARGS}
-      DEPENDS ${GAIA_DEMO_BUILD}/tools/rule_subscriber/rule_subscriber
-      DEPENDS ${INPUT_FILE}
-      COMMENT "Run rule_subscriber: ${GEN_OUTPUT}"
-  )
-endfunction(gaia_gen_rule_subscriptions)
-
-#
 # Gaia specific flatc helpers for generating headers
 #
 function(gaia_register_generated_output file_name)
