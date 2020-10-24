@@ -74,7 +74,7 @@ TEST_F(json_generation_test, generate_json_from_table_definition)
     string test_table_name{"test_generate_json_from_table_definition"};
 
     string fbs = generate_fbs("", test_table_name, test_table_fields);
-    string json = generate_json("", test_table_name, test_table_fields);
+    string json = generate_json(test_table_fields);
 
     validate_through_flatbuffers_parser(fbs, json);
 }
@@ -84,7 +84,7 @@ TEST_F(json_generation_test, generate_bin)
     string test_table_name{"test_generate_bin"};
 
     string fbs = generate_fbs("", test_table_name, test_table_fields);
-    string json = generate_json("", test_table_name, test_table_fields);
+    string json = generate_json(test_table_fields);
     string bin = generate_bin(fbs, json);
 
     // The generated bin is base64 encoded.

@@ -17,10 +17,12 @@ implementation may change more frequently.
 
 ## Components
 
-### `catalog_manager`
-The sub-directory contains the following code.
+### `src`
+This is the source code directory for `gaia_catalog` lib and it contains the
+following files.
 
-- `catalog_manager` is a singleton class that implements all the catalog DDL APIs.
+- `gaia_catalog` implements all the `gaia_catalog` public interfaces.
+- `ddl_executor` is a singleton class that implements all the DDL APIs.
 - `fbs_generator` implements FlatBuffers schema (fbs) generation APIs.
 - `json_generator` implements FlatBuffers default data (json) generation APIs.
 - `gaia_generate` implements Gaia extended data classes (EDC) generation APIs.
@@ -181,8 +183,8 @@ database name is specified via `-d`, the command will not create the database
 ```
 
 ## Catalog bootstrapping issue
-The gaia catalog manager uses Extended Data Classes to perform operations on the
-catalog itself. Compiling the catalog manager requires header files to define
+The ddl executor uses Extended Data Classes to perform operations on the
+catalog itself. Compiling the `gaia_catalog` requires header files to define
 the EDC classes that are used. This creates a bootstrapping issue where the
 original EDC definitions must be generated first. The "code generation"
 functions require `gaia_catalog.h` and `catalog_generated.h` to exist before
@@ -190,7 +192,7 @@ they can be compiled.
 
 The current solution to this is to run the `gaiac` utility (which calls
 functions in the above mentioned files) with `-d catalog -g` to generate the
-catalog strictly through the catalog manager API. The catalog initialization
+catalog strictly through the ddl executor API. The catalog initialization
 invokes a function called `bootstrap_catalog()`. To build `gaiac` the first
 time, a `gaia_catalog.h` was created by hand and `catalog_generated.h` was
 generated from a handcrafted fbs definition, sufficient for the code generating
@@ -225,6 +227,6 @@ The following are the steps to create a new system table with fixed ID:
 
 - Add the table type and its ID to
 [system_table_types.hpp](../inc/internal/common/system_table_types.hpp).
-- Add the table definition in C++ code to `catalog_manager_t::create_system_tables()`.
+- Add the table definition in C++ code to `ddl_executor_t::create_system_tables()`.
 - Add build instructions to generate the direct access APIs under
   `${GAIA_REPO}/production/schemas/system`.

@@ -9,8 +9,8 @@
 #include <vector>
 
 #include "auto_transaction.hpp"
-#include "catalog_manager.hpp"
 #include "data_holder.hpp"
+#include "ddl_executor.hpp"
 #include "field_access.hpp"
 #include "gaia_catalog.h"
 #include "gaia_catalog.hpp"
@@ -31,7 +31,7 @@ void compute_payload_diff(gaia_type_t type_id, const uint8_t* payload1, const ui
 {
     // Make sure caller passes valid pointer to changed_fields.
     assert(changed_fields);
-    auto table = gaia_table_t::get(catalog_manager_t::get().find_table_id(type_id));
+    auto table = gaia_table_t::get(ddl_executor_t::get().find_table_id(type_id));
     string schema = get_bfbs(table.gaia_id());
     for (const auto& field : table.gaia_field_list())
     {

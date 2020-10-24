@@ -24,7 +24,7 @@ extern "C" Datum gaia_fdw_handler(PG_FUNCTION_ARGS)
 {
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    FdwRoutine* routine = makeNode(FdwRoutine);
+    FdwRoutine* routine = makeNode(FdwRoutine); // NOLINT (macro expansion)
 
     // Functions for scanning foreign tables.
     routine->GetForeignRelSize = gaia_get_foreign_rel_size;
@@ -75,7 +75,7 @@ extern "C" Datum gaia_fdw_handler(PG_FUNCTION_ARGS)
     routine->GetForeignRowMarkType = gaia_get_foreign_row_mark_type;
     routine->RefetchForeignRow = gaia_refetch_foreign_row;
 
-    PG_RETURN_POINTER(routine);
+    PG_RETURN_POINTER(routine); // NOLINT (macro expansion)
 }
 
 // The validator function is responsible for validating options given in CREATE
@@ -492,7 +492,7 @@ extern "C" List* gaia_plan_foreign_modify(
     // We don't return any private data from this method, just check that
     // gaia_id is not an INSERT or UPDATE target.
     CmdType operation = plan->operation;
-    RangeTblEntry* rte = planner_rt_fetch(result_relation, root);
+    RangeTblEntry* rte = planner_rt_fetch(result_relation, root); // NOLINT (macro expansion)
     Relation rel = table_open(rte->relid, NoLock);
     TupleDesc tuple_desc = RelationGetDescr(rel);
     Bitmapset* modified_cols = nullptr;

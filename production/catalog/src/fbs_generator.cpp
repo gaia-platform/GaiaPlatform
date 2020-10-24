@@ -4,11 +4,11 @@
 /////////////////////////////////////////////
 #include "fbs_generator.hpp"
 
-#include <algorithm>
-#include <string>
-
 #include "flatbuffers/idl.h"
 #include "flatbuffers/util.h"
+
+#include <algorithm>
+#include <string>
 
 #include "gaia_catalog.h"
 #include "retail_assert.hpp"

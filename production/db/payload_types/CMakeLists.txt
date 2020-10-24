@@ -16,7 +16,7 @@ set(GAIA_PAYLOAD_TYPES_INCLUDES
   "${GAIA_INC}/internal/catalog"
   "${GAIA_DB_INC}/payload_types"
   "${GAIA_REPO}/production/db/storage_engine/inc"
-  "${GAIA_REPO}/production/catalog/catalog_manager/inc"
+  "${GAIA_REPO}/production/catalog/inc"
   "${FLATBUFFERS_INC}")
 
 message(VERBOSE "GAIA_PAYLOAD_TYPES_INCLUDES=${GAIA_PAYLOAD_TYPES_INCLUDES}")

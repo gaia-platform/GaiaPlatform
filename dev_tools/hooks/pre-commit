@@ -21,8 +21,20 @@ excluded_files=(
 # 1. Are in the index (git add)
 # 2. Are in the production/ directory
 # 3. End with .hpp/.cpp/etc..
-for file in $(git --no-pager diff --cached --name-only | grep -E "^production.*(\.hpp|\.cpp|\.inc)$"); do
+for file in $(git --no-pager diff --cached --name-only | grep -E "^production.*(\.hpp|\.cpp|\.inc)$|^\.clang-format$"); do
     format_file=true
+
+    # Check if the file exists (renamed files they may not exists)
+    if [ ! -f "$file" ]; then
+        continue
+    fi
+
+    # If the content of the file is the same as master, do not run the formatter.
+    # The file is likely to be the result of a merge.
+    if [[ -z "$(git --no-pager diff origin/master -- $file)" ]]; then
+        echo "Skip formatting file, likely coming from merge: $file"
+        continue
+    fi
 
     for exclude_pattern in "${excluded_files[@]}"; do
         if echo "$file" | grep -qE "$exclude_pattern"; then
@@ -31,7 +43,17 @@ for file in $(git --no-pager diff --cached --name-only | grep -E "^production.*(
         fi
     done
 
+    # If .clang-format has been changed, formats clang_format.cpp/hpp to show the outcome.
+    if echo "$file" | grep -qE "(\.clang-format)$"; then
+        clang-format -i "production/tools/gaia_style/tests/clang_format.cpp"
+        git add "production/tools/gaia_style/tests/clang_format.cpp"
+        clang-format -i "production/tools/gaia_style/tests/clang_format.hpp"
+        git add "production/tools/gaia_style/tests/clang_format.hpp"
+        format_file=false
+    fi
+
     if [ "$format_file" = "true" ]; then
+        echo "Formatting file: $file"
         clang-format -i "$file"
         git add "$file"
     fi
