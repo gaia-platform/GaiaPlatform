@@ -41,8 +41,6 @@ target_link_libraries(gaia_parser PRIVATE gaia_catalog)
 set_target_properties(gaia_parser PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaia_parser PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 
-
-
 set(DDL_PARSER_TEST_SOURCES
   tests/test_ddl_parser.cpp
   ${FLEX_lexer_OUTPUTS}

@@ -15,4 +15,3 @@ CheckOptions:
   - key:             readability-identifier-naming.VariableCase
     value:           CamelCase
 
-
