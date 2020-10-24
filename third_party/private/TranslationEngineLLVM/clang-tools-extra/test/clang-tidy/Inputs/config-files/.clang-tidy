@@ -1,2 +1,1 @@
-Checks: 'from-parent'
-HeaderFilterRegex: 'parent'
+Checks: '-*,llvm-twine-local
