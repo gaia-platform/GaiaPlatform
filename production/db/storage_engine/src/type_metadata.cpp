@@ -9,6 +9,7 @@
 
 #include "gaia_catalog.h"
 #include "gaia_catalog.hpp"
+#include "system_table_types.hpp"
 
 using gaia::catalog::data_type_t;
 using gaia::catalog::gaia_table_t;
@@ -83,6 +84,22 @@ void type_metadata_t::set_initialized()
  * type_registry_t
  */
 
+void type_registry_t::init()
+{
+    vector<catalog_table_type_t> system_types = {
+        catalog_table_type_t::gaia_database,
+        catalog_table_type_t::gaia_table,
+        catalog_table_type_t::gaia_field,
+        catalog_table_type_t::gaia_relationship,
+        catalog_table_type_t::gaia_rule,
+        catalog_table_type_t::gaia_ruleset};
+
+    for (auto type : system_types)
+    {
+        get_or_create_no_lock(static_cast<gaia_type_t>(type));
+    }
+}
+
 bool type_registry_t::exists(gaia_type_t type)
 {
     shared_lock lock(m_registry_lock);
@@ -106,6 +123,7 @@ type_metadata_t& type_registry_t::get(gaia_type_t type)
 void type_registry_t::clear()
 {
     m_metadata_registry.clear();
+    init();
 }
 
 type_metadata_t& type_registry_t::test_get_or_create(gaia_type_t type)
@@ -118,6 +136,11 @@ type_metadata_t& type_registry_t::test_get_or_create(gaia_type_t type)
 type_metadata_t& type_registry_t::create(gaia_type_t table_id)
 {
     gaia_table_t child_table = gaia_table_t::get(table_id);
+
+    if (!child_table)
+    {
+        throw type_not_found(table_id);
+    }
 
     auto& metadata = get_or_create_no_lock(table_id);
 

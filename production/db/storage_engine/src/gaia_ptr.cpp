@@ -324,7 +324,7 @@ void gaia_ptr::add_parent_reference(gaia_id_t parent_id, reference_offset_t pare
 
     if (!parent_ptr)
     {
-        throw invalid_node_id(parent_ptr);
+        throw invalid_node_id(parent_id);
     }
 
     parent_ptr.add_child_reference(id(), child_relationship->first_child_offset);
@@ -420,7 +420,7 @@ void gaia_ptr::remove_parent_reference(gaia_id_t parent_id, reference_offset_t p
 
     if (!parent_ptr)
     {
-        throw invalid_node_id(parent_ptr);
+        throw invalid_node_id(parent_id);
     }
 
     // REMOVE REFERENCE

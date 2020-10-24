@@ -103,6 +103,17 @@ public:
     }
 };
 
+class type_not_found : public gaia_exception
+{
+public:
+    explicit type_not_found(const gaia_type_t type)
+    {
+        stringstream message;
+        message << "Impossible to create metadata for type \"" << type << "\", the type does not exist.";
+        m_message = message.str();
+    }
+};
+
 /**
  * Creates and maintain the instances of type_metadata_t and manages their lifecycle.
  * Instances of type_metadata_t are lazily created the first time the corresponding
@@ -146,6 +157,7 @@ public:
 
     /**
      * FOR TESTING. Allow cleaning the registry between tests.
+     * Calls init().
      */
     void clear();
 
@@ -155,12 +167,20 @@ public:
     type_metadata_t& test_get_or_create(gaia_type_t type_id);
 
 private:
-    type_registry_t() = default;
+    type_registry_t()
+    {
+        init();
+    }
 
     unordered_map<gaia_type_t, unique_ptr<type_metadata_t>> m_metadata_registry;
 
     //ensures exclusive access to the registry
     shared_mutex m_registry_lock;
+
+    /**
+     * Initialize the registry by adding all the system tables (table, field, etc..)
+     */
+    void init();
 
     /**
      * Creates an instance of type_metadata_t fetching the information from the Catalog.

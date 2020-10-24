@@ -36,7 +36,7 @@ public:
         return to_ptr() != nullptr;
     }
 
-    operator bool() const
+    explicit operator bool() const
     {
         return to_ptr() != nullptr;
     }
