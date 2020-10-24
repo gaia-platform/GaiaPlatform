@@ -225,14 +225,8 @@ add_subdirectory(system)
 add_subdirectory(catalog)
 add_subdirectory(tools)
 if (BUILD_GAIA_RELEASE)
-set_property (TARGET gaia_parser PROPERTY POSITION_INDEPENDENT_CODE ON)
-set_property (TARGET rocks_wrapper PROPERTY POSITION_INDEPENDENT_CODE ON)
-endif()
-if (BUILD_GAIA_RELEASE)
 add_subdirectory(sdk)
 endif()
-
-
 
 # Customize test commands.
 file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
