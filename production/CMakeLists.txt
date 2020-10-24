@@ -223,6 +223,9 @@ add_subdirectory(sql)
 add_subdirectory(system)
 add_subdirectory(catalog)
 add_subdirectory(tools)
+if (BUILD_GAIA_RELEASE)
+add_subdirectory(sdk)
+endif()
 
 
 # Customize test commands.
@@ -248,3 +251,4 @@ file(
 # However, if no checks are specified, clang-tidy will assume we
 # did not configure it correctly. Just add one check that will never be found.
 file(WRITE ${GAIA_PROD_BUILD}/.clang-tidy "Checks: '-*,llvm-twine-local'\n")
+
