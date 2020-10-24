@@ -1,1 +1,1 @@
-Checks: '-*,llvm-twine-local
+Checks: '-*,modernize-use-nullptr'
