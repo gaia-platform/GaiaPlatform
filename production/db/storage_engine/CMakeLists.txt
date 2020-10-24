@@ -102,7 +102,7 @@ target_include_directories(rocks_wrapper SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(rocks_wrapper SYSTEM PRIVATE "${GEN_DIR}")
 # The client is required to create gaia objects on recovery.
 target_link_libraries(rocks_wrapper rocksdb)
-set_target_properties(rocks_wrapper PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers -fPIC")
+set_target_properties(rocks_wrapper PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 
 set(GAIA_SE_SERVER_SOURCES
   src/storage_engine.cpp

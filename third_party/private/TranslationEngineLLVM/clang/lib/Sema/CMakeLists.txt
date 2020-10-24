@@ -77,8 +77,18 @@ add_clang_library(clangSema
   clangBasic
   clangEdit
   clangLex
-  gaia_system
+  gaia_se_client
+  gaia_payload_types
+  gaia_common
+  gaia_catalog
+  gaia_direct
+  flatbuffers
   explain
   )
-add_library (gaia_system INTERFACE IMPORTED)
+add_library (gaia_se_client INTERFACE IMPORTED)
+add_library (gaia_payload_types INTERFACE IMPORTED)
+add_library (gaia_common INTERFACE IMPORTED)
+add_library (gaia_catalog INTERFACE IMPORTED)
+add_library (gaia_direct INTERFACE IMPORTED)
+add_library (flatbuffers INTERFACE IMPORTED)
 target_include_directories(clangSema PRIVATE ${GAIA_CATALOG_INCLUDES})
