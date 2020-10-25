@@ -77,31 +77,16 @@ add_clang_library(clangSema
   clangBasic
   clangEdit
   clangLex
+
+  )
+
+target_link_libraries(clangSema PRIVATE
   gaia_se_client_llvm
   gaia_payload_types_llvm
   gaia_common_llvm
   gaia_catalog_llvm
   gaia_direct_llvm
   flatbuffers_llvm
-  explain
-  )
-
-add_library(flatbuffers_llvm STATIC IMPORTED GLOBAL)
-target_link_libraries(flatbuffers_llvm INTERFACE flatbuffers)
-
-add_library(gaia_payload_types_llvm STATIC IMPORTED GLOBAL)
-target_link_libraries(gaia_payload_types_llvm INTERFACE gaia_payload_types)
-
-add_library(gaia_catalog_llvm STATIC IMPORTED GLOBAL)
-target_link_libraries(gaia_catalog_llvm INTERFACE gaia_catalog)
-
-add_library(gaia_common_llvm STATIC IMPORTED GLOBAL)
-target_link_libraries(gaia_common_llvm INTERFACE gaia_common)
-
-add_library(gaia_se_client_llvm STATIC IMPORTED GLOBAL)
-target_link_libraries(gaia_se_client_llvm INTERFACE gaia_se_client)
-
-add_library(gaia_direct_llvm STATIC IMPORTED GLOBAL)
-target_link_libraries(gaia_direct_llvm INTERFACE gaia_direct)
+  explain)
 
 target_include_directories(clangSema PRIVATE ${GAIA_CATALOG_INCLUDES})
