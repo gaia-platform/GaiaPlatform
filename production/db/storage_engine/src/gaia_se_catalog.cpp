@@ -9,6 +9,7 @@
 #include "flatbuffers/reflection.h"
 #include "flatbuffers_helpers.hpp"
 
+#include "db_types.hpp"
 #include "gaia_common.hpp"
 #include "gaia_db.hpp"
 #include "gaia_field_generated.h"
@@ -16,6 +17,7 @@
 #include "gaia_se_object.hpp"
 #include "gaia_table_generated.h"
 #include "generator_iterator.hpp"
+#include "retail_assert.hpp"
 #include "storage_engine_client.hpp"
 #include "system_table_types.hpp"
 
@@ -24,24 +26,49 @@ namespace gaia
 namespace db
 {
 
-gaia_field_t::gaia_field_t(const uint8_t* payload)
+[[nodiscard]] gaia_id_t gaia_field_view_t::id() const
 {
-    m_payload = payload;
+    return m_gaia_se_object->id;
 }
 
-[[nodiscard]] const char* gaia_field_t::name() const
+[[nodiscard]] gaia_type_t gaia_field_view_t::type() const
 {
-    return catalog::Getgaia_field(m_payload)->name()->c_str();
+    return m_gaia_se_object->type;
 }
 
-[[nodiscard]] data_type_t gaia_field_t::type() const
+[[nodiscard]] const char* gaia_field_view_t::name() const
 {
-    return static_cast<data_type_t>(catalog::Getgaia_field(m_payload)->type());
+    return catalog::Getgaia_field(m_gaia_se_object->data())->name()->c_str();
 }
 
-[[nodiscard]] field_position_t gaia_field_t::position() const
+[[nodiscard]] data_type_t gaia_field_view_t::data_type() const
 {
-    return catalog::Getgaia_field(m_payload)->position();
+    return static_cast<data_type_t>(catalog::Getgaia_field(m_gaia_se_object->data())->type());
+}
+
+[[nodiscard]] field_position_t gaia_field_view_t::position() const
+{
+    return catalog::Getgaia_field(m_gaia_se_object->data())->position();
+}
+
+[[nodiscard]] gaia_id_t gaia_table_view_t::id() const
+{
+    return m_gaia_se_object->id;
+}
+
+[[nodiscard]] gaia_type_t gaia_table_view_t::type() const
+{
+    return m_gaia_se_object->type;
+}
+
+[[nodiscard]] const char* gaia_table_view_t::name() const
+{
+    return catalog::Getgaia_table(m_gaia_se_object->data())->name()->c_str();
+}
+
+[[nodiscard]] gaia_type_t gaia_table_view_t::table_type() const
+{
+    return catalog::Getgaia_table(m_gaia_se_object->data())->type();
 }
 
 const gaia_se_object_t* gaia_catalog_t::get_se_object_ptr(gaia_id_t id)
@@ -58,22 +85,38 @@ vector<uint8_t> gaia_catalog_t::get_bfbs(gaia_type_t table_type)
         catalog::Getgaia_table(get_se_object_ptr((table_type))->data())->binary_schema()->c_str());
 }
 
+gaia_table_list_t gaia_catalog_t::list_tables()
+{
+    client::verify_txn_active();
+    auto gaia_table_generator = [locator = INVALID_GAIA_LOCATOR]() mutable -> std::optional<gaia_table_view_t> {
+        while (++locator && locator < client::s_data->locator_count + 1)
+        {
+            gaia_se_object_t* ptr = se_base::locator_to_ptr(client::s_locators, client::s_data, locator);
+            if (ptr && ptr->type == static_cast<gaia_type_t>(catalog_table_type_t::gaia_table))
+            {
+                return gaia_table_view_t(ptr);
+            }
+        }
+        return std::nullopt;
+    };
+    return gaia::common::iterators::range_from_generator(gaia_table_generator);
+}
+
 gaia_field_list_t gaia_catalog_t::list_fields(gaia_type_t table_type)
 {
     client::verify_txn_active();
     auto obj_ptr = get_se_object_ptr(table_type);
     const gaia_id_t* references = obj_ptr->references();
     gaia_id_t first_field_id = references[c_gaia_table_first_gaia_field_slot];
-
-    auto gaia_field_generator = [field_id = first_field_id]() mutable -> std::optional<gaia_field_t> {
+    auto gaia_field_generator = [field_id = first_field_id]() mutable -> std::optional<gaia_field_view_t> {
         if (field_id == INVALID_GAIA_ID)
         {
             return std::nullopt;
         }
         auto field_obj_ptr = get_se_object_ptr(field_id);
-        gaia_field_t field{reinterpret_cast<const uint8_t*>(field_obj_ptr->data())};
+        gaia_field_view_t field_view{field_obj_ptr};
         field_id = field_obj_ptr->references()[c_gaia_field_next_gaia_field_slot];
-        return field;
+        return field_view;
     };
     return gaia::common::iterators::range_from_generator(gaia_field_generator);
 }

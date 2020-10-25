@@ -42,7 +42,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
         create_table_impl(
             "catalog", "gaia_database", fields, true, false,
-            static_cast<gaia_id_t>(catalog_table_type_t::gaia_database));
+            static_cast<gaia_type_t>(catalog_table_type_t::gaia_database));
     }
     {
         // create table gaia_table (
@@ -64,7 +64,7 @@ void ddl_executor_t::bootstrap_catalog()
                 c_anonymous_reference_field_name, data_type_t::e_references, 1, "catalog.gaia_database"));
         create_table_impl(
             "catalog", "gaia_table", fields, true, false,
-            static_cast<gaia_id_t>(catalog_table_type_t::gaia_table));
+            static_cast<gaia_type_t>(catalog_table_type_t::gaia_table));
     }
     {
         // create table gaia_field (
@@ -91,7 +91,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<field_definition_t>("ref", data_type_t::e_references, 1, "catalog.gaia_table"));
         create_table_impl(
             "catalog", "gaia_field", fields, true, false,
-            static_cast<gaia_id_t>(catalog_table_type_t::gaia_field));
+            static_cast<gaia_type_t>(catalog_table_type_t::gaia_field));
     }
     {
         // create table gaia_ruleset (
@@ -109,7 +109,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<field_definition_t>("serial_stream", data_type_t::e_string, 1));
         create_table_impl(
             "catalog", "gaia_ruleset", fields, true, false,
-            static_cast<gaia_id_t>(catalog_table_type_t::gaia_ruleset));
+            static_cast<gaia_type_t>(catalog_table_type_t::gaia_ruleset));
     }
     {
         // create table gaia_rule (
@@ -124,7 +124,7 @@ void ddl_executor_t::bootstrap_catalog()
                 c_anonymous_reference_field_name, data_type_t::e_references, 1, "catalog.gaia_ruleset"));
         create_table_impl(
             "catalog", "gaia_rule", fields, true, false,
-            static_cast<gaia_id_t>(catalog_table_type_t::gaia_rule));
+            static_cast<gaia_type_t>(catalog_table_type_t::gaia_rule));
     }
 }
 
@@ -149,18 +149,8 @@ void ddl_executor_t::create_system_tables()
         fields.emplace_back(make_unique<field_definition_t>("rules_invoked", data_type_t::e_bool, 1));
         create_table_impl(
             "event_log", "event_log", fields, true, false,
-            static_cast<gaia_id_t>(system_table_type_t::event_log));
+            static_cast<gaia_type_t>(system_table_type_t::event_log));
     }
-}
-
-void ddl_executor_t::create_type_map()
-{
-    gaia::db::begin_transaction();
-    for (auto table = gaia_table_t::get_first(); table; table = table.get_next())
-    {
-        m_type_map[table.type()] = table.gaia_id();
-    }
-    gaia::db::commit_transaction();
 }
 
 void ddl_executor_t::init()
@@ -168,7 +158,6 @@ void ddl_executor_t::init()
     reload_cache();
     bootstrap_catalog();
     create_system_tables();
-    create_type_map();
     // Create the special global database.
     // Tables created without specifying a database name will belong to the global database.
     m_empty_db_id = create_database(c_empty_db_name, false);
@@ -363,10 +352,9 @@ gaia_id_t ddl_executor_t::create_table_impl(
     string bin{generate_bin(fbs, generate_json(fields))};
 
     gaia::db::begin_transaction();
-    gaia_type_t table_type = fixed_type == INVALID_GAIA_TYPE ? gaia_boot_t::get().get_next_type() : fixed_type;
     gaia_id_t table_id = gaia_table_t::insert_row(
         table_name.c_str(),
-        table_type,
+        fixed_type == INVALID_GAIA_TYPE ? gaia_boot_t::get().get_next_type() : fixed_type,
         is_system,
         bfbs.c_str(),
         bin.c_str());
@@ -391,11 +379,11 @@ gaia_id_t ddl_executor_t::create_table_impl(
                 // A table definition can reference any of existing tables.
                 field_type_id = m_table_names[field->table_type_name];
             }
-            else if (!dbname.empty() && m_table_names.count(dbname + "." + field->table_type_name))
+            else if (!dbname.empty() && m_table_names.count(dbname + c_db_table_name_connector + field->table_type_name))
             {
                 // A table definition can reference existing tables in its own database
                 // without specifying the database name.
-                field_type_id = m_table_names[dbname + "." + field->table_type_name];
+                field_type_id = m_table_names[dbname + c_db_table_name_connector + field->table_type_name];
             }
             else
             {
@@ -424,7 +412,6 @@ gaia_id_t ddl_executor_t::create_table_impl(
     gaia::db::commit_transaction();
 
     m_table_names[full_table_name] = table_id;
-    m_type_map[table_type] = table_id;
     return table_id;
 }
 
@@ -450,16 +437,8 @@ inline gaia_id_t ddl_executor_t::find_db_id_no_lock(const string& dbname) const
     }
 }
 
-gaia_id_t ddl_executor_t::find_table_id(gaia_type_t type) const
-{
-    shared_lock lock(m_lock);
-    retail_assert(m_type_map.count(type), "Trying to look up non-existant table");
-    return m_type_map.at(type);
-}
-
 string ddl_executor_t::get_full_table_name(const string& db, const string& table)
 {
-    constexpr char c_db_table_name_connector = '.';
     if (db.empty())
     {
         return table;

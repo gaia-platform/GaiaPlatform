@@ -10,14 +10,12 @@
 
 #include "auto_transaction.hpp"
 #include "data_holder.hpp"
-#include "ddl_executor.hpp"
 #include "field_access.hpp"
-#include "gaia_catalog.h"
-#include "gaia_catalog.hpp"
 #include "gaia_common.hpp"
 #include "gaia_se_catalog.hpp"
 #include "retail_assert.hpp"
 #include "system_table_types.hpp"
+#include "type_cache.hpp"
 
 namespace gaia
 {
@@ -36,17 +34,16 @@ void compute_payload_diff(
     // Make sure caller passes valid pointer to changed_fields.
     retail_assert(changed_fields);
 
-    auto table = gaia::catalog::gaia_table_t::get(gaia::catalog::ddl_executor_t::get().find_table_id(type_id));
+    gaia_id_t type_table_id = type_cache_t::get()->get_table_id(type_id);
+    auto schema = gaia_catalog_t::get_bfbs(type_table_id);
 
-    auto schema = gaia_catalog_t::get_bfbs(table.gaia_id());
-
-    for (auto field : gaia_catalog_t::list_fields(table.gaia_id()))
+    for (auto field_view : gaia_catalog_t::list_fields(type_table_id))
     {
-        if (field.type() == data_type_t::e_references)
+        if (field_view.data_type() == data_type_t::e_references)
         {
             continue;
         }
-        field_position_t pos = field.position();
+        field_position_t pos = field_view.position();
         data_holder_t data_holder1 = get_field_value(type_id, payload1, schema.data(), pos);
         data_holder_t data_holder2 = get_field_value(type_id, payload2, schema.data(), pos);
 
