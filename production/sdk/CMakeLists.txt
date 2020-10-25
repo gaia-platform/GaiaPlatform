@@ -11,6 +11,28 @@ set(TEMP_PACKAGE_FOLDER "${CMAKE_CURRENT_BINARY_DIR}/tmp")
 
 include(gaia)
 
+file(WRITE ${CMAKE_BINARY_DIR}/sdk_dummy.c "")
+
+add_library(gaia_system SHARED ${CMAKE_BINARY_DIR}/sdk_dummy.c)
+set(SDK_LINK_LIBRARIES
+  -Wl,--whole-archive
+  gaia_direct
+  gaia_rules
+  gaia
+  gaia_parser
+  gaia_catalog
+  gaia_common
+  gaia_payload_types
+  gaia_se_client
+  rocks_wrapper
+  flatbuffers
+  -Wl,--no-whole-archive
+)
+
+target_link_libraries(gaia_system PUBLIC
+  ${SDK_LINK_LIBRARIES}
+)
+
 add_custom_command(
   OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/gaia.deb
   OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/gaia.rpm
@@ -25,17 +47,6 @@ add_custom_command(
   COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${TEMP_PACKAGE_FOLDER}/usr/local/bin/gaiac
   COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${TEMP_PACKAGE_FOLDER}/usr/local/bin/gaiat
 
-  COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/direct_access/libgaia_direct.a  ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_direct.a
-  COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/rules/event_manager/libgaia_rules.a  ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_rules.a
-  COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/system/libgaia.a  ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia.a
-  COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/catalog/parser/libgaia_parser.a  ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_parser.a
-  COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/catalog/catalog_manager/libgaia_catalog.a  ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_catalog.a
-  COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/common/libgaia_common.a  ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_common.a
-  COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/types/libgaia_payload_types.a  ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_payload_types.a
-  COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/storage_engine/libgaia_se_client.a  ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_se_client.a
-  COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/storage_engine/librocks_wrapper.a  ${TEMP_PACKAGE_FOLDER}/usr/local/lib/librocks_wrapper.a
-  COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/flatbuffers/libflatbuffers.a  ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libflatbuffers.a
-
   COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/llvm/lib/libclang.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libclang.so
   COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/storage_engine/libgaia_storage.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_storage.so
   COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/storage_engine/se_client.cpython-38-x86_64-linux-gnu.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/se_client.cpython-38-x86_64-linux-gnu.so
@@ -44,6 +55,8 @@ add_custom_command(
   COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/triggers/libgaia_triggers.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_triggers.so
   COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/sql/src/gaia_fdw-0.0.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/gaia_fdw-0.0.so
   COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/rocksdb/librocksdb.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/librocksdb.so
+
+  COMMAND cmake -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/libgaia_system.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_system.so
 
   COMMAND dpkg-deb --build ${TEMP_PACKAGE_FOLDER} ${CMAKE_CURRENT_BINARY_DIR}/gaia.deb
 
@@ -55,16 +68,7 @@ add_custom_command(
   DEPENDS gaiac
   DEPENDS gaiat
   DEPENDS gaia_se_server
-  DEPENDS gaia_direct
-  DEPENDS gaia_rules
-  DEPENDS gaia
-  DEPENDS gaia_parser
-  DEPENDS gaia_catalog
-  DEPENDS gaia_common
-  DEPENDS gaia_payload_types
-  DEPENDS gaia_se_client
-  DEPENDS rocks_wrapper
-  DEPENDS flatbuffers
+  DEPENDS gaia_system
   DEPENDS ${PROJECT_SOURCE_DIR}/control
   DEPENDS ${PROJECT_SOURCE_DIR}/changelog
   DEPENDS ${PROJECT_SOURCE_DIR}/copyright

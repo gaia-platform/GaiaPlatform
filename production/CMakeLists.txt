@@ -184,10 +184,6 @@ endif()
 # https://gaiaplatform.atlassian.net/browse/GAIAPLAT-338
 add_subdirectory(${ROCKSDB} rocksdb)
 
-if (BUILD_GAIA_RELEASE)
-add_subdirectory("${GAIA_REPO}/third_party/private/TranslationEngineLLVM/llvm" llvm)
-endif()
-
 # Add flatbuffers
 add_subdirectory(${FLATBUFFERS} flatbuffers)
 set_property (TARGET flatbuffers PROPERTY POSITION_INDEPENDENT_CODE ON)
@@ -225,7 +221,12 @@ add_subdirectory(system)
 add_subdirectory(catalog)
 add_subdirectory(tools)
 if (BUILD_GAIA_RELEASE)
+set_property (TARGET gaia_parser PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property (TARGET rocks_wrapper PROPERTY POSITION_INDEPENDENT_CODE ON)
+unset(CMAKE_CXX_CLANG_TIDY)
 add_subdirectory(sdk)
+add_subdirectory("${GAIA_REPO}/third_party/private/TranslationEngineLLVM/llvm" llvm)
+set(CMAKE_CXX_CLANG_TIDY clang-tidy)
 endif()
 
 # Customize test commands.

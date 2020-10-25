@@ -30,16 +30,7 @@ Gaia System
 /usr/local/lib/libgaia_triggers.so
 /usr/local/lib/gaia_fdw-0.0.so
 /usr/local/lib/librocksdb.so
-/usr/local/lib/libgaia_direct.a
-/usr/local/lib/libgaia_rules.a
-/usr/local/lib/libgaia.a
-/usr/local/lib/libgaia_parser.a
-/usr/local/lib/libgaia_catalog.a
-/usr/local/lib/libgaia_common.a
-/usr/local/lib/libgaia_payload_types.a
-/usr/local/lib/libgaia_se_client.a
-/usr/local/lib/librocks_wrapper.a
-/usr/local/lib/libflatbuffers.a
+/usr/local/lib/libgaia_system.so
 
 %changelog
 * Mon Sep 14 2020  Gaia
