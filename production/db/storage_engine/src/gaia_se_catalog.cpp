@@ -71,6 +71,12 @@ namespace db
     return catalog::Getgaia_table(m_gaia_se_object->data())->type();
 }
 
+[[nodiscard]] vector<uint8_t> gaia_table_view_t::binary_schema() const
+{
+    return gaia::common::flatbuffers_hex_to_buffer(
+        catalog::Getgaia_table(m_gaia_se_object->data())->binary_schema()->c_str());
+}
+
 const gaia_se_object_t* gaia_catalog_t::get_se_object_ptr(gaia_id_t id)
 {
     gaia_locator_t locator = gaia_hash_map::find(client::s_data, client::s_locators, id);
@@ -78,11 +84,10 @@ const gaia_se_object_t* gaia_catalog_t::get_se_object_ptr(gaia_id_t id)
     return se_base::locator_to_ptr(client::s_locators, client::s_data, locator);
 }
 
-vector<uint8_t> gaia_catalog_t::get_bfbs(gaia_type_t table_type)
+gaia_table_view_t gaia_catalog_t::get_table(gaia_id_t table_id)
 {
     client::verify_txn_active();
-    return gaia::common::flatbuffers_hex_to_buffer(
-        catalog::Getgaia_table(get_se_object_ptr((table_type))->data())->binary_schema()->c_str());
+    return gaia_table_view_t{get_se_object_ptr(table_id)};
 }
 
 gaia_table_list_t gaia_catalog_t::list_tables()

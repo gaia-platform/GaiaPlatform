@@ -35,7 +35,7 @@ void compute_payload_diff(
     retail_assert(changed_fields);
 
     gaia_id_t type_table_id = type_cache_t::get()->get_table_id(type_id);
-    auto schema = gaia_catalog_t::get_bfbs(type_table_id);
+    auto schema = gaia_catalog_t::get_table(type_table_id).binary_schema();
 
     for (auto field_view : gaia_catalog_t::list_fields(type_table_id))
     {

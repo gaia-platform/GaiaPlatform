@@ -46,6 +46,7 @@ struct gaia_table_view_t
     [[nodiscard]] gaia_type_t type() const;
     [[nodiscard]] const char* name() const;
     [[nodiscard]] gaia_type_t table_type() const;
+    [[nodiscard]] vector<uint8_t> binary_schema() const;
 
 private:
     const gaia_se_object_t* m_gaia_se_object;
@@ -72,7 +73,7 @@ private:
     [[nodiscard]] static inline const gaia_se_object_t* get_se_object_ptr(gaia_id_t);
 
 public:
-    static vector<uint8_t> get_bfbs(gaia_type_t table_type);
+    static gaia_table_view_t get_table(gaia_id_t table_id);
     static gaia_table_list_t list_tables();
     static gaia_field_list_t list_fields(gaia_type_t table_type);
 };
