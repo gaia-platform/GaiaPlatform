@@ -1,15 +1,9 @@
 namespace gaia.db.catalog;
-table gaia_table
-{
-name:
-    string;
-type:
-    uint32;
-is_system:
-    bool;
-binary_schema:
-    string;
-serialization_template:
-    string;
+table gaia_table {
+    name:string;
+    type:uint32;
+    is_system:bool;
+    binary_schema:string;
+    serialization_template:string;
 }
 root_type gaia_table;
