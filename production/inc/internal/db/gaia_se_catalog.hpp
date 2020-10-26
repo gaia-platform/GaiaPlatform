@@ -18,38 +18,41 @@ namespace gaia
 namespace db
 {
 
-struct gaia_field_view_t
+struct gaia_catalog_obj_view_t
 {
-    explicit gaia_field_view_t(const gaia_se_object_t* obj_ptr)
-        : m_gaia_se_object(obj_ptr)
+    explicit gaia_catalog_obj_view_t(const gaia_se_object_t* obj_ptr)
+        : m_obj_ptr{obj_ptr}
     {
     }
 
-    [[nodiscard]] gaia_id_t id() const;
-    [[nodiscard]] gaia_type_t type() const;
+    [[nodiscard]] gaia_id_t id() const
+    {
+        return m_obj_ptr->id;
+    }
+
+    [[nodiscard]] gaia_type_t type() const
+    {
+        return m_obj_ptr->type;
+    }
+
+protected:
+    const gaia_se_object_t* m_obj_ptr;
+};
+
+struct gaia_field_view_t : gaia_catalog_obj_view_t
+{
+    using gaia_catalog_obj_view_t::gaia_catalog_obj_view_t;
     [[nodiscard]] const char* name() const;
     [[nodiscard]] data_type_t data_type() const;
     [[nodiscard]] field_position_t position() const;
-
-private:
-    const gaia_se_object_t* m_gaia_se_object;
 };
 
-struct gaia_table_view_t
+struct gaia_table_view_t : gaia_catalog_obj_view_t
 {
-    explicit gaia_table_view_t(const gaia_se_object_t* obj_ptr)
-        : m_gaia_se_object(obj_ptr)
-    {
-    }
-
-    [[nodiscard]] gaia_id_t id() const;
-    [[nodiscard]] gaia_type_t type() const;
+    using gaia_catalog_obj_view_t::gaia_catalog_obj_view_t;
     [[nodiscard]] const char* name() const;
     [[nodiscard]] gaia_type_t table_type() const;
     [[nodiscard]] vector<uint8_t> binary_schema() const;
-
-private:
-    const gaia_se_object_t* m_gaia_se_object;
 };
 
 using gaia_field_list_t = common::iterators::range_t<common::iterators::generator_iterator_t<gaia_field_view_t>>;

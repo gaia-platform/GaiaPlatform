@@ -26,55 +26,35 @@ namespace gaia
 namespace db
 {
 
-[[nodiscard]] gaia_id_t gaia_field_view_t::id() const
-{
-    return m_gaia_se_object->id;
-}
-
-[[nodiscard]] gaia_type_t gaia_field_view_t::type() const
-{
-    return m_gaia_se_object->type;
-}
-
 [[nodiscard]] const char* gaia_field_view_t::name() const
 {
-    return catalog::Getgaia_field(m_gaia_se_object->data())->name()->c_str();
+    return catalog::Getgaia_field(m_obj_ptr->data())->name()->c_str();
 }
 
 [[nodiscard]] data_type_t gaia_field_view_t::data_type() const
 {
-    return static_cast<data_type_t>(catalog::Getgaia_field(m_gaia_se_object->data())->type());
+    return static_cast<data_type_t>(catalog::Getgaia_field(m_obj_ptr->data())->type());
 }
 
 [[nodiscard]] field_position_t gaia_field_view_t::position() const
 {
-    return catalog::Getgaia_field(m_gaia_se_object->data())->position();
-}
-
-[[nodiscard]] gaia_id_t gaia_table_view_t::id() const
-{
-    return m_gaia_se_object->id;
-}
-
-[[nodiscard]] gaia_type_t gaia_table_view_t::type() const
-{
-    return m_gaia_se_object->type;
+    return catalog::Getgaia_field(m_obj_ptr->data())->position();
 }
 
 [[nodiscard]] const char* gaia_table_view_t::name() const
 {
-    return catalog::Getgaia_table(m_gaia_se_object->data())->name()->c_str();
+    return catalog::Getgaia_table(m_obj_ptr->data())->name()->c_str();
 }
 
 [[nodiscard]] gaia_type_t gaia_table_view_t::table_type() const
 {
-    return catalog::Getgaia_table(m_gaia_se_object->data())->type();
+    return catalog::Getgaia_table(m_obj_ptr->data())->type();
 }
 
 [[nodiscard]] vector<uint8_t> gaia_table_view_t::binary_schema() const
 {
     return gaia::common::flatbuffers_hex_to_buffer(
-        catalog::Getgaia_table(m_gaia_se_object->data())->binary_schema()->c_str());
+        catalog::Getgaia_table(m_obj_ptr->data())->binary_schema()->c_str());
 }
 
 const gaia_se_object_t* gaia_catalog_t::get_se_object_ptr(gaia_id_t id)
