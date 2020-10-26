@@ -27,11 +27,6 @@ protected:
         test_table_fields.emplace_back(make_unique<field_definition_t>("last_zipcodes", data_type_t::e_int32, 0));
     }
 
-    void SetUp() override
-    {
-        db_test_base_t::SetUp();
-    }
-
     static field_def_list_t test_table_fields;
 };
 
