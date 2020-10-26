@@ -206,6 +206,7 @@ add_subdirectory("${GAIA_REPO}/third_party/production/spdlog_setup" spdlog_setup
 add_subdirectory("${GAIA_REPO}/third_party/production/tabulate" tabulate)
 # Add googletest
 add_subdirectory(${GOOGLE_TEST} googletest)
+
 # Setting clang-tidy here to avoid it being applied to flatbuffers, rocksdb etc...
 # TODO Maybe we could force each subproject to set this flag?
 set(CMAKE_CXX_CLANG_TIDY clang-tidy)
