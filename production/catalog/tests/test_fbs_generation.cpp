@@ -21,15 +21,10 @@ protected:
         test_table_fields.emplace_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
     }
 
-    void SetUp() override
-    {
-        db_test_base_t::SetUp();
-    }
-
     static ddl::field_def_list_t test_table_fields;
 };
 
-ddl::field_def_list_t fbs_generation_test::test_table_fields{};
+ddl::field_def_list_t fbs_generation_test::test_table_fields;
 
 TEST_F(fbs_generation_test, generate_fbs_from_catalog)
 {
