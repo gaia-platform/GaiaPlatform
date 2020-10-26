@@ -241,9 +241,15 @@ elseif(CMAKE_COMPILER_IS_GNUCXX)
     "${CMAKE_CXX_FLAGS} -fsigned-char")
 
 elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-  set(CMAKE_CXX_FLAGS
+  if (BUILD_GAIA_RELEASE)
+    set(CMAKE_CXX_FLAGS
+      "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -Wextra -Wno-unused-parameter")
+    set(CMAKE_EXE_LINKER_FLAGS "-pthread")
+  else()
+    set(CMAKE_CXX_FLAGS
       "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -Wextra -ggdb -Wno-unused-parameter")
-  set(CMAKE_EXE_LINKER_FLAGS "-ggdb -pthread")
+    set(CMAKE_EXE_LINKER_FLAGS "-ggdb -pthread")
+  endif()
   set(FLATBUFFERS_PRIVATE_CXX_FLAGS "-Wold-style-cast")
 
   if(NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 3.8)

@@ -29,9 +29,14 @@ add_compile_options("$<$<CONFIG:DEBUG>:-DDEBUG>")
 
 # Set some global variables.
 get_repo_root(${PROJECT_SOURCE_DIR} GAIA_REPO)
+if (BUILD_GAIA_RELEASE)
+set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra")
+set(GAIA_LINK_FLAGS "-pthread")
 
+else()
 set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
 set(GAIA_LINK_FLAGS "-ggdb -pthread")
+endif()
 set(GAIA_INC "${PROJECT_SOURCE_DIR}/inc")
 set(GOOGLE_TEST "${GAIA_REPO}/third_party/production/googletest")
 set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")
