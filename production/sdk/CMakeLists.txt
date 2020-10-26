@@ -69,6 +69,7 @@ add_custom_command(
   DEPENDS gaiat
   DEPENDS gaia_se_server
   DEPENDS gaia_system
+  DEPENDS libclang
   DEPENDS ${PROJECT_SOURCE_DIR}/control
   DEPENDS ${PROJECT_SOURCE_DIR}/changelog
   DEPENDS ${PROJECT_SOURCE_DIR}/copyright

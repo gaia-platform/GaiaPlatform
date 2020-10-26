@@ -97,7 +97,7 @@ add_library(flatbuffers_llvm STATIC IMPORTED GLOBAL)
 set_target_properties(flatbuffers_llvm PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/flatbuffers/libflatbuffers.a)
 
 add_library(gaia_catalog_llvm STATIC IMPORTED GLOBAL)
-set_target_properties(gaia_catalog_llvm PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/catalog/catalog_manager/libgaia_catalog.a)
+set_target_properties(gaia_catalog_llvm PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/catalog/libgaia_catalog.a)
 
 add_library(gaia_common_llvm STATIC IMPORTED GLOBAL)
 set_target_properties(gaia_common_llvm PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/common/libgaia_common.a)
