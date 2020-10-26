@@ -24,7 +24,7 @@ protected:
     static ddl::field_def_list_t test_table_fields;
 };
 
-ddl::field_def_list_t fbs_generation_test::test_table_fields{};
+ddl::field_def_list_t fbs_generation_test::test_table_fields;
 
 TEST_F(fbs_generation_test, generate_fbs_from_catalog)
 {

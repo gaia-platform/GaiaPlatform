@@ -30,7 +30,7 @@ protected:
     static field_def_list_t test_table_fields;
 };
 
-field_def_list_t json_generation_test::test_table_fields{};
+field_def_list_t json_generation_test::test_table_fields;
 
 constexpr char c_expected_json[]
     = "{\n"
