@@ -451,7 +451,7 @@ TEST_F(ddl_executor_test, create_relationships)
 
     ASSERT_EQ(clinic_doctor_relationship.gaia_id(), clinic_doctor_relationship2.gaia_id());
 
-    ASSERT_STREQ("clinic->doctor.clinic", clinic_doctor_relationship.name());
+    ASSERT_STREQ("clinic", clinic_doctor_relationship.name());
     ASSERT_EQ(uint8_t{0}, clinic_doctor_relationship.first_child_offset()); // clinic
     ASSERT_EQ(uint8_t{0}, clinic_doctor_relationship.next_child_offset()); // doctor
     ASSERT_EQ(uint8_t{1}, clinic_doctor_relationship.parent_offset()); // doctor
@@ -466,7 +466,7 @@ TEST_F(ddl_executor_test, create_relationships)
 
     ASSERT_EQ(doctor_patient_relationship.gaia_id(), doctor_patient_relationship2.gaia_id());
 
-    ASSERT_STREQ("doctor->patient.doctor", doctor_patient_relationship.name());
+    ASSERT_STREQ("doctor", doctor_patient_relationship.name());
     ASSERT_EQ(uint8_t{2}, doctor_patient_relationship.first_child_offset()); // doctor
     ASSERT_EQ(uint8_t{0}, doctor_patient_relationship.next_child_offset()); // patient
     ASSERT_EQ(uint8_t{1}, doctor_patient_relationship.parent_offset()); // patient
@@ -481,7 +481,7 @@ TEST_F(ddl_executor_test, create_relationships)
 
     ASSERT_EQ(clinic_patient_relationship.gaia_id(), clinic_patient_relationship2.gaia_id());
 
-    ASSERT_STREQ("clinic->patient.clinic", clinic_patient_relationship.name());
+    ASSERT_STREQ("clinic", clinic_patient_relationship.name());
     ASSERT_EQ(uint8_t{1}, clinic_patient_relationship.first_child_offset()); // clinic
     ASSERT_EQ(uint8_t{2}, clinic_patient_relationship.next_child_offset()); // patient
     ASSERT_EQ(uint8_t{3}, clinic_patient_relationship.parent_offset()); // patient
@@ -568,7 +568,7 @@ TEST_F(ddl_executor_test, metadata)
     for (gaia_id_t table_id : table_ids)
     {
         gaia_table_t child_table = gaia_table_t::get(table_id);
-        type_metadata_t& metadata = type_registry_t::instance().get(child_table.gaia_id());
+        const type_metadata_t& metadata = type_registry_t::instance().get(child_table.gaia_id());
 
         for (gaia_field_t field : child_table.gaia_field_list())
         {
@@ -580,7 +580,7 @@ TEST_F(ddl_executor_test, metadata)
                 gaia_relationship_t relationship = *field.child_gaia_relationship_list().begin();
                 auto relationship_metadata = metadata.find_child_relationship(relationship.parent_offset());
 
-                ASSERT_NE(nullptr, relationship_metadata);
+                ASSERT_TRUE(relationship_metadata.has_value());
 
                 ASSERT_EQ(child_table.gaia_id(), relationship_metadata->child_type);
                 ASSERT_EQ(relationship.parent_gaia_table().gaia_id(), relationship_metadata->parent_type);

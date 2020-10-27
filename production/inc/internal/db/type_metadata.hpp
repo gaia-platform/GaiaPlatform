@@ -8,6 +8,7 @@
 #include <atomic>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <shared_mutex>
 #include <sstream>
 #include <unordered_map>
@@ -25,6 +26,10 @@ namespace db
 
 /**
  * Contains metadata about a specific gaia type.
+ *
+ * Notes on concurrency: We do not expect the schema to be changed at runtime
+ * yet. This structure though, can be change at runtime (possibly in by multiple
+ * threads) because it is lazy loaded by the type_registry_t.
  */
 class type_metadata_t
 {
@@ -37,18 +42,18 @@ public:
     /**
      * Find a relationship from the parent side.
      */
-    relationship_t* find_parent_relationship(reference_offset_t first_child_offset) const;
+    optional<relationship_t> find_parent_relationship(reference_offset_t first_child_offset) const;
 
     /**
      * Find a relationship from the child side.
      */
-    relationship_t* find_child_relationship(reference_offset_t parent_offset) const;
+    optional<relationship_t> find_child_relationship(reference_offset_t parent_offset) const;
 
     /**
      * Counts the number of reference this type has both as parent and child.
      * Note: child references count 2X, since 2 pointers are necessary to express them.
      */
-    size_t num_references();
+    size_t num_references() const;
 
     // TODO the two following function should be called only by the registry.
     //  Need to figure the best way to do so since these are used in tests too
@@ -66,7 +71,7 @@ public:
     void add_child_relationship(reference_offset_t parent, const shared_ptr<relationship_t>& relationship);
 
 private:
-    gaia_type_t m_type;
+    const gaia_type_t m_type;
 
     // type_registry_t creates the instances of this object. Instances can be partially created
     // to avoid traversing the entire dependency graph when modeling relationships.
@@ -75,6 +80,8 @@ private:
     // The relationship_t objects are shared between the parent and the child side of the relationship.
     unordered_map<reference_offset_t, shared_ptr<relationship_t>> m_parent_relationships;
     unordered_map<reference_offset_t, shared_ptr<relationship_t>> m_child_relationships;
+
+    mutable shared_mutex m_metadata_lock;
 
     friend class type_registry_t;
     bool is_initialized();
@@ -140,18 +147,15 @@ public:
     /**
      * Checks the existence of a given type in the metadata.
      */
-    bool exists(gaia_type_t type);
+    bool exists(gaia_type_t type) const;
 
     /**
      * Returns an instance of type_metadata_t. If no metadata exists for the
      * given type, a new instance is created loading the data from the catalog.
      *
-     * Clients are NOT allowed to modify the returned metadata, use update()
-     * for this purpose.
-     *
      * The registry owns the lifecycle of this object.
      */
-    type_metadata_t& get(gaia_type_t type);
+    const type_metadata_t& get(gaia_type_t type);
 
     // TESTING
 
@@ -174,18 +178,18 @@ private:
 
     unordered_map<gaia_type_t, unique_ptr<type_metadata_t>> m_metadata_registry;
 
-    //ensures exclusive access to the registry
-    shared_mutex m_registry_lock;
+    // Ensures exclusive access to the registry.
+    mutable shared_mutex m_registry_lock;
 
     /**
-     * Initialize the registry by adding all the system tables (table, field, etc..)
+     * Initialize the registry by adding all the system tables (gaia_table, gaia_field, etc..)
      */
     void init();
 
     /**
      * Creates an instance of type_metadata_t fetching the information from the Catalog.
      */
-    type_metadata_t& create(gaia_type_t table_id);
+    type_metadata_t& create(gaia_type_t type);
 
     type_metadata_t& get_or_create_no_lock(gaia_type_t type);
 };

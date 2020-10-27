@@ -26,37 +26,45 @@ constexpr std::size_t c_child_relation_num_ptrs = 2;
  * type_metadata_t
  */
 
-relationship_t* type_metadata_t::find_parent_relationship(reference_offset_t first_child_offset) const
+optional<relationship_t> type_metadata_t::find_parent_relationship(reference_offset_t first_child_offset) const
 {
-    auto parent_relationship = m_parent_relationships.find(first_child_offset);
+    shared_lock lock(m_metadata_lock);
+
+    const auto& parent_relationship = m_parent_relationships.find(first_child_offset);
 
     if (parent_relationship == m_parent_relationships.end())
     {
-        return nullptr;
+        return {};
     }
 
-    return parent_relationship->second.get();
+    return *parent_relationship->second.get();
 }
 
-relationship_t* type_metadata_t::find_child_relationship(reference_offset_t parent_offset) const
+optional<relationship_t> type_metadata_t::find_child_relationship(reference_offset_t parent_offset) const
 {
+    shared_lock lock(m_metadata_lock);
+
     auto child_relationship = m_child_relationships.find(parent_offset);
 
     if (child_relationship == m_child_relationships.end())
     {
-        return nullptr;
+        return {};
     }
 
-    return child_relationship->second.get();
+    return *child_relationship->second.get();
 }
 
 void type_metadata_t::add_parent_relationship(reference_offset_t first_child, const shared_ptr<relationship_t>& relationship)
 {
+    scoped_lock lock(m_metadata_lock);
+
     m_parent_relationships.insert({first_child, relationship});
 }
 
 void type_metadata_t::add_child_relationship(reference_offset_t parent, const shared_ptr<relationship_t>& relationship)
 {
+    scoped_lock lock(m_metadata_lock);
+
     m_child_relationships.insert({parent, relationship});
 }
 
@@ -65,8 +73,10 @@ gaia_type_t type_metadata_t::get_type() const
     return m_type;
 }
 
-size_t type_metadata_t::num_references()
+size_t type_metadata_t::num_references() const
 {
+    shared_lock lock(m_metadata_lock);
+
     return m_parent_relationships.size() + (c_child_relation_num_ptrs * m_child_relationships.size());
 }
 
@@ -100,14 +110,14 @@ void type_registry_t::init()
     }
 }
 
-bool type_registry_t::exists(gaia_type_t type)
+bool type_registry_t::exists(gaia_type_t type) const
 {
     shared_lock lock(m_registry_lock);
 
     return m_metadata_registry.find(type) != m_metadata_registry.end();
 }
 
-type_metadata_t& type_registry_t::get(gaia_type_t type)
+const type_metadata_t& type_registry_t::get(gaia_type_t type)
 {
     scoped_lock lock(m_registry_lock);
     auto it = m_metadata_registry.find(type);
@@ -133,16 +143,16 @@ type_metadata_t& type_registry_t::test_get_or_create(gaia_type_t type)
     return metadata;
 }
 
-type_metadata_t& type_registry_t::create(gaia_type_t table_id)
+type_metadata_t& type_registry_t::create(gaia_type_t type)
 {
-    gaia_table_t child_table = gaia_table_t::get(table_id);
+    gaia_table_t child_table = gaia_table_t::get(type);
 
     if (!child_table)
     {
-        throw type_not_found(table_id);
+        throw type_not_found(type);
     }
 
-    auto& metadata = get_or_create_no_lock(table_id);
+    auto& metadata = get_or_create_no_lock(type);
 
     for (auto& field : child_table.gaia_field_list())
     {
@@ -187,9 +197,8 @@ type_metadata_t& type_registry_t::get_or_create_no_lock(gaia_type_t type)
         return *it->second;
     }
 
-    auto metadata = new type_metadata_t(type);
-    m_metadata_registry.insert({type, unique_ptr<type_metadata_t>(metadata)});
-    return *metadata;
+    auto it2 = m_metadata_registry.emplace(type, make_unique<type_metadata_t>(type));
+    return *it2.first->second;
 }
 
 } // namespace db
