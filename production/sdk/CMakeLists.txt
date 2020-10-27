@@ -40,6 +40,8 @@ add_custom_command(
   COMMAND cmake -E copy_if_different ${PROJECT_SOURCE_DIR}/control ${TEMP_PACKAGE_FOLDER}/DEBIAN/control
   COMMAND cmake -E copy_if_different ${PROJECT_SOURCE_DIR}/changelog ${TEMP_PACKAGE_FOLDER}/DEBIAN/changelog
   COMMAND cmake -E copy_if_different ${PROJECT_SOURCE_DIR}/copyright ${TEMP_PACKAGE_FOLDER}/DEBIAN/copyright
+  COMMAND cmake -E copy_if_different ${PROJECT_SOURCE_DIR}/preinst ${TEMP_PACKAGE_FOLDER}/DEBIAN/preinst
+  COMMAND cmake -E copy_if_different ${PROJECT_SOURCE_DIR}/postinst ${TEMP_PACKAGE_FOLDER}/DEBIAN/postinst
 
   COMMAND cmake -E copy_directory ${GAIA_INC}/public ${TEMP_PACKAGE_FOLDER}/usr/local/include/gaia
 
@@ -54,9 +56,15 @@ add_custom_command(
   COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/memory_manager/libgaia_memorymanager.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_memorymanager.so
   COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/triggers/libgaia_triggers.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_triggers.so
   COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/sql/src/gaia_fdw-0.0.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/gaia_fdw-0.0.so
-  COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/rocksdb/librocksdb.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/librocksdb.so
+  COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/rocksdb/librocksdb.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/librocksdb.so.6
 
   COMMAND cmake -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/libgaia_system.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_system.so
+
+  COMMAND cmake -E copy_if_different /usr/lib/x86_64-linux-gnu/libexplain.so.51.5.0 ${TEMP_PACKAGE_FOLDER}/usr/lib/x86_64-linux-gnu/libexplain.so.51
+  COMMAND cmake -E copy_if_different /usr/local/lib/libfmt.so.7.0.3 ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libfmt.so.7
+  COMMAND cmake -E copy_if_different /usr/local/lib/libspdlog.so.1.8.0 ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libspdlog.so.1
+  COMMAND cmake -E copy_if_different /usr/lib/x86_64-linux-gnu/libcap.so.2.32 ${TEMP_PACKAGE_FOLDER}/usr/lib/x86_64-linux-gnu/libcap.so.2
+  COMMAND cmake -E copy_if_different /usr/lib/x86_64-linux-gnu/libcap-ng.so.0.0.0 ${TEMP_PACKAGE_FOLDER}/usr/lib/x86_64-linux-gnu/libcap-ng.so.0
 
   COMMAND dpkg-deb --build ${TEMP_PACKAGE_FOLDER} ${CMAKE_CURRENT_BINARY_DIR}/gaia.deb
 
@@ -71,6 +79,8 @@ add_custom_command(
   DEPENDS gaia_system
   DEPENDS libclang
   DEPENDS ${PROJECT_SOURCE_DIR}/control
+  DEPENDS ${PROJECT_SOURCE_DIR}/preinst
+  DEPENDS ${PROJECT_SOURCE_DIR}/postinst
   DEPENDS ${PROJECT_SOURCE_DIR}/changelog
   DEPENDS ${PROJECT_SOURCE_DIR}/copyright
   DEPENDS ${PROJECT_SOURCE_DIR}/gaia.spec

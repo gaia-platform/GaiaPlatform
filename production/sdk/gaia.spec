@@ -2,6 +2,7 @@ Summary: Gaia
 Name: Gaia
 Version: 1.0.0
 Release: 1
+Requires: libexplain-dev
 Group: Applications/System
 License: Gaia License
 
@@ -13,6 +14,9 @@ Gaia System
 %build
 
 %install
+
+%pre
+pkill -f -KILL gaia_se_server
 
 %clean
 
@@ -29,8 +33,13 @@ Gaia System
 /usr/local/lib/libgaia_memorymanager.so
 /usr/local/lib/libgaia_triggers.so
 /usr/local/lib/gaia_fdw-0.0.so
-/usr/local/lib/librocksdb.so
+/usr/local/lib/librocksdb.so.6
 /usr/local/lib/libgaia_system.so
+/usr/lib/x86_64-linux-gnu/libexplain.so.51
+/usr/local/lib/libfmt.so.7
+/usr/local/lib/libspdlog.so.1
+/usr/lib/x86_64-linux-gnu/libcap.so.2
+/usr/lib/x86_64-linux-gnu/libcap-ng.so.0
 
 %changelog
 * Mon Sep 14 2020  Gaia
