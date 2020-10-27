@@ -24,7 +24,7 @@ class gaia_boot_t
 {
 public:
     // Permissions on boot file.
-    static constexpr mode_t c_rw_rw_r = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH;
+    static constexpr mode_t c_rw_rw_rw = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
     gaia_boot_t(gaia_boot_t&) = delete;
     void operator=(gaia_boot_t const&) = delete;
     static gaia_boot_t& get();

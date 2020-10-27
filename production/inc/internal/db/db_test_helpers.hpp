@@ -102,7 +102,7 @@ void reset_server()
     // WLW Note: This is temporary.
     string boot_file_name(PERSISTENT_DIRECTORY_PATH);
     boot_file_name += "/boot_parameters.bin";
-    unlink(boot_file_name.c_str());
+    truncate(boot_file_name.c_str(), 0);
     wait_for_server_init();
 }
 
