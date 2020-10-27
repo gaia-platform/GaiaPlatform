@@ -5,25 +5,29 @@
 
 #pragma once
 
-#include <string>
-#include <sstream>
-#include <unordered_map>
 #include <shared_mutex>
+#include <sstream>
+#include <string>
+#include <unordered_map>
 
-#include "gaia_exception.hpp"
 #include "logger_spdlog.hpp"
 
-namespace gaia {
+#include "gaia_exception.hpp"
+
+namespace gaia
+{
 /**
  * \addtogroup Gaia
  * @{
  */
-namespace common {
+namespace common
+{
 /**
  * \addtogroup Gaia
  * @{
  */
-namespace logging {
+namespace logging
+{
 /**
  * Contains Gaia logging API. At the moment it is a wrapper around spdlog logger.
  * This namespace is aliased to gaia_log.
@@ -53,7 +57,8 @@ namespace logging {
  * @{
  */
 
-enum class log_level_t {
+enum class log_level_t
+{
 
     /** Finer-grained informational events than debug.
      *  The enum is initialized to this value if nothing
@@ -89,7 +94,8 @@ typedef std::shared_ptr<logger_t> logger_ptr_t;
 /**
 * Gaia Logger API.
 */
-class logger_t {
+class logger_t
+{
 public:
     /**
      * Initialize a logger with the given name. If the logger already
@@ -98,42 +104,50 @@ public:
      */
     explicit logger_t(const std::string& logger_name);
 
-    const std::string& get_name() const {
+    const std::string& get_name() const
+    {
         return m_logger_name;
     }
 
     template <typename... T_args>
-    void log(log_level_t level, const char* format, const T_args&... args) {
+    void log(log_level_t level, const char* format, const T_args&... args)
+    {
         m_spdlogger->log(to_spdlog_level(level), format, args...);
     }
 
     template <typename... T_args>
-    void trace(const char* format, const T_args&... args) {
+    void trace(const char* format, const T_args&... args)
+    {
         m_spdlogger->trace(format, args...);
     }
 
     template <typename... T_args>
-    void debug(const char* format, const T_args&... args) {
+    void debug(const char* format, const T_args&... args)
+    {
         m_spdlogger->debug(format, args...);
     }
 
     template <typename... T_args>
-    void info(const char* format, const T_args&... args) {
+    void info(const char* format, const T_args&... args)
+    {
         m_spdlogger->info(format, args...);
     }
 
     template <typename... T_args>
-    void warn(const char* format, const T_args&... args) {
+    void warn(const char* format, const T_args&... args)
+    {
         m_spdlogger->warn(format, args...);
     }
 
     template <typename... T_args>
-    void error(const char* format, const T_args&... args) {
+    void error(const char* format, const T_args&... args)
+    {
         m_spdlogger->error(format, args...);
     }
 
     template <typename... T_args>
-    void critical(const char* format, const T_args&... args) {
+    void critical(const char* format, const T_args&... args)
+    {
         m_spdlogger->critical(format, args...);
     }
 
@@ -144,9 +158,11 @@ private:
     shared_ptr<spdlog::logger> m_spdlogger;
 };
 
-class logger_exception_t : public gaia_exception {
+class logger_exception_t : public gaia_exception
+{
 public:
-    explicit logger_exception_t(const std::string& message) {
+    explicit logger_exception_t(const std::string& message)
+    {
         m_message = message;
     }
 };

@@ -7,27 +7,36 @@
 
 #include <iostream>
 
-#include "spdlog/sinks/basic_file_sink.h"
 #include "logger_spdlog.hpp"
+#include "spdlog/sinks/basic_file_sink.h"
+
 #include "logger_manager.hpp"
 
-namespace gaia::common::logging {
+namespace gaia::common::logging
+{
 
 //
 // logger_t implementation.
 //
-logger_t::logger_t(const string& logger_name) : m_logger_name(logger_name) {
+logger_t::logger_t(const string& logger_name)
+    : m_logger_name(logger_name)
+{
     auto logger = spdlog::get(logger_name);
 
-    if (logger) {
+    if (logger)
+    {
         m_spdlogger = logger;
-    } else {
+    }
+    else
+    {
         m_spdlogger = spdlog_defaults::create_logger_with_default_settings(logger_name);
     }
 }
 
-spdlog::level::level_enum logger_t::to_spdlog_level(gaia_log::log_level_t gaia_level) {
-    switch (gaia_level) {
+spdlog::level::level_enum logger_t::to_spdlog_level(gaia_log::log_level_t gaia_level)
+{
+    switch (gaia_level)
+    {
     case log_level_t::trace:
         return spdlog::level::trace;
     case log_level_t::debug:
@@ -50,34 +59,41 @@ spdlog::level::level_enum logger_t::to_spdlog_level(gaia_log::log_level_t gaia_l
 //
 // Top level API implementation
 //
-void initialize(const string& config_path) {
+void initialize(const string& config_path)
+{
     logger_manager_t::get().init_logging(config_path);
 }
 
-void shutdown() {
+void shutdown()
+{
     logger_manager_t::get().stop_logging();
 }
 
-logger_t& sys() {
+logger_t& sys()
+{
     return logger_manager_t::get().sys_logger();
 }
 
-logger_t& db() {
+logger_t& db()
+{
     return logger_manager_t::get().db_logger();
 }
 
-logger_t& rules() {
+logger_t& rules()
+{
     return logger_manager_t::get().rules_logger();
 }
 
-logger_t& catalog() {
+logger_t& catalog()
+{
     return logger_manager_t::get().catalog_logger();
 }
 
 //
 // Stats loggers.
 //
-logger_t& rules_stats() {
+logger_t& rules_stats()
+{
     return logger_manager_t::get().rules_stats_logger();
 }
 

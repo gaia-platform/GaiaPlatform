@@ -4,14 +4,17 @@
 /////////////////////////////////////////////
 
 #include <iostream>
+
 #include "gtest/gtest.h"
+
 #include "logger.hpp"
 
 static constexpr char c_const_char_msg[] = "const char star message";
 static const std::string c_string_msg = "string message";
 static constexpr int64_t c_int_msg = 1234;
 
-void verify_uninitialized_loggers() {
+void verify_uninitialized_loggers()
+{
     EXPECT_THROW(gaia_log::sys(), gaia_log::logger_exception_t);
     EXPECT_THROW(gaia_log::db(), gaia_log::logger_exception_t);
     EXPECT_THROW(gaia_log::rules(), gaia_log::logger_exception_t);
@@ -19,7 +22,8 @@ void verify_uninitialized_loggers() {
     EXPECT_THROW(gaia_log::catalog(), gaia_log::logger_exception_t);
 }
 
-TEST(logger_test, logger_api) {
+TEST(logger_test, logger_api)
+{
     verify_uninitialized_loggers();
 
     gaia_log::initialize("./log_conf.toml");
@@ -29,10 +33,10 @@ TEST(logger_test, logger_api) {
         gaia_log::catalog(),
         gaia_log::rules(),
         gaia_log::db(),
-        gaia_log::rules_stats()
-    };
+        gaia_log::rules_stats()};
 
-    for (auto logger : loggers) {
+    for (auto logger : loggers)
+    {
         logger.trace("trace");
         logger.trace("trace const char*: '{}', std::string: '{}', number: '{}'", c_const_char_msg, c_string_msg, c_int_msg);
         logger.debug("debug");
