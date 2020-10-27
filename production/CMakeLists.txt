@@ -213,13 +213,17 @@ set(CMAKE_CXX_CLANG_TIDY clang-tidy)
 # Add individual component folders.
 add_subdirectory(common)
 add_subdirectory(db)
-add_subdirectory(direct_access)
-add_subdirectory(rules)
-add_subdirectory(schemas)
-add_subdirectory(sql)
 add_subdirectory(system)
+
+add_subdirectory(direct_access)
+
 add_subdirectory(catalog)
 add_subdirectory(tools)
+
+add_subdirectory(rules)
+add_subdirectory(schemas)
+
+add_subdirectory(sql)
 
 # Customize test commands.
 file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
