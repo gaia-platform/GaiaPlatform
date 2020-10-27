@@ -108,7 +108,9 @@ shared_ptr<spdlog::logger> spdlog_defaults::create_logger_with_default_settings(
     spdlog::sinks_init_list sink_list{console_sink /* ,file_sink, syslog_sink*/};
 
     // It has to be a shared pointer. This is by design because the logger is shared with the logging thread.
-    auto logger = make_shared<spdlog::async_logger>(logger_name, sink_list.begin(), sink_list.end(), spdlog::thread_pool(), spdlog::async_overflow_policy::block);
+    auto logger = make_shared<spdlog::async_logger>(
+        logger_name, sink_list.begin(), sink_list.end(),
+        spdlog::thread_pool(), spdlog::async_overflow_policy::block);
 
     logger->set_level(spdlog_defaults::c_default_level);
     logger->set_pattern(spdlog_defaults::c_default_pattern);
