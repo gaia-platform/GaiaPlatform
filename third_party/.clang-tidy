@@ -1,0 +1,4 @@
+# Disable all clang-tidy checks for third-party code.
+# However, if no checks are specified, clang-tidy will assume we
+# did not configure it correctly. Just add one check that will never be found.
+Checks: '-*,llvm-twine-local'

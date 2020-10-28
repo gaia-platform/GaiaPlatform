@@ -7,6 +7,11 @@
 project(tools)
 
 add_subdirectory(gaia_generate)
+
+if (BUILD_GAIA_RELEASE)
+add_subdirectory(gaia_translate)
+endif()
+
 add_subdirectory(gaia_dump)
 
 # This should be enabled only for testing and improving .clang-tidy and .clang-format

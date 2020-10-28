@@ -1,10 +1,12 @@
 #include <random>
 #include <string>
+#include <iostream>
 #include "rules.hpp"
-#include "cameraDemo_gaia_generated.h"
+#include "gaia_cameraDemo.h"
 
 #include "opencv2/highgui.hpp"
 #include "opencv2/videoio.hpp"
+#include <X11/Xlib.h>
 
 std::string random_string(std::string::size_type length)
 {
@@ -29,20 +31,21 @@ std::string random_string(std::string::size_type length)
 
 int main( int argc, const char** argv )
 {
-    gaia_mem_base::init(true);
+    XInitThreads();
+    gaia::db::begin_session();
     gaia::rules::initialize_rules_engine();
 
     cv::VideoCapture capture;
     cv::Mat frame, image;
     if (!capture.open(0))
     {
-        cout << "Capture from camera #  0 didn't work" << endl;
+        std::cout << "Capture from camera #  0 didn't work" << endl;
         return 1;
     }
     auto tmp = std::string("/tmp/");
     if( capture.isOpened() )
     {
-        cout << "Video capturing has been started ..." << endl;
+        std::cout << "Video capturing has been started ..." << endl;
 
         for(;;)
         {
@@ -53,12 +56,12 @@ int main( int argc, const char** argv )
             std::string file_path = tmp + random_string(10) + ".tiff";
 
             imwrite(file_path, frame);
-
-            begin_transaction();
-            CameraDemo::Camera_image image;
-            image.set_file_name(file_path.c_str());
+	    
+            gaia::db::begin_transaction();
+            gaia::cameraDemo::camera_image_writer image = gaia::cameraDemo::camera_image_writer();;
+            image.file_name = file_path.c_str();
             image.insert_row();
-            commit_transaction();
+            gaia::db::commit_transaction();
 
             char c = (char)cv::waitKey(100);
             if( c == 27 || c == 'q' || c == 'Q' )
@@ -67,8 +70,8 @@ int main( int argc, const char** argv )
     }
     else
     {
-        cerr << "capture is not opened" << endl;
+        std::cerr << "capture is not opened" << endl;
     }
-
+    gaia::db::end_session();
     return 0;
 }

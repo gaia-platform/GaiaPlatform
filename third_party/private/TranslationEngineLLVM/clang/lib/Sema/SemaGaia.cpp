@@ -63,9 +63,9 @@ static QualType mapFieldType(catalog::data_type_t dbType, ASTContext *context)
             return context->LongLongTy;
         case catalog::data_type_t::e_uint64:
             return context->UnsignedLongLongTy;
-        case catalog::data_type_t::e_float32:
+        case catalog::data_type_t::e_float:
             return context->FloatTy;
-        case catalog::data_type_t::e_float64:
+        case catalog::data_type_t::e_double:
             return context->DoubleTy;
         case catalog::data_type_t::e_string:
             return context->getPointerType((context->CharTy).withConst());
@@ -93,17 +93,17 @@ class DBMonitor
 static unordered_map<string, unordered_map<string, QualType>> getTableData(Sema *s, SourceLocation loc)
 {
     unordered_map<string, unordered_map<string, QualType>> retVal;
-    try 
+    try
     {
         DBMonitor monitor;
-        
+
         for(catalog::gaia_field_t field : catalog::gaia_field_t::list())
-        {    
+        {
             if (static_cast<catalog::data_type_t>(field.type()) == catalog::data_type_t::e_references)
             {
                 continue;
             }
-            
+
             catalog::gaia_table_t tbl = field.gaia_table();
             if (!tbl)
             {
@@ -137,12 +137,12 @@ void Sema::addField(IdentifierInfo *name, QualType type, RecordDecl *RD, SourceL
         /*BitWidth=*/nullptr, /*Mutable=*/false, ICIS_NoInit);
     Field->setAccess(AS_public);
     Field->addAttr(GaiaFieldAttr::CreateImplicit(Context));
-    
+
     RD->addDecl(Field);
 }
 
 void Sema::addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorChunk::ParamInfo *Params,
-    unsigned NumParams, AttributeFactory &attrFactory, ParsedAttributes &attrs, Scope *S, RecordDecl *RD, SourceLocation loc) 
+    unsigned NumParams, AttributeFactory &attrFactory, ParsedAttributes &attrs, Scope *S, RecordDecl *RD, SourceLocation loc)
 {
     DeclSpec DS(attrFactory);
     const char *dummy;
@@ -153,9 +153,9 @@ void Sema::addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorC
     D.getMutableDeclSpec().SetTypeSpecType(retValType, loc, dummy,
         diagId, getPrintingPolicy());
     ActOnAccessSpecifier(AS_public, loc, loc, attrs);
-            
+
     D.SetIdentifier(name, loc);
-            
+
     DS.Finish(*this, getPrintingPolicy());
 
     D.AddTypeInfo(DeclaratorChunk::getFunction(
@@ -168,7 +168,7 @@ void Sema::addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorC
         nullptr, None, loc,
         loc, D, TypeResult(), &DS),
         std::move(attrs), loc);
-                                   
+
     DeclarationNameInfo NameInfo = GetNameForDeclarator(D);
 
     TypeSourceInfo *tInfo = GetTypeForDeclarator(D,S);
@@ -177,10 +177,10 @@ void Sema::addMethod(IdentifierInfo *name, DeclSpec::TST retValType, DeclaratorC
         Context, cast<CXXRecordDecl>(RD), SourceLocation(), NameInfo, tInfo->getType(),
         tInfo, SC_None, false, false, SourceLocation());
     Ret->setAccess(AS_public);
-    RD->addDecl(Ret);        
+    RD->addDecl(Ret);
 }
 
-QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc) 
+QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc)
 {
     std::string tableName = table->getName().str();
     unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(this, loc);
@@ -190,7 +190,7 @@ QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc)
         Diag(loc,diag::err_invalid_table_name) << tableName;
         return Context.VoidTy;
     }
-    
+
     RecordDecl *RD = Context.buildImplicitRecord(tableName + "__type");
     RD->setLexicalDeclContext(CurContext);
     RD->startDefinition();
@@ -199,8 +199,8 @@ QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc)
     ActOnStartCXXMemberDeclarations(getCurScope(), RD, loc,
         false, loc);
     AttributeFactory attrFactory;
-    ParsedAttributes attrs(attrFactory);   
-    
+    ParsedAttributes attrs(attrFactory);
+
     for (const auto f : tableDescription->second)
     {
         string fieldName = f.first;
@@ -215,18 +215,18 @@ QualType Sema::getTableType (IdentifierInfo *table, SourceLocation loc)
 
     //insert fields and methods that are not part of the schema
     addField(&Context.Idents.get("LastOperation"), Context.IntTy, RD, loc);
-    
+
     addMethod(&Context.Idents.get("delete_row"), DeclSpec::TST_void, nullptr, 0, attrFactory, attrs, &S, RD, loc);
     addMethod(&Context.Idents.get("gaia_id"), DeclSpec::TST_int, nullptr, 0, attrFactory, attrs, &S, RD, loc);
-    
+
     ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD,
         loc, loc, attrs);
     ActOnTagFinishDefinition(getCurScope(), RD, SourceRange());
-  
+
     return Context.getTagDeclType(RD);
 }
 
-QualType Sema::getFieldType (IdentifierInfo *id, SourceLocation loc) 
+QualType Sema::getFieldType (IdentifierInfo *id, SourceLocation loc)
 {
     StringRef fieldNameStrRef = id->getName();
 
@@ -262,7 +262,7 @@ QualType Sema::getFieldType (IdentifierInfo *id, SourceLocation loc)
     {
         for (const IdentifierInfo * id : attr->tables())
         {
-            tables.push_back(id->getName().str());           
+            tables.push_back(id->getName().str());
         }
     }
 
@@ -298,10 +298,10 @@ QualType Sema::getFieldType (IdentifierInfo *id, SourceLocation loc)
                 Diag(loc, diag::err_duplicate_field) << fieldNameStrRef;
                 return Context.VoidTy;
             }
-                
+
             retVal = fieldDescription->second;
             fieldTableName = tableName;
-        }      
+        }
     }
 
     if (retVal == Context.VoidTy)
@@ -359,9 +359,9 @@ NamedDecl *Sema::injectVariableDefinition(IdentifierInfo *II, SourceLocation loc
         varDecl->addAttr(GaiaFieldAttr::CreateImplicit(Context));
         varDecl->addAttr(FieldTableAttr::CreateImplicit(Context, &Context.Idents.get(fieldTableName)));
     }
-    
+
     context->addDecl(varDecl);
-    
+
     return varDecl;
 }
 
@@ -370,11 +370,11 @@ Decl *Sema::ActOnRulesetDefStart(Scope *S, SourceLocation RulesetLoc,
 {
     Scope *declRegionScope = S->getParent();
 
-    RulesetDecl *ruleset = RulesetDecl::Create(Context, CurContext, 
+    RulesetDecl *ruleset = RulesetDecl::Create(Context, CurContext,
         RulesetLoc, IdentLoc, Ident);
-    
+
     ProcessDeclAttributeList(declRegionScope, ruleset, AttrList);
-    
+
     PushOnScopeChains(ruleset, declRegionScope);
     ActOnDocumentableDecl(ruleset);
     PushDeclContext(S, ruleset);
@@ -388,4 +388,3 @@ void Sema::ActOnRulesetDefFinish(Decl *Dcl, SourceLocation RBrace)
     ruleset->setRBraceLoc(RBrace);
     PopDeclContext();
 }
-

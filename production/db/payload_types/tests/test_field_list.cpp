@@ -17,16 +17,6 @@ constexpr gaia::common::gaia_id_t c_type_id = 888;
 
 class field_list : public db_test_base_t
 {
-protected:
-    void SetUp() override
-    {
-        db_test_base_t::SetUp();
-    }
-
-    void TearDown() override
-    {
-        db_test_base_t::TearDown();
-    }
 };
 
 TEST_F(field_list, add_and_test)
