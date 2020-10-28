@@ -28,7 +28,7 @@ void gaia_boot_t::open_gaia_boot()
     string boot_file_name(PERSISTENT_DIRECTORY_PATH);
     boot_file_name += "/boot_parameters.bin";
     errno = 0;
-    if ((m_boot_fd = open(boot_file_name.c_str(), O_RDWR | O_CREAT, c_rw_rw_r)) == -1)
+    if ((m_boot_fd = open(boot_file_name.c_str(), O_RDWR | O_CREAT, c_rw_rw_rw)) == -1)
     {
         // gaia_log::db().critical("I/O failure, cannot create {}, error: {}\n", boot_file_name, strerror(errno));
         throw_system_error("cannot create " + boot_file_name);
