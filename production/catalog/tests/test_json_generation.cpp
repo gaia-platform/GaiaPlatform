@@ -96,11 +96,11 @@ TEST_F(json_generation_test, get_bin)
 
     begin_transaction();
     vector<uint8_t> bfbs = get_bfbs(table_id);
-    string bin = get_bin(table_id);
+    vector<uint8_t> bin = get_bin(table_id);
     commit_transaction();
 
-    const uint8_t* binary_schema = reinterpret_cast<const uint8_t*>(bfbs.data());
-    const uint8_t* serialized_data = reinterpret_cast<const uint8_t*>(bin.c_str());
+    const uint8_t* binary_schema = bfbs.data();
+    const uint8_t* serialized_data = bin.data();
     size_t serialized_data_size = bin.size();
 
     const reflection::Schema* schema = reflection::GetSchema(binary_schema);

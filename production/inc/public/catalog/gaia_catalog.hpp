@@ -419,7 +419,7 @@ vector<uint8_t> get_bfbs(gaia::common::gaia_id_t table_id);
  * @param table_id id of the table
  * @return bin
  */
-string get_bin(gaia::common::gaia_id_t table_id);
+vector<uint8_t> get_bin(gaia::common::gaia_id_t table_id);
 
 /**
  * Find the database id given its name
