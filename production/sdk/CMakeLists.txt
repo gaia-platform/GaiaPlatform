@@ -3,8 +3,6 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.17)
-
 project(sdk)
 
 set(TEMP_PACKAGE_FOLDER "${CMAKE_CURRENT_BINARY_DIR}/tmp")
@@ -84,7 +82,7 @@ add_custom_command(
   DEPENDS ${PROJECT_SOURCE_DIR}/changelog
   DEPENDS ${PROJECT_SOURCE_DIR}/copyright
   DEPENDS ${PROJECT_SOURCE_DIR}/gaia.spec
-  COMMENT "Compiled sdk packages."
+  COMMENT "Compiled SDK packages."
 )
 
 add_custom_target(generate_gaia_deb_package ALL

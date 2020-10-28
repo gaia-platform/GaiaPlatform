@@ -86,7 +86,6 @@ add_clang_library(clangSema
   explain
   )
 
-
 target_include_directories(clangSema PRIVATE ${GAIA_CATALOG_INCLUDES})
 add_dependencies(clangSema flatbuffers gaia_catalog gaia_common gaia_se_client gaia_direct gaia_payload_types)
 
