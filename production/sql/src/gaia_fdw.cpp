@@ -273,6 +273,9 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState* node, int eflags)
     TupleTableSlot* slot = node->ss.ss_ScanTupleSlot;
     TupleDesc tuple_desc = slot->tts_tupleDescriptor;
 
+    // Begin read transaction.
+    gaia::fdw::adapter_t::begin_transaction();
+
     auto scan_state = gaia::fdw::adapter_t::get_state<gaia::fdw::scan_state_t>(
         table_name, (size_t)tuple_desc->natts);
     if (scan_state == nullptr)
@@ -291,9 +294,6 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState* node, int eflags)
     }
 
     node->fdw_state = scan_state;
-
-    // Begin read transaction.
-    gaia::fdw::adapter_t::begin_transaction();
 
     // Retrieve the first node of the requested type
     // (this can't currently throw).
@@ -572,6 +572,8 @@ extern "C" void gaia_begin_foreign_modify(
     char* table_name = get_rel_name(rte->relid);
     TupleDesc tuple_desc = rinfo->ri_RelationDesc->rd_att;
 
+    gaia::fdw::adapter_t::begin_transaction();
+
     auto modify_state = gaia::fdw::adapter_t::get_state<gaia::fdw::modify_state_t>(
         table_name, (size_t)tuple_desc->natts);
     if (modify_state == nullptr)
@@ -590,8 +592,6 @@ extern "C" void gaia_begin_foreign_modify(
     }
 
     rinfo->ri_FdwState = modify_state;
-
-    gaia::fdw::adapter_t::begin_transaction();
 }
 
 extern "C" TupleTableSlot* gaia_exec_foreign_insert(
