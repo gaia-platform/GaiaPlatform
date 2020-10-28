@@ -112,7 +112,7 @@ void ddl_executor_t::bootstrap_catalog()
         // TODO the relationship should be between 2 tables and not between 1 table and one field.
         fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<field_definition_t>("parent", data_type_t::e_references, 1, "catalog.gaia_table"));
-        fields.emplace_back(make_unique<field_definition_t>("child", data_type_t::e_references, 1, "catalog.gaia_field"));
+        fields.emplace_back(make_unique<field_definition_t>("child", data_type_t::e_references, 1, "catalog.gaia_table"));
         fields.emplace_back(make_unique<field_definition_t>("cardinality", data_type_t::e_uint8, 1));
         fields.emplace_back(make_unique<field_definition_t>("parent_required", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<field_definition_t>("deprecated", data_type_t::e_bool, 1));
@@ -271,9 +271,9 @@ void drop_relationship_no_ri(gaia_relationship_t relationship)
     }
 
     // Unlink child.
-    if (relationship.child_gaia_field())
+    if (relationship.child_gaia_table())
     {
-        relationship.child_gaia_field()
+        relationship.child_gaia_table()
             .child_gaia_relationship_list()
             .erase(relationship);
     }
@@ -298,12 +298,12 @@ void ddl_executor_t::drop_relationships_no_txn(gaia_id_t table_id, bool enforce_
         // Cannot drop a parent relationship the link with the children still exists,
         // and it is not a self-reference. In a self-reference relationship the same table
         // is both parent and child, thus you can delete it.
-        if (relationship.child_gaia_field()
-            && (relationship.child_gaia_field().gaia_table().gaia_id() != table_id))
+        if (relationship.child_gaia_table()
+            && (relationship.child_gaia_table().gaia_id() != table_id))
         {
             throw referential_integrity_violation::drop_parent_table(
                 table_record.name(),
-                relationship.child_gaia_field().gaia_table().name());
+                relationship.child_gaia_table().name());
         }
 
         // There are 2 options here:
@@ -338,7 +338,7 @@ void ddl_executor_t::drop_relationships_no_txn(gaia_id_t table_id, bool enforce_
             writer.update_row();
 
             // Unlink the child side of the relationship.
-            relationship.child_gaia_field()
+            relationship.child_gaia_table()
                 .child_gaia_relationship_list()
                 .erase(relationship);
         }
@@ -485,15 +485,9 @@ uint8_t ddl_executor_t::find_available_offset(gaia::common::gaia_id_t table_id)
     gaia_table_t table = gaia_table_t::get(table_id);
 
     // Scan child relationships.
-    for (auto field : table.gaia_field_list())
-    {
-        if (field.type() == static_cast<uint8_t>(data_type_t::e_references))
-        {
-            max_offset = std::max(
-                max_offset,
-                find_child_available_offset(field.child_gaia_relationship_list()));
-        }
-    }
+    max_offset = std::max(
+        max_offset,
+        find_child_available_offset(table.child_gaia_relationship_list()));
 
     // Scan parent relationships.
     return std::max(
@@ -631,7 +625,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
             );
             auto rel = gaia_relationship_t::get(relationship_id);
 
-            child_field.child_gaia_relationship_list().insert(relationship_id);
+            table.child_gaia_relationship_list().insert(relationship_id);
             parent_table.parent_gaia_relationship_list().insert(relationship_id);
         }
     }

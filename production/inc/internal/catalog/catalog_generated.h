@@ -913,4 +913,3 @@ inline flatbuffers::Offset<gaia_database> Creategaia_database(flatbuffers::FlatB
 }  // namespace gaia
 
 #endif  // FLATBUFFERS_GENERATED_CATALOG_GAIA_CATALOG_H_
-

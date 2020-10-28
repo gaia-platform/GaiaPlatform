@@ -154,34 +154,28 @@ type_metadata_t& type_registry_t::create(gaia_type_t type)
 
     auto& metadata = get_or_create_no_lock(type);
 
-    for (auto& field : child_table.gaia_field_list())
+    for (auto& relationship : child_table.child_gaia_relationship_list())
     {
-        if (field.type() == static_cast<uint8_t>(data_type_t::e_references))
+        if (metadata.find_child_relationship(relationship.parent_offset()))
         {
-            for (auto& relationship : field.child_gaia_relationship_list())
-            {
-                if (metadata.find_child_relationship(relationship.parent_offset()))
-                {
-                    continue;
-                }
-
-                gaia_table_t parent_table = relationship.parent_gaia_table();
-
-                auto rel = make_shared<relationship_t>(relationship_t{
-                    .parent_type = static_cast<gaia_type_t>(parent_table.gaia_id()),
-                    .child_type = static_cast<gaia_type_t>(child_table.gaia_id()),
-                    .first_child_offset = relationship.first_child_offset(),
-                    .next_child_offset = relationship.next_child_offset(),
-                    .parent_offset = relationship.parent_offset(),
-                    .cardinality = cardinality_t::many,
-                    .parent_required = false});
-
-                auto& parent_meta = get_or_create_no_lock(parent_table.gaia_id());
-                parent_meta.add_parent_relationship(relationship.first_child_offset(), rel);
-
-                metadata.add_child_relationship(relationship.parent_offset(), rel);
-            }
+            continue;
         }
+
+        gaia_table_t parent_table = relationship.parent_gaia_table();
+
+        auto rel = make_shared<relationship_t>(relationship_t{
+            .parent_type = static_cast<gaia_type_t>(parent_table.gaia_id()),
+            .child_type = static_cast<gaia_type_t>(child_table.gaia_id()),
+            .first_child_offset = relationship.first_child_offset(),
+            .next_child_offset = relationship.next_child_offset(),
+            .parent_offset = relationship.parent_offset(),
+            .cardinality = cardinality_t::many,
+            .parent_required = false});
+
+        auto& parent_meta = get_or_create_no_lock(parent_table.gaia_id());
+        parent_meta.add_parent_relationship(relationship.first_child_offset(), rel);
+
+        metadata.add_child_relationship(relationship.parent_offset(), rel);
     }
 
     metadata.mark_as_initialized();

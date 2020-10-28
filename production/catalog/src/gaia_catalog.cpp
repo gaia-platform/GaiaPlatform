@@ -95,13 +95,10 @@ vector<gaia_id_t> list_child_relationships(gaia_id_t table_id)
 {
     vector<gaia_id_t> relationships;
 
-    for (gaia_id_t ref_id : list_references(table_id))
+    for (const gaia_relationship_t& child_relationship :
+         gaia_table_t::get(table_id).child_gaia_relationship_list())
     {
-        for (const gaia_relationship_t& child_relationship :
-             gaia_field_t::get(ref_id).child_gaia_relationship_list())
-        {
-            relationships.push_back(child_relationship.gaia_id());
-        }
+        relationships.push_back(child_relationship.gaia_id());
     }
 
     return relationships;
