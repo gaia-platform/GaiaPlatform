@@ -108,11 +108,8 @@ void ddl_executor_t::bootstrap_catalog()
         // );
 
         field_def_list_t fields;
-        // TODO since we have pointers on both sides of the relationship and we generate the relationship field in the parent in EDC, I believe we should
-        //  explicitly track the relationship on the parent side too. This will also come in handy to customize the generated EDC:
-        //  - table_t::gaia_field_list() which is arguably ugly could be table_t::fields()
-        //  - database_t::gaia_table_list() which is arguably ugly could be database_t::fields()
-        //  I will remove this comment and create a JIRA before pushing the code.
+
+        // TODO the relationship should be between 2 tables and not between 1 table and one field.
         fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<field_definition_t>("parent", data_type_t::e_references, 1, "catalog.gaia_table"));
         fields.emplace_back(make_unique<field_definition_t>("child", data_type_t::e_references, 1, "catalog.gaia_field"));
@@ -126,7 +123,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<field_definition_t>("next_child_offset", data_type_t::e_uint8, 1));
         // (child)-[parent_offset]->(parent)
         fields.emplace_back(make_unique<field_definition_t>("parent_offset", data_type_t::e_uint8, 1));
-        create_table_impl("catalog", "gaia_relationship", fields, false, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_relationship));
+        create_table_impl("catalog", "gaia_relationship", fields, true, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_relationship));
     }
     {
         // create table gaia_ruleset (
@@ -298,7 +295,9 @@ void ddl_executor_t::drop_relationships_no_txn(gaia_id_t table_id, bool enforce_
             continue;
         }
 
-        // The link with the children still exists, and it is not a self-reference, fail.
+        // Cannot drop a parent relationship the link with the children still exists,
+        // and it is not a self-reference. In a self-reference relationship the same table
+        // is both parent and child, thus you can delete it.
         if (relationship.child_gaia_field()
             && (relationship.child_gaia_field().gaia_table().gaia_id() != table_id))
         {
@@ -316,7 +315,7 @@ void ddl_executor_t::drop_relationships_no_txn(gaia_id_t table_id, bool enforce_
         drop_relationship_no_ri(relationship);
     }
 
-    // unlink the child side of the relationship
+    // Unlink the child side of the relationship.
     for (gaia_id_t relationship_id : list_child_relationships(table_id))
     {
         auto relationship = gaia_relationship_t::get(relationship_id);
@@ -438,43 +437,52 @@ void ddl_executor_t::drop_table(const string& db_name, const string& name)
     m_table_names.erase(full_table_name);
 }
 
-/**
- * Find the next available offset in a container of relationship_t.
- * relationship_t contain the offset for both parent and child
- * side of the relationship, for this reason you need to specify
- * what side of the relationship you are considering.
- */
-template <typename T_relationship_container>
-uint8_t find_available_offset(T_relationship_container& relationships, bool parent)
+template <typename T_parent_relationships>
+uint8_t ddl_executor_t::find_available_parent_offset(T_parent_relationships& relationships)
 {
-    uint8_t max_offset{0};
+    uint8_t max_offset = 0;
 
     if (relationships.begin() != relationships.end())
     {
-
         for (const auto& relationship : relationships)
         {
-            if (parent)
-            {
-                max_offset = std::max(max_offset, relationship.first_child_offset());
-            }
-            else
-            {
-                max_offset = std::max(
-                    max_offset,
-                    std::max(relationship.next_child_offset(), relationship.parent_offset()));
-            }
+            max_offset = std::max(max_offset, relationship.first_child_offset());
         }
 
+        // max_offset is currently positioned to the "higher" offset.
+        // It has to be increased by one to point to the first available offset.
         max_offset++;
     }
 
     return max_offset;
 }
 
-uint8_t find_available_offset(gaia_table_t& table)
+template <typename T_child_relationships>
+uint8_t ddl_executor_t::find_available_child_offset(T_child_relationships& relationships)
 {
-    uint8_t max_offset{0};
+    uint8_t max_offset = 0;
+
+    if (relationships.begin() != relationships.end())
+    {
+        for (const auto& relationship : relationships)
+        {
+            max_offset = std::max(
+                max_offset,
+                std::max(relationship.next_child_offset(), relationship.parent_offset()));
+        }
+
+        // max_offset is currently positioned to the "higher" offset.
+        // It has to be increased by one to point to the first available offset.
+        max_offset++;
+    }
+
+    return max_offset;
+}
+
+uint8_t ddl_executor_t::find_available_offset(gaia::common::gaia_id_t table_id)
+{
+    uint8_t max_offset = 0;
+    gaia_table_t table = gaia_table_t::get(table_id);
 
     // Scan child relationships.
     for (auto field : table.gaia_field_list())
@@ -483,14 +491,14 @@ uint8_t find_available_offset(gaia_table_t& table)
         {
             max_offset = std::max(
                 max_offset,
-                find_available_offset(field.child_gaia_relationship_list(), false));
+                find_available_child_offset(field.child_gaia_relationship_list()));
         }
     }
 
     // Scan parent relationships.
     return std::max(
         max_offset,
-        find_available_offset(table.parent_gaia_relationship_list(), true));
+        find_available_parent_offset(table.parent_gaia_relationship_list()));
 }
 
 gaia_id_t ddl_executor_t::create_table_impl(
@@ -514,7 +522,6 @@ gaia_id_t ddl_executor_t::create_table_impl(
 
     if (m_table_names.find(full_table_name) != m_table_names.end())
     {
-        gaia_log::catalog().debug("Table '{}' already exists", full_table_name);
         if (throw_on_exist)
         {
             throw table_already_exists(full_table_name);
@@ -610,17 +617,17 @@ gaia_id_t ddl_executor_t::create_table_impl(
             // Connect the referred table to the reference field.
             parent_table.ref_gaia_field_list().insert(field_id);
 
-            uint8_t parent_available_offset = find_available_offset(parent_table);
-            uint8_t child_max_offset = find_available_offset(table);
+            uint8_t parent_available_offset = find_available_offset(parent_table.gaia_id());
+            uint8_t child_max_offset = find_available_offset(table.gaia_id());
 
             gaia_id_t relationship_id = gaia_relationship_t::insert_row(
                 child_field.name(), // name
-                static_cast<uint8_t>(2), // cardinality
+                static_cast<uint8_t>(cardinality_t::many), // cardinality
                 false, // parent_required
                 false, // deprecated
-                static_cast<uint8_t>(parent_available_offset), // first_child_offset
-                static_cast<uint8_t>(child_max_offset), // next_child_offset
-                static_cast<uint8_t>(child_max_offset + uint8_t{1}) // parent_offset
+                parent_available_offset, // first_child_offset
+                child_max_offset, // next_child_offset
+                uint8_t(child_max_offset + 1) // parent_offset
             );
             auto rel = gaia_relationship_t::get(relationship_id);
 
@@ -676,35 +683,6 @@ string ddl_executor_t::get_full_table_name(const string& db, const string& table
     {
         return db + c_db_table_name_connector + table;
     }
-}
-
-vector<gaia_id_t> ddl_executor_t::list_child_relationships(gaia_id_t table_id) const
-{
-    vector<gaia_id_t> relationships;
-
-    for (gaia_id_t ref_id : list_references(table_id))
-    {
-        for (const gaia_relationship_t& child_relationship :
-             gaia_field_t::get(ref_id).child_gaia_relationship_list())
-        {
-            relationships.push_back(child_relationship.gaia_id());
-        }
-    }
-
-    return relationships;
-}
-
-vector<gaia_id_t> ddl_executor_t::list_parent_relationships(gaia_id_t table_id) const
-{
-    vector<gaia_id_t> relationships;
-
-    for (const gaia_relationship_t& parent_relationship :
-         gaia_table_t::get(table_id).parent_gaia_relationship_list())
-    {
-        relationships.push_back(parent_relationship.gaia_id());
-    }
-
-    return relationships;
 }
 
 } // namespace catalog

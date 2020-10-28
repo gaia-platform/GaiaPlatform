@@ -98,6 +98,16 @@ enum value_index_type_t : uint8_t
     range
 };
 
+
+/*
+ * Cardinality of a relationship
+ */
+enum cardinality_t : uint8_t
+{
+    one,
+    many
+};
+
 namespace ddl
 {
 /**
@@ -403,6 +413,24 @@ vector<gaia::common::gaia_id_t> list_fields(gaia::common::gaia_id_t table_id);
  * @return a list of ids of the table references in the order of their positions.
  */
 vector<gaia::common::gaia_id_t> list_references(gaia::common::gaia_id_t table_id);
+
+/**
+ * List all the tables that have a relationship with the given table where the
+ * given table is the parent side of the relationship.
+ *
+ * @param table_id id of the table
+ * @return a list of ids of the tables that have a child relationship with this table.
+ */
+vector<gaia::common::gaia_id_t> list_parent_relationships(gaia::common::gaia_id_t table_id);
+
+/**
+ * List all the tables that have a relationship with the given table where the
+ * given table is the child side of the relationship.
+ *
+ * @param table_id id of the table
+ * @return a list of ids of the tables that have a parent relationship with this table.
+ */
+vector<gaia::common::gaia_id_t> list_child_relationships(gaia::common::gaia_id_t table_id);
 
 /**
  * Generate FlatBuffers schema (fbs) for a catalog table.

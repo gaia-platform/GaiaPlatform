@@ -27,8 +27,8 @@ namespace db
 /**
  * Contains metadata about a specific gaia type.
  *
- * Notes on concurrency: We do not expect the schema to be changed at runtime
- * yet. This structure though, can be change at runtime (possibly in by multiple
+ * Notes on concurrency: We do not expect the schema change at runtime yet.
+ * This structure though, can change at runtime (possibly by multiple
  * threads) because it is lazy loaded by the type_registry_t.
  */
 class type_metadata_t
@@ -94,7 +94,7 @@ public:
     explicit duplicate_metadata(const gaia_type_t type)
     {
         stringstream message;
-        message << "Metadata already existent for Gaia type \"" << type << "\"";
+        message << "Metadata already existent for Gaia type \"" << type << "\".";
         m_message = message.str();
     }
 };
@@ -105,7 +105,7 @@ public:
     explicit metadata_not_found(const gaia_type_t type)
     {
         stringstream message;
-        message << "Metadata does not exist for Gaia type \"" << type << "\"";
+        message << "Metadata does not exist for Gaia type \"" << type << "\".";
         m_message = message.str();
     }
 };
@@ -183,6 +183,7 @@ private:
 
     /**
      * Initialize the registry by adding all the system tables (gaia_table, gaia_field, etc..)
+     * avoiding failures when such tables are inserted in the catalog.
      */
     void init();
 

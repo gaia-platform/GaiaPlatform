@@ -33,7 +33,6 @@ gaia_ptr gaia_ptr::create(gaia_type_t type, size_t data_size, const void* data)
 
 gaia_ptr gaia_ptr::create(gaia_id_t id, gaia_type_t type, size_t data_size, const void* data)
 {
-
     auto& metadata = type_registry_t::instance().get(type);
     size_t num_references = metadata.num_references();
 
@@ -44,6 +43,9 @@ gaia_ptr gaia_ptr::create(gaia_id_t id, gaia_type_t type, size_t num_refs, size_
 {
     size_t refs_len = num_refs * sizeof(gaia_id_t);
     size_t total_len = data_size + refs_len;
+    // TODO this constructor allows creating a gaia_ptr in an invalid state
+    //  the gaia_se_object_t should either be initialized before and passed in
+    //  or initialized inside the constructor.
     gaia_ptr obj(id, total_len + sizeof(gaia_se_object_t));
     gaia_se_object_t* obj_ptr = obj.to_ptr();
     obj_ptr->id = id;

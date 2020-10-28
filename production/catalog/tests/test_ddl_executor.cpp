@@ -395,14 +395,14 @@ TEST_F(ddl_executor_test, create_relationships)
     // (clinic) 1 --> N (doctor) 1 --> N (patient) N <-- 1 (clinic)
 
     gaia_id_t clinic_table_id
-        = table_buildr_t::new_table("clinic")
+        = table_builder_t::new_table("clinic")
               .database("hospital")
               .field("name", data_type_t::e_string)
               .field("location", data_type_t::e_string)
               .create();
 
     gaia_id_t doctor_table_id
-        = table_buildr_t::new_table("doctor")
+        = table_builder_t::new_table("doctor")
               .database("hospital")
               .field("name", data_type_t::e_string)
               .field("surname", data_type_t::e_string)
@@ -410,7 +410,7 @@ TEST_F(ddl_executor_test, create_relationships)
               .create();
 
     gaia_id_t patient_table_id
-        = table_buildr_t::new_table("patient")
+        = table_builder_t::new_table("patient")
               .database("hospital")
               .field("name", data_type_t::e_string)
               .reference("doctor", "hospital.doctor")
@@ -493,12 +493,12 @@ TEST_F(ddl_executor_test, create_anonymous_relationships)
     // (clinic) 1 -[anonymous]-> N (doctor)
 
     gaia_id_t clinic_table_id
-        = table_buildr_t::new_table("clinic")
+        = table_builder_t::new_table("clinic")
               .database("hospital")
               .create();
 
     gaia_id_t doctor_table_id
-        = table_buildr_t::new_table("doctor")
+        = table_builder_t::new_table("doctor")
               .database("hospital")
               .reference("hospital.clinic")
               .create();
@@ -519,7 +519,7 @@ TEST_F(ddl_executor_test, create_self_relationships)
     // (doctor) 1 -[anonymous]-> N (doctor)
 
     gaia_id_t doctor_table_id
-        = table_buildr_t::new_table("doctor")
+        = table_builder_t::new_table("doctor")
               .database("hospital")
               .reference("self", "hospital.doctor")
               .create();
@@ -541,14 +541,14 @@ TEST_F(ddl_executor_test, metadata)
     // (clinic) 1 --> N (doctor) 1 --> N (patient) N <-- 1 (clinic)
 
     gaia_id_t clinic_table_id
-        = table_buildr_t::new_table("clinic")
+        = table_builder_t::new_table("clinic")
               .database("hospital")
               .field("name", data_type_t::e_string)
               .field("location", data_type_t::e_string)
               .create();
 
     gaia_id_t doctor_table_id
-        = table_buildr_t::new_table("doctor")
+        = table_builder_t::new_table("doctor")
               .database("hospital")
               .field("name", data_type_t::e_string)
               .field("surname", data_type_t::e_string)
@@ -556,7 +556,7 @@ TEST_F(ddl_executor_test, metadata)
               .create();
 
     gaia_id_t patient_table_id
-        = table_buildr_t::new_table("patient")
+        = table_builder_t::new_table("patient")
               .database("hospital")
               .field("name", data_type_t::e_string)
               .reference("doctor", "hospital.doctor")

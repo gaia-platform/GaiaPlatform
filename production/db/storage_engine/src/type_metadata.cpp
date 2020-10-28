@@ -5,7 +5,7 @@
 
 #include "type_metadata.hpp"
 
-#include <mutex>
+#include <shared_mutex>
 
 #include "gaia_catalog.h"
 #include "gaia_catalog.hpp"
@@ -56,14 +56,14 @@ optional<relationship_t> type_metadata_t::find_child_relationship(reference_offs
 
 void type_metadata_t::add_parent_relationship(reference_offset_t first_child, const shared_ptr<relationship_t>& relationship)
 {
-    scoped_lock lock(m_metadata_lock);
+    unique_lock lock(m_metadata_lock);
 
     m_parent_relationships.insert({first_child, relationship});
 }
 
 void type_metadata_t::add_child_relationship(reference_offset_t parent, const shared_ptr<relationship_t>& relationship)
 {
-    scoped_lock lock(m_metadata_lock);
+    unique_lock lock(m_metadata_lock);
 
     m_child_relationships.insert({parent, relationship});
 }
@@ -119,7 +119,7 @@ bool type_registry_t::exists(gaia_type_t type) const
 
 const type_metadata_t& type_registry_t::get(gaia_type_t type)
 {
-    scoped_lock lock(m_registry_lock);
+    unique_lock lock(m_registry_lock);
     auto it = m_metadata_registry.find(type);
 
     if (it != m_metadata_registry.end() && it->second->is_initialized())

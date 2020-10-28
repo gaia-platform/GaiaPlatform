@@ -45,8 +45,6 @@ public:
 
     gaia::common::gaia_id_t find_db_id(const string& dbname) const;
     gaia::common::gaia_id_t find_table_id(gaia_type_t) const;
-    vector<gaia::common::gaia_id_t> list_parent_relationships(gaia::common::gaia_id_t table_id) const;
-    vector<gaia::common::gaia_id_t> list_child_relationships(gaia::common::gaia_id_t table_id) const;
 
 private:
     // Only internal static creation is allowed
@@ -98,6 +96,17 @@ private:
 
     // Get the full name for a table composed of db and table names.
     static inline string get_full_table_name(const string& db, const string& table);
+
+    // Find the next available offset in a container parent relationships
+    template <typename T_parent_relationships>
+    uint8_t find_available_parent_offset(T_parent_relationships& relationships);
+
+    // Find the next available offset in a container child relationships
+    template <typename T_child_relationships>
+    uint8_t find_available_child_offset(T_child_relationships& relationships);
+
+    // Find the next available offset in the relationships of the given table
+    uint8_t find_available_offset(gaia::common::gaia_id_t table);
 
     // Maintain some in-memory cache for fast lookup.
     // This is only intended for single process usage.

@@ -88,17 +88,17 @@ public:
     {
         if (m_parent_type == INVALID_GAIA_TYPE)
         {
-            throw invalid_argument("parent_type must be set");
+            throw invalid_argument("parent_type must be set!");
         }
 
         if (m_child_type == INVALID_GAIA_TYPE)
         {
-            throw invalid_argument("child_type must be set");
+            throw invalid_argument("child_type must be set!");
         }
 
         if (m_cardinality == cardinality_t::not_set)
         {
-            throw invalid_argument("cardinality must be set");
+            throw invalid_argument("cardinality must be set!");
         }
 
         auto rel = make_shared<relationship_t>(relationship_t{

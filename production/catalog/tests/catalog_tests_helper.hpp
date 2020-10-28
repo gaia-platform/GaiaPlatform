@@ -17,47 +17,47 @@ using gaia::catalog::ddl::field_definition_t;
 /**
  * Facilitate the creation of tables.
  */
-class table_buildr_t
+class table_builder_t
 {
 public:
-    static table_buildr_t new_table(const std::string& table_name)
+    static table_builder_t new_table(const std::string& table_name)
     {
-        auto builder = table_buildr_t();
+        auto builder = table_builder_t();
         builder.m_table_name = table_name;
         return builder;
     }
 
-    table_buildr_t& database(const std::string& name)
+    table_builder_t& database(const std::string& name)
     {
         m_db_name = name;
         return *this;
     }
 
-    table_buildr_t& table(const std::string& name)
+    table_builder_t& table(const std::string& name)
     {
         m_table_name = name;
         return *this;
     }
 
-    table_buildr_t& field(const std::string& field_name, data_type_t data_type)
+    table_builder_t& field(const std::string& field_name, data_type_t data_type)
     {
         m_fields.emplace_back(field_name, data_type);
         return *this;
     }
 
-    table_buildr_t& reference(const std::string& field_name, const std::string& referenced_table_name)
+    table_builder_t& reference(const std::string& field_name, const std::string& referenced_table_name)
     {
         m_references.emplace_back(field_name, referenced_table_name);
         return *this;
     }
 
-    table_buildr_t& reference(const std::string& referenced_table_name)
+    table_builder_t& reference(const std::string& referenced_table_name)
     {
         m_references.emplace_back("", referenced_table_name);
         return *this;
     }
 
-    table_buildr_t& fail_on_exists(bool fail_on_exists)
+    table_builder_t& fail_on_exists(bool fail_on_exists)
     {
         m_fail_on_exists = fail_on_exists;
         return *this;
@@ -69,7 +69,7 @@ public:
 
         if (m_table_name.empty())
         {
-            throw invalid_argument("table_name must be set");
+            throw invalid_argument("table_name must be set!");
         }
 
         for (const auto& field : m_fields)
@@ -91,8 +91,8 @@ public:
     }
 
 private:
-    std::string m_table_name{""};
-    std::string m_db_name{""};
+    std::string m_table_name{};
+    std::string m_db_name{};
     std::vector<std::pair<std::string, data_type_t>> m_fields{};
     std::vector<std::pair<std::string, std::string>> m_references{};
     bool m_fail_on_exists = false;
