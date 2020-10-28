@@ -10,7 +10,6 @@
 #include "gaia_catalog.h"
 #include "gaia_exception.hpp"
 #include "json_generator.hpp"
-#include "logger.hpp"
 #include "retail_assert.hpp"
 #include "system_table_types.hpp"
 
