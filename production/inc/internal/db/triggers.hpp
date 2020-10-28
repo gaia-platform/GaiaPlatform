@@ -30,7 +30,7 @@ struct trigger_event_t
 {
     event_type_t event_type;
 
-    // Can 0 if event has no associated tables.
+    // Can be 0 if event has no associated tables.
     gaia_type_t gaia_type;
 
     // Can be 0 if if there is no associated row id.

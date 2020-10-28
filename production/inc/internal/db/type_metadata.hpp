@@ -33,6 +33,8 @@ namespace db
  */
 class type_metadata_t
 {
+    friend class type_registry_t;
+
 public:
     explicit type_metadata_t(gaia_type_t type)
         : m_type(type), m_initialized(false){};
@@ -50,7 +52,7 @@ public:
     optional<relationship_t> find_child_relationship(reference_offset_t parent_offset) const;
 
     /**
-     * Counts the number of reference this type has both as parent and child.
+     * The number of references this type has both as parent and child.
      * Note: child references count 2X, since 2 pointers are necessary to express them.
      */
     size_t num_references() const;
@@ -77,15 +79,14 @@ private:
     // to avoid traversing the entire dependency graph when modeling relationships.
     std::atomic_bool m_initialized;
 
+    mutable shared_mutex m_metadata_lock;
+
     // The relationship_t objects are shared between the parent and the child side of the relationship.
     unordered_map<reference_offset_t, shared_ptr<relationship_t>> m_parent_relationships;
     unordered_map<reference_offset_t, shared_ptr<relationship_t>> m_child_relationships;
 
-    mutable shared_mutex m_metadata_lock;
-
-    friend class type_registry_t;
     bool is_initialized();
-    void set_initialized();
+    void mark_as_initialized();
 };
 
 class duplicate_metadata : public gaia_exception
@@ -122,7 +123,7 @@ public:
 };
 
 /**
- * Creates and maintain the instances of type_metadata_t and manages their lifecycle.
+ * Creates and maintains the instances of type_metadata_t and manages their lifecycle.
  * Instances of type_metadata_t are lazily created the first time the corresponding
  * gaia_type_t is accessed.
  *
@@ -160,7 +161,7 @@ public:
     // TESTING
 
     /**
-     * FOR TESTING. Allow cleaning the registry between tests.
+     * FOR TESTING. Allows cleaning the registry between tests.
      * Calls init().
      */
     void clear();
@@ -182,7 +183,7 @@ private:
     mutable shared_mutex m_registry_lock;
 
     /**
-     * Initialize the registry by adding all the system tables (gaia_table, gaia_field, etc..)
+     * Initializes the registry by adding all the system tables (gaia_table, gaia_field, etc..)
      * avoiding failures when such tables are inserted in the catalog.
      */
     void init();

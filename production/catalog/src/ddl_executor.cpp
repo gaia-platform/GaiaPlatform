@@ -333,9 +333,9 @@ void ddl_executor_t::drop_relationships_no_txn(gaia_id_t table_id, bool enforce_
         if (relationship.parent_gaia_table())
         {
             // Mark the relationship as deprecated.
-            auto rel_writer = relationship.writer();
-            rel_writer.deprecated = true;
-            rel_writer.update_row();
+            auto writer = relationship.writer();
+            writer.deprecated = true;
+            writer.update_row();
 
             // Unlink the child side of the relationship.
             relationship.child_gaia_field()
@@ -438,7 +438,7 @@ void ddl_executor_t::drop_table(const string& db_name, const string& name)
 }
 
 template <typename T_parent_relationships>
-uint8_t ddl_executor_t::find_available_parent_offset(T_parent_relationships& relationships)
+uint8_t ddl_executor_t::find_parent_available_offset(T_parent_relationships& relationships)
 {
     uint8_t max_offset = 0;
 
@@ -458,7 +458,7 @@ uint8_t ddl_executor_t::find_available_parent_offset(T_parent_relationships& rel
 }
 
 template <typename T_child_relationships>
-uint8_t ddl_executor_t::find_available_child_offset(T_child_relationships& relationships)
+uint8_t ddl_executor_t::find_child_available_offset(T_child_relationships& relationships)
 {
     uint8_t max_offset = 0;
 
@@ -491,14 +491,14 @@ uint8_t ddl_executor_t::find_available_offset(gaia::common::gaia_id_t table_id)
         {
             max_offset = std::max(
                 max_offset,
-                find_available_child_offset(field.child_gaia_relationship_list()));
+                find_child_available_offset(field.child_gaia_relationship_list()));
         }
     }
 
     // Scan parent relationships.
     return std::max(
         max_offset,
-        find_available_parent_offset(table.parent_gaia_relationship_list()));
+        find_parent_available_offset(table.parent_gaia_relationship_list()));
 }
 
 gaia_id_t ddl_executor_t::create_table_impl(

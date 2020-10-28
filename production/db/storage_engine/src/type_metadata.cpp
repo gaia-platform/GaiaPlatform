@@ -85,7 +85,7 @@ bool type_metadata_t::is_initialized()
     return m_initialized;
 }
 
-void type_metadata_t::set_initialized()
+void type_metadata_t::mark_as_initialized()
 {
     m_initialized.store(true);
 }
@@ -139,7 +139,7 @@ void type_registry_t::clear()
 type_metadata_t& type_registry_t::test_get_or_create(gaia_type_t type)
 {
     auto& metadata = get_or_create_no_lock(type);
-    metadata.set_initialized();
+    metadata.mark_as_initialized();
     return metadata;
 }
 
@@ -184,7 +184,7 @@ type_metadata_t& type_registry_t::create(gaia_type_t type)
         }
     }
 
-    metadata.set_initialized();
+    metadata.mark_as_initialized();
     return metadata;
 }
 
