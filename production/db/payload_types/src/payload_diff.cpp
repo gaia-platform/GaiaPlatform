@@ -9,10 +9,10 @@
 #include <vector>
 
 #include "auto_transaction.hpp"
+#include "catalog_view.hpp"
 #include "data_holder.hpp"
 #include "field_access.hpp"
 #include "gaia_common.hpp"
-#include "gaia_se_catalog.hpp"
 #include "retail_assert.hpp"
 #include "system_table_types.hpp"
 #include "type_cache.hpp"

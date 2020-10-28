@@ -2,14 +2,14 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
-#include "gaia_se_catalog.hpp"
+#include "catalog_view.hpp"
 
 #include <optional>
 
 #include "flatbuffers/reflection.h"
-#include "flatbuffers_helpers.hpp"
 
 #include "db_types.hpp"
+#include "flatbuffers_helpers.hpp"
 #include "gaia_common.hpp"
 #include "gaia_db.hpp"
 #include "gaia_field_generated.h"

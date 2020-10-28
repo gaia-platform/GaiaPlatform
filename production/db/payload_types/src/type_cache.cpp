@@ -5,7 +5,7 @@
 
 #include "type_cache.hpp"
 
-#include "gaia_se_catalog.hpp"
+#include "catalog_view.hpp"
 #include "retail_assert.hpp"
 
 using namespace std;
