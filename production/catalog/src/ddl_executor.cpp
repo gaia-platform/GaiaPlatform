@@ -613,7 +613,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
 
             gaia_id_t relationship_id = gaia_relationship_t::insert_row(
                 child_field.name(), // name
-                static_cast<uint8_t>(cardinality_t::many), // cardinality
+                static_cast<uint8_t>(relationship_cardinality_t::many), // cardinality
                 false, // parent_required
                 false, // deprecated
                 parent_available_offset, // first_child_offset

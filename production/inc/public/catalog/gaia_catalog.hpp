@@ -102,7 +102,7 @@ enum value_index_type_t : uint8_t
 /*
  * Cardinality of a relationship
  */
-enum cardinality_t : uint8_t
+enum relationship_cardinality_t : uint8_t
 {
     one,
     many
