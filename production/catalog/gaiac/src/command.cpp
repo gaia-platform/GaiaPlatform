@@ -4,14 +4,12 @@
 /////////////////////////////////////////////
 #include "command.hpp"
 
-#include <algorithm>
 #include <functional>
 #include <queue>
 
-#include "flatbuffers/idl.h"
-
 #include "gaia_catalog.h"
 #include "gaia_catalog.hpp"
+#include "retail_assert.hpp"
 #include "tabulate/table.hpp"
 
 using namespace gaia::catalog;
@@ -182,7 +180,7 @@ void describe_table(const string& name)
         {
             throw table_not_exists(name);
         }
-        for (auto field : gaia_table_t::get(table_id).gaia_field_list())
+        for (auto& field : gaia_table_t::get(table_id).gaia_field_list())
         {
             if (field.type() != static_cast<uint8_t>(data_type_t::e_references))
             {

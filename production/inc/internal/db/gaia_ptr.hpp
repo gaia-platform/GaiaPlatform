@@ -5,16 +5,9 @@
 
 #pragma once
 
-#include <cstring>
-
-#include <iostream>
-
 #include "db_types.hpp"
-#include "gaia_db.hpp"
 #include "gaia_se_object.hpp"
 #include "generator_iterator.hpp"
-#include "retail_assert.hpp"
-#include "type_metadata.hpp"
 
 using namespace gaia::common;
 
@@ -43,7 +36,7 @@ public:
         return to_ptr() != nullptr;
     }
 
-    operator bool() const
+    explicit operator bool() const
     {
         return to_ptr() != nullptr;
     }
@@ -53,52 +46,20 @@ public:
     static gaia_ptr create(
         gaia_type_t type,
         size_t data_size,
-        const void* data)
-    {
-
-        gaia_id_t id = gaia_ptr::generate_id();
-        auto metadata = type_registry_t::instance().get_or_create(type);
-        size_t num_references = metadata.num_references();
-
-        return create(id, type, num_references, data_size, data);
-    }
+        const void* data);
 
     static gaia_ptr create(
         gaia_id_t id,
         gaia_type_t type,
         size_t data_size,
-        const void* data)
-    {
-
-        auto metadata = type_registry_t::instance().get_or_create(type);
-        size_t num_references = metadata.num_references();
-
-        return create(id, type, num_references, data_size, data);
-    }
+        const void* data);
 
     static gaia_ptr create(
         gaia_id_t id,
         gaia_type_t type,
         size_t num_refs,
         size_t data_size,
-        const void* data)
-    {
-        size_t refs_len = num_refs * sizeof(gaia_id_t);
-        size_t total_len = data_size + refs_len;
-        gaia_ptr obj(id, total_len + sizeof(gaia_se_object_t));
-        gaia_se_object_t* obj_ptr = obj.to_ptr();
-        obj_ptr->id = id;
-        obj_ptr->type = type;
-        obj_ptr->num_references = num_refs;
-        if (num_refs)
-        {
-            memset(obj_ptr->payload, 0, refs_len);
-        }
-        obj_ptr->payload_size = total_len;
-        memcpy(obj_ptr->payload + refs_len, data, data_size);
-        obj.create_insert_trigger(type, id);
-        return obj;
-    }
+        const void* data);
 
     static gaia_ptr open(
         gaia_id_t id)
@@ -106,23 +67,8 @@ public:
         return gaia_ptr(id);
     }
 
-    static void remove(gaia_ptr& node)
-    {
-        if (!node)
-        {
-            return;
-        }
-
-        const gaia_id_t* references = node.references();
-        for (size_t i = 0; i < node.num_references(); i++)
-        {
-            if (references[i] != INVALID_GAIA_ID)
-            {
-                throw node_not_disconnected(node.id(), node.type());
-            }
-        }
-        node.reset();
-    }
+    // TODO this should either accept a gaia_id_t or be an instance method.
+    static void remove(gaia_ptr& node);
 
     gaia_ptr& clone();
 
@@ -200,7 +146,7 @@ public:
 
     char* data() const
     {
-        return data_size() ? (char*)(to_ptr()->payload + (to_ptr()->num_references * sizeof(gaia_id_t))) : nullptr;
+        return data_size() ? (to_ptr()->payload + (to_ptr()->num_references * sizeof(gaia_id_t))) : nullptr;
     }
 
     size_t data_size() const

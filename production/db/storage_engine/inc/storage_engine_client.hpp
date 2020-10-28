@@ -113,7 +113,7 @@ private:
     static inline bool is_valid_event(gaia_type_t type)
     {
         return (s_txn_commit_trigger
-                && (trigger_excluded_types.find(type) == trigger_excluded_types.end()));
+            && (trigger_excluded_types.find(type) == trigger_excluded_types.end()));
     }
 
     static inline void verify_txn_active()

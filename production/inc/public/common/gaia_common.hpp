@@ -7,6 +7,7 @@
 
 #include <cstdint>
 
+#include <limits>
 #include <vector>
 
 namespace gaia
@@ -63,6 +64,7 @@ typedef std::vector<field_position_t> field_position_list_t;
  *
  * @see gaia::common::db::relationship_t
  */
+// TODO this should be changed to uint8_t to match the Catalog (or vice-versa)
 typedef uint16_t reference_offset_t;
 
 /*@}*/

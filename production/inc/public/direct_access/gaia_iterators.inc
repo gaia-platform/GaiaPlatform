@@ -192,7 +192,7 @@ void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot,
         return;
     }
 
-    // Cannot connect a child object that is already connected to a differrent parent.
+    // Cannot connect a child object that is already connected to a different parent.
     if (child_ptr.references()[T_parent_slot] != 0 && child_ptr.references()[T_parent_slot] != oid)
     {
         T_parent expected = T_parent::get(0);

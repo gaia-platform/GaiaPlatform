@@ -5,7 +5,7 @@
 
 #include "gtest/gtest.h"
 
-#include "relations_test_util.h"
+#include "se_test_util.hpp"
 #include "type_metadata.hpp"
 
 using namespace std;
@@ -21,10 +21,16 @@ class gaia_relationships_test : public ::testing::Test
     }
 };
 
-TEST_F(gaia_relationships_test, registry_creates_metadata_when_type_does_not_exist)
+// simone: I tried overloading the operator == with no success.
+bool compare_relationships(const relationship_t& lhs, const relationship_t& rhs)
 {
-    auto metadata = type_registry_t::instance().get_or_create(c_non_existent_type);
-    ASSERT_EQ(metadata.get_type(), c_non_existent_type);
+    return lhs.parent_type == rhs.parent_type
+        && lhs.child_type == rhs.child_type
+        && lhs.first_child_offset == rhs.first_child_offset
+        && lhs.next_child_offset == rhs.next_child_offset
+        && lhs.parent_offset == rhs.parent_offset
+        && lhs.cardinality == rhs.cardinality
+        && lhs.parent_required == rhs.parent_required;
 }
 
 TEST_F(gaia_relationships_test, metadata_one_to_many)
@@ -36,8 +42,8 @@ TEST_F(gaia_relationships_test, metadata_one_to_many)
         .child(c_patient_type)
         .create_relationship();
 
-    auto& parent = test_registry.get_or_create(c_doctor_type);
-    auto& child = test_registry.get_or_create(c_patient_type);
+    auto& parent = test_registry.get(c_doctor_type);
+    auto& child = test_registry.get(c_patient_type);
 
     ASSERT_EQ(parent.get_type(), c_doctor_type);
     ASSERT_EQ(child.get_type(), c_patient_type);
@@ -46,13 +52,13 @@ TEST_F(gaia_relationships_test, metadata_one_to_many)
     ASSERT_EQ(child.num_references(), 2);
 
     auto parent_rel = parent.find_parent_relationship(c_first_patient_offset);
-    ASSERT_TRUE(parent_rel != nullptr);
+    ASSERT_TRUE(parent_rel.has_value());
 
     auto child_rel = child.find_child_relationship(c_parent_doctor_offset);
-    ASSERT_TRUE(child_rel != nullptr);
+    ASSERT_TRUE(child_rel.has_value());
 
     // Parent and child should be sharing the same relation.
-    ASSERT_EQ(parent_rel, child_rel);
+    ASSERT_TRUE(compare_relationships(*parent_rel, *child_rel));
 
     ASSERT_EQ(parent_rel->parent_type, c_doctor_type);
     ASSERT_EQ(parent_rel->child_type, c_patient_type);
@@ -72,8 +78,8 @@ TEST_F(gaia_relationships_test, metadata_one_to_one)
         .child(c_patient_type)
         .create_relationship();
 
-    auto parent = test_registry.get_or_create(c_doctor_type);
-    auto child = test_registry.get_or_create(c_patient_type);
+    auto& parent = test_registry.get(c_doctor_type);
+    auto& child = test_registry.get(c_patient_type);
 
     ASSERT_EQ(parent.get_type(), c_doctor_type);
     ASSERT_EQ(child.get_type(), c_patient_type);
@@ -82,13 +88,13 @@ TEST_F(gaia_relationships_test, metadata_one_to_one)
     ASSERT_EQ(child.num_references(), 2);
 
     auto parent_rel = parent.find_parent_relationship(c_first_patient_offset);
-    ASSERT_TRUE(parent_rel != nullptr);
+    ASSERT_TRUE(parent_rel.has_value());
 
     auto child_rel = child.find_child_relationship(c_parent_doctor_offset);
-    ASSERT_TRUE(child_rel != nullptr);
+    ASSERT_TRUE(child_rel.has_value());
 
     // Parent and child should be sharing the same relation.
-    ASSERT_EQ(parent_rel, child_rel);
+    ASSERT_TRUE(compare_relationships(*parent_rel, *child_rel));
 
     ASSERT_EQ(parent_rel->parent_type, c_doctor_type);
     ASSERT_EQ(parent_rel->child_type, c_patient_type);
@@ -108,10 +114,10 @@ TEST_F(gaia_relationships_test, child_relation_do_not_use_next_child)
         .child(c_patient_type)
         .create_relationship();
 
-    auto child = test_registry.get_or_create(c_patient_type);
+    auto& child = test_registry.get(c_patient_type);
     // although next_patient offset exists in child, it is not the one used
     // to identify the relation
     auto child_rel = child.find_child_relationship(c_next_patient_offset);
 
-    ASSERT_TRUE(child_rel == nullptr);
+    ASSERT_FALSE(child_rel.has_value());
 }
