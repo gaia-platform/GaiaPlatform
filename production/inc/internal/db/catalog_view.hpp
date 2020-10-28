@@ -18,9 +18,9 @@ namespace gaia
 namespace db
 {
 
-struct gaia_catalog_obj_view_t
+struct catalog_obj_view_t
 {
-    explicit gaia_catalog_obj_view_t(const gaia_se_object_t* obj_ptr)
+    explicit catalog_obj_view_t(const gaia_se_object_t* obj_ptr)
         : m_obj_ptr{obj_ptr}
     {
     }
@@ -39,24 +39,24 @@ protected:
     const gaia_se_object_t* m_obj_ptr;
 };
 
-struct gaia_field_view_t : gaia_catalog_obj_view_t
+struct field_view_t : catalog_obj_view_t
 {
-    using gaia_catalog_obj_view_t::gaia_catalog_obj_view_t;
+    using catalog_obj_view_t::catalog_obj_view_t;
     [[nodiscard]] const char* name() const;
     [[nodiscard]] data_type_t data_type() const;
     [[nodiscard]] field_position_t position() const;
 };
 
-struct gaia_table_view_t : gaia_catalog_obj_view_t
+struct table_view_t : catalog_obj_view_t
 {
-    using gaia_catalog_obj_view_t::gaia_catalog_obj_view_t;
+    using catalog_obj_view_t::catalog_obj_view_t;
     [[nodiscard]] const char* name() const;
     [[nodiscard]] gaia_type_t table_type() const;
     [[nodiscard]] vector<uint8_t> binary_schema() const;
 };
 
-using gaia_field_list_t = common::iterators::range_t<common::iterators::generator_iterator_t<gaia_field_view_t>>;
-using gaia_table_list_t = common::iterators::range_t<common::iterators::generator_iterator_t<gaia_table_view_t>>;
+using field_list_t = common::iterators::range_t<common::iterators::generator_iterator_t<field_view_t>>;
+using table_list_t = common::iterators::range_t<common::iterators::generator_iterator_t<table_view_t>>;
 
 class gaia_catalog_t
 {
@@ -76,9 +76,9 @@ private:
     [[nodiscard]] static inline const gaia_se_object_t* get_se_object_ptr(gaia_id_t);
 
 public:
-    static gaia_table_view_t get_table(gaia_id_t table_id);
-    static gaia_table_list_t list_tables();
-    static gaia_field_list_t list_fields(gaia_type_t table_type);
+    static table_view_t get_table(gaia_id_t table_id);
+    static table_list_t list_tables();
+    static field_list_t list_fields(gaia_type_t table_type);
 };
 
 } // namespace db
