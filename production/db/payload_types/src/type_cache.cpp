@@ -5,7 +5,6 @@
 
 #include "type_cache.hpp"
 
-#include "catalog_view.hpp"
 #include "retail_assert.hpp"
 
 using namespace std;
@@ -43,9 +42,9 @@ void type_cache_t::get_field_cache(gaia_type_t type_id, auto_field_cache_t& auto
     // to ensure that its information is not being updated by another thread.
     m_lock.lock_shared();
 
-    auto iterator = m_type_field_map.find(type_id);
+    auto iterator = m_type_map.find(type_id);
 
-    if (iterator == m_type_field_map.end())
+    if (iterator == m_type_map.end())
     {
         m_lock.unlock_shared();
     }
@@ -61,11 +60,11 @@ bool type_cache_t::remove_field_cache(gaia_type_t type_id)
 
     unique_lock unique_lock(m_lock);
 
-    auto iterator = m_type_field_map.find(type_id);
-    if (iterator != m_type_field_map.end())
+    auto iterator = m_type_map.find(type_id);
+    if (iterator != m_type_map.end())
     {
         const field_cache_t* field_cache = iterator->second;
-        m_type_field_map.erase(iterator);
+        m_type_map.erase(iterator);
         delete field_cache;
         removed_field_cache = true;
     }
@@ -81,10 +80,10 @@ bool type_cache_t::set_field_cache(gaia_type_t type_id, const field_cache_t* fie
 
     unique_lock unique_lock(m_lock);
 
-    auto iterator = m_type_field_map.find(type_id);
-    if (iterator == m_type_field_map.end())
+    auto iterator = m_type_map.find(type_id);
+    if (iterator == m_type_map.end())
     {
-        m_type_field_map.insert(make_pair(type_id, field_cache));
+        m_type_map.insert(make_pair(type_id, field_cache));
         inserted_field_cache = true;
     }
 
@@ -93,21 +92,7 @@ bool type_cache_t::set_field_cache(gaia_type_t type_id, const field_cache_t* fie
 
 size_t type_cache_t::size() const
 {
-    return m_type_field_map.size();
-}
-
-void type_cache_t::init_type_table_map()
-{
-    for (auto table_view : gaia::db::catalog_view_t::list_tables())
-    {
-        m_type_table_map[table_view.table_type()] = table_view.id();
-    }
-}
-
-gaia_id_t type_cache_t::get_table_id(gaia_type_t type_id)
-{
-    std::call_once(m_type_table_map_init_flag, &type_cache_t::init_type_table_map, this);
-    return m_type_table_map.at(type_id);
+    return m_type_map.size();
 }
 
 auto_field_cache_t::auto_field_cache_t()

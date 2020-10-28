@@ -8,12 +8,10 @@
 #include <cstddef>
 #include <cstdint>
 
-#include <mutex>
 #include <shared_mutex>
 #include <unordered_map>
 
 #include "flatbuffers/reflection.h"
-
 #include "gaia_common.hpp"
 
 using namespace gaia::common;
@@ -32,6 +30,7 @@ typedef std::unordered_map<field_position_t, const reflection::Field*> field_map
 class field_cache_t
 {
 public:
+
     field_cache_t() = default;
 
     // Return field information if the field could be found or nullptr otherwise.
@@ -49,12 +48,12 @@ public:
     size_t size();
 
 protected:
+
     // The map used by the field cache.
     field_map_t m_field_map;
 };
 
-typedef std::unordered_map<gaia_type_t, const field_cache_t*> type_field_map_t;
-typedef std::unordered_map<gaia_type_t, gaia_id_t> type_table_map_t;
+typedef std::unordered_map<gaia_type_t, const field_cache_t*> type_map_t;
 
 class auto_field_cache_t;
 
@@ -65,14 +64,16 @@ class type_cache_t
     friend class auto_field_cache_t;
 
 protected:
-    // type_cache_t is a singleton, so its constructor is not public.
-    type_cache_t() = default;
 
-public:
     // Do not allow copies to be made;
     // disable copy constructor and assignment operator.
     type_cache_t(const type_cache_t&) = delete;
     type_cache_t& operator=(const type_cache_t&) = delete;
+
+    // type_cache_t is a singleton, so its constructor is not public.
+    type_cache_t() = default;
+
+public:
 
     // Return a pointer to the singleton instance.
     static type_cache_t* get();
@@ -97,10 +98,8 @@ public:
     // Return the size of the internal map.
     size_t size() const;
 
-    // Return the id of the gaia_table record that defines a given type.
-    gaia_id_t get_table_id(gaia_type_t type_id);
-
 protected:
+
     // The singleton instance.
     static type_cache_t s_type_cache;
 
@@ -109,15 +108,8 @@ protected:
     // We can further improve implementation by preloading type information at system startup.
     mutable std::shared_mutex m_lock;
 
-    // The map used by the type cache to store field_caches.
-    type_field_map_t m_type_field_map;
-
-private:
-    std::once_flag m_type_table_map_init_flag;
-    void init_type_table_map();
-    // The map used by the type cache to store ids of the gaia_table records
-    // that define the corresponding types.
-    type_table_map_t m_type_table_map;
+    // The map used by the type cache.
+    type_map_t m_type_map;
 };
 
 // A class for automatically releasing the read lock taken while reading from the cache.
@@ -126,6 +118,7 @@ class auto_field_cache_t
     friend class type_cache_t;
 
 public:
+
     auto_field_cache_t();
     ~auto_field_cache_t();
 
@@ -137,11 +130,12 @@ public:
     const field_cache_t* get();
 
 protected:
+
     const field_cache_t* m_field_cache;
 
     void set(const field_cache_t* field_cache);
 };
 
-} // namespace payload_types
-} // namespace db
-} // namespace gaia
+}
+}
+}

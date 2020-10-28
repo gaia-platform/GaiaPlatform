@@ -9,8 +9,6 @@ namespace gaia
 {
 namespace db
 {
-namespace payload_types
-{
 
 /**
  * This API assumes we're already in transaction scope.
@@ -22,6 +20,5 @@ void compute_payload_diff(
     const uint8_t* payload2,
     common::field_position_list_t* position_list);
 
-} // namespace payload_types
 } // namespace db
 } // namespace gaia
