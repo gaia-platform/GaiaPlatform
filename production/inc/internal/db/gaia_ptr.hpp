@@ -211,6 +211,16 @@ public:
      */
     void remove_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset);
 
+    /**
+     * Update the parent reference with the given new_parent_id. If the this object does not
+     * have a parent for the relationship denoted by parent_offset, it will just create the
+     * relationship.
+     *
+     * @param new_parent_id The id of the new parent.
+     * @param parent_offset The offset, in the references array, of the pointer to the parent.
+     */
+    void update_parent_reference(gaia_id_t new_parent_id, reference_offset_t parent_offset);
+
     // "function with deduced return type cannot be used before it is defined".
     // The function must be defined in the same translation unit where it is used,
     // and the only way to guarantee that for our clients is to define it in the

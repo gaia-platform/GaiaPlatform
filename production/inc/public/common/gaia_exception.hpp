@@ -29,25 +29,23 @@ namespace common
 class gaia_exception : public exception
 {
 protected:
-
     string m_message;
 
 public:
-
     gaia_exception() = default;
 
-    gaia_exception(const string& message)
+    explicit gaia_exception(const string& message)
     {
         m_message = message;
     }
 
-    virtual const char* what() const throw()
+    const char* what() const noexcept override
     {
         return m_message.c_str();
     }
 };
 
 /*@}*/
-}
+} // namespace common
 /*@}*/
-}
+} // namespace gaia

@@ -345,7 +345,7 @@ void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t fir
 
     // CHECK TYPES
     // TODO Note this check could be removed, or the failure could be gracefully handled
-    //   I still prefer to fail because calling this method with worng arguments means there
+    //   I still prefer to fail because calling this method with wrong arguments means there
     //   is something seriously ill in the caller code.
 
     auto child_ptr = gaia_ptr(child_id);
@@ -374,7 +374,7 @@ void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t fir
     gaia_id_t prev_child = INVALID_GAIA_ID;
     gaia_id_t curr_child = references()[first_child_offset];
 
-    while (curr_child != child_id)
+    while (curr_child != child_id && curr_child != INVALID_GAIA_ID)
     {
         prev_child = curr_child;
         curr_child = gaia_ptr(prev_child).references()[relationship->next_child_offset];
@@ -427,4 +427,47 @@ void gaia_ptr::remove_parent_reference(gaia_id_t parent_id, reference_offset_t p
 
     // REMOVE REFERENCE
     parent_ptr.remove_child_reference(id(), relationship->first_child_offset);
+}
+
+void gaia_ptr::update_parent_reference(gaia_id_t new_parent_id, reference_offset_t parent_offset)
+{
+    gaia_type_t child_type = type();
+
+    auto& child_metadata = type_registry_t::instance().get(child_type);
+    auto relationship = child_metadata.find_child_relationship(parent_offset);
+
+    if (!relationship)
+    {
+        throw invalid_reference_offset(child_type, parent_offset);
+    }
+
+    auto parent_ptr = gaia_ptr(new_parent_id);
+
+    if (!parent_ptr)
+    {
+        throw invalid_node_id(new_parent_id);
+    }
+
+    // TODO this implementation will produce more garbage than necessary. Also many of the RI methods
+    //  perform redundant checks. Created JIRA to improve RI performance/api:
+    //  https://gaiaplatform.atlassian.net/browse/GAIAPLAT-435
+
+    // CHECK CARDINALITY
+    if (parent_ptr.references()[relationship->first_child_offset] != INVALID_GAIA_ID)
+    {
+        // this parent already has a child for this relationship.
+        // If the relationship is one-to-one we fail.
+        if (relationship->cardinality == cardinality_t::one)
+        {
+            throw single_cardinality_violation(parent_ptr.type(), relationship->first_child_offset);
+        }
+    }
+
+    if (references()[parent_offset])
+    {
+        auto old_parent_ptr = gaia_ptr(references()[parent_offset]);
+        old_parent_ptr.remove_child_reference(id(), relationship->first_child_offset);
+    }
+
+    parent_ptr.add_child_reference(id(), relationship->first_child_offset);
 }
