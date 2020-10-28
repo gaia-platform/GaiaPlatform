@@ -7,6 +7,7 @@
 #include <cerrno>
 #include <cstdlib>
 
+#include <limits>
 #include <vector>
 
 #include "retail_assert.hpp"
@@ -45,9 +46,13 @@ inline std::vector<uint8_t> flatbuffers_hex_to_buffer(const char* hex_buf_c_str)
         else
         {
             char* endptr;
-            uint8_t byte = std::strtoul(ptr, &endptr, 0);
-            retail_assert(endptr != ptr && errno != ERANGE, "Invalid hex binary schema!");
-            binary_schema.push_back(byte);
+            unsigned long byte = std::strtoul(ptr, &endptr, 0);
+            retail_assert(
+                endptr != ptr
+                    && errno != ERANGE
+                    && byte <= numeric_limits<uint8_t>::max(),
+                "Invalid hex binary schema!");
+            binary_schema.push_back(static_cast<uint8_t>(byte));
             ptr = endptr;
         }
     }
