@@ -54,7 +54,6 @@ void append_context_option_names(Oid context_id, StringInfoData& string_info)
     }
 }
 
-// TODO: Review error handling.
 void adapter_t::begin_session()
 {
     elog(LOG, "Opening COW-SE session...");
@@ -135,8 +134,6 @@ bool adapter_t::commit_transaction()
     return closed_transaction;
 }
 
-// TODO: Perhaps first thing to do should be to remove our gaia_id copy
-// and operate with the storage engine builtin field instead.
 bool adapter_t::is_gaia_id_name(const char* name)
 {
     constexpr char c_gaia_id[] = "gaia_id";
@@ -159,6 +156,10 @@ List* adapter_t::get_ddl_command_list(const char* server_name)
 // TODO: This should get the container_id for the table_name and store it in the state itself.
 // It could also initialize the type cache with the binary schema for the container,
 // if it's not already initialized.
+// TODO: Change the allocation of the array to map attribute indexes to field positions.
+// TODO: Get the container id for the table name.
+// Also get the serialization template and store it in the state.
+// The binary schema can also be loaded in the cache if it's not there already.
 bool state_t::initialize(const char* table_name, size_t count_fields)
 {
     m_gaia_id_field_index = c_invalid_field_index;
@@ -235,7 +236,7 @@ bool state_t::is_gaia_id_field_index(size_t field_index)
     return field_index == m_gaia_id_field_index;
 }
 
-// TODO: Perhaps only change the allocation of the array to map attribute indexes to field positions.
+// TODO: This can probably go away.
 bool scan_state_t::initialize(const char* table_name, size_t count_fields)
 {
     if (!state_t::initialize(table_name, count_fields))
@@ -272,7 +273,7 @@ void scan_state_t::deserialize_record()
     m_current_object_root = m_deserializer(data);
 }
 
-// TODO Here we can just call reflection using the field position that we stored for the field index.
+// TODO: Here we can just call reflection using the field position that we stored for the field index.
 Datum scan_state_t::extract_field_value(size_t field_index)
 {
     assert(field_index < m_mapping->attribute_count);
@@ -311,9 +312,7 @@ bool scan_state_t::scan_forward()
     return has_scan_ended();
 }
 
-// TODO: Get the container id for the table name.
-// Also get the serialization template and store it in the state.
-// The binary schema can also be loaded in the cache if it's not there already.
+// TODO: This can probably go away.
 bool modify_state_t::initialize(const char* table_name, size_t count_fields)
 {
     if (!state_t::initialize(table_name, count_fields))
