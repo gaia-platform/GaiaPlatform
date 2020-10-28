@@ -48,7 +48,7 @@ class client : private se_base
 {
     friend class gaia_ptr;
     friend class gaia_hash_map;
-    friend class gaia_catalog_t;
+    friend class catalog_view_t;
 
 public:
     static inline bool is_transaction_active()
@@ -113,8 +113,7 @@ private:
      */
     static inline bool is_valid_event(gaia_type_t type)
     {
-        return (s_txn_commit_trigger
-                && (trigger_excluded_types.find(type) == trigger_excluded_types.end()));
+        return (s_txn_commit_trigger && (trigger_excluded_types.find(type) == trigger_excluded_types.end()));
     }
 
     static inline void verify_txn_active()

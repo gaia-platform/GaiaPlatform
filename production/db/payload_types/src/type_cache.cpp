@@ -98,7 +98,7 @@ size_t type_cache_t::size() const
 
 void type_cache_t::init_type_table_map()
 {
-    for (auto table_view : gaia::db::gaia_catalog_t::list_tables())
+    for (auto table_view : gaia::db::catalog_view_t::list_tables())
     {
         m_type_table_map[table_view.table_type()] = table_view.id();
     }

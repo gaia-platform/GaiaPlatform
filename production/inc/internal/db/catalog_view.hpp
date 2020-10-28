@@ -58,7 +58,7 @@ struct table_view_t : catalog_obj_view_t
 using field_list_t = common::iterators::range_t<common::iterators::generator_iterator_t<field_view_t>>;
 using table_list_t = common::iterators::range_t<common::iterators::generator_iterator_t<table_view_t>>;
 
-class gaia_catalog_t
+class catalog_view_t
 {
 private:
     //
