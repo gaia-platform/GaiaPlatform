@@ -287,7 +287,7 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState* node, int eflags)
         // AttrNumber attnum = i + 1.
         char* attr_name = NameStr(TupleDescAttr(tuple_desc, i)->attname);
 
-        scan_state->set_accessor_index(attr_name, (size_t)i);
+        scan_state->set_field_index(attr_name, (size_t)i);
     }
 
     node->fdw_state = scan_state;
@@ -586,7 +586,7 @@ extern "C" void gaia_begin_foreign_modify(
         // AttrNumber attnum = i + 1.
         char* attr_name = NameStr(TupleDescAttr(tuple_desc, i)->attname);
 
-        modify_state->set_builder_index(attr_name, (size_t)i);
+        modify_state->set_field_index(attr_name, (size_t)i);
     }
 
     rinfo->ri_FdwState = modify_state;
@@ -630,9 +630,7 @@ extern "C" TupleTableSlot* gaia_exec_foreign_insert(
     modify_state->initialize_modify();
 
     // NB: we assume 0 is a valid sentinel value, i.e., it can never be a
-    // system-generated gaia_id. This is true for our internal implementation,
-    // but also needs to hold for all other implementations (until the storage
-    // engine itself starts generating gaia_ids).
+    // system-generated gaia_id.
     uint64_t gaia_id = 0;
 
     // slot_getallattrs() is necessary beginning in Postgres 12 (the slot will
@@ -645,9 +643,7 @@ extern "C" TupleTableSlot* gaia_exec_foreign_insert(
         //     TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->attname);
 
         // We don't allow gaia_id to be set by an INSERT or UPDATE statement
-        // (this should have already been checked in gaia_plan_foreign_modify), and
-        // the storage engine doesn't yet generate gaia_ids, so we generate a
-        // random gaia_id ourselves.
+        // (this should have already been checked in gaia_plan_foreign_modify).
         Datum attr_val = {};
         if (modify_state->is_gaia_id_field_index((size_t)attr_idx))
         {
@@ -713,9 +709,7 @@ extern "C" TupleTableSlot* gaia_exec_foreign_update(
     modify_state->initialize_modify();
 
     // NB: we assume 0 is a valid sentinel value, i.e., it can never be a
-    // system-generated gaia_id. This is true for our internal implementation,
-    // but also needs to hold for all other implementations (until the storage
-    // engine itself starts generating gaia_ids).
+    // system-generated gaia_id.
     uint64_t gaia_id = 0;
 
     // slot_getallattrs() is necessary beginning in Postgres 12 (the slot will

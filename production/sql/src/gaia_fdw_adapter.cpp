@@ -15,7 +15,7 @@ namespace gaia
 namespace fdw
 {
 
-constexpr int c_invalid_index = -1;
+constexpr size_t c_invalid_field_index = -1;
 
 // Valid options for gaia_fdw.
 const option_t c_valid_options[] = {
@@ -54,6 +54,7 @@ void append_context_option_names(Oid context_id, StringInfoData& string_info)
     }
 }
 
+// TODO: Review error handling.
 void adapter_t::begin_session()
 {
     elog(LOG, "Opening COW-SE session...");
@@ -62,7 +63,7 @@ void adapter_t::begin_session()
     {
         gaia::db::begin_session();
     }
-    catch (gaia_exception e)
+    catch (exception e)
     {
         ereport(
             ERROR,
@@ -80,7 +81,7 @@ void adapter_t::end_session()
     {
         gaia::db::end_session();
     }
-    catch (gaia_exception e)
+    catch (exception e)
     {
         ereport(
             ERROR,
@@ -134,6 +135,8 @@ bool adapter_t::commit_transaction()
     return closed_transaction;
 }
 
+// TODO: Perhaps first thing to do should be to remove our gaia_id copy
+// and operate with the storage engine builtin field instead.
 bool adapter_t::is_gaia_id_name(const char* name)
 {
     constexpr char c_gaia_id[] = "gaia_id";
@@ -146,41 +149,20 @@ uint64_t adapter_t::get_new_gaia_id()
     return gaia_ptr::generate_id();
 }
 
+// TODO: Rewrite this to iterate over the database tables and generate statements
+// out of table definitions.
 List* adapter_t::get_ddl_command_list(const char* server_name)
 {
-    List* commands = NIL;
-
-    constexpr const char* ddl_formatted_statements[] = {
-        c_airport_ddl_stmt_fmt,
-        c_airline_ddl_stmt_fmt,
-        c_route_ddl_stmt_fmt,
-        c_event_log_ddl_stmt_fmt,
-    };
-
-    for (auto& ddl_formatted_statement : ddl_formatted_statements)
-    {
-        // Length of format string + length of server name - 2 chars for format
-        // specifier + 1 char for null terminator.
-        size_t statement_length = strlen(ddl_formatted_statement)
-            + strlen(server_name) - strlen("%s") + 1;
-        auto statement_buffer = reinterpret_cast<char*>(palloc(statement_length));
-
-        // sprintf returns number of chars written, not including null
-        // terminator.
-        if (sprintf(statement_buffer, ddl_formatted_statement, server_name)
-            != static_cast<int>(statement_length - 1))
-        {
-            elog(ERROR, "Failed to format statement '%s' with server name '%s'.", ddl_formatted_statement, server_name);
-        }
-
-        commands = lappend(commands, statement_buffer);
-    }
-
-    return commands;
+    return NIL;
 }
 
-bool state_t::initialize(const char* table_name, size_t count_accessors)
+// TODO: This should get the container_id for the table_name and store it in the state itself.
+// It could also initialize the type cache with the binary schema for the container,
+// if it's not already initialized.
+bool state_t::initialize(const char* table_name, size_t count_fields)
 {
+    m_gaia_id_field_index = c_invalid_field_index;
+
     if (strcmp(table_name, "airports") == 0)
     {
         m_mapping = &c_airport_mapping;
@@ -193,58 +175,82 @@ bool state_t::initialize(const char* table_name, size_t count_accessors)
     {
         m_mapping = &c_route_mapping;
     }
-    else if (strcmp(table_name, "event_log") == 0)
-    {
-        m_mapping = &c_event_log_mapping;
-    }
     else
     {
         return false;
     }
 
-    assert(count_accessors == m_mapping->attribute_count);
+    assert(count_fields == m_mapping->attribute_count);
+
+    m_gaia_container_id = m_mapping->gaia_container_id;
+
+    m_indexed_accessors = reinterpret_cast<attribute_accessor_fn*>(palloc0(
+        sizeof(attribute_accessor_fn) * m_mapping->attribute_count));
+
+    m_indexed_builders = reinterpret_cast<attribute_builder_fn*>(palloc0(
+        sizeof(attribute_builder_fn) * m_mapping->attribute_count));
 
     return true;
 }
 
-bool scan_state_t::initialize(const char* table_name, size_t count_accessors)
+// TODO: This should map the index of the attribute to the field position.
+// For references, we'd need a different mapping, but we'll cross that bridge later.
+bool state_t::set_field_index(const char* field_name, size_t field_index)
 {
-    if (!state_t::initialize(table_name, count_accessors))
+    if (field_index >= m_mapping->attribute_count)
+    {
+        return false;
+    }
+
+    bool found_field = false;
+    for (size_t i = 0; i < m_mapping->attribute_count; ++i)
+    {
+        if (strcmp(field_name, m_mapping->attributes[i].name) == 0)
+        {
+            found_field = true;
+
+            m_indexed_accessors[field_index] = m_mapping->attributes[i].accessor;
+            m_indexed_builders[field_index] = m_mapping->attributes[i].builder;
+
+            if (adapter_t::is_gaia_id_name(field_name))
+            {
+                m_gaia_id_field_index = field_index;
+            }
+
+            break;
+        }
+    }
+
+    assert(m_gaia_id_field_index != c_invalid_field_index);
+    if (m_gaia_id_field_index == c_invalid_field_index)
+    {
+        return false;
+    }
+
+    return found_field;
+}
+
+bool state_t::is_gaia_id_field_index(size_t field_index)
+{
+    return field_index == m_gaia_id_field_index;
+}
+
+// TODO: Perhaps only change the allocation of the array to map attribute indexes to field positions.
+bool scan_state_t::initialize(const char* table_name, size_t count_fields)
+{
+    if (!state_t::initialize(table_name, count_fields))
     {
         return false;
     }
 
     m_deserializer = m_mapping->deserializer;
 
-    m_indexed_accessors = reinterpret_cast<attribute_accessor_fn*>(palloc0(
-        sizeof(attribute_accessor_fn) * m_mapping->attribute_count));
-
     m_current_object_root = nullptr;
 
     return true;
 }
 
-bool scan_state_t::set_accessor_index(const char* accessor_name, size_t accessor_index)
-{
-    if (accessor_index >= m_mapping->attribute_count)
-    {
-        return false;
-    }
-
-    bool found_accessor = false;
-    for (size_t i = 0; i < m_mapping->attribute_count; ++i)
-    {
-        if (strcmp(accessor_name, m_mapping->attributes[i].name) == 0)
-        {
-            found_accessor = true;
-            m_indexed_accessors[accessor_index] = m_mapping->attributes[i].accessor;
-            break;
-        }
-    }
-
-    return found_accessor;
-}
-
+// TODO: Here we can just use the container id that we figured out earlier.
 bool scan_state_t::initialize_scan()
 {
     m_current_node = gaia_ptr::find_first(m_mapping->gaia_container_id);
@@ -257,6 +263,7 @@ bool scan_state_t::has_scan_ended()
     return !m_current_node;
 }
 
+// TODO: This could probably go away.
 void scan_state_t::deserialize_record()
 {
     assert(!has_scan_ended());
@@ -265,6 +272,7 @@ void scan_state_t::deserialize_record()
     m_current_object_root = m_deserializer(data);
 }
 
+// TODO Here we can just call reflection using the field position that we stored for the field index.
 Datum scan_state_t::extract_field_value(size_t field_index)
 {
     assert(field_index < m_mapping->attribute_count);
@@ -276,11 +284,22 @@ Datum scan_state_t::extract_field_value(size_t field_index)
 
     assert(m_current_object_root != nullptr);
 
-    attribute_accessor_fn accessor = m_indexed_accessors[field_index];
-    Datum field_value = accessor(m_current_object_root);
+    Datum field_value;
+
+    if (is_gaia_id_field_index(field_index))
+    {
+        field_value = UInt64GetDatum(m_current_node.id());
+    }
+    else
+    {
+        attribute_accessor_fn accessor = m_indexed_accessors[field_index];
+        field_value = accessor(m_current_object_root);
+    }
+
     return field_value;
 }
 
+// TODO: Only get rid of m_current_object_root line.
 bool scan_state_t::scan_forward()
 {
     assert(!has_scan_ended());
@@ -292,80 +311,48 @@ bool scan_state_t::scan_forward()
     return has_scan_ended();
 }
 
-bool modify_state_t::initialize(const char* table_name, size_t count_accessors)
+// TODO: Get the container id for the table name.
+// Also get the serialization template and store it in the state.
+// The binary schema can also be loaded in the cache if it's not there already.
+bool modify_state_t::initialize(const char* table_name, size_t count_fields)
 {
-    if (!state_t::initialize(table_name, count_accessors))
+    if (!state_t::initialize(table_name, count_fields))
     {
         return false;
     }
 
-    m_pk_attr_idx = c_invalid_index;
-
-    m_gaia_container_id = m_mapping->gaia_container_id;
     m_initializer = m_mapping->initializer;
     m_finalizer = m_mapping->finalizer;
 
     flatcc_builder_init(&m_builder);
-
-    m_indexed_builders = reinterpret_cast<attribute_builder_fn*>(palloc0(
-        sizeof(attribute_builder_fn) * m_mapping->attribute_count));
 
     m_has_initialized_builder = false;
 
     return true;
 }
 
-bool modify_state_t::set_builder_index(const char* builder_name, size_t builder_index)
-{
-    if (builder_index >= m_mapping->attribute_count)
-    {
-        return false;
-    }
-
-    bool found_builder = false;
-    for (size_t i = 0; i < m_mapping->attribute_count; ++i)
-    {
-        if (strcmp(builder_name, m_mapping->attributes[i].name) == 0)
-        {
-            found_builder = true;
-
-            m_indexed_builders[builder_index] = m_mapping->attributes[i].builder;
-
-            if (adapter_t::is_gaia_id_name(builder_name))
-            {
-                m_pk_attr_idx = builder_index;
-            }
-
-            break;
-        }
-    }
-
-    assert(m_pk_attr_idx != c_invalid_index);
-    if (m_pk_attr_idx == c_invalid_index)
-    {
-        return false;
-    }
-
-    return found_builder;
-}
-
+// TODO: This can probably go away.
 void modify_state_t::initialize_modify()
 {
     m_initializer(&m_builder);
     m_has_initialized_builder = true;
 }
 
-bool modify_state_t::is_gaia_id_field_index(size_t field_index)
-{
-    return field_index == static_cast<size_t>(m_pk_attr_idx);
-}
-
+// TODO: This should get replaced by a reflection call.
+// Perhaps add helpers to convert between Datum and data_holder_t.
 void modify_state_t::set_field_value(size_t field_index, const Datum& field_value)
 {
+    if (is_gaia_id_field_index(field_index))
+    {
+        return;
+    }
+
     attribute_builder_fn accessor = m_indexed_builders[field_index];
     accessor(&m_builder, field_value);
 }
 
+// TODO: Probably just needs us to remove the flatcc code and replace it
+// with reading the stored serialization.
 bool modify_state_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
 {
     m_finalizer(&m_builder);
@@ -393,7 +380,7 @@ bool modify_state_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
 
         result = true;
     }
-    catch (const std::exception& e)
+    catch (const exception& e)
     {
         flatcc_builder_reset(&m_builder);
 
@@ -448,7 +435,7 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
 
         return true;
     }
-    catch (const std::exception& e)
+    catch (const exception& e)
     {
         ereport(
             ERROR,
@@ -460,6 +447,7 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
     return false;
 }
 
+// TODO: This can also probably go away entirely.
 void modify_state_t::finalize_modify()
 {
     if (m_has_initialized_builder)

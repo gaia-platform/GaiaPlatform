@@ -13,14 +13,13 @@ extern "C"
 
 #include "postgres.h"
 
-// postgre.h must be included prior to these headers.
+// postgres.h must be included prior to these headers.
 #include "catalog/pg_type.h"
 #include "nodes/pg_list.h"
 
 } // extern "C"
 
 #include "airport_demo_type_mapping.hpp"
-#include "system_catalog_type_mapping.hpp"
 
 namespace gaia
 {
@@ -87,11 +86,12 @@ public:
 
     static List* get_ddl_command_list(const char* server_name);
 
-    template <class S> static S* get_state(const char* table_name, size_t count_accessors)
+    template <class S>
+    static S* get_state(const char* table_name, size_t count_fields)
     {
         S* state = (S*)palloc0(sizeof(S));
 
-        return state->initialize(table_name, count_accessors) ? state : nullptr;
+        return state->initialize(table_name, count_fields) ? state : nullptr;
     }
 
 protected:
@@ -114,10 +114,28 @@ protected:
     // to prevent the creation of any instances.
     state_t() = default;
 
-    bool initialize(const char* table_name, size_t count_accessors);
+    bool initialize(const char* table_name, size_t count_fields);
+
+public:
+    // Provides the index corresponding to each field.
+    // This enables future calls to use index values.
+    bool set_field_index(const char* field_name, size_t field_index);
+
+    bool is_gaia_id_field_index(size_t field_index);
 
 protected:
     const relation_attribute_mapping_t* m_mapping;
+
+    // flatbuffer accessor functions indexed by attrnum.
+    attribute_accessor_fn* m_indexed_accessors;
+
+    // flatbuffer attribute builder functions indexed by attrnum.
+    attribute_builder_fn* m_indexed_builders;
+
+    // 0-based index of gaia_id attribute in tuple descriptor.
+    size_t m_gaia_id_field_index;
+
+    gaia_type_t m_gaia_container_id;
 };
 
 // The scan state is set up in gaia_begin_foreign_scan,
@@ -136,14 +154,11 @@ protected:
     // Only adapter_t can create instances of scan_state_t.
     scan_state_t() = default;
 
-    bool initialize(const char* table_name, size_t count_accessors);
+    bool initialize(const char* table_name, size_t count_fields);
+
     void deserialize_record();
 
 public:
-    // Provides the index corresponding to each accessor.
-    // This enables future calls to use index values.
-    bool set_accessor_index(const char* accessor_name, size_t accessor_index);
-
     // Scan API.
     bool initialize_scan();
     bool has_scan_ended();
@@ -152,9 +167,6 @@ public:
 
 protected:
     root_object_deserializer_fn m_deserializer;
-
-    // flatbuffer accessor functions indexed by attrnum.
-    attribute_accessor_fn* m_indexed_accessors;
 
     // The COW-SE smart ptr we are currently iterating over.
     gaia::db::gaia_ptr m_current_node;
@@ -181,18 +193,13 @@ protected:
     // Only adapter_t can create instances of modify_state_t.
     modify_state_t() = default;
 
-    bool initialize(const char* table_name, size_t count_accessors);
+    bool initialize(const char* table_name, size_t count_fields);
 
     bool edit_record(uint64_t gaia_id, edit_state_t edit_state);
 
 public:
-    // Provides the index corresponding to each builder.
-    // This enables future calls to use index values.
-    bool set_builder_index(const char* builder_name, size_t builder_index);
-
     // Modify API.
     void initialize_modify();
-    bool is_gaia_id_field_index(size_t field_index);
     void set_field_value(size_t field_index, const Datum& field_value);
     bool insert_record(uint64_t gaia_id);
     bool update_record(uint64_t gaia_id);
@@ -203,19 +210,11 @@ protected:
     builder_initializer_fn m_initializer;
     builder_finalizer_fn m_finalizer;
 
-    // flatbuffer attribute builder functions indexed by attrnum.
-    attribute_builder_fn* m_indexed_builders;
-
     // flatbuffers builder for INSERT and UPDATE.
     flatcc_builder_t m_builder;
 
     // Tracks whether the builder has been initialized.
     bool m_has_initialized_builder;
-
-    // 0-based index of gaia_id attribute in tuple descriptor.
-    int m_pk_attr_idx;
-
-    gaia_type_t m_gaia_container_id;
 };
 
 } // namespace fdw
