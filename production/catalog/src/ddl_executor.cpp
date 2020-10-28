@@ -98,7 +98,7 @@ void ddl_executor_t::bootstrap_catalog()
     {
         // create table gaia_relationship (
         //     parent references gaia_table,
-        //     child references gaia_field,
+        //     child references gaia_table,
         //     cardinality uint8,
         //     parent_required bool,
         //     deprecated bool,
@@ -108,8 +108,6 @@ void ddl_executor_t::bootstrap_catalog()
         // );
 
         field_def_list_t fields;
-
-        // TODO the relationship should be between 2 tables and not between 1 table and one field.
         fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<field_definition_t>("parent", data_type_t::e_references, 1, "catalog.gaia_table"));
         fields.emplace_back(make_unique<field_definition_t>("child", data_type_t::e_references, 1, "catalog.gaia_table"));
