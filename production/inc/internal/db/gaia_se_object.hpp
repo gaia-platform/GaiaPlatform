@@ -28,6 +28,16 @@ struct gaia_se_object_t
     uint16_t payload_size;
     uint16_t num_references;
     char payload[0];
+
+    [[nodiscard]] const char* data() const
+    {
+        return payload + num_references * sizeof(gaia_id_t);
+    }
+
+    [[nodiscard]] const gaia_id_t* references() const
+    {
+        return reinterpret_cast<const gaia_id_t*>(payload);
+    }
 };
 
 } // namespace db

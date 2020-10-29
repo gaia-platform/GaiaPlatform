@@ -24,8 +24,10 @@
     #include <memory>
     #include <vector>
     namespace gaia {
-    namespace catalog {
+    namespace common {
     enum class data_type_t : uint8_t;
+    }
+    namespace catalog {
     namespace ddl {
         struct statement_t;
         struct create_statement_t;
@@ -39,7 +41,7 @@
 
     using field_def_list_t = std::vector<std::unique_ptr<gaia::catalog::ddl::field_definition_t>>;
     using statement_list_t = std::vector<std::unique_ptr<gaia::catalog::ddl::statement_t>>;
-    using data_type_t = gaia::catalog::data_type_t;
+    using data_type_t = gaia::common::data_type_t;
     using composite_name_t = std::pair<std::string, std::string>;
 }
 

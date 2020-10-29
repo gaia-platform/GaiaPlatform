@@ -19,7 +19,6 @@ namespace catalog
 
 using db_names_t = unordered_map<string, gaia::common::gaia_id_t>;
 using table_names_t = unordered_map<string, gaia::common::gaia_id_t>;
-using type_map_t = unordered_map<gaia_type_t, gaia::common::gaia_id_t>;
 
 class ddl_executor_t
 {
@@ -44,7 +43,6 @@ public:
     void drop_database(const string& name);
 
     gaia::common::gaia_id_t find_db_id(const string& dbname) const;
-    gaia::common::gaia_id_t find_table_id(gaia_type_t) const;
 
 private:
     // Only internal static creation is allowed
@@ -91,9 +89,6 @@ private:
     // Create other system tables that need constant IDs.
     void create_system_tables();
 
-    // Create a map that allows table definitions to found via their types.
-    void create_type_map();
-
     // Get the full name for a table composed of db and table names.
     static inline string get_full_table_name(const string& db, const string& table);
 
@@ -114,7 +109,6 @@ private:
     // We should switch to use value index when the feature is ready.
     db_names_t m_db_names;
     table_names_t m_table_names;
-    type_map_t m_type_map;
 
     gaia::common::gaia_id_t m_empty_db_id;
 

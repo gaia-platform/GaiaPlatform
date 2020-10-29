@@ -136,7 +136,7 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data)
 
         // Compute field diff
         field_position_list_t position_list;
-        gaia::db::payload_types::compute_payload_diff(new_this->type, old_data_payload, new_data, &position_list);
+        compute_payload_diff(new_this->type, old_data_payload, new_data, &position_list);
         client::s_events.emplace_back(event_type_t::row_update, new_this->type, new_this->id, position_list);
     }
 

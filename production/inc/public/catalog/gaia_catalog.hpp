@@ -37,6 +37,10 @@ const string c_gaia_namespace = "gaia";
 // created database called "()".
 const string c_empty_db_name = "()";
 
+// The character used to connect a database name and a table name to form fully
+// qualified name for a table defined in a given database.
+constexpr char c_db_table_name_connector = '.';
+
 /*
  * The following enum classes are shared cross the catalog usage.
  */
@@ -44,22 +48,8 @@ const string c_empty_db_name = "()";
 /*
  * Data types for Gaia field records.
  */
-enum class data_type_t : uint8_t
-{
-    e_bool,
-    e_int8,
-    e_uint8,
-    e_int16,
-    e_uint16,
-    e_int32,
-    e_uint32,
-    e_int64,
-    e_uint64,
-    e_float,
-    e_double,
-    e_string,
-    e_references
-};
+
+using data_type_t = gaia::common::data_type_t;
 
 /**
  * Thrown when seeing an unknown data type
@@ -471,7 +461,7 @@ string gaia_generate(const string& dbname);
  * @param table_id id of the table
  * @return bfbs
  */
-string get_bfbs(gaia::common::gaia_id_t table_id);
+vector<uint8_t> get_bfbs(gaia::common::gaia_id_t table_id);
 
 /**
  * Retrieve the serialization template (bin) for a given table.
@@ -479,7 +469,7 @@ string get_bfbs(gaia::common::gaia_id_t table_id);
  * @param table_id id of the table
  * @return bin
  */
-string get_bin(gaia::common::gaia_id_t table_id);
+vector<uint8_t> get_bin(gaia::common::gaia_id_t table_id);
 
 /**
  * Find the database id given its name
