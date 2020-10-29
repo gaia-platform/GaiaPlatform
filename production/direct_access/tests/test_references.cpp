@@ -195,7 +195,8 @@ bool delete_hierarchy(employee_t& eptr)
     return true;
 }
 
-template <typename T_type> int count_type()
+template <typename T_type>
+int count_type()
 {
     int count = 0;
     for (auto row : T_type::list())
@@ -642,3 +643,72 @@ TEST_F(gaia_references_test, set_iter_arrow_deref)
     auto emp_addr_set_iter = employee.addressee_address_list().begin();
     EXPECT_STREQ(emp_addr_set_iter->city(), addr_city);
 }
+
+// Return true if an employee name includes an 'o'.
+bool filter_fcn(const employee_t& e)
+{
+    string name(e.name_first());
+
+    return name.find('o') != string::npos;
+}
+
+// Use various forms of filters on a set of references.
+TEST_F(gaia_references_test, set_filter)
+{
+    auto_transaction_t txn;
+
+    employee_writer writer;
+    auto e_mgr = insert_employee(writer, "Harold");
+    auto e_emp = insert_employee(writer, "Hunter");
+    e_mgr.manages_employee_list().insert(e_emp);
+    e_emp = insert_employee(writer, "Howard");
+    e_mgr.manages_employee_list().insert(e_emp);
+    e_emp = insert_employee(writer, "Henry");
+    e_mgr.manages_employee_list().insert(e_emp);
+    e_emp = insert_employee(writer, "Harry");
+    e_mgr.manages_employee_list().insert(e_emp);
+    e_emp = insert_employee(writer, "Hoover");
+    e_mgr.manages_employee_list().insert(e_emp);
+
+    size_t name_length = 5;
+    int count = 0;
+    for (const auto& e : e_mgr.manages_employee_list().where([&name_length](const employee_t& e) {
+             if (strlen(e.name_first()) == name_length)
+             {
+                 return true;
+             }
+             return false;
+         }))
+    {
+        EXPECT_EQ(strlen(e.name_first()), name_length);
+        count++;
+    }
+    EXPECT_EQ(count, 2);
+    name_length = 6;
+    count = 0;
+    auto it = e_mgr.manages_employee_list().where([&name_length](const employee_t& e) {
+                                               if (strlen(e.name_first()) == name_length)
+                                               {
+                                                   return true;
+                                               }
+                                               return false;
+                                           })
+                  .begin();
+    while (*it)
+    {
+        count++;
+        ++it;
+    }
+    EXPECT_EQ(count, 3);
+
+    count = 0;
+    // Note that "Harold" is not counted because it is the owner.
+    for (const auto& e : e_mgr.manages_employee_list().where(filter_fcn))
+    {
+        EXPECT_NE(strchr(e.name_first(), 'o'), nullptr);
+        count++;
+    }
+    EXPECT_EQ(count, 2);
+}
+
+// Create a hierarchy
