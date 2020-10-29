@@ -37,6 +37,10 @@ const string c_gaia_namespace = "gaia";
 // created database called "()".
 const string c_empty_db_name = "()";
 
+// The character used to connect a database name and a table name to form a full
+// name for a table defined in a given database.
+constexpr char c_db_table_name_connector = '.';
+
 /*
  * The following enum classes are shared cross the catalog usage.
  */

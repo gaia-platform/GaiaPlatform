@@ -214,11 +214,15 @@ Be sure to save the new [gaia_catalog.h](../inc/internal/catalog/gaia_catalog.h)
 and [catalog_generated.h](../inc/internal/catalog/catalog_generated.h) in place
 of the previous ones.
 
+Be sure to check if [light_catalog.hpp](../db/storage_engine/inc/light_catalog.h)
+or any of the payload schemas used by it need to be updated.
+
 ### Sequence of catalog update steps
 
 * Start by only making necessary catalog schema changes to `bootstrap_catalog()`.
 * Build, then execute `gaiac -d catalog -g` (you may need to start the server).
 * Copy generated header files (`gaia_catalog.h` and `catalog_generated.h`) under `inc/internal/catalog`.
+  * (Optional) Update `light_catalog.hpp` when necessary.
 * Now make changes that leverage the schema changes.
 * Build again.
 

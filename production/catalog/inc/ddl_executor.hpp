@@ -91,7 +91,6 @@ private:
 
     // Get the full name for a table composed of db and table names.
     static inline string get_full_table_name(const string& db, const string& table);
-    static constexpr char c_db_table_name_connector = '.';
 
     // Find the next available offset in a container parent relationships
     template <typename T_parent_relationships>

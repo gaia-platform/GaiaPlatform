@@ -66,7 +66,7 @@ private:
     // They need to be updated when the corresponding catalog table definition change.
     //
     // The ref slot in gaia_table pointing to the first gaia_field
-    static constexpr uint16_t c_gaia_table_first_gaia_field_slot = 0;
+    static constexpr uint16_t c_gaia_table_first_gaia_field_slot = 2;
     // The ref slot in gaia_field pointing to the gaia_table
     static constexpr uint16_t c_gaia_field_parent_gaia_table_slot = 0;
     // The ref slot in gaia_field pointing to the next gaia_field
