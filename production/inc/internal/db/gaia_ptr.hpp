@@ -168,7 +168,8 @@ public:
     }
 
     /**
-     * Adds a child reference to a parent object.
+     * Adds a child reference to a parent object. All the pointers involved in the relationship
+     * will be updated, not only first_child_offset.
      *
      * Calling `parent.add_child_reference(child)` is the same as calling
      * `child.add_parent_reference(parent)`.
@@ -181,7 +182,8 @@ public:
     void add_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset);
 
     /**
-     * Add a parent reference to a child object.
+     * Add a parent reference to a child object. All the pointers involved in the relationship
+     * will be updated, not only parent_offset.
      *
      * Note: Children objects have 2 pointers per relationship (next_child_offset, parent_offset)
      * only one (parent_offset) is used to denote the relationship with parent.
@@ -197,6 +199,8 @@ public:
      * Removes a child reference from a parent object. Without an index this operation
      * could have O(n) time complexity where n is the number of children.
      *
+     * All the pointers involved in the relationship will be updated, not only first_child_offset.
+     *
      * @param child_id The id of the children to be removed.
      * @param first_child_offset The offset, in the references array, of the pointer to the first child.
      */
@@ -205,6 +209,8 @@ public:
     /**
      * Removes a parent reference from a child object. Without an index this operation
      * could have O(n) time complexity where n is the number of children.
+     *
+     * All the pointers involved in the relationship will be updated, not only parent_offset.
      *
      * @param parent_id The id of the parent to be removed.
      * @param parent_offset The offset, in the references array, of the pointer to the parent.
@@ -215,6 +221,8 @@ public:
      * Update the parent reference with the given new_parent_id. If the this object does not
      * have a parent for the relationship denoted by parent_offset, it will just create the
      * relationship.
+     *
+     * All the pointers involved in the relationship will be updated, not only parent_offset.
      *
      * @param new_parent_id The id of the new parent.
      * @param parent_offset The offset, in the references array, of the pointer to the parent.

@@ -244,8 +244,8 @@ gaia_ptr::get_id_generator_for_type(gaia_type_t type)
 void gaia_ptr::add_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset)
 {
     gaia_type_t parent_type = type();
-    auto& parent_metadata = type_registry_t::instance().get(parent_type);
-    auto relationship = parent_metadata.find_parent_relationship(first_child_offset);
+    const type_metadata_t& parent_metadata = type_registry_t::instance().get(parent_type);
+    optional<relationship_t> relationship = parent_metadata.find_parent_relationship(first_child_offset);
 
     if (!relationship)
     {
@@ -275,7 +275,7 @@ void gaia_ptr::add_child_reference(gaia_id_t child_id, reference_offset_t first_
 
     if (references()[first_child_offset] != INVALID_GAIA_ID)
     {
-        // this parent already has a child for this relationship.
+        // This parent already has a child for this relationship.
         // If the relationship is one-to-one we fail.
         if (relationship->cardinality == cardinality_t::one)
         {
@@ -314,8 +314,8 @@ void gaia_ptr::add_parent_reference(gaia_id_t parent_id, reference_offset_t pare
 {
     gaia_type_t child_type = type();
 
-    auto& child_metadata = type_registry_t::instance().get(child_type);
-    auto child_relationship = child_metadata.find_child_relationship(parent_offset);
+    const type_metadata_t& child_metadata = type_registry_t::instance().get(child_type);
+    optional<relationship_t> child_relationship = child_metadata.find_child_relationship(parent_offset);
 
     if (!child_relationship)
     {
@@ -335,8 +335,8 @@ void gaia_ptr::add_parent_reference(gaia_id_t parent_id, reference_offset_t pare
 void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset)
 {
     gaia_type_t parent_type = type();
-    auto& parent_metadata = type_registry_t::instance().get(parent_type);
-    auto relationship = parent_metadata.find_parent_relationship(first_child_offset);
+    const type_metadata_t& parent_metadata = type_registry_t::instance().get(parent_type);
+    optional<relationship_t> relationship = parent_metadata.find_parent_relationship(first_child_offset);
 
     if (!relationship)
     {
@@ -410,8 +410,8 @@ void gaia_ptr::remove_parent_reference(gaia_id_t parent_id, reference_offset_t p
 {
     gaia_type_t child_type = type();
 
-    auto& child_metadata = type_registry_t::instance().get(child_type);
-    auto relationship = child_metadata.find_child_relationship(parent_offset);
+    const type_metadata_t& child_metadata = type_registry_t::instance().get(child_type);
+    optional<relationship_t> relationship = child_metadata.find_child_relationship(parent_offset);
 
     if (!relationship)
     {
@@ -433,17 +433,17 @@ void gaia_ptr::update_parent_reference(gaia_id_t new_parent_id, reference_offset
 {
     gaia_type_t child_type = type();
 
-    auto& child_metadata = type_registry_t::instance().get(child_type);
-    auto relationship = child_metadata.find_child_relationship(parent_offset);
+    const type_metadata_t& child_metadata = type_registry_t::instance().get(child_type);
+    optional<relationship_t> relationship = child_metadata.find_child_relationship(parent_offset);
 
     if (!relationship)
     {
         throw invalid_reference_offset(child_type, parent_offset);
     }
 
-    auto parent_ptr = gaia_ptr(new_parent_id);
+    auto new_parent_ptr = gaia_ptr(new_parent_id);
 
-    if (!parent_ptr)
+    if (!new_parent_ptr)
     {
         throw invalid_node_id(new_parent_id);
     }
@@ -453,13 +453,13 @@ void gaia_ptr::update_parent_reference(gaia_id_t new_parent_id, reference_offset
     //  https://gaiaplatform.atlassian.net/browse/GAIAPLAT-435
 
     // CHECK CARDINALITY
-    if (parent_ptr.references()[relationship->first_child_offset] != INVALID_GAIA_ID)
+    if (new_parent_ptr.references()[relationship->first_child_offset] != INVALID_GAIA_ID)
     {
-        // this parent already has a child for this relationship.
+        // This parent already has a child for this relationship.
         // If the relationship is one-to-one we fail.
         if (relationship->cardinality == cardinality_t::one)
         {
-            throw single_cardinality_violation(parent_ptr.type(), relationship->first_child_offset);
+            throw single_cardinality_violation(new_parent_ptr.type(), relationship->first_child_offset);
         }
     }
 
@@ -469,5 +469,5 @@ void gaia_ptr::update_parent_reference(gaia_id_t new_parent_id, reference_offset
         old_parent_ptr.remove_child_reference(id(), relationship->first_child_offset);
     }
 
-    parent_ptr.add_child_reference(id(), relationship->first_child_offset);
+    new_parent_ptr.add_child_reference(id(), relationship->first_child_offset);
 }
