@@ -36,7 +36,6 @@ class gaia_iterator_t
 {
     T_class m_obj;
     std::function<bool(const T_class&)> m_filter_function;
-    gaia_iterator_t() = default;
 
 public:
     using difference_type = std::ptrdiff_t;
@@ -47,6 +46,7 @@ public:
 
     explicit gaia_iterator_t(gaia_id_t id);
     gaia_iterator_t(gaia_id_t id, std::function<bool(const T_class&)> filter_function);
+    gaia_iterator_t() = default;
 
     gaia_iterator_t<T_class>& operator++();
 
@@ -94,7 +94,6 @@ class gaia_set_iterator_t
 {
     T_child m_child_obj;
     std::function<bool(const T_child&)> m_filter_function;
-    gaia_set_iterator_t() = default;
 
 public:
     using difference_type = std::ptrdiff_t;
@@ -105,6 +104,7 @@ public:
 
     explicit gaia_set_iterator_t(gaia_id_t id);
     gaia_set_iterator_t(gaia_id_t id, std::function<bool(const T_child&)> filter_function);
+    gaia_set_iterator_t() = default;
 
     reference operator*();
 
