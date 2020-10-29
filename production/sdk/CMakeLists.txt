@@ -11,15 +11,13 @@ include(gaia)
 
 file(WRITE ${CMAKE_BINARY_DIR}/sdk_dummy.c "")
 
-add_library(gaia_system SHARED ${CMAKE_BINARY_DIR}/sdk_dummy.c)
+add_library(gaia SHARED ${CMAKE_BINARY_DIR}/sdk_dummy.c)
 set(SDK_LINK_LIBRARIES
   -Wl,--whole-archive
   gaia_direct
-  gaia_rules
-  gaia
+  gaia_system
   gaia_parser
   gaia_catalog
-  gaia_common
   gaia_payload_types
   gaia_se_client
   rocks_wrapper
@@ -27,7 +25,7 @@ set(SDK_LINK_LIBRARIES
   -Wl,--no-whole-archive
 )
 
-target_link_libraries(gaia_system PUBLIC
+target_link_libraries(gaia PUBLIC
   ${SDK_LINK_LIBRARIES}
 )
 
@@ -56,7 +54,7 @@ add_custom_command(
   COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/sql/src/gaia_fdw-0.0.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/gaia_fdw-0.0.so
   COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/rocksdb/librocksdb.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/librocksdb.so.6
 
-  COMMAND cmake -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/libgaia_system.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_system.so
+  COMMAND cmake -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/libgaia_system.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia.so
 
   COMMAND cmake -E copy_if_different /usr/lib/x86_64-linux-gnu/libexplain.so.51.5.0 ${TEMP_PACKAGE_FOLDER}/usr/lib/x86_64-linux-gnu/libexplain.so.51
   COMMAND cmake -E copy_if_different /usr/local/lib/libfmt.so.7.0.3 ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libfmt.so.7

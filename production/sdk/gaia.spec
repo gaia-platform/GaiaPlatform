@@ -33,7 +33,7 @@ pkill -f -KILL gaia_se_server
 /usr/local/lib/libgaia_triggers.so
 /usr/local/lib/gaia_fdw-0.0.so
 /usr/local/lib/librocksdb.so.6
-/usr/local/lib/libgaia_system.so
+/usr/local/lib/libgaia.so
 /usr/lib/x86_64-linux-gnu/libexplain.so.51
 /usr/local/lib/libfmt.so.7
 /usr/local/lib/libspdlog.so.1

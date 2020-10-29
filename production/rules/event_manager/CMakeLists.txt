@@ -48,15 +48,15 @@ set_property (TARGET gaia_rules PROPERTY POSITION_INDEPENDENT_CODE ON)
 add_gtest(test_auto_transaction "tests/test_auto_transaction.cpp"
   "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_direct")
 add_gtest(test_event_manager "tests/test_event_manager.cpp;tests/event_manager_test_helpers.cpp"
-  "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
+  "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_system")
 add_gtest(test_system_init "tests/test_system_init.cpp"
-  "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
+  "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_system")
 add_gtest(test_component_init "tests/test_component_init.cpp;tests/event_manager_test_helpers.cpp"
   "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_common;gaia_rules;gaia_catalog")
 add_gtest(test_rule_context "tests/test_rule_context.cpp"
   "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_common;gaia_rules")
 add_gtest(test_rule_checker "tests/test_rule_checker.cpp;"
-  "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia")
+  "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_system")
 
 # The rules integration test needs the logger configuration file.
 configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/log_conf.toml")
@@ -68,5 +68,5 @@ set(TEST_RULE_INTEGRATION_INCLUDES
   ${GAIA_PARSER_GENERATED})
 add_gtest(test_rule_integration
   "tests/test_rule_integration.cpp;tests/event_manager_test_helpers.cpp"
-  "${TEST_RULE_INTEGRATION_INCLUDES}" "rt;gaia;gaia_parser" "generate_addr_book_headers" ""
+  "${TEST_RULE_INTEGRATION_INCLUDES}" "rt;gaia_system;gaia_parser" "generate_addr_book_headers" ""
   "DDL_FILE=${GAIA_REPO}/production/schemas/test/addr_book/addr_book.ddl")

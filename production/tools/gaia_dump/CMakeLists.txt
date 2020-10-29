@@ -33,5 +33,5 @@ set_target_properties(gaia_dump PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 add_gtest(test_gaia_dump
   "tests/test_gaia_dump.cpp;src/gaia_dump.cpp"
   "${GAIA_DUMP_INCLUDES};${GAIA_GENERATED_SCHEMAS}"
-  "rt;gaia;gaia_catalog;gaia_parser"
+  "rt;gaia_system;gaia_catalog;gaia_parser"
   "generate_airport_headers" "")

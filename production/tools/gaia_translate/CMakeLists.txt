@@ -40,10 +40,10 @@ target_link_libraries(gaiat
   rt
   clangTooling
   gaia_se_client
-  gaia_payload_types  
-  gaia_common
   gaia_catalog
   gaia_direct
+  gaia_payload_types
+  gaia_system
   flatbuffers
   explain
 )
@@ -80,4 +80,3 @@ add_gtest(test_translation_engine
   "generate_incubator_rules" ""
   "INCUBATOR_DDL_FILE=${GAIA_REPO}/production/schemas/test/incubator/barn_storage.ddl"
   )
- 
