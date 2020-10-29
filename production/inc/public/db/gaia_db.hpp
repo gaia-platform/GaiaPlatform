@@ -122,7 +122,7 @@ public:
     invalid_type(gaia_id_t id, gaia_type_t type)
     {
         stringstream msg;
-        msg << "Cannot create object with ID " << id << "and type " << type << ". The type does not exist in the metadata.";
+        msg << "Cannot create object with ID " << id << " and type " << type << ". The type does not exist in the Catalog.";
         m_message = msg.str();
     }
 };
