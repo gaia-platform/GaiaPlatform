@@ -16,9 +16,6 @@
 #include "gaia_exception.hpp"
 #include "gaia_relationships.hpp"
 
-using namespace std;
-using namespace gaia::common;
-
 namespace gaia
 {
 namespace db

@@ -34,7 +34,7 @@ optional<relationship_t> type_metadata_t::find_parent_relationship(reference_off
 
     if (parent_relationship == m_parent_relationships.end())
     {
-        return {};
+        return std::nullopt;
     }
 
     return *parent_relationship->second.get();
@@ -48,7 +48,7 @@ optional<relationship_t> type_metadata_t::find_child_relationship(reference_offs
 
     if (child_relationship == m_child_relationships.end())
     {
-        return {};
+        return std::nullopt;
     }
 
     return *child_relationship->second.get();
