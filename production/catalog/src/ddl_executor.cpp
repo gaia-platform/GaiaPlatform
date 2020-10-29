@@ -563,7 +563,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
             {
                 // A table definition can reference existing tables in its own database
                 // without specifying the database name.
-                field_type_id = m_table_names[dbname + c_db_table_name_connector + field->table_type_name];
+                parent_type_id = m_table_names[dbname + c_db_table_name_connector + field->table_type_name];
             }
             else
             {
