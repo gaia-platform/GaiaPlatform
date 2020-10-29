@@ -5,8 +5,9 @@
 #pragma once
 
 #include <shared_mutex>
+#include <string>
 #include <unordered_map>
-#include <utility>
+#include <vector>
 
 #include "gaia_boot.hpp"
 #include "gaia_catalog.hpp"
@@ -66,7 +67,12 @@ private:
 
     // Internal drop table implementation. Callers need to acquire a transaction
     // before calling this method.
-    void drop_table_no_txn(gaia::common::gaia_id_t table_id);
+    // If enforce_referential_integrity is false it does not check referential integrity, fails otherwise.
+    void drop_table_no_txn(gaia::common::gaia_id_t table_id, bool enforce_referential_integrity);
+
+    // Drops the relationships associated with this table.
+    // If enforce_referential_integrity is false it does not check referential integrity, fails otherwise.
+    void drop_relationships_no_txn(gaia::common::gaia_id_t table_id, bool enforce_referential_integrity);
 
     // Find the database ID given its name.
     // The method does not use a lock.
@@ -86,6 +92,17 @@ private:
     // Get the full name for a table composed of db and table names.
     static inline string get_full_table_name(const string& db, const string& table);
     static constexpr char c_db_table_name_connector = '.';
+
+    // Find the next available offset in a container parent relationships
+    template <typename T_parent_relationships>
+    uint8_t find_parent_available_offset(T_parent_relationships& relationships);
+
+    // Find the next available offset in a container child relationships
+    template <typename T_child_relationships>
+    uint8_t find_child_available_offset(T_child_relationships& relationships);
+
+    // Find the next available offset in the relationships of the given table
+    uint8_t find_available_offset(gaia::common::gaia_id_t table);
 
     // Maintain some in-memory cache for fast lookup.
     // This is only intended for single process usage.

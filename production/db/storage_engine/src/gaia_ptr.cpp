@@ -6,7 +6,6 @@
 #include "gaia_ptr.hpp"
 
 #include "gaia_hash_map.hpp"
-#include "generator_iterator.hpp"
 #include "payload_diff.hpp"
 #include "storage_engine.hpp"
 #include "storage_engine_client.hpp"
@@ -20,6 +19,64 @@ using namespace gaia::db::triggers;
 gaia_id_t gaia_ptr::generate_id()
 {
     return gaia_boot_t::get().get_next_id();
+}
+
+gaia_ptr gaia_ptr::create(gaia_type_t type, size_t data_size, const void* data)
+{
+    gaia_id_t id = gaia_ptr::generate_id();
+
+    auto& metadata = type_registry_t::instance().get(type);
+    size_t num_references = metadata.num_references();
+
+    return create(id, type, num_references, data_size, data);
+}
+
+gaia_ptr gaia_ptr::create(gaia_id_t id, gaia_type_t type, size_t data_size, const void* data)
+{
+    auto& metadata = type_registry_t::instance().get(type);
+    size_t num_references = metadata.num_references();
+
+    return create(id, type, num_references, data_size, data);
+}
+
+gaia_ptr gaia_ptr::create(gaia_id_t id, gaia_type_t type, size_t num_refs, size_t data_size, const void* data)
+{
+    size_t refs_len = num_refs * sizeof(gaia_id_t);
+    size_t total_len = data_size + refs_len;
+    // TODO this constructor allows creating a gaia_ptr in an invalid state
+    //  the gaia_se_object_t should either be initialized before and passed in
+    //  or initialized inside the constructor.
+    gaia_ptr obj(id, total_len + sizeof(gaia_se_object_t));
+    gaia_se_object_t* obj_ptr = obj.to_ptr();
+    obj_ptr->id = id;
+    obj_ptr->type = type;
+    obj_ptr->num_references = num_refs;
+    if (num_refs)
+    {
+        memset(obj_ptr->payload, 0, refs_len);
+    }
+    obj_ptr->payload_size = total_len;
+    memcpy(obj_ptr->payload + refs_len, data, data_size);
+    obj.create_insert_trigger(type, id);
+    return obj;
+}
+
+void gaia_ptr::remove(gaia_ptr& node)
+{
+    if (!node)
+    {
+        return;
+    }
+
+    const gaia_id_t* references = node.references();
+    for (size_t i = 0; i < node.num_references(); i++)
+    {
+        if (references[i] != INVALID_GAIA_ID)
+        {
+            throw node_not_disconnected(node.id(), node.type());
+        }
+    }
+    node.reset();
 }
 
 void gaia_ptr::clone_no_txn()
@@ -54,6 +111,8 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data)
 
     size_t ref_len = old_this->num_references * sizeof(gaia_id_t);
     size_t total_len = data_size + ref_len;
+
+    // updates m_locator to point to the new object
     allocate(sizeof(gaia_se_object_t) + total_len);
 
     gaia_se_object_t* new_this = to_ptr();
@@ -84,7 +143,8 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data)
     return *this;
 }
 
-gaia_ptr& gaia_ptr::update_child_references(size_t next_child_slot, gaia_id_t next_child_id, size_t parent_slot, gaia_id_t parent_id)
+gaia_ptr& gaia_ptr::update_child_references(
+    size_t next_child_slot, gaia_id_t next_child_id, size_t parent_slot, gaia_id_t parent_id)
 {
     gaia_offset_t old_offset = to_offset();
     clone_no_txn();
@@ -175,7 +235,8 @@ void gaia_ptr::reset()
 }
 
 // This trivial implementation is necessary to avoid calling into client code from the header file.
-std::function<std::optional<gaia_id_t>()> gaia_ptr::get_id_generator_for_type(gaia_type_t type)
+std::function<std::optional<gaia_id_t>()>
+gaia_ptr::get_id_generator_for_type(gaia_type_t type)
 {
     return client::get_id_generator_for_type(type);
 }
@@ -183,7 +244,7 @@ std::function<std::optional<gaia_id_t>()> gaia_ptr::get_id_generator_for_type(ga
 void gaia_ptr::add_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset)
 {
     gaia_type_t parent_type = type();
-    auto parent_metadata = type_registry_t::instance().get_or_create(parent_type);
+    auto& parent_metadata = type_registry_t::instance().get(parent_type);
     auto relationship = parent_metadata.find_parent_relationship(first_child_offset);
 
     if (!relationship)
@@ -234,17 +295,26 @@ void gaia_ptr::add_child_reference(gaia_id_t child_id, reference_offset_t first_
     }
 
     // BUILD THE REFERENCES
+    // TODO (Mihir) if the parent/child have been created in the same txn the clone may not be necessary
+    gaia_offset_t old_parent_offset = to_offset();
+    clone_no_txn();
+
+    gaia_offset_t old_child_offset = child_ptr.to_offset();
+    child_ptr.clone_no_txn();
 
     child_ptr.references()[relationship->next_child_offset] = references()[first_child_offset];
     references()[first_child_offset] = child_ptr.id();
     child_ptr.references()[relationship->parent_offset] = id();
+
+    client::txn_log(m_locator, old_parent_offset, to_offset(), gaia_operation_t::update);
+    client::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset(), gaia_operation_t::update);
 }
 
 void gaia_ptr::add_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset)
 {
     gaia_type_t child_type = type();
 
-    auto child_metadata = type_registry_t::instance().get_or_create(child_type);
+    auto& child_metadata = type_registry_t::instance().get(child_type);
     auto child_relationship = child_metadata.find_child_relationship(parent_offset);
 
     if (!child_relationship)
@@ -256,7 +326,7 @@ void gaia_ptr::add_parent_reference(gaia_id_t parent_id, reference_offset_t pare
 
     if (!parent_ptr)
     {
-        throw invalid_node_id(parent_ptr);
+        throw invalid_node_id(parent_id);
     }
 
     parent_ptr.add_child_reference(id(), child_relationship->first_child_offset);
@@ -265,7 +335,7 @@ void gaia_ptr::add_parent_reference(gaia_id_t parent_id, reference_offset_t pare
 void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset)
 {
     gaia_type_t parent_type = type();
-    auto parent_metadata = type_registry_t::instance().get_or_create(parent_type);
+    auto& parent_metadata = type_registry_t::instance().get(parent_type);
     auto relationship = parent_metadata.find_parent_relationship(first_child_offset);
 
     if (!relationship)
@@ -296,6 +366,11 @@ void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t fir
     }
 
     // REMOVE REFERENCE
+    gaia_offset_t old_parent_offset = to_offset();
+    clone_no_txn();
+    gaia_offset_t old_child_offset = child_ptr.to_offset();
+    child_ptr.clone_no_txn();
+
     gaia_id_t prev_child = INVALID_GAIA_ID;
     gaia_id_t curr_child = references()[first_child_offset];
 
@@ -326,13 +401,16 @@ void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t fir
         curr_ptr.references()[relationship->parent_offset] = INVALID_GAIA_ID;
         curr_ptr.references()[relationship->next_child_offset] = INVALID_GAIA_ID;
     }
+
+    client::txn_log(m_locator, old_parent_offset, to_offset(), gaia_operation_t::update);
+    client::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset(), gaia_operation_t::update);
 }
 
 void gaia_ptr::remove_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset)
 {
     gaia_type_t child_type = type();
 
-    auto child_metadata = type_registry_t::instance().get_or_create(child_type);
+    auto& child_metadata = type_registry_t::instance().get(child_type);
     auto relationship = child_metadata.find_child_relationship(parent_offset);
 
     if (!relationship)
@@ -344,7 +422,7 @@ void gaia_ptr::remove_parent_reference(gaia_id_t parent_id, reference_offset_t p
 
     if (!parent_ptr)
     {
-        throw invalid_node_id(parent_ptr);
+        throw invalid_node_id(parent_id);
     }
 
     // REMOVE REFERENCE

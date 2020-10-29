@@ -32,6 +32,7 @@ CheckOptions:
   - { key: readability-identifier-naming.GlobalVariablePrefix,            value: g_ }
   - { key: readability-identifier-naming.GlobalConstantPrefix,            value: c_ }
   - { key: readability-identifier-naming.ConstantPrefix,                  value: c_ }
+  - { key: readability-identifier-naming.ConstexprVariablePrefix,         value: c_ }
   - { key: readability-identifier-naming.TypeTemplateParameterPrefix,     value: T_ }
   - { key: readability-identifier-naming.AbstractClassCase,               value: lower_case }
   - { key: readability-identifier-naming.ClassCase,                       value: lower_case }
