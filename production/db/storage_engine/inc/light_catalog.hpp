@@ -53,6 +53,7 @@ struct table_view_t : catalog_obj_view_t
     [[nodiscard]] const char* name() const;
     [[nodiscard]] gaia_type_t table_type() const;
     [[nodiscard]] vector<uint8_t> binary_schema() const;
+    [[nodiscard]] vector<uint8_t> serialization_template() const;
 };
 
 using field_list_t = common::iterators::range_t<common::iterators::generator_iterator_t<field_view_t>>;

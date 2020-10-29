@@ -352,9 +352,10 @@ gaia_id_t ddl_executor_t::create_table_impl(
     string bin{generate_bin(fbs, generate_json(fields))};
 
     gaia::db::begin_transaction();
+    gaia_type_t table_type = fixed_type == INVALID_GAIA_TYPE ? gaia_boot_t::get().get_next_type() : fixed_type;
     gaia_id_t table_id = gaia_table_t::insert_row(
         table_name.c_str(),
-        fixed_type == INVALID_GAIA_TYPE ? gaia_boot_t::get().get_next_type() : fixed_type,
+        table_type,
         is_system,
         bfbs.c_str(),
         bin.c_str());

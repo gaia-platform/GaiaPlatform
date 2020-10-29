@@ -2,7 +2,7 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
-#include "catalog_view.hpp"
+#include "light_catalog.hpp"
 
 #include <optional>
 
@@ -55,6 +55,12 @@ namespace db
 {
     return gaia::common::flatbuffers_hex_to_buffer(
         catalog::Getgaia_table(m_obj_ptr->data())->binary_schema()->c_str());
+}
+
+[[nodiscard]] vector<uint8_t> table_view_t::serialization_template() const
+{
+    return gaia::common::flatbuffers_hex_to_buffer(
+        catalog::Getgaia_table(m_obj_ptr->data())->serialization_template()->c_str());
 }
 
 const gaia_se_object_t* catalog_view_t::get_se_object_ptr(gaia_id_t id)

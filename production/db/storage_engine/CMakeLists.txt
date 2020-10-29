@@ -74,10 +74,10 @@ target_link_libraries(gaia_storage PRIVATE gaia_common)
 # Storage engine-related code begins here.
 ###############################################
 add_library(gaia_se_client STATIC
-  src/catalog_view.cpp
   src/gaia_db.cpp
   src/gaia_ptr.cpp
   src/gaia_boot.cpp
+  src/light_catalog.cpp
   src/payload_diff.cpp
   src/storage_engine.cpp
   src/storage_engine_client.cpp
@@ -188,5 +188,5 @@ add_gtest(test_rdb_object_converter "tests/test_rdb_object_converter.cpp" "${FLA
 add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
 add_gtest(test_storage_engine_client "tests/test_storage_engine_client.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_se_client")
 add_gtest(test_locator_allocator tests/test_locator_allocator.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
-add_gtest(test_relationships tests/test_relationships.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client;")
+add_gtest(test_relationships tests/test_relationships.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client")
 add_gtest(test_se_references tests/test_se_references.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client")
