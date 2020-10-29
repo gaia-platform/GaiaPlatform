@@ -120,7 +120,7 @@ private:
 
     // Helper class to manager gathering and logging performance statistics
     // for both the rules engine scheduler and individual rules.
-    rule_stats_manager_t m_stats_manager;
+    unique_ptr<rule_stats_manager_t> m_stats_manager;
 
 private:
     // Only internal static creation is allowed.

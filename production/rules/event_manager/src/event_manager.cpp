@@ -63,12 +63,24 @@ void event_manager_t::init()
 
 void event_manager_t::init(event_manager_settings_t& settings)
 {
-    m_invocations = make_unique<rule_thread_pool_t>(settings.num_background_threads, m_stats_manager);
+    size_t count_worker_threads = settings.num_background_threads;
+    if (count_worker_threads == SIZE_MAX)
+    {
+        count_worker_threads = thread::hardware_concurrency();
+    }
+
+    m_stats_manager = make_unique<rule_stats_manager_t>(
+        gaia_log::rules_stats(),
+        settings.enable_rule_stats,
+        count_worker_threads,
+        settings.stats_log_interval);
+
+    m_invocations = make_unique<rule_thread_pool_t>(count_worker_threads, *m_stats_manager);
+
     if (settings.enable_catalog_checks)
     {
         m_rule_checker = make_unique<rule_checker_t>();
     }
-    m_stats_manager.initialize(settings.enable_rule_stats, m_invocations->get_num_threads(), settings.stats_log_interval);
 
     auto fn = [](gaia_txn_id_t txn_id, const trigger_event_list_t& event_list) {
         event_manager_t::get().commit_trigger(txn_id, event_list);
