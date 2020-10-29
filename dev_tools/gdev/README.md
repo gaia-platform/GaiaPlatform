@@ -95,10 +95,9 @@ XXX The testing registry uses `http` and is not secure.
 
 (Optional, Linux only) Enable multiarch building.
 ```bash
+sudo apt install qemu-user-static
 docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-docker buildx create --name gdev_builder
-docker buildx use gdev_builder
-docker buildx inspect --bootstrap
+sudo service docker restart
 ```
 
 ## Creating build rules with `gdev.cfg` files
@@ -348,6 +347,7 @@ TODO
 
 ## enable_if and enable_if_not
 
+```
 {enable_if('translation_engine')}# This is an example line of what could be run \
     # if we use `gdev build --cfg-enables translation_engine`.
 {enable_if_not('translation_engine')}# This is an example line of what could be \
@@ -372,3 +372,4 @@ cmake \
     {enable_if_not_any('debug', 'production_debug')}-DCMAKE_BUILD_TYPE=Release \
     {enable_if_any('debug', 'production_debug')}-DCMAKE_BUILD_TYPE=Debug \
     {source_dir('production')}
+```

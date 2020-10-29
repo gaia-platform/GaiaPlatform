@@ -43,6 +43,21 @@ class GenAbcRun(Dependency, ABC):
         # Handle non-TTY environments as well, e.g. TeamCity continuous integration.
         if sys.stdout.isatty():
             flags_parts.append('-it')
+        # Ports to expose between container and host.
+        ports = set(self.options.ports)
+        if {'clion', 'sshd', 'vscode'} & self.options.mixins:
+            ports.add('22')
+            if (authorized_keys_path := Path.home() / '.ssh' / 'authorized_keys').is_file():
+                if {'clion', 'sudo', 'vscode'} & self.options.mixins:
+                    flags_parts.append(
+                        f'-v {authorized_keys_path.absolute()}:{authorized_keys_path.absolute()}'
+                    )
+                else:
+                    flags_parts.append(
+                        f'-v {authorized_keys_path.absolute()}:/root/.ssh/authorized_keys'
+                    )
+        if ports:
+            flags_parts.append('-p ' + ' '.join(f'{port}:{port}' for port in ports))
         # Additional mounts to bind between container and host.
         for mount in self.options.mounts:
             flags_parts.append(
@@ -90,9 +105,7 @@ class GenAbcRun(Dependency, ABC):
         command = shlex.split(
             f'docker run {await self.get_flags()}'
             f' {await self.build.get_tag()}'
-            f'''{
-                fr' -c "{self.options.args}"' if self.options.args else ""
-            }'''
+            f'''{fr' -c "{self.options.args}"' if self.options.args else ""}'''
         )
         self.log.debug(f'execvpe {command = }')
 
