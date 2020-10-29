@@ -4,12 +4,13 @@
 /////////////////////////////////////////////
 #include "fbs_generator.hpp"
 
-#include "flatbuffers/idl.h"
-#include "flatbuffers/util.h"
-
 #include <algorithm>
 #include <string>
 
+#include "flatbuffers/idl.h"
+#include "flatbuffers/util.h"
+
+#include "flatbuffers_helpers.hpp"
 #include "gaia_catalog.h"
 #include "retail_assert.hpp"
 
@@ -172,39 +173,14 @@ string generate_bfbs(const string& fbs)
     // The following const defines the line wrap length of the encoded hex text.
     // We do not need this but fbs method requires it.
     constexpr size_t c_binary_schema_hex_text_len = 80;
-    return flatbuffers::BufferToHexText(fbs_parser.builder_.GetBufferPointer(), fbs_parser.builder_.GetSize(),
-                                        c_binary_schema_hex_text_len, "", "");
+    return flatbuffers::BufferToHexText(
+        fbs_parser.builder_.GetBufferPointer(), fbs_parser.builder_.GetSize(), c_binary_schema_hex_text_len, "", "");
 }
 
-string get_bfbs(gaia_id_t table_id)
+vector<uint8_t> get_bfbs(gaia_id_t table_id)
 {
-    string binary_schema;
     gaia_table_t table = gaia_table_t::get(table_id);
-    // The delimitation character used by the fbs hex encoding method.
-    constexpr char c_hex_text_delim = ',';
-    const char* p = table.binary_schema();
-    while (*p != '\0')
-    {
-        if (*p == '\n')
-        {
-            p++;
-            continue;
-        }
-        else if (*p == c_hex_text_delim)
-        {
-            p++;
-            continue;
-        }
-        else
-        {
-            char* endptr;
-            unsigned byte = std::strtoul(p, &endptr, 0);
-            retail_assert(endptr != p && errno != ERANGE, "Invalid hex binary schema!");
-            binary_schema.push_back(byte);
-            p = endptr;
-        }
-    }
-    return binary_schema;
+    return gaia::common::flatbuffers_hex_to_buffer(table.binary_schema());
 }
 
 } // namespace catalog

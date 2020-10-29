@@ -2,6 +2,9 @@
 //// Copyright (c) Gaia Platform LLC
 //// All rights reserved.
 ///////////////////////////////////////////////
+#include <cstring>
+
+#include "gaia_db.hpp"
 #include "gaia_dump.hpp"
 
 constexpr gaia_id_t c_high_default = 1000;

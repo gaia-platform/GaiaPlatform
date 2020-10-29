@@ -5,16 +5,9 @@
 
 #pragma once
 
-#include <cstring>
-
-#include <iostream>
-
 #include "db_types.hpp"
-#include "gaia_db.hpp"
 #include "gaia_se_object.hpp"
 #include "generator_iterator.hpp"
-#include "retail_assert.hpp"
-#include "type_metadata.hpp"
 
 using namespace gaia::common;
 
@@ -43,7 +36,7 @@ public:
         return to_ptr() != nullptr;
     }
 
-    operator bool() const
+    explicit operator bool() const
     {
         return to_ptr() != nullptr;
     }
@@ -53,52 +46,20 @@ public:
     static gaia_ptr create(
         gaia_type_t type,
         size_t data_size,
-        const void* data)
-    {
-
-        gaia_id_t id = gaia_ptr::generate_id();
-        auto metadata = type_registry_t::instance().get_or_create(type);
-        size_t num_references = metadata.num_references();
-
-        return create(id, type, num_references, data_size, data);
-    }
+        const void* data);
 
     static gaia_ptr create(
         gaia_id_t id,
         gaia_type_t type,
         size_t data_size,
-        const void* data)
-    {
-
-        auto metadata = type_registry_t::instance().get_or_create(type);
-        size_t num_references = metadata.num_references();
-
-        return create(id, type, num_references, data_size, data);
-    }
+        const void* data);
 
     static gaia_ptr create(
         gaia_id_t id,
         gaia_type_t type,
         size_t num_refs,
         size_t data_size,
-        const void* data)
-    {
-        size_t refs_len = num_refs * sizeof(gaia_id_t);
-        size_t total_len = data_size + refs_len;
-        gaia_ptr obj(id, total_len + sizeof(gaia_se_object_t));
-        gaia_se_object_t* obj_ptr = obj.to_ptr();
-        obj_ptr->id = id;
-        obj_ptr->type = type;
-        obj_ptr->num_references = num_refs;
-        if (num_refs)
-        {
-            memset(obj_ptr->payload, 0, refs_len);
-        }
-        obj_ptr->payload_size = total_len;
-        memcpy(obj_ptr->payload + refs_len, data, data_size);
-        obj.create_insert_trigger(type, id);
-        return obj;
-    }
+        const void* data);
 
     static gaia_ptr open(
         gaia_id_t id)
@@ -106,23 +67,8 @@ public:
         return gaia_ptr(id);
     }
 
-    static void remove(gaia_ptr& node)
-    {
-        if (!node)
-        {
-            return;
-        }
-
-        const gaia_id_t* references = node.references();
-        for (size_t i = 0; i < node.num_references(); i++)
-        {
-            if (references[i] != INVALID_GAIA_ID)
-            {
-                throw node_not_disconnected(node.id(), node.type());
-            }
-        }
-        node.reset();
-    }
+    // TODO this should either accept a gaia_id_t or be an instance method.
+    static void remove(gaia_ptr& node);
 
     gaia_ptr& clone();
 
@@ -200,7 +146,7 @@ public:
 
     char* data() const
     {
-        return data_size() ? (char*)(to_ptr()->payload + (to_ptr()->num_references * sizeof(gaia_id_t))) : nullptr;
+        return data_size() ? const_cast<char*>(to_ptr()->data()) : nullptr;
     }
 
     size_t data_size() const
@@ -213,7 +159,7 @@ public:
 
     gaia_id_t* references() const
     {
-        return reinterpret_cast<gaia_id_t*>(to_ptr()->payload);
+        return const_cast<gaia_id_t*>(to_ptr()->references());
     }
 
     size_t num_references() const
@@ -222,7 +168,8 @@ public:
     }
 
     /**
-     * Adds a child reference to a parent object.
+     * Adds a child reference to a parent object. All the pointers involved in the relationship
+     * will be updated, not only first_child_offset.
      *
      * Calling `parent.add_child_reference(child)` is the same as calling
      * `child.add_parent_reference(parent)`.
@@ -235,7 +182,8 @@ public:
     void add_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset);
 
     /**
-     * Add a parent reference to a child object.
+     * Add a parent reference to a child object. All the pointers involved in the relationship
+     * will be updated, not only parent_offset.
      *
      * Note: Children objects have 2 pointers per relationship (next_child_offset, parent_offset)
      * only one (parent_offset) is used to denote the relationship with parent.
@@ -251,6 +199,8 @@ public:
      * Removes a child reference from a parent object. Without an index this operation
      * could have O(n) time complexity where n is the number of children.
      *
+     * All the pointers involved in the relationship will be updated, not only first_child_offset.
+     *
      * @param child_id The id of the children to be removed.
      * @param first_child_offset The offset, in the references array, of the pointer to the first child.
      */
@@ -260,10 +210,24 @@ public:
      * Removes a parent reference from a child object. Without an index this operation
      * could have O(n) time complexity where n is the number of children.
      *
+     * All the pointers involved in the relationship will be updated, not only parent_offset.
+     *
      * @param parent_id The id of the parent to be removed.
      * @param parent_offset The offset, in the references array, of the pointer to the parent.
      */
     void remove_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset);
+
+    /**
+     * Update the parent reference with the given new_parent_id. If the this object does not
+     * have a parent for the relationship denoted by parent_offset, it will just create the
+     * relationship.
+     *
+     * All the pointers involved in the relationship will be updated, not only parent_offset.
+     *
+     * @param new_parent_id The id of the new parent.
+     * @param parent_offset The offset, in the references array, of the pointer to the parent.
+     */
+    void update_parent_reference(gaia_id_t new_parent_id, reference_offset_t parent_offset);
 
     // "function with deduced return type cannot be used before it is defined".
     // The function must be defined in the same translation unit where it is used,

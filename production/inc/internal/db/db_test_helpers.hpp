@@ -39,6 +39,7 @@ void remove_persistent_store()
 void wait_for_server_init()
 {
     constexpr int c_poll_interval_millis = 10;
+    constexpr int c_print_error_interval = 1000;
     int counter = 0;
 
     // quick fix to initialize the server.
@@ -55,7 +56,7 @@ void wait_for_server_init()
         {
             if (ex.get_errno() == ECONNREFUSED)
             {
-                if (counter % 1000 == 0)
+                if (counter % c_print_error_interval == 0)
                 {
                     gaia_log::sys().warn(
                         "Cannot connect to Gaia Server, you may need to start the gaia_se_server process");

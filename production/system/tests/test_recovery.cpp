@@ -4,7 +4,6 @@
 /////////////////////////////////////////////
 #include <unistd.h>
 
-#include <fstream>
 #include <iostream>
 #include <map>
 #include <string>
@@ -14,13 +13,16 @@
 
 #include "db_test_helpers.hpp"
 #include "gaia_addr_book.h"
+#include "gaia_catalog.h"
+#include "gaia_catalog.hpp"
 #include "gaia_db.hpp"
-#include "gaia_system.hpp"
-#include "system_error.hpp"
+#include "logger.hpp"
+#include "se_test_util.hpp"
 
 using namespace gaia::db;
 using namespace gaia::common;
 using namespace gaia::addr_book;
+using namespace gaia::db::test;
 
 using std::string;
 
@@ -189,8 +191,7 @@ void load_data(uint64_t total_size_bytes, bool kill_server_during_load, db_serve
             // Insert row.
             auto e = generate_employee_record();
             temp_employee_map.insert(
-                make_pair(e.gaia_id(),
-                          employee_copy_t{e.name_first(), e.name_last(), e.ssn(), e.hire_date(), e.email(), e.web()}));
+                make_pair(e.gaia_id(), employee_copy_t{e.name_first(), e.name_last(), e.ssn(), e.hire_date(), e.email(), e.web()}));
         }
         commit_transaction();
 
@@ -280,8 +281,7 @@ void delete_all(int initial_record_count)
     validate_data();
 }
 
-void load_modify_recover_test(db_server_t server, string server_dir_path, uint64_t load_size_bytes,
-                              int crash_validate_loop_count, bool kill_during_workload)
+void load_modify_recover_test(db_server_t server, string server_dir_path, uint64_t load_size_bytes, int crash_validate_loop_count, bool kill_during_workload)
 {
     int initial_record_count;
     // Start server.
@@ -487,8 +487,189 @@ TEST_F(recovery_test, reference_update_test)
     end_session();
 }
 
+TEST_F(recovery_test, reference_create_delete_test_new)
+{
+    constexpr int c_num_children = 10;
+    gaia_id_t parent_id;
+    std::vector<gaia_id_t> children_ids{};
+
+    restart_server(m_server, g_server_dir_path.c_str());
+    begin_session();
+    {
+        auto_transaction_t txn;
+
+        // Create the relationship.
+        relationship_builder_t::one_to_many()
+            .parent(c_doctor_type)
+            .child(c_patient_type)
+            .create_relationship();
+
+        // Create the parent.
+        gaia_ptr parent = create_object(c_doctor_type, "Dr. House");
+        parent_id = parent.id();
+
+        // Create the children.
+        for (int i = 0; i < c_num_children; i++)
+        {
+            gaia_ptr child = create_object(c_patient_type, "John Doe " + std::to_string(i));
+
+            // Add half references from the parent and half from the children.
+            // (semantically same operation)
+            if (i < 5)
+            {
+                parent.add_child_reference(child.id(), c_first_patient_offset);
+            }
+            else
+            {
+                child.add_parent_reference(parent_id, c_parent_doctor_offset);
+            }
+        }
+        txn.commit();
+    }
+    end_session();
+
+    restart_server(m_server, g_server_dir_path.c_str());
+
+    begin_session();
+    {
+        auto_transaction_t txn;
+
+        // Get the parent.
+        gaia_ptr parent = gaia_ptr::open(parent_id);
+        // Make sure address cannot be deleted upon recovery.
+        ASSERT_THROW(gaia_ptr::remove(parent), node_not_disconnected);
+
+        // Find the children.
+        gaia_ptr first_child = gaia_ptr::open(parent.references()[c_first_patient_offset]);
+        children_ids.push_back(first_child.id());
+        gaia_ptr next_child = gaia_ptr::open(first_child.references()[c_next_patient_offset]);
+
+        while (next_child)
+        {
+            children_ids.push_back(next_child.id());
+            next_child = gaia_ptr::open(next_child.references()[c_next_patient_offset]);
+        }
+
+        // Ensure parent has all the children
+        ASSERT_EQ(c_num_children, children_ids.size());
+
+        // Delete the children.
+        for (int i = 0; i < c_num_children; i++)
+        {
+            gaia_id_t child_id = children_ids[i];
+
+            // Remove half references from the parent and half from the children.
+            // (semantically same operation)
+            if (i < 5)
+            {
+                parent.remove_child_reference(child_id, c_first_patient_offset);
+            }
+            else
+            {
+                gaia_ptr child = gaia_ptr::open(child_id);
+                child.remove_parent_reference(parent_id, c_parent_doctor_offset);
+            }
+        }
+        txn.commit();
+    }
+    end_session();
+
+    restart_server(m_server, g_server_dir_path.c_str());
+
+    begin_session();
+    {
+        auto_transaction_t txn;
+
+        // Get the parent.
+        gaia_ptr parent = gaia_ptr::open(parent_id);
+
+        // Ensure the parent does not have children
+        ASSERT_EQ(INVALID_GAIA_ID, parent.references()[c_first_patient_offset]);
+        txn.commit();
+    }
+    end_session();
+}
+
+TEST_F(recovery_test, reference_update_test_new)
+{
+    gaia_id_t parent_id;
+    gaia_id_t child_id;
+    gaia_id_t new_parent_id;
+
+    restart_server(m_server, g_server_dir_path.c_str());
+    begin_session();
+    {
+        auto_transaction_t txn;
+
+        // Create the relationship.
+        relationship_builder_t::one_to_many()
+            .parent(c_doctor_type)
+            .child(c_patient_type)
+            .create_relationship();
+
+        // Create the parent.
+        gaia_ptr parent = create_object(c_doctor_type, "Dr. House");
+        parent_id = parent.id();
+
+        // Create child.
+        gaia_ptr child = create_object(c_patient_type, "John Doe ");
+        child_id = child.id();
+
+        parent.add_child_reference(child_id, c_first_patient_offset);
+
+        txn.commit();
+    }
+    end_session();
+
+    restart_server(m_server, g_server_dir_path.c_str());
+
+    begin_session();
+    {
+        auto_transaction_t txn;
+
+        // Create the new parent.
+        gaia_ptr new_parent = create_object(c_doctor_type, "Dr. House");
+        new_parent_id = new_parent.id();
+
+        // Get the child
+        gaia_ptr child = gaia_ptr::open(child_id);
+        child.update_parent_reference(new_parent_id, c_parent_doctor_offset);
+
+        txn.commit();
+    }
+    end_session();
+
+    restart_server(m_server, g_server_dir_path.c_str());
+
+    begin_session();
+    {
+        auto_transaction_t txn;
+
+        gaia_ptr parent = gaia_ptr::open(parent_id);
+        gaia_ptr child = gaia_ptr::open(child_id);
+        gaia_ptr new_parent = gaia_ptr::open(new_parent_id);
+
+        ASSERT_EQ(INVALID_GAIA_ID, parent.references()[c_first_patient_offset]);
+        ASSERT_EQ(new_parent_id, child.references()[c_parent_doctor_offset]);
+        ASSERT_EQ(INVALID_GAIA_ID, child.references()[c_next_patient_offset]);
+        ASSERT_EQ(child_id, new_parent.references()[c_first_patient_offset]);
+
+        txn.commit();
+    }
+    end_session();
+}
+
 int main(int argc, char** argv)
 {
+    gaia_log::initialize({});
+
+    if (argc != 2)
+    {
+        gaia_log::db().critical("You must specify the gaia_se_server path. eg:\n\n "
+                                " test_recovery \"production/build/db/storage_engine\"");
+        exit(1);
+    }
+
     ::testing::InitGoogleTest(&argc, argv);
     g_server_dir_path = argv[1];
     return RUN_ALL_TESTS();

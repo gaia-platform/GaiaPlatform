@@ -2,10 +2,11 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <vector>
 
 #include "flatbuffers/idl.h"
 
@@ -14,7 +15,7 @@
 #include "gaia_catalog_internal.hpp"
 #include "gaia_db.hpp"
 #include "gaia_parser.hpp"
-#include "gaia_system.hpp"
+#include "logger.hpp"
 
 using namespace std;
 using namespace gaia::catalog;
@@ -94,20 +95,26 @@ void generate_fbs_headers(const string& db_name, const string& output_path)
     string fbs_schema = gaia::catalog::generate_fbs(db_name);
     if (!fbs_parser.Parse(fbs_schema.c_str()))
     {
-        cerr << c_error_prompt << "Fail to parse the catalog generated FlatBuffers schema. Error: " << fbs_parser.error_
-             << endl;
+        cerr << c_error_prompt
+             << "Fail to parse the catalog generated FlatBuffers schema. Error: "
+             << fbs_parser.error_ << endl;
     }
 
     if (!flatbuffers::GenerateCPP(fbs_parser, output_path, db_name))
     {
-        cerr << c_error_prompt << "Unable to generate FlatBuffers C++ headers for " << db_name << endl;
+        cerr << c_error_prompt
+             << "Unable to generate FlatBuffers C++ headers for " << db_name << endl;
     };
 }
 
 // From the database name and catalog contents, generate the Extended Data Class definition(s).
 void generate_edc_headers(const string& db_name, const string& output_path)
 {
-    ofstream edc(output_path + "gaia" + (db_name.empty() ? "" : "_" + db_name) + ".h");
+    std::string header_path = output_path + "gaia" + (db_name.empty() ? "" : "_" + db_name) + ".h";
+
+    cout << "Generating EDC headers in: " << std::filesystem::absolute(header_path).string() << endl;
+
+    ofstream edc(header_path);
     try
     {
         edc << gaia::catalog::gaia_generate(db_name) << endl;
@@ -175,6 +182,8 @@ void LogCompilerError(const std::string& err)
 
 int main(int argc, char* argv[])
 {
+    gaia_log::initialize({});
+
     int res = EXIT_SUCCESS;
     db_server_t server;
     string output_path;

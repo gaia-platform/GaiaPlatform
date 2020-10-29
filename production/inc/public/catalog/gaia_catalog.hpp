@@ -37,6 +37,10 @@ const string c_gaia_namespace = "gaia";
 // created database called "()".
 const string c_empty_db_name = "()";
 
+// The character used to connect a database name and a table name to form fully
+// qualified name for a table defined in a given database.
+constexpr char c_db_table_name_connector = '.';
+
 /*
  * The following enum classes are shared cross the catalog usage.
  */
@@ -44,22 +48,8 @@ const string c_empty_db_name = "()";
 /*
  * Data types for Gaia field records.
  */
-enum class data_type_t : uint8_t
-{
-    e_bool,
-    e_int8,
-    e_uint8,
-    e_int16,
-    e_uint16,
-    e_int32,
-    e_uint32,
-    e_int64,
-    e_uint64,
-    e_float,
-    e_double,
-    e_string,
-    e_references
-};
+
+using data_type_t = gaia::common::data_type_t;
 
 /**
  * Thrown when seeing an unknown data type
@@ -96,6 +86,16 @@ enum value_index_type_t : uint8_t
 {
     hash,
     range
+};
+
+
+/*
+ * Cardinality of a relationship
+ */
+enum relationship_cardinality_t : uint8_t
+{
+    one,
+    many
 };
 
 namespace ddl
@@ -286,6 +286,24 @@ public:
     }
 };
 
+class referential_integrity_violation : public gaia::common::gaia_exception
+{
+public:
+    explicit referential_integrity_violation(const string& message)
+    {
+        m_message = message;
+    }
+
+    static referential_integrity_violation drop_parent_table(
+        const string& parent_table,
+        const string& child_table)
+    {
+        stringstream message;
+        message << "Cannot drop table \"" << parent_table << "\" because it is referenced by \"" << child_table << "\"";
+        return referential_integrity_violation{message.str()};
+    }
+};
+
 /**
  * Initialize the catalog.
 */
@@ -387,6 +405,24 @@ vector<gaia::common::gaia_id_t> list_fields(gaia::common::gaia_id_t table_id);
 vector<gaia::common::gaia_id_t> list_references(gaia::common::gaia_id_t table_id);
 
 /**
+ * List all the tables that have a relationship with the given table where the
+ * given table is the parent side of the relationship.
+ *
+ * @param table_id id of the table
+ * @return a list of ids of the tables that have a child relationship with this table.
+ */
+vector<gaia::common::gaia_id_t> list_parent_relationships(gaia::common::gaia_id_t table_id);
+
+/**
+ * List all the tables that have a relationship with the given table where the
+ * given table is the child side of the relationship.
+ *
+ * @param table_id id of the table
+ * @return a list of ids of the tables that have a parent relationship with this table.
+ */
+vector<gaia::common::gaia_id_t> list_child_relationships(gaia::common::gaia_id_t table_id);
+
+/**
  * Generate FlatBuffers schema (fbs) for a catalog table.
  * The given table is the root type of the generated schema.
  *
@@ -425,7 +461,7 @@ string gaia_generate(const string& dbname);
  * @param table_id id of the table
  * @return bfbs
  */
-string get_bfbs(gaia::common::gaia_id_t table_id);
+vector<uint8_t> get_bfbs(gaia::common::gaia_id_t table_id);
 
 /**
  * Retrieve the serialization template (bin) for a given table.
@@ -433,7 +469,7 @@ string get_bfbs(gaia::common::gaia_id_t table_id);
  * @param table_id id of the table
  * @return bin
  */
-string get_bin(gaia::common::gaia_id_t table_id);
+vector<uint8_t> get_bin(gaia::common::gaia_id_t table_id);
 
 /**
  * Find the database id given its name

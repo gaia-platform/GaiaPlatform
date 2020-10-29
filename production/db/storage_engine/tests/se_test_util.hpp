@@ -32,7 +32,8 @@ constexpr reference_offset_t c_non_existent_offset = 1024;
 
 /**
  * Facilitate the creation of relationship objects and their insertion into
- * the registry.
+ * the registry. It also creates the instances of type_metadata_t in
+ * the registry if not available.
  */
 class relationship_builder_t
 {
@@ -87,17 +88,17 @@ public:
     {
         if (m_parent_type == INVALID_GAIA_TYPE)
         {
-            throw invalid_argument("parent_type must be set");
+            throw invalid_argument("parent_type must be set!");
         }
 
         if (m_child_type == INVALID_GAIA_TYPE)
         {
-            throw invalid_argument("child_type must be set");
+            throw invalid_argument("child_type must be set!");
         }
 
         if (m_cardinality == cardinality_t::not_set)
         {
-            throw invalid_argument("cardinality must be set");
+            throw invalid_argument("cardinality must be set!");
         }
 
         auto rel = make_shared<relationship_t>(relationship_t{
@@ -109,10 +110,10 @@ public:
             .cardinality = this->m_cardinality,
             .parent_required = this->m_parent_required});
 
-        auto& parent_meta = type_registry_t::instance().get_or_create(m_parent_type);
+        auto& parent_meta = type_registry_t::instance().test_get_or_create(m_parent_type);
         parent_meta.add_parent_relationship(m_first_child_offset, rel);
 
-        auto& child_meta = type_registry_t::instance().get_or_create(m_child_type);
+        auto& child_meta = type_registry_t::instance().test_get_or_create(m_child_type);
         child_meta.add_child_relationship(m_parent_offset, rel);
     }
 
@@ -140,7 +141,7 @@ private:
 gaia_ptr create_object(gaia_type_t type, size_t data_size, const void* data)
 {
     gaia_id_t id = gaia_ptr::generate_id();
-    auto metadata = type_registry_t::instance().get_or_create(type);
+    auto& metadata = type_registry_t::instance().get(type);
     size_t num_references = metadata.num_references();
     return gaia_ptr::create(id, type, num_references, data_size, data);
 }

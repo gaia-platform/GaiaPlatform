@@ -116,6 +116,17 @@ public:
     }
 };
 
+class invalid_type : public gaia_exception
+{
+public:
+    invalid_type(gaia_id_t id, gaia_type_t type)
+    {
+        stringstream msg;
+        msg << "Cannot create object with ID " << id << "and type " << type << ". The type does not exist in the metadata.";
+        m_message = msg.str();
+    }
+};
+
 bool is_transaction_active();
 void begin_session();
 void end_session();
