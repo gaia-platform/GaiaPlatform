@@ -26,7 +26,7 @@ private:
 
     void init_type_table_map()
     {
-        for (auto table_view : gaia::db::catalog_view_t::list_tables())
+        for (auto table_view : gaia::db::catalog_core_t::list_tables())
         {
             m_type_id_record_id_map[table_view.table_type()] = table_view.id();
         }
@@ -54,9 +54,9 @@ void compute_payload_diff(
     static type_id_record_id_cache_t type_table_cache;
     gaia_id_t type_record_id = type_table_cache.get_record_id(type_id);
 
-    auto schema = catalog_view_t::get_table(type_record_id).binary_schema();
+    auto schema = catalog_core_t::get_table(type_record_id).binary_schema();
 
-    for (auto field_view : catalog_view_t::list_fields(type_record_id))
+    for (auto field_view : catalog_core_t::list_fields(type_record_id))
     {
         if (field_view.data_type() == data_type_t::e_references)
         {
@@ -67,7 +67,6 @@ void compute_payload_diff(
         payload_types::data_holder_t data_holder1 = payload_types::get_field_value(type_id, payload1, schema.data(), pos);
         payload_types::data_holder_t data_holder2 = payload_types::get_field_value(type_id, payload2, schema.data(), pos);
 
-        // Compare values and set.
         if (data_holder1.compare(data_holder2) != 0)
         {
             changed_fields->push_back(pos);

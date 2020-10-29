@@ -5,10 +5,6 @@
 
 #pragma once
 
-#include <sys/epoll.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-
 #include <csignal>
 
 #include <atomic>
@@ -18,6 +14,9 @@
 #include <unordered_set>
 
 #include <flatbuffers/flatbuffers.h>
+#include <sys/epoll.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 #include "db_types.hpp"
 #include "generator_iterator.hpp"
@@ -48,7 +47,7 @@ class client : private se_base
 {
     friend class gaia_ptr;
     friend class gaia_hash_map;
-    friend class catalog_view_t;
+    friend class catalog_core_t;
 
 public:
     static inline bool is_transaction_active()

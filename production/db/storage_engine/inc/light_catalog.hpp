@@ -18,9 +18,9 @@ namespace gaia
 namespace db
 {
 
-struct catalog_obj_view_t
+struct catalog_se_object_view_t
 {
-    explicit catalog_obj_view_t(const gaia_se_object_t* obj_ptr)
+    explicit catalog_se_object_view_t(const gaia_se_object_t* obj_ptr)
         : m_obj_ptr{obj_ptr}
     {
     }
@@ -39,17 +39,17 @@ protected:
     const gaia_se_object_t* m_obj_ptr;
 };
 
-struct field_view_t : catalog_obj_view_t
+struct field_view_t : catalog_se_object_view_t
 {
-    using catalog_obj_view_t::catalog_obj_view_t;
+    using catalog_se_object_view_t::catalog_se_object_view_t;
     [[nodiscard]] const char* name() const;
     [[nodiscard]] data_type_t data_type() const;
     [[nodiscard]] field_position_t position() const;
 };
 
-struct table_view_t : catalog_obj_view_t
+struct table_view_t : catalog_se_object_view_t
 {
-    using catalog_obj_view_t::catalog_obj_view_t;
+    using catalog_se_object_view_t::catalog_se_object_view_t;
     [[nodiscard]] const char* name() const;
     [[nodiscard]] gaia_type_t table_type() const;
     [[nodiscard]] vector<uint8_t> binary_schema() const;
@@ -59,11 +59,10 @@ struct table_view_t : catalog_obj_view_t
 using field_list_t = common::iterators::range_t<common::iterators::generator_iterator_t<field_view_t>>;
 using table_list_t = common::iterators::range_t<common::iterators::generator_iterator_t<table_view_t>>;
 
-class catalog_view_t
+class catalog_core_t
 {
 private:
-    //
-    // Constants for refernece slots in catalog records.
+    // Constants for reference slots in catalog records.
     // They need to be updated when the corresponding catalog table definition change.
     //
     // The ref slot in gaia_table pointing to the first gaia_field
@@ -72,7 +71,6 @@ private:
     static constexpr uint16_t c_gaia_field_parent_gaia_table_slot = 0;
     // The ref slot in gaia_field pointing to the next gaia_field
     static constexpr uint16_t c_gaia_field_next_gaia_field_slot = 1;
-    //
 
     [[nodiscard]] static inline const gaia_se_object_t* get_se_object_ptr(gaia_id_t);
 
