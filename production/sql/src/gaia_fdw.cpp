@@ -631,7 +631,7 @@ extern "C" TupleTableSlot* gaia_exec_foreign_insert(
 
     // NB: we assume 0 is a valid sentinel value, i.e., it can never be a
     // system-generated gaia_id.
-    uint64_t gaia_id = 0;
+    gaia_id_t gaia_id = INVALID_GAIA_ID;
 
     // slot_getallattrs() is necessary beginning in Postgres 12 (the slot will
     // be empty!).
@@ -710,7 +710,7 @@ extern "C" TupleTableSlot* gaia_exec_foreign_update(
 
     // NB: we assume 0 is a valid sentinel value, i.e., it can never be a
     // system-generated gaia_id.
-    uint64_t gaia_id = 0;
+    gaia_id_t gaia_id = INVALID_GAIA_ID;
 
     // slot_getallattrs() is necessary beginning in Postgres 12 (the slot will
     // be empty!).
@@ -789,7 +789,7 @@ extern "C" TupleTableSlot* gaia_exec_foreign_delete(
     bool is_null;
     Datum pk_val = slot_getattr(plan_slot, attnum, &is_null);
     assert(!is_null);
-    uint64_t gaia_id = DatumGetUInt64(pk_val);
+    gaia_id_t gaia_id = DatumGetUInt64(pk_val);
 
     if (!modify_state->delete_record(gaia_id))
     {
