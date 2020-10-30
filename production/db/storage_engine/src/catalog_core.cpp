@@ -80,7 +80,7 @@ table_view_t catalog_core_t::get_table(gaia_id_t table_id)
 table_list_t catalog_core_t::list_tables()
 {
     client::verify_txn_active();
-    auto gaia_table_generator = [locator = INVALID_GAIA_LOCATOR]() mutable -> std::optional<table_view_t> {
+    auto gaia_table_generator = [locator = c_invalid_gaia_locator]() mutable -> std::optional<table_view_t> {
         while (++locator && locator < client::s_data->locator_count + 1)
         {
             gaia_se_object_t* ptr = se_base::locator_to_ptr(client::s_locators, client::s_data, locator);

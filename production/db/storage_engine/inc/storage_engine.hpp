@@ -111,7 +111,7 @@ protected:
 
     thread_local static inline log* s_log = nullptr;
     thread_local static inline int s_session_socket = -1;
-    thread_local static inline gaia_txn_id_t s_txn_id = INVALID_GAIA_TXN_ID;
+    thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
 
 public:
     static gaia_txn_id_t allocate_txn_id(data* s_data)
