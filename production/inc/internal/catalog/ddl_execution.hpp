@@ -4,7 +4,7 @@
 /////////////////////////////////////////////
 #pragma once
 
-#include "gaia_catalog.hpp"
+#include "catalog.hpp"
 #include "gaia_parser.hpp"
 #include "retail_assert.hpp"
 

@@ -7,8 +7,8 @@
 
 #include <shared_mutex>
 
+#include "catalog.hpp"
 #include "gaia_catalog.h"
-#include "gaia_catalog.hpp"
 #include "system_table_types.hpp"
 
 using gaia::catalog::data_type_t;

@@ -2,11 +2,13 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #include "gaia_system.hpp"
+
+#include "catalog.hpp"
 #include "gaia_db.hpp"
-#include "gaia_catalog.hpp"
-#include "rules.hpp"
 #include "logger.hpp"
+#include "rules.hpp"
 
 void gaia::system::initialize()
 {

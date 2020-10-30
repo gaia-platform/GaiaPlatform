@@ -11,7 +11,7 @@
 // parsing flatbuffer schema these arrays are defined separately so I can use
 // sizeof() on them to determine their size at compile time.
 static const attribute_t c_airport_attributes[] = {
-    {"gaia_id", airport_get_gaia_id, airport_add_gaia_id},
+    {"gaia_id", nullptr, nullptr},
     {"ap_id", airport_get_ap_id, airport_add_ap_id},
     {"name", airport_get_name, airport_add_name},
     {"city", airport_get_city, airport_add_city},
@@ -29,7 +29,7 @@ static const attribute_t c_airport_attributes[] = {
 };
 
 static const attribute_t c_airline_attributes[] = {
-    {"gaia_id", airline_get_gaia_id, airline_add_gaia_id},
+    {"gaia_id", nullptr, nullptr},
     {"al_id", airline_get_al_id, airline_add_al_id},
     {"name", airline_get_name, airline_add_name},
     {"alias", airline_get_alias, airline_add_alias},
@@ -41,10 +41,7 @@ static const attribute_t c_airline_attributes[] = {
 };
 
 static const attribute_t c_route_attributes[] = {
-    {"gaia_id", route_get_gaia_id, route_add_gaia_id},
-    {"gaia_al_id", route_get_gaia_al_id, route_add_gaia_al_id},
-    {"gaia_src_id", route_get_gaia_src_id, route_add_gaia_src_id},
-    {"gaia_dst_id", route_get_gaia_dst_id, route_add_gaia_dst_id},
+    {"gaia_id", nullptr, nullptr},
     {"airline", route_get_airline, route_add_airline},
     {"al_id", route_get_al_id, route_add_al_id},
     {"src_ap", route_get_src_ap, route_add_src_ap},

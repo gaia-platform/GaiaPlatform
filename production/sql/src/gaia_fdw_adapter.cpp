@@ -15,7 +15,7 @@ namespace gaia
 namespace fdw
 {
 
-constexpr int c_invalid_index = -1;
+constexpr size_t c_invalid_field_index = -1;
 
 // Valid options for gaia_fdw.
 const option_t c_valid_options[] = {
@@ -62,7 +62,7 @@ void adapter_t::begin_session()
     {
         gaia::db::begin_session();
     }
-    catch (gaia_exception e)
+    catch (exception e)
     {
         ereport(
             ERROR,
@@ -80,7 +80,7 @@ void adapter_t::end_session()
     {
         gaia::db::end_session();
     }
-    catch (gaia_exception e)
+    catch (exception e)
     {
         ereport(
             ERROR,
@@ -146,41 +146,17 @@ uint64_t adapter_t::get_new_gaia_id()
     return gaia_ptr::generate_id();
 }
 
+// TODO: Rewrite this to iterate over the database tables and generate statements
+// out of table definitions.
 List* adapter_t::get_ddl_command_list(const char* server_name)
 {
-    List* commands = NIL;
-
-    constexpr const char* ddl_formatted_statements[] = {
-        c_airport_ddl_stmt_fmt,
-        c_airline_ddl_stmt_fmt,
-        c_route_ddl_stmt_fmt,
-        c_event_log_ddl_stmt_fmt,
-    };
-
-    for (auto& ddl_formatted_statement : ddl_formatted_statements)
-    {
-        // Length of format string + length of server name - 2 chars for format
-        // specifier + 1 char for null terminator.
-        size_t statement_length = strlen(ddl_formatted_statement)
-            + strlen(server_name) - strlen("%s") + 1;
-        auto statement_buffer = reinterpret_cast<char*>(palloc(statement_length));
-
-        // sprintf returns number of chars written, not including null
-        // terminator.
-        if (sprintf(statement_buffer, ddl_formatted_statement, server_name)
-            != static_cast<int>(statement_length - 1))
-        {
-            elog(ERROR, "Failed to format statement '%s' with server name '%s'.", ddl_formatted_statement, server_name);
-        }
-
-        commands = lappend(commands, statement_buffer);
-    }
-
-    return commands;
+    return NIL;
 }
 
-bool state_t::initialize(const char* table_name, size_t count_accessors)
+bool state_t::initialize(const char* table_name, size_t count_fields)
 {
+    m_gaia_id_field_index = c_invalid_field_index;
+
     if (strcmp(table_name, "airports") == 0)
     {
         m_mapping = &c_airport_mapping;
@@ -193,56 +169,76 @@ bool state_t::initialize(const char* table_name, size_t count_accessors)
     {
         m_mapping = &c_route_mapping;
     }
-    else if (strcmp(table_name, "event_log") == 0)
-    {
-        m_mapping = &c_event_log_mapping;
-    }
     else
     {
         return false;
     }
 
-    assert(count_accessors == m_mapping->attribute_count);
+    assert(count_fields == m_mapping->attribute_count);
+
+    m_gaia_container_id = m_mapping->gaia_container_id;
+
+    m_indexed_accessors = reinterpret_cast<attribute_accessor_fn*>(palloc0(
+        sizeof(attribute_accessor_fn) * m_mapping->attribute_count));
+
+    m_indexed_builders = reinterpret_cast<attribute_builder_fn*>(palloc0(
+        sizeof(attribute_builder_fn) * m_mapping->attribute_count));
 
     return true;
 }
 
-bool scan_state_t::initialize(const char* table_name, size_t count_accessors)
+bool state_t::set_field_index(const char* field_name, size_t field_index)
 {
-    if (!state_t::initialize(table_name, count_accessors))
+    if (field_index >= m_mapping->attribute_count)
+    {
+        return false;
+    }
+
+    bool found_field = false;
+    for (size_t i = 0; i < m_mapping->attribute_count; ++i)
+    {
+        if (strcmp(field_name, m_mapping->attributes[i].name) == 0)
+        {
+            found_field = true;
+
+            m_indexed_accessors[field_index] = m_mapping->attributes[i].accessor;
+            m_indexed_builders[field_index] = m_mapping->attributes[i].builder;
+
+            if (adapter_t::is_gaia_id_name(field_name))
+            {
+                m_gaia_id_field_index = field_index;
+            }
+
+            break;
+        }
+    }
+
+    assert(m_gaia_id_field_index != c_invalid_field_index);
+    if (m_gaia_id_field_index == c_invalid_field_index)
+    {
+        return false;
+    }
+
+    return found_field;
+}
+
+bool state_t::is_gaia_id_field_index(size_t field_index)
+{
+    return field_index == m_gaia_id_field_index;
+}
+
+bool scan_state_t::initialize(const char* table_name, size_t count_fields)
+{
+    if (!state_t::initialize(table_name, count_fields))
     {
         return false;
     }
 
     m_deserializer = m_mapping->deserializer;
 
-    m_indexed_accessors = reinterpret_cast<attribute_accessor_fn*>(palloc0(
-        sizeof(attribute_accessor_fn) * m_mapping->attribute_count));
-
     m_current_object_root = nullptr;
 
     return true;
-}
-
-bool scan_state_t::set_accessor_index(const char* accessor_name, size_t accessor_index)
-{
-    if (accessor_index >= m_mapping->attribute_count)
-    {
-        return false;
-    }
-
-    bool found_accessor = false;
-    for (size_t i = 0; i < m_mapping->attribute_count; ++i)
-    {
-        if (strcmp(accessor_name, m_mapping->attributes[i].name) == 0)
-        {
-            found_accessor = true;
-            m_indexed_accessors[accessor_index] = m_mapping->attributes[i].accessor;
-            break;
-        }
-    }
-
-    return found_accessor;
 }
 
 bool scan_state_t::initialize_scan()
@@ -276,8 +272,18 @@ Datum scan_state_t::extract_field_value(size_t field_index)
 
     assert(m_current_object_root != nullptr);
 
-    attribute_accessor_fn accessor = m_indexed_accessors[field_index];
-    Datum field_value = accessor(m_current_object_root);
+    Datum field_value;
+
+    if (is_gaia_id_field_index(field_index))
+    {
+        field_value = UInt64GetDatum(m_current_node.id());
+    }
+    else
+    {
+        attribute_accessor_fn accessor = m_indexed_accessors[field_index];
+        field_value = accessor(m_current_object_root);
+    }
+
     return field_value;
 }
 
@@ -292,61 +298,21 @@ bool scan_state_t::scan_forward()
     return has_scan_ended();
 }
 
-bool modify_state_t::initialize(const char* table_name, size_t count_accessors)
+bool modify_state_t::initialize(const char* table_name, size_t count_fields)
 {
-    if (!state_t::initialize(table_name, count_accessors))
+    if (!state_t::initialize(table_name, count_fields))
     {
         return false;
     }
 
-    m_pk_attr_idx = c_invalid_index;
-
-    m_gaia_container_id = m_mapping->gaia_container_id;
     m_initializer = m_mapping->initializer;
     m_finalizer = m_mapping->finalizer;
 
     flatcc_builder_init(&m_builder);
 
-    m_indexed_builders = reinterpret_cast<attribute_builder_fn*>(palloc0(
-        sizeof(attribute_builder_fn) * m_mapping->attribute_count));
-
     m_has_initialized_builder = false;
 
     return true;
-}
-
-bool modify_state_t::set_builder_index(const char* builder_name, size_t builder_index)
-{
-    if (builder_index >= m_mapping->attribute_count)
-    {
-        return false;
-    }
-
-    bool found_builder = false;
-    for (size_t i = 0; i < m_mapping->attribute_count; ++i)
-    {
-        if (strcmp(builder_name, m_mapping->attributes[i].name) == 0)
-        {
-            found_builder = true;
-
-            m_indexed_builders[builder_index] = m_mapping->attributes[i].builder;
-
-            if (adapter_t::is_gaia_id_name(builder_name))
-            {
-                m_pk_attr_idx = builder_index;
-            }
-
-            break;
-        }
-    }
-
-    assert(m_pk_attr_idx != c_invalid_index);
-    if (m_pk_attr_idx == c_invalid_index)
-    {
-        return false;
-    }
-
-    return found_builder;
 }
 
 void modify_state_t::initialize_modify()
@@ -355,13 +321,13 @@ void modify_state_t::initialize_modify()
     m_has_initialized_builder = true;
 }
 
-bool modify_state_t::is_gaia_id_field_index(size_t field_index)
-{
-    return field_index == static_cast<size_t>(m_pk_attr_idx);
-}
-
 void modify_state_t::set_field_value(size_t field_index, const Datum& field_value)
 {
+    if (is_gaia_id_field_index(field_index))
+    {
+        return;
+    }
+
     attribute_builder_fn accessor = m_indexed_builders[field_index];
     accessor(&m_builder, field_value);
 }
@@ -393,7 +359,7 @@ bool modify_state_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
 
         result = true;
     }
-    catch (const std::exception& e)
+    catch (const exception& e)
     {
         flatcc_builder_reset(&m_builder);
 
@@ -448,7 +414,7 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
 
         return true;
     }
-    catch (const std::exception& e)
+    catch (const exception& e)
     {
         ereport(
             ERROR,

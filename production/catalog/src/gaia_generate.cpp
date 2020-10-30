@@ -2,14 +2,15 @@
 //// Copyright (c) Gaia Platform LLC
 //// All rights reserved.
 ///////////////////////////////////////////////
+
 #include <memory>
 #include <set>
 #include <vector>
 
 #include "flatbuffers/code_generators.h"
 
+#include "catalog.hpp"
 #include "gaia_catalog.h"
-#include "gaia_catalog.hpp"
 
 using namespace std;
 

@@ -54,8 +54,8 @@
 %define parse.error verbose
 
 %code {
+    #include "catalog.hpp"
     #include "gaia_parser.hpp"
-    #include "gaia_catalog.hpp"
 
     using namespace gaia::catalog::ddl;
     yy::parser::symbol_type yylex(parser_t &);

@@ -2,29 +2,35 @@
 //// Copyright (c) Gaia Platform LLC
 //// All rights reserved.
 ///////////////////////////////////////////////
-#include "gaia_catalog.hpp"
-#include "gaia_db.hpp"
+
 #include <iostream>
 #include <memory>
-#include <vector>
 #include <set>
+#include <vector>
+
+#include "catalog.hpp"
+#include "gaia_db.hpp"
 
 using namespace gaia::catalog;
 using namespace std;
 
-int main(int argc, char *argv[]) {
-    if (argc < 2) {
+int main(int argc, char* argv[])
+{
+    if (argc < 2)
+    {
         fprintf(stderr, "usage: gaia_generate database_name\n");
         exit(1);
     }
 
     gaia::db::begin_session();
 
-    try {
+    try
+    {
         auto code_lines = gaia_generate(argv[1]);
         cout << code_lines << endl;
     }
-    catch (gaia::common::gaia_exception& e) {
+    catch (gaia::common::gaia_exception& e)
+    {
         cerr << "gaia_generate failed: " << e.what() << endl;
     }
 

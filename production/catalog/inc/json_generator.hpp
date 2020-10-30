@@ -4,12 +4,20 @@
 /////////////////////////////////////////////
 #pragma once
 
-#include "gaia_catalog.hpp"
+#include "catalog_internal.hpp"
 
 namespace gaia
 {
 namespace catalog
 {
+
+/**
+ * Generate JSON template data (json) for a catalog table.
+ * The given table is the root type of the generated schema.
+ *
+ * @return generated JSON string
+ */
+string generate_json(gaia::common::gaia_id_t table_id);
 
 /**
  * Generate a default data file (JSON) from parsing the definition of a table.

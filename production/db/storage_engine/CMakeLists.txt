@@ -74,17 +74,18 @@ target_link_libraries(gaia_storage PRIVATE gaia_common)
 # Storage engine-related code begins here.
 ###############################################
 add_library(gaia_se_client STATIC
+  src/catalog_core.cpp
   src/gaia_db.cpp
   src/gaia_ptr.cpp
   src/gaia_boot.cpp
-  src/light_catalog.cpp
   src/payload_diff.cpp
-  src/storage_engine.cpp
   src/storage_engine_client.cpp
   src/type_metadata.cpp)
 add_dependencies(gaia_se_client "messages.fbs" "gaia_table.fbs" "gaia_field.fbs")
 target_include_directories(gaia_se_client PUBLIC ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES})
 target_include_directories(gaia_se_client PRIVATE ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES})
+# For referential integrity check to read catalog.
+# TODO: Switch to use catalog_core and remove the dependency on catalog headers and gaia_direct.
 target_include_directories(gaia_se_client PRIVATE "${GAIA_INC}/public/catalog;${GAIA_INC}/internal/catalog")
 
 # For flatbuffers generated code.
@@ -110,7 +111,6 @@ target_link_libraries(rocks_wrapper rocksdb)
 set_target_properties(rocks_wrapper PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 
 set(GAIA_SE_SERVER_SOURCES
-  src/storage_engine.cpp
   src/storage_engine_server.cpp
   src/storage_engine_server_exec.cpp
 )

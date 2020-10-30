@@ -75,19 +75,25 @@ public:
 
 private:
     // Both s_fd_log & s_locators have transaction lifetime.
-    thread_local static int s_fd_log;
-    thread_local static locators* s_locators;
+    thread_local static inline int s_fd_log = -1;
+    thread_local static inline locators* s_locators = nullptr;
     // Both s_fd_locators & s_data have session lifetime.
-    thread_local static int s_fd_locators;
-    thread_local static data* s_data;
+    thread_local static inline int s_fd_locators = -1;
+    thread_local static inline data* s_data = nullptr;
     // s_events has transaction lifetime and is cleared after each transaction.
-    thread_local static std::vector<gaia::db::triggers::trigger_event_t> s_events;
     // Set by the rules engine.
-    static commit_trigger_fn s_txn_commit_trigger;
+    thread_local static inline std::vector<gaia::db::triggers::trigger_event_t> s_events{};
+    static inline commit_trigger_fn s_txn_commit_trigger = nullptr;
 
     // Maintain a static filter in the client to disable generating events
     // for system types.
-    static std::unordered_set<gaia_type_t> trigger_excluded_types;
+    static constexpr gaia_type_t trigger_excluded_types[] = {
+        static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table),
+        static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_field),
+        static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_relationship),
+        static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_ruleset),
+        static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_rule),
+        static_cast<gaia_type_t>(system_table_type_t::event_log)};
 
     // Inherited from se_base:
     // thread_local static log *s_log;
@@ -112,7 +118,8 @@ private:
      */
     static inline bool is_valid_event(gaia_type_t type)
     {
-        return (s_txn_commit_trigger && (trigger_excluded_types.find(type) == trigger_excluded_types.end()));
+        constexpr const gaia_type_t* end = trigger_excluded_types + std::size(trigger_excluded_types);
+        return (s_txn_commit_trigger && (std::find(trigger_excluded_types, end, type) == end));
     }
 
     static inline void verify_txn_active()

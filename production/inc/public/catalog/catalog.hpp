@@ -52,15 +52,6 @@ constexpr char c_db_table_name_connector = '.';
 using data_type_t = gaia::common::data_type_t;
 
 /**
- * Thrown when seeing an unknown data type
- */
-class unknown_data_type : public gaia::common::gaia_exception
-{
-public:
-    unknown_data_type();
-};
-
-/**
  * Get the data type name
  *
  * @param catalog data type
@@ -87,7 +78,6 @@ enum value_index_type_t : uint8_t
     hash,
     range
 };
-
 
 /*
  * Cardinality of a relationship
@@ -423,53 +413,12 @@ vector<gaia::common::gaia_id_t> list_parent_relationships(gaia::common::gaia_id_
 vector<gaia::common::gaia_id_t> list_child_relationships(gaia::common::gaia_id_t table_id);
 
 /**
- * Generate FlatBuffers schema (fbs) for a catalog table.
- * The given table is the root type of the generated schema.
- *
- * @return generated fbs string
- */
-string generate_fbs(gaia::common::gaia_id_t table_id);
-
-/**
- * Generate JSON template data (json) for a catalog table.
- * The given table is the root type of the generated schema.
- *
- * @return generated JSON string
- */
-string generate_json(gaia::common::gaia_id_t table_id);
-
-/**
- * Generate FlatBuffers schema (fbs) for all catalog tables in a given database.
- * No root type is specified in the generated schema.
- *
- * @param dbname database name
- * @return generated fbs string
- */
-string generate_fbs(const string& dbname);
-
-/**
  * Generate the Extended Data Classes header file.
  *
  * @param dbname database name
  * @return generated source
  */
 string gaia_generate(const string& dbname);
-
-/**
- * Retrieve the binary FlatBuffers schema (bfbs) for a given table.
- *
- * @param table_id id of the table
- * @return bfbs
- */
-vector<uint8_t> get_bfbs(gaia::common::gaia_id_t table_id);
-
-/**
- * Retrieve the serialization template (bin) for a given table.
- *
- * @param table_id id of the table
- * @return bin
- */
-vector<uint8_t> get_bin(gaia::common::gaia_id_t table_id);
 
 /**
  * Find the database id given its name

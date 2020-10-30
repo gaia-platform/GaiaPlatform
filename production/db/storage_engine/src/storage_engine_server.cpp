@@ -10,20 +10,6 @@
 using namespace gaia::db;
 using namespace gaia::db::messages;
 
-int server::s_server_shutdown_eventfd = -1;
-int server::s_listening_socket = -1;
-std::shared_mutex server::s_locators_lock;
-int server::s_fd_data = -1;
-se_base::data* server::s_data = nullptr;
-int server::s_fd_locators = -1;
-se_base::locators* server::s_shared_locators = nullptr;
-std::unique_ptr<persistent_store_manager> server::rdb{};
-thread_local session_state_t server::s_session_state = session_state_t::DISCONNECTED;
-thread_local bool server::s_session_shutdown = false;
-thread_local int server::s_session_shutdown_eventfd = -1;
-thread_local std::vector<std::thread> server::s_session_owned_threads;
-constexpr server::valid_transition_t server::s_valid_transitions[];
-
 void server::handle_connect(
     int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
