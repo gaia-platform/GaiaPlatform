@@ -9,8 +9,8 @@
 
 #include "tabulate/table.hpp"
 
+#include "fbs_generator.hpp"
 #include "gaia_catalog.h"
-#include "gaia_catalog.hpp"
 #include "retail_assert.hpp"
 
 using namespace gaia::catalog;
@@ -142,7 +142,7 @@ void describe_database(const string& name)
     tabulate::Table output_table;
     output_table.add_row({c_name_title});
     gaia_id_t db_id = find_db_id(name);
-    if (db_id == INVALID_GAIA_ID)
+    if (db_id == c_invalid_gaia_id)
     {
         throw db_not_exists(name);
     }
@@ -166,7 +166,7 @@ void describe_table(const string& name)
     tabulate::Table output_fields, output_references;
     output_fields.add_row({c_name_title, c_type_title, c_repeated_count_title, c_position_title, c_id_title});
     output_references.add_row({c_name_title, c_parent_title, c_position_title, c_id_title});
-    gaia_id_t table_id = INVALID_GAIA_ID;
+    gaia_id_t table_id = c_invalid_gaia_id;
     {
         auto_transaction_t tx;
         for (auto table : gaia_table_t::list())
@@ -181,7 +181,7 @@ void describe_table(const string& name)
                 break;
             }
         }
-        if (table_id == INVALID_GAIA_ID)
+        if (table_id == c_invalid_gaia_id)
         {
             throw table_not_exists(name);
         }
@@ -230,7 +230,7 @@ void describe_table(const string& name)
 // Hide FlatBuffers related commands in release build.
 void generate_table_fbs(const string& name)
 {
-    gaia_id_t table_id = INVALID_GAIA_ID;
+    gaia_id_t table_id = c_invalid_gaia_id;
     {
         auto_transaction_t tx;
         for (auto table : gaia_table_t::list())
@@ -246,7 +246,7 @@ void generate_table_fbs(const string& name)
             }
         }
     }
-    if (table_id == INVALID_GAIA_ID)
+    if (table_id == c_invalid_gaia_id)
     {
         throw table_not_exists(name);
     }

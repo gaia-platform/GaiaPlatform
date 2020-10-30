@@ -8,12 +8,14 @@
 #include "catalog_core.hpp"
 #include "gaia_db.hpp"
 
-gaia::db::type_id_record_id_cache_t::type_id_record_id_cache_t()
+using namespace gaia::db;
+
+type_id_record_id_cache_t::type_id_record_id_cache_t()
 {
     init_type_id_record_id_map();
 }
 
-gaia::common::gaia_id_t gaia::db::type_id_record_id_cache_t::get_record_id(gaia::common::gaia_type_t type_id)
+gaia::common::gaia_id_t type_id_record_id_cache_t::get_record_id(gaia::common::gaia_type_t type_id)
 {
     auto it = m_type_id_record_id_map.find(type_id);
 
@@ -25,9 +27,9 @@ gaia::common::gaia_id_t gaia::db::type_id_record_id_cache_t::get_record_id(gaia:
     return it->second;
 }
 
-void gaia::db::type_id_record_id_cache_t::init_type_id_record_id_map()
+void type_id_record_id_cache_t::init_type_id_record_id_map()
 {
-    for (auto table_view : gaia::db::catalog_core_t::list_tables())
+    for (auto table_view : catalog_core_t::list_tables())
     {
         m_type_id_record_id_map[table_view.table_type()] = table_view.id();
     }

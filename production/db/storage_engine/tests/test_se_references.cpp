@@ -39,7 +39,7 @@ TEST_F(gaia_se_references_test, add_child_reference__one_to_one)
 
     ASSERT_EQ(parent.references()[c_first_patient_offset], child.id());
     ASSERT_EQ(child.references()[c_parent_doctor_offset], parent.id());
-    ASSERT_EQ(child.references()[c_next_patient_offset], INVALID_GAIA_ID);
+    ASSERT_EQ(child.references()[c_next_patient_offset], c_invalid_gaia_id);
 
     commit_transaction();
 }
@@ -62,7 +62,7 @@ TEST_F(gaia_se_references_test, add_child_reference__one_to_many)
 
     ASSERT_EQ(parent.references()[c_first_patient_offset], child2.id());
     ASSERT_EQ(child.references()[c_parent_doctor_offset], parent.id());
-    ASSERT_EQ(child.references()[c_next_patient_offset], INVALID_GAIA_ID);
+    ASSERT_EQ(child.references()[c_next_patient_offset], c_invalid_gaia_id);
     ASSERT_EQ(child2.references()[c_parent_doctor_offset], parent.id());
     ASSERT_EQ(child2.references()[c_next_patient_offset], child.id());
 
@@ -204,7 +204,7 @@ TEST_F(gaia_se_references_test, add_parent_reference__one_to_many)
 
     ASSERT_EQ(parent.references()[c_first_patient_offset], child.id());
     ASSERT_EQ(child.references()[c_parent_doctor_offset], parent.id());
-    ASSERT_EQ(child.references()[c_next_patient_offset], INVALID_GAIA_ID);
+    ASSERT_EQ(child.references()[c_next_patient_offset], c_invalid_gaia_id);
 
     commit_transaction();
 }
@@ -286,9 +286,9 @@ TEST_F(gaia_se_references_test, remove_child_reference__one_to_one)
 
     // THEN
 
-    ASSERT_EQ(parent.references()[c_first_patient_offset], INVALID_GAIA_ID);
-    ASSERT_EQ(child.references()[c_parent_doctor_offset], INVALID_GAIA_ID);
-    ASSERT_EQ(child.references()[c_next_patient_offset], INVALID_GAIA_ID);
+    ASSERT_EQ(parent.references()[c_first_patient_offset], c_invalid_gaia_id);
+    ASSERT_EQ(child.references()[c_parent_doctor_offset], c_invalid_gaia_id);
+    ASSERT_EQ(child.references()[c_next_patient_offset], c_invalid_gaia_id);
 
     commit_transaction();
 }
@@ -328,12 +328,12 @@ TEST_F(gaia_se_references_test, remove_child_reference__many_to_many_from_back)
         {
             ASSERT_EQ(parent.references()[c_first_patient_offset], children[i - 1].id());
         }
-        ASSERT_EQ(child.references()[c_parent_doctor_offset], INVALID_GAIA_ID);
-        ASSERT_EQ(child.references()[c_next_patient_offset], INVALID_GAIA_ID);
+        ASSERT_EQ(child.references()[c_parent_doctor_offset], c_invalid_gaia_id);
+        ASSERT_EQ(child.references()[c_next_patient_offset], c_invalid_gaia_id);
     }
 
     // when the last child is removed the parent needs to be updated as well.
-    ASSERT_EQ(parent.references()[c_first_patient_offset], INVALID_GAIA_ID);
+    ASSERT_EQ(parent.references()[c_first_patient_offset], c_invalid_gaia_id);
 
     commit_transaction();
 }
@@ -371,12 +371,12 @@ TEST_F(gaia_se_references_test, remove_child_reference__many_to_many_from_head)
         {
             ASSERT_EQ(parent.references()[c_first_patient_offset], children.back().id());
         }
-        ASSERT_EQ(child.references()[c_parent_doctor_offset], INVALID_GAIA_ID);
-        ASSERT_EQ(child.references()[c_next_patient_offset], INVALID_GAIA_ID);
+        ASSERT_EQ(child.references()[c_parent_doctor_offset], c_invalid_gaia_id);
+        ASSERT_EQ(child.references()[c_next_patient_offset], c_invalid_gaia_id);
     }
 
     // when the last child is removed the parent needs to be updated as well.
-    ASSERT_EQ(parent.references()[c_first_patient_offset], INVALID_GAIA_ID);
+    ASSERT_EQ(parent.references()[c_first_patient_offset], c_invalid_gaia_id);
 
     commit_transaction();
 }
@@ -401,7 +401,7 @@ TEST_F(gaia_se_references_test, remove_child_reference__non_existent_children)
 
     ASSERT_EQ(parent.references()[c_first_patient_offset], child.id());
     ASSERT_EQ(child.references()[c_parent_doctor_offset], parent.id());
-    ASSERT_EQ(child.references()[c_next_patient_offset], INVALID_GAIA_ID);
+    ASSERT_EQ(child.references()[c_next_patient_offset], c_invalid_gaia_id);
 
     commit_transaction();
 }
@@ -524,9 +524,9 @@ TEST_F(gaia_se_references_test, remove_parent_reference__one_to_one)
 
     // THEN
 
-    ASSERT_EQ(parent.references()[c_first_patient_offset], INVALID_GAIA_ID);
-    ASSERT_EQ(child.references()[c_parent_doctor_offset], INVALID_GAIA_ID);
-    ASSERT_EQ(child.references()[c_next_patient_offset], INVALID_GAIA_ID);
+    ASSERT_EQ(parent.references()[c_first_patient_offset], c_invalid_gaia_id);
+    ASSERT_EQ(child.references()[c_parent_doctor_offset], c_invalid_gaia_id);
+    ASSERT_EQ(child.references()[c_next_patient_offset], c_invalid_gaia_id);
 
     commit_transaction();
 }
@@ -548,10 +548,10 @@ TEST_F(gaia_se_references_test, update_parent_reference__parent_exists)
     gaia_ptr new_parent = create_object(c_doctor_type, "Dr. Cox");
     child.update_parent_reference(new_parent.id(), c_parent_doctor_offset);
 
-    ASSERT_EQ(parent.references()[c_first_patient_offset], INVALID_GAIA_ID);
+    ASSERT_EQ(parent.references()[c_first_patient_offset], c_invalid_gaia_id);
     ASSERT_EQ(new_parent.references()[c_first_patient_offset], child.id());
     ASSERT_EQ(child.references()[c_parent_doctor_offset], new_parent.id());
-    ASSERT_EQ(child.references()[c_next_patient_offset], INVALID_GAIA_ID);
+    ASSERT_EQ(child.references()[c_next_patient_offset], c_invalid_gaia_id);
 
     commit_transaction();
 }
@@ -572,7 +572,7 @@ TEST_F(gaia_se_references_test, update_parent_reference__parent_not_exists)
 
     ASSERT_EQ(new_parent.references()[c_first_patient_offset], child.id());
     ASSERT_EQ(child.references()[c_parent_doctor_offset], new_parent.id());
-    ASSERT_EQ(child.references()[c_next_patient_offset], INVALID_GAIA_ID);
+    ASSERT_EQ(child.references()[c_next_patient_offset], c_invalid_gaia_id);
 
     commit_transaction();
 }
@@ -603,7 +603,7 @@ TEST_F(gaia_se_references_test, update_parent_reference__single_cardinality_viol
     ASSERT_EQ(parent.references()[c_first_patient_offset], child.id());
     ASSERT_EQ(new_parent.references()[c_first_patient_offset], new_child.id());
     ASSERT_EQ(child.references()[c_parent_doctor_offset], parent.id());
-    ASSERT_EQ(child.references()[c_next_patient_offset], INVALID_GAIA_ID);
+    ASSERT_EQ(child.references()[c_next_patient_offset], c_invalid_gaia_id);
 
     commit_transaction();
 }

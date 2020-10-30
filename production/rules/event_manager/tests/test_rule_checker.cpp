@@ -5,10 +5,10 @@
 
 #include "gtest/gtest.h"
 
+#include "catalog.hpp"
 #include "db_test_base.hpp"
 #include "db_test_helpers.hpp"
 #include "gaia_catalog.h"
-#include "gaia_catalog.hpp"
 #include "rule_checker.hpp"
 #include "rules.hpp"
 
@@ -18,7 +18,7 @@ using namespace gaia::db;
 using namespace gaia::rules;
 using namespace std;
 
-gaia_type_t g_table_type = INVALID_GAIA_TYPE;
+gaia_type_t g_table_type = c_invalid_gaia_type;
 map<string, uint16_t> g_field_positions;
 
 void load_catalog()
@@ -32,7 +32,7 @@ void load_catalog()
     //}
     ddl::field_def_list_t fields;
     string name;
-    gaia_id_t table_id = INVALID_GAIA_ID;
+    gaia_id_t table_id = c_invalid_gaia_id;
 
     name = "Sensors";
     // not active, not deprecated
