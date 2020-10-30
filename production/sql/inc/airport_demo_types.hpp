@@ -9,7 +9,8 @@
 
 using namespace gaia::common;
 
-namespace airport_demo_types {
+namespace airport_demo_types
+{
 
 constexpr gaia_type_t c_airlines_container_id = 1;
 constexpr gaia_type_t c_airports_container_id = 2;
