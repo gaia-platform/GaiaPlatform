@@ -24,8 +24,8 @@ public:
 
     static type_id_record_id_cache_t& instance()
     {
-        static type_id_record_id_cache_t type_id_record_id_cache_t;
-        return type_id_record_id_cache_t;
+        static type_id_record_id_cache_t type_id_record_id_cache;
+        return type_id_record_id_cache;
     }
 
     // Return the id of the gaia_table record that defines a given type.

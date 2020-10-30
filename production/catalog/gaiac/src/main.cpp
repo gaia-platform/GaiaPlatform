@@ -148,7 +148,7 @@ string usage()
     ss << "Usage: gaiac [options] [ddl_file]\n\n"
           "  -p          Print parsing trace.\n"
           "  -s          Print scanning trace.\n"
-          "  -d <dbname> Set the databse name.\n"
+          "  -d <dbname> Set the database name.\n"
           "  -i          Interactive prompt, as a REPL.\n"
           "  -g          Generate fbs and gaia headers.\n"
           "  -o <path>   Set the path to all generated files.\n"
