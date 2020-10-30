@@ -5,16 +5,14 @@
 
 #pragma once
 
-namespace gaia
-{
+namespace gaia {
 
 /**
  * \addtogroup Gaia
  * @{
  */
 
-namespace direct_access
-{
+namespace direct_access {
 
 /**
  * \addtogroup Direct
@@ -31,8 +29,7 @@ namespace direct_access
 //
 // @tparam T_class the Extended Data Class type
 template <typename T_class>
-class gaia_iterator_t
-{
+class gaia_iterator_t {
     T_class m_obj;
 
 public:
@@ -42,7 +39,7 @@ public:
     using reference = T_class&;
     using iterator_category = std::forward_iterator_tag;
 
-    explicit gaia_iterator_t(gaia_id_t id);
+    gaia_iterator_t(gaia_id_t id);
     gaia_iterator_t() = default;
 
     gaia_iterator_t<T_class>& operator++();
@@ -64,8 +61,7 @@ public:
 // @tparam T_container the type identifier of Extended Data Class
 // @tparam T_class the class of the Extended Data Class
 template <gaia_type_t T_container, typename T_class>
-struct gaia_container_t
-{
+struct gaia_container_t {
     static gaia_iterator_t<T_class> begin();
     static gaia_iterator_t<T_class> end();
 };
@@ -78,8 +74,7 @@ struct gaia_container_t
 // @tparam T_child the Extended Data Type that is in the child position in the set
 // @tparam T_child_slot an integer indexing the list of references in the T_child type
 template <typename T_child, size_t T_child_slot>
-class gaia_set_iterator_t
-{
+class gaia_set_iterator_t {
     T_child m_child_obj;
 
 public:
@@ -89,7 +84,7 @@ public:
     using reference = T_child&;
     using iterator_category = std::forward_iterator_tag;
 
-    explicit gaia_set_iterator_t(gaia_id_t id);
+    gaia_set_iterator_t(gaia_id_t id);
     gaia_set_iterator_t() = default;
 
     reference operator*();
@@ -124,19 +119,15 @@ public:
 // @tparam T_child_slot an integer identifying the location of the pointer to the (first) child in the parent reference list
 // @tparam T_next_slot an integer identifying the location of the pointer to the next (child) in the child reference list
 template <typename T_parent, typename T_child, size_t T_parent_slot, size_t T_child_slot, size_t T_next_slot>
-class reference_chain_container_t
-{
+class reference_chain_container_t {
     gaia_id_t m_parent_id;
 
-public:
+  public:
     gaia_set_iterator_t<T_child, T_next_slot> begin();
 
     gaia_set_iterator_t<T_child, T_next_slot> end();
 
-    void set_outer(gaia_id_t parent_id)
-    {
-        m_parent_id = parent_id;
-    }
+    void set_outer(gaia_id_t parent_id) { m_parent_id = parent_id; }
 
     void insert(gaia_id_t child_id);
 
