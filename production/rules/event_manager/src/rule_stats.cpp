@@ -69,15 +69,12 @@ void rule_stats_t::add_rule_execution_time(int64_t duration)
 }
 
 template <typename T_param>
-void rule_stats_t::log(
-    gaia_log::logger_t& logger,
-    const char* stats_format,
-    T_param first_param)
+void rule_stats_t::log(const char* stats_format, T_param first_param)
 {
     auto avg_latency = count_executed ? static_cast<float>(total_rule_invocation_latency / count_executed) : 0.0;
     auto avg_execution_time = count_executed ? static_cast<float>(total_rule_execution_time / count_executed) : 0.0;
 
-    logger.info(
+    gaia_log::rules_stats().info(
         stats_format, first_param, count_scheduled, count_executed, count_pending, count_abandoned, count_retries,
         count_exceptions, gaia::common::timer_t::ns_to_ms(avg_latency),
         gaia::common::timer_t::ns_to_ms(max_rule_invocation_latency),
@@ -88,5 +85,5 @@ void rule_stats_t::log(
 
 // Only support template args of const char* and float so explicitly
 // define the specializations here for linkage.
-template void rule_stats_t::log(gaia_log::logger_t& logger, const char* format, const char* rule_id);
-template void rule_stats_t::log(gaia_log::logger_t& logger, const char* format, float worker_thread_utilization);
+template void rule_stats_t::log(const char* format, const char* rule_id);
+template void rule_stats_t::log(const char* format, float worker_thread_utilization);

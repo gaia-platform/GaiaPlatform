@@ -12,12 +12,10 @@ using namespace std::chrono;
 const uint8_t rule_stats_manager_t::c_stats_group_size = 40;
 
 rule_stats_manager_t::rule_stats_manager_t(
-    gaia_log::logger_t& stats_logger,
     bool enable_rule_stats,
     size_t count_threads,
     uint32_t stats_log_interval)
     : m_scheduler_stats(stats_log_interval, count_threads)
-    , m_stats_logger(stats_logger)
 {
     m_rule_stats_enabled = enable_rule_stats;
     m_count_entries_logged = 0;
@@ -131,7 +129,7 @@ void rule_stats_manager_t::log_stats()
         m_count_entries_logged = 0;
     }
 
-    m_scheduler_stats.log(m_stats_logger, m_rule_stats_enabled || m_count_entries_logged == 0);
+    m_scheduler_stats.log(m_rule_stats_enabled || m_count_entries_logged == 0);
     m_count_entries_logged++;
     if (m_rule_stats_enabled)
     {
@@ -145,7 +143,7 @@ void rule_stats_manager_t::log_stats()
                 || rule_it.second.count_retries
                 || rule_it.second.count_exceptions)
             {
-                rule_it.second.log(m_stats_logger);
+                rule_it.second.log();
                 m_count_entries_logged++;
             }
         }

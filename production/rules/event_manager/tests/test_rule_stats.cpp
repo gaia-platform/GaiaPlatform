@@ -84,11 +84,10 @@ class test_stats_manager_t : public rule_stats_manager_t
 {
 public:
     test_stats_manager_t(
-        gaia_log::logger_t& stats_logger,
         bool enable_rule_stats,
         size_t count_threads,
         uint32_t stats_log_interval)
-        : rule_stats_manager_t(stats_logger, enable_rule_stats, count_threads, stats_log_interval)
+        : rule_stats_manager_t(enable_rule_stats, count_threads, stats_log_interval)
     {
     }
 
@@ -296,19 +295,23 @@ protected:
         // Use a synchronous debug logger which exposes the underlying spdlogger.  The
         // test uses an ostream sink and uses a custom pattern that only has the text we
         // want to log without a prefix (i.e., no timestamp, pid, or tid).
-        s_logger = gaia_log::debug_logger_t::create("test_logger");
-        auto spdlogger = s_logger->get_spdlogger();
+        gaia_log::debug_logger_t* debug_logger = gaia_log::debug_logger_t::create("test_logger");
+        auto spdlogger = debug_logger->get_spdlogger();
         auto ostream_sink = std::make_shared<spdlog::sinks::ostream_sink_st>(s_logger_output);
         ostream_sink->set_pattern("%v");
         spdlogger->sinks().emplace_back(ostream_sink);
+
+        // Now set the underlying rule statistics logger.  Setting the logger will
+        // transfer ownership of it to the gaia_log sub-system so don't delete
+        // the debug_logger pointer here.
+        gaia_log::set_rules_stats(debug_logger);
     }
 
-    // The debug logger will write into a string stream
+    // The debug logger will write into this string stream
     // so that we can verify the log results.
-    static unique_ptr<gaia_log::debug_logger_t> s_logger;
     static ostringstream s_logger_output;
 
-    // The contents of the logger are compared to a vectore of lines since a single
+    // The contents of the logger are compared to a vector of lines since a single
     // statistics log call may output several lines. The comparision must match exactly
     // or just match a prefix ("fuzzy match").  Fuzzy matching is used to verifying log
     // when the test doesn't have control over the exact timings for durations.  Exact
@@ -337,7 +340,6 @@ protected:
 };
 
 ostringstream rule_stats_test::s_logger_output;
-unique_ptr<gaia_log::debug_logger_t> rule_stats_test::s_logger;
 
 TEST_F(rule_stats_test, rule_stats_ctor)
 {
@@ -404,18 +406,18 @@ TEST_F(rule_stats_test, test_log)
 {
     rule_stats_t stats(c_rule_id);
     // Writes out stats from 1 - 10.  The (7*2) and (9*2) values represent
-    // "total" times that when diviced by the count_executed (2) yield the average
+    // "total" times that when divided by the count_executed (2) yield the average
     // numbers 7 and 9 respectively.
     stats_data_t data = {c_rule_id, 1, 2, 3, 4, 5, 6, 7, 8, (7 * 2), 9, 10, (9 * 2)};
     fill_stats(stats, data);
     add_expected_line(c_rule_format, data);
-    stats.log(*s_logger);
+    stats.log();
     verify_log();
 
     // Verify that stats are reset after a log call.
     data = {c_rule_id};
     add_expected_line(c_rule_format, data);
-    stats.log(*s_logger);
+    stats.log();
     verify_log();
 }
 
@@ -425,7 +427,7 @@ TEST_F(rule_stats_test, test_log_no_executions)
     stats_data_t data = {c_rule_id, 5, 0, 4, 0, 0, 1};
     fill_stats(stats, data);
     add_expected_line(c_rule_format, data);
-    stats.log(*s_logger);
+    stats.log();
     verify_log();
 }
 
@@ -435,7 +437,7 @@ TEST_F(rule_stats_test, test_log_default)
     stats_data_t data = {""};
     fill_stats(stats, data);
     add_expected_line(c_rule_format, data);
-    stats.log(*s_logger);
+    stats.log();
     verify_log();
 }
 
@@ -447,13 +449,13 @@ TEST_F(rule_stats_test, test_log_cumulative)
     stats_data_t data = {nullptr, 5, 0, 4, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, thread_load};
     fill_stats(stats, data);
     add_expected_line(c_cumulative_format, data);
-    stats.log(*s_logger, thread_load);
+    stats.log(thread_load);
     verify_log();
 
     // Verify that stats are reset after a log call.
     data = {};
     add_expected_line(c_cumulative_format, data);
-    stats.log(*s_logger, 0);
+    stats.log(0);
     verify_log();
 }
 
@@ -467,7 +469,7 @@ TEST_F(rule_stats_test, test_scheduler_stats)
     stats_data_t data = {nullptr, 1, 2, 3, 4, 5, 6, 7, 8, 14, 9, 10, 18, 5000, 25};
     fill_stats(stats, data);
     add_expected_line(c_cumulative_format, data);
-    stats.log(*s_logger, false);
+    stats.log(false);
     verify_log();
 
     verify_stats(stats, {});
@@ -482,7 +484,7 @@ TEST_F(rule_stats_test, test_scheduler_stats_header)
     stats_data_t data = {nullptr, 1, 2, 3, 4, 5, 6, 7, 8, 14, 9, 10, 18, 5000, 25};
     fill_stats(stats, data);
     add_expected_line(c_cumulative_format, data, c_add_header);
-    stats.log(*s_logger, c_add_header);
+    stats.log(c_add_header);
     verify_log();
 }
 
@@ -492,7 +494,7 @@ TEST_F(rule_stats_test, test_stats_manager_header)
     const size_t count_threads = 10;
     bool enable_rule_stats = false;
 
-    test_stats_manager_t manager(*s_logger, enable_rule_stats, count_threads, log_interval);
+    test_stats_manager_t manager(enable_rule_stats, count_threads, log_interval);
     verify_stats(manager.get_scheduler_stats(), {});
 
     // Since this is the first time we logged, we should have printed the header.
@@ -522,7 +524,7 @@ TEST_F(rule_stats_test, test_stats_manager_cumulative)
     const size_t count_threads = 1;
     bool enable_rule_stats = false;
 
-    test_stats_manager_t manager(*s_logger, enable_rule_stats, count_threads, log_interval);
+    test_stats_manager_t manager(enable_rule_stats, count_threads, log_interval);
     scheduler_stats_t& stats = manager.get_scheduler_stats();
 
     // Test the cumulative stats through the test manager.  Individual rule
@@ -566,7 +568,7 @@ TEST_F(rule_stats_test, test_stats_manager_multi_individual)
     const size_t count_threads = 1;
     bool enable_rule_stats = true;
 
-    test_stats_manager_t manager(*s_logger, enable_rule_stats, count_threads, log_interval);
+    test_stats_manager_t manager(enable_rule_stats, count_threads, log_interval);
     scheduler_stats_t& stats = manager.get_scheduler_stats();
 
     // Test the cumulative stats through the test manager.  Individual rule
@@ -620,7 +622,7 @@ TEST_F(rule_stats_test, test_stats_manager_same_individual)
     const size_t count_threads = 1;
     bool enable_rule_stats = true;
 
-    test_stats_manager_t manager(*s_logger, enable_rule_stats, count_threads, log_interval);
+    test_stats_manager_t manager(enable_rule_stats, count_threads, log_interval);
     scheduler_stats_t& stats = manager.get_scheduler_stats();
 
     // Test the cumulative stats through the test manager.  Individual rule

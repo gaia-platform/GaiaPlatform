@@ -25,7 +25,7 @@ public:
     std::atomic<int64_t> total_thread_execution_time;
 
     void reset_counters();
-    void log(gaia_log::logger_t& logger, bool print_header);
+    void log(bool print_header);
 
 private:
     static const int c_percent = 100;

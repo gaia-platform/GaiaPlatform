@@ -7,8 +7,6 @@
 #include <atomic>
 #include <string>
 
-#include "logger.hpp"
-
 namespace gaia
 {
 namespace rules
@@ -41,14 +39,14 @@ public:
     void add_rule_invocation_latency(int64_t duration);
 
     // Log individual rule stats and reset the counters.
-    void log(gaia_log::logger_t& logger)
+    void log()
     {
-        log(logger, c_rule_stats, rule_id.c_str());
+        log(c_rule_stats, rule_id.c_str());
     }
     // Log cumulative rule statistics for scheduler stats and reset the counters.
-    void log(gaia_log::logger_t& logger, float worker_thread_utilization)
+    void log(float worker_thread_utilization)
     {
-        log(logger, c_cumulative_rule_stats, worker_thread_utilization);
+        log(c_cumulative_rule_stats, worker_thread_utilization);
     }
 
 private:
@@ -56,7 +54,7 @@ private:
     static const char* c_rule_stats;
 
     template <typename T_param>
-    void log(gaia_log::logger_t& logger, const char* stats_format, T_param first_param);
+    void log(const char* stats_format, T_param first_param);
 };
 
 } // namespace rules

@@ -70,7 +70,6 @@ void event_manager_t::init(event_manager_settings_t& settings)
     }
 
     m_stats_manager = make_unique<rule_stats_manager_t>(
-        gaia_log::rules_stats(),
         settings.enable_rule_stats,
         count_worker_threads,
         settings.stats_log_interval);

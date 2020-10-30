@@ -20,13 +20,13 @@ namespace logging
 {
 
 /**
- * Represents a synchronous logger useful for testing.  Exposesd the underlying
+ * Represents a synchronous logger useful for testing. Exposes the underlying
  * spdlogger so that tests can provide their own sinks or custom pattern.
  */
 class debug_logger_t : public logger_t
 {
 public:
-    static unique_ptr<debug_logger_t> create(const char* logger_name);
+    static debug_logger_t* create(const char* logger_name);
 
     shared_ptr<spdlog::logger> get_spdlogger()
     {
@@ -36,6 +36,11 @@ public:
 private:
     debug_logger_t(const std::string& logger_name);
 };
+
+/**
+ * Allow overriding the rule_stats logger explicitly.
+ */
+void set_rules_stats(logger_t* logger);
 
 } // namespace logging
 } // namespace common

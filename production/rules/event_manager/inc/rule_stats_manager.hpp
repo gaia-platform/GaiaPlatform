@@ -5,9 +5,9 @@
 #pragma once
 
 #include <map>
+#include <mutex>
 #include <thread>
 
-#include "logger.hpp"
 #include "scheduler_stats.hpp"
 #include "timer.hpp"
 
@@ -25,7 +25,6 @@ class rule_stats_manager_t
 public:
     rule_stats_manager_t() = delete;
     rule_stats_manager_t(
-        gaia_log::logger_t& stats_logger,
         bool enable_rule_stats,
         size_t count_threads,
         uint32_t stats_log_interval);
@@ -49,7 +48,7 @@ protected:
     // Manages the total stats for all rules over each log interval
     scheduler_stats_t m_scheduler_stats;
     // Manages individual rule statistics.  The key is generated from the translation engine.
-    std::map<string, rule_stats_t> m_rule_stats_map;
+    std::map<std::string, rule_stats_t> m_rule_stats_map;
     // Write column headers every c_stats_group_size.
     static const uint8_t c_stats_group_size;
     // Tracks how many log rows have been written out.  We write a header initially and
@@ -58,11 +57,9 @@ protected:
 
 private:
     // Protects adding rules to the map above.
-    mutex m_rule_stats_lock;
+    std::mutex m_rule_stats_lock;
     // Individual rule stats are off by default.  Must be explicitly enabled by the user.
     bool m_rule_stats_enabled;
-    // Logger used to log statistics.
-    gaia_log::logger_t& m_stats_logger;
 };
 
 } // namespace rules

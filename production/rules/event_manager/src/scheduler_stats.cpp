@@ -34,7 +34,7 @@ void scheduler_stats_t::reset_counters()
 
 // If print_header is true then the following row is output:
 // ------------------------- sched invoc  pend aband retry excep      avg lat      max lat     avg exec     max exec
-void scheduler_stats_t::log(gaia_log::logger_t& logger, bool print_header)
+void scheduler_stats_t::log(bool print_header)
 {
     // Estimate the CPU utilization time percentage of the threads in the thread pool.
     float thread_load
@@ -42,12 +42,12 @@ void scheduler_stats_t::log(gaia_log::logger_t& logger, bool print_header)
 
     if (print_header)
     {
-        logger.info(
+        gaia_log::rules_stats().info(
             "{:->25}{: >6}{: >6}{: >6}{: >6}{: >6}{: >6}{: >13}{: >13}{: >13}{: >13}", "",
             "sched", "invoc", "pend", "aband", "retry", "excep", "avg lat", "max lat",
             "avg exec", "max exec");
     }
 
-    rule_stats_t::log(logger, thread_load);
+    rule_stats_t::log(thread_load);
     reset_counters();
 }
