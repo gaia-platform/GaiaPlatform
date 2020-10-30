@@ -645,7 +645,7 @@ TEST_F(gaia_references_test, set_iter_arrow_deref)
 }
 
 // Return true if an employee name includes an 'o'.
-bool filter_fcn(const employee_t& e)
+bool filter_function(const employee_t& e)
 {
     string name(e.name_first());
 
@@ -672,13 +672,15 @@ TEST_F(gaia_references_test, set_filter)
 
     size_t name_length = 5;
     int count = 0;
-    for (const auto& e : e_mgr.manages_employee_list().where([&name_length](const employee_t& e) {
-             if (strlen(e.name_first()) == name_length)
-             {
-                 return true;
-             }
-             return false;
-         }))
+    auto name_length_list = e_mgr.manages_employee_list()
+                                .where([&name_length](const employee_t& e) {
+                                    if (strlen(e.name_first()) == name_length)
+                                    {
+                                        return true;
+                                    }
+                                    return false;
+                                });
+    for (const auto& e : name_length_list)
     {
         EXPECT_EQ(strlen(e.name_first()), name_length);
         count++;
@@ -686,14 +688,7 @@ TEST_F(gaia_references_test, set_filter)
     EXPECT_EQ(count, 2);
     name_length = 6;
     count = 0;
-    auto it = e_mgr.manages_employee_list().where([&name_length](const employee_t& e) {
-                                               if (strlen(e.name_first()) == name_length)
-                                               {
-                                                   return true;
-                                               }
-                                               return false;
-                                           })
-                  .begin();
+    auto it = name_length_list.begin();
     while (*it)
     {
         count++;
@@ -703,7 +698,7 @@ TEST_F(gaia_references_test, set_filter)
 
     count = 0;
     // Note that "Harold" is not counted because it is the owner.
-    for (const auto& e : e_mgr.manages_employee_list().where(filter_fcn))
+    for (const auto& e : e_mgr.manages_employee_list().where(filter_function))
     {
         EXPECT_NE(strchr(e.name_first(), 'o'), nullptr);
         count++;

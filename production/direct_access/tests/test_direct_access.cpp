@@ -833,13 +833,15 @@ TEST_F(gaia_object_test, iter_arrow_deref)
 int count_names(size_t name_length)
 {
     int count = 0;
-    for (const auto& e : employee_t::list().where([&](const employee_t& e) {
-             if (strlen(e.name_first()) == name_length)
-             {
-                 return true;
-             }
-             return false;
-         }))
+    auto name_length_list = employee_t::list()
+                                .where([&](const employee_t& e) {
+                                    if (strlen(e.name_first()) == name_length)
+                                    {
+                                        return true;
+                                    }
+                                    return false;
+                                });
+    for (const auto& e : name_length_list)
     {
         EXPECT_EQ(strlen(e.name_first()), name_length);
         count++;
@@ -868,14 +870,17 @@ TEST_F(gaia_object_test, list_filter)
     EXPECT_EQ(count_names(8), 2);
 
     // Filter for names ending in 'y'.
-    for (const auto& e : employee_t::list().where([&](const employee_t& e) {
-             const char* first_name = e.name_first();
-             if (first_name[strlen(first_name) - 1] == 'y')
-             {
-                 return true;
-             }
-             return false;
-         }))
+    auto names_ending_with_y = employee_t::list()
+                                   .where([&](const employee_t& e) {
+                                       const char* first_name = e.name_first();
+                                       if (first_name[strlen(first_name) - 1] == 'y')
+                                       {
+                                           return true;
+                                       }
+                                       return false;
+                                   });
+
+    for (const auto& e : names_ending_with_y)
     {
         const char* first_name = e.name_first();
         EXPECT_EQ(first_name[strlen(first_name) - 1], 'y');
