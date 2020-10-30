@@ -5,8 +5,8 @@
 #pragma once
 
 #include <regex>
-#include <string>
 #include <sstream>
+#include <string>
 
 #include "gaia_exception.hpp"
 
@@ -15,15 +15,18 @@ inline constexpr char c_command_prefix = '\\';
 /**
  * Thrown when the given command is invalid
  */
-class invalid_command : public gaia::common::gaia_exception {
+class invalid_command : public gaia::common::gaia_exception
+{
 public:
-    invalid_command(const string& cmd) {
+    explicit invalid_command(const string& cmd)
+    {
         stringstream message;
         message << "Invalid command: " << cmd << ".";
         m_message = message.str();
     }
 
-    invalid_command(const string& cmd, const regex_error& error) {
+    invalid_command(const string& cmd, const regex_error& error)
+    {
         stringstream message;
         message
             << "Invalid command: " << cmd << ". "
