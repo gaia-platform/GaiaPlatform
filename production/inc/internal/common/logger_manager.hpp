@@ -10,6 +10,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "debug_logger.hpp"
 #include "gaia_exception.hpp"
 #include "logger.hpp"
 
@@ -108,6 +109,10 @@ private:
     {
         throw logger_exception_t("Logger sub-system not initialized!");
     }
+
+    // Allow debug code to override a well-known logger.  Currently
+    // only the rule stats tests do this.
+    friend void gaia_log::set_rules_stats(logger_t* logger);
 
 private:
     mutex m_log_init_mutex;

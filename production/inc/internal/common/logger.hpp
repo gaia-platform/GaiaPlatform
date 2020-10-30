@@ -151,11 +151,13 @@ public:
         m_spdlogger->critical(format, args...);
     }
 
+protected:
+    shared_ptr<spdlog::logger> m_spdlogger;
+
 private:
     static spdlog::level::level_enum to_spdlog_level(log_level_t level);
 
     std::string m_logger_name;
-    shared_ptr<spdlog::logger> m_spdlogger;
 };
 
 class logger_exception_t : public gaia_exception

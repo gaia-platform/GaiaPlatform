@@ -29,14 +29,14 @@ set(GAIA_SYSTEM_PRIVATE_INCLUDES
 message(VERBOSE "GAIA_SYSTEM_PRIVATE_INCLUDES=${GAIA_SYSTEM_PRIVATE_INCLUDES}")
 
 # Our main target.
-add_library(gaia STATIC src/gaia_system.cpp)
+add_library(gaia_system STATIC src/gaia_system.cpp)
 
-target_include_directories(gaia PUBLIC ${GAIA_SYSTEM_PUBLIC_INCLUDES})
-target_include_directories(gaia PRIVATE ${GAIA_SYSTEM_PRIVATE_INCLUDES})
-target_link_libraries(gaia PUBLIC gaia_catalog gaia_direct gaia_rules)
-set_target_properties(gaia PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+target_include_directories(gaia_system PUBLIC ${GAIA_SYSTEM_PUBLIC_INCLUDES})
+target_include_directories(gaia_system PRIVATE ${GAIA_SYSTEM_PRIVATE_INCLUDES})
+target_link_libraries(gaia_system PUBLIC gaia_catalog gaia_direct gaia_rules)
+set_target_properties(gaia_system PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 # This static library must be compatible with linking in a shared library.
-set_property (TARGET gaia PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property (TARGET gaia_system PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # The test needs gaia parser to load test DDLs.
 set(TEST_GAIA_SYSTEM_INCLUDES
@@ -46,14 +46,14 @@ set(TEST_GAIA_SYSTEM_INCLUDES
   "${GAIA_REPO}/production/catalog/parser/inc"
   ${GAIA_PARSER_GENERATED})
 add_gtest(test_gaia_system "tests/test_gaia_system.cpp"
-  "${TEST_GAIA_SYSTEM_INCLUDES}" "rt;gaia;gaia_parser" "generate_addr_book_headers" ""
+  "${TEST_GAIA_SYSTEM_INCLUDES}" "rt;gaia_system;gaia_parser" "generate_addr_book_headers" ""
   "DDL_FILE=${GAIA_REPO}/production/schemas/test/addr_book/addr_book.ddl")
 
 # Recovery tests. Not to be run with ctest.
 add_executable(test_recovery "tests/test_recovery.cpp")
 target_include_directories(test_recovery PRIVATE "${GAIA_SYSTEM_PUBLIC_INCLUDES};${GAIA_SYSTEM_PRIVATE_INCLUDES};${GOOGLE_TEST_INC}")
 add_dependencies(test_recovery "generate_addr_book_headers")
-target_link_libraries(test_recovery PRIVATE "rt;gaia;gaia_se_client;gtest_main" )
+target_link_libraries(test_recovery PRIVATE "rt;gaia_system;gaia_se_client;gtest_main" )
 set_target_properties(test_recovery PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(test_recovery PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 set_target_properties(test_recovery PROPERTIES CXX_CLANG_TIDY "")

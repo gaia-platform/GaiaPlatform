@@ -11,6 +11,21 @@ using namespace std::chrono;
 
 const uint8_t rule_stats_manager_t::c_stats_group_size = 40;
 
+rule_stats_manager_t::rule_stats_manager_t(
+    bool enable_rule_stats,
+    size_t count_threads,
+    uint32_t stats_log_interval)
+    : m_scheduler_stats(stats_log_interval, count_threads)
+{
+    m_rule_stats_enabled = enable_rule_stats;
+    m_count_entries_logged = 0;
+    if (stats_log_interval)
+    {
+        thread logger_thread = thread(&rule_stats_manager_t::log_stats_thread_fn, this, stats_log_interval);
+        logger_thread.detach();
+    }
+}
+
 void rule_stats_manager_t::log_stats_thread_fn(uint32_t log_interval)
 {
     std::chrono::seconds interval(log_interval);
@@ -77,8 +92,9 @@ void rule_stats_manager_t::inc_exceptions(const char* rule_id)
     }
 }
 
-void rule_stats_manager_t::compute_rule_invocation_latency(const char* rule_id,
-                                                           std::chrono::steady_clock::time_point& start_time)
+void rule_stats_manager_t::compute_rule_invocation_latency(
+    const char* rule_id,
+    std::chrono::steady_clock::time_point& start_time)
 {
     int64_t duration = gaia::common::timer_t::get_duration(start_time);
     m_scheduler_stats.add_rule_invocation_latency(duration);
@@ -88,8 +104,9 @@ void rule_stats_manager_t::compute_rule_invocation_latency(const char* rule_id,
     }
 }
 
-void rule_stats_manager_t::compute_rule_execution_time(const char* rule_id,
-                                                       std::chrono::steady_clock::time_point& start_time)
+void rule_stats_manager_t::compute_rule_execution_time(
+    const char* rule_id,
+    std::chrono::steady_clock::time_point& start_time)
 {
     int64_t duration = gaia::common::timer_t::get_duration(start_time);
     m_scheduler_stats.add_rule_execution_time(duration);
@@ -118,26 +135,18 @@ void rule_stats_manager_t::log_stats()
     {
         for (auto& rule_it : m_rule_stats_map)
         {
-            // Only log stats for a rule if it has been scheduled or invoked
-            // in this interval.
-            if (rule_it.second.count_scheduled || rule_it.second.count_executed)
+            // Only log stats for a rule if it has at least one non-zero counter.
+            if (rule_it.second.count_scheduled
+                || rule_it.second.count_executed
+                || rule_it.second.count_pending
+                || rule_it.second.count_abandoned
+                || rule_it.second.count_retries
+                || rule_it.second.count_exceptions)
             {
                 rule_it.second.log();
                 m_count_entries_logged++;
             }
         }
-    }
-}
-
-void rule_stats_manager_t::initialize(bool enable_rule_stats, size_t count_threads, uint32_t stats_log_interval)
-{
-    m_rule_stats_enabled = enable_rule_stats;
-    m_count_entries_logged = 0;
-    if (stats_log_interval)
-    {
-        m_scheduler_stats.initialize(stats_log_interval, count_threads);
-        thread logger_thread = thread(&rule_stats_manager_t::log_stats_thread_fn, this, stats_log_interval);
-        logger_thread.detach();
     }
 }
 
