@@ -13,6 +13,7 @@
 #include "command.hpp"
 #include "db_test_helpers.hpp"
 #include "gaia_catalog_internal.hpp"
+#include "gaia_catalog_internal_api.hpp"
 #include "gaia_db.hpp"
 #include "gaia_parser.hpp"
 #include "logger.hpp"

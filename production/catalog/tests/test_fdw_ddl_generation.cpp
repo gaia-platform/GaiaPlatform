@@ -39,7 +39,7 @@ constexpr char c_expected_fdw_ddl[]
       "id bigint,\n"
       "name text,\n"
       "age smallint,\n"
-      "value float,\n"
+      "value real,\n"
       "larger_value double precision,\n"
       "parent bigint\n"
       ")\n"

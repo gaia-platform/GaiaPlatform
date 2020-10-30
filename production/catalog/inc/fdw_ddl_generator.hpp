@@ -4,22 +4,12 @@
 /////////////////////////////////////////////
 #pragma once
 
-#include "gaia_catalog.hpp"
+#include "gaia_catalog_internal_api.hpp"
 
 namespace gaia
 {
 namespace catalog
 {
-
-/**
- * Generate a foreign table DDL from parsing the definition of a table.
- *
- * @param table_id table id
- * @param server_name FDW server name
- * @return DDL string
- */
-string generate_fdw_ddl(
-    common::gaia_id_t table_id, const string& server_name);
 
 /**
  * Generate a foreign table DDL from parsing the definition of a table.
