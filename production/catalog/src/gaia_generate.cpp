@@ -402,7 +402,7 @@ static string generate_edc_struct(
 string gaia_generate(const string& dbname)
 {
     gaia_id_t db_id = find_db_id(dbname);
-    if (db_id == INVALID_GAIA_ID)
+    if (db_id == c_invalid_gaia_id)
     {
         throw db_not_exists(dbname);
     }

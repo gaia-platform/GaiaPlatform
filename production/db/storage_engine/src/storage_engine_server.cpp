@@ -126,13 +126,14 @@ void server::handle_request_stream(
     // semantics: datagrams allow buffering without framing, and a connection
     // ensures that client returns EOF after server has called shutdown(SHUT_WR).
     int socket_pair[2];
-    constexpr int server = 0, client = 1;
+    constexpr int c_server_index = 0;
+    constexpr int c_client_index = 1;
     if (-1 == ::socketpair(PF_UNIX, SOCK_SEQPACKET, 0, socket_pair))
     {
         throw_system_error("socketpair failed");
     }
-    int server_socket = socket_pair[server];
-    int client_socket = socket_pair[client];
+    int server_socket = socket_pair[c_server_index];
+    int client_socket = socket_pair[c_client_index];
     auto socket_cleanup = make_scope_guard([server_socket, client_socket]() {
         ::close(server_socket);
         ::close(client_socket);
