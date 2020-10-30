@@ -19,7 +19,7 @@ gaia_iterator_t<T_class>::gaia_iterator_t(gaia_id_t id)
 
 template <typename T_class>
 gaia_iterator_t<T_class>::gaia_iterator_t(gaia_id_t id, std::function<bool(const T_class&)> filter_function)
-    : m_filter_function(filter_function)
+    : m_filter_fn(filter_function)
 {
     m_obj = T_class::get(id);
 }
@@ -32,11 +32,11 @@ gaia_iterator_t<T_class>& gaia_iterator_t<T_class>::operator++()
         return *this;
     }
 
-    if (m_filter_function)
+    if (m_filter_fn)
     {
         for (m_obj = m_obj.get_next(); m_obj; m_obj = m_obj.get_next())
         {
-            if (m_filter_function(m_obj))
+            if (m_filter_fn(m_obj))
             {
                 break;
             }
@@ -89,7 +89,7 @@ typename gaia_iterator_t<T_class>::pointer gaia_iterator_t<T_class>::operator->(
 // Implementation for gaia_container_t
 //
 
-// The begin() method returns either the first element, or the first element that satisfies m_filter_function.
+// The begin() method returns either the first element, or the first element that satisfies m_filter_fn.
 template <gaia_type_t T_container, typename T_class>
 gaia_iterator_t<T_class> gaia_container_t<T_container, T_class>::begin()
 {
@@ -97,11 +97,11 @@ gaia_iterator_t<T_class> gaia_container_t<T_container, T_class>::begin()
     gaia_ptr node_ptr;
     for (node_ptr = gaia_ptr::find_first(T_container); node_ptr; node_ptr = node_ptr.find_next())
     {
-        if (m_filter_function)
+        if (m_filter_fn)
         {
-            if (m_filter_function(T_class::get(node_ptr.id())))
+            if (m_filter_fn(T_class::get(node_ptr.id())))
             {
-                return gaia_iterator_t<T_class>(node_ptr.id(), m_filter_function);
+                return gaia_iterator_t<T_class>(node_ptr.id(), m_filter_fn);
             }
         }
         else
@@ -141,7 +141,7 @@ gaia_set_iterator_t<T_child, T_next_slot>::gaia_set_iterator_t(gaia_id_t id)
 
 template <typename T_child, size_t T_next_slot>
 gaia_set_iterator_t<T_child, T_next_slot>::gaia_set_iterator_t(gaia_id_t id, std::function<bool(const T_child&)> filter_function)
-    : m_filter_function(filter_function)
+    : m_filter_fn(filter_function)
 {
     m_child_obj = T_child::get(id);
 }
@@ -166,13 +166,13 @@ gaia_set_iterator_t<T_child, T_next_slot>& gaia_set_iterator_t<T_child, T_next_s
         return *this;
     }
 
-    if (m_filter_function)
+    if (m_filter_fn)
     {
         for (m_child_obj = T_child::get(m_child_obj.references()[T_next_slot]);
              m_child_obj;
              m_child_obj = T_child::get(m_child_obj.references()[T_next_slot]))
         {
-            if (m_filter_function(m_child_obj))
+            if (m_filter_fn(m_child_obj))
             {
                 break;
             }
@@ -224,9 +224,9 @@ gaia_set_iterator_t<T_child, T_next_slot> reference_chain_container_t<T_parent, 
         while (id)
         {
             node_ptr = gaia_ptr::open(id);
-            if (m_filter_function)
+            if (m_filter_fn)
             {
-                if (m_filter_function(T_child::get(id)))
+                if (m_filter_fn(T_child::get(id)))
                 {
                     break;
                 }
@@ -238,7 +238,7 @@ gaia_set_iterator_t<T_child, T_next_slot> reference_chain_container_t<T_parent, 
             }
         }
     }
-    return gaia_set_iterator_t<T_child, T_next_slot>(id, m_filter_function);
+    return gaia_set_iterator_t<T_child, T_next_slot>(id, m_filter_fn);
 }
 
 // The where() method saves the address of the std::function, to be called for each candidate return value.

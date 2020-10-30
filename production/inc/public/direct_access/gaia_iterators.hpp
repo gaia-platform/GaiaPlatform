@@ -35,7 +35,7 @@ template <typename T_class>
 class gaia_iterator_t
 {
     T_class m_obj;
-    std::function<bool(const T_class&)> m_filter_function;
+    std::function<bool(const T_class&)> m_filter_fn;
 
 public:
     using difference_type = std::ptrdiff_t;
@@ -68,18 +68,19 @@ public:
 template <gaia_type_t T_container, typename T_class>
 struct gaia_container_t
 {
-    gaia_iterator_t<T_class> begin();
-    static gaia_container_t<T_container, T_class> where(std::function<bool(const T_class&)>);
-    static gaia_iterator_t<T_class> end();
-
+    // This constructor will be used by the where() method to create a filtered container.
     gaia_container_t(std::function<bool(const T_class&)> filter_function)
-        : m_filter_function(filter_function)
+        : m_filter_fn(filter_function)
     {
     }
     gaia_container_t() = default;
 
+    gaia_iterator_t<T_class> begin();
+    static gaia_container_t<T_container, T_class> where(std::function<bool(const T_class&)>);
+    static gaia_iterator_t<T_class> end();
+
 private:
-    std::function<bool(const T_class&)> m_filter_function;
+    std::function<bool(const T_class&)> m_filter_fn;
 };
 
 // A gaia_set_iterator_t is only used from reference_chain_container_t. It
@@ -93,7 +94,7 @@ template <typename T_child, size_t T_next_slot>
 class gaia_set_iterator_t
 {
     T_child m_child_obj;
-    std::function<bool(const T_child&)> m_filter_function;
+    std::function<bool(const T_child&)> m_filter_fn;
 
 public:
     using difference_type = std::ptrdiff_t;
@@ -141,9 +142,16 @@ template <typename T_parent, typename T_child, size_t T_parent_slot, size_t T_ch
 class reference_chain_container_t
 {
     gaia_id_t m_parent_id;
-    std::function<bool(const T_child&)> m_filter_function;
+    std::function<bool(const T_child&)> m_filter_fn;
 
 public:
+    // This constructor will be used by the where() method to create a filtered container.
+    reference_chain_container_t(gaia_id_t parent, std::function<bool(const T_child&)> filter_function)
+        : m_parent_id(parent), m_filter_fn(filter_function)
+    {
+    }
+    reference_chain_container_t() = default;
+
     gaia_set_iterator_t<T_child, T_next_slot> begin();
 
     reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot, T_next_slot> where(std::function<bool(const T_child&)>);
@@ -162,12 +170,6 @@ public:
     void erase(gaia_id_t child_id);
 
     void erase(T_child& child_edc);
-
-    reference_chain_container_t(gaia_id_t parent, std::function<bool(const T_child&)> filter_function)
-        : m_parent_id(parent), m_filter_function(filter_function)
-    {
-    }
-    reference_chain_container_t() = default;
 };
 
 /*@}*/

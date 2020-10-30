@@ -835,11 +835,7 @@ int count_names(size_t name_length)
     int count = 0;
     auto name_length_list = employee_t::list()
                                 .where([&](const employee_t& e) {
-                                    if (strlen(e.name_first()) == name_length)
-                                    {
-                                        return true;
-                                    }
-                                    return false;
+                                    return strlen(e.name_first()) == name_length;
                                 });
     for (const auto& e : name_length_list)
     {
@@ -873,11 +869,7 @@ TEST_F(gaia_object_test, list_filter)
     auto names_ending_with_y = employee_t::list()
                                    .where([&](const employee_t& e) {
                                        const char* first_name = e.name_first();
-                                       if (first_name[strlen(first_name) - 1] == 'y')
-                                       {
-                                           return true;
-                                       }
-                                       return false;
+                                       return first_name[strlen(first_name) - 1] == 'y';
                                    });
 
     for (const auto& e : names_ending_with_y)

@@ -674,11 +674,7 @@ TEST_F(gaia_references_test, set_filter)
     int count = 0;
     auto name_length_list = e_mgr.manages_employee_list()
                                 .where([&name_length](const employee_t& e) {
-                                    if (strlen(e.name_first()) == name_length)
-                                    {
-                                        return true;
-                                    }
-                                    return false;
+                                    return strlen(e.name_first()) == name_length;
                                 });
     for (const auto& e : name_length_list)
     {
