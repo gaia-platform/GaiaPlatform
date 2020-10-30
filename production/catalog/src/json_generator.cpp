@@ -12,6 +12,7 @@
 #include "flatbuffers/idl.h"
 #include "flatbuffers/util.h"
 
+#include "flatbuffers_helpers.hpp"
 #include "gaia_catalog.h"
 #include "retail_assert.hpp"
 
@@ -183,37 +184,9 @@ string generate_bin(const string& fbs, const string& json)
         c_encoding_hex_text_len, "", "");
 }
 
-string get_bin(gaia_id_t table_id)
+vector<uint8_t> get_bin(gaia_id_t table_id)
 {
-    string serialization_template;
-    gaia_table_t table = gaia_table_t::get(table_id);
-
-    // The delimitation character used by the hex encoding method.
-    constexpr char c_hex_text_delim = ',';
-    const char* p = table.serialization_template();
-    while (*p != '\0')
-    {
-        if (*p == '\n')
-        {
-            p++;
-            continue;
-        }
-        else if (*p == c_hex_text_delim)
-        {
-            p++;
-            continue;
-        }
-        else
-        {
-            char* endptr;
-            unsigned byte = std::strtoul(p, &endptr, 0);
-            retail_assert(endptr != p && errno != ERANGE, "Invalid hex template serialization");
-            serialization_template.push_back(byte);
-            p = endptr;
-        }
-    }
-
-    return serialization_template;
+    return flatbuffers_hex_to_buffer(gaia_table_t::get(table_id).serialization_template());
 }
 
 } // namespace catalog

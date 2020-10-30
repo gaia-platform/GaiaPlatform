@@ -23,7 +23,8 @@ set(GAIA_SYSTEM_PRIVATE_INCLUDES
   "${GAIA_INC}/internal/db"
   "${FLATBUFFERS_INC}"
   "${GAIA_REPO}/production/rules/event_manager/inc"
-)
+  "${GAIA_REPO}/production/db/storage_engine/tests/" # TODO remove once RI is supported in EDC
+  )
 
 message(VERBOSE "GAIA_SYSTEM_PRIVATE_INCLUDES=${GAIA_SYSTEM_PRIVATE_INCLUDES}")
 

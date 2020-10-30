@@ -27,15 +27,10 @@ protected:
         test_table_fields.emplace_back(make_unique<field_definition_t>("last_zipcodes", data_type_t::e_int32, 0));
     }
 
-    void SetUp() override
-    {
-        db_test_base_t::SetUp();
-    }
-
     static field_def_list_t test_table_fields;
 };
 
-field_def_list_t json_generation_test::test_table_fields{};
+field_def_list_t json_generation_test::test_table_fields;
 
 constexpr char c_expected_json[]
     = "{\n"
@@ -100,12 +95,12 @@ TEST_F(json_generation_test, get_bin)
     gaia_id_t table_id = create_table(test_table_name, test_table_fields);
 
     begin_transaction();
-    string bfbs = get_bfbs(table_id);
-    string bin = get_bin(table_id);
+    vector<uint8_t> bfbs = get_bfbs(table_id);
+    vector<uint8_t> bin = get_bin(table_id);
     commit_transaction();
 
-    const uint8_t* binary_schema = reinterpret_cast<const uint8_t*>(bfbs.c_str());
-    const uint8_t* serialized_data = reinterpret_cast<const uint8_t*>(bin.c_str());
+    const uint8_t* binary_schema = bfbs.data();
+    const uint8_t* serialized_data = bin.data();
     size_t serialized_data_size = bin.size();
 
     const reflection::Schema* schema = reflection::GetSchema(binary_schema);

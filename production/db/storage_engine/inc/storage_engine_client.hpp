@@ -5,10 +5,6 @@
 
 #pragma once
 
-#include <sys/epoll.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-
 #include <csignal>
 
 #include <atomic>
@@ -18,6 +14,9 @@
 #include <unordered_set>
 
 #include <flatbuffers/flatbuffers.h>
+#include <sys/epoll.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 #include "db_types.hpp"
 #include "generator_iterator.hpp"
@@ -48,6 +47,7 @@ class client : private se_base
 {
     friend class gaia_ptr;
     friend class gaia_hash_map;
+    friend class catalog_core_t;
 
 public:
     static inline bool is_transaction_active()
@@ -112,8 +112,7 @@ private:
      */
     static inline bool is_valid_event(gaia_type_t type)
     {
-        return (s_txn_commit_trigger
-                && (trigger_excluded_types.find(type) == trigger_excluded_types.end()));
+        return (s_txn_commit_trigger && (trigger_excluded_types.find(type) == trigger_excluded_types.end()));
     }
 
     static inline void verify_txn_active()

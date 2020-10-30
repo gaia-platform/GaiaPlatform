@@ -5,10 +5,9 @@
 #include "gaia_dump.hpp"
 
 #include <memory>
-#include <set>
 #include <vector>
 
-#include "gaia_catalog.hpp"
+#include "gaia_db.hpp"
 #include "system_table_types.hpp"
 
 constexpr int c_group_size = 8;
@@ -100,8 +99,7 @@ static string dump_node(gaia_ptr& node_ptr, bool references, bool payload, int& 
 {
     string dump;
     size_t num_references = node_ptr.num_references();
-    sprintf(g_longstring, "id=%016lx, type=%08x, payload=%04zx, references=%02zx\n", node_ptr.id(), node_ptr.type(),
-            node_ptr.data_size(), num_references);
+    sprintf(g_longstring, "id=%016lx, type=%08x, payload=%04zx, references=%02zx\n", node_ptr.id(), node_ptr.type(), node_ptr.data_size(), num_references);
     dump += g_longstring;
     if (--line_limit == 0)
     {

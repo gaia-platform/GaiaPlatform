@@ -8,6 +8,7 @@
 #include "db_test_base.hpp"
 #include "gaia_db.hpp"
 #include "gaia_ptr.hpp"
+#include "type_metadata.hpp"
 
 using namespace gaia::db;
 
@@ -87,6 +88,9 @@ private:
     {
         begin_transaction();
         {
+            type_registry_t::instance().test_get_or_create(type1);
+            type_registry_t::instance().test_get_or_create(type2);
+
             std::cerr << std::endl;
             std::cerr << "*** create test nodes" << std::endl;
             gaia_ptr node1 = gaia_ptr::create(node1_id, type1, 0, 0);
@@ -223,6 +227,11 @@ TEST_F(storage_engine_client_test, iterate_type_cursor)
     constexpr size_t BUFFER_SIZE_INEXACT_MULTIPLE = STREAM_BATCH_SIZE * 2 + 3;
     constexpr size_t BUFFER_SIZE_MINUS_ONE = STREAM_BATCH_SIZE - 1;
     constexpr size_t BUFFER_SIZE_PLUS_ONE = STREAM_BATCH_SIZE + 1;
+
+    for (int i = 4; i < 10; i++)
+    {
+        type_registry_t::instance().test_get_or_create(gaia_type_t(i));
+    }
 
     begin_transaction();
     {

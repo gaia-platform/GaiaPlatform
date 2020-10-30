@@ -99,6 +99,72 @@ else()
   message(CHECK_FAIL "not found")
 endif()
 
+# External project dependencies.
+
+# Rocksdb.
+add_subdirectory(${ROCKSDB} rocksdb)
+# Flatbuffers.
+add_subdirectory(${FLATBUFFERS} flatbuffers)
+set_property (TARGET flatbuffers PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+include(ExternalProject)
+set(DEPENDENCIES_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/deps)
+
+# Backward.
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  add_subdirectory("${GAIA_REPO}/third_party/production/backward" backward)
+endif()
+# Cpptoml.
+add_subdirectory("${GAIA_REPO}/third_party/production/cpptoml" cpptoml)
+# Fmt.
+add_subdirectory("${GAIA_REPO}/third_party/production/fmt" fmt)
+# Spdlog.
+add_subdirectory("${GAIA_REPO}/third_party/production/spdlog" spdlog)
+# Spdlog_setup.
+add_subdirectory("${GAIA_REPO}/third_party/production/spdlog_setup" spdlog_setup)
+# Tabulate.
+add_subdirectory("${GAIA_REPO}/third_party/production/tabulate" tabulate)
+# Googletest
+add_subdirectory(${GOOGLE_TEST} googletest)
+
+# Setting clang-tidy here to avoid it being applied to flatbuffers, rocksdb etc...
+# TODO Maybe we could force each subproject to set this flag?
+set(CMAKE_CXX_CLANG_TIDY clang-tidy)
+
+# Add individual component folders.
+# These are listed roughly in a bottom-up order
+# in terms of platform architecture.
+
+# Core database engine.
+add_subdirectory(common)
+add_subdirectory(db)
+add_subdirectory(system)
+
+# Direct access API.
+add_subdirectory(direct_access)
+
+# Catalog.
+add_subdirectory(catalog)
+
+# Rules engine.
+add_subdirectory(rules)
+add_subdirectory(schemas)
+
+# Tools.
+add_subdirectory(tools)
+
+if(BUILD_GAIA_RELEASE)
+set_property (TARGET gaia_parser PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property (TARGET rocks_wrapper PROPERTY POSITION_INDEPENDENT_CODE ON)
+unset(CMAKE_CXX_CLANG_TIDY)
+add_subdirectory(sdk)
+add_subdirectory("${GAIA_REPO}/third_party/private/TranslationEngineLLVM/llvm" llvm)
+set(CMAKE_CXX_CLANG_TIDY clang-tidy)
+endif()
+
+# Query processors.
+add_subdirectory(sql)
+
 # Java Tinkerpop project.
 if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   set(CMAKE_JAVA_INCLUDE_PATH ${GREMLIN_CONSOLE_PATH}/lib/*:${GREMLIN_CONSOLE_PATH}/ext/tinkergraph-gremlin/lib/*:${PROJECT_BINARY_DIR}/*)
@@ -182,56 +248,6 @@ if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
 #       -Djava.library.path=${PROJECT_BINARY_DIR}/db/storage_engine
 #       -cp ${CMAKE_JAVA_INCLUDE_PATH}:${GAIA_TINKERPOP_JAR}:${GAIA_TESTS_JAR}
 #       com.gaiaplatform.tests.database.cachegraph.TestCacheGraph graphml)
-endif()
-
-# Add rocksdb
-# https://gaiaplatform.atlassian.net/browse/GAIAPLAT-338
-add_subdirectory(${ROCKSDB} rocksdb)
-
-# Add flatbuffers
-add_subdirectory(${FLATBUFFERS} flatbuffers)
-set_property (TARGET flatbuffers PROPERTY POSITION_INDEPENDENT_CODE ON)
-
-include(ExternalProject)
-set(DEPENDENCIES_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/deps)
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  # Add backward for debug build.
-  add_subdirectory("${GAIA_REPO}/third_party/production/backward" backward)
-endif()
-# Add cpptoml.
-add_subdirectory("${GAIA_REPO}/third_party/production/cpptoml" cpptoml)
-# Add fmt.
-add_subdirectory("${GAIA_REPO}/third_party/production/fmt" fmt)
-# Add spdlog.
-add_subdirectory("${GAIA_REPO}/third_party/production/spdlog" spdlog)
-# Add spdlog_setup.
-add_subdirectory("${GAIA_REPO}/third_party/production/spdlog_setup" spdlog_setup)
-# Add tabulate.
-add_subdirectory("${GAIA_REPO}/third_party/production/tabulate" tabulate)
-# Add googletest
-add_subdirectory(${GOOGLE_TEST} googletest)
-
-# Setting clang-tidy here to avoid it being applied to flatbuffers, rocksdb etc...
-# TODO Maybe we could force each subproject to set this flag?
-set(CMAKE_CXX_CLANG_TIDY clang-tidy)
-
-# Add individual component folders.
-add_subdirectory(common)
-add_subdirectory(db)
-add_subdirectory(direct_access)
-add_subdirectory(rules)
-add_subdirectory(schemas)
-add_subdirectory(sql)
-add_subdirectory(system)
-add_subdirectory(catalog)
-add_subdirectory(tools)
-if(BUILD_GAIA_RELEASE)
-set_property (TARGET gaia_parser PROPERTY POSITION_INDEPENDENT_CODE ON)
-set_property (TARGET rocks_wrapper PROPERTY POSITION_INDEPENDENT_CODE ON)
-unset(CMAKE_CXX_CLANG_TIDY)
-add_subdirectory(sdk)
-add_subdirectory("${GAIA_REPO}/third_party/private/TranslationEngineLLVM/llvm" llvm)
-set(CMAKE_CXX_CLANG_TIDY clang-tidy)
 endif()
 
 # Customize test commands.
