@@ -114,8 +114,7 @@ void type_registry_t::init()
 
 gaia_id_t type_registry_t::get_record_id(gaia_type_t type)
 {
-    type_id_record_id_cache_t type_table_cache;
-    return type_table_cache.get_record_id(type);
+    return type_id_record_id_cache_t::instance().get_record_id(type);
 }
 
 bool type_registry_t::exists(gaia_type_t type) const

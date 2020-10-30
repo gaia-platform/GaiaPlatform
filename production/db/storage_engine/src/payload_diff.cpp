@@ -26,8 +26,7 @@ void compute_payload_diff(
     // Make sure caller passes valid pointer to changed_fields.
     retail_assert(changed_fields);
 
-    static type_id_record_id_cache_t type_id_record_id_cache;
-    gaia_id_t type_record_id = type_id_record_id_cache.get_record_id(type_id);
+    gaia_id_t type_record_id = type_id_record_id_cache_t::instance().get_record_id(type_id);
 
     auto schema = catalog_core_t::get_table(type_record_id).binary_schema();
 

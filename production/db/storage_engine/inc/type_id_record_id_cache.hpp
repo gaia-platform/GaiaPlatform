@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include <mutex>
 #include <unordered_map>
 
 #include "gaia_common.hpp"
@@ -25,8 +24,8 @@ public:
 
     static type_id_record_id_cache_t& instance()
     {
-        static type_id_record_id_cache_t type_registry;
-        return type_registry;
+        static type_id_record_id_cache_t type_id_record_id_cache_t;
+        return type_id_record_id_cache_t;
     }
 
     // Return the id of the gaia_table record that defines a given type.
