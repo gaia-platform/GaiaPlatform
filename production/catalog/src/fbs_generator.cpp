@@ -2,9 +2,11 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #include "fbs_generator.hpp"
 
 #include <algorithm>
+#include <sstream>
 #include <string>
 
 #include "flatbuffers/idl.h"
@@ -58,14 +60,6 @@ static string generate_fbs_field(const gaia_field_t& field)
     return generate_fbs_field(name, type, field.repeated_count());
 }
 
-/**
- * Public interfaces
- **/
-unknown_data_type::unknown_data_type()
-{
-    m_message = "Unknown data type.";
-}
-
 string get_data_type_name(data_type_t data_type)
 {
     switch (data_type)
@@ -95,7 +89,14 @@ string get_data_type_name(data_type_t data_type)
     case data_type_t::e_string:
         return "string";
     default:
-        throw unknown_data_type();
+        stringstream message;
+        message
+            << "Unhandled data_type_t value " << static_cast<int>(data_type)
+            << " in get_data_type_name()!";
+        // If we use retail_assert(false), the compiler can't figure out
+        // that it will throw an exception and will warn us about
+        // potentially exiting the method without returning a value.
+        throw retail_assertion_failure(message.str());
     }
 }
 
