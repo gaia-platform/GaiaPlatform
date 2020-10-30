@@ -6,9 +6,6 @@
 #pragma once
 
 #include <string.h>
-#include <sys/file.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 #include <cassert>
@@ -21,6 +18,10 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+
+#include <sys/file.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 
 #include "db_types.hpp"
 #include "gaia_boot.hpp"
@@ -108,9 +109,9 @@ protected:
         } log_records[c_max_log_records];
     };
 
-    thread_local static log* s_log;
-    thread_local static int s_session_socket;
-    thread_local static gaia_txn_id_t s_txn_id;
+    thread_local static inline log* s_log = nullptr;
+    thread_local static inline int s_session_socket = -1;
+    thread_local static inline gaia_txn_id_t s_txn_id = INVALID_GAIA_TXN_ID;
 
 public:
     static gaia_txn_id_t allocate_txn_id(data* s_data)
