@@ -27,12 +27,14 @@ namespace payload_types
 
 typedef std::unordered_map<field_position_t, const reflection::Field*> field_map_t;
 
-// A field cache stores all Field descriptions for a given type,
+// A type information instance stores all information needed
+// to deserialize or serialize data of that type.
+// It stores all Field descriptions for a given type,
 // indexed by the corresponding field id values.
-class field_cache_t
+class type_information_t
 {
 public:
-    field_cache_t() = default;
+    type_information_t() = default;
 
     // Return a direct pointer to our copy of the binary schema.
     const uint8_t* get_raw_binary_schema() const;
@@ -71,15 +73,15 @@ protected:
     field_map_t m_field_map;
 };
 
-typedef std::unordered_map<gaia_type_t, const field_cache_t*> type_map_t;
+typedef std::unordered_map<gaia_type_t, const type_information_t*> type_information_map_t;
 
-class auto_field_cache_t;
+class auto_type_information_t;
 
-// The type cache stores field_caches for all managed types.
-// The field_caches are indexed by their corresponding type id.
+// The type cache stores type_information_t instances for all managed types.
+// The type_information_t instances are indexed by their corresponding type id.
 class type_cache_t
 {
-    friend class auto_field_cache_t;
+    friend class auto_type_information_t;
 
 protected:
     // Do not allow copies to be made;
@@ -94,22 +96,22 @@ public:
     // Return a pointer to the singleton instance.
     static type_cache_t* get();
 
-    // To ensure that the returned field cache continues to be valid,
+    // To ensure that the returned type information instance continues to be valid,
     // this method needs to hold a read lock on the type cache.
-    // To ensure the release of that lock once the field cache is no longer used,
-    // it is returned in an auto_field_cache_t wrapper that will release the lock
+    // To ensure the release of that lock once the type information is no longer used,
+    // it is returned in an auto_type_information_t wrapper that will release the lock
     // at the time the wrapper gets destroyed.
-    void get_field_cache(gaia_type_t type_id, auto_field_cache_t& auto_field_cache) const;
+    void get_type_information(gaia_type_t type_id, auto_type_information_t& auto_type_information) const;
 
     // This method should be called whenever the information for a type is being changed.
     // It will return true if the entry was found and deleted, and false if it was not found
     // (another thread may have deleted it first or the information may never have been cached at all).
-    bool remove_field_cache(gaia_type_t type_id);
+    bool remove_type_information(gaia_type_t type_id);
 
     // This method should be used to load new type information in the cache.
     // It expects the cache to contain no data for the type.
     // It returns true if the cache was updated and false if an entry for the type was found to exist already.
-    bool set_field_cache(gaia_type_t type_id, const field_cache_t* field_cache);
+    bool set_type_information(gaia_type_t type_id, const type_information_t* type_information);
 
     // Return the size of the internal map.
     size_t size() const;
@@ -124,29 +126,29 @@ protected:
     mutable std::shared_mutex m_lock;
 
     // The map used by the type cache.
-    type_map_t m_type_map;
+    type_information_map_t m_type_map;
 };
 
 // A class for automatically releasing the read lock taken while reading from the cache.
-class auto_field_cache_t
+class auto_type_information_t
 {
     friend class type_cache_t;
 
 public:
-    auto_field_cache_t();
-    ~auto_field_cache_t();
+    auto_type_information_t();
+    ~auto_type_information_t();
 
     // Do not allow copies to be made;
     // disable copy constructor and assignment operator.
-    auto_field_cache_t(const auto_field_cache_t&) = delete;
-    auto_field_cache_t& operator=(const auto_field_cache_t&) = delete;
+    auto_type_information_t(const auto_type_information_t&) = delete;
+    auto_type_information_t& operator=(const auto_type_information_t&) = delete;
 
-    const field_cache_t* get();
+    const type_information_t* get();
 
 protected:
-    const field_cache_t* m_field_cache;
+    const type_information_t* m_type_information;
 
-    void set(const field_cache_t* field_cache);
+    void set(const type_information_t* type_information);
 };
 
 } // namespace payload_types

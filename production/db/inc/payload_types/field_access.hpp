@@ -65,7 +65,7 @@ public:
 // The access of this API to the type_cache is protected by the type_cache API.
 //
 // The binary_schema passed in will only be used if the type_cache
-// does not already contain a field_cache entry for the type_id.
+// does not already contain a type_information entry for the type_id.
 // Exception: APIs the set a string field value always need the binary schema.
 //
 // If the binary_schema is needed, but was not provided,
@@ -73,12 +73,12 @@ public:
 ///////////////////////////////////////////////////////////////////////////////
 
 // Parse the binary schema and insert its Field definitions
-// into the provided field_cache.
+// into the provided type_information.
 //
 // Note that binary schemas that we get passed right now
 // are temporary copies, so they need to be copied into the field cache as well.
-void initialize_field_cache_from_binary_schema(
-    field_cache_t* field_cache,
+void initialize_type_information_from_binary_schema(
+    type_information_t* type_information,
     const uint8_t* binary_schema,
     size_t binary_schema_size);
 

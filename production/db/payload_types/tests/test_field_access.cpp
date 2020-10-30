@@ -298,13 +298,13 @@ void process_flatbuffers_data(bool access_fields = false)
     // Validate data.
     ASSERT_EQ(true, verify_data_schema(data_loader.get_data(), data_loader.get_data_length(), schema_loader.get_data()));
 
-    // Create and initialize a field_cache.
-    auto field_cache = new field_cache_t();
-    initialize_field_cache_from_binary_schema(field_cache, schema_loader.get_data(), schema_loader.get_data_length());
-    ASSERT_EQ(field::count_fields, field_cache->size());
+    // Create and initialize a type_information.
+    auto type_information = new type_information_t();
+    initialize_type_information_from_binary_schema(type_information, schema_loader.get_data(), schema_loader.get_data_length());
+    ASSERT_EQ(field::count_fields, type_information->size());
 
     // Add field cache to type cache.
-    type_cache_t::get()->set_field_cache(c_type_id, field_cache);
+    type_cache_t::get()->set_type_information(c_type_id, type_information);
     ASSERT_EQ(1, type_cache_t::get()->size());
 
     if (access_fields)
@@ -319,7 +319,7 @@ void process_flatbuffers_data(bool access_fields = false)
     }
 
     // Remove field cache from type cache.
-    type_cache_t::get()->remove_field_cache(c_type_id);
+    type_cache_t::get()->remove_type_information(c_type_id);
     ASSERT_EQ(0, type_cache_t::get()->size());
 
     if (access_fields)
@@ -363,13 +363,13 @@ void update_flatbuffers_data()
     // Validate data.
     ASSERT_EQ(true, verify_data_schema(data_loader.get_data(), data_loader.get_data_length(), schema_loader.get_data()));
 
-    // Create and initialize a field_cache.
-    auto field_cache = new field_cache_t();
-    initialize_field_cache_from_binary_schema(field_cache, schema_loader.get_data(), schema_loader.get_data_length());
-    ASSERT_EQ(field::count_fields, field_cache->size());
+    // Create and initialize a type_information.
+    auto type_information = new type_information_t();
+    initialize_type_information_from_binary_schema(type_information, schema_loader.get_data(), schema_loader.get_data_length());
+    ASSERT_EQ(field::count_fields, type_information->size());
 
     // Add field cache to type cache.
-    type_cache_t::get()->set_field_cache(c_type_id, field_cache);
+    type_cache_t::get()->set_type_information(c_type_id, type_information);
     ASSERT_EQ(1, type_cache_t::get()->size());
 
     // Update the serialized data.
