@@ -4,24 +4,31 @@
 /////////////////////////////////////////////
 #pragma once
 
-#include "gaia_catalog.hpp"
-#include "yy_parser.hpp"
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
 
-namespace gaia {
-namespace catalog {
-namespace ddl {
+#include "catalog.hpp"
+#include "yy_parser.hpp"
 
-class parser_t {
-  public:
-    parser_t() : trace_parsing(false), trace_scanning(false){};
+namespace gaia
+{
+namespace catalog
+{
+namespace ddl
+{
+
+class parser_t
+{
+public:
+    parser_t()
+        : trace_parsing(false), trace_scanning(false){};
 
     // Use smart pointers to store the statements because we need the polymorphic behaviour.
     vector<unique_ptr<gaia::catalog::ddl::statement_t>> statements;
 
-    int parse(const string &filename) {
+    int parse(const string& filename)
+    {
         file = filename;
         location.initialize(&file);
         scan_begin();
@@ -32,7 +39,8 @@ class parser_t {
         return res;
     };
 
-    int parse_line(const std::string &line) {
+    int parse_line(const std::string& line)
+    {
         scan_string_begin(line);
         yy::parser parse(*this);
         parse.set_debug_level(trace_parsing);
@@ -45,13 +53,13 @@ class parser_t {
     bool trace_parsing;
     bool trace_scanning;
 
-  private:
+private:
     string file;
 
     void scan_begin();
     void scan_end();
 
-    void scan_string_begin(const std::string &line);
+    void scan_string_begin(const std::string& line);
     void scan_string_end();
 };
 

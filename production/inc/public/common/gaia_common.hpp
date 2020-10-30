@@ -31,7 +31,7 @@ typedef uint64_t gaia_id_t;
 /**
  * The value of an invalid gaia_id_t.
  */
-constexpr gaia_id_t INVALID_GAIA_ID = 0;
+constexpr gaia_id_t c_invalid_gaia_id = 0;
 
 /**
  * The type of a Gaia type identifier.
@@ -41,7 +41,7 @@ typedef uint32_t gaia_type_t;
 /**
  * The value of an invalid gaia_type_t.
  */
-constexpr gaia_type_t INVALID_GAIA_TYPE = 0;
+constexpr gaia_type_t c_invalid_gaia_type = 0;
 
 /**
  * The type of a Gaia event type.

@@ -5,8 +5,8 @@
 
 #include "rule_checker.hpp"
 
+#include "catalog.hpp"
 #include "gaia_catalog.h"
-#include "gaia_catalog.hpp"
 
 using namespace gaia::rules;
 using namespace gaia::common;
@@ -73,8 +73,7 @@ invalid_subscription::invalid_subscription(gaia_type_t gaia_type, const char* ta
 }
 
 // Field not active or deprecated.
-invalid_subscription::invalid_subscription(gaia_type_t gaia_type, const char* table, uint16_t position,
-                                           const char* field, bool is_deprecated)
+invalid_subscription::invalid_subscription(gaia_type_t gaia_type, const char* table, uint16_t position, const char* field, bool is_deprecated)
 {
     std::stringstream message;
     const char* reason = is_deprecated ? "deprecated" : "not marked as active";
@@ -139,8 +138,7 @@ void rule_checker_t::check_fields(gaia_id_t id, const field_position_list_t& fie
                 // and not active, report it as being deprecated.
                 if (gaia_field.deprecated() || !gaia_field.active())
                 {
-                    throw invalid_subscription(id, gaia_table.name(), requested_position, gaia_field.name(),
-                                               gaia_field.deprecated());
+                    throw invalid_subscription(id, gaia_table.name(), requested_position, gaia_field.name(), gaia_field.deprecated());
                 }
                 found_requested_field = true;
                 break;

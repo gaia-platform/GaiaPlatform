@@ -2,6 +2,7 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #include "catalog_core.hpp"
 
 #include <optional>
@@ -79,7 +80,7 @@ table_view_t catalog_core_t::get_table(gaia_id_t table_id)
 table_list_t catalog_core_t::list_tables()
 {
     client::verify_txn_active();
-    auto gaia_table_generator = [locator = INVALID_GAIA_LOCATOR]() mutable -> std::optional<table_view_t> {
+    auto gaia_table_generator = [locator = c_invalid_gaia_locator]() mutable -> std::optional<table_view_t> {
         while (++locator && locator < client::s_data->locator_count + 1)
         {
             gaia_se_object_t* ptr = se_base::locator_to_ptr(client::s_locators, client::s_data, locator);
@@ -100,7 +101,7 @@ field_list_t catalog_core_t::list_fields(gaia_type_t table_type)
     const gaia_id_t* references = obj_ptr->references();
     gaia_id_t first_field_id = references[c_gaia_table_first_gaia_field_slot];
     auto gaia_field_generator = [field_id = first_field_id]() mutable -> std::optional<field_view_t> {
-        if (field_id == INVALID_GAIA_ID)
+        if (field_id == c_invalid_gaia_id)
         {
             return std::nullopt;
         }

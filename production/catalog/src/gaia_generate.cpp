@@ -2,14 +2,15 @@
 //// Copyright (c) Gaia Platform LLC
 //// All rights reserved.
 ///////////////////////////////////////////////
+
 #include <memory>
 #include <set>
 #include <vector>
 
 #include "flatbuffers/code_generators.h"
 
+#include "catalog.hpp"
 #include "gaia_catalog.h"
-#include "gaia_catalog.hpp"
 
 using namespace std;
 
@@ -401,7 +402,7 @@ static string generate_edc_struct(
 string gaia_generate(const string& dbname)
 {
     gaia_id_t db_id = find_db_id(dbname);
-    if (db_id == INVALID_GAIA_ID)
+    if (db_id == c_invalid_gaia_id)
     {
         throw db_not_exists(dbname);
     }
