@@ -8,10 +8,10 @@
 
 #include "gtest/gtest.h"
 
+#include "catalog.hpp"
 #include "db_test_base.hpp"
 #include "ddl_execution.hpp"
 #include "gaia_airport.h"
-#include "gaia_catalog.hpp"
 #include "gaia_dump.hpp"
 #include "gaia_parser.hpp"
 

@@ -79,7 +79,6 @@ enum value_index_type_t : uint8_t
     range
 };
 
-
 /*
  * Cardinality of a relationship
  */

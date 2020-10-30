@@ -5,8 +5,8 @@
 
 #pragma once
 
+#include "catalog.hpp"
 #include "gaia_catalog.h"
-#include "gaia_catalog.hpp"
 
 using gaia::catalog::create_database;
 using gaia::catalog::create_table;
