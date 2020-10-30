@@ -9,7 +9,6 @@
 
 #include "tabulate/table.hpp"
 
-#include "catalog_internal.hpp"
 #include "fbs_generator.hpp"
 #include "gaia_catalog.h"
 #include "retail_assert.hpp"
