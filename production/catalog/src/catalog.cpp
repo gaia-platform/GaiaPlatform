@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gaia_catalog.hpp"
+#include "catalog.hpp"
 
 #include "ddl_executor.hpp"
 #include "gaia_catalog.h"

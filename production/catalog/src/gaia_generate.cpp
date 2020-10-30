@@ -9,8 +9,8 @@
 
 #include "flatbuffers/code_generators.h"
 
+#include "catalog.hpp"
 #include "gaia_catalog.h"
-#include "gaia_catalog.hpp"
 
 using namespace std;
 

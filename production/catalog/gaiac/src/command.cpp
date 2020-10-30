@@ -9,8 +9,8 @@
 
 #include "tabulate/table.hpp"
 
+#include "catalog.hpp"
 #include "gaia_catalog.h"
-#include "gaia_catalog.hpp"
 #include "retail_assert.hpp"
 
 using namespace gaia::catalog;

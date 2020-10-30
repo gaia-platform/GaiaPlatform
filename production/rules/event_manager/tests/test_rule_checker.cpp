@@ -5,10 +5,10 @@
 
 #include "gtest/gtest.h"
 
+#include "catalog.hpp"
 #include "db_test_base.hpp"
 #include "db_test_helpers.hpp"
 #include "gaia_catalog.h"
-#include "gaia_catalog.hpp"
 #include "rule_checker.hpp"
 #include "rules.hpp"
 

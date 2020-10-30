@@ -31,7 +31,7 @@ add_library(gaia_catalog STATIC
   src/fbs_generator.cpp
   src/json_generator.cpp
   src/fdw_ddl_generator.cpp
-  src/gaia_catalog.cpp
+  src/catalog.cpp
   src/gaia_generate.cpp
   ${FLATBUFFERS}/src/code_generators.cpp)
 set_target_properties(gaia_catalog PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
@@ -61,7 +61,7 @@ add_gtest(test_json_generation
 add_gtest(test_fdw_ddl_generation
   "tests/test_fdw_ddl_generation.cpp"
   "${GAIA_CATALOG_PUBLIC_INCLUDES};${GAIA_CATALOG_PRIVATE_INCLUDES}"
-  "rt;gaia;gaia_catalog"
+  "rt;gaia_system;gaia_catalog"
   gaia_catalog)
 
 add_subdirectory(gaiac)
