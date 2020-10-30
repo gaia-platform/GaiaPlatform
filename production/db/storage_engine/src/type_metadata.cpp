@@ -11,7 +11,7 @@
 #include "gaia_catalog.hpp"
 #include "logger.hpp"
 #include "system_table_types.hpp"
-#include "type_id_record_id_cache_t.hpp"
+#include "type_id_record_id_cache.hpp"
 
 using gaia::catalog::data_type_t;
 using gaia::catalog::gaia_table_t;

@@ -9,7 +9,7 @@
 #include "field_access.hpp"
 #include "gaia_common.hpp"
 #include "retail_assert.hpp"
-#include "type_id_record_id_cache_t.hpp"
+#include "type_id_record_id_cache.hpp"
 
 namespace gaia
 {

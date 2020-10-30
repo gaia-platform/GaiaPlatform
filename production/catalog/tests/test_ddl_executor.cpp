@@ -14,7 +14,7 @@
 #include "db_test_base.hpp"
 #include "gaia_catalog.h"
 #include "gaia_catalog.hpp"
-#include "type_id_record_id_cache_t.hpp"
+#include "type_id_record_id_cache.hpp"
 #include "type_metadata.hpp"
 
 using namespace gaia::catalog;

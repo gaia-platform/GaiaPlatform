@@ -82,7 +82,7 @@ add_library(gaia_se_client STATIC
   src/storage_engine.cpp
   src/storage_engine_client.cpp
   src/type_metadata.cpp
-  src/type_id_record_id_cache_t.cpp)
+  src/type_id_record_id_cache.cpp)
 add_dependencies(gaia_se_client "messages.fbs" "gaia_table.fbs" "gaia_field.fbs")
 target_include_directories(gaia_se_client PUBLIC ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES})
 target_include_directories(gaia_se_client PRIVATE ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES})
