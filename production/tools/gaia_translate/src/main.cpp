@@ -22,7 +22,7 @@
 #include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "gaia_catalog.h"
-#include "gaia_catalog.hpp"
+#include "catalog.hpp"
 
 using namespace std;
 using namespace clang;
@@ -41,6 +41,7 @@ cl::opt<bool> g_translation_engine_verbose_option("v",
 std::string g_current_ruleset;
 bool g_verbose = false;
 bool g_generation_error = false;
+int g_current_ruleset_rule_number = 1;
 
 vector<string> g_rulesets;
 unordered_map<string, unordered_set<string>> g_active_fields;
@@ -523,8 +524,9 @@ void generate_rules(Rewriter &rewriter)
         }
         string rule_name = g_current_ruleset + "_" + g_current_rule_declaration->getName().str() + "_" + to_string(rule_count);
         common_subscription_code.append("rule_binding_t ").append(rule_name).append("binding(\"")
-            .append(g_current_ruleset).append("\",\"").append(rule_name).append("\",")
-            .append(g_current_ruleset).append("::").append(rule_name).append(");\n");
+            .append(g_current_ruleset).append("\",\"").append(g_current_ruleset).append("::")
+            .append(to_string(g_current_ruleset_rule_number)).append("_").append(to_string(rule_count))
+            .append("\",").append(g_current_ruleset).append("::").append(rule_name).append(");\n");
         field_subscription_code =  "field_position_list_t fields_" + rule_name + ";\n";
 
         if (fd.second.find("LastOperation") != fd.second.end())
@@ -1046,6 +1048,7 @@ public:
             return;
         }
         const auto* rule_declaration = result.Nodes.getNodeAs<FunctionDecl>("ruleDecl");
+        g_current_ruleset_rule_number ++;
         generate_rules(m_rewriter);
         if (g_generation_error)
         {
@@ -1095,6 +1098,7 @@ public:
             g_rulesets.push_back(g_current_ruleset);
             g_current_ruleset_subscription.clear();
             g_current_ruleset_unsubscription.clear();
+            g_current_ruleset_rule_number = 1;
             m_rewriter.ReplaceText(
                 SourceRange(ruleset_declaration->getBeginLoc(), ruleset_declaration->decls_begin()->getBeginLoc().getLocWithOffset(-2)),
                 "namespace " + g_current_ruleset + "\n{\n");
