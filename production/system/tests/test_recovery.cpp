@@ -409,7 +409,7 @@ TEST_F(recovery_test, reference_update_test)
 {
     restart_server(m_server, g_server_dir_path.c_str());
     begin_session();
-    gaia_id_t address_id{INVALID_GAIA_ID};
+    gaia_id_t address_id{c_invalid_gaia_id};
     {
         // Add an address.
         auto_transaction_t txn;
@@ -424,7 +424,7 @@ TEST_F(recovery_test, reference_update_test)
         address_id = w.insert_row();
         txn.commit();
     }
-    ASSERT_NE(address_id, INVALID_GAIA_ID);
+    ASSERT_NE(address_id, c_invalid_gaia_id);
 
     std::set<gaia_id_t> phone_ids;
     {
@@ -438,7 +438,7 @@ TEST_F(recovery_test, reference_update_test)
             w.type = generate_string(c_field_size_bytes);
             w.primary = true;
             gaia_id_t phone_id = w.insert_row();
-            ASSERT_NE(phone_id, INVALID_GAIA_ID);
+            ASSERT_NE(phone_id, c_invalid_gaia_id);
             phone_ids.insert(phone_id);
         }
         txn.commit();
@@ -584,7 +584,7 @@ TEST_F(recovery_test, reference_create_delete_test_new)
         gaia_ptr parent = gaia_ptr::open(parent_id);
 
         // Ensure the parent does not have children
-        ASSERT_EQ(INVALID_GAIA_ID, parent.references()[c_first_patient_offset]);
+        ASSERT_EQ(c_invalid_gaia_id, parent.references()[c_first_patient_offset]);
         txn.commit();
     }
     end_session();
@@ -649,9 +649,9 @@ TEST_F(recovery_test, reference_update_test_new)
         gaia_ptr child = gaia_ptr::open(child_id);
         gaia_ptr new_parent = gaia_ptr::open(new_parent_id);
 
-        ASSERT_EQ(INVALID_GAIA_ID, parent.references()[c_first_patient_offset]);
+        ASSERT_EQ(c_invalid_gaia_id, parent.references()[c_first_patient_offset]);
         ASSERT_EQ(new_parent_id, child.references()[c_parent_doctor_offset]);
-        ASSERT_EQ(INVALID_GAIA_ID, child.references()[c_next_patient_offset]);
+        ASSERT_EQ(c_invalid_gaia_id, child.references()[c_next_patient_offset]);
         ASSERT_EQ(child_id, new_parent.references()[c_first_patient_offset]);
 
         txn.commit();

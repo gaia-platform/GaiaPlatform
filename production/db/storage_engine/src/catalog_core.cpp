@@ -101,7 +101,7 @@ field_list_t catalog_core_t::list_fields(gaia_type_t table_type)
     const gaia_id_t* references = obj_ptr->references();
     gaia_id_t first_field_id = references[c_gaia_table_first_gaia_field_slot];
     auto gaia_field_generator = [field_id = first_field_id]() mutable -> std::optional<field_view_t> {
-        if (field_id == INVALID_GAIA_ID)
+        if (field_id == c_invalid_gaia_id)
         {
             return std::nullopt;
         }
