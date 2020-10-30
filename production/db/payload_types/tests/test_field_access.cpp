@@ -303,7 +303,7 @@ void process_flatbuffers_data(bool access_fields = false)
     initialize_type_information_from_binary_schema(type_information, schema_loader.get_data(), schema_loader.get_data_length());
     ASSERT_EQ(field::count_fields, type_information->size());
 
-    // Add field cache to type cache.
+    // Add type information to type cache.
     type_cache_t::get()->set_type_information(c_type_id, type_information);
     ASSERT_EQ(1, type_cache_t::get()->size());
 
@@ -318,7 +318,7 @@ void process_flatbuffers_data(bool access_fields = false)
             schema_loader);
     }
 
-    // Remove field cache from type cache.
+    // Remove type information from type cache.
     type_cache_t::get()->remove_type_information(c_type_id);
     ASSERT_EQ(0, type_cache_t::get()->size());
 
@@ -368,7 +368,7 @@ void update_flatbuffers_data()
     initialize_type_information_from_binary_schema(type_information, schema_loader.get_data(), schema_loader.get_data_length());
     ASSERT_EQ(field::count_fields, type_information->size());
 
-    // Add field cache to type cache.
+    // Add type information to type cache.
     type_cache_t::get()->set_type_information(c_type_id, type_information);
     ASSERT_EQ(1, type_cache_t::get()->size());
 

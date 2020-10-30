@@ -56,11 +56,11 @@ void initialize_type_information_from_binary_schema(
     retail_assert(type_information != nullptr, "type_information argument should not be null.");
     retail_assert(binary_schema != nullptr, "binary_schema argument should not be null.");
 
-    // First copy the binary schema into the field cache.
+    // First copy the binary schema into the type information.
     vector<uint8_t> binary_schema_copy(binary_schema, binary_schema + binary_schema_size);
     type_information->set_binary_schema(binary_schema_copy);
 
-    // From now on, we work with the field cache copy of the binary schema.
+    // From now on, we work with the type information copy of the binary schema.
     binary_schema = type_information->get_raw_binary_schema();
 
     // Deserialize the schema.
@@ -141,7 +141,7 @@ void get_table_field_information(
         throw invalid_serialized_data();
     }
 
-    // Get hold of the type cache and lookup the field cache for our type.
+    // Get hold of the type cache and lookup the type information for our type.
     type_cache_t* type_cache = type_cache_t::get();
     type_cache->get_type_information(type_id, auto_type_information);
     const type_information_t* type_information = auto_type_information.get();
@@ -153,7 +153,7 @@ void get_table_field_information(
         type_information = &local_type_information;
     }
 
-    // Lookup field information in the field cache.
+    // Lookup field information in the type information.
     field = type_information->get_field(field_position);
     if (field == nullptr)
     {

@@ -69,7 +69,7 @@ protected:
     // The serialization template for this type.
     std::vector<uint8_t> m_serialization_template;
 
-    // A map used to directly reference field information in the binary schema.
+    // A map used to directly reference Field information in the binary schema.
     field_map_t m_field_map;
 };
 

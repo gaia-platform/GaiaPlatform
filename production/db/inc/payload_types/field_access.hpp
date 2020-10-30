@@ -75,8 +75,8 @@ public:
 // Parse the binary schema and insert its Field definitions
 // into the provided type_information.
 //
-// Note that binary schemas that we get passed right now
-// are temporary copies, so they need to be copied into the field cache as well.
+// Note that binary schemas that we get passed right now are temporary copies,
+// so they need to be copied into the type information as well.
 void initialize_type_information_from_binary_schema(
     type_information_t* type_information,
     const uint8_t* binary_schema,
