@@ -42,19 +42,19 @@ set_property (TARGET gaia_catalog PROPERTY POSITION_INDEPENDENT_CODE ON)
 add_gtest(test_ddl_executor
   "tests/test_ddl_executor.cpp"
   "${GAIA_CATALOG_PUBLIC_INCLUDES};${GAIA_CATALOG_PRIVATE_INCLUDES}"
-  "rt;gaia;gaia_catalog"
+  "rt;gaia_system;gaia_catalog"
   gaia_catalog)
 
 add_gtest(test_fbs_generation
   "tests/test_fbs_generation.cpp"
   "${GAIA_CATALOG_PUBLIC_INCLUDES};${GAIA_CATALOG_PRIVATE_INCLUDES}"
-  "rt;gaia;gaia_catalog"
+  "rt;gaia_system;gaia_catalog"
   gaia_catalog)
 
 add_gtest(test_json_generation
   "tests/test_json_generation.cpp"
   "${GAIA_CATALOG_PUBLIC_INCLUDES};${GAIA_CATALOG_PRIVATE_INCLUDES}"
-  "rt;gaia;gaia_catalog"
+  "rt;gaia_system;gaia_catalog"
   gaia_catalog)
 
 add_subdirectory(gaiac)

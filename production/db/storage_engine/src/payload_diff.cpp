@@ -4,10 +4,10 @@
 /////////////////////////////////////////////
 #include "payload_diff.hpp"
 
+#include "catalog_core.hpp"
 #include "data_holder.hpp"
 #include "field_access.hpp"
 #include "gaia_common.hpp"
-#include "light_catalog.hpp"
 #include "retail_assert.hpp"
 #include "type_id_record_id_cache_t.hpp"
 
@@ -26,8 +26,8 @@ void compute_payload_diff(
     // Make sure caller passes valid pointer to changed_fields.
     retail_assert(changed_fields);
 
-    static type_id_record_id_cache_t type_table_cache;
-    gaia_id_t type_record_id = type_table_cache.get_record_id(type_id);
+    static type_id_record_id_cache_t type_id_record_id_cache;
+    gaia_id_t type_record_id = type_id_record_id_cache.get_record_id(type_id);
 
     auto schema = catalog_core_t::get_table(type_record_id).binary_schema();
 

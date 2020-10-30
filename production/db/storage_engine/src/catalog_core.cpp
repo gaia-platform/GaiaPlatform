@@ -2,7 +2,7 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
-#include "light_catalog.hpp"
+#include "catalog_core.hpp"
 
 #include <optional>
 

@@ -9,8 +9,7 @@ find_program(FLATCC flatcc)
 set(GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
 set(FBS_SOURCES
-  "${GAIA_REPO}/demos/airport_q1/inc/airport_q1.fbs"
-  "${GAIA_REPO}/production/rules/event_manager/flatbuffers/event_log.fbs")
+  "${GAIA_REPO}/demos/airport_q1/inc/airport_q1.fbs")
 
 foreach(FBS_SOURCE ${FBS_SOURCES})
   get_filename_component(FBS_SOURCE_FILENAME ${FBS_SOURCE} NAME)
@@ -32,7 +31,6 @@ endforeach(FBS_SOURCE)
 add_library(gaia_fdw SHARED
   type_mapping.cpp
   airport_demo_type_mapping.cpp
-  system_catalog_type_mapping.cpp
   gaia_fdw.cpp
   gaia_fdw_adapter.cpp)
 
@@ -58,7 +56,6 @@ set_target_properties(
     PREFIX "")
 
 add_dependencies(gaia_fdw "airport_q1.fbs")
-add_dependencies(gaia_fdw "event_log.fbs")
 
 target_include_directories(gaia_fdw PRIVATE "${PROJECT_SOURCE_DIR}/inc")
 target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/public/common")

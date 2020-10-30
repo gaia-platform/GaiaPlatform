@@ -53,7 +53,8 @@ private:
     static const char* c_cumulative_rule_stats;
     static const char* c_rule_stats;
 
-    template <typename T_param> void log(const char* stats_format, T_param first_param);
+    template <typename T_param>
+    void log(const char* stats_format, T_param first_param);
 };
 
 } // namespace rules

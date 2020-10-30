@@ -273,6 +273,9 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState* node, int eflags)
     TupleTableSlot* slot = node->ss.ss_ScanTupleSlot;
     TupleDesc tuple_desc = slot->tts_tupleDescriptor;
 
+    // Begin read transaction.
+    gaia::fdw::adapter_t::begin_transaction();
+
     auto scan_state = gaia::fdw::adapter_t::get_state<gaia::fdw::scan_state_t>(
         table_name, (size_t)tuple_desc->natts);
     if (scan_state == nullptr)
@@ -287,13 +290,10 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState* node, int eflags)
         // AttrNumber attnum = i + 1.
         char* attr_name = NameStr(TupleDescAttr(tuple_desc, i)->attname);
 
-        scan_state->set_accessor_index(attr_name, (size_t)i);
+        scan_state->set_field_index(attr_name, (size_t)i);
     }
 
     node->fdw_state = scan_state;
-
-    // Begin read transaction.
-    gaia::fdw::adapter_t::begin_transaction();
 
     // Retrieve the first node of the requested type
     // (this can't currently throw).
@@ -572,6 +572,8 @@ extern "C" void gaia_begin_foreign_modify(
     char* table_name = get_rel_name(rte->relid);
     TupleDesc tuple_desc = rinfo->ri_RelationDesc->rd_att;
 
+    gaia::fdw::adapter_t::begin_transaction();
+
     auto modify_state = gaia::fdw::adapter_t::get_state<gaia::fdw::modify_state_t>(
         table_name, (size_t)tuple_desc->natts);
     if (modify_state == nullptr)
@@ -586,12 +588,10 @@ extern "C" void gaia_begin_foreign_modify(
         // AttrNumber attnum = i + 1.
         char* attr_name = NameStr(TupleDescAttr(tuple_desc, i)->attname);
 
-        modify_state->set_builder_index(attr_name, (size_t)i);
+        modify_state->set_field_index(attr_name, (size_t)i);
     }
 
     rinfo->ri_FdwState = modify_state;
-
-    gaia::fdw::adapter_t::begin_transaction();
 }
 
 extern "C" TupleTableSlot* gaia_exec_foreign_insert(
@@ -630,10 +630,8 @@ extern "C" TupleTableSlot* gaia_exec_foreign_insert(
     modify_state->initialize_modify();
 
     // NB: we assume 0 is a valid sentinel value, i.e., it can never be a
-    // system-generated gaia_id. This is true for our internal implementation,
-    // but also needs to hold for all other implementations (until the storage
-    // engine itself starts generating gaia_ids).
-    uint64_t gaia_id = 0;
+    // system-generated gaia_id.
+    gaia_id_t gaia_id = INVALID_GAIA_ID;
 
     // slot_getallattrs() is necessary beginning in Postgres 12 (the slot will
     // be empty!).
@@ -645,9 +643,7 @@ extern "C" TupleTableSlot* gaia_exec_foreign_insert(
         //     TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->attname);
 
         // We don't allow gaia_id to be set by an INSERT or UPDATE statement
-        // (this should have already been checked in gaia_plan_foreign_modify), and
-        // the storage engine doesn't yet generate gaia_ids, so we generate a
-        // random gaia_id ourselves.
+        // (this should have already been checked in gaia_plan_foreign_modify).
         Datum attr_val = {};
         if (modify_state->is_gaia_id_field_index((size_t)attr_idx))
         {
@@ -713,10 +709,8 @@ extern "C" TupleTableSlot* gaia_exec_foreign_update(
     modify_state->initialize_modify();
 
     // NB: we assume 0 is a valid sentinel value, i.e., it can never be a
-    // system-generated gaia_id. This is true for our internal implementation,
-    // but also needs to hold for all other implementations (until the storage
-    // engine itself starts generating gaia_ids).
-    uint64_t gaia_id = 0;
+    // system-generated gaia_id.
+    gaia_id_t gaia_id = INVALID_GAIA_ID;
 
     // slot_getallattrs() is necessary beginning in Postgres 12 (the slot will
     // be empty!).
@@ -795,7 +789,7 @@ extern "C" TupleTableSlot* gaia_exec_foreign_delete(
     bool is_null;
     Datum pk_val = slot_getattr(plan_slot, attnum, &is_null);
     assert(!is_null);
-    uint64_t gaia_id = DatumGetUInt64(pk_val);
+    gaia_id_t gaia_id = DatumGetUInt64(pk_val);
 
     if (!modify_state->delete_record(gaia_id))
     {

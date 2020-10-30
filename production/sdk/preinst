@@ -1,0 +1,2 @@
+#!/bin/sh
+pkill -f -KILL gaia_se_server
