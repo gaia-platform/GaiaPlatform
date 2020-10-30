@@ -13,10 +13,30 @@ using namespace gaia::db::payload_types;
 
 type_cache_t type_cache_t::s_type_cache;
 
+const uint8_t* field_cache_t::get_raw_binary_schema() const
+{
+    return m_binary_schema.data();
+}
+
+vector<uint8_t> field_cache_t::get_serialization_template() const
+{
+    return m_serialization_template;
+}
+
 const reflection::Field* field_cache_t::get_field(field_position_t field_position) const
 {
     auto iterator = m_field_map.find(field_position);
     return (iterator == m_field_map.end()) ? nullptr : iterator->second;
+}
+
+void field_cache_t::set_binary_schema(const vector<uint8_t>& binary_schema)
+{
+    m_binary_schema = binary_schema;
+}
+
+void field_cache_t::set_serialization_template(const vector<uint8_t>& serialization_template)
+{
+    m_serialization_template = serialization_template;
 }
 
 void field_cache_t::set_field(field_position_t field_position, const reflection::Field* field)

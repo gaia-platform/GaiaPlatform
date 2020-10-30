@@ -87,6 +87,7 @@ void get_fields_data(
         c_type_id,
         data_loader.get_data(),
         pass_schema ? schema_loader.get_data() : nullptr,
+        pass_schema ? schema_loader.get_data_length() : 0,
         field::first_name);
     cout << "\tfirst_name = " << first_name.hold.string_value << endl;
     ASSERT_EQ(first_name.type, reflection::String);
@@ -96,6 +97,7 @@ void get_fields_data(
         c_type_id,
         data_loader.get_data(),
         pass_schema ? schema_loader.get_data() : nullptr,
+        pass_schema ? schema_loader.get_data_length() : 0,
         field::last_name);
     cout << "\tlast_name = " << last_name.hold.string_value << endl;
     ASSERT_EQ(last_name.type, reflection::String);
@@ -105,6 +107,7 @@ void get_fields_data(
         c_type_id,
         data_loader.get_data(),
         pass_schema ? schema_loader.get_data() : nullptr,
+        pass_schema ? schema_loader.get_data_length() : 0,
         field::age);
     cout << "\tage = " << age.hold.integer_value << endl;
     ASSERT_EQ(age.type, reflection::UByte);
@@ -114,6 +117,7 @@ void get_fields_data(
         c_type_id,
         data_loader.get_data(),
         pass_schema ? schema_loader.get_data() : nullptr,
+        pass_schema ? schema_loader.get_data_length() : 0,
         field::has_children);
     cout << "\thas_children = " << has_children.hold.integer_value << endl;
     ASSERT_EQ(has_children.type, reflection::Bool);
@@ -123,6 +127,7 @@ void get_fields_data(
         c_type_id,
         data_loader.get_data(),
         pass_schema ? schema_loader.get_data() : nullptr,
+        pass_schema ? schema_loader.get_data_length() : 0,
         field::identifier);
     cout << "\tidentifier = " << identifier.hold.integer_value << endl;
     ASSERT_EQ(identifier.type, reflection::Long);
@@ -132,6 +137,7 @@ void get_fields_data(
         c_type_id,
         data_loader.get_data(),
         pass_schema ? schema_loader.get_data() : nullptr,
+        pass_schema ? schema_loader.get_data_length() : 0,
         field::known_associates);
     cout << "\tcount_known_associates = " << count_known_associates << endl;
     ASSERT_EQ(
@@ -144,6 +150,7 @@ void get_fields_data(
             c_type_id,
             data_loader.get_data(),
             pass_schema ? schema_loader.get_data() : nullptr,
+            pass_schema ? schema_loader.get_data_length() : 0,
             field::known_associates,
             i);
         cout << "\t\tknown_associate[" << i << "] = " << known_associate.hold.integer_value << endl;
@@ -171,6 +178,7 @@ void get_fields_data(
         c_type_id,
         data_loader.get_data(),
         pass_schema ? schema_loader.get_data() : nullptr,
+        pass_schema ? schema_loader.get_data_length() : 0,
         field::known_aliases);
     cout << "\tcount_known_aliases = " << count_known_aliases << endl;
     ASSERT_EQ(
@@ -183,6 +191,7 @@ void get_fields_data(
             c_type_id,
             data_loader.get_data(),
             pass_schema ? schema_loader.get_data() : nullptr,
+            pass_schema ? schema_loader.get_data_length() : 0,
             field::known_aliases,
             i);
         cout << "\t\tknown_alias[" << i << "] = " << known_alias.hold.string_value << endl;
@@ -208,6 +217,7 @@ void get_fields_data(
         c_type_id,
         data_loader.get_data(),
         pass_schema ? schema_loader.get_data() : nullptr,
+        pass_schema ? schema_loader.get_data_length() : 0,
         field::sleeve_cost);
     cout << "\tsleeve_cost = " << sleeve_cost.hold.float_value << endl;
     ASSERT_EQ(sleeve_cost.type, reflection::Double);
@@ -218,6 +228,7 @@ void get_fields_data(
         c_type_id,
         data_loader.get_data(),
         pass_schema ? schema_loader.get_data() : nullptr,
+        pass_schema ? schema_loader.get_data_length() : 0,
         field::monthly_sleeve_insurance);
     cout << "\tmonthly_sleeve_insurance = " << monthly_sleeve_insurance.hold.float_value << endl;
     ASSERT_EQ(monthly_sleeve_insurance.type, reflection::Float);
@@ -232,6 +243,7 @@ void get_fields_data(
         c_type_id,
         data_loader.get_data(),
         pass_schema ? schema_loader.get_data() : nullptr,
+        pass_schema ? schema_loader.get_data_length() : 0,
         field::last_yearly_top_credit_amounts);
     cout << "\tcount_credit_amounts = " << count_credit_amounts << endl;
     ASSERT_EQ(
@@ -244,6 +256,7 @@ void get_fields_data(
             c_type_id,
             data_loader.get_data(),
             pass_schema ? schema_loader.get_data() : nullptr,
+            pass_schema ? schema_loader.get_data_length() : 0,
             field::last_yearly_top_credit_amounts,
             i);
         cout << "\t\tcredit_amount[" << i << "] = " << credit_amount.hold.float_value << endl;
@@ -287,7 +300,7 @@ void process_flatbuffers_data(bool access_fields = false)
 
     // Create and initialize a field_cache.
     auto field_cache = new field_cache_t();
-    initialize_field_cache_from_binary_schema(field_cache, schema_loader.get_data());
+    initialize_field_cache_from_binary_schema(field_cache, schema_loader.get_data(), schema_loader.get_data_length());
     ASSERT_EQ(field::count_fields, field_cache->size());
 
     // Add field cache to type cache.
@@ -352,7 +365,7 @@ void update_flatbuffers_data()
 
     // Create and initialize a field_cache.
     auto field_cache = new field_cache_t();
-    initialize_field_cache_from_binary_schema(field_cache, schema_loader.get_data());
+    initialize_field_cache_from_binary_schema(field_cache, schema_loader.get_data(), schema_loader.get_data_length());
     ASSERT_EQ(field::count_fields, field_cache->size());
 
     // Add field cache to type cache.
@@ -371,6 +384,7 @@ void update_flatbuffers_data()
         c_type_id,
         data_loader.get_data(),
         nullptr,
+        0,
         field::age,
         new_age);
     ASSERT_EQ(true, set_result);
@@ -383,6 +397,7 @@ void update_flatbuffers_data()
         c_type_id,
         data_loader.get_data(),
         nullptr,
+        0,
         field::has_children,
         new_has_children);
     ASSERT_EQ(true, set_result);
@@ -395,6 +410,7 @@ void update_flatbuffers_data()
         c_type_id,
         data_loader.get_data(),
         nullptr,
+        0,
         field::identifier,
         new_identifier);
     ASSERT_EQ(true, set_result);
@@ -408,6 +424,7 @@ void update_flatbuffers_data()
         c_type_id,
         data_loader.get_data(),
         nullptr,
+        0,
         field::known_associates,
         c_index_new_known_associate,
         new_known_associate);
@@ -420,6 +437,7 @@ void update_flatbuffers_data()
         c_type_id,
         data_loader.get_data(),
         nullptr,
+        0,
         field::sleeve_cost,
         new_sleeve_cost);
     ASSERT_EQ(true, set_result);
@@ -432,6 +450,7 @@ void update_flatbuffers_data()
         c_type_id,
         data_loader.get_data(),
         nullptr,
+        0,
         field::monthly_sleeve_insurance,
         new_monthly_sleeve_insurance);
     ASSERT_EQ(true, set_result);
@@ -445,6 +464,7 @@ void update_flatbuffers_data()
         c_type_id,
         data_loader.get_data(),
         nullptr,
+        0,
         field::last_yearly_top_credit_amounts,
         c_index_new_credit_amount,
         new_credit_amount);
@@ -460,6 +480,7 @@ void update_flatbuffers_data()
         data_loader.get_data(),
         data_loader.get_data_length(),
         schema_loader.get_data(),
+        schema_loader.get_data_length(),
         field::last_name,
         new_last_name);
 
@@ -473,6 +494,7 @@ void update_flatbuffers_data()
         serialization.data(),
         serialization.size(),
         schema_loader.get_data(),
+        schema_loader.get_data_length(),
         field::known_aliases,
         c_index_new_known_alias,
         new_known_alias);
@@ -483,6 +505,7 @@ void update_flatbuffers_data()
         serialization.data(),
         serialization.size(),
         schema_loader.get_data(),
+        schema_loader.get_data_length(),
         field::known_associates,
         c_new_count_known_associates);
 
@@ -492,6 +515,7 @@ void update_flatbuffers_data()
         serialization.data(),
         serialization.size(),
         schema_loader.get_data(),
+        schema_loader.get_data_length(),
         field::known_aliases,
         c_new_count_known_aliases);
 
@@ -501,6 +525,7 @@ void update_flatbuffers_data()
         serialization.data(),
         serialization.size(),
         schema_loader.get_data(),
+        schema_loader.get_data_length(),
         field::last_yearly_top_credit_amounts,
         c_new_count_credit_amounts);
 

@@ -50,10 +50,18 @@ unhandled_field_type::unhandled_field_type(size_t field_type)
 
 void initialize_field_cache_from_binary_schema(
     field_cache_t* field_cache,
-    const uint8_t* binary_schema)
+    const uint8_t* binary_schema,
+    size_t binary_schema_size)
 {
     retail_assert(field_cache != nullptr, "field_cache argument should not be null.");
     retail_assert(binary_schema != nullptr, "binary_schema argument should not be null.");
+
+    // First copy the binary schema into the field cache.
+    vector<uint8_t> binary_schema_copy(binary_schema, binary_schema + binary_schema_size);
+    field_cache->set_binary_schema(binary_schema_copy);
+
+    // From now on, we work with the field cache copy of the binary schema.
+    binary_schema = field_cache->get_raw_binary_schema();
 
     // Deserialize the schema.
     const reflection::Schema* schema = reflection::GetSchema(binary_schema);
@@ -117,6 +125,7 @@ void get_table_field_information(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
+    size_t binary_schema_size,
     field_position_t field_position,
     const flatbuffers::Table*& root_table,
     auto_field_cache_t& auto_field_cache,
@@ -140,7 +149,7 @@ void get_table_field_information(
     // If data is not available for our type, we load it locally from the binary schema provided to us.
     if (field_cache == nullptr)
     {
-        initialize_field_cache_from_binary_schema(&local_field_cache, binary_schema);
+        initialize_field_cache_from_binary_schema(&local_field_cache, binary_schema, binary_schema_size);
         field_cache = &local_field_cache;
     }
 
@@ -159,6 +168,7 @@ void get_table_field_array_information(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
+    size_t binary_schema_size,
     field_position_t field_position,
     const flatbuffers::Table*& root_table,
     auto_field_cache_t& auto_field_cache,
@@ -167,7 +177,7 @@ void get_table_field_array_information(
     const flatbuffers::VectorOfAny*& field_value)
 {
     get_table_field_information(
-        type_id, serialized_data, binary_schema, field_position,
+        type_id, serialized_data, binary_schema, binary_schema_size, field_position,
         root_table, auto_field_cache, local_field_cache, field);
 
     if (field->type()->base_type() != reflection::Vector)
@@ -187,6 +197,7 @@ data_holder_t get_field_value(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
+    size_t binary_schema_size,
     field_position_t field_position)
 {
     const flatbuffers::Table* root_table = nullptr;
@@ -195,7 +206,7 @@ data_holder_t get_field_value(
     const reflection::Field* field = nullptr;
 
     get_table_field_information(
-        type_id, serialized_data, binary_schema, field_position,
+        type_id, serialized_data, binary_schema, binary_schema_size, field_position,
         root_table, auto_field_cache, local_field_cache, field);
 
     // Read field value according to its type.
@@ -230,6 +241,7 @@ bool set_field_value(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
+    size_t binary_schema_size,
     field_position_t field_position,
     const data_holder_t& value)
 {
@@ -239,7 +251,7 @@ bool set_field_value(
     const reflection::Field* field = nullptr;
 
     get_table_field_information(
-        type_id, serialized_data, binary_schema, field_position,
+        type_id, serialized_data, binary_schema, binary_schema_size, field_position,
         const_root_table, auto_field_cache, local_field_cache, field);
 
     retail_assert(
@@ -271,6 +283,7 @@ vector<uint8_t> set_field_value(
     const uint8_t* serialized_data,
     size_t serialized_data_size,
     const uint8_t* binary_schema,
+    size_t binary_schema_size,
     field_position_t field_position,
     const data_holder_t& value)
 {
@@ -283,7 +296,7 @@ vector<uint8_t> set_field_value(
     vector<uint8_t> updatable_serialized_data(serialized_data, serialized_data + serialized_data_size);
 
     get_table_field_information(
-        type_id, updatable_serialized_data.data(), binary_schema, field_position,
+        type_id, updatable_serialized_data.data(), binary_schema, binary_schema_size, field_position,
         root_table, auto_field_cache, local_field_cache, field);
 
     retail_assert(
@@ -318,6 +331,7 @@ size_t get_field_array_size(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
+    size_t binary_schema_size,
     field_position_t field_position)
 {
     const flatbuffers::Table* root_table = nullptr;
@@ -327,7 +341,7 @@ size_t get_field_array_size(
     const flatbuffers::VectorOfAny* field_value = nullptr;
 
     get_table_field_array_information(
-        type_id, serialized_data, binary_schema, field_position,
+        type_id, serialized_data, binary_schema, binary_schema_size, field_position,
         root_table, auto_field_cache, local_field_cache, field, field_value);
 
     return field_value->size();
@@ -339,6 +353,7 @@ std::vector<uint8_t> set_field_array_size(
     const uint8_t* serialized_data,
     size_t serialized_data_size,
     const uint8_t* binary_schema,
+    size_t binary_schema_size,
     field_position_t field_position,
     size_t new_size)
 {
@@ -352,7 +367,7 @@ std::vector<uint8_t> set_field_array_size(
     vector<uint8_t> updatable_serialized_data(serialized_data, serialized_data + serialized_data_size);
 
     get_table_field_array_information(
-        type_id, updatable_serialized_data.data(), binary_schema, field_position,
+        type_id, updatable_serialized_data.data(), binary_schema, binary_schema_size, field_position,
         root_table, auto_field_cache, local_field_cache, field, field_value);
 
     if (new_size == field_value->size())
@@ -391,6 +406,7 @@ data_holder_t get_field_array_element(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
+    size_t binary_schema_size,
     field_position_t field_position,
     size_t array_index)
 {
@@ -401,7 +417,7 @@ data_holder_t get_field_array_element(
     const flatbuffers::VectorOfAny* field_value = nullptr;
 
     get_table_field_array_information(
-        type_id, serialized_data, binary_schema, field_position,
+        type_id, serialized_data, binary_schema, binary_schema_size, field_position,
         root_table, auto_field_cache, local_field_cache, field, field_value);
 
     retail_assert(array_index < field_value->size(), "Attempt to index array is out-of-bounds.");
@@ -441,6 +457,7 @@ void set_field_array_element(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
+    size_t binary_schema_size,
     field_position_t field_position,
     size_t array_index,
     const data_holder_t& value)
@@ -452,7 +469,7 @@ void set_field_array_element(
     const flatbuffers::VectorOfAny* const_field_value = nullptr;
 
     get_table_field_array_information(
-        type_id, serialized_data, binary_schema, field_position,
+        type_id, serialized_data, binary_schema, binary_schema_size, field_position,
         const_root_table, auto_field_cache, local_field_cache, field, const_field_value);
 
     retail_assert(array_index < const_field_value->size(), "Attempt to index array is out-of-bounds.");
@@ -487,6 +504,7 @@ std::vector<uint8_t> set_field_array_element(
     const uint8_t* serialized_data,
     size_t serialized_data_size,
     const uint8_t* binary_schema,
+    size_t binary_schema_size,
     field_position_t field_position,
     size_t array_index,
     const data_holder_t& value)
@@ -501,7 +519,7 @@ std::vector<uint8_t> set_field_array_element(
     vector<uint8_t> updatable_serialized_data(serialized_data, serialized_data + serialized_data_size);
 
     get_table_field_array_information(
-        type_id, updatable_serialized_data.data(), binary_schema, field_position,
+        type_id, updatable_serialized_data.data(), binary_schema, binary_schema_size, field_position,
         root_table, auto_field_cache, local_field_cache, field, field_value);
 
     retail_assert(array_index < field_value->size(), "Attempt to index array is out-of-bounds.");

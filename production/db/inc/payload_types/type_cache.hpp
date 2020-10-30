@@ -10,8 +10,10 @@
 
 #include <shared_mutex>
 #include <unordered_map>
+#include <vector>
 
 #include "flatbuffers/reflection.h"
+
 #include "gaia_common.hpp"
 
 using namespace gaia::common;
@@ -30,8 +32,13 @@ typedef std::unordered_map<field_position_t, const reflection::Field*> field_map
 class field_cache_t
 {
 public:
-
     field_cache_t() = default;
+
+    // Return a direct pointer to our copy of the binary schema.
+    const uint8_t* get_raw_binary_schema() const;
+
+    // Return a copy of our serialization template.
+    std::vector<uint8_t> get_serialization_template() const;
 
     // Return field information if the field could be found or nullptr otherwise.
     //
@@ -40,16 +47,27 @@ public:
     // to prevent it from being changed.
     const reflection::Field* get_field(field_position_t field_position) const;
 
-    // Insert information about a field in the cache.
-    // This is used during construction of the cache.
+    // Set the binary schema for our type.
+    void set_binary_schema(const std::vector<uint8_t>& binary_schema);
+
+    // Set the serialization template for our type.
+    void set_serialization_template(const std::vector<uint8_t>& serialization_template);
+
+    // Insert information about a field in the field map.
+    // This is used during construction of the field map.
     void set_field(field_position_t field_position, const reflection::Field* field);
 
     // Return the size of the internal map.
     size_t size();
 
 protected:
+    // The binary schema for this type.
+    std::vector<uint8_t> m_binary_schema;
 
-    // The map used by the field cache.
+    // The serialization template for this type.
+    std::vector<uint8_t> m_serialization_template;
+
+    // A map used to directly reference field information in the binary schema.
     field_map_t m_field_map;
 };
 
@@ -64,7 +82,6 @@ class type_cache_t
     friend class auto_field_cache_t;
 
 protected:
-
     // Do not allow copies to be made;
     // disable copy constructor and assignment operator.
     type_cache_t(const type_cache_t&) = delete;
@@ -74,7 +91,6 @@ protected:
     type_cache_t() = default;
 
 public:
-
     // Return a pointer to the singleton instance.
     static type_cache_t* get();
 
@@ -99,7 +115,6 @@ public:
     size_t size() const;
 
 protected:
-
     // The singleton instance.
     static type_cache_t s_type_cache;
 
@@ -118,7 +133,6 @@ class auto_field_cache_t
     friend class type_cache_t;
 
 public:
-
     auto_field_cache_t();
     ~auto_field_cache_t();
 
@@ -130,12 +144,11 @@ public:
     const field_cache_t* get();
 
 protected:
-
     const field_cache_t* m_field_cache;
 
     void set(const field_cache_t* field_cache);
 };
 
-}
-}
-}
+} // namespace payload_types
+} // namespace db
+} // namespace gaia

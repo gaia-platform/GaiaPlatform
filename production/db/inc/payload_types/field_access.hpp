@@ -8,11 +8,11 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "flatbuffers/reflection.h"
-
 #include <data_holder.hpp>
 #include <gaia_exception.hpp>
 #include <type_cache.hpp>
+
+#include "flatbuffers/reflection.h"
 
 namespace gaia
 {
@@ -21,31 +21,31 @@ namespace db
 namespace payload_types
 {
 
-class invalid_schema: public gaia::common::gaia_exception
+class invalid_schema : public gaia::common::gaia_exception
 {
 public:
     invalid_schema();
 };
 
-class missing_root_type: public gaia::common::gaia_exception
+class missing_root_type : public gaia::common::gaia_exception
 {
 public:
     missing_root_type();
 };
 
-class invalid_serialized_data: public gaia::common::gaia_exception
+class invalid_serialized_data : public gaia::common::gaia_exception
 {
 public:
     invalid_serialized_data();
 };
 
-class invalid_field_position: public gaia::common::gaia_exception
+class invalid_field_position : public gaia::common::gaia_exception
 {
 public:
     invalid_field_position(field_position_t position);
 };
 
-class unhandled_field_type: public gaia::common::gaia_exception
+class unhandled_field_type : public gaia::common::gaia_exception
 {
 public:
     unhandled_field_type(size_t field_type);
@@ -75,12 +75,12 @@ public:
 // Parse the binary schema and insert its Field definitions
 // into the provided field_cache.
 //
-// Note that the Field definitions are not copied,
-// so the caller must ensure that they remain valid
-// throughout the use of the field_cache instance.
+// Note that binary schemas that we get passed right now
+// are temporary copies, so they need to be copied into the field cache as well.
 void initialize_field_cache_from_binary_schema(
     field_cache_t* field_cache,
-    const uint8_t* binary_schema);
+    const uint8_t* binary_schema,
+    size_t binary_schema_size);
 
 // Verify that the serialized data matches the schema.
 bool verify_data_schema(
@@ -93,6 +93,7 @@ data_holder_t get_field_value(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
+    size_t binary_schema_size,
     field_position_t field_position);
 
 // Set the scalar field value of a table record payload.
@@ -102,6 +103,7 @@ bool set_field_value(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
+    size_t binary_schema_size,
     field_position_t field_position,
     const data_holder_t& value);
 
@@ -113,6 +115,7 @@ std::vector<uint8_t> set_field_value(
     const uint8_t* serialized_data,
     size_t serialized_data_size,
     const uint8_t* binary_schema,
+    size_t binary_schema_size,
     field_position_t field_position,
     const data_holder_t& value);
 
@@ -121,6 +124,7 @@ size_t get_field_array_size(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
+    size_t binary_schema_size,
     field_position_t field_position);
 
 // Set the size of a field of array type.
@@ -130,6 +134,7 @@ std::vector<uint8_t> set_field_array_size(
     const uint8_t* serialized_data,
     size_t serialized_data_size,
     const uint8_t* binary_schema,
+    size_t binary_schema_size,
     field_position_t field_position,
     size_t new_size);
 
@@ -140,6 +145,7 @@ data_holder_t get_field_array_element(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
+    size_t binary_schema_size,
     field_position_t field_position,
     size_t array_index);
 
@@ -152,6 +158,7 @@ void set_field_array_element(
     gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
+    size_t binary_schema_size,
     field_position_t field_position,
     size_t array_index,
     const data_holder_t& value);
@@ -166,10 +173,11 @@ std::vector<uint8_t> set_field_array_element(
     const uint8_t* serialized_data,
     size_t serialized_data_size,
     const uint8_t* binary_schema,
+    size_t binary_schema_size,
     field_position_t field_position,
     size_t array_index,
     const data_holder_t& value);
 
-}
-}
-}
+} // namespace payload_types
+} // namespace db
+} // namespace gaia
