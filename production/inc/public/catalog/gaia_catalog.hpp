@@ -52,15 +52,6 @@ constexpr char c_db_table_name_connector = '.';
 using data_type_t = gaia::common::data_type_t;
 
 /**
- * Thrown when seeing an unknown data type
- */
-class unknown_data_type : public gaia::common::gaia_exception
-{
-public:
-    unknown_data_type();
-};
-
-/**
  * Get the data type name
  *
  * @param catalog data type

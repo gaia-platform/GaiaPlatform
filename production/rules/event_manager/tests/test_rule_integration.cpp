@@ -15,11 +15,11 @@
 #include "gtest/gtest.h"
 
 #include "db_test_base.hpp"
+#include "ddl_execution.hpp"
 #include "event_manager_test_helpers.hpp"
 #include "gaia_addr_book.h"
 #include "gaia_catalog.h"
 #include "gaia_catalog.hpp"
-#include "gaia_catalog_internal.hpp"
 #include "gaia_system.hpp"
 #include "rules.hpp"
 #include "timer.hpp"

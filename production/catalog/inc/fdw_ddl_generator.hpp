@@ -4,7 +4,7 @@
 /////////////////////////////////////////////
 #pragma once
 
-#include "gaia_catalog_internal_api.hpp"
+#include "catalog_internal.hpp"
 
 namespace gaia
 {

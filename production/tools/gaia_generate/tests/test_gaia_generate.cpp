@@ -9,9 +9,9 @@
 #include "gtest/gtest.h"
 
 #include "db_test_base.hpp"
+#include "ddl_execution.hpp"
 #include "gaia_airport.h"
 #include "gaia_catalog.hpp"
-#include "gaia_catalog_internal.hpp"
 #include "gaia_parser.hpp"
 
 using namespace gaia::catalog;
@@ -96,7 +96,8 @@ TEST_F(gaia_generate_test, airport_example)
             auto src_airport = segment.src_airport();
             auto dst_airport = segment.dst_airport();
             ss << "Source airport: " << src_airport.name() << endl;
-            ss << "Destination airport: " << dst_airport.name() << endl << endl;
+            ss << "Destination airport: " << dst_airport.name() << endl
+               << endl;
         }
     }
     commit_transaction();
