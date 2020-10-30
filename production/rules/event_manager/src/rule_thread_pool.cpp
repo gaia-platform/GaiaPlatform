@@ -56,13 +56,11 @@ void rule_thread_pool_t::log_events(invocation_t& invocation)
     gaia::db::commit_transaction();
 }
 
-rule_thread_pool_t::rule_thread_pool_t(size_t num_threads, rule_stats_manager_t& stats_manager)
+rule_thread_pool_t::rule_thread_pool_t(size_t count_threads, rule_stats_manager_t& stats_manager)
     : m_stats_manager(stats_manager)
 {
     m_exit = false;
-    m_num_threads = (num_threads == SIZE_MAX) ? thread::hardware_concurrency() : num_threads;
-
-    for (uint32_t i = 0; i < m_num_threads; i++)
+    for (uint32_t i = 0; i < count_threads; i++)
     {
         thread worker([this] { rule_worker(); });
         m_threads.emplace_back(move(worker));
@@ -71,13 +69,13 @@ rule_thread_pool_t::rule_thread_pool_t(size_t num_threads, rule_stats_manager_t&
 
 size_t rule_thread_pool_t::get_num_threads()
 {
-    return m_num_threads;
+    return m_threads.size();
 }
 
 // Shutdown all threads in the pool
 rule_thread_pool_t::~rule_thread_pool_t()
 {
-    if (m_num_threads > 0)
+    if (m_threads.size() > 0)
     {
         m_exit = true;
         m_invocations_signal.notify_all();
@@ -90,7 +88,7 @@ rule_thread_pool_t::~rule_thread_pool_t()
 
 void rule_thread_pool_t::execute_immediate()
 {
-    retail_assert(m_num_threads == 0, "Thread pool should have 0 workers for executing immediate!");
+    retail_assert(m_threads.size() == 0, "Thread pool should have 0 workers for executing immediate!");
 
     // If s_tls_can_enqueue is false then this means that a rule
     // is in the middle of executing and issued a commit.  We have to wait
@@ -117,7 +115,7 @@ void rule_thread_pool_t::enqueue(invocation_t& invocation)
     if (s_tls_can_enqueue)
     {
         m_stats_manager.inc_scheduled(invocation.rule_id);
-        if (m_num_threads > 0)
+        if (m_threads.size() > 0)
         {
             unique_lock<mutex> lock(m_lock);
             m_invocations.push(invocation);

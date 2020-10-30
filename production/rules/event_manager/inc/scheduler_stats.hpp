@@ -19,8 +19,11 @@ namespace rules
 class scheduler_stats_t : public rule_stats_t
 {
 public:
+    scheduler_stats_t() = delete;
+    scheduler_stats_t(uint32_t log_interval, size_t count_threads);
+
     std::atomic<int64_t> total_thread_execution_time;
-    void initialize(uint32_t log_interval, size_t count_threads);
+
     void reset_counters();
     void log(bool print_header);
 
