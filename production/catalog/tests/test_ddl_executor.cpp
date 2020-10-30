@@ -527,9 +527,6 @@ TEST_F(ddl_executor_test, create_self_relationships)
 
 TEST_F(ddl_executor_test, metadata)
 {
-    auto_transaction_t txn;
-    type_id_record_id_cache_t& cache = type_id_record_id_cache_t::instance();
-    txn.commit();
     // TODO this test should be in the SE, but since it depends on the Catalog we need to keep it here.
 
     // (clinic) 1 --> N (doctor) 1 --> N (patient) N <-- 1 (clinic)
@@ -557,8 +554,10 @@ TEST_F(ddl_executor_test, metadata)
               .reference("clinic", "hospital.clinic")
               .create_type();
 
-    auto_transaction_t txn2;
+    auto_transaction_t txn;
+    type_id_record_id_cache_t& cache = type_id_record_id_cache_t::instance();
     vector<gaia_id_t> types = {clinic_type, doctor_type, patient_type};
+
     for (gaia_id_t type_id : types)
     {
         gaia_id_t table_id = cache.get_record_id(type_id);
@@ -580,7 +579,7 @@ TEST_F(ddl_executor_test, metadata)
             ASSERT_EQ(relationship.parent_offset(), static_cast<uint8_t>(relationship_metadata->parent_offset));
         }
     }
-    txn2.commit();
+    txn.commit();
 }
 
 TEST_F(ddl_executor_test, metadata_not_exists)
