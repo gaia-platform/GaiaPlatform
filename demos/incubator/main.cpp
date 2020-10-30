@@ -1,7 +1,7 @@
-#include "barn_storage_gaia_generated.h"
-#include "events.hpp"
+#include "gaia_incubator.h"
 #include "gaia_system.hpp"
 #include "rules.hpp"
+
 #include <algorithm>
 #include <atomic>
 #include <cstring>
@@ -9,75 +9,129 @@
 #include <iostream>
 #include <string>
 #include <thread>
+#include <unistd.h>
 
 using namespace std;
 using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::rules;
-using namespace BarnStorage;
+using namespace gaia::incubator;
 
-const double FAN_SPEED_LIMIT = 3500.0;
 const char SENSOR_A_NAME[] = "Temp A";
 const char SENSOR_B_NAME[] = "Temp B";
 const char SENSOR_C_NAME[] = "Temp C";
 const char ACTUATOR_A_NAME[] = "Fan A";
 const char ACTUATOR_B_NAME[] = "Fan B";
 const char ACTUATOR_C_NAME[] = "Fan C";
+
+const char * c_chicken = "chicken";
+const float c_chicken_min = 99.0;
+const float c_chicken_max = 102.0;
+
+const char* c_puppy = "puppy";
+const float c_puppy_min = 85.0;
+const float c_puppy_max = 100.0;
+
 atomic<bool> IN_SIMULATION{false};
 atomic<int> TIMESTAMP{0};
 
 void add_fan_control_rule();
 
+gaia_id_t insert_incubator(const char * name, float min_temp, float max_temp) {
+    incubator_writer w;
+    w.name = name;
+    w.is_on = false;
+    w.min_temp = min_temp;
+    w.max_temp = max_temp;
+    return w.insert_row();
+}
+
+void restore_sensor(sensor_t& sensor, float min_temp) {
+    sensor_writer w = sensor.writer();
+    w.timestamp = 0;
+    w.value = min_temp;
+    w.update_row();
+}
+
+void restore_actuator(actuator_t& actuator) {
+    actuator_writer w = actuator.writer();
+    w.timestamp = 0;
+    w.value = 0.0;
+    w.update_row();
+}
+
+void restore_incubator(incubator_t& incubator, float min_temp, float max_temp) {
+    incubator_writer w = incubator.writer();
+    w.is_on = false;
+    w.min_temp = min_temp;
+    w.max_temp = max_temp;
+    w.update_row();
+
+    for (auto sensor : incubator.sensor_list()) {
+        restore_sensor(sensor, min_temp);
+    }
+
+    for (auto actuator : incubator.actuator_list()) {
+        restore_actuator(actuator);
+    }
+}
+
+void restore_default_values() {
+    for (auto incubator : incubator_t::list()) {
+        float min_temp, max_temp;
+        if (strcmp(incubator.name(), c_chicken) == 0) {
+            min_temp = c_chicken_min;
+            max_temp = c_chicken_max;
+        }
+        else {
+            min_temp = c_puppy_min;
+            max_temp = c_puppy_max;
+        }
+        restore_incubator(incubator, min_temp, max_temp);
+    }
+}
+
 void init_storage() {
-    begin_transaction();
+    auto_transaction_t tx(auto_transaction_t::no_auto_begin);
 
-    ulong gaia_id;
+    // If we already have inserted an incubator then our storage has already been
+    // initialized.  Re-initialize the database to default values.
+    if (incubator_t::get_first()) {
+        restore_default_values();
+        tx.commit();
+        return;
+    }
 
-    gaia_id = Incubator::insert_row("Chicken", 99.0, 102.0);
-    Sensor::insert_row(gaia_id, SENSOR_A_NAME, 0, 99.0);
-    Sensor::insert_row(gaia_id, SENSOR_C_NAME, 0, 99.0);
-    Actuator::insert_row(gaia_id, ACTUATOR_A_NAME, 0, 0.0);
+    // Chicken Incubator: 2 sensors, 1 fan
+    auto incubator = incubator_t::get(insert_incubator(c_chicken, c_chicken_min, c_chicken_max));
+    incubator.sensor_list().insert(sensor_t::insert_row(SENSOR_A_NAME, 0, c_chicken_min));
+    incubator.sensor_list().insert(sensor_t::insert_row(SENSOR_C_NAME, 0, c_chicken_min));
+    incubator.actuator_list().insert(actuator_t::insert_row(ACTUATOR_A_NAME, 0, 0.0));
 
-    gaia_id = Incubator::insert_row("Puppy", 85.0, 90.0);
-    Sensor::insert_row(gaia_id, SENSOR_B_NAME, 0, 85.0);
-    Actuator::insert_row(gaia_id, ACTUATOR_B_NAME, 0, 0.0);
-    Actuator::insert_row(gaia_id, ACTUATOR_C_NAME, 0, 0.0);
+    // Puppy Incubator: 1 sensor, 2 fans
+    incubator = incubator_t::get(insert_incubator(c_puppy, c_puppy_min, c_puppy_max));
+    incubator.sensor_list().insert(sensor_t::insert_row(SENSOR_B_NAME, 0, 85.0));
+    incubator.actuator_list().insert(actuator_t::insert_row(ACTUATOR_B_NAME, 0, 0.0));
+    incubator.actuator_list().insert(actuator_t::insert_row(ACTUATOR_C_NAME, 0, 0.0));
 
-    commit_transaction();
+    tx.commit();
 }
 
 void dump_db() {
     begin_transaction();
     printf("\n");
 
-    printf("[Incubators]\n");
-    for (auto i = Incubator::get_first(); i;
-         i = i.get_next()) {
-        printf("  name  | min_temp | max_temp \n");
-        printf("------------------------------\n");
-        printf("%-8s|%10.1lf|%10.1lf\n", i.name(), i.min_temp(),
-               i.max_temp());
-        printf("\n");
-        printf("  [Sensors]\n");
-        printf("   name | time | value \n");
-        printf("  ---------------------\n");
-        for (Sensor s = Sensor::get_first(); s;
-             s = s.get_next()){
-            if (s.incubator_id() == i.gaia_id()) {
-                printf("  %-6s|%6ld|%7.1lf\n", s.name(), s.timestamp(),
-                       s.value());
-            }
+    for (auto i : incubator_t::list()) {
+        printf("-----------------------------------------\n");
+        printf("%-8s|power: %-3s|min: %5.1lf|max: %5.1lf\n", 
+            i.name(), i.is_on() ? "ON" : "OFF", i.min_temp(), i.max_temp());
+        printf("-----------------------------------------\n");
+        for (auto s : i.sensor_list()) {
+            printf("\t|%-10s|%10ld|%10.2lf\n", s.name(), s.timestamp(), s.value());
         }
-        printf("\n");
-        printf("  [Actuators]\n");
-        printf("   name | time | value \n");
-        printf("  ---------------------\n");
-        for (Actuator a = Actuator::get_first(); a;
-             a = a.get_next()) {
-            if (a.incubator_id() == i.gaia_id()) {
-                printf("  %-6s|%6ld|%7.1lf\n", a.name(), a.timestamp(),
-                       a.value());
-            }
+        printf("\t---------------------------------\n");
+        for (auto a : i.actuator_list()) {
+            printf("\t|%-10s|%10ld|%10.1lf\n", a.name(), a.timestamp(), a.value());
         }
         printf("\n");
         printf("\n");
@@ -86,24 +140,56 @@ void dump_db() {
 }
 
 double calc_new_temp(float curr_temp, float fan_speed) {
-    if (fan_speed < 1000) {
+
+    if (fan_speed == 0) {
         return curr_temp + 0.1;
-    } else if (fan_speed < 3000) {
+    }
+    else if (fan_speed < 1000) {
+        return curr_temp - 0.025;
+    } 
+    else if (fan_speed < 1500) {
+        return curr_temp - 0.05;
+    } 
+    else if (fan_speed < 2000) {
+        return curr_temp - 0.075;
+    } 
+    else if (fan_speed < 2500) {
         return curr_temp - 0.1;
+    }        
+    else if (fan_speed < 3000) {
+        return curr_temp - 0.125;
+    }
+    else if (fan_speed < 3500) {
+        return curr_temp - 0.150;
+    }
+    else if (fan_speed < 4000) {
+        return curr_temp - 0.175;
     }
     return curr_temp - 0.2;
+}
+
+void set_power(bool is_on)
+{
+    begin_transaction();
+    for (auto i : incubator_t::list())
+    {
+        auto w = i.writer();
+        w.is_on = is_on;
+        w.update_row();
+    }
+    commit_transaction();
 }
 
 void simulation() {
     time_t start, cur;
     time(&start);
+    begin_session();
+    set_power(true);
     while (IN_SIMULATION) {
         sleep(1);
         begin_transaction();
         double new_temp, fa_v, fb_v, fc_v;
-        for (Actuator a = Actuator::get_first(); 
-            a;
-            a = a.get_next()) {
+        for (auto a : actuator_t::list()) {
             if (strcmp(a.name(), ACTUATOR_A_NAME) == 0) {
                 fa_v = a.value();
             } else if (strcmp(a.name(), ACTUATOR_B_NAME) == 0) {
@@ -114,10 +200,8 @@ void simulation() {
         }
         time(&cur);
         TIMESTAMP = difftime(cur, start);
-        for (Sensor s = Sensor::get_first(); 
-            s;
-            s = s.get_next()) {
-            Sensor_writer w = s.writer();
+        for (auto s : sensor_t::list()) {
+            sensor_writer w = s.writer();
             if (strcmp(s.name(), SENSOR_A_NAME) == 0) {
                 new_temp = calc_new_temp(s.value(), fa_v);
                 w.value = new_temp;
@@ -138,34 +222,8 @@ void simulation() {
         }
         commit_transaction();
     }
-}
-
-void decrease_fans(Incubator& incubator, FILE *log) {
-    fprintf(log, "%s called for %s incubator.\n", __func__, incubator.name());
-    for (Actuator a = Actuator::get_first(); 
-        a;
-        a = a.get_next()) {
-        if (a.incubator_id() == incubator.gaia_id()) {
-            Actuator_writer w = a.writer();
-            w.value = max(0.0, w.value - 500.0);
-            w.timestamp = TIMESTAMP;
-            w.update_row();
-        }
-    }
-}
-
-void increase_fans(Incubator& incubator, FILE *log) {
-    fprintf(log, "%s called for %s incubator.\n", __func__, incubator.name());
-    for (Actuator a = Actuator::get_first(); 
-         a;
-         a = a.get_next()) {
-        if (a.incubator_id() == incubator.gaia_id()) {
-            Actuator_writer w = a.writer();
-            w.value = min(FAN_SPEED_LIMIT, w.value + 500.0);
-            w.timestamp = TIMESTAMP;
-            w.update_row();
-        }
-    }
+    set_power(false);
+    end_session();
 }
 
 void list_rules() {
@@ -182,10 +240,19 @@ void list_rules() {
     event_names[event_type_t::row_insert] = "Row insert";
     for (auto &s : subs) {
         printf("%-10s|%-11s|%-7s\n", s->ruleset_name, s->rule_name,
-               event_names[s->type]);
+               event_names[s->event_type]);
     }
     printf("\n");
 }
+
+void add_fan_control_rule() {
+    try {
+        subscribe_ruleset("incubator_ruleset");
+    } catch (duplicate_rule) {
+        printf("The ruleset has already been added.\n");
+    }
+}
+
 
 void usage(const char *command) {
     printf("Usage: %s [sim|show|help]\n", command);
@@ -194,8 +261,258 @@ void usage(const char *command) {
     printf(" help: print this message.\n");
 }
 
+class simulation_t
+{
+public:
+
+    bool handle_main() {
+        printf("\n");
+        printf("(s) | start simulation\n");
+        printf("(e) | end simulation \n");
+        printf("(l) | list rules\n");
+        printf("(d) | disable rules\n");
+        printf("(r) | re-enable rules\n");
+        printf("(p) | print current state\n");
+        printf("(m) | manage incubators\n");
+        printf("(q) | quit\n\n");
+        printf("main> ");
+
+        getline(cin, m_input);
+        if (m_input.size() == 1) {
+            switch (m_input[0]) {
+            case 's':
+                if (!IN_SIMULATION) {
+                    IN_SIMULATION = true;
+                    m_simulation_thread[0] = thread(simulation);
+                    printf("Simulation started...\n");
+                } else {
+                    printf("Simulation is already running.\n");
+                }
+                break;
+            case 'e':
+                if (IN_SIMULATION) {
+                    IN_SIMULATION = false;
+                    m_simulation_thread[0].join();
+                    printf("Simulation stopped...\n");
+                } else {
+                    printf("Simulation is not started.\n");
+                }
+                break;
+            case 'l':
+                list_rules();
+                break;
+            case 'r':
+                add_fan_control_rule();
+                list_rules();
+                break;
+            case 'd':
+                unsubscribe_rules();
+                list_rules();
+                break;
+            case 'm':
+                m_current_menu = 1;
+                break;
+            case 'p':
+                dump_db();
+                break;
+            case 'q':
+                if (IN_SIMULATION) {
+                    printf("Stopping simulation...\n");
+                    IN_SIMULATION = false;
+                    m_simulation_thread[0].join();
+                    printf("Simulation stopped...\n");
+                }
+                printf("Exiting...\n");
+                return false;
+                break;
+            default:
+                printf("Wrong input.\n");
+                break;
+            }
+        }
+        return true;
+    }
+
+    void get_incubator(const char * name)
+    {
+        begin_transaction();
+        for (auto inc : incubator_t::list())
+        {
+            if (strcmp(inc.name(), name) == 0) {
+                m_current_incubator = inc;
+                break;
+            }
+        }
+        commit_transaction();
+        m_current_incubator_name = name;
+    }
+
+    void handle_incubators() {
+        printf("\n");
+        printf("(c) | select chicken incubator\n");
+        printf("(p) | select puppy incubator\n");
+        printf("(b) | go back\n\n");
+        printf("manage incubators> ");
+        getline(cin, m_input);
+        if (m_input.size() == 1) {
+            switch (m_input[0]) {
+            case 'c':
+                get_incubator(c_chicken);
+                m_current_menu = 2;
+                break;
+            case 'p':
+                get_incubator(c_puppy);
+                m_current_menu = 2;
+                break;
+            case 'b':
+                m_current_menu = 0;
+                break;
+            default:
+                printf("Wrong input.\n");
+                break;
+            }
+        }
+    }
+
+    void handle_incubator_settings() {
+        printf("\n");
+        printf("(on)    | turn power on\n");
+        printf("(off)   | turn power off\n");
+        printf("(min #) | set minimum\n");
+        printf("(max #) | set maximum\n");
+        printf("(b)     | go back\n");
+        printf("(m)     | main menu\n\n");
+        printf("%s> ", m_current_incubator_name);
+        getline(cin, m_input);
+
+        if (m_input.size() == 1) {
+            switch (m_input[0]) {
+            case 'b':
+                m_current_menu = 1;
+                break;
+            case 'm':
+                m_current_menu = 0;
+            default:
+                printf("Wrong input.\n");
+                break;
+            }
+            return;
+        }
+
+        if (m_input.size() == 2) {
+            if (0 == m_input.compare("on")) {
+                adjust_power(true);
+                dump_db();
+            }
+            else {
+                printf("Wrong input.\n");
+            }
+            return;
+        }
+
+        if (m_input.size() == 3) {
+            if (0 == m_input.compare("off")) {
+                adjust_power(false);
+                dump_db();
+            }
+            else {
+                printf("Wrong input.\n");
+            }
+            return;
+        }
+
+        bool change_min = false;
+        if (0 == m_input.compare(0, 3, "min")) {
+            change_min = true;
+        }
+        else if (0 == m_input.compare(0,3, "max")) {
+            change_min = false;
+        }
+        else {
+            printf("Wrong input.\n");
+            return;
+        }
+
+        float set_point = 0;
+        try {
+            set_point = stof(m_input.substr(3, m_input.size() -1));
+        }
+        catch(invalid_argument& ex) {
+            printf("Invalid temperature setting.\n");
+            return;
+        }
+
+        if (adjust_range(change_min, set_point)) {
+            dump_db();
+        }
+    }
+
+    void adjust_power(bool turn_on)
+    {
+        begin_transaction();
+        {
+            incubator_writer w = m_current_incubator.writer();
+            w.is_on = turn_on;
+            w.update_row();
+        }
+        commit_transaction();
+    }
+    bool adjust_range(bool change_min, float set_point)
+    {
+        bool changed = false;
+        begin_transaction();
+        {
+            incubator_writer w = m_current_incubator.writer();
+            if (change_min) {
+                w.min_temp = set_point;
+            }
+            else {
+                w.max_temp = set_point;
+            }
+            if (w.min_temp >= w.max_temp) {
+                printf("Max temp must be greater than min temp.\n");
+            }
+            else {
+                w.update_row();
+                changed = true;
+            }
+        }
+        commit_transaction();
+        return changed;
+    }
+
+    int run() {
+        while (true) {
+            switch(m_current_menu) {
+                case 0:
+                    if (!handle_main()) {
+                        return EXIT_SUCCESS;
+                    }
+                    break;
+                case 1:
+                    handle_incubators();
+                    break;
+                case 2:
+                    handle_incubator_settings();
+                    break;
+                default:
+                    // do nothing
+                    break;
+            }
+        }
+    }
+
+private:
+    string m_input;
+    incubator_t m_current_incubator;
+    const char * m_current_incubator_name;
+    thread m_simulation_thread[1];
+    int m_current_menu = 0;
+};
+
 int main(int argc, const char **argv) {
     bool is_sim = false;
+    std::string server;
 
     if (argc == 2 && strncmp(argv[1], "sim", 3) == 0) {
         is_sim = true;
@@ -211,66 +528,21 @@ int main(int argc, const char **argv) {
     }
 
     if (!is_sim) {
-        gaia_mem_base::init(false);
+        gaia::system::initialize();
+        gaia::rules::unsubscribe_rules();
         dump_db();
         return EXIT_SUCCESS;
     }
 
-    printf("Incubator simulation...\n");
-    gaia::system::initialize(true);
-    init_storage();
-    dump_db();
-    string input;
-    thread simulation_thread[1];
-    while (true) {
-        printf("(s)tart / s(t)op / (l)ist rules / (a)dd fan control rule / "
-               "(c)lear rules / (e)xit: ");
-        getline(cin, input);
-        if (input.size() == 1) {
-            switch (input[0]) {
-            case 's':
-                if (!IN_SIMULATION) {
-                    IN_SIMULATION = true;
-                    simulation_thread[0] = thread(simulation);
-                    printf("Simulation started...\n");
-                } else {
-                    printf("Simulation is already running.\n");
-                }
-                break;
-            case 't':
-                if (IN_SIMULATION) {
-                    IN_SIMULATION = false;
-                    simulation_thread[0].join();
-                    printf("Simulation stopped...\n");
-                } else {
-                    printf("Simulation is not started.\n");
-                }
-                break;
-            case 'l':
-                list_rules();
-                break;
-            case 'a':
-                add_fan_control_rule();
-                break;
-            case 'c':
-                unsubscribe_rules();
-                break;
-            case 'e':
-                if (IN_SIMULATION) {
-                    printf("Stopping simulation...\n");
-                    IN_SIMULATION = false;
-                    simulation_thread[0].join();
-                    printf("Simulation stopped...\n");
-                }
-                printf("Exiting...");
-                return EXIT_SUCCESS;
-                break;
-            default:
-                printf("Wrong input.");
-                break;
-            }
-        }
-    }
+    simulation_t sim;
+    gaia::system::initialize();
 
-    return EXIT_SUCCESS;
+    printf("-----------------------------------------\n");
+    printf("Gaia Incubator\n\n");
+    printf("No chickens or puppies were harmed in the\n");
+    printf("development or presentation of this demo.\n");
+    printf("-----------------------------------------\n");
+
+    init_storage();
+    sim.run();
 }
