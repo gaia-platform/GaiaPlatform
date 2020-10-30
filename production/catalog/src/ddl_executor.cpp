@@ -372,7 +372,7 @@ void ddl_executor_t::drop_database(const string& name)
 {
     unique_lock lock(m_lock);
     gaia_id_t db_id = find_db_id_no_lock(name);
-    if (db_id == INVALID_GAIA_ID)
+    if (db_id == c_invalid_gaia_id)
     {
         throw db_not_exists(name);
     }
@@ -406,7 +406,7 @@ void ddl_executor_t::drop_table(const string& db_name, const string& name)
 
     string full_table_name = get_full_table_name(db_name, name);
     gaia_id_t db_id = find_db_id_no_lock(db_name);
-    retail_assert(db_id != INVALID_GAIA_ID);
+    retail_assert(db_id != c_invalid_gaia_id);
 
     if (m_table_names.find(full_table_name) == m_table_names.end())
     {
@@ -499,7 +499,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
 
     string full_table_name = get_full_table_name(dbname, table_name);
     gaia_id_t db_id = find_db_id_no_lock(dbname);
-    retail_assert(db_id != INVALID_GAIA_ID);
+    retail_assert(db_id != c_invalid_gaia_id);
 
     if (m_table_names.find(full_table_name) != m_table_names.end())
     {
@@ -532,7 +532,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
     string bin{generate_bin(fbs, generate_json(fields))};
 
     gaia::db::begin_transaction();
-    gaia_type_t table_type = fixed_type == INVALID_GAIA_TYPE ? gaia_boot_t::get().get_next_type() : fixed_type;
+    gaia_type_t table_type = fixed_type == c_invalid_gaia_type ? gaia_boot_t::get().get_next_type() : fixed_type;
     gaia_id_t table_id = gaia_table_t::insert_row(
         table_name.c_str(),
         table_type,
@@ -640,7 +640,7 @@ inline gaia_id_t ddl_executor_t::find_db_id_no_lock(const string& dbname) const
     }
     else
     {
-        return INVALID_GAIA_ID;
+        return c_invalid_gaia_id;
     }
 }
 

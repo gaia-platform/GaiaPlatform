@@ -86,12 +86,12 @@ public:
     // updates the type registry.
     void create_relationship()
     {
-        if (m_parent_type == INVALID_GAIA_TYPE)
+        if (m_parent_type == c_invalid_gaia_type)
         {
             throw invalid_argument("parent_type must be set!");
         }
 
-        if (m_child_type == INVALID_GAIA_TYPE)
+        if (m_child_type == c_invalid_gaia_type)
         {
             throw invalid_argument("child_type must be set!");
         }
@@ -122,8 +122,8 @@ private:
 
     // mandatory values
     cardinality_t m_cardinality = cardinality_t::not_set;
-    gaia_type_t m_parent_type = INVALID_GAIA_TYPE;
-    gaia_type_t m_child_type = INVALID_GAIA_TYPE;
+    gaia_type_t m_parent_type = c_invalid_gaia_type;
+    gaia_type_t m_child_type = c_invalid_gaia_type;
 
     // default values add methods for those.
     bool m_parent_required = false;
