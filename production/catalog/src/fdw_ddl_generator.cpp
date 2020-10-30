@@ -44,20 +44,20 @@ string get_fdw_data_type_name(data_type_t data_type)
     case data_type_t::e_int8:
     case data_type_t::e_uint8:
     case data_type_t::e_int16:
+    case data_type_t::e_uint16:
         return "smallint";
 
-    case data_type_t::e_uint16:
     case data_type_t::e_int32:
+    case data_type_t::e_uint32:
         return "integer";
 
-    case data_type_t::e_uint32:
     case data_type_t::e_int64:
     case data_type_t::e_uint64:
     case data_type_t::e_references:
         return "bigint";
 
     case data_type_t::e_float:
-        return "float";
+        return "real";
 
     case data_type_t::e_double:
         return "double precision";
