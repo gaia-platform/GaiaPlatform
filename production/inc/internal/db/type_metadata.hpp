@@ -7,6 +7,7 @@
 
 #include <atomic>
 #include <functional>
+#include <gaia_common.hpp>
 #include <memory>
 #include <optional>
 #include <shared_mutex>
@@ -41,18 +42,18 @@ public:
     /**
      * Find a relationship from the parent side.
      */
-    optional<relationship_t> find_parent_relationship(reference_offset_t first_child_offset) const;
+    std::optional<relationship_t> find_parent_relationship(reference_offset_t first_child_offset) const;
 
     /**
      * Find a relationship from the child side.
      */
-    optional<relationship_t> find_child_relationship(reference_offset_t parent_offset) const;
+    std::optional<relationship_t> find_child_relationship(reference_offset_t parent_offset) const;
 
     /**
      * The number of references this type has both as parent and child.
      * Note: child references count 2X, since 2 pointers are necessary to express them.
      */
-    size_t num_references() const;
+    std::size_t num_references() const;
 
     // TODO the two following function should be called only by the registry.
     //  Need to figure the best way to do so since these are used in tests too
@@ -61,13 +62,13 @@ public:
      * Mark this type as the parent side of the relationship.
      * The relationship_t object will be stored in the child metadata as well.
      */
-    void add_parent_relationship(reference_offset_t first_child, const shared_ptr<relationship_t>& relationship);
+    void add_parent_relationship(reference_offset_t first_child, const std::shared_ptr<relationship_t>& relationship);
 
     /**
      * Mark this type as the child side of the relationship.
      * The relationship_t object will be stored in the parent metadata as well.
      */
-    void add_child_relationship(reference_offset_t parent, const shared_ptr<relationship_t>& relationship);
+    void add_child_relationship(reference_offset_t parent, const std::shared_ptr<relationship_t>& relationship);
 
 private:
     const gaia_type_t m_type;
@@ -76,11 +77,11 @@ private:
     // to avoid traversing the entire dependency graph when modeling relationships.
     std::atomic_bool m_initialized;
 
-    mutable shared_mutex m_metadata_lock;
+    mutable std::shared_mutex m_metadata_lock;
 
     // The relationship_t objects are shared between the parent and the child side of the relationship.
-    unordered_map<reference_offset_t, shared_ptr<relationship_t>> m_parent_relationships;
-    unordered_map<reference_offset_t, shared_ptr<relationship_t>> m_child_relationships;
+    std::unordered_map<reference_offset_t, std::shared_ptr<relationship_t>> m_parent_relationships;
+    std::unordered_map<reference_offset_t, std::shared_ptr<relationship_t>> m_child_relationships;
 
     bool is_initialized();
     void mark_as_initialized();
@@ -91,7 +92,7 @@ class duplicate_metadata : public gaia_exception
 public:
     explicit duplicate_metadata(const gaia_type_t type)
     {
-        stringstream message;
+        std::stringstream message;
         message << "Metadata already existent for Gaia type \"" << type << "\".";
         m_message = message.str();
     }
@@ -102,7 +103,7 @@ class metadata_not_found : public gaia_exception
 public:
     explicit metadata_not_found(const gaia_type_t type)
     {
-        stringstream message;
+        std::stringstream message;
         message << "Metadata does not exist for Gaia type \"" << type << "\".";
         m_message = message.str();
     }
@@ -113,7 +114,7 @@ class type_not_found : public gaia_exception
 public:
     explicit type_not_found(const gaia_type_t type)
     {
-        stringstream message;
+        std::stringstream message;
         message << "Impossible to create metadata for type \"" << type << "\", the type does not exist.";
         m_message = message.str();
     }
@@ -174,7 +175,7 @@ private:
         init();
     }
 
-    unordered_map<gaia_type_t, unique_ptr<type_metadata_t>> m_metadata_registry;
+    std::unordered_map<gaia_type_t, std::unique_ptr<type_metadata_t>> m_metadata_registry;
 
     // Ensures exclusive access to the registry.
     mutable shared_mutex m_registry_lock;
@@ -184,6 +185,11 @@ private:
      * avoiding failures when such tables are inserted in the catalog.
      */
     void init();
+
+    /**
+     * Returns the gaia_id_t of the table that holds the information about the given gaia_type_t
+     */
+    common::gaia_id_t get_record_id(gaia_type_t);
 
     /**
      * Creates an instance of type_metadata_t fetching the information from the Catalog.
