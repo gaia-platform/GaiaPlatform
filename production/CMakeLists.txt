@@ -29,9 +29,13 @@ add_compile_options("$<$<CONFIG:DEBUG>:-DDEBUG>")
 
 # Set some global variables.
 get_repo_root(${PROJECT_SOURCE_DIR} GAIA_REPO)
-
+if(BUILD_GAIA_RELEASE)
+set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra")
+set(GAIA_LINK_FLAGS "-pthread")
+else()
 set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
 set(GAIA_LINK_FLAGS "-ggdb -pthread")
+endif()
 set(GAIA_INC "${PROJECT_SOURCE_DIR}/inc")
 set(GOOGLE_TEST "${GAIA_REPO}/third_party/production/googletest")
 set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")
@@ -146,15 +150,17 @@ add_subdirectory(catalog)
 add_subdirectory(rules)
 add_subdirectory(schemas)
 
-# LLVM translation engine.
-if(BUILD_GAIA_RELEASE)
-  unset(CMAKE_CXX_CLANG_TIDY)
-  add_subdirectory("${GAIA_REPO}/third_party/private/TranslationEngineLLVM/llvm" llvm)
-  set(CMAKE_CXX_CLANG_TIDY clang-tidy)
-endif()
-
 # Tools.
 add_subdirectory(tools)
+
+if(BUILD_GAIA_RELEASE)
+set_property (TARGET gaia_parser PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property (TARGET rocks_wrapper PROPERTY POSITION_INDEPENDENT_CODE ON)
+unset(CMAKE_CXX_CLANG_TIDY)
+add_subdirectory(sdk)
+add_subdirectory("${GAIA_REPO}/third_party/private/TranslationEngineLLVM/llvm" llvm)
+set(CMAKE_CXX_CLANG_TIDY clang-tidy)
+endif()
 
 # Query processors.
 add_subdirectory(sql)
