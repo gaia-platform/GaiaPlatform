@@ -161,12 +161,7 @@ type_metadata_t& type_registry_t::create(gaia_type_t type)
         throw type_not_found(type);
     }
 
-    gaia_log::db().info("----------------------");
-    gaia_log::db().info("child_table_id: {}, child_table_type: {}, child_table_gaia_type: {}, type: {}", child_table.gaia_id(), child_table.type(), child_table.gaia_type(), type);
-
     auto& metadata = get_or_create_no_lock(type);
-
-    gaia_log::db().info("metadata_type: {}", metadata.get_type());
 
     for (auto& relationship : child_table.child_gaia_relationship_list())
     {
@@ -176,8 +171,6 @@ type_metadata_t& type_registry_t::create(gaia_type_t type)
         }
 
         gaia_table_t parent_table = relationship.parent_gaia_table();
-
-        gaia_log::db().info("parent_table_id: {}, parent_table_type: {}, parent_table_gaia_type: {}, type: {}", parent_table.gaia_id(), parent_table.type(), parent_table.gaia_type(), type);
 
         auto rel = make_shared<relationship_t>(relationship_t{
             .parent_type = static_cast<gaia_type_t>(parent_table.type()),
