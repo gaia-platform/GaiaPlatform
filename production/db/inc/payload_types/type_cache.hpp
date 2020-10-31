@@ -29,14 +29,35 @@ typedef std::unordered_map<field_position_t, const reflection::Field*> field_map
 
 // A type information instance stores all information needed
 // to deserialize or serialize data of that type.
+//
 // It stores all Field descriptions for a given type,
 // indexed by the corresponding field id values.
+//
+// Currently, we store copies of both the binary schema
+// and the serialization template for the type,
+// but this will change one we can store direct pointers.
 class type_information_t
 {
+    friend class auto_type_information_t;
+    friend class type_cache_t;
+
 public:
     type_information_t() = default;
 
+    // Set the binary schema for our type.
+    void set_binary_schema(const std::vector<uint8_t>& binary_schema);
+
+    // Set the serialization template for our type.
+    void set_serialization_template(const std::vector<uint8_t>& serialization_template);
+
+    // Insert information about a field in the field map.
+    // This is used during construction of the field map.
+    void set_field(field_position_t field_position, const reflection::Field* field);
+
     // Return a direct pointer to our copy of the binary schema.
+    //
+    // This is only needed during initialization so that the Field information
+    // references the data in our copy.
     const uint8_t* get_raw_binary_schema() const;
 
     // Return a copy of our serialization template.
@@ -49,20 +70,14 @@ public:
     // to prevent it from being changed.
     const reflection::Field* get_field(field_position_t field_position) const;
 
-    // Set the binary schema for our type.
-    void set_binary_schema(const std::vector<uint8_t>& binary_schema);
-
-    // Set the serialization template for our type.
-    void set_serialization_template(const std::vector<uint8_t>& serialization_template);
-
-    // Insert information about a field in the field map.
-    // This is used during construction of the field map.
-    void set_field(field_position_t field_position, const reflection::Field* field);
-
     // Return the size of the internal map.
-    size_t size();
+    size_t get_field_count();
 
 protected:
+    // Reading these entries will hold read locks, whereas update operations will request exclusive locks.
+    // Operations that require exclusive locking are meant to be rare.
+    mutable std::shared_mutex m_lock;
+
     // The binary schema for this type.
     std::vector<uint8_t> m_binary_schema;
 
@@ -81,8 +96,6 @@ class auto_type_information_t;
 // The type_information_t instances are indexed by their corresponding type id.
 class type_cache_t
 {
-    friend class auto_type_information_t;
-
 protected:
     // Do not allow copies to be made;
     // disable copy constructor and assignment operator.
@@ -120,7 +133,7 @@ protected:
     // The singleton instance.
     static type_cache_t s_type_cache;
 
-    // Reads from cache will hold read locks, whereas update operations will request exclusive locks.
+    // Reads from cache will initially acquire read locks, whereas update operations will request exclusive locks.
     // Operations that require exclusive locking are meant to be rare.
     // We can further improve implementation by preloading type information at system startup.
     mutable std::shared_mutex m_lock;

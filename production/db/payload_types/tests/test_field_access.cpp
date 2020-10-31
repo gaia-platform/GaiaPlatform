@@ -301,7 +301,7 @@ void process_flatbuffers_data(bool access_fields = false)
     // Create and initialize a type_information.
     auto type_information = new type_information_t();
     initialize_type_information_from_binary_schema(type_information, schema_loader.get_data(), schema_loader.get_data_length());
-    ASSERT_EQ(field::count_fields, type_information->size());
+    ASSERT_EQ(field::count_fields, type_information->get_field_count());
 
     // Add type information to type cache.
     type_cache_t::get()->set_type_information(c_type_id, type_information);
@@ -366,7 +366,7 @@ void update_flatbuffers_data()
     // Create and initialize a type_information.
     auto type_information = new type_information_t();
     initialize_type_information_from_binary_schema(type_information, schema_loader.get_data(), schema_loader.get_data_length());
-    ASSERT_EQ(field::count_fields, type_information->size());
+    ASSERT_EQ(field::count_fields, type_information->get_field_count());
 
     // Add type information to type cache.
     type_cache_t::get()->set_type_information(c_type_id, type_information);

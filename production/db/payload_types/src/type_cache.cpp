@@ -13,22 +13,6 @@ using namespace gaia::db::payload_types;
 
 type_cache_t type_cache_t::s_type_cache;
 
-const uint8_t* type_information_t::get_raw_binary_schema() const
-{
-    return m_binary_schema.data();
-}
-
-vector<uint8_t> type_information_t::get_serialization_template() const
-{
-    return m_serialization_template;
-}
-
-const reflection::Field* type_information_t::get_field(field_position_t field_position) const
-{
-    auto iterator = m_field_map.find(field_position);
-    return (iterator == m_field_map.end()) ? nullptr : iterator->second;
-}
-
 void type_information_t::set_binary_schema(const vector<uint8_t>& binary_schema)
 {
     m_binary_schema = binary_schema;
@@ -46,7 +30,23 @@ void type_information_t::set_field(field_position_t field_position, const reflec
     m_field_map.insert(make_pair(field_position, field));
 }
 
-size_t type_information_t::size()
+const uint8_t* type_information_t::get_raw_binary_schema() const
+{
+    return m_binary_schema.data();
+}
+
+vector<uint8_t> type_information_t::get_serialization_template() const
+{
+    return m_serialization_template;
+}
+
+const reflection::Field* type_information_t::get_field(field_position_t field_position) const
+{
+    auto iterator = m_field_map.find(field_position);
+    return (iterator == m_field_map.end()) ? nullptr : iterator->second;
+}
+
+size_t type_information_t::get_field_count()
 {
     return m_field_map.size();
 }
@@ -58,18 +58,20 @@ type_cache_t* type_cache_t::get()
 
 void type_cache_t::get_type_information(gaia_type_t type_id, auto_type_information_t& auto_type_information) const
 {
-    // We keep a shared lock while the type_information is in use,
-    // to ensure that its information is not being updated by another thread.
-    m_lock.lock_shared();
+    // We acquire a shared lock while we retrieve the type information,
+    // to ensure that the cache is not being updated by another thread.
+    shared_lock shared_lock(m_lock);
 
     auto iterator = m_type_map.find(type_id);
 
-    if (iterator == m_type_map.end())
+    if (iterator != m_type_map.end())
     {
-        m_lock.unlock_shared();
-    }
-    else
-    {
+        // We hold a shared lock on the type information while it is used,
+        // to ensure that it is not removed from the cache.
+        iterator->second->m_lock.lock_shared();
+
+        // To ensure that the lock is released eventually,
+        // we package the type information in an auto object.
         auto_type_information.set(iterator->second);
     }
 }
@@ -84,6 +86,11 @@ bool type_cache_t::remove_type_information(gaia_type_t type_id)
     if (iterator != m_type_map.end())
     {
         const type_information_t* type_information = iterator->second;
+
+        // Take an exclusive lock on the record that we want to remove.
+        // This will ensure that nobody else is reading it.
+        iterator->second->m_lock.lock();
+
         m_type_map.erase(iterator);
         delete type_information;
         removed_type_information = true;
@@ -124,7 +131,7 @@ auto_type_information_t::~auto_type_information_t()
 {
     if (m_type_information != nullptr)
     {
-        type_cache_t::get()->m_lock.unlock_shared();
+        m_type_information->m_lock.unlock_shared();
     }
 }
 
