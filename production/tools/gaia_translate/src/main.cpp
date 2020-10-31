@@ -1048,7 +1048,6 @@ public:
             return;
         }
         const auto* rule_declaration = result.Nodes.getNodeAs<FunctionDecl>("ruleDecl");
-        g_current_ruleset_rule_number ++;
         generate_rules(m_rewriter);
         if (g_generation_error)
         {
@@ -1057,6 +1056,7 @@ public:
         g_current_rule_declaration = rule_declaration;
         g_used_tables.clear();
         g_active_fields.clear();
+        g_current_ruleset_rule_number ++;
     }
 
 private:
