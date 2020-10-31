@@ -232,7 +232,7 @@ int get_count()
     return total_count;
 }
 
-void delete_all(int initial_record_count)
+void delete_all(int &initial_record_count)
 {
     cout << "Deleting all records" << endl;
     begin_transaction();
@@ -249,7 +249,7 @@ void delete_all(int initial_record_count)
     commit_transaction();
 
     int count = 0;
-
+    int delete_attempt_count = 0;
     while (true)
     {
         begin_transaction();
@@ -274,6 +274,14 @@ void delete_all(int initial_record_count)
         if (get_count() == 0 || get_count() == initial_record_count)
         {
             break;
+        }
+        delete_attempt_count++;
+
+        // Best effort attempt at deleting things; there might be some objects that stay behind because of not getting cleaned up in other tests.
+        // The alternative would be to blow away the persistent store directory each time before running recovery tests; but I avoid this in order to
+        // exercise the delete API.
+        if (delete_attempt_count == 10) {
+            initial_record_count = get_count();
         }
     }
 
