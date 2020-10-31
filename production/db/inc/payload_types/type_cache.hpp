@@ -16,8 +16,6 @@
 
 #include "gaia_common.hpp"
 
-using namespace gaia::common;
-
 namespace gaia
 {
 namespace db
@@ -25,7 +23,7 @@ namespace db
 namespace payload_types
 {
 
-typedef std::unordered_map<field_position_t, const reflection::Field*> field_map_t;
+typedef std::unordered_map<gaia::common::field_position_t, const reflection::Field*> field_map_t;
 
 // A type information instance stores all information needed
 // to deserialize or serialize data of that type.
@@ -52,7 +50,7 @@ public:
 
     // Insert information about a field in the field map.
     // This is used during construction of the field map.
-    void set_field(field_position_t field_position, const reflection::Field* field);
+    void set_field(gaia::common::field_position_t field_position, const reflection::Field* field);
 
     // Return a direct pointer to our copy of the binary schema.
     //
@@ -68,7 +66,7 @@ public:
     // Because the field information is retrieved by direct access to the binary schema,
     // we need to maintain a read lock while it is being used,
     // to prevent it from being changed.
-    const reflection::Field* get_field(field_position_t field_position) const;
+    const reflection::Field* get_field(gaia::common::field_position_t field_position) const;
 
     // Return the size of the internal map.
     size_t get_field_count();
@@ -88,7 +86,7 @@ protected:
     field_map_t m_field_map;
 };
 
-typedef std::unordered_map<gaia_type_t, const type_information_t*> type_information_map_t;
+typedef std::unordered_map<gaia::common::gaia_type_t, const type_information_t*> type_information_map_t;
 
 class auto_type_information_t;
 
@@ -110,21 +108,21 @@ public:
     static type_cache_t* get();
 
     // To ensure that the returned type information instance continues to be valid,
-    // this method needs to hold a read lock on the type cache.
+    // this method needs to hold a read lock on it.
     // To ensure the release of that lock once the type information is no longer used,
     // it is returned in an auto_type_information_t wrapper that will release the lock
     // at the time the wrapper gets destroyed.
-    void get_type_information(gaia_type_t type_id, auto_type_information_t& auto_type_information) const;
+    void get_type_information(gaia::common::gaia_type_t type_id, auto_type_information_t& auto_type_information) const;
 
     // This method should be called whenever the information for a type is being changed.
     // It will return true if the entry was found and deleted, and false if it was not found
     // (another thread may have deleted it first or the information may never have been cached at all).
-    bool remove_type_information(gaia_type_t type_id);
+    bool remove_type_information(gaia::common::gaia_type_t type_id);
 
     // This method should be used to load new type information in the cache.
     // It expects the cache to contain no data for the type.
     // It returns true if the cache was updated and false if an entry for the type was found to exist already.
-    bool set_type_information(gaia_type_t type_id, const type_information_t* type_information);
+    bool set_type_information(gaia::common::gaia_type_t type_id, const type_information_t* type_information);
 
     // Return the size of the internal map.
     size_t size() const;

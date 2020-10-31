@@ -101,7 +101,9 @@ bool type_cache_t::remove_type_information(gaia_type_t type_id)
 
 bool type_cache_t::set_type_information(gaia_type_t type_id, const type_information_t* type_information)
 {
-    retail_assert(type_information != nullptr, "type_cache_t::set_type_information() should not be called with a null cache!");
+    retail_assert(
+        type_information != nullptr,
+        "type_cache_t::set_type_information() should not be called with a null cache!");
 
     bool inserted_type_information = false;
 

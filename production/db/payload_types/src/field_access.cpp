@@ -149,7 +149,8 @@ void get_table_field_information(
     // If data is not available for our type, we load it locally from the binary schema provided to us.
     if (type_information == nullptr)
     {
-        initialize_type_information_from_binary_schema(&local_type_information, binary_schema, binary_schema_size);
+        initialize_type_information_from_binary_schema(
+            &local_type_information, binary_schema, binary_schema_size);
         type_information = &local_type_information;
     }
 

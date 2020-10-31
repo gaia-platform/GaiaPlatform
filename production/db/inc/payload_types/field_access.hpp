@@ -42,7 +42,7 @@ public:
 class invalid_field_position : public gaia::common::gaia_exception
 {
 public:
-    invalid_field_position(field_position_t position);
+    invalid_field_position(gaia::common::field_position_t position);
 };
 
 class unhandled_field_type : public gaia::common::gaia_exception
@@ -90,63 +90,63 @@ bool verify_data_schema(
 
 // Get the field value of a table record payload.
 data_holder_t get_field_value(
-    gaia_id_t type_id,
+    gaia::common::gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
     size_t binary_schema_size,
-    field_position_t field_position);
+    gaia::common::field_position_t field_position);
 
 // Set the scalar field value of a table record payload.
 //
 // This function only works for scalar fields (integers and floating point numbers).
 bool set_field_value(
-    gaia_id_t type_id,
+    gaia::common::gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
     size_t binary_schema_size,
-    field_position_t field_position,
+    gaia::common::field_position_t field_position,
     const data_holder_t& value);
 
 // Set the string field value of a table record payload.
 //
 // This function only works for string fields.
 std::vector<uint8_t> set_field_value(
-    gaia_id_t type_id,
+    gaia::common::gaia_id_t type_id,
     const uint8_t* serialized_data,
     size_t serialized_data_size,
     const uint8_t* binary_schema,
     size_t binary_schema_size,
-    field_position_t field_position,
+    gaia::common::field_position_t field_position,
     const data_holder_t& value);
 
 // Get the size of a field of array type.
 size_t get_field_array_size(
-    gaia_id_t type_id,
+    gaia::common::gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
     size_t binary_schema_size,
-    field_position_t field_position);
+    gaia::common::field_position_t field_position);
 
 // Set the size of a field of array type.
 // If the array is expanded, new entries will be set to 0.
 std::vector<uint8_t> set_field_array_size(
-    gaia_id_t type_id,
+    gaia::common::gaia_id_t type_id,
     const uint8_t* serialized_data,
     size_t serialized_data_size,
     const uint8_t* binary_schema,
     size_t binary_schema_size,
-    field_position_t field_position,
+    gaia::common::field_position_t field_position,
     size_t new_size);
 
 // Get a specific element of a field of array type.
 //
 // An exception will be thrown if the index is out of bounds.
 data_holder_t get_field_array_element(
-    gaia_id_t type_id,
+    gaia::common::gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
     size_t binary_schema_size,
-    field_position_t field_position,
+    gaia::common::field_position_t field_position,
     size_t array_index);
 
 // Set a specific element of a scalar field of array type.
@@ -155,11 +155,11 @@ data_holder_t get_field_array_element(
 //
 // This function only works for scalar fields (integers and floating point numbers).
 void set_field_array_element(
-    gaia_id_t type_id,
+    gaia::common::gaia_id_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
     size_t binary_schema_size,
-    field_position_t field_position,
+    gaia::common::field_position_t field_position,
     size_t array_index,
     const data_holder_t& value);
 
@@ -169,12 +169,12 @@ void set_field_array_element(
 //
 // This function only works for string fields.
 std::vector<uint8_t> set_field_array_element(
-    gaia_id_t type_id,
+    gaia::common::gaia_id_t type_id,
     const uint8_t* serialized_data,
     size_t serialized_data_size,
     const uint8_t* binary_schema,
     size_t binary_schema_size,
-    field_position_t field_position,
+    gaia::common::field_position_t field_position,
     size_t array_index,
     const data_holder_t& value);
 
