@@ -25,6 +25,8 @@ bool set_commit_trigger(gaia::db::triggers::commit_trigger_fn trigger_fn);
  */
 void clear_shared_memory();
 
+gaia_type_t generate_type();
+
 // Todo (Mihir): Expose options to set the persistent
 // directory path & also some way to destroy it instead
 // of hardcoding the path.

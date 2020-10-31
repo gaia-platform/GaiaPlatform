@@ -13,6 +13,8 @@
 #include "json_generator.hpp"
 #include "retail_assert.hpp"
 #include "system_table_types.hpp"
+#include "gaia_db.hpp"
+#include "gaia_db_internal.hpp"
 
 using namespace gaia::catalog::ddl;
 
@@ -532,7 +534,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
     string bin{generate_bin(fbs, generate_json(fields))};
 
     gaia::db::begin_transaction();
-    gaia_type_t table_type = fixed_type == c_invalid_gaia_type ? gaia_boot_t::get().get_next_type() : fixed_type;
+    gaia_type_t table_type = fixed_type == c_invalid_gaia_type ? gaia::db::generate_type() : fixed_type;
     gaia_id_t table_id = gaia_table_t::insert_row(
         table_name.c_str(),
         table_type,

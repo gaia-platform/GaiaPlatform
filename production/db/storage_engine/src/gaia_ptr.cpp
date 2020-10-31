@@ -18,7 +18,7 @@ using namespace gaia::db::triggers;
 
 gaia_id_t gaia_ptr::generate_id()
 {
-    return gaia_boot_t::get().get_next_id();
+    return client::generate_id(client::s_data);
 }
 
 gaia_ptr gaia_ptr::create(gaia_type_t type, size_t data_size, const void* data)

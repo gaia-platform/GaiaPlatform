@@ -27,7 +27,6 @@
 
 #include "db_test_base.hpp"
 #include "gaia_addr_book.h"
-#include "gaia_boot.hpp"
 
 using namespace std;
 using namespace gaia::db;
@@ -92,7 +91,6 @@ protected:
     void SetUp() override
     {
         reset_server();
-        gaia_boot_t::get().reset_gaia_boot();
         sem_unlink(c_go_child);
         sem_unlink(c_go_parent);
     }

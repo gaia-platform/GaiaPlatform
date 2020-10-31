@@ -32,27 +32,26 @@ void gaia::db::encode_object(
     value->write(gaia_object->payload, gaia_object->payload_size);
 }
 
-gaia_id_t gaia::db::decode_object(
+void gaia::db::decode_object(
     const rocksdb::Slice& key,
-    const rocksdb::Slice& value)
+    const rocksdb::Slice& value, 
+    gaia_id_t* id,
+    gaia_type_t* type)
 {
-    gaia_id_t id;
-    gaia_type_t type;
     uint16_t size;
     uint16_t num_references;
     string_reader_t key_reader(&key);
     string_reader_t value_reader(&value);
 
     // Read key.
-    key_reader.read_uint64(&id);
+    key_reader.read_uint64(id);
     retail_assert(key_reader.get_remaining_len_in_bytes() == 0);
 
     // Read value.
-    value_reader.read_uint32(&type);
+    value_reader.read_uint32(type);
     value_reader.read_uint16(&num_references);
     value_reader.read_uint16(&size);
     auto payload = value_reader.read(size);
     // Create Object.
-    persistent_store_manager::create_object_on_recovery(id, type, num_references, size, payload);
-    return id;
+    persistent_store_manager::create_object_on_recovery(*id, *type, num_references, size, payload);
 }

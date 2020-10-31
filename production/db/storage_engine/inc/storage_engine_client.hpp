@@ -60,6 +60,11 @@ public:
         return __sync_val_compare_and_swap(&s_txn_commit_trigger, nullptr, trigger_fn);
     }
 
+    static inline gaia_type_t generate_type() {
+        gaia_type_t next_type = __sync_add_and_fetch(&s_data->next_type, 1);
+        return next_type;
+    }
+
     // This test-only function is exported from gaia_db_internal.hpp.
     static void clear_shared_memory();
 

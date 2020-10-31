@@ -24,7 +24,6 @@
 #include <sys/stat.h>
 
 #include "db_types.hpp"
-#include "gaia_boot.hpp"
 #include "gaia_common.hpp"
 #include "gaia_db.hpp"
 #include "gaia_db_internal.hpp"
@@ -84,6 +83,7 @@ protected:
         // the instructions targeted by the intrinsics operate at the level of
         // physical memory, not virtual addresses.
         gaia_id_t next_id;
+        gaia_type_t next_type;
         gaia_txn_id_t next_txn_id;
         size_t locator_count;
         size_t hash_node_count;
@@ -114,6 +114,13 @@ protected:
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
 
 public:
+    // Counters for ID and type will be initialized on recovery.
+    static gaia_id_t generate_id(data* data)
+    {
+        gaia_id_t id = __sync_add_and_fetch(&data->next_id, 1);
+        return id;
+    }
+    
     static gaia_txn_id_t allocate_txn_id(data* s_data)
     {
         gaia_txn_id_t txn_id = __sync_add_and_fetch(&s_data->next_txn_id, 1);

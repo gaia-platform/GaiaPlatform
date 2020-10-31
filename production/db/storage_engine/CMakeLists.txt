@@ -77,7 +77,6 @@ add_library(gaia_se_client STATIC
   src/catalog_core.cpp
   src/gaia_db.cpp
   src/gaia_ptr.cpp
-  src/gaia_boot.cpp
   src/payload_diff.cpp
   src/storage_engine_client.cpp
   src/type_metadata.cpp)

@@ -165,20 +165,29 @@ void persistent_store_manager::prepare_wal_for_write(std::string& txn_name)
  *
  * Note that, for now we skip validating the existence of object references on recovery,
  * since these aren't validated during object creation either.
+ * 
+ * Ideally max id would have been the ID of the last key since the RocksDB iterator returns keys (gaia IDs)
+ * in sorted order; but we reserve a range of IDs towards the end of the spectrum of IDs so mentioned approach isn't 
+ * possible.
  */
 void persistent_store_manager::recover()
 {
     auto it = std::unique_ptr<rocksdb::Iterator>(rdb_internal->get_iterator());
     gaia_id_t max_id = 0;
-    size_t count = 0;
+    gaia_type_t max_type = 0;
     for (it->SeekToFirst(); it->Valid(); it->Next())
     {
-        auto id = decode_object(it->key(), it->value());
+        gaia_id_t id;
+        gaia_type_t type;
+        decode_object(it->key(), it->value(), &id, &type);
         if (id > max_id && id < c_system_table_reserved_range_start)
         {
             max_id = id;
         }
-        count++;
+
+        if (type > max_type) {
+            max_type = type;
+        }
     }
     // Check for any errors found during the scan
     rdb_internal->handle_rdb_error(it->status());

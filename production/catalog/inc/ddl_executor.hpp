@@ -10,7 +10,8 @@
 #include <vector>
 
 #include "catalog_internal.hpp"
-#include "gaia_boot.hpp"
+
+using namespace gaia::common;
 
 namespace gaia
 {
