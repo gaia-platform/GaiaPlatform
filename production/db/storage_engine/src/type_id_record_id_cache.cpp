@@ -10,13 +10,10 @@
 
 using namespace gaia::db;
 
-type_id_record_id_cache_t::type_id_record_id_cache_t()
-{
-    init_type_id_record_id_map();
-}
-
 gaia::common::gaia_id_t type_id_record_id_cache_t::get_record_id(gaia::common::gaia_type_t type_id)
 {
+    std::call_once(m_type_id_record_id_map_init_flag, &type_id_record_id_cache_t::init_type_id_record_id_map, this);
+
     auto it = m_type_id_record_id_map.find(type_id);
 
     if (it == m_type_id_record_id_map.end())
