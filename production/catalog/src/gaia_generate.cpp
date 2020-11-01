@@ -11,6 +11,7 @@
 
 #include "catalog.hpp"
 #include "gaia_catalog.h"
+#include "logger.hpp"
 
 using namespace std;
 
@@ -41,15 +42,24 @@ typedef map<gaia_id_t, references_vec> references_map;
 // Build the two reference maps, one for the 1: side of the relationship, another for the :N side.
 static void build_references_maps(gaia_id_t db_id, references_map& references_1, references_map& references_n)
 {
-    for (auto const& table : gaia_database_t::get(db_id).gaia_table_list())
+    for (gaia_table_t& table : gaia_database_t::get(db_id).gaia_table_list())
     {
-        field_vec field_strings;
-        for (auto ref_id : list_references(table.gaia_id()))
+        vector<gaia_relationship_t> relationships{};
+
+        // Direct access reference list API guarantees LIFO. As long as we only
+        // allow appending new references to table definitions, reversing the
+        // reference field list order should result in references being listed in
+        // the ascending order of their positions.
+        for (const gaia_relationship_t& relationship : table.child_gaia_relationship_list())
         {
-            gaia_field_t ref_record = gaia_field_t::get(ref_id);
-            auto ref_table_record = ref_record.ref_gaia_table();
-            references_1[ref_record.ref_gaia_table().gaia_id()].push_back({table.name(), ref_record.name()});
-            references_n[table.gaia_id()].push_back({ref_table_record.name(), ref_record.name()});
+            relationships.insert(relationships.begin(), relationship);
+        }
+
+        for (gaia_relationship_t relationship : relationships)
+        {
+            auto parent_table = relationship.parent_gaia_table();
+            references_1[parent_table.gaia_id()].push_back({table.name(), relationship.name()});
+            references_n[table.gaia_id()].push_back({parent_table.name(), relationship.name()});
         }
     }
 }
@@ -144,30 +154,59 @@ static string generate_constant_list(const gaia_id_t db_id, references_map& refe
     code += "// The initial size of the flatbuffer builder buffer.";
     code += "constexpr int c_flatbuffer_builder_size = 128;";
     code += "";
-    for (auto const& table_record : gaia_database_t::get(db_id).gaia_table_list())
+    for (auto& table_record : gaia_database_t::get(db_id).gaia_table_list())
     {
+        vector<gaia_relationship_t> relationships{};
+
+        // Direct access reference list API guarantees LIFO. As long as we only
+        // allow appending new references to table definitions, reversing the
+        // reference field list order should result in references being listed in
+        // the ascending order of their positions.
+        for (const gaia_relationship_t& relationship : table_record.parent_gaia_relationship_list())
+        {
+            relationships.insert(relationships.begin(), relationship);
+        }
+
         auto const_count = 0;
         code.SetValue("TABLE_NAME", table_record.name());
         code.SetValue("TABLE_TYPE", to_string(table_record.type()));
         code += "// Constants contained in the {{TABLE_NAME}} object.";
         code += "constexpr uint32_t c_gaia_type_{{TABLE_NAME}} = {{TABLE_TYPE}}u;";
-        for (auto const& ref : references_1[table_record.gaia_id()])
+        //        for (auto const& ref : references_1[table_record.gaia_id()])
+        //        {
+        //            code.SetValue("REF_TABLE", ref.name);
+        //
+        //            if (ref.ref_name.length())
+        //            {
+        //                code.SetValue("REF_NAME", ref.ref_name);
+        //            }
+        //            else
+        //            {
+        //                // This relationship is anonymous.
+        //                code.SetValue("REF_NAME", ref.name);
+        //            }
+        //
+        //            code.SetValue("CONST_VALUE", to_string(const_count++));
+        //            code += "constexpr int c_first_{{REF_NAME}}_{{REF_TABLE}} = {{CONST_VALUE}};";
+        //        }
+        for (auto& relationship : relationships)
         {
-            code.SetValue("REF_TABLE", ref.name);
+            code.SetValue("REF_TABLE", relationship.parent_gaia_table().name());
 
-            if (ref.ref_name.length())
+            if (strlen(relationship.name()))
             {
-                code.SetValue("REF_NAME", ref.ref_name);
+                code.SetValue("REF_NAME", relationship.name());
             }
             else
             {
                 // This relationship is anonymous.
-                code.SetValue("REF_NAME", ref.name);
+                code.SetValue("REF_NAME", table_record.name());
             }
 
             code.SetValue("CONST_VALUE", to_string(const_count++));
             code += "constexpr int c_first_{{REF_NAME}}_{{REF_TABLE}} = {{CONST_VALUE}};";
         }
+
         for (auto const& ref : references_n[table_record.gaia_id()])
         {
             code.SetValue("REF_TABLE", ref.name);
