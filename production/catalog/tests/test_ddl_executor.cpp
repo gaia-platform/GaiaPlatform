@@ -589,7 +589,7 @@ TEST_F(ddl_executor_test, metadata_not_exists)
     const int c_non_existent_type = 1001;
     EXPECT_THROW(
         type_registry_t::instance().get(c_non_existent_type),
-        invalid_type);
+        retail_assertion_failure);
 
     txn.commit();
 }
