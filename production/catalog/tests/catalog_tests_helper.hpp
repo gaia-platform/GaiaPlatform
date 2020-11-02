@@ -90,6 +90,16 @@ public:
         return create_table(m_db_name, m_table_name, fields, m_fail_on_exists);
     }
 
+    gaia_type_t create_type()
+    {
+        gaia_id_t table_id = create();
+        gaia::db::begin_transaction();
+        gaia_type_t type_id = gaia::catalog::gaia_table_t::get(table_id).type();
+        gaia::db::commit_transaction();
+
+        return type_id;
+    }
+
 private:
     std::string m_table_name{};
     std::string m_db_name{};

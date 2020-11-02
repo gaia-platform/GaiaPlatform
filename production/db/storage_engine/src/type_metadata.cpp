@@ -10,6 +10,7 @@
 #include "catalog.hpp"
 #include "gaia_catalog.h"
 #include "system_table_types.hpp"
+#include "type_id_record_id_cache.hpp"
 
 using gaia::catalog::data_type_t;
 using gaia::catalog::gaia_table_t;
@@ -110,6 +111,11 @@ void type_registry_t::init()
     }
 }
 
+gaia_id_t type_registry_t::get_record_id(gaia_type_t type)
+{
+    return type_id_record_id_cache_t::instance().get_record_id(type);
+}
+
 bool type_registry_t::exists(gaia_type_t type) const
 {
     shared_lock lock(m_registry_lock);
@@ -145,7 +151,8 @@ type_metadata_t& type_registry_t::test_get_or_create(gaia_type_t type)
 
 type_metadata_t& type_registry_t::create(gaia_type_t type)
 {
-    gaia_table_t child_table = gaia_table_t::get(type);
+    gaia_id_t record_id = get_record_id(type);
+    gaia_table_t child_table = gaia_table_t::get(record_id);
 
     if (!child_table)
     {
@@ -164,15 +171,15 @@ type_metadata_t& type_registry_t::create(gaia_type_t type)
         gaia_table_t parent_table = relationship.parent_gaia_table();
 
         auto rel = make_shared<relationship_t>(relationship_t{
-            .parent_type = static_cast<gaia_type_t>(parent_table.gaia_id()),
-            .child_type = static_cast<gaia_type_t>(child_table.gaia_id()),
+            .parent_type = static_cast<gaia_type_t>(parent_table.type()),
+            .child_type = static_cast<gaia_type_t>(child_table.type()),
             .first_child_offset = relationship.first_child_offset(),
             .next_child_offset = relationship.next_child_offset(),
             .parent_offset = relationship.parent_offset(),
             .cardinality = cardinality_t::many,
             .parent_required = false});
 
-        auto& parent_meta = get_or_create_no_lock(parent_table.gaia_id());
+        auto& parent_meta = get_or_create_no_lock(parent_table.type());
         parent_meta.add_parent_relationship(relationship.first_child_offset(), rel);
 
         metadata.add_child_relationship(relationship.parent_offset(), rel);

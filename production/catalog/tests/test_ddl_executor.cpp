@@ -14,6 +14,7 @@
 #include "catalog_tests_helper.hpp"
 #include "db_test_base.hpp"
 #include "gaia_catalog.h"
+#include "type_id_record_id_cache.hpp"
 #include "type_metadata.hpp"
 
 using namespace gaia::catalog;
@@ -530,35 +531,39 @@ TEST_F(ddl_executor_test, metadata)
 
     // (clinic) 1 --> N (doctor) 1 --> N (patient) N <-- 1 (clinic)
 
-    gaia_id_t clinic_table_id
+    gaia_type_t clinic_type
         = table_builder_t::new_table("clinic")
               .database("hospital")
               .field("name", data_type_t::e_string)
               .field("location", data_type_t::e_string)
-              .create();
+              .create_type();
 
-    gaia_id_t doctor_table_id
+    gaia_type_t doctor_type
         = table_builder_t::new_table("doctor")
               .database("hospital")
               .field("name", data_type_t::e_string)
               .field("surname", data_type_t::e_string)
               .reference("clinic", "hospital.clinic")
-              .create();
+              .create_type();
 
-    gaia_id_t patient_table_id
+    gaia_type_t patient_type
         = table_builder_t::new_table("patient")
               .database("hospital")
               .field("name", data_type_t::e_string)
               .reference("doctor", "hospital.doctor")
               .reference("clinic", "hospital.clinic")
-              .create();
+              .create_type();
 
     auto_transaction_t txn;
-    vector<gaia_id_t> table_ids = {clinic_table_id, doctor_table_id, patient_table_id};
-    for (gaia_id_t table_id : table_ids)
+    type_id_record_id_cache_t& cache = type_id_record_id_cache_t::instance();
+    vector<gaia_id_t> types = {clinic_type, doctor_type, patient_type};
+
+    for (gaia_id_t type_id : types)
     {
+        gaia_id_t table_id = cache.get_record_id(type_id);
         gaia_table_t child_table = gaia_table_t::get(table_id);
-        const type_metadata_t& metadata = type_registry_t::instance().get(child_table.gaia_id());
+
+        const type_metadata_t& metadata = type_registry_t::instance().get(child_table.type());
 
         for (gaia_relationship_t relationship : child_table.child_gaia_relationship_list())
         {
@@ -566,13 +571,25 @@ TEST_F(ddl_executor_test, metadata)
 
             ASSERT_TRUE(relationship_metadata.has_value());
 
-            ASSERT_EQ(child_table.gaia_id(), relationship_metadata->child_type);
-            ASSERT_EQ(relationship.parent_gaia_table().gaia_id(), relationship_metadata->parent_type);
+            ASSERT_EQ(child_table.type(), relationship_metadata->child_type);
+            ASSERT_EQ(relationship.parent_gaia_table().type(), relationship_metadata->parent_type);
 
             ASSERT_EQ(relationship.first_child_offset(), static_cast<uint8_t>(relationship_metadata->first_child_offset));
             ASSERT_EQ(relationship.next_child_offset(), static_cast<uint8_t>(relationship_metadata->next_child_offset));
             ASSERT_EQ(relationship.parent_offset(), static_cast<uint8_t>(relationship_metadata->parent_offset));
         }
     }
+    txn.commit();
+}
+
+TEST_F(ddl_executor_test, metadata_not_exists)
+{
+    auto_transaction_t txn;
+
+    const int c_non_existent_type = 1001;
+    EXPECT_THROW(
+        type_registry_t::instance().get(c_non_existent_type),
+        retail_assertion_failure);
+
     txn.commit();
 }

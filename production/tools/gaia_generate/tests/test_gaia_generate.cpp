@@ -3,7 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <fstream>
 #include <iostream>
 
 #include "gtest/gtest.h"
