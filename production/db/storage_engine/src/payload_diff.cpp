@@ -38,8 +38,10 @@ void compute_payload_diff(
         }
 
         field_position_t pos = field_view.position();
-        payload_types::data_holder_t data_holder1 = payload_types::get_field_value(type_id, payload1, schema.data(), pos);
-        payload_types::data_holder_t data_holder2 = payload_types::get_field_value(type_id, payload2, schema.data(), pos);
+        payload_types::data_holder_t data_holder1 = payload_types::get_field_value(
+            type_id, payload1, schema.data(), schema.size(), pos);
+        payload_types::data_holder_t data_holder2 = payload_types::get_field_value(
+            type_id, payload2, schema.data(), schema.size(), pos);
 
         if (data_holder1.compare(data_holder2) != 0)
         {
