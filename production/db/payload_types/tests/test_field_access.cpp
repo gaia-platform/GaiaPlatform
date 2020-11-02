@@ -304,7 +304,8 @@ void process_flatbuffers_data(bool access_fields = false)
     ASSERT_EQ(field::count_fields, type_information->get_field_count());
 
     // Add type information to type cache.
-    type_cache_t::get()->set_type_information(c_type_id, type_information);
+    bool result = type_cache_t::get()->set_type_information(c_type_id, type_information);
+    ASSERT_TRUE(result);
     ASSERT_EQ(1, type_cache_t::get()->size());
 
     if (access_fields)
@@ -369,7 +370,8 @@ void update_flatbuffers_data()
     ASSERT_EQ(field::count_fields, type_information->get_field_count());
 
     // Add type information to type cache.
-    type_cache_t::get()->set_type_information(c_type_id, type_information);
+    bool result = type_cache_t::get()->set_type_information(c_type_id, type_information);
+    ASSERT_TRUE(result);
     ASSERT_EQ(1, type_cache_t::get()->size());
 
     // Update the serialized data.

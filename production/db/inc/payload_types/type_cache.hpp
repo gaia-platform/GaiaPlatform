@@ -122,6 +122,7 @@ public:
     // This method should be used to load new type information in the cache.
     // It expects the cache to contain no data for the type.
     // It returns true if the cache was updated and false if an entry for the type was found to exist already.
+    // If the type_information is set into the cache, its memory will become owned by the cache.
     bool set_type_information(gaia::common::gaia_type_t type_id, const type_information_t* type_information);
 
     // Return the size of the internal map.
