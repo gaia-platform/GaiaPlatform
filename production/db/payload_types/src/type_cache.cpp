@@ -46,7 +46,7 @@ const reflection::Field* type_information_t::get_field(field_position_t field_po
     return (iterator == m_field_map.end()) ? nullptr : iterator->second;
 }
 
-size_t type_information_t::get_field_count()
+size_t type_information_t::get_field_count() const
 {
     return m_field_map.size();
 }
@@ -85,24 +85,21 @@ bool type_cache_t::remove_type_information(gaia_type_t type_id)
     auto iterator = m_type_map.find(type_id);
     if (iterator != m_type_map.end())
     {
-        const type_information_t* type_information = iterator->second;
-
         // Take an exclusive lock on the record that we want to remove.
         // This will ensure that nobody else is reading it.
         iterator->second->m_lock.lock();
 
         m_type_map.erase(iterator);
-        delete type_information;
         removed_type_information = true;
     }
 
     return removed_type_information;
 }
 
-bool type_cache_t::set_type_information(gaia_type_t type_id, const type_information_t* type_information)
+bool type_cache_t::set_type_information(gaia_type_t type_id, shared_ptr<const type_information_t>& type_information)
 {
     retail_assert(
-        type_information != nullptr,
+        !!type_information,
         "type_cache_t::set_type_information() should not be called with a null cache!");
 
     bool inserted_type_information = false;
@@ -124,14 +121,9 @@ size_t type_cache_t::size() const
     return m_type_map.size();
 }
 
-auto_type_information_t::auto_type_information_t()
-{
-    m_type_information = nullptr;
-}
-
 auto_type_information_t::~auto_type_information_t()
 {
-    if (m_type_information != nullptr)
+    if (m_type_information)
     {
         m_type_information->m_lock.unlock_shared();
     }
@@ -139,13 +131,13 @@ auto_type_information_t::~auto_type_information_t()
 
 const type_information_t* auto_type_information_t::get()
 {
-    return m_type_information;
+    return m_type_information ? m_type_information.get() : nullptr;
 }
 
-void auto_type_information_t::set(const type_information_t* type_information)
+void auto_type_information_t::set(const shared_ptr<const type_information_t>& type_information)
 {
     retail_assert(
-        m_type_information == nullptr,
+        !m_type_information,
         "auto_type_information_t::set() was called on an already set instance!");
 
     m_type_information = type_information;

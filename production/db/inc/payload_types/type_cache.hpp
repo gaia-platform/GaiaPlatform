@@ -69,7 +69,7 @@ public:
     const reflection::Field* get_field(gaia::common::field_position_t field_position) const;
 
     // Return the size of the internal map.
-    size_t get_field_count();
+    size_t get_field_count() const;
 
 protected:
     // Reading these entries will hold read locks, whereas update operations will request exclusive locks.
@@ -86,7 +86,7 @@ protected:
     field_map_t m_field_map;
 };
 
-typedef std::unordered_map<gaia::common::gaia_type_t, const type_information_t*> type_information_map_t;
+typedef std::unordered_map<gaia::common::gaia_type_t, std::shared_ptr<const type_information_t>> type_information_map_t;
 
 class auto_type_information_t;
 
@@ -112,7 +112,9 @@ public:
     // To ensure the release of that lock once the type information is no longer used,
     // it is returned in an auto_type_information_t wrapper that will release the lock
     // at the time the wrapper gets destroyed.
-    void get_type_information(gaia::common::gaia_type_t type_id, auto_type_information_t& auto_type_information) const;
+    void get_type_information(
+        gaia::common::gaia_type_t type_id,
+        auto_type_information_t& auto_type_information) const;
 
     // This method should be called whenever the information for a type is being changed.
     // It will return true if the entry was found and deleted, and false if it was not found
@@ -122,8 +124,9 @@ public:
     // This method should be used to load new type information in the cache.
     // It expects the cache to contain no data for the type.
     // It returns true if the cache was updated and false if an entry for the type was found to exist already.
-    // If the type_information is set into the cache, its memory will become owned by the cache.
-    bool set_type_information(gaia::common::gaia_type_t type_id, const type_information_t* type_information);
+    bool set_type_information(
+        gaia::common::gaia_type_t type_id,
+        std::shared_ptr<const type_information_t>& type_information);
 
     // Return the size of the internal map.
     size_t size() const;
@@ -147,7 +150,7 @@ class auto_type_information_t
     friend class type_cache_t;
 
 public:
-    auto_type_information_t();
+    auto_type_information_t() = default;
     ~auto_type_information_t();
 
     // Do not allow copies to be made;
@@ -158,9 +161,9 @@ public:
     const type_information_t* get();
 
 protected:
-    const type_information_t* m_type_information;
+    std::shared_ptr<const type_information_t> m_type_information;
 
-    void set(const type_information_t* type_information);
+    void set(const std::shared_ptr<const type_information_t>& type_information);
 };
 
 } // namespace payload_types

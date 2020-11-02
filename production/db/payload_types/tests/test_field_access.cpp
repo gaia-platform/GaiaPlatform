@@ -299,8 +299,11 @@ void process_flatbuffers_data(bool access_fields = false)
     ASSERT_EQ(true, verify_data_schema(data_loader.get_data(), data_loader.get_data_length(), schema_loader.get_data()));
 
     // Create and initialize a type_information.
-    auto type_information = new type_information_t();
-    initialize_type_information_from_binary_schema(type_information, schema_loader.get_data(), schema_loader.get_data_length());
+    shared_ptr<const type_information_t> type_information = make_shared<const type_information_t>();
+    initialize_type_information_from_binary_schema(
+        const_cast<type_information_t*>(type_information.get()),
+        schema_loader.get_data(),
+        schema_loader.get_data_length());
     ASSERT_EQ(field::count_fields, type_information->get_field_count());
 
     // Add type information to type cache.
@@ -365,8 +368,11 @@ void update_flatbuffers_data()
     ASSERT_EQ(true, verify_data_schema(data_loader.get_data(), data_loader.get_data_length(), schema_loader.get_data()));
 
     // Create and initialize a type_information.
-    auto type_information = new type_information_t();
-    initialize_type_information_from_binary_schema(type_information, schema_loader.get_data(), schema_loader.get_data_length());
+    shared_ptr<const type_information_t> type_information = make_shared<const type_information_t>();
+    initialize_type_information_from_binary_schema(
+        const_cast<type_information_t*>(type_information.get()),
+        schema_loader.get_data(),
+        schema_loader.get_data_length());
     ASSERT_EQ(field::count_fields, type_information->get_field_count());
 
     // Add type information to type cache.
