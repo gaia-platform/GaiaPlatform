@@ -599,7 +599,17 @@ gaia_id_t ddl_executor_t::create_table_impl(
             parent_table.ref_gaia_field_list().insert(field_id);
 
             uint8_t parent_available_offset = find_available_offset(parent_table.gaia_id());
-            uint8_t child_max_offset = find_available_offset(table.gaia_id());
+            uint8_t child_available_offset;
+
+            if (parent_table == table)
+            {
+                // this is a self-relationship, both parent and child pointers are in the same table.
+                child_available_offset = parent_available_offset + 1;
+            }
+            else
+            {
+                child_available_offset = find_available_offset(table.gaia_id());
+            }
 
             gaia_id_t relationship_id = gaia_relationship_t::insert_row(
                 child_field.name(), // name
@@ -607,8 +617,8 @@ gaia_id_t ddl_executor_t::create_table_impl(
                 false, // parent_required
                 false, // deprecated
                 parent_available_offset, // first_child_offset
-                child_max_offset, // next_child_offset
-                uint8_t(child_max_offset + 1) // parent_offset
+                child_available_offset + 1, // next_child_offset
+                uint8_t(child_available_offset) // parent_offset
             );
             auto rel = gaia_relationship_t::get(relationship_id);
 

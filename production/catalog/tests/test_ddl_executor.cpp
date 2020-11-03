@@ -448,8 +448,8 @@ TEST_F(ddl_executor_test, create_relationships)
 
     ASSERT_STREQ("clinic", clinic_doctor_relationship.name());
     ASSERT_EQ(uint8_t{0}, clinic_doctor_relationship.first_child_offset()); // clinic
-    ASSERT_EQ(uint8_t{0}, clinic_doctor_relationship.next_child_offset()); // doctor
-    ASSERT_EQ(uint8_t{1}, clinic_doctor_relationship.parent_offset()); // doctor
+    ASSERT_EQ(uint8_t{0}, clinic_doctor_relationship.parent_offset()); // doctor
+    ASSERT_EQ(uint8_t{1}, clinic_doctor_relationship.next_child_offset()); // doctor
 
     // check doctor --> patient
 
@@ -463,8 +463,8 @@ TEST_F(ddl_executor_test, create_relationships)
 
     ASSERT_STREQ("doctor", doctor_patient_relationship.name());
     ASSERT_EQ(uint8_t{2}, doctor_patient_relationship.first_child_offset()); // doctor
-    ASSERT_EQ(uint8_t{0}, doctor_patient_relationship.next_child_offset()); // patient
-    ASSERT_EQ(uint8_t{1}, doctor_patient_relationship.parent_offset()); // patient
+    ASSERT_EQ(uint8_t{0}, doctor_patient_relationship.parent_offset()); // patient
+    ASSERT_EQ(uint8_t{1}, doctor_patient_relationship.next_child_offset()); // patient
 
     // check clinic --> patient
 
@@ -478,8 +478,8 @@ TEST_F(ddl_executor_test, create_relationships)
 
     ASSERT_STREQ("clinic", clinic_patient_relationship.name());
     ASSERT_EQ(uint8_t{1}, clinic_patient_relationship.first_child_offset()); // clinic
-    ASSERT_EQ(uint8_t{2}, clinic_patient_relationship.next_child_offset()); // patient
-    ASSERT_EQ(uint8_t{3}, clinic_patient_relationship.parent_offset()); // patient
+    ASSERT_EQ(uint8_t{2}, clinic_patient_relationship.parent_offset()); // patient
+    ASSERT_EQ(uint8_t{3}, clinic_patient_relationship.next_child_offset()); // patient
     txn.commit();
 }
 
@@ -522,6 +522,16 @@ TEST_F(ddl_executor_test, create_self_relationships)
 
     ASSERT_EQ(1, container_size(doctor_table.parent_gaia_relationship_list()));
     ASSERT_EQ(1, container_size(doctor_table.child_gaia_relationship_list()));
+
+    gaia_relationship_t parent_relationship = *doctor_table.parent_gaia_relationship_list().begin();
+    gaia_relationship_t child_relationship = *doctor_table.child_gaia_relationship_list().begin();
+
+    ASSERT_EQ(parent_relationship, child_relationship);
+
+    ASSERT_EQ(uint8_t{0}, parent_relationship.first_child_offset()); // clinic
+    ASSERT_EQ(uint8_t{1}, parent_relationship.parent_offset()); // patient
+    ASSERT_EQ(uint8_t{2}, parent_relationship.next_child_offset()); // patient
+
     txn.commit();
 }
 
