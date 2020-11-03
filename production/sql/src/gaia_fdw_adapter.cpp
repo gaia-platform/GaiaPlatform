@@ -159,11 +159,13 @@ List* adapter_t::get_ddl_command_list(const char* server_name)
 
     for (auto table_view : catalog_core_t::list_tables())
     {
+        // Generate DDL statement for current table and log it.
         string ddl_formatted_statement = gaia::catalog::generate_fdw_ddl(table_view.id(), server_name);
+        elog(LOG, ddl_formatted_statement.c_str());
 
-        auto statement_buffer = reinterpret_cast<char*>(palloc(ddl_formatted_statement.size()));
-
-        memcpy(statement_buffer, ddl_formatted_statement.c_str(), ddl_formatted_statement.length());
+        // Copy DDL statement into a Postgres buffer.
+        auto statement_buffer = reinterpret_cast<char*>(palloc(ddl_formatted_statement.size() + 1));
+        strncpy(statement_buffer, ddl_formatted_statement.c_str(), ddl_formatted_statement.size() + 1);
 
         commands = lappend(commands, statement_buffer);
     }

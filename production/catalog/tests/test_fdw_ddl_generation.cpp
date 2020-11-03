@@ -35,14 +35,14 @@ field_def_list_t fdw_ddl_generation_test::test_table_fields;
 
 constexpr char c_expected_fdw_ddl[]
     = "create foreign table test_table(\n"
+      "gaia_id bigint,\n"
       "id bigint,\n"
       "name text,\n"
       "age smallint,\n"
       "value real,\n"
       "larger_value double precision,\n"
       "parent bigint\n"
-      ")\n"
-      "server test_server\n";
+      ") server test_server;\n";
 
 TEST_F(fdw_ddl_generation_test, generate_fdw_ddl_from_catalog)
 {

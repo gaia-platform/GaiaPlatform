@@ -19,54 +19,9 @@ CREATE SERVER gaia FOREIGN DATA WRAPPER gaia_fdw
 
 CREATE SCHEMA airport_fdw;
 
---IMPORT FOREIGN SCHEMA airport_fdw
---FROM
---    SERVER gaia INTO airport_fdw;
-
-create foreign table airport_fdw.airlines(
-    gaia_id bigint,
-    al_id int,
-    name text,
-    alias text,
-    iata char(3),
-    icao char(5),
-    callsign text,
-    country text,
-    active char(1)
-) server gaia;
-
-create foreign table airport_fdw.airports(
-    gaia_id bigint,
-    ap_id int,
-    name text,
-    city text,
-    country text,
-    iata char(3),
-    icao char(4),
-    latitude double precision,
-    longitude double precision,
-    altitude int,
-    timezone float,
-    dst char(1),
-    tztext text,
-    type text,
-    source text
-) server gaia;
-
-create foreign table airport_fdw.routes(
-    gaia_id bigint,
---    gaia_src_id bigint,
---    gaia_dst_id bigint,
-    airline text,
-    al_id int,
-    src_ap varchar(4),
-    src_ap_id int,
-    dst_ap varchar(4),
-    dst_ap_id int,
-    codeshare char(1),
-    stops int,
-    equipment text
-) server gaia;
+IMPORT FOREIGN SCHEMA airport_fdw
+FROM
+   SERVER gaia INTO airport_fdw;
 
 -- raw_tables are the csv tables without any gaia info in them.
 CREATE TABLE rawdata_airlines (
