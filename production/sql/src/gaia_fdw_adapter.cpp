@@ -323,10 +323,7 @@ void modify_state_t::initialize_modify()
 
 void modify_state_t::set_field_value(size_t field_index, const Datum& field_value)
 {
-    if (is_gaia_id_field_index(field_index))
-    {
-        return;
-    }
+    assert(!is_gaia_id_field_index(field_index));
 
     attribute_builder_fn accessor = m_indexed_builders[field_index];
     accessor(&m_builder, field_value);
