@@ -60,6 +60,8 @@ add_dependencies(gaia_fdw "airport_q1.fbs")
 target_include_directories(gaia_fdw PRIVATE "${PROJECT_SOURCE_DIR}/inc")
 target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/public/common")
 target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/internal/common")
+target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/internal/catalog")
+target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/public/catalog")
 target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/public/db")
 target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/internal/db")
 target_include_directories(gaia_fdw SYSTEM PRIVATE "${GEN_DIR}")
@@ -67,6 +69,7 @@ target_include_directories(gaia_fdw SYSTEM PRIVATE "${PGSQL_INCLUDEDIR_SERVER}")
 
 target_link_libraries(gaia_fdw PRIVATE flatccrt)
 target_link_libraries(gaia_fdw PRIVATE gaia_se_client)
+target_link_libraries(gaia_fdw PRIVATE gaia_catalog)
 
 # Extension configuration.
 
