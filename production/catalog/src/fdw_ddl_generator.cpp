@@ -30,7 +30,7 @@ static string generate_fdw_ddl_field(const string& name, const string& type, int
     else
     {
         // Handle arrays as bytea for now.
-        return name + " bytea";
+        return name + " BYTEA";
     }
 }
 
@@ -39,31 +39,31 @@ string get_fdw_data_type_name(data_type_t data_type)
     switch (data_type)
     {
     case data_type_t::e_bool:
-        return "boolean";
+        return "BOOLEAN";
 
     case data_type_t::e_int8:
     case data_type_t::e_uint8:
     case data_type_t::e_int16:
     case data_type_t::e_uint16:
-        return "smallint";
+        return "SMALLINT";
 
     case data_type_t::e_int32:
     case data_type_t::e_uint32:
-        return "integer";
+        return "INTEGER";
 
     case data_type_t::e_int64:
     case data_type_t::e_uint64:
     case data_type_t::e_references:
-        return "bigint";
+        return "BIGINT";
 
     case data_type_t::e_float:
-        return "real";
+        return "REAL";
 
     case data_type_t::e_double:
-        return "double precision";
+        return "DOUBLE PRECISION";
 
     case data_type_t::e_string:
-        return "text";
+        return "TEXT";
 
     default:
         stringstream message;
@@ -93,11 +93,11 @@ string generate_fdw_ddl(gaia_id_t table_id, const string& server_name)
     }
 
     stringstream ddl_string_stream;
-    ddl_string_stream << "create foreign table ";
+    ddl_string_stream << "CREATE FOREIGN TABLE ";
 
     gaia_table_t table = gaia_table_t::get(table_id);
     ddl_string_stream << table.name() << "(" << endl;
-    ddl_string_stream << "gaia_id bigint";
+    ddl_string_stream << "gaia_id BIGINT";
 
     // Concatenate the fields and references.
     vector<gaia_id_t> fields = list_fields(table_id);
@@ -122,7 +122,7 @@ string generate_fdw_ddl(gaia_id_t table_id, const string& server_name)
 
     ddl_string_stream
         << endl
-        << ") server " << server_name << ";" << endl;
+        << ") SERVER " << server_name << ";" << endl;
 
     if (!was_transaction_already_active)
     {
@@ -136,10 +136,10 @@ string generate_fdw_ddl(
     const string& table_name, const ddl::field_def_list_t& fields, const string& server_name)
 {
     stringstream ddl_string_stream;
-    ddl_string_stream << "create foreign table ";
+    ddl_string_stream << "CREATE FOREIGN TABLE ";
 
     ddl_string_stream << table_name << "(" << endl;
-    ddl_string_stream << "gaia_id bigint";
+    ddl_string_stream << "gaia_id BIGINT";
 
     for (auto& field : fields)
     {
@@ -158,7 +158,7 @@ string generate_fdw_ddl(
 
     ddl_string_stream
         << endl
-        << ") server " << server_name << ";" << endl;
+        << ") SERVER " << server_name << ";" << endl;
 
     return ddl_string_stream.str();
 }
