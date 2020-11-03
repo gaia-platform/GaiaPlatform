@@ -535,7 +535,7 @@ int main(int argc, const char **argv) {
     }
 
     simulation_t sim;
-    gaia::system::initialize();
+    gaia::system::initialize("./gaia_conf.toml");
 
     printf("-----------------------------------------\n");
     printf("Gaia Incubator\n\n");

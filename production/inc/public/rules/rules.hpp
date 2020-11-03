@@ -277,6 +277,16 @@ public:
 };
 
 /**
+ * Thrown if the Gaia system is initialized with invalid rules engine
+ * configuration settings.
+ */
+class configuration_error : public gaia::common::gaia_exception
+{
+public:
+    configuration_error(const char* key, int value);
+};
+
+/**
  * Initializes the rules engine.  Should only be called once
  * per process.
  *

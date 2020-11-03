@@ -5,6 +5,7 @@
 
 #include "gaia_system.hpp"
 
+#include "cpptoml.h"
 #include "catalog.hpp"
 #include "cpptoml.h"
 #include "gaia_db.hpp"
