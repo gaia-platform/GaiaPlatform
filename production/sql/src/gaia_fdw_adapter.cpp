@@ -7,6 +7,9 @@
 
 #include <fstream>
 
+#include "catalog_core.hpp"
+#include "catalog_internal.hpp"
+
 using namespace std;
 using namespace gaia::db;
 
@@ -150,7 +153,24 @@ uint64_t adapter_t::get_new_gaia_id()
 // out of table definitions.
 List* adapter_t::get_ddl_command_list(const char* server_name)
 {
-    return NIL;
+    List* commands = NIL;
+
+    gaia::db::begin_transaction();
+
+    for (auto table_view : catalog_core_t::list_tables())
+    {
+        string ddl_formatted_statement = gaia::catalog::generate_fdw_ddl(table_view.id(), server_name);
+
+        auto statement_buffer = reinterpret_cast<char*>(palloc(ddl_formatted_statement.size()));
+
+        memcpy(statement_buffer, ddl_formatted_statement.c_str(), ddl_formatted_statement.length());
+
+        commands = lappend(commands, statement_buffer);
+    }
+
+    gaia::db::commit_transaction();
+
+    return commands;
 }
 
 bool state_t::initialize(const char* table_name, size_t count_fields)
