@@ -651,11 +651,11 @@ extern "C" TupleTableSlot* gaia_exec_foreign_insert(
 
             gaia_id = gaia::fdw::adapter_t::get_new_gaia_id();
         }
+        // If we have a null value, just don't bother to set it in the builder.
         else if (!slot->tts_isnull[attr_idx])
         {
             attr_val = slot->tts_values[attr_idx];
 
-            // If we have a null value, just don't bother to set it in the builder.
             modify_state->set_field_value(attr_idx, attr_val);
         }
     }
