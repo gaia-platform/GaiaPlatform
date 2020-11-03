@@ -525,8 +525,12 @@ void generate_rules(Rewriter &rewriter)
         string rule_name = g_current_ruleset + "_" + g_current_rule_declaration->getName().str() + "_" + to_string(rule_count);
         common_subscription_code.append("rule_binding_t ").append(rule_name).append("binding(\"")
             .append(g_current_ruleset).append("\",\"").append(g_current_ruleset).append("::")
-            .append(to_string(g_current_ruleset_rule_number)).append("_").append(to_string(rule_count))
-            .append("\",").append(g_current_ruleset).append("::").append(rule_name).append(");\n");
+            .append(to_string(g_current_ruleset_rule_number));
+        if (g_active_fields.size() > 1)
+        {
+            common_subscription_code.append("_").append(table);
+        }
+        common_subscription_code.append("\",").append(g_current_ruleset).append("::").append(rule_name).append(");\n");
         field_subscription_code =  "field_position_list_t fields_" + rule_name + ";\n";
 
         if (fd.second.find("LastOperation") != fd.second.end())
@@ -1056,7 +1060,7 @@ public:
         g_current_rule_declaration = rule_declaration;
         g_used_tables.clear();
         g_active_fields.clear();
-        g_current_ruleset_rule_number ++;
+        g_current_ruleset_rule_number++;
     }
 
 private:
