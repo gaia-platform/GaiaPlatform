@@ -6,7 +6,7 @@
 #include "gtest/gtest.h"
 #include "gaia_barn_storage.h"
 #include "rules.hpp"
-#include "gaia_catalog_internal.hpp"
+#include "ddl_execution.hpp"
 #include "db_test_base.hpp"
 
 using namespace std;
