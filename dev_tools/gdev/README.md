@@ -354,20 +354,20 @@ TODO
     # if we use `gdev build`, but don't specify `--cfg-includes \
     # translation_engine`.
 
-# Note that the `[run]` section above is the first valid `[run]` section that
-# the cfg parser will evaluate, so it is the one that is always used. The
-# following examples of gated `[run]` sections are shadowed by the one above.
+ Note that the `[run]` section above is the first valid `[run]` section that
+ the cfg parser will evaluate, so it is the one that is always used. The
+ following examples of gated `[run]` sections are shadowed by the one above.
 
 {enable_if('translation_engine')}[run]
-# alternatively, you could have an entire `[run]` section gated with the above \
-# line. If you do so, you should also gate the default `[run]` section with \
-# `enable_if_not('translation_engine')`.
+ alternatively, you could have an entire `[run]` section gated with the above \
+ line. If you do so, you should also gate the default `[run]` section with \
+ `enable_if_not('translation_engine')`.
 {enable_if_not('translation_engine')}[run]
 
 ## enable_if_any, enable_if_not_any, enable_if_all, enable_if_not_all
 
-# Similar the enable_if and enable_if_not, but multiple keywords may be
-# specified. A good example would be
+ Similar the enable_if and enable_if_not, but multiple keywords may be
+ specified. A good example would be
 cmake \
     {enable_if_not_any('debug', 'production_debug')}-DCMAKE_BUILD_TYPE=Release \
     {enable_if_any('debug', 'production_debug')}-DCMAKE_BUILD_TYPE=Debug \
