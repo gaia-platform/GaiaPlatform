@@ -159,39 +159,40 @@ void persistent_store_manager::prepare_wal_for_write(std::string& txn_name)
  * Additionally, this method will recover the max gaia_id/txn_id's seen by previous
  * incarnations of the database.
  *
- * Todo (Mihir) The current implementation has an issue where deleted gaia_ids may get recycled post
+ * TODO: (Mihir) The current implementation has an issue where deleted gaia_ids may get recycled post
  * recovery. Both the last seen gaia_id & txn_id need to be
  * persisted to the RocksDB manifest. https://github.com/facebook/rocksdb/wiki/MANIFEST
  *
- * Note that, for now we skip validating the existence of object references on recovery,
+ * TODO: (Mihir) For now we skip validating the existence of object references on recovery,
  * since these aren't validated during object creation either.
- * 
- * Ideally max id would have been the ID of the last key since the RocksDB iterator returns keys (gaia IDs)
- * in sorted order; but we reserve a range of IDs towards the end of the spectrum of IDs so mentioned approach isn't 
- * possible.
  */
 void persistent_store_manager::recover()
 {
-    auto it = std::unique_ptr<rocksdb::Iterator>(rdb_internal->get_iterator());
+    // Create a backward iterator to obtain the last key and thus the largest gaia ID.
     gaia_id_t max_id = 0;
-    gaia_type_t max_type = 0;
+    auto iterate_to_last = std::unique_ptr<rocksdb::Iterator>(rdb_internal->get_iterator());
+    for (iterate_to_last->SeekToLast(); iterate_to_last->Valid(); iterate_to_last->Prev())
+    {
+        max_id = decode_key(iterate_to_last->key());
+        // Break after one loop.
+        break;
+    }
+    rdb_internal->handle_rdb_error(iterate_to_last->status());
+
+    // Create another forward iterator for recovery.
+    auto it = std::unique_ptr<rocksdb::Iterator>(rdb_internal->get_iterator());
+    gaia_type_t max_type_id = 0;
     for (it->SeekToFirst(); it->Valid(); it->Next())
     {
-        gaia_id_t id;
-        gaia_type_t type_id;
-        decode_object(it->key(), it->value(), &id, &type_id);
-        if (id > max_id && id < c_system_table_reserved_range_start)
-        {
-            max_id = id;
-        }
-
-        if (type_id > max_type) {
-            max_type = type_id;
+        gaia_type_t type_id = decode_object(it->key(), it->value());
+        if (type_id > max_type_id && type_id < c_system_table_reserved_range_start) {
+            max_type_id = type_id;
         }
     }
     // Check for any errors found during the scan
     rdb_internal->handle_rdb_error(it->status());
     server::s_data->next_object_id = max_id;
+    server::s_data->next_type_id = max_type_id;
 }
 
 void persistent_store_manager::destroy_persistent_store()
