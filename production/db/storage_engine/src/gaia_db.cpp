@@ -44,8 +44,8 @@ bool gaia::db::set_commit_trigger(commit_trigger_fn trigger_fn)
     return gaia::db::client::set_commit_trigger(trigger_fn);
 }
 
-gaia_type_t gaia::db::generate_type() {
-    return gaia::db::client::generate_type();
+gaia_type_t gaia::db::allocate_type_id() {
+    return gaia::db::client::allocate_type_id();
 }
 
 void gaia::db::clear_shared_memory()

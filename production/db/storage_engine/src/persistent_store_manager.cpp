@@ -178,20 +178,20 @@ void persistent_store_manager::recover()
     for (it->SeekToFirst(); it->Valid(); it->Next())
     {
         gaia_id_t id;
-        gaia_type_t type;
-        decode_object(it->key(), it->value(), &id, &type);
+        gaia_type_t type_id;
+        decode_object(it->key(), it->value(), &id, &type_id);
         if (id > max_id && id < c_system_table_reserved_range_start)
         {
             max_id = id;
         }
 
-        if (type > max_type) {
-            max_type = type;
+        if (type_id > max_type) {
+            max_type = type_id;
         }
     }
     // Check for any errors found during the scan
     rdb_internal->handle_rdb_error(it->status());
-    server::s_data->next_id = max_id;
+    server::s_data->next_object_id = max_id;
 }
 
 void persistent_store_manager::destroy_persistent_store()

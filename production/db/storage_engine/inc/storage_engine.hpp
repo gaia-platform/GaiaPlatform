@@ -82,8 +82,8 @@ protected:
         // we use atomic intrinsics for mutating the counters. This is because
         // the instructions targeted by the intrinsics operate at the level of
         // physical memory, not virtual addresses.
-        gaia_id_t next_id;
-        gaia_type_t next_type;
+        gaia_id_t next_object_id;
+        gaia_type_t next_type_id;
         gaia_txn_id_t next_txn_id;
         size_t locator_count;
         size_t hash_node_count;
@@ -114,13 +114,19 @@ protected:
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
 
 public:
+
     // Counters for ID and type will be initialized on recovery.
-    static gaia_id_t generate_id(data* data)
+    static gaia_id_t allocate_object_id(data* data)
     {
-        gaia_id_t id = __sync_add_and_fetch(&data->next_id, 1);
-        return id;
+        gaia_id_t next_object_id = __sync_add_and_fetch(&data->next_object_id, 1);
+        return next_object_id;
     }
-    
+
+    static gaia_type_t allocate_type_id(data* data) {
+        gaia_type_t next_type_id = __sync_add_and_fetch(&data->next_type_id, 1);
+        return next_type_id;
+    }
+
     static gaia_txn_id_t allocate_txn_id(data* s_data)
     {
         gaia_txn_id_t txn_id = __sync_add_and_fetch(&s_data->next_txn_id, 1);

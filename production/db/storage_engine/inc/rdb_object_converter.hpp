@@ -234,8 +234,8 @@ void encode_object(
 void decode_object(
     const rocksdb::Slice& key,
     const rocksdb::Slice& value,
-    gaia_id_t* max_id,
-    gaia_type_t* max_type);
+    gaia_id_t* id,
+    gaia_type_t* type_id);
 
 } // namespace db
 } // namespace gaia
