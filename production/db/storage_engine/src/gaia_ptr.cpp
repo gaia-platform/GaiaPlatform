@@ -71,7 +71,7 @@ void gaia_ptr::remove(gaia_ptr& node)
     const gaia_id_t* references = node.references();
     for (size_t i = 0; i < node.num_references(); i++)
     {
-        if (references[i] != INVALID_GAIA_ID)
+        if (references[i] != c_invalid_gaia_id)
         {
             throw node_not_disconnected(node.id(), node.type());
         }
@@ -273,7 +273,7 @@ void gaia_ptr::add_child_reference(gaia_id_t child_id, reference_offset_t first_
 
     // CHECK CARDINALITY
 
-    if (references()[first_child_offset] != INVALID_GAIA_ID)
+    if (references()[first_child_offset] != c_invalid_gaia_id)
     {
         // This parent already has a child for this relationship.
         // If the relationship is one-to-one we fail.
@@ -285,7 +285,7 @@ void gaia_ptr::add_child_reference(gaia_id_t child_id, reference_offset_t first_
 
     // Note: we check only for parent under the assumption that the relational integrity
     // is preserved thus if there are no parent references there are no next_child_offset either
-    if (child_ptr.references()[relationship->parent_offset] != INVALID_GAIA_ID)
+    if (child_ptr.references()[relationship->parent_offset] != c_invalid_gaia_id)
     {
         // ATM we don't allow a reference to be re-assigned on the fly.
         // Users need to explicitly call remove_child_reference() or
@@ -371,10 +371,10 @@ void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t fir
     gaia_offset_t old_child_offset = child_ptr.to_offset();
     child_ptr.clone_no_txn();
 
-    gaia_id_t prev_child = INVALID_GAIA_ID;
+    gaia_id_t prev_child = c_invalid_gaia_id;
     gaia_id_t curr_child = references()[first_child_offset];
 
-    while (curr_child != child_id && curr_child != INVALID_GAIA_ID)
+    while (curr_child != child_id && curr_child != c_invalid_gaia_id)
     {
         prev_child = curr_child;
         curr_child = gaia_ptr(prev_child).references()[relationship->next_child_offset];
@@ -398,8 +398,8 @@ void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t fir
                 = curr_ptr.references()[relationship->next_child_offset];
         }
 
-        curr_ptr.references()[relationship->parent_offset] = INVALID_GAIA_ID;
-        curr_ptr.references()[relationship->next_child_offset] = INVALID_GAIA_ID;
+        curr_ptr.references()[relationship->parent_offset] = c_invalid_gaia_id;
+        curr_ptr.references()[relationship->next_child_offset] = c_invalid_gaia_id;
     }
 
     client::txn_log(m_locator, old_parent_offset, to_offset(), gaia_operation_t::update);
@@ -453,7 +453,7 @@ void gaia_ptr::update_parent_reference(gaia_id_t new_parent_id, reference_offset
     //  https://gaiaplatform.atlassian.net/browse/GAIAPLAT-435
 
     // CHECK CARDINALITY
-    if (new_parent_ptr.references()[relationship->first_child_offset] != INVALID_GAIA_ID)
+    if (new_parent_ptr.references()[relationship->first_child_offset] != c_invalid_gaia_id)
     {
         // This parent already has a child for this relationship.
         // If the relationship is one-to-one we fail.

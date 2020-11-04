@@ -5,8 +5,8 @@ project(gaiat VERSION 0.0.0)
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 
 set(TRANSLATION_ENGINE_INCLUDES
-  ${GAIA_REPO}/third_party/private/TranslationEngineLLVM/clang/include
-  ${GAIA_REPO}/third_party/private/TranslationEngineLLVM/llvm/include
+  ${GAIA_REPO}/third_party/production/TranslationEngineLLVM/clang/include
+  ${GAIA_REPO}/third_party/production/TranslationEngineLLVM/llvm/include
   ${GAIA_PROD_BUILD}/llvm/include
   ${GAIA_PROD_BUILD}/llvm/tools/clang/include
   ${GAIA_PROD_BUILD}/llvm/include

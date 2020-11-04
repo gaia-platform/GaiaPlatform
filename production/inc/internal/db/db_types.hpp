@@ -23,7 +23,7 @@ typedef uint64_t gaia_txn_id_t;
 /**
  * The value of an invalid gaia_txn_id.
  */
-constexpr gaia_txn_id_t INVALID_GAIA_TXN_ID = 0;
+constexpr gaia_txn_id_t c_invalid_gaia_txn_id = 0;
 
 /**
  * The type of a Gaia locator id.
@@ -38,7 +38,7 @@ typedef uint64_t gaia_locator_t;
 /**
  * The value of an invalid gaia_locator.
  */
-constexpr gaia_locator_t INVALID_GAIA_LOCATOR = 0;
+constexpr gaia_locator_t c_invalid_gaia_locator = 0;
 
 /**
  * The type of a Gaia data offset.
@@ -52,7 +52,7 @@ typedef uint64_t gaia_offset_t;
 /**
  * The value of an invalid gaia_offset.
  */
-constexpr gaia_offset_t INVALID_GAIA_OFFSET = 0;
+constexpr gaia_offset_t c_invalid_gaia_offset = 0;
 
 } // namespace db
 } // namespace gaia

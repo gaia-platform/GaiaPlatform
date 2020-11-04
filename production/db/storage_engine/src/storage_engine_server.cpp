@@ -10,20 +10,6 @@
 using namespace gaia::db;
 using namespace gaia::db::messages;
 
-int server::s_server_shutdown_eventfd = -1;
-int server::s_listening_socket = -1;
-std::shared_mutex server::s_locators_lock;
-int server::s_fd_data = -1;
-se_base::data* server::s_data = nullptr;
-int server::s_fd_locators = -1;
-se_base::locators* server::s_shared_locators = nullptr;
-std::unique_ptr<persistent_store_manager> server::rdb{};
-thread_local session_state_t server::s_session_state = session_state_t::DISCONNECTED;
-thread_local bool server::s_session_shutdown = false;
-thread_local int server::s_session_shutdown_eventfd = -1;
-thread_local std::vector<std::thread> server::s_session_owned_threads;
-constexpr server::valid_transition_t server::s_valid_transitions[];
-
 void server::handle_connect(
     int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
@@ -140,13 +126,14 @@ void server::handle_request_stream(
     // semantics: datagrams allow buffering without framing, and a connection
     // ensures that client returns EOF after server has called shutdown(SHUT_WR).
     int socket_pair[2];
-    constexpr int server = 0, client = 1;
+    constexpr int c_server_index = 0;
+    constexpr int c_client_index = 1;
     if (-1 == ::socketpair(PF_UNIX, SOCK_SEQPACKET, 0, socket_pair))
     {
         throw_system_error("socketpair failed");
     }
-    int server_socket = socket_pair[server];
-    int client_socket = socket_pair[client];
+    int server_socket = socket_pair[c_server_index];
+    int client_socket = socket_pair[c_client_index];
     auto socket_cleanup = make_scope_guard([server_socket, client_socket]() {
         ::close(server_socket);
         ::close(client_socket);
@@ -300,12 +287,16 @@ void server::init_shared_memory()
 
 void server::recover_db()
 {
-    // Open RocksDB just once.
-    if (!rdb)
+    // If persistence is disabled, then this is a no-op.
+    if (!s_disable_persistence)
     {
-        rdb = make_unique<gaia::db::persistent_store_manager>();
-        rdb->open();
-        rdb->recover();
+        // Open RocksDB just once.
+        if (!rdb)
+        {
+            rdb = make_unique<gaia::db::persistent_store_manager>();
+            rdb->open();
+            rdb->recover();
+        }
     }
 }
 
@@ -939,10 +930,15 @@ bool server::txn_commit()
     });
 
     std::set<gaia_locator_t> locators;
+    // This is only used for persistence.
+    std::string txn_name;
 
-    auto txn_name = rdb->begin_txn(s_txn_id);
-    // Prepare log for transaction.
-    rdb->prepare_wal_for_write(txn_name);
+    if (!s_disable_persistence)
+    {
+        txn_name = rdb->begin_txn(s_txn_id);
+        // Prepare log for transaction.
+        rdb->prepare_wal_for_write(txn_name);
+    }
 
     for (size_t i = 0; i < s_log->count; i++)
     {
@@ -952,10 +948,13 @@ bool server::txn_commit()
         {
             if ((*s_shared_locators)[lr->locator] != lr->old_offset)
             {
-                // Append rollback decision to log.
-                // This isn't really required because recovery will skip deserializing transactions
-                // that don't have a commit marker; we do it for completeness anyway.
-                rdb->append_wal_rollback_marker(txn_name);
+                if (!s_disable_persistence)
+                {
+                    // Append rollback decision to log.
+                    // This isn't really required because recovery will skip deserializing transactions
+                    // that don't have a commit marker; we do it for completeness anyway.
+                    rdb->append_wal_rollback_marker(txn_name);
+                }
                 return false;
             }
         }
@@ -967,16 +966,21 @@ bool server::txn_commit()
         (*s_shared_locators)[lr->locator] = lr->new_offset;
     }
 
-    // Append commit decision to the log.
-    rdb->append_wal_commit_marker(txn_name);
+    if (!s_disable_persistence)
+    {
+        // Append commit decision to the log.
+        rdb->append_wal_commit_marker(txn_name);
+    }
 
     return true;
 }
 
 // this must be run on main thread
 // see https://thomastrapp.com/blog/signal-handler-for-multithreaded-c++/
-void server::run()
+void server::run(bool disable_persistence)
 {
+    // There can only be one thread running at this point, so this doesn't need synchronization.
+    s_disable_persistence = disable_persistence;
     // Block handled signals in this thread and subsequently spawned threads.
     sigset_t handled_signals = mask_signals();
     while (true)

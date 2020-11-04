@@ -513,7 +513,7 @@ TEST_F(gaia_object_test, writer_value_ref)
 }
 
 const char* g_insert = "insert_thread";
-gaia_id_t g_inserted_id = INVALID_GAIA_ID;
+gaia_id_t g_inserted_id = c_invalid_gaia_id;
 void insert_thread(bool new_thread)
 {
     if (new_thread)

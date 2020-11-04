@@ -89,7 +89,7 @@ public:
                 }
                 else
                 {
-                    return INVALID_GAIA_LOCATOR;
+                    return c_invalid_gaia_locator;
                 }
             }
 
@@ -98,7 +98,7 @@ public:
                 : nullptr;
         }
 
-        return INVALID_GAIA_LOCATOR;
+        return c_invalid_gaia_locator;
     }
 
     static void remove(se_base::data* data, gaia_id_t id)

@@ -10,9 +10,10 @@
 
 #include "flatbuffers/idl.h"
 
+#include "catalog_internal.hpp"
 #include "command.hpp"
 #include "db_test_helpers.hpp"
-#include "gaia_catalog_internal.hpp"
+#include "ddl_execution.hpp"
 #include "gaia_db.hpp"
 #include "gaia_parser.hpp"
 #include "logger.hpp"
@@ -148,7 +149,7 @@ string usage()
     ss << "Usage: gaiac [options] [ddl_file]\n\n"
           "  -p          Print parsing trace.\n"
           "  -s          Print scanning trace.\n"
-          "  -d <dbname> Set the databse name.\n"
+          "  -d <dbname> Set the database name.\n"
           "  -i          Interactive prompt, as a REPL.\n"
           "  -g          Generate fbs and gaia headers.\n"
           "  -o <path>   Set the path to all generated files.\n"
@@ -218,7 +219,8 @@ int main(int argc, char* argv[])
                 exit(EXIT_FAILURE);
             }
             const char* path_to_db_server = argv[i];
-            server.start(path_to_db_server);
+            server.set_path(path_to_db_server);
+            server.start();
         }
         else if (argv[i] == string("-o"))
         {

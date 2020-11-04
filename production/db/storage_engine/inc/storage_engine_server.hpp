@@ -5,13 +5,13 @@
 
 #pragma once
 
-#include <sys/epoll.h>
-#include <sys/eventfd.h>
-
 #include <csignal>
 
 #include <shared_mutex>
 #include <thread>
+
+#include <sys/epoll.h>
+#include <sys/eventfd.h>
 
 #include "gaia_db_internal.hpp"
 #include "gaia_se_object.hpp"
@@ -50,26 +50,27 @@ class server : private se_base
     friend class persistent_store_manager;
 
 public:
-    static void run();
+    static void run(bool disable_persistence = false);
+    static constexpr char c_disable_persistence_flag[] = "--disable-persistence";
 
 private:
     // from https://www.man7.org/linux/man-pages/man2/eventfd.2.html
     static constexpr uint64_t MAX_SEMAPHORE_COUNT = std::numeric_limits<uint64_t>::max() - 1;
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t STREAM_BATCH_SIZE = 1 << 10;
-    static int s_server_shutdown_eventfd;
-    static int s_listening_socket;
-    static std::shared_mutex s_locators_lock;
-    static int s_fd_data;
-    static locators* s_shared_locators;
-    static std::unique_ptr<persistent_store_manager> rdb;
-    thread_local static session_state_t s_session_state;
-    thread_local static bool s_session_shutdown;
-    thread_local static int s_session_shutdown_eventfd;
-    thread_local static std::vector<std::thread> s_session_owned_threads;
-
-    static int s_fd_locators;
-    static data* s_data;
+    static inline int s_server_shutdown_eventfd = -1;
+    static inline int s_listening_socket = -1;
+    static inline std::shared_mutex s_locators_lock{};
+    static inline int s_fd_data = -1;
+    static inline data* s_data = nullptr;
+    static inline int s_fd_locators = -1;
+    static inline locators* s_shared_locators = nullptr;
+    static inline std::unique_ptr<persistent_store_manager> rdb{};
+    thread_local static inline session_state_t s_session_state = session_state_t::DISCONNECTED;
+    thread_local static inline bool s_session_shutdown = false;
+    thread_local static inline int s_session_shutdown_eventfd = -1;
+    thread_local static inline std::vector<std::thread> s_session_owned_threads{};
+    static inline bool s_disable_persistence = false;
 
     // Inherited from se_base:
     // thread_local static log *s_log;
@@ -116,7 +117,7 @@ private:
     // TXN_COMMITTING (server decided to commit or abort transaction)
     // -> CONNECTED
 
-    static constexpr valid_transition_t s_valid_transitions[] = {
+    static inline constexpr valid_transition_t s_valid_transitions[] = {
         {session_state_t::DISCONNECTED, session_event_t::CONNECT, {session_state_t::CONNECTED, handle_connect}},
         {session_state_t::ANY, session_event_t::CLIENT_SHUTDOWN, {session_state_t::DISCONNECTED, handle_client_shutdown}},
         {session_state_t::CONNECTED, session_event_t::BEGIN_TXN, {session_state_t::TXN_IN_PROGRESS, handle_begin_txn}},

@@ -4,12 +4,20 @@
 /////////////////////////////////////////////
 #pragma once
 
-#include "gaia_catalog.hpp"
+#include "catalog_internal.hpp"
 
 namespace gaia
 {
 namespace catalog
 {
+
+/**
+ * Generate FlatBuffers schema (fbs) for a catalog table.
+ * The given table is the root type of the generated schema.
+ *
+ * @return generated fbs string
+ */
+string generate_fbs(gaia::common::gaia_id_t table_id);
 
 /**
  * Generate FlatBuffers schema (fbs) from parsing result of a table.

@@ -335,7 +335,7 @@ void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot,
         // It's the first one in the list, point the "first" to the current "next".
         node_ptr.update_child_reference(T_child_slot, child_ptr.references()[T_next_slot]);
         // Clean up the removed child.
-        child_ptr.update_child_references(T_next_slot, INVALID_GAIA_ID, T_parent_slot, INVALID_GAIA_ID);
+        child_ptr.update_child_references(T_next_slot, c_invalid_gaia_id, T_parent_slot, c_invalid_gaia_id);
     }
     else
     {
@@ -350,7 +350,7 @@ void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot,
                 // Point the current child to the child following the next.
                 cur_child_ptr.update_child_reference(T_next_slot, child_ptr.references()[T_next_slot]);
                 // Clean up the removed child.
-                child_ptr.update_child_references(T_next_slot, INVALID_GAIA_ID, T_parent_slot, INVALID_GAIA_ID);
+                child_ptr.update_child_references(T_next_slot, c_invalid_gaia_id, T_parent_slot, c_invalid_gaia_id);
                 return;
             }
             // Move to the next child.

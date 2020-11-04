@@ -8,7 +8,6 @@
 
 #include "db_test_base.hpp"
 #include "fbs_generator.hpp"
-#include "gaia_catalog.hpp"
 #include "json_generator.hpp"
 
 using namespace gaia::catalog;
