@@ -828,3 +828,53 @@ TEST_F(gaia_object_test, iter_arrow_deref)
     gaia_iterator_t<employee_t> emp_iter = employee_t::list().begin();
     EXPECT_STREQ(emp_iter->name_first(), emp_name);
 }
+
+// Count the names of a specific length.
+int count_names(size_t name_length)
+{
+    int count = 0;
+    auto name_length_list = employee_t::list()
+                                .where([&](const employee_t& e) {
+                                    return strlen(e.name_first()) == name_length;
+                                });
+    for (const auto& e : name_length_list)
+    {
+        EXPECT_EQ(strlen(e.name_first()), name_length);
+        count++;
+    }
+    return count;
+}
+
+TEST_F(gaia_object_test, list_filter)
+{
+    auto_transaction_t txn;
+
+    create_employee("Harold");
+    create_employee("Hunter");
+    create_employee("Howard");
+    create_employee("Hvitserk");
+    create_employee("Henry");
+    create_employee("Harry");
+    create_employee("Humphrey");
+    create_employee("Hoover");
+    create_employee("Hank");
+
+    // Filter accepts names of specific length.
+    EXPECT_EQ(count_names(5), 2);
+    EXPECT_EQ(count_names(6), 4);
+    EXPECT_EQ(count_names(4), 1);
+    EXPECT_EQ(count_names(8), 2);
+
+    // Filter for names ending in 'y'.
+    auto names_ending_with_y = employee_t::list()
+                                   .where([&](const employee_t& e) {
+                                       const char* first_name = e.name_first();
+                                       return first_name[strlen(first_name) - 1] == 'y';
+                                   });
+
+    for (const auto& e : names_ending_with_y)
+    {
+        const char* first_name = e.name_first();
+        EXPECT_EQ(first_name[strlen(first_name) - 1], 'y');
+    }
+}
