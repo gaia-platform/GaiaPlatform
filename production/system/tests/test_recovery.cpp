@@ -41,6 +41,7 @@ const size_t c_load_batch_size = 16;
 const size_t c_employee_record_size_bytes = 648;
 // Size of a string field in a record.
 const size_t c_field_size_bytes = 128;
+const size_t c_delete_attempt_count = 2;
 
 // Don't cache direct access objects as they will
 // point to garbage values post crash recovery.
@@ -280,7 +281,7 @@ void delete_all(int &initial_record_count)
         // Best effort attempt at deleting things; there might be some objects that stay behind because of not getting cleaned up in other tests.
         // The alternative would be to blow away the persistent store directory each time before running recovery tests; but I avoid this in order to
         // exercise the delete API.
-        if (delete_attempt_count == 10) {
+        if (delete_attempt_count == c_delete_attempt_count) {
             initial_record_count = get_count();
         }
     }
