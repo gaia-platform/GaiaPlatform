@@ -87,6 +87,49 @@ int no_c_style_casts()
     return (int)var;
 }
 
+// clang-tidy will flag all usage of const_cast regardless of whether
+// they could lead to undefined behavior. This example will not lead to
+// undefined behavior, anyway it could be avoided either way.
+void no_const_cast()
+{
+    // reference
+    int i = 3;
+    const int& ri = i;
+
+    const_cast<int&>(ri) = 4;
+
+    // pointer
+    int a = 0;
+    const int* pa = &a;
+
+    int* p = const_cast<int*>(pa);
+    *p = 1;
+}
+
+// clang-tidy will flag all usage of const_cast regardless of whether
+// they could lead to undefined behavior (UB). This example will lead to UB.
+// clang-tidy will not treat it differently (eg. throwing an error instead
+// of a warning), hence particular attention must be given to detect usage
+// of const_cast that leads to UB.
+// https://stackoverflow.com/a/7349716/1214125
+void no_const_cast_undefined_behavior()
+{
+    // const reference
+    const int i = 3;
+    const int& ri = i;
+
+    // Will produce a warning.
+    const_cast<int&>(ri) = 4;
+
+    // const pointer
+    const int a = 0;
+    const int* pa = &a;
+
+    // Will produce a warning.
+    int* p = const_cast<int*>(pa);
+    *p = 1;
+}
+
 void pure_anarchy()
 {
     // Next three statements will not produce warnings.
