@@ -219,7 +219,8 @@ int main(int argc, char* argv[])
                 exit(EXIT_FAILURE);
             }
             const char* path_to_db_server = argv[i];
-            server.start(path_to_db_server);
+            server.set_path(path_to_db_server);
+            server.start();
         }
         else if (argv[i] == string("-o"))
         {

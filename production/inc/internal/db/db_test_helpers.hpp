@@ -27,6 +27,10 @@ namespace db
 {
 
 constexpr char c_daemonize_command[] = "daemonize ";
+// Duplicated from production/db/storage_engine/inc/storage_engine_server.hpp.
+// (That header should not be included by anything but the code that
+// instantiates the server.)
+constexpr char c_disable_persistence_flag[] = " --disable-persistence";
 
 void remove_persistent_store()
 {
@@ -110,10 +114,19 @@ void reset_server()
 class db_server_t
 {
 public:
-    void start(const char* db_server_path, bool stop_server = true)
+    db_server_t()
+    {
+        set_path(nullptr);
+    }
+
+    db_server_t(const char* db_server_path, bool disable_persistence = false)
+        : m_disable_persistence(disable_persistence)
     {
         set_path(db_server_path);
+    }
 
+    void inline start(bool stop_server = true)
+    {
         if (stop_server)
         {
             stop();
@@ -121,6 +134,10 @@ public:
 
         // Launch SE server in background.
         string cmd = c_daemonize_command + m_server_path;
+        if (m_disable_persistence)
+        {
+            cmd.append(c_disable_persistence_flag);
+        }
         cerr << cmd << endl;
         ::system(cmd.c_str());
 
@@ -130,32 +147,22 @@ public:
         m_server_started = true;
     }
 
-    void stop()
+    void inline stop()
     {
         // Try to kill the SE server process.
         // REVIEW: we should be using a proper process library for this, so we can kill by PID.
         string cmd = "pkill -f -KILL ";
-        cmd.append(m_server_path.c_str());
+        cmd.append(m_server_path);
         cerr << cmd << endl;
         ::system(cmd.c_str());
     }
 
-    bool server_started()
+    bool inline server_started()
     {
         return m_server_started;
     }
 
-    // Add a trailing '/' if not provided.
-    static void terminate_path(string& path)
-    {
-        if (path.back() != '/')
-        {
-            path.append("/");
-        }
-    }
-
-private:
-    void set_path(const char* db_server_path)
+    void inline set_path(const char* db_server_path)
     {
         if (!db_server_path)
         {
@@ -169,7 +176,18 @@ private:
         }
     }
 
+private:
+    // Add a trailing '/' if not provided.
+    static void inline terminate_path(string& path)
+    {
+        if (path.back() != '/')
+        {
+            path.append("/");
+        }
+    }
+
     string m_server_path;
+    bool m_disable_persistence = false;
     bool m_server_started = false;
 };
 
