@@ -21,7 +21,7 @@ using namespace common;
 struct gaia_se_object_t
 {
     // Adjust this if gaia_se_object_t::payload_size ever changes size.
-    static const uint16_t c_max_payload_size = 0xffff;
+    static constexpr uint16_t c_max_payload_size = 0xffff;
 
     gaia_id_t id;
     gaia_type_t type;

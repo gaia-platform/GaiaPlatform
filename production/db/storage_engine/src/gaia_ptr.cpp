@@ -65,6 +65,11 @@ gaia_ptr gaia_ptr::create(gaia_id_t id, gaia_type_t type, size_t num_refs, size_
     {
         memcpy(obj_ptr->payload + refs_len, data, data_size);
     }
+    else
+    {
+        retail_assert(data_size == 0, "Null payload with non-zero payload size!");
+    }
+
     obj.create_insert_trigger(type, id);
     return obj;
 }

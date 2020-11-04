@@ -415,21 +415,46 @@ TEST_F(storage_engine_client_test, iterate_type_delete)
     commit_transaction();
 }
 
+TEST_F(storage_engine_client_test, null_payload_check)
+{
+    begin_transaction();
+    {
+        constexpr size_t c_test_payload_size = 50;
+
+        constexpr gaia_type_t node_type = 5;
+        constexpr size_t c_num_refs = 50;
+        std::cerr << std::endl;
+        std::cerr << "*** Creating a zero-length node with references:" << std::endl;
+        EXPECT_NE(gaia_ptr::create(gaia_ptr::generate_id(), node_type, c_num_refs, 0, nullptr), nullptr);
+
+        std::cerr << std::endl;
+        std::cerr << "*** Creating a zero-length node without references:" << std::endl;
+        EXPECT_NE(gaia_ptr::create(gaia_ptr::generate_id(), node_type, 0, 0, nullptr), nullptr);
+
+        std::cerr << std::endl;
+        std::cerr << "*** Creating a node with no payload and non-zero payload size (error):" << std::endl;
+        EXPECT_THROW(gaia_ptr::create(gaia_ptr::generate_id(), node_type, c_num_refs, c_test_payload_size, nullptr), retail_assertion_failure);
+    }
+    commit_transaction();
+}
+
 TEST_F(storage_engine_client_test, create_large_object)
 {
     begin_transaction();
     {
-        gaia_type_t node_type = 5;
+        uint8_t payload[gaia_se_object_t::c_max_payload_size];
+
+        constexpr gaia_type_t node_type = 5;
         size_t num_refs = 50;
         size_t payload_size = gaia_se_object_t::c_max_payload_size - (num_refs * sizeof(gaia_id_t));
         std::cerr << std::endl;
         std::cerr << "*** Creating the largest node (" << payload_size << " bytes):" << std::endl;
-        EXPECT_NE(gaia_ptr::create(gaia_ptr::generate_id(), node_type, num_refs, payload_size, nullptr), nullptr);
+        EXPECT_NE(gaia_ptr::create(gaia_ptr::generate_id(), node_type, num_refs, payload_size, payload), nullptr);
 
         num_refs = 51;
         std::cerr << std::endl;
         std::cerr << "*** Creating a too-large node (" << payload_size + sizeof(gaia_id_t) << " bytes):" << std::endl;
-        EXPECT_THROW(gaia_ptr::create(gaia_ptr::generate_id(), node_type, num_refs, payload_size, nullptr), payload_size_too_large);
+        EXPECT_THROW(gaia_ptr::create(gaia_ptr::generate_id(), node_type, num_refs, payload_size, payload), payload_size_too_large);
     }
     commit_transaction();
 }

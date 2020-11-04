@@ -122,7 +122,7 @@ public:
     payload_size_too_large(size_t total_len, uint16_t max_len)
     {
         stringstream msg;
-        msg << "Total object size cannot exceed " << max_len << " bytes, but this one would be " << total_len << " bytes.";
+        msg << "Payload size " << total_len << " exceeds maximum payload size limit " << max_len << ".";
         m_message = msg.str();
     }
 };
