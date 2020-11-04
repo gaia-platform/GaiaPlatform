@@ -9,6 +9,8 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <utility>
+#include <variant>
 #include <vector>
 
 #include "gaia_common.hpp"
@@ -125,33 +127,72 @@ private:
     statement_type_t m_type;
 };
 
-struct field_type_t
+enum class field_type_t : uint8_t
 {
-    explicit field_type_t(data_type_t type)
-        : type(type){};
-
-    data_type_t type;
-    std::string name;
+    data,
+    reference
 };
 
-struct field_definition_t
+struct field_def_t
 {
-    field_definition_t(std::string name, data_type_t type, uint16_t length)
-        : name(move(name)), type(type), length(length){};
-
-    field_definition_t(std::string name, data_type_t type, uint16_t length, std::string referenced_table_name)
-        : name(move(name)), type(type), length(length), table_type_name(move(referenced_table_name)){};
-
+    field_def_t(std::string name, field_type_t field_type)
+        : name(move(name)), field_type(field_type)
+    {
+    }
     std::string name;
-    data_type_t type;
+    field_type_t field_type;
+
+    virtual ~field_def_t() = default;
+};
+
+struct data_field_def_t : field_def_t
+{
+    data_field_def_t(std::string name, data_type_t type, uint16_t length)
+        : field_def_t(name, field_type_t::data), data_type(type), length(length)
+    {
+    }
+
+    data_type_t data_type;
     uint16_t length;
 
-    std::string table_type_name;
-    std::string table_type_database;
     bool active = false;
 };
 
-using field_def_list_t = std::vector<std::unique_ptr<field_definition_t>>;
+using composite_name_t = std::pair<std::string, std::string>;
+
+struct ref_field_def_t : field_def_t
+{
+    ref_field_def_t(std::string name, composite_name_t full_table_name)
+        : field_def_t(name, field_type_t::reference), parent_table(move(full_table_name))
+    {
+    }
+
+    composite_name_t parent_table;
+
+    [[nodiscard]] std::string db_name() const
+    {
+        return parent_table.first;
+    }
+
+    [[nodiscard]] std::string table_name() const
+    {
+        return parent_table.second;
+    }
+
+    [[nodiscard]] std::string full_name() const
+    {
+        if (db_name().empty())
+        {
+            return table_name();
+        }
+        else
+        {
+            return db_name() + c_db_table_name_connector + table_name();
+        }
+    }
+};
+
+using field_def_list_t = std::vector<std::unique_ptr<field_def_t>>;
 
 enum class create_type_t : uint8_t
 {
@@ -162,12 +203,14 @@ enum class create_type_t : uint8_t
 struct create_statement_t : statement_t
 {
     explicit create_statement_t(create_type_t type)
-        : statement_t(statement_type_t::create), type(type){};
+        : statement_t(statement_type_t::create), type(type)
+    {
+    }
 
-    create_statement_t(create_type_t type, std::string name)
-        : statement_t(statement_type_t::create), type(type), name(move(name)){};
-
-    ~create_statement_t() override = default;
+    create_statement_t(create_type_t type, string name)
+        : statement_t(statement_type_t::create), type(type), name(move(name))
+    {
+    }
 
     create_type_t type;
 
@@ -193,8 +236,6 @@ struct drop_statement_t : statement_t
 
     drop_statement_t(drop_type_t type, std::string name)
         : statement_t(statement_type_t::drop), type(type), name(move(name)){};
-
-    ~drop_statement_t() override = default;
 
     drop_type_t type;
 

@@ -84,7 +84,6 @@ enum class data_type_t : uint8_t
     e_float,
     e_double,
     e_string,
-    e_references
 };
 
 /*@}*/
