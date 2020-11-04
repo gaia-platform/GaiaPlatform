@@ -89,9 +89,11 @@ int no_c_style_casts()
 
 void no_const_cast()
 {
-    int i = 3; // i is not declared const
+    int i = 3;
     const int& rci = i;
-    const_cast<int&>(rci) = 4; // OK: modifies i
+
+    // Will produce a warning.
+    const_cast<int&>(rci) = 4;
 }
 
 void pure_anarchy()
