@@ -20,12 +20,12 @@ thread_count = -1
 # Interval in seconds of how frequently the rules engine logs statistics.
 # If the value is set to 0 then no statistics will be logged to the
 # gaia_stats log file.
-stats_log_interval = 1
+stats_log_interval = 30
 
 # The rules engine always calculates cumulative statistics for all rules.
 # If this setting is set to true, then the rules engine will also calculate 
 # statistics for each individual rule and log them to the statistics log file.
-log_individual_rule_stats = true
+log_individual_rule_stats = false
 
 # Number of times the rules engine should retry a rule when
 # an update conflict is encountered
