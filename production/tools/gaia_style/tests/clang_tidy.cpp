@@ -87,9 +87,9 @@ int no_c_style_casts()
     return (int)var;
 }
 
-// clang-tidy will flag all the usage of const_cast regardless of whether
+// clang-tidy will flag all usage of const_cast regardless of whether
 // they could lead to undefined behavior. This example will not lead to
-// undefined behavior, but it should be avoided either way.
+// undefined behavior, anyway it could be avoided either way.
 void no_const_cast()
 {
     // reference
@@ -106,11 +106,11 @@ void no_const_cast()
     *p = 1;
 }
 
-// clang-tidy will flag all the usage of const_cast regardless of whether
+// clang-tidy will flag all usage of const_cast regardless of whether
 // they could lead to undefined behavior (UB). This example will lead to UB.
 // clang-tidy will not treat it differently (eg. throwing an error instead
-// of a warning) hence particular attention must be given to detect usage
-// of const cast that leads to UB.
+// of a warning), hence particular attention must be given to detect usage
+// of const_cast that leads to UB.
 // https://stackoverflow.com/a/7349716/1214125
 void no_const_cast_undefined_behavior()
 {
