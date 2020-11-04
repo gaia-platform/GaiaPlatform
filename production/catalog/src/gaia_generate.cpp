@@ -74,11 +74,9 @@ static relationship_vector_t list_parent_relationships(gaia_table_t table)
         relationships.push_back(relationship);
     }
 
-    std::sort(
-        relationships.begin(), relationships.end(),
-        [](auto r1, auto r2) -> bool {
-            return r1.first_child_offset() < r2.first_child_offset();
-        });
+    std::sort(relationships.begin(), relationships.end(), [](auto r1, auto r2) -> bool {
+        return r1.first_child_offset() < r2.first_child_offset();
+    });
 
     return relationships;
 }
