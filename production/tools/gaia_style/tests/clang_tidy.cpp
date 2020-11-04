@@ -89,11 +89,20 @@ int no_c_style_casts()
 
 void no_const_cast()
 {
-    int i = 3;
+    // const reference
+    const int i = 3;
     const int& rci = i;
 
     // Will produce a warning.
     const_cast<int&>(rci) = 4;
+
+    // const pointer
+    const int a = 0;
+    const int* pa = &a;
+
+    // Will produce a warning.
+    int* p = const_cast<int*>(pa);
+    *p = 1;
 }
 
 void pure_anarchy()
