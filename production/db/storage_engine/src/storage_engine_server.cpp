@@ -287,12 +287,16 @@ void server::init_shared_memory()
 
 void server::recover_db()
 {
-    // Open RocksDB just once.
-    if (!rdb)
+    // If persistence is disabled, then this is a no-op.
+    if (!s_disable_persistence)
     {
-        rdb = make_unique<gaia::db::persistent_store_manager>();
-        rdb->open();
-        rdb->recover();
+        // Open RocksDB just once.
+        if (!rdb)
+        {
+            rdb = make_unique<gaia::db::persistent_store_manager>();
+            rdb->open();
+            rdb->recover();
+        }
     }
 }
 
@@ -926,10 +930,15 @@ bool server::txn_commit()
     });
 
     std::set<gaia_locator_t> locators;
+    // This is only used for persistence.
+    std::string txn_name;
 
-    auto txn_name = rdb->begin_txn(s_txn_id);
-    // Prepare log for transaction.
-    rdb->prepare_wal_for_write(txn_name);
+    if (!s_disable_persistence)
+    {
+        txn_name = rdb->begin_txn(s_txn_id);
+        // Prepare log for transaction.
+        rdb->prepare_wal_for_write(txn_name);
+    }
 
     for (size_t i = 0; i < s_log->count; i++)
     {
@@ -939,10 +948,13 @@ bool server::txn_commit()
         {
             if ((*s_shared_locators)[lr->locator] != lr->old_offset)
             {
-                // Append rollback decision to log.
-                // This isn't really required because recovery will skip deserializing transactions
-                // that don't have a commit marker; we do it for completeness anyway.
-                rdb->append_wal_rollback_marker(txn_name);
+                if (!s_disable_persistence)
+                {
+                    // Append rollback decision to log.
+                    // This isn't really required because recovery will skip deserializing transactions
+                    // that don't have a commit marker; we do it for completeness anyway.
+                    rdb->append_wal_rollback_marker(txn_name);
+                }
                 return false;
             }
         }
@@ -954,16 +966,21 @@ bool server::txn_commit()
         (*s_shared_locators)[lr->locator] = lr->new_offset;
     }
 
-    // Append commit decision to the log.
-    rdb->append_wal_commit_marker(txn_name);
+    if (!s_disable_persistence)
+    {
+        // Append commit decision to the log.
+        rdb->append_wal_commit_marker(txn_name);
+    }
 
     return true;
 }
 
 // this must be run on main thread
 // see https://thomastrapp.com/blog/signal-handler-for-multithreaded-c++/
-void server::run()
+void server::run(bool disable_persistence)
 {
+    // There can only be one thread running at this point, so this doesn't need synchronization.
+    s_disable_persistence = disable_persistence;
     // Block handled signals in this thread and subsequently spawned threads.
     sigset_t handled_signals = mask_signals();
     while (true)

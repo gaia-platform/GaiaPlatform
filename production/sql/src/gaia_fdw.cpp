@@ -642,26 +642,20 @@ extern "C" TupleTableSlot* gaia_exec_foreign_insert(
         // char *attr_name = NameStr(
         //     TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->attname);
 
-        // We don't allow gaia_id to be set by an INSERT or UPDATE statement
-        // (this should have already been checked in gaia_plan_foreign_modify).
         Datum attr_val = {};
         if (modify_state->is_gaia_id_field_index((size_t)attr_idx))
         {
+            // We don't allow gaia_id to be set by an INSERT or UPDATE statement
+            // (this should have already been checked in gaia_plan_foreign_modify).
             assert(slot->tts_isnull[attr_idx]);
 
             gaia_id = gaia::fdw::adapter_t::get_new_gaia_id();
-            attr_val = UInt64GetDatum(gaia_id);
-
-            slot->tts_isnull[attr_idx] = false;
         }
-        else if (!(slot->tts_isnull[attr_idx]))
+        // If we have a null value, just don't bother to set it in the builder.
+        else if (!slot->tts_isnull[attr_idx])
         {
             attr_val = slot->tts_values[attr_idx];
-        }
 
-        // If we have a null value, just don't bother to set it in the builder.
-        if (!slot->tts_isnull[attr_idx])
-        {
             modify_state->set_field_value(attr_idx, attr_val);
         }
     }
