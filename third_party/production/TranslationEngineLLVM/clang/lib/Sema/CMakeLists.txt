@@ -10,7 +10,7 @@ if (MSVC)
 endif()
 
 set(GAIA_CATALOG_INCLUDES
-  ${GAIA_SOURCE}/production/catalog/catalog_manager/inc
+  ${GAIA_SOURCE}/production/catalog/inc
   ${GAIA_SOURCE}/production/inc/internal/catalog
   ${GAIA_SOURCE}/production/inc/public/common
   ${GAIA_SOURCE}/production/inc/public/direct_access
@@ -20,7 +20,7 @@ set(GAIA_CATALOG_INCLUDES
   ${GAIA_SOURCE}/production/inc/public/catalog
   ${GAIA_SOURCE}/third_party/production/flatbuffers/include
 )
-  
+
 add_clang_library(clangSema
   AnalysisBasedWarnings.cpp
   CodeCompleteConsumer.cpp
@@ -70,37 +70,41 @@ add_clang_library(clangSema
   SemaType.cpp
   TypeLocBuilder.cpp
   SemaGaia.cpp
-  
+
   LINK_LIBS
   clangAST
   clangAnalysis
   clangBasic
   clangEdit
   clangLex
-  gaia_se_client
-  gaia_direct
-  gaia_types
-  gaia_common
-  gaia_catalog
-  flatbuffers
+  gaia_se_client_llvm
+  gaia_payload_types_llvm
+  gaia_catalog_llvm
+  gaia_direct_llvm
+  gaia_system_llvm
+  flatbuffers_llvm
   explain
   )
- target_include_directories(clangSema PRIVATE ${GAIA_CATALOG_INCLUDES})
- 
-add_library(flatbuffers STATIC IMPORTED GLOBAL)
-set_target_properties(flatbuffers PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/flatbuffers/libflatbuffers.a)
 
-add_library(gaia_catalog STATIC IMPORTED GLOBAL)
-set_target_properties(gaia_catalog PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/catalog/catalog_manager/libgaia_catalog.a)
+target_include_directories(clangSema PRIVATE ${GAIA_CATALOG_INCLUDES})
+add_dependencies(clangSema flatbuffers gaia_system gaia_common gaia_se_client gaia_payload_types gaia_direct gaia_catalog)
 
-add_library(gaia_common STATIC IMPORTED GLOBAL)
-set_target_properties(gaia_common PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/common/libgaia_common.a)
+add_library(gaia_payload_types_llvm STATIC IMPORTED GLOBAL)
+set_target_properties(gaia_payload_types_llvm PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/db/payload_types/libgaia_payload_types.a)
 
-add_library(gaia_se_client STATIC IMPORTED GLOBAL)
-set_target_properties(gaia_se_client PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/db/storage_engine/libgaia_se_client.a)
+add_library(flatbuffers_llvm STATIC IMPORTED GLOBAL)
+set_target_properties(flatbuffers_llvm PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/flatbuffers/libflatbuffers.a)
 
-add_library(gaia_direct STATIC IMPORTED GLOBAL)
-set_target_properties(gaia_direct PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/direct_access/libgaia_direct.a)
+add_library(gaia_system_llvm STATIC IMPORTED GLOBAL)
+set_target_properties(gaia_system_llvm PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/system/libgaia_system.a)
 
-add_library(gaia_types STATIC IMPORTED GLOBAL)
-set_target_properties(gaia_types PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/db/types/libgaia_types.a)
+add_library(gaia_se_client_llvm STATIC IMPORTED GLOBAL)
+set_target_properties(gaia_se_client_llvm PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/db/storage_engine/libgaia_se_client.a)
+
+add_library(gaia_direct_llvm STATIC IMPORTED GLOBAL)
+set_target_properties(gaia_direct_llvm PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/direct_access/libgaia_direct.a)
+
+add_library(gaia_catalog_llvm STATIC IMPORTED GLOBAL)
+set_target_properties(gaia_catalog_llvm PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/catalog/libgaia_catalog.a)
+
+target_include_directories(clangSema PRIVATE ${GAIA_CATALOG_INCLUDES})

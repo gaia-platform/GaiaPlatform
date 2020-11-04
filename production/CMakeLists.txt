@@ -158,7 +158,7 @@ set_property (TARGET gaia_parser PROPERTY POSITION_INDEPENDENT_CODE ON)
 set_property (TARGET rocks_wrapper PROPERTY POSITION_INDEPENDENT_CODE ON)
 unset(CMAKE_CXX_CLANG_TIDY)
 add_subdirectory(sdk)
-add_subdirectory("${GAIA_REPO}/third_party/private/TranslationEngineLLVM/llvm" llvm)
+add_subdirectory("${GAIA_REPO}/third_party/production/TranslationEngineLLVM/llvm" llvm)
 set(CMAKE_CXX_CLANG_TIDY clang-tidy)
 endif()
 

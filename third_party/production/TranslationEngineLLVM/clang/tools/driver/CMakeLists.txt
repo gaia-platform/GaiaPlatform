@@ -48,15 +48,17 @@ target_link_libraries(clang
   clangFrontend
   clangFrontendTool
   clangSerialization
-  gaia_se_client
-  gaia_direct
-  gaia_types
-  gaia_common
-  gaia_catalog
-  flatbuffers
+  gaia_se_client_llvm
+  gaia_payload_types_llvm
+  gaia_catalog_llvm
+  gaia_direct_llvm
+  gaia_system_llvm
+  flatbuffers_llvm
   explain
   )
-  
+
+add_dependencies(clang flatbuffers gaia_system gaia_se_client gaia_payload_types gaia_direct gaia_catalog)
+
 if(WIN32 AND NOT CYGWIN)
   # Prevent versioning if the buildhost is targeting for Win32.
 else()
