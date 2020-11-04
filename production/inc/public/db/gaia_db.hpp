@@ -116,6 +116,17 @@ public:
     }
 };
 
+class payload_size_too_large : public gaia_exception
+{
+public:
+    payload_size_too_large(size_t total_len, uint16_t max_len)
+    {
+        stringstream msg;
+        msg << "Total object size cannot exceed " << max_len << " bytes, but this one would be " << total_len << " bytes.";
+        m_message = msg.str();
+    }
+};
+
 class invalid_type : public gaia_exception
 {
 public:
