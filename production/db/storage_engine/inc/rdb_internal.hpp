@@ -39,35 +39,17 @@ public:
 
     void open_txn_db(rocksdb::Options& init_options, rocksdb::TransactionDBOptions& opts)
     {
-        // RocksDB throws an IOError when trying to open (recover) twice on the same directory
+        // RocksDB throws an IOError (Lock on persistent dir) when trying to open (recover) twice on the same directory
         // while a process is already up.
         // The same error is also seen when reopening the db after a large volume of deletes
         // See https://github.com/facebook/rocksdb/issues/4421
-        size_t open_db_attempt_count = 0;
         rocksdb::TransactionDB* txn_db;
         rocksdb::Status s;
-        while (open_db_attempt_count < c_max_open_db_attempt_count)
-        {
-            s = rocksdb::TransactionDB::Open(init_options, opts, m_data_dir, &txn_db);
-            open_db_attempt_count++;
-            if (s.code() == rocksdb::Status::Code::kIOError)
-            {
-                // Try closing RocksDB so we can open on next retry.
-                s = txn_db->Close();
-                // Handle error on unsuccessful close.
-                handle_rdb_error(s);
-            }
-            else if (s.ok())
-            {
-                // Only set m_txn_db if opening RocksDB is successful.
-                m_txn_db.reset(txn_db);
-                break;
-            }
-            else
-            {
-                // Status code is neither ok, not IOError; handle the error.
-                handle_rdb_error(s);
-            }
+        s = rocksdb::TransactionDB::Open(init_options, opts, m_data_dir, &txn_db);
+        if (s.ok()) {
+            m_txn_db.reset(txn_db);
+        } else {
+            handle_rdb_error(s);
         }
         retail_assert(m_txn_db != nullptr, "RocksDB database is not initialized.");
     }
