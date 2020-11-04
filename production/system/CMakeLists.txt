@@ -13,6 +13,7 @@ set(GAIA_SYSTEM_PUBLIC_INCLUDES
   "${GAIA_INC}/public/direct_access"
   "${GAIA_INC}/public/system"
   "${GAIA_INC}/public/rules"
+  "${GAIA_INC}/internal/rules"
   "${GAIA_GENERATED_SCHEMAS}"
 )
 

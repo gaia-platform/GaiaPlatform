@@ -11,6 +11,7 @@
 #include "db_test_base.hpp"
 #include "event_manager_test_helpers.hpp"
 #include "rules.hpp"
+#include "rules_config.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -23,6 +24,25 @@ extern "C" void initialize_rules()
 
 class component_init_test : public db_test_base_t
 {
+protected:
+    // Build up the [Rules] section of a TOML configuration file with rule settings.
+    shared_ptr<cpptoml::table> make_rules_config(
+        int32_t thread_count,
+        int32_t log_interval,
+        bool log_rule_stats,
+        int32_t retry_count)
+    {
+        shared_ptr<cpptoml::table> root_config = cpptoml::make_table();
+        shared_ptr<cpptoml::table> rules_config = cpptoml::make_table();
+
+        rules_config->insert(event_manager_settings_t::c_thread_count_key, thread_count);
+        rules_config->insert(event_manager_settings_t::c_stats_log_interval_key, log_interval);
+        rules_config->insert(event_manager_settings_t::c_log_individual_rule_stats, log_rule_stats);
+        rules_config->insert(event_manager_settings_t::c_rule_retry_count, retry_count);
+
+        root_config->insert(event_manager_settings_t::c_rules_section, rules_config);
+        return root_config;
+    }
 };
 
 TEST_F(component_init_test, component_not_initialized_error)
@@ -59,4 +79,58 @@ TEST_F(component_init_test, component_initialized)
     EXPECT_EQ(true, unsubscribe_rule(c_gaia_type, event_type_t::row_update, fields, binding));
     unsubscribe_rules();
     list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subscriptions);
+}
+
+TEST_F(component_init_test, component_valid_empty_config)
+{
+    event_manager_settings_t default_settings;
+    event_manager_settings_t config_settings;
+
+    shared_ptr<cpptoml::table> root_config;
+    event_manager_settings_t::parse_rules_config(root_config, config_settings);
+
+    // No default settings should be overriden.
+    EXPECT_EQ(default_settings.num_background_threads, config_settings.num_background_threads);
+    EXPECT_EQ(default_settings.enable_catalog_checks, config_settings.enable_catalog_checks);
+    EXPECT_EQ(default_settings.enable_rule_stats, config_settings.enable_rule_stats);
+    EXPECT_EQ(default_settings.stats_log_interval, config_settings.stats_log_interval);
+    EXPECT_EQ(default_settings.num_rule_retries, config_settings.num_rule_retries);
+}
+
+// See valid_gaia_conf.toml file for valid settings.
+TEST_F(component_init_test, component_valid_config)
+{
+    const int32_t c_thread_count = 10;
+    const int32_t c_log_interval = 20;
+    const int32_t c_retry_count = 42;
+    const bool c_enable_rule_stats = true;
+    event_manager_settings_t config_settings;
+
+    shared_ptr<cpptoml::table> root_config = make_rules_config(c_thread_count, c_log_interval, c_enable_rule_stats, c_retry_count);
+    event_manager_settings_t::parse_rules_config(root_config, config_settings);
+
+    EXPECT_EQ(config_settings.num_background_threads, c_thread_count);
+    EXPECT_EQ(config_settings.stats_log_interval, c_log_interval);
+    EXPECT_EQ(config_settings.enable_rule_stats, c_enable_rule_stats);
+    EXPECT_EQ(config_settings.num_rule_retries, c_retry_count);
+
+    EXPECT_EQ(config_settings.enable_catalog_checks, true);
+}
+
+// Ensure the special values of thread count behave correctly.
+TEST_F(component_init_test, component_valid_config_thread_count)
+{
+    const int32_t c_log_interval = 20;
+    const int32_t c_retry_count = 42;
+    const bool c_enable_rule_stats = true;
+    event_manager_settings_t config_settings;
+
+    // A thread_count of 0 should be disallowed.
+    shared_ptr<cpptoml::table> root_config = make_rules_config(0, c_log_interval, c_enable_rule_stats, c_retry_count);
+    EXPECT_THROW(event_manager_settings_t::parse_rules_config(root_config, config_settings), configuration_error);
+
+    // A thread_count of -1 should be converted to SIZE_MAX.
+    root_config = make_rules_config(-1, c_log_interval, c_enable_rule_stats, c_retry_count);
+    event_manager_settings_t::parse_rules_config(root_config, config_settings);
+    EXPECT_EQ(config_settings.num_background_threads, SIZE_MAX);
 }

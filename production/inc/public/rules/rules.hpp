@@ -277,6 +277,16 @@ public:
 };
 
 /**
+ * Thrown if the Gaia system is initialized with invalid rules engine
+ * configuration settings.
+ */
+class configuration_error : public gaia::common::gaia_exception
+{
+public:
+    configuration_error(const char* key, int value);
+};
+
+/**
  * Initializes the rules engine.  Should only be called once
  * per process.
  *
@@ -289,7 +299,6 @@ void initialize_rules_engine();
  * transaction operation (begin, commit, rollback)
  * table operation (insert, update, delete)
  * field references (update a specific field)
- *
  *
  * @param gaia_type table type to bind the rule to
  * @param event_type read or write field event

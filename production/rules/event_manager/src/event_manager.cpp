@@ -15,6 +15,7 @@
 #include "gaia_db_internal.hpp"
 #include "retail_assert.hpp"
 #include "rule_stats_manager.hpp"
+#include "rules_config.hpp"
 #include "timer.hpp"
 #include "triggers.hpp"
 
@@ -511,7 +512,19 @@ event_manager_t::_rule_binding_t::_rule_binding_t(
     }
 }
 
-// Enable construction
+// Initialize the rules engine with settings from a user-supplied gaia configuration file.
+void gaia::rules::initialize_rules_engine(shared_ptr<cpptoml::table>& root_config)
+{
+    bool is_initializing = true;
+    // Create default settings for the rules engine and then override them with
+    // user-supplied configuration values;
+    event_manager_settings_t settings;
+
+    // Override the default settings with any configuration settings;
+    event_manager_settings_t::parse_rules_config(root_config, settings);
+    event_manager_t::get(is_initializing).init(settings);
+    initialize_rules();
+}
 
 /**
  * Public rules API implementation

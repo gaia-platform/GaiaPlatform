@@ -23,9 +23,9 @@ namespace system
 /**
  *  Initialize the Gaia sub systems
  */
-void initialize();
+void initialize(const char* gaia_config = nullptr);
 
 /*@}*/
-}
+} // namespace system
 /*@}*/
-}
+} // namespace gaia

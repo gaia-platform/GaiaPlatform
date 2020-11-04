@@ -63,12 +63,12 @@ void rule(const rule_context_t*)
 {
 }
 
-TEST_F(system_init_test, system_initialized)
+TEST_F(system_init_test, system_initialized_valid_conf)
 {
     rule_binding_t binding("ruleset", "rulename", rule);
     subscription_list_t subscriptions;
 
-    gaia::system::initialize();
+    gaia::system::initialize("./gaia_conf.toml");
     gaia_id_t table_id = load_catalog();
     begin_transaction();
     gaia_type_t type_id = gaia_table_t::get(table_id).type();
@@ -80,4 +80,19 @@ TEST_F(system_init_test, system_initialized)
     list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subscriptions);
 
     end_session();
+}
+
+TEST_F(system_init_test, system_invalid_conf_path)
+{
+    EXPECT_THROW(gaia::system::initialize("./bogus_file.toml"), std::exception);
+}
+
+TEST_F(system_init_test, system_invalid_conf)
+{
+    EXPECT_THROW(gaia::system::initialize("./invalid_gaia_conf.toml"), std::exception);
+}
+
+TEST_F(system_init_test, system_invalid_setting_conf)
+{
+    EXPECT_THROW(gaia::system::initialize("./invalid_gaia_setting.toml"), configuration_error);
 }
