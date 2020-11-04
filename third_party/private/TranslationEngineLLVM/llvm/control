@@ -1,7 +1,0 @@
-Package: gaiaPlatformLLVM
-Version: 1.0.0-0
-Section: custom
-Priority: optional
-Architecture: amd64
-Maintainer: gaiaplatform.io
-Description: Gaia Platform llvm binaries to resolve circular dependencies for build

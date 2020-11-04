@@ -6,12 +6,16 @@
 #include "gaia_fdw_adapter.hpp"
 
 #include <fstream>
+#include <sstream>
 
 #include "catalog_core.hpp"
 #include "catalog_internal.hpp"
+#include "field_access.hpp"
 
 using namespace std;
+using namespace gaia::common;
 using namespace gaia::db;
+using namespace gaia::db::payload_types;
 
 namespace gaia
 {
@@ -19,6 +23,8 @@ namespace fdw
 {
 
 constexpr size_t c_invalid_field_index = -1;
+
+unordered_map<string, gaia_type_t> adapter_t::s_map_table_name_to_container_id;
 
 // Valid options for gaia_fdw.
 const option_t c_valid_options[] = {
@@ -57,6 +63,44 @@ void append_context_option_names(Oid context_id, StringInfoData& string_info)
     }
 }
 
+void adapter_t::initialize_caches()
+{
+    gaia::db::begin_transaction();
+
+    for (auto table_view : catalog_core_t::list_tables())
+    {
+        string table_name(table_view.name());
+        vector<uint8_t> binary_schema = table_view.binary_schema();
+        vector<uint8_t> serialization_template = table_view.serialization_template();
+
+        stringstream log_message;
+        log_message
+            << "Loading metadata information for table `" << table_name
+            << "' with type " << table_view.table_type() << "...";
+        elog(LOG, log_message.str().c_str());
+
+        auto type_information = make_unique<type_information_t>();
+
+        initialize_type_information_from_binary_schema(
+            type_information.get(),
+            binary_schema.data(),
+            binary_schema.size());
+
+        type_information.get()->set_serialization_template(serialization_template);
+
+        bool result = type_cache_t::get()->set_type_information(table_view.table_type(), type_information);
+        retail_assert(result, "Failed setting type_cache!");
+
+        s_map_table_name_to_container_id.insert(make_pair(table_name, table_view.table_type()));
+    }
+
+    retail_assert(
+        type_cache_t::get()->size() == s_map_table_name_to_container_id.size(),
+        "Type caches were initialized to different sizes!");
+
+    gaia::db::commit_transaction();
+}
+
 void adapter_t::begin_session()
 {
     elog(LOG, "Opening COW-SE session...");
@@ -64,6 +108,8 @@ void adapter_t::begin_session()
     try
     {
         gaia::db::begin_session();
+
+        initialize_caches();
     }
     catch (exception e)
     {
@@ -95,7 +141,7 @@ void adapter_t::end_session()
 
 bool adapter_t::is_transaction_open()
 {
-    assert(s_txn_reference_count >= 0);
+    retail_assert(s_txn_reference_count >= 0, "Transaction count is negative!");
     return s_txn_reference_count > 0;
 }
 
@@ -103,7 +149,7 @@ bool adapter_t::begin_transaction()
 {
     elog(DEBUG1, "Opening COW-SE transaction...");
 
-    assert(s_txn_reference_count >= 0);
+    retail_assert(s_txn_reference_count >= 0, "Transaction count is negative!");
 
     bool opened_transaction = false;
     int previous_count = s_txn_reference_count++;
@@ -122,7 +168,7 @@ bool adapter_t::commit_transaction()
 {
     elog(DEBUG1, "Closing COW-SE transaction...");
 
-    assert(s_txn_reference_count > 0);
+    retail_assert(s_txn_reference_count > 0, "Transaction count was not positive at commit time.");
 
     bool closed_transaction = false;
     int previous_count = s_txn_reference_count--;
@@ -196,7 +242,9 @@ bool state_t::initialize(const char* table_name, size_t count_fields)
         return false;
     }
 
-    assert(count_fields == m_mapping->attribute_count);
+    retail_assert(
+        count_fields == m_mapping->attribute_count,
+        "Table has a different number of fields than expected!");
 
     m_gaia_container_id = m_mapping->gaia_container_id;
 
@@ -235,7 +283,7 @@ bool state_t::set_field_index(const char* field_name, size_t field_index)
         }
     }
 
-    assert(m_gaia_id_field_index != c_invalid_field_index);
+    retail_assert(m_gaia_id_field_index != c_invalid_field_index, "Failed to determine the index of gaia_id field!");
     if (m_gaia_id_field_index == c_invalid_field_index)
     {
         return false;
@@ -277,7 +325,7 @@ bool scan_state_t::has_scan_ended()
 
 void scan_state_t::deserialize_record()
 {
-    assert(!has_scan_ended());
+    retail_assert(!has_scan_ended(), "Attempting to read record after scan has completed!");
 
     const void* data = m_current_node.data();
     m_current_object_root = m_deserializer(data);
@@ -285,14 +333,16 @@ void scan_state_t::deserialize_record()
 
 Datum scan_state_t::extract_field_value(size_t field_index)
 {
-    assert(field_index < m_mapping->attribute_count);
+    retail_assert(
+        field_index < m_mapping->attribute_count,
+        "Attempting to extract information for an invalid field index!");
 
     if (m_current_object_root == nullptr)
     {
         deserialize_record();
     }
 
-    assert(m_current_object_root != nullptr);
+    retail_assert(m_current_object_root != nullptr, "Current record payload should not be empty");
 
     Datum field_value;
 
@@ -311,7 +361,7 @@ Datum scan_state_t::extract_field_value(size_t field_index)
 
 bool scan_state_t::scan_forward()
 {
-    assert(!has_scan_ended());
+    retail_assert(!has_scan_ended(), "Attempting to continue scan after it has terminated!");
 
     m_current_node = m_current_node.find_next();
 
@@ -345,7 +395,7 @@ void modify_state_t::initialize_modify()
 
 void modify_state_t::set_field_value(size_t field_index, const Datum& field_value)
 {
-    assert(!is_gaia_id_field_index(field_index));
+    retail_assert(!is_gaia_id_field_index(field_index), "Attempting to set value of gaia_id field!");
 
     attribute_builder_fn accessor = m_indexed_builders[field_index];
     accessor(&m_builder, field_value);
