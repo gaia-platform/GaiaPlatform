@@ -74,8 +74,9 @@ void adapter_t::initialize_caches()
         vector<uint8_t> serialization_template = table_view.serialization_template();
 
         stringstream log_message;
-        log_message << "Loading metadata information for table `" << table_name
-                    << "' with type " << table_view.table_type() << "...";
+        log_message
+            << "Loading metadata information for table `" << table_name
+            << "' with type " << table_view.table_type() << "...";
         elog(LOG, log_message.str().c_str());
 
         auto type_information = make_shared<const type_information_t>();

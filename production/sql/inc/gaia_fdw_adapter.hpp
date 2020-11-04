@@ -111,6 +111,7 @@ protected:
     // Use signed int so we can assert it is non-negative.
     static int s_txn_reference_count;
 
+    // Small cache to enable looking up a table type by name.
     static std::unordered_map<string, gaia::common::gaia_type_t> s_map_table_name_to_container_id;
 };
 
