@@ -96,7 +96,7 @@ bool type_cache_t::remove_type_information(gaia_type_t type_id)
     return removed_type_information;
 }
 
-bool type_cache_t::set_type_information(gaia_type_t type_id, shared_ptr<const type_information_t>& type_information)
+bool type_cache_t::set_type_information(gaia_type_t type_id, unique_ptr<type_information_t>& type_information)
 {
     retail_assert(
         !!type_information,
@@ -109,7 +109,11 @@ bool type_cache_t::set_type_information(gaia_type_t type_id, shared_ptr<const ty
     auto iterator = m_type_map.find(type_id);
     if (iterator == m_type_map.end())
     {
-        m_type_map.insert(make_pair(type_id, type_information));
+        // Transfer unique_ptr information into a shared_ptr const object.
+        shared_ptr<const type_information_t> const_type_information;
+        const_type_information.reset(type_information.release());
+
+        m_type_map.insert(make_pair(type_id, const_type_information));
         inserted_type_information = true;
     }
 

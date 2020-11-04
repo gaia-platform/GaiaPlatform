@@ -64,12 +64,14 @@ target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/internal/catalog")
 target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/public/catalog")
 target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/public/db")
 target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/internal/db")
+target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/db/payload_types")
 target_include_directories(gaia_fdw SYSTEM PRIVATE "${GEN_DIR}")
 target_include_directories(gaia_fdw SYSTEM PRIVATE "${PGSQL_INCLUDEDIR_SERVER}")
 
 target_link_libraries(gaia_fdw PRIVATE flatccrt)
 target_link_libraries(gaia_fdw PRIVATE gaia_se_client)
 target_link_libraries(gaia_fdw PRIVATE gaia_catalog)
+target_link_libraries(gaia_fdw PRIVATE gaia_payload_types)
 
 # Extension configuration.
 
