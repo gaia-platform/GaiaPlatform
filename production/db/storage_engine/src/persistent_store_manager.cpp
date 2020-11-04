@@ -156,7 +156,7 @@ void persistent_store_manager::prepare_wal_for_write(std::string& txn_name)
 /**
  * This API will read the entire LSM in sorted order and construct
  * gaia_objects using the create API.
- * Additionally, this method will recover the max gaia_id/txn_id's seen by previous
+ * Additionally, this method will recover the max gaia_id's seen by previous
  * incarnations of the database.
  *
  * TODO: (Mihir) The current implementation has an issue where deleted gaia_ids may get recycled post
