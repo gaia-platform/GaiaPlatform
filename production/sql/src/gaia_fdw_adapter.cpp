@@ -7,6 +7,9 @@
 
 #include <fstream>
 
+#include "catalog_core.hpp"
+#include "catalog_internal.hpp"
+
 using namespace std;
 using namespace gaia::db;
 
@@ -150,7 +153,26 @@ uint64_t adapter_t::get_new_gaia_id()
 // out of table definitions.
 List* adapter_t::get_ddl_command_list(const char* server_name)
 {
-    return NIL;
+    List* commands = NIL;
+
+    gaia::db::begin_transaction();
+
+    for (auto table_view : catalog_core_t::list_tables())
+    {
+        // Generate DDL statement for current table and log it.
+        string ddl_formatted_statement = gaia::catalog::generate_fdw_ddl(table_view.id(), server_name);
+        elog(LOG, ddl_formatted_statement.c_str());
+
+        // Copy DDL statement into a Postgres buffer.
+        auto statement_buffer = reinterpret_cast<char*>(palloc(ddl_formatted_statement.size() + 1));
+        strncpy(statement_buffer, ddl_formatted_statement.c_str(), ddl_formatted_statement.size() + 1);
+
+        commands = lappend(commands, statement_buffer);
+    }
+
+    gaia::db::commit_transaction();
+
+    return commands;
 }
 
 bool state_t::initialize(const char* table_name, size_t count_fields)
@@ -323,10 +345,7 @@ void modify_state_t::initialize_modify()
 
 void modify_state_t::set_field_value(size_t field_index, const Datum& field_value)
 {
-    if (is_gaia_id_field_index(field_index))
-    {
-        return;
-    }
+    assert(!is_gaia_id_field_index(field_index));
 
     attribute_builder_fn accessor = m_indexed_builders[field_index];
     accessor(&m_builder, field_value);

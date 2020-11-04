@@ -10,7 +10,7 @@ if (MSVC)
 endif()
 
 set(GAIA_CATALOG_INCLUDES
-  ${GAIA_SOURCE}/production/catalog/catalog_manager/inc
+  ${GAIA_SOURCE}/production/catalog/inc
   ${GAIA_SOURCE}/production/inc/internal/catalog
   ${GAIA_SOURCE}/production/inc/public/common
   ${GAIA_SOURCE}/production/inc/public/direct_access
