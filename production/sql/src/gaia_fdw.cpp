@@ -381,7 +381,7 @@ extern "C" void gaia_end_foreign_scan(ForeignScanState* node)
     auto scan_state = reinterpret_cast<gaia::fdw::scan_state_t*>(node->fdw_state);
 
     // We should have reached the end of iteration.
-    assert(scan_state->has_scan_ended());
+    retail_assert(scan_state->has_scan_ended(), "Scan had not completed at end scan!");
 
     // Commit read transaction.
     gaia::fdw::adapter_t::commit_transaction();
@@ -647,7 +647,7 @@ extern "C" TupleTableSlot* gaia_exec_foreign_insert(
         {
             // We don't allow gaia_id to be set by an INSERT or UPDATE statement
             // (this should have already been checked in gaia_plan_foreign_modify).
-            assert(slot->tts_isnull[attr_idx]);
+            retail_assert(slot->tts_isnull[attr_idx], "gaia_id should not have been set!");
 
             gaia_id = gaia::fdw::adapter_t::get_new_gaia_id();
         }
@@ -660,7 +660,7 @@ extern "C" TupleTableSlot* gaia_exec_foreign_insert(
         }
     }
 
-    assert(gaia_id);
+    retail_assert(gaia_id, "We have not determined the gaia_id for the record to insert!");
 
     modify_state->insert_record(gaia_id);
 
@@ -726,7 +726,7 @@ extern "C" TupleTableSlot* gaia_exec_foreign_update(
     }
 
     // We must have found a valid (i.e., nonzero) gaia_id attribute value.
-    assert(gaia_id);
+    retail_assert(gaia_id, "We have not determined the gaia_id for the record to update!");
 
     modify_state->update_record(gaia_id);
 
@@ -772,17 +772,18 @@ extern "C" TupleTableSlot* gaia_exec_foreign_delete(
 
     // Get primary key (gaia_id) from plan slot.
     TupleDesc tuple_desc = plan_slot->tts_tupleDescriptor;
-    // plan_slot should have only 1 attr (gaia_id).
-    assert(tuple_desc->natts == 1);
+    retail_assert(tuple_desc->natts == 1, "Plan slot should have only 1 attribute: gaia_id.");
 
     Form_pg_attribute attr = TupleDescAttr(tuple_desc, 0);
     AttrNumber attnum = attr->attnum;
     char* attr_name = NameStr(attr->attname);
-    assert(gaia::fdw::adapter_t::is_gaia_id_name(attr_name));
+    retail_assert(
+        gaia::fdw::adapter_t::is_gaia_id_name(attr_name),
+        "The name of the record identifier is not gaia_id!");
 
     bool is_null;
     Datum pk_val = slot_getattr(plan_slot, attnum, &is_null);
-    assert(!is_null);
+    retail_assert(!is_null, "Value of record identifier was found to be null!");
     gaia_id_t gaia_id = DatumGetUInt64(pk_val);
 
     if (!modify_state->delete_record(gaia_id))
