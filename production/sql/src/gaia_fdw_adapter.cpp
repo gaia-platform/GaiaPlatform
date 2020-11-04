@@ -79,14 +79,14 @@ void adapter_t::initialize_caches()
             << "' with type " << table_view.table_type() << "...";
         elog(LOG, log_message.str().c_str());
 
-        auto type_information = make_shared<const type_information_t>();
+        auto type_information = make_unique<type_information_t>();
 
         initialize_type_information_from_binary_schema(
-            const_cast<type_information_t*>(type_information.get()),
+            type_information.get(),
             binary_schema.data(),
             binary_schema.size());
 
-        const_cast<type_information_t*>(type_information.get())->set_serialization_template(serialization_template);
+        type_information.get()->set_serialization_template(serialization_template);
 
         bool result = type_cache_t::get()->set_type_information(table_view.table_type(), type_information);
         retail_assert(result, "Failed setting type_cache!");

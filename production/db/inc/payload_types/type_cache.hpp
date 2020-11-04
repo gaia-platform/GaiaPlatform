@@ -124,9 +124,10 @@ public:
     // This method should be used to load new type information in the cache.
     // It expects the cache to contain no data for the type.
     // It returns true if the cache was updated and false if an entry for the type was found to exist already.
+    // When data is inserted into the cache, the unique_ptr will lose its ownership.
     bool set_type_information(
         gaia::common::gaia_type_t type_id,
-        std::shared_ptr<const type_information_t>& type_information);
+        std::unique_ptr<type_information_t>& type_information);
 
     // Return the size of the internal map.
     size_t size() const;
