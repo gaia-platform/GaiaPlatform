@@ -603,7 +603,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
 
             if (parent_table == table)
             {
-                // this is a self-relationship, both parent and child pointers are in the same table.
+                // This is a self-relationship, both parent and child pointers are in the same table.
                 child_available_offset = parent_available_offset + 1;
             }
             else
@@ -618,7 +618,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
                 false, // deprecated
                 parent_available_offset, // first_child_offset
                 child_available_offset + 1, // next_child_offset
-                uint8_t(child_available_offset) // parent_offset
+                child_available_offset // parent_offset
             );
             auto rel = gaia_relationship_t::get(relationship_id);
 

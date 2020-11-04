@@ -3,7 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <fstream>
 #include <iostream>
 
 #include "gtest/gtest.h"
@@ -195,7 +194,8 @@ bool delete_hierarchy(employee_t& eptr)
     return true;
 }
 
-template <typename T_type> int count_type()
+template <typename T_type>
+int count_type()
 {
     int count = 0;
     for (auto row : T_type::list())
