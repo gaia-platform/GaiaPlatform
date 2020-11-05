@@ -301,7 +301,8 @@ int main() {
     
     cout << "Initializing" << endl;
 
-    CampusDemo campusDemo;
+    CampusDemo::Campus campusDemo;
+    campusDemo.Run();
 
     return 0;
 }

@@ -1,9 +1,11 @@
+#pragma once
 /////////////////////////////////////////////
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
 
 #include <iostream>
+#include "message.hpp"
 
 /*
 #include "gaia_system.hpp"
@@ -15,7 +17,8 @@ using namespace gaia::rules;
 
 using namespace std;
 
-class CampusDemo {
+namespace CampusDemo{
+class Campus{
 
 private:
 
@@ -31,9 +34,9 @@ private:
 
 public:
 
-    CampusDemo();
+    Campus();
 
-    ~CampusDemo();
+    ~Campus();
 
     int DemoTest();
 
@@ -47,6 +50,5 @@ public:
      */
     int Run();
 
-};
-
-
+}; // class Campus
+} // namespace CampusDemo

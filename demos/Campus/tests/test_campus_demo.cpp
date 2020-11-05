@@ -5,6 +5,7 @@
 
 #include "gtest/gtest.h"
 #include "../inc/campus_demo.hpp"
+#include "../inc/message.hpp"
 
 namespace tests{
 
@@ -29,8 +30,20 @@ class CampusDemoTest : public ::testing::Test {
 
 // yada ...
 TEST_F(CampusDemoTest, DemoTestTest) {
-   CampusDemo cd;
+   CampusDemo::Campus cd;
    EXPECT_EQ(cd.DemoTest(), 0);
+}
+
+// yada ...
+TEST_F(CampusDemoTest, MessageHeaderTest) {
+   message::MessageHeader mh;
+   EXPECT_EQ(mh.DemoTest(), 0);
+}
+
+// yada ...
+TEST_F(CampusDemoTest, MessageTest) {
+   message::Message<int> msg;
+   EXPECT_EQ(msg.DemoTest(), 0);
 }
 
 }  // namespace tests

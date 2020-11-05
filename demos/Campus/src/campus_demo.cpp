@@ -5,20 +5,20 @@
 
 #include "../inc/campus_demo.hpp"
 
-CampusDemo::CampusDemo(){}
+CampusDemo::Campus::Campus(){}
 
-CampusDemo::~CampusDemo(){}
+CampusDemo::Campus::~Campus(){}
 
-int CampusDemo::DemoTest(){
+int CampusDemo::Campus::DemoTest(){
     return 0;
 }
 
-int CampusDemo::Run(){
+int CampusDemo::Campus::Run(){
     Init();
     return 0;
 }
 
-int CampusDemo::Init(){
+int CampusDemo::Campus::Init(){
     
     //Initialize Gaia
     //gaia::system::initialize(true);
