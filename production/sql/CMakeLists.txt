@@ -14,14 +14,6 @@ if(NOT PG_CONFIG)
   return()
 endif(NOT PG_CONFIG)
 
-# Skip building extension if flatcc isn't installed.
-
-find_program(FLATCC flatcc)
-if(NOT FLATCC)
-  message(WARNING "Dependency flatcc is not installed, skipping build of ${CMAKE_CURRENT_SOURCE_DIR}.")
-  return()
-endif(NOT FLATCC)
-
 # Get version.
 
 file(READ "version.config" PG_GAIA_FDW_VERSION)

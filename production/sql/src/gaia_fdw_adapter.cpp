@@ -63,6 +63,135 @@ void append_context_option_names(Oid context_id, StringInfoData& string_info)
     }
 }
 
+Datum convert_to_datum(const data_holder_t& value)
+{
+    if (value.type == reflection::String)
+    {
+        size_t str_len = strlen(value.hold.string_value);
+        size_t text_len = str_len + VARHDRSZ;
+        text* t = reinterpret_cast<text*>(palloc(text_len));
+
+        SET_VARSIZE(t, text_len); // NOLINT (macro expansion)
+        memcpy(VARDATA(t), value.hold.string_value, str_len); // NOLINT (macro expansion)
+
+        return CStringGetDatum(t); // NOLINT (macro expansion)
+    }
+    else if (value.type == reflection::Bool || value.type == reflection::UByte || value.type == reflection::Byte || value.type == reflection::UShort || value.type == reflection::Short)
+    {
+        return Int16GetDatum(static_cast<int16_t>(value.hold.integer_value));
+    }
+    else if (value.type == reflection::UInt || value.type == reflection::Int)
+    {
+        return Int32GetDatum(static_cast<int32_t>(value.hold.integer_value));
+    }
+    else if (value.type == reflection::ULong || value.type == reflection::Long)
+    {
+        return Int64GetDatum(value.hold.integer_value);
+    }
+    else if (value.type == reflection::Float)
+    {
+        return Float4GetDatum(static_cast<float>(value.hold.float_value));
+    }
+    else if (value.type == reflection::Double)
+    {
+        return Float8GetDatum(value.hold.float_value);
+    }
+    else
+    {
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("Unhandled data_holder_t type."),
+             errhint("%d", value.type)));
+    }
+}
+
+reflection::BaseType convert_to_reflection_type(data_type_t type)
+{
+    switch (type)
+    {
+    case data_type_t::e_bool:
+        return reflection::Bool;
+    case data_type_t::e_int8:
+        return reflection::Byte;
+    case data_type_t::e_uint8:
+        return reflection::UByte;
+    case data_type_t::e_int16:
+        return reflection::Short;
+    case data_type_t::e_uint16:
+        return reflection::UShort;
+    case data_type_t::e_int32:
+        return reflection::Int;
+    case data_type_t::e_uint32:
+        return reflection::UInt;
+    case data_type_t::e_int64:
+        return reflection::Long;
+    case data_type_t::e_uint64:
+        return reflection::ULong;
+    case data_type_t::e_references:
+        return reflection::ULong;
+    case data_type_t::e_float:
+        return reflection::Float;
+    case data_type_t::e_double:
+        return reflection::Double;
+    case data_type_t::e_string:
+        return reflection::String;
+
+    default:
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("Unhandled field type."),
+             errhint("%d", type)));
+    }
+}
+
+data_holder_t convert_to_data_holder(const Datum& value, data_type_t value_type)
+{
+    data_holder_t data_holder;
+
+    data_holder.type = convert_to_reflection_type(value_type);
+
+    if (value_type == data_type_t::e_bool
+        || value_type == data_type_t::e_uint8
+        || value_type == data_type_t::e_int8
+        || value_type == data_type_t::e_uint16
+        || value_type == data_type_t::e_int16)
+    {
+        data_holder.hold.integer_value = DatumGetInt16(value);
+    }
+    else if (value_type == data_type_t::e_uint32 || value_type == data_type_t::e_int32)
+    {
+        data_holder.hold.integer_value = DatumGetInt32(value);
+    }
+    else if (value_type == data_type_t::e_uint64 || value_type == data_type_t::e_int64 || value_type == data_type_t::e_references)
+    {
+        data_holder.hold.integer_value = DatumGetInt64(value);
+    }
+    else if (value_type == data_type_t::e_float)
+    {
+        data_holder.hold.float_value = DatumGetFloat4(value);
+    }
+    else if (value_type == data_type_t::e_double)
+    {
+        data_holder.hold.float_value = DatumGetFloat8(value);
+    }
+    else if (value_type == data_type_t::e_string)
+    {
+        data_holder.hold.string_value = TextDatumGetCString(value); // NOLINT (macro expansion)
+    }
+    else
+    {
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("Unhandled field type."),
+             errhint("%d", value_type)));
+    }
+
+    return data_holder;
+}
+
 void adapter_t::initialize_caches()
 {
     gaia::db::begin_transaction();
@@ -225,54 +354,48 @@ bool state_t::initialize(const char* table_name, size_t count_fields)
 {
     m_gaia_id_field_index = c_invalid_field_index;
 
-    if (strcmp(table_name, "airports") == 0)
-    {
-        m_mapping = &c_airport_mapping;
-    }
-    else if (strcmp(table_name, "airlines") == 0)
-    {
-        m_mapping = &c_airline_mapping;
-    }
-    else if (strcmp(table_name, "routes") == 0)
-    {
-        m_mapping = &c_route_mapping;
-    }
-    else
+    // Lookup table in our map.
+    auto iterator = adapter_t::s_map_table_name_to_container_id.find(table_name);
+    if (iterator == adapter_t::s_map_table_name_to_container_id.end())
     {
         return false;
     }
 
+    m_gaia_container_id = iterator->second;
+
+    m_count_fields = 0;
+    for (auto field_view : catalog_core_t::list_fields(m_gaia_container_id))
+    {
+        m_count_fields++;
+    }
+
     retail_assert(
-        count_fields == m_mapping->attribute_count,
+        count_fields == m_count_fields,
         "Table has a different number of fields than expected!");
 
-    m_gaia_container_id = m_mapping->gaia_container_id;
-
-    m_indexed_accessors = reinterpret_cast<attribute_accessor_fn*>(palloc0(
-        sizeof(attribute_accessor_fn) * m_mapping->attribute_count));
-
-    m_indexed_builders = reinterpret_cast<attribute_builder_fn*>(palloc0(
-        sizeof(attribute_builder_fn) * m_mapping->attribute_count));
+    m_fields = reinterpret_cast<field_information_t*>(palloc0(
+        sizeof(field_information_t) * m_count_fields));
 
     return true;
 }
 
 bool state_t::set_field_index(const char* field_name, size_t field_index)
 {
-    if (field_index >= m_mapping->attribute_count)
+    if (field_index >= m_count_fields)
     {
         return false;
     }
 
     bool found_field = false;
-    for (size_t i = 0; i < m_mapping->attribute_count; ++i)
+    for (auto field_view : catalog_core_t::list_fields(m_gaia_container_id))
     {
-        if (strcmp(field_name, m_mapping->attributes[i].name) == 0)
+        if (strcmp(field_name, field_view.name()) == 0)
         {
             found_field = true;
 
-            m_indexed_accessors[field_index] = m_mapping->attributes[i].accessor;
-            m_indexed_builders[field_index] = m_mapping->attributes[i].builder;
+            m_fields[field_index].position = field_view.position();
+            m_fields[field_index].type = field_view.data_type();
+            m_fields[field_index].is_reference = (field_view.data_type() == data_type_t::e_references);
 
             if (adapter_t::is_gaia_id_name(field_name))
             {
@@ -283,12 +406,6 @@ bool state_t::set_field_index(const char* field_name, size_t field_index)
         }
     }
 
-    retail_assert(m_gaia_id_field_index != c_invalid_field_index, "Failed to determine the index of gaia_id field!");
-    if (m_gaia_id_field_index == c_invalid_field_index)
-    {
-        return false;
-    }
-
     return found_field;
 }
 
@@ -297,23 +414,14 @@ bool state_t::is_gaia_id_field_index(size_t field_index)
     return field_index == m_gaia_id_field_index;
 }
 
-bool scan_state_t::initialize(const char* table_name, size_t count_fields)
-{
-    if (!state_t::initialize(table_name, count_fields))
-    {
-        return false;
-    }
-
-    m_deserializer = m_mapping->deserializer;
-
-    m_current_object_root = nullptr;
-
-    return true;
-}
-
 bool scan_state_t::initialize_scan()
 {
-    m_current_node = gaia_ptr::find_first(m_mapping->gaia_container_id);
+    m_current_node = gaia_ptr::find_first(m_gaia_container_id);
+
+    if (m_current_node)
+    {
+        m_current_payload = reinterpret_cast<uint8_t*>(m_current_node.data());
+    }
 
     return true;
 }
@@ -323,37 +431,32 @@ bool scan_state_t::has_scan_ended()
     return !m_current_node;
 }
 
-void scan_state_t::deserialize_record()
-{
-    retail_assert(!has_scan_ended(), "Attempting to read record after scan has completed!");
-
-    const void* data = m_current_node.data();
-    m_current_object_root = m_deserializer(data);
-}
-
 Datum scan_state_t::extract_field_value(size_t field_index)
 {
     retail_assert(
-        field_index < m_mapping->attribute_count,
+        field_index < m_count_fields,
         "Attempting to extract information for an invalid field index!");
 
-    if (m_current_object_root == nullptr)
-    {
-        deserialize_record();
-    }
-
-    retail_assert(m_current_object_root != nullptr, "Current record payload should not be empty");
-
-    Datum field_value;
+    Datum field_value{};
 
     if (is_gaia_id_field_index(field_index))
     {
         field_value = UInt64GetDatum(m_current_node.id());
     }
+    else if (m_fields[field_index].is_reference)
+    {
+        // TODO: handle references.
+    }
     else
     {
-        attribute_accessor_fn accessor = m_indexed_accessors[field_index];
-        field_value = accessor(m_current_object_root);
+        data_holder_t value = get_field_value(
+            m_gaia_container_id,
+            m_current_payload,
+            nullptr,
+            0,
+            m_fields[field_index].position);
+
+        field_value = convert_to_datum(value);
     }
 
     return field_value;
@@ -364,8 +467,7 @@ bool scan_state_t::scan_forward()
     retail_assert(!has_scan_ended(), "Attempting to continue scan after it has terminated!");
 
     m_current_node = m_current_node.find_next();
-
-    m_current_object_root = nullptr;
+    m_current_payload = reinterpret_cast<uint8_t*>(m_current_node.data());
 
     return has_scan_ended();
 }
@@ -377,38 +479,50 @@ bool modify_state_t::initialize(const char* table_name, size_t count_fields)
         return false;
     }
 
-    m_initializer = m_mapping->initializer;
-    m_finalizer = m_mapping->finalizer;
+    // Get hold of the type cache and lookup the type information for our type.
+    auto_type_information_t auto_type_information;
+    type_cache_t::get()->get_type_information(m_gaia_container_id, auto_type_information);
 
-    flatcc_builder_init(&m_builder);
-
-    m_has_initialized_builder = false;
+    m_current_payload = auto_type_information.get()->get_serialization_template();
+    m_binary_schema = auto_type_information.get()->get_raw_binary_schema();
+    m_binary_schema_size = auto_type_information.get()->get_binary_schema_size();
 
     return true;
-}
-
-void modify_state_t::initialize_modify()
-{
-    m_initializer(&m_builder);
-    m_has_initialized_builder = true;
 }
 
 void modify_state_t::set_field_value(size_t field_index, const Datum& field_value)
 {
     retail_assert(!is_gaia_id_field_index(field_index), "Attempting to set value of gaia_id field!");
 
-    attribute_builder_fn accessor = m_indexed_builders[field_index];
-    accessor(&m_builder, field_value);
+    data_holder_t value = convert_to_data_holder(field_value, m_fields[field_index].type);
+
+    if (value.type == reflection::String)
+    {
+        m_current_payload = gaia::db::payload_types::set_field_value(
+            m_gaia_container_id,
+            m_current_payload.data(),
+            m_current_payload.size(),
+            m_binary_schema,
+            m_binary_schema_size,
+            m_fields[field_index].position,
+            value);
+    }
+    else
+    {
+        // TODO: Change code to avoid the need for const_cast.
+        bool result = gaia::db::payload_types::set_field_value(
+            m_gaia_container_id,
+            const_cast<uint8_t*>(m_current_payload.data()),
+            m_binary_schema,
+            m_binary_schema_size,
+            m_fields[field_index].position,
+            value);
+        retail_assert(result, "Failed to set field value!");
+    }
 }
 
 bool modify_state_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
 {
-    m_finalizer(&m_builder);
-
-    size_t record_payload_size;
-    const void* record_payload = flatcc_builder_get_direct_buffer(
-        &m_builder, &record_payload_size);
-
     bool result = false;
     try
     {
@@ -417,21 +531,19 @@ bool modify_state_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
             gaia_ptr::create(
                 gaia_id,
                 m_gaia_container_id,
-                record_payload_size,
-                record_payload);
+                m_current_payload.size(),
+                m_current_payload.data());
         }
         else if (edit_state == edit_state_t::update)
         {
             auto node = gaia_ptr::open(gaia_id);
-            node.update_payload(record_payload_size, record_payload);
+            node.update_payload(m_current_payload.size(), m_current_payload.data());
         }
 
         result = true;
     }
     catch (const exception& e)
     {
-        flatcc_builder_reset(&m_builder);
-
         if (edit_state == edit_state_t::create)
         {
             ereport(
@@ -451,8 +563,6 @@ bool modify_state_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
 
         return false;
     }
-
-    flatcc_builder_reset(&m_builder);
 
     return result;
 }
@@ -493,15 +603,6 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
     }
 
     return false;
-}
-
-void modify_state_t::finalize_modify()
-{
-    if (m_has_initialized_builder)
-    {
-        flatcc_builder_clear(&m_builder);
-        m_has_initialized_builder = false;
-    }
 }
 
 } // namespace fdw

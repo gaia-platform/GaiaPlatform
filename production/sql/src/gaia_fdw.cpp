@@ -8,7 +8,7 @@
 #include "gaia_fdw_adapter.hpp"
 
 using namespace std;
-using namespace gaia::db;
+using namespace gaia::common;
 
 // Magic block for extension library.
 extern "C"
@@ -286,8 +286,6 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState* node, int eflags)
     // Set up mapping of attnos to flatbuffer accessor functions.
     for (int i = 0; i < tuple_desc->natts; ++i)
     {
-        // User attributes are indexed starting from 1.
-        // AttrNumber attnum = i + 1.
         char* attr_name = NameStr(TupleDescAttr(tuple_desc, i)->attname);
 
         scan_state->set_field_index(attr_name, (size_t)i);
@@ -627,8 +625,6 @@ extern "C" TupleTableSlot* gaia_exec_foreign_insert(
 
     auto modify_state = reinterpret_cast<gaia::fdw::modify_state_t*>(rinfo->ri_FdwState);
 
-    modify_state->initialize_modify();
-
     // NB: we assume 0 is a valid sentinel value, i.e., it can never be a
     // system-generated gaia_id.
     gaia_id_t gaia_id = c_invalid_gaia_id;
@@ -699,8 +695,6 @@ extern "C" TupleTableSlot* gaia_exec_foreign_update(
     elog(DEBUG1, "Entering function %s...", __func__);
 
     auto modify_state = reinterpret_cast<gaia::fdw::modify_state_t*>(rinfo->ri_FdwState);
-
-    modify_state->initialize_modify();
 
     // NB: we assume 0 is a valid sentinel value, i.e., it can never be a
     // system-generated gaia_id.
@@ -803,10 +797,6 @@ extern "C" void gaia_end_foreign_modify(EState* estate, ResultRelInfo* rinfo)
     // If the EndForeignModify pointer is set to nullptr, no action is taken
     // during executor shutdown.
     elog(DEBUG1, "Entering function %s...", __func__);
-
-    auto modify_state = reinterpret_cast<gaia::fdw::modify_state_t*>(rinfo->ri_FdwState);
-
-    modify_state->finalize_modify();
 
     // For DELETE, this seems to always be called before EndForeignScan.
     gaia::fdw::adapter_t::commit_transaction();
