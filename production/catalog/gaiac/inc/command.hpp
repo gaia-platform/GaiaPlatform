@@ -18,16 +18,16 @@ inline constexpr char c_command_prefix = '\\';
 class invalid_command : public gaia::common::gaia_exception
 {
 public:
-    explicit invalid_command(const string& cmd)
+    explicit invalid_command(const std::string& cmd)
     {
-        stringstream message;
+        std::stringstream message;
         message << "Invalid command: " << cmd << ".";
         m_message = message.str();
     }
 
-    invalid_command(const string& cmd, const regex_error& error)
+    invalid_command(const std::string& cmd, const std::regex_error& error)
     {
-        stringstream message;
+        std::stringstream message;
         message
             << "Invalid command: " << cmd << ". "
             << "Regular expression error " << error.code() << ": " << error.what() << ".";
@@ -35,4 +35,4 @@ public:
     }
 };
 
-void handle_meta_command(const string& line);
+void handle_meta_command(const std::string& line);

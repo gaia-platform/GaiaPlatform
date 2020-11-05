@@ -12,12 +12,14 @@ using gaia::common::gaia_exception;
 using gaia::common::gaia_type_t;
 using gaia::common::reference_offset_t;
 
-namespace gaia::db {
+namespace gaia::db
+{
 
 /**
  * Denotes the cardinality of the children a parent can have.
  */
-enum class cardinality_t {
+enum class cardinality_t
+{
     not_set,
     one,
     many
@@ -41,7 +43,8 @@ enum class cardinality_t {
  * By definition, a relationship involves two types; therefore, a reference to this
  * structure will be associated with the types on both sides of the relationship.
  */
-struct relationship_t {
+struct relationship_t
+{
     gaia_type_t parent_type;
     gaia_type_t child_type;
 
@@ -63,10 +66,12 @@ struct relationship_t {
  * user when a relationship is deleted at runtime, but the EDC classes are not up to
  * date with it.
  */
-class invalid_reference_offset : public gaia_exception {
+class invalid_reference_offset : public gaia_exception
+{
 public:
-    invalid_reference_offset(gaia_type_t type, reference_offset_t offset) {
-        stringstream message;
+    invalid_reference_offset(gaia_type_t type, reference_offset_t offset)
+    {
+        std::stringstream message;
         message << "Gaia type \"" << type << "\" has no relationship for the offset \"" << offset << "\"";
         m_message = message.str();
     }
@@ -78,10 +83,12 @@ public:
  * This can happen when the relationships are modified at runtime and the EDC classes
  * are not up to date with it.
  */
-class invalid_relationship_type : public gaia_exception {
+class invalid_relationship_type : public gaia_exception
+{
 public:
-    invalid_relationship_type(reference_offset_t offset, gaia_type_t expected_type, gaia_type_t found_type) {
-        stringstream message;
+    invalid_relationship_type(reference_offset_t offset, gaia_type_t expected_type, gaia_type_t found_type)
+    {
+        std::stringstream message;
         message << "Relationship with offset \"" << offset << "\" requires type \"" << expected_type << "\" but found \"" << found_type << "\" ";
         m_message = message.str();
     }
@@ -92,10 +99,12 @@ public:
  * This can happen when the relationships are modified at runtime and the EDC classes
  * are not up to date with it.
  */
-class single_cardinality_violation : public gaia_exception {
+class single_cardinality_violation : public gaia_exception
+{
 public:
-    single_cardinality_violation(gaia_type_t type, reference_offset_t offset) {
-        stringstream message;
+    single_cardinality_violation(gaia_type_t type, reference_offset_t offset)
+    {
+        std::stringstream message;
         message << "Gaia type \"" << type << "\" has single cardinality for the relationship with offset \"" << offset << "\"  but multiple children are being added";
         m_message = message.str();
     }
@@ -104,10 +113,12 @@ public:
 /**
  * Thrown when the adding a child to a relationship that already contains it.
  */
-class child_already_referenced : public gaia_exception {
+class child_already_referenced : public gaia_exception
+{
 public:
-    child_already_referenced(gaia_type_t child_type, reference_offset_t offset) {
-        stringstream message;
+    child_already_referenced(gaia_type_t child_type, reference_offset_t offset)
+    {
+        std::stringstream message;
         message << "Gaia type \"" << child_type << "\" has already a reference for the relationship with offset \"" << offset << "\"";
         m_message = message.str();
     }

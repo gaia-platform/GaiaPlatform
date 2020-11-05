@@ -104,7 +104,7 @@ void gaia::catalog::ddl::parser_t::scan_end () {
     fclose(yyin);
 }
 
-void gaia::catalog::ddl::parser_t::scan_string_begin (const string& input) {
+void gaia::catalog::ddl::parser_t::scan_string_begin (const std::string& input) {
     yy_flex_debug = trace_scanning;
     yy_scan_string(input.c_str());
 }

@@ -7,6 +7,8 @@
 #include <record_list.hpp>
 #include <retail_assert.hpp>
 
+using namespace std;
+
 using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::db::storage;

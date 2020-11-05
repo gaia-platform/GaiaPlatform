@@ -5,8 +5,9 @@
 
 #include "gaia_boot.hpp"
 
+using namespace std;
+
 using namespace gaia::db;
-// using namespace gaia::common::logging;
 
 namespace gaia
 {

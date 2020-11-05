@@ -34,9 +34,9 @@ constexpr char c_disable_persistence_flag[] = " --disable-persistence";
 
 void remove_persistent_store()
 {
-    string cmd = "rm -rf ";
+    std::string cmd = "rm -rf ";
     cmd.append(PERSISTENT_DIRECTORY_PATH);
-    cerr << cmd << endl;
+    std::cerr << cmd << std::endl;
     ::system(cmd.c_str());
 }
 
@@ -105,7 +105,7 @@ void reset_server()
     // but before the server has been reinitialized.)
     std::this_thread::sleep_for(std::chrono::milliseconds(c_wait_signal_millis));
     // WLW Note: This is temporary.
-    string boot_file_name(PERSISTENT_DIRECTORY_PATH);
+    std::string boot_file_name(PERSISTENT_DIRECTORY_PATH);
     boot_file_name += "/boot_parameters.bin";
     truncate(boot_file_name.c_str(), 0);
     wait_for_server_init();
@@ -133,16 +133,16 @@ public:
         }
 
         // Launch SE server in background.
-        string cmd = c_daemonize_command + m_server_path;
+        std::string cmd = c_daemonize_command + m_server_path;
         if (m_disable_persistence)
         {
             cmd.append(c_disable_persistence_flag);
         }
-        cerr << cmd << endl;
+        std::cerr << cmd << std::endl;
         ::system(cmd.c_str());
 
         // Wait for server to initialize.
-        cerr << "Waiting for server to initialize..." << endl;
+        std::cerr << "Waiting for server to initialize..." << std::endl;
         wait_for_server_init();
         m_server_started = true;
     }
@@ -151,9 +151,9 @@ public:
     {
         // Try to kill the SE server process.
         // REVIEW: we should be using a proper process library for this, so we can kill by PID.
-        string cmd = "pkill -f -KILL ";
+        std::string cmd = "pkill -f -KILL ";
         cmd.append(m_server_path);
-        cerr << cmd << endl;
+        std::cerr << cmd << std::endl;
         ::system(cmd.c_str());
     }
 
@@ -178,7 +178,7 @@ public:
 
 private:
     // Add a trailing '/' if not provided.
-    static void inline terminate_path(string& path)
+    static void inline terminate_path(std::string& path)
     {
         if (path.back() != '/')
         {
@@ -186,7 +186,7 @@ private:
         }
     }
 
-    string m_server_path;
+    std::string m_server_path;
     bool m_disable_persistence = false;
     bool m_server_started = false;
 };
