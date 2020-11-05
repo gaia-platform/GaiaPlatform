@@ -217,6 +217,9 @@ public:
     bool delete_record(uint64_t gaia_id);
 
 protected:
+    void copy_payload(const std::vector<uint8_t>& payload);
+
+protected:
     uint8_t* m_current_payload;
     size_t m_current_payload_size;
 

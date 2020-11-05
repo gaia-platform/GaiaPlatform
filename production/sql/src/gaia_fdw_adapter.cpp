@@ -368,8 +368,6 @@ uint64_t adapter_t::get_new_gaia_id()
     return gaia_ptr::generate_id();
 }
 
-// TODO: Rewrite this to iterate over the database tables and generate statements
-// out of table definitions.
 List* adapter_t::get_ddl_command_list(const char* server_name)
 {
     List* commands = NIL;
@@ -410,7 +408,12 @@ bool state_t::initialize(const char* table_name, size_t count_fields)
     m_count_fields = 0;
     for (auto field_view : catalog_core_t::list_fields(m_gaia_container_id))
     {
-        m_count_fields++;
+        // We do not count anonymous references.
+        if (field_view.data_type() == data_type_t::e_references
+            && strlen(field_view.name()) > 0)
+        {
+            m_count_fields++;
+        }
     }
 
     if (count_fields != m_count_fields)
@@ -421,7 +424,12 @@ bool state_t::initialize(const char* table_name, size_t count_fields)
              errmsg("Unexpected table field count!"),
              errhint("Count is '%ld' and expected count was '%ld'.", count_fields, m_count_fields)));
     }
+    else
+    {
+        elog(LOG, "Successfully initialized processing of table %s with %ld fields!", table_name, count_fields);
+    }
 
+    // Allocate memory for holding field information.
     m_fields = reinterpret_cast<field_information_t*>(palloc0(
         sizeof(field_information_t) * m_count_fields));
 
@@ -499,6 +507,7 @@ Datum scan_state_t::extract_field_value(size_t field_index)
     else if (m_fields[field_index].type == data_type_t::e_references)
     {
         // TODO: handle references.
+        field_value = UInt64GetDatum(0);
     }
     else
     {
@@ -531,6 +540,13 @@ bool scan_state_t::scan_forward()
     return has_scan_ended();
 }
 
+void modify_state_t::copy_payload(const std::vector<uint8_t>& payload)
+{
+    m_current_payload_size = sizeof(uint8_t) * payload.size();
+    m_current_payload = reinterpret_cast<uint8_t*>(palloc0(m_current_payload_size));
+    memcpy(m_current_payload, payload.data(), m_current_payload_size);
+}
+
 bool modify_state_t::initialize(const char* table_name, size_t count_fields)
 {
     if (!state_t::initialize(table_name, count_fields))
@@ -544,9 +560,7 @@ bool modify_state_t::initialize(const char* table_name, size_t count_fields)
 
     // Set current payload to a copy of the serialization template bits.
     vector<uint8_t> current_payload = auto_type_information.get()->get_serialization_template();
-    m_current_payload_size = sizeof(uint8_t) * current_payload.size();
-    m_current_payload = reinterpret_cast<uint8_t*>(palloc0(m_current_payload_size));
-    memcpy(m_current_payload, current_payload.data(), m_current_payload_size);
+    copy_payload(current_payload);
 
     // Get a pointer to the binary schema.
     m_binary_schema = auto_type_information.get()->get_raw_binary_schema();
@@ -579,9 +593,7 @@ void modify_state_t::set_field_value(size_t field_index, const Datum& field_valu
             value);
 
         // Make a copy of the updated bits.
-        m_current_payload_size = sizeof(uint8_t) * updated_payload.size();
-        m_current_payload = reinterpret_cast<uint8_t*>(palloc0(m_current_payload_size));
-        memcpy(m_current_payload, updated_payload.data(), m_current_payload_size);
+        copy_payload(updated_payload);
     }
     else
     {
