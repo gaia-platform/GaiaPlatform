@@ -65,7 +65,30 @@ void append_context_option_names(Oid context_id, StringInfoData& string_info)
 
 Datum convert_to_datum(const data_holder_t& value)
 {
-    if (value.type == reflection::String)
+    switch (value.type)
+    {
+    case reflection::Bool:
+    case reflection::Byte:
+    case reflection::UByte:
+    case reflection::Short:
+    case reflection::UShort:
+        return Int16GetDatum(static_cast<int16_t>(value.hold.integer_value));
+
+    case reflection::Int:
+    case reflection::UInt:
+        return Int32GetDatum(static_cast<int32_t>(value.hold.integer_value));
+
+    case reflection::Long:
+    case reflection::ULong:
+        return Int64GetDatum(value.hold.integer_value);
+
+    case reflection::Float:
+        return Float4GetDatum(static_cast<float>(value.hold.float_value));
+
+    case reflection::Double:
+        return Float8GetDatum(value.hold.float_value);
+
+    case reflection::String:
     {
         size_t str_len = strlen(value.hold.string_value);
         size_t text_len = str_len + VARHDRSZ;
@@ -76,33 +99,13 @@ Datum convert_to_datum(const data_holder_t& value)
 
         return CStringGetDatum(t); // NOLINT (macro expansion)
     }
-    else if (value.type == reflection::Bool || value.type == reflection::UByte || value.type == reflection::Byte || value.type == reflection::UShort || value.type == reflection::Short)
-    {
-        return Int16GetDatum(static_cast<int16_t>(value.hold.integer_value));
-    }
-    else if (value.type == reflection::UInt || value.type == reflection::Int)
-    {
-        return Int32GetDatum(static_cast<int32_t>(value.hold.integer_value));
-    }
-    else if (value.type == reflection::ULong || value.type == reflection::Long)
-    {
-        return Int64GetDatum(value.hold.integer_value);
-    }
-    else if (value.type == reflection::Float)
-    {
-        return Float4GetDatum(static_cast<float>(value.hold.float_value));
-    }
-    else if (value.type == reflection::Double)
-    {
-        return Float8GetDatum(value.hold.float_value);
-    }
-    else
-    {
+
+    default:
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("Unhandled data_holder_t type."),
-             errhint("%d", value.type)));
+             errmsg("An FDW internal error was detected in convert_to_datum()!"),
+             errhint("Unhandled data_holder_t type '%d'.", value.type)));
     }
 }
 
@@ -112,22 +115,22 @@ reflection::BaseType convert_to_reflection_type(data_type_t type)
     {
     case data_type_t::e_bool:
         return reflection::Bool;
-    case data_type_t::e_int8:
-        return reflection::Byte;
     case data_type_t::e_uint8:
         return reflection::UByte;
-    case data_type_t::e_int16:
-        return reflection::Short;
+    case data_type_t::e_int8:
+        return reflection::Byte;
     case data_type_t::e_uint16:
         return reflection::UShort;
-    case data_type_t::e_int32:
-        return reflection::Int;
+    case data_type_t::e_int16:
+        return reflection::Short;
     case data_type_t::e_uint32:
         return reflection::UInt;
-    case data_type_t::e_int64:
-        return reflection::Long;
+    case data_type_t::e_int32:
+        return reflection::Int;
     case data_type_t::e_uint64:
         return reflection::ULong;
+    case data_type_t::e_int64:
+        return reflection::Long;
     case data_type_t::e_references:
         return reflection::ULong;
     case data_type_t::e_float:
@@ -141,8 +144,8 @@ reflection::BaseType convert_to_reflection_type(data_type_t type)
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("Unhandled field type."),
-             errhint("%d", type)));
+             errmsg("An FDW internal error was detected in convert_to_reflection_type()!"),
+             errhint("Unhandled data_type_t '%d'.", type)));
     }
 }
 
@@ -152,41 +155,45 @@ data_holder_t convert_to_data_holder(const Datum& value, data_type_t value_type)
 
     data_holder.type = convert_to_reflection_type(value_type);
 
-    if (value_type == data_type_t::e_bool
-        || value_type == data_type_t::e_uint8
-        || value_type == data_type_t::e_int8
-        || value_type == data_type_t::e_uint16
-        || value_type == data_type_t::e_int16)
+    switch (value_type)
     {
+    case data_type_t::e_bool:
+    case data_type_t::e_uint8:
+    case data_type_t::e_int8:
+    case data_type_t::e_uint16:
+    case data_type_t::e_int16:
         data_holder.hold.integer_value = DatumGetInt16(value);
-    }
-    else if (value_type == data_type_t::e_uint32 || value_type == data_type_t::e_int32)
-    {
+        break;
+
+    case data_type_t::e_uint32:
+    case data_type_t::e_int32:
         data_holder.hold.integer_value = DatumGetInt32(value);
-    }
-    else if (value_type == data_type_t::e_uint64 || value_type == data_type_t::e_int64 || value_type == data_type_t::e_references)
-    {
+        break;
+
+    case data_type_t::e_uint64:
+    case data_type_t::e_int64:
+    case data_type_t::e_references:
         data_holder.hold.integer_value = DatumGetInt64(value);
-    }
-    else if (value_type == data_type_t::e_float)
-    {
+        break;
+
+    case data_type_t::e_float:
         data_holder.hold.float_value = DatumGetFloat4(value);
-    }
-    else if (value_type == data_type_t::e_double)
-    {
+        break;
+
+    case data_type_t::e_double:
         data_holder.hold.float_value = DatumGetFloat8(value);
-    }
-    else if (value_type == data_type_t::e_string)
-    {
+        break;
+
+    case data_type_t::e_string:
         data_holder.hold.string_value = TextDatumGetCString(value); // NOLINT (macro expansion)
-    }
-    else
-    {
+        break;
+
+    default:
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("Unhandled field type."),
-             errhint("%d", value_type)));
+             errmsg("An FDW internal error was detected in convert_to_data_holder()!"),
+             errhint("Unhandled data_type_t '%d'.", value_type)));
     }
 
     return data_holder;
@@ -205,7 +212,8 @@ void adapter_t::initialize_caches()
         stringstream log_message;
         log_message
             << "Loading metadata information for table `" << table_name
-            << "' with type " << table_view.table_type() << "...";
+            << "' with type '" << table_view.table_type()
+            << "' and id '" << table_view.id() << "'...";
         elog(LOG, log_message.str().c_str());
 
         auto type_information = make_unique<type_information_t>();
@@ -218,7 +226,13 @@ void adapter_t::initialize_caches()
         type_information.get()->set_serialization_template(serialization_template);
 
         bool result = type_cache_t::get()->set_type_information(table_view.table_type(), type_information);
-        retail_assert(result, "Failed setting type_cache!");
+        if (result == false)
+        {
+            ereport(
+                ERROR,
+                (errcode(ERRCODE_FDW_ERROR),
+                 errmsg("Failed to set type information in type_cache_t!")));
+        }
 
         s_map_table_name_to_container_id.insert(make_pair(table_name, table_view.table_type()));
     }
@@ -246,7 +260,7 @@ void adapter_t::begin_session()
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Error opening COW-SE session."),
-             errhint("%s", e.what())));
+             errhint("Exception: %s", e.what())));
     }
 }
 
@@ -264,7 +278,7 @@ void adapter_t::end_session()
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Error closing COW-SE session."),
-             errhint("%s", e.what())));
+             errhint("Exception: %s", e.what())));
     }
 }
 
@@ -395,7 +409,6 @@ bool state_t::set_field_index(const char* field_name, size_t field_index)
 
             m_fields[field_index].position = field_view.position();
             m_fields[field_index].type = field_view.data_type();
-            m_fields[field_index].is_reference = (field_view.data_type() == data_type_t::e_references);
 
             if (adapter_t::is_gaia_id_name(field_name))
             {
@@ -443,7 +456,7 @@ Datum scan_state_t::extract_field_value(size_t field_index)
     {
         field_value = UInt64GetDatum(m_current_node.id());
     }
-    else if (m_fields[field_index].is_reference)
+    else if (m_fields[field_index].type == data_type_t::e_references)
     {
         // TODO: handle references.
     }
@@ -483,7 +496,13 @@ bool modify_state_t::initialize(const char* table_name, size_t count_fields)
     auto_type_information_t auto_type_information;
     type_cache_t::get()->get_type_information(m_gaia_container_id, auto_type_information);
 
-    m_current_payload = auto_type_information.get()->get_serialization_template();
+    // Set current payload to a copy of the serialization template bits.
+    vector<uint8_t> current_payload = auto_type_information.get()->get_serialization_template();
+    m_current_payload_size = sizeof(uint8_t) * current_payload.size();
+    m_current_payload = reinterpret_cast<uint8_t*>(palloc0(m_current_payload_size));
+    memcpy(m_current_payload, current_payload.data(), m_current_payload_size);
+
+    // Get a pointer to the binary schema.
     m_binary_schema = auto_type_information.get()->get_raw_binary_schema();
     m_binary_schema_size = auto_type_information.get()->get_binary_schema_size();
 
@@ -498,21 +517,25 @@ void modify_state_t::set_field_value(size_t field_index, const Datum& field_valu
 
     if (value.type == reflection::String)
     {
-        m_current_payload = gaia::db::payload_types::set_field_value(
+        vector<uint8_t> updated_payload = ::set_field_value(
             m_gaia_container_id,
-            m_current_payload.data(),
-            m_current_payload.size(),
+            m_current_payload,
+            m_current_payload_size,
             m_binary_schema,
             m_binary_schema_size,
             m_fields[field_index].position,
             value);
+
+        // Make a copy of the updated bits.
+        m_current_payload_size = sizeof(uint8_t) * updated_payload.size();
+        m_current_payload = reinterpret_cast<uint8_t*>(palloc0(m_current_payload_size));
+        memcpy(m_current_payload, updated_payload.data(), m_current_payload_size);
     }
     else
     {
-        // TODO: Change code to avoid the need for const_cast.
-        bool result = gaia::db::payload_types::set_field_value(
+        bool result = ::set_field_value(
             m_gaia_container_id,
-            const_cast<uint8_t*>(m_current_payload.data()),
+            m_current_payload,
             m_binary_schema,
             m_binary_schema_size,
             m_fields[field_index].position,
@@ -531,13 +554,13 @@ bool modify_state_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
             gaia_ptr::create(
                 gaia_id,
                 m_gaia_container_id,
-                m_current_payload.size(),
-                m_current_payload.data());
+                m_current_payload_size,
+                m_current_payload);
         }
         else if (edit_state == edit_state_t::update)
         {
             auto node = gaia_ptr::open(gaia_id);
-            node.update_payload(m_current_payload.size(), m_current_payload.data());
+            node.update_payload(m_current_payload_size, m_current_payload);
         }
 
         result = true;
@@ -550,7 +573,7 @@ bool modify_state_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
                 ERROR,
                 (errcode(ERRCODE_FDW_ERROR),
                  errmsg("Error creating gaia object."),
-                 errhint("%s", e.what())));
+                 errhint("Exception: %s", e.what())));
         }
         else if (edit_state == edit_state_t::update)
         {
@@ -558,7 +581,7 @@ bool modify_state_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
                 ERROR,
                 (errcode(ERRCODE_FDW_ERROR),
                  errmsg("Error updating gaia object."),
-                 errhint("%s", e.what())));
+                 errhint("Exception: %s", e.what())));
         }
 
         return false;
@@ -584,11 +607,14 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
         auto node = gaia_ptr::open(gaia_id);
         if (!node)
         {
-            elog(DEBUG1, "Node for gaia_id %ld is invalid.", gaia_id);
+            ereport(
+                ERROR,
+                (errcode(ERRCODE_FDW_ERROR),
+                 errmsg("Could not find record to delete."),
+                 errhint("gaia_id: %ld", gaia_id)));
             return false;
         }
 
-        elog(DEBUG1, "Calling remove() on node for gaia_id %ld.", gaia_id);
         gaia_ptr::remove(node);
 
         return true;
@@ -599,7 +625,7 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Error deleting gaia object."),
-             errhint("%s", e.what())));
+             errhint("Exception: %s", e.what())));
     }
 
     return false;

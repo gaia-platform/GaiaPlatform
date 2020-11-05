@@ -123,7 +123,6 @@ struct field_information_t
 {
     gaia::common::field_position_t position;
     gaia::common::data_type_t type;
-    bool is_reference;
 };
 
 class state_t
@@ -144,6 +143,9 @@ public:
     bool is_gaia_id_field_index(size_t field_index);
 
 protected:
+    // The identifier of the table payload type.
+    gaia::common::gaia_type_t m_gaia_container_id;
+
     // Count of fields for current table.
     size_t m_count_fields;
 
@@ -152,9 +154,6 @@ protected:
 
     // 0-based index of gaia_id attribute in tuple descriptor.
     size_t m_gaia_id_field_index;
-
-    // The identifier of the table payload type.
-    gaia::common::gaia_type_t m_gaia_container_id;
 };
 
 // The scan state is set up in gaia_begin_foreign_scan,
@@ -218,7 +217,9 @@ public:
     bool delete_record(uint64_t gaia_id);
 
 protected:
-    std::vector<uint8_t> m_current_payload;
+    uint8_t* m_current_payload;
+    size_t m_current_payload_size;
+
     const uint8_t* m_binary_schema;
     size_t m_binary_schema_size;
 };

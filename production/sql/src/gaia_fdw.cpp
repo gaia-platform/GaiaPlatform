@@ -297,7 +297,7 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState* node, int eflags)
     // (this can't currently throw).
     if (!scan_state->initialize_scan())
     {
-        elog(ERROR, "Failed to scan initialization for table '%s'.", table_name);
+        elog(ERROR, "Failed to initialize scan for table '%s'.", table_name);
     }
 }
 
@@ -341,9 +341,6 @@ extern "C" TupleTableSlot* gaia_iterate_foreign_scan(ForeignScanState* node)
     // Get the next record, if any, and fill in the slot.
     for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; ++attr_idx)
     {
-        // char *attr_name = NameStr(
-        //     TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->attname);
-
         Datum attr_val = scan_state->extract_field_value((size_t)attr_idx);
 
         slot->tts_values[attr_idx] = attr_val;
@@ -582,8 +579,6 @@ extern "C" void gaia_begin_foreign_modify(
     // Set up mapping of attnos to flatbuffer attribute builder functions.
     for (int i = 0; i < tuple_desc->natts; ++i)
     {
-        // User attributes are indexed starting from 1.
-        // AttrNumber attnum = i + 1.
         char* attr_name = NameStr(TupleDescAttr(tuple_desc, i)->attname);
 
         modify_state->set_field_index(attr_name, (size_t)i);
@@ -625,8 +620,6 @@ extern "C" TupleTableSlot* gaia_exec_foreign_insert(
 
     auto modify_state = reinterpret_cast<gaia::fdw::modify_state_t*>(rinfo->ri_FdwState);
 
-    // NB: we assume 0 is a valid sentinel value, i.e., it can never be a
-    // system-generated gaia_id.
     gaia_id_t gaia_id = c_invalid_gaia_id;
 
     // slot_getallattrs() is necessary beginning in Postgres 12 (the slot will
@@ -635,9 +628,6 @@ extern "C" TupleTableSlot* gaia_exec_foreign_insert(
     slot_getallattrs(slot);
     for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; ++attr_idx)
     {
-        // char *attr_name = NameStr(
-        //     TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->attname);
-
         Datum attr_val = {};
         if (modify_state->is_gaia_id_field_index((size_t)attr_idx))
         {
@@ -696,8 +686,6 @@ extern "C" TupleTableSlot* gaia_exec_foreign_update(
 
     auto modify_state = reinterpret_cast<gaia::fdw::modify_state_t*>(rinfo->ri_FdwState);
 
-    // NB: we assume 0 is a valid sentinel value, i.e., it can never be a
-    // system-generated gaia_id.
     gaia_id_t gaia_id = c_invalid_gaia_id;
 
     // slot_getallattrs() is necessary beginning in Postgres 12 (the slot will
@@ -896,8 +884,6 @@ extern "C" void gaia_explain_foreign_modify(
     // If the ExplainForeignModify pointer is set to nullptr, no additional
     // information is printed during EXPLAIN.
     elog(DEBUG1, "Entering function %s...", __func__);
-
-    // gaiaFdwModifyState *modify_state = (gaiaFdwModifyState *) rinfo->ri_FdwState;
 }
 
 extern "C" void gaia_explain_direct_modify(
