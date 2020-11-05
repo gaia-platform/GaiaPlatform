@@ -9,6 +9,7 @@
 #include "gaia_parser.hpp"
 #include "yy_parser.hpp"
 
+using namespace std;
 using namespace gaia::catalog::ddl;
 
 TEST(catalog_ddl_parser_test, create_table)

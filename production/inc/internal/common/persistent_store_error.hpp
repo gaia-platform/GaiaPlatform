@@ -23,11 +23,12 @@ namespace db
 class persistent_store_error : public gaia_exception
 {
 public:
-    persistent_store_error(const string& message, int code = 0)
+    persistent_store_error(const std::string& message, int code = 0)
         : gaia_exception(message)
     {
         m_code = code;
     }
+
     int get_code()
     {
         return m_code;

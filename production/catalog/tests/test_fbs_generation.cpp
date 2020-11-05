@@ -9,6 +9,8 @@
 #include "db_test_base.hpp"
 #include "fbs_generator.hpp"
 
+using namespace std;
+
 using namespace gaia::catalog;
 
 class fbs_generation_test : public db_test_base_t

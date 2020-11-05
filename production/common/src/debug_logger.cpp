@@ -8,6 +8,8 @@
 #include "logger_manager.hpp"
 #include "logger_spdlog.hpp"
 
+using namespace std;
+
 namespace gaia::common::logging
 {
 

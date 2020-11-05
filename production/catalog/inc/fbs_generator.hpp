@@ -4,6 +4,8 @@
 /////////////////////////////////////////////
 #pragma once
 
+#include <string>
+
 #include "catalog_internal.hpp"
 
 namespace gaia
@@ -17,7 +19,7 @@ namespace catalog
  *
  * @return generated fbs string
  */
-string generate_fbs(gaia::common::gaia_id_t table_id);
+std::string generate_fbs(gaia::common::gaia_id_t table_id);
 
 /**
  * Generate FlatBuffers schema (fbs) from parsing result of a table.
@@ -30,7 +32,7 @@ string generate_fbs(gaia::common::gaia_id_t table_id);
  * @param fields table fields parsing result bindings
  * @return fbs schema
  */
-string generate_fbs(const string& db_name, const string& table_name, const ddl::field_def_list_t& fields);
+std::string generate_fbs(const std::string& db_name, const std::string& table_name, const ddl::field_def_list_t& fields);
 
 /**
  * Generate binary FlatBuffers schema (bfbs) in base64 encoded string format.
@@ -38,7 +40,7 @@ string generate_fbs(const string& db_name, const string& table_name, const ddl::
  * @param valid FlatBuffers schema
  * @return base64 encoded bfbs string
  */
-string generate_bfbs(const string& fbs);
+std::string generate_bfbs(const std::string& fbs);
 
 } // namespace catalog
 } // namespace gaia

@@ -50,7 +50,7 @@ inline std::vector<uint8_t> flatbuffers_hex_to_buffer(const char* hex_buf_c_str)
             retail_assert(
                 endptr != ptr
                     && errno != ERANGE
-                    && byte <= numeric_limits<uint8_t>::max(),
+                    && byte <= std::numeric_limits<uint8_t>::max(),
                 "Invalid hex binary schema!");
             binary_schema.push_back(static_cast<uint8_t>(byte));
             ptr = endptr;

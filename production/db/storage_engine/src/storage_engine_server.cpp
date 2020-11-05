@@ -7,6 +7,8 @@
 
 #include "persistent_store_manager.hpp"
 
+using namespace std;
+
 using namespace gaia::db;
 using namespace gaia::db::messages;
 

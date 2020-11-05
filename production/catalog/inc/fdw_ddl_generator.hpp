@@ -4,6 +4,8 @@
 /////////////////////////////////////////////
 #pragma once
 
+#include <string>
+
 #include "catalog_internal.hpp"
 
 namespace gaia
@@ -20,8 +22,8 @@ namespace catalog
  * @param server_name FDW server name
  * @return DDL string
  */
-string generate_fdw_ddl(
-    const string& table_name, const ddl::field_def_list_t& fields, const string& server_name);
+std::string generate_fdw_ddl(
+    const std::string& table_name, const ddl::field_def_list_t& fields, const std::string& server_name);
 
 } // namespace catalog
 } // namespace gaia

@@ -10,9 +10,8 @@
 #include <string>
 #include <unordered_map>
 
-#include "logger_spdlog.hpp"
-
 #include "gaia_exception.hpp"
+#include "logger_spdlog.hpp"
 
 namespace gaia
 {
@@ -152,7 +151,7 @@ public:
     }
 
 protected:
-    shared_ptr<spdlog::logger> m_spdlogger;
+    std::shared_ptr<spdlog::logger> m_spdlogger;
 
 private:
     static spdlog::level::level_enum to_spdlog_level(log_level_t level);
@@ -170,12 +169,12 @@ public:
 };
 
 /**
- * 
+ *
  * Initializes all loggers from the passed in configuration. If the configuration
  * does not contain one of the required loggers (g_sys etc..) a default logger is
  * instantiated.
  */
-void initialize(const string& config_path);
+void initialize(const std::string& config_path);
 
 /**
  * Release the resources used by the logging framework.

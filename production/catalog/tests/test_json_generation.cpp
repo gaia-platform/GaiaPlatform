@@ -10,6 +10,8 @@
 #include "fbs_generator.hpp"
 #include "json_generator.hpp"
 
+using namespace std;
+
 using namespace gaia::catalog;
 using namespace gaia::catalog::ddl;
 

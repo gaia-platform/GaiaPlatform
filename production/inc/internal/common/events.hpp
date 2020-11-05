@@ -7,11 +7,15 @@
 
 #include <cstdint>
 
-namespace gaia {
-namespace db {
-namespace triggers {
+namespace gaia
+{
+namespace db
+{
+namespace triggers
+{
 
-enum class event_type_t : uint32_t {
+enum class event_type_t : uint32_t
+{
     not_set = 0,
     // Row events.
     row_update = 1 << 0,
@@ -20,5 +24,5 @@ enum class event_type_t : uint32_t {
 };
 
 }
-}
-}
+} // namespace db
+} // namespace gaia

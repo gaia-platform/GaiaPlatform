@@ -25,9 +25,9 @@ public:
         : trace_parsing(false), trace_scanning(false){};
 
     // Use smart pointers to store the statements because we need the polymorphic behaviour.
-    vector<unique_ptr<gaia::catalog::ddl::statement_t>> statements;
+    std::vector<std::unique_ptr<gaia::catalog::ddl::statement_t>> statements;
 
-    int parse(const string& filename)
+    int parse(const std::string& filename)
     {
         file = filename;
         location.initialize(&file);
@@ -54,7 +54,7 @@ public:
     bool trace_scanning;
 
 private:
-    string file;
+    std::string file;
 
     void scan_begin();
     void scan_end();

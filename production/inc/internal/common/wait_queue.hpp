@@ -5,37 +5,44 @@
 
 #pragma once
 
-#include <thread>
-#include <queue>
 #include <condition_variable>
 
-namespace gaia {
-namespace db {
-    
+#include <queue>
+#include <thread>
+
+namespace gaia
+{
+namespace db
+{
+
 // This class implements a simple thread safe queue using dumb locks.
 // Todo (msj) Move to another efficient implementation post Q2.
-template<typename T>
-class wait_queue_t {
-    private:
-        std::mutex mutex;
-        std::condition_variable queue_has_data;
-        std::queue<T> queue;
-    public:
-        wait_queue_t() = default;
+template <typename T>
+class wait_queue_t
+{
+private:
+    std::mutex mutex;
+    std::condition_variable queue_has_data;
+    std::queue<T> queue;
 
-        void push(T&& val) {
-            std::lock_guard<std::mutex> lock (mutex);
-            queue.push(std::move(val));
-            queue_has_data.notify_one();
-        }
+public:
+    wait_queue_t() = default;
 
-        void pop(T& val) {
-            std::unique_lock<std::mutex> lock (mutex);
-            queue_has_data.wait(lock, [this]() {return !queue.empty(); });
-            val = std::move(queue.front());
-            queue.pop();
-        }        
-    };
+    void push(T&& val)
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        queue.push(std::move(val));
+        queue_has_data.notify_one();
+    }
 
-}
-}
+    void pop(T& val)
+    {
+        std::unique_lock<std::mutex> lock(mutex);
+        queue_has_data.wait(lock, [this]() { return !queue.empty(); });
+        val = std::move(queue.front());
+        queue.pop();
+    }
+};
+
+} // namespace db
+} // namespace gaia

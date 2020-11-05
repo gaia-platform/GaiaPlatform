@@ -7,10 +7,12 @@
 
 #include <iostream>
 
-#include "logger_spdlog.hpp"
 #include "spdlog/sinks/basic_file_sink.h"
 
 #include "logger_manager.hpp"
+#include "logger_spdlog.hpp"
+
+using namespace std;
 
 namespace gaia::common::logging
 {

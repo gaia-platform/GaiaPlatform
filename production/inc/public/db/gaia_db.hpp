@@ -110,7 +110,7 @@ class node_not_disconnected : public gaia_exception
 public:
     node_not_disconnected(gaia_id_t id, gaia_type_t object_type)
     {
-        stringstream msg;
+        std::stringstream msg;
         msg << "Cannot delete object " << id << ", type " << object_type << " because it is still connected to another object.";
         m_message = msg.str();
     }
@@ -121,14 +121,14 @@ class invalid_type : public gaia_exception
 public:
     explicit invalid_type(gaia_type_t type)
     {
-        stringstream msg;
+        std::stringstream msg;
         msg << "The type " << type << " does not exist in the catalog.";
         m_message = msg.str();
     }
 
     invalid_type(gaia_id_t id, gaia_type_t type)
     {
-        stringstream msg;
+        std::stringstream msg;
         msg << "Cannot create object with ID " << id << " and type " << type << ". The type does not exist in the catalog.";
         m_message = msg.str();
     }
