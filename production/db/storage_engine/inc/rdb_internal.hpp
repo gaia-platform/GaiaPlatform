@@ -46,9 +46,12 @@ public:
         rocksdb::TransactionDB* txn_db;
         rocksdb::Status s;
         s = rocksdb::TransactionDB::Open(init_options, opts, m_data_dir, &txn_db);
-        if (s.ok()) {
+        if (s.ok())
+        {
             m_txn_db.reset(txn_db);
-        } else {
+        }
+        else
+        {
             handle_rdb_error(s);
         }
         retail_assert(m_txn_db != nullptr, "RocksDB database is not initialized.");
