@@ -9,10 +9,23 @@ enable_testing()
 # Set the project name.
 project(campus_demo)
 
+find_package(GTest REQUIRED)
+#find_package(GMock REQUIRED)
+
+include(GoogleTest)
+
 set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
 set(GENERATED_OUTPUTS "${CMAKE_BINARY_DIR}/campus_demo/generated")
 
+#set(GOOGLE_TEST "${GAIA_REPO}/third_party/production/googletest")
+#set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")
+
+# Googletest
+#add_subdirectory(${GOOGLE_TEST} googletest)
+
 set(GAIA_CAMPUS_DEMO_INCLUDES
+  ${GTEST_INCLUDE_DIRS}
+  #${GMOCK_INCLUDE_DIRS}
   ${GAIA_INC}/public/common
   ${GAIA_INC}/public/direct_access
   ${GAIA_INC}/public/system
@@ -52,13 +65,15 @@ endif()
 #!set_target_properties(gaia_direct PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/direct_access/libgaia_direct.a)
 
 add_executable(campus 
-    main.cpp
-    rules.cpp
+    src/main.cpp
+    src/rules.cpp
+    src/campus_demo.cpp
+    tests/test_campus_demo.cpp
 #!    "${GENERATED_OUTPUTS}/rules_init.cpp"
 )
 
 #!add_dependencies(campus generate_barn_storage)
-set_target_properties(campus PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+set_target_properties(campus PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")  
 target_include_directories(campus PRIVATE ${GAIA_CAMPUS_DEMO_INCLUDES})
 #1target_link_libraries(campus PRIVATE rt pthread gaia gaia_semock gaia_rules gaia_direct)
-target_link_libraries(campus PRIVATE rt pthread )
+target_link_libraries(campus PRIVATE ${GTEST_LIBRARIES} rt pthread )

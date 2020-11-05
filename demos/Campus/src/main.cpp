@@ -1,8 +1,9 @@
-/*#include "barn_storage_gaia_generated.h"
-#include "events.hpp"
-#include "gaia_system.hpp"
-#include "rules.hpp"
-#include <algorithm>
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+/*#include <algorithm>
 #include <atomic>
 #include <cstring>
 #include <ctime>
@@ -11,6 +12,12 @@
 #include <thread>
 
 using namespace std;
+
+#include "barn_storage_gaia_generated.h"
+#include "events.hpp"
+#include "gaia_system.hpp"
+#include "rules.hpp"
+
 using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::rules;
@@ -273,11 +280,30 @@ int main(int argc, const char **argv) {
     }
 
     return EXIT_SUCCESS;
-}*/
+}
 
 int main(int argc, const char **argv) {
     bool is_sim = false;
 
+    cout << "hey" << endl;
+
+    return 0;
+}*/
+
+#include <iostream>
+#include "../inc/campus_demo.hpp"
+
+using namespace std;
+
+int main() {
+    
+    cout << "- CampusDemo -" << endl;    
+    
+    cout << "Initializing" << endl;
+
+    CampusDemo campusDemo;
+
     return 0;
 }
 
+using namespace std;
