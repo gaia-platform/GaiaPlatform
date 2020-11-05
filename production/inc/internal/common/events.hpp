@@ -23,6 +23,6 @@ enum class event_type_t : uint32_t
     row_delete = 1 << 2,
 };
 
-}
+} // namespace triggers
 } // namespace db
 } // namespace gaia
