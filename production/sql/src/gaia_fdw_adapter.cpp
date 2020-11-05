@@ -237,9 +237,17 @@ void adapter_t::initialize_caches()
         s_map_table_name_to_container_id.insert(make_pair(table_name, table_view.table_type()));
     }
 
-    retail_assert(
-        type_cache_t::get()->size() == s_map_table_name_to_container_id.size(),
-        "Type caches were initialized to different sizes!");
+    if (type_cache_t::get()->size() != s_map_table_name_to_container_id.size())
+    {
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("Inconsistent initialization of caches!"),
+             errhint(
+                 "type_cache_t has size '%ld', but s_map_table_name_to_container_id has size '%ld'.",
+                 type_cache_t::get()->size(),
+                 s_map_table_name_to_container_id.size())));
+    }
 
     gaia::db::commit_transaction();
 }
@@ -284,7 +292,15 @@ void adapter_t::end_session()
 
 bool adapter_t::is_transaction_open()
 {
-    retail_assert(s_txn_reference_count >= 0, "Transaction count is negative!");
+    if (s_txn_reference_count < 0)
+    {
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("A negative transaction count was detected in is_transaction_open())!"),
+             errhint("Count is '%ld'.", s_txn_reference_count)));
+    }
+
     return s_txn_reference_count > 0;
 }
 
@@ -292,7 +308,14 @@ bool adapter_t::begin_transaction()
 {
     elog(DEBUG1, "Opening COW-SE transaction...");
 
-    retail_assert(s_txn_reference_count >= 0, "Transaction count is negative!");
+    if (s_txn_reference_count < 0)
+    {
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("A negative transaction count was detected in begin_transaction())!"),
+             errhint("Count is '%ld'.", s_txn_reference_count)));
+    }
 
     bool opened_transaction = false;
     int previous_count = s_txn_reference_count++;
@@ -311,7 +334,14 @@ bool adapter_t::commit_transaction()
 {
     elog(DEBUG1, "Closing COW-SE transaction...");
 
-    retail_assert(s_txn_reference_count > 0, "Transaction count was not positive at commit time.");
+    if (s_txn_reference_count <= 0)
+    {
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("A non-positive transaction count was detected in commit_transaction())!"),
+             errhint("Count is '%ld'.", s_txn_reference_count)));
+    }
 
     bool closed_transaction = false;
     int previous_count = s_txn_reference_count--;
@@ -383,9 +413,14 @@ bool state_t::initialize(const char* table_name, size_t count_fields)
         m_count_fields++;
     }
 
-    retail_assert(
-        count_fields == m_count_fields,
-        "Table has a different number of fields than expected!");
+    if (count_fields != m_count_fields)
+    {
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("Unexpected table field count!"),
+             errhint("Count is '%ld' and expected count was '%ld'.", count_fields, m_count_fields)));
+    }
 
     m_fields = reinterpret_cast<field_information_t*>(palloc0(
         sizeof(field_information_t) * m_count_fields));
@@ -446,9 +481,14 @@ bool scan_state_t::has_scan_ended()
 
 Datum scan_state_t::extract_field_value(size_t field_index)
 {
-    retail_assert(
-        field_index < m_count_fields,
-        "Attempting to extract information for an invalid field index!");
+    if (field_index >= m_count_fields)
+    {
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("Unexpected field index!"),
+             errhint("Field index is '%ld' and field count is '%ld'.", field_index, m_count_fields)));
+    }
 
     Datum field_value{};
 
@@ -477,7 +517,13 @@ Datum scan_state_t::extract_field_value(size_t field_index)
 
 bool scan_state_t::scan_forward()
 {
-    retail_assert(!has_scan_ended(), "Attempting to continue scan after it has terminated!");
+    if (has_scan_ended())
+    {
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("Attempt to scan forward after scan has ended!")));
+    }
 
     m_current_node = m_current_node.find_next();
     m_current_payload = reinterpret_cast<uint8_t*>(m_current_node.data());
@@ -511,7 +557,13 @@ bool modify_state_t::initialize(const char* table_name, size_t count_fields)
 
 void modify_state_t::set_field_value(size_t field_index, const Datum& field_value)
 {
-    retail_assert(!is_gaia_id_field_index(field_index), "Attempting to set value of gaia_id field!");
+    if (is_gaia_id_field_index(field_index))
+    {
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("Attempt to set value of gaia_id field!")));
+    }
 
     data_holder_t value = convert_to_data_holder(field_value, m_fields[field_index].type);
 
@@ -540,7 +592,18 @@ void modify_state_t::set_field_value(size_t field_index, const Datum& field_valu
             m_binary_schema_size,
             m_fields[field_index].position,
             value);
-        retail_assert(result, "Failed to set field value!");
+
+        if (!result)
+        {
+            ereport(
+                ERROR,
+                (errcode(ERRCODE_FDW_ERROR),
+                 errmsg("Failed to set field value!"),
+                 errhint(
+                     "Container id is '%ld' and field position is '%ld'.",
+                     m_gaia_container_id,
+                     m_fields[field_index].position)));
+        }
     }
 }
 
