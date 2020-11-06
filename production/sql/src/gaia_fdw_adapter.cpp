@@ -426,10 +426,11 @@ bool state_t::initialize(const char* table_name, size_t count_fields)
         {
             // We do not count anonymous references.
             if (field_view.data_type() == data_type_t::e_references
-                && strlen(field_view.name()) > 0)
+                && strlen(field_view.name()) == 0)
             {
-                m_count_fields++;
+                continue;
             }
+            m_count_fields++;
         }
 
         if (count_fields != m_count_fields)
