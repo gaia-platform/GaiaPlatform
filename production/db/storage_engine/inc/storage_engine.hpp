@@ -172,7 +172,7 @@ public:
 
     static gaia_se_object_t* locator_to_ptr(locators* locators, data* data, gaia_locator_t locator)
     {
-        retail_assert(locators);
+        retail_assert(locators, "Server locators should be non-null");
         return (locator && (*locators)[locator])
             ? reinterpret_cast<gaia_se_object_t*>(data->objects + (*locators)[locator])
             : nullptr;

@@ -13,9 +13,11 @@ int main(int argc, char* argv[])
     if (argc > 1)
     {
         // We currently accept only one argument.
-        retail_assert(argc == 2);
+        retail_assert(argc == 2, "Unexpected number of arguments!");
         // The sole argument must be the `--disable-persistence` flag.
-        retail_assert(argv[1] == std::string(gaia::db::server::c_disable_persistence_flag));
+        retail_assert(
+            argv[1] == std::string(gaia::db::server::c_disable_persistence_flag),
+            "A different argument than the expected `--disable-persistence` was found!");
         disable_persistence = true;
     }
     gaia::db::server::run(disable_persistence);

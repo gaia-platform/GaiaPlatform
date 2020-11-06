@@ -32,9 +32,9 @@ int client::get_id_cursor_socket_for_type(gaia_type_t type)
     int stream_socket = -1;
     size_t fd_count = 1;
     size_t bytes_read = recv_msg_with_fds(s_session_socket, &stream_socket, &fd_count, msg_buf, sizeof(msg_buf));
-    retail_assert(bytes_read > 0);
-    retail_assert(fd_count == 1);
-    retail_assert(stream_socket != -1);
+    retail_assert(bytes_read > 0, "Failed to read message!");
+    retail_assert(fd_count == 1, "Unexpected fd count!");
+    retail_assert(stream_socket != -1, "Invalid stream socket!");
     auto cleanup_stream_socket = make_scope_guard([stream_socket]() {
         ::close(stream_socket);
     });
@@ -43,7 +43,7 @@ int client::get_id_cursor_socket_for_type(gaia_type_t type)
     const message_t* msg = Getmessage_t(msg_buf);
     const server_reply_t* reply = msg->msg_as_reply();
     const session_event_t event = reply->event();
-    retail_assert(event == session_event_t::REQUEST_STREAM);
+    retail_assert(event == session_event_t::REQUEST_STREAM, "Unexpected event received!");
 
     // Check that our stream socket is blocking (since we need to perform blocking reads).
     int flags = ::fcntl(stream_socket, F_GETFL, 0);
@@ -51,7 +51,7 @@ int client::get_id_cursor_socket_for_type(gaia_type_t type)
     {
         throw_system_error("fcntl(F_GETFL) failed");
     }
-    retail_assert(~(flags & O_NONBLOCK));
+    retail_assert(~(flags & O_NONBLOCK), "Stream socket is not set to blocking!");
 
     cleanup_stream_socket.dismiss();
     return stream_socket;
@@ -72,9 +72,9 @@ client::get_stream_generator_for_socket(int stream_socket)
     // The definition of the generator we return.
     return [stream_socket, owning_txn_id, batch_buffer]() mutable -> std::optional<T_element_type> {
         // We shouldn't be called again after we received EOF from the server.
-        retail_assert(stream_socket != -1);
+        retail_assert(stream_socket != -1, "Stream socket is invalid!");
         // The cursor should only be called from within the scope of its owning transaction.
-        retail_assert(s_txn_id == owning_txn_id);
+        retail_assert(s_txn_id == owning_txn_id, "Cursor was not called from the scope of its own transaction!");
         // If buffer is empty, block until a new batch is available.
         if (batch_buffer.size() == 0)
         {
@@ -101,7 +101,7 @@ client::get_stream_generator_for_socket(int stream_socket)
                 return std::nullopt;
             }
             // The datagram size must be an integer multiple of our datum size.
-            retail_assert(datagram_size % sizeof(T_element_type) == 0);
+            retail_assert(datagram_size % sizeof(T_element_type) == 0, "Unexpected datagram size!");
             // Align the end of the buffer to the datagram size.
             // Per the C++ standard, this will never reduce capacity.
             batch_buffer.resize(datagram_size);
@@ -112,15 +112,15 @@ client::get_stream_generator_for_socket(int stream_socket)
             if (bytes_read == -1)
             {
                 // Per above, we should never have to block here.
-                retail_assert(errno != EAGAIN && errno != EWOULDBLOCK);
+                retail_assert(errno != EAGAIN && errno != EWOULDBLOCK, "Unexpected errno value!");
                 throw_system_error("recv failed");
             }
             // Since our buffer is exactly the same size as the datagram,
             // we should read exactly the number of bytes in the datagram.
-            retail_assert(bytes_read == datagram_size);
+            retail_assert(bytes_read == datagram_size, "Bytes read differ from datagram size!");
         }
         // At this point we know our buffer is non-empty.
-        retail_assert(batch_buffer.size() > 0);
+        retail_assert(batch_buffer.size() > 0, "Empty batch buffer detected!");
         // Loop through the buffer and return entries in FIFO order
         // (the server reversed the original buffer before sending).
         T_element_type next_value = batch_buffer.back();
@@ -213,7 +213,7 @@ int client::get_session_socket()
     server_addr.sun_family = AF_UNIX;
     // The socket name (minus its null terminator) needs to fit into the space
     // in the server address structure after the prefix null byte.
-    retail_assert(strlen(SE_SERVER_SOCKET_NAME) <= sizeof(server_addr.sun_path) - 1);
+    retail_assert(strlen(SE_SERVER_SOCKET_NAME) <= sizeof(server_addr.sun_path) - 1, "Socket name is too lone!");
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
     // filesystem.
@@ -276,12 +276,12 @@ void client::begin_session()
     constexpr size_t c_data_fd_index = 0;
     constexpr size_t c_locators_fd_index = 1;
     size_t bytes_read = recv_msg_with_fds(s_session_socket, fds, &fd_count, msg_buf, sizeof(msg_buf));
-    retail_assert(bytes_read > 0);
-    retail_assert(fd_count == c_fd_count);
+    retail_assert(bytes_read > 0, "Failed to read message!");
+    retail_assert(fd_count == c_fd_count, "Unexpected fd count!");
     int fd_data = fds[c_data_fd_index];
-    retail_assert(fd_data != -1);
+    retail_assert(fd_data != -1, "Invalid data fd detected!");
     int fd_locators = fds[c_locators_fd_index];
-    retail_assert(fd_locators != -1);
+    retail_assert(fd_locators != -1, "Invalid locators fd detected!");
     auto cleanup_fds = make_scope_guard([fd_data, fd_locators]() {
         // We can unconditionally close the data fd,
         // since it's not saved anywhere and the mapping
@@ -297,7 +297,7 @@ void client::begin_session()
     const message_t* msg = Getmessage_t(msg_buf);
     const server_reply_t* reply = msg->msg_as_reply();
     session_event_t event = reply->event();
-    retail_assert(event == session_event_t::CONNECT);
+    retail_assert(event == session_event_t::CONNECT, "Unexpected event received!");
 
     // Since the data and locator fds are global, we need to atomically update them
     // (but only if they're not already initialized).
@@ -371,7 +371,7 @@ void client::begin_transaction()
     // Block to receive transaction id from the server.
     uint8_t msg_buf[c_max_msg_size] = {0};
     size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
-    retail_assert(bytes_read > 0);
+    retail_assert(bytes_read > 0, "Failed to read message!");
 
     // Extract the transaction id and cache it; it needs to be reset for the next transaction.
     const message_t* msg = Getmessage_t(msg_buf);
@@ -432,15 +432,17 @@ void client::commit_transaction()
     // Block on the server's commit decision.
     uint8_t msg_buf[c_max_msg_size] = {0};
     size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
-    retail_assert(bytes_read > 0);
+    retail_assert(bytes_read > 0, "Failed to read message!");
 
     // Extract the commit decision from the server's reply and return it.
     const message_t* msg = Getmessage_t(msg_buf);
     const server_reply_t* reply = msg->msg_as_reply();
     session_event_t event = reply->event();
-    retail_assert(event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT);
+    retail_assert(
+        event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT,
+        "Unexpected event received!");
     const transaction_info_t* txn_info = reply->data_as_transaction_info();
-    retail_assert(txn_info->transaction_id() == s_txn_id);
+    retail_assert(txn_info->transaction_id() == s_txn_id, "Unexpected transaction id!");
 
     // Throw an exception on server-side abort.
     // REVIEW: We could include the gaia_ids of conflicting objects in transaction_update_conflict
