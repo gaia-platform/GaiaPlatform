@@ -152,9 +152,7 @@ public:
     explicit reference_chain_container_t(gaia_id_t parent)
         : m_parent_id(parent){};
 
-    // EDC returns copies of reference_chain_container_t, hence a copy-constructor is necessary.
-    // Even though the compiler would generate it, this is a reminder to improve the copy constructor
-    // if the class grows in complexity.
+    // reference_chain_container_t is copied from the EDC list methods
     reference_chain_container_t(const reference_chain_container_t&) = default;
     reference_chain_container_t& operator=(const reference_chain_container_t&) = default;
 
