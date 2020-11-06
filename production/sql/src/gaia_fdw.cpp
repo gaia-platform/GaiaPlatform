@@ -288,7 +288,10 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState* node, int eflags)
     {
         char* attr_name = NameStr(TupleDescAttr(tuple_desc, i)->attname);
 
-        scan_state->set_field_index(attr_name, (size_t)i);
+        if (!scan_state->set_field_index(attr_name, (size_t)i))
+        {
+            elog(ERROR, "Failed to set index of field %s to %d!", attr_name, i);
+        }
     }
 
     node->fdw_state = scan_state;
@@ -587,7 +590,10 @@ extern "C" void gaia_begin_foreign_modify(
     {
         char* attr_name = NameStr(TupleDescAttr(tuple_desc, i)->attname);
 
-        modify_state->set_field_index(attr_name, (size_t)i);
+        if (!modify_state->set_field_index(attr_name, (size_t)i))
+        {
+            elog(ERROR, "Failed to set index of field %s to %d!", attr_name, i);
+        }
     }
 
     rinfo->ri_FdwState = modify_state;

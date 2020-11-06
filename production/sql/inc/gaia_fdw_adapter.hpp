@@ -64,11 +64,6 @@ enum class edit_state_t : int8_t
 // and instances of modify_state_t will be used for insert/update/delete operations.
 class adapter_t
 {
-    // For providing access to maps.
-    friend class state_t;
-    friend class scan_state_t;
-    friend class modify_state_t;
-
 protected:
     // adapter_t is just a container for static methods,
     // so its constructor is protected
