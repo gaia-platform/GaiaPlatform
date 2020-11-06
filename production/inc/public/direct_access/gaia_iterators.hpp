@@ -158,11 +158,11 @@ public:
     reference_chain_container_t(const reference_chain_container_t&) = default;
     reference_chain_container_t& operator=(const reference_chain_container_t&) = default;
 
-    gaia_set_iterator_t<T_child, T_next_slot> begin();
+    gaia_set_iterator_t<T_child, T_next_slot> begin() const;
 
-    reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot, T_next_slot> where(std::function<bool(const T_child&)>);
+    reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot, T_next_slot> where(std::function<bool(const T_child&)>) const;
 
-    gaia_set_iterator_t<T_child, T_next_slot> end();
+    gaia_set_iterator_t<T_child, T_next_slot> end() const;
 
     void insert(gaia_id_t child_id);
 
