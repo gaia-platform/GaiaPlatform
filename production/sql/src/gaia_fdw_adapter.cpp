@@ -430,6 +430,7 @@ bool state_t::initialize(const char* table_name, size_t count_fields)
             {
                 continue;
             }
+
             m_count_fields++;
         }
 
