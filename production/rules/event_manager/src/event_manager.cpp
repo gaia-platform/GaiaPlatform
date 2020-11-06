@@ -444,20 +444,17 @@ void event_manager_t::add_rule(rule_list_t& rules, const rule_binding_t& binding
     // If we already have seen this rule, then
     // add it to the list.  Otherwise, create a new
     // rule binding entry and put it in our global list.
-    _rule_binding_t* this_rule = nullptr;
     if (rule_ptr == nullptr)
     {
         const string& key = make_rule_key(binding);
-        this_rule = new _rule_binding_t(binding);
-        m_rules.insert(make_pair(key, unique_ptr<_rule_binding_t>(this_rule)));
+        auto rule_binding = new _rule_binding_t(binding);
+        m_rules.insert(make_pair(key, unique_ptr<_rule_binding_t>(rule_binding)));
+        rules.emplace_back(rule_binding);
     }
     else
     {
-        this_rule = const_cast<_rule_binding_t*>(rule_ptr);
+        rules.emplace_back(rule_ptr);
     }
-
-    // Add the rule to the subscription list.
-    rules.emplace_back(this_rule);
 }
 
 bool event_manager_t::remove_rule(rule_list_t& rules, const rule_binding_t& binding)
