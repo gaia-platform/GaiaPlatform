@@ -45,7 +45,7 @@ public:
     using iterator_category = std::forward_iterator_tag;
 
     explicit gaia_iterator_t(gaia_id_t id);
-    gaia_iterator_t(gaia_id_t id, std::function<bool(const T_class&)> filter_function);
+    explicit gaia_iterator_t(gaia_id_t id, std::function<bool(const T_class&)> filter_function);
     gaia_iterator_t() = default;
 
     gaia_iterator_t<T_class>& operator++();
