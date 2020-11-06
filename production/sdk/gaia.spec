@@ -4,7 +4,6 @@ Version: 1.0.0
 Release: 1
 Group: Applications/System
 License: Gaia License
-Requires: libexplain51, libspdlog1, libcap2
 
 %description
 Gaia System
@@ -35,7 +34,11 @@ pkill -f -KILL gaia_se_server
 /usr/local/lib/gaia_fdw-0.0.so
 /usr/local/lib/librocksdb.so.6
 /usr/local/lib/libgaia.so
+/usr/lib/x86_64-linux-gnu/libexplain.so.51
 /usr/local/lib/libfmt.so.7
+/usr/local/lib/libspdlog.so.1
+/usr/lib/x86_64-linux-gnu/libcap.so.2
+/usr/lib/x86_64-linux-gnu/libcap-ng.so.0
 
 %changelog
 * Mon Sep 14 2020  Gaia
