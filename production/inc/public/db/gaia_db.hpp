@@ -121,7 +121,7 @@ class payload_size_too_large : public gaia_exception
 public:
     payload_size_too_large(size_t total_len, uint16_t max_len)
     {
-        stringstream msg;
+        std::stringstream msg;
         msg << "Payload size " << total_len << " exceeds maximum payload size limit " << max_len << ".";
         m_message = msg.str();
     }
