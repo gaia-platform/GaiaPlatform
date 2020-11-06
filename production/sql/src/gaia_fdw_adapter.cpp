@@ -205,13 +205,23 @@ void adapter_t::initialize_caches()
 
     for (auto table_view : catalog_core_t::list_tables())
     {
+        elog(
+            DEBUG1, "Loading metadata information for table `%s' with type '%ld' and id '%ld'...",
+            table_view.name(), table_view.table_type(), table_view.id());
+
         string table_name(table_view.name());
         vector<uint8_t> binary_schema = table_view.binary_schema();
         vector<uint8_t> serialization_template = table_view.serialization_template();
 
-        elog(
-            LOG, "Loading metadata information for table `%s' with type '%ld' and id '%ld'...",
-            table_view.name(), table_view.table_type(), table_view.id());
+        if (binary_schema.size() == 0)
+        {
+            elog(ERROR, "Table '%s' is missing binary schema data!", table_view.name());
+        }
+
+        if (serialization_template.size() == 0)
+        {
+            elog(ERROR, "Table '%s' is missing serialization template data!", table_view.name());
+        }
 
         auto type_information = make_unique<type_information_t>();
 
@@ -379,7 +389,7 @@ List* adapter_t::get_ddl_command_list(const char* server_name)
         {
             // Generate DDL statement for current table and log it.
             string ddl_formatted_statement = gaia::catalog::generate_fdw_ddl(table_view.id(), server_name);
-            elog(LOG, ddl_formatted_statement.c_str());
+            elog(DEBUG1, ddl_formatted_statement.c_str());
 
             // Copy DDL statement into a Postgres buffer.
             auto statement_buffer = reinterpret_cast<char*>(palloc(ddl_formatted_statement.size() + 1));
@@ -455,7 +465,7 @@ bool state_t::initialize(const char* table_name, size_t count_fields)
         }
         else
         {
-            elog(LOG, "Successfully initialized processing of table %s with %ld fields!", table_name, count_fields);
+            elog(DEBUG1, "Successfully initialized processing of table %s with %ld fields!", table_name, count_fields);
         }
 
         // Allocate memory for holding field information.
@@ -490,6 +500,19 @@ bool state_t::set_field_index(const char* field_name, size_t field_index)
              errhint("Field index is '%ld' and field count is '%ld'.", field_index, m_count_fields)));
     }
 
+    // gaia_id is an implicit field that is not described in metadata,
+    // so it needs special handling.
+    if (adapter_t::is_gaia_id_name(field_name))
+    {
+        m_gaia_id_field_index = field_index;
+
+        m_fields[field_index].position = -1;
+        m_fields[field_index].type = data_type_t::e_uint64;
+
+        return true;
+    }
+
+    // All other fields need to be looked up in metadata.
     bool found_field = false;
     for (auto field_view : catalog_core_t::list_fields(m_table_id))
     {
@@ -499,11 +522,6 @@ bool state_t::set_field_index(const char* field_name, size_t field_index)
 
             m_fields[field_index].position = field_view.position();
             m_fields[field_index].type = field_view.data_type();
-
-            if (adapter_t::is_gaia_id_name(field_name))
-            {
-                m_gaia_id_field_index = field_index;
-            }
 
             break;
         }
