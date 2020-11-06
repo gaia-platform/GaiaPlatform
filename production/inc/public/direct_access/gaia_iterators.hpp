@@ -146,11 +146,17 @@ class reference_chain_container_t
 
 public:
     // This constructor will be used by the where() method to create a filtered container.
-    reference_chain_container_t(gaia_id_t parent, std::function<bool(const T_child&)> filter_function)
+    explicit reference_chain_container_t(gaia_id_t parent, std::function<bool(const T_child&)> filter_function)
         : m_parent_id(parent), m_filter_fn(filter_function)
     {
     }
     reference_chain_container_t() = default;
+
+    // EDC returns copies of reference_chain_container_t, hence a copy-constructor is necessary.
+    // Even though the compiler would generate it, this is a reminder to improve the copy constructor
+    // if the class grows in complexity.
+    reference_chain_container_t(const reference_chain_container_t&) = default;
+    reference_chain_container_t& operator=(const reference_chain_container_t&) = default;
 
     gaia_set_iterator_t<T_child, T_next_slot> begin();
 
