@@ -66,7 +66,7 @@ public:
 class duplicate_id : public gaia_exception
 {
 public:
-    duplicate_id(gaia_id_t id)
+    explicit duplicate_id(gaia_id_t id)
     {
         std::stringstream strs;
         strs << "An object with the same ID (" << id << ") already exists.";
@@ -86,7 +86,7 @@ public:
 class invalid_node_id : public gaia_exception
 {
 public:
-    invalid_node_id(gaia_id_t id)
+    explicit invalid_node_id(gaia_id_t id)
     {
         std::stringstream strs;
         strs << "Cannot find a node with ID " << id << ".";
@@ -97,7 +97,7 @@ public:
 class invalid_id_value : public gaia_exception
 {
 public:
-    invalid_id_value(gaia_id_t id)
+    explicit invalid_id_value(gaia_id_t id)
     {
         std::stringstream strs;
         strs << "ID value " << id << " is larger than the maximum ID value 2^63.";

@@ -796,11 +796,8 @@ TEST_F(gaia_object_test, default_construction)
         EXPECT_THROW(e.manages_employee(), invalid_node_id);
         EXPECT_THROW(e.writer(), invalid_node_id);
         EXPECT_THROW(e.delete_row(), invalid_node_id);
+        ASSERT_EQ(e.addressee_address_list().begin(), e.addressee_address_list().end());
 
-        for (auto const& a : e.addressee_address_list())
-        {
-            printf("%s\n", a.state());
-        }
         e = create_employee("Windsor");
         EXPECT_STREQ(e.name_first(), "Windsor");
     }

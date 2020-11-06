@@ -3,7 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <fstream>
 #include <iostream>
 
 #include "gtest/gtest.h"
@@ -155,43 +154,46 @@ bool bounce_hierarchy(employee_t& eptr)
     return true;
 }
 
-bool delete_hierarchy(employee_t& eptr)
+bool delete_hierarchy(employee_t& employee_to_delete)
 {
     int count_addressee = 1;
     while (count_addressee >= 1)
     {
         count_addressee = 0;
         // As long as there is at least one address_t, continue
-        address_t* xaptr;
-        for (auto aptr : eptr.addressee_address_list())
+        address_t address_to_delete;
+        for (auto& address : employee_to_delete.addressee_address_list())
         {
             ++count_addressee;
-            xaptr = &aptr;
+            address_to_delete = address;
             // Repeat: delete the last phone until all are deleted
             int count_phones = 1;
             while (count_phones >= 1)
             {
                 count_phones = 0;
-                phone_t* xpptr;
-                for (auto pptr : aptr.phone_list())
+
+                phone_t phone_to_delete;
+                for (const auto& phone : address.phone_list())
                 {
                     ++count_phones;
-                    xpptr = &pptr;
+                    phone_to_delete = phone;
                 }
+
                 if (count_phones)
                 {
-                    aptr.phone_list().erase(*xpptr);
-                    xpptr->delete_row();
+                    address.phone_list().erase(phone_to_delete);
+                    phone_to_delete.delete_row();
                 }
             }
         }
         if (count_addressee)
         {
-            eptr.addressee_address_list().erase(*xaptr);
-            xaptr->delete_row();
+            employee_to_delete.addressee_address_list().erase(address_to_delete);
+            address_to_delete.delete_row();
         }
     }
-    eptr.delete_row();
+
+    employee_to_delete.delete_row();
     return true;
 }
 
