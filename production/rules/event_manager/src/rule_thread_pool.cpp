@@ -8,6 +8,7 @@
 #include <cstring>
 
 #include "event_manager.hpp"
+#include "logger.hpp"
 #include "retail_assert.hpp"
 
 using namespace gaia::rules;
@@ -185,7 +186,9 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
 
         // Invoke the rule.
         auto fn_start = gaia::common::timer_t::get_time_point();
+        gaia_log::rules().trace("Call: {}", rule_id);
         rule_invocation.rule_fn(&context);
+        gaia_log::rules().trace("Return: {}", rule_id);
         m_stats_manager.compute_rule_execution_time(rule_id, fn_start);
 
         should_schedule = true;
@@ -202,6 +205,7 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
         // TODO[GAIAPLAT-158]: Determine retry/error handling logic
         // Catch all exceptions or let terminate happen? Don't drop pending
         // rules on the floor (should_schedule == false) when we add retry logic.
+        gaia_log::rules().error("Exception: {}, {}", rule_id, e.what());
     }
 
     process_pending_invocations(should_schedule);
