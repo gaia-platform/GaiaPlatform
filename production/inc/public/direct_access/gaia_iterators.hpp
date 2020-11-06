@@ -152,7 +152,8 @@ public:
     explicit reference_chain_container_t(gaia_id_t parent)
         : m_parent_id(parent){};
 
-    // reference_chain_container_t is copied from the EDC list methods
+    // reference_chain_container_t is copied from the EDC list methods.
+
     reference_chain_container_t(const reference_chain_container_t&) = default;
     reference_chain_container_t& operator=(const reference_chain_container_t&) = default;
 
