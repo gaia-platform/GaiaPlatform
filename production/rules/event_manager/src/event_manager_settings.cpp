@@ -5,6 +5,7 @@
 
 #include "event_manager_settings.hpp"
 
+#include "exceptions.hpp"
 #include "rules.hpp"
 
 using namespace std;
@@ -30,7 +31,7 @@ void gaia::rules::event_manager_settings_t::parse_rules_config(
         int32_t thread_count = *thread_count_setting;
         if (thread_count == 0)
         {
-            throw configuration_error(event_manager_settings_t::c_thread_count_key, thread_count);
+            throw gaia::common::configuration_error(event_manager_settings_t::c_thread_count_key, thread_count);
         }
 
         if (thread_count == -1)

@@ -10,6 +10,7 @@
 
 #include "db_test_base.hpp"
 #include "event_manager_test_helpers.hpp"
+#include "exceptions.hpp"
 #include "rules.hpp"
 #include "rules_config.hpp"
 

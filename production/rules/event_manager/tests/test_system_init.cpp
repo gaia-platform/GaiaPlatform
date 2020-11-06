@@ -10,6 +10,7 @@
 
 #include "catalog.hpp"
 #include "db_test_base.hpp"
+#include "exceptions.hpp"
 #include "gaia_base.hpp"
 #include "gaia_catalog.h"
 #include "gaia_system.hpp"
