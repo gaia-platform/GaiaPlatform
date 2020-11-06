@@ -408,7 +408,7 @@ static string generate_edc_struct(
             "{{TABLE_NAME}}T, c_num_{{TABLE_NAME}}_ptrs>;";
 
     // The constructor.
-    code += "{{TABLE_NAME}}_t(gaia_id_t id) : gaia_object_t(id, \"{{TABLE_NAME}}_t\") {";
+    code += "explicit {{TABLE_NAME}}_t(gaia_id_t id) : gaia_object_t(id, \"{{TABLE_NAME}}_t\") {";
     code.IncrementIdentLevel();
 
     for (auto& relationship : parent_relationships)

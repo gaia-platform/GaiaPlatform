@@ -154,46 +154,46 @@ bool bounce_hierarchy(employee_t& eptr)
     return true;
 }
 
-bool delete_hierarchy(employee_t& employee)
+bool delete_hierarchy(employee_t& employee_to_delete)
 {
     int count_addressee = 1;
     while (count_addressee >= 1)
     {
         count_addressee = 0;
         // As long as there is at least one address_t, continue
-        address_t* address_ptr;
-        for (auto address : employee.addressee_address_list())
+        address_t address_to_delete;
+        for (auto& address : employee_to_delete.addressee_address_list())
         {
             ++count_addressee;
-            address_ptr = &address;
+            address_to_delete = address;
             // Repeat: delete the last phone until all are deleted
             int count_phones = 1;
             while (count_phones >= 1)
             {
                 count_phones = 0;
 
-                phone_t* phone_ptr;
-                for (auto phone : address.phone_list())
+                phone_t phone_to_delete;
+                for (const auto& phone : address.phone_list())
                 {
                     ++count_phones;
-                    phone_ptr = &phone;
+                    phone_to_delete = phone;
                 }
 
                 if (count_phones)
                 {
-                    address.phone_list().erase(*phone_ptr);
-                    phone_ptr->delete_row();
+                    address.phone_list().erase(phone_to_delete);
+                    phone_to_delete.delete_row();
                 }
             }
         }
         if (count_addressee)
         {
-            employee.addressee_address_list().erase(*address_ptr);
-            address_ptr->delete_row();
+            employee_to_delete.addressee_address_list().erase(address_to_delete);
+            address_to_delete.delete_row();
         }
     }
-    employee.delete_row();
-    cout << i << endl;
+
+    employee_to_delete.delete_row();
     return true;
 }
 
