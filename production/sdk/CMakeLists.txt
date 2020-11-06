@@ -56,11 +56,7 @@ add_custom_command(
 
   COMMAND cmake -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/libgaia.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia.so
 
-  COMMAND cmake -E copy_if_different /usr/lib/x86_64-linux-gnu/libexplain.so.51.5.0 ${TEMP_PACKAGE_FOLDER}/usr/lib/x86_64-linux-gnu/libexplain.so.51
   COMMAND cmake -E copy_if_different /usr/local/lib/libfmt.so.7.0.3 ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libfmt.so.7
-  COMMAND cmake -E copy_if_different /usr/local/lib/libspdlog.so.1.8.0 ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libspdlog.so.1
-  COMMAND cmake -E copy_if_different /usr/lib/x86_64-linux-gnu/libcap.so.2.32 ${TEMP_PACKAGE_FOLDER}/usr/lib/x86_64-linux-gnu/libcap.so.2
-  COMMAND cmake -E copy_if_different /usr/lib/x86_64-linux-gnu/libcap-ng.so.0.0.0 ${TEMP_PACKAGE_FOLDER}/usr/lib/x86_64-linux-gnu/libcap-ng.so.0
 
   COMMAND dpkg-deb --build ${TEMP_PACKAGE_FOLDER} ${CMAKE_CURRENT_BINARY_DIR}/gaia.deb
 
