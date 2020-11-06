@@ -24,7 +24,7 @@ namespace fdw
 
 constexpr size_t c_invalid_field_index = -1;
 
-unordered_map<string, gaia_type_t> adapter_t::s_map_table_name_to_container_id;
+unordered_map<string, pair<gaia_id_t, gaia_type_t>> adapter_t::s_map_table_name_to_ids;
 
 // Valid options for gaia_fdw.
 const option_t c_valid_options[] = {
@@ -231,10 +231,12 @@ void adapter_t::initialize_caches()
                  errmsg("Failed to set type information in type_cache_t!")));
         }
 
-        s_map_table_name_to_container_id.insert(make_pair(table_name, table_view.table_type()));
+        s_map_table_name_to_ids.insert(make_pair(
+            table_name,
+            make_pair(table_view.id(), table_view.table_type())));
     }
 
-    if (type_cache_t::get()->size() != s_map_table_name_to_container_id.size())
+    if (type_cache_t::get()->size() != s_map_table_name_to_ids.size())
     {
         ereport(
             ERROR,
@@ -243,7 +245,7 @@ void adapter_t::initialize_caches()
              errhint(
                  "type_cache_t has size '%ld', but s_map_table_name_to_container_id has size '%ld'.",
                  type_cache_t::get()->size(),
-                 s_map_table_name_to_container_id.size())));
+                 s_map_table_name_to_ids.size())));
     }
 
     gaia::db::commit_transaction();
@@ -389,6 +391,23 @@ List* adapter_t::get_ddl_command_list(const char* server_name)
     return commands;
 }
 
+bool adapter_t::get_ids(
+    const char* table_name,
+    gaia::common::gaia_id_t& table_id,
+    gaia::common::gaia_type_t& container_id)
+{
+    auto iterator = adapter_t::s_map_table_name_to_ids.find(table_name);
+    if (iterator == adapter_t::s_map_table_name_to_ids.end())
+    {
+        return false;
+    }
+
+    table_id = iterator->second.first;
+    container_id = iterator->second.second;
+
+    return true;
+}
+
 bool state_t::initialize(const char* table_name, size_t count_fields)
 {
     try
@@ -396,17 +415,14 @@ bool state_t::initialize(const char* table_name, size_t count_fields)
         m_gaia_id_field_index = c_invalid_field_index;
 
         // Lookup table in our map.
-        auto iterator = adapter_t::s_map_table_name_to_container_id.find(table_name);
-        if (iterator == adapter_t::s_map_table_name_to_container_id.end())
+        if (!adapter_t::get_ids(table_name, m_table_id, m_container_id))
         {
             return false;
         }
 
-        m_gaia_container_id = iterator->second;
-
         // We start from 1 to cover gaia_id, which is not returned by list_fields.
         m_count_fields = 1;
-        for (auto field_view : catalog_core_t::list_fields(m_gaia_container_id))
+        for (auto field_view : catalog_core_t::list_fields(m_table_id))
         {
             // We do not count anonymous references.
             if (field_view.data_type() == data_type_t::e_references
@@ -444,7 +460,7 @@ bool state_t::initialize(const char* table_name, size_t count_fields)
              errhint(
                  "Table: %s, container_id: %ld, field count: %ld. Exception: %s",
                  table_name,
-                 m_gaia_container_id,
+                 m_container_id,
                  count_fields,
                  e.what())));
     }
@@ -458,7 +474,7 @@ bool state_t::set_field_index(const char* field_name, size_t field_index)
     }
 
     bool found_field = false;
-    for (auto field_view : catalog_core_t::list_fields(m_gaia_container_id))
+    for (auto field_view : catalog_core_t::list_fields(m_table_id))
     {
         if (strcmp(field_name, field_view.name()) == 0)
         {
@@ -486,7 +502,7 @@ bool state_t::is_gaia_id_field_index(size_t field_index)
 
 bool scan_state_t::initialize_scan()
 {
-    m_current_node = gaia_ptr::find_first(m_gaia_container_id);
+    m_current_node = gaia_ptr::find_first(m_container_id);
 
     if (m_current_node)
     {
@@ -526,7 +542,7 @@ Datum scan_state_t::extract_field_value(size_t field_index)
     else
     {
         data_holder_t value = get_field_value(
-            m_gaia_container_id,
+            m_container_id,
             m_current_payload,
             nullptr,
             0,
@@ -570,7 +586,7 @@ bool modify_state_t::initialize(const char* table_name, size_t count_fields)
 
     // Get hold of the type cache and lookup the type information for our type.
     auto_type_information_t auto_type_information;
-    type_cache_t::get()->get_type_information(m_gaia_container_id, auto_type_information);
+    type_cache_t::get()->get_type_information(m_container_id, auto_type_information);
 
     // Set current payload to a copy of the serialization template bits.
     vector<uint8_t> current_payload = auto_type_information.get()->get_serialization_template();
@@ -598,7 +614,7 @@ void modify_state_t::set_field_value(size_t field_index, const Datum& field_valu
     if (value.type == reflection::String)
     {
         vector<uint8_t> updated_payload = ::set_field_value(
-            m_gaia_container_id,
+            m_container_id,
             m_current_payload,
             m_current_payload_size,
             m_binary_schema,
@@ -612,7 +628,7 @@ void modify_state_t::set_field_value(size_t field_index, const Datum& field_valu
     else
     {
         bool result = ::set_field_value(
-            m_gaia_container_id,
+            m_container_id,
             m_current_payload,
             m_binary_schema,
             m_binary_schema_size,
@@ -627,7 +643,7 @@ void modify_state_t::set_field_value(size_t field_index, const Datum& field_valu
                  errmsg("Failed to set field value!"),
                  errhint(
                      "Container id is '%ld' and field position is '%ld'.",
-                     m_gaia_container_id,
+                     m_container_id,
                      m_fields[field_index].position)));
         }
     }
@@ -642,7 +658,7 @@ bool modify_state_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
         {
             gaia_ptr::create(
                 gaia_id,
-                m_gaia_container_id,
+                m_container_id,
                 m_current_payload_size,
                 m_current_payload);
         }

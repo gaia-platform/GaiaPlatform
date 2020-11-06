@@ -62,9 +62,6 @@ enum class edit_state_t : int8_t
 // can interact with the database.
 // Instances of scan_state_t will be used during scan operations
 // and instances of modify_state_t will be used for insert/update/delete operations.
-class state_t;
-class scan_state_t;
-class modify_state_t;
 class adapter_t
 {
     // For providing access to maps.
@@ -92,6 +89,11 @@ public:
 
     static List* get_ddl_command_list(const char* server_name);
 
+    static bool get_ids(
+        const char* table_name,
+        gaia::common::gaia_id_t& table_id,
+        gaia::common::gaia_type_t& container_id);
+
     template <class S>
     static S* get_state(const char* table_name, size_t count_fields)
     {
@@ -115,7 +117,7 @@ protected:
     static int s_txn_reference_count;
 
     // Small cache to enable looking up a table type by name.
-    static std::unordered_map<std::string, gaia::common::gaia_type_t> s_map_table_name_to_container_id;
+    static std::unordered_map<std::string, std::pair<gaia::common::gaia_id_t, gaia::common::gaia_type_t>> s_map_table_name_to_ids;
 };
 
 // A structure holding basic field information.
@@ -143,8 +145,9 @@ public:
     bool is_gaia_id_field_index(size_t field_index);
 
 protected:
-    // The identifier of the table payload type.
-    gaia::common::gaia_type_t m_gaia_container_id;
+    // The table id and container id.
+    gaia::common::gaia_id_t m_table_id;
+    gaia::common::gaia_type_t m_container_id;
 
     // Count of fields for current table.
     size_t m_count_fields;
