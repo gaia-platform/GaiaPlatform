@@ -209,12 +209,9 @@ void adapter_t::initialize_caches()
         vector<uint8_t> binary_schema = table_view.binary_schema();
         vector<uint8_t> serialization_template = table_view.serialization_template();
 
-        stringstream log_message;
-        log_message
-            << "Loading metadata information for table `" << table_name
-            << "' with type '" << table_view.table_type()
-            << "' and id '" << table_view.id() << "'...";
-        elog(LOG, log_message.str().c_str());
+        elog(
+            LOG, "Loading metadata information for table `%s' with type '%ld' and id '%ld'...",
+            table_view.name(), table_view.table_type(), table_view.id());
 
         auto type_information = make_unique<type_information_t>();
 
@@ -407,7 +404,8 @@ bool state_t::initialize(const char* table_name, size_t count_fields)
 
         m_gaia_container_id = iterator->second;
 
-        m_count_fields = 0;
+        // We start from 1 to cover gaia_id, which is not returned by list_fields.
+        m_count_fields = 1;
         for (auto field_view : catalog_core_t::list_fields(m_gaia_container_id))
         {
             // We do not count anonymous references.
