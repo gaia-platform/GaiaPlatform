@@ -271,30 +271,11 @@ void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot,
     auto node_ptr = gaia_ptr::open(oid);
     if (!node_ptr)
     {
+        // TODO should this throw an exception?
         return;
     }
 
-    auto child_ptr = gaia_ptr::open(child_id);
-    if (!child_ptr)
-    {
-        return;
-    }
-
-    // This is a no-op if it is already connected to this owner.
-    if (child_ptr.references()[T_parent_slot] == oid)
-    {
-        return;
-    }
-
-    // Cannot connect a child object that is already connected to a different parent.
-    if (child_ptr.references()[T_parent_slot] != 0 && child_ptr.references()[T_parent_slot] != oid)
-    {
-        T_parent expected = T_parent::get(0);
-        throw edc_already_inserted(child_ptr.references()[T_parent_slot], expected.gaia_typename());
-    }
-
-    child_ptr.update_child_references(T_next_slot, node_ptr.references()[T_child_slot], T_parent_slot, oid);
-    node_ptr.update_child_reference(T_child_slot, child_id);
+    node_ptr.add_child_reference(child_id, T_child_slot);
 }
 
 template <typename T_parent, typename T_child, size_t T_parent_slot, size_t T_child_slot, size_t T_next_slot>
@@ -306,64 +287,14 @@ void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot,
 template <typename T_parent, typename T_child, size_t T_parent_slot, size_t T_child_slot, size_t T_next_slot>
 void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot, T_next_slot>::erase(gaia_id_t child_id)
 {
-    auto child_ptr = gaia_ptr::open(child_id);
-    if (!child_ptr)
-    {
-        return;
-    }
-
-    if (child_ptr.references()[T_parent_slot] != m_parent_id)
-    {
-        T_parent expected = T_parent::get(0);
-        T_child received = T_child::get(0);
-        throw edc_invalid_member(
-            m_parent_id,
-            T_parent::s_gaia_type,
-            expected.gaia_typename(),
-            received.gaia_type(),
-            received.gaia_typename());
-    }
-
     auto node_ptr = gaia_ptr::open(m_parent_id);
     if (!node_ptr)
     {
+        // TODO should this throw an exception?
         return;
     }
 
-    if (node_ptr.references()[T_child_slot] == child_id)
-    {
-        // It's the first one in the list, point the "first" to the current "next".
-        node_ptr.update_child_reference(T_child_slot, child_ptr.references()[T_next_slot]);
-        // Clean up the removed child.
-        child_ptr.update_child_references(T_next_slot, c_invalid_gaia_id, T_parent_slot, c_invalid_gaia_id);
-    }
-    else
-    {
-        // Need to scan the list to find this one because it's not first on the list.
-        auto cur_child_ptr = gaia_ptr::open(node_ptr.references()[T_child_slot]);
-
-        while (cur_child_ptr && cur_child_ptr.references()[T_next_slot])
-        {
-            gaia_id_t next_id = cur_child_ptr.references()[T_next_slot];
-            if (next_id == child_id)
-            {
-                // Point the current child to the child following the next.
-                cur_child_ptr.update_child_reference(T_next_slot, child_ptr.references()[T_next_slot]);
-                // Clean up the removed child.
-                child_ptr.update_child_references(T_next_slot, c_invalid_gaia_id, T_parent_slot, c_invalid_gaia_id);
-                return;
-            }
-            // Move to the next child.
-            cur_child_ptr = gaia_ptr::open(next_id);
-        }
-        // If we end up here, the child was not found in the chain. This is an error because
-        // the pointers have become inconsistent (the child's parent pointer was correct).
-        throw edc_inconsistent_list(
-            m_parent_id,
-            T_parent::get(0).gaia_typename(),
-            child_id,
-            T_child::get(0).gaia_typename());
-    }
+    node_ptr.remove_child_reference(child_id, T_child_slot);
 }
 
 template <typename T_parent, typename T_child, size_t T_parent_slot, size_t T_child_slot, size_t T_next_slot>

@@ -62,13 +62,13 @@ public:
      * Mark this type as the parent side of the relationship.
      * The relationship_t object will be stored in the child metadata as well.
      */
-    void add_parent_relationship(reference_offset_t first_child, const std::shared_ptr<relationship_t>& relationship);
+    void add_parent_relationship(const std::shared_ptr<relationship_t>& relationship);
 
     /**
      * Mark this type as the child side of the relationship.
      * The relationship_t object will be stored in the parent metadata as well.
      */
-    void add_child_relationship(reference_offset_t parent, const std::shared_ptr<relationship_t>& relationship);
+    void add_child_relationship(const std::shared_ptr<relationship_t>& relationship);
 
 private:
     const gaia_type_t m_type;
