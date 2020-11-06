@@ -94,11 +94,11 @@ private:
 
     // Find the next available offset in a container parent relationships
     template <typename T_parent_relationships>
-    uint8_t find_parent_available_offset(T_parent_relationships& relationships);
+    uint8_t find_parent_available_offset(const T_parent_relationships& relationships);
 
     // Find the next available offset in a container child relationships
     template <typename T_child_relationships>
-    uint8_t find_child_available_offset(T_child_relationships& relationships);
+    uint8_t find_child_available_offset(const T_child_relationships& relationships);
 
     // Find the next available offset in the relationships of the given table
     uint8_t find_available_offset(gaia::common::gaia_id_t table);

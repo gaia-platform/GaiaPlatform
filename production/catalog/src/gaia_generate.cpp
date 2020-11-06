@@ -369,14 +369,14 @@ static string generate_edc_struct(
             code += "reference_chain_container_t<{{TABLE_NAME}}_t, {{REF_TABLE}}_t, "
                     "c_parent_{{REF_NAME}}_{{TABLE_NAME}}, "
                     "c_first_{{REF_NAME}}_{{REF_TABLE}}, c_next_{{REF_NAME}}_{{REF_TABLE}}> "
-                    "m_{{REF_NAME}}_{{REF_TABLE}}_list;";
-            code += "reference_chain_container_t<{{TABLE_NAME}}_t, {{REF_TABLE}}_t, "
-                    "c_parent_{{REF_NAME}}_{{TABLE_NAME}}, "
-                    "c_first_{{REF_NAME}}_{{REF_TABLE}}, c_next_{{REF_NAME}}_{{REF_TABLE}}>& "
                     "{{REF_NAME}}_{{REF_TABLE}}_list() {";
 
             code.IncrementIdentLevel();
-            code += "return m_{{REF_NAME}}_{{REF_TABLE}}_list;";
+            code += "reference_chain_container_t<{{TABLE_NAME}}_t, {{REF_TABLE}}_t, "
+                    "c_parent_{{REF_NAME}}_{{TABLE_NAME}}, "
+                    "c_first_{{REF_NAME}}_{{REF_TABLE}}, c_next_{{REF_NAME}}_{{REF_TABLE}}> "
+                    "{{REF_NAME}}_{{REF_TABLE}}_list(gaia_id());";
+            code += "return {{REF_NAME}}_{{REF_TABLE}}_list;";
         }
         else
         {
@@ -385,13 +385,13 @@ static string generate_edc_struct(
 
             code += "reference_chain_container_t<{{TABLE_NAME}}_t, {{REF_TABLE}}_t, "
                     "c_parent_{{REF_TABLE}}_{{TABLE_NAME}}, "
-                    "c_first_{{REF_NAME}}_{{REF_TABLE}}, c_next_{{REF_NAME}}_{{REF_TABLE}}> m_{{REF_NAME}}_list;";
-            code += "reference_chain_container_t<{{TABLE_NAME}}_t, {{REF_TABLE}}_t, "
-                    "c_parent_{{REF_TABLE}}_{{TABLE_NAME}}, "
-                    "c_first_{{REF_NAME}}_{{REF_TABLE}}, c_next_{{REF_NAME}}_{{REF_TABLE}}>& {{REF_NAME}}_list() {";
+                    "c_first_{{REF_NAME}}_{{REF_TABLE}}, c_next_{{REF_NAME}}_{{REF_TABLE}}> {{REF_NAME}}_list() {";
 
             code.IncrementIdentLevel();
-            code += "return m_{{REF_NAME}}_list;";
+            code += "reference_chain_container_t<{{TABLE_NAME}}_t, {{REF_TABLE}}_t, "
+                    "c_parent_{{REF_TABLE}}_{{TABLE_NAME}}, "
+                    "c_first_{{REF_NAME}}_{{REF_TABLE}}, c_next_{{REF_NAME}}_{{REF_TABLE}}> {{REF_NAME}}_list(gaia_id());";
+            code += "return {{REF_NAME}}_list;";
         }
         code.DecrementIdentLevel();
         code += "}";
@@ -405,27 +405,7 @@ static string generate_edc_struct(
             "{{TABLE_NAME}}T, c_num_{{TABLE_NAME}}_ptrs>;";
 
     // The constructor.
-    code += "explicit {{TABLE_NAME}}_t(gaia_id_t id) : gaia_object_t(id, \"{{TABLE_NAME}}_t\") {";
-    code.IncrementIdentLevel();
-
-    for (auto& relationship : parent_relationships)
-    {
-        if (strlen(relationship.name()))
-        {
-            code.SetValue("REF_NAME", relationship.name());
-            code.SetValue("REF_TABLE", relationship.child_gaia_table().name());
-            code += "m_{{REF_NAME}}_{{REF_TABLE}}_list.set_outer(gaia_id());";
-        }
-        else
-        {
-            // This relationship is anonymous.
-            code.SetValue("REF_NAME", relationship.child_gaia_table().name());
-            code += "m_{{REF_NAME}}_list.set_outer(gaia_id());";
-        }
-    }
-
-    code.DecrementIdentLevel();
-    code += "}";
+    code += "explicit {{TABLE_NAME}}_t(gaia_id_t id) : gaia_object_t(id, \"{{TABLE_NAME}}_t\") {}";
 
     // Finishing brace.
     code.DecrementIdentLevel();

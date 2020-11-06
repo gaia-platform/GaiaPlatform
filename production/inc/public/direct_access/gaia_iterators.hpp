@@ -45,7 +45,7 @@ public:
     using iterator_category = std::forward_iterator_tag;
 
     explicit gaia_iterator_t(gaia_id_t id);
-    gaia_iterator_t(gaia_id_t id, std::function<bool(const T_class&)> filter_function);
+    explicit gaia_iterator_t(gaia_id_t id, std::function<bool(const T_class&)> filter_function);
     gaia_iterator_t() = default;
 
     gaia_iterator_t<T_class>& operator++();
@@ -104,7 +104,7 @@ public:
     using iterator_category = std::forward_iterator_tag;
 
     explicit gaia_set_iterator_t(gaia_id_t id);
-    gaia_set_iterator_t(gaia_id_t id, std::function<bool(const T_child&)> filter_function);
+    explicit gaia_set_iterator_t(gaia_id_t id, std::function<bool(const T_child&)> filter_function);
     gaia_set_iterator_t() = default;
 
     reference operator*();
@@ -146,22 +146,21 @@ class reference_chain_container_t
 
 public:
     // This constructor will be used by the where() method to create a filtered container.
-    reference_chain_container_t(gaia_id_t parent, std::function<bool(const T_child&)> filter_function)
-        : m_parent_id(parent), m_filter_fn(filter_function)
-    {
-    }
-    reference_chain_container_t() = default;
+    explicit reference_chain_container_t(gaia_id_t parent, std::function<bool(const T_child&)> filter_function)
+        : m_parent_id(parent), m_filter_fn(filter_function){};
 
-    gaia_set_iterator_t<T_child, T_next_slot> begin();
+    explicit reference_chain_container_t(gaia_id_t parent)
+        : m_parent_id(parent){};
 
-    reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot, T_next_slot> where(std::function<bool(const T_child&)>);
+    // reference_chain_container_t is copied from the EDC list methods.
+    reference_chain_container_t(const reference_chain_container_t&) = default;
+    reference_chain_container_t& operator=(const reference_chain_container_t&) = default;
 
-    gaia_set_iterator_t<T_child, T_next_slot> end();
+    gaia_set_iterator_t<T_child, T_next_slot> begin() const;
 
-    void set_outer(gaia_id_t parent_id)
-    {
-        m_parent_id = parent_id;
-    }
+    reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot, T_next_slot> where(std::function<bool(const T_child&)>) const;
+
+    gaia_set_iterator_t<T_child, T_next_slot> end() const;
 
     void insert(gaia_id_t child_id);
 

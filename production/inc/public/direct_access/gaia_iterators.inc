@@ -213,7 +213,7 @@ bool gaia_set_iterator_t<T_child, T_next_slot>::operator!=(const gaia_set_iterat
 // Implementation for reference_chain_container_t.
 //
 template <typename T_parent, typename T_child, size_t T_parent_slot, size_t T_child_slot, size_t T_next_slot>
-gaia_set_iterator_t<T_child, T_next_slot> reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot, T_next_slot>::begin()
+gaia_set_iterator_t<T_child, T_next_slot> reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot, T_next_slot>::begin() const
 {
     gaia_id_t id = 0;
 
@@ -244,13 +244,13 @@ gaia_set_iterator_t<T_child, T_next_slot> reference_chain_container_t<T_parent, 
 // The where() method saves the address of the std::function, to be called for each candidate return value.
 template <typename T_parent, typename T_child, size_t T_parent_slot, size_t T_child_slot, size_t T_next_slot>
 reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot, T_next_slot>
-reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot, T_next_slot>::where(std::function<bool(const T_child&)> filter_function)
+reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot, T_next_slot>::where(std::function<bool(const T_child&)> filter_function) const
 {
     return reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot, T_next_slot>(m_parent_id, filter_function);
 }
 
 template <typename T_parent, typename T_child, size_t T_parent_slot, size_t T_child_slot, size_t T_next_slot>
-gaia_set_iterator_t<T_child, T_next_slot> reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot, T_next_slot>::end()
+gaia_set_iterator_t<T_child, T_next_slot> reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot, T_next_slot>::end() const
 {
     return gaia_set_iterator_t<T_child, T_next_slot>(0);
 }

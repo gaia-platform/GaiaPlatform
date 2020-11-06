@@ -425,7 +425,7 @@ void ddl_executor_t::drop_table(const string& db_name, const string& name)
 }
 
 template <typename T_parent_relationships>
-uint8_t ddl_executor_t::find_parent_available_offset(T_parent_relationships& relationships)
+uint8_t ddl_executor_t::find_parent_available_offset(const T_parent_relationships& relationships)
 {
     uint8_t max_offset = 0;
 
@@ -445,7 +445,7 @@ uint8_t ddl_executor_t::find_parent_available_offset(T_parent_relationships& rel
 }
 
 template <typename T_child_relationships>
-uint8_t ddl_executor_t::find_child_available_offset(T_child_relationships& relationships)
+uint8_t ddl_executor_t::find_child_available_offset(const T_child_relationships& relationships)
 {
     uint8_t max_offset = 0;
 
