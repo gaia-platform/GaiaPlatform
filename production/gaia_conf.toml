@@ -14,7 +14,7 @@ logger_config = "./log_conf.toml"
 # Use -1 to indicate that the engine should use the number
 # of available hardware threads.  Note that the rules engine
 # must use at least one thread so a value of 0 is invalid.
-thread_count = -1
+thread_pool_count = -1
 
 # Interval in seconds of how frequently the rules engine logs statistics.
 # If the value is set to 0 then no statistics will be logged to the
@@ -26,6 +26,6 @@ stats_log_interval = 10
 # statistics for each individual rule and log them to the statistics log file.
 log_individual_rule_stats = false
 
-# Number of times the rules engine should retry a rule when
-# an update conflict is encountered
+# Number of times the rules engine should retry executing a rule when
+# an update conflict is detected on a transaction commit.
 rule_retry_count = 3

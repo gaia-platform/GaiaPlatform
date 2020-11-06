@@ -20,10 +20,10 @@ struct event_manager_settings_t
     // Section and key names for the Rules configuration section
     // of a gaia_conf.toml file.
     static inline const char* c_rules_section = "Rules";
-    static inline const char* c_thread_count_key = "thread_count";
+    static inline const char* c_thread_count_key = "thread_pool_count";
     static inline const char* c_stats_log_interval_key = "stats_log_interval";
-    static inline const char* c_log_individual_rule_stats = "log_individual_rule_stats";
-    static inline const char* c_rule_retry_count = "rule_retry_count";
+    static inline const char* c_log_individual_rule_stats_key = "log_individual_rule_stats";
+    static inline const char* c_rule_retry_count_key = "rule_retry_count";
 
     static void parse_rules_config(
         std::shared_ptr<cpptoml::table>& root_config,

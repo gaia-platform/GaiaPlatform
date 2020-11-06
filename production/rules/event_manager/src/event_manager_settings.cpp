@@ -51,13 +51,13 @@ void gaia::rules::event_manager_settings_t::parse_rules_config(
     }
 
     auto individual_rule_stats_setting = rules_config->get_as<bool>(
-        event_manager_settings_t::c_log_individual_rule_stats);
+        event_manager_settings_t::c_log_individual_rule_stats_key);
     if (individual_rule_stats_setting)
     {
         settings.enable_rule_stats = *individual_rule_stats_setting;
     }
 
-    auto num_retries_setting = rules_config->get_as<uint32_t>(event_manager_settings_t::c_rule_retry_count);
+    auto num_retries_setting = rules_config->get_as<uint32_t>(event_manager_settings_t::c_rule_retry_count_key);
     if (num_retries_setting)
     {
         settings.num_rule_retries = *num_retries_setting;

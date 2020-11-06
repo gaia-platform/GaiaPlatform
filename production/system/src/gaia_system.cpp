@@ -13,10 +13,10 @@
 #include "rules_config.hpp"
 #include "scope_guard.hpp"
 
+using namespace std;
 using namespace gaia::rules;
 using namespace gaia::system;
 using namespace gaia::common;
-using namespace std;
 using namespace scope_guard;
 
 namespace gaia
@@ -68,6 +68,11 @@ void gaia::system::initialize(const char* gaia_config_file)
     bool db_initialized = false;
 
     shared_ptr<cpptoml::table> root_config = parse_system_settings(gaia_config_file, logger_config_file);
+
+    // This root_config can be in one of three states that must be handled by component initialization functions.
+    // 1) Null:  The underlying table pointer is null because no configuration file was passed in.
+    // 2) Empty: There is an underlying table but there were no sections or keys in it.
+    // 3) Populated:  Underlying table was parsed and there are sections and keys.
 
     // Init logging first so components have a chance to output any errors they encounter.
     gaia_log::initialize(logger_config_file);

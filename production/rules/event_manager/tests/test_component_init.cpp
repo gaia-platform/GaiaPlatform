@@ -38,8 +38,8 @@ protected:
 
         rules_config->insert(event_manager_settings_t::c_thread_count_key, thread_count);
         rules_config->insert(event_manager_settings_t::c_stats_log_interval_key, log_interval);
-        rules_config->insert(event_manager_settings_t::c_log_individual_rule_stats, log_rule_stats);
-        rules_config->insert(event_manager_settings_t::c_rule_retry_count, retry_count);
+        rules_config->insert(event_manager_settings_t::c_log_individual_rule_stats_key, log_rule_stats);
+        rules_config->insert(event_manager_settings_t::c_rule_retry_count_key, retry_count);
 
         root_config->insert(event_manager_settings_t::c_rules_section, rules_config);
         return root_config;

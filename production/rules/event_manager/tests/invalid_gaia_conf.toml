@@ -11,4 +11,4 @@ logger_config = "./log_conf.toml"
 # Settings for the rules engine.
 [Rules]
 # Note that there is not an equal sign so we should get a parse error.
-thread_count
+thread_pool_count
