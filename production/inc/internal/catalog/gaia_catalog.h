@@ -93,7 +93,7 @@ struct gaia_database_t : public gaia_object_t<c_gaia_type_gaia_database, gaia_da
     }
 private:
     friend struct gaia_object_t<c_gaia_type_gaia_database, gaia_database_t, gaia_database, gaia_databaseT, c_num_gaia_database_ptrs>;
-    gaia_database_t(gaia_id_t id) : gaia_object_t(id, "gaia_database_t") {
+    explicit gaia_database_t(gaia_id_t id) : gaia_object_t(id, "gaia_database_t") {
         m_gaia_table_list.set_outer(gaia_id());
     }
 };
@@ -137,7 +137,7 @@ struct gaia_table_t : public gaia_object_t<c_gaia_type_gaia_table, gaia_table_t,
     }
 private:
     friend struct gaia_object_t<c_gaia_type_gaia_table, gaia_table_t, gaia_table, gaia_tableT, c_num_gaia_table_ptrs>;
-    gaia_table_t(gaia_id_t id) : gaia_object_t(id, "gaia_table_t") {
+    explicit gaia_table_t(gaia_id_t id) : gaia_object_t(id, "gaia_table_t") {
         m_gaia_field_list.set_outer(gaia_id());
         m_ref_gaia_field_list.set_outer(gaia_id());
         m_parent_gaia_relationship_list.set_outer(gaia_id());
@@ -172,7 +172,7 @@ struct gaia_field_t : public gaia_object_t<c_gaia_type_gaia_field, gaia_field_t,
     }
 private:
     friend struct gaia_object_t<c_gaia_type_gaia_field, gaia_field_t, gaia_field, gaia_fieldT, c_num_gaia_field_ptrs>;
-    gaia_field_t(gaia_id_t id) : gaia_object_t(id, "gaia_field_t") {
+    explicit gaia_field_t(gaia_id_t id) : gaia_object_t(id, "gaia_field_t") {
     }
 };
 
@@ -204,7 +204,7 @@ struct gaia_relationship_t : public gaia_object_t<c_gaia_type_gaia_relationship,
     }
 private:
     friend struct gaia_object_t<c_gaia_type_gaia_relationship, gaia_relationship_t, gaia_relationship, gaia_relationshipT, c_num_gaia_relationship_ptrs>;
-    gaia_relationship_t(gaia_id_t id) : gaia_object_t(id, "gaia_relationship_t") {
+    explicit gaia_relationship_t(gaia_id_t id) : gaia_object_t(id, "gaia_relationship_t") {
     }
 };
 
@@ -232,7 +232,7 @@ struct gaia_ruleset_t : public gaia_object_t<c_gaia_type_gaia_ruleset, gaia_rule
     }
 private:
     friend struct gaia_object_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t, gaia_ruleset, gaia_rulesetT, c_num_gaia_ruleset_ptrs>;
-    gaia_ruleset_t(gaia_id_t id) : gaia_object_t(id, "gaia_ruleset_t") {
+    explicit gaia_ruleset_t(gaia_id_t id) : gaia_object_t(id, "gaia_ruleset_t") {
         m_gaia_rule_list.set_outer(gaia_id());
     }
 };
@@ -256,7 +256,7 @@ struct gaia_rule_t : public gaia_object_t<c_gaia_type_gaia_rule, gaia_rule_t, ga
     }
 private:
     friend struct gaia_object_t<c_gaia_type_gaia_rule, gaia_rule_t, gaia_rule, gaia_ruleT, c_num_gaia_rule_ptrs>;
-    gaia_rule_t(gaia_id_t id) : gaia_object_t(id, "gaia_rule_t") {
+    explicit gaia_rule_t(gaia_id_t id) : gaia_object_t(id, "gaia_rule_t") {
     }
 };
 

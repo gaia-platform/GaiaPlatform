@@ -132,7 +132,6 @@ target_include_directories(gaia_se_server SYSTEM PRIVATE "${GEN_DIR}")
 
 # Suppress spurious warnings about zero-initialized structs.
 set_target_properties(gaia_se_server PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
-set_target_properties(gaia_se_server PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 target_link_libraries(gaia_se_server PRIVATE gaia_common Threads::Threads explain rocks_wrapper)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   target_link_libraries(gaia_se_server PUBLIC backward)
