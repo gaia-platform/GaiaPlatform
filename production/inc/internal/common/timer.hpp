@@ -5,17 +5,21 @@
 
 #pragma once
 
-#include <chrono>
-#include <functional>
 #include <stdio.h>
+
+#include <chrono>
+
+#include <functional>
 
 // Simple timer utility classes for doing profiling.
 // This class uses steady_clock based on guidance from
 // https://en.cppreference.com/w/cpp/chrono/high_resolution_clock.
-// Namely, use steady_clock for duration measurements instead of 
+// Namely, use steady_clock for duration measurements instead of
 // high_resolution_clock.
-namespace gaia {
-namespace common {
+namespace gaia
+{
+namespace common
+{
 
 class timer_t
 {
@@ -30,19 +34,28 @@ public:
     static void log_duration(std::chrono::steady_clock::time_point& start_time, const char* message);
 
     // Time the function and return result in nanoseconds.
-    static int64_t get_function_duration(std::function<void ()> fn);
+    static int64_t get_function_duration(std::function<void()> fn);
 
     // Time the function and output a message to the console.
-    static void log_function_duration(std::function<void ()> fn, const char* function_name);
+    static void log_function_duration(std::function<void()> fn, const char* function_name);
 
     // ns -> s
-    static double ns_to_s(int64_t nanoseconds) { return nanoseconds / (double) (1e9); }
+    static double ns_to_s(int64_t nanoseconds)
+    {
+        return nanoseconds / (double)(1e9);
+    }
 
     // ns -> ms
-    static double ns_to_ms(int64_t nanoseconds) { return nanoseconds / (double) (1e6); }
+    static double ns_to_ms(int64_t nanoseconds)
+    {
+        return nanoseconds / (double)(1e6);
+    }
 
     // ns -> us
-    static double ns_to_us(int64_t nanoseconds) { return nanoseconds / (double) (1e3); }
+    static double ns_to_us(int64_t nanoseconds)
+    {
+        return nanoseconds / (double)(1e3);
+    }
 };
 
 // Convenience class for enabling and disabling performance measurements
@@ -59,7 +72,7 @@ public:
     {
         m_enabled = enabled;
     }
-    
+
     std::chrono::steady_clock::time_point get_time_point()
     {
         if (m_enabled)
@@ -72,7 +85,7 @@ public:
 
     int64_t get_duration(std::chrono::steady_clock::time_point& start_time)
     {
-        if (m_enabled) 
+        if (m_enabled)
         {
             return gaia::common::timer_t::get_duration(start_time);
         }
@@ -82,14 +95,14 @@ public:
 
     void log_duration(std::chrono::steady_clock::time_point& start_time, const char* message)
     {
-        if (m_enabled) 
+        if (m_enabled)
         {
             gaia::common::timer_t::log_duration(start_time, message);
         }
     }
 
     // Time the function and return result in nanoseconds.
-    int64_t get_function_duration(std::function<void ()> fn)
+    int64_t get_function_duration(std::function<void()> fn)
     {
         if (m_enabled)
         {
@@ -100,8 +113,7 @@ public:
         return 0;
     }
 
-
-    void log_function_duration(std::function<void ()> fn, const char* fn_name)
+    void log_function_duration(std::function<void()> fn, const char* fn_name)
     {
         if (m_enabled)
         {
@@ -117,5 +129,5 @@ private:
     bool m_enabled = false;
 };
 
-}
-}
+} // namespace common
+} // namespace gaia

@@ -23,11 +23,12 @@ namespace common
 class system_error : public gaia_exception
 {
 public:
-    system_error(const string& message, int err = 0)
+    system_error(const std::string& message, int err = 0)
         : gaia_exception(message)
     {
         m_err = err;
     }
+
     int get_errno()
     {
         return m_err;
@@ -37,7 +38,7 @@ private:
     int m_err;
 };
 
-inline void throw_system_error(const string& user_info, int err = errno)
+inline void throw_system_error(const std::string& user_info, int err = errno)
 {
     std::stringstream ss;
     ss << user_info << " - " << (::strerror(err));

@@ -8,6 +8,7 @@
 #include "gaia_ptr.hpp"
 #include "type_metadata.hpp"
 
+using namespace std;
 using namespace gaia::db;
 using namespace gaia::common;
 

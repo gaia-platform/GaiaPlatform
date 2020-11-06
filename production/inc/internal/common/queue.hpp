@@ -32,7 +32,7 @@ struct queue_element_t
     queue_element_t* next;
     queue_element_t* previous;
 
-    mutable shared_mutex lock;
+    mutable std::shared_mutex lock;
 
     queue_element_t();
     queue_element_t(T value);

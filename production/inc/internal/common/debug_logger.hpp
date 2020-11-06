@@ -28,7 +28,7 @@ class debug_logger_t : public logger_t
 public:
     static debug_logger_t* create(const char* logger_name);
 
-    shared_ptr<spdlog::logger> get_spdlogger()
+    std::shared_ptr<spdlog::logger> get_spdlogger()
     {
         return m_spdlogger;
     }

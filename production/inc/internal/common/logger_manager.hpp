@@ -99,7 +99,7 @@ public:
         return *m_rules_stats_logger;
     }
 
-    bool init_logging(const string& config_path);
+    bool init_logging(const std::string& config_path);
     bool stop_logging();
 
 private:
@@ -115,8 +115,8 @@ private:
     friend void gaia_log::set_rules_stats(logger_t* logger);
 
 private:
-    mutex m_log_init_mutex;
-    atomic_bool m_is_log_initialized = false;
+    std::mutex m_log_init_mutex;
+    std::atomic_bool m_is_log_initialized = false;
 
     // Well-known loggers
     logger_ptr_t m_sys_logger;

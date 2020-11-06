@@ -18,6 +18,8 @@
 #include "storage_engine_server.hpp"
 #include "system_table_types.hpp"
 
+using namespace std;
+
 using namespace gaia::db;
 using namespace gaia::common;
 using namespace rocksdb;

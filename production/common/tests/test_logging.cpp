@@ -9,6 +9,8 @@
 
 #include "logger.hpp"
 
+using namespace std;
+
 static constexpr char c_const_char_msg[] = "const char star message";
 static const std::string c_string_msg = "string message";
 static constexpr int64_t c_int_msg = 1234;

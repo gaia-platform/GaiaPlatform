@@ -13,7 +13,7 @@ namespace gaia
 namespace catalog
 {
 
-void execute(const string& db_name, vector<unique_ptr<ddl::statement_t>>& statements)
+void execute(const std::string& db_name, std::vector<std::unique_ptr<ddl::statement_t>>& statements)
 {
     for (auto& stmt : statements)
     {
@@ -56,9 +56,9 @@ void execute(const string& db_name, vector<unique_ptr<ddl::statement_t>>& statem
     }
 }
 
-string load_catalog(ddl::parser_t& parser, const string& ddl_filename, const string& name)
+std::string load_catalog(ddl::parser_t& parser, const std::string& ddl_filename, const std::string& name)
 {
-    string db(name);
+    std::string db(name);
     common::retail_assert(!ddl_filename.empty(), "No ddl file specified.");
 
     int parsing_result = parser.parse(ddl_filename);
@@ -68,11 +68,11 @@ string load_catalog(ddl::parser_t& parser, const string& ddl_filename, const str
     {
         // Strip off the path and any suffix to get database name if database name is not specified.
         db = ddl_filename;
-        if (db.find("/") != string::npos)
+        if (db.find("/") != std::string::npos)
         {
             db = db.substr(db.find_last_of("/") + 1);
         }
-        if (db.find(".") != string::npos)
+        if (db.find(".") != std::string::npos)
         {
             db = db.substr(0, db.find_last_of("."));
         }
@@ -86,8 +86,8 @@ string load_catalog(ddl::parser_t& parser, const string& ddl_filename, const str
 void load_catalog(const char* ddl_filename)
 {
     ddl::parser_t parser;
-    string filename(ddl_filename);
-    string db_name;
+    std::string filename(ddl_filename);
+    std::string db_name;
     db_name = load_catalog(parser, filename, db_name);
 }
 
