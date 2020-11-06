@@ -43,6 +43,11 @@ gaia_ptr gaia_ptr::create(gaia_id_t id, gaia_type_t type, size_t num_refs, size_
 {
     size_t refs_len = num_refs * sizeof(gaia_id_t);
     size_t total_len = data_size + refs_len;
+    if (total_len > gaia_se_object_t::c_max_payload_size)
+    {
+        throw payload_size_too_large(total_len, gaia_se_object_t::c_max_payload_size);
+    }
+
     // TODO this constructor allows creating a gaia_ptr in an invalid state
     //  the gaia_se_object_t should either be initialized before and passed in
     //  or initialized inside the constructor.
@@ -56,7 +61,15 @@ gaia_ptr gaia_ptr::create(gaia_id_t id, gaia_type_t type, size_t num_refs, size_
         memset(obj_ptr->payload, 0, refs_len);
     }
     obj_ptr->payload_size = total_len;
-    memcpy(obj_ptr->payload + refs_len, data, data_size);
+    if (data)
+    {
+        memcpy(obj_ptr->payload + refs_len, data, data_size);
+    }
+    else
+    {
+        retail_assert(data_size == 0, "Null payload with non-zero payload size!");
+    }
+
     obj.create_insert_trigger(type, id);
     return obj;
 }
@@ -111,6 +124,10 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data)
 
     size_t ref_len = old_this->num_references * sizeof(gaia_id_t);
     size_t total_len = data_size + ref_len;
+    if (total_len > gaia_se_object_t::c_max_payload_size)
+    {
+        throw payload_size_too_large(total_len, gaia_se_object_t::c_max_payload_size);
+    }
 
     // updates m_locator to point to the new object
     allocate(sizeof(gaia_se_object_t) + total_len);

@@ -20,6 +20,9 @@ using namespace common;
 // the object format but doesn't need any gaia_ptr functionality.
 struct gaia_se_object_t
 {
+    // Adjust this if gaia_se_object_t::payload_size ever changes size.
+    static constexpr uint16_t c_max_payload_size = 0xffff;
+
     gaia_id_t id;
     gaia_type_t type;
     // The Flatbuffer size limit is 2GB (signed 32-bit). With a 16-bit payload size,
