@@ -262,7 +262,7 @@ void adapter_t::begin_session()
 
         initialize_caches();
     }
-    catch (exception e)
+    catch (const exception& e)
     {
         ereport(
             ERROR,
@@ -280,7 +280,7 @@ void adapter_t::end_session()
     {
         gaia::db::end_session();
     }
-    catch (exception e)
+    catch (const exception& e)
     {
         ereport(
             ERROR,
@@ -394,46 +394,62 @@ List* adapter_t::get_ddl_command_list(const char* server_name)
 
 bool state_t::initialize(const char* table_name, size_t count_fields)
 {
-    m_gaia_id_field_index = c_invalid_field_index;
-
-    // Lookup table in our map.
-    auto iterator = adapter_t::s_map_table_name_to_container_id.find(table_name);
-    if (iterator == adapter_t::s_map_table_name_to_container_id.end())
+    try
     {
-        return false;
-    }
+        m_gaia_id_field_index = c_invalid_field_index;
 
-    m_gaia_container_id = iterator->second;
-
-    m_count_fields = 0;
-    for (auto field_view : catalog_core_t::list_fields(m_gaia_container_id))
-    {
-        // We do not count anonymous references.
-        if (field_view.data_type() == data_type_t::e_references
-            && strlen(field_view.name()) > 0)
+        // Lookup table in our map.
+        auto iterator = adapter_t::s_map_table_name_to_container_id.find(table_name);
+        if (iterator == adapter_t::s_map_table_name_to_container_id.end())
         {
-            m_count_fields++;
+            return false;
         }
-    }
 
-    if (count_fields != m_count_fields)
+        m_gaia_container_id = iterator->second;
+
+        m_count_fields = 0;
+        for (auto field_view : catalog_core_t::list_fields(m_gaia_container_id))
+        {
+            // We do not count anonymous references.
+            if (field_view.data_type() == data_type_t::e_references
+                && strlen(field_view.name()) > 0)
+            {
+                m_count_fields++;
+            }
+        }
+
+        if (count_fields != m_count_fields)
+        {
+            ereport(
+                ERROR,
+                (errcode(ERRCODE_FDW_ERROR),
+                 errmsg("Unexpected table field count!"),
+                 errhint("Count is '%ld' and expected count was '%ld'.", count_fields, m_count_fields)));
+        }
+        else
+        {
+            elog(LOG, "Successfully initialized processing of table %s with %ld fields!", table_name, count_fields);
+        }
+
+        // Allocate memory for holding field information.
+        m_fields = reinterpret_cast<field_information_t*>(palloc0(
+            sizeof(field_information_t) * m_count_fields));
+
+        return true;
+    }
+    catch (const exception& e)
     {
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("Unexpected table field count!"),
-             errhint("Count is '%ld' and expected count was '%ld'.", count_fields, m_count_fields)));
+             errmsg("Failed initializing FDW state."),
+             errhint(
+                 "Table: %s, container_id: %ld, field count: %ld. Exception: %s",
+                 table_name,
+                 m_gaia_container_id,
+                 count_fields,
+                 e.what())));
     }
-    else
-    {
-        elog(LOG, "Successfully initialized processing of table %s with %ld fields!", table_name, count_fields);
-    }
-
-    // Allocate memory for holding field information.
-    m_fields = reinterpret_cast<field_information_t*>(palloc0(
-        sizeof(field_information_t) * m_count_fields));
-
-    return true;
 }
 
 bool state_t::set_field_index(const char* field_name, size_t field_index)
