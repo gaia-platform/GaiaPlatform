@@ -20,9 +20,6 @@ namespace gaia
 namespace catalog
 {
 
-const string c_ref_name("REF_NAME");
-const string c_ref_table("REF_TABLE");
-
 const string c_indent_string("    ");
 
 struct field_strings_t
@@ -196,12 +193,12 @@ static string generate_constant_list(const gaia_id_t db_id)
         {
             if (strlen(relationship.name()))
             {
-                code.SetValue(c_ref_name, relationship.name());
+                code.SetValue("REF_NAME", relationship.name());
             }
             else
             {
                 // Anonymous relationship
-                code.SetValue(c_ref_name, relationship.child_gaia_table().name());
+                code.SetValue("REF_NAME", relationship.child_gaia_table().name());
             }
 
             if (table_record == relationship.parent_gaia_table())
@@ -333,8 +330,8 @@ static string generate_edc_struct(
     {
         if (strlen(relationship.name()))
         {
-            code.SetValue(c_ref_name, relationship.name());
-            code.SetValue(c_ref_table, relationship.parent_gaia_table().name());
+            code.SetValue("REF_NAME", relationship.name());
+            code.SetValue("REF_TABLE", relationship.parent_gaia_table().name());
             code += "{{REF_TABLE}}_t {{REF_NAME}}_{{REF_TABLE}}() {";
             code.IncrementIdentLevel();
             code += "return {{REF_TABLE}}_t::get(this->references()[c_parent_{{REF_NAME}}_{{REF_TABLE}}]);";
@@ -342,8 +339,8 @@ static string generate_edc_struct(
         else
         {
             // This relationship is anonymous.
-            code.SetValue(c_ref_name, relationship.parent_gaia_table().name());
-            code.SetValue(c_ref_table, relationship.parent_gaia_table().name());
+            code.SetValue("REF_NAME", relationship.parent_gaia_table().name());
+            code.SetValue("REF_TABLE", relationship.parent_gaia_table().name());
             code += "{{REF_TABLE}}_t {{REF_NAME}}() {";
             code.IncrementIdentLevel();
             code += "return {{REF_TABLE}}_t::get(this->references()[c_parent_{{TABLE_NAME}}_{{REF_TABLE}}]);";
@@ -363,11 +360,11 @@ static string generate_edc_struct(
     // Iterate over the relationships where the current table appear as parent
     for (auto& relationship : parent_relationships)
     {
-        code.SetValue(c_ref_table, relationship.child_gaia_table().name());
+        code.SetValue("REF_TABLE", relationship.child_gaia_table().name());
 
         if (strlen(relationship.name()))
         {
-            code.SetValue(c_ref_name, relationship.name());
+            code.SetValue("REF_NAME", relationship.name());
 
             code += "reference_chain_container_t<{{TABLE_NAME}}_t, {{REF_TABLE}}_t, "
                     "c_parent_{{REF_NAME}}_{{TABLE_NAME}}, "
@@ -384,7 +381,7 @@ static string generate_edc_struct(
         else
         {
             // This relationship is anonymous.
-            code.SetValue(c_ref_name, relationship.child_gaia_table().name());
+            code.SetValue("REF_NAME", relationship.child_gaia_table().name());
 
             code += "reference_chain_container_t<{{TABLE_NAME}}_t, {{REF_TABLE}}_t, "
                     "c_parent_{{REF_TABLE}}_{{TABLE_NAME}}, "
@@ -415,14 +412,14 @@ static string generate_edc_struct(
     {
         if (strlen(relationship.name()))
         {
-            code.SetValue(c_ref_name, relationship.name());
-            code.SetValue(c_ref_table, relationship.child_gaia_table().name());
+            code.SetValue("REF_NAME", relationship.name());
+            code.SetValue("REF_TABLE", relationship.child_gaia_table().name());
             code += "m_{{REF_NAME}}_{{REF_TABLE}}_list.set_outer(gaia_id());";
         }
         else
         {
             // This relationship is anonymous.
-            code.SetValue(c_ref_name, relationship.child_gaia_table().name());
+            code.SetValue("REF_NAME", relationship.child_gaia_table().name());
             code += "m_{{REF_NAME}}_list.set_outer(gaia_id());";
         }
     }
