@@ -58,7 +58,9 @@ public:
 
             if (!new_node_idx)
             {
-                retail_assert(data->hash_node_count + se_base::c_hash_buckets < se_base::c_hash_list_elements);
+                retail_assert(
+                    data->hash_node_count + se_base::c_hash_buckets < se_base::c_hash_list_elements,
+                    "hash_node_count exceeds expected limits!");
                 new_node_idx = se_base::c_hash_buckets + __sync_fetch_and_add(&data->hash_node_count, 1);
                 (data->hash_nodes + new_node_idx)->id = id;
             }

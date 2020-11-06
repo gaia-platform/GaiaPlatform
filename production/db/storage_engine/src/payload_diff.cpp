@@ -24,7 +24,7 @@ void compute_payload_diff(
     field_position_list_t* changed_fields)
 {
     // Make sure caller passes valid pointer to changed_fields.
-    retail_assert(changed_fields);
+    retail_assert(changed_fields, "compute_payload_diff was called with an unexpected null changed_fields argument!");
 
     gaia_id_t type_record_id = type_id_record_id_cache_t::instance().get_record_id(type_id);
 

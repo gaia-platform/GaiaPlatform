@@ -45,7 +45,7 @@ gaia_id_t gaia::db::decode_object(
 
     // Read key.
     key_reader.read_uint64(&id);
-    retail_assert(key_reader.get_remaining_len_in_bytes() == 0);
+    retail_assert(key_reader.get_remaining_len_in_bytes() == 0, "Detected extra data when reading key!");
 
     // Read value.
     value_reader.read_uint32(&type);
