@@ -19,7 +19,7 @@ void server::handle_connect(
     // This message should only be received after the client thread was first initialized.
     retail_assert(
         old_state == session_state_t::DISCONNECTED && new_state == session_state_t::CONNECTED,
-        "Current event is not consistent with state transition!");
+        "Current event is inconsistent with state transition!");
     // We need to reply to the client with the fds for the data/locator segments.
     FlatBufferBuilder builder;
     build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_txn_id);
@@ -34,7 +34,7 @@ void server::handle_begin_txn(
     // This message should only be received while a transaction is in progress.
     retail_assert(
         old_state == session_state_t::CONNECTED && new_state == session_state_t::TXN_IN_PROGRESS,
-        "Current event is not consistent with state transition!");
+        "Current event is inconsistent with state transition!");
     // Currently we don't need to alter any server-side state for opening a transaction.
     FlatBufferBuilder builder;
     s_txn_id = allocate_txn_id(s_data);
@@ -49,7 +49,7 @@ void server::handle_rollback_txn(
     // This message should only be received while a transaction is in progress.
     retail_assert(
         old_state == session_state_t::TXN_IN_PROGRESS && new_state == session_state_t::CONNECTED,
-        "Current event is not consistent with state transition!");
+        "Current event is inconsistent with state transition!");
     // We just need to reset the session thread's txn_id without replying to the client.
     s_txn_id = 0;
 }
@@ -61,7 +61,7 @@ void server::handle_commit_txn(
     // This message should only be received while a transaction is in progress.
     retail_assert(
         old_state == session_state_t::TXN_IN_PROGRESS && new_state == session_state_t::TXN_COMMITTING,
-        "Current event is not consistent with state transition!");
+        "Current event is inconsistent with state transition!");
     // Get the log fd and mmap it.
     retail_assert(fds && fd_count == 1, "Invalid fd data!");
     int fd_log = *fds;
@@ -94,7 +94,7 @@ void server::handle_decide_txn(
         "Unexpected event received!");
     retail_assert(
         old_state == session_state_t::TXN_COMMITTING && new_state == session_state_t::CONNECTED,
-        "Current event is not consistent with state transition!");
+        "Current event is inconsistent with state transition!");
     FlatBufferBuilder builder;
     build_server_reply(builder, event, old_state, new_state, s_txn_id);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
@@ -107,7 +107,7 @@ void server::handle_client_shutdown(
     retail_assert(event == session_event_t::CLIENT_SHUTDOWN, "Unexpected event received!");
     retail_assert(
         new_state == session_state_t::DISCONNECTED,
-        "Current event is not consistent with state transition!");
+        "Current event is inconsistent with state transition!");
     // If this event is received, the client must have closed the write end of the socket
     // (equivalent of sending a FIN), so we need to do the same. Closing the socket
     // will send a FIN to the client, so they will read EOF and can close the socket
@@ -124,7 +124,7 @@ void server::handle_server_shutdown(
     retail_assert(event == session_event_t::SERVER_SHUTDOWN, "Unexpected event received!");
     retail_assert(
         new_state == session_state_t::DISCONNECTED,
-        "Current event is not consistent with state transition!");
+        "Current event is inconsistent with state transition!");
     // This transition should only be triggered on notification of the server shutdown event.
     // Since we are about to shut down, we can't wait for acknowledgment from the client and
     // should just close the session socket. As noted above, setting the shutdown flag will
@@ -139,7 +139,7 @@ void server::handle_request_stream(
     // This event never changes session state.
     retail_assert(
         old_state == new_state,
-        "Current event is not consistent with state transition!");
+        "Current event is inconsistent with state transition!");
     // Create a connected pair of datagram sockets, one of which we will keep
     // and the other we will send to the client.
     // We use SOCK_SEQPACKET because it supports both datagram and connection
