@@ -406,7 +406,7 @@ void ddl_executor_t::drop_table(const string& db_name, const string& name)
 
     string full_table_name = get_full_table_name(db_name, name);
     gaia_id_t db_id = find_db_id_no_lock(db_name);
-    retail_assert(db_id != c_invalid_gaia_id);
+    retail_assert(db_id != c_invalid_gaia_id, "Invalid database id!");
 
     if (m_table_names.find(full_table_name) == m_table_names.end())
     {
@@ -499,7 +499,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
 
     string full_table_name = get_full_table_name(dbname, table_name);
     gaia_id_t db_id = find_db_id_no_lock(dbname);
-    retail_assert(db_id != c_invalid_gaia_id);
+    retail_assert(db_id != c_invalid_gaia_id, "Invalid database id!");
 
     if (m_table_names.find(full_table_name) != m_table_names.end())
     {

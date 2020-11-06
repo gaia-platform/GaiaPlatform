@@ -38,7 +38,7 @@ public:
  * Retail asserts are meant for important conditions that indicate internal errors.
  * They help us surface issues early, at the source.
  */
-inline void retail_assert(bool condition, const std::string& message = "")
+inline void retail_assert(bool condition, const std::string& message)
 {
     if (!condition)
     {

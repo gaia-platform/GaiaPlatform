@@ -5,11 +5,11 @@
 
 #pragma once
 
-#include <sys/socket.h>
-#include <sys/un.h>
-
 #include <iostream>
 #include <stdexcept>
+
+#include <sys/socket.h>
+#include <sys/un.h>
 
 #include "gaia_exception.hpp"
 #include "retail_assert.hpp"
@@ -38,12 +38,12 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
 {
     // We should never send 0 bytes of data (because that would make it impossible
     // to determine if a 0-byte read meant EOF).
-    retail_assert(data_size > 0);
+    retail_assert(data_size > 0, "Invalid data size!");
     // fd_count has value equal to length of fds array,
     // and all fds we send must fit in control.buf below.
     if (fds)
     {
-        retail_assert(fd_count && fd_count <= c_max_fd_count);
+        retail_assert(fd_count && fd_count <= c_max_fd_count, "Invalid fds!");
     }
 
     struct msghdr msg;
@@ -116,7 +116,9 @@ inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* dat
     // and all fds we receive must fit in control.buf below.
     if (fds)
     {
-        retail_assert(pfd_count && *pfd_count && *pfd_count <= c_max_fd_count);
+        retail_assert(
+            pfd_count && *pfd_count && *pfd_count <= c_max_fd_count,
+            "Unexpected fds were received with message!");
     }
     struct msghdr msg;
     struct iovec iov;
@@ -168,14 +170,14 @@ inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* dat
         if (cmsg)
         {
             // message contains some fds, extract them
-            retail_assert(cmsg->cmsg_level == SOL_SOCKET);
-            retail_assert(cmsg->cmsg_type == SCM_RIGHTS);
+            retail_assert(cmsg->cmsg_level == SOL_SOCKET, "Invalid message header level!");
+            retail_assert(cmsg->cmsg_type == SCM_RIGHTS, "Invalid message header type!");
             // This potentially fails to account for padding after cmsghdr,
             // but seems to work in practice, and there's no supported way
             // to directly get this information.
             size_t fd_count = (cmsg->cmsg_len - sizeof(struct cmsghdr)) / sizeof(int);
             // *pfd_count has initial value equal to length of fds array
-            retail_assert(fd_count <= *pfd_count);
+            retail_assert(fd_count <= *pfd_count, "Mismatched fd count!");
             for (size_t i = 0; i < fd_count; i++)
             {
                 fds[i] = (reinterpret_cast<int*>(CMSG_DATA(cmsg)))[i];
@@ -201,8 +203,8 @@ inline void check_socket_type(int socket, int expected_socket_type)
         throw_system_error("getsockopt(SO_TYPE) failed");
     }
     // type_len is an inout parameter which can indicate truncation.
-    retail_assert(type_len == sizeof(real_socket_type));
-    retail_assert(real_socket_type == expected_socket_type);
+    retail_assert(type_len == sizeof(real_socket_type), "Invalid socket type size!");
+    retail_assert(real_socket_type == expected_socket_type, "Unexpected socket type!");
 }
 
 } // namespace common
