@@ -290,7 +290,6 @@ void initialize_rules_engine();
  * table operation (insert, update, delete)
  * field references (update a specific field)
  *
- *
  * @param gaia_type table type to bind the rule to
  * @param event_type read or write field event
  * @param fields the set of fields that will cause this rule to be fired if changed.

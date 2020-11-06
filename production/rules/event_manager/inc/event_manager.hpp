@@ -15,6 +15,7 @@
 #include "rule_checker.hpp"
 #include "rule_thread_pool.hpp"
 #include "rules.hpp"
+#include "rules_config.hpp"
 #include "triggers.hpp"
 
 using namespace gaia::db::triggers;
@@ -125,6 +126,9 @@ private:
 private:
     // Only internal static creation is allowed.
     event_manager_t() = default;
+
+    // Internal initialization function called by the system.
+    friend void gaia::rules::initialize_rules_engine(shared_ptr<cpptoml::table>& root_config);
 
     // Test helper methods.  These are just the friend declarations.  These methods are
     // implemented in a separate source file that must be compiled into the test.
