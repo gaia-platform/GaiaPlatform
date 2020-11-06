@@ -375,8 +375,7 @@ static string generate_edc_struct(
             code += "reference_chain_container_t<{{TABLE_NAME}}_t, {{REF_TABLE}}_t, "
                     "c_parent_{{REF_NAME}}_{{TABLE_NAME}}, "
                     "c_first_{{REF_NAME}}_{{REF_TABLE}}, c_next_{{REF_NAME}}_{{REF_TABLE}}> "
-                    "{{REF_NAME}}_{{REF_TABLE}}_list;";
-            code += "{{REF_NAME}}_{{REF_TABLE}}_list.set_outer(gaia_id());";
+                    "{{REF_NAME}}_{{REF_TABLE}}_list(gaia_id());";
             code += "return {{REF_NAME}}_{{REF_TABLE}}_list;";
         }
         else
@@ -391,8 +390,7 @@ static string generate_edc_struct(
             code.IncrementIdentLevel();
             code += "reference_chain_container_t<{{TABLE_NAME}}_t, {{REF_TABLE}}_t, "
                     "c_parent_{{REF_TABLE}}_{{TABLE_NAME}}, "
-                    "c_first_{{REF_NAME}}_{{REF_TABLE}}, c_next_{{REF_NAME}}_{{REF_TABLE}}> {{REF_NAME}}_list;";
-            code += "{{REF_NAME}}_list.set_outer(gaia_id());";
+                    "c_first_{{REF_NAME}}_{{REF_TABLE}}, c_next_{{REF_NAME}}_{{REF_TABLE}}> {{REF_NAME}}_list(gaia_id());";
             code += "return {{REF_NAME}}_list;";
         }
         code.DecrementIdentLevel();
