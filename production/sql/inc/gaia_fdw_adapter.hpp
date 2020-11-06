@@ -6,6 +6,9 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
+
+#include "retail_assert.hpp"
 
 // All Postgres headers and function declarations must have C linkage.
 extern "C"
@@ -95,6 +98,9 @@ public:
     }
 
 protected:
+    static void initialize_caches();
+
+protected:
     // HACKHACK: global counter to simulate nested transactions. Because a DELETE
     // plan is nested within a scan, committing the write txn will invalidate the
     // read txn. We get around this by using a refcount to track the txn nesting
@@ -104,6 +110,9 @@ protected:
     //
     // Use signed int so we can assert it is non-negative.
     static int s_txn_reference_count;
+
+    // Small cache to enable looking up a table type by name.
+    static std::unordered_map<std::string, gaia::common::gaia_type_t> s_map_table_name_to_container_id;
 };
 
 class state_t

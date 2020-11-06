@@ -4,6 +4,8 @@
 /////////////////////////////////////////////
 #pragma once
 
+#include <string>
+
 #include "catalog_internal.hpp"
 
 namespace gaia
@@ -17,7 +19,7 @@ namespace catalog
  *
  * @return generated JSON string
  */
-string generate_json(gaia::common::gaia_id_t table_id);
+std::string generate_json(gaia::common::gaia_id_t table_id);
 
 /**
  * Generate a default data file (JSON) from parsing the definition of a table.
@@ -25,7 +27,7 @@ string generate_json(gaia::common::gaia_id_t table_id);
  * @param fields table fields parsing result bindings
  * @return JSON file
  */
-string generate_json(const ddl::field_def_list_t& fields);
+std::string generate_json(const ddl::field_def_list_t& fields);
 
 /**
  * Generate serializations (bin) in base64 encoded string format.
@@ -34,7 +36,7 @@ string generate_json(const ddl::field_def_list_t& fields);
  * @param json JSON data
  * @return base64 encoded serialization
  */
-string generate_bin(const string& fbs, const string& json);
+std::string generate_bin(const std::string& fbs, const std::string& json);
 
 } // namespace catalog
 } // namespace gaia

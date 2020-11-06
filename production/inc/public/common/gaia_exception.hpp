@@ -8,8 +8,6 @@
 #include <exception>
 #include <string>
 
-using namespace std;
-
 namespace gaia
 {
 /**
@@ -26,15 +24,15 @@ namespace common
 /**
  * Root class for Gaia exceptions.
  */
-class gaia_exception : public exception
+class gaia_exception : public std::exception
 {
 protected:
-    string m_message;
+    std::string m_message;
 
 public:
     gaia_exception() = default;
 
-    explicit gaia_exception(const string& message)
+    explicit gaia_exception(const std::string& message)
     {
         m_message = message;
     }

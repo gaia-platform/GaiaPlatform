@@ -9,6 +9,8 @@
 #include "db_test_base.hpp"
 #include "file.hpp"
 
+using namespace std;
+
 using namespace gaia::db;
 using namespace gaia::catalog;
 using namespace gaia::catalog::ddl;

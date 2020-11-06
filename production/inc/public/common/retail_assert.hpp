@@ -9,8 +9,6 @@
 
 #include "gaia_exception.hpp"
 
-using namespace std;
-
 namespace gaia
 {
 /**
@@ -30,7 +28,7 @@ namespace common
 class retail_assertion_failure : public gaia_exception
 {
 public:
-    retail_assertion_failure(const string& message)
+    retail_assertion_failure(const std::string& message)
         : gaia_exception(message)
     {
     }
@@ -40,7 +38,7 @@ public:
  * Retail asserts are meant for important conditions that indicate internal errors.
  * They help us surface issues early, at the source.
  */
-inline void retail_assert(bool condition, const string& message = "")
+inline void retail_assert(bool condition, const std::string& message = "")
 {
     if (!condition)
     {
@@ -49,6 +47,6 @@ inline void retail_assert(bool condition, const string& message = "")
 }
 
 /*@}*/
-}
+} // namespace common
 /*@}*/
-}
+} // namespace gaia

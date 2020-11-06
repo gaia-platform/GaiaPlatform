@@ -39,7 +39,7 @@ using namespace scope_guard;
 class invalid_session_transition : public gaia_exception
 {
 public:
-    invalid_session_transition(const string& message)
+    invalid_session_transition(const std::string& message)
         : gaia_exception(message)
     {
     }

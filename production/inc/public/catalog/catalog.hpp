@@ -28,14 +28,14 @@ namespace catalog
  */
 
 // The top level namespace for all the Gaia generated code.
-const string c_gaia_namespace = "gaia";
+const std::string c_gaia_namespace = "gaia";
 
 // Catalog's notion for the empty database similar to Epsilon for the empty
 // string. Specifically, when a user create a table without specifying a
 // database, it is created in this construct. Users cannot use '()' in database
 // names so there will be no ambiguity, i.e. there will never exist a user
 // created database called "()".
-const string c_empty_db_name = "()";
+const std::string c_empty_db_name = "()";
 
 // The character used to connect a database name and a table name to form fully
 // qualified name for a table defined in a given database.
@@ -58,7 +58,7 @@ using data_type_t = gaia::common::data_type_t;
  * @return fbs data type name
  * @throw unknown_data_type
  */
-string get_data_type_name(data_type_t data_type);
+std::string get_data_type_name(data_type_t data_type);
 
 /*
  * Trim action for log tables.
@@ -131,27 +131,27 @@ struct field_type_t
         : type(type){};
 
     data_type_t type;
-    string name;
+    std::string name;
 };
 
 struct field_definition_t
 {
-    field_definition_t(string name, data_type_t type, uint16_t length)
+    field_definition_t(std::string name, data_type_t type, uint16_t length)
         : name(move(name)), type(type), length(length){};
 
-    field_definition_t(string name, data_type_t type, uint16_t length, string referenced_table_name)
+    field_definition_t(std::string name, data_type_t type, uint16_t length, std::string referenced_table_name)
         : name(move(name)), type(type), length(length), table_type_name(move(referenced_table_name)){};
 
-    string name;
+    std::string name;
     data_type_t type;
     uint16_t length;
 
-    string table_type_name;
-    string table_type_database;
+    std::string table_type_name;
+    std::string table_type_database;
     bool active = false;
 };
 
-using field_def_list_t = vector<unique_ptr<field_definition_t>>;
+using field_def_list_t = std::vector<std::unique_ptr<field_definition_t>>;
 
 enum class create_type_t : uint8_t
 {
@@ -164,16 +164,16 @@ struct create_statement_t : statement_t
     explicit create_statement_t(create_type_t type)
         : statement_t(statement_type_t::create), type(type){};
 
-    create_statement_t(create_type_t type, string name)
+    create_statement_t(create_type_t type, std::string name)
         : statement_t(statement_type_t::create), type(type), name(move(name)){};
 
     ~create_statement_t() override = default;
 
     create_type_t type;
 
-    string name;
+    std::string name;
 
-    string database;
+    std::string database;
 
     field_def_list_t fields;
 
@@ -191,16 +191,16 @@ struct drop_statement_t : statement_t
     explicit drop_statement_t(drop_type_t type)
         : statement_t(statement_type_t::drop), type(type){};
 
-    drop_statement_t(drop_type_t type, string name)
+    drop_statement_t(drop_type_t type, std::string name)
         : statement_t(statement_type_t::drop), type(type), name(move(name)){};
 
     ~drop_statement_t() override = default;
 
     drop_type_t type;
 
-    string name;
+    std::string name;
 
-    string database;
+    std::string database;
 };
 
 /*@}*/
@@ -212,9 +212,9 @@ struct drop_statement_t : statement_t
 class db_already_exists : public gaia::common::gaia_exception
 {
 public:
-    explicit db_already_exists(const string& name)
+    explicit db_already_exists(const std::string& name)
     {
-        stringstream message;
+        std::stringstream message;
         message << "The database \"" << name << "\" already exists.";
         m_message = message.str();
     }
@@ -226,9 +226,9 @@ public:
 class db_not_exists : public gaia::common::gaia_exception
 {
 public:
-    explicit db_not_exists(const string& name)
+    explicit db_not_exists(const std::string& name)
     {
-        stringstream message;
+        std::stringstream message;
         message << "The database \"" << name << "\" does not exist.";
         m_message = message.str();
     }
@@ -240,9 +240,9 @@ public:
 class table_already_exists : public gaia::common::gaia_exception
 {
 public:
-    explicit table_already_exists(const string& name)
+    explicit table_already_exists(const std::string& name)
     {
-        stringstream message;
+        std::stringstream message;
         message << "The table \"" << name << "\" already exists.";
         m_message = message.str();
     }
@@ -254,9 +254,9 @@ public:
 class table_not_exists : public gaia::common::gaia_exception
 {
 public:
-    explicit table_not_exists(const string& name)
+    explicit table_not_exists(const std::string& name)
     {
-        stringstream message;
+        std::stringstream message;
         message << "The table \"" << name << "\" does not exist.";
         m_message = message.str();
     }
@@ -268,9 +268,9 @@ public:
 class duplicate_field : public gaia::common::gaia_exception
 {
 public:
-    explicit duplicate_field(const string& name)
+    explicit duplicate_field(const std::string& name)
     {
-        stringstream message;
+        std::stringstream message;
         message << "The field \"" << name << "\" is specified more than once.";
         m_message = message.str();
     }
@@ -279,16 +279,16 @@ public:
 class referential_integrity_violation : public gaia::common::gaia_exception
 {
 public:
-    explicit referential_integrity_violation(const string& message)
+    explicit referential_integrity_violation(const std::string& message)
     {
         m_message = message;
     }
 
     static referential_integrity_violation drop_parent_table(
-        const string& parent_table,
-        const string& child_table)
+        const std::string& parent_table,
+        const std::string& child_table)
     {
-        stringstream message;
+        std::stringstream message;
         message << "Cannot drop table \"" << parent_table << "\" because it is referenced by \"" << child_table << "\"";
         return referential_integrity_violation{message.str()};
     }
@@ -306,7 +306,7 @@ void initialize_catalog();
  * @return id of the new database
  * @throw db_already_exists
  */
-gaia::common::gaia_id_t create_database(const string& name, bool throw_on_exists = true);
+gaia::common::gaia_id_t create_database(const std::string& name, bool throw_on_exists = true);
 
 /**
  * Create a table definition in a given database.
@@ -318,7 +318,7 @@ gaia::common::gaia_id_t create_database(const string& name, bool throw_on_exists
  * @throw table_already_exists
  */
 gaia::common::gaia_id_t create_table(
-    const string& db_name, const string& name, const ddl::field_def_list_t& fields, bool throw_on_exist = true);
+    const std::string& db_name, const std::string& name, const ddl::field_def_list_t& fields, bool throw_on_exist = true);
 
 /**
  * Create a table definition in the catalog's global database.
@@ -328,7 +328,7 @@ gaia::common::gaia_id_t create_table(
  * @return id of the new table
  * @throw table_already_exists
  */
-gaia::common::gaia_id_t create_table(const string& name, const ddl::field_def_list_t& fields);
+gaia::common::gaia_id_t create_table(const std::string& name, const ddl::field_def_list_t& fields);
 
 /**
  * Delete a database.
@@ -341,7 +341,7 @@ gaia::common::gaia_id_t create_table(const string& name, const ddl::field_def_li
  * @param name table name
  * @throw table_not_exists
  */
-void drop_database(const string& name);
+void drop_database(const std::string& name);
 
 /**
  * Delete a table in a given database.
@@ -354,7 +354,7 @@ void drop_database(const string& name);
  * @param name table name
  * @throw table_not_exists
  */
-void drop_table(const string& db_name, const string& name);
+void drop_table(const std::string& db_name, const std::string& name);
 
 /**
  * Delete a table from the catalog's global database.
@@ -366,7 +366,7 @@ void drop_table(const string& db_name, const string& name);
  * @param name table name
  * @throw table_not_exists
  */
-void drop_table(const string& name);
+void drop_table(const std::string& name);
 
 /**
  * List all data payload fields for a given table defined in the catalog.
@@ -380,7 +380,7 @@ void drop_table(const string& name);
  * @param table_id id of the table
  * @return a list of field ids in the order of their positions.
  */
-vector<gaia::common::gaia_id_t> list_fields(gaia::common::gaia_id_t table_id);
+std::vector<gaia::common::gaia_id_t> list_fields(gaia::common::gaia_id_t table_id);
 
 /**
  * List all references for a given table defined in the catalog.
@@ -392,7 +392,7 @@ vector<gaia::common::gaia_id_t> list_fields(gaia::common::gaia_id_t table_id);
  * @param table_id id of the table
  * @return a list of ids of the table references in the order of their positions.
  */
-vector<gaia::common::gaia_id_t> list_references(gaia::common::gaia_id_t table_id);
+std::vector<gaia::common::gaia_id_t> list_references(gaia::common::gaia_id_t table_id);
 
 /**
  * List all the tables that have a relationship with the given table where the
@@ -401,7 +401,7 @@ vector<gaia::common::gaia_id_t> list_references(gaia::common::gaia_id_t table_id
  * @param table_id id of the table
  * @return a list of ids of the tables that have a child relationship with this table.
  */
-vector<gaia::common::gaia_id_t> list_parent_relationships(gaia::common::gaia_id_t table_id);
+std::vector<gaia::common::gaia_id_t> list_parent_relationships(gaia::common::gaia_id_t table_id);
 
 /**
  * List all the tables that have a relationship with the given table where the
@@ -410,7 +410,7 @@ vector<gaia::common::gaia_id_t> list_parent_relationships(gaia::common::gaia_id_
  * @param table_id id of the table
  * @return a list of ids of the tables that have a parent relationship with this table.
  */
-vector<gaia::common::gaia_id_t> list_child_relationships(gaia::common::gaia_id_t table_id);
+std::vector<gaia::common::gaia_id_t> list_child_relationships(gaia::common::gaia_id_t table_id);
 
 /**
  * Generate the Extended Data Classes header file.
@@ -418,7 +418,7 @@ vector<gaia::common::gaia_id_t> list_child_relationships(gaia::common::gaia_id_t
  * @param dbname database name
  * @return generated source
  */
-string gaia_generate(const string& dbname);
+std::string gaia_generate(const std::string& dbname);
 
 /**
  * Find the database id given its name
@@ -426,7 +426,7 @@ string gaia_generate(const string& dbname);
  * @param dbname database name
  * @return database id (or INVALID_ID if the db name does not exist)
  */
-gaia::common::gaia_id_t find_db_id(const string& dbname);
+gaia::common::gaia_id_t find_db_id(const std::string& dbname);
 
 /*@}*/
 } // namespace catalog

@@ -178,7 +178,7 @@ private:
     std::unordered_map<gaia_type_t, std::unique_ptr<type_metadata_t>> m_metadata_registry;
 
     // Ensures exclusive access to the registry.
-    mutable shared_mutex m_registry_lock;
+    mutable std::shared_mutex m_registry_lock;
 
     /**
      * Initializes the registry by adding all the system tables (gaia_table, gaia_field, etc..)

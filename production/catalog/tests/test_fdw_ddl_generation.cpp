@@ -9,6 +9,8 @@
 #include "db_test_base.hpp"
 #include "fdw_ddl_generator.hpp"
 
+using namespace std;
+
 using namespace gaia::catalog;
 using namespace gaia::catalog::ddl;
 
