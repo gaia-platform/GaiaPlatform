@@ -88,9 +88,6 @@ void ddl_executor_t::bootstrap_catalog()
         // The anonymous reference to the gaia_table defines the ownership.
         fields.emplace_back(make_unique<field_definition_t>(
             c_anonymous_reference_field_name, data_type_t::e_references, 1, "catalog.gaia_table"));
-        // The "ref" named reference to the gaia_table defines the referential relationship.
-        // TODO this will be deprecated in favor to the gaia_relationship table.
-        fields.emplace_back(make_unique<field_definition_t>("ref", data_type_t::e_references, 1, "catalog.gaia_table"));
         create_table_impl(
             "catalog", "gaia_field", fields, true, false,
             static_cast<gaia_type_t>(catalog_table_type_t::gaia_field));
