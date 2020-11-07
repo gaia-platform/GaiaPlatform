@@ -36,13 +36,6 @@ duplicate_rule::duplicate_rule(const rule_binding_t& binding, bool duplicate_key
     m_message = message.str();
 }
 
-configuration_error::configuration_error(const char* key, int value)
-{
-    std::stringstream message;
-    message << "Invalid value '" << value << "' provided for setting '" << key << "'.";
-    m_message = message.str();
-}
-
 initialization_error::initialization_error(bool is_already_initialized)
 {
     if (is_already_initialized)
