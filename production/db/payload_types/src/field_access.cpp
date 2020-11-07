@@ -122,7 +122,7 @@ bool verify_data_schema(
 // The caller is responsible for allocating the variables
 // that will hold the type_information information.
 void get_table_field_information(
-    gaia_id_t type_id,
+    gaia_type_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
     size_t binary_schema_size,
@@ -166,7 +166,7 @@ void get_table_field_information(
 // This helper also retrieves a VectorOfAny pointer
 // that allows operating on the array.
 void get_table_field_array_information(
-    gaia_id_t type_id,
+    gaia_type_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
     size_t binary_schema_size,
@@ -195,7 +195,7 @@ void get_table_field_array_information(
 
 // The access method for scalar fields and strings.
 data_holder_t get_field_value(
-    gaia_id_t type_id,
+    gaia_type_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
     size_t binary_schema_size,
@@ -239,8 +239,8 @@ data_holder_t get_field_value(
 
 // The setter method for scalar fields.
 bool set_field_value(
-    gaia_id_t type_id,
-    const uint8_t* serialized_data,
+    gaia_type_t type_id,
+    uint8_t* serialized_data,
     const uint8_t* binary_schema,
     size_t binary_schema_size,
     field_position_t field_position,
@@ -280,7 +280,7 @@ bool set_field_value(
 
 // The setter method for string fields.
 vector<uint8_t> set_field_value(
-    gaia_id_t type_id,
+    gaia_type_t type_id,
     const uint8_t* serialized_data,
     size_t serialized_data_size,
     const uint8_t* binary_schema,
@@ -329,7 +329,7 @@ vector<uint8_t> set_field_value(
 
 // The access method for the size of a field of array type.
 size_t get_field_array_size(
-    gaia_id_t type_id,
+    gaia_type_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
     size_t binary_schema_size,
@@ -350,7 +350,7 @@ size_t get_field_array_size(
 
 // The setter method for a string element of a field of array type.
 std::vector<uint8_t> set_field_array_size(
-    gaia_id_t type_id,
+    gaia_type_t type_id,
     const uint8_t* serialized_data,
     size_t serialized_data_size,
     const uint8_t* binary_schema,
@@ -404,7 +404,7 @@ std::vector<uint8_t> set_field_array_size(
 
 // The access method for an element of a field of array type.
 data_holder_t get_field_array_element(
-    gaia_id_t type_id,
+    gaia_type_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
     size_t binary_schema_size,
@@ -455,8 +455,8 @@ data_holder_t get_field_array_element(
 
 // The setter method for a scalar element of a field of array type.
 void set_field_array_element(
-    gaia_id_t type_id,
-    const uint8_t* serialized_data,
+    gaia_type_t type_id,
+    uint8_t* serialized_data,
     const uint8_t* binary_schema,
     size_t binary_schema_size,
     field_position_t field_position,
@@ -501,7 +501,7 @@ void set_field_array_element(
 
 // The setter method for a string element of a field of array type.
 std::vector<uint8_t> set_field_array_element(
-    gaia_id_t type_id,
+    gaia_type_t type_id,
     const uint8_t* serialized_data,
     size_t serialized_data_size,
     const uint8_t* binary_schema,

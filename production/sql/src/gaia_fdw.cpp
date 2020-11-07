@@ -380,8 +380,6 @@ extern "C" void gaia_end_foreign_scan(ForeignScanState* node)
     // remote servers should be cleaned up.
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    auto scan_state = reinterpret_cast<gaia::fdw::scan_state_t*>(node->fdw_state);
-
     // Commit read transaction.
     gaia::fdw::adapter_t::commit_transaction();
 }

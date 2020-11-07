@@ -90,7 +90,7 @@ bool verify_data_schema(
 
 // Get the field value of a table record payload.
 data_holder_t get_field_value(
-    gaia::common::gaia_id_t type_id,
+    gaia::common::gaia_type_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
     size_t binary_schema_size,
@@ -100,8 +100,8 @@ data_holder_t get_field_value(
 //
 // This function only works for scalar fields (integers and floating point numbers).
 bool set_field_value(
-    gaia::common::gaia_id_t type_id,
-    const uint8_t* serialized_data,
+    gaia::common::gaia_type_t type_id,
+    uint8_t* serialized_data,
     const uint8_t* binary_schema,
     size_t binary_schema_size,
     gaia::common::field_position_t field_position,
@@ -111,7 +111,7 @@ bool set_field_value(
 //
 // This function only works for string fields.
 std::vector<uint8_t> set_field_value(
-    gaia::common::gaia_id_t type_id,
+    gaia::common::gaia_type_t type_id,
     const uint8_t* serialized_data,
     size_t serialized_data_size,
     const uint8_t* binary_schema,
@@ -121,7 +121,7 @@ std::vector<uint8_t> set_field_value(
 
 // Get the size of a field of array type.
 size_t get_field_array_size(
-    gaia::common::gaia_id_t type_id,
+    gaia::common::gaia_type_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
     size_t binary_schema_size,
@@ -130,7 +130,7 @@ size_t get_field_array_size(
 // Set the size of a field of array type.
 // If the array is expanded, new entries will be set to 0.
 std::vector<uint8_t> set_field_array_size(
-    gaia::common::gaia_id_t type_id,
+    gaia::common::gaia_type_t type_id,
     const uint8_t* serialized_data,
     size_t serialized_data_size,
     const uint8_t* binary_schema,
@@ -142,7 +142,7 @@ std::vector<uint8_t> set_field_array_size(
 //
 // An exception will be thrown if the index is out of bounds.
 data_holder_t get_field_array_element(
-    gaia::common::gaia_id_t type_id,
+    gaia::common::gaia_type_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
     size_t binary_schema_size,
@@ -155,8 +155,8 @@ data_holder_t get_field_array_element(
 //
 // This function only works for scalar fields (integers and floating point numbers).
 void set_field_array_element(
-    gaia::common::gaia_id_t type_id,
-    const uint8_t* serialized_data,
+    gaia::common::gaia_type_t type_id,
+    uint8_t* serialized_data,
     const uint8_t* binary_schema,
     size_t binary_schema_size,
     gaia::common::field_position_t field_position,
@@ -169,7 +169,7 @@ void set_field_array_element(
 //
 // This function only works for string fields.
 std::vector<uint8_t> set_field_array_element(
-    gaia::common::gaia_id_t type_id,
+    gaia::common::gaia_type_t type_id,
     const uint8_t* serialized_data,
     size_t serialized_data_size,
     const uint8_t* binary_schema,
