@@ -253,7 +253,7 @@ void adapter_t::initialize_caches()
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Inconsistent initialization of caches!"),
              errhint(
-                 "type_cache_t has size '%ld', but s_map_table_name_to_container_id has size '%ld'.",
+                 "type_cache_t has size '%ld', but s_map_table_name_to_ids has size '%ld'.",
                  type_cache_t::get()->size(),
                  s_map_table_name_to_ids.size())));
     }
@@ -736,11 +736,7 @@ bool modify_state_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
     {
         if (edit_state == edit_state_t::create)
         {
-            gaia_ptr::create(
-                gaia_id,
-                m_container_id,
-                m_current_payload_size,
-                m_current_payload);
+            gaia_ptr::create(gaia_id, m_container_id, m_current_payload_size, m_current_payload);
         }
         else if (edit_state == edit_state_t::update)
         {
