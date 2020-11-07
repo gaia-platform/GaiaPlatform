@@ -382,15 +382,6 @@ extern "C" void gaia_end_foreign_scan(ForeignScanState* node)
 
     auto scan_state = reinterpret_cast<gaia::fdw::scan_state_t*>(node->fdw_state);
 
-    // We should have reached the end of iteration.
-    if (!scan_state->has_scan_ended())
-    {
-        ereport(
-            ERROR,
-            (errcode(ERRCODE_FDW_ERROR),
-             errmsg("End of scan was reached without completing scan!")));
-    }
-
     // Commit read transaction.
     gaia::fdw::adapter_t::commit_transaction();
 }

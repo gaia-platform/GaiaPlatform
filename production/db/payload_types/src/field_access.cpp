@@ -261,7 +261,7 @@ bool set_field_value(
         "Attempt to set value of incorrect type");
 
     // We need to update the root_table, so we need to remove the const qualifier.
-    auto root_table = const_cast<flatbuffers::Table*>(const_root_table);
+    auto root_table = const_cast<flatbuffers::Table*>(const_root_table); // NOLINT (safe const_cast)
 
     // Write field value according to its type.
     if (flatbuffers::IsInteger(field->type()->base_type()))
@@ -480,7 +480,7 @@ void set_field_array_element(
         "Attempt to set value of incorrect type");
 
     // We need to update the serialization, so we need to remove the const qualifier.
-    auto field_value = const_cast<flatbuffers::VectorOfAny*>(const_field_value);
+    auto field_value = const_cast<flatbuffers::VectorOfAny*>(const_field_value); // NOLINT (safe const_cast)
 
     // Write field value according to its type.
     if (flatbuffers::IsInteger(field->type()->element()))
