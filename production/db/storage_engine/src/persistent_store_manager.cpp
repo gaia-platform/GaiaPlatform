@@ -21,6 +21,7 @@
 using namespace std;
 
 using namespace gaia::db;
+using namespace gaia::db::persistence;
 using namespace gaia::common;
 using namespace rocksdb;
 
@@ -143,7 +144,7 @@ void persistent_store_manager::prepare_wal_for_write(std::string& txn_name)
                 // Object was deleted in current transaction.
                 continue;
             }
-            encode_object(static_cast<gaia_se_object_t*>(gaia_object), &key, &value);
+            encode_object(static_cast<gaia_se_object_t*>(gaia_object), key, value);
             // Gaia objects encoded as key-value slices shouldn't be empty.
             retail_assert(
                 key.get_current_position() != 0 && value.get_current_position() != 0,
