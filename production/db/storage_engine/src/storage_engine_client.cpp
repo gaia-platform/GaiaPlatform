@@ -7,6 +7,7 @@
 
 #include <flatbuffers/flatbuffers.h>
 
+#include "fd_helpers.hpp"
 #include "messages_generated.h"
 #include "system_table_types.hpp"
 
@@ -35,8 +36,8 @@ int client::get_id_cursor_socket_for_type(gaia_type_t type)
     retail_assert(bytes_read > 0, "Failed to read message!");
     retail_assert(fd_count == 1, "Unexpected fd count!");
     retail_assert(stream_socket != -1, "Invalid stream socket!");
-    auto cleanup_stream_socket = make_scope_guard([stream_socket]() {
-        ::close(stream_socket);
+    auto cleanup_stream_socket = make_scope_guard([&]() {
+        close_fd(stream_socket);
     });
 
     // Deserialize the server message.
@@ -93,10 +94,7 @@ client::get_stream_generator_for_socket(int stream_socket)
             {
                 // We received EOF from the server, so close
                 // client socket and stop iteration.
-                ::close(stream_socket);
-                // Set the socket fd to an invalid value so we can
-                // immediately abort if this is called again.
-                stream_socket = -1;
+                close_fd(stream_socket);
                 // Tell the caller to stop iteration.
                 return std::nullopt;
             }
@@ -133,8 +131,8 @@ std::function<std::optional<gaia_id_t>()>
 client::get_id_generator_for_type(gaia_type_t type)
 {
     int stream_socket = get_id_cursor_socket_for_type(type);
-    auto cleanup_stream_socket = make_scope_guard([stream_socket]() {
-        ::close(stream_socket);
+    auto cleanup_stream_socket = make_scope_guard([&]() {
+        close_fd(stream_socket);
     });
     auto id_generator = get_stream_generator_for_socket<gaia_id_t>(stream_socket);
     cleanup_stream_socket.dismiss();
@@ -154,7 +152,6 @@ void client::destroy_log_mapping()
     if (s_log)
     {
         unmap_fd(s_log, sizeof(log));
-        s_log = nullptr;
     }
 }
 
@@ -171,14 +168,12 @@ void client::clear_shared_memory()
     if (s_data)
     {
         unmap_fd(s_data, sizeof(data));
-        s_data = nullptr;
     }
     // If the server has already closed its fd for the locator segment
     // (and there are no other clients), this will release it.
     if (s_fd_locators != -1)
     {
-        close(s_fd_locators);
-        s_fd_locators = -1;
+        close_fd(s_fd_locators);
     }
 }
 
@@ -187,13 +182,11 @@ void client::txn_cleanup()
     // Destroy the log memory mapping.
     destroy_log_mapping();
     // Destroy the log fd.
-    ::close(s_fd_log);
-    s_fd_log = -1;
+    close_fd(s_fd_log);
     // Destroy the locator mapping.
     if (s_locators)
     {
         unmap_fd(s_locators, sizeof(locators));
-        s_locators = nullptr;
     }
 }
 
@@ -206,8 +199,8 @@ int client::get_session_socket()
     {
         throw_system_error("socket creation failed");
     }
-    auto cleanup_session_socket = make_scope_guard([session_socket]() {
-        close(session_socket);
+    auto cleanup_session_socket = make_scope_guard([&]() {
+        close_fd(session_socket);
     });
     sockaddr_un server_addr = {0};
     server_addr.sun_family = AF_UNIX;
@@ -258,9 +251,8 @@ void client::begin_session()
     // for the data and locator shared memory segment fds.
     s_session_socket = get_session_socket();
 
-    auto cleanup_session_socket = make_scope_guard([]() {
-        ::close(s_session_socket);
-        s_session_socket = -1;
+    auto cleanup_session_socket = make_scope_guard([&]() {
+        close_fd(s_session_socket);
     });
 
     // Send the server the connection request.
@@ -282,15 +274,15 @@ void client::begin_session()
     retail_assert(fd_data != -1, "Invalid data fd detected!");
     int fd_locators = fds[c_locators_fd_index];
     retail_assert(fd_locators != -1, "Invalid locators fd detected!");
-    auto cleanup_fds = make_scope_guard([fd_data, fd_locators]() {
+    auto cleanup_fds = make_scope_guard([&]() {
         // We can unconditionally close the data fd,
         // since it's not saved anywhere and the mapping
         // increments the shared memory segment's refcount.
-        close(fd_data);
+        close_fd(fd_data);
         // We can only close the locator fd if it hasn't been cached.
         if (s_fd_locators != fd_locators)
         {
-            close(fd_locators);
+            close_fd(fd_locators);
         }
     });
 
@@ -315,8 +307,7 @@ void client::end_session()
 {
     // This will gracefully shut down the server-side session thread
     // and all other threads that session thread owns.
-    ::close(s_session_socket);
-    s_session_socket = -1;
+    close_fd(s_session_socket);
 }
 
 void client::begin_transaction()
@@ -330,17 +321,16 @@ void client::begin_transaction()
     {
         throw_system_error("memfd_create failed");
     }
-    auto cleanup_fd = make_scope_guard([fd_log]() {
-        close(fd_log);
+    auto cleanup_fd = make_scope_guard([&]() {
+        close_fd(fd_log);
     });
     if (-1 == ::ftruncate(fd_log, sizeof(log)))
     {
         throw_system_error("ftruncate failed");
     }
     s_log = static_cast<log*>(map_fd(sizeof(log), PROT_READ | PROT_WRITE, MAP_SHARED, fd_log, 0));
-    auto cleanup_log_mapping = make_scope_guard([]() {
+    auto cleanup_log_mapping = make_scope_guard([&]() {
         unmap_fd(s_log, sizeof(log));
-        s_log = nullptr;
     });
 
     // Now we map a private COW view of the locator shared memory segment.
@@ -348,7 +338,7 @@ void client::begin_transaction()
     {
         throw_system_error("flock failed");
     }
-    auto cleanup_flock = make_scope_guard([]() {
+    auto cleanup_flock = make_scope_guard([&]() {
         if (-1 == ::flock(s_fd_locators, LOCK_UN))
         {
             // Per C++11 semantics, throwing an exception from a destructor
@@ -358,9 +348,8 @@ void client::begin_transaction()
     });
 
     s_locators = static_cast<locators*>(map_fd(sizeof(locators), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_locators, 0));
-    auto cleanup_locator_mapping = make_scope_guard([]() {
+    auto cleanup_locator_mapping = make_scope_guard([&]() {
         unmap_fd(s_locators, sizeof(locators));
-        s_locators = nullptr;
     });
 
     // Notify the server that we're in a transaction. (We don't send our log fd until commit.)
