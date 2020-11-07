@@ -232,10 +232,14 @@ enum class drop_type_t : uint8_t
 struct drop_statement_t : statement_t
 {
     explicit drop_statement_t(drop_type_t type)
-        : statement_t(statement_type_t::drop), type(type){};
+        : statement_t(statement_type_t::drop), type(type)
+    {
+    }
 
     drop_statement_t(drop_type_t type, std::string name)
-        : statement_t(statement_type_t::drop), type(type), name(std::move(name)){};
+        : statement_t(statement_type_t::drop), type(type), name(std::move(name))
+    {
+    }
 
     drop_type_t type;
 
