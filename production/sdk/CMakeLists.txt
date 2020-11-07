@@ -56,8 +56,6 @@ add_custom_command(
 
   COMMAND cmake -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/libgaia.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia.so
 
-  COMMAND cmake -E copy_if_different /usr/local/lib/libfmt.so.7.0.3 ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libfmt.so.7
-
   COMMAND dpkg-deb --build ${TEMP_PACKAGE_FOLDER} ${CMAKE_CURRENT_BINARY_DIR}/gaia.deb
 
   COMMAND cmake -E rm -r ${TEMP_PACKAGE_FOLDER}/DEBIAN

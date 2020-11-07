@@ -10,6 +10,7 @@ else ()
   set(FMT_ROOT ${DEPENDENCIES_INSTALL_PREFIX}/fmt)
   add_library(fmt INTERFACE)
   add_dependencies(fmt fmt_dependency)
+  set_property (TARGET fmt PROPERTY POSITION_INDEPENDENT_CODE ON)
   target_include_directories(fmt INTERFACE ${FMT_ROOT}/include)
   target_link_libraries(fmt INTERFACE ${FMT_ROOT}/lib/libfmt.a)
   ExternalProject_Add(fmt_dependency
