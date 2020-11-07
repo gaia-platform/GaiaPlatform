@@ -125,6 +125,15 @@ void rule_sleep(const rule_context_t*)
     g_wait_for_count--;
 }
 
+void rule_bad(const rule_context_t*)
+{
+
+    employee_t bad;
+    // This should throw an exception since the bad
+    // employee is not backed bya a gaia id.
+    bad = bad.get_next();
+}
+
 extern "C" void initialize_rules()
 {
 }
@@ -178,6 +187,12 @@ public:
     void subscribe_sleep()
     {
         rule_binding_t rule{"ruleset", "rule_sleep", rule_sleep};
+        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule);
+    }
+
+    void subscribe_bad()
+    {
+        rule_binding_t rule{"ruleset", "rule_bad", rule_bad};
         subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule);
     }
 
@@ -445,4 +460,30 @@ TEST_F(rule_integration_test, test_parallel)
     });
     double total_seconds = gaia::common::timer_t::ns_to_s(total_time);
     EXPECT_TRUE(total_seconds < 2.0);
+}
+
+TEST_F(rule_integration_test, test_reinit)
+{
+    gaia::rules::shutdown_rules_engine();
+    EXPECT_THROW(gaia::rules::shutdown_rules_engine(), initialization_error);
+    gaia::rules::initialize_rules_engine();
+}
+
+// Ensures the exception is caught by the rules engine and
+// doesn't escape to the test process.
+
+TEST_F(rule_integration_test, test_exception)
+{
+    subscribe_bad();
+    {
+        auto_transaction_t txn(false);
+        employee_writer writer;
+        writer.name_first = c_name;
+        writer.insert_row();
+        txn.commit();
+    }
+    // Shut down the rules engine to ensure the rule fires.
+    gaia::rules::shutdown_rules_engine();
+    // And reinitialize to provide harmony for other tests.
+    gaia::rules::initialize_rules_engine();
 }
