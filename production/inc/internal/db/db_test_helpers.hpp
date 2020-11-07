@@ -44,7 +44,8 @@ void wait_for_server_init()
 {
     constexpr int c_poll_interval_millis = 10;
     constexpr int c_print_error_interval = 1000;
-    int counter = 0;
+    // Initialize to 1 to avoid printing a spurious wait message.
+    int counter = 1;
 
     // quick fix to initialize the server.
     gaia_log::initialize({});

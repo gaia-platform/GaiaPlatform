@@ -5,6 +5,7 @@
 
 #include "storage_engine_server.hpp"
 
+#include "fd_helpers.hpp"
 #include "persistent_store_manager.hpp"
 
 using namespace std;
@@ -66,8 +67,8 @@ void server::handle_commit_txn(
     retail_assert(fds && fd_count == 1, "Invalid fd data!");
     int fd_log = *fds;
     // Close our log fd on exit so the shared memory will be released when the client closes it.
-    auto cleanup_fd = make_scope_guard([fd_log]() {
-        close(fd_log);
+    auto cleanup_fd = make_scope_guard([&]() {
+        close_fd(fd_log);
     });
     // Check that the log memfd was sealed for writes.
     int seals = ::fcntl(fd_log, F_GET_SEALS);
@@ -154,9 +155,9 @@ void server::handle_request_stream(
     }
     int server_socket = socket_pair[c_server_index];
     int client_socket = socket_pair[c_client_index];
-    auto socket_cleanup = make_scope_guard([server_socket, client_socket]() {
-        ::close(server_socket);
-        ::close(client_socket);
+    auto socket_cleanup = make_scope_guard([&]() {
+        close_fd(server_socket);
+        close_fd(client_socket);
     });
     // Set server socket to be nonblocking, since we use it within an epoll loop.
     int flags = ::fcntl(server_socket, F_GETFL);
@@ -190,7 +191,7 @@ void server::handle_request_stream(
     build_server_reply(builder, event, old_state, new_state);
     send_msg_with_fds(s_session_socket, &client_socket, 1, builder.GetBufferPointer(), builder.GetSize());
     // Close the client socket in our process since we duplicated it.
-    ::close(client_socket);
+    close_fd(client_socket);
     socket_cleanup.dismiss();
 }
 
@@ -255,22 +256,18 @@ void server::clear_shared_memory()
     if (s_shared_locators)
     {
         unmap_fd(s_shared_locators, sizeof(locators));
-        s_shared_locators = nullptr;
     }
     if (s_fd_locators != -1)
     {
-        ::close(s_fd_locators);
-        s_fd_locators = -1;
+        close_fd(s_fd_locators);
     }
     if (s_data)
     {
         unmap_fd(s_data, sizeof(data));
-        s_data = nullptr;
     }
     if (s_fd_data != -1)
     {
-        ::close(s_fd_data);
-        s_fd_data = -1;
+        close_fd(s_fd_data);
     }
 }
 
@@ -370,7 +367,7 @@ void server::init_listening_socket()
     {
         throw_system_error("socket creation failed");
     }
-    auto socket_cleanup = make_scope_guard([listening_socket]() { ::close(listening_socket); });
+    auto socket_cleanup = make_scope_guard([&]() { close_fd(listening_socket); });
 
     // Initialize the socket address structure.
     sockaddr_un server_addr = {0};
@@ -432,9 +429,8 @@ void server::client_dispatch_handler()
     // so no new sessions can be established while we wait for all session
     // threads to exit (we assume they received the same server shutdown
     // notification that we did).
-    auto listener_cleanup = make_scope_guard([]() {
-        ::close(s_listening_socket);
-        s_listening_socket = -1;
+    auto listener_cleanup = make_scope_guard([&]() {
+        close_fd(s_listening_socket);
     });
 
     // Set up the epoll loop.
@@ -447,7 +443,7 @@ void server::client_dispatch_handler()
     // connections that arrive before the listening socket is closed will
     // receive ECONNRESET rather than ECONNREFUSED. This is perhaps unfortunate
     // but shouldn't really matter in practice.
-    auto epoll_cleanup = make_scope_guard([epoll_fd]() { ::close(epoll_fd); });
+    auto epoll_cleanup = make_scope_guard([&]() { close_fd(epoll_fd); });
     int registered_fds[] = {s_listening_socket, s_server_shutdown_eventfd};
     for (int registered_fd : registered_fds)
     {
@@ -513,7 +509,7 @@ void server::client_dispatch_handler()
                 }
                 else
                 {
-                    ::close(session_socket);
+                    close_fd(session_socket);
                 }
             }
             else if (ev.data.fd == s_server_shutdown_eventfd)
@@ -542,17 +538,15 @@ void server::session_handler(int session_socket)
     // Set up session socket.
     s_session_shutdown = false;
     s_session_socket = session_socket;
-    auto socket_cleanup = make_scope_guard([]() {
-        // We can rely on close() to perform the equivalent of
+    auto socket_cleanup = make_scope_guard([&]() {
+        // We can rely on close_fd() to perform the equivalent of
         // shutdown(SHUT_RDWR), since we hold the only fd pointing to this
         // socket. That should allow the client to read EOF if they're in a
         // blocking read and exit gracefully. (If they try to write to the
         // socket after we've closed our end, they'll receive EPIPE.) We don't
         // want to try to read any pending data from the client, since we're
         // trying to shut down as quickly as possible.
-        ::close(s_session_socket);
-        // Assign an invalid fd to the socket variable so it can't be reused.
-        s_session_socket = -1;
+        close_fd(s_session_socket);
     });
 
     // Set up epoll loop.
@@ -561,7 +555,7 @@ void server::session_handler(int session_socket)
     {
         throw_system_error("epoll_create1 failed");
     }
-    auto epoll_cleanup = make_scope_guard([epoll_fd]() { ::close(epoll_fd); });
+    auto epoll_cleanup = make_scope_guard([&]() { close_fd(epoll_fd); });
     int fds[] = {s_session_socket, s_server_shutdown_eventfd};
     for (int fd : fds)
     {
@@ -729,10 +723,10 @@ void server::stream_producer_handler(
     // Verify the socket is the correct type for the semantics we assume.
     check_socket_type(stream_socket, SOCK_SEQPACKET);
     auto gen_iter = generator_iterator_t<T_element_type>(generator_fn);
-    auto socket_cleanup = make_scope_guard([stream_socket]() {
-        // We can rely on close() to perform the equivalent of shutdown(SHUT_RDWR),
+    auto socket_cleanup = make_scope_guard([&]() {
+        // We can rely on close_fd() to perform the equivalent of shutdown(SHUT_RDWR),
         // since we hold the only fd pointing to this socket.
-        ::close(stream_socket);
+        close_fd(stream_socket);
     });
     // Check if our stream socket is non-blocking (so we don't accidentally block in write()).
     int flags = ::fcntl(stream_socket, F_GETFL, 0);
@@ -746,7 +740,7 @@ void server::stream_producer_handler(
     {
         throw_system_error("epoll_create1 failed");
     }
-    auto epoll_cleanup = make_scope_guard([epoll_fd]() { ::close(epoll_fd); });
+    auto epoll_cleanup = make_scope_guard([&]() { close_fd(epoll_fd); });
     // We poll for write availability of the stream socket in level-triggered mode,
     // and only write at most one buffer of data before polling again, to avoid read
     // starvation of the cancellation eventfd.
@@ -945,7 +939,7 @@ bool server::txn_commit()
     }
     // Within our own process, we must have exclusive access to the locator segment.
     std::unique_lock lock(s_locators_lock);
-    auto cleanup = make_scope_guard([]() {
+    auto cleanup = make_scope_guard([&]() {
         if (-1 == ::flock(s_fd_locators, LOCK_UN))
         {
             // Per C++11 semantics, throwing an exception from a destructor
@@ -1046,8 +1040,7 @@ void server::run(bool disable_persistence)
         // We can't close this fd until all readers and writers have exited.
         // The only readers are the client dispatch thread and the session
         // threads, and the only writer is the signal handler thread.
-        ::close(s_server_shutdown_eventfd);
-        s_server_shutdown_eventfd = -1;
+        close_fd(s_server_shutdown_eventfd);
         // We shouldn't get here unless the signal handler thread has caught a signal.
         retail_assert(caught_signal != 0, "A signal should have been caught!");
         // We special-case SIGHUP to force reinitialization of the server.
