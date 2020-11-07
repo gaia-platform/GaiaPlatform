@@ -277,7 +277,7 @@ void adapter_t::begin_session()
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Error opening COW-SE session."),
-             errhint("Exception: %s.", e.what())));
+             errhint("Exception: '%s'.", e.what())));
     }
 }
 
@@ -295,7 +295,7 @@ void adapter_t::end_session()
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Error closing COW-SE session."),
-             errhint("Exception: %s.", e.what())));
+             errhint("Exception: '%s'.", e.what())));
     }
 }
 
@@ -334,7 +334,7 @@ bool adapter_t::begin_transaction()
         gaia::db::begin_transaction();
     }
 
-    elog(DEBUG1, "Txn actually opened: %s.", opened_transaction ? "true" : "false");
+    elog(DEBUG1, "Txn actually opened: '%s'.", opened_transaction ? "true" : "false");
 
     return opened_transaction;
 }
@@ -360,7 +360,7 @@ bool adapter_t::commit_transaction()
         gaia::db::commit_transaction();
     }
 
-    elog(DEBUG1, "Txn actually closed: %s.", closed_transaction ? "true" : "false");
+    elog(DEBUG1, "Txn actually closed: '%s'.", closed_transaction ? "true" : "false");
 
     return closed_transaction;
 }
@@ -408,7 +408,7 @@ List* adapter_t::get_ddl_command_list(const char* server_name)
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Failed generating foreign table DDL strings."),
-             errhint("Exception: %s.", e.what())));
+             errhint("Exception: '%s'.", e.what())));
     }
 }
 
@@ -465,7 +465,9 @@ bool state_t::initialize(const char* table_name, size_t count_fields)
         }
         else
         {
-            elog(DEBUG1, "Successfully initialized processing of table %s with %ld fields!", table_name, count_fields);
+            elog(
+                DEBUG1, "Successfully initialized processing of table '%s' with '%ld' fields!",
+                table_name, count_fields);
         }
 
         // Allocate memory for holding field information.
@@ -481,7 +483,7 @@ bool state_t::initialize(const char* table_name, size_t count_fields)
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Failed initializing FDW state."),
              errhint(
-                 "Table: %s, container_id: %ld, field count: %ld. Exception: %s.",
+                 "Table: '%s', container_id: '%ld', field count: '%ld'. Exception: '%s'.",
                  table_name,
                  m_container_id,
                  count_fields,
@@ -597,7 +599,7 @@ Datum scan_state_t::extract_field_value(size_t field_index)
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Failed reading field value."),
              errhint(
-                 "Container_id: %ld, field_index: %ld. Exception: %s.",
+                 "Container_id: '%ld', field_index: '%ld'. Exception: '%s'.",
                  m_container_id,
                  field_index,
                  e.what())));
@@ -615,7 +617,11 @@ bool scan_state_t::scan_forward()
     }
 
     m_current_node = m_current_node.find_next();
-    m_current_payload = reinterpret_cast<uint8_t*>(m_current_node.data());
+
+    if (m_current_node)
+    {
+        m_current_payload = reinterpret_cast<uint8_t*>(m_current_node.data());
+    }
 
     return has_scan_ended();
 }
@@ -716,7 +722,7 @@ void modify_state_t::set_field_value(size_t field_index, const Datum& field_valu
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Failed updating field value."),
              errhint(
-                 "Container_id: %ld, field_index: %ld. Exception: %s.",
+                 "Container_id: '%ld', field_index: '%ld'. Exception: '%s'.",
                  m_container_id,
                  field_index,
                  e.what())));
@@ -752,7 +758,7 @@ bool modify_state_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
                 ERROR,
                 (errcode(ERRCODE_FDW_ERROR),
                  errmsg("Error creating gaia object."),
-                 errhint("Exception: %s.", e.what())));
+                 errhint("Exception: '%s'.", e.what())));
         }
         else if (edit_state == edit_state_t::update)
         {
@@ -760,7 +766,7 @@ bool modify_state_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
                 ERROR,
                 (errcode(ERRCODE_FDW_ERROR),
                  errmsg("Error updating gaia object."),
-                 errhint("Exception: %s.", e.what())));
+                 errhint("Exception: '%s'.", e.what())));
         }
 
         return false;
@@ -790,7 +796,7 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
                 ERROR,
                 (errcode(ERRCODE_FDW_ERROR),
                  errmsg("Could not find record to delete."),
-                 errhint("gaia_id: %ld.", gaia_id)));
+                 errhint("gaia_id: '%ld'.", gaia_id)));
             return false;
         }
 
@@ -804,7 +810,7 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Error deleting gaia object."),
-             errhint("Exception: %s.", e.what())));
+             errhint("Exception: '%s'.", e.what())));
     }
 
     return false;

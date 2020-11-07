@@ -7,9 +7,9 @@
 SELECT DISTINCT
     a.name
 FROM
-    airport_demo.routes r1,
-    airport_demo.routes r2,
-    airport_demo.airports a
+    airport_fdw.routes r1,
+    airport_fdw.routes r2,
+    airport_fdw.airports a
 WHERE
     r1.src_ap = 'SEA'
     AND r1.dst_ap_id = r2.src_ap_id
@@ -22,9 +22,9 @@ ORDER BY
 SELECT DISTINCT
     a.city
 FROM
-    airport_demo.routes r1,
-    airport_demo.routes r2,
-    airport_demo.airports a
+    airport_fdw.routes r1,
+    airport_fdw.routes r2,
+    airport_fdw.airports a
 WHERE
     r1.src_ap = 'SEA'
     AND r1.dst_ap_id = r2.src_ap_id
@@ -42,8 +42,8 @@ SELECT
     r2.airline,
     r2.dst_ap
 FROM
-    airport_demo.routes r1,
-    airport_demo.routes r2
+    airport_fdw.routes r1,
+    airport_fdw.routes r2
 WHERE
     r1.src_ap = 'SEA'
     AND r1.dst_ap_id = r2.src_ap_id
@@ -63,8 +63,8 @@ SELECT
     r2.airline,
     r2.dst_ap
 FROM
-    airport_demo.routes r1,
-    airport_demo.routes r2
+    airport_fdw.routes r1,
+    airport_fdw.routes r2
 WHERE
     r1.src_ap = 'SEA'
     AND r1.dst_ap_id = r2.src_ap_id
