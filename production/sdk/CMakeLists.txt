@@ -20,8 +20,9 @@ set(SDK_LINK_LIBRARIES
   gaia_catalog
   gaia_payload_types
   gaia_se_client
-  rocks_wrapper
   flatbuffers
+  fmt
+  spdlog
   -Wl,--no-whole-archive
 )
 
