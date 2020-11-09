@@ -38,7 +38,6 @@ add_custom_command(
   COMMAND ${GAIA_PROD_BUILD}/db/storage_engine/gaia_se_server &
   COMMAND sleep 1
   COMMAND ${GAIA_GENERATE} -o ${GENERATED_OUTPUTS} -g ${INCUBATOR_DDL}
-  COMMAND pkill -f -KILL gaia_se_server
   DEPENDS ${INCUBATOR_DDL}
   COMMENT "Compiled incubator.ddl."
 )
@@ -46,18 +45,17 @@ add_custom_command(
 add_custom_target(generate_incubator_headers ALL
   DEPENDS ${GENERATED_OUTPUTS}/gaia_incubator.h
 )
-
 add_custom_command(
   OUTPUT ${PROJECT_SOURCE_DIR}/incubator_rules.cpp
   COMMAND ${GAIA_PROD_BUILD}/db/storage_engine/gaia_se_server &
   COMMAND sleep 1
   COMMAND ${GAIA_TRANSLATE} ${INCUBATOR_RULESET} -output ${PROJECT_SOURCE_DIR}/incubator_rules.cpp -- -I /usr/lib/gcc/x86_64-linux-gnu/8/include/
-  COMMAND pkill -f -KILL gaia_se_server
   DEPENDS ${INCUBATOR_RULESET}
   COMMENT "Translating incubator.ruleset."
 )
 
 add_custom_target(translate_incubator_ruleset ALL
+  DEPENDS generate_incubator_headers
   DEPENDS ${PROJECT_SOURCE_DIR}/incubator_rules.cpp
 )
 
@@ -73,7 +71,7 @@ add_executable(incubator
 configure_file("${PROJECT_SOURCE_DIR}/gaia_conf.toml" "${PROJECT_BINARY_DIR}/gaia_conf.toml")
 configure_file("${PROJECT_SOURCE_DIR}/log_conf.toml" "${PROJECT_BINARY_DIR}/log_conf.toml")
 
-add_dependencies(incubator generate_incubator_headers translate_incubator_ruleset)
+add_dependencies(incubator translate_incubator_ruleset)
 set_target_properties(incubator PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 target_include_directories(incubator PRIVATE ${GAIA_INCUBATOR_DEMO_INCLUDES})
 target_link_libraries(incubator PRIVATE rt pthread gaia)
