@@ -446,8 +446,7 @@ bool state_t::initialize(const char* table_name, size_t count_fields)
         for (auto field_view : catalog_core_t::list_fields(m_table_id))
         {
             // We do not count anonymous references.
-            if (field_view.data_type() == data_type_t::e_references
-                && strlen(field_view.name()) == 0)
+            if (field_view.is_anonymous_reference())
             {
                 continue;
             }
@@ -573,7 +572,7 @@ Datum scan_state_t::extract_field_value(size_t field_index)
         {
             field_value = UInt64GetDatum(m_current_node.id());
         }
-        else if (m_fields[field_index].type == data_type_t::e_references)
+        else if (m_fields[field_index].is_reference())
         {
             // TODO: handle references.
             field_value = UInt64GetDatum(0);

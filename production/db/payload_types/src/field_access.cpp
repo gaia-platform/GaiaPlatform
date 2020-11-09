@@ -279,10 +279,9 @@ bool set_field_value(
 }
 
 // The setter method for string fields.
-vector<uint8_t> set_field_value(
+void set_field_value(
     gaia_type_t type_id,
-    const uint8_t* serialized_data,
-    size_t serialized_data_size,
+    vector<uint8_t>& serialized_data,
     const uint8_t* binary_schema,
     size_t binary_schema_size,
     field_position_t field_position,
@@ -294,10 +293,9 @@ vector<uint8_t> set_field_value(
     auto_type_information_t auto_type_information;
     type_information_t local_type_information;
     const reflection::Field* field = nullptr;
-    vector<uint8_t> updatable_serialized_data(serialized_data, serialized_data + serialized_data_size);
 
     get_table_field_information(
-        type_id, updatable_serialized_data.data(), binary_schema, binary_schema_size, field_position,
+        type_id, serialized_data.data(), binary_schema, binary_schema_size, field_position,
         root_table, auto_type_information, local_type_information, field);
 
     retail_assert(
@@ -322,7 +320,28 @@ vector<uint8_t> set_field_value(
         *schema,
         new_field_value,
         field_value,
-        &updatable_serialized_data);
+        &serialized_data);
+}
+
+// Alternative setter method for string fields.
+vector<uint8_t> set_field_value(
+    gaia_type_t type_id,
+    const uint8_t* serialized_data,
+    size_t serialized_data_size,
+    const uint8_t* binary_schema,
+    size_t binary_schema_size,
+    field_position_t field_position,
+    const data_holder_t& value)
+{
+    vector<uint8_t> updatable_serialized_data(serialized_data, serialized_data + serialized_data_size);
+
+    set_field_value(
+        type_id,
+        updatable_serialized_data,
+        binary_schema,
+        binary_schema_size,
+        field_position,
+        value);
 
     return updatable_serialized_data;
 }
@@ -348,11 +367,10 @@ size_t get_field_array_size(
     return field_value->size();
 }
 
-// The setter method for a string element of a field of array type.
-std::vector<uint8_t> set_field_array_size(
+// The setter method for the size of an array field.
+void set_field_array_size(
     gaia_type_t type_id,
-    const uint8_t* serialized_data,
-    size_t serialized_data_size,
+    vector<uint8_t>& serialized_data,
     const uint8_t* binary_schema,
     size_t binary_schema_size,
     field_position_t field_position,
@@ -365,16 +383,15 @@ std::vector<uint8_t> set_field_array_size(
     type_information_t local_type_information;
     const reflection::Field* field = nullptr;
     const flatbuffers::VectorOfAny* field_value = nullptr;
-    vector<uint8_t> updatable_serialized_data(serialized_data, serialized_data + serialized_data_size);
 
     get_table_field_array_information(
-        type_id, updatable_serialized_data.data(), binary_schema, binary_schema_size, field_position,
+        type_id, serialized_data.data(), binary_schema, binary_schema_size, field_position,
         root_table, auto_type_information, local_type_information, field, field_value);
 
     if (new_size == field_value->size())
     {
         // No change is needed.
-        return updatable_serialized_data;
+        return;
     }
 
     const reflection::Schema* schema = reflection::GetSchema(binary_schema);
@@ -397,7 +414,28 @@ std::vector<uint8_t> set_field_array_size(
         field_value,
         old_size,
         element_size,
-        &updatable_serialized_data);
+        &serialized_data);
+}
+
+// Alternative setter method for the size of an array field.
+vector<uint8_t> set_field_array_size(
+    gaia_type_t type_id,
+    const uint8_t* serialized_data,
+    size_t serialized_data_size,
+    const uint8_t* binary_schema,
+    size_t binary_schema_size,
+    field_position_t field_position,
+    size_t new_size)
+{
+    vector<uint8_t> updatable_serialized_data(serialized_data, serialized_data + serialized_data_size);
+
+    set_field_array_size(
+        type_id,
+        updatable_serialized_data,
+        binary_schema,
+        binary_schema_size,
+        field_position,
+        new_size);
 
     return updatable_serialized_data;
 }
@@ -500,10 +538,9 @@ void set_field_array_element(
 }
 
 // The setter method for a string element of a field of array type.
-std::vector<uint8_t> set_field_array_element(
+void set_field_array_element(
     gaia_type_t type_id,
-    const uint8_t* serialized_data,
-    size_t serialized_data_size,
+    vector<uint8_t>& serialized_data,
     const uint8_t* binary_schema,
     size_t binary_schema_size,
     field_position_t field_position,
@@ -517,10 +554,9 @@ std::vector<uint8_t> set_field_array_element(
     type_information_t local_type_information;
     const reflection::Field* field = nullptr;
     const flatbuffers::VectorOfAny* field_value = nullptr;
-    vector<uint8_t> updatable_serialized_data(serialized_data, serialized_data + serialized_data_size);
 
     get_table_field_array_information(
-        type_id, updatable_serialized_data.data(), binary_schema, binary_schema_size, field_position,
+        type_id, serialized_data.data(), binary_schema, binary_schema_size, field_position,
         root_table, auto_type_information, local_type_information, field, field_value);
 
     retail_assert(array_index < field_value->size(), "Attempt to index array is out-of-bounds.");
@@ -547,7 +583,30 @@ std::vector<uint8_t> set_field_array_element(
         *schema,
         new_field_element_value,
         field_element_value,
-        &updatable_serialized_data);
+        &serialized_data);
+}
+
+// Alternative setter method for a string element of a field of array type.
+std::vector<uint8_t> set_field_array_element(
+    gaia_type_t type_id,
+    const uint8_t* serialized_data,
+    size_t serialized_data_size,
+    const uint8_t* binary_schema,
+    size_t binary_schema_size,
+    field_position_t field_position,
+    size_t array_index,
+    const data_holder_t& value)
+{
+    vector<uint8_t> updatable_serialized_data(serialized_data, serialized_data + serialized_data_size);
+
+    set_field_array_element(
+        type_id,
+        updatable_serialized_data,
+        binary_schema,
+        binary_schema_size,
+        field_position,
+        array_index,
+        value);
 
     return updatable_serialized_data;
 }
