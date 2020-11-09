@@ -8,7 +8,7 @@
 #include <memory>
 
 #include "fbs_generator.hpp"
-#include "gaia_catalog.h"
+#include "gaia_common.hpp"
 #include "gaia_exception.hpp"
 #include "json_generator.hpp"
 #include "retail_assert.hpp"
@@ -40,7 +40,7 @@ void ddl_executor_t::bootstrap_catalog()
     {
         // create table gaia_database (name string);
         field_def_list_t fields;
-        fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
         create_table_impl(
             "catalog", "gaia_database", fields, true, false,
             static_cast<gaia_type_t>(catalog_table_type_t::gaia_database));
@@ -55,14 +55,14 @@ void ddl_executor_t::bootstrap_catalog()
         //     references gaia_database,
         // );
         field_def_list_t fields;
-        fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
-        fields.emplace_back(make_unique<field_definition_t>("type", data_type_t::e_uint32, 1));
-        fields.emplace_back(make_unique<field_definition_t>("is_system", data_type_t::e_bool, 1));
-        fields.emplace_back(make_unique<field_definition_t>("binary_schema", data_type_t::e_string, 1));
-        fields.emplace_back(make_unique<field_definition_t>("serialization_template", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("type", data_type_t::e_uint32, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("is_system", data_type_t::e_bool, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("binary_schema", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("serialization_template", data_type_t::e_string, 1));
         fields.emplace_back(
-            make_unique<field_definition_t>(
-                c_anonymous_reference_field_name, data_type_t::e_references, 1, "catalog.gaia_database"));
+            make_unique<ref_field_def_t>(
+                c_anonymous_reference_field_name, "catalog", "gaia_database"));
         create_table_impl(
             "catalog", "gaia_table", fields, true, false,
             static_cast<gaia_type_t>(catalog_table_type_t::gaia_table));
@@ -79,15 +79,15 @@ void ddl_executor_t::bootstrap_catalog()
         //     ref references gaia_table,
         // );
         field_def_list_t fields;
-        fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
-        fields.emplace_back(make_unique<field_definition_t>("type", data_type_t::e_uint8, 1));
-        fields.emplace_back(make_unique<field_definition_t>("repeated_count", data_type_t::e_uint16, 1));
-        fields.emplace_back(make_unique<field_definition_t>("position", data_type_t::e_uint16, 1));
-        fields.emplace_back(make_unique<field_definition_t>("deprecated", data_type_t::e_bool, 1));
-        fields.emplace_back(make_unique<field_definition_t>("active", data_type_t::e_bool, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("type", data_type_t::e_uint8, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("repeated_count", data_type_t::e_uint16, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("position", data_type_t::e_uint16, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("deprecated", data_type_t::e_bool, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("active", data_type_t::e_bool, 1));
         // The anonymous reference to the gaia_table defines the ownership.
-        fields.emplace_back(make_unique<field_definition_t>(
-            c_anonymous_reference_field_name, data_type_t::e_references, 1, "catalog.gaia_table"));
+        fields.emplace_back(make_unique<ref_field_def_t>(
+            c_anonymous_reference_field_name, "catalog", "gaia_table"));
         create_table_impl(
             "catalog", "gaia_field", fields, true, false,
             static_cast<gaia_type_t>(catalog_table_type_t::gaia_field));
@@ -103,22 +103,23 @@ void ddl_executor_t::bootstrap_catalog()
         //     next_child_offset uint8,
         //     parent_offset uint8,
         // );
-
         field_def_list_t fields;
-        fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
-        fields.emplace_back(make_unique<field_definition_t>("parent", data_type_t::e_references, 1, "catalog.gaia_table"));
-        fields.emplace_back(make_unique<field_definition_t>("child", data_type_t::e_references, 1, "catalog.gaia_table"));
-        fields.emplace_back(make_unique<field_definition_t>("cardinality", data_type_t::e_uint8, 1));
-        fields.emplace_back(make_unique<field_definition_t>("parent_required", data_type_t::e_bool, 1));
-        fields.emplace_back(make_unique<field_definition_t>("deprecated", data_type_t::e_bool, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<ref_field_def_t>("parent", "catalog", "gaia_table"));
+        fields.emplace_back(make_unique<ref_field_def_t>("child", "catalog", "gaia_table"));
+        fields.emplace_back(make_unique<data_field_def_t>("cardinality", data_type_t::e_uint8, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("parent_required", data_type_t::e_bool, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("deprecated", data_type_t::e_bool, 1));
         // See gaia::db::relationship_t for more details about relationships.
         // (parent)-[first_child_offset]->(child)
-        fields.emplace_back(make_unique<field_definition_t>("first_child_offset", data_type_t::e_uint8, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("first_child_offset", data_type_t::e_uint8, 1));
         // (child)-[next_child_offset]->(child)
-        fields.emplace_back(make_unique<field_definition_t>("next_child_offset", data_type_t::e_uint8, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("next_child_offset", data_type_t::e_uint8, 1));
         // (child)-[parent_offset]->(parent)
-        fields.emplace_back(make_unique<field_definition_t>("parent_offset", data_type_t::e_uint8, 1));
-        create_table_impl("catalog", "gaia_relationship", fields, true, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_relationship));
+        fields.emplace_back(make_unique<data_field_def_t>("parent_offset", data_type_t::e_uint8, 1));
+        create_table_impl(
+            "catalog", "gaia_relationship",
+            fields, true, false, static_cast<gaia_id_t>(catalog_table_type_t::gaia_relationship));
     }
     {
         // create table gaia_ruleset (
@@ -129,11 +130,11 @@ void ddl_executor_t::bootstrap_catalog()
         //     serial_stream string,
         // );
         field_def_list_t fields;
-        fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
-        fields.emplace_back(make_unique<field_definition_t>("active_on_startup", data_type_t::e_bool, 1));
-        fields.emplace_back(make_unique<field_definition_t>("table_ids", data_type_t::e_string, 1));
-        fields.emplace_back(make_unique<field_definition_t>("source_location", data_type_t::e_string, 1));
-        fields.emplace_back(make_unique<field_definition_t>("serial_stream", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("active_on_startup", data_type_t::e_bool, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("table_ids", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("source_location", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("serial_stream", data_type_t::e_string, 1));
         create_table_impl(
             "catalog", "gaia_ruleset", fields, true, false,
             static_cast<gaia_type_t>(catalog_table_type_t::gaia_ruleset));
@@ -145,10 +146,10 @@ void ddl_executor_t::bootstrap_catalog()
         //     references gaia_ruleset,
         // );
         field_def_list_t fields;
-        fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
         fields.emplace_back(
-            make_unique<field_definition_t>(
-                c_anonymous_reference_field_name, data_type_t::e_references, 1, "catalog.gaia_ruleset"));
+            make_unique<ref_field_def_t>(
+                c_anonymous_reference_field_name, "catalog", "gaia_ruleset"));
         create_table_impl(
             "catalog", "gaia_rule", fields, true, false,
             static_cast<gaia_type_t>(catalog_table_type_t::gaia_rule));
@@ -168,12 +169,12 @@ void ddl_executor_t::create_system_tables()
         //     rules_invoked: bool
         // );
         field_def_list_t fields;
-        fields.emplace_back(make_unique<field_definition_t>("event_type", data_type_t::e_uint32, 1));
-        fields.emplace_back(make_unique<field_definition_t>("type_id", data_type_t::e_uint32, 1));
-        fields.emplace_back(make_unique<field_definition_t>("record_id", data_type_t::e_uint64, 1));
-        fields.emplace_back(make_unique<field_definition_t>("column_id", data_type_t::e_uint16, 1));
-        fields.emplace_back(make_unique<field_definition_t>("timestamp", data_type_t::e_uint64, 1));
-        fields.emplace_back(make_unique<field_definition_t>("rules_invoked", data_type_t::e_bool, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("event_type", data_type_t::e_uint32, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("type_id", data_type_t::e_uint32, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("record_id", data_type_t::e_uint64, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("column_id", data_type_t::e_uint16, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("timestamp", data_type_t::e_uint64, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("rules_invoked", data_type_t::e_bool, 1));
         create_table_impl(
             "event_log", "event_log", fields, true, false,
             static_cast<gaia_type_t>(system_table_type_t::event_log));
@@ -353,8 +354,6 @@ void ddl_executor_t::drop_table_no_txn(gaia_id_t table_id, bool enforce_referent
         // Unlink the reference and the owner table.
         table_record.gaia_field_list().erase(reference_id);
         auto reference_record = gaia_field_t::get(reference_id);
-        // Unlink the reference and the referred table.
-        reference_record.ref_gaia_table().ref_gaia_field_list().erase(reference_id);
         // Remove the reference.
         reference_record.delete_row();
     }
@@ -421,66 +420,48 @@ void ddl_executor_t::drop_table(const string& db_name, const string& name)
     m_table_names.erase(full_table_name);
 }
 
-template <typename T_parent_relationships>
-uint8_t ddl_executor_t::find_parent_available_offset(const T_parent_relationships& relationships)
+uint8_t ddl_executor_t::find_parent_available_offset(const parent_gaia_relationship_list_t& relationships)
 {
-    uint8_t max_offset = 0;
-
-    if (relationships.begin() != relationships.end())
+    if (relationships.begin() == relationships.end())
     {
-        for (const auto& relationship : relationships)
-        {
-            max_offset = std::max(max_offset, relationship.first_child_offset());
-        }
-
-        // max_offset is currently positioned to the "higher" offset.
-        // It has to be increased by one to point to the first available offset.
-        max_offset++;
+        return 0;
     }
 
-    return max_offset;
+    uint8_t max_offset = 0;
+    for (const auto& relationship : relationships)
+    {
+        max_offset = std::max(max_offset, relationship.first_child_offset());
+    }
+    // The next available offset is the one after current max.
+    return max_offset + 1;
 }
 
-template <typename T_child_relationships>
-uint8_t ddl_executor_t::find_child_available_offset(const T_child_relationships& relationships)
+uint8_t ddl_executor_t::find_child_available_offset(const child_gaia_relationship_list_t& relationships)
 {
-    uint8_t max_offset = 0;
-
-    if (relationships.begin() != relationships.end())
+    if (relationships.begin() == relationships.end())
     {
-        for (const auto& relationship : relationships)
-        {
-            max_offset = std::max(
-                max_offset,
-                std::max(relationship.next_child_offset(), relationship.parent_offset()));
-        }
-
-        // max_offset is currently positioned to the "higher" offset.
-        // It has to be increased by one to point to the first available offset.
-        max_offset++;
+        return 0;
     }
 
-    return max_offset;
+    uint8_t max_offset = 0;
+    for (const auto& relationship : relationships)
+    {
+        max_offset = std::max(max_offset, std::max(relationship.next_child_offset(), relationship.parent_offset()));
+    }
+    // The next available offset is the one after current max.
+    return max_offset + 1;
 }
 
 uint8_t ddl_executor_t::find_available_offset(gaia::common::gaia_id_t table_id)
 {
-    uint8_t max_offset = 0;
     gaia_table_t table = gaia_table_t::get(table_id);
-
-    // Scan child relationships.
-    max_offset = std::max(
-        max_offset,
-        find_child_available_offset(table.child_gaia_relationship_list()));
-
-    // Scan parent relationships.
     return std::max(
-        max_offset,
+        find_child_available_offset(table.child_gaia_relationship_list()),
         find_parent_available_offset(table.parent_gaia_relationship_list()));
 }
 
 gaia_id_t ddl_executor_t::create_table_impl(
-    const string& dbname,
+    const string& db_name,
     const string& table_name,
     const field_def_list_t& fields,
     bool is_system,
@@ -489,13 +470,13 @@ gaia_id_t ddl_executor_t::create_table_impl(
 {
     unique_lock lock(m_lock);
 
-    if (!dbname.empty() && m_db_names.find(dbname) == m_db_names.end())
+    if (!db_name.empty() && m_db_names.find(db_name) == m_db_names.end())
     {
-        throw db_not_exists(dbname);
+        throw db_not_exists(db_name);
     }
 
-    string full_table_name = get_full_table_name(dbname, table_name);
-    gaia_id_t db_id = find_db_id_no_lock(dbname);
+    string full_table_name = get_full_table_name(db_name, table_name);
+    gaia_id_t db_id = find_db_id_no_lock(db_name);
     retail_assert(db_id != c_invalid_gaia_id, "Invalid database id!");
 
     if (m_table_names.find(full_table_name) != m_table_names.end())
@@ -524,7 +505,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
         field_names.insert(field->name);
     }
 
-    string fbs{generate_fbs(dbname, table_name, fields)};
+    string fbs{generate_fbs(db_name, table_name, fields)};
     string bfbs{generate_bfbs(fbs)};
     string bin{generate_bin(fbs, generate_json(fields))};
 
@@ -540,87 +521,82 @@ gaia_id_t ddl_executor_t::create_table_impl(
     // Connect the table to the database.
     gaia_database_t::get(db_id).gaia_table_list().insert(table_id);
 
-    uint16_t field_position = 0, reference_position = 0;
+    uint16_t data_field_position = 0;
     for (const auto& field : fields)
     {
-        gaia_id_t parent_type_id{0};
-        uint16_t position;
-        if (field->type == data_type_t::e_references)
+        if (field->field_type == field_type_t::reference)
         {
-            if (field->table_type_name == full_table_name || field->table_type_name == table_name)
+            // The (table) record id that defines the parent table type.
+            gaia_id_t parent_type_record_id = c_invalid_gaia_id;
+
+            const ref_field_def_t* ref_field = dynamic_cast<ref_field_def_t*>(field.get());
+
+            if (ref_field->full_table_name() == full_table_name
+                || (ref_field->db_name().empty() && ref_field->table_name() == table_name))
             {
                 // We allow a table definition to reference itself (self-referencing).
-                parent_type_id = table_id;
+                parent_type_record_id = table_id;
             }
-            else if (m_table_names.find(field->table_type_name) != m_table_names.end())
+            else if (m_table_names.find(ref_field->full_table_name()) != m_table_names.end())
             {
                 // A table definition can reference any of existing tables.
-                parent_type_id = m_table_names[field->table_type_name];
+                parent_type_record_id = m_table_names[ref_field->full_table_name()];
             }
-            else if (!dbname.empty() && m_table_names.count(dbname + c_db_table_name_connector + field->table_type_name))
+            else if (!db_name.empty() && m_table_names.count(db_name + c_db_table_name_connector + ref_field->table_name()))
             {
                 // A table definition can reference existing tables in its own database
                 // without specifying the database name.
-                parent_type_id = m_table_names[dbname + c_db_table_name_connector + field->table_type_name];
+                parent_type_record_id = m_table_names[db_name + c_db_table_name_connector + ref_field->table_name()];
             }
             else
             {
                 // We cannot find the referenced table.
-                // Forward declaration is not supported right now.
-                throw table_not_exists(field->table_type_name);
+                // Forward declaration is not supported.
+                throw table_not_exists(ref_field->full_table_name());
             }
-            // The field ID/position values must be a contiguous range from 0 onward.
-            position = reference_position++;
-        }
-        else
-        {
-            position = field_position++;
-        }
-        gaia_id_t field_id = gaia_field_t::insert_row(
-            field->name.c_str(),
-            static_cast<uint8_t>(field->type),
-            field->length,
-            position,
-            false,
-            field->active);
-        // Connect the field to the table it belongs to.
-        gaia_table_t table = gaia_table_t::get(table_id);
-        table.gaia_field_list().insert(field_id);
 
-        if (field->type == data_type_t::e_references)
-        {
-            gaia_table_t parent_table = gaia_table_t::get(parent_type_id);
-            gaia_field_t child_field = gaia_field_t::get(field_id);
-
-            // Connect the referred table to the reference field.
-            parent_table.ref_gaia_field_list().insert(field_id);
-
+            gaia_table_t parent_table = gaia_table_t::get(parent_type_record_id);
             uint8_t parent_available_offset = find_available_offset(parent_table.gaia_id());
             uint8_t child_available_offset;
 
-            if (parent_table == table)
+            if (parent_type_record_id == table_id)
             {
                 // This is a self-relationship, both parent and child pointers are in the same table.
                 child_available_offset = parent_available_offset + 1;
             }
             else
             {
-                child_available_offset = find_available_offset(table.gaia_id());
+                child_available_offset = find_available_offset(table_id);
             }
 
             gaia_id_t relationship_id = gaia_relationship_t::insert_row(
-                child_field.name(), // name
-                static_cast<uint8_t>(relationship_cardinality_t::many), // cardinality
-                false, // parent_required
-                false, // deprecated
-                parent_available_offset, // first_child_offset
-                child_available_offset + 1, // next_child_offset
-                child_available_offset // parent_offset
-            );
+                ref_field->name.c_str(),
+                static_cast<uint8_t>(relationship_cardinality_t::many),
+                false,
+                false,
+                // first_child_offset is the first available offset in the parent container
+                parent_available_offset,
+                // next_child_offset is the second available offset in the child container
+                child_available_offset + 1,
+                // parent_offset is the first available offset in the child container
+                child_available_offset);
             auto rel = gaia_relationship_t::get(relationship_id);
-
-            table.child_gaia_relationship_list().insert(relationship_id);
+            gaia_table_t::get(table_id).child_gaia_relationship_list().insert(relationship_id);
             parent_table.parent_gaia_relationship_list().insert(relationship_id);
+        }
+        else
+        {
+            const data_field_def_t* data_field = dynamic_cast<data_field_def_t*>(field.get());
+            gaia_id_t field_id = gaia_field_t::insert_row(
+                field->name.c_str(),
+                static_cast<uint8_t>(data_field->data_type),
+                data_field->length,
+                data_field_position,
+                false,
+                data_field->active);
+            // Connect the field to the table it belongs to.
+            gaia_table_t::get(table_id).gaia_field_list().insert(field_id);
+            data_field_position++;
         }
     }
     gaia::db::commit_transaction();

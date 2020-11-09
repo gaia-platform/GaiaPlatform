@@ -9,6 +9,7 @@
 #include <sstream>
 #include <string>
 
+#include "catalog.hpp"
 #include "gaia_catalog.h"
 #include "retail_assert.hpp"
 
@@ -53,7 +54,6 @@ string get_fdw_data_type_name(data_type_t data_type)
 
     case data_type_t::e_int64:
     case data_type_t::e_uint64:
-    case data_type_t::e_references:
         return "BIGINT";
 
     case data_type_t::e_float:
@@ -102,22 +102,26 @@ string generate_fdw_ddl(gaia_id_t table_id, const string& server_name)
     // Concatenate the fields and references.
     vector<gaia_id_t> fields = list_fields(table_id);
     vector<gaia_id_t> references = list_references(table_id);
-    fields.insert(fields.end(), references.begin(), references.end());
 
     for (gaia_id_t field_id : fields)
     {
         gaia_field_t field = gaia_field_t::get(field_id);
+        ddl_string_stream
+            << "," << endl
+            << generate_fdw_ddl_field(field);
+    }
 
+    for (gaia_id_t child_ref_id : references)
+    {
+        gaia_relationship_t relationship = gaia_relationship_t::get(child_ref_id);
         // Skip anonymous reference fields.
-        if (field.type() == static_cast<uint8_t>(data_type_t::e_references)
-            && strlen(field.name()) == 0)
+        if (::strlen(relationship.name()) == 0)
         {
             continue;
         }
 
-        ddl_string_stream
-            << "," << endl
-            << generate_fdw_ddl_field(field);
+        ddl_string_stream << "," << endl
+                          << relationship.name() << " BIGINT";
     }
 
     ddl_string_stream
@@ -143,17 +147,26 @@ string generate_fdw_ddl(
 
     for (auto& field : fields)
     {
-        // Skip anonymous reference fields.
-        if (field->type == data_type_t::e_references
-            && field->name.length() == 0)
+        if (field->field_type == ddl::field_type_t::reference)
         {
-            continue;
-        }
+            const ddl::ref_field_def_t* ref_field = dynamic_cast<ddl::ref_field_def_t*>(field.get());
+            // Skip anonymous reference fields.
+            if (ref_field->name.empty())
+            {
+                continue;
+            }
 
-        string field_ddl = generate_fdw_ddl_field(field->name, get_fdw_data_type_name(field->type), field->length);
-        ddl_string_stream
-            << "," << endl
-            << field_ddl;
+            ddl_string_stream << "," << endl
+                              << ref_field->name << " BIGINT";
+        }
+        else
+        {
+            const ddl::data_field_def_t* data_field = dynamic_cast<ddl::data_field_def_t*>(field.get());
+            string field_ddl = generate_fdw_ddl_field(field->name, get_fdw_data_type_name(data_field->data_type), data_field->length);
+            ddl_string_stream
+                << "," << endl
+                << field_ddl;
+        }
     }
 
     ddl_string_stream

@@ -70,6 +70,7 @@ struct gaia_field_t;
 struct gaia_table_t;
 struct gaia_database_t;
 
+typedef reference_chain_container_t<gaia_database_t, gaia_table_t, c_parent_gaia_table_gaia_database, c_first_gaia_table_gaia_table, c_next_gaia_table_gaia_table> gaia_table_list_t;
 typedef gaia_writer_t<c_gaia_type_gaia_database, gaia_database_t, gaia_database, gaia_databaseT, c_num_gaia_database_ptrs> gaia_database_writer;
 struct gaia_database_t : public gaia_object_t<c_gaia_type_gaia_database, gaia_database_t, gaia_database, gaia_databaseT, c_num_gaia_database_ptrs> {
     gaia_database_t() : gaia_object_t("gaia_database_t") {}
@@ -84,8 +85,8 @@ struct gaia_database_t : public gaia_object_t<c_gaia_type_gaia_database, gaia_da
         static gaia_container_t<c_gaia_type_gaia_database, gaia_database_t> list;
         return list;
     }
-    reference_chain_container_t<gaia_database_t, gaia_table_t, c_parent_gaia_table_gaia_database, c_first_gaia_table_gaia_table, c_next_gaia_table_gaia_table> gaia_table_list() {
-        reference_chain_container_t<gaia_database_t, gaia_table_t, c_parent_gaia_table_gaia_database, c_first_gaia_table_gaia_table, c_next_gaia_table_gaia_table> gaia_table_list(gaia_id());
+    gaia_table_list_t gaia_table_list() {
+        gaia_table_list_t gaia_table_list(gaia_id());
         return gaia_table_list;
     }
 private:
@@ -93,6 +94,9 @@ private:
     explicit gaia_database_t(gaia_id_t id) : gaia_object_t(id, "gaia_database_t") {}
 };
 
+typedef reference_chain_container_t<gaia_table_t, gaia_field_t, c_parent_gaia_field_gaia_table, c_first_gaia_field_gaia_field, c_next_gaia_field_gaia_field> gaia_field_list_t;
+typedef reference_chain_container_t<gaia_table_t, gaia_relationship_t, c_parent_parent_gaia_table, c_first_parent_gaia_relationship, c_next_parent_gaia_relationship> parent_gaia_relationship_list_t;
+typedef reference_chain_container_t<gaia_table_t, gaia_relationship_t, c_parent_child_gaia_table, c_first_child_gaia_relationship, c_next_child_gaia_relationship> child_gaia_relationship_list_t;
 typedef gaia_writer_t<c_gaia_type_gaia_table, gaia_table_t, gaia_table, gaia_tableT, c_num_gaia_table_ptrs> gaia_table_writer;
 struct gaia_table_t : public gaia_object_t<c_gaia_type_gaia_table, gaia_table_t, gaia_table, gaia_tableT, c_num_gaia_table_ptrs> {
     gaia_table_t() : gaia_object_t("gaia_table_t") {}
@@ -114,17 +118,14 @@ struct gaia_table_t : public gaia_object_t<c_gaia_type_gaia_table, gaia_table_t,
         static gaia_container_t<c_gaia_type_gaia_table, gaia_table_t> list;
         return list;
     }
-    reference_chain_container_t<gaia_table_t, gaia_field_t, c_parent_gaia_field_gaia_table, c_first_gaia_field_gaia_field, c_next_gaia_field_gaia_field> gaia_field_list() {
-        reference_chain_container_t<gaia_table_t, gaia_field_t, c_parent_gaia_field_gaia_table, c_first_gaia_field_gaia_field, c_next_gaia_field_gaia_field> gaia_field_list(gaia_id());
-        return gaia_field_list;
+    gaia_field_list_t gaia_field_list() {
+        return gaia_field_list_t(gaia_id());
     }
-    reference_chain_container_t<gaia_table_t, gaia_relationship_t, c_parent_parent_gaia_table, c_first_parent_gaia_relationship, c_next_parent_gaia_relationship> parent_gaia_relationship_list() {
-        reference_chain_container_t<gaia_table_t, gaia_relationship_t, c_parent_parent_gaia_table, c_first_parent_gaia_relationship, c_next_parent_gaia_relationship> parent_gaia_relationship_list(gaia_id());
-        return parent_gaia_relationship_list;
+    parent_gaia_relationship_list_t parent_gaia_relationship_list() {
+        return parent_gaia_relationship_list_t(gaia_id());
     }
-    reference_chain_container_t<gaia_table_t, gaia_relationship_t, c_parent_child_gaia_table, c_first_child_gaia_relationship, c_next_child_gaia_relationship> child_gaia_relationship_list() {
-        reference_chain_container_t<gaia_table_t, gaia_relationship_t, c_parent_child_gaia_table, c_first_child_gaia_relationship, c_next_child_gaia_relationship> child_gaia_relationship_list(gaia_id());
-        return child_gaia_relationship_list;
+    child_gaia_relationship_list_t child_gaia_relationship_list() {
+        return child_gaia_relationship_list_t(gaia_id());
     }
 private:
     friend struct gaia_object_t<c_gaia_type_gaia_table, gaia_table_t, gaia_table, gaia_tableT, c_num_gaia_table_ptrs>;

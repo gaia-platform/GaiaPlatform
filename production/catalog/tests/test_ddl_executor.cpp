@@ -18,7 +18,6 @@
 #include "type_metadata.hpp"
 
 using namespace gaia::catalog;
-using namespace std;
 
 /*
  * Utilities
@@ -27,31 +26,7 @@ using namespace std;
 template <typename T_container>
 size_t container_size(T_container container)
 {
-    size_t size{0};
-    auto first = container.begin();
-    auto last = container.end();
-
-    for (; first != last; ++first)
-    {
-        ++size;
-    }
-
-    return size;
-}
-
-template <typename T_container>
-gaia_field_t find_field(T_container fields, const std::string& field_name)
-{
-    auto it = std::find_if(fields.begin(), fields.end(), [&](const gaia_field_t& field) {
-        return field_name == field.name();
-    });
-
-    if (it == fields.end())
-    {
-        throw gaia_exception(std::string("Expected field not found: ") + field_name);
-    }
-
-    return *it;
+    return distance(begin(container), end(container));
 }
 
 template <typename T_container>
@@ -148,8 +123,8 @@ TEST_F(ddl_executor_test, list_fields)
     string test_table_name{"list_fields_test"};
 
     ddl::field_def_list_t test_table_fields;
-    test_table_fields.emplace_back(make_unique<ddl::field_definition_t>("id", data_type_t::e_int8, 1));
-    test_table_fields.emplace_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
+    test_table_fields.emplace_back(make_unique<data_field_def_t>("id", data_type_t::e_int8, 1));
+    test_table_fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
 
     gaia_id_t table_id = create_table(test_table_name, test_table_fields);
 
@@ -169,14 +144,13 @@ TEST_F(ddl_executor_test, list_references)
 {
     string dept_table_name{"list_references_test_department"};
     ddl::field_def_list_t dept_table_fields;
-    dept_table_fields.emplace_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
+    dept_table_fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
     gaia_id_t dept_table_id = create_table(dept_table_name, dept_table_fields);
 
     string employee_table_name{"list_references_test_employee"};
     ddl::field_def_list_t employee_table_fields;
-    employee_table_fields.emplace_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
-    employee_table_fields.emplace_back(
-        make_unique<ddl::field_definition_t>("department", data_type_t::e_references, 1, dept_table_name));
+    employee_table_fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
+    employee_table_fields.emplace_back(make_unique<ref_field_def_t>("department", "", dept_table_name));
 
     gaia_id_t employee_table_id = create_table(employee_table_name, employee_table_fields);
 
@@ -191,11 +165,9 @@ TEST_F(ddl_executor_test, list_references)
     EXPECT_EQ(0, field_record.position());
 
     gaia_id_t reference_id = list_references(employee_table_id).front();
-    gaia_field_t reference_record = gaia_field_t::get(reference_id);
-    EXPECT_EQ(employee_table_fields[1]->name, reference_record.name());
-    EXPECT_EQ(data_type_t::e_references, static_cast<data_type_t>(reference_record.type()));
-    EXPECT_EQ(dept_table_id, reference_record.ref_gaia_table().gaia_id());
-    EXPECT_EQ(0, reference_record.position());
+    gaia_relationship_t relationship_record = gaia_relationship_t::get(reference_id);
+    EXPECT_EQ(employee_table_fields[1]->name, relationship_record.name());
+    EXPECT_EQ(dept_table_id, relationship_record.parent_gaia_table().gaia_id());
     gaia::db::commit_transaction();
 }
 
@@ -203,7 +175,7 @@ TEST_F(ddl_executor_test, create_table_references_not_exist)
 {
     string test_table_name{"ref_not_exist_test"};
     ddl::field_def_list_t fields;
-    fields.emplace_back(make_unique<ddl::field_definition_t>("ref_field", data_type_t::e_references, 1, "unknown"));
+    fields.emplace_back(make_unique<ref_field_def_t>("ref_field", "", "unknown"));
     EXPECT_THROW(create_table(test_table_name, fields), table_not_exists);
 }
 
@@ -211,17 +183,14 @@ TEST_F(ddl_executor_test, create_table_self_references)
 {
     string test_table_name{"self_ref_table_test"};
     ddl::field_def_list_t fields;
-    fields.emplace_back(
-        make_unique<ddl::field_definition_t>("self_ref_field", data_type_t::e_references, 1, test_table_name));
+    fields.emplace_back(make_unique<ref_field_def_t>("self_ref_field", "", test_table_name));
 
     gaia_id_t table_id = create_table(test_table_name, fields);
     gaia::db::begin_transaction();
     gaia_id_t reference_id = list_references(table_id).front();
-    gaia_field_t reference_record = gaia_field_t::get(reference_id);
-    EXPECT_EQ(fields.front()->name, reference_record.name());
-    EXPECT_EQ(data_type_t::e_references, static_cast<data_type_t>(reference_record.type()));
-    EXPECT_EQ(table_id, reference_record.ref_gaia_table().gaia_id());
-    EXPECT_EQ(0, reference_record.position());
+    gaia_relationship_t relationship_record = gaia_relationship_t::get(reference_id);
+    EXPECT_EQ(fields.front()->name, relationship_record.name());
+    EXPECT_EQ(table_id, relationship_record.parent_gaia_table().gaia_id());
     gaia::db::commit_transaction();
 }
 
@@ -241,8 +210,8 @@ TEST_F(ddl_executor_test, create_table_case_sensitivity)
     check_table_name(mixed_case_table_id, mixed_case_table_name);
 
     string test_field_case_table_name{"test_field_case_table"};
-    fields.emplace_back(make_unique<ddl::field_definition_t>("field1", data_type_t::e_string, 1));
-    fields.emplace_back(make_unique<ddl::field_definition_t>("Field1", data_type_t::e_string, 1));
+    fields.emplace_back(make_unique<data_field_def_t>("field1", data_type_t::e_string, 1));
+    fields.emplace_back(make_unique<data_field_def_t>("Field1", data_type_t::e_string, 1));
     gaia_id_t test_field_case_table_id = create_table(test_field_case_table_name, fields);
     check_table_name(test_field_case_table_id, test_field_case_table_name);
 }
@@ -251,8 +220,8 @@ TEST_F(ddl_executor_test, create_table_duplicate_field)
 {
     string test_duplicate_field_table_name{"test_duplicate_field_table"};
     ddl::field_def_list_t fields;
-    fields.emplace_back(make_unique<ddl::field_definition_t>("field1", data_type_t::e_string, 1));
-    fields.emplace_back(make_unique<ddl::field_definition_t>("field1", data_type_t::e_string, 1));
+    fields.emplace_back(make_unique<data_field_def_t>("field1", data_type_t::e_string, 1));
+    fields.emplace_back(make_unique<data_field_def_t>("field1", data_type_t::e_string, 1));
     EXPECT_THROW(create_table(test_duplicate_field_table_name, fields), duplicate_field);
 }
 
@@ -260,7 +229,7 @@ TEST_F(ddl_executor_test, drop_table)
 {
     string test_table_name{"drop_table_test"};
     ddl::field_def_list_t fields;
-    fields.emplace_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
+    fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
     gaia_id_t table_id = create_table(test_table_name, fields);
     check_table_name(table_id, test_table_name);
 
@@ -283,8 +252,7 @@ TEST_F(ddl_executor_test, drop_table_with_self_reference)
 {
     string test_table_name{"self_ref_table"};
     ddl::field_def_list_t fields;
-    fields.emplace_back(make_unique<ddl::field_definition_t>("self_ref", data_type_t::e_references, 1));
-    fields.back()->table_type_name = test_table_name;
+    fields.emplace_back(make_unique<ref_field_def_t>("self_ref", "", test_table_name));
     gaia_id_t table_id = create_table(test_table_name, fields);
     check_table_name(table_id, test_table_name);
 
@@ -305,7 +273,7 @@ TEST_F(ddl_executor_test, drop_table_parent_reference_fail)
 
     string child_table_name{"child_table"};
     ddl::field_def_list_t child_fields;
-    child_fields.emplace_back(make_unique<ddl::field_definition_t>("parent", data_type_t::e_references, 1, "parent_table"));
+    child_fields.emplace_back(make_unique<ref_field_def_t>("parent", "", "parent_table"));
     create_table(child_table_name, child_fields);
 
     EXPECT_THROW(
@@ -327,7 +295,7 @@ TEST_F(ddl_executor_test, drop_table_child_reference)
 
     string child_table_name{"child_table"};
     ddl::field_def_list_t child_fields;
-    child_fields.emplace_back(make_unique<ddl::field_definition_t>("parent", data_type_t::e_references, 1, "parent_table"));
+    child_fields.emplace_back(make_unique<ref_field_def_t>("parent", "", "parent_table"));
     gaia_id_t child_table_id = create_table(child_table_name, child_fields);
 
     begin_transaction();
@@ -369,14 +337,13 @@ TEST_F(ddl_executor_test, drop_database)
 
     string self_ref_table_name{"self_ref_table"};
     ddl::field_def_list_t fields;
-    fields.emplace_back(make_unique<ddl::field_definition_t>("self_ref", data_type_t::e_references, 1));
-    fields.back()->table_type_name = self_ref_table_name;
+    fields.emplace_back(make_unique<ref_field_def_t>("self_ref", test_db_name, self_ref_table_name));
     gaia_id_t self_ref_table_id = create_table(test_db_name, self_ref_table_name, fields);
     check_table_name(self_ref_table_id, self_ref_table_name);
 
     string test_table_name{"test_table"};
     fields.clear();
-    fields.emplace_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
+    fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
     gaia_id_t test_table_id = create_table(test_db_name, test_table_name, fields);
     check_table_name(test_table_id, test_table_name);
 
@@ -406,15 +373,15 @@ TEST_F(ddl_executor_test, create_relationships)
               .database("hospital")
               .field("name", data_type_t::e_string)
               .field("surname", data_type_t::e_string)
-              .reference("clinic", "hospital.clinic")
+              .reference("clinic", "hospital", "clinic")
               .create();
 
     gaia_id_t patient_table_id
         = table_builder_t::new_table("patient")
               .database("hospital")
               .field("name", data_type_t::e_string)
-              .reference("doctor", "hospital.doctor")
-              .reference("clinic", "hospital.clinic")
+              .reference("doctor", "hospital", "doctor")
+              .reference("clinic", "hospital", "clinic")
               .create();
 
     auto_transaction_t txn;
@@ -495,7 +462,7 @@ TEST_F(ddl_executor_test, create_anonymous_relationships)
     gaia_id_t doctor_table_id
         = table_builder_t::new_table("doctor")
               .database("hospital")
-              .reference("hospital.clinic")
+              .anonymous_reference("hospital", "clinic")
               .create();
 
     auto_transaction_t txn;
@@ -514,7 +481,7 @@ TEST_F(ddl_executor_test, create_self_relationships)
     gaia_id_t doctor_table_id
         = table_builder_t::new_table("doctor")
               .database("hospital")
-              .reference("self", "hospital.doctor")
+              .reference("self", "hospital", "doctor")
               .create();
 
     auto_transaction_t txn;
@@ -553,15 +520,15 @@ TEST_F(ddl_executor_test, metadata)
               .database("hospital")
               .field("name", data_type_t::e_string)
               .field("surname", data_type_t::e_string)
-              .reference("clinic", "hospital.clinic")
+              .reference("clinic", "hospital", "clinic")
               .create_type();
 
     gaia_type_t patient_type
         = table_builder_t::new_table("patient")
               .database("hospital")
               .field("name", data_type_t::e_string)
-              .reference("doctor", "hospital.doctor")
-              .reference("clinic", "hospital.clinic")
+              .reference("doctor", "hospital", "doctor")
+              .reference("clinic", "hospital", "clinic")
               .create_type();
 
     auto_transaction_t txn;

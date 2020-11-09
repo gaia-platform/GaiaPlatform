@@ -167,6 +167,11 @@ struct ref_field_def_t : field_def_t
     {
     }
 
+    ref_field_def_t(std::string name, std::string db_name, std::string table_name)
+        : field_def_t(name, field_type_t::reference), parent_table(make_pair(move(db_name), move(table_name)))
+    {
+    }
+
     composite_name_t parent_table;
 
     [[nodiscard]] std::string db_name() const
@@ -179,7 +184,7 @@ struct ref_field_def_t : field_def_t
         return parent_table.second;
     }
 
-    [[nodiscard]] std::string full_name() const
+    [[nodiscard]] std::string full_table_name() const
     {
         if (db_name().empty())
         {
