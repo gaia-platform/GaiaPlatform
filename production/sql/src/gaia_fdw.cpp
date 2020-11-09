@@ -8,7 +8,7 @@
 #include "gaia_fdw_adapter.hpp"
 
 using namespace std;
-using namespace gaia::db;
+using namespace gaia::common;
 
 // Magic block for extension library.
 extern "C"
@@ -286,11 +286,16 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState* node, int eflags)
     // Set up mapping of attnos to flatbuffer accessor functions.
     for (int i = 0; i < tuple_desc->natts; ++i)
     {
-        // User attributes are indexed starting from 1.
-        // AttrNumber attnum = i + 1.
         char* attr_name = NameStr(TupleDescAttr(tuple_desc, i)->attname);
 
-        scan_state->set_field_index(attr_name, (size_t)i);
+        if (scan_state->set_field_index(attr_name, (size_t)i))
+        {
+            elog(DEBUG1, "Set index of field %s to %d!", attr_name, i);
+        }
+        else
+        {
+            elog(ERROR, "Failed to set index of field %s to %d!", attr_name, i);
+        }
     }
 
     node->fdw_state = scan_state;
@@ -299,7 +304,7 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState* node, int eflags)
     // (this can't currently throw).
     if (!scan_state->initialize_scan())
     {
-        elog(ERROR, "Failed to scan initialization for table '%s'.", table_name);
+        elog(ERROR, "Failed to initialize scan for table '%s'.", table_name);
     }
 }
 
@@ -343,9 +348,6 @@ extern "C" TupleTableSlot* gaia_iterate_foreign_scan(ForeignScanState* node)
     // Get the next record, if any, and fill in the slot.
     for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; ++attr_idx)
     {
-        // char *attr_name = NameStr(
-        //     TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->attname);
-
         Datum attr_val = scan_state->extract_field_value((size_t)attr_idx);
 
         slot->tts_values[attr_idx] = attr_val;
@@ -377,11 +379,6 @@ extern "C" void gaia_end_foreign_scan(ForeignScanState* node)
     // release palloc'd memory, but for example open files and connections to
     // remote servers should be cleaned up.
     elog(DEBUG1, "Entering function %s...", __func__);
-
-    auto scan_state = reinterpret_cast<gaia::fdw::scan_state_t*>(node->fdw_state);
-
-    // We should have reached the end of iteration.
-    retail_assert(scan_state->has_scan_ended(), "Scan had not completed at end scan!");
 
     // Commit read transaction.
     gaia::fdw::adapter_t::commit_transaction();
@@ -584,11 +581,16 @@ extern "C" void gaia_begin_foreign_modify(
     // Set up mapping of attnos to flatbuffer attribute builder functions.
     for (int i = 0; i < tuple_desc->natts; ++i)
     {
-        // User attributes are indexed starting from 1.
-        // AttrNumber attnum = i + 1.
         char* attr_name = NameStr(TupleDescAttr(tuple_desc, i)->attname);
 
-        modify_state->set_field_index(attr_name, (size_t)i);
+        if (modify_state->set_field_index(attr_name, (size_t)i))
+        {
+            elog(DEBUG1, "Set index of field %s to %d!", attr_name, i);
+        }
+        else
+        {
+            elog(ERROR, "Failed to set index of field %s to %d!", attr_name, i);
+        }
     }
 
     rinfo->ri_FdwState = modify_state;
@@ -627,10 +629,6 @@ extern "C" TupleTableSlot* gaia_exec_foreign_insert(
 
     auto modify_state = reinterpret_cast<gaia::fdw::modify_state_t*>(rinfo->ri_FdwState);
 
-    modify_state->initialize_modify();
-
-    // NB: we assume 0 is a valid sentinel value, i.e., it can never be a
-    // system-generated gaia_id.
     gaia_id_t gaia_id = c_invalid_gaia_id;
 
     // slot_getallattrs() is necessary beginning in Postgres 12 (the slot will
@@ -639,15 +637,18 @@ extern "C" TupleTableSlot* gaia_exec_foreign_insert(
     slot_getallattrs(slot);
     for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; ++attr_idx)
     {
-        // char *attr_name = NameStr(
-        //     TupleDescAttr(slot->tts_tupleDescriptor, attr_idx)->attname);
-
         Datum attr_val = {};
         if (modify_state->is_gaia_id_field_index((size_t)attr_idx))
         {
             // We don't allow gaia_id to be set by an INSERT or UPDATE statement
             // (this should have already been checked in gaia_plan_foreign_modify).
-            retail_assert(slot->tts_isnull[attr_idx], "gaia_id should not have been set!");
+            if (!slot->tts_isnull[attr_idx])
+            {
+                ereport(
+                    ERROR,
+                    (errcode(ERRCODE_FDW_ERROR),
+                     errmsg("gaia_id was unexpectedly set!")));
+            }
 
             gaia_id = gaia::fdw::adapter_t::get_new_gaia_id();
         }
@@ -660,7 +661,13 @@ extern "C" TupleTableSlot* gaia_exec_foreign_insert(
         }
     }
 
-    retail_assert(gaia_id, "We have not determined the gaia_id for the record to insert!");
+    if (gaia_id == c_invalid_gaia_id)
+    {
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("Failed to determine gaia_id value for insert!")));
+    }
 
     modify_state->insert_record(gaia_id);
 
@@ -700,10 +707,6 @@ extern "C" TupleTableSlot* gaia_exec_foreign_update(
 
     auto modify_state = reinterpret_cast<gaia::fdw::modify_state_t*>(rinfo->ri_FdwState);
 
-    modify_state->initialize_modify();
-
-    // NB: we assume 0 is a valid sentinel value, i.e., it can never be a
-    // system-generated gaia_id.
     gaia_id_t gaia_id = c_invalid_gaia_id;
 
     // slot_getallattrs() is necessary beginning in Postgres 12 (the slot will
@@ -725,8 +728,13 @@ extern "C" TupleTableSlot* gaia_exec_foreign_update(
         }
     }
 
-    // We must have found a valid (i.e., nonzero) gaia_id attribute value.
-    retail_assert(gaia_id, "We have not determined the gaia_id for the record to update!");
+    if (gaia_id == c_invalid_gaia_id)
+    {
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("Failed to determine gaia_id value for update!")));
+    }
 
     modify_state->update_record(gaia_id);
 
@@ -772,18 +780,34 @@ extern "C" TupleTableSlot* gaia_exec_foreign_delete(
 
     // Get primary key (gaia_id) from plan slot.
     TupleDesc tuple_desc = plan_slot->tts_tupleDescriptor;
-    retail_assert(tuple_desc->natts == 1, "Plan slot should have only 1 attribute: gaia_id.");
+    if (tuple_desc->natts != 1)
+    {
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("Plan slot should have only 1 attribute: gaia_id.")));
+    }
 
     Form_pg_attribute attr = TupleDescAttr(tuple_desc, 0);
     AttrNumber attnum = attr->attnum;
     char* attr_name = NameStr(attr->attname);
-    retail_assert(
-        gaia::fdw::adapter_t::is_gaia_id_name(attr_name),
-        "The name of the record identifier is not gaia_id!");
+    if (!gaia::fdw::adapter_t::is_gaia_id_name(attr_name))
+    {
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("The name of the record identifier is not gaia_id!")));
+    }
 
     bool is_null;
     Datum pk_val = slot_getattr(plan_slot, attnum, &is_null);
-    retail_assert(!is_null, "Value of record identifier was found to be null!");
+    if (is_null)
+    {
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("The value of the record identifier was found to be null!")));
+    }
     gaia_id_t gaia_id = DatumGetUInt64(pk_val);
 
     if (!modify_state->delete_record(gaia_id))
@@ -803,10 +827,6 @@ extern "C" void gaia_end_foreign_modify(EState* estate, ResultRelInfo* rinfo)
     // If the EndForeignModify pointer is set to nullptr, no action is taken
     // during executor shutdown.
     elog(DEBUG1, "Entering function %s...", __func__);
-
-    auto modify_state = reinterpret_cast<gaia::fdw::modify_state_t*>(rinfo->ri_FdwState);
-
-    modify_state->finalize_modify();
 
     // For DELETE, this seems to always be called before EndForeignScan.
     gaia::fdw::adapter_t::commit_transaction();
@@ -906,8 +926,6 @@ extern "C" void gaia_explain_foreign_modify(
     // If the ExplainForeignModify pointer is set to nullptr, no additional
     // information is printed during EXPLAIN.
     elog(DEBUG1, "Entering function %s...", __func__);
-
-    // gaiaFdwModifyState *modify_state = (gaiaFdwModifyState *) rinfo->ri_FdwState;
 }
 
 extern "C" void gaia_explain_direct_modify(

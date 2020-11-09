@@ -45,6 +45,9 @@ struct field_view_t : catalog_se_object_view_t
     [[nodiscard]] const char* name() const;
     [[nodiscard]] data_type_t data_type() const;
     [[nodiscard]] field_position_t position() const;
+
+    [[nodiscard]] bool is_reference() const;
+    [[nodiscard]] bool is_anonymous_reference() const;
 };
 
 struct table_view_t : catalog_se_object_view_t

@@ -35,6 +35,11 @@ const uint8_t* type_information_t::get_raw_binary_schema() const
     return m_binary_schema.data();
 }
 
+size_t type_information_t::get_binary_schema_size() const
+{
+    return m_binary_schema.size();
+}
+
 vector<uint8_t> type_information_t::get_serialization_template() const
 {
     return m_serialization_template;
@@ -56,7 +61,7 @@ type_cache_t* type_cache_t::get()
     return &s_type_cache;
 }
 
-void type_cache_t::get_type_information(gaia_type_t type_id, auto_type_information_t& auto_type_information) const
+bool type_cache_t::get_type_information(gaia_type_t type_id, auto_type_information_t& auto_type_information) const
 {
     // We acquire a shared lock while we retrieve the type information,
     // to ensure that the cache is not being updated by another thread.
@@ -64,16 +69,20 @@ void type_cache_t::get_type_information(gaia_type_t type_id, auto_type_informati
 
     auto iterator = m_type_map.find(type_id);
 
-    if (iterator != m_type_map.end())
+    if (iterator == m_type_map.end())
     {
-        // We hold a shared lock on the type information while it is used,
-        // to ensure that it is not removed from the cache.
-        iterator->second->m_lock.lock_shared();
-
-        // To ensure that the lock is released eventually,
-        // we package the type information in an auto object.
-        auto_type_information.set(iterator->second);
+        return false;
     }
+
+    // We hold a shared lock on the type information while it is used,
+    // to ensure that it is not removed from the cache.
+    iterator->second->m_lock.lock_shared();
+
+    // To ensure that the lock is released eventually,
+    // we package the type information in an auto object.
+    auto_type_information.set(iterator->second);
+
+    return true;
 }
 
 bool type_cache_t::remove_type_information(gaia_type_t type_id)

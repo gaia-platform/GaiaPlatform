@@ -8,8 +8,6 @@
 #include <string>
 #include <unordered_map>
 
-#include "retail_assert.hpp"
-
 // All Postgres headers and function declarations must have C linkage.
 extern "C"
 {
@@ -19,10 +17,13 @@ extern "C"
 // postgres.h must be included prior to these headers.
 #include "catalog/pg_type.h"
 #include "nodes/pg_list.h"
+#include "utils/builtins.h"
 
 } // extern "C"
 
-#include "airport_demo_type_mapping.hpp"
+#include "gaia_common.hpp"
+#include "gaia_ptr.hpp"
+#include "retail_assert.hpp"
 
 namespace gaia
 {
@@ -61,14 +62,8 @@ enum class edit_state_t : int8_t
 // can interact with the database.
 // Instances of scan_state_t will be used during scan operations
 // and instances of modify_state_t will be used for insert/update/delete operations.
-class scan_state_t;
-class modify_state_t;
 class adapter_t
 {
-    // For providing access to get_mapping internal helper.
-    friend class scan_state_t;
-    friend class modify_state_t;
-
 protected:
     // adapter_t is just a container for static methods,
     // so its constructor is protected
@@ -88,6 +83,11 @@ public:
     static uint64_t get_new_gaia_id();
 
     static List* get_ddl_command_list(const char* server_name);
+
+    static bool get_ids(
+        const char* table_name,
+        gaia::common::gaia_id_t& table_id,
+        gaia::common::gaia_type_t& container_id);
 
     template <class S>
     static S* get_state(const char* table_name, size_t count_fields)
@@ -112,7 +112,19 @@ protected:
     static int s_txn_reference_count;
 
     // Small cache to enable looking up a table type by name.
-    static std::unordered_map<std::string, gaia::common::gaia_type_t> s_map_table_name_to_container_id;
+    static std::unordered_map<std::string, std::pair<gaia::common::gaia_id_t, gaia::common::gaia_type_t>> s_map_table_name_to_ids;
+};
+
+// A structure holding basic field information.
+struct field_information_t
+{
+    gaia::common::field_position_t position;
+    gaia::common::data_type_t type;
+
+    bool is_reference()
+    {
+        return type == data_type_t::e_references;
+    }
 };
 
 class state_t
@@ -133,18 +145,18 @@ public:
     bool is_gaia_id_field_index(size_t field_index);
 
 protected:
-    const relation_attribute_mapping_t* m_mapping;
+    // The table id and container id.
+    gaia::common::gaia_id_t m_table_id;
+    gaia::common::gaia_type_t m_container_id;
 
-    // flatbuffer accessor functions indexed by attrnum.
-    attribute_accessor_fn* m_indexed_accessors;
+    // Count of fields for current table.
+    size_t m_count_fields;
 
-    // flatbuffer attribute builder functions indexed by attrnum.
-    attribute_builder_fn* m_indexed_builders;
+    // Field information array.
+    field_information_t* m_fields;
 
     // 0-based index of gaia_id attribute in tuple descriptor.
     size_t m_gaia_id_field_index;
-
-    gaia_type_t m_gaia_container_id;
 };
 
 // The scan state is set up in gaia_begin_foreign_scan,
@@ -163,10 +175,6 @@ protected:
     // Only adapter_t can create instances of scan_state_t.
     scan_state_t() = default;
 
-    bool initialize(const char* table_name, size_t count_fields);
-
-    void deserialize_record();
-
 public:
     // Scan API.
     bool initialize_scan();
@@ -175,13 +183,11 @@ public:
     bool scan_forward();
 
 protected:
-    root_object_deserializer_fn m_deserializer;
-
     // The COW-SE smart ptr we are currently iterating over.
     gaia::db::gaia_ptr m_current_node;
 
     // Pointer to the deserialized payload of the current_node.
-    const void* m_current_object_root;
+    const uint8_t* m_current_payload;
 };
 
 // The modify state is for maintaining state of modify operations.
@@ -208,22 +214,20 @@ protected:
 
 public:
     // Modify API.
-    void initialize_modify();
     void set_field_value(size_t field_index, const Datum& field_value);
     bool insert_record(uint64_t gaia_id);
     bool update_record(uint64_t gaia_id);
     bool delete_record(uint64_t gaia_id);
-    void finalize_modify();
 
 protected:
-    builder_initializer_fn m_initializer;
-    builder_finalizer_fn m_finalizer;
+    void copy_payload(const std::vector<uint8_t>& payload);
 
-    // flatbuffers builder for INSERT and UPDATE.
-    flatcc_builder_t m_builder;
+protected:
+    uint8_t* m_current_payload;
+    size_t m_current_payload_size;
 
-    // Tracks whether the builder has been initialized.
-    bool m_has_initialized_builder;
+    const uint8_t* m_binary_schema;
+    size_t m_binary_schema_size;
 };
 
 } // namespace fdw

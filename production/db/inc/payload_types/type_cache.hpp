@@ -58,6 +58,9 @@ public:
     // references the data in our copy.
     const uint8_t* get_raw_binary_schema() const;
 
+    // Return the size of the binary schema.
+    size_t get_binary_schema_size() const;
+
     // Return a copy of our serialization template.
     std::vector<uint8_t> get_serialization_template() const;
 
@@ -112,12 +115,13 @@ public:
     // To ensure the release of that lock once the type information is no longer used,
     // it is returned in an auto_type_information_t wrapper that will release the lock
     // at the time the wrapper gets destroyed.
-    void get_type_information(
+    // It returns true if the information was retrieved and false otherwise.
+    bool get_type_information(
         gaia::common::gaia_type_t type_id,
         auto_type_information_t& auto_type_information) const;
 
     // This method should be called whenever the information for a type is being changed.
-    // It will return true if the entry was found and deleted, and false if it was not found
+    // It returns true if the entry was found and deleted, and false if it was not found
     // (another thread may have deleted it first or the information may never have been cached at all).
     bool remove_type_information(gaia::common::gaia_type_t type_id);
 
