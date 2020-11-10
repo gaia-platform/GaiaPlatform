@@ -86,13 +86,38 @@ public:
 /**
 * The message 
 */
-template <class T>
+/*template <class T>
 class Message{
 
 private:
 
     MessageHeader messageHeader_;    
     T payload_;
+    
+public:
+
+    Message(MessageHeader header, T payload) : 
+        messageHeader_(header), payload_(payload){
+    }
+
+    Message(){
+    }
+
+    int DemoTest(){
+        return 0;
+    }
+};*/
+
+
+/**
+* The message 
+*/
+class Message{
+
+private:
+
+    MessageHeader _messageHeader;    
+    void * _payload;
     
 public:
 
@@ -105,12 +130,14 @@ public:
      * @throws 
      * @exceptsafe yes
      */    
+    template <class T>    
     Message(MessageHeader header, T payload) : 
-        messageHeader_(header), payload_(payload){
+        _messageHeader(header)
+    {
+        _payload = payload;
     }
 
-    Message(){
-    }
+    Message(){}
 
     int DemoTest(){
         return 0;

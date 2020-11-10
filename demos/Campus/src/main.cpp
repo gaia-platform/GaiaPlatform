@@ -12,6 +12,9 @@
 #include <thread>
 #include <unistd.h>
 
+// to supress unused-parameter build warnings
+#define UNUSED(...) (void)(__VA_ARGS__)
+
 using namespace std;
 
 //#include "barn_storage_gaia_generated.h"
@@ -49,7 +52,14 @@ void fake2(
     const gaia::common::gaia_type_t* gaia_type,
     const gaia::db::triggers::event_type_t* event_type,
     const uint16_t* field,
-    subscription_list_t& subscriptions){}
+    subscription_list_t& subscriptions)
+    {
+        UNUSED(ruleset_name);
+        UNUSED(gaia_type);
+        UNUSED(event_type);
+        UNUSED(field);
+        UNUSED(subscriptions);
+    }
 
 void init_storage() {
     begin_transaction();

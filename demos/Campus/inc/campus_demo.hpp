@@ -5,7 +5,8 @@
 /////////////////////////////////////////////
 
 #include <iostream>
-#include "message.hpp"
+#include "message.hpp" 
+#include "message_bus.hpp"
 
 /*
 #include "gaia_system.hpp"
@@ -21,6 +22,9 @@ namespace CampusDemo{
 class Campus{
 
 private:
+
+    // the message bus we want to use
+    std::shared_ptr<message::IMessageBus> _messageBus = nullptr;
 
     /**
      * Run the campus demo.

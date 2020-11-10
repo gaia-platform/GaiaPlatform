@@ -42,7 +42,7 @@ TEST_F(CampusDemoTest, MessageHeaderTest) {
 
 // yada ...
 TEST_F(CampusDemoTest, MessageTest) {
-   message::Message<int> msg;
+   message::Message msg;
    EXPECT_EQ(msg.DemoTest(), 0);
 }
 

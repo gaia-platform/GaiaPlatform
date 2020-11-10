@@ -11,6 +11,10 @@
 #include <stdlib.h>
 #include <string.h> 
 #include <functional>
+#include "../inc/message_bus.hpp"
+
+// to supress unused-parameter build warnings
+#define UNUSED(...) (void)(__VA_ARGS__)
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0])) 
 #define CTRLD 4
@@ -40,6 +44,9 @@ struct CallbackContStruct
 {
     CallbackType Callback;
 };
+
+// the message bus we want to use
+std::shared_ptr<message::IMessageBus> _messageBus = nullptr;
 
 /**
 * ---
@@ -358,6 +365,16 @@ void CarActionChangeLocationSelected(char *name)
     //do the change    
 } 
 
+void DoTheChange()
+{
+    if(nullptr == _messageBus)
+        return;
+
+    message::Message msg;
+
+    _messageBus->SendMessage(msg);
+}
+
 public:
 
 /**
@@ -375,6 +392,11 @@ void Run()
     endwin();
 }
 
+void MessageCallback(message::Message msg)
+{
+    UNUSED(msg);
+}
+
 /**
 * Initialize curses
 *
@@ -386,6 +408,7 @@ void Run()
 */  
 void Init()
 {   
+    // Initialize ncurses
     initscr();
     start_color();
     cbreak();
@@ -393,6 +416,13 @@ void Init()
     keypad(stdscr, TRUE);
     init_pair(1, COLOR_RED, COLOR_BLACK);
     init_pair(2, COLOR_CYAN, COLOR_BLACK); 
+
+    // Initialize message bus
+    _messageBus = std::make_shared<message::MessageBusInProc>();
+
+    // TODO: make an interface
+    //MessageCallbackType mcb = &terminalMenu::MessageCallback;
+    //_messageBus->RegisterMessageCallback(mcb);
 }
 
 };
