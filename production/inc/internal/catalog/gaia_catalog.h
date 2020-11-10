@@ -86,8 +86,7 @@ struct gaia_database_t : public gaia_object_t<c_gaia_type_gaia_database, gaia_da
         return list;
     }
     gaia_table_list_t gaia_table_list() {
-        gaia_table_list_t gaia_table_list(gaia_id());
-        return gaia_table_list;
+        return gaia_table_list_t(gaia_id());
     }
 private:
     friend struct gaia_object_t<c_gaia_type_gaia_database, gaia_database_t, gaia_database, gaia_databaseT, c_num_gaia_database_ptrs>;
@@ -190,6 +189,7 @@ private:
     explicit gaia_relationship_t(gaia_id_t id) : gaia_object_t(id, "gaia_relationship_t") {}
 };
 
+typedef reference_chain_container_t<gaia_ruleset_t, gaia_rule_t, c_parent_gaia_rule_gaia_ruleset, c_first_gaia_rule_gaia_rule, c_next_gaia_rule_gaia_rule> gaia_rule_list_t;
 typedef gaia_writer_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t, gaia_ruleset, gaia_rulesetT, c_num_gaia_ruleset_ptrs> gaia_ruleset_writer;
 struct gaia_ruleset_t : public gaia_object_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t, gaia_ruleset, gaia_rulesetT, c_num_gaia_ruleset_ptrs> {
     gaia_ruleset_t() : gaia_object_t("gaia_ruleset_t") {}
@@ -208,9 +208,8 @@ struct gaia_ruleset_t : public gaia_object_t<c_gaia_type_gaia_ruleset, gaia_rule
         static gaia_container_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t> list;
         return list;
     }
-    reference_chain_container_t<gaia_ruleset_t, gaia_rule_t, c_parent_gaia_rule_gaia_ruleset, c_first_gaia_rule_gaia_rule, c_next_gaia_rule_gaia_rule> gaia_rule_list() {
-        reference_chain_container_t<gaia_ruleset_t, gaia_rule_t, c_parent_gaia_rule_gaia_ruleset, c_first_gaia_rule_gaia_rule, c_next_gaia_rule_gaia_rule> gaia_rule_list(gaia_id());
-        return gaia_rule_list;
+    gaia_rule_list_t gaia_rule_list() {
+        return gaia_rule_list_t(gaia_id());
     }
 private:
     friend struct gaia_object_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t, gaia_ruleset, gaia_rulesetT, c_num_gaia_ruleset_ptrs>;
