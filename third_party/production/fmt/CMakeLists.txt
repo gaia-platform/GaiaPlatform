@@ -10,7 +10,6 @@ else ()
   set(FMT_ROOT ${DEPENDENCIES_INSTALL_PREFIX}/fmt)
   add_library(fmt INTERFACE)
   add_dependencies(fmt fmt_dependency)
-  set_property (TARGET fmt PROPERTY POSITION_INDEPENDENT_CODE ON)
   target_include_directories(fmt INTERFACE ${FMT_ROOT}/include)
   target_link_libraries(fmt INTERFACE ${FMT_ROOT}/lib/libfmt.a)
   ExternalProject_Add(fmt_dependency
@@ -18,6 +17,8 @@ else ()
       https://github.com/fmtlib/fmt/archive/${FMT_VERSION}.tar.gz
     URL_HASH
       SHA256=b4b51bc16288e2281cddc59c28f0b4f84fed58d016fb038273a09f05f8473297
+    PATCH_COMMAND
+      echo "set_property (TARGET fmt PROPERTY POSITION_INDEPENDENT_CODE ON)" ">>" "${CMAKE_CURRENT_BINARY_DIR}/fmt_dependency-prefix/src/fmt_dependency/CMakeLists.txt"
     CMAKE_ARGS
       -DFMT_INSTALL:BOOL=ON
       -DFMT_TEST:BOOL=OFF

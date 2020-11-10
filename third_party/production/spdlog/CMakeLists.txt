@@ -9,7 +9,6 @@ else ()
   set(SPDLOG_VERSION "1.8.1")
   set(SPDLOG_ROOT ${DEPENDENCIES_INSTALL_PREFIX}/spdlog)
   add_library(spdlog INTERFACE)
-  set_property (TARGET spdlog PROPERTY POSITION_INDEPENDENT_CODE ON)
   add_dependencies(spdlog fmt)
   add_dependencies(spdlog spdlog_dependency)
   target_include_directories(spdlog INTERFACE ${SPDLOG_ROOT}/include)
@@ -19,6 +18,8 @@ else ()
       https://github.com/gabime/spdlog/archive/v${SPDLOG_VERSION}.tar.gz
     URL_HASH
       SHA256=5197b3147cfcfaa67dd564db7b878e4a4b3d9f3443801722b3915cdeced656cb
+    PATCH_COMMAND
+      echo "set_property (TARGET spdlog PROPERTY POSITION_INDEPENDENT_CODE ON)" ">>" "${CMAKE_CURRENT_BINARY_DIR}/spdlog_dependency-prefix/src/spdlog_dependency/CMakeLists.txt"
     DEPENDS
       fmt
     CMAKE_ARGS
