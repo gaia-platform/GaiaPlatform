@@ -3,44 +3,60 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-/*#include <algorithm>
+#include <algorithm>
 #include <atomic>
 #include <cstring>
 #include <ctime>
 #include <iostream>
 #include <string>
 #include <thread>
+#include <unistd.h>
 
 using namespace std;
 
-#include "barn_storage_gaia_generated.h"
-#include "events.hpp"
+//#include "barn_storage_gaia_generated.h"
+//#include "events.hpp"
 #include "gaia_system.hpp"
+#include "gaia_common.hpp"
+#include "gaia_db.hpp"
 #include "rules.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::rules;
-using namespace BarnStorage;
+//using namespace BarnStorage;
 
-const double FAN_SPEED_LIMIT = 3500.0;
-const char SENSOR_A_NAME[] = "Temp A";
-const char SENSOR_B_NAME[] = "Temp B";
-const char SENSOR_C_NAME[] = "Temp C";
-const char ACTUATOR_A_NAME[] = "Fan A";
-const char ACTUATOR_B_NAME[] = "Fan B";
-const char ACTUATOR_C_NAME[] = "Fan C";
+//const double FAN_SPEED_LIMIT = 3500.0;
+//const char SENSOR_A_NAME[] = "Temp A";
+//const char SENSOR_B_NAME[] = "Temp B";
+//const char SENSOR_C_NAME[] = "Temp C";
+//const char ACTUATOR_A_NAME[] = "Fan A";
+//const char ACTUATOR_B_NAME[] = "Fan B";
+//const char ACTUATOR_C_NAME[] = "Fan C";
 atomic<bool> IN_SIMULATION{false};
 atomic<int> TIMESTAMP{0};
 
 void add_fan_control_rule();
 
+//FAKES: //TODO: # 20201108 disable for now because se_server throws illegal instruction
+#define begin_transaction fake 
+#define commit_transaction fake
+#define unsubscribe_rules fake
+#define list_subscribed_rules fake2
+void fake(){}
+void fake2(
+    const char* ruleset_name,
+    const gaia::common::gaia_type_t* gaia_type,
+    const gaia::db::triggers::event_type_t* event_type,
+    const uint16_t* field,
+    subscription_list_t& subscriptions){}
+
 void init_storage() {
     begin_transaction();
 
-    ulong gaia_id;
+    //ulong gaia_id;
 
-    gaia_id = Incubator::insert_row("Chicken", 99.0, 102.0);
+    /*gaia_id = Incubator::insert_row("Chicken", 99.0, 102.0);
     Sensor::insert_row(gaia_id, SENSOR_A_NAME, 0, 99.0);
     Sensor::insert_row(gaia_id, SENSOR_C_NAME, 0, 99.0);
     Actuator::insert_row(gaia_id, ACTUATOR_A_NAME, 0, 0.0);
@@ -48,14 +64,14 @@ void init_storage() {
     gaia_id = Incubator::insert_row("Puppy", 85.0, 90.0);
     Sensor::insert_row(gaia_id, SENSOR_B_NAME, 0, 85.0);
     Actuator::insert_row(gaia_id, ACTUATOR_B_NAME, 0, 0.0);
-    Actuator::insert_row(gaia_id, ACTUATOR_C_NAME, 0, 0.0);
+    Actuator::insert_row(gaia_id, ACTUATOR_C_NAME, 0, 0.0);*/
 
     commit_transaction();
 }
 
 void dump_db() {
     begin_transaction();
-    printf("\n");
+    /*printf("\n");
 
     printf("[Incubators]\n");
     for (auto i = Incubator::get_first(); i;
@@ -88,7 +104,7 @@ void dump_db() {
         }
         printf("\n");
         printf("\n");
-    }
+    }*/
     commit_transaction();
 }
 
@@ -107,7 +123,7 @@ void simulation() {
     while (IN_SIMULATION) {
         sleep(1);
         begin_transaction();
-        double new_temp, fa_v, fb_v, fc_v;
+        /*double new_temp, fa_v, fb_v, fc_v;
         for (Actuator a = Actuator::get_first(); 
             a;
             a = a.get_next()) {
@@ -118,10 +134,10 @@ void simulation() {
             } else if (strcmp(a.name(), ACTUATOR_C_NAME) == 0) {
                 fc_v = a.value();
             }
-        }
+        }*/
         time(&cur);
         TIMESTAMP = difftime(cur, start);
-        for (Sensor s = Sensor::get_first(); 
+        /*for (Sensor s = Sensor::get_first(); 
             s;
             s = s.get_next()) {
             Sensor_writer w = s.writer();
@@ -142,12 +158,12 @@ void simulation() {
                 w.timestamp = TIMESTAMP;
                 w.update_row();
             }
-        }
+        }*/
         commit_transaction();
     }
 }
 
-void decrease_fans(Incubator& incubator, FILE *log) {
+/*void decrease_fans(Incubator& incubator, FILE *log) {
     fprintf(log, "%s called for %s incubator.\n", __func__, incubator.name());
     for (Actuator a = Actuator::get_first(); 
         a;
@@ -159,9 +175,9 @@ void decrease_fans(Incubator& incubator, FILE *log) {
             w.update_row();
         }
     }
-}
+}*/
 
-void increase_fans(Incubator& incubator, FILE *log) {
+/*void increase_fans(Incubator& incubator, FILE *log) {
     fprintf(log, "%s called for %s incubator.\n", __func__, incubator.name());
     for (Actuator a = Actuator::get_first(); 
          a;
@@ -173,7 +189,7 @@ void increase_fans(Incubator& incubator, FILE *log) {
             w.update_row();
         }
     }
-}
+}*/
 
 void list_rules() {
     subscription_list_t subs;
@@ -187,10 +203,10 @@ void list_rules() {
     map<event_type_t, const char *> event_names;
     event_names[event_type_t::row_update] = "Row update";
     event_names[event_type_t::row_insert] = "Row insert";
-    for (auto &s : subs) {
-        printf("%-10s|%-11s|%-7s\n", s->ruleset_name, s->rule_name,
-               event_names[s->type]);
-    }
+    //for (auto &s : subs) {
+    //    printf("%-10s|%-11s|%-7s\n", s->ruleset_name, s->rule_name,
+    //           event_names[s->type]);
+    //}
     printf("\n");
 }
 
@@ -201,7 +217,7 @@ void usage(const char *command) {
     printf(" help: print this message.\n");
 }
 
-int main(int argc, const char **argv) {
+int main_old(int argc, const char **argv) {
     bool is_sim = false;
 
     if (argc == 2 && strncmp(argv[1], "sim", 3) == 0) {
@@ -218,13 +234,16 @@ int main(int argc, const char **argv) {
     }
 
     if (!is_sim) {
-        gaia_mem_base::init(false);
+        //gaia_mem_base::init(false);
         dump_db();
         return EXIT_SUCCESS;
     }
 
     printf("Incubator simulation...\n");
-    gaia::system::initialize(true);
+
+    //gaia::system::initialize(true);
+    //gaia::system::initialize(); //TODO: # 20201108 disable for now because se_server throws illegal instruction
+
     init_storage();
     dump_db();
     string input;
@@ -257,7 +276,7 @@ int main(int argc, const char **argv) {
                 list_rules();
                 break;
             case 'a':
-                add_fan_control_rule();
+                //add_fan_control_rule();
                 break;
             case 'c':
                 unsubscribe_rules();
@@ -282,7 +301,7 @@ int main(int argc, const char **argv) {
     return EXIT_SUCCESS;
 }
 
-int main(int argc, const char **argv) {
+/*int main(int argc, const char **argv) {
     bool is_sim = false;
 
     cout << "hey" << endl;
@@ -290,7 +309,7 @@ int main(int argc, const char **argv) {
     return 0;
 }*/
 
-#include <iostream>
+/*#include <iostream>
 #include "../inc/campus_demo.hpp"
 
 using namespace std;
@@ -305,6 +324,6 @@ int main() {
     campusDemo.Run();
 
     return 0;
-}
+}*/
 
-using namespace std;
+//#include <gaia_system.hpp>
