@@ -93,7 +93,7 @@ private:
     // Get the full name for a table composed of db and table names.
     static inline std::string get_full_table_name(const std::string& db, const std::string& table);
 
-    // The followings are helper functions to calculate offsets for relationships.
+    // The following are helper functions for calculating relationship offsets.
     // We use them to compute offset field values of the "gaia_relationship" table .
     //
     // Find the next available offset in a container's parent relationships.
