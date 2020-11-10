@@ -536,6 +536,11 @@ bool state_t::is_gaia_id_field_index(size_t field_index)
     return field_index == m_gaia_id_field_index;
 }
 
+scan_state_t::scan_state_t()
+{
+    m_current_payload = nullptr;
+}
+
 bool scan_state_t::initialize_scan()
 {
     m_current_node = gaia_ptr::find_first(m_container_id);
@@ -625,18 +630,19 @@ bool scan_state_t::scan_forward()
     return has_scan_ended();
 }
 
-void modify_state_t::copy_payload(const std::vector<uint8_t>& payload)
+modify_state_t::modify_state_t()
 {
-    m_current_payload_size = sizeof(uint8_t) * payload.size();
-    m_current_payload = reinterpret_cast<uint8_t*>(palloc0(m_current_payload_size));
-    memcpy(m_current_payload, payload.data(), m_current_payload_size);
+    m_current_payload = nullptr;
+    m_binary_schema = nullptr;
+    m_binary_schema_size = 0;
 }
 
-bool modify_state_t::initialize(const char* table_name, size_t count_fields)
+void modify_state_t::initialize_payload()
 {
-    if (!state_t::initialize(table_name, count_fields))
+    // Initialize payload vector during our first call.
+    if (m_current_payload == nullptr)
     {
-        return false;
+        m_current_payload = new vector<uint8_t>();
     }
 
     // Get hold of the type cache and lookup the type information for our type.
@@ -644,14 +650,15 @@ bool modify_state_t::initialize(const char* table_name, size_t count_fields)
     type_cache_t::get()->get_type_information(m_container_id, auto_type_information);
 
     // Set current payload to a copy of the serialization template bits.
-    vector<uint8_t> current_payload = auto_type_information.get()->get_serialization_template();
-    copy_payload(current_payload);
+    *m_current_payload = auto_type_information.get()->get_serialization_template();
 
     // Get a pointer to the binary schema.
-    m_binary_schema = auto_type_information.get()->get_raw_binary_schema();
-    m_binary_schema_size = auto_type_information.get()->get_binary_schema_size();
-
-    return true;
+    // We only need to do this on the first call.
+    if (m_binary_schema == nullptr)
+    {
+        m_binary_schema = auto_type_information.get()->get_raw_binary_schema();
+        m_binary_schema_size = auto_type_information.get()->get_binary_schema_size();
+    }
 }
 
 void modify_state_t::set_field_value(size_t field_index, const Datum& field_value)
@@ -679,23 +686,19 @@ void modify_state_t::set_field_value(size_t field_index, const Datum& field_valu
 
         if (value.type == reflection::String)
         {
-            vector<uint8_t> updated_payload = ::set_field_value(
+            ::set_field_value(
                 m_container_id,
-                m_current_payload,
-                m_current_payload_size,
+                *m_current_payload,
                 m_binary_schema,
                 m_binary_schema_size,
                 m_fields[field_index].position,
                 value);
-
-            // Make a copy of the updated bits.
-            copy_payload(updated_payload);
         }
         else
         {
             bool result = ::set_field_value(
                 m_container_id,
-                m_current_payload,
+                m_current_payload->data(),
                 m_binary_schema,
                 m_binary_schema_size,
                 m_fields[field_index].position,
@@ -728,26 +731,26 @@ void modify_state_t::set_field_value(size_t field_index, const Datum& field_valu
     }
 }
 
-bool modify_state_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
+bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t modify_operation_type)
 {
     bool result = false;
     try
     {
-        if (edit_state == edit_state_t::create)
+        if (modify_operation_type == modify_operation_type_t::insert)
         {
-            gaia_ptr::create(gaia_id, m_container_id, m_current_payload_size, m_current_payload);
+            gaia_ptr::create(gaia_id, m_container_id, m_current_payload->size(), m_current_payload->data());
         }
-        else if (edit_state == edit_state_t::update)
+        else if (modify_operation_type == modify_operation_type_t::update)
         {
             auto node = gaia_ptr::open(gaia_id);
-            node.update_payload(m_current_payload_size, m_current_payload);
+            node.update_payload(m_current_payload->size(), m_current_payload->data());
         }
 
         result = true;
     }
     catch (const exception& e)
     {
-        if (edit_state == edit_state_t::create)
+        if (modify_operation_type == modify_operation_type_t::insert)
         {
             ereport(
                 ERROR,
@@ -755,7 +758,7 @@ bool modify_state_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
                  errmsg("Error creating gaia object."),
                  errhint("Exception: '%s'.", e.what())));
         }
-        else if (edit_state == edit_state_t::update)
+        else if (modify_operation_type == modify_operation_type_t::update)
         {
             ereport(
                 ERROR,
@@ -772,12 +775,12 @@ bool modify_state_t::edit_record(uint64_t gaia_id, edit_state_t edit_state)
 
 bool modify_state_t::insert_record(uint64_t gaia_id)
 {
-    return edit_record(gaia_id, edit_state_t::create);
+    return modify_record(gaia_id, modify_operation_type_t::insert);
 }
 
 bool modify_state_t::update_record(uint64_t gaia_id)
 {
-    return edit_record(gaia_id, edit_state_t::update);
+    return modify_record(gaia_id, modify_operation_type_t::update);
 }
 
 bool modify_state_t::delete_record(uint64_t gaia_id)
@@ -809,6 +812,15 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
     }
 
     return false;
+}
+
+void modify_state_t::end_modify()
+{
+    if (m_current_payload)
+    {
+        delete m_current_payload;
+        m_current_payload = nullptr;
+    }
 }
 
 } // namespace fdw
