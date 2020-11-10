@@ -629,6 +629,9 @@ extern "C" TupleTableSlot* gaia_exec_foreign_insert(
 
     auto modify_state = reinterpret_cast<gaia::fdw::modify_state_t*>(rinfo->ri_FdwState);
 
+    // Initialize the record payload that we will prepare for insert.
+    modify_state->initialize_payload();
+
     gaia_id_t gaia_id = c_invalid_gaia_id;
 
     // slot_getallattrs() is necessary beginning in Postgres 12 (the slot will
@@ -707,6 +710,9 @@ extern "C" TupleTableSlot* gaia_exec_foreign_update(
 
     auto modify_state = reinterpret_cast<gaia::fdw::modify_state_t*>(rinfo->ri_FdwState);
 
+    // Initialize the record payload that we will prepare for update.
+    modify_state->initialize_payload();
+
     gaia_id_t gaia_id = c_invalid_gaia_id;
 
     // slot_getallattrs() is necessary beginning in Postgres 12 (the slot will
@@ -775,9 +781,6 @@ extern "C" TupleTableSlot* gaia_exec_foreign_delete(
 
     auto modify_state = reinterpret_cast<gaia::fdw::modify_state_t*>(rinfo->ri_FdwState);
 
-    // Relation rel = rinfo->ri_RelationDesc;
-    // Oid foreignTableId = RelationGetRelid(rel);
-
     // Get primary key (gaia_id) from plan slot.
     TupleDesc tuple_desc = plan_slot->tts_tupleDescriptor;
     if (tuple_desc->natts != 1)
@@ -827,6 +830,10 @@ extern "C" void gaia_end_foreign_modify(EState* estate, ResultRelInfo* rinfo)
     // If the EndForeignModify pointer is set to nullptr, no action is taken
     // during executor shutdown.
     elog(DEBUG1, "Entering function %s...", __func__);
+
+    auto modify_state = reinterpret_cast<gaia::fdw::modify_state_t*>(rinfo->ri_FdwState);
+
+    modify_state->end_modify();
 
     // For DELETE, this seems to always be called before EndForeignScan.
     gaia::fdw::adapter_t::commit_transaction();

@@ -50,11 +50,11 @@ bool validate_and_apply_option(const char* option_name, const char* option_value
 
 void append_context_option_names(Oid context_id, StringInfoData& string_data);
 
-enum class edit_state_t : int8_t
+enum class modify_operation_type_t : int8_t
 {
     none = 0,
 
-    create = 1,
+    insert = 1,
     update = 2,
 };
 
@@ -112,7 +112,10 @@ protected:
     static int s_txn_reference_count;
 
     // Small cache to enable looking up a table type by name.
-    static std::unordered_map<std::string, std::pair<gaia::common::gaia_id_t, gaia::common::gaia_type_t>> s_map_table_name_to_ids;
+    static std::unordered_map<
+        std::string,
+        std::pair<gaia::common::gaia_id_t, gaia::common::gaia_type_t>>
+        s_map_table_name_to_ids;
 };
 
 // A structure holding basic field information.
@@ -173,7 +176,7 @@ protected:
     scan_state_t& operator=(const scan_state_t&) = delete;
 
     // Only adapter_t can create instances of scan_state_t.
-    scan_state_t() = default;
+    scan_state_t();
 
 public:
     // Scan API.
@@ -206,26 +209,29 @@ protected:
     modify_state_t& operator=(const modify_state_t&) = delete;
 
     // Only adapter_t can create instances of modify_state_t.
-    modify_state_t() = default;
+    modify_state_t();
 
-    bool initialize(const char* table_name, size_t count_fields);
-
-    bool edit_record(uint64_t gaia_id, edit_state_t edit_state);
+    bool modify_record(uint64_t gaia_id, modify_operation_type_t modify_operation_type);
 
 public:
     // Modify API.
+    void initialize_payload();
     void set_field_value(size_t field_index, const Datum& field_value);
     bool insert_record(uint64_t gaia_id);
     bool update_record(uint64_t gaia_id);
     bool delete_record(uint64_t gaia_id);
+    void end_modify();
 
 protected:
-    void copy_payload(const std::vector<uint8_t>& payload);
+    // Because a vector manages its own memory
+    // and state objects are not deallocated normally by Postgres,
+    // we need to allocate the vector dynamically,
+    // so we can release its memory manually in end_modify().
+    std::vector<uint8_t>* m_current_payload;
 
-protected:
-    uint8_t* m_current_payload;
-    size_t m_current_payload_size;
-
+    // Direct pointer to the binary_schema stored in the cache.
+    // This is safe to hold around in our scenario
+    // because the cache does not get modified after its initialization.
     const uint8_t* m_binary_schema;
     size_t m_binary_schema_size;
 };
