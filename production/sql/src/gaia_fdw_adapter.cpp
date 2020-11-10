@@ -131,8 +131,6 @@ reflection::BaseType convert_to_reflection_type(data_type_t type)
         return reflection::ULong;
     case data_type_t::e_int64:
         return reflection::Long;
-    case data_type_t::e_references:
-        return reflection::ULong;
     case data_type_t::e_float:
         return reflection::Float;
     case data_type_t::e_double:
@@ -172,7 +170,6 @@ data_holder_t convert_to_data_holder(const Datum& value, data_type_t value_type)
 
     case data_type_t::e_uint64:
     case data_type_t::e_int64:
-    case data_type_t::e_references:
         data_holder.hold.integer_value = DatumGetInt64(value);
         break;
 
@@ -445,12 +442,6 @@ bool state_t::initialize(const char* table_name, size_t count_fields)
         m_count_fields = 1;
         for (auto field_view : catalog_core_t::list_fields(m_table_id))
         {
-            // We do not count anonymous references.
-            if (field_view.is_anonymous_reference())
-            {
-                continue;
-            }
-
             m_count_fields++;
         }
 
@@ -577,11 +568,7 @@ Datum scan_state_t::extract_field_value(size_t field_index)
         {
             field_value = UInt64GetDatum(m_current_node.id());
         }
-        else if (m_fields[field_index].is_reference())
-        {
-            // TODO: handle references.
-            field_value = UInt64GetDatum(0);
-        }
+        // TODO: handle references.
         else
         {
             data_holder_t value = get_field_value(

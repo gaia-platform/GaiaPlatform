@@ -9,7 +9,6 @@ else ()
   set(SPDLOG_VERSION "1.8.1")
   set(SPDLOG_ROOT ${DEPENDENCIES_INSTALL_PREFIX}/spdlog)
   add_library(spdlog INTERFACE)
-  set_property (TARGET spdlog PROPERTY POSITION_INDEPENDENT_CODE ON)
   add_dependencies(spdlog fmt)
   add_dependencies(spdlog spdlog_dependency)
   target_include_directories(spdlog INTERFACE ${SPDLOG_ROOT}/include)
@@ -30,6 +29,7 @@ else ()
       -DSPDLOG_INSTALL:BOOL=ON
       -DSPDLOG_FMT_EXTERNAL:BOOL=ON
       -DCMAKE_PREFIX_PATH:PATH=${DEPENDENCIES_INSTALL_PREFIX}
+      -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
       -DCMAKE_INSTALL_PREFIX:PATH=${SPDLOG_ROOT}
     )
 endif ()

@@ -123,11 +123,6 @@ struct field_information_t
 {
     gaia::common::field_position_t position;
     gaia::common::data_type_t type;
-
-    bool is_reference()
-    {
-        return type == data_type_t::e_references;
-    }
 };
 
 class state_t
