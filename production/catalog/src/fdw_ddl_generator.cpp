@@ -9,7 +9,6 @@
 #include <sstream>
 #include <string>
 
-#include "catalog.hpp"
 #include "gaia_catalog.h"
 #include "retail_assert.hpp"
 
@@ -99,7 +98,6 @@ string generate_fdw_ddl(gaia_id_t table_id, const string& server_name)
     ddl_string_stream << table.name() << "(" << endl;
     ddl_string_stream << "gaia_id BIGINT";
 
-    // Concatenate the fields and references.
     vector<gaia_id_t> fields = list_fields(table_id);
     vector<gaia_id_t> references = list_references(table_id);
 
@@ -120,8 +118,9 @@ string generate_fdw_ddl(gaia_id_t table_id, const string& server_name)
             continue;
         }
 
-        ddl_string_stream << "," << endl
-                          << relationship.name() << " BIGINT";
+        ddl_string_stream
+            << "," << endl
+            << relationship.name() << " BIGINT";
     }
 
     ddl_string_stream
@@ -151,13 +150,14 @@ string generate_fdw_ddl(
         {
             const ddl::ref_field_def_t* ref_field = dynamic_cast<ddl::ref_field_def_t*>(field.get());
             // Skip anonymous reference fields.
-            if (ref_field->name.empty())
+            if (ref_field->is_anonymous())
             {
                 continue;
             }
 
-            ddl_string_stream << "," << endl
-                              << ref_field->name << " BIGINT";
+            ddl_string_stream
+                << "," << endl
+                << ref_field->name << " BIGINT";
         }
         else
         {

@@ -11,10 +11,10 @@
 using gaia::catalog::create_database;
 using gaia::catalog::create_table;
 using gaia::catalog::data_type_t;
+using gaia::catalog::ddl::base_field_def_t;
 using gaia::catalog::ddl::composite_name_t;
 using gaia::catalog::ddl::data_field_def_t;
 using gaia::catalog::ddl::field_def_list_t;
-using gaia::catalog::ddl::field_def_t;
 using gaia::catalog::ddl::ref_field_def_t;
 
 /**

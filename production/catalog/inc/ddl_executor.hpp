@@ -93,7 +93,7 @@ private:
     // Get the full name for a table composed of db and table names.
     static inline std::string get_full_table_name(const std::string& db, const std::string& table);
 
-    // The follwoings are helper functions to calcuate offsets for relationships.
+    // The followings are helper functions to calculate offsets for relationships.
     // We use them to compute offset field values of the "gaia_relationship" table .
     //
     // Find the next available offset in a container's parent relationships.
@@ -105,7 +105,7 @@ private:
 
     // Maintain some in-memory cache for fast lookup.
     // This is only intended for single process usage.
-    // We cannot guarantee the cache is consistent across mutiple processes.
+    // We cannot guarantee the cache is consistent across multiple processes.
     // We should switch to use value index when the feature is ready.
     db_names_t m_db_names;
     table_names_t m_table_names;

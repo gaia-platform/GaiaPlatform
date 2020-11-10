@@ -444,6 +444,8 @@ bool state_t::initialize(const char* table_name, size_t count_fields)
         {
             m_count_fields++;
         }
+        // TODO: Inlcude named references as part of the field count.
+        //       This is pending relationship APIs in catalog_core_t.
 
         if (count_fields != m_count_fields)
         {

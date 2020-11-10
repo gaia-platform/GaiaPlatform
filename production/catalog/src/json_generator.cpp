@@ -12,7 +12,6 @@
 #include "flatbuffers/idl.h"
 #include "flatbuffers/util.h"
 
-#include "catalog.hpp"
 #include "flatbuffers_helpers.hpp"
 #include "gaia_catalog.h"
 #include "retail_assert.hpp"

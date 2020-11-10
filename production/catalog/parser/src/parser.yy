@@ -33,7 +33,7 @@
         struct create_statement_t;
         struct drop_statement_t;
         enum class field_type_t : uint8_t;
-        struct field_def_t;
+        struct base_field_def_t;
         struct data_field_def_t;
         struct ref_field_def_t;
         class parser_t;
@@ -41,7 +41,7 @@
     } // namespace catalog
     } // namespace gaia
 
-    using field_def_list_t = std::vector<std::unique_ptr<gaia::catalog::ddl::field_def_t>>;
+    using field_def_list_t = std::vector<std::unique_ptr<gaia::catalog::ddl::base_field_def_t>>;
     using statement_list_t = std::vector<std::unique_ptr<gaia::catalog::ddl::statement_t>>;
     using data_type_t = gaia::common::data_type_t;
     using composite_name_t = std::pair<std::string, std::string>;
@@ -86,7 +86,7 @@
 %type <int> opt_array
 %type <bool> opt_if_not_exists
 %type <data_type_t> data_type
-%type <std::unique_ptr<gaia::catalog::ddl::field_def_t>> field_def
+%type <std::unique_ptr<gaia::catalog::ddl::base_field_def_t>> field_def
 %type <std::unique_ptr<gaia::catalog::ddl::data_field_def_t>> data_field_def
 %type <std::unique_ptr<gaia::catalog::ddl::ref_field_def_t>> ref_field_def
 %type <std::unique_ptr<field_def_list_t>> field_def_commalist
@@ -97,8 +97,8 @@
 %printer { yyo << "create_statement:" << $$->name; } create_statement
 %printer { yyo << "drop_statement:" << $$->name; } drop_statement
 %printer { yyo << "filed_def:" << $$->name; } field_def
-%printer { yyo << "data_filed_def:" << $$->name; } data_field_def
-%printer { yyo << "ref_filed_def:" << $$->name; } ref_field_def
+%printer { yyo << "data_field_def:" << $$->name; } data_field_def
+%printer { yyo << "ref_field_def:" << $$->name; } ref_field_def
 %printer { yyo << "filed_def_commalist[" << $$->size() << "]"; } field_def_commalist
 %printer { yyo << "statement_list[" << $$->size() << "]"; } statement_list
 %printer { yyo << "composite_name: " << $$.first << "." << $$.second; } composite_name
@@ -168,8 +168,8 @@ field_def_commalist:
 ;
 
 field_def:
-  data_field_def { $$ = std::unique_ptr<field_def_t>{std::move($1)}; }
-| ref_field_def { $$ = std::unique_ptr<field_def_t>{std::move($1)}; }
+  data_field_def { $$ = std::unique_ptr<base_field_def_t>{std::move($1)}; }
+| ref_field_def { $$ = std::unique_ptr<base_field_def_t>{std::move($1)}; }
 ;
 
 data_field_def:

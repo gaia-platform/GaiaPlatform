@@ -133,22 +133,22 @@ enum class field_type_t : uint8_t
     reference
 };
 
-struct field_def_t
+struct base_field_def_t
 {
-    field_def_t(std::string name, field_type_t field_type)
+    base_field_def_t(std::string name, field_type_t field_type)
         : name(move(name)), field_type(field_type)
     {
     }
     std::string name;
     field_type_t field_type;
 
-    virtual ~field_def_t() = default;
+    virtual ~base_field_def_t() = default;
 };
 
-struct data_field_def_t : field_def_t
+struct data_field_def_t : base_field_def_t
 {
     data_field_def_t(std::string name, data_type_t type, uint16_t length)
-        : field_def_t(name, field_type_t::data), data_type(type), length(length)
+        : base_field_def_t(name, field_type_t::data), data_type(type), length(length)
     {
     }
 
@@ -160,15 +160,17 @@ struct data_field_def_t : field_def_t
 
 using composite_name_t = std::pair<std::string, std::string>;
 
-struct ref_field_def_t : field_def_t
+// This represents reference fields in parsing results.
+// The references are defined as relationships in catalog tables.
+struct ref_field_def_t : base_field_def_t
 {
     ref_field_def_t(std::string name, composite_name_t full_table_name)
-        : field_def_t(name, field_type_t::reference), parent_table(move(full_table_name))
+        : base_field_def_t(name, field_type_t::reference), parent_table(move(full_table_name))
     {
     }
 
     ref_field_def_t(std::string name, std::string db_name, std::string table_name)
-        : field_def_t(name, field_type_t::reference), parent_table(make_pair(move(db_name), move(table_name)))
+        : base_field_def_t(name, field_type_t::reference), parent_table(make_pair(move(db_name), move(table_name)))
     {
     }
 
@@ -195,9 +197,14 @@ struct ref_field_def_t : field_def_t
             return db_name() + c_db_table_name_connector + table_name();
         }
     }
+
+    [[nodiscard]] bool is_anonymous() const
+    {
+        return name.empty();
+    }
 };
 
-using field_def_list_t = std::vector<std::unique_ptr<field_def_t>>;
+using field_def_list_t = std::vector<std::unique_ptr<base_field_def_t>>;
 
 enum class create_type_t : uint8_t
 {
