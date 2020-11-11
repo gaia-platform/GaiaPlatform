@@ -373,15 +373,15 @@ TEST_F(ddl_executor_test, create_relationships)
               .database("hospital")
               .field("name", data_type_t::e_string)
               .field("surname", data_type_t::e_string)
-              .reference("clinic", "hospital", "clinic")
+              .reference("clinic", "clinic")
               .create();
 
     gaia_id_t patient_table_id
         = table_builder_t::new_table("patient")
               .database("hospital")
               .field("name", data_type_t::e_string)
-              .reference("doctor", "hospital", "doctor")
-              .reference("clinic", "hospital", "clinic")
+              .reference("doctor", "doctor")
+              .reference("clinic", "clinic")
               .create();
 
     auto_transaction_t txn;
@@ -462,7 +462,7 @@ TEST_F(ddl_executor_test, create_anonymous_relationships)
     gaia_id_t doctor_table_id
         = table_builder_t::new_table("doctor")
               .database("hospital")
-              .anonymous_reference("hospital", "clinic")
+              .anonymous_reference("clinic")
               .create();
 
     auto_transaction_t txn;
@@ -481,7 +481,7 @@ TEST_F(ddl_executor_test, create_self_relationships)
     gaia_id_t doctor_table_id
         = table_builder_t::new_table("doctor")
               .database("hospital")
-              .reference("self", "hospital", "doctor")
+              .reference("self", "doctor")
               .create();
 
     auto_transaction_t txn;
@@ -520,15 +520,15 @@ TEST_F(ddl_executor_test, metadata)
               .database("hospital")
               .field("name", data_type_t::e_string)
               .field("surname", data_type_t::e_string)
-              .reference("clinic", "hospital", "clinic")
+              .reference("clinic", "clinic")
               .create_type();
 
     gaia_type_t patient_type
         = table_builder_t::new_table("patient")
               .database("hospital")
               .field("name", data_type_t::e_string)
-              .reference("doctor", "hospital", "doctor")
-              .reference("clinic", "hospital", "clinic")
+              .reference("doctor", "doctor")
+              .reference("clinic", "clinic")
               .create_type();
 
     auto_transaction_t txn;
