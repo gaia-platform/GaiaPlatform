@@ -18,8 +18,6 @@ else ()
       https://github.com/gabime/spdlog/archive/v${SPDLOG_VERSION}.tar.gz
     URL_HASH
       SHA256=5197b3147cfcfaa67dd564db7b878e4a4b3d9f3443801722b3915cdeced656cb
-    PATCH_COMMAND
-      echo "set_property (TARGET spdlog PROPERTY POSITION_INDEPENDENT_CODE ON)" ">>" "${CMAKE_CURRENT_BINARY_DIR}/spdlog_dependency-prefix/src/spdlog_dependency/CMakeLists.txt"
     DEPENDS
       fmt
     CMAKE_ARGS
