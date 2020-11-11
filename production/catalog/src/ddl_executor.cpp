@@ -446,7 +446,7 @@ uint8_t ddl_executor_t::find_child_available_offset(const child_gaia_relationshi
     uint8_t max_offset = 0;
     for (const auto& relationship : relationships)
     {
-        max_offset = std::max(max_offset, std::max(relationship.next_child_offset(), relationship.parent_offset()));
+        max_offset = std::max({max_offset, relationship.next_child_offset(), relationship.parent_offset()});
     }
     // The next available offset is the one after current max.
     return max_offset + 1;
