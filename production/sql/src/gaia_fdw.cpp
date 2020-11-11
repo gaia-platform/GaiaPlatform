@@ -26,7 +26,8 @@ extern "C" Datum gaia_fdw_handler(PG_FUNCTION_ARGS)
 {
     elog(DEBUG1, "Entering function %s...", __func__);
 
-    fcinfo = nullptr; // To silence unused argument warning.
+    // To silence unused argument warning.
+    fcinfo = nullptr;
 
     FdwRoutine* routine = makeNode(FdwRoutine); // NOLINT (macro expansion)
 
