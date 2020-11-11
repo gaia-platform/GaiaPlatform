@@ -104,13 +104,6 @@ error_code_t stack_allocator_t::allocate(
         return error_code_t::not_initialized;
     }
 
-    // A memory_size of 0 indicates a deletion - handle specially.
-    error_code_t error_code = validate_size(memory_size);
-    if (memory_size != 0 && error_code != error_code_t::success)
-    {
-        return error_code;
-    }
-
     if (old_slot_offset != c_invalid_offset
         && !validate_offset_alignment(old_slot_offset))
     {
@@ -121,6 +114,9 @@ error_code_t stack_allocator_t::allocate(
     if (memory_size != 0)
     {
         memory_size = calculate_allocation_size(memory_size);
+        retail_assert(
+            validate_size(memory_size) == error_code_t::success,
+            "Adjusted memory sizes should always be multiples of 8 bytes!");
     }
 
     // Each allocation will get its own metadata.

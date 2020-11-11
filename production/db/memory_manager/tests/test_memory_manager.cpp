@@ -41,7 +41,7 @@ TEST(memory_manager, basic_operation)
     ASSERT_EQ(error_code_t::success, error_code);
 
     constexpr size_t c_first_allocation_size = 64;
-    constexpr size_t c_second_allocation_size = 256;
+    constexpr size_t c_second_allocation_size = 250;
     constexpr size_t c_third_allocation_size = 128;
 
     size_t first_adjusted_allocation_size
@@ -108,7 +108,7 @@ TEST(memory_manager, advanced_operation)
     ASSERT_EQ(error_code_t::success, error_code);
 
     constexpr size_t c_first_allocation_size = 64;
-    constexpr size_t c_second_allocation_size = 256;
+    constexpr size_t c_second_allocation_size = 250;
     constexpr size_t c_third_allocation_size = 128;
 
     size_t first_adjusted_allocation_size
@@ -163,7 +163,7 @@ TEST(memory_manager, advanced_operation)
     ASSERT_EQ(error_code_t::success, error_code);
 
     constexpr size_t c_fourth_allocation_size = 256;
-    constexpr size_t c_fifth_allocation_size = 64;
+    constexpr size_t c_fifth_allocation_size = 66;
 
     size_t fourth_adjusted_allocation_size
         = base_memory_manager_t::calculate_allocation_size(c_fourth_allocation_size);
