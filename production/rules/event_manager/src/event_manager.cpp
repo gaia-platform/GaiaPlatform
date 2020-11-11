@@ -64,6 +64,8 @@ void event_manager_t::init()
 
 void event_manager_t::init(event_manager_settings_t& settings)
 {
+    unique_lock<mutex> lock(m_init_lock);
+
     size_t count_worker_threads = settings.num_background_threads;
     if (count_worker_threads == SIZE_MAX)
     {
@@ -88,6 +90,24 @@ void event_manager_t::init(event_manager_settings_t& settings)
     set_commit_trigger(fn);
 
     m_is_initialized = true;
+}
+
+void event_manager_t::shutdown()
+{
+    unique_lock<mutex> lock(m_init_lock);
+
+    m_is_initialized = false;
+
+    // Stop new events from coming in.
+    set_commit_trigger(nullptr);
+
+    // Destroy the thread pool first to ensure that any rules that are in flight get a chance to finish.
+    m_invocations.reset();
+    m_stats_manager.reset();
+    m_rule_checker.reset();
+
+    // Ensure we can re-initialize by dropping our subscription state.
+    unsubscribe_rules();
 }
 
 bool event_manager_t::process_last_operation_events(
@@ -538,6 +558,11 @@ void gaia::rules::initialize_rules_engine()
      * behalf of the user.
      */
     initialize_rules();
+}
+
+void gaia::rules::shutdown_rules_engine()
+{
+    event_manager_t::get().shutdown();
 }
 
 void gaia::rules::subscribe_rule(
