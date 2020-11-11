@@ -33,6 +33,63 @@ gaia_ptr gaia_ptr::create(gaia_type_t type, size_t data_size, const void* data)
     return create(id, type, num_references, data_size, data);
 }
 
+gaia_ptr gaia_ptr::find_next()
+{
+    if (m_locator)
+    {
+        find_next(to_ptr()->type);
+    }
+
+    return *this;
+}
+
+gaia_ptr gaia_ptr::operator++()
+{
+    if (m_locator)
+    {
+        find_next(to_ptr()->type);
+    }
+    return *this;
+}
+
+gaia_id_t gaia_ptr::id() const
+{
+    return to_ptr()->id;
+}
+
+gaia_type_t gaia_ptr::type() const
+{
+    return to_ptr()->type;
+}
+
+char* gaia_ptr::data() const
+{
+    return data_size() ? const_cast<char*>(to_ptr()->data()) : nullptr;
+}
+
+size_t gaia_ptr::data_size() const
+{
+    size_t total_len = to_ptr()->payload_size;
+    size_t refs_len = to_ptr()->num_references * sizeof(gaia_id_t);
+    size_t data_size = total_len - refs_len;
+    return data_size;
+}
+
+gaia_id_t* gaia_ptr::references() const
+{
+    return const_cast<gaia_id_t*>(to_ptr()->references());
+}
+
+size_t gaia_ptr::num_references() const
+{
+    return to_ptr()->num_references;
+}
+
+bool gaia_ptr::is(gaia_type_t type) const
+{
+    return to_ptr() && to_ptr()->type == type;
+}
+
 gaia_ptr gaia_ptr::create(gaia_id_t id, gaia_type_t type, size_t data_size, const void* data)
 {
     auto& metadata = type_registry_t::instance().get(type);

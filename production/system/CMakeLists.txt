@@ -54,7 +54,7 @@ add_gtest(test_gaia_system "tests/test_gaia_system.cpp"
 add_executable(test_recovery "tests/test_recovery.cpp")
 target_include_directories(test_recovery PRIVATE "${GAIA_SYSTEM_PUBLIC_INCLUDES};${GAIA_SYSTEM_PRIVATE_INCLUDES};${GOOGLE_TEST_INC}")
 add_dependencies(test_recovery "generate_addr_book_headers")
-target_link_libraries(test_recovery PRIVATE "rt;gaia_system;gaia_se_client;gtest_main" )
+target_link_libraries(test_recovery PRIVATE rt gaia_system gtest_main)
 set_target_properties(test_recovery PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(test_recovery PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 set_target_properties(test_recovery PROPERTIES CXX_CLANG_TIDY "")
