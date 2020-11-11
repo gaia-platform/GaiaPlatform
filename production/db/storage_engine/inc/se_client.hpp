@@ -5,28 +5,9 @@
 
 #pragma once
 
-#include <csignal>
-
-#include <atomic>
-#include <functional>
-#include <optional>
-#include <thread>
-#include <unordered_set>
-
-#include <flatbuffers/flatbuffers.h>
-#include <sys/epoll.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-
-#include "db_types.hpp"
-#include "generator_iterator.hpp"
-#include "messages_generated.h"
-#include "mmap_helpers.hpp"
+#include "gaia_db.hpp"
 #include "retail_assert.hpp"
-#include "scope_guard.hpp"
-#include "socket_helpers.hpp"
-#include "storage_engine.hpp"
-#include "system_error.hpp"
+#include "se_shared_data.hpp"
 #include "system_table_types.hpp"
 #include "triggers.hpp"
 
@@ -40,14 +21,14 @@ namespace gaia
 namespace db
 {
 
-// We need to forward-declare this class to avoid a circular dependency.
-class gaia_hash_map;
+// Forward-declare for friend declaration.
+class gaia_ptr;
 
-class client : private se_base
+class client
 {
     friend class gaia_ptr;
-    friend class gaia_hash_map;
-    friend class catalog_core_t;
+    friend gaia::db::locators* gaia::db::get_shared_locators_ptr();
+    friend gaia::db::data* gaia::db::get_shared_data_ptr();
 
 public:
     static inline bool is_transaction_active()
@@ -74,12 +55,15 @@ public:
     static std::function<std::optional<gaia_id_t>()> get_id_generator_for_type(gaia_type_t type);
 
 private:
-    // Both s_fd_log & s_locators have transaction lifetime.
+    // s_fd_log & s_locators have transaction lifetime.
+    thread_local static inline log* s_log = nullptr;
     thread_local static inline int s_fd_log = -1;
     thread_local static inline locators* s_locators = nullptr;
-    // Both s_fd_locators & s_data have session lifetime.
+    // s_fd_locators, s_data, s_session_socket have session lifetime.
     thread_local static inline int s_fd_locators = -1;
     thread_local static inline data* s_data = nullptr;
+    thread_local static inline int s_session_socket = -1;
+    thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
     // s_events has transaction lifetime and is cleared after each transaction.
     // Set by the rules engine.
     thread_local static inline std::vector<gaia::db::triggers::trigger_event_t> s_events{};
@@ -94,10 +78,6 @@ private:
         static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_ruleset),
         static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_rule),
         static_cast<gaia_type_t>(system_table_type_t::event_log)};
-
-    // Inherited from se_base:
-    // thread_local static log *s_log;
-    // thread_local static gaia_txn_id_t s_txn_id;
 
     static void txn_cleanup();
 

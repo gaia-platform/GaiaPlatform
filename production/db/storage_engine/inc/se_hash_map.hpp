@@ -5,28 +5,28 @@
 
 #pragma once
 
-#include "storage_engine.hpp"
+#include "se_helpers.hpp"
+#include "se_shared_data.hpp"
+#include "se_types.hpp"
 
 namespace gaia
 {
 namespace db
 {
 
-using namespace common;
-
-class gaia_hash_map
+class se_hash_map
 {
-    using hash_node = se_base::hash_node;
-
 public:
-    static hash_node* insert(se_base::data* data, se_base::locators* locators, gaia_id_t id)
+    static hash_node* insert(gaia_id_t id)
     {
+        locators* locators = gaia::db::get_shared_locators_ptr();
+        data* data = gaia::db::get_shared_data_ptr();
         if (locators == nullptr)
         {
             throw transaction_not_open();
         }
 
-        hash_node* node = data->hash_nodes + (id % se_base::c_hash_buckets);
+        hash_node* node = data->hash_nodes + (id % c_hash_buckets);
         if (node->id == 0 && __sync_bool_compare_and_swap(&node->id, 0, id))
         {
             return node;
@@ -40,7 +40,7 @@ public:
 
             if (node->id == id)
             {
-                if (node->locator && se_base::locator_exists(locators, node->locator))
+                if (locator_exists(node->locator))
                 {
                     throw duplicate_id(id);
                 }
@@ -59,9 +59,9 @@ public:
             if (!new_node_idx)
             {
                 retail_assert(
-                    data->hash_node_count + se_base::c_hash_buckets < se_base::c_hash_list_elements,
+                    data->hash_node_count + c_hash_buckets < c_hash_list_elements,
                     "hash_node_count exceeds expected limits!");
-                new_node_idx = se_base::c_hash_buckets + __sync_fetch_and_add(&data->hash_node_count, 1);
+                new_node_idx = c_hash_buckets + __sync_fetch_and_add(&data->hash_node_count, 1);
                 (data->hash_nodes + new_node_idx)->id = id;
             }
 
@@ -72,20 +72,22 @@ public:
         }
     }
 
-    static gaia_locator_t find(se_base::data* data, se_base::locators* locators, gaia_id_t id)
+    static gaia_locator_t find(gaia_id_t id)
     {
+        locators* locators = gaia::db::get_shared_locators_ptr();
+        data* data = gaia::db::get_shared_data_ptr();
         if (locators == nullptr)
         {
             throw transaction_not_open();
         }
 
-        hash_node* node = data->hash_nodes + (id % se_base::c_hash_buckets);
+        hash_node* node = data->hash_nodes + (id % c_hash_buckets);
 
         while (node)
         {
             if (node->id == id)
             {
-                if (node->locator && se_base::locator_exists(locators, node->locator))
+                if (locator_exists(node->locator))
                 {
                     return node->locator;
                 }
@@ -103,9 +105,10 @@ public:
         return c_invalid_gaia_locator;
     }
 
-    static void remove(se_base::data* data, gaia_id_t id)
+    static void remove(gaia_id_t id)
     {
-        hash_node* node = data->hash_nodes + (id % se_base::c_hash_buckets);
+        data* data = gaia::db::get_shared_data_ptr();
+        hash_node* node = data->hash_nodes + (id % c_hash_buckets);
 
         while (node->id)
         {

@@ -3,13 +3,37 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "storage_engine_client.hpp"
+#include "se_client.hpp"
+
+#include <unistd.h>
+
+#include <csignal>
+
+#include <atomic>
+#include <functional>
+#include <optional>
+#include <thread>
+#include <unordered_set>
 
 #include <flatbuffers/flatbuffers.h>
+#include <sys/epoll.h>
+#include <sys/file.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
+#include "db_types.hpp"
 #include "fd_helpers.hpp"
+#include "generator_iterator.hpp"
 #include "messages_generated.h"
-#include "system_table_types.hpp"
+#include "mmap_helpers.hpp"
+#include "retail_assert.hpp"
+#include "scope_guard.hpp"
+#include "se_helpers.hpp"
+#include "se_shared_data.hpp"
+#include "se_types.hpp"
+#include "socket_helpers.hpp"
+#include "system_error.hpp"
+#include "triggers.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;

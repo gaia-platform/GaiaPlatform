@@ -7,7 +7,7 @@
 
 #include "db_types.hpp"
 #include "gaia_db_internal.hpp"
-#include "storage_engine_client.hpp"
+#include "se_client.hpp"
 
 bool gaia::db::is_transaction_active()
 {

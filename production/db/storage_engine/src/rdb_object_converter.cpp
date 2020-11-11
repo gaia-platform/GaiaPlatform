@@ -6,10 +6,16 @@
 #include "rdb_object_converter.hpp"
 
 #include "persistent_store_manager.hpp"
-#include "storage_engine.hpp"
+#include "se_object_helpers.hpp"
+#include "se_types.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
+
+namespace gaia
+{
+namespace db
+{
 
 /**
  * Format:
@@ -17,7 +23,7 @@ using namespace gaia::db;
  * Value: type, reference_count, payload_size, payload
  */
 void gaia::db::persistence::encode_object(
-    const gaia_se_object_t* gaia_object,
+    const se_object_t* gaia_object,
     gaia::db::persistence::string_writer_t& key,
     gaia::db::persistence::string_writer_t& value)
 {
@@ -33,6 +39,8 @@ void gaia::db::persistence::encode_object(
 }
 
 gaia_id_t gaia::db::persistence::decode_object(
+// segments, since this should run during recovery.
+gaia_id_t decode_object(
     const rocksdb::Slice& key,
     const rocksdb::Slice& value)
 {
@@ -53,6 +61,9 @@ gaia_id_t gaia::db::persistence::decode_object(
     value_reader.read_uint16(size);
     auto payload = value_reader.read(size);
     // Create Object.
-    persistent_store_manager::create_object_on_recovery(id, type, num_references, size, payload);
+    gaia::db::create_object(id, type, num_references, size, payload);
     return id;
 }
+
+} // namespace db
+} // namespace gaia

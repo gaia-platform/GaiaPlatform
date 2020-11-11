@@ -7,8 +7,10 @@
 
 #include "triggers.hpp"
 
-namespace gaia {
-namespace db {
+namespace gaia
+{
+namespace db
+{
 
 /**
  * Sets the DB client's commit trigger function.
@@ -37,5 +39,5 @@ constexpr char SE_SERVER_EXEC_NAME[] = "gaia_se_server";
 // Used by the SE server and client to bind and connect to the server's listening socket.
 constexpr char SE_SERVER_SOCKET_NAME[] = "gaia_se_server_socket";
 
-}  // namespace db
-}  // namespace gaia
+} // namespace db
+} // namespace gaia

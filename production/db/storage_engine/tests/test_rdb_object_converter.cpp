@@ -2,7 +2,6 @@
 #include "gtest/gtest.h"
 
 #include "rdb_object_converter.hpp"
-#include "storage_engine.hpp"
 
 using namespace gaia::db::persistence;
 

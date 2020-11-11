@@ -15,9 +15,9 @@
 
 #include "rocksdb/slice.h"
 
-#include "gaia_se_object.hpp"
 #include "persistent_store_error.hpp"
 #include "retail_assert.hpp"
+#include "se_object.hpp"
 
 using namespace gaia::common;
 
@@ -171,7 +171,7 @@ public:
 };
 
 void encode_object(
-    const gaia_se_object_t* gaia_object,
+    const se_object_t* gaia_object,
     string_writer_t& key,
     string_writer_t& value);
 

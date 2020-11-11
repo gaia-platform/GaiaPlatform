@@ -134,7 +134,7 @@ private:
 };
 
 /**
- * Creates a gaia_se_object_t using the type metadata to infer some of the details about the object
+ * Creates a gaia_ptr using the type metadata to infer some of the details about the object
  * such as the number of relations.
  *
  * TODO maybe some of this logic should be moved inside gaia_ptr

@@ -5,10 +5,12 @@
 
 #include "gaia_ptr.hpp"
 
-#include "gaia_hash_map.hpp"
+#include <cstring>
+
 #include "payload_diff.hpp"
-#include "storage_engine.hpp"
-#include "storage_engine_client.hpp"
+#include "se_client.hpp"
+#include "se_hash_map.hpp"
+#include "se_helpers.hpp"
 #include "triggers.hpp"
 #include "type_metadata.hpp"
 
@@ -18,7 +20,7 @@ using namespace gaia::db::triggers;
 
 gaia_id_t gaia_ptr::generate_id()
 {
-    return gaia_boot_t::get().get_next_id();
+    return allocate_id();
 }
 
 gaia_ptr gaia_ptr::create(gaia_type_t type, size_t data_size, const void* data)
@@ -43,16 +45,16 @@ gaia_ptr gaia_ptr::create(gaia_id_t id, gaia_type_t type, size_t num_refs, size_
 {
     size_t refs_len = num_refs * sizeof(gaia_id_t);
     size_t total_len = data_size + refs_len;
-    if (total_len > gaia_se_object_t::c_max_payload_size)
+    if (total_len > se_object_t::c_max_payload_size)
     {
-        throw payload_size_too_large(total_len, gaia_se_object_t::c_max_payload_size);
+        throw payload_size_too_large(total_len, se_object_t::c_max_payload_size);
     }
 
     // TODO this constructor allows creating a gaia_ptr in an invalid state
-    //  the gaia_se_object_t should either be initialized before and passed in
+    //  the se_object_t should either be initialized before and passed in
     //  or initialized inside the constructor.
-    gaia_ptr obj(id, total_len + sizeof(gaia_se_object_t));
-    gaia_se_object_t* obj_ptr = obj.to_ptr();
+    gaia_ptr obj(id, total_len + sizeof(se_object_t));
+    se_object_t* obj_ptr = obj.to_ptr();
     obj_ptr->id = id;
     obj_ptr->type = type;
     obj_ptr->num_references = num_refs;
@@ -94,10 +96,10 @@ void gaia_ptr::remove(gaia_ptr& node)
 
 void gaia_ptr::clone_no_txn()
 {
-    gaia_se_object_t* old_this = to_ptr();
-    size_t new_size = sizeof(gaia_se_object_t) + old_this->payload_size;
+    se_object_t* old_this = to_ptr();
+    size_t new_size = sizeof(se_object_t) + old_this->payload_size;
     allocate(new_size);
-    gaia_se_object_t* new_this = to_ptr();
+    se_object_t* new_this = to_ptr();
     memcpy(new_this, old_this, new_size);
 }
 
@@ -108,7 +110,7 @@ gaia_ptr& gaia_ptr::clone()
 
     client::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::clone);
 
-    gaia_se_object_t* new_this = to_ptr();
+    se_object_t* new_this = to_ptr();
     if (client::is_valid_event(new_this->type))
     {
         client::s_events.emplace_back(event_type_t::row_insert, new_this->type, new_this->id, empty_position_list);
@@ -119,22 +121,22 @@ gaia_ptr& gaia_ptr::clone()
 
 gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data)
 {
-    gaia_se_object_t* old_this = to_ptr();
+    se_object_t* old_this = to_ptr();
     gaia_offset_t old_offset = to_offset();
 
     size_t ref_len = old_this->num_references * sizeof(gaia_id_t);
     size_t total_len = data_size + ref_len;
-    if (total_len > gaia_se_object_t::c_max_payload_size)
+    if (total_len > se_object_t::c_max_payload_size)
     {
-        throw payload_size_too_large(total_len, gaia_se_object_t::c_max_payload_size);
+        throw payload_size_too_large(total_len, se_object_t::c_max_payload_size);
     }
 
     // updates m_locator to point to the new object
-    allocate(sizeof(gaia_se_object_t) + total_len);
+    allocate(sizeof(se_object_t) + total_len);
 
-    gaia_se_object_t* new_this = to_ptr();
+    se_object_t* new_this = to_ptr();
 
-    memcpy(new_this, old_this, sizeof(gaia_se_object_t));
+    memcpy(new_this, old_this, sizeof(se_object_t));
     new_this->payload_size = total_len;
     if (old_this->num_references > 0)
     {
@@ -194,42 +196,39 @@ void gaia_ptr::create_insert_trigger(gaia_type_t type, gaia_id_t id)
 
 gaia_ptr::gaia_ptr(gaia_id_t id)
 {
-    m_locator = gaia_hash_map::find(client::s_data, client::s_locators, id);
+    m_locator = se_hash_map::find(id);
 }
 
 gaia_ptr::gaia_ptr(gaia_id_t id, size_t size)
 {
-    se_base::hash_node* hash_node = gaia_hash_map::insert(client::s_data, client::s_locators, id);
-    hash_node->locator = m_locator = se_base::allocate_locator(client::s_locators, client::s_data);
-    se_base::allocate_object(m_locator, size, client::s_locators, client::s_data);
+    hash_node* hash_node = se_hash_map::insert(id);
+    hash_node->locator = m_locator = allocate_locator();
+    allocate_object(m_locator, size);
     client::txn_log(m_locator, 0, to_offset(), gaia_operation_t::create);
 }
 
 void gaia_ptr::allocate(size_t size)
 {
-    se_base::allocate_object(m_locator, size, client::s_locators, client::s_data);
+    allocate_object(m_locator, size);
 }
 
-gaia_se_object_t* gaia_ptr::to_ptr() const
+se_object_t* gaia_ptr::to_ptr() const
 {
     client::verify_txn_active();
-
-    return m_locator && se_base::locator_exists(client::s_locators, m_locator)
-        ? reinterpret_cast<gaia_se_object_t*>(client::s_data->objects + (*client::s_locators)[m_locator])
-        : nullptr;
+    return locator_to_ptr(m_locator);
 }
 
 gaia_offset_t gaia_ptr::to_offset() const
 {
     client::verify_txn_active();
-
-    return m_locator ? (*client::s_locators)[m_locator] : 0;
+    return locator_to_offset(m_locator);
 }
 
 void gaia_ptr::find_next(gaia_type_t type)
 {
+    gaia::db::data* data = gaia::db::get_shared_data_ptr();
     // search for rows of this type within the range of used slots
-    while (++m_locator && m_locator < client::s_data->locator_count + 1)
+    while (++m_locator && m_locator < data->locator_count + 1)
     {
         if (is(type))
         {
@@ -241,13 +240,14 @@ void gaia_ptr::find_next(gaia_type_t type)
 
 void gaia_ptr::reset()
 {
+    gaia::db::locators* locators = gaia::db::get_shared_locators_ptr();
     client::txn_log(m_locator, to_offset(), 0, gaia_operation_t::remove, to_ptr()->id);
 
     if (client::is_valid_event(to_ptr()->type))
     {
         client::s_events.emplace_back(event_type_t::row_delete, to_ptr()->type, to_ptr()->id, empty_position_list);
     }
-    (*client::s_locators)[m_locator] = 0;
+    (*locators)[m_locator] = 0;
     m_locator = 0;
 }
 

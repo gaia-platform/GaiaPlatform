@@ -7,23 +7,17 @@
 
 #include <csignal>
 
+#include <functional>
+#include <optional>
 #include <shared_mutex>
 #include <thread>
 
-#include <sys/epoll.h>
-#include <sys/eventfd.h>
+#include "flatbuffers/flatbuffers.h"
 
-#include "gaia_db_internal.hpp"
-#include "gaia_se_object.hpp"
-#include "generator_iterator.hpp"
+#include "gaia_exception.hpp"
 #include "messages_generated.h"
-#include "mmap_helpers.hpp"
 #include "persistent_store_manager.hpp"
-#include "retail_assert.hpp"
-#include "scope_guard.hpp"
-#include "socket_helpers.hpp"
-#include "storage_engine.hpp"
-#include "system_error.hpp"
+#include "se_types.hpp"
 
 namespace gaia
 {
@@ -31,10 +25,8 @@ namespace db
 {
 
 using namespace gaia::common;
-using namespace gaia::common::iterators;
 using namespace gaia::db::messages;
 using namespace flatbuffers;
-using namespace scope_guard;
 
 class invalid_session_transition : public gaia_exception
 {
@@ -45,9 +37,10 @@ public:
     }
 };
 
-class server : private se_base
+class server
 {
-    friend class persistent_store_manager;
+    friend gaia::db::locators* gaia::db::get_shared_locators_ptr();
+    friend gaia::db::data* gaia::db::get_shared_data_ptr();
 
 public:
     static void run(bool disable_persistence = false);
@@ -65,17 +58,15 @@ private:
     static inline data* s_data = nullptr;
     static inline int s_fd_locators = -1;
     static inline locators* s_shared_locators = nullptr;
+    thread_local static inline log* s_log = nullptr;
+    thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
     static inline std::unique_ptr<persistent_store_manager> rdb{};
+    thread_local static inline int s_session_socket = -1;
     thread_local static inline session_state_t s_session_state = session_state_t::DISCONNECTED;
     thread_local static inline bool s_session_shutdown = false;
     thread_local static inline int s_session_shutdown_eventfd = -1;
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
     static inline bool s_disable_persistence = false;
-
-    // Inherited from se_base:
-    // thread_local static log *s_log;
-    // thread_local static int s_session_socket;
-    // thread_local static gaia_txn_id_t s_txn_id;
 
     // function pointer type that executes side effects of a state transition
     // REVIEW: replace void* with std::any?

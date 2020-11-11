@@ -21,6 +21,9 @@ namespace gaia
 {
 namespace db
 {
+
+using namespace gaia::common;
+
 class rdb_internal_t
 {
 public:

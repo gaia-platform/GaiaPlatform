@@ -6,8 +6,8 @@
 #pragma once
 
 #include "db_types.hpp"
-#include "gaia_se_object.hpp"
 #include "generator_iterator.hpp"
+#include "se_object.hpp"
 
 using namespace gaia::common;
 
@@ -288,7 +288,7 @@ protected:
 
     void allocate(size_t size);
 
-    gaia_se_object_t* to_ptr() const;
+    se_object_t* to_ptr() const;
 
     gaia_offset_t to_offset() const;
 
