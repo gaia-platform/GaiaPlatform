@@ -77,6 +77,9 @@ if(BUILD_GAIA_RELEASE)
   )
 endif()
 
+#
+# Ensure this test only includes public headers and links to the gaia shared library.
+#
 set(SDK_TEST_INCLUDES
   ${GAIA_INC}/public/rules
   ${GAIA_INC}/public/direct_access
