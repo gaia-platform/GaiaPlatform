@@ -88,12 +88,6 @@ error_code_t memory_manager_t::allocate_internal(
 {
     allocated_memory_offset = c_invalid_offset;
 
-    error_code_t error_code = validate_size(memory_size);
-    if (error_code != error_code_t::success)
-    {
-        return error_code;
-    }
-
     // Adjust the requested memory size, to ensure proper alignment.
     if (add_allocation_metadata)
     {
@@ -103,6 +97,10 @@ error_code_t memory_manager_t::allocate_internal(
     {
         memory_size = calculate_raw_allocation_size(memory_size);
     }
+
+    retail_assert(
+        validate_size(memory_size) == error_code_t::success,
+        "Adjusted memory sizes should always be multiples of 8 bytes!");
 
     // Then factor in the metadata size, if we need to add that.
     size_t size_to_allocate = memory_size
