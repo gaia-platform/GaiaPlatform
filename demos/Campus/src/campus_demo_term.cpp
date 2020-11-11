@@ -48,12 +48,30 @@ struct CallbackContStruct
 // the message bus we want to use
 std::shared_ptr<message::IMessageBus> _messageBus = nullptr;
 
+// message header data
+int _sequenceID = 0;
+int _senderID = 0;
+std::string _senderName = "*";
+int _destID = 0;
+std::string _destName = "*";
+
+// action data
+std::string _actorType;
+std::string _actorName;
+std::string _actionName;
+std::string _arg1;
+
 /**
 * ---
 *
-* @param[in] 
-* @param[out] 
-* @return 
+* @param[in] char *name
+* @param[in] char* items[]
+* @param[in] int starty
+* @param[in] int startx
+* @param[in] int width
+* @param[in] char* string
+* @param[in] chtype color
+* @return void
 * @throws 
 * @exceptsafe yes
 */  
@@ -150,13 +168,18 @@ void putMenu(char *name, ITEM** items, int h, int w, int row, int col)
     refresh();
 }
 
-
 /**
 * ---
 *
-* @param[in] 
-* @param[out] 
-* @return 
+* @param[in] char *name
+* @param[in] char* items[]
+* @param[in] CallbackType handler
+* @param[in] int starty
+* @param[in] int startx
+* @param[in] int width
+* @param[in] char* string
+* @param[in] chtype color
+* @return void
 * @throws 
 * @exceptsafe yes
 */  
@@ -186,9 +209,13 @@ void putMenu(char *name, char* items[], CallbackType handler, int count, int h, 
 /**
 * ---
 *
-* @param[in] 
-* @param[out] 
-* @return 
+* @param[in] WINDOW* win
+* @param[in] int starty
+* @param[in] int startx
+* @param[in] int width
+* @param[in] char* string
+* @param[in] chtype color
+* @return void
 * @throws 
 * @exceptsafe yes
 */  
@@ -223,9 +250,8 @@ void print_in_middle(WINDOW* win, int starty, int startx, int width, char* strin
 /**
 * ---
 *
-* @param[in] 
-* @param[out] 
-* @return 
+* @param[in] char *name
+* @return void
 * @throws 
 * @exceptsafe yes
 */  
@@ -240,16 +266,22 @@ void showSelection(char * name)
 /**
 * ---
 *
-* @param[in] 
-* @param[out] 
-* @return 
+* @param[in] char *name
+* @return void
 * @throws 
 * @exceptsafe yes
 */  
 void ActorTypeSelected(char *name)
 {       
+    // set action values
+    _actorType = name;
+    _actorName = "";
+    _actionName = "";
+    _arg1 = "";
+
     showSelection(name);
 
+    // show sub menu
     if(0 == strcmp(name, "Person"))
         putMenu((char *)"Actor", people, &terminalMenu::PersonSelected, ARRAY_SIZE(people), 10, 40, 4, 44);
     else if(0 == strcmp(name, "Car"))
@@ -259,46 +291,62 @@ void ActorTypeSelected(char *name)
 /**
 * ---
 *
-* @param[in] 
-* @param[out] 
-* @return 
+* @param[in] char *name
+* @return void
 * @throws 
 * @exceptsafe yes
 */  
 void PersonSelected(char *name)
 {        
+    // set action values
+    _actorName = name;
+    _actionName = "";
+    _arg1 = "";
+
     showSelection(name);
+
+    // show sub menu
     putMenu((char *)"Action", personAction, &terminalMenu::PersonsActionSelected, ARRAY_SIZE(personAction), 10, 40, 4, 84);   
 } 
 
 /**
 * ---
 *
-* @param[in] 
-* @param[out] 
-* @return 
+* @param[in] char *name
+* @return void
 * @throws 
 * @exceptsafe yes
 */  
 void CarSelected(char *name)
 {        
+    // set action values
+    _actorName = name;
+    _actionName = "";
+    _arg1 = "";
+
     showSelection(name);
+
+    // show sub menu
     putMenu((char *)"Action", carAction, &terminalMenu::CarActionSelected, ARRAY_SIZE(carAction), 10, 40, 4, 84);   
 } 
 
 /**
 * ---
 *
-* @param[in] 
-* @param[out] 
-* @return 
+* @param[in] char *name
+* @return void
 * @throws 
 * @exceptsafe yes
 */  
 void PersonsActionSelected(char *name)
 {        
+    // set action values
+    _actionName = name;
+    _arg1 = "";
+
     showSelection(name);
 
+    // show sub menu
     if(0 == strcmp(name, "Move To"))
         putMenu((char *)"Location", personLocations, &terminalMenu::PersonsActionMovetoSelected, ARRAY_SIZE(personLocations), 10, 40, 4, 124);
     else if(0 == strcmp(name, "Change Role"))
@@ -308,69 +356,87 @@ void PersonsActionSelected(char *name)
 /**
 * ---
 *
-* @param[in] 
-* @param[out] 
-* @return 
+* @param[in] char *name
+* @return void
 * @throws 
 * @exceptsafe yes
 */  
 void CarActionSelected(char *name)
 {        
-    showSelection(name);
+    // set action values
+    _actionName = name;
+    _arg1 = "";
+
     putMenu((char *)"Location", carLocations, &terminalMenu::CarActionChangeLocationSelected, ARRAY_SIZE(carLocations), 10, 40, 4, 124);   
 } 
 
 /**
 * ---
 *
-* @param[in] 
-* @param[out] 
-* @return 
+* @param[in] char *name
+* @return void
 * @throws 
 * @exceptsafe yes
 */  
 void PersonsActionMovetoSelected(char *name)
 {        
-    showSelection(name);
+    // set action values
+    _arg1 = name;
+
     //do the change  
+    DoTheChange();
 } 
 
 /**
 * ---
 *
-* @param[in] 
-* @param[out] 
-* @return 
+* @param[in] char *name
+* @return void
 * @throws 
 * @exceptsafe yes
 */  
 void PersonsActionChangeRoleSelected(char *name)
 {        
-    showSelection(name);
-    //do the change    
+    // set action values
+    _arg1 = name;
+
+    //do the change  
+    DoTheChange();  
 } 
 
 /**
 * ---
 *
-* @param[in] 
-* @param[out] 
-* @return 
+* @param[in] char *name
+* @return void
 * @throws 
 * @exceptsafe yes
 */  
 void CarActionChangeLocationSelected(char *name)
 {        
-    showSelection(name);
-    //do the change    
+    // set action values
+    _arg1 = name;
+
+    //do the change  
+    DoTheChange();
 } 
 
+/**
+* Generate a change message and send it to the message bus
+*
+* @return void
+* @throws 
+* @exceptsafe yes
+*/  
 void DoTheChange()
 {
     if(nullptr == _messageBus)
         return;
 
-    message::Message msg;
+    message::MessageHeader mh(_sequenceID++, _senderID, _senderName, _destID, _destName);
+
+    std::shared_ptr<message::Message> msg = 
+        std::make_shared<message::ActionMessage>(mh, _actorType, _actorName, _actionName, _arg1);
 
     _messageBus->SendMessage(msg);
 }
@@ -392,7 +458,14 @@ void Run()
     endwin();
 }
 
-void MessageCallback(message::Message msg)
+/**
+* Callback from the message bus when a message arrives
+*
+* @param[in] message::Message msg
+* @return 
+* @throws 
+* @exceptsafe yes
+*/  void MessageCallback(message::Message msg)
 {
     UNUSED(msg);
 }
@@ -416,6 +489,8 @@ void Init()
     keypad(stdscr, TRUE);
     init_pair(1, COLOR_RED, COLOR_BLACK);
     init_pair(2, COLOR_CYAN, COLOR_BLACK); 
+
+    //auto vv = new message::MessageBusInProc(); 
 
     // Initialize message bus
     _messageBus = std::make_shared<message::MessageBusInProc>();

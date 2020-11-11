@@ -13,7 +13,7 @@
 #define UNUSED(...) (void)(__VA_ARGS__)
     
 // callback method type
-typedef void (*MessageCallbackType)(message::Message msg); 
+typedef void (*MessageCallbackType)(std::shared_ptr<message::Message> msg); 
 
 namespace message {
 
@@ -27,7 +27,7 @@ public:
     std::vector<MessageCallbackType> _messageCallbacks;
 
     // send a message
-    virtual int SendMessage(Message msg)
+    virtual int SendMessage(std::shared_ptr<message::Message> msg)
     {
         UNUSED(msg);
         return 0;
@@ -62,45 +62,47 @@ class MessageBusInProc : public IMessageBus
 {
 private:
 
-    std::queue<Message> _messageQueue;
+    std::thread* _workerThread;
+    std::queue<std::shared_ptr<message::Message>> _messageQueue;
     std::mutex m;
     std::condition_variable cv;
+    bool _stop = false;
 
     /**
      * Worker thread, runs forever
      *
-     * @param[in] 
-     * @param[out] 
      * @return 
      * @throws 
      * @exceptsafe yes
      */    
     void worker()
     {
-        while(true)
+        while(!_stop)
         {
             // Wait until a message is received
             std::unique_lock<std::mutex> lk(m);
             cv.wait(lk);
 
+            if(_stop)
+                break;
+
             // empty the queue
             while(!_messageQueue.empty())
             {
                 // get the first message
-                Message message = _messageQueue.front();
+                std::shared_ptr<message::Message> msg = _messageQueue.front();
                 _messageQueue.pop();
 
                 // send message to each registerd callback
                 for(MessageCallbackType cb : _messageCallbacks)
                 {
-                    cb(message);
+                    cb(msg);
 
                     // TODO: Don't send messages back to sender (maybe)
                     // TODO: Add error handling
                 }
             }
         }
-
     }
 
 public:
@@ -108,8 +110,6 @@ public:
     /**
      * constructor
      *
-     * @param[in] 
-     * @param[out] 
      * @return 
      * @throws 
      * @exceptsafe yes
@@ -122,17 +122,16 @@ public:
     /**
      * Put a message on the bus
      *
-     * @param[in] Message message
-     * @param[out] 
-     * @return 
+     * @param[in] std::shared_ptr<message::Message> msg
+     * @return int
      * @throws 
      * @exceptsafe yes
      */  
-    int SendMessage(Message message) override
+    int SendMessage(std::shared_ptr<message::Message> msg) override
     {
         {
             std::lock_guard<std::mutex> lk(m);
-            _messageQueue.push(message);
+            _messageQueue.push(msg);
         }
 
         cv.notify_one();
@@ -142,16 +141,31 @@ public:
     /**
      * Start the worker thread
      *
-     * @param[in] 
-     * @param[out] 
-     * @return 
+     * @return int
      * @throws 
      * @exceptsafe yes
      */  
     int Run()
     {
-        std::thread workerThread(&MessageBusInProc::worker, this);
+        _workerThread = new std::thread(&MessageBusInProc::worker, this);        
         return 0;
+    }
+
+    /**
+     * Stop the worker thread
+     *
+     * @throws 
+     * @exceptsafe yes
+     */  
+    void Stop()
+    {
+        _stop = true;
+
+        {
+            std::lock_guard<std::mutex> lk(m);
+        }
+
+        cv.notify_one();
     }
 
 };

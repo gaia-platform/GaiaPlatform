@@ -11,12 +11,12 @@ namespace message {
 class MessageHeader{
 public:
 
-    unsigned int sequenceID_;
-    time_t timeSent_;
-    unsigned int senderID_;
-    std::string senderName_;    
-    unsigned int destID_;
-    std::string destName_;
+    unsigned int _sequenceID = 0;
+    time_t _timeSent;
+    unsigned int _senderID;
+    std::string _senderName;    
+    unsigned int _destID;
+    std::string _destName;
 
     /**
      * Constructor, timeSent is set for you
@@ -28,7 +28,13 @@ public:
      */
     MessageHeader()
     {
-        timeSent_  = time(nullptr);
+        _timeSent  = time(nullptr);
+        
+        _sequenceID++;
+        _senderID = 0;
+        _senderName = "*";    
+        _destID = 0;
+        _destName = "*";
     };
 
     /**
@@ -48,10 +54,11 @@ public:
     std::string senderName,    
     unsigned int destID,
     std::string destName) : 
-        sequenceID_(sequenceID), senderID_(senderID), 
-        senderName_(senderName), destID_(destID), destName_(destName)
+        _sequenceID(sequenceID), _senderID(senderID), 
+        _senderName(senderName), _destID(destID), _destName(destName)
     {
-        timeSent_  = time(nullptr);
+        _timeSent  = time(nullptr);
+        FixVals();
     };
 
     /**
@@ -73,13 +80,23 @@ public:
     std::string senderName,    
     unsigned int destID,
     std::string destName) : 
-        sequenceID_(sequenceID), timeSent_(timeSent), senderID_(senderID), 
-        senderName_(senderName), destID_(destID), destName_(destName)
+        _sequenceID(sequenceID), _timeSent(timeSent), _senderID(senderID), 
+        _senderName(senderName), _destID(destID), _destName(destName)
     {
+        FixVals();
     };
 
     int DemoTest(){
         return 0;
+    }
+
+    void FixVals()
+    {
+        if( "" == _senderName ) 
+         _senderName = "*";
+
+        if( "" == _destName) 
+          _destName = "*";
     }
 };
 
@@ -114,7 +131,7 @@ public:
 */
 class Message{
 
-private:
+protected:
 
     MessageHeader _messageHeader;    
     void * _payload;
@@ -137,7 +154,40 @@ public:
         _payload = payload;
     }
 
+    /**
+     * Constructor
+     *
+     * @param[in] MessageHeader header
+     * @return 
+     * @throws 
+     * @exceptsafe yes
+     */    
+    Message(MessageHeader header) : 
+        _messageHeader(header)
+    {}
+
     Message(){}
+
+    int DemoTest(){
+        return 0;
+    }
+};
+
+class ActionMessage : public Message
+{
+public:
+
+    std::string _actorType;
+    std::string _actor;
+    std::string _action;
+    std::string _arg1;
+
+    ActionMessage(MessageHeader header, std::string actorType, std::string actor, std::string action, std::string arg1) :
+        Message(header), _actorType(actorType), _actor(actor), _action(action), _arg1(arg1)
+    {}
+
+    ActionMessage()
+    {}
 
     int DemoTest(){
         return 0;
