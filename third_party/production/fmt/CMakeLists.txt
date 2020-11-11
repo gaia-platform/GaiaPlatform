@@ -17,8 +17,6 @@ else ()
       https://github.com/fmtlib/fmt/archive/${FMT_VERSION}.tar.gz
     URL_HASH
       SHA256=b4b51bc16288e2281cddc59c28f0b4f84fed58d016fb038273a09f05f8473297
-    PATCH_COMMAND
-      echo "set_property (TARGET fmt PROPERTY POSITION_INDEPENDENT_CODE ON)" ">>" "${CMAKE_CURRENT_BINARY_DIR}/fmt_dependency-prefix/src/fmt_dependency/CMakeLists.txt"
     CMAKE_ARGS
       -DFMT_INSTALL:BOOL=ON
       -DFMT_TEST:BOOL=OFF
