@@ -164,33 +164,33 @@ unordered_map<string, unordered_map<string, field_data_t>> get_table_data()
 
         for (catalog::gaia_relationship_t relationship : catalog::gaia_relationship_t::list())
         {
-            catalog::gaia_table_t parent_table = relationship.parent_gaia_table();
-            if (!parent_table)
+            catalog::gaia_table_t child_table = relationship.child_gaia_table();
+            if (!child_table)
             {
-                llvm::errs() << "Incorrect table for field " << relationship.name() << "\n";
+                llvm::errs() << "Incorrect child table in the relationship " << relationship.name() << "\n";
                 g_generation_error = true;
                 return unordered_map<string, unordered_map<string, field_data_t>>();
             }
 
-            catalog::gaia_table_t child_table = relationship.child_gaia_table();
-            if (!child_table)
+            catalog::gaia_table_t parent_table = relationship.parent_gaia_table();
+            if (!parent_table)
             {
-                llvm::errs() << "Incorrect table referenced by field " << relationship.name() << "\n";
+                llvm::errs() << "Incorrect parent table in the relationship " << relationship.name() << "\n";
                 g_generation_error = true;
                 return unordered_map<string, unordered_map<string, field_data_t>>();
             }
             table_link_data_t link_data_1;
-            link_data_1.table = child_table.name();
+            link_data_1.table = parent_table.name();
             link_data_1.field = relationship.name();
             table_link_data_t link_data_n;
-            link_data_n.table = parent_table.name();
+            link_data_n.table = child_table.name();
             link_data_n.field = relationship.name();
 
-            g_table_relationship_1.emplace(parent_table.name(), link_data_1);
-            g_table_relationship_n.emplace(child_table.name(), link_data_n);
+            g_table_relationship_1.emplace(child_table.name(), link_data_1);
+            g_table_relationship_n.emplace(parent_table.name(), link_data_n);
 
-            fill_table_db_data(parent_table);
             fill_table_db_data(child_table);
+            fill_table_db_data(parent_table);
         }
     }
     catch (exception e)
