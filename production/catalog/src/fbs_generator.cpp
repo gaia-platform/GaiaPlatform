@@ -148,11 +148,13 @@ string generate_fbs(const string& db_name, const string& table_name, const ddl::
     fbs += "table " + table_name + "{";
     for (auto& field : fields)
     {
-        if (field->type == data_type_t::e_references)
+        if (field->field_type == ddl::field_type_t::reference)
         {
             continue;
         }
-        string field_fbs = generate_fbs_field(field->name, get_data_type_name(field->type), field->length);
+        const ddl::data_field_def_t* data_field = dynamic_cast<ddl::data_field_def_t*>(field.get());
+        string field_fbs = generate_fbs_field(
+            data_field->name, get_data_type_name(data_field->data_type), data_field->length);
         fbs += field_fbs + ";";
     }
     fbs += "}";

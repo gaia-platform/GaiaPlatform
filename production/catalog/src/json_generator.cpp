@@ -134,7 +134,7 @@ string generate_json(const ddl::field_def_list_t& fields)
     bool has_output_first_field = false;
     for (auto& field : fields)
     {
-        if (field->type == data_type_t::e_references)
+        if (field->field_type == ddl::field_type_t::reference)
         {
             continue;
         }
@@ -145,7 +145,10 @@ string generate_json(const ddl::field_def_list_t& fields)
         }
         has_output_first_field = true;
 
-        string field_json = generate_json_field(field->name, get_data_type_default_value(field->type), field->length);
+        const ddl::data_field_def_t* data_field = dynamic_cast<ddl::data_field_def_t*>(field.get());
+
+        string field_json = generate_json_field(
+            data_field->name, get_data_type_default_value(data_field->data_type), data_field->length);
 
         json_string_stream
             << endl
