@@ -95,7 +95,7 @@ target_include_directories(gaia_se_client SYSTEM PRIVATE "${GEN_DIR}")
 # Suppress spurious warnings about zero-initialized structs.
 set_target_properties(gaia_se_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 target_link_libraries(gaia_se_client PUBLIC gaia_common)
-target_link_libraries(gaia_se_client PRIVATE explain gaia_payload_types gaia_direct)
+target_link_libraries(gaia_se_client PRIVATE explain gaia_payload_types)
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia_se_client PROPERTY POSITION_INDEPENDENT_CODE ON)
 
@@ -188,7 +188,7 @@ endif()
 
 add_gtest(test_rdb_object_converter "tests/test_rdb_object_converter.cpp" "${FLATBUFFERS_INC};${GEN_DIR};${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "rocks_wrapper")
 add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
-add_gtest(test_storage_engine_client "tests/test_storage_engine_client.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_se_client")
+add_gtest(test_storage_engine_client "tests/test_storage_engine_client.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_se_client;gaia_direct")
 add_gtest(test_locator_allocator tests/test_locator_allocator.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
-add_gtest(test_relationships tests/test_relationships.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client")
-add_gtest(test_se_references tests/test_se_references.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client")
+add_gtest(test_relationships tests/test_relationships.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client;gaia_direct")
+add_gtest(test_se_references tests/test_se_references.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client;gaia_direct")
