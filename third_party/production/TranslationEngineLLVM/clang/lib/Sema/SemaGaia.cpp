@@ -99,11 +99,6 @@ static unordered_map<string, unordered_map<string, QualType>> getTableData(Sema 
 
         for(catalog::gaia_field_t field : catalog::gaia_field_t::list())
         {
-            if (static_cast<catalog::data_type_t>(field.type()) == catalog::data_type_t::e_references)
-            {
-                continue;
-            }
-
             catalog::gaia_table_t tbl = field.gaia_table();
             if (!tbl)
             {
