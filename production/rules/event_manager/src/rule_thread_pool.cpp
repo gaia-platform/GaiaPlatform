@@ -205,7 +205,7 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
         // TODO[GAIAPLAT-158]: Determine retry/error handling logic
         // Catch all exceptions or let terminate happen? Don't drop pending
         // rules on the floor (should_schedule == false) when we add retry logic.
-        gaia_log::rules().error("exception: {}, {}", rule_id, e.what());
+        gaia_log::rules().trace("exception: {}, {}", rule_id, e.what());
     }
 
     process_pending_invocations(should_schedule);

@@ -129,8 +129,7 @@ void rule_bad(const rule_context_t*)
 {
 
     employee_t bad;
-    // This should throw an exception since the bad
-    // employee is not backed bya a gaia id.
+    // Accessing this object should throw an exception since the employee does not exist in the database.
     bad = bad.get_next();
 }
 
@@ -471,12 +470,11 @@ TEST_F(rule_integration_test, test_reinit)
 
 // Ensures the exception is caught by the rules engine and
 // doesn't escape to the test process.
-
 TEST_F(rule_integration_test, test_exception)
 {
     subscribe_bad();
     {
-        auto_transaction_t txn(false);
+        auto_transaction_t txn(auto_transaction_t::no_auto_begin);
         employee_writer writer;
         writer.name_first = c_name;
         writer.insert_row();
