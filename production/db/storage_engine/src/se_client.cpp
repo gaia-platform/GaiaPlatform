@@ -179,14 +179,12 @@ void client::destroy_log_mapping()
     }
 }
 
-// This function is intended only for use in test scenarios, where we need to clear
-// stale mappings and file descriptors referencing shared memory segments that have
-// been reinitialized by the server following receipt of SIGHUP (test-only feature).
-// It is not concurrency-safe, since we assume that no sessions are active while this
-// function is being called, which is a reasonable assumption for tests.
+// This function must be called before establishing a new session. It ensures
+// that if the server restarts or is reset, no session will start with a stale
+// data mapping or locator fd.
 void client::clear_shared_memory()
 {
-    // This is intended to be called before any session is established.
+    // This is intended to be called before a session is established.
     verify_no_session();
     // We closed our original fd for the data segment, so we only need to unmap it.
     if (s_data)
@@ -303,11 +301,9 @@ void client::begin_session()
         // since it's not saved anywhere and the mapping
         // increments the shared memory segment's refcount.
         close_fd(fd_data);
-        // We can only close the locator fd if it hasn't been cached.
-        if (s_fd_locators != fd_locators)
-        {
-            close_fd(fd_locators);
-        }
+        // We can unconditionally close the locator fd, since we save it as the
+        // very last step.
+        close_fd(fd_locators);
     });
 
     const message_t* msg = Getmessage_t(msg_buf);

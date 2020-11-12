@@ -61,14 +61,16 @@ struct log
 
 struct data
 {
-    // The first two fields are used as cross-process atomic counters. We
-    // don't need something like a cross-process mutex for this, as long as
-    // we use atomic intrinsics for mutating the counters. This is because
-    // the instructions targeted by the intrinsics operate at the level of
-    // physical memory, not virtual addresses.
-    // REVIEW: these fields should probably be changed to std::atomic<T>
-    // (and the explicit calls to atomic intrinsics replaced by atomic
-    // methods).
+    // The `id` fields are used as cross-process atomic counters. We don't
+    // need something like a cross-process mutex for this, as long as we use
+    // atomic intrinsics for mutating the counters. This is because the
+    // instructions targeted by the intrinsics operate at the level of physical
+    // memory, not virtual addresses.
+    // REVIEW: these fields should probably be changed to std::atomic<T> (and
+    // the explicit calls to atomic intrinsics replaced by atomic methods).
+    // NB: all these fields are initialized to 0, even though C++ doesn't
+    // guarantee it, because this is constructed in a memory-mapped
+    // shared-memory segment, and the OS automatically zeroes new pages.
     gaia::common::gaia_id_t next_id;
     gaia::common::gaia_type_t next_type_id;
     gaia::db::gaia_txn_id_t next_txn_id;
