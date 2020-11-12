@@ -63,8 +63,12 @@ void append_context_option_names(Oid context_id, StringInfoData& string_info)
     }
 }
 
-Datum convert_to_datum(const data_holder_t& value)
+NullableDatum convert_to_nullable_datum(const data_holder_t& value)
 {
+    NullableDatum nullable_datum{};
+    nullable_datum.value = 0;
+    nullable_datum.isnull = false;
+
     switch (value.type)
     {
     case reflection::Bool:
@@ -72,32 +76,44 @@ Datum convert_to_datum(const data_holder_t& value)
     case reflection::UByte:
     case reflection::Short:
     case reflection::UShort:
-        return Int16GetDatum(static_cast<int16_t>(value.hold.integer_value));
+        nullable_datum.value = Int16GetDatum(static_cast<int16_t>(value.hold.integer_value));
+        return nullable_datum;
 
     case reflection::Int:
     case reflection::UInt:
-        return Int32GetDatum(static_cast<int32_t>(value.hold.integer_value));
+        nullable_datum.value = Int32GetDatum(static_cast<int32_t>(value.hold.integer_value));
+        return nullable_datum;
 
     case reflection::Long:
     case reflection::ULong:
-        return Int64GetDatum(value.hold.integer_value);
+        nullable_datum.value = Int64GetDatum(value.hold.integer_value);
+        return nullable_datum;
 
     case reflection::Float:
-        return Float4GetDatum(static_cast<float>(value.hold.float_value));
+        nullable_datum.value = Float4GetDatum(static_cast<float>(value.hold.float_value));
+        return nullable_datum;
 
     case reflection::Double:
-        return Float8GetDatum(value.hold.float_value);
+        nullable_datum.value = Float8GetDatum(value.hold.float_value);
+        return nullable_datum;
 
     case reflection::String:
     {
-        size_t str_len = strlen(value.hold.string_value);
-        size_t text_len = str_len + VARHDRSZ;
-        text* t = reinterpret_cast<text*>(palloc(text_len));
+        if (value.hold.string_value == nullptr)
+        {
+            nullable_datum.isnull = true;
+            return nullable_datum;
+        }
 
-        SET_VARSIZE(t, text_len); // NOLINT (macro expansion)
-        memcpy(VARDATA(t), value.hold.string_value, str_len); // NOLINT (macro expansion)
+        size_t string_length = strlen(value.hold.string_value);
+        size_t pg_text_length = string_length + VARHDRSZ;
+        text* pg_text = reinterpret_cast<text*>(palloc(pg_text_length));
 
-        return CStringGetDatum(t); // NOLINT (macro expansion)
+        SET_VARSIZE(pg_text, pg_text_length); // NOLINT (macro expansion)
+        memcpy(VARDATA(pg_text), value.hold.string_value, string_length); // NOLINT (macro expansion)
+
+        nullable_datum.value = CStringGetDatum(pg_text); // NOLINT (macro expansion)
+        return nullable_datum;
     }
 
     default:
@@ -551,7 +567,7 @@ bool scan_state_t::has_scan_ended()
     return !m_current_node;
 }
 
-Datum scan_state_t::extract_field_value(size_t field_index)
+NullableDatum scan_state_t::extract_field_value(size_t field_index)
 {
     if (field_index >= m_count_fields)
     {
@@ -564,11 +580,12 @@ Datum scan_state_t::extract_field_value(size_t field_index)
 
     try
     {
-        Datum field_value{};
+        NullableDatum field_value{};
+        field_value.isnull = false;
 
         if (is_gaia_id_field_index(field_index))
         {
-            field_value = UInt64GetDatum(m_current_node.id());
+            field_value.value = UInt64GetDatum(m_current_node.id());
         }
         // TODO: handle references.
         else
@@ -580,7 +597,7 @@ Datum scan_state_t::extract_field_value(size_t field_index)
                 0,
                 m_fields[field_index].position);
 
-            field_value = convert_to_datum(value);
+            field_value = convert_to_nullable_datum(value);
         }
 
         return field_value;
@@ -650,7 +667,7 @@ void modify_state_t::initialize_payload()
     }
 }
 
-void modify_state_t::set_field_value(size_t field_index, const Datum& field_value)
+void modify_state_t::set_field_value(size_t field_index, const NullableDatum& field_value)
 {
     if (field_index >= m_count_fields)
     {
@@ -669,9 +686,18 @@ void modify_state_t::set_field_value(size_t field_index, const Datum& field_valu
              errmsg("Attempt to set value of gaia_id field!")));
     }
 
+    if (field_value.isnull)
+    {
+        // For now, we don't have a way to represent NULL for scalar types
+        // and reflection API does not support setting nullptr strings either.
+        // so we'll process NULL by doing nothing,
+        // which will result in fields getting set to default values.
+        return;
+    }
+
     try
     {
-        data_holder_t value = convert_to_data_holder(field_value, m_fields[field_index].type);
+        data_holder_t value = convert_to_data_holder(field_value.value, m_fields[field_index].type);
 
         if (value.type == reflection::String)
         {
