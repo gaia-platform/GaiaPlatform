@@ -1,0 +1,80 @@
+#include <atomic>
+#include <algorithm>
+
+using namespace std;
+
+extern atomic<int> TIMESTAMP;
+const double FAN_SPEED_LIMIT = 5000.0;
+const double FAN_SPEED_INCREMENT = 500;
+
+ruleset incubator_ruleset
+{
+    // Rule 1:  keep the temperature with the range of the minimum and
+    // maximum limits of the incubator.
+    {
+        // Prefixing an active field that is being read with '@' signals to the Gaia Platform that this 
+        // rule should not be called if the field changes. If the '@' were not present, then this rule 
+        // would be if the incubator turned on or off.
+        if (!@incubator.is_on)
+        {
+            return;
+        }
+
+        if (sensor.value >= incubator.max_temp)
+        {
+            actuator.value = min(FAN_SPEED_LIMIT, @actuator.value + FAN_SPEED_INCREMENT);
+            actuator.timestamp = TIMESTAMP;
+        }
+        else if (sensor.value <= incubator.min_temp)
+        {
+            actuator.value = max(0.0, @actuator.value - (2*FAN_SPEED_INCREMENT));
+            actuator.timestamp   = TIMESTAMP;
+        }
+    }
+
+    // Rule 2:  Turn off all the fans if the incubator is powered down.    
+    {
+        if (!incubator.is_on)
+        {
+            actuator.value = 0;
+            actuator.timestamp = TIMESTAMP;
+        }
+    }
+
+    // Rule 3:  If the fan is at 70% of its limit and the temperature is still too hot then
+    // set the fan to its maximum speed.
+    {
+        if (actuator.value == FAN_SPEED_LIMIT)
+        {
+            return;
+        }
+
+        if (actuator.value > 0.7 * FAN_SPEED_LIMIT && @sensor.value > @incubator.max_temp)
+        {
+            actuator.value = FAN_SPEED_LIMIT;
+        }
+    }
+
+/*
+    // Rule 4 on power on, turn on each actuator to make sure it is working.
+    {
+        if (incubator.is_on) 
+        {
+            actuator.value = 1500;
+        }
+    }
+*/
+
+/*
+    // Rule 4 improvement: only run the POST for the first power-on on the incubator.
+    // Requires a schema change to add "post_complete" field to the incubator.  Intended
+    // to demonstrate a possible developer workflow.
+    {
+        if (is_on && !@post_complete) 
+        {
+            actuator.value = 1500;
+        }
+        post_complete = true;
+    }
+*/
+}
