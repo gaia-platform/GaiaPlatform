@@ -90,11 +90,11 @@ public:
         gaia::common::gaia_type_t& container_id);
 
     template <class S>
-    static S* get_state(const char* table_name, size_t count_fields)
+    static S* get_state(const char* table_name, size_t expected_count_fields)
     {
         S* state = (S*)palloc0(sizeof(S));
 
-        return state->initialize(table_name, count_fields) ? state : nullptr;
+        return state->initialize(table_name, expected_count_fields) ? state : nullptr;
     }
 
 protected:
@@ -121,8 +121,9 @@ protected:
 // A structure holding basic field information.
 struct field_information_t
 {
-    gaia::common::field_position_t position;
+    uint16_t position;
     gaia::common::data_type_t type;
+    bool is_reference;
 };
 
 class state_t

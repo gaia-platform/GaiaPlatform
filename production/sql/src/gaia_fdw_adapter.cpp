@@ -11,8 +11,11 @@
 #include "catalog_core.hpp"
 #include "catalog_internal.hpp"
 #include "field_access.hpp"
+#include "gaia_catalog.h"
 
 using namespace std;
+
+using namespace gaia::catalog;
 using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::db::payload_types;
@@ -442,7 +445,7 @@ bool adapter_t::get_ids(
     return true;
 }
 
-bool state_t::initialize(const char* table_name, size_t count_fields)
+bool state_t::initialize(const char* table_name, size_t expected_count_fields)
 {
     try
     {
@@ -454,28 +457,23 @@ bool state_t::initialize(const char* table_name, size_t count_fields)
             return false;
         }
 
-        // We start from 1 to cover gaia_id, which is not returned by list_fields.
-        m_count_fields = 1;
-        for (auto field_view : catalog_core_t::list_fields(m_table_id))
-        {
-            m_count_fields++;
-        }
-        // TODO: Inlcude named references as part of the field count.
-        //       This is pending relationship APIs in catalog_core_t.
-
-        if (count_fields != m_count_fields)
+        // Our field count consists of all fields and references, plus the gaia_id system field.
+        size_t count_fields = list_fields(m_table_id).size();
+        size_t count_references = list_references(m_table_id).size();
+        m_count_fields = 1 + count_fields + count_references;
+        if (m_count_fields != expected_count_fields)
         {
             ereport(
                 ERROR,
                 (errcode(ERRCODE_FDW_ERROR),
                  errmsg("Unexpected table field count!"),
-                 errhint("Count is '%ld' and expected count was '%ld'.", count_fields, m_count_fields)));
+                 errhint("Count is '%ld' and expected count was '%ld'.", m_count_fields, expected_count_fields)));
         }
         else
         {
             elog(
                 DEBUG1, "Successfully initialized processing of table '%s' with '%ld' fields!",
-                table_name, count_fields);
+                table_name, m_count_fields);
         }
 
         // Allocate memory for holding field information.
@@ -491,10 +489,10 @@ bool state_t::initialize(const char* table_name, size_t count_fields)
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Failed initializing FDW state."),
              errhint(
-                 "Table: '%s', container_id: '%ld', field count: '%ld'. Exception: '%s'.",
+                 "Table: '%s', container_id: '%ld', expected field count: '%ld'. Exception: '%s'.",
                  table_name,
                  m_container_id,
-                 count_fields,
+                 expected_count_fields,
                  e.what())));
     }
 }
@@ -524,14 +522,45 @@ bool state_t::set_field_index(const char* field_name, size_t field_index)
 
     // All other fields need to be looked up in metadata.
     bool found_field = false;
-    for (auto field_view : catalog_core_t::list_fields(m_table_id))
+
+    // Look up fields first.
+    for (gaia_id_t field_id : gaia::catalog::list_fields(m_table_id))
     {
-        if (strcmp(field_name, field_view.name()) == 0)
+        gaia_field_t field = gaia_field_t::get(field_id);
+
+        if (strcmp(field_name, field.name()) == 0)
         {
             found_field = true;
 
-            m_fields[field_index].position = field_view.position();
-            m_fields[field_index].type = field_view.data_type();
+            m_fields[field_index].position = field.position();
+            m_fields[field_index].type = static_cast<data_type_t>(field.type());
+            m_fields[field_index].is_reference = false;
+
+            break;
+        }
+    }
+
+    // Lookup references if we have not found a match in fields.
+    for (gaia_id_t reference_id : list_references(m_table_id))
+    {
+        gaia_relationship_t relationship = gaia_relationship_t::get(reference_id);
+
+        string relationship_name = relationship.name();
+        if (relationship_name.empty())
+        {
+            relationship_name = relationship.parent_gaia_table().name();
+        }
+        retail_assert(
+            !relationship_name.empty(),
+            "Unable to derive name of anonymous relationship!");
+
+        if (strcmp(field_name, relationship_name.c_str()) == 0)
+        {
+            found_field = true;
+
+            m_fields[field_index].position = relationship.parent_offset();
+            m_fields[field_index].type = data_type_t::e_uint64;
+            m_fields[field_index].is_reference = true;
 
             break;
         }
@@ -587,7 +616,12 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
         {
             field_value.value = UInt64GetDatum(m_current_node.id());
         }
-        // TODO: handle references.
+        else if (m_fields[field_index].is_reference)
+        {
+            // TODO: Add support for surfacing reference field values.
+            // For now, surface reference fields with value 0.
+            field_value.value = UInt64GetDatum(0);
+        }
         else
         {
             data_holder_t value = get_field_value(
@@ -683,7 +717,7 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("Attempt to set value of gaia_id field!")));
+             errmsg("Attempt to set the value of the gaia_id field!")));
     }
 
     if (field_value.isnull)
@@ -693,6 +727,15 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
         // so we'll process NULL by doing nothing,
         // which will result in fields getting set to default values.
         return;
+    }
+
+    if (m_fields[field_index].is_reference)
+    {
+        // TODO: Add support for setting reference field values.
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("Attempt to set the value of a reference field! This operation is not supported yet!")));
     }
 
     try
