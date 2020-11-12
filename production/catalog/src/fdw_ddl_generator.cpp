@@ -3,12 +3,11 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "fdw_ddl_generator.hpp"
-
 #include <algorithm>
 #include <sstream>
 #include <string>
 
+#include "catalog_internal.hpp"
 #include "gaia_catalog.h"
 #include "retail_assert.hpp"
 
@@ -131,47 +130,6 @@ string generate_fdw_ddl(gaia_id_t table_id, const string& server_name)
     {
         gaia::db::commit_transaction();
     }
-
-    return ddl_string_stream.str();
-}
-
-string generate_fdw_ddl(
-    const string& table_name, const ddl::field_def_list_t& fields, const string& server_name)
-{
-    stringstream ddl_string_stream;
-    ddl_string_stream << "CREATE FOREIGN TABLE ";
-
-    ddl_string_stream << table_name << "(" << endl;
-    ddl_string_stream << "gaia_id BIGINT";
-
-    for (auto& field : fields)
-    {
-        if (field->field_type == ddl::field_type_t::reference)
-        {
-            const ddl::ref_field_def_t* ref_field = dynamic_cast<ddl::ref_field_def_t*>(field.get());
-            // Skip anonymous reference fields.
-            if (ref_field->is_anonymous())
-            {
-                continue;
-            }
-
-            ddl_string_stream
-                << "," << endl
-                << ref_field->name << " BIGINT";
-        }
-        else
-        {
-            const ddl::data_field_def_t* data_field = dynamic_cast<ddl::data_field_def_t*>(field.get());
-            string field_ddl = generate_fdw_ddl_field(field->name, get_fdw_data_type_name(data_field->data_type), data_field->length);
-            ddl_string_stream
-                << "," << endl
-                << field_ddl;
-        }
-    }
-
-    ddl_string_stream
-        << endl
-        << ") SERVER " << server_name << ";" << endl;
 
     return ddl_string_stream.str();
 }
