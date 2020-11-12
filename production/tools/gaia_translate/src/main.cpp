@@ -42,6 +42,7 @@ std::string g_current_ruleset;
 bool g_verbose = false;
 bool g_generation_error = false;
 int g_current_ruleset_rule_number = 1;
+bool g_delete_operation_in_rule = false;
 
 vector<string> g_rulesets;
 unordered_map<string, unordered_set<string>> g_active_fields;
@@ -336,6 +337,13 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
         return return_value;
     }
 
+    if (g_delete_operation_in_rule)
+    {
+        g_generation_error = true;
+        llvm::errs() << "The rule has subscribed for delete operation and has a navigation code which is currently not supported\n";
+        return navigation_code_data_t();
+    }
+
     if (g_used_tables.empty())
     {
         g_generation_error = true;
@@ -593,10 +601,15 @@ void generate_rules(Rewriter &rewriter)
                 .append(rule_name).append("binding);\nsubscribe_rule(gaia::").append(g_table_db_data[table])
                 .append("::").append(table)
                 .append("_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,")
-                .append(rule_name).append("binding);\nsubscribe_rule(gaia::").append(g_table_db_data[table])
-                .append("::").append(table)
-                .append("_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,")
                 .append(rule_name).append("binding);\n");
+
+            if (g_delete_operation_in_rule)
+            {
+                g_current_ruleset_subscription.append("subscribe_rule(gaia::").append(g_table_db_data[table])
+                    .append("::").append(table)
+                    .append("_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,")
+                    .append(rule_name).append("binding);\n");
+            }
 
             g_current_ruleset_unsubscription.append("unsubscribe_rule(gaia::").append(g_table_db_data[table])
                 .append("::").append(table)
@@ -604,10 +617,14 @@ void generate_rules(Rewriter &rewriter)
                 .append(rule_name).append("binding);\nunsubscribe_rule(gaia::").append(g_table_db_data[table])
                 .append("::").append(table)
                 .append("_t::s_gaia_type, event_type_t::row_insert, gaia::rules::empty_fields,")
-                .append(rule_name).append("binding);\nunsubscribe_rule(gaia::").append(g_table_db_data[table])
-                .append("::").append(table)
-                .append("_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,")
                 .append(rule_name).append("binding);\n");
+            if (g_delete_operation_in_rule)
+            {
+                g_current_ruleset_unsubscription.append("unsubscribe_rule(gaia::").append(g_table_db_data[table])
+                    .append("::").append(table)
+                    .append("_t::s_gaia_type, event_type_t::row_delete, gaia::rules::empty_fields,")
+                    .append(rule_name).append("binding);\n");
+            }
         }
 
         navigation_code_data_t navigation_code = generate_navigation_code(table);
@@ -1061,6 +1078,7 @@ public:
         g_used_tables.clear();
         g_active_fields.clear();
         g_current_ruleset_rule_number++;
+        g_delete_operation_in_rule = false;
     }
 
 private:
@@ -1189,6 +1207,68 @@ private:
     Rewriter &m_rewriter;
 };
 
+class last_operation_comparison_handler_t : public MatchFinder::MatchCallback
+{
+public:
+    void run (const MatchFinder::MatchResult &result) override
+    {
+        if (g_delete_operation_in_rule)
+        {
+            return;
+        }
+        const auto* op = result.Nodes.getNodeAs<BinaryOperator>("LastOperationComparison");
+        if (op != nullptr)
+        {
+            const auto *lhs = op->getLHS();
+            const auto *rhs = op->getRHS();
+            if (lhs != nullptr && rhs != nullptr)
+            {
+                const auto *lhs_expression = lhs;
+                const auto *rhs_expression = rhs;
+                if (dyn_cast<ImplicitCastExpr>(lhs) != nullptr)
+                {
+                    lhs_expression = dyn_cast<ImplicitCastExpr>(lhs)->getSubExpr();
+                }
+                if (dyn_cast<ImplicitCastExpr>(rhs) != nullptr)
+                {
+                    rhs_expression = dyn_cast<ImplicitCastExpr>(rhs)->getSubExpr();
+                }
+                bool lhs_has_delete = false;
+                bool rhs_has_delete = false;
+                if (dyn_cast<MemberExpr>(lhs_expression) == nullptr)
+                {
+                    if (dyn_cast<DeclRefExpr>(lhs_expression) != nullptr)
+                    {
+                        lhs_has_delete = dyn_cast<DeclRefExpr>(lhs_expression)->getDecl()->hasAttr<GaiaLastOperationDELETEAttr>();
+                    }
+                }
+                else if (dyn_cast<MemberExpr>(rhs_expression) == nullptr)
+                {
+                    if (dyn_cast<DeclRefExpr>(rhs_expression) != nullptr)
+                    {
+                        rhs_has_delete = dyn_cast<DeclRefExpr>(rhs_expression)->getDecl()->hasAttr<GaiaLastOperationDELETEAttr>();
+                    }
+                }
+                if (op->getOpcode() == BO_EQ)
+                {
+                    if (lhs_has_delete || rhs_has_delete)
+                    {
+                        g_delete_operation_in_rule = true;
+                    }
+                }
+                else if (op->getOpcode() == BO_NE)
+                {
+                    if (!lhs_has_delete && !rhs_has_delete)
+                    {
+                        g_delete_operation_in_rule = true;
+                    }
+                }
+            }
+        }
+    }
+};
+
+
 class translation_engine_consumer_t : public clang::ASTConsumer
 {
 public:
@@ -1198,6 +1278,30 @@ public:
         m_update_match_handler(r), m_insert_match_handler(r), m_delete_match_handler(r), m_none_match_handler(r)
 
     {
+        StatementMatcher last_operation_comparison_matcher = binaryOperator(allOf(
+            anyOf(hasOperatorName("=="), hasOperatorName("!=")),
+            anyOf(
+                allOf(
+                    hasLHS(ignoringParenImpCasts(memberExpr(
+                        hasDescendant(declRefExpr(to(varDecl(hasAttr(attr::GaiaLastOperation)))))))),
+                    hasRHS(ignoringParenImpCasts(declRefExpr(to(varDecl(
+                        anyOf(
+                            hasAttr(attr::GaiaLastOperationUPDATE),
+                            hasAttr(attr::GaiaLastOperationINSERT),
+                            hasAttr(attr::GaiaLastOperationDELETE),
+                            hasAttr(attr::GaiaLastOperationNONE)))))))
+                ),
+                allOf(
+                    hasRHS(ignoringParenImpCasts(memberExpr(
+                        hasDescendant(declRefExpr(to(varDecl(hasAttr(attr::GaiaLastOperation)))))))),
+                    hasLHS(ignoringParenImpCasts(declRefExpr(to(varDecl(
+                        anyOf(
+                            hasAttr(attr::GaiaLastOperationUPDATE),
+                            hasAttr(attr::GaiaLastOperationINSERT),
+                            hasAttr(attr::GaiaLastOperationDELETE),
+                            hasAttr(attr::GaiaLastOperationNONE)))))))
+                )
+            ))).bind("LastOperationComparison");
         StatementMatcher field_get_matcher =
             declRefExpr(to(varDecl(anyOf(hasAttr(attr::GaiaField), hasAttr(attr::GaiaFieldValue)),
             unless(hasAttr(attr::GaiaFieldLValue))))).bind("fieldGet");
@@ -1235,6 +1339,7 @@ public:
         StatementMatcher none_matcher =
             declRefExpr(to(varDecl(hasAttr(attr::GaiaLastOperationNONE)))).bind("NONE");
 
+        m_matcher.addMatcher(last_operation_comparison_matcher, &m_last_operation_comparison_handler);
         m_matcher.addMatcher(field_get_matcher, &m_field_get_match_handler);
         m_matcher.addMatcher(table_field_get_matcher, &m_field_get_match_handler);
 
@@ -1268,6 +1373,7 @@ private:
     insert_match_handler_t m_insert_match_handler;
     delete_match_handler_t m_delete_match_handler;
     none_match_handler_t m_none_match_handler;
+    last_operation_comparison_handler_t m_last_operation_comparison_handler;
 };
 
 class translation_engine_action_t : public clang::ASTFrontendAction
