@@ -76,7 +76,6 @@ void ddl_executor_t::bootstrap_catalog()
         //     deprecated bool,
         //     active bool,
         //     references gaia_table,
-        //     ref references gaia_table,
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
@@ -94,6 +93,7 @@ void ddl_executor_t::bootstrap_catalog()
     }
     {
         // create table gaia_relationship (
+        //     name string,
         //     parent references gaia_table,
         //     child references gaia_table,
         //     cardinality uint8,
@@ -142,7 +142,6 @@ void ddl_executor_t::bootstrap_catalog()
     {
         // create table gaia_rule (
         //     name string,
-        //     ruleset_id bool,
         //     references gaia_ruleset,
         // );
         field_def_list_t fields;
