@@ -44,8 +44,19 @@ class GenAbcDockerfile(Dependency, ABC):
                 && groupadd -r -g 102 postgres \
                 && groupadd -r -g 103 ssh \
                 && groupadd -r -g 104 ssl-cert \
+                && groupadd -r -g 105 systemd-timesync \
+                && groupadd -r -g 106 systemd-journal \
+                && groupadd -r -g 107 systemd-network \
+                && groupadd -r -g 108 systemd-resolve \
                 && useradd messagebus -l -r -u 101 -g 101 \
-                && useradd postgres -l -r -u 102 -g 102 -G ssl-cert
+                && useradd postgres -l -r -u 102 -g 102 -G ssl-cert \
+                && useradd systemd-timesync -l -r -u 103 -g 105 -d /run/systemd \
+                    -s /usr/sbin/nologin \
+                && useradd systemd-network -l -r -u 104 -g 107 -d /run/systemd \
+                    -s /usr/sbin/nologin \
+                && useradd systemd-resolve -l -r -u 105 -g 108 -d /run/systemd \
+                    -s /usr/sbin/nologin \
+                && useradd sshd -l -r -u 106 -d /run/sshd -s /usr/sbin/nologin
 
             FROM base AS apt_base
             RUN echo "APT::Acquire::Retries \"5\";" > /etc/apt/apt.conf.d/80-retries \

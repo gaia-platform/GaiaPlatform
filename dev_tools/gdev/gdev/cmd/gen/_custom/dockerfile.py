@@ -16,6 +16,16 @@ class GenCustomDockerfile(GenAbcDockerfile):
         return GenCustomCfg(self.options)
 
     @memoize
+    async def get_env_section(self) -> str:
+        from ..pre_run.dockerfile import GenPreRunDockerfile
+
+        env_section = await GenPreRunDockerfile(self.options).get_env_section()
+
+        self.log.debug(f'{env_section = }')
+
+        return env_section
+
+    @memoize
     async def get_input_dockerfiles(self) -> Iterable[GenAbcDockerfile]:
         from ..run.dockerfile import GenRunDockerfile
 
@@ -32,7 +42,7 @@ class GenCustomDockerfile(GenAbcDockerfile):
     async def get_text(self) -> str:
         text_parts = [await super().get_text()]
 
-        if 'sudo' in self.options.mixins:
+        if {'clion', 'sudo', 'vscode'} & self.options.mixins:
             uid = os.getuid()
             gid = os.getgid()
             home = Path.home()

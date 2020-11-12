@@ -24,5 +24,6 @@ class Options:
     mixins: FrozenSet[str]
     mounts: FrozenSet[Mount]
     platform: str
+    ports: FrozenSet[str]
     registry: str
     target: str
