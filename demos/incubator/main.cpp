@@ -17,14 +17,14 @@ using namespace gaia::db;
 using namespace gaia::rules;
 using namespace gaia::incubator;
 
-const char SENSOR_A_NAME[] = "Temp A";
-const char SENSOR_B_NAME[] = "Temp B";
-const char SENSOR_C_NAME[] = "Temp C";
-const char ACTUATOR_A_NAME[] = "Fan A";
-const char ACTUATOR_B_NAME[] = "Fan B";
-const char ACTUATOR_C_NAME[] = "Fan C";
+const char* c_sensor_a = "Temp A";
+const char* c_sensor_b = "Temp B";
+const char* c_sensor_c = "Temp C";
+const char* c_actuator_a = "Fan A";
+const char* c_actuator_b = "Fan B";
+const char* c_actuator_c = "Fan C";
 
-const char * c_chicken = "chicken";
+const char* c_chicken = "chicken";
 const float c_chicken_min = 99.0;
 const float c_chicken_max = 102.0;
 
@@ -37,7 +37,7 @@ atomic<int> TIMESTAMP{0};
 
 void add_fan_control_rule();
 
-gaia_id_t insert_incubator(const char * name, float min_temp, float max_temp) {
+gaia_id_t insert_incubator(const char* name, float min_temp, float max_temp) {
     incubator_writer w;
     w.name = name;
     w.is_on = false;
@@ -67,17 +67,17 @@ void restore_incubator(incubator_t& incubator, float min_temp, float max_temp) {
     w.max_temp = max_temp;
     w.update_row();
 
-    for (auto sensor : incubator.sensor_list()) {
+    for (auto& sensor : incubator.sensor_list()) {
         restore_sensor(sensor, min_temp);
     }
 
-    for (auto actuator : incubator.actuator_list()) {
+    for (auto& actuator : incubator.actuator_list()) {
         restore_actuator(actuator);
     }
 }
 
 void restore_default_values() {
-    for (auto incubator : incubator_t::list()) {
+    for (auto& incubator : incubator_t::list()) {
         float min_temp, max_temp;
         if (strcmp(incubator.name(), c_chicken) == 0) {
             min_temp = c_chicken_min;
@@ -104,15 +104,15 @@ void init_storage() {
 
     // Chicken Incubator: 2 sensors, 1 fan
     auto incubator = incubator_t::get(insert_incubator(c_chicken, c_chicken_min, c_chicken_max));
-    incubator.sensor_list().insert(sensor_t::insert_row(SENSOR_A_NAME, 0, c_chicken_min));
-    incubator.sensor_list().insert(sensor_t::insert_row(SENSOR_C_NAME, 0, c_chicken_min));
-    incubator.actuator_list().insert(actuator_t::insert_row(ACTUATOR_A_NAME, 0, 0.0));
+    incubator.sensor_list().insert(sensor_t::insert_row(c_sensor_a, 0, c_chicken_min));
+    incubator.sensor_list().insert(sensor_t::insert_row(c_sensor_c, 0, c_chicken_min));
+    incubator.actuator_list().insert(actuator_t::insert_row(c_actuator_a, 0, 0.0));
 
     // Puppy Incubator: 1 sensor, 2 fans
     incubator = incubator_t::get(insert_incubator(c_puppy, c_puppy_min, c_puppy_max));
-    incubator.sensor_list().insert(sensor_t::insert_row(SENSOR_B_NAME, 0, 85.0));
-    incubator.actuator_list().insert(actuator_t::insert_row(ACTUATOR_B_NAME, 0, 0.0));
-    incubator.actuator_list().insert(actuator_t::insert_row(ACTUATOR_C_NAME, 0, 0.0));
+    incubator.sensor_list().insert(sensor_t::insert_row(c_sensor_b, 0, 85.0));
+    incubator.actuator_list().insert(actuator_t::insert_row(c_actuator_b, 0, 0.0));
+    incubator.actuator_list().insert(actuator_t::insert_row(c_actuator_c, 0, 0.0));
 
     tx.commit();
 }
@@ -190,11 +190,11 @@ void simulation() {
         begin_transaction();
         double new_temp, fa_v, fb_v, fc_v;
         for (auto a : actuator_t::list()) {
-            if (strcmp(a.name(), ACTUATOR_A_NAME) == 0) {
+            if (strcmp(a.name(), c_actuator_a) == 0) {
                 fa_v = a.value();
-            } else if (strcmp(a.name(), ACTUATOR_B_NAME) == 0) {
+            } else if (strcmp(a.name(), c_actuator_b) == 0) {
                 fb_v = a.value();
-            } else if (strcmp(a.name(), ACTUATOR_C_NAME) == 0) {
+            } else if (strcmp(a.name(), c_actuator_c) == 0) {
                 fc_v = a.value();
             }
         }
@@ -202,18 +202,18 @@ void simulation() {
         TIMESTAMP = difftime(cur, start);
         for (auto s : sensor_t::list()) {
             sensor_writer w = s.writer();
-            if (strcmp(s.name(), SENSOR_A_NAME) == 0) {
+            if (strcmp(s.name(), c_sensor_a) == 0) {
                 new_temp = calc_new_temp(s.value(), fa_v);
                 w.value = new_temp;
                 w.timestamp = TIMESTAMP;
                 w.update_row();
-            } else if (strcmp(s.name(), SENSOR_B_NAME) == 0) {
+            } else if (strcmp(s.name(), c_sensor_b) == 0) {
                 new_temp = calc_new_temp(s.value(), fb_v);
                 new_temp = calc_new_temp(new_temp, fc_v);
                 w.value = new_temp;
                 w.timestamp = TIMESTAMP;
                 w.update_row();
-            } else if (strcmp(s.name(), SENSOR_C_NAME) == 0) {
+            } else if (strcmp(s.name(), c_sensor_c) == 0) {
                 new_temp = calc_new_temp(s.value(), fa_v);
                 w.value = new_temp;
                 w.timestamp = TIMESTAMP;
@@ -235,7 +235,7 @@ void list_rules() {
         printf(" rule set | rule name | event \n");
         printf("------------------------------\n");
     }
-    map<event_type_t, const char *> event_names;
+    map<event_type_t, const char*> event_names;
     event_names[event_type_t::row_update] = "Row update";
     event_names[event_type_t::row_insert] = "Row insert";
     for (auto &s : subs) {
@@ -254,7 +254,7 @@ void add_fan_control_rule() {
 }
 
 
-void usage(const char *command) {
+void usage(const char*command) {
     printf("Usage: %s [sim|show|help]\n", command);
     printf(" sim: run the incubator simulation.\n");
     printf(" show: dump the tables in storage.\n");
@@ -264,23 +264,48 @@ void usage(const char *command) {
 class simulation_t
 {
 public:
+    // Main menu commands.
+    static constexpr char c_cmd_begin_sim = 'b';
+    static constexpr char c_cmd_end_sim = 'e';
+    static constexpr char c_cmd_list_rules = 'l';
+    static constexpr char c_cmd_disable_rules = 'd';
+    static constexpr char c_cmd_reenable_rules = 'r';
+    static constexpr char c_cmd_print_state = 'p';
+    static constexpr char c_cmd_manage_incubators = 'm';
+    static constexpr char c_cmd_quit = 'q';
+
+    // Choose incubator commands.
+    static constexpr char c_cmd_choose_chickens = 'c';
+    static constexpr char c_cmd_choose_puppies = 'p';
+    static constexpr char c_cmd_back = 'b';
+
+    // Change incubator commands.
+    const char* c_cmd_on = "on";
+    const char* c_cmd_off = "off";
+    const char* c_cmd_min = "min";
+    const char* c_cmd_max = "max";
+    static constexpr const char c_cmd_main = 'm';
+
+    // Invalid input.
+    const char* c_wrong_input = "Wrong input.";
+
 
     bool handle_main() {
         printf("\n");
-        printf("(s) | start simulation\n");
-        printf("(e) | end simulation \n");
-        printf("(l) | list rules\n");
-        printf("(d) | disable rules\n");
-        printf("(r) | re-enable rules\n");
-        printf("(p) | print current state\n");
-        printf("(m) | manage incubators\n");
-        printf("(q) | quit\n\n");
+        printf("(%c) | start simulation\n", c_cmd_begin_sim);
+        printf("(%c) | end simulation \n", c_cmd_end_sim);
+        printf("(%c) | list rules\n", c_cmd_list_rules);
+        printf("(%c) | disable rules\n", c_cmd_disable_rules);
+        printf("(%c) | re-enable rules\n", c_cmd_reenable_rules);
+        printf("(%c) | print current state\n", c_cmd_print_state);
+        printf("(%c) | manage incubators\n", c_cmd_manage_incubators);
+        printf("(%c) | quit\n\n", c_cmd_quit);
         printf("main> ");
 
         getline(cin, m_input);
         if (m_input.size() == 1) {
             switch (m_input[0]) {
-            case 's':
+            case c_cmd_begin_sim:
                 if (!IN_SIMULATION) {
                     IN_SIMULATION = true;
                     m_simulation_thread[0] = thread(simulation);
@@ -289,7 +314,7 @@ public:
                     printf("Simulation is already running.\n");
                 }
                 break;
-            case 'e':
+            case c_cmd_end_sim:
                 if (IN_SIMULATION) {
                     IN_SIMULATION = false;
                     m_simulation_thread[0].join();
@@ -298,24 +323,24 @@ public:
                     printf("Simulation is not started.\n");
                 }
                 break;
-            case 'l':
+            case c_cmd_list_rules:
                 list_rules();
                 break;
-            case 'r':
+            case c_cmd_reenable_rules:
                 add_fan_control_rule();
                 list_rules();
                 break;
-            case 'd':
+            case c_cmd_disable_rules:
                 unsubscribe_rules();
                 list_rules();
                 break;
-            case 'm':
+            case c_cmd_manage_incubators:
                 m_current_menu = 1;
                 break;
-            case 'p':
+            case c_cmd_print_state:
                 dump_db();
                 break;
-            case 'q':
+            case c_cmd_quit:
                 if (IN_SIMULATION) {
                     printf("Stopping simulation...\n");
                     IN_SIMULATION = false;
@@ -326,14 +351,14 @@ public:
                 return false;
                 break;
             default:
-                printf("Wrong input.\n");
+                printf("%s\n", c_wrong_input);
                 break;
             }
         }
         return true;
     }
 
-    void get_incubator(const char * name)
+    void get_incubator(const char* name)
     {
         begin_transaction();
         for (auto inc : incubator_t::list())
@@ -349,26 +374,26 @@ public:
 
     void handle_incubators() {
         printf("\n");
-        printf("(c) | select chicken incubator\n");
-        printf("(p) | select puppy incubator\n");
-        printf("(b) | go back\n\n");
+        printf("(%c) | select chicken incubator\n", c_cmd_choose_chickens);
+        printf("(%c) | select puppy incubator\n", c_cmd_choose_puppies);
+        printf("(%c) | go back\n\n", c_cmd_back);
         printf("manage incubators> ");
         getline(cin, m_input);
         if (m_input.size() == 1) {
             switch (m_input[0]) {
-            case 'c':
+            case c_cmd_choose_chickens:
                 get_incubator(c_chicken);
                 m_current_menu = 2;
                 break;
-            case 'p':
+            case c_cmd_choose_puppies:
                 get_incubator(c_puppy);
                 m_current_menu = 2;
                 break;
-            case 'b':
+            case c_cmd_back:
                 m_current_menu = 0;
                 break;
             default:
-                printf("Wrong input.\n");
+                printf("%s\n", c_wrong_input);
                 break;
             }
         }
@@ -376,60 +401,60 @@ public:
 
     void handle_incubator_settings() {
         printf("\n");
-        printf("(on)    | turn power on\n");
-        printf("(off)   | turn power off\n");
-        printf("(min #) | set minimum\n");
-        printf("(max #) | set maximum\n");
-        printf("(b)     | go back\n");
-        printf("(m)     | main menu\n\n");
+        printf("(%s)    | turn power on\n", c_cmd_on);
+        printf("(%s)   | turn power off\n", c_cmd_off);
+        printf("(%s #) | set minimum\n", c_cmd_min);
+        printf("(%s #) | set maximum\n", c_cmd_max);
+        printf("(%c)     | go back\n", c_cmd_back);
+        printf("(%c)     | main menu\n\n", c_cmd_main);
         printf("%s> ", m_current_incubator_name);
         getline(cin, m_input);
 
         if (m_input.size() == 1) {
             switch (m_input[0]) {
-            case 'b':
+            case c_cmd_back:
                 m_current_menu = 1;
                 break;
-            case 'm':
+            case c_cmd_main:
                 m_current_menu = 0;
             default:
-                printf("Wrong input.\n");
+                printf("%s\n", c_wrong_input);
                 break;
             }
             return;
         }
 
-        if (m_input.size() == 2) {
-            if (0 == m_input.compare("on")) {
+        if (m_input.size() == strlen(c_cmd_on)) {
+            if (0 == m_input.compare(c_cmd_on)) {
                 adjust_power(true);
                 dump_db();
             }
             else {
-                printf("Wrong input.\n");
+                printf("%s\n", c_wrong_input);
             }
             return;
         }
 
-        if (m_input.size() == 3) {
-            if (0 == m_input.compare("off")) {
+        if (m_input.size() == strlen(c_cmd_off)) {
+            if (0 == m_input.compare(c_cmd_off)) {
                 adjust_power(false);
                 dump_db();
             }
             else {
-                printf("Wrong input.\n");
+                printf("%s\n", c_wrong_input);
             }
             return;
         }
 
         bool change_min = false;
-        if (0 == m_input.compare(0, 3, "min")) {
+        if (0 == m_input.compare(0, 3, c_cmd_min)) {
             change_min = true;
         }
-        else if (0 == m_input.compare(0,3, "max")) {
+        else if (0 == m_input.compare(0,3, c_cmd_max)) {
             change_min = false;
         }
         else {
-            printf("Wrong input.\n");
+            printf("%s\n", c_wrong_input);
             return;
         }
 
@@ -457,6 +482,7 @@ public:
         }
         commit_transaction();
     }
+
     bool adjust_range(bool change_min, float set_point)
     {
         bool changed = false;
@@ -505,20 +531,23 @@ public:
 private:
     string m_input;
     incubator_t m_current_incubator;
-    const char * m_current_incubator_name;
+    const char* m_current_incubator_name;
     thread m_simulation_thread[1];
     int m_current_menu = 0;
 };
 
-int main(int argc, const char **argv) {
+int main(int argc, const char**argv) {
     bool is_sim = false;
     std::string server;
+    const char * c_arg_sim = "sim";
+    const char * c_arg_show = "show";
+    const char * c_arg_help = "help";
 
-    if (argc == 2 && strncmp(argv[1], "sim", 3) == 0) {
+    if (argc == 2 && strncmp(argv[1], c_arg_sim, strlen(c_arg_sim)) == 0) {
         is_sim = true;
-    } else if (argc == 2 && strncmp(argv[1], "show", 3) == 0) {
+    } else if (argc == 2 && strncmp(argv[1], c_arg_show, strlen(c_arg_show)) == 0) {
         is_sim = false;
-    } else if (argc == 2 && strncmp(argv[1], "help", 3) == 0) {
+    } else if (argc == 2 && strncmp(argv[1], c_arg_help, strlen(c_arg_help)) == 0) {
         usage(argv[0]);
         return EXIT_SUCCESS;
     } else {

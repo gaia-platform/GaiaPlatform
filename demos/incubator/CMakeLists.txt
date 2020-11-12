@@ -3,9 +3,6 @@
 # All rights reserved.
 #############################################
 
-cmake_minimum_required(VERSION 3.11)
-enable_testing()
-
 # Set the project name.
 project(incubator_demo)
 
