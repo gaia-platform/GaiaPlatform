@@ -66,7 +66,6 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
   endif()
 
   set_target_properties(${TARGET} PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
-  set_target_properties(${TARGET} PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
   set_target_properties(${TARGET} PROPERTIES CXX_CLANG_TIDY "")
   gtest_discover_tests(${TARGET} PROPERTIES ENVIRONMENT "${ENV}")
 endfunction(add_gtest)

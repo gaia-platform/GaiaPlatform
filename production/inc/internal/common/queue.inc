@@ -90,7 +90,7 @@ bool queue_t<T>::dequeue_internal(T& value)
         std::unique_lock<std::shared_mutex> unique_lock_tail(m_tail.lock);
 
         // Read the last element.
-        current_last_element = m_tail.previous;
+        queue_element_t<T>* current_last_element = m_tail.previous;
 
         // If the queue is empty, we're done, but first we need to release our lock.
         //
