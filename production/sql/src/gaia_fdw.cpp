@@ -364,10 +364,10 @@ extern "C" TupleTableSlot* gaia_iterate_foreign_scan(ForeignScanState* node)
     // Get the next record, if any, and fill in the slot.
     for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; ++attr_idx)
     {
-        Datum attr_val = scan_state->extract_field_value((size_t)attr_idx);
+        NullableDatum attr_val = scan_state->extract_field_value((size_t)attr_idx);
 
-        slot->tts_values[attr_idx] = attr_val;
-        slot->tts_isnull[attr_idx] = false;
+        slot->tts_values[attr_idx] = attr_val.value;
+        slot->tts_isnull[attr_idx] = attr_val.isnull;
     }
 
     // Mark the slot as containing a virtual tuple.
@@ -665,12 +665,16 @@ extern "C" TupleTableSlot* gaia_exec_foreign_insert(
     slot_getallattrs(slot);
     for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; ++attr_idx)
     {
-        Datum attr_val = {};
+        NullableDatum attr_val = {};
+        attr_val.value = slot->tts_values[attr_idx];
+        attr_val.isnull = slot->tts_isnull[attr_idx];
+
         if (modify_state->is_gaia_id_field_index((size_t)attr_idx))
         {
             // We don't allow gaia_id to be set by an INSERT or UPDATE statement
             // (this should have already been checked in gaia_plan_foreign_modify).
-            if (!slot->tts_isnull[attr_idx])
+            // So the value for this column is expected to always show as null.
+            if (!attr_val.isnull)
             {
                 ereport(
                     ERROR,
@@ -680,11 +684,8 @@ extern "C" TupleTableSlot* gaia_exec_foreign_insert(
 
             gaia_id = gaia::fdw::adapter_t::get_new_gaia_id();
         }
-        // If we have a null value, just don't bother to set it in the builder.
-        else if (!slot->tts_isnull[attr_idx])
+        else
         {
-            attr_val = slot->tts_values[attr_idx];
-
             modify_state->set_field_value(attr_idx, attr_val);
         }
     }
@@ -748,15 +749,24 @@ extern "C" TupleTableSlot* gaia_exec_foreign_update(
     slot_getallattrs(slot);
     for (int attr_idx = 0; attr_idx < slot->tts_tupleDescriptor->natts; ++attr_idx)
     {
-        if (!(slot->tts_isnull[attr_idx]))
-        {
-            Datum attr_val = slot->tts_values[attr_idx];
+        NullableDatum attr_val = {};
+        attr_val.value = slot->tts_values[attr_idx];
+        attr_val.isnull = slot->tts_isnull[attr_idx];
 
-            if (modify_state->is_gaia_id_field_index((size_t)attr_idx))
+        if (modify_state->is_gaia_id_field_index((size_t)attr_idx))
+        {
+            if (attr_val.isnull)
             {
-                gaia_id = DatumGetUInt64(attr_val);
+                ereport(
+                    ERROR,
+                    (errcode(ERRCODE_FDW_ERROR),
+                     errmsg("gaia_id was unexpectedly null!")));
             }
 
+            gaia_id = DatumGetUInt64(attr_val.value);
+        }
+        else
+        {
             modify_state->set_field_value(attr_idx, attr_val);
         }
     }
