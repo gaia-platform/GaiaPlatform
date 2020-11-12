@@ -618,9 +618,16 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
         }
         else if (m_fields[field_index].is_reference)
         {
-            // TODO: Add support for surfacing reference field values.
-            // For now, surface reference fields with value 0.
-            field_value.value = UInt64GetDatum(0);
+            uint16_t reference_offset = m_fields[field_index].position;
+            if (reference_offset >= m_current_node.num_references())
+            {
+                ereport(
+                    ERROR,
+                    (errcode(ERRCODE_FDW_ERROR),
+                     errmsg("Attempt to dereference an invalid reference offset %d!", reference_offset)));
+            }
+            gaia_id_t reference_id = m_current_node.references()[reference_offset];
+            field_value.value = UInt64GetDatum(reference_id);
         }
         else
         {
