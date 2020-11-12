@@ -12,6 +12,7 @@
 #include <string.h> 
 #include <functional>
 #include "../inc/message_bus.hpp"
+#include "../inc/campus_demo.hpp"
 
 // to supress unused-parameter build warnings
 #define UNUSED(...) (void)(__VA_ARGS__)
@@ -35,6 +36,9 @@ class terminalMenu
 {
 
 private:
+
+// singletonish
+inline static terminalMenu* _lastInstance = nullptr;
 
 // callback method type
 typedef void (terminalMenu::*CallbackType)(char * name);  
@@ -443,6 +447,11 @@ void DoTheChange()
 
 public:
 
+static terminalMenu* GetLastInstance()
+{
+    return _lastInstance;
+}
+
 /**
 * Blocking Run
 *
@@ -465,9 +474,31 @@ void Run()
 * @return 
 * @throws 
 * @exceptsafe yes
-*/  void MessageCallback(message::Message msg)
+*/  
+void MessageCallback(std::shared_ptr<message::Message> msg)
 {
-    UNUSED(msg);
+    //TODO: ok for now, but we'll need to check type before casting
+    auto actionMessage = reinterpret_cast<message::ActionMessage*>(msg.get());   
+    UNUSED(actionMessage);
+}
+
+/**
+* Callback from the message bus when a message arrives
+* Am not crazy about this, I need to convert to using a std::fuction
+*
+* @param[in] message::Message msg
+* @return 
+* @throws 
+* @exceptsafe yes
+*/  
+static void StaticMessageCallback(std::shared_ptr<message::Message> msg)
+{
+    auto li = GetLastInstance();
+
+    if(nullptr == li) //TODO: notify user
+        return;
+
+    li->MessageCallback(msg);
 }
 
 /**
@@ -481,6 +512,8 @@ void Run()
 */  
 void Init()
 {   
+    _lastInstance = this;
+
     // Initialize ncurses
     initscr();
     start_color();
@@ -490,14 +523,12 @@ void Init()
     init_pair(1, COLOR_RED, COLOR_BLACK);
     init_pair(2, COLOR_CYAN, COLOR_BLACK); 
 
-    //auto vv = new message::MessageBusInProc(); 
+    // function of member
+    //std::function<void(terminalMenu&, std::shared_ptr<message::Message> msg)> mcb = &terminalMenu::MessageCallback;
 
     // Initialize message bus
     _messageBus = std::make_shared<message::MessageBusInProc>();
-
-    // TODO: make an interface
-    //MessageCallbackType mcb = &terminalMenu::MessageCallback;
-    //_messageBus->RegisterMessageCallback(mcb);
+    _messageBus->RegisterMessageCallback(&terminalMenu::StaticMessageCallback);
 }
 
 };
@@ -513,7 +544,11 @@ void Init()
 */  
 int main()
 {
-    terminalMenu tw;
-    tw.Init();
-    tw.Run();
+    terminalMenu tm;
+    tm.Init();
+
+    CampusDemo::Campus cd;
+
+
+    tm.Run();
 }

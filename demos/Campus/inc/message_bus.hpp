@@ -14,8 +14,17 @@
     
 // callback method type
 typedef void (*MessageCallbackType)(std::shared_ptr<message::Message> msg); 
+//typedef void (*MessageCallbackType)(std::shared_ptr<message::Message> msg); 
 
 namespace message {
+
+/*class IMessageCallback
+{
+    virtual void MessageCallback(std::shared_ptr<message::Message> msg)
+    {
+        UNUSED(msg);
+    }
+};*/
 
 /**
 * @brief The message bus interface
@@ -46,6 +55,8 @@ public:
         UNUSED(callback);
         return 0;
     }
+
+    //int RegisterMessageCallback(no viable conversion from '(lambda at ../src/campus_demo_term.cpp:505:14)' to 'MessageCallbackType' (aka 'void (*)(std::shared_ptr<message::Message>)'))
 
     // to get rid of annoying build warnings
     virtual ~IMessageBus(){}

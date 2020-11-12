@@ -125,5 +125,5 @@ target_include_directories(campus PRIVATE ${GAIA_CAMPUS_DEMO_INCLUDES})
 target_link_libraries(campus PUBLIC spdlog::spdlog) 
 
 # 20201108 disable for now because se_server throws illegal instruction
-#target_link_libraries(campus PRIVATE ${GTEST_LIBRARIES} ${MENU_LIBRARY} ${CURSES_LIBRARIES} rt pthread gaia gaia_index gaia_storage gaia_triggers gaia_memorymanager)
-target_link_libraries(campus PRIVATE ${GTEST_LIBRARIES} ${MENU_LIBRARY} ${CURSES_LIBRARIES} rt pthread)
+target_link_libraries(campus PRIVATE ${GTEST_LIBRARIES} ${MENU_LIBRARY} ${CURSES_LIBRARIES} rt pthread gaia gaia_index gaia_storage gaia_triggers gaia_memorymanager)
+#target_link_libraries(campus PRIVATE ${GTEST_LIBRARIES} ${MENU_LIBRARY} ${CURSES_LIBRARIES} rt pthread)
