@@ -97,29 +97,31 @@ string generate_fdw_ddl(gaia_id_t table_id, const string& server_name)
     ddl_string_stream << table.name() << "(" << endl;
     ddl_string_stream << "gaia_id BIGINT";
 
-    vector<gaia_id_t> fields = list_fields(table_id);
-    vector<gaia_id_t> references = list_references(table_id);
-
-    for (gaia_id_t field_id : fields)
+    for (gaia_id_t field_id : list_fields(table_id))
     {
         gaia_field_t field = gaia_field_t::get(field_id);
+
         ddl_string_stream
             << "," << endl
             << generate_fdw_ddl_field(field);
     }
 
-    for (gaia_id_t child_ref_id : references)
+    for (gaia_id_t reference_id : list_references(table_id))
     {
-        gaia_relationship_t relationship = gaia_relationship_t::get(child_ref_id);
-        // Skip anonymous reference fields.
-        if (::strlen(relationship.name()) == 0)
+        gaia_relationship_t relationship = gaia_relationship_t::get(reference_id);
+
+        string relationship_name = relationship.name();
+        if (relationship_name.empty())
         {
-            continue;
+            relationship_name = relationship.parent_gaia_table().name();
         }
+        retail_assert(
+            !relationship_name.empty(),
+            "Unable to derive name of anonymous relationship!");
 
         ddl_string_stream
             << "," << endl
-            << relationship.name() << " BIGINT";
+            << relationship_name << " BIGINT";
     }
 
     ddl_string_stream

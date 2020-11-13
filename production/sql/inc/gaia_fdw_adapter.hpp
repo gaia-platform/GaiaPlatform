@@ -90,11 +90,11 @@ public:
         gaia::common::gaia_type_t& container_id);
 
     template <class S>
-    static S* get_state(const char* table_name, size_t count_fields)
+    static S* get_state(const char* table_name, size_t expected_count_fields)
     {
         S* state = (S*)palloc0(sizeof(S));
 
-        return state->initialize(table_name, count_fields) ? state : nullptr;
+        return state->initialize(table_name, expected_count_fields) ? state : nullptr;
     }
 
 protected:
@@ -121,8 +121,16 @@ protected:
 // A structure holding basic field information.
 struct field_information_t
 {
-    gaia::common::field_position_t position;
+    // The position field can hold either a field_position_t or a reference_offset_t value,
+    // depending on whether the field is a regular field or a reference field,
+    // as indicated by the value of the is_reference field.
+    static_assert(sizeof(gaia::common::field_position_t) <= sizeof(uint16_t));
+    static_assert(sizeof(gaia::common::reference_offset_t) <= sizeof(uint16_t));
+    uint16_t position;
+
     gaia::common::data_type_t type;
+
+    bool is_reference;
 };
 
 class state_t
