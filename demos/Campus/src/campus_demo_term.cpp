@@ -169,6 +169,12 @@ void putMenu(char *name, ITEM** items, int h, int w, int row, int col)
     wrefresh(menuWindow); 
     delwin(menuWindow); 
 
+    // Clear header
+    move(row+1, col);
+    clrtoeol();     
+    move(row+2, col);
+    clrtoeol(); 
+
     refresh();
 }
 
@@ -270,6 +276,42 @@ void showSelection(char * name)
 /**
 * ---
 *
+* @param[in] char *textMessage
+* @return void
+* @throws 
+* @exceptsafe yes
+*/  
+void showTextMessage(char * textMessage)
+{
+    move(2, 0);        
+    clrtoeol();        
+    mvprintw(2, 0, "%s", textMessage);
+    refresh();
+}
+
+/**
+* TODO: yeah I know, Ill implement this in proper C17, just tolerate this for now
+*
+* @param[in] char *textMessage
+* @return void
+* @throws 
+* @exceptsafe yes
+*/  
+void showMessage(std::shared_ptr<message::Message> msg)
+{
+    //TODO: ok for now, but we'll need to check type before casting
+    auto actionMessage = reinterpret_cast<message::ActionMessage*>(msg.get());   
+    
+    char buffer[255];
+
+    sprintf(buffer, "Change detected: %s %s %s", actionMessage->_actor.c_str(), actionMessage->_action.c_str(), actionMessage->_arg1.c_str());
+
+    showTextMessage(buffer);
+}
+
+/**
+* ---
+*
 * @param[in] char *name
 * @return void
 * @throws 
@@ -283,7 +325,7 @@ void ActorTypeSelected(char *name)
     _actionName = "";
     _arg1 = "";
 
-    showSelection(name);
+    //showSelection(name);
 
     // show sub menu
     if(0 == strcmp(name, "Person"))
@@ -307,7 +349,7 @@ void PersonSelected(char *name)
     _actionName = "";
     _arg1 = "";
 
-    showSelection(name);
+    //showSelection(name);
 
     // show sub menu
     putMenu((char *)"Action", personAction, &terminalMenu::PersonsActionSelected, ARRAY_SIZE(personAction), 10, 40, 4, 84);   
@@ -328,7 +370,7 @@ void CarSelected(char *name)
     _actionName = "";
     _arg1 = "";
 
-    showSelection(name);
+    //showSelection(name);
 
     // show sub menu
     putMenu((char *)"Action", carAction, &terminalMenu::CarActionSelected, ARRAY_SIZE(carAction), 10, 40, 4, 84);   
@@ -348,13 +390,15 @@ void PersonsActionSelected(char *name)
     _actionName = name;
     _arg1 = "";
 
-    showSelection(name);
+    //showSelection(name);
 
     // show sub menu
     if(0 == strcmp(name, "Move To"))
         putMenu((char *)"Location", personLocations, &terminalMenu::PersonsActionMovetoSelected, ARRAY_SIZE(personLocations), 10, 40, 4, 124);
     else if(0 == strcmp(name, "Change Role"))
-        putMenu((char *)"New Role", personRoles, &terminalMenu::PersonsActionChangeRoleSelected, ARRAY_SIZE(personRoles), 10, 40, 4, 124);    
+        putMenu((char *)"New Role", personRoles, &terminalMenu::PersonsActionChangeRoleSelected, ARRAY_SIZE(personRoles), 10, 40, 4, 124);   
+    else if(0 == strcmp(name, "Brandish Weapon"))
+        DoTheChange();
 } 
 
 /**
@@ -478,8 +522,9 @@ void Run()
 void MessageCallback(std::shared_ptr<message::Message> msg)
 {
     //TODO: ok for now, but we'll need to check type before casting
-    auto actionMessage = reinterpret_cast<message::ActionMessage*>(msg.get());   
-    UNUSED(actionMessage);
+    //auto actionMessage = reinterpret_cast<message::ActionMessage*>(msg.get());   
+
+    showMessage(msg);
 }
 
 /**

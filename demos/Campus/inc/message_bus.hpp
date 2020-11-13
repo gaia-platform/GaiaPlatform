@@ -56,8 +56,6 @@ public:
         return 0;
     }
 
-    //int RegisterMessageCallback(no viable conversion from '(lambda at ../src/campus_demo_term.cpp:505:14)' to 'MessageCallbackType' (aka 'void (*)(std::shared_ptr<message::Message>)'))
-
     // to get rid of annoying build warnings
     virtual ~IMessageBus(){}
     
@@ -104,7 +102,7 @@ private:
                 std::shared_ptr<message::Message> msg = _messageQueue.front();
                 _messageQueue.pop();
 
-                // send message to each registerd callback
+                // send message to each registered callback
                 for(MessageCallbackType cb : _messageCallbacks)
                 {
                     cb(msg);
