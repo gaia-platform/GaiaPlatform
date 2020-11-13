@@ -519,6 +519,10 @@ void generate_rules(Rewriter &rewriter)
     int rule_count = 1;
     for (auto fd : g_active_fields)
     {
+        if (g_generation_error)
+        {
+            return;
+        }
         string table = fd.first;
         bool contains_last_operation = false;
         bool contains_fields = false;
@@ -1408,6 +1412,10 @@ public:
     }
     void EndSourceFileAction() override
     {
+        if(!g_translation_engine_output_option.empty())
+        {
+            std::remove(g_translation_engine_output_option.c_str());
+        }
         generate_rules(m_rewriter);
         if (g_generation_error)
         {
