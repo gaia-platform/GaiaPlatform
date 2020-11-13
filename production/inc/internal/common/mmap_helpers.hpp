@@ -40,7 +40,7 @@ inline void unmap_fd(T*& addr, size_t length)
     if (-1 == ::munmap(tmp, length))
     {
         int err = errno;
-        const char* reason = ::explain_munmap(addr, length);
+        const char* reason = ::explain_munmap(tmp, length);
         throw system_error(reason, err);
     }
 }

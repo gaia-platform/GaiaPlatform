@@ -26,7 +26,7 @@ inline void close_fd(int& fd)
     if (-1 == ::close(tmp))
     {
         int err = errno;
-        const char* reason = ::explain_close(fd);
+        const char* reason = ::explain_close(tmp);
         throw system_error(reason, err);
     }
 }

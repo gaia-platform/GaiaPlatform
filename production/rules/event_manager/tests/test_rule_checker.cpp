@@ -36,13 +36,13 @@ void load_catalog()
 
     name = "Sensors";
     // not active, not deprecated
-    fields.emplace_back(make_unique<ddl::field_definition_t>("inactive", data_type_t::e_string, 1));
+    fields.emplace_back(make_unique<ddl::data_field_def_t>("inactive", data_type_t::e_string, 1));
     // active, not deprecated
-    fields.emplace_back(make_unique<ddl::field_definition_t>("active", data_type_t::e_float, 1));
+    fields.emplace_back(make_unique<ddl::data_field_def_t>("active", data_type_t::e_float, 1));
     // deprecated
-    fields.emplace_back(make_unique<ddl::field_definition_t>("deprecated", data_type_t::e_uint64, 1));
+    fields.emplace_back(make_unique<ddl::data_field_def_t>("deprecated", data_type_t::e_uint64, 1));
     // another valid field
-    fields.emplace_back(make_unique<ddl::field_definition_t>("valid", data_type_t::e_uint64, 1));
+    fields.emplace_back(make_unique<ddl::data_field_def_t>("valid", data_type_t::e_uint64, 1));
 
     // The type of the table is the row id of table in the catalog.
     table_id = create_table(name, fields);

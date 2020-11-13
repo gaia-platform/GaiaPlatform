@@ -20,12 +20,12 @@ class json_generation_test : public db_test_base_t
 protected:
     static void SetUpTestSuite()
     {
-        test_table_fields.emplace_back(make_unique<field_definition_t>("id", data_type_t::e_int8, 1));
-        test_table_fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
-        test_table_fields.emplace_back(make_unique<field_definition_t>("value", data_type_t::e_float, 1));
-        test_table_fields.emplace_back(make_unique<field_definition_t>("is_active", data_type_t::e_bool, 1));
-        test_table_fields.emplace_back(make_unique<field_definition_t>("phone_numbers", data_type_t::e_string, 0));
-        test_table_fields.emplace_back(make_unique<field_definition_t>("last_zipcodes", data_type_t::e_int32, 0));
+        test_table_fields.emplace_back(make_unique<data_field_def_t>("id", data_type_t::e_int8, 1));
+        test_table_fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
+        test_table_fields.emplace_back(make_unique<data_field_def_t>("value", data_type_t::e_float, 1));
+        test_table_fields.emplace_back(make_unique<data_field_def_t>("is_active", data_type_t::e_bool, 1));
+        test_table_fields.emplace_back(make_unique<data_field_def_t>("phone_numbers", data_type_t::e_string, 0));
+        test_table_fields.emplace_back(make_unique<data_field_def_t>("last_zipcodes", data_type_t::e_int32, 0));
     }
 
     static field_def_list_t test_table_fields;

@@ -31,9 +31,10 @@ public:
     // which will need to get offset by 56B (64-8) from a 64B boundary.
     static constexpr size_t c_allocation_alignment = 8 * sizeof(uint64_t);
 
-    // Sanity check - our formulas need to be changed if the metadata block
-    // is ever increased in size above 64B.
+    // Sanity check - our logic need to be changed if the metadata block
+    // is ever increased in size above 64B or if its size ceases to be a multiple of 8B.
     static_assert(sizeof(memory_allocation_metadata_t) < c_allocation_alignment);
+    static_assert(sizeof(memory_allocation_metadata_t) % c_memory_alignment == 0);
 
     // The minimum allocation size on a 64B boundary is 64B - 8B = 56B,
     // so that it leaves place for another metadata block before the next 64B boundary.

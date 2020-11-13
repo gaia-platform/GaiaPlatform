@@ -42,16 +42,6 @@ namespace db
     return catalog::Getgaia_field(m_obj_ptr->data())->position();
 }
 
-[[nodiscard]] bool field_view_t::is_reference() const
-{
-    return data_type() == data_type_t::e_references;
-}
-
-[[nodiscard]] bool field_view_t::is_anonymous_reference() const
-{
-    return is_reference() && strlen(name()) == 0;
-}
-
 [[nodiscard]] const char* table_view_t::name() const
 {
     return catalog::Getgaia_table(m_obj_ptr->data())->name()->c_str();

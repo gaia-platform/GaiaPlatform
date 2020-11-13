@@ -32,11 +32,6 @@ void compute_payload_diff(
 
     for (auto field_view : catalog_core_t::list_fields(type_record_id))
     {
-        if (field_view.data_type() == data_type_t::e_references)
-        {
-            continue;
-        }
-
         field_position_t pos = field_view.position();
         payload_types::data_holder_t data_holder1 = payload_types::get_field_value(
             type_id, payload1, schema.data(), schema.size(), pos);

@@ -16,7 +16,6 @@ set(SDK_LINK_LIBRARIES
   -Wl,--whole-archive
   gaia_direct
   gaia_system
-  gaia_parser
   gaia_catalog
   gaia_payload_types
   gaia_se_client

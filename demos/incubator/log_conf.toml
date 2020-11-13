@@ -57,12 +57,3 @@ sinks = [
 ]
 pattern = "stats"
 level = "info"
-
-# Uncomment this logger definition to trace rule invocations.
-#[[logger]]
-#name = "rules"
-#sinks = [
-#    "console",
-#    "file_rotating"
-#]
-#level = "trace"

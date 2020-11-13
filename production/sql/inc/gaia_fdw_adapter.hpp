@@ -123,11 +123,6 @@ struct field_information_t
 {
     gaia::common::field_position_t position;
     gaia::common::data_type_t type;
-
-    bool is_reference()
-    {
-        return type == data_type_t::e_references;
-    }
 };
 
 class state_t
@@ -182,7 +177,7 @@ public:
     // Scan API.
     bool initialize_scan();
     bool has_scan_ended();
-    Datum extract_field_value(size_t field_index);
+    NullableDatum extract_field_value(size_t field_index);
     bool scan_forward();
 
 protected:
@@ -216,7 +211,7 @@ protected:
 public:
     // Modify API.
     void initialize_payload();
-    void set_field_value(size_t field_index, const Datum& field_value);
+    void set_field_value(size_t field_index, const NullableDatum& field_value);
     bool insert_record(uint64_t gaia_id);
     bool update_record(uint64_t gaia_id);
     bool delete_record(uint64_t gaia_id);

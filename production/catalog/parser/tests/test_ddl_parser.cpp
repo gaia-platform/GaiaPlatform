@@ -56,15 +56,21 @@ TEST(catalog_ddl_parser_test, create_table_multiple_fields)
     EXPECT_EQ(create_stmt->name, "t");
     EXPECT_EQ(create_stmt->fields.size(), 2);
 
-    EXPECT_EQ(create_stmt->fields.at(0)->name, "c1");
-    EXPECT_EQ(create_stmt->fields.at(0)->type, data_type_t::e_int32);
-    EXPECT_EQ(create_stmt->fields.at(0)->length, 0);
-    EXPECT_EQ(create_stmt->fields.at(0)->active, false);
+    const data_field_def_t* field;
 
-    EXPECT_EQ(create_stmt->fields.at(1)->name, "c2");
-    EXPECT_EQ(create_stmt->fields.at(1)->type, data_type_t::e_double);
-    EXPECT_EQ(create_stmt->fields.at(1)->length, 2);
-    EXPECT_EQ(create_stmt->fields.at(0)->active, false);
+    EXPECT_EQ(create_stmt->fields.at(0)->field_type, field_type_t::data);
+    field = dynamic_cast<data_field_def_t*>(create_stmt->fields.at(0).get());
+    EXPECT_EQ(field->name, "c1");
+    EXPECT_EQ(field->data_type, data_type_t::e_int32);
+    EXPECT_EQ(field->length, 0);
+    EXPECT_EQ(field->active, false);
+
+    EXPECT_EQ(create_stmt->fields.at(1)->field_type, field_type_t::data);
+    field = dynamic_cast<data_field_def_t*>(create_stmt->fields.at(1).get());
+    EXPECT_EQ(field->name, "c2");
+    EXPECT_EQ(field->data_type, data_type_t::e_double);
+    EXPECT_EQ(field->length, 2);
+    EXPECT_EQ(field->active, false);
 }
 
 TEST(catalog_ddl_parser_test, create_table_references)
@@ -85,20 +91,20 @@ TEST(catalog_ddl_parser_test, create_table_references)
     EXPECT_EQ(create_stmt->name, "t");
     EXPECT_EQ(create_stmt->fields.size(), 2);
 
-    EXPECT_EQ(create_stmt->fields.at(0)->name, "c1");
-    EXPECT_EQ(create_stmt->fields.at(0)->type, data_type_t::e_references);
-    EXPECT_EQ(create_stmt->fields.at(0)->table_type_name, "t1");
-    EXPECT_EQ(create_stmt->fields.at(0)->table_type_database, "");
-    EXPECT_EQ(create_stmt->fields.at(0)->length, 1);
-    EXPECT_EQ(create_stmt->fields.at(0)->active, false);
+    const ref_field_def_t* field;
 
+    EXPECT_EQ(create_stmt->fields.at(0)->field_type, field_type_t::reference);
+    field = dynamic_cast<ref_field_def_t*>(create_stmt->fields.at(0).get());
+    EXPECT_EQ(field->name, "c1");
+    EXPECT_EQ(field->table_name(), "t1");
+    EXPECT_EQ(field->db_name(), "");
+
+    EXPECT_EQ(create_stmt->fields.at(1)->field_type, field_type_t::reference);
+    field = dynamic_cast<ref_field_def_t*>(create_stmt->fields.at(1).get());
     // Anonymous references have the same binding for named references except the name string is empty.
-    EXPECT_EQ(create_stmt->fields.at(1)->name, "");
-    EXPECT_EQ(create_stmt->fields.at(1)->type, data_type_t::e_references);
-    EXPECT_EQ(create_stmt->fields.at(1)->table_type_name, "t2");
-    EXPECT_EQ(create_stmt->fields.at(1)->table_type_database, "d");
-    EXPECT_EQ(create_stmt->fields.at(1)->length, 1);
-    EXPECT_EQ(create_stmt->fields.at(1)->active, false);
+    EXPECT_EQ(field->name, "");
+    EXPECT_EQ(field->table_name(), "t2");
+    EXPECT_EQ(field->db_name(), "d");
 }
 
 TEST(catalog_ddl_parser_test, drop_table)
@@ -142,15 +148,21 @@ TEST(catalog_ddl_parser_test, create_active_field)
     EXPECT_EQ(create_stmt->name, "t");
     EXPECT_EQ(create_stmt->fields.size(), 2);
 
-    EXPECT_EQ(create_stmt->fields.at(0)->name, "id");
-    EXPECT_EQ(create_stmt->fields.at(0)->type, data_type_t::e_int32);
-    EXPECT_EQ(create_stmt->fields.at(0)->length, 0);
-    EXPECT_EQ(create_stmt->fields.at(0)->active, true);
+    const data_field_def_t* field;
 
-    EXPECT_EQ(create_stmt->fields.at(1)->name, "name");
-    EXPECT_EQ(create_stmt->fields.at(1)->type, data_type_t::e_string);
-    EXPECT_EQ(create_stmt->fields.at(1)->length, 1);
-    EXPECT_EQ(create_stmt->fields.at(1)->active, true);
+    EXPECT_EQ(create_stmt->fields.at(0)->field_type, field_type_t::data);
+    field = dynamic_cast<data_field_def_t*>(create_stmt->fields.at(0).get());
+    EXPECT_EQ(field->name, "id");
+    EXPECT_EQ(field->data_type, data_type_t::e_int32);
+    EXPECT_EQ(field->length, 0);
+    EXPECT_EQ(field->active, true);
+
+    EXPECT_EQ(create_stmt->fields.at(1)->field_type, field_type_t::data);
+    field = dynamic_cast<data_field_def_t*>(create_stmt->fields.at(1).get());
+    EXPECT_EQ(field->name, "name");
+    EXPECT_EQ(field->data_type, data_type_t::e_string);
+    EXPECT_EQ(field->length, 1);
+    EXPECT_EQ(field->active, true);
 }
 
 TEST(catalog_ddl_parser_test, create_database)

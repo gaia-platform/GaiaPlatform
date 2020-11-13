@@ -32,10 +32,12 @@ constexpr char c_daemonize_command[] = "daemonize ";
 // instantiates the server.)
 constexpr char c_disable_persistence_flag[] = " --disable-persistence";
 
+// Erase the contents of the persistent directory but not the directory itself.
 void remove_persistent_store()
 {
     std::string cmd = "rm -rf ";
     cmd.append(PERSISTENT_DIRECTORY_PATH);
+    cmd.append("/*");
     std::cerr << cmd << std::endl;
     ::system(cmd.c_str());
 }

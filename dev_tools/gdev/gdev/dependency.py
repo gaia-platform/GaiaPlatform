@@ -173,7 +173,6 @@ class Dependency:
             parser.add_argument(
                 '--mounts',
                 default=[],
-                dest='mounts',
                 nargs='*',
                 help=(
                     f'<host_path>:<container_path> mounts to be created (or if already created,'
@@ -193,6 +192,14 @@ class Dependency:
                 default=platform_default,
                 choices=['amd64', 'arm64'],
                 help=f'Platform to build upon. Default: "{platform_default}"'
+            )
+            ports_default = []
+            parser.add_argument(
+                '-p', '--ports',
+                default=ports_default,
+                nargs='*',
+                type=int,
+                help=f'Ports to expose in underlying docker container. Default: "{ports_default}"'
             )
             registry_default = '192.168.0.250:5000'
             parser.add_argument(
@@ -262,6 +269,7 @@ class Dependency:
         parsed_args['args'] = ' '.join(parsed_args['args'])
         parsed_args['cfg_enables'] = frozenset(parsed_args['cfg_enables'])
         parsed_args['mixins'] = frozenset(parsed_args['mixins'])
+        parsed_args['ports'] = frozenset(str(port) for port in parsed_args['ports'])
 
         mounts = []
         for mount in parsed_args['mounts']:
