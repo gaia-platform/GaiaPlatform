@@ -124,8 +124,12 @@ struct field_information_t
     // The position field can hold either a field_position_t or a reference_offset_t value,
     // depending on whether the field is a regular field or a reference field,
     // as indicated by the value of the is_reference field.
+    static_assert(sizeof(gaia::common::field_position_t) <= sizeof(uint16_t));
+    static_assert(sizeof(gaia::common::reference_offset_t) <= sizeof(uint16_t));
     uint16_t position;
+
     gaia::common::data_type_t type;
+
     bool is_reference;
 };
 
