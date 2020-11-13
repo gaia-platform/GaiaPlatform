@@ -16,6 +16,7 @@ using namespace gaia::common;
 extern int g_rule_called;
 extern int g_insert_called;
 extern int g_update_called;
+extern int g_delete_called;
 extern int g_actuator_rule_called;
 const int c_g_rule_execution_delay = 50000;
 const float c_g_incubator_min_temperature = 99.0;
@@ -88,6 +89,7 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
     EXPECT_EQ(g_rule_called,1);
     EXPECT_EQ(g_insert_called,1);
     EXPECT_EQ(g_update_called,0);
+    EXPECT_EQ(g_delete_called, 0);
 
     gaia::db::begin_transaction();
 
@@ -124,6 +126,7 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
     EXPECT_EQ(g_insert_called,1);
     EXPECT_EQ(g_update_called,1);
     EXPECT_EQ(g_actuator_rule_called, 0);
+    EXPECT_EQ(g_delete_called, 0);
 
     gaia::db::begin_transaction();
 
@@ -142,4 +145,19 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
         EXPECT_EQ(a.value(),c_g_expected_actuator_value);
     }
     gaia::db::commit_transaction();
+
+    gaia::db::begin_transaction();
+
+    auto s_id = gaia::barn_storage::sensor_t::insert_row("TestSensor2", 0, 0.0);
+    gaia::db::commit_transaction();
+
+    usleep(c_g_rule_execution_delay * 5);
+    gaia::db::begin_transaction();
+    auto s = gaia::barn_storage::sensor_t::get(s_id);
+    s.delete_row();
+
+    gaia::db::commit_transaction();
+    usleep(c_g_rule_execution_delay * 5);
+
+    EXPECT_EQ(g_delete_called, 1);
 }

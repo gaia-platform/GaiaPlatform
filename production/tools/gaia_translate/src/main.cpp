@@ -1268,6 +1268,14 @@ public:
     }
 };
 
+class last_operation_switch_handler_t : public MatchFinder::MatchCallback
+{
+public:
+    void run (const MatchFinder::MatchResult &result) override
+    {
+        g_delete_operation_in_rule = true;
+    }
+};
 
 class translation_engine_consumer_t : public clang::ASTConsumer
 {
@@ -1278,6 +1286,16 @@ public:
         m_update_match_handler(r), m_insert_match_handler(r), m_delete_match_handler(r), m_none_match_handler(r)
 
     {
+        StatementMatcher last_operation_switch_matcher = switchStmt(allOf(
+            hasCondition(expr(ignoringParenImpCasts(memberExpr(
+                        hasDescendant(declRefExpr(to(varDecl(hasAttr(attr::GaiaLastOperation)))))))
+            )),
+            forEachSwitchCase(anyOf(
+                defaultStmt(),
+                caseStmt(has(ignoringParenImpCasts(declRefExpr(to(varDecl(hasAttr(attr::GaiaLastOperationDELETE)))))))
+                ))
+        )).bind("LastOperationSwitch");
+
         StatementMatcher last_operation_comparison_matcher = binaryOperator(allOf(
             anyOf(hasOperatorName("=="), hasOperatorName("!=")),
             anyOf(
@@ -1340,6 +1358,7 @@ public:
             declRefExpr(to(varDecl(hasAttr(attr::GaiaLastOperationNONE)))).bind("NONE");
 
         m_matcher.addMatcher(last_operation_comparison_matcher, &m_last_operation_comparison_handler);
+        m_matcher.addMatcher(last_operation_switch_matcher, &m_last_operation_switch_handler);
         m_matcher.addMatcher(field_get_matcher, &m_field_get_match_handler);
         m_matcher.addMatcher(table_field_get_matcher, &m_field_get_match_handler);
 
@@ -1374,6 +1393,7 @@ private:
     delete_match_handler_t m_delete_match_handler;
     none_match_handler_t m_none_match_handler;
     last_operation_comparison_handler_t m_last_operation_comparison_handler;
+    last_operation_switch_handler_t m_last_operation_switch_handler;
 };
 
 class translation_engine_action_t : public clang::ASTFrontendAction
