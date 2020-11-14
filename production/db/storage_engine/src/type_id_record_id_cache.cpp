@@ -6,13 +6,20 @@
 #include "type_id_record_id_cache.hpp"
 
 #include "catalog_core.hpp"
+#include "logger.hpp"
 #include "retail_assert.hpp"
 
 using namespace gaia::db;
 
 gaia::common::gaia_id_t type_id_record_id_cache_t::get_record_id(gaia::common::gaia_type_t type_id)
 {
-    std::call_once(m_type_id_record_id_map_init_flag, &type_id_record_id_cache_t::init_type_id_record_id_map, this);
+
+    if (!m_initialized)
+    {
+        std::unique_lock lock(m_cache_lock);
+        init_type_id_record_id_map();
+        m_initialized = true;
+    }
 
     auto it = m_type_id_record_id_map.find(type_id);
 
@@ -27,4 +34,11 @@ void type_id_record_id_cache_t::init_type_id_record_id_map()
     {
         m_type_id_record_id_map[table_view.table_type()] = table_view.id();
     }
+}
+
+void type_id_record_id_cache_t::clear()
+{
+    std::unique_lock lock(m_cache_lock);
+    m_type_id_record_id_map.clear();
+    m_initialized = false;
 }
