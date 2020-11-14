@@ -181,8 +181,18 @@ TEST_F(gaia_se_references_test, add_child_reference__child_already_in_relation)
     gaia_ptr child = create_object(c_patient_type, "John Doe");
 
     parent.add_child_reference(child.id(), c_first_patient_offset);
+
+    // doesn't fail if the same child is added to the same parent
+    parent.add_child_reference(child.id(), c_first_patient_offset);
+
+    gaia_ptr parent2 = create_object(c_doctor_type, "JD");
+    gaia_ptr child2 = create_object(c_patient_type, "Jane Doe");
+
+    parent2.add_child_reference(child2.id(), c_first_patient_offset);
+
+    // fails if a child that is already part of a relationship is added to a different parent
     EXPECT_THROW(
-        parent.add_child_reference(child.id(), c_first_patient_offset),
+        parent.add_child_reference(child2.id(), c_first_patient_offset),
         child_already_referenced);
 
     commit_transaction();
@@ -397,7 +407,9 @@ TEST_F(gaia_se_references_test, remove_child_reference__non_existent_children)
     gaia_ptr child2 = create_object(c_patient_type, "Jane Doe");
 
     // nothing should happen
-    parent.remove_child_reference(child2.id(), c_next_patient_offset);
+    EXPECT_THROW(
+        parent.remove_child_reference(child2.id(), c_next_patient_offset),
+        invalid_child);
 
     ASSERT_EQ(parent.references()[c_first_patient_offset], child.id());
     ASSERT_EQ(child.references()[c_parent_doctor_offset], parent.id());
