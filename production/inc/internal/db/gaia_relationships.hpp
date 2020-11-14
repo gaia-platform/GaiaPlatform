@@ -4,11 +4,15 @@
 /////////////////////////////////////////////
 
 #pragma once
+
+#include <gaia_common.hpp>
 #include <sstream>
 
 #include "gaia_common.hpp"
+#include "gaia_exception.hpp"
 
 using gaia::common::gaia_exception;
+using gaia::common::gaia_id_t;
 using gaia::common::gaia_type_t;
 using gaia::common::reference_offset_t;
 
@@ -120,6 +124,18 @@ public:
     {
         std::stringstream message;
         message << "Gaia type \"" << child_type << "\" has already a reference for the relationship with offset \"" << offset << "\"";
+        m_message = message.str();
+    }
+};
+
+class invalid_child : public gaia_exception
+{
+public:
+    invalid_child(gaia_type_t child_type, gaia_id_t child_id, gaia_type_t parent_type, gaia_id_t parent_id)
+    {
+        std::stringstream message;
+        message << "Impossible to remove child with id \"" << child_id << "\" and type \"" << child_type << "\" from parent with id \""
+                << parent_id << "\" and type \"" << parent_type << "\". The child has a different parent.";
         m_message = message.str();
     }
 };
