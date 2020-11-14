@@ -36,7 +36,7 @@ constexpr char c_command_separator = ' ';
 constexpr char c_db_subcommand = 'd';
 constexpr char c_table_subcommand = 't';
 constexpr char c_field_subcommand = 'f';
-constexpr char c_ref_subcommand = 'r';
+constexpr char c_relationship_subcommand = 'r';
 
 // Misc size and index constants that are used to parse command strings.
 constexpr size_t c_cmd_minimum_length = 2;
@@ -53,6 +53,7 @@ constexpr char c_type_title[] = "Type";
 constexpr char c_position_title[] = "Position";
 constexpr char c_repeated_count_title[] = "Repeated Count";
 constexpr char c_parent_title[] = "Parent";
+constexpr char c_child_title[] = "Child";
 
 template <typename T_obj>
 void list_catalog_obj(const row_t& header, function<bool(T_obj&)> is_match, function<row_t(T_obj&)> get_row)
@@ -99,10 +100,6 @@ void list_fields(const regex& re)
     list_catalog_obj<gaia_field_t>(
         {c_table_title, c_name_title, c_type_title, c_repeated_count_title, c_position_title, c_id_title},
         [&re](gaia_field_t& f) -> bool {
-            if (f.type() == static_cast<uint8_t>(data_type_t::e_references))
-            {
-                return false;
-            }
             return regex_match(f.name(), re);
         },
         [](gaia_field_t& f) -> row_t {
@@ -116,24 +113,19 @@ void list_fields(const regex& re)
         });
 }
 
-void list_references(const regex& re)
+void list_relationships(const regex& re)
 {
-    list_catalog_obj<gaia_field_t>(
-        {c_table_title, c_name_title, c_parent_title, c_position_title, c_id_title},
-        [&re](gaia_field_t& f) -> bool {
-            if (f.type() != static_cast<uint8_t>(data_type_t::e_references))
-            {
-                return false;
-            }
-            return regex_match(f.name(), re);
+    list_catalog_obj<gaia_relationship_t>(
+        {c_name_title, c_parent_title, c_child_title, c_id_title},
+        [&re](gaia_relationship_t& r) -> bool {
+            return regex_match(r.name(), re);
         },
-        [](gaia_field_t& f) -> row_t {
+        [](gaia_relationship_t& r) -> row_t {
             return {
-                f.gaia_table().name(),
-                f.name(),
-                f.ref_gaia_table().name(),
-                to_string(f.position()),
-                to_string(f.gaia_id())};
+                r.name(),
+                r.parent_gaia_table().name(),
+                r.child_gaia_table().name(),
+                to_string(r.gaia_id())};
         });
 }
 
@@ -163,9 +155,10 @@ void describe_database(const string& name)
 
 void describe_table(const string& name)
 {
-    tabulate::Table output_fields, output_references;
+    tabulate::Table output_fields, output_child_references, output_parent_references;
     output_fields.add_row({c_name_title, c_type_title, c_repeated_count_title, c_position_title, c_id_title});
-    output_references.add_row({c_name_title, c_parent_title, c_position_title, c_id_title});
+    output_child_references.add_row({c_name_title, c_parent_title, c_id_title});
+    output_parent_references.add_row({c_name_title, c_child_title, c_id_title});
     gaia_id_t table_id = c_invalid_gaia_id;
     {
         auto_transaction_t tx;
@@ -187,23 +180,26 @@ void describe_table(const string& name)
         }
         for (auto& field : gaia_table_t::get(table_id).gaia_field_list())
         {
-            if (field.type() != static_cast<uint8_t>(data_type_t::e_references))
-            {
-                output_fields.add_row(
-                    {field.name(),
-                     get_data_type_name(static_cast<data_type_t>(field.type())),
-                     to_string(field.repeated_count()),
-                     to_string(field.position()),
-                     to_string(field.gaia_id())});
-            }
-            else
-            {
-                output_references.add_row(
-                    {field.name(),
-                     field.ref_gaia_table().name(),
-                     to_string(field.position()),
-                     to_string(field.gaia_id())});
-            }
+            output_fields.add_row(
+                {field.name(),
+                 get_data_type_name(static_cast<data_type_t>(field.type())),
+                 to_string(field.repeated_count()),
+                 to_string(field.position()),
+                 to_string(field.gaia_id())});
+        }
+        for (auto& relationship : gaia_table_t::get(table_id).child_gaia_relationship_list())
+        {
+            output_child_references.add_row(
+                {relationship.name(),
+                 relationship.parent_gaia_table().name(),
+                 to_string(relationship.gaia_id())});
+        }
+        for (auto& relationship : gaia_table_t::get(table_id).parent_gaia_relationship_list())
+        {
+            output_parent_references.add_row(
+                {relationship.name(),
+                 relationship.child_gaia_table().name(),
+                 to_string(relationship.gaia_id())});
         }
     }
     cout << "Table \"" << name << "\":" << endl;
@@ -212,8 +208,12 @@ void describe_table(const string& name)
     output_fields.print(cout);
     cout << endl;
     cout << endl;
-    cout << "References:" << endl;
-    output_references.print(cout);
+    cout << "Child references:" << endl;
+    output_child_references.print(cout);
+    cout << endl;
+    cout << endl;
+    cout << "Parent references:" << endl;
+    output_parent_references.print(cout);
     cout << endl;
 #ifdef DEBUG
     // Hide FlatBuffers related content in release build.
@@ -304,9 +304,9 @@ string parse_name(const string& cmd, size_t pos, bool throw_on_empty = true)
 
 void handle_describe_command(const string& cmd)
 {
-    retail_assert(cmd.length() > c_cmd_minimum_length);
-    retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix);
-    retail_assert(cmd[c_command_index] == c_describe_command);
+    retail_assert(cmd.length() > c_cmd_minimum_length, "Unexpected command length!");
+    retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix, "Unexpected command prefix!");
+    retail_assert(cmd[c_command_index] == c_describe_command, "Unexpected command!");
 
     switch (cmd[c_subcommand_index])
     {
@@ -327,9 +327,9 @@ void handle_describe_command(const string& cmd)
 
 void handle_list_command(const string& cmd)
 {
-    retail_assert(cmd.length() > 1);
-    retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix);
-    retail_assert(cmd[c_command_index] == c_list_command);
+    retail_assert(cmd.length() > 1, "Unexpected command length!");
+    retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix, "Unexpected command prefix!");
+    retail_assert(cmd[c_command_index] == c_list_command, "Unexpected command");
 
     if (cmd.length() == c_cmd_minimum_length)
     {
@@ -347,8 +347,8 @@ void handle_list_command(const string& cmd)
     case c_field_subcommand:
         list_fields(parse_pattern(cmd, c_subcommand_index + 1));
         break;
-    case c_ref_subcommand:
-        list_references(parse_pattern(cmd, c_subcommand_index + 1));
+    case c_relationship_subcommand:
+        list_relationships(parse_pattern(cmd, c_subcommand_index + 1));
         break;
     case c_table_subcommand:
         list_tables(parse_pattern(cmd, c_subcommand_index + 1));
@@ -362,9 +362,9 @@ void handle_list_command(const string& cmd)
 // Hide FlatBuffers related commands in release build.
 void handle_generate_command(const string& cmd)
 {
-    retail_assert(cmd.length() > c_cmd_minimum_length);
-    retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix);
-    retail_assert(cmd[c_command_index] == c_generate_command);
+    retail_assert(cmd.length() > c_cmd_minimum_length, "Unexpected command length!");
+    retail_assert(cmd[c_cmd_prefix_index] == c_command_prefix, "Unexpected command prefix!");
+    retail_assert(cmd[c_command_index] == c_generate_command, "Unexpected command!");
 
     switch (cmd[c_subcommand_index])
     {
@@ -420,8 +420,8 @@ string command_usage()
         {string() + c_command_prefix + c_list_command + c_field_subcommand,
          optionalize(pattern), "List data fields optionally filtering by the " + pattern + "."});
     output_table.add_row(
-        {string() + c_command_prefix + c_list_command + c_ref_subcommand,
-         optionalize(pattern), "List references optionally filtering by the " + pattern + "."});
+        {string() + c_command_prefix + c_list_command + c_relationship_subcommand,
+         optionalize(pattern), "List relationships optionally filtering by the " + pattern + "."});
     output_table.add_row(
         {string() + c_command_prefix + c_list_command + optionalize(c_table_subcommand),
          optionalize(pattern), "List tables optionally filtering by the " + pattern + "."});

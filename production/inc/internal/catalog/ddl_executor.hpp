@@ -9,8 +9,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "catalog_internal.hpp"
+#include "catalog.hpp"
 #include "gaia_boot.hpp"
+#include "gaia_catalog.h"
 
 namespace gaia
 {
@@ -93,20 +94,19 @@ private:
     // Get the full name for a table composed of db and table names.
     static inline std::string get_full_table_name(const std::string& db, const std::string& table);
 
-    // Find the next available offset in a container parent relationships
-    template <typename T_parent_relationships>
-    uint8_t find_parent_available_offset(T_parent_relationships relationships);
-
-    // Find the next available offset in a container child relationships
-    template <typename T_child_relationships>
-    uint8_t find_child_available_offset(T_child_relationships relationships);
-
-    // Find the next available offset in the relationships of the given table
-    uint8_t find_available_offset(gaia::common::gaia_id_t table);
+    // The following are helper functions for calculating relationship offsets.
+    // We use them to compute offset field values of the "gaia_relationship" table .
+    //
+    // Find the next available offset in a container's parent relationships.
+    static uint8_t find_parent_available_offset(const parent_gaia_relationship_list_t& relationships);
+    // Find the next available offset in a container's child relationships.
+    static uint8_t find_child_available_offset(const child_gaia_relationship_list_t& relationships);
+    // Find the next available offset in the relationships of the given table.
+    static uint8_t find_available_offset(gaia::common::gaia_id_t table);
 
     // Maintain some in-memory cache for fast lookup.
     // This is only intended for single process usage.
-    // We cannot guarantee the cache is consistent across mutiple processes.
+    // We cannot guarantee the cache is consistent across multiple processes.
     // We should switch to use value index when the feature is ready.
     db_names_t m_db_names;
     table_names_t m_table_names;

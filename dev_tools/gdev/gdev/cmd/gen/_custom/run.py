@@ -16,12 +16,12 @@ class GenCustomRun(GenAbcRun):
         flags_parts = [await super()._get_flags()]
         # gdb needs ptrace enabled in order to attach to a process. Additionally,
         # seccomp=unconfined is recommended for gdb, and we don't run in a hostile environment.
-        if 'gdb' in self.options.mixins:
+        if {'clion', 'gdb', 'vscode'} & self.options.mixins:
             flags_parts += [
                 '--cap-add=SYS_PTRACE',
                 '--security-opt seccomp=unconfined'
             ]
-        if 'sudo' in self.options.mixins:
+        if {'clion', 'sudo', 'vscode'} & self.options.mixins:
             flags_parts.append(f'--user {os.getuid()}:{os.getgid()}')
 
         flags = ' '.join(flags_parts)

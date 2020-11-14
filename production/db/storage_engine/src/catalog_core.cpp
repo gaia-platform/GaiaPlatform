@@ -67,7 +67,9 @@ namespace db
 const gaia_se_object_t* catalog_core_t::get_se_object_ptr(gaia_id_t id)
 {
     gaia_locator_t locator = gaia_hash_map::find(client::s_data, client::s_locators, id);
-    retail_assert(locator && se_base::locator_exists(client::s_locators, locator));
+    retail_assert(
+        locator && se_base::locator_exists(client::s_locators, locator),
+        "An invalid locator was returned by gaia_hash_map::find()!");
     return se_base::locator_to_ptr(client::s_locators, client::s_data, locator);
 }
 

@@ -1,3 +1,4 @@
+You are now connected to database "airport" as user "postgres".
 Amsterdam Airport Schiphol
 Charles de Gaulle International Airport
 Dubai International Airport

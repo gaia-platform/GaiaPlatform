@@ -4,6 +4,7 @@
 /////////////////////////////////////////////
 #pragma once
 
+#include <atomic>
 #include <map>
 #include <mutex>
 #include <thread>
@@ -28,6 +29,8 @@ public:
         bool enable_rule_stats,
         size_t count_threads,
         uint32_t stats_log_interval);
+    ~rule_stats_manager_t();
+
     void inc_executed(const char* rule_id);
     void inc_scheduled(const char* rule_id);
     void inc_retries(const char* rule_id);
@@ -60,6 +63,8 @@ private:
     std::mutex m_rule_stats_lock;
     // Individual rule stats are off by default.  Must be explicitly enabled by the user.
     bool m_rule_stats_enabled;
+    // Signal to stop logging on shutdown.
+    std::atomic_bool m_keep_logging;
 };
 
 } // namespace rules

@@ -163,7 +163,7 @@ private:
         // Memory for other operations will be unused. An alternative would be to keep a separate log for deleted keys only.
         gaia_id_t deleted_id = 0)
     {
-        retail_assert(s_log->count < c_max_log_records);
+        retail_assert(s_log->count < c_max_log_records, "Log count exceeds maximum log record count!");
         log::log_record* lr = s_log->log_records + s_log->count++;
         lr->locator = locator;
         lr->old_offset = old_offset;

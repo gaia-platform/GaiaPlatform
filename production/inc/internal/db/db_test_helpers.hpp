@@ -32,10 +32,12 @@ constexpr char c_daemonize_command[] = "daemonize ";
 // instantiates the server.)
 constexpr char c_disable_persistence_flag[] = " --disable-persistence";
 
+// Erase the contents of the persistent directory but not the directory itself.
 inline void remove_persistent_store()
 {
     std::string cmd = "rm -rf ";
     cmd.append(PERSISTENT_DIRECTORY_PATH);
+    cmd.append("/*");
     std::cerr << cmd << std::endl;
     ::system(cmd.c_str());
 }
@@ -44,7 +46,8 @@ inline void wait_for_server_init()
 {
     constexpr int c_poll_interval_millis = 10;
     constexpr int c_print_error_interval = 1000;
-    int counter = 0;
+    // Initialize to 1 to avoid printing a spurious wait message.
+    int counter = 1;
 
     // quick fix to initialize the server.
     gaia_log::initialize({});

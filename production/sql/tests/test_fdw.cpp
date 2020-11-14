@@ -20,39 +20,39 @@ class fdw_test : public db_test_base_t
 protected:
     static void SetUpTestSuite()
     {
-        airlines_table_fields.emplace_back(make_unique<field_definition_t>("al_id", data_type_t::e_int32, 1));
-        airlines_table_fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
-        airlines_table_fields.emplace_back(make_unique<field_definition_t>("alias", data_type_t::e_string, 1));
-        airlines_table_fields.emplace_back(make_unique<field_definition_t>("iata", data_type_t::e_string, 1));
-        airlines_table_fields.emplace_back(make_unique<field_definition_t>("icao", data_type_t::e_string, 1));
-        airlines_table_fields.emplace_back(make_unique<field_definition_t>("callsign", data_type_t::e_string, 1));
-        airlines_table_fields.emplace_back(make_unique<field_definition_t>("country", data_type_t::e_string, 1));
-        airlines_table_fields.emplace_back(make_unique<field_definition_t>("active", data_type_t::e_string, 1));
+        airlines_table_fields.emplace_back(make_unique<data_field_def_t>("al_id", data_type_t::e_int32, 1));
+        airlines_table_fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
+        airlines_table_fields.emplace_back(make_unique<data_field_def_t>("alias", data_type_t::e_string, 1));
+        airlines_table_fields.emplace_back(make_unique<data_field_def_t>("iata", data_type_t::e_string, 1));
+        airlines_table_fields.emplace_back(make_unique<data_field_def_t>("icao", data_type_t::e_string, 1));
+        airlines_table_fields.emplace_back(make_unique<data_field_def_t>("callsign", data_type_t::e_string, 1));
+        airlines_table_fields.emplace_back(make_unique<data_field_def_t>("country", data_type_t::e_string, 1));
+        airlines_table_fields.emplace_back(make_unique<data_field_def_t>("active", data_type_t::e_string, 1));
 
-        airports_table_fields.emplace_back(make_unique<field_definition_t>("ap_id", data_type_t::e_int32, 1));
-        airports_table_fields.emplace_back(make_unique<field_definition_t>("name", data_type_t::e_string, 1));
-        airports_table_fields.emplace_back(make_unique<field_definition_t>("city", data_type_t::e_string, 1));
-        airports_table_fields.emplace_back(make_unique<field_definition_t>("country", data_type_t::e_string, 1));
-        airports_table_fields.emplace_back(make_unique<field_definition_t>("iata", data_type_t::e_string, 1));
-        airports_table_fields.emplace_back(make_unique<field_definition_t>("icao", data_type_t::e_string, 1));
-        airports_table_fields.emplace_back(make_unique<field_definition_t>("latitude", data_type_t::e_double, 1));
-        airports_table_fields.emplace_back(make_unique<field_definition_t>("longitude", data_type_t::e_double, 1));
-        airports_table_fields.emplace_back(make_unique<field_definition_t>("altitude", data_type_t::e_int16, 1));
-        airports_table_fields.emplace_back(make_unique<field_definition_t>("timezone", data_type_t::e_float, 1));
-        airports_table_fields.emplace_back(make_unique<field_definition_t>("dst", data_type_t::e_string, 1));
-        airports_table_fields.emplace_back(make_unique<field_definition_t>("tztext", data_type_t::e_string, 1));
-        airports_table_fields.emplace_back(make_unique<field_definition_t>("type", data_type_t::e_string, 1));
-        airports_table_fields.emplace_back(make_unique<field_definition_t>("source", data_type_t::e_string, 1));
+        airports_table_fields.emplace_back(make_unique<data_field_def_t>("ap_id", data_type_t::e_int32, 1));
+        airports_table_fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
+        airports_table_fields.emplace_back(make_unique<data_field_def_t>("city", data_type_t::e_string, 1));
+        airports_table_fields.emplace_back(make_unique<data_field_def_t>("country", data_type_t::e_string, 1));
+        airports_table_fields.emplace_back(make_unique<data_field_def_t>("iata", data_type_t::e_string, 1));
+        airports_table_fields.emplace_back(make_unique<data_field_def_t>("icao", data_type_t::e_string, 1));
+        airports_table_fields.emplace_back(make_unique<data_field_def_t>("latitude", data_type_t::e_double, 1));
+        airports_table_fields.emplace_back(make_unique<data_field_def_t>("longitude", data_type_t::e_double, 1));
+        airports_table_fields.emplace_back(make_unique<data_field_def_t>("altitude", data_type_t::e_int16, 1));
+        airports_table_fields.emplace_back(make_unique<data_field_def_t>("timezone", data_type_t::e_float, 1));
+        airports_table_fields.emplace_back(make_unique<data_field_def_t>("dst", data_type_t::e_string, 1));
+        airports_table_fields.emplace_back(make_unique<data_field_def_t>("tztext", data_type_t::e_string, 1));
+        airports_table_fields.emplace_back(make_unique<data_field_def_t>("type", data_type_t::e_string, 1));
+        airports_table_fields.emplace_back(make_unique<data_field_def_t>("source", data_type_t::e_string, 1));
 
-        routes_table_fields.emplace_back(make_unique<field_definition_t>("airline", data_type_t::e_string, 1));
-        routes_table_fields.emplace_back(make_unique<field_definition_t>("al_id", data_type_t::e_int32, 1));
-        routes_table_fields.emplace_back(make_unique<field_definition_t>("src_ap", data_type_t::e_string, 1));
-        routes_table_fields.emplace_back(make_unique<field_definition_t>("src_ap_id", data_type_t::e_int32, 1));
-        routes_table_fields.emplace_back(make_unique<field_definition_t>("dst_ap", data_type_t::e_string, 1));
-        routes_table_fields.emplace_back(make_unique<field_definition_t>("dst_ap_id", data_type_t::e_int32, 1));
-        routes_table_fields.emplace_back(make_unique<field_definition_t>("codeshare", data_type_t::e_string, 1));
-        routes_table_fields.emplace_back(make_unique<field_definition_t>("stops", data_type_t::e_int16, 1));
-        routes_table_fields.emplace_back(make_unique<field_definition_t>("equipment", data_type_t::e_string, 1));
+        routes_table_fields.emplace_back(make_unique<data_field_def_t>("airline", data_type_t::e_string, 1));
+        routes_table_fields.emplace_back(make_unique<data_field_def_t>("al_id", data_type_t::e_int32, 1));
+        routes_table_fields.emplace_back(make_unique<data_field_def_t>("src_ap", data_type_t::e_string, 1));
+        routes_table_fields.emplace_back(make_unique<data_field_def_t>("src_ap_id", data_type_t::e_int32, 1));
+        routes_table_fields.emplace_back(make_unique<data_field_def_t>("dst_ap", data_type_t::e_string, 1));
+        routes_table_fields.emplace_back(make_unique<data_field_def_t>("dst_ap_id", data_type_t::e_int32, 1));
+        routes_table_fields.emplace_back(make_unique<data_field_def_t>("codeshare", data_type_t::e_string, 1));
+        routes_table_fields.emplace_back(make_unique<data_field_def_t>("stops", data_type_t::e_int16, 1));
+        routes_table_fields.emplace_back(make_unique<data_field_def_t>("equipment", data_type_t::e_string, 1));
     }
 
     static field_def_list_t airlines_table_fields;

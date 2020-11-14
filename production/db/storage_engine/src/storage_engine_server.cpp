@@ -5,6 +5,7 @@
 
 #include "storage_engine_server.hpp"
 
+#include "fd_helpers.hpp"
 #include "persistent_store_manager.hpp"
 
 using namespace std;
@@ -15,9 +16,11 @@ using namespace gaia::db::messages;
 void server::handle_connect(
     int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
-    retail_assert(event == session_event_t::CONNECT);
+    retail_assert(event == session_event_t::CONNECT, "Unexpected event received!");
     // This message should only be received after the client thread was first initialized.
-    retail_assert(old_state == session_state_t::DISCONNECTED && new_state == session_state_t::CONNECTED);
+    retail_assert(
+        old_state == session_state_t::DISCONNECTED && new_state == session_state_t::CONNECTED,
+        "Current event is inconsistent with state transition!");
     // We need to reply to the client with the fds for the data/locator segments.
     FlatBufferBuilder builder;
     build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_txn_id);
@@ -28,9 +31,11 @@ void server::handle_connect(
 void server::handle_begin_txn(
     int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
-    retail_assert(event == session_event_t::BEGIN_TXN);
+    retail_assert(event == session_event_t::BEGIN_TXN, "Unexpected event received!");
     // This message should only be received while a transaction is in progress.
-    retail_assert(old_state == session_state_t::CONNECTED && new_state == session_state_t::TXN_IN_PROGRESS);
+    retail_assert(
+        old_state == session_state_t::CONNECTED && new_state == session_state_t::TXN_IN_PROGRESS,
+        "Current event is inconsistent with state transition!");
     // Currently we don't need to alter any server-side state for opening a transaction.
     FlatBufferBuilder builder;
     s_txn_id = allocate_txn_id(s_data);
@@ -41,9 +46,11 @@ void server::handle_begin_txn(
 void server::handle_rollback_txn(
     int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
-    retail_assert(event == session_event_t::ROLLBACK_TXN);
+    retail_assert(event == session_event_t::ROLLBACK_TXN, "Unexpected event received!");
     // This message should only be received while a transaction is in progress.
-    retail_assert(old_state == session_state_t::TXN_IN_PROGRESS && new_state == session_state_t::CONNECTED);
+    retail_assert(
+        old_state == session_state_t::TXN_IN_PROGRESS && new_state == session_state_t::CONNECTED,
+        "Current event is inconsistent with state transition!");
     // We just need to reset the session thread's txn_id without replying to the client.
     s_txn_id = 0;
 }
@@ -51,15 +58,17 @@ void server::handle_rollback_txn(
 void server::handle_commit_txn(
     int* fds, size_t fd_count, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
-    retail_assert(event == session_event_t::COMMIT_TXN);
+    retail_assert(event == session_event_t::COMMIT_TXN, "Unexpected event received!");
     // This message should only be received while a transaction is in progress.
-    retail_assert(old_state == session_state_t::TXN_IN_PROGRESS && new_state == session_state_t::TXN_COMMITTING);
+    retail_assert(
+        old_state == session_state_t::TXN_IN_PROGRESS && new_state == session_state_t::TXN_COMMITTING,
+        "Current event is inconsistent with state transition!");
     // Get the log fd and mmap it.
-    retail_assert(fds && fd_count == 1);
+    retail_assert(fds && fd_count == 1, "Invalid fd data!");
     int fd_log = *fds;
     // Close our log fd on exit so the shared memory will be released when the client closes it.
-    auto cleanup_fd = make_scope_guard([fd_log]() {
-        close(fd_log);
+    auto cleanup_fd = make_scope_guard([&]() {
+        close_fd(fd_log);
     });
     // Check that the log memfd was sealed for writes.
     int seals = ::fcntl(fd_log, F_GET_SEALS);
@@ -67,7 +76,7 @@ void server::handle_commit_txn(
     {
         throw_system_error("fcntl(F_GET_SEALS) failed");
     }
-    retail_assert(seals & F_SEAL_WRITE);
+    retail_assert(seals & F_SEAL_WRITE, "Log fd was not sealed for write!");
     // Linux won't let us create a shared read-only mapping if F_SEAL_WRITE is set,
     // which seems contrary to the manpage for fcntl(2).
     s_log = static_cast<log*>(map_fd(sizeof(log), PROT_READ, MAP_PRIVATE, fd_log, 0));
@@ -81,8 +90,12 @@ void server::handle_commit_txn(
 void server::handle_decide_txn(
     int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
-    retail_assert(event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT);
-    retail_assert(old_state == session_state_t::TXN_COMMITTING && new_state == session_state_t::CONNECTED);
+    retail_assert(
+        event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT,
+        "Unexpected event received!");
+    retail_assert(
+        old_state == session_state_t::TXN_COMMITTING && new_state == session_state_t::CONNECTED,
+        "Current event is inconsistent with state transition!");
     FlatBufferBuilder builder;
     build_server_reply(builder, event, old_state, new_state, s_txn_id);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
@@ -92,8 +105,10 @@ void server::handle_decide_txn(
 void server::handle_client_shutdown(
     int*, size_t, session_event_t event, const void*, session_state_t, session_state_t new_state)
 {
-    retail_assert(event == session_event_t::CLIENT_SHUTDOWN);
-    retail_assert(new_state == session_state_t::DISCONNECTED);
+    retail_assert(event == session_event_t::CLIENT_SHUTDOWN, "Unexpected event received!");
+    retail_assert(
+        new_state == session_state_t::DISCONNECTED,
+        "Current event is inconsistent with state transition!");
     // If this event is received, the client must have closed the write end of the socket
     // (equivalent of sending a FIN), so we need to do the same. Closing the socket
     // will send a FIN to the client, so they will read EOF and can close the socket
@@ -107,8 +122,10 @@ void server::handle_client_shutdown(
 void server::handle_server_shutdown(
     int*, size_t, session_event_t event, const void*, session_state_t, session_state_t new_state)
 {
-    retail_assert(event == session_event_t::SERVER_SHUTDOWN);
-    retail_assert(new_state == session_state_t::DISCONNECTED);
+    retail_assert(event == session_event_t::SERVER_SHUTDOWN, "Unexpected event received!");
+    retail_assert(
+        new_state == session_state_t::DISCONNECTED,
+        "Current event is inconsistent with state transition!");
     // This transition should only be triggered on notification of the server shutdown event.
     // Since we are about to shut down, we can't wait for acknowledgment from the client and
     // should just close the session socket. As noted above, setting the shutdown flag will
@@ -119,9 +136,11 @@ void server::handle_server_shutdown(
 void server::handle_request_stream(
     int*, size_t, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state)
 {
-    retail_assert(event == session_event_t::REQUEST_STREAM);
+    retail_assert(event == session_event_t::REQUEST_STREAM, "Unexpected event received!");
     // This event never changes session state.
-    retail_assert(old_state == new_state);
+    retail_assert(
+        old_state == new_state,
+        "Current event is inconsistent with state transition!");
     // Create a connected pair of datagram sockets, one of which we will keep
     // and the other we will send to the client.
     // We use SOCK_SEQPACKET because it supports both datagram and connection
@@ -136,9 +155,9 @@ void server::handle_request_stream(
     }
     int server_socket = socket_pair[c_server_index];
     int client_socket = socket_pair[c_client_index];
-    auto socket_cleanup = make_scope_guard([server_socket, client_socket]() {
-        ::close(server_socket);
-        ::close(client_socket);
+    auto socket_cleanup = make_scope_guard([&]() {
+        close_fd(server_socket);
+        close_fd(client_socket);
     });
     // Set server socket to be nonblocking, since we use it within an epoll loop.
     int flags = ::fcntl(server_socket, F_GETFL);
@@ -160,7 +179,9 @@ void server::handle_request_stream(
     // We should logically receive an object corresponding to the request_data_t union,
     // but the FlatBuffers API doesn't have any object corresponding to a union.
     auto request = static_cast<const client_request_t*>(event_data);
-    retail_assert(request->data_type() == request_data_t::table_scan);
+    retail_assert(
+        request->data_type() == request_data_t::table_scan,
+        "Unexpected request data type");
     auto type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
     auto id_generator = get_id_generator_for_type(type);
     start_stream_producer(server_socket, id_generator);
@@ -170,7 +191,7 @@ void server::handle_request_stream(
     build_server_reply(builder, event, old_state, new_state);
     send_msg_with_fds(s_session_socket, &client_socket, 1, builder.GetBufferPointer(), builder.GetSize());
     // Close the client socket in our process since we duplicated it.
-    ::close(client_socket);
+    close_fd(client_socket);
     socket_cleanup.dismiss();
 }
 
@@ -235,22 +256,18 @@ void server::clear_shared_memory()
     if (s_shared_locators)
     {
         unmap_fd(s_shared_locators, sizeof(locators));
-        s_shared_locators = nullptr;
     }
     if (s_fd_locators != -1)
     {
-        ::close(s_fd_locators);
-        s_fd_locators = -1;
+        close_fd(s_fd_locators);
     }
     if (s_data)
     {
         unmap_fd(s_data, sizeof(data));
-        s_data = nullptr;
     }
     if (s_fd_data != -1)
     {
-        ::close(s_fd_data);
-        s_fd_data = -1;
+        close_fd(s_fd_data);
     }
 }
 
@@ -259,13 +276,13 @@ void server::clear_shared_memory()
 void server::init_shared_memory()
 {
     // The listening socket must not be open.
-    retail_assert(s_listening_socket == -1);
+    retail_assert(s_listening_socket == -1, "Listening socket should not be open!");
     // We may be reinitializing the server upon receiving a SIGHUP.
     clear_shared_memory();
     // Clear all shared memory if an exception is thrown.
     auto cleanup_memory = make_scope_guard([]() { clear_shared_memory(); });
-    retail_assert(s_fd_data == -1 && s_fd_locators == -1);
-    retail_assert(!s_data && !s_shared_locators);
+    retail_assert(s_fd_data == -1 && s_fd_locators == -1, "Data and locator fds should not be valid!");
+    retail_assert(!s_data && !s_shared_locators, "Data and locators memory should be reset!");
     s_fd_locators = ::memfd_create(c_sch_mem_locators, MFD_ALLOW_SEALING);
     if (s_fd_locators == -1)
     {
@@ -333,7 +350,7 @@ void server::signal_handler(sigset_t sigset, int& signum)
     {
         throw_system_error("write to eventfd failed");
     }
-    retail_assert(bytes_written == sizeof(MAX_SEMAPHORE_COUNT));
+    retail_assert(bytes_written == sizeof(MAX_SEMAPHORE_COUNT), "Failed to fully write data!");
 }
 
 void server::init_listening_socket()
@@ -350,7 +367,7 @@ void server::init_listening_socket()
     {
         throw_system_error("socket creation failed");
     }
-    auto socket_cleanup = make_scope_guard([listening_socket]() { ::close(listening_socket); });
+    auto socket_cleanup = make_scope_guard([&]() { close_fd(listening_socket); });
 
     // Initialize the socket address structure.
     sockaddr_un server_addr = {0};
@@ -412,9 +429,8 @@ void server::client_dispatch_handler()
     // so no new sessions can be established while we wait for all session
     // threads to exit (we assume they received the same server shutdown
     // notification that we did).
-    auto listener_cleanup = make_scope_guard([]() {
-        ::close(s_listening_socket);
-        s_listening_socket = -1;
+    auto listener_cleanup = make_scope_guard([&]() {
+        close_fd(s_listening_socket);
     });
 
     // Set up the epoll loop.
@@ -427,7 +443,7 @@ void server::client_dispatch_handler()
     // connections that arrive before the listening socket is closed will
     // receive ECONNRESET rather than ECONNREFUSED. This is perhaps unfortunate
     // but shouldn't really matter in practice.
-    auto epoll_cleanup = make_scope_guard([epoll_fd]() { ::close(epoll_fd); });
+    auto epoll_cleanup = make_scope_guard([&]() { close_fd(epoll_fd); });
     int registered_fds[] = {s_listening_socket, s_server_shutdown_eventfd};
     for (int registered_fd : registered_fds)
     {
@@ -479,7 +495,7 @@ void server::client_dispatch_handler()
                 }
             }
             // At this point, we should only get EPOLLIN.
-            retail_assert(ev.events == EPOLLIN);
+            retail_assert(ev.events == EPOLLIN, "Unexpected event type!");
             if (ev.data.fd == s_listening_socket)
             {
                 int session_socket = ::accept(s_listening_socket, nullptr, nullptr);
@@ -493,7 +509,7 @@ void server::client_dispatch_handler()
                 }
                 else
                 {
-                    ::close(session_socket);
+                    close_fd(session_socket);
                 }
             }
             else if (ev.data.fd == s_server_shutdown_eventfd)
@@ -505,13 +521,13 @@ void server::client_dispatch_handler()
                     throw_system_error("read failed");
                 }
                 // We should always read the value 1 from a semaphore eventfd.
-                retail_assert(bytes_read == sizeof(val) && val == 1);
+                retail_assert(bytes_read == sizeof(val) && val == 1, "Unexpected value read from semaphore event fd");
                 return;
             }
             else
             {
                 // We don't monitor any other fds.
-                retail_assert(false);
+                retail_assert(false, "Unexpected event fd type detected!");
             }
         }
     }
@@ -522,17 +538,15 @@ void server::session_handler(int session_socket)
     // Set up session socket.
     s_session_shutdown = false;
     s_session_socket = session_socket;
-    auto socket_cleanup = make_scope_guard([]() {
-        // We can rely on close() to perform the equivalent of
+    auto socket_cleanup = make_scope_guard([&]() {
+        // We can rely on close_fd() to perform the equivalent of
         // shutdown(SHUT_RDWR), since we hold the only fd pointing to this
         // socket. That should allow the client to read EOF if they're in a
         // blocking read and exit gracefully. (If they try to write to the
         // socket after we've closed our end, they'll receive EPIPE.) We don't
         // want to try to read any pending data from the client, since we're
         // trying to shut down as quickly as possible.
-        ::close(s_session_socket);
-        // Assign an invalid fd to the socket variable so it can't be reused.
-        s_session_socket = -1;
+        close_fd(s_session_socket);
     });
 
     // Set up epoll loop.
@@ -541,7 +555,7 @@ void server::session_handler(int session_socket)
     {
         throw_system_error("epoll_create1 failed");
     }
-    auto epoll_cleanup = make_scope_guard([epoll_fd]() { ::close(epoll_fd); });
+    auto epoll_cleanup = make_scope_guard([&]() { close_fd(epoll_fd); });
     int fds[] = {s_session_socket, s_server_shutdown_eventfd};
     for (int fd : fds)
     {
@@ -572,7 +586,7 @@ void server::session_handler(int session_socket)
         {
             throw_system_error("write to eventfd failed");
         }
-        retail_assert(bytes_written == sizeof(MAX_SEMAPHORE_COUNT));
+        retail_assert(bytes_written == sizeof(MAX_SEMAPHORE_COUNT), "Failed to fully write data!");
         // Wait for all session-owned threads to terminate.
         for (std::thread& t : s_session_owned_threads)
         {
@@ -624,7 +638,7 @@ void server::session_handler(int session_socket)
                 {
                     // This flag is unmaskable, so we don't need to register for it.
                     // Both ends of the socket have issued a shutdown(SHUT_WR) or equivalent.
-                    retail_assert(!(ev.events & EPOLLERR));
+                    retail_assert(!(ev.events & EPOLLERR), "EPOLLERR flag should not be set!");
                     event = session_event_t::CLIENT_SHUTDOWN;
                 }
                 else if (ev.events & EPOLLRDHUP)
@@ -633,12 +647,14 @@ void server::session_handler(int session_socket)
                     // disconnect. We do the same by closing the session socket.
                     // REVIEW: Can we get both EPOLLHUP and EPOLLRDHUP when the client half-closes
                     // the socket after we half-close it?
-                    retail_assert(!(ev.events & EPOLLHUP));
+                    retail_assert(!(ev.events & EPOLLHUP), "EPOLLHUP flag should not be set!");
                     event = session_event_t::CLIENT_SHUTDOWN;
                 }
                 else if (ev.events & EPOLLIN)
                 {
-                    retail_assert(!(ev.events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)));
+                    retail_assert(
+                        !(ev.events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)),
+                        "EPOLLERR, EPOLLHUP, EPOLLRDHUP flags should not be set!");
                     // Buffer used to send and receive all message data.
                     uint8_t msg_buf[c_max_msg_size] = {0};
                     // Buffer used to receive file descriptors.
@@ -650,7 +666,7 @@ void server::session_handler(int session_socket)
                     // REVIEW: it might be possible for the client to call shutdown(SHUT_WR)
                     // after we have already woken up on EPOLLIN, in which case we would
                     // legitimately read 0 bytes and this assert would be invalid.
-                    retail_assert(bytes_read > 0);
+                    retail_assert(bytes_read > 0, "Failed to read message!");
                     const message_t* msg = Getmessage_t(msg_buf);
                     const client_request_t* request = msg->msg_as_request();
                     event = request->event();
@@ -670,12 +686,12 @@ void server::session_handler(int session_socket)
                 else
                 {
                     // We don't register for any other events.
-                    retail_assert(false);
+                    retail_assert(false, "Unexpected event type!");
                 }
             }
             else if (ev.data.fd == s_server_shutdown_eventfd)
             {
-                retail_assert(ev.events == EPOLLIN);
+                retail_assert(ev.events == EPOLLIN, "Expected EPOLLIN event type!");
                 // We should always read the value 1 from a semaphore eventfd.
                 uint64_t val;
                 ssize_t bytes_read = ::read(s_server_shutdown_eventfd, &val, sizeof(val));
@@ -683,16 +699,16 @@ void server::session_handler(int session_socket)
                 {
                     throw_system_error("read(eventfd) failed");
                 }
-                retail_assert(bytes_read == sizeof(val));
-                retail_assert(val == 1);
+                retail_assert(bytes_read == sizeof(val), "Failed to fully read expected data!");
+                retail_assert(val == 1, "Unexpected value received!");
                 event = session_event_t::SERVER_SHUTDOWN;
             }
             else
             {
                 // We don't monitor any other fds.
-                retail_assert(false);
+                retail_assert(false, "Unexpected event fd!");
             }
-            retail_assert(event != session_event_t::NOP);
+            retail_assert(event != session_event_t::NOP, "Unexpected event type!");
             apply_transition(event, event_data, fds, fd_count);
         }
     }
@@ -707,10 +723,10 @@ void server::stream_producer_handler(
     // Verify the socket is the correct type for the semantics we assume.
     check_socket_type(stream_socket, SOCK_SEQPACKET);
     auto gen_iter = generator_iterator_t<T_element_type>(generator_fn);
-    auto socket_cleanup = make_scope_guard([stream_socket]() {
-        // We can rely on close() to perform the equivalent of shutdown(SHUT_RDWR),
+    auto socket_cleanup = make_scope_guard([&]() {
+        // We can rely on close_fd() to perform the equivalent of shutdown(SHUT_RDWR),
         // since we hold the only fd pointing to this socket.
-        ::close(stream_socket);
+        close_fd(stream_socket);
     });
     // Check if our stream socket is non-blocking (so we don't accidentally block in write()).
     int flags = ::fcntl(stream_socket, F_GETFL, 0);
@@ -718,13 +734,13 @@ void server::stream_producer_handler(
     {
         throw_system_error("fcntl(F_GETFL) failed");
     }
-    retail_assert(flags & O_NONBLOCK);
+    retail_assert(flags & O_NONBLOCK, "Stream socket is in blocking mode!");
     int epoll_fd = ::epoll_create1(0);
     if (epoll_fd == -1)
     {
         throw_system_error("epoll_create1 failed");
     }
-    auto epoll_cleanup = make_scope_guard([epoll_fd]() { ::close(epoll_fd); });
+    auto epoll_cleanup = make_scope_guard([&]() { close_fd(epoll_fd); });
     // We poll for write availability of the stream socket in level-triggered mode,
     // and only write at most one buffer of data before polling again, to avoid read
     // starvation of the cancellation eventfd.
@@ -787,12 +803,14 @@ void server::stream_producer_handler(
                 {
                     // This flag is unmaskable, so we don't need to register for it.
                     // We shold get this when the client has closed its end of the socket.
-                    retail_assert(!(ev.events & EPOLLERR));
+                    retail_assert(!(ev.events & EPOLLERR), "EPOLLERR flag should not be set!");
                     producer_shutdown = true;
                 }
                 else if (ev.events & EPOLLOUT)
                 {
-                    retail_assert(!(ev.events & (EPOLLERR | EPOLLHUP)));
+                    retail_assert(
+                        !(ev.events & (EPOLLERR | EPOLLHUP)),
+                        "EPOLLERR and EPOLLHUP flags should not be set!");
                     // Write to the send buffer until we exhaust either the iterator or the buffer free space.
                     while (gen_iter && (batch_buffer.size() < STREAM_BATCH_SIZE))
                     {
@@ -821,7 +839,7 @@ void server::stream_producer_handler(
                             // It should never happen that the socket is no longer writable
                             // after we receive EPOLLOUT, since we are the only writer and
                             // the receive buffer is always large enough for a batch.
-                            retail_assert(errno != EAGAIN && errno != EWOULDBLOCK);
+                            retail_assert(errno != EAGAIN && errno != EWOULDBLOCK, "Unexpected errno value!");
                             // Log the error and break out of the poll loop.
                             cerr << "stream socket error: " << ::strerror(errno) << endl;
                             producer_shutdown = true;
@@ -848,12 +866,12 @@ void server::stream_producer_handler(
                 else
                 {
                     // We don't register for any other events.
-                    retail_assert(false);
+                    retail_assert(false, "Unexpected event type!");
                 }
             }
             else if (ev.data.fd == cancel_eventfd)
             {
-                retail_assert(ev.events == EPOLLIN);
+                retail_assert(ev.events == EPOLLIN, "Unexpected event type!");
                 // We should always read the value 1 from a semaphore eventfd.
                 uint64_t val;
                 ssize_t bytes_read = ::read(cancel_eventfd, &val, sizeof(val));
@@ -861,14 +879,14 @@ void server::stream_producer_handler(
                 {
                     throw_system_error("read(eventfd) failed");
                 }
-                retail_assert(bytes_read == sizeof(val));
-                retail_assert(val == 1);
+                retail_assert(bytes_read == sizeof(val), "Failed to fully read data!");
+                retail_assert(val == 1, "Unexpected data received!");
                 producer_shutdown = true;
             }
             else
             {
                 // We don't monitor any other fds.
-                retail_assert(false);
+                retail_assert(false, "Unexpected event fd!");
             }
         }
     }
@@ -921,7 +939,7 @@ bool server::txn_commit()
     }
     // Within our own process, we must have exclusive access to the locator segment.
     std::unique_lock lock(s_locators_lock);
-    auto cleanup = make_scope_guard([]() {
+    auto cleanup = make_scope_guard([&]() {
         if (-1 == ::flock(s_fd_locators, LOCK_UN))
         {
             // Per C++11 semantics, throwing an exception from a destructor
@@ -1022,10 +1040,9 @@ void server::run(bool disable_persistence)
         // We can't close this fd until all readers and writers have exited.
         // The only readers are the client dispatch thread and the session
         // threads, and the only writer is the signal handler thread.
-        ::close(s_server_shutdown_eventfd);
-        s_server_shutdown_eventfd = -1;
+        close_fd(s_server_shutdown_eventfd);
         // We shouldn't get here unless the signal handler thread has caught a signal.
-        retail_assert(caught_signal != 0);
+        retail_assert(caught_signal != 0, "A signal should have been caught!");
         // We special-case SIGHUP to force reinitialization of the server.
         if (caught_signal != SIGHUP)
         {

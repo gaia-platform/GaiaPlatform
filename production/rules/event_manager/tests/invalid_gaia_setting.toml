@@ -1,0 +1,14 @@
+# System wide settings.
+[System]
+logger_config = "./log_conf.toml"
+
+# Settings for the database.
+[Database]
+
+# Settings for the catalog.
+[Catalog]
+
+# Settings for the rules engine.
+[Rules]
+# 0 is an invalid setting for thread_pool_count.
+thread_pool_count = 0

@@ -5,11 +5,11 @@
 
 #pragma once
 
+#include <stdexcept>
+
 #include <libexplain/mmap.h>
 #include <libexplain/munmap.h>
 #include <sys/mman.h>
-
-#include <stdexcept>
 
 #include "gaia_exception.hpp"
 #include "system_error.hpp"
@@ -31,12 +31,16 @@ inline void* map_fd(size_t length, int protection, int flags, int fd, size_t off
     return mapping;
 }
 
-inline void unmap_fd(void* addr, size_t length)
+// We have to use a template because the compiler won't convert T* to void*&.
+template <typename T>
+inline void unmap_fd(T*& addr, size_t length)
 {
-    if (-1 == ::munmap(addr, length))
+    void* tmp = addr;
+    addr = nullptr;
+    if (-1 == ::munmap(tmp, length))
     {
         int err = errno;
-        const char* reason = ::explain_munmap(addr, length);
+        const char* reason = ::explain_munmap(tmp, length);
         throw system_error(reason, err);
     }
 }

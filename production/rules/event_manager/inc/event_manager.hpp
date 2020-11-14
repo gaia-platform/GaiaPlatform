@@ -4,7 +4,9 @@
 /////////////////////////////////////////////
 #pragma once
 
+#include <atomic>
 #include <list>
+#include <mutex>
 #include <queue>
 #include <thread>
 #include <unordered_map>
@@ -15,6 +17,7 @@
 #include "rule_checker.hpp"
 #include "rule_thread_pool.hpp"
 #include "rules.hpp"
+#include "rules_config.hpp"
 #include "triggers.hpp"
 
 using namespace gaia::db::triggers;
@@ -45,6 +48,8 @@ public:
      * Rule APIs
      */
     void init();
+
+    void shutdown();
 
     void subscribe_rule(
         gaia::common::gaia_type_t gaia_type,
@@ -83,7 +88,12 @@ private:
     // The rules engine must be initialized through an explicit call
     // to gaia::rules::initialize_rules_engine(). If this method
     // is not called then all APIs will fail with a gaia::exception.
-    bool m_is_initialized = false;
+    atomic_bool m_is_initialized = false;
+
+    // Protect initialization and shutdown from happening concurrently.
+    // Note, that the public rules engine APIs are not designed to be
+    // thread safe.
+    std::mutex m_init_lock;
 
     // Hash table of all rules registered with the system.
     // The key is the rulset_name::rule_name.
@@ -125,6 +135,9 @@ private:
 private:
     // Only internal static creation is allowed.
     event_manager_t() = default;
+
+    // Internal initialization function called by the system.
+    friend void gaia::rules::initialize_rules_engine(shared_ptr<cpptoml::table>& root_config);
 
     // Test helper methods.  These are just the friend declarations.  These methods are
     // implemented in a separate source file that must be compiled into the test.

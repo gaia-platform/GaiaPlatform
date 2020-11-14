@@ -15,6 +15,7 @@
 #include "gaia_db_internal.hpp"
 #include "retail_assert.hpp"
 #include "rule_stats_manager.hpp"
+#include "rules_config.hpp"
 #include "timer.hpp"
 #include "triggers.hpp"
 
@@ -63,6 +64,8 @@ void event_manager_t::init()
 
 void event_manager_t::init(event_manager_settings_t& settings)
 {
+    unique_lock<mutex> lock(m_init_lock);
+
     size_t count_worker_threads = settings.num_background_threads;
     if (count_worker_threads == SIZE_MAX)
     {
@@ -87,6 +90,24 @@ void event_manager_t::init(event_manager_settings_t& settings)
     set_commit_trigger(fn);
 
     m_is_initialized = true;
+}
+
+void event_manager_t::shutdown()
+{
+    unique_lock<mutex> lock(m_init_lock);
+
+    m_is_initialized = false;
+
+    // Stop new events from coming in.
+    set_commit_trigger(nullptr);
+
+    // Destroy the thread pool first to ensure that any rules that are in flight get a chance to finish.
+    m_invocations.reset();
+    m_stats_manager.reset();
+    m_rule_checker.reset();
+
+    // Ensure we can re-initialize by dropping our subscription state.
+    unsubscribe_rules();
 }
 
 bool event_manager_t::process_last_operation_events(
@@ -443,20 +464,17 @@ void event_manager_t::add_rule(rule_list_t& rules, const rule_binding_t& binding
     // If we already have seen this rule, then
     // add it to the list.  Otherwise, create a new
     // rule binding entry and put it in our global list.
-    _rule_binding_t* this_rule = nullptr;
     if (rule_ptr == nullptr)
     {
         const string& key = make_rule_key(binding);
-        this_rule = new _rule_binding_t(binding);
-        m_rules.insert(make_pair(key, unique_ptr<_rule_binding_t>(this_rule)));
+        auto rule_binding = new _rule_binding_t(binding);
+        m_rules.insert(make_pair(key, unique_ptr<_rule_binding_t>(rule_binding)));
+        rules.emplace_back(rule_binding);
     }
     else
     {
-        this_rule = const_cast<_rule_binding_t*>(rule_ptr);
+        rules.emplace_back(rule_ptr);
     }
-
-    // Add the rule to the subscription list.
-    rules.emplace_back(this_rule);
 }
 
 bool event_manager_t::remove_rule(rule_list_t& rules, const rule_binding_t& binding)
@@ -511,7 +529,19 @@ event_manager_t::_rule_binding_t::_rule_binding_t(
     }
 }
 
-// Enable construction
+// Initialize the rules engine with settings from a user-supplied gaia configuration file.
+void gaia::rules::initialize_rules_engine(shared_ptr<cpptoml::table>& root_config)
+{
+    bool is_initializing = true;
+    // Create default settings for the rules engine and then override them with
+    // user-supplied configuration values;
+    event_manager_settings_t settings;
+
+    // Override the default settings with any configuration settings;
+    event_manager_settings_t::parse_rules_config(root_config, settings);
+    event_manager_t::get(is_initializing).init(settings);
+    initialize_rules();
+}
 
 /**
  * Public rules API implementation
@@ -528,6 +558,11 @@ void gaia::rules::initialize_rules_engine()
      * behalf of the user.
      */
     initialize_rules();
+}
+
+void gaia::rules::shutdown_rules_engine()
+{
+    event_manager_t::get().shutdown();
 }
 
 void gaia::rules::subscribe_rule(

@@ -1,0 +1,14 @@
+# System wide settings.
+[System]
+logger_config = "./log_conf.toml"
+
+# Settings for the database.
+[Database]
+
+# Settings for the catalog.
+[Catalog]
+
+# Settings for the rules engine.
+[Rules]
+# Note that there is not an equal sign so we should get a parse error.
+thread_pool_count

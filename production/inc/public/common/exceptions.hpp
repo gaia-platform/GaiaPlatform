@@ -29,7 +29,16 @@ public:
     api_error(const char* api_name, int error_code);
 };
 
+/**
+ * An exception class used for to indicate invalid Gaia configuration settings.
+ */
+class configuration_error : public gaia::common::gaia_exception
+{
+public:
+    configuration_error(const char* key, int value);
+};
+
 /*@}*/
-}
+} // namespace common
 /*@}*/
-}
+} // namespace gaia

@@ -3,12 +3,11 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "fdw_ddl_generator.hpp"
-
 #include <algorithm>
 #include <sstream>
 #include <string>
 
+#include "catalog_internal.hpp"
 #include "gaia_catalog.h"
 #include "retail_assert.hpp"
 
@@ -53,7 +52,6 @@ string get_fdw_data_type_name(data_type_t data_type)
 
     case data_type_t::e_int64:
     case data_type_t::e_uint64:
-    case data_type_t::e_references:
         return "BIGINT";
 
     case data_type_t::e_float:
@@ -99,25 +97,31 @@ string generate_fdw_ddl(gaia_id_t table_id, const string& server_name)
     ddl_string_stream << table.name() << "(" << endl;
     ddl_string_stream << "gaia_id BIGINT";
 
-    // Concatenate the fields and references.
-    vector<gaia_id_t> fields = list_fields(table_id);
-    vector<gaia_id_t> references = list_references(table_id);
-    fields.insert(fields.end(), references.begin(), references.end());
-
-    for (gaia_id_t field_id : fields)
+    for (gaia_id_t field_id : list_fields(table_id))
     {
         gaia_field_t field = gaia_field_t::get(field_id);
-
-        // Skip anonymous reference fields.
-        if (field.type() == static_cast<uint8_t>(data_type_t::e_references)
-            && strlen(field.name()) == 0)
-        {
-            continue;
-        }
 
         ddl_string_stream
             << "," << endl
             << generate_fdw_ddl_field(field);
+    }
+
+    for (gaia_id_t reference_id : list_references(table_id))
+    {
+        gaia_relationship_t relationship = gaia_relationship_t::get(reference_id);
+
+        string relationship_name = relationship.name();
+        if (relationship_name.empty())
+        {
+            relationship_name = relationship.parent_gaia_table().name();
+        }
+        retail_assert(
+            !relationship_name.empty(),
+            "Unable to derive name of anonymous relationship!");
+
+        ddl_string_stream
+            << "," << endl
+            << relationship_name << " BIGINT";
     }
 
     ddl_string_stream
@@ -128,37 +132,6 @@ string generate_fdw_ddl(gaia_id_t table_id, const string& server_name)
     {
         gaia::db::commit_transaction();
     }
-
-    return ddl_string_stream.str();
-}
-
-string generate_fdw_ddl(
-    const string& table_name, const ddl::field_def_list_t& fields, const string& server_name)
-{
-    stringstream ddl_string_stream;
-    ddl_string_stream << "CREATE FOREIGN TABLE ";
-
-    ddl_string_stream << table_name << "(" << endl;
-    ddl_string_stream << "gaia_id BIGINT";
-
-    for (auto& field : fields)
-    {
-        // Skip anonymous reference fields.
-        if (field->type == data_type_t::e_references
-            && field->name.length() == 0)
-        {
-            continue;
-        }
-
-        string field_ddl = generate_fdw_ddl_field(field->name, get_fdw_data_type_name(field->type), field->length);
-        ddl_string_stream
-            << "," << endl
-            << field_ddl;
-    }
-
-    ddl_string_stream
-        << endl
-        << ") SERVER " << server_name << ";" << endl;
 
     return ddl_string_stream.str();
 }

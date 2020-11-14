@@ -63,8 +63,8 @@ TEST(memory_manager, stack_allocator)
     ASSERT_EQ(error_code_t::success, error_code);
 
     constexpr size_t c_first_allocation_size = 64;
-    constexpr size_t c_second_allocation_size = 256;
-    constexpr size_t c_third_allocation_size = 128;
+    constexpr size_t c_second_allocation_size = 253;
+    constexpr size_t c_third_allocation_size = 122;
     constexpr size_t c_fourth_allocation_size = 24;
     constexpr size_t c_fifth_allocation_size = 72;
 

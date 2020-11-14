@@ -27,7 +27,7 @@ TEST_F(gaia_dump_test, dump)
 {
     create_database("airport_test");
     ddl::field_def_list_t fields;
-    fields.emplace_back(make_unique<ddl::field_definition_t>("name", data_type_t::e_string, 1));
+    fields.emplace_back(make_unique<ddl::data_field_def_t>("name", data_type_t::e_string, 1));
     create_table("airport_test", "airport", fields);
 
     int line_limit = -1;

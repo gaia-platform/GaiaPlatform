@@ -24,7 +24,7 @@ void compute_payload_diff(
     field_position_list_t* changed_fields)
 {
     // Make sure caller passes valid pointer to changed_fields.
-    retail_assert(changed_fields);
+    retail_assert(changed_fields, "compute_payload_diff was called with an unexpected null changed_fields argument!");
 
     gaia_id_t type_record_id = type_id_record_id_cache_t::instance().get_record_id(type_id);
 
@@ -32,11 +32,6 @@ void compute_payload_diff(
 
     for (auto field_view : catalog_core_t::list_fields(type_record_id))
     {
-        if (field_view.data_type() == data_type_t::e_references)
-        {
-            continue;
-        }
-
         field_position_t pos = field_view.position();
         payload_types::data_holder_t data_holder1 = payload_types::get_field_value(
             type_id, payload1, schema.data(), schema.size(), pos);

@@ -35,6 +35,7 @@ add_library(gaia_rules STATIC
   src/rule_stats.cpp
   src/scheduler_stats.cpp
   src/rule_stats_manager.cpp
+  src/event_manager_settings.cpp
 )
 
 add_dependencies(gaia_rules generate_rules_headers)
@@ -43,6 +44,12 @@ target_include_directories(gaia_rules PRIVATE ${GAIA_EVENT_MANAGER_INCLUDES})
 target_link_libraries(gaia_rules PRIVATE gaia_direct gaia_catalog)
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia_rules PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+# The rules integration and system init tests need gaia and logger configuration files.
+configure_file("${GAIA_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_conf.toml")
+configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/log_conf.toml")
+configure_file("${PROJECT_SOURCE_DIR}/tests/invalid_gaia_conf.toml" "${PROJECT_BINARY_DIR}/invalid_gaia_conf.toml")
+configure_file("${PROJECT_SOURCE_DIR}/tests/invalid_gaia_setting.toml" "${PROJECT_BINARY_DIR}/invalid_gaia_setting.toml")
 
 # unit tests
 add_gtest(test_auto_transaction "tests/test_auto_transaction.cpp"
@@ -59,9 +66,6 @@ add_gtest(test_rule_checker "tests/test_rule_checker.cpp;"
   "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_system")
 add_gtest(test_rule_stats "tests/test_rule_stats.cpp;${GAIA_REPO}/production/common/src/debug_logger.cpp"
   "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_system")
-
-# The rules integration test needs the logger configuration file.
-configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/log_conf.toml")
 
 # The test needs gaia parser to load test DDLs.
 set(TEST_RULE_INTEGRATION_INCLUDES

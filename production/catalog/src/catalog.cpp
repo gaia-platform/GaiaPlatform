@@ -66,29 +66,14 @@ vector<gaia_id_t> list_fields(gaia_id_t table_id)
     // their positions.
     for (const auto& field : gaia_table_t::get(table_id).gaia_field_list())
     {
-        if (field.type() != static_cast<uint8_t>(data_type_t::e_references))
-        {
-            fields.insert(fields.begin(), field.gaia_id());
-        }
+        fields.insert(fields.begin(), field.gaia_id());
     }
     return fields;
 }
 
 vector<gaia_id_t> list_references(gaia_id_t table_id)
 {
-    vector<gaia_id_t> references;
-    // Direct access reference list API guarantees LIFO. As long as we only
-    // allow appending new references to table definitions, reversing the
-    // reference field list order should result in references being listed in
-    // the ascending order of their positions.
-    for (const auto& field : gaia_table_t::get(table_id).gaia_field_list())
-    {
-        if (field.type() == static_cast<uint8_t>(data_type_t::e_references))
-        {
-            references.insert(references.begin(), field.gaia_id());
-        }
-    }
-    return references;
+    return list_child_relationships(table_id);
 }
 
 vector<gaia_id_t> list_child_relationships(gaia_id_t table_id)
