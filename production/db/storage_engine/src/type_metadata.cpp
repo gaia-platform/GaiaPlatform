@@ -126,15 +126,6 @@ void type_registry_t::init()
         .cardinality = cardinality_t::many,
         .parent_required = false});
 
-    auto table_ref_relationship = make_shared<relationship_t>(relationship_t{
-        .parent_type = table,
-        .child_type = field,
-        .first_child_offset = c_first_ref_gaia_field,
-        .next_child_offset = c_next_ref_gaia_field,
-        .parent_offset = c_parent_ref_gaia_table,
-        .cardinality = cardinality_t::many,
-        .parent_required = false});
-
     auto relationship_parent_table_relationship = make_shared<relationship_t>(relationship_t{
         .parent_type = table,
         .child_type = relationship,
@@ -169,14 +160,12 @@ void type_registry_t::init()
     auto& table_metadata = get_or_create_no_lock(table);
     table_metadata.add_child_relationship(db_table_relationship);
     table_metadata.add_parent_relationship(table_field_relationship);
-    table_metadata.add_parent_relationship(table_ref_relationship);
     table_metadata.add_parent_relationship(relationship_child_table_relationship);
     table_metadata.add_parent_relationship(relationship_parent_table_relationship);
     table_metadata.mark_as_initialized();
 
     auto& field_metadata = get_or_create_no_lock(field);
     field_metadata.add_child_relationship(table_field_relationship);
-    field_metadata.add_child_relationship(table_ref_relationship);
     field_metadata.mark_as_initialized();
 
     auto& relationship_metadata = get_or_create_no_lock(relationship);

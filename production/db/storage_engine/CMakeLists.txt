@@ -188,6 +188,7 @@ endif()
 
 set(GAIA_DB_CATALOG_TEST_PRIVATE_INCLUDES
   ${GAIA_INC}/internal/db/
+  ${GAIA_INC}/public/direct_access/
   ${GAIA_REPO}/production/schemas/repository/inc
   ${GAIA_REPO}/production/db/storage_engine/inc
 )
