@@ -18,7 +18,7 @@ set(SDK_LINK_LIBRARIES
   -Wl,--no-whole-archive
 )
 
-target_link_libraries(gaia PUBLIC
+target_link_libraries(gaia PRIVATE
   ${SDK_LINK_LIBRARIES}
 )
 

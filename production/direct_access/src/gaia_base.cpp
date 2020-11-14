@@ -2,9 +2,13 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #include "gaia_base.hpp"
 
 #include "gaia_db.hpp"
+#include "gaia_ptr.hpp"
+
+using namespace gaia::db;
 
 namespace gaia
 {
@@ -14,8 +18,7 @@ namespace direct_access
 //
 // Exception class implementations.
 //
-edc_invalid_object_type::edc_invalid_object_type(gaia_id_t id, gaia_type_t expected_type, const char* expected_typename,
-                                                 gaia_type_t actual_type)
+edc_invalid_object_type::edc_invalid_object_type(gaia_id_t id, gaia_type_t expected_type, const char* expected_typename, gaia_type_t actual_type)
 {
     stringstream msg;
     msg << "Requesting Gaia type " << expected_typename << "(" << expected_type << ") but object identified by " << id
@@ -23,8 +26,7 @@ edc_invalid_object_type::edc_invalid_object_type(gaia_id_t id, gaia_type_t expec
     m_message = msg.str();
 }
 
-edc_invalid_member::edc_invalid_member(gaia_id_t id, gaia_type_t parent, const char* parent_type, gaia_type_t child,
-                                       const char* child_name)
+edc_invalid_member::edc_invalid_member(gaia_id_t id, gaia_type_t parent, const char* parent_type, gaia_type_t child, const char* child_name)
 {
     stringstream msg;
     msg << "Attempting to remove record with Gaia type " << child_name << "(" << child << ") from parent " << id
@@ -32,8 +34,7 @@ edc_invalid_member::edc_invalid_member(gaia_id_t id, gaia_type_t parent, const c
     m_message = msg.str();
 }
 
-edc_inconsistent_list::edc_inconsistent_list(gaia_id_t id, const char* parent_type, gaia_id_t child,
-                                             const char* child_name)
+edc_inconsistent_list::edc_inconsistent_list(gaia_id_t id, const char* parent_type, gaia_id_t child, const char* child_name)
 {
     stringstream msg;
     msg << "List is inconsistent, child points to parent " << id << " of type " << parent_type << ", but child ("
@@ -56,6 +57,173 @@ edc_already_inserted::edc_already_inserted(gaia_id_t parent, const char* parent_
            "The owner object type is "
         << parent_type << ", and id is " << parent << ".";
     m_message = msg.str();
+}
+
+gaia_base_t::gaia_base_t(const char* gaia_typename)
+    : m_typename(gaia_typename)
+{
+    static_assert(sizeof(gaia_handle_t) == sizeof(gaia_ptr));
+    m_record_ptr = reinterpret_cast<gaia_ptr*>(&m_record);
+    *m_record_ptr = gaia_ptr();
+}
+
+gaia_base_t::gaia_base_t(const char* gaia_typename, gaia_id_t id)
+    : m_typename(gaia_typename)
+{
+    // UNDONE:  to save 8 bytes, one could always cast
+    //*((gaia_ptr *)(&m_record) ) = gaia_ptr(id); // in
+    // ((gaia_ptr*)(&m_record))->gaia_ptr_method;
+    m_record_ptr = reinterpret_cast<gaia_ptr*>(&m_record);
+    *m_record_ptr = gaia_ptr(id);
+}
+
+gaia_base_t::gaia_base_t(const gaia_base_t& other)
+{
+    m_record_ptr = reinterpret_cast<gaia_ptr*>(&m_record);
+    *m_record_ptr = *(other.m_record_ptr);
+}
+
+gaia_base_t& gaia_base_t::operator=(const gaia_base_t& other)
+{
+    *m_record_ptr = *(other.m_record_ptr);
+    return *this;
+}
+
+gaia_id_t gaia_base_t::id() const
+{
+    if (*m_record_ptr)
+    {
+        return m_record_ptr->id();
+    }
+
+    return c_invalid_gaia_id;
+}
+
+bool gaia_base_t::exists() const
+{
+    return static_cast<bool>(*m_record_ptr);
+}
+
+// Returns whether a node with the given id exists in the
+// database. If so, it fills in the container type of the
+// node.
+bool gaia_base_t::exists(gaia_id_t id, gaia_type_t& type)
+{
+    gaia_ptr node_ptr = gaia_ptr::open(id);
+    if (node_ptr)
+    {
+        type = node_ptr.type();
+        return true;
+    }
+
+    return false;
+}
+
+const char* gaia_base_t::data() const
+{
+    return m_record_ptr->data();
+}
+
+bool gaia_base_t::equals(const gaia_base_t& other) const
+{
+    return (*m_record_ptr == *(other.m_record_ptr));
+}
+
+gaia_id_t* gaia_base_t::references()
+{
+    return m_record_ptr->references();
+}
+
+gaia_id_t gaia_base_t::get_reference(gaia_id_t id, size_t slot)
+{
+    gaia_ptr node_ptr = gaia_ptr::open(id);
+    return node_ptr.references()[slot];
+}
+
+gaia_id_t gaia_base_t::find_first(gaia_type_t container)
+{
+    gaia_ptr node = gaia_ptr::find_first(container);
+    if (!node)
+    {
+        return c_invalid_gaia_id;
+    }
+
+    return node.id();
+}
+
+gaia_id_t gaia_base_t::find_next()
+{
+    gaia_ptr node = m_record_ptr->find_next();
+    if (node)
+    {
+        return node.id();
+    }
+    return c_invalid_gaia_id;
+}
+
+gaia_id_t gaia_base_t::find_next(gaia_id_t id)
+{
+    auto node_ptr = gaia_ptr(id);
+    gaia_id_t next_id = c_invalid_gaia_id;
+    if (node_ptr)
+    {
+        node_ptr = node_ptr.find_next();
+        if (node_ptr)
+        {
+            next_id = node_ptr.id();
+        }
+    }
+    return next_id;
+}
+
+gaia_id_t gaia_base_t::insert(gaia_type_t container, size_t num_refs, size_t data_size, const void* data)
+{
+    gaia_id_t node_id = gaia_ptr::generate_id();
+    gaia_ptr::create(node_id, container, num_refs, data_size, data);
+    return node_id;
+}
+
+void gaia_base_t::delete_row(gaia_id_t id)
+{
+    gaia_ptr node_ptr = gaia_ptr::open(id);
+    if (!node_ptr)
+    {
+        throw invalid_node_id(id);
+    }
+
+    gaia_ptr::remove(node_ptr);
+}
+
+void gaia_base_t::update(gaia_id_t id, size_t data_size, const void* data)
+{
+    gaia_ptr node_ptr = gaia_ptr::open(id);
+    if (!node_ptr)
+    {
+        throw invalid_node_id(id);
+    }
+    node_ptr.update_payload(data_size, data);
+}
+
+void gaia_base_t::insert_child_reference(gaia_id_t parent_id, gaia_id_t child_id, size_t child_slot)
+{
+    gaia_ptr parent = gaia_ptr::open(parent_id);
+    if (!parent)
+    {
+        throw invalid_node_id(parent_id);
+    }
+
+    parent.add_child_reference(child_id, child_slot);
+}
+
+void gaia_base_t::remove_child_reference(gaia_id_t parent_id, gaia_id_t child_id, size_t child_slot)
+{
+    gaia_ptr parent = gaia_ptr::open(parent_id);
+    if (!parent)
+    {
+        throw invalid_node_id(parent_id);
+    }
+
+    parent.remove_child_reference(child_id, child_slot);
 }
 
 } // namespace direct_access

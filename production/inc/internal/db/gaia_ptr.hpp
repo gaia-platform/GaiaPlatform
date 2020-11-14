@@ -16,13 +16,11 @@ namespace gaia
 namespace db
 {
 
-// Forward
-struct gaia_se_object_t;
-
 class gaia_ptr
 {
 public:
     gaia_ptr() = default;
+    explicit gaia_ptr(gaia_id_t id);
 
     bool operator==(const gaia_ptr& other) const
     {
@@ -219,8 +217,6 @@ public:
     }
 
 protected:
-    explicit gaia_ptr(gaia_id_t id);
-
     gaia_ptr(gaia_id_t id, size_t size);
 
     void allocate(size_t size);
