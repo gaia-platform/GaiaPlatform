@@ -44,13 +44,14 @@ public:
 
     gaia::common::gaia_id_t find_db_id(const std::string& dbname) const;
 
+    // Initialize the catalog manager.
+    void init();
+
 private:
     // Only internal static creation is allowed
     ddl_executor_t();
-    ~ddl_executor_t() = default;
 
-    // Initialize the catalog manager.
-    void init();
+    ~ddl_executor_t() = default;
 
     // This is the internal create table implementation.
     // The public create_table calls this method but does not allow specifying an ID.
