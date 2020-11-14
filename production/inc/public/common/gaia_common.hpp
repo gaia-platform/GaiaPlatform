@@ -39,6 +39,11 @@ constexpr gaia_id_t c_invalid_gaia_id = 0;
 typedef uint32_t gaia_type_t;
 
 /**
+ * Opaque handle to a gaia record;
+ */
+typedef uint64_t gaia_handle_t;
+
+/**
  * The value of an invalid gaia_type_t.
  */
 constexpr gaia_type_t c_invalid_gaia_type = 0;

@@ -6,8 +6,7 @@
 #pragma once
 
 #include "db_types.hpp"
-//#include "gaia_se_object.hpp"
-#include "gaia_common.hpp"
+#include "gaia_se_object.hpp"
 #include "generator_iterator.hpp"
 
 using namespace gaia::common;
@@ -17,13 +16,11 @@ namespace gaia
 namespace db
 {
 
-// Forward
-struct gaia_se_object_t;
-
 class gaia_ptr
 {
 public:
     gaia_ptr() = default;
+    gaia_ptr(gaia_id_t id);
 
     bool operator==(const gaia_ptr& other) const
     {
@@ -243,8 +240,6 @@ public:
     }
 
 protected:
-    gaia_ptr(gaia_id_t id);
-
     gaia_ptr(gaia_id_t id, size_t size);
 
     void allocate(size_t size);
