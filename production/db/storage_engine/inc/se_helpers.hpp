@@ -73,7 +73,10 @@ inline void allocate_object(gaia_locator_t locator, size_t size)
         throw oom();
     }
 
-    (*locators)[locator] = __sync_add_and_fetch(&data->objects[0], (size + sizeof(uint64_t) - 1) / sizeof(uint64_t));
+    // We use the first 64-bit word in the data array for the next available
+    // offset, so we need to return the end of the previous allocation as the
+    // current allocation's offset and add 1 to account for the first word.
+    (*locators)[locator] = 1 + __sync_fetch_and_add(&data->objects[0], (size + sizeof(int64_t) - 1) / sizeof(int64_t));
 }
 
 inline bool locator_exists(gaia_locator_t locator)
