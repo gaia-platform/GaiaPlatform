@@ -7,13 +7,12 @@
 
 #include <shared_mutex>
 
-#include "catalog.hpp"
 #include "gaia_catalog.h"
+#include "gaia_common.hpp"
+#include "logger.hpp"
 #include "system_table_types.hpp"
 #include "type_id_record_id_cache.hpp"
 
-using gaia::catalog::data_type_t;
-using gaia::catalog::gaia_table_t;
 using namespace gaia::catalog;
 
 namespace gaia
@@ -232,8 +231,22 @@ type_metadata_t& type_registry_t::test_get_or_create(gaia_type_t type)
     return metadata;
 }
 
+static shared_ptr<relationship_t> create_relationship(gaia_relationship_t relationship)
+{
+    return make_shared<relationship_t>(relationship_t{
+        .parent_type = static_cast<gaia_type_t>(relationship.parent_gaia_table().type()),
+        .child_type = static_cast<gaia_type_t>(relationship.child_gaia_table().type()),
+        .first_child_offset = relationship.first_child_offset(),
+        .next_child_offset = relationship.next_child_offset(),
+        .parent_offset = relationship.parent_offset(),
+        .cardinality = cardinality_t::many,
+        .parent_required = false});
+}
+
 type_metadata_t& type_registry_t::create(gaia_type_t type)
 {
+    gaia_log::db().trace("Creating metadata for type: {}", type);
+
     gaia_id_t record_id = get_record_id(type);
     gaia_table_t child_table = gaia_table_t::get(record_id);
 
@@ -251,21 +264,35 @@ type_metadata_t& type_registry_t::create(gaia_type_t type)
             continue;
         }
 
-        gaia_table_t parent_table = relationship.parent_gaia_table();
+        auto rel = create_relationship(relationship);
 
-        auto rel = make_shared<relationship_t>(relationship_t{
-            .parent_type = static_cast<gaia_type_t>(parent_table.type()),
-            .child_type = static_cast<gaia_type_t>(child_table.type()),
-            .first_child_offset = relationship.first_child_offset(),
-            .next_child_offset = relationship.next_child_offset(),
-            .parent_offset = relationship.parent_offset(),
-            .cardinality = cardinality_t::many,
-            .parent_required = false});
+        gaia_log::db().trace(
+            " with relationship parent: {}, child: {}, first_child_offset: {}, parent_offset: {}, next_child_offset: {}",
+            rel->parent_type, rel->child_type, rel->first_child_offset, rel->parent_offset, rel->next_child_offset);
 
-        auto& parent_meta = get_or_create_no_lock(parent_table.type());
+        auto& parent_meta = get_or_create_no_lock(rel->parent_type);
         parent_meta.add_parent_relationship(rel);
 
         metadata.add_child_relationship(rel);
+    }
+
+    for (auto& relationship : child_table.parent_gaia_relationship_list())
+    {
+        if (metadata.find_parent_relationship(relationship.first_child_offset()))
+        {
+            continue;
+        }
+
+        auto rel = create_relationship(relationship);
+
+        gaia_log::db().trace(
+            " with relationship parent: {}, child: {}, first_child_offset: {}, parent_offset: {}, next_child_offset: {}",
+            rel->parent_type, rel->child_type, rel->first_child_offset, rel->parent_offset, rel->next_child_offset);
+
+        auto& child_meta = get_or_create_no_lock(rel->child_type);
+        child_meta.add_child_relationship(rel);
+
+        metadata.add_parent_relationship(rel);
     }
 
     metadata.mark_as_initialized();
