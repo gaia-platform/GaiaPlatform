@@ -32,9 +32,14 @@ target_link_libraries(gaia_generate PRIVATE rt gaia_catalog gaia_parser)
 set_target_properties(gaia_generate PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaia_generate PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 
+set(GAIA_TEST_GENERATE_PRIVATE_INCLUDES
+  ${GAIA_INC}/internal/db
+  ${GAIA_GENERATE_INCLUDES}
+  ${GAIA_GENERATED_SCHEMAS}
+)
+
 add_gtest(test_gaia_generate
   "tests/test_gaia_generate.cpp"
-  "${GAIA_GENERATE_INCLUDES};${GAIA_GENERATED_SCHEMAS}"
-  "rt;gaia_system;gaia_catalog;gaia_parser"
-  "generate_airport_headers" ""
-  "AIRPORT_DDL_FILE=${GAIA_REPO}/production/schemas/test/airport/airport.ddl")
+  "${GAIA_TEST_GENERATE_PRIVATE_INCLUDES}"
+  "rt;gaia_system;db_catalog_test"
+  "generate_airport_headers" "")

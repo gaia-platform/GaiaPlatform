@@ -7,8 +7,9 @@
 
 #include "gtest/gtest.h"
 
-#include "db_test_base.hpp"
+#include "db_catalog_test_base.hpp"
 #include "gaia_addr_book.h"
+#include "gaia_relationships.hpp"
 
 using namespace std;
 using namespace gaia::db;
@@ -16,13 +17,36 @@ using namespace gaia::common;
 using namespace gaia::direct_access;
 using namespace gaia::addr_book;
 
-class gaia_references_test : public db_test_base_t
+class gaia_references_test_t : public db_catalog_test_base_t
 {
+protected:
+    gaia_references_test_t()
+        : db_catalog_test_base_t(std::string("addr_book.ddl")){};
+
+    static gaia_id_t find_invalid_id()
+    {
+        const int c_lower_id_range = 100;
+        const int c_higher_id_range = 100 * 1000;
+
+        for (int i = c_lower_id_range; i < c_higher_id_range; i++)
+        {
+            auto invalid_obj = gaia_ptr::open(i);
+
+            if (!invalid_obj)
+            {
+                return i;
+            }
+        }
+
+        throw runtime_error(
+            "Impossible to find an invalid ID in the range "
+            + to_string(c_lower_id_range) + " - " + to_string(c_higher_id_range));
+    }
 };
 
 // Test connecting, disconnecting, navigating records
 // ==================================================
-TEST_F(gaia_references_test, connect)
+TEST_F(gaia_references_test_t, connect)
 {
     begin_transaction();
 
@@ -53,7 +77,7 @@ TEST_F(gaia_references_test, connect)
 }
 
 // Repeat above test, but with gaia_id_t members only.
-TEST_F(gaia_references_test, connect_id_member)
+TEST_F(gaia_references_test_t, connect_id_member)
 {
     begin_transaction();
 
@@ -77,10 +101,12 @@ TEST_F(gaia_references_test, connect_id_member)
     }
     EXPECT_EQ(count, 1);
 
+    gaia_id_t invalid_id = find_invalid_id();
+
     e3.addressee_address_list().erase(aid3);
     address_t::delete_row(aid3);
     e3.delete_row();
-    EXPECT_THROW(address_t::delete_row(12), invalid_node_id);
+    EXPECT_THROW(address_t::delete_row(invalid_id), invalid_node_id);
     commit_transaction();
 }
 
@@ -91,24 +117,24 @@ employee_t create_hierarchy()
     const int count_phones = 20;
     const int addr_size = 6;
     const int phone_size = 5;
-    auto eptr
+    auto employee
         = employee_t::get(employee_t::insert_row("Heidi", "Humphry", "555-22-4444", hire_date, "heidi@gmail.com", ""));
     for (int i = 0; i < count_addresses; i++)
     {
         char addr_string[addr_size];
         sprintf(addr_string, "%d", i);
-        auto aptr = address_t::get(
+        auto address = address_t::get(
             address_t::insert_row(addr_string, addr_string, addr_string, addr_string, addr_string, addr_string, true));
-        eptr.addressee_address_list().insert(aptr);
+        employee.addressee_address_list().insert(address);
         for (int j = 0; j < count_phones; j++)
         {
             char phone_string[phone_size];
             sprintf(phone_string, "%d", j);
-            auto pptr = phone_t::get(phone_t::insert_row(phone_string, phone_string, true));
-            aptr.phone_list().insert(pptr);
+            auto phone = phone_t::get(phone_t::insert_row(phone_string, phone_string, true));
+            address.phone_list().insert(phone);
         }
     }
-    return eptr;
+    return employee;
 }
 
 int scan_hierarchy(employee_t& eptr)
@@ -243,7 +269,7 @@ int all_addressee()
 }
 
 // Create a hierachy of records, then scan and count them.
-TEST_F(gaia_references_test, connect_scan)
+TEST_F(gaia_references_test_t, connect_scan)
 {
     begin_transaction();
 
@@ -299,7 +325,7 @@ address_t insert_address(address_writer& writer, const char* street, const char*
 }
 
 // Test recursive scanning, employee_t to employee_t through manages relationship.
-TEST_F(gaia_references_test, recursive_scan)
+TEST_F(gaia_references_test_t, recursive_scan)
 {
     begin_transaction();
 
@@ -345,7 +371,7 @@ TEST_F(gaia_references_test, recursive_scan)
 }
 
 // Re-hydrate IDs created in prior transaction, then connect.
-TEST_F(gaia_references_test, connect_to_ids)
+TEST_F(gaia_references_test_t, connect_to_ids)
 {
     auto_transaction_t txn;
 
@@ -374,7 +400,7 @@ TEST_F(gaia_references_test, connect_to_ids)
 }
 
 // Connect objects created in prior transaction.
-TEST_F(gaia_references_test, connect_after_txn)
+TEST_F(gaia_references_test_t, connect_after_txn)
 {
     auto_transaction_t txn;
 
@@ -398,7 +424,7 @@ TEST_F(gaia_references_test, connect_after_txn)
 }
 
 // Erase list members inserted in prior transaction.
-TEST_F(gaia_references_test, disconnect_after_txn)
+TEST_F(gaia_references_test_t, disconnect_after_txn)
 {
     auto_transaction_t txn;
 
@@ -420,7 +446,7 @@ TEST_F(gaia_references_test, disconnect_after_txn)
 }
 
 // Generate an exception by attempting to insert member twice.
-TEST_F(gaia_references_test, connect_twice)
+TEST_F(gaia_references_test_t, connect_twice)
 {
     auto_transaction_t txn;
 
@@ -438,11 +464,11 @@ TEST_F(gaia_references_test, connect_twice)
 
     // The third insert is illegal because the address cannot be on the
     // same list of two owners.
-    EXPECT_THROW(e2.addressee_address_list().insert(a1), edc_already_inserted);
+    EXPECT_THROW(e2.addressee_address_list().insert(a1), child_already_referenced);
 }
 
 // Generate an exception by attempting to erase un-inserted member.
-TEST_F(gaia_references_test, erase_uninserted)
+TEST_F(gaia_references_test_t, erase_uninserted)
 {
     auto_transaction_t txn;
 
@@ -453,16 +479,16 @@ TEST_F(gaia_references_test, erase_uninserted)
     auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
 
     // The erase() should fail.
-    EXPECT_THROW(e1.addressee_address_list().erase(a1), edc_invalid_member);
+    EXPECT_THROW(e1.addressee_address_list().erase(a1), invalid_child);
 
     // Now insert it, erase, and erase again.
     e1.addressee_address_list().insert(a1);
     e1.addressee_address_list().erase(a1);
-    EXPECT_THROW(e1.addressee_address_list().erase(a1), edc_invalid_member);
+    EXPECT_THROW(e1.addressee_address_list().erase(a1), invalid_child);
 }
 
 // Make sure that erasing a member found in iterator doesn't crash.
-TEST_F(gaia_references_test, erase_in_iterator)
+TEST_F(gaia_references_test_t, erase_in_iterator)
 {
     auto_transaction_t txn;
 
@@ -507,7 +533,7 @@ TEST_F(gaia_references_test, erase_in_iterator)
 }
 
 // Scan beyond the end of the iterator.
-TEST_F(gaia_references_test, scan_past_end)
+TEST_F(gaia_references_test_t, scan_past_end)
 {
     auto_transaction_t txn;
 
@@ -584,7 +610,7 @@ void insert_addressee(bool committed, gaia_id_t eid1, gaia_id_t aid1, gaia_id_t 
 }
 
 // Create objects in one thread, connect them in another, verify in first thread.
-TEST_F(gaia_references_test, thread_inserts)
+TEST_F(gaia_references_test_t, thread_inserts)
 {
     auto_transaction_t txn;
 
@@ -626,7 +652,7 @@ TEST_F(gaia_references_test, thread_inserts)
 }
 
 // Testing the arrow dereference operator->() in gaia_set_iterator_t.
-TEST_F(gaia_references_test, set_iter_arrow_deref)
+TEST_F(gaia_references_test_t, set_iter_arrow_deref)
 {
     const char* emp_name = "Phillip";
     const char* addr_city = "Redmond";
@@ -655,7 +681,7 @@ bool filter_function(const employee_t& e)
 }
 
 // Use various forms of filters on a set of references.
-TEST_F(gaia_references_test, set_filter)
+TEST_F(gaia_references_test_t, set_filter)
 {
     auto_transaction_t txn;
 

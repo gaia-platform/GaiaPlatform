@@ -16,16 +16,15 @@
 
 #include <fcntl.h>
 #include <semaphore.h>
-#include <sys/stat.h>
 
 #include <cstdlib>
 
-#include <iostream>
 #include <thread>
 
 #include "gtest/gtest.h"
+#include <sys/stat.h>
 
-#include "db_test_base.hpp"
+#include "db_catalog_test_base.hpp"
 #include "gaia_addr_book.h"
 #include "gaia_boot.hpp"
 
@@ -44,17 +43,24 @@ employee_t insert_employee(employee_writer& writer, const char* name_first)
 // Utility function that creates one address row provided the writer.
 address_t insert_address(address_writer& writer, const char* street, const char* city)
 {
+    // Will remove before merging.
+    gaia_log::db().debug("Inserting Address {}", street);
     writer.street = street;
     writer.city = city;
-    return address_t::get(writer.insert_row());
+    auto a = address_t::get(writer.insert_row());
+    gaia_log::db().debug("Inserted Address {}, ID: {}", street, a.gaia_id());
+    return a;
 }
 
 // Utility function that creates one named employee row.
 employee_t create_employee(const char* name)
 {
+    // Will remove before merging.
+    gaia_log::db().debug("Inserting Employee {}", name);
     auto w = employee_writer();
     w.name_first = name;
     gaia_id_t id = w.insert_row();
+    gaia_log::db().debug("Inserted Employee {}, ID: {}", name, id);
     auto e = employee_t::get(id);
     EXPECT_STREQ(e.name_first(), name);
     return e;
@@ -65,9 +71,12 @@ constexpr const char c_go_parent[] = "go_parent";
 
 // The multi_process fixture overrides SetUp() and TeadDown() because
 // it needs to control when begin_session() and end_session() are called.
-class gaia_multi_process_test : public db_test_base_t
+class gaia_multi_process_test : public db_catalog_test_base_t
 {
 protected:
+    gaia_multi_process_test()
+        : db_catalog_test_base_t("addr_book.ddl", true){};
+
     sem_t* m_sem_go_child;
     sem_t* m_sem_go_parent;
     timespec m_timeout;
@@ -91,8 +100,8 @@ protected:
     }
     void SetUp() override
     {
-        reset_server();
-        gaia_boot_t::get().reset_gaia_boot();
+        db_catalog_test_base_t::SetUp();
+
         sem_unlink(c_go_child);
         sem_unlink(c_go_parent);
     }
