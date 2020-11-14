@@ -294,15 +294,17 @@ void client::begin_session()
     retail_assert(fd_count == c_fd_count, "Unexpected fd count!");
     int fd_data = fds[c_data_fd_index];
     retail_assert(fd_data != -1, "Invalid data fd detected!");
+    auto cleanup_data_fd = make_scope_guard([&]() {
+        // We can unconditionally close the data fd, since it's not saved
+        // anywhere and the mapping increments the shared memory segment's
+        // refcount.
+        close_fd(fd_data);
+    });
     int fd_locators = fds[c_locators_fd_index];
     retail_assert(fd_locators != -1, "Invalid locators fd detected!");
-    auto cleanup_fds = make_scope_guard([&]() {
-        // We can unconditionally close the data fd,
-        // since it's not saved anywhere and the mapping
-        // increments the shared memory segment's refcount.
-        close_fd(fd_data);
-        // We can unconditionally close the locator fd, since we save it as the
-        // very last step.
+    auto cleanup_locator_fd = make_scope_guard([&]() {
+        // We should only close the locator fd if we are unwinding from an
+        // exception, since we cache it to map later.
         close_fd(fd_locators);
     });
 
@@ -320,6 +322,7 @@ void client::begin_session()
 
     // Set up the private locator segment fd.
     s_fd_locators = fd_locators;
+    cleanup_locator_fd.dismiss();
     cleanup_session_socket.dismiss();
 }
 
@@ -341,7 +344,7 @@ void client::begin_transaction()
     {
         throw_system_error("memfd_create failed");
     }
-    auto cleanup_fd = make_scope_guard([&]() {
+    auto cleanup_log_fd = make_scope_guard([&]() {
         close_fd(fd_log);
     });
     if (-1 == ::ftruncate(fd_log, sizeof(log)))
@@ -390,7 +393,7 @@ void client::begin_transaction()
     // Save the log fd to send to the server on commit.
     s_fd_log = fd_log;
 
-    cleanup_fd.dismiss();
+    cleanup_log_fd.dismiss();
     cleanup_log_mapping.dismiss();
     cleanup_locator_mapping.dismiss();
 }
