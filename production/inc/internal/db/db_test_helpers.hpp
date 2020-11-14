@@ -32,7 +32,7 @@ constexpr char c_daemonize_command[] = "daemonize ";
 // instantiates the server.)
 constexpr char c_disable_persistence_flag[] = " --disable-persistence";
 
-void remove_persistent_store()
+inline void remove_persistent_store()
 {
     std::string cmd = "rm -rf ";
     cmd.append(PERSISTENT_DIRECTORY_PATH);
@@ -40,7 +40,7 @@ void remove_persistent_store()
     ::system(cmd.c_str());
 }
 
-void wait_for_server_init()
+inline void wait_for_server_init()
 {
     constexpr int c_poll_interval_millis = 10;
     constexpr int c_print_error_interval = 1000;
@@ -88,7 +88,7 @@ void wait_for_server_init()
     end_session();
 }
 
-void reset_server()
+inline void reset_server()
 {
     // We need to allow enough time after the signal is sent for the process to
     // receive and process the signal.
