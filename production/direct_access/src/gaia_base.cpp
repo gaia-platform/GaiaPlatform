@@ -59,41 +59,38 @@ edc_already_inserted::edc_already_inserted(gaia_id_t parent, const char* parent_
     m_message = msg.str();
 }
 
+static_assert(sizeof(gaia_handle_t) == sizeof(gaia_ptr));
+
+template <typename T_ptr>
+constexpr T_ptr* gaia_base_t::to_ptr()
+{
+    return reinterpret_cast<T_ptr*>(&m_record);
+}
+
+template <typename T_ptr>
+constexpr const T_ptr* gaia_base_t::to_const_ptr() const
+{
+    return reinterpret_cast<const T_ptr*>(&m_record);
+}
+
 gaia_base_t::gaia_base_t(const char* gaia_typename)
     : m_typename(gaia_typename)
 {
-    static_assert(sizeof(gaia_handle_t) == sizeof(gaia_ptr));
-    m_record_ptr = reinterpret_cast<gaia_ptr*>(&m_record);
-    *m_record_ptr = gaia_ptr();
+    *(to_ptr<gaia_ptr>()) = gaia_ptr();
 }
 
 gaia_base_t::gaia_base_t(const char* gaia_typename, gaia_id_t id)
     : m_typename(gaia_typename)
 {
-    // UNDONE:  to save 8 bytes, one could always cast
-    //*((gaia_ptr *)(&m_record) ) = gaia_ptr(id); // in
-    // ((gaia_ptr*)(&m_record))->gaia_ptr_method;
-    m_record_ptr = reinterpret_cast<gaia_ptr*>(&m_record);
-    *m_record_ptr = gaia_ptr(id);
-}
-
-gaia_base_t::gaia_base_t(const gaia_base_t& other)
-{
-    m_record_ptr = reinterpret_cast<gaia_ptr*>(&m_record);
-    *m_record_ptr = *(other.m_record_ptr);
-}
-
-gaia_base_t& gaia_base_t::operator=(const gaia_base_t& other)
-{
-    *m_record_ptr = *(other.m_record_ptr);
-    return *this;
+    *(to_ptr<gaia_ptr>()) = gaia_ptr(id);
 }
 
 gaia_id_t gaia_base_t::id() const
 {
-    if (*m_record_ptr)
+    auto ptr = to_const_ptr<gaia_ptr>();
+    if (*ptr)
     {
-        return m_record_ptr->id();
+        return ptr->id();
     }
 
     return c_invalid_gaia_id;
@@ -101,7 +98,7 @@ gaia_id_t gaia_base_t::id() const
 
 bool gaia_base_t::exists() const
 {
-    return static_cast<bool>(*m_record_ptr);
+    return static_cast<bool>(*to_const_ptr<gaia_ptr>());
 }
 
 // Returns whether a node with the given id exists in the
@@ -121,17 +118,17 @@ bool gaia_base_t::exists(gaia_id_t id, gaia_type_t& type)
 
 const char* gaia_base_t::data() const
 {
-    return m_record_ptr->data();
+    return to_const_ptr<gaia_ptr>()->data();
 }
 
 bool gaia_base_t::equals(const gaia_base_t& other) const
 {
-    return (*m_record_ptr == *(other.m_record_ptr));
+    return (*(to_const_ptr<gaia_ptr>()) == *(other.to_const_ptr<gaia_ptr>()));
 }
 
 gaia_id_t* gaia_base_t::references()
 {
-    return m_record_ptr->references();
+    return to_ptr<gaia_ptr>()->references();
 }
 
 gaia_id_t gaia_base_t::get_reference(gaia_id_t id, size_t slot)
@@ -153,7 +150,7 @@ gaia_id_t gaia_base_t::find_first(gaia_type_t container)
 
 gaia_id_t gaia_base_t::find_next()
 {
-    gaia_ptr node = m_record_ptr->find_next();
+    gaia_ptr node = to_ptr<gaia_ptr>()->find_next();
     if (node)
     {
         return node.id();

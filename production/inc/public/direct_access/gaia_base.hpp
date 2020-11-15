@@ -52,8 +52,6 @@ struct gaia_base_t
     gaia_base_t() = delete;
     gaia_base_t(const char* gaia_typename);
     gaia_base_t(const char* gaia_typename, gaia_id_t id);
-    gaia_base_t(const gaia_base_t& other);
-    gaia_base_t& operator=(const gaia_base_t& other);
 
     const char* gaia_typename()
     {
@@ -88,7 +86,12 @@ protected:
 
     // Opaque record structure
     gaia_handle_t m_record;
-    gaia::db::gaia_ptr* m_record_ptr;
+
+    // Accessors to the record handle
+    template <typename T_ptr>
+    constexpr const T_ptr* to_const_ptr() const;
+    template <typename T_ptr>
+    constexpr T_ptr* to_ptr();
 };
 
 // Exception when get() argument does not match the class type.
