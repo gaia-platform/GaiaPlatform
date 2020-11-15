@@ -23,21 +23,21 @@ namespace db
 inline gaia_id_t allocate_id()
 {
     data* data = gaia::db::get_shared_data_ptr();
-    gaia_id_t id = __sync_add_and_fetch(&data->next_id, 1);
+    gaia_id_t id = __sync_add_and_fetch(&data->last_id, 1);
     return id;
 }
 
 inline gaia_type_t allocate_type()
 {
     data* data = gaia::db::get_shared_data_ptr();
-    gaia_type_t type = __sync_add_and_fetch(&data->next_type_id, 1);
+    gaia_type_t type = __sync_add_and_fetch(&data->last_type_id, 1);
     return type;
 }
 
 inline gaia_txn_id_t allocate_txn_id()
 {
     data* data = gaia::db::get_shared_data_ptr();
-    gaia_txn_id_t txn_id = __sync_add_and_fetch(&data->next_txn_id, 1);
+    gaia_txn_id_t txn_id = __sync_add_and_fetch(&data->last_txn_id, 1);
     return txn_id;
 }
 
@@ -51,12 +51,12 @@ inline gaia_locator_t allocate_locator()
         throw transaction_not_open();
     }
 
-    if (data->locator_count >= c_max_locators)
+    if (data->last_locator >= c_max_locators)
     {
         throw oom();
     }
 
-    return __sync_add_and_fetch(&data->locator_count, 1);
+    return __sync_add_and_fetch(&data->last_locator, 1);
 }
 
 inline void allocate_object(gaia_locator_t locator, size_t size)

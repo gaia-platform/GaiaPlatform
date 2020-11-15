@@ -71,10 +71,10 @@ struct data
     // NB: all these fields are initialized to 0, even though C++ doesn't
     // guarantee it, because this is constructed in a memory-mapped
     // shared-memory segment, and the OS automatically zeroes new pages.
-    gaia::common::gaia_id_t next_id;
-    gaia::common::gaia_type_t next_type_id;
-    gaia::db::gaia_txn_id_t next_txn_id;
-    size_t locator_count;
+    gaia::common::gaia_id_t last_id;
+    gaia::common::gaia_type_t last_type_id;
+    gaia::db::gaia_txn_id_t last_txn_id;
+    gaia::db::gaia_locator_t last_locator;
     size_t hash_node_count;
     hash_node hash_nodes[c_hash_buckets + c_hash_list_elements];
     // This array is actually an untyped array of bytes, but it's defined as

@@ -935,7 +935,7 @@ std::function<std::optional<gaia_id_t>()> server::get_id_generator_for_type(gaia
         // We need to ensure that we're not reading the locator segment
         // while a committing transaction is writing to it.
         std::shared_lock lock(s_locators_lock);
-        while (++locator && locator < s_data->locator_count + 1)
+        while (++locator && locator <= s_data->last_locator)
         {
             gaia_offset_t offset = (*s_shared_locators)[locator];
             if (offset)

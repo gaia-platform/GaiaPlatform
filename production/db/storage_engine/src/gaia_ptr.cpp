@@ -228,7 +228,7 @@ void gaia_ptr::find_next(gaia_type_t type)
 {
     gaia::db::data* data = gaia::db::get_shared_data_ptr();
     // search for rows of this type within the range of used slots
-    while (++m_locator && m_locator < data->locator_count + 1)
+    while (++m_locator && m_locator <= data->last_locator)
     {
         if (is(type))
         {
