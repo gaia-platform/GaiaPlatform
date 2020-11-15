@@ -618,6 +618,8 @@ void server::session_handler(int session_socket)
         {
             t.join();
         }
+        // All threads have received the session shutdown notification, so we can close the eventfd.
+        close_fd(s_session_shutdown_eventfd);
     });
 
     // Enter epoll loop.
