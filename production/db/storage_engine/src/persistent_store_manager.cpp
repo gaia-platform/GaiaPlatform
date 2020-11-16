@@ -153,7 +153,6 @@ void persistent_store_manager::prepare_wal_for_write(gaia::db::log* log, std::st
         }
     }
     // Ensure that keys were inserted into the RocksDB transaction object.
-    cerr << "Key count: " << key_count << "\nLog count: " << log->count << endl;
     retail_assert(key_count == log->count, "Count of inserted objects differs from log count!");
     m_rdb_internal->prepare_wal_for_write(txn);
 }
