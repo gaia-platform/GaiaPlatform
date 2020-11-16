@@ -1,20 +1,21 @@
-create table incubator (
-      name string,
-      is_on bool active,
-      min_temp float32 active,
-      max_temp float32 active
+create table if not exists incubator (
+      name : string,
+      is_on :  bool active,
+      min_temp : float active,
+      max_temp : float active
 );
 
-create table sensor (
-      name string,
-      timestamp uint64,
-      value float32 active,
+create table if not exists sensor (
+      name : string,
+      timestamp : uint64,
+      value : float active,
       references incubator
 );
 
-create table actuator (
+create table if not exists actuator (
       name string,
       timestamp uint64,
-      value float32 active,
+      value float active,
       references incubator
 );
+

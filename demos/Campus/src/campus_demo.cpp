@@ -5,10 +5,6 @@
 
 #include "../inc/campus_demo.hpp"
 
-//TODO: Get rid of this when build generate works
-extern "C" void initialize_rules()
-{}
-
 CampusDemo::Campus::Campus(){}
 
 CampusDemo::Campus::~Campus(){}
@@ -59,7 +55,7 @@ int CampusDemo::Campus::Init(std::shared_ptr<message::IMessageBus> messageBus){
     _messageBus->RegisterMessageCallback(&CampusDemo::Campus::StaticMessageCallback);
 
     //Initialize Gaia
-    gaia::system::initialize();
+    gaia::system::initialize();       //TODO: translator not currently building
 
     return 0;
 }
