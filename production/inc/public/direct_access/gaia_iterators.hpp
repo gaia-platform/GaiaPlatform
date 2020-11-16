@@ -141,8 +141,8 @@ public:
 template <typename T_parent, typename T_child, size_t T_parent_slot, size_t T_child_slot, size_t T_next_slot>
 class reference_chain_container_t
 {
-    gaia_id_t m_parent_id = 0;
-    std::function<bool(const T_child&)> m_filter_fn;
+    gaia_id_t m_parent_id = c_invalid_gaia_id;
+    std::function<bool(const T_child&)> m_filter_fn{};
 
 public:
     // This constructor will be used by the where() method to create a filtered container.

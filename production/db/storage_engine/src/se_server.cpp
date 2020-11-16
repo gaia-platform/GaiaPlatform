@@ -641,6 +641,11 @@ void server::session_handler(int session_socket)
         }
         session_event_t event = session_event_t::NOP;
         const void* event_data = nullptr;
+        // Buffer used to send and receive all message data.
+        uint8_t msg_buf[c_max_msg_size] = {0};
+        // Buffer used to receive file descriptors.
+        int fd_buf[c_max_fd_count] = {-1};
+        size_t fd_buf_size = std::size(fd_buf);
         int* fds = nullptr;
         size_t fd_count = 0;
         for (int i = 0; i < ready_fd_count; i++)
@@ -683,11 +688,6 @@ void server::session_handler(int session_socket)
                     retail_assert(
                         !(ev.events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)),
                         "EPOLLERR, EPOLLHUP, EPOLLRDHUP flags should not be set!");
-                    // Buffer used to send and receive all message data.
-                    uint8_t msg_buf[c_max_msg_size] = {0};
-                    // Buffer used to receive file descriptors.
-                    int fd_buf[c_max_fd_count] = {-1};
-                    size_t fd_buf_size = std::size(fd_buf);
                     // Read client message with possible file descriptors.
                     size_t bytes_read = recv_msg_with_fds(s_session_socket, fd_buf, &fd_buf_size, msg_buf, sizeof(msg_buf));
                     // We shouldn't get EOF unless EPOLLRDHUP is set.

@@ -158,6 +158,8 @@ public:
         {
             return nullptr;
         }
+        // We need to allow the current pointer to point to the position just
+        // after the last slice entry, as long as we never read from it.
         const char* result = m_current_byte;
         m_current_byte += size;
         size_t current_pos = m_current_byte - m_starting_byte;
