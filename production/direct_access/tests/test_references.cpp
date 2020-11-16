@@ -25,8 +25,12 @@ protected:
 
     static gaia_id_t find_invalid_id()
     {
-        const int c_lower_id_range = 100;
-        const int c_higher_id_range = 100 * 1000;
+        // Starting from an high ID to reduce the chances of collision
+        // with already existent ids.
+        const int c_lower_id_range = 10000;
+
+        // 1M oughta to be enough.
+        const int c_higher_id_range = 10000 * 100;
 
         for (int i = c_lower_id_range; i < c_higher_id_range; i++)
         {

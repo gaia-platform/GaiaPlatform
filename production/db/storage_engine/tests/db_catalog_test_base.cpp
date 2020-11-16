@@ -6,7 +6,7 @@
 #include "db_catalog_test_base.hpp"
 
 #include "ddl_executor.hpp"
-#include "schema_repository.hpp"
+#include "schema_loader.hpp"
 #include "type_id_record_id_cache.hpp"
 
 namespace gaia
@@ -23,7 +23,7 @@ void db_catalog_test_base_t::reset_database_status()
 
 void db_catalog_test_base_t::load_dll(std::string ddl_file_name)
 {
-    schema_repository_t::instance().load_schema(ddl_file_name);
+    schema_loader_t::instance().load_schema(ddl_file_name);
 }
 
 } // namespace db

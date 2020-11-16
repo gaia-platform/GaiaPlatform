@@ -508,11 +508,14 @@ TEST_F(ddl_executor_test, metadata_init)
 
     gaia_type_t employee_type
         = table_builder_t::new_table("employee")
-              .database("company") // avoid collisions with the addr_book schema.
+              // Can't use `addr_book` schema name (as in other tests) because it will to conflict
+              // with the schema created by other tests that do not properly clean up the data.
+              // (same below)
+              .database("company")
               .reference("manages", "employee")
               .create_type();
 
-    // expected pointers layout for employee type
+    // Expected pointers layout for employee type.
     const reference_offset_t c_employee_first_employee = 0;
     const reference_offset_t c_employee_parent_employee = 1;
     const reference_offset_t c_employee_child_employee = 2;
@@ -524,7 +527,7 @@ TEST_F(ddl_executor_test, metadata_init)
               .reference("addressee", "employee")
               .create_type();
 
-    // expected pointers layout for address type
+    // Expected pointers layout for address type.
     const reference_offset_t c_address_parent_employee = 0;
     const reference_offset_t c_address_next_address = 1;
 

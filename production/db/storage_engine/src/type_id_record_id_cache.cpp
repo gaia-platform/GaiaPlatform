@@ -17,8 +17,11 @@ gaia::common::gaia_id_t type_id_record_id_cache_t::get_record_id(gaia::common::g
     if (!m_initialized)
     {
         std::unique_lock lock(m_cache_lock);
-        init_type_id_record_id_map();
-        m_initialized = true;
+        if (!m_initialized)
+        {
+            init_type_id_record_id_map();
+            m_initialized = true;
+        }
     }
 
     auto it = m_type_id_record_id_map.find(type_id);
@@ -39,6 +42,6 @@ void type_id_record_id_cache_t::init_type_id_record_id_map()
 void type_id_record_id_cache_t::clear()
 {
     std::unique_lock lock(m_cache_lock);
-    m_type_id_record_id_map.clear();
     m_initialized = false;
+    m_type_id_record_id_map.clear();
 }

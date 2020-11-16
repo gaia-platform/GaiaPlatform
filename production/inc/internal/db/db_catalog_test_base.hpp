@@ -23,7 +23,7 @@ protected:
      */
     explicit db_catalog_test_base_t(std::string ddl_file_name, bool client_manages_session = false)
         : db_test_base_t(client_manages_session)
-        , m_dd_file_name(std::move(ddl_file_name)){};
+        , m_ddl_file_name(std::move(ddl_file_name)){};
 
     void SetUp() override
     {
@@ -35,7 +35,7 @@ protected:
         }
 
         reset_database_status();
-        load_dll(m_dd_file_name);
+        load_dll(m_ddl_file_name);
 
         if (is_client_manage_sessions())
         {
@@ -44,7 +44,7 @@ protected:
     }
 
 private:
-    std::string m_dd_file_name;
+    std::string m_ddl_file_name;
 
     void reset_database_status();
     void load_dll(std::string ddl_file_name);

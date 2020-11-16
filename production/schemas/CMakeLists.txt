@@ -25,6 +25,6 @@ file(
   DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/"
 )
 
-add_subdirectory(repository)
+add_subdirectory(loader)
 add_subdirectory(system)
 add_subdirectory(test)

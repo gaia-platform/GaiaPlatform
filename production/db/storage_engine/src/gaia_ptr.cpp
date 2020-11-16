@@ -280,8 +280,8 @@ void gaia_ptr::add_child_reference(gaia_id_t child_id, reference_offset_t first_
     // is preserved thus if there are no parent references there are no next_child_offset either
     if (child_ptr.references()[relationship->parent_offset] != c_invalid_gaia_id)
     {
-        // If the children already has a reference to this parent, handle gracefully.
-        // Otherwise throws an exception.
+        // If the child already has a reference to this parent, handle gracefully.
+        // Otherwise throw an exception.
         if (child_ptr.references()[relationship->parent_offset] == id())
         {
             return;

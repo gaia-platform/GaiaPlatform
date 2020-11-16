@@ -193,9 +193,9 @@ set(GAIA_DB_CATALOG_TEST_PRIVATE_INCLUDES
   ${GAIA_REPO}/production/db/storage_engine/inc
 )
 
-add_library(db_catalog_test "tests/db_catalog_test_base.cpp")
-target_include_directories(db_catalog_test PRIVATE ${GAIA_DB_CATALOG_TEST_PRIVATE_INCLUDES})
-target_link_libraries(db_catalog_test PRIVATE gaia_common gaia_storage schema_repository gaia_catalog)
+add_library(gaia_db_catalog_test "tests/db_catalog_test_base.cpp")
+target_include_directories(gaia_db_catalog_test PRIVATE ${GAIA_DB_CATALOG_TEST_PRIVATE_INCLUDES})
+target_link_libraries(gaia_db_catalog_test PRIVATE gaia_common gaia_storage gaia_schema_loader gaia_catalog)
 
 add_gtest(test_rdb_object_converter "tests/test_rdb_object_converter.cpp" "${FLATBUFFERS_INC};${GEN_DIR};${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "rocks_wrapper")
 add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")

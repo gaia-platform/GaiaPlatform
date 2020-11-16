@@ -41,5 +41,5 @@ set(GAIA_TEST_GENERATE_PRIVATE_INCLUDES
 add_gtest(test_gaia_generate
   "tests/test_gaia_generate.cpp"
   "${GAIA_TEST_GENERATE_PRIVATE_INCLUDES}"
-  "rt;gaia_system;db_catalog_test"
+  "rt;gaia_system;gaia_db_catalog_test"
   "generate_airport_headers" "")

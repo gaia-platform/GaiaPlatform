@@ -1,0 +1,66 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+#pragma once
+
+#include <filesystem>
+#include <map>
+#include <optional>
+#include <string>
+#include <vector>
+
+/**
+ * Utility class that given a schema file name (eg. "addr_book.ddl") search for it into a set of 
+ * predefined folders, and loads its content into the Catalog.
+ */
+class schema_loader_t
+{
+public:
+    schema_loader_t(const schema_loader_t&) = delete;
+    schema_loader_t& operator=(const schema_loader_t&) = delete;
+    schema_loader_t(schema_loader_t&&) = delete;
+    schema_loader_t& operator=(schema_loader_t&&) = delete;
+
+    static schema_loader_t& instance()
+    {
+        static schema_loader_t schema_manager;
+        return schema_manager;
+    }
+
+    /**
+     * Loads the schema identified by schema_file_name into the catalog.
+     */
+    void load_schema(std::string schema_file_name);
+
+    /**
+     * Given a schema name search for it in the search paths.
+     *
+     * @param schema_file_name Name of the schema to search (eg. addr_book.ddl).
+     * @return If found, an optional with the absolute path, an empty optional otherwise.
+     */
+    std::optional<std::string> find_schema(std::string schema_file_name);
+
+    /**
+     * Path that will be used by the method search_schema to find schemas.
+     * @param path Absolute path.
+     */
+    void add_search_path(std::string path);
+
+    /**
+     * Clear the mapping between the schema names and thir paths.
+     */
+    void clear_schema_cache();
+
+private:
+    schema_loader_t();
+
+    std::vector<std::filesystem::path> m_search_paths;
+    std::map<std::string, std::filesystem::path> m_schemas_cache;
+
+    /**
+     * Automatically adds the gaia paths for the well-known schemas.
+     */
+    void add_gaia_search_paths();
+};
