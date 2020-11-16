@@ -12,16 +12,21 @@ namespace gaia
 namespace db
 {
 
+/**
+ * Base class for tests that require a schema to run.
+ */
 class db_catalog_test_base_t : public db_test_base_t
 {
 protected:
+    /**
+     * @param ddl_file_name The ddl filename, not the path. Eg. "addr_book.ddl"
+     */
     explicit db_catalog_test_base_t(std::string ddl_file_name, bool client_manages_session = false)
         : db_test_base_t(client_manages_session)
         , m_dd_file_name(std::move(ddl_file_name)){};
 
     void SetUp() override
     {
-        std::cout << "Resetting the shit" << std::endl;
         db_test_base_t::SetUp();
 
         if (is_client_manage_sessions())

@@ -74,29 +74,6 @@ public:
 
     gaia_ptr& update_payload(size_t data_size, const void* data);
 
-    /**
-     * Update the next child and parent reference slots in a child.
-     *
-     * @param next_child_slot reference slot of the next child
-     * @param next_child_id gaia id of the next child
-     * @param parent_slot reference slot of the parent node
-     * @param parent_id gaia id of the parent node
-     * @return pointer to the updated node
-    */
-    gaia_ptr& update_child_references(
-        size_t next_child_slot, gaia_id_t next_child_id, size_t parent_slot, gaia_id_t parent_id);
-
-    /**
-     * Update a single child reference on either parent side or child side. The
-     * reference slot could be the first child on the parent side or the next
-     * child on the child side depending on the calling context of the method.
-     *
-     * @param child_slot reference slot
-     * @param child_id gaia id of the child references
-     * @return pointer to the updated node
-    */
-    gaia_ptr& update_child_reference(size_t child_slot, gaia_id_t child_id);
-
     static gaia_ptr find_first(gaia_type_t type)
     {
         gaia_ptr ptr;

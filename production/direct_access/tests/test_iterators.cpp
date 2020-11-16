@@ -432,7 +432,10 @@ TYPED_TEST(iterator_conformance_t, algorithm_test)
 
     this->insert_records(c_count);
 
-    std::transform(this->get_begin(iter), this->get_end(iter), back_inserter(transform_list), [](const address_t& address) -> int { return atoi(address.street()); });
+    std::transform(
+        this->get_begin(iter), this->get_end(iter),
+        back_inserter(transform_list),
+        [](const address_t& address) -> int { return atoi(address.street()); });
 
     EXPECT_EQ(transform_list.size(), c_count);
 }

@@ -160,30 +160,6 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data)
     return *this;
 }
 
-gaia_ptr& gaia_ptr::update_child_references(
-    size_t next_child_slot, gaia_id_t next_child_id, size_t parent_slot, gaia_id_t parent_id)
-{
-    gaia_offset_t old_offset = to_offset();
-    clone_no_txn();
-
-    references()[next_child_slot] = next_child_id;
-    references()[parent_slot] = parent_id;
-
-    client::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
-    return *this;
-}
-
-gaia_ptr& gaia_ptr::update_child_reference(size_t child_slot, gaia_id_t child_id)
-{
-    gaia_offset_t old_offset = to_offset();
-    clone_no_txn();
-
-    references()[child_slot] = child_id;
-
-    client::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
-    return *this;
-}
-
 void gaia_ptr::create_insert_trigger(gaia_type_t type, gaia_id_t id)
 {
     if (client::is_valid_event(type))
