@@ -73,6 +73,10 @@ constexpr const T_ptr* gaia_base_t::to_const_ptr() const
     return reinterpret_cast<const T_ptr*>(&m_record);
 }
 
+// We only support a single specialization of our ptr functions above using gaia_ptr
+template gaia_ptr* gaia_base_t::to_ptr();
+template const gaia_ptr* gaia_base_t::to_const_ptr() const;
+
 gaia_base_t::gaia_base_t(const char* gaia_typename)
     : m_typename(gaia_typename)
 {
