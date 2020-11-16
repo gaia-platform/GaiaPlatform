@@ -77,10 +77,10 @@ add_clang_library(clangSema
   clangBasic
   clangEdit
   clangLex
+  gaia_direct_llvm
   gaia_se_client_llvm
   gaia_payload_types_llvm
   gaia_catalog_llvm
-  gaia_direct_llvm
   gaia_system_llvm
   flatbuffers_llvm
   explain
