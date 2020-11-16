@@ -137,13 +137,13 @@ void persistent_store_manager::prepare_wal_for_write(gaia::db::log* log, std::st
         {
             string_writer_t key;
             string_writer_t value;
-            void* gaia_object = lr->new_offset ? (m_data->objects + lr->new_offset) : nullptr;
-            if (!gaia_object)
+            auto obj = offset_to_ptr(lr->new_offset);
+            if (!obj)
             {
                 // Object was deleted in current transaction.
                 continue;
             }
-            encode_object(static_cast<se_object_t*>(gaia_object), &key, &value);
+            encode_object(obj, &key, &value);
             // Gaia objects encoded as key-value slices shouldn't be empty.
             retail_assert(
                 key.get_current_position() != 0 && value.get_current_position() != 0,

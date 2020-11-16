@@ -51,6 +51,10 @@ inline gaia_locator_t allocate_locator()
         throw transaction_not_open();
     }
 
+    // We need an acquire barrier before reading `last_locator`. We can
+    // change this full barrier to an acquire barrier when we change to proper
+    // C++ atomic types.
+    __sync_synchronize();
     if (data->last_locator >= c_max_locators)
     {
         throw oom();
@@ -68,7 +72,7 @@ inline void allocate_object(gaia_locator_t locator, size_t size)
         throw transaction_not_open();
     }
 
-    if (data->objects[0] >= c_max_objects)
+    if (data->objects[0] >= c_max_offset)
     {
         throw oom();
     }
@@ -82,7 +86,12 @@ inline void allocate_object(gaia_locator_t locator, size_t size)
 inline bool locator_exists(gaia_locator_t locator)
 {
     locators* locators = gaia::db::get_shared_locators_ptr();
-    return (locator && (*locators)[locator]);
+    data* data = gaia::db::get_shared_data_ptr();
+    // We need an acquire barrier before reading `last_locator`. We can
+    // change this full barrier to an acquire barrier when we change to proper
+    // C++ atomic types.
+    __sync_synchronize();
+    return ((locator != c_invalid_gaia_locator) && (locator <= data->last_locator) && ((*locators)[locator] != c_invalid_gaia_offset));
 }
 
 inline gaia_offset_t locator_to_offset(gaia_locator_t locator)
@@ -93,13 +102,17 @@ inline gaia_offset_t locator_to_offset(gaia_locator_t locator)
         : c_invalid_gaia_offset;
 }
 
+inline se_object_t* offset_to_ptr(gaia_offset_t offset)
+{
+    data* data = gaia::db::get_shared_data_ptr();
+    return (offset != c_invalid_gaia_offset)
+        ? reinterpret_cast<se_object_t*>(data->objects + offset)
+        : nullptr;
+}
+
 inline se_object_t* locator_to_ptr(gaia_locator_t locator)
 {
-    locators* locators = gaia::db::get_shared_locators_ptr();
-    data* data = gaia::db::get_shared_data_ptr();
-    return locator_exists(locator)
-        ? reinterpret_cast<se_object_t*>(data->objects + (*locators)[locator])
-        : nullptr;
+    return offset_to_ptr(locator_to_offset(locator));
 }
 
 } // namespace db

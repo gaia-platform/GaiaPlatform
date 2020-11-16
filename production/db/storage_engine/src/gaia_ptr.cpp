@@ -227,15 +227,20 @@ gaia_offset_t gaia_ptr::to_offset() const
 void gaia_ptr::find_next(gaia_type_t type)
 {
     gaia::db::data* data = gaia::db::get_shared_data_ptr();
-    // search for rows of this type within the range of used slots
+    // We need an acquire barrier before reading `last_locator`. We can
+    // change this full barrier to an acquire barrier when we change to proper
+    // C++ atomic types.
+    __sync_synchronize();
+    // Search for objects of this type within the range of used locators.
     while (++m_locator && m_locator <= data->last_locator)
     {
         if (is(type))
         {
             return;
         }
+        __sync_synchronize();
     }
-    m_locator = 0;
+    m_locator = c_invalid_gaia_locator;
 }
 
 void gaia_ptr::reset()
@@ -247,8 +252,8 @@ void gaia_ptr::reset()
     {
         client::s_events.emplace_back(event_type_t::row_delete, to_ptr()->type, to_ptr()->id, empty_position_list);
     }
-    (*locators)[m_locator] = 0;
-    m_locator = 0;
+    (*locators)[m_locator] = c_invalid_gaia_offset;
+    m_locator = c_invalid_gaia_locator;
 }
 
 // This trivial implementation is necessary to avoid calling into client code from the header file.

@@ -937,14 +937,10 @@ std::function<std::optional<gaia_id_t>()> server::get_id_generator_for_type(gaia
         std::shared_lock lock(s_locators_lock);
         while (++locator && locator <= s_data->last_locator)
         {
-            gaia_offset_t offset = (*s_shared_locators)[locator];
-            if (offset)
+            auto obj = locator_to_ptr(locator);
+            if (obj && obj->type == type)
             {
-                auto obj = reinterpret_cast<se_object_t*>(s_data->objects + (*s_shared_locators)[locator]);
-                if (obj->type == type)
-                {
-                    return obj->id;
-                }
+                return obj->id;
             }
         }
         // Signal end of iteration.

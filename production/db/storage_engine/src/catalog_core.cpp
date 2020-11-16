@@ -77,13 +77,18 @@ table_list_t catalog_core_t::list_tables()
     retail_assert(is_transaction_active(), "This method must be called from an open transaction!");
     data* data = gaia::db::get_shared_data_ptr();
     auto gaia_table_generator = [data, locator = c_invalid_gaia_locator]() mutable -> std::optional<table_view_t> {
-        while (++locator && locator < data->last_locator + 1)
+        // We need an acquire barrier before reading `last_locator`. We can
+        // change this full barrier to an acquire barrier when we change to proper
+        // C++ atomic types.
+        __sync_synchronize();
+        while (++locator && locator <= data->last_locator)
         {
-            se_object_t* ptr = locator_to_ptr(locator);
+            auto ptr = locator_to_ptr(locator);
             if (ptr && ptr->type == static_cast<gaia_type_t>(catalog_table_type_t::gaia_table))
             {
                 return table_view_t(ptr);
             }
+            __sync_synchronize();
         }
         return std::nullopt;
     };
