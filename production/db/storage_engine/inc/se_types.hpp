@@ -20,6 +20,7 @@ constexpr size_t c_max_msg_size = 1 << 10;
 
 enum class gaia_operation_t : uint8_t
 {
+    not_set = 0x0,
     create = 0x1,
     update = 0x2,
     remove = 0x3,
@@ -49,6 +50,7 @@ struct hash_node
 struct log
 {
     size_t count;
+
     struct log_record
     {
         gaia::db::gaia_locator_t locator;
@@ -57,21 +59,22 @@ struct log
         gaia::common::gaia_id_t deleted_id;
         gaia_operation_t operation;
     };
+
     log_record log_records[c_max_log_records];
 };
 
 struct data
 {
-    // The `id` fields are used as cross-process atomic counters. We don't
-    // need something like a cross-process mutex for this, as long as we use
-    // atomic intrinsics for mutating the counters. This is because the
-    // instructions targeted by the intrinsics operate at the level of physical
-    // memory, not virtual addresses.
+    // These fields are used as cross-process atomic counters. We don't need
+    // something like a cross-process mutex for this, as long as we use atomic
+    // intrinsics for mutating the counters. This is because the instructions
+    // targeted by the intrinsics operate at the level of physical memory, not
+    // virtual addresses.
     // REVIEW: these fields should probably be changed to std::atomic<T> (and
-    // the explicit calls to atomic intrinsics replaced by atomic methods).
-    // NB: all these fields are initialized to 0, even though C++ doesn't
-    // guarantee it, because this is constructed in a memory-mapped
-    // shared-memory segment, and the OS automatically zeroes new pages.
+    // the explicit calls to atomic intrinsics replaced by atomic methods). NB:
+    // all these fields are initialized to 0, even though C++ doesn't guarantee
+    // it, because this struct is constructed in a memory-mapped shared-memory
+    // segment, and the OS automatically zeroes new pages.
     gaia::common::gaia_id_t last_id;
     gaia::common::gaia_type_t last_type_id;
     gaia::db::gaia_txn_id_t last_txn_id;
@@ -79,11 +82,12 @@ struct data
 
     size_t hash_node_count;
     hash_node hash_nodes[c_hash_buckets + c_hash_list_elements];
-    // This array is actually an untyped array of bytes, but it's defined as
-    // an array of uint64_t just to enforce 8-byte alignment. Allocating
+
+    // This array is actually an untyped array of bytes, but it's defined as an
+    // array of uint64_t just to enforce 8-byte alignment. Allocating
     // (c_max_locators * 8) 8-byte words for this array means we reserve 64
-    // bytes on average for each object we allocate (or 1 cache line on
-    // every common architecture).
+    // bytes on average for each object we allocate (or 1 cache line on every
+    // common architecture).
     // Since any valid offset must be positive (zero is a reserved invalid
     // value), the first word (at offset 0) is unused by data, so we use it to
     // store the last offset allocated (minus 1 since all offsets are obtained

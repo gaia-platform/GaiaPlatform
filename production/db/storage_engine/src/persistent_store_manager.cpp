@@ -187,8 +187,8 @@ void persistent_store_manager::recover()
     // Check for any errors found during the scan
     m_rdb_internal->handle_rdb_error(it->status());
     m_data->last_id = max_id;
-    // Ensure that other threads (with appropriate read barriers) immediately
-    // observe the changed value.
+    // Ensure that other threads (with appropriate acquire barriers) immediately
+    // observe the changed value. (This could be changed to a release barrier.)
     __sync_synchronize();
 }
 

@@ -52,11 +52,13 @@ private:
     thread_local static inline log* s_log = nullptr;
     thread_local static inline int s_fd_log = -1;
     thread_local static inline locators* s_locators = nullptr;
+
     // s_fd_locators, s_data, s_session_socket have session lifetime.
     thread_local static inline int s_fd_locators = -1;
     thread_local static inline data* s_data = nullptr;
     thread_local static inline int s_session_socket = -1;
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
+
     // s_events has transaction lifetime and is cleared after each transaction.
     // Set by the rules engine.
     thread_local static inline std::vector<gaia::db::triggers::trigger_event_t> s_events{};

@@ -100,6 +100,7 @@ target_link_libraries(gaia_se_client PRIVATE explain gaia_payload_types gaia_dir
 set_property (TARGET gaia_se_client PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 add_library(rocks_wrapper STATIC
+  src/rdb_internal.cpp
   src/rdb_object_converter.cpp
   src/persistent_store_manager.cpp)
 target_include_directories(rocks_wrapper PRIVATE
@@ -174,7 +175,7 @@ endif()
 ###############################################
 if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   # Configure build of native C++ wrapper library.
-  add_library(jni_se_client  SHARED src/se_jni_wrapper.cpp)
+  add_library(jni_se_client SHARED src/se_jni_wrapper.cpp)
   target_include_directories(jni_se_client PRIVATE ${PROJECT_SOURCE_DIR})
   target_include_directories(jni_se_client PRIVATE ${PROJECT_BINARY_DIR})
   target_include_directories(jni_se_client PRIVATE ${JNI_INCLUDE_DIRS})

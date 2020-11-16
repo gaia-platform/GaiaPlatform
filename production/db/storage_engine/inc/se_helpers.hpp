@@ -46,7 +46,7 @@ inline gaia_locator_t allocate_locator()
     locators* locators = gaia::db::get_shared_locators();
     data* data = gaia::db::get_shared_data();
 
-    if (locators == nullptr)
+    if (!locators)
     {
         throw transaction_not_open();
     }
@@ -67,7 +67,7 @@ inline void allocate_object(gaia_locator_t locator, size_t size)
 {
     locators* locators = gaia::db::get_shared_locators();
     data* data = gaia::db::get_shared_data();
-    if (locators == nullptr)
+    if (!locators)
     {
         throw transaction_not_open();
     }
@@ -91,7 +91,9 @@ inline bool locator_exists(gaia_locator_t locator)
     // change this full barrier to an acquire barrier when we change to proper
     // C++ atomic types.
     __sync_synchronize();
-    return ((locator != c_invalid_gaia_locator) && (locator <= data->last_locator) && ((*locators)[locator] != c_invalid_gaia_offset));
+    return (locator != c_invalid_gaia_locator)
+        && (locator <= data->last_locator)
+        && ((*locators)[locator] != c_invalid_gaia_offset);
 }
 
 inline gaia_offset_t locator_to_offset(gaia_locator_t locator)
