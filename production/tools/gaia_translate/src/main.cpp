@@ -354,7 +354,7 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
     if (g_delete_operation_in_rule)
     {
         g_generation_error = true;
-        llvm::errs() << "The rule has subscribed for delete operation and has a navigation code which is currently not supported.\n";
+        llvm::errs() << "Navigation from a record that has been deleted is currently not supported. This condition occurs when a rule is subscribed to a delete operation and is referencing data related to the deleted record.\n";
         return navigation_code_data_t();
     }
 
