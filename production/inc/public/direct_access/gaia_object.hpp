@@ -57,7 +57,6 @@ struct gaia_object_t : gaia_base_t
 {
 public:
     gaia_object_t(const char* gaia_typename);
-    gaia_object_t(const gaia_object_t& other) = default;
 
     /**
      * Return a reference that is pre-populated with values from the row

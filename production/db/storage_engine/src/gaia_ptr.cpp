@@ -6,7 +6,6 @@
 #include "gaia_ptr.hpp"
 
 #include "gaia_hash_map.hpp"
-#include "gaia_se_object.hpp"
 #include "payload_diff.hpp"
 #include "storage_engine.hpp"
 #include "storage_engine_client.hpp"
