@@ -56,7 +56,8 @@ struct log
         gaia::db::gaia_offset_t new_offset;
         gaia::common::gaia_id_t deleted_id;
         gaia_operation_t operation;
-    } log_records[c_max_log_records];
+    };
+    log_record log_records[c_max_log_records];
 };
 
 struct data
@@ -75,6 +76,7 @@ struct data
     gaia::common::gaia_type_t last_type_id;
     gaia::db::gaia_txn_id_t last_txn_id;
     gaia::db::gaia_locator_t last_locator;
+
     size_t hash_node_count;
     hash_node hash_nodes[c_hash_buckets + c_hash_list_elements];
     // This array is actually an untyped array of bytes, but it's defined as

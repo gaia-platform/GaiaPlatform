@@ -19,8 +19,6 @@
 #include "retail_assert.hpp"
 #include "se_object.hpp"
 
-using namespace gaia::common;
-
 namespace gaia
 {
 namespace db
@@ -175,7 +173,7 @@ void encode_object(
     string_writer_t& key,
     string_writer_t& value);
 
-gaia_id_t decode_object(
+gaia::common::gaia_id_t decode_object(
     const rocksdb::Slice& key,
     const rocksdb::Slice& value);
 

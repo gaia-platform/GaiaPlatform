@@ -22,8 +22,6 @@ namespace gaia
 namespace db
 {
 
-using namespace gaia::common;
-
 class rdb_internal_t
 {
 public:
@@ -57,7 +55,7 @@ public:
         {
             handle_rdb_error(s);
         }
-        retail_assert(m_txn_db != nullptr, "RocksDB database is not initialized.");
+        gaia::common::retail_assert(m_txn_db != nullptr, "RocksDB database is not initialized.");
     }
 
     std::string begin_txn(rocksdb::WriteOptions& options, const rocksdb::TransactionOptions& txn_opts, gaia_txn_id_t txn_id)
@@ -71,7 +69,7 @@ public:
         auto nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(duration);
         std::stringstream rdb_txn_name;
         rdb_txn_name << txn_id << "." << nanoseconds.count();
-        retail_assert(m_txn_db != nullptr, "RocksDB database is not initialized.");
+        gaia::common::retail_assert(m_txn_db != nullptr, "RocksDB database is not initialized.");
         rocksdb::Transaction* txn = m_txn_db->BeginTransaction(options, txn_opts);
         rocksdb::Status s = txn->SetName(rdb_txn_name.str());
         handle_rdb_error(s);
@@ -111,7 +109,7 @@ public:
 
     rocksdb::Iterator* get_iterator()
     {
-        retail_assert(m_txn_db != nullptr, "RocksDB database is not initialized.");
+        gaia::common::retail_assert(m_txn_db != nullptr, "RocksDB database is not initialized.");
         return m_txn_db->NewIterator(rocksdb::ReadOptions());
     }
 
@@ -127,7 +125,7 @@ public:
 
     rocksdb::Transaction* get_txn_by_name(std::string& txn_name)
     {
-        retail_assert(m_txn_db != nullptr, "RocksDB database is not initialized.");
+        gaia::common::retail_assert(m_txn_db != nullptr, "RocksDB database is not initialized.");
         return m_txn_db->GetTransactionByName(txn_name);
     }
 

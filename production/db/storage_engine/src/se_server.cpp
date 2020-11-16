@@ -400,11 +400,11 @@ void server::init_listening_socket()
     server_addr.sun_family = AF_UNIX;
     // The socket name (minus its null terminator) needs to fit into the space
     // in the server address structure after the prefix null byte.
-    static_assert(sizeof(SE_SERVER_SOCKET_NAME) <= sizeof(server_addr.sun_path) - 1);
+    static_assert(sizeof(c_se_server_socket_name) <= sizeof(server_addr.sun_path) - 1);
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
     // filesystem.
-    ::strncpy(&server_addr.sun_path[1], SE_SERVER_SOCKET_NAME, sizeof(server_addr.sun_path) - 1);
+    ::strncpy(&server_addr.sun_path[1], c_se_server_socket_name, sizeof(server_addr.sun_path) - 1);
 
     // Bind the socket to the address and start listening for connections.
     // The socket name is not null-terminated in the address structure, but

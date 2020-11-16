@@ -73,7 +73,7 @@ target_link_libraries(gaia_storage PRIVATE gaia_common)
 ###############################################
 # Storage engine-related code begins here.
 ###############################################
-add_library(gaia_se_client  STATIC
+add_library(gaia_se_client STATIC
   src/catalog_core.cpp
   src/gaia_db.cpp
   src/gaia_ptr.cpp
@@ -82,22 +82,22 @@ add_library(gaia_se_client  STATIC
   src/se_shared_data_client.cpp
   src/type_metadata.cpp
   src/type_id_record_id_cache.cpp)
-add_dependencies(gaia_se_client  "messages.fbs" "gaia_table.fbs" "gaia_field.fbs")
-target_include_directories(gaia_se_client  PUBLIC ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES})
-target_include_directories(gaia_se_client  PRIVATE ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES})
+add_dependencies(gaia_se_client "messages.fbs" "gaia_table.fbs" "gaia_field.fbs")
+target_include_directories(gaia_se_client PUBLIC ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES})
+target_include_directories(gaia_se_client PRIVATE ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES})
 # For referential integrity check to read catalog.
 # TODO: Switch to use catalog_core and remove the dependency on catalog headers and gaia_direct.
-target_include_directories(gaia_se_client  PRIVATE "${GAIA_INC}/public/catalog;${GAIA_INC}/internal/catalog")
+target_include_directories(gaia_se_client PRIVATE "${GAIA_INC}/public/catalog;${GAIA_INC}/internal/catalog")
 
 # For flatbuffers generated code.
-target_include_directories(gaia_se_client  SYSTEM PRIVATE "${FLATBUFFERS_INC}")
-target_include_directories(gaia_se_client  SYSTEM PRIVATE "${GEN_DIR}")
+target_include_directories(gaia_se_client SYSTEM PRIVATE "${FLATBUFFERS_INC}")
+target_include_directories(gaia_se_client SYSTEM PRIVATE "${GEN_DIR}")
 # Suppress spurious warnings about zero-initialized structs.
-set_target_properties(gaia_se_client  PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
-target_link_libraries(gaia_se_client  PUBLIC gaia_common)
-target_link_libraries(gaia_se_client  PRIVATE explain gaia_payload_types gaia_direct)
+set_target_properties(gaia_se_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
+target_link_libraries(gaia_se_client PUBLIC gaia_common)
+target_link_libraries(gaia_se_client PRIVATE explain gaia_payload_types gaia_direct)
 # This static library must be compatible with linking in a shared library.
-set_property (TARGET gaia_se_client  PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property (TARGET gaia_se_client PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 add_library(rocks_wrapper STATIC
   src/rdb_object_converter.cpp

@@ -226,7 +226,7 @@ gaia_offset_t gaia_ptr::to_offset() const
 
 void gaia_ptr::find_next(gaia_type_t type)
 {
-    gaia::db::data* data = gaia::db::get_shared_data_ptr();
+    gaia::db::data* data = gaia::db::get_shared_data();
     // We need an acquire barrier before reading `last_locator`. We can
     // change this full barrier to an acquire barrier when we change to proper
     // C++ atomic types.
@@ -245,7 +245,7 @@ void gaia_ptr::find_next(gaia_type_t type)
 
 void gaia_ptr::reset()
 {
-    gaia::db::locators* locators = gaia::db::get_shared_locators_ptr();
+    gaia::db::locators* locators = gaia::db::get_shared_locators();
     client::txn_log(m_locator, to_offset(), 0, gaia_operation_t::remove, to_ptr()->id);
 
     if (client::is_valid_event(to_ptr()->type))
@@ -267,7 +267,7 @@ void gaia_ptr::add_child_reference(gaia_id_t child_id, reference_offset_t first_
 {
     gaia_type_t parent_type = type();
     const type_metadata_t& parent_metadata = type_registry_t::instance().get(parent_type);
-    optional<relationship_t> relationship = parent_metadata.find_parent_relationship(first_child_offset);
+    std::optional<relationship_t> relationship = parent_metadata.find_parent_relationship(first_child_offset);
 
     if (!relationship)
     {
@@ -337,7 +337,7 @@ void gaia_ptr::add_parent_reference(gaia_id_t parent_id, reference_offset_t pare
     gaia_type_t child_type = type();
 
     const type_metadata_t& child_metadata = type_registry_t::instance().get(child_type);
-    optional<relationship_t> child_relationship = child_metadata.find_child_relationship(parent_offset);
+    std::optional<relationship_t> child_relationship = child_metadata.find_child_relationship(parent_offset);
 
     if (!child_relationship)
     {
@@ -358,7 +358,7 @@ void gaia_ptr::remove_child_reference(gaia_id_t child_id, reference_offset_t fir
 {
     gaia_type_t parent_type = type();
     const type_metadata_t& parent_metadata = type_registry_t::instance().get(parent_type);
-    optional<relationship_t> relationship = parent_metadata.find_parent_relationship(first_child_offset);
+    std::optional<relationship_t> relationship = parent_metadata.find_parent_relationship(first_child_offset);
 
     if (!relationship)
     {
@@ -433,7 +433,7 @@ void gaia_ptr::remove_parent_reference(gaia_id_t parent_id, reference_offset_t p
     gaia_type_t child_type = type();
 
     const type_metadata_t& child_metadata = type_registry_t::instance().get(child_type);
-    optional<relationship_t> relationship = child_metadata.find_child_relationship(parent_offset);
+    std::optional<relationship_t> relationship = child_metadata.find_child_relationship(parent_offset);
 
     if (!relationship)
     {
@@ -456,7 +456,7 @@ void gaia_ptr::update_parent_reference(gaia_id_t new_parent_id, reference_offset
     gaia_type_t child_type = type();
 
     const type_metadata_t& child_metadata = type_registry_t::instance().get(child_type);
-    optional<relationship_t> relationship = child_metadata.find_child_relationship(parent_offset);
+    std::optional<relationship_t> relationship = child_metadata.find_child_relationship(parent_offset);
 
     if (!relationship)
     {

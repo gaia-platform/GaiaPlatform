@@ -22,29 +22,29 @@ namespace db
 
 inline gaia_id_t allocate_id()
 {
-    data* data = gaia::db::get_shared_data_ptr();
+    data* data = gaia::db::get_shared_data();
     gaia_id_t id = __sync_add_and_fetch(&data->last_id, 1);
     return id;
 }
 
 inline gaia_type_t allocate_type()
 {
-    data* data = gaia::db::get_shared_data_ptr();
+    data* data = gaia::db::get_shared_data();
     gaia_type_t type = __sync_add_and_fetch(&data->last_type_id, 1);
     return type;
 }
 
 inline gaia_txn_id_t allocate_txn_id()
 {
-    data* data = gaia::db::get_shared_data_ptr();
+    data* data = gaia::db::get_shared_data();
     gaia_txn_id_t txn_id = __sync_add_and_fetch(&data->last_txn_id, 1);
     return txn_id;
 }
 
 inline gaia_locator_t allocate_locator()
 {
-    locators* locators = gaia::db::get_shared_locators_ptr();
-    data* data = gaia::db::get_shared_data_ptr();
+    locators* locators = gaia::db::get_shared_locators();
+    data* data = gaia::db::get_shared_data();
 
     if (locators == nullptr)
     {
@@ -65,8 +65,8 @@ inline gaia_locator_t allocate_locator()
 
 inline void allocate_object(gaia_locator_t locator, size_t size)
 {
-    locators* locators = gaia::db::get_shared_locators_ptr();
-    data* data = gaia::db::get_shared_data_ptr();
+    locators* locators = gaia::db::get_shared_locators();
+    data* data = gaia::db::get_shared_data();
     if (locators == nullptr)
     {
         throw transaction_not_open();
@@ -85,8 +85,8 @@ inline void allocate_object(gaia_locator_t locator, size_t size)
 
 inline bool locator_exists(gaia_locator_t locator)
 {
-    locators* locators = gaia::db::get_shared_locators_ptr();
-    data* data = gaia::db::get_shared_data_ptr();
+    locators* locators = gaia::db::get_shared_locators();
+    data* data = gaia::db::get_shared_data();
     // We need an acquire barrier before reading `last_locator`. We can
     // change this full barrier to an acquire barrier when we change to proper
     // C++ atomic types.
@@ -96,7 +96,7 @@ inline bool locator_exists(gaia_locator_t locator)
 
 inline gaia_offset_t locator_to_offset(gaia_locator_t locator)
 {
-    locators* locators = gaia::db::get_shared_locators_ptr();
+    locators* locators = gaia::db::get_shared_locators();
     return locator_exists(locator)
         ? (*locators)[locator]
         : c_invalid_gaia_offset;
@@ -104,7 +104,7 @@ inline gaia_offset_t locator_to_offset(gaia_locator_t locator)
 
 inline se_object_t* offset_to_ptr(gaia_offset_t offset)
 {
-    data* data = gaia::db::get_shared_data_ptr();
+    data* data = gaia::db::get_shared_data();
     return (offset != c_invalid_gaia_offset)
         ? reinterpret_cast<se_object_t*>(data->objects + offset)
         : nullptr;

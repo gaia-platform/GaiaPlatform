@@ -12,9 +12,9 @@ namespace gaia
 namespace db
 {
 
-gaia::db::locators* get_shared_locators_ptr();
+gaia::db::locators* get_shared_locators();
 
-gaia::db::data* get_shared_data_ptr();
+gaia::db::data* get_shared_data();
 
 } // namespace db
 } // namespace gaia

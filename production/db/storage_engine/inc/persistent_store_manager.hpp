@@ -82,7 +82,7 @@ public:
     void destroy_persistent_store();
 
 private:
-    static inline const std::string c_data_dir = PERSISTENT_DIRECTORY_PATH;
+    static inline const std::string c_data_dir = c_persistent_directory_path;
     gaia::db::data* m_data = nullptr;
     gaia::db::locators* m_locators = nullptr;
     std::unique_ptr<gaia::db::rdb_internal_t> m_rdb_internal;

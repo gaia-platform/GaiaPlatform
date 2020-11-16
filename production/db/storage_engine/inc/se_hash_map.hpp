@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "retail_assert.hpp"
 #include "se_helpers.hpp"
 #include "se_shared_data.hpp"
 #include "se_types.hpp"
@@ -17,10 +18,10 @@ namespace db
 class se_hash_map
 {
 public:
-    static hash_node* insert(gaia_id_t id)
+    static hash_node* insert(gaia::common::gaia_id_t id)
     {
-        locators* locators = gaia::db::get_shared_locators_ptr();
-        data* data = gaia::db::get_shared_data_ptr();
+        locators* locators = gaia::db::get_shared_locators();
+        data* data = gaia::db::get_shared_data();
         if (locators == nullptr)
         {
             throw transaction_not_open();
@@ -58,7 +59,7 @@ public:
 
             if (!new_node_idx)
             {
-                retail_assert(
+                gaia::common::retail_assert(
                     data->hash_node_count + c_hash_buckets < c_hash_list_elements,
                     "hash_node_count exceeds expected limits!");
                 new_node_idx = c_hash_buckets + __sync_fetch_and_add(&data->hash_node_count, 1);
@@ -72,10 +73,10 @@ public:
         }
     }
 
-    static gaia_locator_t find(gaia_id_t id)
+    static gaia_locator_t find(gaia::common::gaia_id_t id)
     {
-        locators* locators = gaia::db::get_shared_locators_ptr();
-        data* data = gaia::db::get_shared_data_ptr();
+        locators* locators = gaia::db::get_shared_locators();
+        data* data = gaia::db::get_shared_data();
         if (locators == nullptr)
         {
             throw transaction_not_open();
@@ -105,9 +106,9 @@ public:
         return c_invalid_gaia_locator;
     }
 
-    static void remove(gaia_id_t id)
+    static void remove(gaia::common::gaia_id_t id)
     {
-        data* data = gaia::db::get_shared_data_ptr();
+        data* data = gaia::db::get_shared_data();
         hash_node* node = data->hash_nodes + (id % c_hash_buckets);
 
         while (node->id)

@@ -75,7 +75,7 @@ table_view_t catalog_core_t::get_table(gaia_id_t table_id)
 table_list_t catalog_core_t::list_tables()
 {
     retail_assert(is_transaction_active(), "This method must be called from an open transaction!");
-    data* data = gaia::db::get_shared_data_ptr();
+    data* data = gaia::db::get_shared_data();
     auto gaia_table_generator = [data, locator = c_invalid_gaia_locator]() mutable -> std::optional<table_view_t> {
         // We need an acquire barrier before reading `last_locator`. We can
         // change this full barrier to an acquire barrier when we change to proper

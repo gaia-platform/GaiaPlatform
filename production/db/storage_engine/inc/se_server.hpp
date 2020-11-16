@@ -39,8 +39,8 @@ public:
 
 class server
 {
-    friend gaia::db::locators* gaia::db::get_shared_locators_ptr();
-    friend gaia::db::data* gaia::db::get_shared_data_ptr();
+    friend gaia::db::locators* gaia::db::get_shared_locators();
+    friend gaia::db::data* gaia::db::get_shared_data();
 
 public:
     static void run(bool disable_persistence = false);

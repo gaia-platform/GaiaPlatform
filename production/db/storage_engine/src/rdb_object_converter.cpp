@@ -60,8 +60,9 @@ gaia_id_t decode_object(
     value_reader.read_uint16(num_references);
     value_reader.read_uint16(size);
     auto payload = value_reader.read(size);
-    // Create Object.
-    gaia::db::create_object(id, type, num_references, size, payload);
+
+    // Create object.
+    create_object(id, type, num_references, size, payload);
     return id;
 }
 

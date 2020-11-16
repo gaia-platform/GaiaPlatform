@@ -11,24 +11,17 @@
 #include "system_table_types.hpp"
 #include "triggers.hpp"
 
-using namespace std;
-using namespace gaia::common;
-using namespace gaia::db::triggers;
-
 namespace gaia
 {
 
 namespace db
 {
 
-// Forward-declare for friend declaration.
-class gaia_ptr;
-
 class client
 {
     friend class gaia_ptr;
-    friend gaia::db::locators* gaia::db::get_shared_locators_ptr();
-    friend gaia::db::data* gaia::db::get_shared_data_ptr();
+    friend gaia::db::locators* gaia::db::get_shared_locators();
+    friend gaia::db::data* gaia::db::get_shared_data();
 
 public:
     static inline bool is_transaction_active()
@@ -36,9 +29,9 @@ public:
         return (s_locators != nullptr);
     }
 
-    static inline bool set_commit_trigger(commit_trigger_fn trigger_fn)
+    static inline bool set_commit_trigger(triggers::commit_trigger_fn trigger_fn)
     {
-        return __sync_val_compare_and_swap(&s_txn_commit_trigger, nullptr, trigger_fn);
+        return __sync_val_compare_and_swap(&s_txn_commit_trigger, 0, trigger_fn);
     }
 
     // This test-only function is exported from gaia_db_internal.hpp.
@@ -52,7 +45,7 @@ public:
     static void commit_transaction();
 
     // This returns a generator object for gaia_ids of a given type.
-    static std::function<std::optional<gaia_id_t>()> get_id_generator_for_type(gaia_type_t type);
+    static std::function<std::optional<gaia::common::gaia_id_t>()> get_id_generator_for_type(gaia_type_t type);
 
 private:
     // s_fd_log & s_locators have transaction lifetime.
@@ -67,7 +60,7 @@ private:
     // s_events has transaction lifetime and is cleared after each transaction.
     // Set by the rules engine.
     thread_local static inline std::vector<gaia::db::triggers::trigger_event_t> s_events{};
-    static inline commit_trigger_fn s_txn_commit_trigger = nullptr;
+    static inline triggers::commit_trigger_fn s_txn_commit_trigger = nullptr;
 
     // Maintain a static filter in the client to disable generating events
     // for system types.
@@ -141,9 +134,9 @@ private:
         gaia_operation_t operation,
         // 'deleted_id' is required to keep track of deleted keys which will be propagated to the persistent layer.
         // Memory for other operations will be unused. An alternative would be to keep a separate log for deleted keys only.
-        gaia_id_t deleted_id = 0)
+        gaia::common::gaia_id_t deleted_id = 0)
     {
-        retail_assert(s_log->count < c_max_log_records, "Log count exceeds maximum log record count!");
+        gaia::common::retail_assert(s_log->count < c_max_log_records, "Log count exceeds maximum log record count!");
         log::log_record* lr = s_log->log_records + s_log->count++;
         lr->locator = locator;
         lr->old_offset = old_offset;

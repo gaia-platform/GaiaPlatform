@@ -29,7 +29,7 @@ using namespace rocksdb;
 // Todo (Mihir) Take as input to some options file. https://gaiaplatform.atlassian.net/browse/GAIAPLAT-323
 
 persistent_store_manager::persistent_store_manager()
-    : m_data(get_shared_data_ptr()), m_locators(get_shared_locators_ptr())
+    : m_data(get_shared_data()), m_locators(get_shared_locators())
 {
     rocksdb::WriteOptions write_options{};
     write_options.sync = true;
