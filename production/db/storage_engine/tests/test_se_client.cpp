@@ -8,7 +8,6 @@
 #include "db_test_base.hpp"
 #include "gaia_db.hpp"
 #include "gaia_ptr.hpp"
-#include "gaia_se_object.hpp"
 #include "type_metadata.hpp"
 
 using namespace gaia::db;
