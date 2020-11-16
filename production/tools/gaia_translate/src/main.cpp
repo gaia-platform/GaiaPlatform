@@ -354,7 +354,7 @@ navigation_code_data_t generate_navigation_code(string anchor_table)
     if (g_delete_operation_in_rule)
     {
         g_generation_error = true;
-        llvm::errs() << "The rule has subscribed for delete operation and has a navigation code which is currently not supported\n";
+        llvm::errs() << "The rule has subscribed for delete operation and has a navigation code which is currently not supported.\n";
         return navigation_code_data_t();
     }
 
@@ -1424,6 +1424,15 @@ public:
     }
 };
 
+class last_operation_if_handler_t : public MatchFinder::MatchCallback
+{
+public:
+    void run (const MatchFinder::MatchResult &result) override
+    {
+        g_delete_operation_in_rule = true;
+    }
+};
+
 class translation_engine_consumer_t : public clang::ASTConsumer
 {
 public:
@@ -1449,7 +1458,6 @@ public:
                         hasAttr(attr::GaiaLastOperationDELETE)))))))
                     ))
         )).bind("LastOperationSwitch");
-
         StatementMatcher last_operation_comparison_matcher
             = binaryOperator(allOf(
                 anyOf(hasOperatorName("=="), hasOperatorName("!=")),
@@ -1475,6 +1483,11 @@ public:
                                 hasAttr(attr::GaiaLastOperationDELETE),
                                 hasAttr(attr::GaiaLastOperationNONE))))))))
             ))).bind("LastOperationComparison");
+        StatementMatcher last_operation_if_statement_matcher
+            = ifStmt(allOf(
+                hasCondition(last_operation_comparison_matcher),
+                hasElse(unless(ifStmt(hasCondition(last_operation_comparison_matcher))))
+            )).bind("ifLastOperation");
         StatementMatcher field_get_matcher
             = declRefExpr(to(varDecl(
                               anyOf(
@@ -1498,7 +1511,6 @@ public:
                           hasOperatorName("--")),
                       hasUnaryOperand(declRefExpr(to(varDecl(hasAttr(attr::GaiaFieldLValue)))))))
                   .bind("fieldUnaryOp");
-
         StatementMatcher table_field_get_matcher
             = memberExpr(
                   member(
@@ -1533,6 +1545,7 @@ public:
         StatementMatcher none_matcher
             = declRefExpr(to(varDecl(hasAttr(attr::GaiaLastOperationNONE)))).bind("NONE");
 
+        m_matcher.addMatcher(last_operation_if_statement_matcher, &m_last_operation_if_handler);
         m_matcher.addMatcher(last_operation_comparison_matcher, &m_last_operation_comparison_handler);
         m_matcher.addMatcher(last_operation_switch_matcher, &m_last_operation_switch_handler);
         m_matcher.addMatcher(field_get_matcher, &m_field_get_match_handler);
@@ -1571,6 +1584,7 @@ private:
     none_match_handler_t m_none_match_handler;
     last_operation_comparison_handler_t m_last_operation_comparison_handler;
     last_operation_switch_handler_t m_last_operation_switch_handler;
+    last_operation_if_handler_t m_last_operation_if_handler;
 };
 
 class translation_engine_action_t : public clang::ASTFrontendAction
