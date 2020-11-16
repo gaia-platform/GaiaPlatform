@@ -39,8 +39,6 @@ void gaia::db::persistence::encode_object(
 }
 
 gaia_id_t gaia::db::persistence::decode_object(
-// segments, since this should run during recovery.
-gaia_id_t decode_object(
     const rocksdb::Slice& key,
     const rocksdb::Slice& value)
 {

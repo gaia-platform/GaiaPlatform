@@ -143,7 +143,7 @@ void persistent_store_manager::prepare_wal_for_write(gaia::db::log* log, std::st
                 // Object was deleted in current transaction.
                 continue;
             }
-            encode_object(obj, &key, &value);
+            encode_object(obj, key, value);
             // Gaia objects encoded as key-value slices shouldn't be empty.
             retail_assert(
                 key.get_current_position() != 0 && value.get_current_position() != 0,

@@ -7,6 +7,8 @@
 
 #include "rocksdb/utilities/transaction_db.h"
 
+#include "db_types.hpp"
+
 // Simple library over RocksDB APIs.
 namespace gaia
 {
