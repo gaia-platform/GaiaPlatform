@@ -477,8 +477,9 @@ bool state_t::initialize(const char* table_name, size_t expected_count_fields)
         }
 
         // Allocate memory for holding field information.
-        m_fields = reinterpret_cast<field_information_t*>(palloc0(
-            sizeof(field_information_t) * m_count_fields));
+        size_t fields_array_size = sizeof(field_information_t) * m_count_fields;
+        m_fields = reinterpret_cast<field_information_t*>(palloc0(fields_array_size));
+        memset(m_fields, 0, fields_array_size);
 
         return true;
     }
@@ -516,6 +517,7 @@ bool state_t::set_field_index(const char* field_name, size_t field_index)
 
         m_fields[field_index].position = -1;
         m_fields[field_index].type = data_type_t::e_uint64;
+        m_fields[field_index].is_reference = false;
 
         return true;
     }
@@ -624,10 +626,17 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
                 ereport(
                     ERROR,
                     (errcode(ERRCODE_FDW_ERROR),
-                     errmsg("Attempt to dereference an invalid reference offset %d!", reference_offset)));
+                     errmsg("Attempt to dereference an invalid reference offset '%d'!", reference_offset)));
             }
+
             gaia_id_t reference_id = m_current_node.references()[reference_offset];
             field_value.value = UInt64GetDatum(reference_id);
+
+            // If the reference id is invalid, surface the value as NULL.
+            if (reference_id == c_invalid_gaia_id)
+            {
+                field_value.isnull = true;
+            }
         }
         else
         {
@@ -727,9 +736,10 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
              errmsg("Attempt to set the value of the gaia_id field!")));
     }
 
-    if (field_value.isnull)
+    if (field_value.isnull && !m_fields[field_index].is_reference)
     {
-        // For now, we don't have a way to represent NULL for scalar types
+        // For now, in the case of regular field updates,
+        // we don't have a way to represent NULL for scalar types
         // and reflection API does not support setting nullptr strings either.
         // so we'll process NULL by doing nothing,
         // which will result in fields getting set to default values.
@@ -738,15 +748,17 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
 
     if (m_fields[field_index].is_reference)
     {
-        // TODO: Add support for setting reference field values.
-        ereport(
-            ERROR,
-            (errcode(ERRCODE_FDW_ERROR),
-             errmsg("Attempt to set the value of a reference field! This operation is not supported yet!")));
+        // Reference fields are stored separately from regular fields and are set directly in the record.
+        // At this point, we may not even have a record to update yet (we may be called for an insert),
+        // so we'll just remember the edit request in the fields array
+        // and we'll delay performing the update until modify_record() gets called.
+        m_fields[field_index].value_to_set = field_value;
+        return;
     }
 
     try
     {
+        // Regular fields are serialized in the payload of the current node.
         data_holder_t value = convert_to_data_holder(field_value.value, m_fields[field_index].type);
 
         if (value.type == reflection::String)
@@ -787,7 +799,7 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("Failed updating field value."),
+             errmsg("Failed to set field value!"),
              errhint(
                  "Container_id: '%ld', field_index: '%ld'. Exception: '%s'.",
                  m_container_id,
@@ -798,20 +810,70 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
 
 bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t modify_operation_type)
 {
-    bool result = false;
     try
     {
+        gaia_ptr node;
         if (modify_operation_type == modify_operation_type_t::insert)
         {
-            gaia_ptr::create(gaia_id, m_container_id, m_current_payload->size(), m_current_payload->data());
+            node = gaia_ptr::create(gaia_id, m_container_id, m_current_payload->size(), m_current_payload->data());
         }
         else if (modify_operation_type == modify_operation_type_t::update)
         {
-            auto node = gaia_ptr::open(gaia_id);
-            node.update_payload(m_current_payload->size(), m_current_payload->data());
+            node = gaia_ptr::open(gaia_id);
+            node = node.update_payload(m_current_payload->size(), m_current_payload->data());
         }
 
-        result = true;
+        // Now that we have access to the database record, we can also perform the reference updates.
+        for (size_t i = 0; i < m_count_fields; i++)
+        {
+            if (!m_fields[i].is_reference)
+            {
+                continue;
+            }
+
+            uint16_t reference_offset = m_fields[i].position;
+            if (reference_offset >= node.num_references())
+            {
+                ereport(
+                    ERROR,
+                    (errcode(ERRCODE_FDW_ERROR),
+                     errmsg("Attempt to dereference an invalid reference offset '%d'!", reference_offset)));
+            }
+
+            // Read the existing reference value.
+            gaia_id_t old_reference_id = node.references()[reference_offset];
+
+            if (m_fields[i].value_to_set.isnull)
+            {
+                // If inserting a new record or if the existing reference is not set,
+                // we can just leave the reference unset.
+                if (modify_operation_type == modify_operation_type_t::insert
+                    || old_reference_id == c_invalid_gaia_id)
+                {
+                    continue;
+                }
+
+                // If the existing reference was valid, we need to remove it.
+                node.remove_parent_reference(old_reference_id, reference_offset);
+            }
+            else
+            {
+                gaia_id_t new_reference_id = DatumGetUInt64(m_fields[i].value_to_set.value);
+
+                // If updating and existing record and the reference value is unchanged,
+                // we don't have to do anything.
+                if (modify_operation_type == modify_operation_type_t::update
+                    && new_reference_id == old_reference_id)
+                {
+                    continue;
+                }
+
+                // Update the reference to the new value.
+                node.update_parent_reference(new_reference_id, reference_offset);
+            }
+        }
+
+        return true;
     }
     catch (const exception& e)
     {
@@ -820,7 +882,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
             ereport(
                 ERROR,
                 (errcode(ERRCODE_FDW_ERROR),
-                 errmsg("Error creating gaia object."),
+                 errmsg("INSERT operation failed!"),
                  errhint("Exception: '%s'.", e.what())));
         }
         else if (modify_operation_type == modify_operation_type_t::update)
@@ -828,14 +890,12 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
             ereport(
                 ERROR,
                 (errcode(ERRCODE_FDW_ERROR),
-                 errmsg("Error updating gaia object."),
+                 errmsg("UPDATE operation failed!"),
                  errhint("Exception: '%s'.", e.what())));
         }
 
         return false;
     }
-
-    return result;
 }
 
 bool modify_state_t::insert_record(uint64_t gaia_id)
@@ -872,7 +932,7 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("Error deleting gaia object."),
+             errmsg("DELETE operation failed!"),
              errhint("Exception: '%s'.", e.what())));
     }
 

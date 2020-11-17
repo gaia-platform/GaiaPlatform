@@ -53,6 +53,8 @@ protected:
         routes_table_fields.emplace_back(make_unique<data_field_def_t>("codeshare", data_type_t::e_string, 1));
         routes_table_fields.emplace_back(make_unique<data_field_def_t>("stops", data_type_t::e_int16, 1));
         routes_table_fields.emplace_back(make_unique<data_field_def_t>("equipment", data_type_t::e_string, 1));
+        routes_table_fields.emplace_back(make_unique<ref_field_def_t>("gaia_src_id", "", "airports"));
+        routes_table_fields.emplace_back(make_unique<ref_field_def_t>("gaia_dst_id", "", "airports"));
     }
 
     static field_def_list_t airlines_table_fields;
@@ -74,12 +76,18 @@ TEST_F(fdw_test, airport)
     file_loader_t command_loader;
     command_loader.load_file_data("fdw_test_command.txt");
 
-    char* command = reinterpret_cast<char*>(command_loader.get_data());
+    unique_ptr<char[]> command_buffer(new char[command_loader.get_data_length() + 1]);
+    memcpy(
+        command_buffer.get(),
+        command_loader.get_data(),
+        command_loader.get_data_length());
+    command_buffer[command_loader.get_data_length()] = 0;
 
-    cerr << "Command executed by test is:" << endl
-         << command << endl;
+    cerr
+        << "Command executed by test is:" << endl
+        << command_buffer.get() << endl;
 
     // Execute the command and validate its return value.
-    int return_value = system(command);
+    int return_value = system(command_buffer.get());
     ASSERT_EQ(0, return_value);
 }
