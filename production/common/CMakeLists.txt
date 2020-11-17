@@ -44,12 +44,13 @@ target_link_libraries(gaia_common spdlog_setup)
 # SYSLOG logging is temporarily disabled: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-387
 # (To enable syslog logging -DSPDLOG_ENABLE_SYSLOG)
 set_target_properties(gaia_common PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
+set_target_properties(gaia_common PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 
 # This static library must be compatible with linking in a shared library.
 set_property (TARGET gaia_common PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # The logging unit test needs a logger configuration file.
-configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/log_conf.toml")
+configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
 
 # Tests.
 add_gtest(test_retail_assert tests/test_retail_assert.cpp "${GAIA_COMMON_INCLUDES}" "")

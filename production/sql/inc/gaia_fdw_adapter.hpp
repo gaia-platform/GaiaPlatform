@@ -131,6 +131,8 @@ struct field_information_t
     gaia::common::data_type_t type;
 
     bool is_reference;
+
+    NullableDatum value_to_set;
 };
 
 class state_t

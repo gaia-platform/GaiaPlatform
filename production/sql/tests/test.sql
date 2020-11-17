@@ -2,10 +2,10 @@
 -- Copyright (c) Gaia Platform LLC
 -- All rights reserved.
 ---------------------------------------------
--- Find all airports which connect flights from airports SEA to OTP.
 
 \c airport;
 
+-- Find all airports which connect flights from airports SEA to OTP.
 SELECT DISTINCT
     a.name
 FROM

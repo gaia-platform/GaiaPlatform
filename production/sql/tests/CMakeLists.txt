@@ -24,7 +24,7 @@ if(EXECUTE_FDW_TESTS)
         ${PG_CLIENT} " "
         ${CMAKE_CURRENT_SOURCE_DIR}/setup.sql " "
         ${CMAKE_CURRENT_SOURCE_DIR}/test.sql " "
-        ${CMAKE_CURRENT_SOURCE_DIR}/expected.txt " ")
+        ${CMAKE_CURRENT_SOURCE_DIR}/expected.txt)
 
     set(AIRLINES_DDL "${PROJECT_SOURCE_DIR}/airlines.ddl")
 

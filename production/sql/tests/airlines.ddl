@@ -38,5 +38,7 @@ create table if not exists routes
     dst_ap_id int32,
     codeshare string,
     stops int16,
-    equipment string
+    equipment string,
+    gaia_src_id references airports,
+    gaia_dst_id references airports
 );

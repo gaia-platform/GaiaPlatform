@@ -120,10 +120,6 @@ private:
     // and column if appropriate
     std::unordered_map<common::gaia_type_t, events_map_t> m_subscriptions;
 
-    // Thread pool to handle invocation of rules on
-    // N threads.
-    unique_ptr<rule_thread_pool_t> m_invocations;
-
     // Helper class to verify rule subscriptions against
     // the catalog.
     unique_ptr<rule_checker_t> m_rule_checker;
@@ -131,6 +127,11 @@ private:
     // Helper class to manager gathering and logging performance statistics
     // for both the rules engine scheduler and individual rules.
     unique_ptr<rule_stats_manager_t> m_stats_manager;
+
+    // Thread pool to handle invocation of rules on N threads.
+    // This declaration comes last since worker threads can use any of the above
+    // members, so the thread pool must be initialized last and destroyed first.
+    unique_ptr<rule_thread_pool_t> m_invocations;
 
 private:
     // Only internal static creation is allowed.

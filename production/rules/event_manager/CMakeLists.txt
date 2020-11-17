@@ -46,10 +46,10 @@ target_link_libraries(gaia_rules PRIVATE gaia_direct gaia_catalog)
 set_property (TARGET gaia_rules PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # The rules integration and system init tests need gaia and logger configuration files.
-configure_file("${GAIA_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_conf.toml")
-configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/log_conf.toml")
-configure_file("${PROJECT_SOURCE_DIR}/tests/invalid_gaia_conf.toml" "${PROJECT_BINARY_DIR}/invalid_gaia_conf.toml")
-configure_file("${PROJECT_SOURCE_DIR}/tests/invalid_gaia_setting.toml" "${PROJECT_BINARY_DIR}/invalid_gaia_setting.toml")
+configure_file("${GAIA_CONFIG}" "${PROJECT_BINARY_DIR}/gaia.conf")
+configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
+configure_file("${PROJECT_SOURCE_DIR}/tests/invalid_gaia.conf" "${PROJECT_BINARY_DIR}/invalid_gaia.conf")
+configure_file("${PROJECT_SOURCE_DIR}/tests/invalid_gaia_setting.conf" "${PROJECT_BINARY_DIR}/invalid_gaia_setting.conf")
 
 # unit tests
 add_gtest(test_auto_transaction "tests/test_auto_transaction.cpp"
