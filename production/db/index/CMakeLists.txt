@@ -9,7 +9,6 @@ project(index)
 set(GAIA_INDEX_INCLUDES
   "${GAIA_INC}/public/common"
   "${GAIA_INC}/internal/common"
-  "${GAIA_INC}/public/db"  
   "${GAIA_INC}/internal/db"
   "${GAIA_DB_INC}/index"
   "${GAIA_DB_INC}/payload_types"
