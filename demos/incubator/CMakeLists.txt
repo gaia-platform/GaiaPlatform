@@ -64,8 +64,8 @@ add_executable(incubator
 )
 
 # The incubator demo uses a system configuration and logger configuration file.
-configure_file("${PROJECT_SOURCE_DIR}/gaia_conf.toml" "${PROJECT_BINARY_DIR}/gaia_conf.toml")
-configure_file("${PROJECT_SOURCE_DIR}/log_conf.toml" "${PROJECT_BINARY_DIR}/log_conf.toml")
+configure_file("${PROJECT_SOURCE_DIR}/gaia.conf" "${PROJECT_BINARY_DIR}/gaia.conf")
+configure_file("${PROJECT_SOURCE_DIR}/gaia_log.conf" "${PROJECT_BINARY_DIR}/gaia_log.conf")
 
 add_dependencies(incubator translate_incubator_ruleset)
 set_target_properties(incubator PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")

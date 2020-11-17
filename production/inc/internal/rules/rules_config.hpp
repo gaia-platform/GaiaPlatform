@@ -13,7 +13,7 @@ namespace rules
 
 /**
  * Initializes the rules engine with configuration options specified in a
- * user-supplied gaia_conf.toml file.
+ * user-supplied gaia.conf file.
  */
 void initialize_rules_engine(std::shared_ptr<cpptoml::table>& rules_config);
 

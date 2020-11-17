@@ -227,7 +227,7 @@ protected:
     static void SetUpTestSuite()
     {
         // Do this before resetting the server to initialize the logger.
-        gaia_log::initialize("./log_conf.toml");
+        gaia_log::initialize("./gaia_log.conf");
 
         // NOTE: to run this test manually, you need to set the env variable DDL_FILE
         // to the location of addr_book.ddl.  Currently this is under production/schemas/test/addr_book.

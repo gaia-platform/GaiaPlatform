@@ -28,7 +28,7 @@ TEST(logger_test, logger_api)
 {
     verify_uninitialized_loggers();
 
-    gaia_log::initialize("./log_conf.toml");
+    gaia_log::initialize("./gaia_log.conf");
 
     vector<gaia_log::logger_t> loggers = {
         gaia_log::sys(),

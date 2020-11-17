@@ -50,7 +50,7 @@ set_target_properties(gaia_common PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 set_property (TARGET gaia_common PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # The logging unit test needs a logger configuration file.
-configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/log_conf.toml")
+configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
 
 # Tests.
 add_gtest(test_retail_assert tests/test_retail_assert.cpp "${GAIA_COMMON_INCLUDES}" "")
