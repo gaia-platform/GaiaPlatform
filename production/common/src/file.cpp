@@ -7,8 +7,9 @@
 
 #include <fstream>
 #include <iostream>
-#include <retail_assert.hpp>
 #include <sstream>
+
+#include "retail_assert.hpp"
 
 using namespace std;
 using namespace gaia::common;
@@ -47,7 +48,7 @@ void file_loader_t::clear()
     initialize();
 }
 
-size_t file_loader_t::load_file_data(const string& filename, bool text_mode)
+size_t file_loader_t::load_file_data(const string& filename, bool enable_text_mode)
 {
     retail_assert(!filename.empty(), "load_file_data() was called with an invalid filename argument.");
 
@@ -78,7 +79,7 @@ size_t file_loader_t::load_file_data(const string& filename, bool text_mode)
     {
         size_t allocated_length = m_data_length;
         // Allocate an extra byte for the null terminator.
-        if (text_mode)
+        if (enable_text_mode)
         {
             allocated_length += 1;
         }
@@ -86,7 +87,7 @@ size_t file_loader_t::load_file_data(const string& filename, bool text_mode)
         file.seekg(0, ios::beg);
         file.read(reinterpret_cast<char*>(m_data), m_data_length);
         // Write the null terminator.
-        if (text_mode)
+        if (enable_text_mode)
         {
             m_data[allocated_length - 1] = '\0';
         }
