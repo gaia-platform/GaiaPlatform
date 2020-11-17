@@ -44,7 +44,7 @@ public:
 
     /** Default location of the log configuration file */
     // REVIEW it is unclear to me how we can provide this
-    static constexpr char c_default_log_conf_path[] = "log_conf.toml";
+    static constexpr char c_default_log_conf_path[] = "gaia_log.conf";
 
     logger_manager_t(const logger_manager_t&) = delete;
     logger_manager_t& operator=(const logger_manager_t&) = delete;

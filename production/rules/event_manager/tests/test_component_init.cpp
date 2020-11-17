@@ -98,7 +98,7 @@ TEST_F(component_init_test, component_valid_empty_config)
     EXPECT_EQ(default_settings.num_rule_retries, config_settings.num_rule_retries);
 }
 
-// See valid_gaia_conf.toml file for valid settings.
+// See gaia.conf file for valid settings.
 TEST_F(component_init_test, component_valid_config)
 {
     const int32_t c_thread_count = 10;

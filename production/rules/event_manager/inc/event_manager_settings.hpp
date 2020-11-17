@@ -18,7 +18,7 @@ namespace rules
 struct event_manager_settings_t
 {
     // Section and key names for the Rules configuration section
-    // of a gaia_conf.toml file.
+    // of a gaia.conf file.
     static inline const char* c_rules_section = "Rules";
     static inline const char* c_thread_count_key = "thread_pool_count";
     static inline const char* c_stats_log_interval_key = "stats_log_interval";
