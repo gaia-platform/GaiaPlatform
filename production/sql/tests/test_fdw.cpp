@@ -53,6 +53,8 @@ protected:
         routes_table_fields.emplace_back(make_unique<data_field_def_t>("codeshare", data_type_t::e_string, 1));
         routes_table_fields.emplace_back(make_unique<data_field_def_t>("stops", data_type_t::e_int16, 1));
         routes_table_fields.emplace_back(make_unique<data_field_def_t>("equipment", data_type_t::e_string, 1));
+        routes_table_fields.emplace_back(make_unique<ref_field_def_t>("gaia_src_id", "", "airports"));
+        routes_table_fields.emplace_back(make_unique<ref_field_def_t>("gaia_dst_id", "", "airports"));
     }
 
     static field_def_list_t airlines_table_fields;
@@ -76,8 +78,9 @@ TEST_F(fdw_test, airport)
 
     char* command = reinterpret_cast<char*>(command_loader.get_data());
 
-    cerr << "Command executed by test is:" << endl
-         << command << endl;
+    cerr
+        << "Command executed by test is:" << endl
+        << command << endl;
 
     // Execute the command and validate its return value.
     int return_value = system(command);
