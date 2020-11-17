@@ -35,7 +35,7 @@ protected:
         }
 
         reset_database_status();
-        load_dll(m_ddl_file_name);
+        load_schema(m_ddl_file_name);
 
         if (is_client_manage_sessions())
         {
@@ -47,7 +47,7 @@ private:
     std::string m_ddl_file_name;
 
     void reset_database_status();
-    void load_dll(std::string ddl_file_name);
+    void load_schema(std::string ddl_file_name);
 };
 
 } // namespace db

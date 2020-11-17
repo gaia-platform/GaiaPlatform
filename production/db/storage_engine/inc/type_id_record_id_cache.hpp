@@ -5,7 +5,8 @@
 
 #pragma once
 
-#include <atomic>
+#include <memory>
+#include <mutex>
 #include <shared_mutex>
 #include <unordered_map>
 
@@ -37,9 +38,10 @@ public:
     void clear();
 
 private:
-    type_id_record_id_cache_t() = default;
+    type_id_record_id_cache_t()
+        : m_type_id_record_id_map_init_flag(std::make_unique<std::once_flag>()){};
 
-    std::atomic_bool m_initialized;
+    std::unique_ptr<std::once_flag> m_type_id_record_id_map_init_flag;
     std::shared_mutex m_cache_lock;
 
     // The map used to store ids of the gaia_table records that define the corresponding types.

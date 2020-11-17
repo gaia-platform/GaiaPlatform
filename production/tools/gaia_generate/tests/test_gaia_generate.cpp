@@ -13,6 +13,7 @@
 #include "gaia_airport.h"
 #include "gaia_parser.hpp"
 
+using namespace gaia::airport;
 using namespace gaia::catalog;
 using namespace gaia::db;
 using namespace std;
@@ -56,37 +57,39 @@ TEST_F(gaia_generate_test_t, airport_example)
     // flies from Denver to Chicago. A segment 888 miles long, no status, no
     // miles flown.
     const int32_t c_miles1 = 888;
-    auto seg = gaia::airport::segment_t::get(gaia::airport::segment_t::insert_row(c_miles1, 0, 0));
+    auto segment_1 = segment_t::get(segment_t::insert_row(c_miles1, 0, 0));
+
     // An airport.
-    auto ap1
-        = gaia::airport::airport_t::get(gaia::airport::airport_t::insert_row("Denver International", "Denver", "DEN"));
-    auto ap2 = gaia::airport::airport_t::get(
-        gaia::airport::airport_t::insert_row("Chicago O'Hare International", "Chicago", "ORD"));
+    auto airport_1 = airport_t::get(
+        airport_t::insert_row("Denver International", "Denver", "DEN"));
+    auto airport_2 = airport_t::get(
+        airport_t::insert_row("Chicago O'Hare International", "Chicago", "ORD"));
+
     // Connect the segment to the source and destination airports.
-    ap1.src_segment_list().insert(seg);
-    ap2.dst_segment_list().insert(seg);
+    airport_1.src_segment_list().insert(segment_1);
+    airport_2.dst_segment_list().insert(segment_1);
     commit_transaction();
 
     begin_transaction();
     // A 606 mile segment.
     const int c_miles2 = 606;
-    auto seg2 = gaia::airport::segment_t::get(gaia::airport::segment_t::insert_row(c_miles2, 0, 0));
-    auto ap3 = gaia::airport::airport_t::get(
-        gaia::airport::airport_t::insert_row("Atlanta International", "Atlanta", "ATL"));
-    ap2.src_segment_list().insert(seg2);
-    ap3.dst_segment_list().insert(seg2);
+    auto segment_2 = segment_t::get(segment_t::insert_row(c_miles2, 0, 0));
+    auto airport_3 = airport_t::get(
+        airport_t::insert_row("Atlanta International", "Atlanta", "ATL"));
+    airport_2.src_segment_list().insert(segment_2);
+    airport_3.dst_segment_list().insert(segment_2);
 
     // Create the flight #58 that spans two segments.
     const int c_flight = 58;
-    auto f1 = gaia::airport::flight_t::get(gaia::airport::flight_t::insert_row(c_flight, 0));
+    auto flight_1 = flight_t::get(flight_t::insert_row(c_flight, 0));
     // Insert both segments to the flight's list of segments.
-    f1.segment_list().insert(seg);
-    f1.segment_list().insert(seg2);
+    flight_1.segment_list().insert(segment_1);
+    flight_1.segment_list().insert(segment_2);
     commit_transaction();
 
     begin_transaction();
     stringstream ss;
-    for (auto flight : gaia::airport::flight_t::list())
+    for (auto flight : flight_t::list())
     {
         for (auto segment : flight.segment_list())
         {

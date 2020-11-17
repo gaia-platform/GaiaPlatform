@@ -46,7 +46,7 @@ public:
     gaia::common::gaia_id_t find_db_id(const std::string& dbname) const;
 
     // Initialize the catalog manager.
-    void init();
+    void reset();
 
 private:
     // Only internal static creation is allowed

@@ -69,7 +69,10 @@ private:
     std::map<std::string, std::filesystem::path> m_schemas_cache;
 
     /**
-     * Automatically adds the gaia paths for the well-known schemas.
+     * Automatically adds the paths for the schemas stored in the "schemas/test" directory.
+     * The search starts from the current working directory (usually the CMake build directory)
+     * and proceeds backwards into the search path until it finds the "schemas" directory.
+     * If the "schemas" directory is not found nothing is added.
      */
     void add_gaia_search_paths();
 };

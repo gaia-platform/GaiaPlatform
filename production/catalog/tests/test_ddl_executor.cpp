@@ -508,8 +508,8 @@ TEST_F(ddl_executor_test, metadata_init)
 
     gaia_type_t employee_type
         = table_builder_t::new_table("employee")
-              // Can't use `addr_book` schema name (as in other tests) because it will to conflict
-              // with the schema created by other tests that do not properly clean up the data.
+              // Can't use `addr_book` database name (as in other tests) because it will to conflict
+              // with the database created by other tests that do not properly clean up the data.
               // (same below)
               .database("company")
               .reference("manages", "employee")

@@ -18,10 +18,10 @@ void db_catalog_test_base_t::reset_database_status()
 {
     type_id_record_id_cache_t::instance().clear();
     gaia_boot_t::get().reset_gaia_boot();
-    gaia::catalog::ddl_executor_t::get().init();
+    gaia::catalog::ddl_executor_t::get().reset();
 }
 
-void db_catalog_test_base_t::load_dll(std::string ddl_file_name)
+void db_catalog_test_base_t::load_schema(std::string ddl_file_name)
 {
     schema_loader_t::instance().load_schema(ddl_file_name);
 }
