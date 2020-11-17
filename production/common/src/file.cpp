@@ -78,14 +78,17 @@ size_t file_loader_t::load_file_data(const string& filename, bool enable_text_mo
     if (m_data_length > 0)
     {
         size_t allocated_length = m_data_length;
+
         // Allocate an extra byte for the null terminator.
         if (enable_text_mode)
         {
-            allocated_length += 1;
+            allocated_length++;
         }
+
         m_data = new uint8_t[allocated_length];
         file.seekg(0, ios::beg);
         file.read(reinterpret_cast<char*>(m_data), m_data_length);
+
         // Write the null terminator.
         if (enable_text_mode)
         {
