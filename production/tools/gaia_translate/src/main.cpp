@@ -1254,11 +1254,23 @@ public:
             g_current_ruleset_subscription.clear();
             g_current_ruleset_unsubscription.clear();
             g_current_ruleset_rule_number = 1;
-            m_rewriter.ReplaceText(
-                SourceRange(
-                    ruleset_declaration->getBeginLoc(),
-                    ruleset_declaration->decls_begin()->getBeginLoc().getLocWithOffset(-2)),
-                "namespace " + g_current_ruleset + "\n{\n");
+            if (*(ruleset_declaration->decls_begin()) == nullptr)
+            {
+                // Empty ruleset so it doesn't make sense to process any possible attributes
+                m_rewriter.ReplaceText(
+                    SourceRange(
+                        ruleset_declaration->getBeginLoc(),
+                        ruleset_declaration->getEndLoc()),
+                        "namespace " + g_current_ruleset + "\n{\n}\n");
+            }
+            else
+            {
+                m_rewriter.ReplaceText(
+                    SourceRange(
+                        ruleset_declaration->getBeginLoc(),
+                        ruleset_declaration->decls_begin()->getBeginLoc().getLocWithOffset(-2)),
+                        "namespace " + g_current_ruleset + "\n{\n");
+            }
         }
     }
 
