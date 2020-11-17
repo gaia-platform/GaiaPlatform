@@ -479,6 +479,10 @@ bool state_t::initialize(const char* table_name, size_t expected_count_fields)
         // Allocate memory for holding field information.
         size_t fields_array_size = sizeof(field_information_t) * m_count_fields;
         m_fields = reinterpret_cast<field_information_t*>(palloc0(fields_array_size));
+<<<<<<< HEAD
+=======
+        memset(m_fields, 0, fields_array_size);
+>>>>>>> 8d29752f13dc30435972443e437bb9b882c8e070
 
         return true;
     }
@@ -625,7 +629,11 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
                 ereport(
                     ERROR,
                     (errcode(ERRCODE_FDW_ERROR),
+<<<<<<< HEAD
                      errmsg("Attempt to dereference an invalid reference offset '%ld'!", reference_offset)));
+=======
+                     errmsg("Attempt to dereference an invalid reference offset '%d'!", reference_offset)));
+>>>>>>> 8d29752f13dc30435972443e437bb9b882c8e070
             }
 
             gaia_id_t reference_id = m_current_node.references()[reference_offset];
@@ -824,7 +832,11 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
             if (node.data_size() != m_current_payload->size()
                 || memcmp(node.data(), m_current_payload->data(), node.data_size()) != 0)
             {
+<<<<<<< HEAD
                 node.update_payload(m_current_payload->size(), m_current_payload->data());
+=======
+                node = node.update_payload(m_current_payload->size(), m_current_payload->data());
+>>>>>>> 8d29752f13dc30435972443e437bb9b882c8e070
             }
         }
         else

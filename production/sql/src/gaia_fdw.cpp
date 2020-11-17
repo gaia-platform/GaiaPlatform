@@ -816,7 +816,7 @@ extern "C" TupleTableSlot* gaia_exec_foreign_update(
 extern "C" TupleTableSlot* gaia_exec_foreign_delete(
     EState* /*estate*/,
     ResultRelInfo* rinfo,
-    TupleTableSlot* slot,
+    TupleTableSlot* /*slot*/,
     TupleTableSlot* plan_slot)
 {
     elog(DEBUG1, "Entering function %s...", __func__);
@@ -860,7 +860,11 @@ extern "C" TupleTableSlot* gaia_exec_foreign_delete(
         return nullptr;
     }
 
+<<<<<<< HEAD
     return slot;
+=======
+    return plan_slot;
+>>>>>>> 8d29752f13dc30435972443e437bb9b882c8e070
 }
 
 /**
