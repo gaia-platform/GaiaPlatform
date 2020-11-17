@@ -31,11 +31,20 @@ public:
 
     /**
      * Loads the schema identified by schema_file_name into the catalog.
+     *
+     * @see find_schema()
+     * @throws std::invalid_argument if the schema is not found.
      */
     void load_schema(std::string schema_file_name);
 
     /**
-     * Given a schema name search for it in the search paths.
+     * Given a schema name search for it both locally and in the search paths.
+     * The first match is returned.
+     *
+     * 1. schema_file_name is considered as a normal file. It can be bo both
+     *    a relative or an absolute path.
+     * 2. If not found, search schema_file_name in the "search paths".
+     * 3. If not found, throws an exception.
      *
      * @param schema_file_name Name of the schema to search (eg. addr_book.ddl).
      * @return If found, an optional with the absolute path, an empty optional otherwise.

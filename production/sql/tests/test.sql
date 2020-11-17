@@ -79,3 +79,9 @@ ORDER BY
     r1.dst_ap,
     r2.airline,
     r2.dst_ap;
+
+-- Find all routes connecting airports SEA and OTP over 2 hops, that are not on the airline RO.
+SELECT
+    *
+FROM
+    airport_fdw.catalog;

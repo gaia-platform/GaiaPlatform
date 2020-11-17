@@ -26,11 +26,15 @@ if(EXECUTE_FDW_TESTS)
         ${CMAKE_CURRENT_SOURCE_DIR}/test.sql " "
         ${CMAKE_CURRENT_SOURCE_DIR}/expected.txt " ")
 
+    set(AIRLINES_DDL "${PROJECT_SOURCE_DIR}/airlines.ddl")
+
+    file(COPY "${AIRLINES_DDL}" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+
     # Add a test to execute our test script.
     # We use the test infrastructure to execute the script
     # because we can leverage its ability to start the Gaia server.
     add_gtest(test_fdw test_fdw.cpp
       "${GAIA_STORAGE_ENGINE_TEST_INCLUDES};${GAIA_CATALOG_PUBLIC_INCLUDES}"
-      "gaia_se_client;gaia_catalog")
+      "gaia_se_client;gaia_catalog;gaia_db_catalog_test")
   endif()
 endif()

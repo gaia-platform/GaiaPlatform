@@ -5,13 +5,13 @@
 
 #include "gaia_fdw_adapter.hpp"
 
-#include <fstream>
 #include <sstream>
 
 #include "catalog_core.hpp"
 #include "catalog_internal.hpp"
 #include "field_access.hpp"
 #include "gaia_catalog.h"
+#include "logger.hpp"
 
 using namespace std;
 
@@ -286,6 +286,7 @@ void adapter_t::begin_session()
         gaia::db::begin_session();
 
         initialize_caches();
+        gaia_log::initialize({});
     }
     catch (const exception& e)
     {

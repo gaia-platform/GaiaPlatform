@@ -32,7 +32,7 @@ CREATE TABLE rawdata_airlines (
     icao char(5),
     callsign text,
     country text,
-    active char(1)
+    is_active char(1)
 );
 
 CREATE TABLE rawdata_airports (
@@ -80,7 +80,7 @@ COPY rawdata_airlines (
     icao,
     callsign,
     country,
-    active)
+    is_active)
 FROM
     :'airlines_file' DELIMITER ',' csv quote AS '"' NULL AS '\N';
 
@@ -125,7 +125,7 @@ INSERT INTO airport_fdw.airlines (
     icao,
     callsign,
     country,
-    active)
+    is_active)
 SELECT
     al_id,
     name,
@@ -134,7 +134,7 @@ SELECT
     icao,
     callsign,
     country,
-    active
+    is_active
 FROM
     rawdata_airlines;
 
