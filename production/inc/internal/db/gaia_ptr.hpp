@@ -111,20 +111,62 @@ public:
         return ptr;
     }
 
-    gaia_ptr find_next();
-    gaia_ptr operator++();
+    gaia_ptr find_next()
+    {
+        if (m_locator)
+        {
+            find_next(to_ptr()->type);
+        }
+
+        return *this;
+    }
+
+    gaia_ptr operator++()
+    {
+        if (m_locator)
+        {
+            find_next(to_ptr()->type);
+        }
+        return *this;
+    }
 
     bool is_null() const
     {
         return m_locator == 0;
     }
 
-    gaia_id_t id() const;
-    gaia_type_t type() const;
-    char* data() const;
-    size_t data_size() const;
-    gaia_id_t* references() const;
-    size_t num_references() const;
+    gaia_id_t id() const
+    {
+        return to_ptr()->id;
+    }
+
+    gaia_type_t type() const
+    {
+        return to_ptr()->type;
+    }
+
+    char* data() const
+    {
+        return data_size() ? const_cast<char*>(to_ptr()->data()) : nullptr;
+    }
+
+    size_t data_size() const
+    {
+        size_t total_len = to_ptr()->payload_size;
+        size_t refs_len = to_ptr()->num_references * sizeof(gaia_id_t);
+        size_t data_size = total_len - refs_len;
+        return data_size;
+    }
+
+    gaia_id_t* references() const
+    {
+        return const_cast<gaia_id_t*>(to_ptr()->references());
+    }
+
+    size_t num_references() const
+    {
+        return to_ptr()->num_references;
+    }
 
     /**
      * Adds a child reference to a parent object. All the pointers involved in the relationship
@@ -227,6 +269,7 @@ public:
             gaia_ptr_predicate);
         return gaia_ptr_iterator;
     }
+
     /**
      * Returns a range representing a server-side cursor over all objects
      * of the given type. This is essentially a proof-of-concept for server-side
@@ -248,7 +291,10 @@ protected:
 
     gaia_offset_t to_offset() const;
 
-    bool is(gaia_type_t type) const;
+    bool is(gaia_type_t type) const
+    {
+        return to_ptr() && to_ptr()->type == type;
+    }
 
     void find_next(gaia_type_t type);
 
