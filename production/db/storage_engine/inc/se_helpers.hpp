@@ -55,6 +55,7 @@ inline gaia_locator_t allocate_locator()
     // change this full barrier to an acquire barrier when we change to proper
     // C++ atomic types.
     __sync_synchronize();
+
     if (data->last_locator >= c_max_locators)
     {
         throw oom();
@@ -87,10 +88,12 @@ inline bool locator_exists(gaia_locator_t locator)
 {
     locators* locators = gaia::db::get_shared_locators();
     data* data = gaia::db::get_shared_data();
+
     // We need an acquire barrier before reading `last_locator`. We can
     // change this full barrier to an acquire barrier when we change to proper
     // C++ atomic types.
     __sync_synchronize();
+
     return (locator != c_invalid_gaia_locator)
         && (locator <= data->last_locator)
         && ((*locators)[locator] != c_invalid_gaia_offset);
