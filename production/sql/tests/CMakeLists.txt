@@ -24,7 +24,7 @@ if(EXECUTE_FDW_TESTS)
         ${PG_CLIENT} " "
         ${CMAKE_CURRENT_SOURCE_DIR}/setup.sql " "
         ${CMAKE_CURRENT_SOURCE_DIR}/test.sql " "
-        ${CMAKE_CURRENT_SOURCE_DIR}/expected.txt " ")
+        ${CMAKE_CURRENT_SOURCE_DIR}/expected.txt)
 
     # Add a test to execute our test script.
     # We use the test infrastructure to execute the script

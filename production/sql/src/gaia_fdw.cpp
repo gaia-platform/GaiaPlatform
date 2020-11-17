@@ -698,7 +698,10 @@ extern "C" TupleTableSlot* gaia_exec_foreign_insert(
              errmsg("Failed to determine gaia_id value for insert!")));
     }
 
-    modify_state->insert_record(gaia_id);
+    if (!modify_state->insert_record(gaia_id))
+    {
+        return nullptr;
+    }
 
     return slot;
 }
@@ -779,7 +782,10 @@ extern "C" TupleTableSlot* gaia_exec_foreign_update(
              errmsg("Failed to determine gaia_id value for update!")));
     }
 
-    modify_state->update_record(gaia_id);
+    if (!modify_state->update_record(gaia_id))
+    {
+        return nullptr;
+    }
 
     return slot;
 }
@@ -814,8 +820,6 @@ extern "C" TupleTableSlot* gaia_exec_foreign_delete(
     TupleTableSlot* plan_slot)
 {
     elog(DEBUG1, "Entering function %s...", __func__);
-
-    TupleTableSlot* return_slot = slot;
 
     auto modify_state = reinterpret_cast<gaia::fdw::modify_state_t*>(rinfo->ri_FdwState);
 
@@ -853,10 +857,10 @@ extern "C" TupleTableSlot* gaia_exec_foreign_delete(
 
     if (!modify_state->delete_record(gaia_id))
     {
-        return_slot = nullptr;
+        return nullptr;
     }
 
-    return return_slot;
+    return slot;
 }
 
 /**
