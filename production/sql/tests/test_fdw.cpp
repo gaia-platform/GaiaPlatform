@@ -76,18 +76,13 @@ TEST_F(fdw_test, airport)
     file_loader_t command_loader;
     command_loader.load_file_data("fdw_test_command.txt", true);
 
-    unique_ptr<char[]> command_buffer(new char[command_loader.get_data_length() + 1]);
-    memcpy(
-        command_buffer.get(),
-        command_loader.get_data(),
-        command_loader.get_data_length());
-    command_buffer[command_loader.get_data_length()] = 0;
+    char* command = reinterpret_cast<char*>(command_loader.get_data());
 
     cerr
         << "Command executed by test is:" << endl
-        << command_buffer.get() << endl;
+        << command << endl;
 
     // Execute the command and validate its return value.
-    int return_value = system(command_buffer.get());
+    int return_value = system(command);
     ASSERT_EQ(0, return_value);
 }
