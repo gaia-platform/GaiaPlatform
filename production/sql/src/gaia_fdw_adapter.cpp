@@ -820,7 +820,22 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
         else if (modify_operation_type == modify_operation_type_t::update)
         {
             node = gaia_ptr::open(gaia_id);
-            node = node.update_payload(m_current_payload->size(), m_current_payload->data());
+
+            // Only update payload if it has changed.
+            if (node.data_size() != m_current_payload->size()
+                || memcmp(node.data(), m_current_payload->data(), node.data_size()) != 0)
+            {
+                node = node.update_payload(m_current_payload->size(), m_current_payload->data());
+            }
+        }
+        else
+        {
+            ereport(
+                ERROR,
+                (errcode(ERRCODE_FDW_ERROR),
+                 errmsg(
+                     "modify_record() was called with an invalid operation type '%d'!",
+                     static_cast<int>(modify_operation_type))));
         }
 
         // Now that we have access to the database record, we can also perform the reference updates.
@@ -831,7 +846,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
                 continue;
             }
 
-            uint16_t reference_offset = m_fields[i].position;
+            reference_offset_t reference_offset = m_fields[i].position;
             if (reference_offset >= node.num_references())
             {
                 ereport(
@@ -860,7 +875,15 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
             {
                 gaia_id_t new_reference_id = DatumGetUInt64(m_fields[i].value_to_set.value);
 
-                // If updating and existing record and the reference value is unchanged,
+                if (new_reference_id == c_invalid_gaia_id)
+                {
+                    ereport(
+                        ERROR,
+                        (errcode(ERRCODE_FDW_ERROR),
+                         errmsg("An invalid reference value was passed as a non-null value: '%ld'!", new_reference_id)));
+                }
+
+                // If updating an existing record and the reference value is unchanged,
                 // we don't have to do anything.
                 if (modify_operation_type == modify_operation_type_t::update
                     && new_reference_id == old_reference_id)
@@ -877,22 +900,30 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
     }
     catch (const exception& e)
     {
+        constexpr char c_operation_insert[] = "INSERT";
+        constexpr char c_operation_update[] = "UPDATE";
+        constexpr char c_operation_unexpected[] = "Unexpected";
+
+        const char* operation_name;
+
         if (modify_operation_type == modify_operation_type_t::insert)
         {
-            ereport(
-                ERROR,
-                (errcode(ERRCODE_FDW_ERROR),
-                 errmsg("INSERT operation failed!"),
-                 errhint("Exception: '%s'.", e.what())));
+            operation_name = c_operation_insert;
         }
         else if (modify_operation_type == modify_operation_type_t::update)
         {
-            ereport(
-                ERROR,
-                (errcode(ERRCODE_FDW_ERROR),
-                 errmsg("UPDATE operation failed!"),
-                 errhint("Exception: '%s'.", e.what())));
+            operation_name = c_operation_update;
         }
+        else
+        {
+            operation_name = c_operation_unexpected;
+        }
+
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("%s operation failed!", operation_name),
+             errhint("Exception: '%s'.", e.what())));
 
         return false;
     }
