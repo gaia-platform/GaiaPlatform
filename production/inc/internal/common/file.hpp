@@ -5,9 +5,8 @@
 
 #pragma once
 
-#include <string>
-
 #include <gaia_exception.hpp>
+#include <string>
 
 namespace gaia
 {
@@ -37,17 +36,15 @@ public:
 class file_loader_t
 {
 public:
-
     file_loader_t();
     ~file_loader_t();
 
-    size_t load_file_data(const std::string& filename);
+    size_t load_file_data(const std::string& filename, bool text_mode = false);
 
     uint8_t* get_data();
     size_t get_data_length();
 
 protected:
-
     void initialize();
     void clear();
 
@@ -57,6 +54,6 @@ protected:
 };
 
 /*@}*/
-}
+} // namespace common
 /*@}*/
-}
+} // namespace gaia
