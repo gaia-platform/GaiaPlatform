@@ -26,7 +26,7 @@ namespace system
 
 // The system library will read the system level keys.
 // Subsystems should manage their own keys and section names.
-// See gaia_confg.toml file for expected section and key names.
+// See gaia.conf file for expected section and key names.
 shared_ptr<cpptoml::table> parse_system_settings(
     const char* gaia_config_file,
     string& logger_config_file)

@@ -48,8 +48,8 @@ set(GREMLIN_SERVER_PATH "/usr/local/share/gremlin-server")
 set(GAIA_PROD_BUILD "${CMAKE_CURRENT_BINARY_DIR}")
 set(GAIA_PARSER_GENERATED "${GAIA_PROD_BUILD}/catalog/parser/generated")
 set(GAIA_GENERATED_SCHEMAS "${GAIA_PROD_BUILD}/schemas/generated")
-set(GAIA_CONFIG "${PROJECT_SOURCE_DIR}/gaia_conf.toml")
-set(GAIA_LOG_CONFIG "${PROJECT_SOURCE_DIR}/log_conf.toml")
+set(GAIA_CONFIG "${PROJECT_SOURCE_DIR}/gaia.conf")
+set(GAIA_LOG_CONFIG "${PROJECT_SOURCE_DIR}/gaia_log.conf")
 
 # Force spdlog to use an external version of fmt.
 # TODO this flag should only be set in common/CMakeLists.txt. The flag is
@@ -259,7 +259,7 @@ file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
 # Copy log configuration file to make it visible during
 # common/ tests (currently not in use). Leaving this for reference
 file(
-  COPY ${CMAKE_CURRENT_SOURCE_DIR}/log_conf.toml
+  COPY ${CMAKE_CURRENT_SOURCE_DIR}/gaia_log.conf
   DESTINATION ${PROJECT_BINARY_DIR}/common/
 )
 
