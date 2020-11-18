@@ -9,7 +9,7 @@ the most common way to use the catalog library. We recommend use direct access
 APIs to navigate and retrieve catalog records.
 
 - `${GAIA_INC}`
-- `${GAIA_INC}/internal/catalog`
+- `${GAIA_INC}/gaia_internal/catalog`
 
 Linking any sub-components of catalog below are also allowed, and may even be
 necessary in certain scenarios. Use it at your own discretion as the
@@ -207,11 +207,11 @@ can be built and run again with `-d catalog -g` parameters to generate the new
 be rebuilt with the newly generated sources.
 
 Be sure to update
-[system_table_types.hpp](../inc/internal/common/system_table_types.hpp) if new
+[system_table_types.hpp](../inc/gaia_internal/common/system_table_types.hpp) if new
 types are added or the `type_id` of the catalog tables change.
 
-Be sure to save the new [gaia_catalog.h](../inc/internal/catalog/gaia_catalog.h)
-and [catalog_generated.h](../inc/internal/catalog/catalog_generated.h) in place
+Be sure to save the new [gaia_catalog.h](../inc/gaia_internal/catalog/gaia_catalog.h)
+and [catalog_generated.h](../inc/gaia_internal/catalog/catalog_generated.h) in place
 of the previous ones.
 
 Be sure to check if [light_catalog.hpp](../db/storage_engine/inc/light_catalog.hpp)
@@ -230,7 +230,7 @@ or any of the payload FlatBuffers schema files used by it need to be updated.
 The following are the steps to create a new system table with fixed ID:
 
 - Add the table type and its ID to
-[system_table_types.hpp](../inc/internal/common/system_table_types.hpp).
+[system_table_types.hpp](../inc/gaia_internal/common/system_table_types.hpp).
 - Add the table definition in C++ code to `ddl_executor_t::create_system_tables()`.
 - Add build instructions to generate the direct access APIs under
   `${GAIA_REPO}/production/schemas/system`.

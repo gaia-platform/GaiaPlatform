@@ -16,14 +16,14 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 
 set (CAMERA_DEMO_INCLUDES
   ${CMAKE_SOURCE_DIR}/../../../production/inc/public/rules
-  ${CMAKE_SOURCE_DIR}/../../../production/inc/internal/rules
-  ${CMAKE_SOURCE_DIR}/../../../production/inc/internal/common
+  ${CMAKE_SOURCE_DIR}/../../../production/inc/gaia_internal/rules
+  ${CMAKE_SOURCE_DIR}/../../../production/inc/gaia_internal/common
   ${CMAKE_SOURCE_DIR}/../../../production/inc/public/common
   ${CMAKE_SOURCE_DIR}/../../../third_party/production/flatbuffers/include
   ${CMAKE_SOURCE_DIR}/../../../production/db/storage_engine/mock
   ${CMAKE_SOURCE_DIR}/../../../production/inc/public/direct_access
   ${CMAKE_SOURCE_DIR}/../../../production/inc/public/db
-  ${CMAKE_SOURCE_DIR}/../../../production/inc/internal/db
+  ${CMAKE_SOURCE_DIR}/../../../production/inc/gaia_internal/db
   ${GAIA_PROD_BUILD}/rules/event_manager/generated
   ${CMAKE_SOURCE_DIR}
   ${OpenCV_INCLUDE_DIR}

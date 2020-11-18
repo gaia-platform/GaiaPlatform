@@ -14,9 +14,9 @@ set(GAIA_SYSTEM_PUBLIC_INCLUDES
 message(VERBOSE "GAIA_SYSTEM_PUBLIC_INCLUDES=${GAIA_SYSTEM_PUBLIC_INCLUDES}")
 
 set(GAIA_SYSTEM_PRIVATE_INCLUDES
-  "${GAIA_INC}/internal/common"
-  "${GAIA_INC}/internal/db"
-  "${GAIA_INC}/internal/rules"
+  "${GAIA_INC}/gaia_internal/common"
+  "${GAIA_INC}/gaia_internal/db"
+  "${GAIA_INC}/gaia_internal/rules"
   "${FLATBUFFERS_INC}"
   "${GAIA_REPO}/production/rules/event_manager/inc"
   "${GAIA_REPO}/production/db/storage_engine/tests/" # TODO remove once RI is supported in EDC
@@ -38,7 +38,7 @@ set_property (TARGET gaia_system PROPERTY POSITION_INDEPENDENT_CODE ON)
 set(TEST_GAIA_SYSTEM_INCLUDES
   ${GAIA_SYSTEM_PUBLIC_INCLUDES}
   ${GAIA_SYSTEM_PRIVATE_INCLUDES}
-  "${GAIA_INC}/internal/catalog"
+  "${GAIA_INC}/gaia_internal/catalog"
   "${GAIA_REPO}/production/catalog/parser/inc"
   ${GAIA_PARSER_GENERATED})
 add_gtest(test_gaia_system "tests/test_gaia_system.cpp"

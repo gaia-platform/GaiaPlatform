@@ -8,10 +8,10 @@ project(event_manager)
 
 set(GAIA_EVENT_MANAGER_INCLUDES
   ${GAIA_INC}
-  ${GAIA_INC}/internal/common
-  ${GAIA_INC}/internal/db
-  ${GAIA_INC}/internal/catalog
-  ${GAIA_INC}/internal/rules
+  ${GAIA_INC}/gaia_internal/common
+  ${GAIA_INC}/gaia_internal/db
+  ${GAIA_INC}/gaia_internal/catalog
+  ${GAIA_INC}/gaia_internal/rules
   ${GAIA_RULES_INC}
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc

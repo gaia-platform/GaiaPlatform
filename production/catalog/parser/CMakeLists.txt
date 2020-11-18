@@ -10,8 +10,8 @@ file(MAKE_DIRECTORY ${GAIA_PARSER_GENERATED})
 
 set(GAIA_PARSER_INCLUDES
   ${GAIA_INC}
-  ${GAIA_INC}/internal/common
-  ${GAIA_INC}/internal/db
+  ${GAIA_INC}/gaia_internal/common
+  ${GAIA_INC}/gaia_internal/db
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc
   ${GAIA_PARSER_GENERATED}

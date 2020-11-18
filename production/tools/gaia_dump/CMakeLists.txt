@@ -13,9 +13,9 @@ set(GAIA_DUMP_INCLUDES
   ${GAIA_REPO}/third_party/production/flatbuffers/include
   ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_INC}
-  ${GAIA_INC}/internal/catalog
-  ${GAIA_INC}/internal/common
-  ${GAIA_INC}/internal/db
+  ${GAIA_INC}/gaia_internal/catalog
+  ${GAIA_INC}/gaia_internal/common
+  ${GAIA_INC}/gaia_internal/db
   ${CMAKE_CURRENT_SOURCE_DIR}/inc
 )
 

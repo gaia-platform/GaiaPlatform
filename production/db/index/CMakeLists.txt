@@ -8,8 +8,8 @@ project(index)
 
 set(GAIA_INDEX_INCLUDES
   "${GAIA_INC}"
-  "${GAIA_INC}/internal/common"
-  "${GAIA_INC}/internal/db"
+  "${GAIA_INC}/gaia_internal/common"
+  "${GAIA_INC}/gaia_internal/db"
   "${GAIA_DB_INC}/index"
   "${GAIA_DB_INC}/payload_types"
   "${FLATBUFFERS_INC}")
