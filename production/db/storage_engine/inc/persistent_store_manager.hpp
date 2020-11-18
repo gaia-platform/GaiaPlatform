@@ -9,6 +9,10 @@
 
 #include "db_types.hpp"
 #include "gaia_common.hpp"
+#include "rdb_internal.hpp"
+#include "se_helpers.hpp"
+#include "se_shared_data.hpp"
+#include "se_types.hpp"
 
 // This file provides gaia specific functionality to persist writes to & read from
 // RocksDB during recovery.
@@ -19,8 +23,6 @@ namespace db
 {
 
 constexpr size_t c_max_open_db_attempt_count = 10;
-
-class rdb_internal_t;
 
 class persistent_store_manager
 {
@@ -52,7 +54,7 @@ public:
      * We expect writes to the RocksDB WAL to just work; this
      * method will sigabrt otherwise.
      */
-    void prepare_wal_for_write(std::string& txn_name);
+    void prepare_wal_for_write(gaia::db::log* log, std::string& txn_name);
 
     /**
      * This method will append a commit marker with the appropriate
@@ -79,18 +81,11 @@ public:
      */
     void destroy_persistent_store();
 
-    /**
-     * This method is used to create a Gaia object from a decoded RocksDB key-value pair.
-     */
-    static void create_object_on_recovery(
-        gaia::common::gaia_id_t id,
-        gaia::common::gaia_type_t type,
-        size_t num_refs,
-        size_t data_size,
-        const void* data);
-
 private:
-    static std::unique_ptr<gaia::db::rdb_internal_t> rdb_internal;
+    static inline const std::string c_data_dir = c_persistent_directory_path;
+    gaia::db::data* m_data = nullptr;
+    gaia::db::locators* m_locators = nullptr;
+    std::unique_ptr<gaia::db::rdb_internal_t> m_rdb_internal;
 };
 
 } // namespace db

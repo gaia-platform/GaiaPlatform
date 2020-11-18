@@ -77,9 +77,9 @@ add_library(gaia_se_client STATIC
   src/catalog_core.cpp
   src/gaia_db.cpp
   src/gaia_ptr.cpp
-  src/gaia_boot.cpp
   src/payload_diff.cpp
-  src/storage_engine_client.cpp
+  src/se_client.cpp
+  src/se_shared_data_client.cpp
   src/type_metadata.cpp
   src/type_id_record_id_cache.cpp)
 add_dependencies(gaia_se_client "messages.fbs" "gaia_table.fbs" "gaia_field.fbs")
@@ -100,6 +100,7 @@ target_link_libraries(gaia_se_client PRIVATE explain gaia_payload_types gaia_dir
 set_property (TARGET gaia_se_client PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 add_library(rocks_wrapper STATIC
+  src/rdb_internal.cpp
   src/rdb_object_converter.cpp
   src/persistent_store_manager.cpp)
 target_include_directories(rocks_wrapper PRIVATE
@@ -112,8 +113,9 @@ target_link_libraries(rocks_wrapper rocksdb)
 set_target_properties(rocks_wrapper PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
 
 set(GAIA_SE_SERVER_SOURCES
-  src/storage_engine_server.cpp
-  src/storage_engine_server_exec.cpp
+  src/se_server.cpp
+  src/se_shared_data_server.cpp
+  src/se_server_exec.cpp
 )
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -150,17 +152,17 @@ set(GAIA_STORAGE_ENGINE_TEST_INCLUDES
 find_package(pybind11 REQUIRED)
 
 if(Python3_FOUND AND pybind11_FOUND)
-  pybind11_add_module(se_client src/storage_engine_pybind_wrapper.cpp)
-  target_include_directories(se_client PRIVATE ${PROJECT_SOURCE_DIR})
-  target_include_directories(se_client PRIVATE
+  pybind11_add_module(gaia_se src/se_pybind_wrapper.cpp)
+  target_include_directories(gaia_se PRIVATE ${PROJECT_SOURCE_DIR})
+  target_include_directories(gaia_se PRIVATE
   "${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}"
   "${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES}")
-  target_include_directories(se_client SYSTEM PRIVATE "${FLATBUFFERS_INC}")
-  target_include_directories(se_client SYSTEM PRIVATE "${GEN_DIR}")
-  target_link_libraries(se_client PRIVATE pybind11::module rt gaia_se_client)
+  target_include_directories(gaia_se SYSTEM PRIVATE "${FLATBUFFERS_INC}")
+  target_include_directories(gaia_se SYSTEM PRIVATE "${GEN_DIR}")
+  target_link_libraries(gaia_se PRIVATE pybind11::module rt gaia_se_client)
   # See https://github.com/pybind/pybind11/issues/1604 for inclusion of -fsized-deallocation for C++17
-  set_target_properties(se_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter -fsized-deallocation")
-  set_target_properties(se_client PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
+  set_target_properties(gaia_se PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter -fsized-deallocation")
+  set_target_properties(gaia_se PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
 
   # FIXME: fix this test in https://gaiaplatform.atlassian.net/browse/GAIAPLAT-260.
   # Python wrapper unit test.
@@ -174,7 +176,7 @@ endif()
 ###############################################
 if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   # Configure build of native C++ wrapper library.
-  add_library(jni_se_client SHARED src/storage_engine_jni_wrapper.cpp)
+  add_library(jni_se_client SHARED src/se_jni_wrapper.cpp)
   target_include_directories(jni_se_client PRIVATE ${PROJECT_SOURCE_DIR})
   target_include_directories(jni_se_client PRIVATE ${PROJECT_BINARY_DIR})
   target_include_directories(jni_se_client PRIVATE ${JNI_INCLUDE_DIRS})
@@ -182,7 +184,7 @@ if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
   target_link_libraries(jni_se_client PRIVATE
     rt
     gaia_se_client
-    storage_engine_jni_headers)
+    se_jni_headers)
   set_target_properties(jni_se_client PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-deprecated-register -Wno-unused-parameter")
   set_target_properties(jni_se_client PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
 endif()
@@ -200,7 +202,7 @@ target_link_libraries(gaia_db_catalog_test PRIVATE gaia_common gaia_storage gaia
 
 add_gtest(test_rdb_object_converter "tests/test_rdb_object_converter.cpp" "${FLATBUFFERS_INC};${GEN_DIR};${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "rocks_wrapper")
 add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
-add_gtest(test_storage_engine_client "tests/test_storage_engine_client.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_se_client")
+add_gtest(test_se_client "tests/test_se_client.cpp" "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_se_client")
 add_gtest(test_locator_allocator tests/test_locator_allocator.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
 add_gtest(test_relationships tests/test_relationships.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client")
 add_gtest(test_se_references tests/test_se_references.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client")

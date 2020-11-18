@@ -5,7 +5,7 @@
 
 #include <string>
 
-#include "storage_engine_server.hpp"
+#include "se_server.hpp"
 
 int main(int argc, char* argv[])
 {

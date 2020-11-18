@@ -3,15 +3,41 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "storage_engine_server.hpp"
+#include "se_server.hpp"
+
+#include <unistd.h>
+
+#include <csignal>
+
+#include <functional>
+#include <shared_mutex>
+#include <thread>
+
+#include <sys/epoll.h>
+#include <sys/eventfd.h>
+#include <sys/file.h>
 
 #include "fd_helpers.hpp"
+#include "gaia_db_internal.hpp"
+#include "generator_iterator.hpp"
+#include "messages_generated.h"
+#include "mmap_helpers.hpp"
 #include "persistent_store_manager.hpp"
+#include "retail_assert.hpp"
+#include "scope_guard.hpp"
+#include "se_helpers.hpp"
+#include "se_object.hpp"
+#include "se_shared_data.hpp"
+#include "se_types.hpp"
+#include "socket_helpers.hpp"
+#include "system_error.hpp"
 
 using namespace std;
 
 using namespace gaia::db;
 using namespace gaia::db::messages;
+using namespace gaia::common::iterators;
+using namespace gaia::common::scope_guard;
 
 void server::handle_connect(
     int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
@@ -38,7 +64,7 @@ void server::handle_begin_txn(
         "Current event is inconsistent with state transition!");
     // Currently we don't need to alter any server-side state for opening a transaction.
     FlatBufferBuilder builder;
-    s_txn_id = allocate_txn_id(s_data);
+    s_txn_id = allocate_txn_id();
     build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_txn_id);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
@@ -374,11 +400,11 @@ void server::init_listening_socket()
     server_addr.sun_family = AF_UNIX;
     // The socket name (minus its null terminator) needs to fit into the space
     // in the server address structure after the prefix null byte.
-    static_assert(sizeof(SE_SERVER_SOCKET_NAME) <= sizeof(server_addr.sun_path) - 1);
+    static_assert(sizeof(c_se_server_socket_name) <= sizeof(server_addr.sun_path) - 1);
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
     // filesystem.
-    ::strncpy(&server_addr.sun_path[1], SE_SERVER_SOCKET_NAME, sizeof(server_addr.sun_path) - 1);
+    ::strncpy(&server_addr.sun_path[1], c_se_server_socket_name, sizeof(server_addr.sun_path) - 1);
 
     // Bind the socket to the address and start listening for connections.
     // The socket name is not null-terminated in the address structure, but
@@ -592,6 +618,8 @@ void server::session_handler(int session_socket)
         {
             t.join();
         }
+        // All threads have received the session shutdown notification, so we can close the eventfd.
+        close_fd(s_session_shutdown_eventfd);
     });
 
     // Enter epoll loop.
@@ -907,16 +935,12 @@ std::function<std::optional<gaia_id_t>()> server::get_id_generator_for_type(gaia
         // We need to ensure that we're not reading the locator segment
         // while a committing transaction is writing to it.
         std::shared_lock lock(s_locators_lock);
-        while (++locator && locator < s_data->locator_count + 1)
+        while (++locator && locator <= s_data->last_locator)
         {
-            gaia_offset_t offset = (*s_shared_locators)[locator];
-            if (offset)
+            auto obj = locator_to_ptr(locator);
+            if (obj && obj->type == type)
             {
-                auto obj = reinterpret_cast<gaia_se_object_t*>(s_data->objects + (*s_shared_locators)[locator]);
-                if (obj->type == type)
-                {
-                    return obj->id;
-                }
+                return obj->id;
             }
         }
         // Signal end of iteration.
@@ -957,7 +981,7 @@ bool server::txn_commit()
     {
         txn_name = rdb->begin_txn(s_txn_id);
         // Prepare log for transaction.
-        rdb->prepare_wal_for_write(txn_name);
+        rdb->prepare_wal_for_write(s_log, txn_name);
     }
 
     for (size_t i = 0; i < s_log->count; i++)

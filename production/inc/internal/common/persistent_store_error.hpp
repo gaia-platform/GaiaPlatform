@@ -20,7 +20,7 @@ namespace db
 /**
  * Thrown when any API calls to the persistent store return an error.
  */
-class persistent_store_error : public gaia_exception
+class persistent_store_error : public gaia::common::gaia_exception
 {
 public:
     persistent_store_error(const std::string& message, int code = 0)

@@ -22,11 +22,9 @@
 #include <thread>
 
 #include "gtest/gtest.h"
-#include <sys/stat.h>
 
 #include "db_catalog_test_base.hpp"
 #include "gaia_addr_book.h"
-#include "gaia_boot.hpp"
 
 using namespace std;
 using namespace gaia::db;

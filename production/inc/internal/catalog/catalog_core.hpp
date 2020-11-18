@@ -9,8 +9,8 @@
 #include "db_types.hpp"
 #include "gaia_common.hpp"
 #include "gaia_db.hpp"
-#include "gaia_se_object.hpp"
 #include "generator_iterator.hpp"
+#include "se_object.hpp"
 #include "system_table_types.hpp"
 
 namespace gaia
@@ -20,7 +20,7 @@ namespace db
 
 struct catalog_se_object_view_t
 {
-    explicit catalog_se_object_view_t(const gaia_se_object_t* obj_ptr)
+    explicit catalog_se_object_view_t(const se_object_t* obj_ptr)
         : m_obj_ptr{obj_ptr}
     {
     }
@@ -36,7 +36,7 @@ struct catalog_se_object_view_t
     }
 
 protected:
-    const gaia_se_object_t* m_obj_ptr;
+    const se_object_t* m_obj_ptr;
 };
 
 struct field_view_t : catalog_se_object_view_t
@@ -72,12 +72,12 @@ private:
     // The ref slot in gaia_field pointing to the next gaia_field
     static constexpr uint16_t c_gaia_field_next_gaia_field_slot = 1;
 
-    [[nodiscard]] static inline const gaia_se_object_t* get_se_object_ptr(gaia_id_t);
+    [[nodiscard]] static inline const se_object_t* get_se_object_ptr(gaia_id_t);
 
 public:
     static table_view_t get_table(gaia_id_t table_id);
     static table_list_t list_tables();
-    static field_list_t list_fields(gaia_type_t table_type);
+    static field_list_t list_fields(gaia_id_t table_id);
 };
 
 } // namespace db

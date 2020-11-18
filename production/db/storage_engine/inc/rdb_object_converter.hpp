@@ -15,11 +15,9 @@
 
 #include "rocksdb/slice.h"
 
-#include "gaia_se_object.hpp"
 #include "persistent_store_error.hpp"
 #include "retail_assert.hpp"
-
-using namespace gaia::common;
+#include "se_object.hpp"
 
 namespace gaia
 {
@@ -154,28 +152,30 @@ public:
 
     inline const char* read(const size_t size)
     {
-        retail_assert(get_remaining_len_in_bytes() >= size, "Not enough bytes remaining to read!");
+        gaia::common::retail_assert(get_remaining_len_in_bytes() >= size, "Not enough bytes remaining to read!");
         // We shouldn't return an out-of-bounds pointer even for zero-length reads.
         if (get_remaining_len_in_bytes() == 0)
         {
             return nullptr;
         }
+        // We need to allow the current pointer to point to the position just
+        // after the last slice entry, as long as we never read from it.
         const char* result = m_current_byte;
         m_current_byte += size;
         size_t current_pos = m_current_byte - m_starting_byte;
         // We need to allow the current pointer to point to the position just
         // after the last slice entry, as long as we never read from it.
-        retail_assert(current_pos <= m_size, "Current pointer has overrun slice array bounds!");
+        gaia::common::retail_assert(current_pos <= m_size, "Current pointer has overrun slice array bounds!");
         return result;
     }
 };
 
 void encode_object(
-    const gaia_se_object_t* gaia_object,
+    const se_object_t* gaia_object,
     string_writer_t& key,
     string_writer_t& value);
 
-gaia_id_t decode_object(
+gaia::common::gaia_id_t decode_object(
     const rocksdb::Slice& key,
     const rocksdb::Slice& value);
 

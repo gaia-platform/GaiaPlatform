@@ -6,10 +6,16 @@
 #include "rdb_object_converter.hpp"
 
 #include "persistent_store_manager.hpp"
-#include "storage_engine.hpp"
+#include "se_object_helpers.hpp"
+#include "se_types.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
+
+namespace gaia
+{
+namespace db
+{
 
 /**
  * Format:
@@ -17,7 +23,7 @@ using namespace gaia::db;
  * Value: type, reference_count, payload_size, payload
  */
 void gaia::db::persistence::encode_object(
-    const gaia_se_object_t* gaia_object,
+    const se_object_t* gaia_object,
     gaia::db::persistence::string_writer_t& key,
     gaia::db::persistence::string_writer_t& value)
 {
@@ -52,7 +58,11 @@ gaia_id_t gaia::db::persistence::decode_object(
     value_reader.read_uint16(num_references);
     value_reader.read_uint16(size);
     auto payload = value_reader.read(size);
-    // Create Object.
-    persistent_store_manager::create_object_on_recovery(id, type, num_references, size, payload);
+
+    // Create object.
+    create_object(id, type, num_references, size, payload);
     return id;
 }
+
+} // namespace db
+} // namespace gaia

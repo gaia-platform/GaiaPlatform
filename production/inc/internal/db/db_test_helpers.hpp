@@ -27,7 +27,7 @@ namespace db
 {
 
 constexpr char c_daemonize_command[] = "daemonize ";
-// Duplicated from production/db/storage_engine/inc/storage_engine_server.hpp.
+// Duplicated from production/db/storage_engine/inc/se_server.hpp.
 // (That header should not be included by anything but the code that
 // instantiates the server.)
 constexpr char c_disable_persistence_flag[] = " --disable-persistence";
@@ -36,7 +36,7 @@ constexpr char c_disable_persistence_flag[] = " --disable-persistence";
 inline void remove_persistent_store()
 {
     std::string cmd = "rm -rf ";
-    cmd.append(PERSISTENT_DIRECTORY_PATH);
+    cmd.append(c_persistent_directory_path);
     cmd.append("/*");
     std::cerr << cmd << std::endl;
     ::system(cmd.c_str());
@@ -102,15 +102,11 @@ inline void reset_server()
     // Reinitialize the server (forcibly disconnects all clients and clears database).
     // Resetting the server will cause Recovery to be skipped. Recovery will only occur post
     // server process reboot.
-    ::system((std::string("pkill -f -HUP ") + SE_SERVER_EXEC_NAME).c_str());
+    ::system((std::string("pkill -f -HUP ") + c_se_server_exec_name).c_str());
     // Wait a bit for the server's listening socket to be closed.
     // (Otherwise, a new session might be accepted after the signal has been sent
     // but before the server has been reinitialized.)
     std::this_thread::sleep_for(std::chrono::milliseconds(c_wait_signal_millis));
-    // WLW Note: This is temporary.
-    std::string boot_file_name(PERSISTENT_DIRECTORY_PATH);
-    boot_file_name += "/boot_parameters.bin";
-    truncate(boot_file_name.c_str(), 0);
     wait_for_server_init();
 }
 
@@ -169,13 +165,13 @@ public:
     {
         if (!db_server_path)
         {
-            m_server_path = gaia::db::SE_SERVER_EXEC_NAME;
+            m_server_path = gaia::db::c_se_server_exec_name;
         }
         else
         {
             m_server_path = db_server_path;
             terminate_path(m_server_path);
-            m_server_path.append(gaia::db::SE_SERVER_EXEC_NAME);
+            m_server_path.append(gaia::db::c_se_server_exec_name);
         }
     }
 
