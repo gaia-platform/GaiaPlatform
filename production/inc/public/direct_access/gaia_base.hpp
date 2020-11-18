@@ -22,11 +22,6 @@ namespace gaia
  * @{
  */
 
-namespace db
-{
-class gaia_ptr;
-}
-
 namespace direct_access
 {
 
