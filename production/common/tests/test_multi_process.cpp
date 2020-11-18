@@ -41,24 +41,17 @@ employee_t insert_employee(employee_writer& writer, const char* name_first)
 // Utility function that creates one address row provided the writer.
 address_t insert_address(address_writer& writer, const char* street, const char* city)
 {
-    // Will remove before merging.
-    gaia_log::db().debug("Inserting Address {}", street);
     writer.street = street;
     writer.city = city;
-    auto a = address_t::get(writer.insert_row());
-    gaia_log::db().debug("Inserted Address {}, ID: {}", street, a.gaia_id());
-    return a;
+    return address_t::get(writer.insert_row());
 }
 
 // Utility function that creates one named employee row.
 employee_t create_employee(const char* name)
 {
-    // Will remove before merging.
-    gaia_log::db().debug("Inserting Employee {}", name);
     auto w = employee_writer();
     w.name_first = name;
     gaia_id_t id = w.insert_row();
-    gaia_log::db().debug("Inserted Employee {}, ID: {}", name, id);
     auto e = employee_t::get(id);
     EXPECT_STREQ(e.name_first(), name);
     return e;
