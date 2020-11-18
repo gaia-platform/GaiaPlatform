@@ -11,7 +11,7 @@
 #include "gaia_common.hpp"
 #include "logger.hpp"
 #include "system_table_types.hpp"
-#include "type_id_record_id_cache.hpp"
+#include "type_id_mapping.hpp"
 
 using namespace gaia::catalog;
 
@@ -184,7 +184,7 @@ void type_registry_t::init()
 
 gaia_id_t type_registry_t::get_record_id(gaia_type_t type)
 {
-    return type_id_record_id_cache_t::instance().get_record_id(type);
+    return type_id_mapping_t::instance().get_record_id(type);
 }
 
 bool type_registry_t::exists(gaia_type_t type) const

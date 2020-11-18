@@ -33,7 +33,7 @@ namespace db
 class db_test_base_t : public ::testing::Test
 {
 public:
-    bool is_client_manage_sessions()
+    bool is_client_managing_session()
     {
         return m_client_manages_session;
     }

@@ -7,7 +7,7 @@
 
 #include "ddl_executor.hpp"
 #include "schema_loader.hpp"
-#include "type_id_record_id_cache.hpp"
+#include "type_id_mapping.hpp"
 
 namespace gaia
 {
@@ -16,7 +16,7 @@ namespace db
 
 void db_catalog_test_base_t::reset_database_status()
 {
-    type_id_record_id_cache_t::instance().clear();
+    type_id_mapping_t::instance().clear();
     gaia::catalog::ddl_executor_t::get().reset();
 }
 

@@ -29,7 +29,7 @@ protected:
     {
         db_test_base_t::SetUp();
 
-        if (is_client_manage_sessions())
+        if (is_client_managing_session())
         {
             begin_session();
         }
@@ -37,7 +37,7 @@ protected:
         reset_database_status();
         load_schema(m_ddl_file_name);
 
-        if (is_client_manage_sessions())
+        if (is_client_managing_session())
         {
             end_session();
         }
