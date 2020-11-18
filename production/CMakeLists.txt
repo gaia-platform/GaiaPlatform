@@ -40,20 +40,29 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(GAIA_COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
   set(GAIA_LINK_FLAGS "${GAIA_LINK_FLAGS} -fsanitize=address")
 endif()
+
 message(VERBOSE "GAIA_COMPILE_FLAGS=${GAIA_COMPILE_FLAGS}")
 message(VERBOSE "GAIA_LINK_FLAGS=${GAIA_LINK_FLAGS}")
+
 set(GAIA_INC "${PROJECT_SOURCE_DIR}/inc")
+
 set(GOOGLE_TEST "${GAIA_REPO}/third_party/production/googletest")
 set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")
+
 set(FLATBUFFERS "${GAIA_REPO}/third_party/production/flatbuffers")
 set(FLATBUFFERS_INC "${FLATBUFFERS}/include")
+
 set(ROCKSDB "${GAIA_REPO}/third_party/production/rocksdb")
 set(ROCKSDB_INC "${ROCKSDB}/include")
+
 set(GREMLIN_CONSOLE_PATH "/usr/local/share/gremlin-console")
 set(GREMLIN_SERVER_PATH "/usr/local/share/gremlin-server")
+
 set(GAIA_PROD_BUILD "${CMAKE_CURRENT_BINARY_DIR}")
+
 set(GAIA_PARSER_GENERATED "${GAIA_PROD_BUILD}/catalog/parser/generated")
 set(GAIA_GENERATED_SCHEMAS "${GAIA_PROD_BUILD}/schemas/generated")
+
 set(GAIA_CONFIG "${PROJECT_SOURCE_DIR}/gaia.conf")
 set(GAIA_LOG_CONFIG "${PROJECT_SOURCE_DIR}/gaia_log.conf")
 
