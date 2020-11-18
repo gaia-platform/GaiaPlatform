@@ -90,6 +90,6 @@ set(SDK_TEST_INCLUDES
   ${GAIA_GENERATED_SCHEMAS}
 )
 
-configure_file("${GAIA_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_conf.toml")
-configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/log_conf.toml")
+configure_file("${GAIA_CONFIG}" "${PROJECT_BINARY_DIR}/gaia.conf")
+configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
 add_gtest(test_sdk "tests/test_sdk.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia" "generate_addr_book_headers")

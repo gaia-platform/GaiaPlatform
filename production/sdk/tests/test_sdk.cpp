@@ -29,7 +29,7 @@ TEST(sdk_test, app_check)
 {
     rule_binding_t binding("ruleset", "rulename", rule);
     subscription_list_t subscriptions;
-    gaia::system::initialize("./gaia_conf.toml");
+    gaia::system::initialize("./gaia.conf");
     gaia_type_t type_id = gaia::addr_book::employee_t::s_gaia_type;
 
     subscribe_rule(type_id, event_type_t::row_insert, empty_fields, binding);
