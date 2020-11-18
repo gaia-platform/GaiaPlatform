@@ -10,11 +10,11 @@ if (MSVC)
 endif()
 
 set(GAIA_CATALOG_INCLUDES
-  ${GAIA_SOURCE}/production/catalog/inc
+  ${GAIA_SOURCE}/production/inc
   ${GAIA_SOURCE}/production/inc/internal/catalog
-  ${GAIA_SOURCE}/production/inc/gaia
   ${GAIA_SOURCE}/production/inc/internal/common
   ${GAIA_SOURCE}/production/inc/internal/db
+  ${GAIA_SOURCE}/production/catalog/inc
   ${GAIA_SOURCE}/third_party/production/flatbuffers/include
 )
 
@@ -103,5 +103,3 @@ set_target_properties(gaia_direct_llvm PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_
 
 add_library(gaia_catalog_llvm STATIC IMPORTED GLOBAL)
 set_target_properties(gaia_catalog_llvm PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/catalog/libgaia_catalog.a)
-
-target_include_directories(clangSema PRIVATE ${GAIA_CATALOG_INCLUDES})

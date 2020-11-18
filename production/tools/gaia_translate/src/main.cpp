@@ -1626,7 +1626,7 @@ public:
                     output_file << "#include \"gaia_" << db << ".h\"\n";
                 }
 
-                output_file << "#include \"rules.hpp\"\n";
+                output_file << "#include \"gaia/rules.hpp\"\n";
                 output_file << "using namespace gaia::rules;\n";
 
                 m_rewriter.getEditBuffer(m_rewriter.getSourceMgr().getMainFileID())
