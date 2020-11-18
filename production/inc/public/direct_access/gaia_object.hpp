@@ -147,9 +147,6 @@ protected:
      * Materialize the flatbuffer associated with this record
      */
     const T_fb* row() const;
-
-private:
-    static T_gaia get_object(gaia_ptr& node_ptr);
 };
 
 template <gaia::db::gaia_type_t T_gaia_type, typename T_gaia, typename T_fb, typename T_obj, size_t N_references>

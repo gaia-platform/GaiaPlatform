@@ -237,15 +237,15 @@ bool gaia_base_t::insert_reference(
     return false;
 }
 
-// Returns true if an error occurred.  If the error was due to an invalid_member then
-// the invalid_member bool is set to true.  Otherwise, the error is due to an inconsistent list.
+// Returns true if an error occurred.  If the error was due to an invalid member then
+// is_invalid_member bool is set to true.  Otherwise, the error is due to an inconsistent list.
 bool gaia_base_t::remove_reference(
     gaia_id_t parent_id,
     gaia_id_t child_id,
     size_t parent_slot,
     size_t child_slot,
     size_t next_child_slot,
-    bool& invalid_member)
+    bool& is_invalid_member)
 {
     bool error_occurred = true;
 
@@ -257,7 +257,7 @@ bool gaia_base_t::remove_reference(
 
     if (child.references()[parent_slot] != parent_id)
     {
-        invalid_member = true;
+        is_invalid_member = true;
         return error_occurred;
     }
 
@@ -277,21 +277,21 @@ bool gaia_base_t::remove_reference(
     else
     {
         // Need to scan the list to find this one because it's not first on the list.
-        gaia_ptr cur_child_ptr = gaia_ptr::open(parent.references()[child_slot]);
+        gaia_ptr child_ptr = gaia_ptr::open(parent.references()[child_slot]);
 
-        while (cur_child_ptr && cur_child_ptr.references()[next_child_slot])
+        while (child_ptr && child_ptr.references()[next_child_slot])
         {
-            gaia_id_t next_id = cur_child_ptr.references()[next_child_slot];
+            gaia_id_t next_id = child_ptr.references()[next_child_slot];
             if (next_id == child_id)
             {
                 // Point the current child to the child following the next.
-                cur_child_ptr.update_child_reference(next_child_slot, child.references()[next_child_slot]);
+                child_ptr.update_child_reference(next_child_slot, child.references()[next_child_slot]);
                 // Clean up the removed child.
                 child.update_child_references(next_child_slot, c_invalid_gaia_id, parent_slot, c_invalid_gaia_id);
                 return false;
             }
             // Move to the next child.
-            cur_child_ptr = gaia_ptr::open(next_id);
+            child_ptr = gaia_ptr::open(next_id);
         }
         // If we end up here, the child was not found in the chain. This is an error because
         // the pointers have become inconsistent (the child's parent pointer was correct).

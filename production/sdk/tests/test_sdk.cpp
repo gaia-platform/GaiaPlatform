@@ -12,9 +12,10 @@
 #include "gaia_system.hpp"
 #include "rules.hpp"
 
+using namespace std;
+
 using namespace gaia::direct_access;
 using namespace gaia::rules;
-using namespace std;
 using namespace gaia::addr_book;
 
 extern "C" void initialize_rules()

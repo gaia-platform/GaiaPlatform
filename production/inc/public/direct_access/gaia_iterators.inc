@@ -278,13 +278,13 @@ void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot,
 template <typename T_parent, typename T_child, size_t T_parent_slot, size_t T_child_slot, size_t T_next_slot>
 void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot, T_next_slot>::erase(gaia_id_t child_id)
 {
-    bool invalid_member = false;
-    bool error_occurred = gaia_base_t::remove_reference(
-        m_parent_id, child_id, T_parent_slot, T_child_slot, T_next_slot, invalid_member);
+    bool is_invalid_member = false;
+    bool has_error_occurred = gaia_base_t::remove_reference(
+        m_parent_id, child_id, T_parent_slot, T_child_slot, T_next_slot, is_invalid_member);
 
-    if (error_occurred)
+    if (has_error_occurred)
     {
-        if (invalid_member)
+        if (is_invalid_member)
         {
             T_parent expected = T_parent::get(0);
             T_child received = T_child::get(0);
