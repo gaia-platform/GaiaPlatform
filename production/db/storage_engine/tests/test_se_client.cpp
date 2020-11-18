@@ -12,7 +12,7 @@
 
 using namespace gaia::db;
 
-// duplicated from production/db/storage_engine/inc/storage_engine_server.hpp
+// duplicated from production/db/storage_engine/inc/se_server.hpp
 constexpr size_t STREAM_BATCH_SIZE = 1 << 10;
 
 void print_payload(std::ostream& o, size_t size, const char* payload)
@@ -442,11 +442,11 @@ TEST_F(storage_engine_client_test, create_large_object)
 {
     begin_transaction();
     {
-        uint8_t payload[gaia_se_object_t::c_max_payload_size];
+        uint8_t payload[se_object_t::c_max_payload_size];
 
         constexpr gaia_type_t node_type = 5;
         size_t num_refs = 50;
-        size_t payload_size = gaia_se_object_t::c_max_payload_size - (num_refs * sizeof(gaia_id_t));
+        size_t payload_size = se_object_t::c_max_payload_size - (num_refs * sizeof(gaia_id_t));
         std::cerr << std::endl;
         std::cerr << "*** Creating the largest node (" << payload_size << " bytes):" << std::endl;
         EXPECT_NE(gaia_ptr::create(gaia_ptr::generate_id(), node_type, num_refs, payload_size, payload), nullptr);

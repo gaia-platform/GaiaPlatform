@@ -3,13 +3,37 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "storage_engine_client.hpp"
+#include "se_client.hpp"
+
+#include <unistd.h>
+
+#include <csignal>
+
+#include <atomic>
+#include <functional>
+#include <optional>
+#include <thread>
+#include <unordered_set>
 
 #include <flatbuffers/flatbuffers.h>
+#include <sys/epoll.h>
+#include <sys/file.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
+#include "db_types.hpp"
 #include "fd_helpers.hpp"
+#include "generator_iterator.hpp"
 #include "messages_generated.h"
-#include "system_table_types.hpp"
+#include "mmap_helpers.hpp"
+#include "retail_assert.hpp"
+#include "scope_guard.hpp"
+#include "se_helpers.hpp"
+#include "se_shared_data.hpp"
+#include "se_types.hpp"
+#include "socket_helpers.hpp"
+#include "system_error.hpp"
+#include "triggers.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -155,14 +179,12 @@ void client::destroy_log_mapping()
     }
 }
 
-// This function is intended only for use in test scenarios, where we need to clear
-// stale mappings and file descriptors referencing shared memory segments that have
-// been reinitialized by the server following receipt of SIGHUP (test-only feature).
-// It is not concurrency-safe, since we assume that no sessions are active while this
-// function is being called, which is a reasonable assumption for tests.
+// This function must be called before establishing a new session. It ensures
+// that if the server restarts or is reset, no session will start with a stale
+// data mapping or locator fd.
 void client::clear_shared_memory()
 {
-    // This is intended to be called before any session is established.
+    // This is intended to be called before a session is established.
     verify_no_session();
     // We closed our original fd for the data segment, so we only need to unmap it.
     if (s_data)
@@ -206,11 +228,11 @@ int client::get_session_socket()
     server_addr.sun_family = AF_UNIX;
     // The socket name (minus its null terminator) needs to fit into the space
     // in the server address structure after the prefix null byte.
-    retail_assert(strlen(SE_SERVER_SOCKET_NAME) <= sizeof(server_addr.sun_path) - 1, "Socket name is too long!");
+    retail_assert(strlen(c_se_server_socket_name) <= sizeof(server_addr.sun_path) - 1, "Socket name is too long!");
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
     // filesystem.
-    ::strncpy(&server_addr.sun_path[1], SE_SERVER_SOCKET_NAME, sizeof(server_addr.sun_path) - 1);
+    ::strncpy(&server_addr.sun_path[1], c_se_server_socket_name, sizeof(server_addr.sun_path) - 1);
     // The socket name is not null-terminated in the address structure, but
     // we need to add an extra byte for the null byte prefix.
     socklen_t server_addr_size = sizeof(server_addr.sun_family) + 1 + strlen(&server_addr.sun_path[1]);
@@ -272,18 +294,18 @@ void client::begin_session()
     retail_assert(fd_count == c_fd_count, "Unexpected fd count!");
     int fd_data = fds[c_data_fd_index];
     retail_assert(fd_data != -1, "Invalid data fd detected!");
+    auto cleanup_data_fd = make_scope_guard([&]() {
+        // We can unconditionally close the data fd, since it's not saved
+        // anywhere and the mapping increments the shared memory segment's
+        // refcount.
+        close_fd(fd_data);
+    });
     int fd_locators = fds[c_locators_fd_index];
     retail_assert(fd_locators != -1, "Invalid locators fd detected!");
-    auto cleanup_fds = make_scope_guard([&]() {
-        // We can unconditionally close the data fd,
-        // since it's not saved anywhere and the mapping
-        // increments the shared memory segment's refcount.
-        close_fd(fd_data);
-        // We can only close the locator fd if it hasn't been cached.
-        if (s_fd_locators != fd_locators)
-        {
-            close_fd(fd_locators);
-        }
+    auto cleanup_locator_fd = make_scope_guard([&]() {
+        // We should only close the locator fd if we are unwinding from an
+        // exception, since we cache it to map later.
+        close_fd(fd_locators);
     });
 
     const message_t* msg = Getmessage_t(msg_buf);
@@ -300,6 +322,7 @@ void client::begin_session()
 
     // Set up the private locator segment fd.
     s_fd_locators = fd_locators;
+    cleanup_locator_fd.dismiss();
     cleanup_session_socket.dismiss();
 }
 
@@ -321,7 +344,7 @@ void client::begin_transaction()
     {
         throw_system_error("memfd_create failed");
     }
-    auto cleanup_fd = make_scope_guard([&]() {
+    auto cleanup_log_fd = make_scope_guard([&]() {
         close_fd(fd_log);
     });
     if (-1 == ::ftruncate(fd_log, sizeof(log)))
@@ -370,7 +393,7 @@ void client::begin_transaction()
     // Save the log fd to send to the server on commit.
     s_fd_log = fd_log;
 
-    cleanup_fd.dismiss();
+    cleanup_log_fd.dismiss();
     cleanup_log_mapping.dismiss();
     cleanup_locator_mapping.dismiss();
 }

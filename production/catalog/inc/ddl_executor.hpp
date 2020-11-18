@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "catalog.hpp"
-#include "gaia_boot.hpp"
 #include "gaia_catalog.h"
 
 namespace gaia
@@ -64,7 +63,7 @@ private:
         const ddl::field_def_list_t& fields,
         bool is_log = false,
         bool throw_on_exist = true,
-        gaia_type_t type = c_invalid_gaia_type);
+        gaia::common::gaia_type_t type = gaia::common::c_invalid_gaia_type);
 
     // Internal drop table implementation. Callers need to acquire a transaction
     // before calling this method.

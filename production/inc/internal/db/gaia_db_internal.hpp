@@ -7,8 +7,10 @@
 
 #include "triggers.hpp"
 
-namespace gaia {
-namespace db {
+namespace gaia
+{
+namespace db
+{
 
 /**
  * Sets the DB client's commit trigger function.
@@ -29,13 +31,13 @@ void clear_shared_memory();
 // directory path & also some way to destroy it instead
 // of hardcoding the path.
 // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-310
-constexpr char PERSISTENT_DIRECTORY_PATH[] = "/tmp/gaia_db";
+constexpr char c_persistent_directory_path[] = "/tmp/gaia_db";
 
 // The name of the SE server binary.
-constexpr char SE_SERVER_EXEC_NAME[] = "gaia_se_server";
+constexpr char c_se_server_exec_name[] = "gaia_se_server";
 
 // Used by the SE server and client to bind and connect to the server's listening socket.
-constexpr char SE_SERVER_SOCKET_NAME[] = "gaia_se_server_socket";
+constexpr char c_se_server_socket_name[] = "gaia_se_server_socket";
 
-}  // namespace db
-}  // namespace gaia
+} // namespace db
+} // namespace gaia
