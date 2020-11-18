@@ -1,4 +1,4 @@
-from dataclasses import replace
+from dataclasses import dataclass, replace
 import os
 from textwrap import dedent
 from typing import Iterable
@@ -9,7 +9,9 @@ from .cfg import GenCustomCfg
 from .._abc.dockerfile import GenAbcDockerfile
 
 
+@dataclass(frozen=True, repr=False)
 class GenCustomDockerfile(GenAbcDockerfile):
+    base_dockerfile: GenAbcDockerfile
 
     @property
     def cfg(self) -> GenCustomCfg:
@@ -29,7 +31,7 @@ class GenCustomDockerfile(GenAbcDockerfile):
     async def get_input_dockerfiles(self) -> Iterable[GenAbcDockerfile]:
         from ..run.dockerfile import GenRunDockerfile
 
-        input_dockerfiles = [GenRunDockerfile(self.options)]
+        input_dockerfiles = [self.base_dockerfile]
         for line in await self.cfg.get_lines():
             input_dockerfiles.append(GenRunDockerfile(replace(self.options, target=line)))
         input_dockerfiles = tuple(input_dockerfiles)

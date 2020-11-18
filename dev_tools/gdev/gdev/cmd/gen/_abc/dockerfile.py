@@ -226,5 +226,11 @@ class GenAbcDockerfile(Dependency, ABC):
     @memoize
     async def cli_entrypoint(self) -> None:
         """If actual CLI command is `gdev ... dockerfile`, run as normal and then print contents."""
-        await self.run()
-        print(await self.get_text())
+        if not self.options.mixins:
+            dockerfile = self
+        else:
+            from .._custom.dockerfile import GenCustomDockerfile
+            dockerfile = GenCustomDockerfile(options=self.options, base_dockerfile=self)
+
+        await dockerfile.run()
+        print(await dockerfile.get_text())
