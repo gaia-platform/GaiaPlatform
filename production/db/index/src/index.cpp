@@ -3,10 +3,11 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <field_access.hpp>
-#include <index.hpp>
+#include "index.hpp"
 
 #include "gaia/retail_assert.hpp"
+
+#include "field_access.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db::payload_types;

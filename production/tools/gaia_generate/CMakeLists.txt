@@ -14,8 +14,8 @@ set(GAIA_GENERATE_INCLUDES
   ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_REPO}/production/db/storage_engine/inc
   ${GAIA_INC}
-  ${GAIA_INC}/gaia_internal/catalog
-  ${GAIA_INC}/gaia_internal/db
+  ${GAIA_INTERNAL_INC}/catalog
+  ${GAIA_INTERNAL_INC}/db
   ${CMAKE_CURRENT_SOURCE_DIR}/inc
 )
 

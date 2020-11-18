@@ -33,7 +33,7 @@ target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}")
 target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}")
 target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}")
 target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}")
-target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/gaia_internal/db")
+target_include_directories(gaia_fdw PRIVATE "${GAIA_INTERNAL_INC}/db")
 target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/db/payload_types")
 target_include_directories(gaia_fdw SYSTEM PRIVATE "${PGSQL_INCLUDEDIR_SERVER}")
 

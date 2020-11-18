@@ -7,6 +7,8 @@
 
 #include "gaia/gaia_base.hpp"
 
+using gaia::common::c_invalid_gaia_id;
+
 namespace gaia
 {
 

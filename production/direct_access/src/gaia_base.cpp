@@ -10,6 +10,7 @@
 #include "gaia_ptr.hpp"
 
 using namespace gaia::db;
+using namespace std;
 
 namespace gaia
 {

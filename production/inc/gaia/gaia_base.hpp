@@ -11,8 +11,10 @@
 #include "gaia/gaia_common.hpp"
 #include "gaia/gaia_exception.hpp"
 
-using namespace std;
-using namespace gaia::common;
+using gaia::common::gaia_exception;
+using gaia::common::gaia_handle_t;
+using gaia::common::gaia_id_t;
+using gaia::common::gaia_type_t;
 
 namespace gaia
 {

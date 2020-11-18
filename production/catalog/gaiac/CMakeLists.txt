@@ -12,8 +12,8 @@ set(GAIA_CATALOG_TOOL_INCLUDES
   ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_REPO}/production/db/storage_engine/inc
   ${GAIA_INC}
-  ${GAIA_INC}/gaia_internal/db
-  ${GAIA_INC}/gaia_internal/common
+  ${GAIA_INTERNAL_INC}/db
+  ${GAIA_INTERNAL_INC}/common
   ${GAIA_PARSER_GENERATED}
   ${PROJECT_SOURCE_DIR}/inc
 )
