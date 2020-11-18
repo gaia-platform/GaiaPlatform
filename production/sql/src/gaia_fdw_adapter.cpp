@@ -283,10 +283,11 @@ void adapter_t::begin_session()
 
     try
     {
+        gaia_log::initialize({});
+
         gaia::db::begin_session();
 
         initialize_caches();
-        gaia_log::initialize({});
     }
     catch (const exception& e)
     {

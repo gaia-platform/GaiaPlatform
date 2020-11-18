@@ -4,7 +4,7 @@
 #############################################
 
 # Set the project name.
-project(schema_repository)
+project(schema_loader)
 
 set(GAIA_SCHEMA_LOADER_PUBLIC_INCLUDES
   ${GAIA_INC}/internal/common

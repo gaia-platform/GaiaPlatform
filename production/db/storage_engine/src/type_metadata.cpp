@@ -234,7 +234,7 @@ static shared_ptr<relationship_t> create_relationship(gaia_relationship_t relati
 
 type_metadata_t& type_registry_t::create(gaia_type_t type)
 {
-    gaia_log::db().trace("Creating metadata for type: {}", type);
+    gaia_log::db().trace("Creating metadata for type: '{}'", type);
 
     gaia_id_t record_id = get_record_id(type);
     gaia_table_t child_table = gaia_table_t::get(record_id);
@@ -256,7 +256,7 @@ type_metadata_t& type_registry_t::create(gaia_type_t type)
         auto rel = create_relationship(relationship);
 
         gaia_log::db().trace(
-            " with relationship parent: {}, child: {}, first_child_offset: {}, parent_offset: {}, next_child_offset: {}",
+            " relationship parent:'{}', child:'{}', first_child_offset:'{}', parent_offset:'{}', next_child_offset:'{}'",
             rel->parent_type, rel->child_type, rel->first_child_offset, rel->parent_offset, rel->next_child_offset);
 
         auto& parent_meta = get_or_create_no_lock(rel->parent_type);
@@ -275,7 +275,7 @@ type_metadata_t& type_registry_t::create(gaia_type_t type)
         auto rel = create_relationship(relationship);
 
         gaia_log::db().trace(
-            " with relationship parent: {}, child: {}, first_child_offset: {}, parent_offset: {}, next_child_offset: {}",
+            " with relationship parent:'{}', child:'{}', first_child_offset:'{}', parent_offset:'{}', next_child_offset:'{}'",
             rel->parent_type, rel->child_type, rel->first_child_offset, rel->parent_offset, rel->next_child_offset);
 
         auto& child_meta = get_or_create_no_lock(rel->child_type);

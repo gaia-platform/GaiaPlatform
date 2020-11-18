@@ -19,7 +19,7 @@ file(GLOB SCHEMA_FILES
 )
 
 # Copies the .dll files into a known location in the Cmake build folder
-# to allow schema_repository to find them.
+# to allow schema_loader to find them.
 file(
   COPY ${SCHEMA_FILES}
   DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/"

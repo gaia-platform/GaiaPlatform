@@ -271,8 +271,7 @@ void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot,
     auto node_ptr = gaia_ptr::open(oid);
     if (!node_ptr)
     {
-        // TODO should this throw an exception?
-        return;
+        throw invalid_node_id(oid);
     }
 
     node_ptr.add_child_reference(child_id, T_child_slot);
@@ -290,8 +289,7 @@ void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot,
     auto node_ptr = gaia_ptr::open(m_parent_id);
     if (!node_ptr)
     {
-        // TODO should this throw an exception?
-        return;
+        throw invalid_node_id(m_parent_id);
     }
 
     node_ptr.remove_child_reference(child_id, T_child_slot);

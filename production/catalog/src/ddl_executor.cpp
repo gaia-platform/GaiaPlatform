@@ -521,7 +521,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
         bfbs.c_str(),
         bin.c_str());
 
-    gaia_log::catalog().debug(" type:{}, id:{}", table_type, table_id);
+    gaia_log::catalog().debug(" type:'{}', id:'{}'", table_type, table_id);
 
     // Connect the table to the database.
     gaia_database_t::get(db_id).gaia_table_list().insert(table_id);
@@ -564,7 +564,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
             uint8_t parent_available_offset = find_available_offset(parent_table.gaia_id());
             uint8_t child_available_offset;
 
-            gaia_log::catalog().trace(" relationship parent:{}, child:{}, name:{}", parent_table.name(), table_name, ref_field->name.c_str());
+            gaia_log::catalog().trace(" relationship parent:'{}', child:'{}', name:'{}'", parent_table.name(), table_name, ref_field->name.c_str());
 
             if (parent_type_record_id == table_id)
             {
@@ -593,7 +593,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
         }
         else
         {
-            gaia_log::catalog().trace(" field:{}, type:{}", field->name.c_str(), field->field_type);
+            gaia_log::catalog().trace(" field:'{}', type:'{}'", field->name.c_str(), field->field_type);
 
             const data_field_def_t* data_field = dynamic_cast<data_field_def_t*>(field.get());
             gaia_id_t field_id = gaia_field_t::insert_row(
