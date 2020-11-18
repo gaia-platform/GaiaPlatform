@@ -15,6 +15,7 @@
 #include <thread>
 #include <unordered_set>
 
+#include "gaia/retail_assert.hpp"
 #include <flatbuffers/flatbuffers.h>
 #include <sys/epoll.h>
 #include <sys/file.h>
@@ -26,7 +27,6 @@
 #include "generator_iterator.hpp"
 #include "messages_generated.h"
 #include "mmap_helpers.hpp"
-#include "retail_assert.hpp"
 #include "scope_guard.hpp"
 #include "se_helpers.hpp"
 #include "se_shared_data.hpp"

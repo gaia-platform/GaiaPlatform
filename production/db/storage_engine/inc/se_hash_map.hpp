@@ -5,7 +5,8 @@
 
 #pragma once
 
-#include "retail_assert.hpp"
+#include "gaia/retail_assert.hpp"
+
 #include "se_helpers.hpp"
 #include "se_shared_data.hpp"
 #include "se_types.hpp"

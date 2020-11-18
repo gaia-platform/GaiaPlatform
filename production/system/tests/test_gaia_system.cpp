@@ -11,16 +11,16 @@
 #include <iostream>
 #include <thread>
 
+#include "gaia/catalog.hpp"
+#include "gaia/gaia_system.hpp"
+#include "gaia/rules.hpp"
 #include "gtest/gtest.h"
 
-#include "catalog.hpp"
 #include "db_test_base.hpp"
 #include "db_test_helpers.hpp"
 #include "ddl_execution.hpp"
 #include "gaia_addr_book.h"
 #include "gaia_catalog.h"
-#include "gaia_system.hpp"
-#include "rules.hpp"
 #include "triggers.hpp"
 
 using namespace std;

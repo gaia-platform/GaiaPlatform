@@ -12,11 +12,12 @@
 #include <unordered_map>
 #include <vector>
 
+#include "gaia/rules.hpp"
+
 #include "event_manager_test_helpers.hpp"
 #include "gaia_event_log.h"
 #include "rule_checker.hpp"
 #include "rule_thread_pool.hpp"
-#include "rules.hpp"
 #include "rules_config.hpp"
 #include "triggers.hpp"
 

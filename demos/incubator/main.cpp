@@ -1,6 +1,6 @@
 #include "gaia_incubator.h"
-#include "gaia_system.hpp"
-#include "rules.hpp"
+#include "gaia/gaia_system.hpp"
+#include "gaia/rules.hpp"
 
 #include <algorithm>
 #include <atomic>

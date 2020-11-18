@@ -3,10 +3,10 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "gaia/gaia_db.hpp"
 #include "gtest/gtest.h"
 
 #include "db_test_base.hpp"
-#include "gaia_db.hpp"
 #include "gaia_ptr.hpp"
 #include "type_metadata.hpp"
 

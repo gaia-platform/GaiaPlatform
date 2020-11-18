@@ -6,11 +6,11 @@
 // Do not include event_manager.hpp to ensure that
 // we don't have a dependency on the internal implementation.
 
+#include "gaia/gaia_system.hpp"
+#include "gaia/rules.hpp"
 #include "gtest/gtest.h"
 
 #include "gaia_addr_book.h"
-#include "gaia_system.hpp"
-#include "rules.hpp"
 
 using namespace std;
 

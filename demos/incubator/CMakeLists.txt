@@ -10,11 +10,7 @@ set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
 set(GENERATED_OUTPUTS "${CMAKE_BINARY_DIR}/incubator/generated")
 
 set(GAIA_INCUBATOR_DEMO_INCLUDES
-  ${GAIA_INC}/public/common
-  ${GAIA_INC}/public/direct_access
-  ${GAIA_INC}/public/system
-  ${GAIA_INC}/public/rules
-  ${GAIA_INC}/public/db
+  ${GAIA_INC}
   ${FLATBUFFERS_INC}
   ${GENERATED_OUTPUTS}
 )

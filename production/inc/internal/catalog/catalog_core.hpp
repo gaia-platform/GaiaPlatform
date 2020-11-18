@@ -6,9 +6,10 @@
 #include <string>
 #include <vector>
 
+#include "gaia/gaia_common.hpp"
+#include "gaia/gaia_db.hpp"
+
 #include "db_types.hpp"
-#include "gaia_common.hpp"
-#include "gaia_db.hpp"
 #include "generator_iterator.hpp"
 #include "se_object.hpp"
 #include "system_table_types.hpp"

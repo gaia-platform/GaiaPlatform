@@ -9,12 +9,12 @@
 #include <string>
 
 #include "flatbuffers/idl.h"
+#include "gaia/gaia_db.hpp"
 
 #include "catalog_internal.hpp"
 #include "command.hpp"
 #include "db_test_helpers.hpp"
 #include "ddl_execution.hpp"
-#include "gaia_db.hpp"
 #include "gaia_parser.hpp"
 #include "logger.hpp"
 
@@ -88,7 +88,7 @@ void generate_fbs_headers(const string& db_name, const string& output_path)
     flatbuffers::IDLOptions fbs_opts;
     fbs_opts.generate_object_based_api = true;
     fbs_opts.cpp_object_api_string_type = "gaia::direct_access::nullable_string_t";
-    fbs_opts.cpp_includes = {"nullable_string.hpp"};
+    fbs_opts.cpp_includes = {"gaia/nullable_string.hpp"};
     fbs_opts.cpp_object_api_string_flexible_constructor = true;
 
     flatbuffers::Parser fbs_parser(fbs_opts);

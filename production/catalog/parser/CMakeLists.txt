@@ -9,10 +9,7 @@ project(parser)
 file(MAKE_DIRECTORY ${GAIA_PARSER_GENERATED})
 
 set(GAIA_PARSER_INCLUDES
-  ${GAIA_INC}/public/common
-  ${GAIA_INC}/public/db
-  ${GAIA_INC}/public/direct_access
-  ${GAIA_INC}/public/catalog
+  ${GAIA_INC}
   ${GAIA_INC}/internal/common
   ${GAIA_INC}/internal/db
   ${FLATBUFFERS_INC}

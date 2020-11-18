@@ -11,18 +11,19 @@
 #include <type_traits>
 #include <unordered_set>
 
+#include "gaia/gaia_iterators.hpp"
 #include "gtest/gtest.h"
 
 #include "db_test_base.hpp"
 #include "gaia_addr_book.h"
-#include "gaia_iterators.hpp"
 
 using namespace std;
 using namespace gaia::db;
 using namespace gaia::common;
 using namespace gaia::addr_book;
 
-template <typename T_iterator> class iterator_conformance_t : public db_test_base_t
+template <typename T_iterator>
+class iterator_conformance_t : public db_test_base_t
 {
 public:
     void insert_records(size_t count)
@@ -428,8 +429,7 @@ TYPED_TEST(iterator_conformance_t, algorithm_test)
 
     this->insert_records(c_count);
 
-    std::transform(this->get_begin(iter), this->get_end(iter), back_inserter(transform_list),
-                   [](const address_t& address) -> int { return atoi(address.street()); });
+    std::transform(this->get_begin(iter), this->get_end(iter), back_inserter(transform_list), [](const address_t& address) -> int { return atoi(address.street()); });
 
     EXPECT_EQ(transform_list.size(), c_count);
 }

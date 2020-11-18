@@ -7,8 +7,10 @@
 
 #include <string>
 
-namespace gaia {
-namespace direct_access {
+namespace gaia
+{
+namespace direct_access
+{
 
 // This class has been introduced to enable us to differentiate between
 // zero-length strings and null strings.  The C++ object api --gen-object-api
@@ -23,14 +25,15 @@ struct nullable_string_t : std::string
     {
     }
 
-    nullable_string_t(const char *c_str, uint32_t)
+    nullable_string_t(const char* c_str, uint32_t)
         : std::string(c_str), is_null(c_str == nullptr)
     {
     }
 
     const char* c_str() const
     {
-        if (is_null) {
+        if (is_null)
+        {
             return nullptr;
         }
         return std::string::c_str();
@@ -38,13 +41,15 @@ struct nullable_string_t : std::string
 
     nullable_string_t(const nullable_string_t&) = default;
 
-    nullable_string_t &operator=(const nullable_string_t &nullable_string)
+    nullable_string_t& operator=(const nullable_string_t& nullable_string)
     {
         is_null = nullable_string.is_null;
-        if (is_null) {
+        if (is_null)
+        {
             clear();
         }
-        else {
+        else
+        {
             std::string::operator=(nullable_string);
         }
         return *this;
@@ -60,10 +65,12 @@ struct nullable_string_t : std::string
     nullable_string_t& operator=(const char* c_str)
     {
         is_null = (c_str == nullptr);
-        if (is_null) {
+        if (is_null)
+        {
             clear();
         }
-        else {
+        else
+        {
             std::string::operator=(c_str);
         }
 
@@ -82,5 +89,5 @@ private:
     bool is_null;
 };
 
-} // direct_access
-} // gaia
+} // namespace direct_access
+} // namespace gaia

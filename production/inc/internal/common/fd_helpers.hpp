@@ -9,9 +9,9 @@
 
 #include <stdexcept>
 
+#include "gaia/gaia_exception.hpp"
 #include <libexplain/close.h>
 
-#include "gaia_exception.hpp"
 #include "system_error.hpp"
 
 namespace gaia

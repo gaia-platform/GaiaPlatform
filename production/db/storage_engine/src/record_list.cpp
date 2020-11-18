@@ -5,7 +5,8 @@
 
 #include <locator_allocator.hpp>
 #include <record_list.hpp>
-#include <retail_assert.hpp>
+
+#include "gaia/retail_assert.hpp"
 
 using namespace std;
 

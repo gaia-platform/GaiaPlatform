@@ -7,7 +7,7 @@
 project(memory_manager)
 
 set(GAIA_MEMORY_MANAGER_INCLUDES
-  "${GAIA_INC}/public/common"
+  "${GAIA_INC}"
   "${GAIA_DB_INC}/memory_manager")
 
 message(VERBOSE "GAIA_MEMORY_MANAGER_INCLUDES=${GAIA_MEMORY_MANAGER_INCLUDES}")

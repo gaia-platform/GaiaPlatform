@@ -14,12 +14,12 @@
 #include <string>
 #include <thread>
 
+#include "gaia/gaia_db.hpp"
+#include "gaia/retail_assert.hpp"
 #include "gtest/gtest.h"
 
 #include "db_test_helpers.hpp"
 #include "db_types.hpp"
-#include "gaia_db.hpp"
-#include "retail_assert.hpp"
 #include "system_error.hpp"
 
 using namespace gaia::common;

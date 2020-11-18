@@ -12,8 +12,7 @@ set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
 set(GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES
-  "${GAIA_INC}/public/common"
-  "${GAIA_INC}/public/db"
+  "${GAIA_INC}"
   "${GAIA_REPO}/production/db/inc/types"
   # This should be a public include since it exposes the gaia_ptr interface,
   # which is consumed by internal clients.
@@ -87,7 +86,7 @@ target_include_directories(gaia_se_client PUBLIC ${GAIA_STORAGE_ENGINE_PUBLIC_IN
 target_include_directories(gaia_se_client PRIVATE ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES})
 # For referential integrity check to read catalog.
 # TODO: Switch to use catalog_core and remove the dependency on catalog headers and gaia_direct.
-target_include_directories(gaia_se_client PRIVATE "${GAIA_INC}/public/catalog;${GAIA_INC}/internal/catalog")
+target_include_directories(gaia_se_client PRIVATE "${GAIA_INC};${GAIA_INC}/internal/catalog")
 
 # For flatbuffers generated code.
 target_include_directories(gaia_se_client SYSTEM PRIVATE "${FLATBUFFERS_INC}")

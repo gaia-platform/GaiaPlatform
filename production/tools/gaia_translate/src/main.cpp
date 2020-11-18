@@ -21,8 +21,8 @@
 #include "clang/Rewrite/Core/Rewriter.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
+#include "gaia/catalog.hpp"
 
-#include "catalog.hpp"
 #include "gaia_catalog.h"
 
 using namespace std;
@@ -1357,7 +1357,7 @@ private:
 class last_operation_comparison_handler_t : public MatchFinder::MatchCallback
 {
 public:
-    void run (const MatchFinder::MatchResult &result) override
+    void run(const MatchFinder::MatchResult& result) override
     {
         if (g_delete_operation_in_rule)
         {
@@ -1366,12 +1366,12 @@ public:
         const auto* op = result.Nodes.getNodeAs<BinaryOperator>("LastOperationComparison");
         if (op != nullptr)
         {
-            const auto *lhs = op->getLHS();
-            const auto *rhs = op->getRHS();
+            const auto* lhs = op->getLHS();
+            const auto* rhs = op->getRHS();
             if (lhs != nullptr && rhs != nullptr)
             {
-                const auto *lhs_expression = lhs;
-                const auto *rhs_expression = rhs;
+                const auto* lhs_expression = lhs;
+                const auto* rhs_expression = rhs;
                 if (dyn_cast<ImplicitCastExpr>(lhs) != nullptr)
                 {
                     lhs_expression = dyn_cast<ImplicitCastExpr>(lhs)->getSubExpr();
@@ -1418,7 +1418,7 @@ public:
 class last_operation_switch_handler_t : public MatchFinder::MatchCallback
 {
 public:
-    void run (const MatchFinder::MatchResult &result) override
+    void run(const MatchFinder::MatchResult& result) override
     {
         g_delete_operation_in_rule = true;
     }
@@ -1427,7 +1427,7 @@ public:
 class last_operation_if_handler_t : public MatchFinder::MatchCallback
 {
 public:
-    void run (const MatchFinder::MatchResult &result) override
+    void run(const MatchFinder::MatchResult& result) override
     {
         g_delete_operation_in_rule = true;
     }
@@ -1449,45 +1449,44 @@ public:
     {
         StatementMatcher last_operation_switch_matcher
             = switchStmt(allOf(
-                hasCondition(expr(ignoringParenImpCasts(memberExpr(
-                        hasDescendant(declRefExpr(to(varDecl(
-                            hasAttr(attr::GaiaLastOperation))))))))),
-                forEachSwitchCase(anyOf(
-                    defaultStmt(),
-                    caseStmt(has(ignoringParenImpCasts(declRefExpr(to(varDecl(
-                        hasAttr(attr::GaiaLastOperationDELETE)))))))
-                    ))
-        )).bind("LastOperationSwitch");
+                             hasCondition(expr(ignoringParenImpCasts(memberExpr(
+                                 hasDescendant(declRefExpr(to(varDecl(
+                                     hasAttr(attr::GaiaLastOperation))))))))),
+                             forEachSwitchCase(anyOf(
+                                 defaultStmt(),
+                                 caseStmt(has(ignoringParenImpCasts(declRefExpr(to(varDecl(
+                                     hasAttr(attr::GaiaLastOperationDELETE)))))))))))
+                  .bind("LastOperationSwitch");
         StatementMatcher last_operation_comparison_matcher
             = binaryOperator(allOf(
-                anyOf(hasOperatorName("=="), hasOperatorName("!=")),
-                anyOf(
-                    allOf(
-                        hasLHS(ignoringParenImpCasts(memberExpr(
-                            hasDescendant(declRefExpr(to(varDecl(
-                                hasAttr(attr::GaiaLastOperation)))))))),
-                        hasRHS(ignoringParenImpCasts(declRefExpr(to(varDecl(
-                            anyOf(
-                                hasAttr(attr::GaiaLastOperationUPDATE),
-                                hasAttr(attr::GaiaLastOperationINSERT),
-                                hasAttr(attr::GaiaLastOperationDELETE),
-                                hasAttr(attr::GaiaLastOperationNONE)))))))),
-                    allOf(
-                        hasRHS(ignoringParenImpCasts(memberExpr(
-                            hasDescendant(declRefExpr(to(varDecl(
-                                hasAttr(attr::GaiaLastOperation)))))))),
-                        hasLHS(ignoringParenImpCasts(declRefExpr(to(varDecl(
-                            anyOf(
-                                hasAttr(attr::GaiaLastOperationUPDATE),
-                                hasAttr(attr::GaiaLastOperationINSERT),
-                                hasAttr(attr::GaiaLastOperationDELETE),
-                                hasAttr(attr::GaiaLastOperationNONE))))))))
-            ))).bind("LastOperationComparison");
+                                 anyOf(hasOperatorName("=="), hasOperatorName("!=")),
+                                 anyOf(
+                                     allOf(
+                                         hasLHS(ignoringParenImpCasts(memberExpr(
+                                             hasDescendant(declRefExpr(to(varDecl(
+                                                 hasAttr(attr::GaiaLastOperation)))))))),
+                                         hasRHS(ignoringParenImpCasts(declRefExpr(to(varDecl(
+                                             anyOf(
+                                                 hasAttr(attr::GaiaLastOperationUPDATE),
+                                                 hasAttr(attr::GaiaLastOperationINSERT),
+                                                 hasAttr(attr::GaiaLastOperationDELETE),
+                                                 hasAttr(attr::GaiaLastOperationNONE)))))))),
+                                     allOf(
+                                         hasRHS(ignoringParenImpCasts(memberExpr(
+                                             hasDescendant(declRefExpr(to(varDecl(
+                                                 hasAttr(attr::GaiaLastOperation)))))))),
+                                         hasLHS(ignoringParenImpCasts(declRefExpr(to(varDecl(
+                                             anyOf(
+                                                 hasAttr(attr::GaiaLastOperationUPDATE),
+                                                 hasAttr(attr::GaiaLastOperationINSERT),
+                                                 hasAttr(attr::GaiaLastOperationDELETE),
+                                                 hasAttr(attr::GaiaLastOperationNONE)))))))))))
+                  .bind("LastOperationComparison");
         StatementMatcher last_operation_if_statement_matcher
             = ifStmt(allOf(
-                hasCondition(last_operation_comparison_matcher),
-                hasElse(unless(ifStmt(hasCondition(last_operation_comparison_matcher))))
-            )).bind("ifLastOperation");
+                         hasCondition(last_operation_comparison_matcher),
+                         hasElse(unless(ifStmt(hasCondition(last_operation_comparison_matcher))))))
+                  .bind("ifLastOperation");
         StatementMatcher field_get_matcher
             = declRefExpr(to(varDecl(
                               anyOf(
@@ -1599,7 +1598,7 @@ public:
     }
     void EndSourceFileAction() override
     {
-        if(!g_translation_engine_output_option.empty())
+        if (!g_translation_engine_output_option.empty())
         {
             std::remove(g_translation_engine_output_option.c_str());
         }

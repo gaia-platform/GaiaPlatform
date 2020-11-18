@@ -7,11 +7,11 @@
 #include <functional>
 #include <queue>
 
+#include "gaia/retail_assert.hpp"
 #include "tabulate/table.hpp"
 
 #include "fbs_generator.hpp"
 #include "gaia_catalog.h"
-#include "retail_assert.hpp"
 
 using namespace gaia::catalog;
 

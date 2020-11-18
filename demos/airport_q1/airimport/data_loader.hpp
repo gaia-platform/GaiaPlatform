@@ -9,7 +9,7 @@
 #include <cassert>
 #include <map>
 #include <fstream>
-#include "nullable_string.hpp"
+#include "gaia/nullable_string.hpp"
 #include "airport_q1_gaia_generated.h" // include both flatbuffer types and object API for testing 
 using namespace std;
 using namespace gaia::db;

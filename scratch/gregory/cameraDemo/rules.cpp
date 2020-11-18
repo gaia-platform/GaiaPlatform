@@ -1,12 +1,12 @@
 #include "gaia_cameraDemo.h"
-#include "rules.hpp"
+#include "gaia/rules.hpp"
 using namespace gaia::rules;
 #include <chrono>
 #include <iostream>
 #include <map>
 #include <string>
 
-#include "rules.hpp"
+#include "gaia/rules.hpp"
 #include "gaia_cameraDemo.h"
 
 using namespace gaia::rules;

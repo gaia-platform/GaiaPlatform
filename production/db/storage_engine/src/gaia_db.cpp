@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gaia_db.hpp"
+#include "gaia/gaia_db.hpp"
 
 #include "db_types.hpp"
 #include "gaia_db_internal.hpp"

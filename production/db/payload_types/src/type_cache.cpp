@@ -5,7 +5,7 @@
 
 #include "type_cache.hpp"
 
-#include "retail_assert.hpp"
+#include "gaia/retail_assert.hpp"
 
 using namespace std;
 using namespace gaia::common;

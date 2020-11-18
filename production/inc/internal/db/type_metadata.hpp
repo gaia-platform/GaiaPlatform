@@ -7,14 +7,15 @@
 
 #include <atomic>
 #include <functional>
-#include <gaia_common.hpp>
 #include <memory>
 #include <optional>
 #include <shared_mutex>
 #include <sstream>
 #include <unordered_map>
 
-#include "gaia_exception.hpp"
+#include "gaia/gaia_common.hpp"
+#include "gaia/gaia_exception.hpp"
+
 #include "gaia_relationships.hpp"
 
 namespace gaia

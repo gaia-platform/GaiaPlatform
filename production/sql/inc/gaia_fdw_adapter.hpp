@@ -21,9 +21,10 @@ extern "C"
 
 } // extern "C"
 
-#include "gaia_common.hpp"
+#include "gaia/gaia_common.hpp"
+#include "gaia/retail_assert.hpp"
+
 #include "gaia_ptr.hpp"
-#include "retail_assert.hpp"
 
 namespace gaia
 {

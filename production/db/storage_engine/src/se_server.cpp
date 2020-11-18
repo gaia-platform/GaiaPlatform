@@ -13,6 +13,7 @@
 #include <shared_mutex>
 #include <thread>
 
+#include "gaia/retail_assert.hpp"
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #include <sys/file.h>
@@ -23,7 +24,6 @@
 #include "messages_generated.h"
 #include "mmap_helpers.hpp"
 #include "persistent_store_manager.hpp"
-#include "retail_assert.hpp"
 #include "scope_guard.hpp"
 #include "se_helpers.hpp"
 #include "se_object.hpp"

@@ -3,9 +3,9 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "gaia/catalog.hpp"
 #include "gtest/gtest.h"
 
-#include "catalog.hpp"
 #include "gaia_parser.hpp"
 #include "yy_parser.hpp"
 

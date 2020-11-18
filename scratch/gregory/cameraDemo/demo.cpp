@@ -1,7 +1,7 @@
 #include <random>
 #include <string>
 #include <iostream>
-#include "rules.hpp"
+#include "gaia/rules.hpp"
 #include "gaia_cameraDemo.h"
 
 #include "opencv2/highgui.hpp"

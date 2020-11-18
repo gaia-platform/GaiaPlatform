@@ -12,14 +12,10 @@ set(TRANSLATION_ENGINE_INCLUDES
   ${GAIA_PROD_BUILD}/llvm/include
   ${GAIA_INC}/internal/catalog
   ${GAIA_REPO}/production/catalog/catalog_manager/inc
-  ${GAIA_INC}/public/common
-  ${GAIA_INC}/public/catalog
-  ${GAIA_INC}/public/direct_access
+  ${GAIA_INC}
   ${GAIA_INC}/internal/common
   ${GAIA_INC}/internal/db
-  ${GAIA_INC}/public/db
   ${FLATBUFFERS_INC}
-  ${GAIA_INC}/public/rules
   ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_PROD_BUILD}/catalog/parser/generated
 )

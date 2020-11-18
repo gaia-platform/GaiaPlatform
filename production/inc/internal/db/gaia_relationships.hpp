@@ -6,7 +6,7 @@
 #pragma once
 #include <sstream>
 
-#include "gaia_common.hpp"
+#include "gaia/gaia_common.hpp"
 
 using gaia::common::gaia_exception;
 using gaia::common::gaia_type_t;

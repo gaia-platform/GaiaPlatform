@@ -13,8 +13,8 @@
 #include <thread>
 
 #include "flatbuffers/flatbuffers.h"
+#include "gaia/gaia_exception.hpp"
 
-#include "gaia_exception.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
 #include "se_types.hpp"

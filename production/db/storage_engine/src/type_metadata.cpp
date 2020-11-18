@@ -7,7 +7,8 @@
 
 #include <shared_mutex>
 
-#include "catalog.hpp"
+#include "gaia/catalog.hpp"
+
 #include "gaia_catalog.h"
 #include "system_table_types.hpp"
 #include "type_id_record_id_cache.hpp"

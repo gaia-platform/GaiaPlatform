@@ -8,7 +8,7 @@
 #include <mutex>
 #include <unordered_map>
 
-#include "gaia_common.hpp"
+#include "gaia/gaia_common.hpp"
 
 namespace gaia
 {

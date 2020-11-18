@@ -8,9 +8,9 @@
 #include <set>
 #include <vector>
 
+#include "gaia/catalog.hpp"
 #include "gtest/gtest.h"
 
-#include "catalog.hpp"
 #include "catalog_tests_helper.hpp"
 #include "db_test_base.hpp"
 #include "gaia_catalog.h"

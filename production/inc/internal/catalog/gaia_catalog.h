@@ -11,9 +11,9 @@
 #ifndef GAIA_GENERATED_catalog_H_
 #define GAIA_GENERATED_catalog_H_
 
-#include "gaia_object.hpp"
+#include "gaia/gaia_object.hpp"
 #include "catalog_generated.h"
-#include "gaia_iterators.hpp"
+#include "gaia/gaia_iterators.hpp"
 
 using namespace std;
 using namespace gaia::direct_access;

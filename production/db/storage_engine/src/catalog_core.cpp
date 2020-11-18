@@ -9,16 +9,16 @@
 #include <vector>
 
 #include "flatbuffers/reflection.h"
+#include "gaia/gaia_common.hpp"
+#include "gaia/gaia_db.hpp"
+#include "gaia/retail_assert.hpp"
 
 #include "db_types.hpp"
 #include "flatbuffers_helpers.hpp"
-#include "gaia_common.hpp"
-#include "gaia_db.hpp"
 #include "gaia_db_internal.hpp"
 #include "gaia_field_generated.h"
 #include "gaia_table_generated.h"
 #include "generator_iterator.hpp"
-#include "retail_assert.hpp"
 #include "se_helpers.hpp"
 #include "se_object.hpp"
 #include "se_object_helpers.hpp"

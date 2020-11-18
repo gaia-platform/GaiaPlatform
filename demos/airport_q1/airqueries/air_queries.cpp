@@ -7,7 +7,7 @@
 #include <cassert>
 #include <fstream>
 #include <unordered_set>
-#include "nullable_string.hpp"
+#include "gaia/nullable_string.hpp"
 #include "airport_q1_gaia_generated.h"
 using namespace std;
 using namespace gaia::db;

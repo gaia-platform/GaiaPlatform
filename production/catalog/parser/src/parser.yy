@@ -56,7 +56,7 @@
 %define parse.error verbose
 
 %code {
-    #include "catalog.hpp"
+    #include "gaia/catalog.hpp"
     #include "gaia_parser.hpp"
 
     using namespace gaia::catalog::ddl;

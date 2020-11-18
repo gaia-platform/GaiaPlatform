@@ -7,6 +7,7 @@
 
 #include <sstream>
 
+#include "gaia/retail_assert.hpp"
 #include "rocksdb/db.h"
 #include "rocksdb/slice.h"
 #include "rocksdb/status.h"
@@ -15,7 +16,6 @@
 
 #include "db_types.hpp"
 #include "persistent_store_error.hpp"
-#include "retail_assert.hpp"
 
 using namespace gaia::common;
 

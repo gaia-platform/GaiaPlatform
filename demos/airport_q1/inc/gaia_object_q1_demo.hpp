@@ -16,7 +16,7 @@
 #include <list>
 #include <map>
 #include "flatbuffers/flatbuffers.h"
-#include "nullable_string.hpp"
+#include "gaia/nullable_string.hpp"
 #include "storage_engine.hpp"
 
 using namespace std;

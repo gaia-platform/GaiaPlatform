@@ -8,11 +8,11 @@
 #include <iostream>
 #include <stdexcept>
 
+#include "gaia/gaia_exception.hpp"
+#include "gaia/retail_assert.hpp"
 #include <sys/socket.h>
 #include <sys/un.h>
 
-#include "gaia_exception.hpp"
-#include "retail_assert.hpp"
 #include "system_error.hpp"
 
 namespace gaia

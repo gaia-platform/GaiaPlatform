@@ -7,9 +7,10 @@
 #include <sstream>
 #include <string>
 
+#include "gaia/retail_assert.hpp"
+
 #include "catalog_internal.hpp"
 #include "gaia_catalog.h"
-#include "retail_assert.hpp"
 
 namespace gaia
 {

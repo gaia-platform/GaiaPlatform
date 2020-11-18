@@ -11,11 +11,10 @@
 #include <list>
 
 #include "flatbuffers/flatbuffers.h"
-
-#include "auto_transaction.hpp"
-#include "gaia_base.hpp"
-#include "gaia_common.hpp"
-#include "nullable_string.hpp"
+#include "gaia/auto_transaction.hpp"
+#include "gaia/gaia_base.hpp"
+#include "gaia/gaia_common.hpp"
+#include "gaia/nullable_string.hpp"
 
 using namespace std;
 using namespace gaia::common;

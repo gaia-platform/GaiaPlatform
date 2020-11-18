@@ -8,8 +8,8 @@
 #include <map>
 #include <memory>
 
-#include "gaia_common.hpp"
-#include "gaia_exception.hpp"
+#include "gaia/gaia_common.hpp"
+#include "gaia/gaia_exception.hpp"
 
 using namespace std;
 using namespace gaia::common;

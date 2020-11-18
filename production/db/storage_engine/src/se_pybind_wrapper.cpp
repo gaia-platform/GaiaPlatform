@@ -5,11 +5,11 @@
 
 #include <iomanip>
 
+#include "gaia/gaia_common.hpp"
+#include "gaia/gaia_db.hpp"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "gaia_common.hpp"
-#include "gaia_db.hpp"
 #include "gaia_ptr.hpp"
 
 using namespace std;

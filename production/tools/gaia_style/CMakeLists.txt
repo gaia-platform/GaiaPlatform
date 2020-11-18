@@ -7,11 +7,7 @@
 project(gaia_style)
 
 set(GAIA_GENERATE_INCLUDES
-  ${GAIA_INC}/public/catalog
-  ${GAIA_INC}/public/common
-  ${GAIA_INC}/public/db
-  ${GAIA_INC}/public/direct_access
-  ${GAIA_INC}/public/
+  ${GAIA_INC}
   ${FLATBUFFERS_INC}
 )
 

@@ -5,8 +5,9 @@
 
 #include "type_id_record_id_cache.hpp"
 
+#include "gaia/retail_assert.hpp"
+
 #include "catalog_core.hpp"
-#include "retail_assert.hpp"
 
 using namespace gaia::db;
 

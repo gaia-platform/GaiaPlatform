@@ -7,11 +7,12 @@
 
 #include <memory>
 
+#include "gaia/gaia_common.hpp"
+#include "gaia/gaia_exception.hpp"
+#include "gaia/retail_assert.hpp"
+
 #include "fbs_generator.hpp"
-#include "gaia_common.hpp"
-#include "gaia_exception.hpp"
 #include "json_generator.hpp"
-#include "retail_assert.hpp"
 #include "se_helpers.hpp"
 #include "system_table_types.hpp"
 

@@ -13,8 +13,7 @@
 #include <vector>
 
 #include "flatbuffers/reflection.h"
-
-#include "gaia_common.hpp"
+#include "gaia/gaia_common.hpp"
 
 namespace gaia
 {

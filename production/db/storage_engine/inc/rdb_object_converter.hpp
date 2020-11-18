@@ -13,10 +13,10 @@
 
 #include <vector>
 
+#include "gaia/retail_assert.hpp"
 #include "rocksdb/slice.h"
 
 #include "persistent_store_error.hpp"
-#include "retail_assert.hpp"
 #include "se_object.hpp"
 
 namespace gaia

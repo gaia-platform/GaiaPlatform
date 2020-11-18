@@ -13,17 +13,16 @@
 #include <vector>
 
 #include "flatbuffers/base.h"
+#include "gaia/gaia_common.hpp"
+#include "gaia/gaia_db.hpp"
 #include "spdlog/spdlog.h"
-
-#include "gaia_common.hpp"
-#include "gaia_db.hpp"
 
 // Does not move include with comments.
 #include <iterator>
 #include <list>
 #include <string>
 
-#include "gaia_exception.hpp"
+#include "gaia/gaia_exception.hpp"
 
 #ifdef VAR
 #include <filesystem>

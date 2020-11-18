@@ -4,9 +4,10 @@
 /////////////////////////////////////////////
 #pragma once
 
-#include "catalog.hpp"
+#include "gaia/catalog.hpp"
+#include "gaia/retail_assert.hpp"
+
 #include "gaia_parser.hpp"
-#include "retail_assert.hpp"
 
 namespace gaia
 {

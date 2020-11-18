@@ -7,7 +7,7 @@
 
 #include <unistd.h>
 
-#include "retail_assert.hpp"
+#include "gaia/retail_assert.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;

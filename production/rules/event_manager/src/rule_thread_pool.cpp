@@ -7,9 +7,10 @@
 
 #include <cstring>
 
+#include "gaia/retail_assert.hpp"
+
 #include "event_manager.hpp"
 #include "logger.hpp"
-#include "retail_assert.hpp"
 
 using namespace gaia::rules;
 using namespace gaia::common;

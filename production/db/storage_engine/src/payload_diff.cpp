@@ -4,11 +4,12 @@
 /////////////////////////////////////////////
 #include "payload_diff.hpp"
 
+#include "gaia/gaia_common.hpp"
+#include "gaia/retail_assert.hpp"
+
 #include "catalog_core.hpp"
 #include "data_holder.hpp"
 #include "field_access.hpp"
-#include "gaia_common.hpp"
-#include "retail_assert.hpp"
 #include "type_id_record_id_cache.hpp"
 
 namespace gaia
