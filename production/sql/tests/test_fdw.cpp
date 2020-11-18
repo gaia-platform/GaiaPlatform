@@ -19,7 +19,7 @@ class fdw_test : public db_catalog_test_base_t
 {
 protected:
     fdw_test()
-        : db_catalog_test_base_t("airlines.ddl"){};
+        : db_catalog_test_base_t("airport.ddl"){};
 
     static field_def_list_t airlines_table_fields;
     static field_def_list_t airports_table_fields;

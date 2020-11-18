@@ -26,9 +26,9 @@ if(EXECUTE_FDW_TESTS)
         ${CMAKE_CURRENT_SOURCE_DIR}/test.sql " "
         ${CMAKE_CURRENT_SOURCE_DIR}/expected.txt)
 
-    set(AIRLINES_DDL "${PROJECT_SOURCE_DIR}/airlines.ddl")
+    set(AIRPORT_DDL "${PROJECT_SOURCE_DIR}/airport.ddl")
 
-    file(COPY "${AIRLINES_DDL}" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+    file(COPY "${AIRPORT_DDL}" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
     # Add a test to execute our test script.
     # We use the test infrastructure to execute the script
