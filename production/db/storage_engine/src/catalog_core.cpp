@@ -126,5 +126,45 @@ field_list_t catalog_core_t::list_fields(gaia_id_t table_id)
     return gaia::common::iterators::range_from_generator(gaia_field_generator);
 }
 
+relationship_list_t catalog_core_t::list_relationship_from(gaia_id_t table_id)
+{
+    retail_assert(is_transaction_active(), "This method must be called from an open transaction!");
+    auto obj_ptr = id_to_ptr(table_id);
+    const gaia_id_t* references = obj_ptr->references();
+    gaia_id_t first_parent_relationship_id = references[c_gaia_table_first_parent_gaia_relationship_slot];
+
+    auto gaia_relationship_generator = [relationship_id = first_parent_relationship_id]() mutable -> std::optional<relationship_view_t> {
+        if (relationship_id == c_invalid_gaia_id)
+        {
+            return std::nullopt;
+        }
+        auto field_obj_ptr = id_to_ptr(relationship_id);
+        relationship_view_t relationship_view{field_obj_ptr};
+        relationship_id = field_obj_ptr->references()[c_gaia_field_next_gaia_field_slot];
+        return relationship_view;
+    };
+    return gaia::common::iterators::range_from_generator(gaia_relationship_generator);
+}
+
+relationship_list_t catalog_core_t::list_relationship_to(gaia_id_t table_id)
+{
+    retail_assert(is_transaction_active(), "This method must be called from an open transaction!");
+    auto obj_ptr = id_to_ptr(table_id);
+    const gaia_id_t* references = obj_ptr->references();
+    gaia_id_t first_child_relationship_id = references[c_gaia_table_first_child_gaia_relationship_slot];
+
+    auto gaia_relationship_generator = [relationship_id = first_child_relationship_id]() mutable -> std::optional<relationship_view_t> {
+        if (relationship_id == c_invalid_gaia_id)
+        {
+            return std::nullopt;
+        }
+        auto field_obj_ptr = id_to_ptr(relationship_id);
+        relationship_view_t relationship_view{field_obj_ptr};
+        relationship_id = field_obj_ptr->references()[c_gaia_field_next_gaia_field_slot];
+        return relationship_view;
+    };
+    return gaia::common::iterators::range_from_generator(gaia_relationship_generator);
+}
+
 } // namespace db
 } // namespace gaia

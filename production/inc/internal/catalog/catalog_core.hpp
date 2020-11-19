@@ -56,8 +56,14 @@ struct table_view_t : catalog_se_object_view_t
     [[nodiscard]] std::vector<uint8_t> serialization_template() const;
 };
 
+struct relationship_view_t : catalog_se_object_view_t
+{
+    using catalog_se_object_view_t::catalog_se_object_view_t;
+};
+
 using field_list_t = common::iterators::range_t<common::iterators::generator_iterator_t<field_view_t>>;
 using table_list_t = common::iterators::range_t<common::iterators::generator_iterator_t<table_view_t>>;
+using relationship_list_t = common::iterators::range_t<common::iterators::generator_iterator_t<relationship_view_t>>;
 
 class catalog_core_t
 {
@@ -65,12 +71,16 @@ private:
     // Constants for reference slots in catalog records.
     // They need to be updated when the corresponding catalog table definition change.
     //
-    // The ref slot in gaia_table pointing to the first gaia_field
+    // The ref slot in gaia_table pointing to the first gaia_field.
     static constexpr uint16_t c_gaia_table_first_gaia_field_slot = 2;
-    // The ref slot in gaia_field pointing to the gaia_table
+    // The ref slot in gaia_field pointing to the gaia_table.
     static constexpr uint16_t c_gaia_field_parent_gaia_table_slot = 0;
-    // The ref slot in gaia_field pointing to the next gaia_field
+    // The ref slot in gaia_field pointing to the next gaia_field.
     static constexpr uint16_t c_gaia_field_next_gaia_field_slot = 1;
+    // The ref slot in gaia_table pointing to the first parent gaia_relationship.
+    static constexpr uint16_t c_gaia_table_first_parent_gaia_relationship_slot = 3;
+    // The ref slot in gaia_table pointing to the first child gaia_relationship.
+    static constexpr uint16_t c_gaia_table_first_child_gaia_relationship_slot = 4;
 
     [[nodiscard]] static inline const se_object_t* get_se_object_ptr(gaia_id_t);
 
@@ -78,6 +88,11 @@ public:
     static table_view_t get_table(gaia_id_t table_id);
     static table_list_t list_tables();
     static field_list_t list_fields(gaia_id_t table_id);
+
+    // List all the relationship originated from the given table.
+    static relationship_list_t list_relationship_from(gaia_id_t table_id);
+    // List all the relationship pointing to the given table.
+    static relationship_list_t list_relationship_to(gaia_id_t table_id);
 };
 
 } // namespace db
