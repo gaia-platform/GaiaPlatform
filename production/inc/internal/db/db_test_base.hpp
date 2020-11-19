@@ -33,6 +33,11 @@ namespace db
 class db_test_base_t : public ::testing::Test
 {
 public:
+    bool is_client_managing_session()
+    {
+        return m_client_manages_session;
+    }
+
 private:
     bool m_client_manages_session;
 
@@ -42,15 +47,11 @@ protected:
         gaia_log::initialize({});
     }
 
-    db_test_base_t(bool client_manages_session)
-        : m_client_manages_session(client_manages_session)
-    {
-    }
+    explicit db_test_base_t(bool client_manages_session)
+        : m_client_manages_session(client_manages_session){};
 
     db_test_base_t()
-        : db_test_base_t(false)
-    {
-    }
+        : db_test_base_t(false){};
 
     // Since ctest always launches each gtest in a new process, there is no point
     // to defining separate SetUpTestSuite/TearDownTestSuite methods.  However, tests

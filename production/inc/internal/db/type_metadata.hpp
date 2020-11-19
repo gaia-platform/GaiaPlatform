@@ -34,20 +34,20 @@ class type_metadata_t
     friend class type_registry_t;
 
 public:
-    explicit type_metadata_t(gaia_type_t type)
+    explicit type_metadata_t(gaia::common::gaia_type_t type)
         : m_type(type), m_initialized(false){};
 
-    gaia_type_t get_type() const;
+    gaia::common::gaia_type_t get_type() const;
 
     /**
      * Find a relationship from the parent side.
      */
-    std::optional<relationship_t> find_parent_relationship(reference_offset_t first_child_offset) const;
+    std::optional<relationship_t> find_parent_relationship(gaia::common::reference_offset_t first_child_offset) const;
 
     /**
      * Find a relationship from the child side.
      */
-    std::optional<relationship_t> find_child_relationship(reference_offset_t parent_offset) const;
+    std::optional<relationship_t> find_child_relationship(gaia::common::reference_offset_t parent_offset) const;
 
     /**
      * The number of references this type has both as parent and child.
@@ -62,16 +62,16 @@ public:
      * Mark this type as the parent side of the relationship.
      * The relationship_t object will be stored in the child metadata as well.
      */
-    void add_parent_relationship(reference_offset_t first_child, const std::shared_ptr<relationship_t>& relationship);
+    void add_parent_relationship(const std::shared_ptr<relationship_t>& relationship);
 
     /**
      * Mark this type as the child side of the relationship.
      * The relationship_t object will be stored in the parent metadata as well.
      */
-    void add_child_relationship(reference_offset_t parent, const std::shared_ptr<relationship_t>& relationship);
+    void add_child_relationship(const std::shared_ptr<relationship_t>& relationship);
 
 private:
-    const gaia_type_t m_type;
+    const gaia::common::gaia_type_t m_type;
 
     // type_registry_t creates the instances of this object. Instances can be partially created
     // to avoid traversing the entire dependency graph when modeling relationships.
@@ -80,17 +80,17 @@ private:
     mutable std::shared_mutex m_metadata_lock;
 
     // The relationship_t objects are shared between the parent and the child side of the relationship.
-    std::unordered_map<reference_offset_t, std::shared_ptr<relationship_t>> m_parent_relationships;
-    std::unordered_map<reference_offset_t, std::shared_ptr<relationship_t>> m_child_relationships;
+    std::unordered_map<gaia::common::reference_offset_t, std::shared_ptr<relationship_t>> m_parent_relationships;
+    std::unordered_map<gaia::common::reference_offset_t, std::shared_ptr<relationship_t>> m_child_relationships;
 
     bool is_initialized();
     void mark_as_initialized();
 };
 
-class duplicate_metadata : public gaia_exception
+class duplicate_metadata : public gaia::common::gaia_exception
 {
 public:
-    explicit duplicate_metadata(const gaia_type_t type)
+    explicit duplicate_metadata(const gaia::common::gaia_type_t type)
     {
         std::stringstream message;
         message << "Metadata already existent for Gaia type \"" << type << "\".";
@@ -98,10 +98,10 @@ public:
     }
 };
 
-class metadata_not_found : public gaia_exception
+class metadata_not_found : public gaia::common::gaia_exception
 {
 public:
-    explicit metadata_not_found(const gaia_type_t type)
+    explicit metadata_not_found(const gaia::common::gaia_type_t type)
     {
         std::stringstream message;
         message << "Metadata does not exist for Gaia type \"" << type << "\".";
@@ -109,10 +109,10 @@ public:
     }
 };
 
-class type_not_found : public gaia_exception
+class type_not_found : public gaia::common::gaia_exception
 {
 public:
-    explicit type_not_found(const gaia_type_t type)
+    explicit type_not_found(const gaia::common::gaia_type_t type)
     {
         std::stringstream message;
         message << "Impossible to create metadata for type \"" << type << "\", the type does not exist.";
@@ -146,7 +146,7 @@ public:
     /**
      * Checks the existence of a given type in the metadata.
      */
-    bool exists(gaia_type_t type) const;
+    bool exists(gaia::common::gaia_type_t type) const;
 
     /**
      * Returns an instance of type_metadata_t. If no metadata exists for the
@@ -154,7 +154,7 @@ public:
      *
      * The registry owns the lifecycle of this object.
      */
-    const type_metadata_t& get(gaia_type_t type);
+    const type_metadata_t& get(gaia::common::gaia_type_t type);
 
     // TESTING
 
@@ -167,7 +167,7 @@ public:
     /**
      * Creates an instance of type_metadata_t in the registry skipping the Catalog.
      */
-    type_metadata_t& test_get_or_create(gaia_type_t type_id);
+    type_metadata_t& test_get_or_create(gaia::common::gaia_type_t type_id);
 
 private:
     type_registry_t()
@@ -175,7 +175,7 @@ private:
         init();
     }
 
-    std::unordered_map<gaia_type_t, std::unique_ptr<type_metadata_t>> m_metadata_registry;
+    std::unordered_map<gaia::common::gaia_type_t, std::unique_ptr<type_metadata_t>> m_metadata_registry;
 
     // Ensures exclusive access to the registry.
     mutable std::shared_mutex m_registry_lock;
@@ -189,14 +189,14 @@ private:
     /**
      * Returns the gaia_id_t of the table that holds the information about the given gaia_type_t
      */
-    common::gaia_id_t get_record_id(gaia_type_t);
+    common::gaia_id_t get_record_id(gaia::common::gaia_type_t);
 
     /**
      * Creates an instance of type_metadata_t fetching the information from the Catalog.
      */
-    type_metadata_t& create(gaia_type_t type);
+    type_metadata_t& create(gaia::common::gaia_type_t type);
 
-    type_metadata_t& get_or_create_no_lock(gaia_type_t type);
+    type_metadata_t& get_or_create_no_lock(gaia::common::gaia_type_t type);
 };
 
 } // namespace db

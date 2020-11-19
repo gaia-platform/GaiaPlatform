@@ -9,7 +9,7 @@
 #include "field_access.hpp"
 #include "gaia_common.hpp"
 #include "retail_assert.hpp"
-#include "type_id_record_id_cache.hpp"
+#include "type_id_mapping.hpp"
 
 namespace gaia
 {
@@ -26,7 +26,7 @@ void compute_payload_diff(
     // Make sure caller passes valid pointer to changed_fields.
     retail_assert(changed_fields, "compute_payload_diff was called with an unexpected null changed_fields argument!");
 
-    gaia_id_t type_record_id = type_id_record_id_cache_t::instance().get_record_id(type_id);
+    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(type_id);
 
     auto schema = catalog_core_t::get_table(type_record_id).binary_schema();
 

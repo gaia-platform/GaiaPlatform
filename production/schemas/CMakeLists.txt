@@ -14,5 +14,17 @@ set(GAIA_GENERATE ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac)
 
 file(MAKE_DIRECTORY ${GAIA_GENERATED_SCHEMAS})
 
+file(GLOB SCHEMA_FILES
+  "${GAIA_REPO}/production/schemas/test/**/*.ddl"
+)
+
+# Copies the .dll files into a known location in the Cmake build folder
+# to allow schema_loader to find them.
+file(
+  COPY ${SCHEMA_FILES}
+  DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/"
+)
+
+add_subdirectory(loader)
 add_subdirectory(system)
 add_subdirectory(test)

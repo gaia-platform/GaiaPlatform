@@ -11,7 +11,7 @@
 
 #include "catalog.hpp"
 #include "gaia_catalog.h"
-#include "type_id_record_id_cache.hpp"
+#include "type_id_mapping.hpp"
 
 using namespace std;
 

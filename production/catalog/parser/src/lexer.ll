@@ -102,6 +102,7 @@ void gaia::catalog::ddl::parser_t::scan_begin () {
 
 void gaia::catalog::ddl::parser_t::scan_end () {
     fclose(yyin);
+    yylex_destroy();
 }
 
 void gaia::catalog::ddl::parser_t::scan_string_begin (const std::string& input) {

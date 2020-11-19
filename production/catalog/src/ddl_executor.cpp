@@ -11,6 +11,7 @@
 #include "gaia_common.hpp"
 #include "gaia_exception.hpp"
 #include "json_generator.hpp"
+#include "logger.hpp"
 #include "retail_assert.hpp"
 #include "se_helpers.hpp"
 #include "system_table_types.hpp"
@@ -24,7 +25,7 @@ namespace catalog
 
 ddl_executor_t::ddl_executor_t()
 {
-    init();
+    reset();
 }
 
 ddl_executor_t& ddl_executor_t::get()
@@ -181,7 +182,7 @@ void ddl_executor_t::create_system_tables()
     }
 }
 
-void ddl_executor_t::init()
+void ddl_executor_t::reset()
 {
     reload_cache();
     bootstrap_catalog();
@@ -194,6 +195,7 @@ void ddl_executor_t::init()
 void ddl_executor_t::clear_cache()
 {
     m_table_names.clear();
+    m_db_names.clear();
 }
 
 void ddl_executor_t::reload_cache()
@@ -491,6 +493,8 @@ gaia_id_t ddl_executor_t::create_table_impl(
         }
     }
 
+    gaia_log::catalog().debug("Creating table '{}'", full_table_name);
+
     // Check for any duplication in field names.
     // We do this before generating fbs because FlatBuffers schema
     // also does not allow duplicate field names and we may generate
@@ -518,6 +522,8 @@ gaia_id_t ddl_executor_t::create_table_impl(
         is_system,
         bfbs.c_str(),
         bin.c_str());
+
+    gaia_log::catalog().debug(" type:'{}', id:'{}'", table_type, table_id);
 
     // Connect the table to the database.
     gaia_database_t::get(db_id).gaia_table_list().insert(table_id);
@@ -560,6 +566,8 @@ gaia_id_t ddl_executor_t::create_table_impl(
             uint8_t parent_available_offset = find_available_offset(parent_table.gaia_id());
             uint8_t child_available_offset;
 
+            gaia_log::catalog().trace(" relationship parent:'{}', child:'{}', name:'{}'", parent_table.name(), table_name, ref_field->name.c_str());
+
             if (parent_type_record_id == table_id)
             {
                 // This is a self-relationship, both parent and child pointers are in the same table.
@@ -587,6 +595,8 @@ gaia_id_t ddl_executor_t::create_table_impl(
         }
         else
         {
+            gaia_log::catalog().trace(" field:'{}', type:'{}'", field->name.c_str(), field->field_type);
+
             const data_field_def_t* data_field = dynamic_cast<data_field_def_t*>(field.get());
             gaia_id_t field_id = gaia_field_t::insert_row(
                 field->name.c_str(),

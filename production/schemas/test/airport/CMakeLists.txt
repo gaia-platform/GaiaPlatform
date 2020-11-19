@@ -15,7 +15,7 @@ set(AIRPORT_DDL "${PROJECT_SOURCE_DIR}/airport.ddl")
 #
 add_custom_command(
   OUTPUT ${GAIA_GENERATED_SCHEMAS}/gaia_airport.h
-  COMMAND ${GAIA_GENERATE} -t ${GAIA_PROD_BUILD}/db/storage_engine -o ${GAIA_GENERATED_SCHEMAS} -g ${AIRPORT_DDL}
+  COMMAND ${GAIA_GENERATE} -destroy_db -t ${GAIA_PROD_BUILD}/db/storage_engine -o ${GAIA_GENERATED_SCHEMAS} -g ${AIRPORT_DDL}
   DEPENDS gaiac
   DEPENDS ${AIRPORT_DDL}
   COMMENT "Compiled airport.ddl."
