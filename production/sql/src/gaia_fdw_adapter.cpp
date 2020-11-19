@@ -551,9 +551,15 @@ bool state_t::set_field_index(const char* field_name, size_t field_index)
         {
             relationship_name = relationship.parent_gaia_table().name();
         }
-        retail_assert(
-            !relationship_name.empty(),
-            "Unable to derive name of anonymous relationship!");
+
+        if (relationship_name.empty())
+        {
+            ereport(
+                ERROR,
+                (errcode(ERRCODE_FDW_ERROR),
+                 errmsg("Unable to derive name of anonymous relationship!"),
+                 errhint("Reference id is '%ld'.", reference_id)));
+        }
 
         if (strcmp(field_name, relationship_name.c_str()) == 0)
         {
