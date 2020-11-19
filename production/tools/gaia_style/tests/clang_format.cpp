@@ -15,6 +15,7 @@
 #include "flatbuffers/base.h"
 #include "spdlog/spdlog.h"
 
+#include "gaia/component.hpp"
 #include "gaia_common.hpp"
 #include "gaia_db.hpp"
 
