@@ -14,9 +14,9 @@ FROM
     airport_fdw.airports a
 WHERE
     r1.src_ap = 'SEA'
-    AND r1.dst_ap_id = r2.src_ap_id
+    AND r1.gaia_dst_id = r2.gaia_src_id
     AND r2.dst_ap = 'OTP'
-    AND a.ap_id = r1.dst_ap_id
+    AND a.gaia_id = r1.gaia_dst_id
 ORDER BY
     a.name;
 
@@ -29,10 +29,10 @@ FROM
     airport_fdw.airports a
 WHERE
     r1.src_ap = 'SEA'
-    AND r1.dst_ap_id = r2.src_ap_id
+    AND r1.gaia_dst_id = r2.gaia_src_id
     AND r2.dst_ap = 'OTP'
     AND r2.airline = 'RO'
-    AND r1.dst_ap_id = a.ap_id
+    AND r1.gaia_dst_id = a.gaia_id
 ORDER BY
     a.city;
 
@@ -48,7 +48,7 @@ FROM
     airport_fdw.routes r2
 WHERE
     r1.src_ap = 'SEA'
-    AND r1.dst_ap_id = r2.src_ap_id
+    AND r1.gaia_dst_id = r2.gaia_src_id
     AND r2.dst_ap = 'OTP'
 ORDER BY
     r1.src_ap,
@@ -69,7 +69,7 @@ FROM
     airport_fdw.routes r2
 WHERE
     r1.src_ap = 'SEA'
-    AND r1.dst_ap_id = r2.src_ap_id
+    AND r1.gaia_dst_id = r2.gaia_src_id
     AND r2.dst_ap = 'OTP'
     AND r1.airline <> 'RO'
     AND r2.airline <> 'RO'
