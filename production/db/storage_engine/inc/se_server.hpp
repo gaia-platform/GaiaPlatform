@@ -184,6 +184,13 @@ private:
     get_id_generator_for_type(gaia_type_t type);
 
     static bool txn_commit();
+
+    static se_object_t* create_object_on_recovery(
+        gaia_id_t id,
+        gaia_type_t type,
+        size_t num_refs,
+        size_t data_size,
+        const void* data);
 };
 
 } // namespace db

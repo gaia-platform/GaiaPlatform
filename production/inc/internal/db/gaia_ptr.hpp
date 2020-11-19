@@ -7,7 +7,10 @@
 
 #include "db_types.hpp"
 #include "generator_iterator.hpp"
+#include "retail_assert.hpp"
 #include "se_object.hpp"
+#include "stack_allocator.hpp"
+#include "type_metadata.hpp"
 
 using namespace gaia::common;
 
@@ -277,6 +280,15 @@ protected:
     void find_next(gaia_type_t type);
 
     void reset();
+
+    // Used by the client to allocate memory for a transaction from a stack allocator.
+    // Note that the server does not need to stack allocators to allot memory when creating
+    // objects during recovery.
+    void stack_allocator_allocate(
+        memory_manager::address_offset_t old_slot_offset,
+        size_t size,
+        std::vector<memory_manager::stack_allocator_t>& transaction_allocators,
+        std::vector<memory_manager::stack_allocator_t>& free_allocators);
 
 private:
     gaia_locator_t m_locator = {};

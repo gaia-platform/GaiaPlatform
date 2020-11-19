@@ -6,6 +6,7 @@
 #pragma once
 
 #include "gaia_db.hpp"
+#include "messages_generated.h"
 #include "retail_assert.hpp"
 #include "se_shared_data.hpp"
 #include "stack_allocator.hpp"

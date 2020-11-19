@@ -18,6 +18,7 @@ message(VERBOSE "GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES=${GAIA_DIRECT_ACCESS_PUBLIC_
 set(GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES
   ${GAIA_INC}/internal/common
   ${GAIA_INC}/internal/db
+  ${GAIA_REPO}/production/db/inc/memory_manager
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}
 )

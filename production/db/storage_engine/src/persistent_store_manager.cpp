@@ -42,6 +42,11 @@ persistent_store_manager::~persistent_store_manager()
     close();
 }
 
+bool persistent_store_manager::set_create_object_on_recovery_fn(create_object_on_recovery_fn create_object_fn)
+{
+    return __sync_val_compare_and_swap(&persistent_store_manager::s_create_object_on_recovery_fn, nullptr, create_object_fn);
+}
+
 void persistent_store_manager::open()
 {
     rocksdb::TransactionDBOptions options{};

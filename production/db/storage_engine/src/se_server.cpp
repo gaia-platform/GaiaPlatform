@@ -10,6 +10,7 @@
 #include <csignal>
 
 #include <functional>
+#include <map>
 #include <shared_mutex>
 #include <thread>
 
@@ -25,6 +26,7 @@
 #include "persistent_store_manager.hpp"
 #include "retail_assert.hpp"
 #include "scope_guard.hpp"
+#include "se_hash_map.hpp"
 #include "se_helpers.hpp"
 #include "se_object.hpp"
 #include "se_shared_data.hpp"
@@ -39,6 +41,25 @@ using namespace gaia::db::messages;
 using namespace gaia::common::iterators;
 using namespace gaia::common::scope_guard;
 
+void server::allocate_stack_allocators(std::vector<stack_allocator_t>* new_memory_allotment, bool on_connect = true)
+{
+    size_t allocation_count = on_connect ? STACK_ALLOCATOR_ALLOTMENT_COUNT : STACK_ALLOCATOR_ALLOTMENT_COUNT_TRX;
+    for (size_t i = 0; i < allocation_count; i++)
+    {
+        //Offset gets assigned; no need to set it.
+        address_offset_t stack_allocator_offset;
+        auto error = memory_manager->allocate_raw(STACK_ALLOCATOR_SIZE_BYTES, stack_allocator_offset);
+        std::cout << static_cast<std::underlying_type<error_code_t>::type>(error) << std::endl;
+        retail_assert(error == error_code_t::success, "Allocate Raw failure in server.");
+        stack_allocator_t stack_allocator = stack_allocator_t();
+        error = stack_allocator.initialize(reinterpret_cast<uint8_t*>(s_data->objects), stack_allocator_offset, STACK_ALLOCATOR_SIZE_BYTES);
+        retail_assert(error == error_code_t::success, "SA init failure.");
+        // Add created stack_allocator to the list of active stack allocators.
+        s_active_stack_allocators.insert(std::make_pair(stack_allocator_offset, stack_allocator));
+        new_memory_allotment->push_back(stack_allocator);
+    }
+}
+
 void server::handle_connect(
     int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
@@ -50,12 +71,17 @@ void server::handle_connect(
     // We need to reply to the client with the fds for the data/locator segments.
     FlatBufferBuilder builder;
     build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_txn_id);
+
+    retail_assert(s_active_stack_allocators.size() == 0, "List of active stack allocators should be empty on new connection");
+    std::vector<stack_allocator_t> new_memory_allotment;
+    allocate_stack_allocators(&new_memory_allotment);
+    build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_txn_id, &new_memory_allotment);
     int send_fds[] = {s_fd_data, s_fd_locators};
     send_msg_with_fds(s_session_socket, send_fds, std::size(send_fds), builder.GetBufferPointer(), builder.GetSize());
 }
 
 void server::handle_begin_txn(
-    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    int*, size_t, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state)
 {
     retail_assert(event == session_event_t::BEGIN_TXN, "Unexpected event received!");
     // This message should only be received while a transaction is in progress.
@@ -65,12 +91,53 @@ void server::handle_begin_txn(
     // Currently we don't need to alter any server-side state for opening a transaction.
     FlatBufferBuilder builder;
     s_txn_id = allocate_txn_id();
-    build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_txn_id);
+
+    auto request = static_cast<const client_request_t*>(event_data);
+    if (request->data_type() == request_data_t::memory_info
+        && reinterpret_cast<const bool*>(request->data()))
+    {
+        std::vector<stack_allocator_t> new_memory_allotment;
+        allocate_stack_allocators(&new_memory_allotment, false);
+        build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_txn_id, &new_memory_allotment);
+    }
+    else
+    {
+        build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_txn_id);
+    }
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
 
+void server::get_memory_info_from_request_and_free(session_event_t event, const void* event_data, bool commit_success)
+{
+    retail_assert(event == session_event_t::COMMIT_TXN || event == session_event_t::ROLLBACK_TXN, "Memory information from client received on commit/rollback only");
+    auto request = static_cast<const client_request_t*>(event_data);
+    retail_assert(request->data_type() == request_data_t::memory_info, "Client request should supply memory information.");
+    auto memory_info = static_cast<const memory_allocation_info_t*>(request->data());
+    auto stack_allocators = memory_info->stack_allocator_list();
+    // REVIEW: Should this be inside a scope guard? The data segment is unmapped in case of server exception/crash; so it doesn't matter
+    // if freeing up stack allocators isn't exception safe.
+    // Can be empty if there's nothing to commit.
+    if (stack_allocators)
+    {
+        for (int i = 0; i < stack_allocators->size(); i++)
+        {
+            auto offset = stack_allocators->Get(i)->stack_allocator_offset();
+            // What if SA not found? Assert.
+            auto stack_allocator = s_active_stack_allocators.find(offset)->second;
+            s_active_stack_allocators.erase(offset);
+            if (!commit_success)
+            {
+                // Rollback all allocations.
+                stack_allocator.deallocate(0);
+            }
+            // Free up unused space.
+            // memory_manager->free_stack_allocator(std::make_unique<stack_allocator_t>(stack_allocator));
+        }
+    }
+}
+
 void server::handle_rollback_txn(
-    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    int*, size_t, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state)
 {
     retail_assert(event == session_event_t::ROLLBACK_TXN, "Unexpected event received!");
     // This message should only be received while a transaction is in progress.
@@ -79,10 +146,11 @@ void server::handle_rollback_txn(
         "Current event is inconsistent with state transition!");
     // We just need to reset the session thread's txn_id without replying to the client.
     s_txn_id = 0;
+    get_memory_info_from_request_and_free(event, event_data, false);
 }
 
 void server::handle_commit_txn(
-    int* fds, size_t fd_count, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    int* fds, size_t fd_count, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state)
 {
     retail_assert(event == session_event_t::COMMIT_TXN, "Unexpected event received!");
     // This message should only be received while a transaction is in progress.
@@ -109,8 +177,25 @@ void server::handle_commit_txn(
     // Actually commit the transaction.
     bool success = txn_commit();
     session_event_t decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
+
+    get_memory_info_from_request_and_free(event, event_data, success);
     // Server-initiated state transition! (Any issues with reentrant handlers?)
     apply_transition(decision, nullptr, nullptr, 0);
+}
+
+void server::handle_request_memory(
+    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+{
+    retail_assert(event == session_event_t::REQUEST_MEMORY, "Incorrect event type for requesting more memory.");
+    // This event never changes session state.
+    retail_assert(old_state == new_state, "Requesting more memory shouldn't cause session state to change.");
+
+    FlatBufferBuilder builder;
+    std::vector<stack_allocator_t> new_memory_allotment;
+    // Only invoked mid transaction.
+    allocate_stack_allocators(&new_memory_allotment, false);
+    build_server_reply(builder, session_event_t::REQUEST_MEMORY, old_state, new_state, s_txn_id, &new_memory_allotment);
+    send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
 
 void server::handle_decide_txn(
@@ -143,6 +228,13 @@ void server::handle_client_shutdown(
     // we closed our write end, then we would be calling shutdown(SHUT_WR) twice, which
     // is another reason to just close the socket.)
     s_session_shutdown = true;
+
+    // Free all unused or uncommitted session stack allocators.
+    for (auto const& [key, val] : s_active_stack_allocators)
+    {
+        val.deallocate(0);
+        memory_manager->free_stack_allocator(std::make_unique<stack_allocator_t>(val));
+    }
 }
 
 void server::handle_server_shutdown(
@@ -259,18 +351,38 @@ void server::apply_transition(session_event_t event, const void* event_data, int
 }
 
 void server::build_server_reply(
-    FlatBufferBuilder& builder, session_event_t event, session_state_t old_state, session_state_t new_state, gaia_txn_id_t txn_id)
+    FlatBufferBuilder& builder,
+    session_event_t event,
+    session_state_t old_state,
+    session_state_t new_state,
+    gaia_txn_id_t txn_id,
+    const std::vector<stack_allocator_t>* const stack_allocators)
 {
     const auto server_reply = [&] {
+        flatbuffers::Offset<memory_allocation_info_t> session_memory_allocation = 0;
+        if (stack_allocators)
+        {
+            std::vector<flatbuffers::Offset<stack_allocator_info_t>> memory_allocation;
+            for (auto& stack_allocator : *stack_allocators)
+            {
+                const auto stack_allocator_info = Createstack_allocator_info_t(
+                    builder,
+                    stack_allocator.get_base_memory_offset(),
+                    stack_allocator.get_total_memory_size());
+
+                memory_allocation.push_back(stack_allocator_info);
+            }
+            session_memory_allocation = Creatememory_allocation_info_t(builder, builder.CreateVector(memory_allocation));
+        }
         if (txn_id)
         {
             const auto transaction_info = Createtransaction_info_t(builder, txn_id);
             return Createserver_reply_t(
-                builder, event, old_state, new_state, reply_data_t::transaction_info, transaction_info.Union());
+                builder, event, old_state, new_state, reply_data_t::transaction_info, transaction_info.Union(), session_memory_allocation);
         }
         else
         {
-            return Createserver_reply_t(builder, event, old_state, new_state);
+            return Createserver_reply_t(builder, event, old_state, new_state, reply_data_t::NONE, 0, session_memory_allocation);
         }
     }();
     const auto message = Createmessage_t(builder, any_message_t::reply, server_reply.Union());
@@ -325,9 +437,46 @@ void server::init_shared_memory()
     }
     s_shared_locators = static_cast<locators*>(map_fd(sizeof(locators), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_locators, 0));
     s_data = static_cast<data*>(map_fd(sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_data, 0));
+    init_memory_manager();
     // Populate shared memory from the persistent log and snapshot.
     recover_db();
     cleanup_memory.dismiss();
+}
+
+void server::init_memory_manager()
+{
+    execution_flags_t execution_flags;
+    execution_flags.enable_extra_validations = false;
+    execution_flags.enable_console_output = false;
+
+    memory_manager.reset();
+    memory_manager = make_unique<memory_manager_t>();
+    memory_manager->set_execution_flags(execution_flags);
+    memory_manager->manage(reinterpret_cast<uint8_t*>(s_data->objects), sizeof(s_data->objects));
+}
+
+se_object_t* server::create_object_on_recovery(
+    gaia_id_t id,
+    gaia_type_t type,
+    size_t num_refs,
+    size_t data_size,
+    const void* data)
+{
+    gaia::db::hash_node* hash_node = se_hash_map::insert(id);
+    hash_node->locator = allocate_locator();
+
+    // This API is called on Recovery - where we don't need to track log records.
+    // Thus allocate objects using the memory manager directly and not the stack allocator.
+    address_offset_t offset;
+    error_code_t error = memory_manager->allocate(data_size + sizeof(se_object_t), offset);
+    retail_assert(error == error_code_t::success, "Allocation failure on recovery");
+    allocate_object_mm(hash_node->locator, offset);
+    se_object_t* obj_ptr = locator_to_ptr(hash_node->locator);
+    obj_ptr->id = id;
+    obj_ptr->type = type;
+    obj_ptr->num_references = num_refs;
+    obj_ptr->payload_size = data_size;
+    memcpy(obj_ptr->payload, data, data_size);
 }
 
 void server::recover_db()
@@ -339,6 +488,7 @@ void server::recover_db()
         if (!rdb)
         {
             rdb = make_unique<gaia::db::persistent_store_manager>();
+            rdb->set_create_object_on_recovery_fn(&create_object_on_recovery);
             rdb->open();
             rdb->recover();
         }
@@ -698,13 +848,11 @@ void server::session_handler(int session_socket)
                     const message_t* msg = Getmessage_t(msg_buf);
                     const client_request_t* request = msg->msg_as_request();
                     event = request->event();
-                    // We need to pass auxiliary data identifying the requested stream type and properties.
-                    if (event == session_event_t::REQUEST_STREAM)
-                    {
-                        // We should logically pass an object corresponding to the request_data_t union,
-                        // but the FlatBuffers API doesn't have any object corresponding to a union.
-                        event_data = static_cast<const void*>(request);
-                    }
+
+                    // We should logically pass an object corresponding to the request_data_t union,
+                    // but the FlatBuffers API doesn't have any object corresponding to a union.
+                    event_data = static_cast<const void*>(request);
+
                     if (fd_buf_size > 0)
                     {
                         fds = fd_buf;

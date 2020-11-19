@@ -46,6 +46,7 @@ public:
     static constexpr size_t c_employee_record_size_bytes = 648;
     // Size of a string field in a record.
     static constexpr size_t c_field_size_bytes = 128;
+    static constexpr size_t c_delete_attempt_count = 2;
 
     // Don't cache direct access objects as they will
     // point to garbage values post crash recovery.
@@ -269,6 +270,7 @@ void recovery_test::delete_all(int initial_record_count)
 
     int count = 0;
 
+    int delete_attempt_count = 0;
     while (true)
     {
         begin_transaction();
@@ -293,6 +295,15 @@ void recovery_test::delete_all(int initial_record_count)
         if (get_count() == 0 || get_count() == initial_record_count)
         {
             break;
+        }
+        delete_attempt_count++;
+
+        // Best effort attempt at deleting things; there might be some objects that stay behind because of not getting cleaned up in other tests.
+        // The alternative would be to blow away the persistent store directory each time before running recovery tests; but I avoid this in order to
+        // exercise the delete API.
+        if (delete_attempt_count == c_delete_attempt_count)
+        {
+            initial_record_count = get_count();
         }
     }
 

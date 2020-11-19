@@ -76,7 +76,7 @@ inline void allocate_object_mm(
         throw transaction_not_open();
     }
 
-    (*locators)[locator] = (*locators)[locator] = offset / sizeof(uint64_t);
+    (*locators)[locator] = offset / sizeof(uint64_t);
 }
 
 inline bool locator_exists(gaia_locator_t locator)

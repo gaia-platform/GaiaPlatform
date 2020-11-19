@@ -17,6 +17,7 @@ set(GAIA_EVENT_MANAGER_INCLUDES
   ${GAIA_INC}/public/rules
   ${GAIA_INC}/public/catalog
   ${GAIA_INC}/internal/rules
+  ${GAIA_REPO}/production/db/inc/memory_manager
   ${GAIA_RULES_INC}
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc
