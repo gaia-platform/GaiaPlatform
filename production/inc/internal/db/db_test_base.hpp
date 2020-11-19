@@ -35,6 +35,7 @@ class db_test_base_t : public ::testing::Test
 public:
 private:
     bool m_client_manages_session;
+    bool m_disable_persistence;
 
 protected:
     static void SetUpTestSuite()
@@ -42,8 +43,8 @@ protected:
         gaia_log::initialize({});
     }
 
-    db_test_base_t(bool client_manages_session)
-        : m_client_manages_session(client_manages_session)
+    db_test_base_t(bool client_manages_session, bool disable_persistence = true)
+        : m_client_manages_session(client_manages_session), m_disable_persistence(disable_persistence)
     {
     }
 
@@ -61,7 +62,11 @@ protected:
 
     void SetUp() override
     {
-        reset_server();
+        // The server will ignore a SIGHUP unless persistence is disabled.
+        if (m_disable_persistence)
+        {
+            reset_server();
+        }
         if (!m_client_manages_session)
         {
             begin_session();
