@@ -114,9 +114,7 @@ void server::get_memory_info_from_request_and_free(session_event_t event, const 
     retail_assert(request->data_type() == request_data_t::memory_info, "Client request should supply memory information.");
     auto memory_info = static_cast<const memory_allocation_info_t*>(request->data());
     auto stack_allocators = memory_info->stack_allocator_list();
-    // REVIEW: Should this be inside a scope guard? The data segment is unmapped in case of server exception/crash; so it doesn't matter
-    // if freeing up stack allocators isn't exception safe.
-    // Can be empty if there's nothing to commit.
+
     if (stack_allocators)
     {
         for (int i = 0; i < stack_allocators->size(); i++)
@@ -131,7 +129,7 @@ void server::get_memory_info_from_request_and_free(session_event_t event, const 
                 stack_allocator.deallocate(0);
             }
             // Free up unused space.
-            // memory_manager->free_stack_allocator(std::make_unique<stack_allocator_t>(stack_allocator));
+            memory_manager->free_stack_allocator(std::make_unique<stack_allocator_t>(stack_allocator));
         }
     }
 }
