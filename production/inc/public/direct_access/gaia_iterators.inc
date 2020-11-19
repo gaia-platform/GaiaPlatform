@@ -259,7 +259,7 @@ void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot,
         throw edc_invalid_state(expected.gaia_typename(), received.gaia_typename());
     }
 
-    gaia_base_t::insert_reference(m_parent_id, child_id, T_child_slot);
+    gaia_base_t::insert_child_reference(m_parent_id, child_id, T_child_slot);
 }
 
 template <typename T_parent, typename T_child, size_t T_parent_slot, size_t T_child_slot, size_t T_next_slot>

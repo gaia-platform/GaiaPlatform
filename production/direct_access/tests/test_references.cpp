@@ -9,6 +9,7 @@
 
 #include "db_catalog_test_base.hpp"
 #include "gaia_addr_book.h"
+#include "gaia_ptr.hpp"
 #include "gaia_relationships.hpp"
 
 using namespace std;
