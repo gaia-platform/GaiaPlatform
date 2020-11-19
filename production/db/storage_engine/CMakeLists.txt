@@ -88,8 +88,8 @@ target_include_directories(gaia_se_client PRIVATE ${GAIA_STORAGE_ENGINE_PRIVATE_
 # For referential integrity check to read catalog.
 # TODO: Switch to use catalog_core and remove the dependency on catalog headers and gaia_direct.
 target_include_directories(gaia_se_client PRIVATE
-  "${GAIA_INC}"
-  "${GAIA_INTERNAL_INC}/catalog")
+  ${GAIA_INC}
+  ${GAIA_INTERNAL_INC}/catalog)
 
 # For flatbuffers generated code.
 target_include_directories(gaia_se_client SYSTEM PRIVATE "${FLATBUFFERS_INC}")
