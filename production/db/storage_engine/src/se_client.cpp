@@ -39,6 +39,7 @@ using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::db::triggers;
 using namespace gaia::db::messages;
+using namespace gaia::db::memory_manager;
 using namespace flatbuffers;
 using namespace scope_guard;
 
@@ -163,9 +164,51 @@ client::get_id_generator_for_type(gaia_type_t type)
     return id_generator;
 }
 
-static void build_client_request(FlatBufferBuilder& builder, session_event_t event)
+static std::vector<flatbuffers::Offset<stack_allocator_info_t>> build_stack_allocator_list(
+    FlatBufferBuilder& builder,
+    const std::vector<stack_allocator_t>* const stack_allocators)
 {
-    auto client_request = Createclient_request_t(builder, event);
+    std::vector<flatbuffers::Offset<stack_allocator_info_t>> memory_allocation;
+    if (stack_allocators)
+    {
+        std::vector<flatbuffers::Offset<stack_allocator_info_t>> memory_allocation;
+        for (auto& stack_allocator : *stack_allocators)
+        {
+            const auto stack_allocator_info = Createstack_allocator_info_t(
+                builder,
+                stack_allocator.get_base_memory_offset(),
+                stack_allocator.get_total_memory_size());
+
+            memory_allocation.push_back(stack_allocator_info);
+        }
+    }
+    return memory_allocation;
+}
+
+static void build_client_request(
+    FlatBufferBuilder& builder,
+    session_event_t event,
+    bool is_more_memory_needed = false,
+    std::vector<flatbuffers::Offset<stack_allocator_info_t>>* memory_alloc_info = nullptr)
+{
+    flatbuffers::Offset<client_request_t> client_request;
+    if (event == session_event_t::COMMIT_TXN || event == session_event_t::ROLLBACK_TXN)
+    {
+        retail_assert(!is_more_memory_needed, "Don't request memory during commit or rollback");
+        auto alloc_info = Creatememory_allocation_info_tDirect(builder, memory_alloc_info, is_more_memory_needed);
+        client_request = Createclient_request_t(builder, event, request_data_t::memory_info, alloc_info.Union());
+    }
+    else if (is_more_memory_needed)
+    {
+        retail_assert(!memory_alloc_info, "this is a request for addional memory only");
+        // Request more memory from the server in case session thread is running low.
+        auto alloc_info = Creatememory_allocation_info_tDirect(builder, nullptr, is_more_memory_needed);
+        client_request = Createclient_request_t(builder, event, request_data_t::memory_info, alloc_info.Union());
+    }
+    else
+    {
+        client_request = Createclient_request_t(builder, event);
+    }
     auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
     builder.Finish(message);
 }
@@ -268,6 +311,8 @@ void client::begin_session()
     retail_assert(s_fd_log == -1, "Log file descriptor uninitialized");
     retail_assert(s_log == nullptr, "Log segment uninitialized");
     retail_assert(s_locators == nullptr, "Locators segment uninitialized");
+    retail_assert(s_free_stack_allocators.empty(), "No memory should be reserved yet");
+    retail_assert(s_stack_allocators.empty(), "No memory should be reserved yet");
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
@@ -313,6 +358,9 @@ void client::begin_session()
     session_event_t event = reply->event();
     retail_assert(event == session_event_t::CONNECT, "Unexpected event received!");
 
+    // Obtain session memory allocation information.
+    const memory_allocation_info_t* alloc = reply->session_memory_allocation_info();
+
     // Since the data and locator fds are global, we need to atomically update them
     // (but only if they're not already initialized).
 
@@ -320,10 +368,28 @@ void client::begin_session()
     s_data = static_cast<data*>(map_fd(
         sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0));
 
+    // Once data mapping has been setup, load up stack allocators that were initialized on the server.
+    load_stack_allocators(alloc, reinterpret_cast<uint8_t*>(s_data->objects));
+
     // Set up the private locator segment fd.
     s_fd_locators = fd_locators;
     cleanup_locator_fd.dismiss();
     cleanup_session_socket.dismiss();
+}
+
+void client::load_stack_allocators(const memory_allocation_info_t* alloc, uint8_t* data_mapping_base_addr)
+{
+    auto stack_allocators = alloc->stack_allocator_list();
+
+    for (size_t i = 0; i < stack_allocators->size(); i++)
+    {
+        auto allocator = stack_allocators->Get(i);
+
+        // Create and load stack allocator.
+        auto stack_allocator = stack_allocator_t();
+        stack_allocator.load(data_mapping_base_addr, allocator->stack_allocator_offset(), allocator->stack_allocator_size());
+        s_free_stack_allocators.push_back(stack_allocator);
+    }
 }
 
 void client::end_session()
@@ -331,6 +397,10 @@ void client::end_session()
     // This will gracefully shut down the server-side session thread
     // and all other threads that session thread owns.
     close_fd(s_session_socket);
+    // Clean up client side state.
+    // The server will release memory for any uncommitted/unused stack allocators on the session thread.
+    s_free_stack_allocators.clear();
+    s_stack_allocators.clear();
 }
 
 void client::begin_transaction()
@@ -377,7 +447,7 @@ void client::begin_transaction()
 
     // Notify the server that we're in a transaction. (We don't send our log fd until commit.)
     FlatBufferBuilder builder;
-    build_client_request(builder, session_event_t::BEGIN_TXN);
+    build_client_request(builder, session_event_t::BEGIN_TXN, s_free_stack_allocators.size() < MIN_STACK_ALLOCATORS_PER_CLIENT);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Block to receive transaction id from the server.
@@ -392,6 +462,13 @@ void client::begin_transaction()
     s_txn_id = txn_info->transaction_id();
     // Save the log fd to send to the server on commit.
     s_fd_log = fd_log;
+
+    // Obtain transaction memory allocation information.
+    const memory_allocation_info_t* alloc = reply->session_memory_allocation_info();
+    if (alloc)
+    {
+        load_stack_allocators(alloc, reinterpret_cast<uint8_t*>(s_data->objects));
+    }
 
     cleanup_log_fd.dismiss();
     cleanup_log_mapping.dismiss();
@@ -408,7 +485,8 @@ void client::rollback_transaction()
     // Notify the server that we rolled back this transaction.
     // (We don't expect the server to reply to this message.)
     FlatBufferBuilder builder;
-    build_client_request(builder, session_event_t::ROLLBACK_TXN);
+    auto session_memory_allocation = build_stack_allocator_list(builder, &s_stack_allocators);
+    build_client_request(builder, session_event_t::ROLLBACK_TXN, false, &session_memory_allocation);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Reset transaction id.
@@ -416,6 +494,8 @@ void client::rollback_transaction()
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
+    // Reset stack allocator vector.
+    s_stack_allocators.clear();
 }
 
 // This method returns void on a commit decision and throws on an abort decision.
@@ -438,7 +518,8 @@ void client::commit_transaction()
 
     // Send the server the commit event with the log segment fd.
     FlatBufferBuilder builder;
-    build_client_request(builder, session_event_t::COMMIT_TXN);
+    auto session_memory_allocation = build_stack_allocator_list(builder, &s_stack_allocators);
+    build_client_request(builder, session_event_t::COMMIT_TXN, false, &session_memory_allocation);
     send_msg_with_fds(s_session_socket, &s_fd_log, 1, builder.GetBufferPointer(), builder.GetSize());
 
     // Block on the server's commit decision.
@@ -476,4 +557,31 @@ void client::commit_transaction()
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
+    // Reset stack allocator vector.
+    s_stack_allocators.clear();
+}
+
+void client::request_memory()
+{
+    verify_txn_active();
+
+    // Notify the server that we rolled back this transaction.
+    // (We don't expect the server to reply to this message.)
+    FlatBufferBuilder builder;
+    build_client_request(builder, session_event_t::REQUEST_MEMORY, true);
+    send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
+
+    // Receive memory allocation information from the server.
+    uint8_t msg_buf[c_max_msg_size] = {0};
+    size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
+    retail_assert(bytes_read > 0, "Failed to read message!");
+
+    // Extract the transaction id and cache it; it needs to be reset for the next transaction.
+    const message_t* msg = Getmessage_t(msg_buf);
+    const server_reply_t* reply = msg->msg_as_reply();
+    const memory_allocation_info_t* alloc = reply->session_memory_allocation_info();
+    if (alloc)
+    {
+        load_stack_allocators(alloc, reinterpret_cast<uint8_t*>(s_data->objects));
+    }
 }

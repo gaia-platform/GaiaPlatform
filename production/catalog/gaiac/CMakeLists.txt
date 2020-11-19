@@ -11,6 +11,7 @@ set(GAIA_CATALOG_TOOL_INCLUDES
   ${GAIA_REPO}/production/catalog/inc
   ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_REPO}/production/db/storage_engine/inc
+  ${GAIA_REPO}/production/db/inc/memory_manager
   ${GAIA_INC}/public/common
   ${GAIA_INC}/public/db
   ${GAIA_INC}/internal/db

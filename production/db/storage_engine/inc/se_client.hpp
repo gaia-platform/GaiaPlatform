@@ -8,6 +8,7 @@
 #include "gaia_db.hpp"
 #include "retail_assert.hpp"
 #include "se_shared_data.hpp"
+#include "stack_allocator.hpp"
 #include "system_table_types.hpp"
 #include "triggers.hpp"
 
@@ -47,6 +48,10 @@ public:
     // This returns a generator object for gaia_ids of a given type.
     static std::function<std::optional<gaia::common::gaia_id_t>()> get_id_generator_for_type(gaia_type_t type);
 
+    // Make IPC call to the server requesting more memory for the current session
+    // in case the client runs out of memory mid transaction.
+    static void request_memory();
+
 private:
     // s_fd_log & s_locators have transaction lifetime.
     thread_local static inline log* s_log = nullptr;
@@ -73,6 +78,23 @@ private:
         static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_ruleset),
         static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_rule),
         static_cast<gaia_type_t>(system_table_type_t::event_log)};
+
+    // Allot stack allocators to the ongoing transaction from this list.
+    // Unused memory from this list is deallocted upon session end.
+    thread_local static inline std::vector<memory_manager::stack_allocator_t> s_free_stack_allocators{};
+
+    // s_stack_allocators has transaction lifetime and is cleared after each transaction.
+    // This represents the list of stack allocators which were required by the transaction.
+    // This list is propagated to the server at the time of commit.
+    // In case of rollback, all SAs from this list are deallocated and emptied into s_free_stack_allocators.
+    thread_local static inline std::vector<memory_manager::stack_allocator_t> s_stack_allocators{};
+
+    // This value is used to decide whether the client should request
+    // for additional memory during a begin_transaction call.
+    static constexpr size_t MIN_STACK_ALLOCATORS_PER_CLIENT = 1;
+
+    // Load server initialized stack allocators on the client.
+    static void load_stack_allocators(const messages::memory_allocation_info_t* alloc, uint8_t* data_mapping_base_addr);
 
     static void txn_cleanup();
 

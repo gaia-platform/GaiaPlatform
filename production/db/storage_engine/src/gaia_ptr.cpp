@@ -11,11 +11,13 @@
 #include "se_client.hpp"
 #include "se_hash_map.hpp"
 #include "se_helpers.hpp"
+#include "stack_allocator.hpp"
 #include "triggers.hpp"
 #include "type_metadata.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
+using namespace gaia::db::memory_manager;
 using namespace gaia::db::triggers;
 
 gaia_id_t gaia_ptr::generate_id()
@@ -98,7 +100,8 @@ void gaia_ptr::clone_no_txn()
 {
     se_object_t* old_this = to_ptr();
     size_t new_size = sizeof(se_object_t) + old_this->payload_size;
-    allocate(new_size);
+    gaia_offset_t old_offset = to_offset();
+    stack_allocator_allocate(old_offset, new_size, client::s_stack_allocators, client::s_free_stack_allocators);
     se_object_t* new_this = to_ptr();
     memcpy(new_this, old_this, new_size);
 }
@@ -132,7 +135,7 @@ gaia_ptr& gaia_ptr::update_payload(size_t data_size, const void* data)
     }
 
     // updates m_locator to point to the new object
-    allocate(sizeof(se_object_t) + total_len);
+    stack_allocator_allocate(old_offset, sizeof(se_object_t) + total_len, client::s_stack_allocators, client::s_free_stack_allocators);
 
     se_object_t* new_this = to_ptr();
 
@@ -179,13 +182,79 @@ gaia_ptr::gaia_ptr(gaia_id_t id, size_t size)
 {
     hash_node* hash_node = se_hash_map::insert(id);
     hash_node->locator = m_locator = allocate_locator();
-    allocate_object(m_locator, size);
+    stack_allocator_allocate(0, size, client::s_stack_allocators, client::s_free_stack_allocators);
     client::txn_log(m_locator, 0, to_offset(), gaia_operation_t::create);
 }
 
-void gaia_ptr::allocate(size_t size)
+address_offset_t get_stack_allocator_offset(
+    gaia_locator_t locator,
+    address_offset_t old_slot_offset,
+    size_t size,
+    std::vector<stack_allocator_t>& transaction_allocators,
+    std::vector<stack_allocator_t>& free_allocators)
 {
-    allocate_object(m_locator, size);
+    // If free list is empty, make an IPC call to request more memory from the server.
+    // Note that this call can crash the server in case the server runs out of memory.
+    if (free_allocators.size() == 0)
+    {
+        client::request_memory();
+    }
+
+    retail_assert(free_allocators.size() > 0, "Unable to obtain memory from server.");
+
+    // Assign a new stack allocator if none are assigned.
+    if (transaction_allocators.size() == 0)
+    {
+        transaction_allocators.push_back(free_allocators.front());
+        free_allocators.erase(free_allocators.begin());
+    }
+
+    // Try allocating object. If current stack allocator memory isn't enough, then fetch
+    // another allocator from the free list.
+    address_offset_t allocated_memory_offset = -1; // uninit
+    auto code = transaction_allocators.back().allocate(locator, old_slot_offset, size, allocated_memory_offset);
+
+    // The stack allocator size may not be sufficient for the current object.
+    if (code == error_code_t::insufficient_memory_size || code == error_code_t::memory_size_too_large)
+    {
+        // Get an allocator from the free list to allocate an object from.
+        transaction_allocators.push_back(free_allocators.front());
+        free_allocators.erase(free_allocators.begin());
+
+        // Reset the allocator offset and try to allocate an object again.
+        allocated_memory_offset = -1;
+        code = transaction_allocators.back().allocate(locator, old_slot_offset, size, allocated_memory_offset);
+    }
+
+    // Todo - add exception class.
+    retail_assert(code == error_code_t::success, "Object Stack allocation failure!");
+    // Size 0 indicates a deletion. We never expect memory to be allocated for a delete call.
+    if (size == 0)
+    {
+        retail_assert(allocated_memory_offset == -1, "Memory allocated for a delete operation!");
+    }
+    else
+    {
+        retail_assert(allocated_memory_offset != -1, "Allocation failure! Stack allocator returned offset not initialized.");
+    }
+
+    return allocated_memory_offset;
+}
+void gaia_ptr::stack_allocator_allocate(
+    address_offset_t old_slot_offset,
+    size_t size,
+    std::vector<stack_allocator_t>& transaction_allocators,
+    std::vector<stack_allocator_t>& free_allocators)
+{
+    bool deallocate = size == 0;
+    address_offset_t allocated_memory_offset = get_stack_allocator_offset(m_locator, old_slot_offset, size, transaction_allocators, free_allocators);
+
+    if (!deallocate)
+    {
+        retail_assert(allocated_memory_offset != -1, "offset should be valid!");
+        // Update locator array to point to the new offset.
+        allocate_object_mm(m_locator, allocated_memory_offset);
+    }
 }
 
 se_object_t* gaia_ptr::to_ptr() const
@@ -221,6 +290,7 @@ void gaia_ptr::find_next(gaia_type_t type)
 
 void gaia_ptr::reset()
 {
+    stack_allocator_allocate(to_offset(), 0, client::s_stack_allocators, client::s_free_stack_allocators);
     gaia::db::locators* locators = gaia::db::get_shared_locators();
     client::txn_log(m_locator, to_offset(), 0, gaia_operation_t::remove, to_ptr()->id);
 

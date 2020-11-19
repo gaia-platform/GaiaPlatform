@@ -32,7 +32,7 @@ constexpr char c_sch_mem_locators[] = "gaia_mem_locators";
 constexpr char c_sch_mem_data[] = "gaia_mem_data";
 constexpr char c_sch_mem_log[] = "gaia_mem_log";
 
-constexpr size_t c_max_locators = 32 * 128L * 1024L;
+constexpr size_t c_max_locators = 10000000 * 4L;
 constexpr size_t c_hash_buckets = 12289;
 constexpr size_t c_hash_list_elements = c_max_locators;
 constexpr size_t c_max_log_records = 1000000;
@@ -92,7 +92,7 @@ struct data
     // value), the first word (at offset 0) is unused by data, so we use it to
     // store the last offset allocated (minus 1 since all offsets are obtained
     // by incrementing the counter by 1).
-    uint64_t objects[c_max_locators * 8];
+    alignas(64) uint64_t objects[c_max_locators * 8];
 };
 
 } // namespace db

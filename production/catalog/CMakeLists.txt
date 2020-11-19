@@ -20,6 +20,7 @@ set(GAIA_CATALOG_PRIVATE_INCLUDES
   ${GAIA_INC}/internal/common
   ${GAIA_INC}/internal/db
   ${GAIA_REPO}/production/db/storage_engine/inc
+  ${GAIA_REPO}/production/db/inc/memory_manager
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc
 )

@@ -8,6 +8,7 @@
 #include <csignal>
 
 #include <functional>
+#include <map>
 #include <optional>
 #include <shared_mutex>
 #include <thread>
@@ -15,9 +16,11 @@
 #include "flatbuffers/flatbuffers.h"
 
 #include "gaia_exception.hpp"
+#include "memory_manager.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
 #include "se_types.hpp"
+#include "stack_allocator.hpp"
 
 namespace gaia
 {
@@ -25,6 +28,7 @@ namespace db
 {
 
 using namespace gaia::common;
+using namespace gaia::db::memory_manager;
 using namespace gaia::db::messages;
 using namespace flatbuffers;
 
@@ -49,6 +53,10 @@ public:
 private:
     // from https://www.man7.org/linux/man-pages/man2/eventfd.2.html
     static constexpr uint64_t MAX_SEMAPHORE_COUNT = std::numeric_limits<uint64_t>::max() - 1;
+    static constexpr size_t STACK_ALLOCATOR_SIZE_BYTES = 8 * 1024 * 1024;
+    static constexpr size_t STACK_ALLOCATOR_ALLOTMENT_COUNT = 0;
+    static constexpr size_t STACK_ALLOCATOR_ALLOTMENT_COUNT_TRX = 1;
+
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t STREAM_BATCH_SIZE = 1 << 10;
     static inline int s_server_shutdown_eventfd = -1;
@@ -67,6 +75,13 @@ private:
     thread_local static inline int s_session_shutdown_eventfd = -1;
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
     static inline bool s_disable_persistence = false;
+    static inline std::unique_ptr<memory_manager_t> memory_manager{};
+
+    // Keeps track of stack allocators belonging to a session.
+    // On commit/rollback, all stack allocators belonging to a transaction are removed from this list.
+    // In case of receiving any of the following epoll events - [EPOLLRDHUP, EPOLLHUP, EPOLLERR] on the server_client socket fd
+    // all unused/uncommitted stack allocators in this list will be purged before terminating the connection.
+    thread_local static inline std::map<address_offset_t, stack_allocator_t> s_active_stack_allocators{};
 
     // function pointer type that executes side effects of a state transition
     // REVIEW: replace void* with std::any?
@@ -79,6 +94,7 @@ private:
     static void handle_client_shutdown(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
     static void handle_server_shutdown(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
     static void handle_request_stream(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
+    static void handle_request_memory(int*, size_t, session_event_t, const void*, session_state_t, session_state_t);
 
     struct transition_t
     {
@@ -118,6 +134,7 @@ private:
         {session_state_t::TXN_COMMITTING, session_event_t::DECIDE_TXN_ABORT, {session_state_t::CONNECTED, handle_decide_txn}},
         {session_state_t::ANY, session_event_t::SERVER_SHUTDOWN, {session_state_t::DISCONNECTED, handle_server_shutdown}},
         {session_state_t::ANY, session_event_t::REQUEST_STREAM, {session_state_t::ANY, handle_request_stream}},
+        {session_state_t::ANY, session_event_t::REQUEST_MEMORY, {session_state_t::ANY, handle_request_memory}},
     };
 
     static void apply_transition(session_event_t event, const void* event_data, int* fds, size_t fd_count);
@@ -127,9 +144,19 @@ private:
         session_event_t event,
         session_state_t old_state,
         session_state_t new_state,
-        gaia_txn_id_t txn_id = 0);
+        gaia_txn_id_t txn_id = 0,
+        const std::vector<stack_allocator_t>* const stack_allocators = nullptr);
 
     static void clear_shared_memory();
+
+    static void allocate_stack_allocators(std::vector<stack_allocator_t>* new_memory_allotment, bool on_connect);
+
+    static void init_memory_manager();
+
+    static void get_memory_info_from_request_and_free(
+        session_event_t event,
+        const void* event_data,
+        bool commit_success);
 
     static void init_shared_memory();
 
