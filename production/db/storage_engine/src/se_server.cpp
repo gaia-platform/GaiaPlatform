@@ -847,8 +847,6 @@ void server::session_handler(int session_socket)
                     const client_request_t* request = msg->msg_as_request();
                     event = request->event();
 
-                    // We should logically pass an object corresponding to the request_data_t union,
-                    // but the FlatBuffers API doesn't have any object corresponding to a union.
                     event_data = static_cast<const void*>(request);
 
                     if (fd_buf_size > 0)
