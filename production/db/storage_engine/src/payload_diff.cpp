@@ -33,7 +33,7 @@ void compute_payload_diff(
     // data corruption bug(s).
     retail_assert(
         type_record_id != c_invalid_gaia_id,
-        "The type " + std::to_string(type_id) + "does not exist in the catalog for payload diff!");
+        "The type '" + std::to_string(type_id) + "' does not exist in the catalog for payload diff!");
 
     auto schema = catalog_core_t::get_table(type_record_id).binary_schema();
 

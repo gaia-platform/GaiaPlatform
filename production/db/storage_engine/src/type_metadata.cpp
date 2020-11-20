@@ -245,14 +245,14 @@ type_metadata_t& type_registry_t::create(gaia_type_t type)
     }
     auto& metadata = get_or_create_no_lock(type);
 
-    for (auto relationship : catalog_core_t::list_relationship_from(record_id))
+    for (auto relationship_view : catalog_core_t::list_relationship_from(record_id))
     {
-        if (metadata.find_child_relationship(relationship.parent_offset()))
+        if (metadata.find_child_relationship(relationship_view.parent_offset()))
         {
             continue;
         }
 
-        auto rel = create_relationship(relationship);
+        auto rel = create_relationship(relationship_view);
 
         gaia_log::db().trace(
             " relationship parent:'{}', child:'{}', first_child_offset:'{}', parent_offset:'{}', next_child_offset:'{}'",
@@ -264,14 +264,14 @@ type_metadata_t& type_registry_t::create(gaia_type_t type)
         metadata.add_child_relationship(rel);
     }
 
-    for (auto relationship : catalog_core_t::list_relationship_to(record_id))
+    for (auto relationship_view : catalog_core_t::list_relationship_to(record_id))
     {
-        if (metadata.find_parent_relationship(relationship.first_child_offset()))
+        if (metadata.find_parent_relationship(relationship_view.first_child_offset()))
         {
             continue;
         }
 
-        auto rel = create_relationship(relationship);
+        auto rel = create_relationship(relationship_view);
 
         gaia_log::db().trace(
             " with relationship parent:'{}', child:'{}', first_child_offset:'{}', parent_offset:'{}', next_child_offset:'{}'",

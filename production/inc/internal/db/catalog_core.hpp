@@ -121,9 +121,9 @@ struct catalog_core_t
     static table_list_t list_tables();
     static field_list_t list_fields(gaia_id_t table_id);
 
-    // List all the relationship originated from the given table.
+    // List all the relationship(s) originating from the given table.
     static relationship_list_t list_relationship_from(gaia_id_t table_id);
-    // List all the relationship pointing to the given table.
+    // List all the relationship(s) pointing to the given table.
     static relationship_list_t list_relationship_to(gaia_id_t table_id);
 };
 

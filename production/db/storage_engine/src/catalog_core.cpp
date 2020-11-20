@@ -97,20 +97,18 @@ namespace db
 
 table_view_t catalog_core_t::get_table(gaia_id_t table_id)
 {
-    if (!is_transaction_active())
-    {
-        throw transaction_not_open();
-    }
+    retail_assert(
+        is_transaction_active(),
+        std::string(__FUNCTION__) + " should only be called from an open transaction!");
 
     return table_view_t{id_to_ptr(table_id)};
 }
 
 table_list_t catalog_core_t::list_tables()
 {
-    if (!is_transaction_active())
-    {
-        throw transaction_not_open();
-    }
+    retail_assert(
+        is_transaction_active(),
+        std::string(__FUNCTION__) + " should only be called from an open transaction!");
 
     data* data = gaia::db::get_shared_data();
     auto gaia_table_generator = [data, locator = c_invalid_gaia_locator]() mutable -> std::optional<table_view_t> {
@@ -136,10 +134,9 @@ template <typename T_catalog_obj_view>
 common::iterators::range_t<common::iterators::generator_iterator_t<T_catalog_obj_view>>
 list_catalog_obj_reference_chain(gaia_id_t table_id, uint16_t first_offset, uint16_t next_offset)
 {
-    if (!is_transaction_active())
-    {
-        throw transaction_not_open();
-    }
+    retail_assert(
+        is_transaction_active(),
+        std::string(__FUNCTION__) + " should only be called from an open transaction!");
 
     auto obj_ptr = id_to_ptr(table_id);
     const gaia_id_t* references = obj_ptr->references();
@@ -165,7 +162,6 @@ field_list_t catalog_core_t::list_fields(gaia_id_t table_id)
 
 relationship_list_t catalog_core_t::list_relationship_from(gaia_id_t table_id)
 {
-    // List all the relationship originated from the given table.
     return list_catalog_obj_reference_chain<relationship_view_t>(
         table_id,
         c_gaia_table_first_parent_gaia_relationship_offset,
@@ -174,7 +170,6 @@ relationship_list_t catalog_core_t::list_relationship_from(gaia_id_t table_id)
 
 relationship_list_t catalog_core_t::list_relationship_to(gaia_id_t table_id)
 {
-    // List all the relationship pointing to the given table.
     return list_catalog_obj_reference_chain<relationship_view_t>(
         table_id,
         c_gaia_table_first_child_gaia_relationship_offset,
