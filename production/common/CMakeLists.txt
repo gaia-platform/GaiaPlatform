@@ -33,10 +33,10 @@ add_library(gaia_common STATIC
   src/logger_manager.cpp)
 target_include_directories(gaia_common PUBLIC ${GAIA_COMMON_INCLUDES})
 
+# The following are INTERFACE libraries for including headers.
+target_link_libraries(gaia_common cpptoml)
 target_link_libraries(gaia_common fmt)
-
 target_link_libraries(gaia_common spdlog)
-
 target_link_libraries(gaia_common spdlog_setup)
 
 # SYSLOG logging is temporarily disabled: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-387
