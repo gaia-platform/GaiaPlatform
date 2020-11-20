@@ -239,13 +239,15 @@ TEST_F(storage_engine_client_test, iterate_type)
 
 TEST_F(storage_engine_client_test, iterate_type_cursor)
 {
-    constexpr size_t BUFFER_SIZE_EXACT = c_stream_batch_size;
-    constexpr size_t BUFFER_SIZE_EXACT_MULTIPLE = c_stream_batch_size * 2;
-    constexpr size_t BUFFER_SIZE_INEXACT_MULTIPLE = c_stream_batch_size * 2 + 3;
-    constexpr size_t BUFFER_SIZE_MINUS_ONE = c_stream_batch_size - 1;
-    constexpr size_t BUFFER_SIZE_PLUS_ONE = c_stream_batch_size + 1;
+    constexpr size_t c_buffer_size_exact = c_stream_batch_size;
+    constexpr size_t c_buffer_size_exact_multiple = c_stream_batch_size * 2;
+    constexpr size_t c_buffer_size_inexact_multiple = c_stream_batch_size * 2 + 3;
+    constexpr size_t c_buffer_size_minus_one = c_stream_batch_size - 1;
+    constexpr size_t c_buffer_size_plus_one = c_stream_batch_size + 1;
 
-    for (int i = 4; i < 10; i++)
+    constexpr int c_num_types = 10;
+
+    for (int i = 4; i < c_num_types; i++)
     {
         type_registry_t::instance().test_get_or_create(gaia_type_t(i));
     }
@@ -260,31 +262,31 @@ TEST_F(storage_engine_client_test, iterate_type_cursor)
         gaia_ptr::create(gaia_ptr::generate_id(), next_type, 0, 0);
         // "exact buffer size" test
         ++next_type;
-        for (size_t i = 0; i < BUFFER_SIZE_EXACT; i++)
+        for (size_t i = 0; i < c_buffer_size_exact; i++)
         {
             gaia_ptr::create(gaia_ptr::generate_id(), next_type, 0, 0);
         }
         // "exact multiple of buffer size" test
         ++next_type;
-        for (size_t i = 0; i < BUFFER_SIZE_EXACT_MULTIPLE; i++)
+        for (size_t i = 0; i < c_buffer_size_exact_multiple; i++)
         {
             gaia_ptr::create(gaia_ptr::generate_id(), next_type, 0, 0);
         }
         // "inexact multiple of buffer size" test
         ++next_type;
-        for (size_t i = 0; i < BUFFER_SIZE_INEXACT_MULTIPLE; i++)
+        for (size_t i = 0; i < c_buffer_size_inexact_multiple; i++)
         {
             gaia_ptr::create(gaia_ptr::generate_id(), next_type, 0, 0);
         }
         // "one less than buffer size" test
         ++next_type;
-        for (size_t i = 0; i < BUFFER_SIZE_MINUS_ONE; i++)
+        for (size_t i = 0; i < c_buffer_size_minus_one; i++)
         {
             gaia_ptr::create(gaia_ptr::generate_id(), next_type, 0, 0);
         }
         // "one more than buffer size" test
         ++next_type;
-        for (size_t i = 0; i < BUFFER_SIZE_PLUS_ONE; i++)
+        for (size_t i = 0; i < c_buffer_size_plus_one; i++)
         {
             gaia_ptr::create(gaia_ptr::generate_id(), next_type, 0, 0);
         }
@@ -335,7 +337,7 @@ TEST_F(storage_engine_client_test, iterate_type_cursor)
         std::cerr << "*** Iterating over nodes with exact buffer size:" << std::endl;
         type = 5;
         count = 0;
-        expected_count = BUFFER_SIZE_EXACT;
+        expected_count = c_buffer_size_exact;
         for (auto node : gaia_ptr::find_all_range(type))
         {
             EXPECT_EQ(node.type(), type);
@@ -347,7 +349,7 @@ TEST_F(storage_engine_client_test, iterate_type_cursor)
         std::cerr << "*** Iterating over nodes with exact multiple of buffer size:" << std::endl;
         type = 6;
         count = 0;
-        expected_count = BUFFER_SIZE_EXACT_MULTIPLE;
+        expected_count = c_buffer_size_exact_multiple;
         for (auto node : gaia_ptr::find_all_range(type))
         {
             EXPECT_EQ(node.type(), type);
@@ -359,7 +361,7 @@ TEST_F(storage_engine_client_test, iterate_type_cursor)
         std::cerr << "*** Iterating over nodes with inexact multiple of buffer size:" << std::endl;
         type = 7;
         count = 0;
-        expected_count = BUFFER_SIZE_INEXACT_MULTIPLE;
+        expected_count = c_buffer_size_inexact_multiple;
         for (auto node : gaia_ptr::find_all_range(type))
         {
             EXPECT_EQ(node.type(), type);
@@ -371,7 +373,7 @@ TEST_F(storage_engine_client_test, iterate_type_cursor)
         std::cerr << "*** Iterating over nodes with one less than buffer size:" << std::endl;
         type = 8;
         count = 0;
-        expected_count = BUFFER_SIZE_MINUS_ONE;
+        expected_count = c_buffer_size_minus_one;
         for (auto node : gaia_ptr::find_all_range(type))
         {
             EXPECT_EQ(node.type(), type);
@@ -383,7 +385,7 @@ TEST_F(storage_engine_client_test, iterate_type_cursor)
         std::cerr << "*** Iterating over nodes with one more than buffer size:" << std::endl;
         type = 9;
         count = 0;
-        expected_count = BUFFER_SIZE_PLUS_ONE;
+        expected_count = c_buffer_size_plus_one;
         for (auto node : gaia_ptr::find_all_range(type))
         {
             EXPECT_EQ(node.type(), type);

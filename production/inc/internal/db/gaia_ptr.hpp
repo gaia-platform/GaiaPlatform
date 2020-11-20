@@ -55,7 +55,7 @@ public:
         size_t data_size,
         const void* data);
 
-    // TODO This should be private but is it still used in some code paths
+    // TODO This should be private but it is still used in some code paths
     //  that could be painful to update.
     static gaia_ptr create(
         gaia_id_t id,

@@ -72,6 +72,7 @@ table_view_t catalog_core_t::get_table(gaia_id_t table_id)
     {
         throw transaction_not_open();
     }
+
     return table_view_t{id_to_ptr(table_id)};
 }
 
@@ -81,6 +82,7 @@ table_list_t catalog_core_t::list_tables()
     {
         throw transaction_not_open();
     }
+
     data* data = gaia::db::get_shared_data();
     auto gaia_table_generator = [data, locator = c_invalid_gaia_locator]() mutable -> std::optional<table_view_t> {
         // We need an acquire barrier before reading `last_locator`. We can
