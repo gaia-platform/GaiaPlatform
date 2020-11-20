@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Mapping
 
 from gdev.third_party.atools import memoize
@@ -5,11 +6,13 @@ from .dockerfile import GenCustomDockerfile
 from .._abc.build import GenAbcBuild
 
 
+@dataclass(frozen=True, repr=False)
 class GenCustomBuild(GenAbcBuild):
+    base_build: GenAbcBuild
 
     @property
     def dockerfile(self) -> GenCustomDockerfile:
-        return GenCustomDockerfile(self.options)
+        return GenCustomDockerfile(self.options, self.base_build.dockerfile)
 
     @memoize
     async def _get_wanted_label_value_by_name(self) -> Mapping[str, str]:
