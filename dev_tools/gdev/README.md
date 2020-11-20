@@ -208,13 +208,19 @@ outputs are made available while building production.
 * `[web]`
     List of web dependencies to download into build folder. One dependency per line.
 * `[pre_run]`
-    List of commands to run before the main run. Commands are run in the build folder in the Docker
-    image for the current build rule. One command per line. The dependencies defined in `[apt]`,
-    `[env]`, `[gaia]`, `[git]`, `[pip]`, and `[web]` sections become available for use in this
-    section.
+    List of commands to run before `[run]` section. Commands are run in the build folder in the
+    Docker image for the current build rule. One command per line. The dependencies defined in
+    `[apt]`, `[env]`, `[gaia]`, `[git]`, `[pip]`, and `[web]` sections become available for use in
+    this section.
 * `[run]`
-    List of commands to run after pre_run. This is the final stage for the build rule. Commands are
-    run in the build folder in the Docker image for the current build rule. One command per line.
+    List of commands to run after `[pre_run]` section. This is the final stage for the build rule.
+    Commands are run in the build folder in the Docker image for the current build rule. One command
+    per line.
+* `[output]`
+    List of outputs after the `[run]` section. By default, the entire filesystem (`/`) is the
+    single output of the `gdev.cfg`. If another `gdev.cfg` lists the current target as a
+    dependency in its `[gaia]` section, only the outputs defined here (or `/` if no outputs are
+    defined) are copied. One output file or folder per line.
 
 ### Docker image `/source` and `/build`
 Source code from `<repo_root>` is copied to the Docker image in the `[pre_run]` step. In the Docker

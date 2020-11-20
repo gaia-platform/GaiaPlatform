@@ -83,38 +83,21 @@ class GenAbcDockerfile(Dependency, ABC):
         return base_stages_text
 
     @memoize
+    async def _get_copy_section(self) -> str:
+        copy_section_parts = []
+        for input_dockerfile in await self.get_input_dockerfiles():
+            if await input_dockerfile.get_run_section():
+                copy_section_parts.append(f'COPY --from={await input_dockerfile.get_name()} / /')
+            elif copy_section := await input_dockerfile.get_copy_section():
+                copy_section_parts.append(copy_section)
+        copy_section = '\n'.join(copy_section_parts)
+
+        return copy_section
+
+    @memoize
     async def get_copy_section(self) -> str:
         """Return text for the COPY section of the final build stage."""
-        from ..pre_run.dockerfile import GenPreRunDockerfile
-        seen_dockerfiles = set()
-
-        # Calculating which build stages to copy from has a tricky problem problems. Docker
-        # sometimes fails to build images with inline caching if there is no RUN command in the
-        # build stage, so we cannot have such stages. In cases where such a stage would be an input
-        # to the current stage, we must instead recursively select the empty stage's non-input
-        # stages instead.
-        async def inner(dockerfile: GenAbcDockerfile) -> Iterable[str]:
-            copy_section_parts = []
-            if dockerfile not in seen_dockerfiles:
-                seen_dockerfiles.add(dockerfile)
-                for input_dockerfile in await dockerfile.get_input_dockerfiles():
-                    if await input_dockerfile.get_run_section():
-                        copy_section_parts.append(
-                            f'COPY --from={await input_dockerfile.get_name()} / /'
-                        )
-                    else:
-                        copy_section_parts += await inner(input_dockerfile)
-
-                path = dockerfile.cfg.path.parent
-                if (
-                        isinstance(dockerfile, GenPreRunDockerfile)
-                        and set(path.iterdir()) - {dockerfile.cfg.path}
-                ):
-                    copy_section_parts.append(f'COPY {path.context()} {path.image_source()}')
-
-            return copy_section_parts
-
-        copy_section = '\n'.join(await inner(self))
+        copy_section = await self._get_copy_section()
 
         self.log.debug(f'{copy_section = }')
 
@@ -122,6 +105,7 @@ class GenAbcDockerfile(Dependency, ABC):
 
     @memoize
     async def get_env_section(self) -> str:
+        """Return text for the ENV section of the final build stage."""
         env_section = ''
 
         self.log.debug(f'{env_section = }')

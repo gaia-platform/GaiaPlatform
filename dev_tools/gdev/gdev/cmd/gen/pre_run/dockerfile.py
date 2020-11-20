@@ -48,10 +48,10 @@ class GenPreRunDockerfile(GenAbcDockerfile):
         input_dockerfiles = tuple([
             GenAptDockerfile(self.options),
             GenEnvDockerfile(self.options),
-            GenGaiaDockerfile(self.options),
             GenGitDockerfile(self.options),
             GenPipDockerfile(self.options),
             GenWebDockerfile(self.options),
+            GenGaiaDockerfile(self.options),
         ])
 
         self.log.debug(f'{input_dockerfiles = }')
