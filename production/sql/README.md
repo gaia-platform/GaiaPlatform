@@ -1,6 +1,10 @@
 # production/sql
 This is a folder for the Postgres-based relational engine. The code here defines a foreign data wrapper (FDW) over our database. The FDW allows the gaia database to be used through Postgres.
 
+## Version management
+
+The FDW manages its version independently of the rest of the product, through its `version.config` file. As we don't generate revision numbers, the version will consist of just a major/minor combination. The version number is used in the name of the SQL setup script for the FDW (gaia_fdw--{major}.{minor}.sql) as well as in the name of the generated library (gaia_fdw-{major}.{minor}.so). In the future, we may want to completely drop the version from the library name, but for now, it may still be useful for debugging.
+
 ## Instructions for running unit test
 
 * Edit Postgres login configuration to change local account authentication method from "peer" to "trust". To find the location of the configuration file, execute this command in Postgres: `SHOW hba_file;`. By default, the file is located in `/etc/postgresql/12/main/pg_hba.conf`. You can also edit the file with this command: `sed -i '/^local/ s/peer/trust/' ``pg_conftool -s 12 main show hba_file`` `.
