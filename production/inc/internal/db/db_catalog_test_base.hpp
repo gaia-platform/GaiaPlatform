@@ -21,7 +21,7 @@ protected:
     /**
      * @param ddl_file_name The ddl filename, not the path. Eg. "addr_book.ddl"
      */
-    explicit db_catalog_test_base_t(std::string ddl_file_name, bool client_manages_session = false)
+    explicit db_catalog_test_base_t(std::string ddl_file_name = "", bool client_manages_session = false)
         : db_test_base_t(client_manages_session)
         , m_ddl_file_name(std::move(ddl_file_name)){};
 
@@ -35,7 +35,11 @@ protected:
         }
 
         reset_database_status();
-        load_schema(m_ddl_file_name);
+
+        if (!m_ddl_file_name.empty())
+        {
+            load_schema(m_ddl_file_name);
+        }
 
         if (is_client_managing_session())
         {
@@ -43,11 +47,11 @@ protected:
         }
     }
 
+    static void reset_database_status();
+    void load_schema(std::string ddl_file_name);
+
 private:
     std::string m_ddl_file_name;
-
-    void reset_database_status();
-    void load_schema(std::string ddl_file_name);
 };
 
 } // namespace db

@@ -118,7 +118,7 @@ public:
         set_path(nullptr);
     }
 
-    db_server_t(const char* db_server_path, bool disable_persistence = false)
+    explicit db_server_t(const char* db_server_path, bool disable_persistence = false)
         : m_disable_persistence(disable_persistence)
     {
         set_path(db_server_path);

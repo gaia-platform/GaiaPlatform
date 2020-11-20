@@ -90,7 +90,7 @@ public:
         gaia::common::gaia_type_t found_type)
     {
         std::stringstream message;
-        message << "Relationship with offset \"" << offset << "\" requires type \"" << expected_type << "\" but found \"" << found_type << "\" ";
+        message << "Relationship with offset '" << offset << "' requires type '" << expected_type << "' but found '" << found_type << "' ";
         m_message = message.str();
     }
 };
@@ -106,7 +106,7 @@ public:
     single_cardinality_violation(gaia::common::gaia_type_t type, gaia::common::reference_offset_t offset)
     {
         std::stringstream message;
-        message << "Gaia type \"" << type << "\" has single cardinality for the relationship with offset \"" << offset << "\"  but multiple children are being added";
+        message << "Gaia type '" << type << "' has single cardinality for the relationship with offset '" << offset << "'  but multiple children are being added";
         m_message = message.str();
     }
 };
@@ -120,7 +120,7 @@ public:
     child_already_referenced(gaia::common::gaia_type_t child_type, gaia::common::reference_offset_t offset)
     {
         std::stringstream message;
-        message << "Gaia type \"" << child_type << "\" has already a reference for the relationship with offset \"" << offset << "\"";
+        message << "Gaia type '" << child_type << "' has already a reference for the relationship with offset '" << offset << "'";
         m_message = message.str();
     }
 };
@@ -135,10 +135,10 @@ public:
         gaia::common::gaia_id_t parent_id)
     {
         std::stringstream message;
-        message << "Impossible to remove child with id \"" << child_id
-                << "\" and type \"" << child_type
-                << "\" from parent with id \"" << parent_id
-                << "\" and type \"" << parent_type << "\". The child has a different parent.";
+        message << "Impossible to remove child with id '" << child_id
+                << "' and type '" << child_type
+                << "' from parent with id '" << parent_id
+                << "' and type '" << parent_type << "'. The child has a different parent.";
         m_message = message.str();
     }
 };

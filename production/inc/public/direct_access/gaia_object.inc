@@ -1,4 +1,5 @@
 /////////////////////////////////////////////
+/////////////////////////////////////////////
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
@@ -122,9 +123,8 @@ template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, type
 gaia_id_t gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::insert_row(
     flatbuffers::FlatBufferBuilder& fbb)
 {
-    gaia_id_t node_id = gaia_ptr::generate_id();
-    gaia_ptr::create(node_id, T_container, N_references, fbb.GetSize(), fbb.GetBufferPointer());
-    return node_id;
+    gaia_ptr node = gaia_ptr::create(T_container, fbb.GetSize(), fbb.GetBufferPointer());
+    return node.id();
 }
 
 template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
@@ -180,13 +180,12 @@ gaia_id_t gaia_writer_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object,
 {
     gaia_ptr node_ptr;
 
-    gaia_id_t id = gaia_ptr::generate_id();
     auto u = T_flatbuffer::Pack(m_builder, this);
     m_builder.Finish(u);
-    node_ptr = gaia_ptr::create(id, T_container, N_references, m_builder.GetSize(), m_builder.GetBufferPointer());
+    node_ptr = gaia_ptr::create(T_container, m_builder.GetSize(), m_builder.GetBufferPointer());
     m_builder.Clear();
 
-    return id;
+    return node_ptr.id();
 }
 
 template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
