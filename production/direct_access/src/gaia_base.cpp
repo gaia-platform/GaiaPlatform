@@ -177,10 +177,10 @@ gaia_id_t gaia_base_t::find_next(gaia_id_t id)
     return next_id;
 }
 
-gaia_id_t gaia_base_t::insert(gaia_type_t container, size_t num_refs, size_t data_size, const void* data)
+gaia_id_t gaia_base_t::insert(gaia_type_t container, size_t data_size, const void* data)
 {
     gaia_id_t node_id = gaia_ptr::generate_id();
-    gaia_ptr::create(node_id, container, num_refs, data_size, data);
+    gaia_ptr::create(node_id, container, data_size, data);
     return node_id;
 }
 
