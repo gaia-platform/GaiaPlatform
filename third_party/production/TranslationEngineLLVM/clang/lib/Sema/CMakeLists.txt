@@ -79,6 +79,8 @@ add_clang_library(clangSema
   clangLex
   gaia_direct_llvm
   gaia_se_client_llvm
+  gaia_common_llvm
+  fmt_llvm
   gaia_payload_types_llvm
   gaia_catalog_llvm
   gaia_system_llvm
@@ -87,7 +89,13 @@ add_clang_library(clangSema
   )
 
 target_include_directories(clangSema PRIVATE ${GAIA_CATALOG_INCLUDES})
-add_dependencies(clangSema flatbuffers gaia_system gaia_common gaia_se_client gaia_payload_types gaia_direct gaia_catalog)
+add_dependencies(clangSema flatbuffers gaia_system gaia_se_client gaia_common gaia_payload_types gaia_direct gaia_catalog)
+
+add_library(gaia_common_llvm STATIC IMPORTED GLOBAL)
+set_target_properties(gaia_common_llvm PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/common/libgaia_common.a)
+
+add_library(fmt_llvm STATIC IMPORTED GLOBAL)
+set_target_properties(fmt_llvm PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/fmt/fmt_dependency-prefix/src/fmt_dependency-build/libfmt.a)
 
 add_library(gaia_payload_types_llvm STATIC IMPORTED GLOBAL)
 set_target_properties(gaia_payload_types_llvm PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/db/payload_types/libgaia_payload_types.a)
