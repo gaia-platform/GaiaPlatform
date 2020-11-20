@@ -8,12 +8,13 @@
 #include "db_test_base.hpp"
 #include "gaia_db.hpp"
 #include "gaia_ptr.hpp"
+#include "se_test_util.hpp"
 #include "type_metadata.hpp"
 
 using namespace gaia::db;
 
 // duplicated from production/db/storage_engine/inc/se_server.hpp
-constexpr size_t STREAM_BATCH_SIZE = 1 << 10;
+constexpr size_t c_stream_batch_size = 1 << 10;
 
 void print_payload(std::ostream& o, size_t size, const char* payload)
 {
@@ -118,6 +119,16 @@ protected:
         init_data();
     }
 };
+
+TEST_F(storage_engine_client_test, creation_fail_for_invalid_type)
+{
+    begin_transaction();
+    {
+        const gaia_id_t c_invalid_id = 8888;
+        EXPECT_THROW(gaia_ptr::create(c_invalid_id, 0, 0), invalid_type);
+    }
+    commit_transaction();
+}
 
 TEST_F(storage_engine_client_test, read_data)
 {
@@ -228,11 +239,11 @@ TEST_F(storage_engine_client_test, iterate_type)
 
 TEST_F(storage_engine_client_test, iterate_type_cursor)
 {
-    constexpr size_t BUFFER_SIZE_EXACT = STREAM_BATCH_SIZE;
-    constexpr size_t BUFFER_SIZE_EXACT_MULTIPLE = STREAM_BATCH_SIZE * 2;
-    constexpr size_t BUFFER_SIZE_INEXACT_MULTIPLE = STREAM_BATCH_SIZE * 2 + 3;
-    constexpr size_t BUFFER_SIZE_MINUS_ONE = STREAM_BATCH_SIZE - 1;
-    constexpr size_t BUFFER_SIZE_PLUS_ONE = STREAM_BATCH_SIZE + 1;
+    constexpr size_t BUFFER_SIZE_EXACT = c_stream_batch_size;
+    constexpr size_t BUFFER_SIZE_EXACT_MULTIPLE = c_stream_batch_size * 2;
+    constexpr size_t BUFFER_SIZE_INEXACT_MULTIPLE = c_stream_batch_size * 2 + 3;
+    constexpr size_t BUFFER_SIZE_MINUS_ONE = c_stream_batch_size - 1;
+    constexpr size_t BUFFER_SIZE_PLUS_ONE = c_stream_batch_size + 1;
 
     for (int i = 4; i < 10; i++)
     {

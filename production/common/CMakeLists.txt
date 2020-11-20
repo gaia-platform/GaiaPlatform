@@ -33,8 +33,6 @@ add_library(gaia_common STATIC
   src/logger_manager.cpp)
 target_include_directories(gaia_common PUBLIC ${GAIA_COMMON_INCLUDES})
 
-target_link_libraries(gaia_common cpptoml)
-
 target_link_libraries(gaia_common fmt)
 
 target_link_libraries(gaia_common spdlog)

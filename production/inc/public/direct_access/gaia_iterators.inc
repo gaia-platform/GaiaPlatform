@@ -93,27 +93,22 @@ typename gaia_iterator_t<T_class>::pointer gaia_iterator_t<T_class>::operator->(
 template <gaia_type_t T_container, typename T_class>
 gaia_iterator_t<T_class> gaia_container_t<T_container, T_class>::begin()
 {
-    gaia_id_t id = 0;
-    gaia_ptr node_ptr;
-    for (node_ptr = gaia_ptr::find_first(T_container); node_ptr; node_ptr = node_ptr.find_next())
+    gaia_id_t id = gaia_base_t::find_first(T_container);
+    while (id != c_invalid_gaia_id)
     {
         if (m_filter_fn)
         {
-            if (m_filter_fn(T_class::get(node_ptr.id())))
+            if (m_filter_fn(T_class::get(id)))
             {
-                return gaia_iterator_t<T_class>(node_ptr.id(), m_filter_fn);
+                return gaia_iterator_t<T_class>(id, m_filter_fn);
             }
         }
         else
         {
             break;
         }
+        id = gaia_base_t::find_next(id);
     }
-    if (node_ptr)
-    {
-        id = node_ptr.id();
-    }
-
     return gaia_iterator_t<T_class>(id);
 }
 
@@ -219,18 +214,16 @@ gaia_set_iterator_t<T_child, T_next_slot> reference_chain_container_t<T_parent, 
 
     if (m_parent_id)
     {
-        auto node_ptr = gaia_ptr::open(m_parent_id);
-        id = node_ptr.references()[T_child_slot];
+        id = gaia_base_t::get_reference(m_parent_id, T_child_slot);
         while (id)
         {
-            node_ptr = gaia_ptr::open(id);
             if (m_filter_fn)
             {
                 if (m_filter_fn(T_child::get(id)))
                 {
                     break;
                 }
-                id = node_ptr.references()[T_next_slot];
+                id = gaia_base_t::get_reference(id, T_next_slot);
             }
             else
             {
@@ -258,23 +251,15 @@ gaia_set_iterator_t<T_child, T_next_slot> reference_chain_container_t<T_parent, 
 template <typename T_parent, typename T_child, size_t T_parent_slot, size_t T_child_slot, size_t T_next_slot>
 void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot, T_next_slot>::insert(gaia_id_t child_id)
 {
-    auto oid = m_parent_id;
-
     // The gaia_id() will be zero if the row hasn't been inserted into the SE.
-    if (child_id == 0 || oid == 0)
+    if (child_id == 0 || m_parent_id == 0)
     {
         T_parent expected = T_parent::get(0);
         T_child received = T_child::get(0);
         throw edc_invalid_state(expected.gaia_typename(), received.gaia_typename());
     }
 
-    auto node_ptr = gaia_ptr::open(oid);
-    if (!node_ptr)
-    {
-        throw invalid_node_id(oid);
-    }
-
-    node_ptr.add_child_reference(child_id, T_child_slot);
+    gaia_base_t::insert_child_reference(m_parent_id, child_id, T_child_slot);
 }
 
 template <typename T_parent, typename T_child, size_t T_parent_slot, size_t T_child_slot, size_t T_next_slot>
@@ -286,13 +271,7 @@ void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot,
 template <typename T_parent, typename T_child, size_t T_parent_slot, size_t T_child_slot, size_t T_next_slot>
 void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot, T_next_slot>::erase(gaia_id_t child_id)
 {
-    auto node_ptr = gaia_ptr::open(m_parent_id);
-    if (!node_ptr)
-    {
-        throw invalid_node_id(m_parent_id);
-    }
-
-    node_ptr.remove_child_reference(child_id, T_child_slot);
+    gaia_base_t::remove_child_reference(m_parent_id, child_id, T_child_slot);
 }
 
 template <typename T_parent, typename T_child, size_t T_parent_slot, size_t T_child_slot, size_t T_next_slot>

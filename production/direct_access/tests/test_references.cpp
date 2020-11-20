@@ -9,6 +9,7 @@
 
 #include "db_catalog_test_base.hpp"
 #include "gaia_addr_book.h"
+#include "gaia_ptr.hpp"
 #include "gaia_relationships.hpp"
 
 using namespace std;
@@ -17,7 +18,6 @@ using namespace gaia::common;
 using namespace gaia::direct_access;
 using namespace gaia::addr_book;
 
-//class gaia_references_test_t : public db_test_base_t
 class gaia_references_test_t : public db_catalog_test_base_t
 {
 protected:
