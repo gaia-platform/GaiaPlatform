@@ -70,29 +70,29 @@ namespace db
     return catalog::Getgaia_relationship(m_obj_ptr->data())->name()->c_str();
 }
 
-[[nodiscard]] uint8_t relationship_view_t::first_child_offset() const
+[[nodiscard]] reference_offset_t relationship_view_t::first_child_offset() const
 {
     return catalog::Getgaia_relationship(m_obj_ptr->data())->first_child_offset();
 }
 
-[[nodiscard]] uint8_t relationship_view_t::next_child_offset() const
+[[nodiscard]] reference_offset_t relationship_view_t::next_child_offset() const
 {
     return catalog::Getgaia_relationship(m_obj_ptr->data())->next_child_offset();
 }
 
-[[nodiscard]] uint8_t relationship_view_t::parent_offset() const
+[[nodiscard]] reference_offset_t relationship_view_t::parent_offset() const
 {
     return catalog::Getgaia_relationship(m_obj_ptr->data())->parent_offset();
 }
 
 [[nodiscard]] gaia_id_t relationship_view_t::parent_table_id() const
 {
-    return m_obj_ptr->references()[c_parent_gaia_table_ref_slot];
+    return m_obj_ptr->references()[c_parent_gaia_table_ref_offset];
 }
 
 [[nodiscard]] gaia_id_t relationship_view_t::child_table_id() const
 {
-    return m_obj_ptr->references()[c_child_gaia_table_ref_slot];
+    return m_obj_ptr->references()[c_child_gaia_table_ref_offset];
 }
 
 table_view_t catalog_core_t::get_table(gaia_id_t table_id)
@@ -134,7 +134,7 @@ table_list_t catalog_core_t::list_tables()
 
 template <typename T_catalog_obj_view>
 common::iterators::range_t<common::iterators::generator_iterator_t<T_catalog_obj_view>>
-list_catalog_obj_reference_chain(gaia_id_t table_id, uint16_t first_slot, uint16_t next_slot)
+list_catalog_obj_reference_chain(gaia_id_t table_id, uint16_t first_offset, uint16_t next_offset)
 {
     if (!is_transaction_active())
     {
@@ -143,15 +143,15 @@ list_catalog_obj_reference_chain(gaia_id_t table_id, uint16_t first_slot, uint16
 
     auto obj_ptr = id_to_ptr(table_id);
     const gaia_id_t* references = obj_ptr->references();
-    gaia_id_t first_obj_id = references[first_slot];
-    auto generator = [id = first_obj_id, next_slot]() mutable -> std::optional<T_catalog_obj_view> {
+    gaia_id_t first_obj_id = references[first_offset];
+    auto generator = [id = first_obj_id, next_offset]() mutable -> std::optional<T_catalog_obj_view> {
         if (id == c_invalid_gaia_id)
         {
             return std::nullopt;
         }
         auto obj_ptr = id_to_ptr(id);
         T_catalog_obj_view obj_view{obj_ptr};
-        id = obj_ptr->references()[next_slot];
+        id = obj_ptr->references()[next_offset];
         return obj_view;
     };
     return gaia::common::iterators::range_from_generator(generator);
@@ -160,7 +160,7 @@ list_catalog_obj_reference_chain(gaia_id_t table_id, uint16_t first_slot, uint16
 field_list_t catalog_core_t::list_fields(gaia_id_t table_id)
 {
     return list_catalog_obj_reference_chain<field_view_t>(
-        table_id, c_gaia_table_first_gaia_field_slot, c_gaia_field_next_gaia_field_slot);
+        table_id, c_gaia_table_first_gaia_field_offset, c_gaia_field_next_gaia_field_offset);
 }
 
 relationship_list_t catalog_core_t::list_relationship_from(gaia_id_t table_id)
@@ -168,8 +168,8 @@ relationship_list_t catalog_core_t::list_relationship_from(gaia_id_t table_id)
     // List all the relationship originated from the given table.
     return list_catalog_obj_reference_chain<relationship_view_t>(
         table_id,
-        c_gaia_table_first_parent_gaia_relationship_slot,
-        c_gaia_relationship_next_parent_gaia_relationship_slot);
+        c_gaia_table_first_parent_gaia_relationship_offset,
+        c_gaia_relationship_next_parent_gaia_relationship_offset);
 }
 
 relationship_list_t catalog_core_t::list_relationship_to(gaia_id_t table_id)
@@ -177,8 +177,8 @@ relationship_list_t catalog_core_t::list_relationship_to(gaia_id_t table_id)
     // List all the relationship pointing to the given table.
     return list_catalog_obj_reference_chain<relationship_view_t>(
         table_id,
-        c_gaia_table_first_child_gaia_relationship_slot,
-        c_gaia_relationship_next_child_gaia_relationship_slot);
+        c_gaia_table_first_child_gaia_relationship_offset,
+        c_gaia_relationship_next_child_gaia_relationship_offset);
 }
 
 } // namespace db

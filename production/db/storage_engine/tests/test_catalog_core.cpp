@@ -46,7 +46,6 @@ TEST_F(catalog_core_test, list_tables)
     for (auto table_view : gaia::db::catalog_core_t::list_tables())
     {
         list_result.insert(table_view.table_type());
-        std::cout << table_view.table_type() << std::endl;
     }
     commit_transaction();
 

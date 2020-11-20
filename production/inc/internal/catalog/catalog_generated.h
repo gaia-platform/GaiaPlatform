@@ -230,9 +230,9 @@ struct gaia_relationshipT : public flatbuffers::NativeTable {
   uint8_t cardinality;
   bool parent_required;
   bool deprecated;
-  uint8_t first_child_offset;
-  uint8_t next_child_offset;
-  uint8_t parent_offset;
+  uint16_t first_child_offset;
+  uint16_t next_child_offset;
+  uint16_t parent_offset;
   gaia_relationshipT()
       : cardinality(0),
         parent_required(false),
@@ -267,14 +267,14 @@ struct gaia_relationship FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool deprecated() const {
     return GetField<uint8_t>(VT_DEPRECATED, 0) != 0;
   }
-  uint8_t first_child_offset() const {
-    return GetField<uint8_t>(VT_FIRST_CHILD_OFFSET, 0);
+  uint16_t first_child_offset() const {
+    return GetField<uint16_t>(VT_FIRST_CHILD_OFFSET, 0);
   }
-  uint8_t next_child_offset() const {
-    return GetField<uint8_t>(VT_NEXT_CHILD_OFFSET, 0);
+  uint16_t next_child_offset() const {
+    return GetField<uint16_t>(VT_NEXT_CHILD_OFFSET, 0);
   }
-  uint8_t parent_offset() const {
-    return GetField<uint8_t>(VT_PARENT_OFFSET, 0);
+  uint16_t parent_offset() const {
+    return GetField<uint16_t>(VT_PARENT_OFFSET, 0);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -283,9 +283,9 @@ struct gaia_relationship FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint8_t>(verifier, VT_CARDINALITY) &&
            VerifyField<uint8_t>(verifier, VT_PARENT_REQUIRED) &&
            VerifyField<uint8_t>(verifier, VT_DEPRECATED) &&
-           VerifyField<uint8_t>(verifier, VT_FIRST_CHILD_OFFSET) &&
-           VerifyField<uint8_t>(verifier, VT_NEXT_CHILD_OFFSET) &&
-           VerifyField<uint8_t>(verifier, VT_PARENT_OFFSET) &&
+           VerifyField<uint16_t>(verifier, VT_FIRST_CHILD_OFFSET) &&
+           VerifyField<uint16_t>(verifier, VT_NEXT_CHILD_OFFSET) &&
+           VerifyField<uint16_t>(verifier, VT_PARENT_OFFSET) &&
            verifier.EndTable();
   }
   gaia_relationshipT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -309,14 +309,14 @@ struct gaia_relationshipBuilder {
   void add_deprecated(bool deprecated) {
     fbb_.AddElement<uint8_t>(gaia_relationship::VT_DEPRECATED, static_cast<uint8_t>(deprecated), 0);
   }
-  void add_first_child_offset(uint8_t first_child_offset) {
-    fbb_.AddElement<uint8_t>(gaia_relationship::VT_FIRST_CHILD_OFFSET, first_child_offset, 0);
+  void add_first_child_offset(uint16_t first_child_offset) {
+    fbb_.AddElement<uint16_t>(gaia_relationship::VT_FIRST_CHILD_OFFSET, first_child_offset, 0);
   }
-  void add_next_child_offset(uint8_t next_child_offset) {
-    fbb_.AddElement<uint8_t>(gaia_relationship::VT_NEXT_CHILD_OFFSET, next_child_offset, 0);
+  void add_next_child_offset(uint16_t next_child_offset) {
+    fbb_.AddElement<uint16_t>(gaia_relationship::VT_NEXT_CHILD_OFFSET, next_child_offset, 0);
   }
-  void add_parent_offset(uint8_t parent_offset) {
-    fbb_.AddElement<uint8_t>(gaia_relationship::VT_PARENT_OFFSET, parent_offset, 0);
+  void add_parent_offset(uint16_t parent_offset) {
+    fbb_.AddElement<uint16_t>(gaia_relationship::VT_PARENT_OFFSET, parent_offset, 0);
   }
   explicit gaia_relationshipBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -336,9 +336,9 @@ inline flatbuffers::Offset<gaia_relationship> Creategaia_relationship(
     uint8_t cardinality = 0,
     bool parent_required = false,
     bool deprecated = false,
-    uint8_t first_child_offset = 0,
-    uint8_t next_child_offset = 0,
-    uint8_t parent_offset = 0) {
+    uint16_t first_child_offset = 0,
+    uint16_t next_child_offset = 0,
+    uint16_t parent_offset = 0) {
   gaia_relationshipBuilder builder_(_fbb);
   builder_.add_name(name);
   builder_.add_parent_offset(parent_offset);
@@ -356,9 +356,9 @@ inline flatbuffers::Offset<gaia_relationship> Creategaia_relationshipDirect(
     uint8_t cardinality = 0,
     bool parent_required = false,
     bool deprecated = false,
-    uint8_t first_child_offset = 0,
-    uint8_t next_child_offset = 0,
-    uint8_t parent_offset = 0) {
+    uint16_t first_child_offset = 0,
+    uint16_t next_child_offset = 0,
+    uint16_t parent_offset = 0) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   return gaia::catalog::Creategaia_relationship(
       _fbb,
