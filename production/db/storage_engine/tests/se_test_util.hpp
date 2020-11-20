@@ -143,28 +143,4 @@ void clean_type_registry()
     type_registry_t::instance().clear();
 }
 
-gaia_id_t find_invalid_id()
-{
-    // Starting from an high ID to reduce the chances of collision
-    // with already existent ids.
-    const int c_lower_id_range = 10000;
-
-    // 1M oughta to be enough.
-    const int c_higher_id_range = 10000 * 100;
-
-    for (int i = c_lower_id_range; i < c_higher_id_range; i++)
-    {
-        auto invalid_obj = gaia_ptr::open(i);
-
-        if (!invalid_obj)
-        {
-            return i;
-        }
-    }
-
-    throw runtime_error(
-        "Impossible to find an invalid ID in the range "
-        + to_string(c_lower_id_range) + " - " + to_string(c_higher_id_range));
-}
-
 } // namespace gaia::db::test
