@@ -58,33 +58,65 @@ struct table_view_t : catalog_se_object_view_t
 
 struct relationship_view_t : catalog_se_object_view_t
 {
+    static constexpr uint16_t c_parent_gaia_table_ref_slot = 0;
+    static constexpr uint16_t c_child_gaia_table_ref_slot = 2;
+
     using catalog_se_object_view_t::catalog_se_object_view_t;
+    [[nodiscard]] const char* name() const;
+    [[nodiscard]] gaia_id_t parent_table_id() const;
+    [[nodiscard]] gaia_id_t child_table_id() const;
+    [[nodiscard]] uint8_t first_child_offset() const;
+    [[nodiscard]] uint8_t next_child_offset() const;
+    [[nodiscard]] uint8_t parent_offset() const;
 };
 
 using field_list_t = common::iterators::range_t<common::iterators::generator_iterator_t<field_view_t>>;
 using table_list_t = common::iterators::range_t<common::iterators::generator_iterator_t<table_view_t>>;
 using relationship_list_t = common::iterators::range_t<common::iterators::generator_iterator_t<relationship_view_t>>;
 
-class catalog_core_t
+struct catalog_core_t
 {
-private:
     // Constants for reference slots in catalog records.
     // They need to be updated when the corresponding catalog table definition change.
     //
-    // The ref slot in gaia_table pointing to the first gaia_field.
-    static constexpr uint16_t c_gaia_table_first_gaia_field_slot = 2;
     // The ref slot in gaia_field pointing to the gaia_table.
     static constexpr uint16_t c_gaia_field_parent_gaia_table_slot = 0;
     // The ref slot in gaia_field pointing to the next gaia_field.
     static constexpr uint16_t c_gaia_field_next_gaia_field_slot = 1;
+    //
+    // The ref slot in gaia_table pointing to the parent gaia_database.
+    static constexpr uint16_t c_gaia_table_parent_gaia_database_slot = 0;
+    // The ref slot in gaia_table pointing to the next gaia_table.
+    static constexpr uint16_t c_gaia_table_next_gaia_table_slot = 1;
+    // The ref slot in gaia_table pointing to the first gaia_field.
+    static constexpr uint16_t c_gaia_table_first_gaia_field_slot = 2;
     // The ref slot in gaia_table pointing to the first parent gaia_relationship.
     static constexpr uint16_t c_gaia_table_first_parent_gaia_relationship_slot = 3;
     // The ref slot in gaia_table pointing to the first child gaia_relationship.
     static constexpr uint16_t c_gaia_table_first_child_gaia_relationship_slot = 4;
+    //
+    // The ref slot in gaia_relationship pointing to the parent gaia_table.
+    static constexpr uint16_t c_gaia_relationship_parent_parent_gaia_table_slot = 0;
+    // The ref slot in gaia_relationship pointing to the next parent gaia_relationship.
+    static constexpr uint16_t c_gaia_relationship_next_parent_gaia_relationship_slot = 1;
+    // The ref slot in gaia_relationship pointing to the parent child gaia_relationship.
+    static constexpr uint16_t c_gaia_relationship_parent_child_gaia_table_slot = 2;
+    // The ref slot in gaia_relationship pointing to the next child gaia_relationship.
+    static constexpr uint16_t c_gaia_relationship_next_child_gaia_relationship_slot = 3;
+    //
+    // The ref slot in gaia_database pointing to the first gaia_table.
+    static constexpr uint16_t c_gaia_database_first_gaia_table_slot = 0;
+    //
+    // The ref slot in gaia_ruleset pointing to the first gaia_rule.
+    static constexpr uint16_t c_gaia_ruleset_first_gaia_rule_slot = 0;
+    //
+    // The ref slot in gaia_rule pointing to the parent gaia_ruleset.
+    static constexpr uint16_t c_gaia_rule_parent_gaia_ruleset_slot = 0;
+    // The ref slot in gaia_rule pointing to the next gaia_rule.
+    static constexpr uint16_t c_gaia_rule_next_gaia_rule_slot = 1;
 
     [[nodiscard]] static inline const se_object_t* get_se_object_ptr(gaia_id_t);
 
-public:
     static table_view_t get_table(gaia_id_t table_id);
     static table_list_t list_tables();
     static field_list_t list_fields(gaia_id_t table_id);

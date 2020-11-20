@@ -41,7 +41,8 @@ set(GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 set(FBS_SOURCES
   "${PROJECT_SOURCE_DIR}/src/flatbuffers/messages.fbs"
   "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_table.fbs"
-  "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_field.fbs")
+  "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_field.fbs"
+  "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_relationship.fbs")
 
 foreach(FBS_SOURCE ${FBS_SOURCES})
   get_filename_component(FBS_SOURCE_FILENAME ${FBS_SOURCE} NAME)
@@ -82,12 +83,9 @@ add_library(gaia_se_client STATIC
   src/se_shared_data_client.cpp
   src/type_metadata.cpp
   src/type_id_mapping.cpp)
-add_dependencies(gaia_se_client "messages.fbs" "gaia_table.fbs" "gaia_field.fbs")
+add_dependencies(gaia_se_client "messages.fbs" "gaia_table.fbs" "gaia_field.fbs" "gaia_relationship.fbs")
 target_include_directories(gaia_se_client PUBLIC ${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES})
 target_include_directories(gaia_se_client PRIVATE ${GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES})
-# For referential integrity check to read catalog.
-# TODO: Switch to use catalog_core and remove the dependency on catalog headers and gaia_direct.
-target_include_directories(gaia_se_client PRIVATE "${GAIA_INC}/public/catalog;${GAIA_INC}/internal/catalog")
 
 # For flatbuffers generated code.
 target_include_directories(gaia_se_client SYSTEM PRIVATE "${FLATBUFFERS_INC}")
@@ -208,3 +206,8 @@ add_gtest(test_se_client "tests/test_se_client.cpp" "${GAIA_STORAGE_ENGINE_TEST_
 add_gtest(test_locator_allocator tests/test_locator_allocator.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_storage")
 add_gtest(test_relationships tests/test_relationships.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client;gaia_direct")
 add_gtest(test_se_references tests/test_se_references.cpp "${GAIA_STORAGE_ENGINE_TEST_INCLUDES}" "gaia_common;gaia_se_client;gaia_direct")
+
+add_gtest(test_catalog_core
+  tests/test_catalog_core.cpp
+  "${GAIA_STORAGE_ENGINE_TEST_INCLUDES};${GAIA_INC}/public/catalog;${GAIA_INC}/internal/catalog"
+  "gaia_common;gaia_se_client;gaia_catalog")
