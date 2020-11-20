@@ -5,7 +5,7 @@
 
 #pragma once
 
-// fake gaia component to test the header sorting functionality
+// Fake gaia component to test the header sorting functionality.
 
 namespace gaia
 {
