@@ -28,6 +28,13 @@ void compute_payload_diff(
 
     gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(type_id);
 
+    // We have entered payload diff for the update. The data have been updated,
+    // and we cannot find the type in catalog. This means we have some serious
+    // data corruption bug(s).
+    retail_assert(
+        type_record_id != c_invalid_gaia_id,
+        "The type '" + std::to_string(type_id) + "' does not exist in the catalog for payload diff!");
+
     auto schema = catalog_core_t::get_table(type_record_id).binary_schema();
 
     for (auto field_view : catalog_core_t::list_fields(type_record_id))

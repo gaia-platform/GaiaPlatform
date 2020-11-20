@@ -8,14 +8,13 @@
 #include <optional>
 #include <vector>
 
-#include "flatbuffers/reflection.h"
-
 #include "db_types.hpp"
 #include "flatbuffers_helpers.hpp"
 #include "gaia_common.hpp"
 #include "gaia_db.hpp"
 #include "gaia_db_internal.hpp"
 #include "gaia_field_generated.h"
+#include "gaia_relationship_generated.h"
 #include "gaia_table_generated.h"
 #include "generator_iterator.hpp"
 #include "retail_assert.hpp"
@@ -66,22 +65,50 @@ namespace db
         catalog::Getgaia_table(m_obj_ptr->data())->serialization_template()->c_str());
 }
 
+[[nodiscard]] const char* relationship_view_t::name() const
+{
+    return catalog::Getgaia_relationship(m_obj_ptr->data())->name()->c_str();
+}
+
+[[nodiscard]] reference_offset_t relationship_view_t::first_child_offset() const
+{
+    return catalog::Getgaia_relationship(m_obj_ptr->data())->first_child_offset();
+}
+
+[[nodiscard]] reference_offset_t relationship_view_t::next_child_offset() const
+{
+    return catalog::Getgaia_relationship(m_obj_ptr->data())->next_child_offset();
+}
+
+[[nodiscard]] reference_offset_t relationship_view_t::parent_offset() const
+{
+    return catalog::Getgaia_relationship(m_obj_ptr->data())->parent_offset();
+}
+
+[[nodiscard]] gaia_id_t relationship_view_t::parent_table_id() const
+{
+    return m_obj_ptr->references()[c_parent_gaia_table_ref_offset];
+}
+
+[[nodiscard]] gaia_id_t relationship_view_t::child_table_id() const
+{
+    return m_obj_ptr->references()[c_child_gaia_table_ref_offset];
+}
+
 table_view_t catalog_core_t::get_table(gaia_id_t table_id)
 {
-    if (!is_transaction_active())
-    {
-        throw transaction_not_open();
-    }
+    retail_assert(
+        is_transaction_active(),
+        std::string(__FUNCTION__) + " should only be called from an open transaction!");
 
     return table_view_t{id_to_ptr(table_id)};
 }
 
 table_list_t catalog_core_t::list_tables()
 {
-    if (!is_transaction_active())
-    {
-        throw transaction_not_open();
-    }
+    retail_assert(
+        is_transaction_active(),
+        std::string(__FUNCTION__) + " should only be called from an open transaction!");
 
     data* data = gaia::db::get_shared_data();
     auto gaia_table_generator = [data, locator = c_invalid_gaia_locator]() mutable -> std::optional<table_view_t> {
@@ -103,27 +130,50 @@ table_list_t catalog_core_t::list_tables()
     return gaia::common::iterators::range_from_generator(gaia_table_generator);
 }
 
-field_list_t catalog_core_t::list_fields(gaia_id_t table_id)
+template <typename T_catalog_obj_view>
+common::iterators::range_t<common::iterators::generator_iterator_t<T_catalog_obj_view>>
+list_catalog_obj_reference_chain(gaia_id_t table_id, uint16_t first_offset, uint16_t next_offset)
 {
-    if (!is_transaction_active())
-    {
-        throw transaction_not_open();
-    }
+    retail_assert(
+        is_transaction_active(),
+        std::string(__FUNCTION__) + " should only be called from an open transaction!");
 
     auto obj_ptr = id_to_ptr(table_id);
     const gaia_id_t* references = obj_ptr->references();
-    gaia_id_t first_field_id = references[c_gaia_table_first_gaia_field_slot];
-    auto gaia_field_generator = [field_id = first_field_id]() mutable -> std::optional<field_view_t> {
-        if (field_id == c_invalid_gaia_id)
+    gaia_id_t first_obj_id = references[first_offset];
+    auto generator = [id = first_obj_id, next_offset]() mutable -> std::optional<T_catalog_obj_view> {
+        if (id == c_invalid_gaia_id)
         {
             return std::nullopt;
         }
-        auto field_obj_ptr = id_to_ptr(field_id);
-        field_view_t field_view{field_obj_ptr};
-        field_id = field_obj_ptr->references()[c_gaia_field_next_gaia_field_slot];
-        return field_view;
+        auto obj_ptr = id_to_ptr(id);
+        T_catalog_obj_view obj_view{obj_ptr};
+        id = obj_ptr->references()[next_offset];
+        return obj_view;
     };
-    return gaia::common::iterators::range_from_generator(gaia_field_generator);
+    return gaia::common::iterators::range_from_generator(generator);
+}
+
+field_list_t catalog_core_t::list_fields(gaia_id_t table_id)
+{
+    return list_catalog_obj_reference_chain<field_view_t>(
+        table_id, c_gaia_table_first_gaia_field_offset, c_gaia_field_next_gaia_field_offset);
+}
+
+relationship_list_t catalog_core_t::list_relationship_from(gaia_id_t table_id)
+{
+    return list_catalog_obj_reference_chain<relationship_view_t>(
+        table_id,
+        c_gaia_table_first_parent_gaia_relationship_offset,
+        c_gaia_relationship_next_parent_gaia_relationship_offset);
+}
+
+relationship_list_t catalog_core_t::list_relationship_to(gaia_id_t table_id)
+{
+    return list_catalog_obj_reference_chain<relationship_view_t>(
+        table_id,
+        c_gaia_table_first_child_gaia_relationship_offset,
+        c_gaia_relationship_next_child_gaia_relationship_offset);
 }
 
 } // namespace db
