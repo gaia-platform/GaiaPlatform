@@ -18,15 +18,15 @@ using namespace gaia::catalog;
 using namespace gaia::db;
 using namespace std;
 
-class gaia_generate_test_t : public db_catalog_test_base_t
+class gaia_generate_test : public db_catalog_test_base_t
 {
 protected:
-    gaia_generate_test_t()
+    gaia_generate_test()
         : db_catalog_test_base_t("airport.ddl"){};
 };
 
 // Using the catalog manager's create_table(), create a catalog and an EDC header from that.
-TEST_F(gaia_generate_test_t, use_create_table)
+TEST_F(gaia_generate_test, use_create_table)
 {
     create_database("airport_test");
     ddl::field_def_list_t fields;
@@ -38,7 +38,7 @@ TEST_F(gaia_generate_test_t, use_create_table)
 }
 
 // Start from Gaia DDL to create an EDC header.
-TEST_F(gaia_generate_test_t, parse_ddl)
+TEST_F(gaia_generate_test, parse_ddl)
 {
     ddl::parser_t parser;
 
@@ -50,7 +50,7 @@ TEST_F(gaia_generate_test_t, parse_ddl)
     EXPECT_NE(0, header_str.find("struct tmp_airport_t"));
 }
 
-TEST_F(gaia_generate_test_t, airport_example)
+TEST_F(gaia_generate_test, airport_example)
 {
     begin_transaction();
     // Create one segment with source and destination airports. This segment

@@ -68,13 +68,21 @@ namespace db
 
 table_view_t catalog_core_t::get_table(gaia_id_t table_id)
 {
-    retail_assert(is_transaction_active(), "This method must be called from an open transaction!");
+    if (!is_transaction_active())
+    {
+        throw transaction_not_open();
+    }
+
     return table_view_t{id_to_ptr(table_id)};
 }
 
 table_list_t catalog_core_t::list_tables()
 {
-    retail_assert(is_transaction_active(), "This method must be called from an open transaction!");
+    if (!is_transaction_active())
+    {
+        throw transaction_not_open();
+    }
+
     data* data = gaia::db::get_shared_data();
     auto gaia_table_generator = [data, locator = c_invalid_gaia_locator]() mutable -> std::optional<table_view_t> {
         // We need an acquire barrier before reading `last_locator`. We can
@@ -97,7 +105,11 @@ table_list_t catalog_core_t::list_tables()
 
 field_list_t catalog_core_t::list_fields(gaia_id_t table_id)
 {
-    retail_assert(is_transaction_active(), "This method must be called from an open transaction!");
+    if (!is_transaction_active())
+    {
+        throw transaction_not_open();
+    }
+
     auto obj_ptr = id_to_ptr(table_id);
     const gaia_id_t* references = obj_ptr->references();
     gaia_id_t first_field_id = references[c_gaia_table_first_gaia_field_slot];

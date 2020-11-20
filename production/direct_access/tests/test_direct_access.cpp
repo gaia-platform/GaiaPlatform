@@ -10,7 +10,7 @@
 
 #include "gtest/gtest.h"
 
-#include "db_test_base.hpp"
+#include "db_catalog_test_base.hpp"
 #include "gaia_addr_book.h"
 
 using namespace std;
@@ -18,8 +18,11 @@ using namespace gaia::db;
 using namespace gaia::common;
 using namespace gaia::addr_book;
 
-class gaia_object_test : public db_test_base_t
+class gaia_object_test : public db_catalog_test_base_t
 {
+protected:
+    gaia_object_test()
+        : db_catalog_test_base_t(std::string("addr_book.ddl")){};
 };
 
 int count_rows()

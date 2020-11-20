@@ -62,7 +62,7 @@ struct gaia_base_t
     static gaia_id_t find_first(gaia_type_t container);
     static gaia_id_t find_next(gaia_id_t id);
     static gaia_id_t get_reference(gaia_id_t id, size_t slot);
-    static gaia_id_t insert(gaia_type_t container, size_t num_refs, size_t data_size, const void* data);
+    static gaia_id_t insert(gaia_type_t container, size_t data_size, const void* data);
     static void update(gaia_id_t id, size_t data_size, const void* data);
     static void insert_child_reference(gaia_id_t parent_id, gaia_id_t child_id, size_t child_slot);
     static void remove_child_reference(gaia_id_t parent_id, gaia_id_t child_id, size_t child_slot);

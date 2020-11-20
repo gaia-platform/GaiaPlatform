@@ -18,7 +18,12 @@ gaia::common::gaia_id_t type_id_mapping_t::get_record_id(gaia::common::gaia_type
 
     auto it = m_type_map.find(type_id);
 
-    retail_assert(it != m_type_map.end(), "The type " + std::to_string(type_id) + " does not exist in the catalog.");
+    // TODO Chuan modified this logic to return c_invalid_gaia_id in #373
+    //   That should be the final version.
+    if (it == m_type_map.end())
+    {
+        throw invalid_type(type_id);
+    }
 
     return it->second;
 }

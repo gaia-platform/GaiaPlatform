@@ -130,7 +130,7 @@ template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, type
 gaia_id_t gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::insert_row(
     flatbuffers::FlatBufferBuilder& fbb)
 {
-    return gaia_base_t::insert(T_container, N_references, fbb.GetSize(), fbb.GetBufferPointer());
+    return gaia_base_t::insert(T_container, fbb.GetSize(), fbb.GetBufferPointer());
 }
 
 template <gaia_type_t T_container, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object, size_t N_references>
@@ -162,7 +162,7 @@ gaia_id_t gaia_writer_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object,
 {
     auto u = T_flatbuffer::Pack(m_builder, this);
     m_builder.Finish(u);
-    gaia_id_t id = gaia_base_t::insert(T_container, N_references, m_builder.GetSize(), m_builder.GetBufferPointer());
+    gaia_id_t id = gaia_base_t::insert(T_container, m_builder.GetSize(), m_builder.GetBufferPointer());
     m_builder.Clear();
     return id;
 }
