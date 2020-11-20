@@ -27,7 +27,7 @@ endif()
 
 set_target_properties(
   gaia_fdw PROPERTIES
-    OUTPUT_NAME "gaia_fdw-${PG_GAIA_FDW_VERSION_MAJOR}"
+    OUTPUT_NAME "gaia_fdw-${PG_GAIA_FDW_VERSION}"
     PREFIX "")
 
 target_include_directories(gaia_fdw PRIVATE "${PROJECT_SOURCE_DIR}/inc")
@@ -45,20 +45,15 @@ target_link_libraries(gaia_fdw PRIVATE gaia_catalog)
 target_link_libraries(gaia_fdw PRIVATE gaia_payload_types)
 
 # Extension configuration.
-
 set(GAIA_FDW_INSTALL_EXTENSIONS
   "${PROJECT_BINARY_DIR}/pgsql/gaia_fdw--${PG_GAIA_FDW_VERSION}.sql"
   "${PROJECT_BINARY_DIR}/pgsql/gaia_fdw.control")
-
 configure_file(
   gaia_fdw.sql
   "${PROJECT_BINARY_DIR}/pgsql/gaia_fdw--${PG_GAIA_FDW_VERSION}.sql")
-
 configure_file(gaia_fdw.control "${PROJECT_BINARY_DIR}/pgsql/gaia_fdw.control")
 
 # Installation steps for configuration and binaries.
-
 install(TARGETS gaia_fdw DESTINATION ${PGSQL_PKGLIBDIR})
-
 install(FILES ${GAIA_FDW_INSTALL_EXTENSIONS}
   DESTINATION "${PGSQL_SHAREDIR}/extension")
