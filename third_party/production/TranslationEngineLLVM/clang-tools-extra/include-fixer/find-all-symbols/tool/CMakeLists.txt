@@ -14,6 +14,7 @@ target_link_libraries(find-all-symbols
   clangSerialization
   clangTooling
   findAllSymbols
+  gaia_system
   )
 
 install(TARGETS find-all-symbols

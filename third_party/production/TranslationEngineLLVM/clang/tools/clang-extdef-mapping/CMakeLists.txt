@@ -15,6 +15,7 @@ target_link_libraries(clang-extdef-mapping
   clangFrontend
   clangSerialization
   clangTooling
+  gaia_system
   )
 
 install(TARGETS clang-extdef-mapping

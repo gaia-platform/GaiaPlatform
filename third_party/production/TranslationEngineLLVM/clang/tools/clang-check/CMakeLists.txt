@@ -18,6 +18,7 @@ target_link_libraries(clang-check
   clangSerialization
   clangStaticAnalyzerFrontend
   clangTooling
+  gaia_system
   )
 
 install(TARGETS clang-check
