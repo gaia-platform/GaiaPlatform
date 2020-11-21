@@ -34,6 +34,42 @@ public:
     }
 };
 
+inline void check_socket_type(int socket, int expected_socket_type)
+{
+    int real_socket_type;
+    socklen_t type_len = sizeof(real_socket_type);
+    if (-1 == ::getsockopt(socket, SOL_SOCKET, SO_TYPE, &real_socket_type, &type_len))
+    {
+        throw_system_error("getsockopt(SO_TYPE) failed");
+    }
+    // type_len is an inout parameter which can indicate truncation.
+    retail_assert(type_len == sizeof(real_socket_type), "Invalid socket type size!");
+    retail_assert(real_socket_type == expected_socket_type, "Unexpected socket type!");
+}
+
+inline bool is_non_blocking(int socket)
+{
+    int flags = ::fcntl(socket, F_GETFL, 0);
+    if (flags == -1)
+    {
+        throw_system_error("fcntl(F_GETFL) failed");
+    }
+    return (flags & O_NONBLOCK);
+}
+
+inline void set_non_blocking(int socket)
+{
+    int flags = ::fcntl(socket, F_GETFL);
+    if (flags == -1)
+    {
+        throw_system_error("fcntl(F_GETFL) failed");
+    }
+    if (-1 == ::fcntl(socket, F_SETFL, flags | O_NONBLOCK))
+    {
+        throw_system_error("fcntl(F_SETFL) failed");
+    }
+}
+
 inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void* data, size_t data_size)
 {
     // We should never send 0 bytes of data (because that would make it impossible
@@ -118,7 +154,7 @@ inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* dat
     {
         retail_assert(
             pfd_count && *pfd_count && *pfd_count <= c_max_fd_count,
-            "Unexpected fds were received with message!");
+            "Illegal size of fds array!");
     }
     struct msghdr msg;
     struct iovec iov;
@@ -192,19 +228,6 @@ inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* dat
         }
     }
     return static_cast<size_t>(bytes_read);
-}
-
-inline void check_socket_type(int socket, int expected_socket_type)
-{
-    int real_socket_type;
-    socklen_t type_len = sizeof(real_socket_type);
-    if (-1 == ::getsockopt(socket, SOL_SOCKET, SO_TYPE, &real_socket_type, &type_len))
-    {
-        throw_system_error("getsockopt(SO_TYPE) failed");
-    }
-    // type_len is an inout parameter which can indicate truncation.
-    retail_assert(type_len == sizeof(real_socket_type), "Invalid socket type size!");
-    retail_assert(real_socket_type == expected_socket_type, "Unexpected socket type!");
 }
 
 } // namespace common
