@@ -170,7 +170,7 @@ void client::destroy_log_mapping()
     // We might have already destroyed the log mapping before committing the txn.
     if (s_log)
     {
-        unmap_fd(s_log, sizeof(log));
+        unmap_fd(s_log, c_initial_log_size);
     }
 }
 
@@ -342,14 +342,9 @@ void client::begin_transaction()
     auto cleanup_log_fd = make_scope_guard([&]() {
         close_fd(fd_log);
     });
-    if (-1 == ::ftruncate(fd_log, sizeof(log)))
-    {
-        throw_system_error("ftruncate failed");
-    }
-    s_log = static_cast<log*>(map_fd(sizeof(log), PROT_READ | PROT_WRITE, MAP_SHARED, fd_log, 0));
-    auto cleanup_log_mapping = make_scope_guard([&]() {
-        unmap_fd(s_log, sizeof(log));
-    });
+    truncate_fd(fd_log, c_initial_log_size);
+    s_log = static_cast<log*>(map_fd(c_initial_log_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_log, 0));
+    auto cleanup_log_mapping = make_scope_guard(destroy_log_mapping);
 
     // Now we map a private COW view of the locator shared memory segment.
     if (::flock(s_fd_locators, LOCK_SH) < 0)
