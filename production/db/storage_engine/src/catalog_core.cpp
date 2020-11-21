@@ -11,15 +11,11 @@
 #include "db_types.hpp"
 #include "flatbuffers_helpers.hpp"
 #include "gaia_common.hpp"
-#include "gaia_db.hpp"
-#include "gaia_db_internal.hpp"
 #include "gaia_field_generated.h"
 #include "gaia_relationship_generated.h"
 #include "gaia_table_generated.h"
 #include "generator_iterator.hpp"
-#include "retail_assert.hpp"
 #include "se_helpers.hpp"
-#include "se_object.hpp"
 #include "se_object_helpers.hpp"
 #include "system_table_types.hpp"
 
@@ -97,19 +93,12 @@ namespace db
 
 table_view_t catalog_core_t::get_table(gaia_id_t table_id)
 {
-    retail_assert(
-        is_transaction_active(),
-        std::string(__FUNCTION__) + " should only be called from an open transaction!");
-
     return table_view_t{id_to_ptr(table_id)};
 }
 
 table_list_t catalog_core_t::list_tables()
 {
-    retail_assert(
-        is_transaction_active(),
-        std::string(__FUNCTION__) + " should only be called from an open transaction!");
-
+    gaia::db::get_shared_locators();
     data* data = gaia::db::get_shared_data();
     auto gaia_table_generator = [data, locator = c_invalid_gaia_locator]() mutable -> std::optional<table_view_t> {
         // We need an acquire barrier before reading `last_locator`. We can
@@ -134,10 +123,6 @@ template <typename T_catalog_obj_view>
 common::iterators::range_t<common::iterators::generator_iterator_t<T_catalog_obj_view>>
 list_catalog_obj_reference_chain(gaia_id_t table_id, uint16_t first_offset, uint16_t next_offset)
 {
-    retail_assert(
-        is_transaction_active(),
-        std::string(__FUNCTION__) + " should only be called from an open transaction!");
-
     auto obj_ptr = id_to_ptr(table_id);
     const gaia_id_t* references = obj_ptr->references();
     gaia_id_t first_obj_id = references[first_offset];

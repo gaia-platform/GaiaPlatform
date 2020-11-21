@@ -241,7 +241,7 @@ type_metadata_t& type_registry_t::create(gaia_type_t type)
     gaia_id_t record_id = get_record_id(type);
     if (record_id == c_invalid_gaia_id)
     {
-        throw type_not_found(type);
+        throw invalid_type(type);
     }
     auto& metadata = get_or_create_no_lock(type);
 

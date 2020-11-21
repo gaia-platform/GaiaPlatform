@@ -43,13 +43,15 @@ inline gaia_txn_id_t allocate_txn_id()
 
 inline gaia_locator_t allocate_locator()
 {
+    // Used only to ensure transaction is active.
     locators* locators = gaia::db::get_shared_locators();
-    data* data = gaia::db::get_shared_data();
 
     if (!locators)
     {
         throw transaction_not_open();
     }
+
+    data* data = gaia::db::get_shared_data();
 
     // We need an acquire barrier before reading `last_locator`. We can
     // change this full barrier to an acquire barrier when we change to proper
@@ -68,10 +70,6 @@ inline void allocate_object(gaia_locator_t locator, size_t size)
 {
     locators* locators = gaia::db::get_shared_locators();
     data* data = gaia::db::get_shared_data();
-    if (!locators)
-    {
-        throw transaction_not_open();
-    }
 
     if (data->objects[0] >= c_max_offset)
     {

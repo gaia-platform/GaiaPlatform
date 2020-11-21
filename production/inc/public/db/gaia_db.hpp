@@ -32,7 +32,7 @@ class no_session_active : public gaia_exception
 public:
     no_session_active()
     {
-        m_message = "Create a new session before opening a transaction.";
+        m_message = "Create a session before performing data access";
     }
 };
 
