@@ -71,12 +71,7 @@ int client::get_id_cursor_socket_for_type(gaia_type_t type)
     retail_assert(event == session_event_t::REQUEST_STREAM, "Unexpected event received!");
 
     // Check that our stream socket is blocking (since we need to perform blocking reads).
-    int flags = ::fcntl(stream_socket, F_GETFL, 0);
-    if (flags == -1)
-    {
-        throw_system_error("fcntl(F_GETFL) failed");
-    }
-    retail_assert(~(flags & O_NONBLOCK), "Stream socket is not set to blocking!");
+    retail_assert(!is_non_blocking(stream_socket), "Stream socket is not set to blocking!");
 
     cleanup_stream_socket.dismiss();
     return stream_socket;

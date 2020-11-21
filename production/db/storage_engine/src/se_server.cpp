@@ -186,15 +186,7 @@ void server::handle_request_stream(
         close_fd(client_socket);
     });
     // Set server socket to be nonblocking, since we use it within an epoll loop.
-    int flags = ::fcntl(server_socket, F_GETFL);
-    if (flags == -1)
-    {
-        throw_system_error("fcntl(F_GETFL) failed");
-    }
-    if (-1 == ::fcntl(server_socket, F_SETFL, flags | O_NONBLOCK))
-    {
-        throw_system_error("fcntl(F_SETFL) failed");
-    }
+    set_non_blocking(server_socket);
     // The only currently supported stream type is table scans.
     // When we add more stream types, we should add a switch statement on data_type.
     // It would be nice to delegate to a helper returning a different generator for each
@@ -756,13 +748,8 @@ void server::stream_producer_handler(
         // since we hold the only fd pointing to this socket.
         close_fd(stream_socket);
     });
-    // Check if our stream socket is non-blocking (so we don't accidentally block in write()).
-    int flags = ::fcntl(stream_socket, F_GETFL, 0);
-    if (flags == -1)
-    {
-        throw_system_error("fcntl(F_GETFL) failed");
-    }
-    retail_assert(flags & O_NONBLOCK, "Stream socket is in blocking mode!");
+    // Check that our stream socket is non-blocking (so we don't accidentally block in write()).
+    retail_assert(is_non_blocking(stream_socket), "Stream socket is in blocking mode!");
     int epoll_fd = ::epoll_create1(0);
     if (epoll_fd == -1)
     {
