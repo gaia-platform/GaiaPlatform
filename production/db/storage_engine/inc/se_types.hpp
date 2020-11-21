@@ -7,6 +7,9 @@
 
 #include <cstddef>
 
+#include <iostream>
+#include <ostream>
+
 #include "db_types.hpp"
 #include "gaia_common.hpp"
 
@@ -26,6 +29,31 @@ enum class gaia_operation_t : uint8_t
     remove = 0x3,
     clone = 0x4
 };
+
+inline std::ostream& operator<<(std::ostream& os, const gaia_operation_t& o)
+{
+    switch (o)
+    {
+    case gaia_operation_t::not_set:
+        os << "not_set";
+        break;
+    case gaia_operation_t::create:
+        os << "create";
+        break;
+    case gaia_operation_t::update:
+        os << "update";
+        break;
+    case gaia_operation_t::remove:
+        os << "remove";
+        break;
+    case gaia_operation_t::clone:
+        os << "clone";
+        break;
+    default:
+        retail_assert(false, "Unknown value of gaia_operation_t!");
+    }
+    return os;
+}
 
 constexpr char c_server_connect_socket_name[] = "gaia_se_server";
 constexpr char c_sch_mem_locators[] = "gaia_mem_locators";
@@ -58,10 +86,34 @@ struct log
         gaia::db::gaia_offset_t new_offset;
         gaia::common::gaia_id_t deleted_id;
         gaia_operation_t operation;
+
+        friend std::ostream& operator<<(std::ostream& os, const log_record& lr)
+        {
+            os << "locator: " << lr.locator << "\told_offset: " << lr.old_offset << "\tnew_offset: " << lr.new_offset << "\tdeleted_id: " << lr.deleted_id << "\toperation: " << lr.operation << std::endl;
+            return os;
+        }
     };
 
     log_record log_records[c_max_log_records];
+
+    friend std::ostream& operator<<(std::ostream& os, const log& l)
+    {
+        os << "count: " << l.count << std::endl;
+        const log_record* const lr_start = static_cast<const log_record*>(l.log_records);
+        for (const log_record* lr = lr_start; lr < lr_start + l.count; ++lr)
+        {
+            os << *lr << std::endl;
+        }
+        return os;
+    }
+
+    inline size_t size()
+    {
+        return sizeof(log) + (sizeof(log::log_record) * count);
+    }
 };
+
+constexpr size_t c_initial_log_size = sizeof(log) + (sizeof(log::log_record) * c_max_log_records);
 
 struct data
 {
