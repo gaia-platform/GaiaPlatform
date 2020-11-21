@@ -63,6 +63,8 @@ struct log
     log_record log_records[c_max_log_records];
 };
 
+constexpr size_t c_initial_log_size = sizeof(log) + (sizeof(log::log_record) * c_max_log_records);
+
 struct data
 {
     // These fields are used as cross-process atomic counters. We don't need
