@@ -151,9 +151,9 @@ PYBIND11_MODULE(se_client, m)
     m.def("get_node_payload", &get_node_payload);
 
     register_exception<gaia::db::session_exists>(m, "session_exists");
-    register_exception<gaia::db::no_session_active>(m, "no_session_active");
+    register_exception<gaia::db::no_active_session>(m, "no_session_active");
     register_exception<gaia::db::transaction_in_progress>(m, "transaction_in_progress");
-    register_exception<gaia::db::transaction_not_open>(m, "transaction_not_open");
+    register_exception<gaia::db::no_open_transaction>(m, "transaction_not_open");
     register_exception<gaia::db::transaction_update_conflict>(m, "transaction_update_conflict");
     register_exception<gaia::db::duplicate_id>(m, "duplicate_id");
     register_exception<gaia::db::oom>(m, "oom");

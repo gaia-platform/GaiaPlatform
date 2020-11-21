@@ -27,12 +27,12 @@ public:
     }
 };
 
-class no_session_active : public gaia_exception
+class no_active_session : public gaia_exception
 {
 public:
-    no_session_active()
+    no_active_session()
     {
-        m_message = "Create a new session before opening a transaction.";
+        m_message = "Create a session before performing data access";
     }
 };
 
@@ -45,10 +45,10 @@ public:
     }
 };
 
-class transaction_not_open : public gaia_exception
+class no_open_transaction : public gaia_exception
 {
 public:
-    transaction_not_open()
+    no_open_transaction()
     {
         m_message = "Begin a transaction before performing data access.";
     }

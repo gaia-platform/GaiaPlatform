@@ -20,7 +20,15 @@ namespace db
 class client
 {
     friend class gaia_ptr;
+
+    /**
+     * @throws no_open_transaction if there is no active transaction.
+     */
     friend gaia::db::locators* gaia::db::get_shared_locators();
+
+    /**
+     * @throws no_active_session if there is no active session.
+     */
     friend gaia::db::data* gaia::db::get_shared_data();
 
 public:
@@ -66,7 +74,7 @@ private:
 
     // Maintain a static filter in the client to disable generating events
     // for system types.
-    static constexpr gaia_type_t trigger_excluded_types[] = {
+    static constexpr gaia_type_t c_trigger_excluded_types[] = {
         static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table),
         static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_field),
         static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_relationship),
@@ -84,8 +92,8 @@ private:
 
     // This is a helper for higher-level methods that use
     // this generator to build a range or iterator object.
-    template <typename element_type>
-    static std::function<std::optional<element_type>()>
+    template <typename T_element_type>
+    static std::function<std::optional<T_element_type>()>
     get_stream_generator_for_socket(int stream_socket);
 
     /**
@@ -93,15 +101,15 @@ private:
      */
     static inline bool is_valid_event(gaia_type_t type)
     {
-        constexpr const gaia_type_t* end = trigger_excluded_types + std::size(trigger_excluded_types);
-        return (s_txn_commit_trigger && (std::find(trigger_excluded_types, end, type) == end));
+        constexpr const gaia_type_t* c_end = c_trigger_excluded_types + std::size(c_trigger_excluded_types);
+        return (s_txn_commit_trigger && (std::find(c_trigger_excluded_types, c_end, type) == c_end));
     }
 
     static inline void verify_txn_active()
     {
         if (!is_transaction_active())
         {
-            throw transaction_not_open();
+            throw no_open_transaction();
         }
     }
 
@@ -117,7 +125,7 @@ private:
     {
         if (s_session_socket == -1)
         {
-            throw no_session_active();
+            throw no_active_session();
         }
     }
 

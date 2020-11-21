@@ -15,6 +15,9 @@ gaia::common::gaia_id_t type_id_mapping_t::get_record_id(gaia::common::gaia_type
 {
     std::shared_lock lock(m_lock);
 
+    // TODO there is a bug in GNU libstdc that will make this code hang if the init_type_map() function
+    //  throws an exception and this code is called another time.
+    //  https://stackoverflow.com/questions/41717579/stdcall-once-hangs-on-second-call-after-callable-threw-on-first-call
     std::call_once(*m_is_initialized, &type_id_mapping_t::init_type_map, this);
 
     if (m_type_map.find(type_id) == m_type_map.end())

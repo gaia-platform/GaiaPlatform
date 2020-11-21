@@ -109,17 +109,6 @@ public:
     }
 };
 
-class type_not_found : public gaia::common::gaia_exception
-{
-public:
-    explicit type_not_found(const gaia::common::gaia_type_t type)
-    {
-        std::stringstream message;
-        message << "Impossible to create metadata for type \"" << type << "\", the type does not exist.";
-        m_message = message.str();
-    }
-};
-
 /**
  * Creates and maintains the instances of type_metadata_t and manages their lifecycle.
  * Instances of type_metadata_t are lazily created the first time the corresponding

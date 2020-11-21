@@ -130,6 +130,42 @@ TEST_F(storage_engine_client_test, creation_fail_for_invalid_type)
     commit_transaction();
 }
 
+TEST_F(storage_engine_client_test, gaia_ptr_no_transaction_fail)
+{
+    begin_transaction();
+    gaia_ptr node1 = gaia_ptr::open(node1_id);
+    commit_transaction();
+
+    // Create with existent type fail
+    EXPECT_THROW(gaia_ptr::create(type1, 0, ""), no_open_transaction);
+    EXPECT_THROW(gaia_ptr::create(99999, type1, 0, ""), no_open_transaction);
+    EXPECT_THROW(gaia_ptr::create(99999, type1, 5, 0, ""), no_open_transaction);
+    EXPECT_THROW(gaia_ptr::open(node1_id), no_open_transaction);
+    EXPECT_THROW(node1.id(), no_open_transaction);
+    EXPECT_THROW(node1.type(), no_open_transaction);
+    EXPECT_THROW(node1.data_size(), no_open_transaction);
+    EXPECT_THROW(node1.references(), no_open_transaction);
+    EXPECT_THROW(node1.find_next(), no_open_transaction);
+    EXPECT_THROW(node1.clone(), no_open_transaction);
+    EXPECT_THROW(node1.update_payload(0, ""), no_open_transaction);
+    EXPECT_THROW(node1.add_child_reference(1, 2), no_open_transaction);
+    EXPECT_THROW(node1.add_parent_reference(1, 2), no_open_transaction);
+    EXPECT_THROW(node1.remove_child_reference(1, 2), no_open_transaction);
+    EXPECT_THROW(node1.remove_parent_reference(1, 2), no_open_transaction);
+    EXPECT_THROW(node1.update_parent_reference(1, 2), no_open_transaction);
+    EXPECT_THROW(gaia_ptr::remove(node1), no_open_transaction);
+
+    // Test with non existent type
+    // TODO there is a bug in GNU libstdc that will the type_id_mapping hang if the initialization
+    //  throws an exception and call_once is called again. Disabling the tests for now.
+    //  see type_id_mapping_t for more details.
+    //    gaia_type_t type3 = 3;
+    //    EXPECT_THROW(gaia_ptr::create(type3, 0, 0), transaction_not_open);
+    //    EXPECT_THROW(gaia_ptr::create(99999, type3, 0, 0), transaction_not_open);
+    //    EXPECT_THROW(gaia_ptr::create(99999, type3, 5, 0, 0), transaction_not_open);
+    //    EXPECT_THROW(gaia_ptr::open(99999), transaction_not_open);
+}
+
 TEST_F(storage_engine_client_test, read_data)
 {
     begin_transaction();
