@@ -10,7 +10,7 @@ gaia::db::locators* gaia::db::get_shared_locators()
 {
     if (!gaia::db::client::s_locators)
     {
-        throw transaction_not_open();
+        throw no_open_transaction();
     }
 
     // REVIEW: Callers of this method should probably never be able to observe
@@ -32,7 +32,7 @@ gaia::db::data* gaia::db::get_shared_data()
 
     if (!gaia::db::client::s_data)
     {
-        throw no_session_active();
+        throw no_active_session();
     }
 
     return gaia::db::client::s_data;

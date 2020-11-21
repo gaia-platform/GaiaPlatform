@@ -43,8 +43,6 @@ inline gaia_txn_id_t allocate_txn_id()
 
 inline gaia_locator_t allocate_locator()
 {
-    // Used only to ensure transaction is active.
-    gaia::db::get_shared_locators();
     data* data = gaia::db::get_shared_data();
 
     // We need an acquire barrier before reading `last_locator`. We can
