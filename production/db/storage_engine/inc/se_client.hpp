@@ -20,7 +20,15 @@ namespace db
 class client
 {
     friend class gaia_ptr;
+
+    /**
+     * @throws transaction_not_open if there is no active transaction.
+     */
     friend gaia::db::locators* gaia::db::get_shared_locators();
+
+    /**
+     * @throws no_session_active if there is no active session.
+     */
     friend gaia::db::data* gaia::db::get_shared_data();
 
 public:
