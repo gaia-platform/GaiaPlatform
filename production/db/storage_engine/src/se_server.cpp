@@ -105,7 +105,7 @@ void server::handle_commit_txn(
     retail_assert(seals & F_SEAL_WRITE, "Log fd was not sealed for write!");
     // Linux won't let us create a shared read-only mapping if F_SEAL_WRITE is set,
     // which seems contrary to the manpage for fcntl(2).
-    s_log = static_cast<log*>(map_fd(sizeof(log), PROT_READ, MAP_PRIVATE, fd_log, 0));
+    s_log = static_cast<log*>(map_fd(get_fd_size(fd_log), PROT_READ, MAP_PRIVATE, fd_log, 0));
     // Actually commit the transaction.
     bool success = txn_commit();
     session_event_t decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
@@ -311,10 +311,8 @@ void server::init_shared_memory()
     {
         throw_system_error("memfd_create failed");
     }
-    if (-1 == ::ftruncate(s_fd_locators, sizeof(locators)) || -1 == ::ftruncate(s_fd_data, sizeof(data)))
-    {
-        throw_system_error("ftruncate failed");
-    }
+    truncate_fd(s_fd_locators, sizeof(locators));
+    truncate_fd(s_fd_data, sizeof(data));
     s_shared_locators = static_cast<locators*>(map_fd(sizeof(locators), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_locators, 0));
     s_data = static_cast<data*>(map_fd(sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_data, 0));
     // Populate shared memory from the persistent log and snapshot.
@@ -359,16 +357,7 @@ void server::signal_handler(sigset_t sigset, int& signum)
     // REVIEW: do we have any use for sigwaitinfo()?
     ::sigwait(&sigset, &signum);
     cerr << "Caught signal " << ::strsignal(signum) << endl;
-    // Signal the eventfd by writing a nonzero value.
-    // This value is large enough that no thread will
-    // decrement it to zero, so every waiting thread
-    // should see a nonzero value.
-    ssize_t bytes_written = ::write(s_server_shutdown_eventfd, &MAX_SEMAPHORE_COUNT, sizeof(MAX_SEMAPHORE_COUNT));
-    if (bytes_written == -1)
-    {
-        throw_system_error("write to eventfd failed");
-    }
-    retail_assert(bytes_written == sizeof(MAX_SEMAPHORE_COUNT), "Failed to fully write data!");
+    signal_eventfd(s_server_shutdown_eventfd);
 }
 
 void server::init_listening_socket()
@@ -532,20 +521,13 @@ void server::client_dispatch_handler()
             }
             else if (ev.data.fd == s_server_shutdown_eventfd)
             {
-                uint64_t val;
-                ssize_t bytes_read = ::read(s_server_shutdown_eventfd, &val, sizeof(val));
-                if (bytes_read == -1)
-                {
-                    throw_system_error("read failed");
-                }
-                // We should always read the value 1 from a semaphore eventfd.
-                retail_assert(bytes_read == sizeof(val) && val == 1, "Unexpected value read from semaphore event fd");
+                consume_eventfd(s_server_shutdown_eventfd);
                 return;
             }
             else
             {
                 // We don't monitor any other fds.
-                retail_assert(false, "Unexpected event fd type detected!");
+                retail_assert(false, "Unexpected fd!");
             }
         }
     }
@@ -588,29 +570,17 @@ void server::session_handler(int session_socket)
     }
     epoll_event events[std::size(fds)];
     // Event to signal session-owned threads to terminate.
-    int session_shutdown_eventfd = ::eventfd(0, EFD_NONBLOCK | EFD_SEMAPHORE);
-    if (session_shutdown_eventfd == -1)
-    {
-        throw_system_error("eventfd failed");
-    }
-    s_session_shutdown_eventfd = session_shutdown_eventfd;
+    s_session_shutdown_eventfd = make_eventfd();
     auto owned_threads_cleanup = make_scope_guard([]() {
-        // Signal the eventfd by writing a nonzero value.
-        // This value is large enough that no thread will
-        // decrement it to zero, so every waiting thread
-        // should see a nonzero value.
-        ssize_t bytes_written = ::write(s_session_shutdown_eventfd, &MAX_SEMAPHORE_COUNT, sizeof(MAX_SEMAPHORE_COUNT));
-        if (bytes_written == -1)
-        {
-            throw_system_error("write to eventfd failed");
-        }
-        retail_assert(bytes_written == sizeof(MAX_SEMAPHORE_COUNT), "Failed to fully write data!");
+        // Signal all session-owned threads to terminate.
+        signal_eventfd(s_session_shutdown_eventfd);
         // Wait for all session-owned threads to terminate.
         for (std::thread& t : s_session_owned_threads)
         {
             t.join();
         }
-        // All threads have received the session shutdown notification, so we can close the eventfd.
+        // All threads have received the session shutdown notification, so we
+        // can close the eventfd.
         close_fd(s_session_shutdown_eventfd);
     });
 
@@ -712,21 +682,13 @@ void server::session_handler(int session_socket)
             else if (ev.data.fd == s_server_shutdown_eventfd)
             {
                 retail_assert(ev.events == EPOLLIN, "Expected EPOLLIN event type!");
-                // We should always read the value 1 from a semaphore eventfd.
-                uint64_t val;
-                ssize_t bytes_read = ::read(s_server_shutdown_eventfd, &val, sizeof(val));
-                if (bytes_read == -1)
-                {
-                    throw_system_error("read(eventfd) failed");
-                }
-                retail_assert(bytes_read == sizeof(val), "Failed to fully read expected data!");
-                retail_assert(val == 1, "Unexpected value received!");
+                consume_eventfd(s_server_shutdown_eventfd);
                 event = session_event_t::SERVER_SHUTDOWN;
             }
             else
             {
                 // We don't monitor any other fds.
-                retail_assert(false, "Unexpected event fd!");
+                retail_assert(false, "Unexpected fd!");
             }
             retail_assert(event != session_event_t::NOP, "Unexpected event type!");
             apply_transition(event, event_data, fds, fd_count);
@@ -887,21 +849,13 @@ void server::stream_producer_handler(
             else if (ev.data.fd == cancel_eventfd)
             {
                 retail_assert(ev.events == EPOLLIN, "Unexpected event type!");
-                // We should always read the value 1 from a semaphore eventfd.
-                uint64_t val;
-                ssize_t bytes_read = ::read(cancel_eventfd, &val, sizeof(val));
-                if (bytes_read == -1)
-                {
-                    throw_system_error("read(eventfd) failed");
-                }
-                retail_assert(bytes_read == sizeof(val), "Failed to fully read data!");
-                retail_assert(val == 1, "Unexpected data received!");
+                consume_eventfd(cancel_eventfd);
                 producer_shutdown = true;
             }
             else
             {
                 // We don't monitor any other fds.
-                retail_assert(false, "Unexpected event fd!");
+                retail_assert(false, "Unexpected fd!");
             }
         }
     }
@@ -1017,27 +971,15 @@ void server::run(bool disable_persistence)
     while (true)
     {
         // Create eventfd shutdown event.
-        // Linux is non-POSIX-compliant and sometimes marks an fd as readable
-        // from select/poll/epoll even when a subsequent read would block.
-        // Therefore it's safest to always set an fd to nonblocking when it's
-        // used with select/poll/epoll. However, a datagram socket will return
-        // EAGAIN/EWOULDBLOCK on write if there's not enough space in the send
-        // buffer to write the whole message. This shouldn't be an issue as long
-        // as our send buffer is larger than any message, but we should assert
-        // that writes never block when the socket is writable, just to be sure.
-        // We really just want the semantics of a broadcast, level-triggered
-        // "waitable flag", but the closest thing to that is semaphore mode, which
-        // has the unwanted semantics of a decrement on each read (the eventfd stops
-        // alerting when it is decremented to zero). So as a workaround, we write
-        // the largest possible value to the eventfd to ensure that it is never
-        // decremented to zero, no matter how many threads read (and decrement) the
-        // value.
-        int server_shutdown_eventfd = ::eventfd(0, EFD_NONBLOCK | EFD_SEMAPHORE);
-        if (server_shutdown_eventfd == -1)
-        {
-            throw_system_error("eventfd failed");
-        }
-        s_server_shutdown_eventfd = server_shutdown_eventfd;
+        s_server_shutdown_eventfd = make_eventfd();
+        auto cleanup_shutdown_eventfd = make_scope_guard([]() {
+            // We can't close this fd until all readers and writers have exited.
+            // The only readers are the client dispatch thread and the session
+            // threads, and the only writer is the signal handler thread. All
+            // these threads must have exited before we exit this scope and this
+            // handler executes.
+            close_fd(s_server_shutdown_eventfd);
+        });
         // Launch signal handler thread.
         int caught_signal = 0;
         std::thread signal_handler_thread(signal_handler, handled_signals, std::ref(caught_signal));
@@ -1048,10 +990,6 @@ void server::run(bool disable_persistence)
         client_dispatch_thread.join();
         // The signal handler thread will only return after a blocked signal is pending.
         signal_handler_thread.join();
-        // We can't close this fd until all readers and writers have exited.
-        // The only readers are the client dispatch thread and the session
-        // threads, and the only writer is the signal handler thread.
-        close_fd(s_server_shutdown_eventfd);
         // We shouldn't get here unless the signal handler thread has caught a signal.
         retail_assert(caught_signal != 0, "A signal should have been caught!");
         // We special-case SIGHUP to force reinitialization of the server.
