@@ -227,6 +227,13 @@ void adapter_t::initialize_caches()
 {
     gaia::db::begin_transaction();
 
+    retail_assert(
+        type_cache_t::get()->size() == 0,
+        "type_cache_t has been initialized already!");
+    retail_assert(
+        s_map_table_name_to_ids.size() == 0,
+        "s_map_table_name_to_ids has been initialized already!");
+
     for (auto table_view : catalog_core_t::list_tables())
     {
         elog(
@@ -325,70 +332,68 @@ void adapter_t::end_session()
     }
 }
 
-bool adapter_t::is_transaction_open()
-{
-    if (s_txn_reference_count < 0)
-    {
-        ereport(
-            ERROR,
-            (errcode(ERRCODE_FDW_ERROR),
-             errmsg("A negative transaction count was detected in is_transaction_open())!"),
-             errhint("Count is '%ld'.", s_txn_reference_count)));
-    }
-
-    return s_txn_reference_count > 0;
-}
-
 bool adapter_t::begin_transaction()
 {
     elog(DEBUG1, "Opening COW-SE transaction...");
 
-    if (s_txn_reference_count < 0)
+    try
+    {
+        retail_assert(
+            s_txn_reference_count >= 0,
+            "A negative transaction count was detected in begin_transaction())!");
+
+        bool opened_transaction = false;
+        int previous_count = s_txn_reference_count++;
+        if (previous_count == 0)
+        {
+            opened_transaction = true;
+            gaia::db::begin_transaction();
+        }
+
+        elog(DEBUG1, "Txn actually opened: '%s'.", opened_transaction ? "true" : "false");
+
+        return opened_transaction;
+    }
+    catch (const exception& e)
     {
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("A negative transaction count was detected in begin_transaction())!"),
-             errhint("Count is '%ld'.", s_txn_reference_count)));
+             errmsg("Error beginning transaction."),
+             errhint("Exception: '%s'.", e.what())));
     }
-
-    bool opened_transaction = false;
-    int previous_count = s_txn_reference_count++;
-    if (previous_count == 0)
-    {
-        opened_transaction = true;
-        gaia::db::begin_transaction();
-    }
-
-    elog(DEBUG1, "Txn actually opened: '%s'.", opened_transaction ? "true" : "false");
-
-    return opened_transaction;
 }
 
 bool adapter_t::commit_transaction()
 {
     elog(DEBUG1, "Closing COW-SE transaction...");
 
-    if (s_txn_reference_count <= 0)
+    try
+    {
+        retail_assert(
+            s_txn_reference_count > 0,
+            "A non-positive transaction count was detected in commit_transaction())!");
+
+        bool closed_transaction = false;
+        int previous_count = s_txn_reference_count--;
+        if (previous_count == 1)
+        {
+            closed_transaction = true;
+            gaia::db::commit_transaction();
+        }
+
+        elog(DEBUG1, "Txn actually closed: '%s'.", closed_transaction ? "true" : "false");
+
+        return closed_transaction;
+    }
+    catch (const exception& e)
     {
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("A non-positive transaction count was detected in commit_transaction())!"),
-             errhint("Count is '%ld'.", s_txn_reference_count)));
+             errmsg("Error committing transaction."),
+             errhint("Exception: '%s'.", e.what())));
     }
-
-    bool closed_transaction = false;
-    int previous_count = s_txn_reference_count--;
-    if (previous_count == 1)
-    {
-        closed_transaction = true;
-        gaia::db::commit_transaction();
-    }
-
-    elog(DEBUG1, "Txn actually closed: '%s'.", closed_transaction ? "true" : "false");
-
-    return closed_transaction;
 }
 
 bool adapter_t::is_gaia_id_name(const char* name)
@@ -400,7 +405,18 @@ bool adapter_t::is_gaia_id_name(const char* name)
 
 uint64_t adapter_t::get_new_gaia_id()
 {
-    return gaia_ptr::generate_id();
+    try
+    {
+        return gaia_ptr::generate_id();
+    }
+    catch (const exception& e)
+    {
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("Error generating gaia_id."),
+             errhint("Exception: '%s'.", e.what())));
+    }
 }
 
 List* adapter_t::get_ddl_command_list(const char* server_name)
@@ -518,72 +534,87 @@ bool state_t::set_field_index(const char* field_name, size_t field_index)
              errhint("Field index is '%ld' and field count is '%ld'.", field_index, m_count_fields)));
     }
 
-    // gaia_id is an implicit field that is not described in metadata,
-    // so it needs special handling.
-    if (adapter_t::is_gaia_id_name(field_name))
+    try
     {
-        m_gaia_id_field_index = field_index;
-
-        m_fields[field_index].position = -1;
-        m_fields[field_index].type = data_type_t::e_uint64;
-        m_fields[field_index].is_reference = false;
-
-        return true;
-    }
-
-    // All other fields need to be looked up in metadata.
-    bool found_field = false;
-
-    // Look up fields first.
-    for (gaia_id_t field_id : gaia::catalog::list_fields(m_table_id))
-    {
-        gaia_field_t field = gaia_field_t::get(field_id);
-
-        if (strcmp(field_name, field.name()) == 0)
+        // gaia_id is an implicit field that is not described in metadata,
+        // so it needs special handling.
+        if (adapter_t::is_gaia_id_name(field_name))
         {
-            found_field = true;
+            m_gaia_id_field_index = field_index;
 
-            m_fields[field_index].position = field.position();
-            m_fields[field_index].type = static_cast<data_type_t>(field.type());
+            m_fields[field_index].position = -1;
+            m_fields[field_index].type = data_type_t::e_uint64;
             m_fields[field_index].is_reference = false;
 
-            break;
+            return true;
         }
-    }
 
-    // Lookup references if we have not found a match in fields.
-    for (gaia_id_t reference_id : list_references(m_table_id))
+        // All other fields need to be looked up in metadata.
+        bool found_field = false;
+
+        // Look up fields first.
+        for (gaia_id_t field_id : gaia::catalog::list_fields(m_table_id))
+        {
+            gaia_field_t field = gaia_field_t::get(field_id);
+
+            if (strcmp(field_name, field.name()) == 0)
+            {
+                found_field = true;
+
+                m_fields[field_index].position = field.position();
+                m_fields[field_index].type = static_cast<data_type_t>(field.type());
+                m_fields[field_index].is_reference = false;
+
+                break;
+            }
+        }
+
+        // Lookup references if we have not found a match in fields.
+        for (gaia_id_t reference_id : list_references(m_table_id))
+        {
+            gaia_relationship_t relationship = gaia_relationship_t::get(reference_id);
+
+            string relationship_name = relationship.name();
+            if (relationship_name.empty())
+            {
+                relationship_name = relationship.parent_gaia_table().name();
+            }
+
+            if (relationship_name.empty())
+            {
+                ereport(
+                    ERROR,
+                    (errcode(ERRCODE_FDW_ERROR),
+                     errmsg("Unable to derive name of anonymous relationship!"),
+                     errhint("Reference id is '%ld'.", reference_id)));
+            }
+
+            if (strcmp(field_name, relationship_name.c_str()) == 0)
+            {
+                found_field = true;
+
+                m_fields[field_index].position = relationship.parent_offset();
+                m_fields[field_index].type = data_type_t::e_uint64;
+                m_fields[field_index].is_reference = true;
+
+                break;
+            }
+        }
+
+        return found_field;
+    }
+    catch (const exception& e)
     {
-        gaia_relationship_t relationship = gaia_relationship_t::get(reference_id);
-
-        string relationship_name = relationship.name();
-        if (relationship_name.empty())
-        {
-            relationship_name = relationship.parent_gaia_table().name();
-        }
-
-        if (relationship_name.empty())
-        {
-            ereport(
-                ERROR,
-                (errcode(ERRCODE_FDW_ERROR),
-                 errmsg("Unable to derive name of anonymous relationship!"),
-                 errhint("Reference id is '%ld'.", reference_id)));
-        }
-
-        if (strcmp(field_name, relationship_name.c_str()) == 0)
-        {
-            found_field = true;
-
-            m_fields[field_index].position = relationship.parent_offset();
-            m_fields[field_index].type = data_type_t::e_uint64;
-            m_fields[field_index].is_reference = true;
-
-            break;
-        }
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("Failed setting field index."),
+             errhint(
+                 "Field: '%s', index: '%ld'. Exception: '%s'.",
+                 field_name,
+                 field_index,
+                 e.what())));
     }
-
-    return found_field;
 }
 
 bool state_t::is_gaia_id_field_index(size_t field_index)
@@ -598,14 +629,25 @@ scan_state_t::scan_state_t()
 
 bool scan_state_t::initialize_scan()
 {
-    m_current_node = gaia_ptr::find_first(m_container_id);
-
-    if (m_current_node)
+    try
     {
-        m_current_payload = reinterpret_cast<uint8_t*>(m_current_node.data());
-    }
+        m_current_node = gaia_ptr::find_first(m_container_id);
 
-    return true;
+        if (m_current_node)
+        {
+            m_current_payload = reinterpret_cast<uint8_t*>(m_current_node.data());
+        }
+
+        return true;
+    }
+    catch (const exception& e)
+    {
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("Failed initializing table scan."),
+             errhint("Exception: '%s'.", e.what())));
+    }
 }
 
 bool scan_state_t::has_scan_ended()
@@ -683,22 +725,27 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
 
 bool scan_state_t::scan_forward()
 {
-    if (has_scan_ended())
+    try
+    {
+        retail_assert(!has_scan_ended(), "Attempt to scan forward after scan has ended!");
+
+        m_current_node = m_current_node.find_next();
+
+        if (m_current_node)
+        {
+            m_current_payload = reinterpret_cast<uint8_t*>(m_current_node.data());
+        }
+
+        return has_scan_ended();
+    }
+    catch (const exception& e)
     {
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("Attempt to scan forward after scan has ended!")));
+             errmsg("Failed iterating to next record."),
+             errhint("Exception: '%s'.", e.what())));
     }
-
-    m_current_node = m_current_node.find_next();
-
-    if (m_current_node)
-    {
-        m_current_payload = reinterpret_cast<uint8_t*>(m_current_node.data());
-    }
-
-    return has_scan_ended();
 }
 
 modify_state_t::modify_state_t()
@@ -710,25 +757,36 @@ modify_state_t::modify_state_t()
 
 void modify_state_t::initialize_payload()
 {
-    // Initialize payload vector during our first call.
-    if (m_current_payload == nullptr)
+    try
     {
-        m_current_payload = new vector<uint8_t>();
+        // Initialize payload vector during our first call.
+        if (m_current_payload == nullptr)
+        {
+            m_current_payload = new vector<uint8_t>();
+        }
+
+        // Get hold of the type cache and lookup the type information for our type.
+        auto_type_information_t auto_type_information;
+        type_cache_t::get()->get_type_information(m_container_id, auto_type_information);
+
+        // Set current payload to a copy of the serialization template bits.
+        *m_current_payload = auto_type_information.get()->get_serialization_template();
+
+        // Get a pointer to the binary schema.
+        // We only need to do this on the first call.
+        if (m_binary_schema == nullptr)
+        {
+            m_binary_schema = auto_type_information.get()->get_raw_binary_schema();
+            m_binary_schema_size = auto_type_information.get()->get_binary_schema_size();
+        }
     }
-
-    // Get hold of the type cache and lookup the type information for our type.
-    auto_type_information_t auto_type_information;
-    type_cache_t::get()->get_type_information(m_container_id, auto_type_information);
-
-    // Set current payload to a copy of the serialization template bits.
-    *m_current_payload = auto_type_information.get()->get_serialization_template();
-
-    // Get a pointer to the binary schema.
-    // We only need to do this on the first call.
-    if (m_binary_schema == nullptr)
+    catch (const exception& e)
     {
-        m_binary_schema = auto_type_information.get()->get_raw_binary_schema();
-        m_binary_schema_size = auto_type_information.get()->get_binary_schema_size();
+        ereport(
+            ERROR,
+            (errcode(ERRCODE_FDW_ERROR),
+             errmsg("Failed to initialize record payload."),
+             errhint("Exception: '%s'.", e.what())));
     }
 }
 
@@ -895,7 +953,9 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
                     ereport(
                         ERROR,
                         (errcode(ERRCODE_FDW_ERROR),
-                         errmsg("An invalid reference value was passed as a non-null value: '%ld'!", new_reference_id)));
+                         errmsg(
+                             "An invalid reference value was passed as a non-null value: '%ld'!",
+                             new_reference_id)));
                 }
 
                 // If updating an existing record and the reference value is unchanged,
@@ -939,8 +999,6 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("%s operation failed!", operation_name),
              errhint("Exception: '%s'.", e.what())));
-
-        return false;
     }
 }
 
@@ -981,8 +1039,6 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
              errmsg("DELETE operation failed!"),
              errhint("Exception: '%s'.", e.what())));
     }
-
-    return false;
 }
 
 void modify_state_t::end_modify()

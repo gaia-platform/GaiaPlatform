@@ -74,7 +74,6 @@ public:
     static void begin_session();
     static void end_session();
 
-    static bool is_transaction_open();
     static bool begin_transaction();
     static bool commit_transaction();
 

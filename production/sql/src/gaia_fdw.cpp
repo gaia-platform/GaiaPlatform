@@ -24,7 +24,7 @@ extern "C"
  */
 extern "C" Datum gaia_fdw_handler(PG_FUNCTION_ARGS)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 
     // To silence unused argument warning.
     fcinfo = nullptr;
@@ -98,7 +98,7 @@ extern "C" Datum gaia_fdw_handler(PG_FUNCTION_ARGS)
  */
 extern "C" Datum gaia_fdw_validator(PG_FUNCTION_ARGS)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 
     List* options_list = untransformRelOptions(PG_GETARG_DATUM(0));
     if (list_length(options_list) > 1)
@@ -118,7 +118,7 @@ extern "C" Datum gaia_fdw_validator(PG_FUNCTION_ARGS)
         auto def = reinterpret_cast<DefElem*>(lfirst(cell));
         char* opt_name = def->defname;
         char* opt_val = defGetString(def);
-        elog(DEBUG1, "Option name: %s, option value: %s.", opt_name, opt_val);
+        elog(DEBUG1, "Option name: '%s', option value: '%s'.", opt_name, opt_val);
 
         if (!gaia::fdw::validate_and_apply_option(opt_name, opt_val, catalog_id))
         {
@@ -130,9 +130,9 @@ extern "C" Datum gaia_fdw_validator(PG_FUNCTION_ARGS)
             ereport(
                 ERROR,
                 (errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
-                 errmsg("Invalid option \"%s\".", opt_name),
+                 errmsg("Invalid option '%s'.", opt_name),
                  buf.len > 0
-                     ? errhint("Valid options in this context are: %s.", buf.data)
+                     ? errhint("Valid options in this context are: '%s'.", buf.data)
                      : errhint("There are no valid options in this context.")));
 
             PG_RETURN_VOID();
@@ -163,7 +163,7 @@ extern "C" void gaia_get_foreign_rel_size(
     RelOptInfo* /*base_rel*/,
     Oid /*foreign_table_id*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 }
 
 /**
@@ -185,7 +185,7 @@ extern "C" void gaia_get_foreign_paths(
     RelOptInfo* base_rel,
     Oid /*foreign_table_id*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 
     Cost startup_cost = 0;
     Cost total_cost = startup_cost + base_rel->rows;
@@ -230,7 +230,7 @@ extern "C" ForeignScan* gaia_get_foreign_plan(
     List* scan_clauses,
     Plan* outer_plan)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 
     Index scan_relid = base_rel->relid;
 
@@ -276,7 +276,7 @@ extern "C" ForeignScan* gaia_get_foreign_plan(
  */
 extern "C" void gaia_begin_foreign_scan(ForeignScanState* node, int /*eflags*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 
     auto plan = reinterpret_cast<ForeignScan*>(node->ss.ps.plan);
     Index rtindex = plan->scan.scanrelid;
@@ -304,11 +304,11 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState* node, int /*eflags*/)
 
         if (scan_state->set_field_index(attr_name, (size_t)i))
         {
-            elog(DEBUG1, "Set index of field %s to %d!", attr_name, i);
+            elog(DEBUG1, "Set index of field '%s' to '%d'!", attr_name, i);
         }
         else
         {
-            elog(ERROR, "Failed to set index of field %s to %d!", attr_name, i);
+            elog(ERROR, "Failed to set index of field '%s' to '%d'!", attr_name, i);
         }
     }
 
@@ -347,7 +347,7 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState* node, int /*eflags*/)
  */
 extern "C" TupleTableSlot* gaia_iterate_foreign_scan(ForeignScanState* node)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 
     auto scan_state = reinterpret_cast<gaia::fdw::scan_state_t*>(node->fdw_state);
 
@@ -388,7 +388,7 @@ extern "C" TupleTableSlot* gaia_iterate_foreign_scan(ForeignScanState* node)
  */
 extern "C" void gaia_rescan_foreign_scan(ForeignScanState* /*node*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 }
 
 /**
@@ -398,7 +398,7 @@ extern "C" void gaia_rescan_foreign_scan(ForeignScanState* /*node*/)
  */
 extern "C" void gaia_end_foreign_scan(ForeignScanState* /*node*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 
     // Commit read transaction.
     gaia::fdw::adapter_t::commit_transaction();
@@ -435,7 +435,7 @@ extern "C" void gaia_add_foreign_update_targets(
     RangeTblEntry* /*target_rte*/,
     Relation target_relation)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 
     TupleDesc tuple_desc = target_relation->rd_att;
 
@@ -508,7 +508,7 @@ extern "C" List* gaia_plan_foreign_modify(
     Index result_relation,
     int /*subplan_index*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 
     // We don't return any private data from this method, just check that
     // gaia_id is not an INSERT or UPDATE target.
@@ -545,7 +545,7 @@ extern "C" List* gaia_plan_foreign_modify(
                 ereport(
                     ERROR,
                     (errcode(ERRCODE_FDW_INVALID_COLUMN_NAME),
-                     errmsg("Cannot insert into or update system column gaia_id.")));
+                     errmsg("Cannot insert or update system column gaia_id.")));
             }
         }
     }
@@ -586,7 +586,7 @@ extern "C" void gaia_begin_foreign_modify(
     int /*subplan_index*/,
     int /*eflags*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 
     RangeTblEntry* rte
         = exec_rt_fetch(rinfo->ri_RangeTableIndex, mtstate->ps.state);
@@ -609,11 +609,11 @@ extern "C" void gaia_begin_foreign_modify(
 
         if (modify_state->set_field_index(attr_name, (size_t)i))
         {
-            elog(DEBUG1, "Set index of field %s to %d!", attr_name, i);
+            elog(DEBUG1, "Set index of field '%s' to '%d'!", attr_name, i);
         }
         else
         {
-            elog(ERROR, "Failed to set index of field %s to %d!", attr_name, i);
+            elog(ERROR, "Failed to set index of field '%s' to '%d'!", attr_name, i);
         }
     }
 
@@ -651,7 +651,7 @@ extern "C" TupleTableSlot* gaia_exec_foreign_insert(
     TupleTableSlot* slot,
     TupleTableSlot* /*plan_slot*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 
     auto modify_state = reinterpret_cast<gaia::fdw::modify_state_t*>(rinfo->ri_FdwState);
 
@@ -737,7 +737,7 @@ extern "C" TupleTableSlot* gaia_exec_foreign_update(
     TupleTableSlot* slot,
     TupleTableSlot* /*plan_slot*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 
     auto modify_state = reinterpret_cast<gaia::fdw::modify_state_t*>(rinfo->ri_FdwState);
 
@@ -819,7 +819,7 @@ extern "C" TupleTableSlot* gaia_exec_foreign_delete(
     TupleTableSlot* slot,
     TupleTableSlot* plan_slot)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 
     auto modify_state = reinterpret_cast<gaia::fdw::modify_state_t*>(rinfo->ri_FdwState);
 
@@ -830,7 +830,7 @@ extern "C" TupleTableSlot* gaia_exec_foreign_delete(
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("Plan slot should have only 1 attribute: gaia_id.")));
+             errmsg("Plan slot should have only one attribute: gaia_id.")));
     }
 
     Form_pg_attribute attr = TupleDescAttr(tuple_desc, 0);
@@ -873,7 +873,7 @@ extern "C" TupleTableSlot* gaia_exec_foreign_delete(
  */
 extern "C" void gaia_end_foreign_modify(EState* /*estate*/, ResultRelInfo* rinfo)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 
     auto modify_state = reinterpret_cast<gaia::fdw::modify_state_t*>(rinfo->ri_FdwState);
 
@@ -887,14 +887,14 @@ extern "C" void gaia_begin_foreign_insert(
     ModifyTableState* /*mtstate*/,
     ResultRelInfo* /*result_rel_info*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 }
 
 extern "C" void gaia_end_foreign_insert(
     EState* /*estate*/,
     ResultRelInfo* /*result_rel_info*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 }
 
 /**
@@ -915,7 +915,7 @@ extern "C" void gaia_end_foreign_insert(
  */
 extern "C" int gaia_is_foreign_rel_updatable(Relation /*rel*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 
     return (1 << CMD_UPDATE) | (1 << CMD_INSERT) | (1 << CMD_DELETE);
 }
@@ -926,25 +926,25 @@ extern "C" bool gaia_plan_direct_modify(
     Index /*result_relation*/,
     int /*subplan_index*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 
     return false;
 }
 
 extern "C" void gaia_begin_direct_modify(ForeignScanState* /*node*/, int /*eflags*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 }
 
 extern "C" TupleTableSlot* gaia_iterate_direct_modify(ForeignScanState* /*node*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
     return nullptr;
 }
 
 extern "C" void gaia_end_direct_modify(ForeignScanState* /*node*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 }
 
 /**
@@ -961,7 +961,7 @@ extern "C" void gaia_explain_foreign_scan(
     ForeignScanState* /*node*/,
     struct ExplainState* /*es*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 }
 
 /**
@@ -982,14 +982,14 @@ extern "C" void gaia_explain_foreign_modify(
     int /*subplan_index*/,
     struct ExplainState* /*es*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 }
 
 extern "C" void gaia_explain_direct_modify(
     ForeignScanState* /*node*/,
     struct ExplainState* /*es*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 }
 
 /**
@@ -1022,7 +1022,7 @@ extern "C" bool gaia_analyze_foreign_table(
     AcquireSampleRowsFunc* /*func*/,
     BlockNumber* /*total_pages*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 
     return false;
 }
@@ -1064,7 +1064,7 @@ extern "C" void gaia_get_foreign_join_paths(
     JoinType /*join_type*/,
     JoinPathExtraData* /*extra*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 }
 
 extern "C" void gaia_get_foreign_upper_paths(
@@ -1074,14 +1074,14 @@ extern "C" void gaia_get_foreign_upper_paths(
     RelOptInfo* /*output_rel*/,
     void* /*extra*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 }
 
 extern "C" bool gaia_recheck_foreign_scan(
     ForeignScanState* /*node*/,
     TupleTableSlot* /*slot*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 
     return false;
 }
@@ -1104,7 +1104,7 @@ extern "C" RowMarkType gaia_get_foreign_row_mark_type(
     RangeTblEntry* /*rte*/,
     LockClauseStrength /*strength*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 
     return ROW_MARK_COPY;
 }
@@ -1147,7 +1147,7 @@ extern "C" void gaia_refetch_foreign_row(
     TupleTableSlot* /*slot*/,
     bool* /*updated*/)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 }
 
 /**
@@ -1187,7 +1187,7 @@ extern "C" List* gaia_import_foreign_schema(
     ImportForeignSchemaStmt* /*stmt*/,
     Oid server_oid)
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
 
     ForeignServer* server = GetForeignServer(server_oid);
     const char* server_name = server->servername;
@@ -1201,7 +1201,7 @@ extern "C" List* gaia_import_foreign_schema(
 // NOLINTNEXTLINE(readability-identifier-naming)
 extern "C" void _PG_init()
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
     gaia::fdw::adapter_t::begin_session();
 }
 
@@ -1211,6 +1211,6 @@ extern "C" void _PG_init()
 // NOLINTNEXTLINE(readability-identifier-naming)
 extern "C" void _PG_fini()
 {
-    elog(DEBUG1, "Entering function %s...", __func__);
+    elog(DEBUG1, "Entering function '%s'...", __func__);
     gaia::fdw::adapter_t::end_session();
 }
