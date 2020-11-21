@@ -15,4 +15,5 @@ target_link_libraries(pp-trace
   clangLex
   clangSerialization
   clangTooling
+  gaia_system
   )

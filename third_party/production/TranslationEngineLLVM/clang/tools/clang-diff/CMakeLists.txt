@@ -13,4 +13,5 @@ target_link_libraries(clang-diff
   clangSerialization
   clangTooling
   clangToolingASTDiff
+  gaia_system
   )

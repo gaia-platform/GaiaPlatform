@@ -17,4 +17,5 @@ target_link_libraries(clangd-indexer
   clangFrontend
   clangLex
   clangTooling
+  gaia_system
 )

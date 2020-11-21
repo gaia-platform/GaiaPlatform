@@ -19,6 +19,7 @@ target_link_libraries(clang-change-namespace
   clangSerialization
   clangTooling
   clangToolingCore
+  gaia_system
   )
 
 install(TARGETS clang-change-namespace
