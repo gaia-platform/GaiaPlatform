@@ -7,8 +7,8 @@
 project(schema_loader)
 
 set(GAIA_SCHEMA_LOADER_PUBLIC_INCLUDES
-  ${GAIA_INC}/internal/common
-  ${GAIA_INC}/internal/catalog
+  ${GAIA_INTERNAL_INC}/common
+  ${GAIA_INTERNAL_INC}/catalog
   ${PROJECT_SOURCE_DIR}/inc
 )
 

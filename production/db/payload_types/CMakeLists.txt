@@ -8,8 +8,8 @@ project(payload_types)
 
 set(GAIA_PAYLOAD_TYPES_INCLUDES
   "${GAIA_INC}"
-  "${GAIA_INC}/internal/common"
-  "${GAIA_INC}/internal/db"
+  "${GAIA_INTERNAL_INC}/common"
+  "${GAIA_INTERNAL_INC}/db"
   "${GAIA_DB_INC}/payload_types"
   "${GAIA_REPO}/production/db/storage_engine/inc"
   "${GAIA_REPO}/production/catalog/inc"

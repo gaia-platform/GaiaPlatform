@@ -32,9 +32,9 @@ set_target_properties(
 
 target_include_directories(gaia_fdw PRIVATE "${PROJECT_SOURCE_DIR}/inc")
 target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}")
-target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/internal/common")
-target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/internal/catalog")
-target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/internal/db")
+target_include_directories(gaia_fdw PRIVATE "${GAIA_INTERNAL_INC}/common")
+target_include_directories(gaia_fdw PRIVATE "${GAIA_INTERNAL_INC}/catalog")
+target_include_directories(gaia_fdw PRIVATE "${GAIA_INTERNAL_INC}/db")
 target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}/db/payload_types")
 target_include_directories(gaia_fdw SYSTEM PRIVATE "${PGSQL_INCLUDEDIR_SERVER}")
 
