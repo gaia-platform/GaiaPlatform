@@ -1642,6 +1642,7 @@ public:
 
                 output_file << "#include \"gaia/rules/rules.hpp\"\n";
                 output_file << "using namespace gaia::rules;\n";
+                output_file << "using namespace gaia::db::triggers;\n";
 
                 m_rewriter.getEditBuffer(m_rewriter.getSourceMgr().getMainFileID())
                     .write(output_file);
