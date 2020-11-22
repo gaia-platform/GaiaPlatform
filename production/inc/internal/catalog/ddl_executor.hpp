@@ -98,11 +98,11 @@ private:
     // We use them to compute offset field values of the "gaia_relationship" table .
     //
     // Find the next available offset in a container's parent relationships.
-    static reference_offset_t find_parent_available_offset(const parent_gaia_relationship_list_t& relationships);
+    static common::reference_offset_t find_parent_available_offset(const parent_gaia_relationship_list_t& relationships);
     // Find the next available offset in a container's child relationships.
-    static reference_offset_t find_child_available_offset(const child_gaia_relationship_list_t& relationships);
+    static common::reference_offset_t find_child_available_offset(const child_gaia_relationship_list_t& relationships);
     // Find the next available offset in the relationships of the given table.
-    static reference_offset_t find_available_offset(gaia::common::gaia_id_t table);
+    static common::reference_offset_t find_available_offset(gaia::common::gaia_id_t table);
 
     // Maintain some in-memory cache for fast lookup.
     // This is only intended for single process usage.

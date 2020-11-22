@@ -12,13 +12,13 @@ namespace direct_access
 // Implementation for gaia_iterator_t.
 //
 template <typename T_class>
-gaia_iterator_t<T_class>::gaia_iterator_t(gaia_id_t id)
+gaia_iterator_t<T_class>::gaia_iterator_t(gaia::common::gaia_id_t id)
 {
     m_obj = T_class::get(id);
 }
 
 template <typename T_class>
-gaia_iterator_t<T_class>::gaia_iterator_t(gaia_id_t id, std::function<bool(const T_class&)> filter_function)
+gaia_iterator_t<T_class>::gaia_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_class&)> filter_function)
     : m_filter_fn(filter_function)
 {
     m_obj = T_class::get(id);
@@ -90,11 +90,11 @@ typename gaia_iterator_t<T_class>::pointer gaia_iterator_t<T_class>::operator->(
 //
 
 // The begin() method returns either the first element, or the first element that satisfies m_filter_fn.
-template <gaia_type_t T_container, typename T_class>
+template <gaia::common::gaia_type_t T_container, typename T_class>
 gaia_iterator_t<T_class> gaia_container_t<T_container, T_class>::begin()
 {
-    gaia_id_t id = gaia_base_t::find_first(T_container);
-    while (id != c_invalid_gaia_id)
+    gaia::common::gaia_id_t id = gaia_base_t::find_first(T_container);
+    while (id != common::c_invalid_gaia_id)
     {
         if (m_filter_fn)
         {
@@ -113,13 +113,13 @@ gaia_iterator_t<T_class> gaia_container_t<T_container, T_class>::begin()
 }
 
 // The where() method constructs a gaia_container_t with a std::function to be used for filtering.
-template <gaia_type_t T_container, typename T_class>
+template <gaia::common::gaia_type_t T_container, typename T_class>
 gaia_container_t<T_container, T_class> gaia_container_t<T_container, T_class>::where(std::function<bool(const T_class&)> filter_function)
 {
     return gaia_container_t<T_container, T_class>(filter_function);
 }
 
-template <gaia_type_t T_container, typename T_class>
+template <gaia::common::gaia_type_t T_container, typename T_class>
 gaia_iterator_t<T_class> gaia_container_t<T_container, T_class>::end()
 {
     return gaia_iterator_t<T_class>(0);
@@ -129,13 +129,13 @@ gaia_iterator_t<T_class> gaia_container_t<T_container, T_class>::end()
 // Implementation for gaia_set_iterator_t.
 //
 template <typename T_child, size_t T_next_slot>
-gaia_set_iterator_t<T_child, T_next_slot>::gaia_set_iterator_t(gaia_id_t id)
+gaia_set_iterator_t<T_child, T_next_slot>::gaia_set_iterator_t(gaia::common::gaia_id_t id)
 {
     m_child_obj = T_child::get(id);
 }
 
 template <typename T_child, size_t T_next_slot>
-gaia_set_iterator_t<T_child, T_next_slot>::gaia_set_iterator_t(gaia_id_t id, std::function<bool(const T_child&)> filter_function)
+gaia_set_iterator_t<T_child, T_next_slot>::gaia_set_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_child&)> filter_function)
     : m_filter_fn(filter_function)
 {
     m_child_obj = T_child::get(id);
@@ -210,7 +210,7 @@ bool gaia_set_iterator_t<T_child, T_next_slot>::operator!=(const gaia_set_iterat
 template <typename T_parent, typename T_child, size_t T_parent_slot, size_t T_child_slot, size_t T_next_slot>
 gaia_set_iterator_t<T_child, T_next_slot> reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot, T_next_slot>::begin() const
 {
-    gaia_id_t id = 0;
+    gaia::common::gaia_id_t id = 0;
 
     if (m_parent_id)
     {
@@ -249,7 +249,7 @@ gaia_set_iterator_t<T_child, T_next_slot> reference_chain_container_t<T_parent, 
 }
 
 template <typename T_parent, typename T_child, size_t T_parent_slot, size_t T_child_slot, size_t T_next_slot>
-void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot, T_next_slot>::insert(gaia_id_t child_id)
+void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot, T_next_slot>::insert(gaia::common::gaia_id_t child_id)
 {
     // The gaia_id() will be zero if the row hasn't been inserted into the SE.
     if (child_id == 0 || m_parent_id == 0)
@@ -269,7 +269,7 @@ void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot,
 }
 
 template <typename T_parent, typename T_child, size_t T_parent_slot, size_t T_child_slot, size_t T_next_slot>
-void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot, T_next_slot>::erase(gaia_id_t child_id)
+void reference_chain_container_t<T_parent, T_child, T_parent_slot, T_child_slot, T_next_slot>::erase(gaia::common::gaia_id_t child_id)
 {
     gaia_base_t::remove_child_reference(m_parent_id, child_id, T_child_slot);
 }

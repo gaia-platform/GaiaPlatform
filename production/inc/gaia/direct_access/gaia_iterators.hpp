@@ -46,8 +46,8 @@ public:
     using reference = T_class&;
     using iterator_category = std::forward_iterator_tag;
 
-    explicit gaia_iterator_t(gaia_id_t id);
-    explicit gaia_iterator_t(gaia_id_t id, std::function<bool(const T_class&)> filter_function);
+    explicit gaia_iterator_t(gaia::common::gaia_id_t id);
+    explicit gaia_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_class&)> filter_function);
     gaia_iterator_t() = default;
 
     gaia_iterator_t<T_class>& operator++();
@@ -67,7 +67,7 @@ public:
 //
 // @tparam T_container the type identifier of Extended Data Class
 // @tparam T_class the class of the Extended Data Class
-template <gaia_type_t T_container, typename T_class>
+template <gaia::common::gaia_type_t T_container, typename T_class>
 struct gaia_container_t
 {
     // This constructor will be used by the where() method to create a filtered container.
@@ -105,8 +105,8 @@ public:
     using reference = T_child&;
     using iterator_category = std::forward_iterator_tag;
 
-    explicit gaia_set_iterator_t(gaia_id_t id);
-    explicit gaia_set_iterator_t(gaia_id_t id, std::function<bool(const T_child&)> filter_function);
+    explicit gaia_set_iterator_t(gaia::common::gaia_id_t id);
+    explicit gaia_set_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_child&)> filter_function);
     gaia_set_iterator_t() = default;
 
     reference operator*();
@@ -126,7 +126,7 @@ public:
 // a "set" relationship. The relationship is represented by a chain of pointers.
 // The parent points to the first child, and each child points to the next
 // child, where a null pointer indicates the end of the chain. Each EDC contains
-// a fixed number of reference slots of type gaia_id_t, to form the chains it is
+// a fixed number of reference slots of type gaia::common::gaia_id_t, to form the chains it is
 // a member of. Any EDC may be parent of any number of sets, and a member of any
 // number of sets. The catalog is aware of each set relationship and determines
 // the number of slots required to be stored in an EDC instance in order to
@@ -143,15 +143,15 @@ public:
 template <typename T_parent, typename T_child, size_t T_parent_slot, size_t T_child_slot, size_t T_next_slot>
 class reference_chain_container_t
 {
-    gaia_id_t m_parent_id = c_invalid_gaia_id;
+    gaia::common::gaia_id_t m_parent_id = gaia::common::c_invalid_gaia_id;
     std::function<bool(const T_child&)> m_filter_fn{};
 
 public:
     // This constructor will be used by the where() method to create a filtered container.
-    explicit reference_chain_container_t(gaia_id_t parent, std::function<bool(const T_child&)> filter_function)
+    explicit reference_chain_container_t(gaia::common::gaia_id_t parent, std::function<bool(const T_child&)> filter_function)
         : m_parent_id(parent), m_filter_fn(filter_function){};
 
-    explicit reference_chain_container_t(gaia_id_t parent)
+    explicit reference_chain_container_t(gaia::common::gaia_id_t parent)
         : m_parent_id(parent){};
 
     // reference_chain_container_t is copied from the EDC list methods.
@@ -164,11 +164,11 @@ public:
 
     gaia_set_iterator_t<T_child, T_next_slot> end() const;
 
-    void insert(gaia_id_t child_id);
+    void insert(gaia::common::gaia_id_t child_id);
 
     void insert(T_child& child_edc);
 
-    void erase(gaia_id_t child_id);
+    void erase(gaia::common::gaia_id_t child_id);
 
     void erase(T_child& child_edc);
 };

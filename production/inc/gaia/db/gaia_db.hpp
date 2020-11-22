@@ -16,9 +16,7 @@ namespace gaia
 namespace db
 {
 
-using namespace common;
-
-class session_exists : public gaia_exception
+class session_exists : public common::gaia_exception
 {
 public:
     session_exists()
@@ -27,7 +25,7 @@ public:
     }
 };
 
-class no_active_session : public gaia_exception
+class no_active_session : public common::gaia_exception
 {
 public:
     no_active_session()
@@ -36,7 +34,7 @@ public:
     }
 };
 
-class transaction_in_progress : public gaia_exception
+class transaction_in_progress : public common::gaia_exception
 {
 public:
     transaction_in_progress()
@@ -45,7 +43,7 @@ public:
     }
 };
 
-class no_open_transaction : public gaia_exception
+class no_open_transaction : public common::gaia_exception
 {
 public:
     no_open_transaction()
@@ -54,7 +52,7 @@ public:
     }
 };
 
-class transaction_update_conflict : public gaia_exception
+class transaction_update_conflict : public common::gaia_exception
 {
 public:
     transaction_update_conflict()
@@ -63,10 +61,10 @@ public:
     }
 };
 
-class duplicate_id : public gaia_exception
+class duplicate_id : public common::gaia_exception
 {
 public:
-    explicit duplicate_id(gaia_id_t id)
+    explicit duplicate_id(common::gaia_id_t id)
     {
         std::stringstream strs;
         strs << "An object with the same ID (" << id << ") already exists.";
@@ -74,7 +72,7 @@ public:
     }
 };
 
-class oom : public gaia_exception
+class oom : public common::gaia_exception
 {
 public:
     oom()
@@ -83,10 +81,10 @@ public:
     }
 };
 
-class invalid_node_id : public gaia_exception
+class invalid_node_id : public common::gaia_exception
 {
 public:
-    explicit invalid_node_id(gaia_id_t id)
+    explicit invalid_node_id(common::gaia_id_t id)
     {
         std::stringstream strs;
         strs << "Cannot find a node with ID " << id << ".";
@@ -94,10 +92,10 @@ public:
     }
 };
 
-class invalid_id_value : public gaia_exception
+class invalid_id_value : public common::gaia_exception
 {
 public:
-    explicit invalid_id_value(gaia_id_t id)
+    explicit invalid_id_value(common::gaia_id_t id)
     {
         std::stringstream strs;
         strs << "ID value " << id << " is larger than the maximum ID value 2^63.";
@@ -105,10 +103,10 @@ public:
     }
 };
 
-class node_not_disconnected : public gaia_exception
+class node_not_disconnected : public common::gaia_exception
 {
 public:
-    node_not_disconnected(gaia_id_t id, gaia_type_t object_type)
+    node_not_disconnected(common::gaia_id_t id, common::gaia_type_t object_type)
     {
         std::stringstream msg;
         msg << "Cannot delete object " << id << ", type " << object_type << " because it is still connected to another object.";
@@ -116,7 +114,7 @@ public:
     }
 };
 
-class payload_size_too_large : public gaia_exception
+class payload_size_too_large : public common::gaia_exception
 {
 public:
     payload_size_too_large(size_t total_len, uint16_t max_len)
@@ -127,17 +125,17 @@ public:
     }
 };
 
-class invalid_type : public gaia_exception
+class invalid_type : public common::gaia_exception
 {
 public:
-    explicit invalid_type(gaia_type_t type)
+    explicit invalid_type(common::gaia_type_t type)
     {
         std::stringstream msg;
         msg << "The type " << type << " does not exist in the catalog.";
         m_message = msg.str();
     }
 
-    invalid_type(gaia_id_t id, gaia_type_t type)
+    invalid_type(common::gaia_id_t id, common::gaia_type_t type)
     {
         std::stringstream msg;
         msg << "Cannot create object with ID " << id << " and type " << type << ". The type does not exist in the catalog.";

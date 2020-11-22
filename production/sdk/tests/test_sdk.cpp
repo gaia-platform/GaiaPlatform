@@ -14,9 +14,11 @@
 
 using namespace std;
 
+using namespace gaia::common;
 using namespace gaia::direct_access;
 using namespace gaia::rules;
 using namespace gaia::addr_book;
+using namespace gaia::db::triggers;
 
 extern "C" void initialize_rules()
 {

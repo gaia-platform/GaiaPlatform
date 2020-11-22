@@ -13,6 +13,10 @@
 #include "gaia_catalog.h"
 #include "retail_assert.hpp"
 
+using namespace ::std;
+
+using namespace gaia::direct_access;
+using namespace gaia::common;
 using namespace gaia::catalog;
 
 typedef std::vector<variant<std::string, const char*, tabulate::Table>> row_t;

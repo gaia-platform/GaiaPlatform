@@ -8,6 +8,9 @@
 #include "ddl_executor.hpp"
 #include "gaia_catalog.h"
 
+using namespace std;
+using namespace gaia::common;
+
 namespace gaia
 {
 namespace catalog

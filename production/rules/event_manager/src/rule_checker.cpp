@@ -11,6 +11,7 @@
 using namespace gaia::rules;
 using namespace gaia::common;
 using namespace gaia::catalog;
+using namespace gaia::direct_access;
 using namespace std;
 
 //

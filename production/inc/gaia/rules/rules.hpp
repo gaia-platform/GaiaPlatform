@@ -15,9 +15,6 @@
 #include "gaia/gaia_common.hpp"
 #include "gaia/gaia_exception.hpp"
 
-using namespace gaia::db::triggers;
-using namespace gaia::common;
-
 namespace gaia
 {
 /**
@@ -101,8 +98,8 @@ struct subscription_t
     subscription_t()
         : ruleset_name(nullptr)
         , rule_name(nullptr)
-        , gaia_type(c_invalid_gaia_type)
-        , event_type(event_type_t::not_set)
+        , gaia_type(common::c_invalid_gaia_type)
+        , event_type(db::triggers::event_type_t::not_set)
         , field(0)
     {
     }
@@ -110,9 +107,9 @@ struct subscription_t
     subscription_t(
         const char* a_ruleset_name,
         const char* a_rule_name,
-        gaia_type_t a_gaia_type,
-        event_type_t an_event_type,
-        field_position_t a_field)
+        common::gaia_type_t a_gaia_type,
+        db::triggers::event_type_t an_event_type,
+        common::field_position_t a_field)
         : ruleset_name(a_ruleset_name)
         , rule_name(a_rule_name)
         , gaia_type(a_gaia_type)
@@ -123,9 +120,9 @@ struct subscription_t
 
     const char* ruleset_name;
     const char* rule_name;
-    gaia_type_t gaia_type;
-    event_type_t event_type;
-    const field_position_t field;
+    common::gaia_type_t gaia_type;
+    db::triggers::event_type_t event_type;
+    const common::field_position_t field;
 };
 
 /**
@@ -138,7 +135,7 @@ typedef std::vector<std::unique_ptr<subscription_t>> subscription_list_t;
  * Use this constant to specify that no fields are needed for the
  * subscribe_rule call.
  */
-const field_position_list_t empty_fields;
+const common::field_position_list_t empty_fields;
 
 /**
  * Enumeration for the last database operation performed for a given gaia type.
@@ -178,8 +175,8 @@ public:
         direct_access::auto_transaction_t& a_txn,
         common::gaia_type_t a_gaia_type,
         db::triggers::event_type_t a_event_type,
-        gaia_id_t a_record,
-        const field_position_list_t& a_field_list)
+        common::gaia_id_t a_record,
+        const common::field_position_list_t& a_field_list)
         : txn(a_txn)
         , gaia_type(a_gaia_type)
         , event_type(a_event_type)
@@ -203,13 +200,13 @@ public:
      * This method will return last_operation_t::none if this rule was not
      * invoked due to an operation on X.
      */
-    last_operation_t last_operation(gaia_type_t gaia_type) const;
+    last_operation_t last_operation(common::gaia_type_t gaia_type) const;
 
     direct_access::auto_transaction_t& txn;
     common::gaia_type_t gaia_type;
     db::triggers::event_type_t event_type;
-    gaia_id_t record;
-    const field_position_list_t& fields;
+    common::gaia_id_t record;
+    const common::field_position_list_t& fields;
 };
 
 /**
@@ -258,13 +255,13 @@ class invalid_subscription : public gaia::common::gaia_exception
 {
 public:
     // Invalid event type specified.
-    invalid_subscription(event_type_t event_type, const char* reason);
+    invalid_subscription(db::triggers::event_type_t event_type, const char* reason);
     // Table type not found.
-    invalid_subscription(gaia_type_t gaia_type);
+    invalid_subscription(common::gaia_type_t gaia_type);
     // Field not found.
-    invalid_subscription(gaia_type_t gaia_type, const char* table, uint16_t position);
+    invalid_subscription(common::gaia_type_t gaia_type, const char* table, uint16_t position);
     // Field not active or has been deprecated
-    invalid_subscription(gaia_type_t gaia_type, const char* table, uint16_t position, const char* field_name, bool is_deprecated);
+    invalid_subscription(common::gaia_type_t gaia_type, const char* table, uint16_t position, const char* field_name, bool is_deprecated);
 };
 
 /**
@@ -308,7 +305,7 @@ void shutdown_rules_engine();
 void subscribe_rule(
     gaia::common::gaia_type_t gaia_type,
     gaia::db::triggers::event_type_t event_type,
-    const field_position_list_t& fields,
+    const common::field_position_list_t& fields,
     const rule_binding_t& rule_binding);
 
 /**
@@ -325,7 +322,7 @@ void subscribe_rule(
 bool unsubscribe_rule(
     gaia::common::gaia_type_t gaia_type,
     gaia::db::triggers::event_type_t type,
-    const field_position_list_t& fields,
+    const common::field_position_list_t& fields,
     const rule_binding_t& rule_binding);
 
 /**

@@ -17,6 +17,9 @@
 #include "type_id_mapping.hpp"
 #include "type_metadata.hpp"
 
+using namespace std;
+
+using namespace gaia::direct_access;
 using namespace gaia::catalog;
 
 /*

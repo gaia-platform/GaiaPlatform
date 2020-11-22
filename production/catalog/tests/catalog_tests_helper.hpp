@@ -83,23 +83,23 @@ public:
         return *this;
     }
 
-    gaia_id_t create()
+    gaia::common::gaia_id_t create()
     {
         field_def_list_t fields;
 
         if (m_table_name.empty())
         {
-            throw invalid_argument("table_name must be set!");
+            throw std::invalid_argument("table_name must be set!");
         }
 
         for (const auto& field : m_fields)
         {
-            fields.emplace_back(make_unique<data_field_def_t>(field.first, field.second, 1));
+            fields.emplace_back(std::make_unique<data_field_def_t>(field.first, field.second, 1));
         }
 
         for (const auto& reference : m_references)
         {
-            fields.emplace_back(make_unique<ref_field_def_t>(reference.first, reference.second));
+            fields.emplace_back(std::make_unique<ref_field_def_t>(reference.first, reference.second));
         }
 
         if (!m_db_name.empty())
@@ -110,11 +110,11 @@ public:
         return create_table(m_db_name, m_table_name, fields, m_fail_on_exists);
     }
 
-    gaia_type_t create_type()
+    gaia::common::gaia_type_t create_type()
     {
-        gaia_id_t table_id = create();
+        gaia::common::gaia_id_t table_id = create();
         gaia::db::begin_transaction();
-        gaia_type_t type_id = gaia::catalog::gaia_table_t::get(table_id).type();
+        gaia::common::gaia_type_t type_id = gaia::catalog::gaia_table_t::get(table_id).type();
         gaia::db::commit_transaction();
 
         return type_id;

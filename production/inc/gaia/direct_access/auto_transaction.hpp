@@ -9,9 +9,6 @@
 
 #include "gaia/db/gaia_db.hpp"
 
-using namespace std;
-using namespace gaia::db;
-
 namespace gaia
 {
 

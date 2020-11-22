@@ -18,6 +18,7 @@
 
 using namespace gaia::common;
 using namespace gaia::db;
+using namespace gaia::db::triggers;
 using namespace gaia::catalog;
 using namespace gaia::direct_access;
 using namespace gaia::rules;

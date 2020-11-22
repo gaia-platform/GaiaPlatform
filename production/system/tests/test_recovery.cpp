@@ -22,6 +22,7 @@
 
 using namespace gaia::db;
 using namespace gaia::common;
+using namespace gaia::direct_access;
 using namespace gaia::addr_book;
 using namespace gaia::db::test;
 

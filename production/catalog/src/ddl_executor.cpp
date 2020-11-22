@@ -16,7 +16,11 @@
 #include "se_helpers.hpp"
 #include "system_table_types.hpp"
 
+using namespace std;
+
 using namespace gaia::catalog::ddl;
+using namespace gaia::common;
+using namespace gaia::direct_access;
 
 namespace gaia
 {

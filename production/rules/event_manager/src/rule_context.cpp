@@ -19,13 +19,13 @@ last_operation_t rule_context_t::last_operation(gaia_type_t other_gaia_type) con
 
     switch (event_type)
     {
-    case event_type_t::row_delete:
+    case db::triggers::event_type_t::row_delete:
         operation = last_operation_t::row_delete;
         break;
-    case event_type_t::row_insert:
+    case db::triggers::event_type_t::row_insert:
         operation = last_operation_t::row_insert;
         break;
-    case event_type_t::row_update:
+    case db::triggers::event_type_t::row_update:
         operation = last_operation_t::row_update;
         break;
     default:
