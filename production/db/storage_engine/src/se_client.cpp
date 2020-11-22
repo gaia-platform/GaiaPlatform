@@ -165,6 +165,63 @@ static void build_client_request(FlatBufferBuilder& builder, session_event_t eve
     builder.Finish(message);
 }
 
+// Sorts log records by ascending order of locator value.
+void client::sort_log()
+{
+    retail_assert(s_log, "Transaction log must be mapped!");
+    // We use stable_sort() to preserve the order of multiple updates to the same locator.
+    std::stable_sort(&s_log->log_records[0], &s_log->log_records[s_log->count], [](const log::log_record& lhs, const log::log_record& rhs) {
+        return lhs.locator < rhs.locator;
+    });
+}
+
+// Coalesces multiple updates to a single locator into the last update.
+// In the future, some intermediate update log records can be eliminated by
+// updating objects in-place, but not all of them (e.g., any size-changing
+// updates to variable-size fields must copy the whole object first).
+void client::dedup_log()
+{
+    retail_assert(s_log, "Transaction log must be mapped!");
+    // This is a bit weird: we want to preserve the *last* update to a locator,
+    // but std::unique preserves the *first* duplicate it encounters.
+    // So we reverse the sorted array so that the last update will be the first
+    // that std::unique sees, then reverse the deduplicated array so that locators
+    // are again in ascending order.
+    std::reverse(&s_log->log_records[0], &s_log->log_records[s_log->count]);
+    // More weirdness: we need to record the initial offset of the first log
+    // record for each locator, so we can fix up the initial offset of its last
+    // log record (the one we will keep) with this offset. Otherwise we'll get
+    // bogus write conflicts because the initial offset of the last log record
+    // for a locator doesn't match its last known offset in the locator segment.
+    // Since the array is reversed, we'll see the first log record for a locator
+    // last, so we get the desired behavior if we overwrite the last seen entry.
+    std::unordered_map<gaia_locator_t, gaia_offset_t> initial_offsets;
+    for (size_t i = 0; i < s_log->count; i++)
+    {
+        gaia_locator_t locator = s_log->log_records[i].locator;
+        gaia_offset_t initial_offset = s_log->log_records[i].old_offset;
+        initial_offsets[locator] = initial_offset;
+    }
+    log::log_record* unique_array_end = std::unique(&s_log->log_records[0], &s_log->log_records[s_log->count], [](const log::log_record& lhs, const log::log_record& rhs) -> bool {
+        return lhs.locator == rhs.locator;
+    });
+    size_t unique_array_len = unique_array_end - s_log->log_records;
+    s_log->count = unique_array_len;
+    // Now that all log records for each locator are deduplicated, reverse the
+    // array again to order by locator value in ascending order.
+    std::reverse(&s_log->log_records[0], &s_log->log_records[s_log->count]);
+    // Now we need to fix up each log record with the initial offset we recorded earlier.
+    retail_assert(
+        s_log->count == initial_offsets.size(),
+        "Count of deduped log records must equal number of unique initial offsets!");
+    for (size_t i = 0; i < s_log->count; i++)
+    {
+        gaia_locator_t locator = s_log->log_records[i].locator;
+        gaia_offset_t initial_offset = initial_offsets[locator];
+        s_log->log_records[i].old_offset = initial_offset;
+    }
+}
+
 // This function must be called before establishing a new session. It ensures
 // that if the server restarts or is reset, no session will start with a stale
 // data mapping or locator fd.
@@ -398,16 +455,31 @@ void client::rollback_transaction()
 void client::commit_transaction()
 {
     verify_txn_active();
+    retail_assert(s_log, "Transaction log must be mapped!");
 
     // Ensure we destroy the shared memory segment and memory mapping before we return.
     auto cleanup = make_scope_guard(txn_cleanup);
 
-    // Unmap the log segment so we can seal it.
+    // Sort log records by locator value.
+    sort_log();
+
+    // Remove intermediate update log records.
+    // FIXME: this leaks all intermediate object versions!!!
+    dedup_log();
+
+    // Get final size of log.
+    size_t log_size = s_log->size();
+
+    // Unmap the log segment so we can truncate and seal it.
     unmap_fd(s_log, c_initial_log_size);
-    // Seal the txn log memfd for writes before sending it to the server.
-    if (-1 == ::fcntl(s_fd_log, F_ADD_SEALS, F_SEAL_WRITE))
+
+    // Truncate the log segment to its final size.
+    truncate_fd(s_fd_log, log_size);
+
+    // Seal the txn log memfd for writes/resizing before sending it to the server.
+    if (-1 == ::fcntl(s_fd_log, F_ADD_SEALS, F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE))
     {
-        throw_system_error("fcntl(F_SEAL_WRITE) failed");
+        throw_system_error("fcntl(F_ADD_SEALS) failed");
     }
 
     // Send the server the commit event with the log segment fd.

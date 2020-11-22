@@ -102,10 +102,14 @@ void server::handle_commit_txn(
     {
         throw_system_error("fcntl(F_GET_SEALS) failed");
     }
-    retail_assert(seals & F_SEAL_WRITE, "Log fd was not sealed for write!");
+    retail_assert(seals == (F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE), "Unexpected seals on log fd!");
     // Linux won't let us create a shared read-only mapping if F_SEAL_WRITE is set,
     // which seems contrary to the manpage for fcntl(2).
     s_log = static_cast<log*>(map_fd(get_fd_size(fd_log), PROT_READ, MAP_PRIVATE, fd_log, 0));
+    // Unconditionally unmap the log segment on exit.
+    auto cleanup_log = make_scope_guard([]() {
+        unmap_fd(s_log, s_log->size());
+    });
     // Actually commit the transaction.
     bool success = txn_commit();
     session_event_t decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
@@ -899,7 +903,6 @@ bool server::txn_commit()
             // will just call std::terminate(), no undefined behavior.
             throw_system_error("flock failed");
         }
-        unmap_fd(s_log, sizeof(s_log));
     });
 
     std::set<gaia_locator_t> locators;
