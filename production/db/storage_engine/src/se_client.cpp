@@ -166,22 +166,20 @@ client::get_id_generator_for_type(gaia_type_t type)
 
 static std::vector<flatbuffers::Offset<stack_allocator_info_t>> build_stack_allocator_list(
     FlatBufferBuilder& builder,
-    const std::vector<stack_allocator_t>* const stack_allocators)
+    const std::vector<stack_allocator_t>& stack_allocators)
 {
     std::vector<flatbuffers::Offset<stack_allocator_info_t>> memory_allocation;
-    if (stack_allocators)
-    {
-        std::vector<flatbuffers::Offset<stack_allocator_info_t>> memory_allocation;
-        for (auto& stack_allocator : *stack_allocators)
-        {
-            const auto stack_allocator_info = Createstack_allocator_info_t(
-                builder,
-                stack_allocator.get_base_memory_offset(),
-                stack_allocator.get_total_memory_size());
 
-            memory_allocation.push_back(stack_allocator_info);
-        }
+    for (auto stack_allocator : stack_allocators)
+    {
+        const auto stack_allocator_info = Createstack_allocator_info_t(
+            builder,
+            stack_allocator.get_base_memory_offset(),
+            stack_allocator.get_total_memory_size());
+
+        memory_allocation.push_back(stack_allocator_info);
     }
+
     return memory_allocation;
 }
 
@@ -189,18 +187,20 @@ static void build_client_request(
     FlatBufferBuilder& builder,
     session_event_t event,
     bool is_more_memory_needed = false,
-    std::vector<flatbuffers::Offset<stack_allocator_info_t>>* memory_alloc_info = nullptr)
+    std::vector<stack_allocator_t>* stack_allocators = nullptr)
 {
     flatbuffers::Offset<client_request_t> client_request;
     if (event == session_event_t::COMMIT_TXN || event == session_event_t::ROLLBACK_TXN)
     {
         retail_assert(!is_more_memory_needed, "Don't request memory during commit or rollback");
-        auto alloc_info = Creatememory_allocation_info_tDirect(builder, memory_alloc_info, is_more_memory_needed);
+        auto stack_allocator_list = build_stack_allocator_list(builder, *stack_allocators);
+        auto vectors = builder.CreateVector(stack_allocator_list);
+        auto alloc_info = Creatememory_allocation_info_t(builder, vectors);
         client_request = Createclient_request_t(builder, event, request_data_t::memory_info, alloc_info.Union());
     }
     else if (is_more_memory_needed)
     {
-        retail_assert(!memory_alloc_info, "this is a request for addional memory only");
+        retail_assert(!stack_allocators, "this is a request for addional memory only");
         // Request more memory from the server in case session thread is running low.
         auto alloc_info = Creatememory_allocation_info_tDirect(builder, nullptr, is_more_memory_needed);
         client_request = Createclient_request_t(builder, event, request_data_t::memory_info, alloc_info.Union());
@@ -485,8 +485,7 @@ void client::rollback_transaction()
     // Notify the server that we rolled back this transaction.
     // (We don't expect the server to reply to this message.)
     FlatBufferBuilder builder;
-    auto session_memory_allocation = build_stack_allocator_list(builder, &s_stack_allocators);
-    build_client_request(builder, session_event_t::ROLLBACK_TXN, false, &session_memory_allocation);
+    build_client_request(builder, session_event_t::ROLLBACK_TXN, false, &s_stack_allocators);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Reset transaction id.
@@ -518,8 +517,7 @@ void client::commit_transaction()
 
     // Send the server the commit event with the log segment fd.
     FlatBufferBuilder builder;
-    auto session_memory_allocation = build_stack_allocator_list(builder, &s_stack_allocators);
-    build_client_request(builder, session_event_t::COMMIT_TXN, false, &session_memory_allocation);
+    build_client_request(builder, session_event_t::COMMIT_TXN, false, &s_stack_allocators);
     send_msg_with_fds(s_session_socket, &s_fd_log, 1, builder.GetBufferPointer(), builder.GetSize());
 
     // Block on the server's commit decision.
