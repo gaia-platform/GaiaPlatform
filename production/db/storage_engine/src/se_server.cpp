@@ -453,7 +453,7 @@ void server::init_memory_manager()
     memory_manager->manage(reinterpret_cast<uint8_t*>(s_data->objects), sizeof(s_data->objects));
 }
 
-se_object_t* server::create_object_on_recovery(
+void server::create_object_on_recovery(
     gaia_id_t id,
     gaia_type_t type,
     size_t num_refs,

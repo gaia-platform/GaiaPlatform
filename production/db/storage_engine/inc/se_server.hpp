@@ -185,7 +185,7 @@ private:
 
     static bool txn_commit();
 
-    static se_object_t* create_object_on_recovery(
+    static void create_object_on_recovery(
         gaia_id_t id,
         gaia_type_t type,
         size_t num_refs,

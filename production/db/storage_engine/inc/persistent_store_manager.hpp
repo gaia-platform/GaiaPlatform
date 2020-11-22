@@ -81,7 +81,7 @@ public:
      */
     void destroy_persistent_store();
 
-    typedef se_object_t* (*create_object_on_recovery_fn)(
+    typedef void (*create_object_on_recovery_fn)(
         common::gaia_id_t id,
         common::gaia_type_t type,
         size_t num_refs,
