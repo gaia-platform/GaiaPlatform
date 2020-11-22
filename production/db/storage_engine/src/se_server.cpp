@@ -462,12 +462,12 @@ se_object_t* server::create_object_on_recovery(
 {
     gaia::db::hash_node* hash_node = se_hash_map::insert(id);
     hash_node->locator = allocate_locator();
-
     // This API is called on Recovery - where we don't need to track log records.
     // Thus allocate objects using the memory manager directly and not the stack allocator.
-    address_offset_t offset;
+    address_offset_t offset = -1;
     error_code_t error = memory_manager->allocate(data_size + sizeof(se_object_t), offset);
     retail_assert(error == error_code_t::success, "Allocation failure on recovery");
+    retail_assert(offset != -1, "Invalid offset on recovery");
     allocate_object_mm(hash_node->locator, offset);
     se_object_t* obj_ptr = locator_to_ptr(hash_node->locator);
     obj_ptr->id = id;
