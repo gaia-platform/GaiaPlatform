@@ -9,6 +9,7 @@
 #include "catalog.hpp"
 #include "catalog_core.hpp"
 #include "db_test_base.hpp"
+#include "gaia_common.hpp"
 #include "gaia_db.hpp"
 
 class catalog_core_test : public db_test_base_t
@@ -81,37 +82,50 @@ TEST_F(catalog_core_test, list_fields)
         }));
 }
 
-TEST_F(catalog_core_test, list_relationship)
+TEST_F(catalog_core_test, list_relationship_from)
 {
-    // CREATE TABLE star(name STRING);
+    // CREATE TABLE star(name STRING, orbit REFERENCES star);
     // CREATE TABLE planet(name STRING, orbit REFERENCES star);
-    // CREATE TABLE satellite(name STRING, orbit REFERENCES planet);
-    const char star_table_name[] = "star";
-    const char planet_table_name[] = "planet";
-    const char satellite_table_name[] = "satellite";
+    // CREATE TABLE comet(name STRING, orbit REFERENCES star);
+    gaia::catalog::ddl::field_def_list_t fields;
+    fields.emplace_back(std::make_unique<gaia::catalog::ddl::data_field_def_t>("name", data_type_t::e_string, 1));
+    fields.emplace_back(std::make_unique<gaia::catalog::ddl::ref_field_def_t>("orbit", "", "star"));
 
+    auto star_table_id = gaia::catalog::create_table("star", fields);
+    auto planet_table_id = gaia::catalog::create_table("planet", fields);
+    auto comet_table_id = gaia::catalog::create_table("comet", fields);
+
+    std::set<gaia_id_t> tables_with_relationship_from_star;
+    begin_transaction();
+    for (relationship_view_t relationship : catalog_core_t::list_relationship_from(star_table_id))
+    {
+        tables_with_relationship_from_star.insert(relationship.child_table_id());
+    }
+    commit_transaction();
+    ASSERT_EQ(tables_with_relationship_from_star, std::set({star_table_id, planet_table_id, comet_table_id}));
+}
+
+TEST_F(catalog_core_test, list_relationship_to)
+{
+    // CREATE TABLE color(name STRING);
+    // CREATE TABLE shape(name STRING);
+    // CREATE TABLE object(name STRING, color REFERENCES color, shape REFERENCES shape);
     gaia::catalog::ddl::field_def_list_t fields;
     fields.emplace_back(std::make_unique<gaia::catalog::ddl::data_field_def_t>("name", data_type_t::e_string, 1));
 
-    auto star_table_id = gaia::catalog::create_table(star_table_name, fields);
+    auto color_table_id = gaia::catalog::create_table("color", fields);
+    auto shape_table_id = gaia::catalog::create_table("shape", fields);
 
-    fields.emplace_back(std::make_unique<gaia::catalog::ddl::ref_field_def_t>("orbit", "", "star"));
-    auto planet_table_id = gaia::catalog::create_table(planet_table_name, fields);
-
-    fields.pop_back();
-    fields.emplace_back(std::make_unique<gaia::catalog::ddl::ref_field_def_t>("orbit", "", "planet"));
-    auto satellite_table_id = gaia::catalog::create_table(satellite_table_name, fields);
+    fields.emplace_back(std::make_unique<gaia::catalog::ddl::ref_field_def_t>("color", "", "color"));
+    fields.emplace_back(std::make_unique<gaia::catalog::ddl::ref_field_def_t>("shape", "", "shape"));
+    auto object_table_id = gaia::catalog::create_table("object", fields);
 
     begin_transaction();
-    for (relationship_view_t relationship : catalog_core_t::list_relationship_to(planet_table_id))
+    std::set<gaia_id_t> tables_with_relationship_to_object;
+    for (relationship_view_t relationship : catalog_core_t::list_relationship_to(object_table_id))
     {
-        ASSERT_EQ(relationship.parent_table_id(), star_table_id);
-        ASSERT_EQ(relationship.child_table_id(), planet_table_id);
+        tables_with_relationship_to_object.insert(relationship.parent_table_id());
     }
-    for (relationship_view_t relationship : catalog_core_t::list_relationship_from(planet_table_id))
-    {
-        ASSERT_EQ(relationship.parent_table_id(), planet_table_id);
-        ASSERT_EQ(relationship.child_table_id(), satellite_table_id);
-    }
+    ASSERT_EQ(tables_with_relationship_to_object, std::set({color_table_id, shape_table_id}));
     commit_transaction();
 }
