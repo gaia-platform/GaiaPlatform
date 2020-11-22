@@ -46,3 +46,4 @@ set(DIRECT_ACCESS_TEST_INCLUDES
 add_gtest(test_direct_access "tests/test_direct_access.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test" "generate_addr_book_headers")
 add_gtest(test_references "tests/test_references.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test" "generate_addr_book_headers")
 add_gtest(test_iterators "tests/test_iterators.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test" "generate_addr_book_headers")
+add_gtest(test_incubator "tests/test_incubator.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test" "generate_incubator_headers")
