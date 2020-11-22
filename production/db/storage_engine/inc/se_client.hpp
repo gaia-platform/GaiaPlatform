@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "gaia_db.hpp"
+#include "gaia/db/gaia_db.hpp"
 #include "retail_assert.hpp"
 #include "se_shared_data.hpp"
 #include "system_table_types.hpp"

@@ -3,9 +3,10 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "gaia/exceptions.hpp"
+
 #include <cstring>
 
-#include <exceptions.hpp>
 #include <sstream>
 #include <string>
 

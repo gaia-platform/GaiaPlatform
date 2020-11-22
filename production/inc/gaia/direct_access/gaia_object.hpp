@@ -12,10 +12,10 @@
 
 #include "flatbuffers/flatbuffers.h"
 
-#include "auto_transaction.hpp"
-#include "gaia_base.hpp"
-#include "gaia_common.hpp"
-#include "nullable_string.hpp"
+#include "gaia/direct_access/auto_transaction.hpp"
+#include "gaia/direct_access/gaia_base.hpp"
+#include "gaia/direct_access/nullable_string.hpp"
+#include "gaia/gaia_common.hpp"
 
 using namespace std;
 using namespace gaia::common;
@@ -184,4 +184,4 @@ private:
 // Pick up our template implementation.  These still
 // need to be in the header so that template specializations
 // that are declared later will pick up the definitions.
-#include "gaia_object.inc"
+#include "gaia/direct_access/gaia_object.inc"

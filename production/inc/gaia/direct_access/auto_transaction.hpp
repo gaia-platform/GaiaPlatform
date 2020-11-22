@@ -7,19 +7,21 @@
 
 #include <map>
 
-#include "gaia_db.hpp"
+#include "gaia/db/gaia_db.hpp"
 
 using namespace std;
 using namespace gaia::db;
 
-namespace gaia {
+namespace gaia
+{
 
 /**
  * \addtogroup Gaia
  * @{
  */
 
-namespace direct_access {
+namespace direct_access
+{
 
 /**
  * \addtogroup Direct
@@ -36,7 +38,10 @@ namespace direct_access {
 class auto_transaction_t
 {
 public:
-    auto_transaction_t(): auto_transaction_t(true) {}
+    auto_transaction_t()
+        : auto_transaction_t(true)
+    {
+    }
     auto_transaction_t(bool auto_begin);
     ~auto_transaction_t();
     void commit();
@@ -48,6 +53,6 @@ private:
 };
 
 /*@}*/
-}
+} // namespace direct_access
 /*@}*/
-}
+} // namespace gaia

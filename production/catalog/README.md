@@ -8,7 +8,7 @@ Including headers in the following directories, and linking `gaia_catalog` is
 the most common way to use the catalog library. We recommend use direct access
 APIs to navigate and retrieve catalog records.
 
-- `${GAIA_INC}/public/catalog`
+- `${GAIA_INC}/gaia/db`
 - `${GAIA_INC}/internal/catalog`
 
 Linking any sub-components of catalog below are also allowed, and may even be

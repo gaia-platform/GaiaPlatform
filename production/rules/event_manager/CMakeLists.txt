@@ -7,15 +7,10 @@
 project(event_manager)
 
 set(GAIA_EVENT_MANAGER_INCLUDES
-  ${GAIA_INC}/public/common
-  ${GAIA_INC}/public/db
-  ${GAIA_INC}/public/direct_access
-  ${GAIA_INC}/public/system
+  ${GAIA_INC}
   ${GAIA_INC}/internal/common
   ${GAIA_INC}/internal/db
   ${GAIA_INC}/internal/catalog
-  ${GAIA_INC}/public/rules
-  ${GAIA_INC}/public/catalog
   ${GAIA_INC}/internal/rules
   ${GAIA_RULES_INC}
   ${FLATBUFFERS_INC}

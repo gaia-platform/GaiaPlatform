@@ -11,7 +11,7 @@
 #include <libexplain/munmap.h>
 #include <sys/mman.h>
 
-#include "gaia_exception.hpp"
+#include "gaia/gaia_exception.hpp"
 #include "system_error.hpp"
 
 namespace gaia

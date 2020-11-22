@@ -7,7 +7,7 @@
 project(index)
 
 set(GAIA_INDEX_INCLUDES
-  "${GAIA_INC}/public/common"
+  "${GAIA_INC}"
   "${GAIA_INC}/internal/common"
   "${GAIA_INC}/internal/db"
   "${GAIA_DB_INC}/index"

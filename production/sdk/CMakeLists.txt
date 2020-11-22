@@ -48,7 +48,7 @@ if(BUILD_GAIA_RELEASE)
     COMMAND cmake -E copy_if_different ${PROJECT_SOURCE_DIR}/preinst ${TEMP_PACKAGE_FOLDER}/DEBIAN/preinst
     COMMAND cmake -E copy_if_different ${PROJECT_SOURCE_DIR}/postinst ${TEMP_PACKAGE_FOLDER}/DEBIAN/postinst
 
-    COMMAND cmake -E copy_directory ${GAIA_INC}/public ${TEMP_PACKAGE_FOLDER}/usr/local/include/gaia
+    COMMAND cmake -E copy_directory ${GAIA_INC}/gaia ${TEMP_PACKAGE_FOLDER}/usr/local/include/gaia
 
     COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/storage_engine/gaia_se_server ${TEMP_PACKAGE_FOLDER}/usr/local/bin/gaia_se_server
     COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${TEMP_PACKAGE_FOLDER}/usr/local/bin/gaiac
@@ -96,11 +96,7 @@ endif()
 # Ensure this test only includes public headers and links to the gaia shared library.
 #
 set(SDK_TEST_INCLUDES
-  ${GAIA_INC}/public/rules
-  ${GAIA_INC}/public/direct_access
-  ${GAIA_INC}/public/db
-  ${GAIA_INC}/public/common
-  ${GAIA_INC}/public/system
+  ${GAIA_INC}
   ${FLATBUFFERS_INC}
   ${GAIA_GENERATED_SCHEMAS}
 )

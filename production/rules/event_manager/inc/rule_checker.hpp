@@ -4,7 +4,7 @@
 /////////////////////////////////////////////
 #pragma once
 
-#include "rules.hpp"
+#include "gaia/rules/rules.hpp"
 
 namespace gaia
 {

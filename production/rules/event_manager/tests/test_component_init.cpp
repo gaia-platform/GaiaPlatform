@@ -8,10 +8,10 @@
 
 #include "gtest/gtest.h"
 
+#include "gaia/exceptions.hpp"
+#include "gaia/rules/rules.hpp"
 #include "db_test_base.hpp"
 #include "event_manager_test_helpers.hpp"
-#include "exceptions.hpp"
-#include "rules.hpp"
 #include "rules_config.hpp"
 
 using namespace gaia::common;

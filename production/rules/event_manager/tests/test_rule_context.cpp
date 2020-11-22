@@ -8,8 +8,8 @@
 
 #include "gtest/gtest.h"
 
+#include "gaia/rules/rules.hpp"
 #include "db_test_base.hpp"
-#include "rules.hpp"
 
 using namespace std;
 using namespace gaia::db;

@@ -9,9 +9,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "catalog.hpp"
+#include "gaia/db/catalog.hpp"
+#include "gaia/gaia_common.hpp"
 #include "gaia_catalog.h"
-#include "gaia_common.hpp"
 
 namespace gaia
 {

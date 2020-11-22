@@ -5,12 +5,12 @@
 
 #include "gtest/gtest.h"
 
-#include "catalog.hpp"
+#include "gaia/db/catalog.hpp"
+#include "gaia/rules/rules.hpp"
 #include "db_test_base.hpp"
 #include "db_test_helpers.hpp"
 #include "gaia_catalog.h"
 #include "rule_checker.hpp"
-#include "rules.hpp"
 
 using namespace gaia::common;
 using namespace gaia::catalog;

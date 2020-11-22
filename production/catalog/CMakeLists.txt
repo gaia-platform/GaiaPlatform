@@ -8,15 +8,12 @@ project(catalog)
 
 set(GAIA_CATALOG_PUBLIC_INCLUDES
   ${GAIA_INC}/internal/catalog
-  ${GAIA_INC}/public/catalog
-  ${GAIA_INC}/public/common
+  ${GAIA_INC}
 )
 
 message(VERBOSE "GAIA_CATALOG_PUBLIC_INCLUDES=${GAIA_CATALOG_PUBLIC_INCLUDES}")
 
 set(GAIA_CATALOG_PRIVATE_INCLUDES
-  ${GAIA_INC}/public/db
-  ${GAIA_INC}/public/direct_access
   ${GAIA_INC}/internal/common
   ${GAIA_INC}/internal/db
   ${GAIA_REPO}/production/db/storage_engine/inc

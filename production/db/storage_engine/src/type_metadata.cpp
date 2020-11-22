@@ -9,8 +9,8 @@
 #include <optional>
 #include <shared_mutex>
 
+#include "gaia/gaia_common.hpp"
 #include "catalog_core.hpp"
-#include "gaia_common.hpp"
 #include "logger.hpp"
 #include "system_table_types.hpp"
 #include "type_id_mapping.hpp"

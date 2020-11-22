@@ -3,9 +3,9 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gaia_base.hpp"
+#include "gaia/direct_access/gaia_base.hpp"
 
-#include "gaia_db.hpp"
+#include "gaia/db/gaia_db.hpp"
 #include "gaia_ptr.hpp"
 
 using namespace gaia::db;

@@ -7,8 +7,8 @@
 
 #include <sstream>
 
-#include "gaia_common.hpp"
-#include "gaia_exception.hpp"
+#include "gaia/gaia_common.hpp"
+#include "gaia/gaia_exception.hpp"
 
 namespace gaia
 {

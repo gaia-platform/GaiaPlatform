@@ -10,8 +10,8 @@
 #include <utility>
 #include <variant>
 
+#include "gaia/events.hpp"
 #include "db_types.hpp"
-#include "events.hpp"
 #include "gaia_db_internal.hpp"
 #include "retail_assert.hpp"
 #include "rule_stats_manager.hpp"

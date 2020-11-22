@@ -6,11 +6,11 @@
 
 #include "gtest/gtest.h"
 
-#include "catalog.hpp"
+#include "gaia/gaia_common.hpp"
+#include "gaia/db/catalog.hpp"
+#include "gaia/db/gaia_db.hpp"
 #include "catalog_core.hpp"
 #include "db_test_base.hpp"
-#include "gaia_common.hpp"
-#include "gaia_db.hpp"
 
 class catalog_core_test : public db_test_base_t
 {

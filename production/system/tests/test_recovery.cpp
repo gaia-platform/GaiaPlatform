@@ -11,11 +11,11 @@
 
 #include "gtest/gtest.h"
 
-#include "catalog.hpp"
+#include "gaia/db/catalog.hpp"
+#include "gaia/db/gaia_db.hpp"
 #include "db_test_helpers.hpp"
 #include "gaia_addr_book.h"
 #include "gaia_catalog.h"
-#include "gaia_db.hpp"
 #include "logger.hpp"
 #include "schema_loader.hpp"
 #include "se_test_util.hpp"

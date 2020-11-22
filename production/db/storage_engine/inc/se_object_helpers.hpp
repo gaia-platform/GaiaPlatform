@@ -5,8 +5,8 @@
 
 #pragma once
 
+#include "gaia/gaia_common.hpp"
 #include "db_types.hpp"
-#include "gaia_common.hpp"
 #include "se_hash_map.hpp"
 #include "se_object.hpp"
 #include "se_types.hpp"

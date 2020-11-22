@@ -12,8 +12,7 @@ set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
 set(GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES
-  "${GAIA_INC}/public/common"
-  "${GAIA_INC}/public/db"
+  "${GAIA_INC}"
   "${GAIA_REPO}/production/db/inc/types"
   # This should be a public include since it exposes the gaia_ptr interface,
   # which is consumed by internal clients.
@@ -190,7 +189,7 @@ endif()
 
 set(GAIA_DB_CATALOG_TEST_PRIVATE_INCLUDES
   ${GAIA_INC}/internal/db/
-  ${GAIA_INC}/public/direct_access/
+  ${GAIA_INC}
   ${GAIA_REPO}/production/schemas/repository/inc
   ${GAIA_REPO}/production/db/storage_engine/inc
   ${FLATBUFFERS_INC}
@@ -210,5 +209,5 @@ add_gtest(test_se_references tests/test_se_references.cpp "${GAIA_STORAGE_ENGINE
 
 add_gtest(test_catalog_core
   tests/test_catalog_core.cpp
-  "${GAIA_STORAGE_ENGINE_TEST_INCLUDES};${GAIA_INC}/public/catalog;${GAIA_INC}/internal/catalog"
+  "${GAIA_STORAGE_ENGINE_TEST_INCLUDES};${GAIA_INC};${GAIA_INC}/internal/catalog"
   "gaia_common;gaia_se_client;gaia_catalog")

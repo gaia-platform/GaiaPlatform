@@ -15,7 +15,7 @@
 #include <sys/eventfd.h>
 #include <sys/stat.h>
 
-#include "gaia_exception.hpp"
+#include "gaia/gaia_exception.hpp"
 #include "retail_assert.hpp"
 #include "system_error.hpp"
 

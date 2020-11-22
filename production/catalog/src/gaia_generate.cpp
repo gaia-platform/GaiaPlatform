@@ -9,7 +9,7 @@
 
 #include "flatbuffers/code_generators.h"
 
-#include "catalog.hpp"
+#include "gaia/db/catalog.hpp"
 #include "gaia_catalog.h"
 #include "type_id_mapping.hpp"
 
@@ -139,9 +139,9 @@ static string generate_boilerplate_top(string dbname)
     code += "#ifndef GAIA_GENERATED_{{DBNAME}}_H_";
     code += "#define GAIA_GENERATED_{{DBNAME}}_H_";
     code += "";
-    code += "#include \"gaia_object.hpp\"";
+    code += "#include \"gaia/direct_access/gaia_object.hpp\"";
     code += "#include \"{{DBNAME}}_generated.h\"";
-    code += "#include \"gaia_iterators.hpp\"";
+    code += "#include \"gaia/direct_access/gaia_iterators.hpp\"";
     code += "";
     code += "using namespace std;";
     code += "using namespace gaia::direct_access;";

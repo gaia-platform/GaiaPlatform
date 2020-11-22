@@ -16,15 +16,15 @@
 #include "spdlog/spdlog.h"
 
 #include "gaia/component.hpp"
-#include "gaia_common.hpp"
-#include "gaia_db.hpp"
+#include "gaia/db/gaia_db.hpp"
+#include "gaia/gaia_common.hpp"
 
 // Does not move include with comments.
 #include <iterator>
 #include <list>
 #include <string>
 
-#include "gaia_exception.hpp"
+#include "gaia/gaia_exception.hpp"
 
 #ifdef VAR
 #include <filesystem>

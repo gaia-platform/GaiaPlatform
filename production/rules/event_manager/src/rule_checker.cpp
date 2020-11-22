@@ -5,7 +5,7 @@
 
 #include "rule_checker.hpp"
 
-#include "catalog.hpp"
+#include "gaia/db/catalog.hpp"
 #include "gaia_catalog.h"
 
 using namespace gaia::rules;

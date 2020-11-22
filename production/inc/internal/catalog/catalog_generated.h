@@ -6,7 +6,7 @@
 
 #include "flatbuffers/flatbuffers.h"
 
-#include "nullable_string.hpp"
+#include "gaia/direct_access/nullable_string.hpp"
 
 namespace gaia {
 namespace catalog {

@@ -12,12 +12,9 @@ set(GAIA_DUMP_INCLUDES
   ${GAIA_PROD_BUILD}/catalog/parser/generated
   ${GAIA_REPO}/third_party/production/flatbuffers/include
   ${GAIA_REPO}/production/catalog/parser/inc
-  ${GAIA_INC}/public/common
-  ${GAIA_INC}/public/direct_access
-  ${GAIA_INC}/public/catalog
+  ${GAIA_INC}
   ${GAIA_INC}/internal/catalog
   ${GAIA_INC}/internal/common
-  ${GAIA_INC}/public/db
   ${GAIA_INC}/internal/db
   ${CMAKE_CURRENT_SOURCE_DIR}/inc
 )

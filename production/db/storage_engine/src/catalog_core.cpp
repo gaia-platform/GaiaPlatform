@@ -8,9 +8,9 @@
 #include <optional>
 #include <vector>
 
+#include "gaia/gaia_common.hpp"
 #include "db_types.hpp"
 #include "flatbuffers_helpers.hpp"
-#include "gaia_common.hpp"
 #include "gaia_field_generated.h"
 #include "gaia_relationship_generated.h"
 #include "gaia_table_generated.h"

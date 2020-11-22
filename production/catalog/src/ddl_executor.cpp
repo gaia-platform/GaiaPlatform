@@ -7,9 +7,9 @@
 
 #include <memory>
 
+#include "gaia/gaia_common.hpp"
+#include "gaia/gaia_exception.hpp"
 #include "fbs_generator.hpp"
-#include "gaia_common.hpp"
-#include "gaia_exception.hpp"
 #include "json_generator.hpp"
 #include "logger.hpp"
 #include "retail_assert.hpp"
