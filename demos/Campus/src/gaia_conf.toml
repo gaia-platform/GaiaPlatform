@@ -1,7 +1,7 @@
 # System wide settings.
 
 [System]
-logger_config = "./log_conf.toml"
+logger_config = "./src/log_conf.toml"
 
 # Settings for the database.
 [Database]

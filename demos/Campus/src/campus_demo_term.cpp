@@ -37,6 +37,12 @@ class terminalMenu
 
 private:
 
+// should the UI show all mesages received?
+bool _show_all_messages = true;
+
+// the name of the client on the message bus
+const std::string _sender_name = "termUi";
+
 // singletonish
 inline static terminalMenu* _lastInstance = nullptr;
 
@@ -55,7 +61,7 @@ std::shared_ptr<message::IMessageBus> _messageBus = nullptr;
 // message header data
 int _sequenceID = 0;
 int _senderID = 0;
-std::string _senderName = "*";
+std::string _senderName = _sender_name;
 int _destID = 0;
 std::string _destName = "*";
 
@@ -290,7 +296,7 @@ void showTextMessage(char * textMessage)
 }
 
 /**
-* TODO: yeah I know, Ill implement this in proper C17, just tolerate this for now
+* Display any kind of message on the UI
 *
 * @param[in] char *textMessage
 * @return void
@@ -299,12 +305,39 @@ void showTextMessage(char * textMessage)
 */  
 void showMessage(std::shared_ptr<message::Message> msg)
 {
-    //TODO: ok for now, but we'll need to check type before casting
-    auto actionMessage = reinterpret_cast<message::ActionMessage*>(msg.get());   
-    
-    char buffer[255];
+    auto messageType = msg->get_message_type_name();
+    char buffer[1024];
 
-    sprintf(buffer, "Change detected: %s %s %s", actionMessage->_actor.c_str(), actionMessage->_action.c_str(), actionMessage->_arg1.c_str());
+    if(messageType == message::message_types::action_message)
+    {
+        auto actionMessage = reinterpret_cast<message::ActionMessage*>(msg.get());   
+
+        sprintf(buffer, "Change detected: %s %s %s", actionMessage->_actor.c_str(), 
+            actionMessage->_action.c_str(), actionMessage->_arg1.c_str());
+    }
+    else if(messageType == message::message_types::alert_message)
+    {
+        auto alertMessage = reinterpret_cast<message::alert_message*>(msg.get());  
+
+        std::string sev_level = "Unkown"; 
+
+        switch(alertMessage->_severity)
+        {
+            case message::alert_message::severity_level_enum::alert :
+                sev_level = "Alert";
+            break;
+            case message::alert_message::severity_level_enum::emergency :
+                sev_level = "Emergency";
+            break;
+            case message::alert_message::severity_level_enum::notice :
+                sev_level = "Notice";
+            break;
+        }
+
+        sprintf(buffer, "Alert Level: %s, %s : %s %s", sev_level.c_str(),
+            alertMessage->_title.c_str(), alertMessage->_body.c_str(), 
+            alertMessage->_arg1.c_str());
+    }
 
     showTextMessage(buffer);
 }
@@ -496,6 +529,11 @@ static terminalMenu* GetLastInstance()
     return _lastInstance;
 }
 
+std::shared_ptr<message::IMessageBus> GetMessageBus()
+{
+    return _messageBus;
+}
+
 /**
 * Blocking Run
 *
@@ -521,10 +559,20 @@ void Run()
 */  
 void MessageCallback(std::shared_ptr<message::Message> msg)
 {
-    //TODO: ok for now, but we'll need to check type before casting
-    //auto actionMessage = reinterpret_cast<message::ActionMessage*>(msg.get());   
+    if(_show_all_messages)
+        showMessage(msg);
 
-    showMessage(msg);
+    auto messageType = msg->get_message_type_name();
+
+    // switch on the type of message received
+    if(messageType == message::message_types::action_message)
+    {
+        //auto actionMessage = reinterpret_cast<message::ActionMessage*>(msg.get());   
+
+        //at this point we have our action message, update the DB
+        //if(actionMessage->_actorType == "Person")
+            //got_person_action_message(actionMessage);
+    }
 }
 
 /**
@@ -573,7 +621,7 @@ void Init()
 
     // Initialize message bus
     _messageBus = std::make_shared<message::MessageBusInProc>();
-    _messageBus->RegisterMessageCallback(&terminalMenu::StaticMessageCallback);
+    _messageBus->RegisterMessageCallback(&terminalMenu::StaticMessageCallback, _sender_name);
 }
 
 };
@@ -594,6 +642,7 @@ int main()
 
     CampusDemo::Campus cd;
 
+    cd.Init(tm.GetMessageBus());
 
     tm.Run();
 }

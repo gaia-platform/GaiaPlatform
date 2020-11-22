@@ -1,20 +1,22 @@
-create table incubator (
-      name string,
-      is_on bool active,
-      min_temp float32 active,
-      max_temp float32 active
+create table if not exists campus (
+      name : string,
+      in_emergency : bool active
 );
 
-create table sensor (
-      name string,
-      timestamp uint64,
-      value float32 active,
-      references incubator
+create table if not exists building (
+      name : string,
+      references campus
 );
 
-create table actuator (
-      name string,
-      timestamp uint64,
-      value float32 active,
-      references incubator
+create table if not exists person (
+      name : string,
+      location : string active,
+      is_threat : bool active,
+      references campus
 );
+
+create table if not exists locations (
+      name : string,
+      references campus
+);
+

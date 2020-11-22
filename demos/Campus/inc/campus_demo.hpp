@@ -4,23 +4,56 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <memory>
 #include <iostream>
 #include "message.hpp" 
 #include "message_bus.hpp"
-
 #include "gaia_system.hpp"
+#include "rules.hpp"
 
-//using namespace gaia::common;
-//using namespace gaia::db;
-//using namespace gaia::rules;
+#include <algorithm>
+#include <atomic>
+#include <cstring>
+#include <ctime>
+#include <iostream>
+#include <string>
+#include <thread>
+#include <unistd.h>
 
+#include "../generated/gaia_campus.h"
+#include "../inc/icampus.hpp"
 
+using namespace std;
+using namespace gaia::common;
+using namespace gaia::db;
+using namespace gaia::rules;
 using namespace std;
 
 namespace CampusDemo{
-class Campus{
+class Campus : ICampus, std::enable_shared_from_this<Campus> {
 
 private:
+
+    //Run the rule trigger fake
+    bool _rule_trigger_fake = true; 
+
+    //std::thread* _workerThread;
+
+    //TODO: this is a hack to store persons to work around a thread issue
+    std::vector<gaia::campus::person_t> _persons_v;
+
+    // the name of the client on the message bus
+    const std::string _sender_name = "campus";    
+
+    // message header data
+    int _sequenceID = 0;
+    int _senderID = 0;
+    std::string _senderName = _sender_name;
+    int _destID = 0;
+    std::string _destName = "*";
+
+    // the config file
+    const std::string _config_file_name = "./src/gaia_conf.toml"; //TODO: Is that path ok?
 
     // singletonish
     inline static Campus* _lastInstance = nullptr;
@@ -28,17 +61,16 @@ private:
     // the message bus we want to use
     std::shared_ptr<message::IMessageBus> _messageBus = nullptr;
 
-    /**
-     * Run the campus demo.
-     *
-     * @param[in] std::shared_ptr<message::IMessageBus> messageBus
-     * @return 
-     * @throws
-     * @exceptsafe basic?
-     */
-    int Init(std::shared_ptr<message::IMessageBus> messageBus);
-
     static Campus* GetLastInstance();
+
+    /**
+    * Worker for thread which must be kept alive for gaia::init
+    *
+    * @return void
+    * @throws 
+    * @exceptsafe yes
+    */  
+    void Worker();
 
     /**
     * Callback from the message bus when a message arrives
@@ -60,7 +92,22 @@ private:
     * @exceptsafe yes
     */  
     static void StaticMessageCallback(std::shared_ptr<message::Message> msg);
-;
+
+    //********************************
+
+    void got_person_action_message(const message::ActionMessage *msg);
+
+    bool get_person(const char* name, gaia::campus::person_t &found_person);
+    gaia_id_t insert_campus(const char* name, bool in_emergency);
+    void update_campus(gaia::campus::campus_t& camp, bool in_emergency);
+    gaia_id_t insert_person(const char* name, bool is_threat, const std::string location);
+    void update_person(gaia::campus::person_t& person, bool is_threat, const std::string location);
+    void restore_default_values(); 
+    void init_storage();
+
+    //*** ICampus interface *****************************
+
+    void cb_action( std::string actorType, std::string actorName, std::string actionName, std::string arg1) override;
 
 public:
 
@@ -68,7 +115,15 @@ public:
 
     ~Campus();
 
-    int DemoTest();
+        /**
+     * Run the campus demo.
+     *
+     * @param[in] std::shared_ptr<message::IMessageBus> messageBus
+     * @return 
+     * @throws
+     * @exceptsafe basic?
+     */
+    int Init(std::shared_ptr<message::IMessageBus> messageBus);
 
     /**
      * Run the campus demo.
@@ -79,6 +134,8 @@ public:
      * @exceptsafe basic?
      */
     int RunAsync();
+
+    int DemoTest();
 
 }; // class Campus
 } // namespace CampusDemo

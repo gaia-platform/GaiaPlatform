@@ -1,9 +1,10 @@
 #pragma once
 
+#include <iostream>
+#include <stdexcept>
 #include <time.h>
 #include <string>
 #include "message.hpp"
-
 #include <queue>
 #include <thread>
 #include <mutex>
@@ -14,7 +15,6 @@
     
 // callback method type
 typedef void (*MessageCallbackType)(std::shared_ptr<message::Message> msg); 
-//typedef void (*MessageCallbackType)(std::shared_ptr<message::Message> msg); 
 
 namespace message {
 
@@ -27,13 +27,38 @@ namespace message {
 };*/
 
 /**
+* @brief A container to hold callback registrations
+*/
+class callback_registration{
+
+private:
+
+    MessageCallbackType _callback = nullptr;
+    std::string _regsitrantName = "";
+
+public:
+
+    MessageCallbackType get_callback(){
+        return _callback;
+    }
+
+    std::string get_registrant_name(){
+        return _regsitrantName;
+    }   
+
+    callback_registration(MessageCallbackType callback, std::string regsitrantName) :
+        _callback(callback), _regsitrantName(regsitrantName){}
+};
+
+/**
 * @brief The message bus interface
 */
 class IMessageBus
 {
 public:
   
-    std::vector<MessageCallbackType> _messageCallbacks;
+    //std::vector<MessageCallbackType> _messageCallbacks;
+    std::vector<callback_registration> _messageCallbacks;
 
     // send a message
     virtual int SendMessage(std::shared_ptr<message::Message> msg)
@@ -43,9 +68,9 @@ public:
     }
 
     // register a callback on which to receive messages
-    virtual int RegisterMessageCallback(MessageCallbackType callback) 
+    virtual int RegisterMessageCallback(MessageCallbackType callback, std::string regsitrantName) 
     {
-        _messageCallbacks.push_back(callback);
+        _messageCallbacks.push_back(callback_registration(callback, regsitrantName));
         return 0;
     }
     
@@ -78,6 +103,52 @@ private:
     bool _stop = false;
 
     /**
+     * Log message to stdout
+     * 
+     * @param[in] std::string prefix e
+     * @param[in] const std::exception& e
+     * @return void
+     * @throws 
+     * @exceptsafe yes
+     */      
+    void log_this(std::string prefix, const std::exception& e){
+        std::cout << "Exception: " << prefix << " : " << e.what();
+    }
+
+    /**
+     * Log message to stdout
+     * 
+     * @param[in] std::string prefix e
+     * @return void
+     * @throws 
+     * @exceptsafe yes
+     */      
+    void log_this(std::string prefix){
+        std::cout << prefix;
+    }
+
+    /**
+     * Check if message sender is the callback registrant
+     * 
+     * @param[in] std::shared_ptr<message::Message> msg
+     * @param[in] callback_registration registration
+     * @return true if the same, false if not the same
+     * @throws std::invalid_argument
+     * @exceptsafe yes
+     */  
+    bool is_registrant_sender(std::shared_ptr<message::Message> msg, 
+        callback_registration registration)
+    {
+        if(nullptr == msg)
+            throw std::invalid_argument("argument msg cannot be null");
+
+        //auto registrant_name = registration.get_registrant_name();
+        //auto sender_name = msg->get_sender_name();
+
+        return 0 == registration.get_registrant_name().compare(msg->get_sender_name()) ? true : false;    
+    }
+
+    /**
      * Worker thread, runs forever
      *
      * @return 
@@ -102,13 +173,22 @@ private:
                 std::shared_ptr<message::Message> msg = _messageQueue.front();
                 _messageQueue.pop();
 
-                // send message to each registered callback
-                for(MessageCallbackType cb : _messageCallbacks)
+                if(nullptr == msg)
                 {
-                    cb(msg);
+                    log_this("messge == null");
+                    continue;
+                }
 
-                    // TODO: Don't send messages back to sender (maybe)
-                    // TODO: Add error handling
+                // send message to each registered callback
+                for(callback_registration cbr : _messageCallbacks)
+                {
+                    try {
+                        // Don't echo messages back to sender
+                        if(!is_registrant_sender( msg, cbr))
+                            cbr.get_callback()(msg);
+                    } catch(const std::exception& e) {
+                        log_this("Processing callback", e);
+                    }
                 }
             }
         }
@@ -139,7 +219,7 @@ public:
     int SendMessage(std::shared_ptr<message::Message> msg) override
     {
         {
-            std::lock_guard<std::mutex> lk(m);
+            //std::lock_guard<std::mutex> lk(m);
             _messageQueue.push(msg);
         }
 

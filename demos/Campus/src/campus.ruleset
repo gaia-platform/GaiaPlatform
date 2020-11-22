@@ -1,0 +1,23 @@
+#include <atomic>
+#include <algorithm>
+#include <string.h>
+#include <memory>
+#include "../inc/icampus.hpp"
+
+//using namespace std;
+
+ruleset campus_ruleset
+{
+    {
+        /*if( person.is_threat )
+        {
+            auto cbc = ICampus::get_callback_class();
+            cbc->cb_action("aa", "bb", "cc", "dd");
+        }*/
+        if( strcmp(person.location, "HI") == 0 )
+        {
+            auto cbc = ICampus::get_callback_class();
+            cbc->cb_action("aa", "bb", "cc", "dd");
+        }        
+    }
+}

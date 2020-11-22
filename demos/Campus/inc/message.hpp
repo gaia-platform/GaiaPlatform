@@ -9,7 +9,7 @@ namespace message {
 * The message header
 */
 class MessageHeader{
-public:
+private:
 
     unsigned int _sequenceID = 0;
     time_t _timeSent;
@@ -17,6 +17,8 @@ public:
     std::string _senderName;    
     unsigned int _destID;
     std::string _destName;
+
+public:
 
     /**
      * Constructor, timeSent is set for you
@@ -50,10 +52,10 @@ public:
      * @exceptsafe yes
      */
     MessageHeader(unsigned int sequenceID,
-    unsigned int senderID,
-    std::string senderName,    
-    unsigned int destID,
-    std::string destName) : 
+        unsigned int senderID,
+        std::string senderName,    
+        unsigned int destID,
+        std::string destName) : 
         _sequenceID(sequenceID), _senderID(senderID), 
         _senderName(senderName), _destID(destID), _destName(destName)
     {
@@ -75,11 +77,11 @@ public:
      * @exceptsafe yes
      */    
     MessageHeader(unsigned int sequenceID,
-    time_t timeSent,
-    unsigned int senderID,
-    std::string senderName,    
-    unsigned int destID,
-    std::string destName) : 
+        time_t timeSent,
+        unsigned int senderID,
+        std::string senderName,    
+        unsigned int destID,
+        std::string destName) : 
         _sequenceID(sequenceID), _timeSent(timeSent), _senderID(senderID), 
         _senderName(senderName), _destID(destID), _destName(destName)
     {
@@ -97,6 +99,30 @@ public:
 
         if( "" == _destName) 
           _destName = "*";
+    }
+
+    unsigned int get_sequenceID(){
+        return _sequenceID;
+    }
+
+    time_t get_timeSent(){
+        return _timeSent;
+    }
+    
+    unsigned int get_senderID(){
+        return _senderID;
+    }
+
+    std::string get_senderName(){
+        return _senderName;
+    }    
+
+    unsigned int get_destID(){
+        return _destID;
+    }
+
+    std::string get_destName(){
+        return _destName;
     }
 };
 
@@ -127,7 +153,7 @@ public:
 
 
 /**
-* The message 
+* The message. The base class of all messages. 
 */
 class Message{
 
@@ -135,6 +161,7 @@ protected:
 
     MessageHeader _messageHeader;    
     void * _payload;
+    std::string _messageTypeName = "";
     
 public:
 
@@ -168,13 +195,46 @@ public:
 
     Message(){}
 
+    MessageHeader get_header(){
+        return _messageHeader;
+    }
+
+    std::string get_sender_name(){
+        return _messageHeader.get_senderName();
+    }
+
+    std::string get_message_type_name(){
+        return _messageTypeName;
+    }
+
     int DemoTest(){
         return 0;
     }
 };
 
+/*
+*   A container of a list of message type names. We use this instead of an enum
+*   so that we can identify message types across process and machine boundaries.
+*   This can be improved, but we keep in simple in this simple example.
+*/
+class message_types
+{
+public:
+    
+    inline static const std::string action_message = "message.action_message";
+    inline static const std::string alert_message = "message.alert_message";
+};
+
+/*
+*   The action message, used to convey that some object has taken some action,
+*   like a move to a new loocation or a change in role. 
+*/
 class ActionMessage : public Message
 {
+private:
+
+    std::string _typeName = message_types::action_message;
+
 public:
 
     std::string _actorType;
@@ -183,11 +243,45 @@ public:
     std::string _arg1;
 
     ActionMessage(MessageHeader header, std::string actorType, std::string actor, std::string action, std::string arg1) :
-        Message(header), _actorType(actorType), _actor(actor), _action(action), _arg1(arg1)
-    {}
+        Message(header), _actorType(actorType), _actor(actor), _action(action), _arg1(arg1){ 
+        _messageTypeName = message_types::action_message;
+    }
 
-    ActionMessage()
-    {}
+    ActionMessage(){ 
+        _messageTypeName = message_types::action_message;
+    }
+
+    int DemoTest(){
+        return 0;
+    }
+};
+
+/*
+*   The alert message message, used to send an alert 
+*/
+class alert_message : public Message
+{
+private:
+
+    std::string _typeName = message_types::alert_message;
+
+public:
+
+    enum severity_level_enum {notice, alert, emergency};
+
+    std::string _title;
+    std::string _body;
+    severity_level_enum _severity;
+    std::string _arg1;
+
+    alert_message(MessageHeader header, std::string title, std::string body, severity_level_enum severity, std::string arg1) :
+        Message(header), _title(title), _body(body), _severity(severity), _arg1(arg1){ 
+        _messageTypeName = message_types::alert_message;
+    }
+
+    alert_message(){ 
+        _messageTypeName = message_types::alert_message;
+    }
 
     int DemoTest(){
         return 0;

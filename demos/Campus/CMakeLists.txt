@@ -61,54 +61,53 @@ set(GAIA_TRANSLATE ${GAIA_BIN}/gaiat)
 
 # --- Generate ---
 
-set(INCUBATOR_DDL ${PROJECT_SOURCE_DIR}/src/incubator.ddl)
-set(INCUBATOR_RULESET ${PROJECT_SOURCE_DIR}/src/incubator.ruleset)
+set(CAMPUS_DDL ${PROJECT_SOURCE_DIR}/src/campus.ddl)
+set(CAMPUS_RULESET ${PROJECT_SOURCE_DIR}/src/campus.ruleset)
 file(MAKE_DIRECTORY ${GENERATED_OUTPUTS})
 
 add_custom_command(
-  OUTPUT ${GENERATED_OUTPUTS}/gaia_incubator.h
+  OUTPUT ${GENERATED_OUTPUTS}/gaia_campus.h
   #COMMAND '${GAIA_BIN}/gaia_se_server &'
   #COMMAND sleep 1
-  COMMAND ${GAIA_GENERATE} -o ${GENERATED_OUTPUTS} -g ${INCUBATOR_DDL}
-  DEPENDS ${INCUBATOR_DDL}
-  COMMENT "Compiled incubator.ddl."
+  COMMAND ${GAIA_GENERATE} -o ${GENERATED_OUTPUTS} -g ${CAMPUS_DDL}
+  DEPENDS ${CAMPUS_DDL}
+  COMMENT "Compiled campus.ddl."
 )
 
-add_custom_target(generate_incubator_headers ALL
-  DEPENDS ${GENERATED_OUTPUTS}/gaia_incubator.h
+add_custom_target(generate_campus_headers ALL
+  DEPENDS ${GENERATED_OUTPUTS}/gaia_campus.h
 )
 
 #--- Translate ---
 
 add_custom_command(
-  OUTPUT ${PROJECT_SOURCE_DIR}/incubator_rules.cpp
+  OUTPUT ${GENERATED_OUTPUTS}/campus_rules.cpp
   #COMMAND ${GAIA_PROD_BUILD}/db/storage_engine/gaia_se_server &
   #COMMAND sleep 1
-  COMMAND ${GAIA_TRANSLATE} ${INCUBATOR_RULESET} -output ${PROJECT_SOURCE_DIR}/incubator_rules.cpp -- -I /usr/lib/gcc/x86_64-linux-gnu/8/include/
-  DEPENDS ${INCUBATOR_RULESET}
-  COMMENT "Translating incubator.ruleset."
+  COMMAND ${GAIA_TRANSLATE} ${CAMPUS_RULESET} -output ${GENERATED_OUTPUTS}/campus_rules.cpp -- -I /usr/lib/gcc/x86_64-linux-gnu/8/include/
+  DEPENDS ${CAMPUS_RULESET}
+  COMMENT "Translating campus.ruleset."
 )
 
-# disable for now: Exception while processing the catalog std::exception
-add_custom_target(translate_incubator_ruleset ALL
-  DEPENDS generate_incubator_headers
-  DEPENDS ${PROJECT_SOURCE_DIR}/incubator_rules.cpp
+add_custom_target(translate_campus_ruleset ALL
+  DEPENDS generate_campus_headers
+  DEPENDS ${GENERATED_OUTPUTS}/campus_rules.cpp
 )
+
+#--- Done with D&T ---
 
 add_library(gaia SHARED IMPORTED GLOBAL)
-set_target_properties(gaia PROPERTIES IMPORTED_LOCATION /usr/local/lib/libgaia.so) #TODO: remove fixed path #TODO: Temporarily point to prod instead
-#set_target_properties(gaia PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/sdk/libgaia.so) #can't, file not found
+set_target_properties(gaia PROPERTIES IMPORTED_LOCATION /usr/local/lib/libgaia.so) #TODO: remove fixed path 
+#set_target_properties(gaia PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/sdk/libgaia.so) 
 
 add_executable(campus 
-    src/main.cpp
-    src/rules.cpp
     src/campus_demo.cpp
     src/campus_demo_term.cpp
-    tests/test_campus_demo.cpp
-    incubator_rules.cpp        
+    tests/test_campus_demo.cpp 
+    ${GENERATED_OUTPUTS}/campus_rules.cpp     
 )
 
-# The incubator demo uses a system configuration and logger configuration file.
+# The campus demo uses a system configuration and logger configuration file.
 configure_file("${PROJECT_SOURCE_DIR}/src/gaia_conf.toml" "${PROJECT_BINARY_DIR}/gaia_conf.toml")
 configure_file("${PROJECT_SOURCE_DIR}/src/log_conf.toml" "${PROJECT_BINARY_DIR}/log_conf.toml")
 
