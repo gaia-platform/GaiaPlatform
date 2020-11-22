@@ -35,13 +35,16 @@ inline void* map_fd(size_t length, int protection, int flags, int fd, size_t off
 template <typename T>
 inline void unmap_fd(T*& addr, size_t length)
 {
-    void* tmp = addr;
-    addr = nullptr;
-    if (-1 == ::munmap(tmp, length))
+    if (addr)
     {
-        int err = errno;
-        const char* reason = ::explain_munmap(tmp, length);
-        throw system_error(reason, err);
+        void* tmp = addr;
+        addr = nullptr;
+        if (-1 == ::munmap(tmp, length))
+        {
+            int err = errno;
+            const char* reason = ::explain_munmap(tmp, length);
+            throw system_error(reason, err);
+        }
     }
 }
 

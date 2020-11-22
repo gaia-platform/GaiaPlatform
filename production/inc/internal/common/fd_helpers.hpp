@@ -38,13 +38,16 @@ inline size_t get_fd_size(int fd)
 
 inline void close_fd(int& fd)
 {
-    int tmp = fd;
-    fd = -1;
-    if (-1 == ::close(tmp))
+    if (fd != -1)
     {
-        int err = errno;
-        const char* reason = ::explain_close(tmp);
-        throw system_error(reason, err);
+        int tmp = fd;
+        fd = -1;
+        if (-1 == ::close(tmp))
+        {
+            int err = errno;
+            const char* reason = ::explain_close(tmp);
+            throw system_error(reason, err);
+        }
     }
 }
 
