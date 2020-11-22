@@ -12,8 +12,8 @@
 #include <memory>
 #include <vector>
 
+#include "gaia/common.hpp"
 #include "gaia/events.hpp"
-#include "gaia/gaia_common.hpp"
 #include "db_types.hpp"
 
 using namespace gaia::common;

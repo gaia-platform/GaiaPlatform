@@ -8,8 +8,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "gaia/db/gaia_db.hpp"
-#include "gaia/gaia_common.hpp"
+#include "gaia/common.hpp"
+#include "gaia/db/db.hpp"
 #include "gaia_ptr.hpp"
 
 using namespace std;

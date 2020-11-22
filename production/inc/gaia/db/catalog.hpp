@@ -13,8 +13,8 @@
 #include <variant>
 #include <vector>
 
-#include "gaia/gaia_common.hpp"
-#include "gaia/gaia_exception.hpp"
+#include "gaia/common.hpp"
+#include "gaia/exception.hpp"
 
 namespace gaia
 {

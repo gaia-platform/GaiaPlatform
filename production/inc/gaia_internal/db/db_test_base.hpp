@@ -16,7 +16,7 @@
 
 #include "gtest/gtest.h"
 
-#include "gaia/db/gaia_db.hpp"
+#include "gaia/db/db.hpp"
 #include "db_test_helpers.hpp"
 #include "db_types.hpp"
 #include "retail_assert.hpp"

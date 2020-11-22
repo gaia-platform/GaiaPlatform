@@ -10,7 +10,7 @@
 #include <sstream>
 #include <string>
 
-#include "gaia/gaia_exception.hpp"
+#include "gaia/exception.hpp"
 
 namespace gaia
 {

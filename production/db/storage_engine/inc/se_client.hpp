@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "gaia/db/gaia_db.hpp"
+#include "gaia/db/db.hpp"
 #include "retail_assert.hpp"
 #include "se_shared_data.hpp"
 #include "system_table_types.hpp"
@@ -45,7 +45,7 @@ public:
     // This test-only function is exported from gaia_db_internal.hpp.
     static void clear_shared_memory();
 
-    // These public functions are exported from and documented in gaia_db.hpp.
+    // These public functions are exported from and documented in db.hpp.
     static void begin_session();
     static void end_session();
     static void begin_transaction();

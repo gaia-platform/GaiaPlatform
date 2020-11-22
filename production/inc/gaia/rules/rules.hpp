@@ -10,10 +10,10 @@
 #include <string>
 #include <vector>
 
+#include "gaia/common.hpp"
 #include "gaia/direct_access/auto_transaction.hpp"
 #include "gaia/events.hpp"
-#include "gaia/gaia_common.hpp"
-#include "gaia/gaia_exception.hpp"
+#include "gaia/exception.hpp"
 
 namespace gaia
 {

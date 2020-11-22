@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "gaia/db/gaia_db.hpp"
-#include "gaia/gaia_common.hpp"
-#include "gaia/gaia_exception.hpp"
+#include "gaia/common.hpp"
+#include "gaia/db/db.hpp"
+#include "gaia/exception.hpp"
 #include "db_types.hpp"
 #include "gaia_db_internal.hpp"
 #include "retail_assert.hpp"

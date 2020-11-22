@@ -141,9 +141,9 @@ static string generate_boilerplate_top(string dbname)
     code += "#ifndef GAIA_GENERATED_{{DBNAME}}_H_";
     code += "#define GAIA_GENERATED_{{DBNAME}}_H_";
     code += "";
-    code += "#include \"gaia/direct_access/gaia_object.hpp\"";
+    code += "#include \"gaia/direct_access/edc_object.hpp\"";
     code += "#include \"{{DBNAME}}_generated.h\"";
-    code += "#include \"gaia/direct_access/gaia_iterators.hpp\"";
+    code += "#include \"gaia/direct_access/edc_iterators.hpp\"";
     code += "";
     code += "namespace " + c_gaia_namespace + " {";
     if (!dbname.empty())

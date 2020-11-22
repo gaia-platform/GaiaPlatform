@@ -8,7 +8,7 @@
 #include <optional>
 #include <vector>
 
-#include "gaia/gaia_common.hpp"
+#include "gaia/common.hpp"
 #include "db_types.hpp"
 #include "flatbuffers_helpers.hpp"
 #include "gaia_field_generated.h"

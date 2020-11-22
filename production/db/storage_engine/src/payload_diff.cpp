@@ -4,7 +4,7 @@
 /////////////////////////////////////////////
 #include "payload_diff.hpp"
 
-#include "gaia/gaia_common.hpp"
+#include "gaia/common.hpp"
 #include "catalog_core.hpp"
 #include "data_holder.hpp"
 #include "field_access.hpp"

@@ -10,7 +10,7 @@
 
 #include "flatbuffers/reflection.h"
 
-#include "gaia/gaia_exception.hpp"
+#include "gaia/exception.hpp"
 #include "data_holder.hpp"
 #include "type_cache.hpp"
 

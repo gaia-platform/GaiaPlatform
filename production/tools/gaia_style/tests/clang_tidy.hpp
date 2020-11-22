@@ -7,7 +7,7 @@
 
 #include <exception>
 
-#include "gaia/gaia_common.hpp"
+#include "gaia/common.hpp"
 
 /**
  * Showcase how our .clang-tidy configuration works.

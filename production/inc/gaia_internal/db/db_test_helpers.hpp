@@ -15,7 +15,7 @@
 #include <string>
 #include <thread>
 
-#include "gaia/db/gaia_db.hpp"
+#include "gaia/db/db.hpp"
 #include "db_types.hpp"
 #include "gaia_db_internal.hpp"
 #include "logger.hpp"

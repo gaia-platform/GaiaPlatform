@@ -14,7 +14,7 @@
 
 #include "flatbuffers/reflection.h"
 
-#include "gaia/gaia_common.hpp"
+#include "gaia/common.hpp"
 
 namespace gaia
 {

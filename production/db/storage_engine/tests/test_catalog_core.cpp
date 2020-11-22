@@ -6,9 +6,9 @@
 
 #include "gtest/gtest.h"
 
-#include "gaia/gaia_common.hpp"
+#include "gaia/common.hpp"
 #include "gaia/db/catalog.hpp"
-#include "gaia/db/gaia_db.hpp"
+#include "gaia/db/db.hpp"
 #include "catalog_core.hpp"
 #include "db_test_base.hpp"
 

@@ -12,7 +12,7 @@
 #include "gtest/gtest.h"
 
 #include "gaia/db/catalog.hpp"
-#include "gaia/db/gaia_db.hpp"
+#include "gaia/db/db.hpp"
 #include "db_test_helpers.hpp"
 #include "gaia_addr_book.h"
 #include "gaia_catalog.h"

@@ -8,7 +8,7 @@
 #include <sstream>
 #include <string>
 
-#include "gaia/gaia_exception.hpp"
+#include "gaia/exception.hpp"
 
 inline constexpr char c_command_prefix = '\\';
 

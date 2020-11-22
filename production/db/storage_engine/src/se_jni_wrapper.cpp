@@ -5,7 +5,7 @@
 
 #include <iostream>
 
-#include "gaia/db/gaia_db.hpp"
+#include "gaia/db/db.hpp"
 #include "com_gaiaplatform_database_CowStorageEngine.h"
 #include "gaia_ptr.hpp"
 

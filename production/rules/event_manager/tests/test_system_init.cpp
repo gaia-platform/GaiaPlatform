@@ -9,10 +9,10 @@
 #include "gtest/gtest.h"
 
 #include "gaia/db/catalog.hpp"
-#include "gaia/direct_access/gaia_base.hpp"
+#include "gaia/direct_access/edc_base.hpp"
 #include "gaia/exceptions.hpp"
-#include "gaia/gaia_system.hpp"
 #include "gaia/rules/rules.hpp"
+#include "gaia/system.hpp"
 #include "db_test_base.hpp"
 #include "gaia_catalog.h"
 

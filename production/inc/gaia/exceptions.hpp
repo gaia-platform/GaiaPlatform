@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "gaia/gaia_exception.hpp"
+#include "gaia/exception.hpp"
 
 namespace gaia
 {

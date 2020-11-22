@@ -10,7 +10,7 @@
 
 #include "flatbuffers/idl.h"
 
-#include "gaia/db/gaia_db.hpp"
+#include "gaia/db/db.hpp"
 #include "catalog_internal.hpp"
 #include "command.hpp"
 #include "db_test_helpers.hpp"

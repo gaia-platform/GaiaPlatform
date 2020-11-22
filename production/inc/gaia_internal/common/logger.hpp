@@ -10,7 +10,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "gaia/gaia_exception.hpp"
+#include "gaia/exception.hpp"
 #include "logger_spdlog.hpp"
 
 namespace gaia

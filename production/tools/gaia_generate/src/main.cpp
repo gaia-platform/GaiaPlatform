@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "gaia/db/catalog.hpp"
-#include "gaia/db/gaia_db.hpp"
+#include "gaia/db/db.hpp"
 
 using namespace gaia::catalog;
 using namespace std;

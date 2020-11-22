@@ -10,9 +10,9 @@
 #ifndef GAIA_GENERATED_cameraDemo_H_
 #define GAIA_GENERATED_cameraDemo_H_
 
-#include "gaia/direct_access/gaia_object.hpp"
+#include "gaia/direct_access/edc_object.hpp"
 #include "cameraDemo_generated.h"
-#include "gaia/direct_access/gaia_iterators.hpp"
+#include "gaia/direct_access/edc_iterators.hpp"
 
 using namespace std;
 using namespace gaia::direct_access;

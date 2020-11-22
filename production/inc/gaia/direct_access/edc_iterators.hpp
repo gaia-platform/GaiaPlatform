@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "gaia/direct_access/gaia_base.hpp"
+#include "gaia/direct_access/edc_base.hpp"
 
 namespace gaia
 {
@@ -181,4 +181,4 @@ public:
 // Pick up our template implementation. These still need to be in the header so
 // that template specializations that are declared later will pick up the
 // definitions.
-#include "gaia_iterators.inc"
+#include "edc_iterators.inc"

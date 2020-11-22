@@ -7,7 +7,7 @@
 
 #include <memory>
 
-#include "gaia/gaia_common.hpp"
+#include "gaia/common.hpp"
 #include "db_types.hpp"
 #include "rdb_internal.hpp"
 #include "se_helpers.hpp"

@@ -13,8 +13,8 @@
 #include <sstream>
 #include <unordered_map>
 
-#include "gaia/gaia_common.hpp"
-#include "gaia/gaia_exception.hpp"
+#include "gaia/common.hpp"
+#include "gaia/exception.hpp"
 #include "gaia_relationships.hpp"
 
 namespace gaia

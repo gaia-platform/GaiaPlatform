@@ -11,7 +11,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-#include "gaia/gaia_exception.hpp"
+#include "gaia/exception.hpp"
 #include "retail_assert.hpp"
 #include "system_error.hpp"
 

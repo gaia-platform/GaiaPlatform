@@ -14,7 +14,7 @@
 
 #include "flatbuffers/flatbuffers.h"
 
-#include "gaia/gaia_exception.hpp"
+#include "gaia/exception.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
 #include "se_types.hpp"

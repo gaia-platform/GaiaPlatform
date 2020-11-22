@@ -5,7 +5,7 @@
 
 #include "type_id_mapping.hpp"
 
-#include "gaia/gaia_common.hpp"
+#include "gaia/common.hpp"
 #include "catalog_core.hpp"
 #include "retail_assert.hpp"
 

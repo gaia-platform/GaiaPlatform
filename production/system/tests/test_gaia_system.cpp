@@ -14,8 +14,8 @@
 #include "gtest/gtest.h"
 
 #include "gaia/db/catalog.hpp"
-#include "gaia/gaia_system.hpp"
 #include "gaia/rules/rules.hpp"
+#include "gaia/system.hpp"
 #include "db_test_base.hpp"
 #include "db_test_helpers.hpp"
 #include "ddl_execution.hpp"

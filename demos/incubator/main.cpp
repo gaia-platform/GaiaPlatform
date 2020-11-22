@@ -1,5 +1,5 @@
 #include "gaia_incubator.h"
-#include "gaia/gaia_system.hpp"
+#include "gaia/system.hpp"
 #include "gaia/rules/rules.hpp"
 
 #include <algorithm>
