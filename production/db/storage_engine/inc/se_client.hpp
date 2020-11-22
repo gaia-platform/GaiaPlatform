@@ -84,8 +84,6 @@ private:
 
     static void txn_cleanup();
 
-    static void destroy_log_mapping();
-
     static int get_session_socket();
 
     static int get_id_cursor_socket_for_type(gaia_type_t type);

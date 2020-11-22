@@ -271,22 +271,10 @@ void server::build_server_reply(
 
 void server::clear_shared_memory()
 {
-    if (s_shared_locators)
-    {
-        unmap_fd(s_shared_locators, sizeof(locators));
-    }
-    if (s_fd_locators != -1)
-    {
-        close_fd(s_fd_locators);
-    }
-    if (s_data)
-    {
-        unmap_fd(s_data, sizeof(data));
-    }
-    if (s_fd_data != -1)
-    {
-        close_fd(s_fd_data);
-    }
+    unmap_fd(s_shared_locators, sizeof(locators));
+    close_fd(s_fd_locators);
+    unmap_fd(s_data, sizeof(data));
+    close_fd(s_fd_data);
 }
 
 // To avoid synchronization, we assume that this method is only called when
