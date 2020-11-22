@@ -70,7 +70,6 @@ inline void allocate_object_mm(
     memory_manager::address_offset_t offset)
 {
     locators* locators = gaia::db::get_shared_locators();
-    data* data = gaia::db::get_shared_data();
     if (!locators)
     {
         throw transaction_not_open();

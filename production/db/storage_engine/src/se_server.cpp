@@ -129,7 +129,7 @@ void server::get_memory_info_from_request_and_free(session_event_t event, const 
                 stack_allocator.deallocate(0);
             }
             // Free up unused space.
-            memory_manager->free_stack_allocator(std::make_unique<stack_allocator_t>(stack_allocator));
+            // memory_manager->free_stack_allocator(std::make_unique<stack_allocator_t>(stack_allocator));
         }
     }
 }
