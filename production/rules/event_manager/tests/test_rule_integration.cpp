@@ -252,6 +252,7 @@ protected:
 
     static void TearDownTestSuite()
     {
+        gaia::rules::shutdown_rules_engine();
         end_session();
         gaia_log::shutdown();
     }
