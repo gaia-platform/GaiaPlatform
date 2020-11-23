@@ -6,6 +6,7 @@
 project(sdk)
 
 set(TEMP_PACKAGE_FOLDER "${CMAKE_CURRENT_BINARY_DIR}/tmp")
+set(PGSQL_PACKAGE_FOLDER "${TEMP_PACKAGE_FOLDER}/usr/local/lib/pgsql_ext")
 
 include(gaia)
 
@@ -25,14 +26,14 @@ target_link_libraries(gaia PRIVATE
 if(BUILD_GAIA_RELEASE)
   if (TARGET gaia_fdw)
     add_custom_command(
-      OUTPUT ${TEMP_PACKAGE_FOLDER}/usr/local/lib/pgsql_ext
-      COMMAND cmake -E copy_if_different $<TARGET_SONAME_FILE:gaia_fdw> ${TEMP_PACKAGE_FOLDER}/usr/local/lib/pgsql_ext/$<TARGET_SONAME_FILE_NAME:gaia_fdw>
-      COMMAND cmake -E copy_directory ${GAIA_PROD_BUILD}/sql/pgsql ${TEMP_PACKAGE_FOLDER}/usr/local/lib/pgsql_ext
+      OUTPUT ${PGSQL_PACKAGE_FOLDER}
+      COMMAND cmake -E copy_if_different $<TARGET_SONAME_FILE:gaia_fdw> ${PGSQL_PACKAGE_FOLDER}/$<TARGET_SONAME_FILE_NAME:gaia_fdw>
+      COMMAND cmake -E copy_directory ${GAIA_PROD_BUILD}/sql/pgsql ${PGSQL_PACKAGE_FOLDER}
       DEPENDS gaia_fdw
     )
   else()
     add_custom_command(
-      OUTPUT ${TEMP_PACKAGE_FOLDER}/usr/local/lib/pgsql_ext
+      OUTPUT ${PGSQL_PACKAGE_FOLDER}
       COMMAND cmake -E make_directory ${TEMP_PACKAGE_FOLDER}/usr/local/lib/pgsql_ext
     )
   endif()
@@ -81,7 +82,7 @@ if(BUILD_GAIA_RELEASE)
     DEPENDS ${PROJECT_SOURCE_DIR}/changelog
     DEPENDS ${PROJECT_SOURCE_DIR}/copyright
     DEPENDS ${PROJECT_SOURCE_DIR}/gaia.spec
-    DEPENDS ${TEMP_PACKAGE_FOLDER}/usr/local/lib/pgsql_ext
+    DEPENDS ${PGSQL_PACKAGE_FOLDER}
     COMMENT "Compiled SDK packages."
   )
 
