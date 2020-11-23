@@ -52,6 +52,7 @@ public:
         std::variant<rule_invocation_t, log_events_invocation_t> args;
         const char* rule_id;
         std::chrono::steady_clock::time_point start_time;
+        uint32_t num_retries{0};
     };
 
     /**

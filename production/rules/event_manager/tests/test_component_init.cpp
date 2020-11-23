@@ -96,7 +96,7 @@ TEST_F(component_init_test, component_valid_empty_config)
     EXPECT_EQ(default_settings.enable_catalog_checks, config_settings.enable_catalog_checks);
     EXPECT_EQ(default_settings.enable_rule_stats, config_settings.enable_rule_stats);
     EXPECT_EQ(default_settings.stats_log_interval, config_settings.stats_log_interval);
-    EXPECT_EQ(default_settings.num_rule_retries, config_settings.num_rule_retries);
+    EXPECT_EQ(default_settings.max_rule_retries, config_settings.max_rule_retries);
 }
 
 // See gaia.conf file for valid settings.
@@ -114,7 +114,7 @@ TEST_F(component_init_test, component_valid_config)
     EXPECT_EQ(config_settings.num_background_threads, c_thread_count);
     EXPECT_EQ(config_settings.stats_log_interval, c_log_interval);
     EXPECT_EQ(config_settings.enable_rule_stats, c_enable_rule_stats);
-    EXPECT_EQ(config_settings.num_rule_retries, c_retry_count);
+    EXPECT_EQ(config_settings.max_rule_retries, c_retry_count);
 
     EXPECT_EQ(config_settings.enable_catalog_checks, true);
 }

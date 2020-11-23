@@ -207,19 +207,32 @@ void rule_thread_pool_t::invoke_user_rule(invocation_t& invocation)
         s_tls_can_enqueue = true;
         if (gaia::db::is_transaction_active())
         {
-            txn.commit();
+            try
+            {
+                txn.commit();
+            }
+            catch (const transaction_update_conflict&)
+            {
+                should_schedule = false;
+                if (invocation.num_retries >= event_manager_settings_t().max_rule_retries)
+                {
+                    throw;
+                }
+                invocation.num_retries++;
+                m_stats_manager.inc_retries(rule_id);
+                enqueue(invocation);
+            }
         }
     }
     catch (const std::exception& e)
     {
         m_stats_manager.inc_exceptions(rule_id);
         // TODO[GAIAPLAT-129]: Log an error in an error table here.
-        // TODO[GAIAPLAT-158]: Determine retry/error handling logic
-        // Catch all exceptions or let terminate happen? Don't drop pending
-        // rules on the floor (should_schedule == false) when we add retry logic.
         gaia_log::rules().trace("exception: {}, {}", rule_id, e.what());
     }
 
+    // If should_schedule == false, rule scheduling failed and we drop any pending invocations. We
+    // may retry our current rule and re-enqueue our pending.
     process_pending_invocations(should_schedule);
 }
 
