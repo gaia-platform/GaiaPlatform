@@ -61,7 +61,7 @@ typedef uint16_t field_position_t;
 /**
  * The value of an invalid field_position_t.
  */
-constexpr field_position_t c_invalid_field_position = std::numeric_limits<uint16_t>::max();
+constexpr field_position_t c_invalid_field_position = std::numeric_limits<field_position_t>::max();
 
 /**
  * List of field positions.
@@ -79,7 +79,7 @@ typedef uint16_t reference_offset_t;
 /**
  * The value of an invalid field_position_t.
  */
-constexpr reference_offset_t c_invalid_reference_offset = std::numeric_limits<uint16_t>::max();
+constexpr reference_offset_t c_invalid_reference_offset = std::numeric_limits<reference_offset_t>::max();
 
 /*
  * Data types for Gaia field records.
