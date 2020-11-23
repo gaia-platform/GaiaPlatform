@@ -5,9 +5,7 @@
 
 // NOTE: This is included included by edc_object.hpp as this is a template
 // implementation file.  Because the template specializations of gaia_object_t are
-// created by user-defined schema, we don't know what they will be apriori.  I have
-// pulled them out of edc_object.hpp, however, to include readability of the
-// gaia_object_t declarations.
+// created by user-defined schema, we don't know what they will be a priori.
 namespace gaia
 {
 namespace direct_access
@@ -17,7 +15,7 @@ namespace direct_access
 // The gaia_object_t implementation.
 //
 
-// Macros for strongly types field accessors used by gaia_object_t objects below.
+// Macros for strongly-typed field accessors used by gaia_object_t objects below.
 #define GET(field) (row()->field())
 #define GET_STR(field) (row()->field() ? row()->field()->c_str() : nullptr)
 

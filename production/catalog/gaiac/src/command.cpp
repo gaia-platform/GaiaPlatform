@@ -13,7 +13,7 @@
 #include "gaia_catalog.h"
 #include "retail_assert.hpp"
 
-using namespace ::std;
+using namespace std;
 
 using namespace gaia::direct_access;
 using namespace gaia::common;
