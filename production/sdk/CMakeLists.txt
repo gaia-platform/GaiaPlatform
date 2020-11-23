@@ -34,7 +34,7 @@ if(BUILD_GAIA_RELEASE)
   else()
     add_custom_command(
       OUTPUT ${PGSQL_PACKAGE_FOLDER}
-      COMMAND cmake -E make_directory ${TEMP_PACKAGE_FOLDER}/usr/local/lib/pgsql_ext
+      COMMAND cmake -E make_directory ${PGSQL_PACKAGE_FOLDER}
     )
   endif()
 
