@@ -98,7 +98,7 @@ void persistent_store_manager::close()
     m_rdb_internal->close();
 }
 
-void persistent_store_manager::append_wal_commit_marker(std::string& txn_name)
+void persistent_store_manager::append_wal_commit_marker(const std::string& txn_name)
 {
     m_rdb_internal->commit(txn_name);
 }
@@ -110,12 +110,12 @@ std::string persistent_store_manager::begin_txn(gaia_txn_id_t txn_id)
     return m_rdb_internal->begin_txn(write_options, txn_options, txn_id);
 }
 
-void persistent_store_manager::append_wal_rollback_marker(std::string& txn_name)
+void persistent_store_manager::append_wal_rollback_marker(const std::string& txn_name)
 {
     m_rdb_internal->rollback(txn_name);
 }
 
-void persistent_store_manager::prepare_wal_for_write(gaia::db::log* log, std::string& txn_name)
+void persistent_store_manager::prepare_wal_for_write(gaia::db::log* log, const std::string& txn_name)
 {
     retail_assert(log, "Transaction log is null!");
     // The key_count variable represents the number of puts + deletes.
