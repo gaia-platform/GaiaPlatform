@@ -194,7 +194,6 @@ void persistent_store_manager::recover()
     m_data->last_id = max_id;
     m_data->last_type_id = max_type_id;
 
-    cout << "max_type_id=" << max_type_id << endl;
     // Ensure that other threads (with appropriate acquire barriers) immediately
     // observe the changed value. (This could be changed to a release barrier.)
     __sync_synchronize();

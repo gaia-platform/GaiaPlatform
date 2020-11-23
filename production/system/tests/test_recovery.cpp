@@ -100,8 +100,6 @@ protected:
     {
         s_server.stop();
         remove_persistent_store();
-        // Other tests that run as part of ctest should not break.
-        s_server.start();
     }
 
 private:
