@@ -9,11 +9,13 @@
 
 #include "flatbuffers/code_generators.h"
 
-#include "catalog.hpp"
+#include "gaia/db/catalog.hpp"
 #include "gaia_catalog.h"
 #include "type_id_mapping.hpp"
 
 using namespace std;
+using namespace gaia::common;
+using namespace gaia::db;
 
 namespace gaia
 {
@@ -139,12 +141,9 @@ static string generate_boilerplate_top(string dbname)
     code += "#ifndef GAIA_GENERATED_{{DBNAME}}_H_";
     code += "#define GAIA_GENERATED_{{DBNAME}}_H_";
     code += "";
-    code += "#include \"gaia_object.hpp\"";
+    code += "#include \"gaia/direct_access/edc_object.hpp\"";
     code += "#include \"{{DBNAME}}_generated.h\"";
-    code += "#include \"gaia_iterators.hpp\"";
-    code += "";
-    code += "using namespace std;";
-    code += "using namespace gaia::direct_access;";
+    code += "#include \"gaia/direct_access/edc_iterators.hpp\"";
     code += "";
     code += "namespace " + c_gaia_namespace + " {";
     if (!dbname.empty())
@@ -267,7 +266,7 @@ static string generate_edc_struct(
         {
             code.SetValue("REF_NAME", relationship.name());
 
-            code += "typedef reference_chain_container_t<{{TABLE_NAME}}_t, {{REF_TABLE}}_t, "
+            code += "typedef gaia::direct_access::reference_chain_container_t<{{TABLE_NAME}}_t, {{REF_TABLE}}_t, "
                     "c_parent_{{REF_NAME}}_{{TABLE_NAME}}, "
                     "c_first_{{REF_NAME}}_{{REF_TABLE}}, c_next_{{REF_NAME}}_{{REF_TABLE}}> "
                     "{{REF_NAME}}_{{REF_TABLE}}_list_t;";
@@ -277,15 +276,15 @@ static string generate_edc_struct(
             // This relationship is anonymous.
             code.SetValue("REF_NAME", relationship.child_gaia_table().name());
 
-            code += "typedef reference_chain_container_t<{{TABLE_NAME}}_t, {{REF_TABLE}}_t, "
+            code += "typedef gaia::direct_access::reference_chain_container_t<{{TABLE_NAME}}_t, {{REF_TABLE}}_t, "
                     "c_parent_{{REF_TABLE}}_{{TABLE_NAME}}, "
                     "c_first_{{REF_NAME}}_{{REF_TABLE}}, c_next_{{REF_NAME}}_{{REF_TABLE}}> {{REF_NAME}}_list_t;";
         }
     }
 
-    code += "typedef gaia_writer_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, {{TABLE_NAME}}, {{TABLE_NAME}}T, "
+    code += "typedef gaia::direct_access::gaia_writer_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, {{TABLE_NAME}}, {{TABLE_NAME}}T, "
             "c_num_{{TABLE_NAME}}_ptrs> {{TABLE_NAME}}_writer;";
-    code += "struct {{TABLE_NAME}}_t : public gaia_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, "
+    code += "struct {{TABLE_NAME}}_t : public gaia::direct_access::gaia_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, "
             "{{TABLE_NAME}}, {{TABLE_NAME}}T, c_num_{{TABLE_NAME}}_ptrs> {";
 
     code.IncrementIdentLevel();
@@ -320,7 +319,7 @@ static string generate_edc_struct(
     code += "using gaia_object_t::insert_row;";
 
     // The typed insert_row().
-    string param_list("static gaia_id_t insert_row(");
+    string param_list("static gaia::common::gaia_id_t insert_row(");
     bool first = true;
     for (auto const& f : field_strings)
     {
@@ -376,9 +375,9 @@ static string generate_edc_struct(
     }
 
     // The table range.
-    code += "static gaia_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t>& list() {";
+    code += "static gaia::direct_access::gaia_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t>& list() {";
     code.IncrementIdentLevel();
-    code += "static gaia_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t> list;";
+    code += "static gaia::direct_access::gaia_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t> list;";
     code += "return list;";
     code.DecrementIdentLevel();
     code += "}";
@@ -420,7 +419,7 @@ static string generate_edc_struct(
             "{{TABLE_NAME}}T, c_num_{{TABLE_NAME}}_ptrs>;";
 
     // The constructor.
-    code += "explicit {{TABLE_NAME}}_t(gaia_id_t id) : gaia_object_t(id, \"{{TABLE_NAME}}_t\") {}";
+    code += "explicit {{TABLE_NAME}}_t(gaia::common::gaia_id_t id) : gaia_object_t(id, \"{{TABLE_NAME}}_t\") {}";
 
     // Finishing brace.
     code.DecrementIdentLevel();

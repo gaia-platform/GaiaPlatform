@@ -7,8 +7,8 @@
 
 #include <cstddef>
 
+#include "gaia/common.hpp"
 #include "db_types.hpp"
-#include "gaia_common.hpp"
 
 namespace gaia
 {

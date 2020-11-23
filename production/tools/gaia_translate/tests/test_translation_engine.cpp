@@ -3,11 +3,13 @@
 // All rights reserved.
 /////////////////////////////////////////////
 #include <unistd.h>
+
 #include "gtest/gtest.h"
-#include "gaia_barn_storage.h"
-#include "rules.hpp"
-#include "ddl_execution.hpp"
+
+#include "gaia/rules/rules.hpp"
 #include "db_test_base.hpp"
+#include "ddl_execution.hpp"
+#include "gaia_barn_storage.h"
 
 using namespace std;
 using namespace gaia::rules;
@@ -27,7 +29,7 @@ const int c_g_expected_actuator_value = 1000;
 class translation_engine_test : public db_test_base_t
 {
 public:
-    gaia_id_t insert_incubator(const char * name, float min_temp, float max_temp)
+    gaia_id_t insert_incubator(const char* name, float min_temp, float max_temp)
     {
         gaia::barn_storage::incubator_writer w;
         w.name = name;
@@ -39,8 +41,7 @@ public:
     void init_storage()
     {
         gaia::db::begin_transaction();
-        auto incubator = gaia::barn_storage::incubator_t::get(insert_incubator("TestIncubator",
-            c_g_incubator_min_temperature, c_g_incubator_max_temperature));
+        auto incubator = gaia::barn_storage::incubator_t::get(insert_incubator("TestIncubator", c_g_incubator_min_temperature, c_g_incubator_max_temperature));
         incubator.sensor_list().insert(gaia::barn_storage::sensor_t::insert_row("TestSensor1", 0, 0.0));
         incubator.actuator_list().insert(gaia::barn_storage::actuator_t::insert_row("TestActuator1", 0, 0.0));
         gaia::db::commit_transaction();
@@ -52,7 +53,7 @@ protected:
         // NOTE: to run this test manually, you need to set the env variable INCUBATOR_DDL_FILE
         // to the location of barn_storage.ddl.  Currently this is under production/schemas/test/incubator.
         reset_server();
-        const char *incubator_ddl_file = getenv("INCUBATOR_DDL_FILE");
+        const char* incubator_ddl_file = getenv("INCUBATOR_DDL_FILE");
         ASSERT_NE(incubator_ddl_file, nullptr);
         gaia::db::begin_session();
         gaia::catalog::load_catalog(incubator_ddl_file);
@@ -66,14 +67,15 @@ protected:
 
     // Ensure SetUp and TearDown don't do anything.  When we run the test
     // directly, we only want SetUpTestSuite and TearDownTestSuite
-    void SetUp() override {}
+    void SetUp() override
+    {
+    }
 
     void TearDown() override
     {
         unsubscribe_rules();
     }
 };
-
 
 TEST_F(translation_engine_test, subscribe_invalid_ruleset)
 {
@@ -84,28 +86,31 @@ TEST_F(translation_engine_test, subscribe_invalid_ruleset)
 TEST_F(translation_engine_test, subscribe_valid_ruleset)
 {
     init_storage();
-    while (g_rule_called == 0) {usleep(c_g_rule_execution_delay);}
+    while (g_rule_called == 0)
+    {
+        usleep(c_g_rule_execution_delay);
+    }
 
-    EXPECT_EQ(g_rule_called,1);
-    EXPECT_EQ(g_insert_called,1);
-    EXPECT_EQ(g_update_called,0);
+    EXPECT_EQ(g_rule_called, 1);
+    EXPECT_EQ(g_insert_called, 1);
+    EXPECT_EQ(g_update_called, 0);
     EXPECT_EQ(g_delete_called, 0);
 
     gaia::db::begin_transaction();
 
     for (const auto& i : gaia::barn_storage::incubator_t::list())
     {
-        EXPECT_EQ(i.max_temp(),4);
+        EXPECT_EQ(i.max_temp(), 4);
     }
 
     for (const auto& a : gaia::barn_storage::actuator_t::list())
     {
-        EXPECT_EQ(a.value(),0);
+        EXPECT_EQ(a.value(), 0);
     }
 
     for (const auto& s : gaia::barn_storage::sensor_t::list())
     {
-        EXPECT_EQ(s.value(),0);
+        EXPECT_EQ(s.value(), 0);
     }
     gaia::db::commit_transaction();
 
@@ -120,11 +125,14 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
 
     gaia::db::commit_transaction();
 
-    while (g_rule_called == 1) {usleep(c_g_rule_execution_delay);}
+    while (g_rule_called == 1)
+    {
+        usleep(c_g_rule_execution_delay);
+    }
 
-    EXPECT_EQ(g_rule_called,2);
-    EXPECT_EQ(g_insert_called,1);
-    EXPECT_EQ(g_update_called,1);
+    EXPECT_EQ(g_rule_called, 2);
+    EXPECT_EQ(g_insert_called, 1);
+    EXPECT_EQ(g_update_called, 1);
     EXPECT_EQ(g_actuator_rule_called, 0);
     EXPECT_EQ(g_delete_called, 0);
 
@@ -132,17 +140,17 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
 
     for (const auto& i : gaia::barn_storage::incubator_t::list())
     {
-        EXPECT_EQ(i.max_temp(),10);
+        EXPECT_EQ(i.max_temp(), 10);
     }
 
     for (const auto& s : gaia::barn_storage::sensor_t::list())
     {
-        EXPECT_EQ(s.value(),c_g_expected_sensor_value);
+        EXPECT_EQ(s.value(), c_g_expected_sensor_value);
     }
 
     for (const auto& a : gaia::barn_storage::actuator_t::list())
     {
-        EXPECT_EQ(a.value(),c_g_expected_actuator_value);
+        EXPECT_EQ(a.value(), c_g_expected_actuator_value);
     }
     gaia::db::commit_transaction();
 

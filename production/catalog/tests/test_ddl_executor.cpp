@@ -10,13 +10,16 @@
 
 #include "gtest/gtest.h"
 
-#include "catalog.hpp"
+#include "gaia/db/catalog.hpp"
 #include "catalog_tests_helper.hpp"
 #include "db_test_base.hpp"
 #include "gaia_catalog.h"
 #include "type_id_mapping.hpp"
 #include "type_metadata.hpp"
 
+using namespace std;
+
+using namespace gaia::direct_access;
 using namespace gaia::catalog;
 
 /*

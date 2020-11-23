@@ -7,12 +7,13 @@
 
 #include <gtest/gtest.h>
 
-#include "auto_transaction.hpp"
+#include "gaia/common.hpp"
+#include "gaia/direct_access/auto_transaction.hpp"
 #include "db_catalog_test_base.hpp"
 #include "gaia_barn_storage.h"
-#include "gaia_common.hpp"
 
 using namespace gaia::barn_storage;
+using namespace gaia::direct_access;
 
 class gaia_incubator_test : public db_catalog_test_base_t
 {
@@ -55,7 +56,7 @@ TEST_F(gaia_incubator_test, schema_read_write_test)
         ASSERT_FLOAT_EQ(incubator.max_temp(), c_chicken_max);
         ASSERT_FLOAT_EQ(incubator.min_temp(), c_chicken_min);
         auto sensor_list = incubator.sensor_list();
-        ASSERT_EQ(1, distance(sensor_list.begin(), sensor_list.end()));
+        ASSERT_EQ(1, std::distance(sensor_list.begin(), sensor_list.end()));
         ASSERT_STREQ(sensor_list.begin()->name(), c_sensor_a);
         ASSERT_FLOAT_EQ(sensor_list.begin()->value(), c_chicken_min);
     }

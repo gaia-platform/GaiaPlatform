@@ -11,9 +11,11 @@
 #include "logger.hpp"
 #include "retail_assert.hpp"
 
+using namespace std;
+
 using namespace gaia::rules;
 using namespace gaia::common;
-using namespace std;
+using namespace gaia::direct_access;
 
 /**
  * Thread local variable instances

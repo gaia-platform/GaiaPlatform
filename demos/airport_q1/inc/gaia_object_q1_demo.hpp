@@ -4,7 +4,7 @@
 /////////////////////////////////////////////
 
 // This file contains methods that are not supported in the current version of
-// gaia_object.hpp. These methods navigate through SE edges using a paradigm
+// edc_object.hpp. These methods navigate through SE edges using a paradigm
 // that is not preferred moving forward.
 //
 // Do not use this file as the basis for any additional demos or benchmarks.
@@ -16,7 +16,7 @@
 #include <list>
 #include <map>
 #include "flatbuffers/flatbuffers.h"
-#include "nullable_string.hpp"
+#include "gaia/direct_access/nullable_string.hpp"
 #include "storage_engine.hpp"
 
 using namespace std;

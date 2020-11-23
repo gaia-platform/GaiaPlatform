@@ -8,7 +8,7 @@
 
 #include "gtest/gtest.h"
 
-#include "auto_transaction.hpp"
+#include "gaia/direct_access/auto_transaction.hpp"
 #include "db_test_base.hpp"
 
 using namespace std;

@@ -5,8 +5,8 @@
 
 #include "gtest/gtest.h"
 
+#include "gaia/db/db.hpp"
 #include "db_test_base.hpp"
-#include "gaia_db.hpp"
 #include "gaia_ptr.hpp"
 #include "se_test_util.hpp"
 #include "type_metadata.hpp"

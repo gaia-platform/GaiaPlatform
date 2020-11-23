@@ -1,6 +1,6 @@
 #include "gaia_incubator.h"
-#include "gaia_system.hpp"
-#include "rules.hpp"
+#include "gaia/system.hpp"
+#include "gaia/rules/rules.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -12,10 +12,13 @@
 #include <unistd.h>
 
 using namespace std;
+
 using namespace gaia::common;
 using namespace gaia::db;
-using namespace gaia::rules;
+using namespace gaia::db::triggers;
+using namespace gaia::direct_access;
 using namespace gaia::incubator;
+using namespace gaia::rules;
 
 const char* c_sensor_a = "Temp A";
 const char* c_sensor_b = "Temp B";

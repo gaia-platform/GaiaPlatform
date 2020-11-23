@@ -7,17 +7,15 @@
 project(direct_access)
 
 set(GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES
-  ${GAIA_INC}/public/direct_access
-  ${GAIA_INC}/public/db
-  ${GAIA_INC}/public/common
+  ${GAIA_INC}
   ${GAIA_GENERATED_SCHEMAS}
 )
 
 message(VERBOSE "GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES=${GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES}")
 
 set(GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES
-  ${GAIA_INC}/internal/common
-  ${GAIA_INC}/internal/db
+  ${GAIA_INTERNAL_INC}/common
+  ${GAIA_INTERNAL_INC}/db
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}
 )
@@ -26,7 +24,7 @@ message(VERBOSE "GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES=${GAIA_DIRECT_ACCESS_PRIVAT
 
 # Our main target.
 add_library(gaia_direct STATIC
-  src/gaia_base.cpp
+  src/edc_base.cpp
   src/auto_transaction.cpp
 )
 

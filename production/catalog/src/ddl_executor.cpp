@@ -7,16 +7,20 @@
 
 #include <memory>
 
+#include "gaia/common.hpp"
+#include "gaia/exception.hpp"
 #include "fbs_generator.hpp"
-#include "gaia_common.hpp"
-#include "gaia_exception.hpp"
 #include "json_generator.hpp"
 #include "logger.hpp"
 #include "retail_assert.hpp"
 #include "se_helpers.hpp"
 #include "system_table_types.hpp"
 
+using namespace std;
+
 using namespace gaia::catalog::ddl;
+using namespace gaia::common;
+using namespace gaia::direct_access;
 
 namespace gaia
 {

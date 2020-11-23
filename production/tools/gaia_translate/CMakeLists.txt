@@ -10,16 +10,12 @@ set(TRANSLATION_ENGINE_INCLUDES
   ${GAIA_PROD_BUILD}/llvm/include
   ${GAIA_PROD_BUILD}/llvm/tools/clang/include
   ${GAIA_PROD_BUILD}/llvm/include
-  ${GAIA_INC}/internal/catalog
+  ${GAIA_INTERNAL_INC}/catalog
   ${GAIA_REPO}/production/catalog/catalog_manager/inc
-  ${GAIA_INC}/public/common
-  ${GAIA_INC}/public/catalog
-  ${GAIA_INC}/public/direct_access
-  ${GAIA_INC}/internal/common
-  ${GAIA_INC}/internal/db
-  ${GAIA_INC}/public/db
+  ${GAIA_INC}
+  ${GAIA_INTERNAL_INC}/common
+  ${GAIA_INTERNAL_INC}/db
   ${FLATBUFFERS_INC}
-  ${GAIA_INC}/public/rules
   ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_PROD_BUILD}/catalog/parser/generated
 )
@@ -76,7 +72,7 @@ add_custom_target(generate_incubator_rules ALL
 add_gtest(test_translation_engine
   "tests/test_translation_engine.cpp;${GAIA_GENERATED_SCHEMAS}/test.cpp"
   "${TRANSLATION_ENGINE_INCLUDES};${GAIA_GENERATED_SCHEMAS}"
-  "rt;gaia_se_client;gaia_rules;gaia_direct;gaia_payload_types;gaia_common;gaia_catalog;gaia_parser;flatbuffers;explain"
+  "rt;gaia_system;gaia_parser"
   "generate_incubator_rules" ""
   "INCUBATOR_DDL_FILE=${GAIA_REPO}/production/schemas/test/incubator/barn_storage.ddl"
   )

@@ -10,11 +10,11 @@
 
 #include "gtest/gtest.h"
 
+#include "gaia/rules/rules.hpp"
 #include "db_catalog_test_base.hpp"
 #include "db_test_helpers.hpp"
 #include "event_manager_test_helpers.hpp"
 #include "gaia_event_log.h"
-#include "rules.hpp"
 #include "triggers.hpp"
 
 using namespace gaia::common;

@@ -14,14 +14,14 @@
 
 #include "gtest/gtest.h"
 
-#include "catalog.hpp"
+#include "gaia/db/catalog.hpp"
+#include "gaia/rules/rules.hpp"
+#include "gaia/system.hpp"
 #include "db_test_base.hpp"
 #include "ddl_execution.hpp"
 #include "event_manager_test_helpers.hpp"
 #include "gaia_addr_book.h"
 #include "gaia_catalog.h"
-#include "gaia_system.hpp"
-#include "rules.hpp"
 #include "timer.hpp"
 
 using namespace gaia::common;

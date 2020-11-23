@@ -7,15 +7,12 @@
 project(common)
 
 set(GAIA_COMMON_INCLUDES
-  "${GAIA_INC}/internal/common"
-  "${GAIA_INC}/public/common")
+  "${GAIA_INTERNAL_INC}/common"
+  "${GAIA_INC}")
 
 set(GAIA_MULTI_PROCESS_INCLUDES
   ${GAIA_COMMON_INCLUDES}
-  ${GAIA_INC}/public/direct_access
-  ${GAIA_INC}/public/db
-  ${GAIA_INC}/public/common
-  ${GAIA_INC}/internal/db
+  ${GAIA_INTERNAL_INC}/db
   ${GAIA_REPO}/production/db/storage_engine/inc
   ${FLATBUFFERS_INC}
   ${GAIA_GENERATED_SCHEMAS}

@@ -8,15 +8,17 @@
 
 #include "gtest/gtest.h"
 
+#include "gaia/rules/rules.hpp"
+#include "gaia/system.hpp"
 #include "gaia_addr_book.h"
-#include "gaia_system.hpp"
-#include "rules.hpp"
 
 using namespace std;
 
+using namespace gaia::common;
 using namespace gaia::direct_access;
 using namespace gaia::rules;
 using namespace gaia::addr_book;
+using namespace gaia::db::triggers;
 
 extern "C" void initialize_rules()
 {

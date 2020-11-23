@@ -7,11 +7,9 @@
 project(payload_types)
 
 set(GAIA_PAYLOAD_TYPES_INCLUDES
-  "${GAIA_INC}/public/common"
-  "${GAIA_INC}/public/direct_access"
-  "${GAIA_INC}/public/db/"
-  "${GAIA_INC}/internal/common"
-  "${GAIA_INC}/internal/db"
+  "${GAIA_INC}"
+  "${GAIA_INTERNAL_INC}/common"
+  "${GAIA_INTERNAL_INC}/db"
   "${GAIA_DB_INC}/payload_types"
   "${GAIA_REPO}/production/db/storage_engine/inc"
   "${GAIA_REPO}/production/catalog/inc"

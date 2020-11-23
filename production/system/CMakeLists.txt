@@ -7,21 +7,16 @@
 project(system)
 
 set(GAIA_SYSTEM_PUBLIC_INCLUDES
-  "${GAIA_INC}/public/common"
-  "${GAIA_INC}/public/db"
-  "${GAIA_INC}/public/catalog"
-  "${GAIA_INC}/public/direct_access"
-  "${GAIA_INC}/public/system"
-  "${GAIA_INC}/public/rules"
+  "${GAIA_INC}"
   "${GAIA_GENERATED_SCHEMAS}"
 )
 
 message(VERBOSE "GAIA_SYSTEM_PUBLIC_INCLUDES=${GAIA_SYSTEM_PUBLIC_INCLUDES}")
 
 set(GAIA_SYSTEM_PRIVATE_INCLUDES
-  "${GAIA_INC}/internal/common"
-  "${GAIA_INC}/internal/db"
-  "${GAIA_INC}/internal/rules"
+  "${GAIA_INTERNAL_INC}/common"
+  "${GAIA_INTERNAL_INC}/db"
+  "${GAIA_INTERNAL_INC}/rules"
   "${FLATBUFFERS_INC}"
   "${GAIA_REPO}/production/rules/event_manager/inc"
   "${GAIA_REPO}/production/schemas/loader/inc"
@@ -44,7 +39,7 @@ set_property (TARGET gaia_system PROPERTY POSITION_INDEPENDENT_CODE ON)
 set(TEST_GAIA_SYSTEM_INCLUDES
   ${GAIA_SYSTEM_PUBLIC_INCLUDES}
   ${GAIA_SYSTEM_PRIVATE_INCLUDES}
-  "${GAIA_INC}/internal/catalog"
+  "${GAIA_INTERNAL_INC}/catalog"
   "${GAIA_REPO}/production/catalog/parser/inc"
   ${GAIA_PARSER_GENERATED})
 add_gtest(test_gaia_system "tests/test_gaia_system.cpp"

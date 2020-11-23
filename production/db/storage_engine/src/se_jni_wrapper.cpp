@@ -5,8 +5,8 @@
 
 #include <iostream>
 
+#include "gaia/db/db.hpp"
 #include "com_gaiaplatform_database_CowStorageEngine.h"
-#include "gaia_db.hpp"
 #include "gaia_ptr.hpp"
 
 using namespace std;

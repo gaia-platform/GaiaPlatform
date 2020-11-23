@@ -27,7 +27,7 @@
 #include <unordered_map>
 #include <vector>
 #include "gaia_catalog.h"
-#include "catalog.hpp"
+#include "gaia/db/catalog.hpp"
 
 
 using namespace gaia;
