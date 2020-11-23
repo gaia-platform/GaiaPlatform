@@ -72,7 +72,7 @@ protected:
     common::gaia_id_t* references();
     common::gaia_id_t find_next();
 
-    static void delete_row(gaia_id_t id);
+    static void delete_row(common::gaia_id_t id);
     static bool get_type(common::gaia_id_t id, common::gaia_type_t& type);
 
     /**
