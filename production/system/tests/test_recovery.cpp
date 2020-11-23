@@ -690,7 +690,6 @@ TEST_F(recovery_test, DISABLED_load_more_data_and_recover_test)
 
 int main(int argc, char** argv)
 {
-    remove_persistent_store();
     gaia_log::initialize({});
 
     if (argc != 2)
