@@ -39,14 +39,14 @@ constexpr gaia_id_t c_invalid_gaia_id = 0;
 typedef uint32_t gaia_type_t;
 
 /**
- * Opaque handle to a gaia record;
- */
-typedef uint64_t gaia_handle_t;
-
-/**
  * The value of an invalid gaia_type_t.
  */
 constexpr gaia_type_t c_invalid_gaia_type = 0;
+
+/**
+ * Opaque handle to a gaia record;
+ */
+typedef uint64_t gaia_handle_t;
 
 /**
  * The type of a Gaia event type.
@@ -57,6 +57,11 @@ typedef uint8_t gaia_event_t;
  * The position of a field in a Gaia table.
  */
 typedef uint16_t field_position_t;
+
+/**
+ * The value of an invalid field_position_t.
+ */
+constexpr field_position_t c_invalid_field_position = std::numeric_limits<field_position_t>::max();
 
 /**
  * List of field positions.
@@ -70,6 +75,11 @@ typedef std::vector<field_position_t> field_position_list_t;
  * @see gaia::common::db::relationship_t
  */
 typedef uint16_t reference_offset_t;
+
+/**
+ * The value of an invalid field_position_t.
+ */
+constexpr reference_offset_t c_invalid_reference_offset = std::numeric_limits<reference_offset_t>::max();
 
 /*
  * Data types for Gaia field records.
