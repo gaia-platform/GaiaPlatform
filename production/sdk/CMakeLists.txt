@@ -6,6 +6,7 @@
 project(sdk)
 
 set(TEMP_PACKAGE_FOLDER "${CMAKE_CURRENT_BINARY_DIR}/tmp")
+set(PGSQL_PACKAGE_FOLDER "${TEMP_PACKAGE_FOLDER}/usr/local/lib/pgsql_ext")
 
 include(gaia)
 
@@ -23,6 +24,20 @@ target_link_libraries(gaia PRIVATE
 )
 
 if(BUILD_GAIA_RELEASE)
+  if (TARGET gaia_fdw)
+    add_custom_command(
+      OUTPUT ${PGSQL_PACKAGE_FOLDER}
+      COMMAND cmake -E copy_if_different $<TARGET_SONAME_FILE:gaia_fdw> ${PGSQL_PACKAGE_FOLDER}/$<TARGET_SONAME_FILE_NAME:gaia_fdw>
+      COMMAND cmake -E copy_directory ${GAIA_PROD_BUILD}/sql/pgsql ${PGSQL_PACKAGE_FOLDER}
+      DEPENDS gaia_fdw
+    )
+  else()
+    add_custom_command(
+      OUTPUT ${PGSQL_PACKAGE_FOLDER}
+      COMMAND cmake -E make_directory ${PGSQL_PACKAGE_FOLDER}
+    )
+  endif()
+
   add_custom_command(
     OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/gaia.deb
     OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/gaia.rpm
@@ -44,7 +59,6 @@ if(BUILD_GAIA_RELEASE)
     COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/index/libgaia_index.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_index.so
     COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/memory_manager/libgaia_memorymanager.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_memorymanager.so
     COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/triggers/libgaia_triggers.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_triggers.so
-    COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/sql/src/gaia_fdw-0.0.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/gaia_fdw-0.0.so
     COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/rocksdb/librocksdb.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/librocksdb.so.6
 
     COMMAND cmake -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/libgaia.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia.so
@@ -56,6 +70,7 @@ if(BUILD_GAIA_RELEASE)
     COMMAND rpmbuild --bb ${PROJECT_SOURCE_DIR}/gaia.spec --define "_rpmdir ${CMAKE_CURRENT_BINARY_DIR}" --define "buildroot ${TEMP_PACKAGE_FOLDER}" --define "_build_name_fmt gaia.rpm"
 
     COMMAND cmake -E rm -r ${TEMP_PACKAGE_FOLDER}
+
     DEPENDS gaiac
     DEPENDS gaiat
     DEPENDS gaia_se_server
@@ -67,6 +82,7 @@ if(BUILD_GAIA_RELEASE)
     DEPENDS ${PROJECT_SOURCE_DIR}/changelog
     DEPENDS ${PROJECT_SOURCE_DIR}/copyright
     DEPENDS ${PROJECT_SOURCE_DIR}/gaia.spec
+    DEPENDS ${PGSQL_PACKAGE_FOLDER}
     COMMENT "Compiled SDK packages."
   )
 

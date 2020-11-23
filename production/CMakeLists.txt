@@ -169,10 +169,6 @@ add_subdirectory(schemas)
 # Tools.
 add_subdirectory(tools)
 
-# SDK and shared library
-set_property (TARGET gaia_parser PROPERTY POSITION_INDEPENDENT_CODE ON)
-set_property (TARGET rocks_wrapper PROPERTY POSITION_INDEPENDENT_CODE ON)
-add_subdirectory(sdk)
 
 if(BUILD_GAIA_RELEASE)
   unset(CMAKE_CXX_CLANG_TIDY)
@@ -182,6 +178,12 @@ endif()
 
 # Query processors.
 add_subdirectory(sql)
+
+# SDK
+# Be sure to add the SDK directory after the sql directory because the package mechanism
+# requires that we know whether the gaia_fdw target will be added or not. If it is added
+# then we can add gaia_fdw to the list of dependencies for the package.
+add_subdirectory(sdk)
 
 # Java Tinkerpop project.
 if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
