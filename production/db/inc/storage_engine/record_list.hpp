@@ -5,11 +5,12 @@
 
 #pragma once
 
-#include <db_types.hpp>
-#include <gaia_db_internal.hpp>
 #include <list>
 #include <shared_mutex>
 #include <vector>
+
+#include "db_types.hpp"
+#include "gaia_db_internal.hpp"
 
 namespace gaia
 {
