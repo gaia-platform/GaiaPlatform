@@ -109,7 +109,7 @@ template <gaia::common::gaia_type_t T_container, typename T_class, typename T_fl
 T_class gaia_object_t<T_container, T_class, T_flatbuffer, T_flatbuffer_object, N_references>::get(gaia::common::gaia_id_t id)
 {
     gaia::common::gaia_type_t target_type = gaia::common::c_invalid_gaia_type;
-    if (gaia_base_t::exists(id, target_type))
+    if (gaia_base_t::get_type(id, target_type))
     {
         // Make sure the types match.
         if (target_type != T_class::s_gaia_type)
