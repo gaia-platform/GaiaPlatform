@@ -33,7 +33,7 @@ namespace gaia
 namespace fdw
 {
 
-constexpr size_t c_invalid_field_index = -1;
+constexpr size_t c_invalid_field_index = std::numeric_limits<size_t>::max();
 
 unordered_map<string, pair<gaia_id_t, gaia_type_t>> adapter_t::s_map_table_name_to_ids;
 
@@ -542,7 +542,7 @@ bool state_t::set_field_index(const char* field_name, size_t field_index)
         {
             m_gaia_id_field_index = field_index;
 
-            m_fields[field_index].position = -1;
+            m_fields[field_index].position = c_invalid_field_position;
             m_fields[field_index].type = data_type_t::e_uint64;
             m_fields[field_index].is_reference = false;
 

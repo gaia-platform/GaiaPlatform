@@ -422,6 +422,14 @@ void ddl_executor_t::drop_table(const string& db_name, const string& name)
     m_table_names.erase(full_table_name);
 }
 
+void ddl_executor_t::validate_new_reference_offset(reference_offset_t reference_offset)
+{
+    if (reference_offset == c_invalid_reference_offset)
+    {
+        throw max_reference_count_reached();
+    }
+}
+
 reference_offset_t ddl_executor_t::find_parent_available_offset(const parent_gaia_relationship_list_t& relationships)
 {
     if (relationships.begin() == relationships.end())
@@ -433,9 +441,15 @@ reference_offset_t ddl_executor_t::find_parent_available_offset(const parent_gai
     for (const auto& relationship : relationships)
     {
         max_offset = std::max(max_offset, relationship.first_child_offset());
+
+        retail_assert(max_offset != c_invalid_reference_offset, "Invalid reference offset detected!");
     }
-    // The next available offset is the one after current max.
-    return max_offset + 1;
+
+    reference_offset_t next_available_offset = max_offset + 1;
+
+    validate_new_reference_offset(next_available_offset);
+
+    return next_available_offset;
 }
 
 reference_offset_t ddl_executor_t::find_child_available_offset(const child_gaia_relationship_list_t& relationships)
@@ -449,9 +463,15 @@ reference_offset_t ddl_executor_t::find_child_available_offset(const child_gaia_
     for (const auto& relationship : relationships)
     {
         max_offset = std::max({max_offset, relationship.next_child_offset(), relationship.parent_offset()});
+
+        retail_assert(max_offset != c_invalid_reference_offset, "Invalid reference offset detected!");
     }
-    // The next available offset is the one after current max.
-    return max_offset + 1;
+
+    reference_offset_t next_available_offset = max_offset + 1;
+
+    validate_new_reference_offset(next_available_offset);
+
+    return next_available_offset;
 }
 
 reference_offset_t ddl_executor_t::find_available_offset(gaia::common::gaia_id_t table_id)
@@ -572,23 +592,30 @@ gaia_id_t ddl_executor_t::create_table_impl(
             {
                 // This is a self-relationship, both parent and child pointers are in the same table.
                 child_available_offset = parent_available_offset + 1;
+
+                validate_new_reference_offset(child_available_offset);
             }
             else
             {
                 child_available_offset = find_available_offset(table_id);
             }
 
+            reference_offset_t first_child_offset = parent_available_offset;
+
+            reference_offset_t parent_offset = child_available_offset;
+            reference_offset_t next_child_offset = child_available_offset + 1;
+            validate_new_reference_offset(next_child_offset);
+
+            bool is_parent_required = false;
+            bool is_deprecated = false;
             gaia_id_t relationship_id = gaia_relationship_t::insert_row(
                 ref_field->name.c_str(),
                 static_cast<uint8_t>(relationship_cardinality_t::many),
-                false,
-                false,
-                // first_child_offset is the first available offset in the parent container
-                parent_available_offset,
-                // next_child_offset is the second available offset in the child container
-                child_available_offset + 1,
-                // parent_offset is the first available offset in the child container
-                child_available_offset);
+                is_parent_required,
+                is_deprecated,
+                first_child_offset,
+                next_child_offset,
+                parent_offset);
             auto rel = gaia_relationship_t::get(relationship_id);
             gaia_table_t::get(table_id).child_gaia_relationship_list().insert(relationship_id);
             parent_table.parent_gaia_relationship_list().insert(relationship_id);

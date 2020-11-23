@@ -94,6 +94,11 @@ private:
     // Get the full name for a table composed of db and table names.
     static inline std::string get_full_table_name(const std::string& db, const std::string& table);
 
+    // Verifies that a newly generated reference offset is valid.
+    // Throws an exception if the new offset was found to be invalid,
+    // which would happen if we ran out of reference offsets.
+    static void validate_new_reference_offset(reference_offset_t reference_offset);
+
     // The following are helper functions for calculating relationship offsets.
     // We use them to compute offset field values of the "gaia_relationship" table .
     //

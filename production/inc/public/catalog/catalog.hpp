@@ -320,7 +320,7 @@ public:
 };
 
 /**
- * Thrown when a field is specified more than once
+ * Thrown when a field is specified more than once.
  */
 class duplicate_field : public gaia::common::gaia_exception
 {
@@ -330,6 +330,18 @@ public:
         std::stringstream message;
         message << "The field \"" << name << "\" is specified more than once.";
         m_message = message.str();
+    }
+};
+
+/**
+ * Thrown when the maximum number of references has been reached for a type.
+ */
+class max_reference_count_reached : public gaia::common::gaia_exception
+{
+public:
+    explicit max_reference_count_reached()
+    {
+        m_message = "Cannot add any more relationships because the maximum number of references has been reached!";
     }
 };
 

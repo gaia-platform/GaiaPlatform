@@ -105,10 +105,9 @@ bool gaia_base_t::exists() const
     return static_cast<bool>(*to_const_ptr<gaia_ptr>());
 }
 
-// Returns whether a node with the given id exists in the
-// database. If so, it fills in the container type of the
-// node.
-bool gaia_base_t::exists(gaia_id_t id, gaia_type_t& type)
+// If the node exists, returns true and retrieves the container type of the node.
+// Otherwise, returns false.
+bool gaia_base_t::get_type(gaia_id_t id, gaia_type_t& type)
 {
     gaia_ptr node_ptr = gaia_ptr::open(id);
     if (node_ptr)
