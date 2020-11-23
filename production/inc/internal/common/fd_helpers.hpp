@@ -90,17 +90,17 @@ inline int make_eventfd()
 inline void signal_eventfd(int eventfd)
 {
     // from https://www.man7.org/linux/man-pages/man2/eventfd.2.html
-    constexpr uint64_t MAX_SEMAPHORE_COUNT = std::numeric_limits<uint64_t>::max() - 1;
+    constexpr uint64_t c_max_semaphore_count = std::numeric_limits<uint64_t>::max() - 1;
     // Signal the eventfd by writing a nonzero value.
     // This value is large enough that no thread will
     // decrement it to zero, so every waiting thread
     // should see a nonzero value.
-    ssize_t bytes_written = ::write(eventfd, &MAX_SEMAPHORE_COUNT, sizeof(MAX_SEMAPHORE_COUNT));
+    ssize_t bytes_written = ::write(eventfd, &c_max_semaphore_count, sizeof(c_max_semaphore_count));
     if (bytes_written == -1)
     {
         throw_system_error("write(eventfd) failed");
     }
-    retail_assert(bytes_written == sizeof(MAX_SEMAPHORE_COUNT), "Failed to fully write data!");
+    retail_assert(bytes_written == sizeof(c_max_semaphore_count), "Failed to fully write data!");
 }
 
 inline void consume_eventfd(int eventfd)

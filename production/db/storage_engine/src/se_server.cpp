@@ -732,7 +732,7 @@ void server::stream_producer_handler(
     // The userspace buffer that we use to construct a batch datagram message.
     std::vector<T_element_type> batch_buffer;
     // We need to call reserve() rather than the "sized" constructor to avoid changing size().
-    batch_buffer.reserve(STREAM_BATCH_SIZE);
+    batch_buffer.reserve(c_stream_batch_size);
     while (!producer_shutdown)
     {
         // Block forever (we will be notified of shutdown).
@@ -781,7 +781,7 @@ void server::stream_producer_handler(
                         !(ev.events & (EPOLLERR | EPOLLHUP)),
                         "EPOLLERR and EPOLLHUP flags should not be set!");
                     // Write to the send buffer until we exhaust either the iterator or the buffer free space.
-                    while (gen_iter && (batch_buffer.size() < STREAM_BATCH_SIZE))
+                    while (gen_iter && (batch_buffer.size() < c_stream_batch_size))
                     {
                         T_element_type next_val = *gen_iter;
                         batch_buffer.push_back(next_val);
