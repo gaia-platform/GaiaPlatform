@@ -38,7 +38,7 @@ void gaia::db::persistence::encode_object(
     value.write(gaia_object->payload, gaia_object->payload_size);
 }
 
-gaia_id_t gaia::db::persistence::decode_object(
+se_object_t* gaia::db::persistence::decode_object(
     const rocksdb::Slice& key,
     const rocksdb::Slice& value)
 {
@@ -60,8 +60,7 @@ gaia_id_t gaia::db::persistence::decode_object(
     auto payload = value_reader.read(size);
 
     // Create object.
-    create_object(id, type, num_references, size, payload);
-    return id;
+    return create_object(id, type, num_references, size, payload);
 }
 
 } // namespace db

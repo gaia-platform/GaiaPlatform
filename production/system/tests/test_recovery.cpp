@@ -17,6 +17,7 @@
 #include "gaia_catalog.h"
 #include "gaia_db.hpp"
 #include "logger.hpp"
+#include "schema_loader.hpp"
 #include "se_test_util.hpp"
 
 using namespace gaia::db;
@@ -82,6 +83,24 @@ public:
     static void ensure_uncommitted_value_absent_on_restart_and_commit_new_txn_test();
 
     static void ensure_uncommitted_value_absent_on_restart_and_rollback_new_txn();
+
+protected:
+    void SetUp() override
+    {
+        s_server.stop();
+        remove_persistent_store();
+        s_server.start();
+        begin_session();
+        schema_loader_t::instance().load_schema("addr_book.ddl");
+        end_session();
+        s_server.stop();
+    }
+
+    void TearDown() override
+    {
+        s_server.stop();
+        remove_persistent_store();
+    }
 
 private:
     // Map of employees for which the server has returned a successful commit.
@@ -388,31 +407,6 @@ void recovery_test::ensure_uncommitted_value_absent_on_restart_and_rollback_new_
     end_session();
 }
 
-TEST_F(recovery_test, basic_correctness_test)
-{
-    // Basic correctness test.
-    ensure_uncommitted_value_absent_on_restart_and_commit_new_txn_test();
-    ensure_uncommitted_value_absent_on_restart_and_rollback_new_txn();
-}
-
-TEST_F(recovery_test, load_and_recover_test)
-{
-    // Load & Recover test - with data size less than write buffer size;
-    // All writes will be confined to the WAL & will not make it to SST (DB binary file)
-    // Sigkill server.
-    const uint64_t load_size = 0.1 * 1024 * 1024;
-    load_modify_recover_test(load_size, 2, true);
-}
-
-TEST_F(recovery_test, DISABLED_load_more_data_and_recover_test)
-{
-    const uint64_t load_size = 16 * 1024 * 1024;
-    // Load (more data) & Recover test - with data size greater than write buffer size.
-    // Writes will exist in both the WAL & SST files.
-    // TODO - Test is switched off as it takes some time to run. Run on teamcity.
-    load_modify_recover_test(load_size, 1, false);
-}
-
 // TODO (Mihir) Validate gaia_id is not recycled post crash.
 
 TEST_F(recovery_test, reference_update_test)
@@ -667,6 +661,31 @@ TEST_F(recovery_test, reference_update_test_new)
         txn.commit();
     }
     end_session();
+}
+
+TEST_F(recovery_test, basic_correctness_test)
+{
+    // Basic correctness test.
+    ensure_uncommitted_value_absent_on_restart_and_commit_new_txn_test();
+    ensure_uncommitted_value_absent_on_restart_and_rollback_new_txn();
+}
+
+TEST_F(recovery_test, load_and_recover_test)
+{
+    // Load & Recover test - with data size less than write buffer size;
+    // All writes will be confined to the WAL & will not make it to SST (DB binary file)
+    // Sigkill server.
+    const uint64_t load_size = 0.1 * 1024 * 1024;
+    load_modify_recover_test(load_size, 2, true);
+}
+
+TEST_F(recovery_test, DISABLED_load_more_data_and_recover_test)
+{
+    const uint64_t load_size = 16 * 1024 * 1024;
+    // Load (more data) & Recover test - with data size greater than write buffer size.
+    // Writes will exist in both the WAL & SST files.
+    // TODO - Test is switched off as it takes some time to run. Run on teamcity.
+    load_modify_recover_test(load_size, 1, false);
 }
 
 int main(int argc, char** argv)
