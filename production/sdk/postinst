@@ -1,3 +1,1 @@
 #!/bin/sh
-ln -s /usr/local/lib/libgaia.0.1.0.so /usr/local/lib/libgaia.so
-ln -s /usr/local/lib/pgsql_ext/gaia_fdw-0.1.so /usr/local/lib/pgsql_ext/gaia_fdw.so
