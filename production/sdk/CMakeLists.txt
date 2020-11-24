@@ -49,7 +49,7 @@ add_custom_command(
   COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/storage_engine/libgaia_storage.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_storage.so
   COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/storage_engine/se_client.cpython-38-x86_64-linux-gnu.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/se_client.cpython-38-x86_64-linux-gnu.so
   COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/index/libgaia_index.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_index.so
-  COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/memory_manager/libgaia_memorymanager.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_memorymanager.so
+  COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/memory_manager/libgaia_memory_manager.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_memory_manager.so
   COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/triggers/libgaia_triggers.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_triggers.so
   COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/sql/src/gaia_fdw-0.0.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/gaia_fdw-0.0.so
   COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/rocksdb/librocksdb.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/librocksdb.so.6

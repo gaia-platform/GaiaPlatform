@@ -85,14 +85,13 @@ private:
     thread_local static inline std::vector<memory_manager::stack_allocator_t> s_free_stack_allocators{};
 
     // s_stack_allocators has transaction lifetime and is cleared after each transaction.
-    // This represents the list of stack allocators which were required by the transaction.
+    // This represents the list of stack allocators that were required by the transaction.
     // This list is propagated to the server at the time of commit.
-    // In case of rollback, all SAs from this list are deallocated and emptied into s_free_stack_allocators.
     thread_local static inline std::vector<memory_manager::stack_allocator_t> s_stack_allocators{};
 
     // This value is used to decide whether the client should request
-    // for additional memory during a begin_transaction call.
-    static constexpr size_t MIN_STACK_ALLOCATORS_PER_CLIENT = 1;
+    // additional memory during a begin_transaction call.
+    static constexpr size_t c_min_stack_allocators_per_client = 1;
 
     // Load server initialized stack allocators on the client.
     static void load_stack_allocators(const messages::memory_allocation_info_t* alloc, uint8_t* data_mapping_base_addr);

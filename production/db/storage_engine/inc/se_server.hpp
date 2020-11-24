@@ -53,9 +53,13 @@ public:
 private:
     // from https://www.man7.org/linux/man-pages/man2/eventfd.2.html
     static constexpr uint64_t MAX_SEMAPHORE_COUNT = std::numeric_limits<uint64_t>::max() - 1;
-    static constexpr size_t STACK_ALLOCATOR_SIZE_BYTES = 8 * 1024 * 1024;
+    // Allocate 128 KB per stack allocator.
+    // If the largest object size if 64KB - it won't fit into a stack allocator of size 64KB due to other metadata created by the stack allocator.
+    // Hence allocate 128KB so each stack allocator is at least large enough to fit a gaia object of maximum size.
+    // Or alternatively this could be 64KB + minimum size required by stack allocator metadata.
+    static constexpr size_t STACK_ALLOCATOR_SIZE_BYTES = 128 * 1024;
     static constexpr size_t STACK_ALLOCATOR_ALLOTMENT_COUNT = 0;
-    static constexpr size_t STACK_ALLOCATOR_ALLOTMENT_COUNT_TRX = 1;
+    static constexpr size_t STACK_ALLOCATOR_ALLOTMENT_COUNT_TXN = 1;
 
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t STREAM_BATCH_SIZE = 1 << 10;
@@ -81,6 +85,7 @@ private:
     // On commit/rollback, all stack allocators belonging to a transaction are removed from this list.
     // In case of receiving any of the following epoll events - [EPOLLRDHUP, EPOLLHUP, EPOLLERR] on the server_client socket fd
     // all unused/uncommitted stack allocators in this list will be purged before terminating the connection.
+    // The s_active_stack_allocators map key represents the starting offset of the stack allocator.
     thread_local static inline std::map<address_offset_t, stack_allocator_t> s_active_stack_allocators{};
 
     // function pointer type that executes side effects of a state transition

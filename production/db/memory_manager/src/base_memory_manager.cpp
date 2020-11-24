@@ -88,12 +88,11 @@ size_t base_memory_manager_t::calculate_raw_allocation_size(size_t requested_siz
     {
         // Bump the size to the next multiple of the allocation alignment.
         allocation_size = requested_size - extra_block_size + c_allocation_alignment;
-        // Handle the extreme case in which the requested size is so large
-        // that we'd get an integer overflow in the preceding calculations.
-        return (allocation_size < requested_size) ? 0 : allocation_size;
     }
 
-    return allocation_size;
+    // Handle the extreme case in which the requested size is so large
+    // that we'd get an integer overflow in the preceding calculations.
+    return (allocation_size < requested_size) ? 0 : allocation_size;
 }
 
 bool base_memory_manager_t::validate_address_alignment(const uint8_t* const memory_address)

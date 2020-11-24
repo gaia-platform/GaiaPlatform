@@ -7,6 +7,7 @@
 
 #include <cstring>
 
+#include "memory_types.hpp"
 #include "payload_diff.hpp"
 #include "se_client.hpp"
 #include "se_hash_map.hpp"
@@ -211,35 +212,43 @@ address_offset_t get_stack_allocator_offset(
 
     // Try allocating object. If current stack allocator memory isn't enough, then fetch
     // another allocator from the free list.
-    address_offset_t allocated_memory_offset = -1; // uninit
-    auto code = transaction_allocators.back().allocate(locator, old_slot_offset, size, allocated_memory_offset);
+    address_offset_t allocated_memory_offset = c_invalid_offset;
+    auto result = transaction_allocators.back().allocate(locator, old_slot_offset, size, allocated_memory_offset);
 
     // The stack allocator size may not be sufficient for the current object.
-    if (code == error_code_t::insufficient_memory_size || code == error_code_t::memory_size_too_large)
+    if (result == error_code_t::insufficient_memory_size || result == error_code_t::memory_size_too_large)
     {
+        if (free_allocators.size() == 0)
+        {
+            client::request_memory();
+        }
+
+        retail_assert(free_allocators.size() > 0, "Unable to obtain memory from server.");
+
         // Get an allocator from the free list to allocate an object from.
         transaction_allocators.push_back(free_allocators.front());
         free_allocators.erase(free_allocators.begin());
 
         // Reset the allocator offset and try to allocate an object again.
         allocated_memory_offset = -1;
-        code = transaction_allocators.back().allocate(locator, old_slot_offset, size, allocated_memory_offset);
+        result = transaction_allocators.back().allocate(locator, old_slot_offset, size, allocated_memory_offset);
     }
 
     // Todo - add exception class.
-    retail_assert(code == error_code_t::success, "Object Stack allocation failure!");
+    retail_assert(result == error_code_t::success, "Object Stack allocation failure!");
     // Size 0 indicates a deletion. We never expect memory to be allocated for a delete call.
     if (size == 0)
     {
-        retail_assert(allocated_memory_offset == -1, "Memory allocated for a delete operation!");
+        retail_assert(allocated_memory_offset == c_invalid_offset, "Memory allocated for a delete operation!");
     }
     else
     {
-        retail_assert(allocated_memory_offset != -1, "Allocation failure! Stack allocator returned offset not initialized.");
+        retail_assert(allocated_memory_offset != c_invalid_offset, "Allocation failure! Stack allocator returned offset not initialized.");
     }
 
     return allocated_memory_offset;
 }
+
 void gaia_ptr::stack_allocator_allocate(
     address_offset_t old_slot_offset,
     size_t size,
@@ -251,9 +260,9 @@ void gaia_ptr::stack_allocator_allocate(
 
     if (!deallocate)
     {
-        retail_assert(allocated_memory_offset != -1, "offset should be valid!");
+        retail_assert(allocated_memory_offset != c_invalid_offset, "offset should be valid!");
         // Update locator array to point to the new offset.
-        allocate_object_mm(m_locator, allocated_memory_offset);
+        allocate_object(m_locator, allocated_memory_offset);
     }
 }
 
@@ -290,7 +299,6 @@ void gaia_ptr::find_next(gaia_type_t type)
 
 void gaia_ptr::reset()
 {
-    stack_allocator_allocate(to_offset(), 0, client::s_stack_allocators, client::s_free_stack_allocators);
     gaia::db::locators* locators = gaia::db::get_shared_locators();
     client::txn_log(m_locator, to_offset(), 0, gaia_operation_t::remove, to_ptr()->id);
 

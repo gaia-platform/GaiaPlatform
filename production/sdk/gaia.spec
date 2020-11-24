@@ -30,7 +30,7 @@ pkill -f -KILL gaia_se_server
 /usr/local/lib/libgaia_storage.so
 /usr/local/lib/se_client.cpython-38-x86_64-linux-gnu.so
 /usr/local/lib/libgaia_index.so
-/usr/local/lib/libgaia_memorymanager.so
+/usr/local/lib/gaia_memory_manager.so
 /usr/local/lib/libgaia_triggers.so
 /usr/local/lib/gaia_fdw-0.0.so
 /usr/local/lib/librocksdb.so.6

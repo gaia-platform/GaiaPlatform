@@ -43,14 +43,14 @@ using namespace gaia::common::scope_guard;
 
 void server::allocate_stack_allocators(std::vector<stack_allocator_t>* new_memory_allotment, bool on_connect = true)
 {
-    size_t allocation_count = on_connect ? STACK_ALLOCATOR_ALLOTMENT_COUNT : STACK_ALLOCATOR_ALLOTMENT_COUNT_TRX;
+    size_t allocation_count = on_connect ? STACK_ALLOCATOR_ALLOTMENT_COUNT : STACK_ALLOCATOR_ALLOTMENT_COUNT_TXN;
     for (size_t i = 0; i < allocation_count; i++)
     {
-        //Offset gets assigned; no need to set it.
+        // Offset gets assigned; no need to set it.
         address_offset_t stack_allocator_offset;
         auto error = memory_manager->allocate_raw(STACK_ALLOCATOR_SIZE_BYTES, stack_allocator_offset);
         std::cout << static_cast<std::underlying_type<error_code_t>::type>(error) << std::endl;
-        retail_assert(error == error_code_t::success, "Allocate Raw failure in server.");
+        retail_assert(error == error_code_t::success, "allocate_raw failure in server.");
         stack_allocator_t stack_allocator = stack_allocator_t();
         error = stack_allocator.initialize(reinterpret_cast<uint8_t*>(s_data->objects), stack_allocator_offset, STACK_ALLOCATOR_SIZE_BYTES);
         retail_assert(error == error_code_t::success, "SA init failure.");
@@ -468,7 +468,7 @@ void server::create_object_on_recovery(
     error_code_t error = memory_manager->allocate(data_size + sizeof(se_object_t), offset);
     retail_assert(error == error_code_t::success, "Allocation failure on recovery");
     retail_assert(offset != -1, "Invalid offset on recovery");
-    allocate_object_mm(hash_node->locator, offset);
+    allocate_object(hash_node->locator, offset);
     se_object_t* obj_ptr = locator_to_ptr(hash_node->locator);
     obj_ptr->id = id;
     obj_ptr->type = type;

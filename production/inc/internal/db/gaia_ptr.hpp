@@ -282,7 +282,7 @@ protected:
     void reset();
 
     // Used by the client to allocate memory for a transaction from a stack allocator.
-    // Note that the server does not need to use stack allocators to allot memory when creating
+    // Note that the server does not need to use stack allocators to allocate memory when creating
     // objects during recovery.
     void stack_allocator_allocate(
         memory_manager::address_offset_t old_slot_offset,

@@ -11,6 +11,7 @@
 #include "gaia_db_internal.hpp"
 #include "gaia_exception.hpp"
 #include "memory_manager.hpp"
+#include "memory_types.hpp"
 #include "retail_assert.hpp"
 #include "se_object.hpp"
 #include "se_shared_data.hpp"
@@ -65,7 +66,12 @@ inline gaia_locator_t allocate_locator()
     return __sync_add_and_fetch(&data->last_locator, 1);
 }
 
-inline void allocate_object_mm(
+inline gaia_offset_t get_gaia_offset(memory_manager::address_offset_t offset)
+{
+    return offset / sizeof(uint64_t);
+}
+
+inline void allocate_object(
     gaia_locator_t locator,
     memory_manager::address_offset_t offset)
 {
@@ -75,7 +81,7 @@ inline void allocate_object_mm(
         throw transaction_not_open();
     }
 
-    (*locators)[locator] = offset / sizeof(uint64_t);
+    (*locators)[locator] = get_gaia_offset(offset);
 }
 
 inline bool locator_exists(gaia_locator_t locator)
