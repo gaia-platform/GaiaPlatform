@@ -66,7 +66,7 @@ private:
 
     static Campus* GetLastInstance();
 
-        /**
+    /**
      * Log message to stdout
      * 
      * @param[in] std::string prefix e

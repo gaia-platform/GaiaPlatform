@@ -319,7 +319,7 @@ void showMessage(std::shared_ptr<message::Message> msg)
     {
         auto alertMessage = reinterpret_cast<message::alert_message*>(msg.get());  
 
-        std::string sev_level = "Unkown"; 
+        std::string sev_level = "Unknown"; 
 
         switch(alertMessage->_severity)
         {

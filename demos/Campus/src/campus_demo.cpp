@@ -177,6 +177,7 @@ void CampusDemo::Campus::cb_action( std::string actorType,
 
 void CampusDemo::Campus::cb_alert( std::string title, 
         std::string body, int severity, std::string arg1){
+
     if(nullptr == _messageBus)
         return;
 
@@ -188,7 +189,7 @@ void CampusDemo::Campus::cb_alert( std::string title,
     _messageBus->SendMessage(msg);
 }
 
-//*** Business ***
+//*** DB Procedural ***
 
 bool CampusDemo::Campus::get_person(const char* name, gaia::campus::person_t &found_person)
 {
