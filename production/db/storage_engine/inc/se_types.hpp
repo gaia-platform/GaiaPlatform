@@ -50,7 +50,7 @@ inline std::ostream& operator<<(std::ostream& os, const gaia_operation_t& o)
         os << "clone";
         break;
     default:
-        retail_assert(false, "Unknown value of gaia_operation_t!");
+        gaia::common::retail_assert(false, "Unknown value of gaia_operation_t!");
     }
     return os;
 }

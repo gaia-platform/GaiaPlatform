@@ -351,8 +351,7 @@ void client::begin_session()
     // (but only if they're not already initialized).
 
     // Set up the shared data segment mapping.
-    s_data = static_cast<data*>(map_fd(
-        sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0));
+    map_fd(s_data, sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, fd_data, 0);
 
     // Set up the private locator segment fd.
     s_fd_locators = fd_locators;
@@ -382,7 +381,7 @@ void client::begin_transaction()
         close_fd(fd_log);
     });
     truncate_fd(fd_log, c_initial_log_size);
-    s_log = static_cast<log*>(map_fd(c_initial_log_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_log, 0));
+    map_fd(s_log, c_initial_log_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_log, 0);
     auto cleanup_log_mapping = make_scope_guard([&]() {
         unmap_fd(s_log, c_initial_log_size);
     });
@@ -401,7 +400,7 @@ void client::begin_transaction()
         }
     });
 
-    s_locators = static_cast<locators*>(map_fd(sizeof(locators), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_locators, 0));
+    map_fd(s_locators, sizeof(locators), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_locators, 0);
     auto cleanup_locator_mapping = make_scope_guard([&]() {
         unmap_fd(s_locators, sizeof(locators));
     });

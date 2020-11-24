@@ -67,8 +67,12 @@ void rule(const rule_context_t*)
 
 TEST_F(system_init_test, system_initialized_valid_conf)
 {
+
     rule_binding_t binding("ruleset", "rulename", rule);
     subscription_list_t subscriptions;
+
+    // Should be a no-op if the system has not been initialized
+    gaia::system::shutdown();
 
     gaia::system::initialize("./gaia.conf");
     gaia_id_t table_id = load_catalog();
@@ -81,7 +85,7 @@ TEST_F(system_init_test, system_initialized_valid_conf)
     unsubscribe_rules();
     list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subscriptions);
 
-    end_session();
+    gaia::system::shutdown();
 }
 
 TEST_F(system_init_test, system_invalid_conf_path)

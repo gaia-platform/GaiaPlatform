@@ -33,30 +33,21 @@ const char* event_manager_t::s_gaia_log_event_rule = "gaia::rules::log_event";
 /**
  * Class implementation
  */
-event_manager_t& event_manager_t::get(bool is_initializing)
+event_manager_t& event_manager_t::get(bool require_initialized)
 {
     static event_manager_t s_instance;
 
-    // Initialize errors can happen for two reasons:
-    //
-    // If we are currently trying to initialize, then is_initializing
-    // will be true. At this point, we don't expect the instance to be
-    // initialized yet.
-    //
-    // If we are not initializing, then we expect the instance to already be
-    // initialized.
-    if (is_initializing == s_instance.m_is_initialized)
+    // Throw an error if the instance must be initialized before retrieving the instance.
+    if (require_initialized && !s_instance.m_is_initialized)
     {
-        throw initialization_error(is_initializing);
+        throw initialization_error();
     }
+
     return s_instance;
 }
 
 void event_manager_t::init()
 {
-    // TODO[GAIAPLAT-111]: Check a configuration setting supplied by the
-    // application developer for the number of threads to create.
-
     // Apply default settings.  See explanation in event_manager_settings.hpp.
     event_manager_settings_t settings;
     init(settings);
@@ -64,7 +55,12 @@ void event_manager_t::init()
 
 void event_manager_t::init(event_manager_settings_t& settings)
 {
-    unique_lock<mutex> lock(m_init_lock);
+    unique_lock<recursive_mutex> lock(m_init_lock);
+
+    if (m_is_initialized)
+    {
+        shutdown();
+    }
 
     size_t count_worker_threads = settings.num_background_threads;
     if (count_worker_threads == SIZE_MAX)
@@ -94,7 +90,12 @@ void event_manager_t::init(event_manager_settings_t& settings)
 
 void event_manager_t::shutdown()
 {
-    unique_lock<mutex> lock(m_init_lock);
+    unique_lock<recursive_mutex> lock(m_init_lock);
+
+    if (!m_is_initialized)
+    {
+        return;
+    }
 
     m_is_initialized = false;
 
@@ -532,14 +533,14 @@ event_manager_t::_rule_binding_t::_rule_binding_t(
 // Initialize the rules engine with settings from a user-supplied gaia configuration file.
 void gaia::rules::initialize_rules_engine(shared_ptr<cpptoml::table>& root_config)
 {
-    bool is_initializing = true;
+    bool require_initialized = false;
     // Create default settings for the rules engine and then override them with
     // user-supplied configuration values;
     event_manager_settings_t settings;
 
     // Override the default settings with any configuration settings;
     event_manager_settings_t::parse_rules_config(root_config, settings);
-    event_manager_t::get(is_initializing).init(settings);
+    event_manager_t::get(require_initialized).init(settings);
     initialize_rules();
 }
 
@@ -548,8 +549,8 @@ void gaia::rules::initialize_rules_engine(shared_ptr<cpptoml::table>& root_confi
  */
 void gaia::rules::initialize_rules_engine()
 {
-    bool is_initializing = true;
-    event_manager_t::get(is_initializing).init();
+    bool require_initialized = false;
+    event_manager_t::get(require_initialized).init();
 
     /**
      * This function must be provided by the
@@ -562,7 +563,9 @@ void gaia::rules::initialize_rules_engine()
 
 void gaia::rules::shutdown_rules_engine()
 {
-    event_manager_t::get().shutdown();
+    // Allow shutdown to be called even if the rules engine has not been initialized.
+    bool require_initialized = false;
+    event_manager_t::get(require_initialized).shutdown();
 }
 
 void gaia::rules::subscribe_rule(
