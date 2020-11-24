@@ -56,8 +56,8 @@ private:
     std::string _destName = "*";
 
     // the config file
-    const std::string _config_file_name = "./src/gaia_conf.toml"; //TODO: Is that path ok?
-
+    const std::string _config_file_name = "./gaia_conf.toml"; //TODO: Is that path ok?
+    
     // singletonish
     inline static Campus* _lastInstance = nullptr;
 

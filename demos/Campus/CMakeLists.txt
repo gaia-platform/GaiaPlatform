@@ -29,7 +29,8 @@ include(GoogleTest)
 
 set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
 
-set(GENERATED_OUTPUTS "${PROJECT_SOURCE_DIR}/generated")
+set(COMMON_SOURCE_DIR "${PROJECT_SOURCE_DIR}/common")
+set(GENERATED_OUTPUTS "${COMMON_SOURCE_DIR}/generated")
 
 set(GAIA_CAMPUS_DEMO_INCLUDES
   ${GTEST_INCLUDE_DIRS}
@@ -50,8 +51,8 @@ set(GAIA_TRANSLATE ${GAIA_BIN}/gaiat)
 
 # --- Generate ---
 
-set(CAMPUS_DDL ${PROJECT_SOURCE_DIR}/src/campus.ddl)
-set(CAMPUS_RULESET ${PROJECT_SOURCE_DIR}/src/campus.ruleset)
+set(CAMPUS_DDL ${COMMON_SOURCE_DIR}/src/campus.ddl)
+set(CAMPUS_RULESET ${COMMON_SOURCE_DIR}/src/campus.ruleset)
 file(MAKE_DIRECTORY ${GENERATED_OUTPUTS})
 
 add_custom_command(
@@ -89,15 +90,15 @@ add_library(gaia SHARED IMPORTED GLOBAL)
 set_target_properties(gaia PROPERTIES IMPORTED_LOCATION /usr/local/lib/libgaia.so) #TODO: remove fixed path 
 
 add_executable(campus 
-    src/campus_demo.cpp
-    src/campus_demo_term.cpp
-    tests/test_campus_demo.cpp 
+    common/src/campus_demo.cpp
+    common/src/campus_demo_term.cpp
+    common/tests/test_campus_demo.cpp 
     ${GENERATED_OUTPUTS}/campus_rules.cpp     
 )
 
 # The campus demo uses a system configuration and logger configuration file.
-configure_file("${PROJECT_SOURCE_DIR}/src/gaia_conf.toml" "${PROJECT_BINARY_DIR}/gaia_conf.toml")
-configure_file("${PROJECT_SOURCE_DIR}/src/log_conf.toml" "${PROJECT_BINARY_DIR}/log_conf.toml")
+configure_file("${COMMON_SOURCE_DIR}/src/gaia_conf.toml" "${PROJECT_BINARY_DIR}/gaia_conf.toml")
+configure_file("${COMMON_SOURCE_DIR}/src/log_conf.toml" "${PROJECT_BINARY_DIR}/log_conf.toml")
 
 
 set_target_properties(campus PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")  

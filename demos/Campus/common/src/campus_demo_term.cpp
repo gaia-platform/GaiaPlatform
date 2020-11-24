@@ -642,7 +642,11 @@ int main()
 
     CampusDemo::Campus cd;
 
-    cd.Init(tm.GetMessageBus());
-
-    tm.Run();
+    if( 0 == cd.Init(tm.GetMessageBus()))
+        tm.Run();
+    else
+    {
+        std::cout << "nope";
+    }
+    
 }

@@ -23,6 +23,8 @@ CampusDemo::Campus* CampusDemo::Campus::GetLastInstance(){
 }
 
 void CampusDemo::Campus::log_this(std::string prefix, const std::exception& e){
+    auto ew = e.what();
+    UNUSED(ew);
     std::cout << "Exception: " << prefix << " : " << e.what();
 }
 
@@ -151,9 +153,11 @@ int CampusDemo::Campus::Init(std::shared_ptr<message::IMessageBus> messageBus){
     }
     catch(const std::exception& e){
         log_this("CampusDemo::Campus::Init()", e);
+        return -1;
     }
     catch(...){
         log_this("Exception in CampusDemo::Campus::Init() ...");
+        return -1;
     }
     
     return 0;
