@@ -577,4 +577,5 @@ int main(int argc, const char**argv) {
 
     init_storage();
     sim.run();
+    gaia::system::shutdown();
 }

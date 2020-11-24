@@ -464,8 +464,12 @@ TEST_F(rule_integration_test, test_parallel)
 
 TEST_F(rule_integration_test, test_reinit)
 {
+    // Should be okay to call shutdown twice.
     gaia::rules::shutdown_rules_engine();
-    EXPECT_THROW(gaia::rules::shutdown_rules_engine(), initialization_error);
+    gaia::rules::shutdown_rules_engine();
+
+    // Should be okay to call init twice.
+    gaia::rules::initialize_rules_engine();
     gaia::rules::initialize_rules_engine();
 }
 

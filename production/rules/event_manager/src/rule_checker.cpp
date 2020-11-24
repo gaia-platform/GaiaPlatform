@@ -37,16 +37,9 @@ duplicate_rule::duplicate_rule(const rule_binding_t& binding, bool duplicate_key
     m_message = message.str();
 }
 
-initialization_error::initialization_error(bool is_already_initialized)
+initialization_error::initialization_error()
 {
-    if (is_already_initialized)
-    {
-        m_message = "The event manager has already been initialized.";
-    }
-    else
-    {
-        m_message = "The event manager has not been initialized yet.";
-    }
+    m_message = "The rules engine has not been initialized yet.";
 }
 
 invalid_subscription::invalid_subscription(gaia::db::triggers::event_type_t event_type, const char* reason)
