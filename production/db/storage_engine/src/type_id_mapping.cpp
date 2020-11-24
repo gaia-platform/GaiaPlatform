@@ -5,8 +5,8 @@
 
 #include "type_id_mapping.hpp"
 
+#include "gaia/common.hpp"
 #include "catalog_core.hpp"
-#include "gaia_common.hpp"
 #include "retail_assert.hpp"
 
 using namespace gaia::db;
@@ -22,7 +22,7 @@ gaia::common::gaia_id_t type_id_mapping_t::get_record_id(gaia::common::gaia_type
 
     if (m_type_map.find(type_id) == m_type_map.end())
     {
-        return c_invalid_gaia_id;
+        return common::c_invalid_gaia_id;
     }
     else
     {

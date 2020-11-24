@@ -3,10 +3,13 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "catalog.hpp"
+#include "gaia/db/catalog.hpp"
 
 #include "ddl_executor.hpp"
 #include "gaia_catalog.h"
+
+using namespace std;
+using namespace gaia::common;
 
 namespace gaia
 {

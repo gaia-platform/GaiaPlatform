@@ -9,11 +9,13 @@
 #include <optional>
 #include <shared_mutex>
 
+#include "gaia/common.hpp"
 #include "catalog_core.hpp"
-#include "gaia_common.hpp"
 #include "logger.hpp"
 #include "system_table_types.hpp"
 #include "type_id_mapping.hpp"
+
+using namespace gaia::common;
 
 namespace gaia
 {
@@ -245,7 +247,7 @@ type_metadata_t& type_registry_t::create(gaia_type_t type)
     }
     auto& metadata = get_or_create_no_lock(type);
 
-    for (auto relationship_view : catalog_core_t::list_relationship_from(record_id))
+    for (auto relationship_view : catalog_core_t::list_relationship_to(record_id))
     {
         if (metadata.find_child_relationship(relationship_view.parent_offset()))
         {
@@ -264,7 +266,7 @@ type_metadata_t& type_registry_t::create(gaia_type_t type)
         metadata.add_child_relationship(rel);
     }
 
-    for (auto relationship_view : catalog_core_t::list_relationship_to(record_id))
+    for (auto relationship_view : catalog_core_t::list_relationship_from(record_id))
     {
         if (metadata.find_parent_relationship(relationship_view.first_child_offset()))
         {

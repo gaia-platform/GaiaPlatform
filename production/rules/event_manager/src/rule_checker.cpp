@@ -5,12 +5,13 @@
 
 #include "rule_checker.hpp"
 
-#include "catalog.hpp"
+#include "gaia/db/catalog.hpp"
 #include "gaia_catalog.h"
 
 using namespace gaia::rules;
 using namespace gaia::common;
 using namespace gaia::catalog;
+using namespace gaia::direct_access;
 using namespace std;
 
 //

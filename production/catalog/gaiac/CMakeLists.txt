@@ -11,13 +11,9 @@ set(GAIA_CATALOG_TOOL_INCLUDES
   ${GAIA_REPO}/production/catalog/inc
   ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_REPO}/production/db/storage_engine/inc
-  ${GAIA_INC}/public/common
-  ${GAIA_INC}/public/db
-  ${GAIA_INC}/internal/db
-  ${GAIA_INC}/internal/common
-  ${GAIA_INC}/public/direct_access
-  ${GAIA_INC}/public/catalog
-  ${GAIA_INC}/public/system
+  ${GAIA_INC}
+  ${GAIA_INTERNAL_INC}/db
+  ${GAIA_INTERNAL_INC}/common
   ${GAIA_PARSER_GENERATED}
   ${PROJECT_SOURCE_DIR}/inc
 )

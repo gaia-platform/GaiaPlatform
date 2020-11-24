@@ -175,7 +175,7 @@ void encode_object(
     string_writer_t& key,
     string_writer_t& value);
 
-gaia::common::gaia_id_t decode_object(
+se_object_t* decode_object(
     const rocksdb::Slice& key,
     const rocksdb::Slice& value);
 

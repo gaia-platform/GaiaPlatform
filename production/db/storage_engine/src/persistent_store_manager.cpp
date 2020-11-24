@@ -160,33 +160,40 @@ void persistent_store_manager::prepare_wal_for_write(gaia::db::log* log, const s
 /**
  * This API will read the entire LSM in sorted order and construct
  * gaia_objects using the create API.
- * Additionally, this method will recover the max gaia_id/txn_id's seen by previous
+ * Additionally, this method will recover the max gaia_id and gaia_type seen by previous
  * incarnations of the database.
  *
  * Todo (Mihir) The current implementation has an issue where deleted gaia_ids may get recycled post
  * recovery. Both the last seen gaia_id & txn_id need to be
  * persisted to the RocksDB manifest. https://github.com/facebook/rocksdb/wiki/MANIFEST
  *
- * Note that, for now we skip validating the existence of object references on recovery,
+ * Todo(Mihir) Note that, for now we skip validating the existence of object references on recovery,
  * since these aren't validated during object creation either.
  */
 void persistent_store_manager::recover()
 {
     auto it = std::unique_ptr<rocksdb::Iterator>(m_rdb_internal->get_iterator());
     gaia_id_t max_id = 0;
-    size_t count = 0;
+    gaia_type_t max_type_id = 0;
+
     for (it->SeekToFirst(); it->Valid(); it->Next())
     {
-        auto id = decode_object(it->key(), it->value());
-        if (id > max_id && id < c_system_table_reserved_range_start)
+        se_object_t* recovered_object = decode_object(it->key(), it->value());
+        if (recovered_object->type > max_type_id && recovered_object->type < c_system_table_reserved_range_start)
         {
-            max_id = id;
+            max_type_id = recovered_object->type;
         }
-        count++;
+
+        if (recovered_object->id > max_id)
+        {
+            max_id = recovered_object->id;
+        }
     }
     // Check for any errors found during the scan
     m_rdb_internal->handle_rdb_error(it->status());
     m_data->last_id = max_id;
+    m_data->last_type_id = max_type_id;
+
     // Ensure that other threads (with appropriate acquire barriers) immediately
     // observe the changed value. (This could be changed to a release barrier.)
     __sync_synchronize();

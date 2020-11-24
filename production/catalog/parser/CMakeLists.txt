@@ -9,12 +9,9 @@ project(parser)
 file(MAKE_DIRECTORY ${GAIA_PARSER_GENERATED})
 
 set(GAIA_PARSER_INCLUDES
-  ${GAIA_INC}/public/common
-  ${GAIA_INC}/public/db
-  ${GAIA_INC}/public/direct_access
-  ${GAIA_INC}/public/catalog
-  ${GAIA_INC}/internal/common
-  ${GAIA_INC}/internal/db
+  ${GAIA_INC}
+  ${GAIA_INTERNAL_INC}/common
+  ${GAIA_INTERNAL_INC}/db
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc
   ${GAIA_PARSER_GENERATED}
@@ -40,6 +37,7 @@ target_include_directories(gaia_parser PRIVATE ${GAIA_PARSER_INCLUDES})
 target_link_libraries(gaia_parser PRIVATE gaia_catalog)
 set_target_properties(gaia_parser PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")
 set_target_properties(gaia_parser PROPERTIES LINK_FLAGS "${GAIA_LINK_FLAGS}")
+set_property (TARGET gaia_parser PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 set(DDL_PARSER_TEST_SOURCES
   tests/test_ddl_parser.cpp

@@ -5,11 +5,11 @@
 
 #pragma once
 
+#include "gaia/common.hpp"
+#include "gaia/db/db.hpp"
+#include "gaia/exception.hpp"
 #include "db_types.hpp"
-#include "gaia_common.hpp"
-#include "gaia_db.hpp"
 #include "gaia_db_internal.hpp"
-#include "gaia_exception.hpp"
 #include "retail_assert.hpp"
 #include "se_object.hpp"
 #include "se_shared_data.hpp"

@@ -3,12 +3,11 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gaia_system.hpp"
-
-#include "catalog.hpp"
+#include "gaia/db/catalog.hpp"
+#include "gaia/db/db.hpp"
+#include "gaia/exception.hpp"
+#include "gaia/system.hpp"
 #include "cpptoml.h"
-#include "gaia_db.hpp"
-#include "gaia_exception.hpp"
 #include "logger.hpp"
 #include "rules_config.hpp"
 #include "scope_guard.hpp"

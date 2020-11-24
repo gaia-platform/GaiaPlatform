@@ -11,13 +11,10 @@ endif()
 
 set(GAIA_CATALOG_INCLUDES
   ${GAIA_SOURCE}/production/catalog/inc
-  ${GAIA_SOURCE}/production/inc/internal/catalog
-  ${GAIA_SOURCE}/production/inc/public/common
-  ${GAIA_SOURCE}/production/inc/public/direct_access
-  ${GAIA_SOURCE}/production/inc/internal/common
-  ${GAIA_SOURCE}/production/inc/internal/db
-  ${GAIA_SOURCE}/production/inc/public/db
-  ${GAIA_SOURCE}/production/inc/public/catalog
+  ${GAIA_SOURCE}/production/inc/gaia_internal/catalog
+  ${GAIA_SOURCE}/production/inc/
+  ${GAIA_SOURCE}/production/inc/gaia_internal/common
+  ${GAIA_SOURCE}/production/inc/gaia_internal/db
   ${GAIA_SOURCE}/third_party/production/flatbuffers/include
 )
 

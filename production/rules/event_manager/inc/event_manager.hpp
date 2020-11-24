@@ -12,11 +12,11 @@
 #include <unordered_map>
 #include <vector>
 
+#include "gaia/rules/rules.hpp"
 #include "event_manager_test_helpers.hpp"
 #include "gaia_event_log.h"
 #include "rule_checker.hpp"
 #include "rule_thread_pool.hpp"
-#include "rules.hpp"
 #include "rules_config.hpp"
 #include "triggers.hpp"
 
@@ -88,7 +88,7 @@ private:
     // The rules engine must be initialized through an explicit call
     // to gaia::rules::initialize_rules_engine(). If this method
     // is not called then all APIs will fail with a gaia::exception.
-    atomic_bool m_is_initialized = false;
+    std::atomic_bool m_is_initialized = false;
 
     // Protect initialization and shutdown from happening concurrently.
     // Note, that the public rules engine APIs are not designed to be
@@ -122,23 +122,23 @@ private:
 
     // Helper class to verify rule subscriptions against
     // the catalog.
-    unique_ptr<rule_checker_t> m_rule_checker;
+    std::unique_ptr<rule_checker_t> m_rule_checker;
 
     // Helper class to manager gathering and logging performance statistics
     // for both the rules engine scheduler and individual rules.
-    unique_ptr<rule_stats_manager_t> m_stats_manager;
+    std::unique_ptr<rule_stats_manager_t> m_stats_manager;
 
     // Thread pool to handle invocation of rules on N threads.
     // This declaration comes last since worker threads can use any of the above
     // members, so the thread pool must be initialized last and destroyed first.
-    unique_ptr<rule_thread_pool_t> m_invocations;
+    std::unique_ptr<rule_thread_pool_t> m_invocations;
 
 private:
     // Only internal static creation is allowed.
     event_manager_t() = default;
 
     // Internal initialization function called by the system.
-    friend void gaia::rules::initialize_rules_engine(shared_ptr<cpptoml::table>& root_config);
+    friend void gaia::rules::initialize_rules_engine(std::shared_ptr<cpptoml::table>& root_config);
 
     // Test helper methods.  These are just the friend declarations.  These methods are
     // implemented in a separate source file that must be compiled into the test.
@@ -159,7 +159,7 @@ private:
     const _rule_binding_t* find_rule(const rules::rule_binding_t& binding);
     void add_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     bool remove_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
-    void enqueue_invocation(const trigger_event_list_t& events, const vector<bool>& rules_invoked_list, std::chrono::steady_clock::time_point& start_time);
+    void enqueue_invocation(const trigger_event_list_t& events, const std::vector<bool>& rules_invoked_list, std::chrono::steady_clock::time_point& start_time);
     void enqueue_invocation(
         const trigger_event_t& event,
         const _rule_binding_t* rule_binding,

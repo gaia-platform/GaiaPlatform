@@ -7,16 +7,11 @@
 project(event_manager)
 
 set(GAIA_EVENT_MANAGER_INCLUDES
-  ${GAIA_INC}/public/common
-  ${GAIA_INC}/public/db
-  ${GAIA_INC}/public/direct_access
-  ${GAIA_INC}/public/system
-  ${GAIA_INC}/internal/common
-  ${GAIA_INC}/internal/db
-  ${GAIA_INC}/internal/catalog
-  ${GAIA_INC}/public/rules
-  ${GAIA_INC}/public/catalog
-  ${GAIA_INC}/internal/rules
+  ${GAIA_INC}
+  ${GAIA_INTERNAL_INC}/common
+  ${GAIA_INTERNAL_INC}/db
+  ${GAIA_INTERNAL_INC}/catalog
+  ${GAIA_INTERNAL_INC}/rules
   ${GAIA_RULES_INC}
   ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc
@@ -55,7 +50,7 @@ configure_file("${PROJECT_SOURCE_DIR}/tests/invalid_gaia_setting.conf" "${PROJEC
 add_gtest(test_auto_transaction "tests/test_auto_transaction.cpp"
   "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_direct")
 add_gtest(test_event_manager "tests/test_event_manager.cpp;tests/event_manager_test_helpers.cpp"
-  "${GAIA_EVENT_MANAGER_INCLUDES};${GAIA_INC}/internal/db" "rt;gaia_system;gaia_db_catalog_test")
+  "${GAIA_EVENT_MANAGER_INCLUDES};${GAIA_INTERNAL_INC}/db" "rt;gaia_system;gaia_db_catalog_test")
 add_gtest(test_system_init "tests/test_system_init.cpp"
   "${GAIA_EVENT_MANAGER_INCLUDES}" "rt;gaia_system")
 add_gtest(test_component_init "tests/test_component_init.cpp;tests/event_manager_test_helpers.cpp"

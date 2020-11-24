@@ -12,18 +12,17 @@ set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
 set(GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES
-  "${GAIA_INC}/public/common"
-  "${GAIA_INC}/public/db"
+  "${GAIA_INC}"
   "${GAIA_REPO}/production/db/inc/types"
   # This should be a public include since it exposes the gaia_ptr interface,
   # which is consumed by internal clients.
-  "${GAIA_INC}/internal/db"
+  "${GAIA_INTERNAL_INC}/db"
 )
 
 message(VERBOSE "GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES=${GAIA_STORAGE_ENGINE_PUBLIC_INCLUDES}")
 
 set(GAIA_STORAGE_ENGINE_PRIVATE_INCLUDES
-  "${GAIA_INC}/internal/common"
+  "${GAIA_INTERNAL_INC}/common"
   "${GAIA_DB_INC}/storage_engine"
   "${GAIA_DB_INC}/storage_engine/inc"
   "${ROCKSDB_INC}"
@@ -109,6 +108,7 @@ target_include_directories(rocks_wrapper SYSTEM PRIVATE "${GEN_DIR}")
 # The client is required to create gaia objects on recovery.
 target_link_libraries(rocks_wrapper rocksdb)
 set_target_properties(rocks_wrapper PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS} -Wno-missing-field-initializers")
+set_property (TARGET rocks_wrapper PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 set(GAIA_SE_SERVER_SOURCES
   src/se_server.cpp
@@ -188,8 +188,8 @@ if(JAVA_FOUND AND JNI_FOUND AND EXISTS "${GREMLIN_CONSOLE_PATH}")
 endif()
 
 set(GAIA_DB_CATALOG_TEST_PRIVATE_INCLUDES
-  ${GAIA_INC}/internal/db/
-  ${GAIA_INC}/public/direct_access/
+  ${GAIA_INTERNAL_INC}/db/
+  ${GAIA_INC}
   ${GAIA_REPO}/production/schemas/repository/inc
   ${GAIA_REPO}/production/db/storage_engine/inc
   ${FLATBUFFERS_INC}
@@ -209,5 +209,5 @@ add_gtest(test_se_references tests/test_se_references.cpp "${GAIA_STORAGE_ENGINE
 
 add_gtest(test_catalog_core
   tests/test_catalog_core.cpp
-  "${GAIA_STORAGE_ENGINE_TEST_INCLUDES};${GAIA_INC}/public/catalog;${GAIA_INC}/internal/catalog"
+  "${GAIA_STORAGE_ENGINE_TEST_INCLUDES};${GAIA_INC};${GAIA_INTERNAL_INC}/catalog"
   "gaia_common;gaia_se_client;gaia_catalog")

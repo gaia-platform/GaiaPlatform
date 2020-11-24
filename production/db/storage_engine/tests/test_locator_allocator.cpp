@@ -3,9 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <db_types.hpp>
 #include <iostream>
-#include <locator_allocator.hpp>
 
 #include "gtest/gtest.h"
 

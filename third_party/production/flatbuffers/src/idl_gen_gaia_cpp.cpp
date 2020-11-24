@@ -240,7 +240,7 @@ namespace flatbuffers
                 code_ += "#define " + include_guard;
                 code_ += "";
 
-                code_ += "#include \"gaia_object.hpp\"";
+                code_ += "#include \"edc_object.hpp\"";
                 code_ += "#include \"" + GeneratedCPPFileName(file_name_) + "\"";
                 
                 if (opts_.generate_setters && opts_.generate_events)

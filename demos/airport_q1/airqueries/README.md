@@ -12,7 +12,7 @@ To use a parameterized query, enter the menu selection followed by comma-separat
 
 ## build
 
-Note that this program uses a specialized version of `gaia_object.hpp` named `gaia_object_q1_demo.hpp` in the `airport_q1/inc/` directory.
+Note that this program uses a specialized version of `edc_object.hpp` named `gaia_object_q1_demo.hpp` in the `airport_q1/inc/` directory.
 
 ```
 mkdir build

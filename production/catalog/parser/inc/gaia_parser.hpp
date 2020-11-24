@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include "catalog.hpp"
+#include "gaia/db/catalog.hpp"
 #include "yy_parser.hpp"
 
 namespace gaia

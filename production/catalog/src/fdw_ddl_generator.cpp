@@ -11,6 +11,9 @@
 #include "gaia_catalog.h"
 #include "retail_assert.hpp"
 
+using namespace std;
+using namespace gaia::common;
+
 namespace gaia
 {
 namespace catalog
