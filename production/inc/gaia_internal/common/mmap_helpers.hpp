@@ -19,7 +19,9 @@ namespace gaia
 namespace common
 {
 
-inline void* map_fd(size_t length, int protection, int flags, int fd, size_t offset)
+// Use a template to avoid a cast from void* in the caller.
+template <typename T>
+inline void map_fd(T*& addr, size_t length, int protection, int flags, int fd, size_t offset)
 {
     void* mapping = ::mmap(nullptr, length, protection, flags, fd, static_cast<off_t>(offset));
     if (mapping == MAP_FAILED)
@@ -28,7 +30,7 @@ inline void* map_fd(size_t length, int protection, int flags, int fd, size_t off
         const char* reason = ::explain_mmap(nullptr, length, protection, flags, fd, static_cast<off_t>(offset));
         throw system_error(reason, err);
     }
-    return mapping;
+    addr = static_cast<T*>(mapping);
 }
 
 // We have to use a template because the compiler won't convert T* to void*&.

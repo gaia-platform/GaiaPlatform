@@ -105,7 +105,7 @@ void server::handle_commit_txn(
     retail_assert(seals & F_SEAL_WRITE, "Log fd was not sealed for write!");
     // Linux won't let us create a shared read-only mapping if F_SEAL_WRITE is set,
     // which seems contrary to the manpage for fcntl(2).
-    s_log = static_cast<log*>(map_fd(get_fd_size(fd_log), PROT_READ, MAP_PRIVATE, fd_log, 0));
+    map_fd(s_log, get_fd_size(fd_log), PROT_READ, MAP_PRIVATE, fd_log, 0);
     // Actually commit the transaction.
     bool success = txn_commit();
     session_event_t decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
@@ -301,8 +301,8 @@ void server::init_shared_memory()
     }
     truncate_fd(s_fd_locators, sizeof(locators));
     truncate_fd(s_fd_data, sizeof(data));
-    s_shared_locators = static_cast<locators*>(map_fd(sizeof(locators), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_locators, 0));
-    s_data = static_cast<data*>(map_fd(sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_data, 0));
+    map_fd(s_shared_locators, sizeof(locators), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_locators, 0);
+    map_fd(s_data, sizeof(data), PROT_READ | PROT_WRITE, MAP_SHARED, s_fd_data, 0);
     // Populate shared memory from the persistent log and snapshot.
     recover_db();
     cleanup_memory.dismiss();
