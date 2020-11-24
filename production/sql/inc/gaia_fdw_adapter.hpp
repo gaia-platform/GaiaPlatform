@@ -89,11 +89,11 @@ public:
         gaia::common::gaia_type_t& container_id);
 
     template <class S>
-    static S* get_state(const char* table_name, size_t expected_count_fields)
+    static S* get_state(const char* table_name, size_t expected_field_count)
     {
         S* state = (S*)palloc0(sizeof(S));
 
-        return state->initialize(table_name, expected_count_fields) ? state : nullptr;
+        return state->initialize(table_name, expected_field_count) ? state : nullptr;
     }
 
 protected:
@@ -142,7 +142,7 @@ protected:
     // to prevent the creation of any instances.
     state_t() = default;
 
-    bool initialize(const char* table_name, size_t count_fields);
+    bool initialize(const char* table_name, size_t expected_field_count);
 
 public:
     // Provides the index corresponding to each field.
@@ -162,7 +162,7 @@ protected:
     gaia::common::gaia_type_t m_container_id;
 
     // Count of fields for current table.
-    size_t m_count_fields;
+    size_t m_field_count;
 
     // Field information array.
     field_information_t* m_fields;
