@@ -28,6 +28,13 @@ using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::db::payload_types;
 
+// The gaia_fdw_adapter classes are meant to isolate the FDW from the internals of the Gaia database.
+// Thus, all important FDW-database interactions go through adapter interfaces.
+// Because Postgres does not handle exceptions gracefully, the adapter interfaces should not throw any
+// and should instead use Postgres's error reporting methods.
+// All database operations should be enclosed in a catch on the calling path from the FDW. Failure to do so
+// represents an internal programming error.
+
 namespace gaia
 {
 namespace fdw
@@ -471,7 +478,7 @@ bool adapter_t::get_ids(
     return true;
 }
 
-bool state_t::initialize(const char* table_name, size_t expected_count_fields)
+bool state_t::initialize(const char* table_name, size_t expected_field_count)
 {
     try
     {
@@ -484,27 +491,34 @@ bool state_t::initialize(const char* table_name, size_t expected_count_fields)
         }
 
         // Our field count consists of all fields and references, plus the gaia_id system field.
-        size_t count_fields = list_fields(m_table_id).size();
-        size_t count_references = list_references(m_table_id).size();
-        m_count_fields = 1 + count_fields + count_references;
-        if (m_count_fields != expected_count_fields)
+        size_t field_count = list_fields(m_table_id).size();
+        size_t reference_count = list_references(m_table_id).size();
+        m_field_count = 1 + field_count + reference_count;
+        if (m_field_count != expected_field_count)
         {
             ereport(
                 ERROR,
                 (errcode(ERRCODE_FDW_ERROR),
                  errmsg("Unexpected table field count!"),
-                 errhint("Count is '%ld' and expected count was '%ld'.", m_count_fields, expected_count_fields)));
+                 errhint(
+                     "Field count is '%ld' and expected count was '%ld' for table '%s'.",
+                     m_field_count, expected_field_count, table_name)));
         }
         else
         {
             elog(
                 DEBUG1, "Successfully initialized processing of table '%s' with '%ld' fields!",
-                table_name, m_count_fields);
+                table_name, m_field_count);
         }
 
         // Allocate memory for holding field information.
-        size_t fields_array_size = sizeof(field_information_t) * m_count_fields;
+        size_t fields_array_size = sizeof(field_information_t) * m_field_count;
         m_fields = reinterpret_cast<field_information_t*>(palloc0(fields_array_size));
+
+        // Allocate memory for holding the table name.
+        size_t table_name_size = strlen(table_name) + 1;
+        m_table_name = reinterpret_cast<char*>(palloc0(table_name_size));
+        strlcpy(m_table_name, table_name, table_name_size);
 
         return true;
     }
@@ -515,23 +529,22 @@ bool state_t::initialize(const char* table_name, size_t expected_count_fields)
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Failed initializing FDW state."),
              errhint(
-                 "Table: '%s', container_id: '%ld', expected field count: '%ld'. Exception: '%s'.",
-                 table_name,
-                 m_container_id,
-                 expected_count_fields,
-                 e.what())));
+                 "Table: '%s', container id: '%ld', expected field count: '%ld'. Exception: '%s'.",
+                 table_name, m_container_id, expected_field_count, e.what())));
     }
 }
 
 bool state_t::set_field_index(const char* field_name, size_t field_index)
 {
-    if (field_index >= m_count_fields)
+    if (field_index >= m_field_count)
     {
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Unexpected field index received in set_field_index()!"),
-             errhint("Field index is '%ld' and field count is '%ld'.", field_index, m_count_fields)));
+             errhint(
+                 "Field index is '%ld' and field count is '%ld' for table '%s'.",
+                 field_index, m_field_count, get_table_name())));
     }
 
     try
@@ -586,7 +599,9 @@ bool state_t::set_field_index(const char* field_name, size_t field_index)
                     ERROR,
                     (errcode(ERRCODE_FDW_ERROR),
                      errmsg("Unable to derive name of anonymous relationship!"),
-                     errhint("Reference id is '%ld'.", reference_id)));
+                     errhint(
+                         "Relationship id is '%ld' for table '%s'.",
+                         reference_id, get_table_name())));
             }
 
             if (strcmp(field_name, relationship_name.c_str()) == 0)
@@ -610,16 +625,19 @@ bool state_t::set_field_index(const char* field_name, size_t field_index)
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Failed setting field index."),
              errhint(
-                 "Field: '%s', index: '%ld'. Exception: '%s'.",
-                 field_name,
-                 field_index,
-                 e.what())));
+                 "Table: '%s', container id: '%ld', field: '%s', field index: '%ld'. Exception: '%s'.",
+                 get_table_name(), m_container_id, field_name, field_index, e.what())));
     }
 }
 
 bool state_t::is_gaia_id_field_index(size_t field_index)
 {
     return field_index == m_gaia_id_field_index;
+}
+
+const char* state_t::get_table_name()
+{
+    return m_table_name;
 }
 
 scan_state_t::scan_state_t()
@@ -631,11 +649,11 @@ bool scan_state_t::initialize_scan()
 {
     try
     {
-        m_current_node = gaia_ptr::find_first(m_container_id);
+        m_current_record = gaia_ptr::find_first(m_container_id);
 
-        if (m_current_node)
+        if (m_current_record)
         {
-            m_current_payload = reinterpret_cast<uint8_t*>(m_current_node.data());
+            m_current_payload = reinterpret_cast<uint8_t*>(m_current_record.data());
         }
 
         return true;
@@ -646,24 +664,28 @@ bool scan_state_t::initialize_scan()
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Failed initializing table scan."),
-             errhint("Exception: '%s'.", e.what())));
+             errhint(
+                 "Table: '%s', container id: '%ld'. Exception: '%s'.",
+                 get_table_name(), m_container_id, e.what())));
     }
 }
 
 bool scan_state_t::has_scan_ended()
 {
-    return !m_current_node;
+    return !m_current_record;
 }
 
 NullableDatum scan_state_t::extract_field_value(size_t field_index)
 {
-    if (field_index >= m_count_fields)
+    if (field_index >= m_field_count)
     {
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Unexpected field index received in extract_field_value()!"),
-             errhint("Field index is '%ld' and field count is '%ld'.", field_index, m_count_fields)));
+             errhint(
+                 "Field index is '%ld' and field count is '%ld' for table '%s'.",
+                 field_index, m_field_count, get_table_name())));
     }
 
     try
@@ -673,20 +695,22 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
 
         if (is_gaia_id_field_index(field_index))
         {
-            field_value.value = UInt64GetDatum(m_current_node.id());
+            field_value.value = UInt64GetDatum(m_current_record.id());
         }
         else if (m_fields[field_index].is_reference)
         {
             reference_offset_t reference_offset = m_fields[field_index].position;
-            if (reference_offset >= m_current_node.num_references())
+            if (reference_offset >= m_current_record.num_references())
             {
                 ereport(
                     ERROR,
                     (errcode(ERRCODE_FDW_ERROR),
-                     errmsg("Attempt to dereference an invalid reference offset '%ld'!", reference_offset)));
+                     errmsg(
+                         "Attempt to dereference an invalid reference offset '%ld' for table '%s'!",
+                         reference_offset, get_table_name())));
             }
 
-            gaia_id_t reference_id = m_current_node.references()[reference_offset];
+            gaia_id_t reference_id = m_current_record.references()[reference_offset];
             field_value.value = UInt64GetDatum(reference_id);
 
             // If the reference id is invalid, surface the value as NULL.
@@ -716,10 +740,8 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Failed reading field value."),
              errhint(
-                 "Container_id: '%ld', field_index: '%ld'. Exception: '%s'.",
-                 m_container_id,
-                 field_index,
-                 e.what())));
+                 "Table: '%s', container id: '%ld', field index: '%ld'. Exception: '%s'.",
+                 get_table_name(), m_container_id, field_index, e.what())));
     }
 }
 
@@ -729,11 +751,11 @@ bool scan_state_t::scan_forward()
     {
         retail_assert(!has_scan_ended(), "Attempt to scan forward after scan has ended!");
 
-        m_current_node = m_current_node.find_next();
+        m_current_record = m_current_record.find_next();
 
-        if (m_current_node)
+        if (m_current_record)
         {
-            m_current_payload = reinterpret_cast<uint8_t*>(m_current_node.data());
+            m_current_payload = reinterpret_cast<uint8_t*>(m_current_record.data());
         }
 
         return has_scan_ended();
@@ -744,7 +766,9 @@ bool scan_state_t::scan_forward()
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Failed iterating to next record."),
-             errhint("Exception: '%s'.", e.what())));
+             errhint(
+                 "Table id: '%s', container id: '%ld'. Exception: '%s'.",
+                 get_table_name(), m_container_id, e.what())));
     }
 }
 
@@ -786,19 +810,23 @@ void modify_state_t::initialize_payload()
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Failed to initialize record payload."),
-             errhint("Exception: '%s'.", e.what())));
+             errhint(
+                 "Table id: '%s', container id: '%ld'. Exception: '%s'.",
+                 get_table_name(), m_container_id, e.what())));
     }
 }
 
 void modify_state_t::set_field_value(size_t field_index, const NullableDatum& field_value)
 {
-    if (field_index >= m_count_fields)
+    if (field_index >= m_field_count)
     {
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Unexpected field index received in set_field_value()!"),
-             errhint("Field index is '%ld' and field count is '%ld'.", field_index, m_count_fields)));
+             errhint(
+                 "Field index is '%ld' and field count is '%ld' for table '%s'.",
+                 field_index, m_field_count, get_table_name())));
     }
 
     if (is_gaia_id_field_index(field_index))
@@ -831,7 +859,7 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
 
     try
     {
-        // Regular fields are serialized in the payload of the current node.
+        // Regular fields are serialized in the payload of the current record.
         data_holder_t value = convert_to_data_holder(field_value.value, m_fields[field_index].type);
 
         if (value.type == reflection::String)
@@ -861,9 +889,8 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
                     (errcode(ERRCODE_FDW_ERROR),
                      errmsg("Failed to set field value!"),
                      errhint(
-                         "Container id is '%ld' and field position is '%ld'.",
-                         m_container_id,
-                         m_fields[field_index].position)));
+                         "Table is '%s', container id is '%ld', and field position is '%ld'.",
+                         get_table_name(), m_container_id, m_fields[field_index].position)));
             }
         }
     }
@@ -874,10 +901,8 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("Failed to set field value!"),
              errhint(
-                 "Container_id: '%ld', field_index: '%ld'. Exception: '%s'.",
-                 m_container_id,
-                 field_index,
-                 e.what())));
+                 "Table: '%s', container id: '%ld', field index: '%ld'. Exception: '%s'.",
+                 get_table_name(), m_container_id, field_index, e.what())));
     }
 }
 
@@ -885,20 +910,20 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
 {
     try
     {
-        gaia_ptr node;
+        gaia_ptr record;
         if (modify_operation_type == modify_operation_type_t::insert)
         {
-            node = gaia_ptr::create(gaia_id, m_container_id, m_current_payload->size(), m_current_payload->data());
+            record = gaia_ptr::create(gaia_id, m_container_id, m_current_payload->size(), m_current_payload->data());
         }
         else if (modify_operation_type == modify_operation_type_t::update)
         {
-            node = gaia_ptr::open(gaia_id);
+            record = gaia_ptr::open(gaia_id);
 
             // Only update payload if it has changed.
-            if (node.data_size() != m_current_payload->size()
-                || memcmp(node.data(), m_current_payload->data(), node.data_size()) != 0)
+            if (record.data_size() != m_current_payload->size()
+                || memcmp(record.data(), m_current_payload->data(), record.data_size()) != 0)
             {
-                node.update_payload(m_current_payload->size(), m_current_payload->data());
+                record.update_payload(m_current_payload->size(), m_current_payload->data());
             }
         }
         else
@@ -912,7 +937,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
         }
 
         // Now that we have access to the database record, we can also perform the reference updates.
-        for (size_t i = 0; i < m_count_fields; i++)
+        for (size_t i = 0; i < m_field_count; i++)
         {
             if (!m_fields[i].is_reference)
             {
@@ -920,16 +945,18 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
             }
 
             reference_offset_t reference_offset = m_fields[i].position;
-            if (reference_offset >= node.num_references())
+            if (reference_offset >= record.num_references())
             {
                 ereport(
                     ERROR,
                     (errcode(ERRCODE_FDW_ERROR),
-                     errmsg("Attempt to dereference an invalid reference offset '%d'!", reference_offset)));
+                     errmsg(
+                         "Attempt to dereference an invalid reference offset '%d' for table '%s'!",
+                         reference_offset, get_table_name())));
             }
 
             // Read the existing reference value.
-            gaia_id_t old_reference_id = node.references()[reference_offset];
+            gaia_id_t old_reference_id = record.references()[reference_offset];
 
             if (m_fields[i].value_to_set.isnull)
             {
@@ -942,7 +969,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
                 }
 
                 // If the existing reference was valid, we need to remove it.
-                node.remove_parent_reference(old_reference_id, reference_offset);
+                record.remove_parent_reference(old_reference_id, reference_offset);
             }
             else
             {
@@ -954,8 +981,8 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
                         ERROR,
                         (errcode(ERRCODE_FDW_ERROR),
                          errmsg(
-                             "An invalid reference value was passed as a non-null value: '%ld'!",
-                             new_reference_id)));
+                             "An invalid reference value was passed as a non-null value '%ld' for table '%s'!",
+                             new_reference_id, get_table_name())));
                 }
 
                 // If updating an existing record and the reference value is unchanged,
@@ -967,7 +994,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
                 }
 
                 // Update the reference to the new value.
-                node.update_parent_reference(new_reference_id, reference_offset);
+                record.update_parent_reference(new_reference_id, reference_offset);
             }
         }
 
@@ -998,7 +1025,9 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("%s operation failed!", operation_name),
-             errhint("Exception: '%s'.", e.what())));
+             errhint(
+                 "Table: '%s', container id: '%ld'. Exception: '%s'.",
+                 get_table_name(), m_container_id, e.what())));
     }
 }
 
@@ -1016,18 +1045,20 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
 {
     try
     {
-        auto node = gaia_ptr::open(gaia_id);
-        if (!node)
+        auto record = gaia_ptr::open(gaia_id);
+        if (!record)
         {
             ereport(
                 ERROR,
                 (errcode(ERRCODE_FDW_ERROR),
                  errmsg("Could not find record to delete."),
-                 errhint("gaia_id: '%ld'.", gaia_id)));
+                 errhint(
+                     "gaia_id '%ld', table '%s', container id '%ld'.",
+                     gaia_id, get_table_name(), m_container_id)));
             return false;
         }
 
-        gaia_ptr::remove(node);
+        gaia_ptr::remove(record);
 
         return true;
     }
@@ -1037,7 +1068,9 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
              errmsg("DELETE operation failed!"),
-             errhint("Exception: '%s'.", e.what())));
+             errhint(
+                 "Table: '%s', container id: '%ld'. Exception: '%s'.",
+                 get_table_name(), m_container_id, e.what())));
     }
 }
 

@@ -11,11 +11,7 @@ CREATE DATABASE airport;
 
 CREATE EXTENSION gaia_fdw;
 
-CREATE SERVER gaia FOREIGN DATA WRAPPER gaia_fdw
--- OPTIONS (
---    RESET 'true'
---)
-;
+CREATE SERVER gaia FOREIGN DATA WRAPPER gaia_fdw;
 
 CREATE SCHEMA airport_fdw;
 
@@ -169,6 +165,7 @@ FROM
     rawdata_airports;
 
 -- Create a Postgres copy of Gaia airports table.
+-- We use this copy because it will get scanned faster during the later updates.
 CREATE TABLE airports_copy (
     gaia_id bigint,
     ap_id int PRIMARY KEY,
@@ -260,7 +257,7 @@ SELECT
 FROM
     rawdata_routes;
 
--- Collect the foreign keys from airports_copy table.
+-- Collect the foreign keys from the airports_copy table.
 UPDATE
     intermediate_routes
 SET
@@ -317,37 +314,5 @@ SELECT
     equipment
 FROM
     intermediate_routes;
-    -- rawdata_routes;
 
 DROP TABLE intermediate_routes;
-
--- Alternative approach: update airport_fdw.routes data in-place.
--- This approach exercises the UPDATE path rather than the INSERT path.
---
--- Collect the foreign keys from airports_copy table.
--- UPDATE
---     airport_fdw.routes
--- SET
---     (gaia_src_id) = (
---         SELECT
---             gaia_id
---         FROM
---             airport_fdw.airports
---         WHERE
---             airport_fdw.airports.ap_id = airport_fdw.routes.src_ap_id);
-
--- UPDATE
---     airport_fdw.routes
--- SET
---     (gaia_dst_id) = (
---         SELECT
---             gaia_id
---         FROM
---             airport_fdw.airports
---         WHERE
---             airport_fdw.airports.ap_id = airport_fdw.routes.dst_ap_id);
-
--- Remove records that are missing foreign keys.
--- DELETE FROM airport_fdw.routes
--- WHERE gaia_src_id IS NULL
---     OR gaia_dst_id IS NULL;
