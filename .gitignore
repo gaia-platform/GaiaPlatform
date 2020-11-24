@@ -4,6 +4,8 @@
 
 # Build files.
 build/
+bin/
+target/
 cmake-build-*/
 
 # Emacs backups.
@@ -27,3 +29,9 @@ dist/
 
 # Mac OS index files.
 .DS_Store
+
+# Java IDE files.
+.classpath
+.factorypath
+.project
+.settings/
