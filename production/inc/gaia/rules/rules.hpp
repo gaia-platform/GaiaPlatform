@@ -244,7 +244,7 @@ public:
 class initialization_error : public gaia::common::gaia_exception
 {
 public:
-    initialization_error(bool is_already_initialized);
+    initialization_error();
 };
 
 /**
