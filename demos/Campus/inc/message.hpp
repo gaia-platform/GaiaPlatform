@@ -279,6 +279,12 @@ public:
         _messageTypeName = message_types::alert_message;
     }
 
+    alert_message(MessageHeader header, std::string title, std::string body, int severity, std::string arg1) :
+        Message(header), _title(title), _body(body), _arg1(arg1){ 
+        _severity = static_cast<severity_level_enum>(severity); //TODO : catch arg problems
+        _messageTypeName = message_types::alert_message;
+    }
+
     alert_message(){ 
         _messageTypeName = message_types::alert_message;
     }

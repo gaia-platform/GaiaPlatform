@@ -10,8 +10,8 @@ create table if not exists building (
 
 create table if not exists person (
       name : string,
+      is_threat : uint64 active,
       location : string active,
-      is_threat : bool active,
       references campus
 );
 

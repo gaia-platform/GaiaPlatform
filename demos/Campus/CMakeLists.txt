@@ -22,19 +22,13 @@ find_package(spdlog REQUIRED)
 
 set(GAIA_INC "/usr/local/include/gaia")                                                     #TODO: remove fixed path
 set(GAIA_BIN "/usr/local/bin")                                                              #TODO: remove fixed path
-set(GAIA_PROD_BUILD "/media/mark/Data1/U20/develop/GaiaPlatform/build/production")          #TODO: remove fixed path
-set(GAIA_PROD_INC "/media/mark/Data1/U20/develop/GaiaPlatform/production/inc/public")       #TODO: remove fixed path
-
-set(GAIA_PROD "${GAIA_REPO}/production")                                                    #TODO: We should not have to refer to anything internal
-set(GAIA_INC "/media/mark/Data1/U20/develop/GaiaPlatform/production/inc/public")            #TODO: We should not have to refer to anything internal
-set(GAIA_INC_INTERNAL "/media/mark/Data1/U20/develop/GaiaPlatform/production/inc/internal") #TODO: We should not have to refer to anything internal
 
 find_library(MENU_LIBRARY menu)
 
 include(GoogleTest)
 
 set(GAIA_COMPILE_FLAGS "-c -Wall -Wextra -ggdb")
-#!set(GENERATED_OUTPUTS "${CMAKE_BINARY_DIR}/campus_demo/generated")
+
 set(GENERATED_OUTPUTS "${PROJECT_SOURCE_DIR}/generated")
 
 set(GAIA_CAMPUS_DEMO_INCLUDES
@@ -49,15 +43,10 @@ set(GAIA_CAMPUS_DEMO_INCLUDES
   ${GAIA_INC}/system
   ${FLATBUFFERS_INC}
   ${GENERATED_OUTPUTS}
-  ${GAIA_INC_INTERNAL}/common #TODO: We should not have to refer to anything internal
-  ${GAIA_INC_INTERNAL}/rules  #TODO: We should not have to refer to anything internal
-  ${GAIA_INC_INTERNAL}/db     #TODO: We should not have to refer to anything internal
 )
 
 set(GAIA_GENERATE ${GAIA_BIN}/gaiac)                             
-#set(GAIA_GENERATE ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac)         
 set(GAIA_TRANSLATE ${GAIA_BIN}/gaiat)                             
-#set(GAIA_TRANSLATE ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat)
 
 # --- Generate ---
 
@@ -98,7 +87,6 @@ add_custom_target(translate_campus_ruleset ALL
 
 add_library(gaia SHARED IMPORTED GLOBAL)
 set_target_properties(gaia PROPERTIES IMPORTED_LOCATION /usr/local/lib/libgaia.so) #TODO: remove fixed path 
-#set_target_properties(gaia PROPERTIES IMPORTED_LOCATION ${GAIA_PROD_BUILD}/sdk/libgaia.so) 
 
 add_executable(campus 
     src/campus_demo.cpp
@@ -111,7 +99,7 @@ add_executable(campus
 configure_file("${PROJECT_SOURCE_DIR}/src/gaia_conf.toml" "${PROJECT_BINARY_DIR}/gaia_conf.toml")
 configure_file("${PROJECT_SOURCE_DIR}/src/log_conf.toml" "${PROJECT_BINARY_DIR}/log_conf.toml")
 
-#!add_dependencies(campus translate_incubator_ruleset)
+
 set_target_properties(campus PROPERTIES COMPILE_FLAGS "${GAIA_COMPILE_FLAGS}")  
 target_include_directories(campus PRIVATE ${GAIA_CAMPUS_DEMO_INCLUDES})
 #1target_link_libraries(campus PRIVATE rt pthread gaia gaia_semock gaia_rules gaia_direct)

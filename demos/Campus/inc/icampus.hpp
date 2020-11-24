@@ -21,7 +21,11 @@ public:
         return std::make_shared<ICampus>(campus_ruleset_p_campus);
     }*/
 
-    virtual void cb_action( std::string actorType, std::string actorName, std::string actionName, std::string arg1) = 0;
+    virtual void cb_action( std::string actorType, 
+        std::string actorName, std::string actionName, std::string arg1) = 0;    
+        
+    virtual void cb_alert( std::string title, 
+        std::string body, int severity, std::string arg1) = 0;
 
     ICampus(){}
   

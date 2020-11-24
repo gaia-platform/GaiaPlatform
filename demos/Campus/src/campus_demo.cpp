@@ -22,6 +22,14 @@ CampusDemo::Campus* CampusDemo::Campus::GetLastInstance(){
     return _lastInstance;
 }
 
+void CampusDemo::Campus::log_this(std::string prefix, const std::exception& e){
+    std::cout << "Exception: " << prefix << " : " << e.what();
+}
+
+void CampusDemo::Campus::log_this(std::string prefix){
+    std::cout << prefix;
+}
+
 void CampusDemo::Campus::got_person_action_message(const message::ActionMessage *msg){
     
     gaia::campus::person_t found_person;
@@ -44,6 +52,7 @@ void CampusDemo::Campus::got_person_action_message(const message::ActionMessage 
         update_person(found_person,true,found_person.location());
         commit_transaction();
 
+        //rule trigger fake, bypasses rules, for development only
         if(_rule_trigger_fake){
 
             if(nullptr == _messageBus)
@@ -65,15 +74,24 @@ void CampusDemo::Campus::got_person_action_message(const message::ActionMessage 
 
 void CampusDemo::Campus::MessageCallback(std::shared_ptr<message::Message> msg){
     
-    auto messageType = msg->get_message_type_name();
-
-    if(messageType == message::message_types::action_message)
+    try
     {
-        auto actionMessage = reinterpret_cast<message::ActionMessage*>(msg.get());   
+        auto messageType = msg->get_message_type_name();
 
-        //at this point we have our action message, update the DB
-        if(actionMessage->_actorType == "Person")
-            got_person_action_message(actionMessage);
+        if(messageType == message::message_types::action_message)
+        {
+            auto actionMessage = reinterpret_cast<message::ActionMessage*>(msg.get());   
+
+            //at this point we have our action message, update the DB
+            if(actionMessage->_actorType == "Person")
+                got_person_action_message(actionMessage);
+        }
+    }
+    catch(const std::exception& e){
+        log_this("CampusDemo::Campus::MessageCallback()", e);
+    }
+    catch(...){
+        log_this("Exception in CampusDemo::Campus::MessageCallback() ...");
     }
 }
 
@@ -84,18 +102,7 @@ void CampusDemo::Campus::StaticMessageCallback(std::shared_ptr<message::Message>
     if(nullptr == li) //TODO: notify user
         return;
 
-    try
-    {
-        li->MessageCallback(msg);        
-    }
-    catch(const std::exception& e)
-    {
-        std::cerr << e.what() << '\n';
-    }
-        catch(...)
-    {
-        std::cerr << "..." << '\n';
-    }
+    li->MessageCallback(msg);        
 }
 
 int CampusDemo::Campus::RunAsync(){
@@ -103,8 +110,6 @@ int CampusDemo::Campus::RunAsync(){
 
     return 0;
 }
-
-useconds_t _sleepTime = 10;
 
 void CampusDemo::Campus::Worker(){
     //Initialize Gaia
@@ -121,58 +126,44 @@ void CampusDemo::Campus::Worker(){
 
 int CampusDemo::Campus::Init(std::shared_ptr<message::IMessageBus> messageBus){
 
-    //campus_ruleset_p_campus = std::shared_ptr<ICampus>(this);
-    //auto bbb = std::shared_ptr<CampusDemo::Campus>(this);    
-    //campus_ruleset_p_campus = std::shared_ptr<ICampus>(reinterpret_cast<ICampus*>(this))
-    //campus_ruleset_p_campus = std::shared_ptr<ICampus>(reinterpret_cast<ICampus*>(this));
-    //campus_ruleset_p_campus = reinterpret_cast<std::shared_ptr<ICampus>>(shared_from_this());
+    try{
+        //Disregard all this for now
+        //campus_ruleset_p_campus = std::shared_ptr<ICampus>(this);
+        //auto bbb = std::shared_ptr<CampusDemo::Campus>(this);    
+        //campus_ruleset_p_campus = std::shared_ptr<ICampus>(reinterpret_cast<ICampus*>(this))
+        //campus_ruleset_p_campus = std::shared_ptr<ICampus>(reinterpret_cast<ICampus*>(this));
+        //campus_ruleset_p_campus = reinterpret_cast<std::shared_ptr<ICampus>>(shared_from_this());
 
-    //TODO : yes, I know, make this modern
-    campus_ruleset_p_campus = reinterpret_cast<ICampus*>(this);
+        //TODO : yes, I know, make this modern
+        campus_ruleset_p_campus = reinterpret_cast<ICampus*>(this);
 
-    if(nullptr == messageBus)
-        throw std::invalid_argument("argument messageBus cannot be null");
+        if(nullptr == messageBus)
+            throw std::invalid_argument("argument messageBus cannot be null");
+        
+        //Save the message bus and register a callback
+        _messageBus = messageBus;
+        _messageBus->RegisterMessageCallback(&CampusDemo::Campus::StaticMessageCallback, _sender_name);
+
+        //Initialize Gaia
+        gaia::system::initialize(_config_file_name.c_str());     
+
+        init_storage();    
+    }
+    catch(const std::exception& e){
+        log_this("CampusDemo::Campus::Init()", e);
+    }
+    catch(...){
+        log_this("Exception in CampusDemo::Campus::Init() ...");
+    }
     
-    //Save the message bus and register a callback
-    _messageBus = messageBus;
-    _messageBus->RegisterMessageCallback(&CampusDemo::Campus::StaticMessageCallback, _sender_name);
-
-    //Initialize Gaia
-    gaia::system::initialize(_config_file_name.c_str());     
-
-    init_storage();
-
-    //dump_db();
-
     return 0;
 }
 
-/*int CampusDemo::Campus::Init(std::shared_ptr<message::IMessageBus> messageBus){
-
-    //campus_ruleset_p_campus = std::shared_ptr<ICampus>(this);
-    //auto bbb = std::shared_ptr<CampusDemo::Campus>(this);    
-    //campus_ruleset_p_campus = std::shared_ptr<ICampus>(reinterpret_cast<ICampus*>(this))
-    //campus_ruleset_p_campus = std::shared_ptr<ICampus>(reinterpret_cast<ICampus*>(this));
-    //campus_ruleset_p_campus = reinterpret_cast<std::shared_ptr<ICampus>>(shared_from_this());
-
-    //TODO : yes, I know, make this modern
-    campus_ruleset_p_campus = reinterpret_cast<ICampus*>(this);
-
-    if(nullptr == messageBus)
-        throw std::invalid_argument("argument messageBus cannot be null");
-    
-    //Save the message bus and register a callback
-    _messageBus = messageBus;
-    _messageBus->RegisterMessageCallback(&CampusDemo::Campus::StaticMessageCallback, _sender_name);
-
-    _workerThread = new std::thread(&CampusDemo::Campus::Worker, this);        
-    return 0;
-}*/
-
 //*** ICampus interface ***
 
-void CampusDemo::Campus::cb_action( std::string actorType, std::string actorName, std::string actionName, std::string arg1)
-{
+void CampusDemo::Campus::cb_action( std::string actorType, 
+    std::string actorName, std::string actionName, std::string arg1){
+
     if(nullptr == _messageBus)
         return;
 
@@ -184,35 +175,36 @@ void CampusDemo::Campus::cb_action( std::string actorType, std::string actorName
     _messageBus->SendMessage(msg);
 }
 
-//****************************
+void CampusDemo::Campus::cb_alert( std::string title, 
+        std::string body, int severity, std::string arg1){
+    if(nullptr == _messageBus)
+        return;
+
+    message::MessageHeader mh(_sequenceID++, _senderID, _senderName, _destID, _destName);
+
+    std::shared_ptr<message::Message> msg = 
+        std::make_shared<message::alert_message>(mh, title, body, severity, arg1);
+
+    _messageBus->SendMessage(msg);
+}
+
+//*** Business ***
 
 bool CampusDemo::Campus::get_person(const char* name, gaia::campus::person_t &found_person)
 {
     bool did_find = false;
 
-    try
+    //begin_session();
+    begin_transaction();
+    for (auto& person : gaia::campus::person_t::list())
     {
-        //begin_session();
-        begin_transaction();
-        for (auto& person : gaia::campus::person_t::list())
-        {
-            if (strcmp(person.name(), name) == 0) {
-                found_person = person;
-                did_find = true;
-                break;
-            }
+        if (strcmp(person.name(), name) == 0) {
+            found_person = person;
+            did_find = true;
+            break;
         }
-        commit_transaction();
     }
-    catch(const std::exception& e)
-    {
-        std::cerr << e.what() << '\n';
-    }
-    catch(...)
-    {
-        std::cerr << "..." << '\n';
-    }
-
+    commit_transaction();
     return did_find;
 }
 
@@ -245,15 +237,9 @@ void CampusDemo::Campus::update_person(gaia::campus::person_t& person, bool is_t
     p.update_row();
 }
 
-/*void CampusDemo::Campus::restore_default_values2() {
-    for (auto& person : gaia::campus::person_t::list()) {
-        update_person(person, false, "*");
-    }
-}*/
-
 void CampusDemo::Campus::restore_default_values() {
     for (auto& person : gaia::campus::person_t::list()) {
-        _persons_v.push_back(person);
+        //_persons_v.push_back(person);
         update_person(person, false, "*");
     }
 }
@@ -268,9 +254,9 @@ void CampusDemo::Campus::init_storage() {
     }
 
     gaia::campus::campus_t campus = gaia::campus::campus_t::get(insert_campus("AAA", false));
-    campus.person_list().insert(gaia::campus::person_t::insert_row("Unidentified", "*", false));
-    campus.person_list().insert(gaia::campus::person_t::insert_row("Bob Kabob", "*", false));
-    campus.person_list().insert(gaia::campus::person_t::insert_row("Sam Kabam", "*", false));
+    campus.person_list().insert(gaia::campus::person_t::insert_row("Unidentified", 0, "*"));
+    campus.person_list().insert(gaia::campus::person_t::insert_row("Bob Kabob", 0, "*"));
+    campus.person_list().insert(gaia::campus::person_t::insert_row("Sam Kabam", 0, "*"));
 
     tx.commit();
 }

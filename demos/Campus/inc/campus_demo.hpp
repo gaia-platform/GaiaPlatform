@@ -35,12 +35,15 @@ class Campus : ICampus, std::enable_shared_from_this<Campus> {
 private:
 
     //Run the rule trigger fake
-    bool _rule_trigger_fake = true; 
+    bool _rule_trigger_fake = false; 
 
     //std::thread* _workerThread;
 
+    //sleep time of worker in ms
+    useconds_t _sleepTime = 10;
+
     //TODO: this is a hack to store persons to work around a thread issue
-    std::vector<gaia::campus::person_t> _persons_v;
+    //std::vector<gaia::campus::person_t> _persons_v;
 
     // the name of the client on the message bus
     const std::string _sender_name = "campus";    
@@ -62,6 +65,27 @@ private:
     std::shared_ptr<message::IMessageBus> _messageBus = nullptr;
 
     static Campus* GetLastInstance();
+
+        /**
+     * Log message to stdout
+     * 
+     * @param[in] std::string prefix e
+     * @param[in] const std::exception& e
+     * @return void
+     * @throws 
+     * @exceptsafe yes
+     */      
+    void log_this(std::string prefix, const std::exception& e);
+
+    /**
+     * Log message to stdout
+     * 
+     * @param[in] std::string prefix e
+     * @return void
+     * @throws 
+     * @exceptsafe yes
+     */      
+    void log_this(std::string prefix);
 
     /**
     * Worker for thread which must be kept alive for gaia::init
@@ -107,7 +131,10 @@ private:
 
     //*** ICampus interface *****************************
 
-    void cb_action( std::string actorType, std::string actorName, std::string actionName, std::string arg1) override;
+    void cb_action( std::string actorType, std::string actorName, 
+        std::string actionName, std::string arg1) override;
+    void cb_alert( std::string title, std::string body, 
+        int severity, std::string arg1) override;
 
 public:
 
