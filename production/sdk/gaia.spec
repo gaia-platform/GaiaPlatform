@@ -1,6 +1,6 @@
 Summary: Gaia
 Name: Gaia
-Version: 1.0.0
+Version: 0.1.0
 Release: 1
 Group: Applications/System
 License: Gaia License

@@ -7,6 +7,9 @@ project(sdk)
 
 set(TEMP_PACKAGE_FOLDER "${CMAKE_CURRENT_BINARY_DIR}/tmp")
 set(PGSQL_PACKAGE_FOLDER "${TEMP_PACKAGE_FOLDER}/usr/local/lib/pgsql_ext")
+set(GAIA_PACKAGE_VERSION "0.1.0")
+set(GAIA_DEB_PACKAGE_NAME "gaia_${GAIA_PACKAGE_VERSION}_amd64.deb")
+set(GAIA_LIBRARY_NAME "libgaia.${GAIA_PACKAGE_VERSION}.so")
 
 include(gaia)
 
@@ -39,7 +42,7 @@ if(BUILD_GAIA_RELEASE)
   endif()
 
   add_custom_command(
-    OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/gaia.deb
+    OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/${GAIA_DEB_PACKAGE_NAME}
     OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/gaia.rpm
 
     COMMAND cmake -E copy_if_different ${PROJECT_SOURCE_DIR}/control ${TEMP_PACKAGE_FOLDER}/DEBIAN/control
@@ -49,21 +52,19 @@ if(BUILD_GAIA_RELEASE)
     COMMAND cmake -E copy_if_different ${PROJECT_SOURCE_DIR}/postinst ${TEMP_PACKAGE_FOLDER}/DEBIAN/postinst
 
     COMMAND cmake -E copy_directory ${GAIA_INC}/gaia ${TEMP_PACKAGE_FOLDER}/usr/local/include/gaia
+    COMMAND cmake -E copy_if_different ${FLATBUFFERS_INC}/flatbuffers/flatbuffers.h ${TEMP_PACKAGE_FOLDER}/usr/local/include/gaia/flatbuffers/flatbuffers.h
+    COMMAND cmake -E copy_if_different ${FLATBUFFERS_INC}/flatbuffers/base.h ${TEMP_PACKAGE_FOLDER}/usr/local/include/gaia/flatbuffers/base.h
+    COMMAND cmake -E copy_if_different ${FLATBUFFERS_INC}/flatbuffers/stl_emulation.h ${TEMP_PACKAGE_FOLDER}/usr/local/include/gaia/flatbuffers/stl_emulation.h
 
     COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/storage_engine/gaia_se_server ${TEMP_PACKAGE_FOLDER}/usr/local/bin/gaia_se_server
     COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${TEMP_PACKAGE_FOLDER}/usr/local/bin/gaiac
     COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${TEMP_PACKAGE_FOLDER}/usr/local/bin/gaiat
 
-    COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/llvm/lib/libclang.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libclang.so
-    COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/storage_engine/libgaia_storage.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_storage.so
-    COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/index/libgaia_index.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_index.so
-    COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/memory_manager/libgaia_memorymanager.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_memorymanager.so
-    COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/triggers/libgaia_triggers.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia_triggers.so
     COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/rocksdb/librocksdb.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/librocksdb.so.6
 
-    COMMAND cmake -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/libgaia.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/libgaia.so
+    COMMAND cmake -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/libgaia.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/${GAIA_LIBRARY_NAME}
 
-    COMMAND dpkg-deb --build ${TEMP_PACKAGE_FOLDER} ${CMAKE_CURRENT_BINARY_DIR}/gaia.deb
+    COMMAND dpkg-deb --build ${TEMP_PACKAGE_FOLDER} ${CMAKE_CURRENT_BINARY_DIR}/${GAIA_DEB_PACKAGE_NAME}
 
     COMMAND cmake -E rm -r ${TEMP_PACKAGE_FOLDER}/DEBIAN
 
@@ -87,7 +88,7 @@ if(BUILD_GAIA_RELEASE)
   )
 
   add_custom_target(generate_gaia_deb_package ALL
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/gaia.deb
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${GAIA_DEB_PACKAGE_NAME}
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/gaia.rpm
   )
 endif()
