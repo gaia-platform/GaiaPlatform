@@ -28,6 +28,13 @@ using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::db::payload_types;
 
+// The gaia_fdw_adapter classes are meant to isolate the FDW from the internals of the Gaia database.
+// Thus, all important FDW-database interactions go through adapter interfaces.
+// Because Postgres does not handle exceptions gracefully, the adapter interfaces should not throw any
+// and should instead use Postgres's error reporting methods.
+// All database operations should be enclosed in a catch on the calling path from the FDW. Failure to do so
+// represents an internal programming error.
+
 namespace gaia
 {
 namespace fdw
@@ -642,11 +649,11 @@ bool scan_state_t::initialize_scan()
 {
     try
     {
-        m_current_node = gaia_ptr::find_first(m_container_id);
+        m_current_record = gaia_ptr::find_first(m_container_id);
 
-        if (m_current_node)
+        if (m_current_record)
         {
-            m_current_payload = reinterpret_cast<uint8_t*>(m_current_node.data());
+            m_current_payload = reinterpret_cast<uint8_t*>(m_current_record.data());
         }
 
         return true;
@@ -665,7 +672,7 @@ bool scan_state_t::initialize_scan()
 
 bool scan_state_t::has_scan_ended()
 {
-    return !m_current_node;
+    return !m_current_record;
 }
 
 NullableDatum scan_state_t::extract_field_value(size_t field_index)
@@ -688,12 +695,12 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
 
         if (is_gaia_id_field_index(field_index))
         {
-            field_value.value = UInt64GetDatum(m_current_node.id());
+            field_value.value = UInt64GetDatum(m_current_record.id());
         }
         else if (m_fields[field_index].is_reference)
         {
             reference_offset_t reference_offset = m_fields[field_index].position;
-            if (reference_offset >= m_current_node.num_references())
+            if (reference_offset >= m_current_record.num_references())
             {
                 ereport(
                     ERROR,
@@ -703,7 +710,7 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
                          reference_offset, get_table_name())));
             }
 
-            gaia_id_t reference_id = m_current_node.references()[reference_offset];
+            gaia_id_t reference_id = m_current_record.references()[reference_offset];
             field_value.value = UInt64GetDatum(reference_id);
 
             // If the reference id is invalid, surface the value as NULL.
@@ -744,11 +751,11 @@ bool scan_state_t::scan_forward()
     {
         retail_assert(!has_scan_ended(), "Attempt to scan forward after scan has ended!");
 
-        m_current_node = m_current_node.find_next();
+        m_current_record = m_current_record.find_next();
 
-        if (m_current_node)
+        if (m_current_record)
         {
-            m_current_payload = reinterpret_cast<uint8_t*>(m_current_node.data());
+            m_current_payload = reinterpret_cast<uint8_t*>(m_current_record.data());
         }
 
         return has_scan_ended();
@@ -852,7 +859,7 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
 
     try
     {
-        // Regular fields are serialized in the payload of the current node.
+        // Regular fields are serialized in the payload of the current record.
         data_holder_t value = convert_to_data_holder(field_value.value, m_fields[field_index].type);
 
         if (value.type == reflection::String)
@@ -903,20 +910,20 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
 {
     try
     {
-        gaia_ptr node;
+        gaia_ptr record;
         if (modify_operation_type == modify_operation_type_t::insert)
         {
-            node = gaia_ptr::create(gaia_id, m_container_id, m_current_payload->size(), m_current_payload->data());
+            record = gaia_ptr::create(gaia_id, m_container_id, m_current_payload->size(), m_current_payload->data());
         }
         else if (modify_operation_type == modify_operation_type_t::update)
         {
-            node = gaia_ptr::open(gaia_id);
+            record = gaia_ptr::open(gaia_id);
 
             // Only update payload if it has changed.
-            if (node.data_size() != m_current_payload->size()
-                || memcmp(node.data(), m_current_payload->data(), node.data_size()) != 0)
+            if (record.data_size() != m_current_payload->size()
+                || memcmp(record.data(), m_current_payload->data(), record.data_size()) != 0)
             {
-                node.update_payload(m_current_payload->size(), m_current_payload->data());
+                record.update_payload(m_current_payload->size(), m_current_payload->data());
             }
         }
         else
@@ -938,7 +945,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
             }
 
             reference_offset_t reference_offset = m_fields[i].position;
-            if (reference_offset >= node.num_references())
+            if (reference_offset >= record.num_references())
             {
                 ereport(
                     ERROR,
@@ -949,7 +956,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
             }
 
             // Read the existing reference value.
-            gaia_id_t old_reference_id = node.references()[reference_offset];
+            gaia_id_t old_reference_id = record.references()[reference_offset];
 
             if (m_fields[i].value_to_set.isnull)
             {
@@ -962,7 +969,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
                 }
 
                 // If the existing reference was valid, we need to remove it.
-                node.remove_parent_reference(old_reference_id, reference_offset);
+                record.remove_parent_reference(old_reference_id, reference_offset);
             }
             else
             {
@@ -987,7 +994,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
                 }
 
                 // Update the reference to the new value.
-                node.update_parent_reference(new_reference_id, reference_offset);
+                record.update_parent_reference(new_reference_id, reference_offset);
             }
         }
 
@@ -1038,8 +1045,8 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
 {
     try
     {
-        auto node = gaia_ptr::open(gaia_id);
-        if (!node)
+        auto record = gaia_ptr::open(gaia_id);
+        if (!record)
         {
             ereport(
                 ERROR,
@@ -1051,7 +1058,7 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
             return false;
         }
 
-        gaia_ptr::remove(node);
+        gaia_ptr::remove(record);
 
         return true;
     }

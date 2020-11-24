@@ -372,8 +372,7 @@ extern "C" TupleTableSlot* gaia_iterate_foreign_scan(ForeignScanState* node)
     // Mark the slot as containing a virtual tuple.
     ExecStoreVirtualTuple(slot);
 
-    // Now advance the current node to the next node in the iteration
-    // (this can't currently throw).
+    // Now advance the current record to the next record in the iteration.
     scan_state->scan_forward();
 
     // Return the slot.

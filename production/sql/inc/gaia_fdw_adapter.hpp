@@ -131,6 +131,7 @@ struct field_information_t
 
     bool is_reference;
 
+    // Note: currently, this is used only for the delayed setting of references.
     NullableDatum value_to_set;
 };
 
@@ -173,7 +174,7 @@ protected:
 
 // The scan state is set up in gaia_begin_foreign_scan,
 // is stashed away in node->fdw_private,
-// and is fetched in gaia_iterate_foreign_scan.
+// and is fetched in gaia_iterate_foreign_scan and gaia_rescan_foreign_scan.
 class scan_state_t : public state_t
 {
     friend class adapter_t;
@@ -196,9 +197,9 @@ public:
 
 protected:
     // The COW-SE smart ptr we are currently iterating over.
-    gaia::db::gaia_ptr m_current_node;
+    gaia::db::gaia_ptr m_current_record;
 
-    // Pointer to the deserialized payload of the current_node.
+    // Pointer to the deserialized payload of the current record.
     const uint8_t* m_current_payload;
 };
 
