@@ -506,6 +506,11 @@ bool state_t::initialize(const char* table_name, size_t expected_count_fields)
         size_t fields_array_size = sizeof(field_information_t) * m_count_fields;
         m_fields = reinterpret_cast<field_information_t*>(palloc0(fields_array_size));
 
+        // Allocate memory for holding the table name.
+        size_t table_name_size = strlen(table_name) + 1;
+        m_table_name = reinterpret_cast<char*>(palloc0(table_name_size));
+        strlcpy(m_table_name, table_name, table_name_size);
+
         return true;
     }
     catch (const exception& e)
@@ -620,6 +625,11 @@ bool state_t::set_field_index(const char* field_name, size_t field_index)
 bool state_t::is_gaia_id_field_index(size_t field_index)
 {
     return field_index == m_gaia_id_field_index;
+}
+
+const char* state_t::get_table_name()
+{
+    return m_table_name;
 }
 
 scan_state_t::scan_state_t()

@@ -151,7 +151,12 @@ public:
 
     bool is_gaia_id_field_index(size_t field_index);
 
+    const char* get_table_name();
+
 protected:
+    // Store the table name for the convenience of printing it in error messages.
+    char* m_table_name;
+
     // The table id and container id.
     gaia::common::gaia_id_t m_table_id;
     gaia::common::gaia_type_t m_container_id;

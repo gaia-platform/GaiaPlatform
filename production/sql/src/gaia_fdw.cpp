@@ -314,11 +314,10 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState* node, int /*eflags*/)
 
     node->fdw_state = scan_state;
 
-    // Retrieve the first node of the requested type
-    // (this can't currently throw).
+    // Retrieve the first node of the requested type.
     if (!scan_state->initialize_scan())
     {
-        elog(ERROR, "Failed to initialize scan for table '%s'.", table_name);
+        elog(ERROR, "Failed to initialize scan over table '%s'.", table_name);
     }
 }
 
@@ -386,9 +385,17 @@ extern "C" TupleTableSlot* gaia_iterate_foreign_scan(ForeignScanState* node)
  * depends on may have changed value, so the new scan does not necessarily
  * return exactly the same rows.
  */
-extern "C" void gaia_rescan_foreign_scan(ForeignScanState* /*node*/)
+extern "C" void gaia_rescan_foreign_scan(ForeignScanState* node)
 {
     elog(DEBUG1, "Entering function '%s'...", __func__);
+
+    auto scan_state = reinterpret_cast<gaia::fdw::scan_state_t*>(node->fdw_state);
+
+    // Re-initialize scan over the table.
+    if (!scan_state->initialize_scan())
+    {
+        elog(ERROR, "Failed to re-initialize scan over table `%s`.", scan_state->get_table_name());
+    }
 }
 
 /**
