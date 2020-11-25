@@ -1,6 +1,8 @@
 # backward-cpp dependencies (one of several options):
-# "libdw provides access to DWARF debug information stored inside ELF files."
-find_library(LIBDW_LIBRARY dw REQUIRED)
+# "libdwarf is a library to consume and produce DWARF debug information."
+# (libelf is a dependency of libdwarf)
+find_library(LIBELF_LIBRARY elf REQUIRED)
+find_library(LIBDWARF_LIBRARY dwarf REQUIRED)
 
 message(CHECK_START "Looking for backward")
 find_package(Backward QUIET CONFIG)
