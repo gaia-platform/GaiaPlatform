@@ -169,7 +169,10 @@ client::get_fd_stream_generator_for_socket(int stream_socket)
             // beforehand how many we'll get.
             batch_buffer.resize(c_max_fd_count);
             size_t fd_count = batch_buffer.size();
-            size_t datagram_size = recv_msg_with_fds(stream_socket, batch_buffer.data(), &fd_count, msg_buf, sizeof(msg_buf));
+            std::cerr << "Calling recv_msg_with_fds from get_fd_stream_generator_for_socket" << std::endl;
+            // We need to set throw_on_zero_bytes_read=false in this call, since
+            // we expect EOF to be returned when the stream is exhausted.
+            size_t datagram_size = recv_msg_with_fds(stream_socket, batch_buffer.data(), &fd_count, msg_buf, sizeof(msg_buf), false);
             // Our datagrams contain one byte by convention, since we need to
             // distinguish empty datagrams from EOF (even though Linux allows
             // ancillary data with empty datagrams).
@@ -186,6 +189,7 @@ client::get_fd_stream_generator_for_socket(int stream_socket)
             retail_assert(
                 fd_count > 0 && fd_count <= c_max_fd_count,
                 "Unexpected fd count!");
+            std::cerr << "Received " << fd_count << " fds in get_fd_stream_generator_for_socket" << std::endl;
             // Resize the vector to its actual fd count.
             batch_buffer.resize(fd_count);
         }
@@ -376,6 +380,7 @@ void client::begin_session()
     size_t fd_count = c_fd_count;
     constexpr size_t c_data_fd_index = 0;
     constexpr size_t c_locators_fd_index = 1;
+    std::cerr << "Calling recv_msg_with_fds from begin_session" << std::endl;
     size_t bytes_read = recv_msg_with_fds(s_session_socket, fds, &fd_count, msg_buf, sizeof(msg_buf));
     retail_assert(bytes_read > 0, "Failed to read message!");
     retail_assert(fd_count == c_fd_count, "Unexpected fd count!");
@@ -424,7 +429,7 @@ void client::begin_transaction()
     verify_session_active();
     verify_no_txn();
 
-    // First we allocate a new log segment and map it in our own process.
+    // Allocate a new log segment and map it in our own process.
     int fd_log = ::memfd_create(c_sch_mem_log, MFD_ALLOW_SEALING);
     if (fd_log == -1)
     {
@@ -439,6 +444,13 @@ void client::begin_transaction()
         unmap_fd(s_log, c_initial_log_size);
     });
 
+    // Map a private COW view of the locator shared memory segment.
+    retail_assert(!s_locators, "Locators segment should be uninitialized!");
+    map_fd(s_locators, sizeof(locators), PROT_READ | PROT_WRITE, MAP_PRIVATE, s_fd_locators, 0);
+    auto cleanup_locator_mapping = make_scope_guard([&]() {
+        unmap_fd(s_locators, sizeof(locators));
+    });
+
     // Notify the server that we're in a transaction. (We don't send our log fd until commit.)
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::BEGIN_TXN);
@@ -448,6 +460,7 @@ void client::begin_transaction()
     uint8_t msg_buf[c_max_msg_size] = {0};
     int stream_socket = -1;
     size_t fd_count = 1;
+    std::cerr << "Calling recv_msg_with_fds from begin_transaction" << std::endl;
     size_t bytes_read = recv_msg_with_fds(s_session_socket, &stream_socket, &fd_count, msg_buf, sizeof(msg_buf));
     retail_assert(bytes_read > 0, "Failed to read message!");
     retail_assert(fd_count == 1, "Unexpected fd count!");
@@ -468,14 +481,10 @@ void client::begin_transaction()
         throw transaction_concurrency_failure();
     }
 
-    // Now we map a private COW view of the locator shared memory segment.
-    retail_assert(!s_locators, "Locators segment should be uninitialized!");
-    map_fd(s_locators, sizeof(locators), PROT_READ | PROT_WRITE, MAP_PRIVATE, s_fd_locators, 0);
-    auto cleanup_locator_mapping = make_scope_guard([&]() {
-        unmap_fd(s_locators, sizeof(locators));
-    });
-
-    // Apply all txn logs received from server to our snapshot, in order.
+    // Apply all txn logs received from server to our snapshot, in order. The
+    // generator will close the stream socket when it's exhausted, but we need
+    // to close the stream socket if the generator throws an exception.
+    // REVIEW: might need to think about clearer ownership of the stream socket.
     auto fd_generator = get_fd_stream_generator_for_socket(stream_socket);
     auto txn_log_fds = gaia::common::iterators::range_from_generator(fd_generator);
     for (int txn_log_fd : txn_log_fds)
@@ -487,9 +496,12 @@ void client::begin_transaction()
     // Save the log fd to send to the server on commit.
     s_fd_log = fd_log;
 
-    cleanup_log_fd.dismiss();
-    cleanup_log_mapping.dismiss();
+    // If we exhausted the generator without throwing an exception, then the
+    // generator already closed the stream socket.
+    cleanup_stream_socket.dismiss();
     cleanup_locator_mapping.dismiss();
+    cleanup_log_mapping.dismiss();
+    cleanup_log_fd.dismiss();
 }
 
 void client::apply_txn_log(int log_fd)
@@ -566,6 +578,7 @@ void client::commit_transaction()
 
     // Block on the server's commit decision.
     uint8_t msg_buf[c_max_msg_size] = {0};
+    std::cerr << "Calling recv_msg_with_fds from commit_transaction" << std::endl;
     size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
     retail_assert(bytes_read > 0, "Failed to read message!");
 

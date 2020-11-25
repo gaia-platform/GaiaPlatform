@@ -780,6 +780,7 @@ void server::session_handler(int session_socket)
                         !(ev.events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)),
                         "EPOLLERR, EPOLLHUP, EPOLLRDHUP flags should not be set!");
                     // Read client message with possible file descriptors.
+                    std::cerr << "Calling recv_msg_with_fds from session_handler" << std::endl;
                     size_t bytes_read = recv_msg_with_fds(s_session_socket, fd_buf, &fd_buf_size, msg_buf, sizeof(msg_buf));
                     // We shouldn't get EOF unless EPOLLRDHUP is set.
                     // REVIEW: it might be possible for the client to call shutdown(SHUT_WR)
@@ -1090,7 +1091,7 @@ void server::fd_stream_producer_handler(
                         !(ev.events & (EPOLLERR | EPOLLHUP)),
                         "EPOLLERR and EPOLLHUP flags should not be set!");
                     // Write to the send buffer until we exhaust either the iterator or the buffer free space.
-                    while (gen_iter && (batch_buffer.size() <= c_max_fd_count))
+                    while (gen_iter && (batch_buffer.size() < c_max_fd_count))
                     {
                         int next_fd = *gen_iter;
                         batch_buffer.push_back(next_fd);
@@ -1103,6 +1104,8 @@ void server::fd_stream_producer_handler(
                     // First send any remaining data in the buffer.
                     if (batch_buffer.size() > 0)
                     {
+                        cerr << "Batch buffer size: " << batch_buffer.size() << endl;
+                        cerr << "Max FD count: " << c_max_fd_count << endl;
                         retail_assert(
                             batch_buffer.size() <= c_max_fd_count,
                             "Buffer has more than the maximum allowed number of fds!");
