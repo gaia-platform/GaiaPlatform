@@ -200,7 +200,7 @@ public:
      * This method will return last_operation_t::none if this rule was not
      * invoked due to an operation on X.
      */
-    last_operation_t last_operation(common::gaia_type_t gaia_type) const;
+    last_operation_t last_operation(common::gaia_type_t other_gaia_type) const;
 
     direct_access::auto_transaction_t& txn;
     common::gaia_type_t gaia_type;

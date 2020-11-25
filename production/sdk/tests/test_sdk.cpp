@@ -8,6 +8,7 @@
 
 #include "gtest/gtest.h"
 
+#include "gaia/db/catalog.hpp"
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
 #include "gaia_addr_book.h"
@@ -24,16 +25,28 @@ extern "C" void initialize_rules()
 {
 }
 
-void rule(const rule_context_t*)
+void rule(const rule_context_t* ctx)
 {
+    // We had a Link error where the Linker would not export rule_context_t::last_operation
+    // function because unused anywhere in the project (besides the module where it is defined).
+    if (ctx->last_operation(gaia::addr_book::employee_t::s_gaia_type) == last_operation_t::row_insert)
+    {
+        ASSERT_EQ(ctx->gaia_type, gaia::addr_book::employee_t::s_gaia_type);
+    }
 }
 
 TEST(sdk_test, app_check)
 {
+
     rule_binding_t binding("ruleset", "rulename", rule);
     subscription_list_t subscriptions;
     gaia::system::initialize("./gaia.conf");
     gaia_type_t type_id = gaia::addr_book::employee_t::s_gaia_type;
+
+    // Force a s_gaia_type creation in the Catalog (assumes that the Catalog is empty and the
+    // first created table will get ID 1). ATM we do not expose an API to load DDL data into the
+    // Catalog.
+    gaia::catalog::create_table("test_table", gaia::catalog::ddl::field_def_list_t());
 
     subscribe_rule(type_id, event_type_t::row_insert, empty_fields, binding);
     {

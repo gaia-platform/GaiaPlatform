@@ -5,9 +5,17 @@
 
 #include "gaia/rules/rules.hpp"
 
-using namespace gaia::rules;
 using namespace gaia::common;
 
+namespace gaia
+{
+namespace rules
+{
+
+// Note: this function is not used anywhere outside this module hence the linker will not export
+// it. The linker does not consider single functions but entire object files for export
+// (unless specified otherwise). The SDK uses the "-Wl,--whole-archive" directive to
+// force the export of this function
 last_operation_t rule_context_t::last_operation(gaia_type_t other_gaia_type) const
 {
     last_operation_t operation = last_operation_t::none;
@@ -35,3 +43,6 @@ last_operation_t rule_context_t::last_operation(gaia_type_t other_gaia_type) con
 
     return operation;
 }
+
+} // namespace rules
+} // namespace gaia
