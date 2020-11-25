@@ -12,6 +12,7 @@
 #include "type_id_mapping.hpp"
 
 using namespace gaia::common;
+
 namespace gaia
 {
 namespace db

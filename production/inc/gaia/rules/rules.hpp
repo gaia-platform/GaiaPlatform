@@ -349,7 +349,7 @@ void list_subscribed_rules(
     const char* ruleset_name,
     const gaia::common::gaia_type_t* gaia_type,
     const gaia::db::triggers::event_type_t* event_type,
-    const uint16_t* field,
+    const common::field_position_t* field,
     subscription_list_t& subscriptions);
 
 /*@}*/

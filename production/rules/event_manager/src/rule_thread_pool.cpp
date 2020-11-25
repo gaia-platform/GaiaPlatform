@@ -114,10 +114,21 @@ void rule_thread_pool_t::execute_immediate()
 
 void rule_thread_pool_t::enqueue(invocation_t& invocation)
 {
-    m_stats_manager.insert_rule_stats(invocation.rule_id);
+    if (invocation.type == invocation_type_t::rule)
+    {
+        m_stats_manager.insert_rule_stats(invocation.rule_id);
+        if (s_tls_can_enqueue)
+        {
+            m_stats_manager.inc_scheduled(invocation.rule_id);
+        }
+        else
+        {
+            m_stats_manager.inc_pending(invocation.rule_id);
+        }
+    }
+
     if (s_tls_can_enqueue)
     {
-        m_stats_manager.inc_scheduled(invocation.rule_id);
         if (m_threads.size() > 0)
         {
             unique_lock<mutex> lock(m_lock);
@@ -132,7 +143,6 @@ void rule_thread_pool_t::enqueue(invocation_t& invocation)
     }
     else
     {
-        m_stats_manager.inc_pending(invocation.rule_id);
         s_tls_pending_invocations.push(invocation);
     }
 }
