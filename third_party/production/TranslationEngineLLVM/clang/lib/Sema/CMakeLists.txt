@@ -74,6 +74,7 @@ add_clang_library(clangSema
   clangBasic
   clangEdit
   clangLex
+  gaia_system
   )
 
 # We should not need this right now because we are not pulling any headers that

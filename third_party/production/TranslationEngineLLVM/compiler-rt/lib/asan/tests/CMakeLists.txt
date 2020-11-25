@@ -166,7 +166,7 @@ function(add_asan_tests arch test_runtime)
   function(generate_asan_tests test_objects test_suite testname)
     generate_compiler_rt_tests(${test_objects} ${test_suite} ${testname} ${arch}
       COMPILE_DEPS ${ASAN_UNITTEST_HEADERS} ${ASAN_BLACKLIST_FILE}
-      DEPS gtest asan
+      DEPS llvm_gtest llvm_gtest_main asan
       KIND ${TEST_KIND}
       ${ARGN}
       )

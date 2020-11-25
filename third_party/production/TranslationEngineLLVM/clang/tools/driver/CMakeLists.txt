@@ -48,6 +48,7 @@ target_link_libraries(clang
   clangFrontend
   clangFrontendTool
   clangSerialization
+  gaia_system
   )
 
 if(WIN32 AND NOT CYGWIN)
