@@ -185,6 +185,32 @@ void server::handle_server_shutdown(
     s_session_shutdown = true;
 }
 
+static std::pair<int, int> get_stream_socket_pair()
+{
+    // Create a connected pair of datagram sockets, one of which we will keep
+    // and the other we will send to the client.
+    // We use SOCK_SEQPACKET because it supports both datagram and connection
+    // semantics: datagrams allow buffering without framing, and a connection
+    // ensures that client returns EOF after server has called shutdown(SHUT_WR).
+    int socket_pair[2];
+    constexpr int c_client_index = 0;
+    constexpr int c_server_index = 1;
+    if (-1 == ::socketpair(PF_UNIX, SOCK_SEQPACKET, 0, socket_pair))
+    {
+        throw_system_error("socketpair failed");
+    }
+    int client_socket = socket_pair[c_client_index];
+    int server_socket = socket_pair[c_server_index];
+    auto socket_cleanup = make_scope_guard([&]() {
+        close_fd(client_socket);
+        close_fd(server_socket);
+    });
+    // Set server socket to be nonblocking, since we use it within an epoll loop.
+    set_non_blocking(server_socket);
+    socket_cleanup.dismiss();
+    return std::pair<int, int>{client_socket, server_socket};
+}
+
 void server::handle_request_stream(
     int*, size_t, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state)
 {
@@ -193,26 +219,7 @@ void server::handle_request_stream(
     retail_assert(
         old_state == new_state,
         "Current event is inconsistent with state transition!");
-    // Create a connected pair of datagram sockets, one of which we will keep
-    // and the other we will send to the client.
-    // We use SOCK_SEQPACKET because it supports both datagram and connection
-    // semantics: datagrams allow buffering without framing, and a connection
-    // ensures that client returns EOF after server has called shutdown(SHUT_WR).
-    int socket_pair[2];
-    constexpr int c_server_index = 0;
-    constexpr int c_client_index = 1;
-    if (-1 == ::socketpair(PF_UNIX, SOCK_SEQPACKET, 0, socket_pair))
-    {
-        throw_system_error("socketpair failed");
-    }
-    int server_socket = socket_pair[c_server_index];
-    int client_socket = socket_pair[c_client_index];
-    auto socket_cleanup = make_scope_guard([&]() {
-        close_fd(server_socket);
-        close_fd(client_socket);
-    });
-    // Set server socket to be nonblocking, since we use it within an epoll loop.
-    set_non_blocking(server_socket);
+
     // The only currently supported stream type is table scans.
     // When we add more stream types, we should add a switch statement on data_type.
     // It would be nice to delegate to a helper returning a different generator for each
@@ -228,6 +235,13 @@ void server::handle_request_stream(
         "Unexpected request data type");
     auto type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
     auto id_generator = get_id_generator_for_type(type);
+    // We can't use structured binding names in a lambda capture list.
+    int client_socket, server_socket;
+    std::tie(client_socket, server_socket) = get_stream_socket_pair();
+    auto socket_cleanup = make_scope_guard([&]() {
+        close_fd(client_socket);
+        close_fd(server_socket);
+    });
     start_stream_producer(server_socket, id_generator);
     // Any exceptions after this point will close the server socket, ensuring the producer thread terminates.
     // However, its destructor will not run until the session thread exits and joins the producer thread.
