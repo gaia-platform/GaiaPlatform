@@ -382,7 +382,8 @@ void event_manager_t::unsubscribe_rules()
 void event_manager_t::list_subscribed_rules(
     const char* ruleset_name,
     const gaia_type_t* gaia_type_ptr,
-    const event_type_t* event_type_ptr, const uint16_t* field_ptr,
+    const event_type_t* event_type_ptr,
+    const field_position_t* field_ptr,
     subscription_list_t& subscriptions)
 {
     subscriptions.clear();
@@ -427,7 +428,7 @@ void event_manager_t::add_subscriptions(
     const rule_list_t& rules,
     gaia_type_t gaia_type,
     event_type_t event_type,
-    uint16_t field,
+    field_position_t field,
     const char* ruleset_filter)
 {
     for (auto rule : rules)
@@ -594,7 +595,8 @@ void gaia::rules::unsubscribe_rules()
 void gaia::rules::list_subscribed_rules(
     const char* ruleset_name,
     const gaia_type_t* gaia_type,
-    const event_type_t* event_type, const uint16_t* field,
+    const event_type_t* event_type,
+    const field_position_t* field,
     subscription_list_t& subscriptions)
 {
     event_manager_t::get().list_subscribed_rules(ruleset_name, gaia_type, event_type, field, subscriptions);
