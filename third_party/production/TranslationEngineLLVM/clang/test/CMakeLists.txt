@@ -57,7 +57,6 @@ list(APPEND CLANG_TEST_DEPS
   clang-diff
   hmaptool
   )
-
 if(CLANG_ENABLE_STATIC_ANALYZER)
   list(APPEND CLANG_TEST_DEPS
     clang-check

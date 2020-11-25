@@ -35,8 +35,7 @@ target_link_libraries(clang-tidy
   clangTidyReadabilityModule
   clangTidyZirconModule
   clangTooling
-  clangToolingCore  
-  gaia_system
+  clangToolingCore
   )
 
 if(CLANG_ENABLE_STATIC_ANALYZER)
