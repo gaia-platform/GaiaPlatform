@@ -1,3 +1,9 @@
 #!/bin/sh
 pkill -f -KILL gaia_se_server
+# These may be symlinks not cleaned up by a previous uninstall.
+rm -f /usr/local/lib/libgaia.so
+rm -f /usr/local/lib/librocksdb.so.6
+rm -f /usr/local/bin/gaiat
+rm -f /usr/local/bin/gaiac
+rm -f /usr/local/bin/gaia_se_server
 exit 0
