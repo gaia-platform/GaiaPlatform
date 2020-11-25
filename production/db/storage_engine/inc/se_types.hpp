@@ -18,9 +18,6 @@ namespace gaia
 namespace db
 {
 
-// 1K oughta be enough for anybody...
-constexpr size_t c_max_msg_size = 1 << 10;
-
 enum class gaia_operation_t : uint8_t
 {
     not_set = 0x0,

@@ -239,14 +239,23 @@ private:
 
     static void session_handler(int session_socket);
 
+    static std::pair<int, int> get_stream_socket_pair();
+
     template <typename element_type>
     static void stream_producer_handler(int stream_socket, int cancel_eventfd, std::function<std::optional<element_type>()> generator_fn);
+
+    static void fd_stream_producer_handler(int stream_socket, int cancel_eventfd, std::function<std::optional<int>()> generator_fn);
 
     template <typename element_type>
     static void start_stream_producer(int stream_socket, std::function<std::optional<element_type>()> generator_fn);
 
+    static void start_fd_stream_producer(int stream_socket, std::function<std::optional<int>()> generator_fn);
+
     static std::function<std::optional<gaia_id_t>()>
     get_id_generator_for_type(gaia_type_t type);
+
+    static std::function<std::optional<int>()>
+    get_log_fd_generator_for_begin_ts(gaia_txn_id_t begin_ts);
 
     static gaia_txn_id_t txn_begin();
 
@@ -302,7 +311,9 @@ private:
 
     static bool txn_logs_conflict(int log_fd1, int log_fd2);
 
-    static bool validate_txn(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts, int log_fd, bool recursing = false);
+    static bool validate_txn(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts, int log_fd, bool in_committing_txn = true);
+
+    static void validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_ts);
 
     static void dump_ts_entry(gaia_txn_id_t ts);
 

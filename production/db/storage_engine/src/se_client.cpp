@@ -146,6 +146,59 @@ client::get_stream_generator_for_socket(int stream_socket)
     };
 }
 
+// This generator wraps a socket which reads a stream of fds from the server.
+// Because the socket interfaces for file descriptor passing are so specialized,
+// we can't reuse the generic stream socket generator implementation.
+std::function<std::optional<int>()>
+client::get_fd_stream_generator_for_socket(int stream_socket)
+{
+    // Verify the socket is the correct type for the semantics we assume.
+    check_socket_type(stream_socket, SOCK_SEQPACKET);
+    // The userspace buffer that we use to receive a batch datagram message.
+    std::vector<int> batch_buffer;
+    // The definition of the generator we return.
+    return [stream_socket, batch_buffer]() mutable -> std::optional<int> {
+        // We shouldn't be called again after we received EOF from the server.
+        retail_assert(stream_socket != -1, "Stream socket is invalid!");
+        // If buffer is empty, block until a new batch is available.
+        if (batch_buffer.size() == 0)
+        {
+            // We only need a 1-byte buffer due to our datagram size convention.
+            uint8_t msg_buf[1] = {0};
+            // Resize the vector for maximum fd count, since we don't know
+            // beforehand how many we'll get.
+            batch_buffer.resize(c_max_fd_count);
+            size_t fd_count = batch_buffer.size();
+            size_t datagram_size = recv_msg_with_fds(stream_socket, batch_buffer.data(), &fd_count, msg_buf, sizeof(msg_buf));
+            // Our datagrams contain one byte by convention, since we need to
+            // distinguish empty datagrams from EOF (even though Linux allows
+            // ancillary data with empty datagrams).
+            if (datagram_size == 0)
+            {
+                // We received EOF from the server, so close
+                // client socket and stop iteration.
+                close_fd(stream_socket);
+                // Tell the caller to stop iteration.
+                return std::nullopt;
+            }
+            // The datagram size must be 1 byte according to our protocol.
+            retail_assert(datagram_size == 1, "Unexpected datagram size!");
+            retail_assert(
+                fd_count > 0 && fd_count <= c_max_fd_count,
+                "Unexpected fd count!");
+            // Resize the vector to its actual fd count.
+            batch_buffer.resize(fd_count);
+        }
+        // At this point we know our buffer is non-empty.
+        retail_assert(batch_buffer.size() > 0, "Empty batch buffer detected!");
+        // Loop through the buffer and return entries in FIFO order
+        // (the server reversed the original buffer before sending).
+        int next_fd = batch_buffer.back();
+        batch_buffer.pop_back();
+        return next_fd;
+    };
+}
+
 std::function<std::optional<gaia_id_t>()>
 client::get_id_generator_for_type(gaia_type_t type)
 {
@@ -386,34 +439,22 @@ void client::begin_transaction()
         unmap_fd(s_log, c_initial_log_size);
     });
 
-    // Now we map a private COW view of the locator shared memory segment.
-    if (::flock(s_fd_locators, LOCK_SH) < 0)
-    {
-        throw_system_error("flock failed");
-    }
-    auto cleanup_flock = make_scope_guard([&]() {
-        if (-1 == ::flock(s_fd_locators, LOCK_UN))
-        {
-            // Per C++11 semantics, throwing an exception from a destructor
-            // will just call std::terminate(), no undefined behavior.
-            throw_system_error("flock failed");
-        }
-    });
-
-    map_fd(s_locators, sizeof(locators), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_POPULATE, s_fd_locators, 0);
-    auto cleanup_locator_mapping = make_scope_guard([&]() {
-        unmap_fd(s_locators, sizeof(locators));
-    });
-
     // Notify the server that we're in a transaction. (We don't send our log fd until commit.)
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::BEGIN_TXN);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
-    // Block to receive transaction id from the server.
+    // Block to receive transaction id and txn logs from the server.
     uint8_t msg_buf[c_max_msg_size] = {0};
-    size_t bytes_read = recv_msg_with_fds(s_session_socket, nullptr, nullptr, msg_buf, sizeof(msg_buf));
+    int stream_socket = -1;
+    size_t fd_count = 1;
+    size_t bytes_read = recv_msg_with_fds(s_session_socket, &stream_socket, &fd_count, msg_buf, sizeof(msg_buf));
     retail_assert(bytes_read > 0, "Failed to read message!");
+    retail_assert(fd_count == 1, "Unexpected fd count!");
+    retail_assert(stream_socket != -1, "Invalid stream socket!");
+    auto cleanup_stream_socket = make_scope_guard([&]() {
+        close_fd(stream_socket);
+    });
 
     // Extract the transaction id and cache it; it needs to be reset for the next transaction.
     const message_t* msg = Getmessage_t(msg_buf);
@@ -427,12 +468,42 @@ void client::begin_transaction()
         throw transaction_concurrency_failure();
     }
 
+    // Now we map a private COW view of the locator shared memory segment.
+    retail_assert(!s_locators, "Locators segment should be uninitialized!");
+    map_fd(s_locators, sizeof(locators), PROT_READ | PROT_WRITE, MAP_PRIVATE, s_fd_locators, 0);
+    auto cleanup_locator_mapping = make_scope_guard([&]() {
+        unmap_fd(s_locators, sizeof(locators));
+    });
+
+    // Apply all txn logs received from server to our snapshot, in order.
+    auto fd_generator = get_fd_stream_generator_for_socket(stream_socket);
+    auto txn_log_fds = gaia::common::iterators::range_from_generator(fd_generator);
+    for (int txn_log_fd : txn_log_fds)
+    {
+        apply_txn_log(txn_log_fd);
+        close_fd(txn_log_fd);
+    }
+
     // Save the log fd to send to the server on commit.
     s_fd_log = fd_log;
 
     cleanup_log_fd.dismiss();
     cleanup_log_mapping.dismiss();
     cleanup_locator_mapping.dismiss();
+}
+
+void client::apply_txn_log(int log_fd)
+{
+    log* txn_log;
+    map_fd(txn_log, get_fd_size(log_fd), PROT_READ, MAP_PRIVATE, log_fd, 0);
+    auto cleanup_log_mapping = make_scope_guard([&]() {
+        unmap_fd(txn_log, get_fd_size(log_fd));
+    });
+    for (size_t i = 0; i < txn_log->count; i++)
+    {
+        auto lr = txn_log->log_records + i;
+        (*s_locators)[lr->locator] = lr->new_offset;
+    }
 }
 
 void client::rollback_transaction()

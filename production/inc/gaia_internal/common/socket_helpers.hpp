@@ -6,6 +6,7 @@
 #pragma once
 
 #include <iostream>
+#include <ostream>
 #include <stdexcept>
 
 #include <sys/socket.h>
@@ -20,7 +21,11 @@ namespace gaia
 namespace common
 {
 
-// Current protocols never send or receive > 2 fds at a time.
+// 1K oughta be enough for anybody...
+constexpr size_t c_max_msg_size = 1 << 10;
+
+// This is the value of SCM_MAX_FD according to the manpage for unix(7).
+// constexpr size_t c_max_fd_count = 253;
 constexpr size_t c_max_fd_count = 2;
 
 // We throw this exception on either EPIPE/SIGPIPE caught from a write
@@ -152,6 +157,7 @@ inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* dat
     // and all fds we receive must fit in control.buf below.
     if (fds)
     {
+        std::cerr << "Expected " << *pfd_count << " fds in recv_msg_with_fds" << std::endl;
         retail_assert(
             pfd_count && *pfd_count && *pfd_count <= c_max_fd_count,
             "Illegal size of fds array!");
@@ -220,6 +226,7 @@ inline size_t recv_msg_with_fds(int sock, int* fds, size_t* pfd_count, void* dat
             }
             // *pfd_count has final value equal to number of fds returned
             *pfd_count = fd_count;
+            std::cerr << "Received " << *pfd_count << " fds in recv_msg_with_fds" << std::endl;
         }
         else
         {

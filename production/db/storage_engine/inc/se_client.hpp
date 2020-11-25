@@ -88,6 +88,8 @@ private:
 
     static void dedup_log();
 
+    static void apply_txn_log(int log_fd);
+
     static int get_session_socket();
 
     static int get_id_cursor_socket_for_type(gaia_type_t type);
@@ -97,6 +99,9 @@ private:
     template <typename T_element_type>
     static std::function<std::optional<T_element_type>()>
     get_stream_generator_for_socket(int stream_socket);
+
+    static std::function<std::optional<int>()>
+    get_fd_stream_generator_for_socket(int stream_socket);
 
     /**
      *  Check if an event should be generated for a given type.

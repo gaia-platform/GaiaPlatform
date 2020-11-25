@@ -56,6 +56,9 @@ void server::handle_connect(
     FlatBufferBuilder builder;
     build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_txn_id);
     int send_fds[] = {s_fd_data, s_fd_locators};
+    cerr << "s_fd_data: " << s_fd_data << ", size: " << get_fd_size(s_fd_data) << endl;
+    cerr << "s_fd_locators: " << s_fd_locators << ", size: " << get_fd_size(s_fd_locators) << endl;
+    cerr << "s_session_socket: " << s_session_socket << endl;
     send_msg_with_fds(s_session_socket, send_fds, std::size(send_fds), builder.GetBufferPointer(), builder.GetSize());
 }
 
@@ -71,12 +74,25 @@ void server::handle_begin_txn(
     FlatBufferBuilder builder;
     // This allocates a new begin_ts for this txn and initializes its entry.
     s_txn_id = txn_begin();
+    // Open a stream socket to send all applicable txn log fds to the client.
+    auto log_fd_generator = get_log_fd_generator_for_begin_ts(s_txn_id);
+    // We can't use structured binding names in a lambda capture list.
+    int client_socket, server_socket;
+    std::tie(client_socket, server_socket) = get_stream_socket_pair();
+    auto socket_cleanup = make_scope_guard([&]() {
+        close_fd(client_socket);
+        close_fd(server_socket);
+    });
+    start_fd_stream_producer(server_socket, log_fd_generator);
     // The client must throw an appropriate exception if txn_begin() returns
     // c_invalid_gaia_txn_id. This can only happen when another beginning or
     // committing txn invalidates all unknown timestamps in its snapshot window
     // or conflict window.
     build_server_reply(builder, session_event_t::BEGIN_TXN, old_state, new_state, s_txn_id);
-    send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
+    send_msg_with_fds(s_session_socket, &client_socket, 1, builder.GetBufferPointer(), builder.GetSize());
+    // Close the client socket in our process since we duplicated it.
+    close_fd(client_socket);
+    socket_cleanup.dismiss();
 }
 
 void server::handle_rollback_txn(
@@ -185,7 +201,7 @@ void server::handle_server_shutdown(
     s_session_shutdown = true;
 }
 
-static std::pair<int, int> get_stream_socket_pair()
+std::pair<int, int> server::get_stream_socket_pair()
 {
     // Create a connected pair of datagram sockets, one of which we will keep
     // and the other we will send to the client.
@@ -208,7 +224,7 @@ static std::pair<int, int> get_stream_socket_pair()
     // Set server socket to be nonblocking, since we use it within an epoll loop.
     set_non_blocking(server_socket);
     socket_cleanup.dismiss();
-    return std::pair<int, int>{client_socket, server_socket};
+    return std::pair{client_socket, server_socket};
 }
 
 void server::handle_request_stream(
@@ -982,6 +998,179 @@ void server::start_stream_producer(int stream_socket, std::function<std::optiona
         stream_producer_handler<T_element_type>, stream_socket, s_session_shutdown_eventfd, generator_fn);
 }
 
+// REVIEW: this is copied from stream_producer_handler() only for expediency;
+// the epoll loop boilerplate will be factored out in the near future.
+void server::fd_stream_producer_handler(
+    int stream_socket, int cancel_eventfd, std::function<std::optional<int>()> generator_fn)
+{
+    // Verify the socket is the correct type for the semantics we assume.
+    check_socket_type(stream_socket, SOCK_SEQPACKET);
+    auto gen_iter = generator_iterator_t<int>(generator_fn);
+    auto socket_cleanup = make_scope_guard([&]() {
+        // We can rely on close_fd() to perform the equivalent of shutdown(SHUT_RDWR),
+        // since we hold the only fd pointing to this socket.
+        close_fd(stream_socket);
+    });
+    // Check that our stream socket is non-blocking (so we don't accidentally block in write()).
+    retail_assert(is_non_blocking(stream_socket), "Stream socket is in blocking mode!");
+    int epoll_fd = ::epoll_create1(0);
+    if (epoll_fd == -1)
+    {
+        throw_system_error("epoll_create1 failed");
+    }
+    auto epoll_cleanup = make_scope_guard([&]() { close_fd(epoll_fd); });
+    // We poll for write availability of the stream socket in level-triggered mode,
+    // and only write at most one buffer of data before polling again, to avoid read
+    // starvation of the cancellation eventfd.
+    epoll_event sock_ev = {0};
+    sock_ev.events = EPOLLOUT;
+    sock_ev.data.fd = stream_socket;
+    if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, stream_socket, &sock_ev))
+    {
+        throw_system_error("epoll_ctl failed");
+    }
+    epoll_event cancel_ev = {0};
+    cancel_ev.events = EPOLLIN;
+    cancel_ev.data.fd = cancel_eventfd;
+    if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, cancel_eventfd, &cancel_ev))
+    {
+        throw_system_error("epoll_ctl failed");
+    }
+    epoll_event events[2];
+    bool producer_shutdown = false;
+    // The userspace buffer that we use to construct batched ancillary data.
+    std::vector<int> batch_buffer;
+    // We need to call reserve() rather than the "sized" constructor to avoid changing size().
+    batch_buffer.reserve(c_max_fd_count);
+    while (!producer_shutdown)
+    {
+        // Block forever (we will be notified of shutdown).
+        int ready_fd_count = ::epoll_wait(epoll_fd, events, std::size(events), -1);
+        if (ready_fd_count == -1)
+        {
+            // Attaching the debugger will send a SIGSTOP which we can't block.
+            // Any signal which we block will set the shutdown eventfd and will
+            // alert the epoll fd, so we don't have to worry about getting EINTR
+            // from a signal intended to terminate the process.
+            if (errno == EINTR)
+            {
+                continue;
+            }
+            throw_system_error("epoll_wait failed");
+        }
+        for (int i = 0; i < ready_fd_count; i++)
+        {
+            epoll_event ev = events[i];
+            if (ev.data.fd == stream_socket)
+            {
+                // NB: Since many event flags are set in combination with others, the
+                // order we test them in matters! E.g., EPOLLIN seems to always be set
+                // whenever EPOLLRDHUP is set, so we need to test EPOLLRDHUP before
+                // testing EPOLLIN.
+                if (ev.events & EPOLLERR)
+                {
+                    // This flag is unmaskable, so we don't need to register for it.
+                    int error = 0;
+                    socklen_t err_len = sizeof(error);
+                    // Ignore errors getting error message and default to generic error message.
+                    ::getsockopt(stream_socket, SOL_SOCKET, SO_ERROR, static_cast<void*>(&error), &err_len);
+                    cerr << "fd stream socket error: " << ::strerror(error) << endl;
+                    producer_shutdown = true;
+                }
+                else if (ev.events & EPOLLHUP)
+                {
+                    // This flag is unmaskable, so we don't need to register for it.
+                    // We shold get this when the client has closed its end of the socket.
+                    retail_assert(!(ev.events & EPOLLERR), "EPOLLERR flag should not be set!");
+                    producer_shutdown = true;
+                }
+                else if (ev.events & EPOLLOUT)
+                {
+                    retail_assert(
+                        !(ev.events & (EPOLLERR | EPOLLHUP)),
+                        "EPOLLERR and EPOLLHUP flags should not be set!");
+                    // Write to the send buffer until we exhaust either the iterator or the buffer free space.
+                    while (gen_iter && (batch_buffer.size() <= c_max_fd_count))
+                    {
+                        int next_fd = *gen_iter;
+                        batch_buffer.push_back(next_fd);
+                        ++gen_iter;
+                    }
+                    // We need to send any pending data in the buffer, followed by EOF
+                    // if we reached end of iteration. We let the client decide when to
+                    // close the socket, since their next read may be arbitrarily delayed
+                    // (and they may still have pending data).
+                    // First send any remaining data in the buffer.
+                    if (batch_buffer.size() > 0)
+                    {
+                        retail_assert(
+                            batch_buffer.size() <= c_max_fd_count,
+                            "Buffer has more than the maximum allowed number of fds!");
+                        // To simplify client state management by allowing the client to
+                        // dequeue entries in FIFO order using std::vector.pop_back(),
+                        // we reverse the order of entries in the buffer.
+                        std::reverse(std::begin(batch_buffer), std::end(batch_buffer));
+                        // We only need a 1-byte buffer due to our datagram size convention.
+                        uint8_t msg_buf[1] = {0};
+                        ssize_t bytes_written = send_msg_with_fds(
+                            stream_socket, batch_buffer.data(), batch_buffer.size(), msg_buf, sizeof(msg_buf));
+                        if (bytes_written == -1)
+                        {
+                            // It should never happen that the socket is no longer writable
+                            // after we receive EPOLLOUT, since we are the only writer and
+                            // the receive buffer is always large enough for a batch.
+                            retail_assert(errno != EAGAIN && errno != EWOULDBLOCK, "Unexpected errno value!");
+                            // Log the error and break out of the poll loop.
+                            cerr << "fd stream socket error: " << ::strerror(errno) << endl;
+                            producer_shutdown = true;
+                        }
+                        else
+                        {
+                            // We successfully wrote to the socket, so clear the buffer.
+                            // (Partial writes are impossible with datagram sockets.)
+                            // The standard is somewhat unclear, but apparently clear() will
+                            // not change the capacity in any recent implementation of the
+                            // standard library (https://cplusplus.github.io/LWG/issue1102).
+                            batch_buffer.clear();
+                        }
+                    }
+                    // If we reached end of iteration, send EOF to client.
+                    // (We still need to wait for the client to close their socket,
+                    // since they may still have unread data, so we don't set the
+                    // producer_shutdown flag.)
+                    if (!gen_iter)
+                    {
+                        ::shutdown(stream_socket, SHUT_WR);
+                    }
+                }
+                else
+                {
+                    // We don't register for any other events.
+                    retail_assert(false, "Unexpected event type!");
+                }
+            }
+            else if (ev.data.fd == cancel_eventfd)
+            {
+                retail_assert(ev.events == EPOLLIN, "Unexpected event type!");
+                consume_eventfd(cancel_eventfd);
+                producer_shutdown = true;
+            }
+            else
+            {
+                // We don't monitor any other fds.
+                retail_assert(false, "Unexpected fd!");
+            }
+        }
+    }
+}
+
+void server::start_fd_stream_producer(int stream_socket, std::function<std::optional<int>()> generator_fn)
+{
+    // Give the session ownership of the new stream thread.
+    s_session_owned_threads.emplace_back(
+        fd_stream_producer_handler, stream_socket, s_session_shutdown_eventfd, generator_fn);
+}
+
 std::function<std::optional<gaia_id_t>()> server::get_id_generator_for_type(gaia_type_t type)
 {
     gaia_locator_t locator = 0;
@@ -1007,6 +1196,52 @@ std::function<std::optional<gaia_id_t>()> server::get_id_generator_for_type(gaia
             if (obj && obj->type == type)
             {
                 return obj->id;
+            }
+        }
+        // Signal end of iteration.
+        return std::nullopt;
+    };
+}
+
+void server::validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_ts)
+{
+    // Scan timestamp entries from the last applied commit_ts forward.
+    // Invalidate any unknown entries and validate any undecided txns.
+    for (gaia_txn_id_t ts = start_ts; ts < end_ts; ++ts)
+    {
+        // Fence off any txns that might have allocated a commit_ts before our
+        // begin_ts but have not yet registered their txn log under their
+        // commit_ts.
+        if (is_unknown_ts(ts))
+        {
+            invalidate_ts(ts);
+        }
+        // Validate any undecided submitted txns.
+        if (is_commit_ts(ts) && !is_txn_decided(ts))
+        {
+            bool committed = validate_txn(
+                get_begin_ts(ts), ts, get_txn_log_fd(ts), false);
+
+            // Update the current txn's decided status.
+            update_txn_decision(ts, committed);
+        }
+    }
+}
+
+std::function<std::optional<int>()> server::get_log_fd_generator_for_begin_ts(gaia_txn_id_t begin_ts)
+{
+    // Ensure that there are no undecided txns in our snapshot window.
+    validate_txns_in_range(s_last_applied_txn_commit_ts + 1, begin_ts);
+    gaia_txn_id_t ts = s_last_applied_txn_commit_ts;
+    return [=]() mutable -> std::optional<int> {
+        while (++ts && ts < begin_ts)
+        {
+            if (is_commit_ts(ts))
+            {
+                retail_assert(
+                    is_txn_decided(ts),
+                    "Undecided commit_ts found in snapshot window!");
+                return get_txn_log_fd(ts);
             }
         }
         // Signal end of iteration.
@@ -1388,7 +1623,7 @@ bool server::txn_logs_conflict(int log_fd1, int log_fd2)
 }
 
 bool server::validate_txn(
-    gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts, int log_fd, bool recursing)
+    gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts, int log_fd, bool in_committing_txn)
 {
     // Validation algorithm:
     //
@@ -1439,7 +1674,7 @@ bool server::validate_txn(
 
     // Find commit timestamps of all committed and undecided txns in conflict window.
     std::unordered_set<gaia_txn_id_t> committed_txns;
-    cerr << "Validating " << (recursing ? "recursive" : "top-level") << " txn with begin_ts " << begin_ts << ", commit_ts " << commit_ts << endl;
+    cerr << "Validating " << (in_committing_txn ? "top-level" : "recursive") << " txn with begin_ts " << begin_ts << ", commit_ts " << commit_ts << endl;
 
     // Iterate over all txns in conflict window, and test all committed txns for conflicts.
     for (gaia_txn_id_t ts = begin_ts + 1; ts < commit_ts; ++ts)
@@ -1530,7 +1765,7 @@ bool server::validate_txn(
 
             // Recursively validate the current undecided txn.
             bool committed = validate_txn(
-                get_begin_ts(ts), ts, get_txn_log_fd(ts), true);
+                get_begin_ts(ts), ts, get_txn_log_fd(ts), false);
 
             // Update the current txn's decided status.
             update_txn_decision(ts, committed);
