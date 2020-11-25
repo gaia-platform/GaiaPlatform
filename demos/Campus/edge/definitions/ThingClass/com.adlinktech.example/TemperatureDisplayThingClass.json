@@ -1,0 +1,10 @@
+{
+  "name": "TemperatureDisplay",
+  "context": "com.adlinktech.example",
+  "version": "v1.0",
+  "description": "ADLINK Edge SDK Example Display that shows temperature sensor data",
+  "inputs": [{
+    "name": "temperature",
+    "tagGroupId": "Temperature:com.adlinktech.example:v1.0"
+  }]
+}

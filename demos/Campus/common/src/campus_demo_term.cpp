@@ -11,8 +11,8 @@
 #include <stdlib.h>
 #include <string.h> 
 #include <functional>
-#include "../inc/message_bus.hpp"
 #include "../inc/campus_demo.hpp"
+#include "../../monolith/inc/message_bus_monolith.hpp"
 
 // to supress unused-parameter build warnings
 #define UNUSED(...) (void)(__VA_ARGS__)
