@@ -158,11 +158,7 @@ Please install Python or specify the PYTHON_EXECUTABLE CMake variable.")
         set(CLANG_TEST_DEPS FileCheck count not)
       endif()
       set(UNITTEST_DIR ${LLVM_MAIN_SRC_DIR}/utils/unittest)
-      if(EXISTS ${UNITTEST_DIR}/googletest/include/gtest/gtest.h
-          AND NOT EXISTS ${LLVM_LIBRARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}gtest${CMAKE_STATIC_LIBRARY_SUFFIX}
-          AND EXISTS ${UNITTEST_DIR}/CMakeLists.txt)
-        add_subdirectory(${UNITTEST_DIR} utils/unittest)
-      endif()
+      add_subdirectory(${UNITTEST_DIR} utils/unittest)
     else()
       # Seek installed Lit.
       find_program(LLVM_LIT

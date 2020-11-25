@@ -20,4 +20,5 @@ target_link_libraries(clang-refactor
   clangTooling
   clangToolingCore
   clangToolingRefactor
+  gaia_system
   )

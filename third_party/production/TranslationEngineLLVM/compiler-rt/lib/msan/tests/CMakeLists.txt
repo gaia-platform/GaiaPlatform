@@ -61,7 +61,7 @@ macro(msan_compile obj_list source arch kind cflags)
     ${obj_list} ${source} ${arch}
     KIND ${kind}
     COMPILE_DEPS ${MSAN_UNITTEST_HEADERS}
-    DEPS gtest msan
+    DEPS llvm_gtest llvm_gtest_main msan
     CFLAGS ${MSAN_UNITTEST_INSTRUMENTED_CFLAGS} ${cflags}
   )
 endmacro()

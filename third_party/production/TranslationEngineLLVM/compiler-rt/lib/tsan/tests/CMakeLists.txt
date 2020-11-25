@@ -59,7 +59,7 @@ macro(add_tsan_unittest testname)
         SOURCES ${TEST_SOURCES} ${COMPILER_RT_GTEST_SOURCE}
         RUNTIME ${TSAN_TEST_RUNTIME}
         COMPILE_DEPS ${TEST_HEADERS} ${TSAN_RTL_HEADERS}
-        DEPS gtest tsan
+        DEPS llvm_gtest llvm_gtest_main tsan
         CFLAGS ${TSAN_UNITTEST_CFLAGS}
         LINK_FLAGS ${LINK_FLAGS})
     endforeach()
