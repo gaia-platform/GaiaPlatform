@@ -30,7 +30,6 @@ message(VERBOSE "GAIA_EVENT_MANAGER_PRIVATE_INCLUDES=${GAIA_EVENT_MANAGER_PRIVAT
 add_library(gaia_rules STATIC
   src/event_manager.cpp
   src/rule_thread_pool.cpp
-  src/rule_context.cpp
   src/rule_checker.cpp
   src/rule_stats.cpp
   src/scheduler_stats.cpp

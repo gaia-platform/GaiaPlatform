@@ -15,7 +15,6 @@ file(WRITE ${CMAKE_BINARY_DIR}/sdk_dummy.c "")
 add_library(gaia SHARED ${CMAKE_BINARY_DIR}/sdk_dummy.c)
 set(SDK_LINK_LIBRARIES
   -Wl,--whole-archive
-  gaia_rules
   gaia_system
   -Wl,--no-whole-archive
 )
