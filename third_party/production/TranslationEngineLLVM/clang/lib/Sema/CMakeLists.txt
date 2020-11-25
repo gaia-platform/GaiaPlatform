@@ -77,13 +77,7 @@ add_clang_library(clangSema
   clangBasic
   clangEdit
   clangLex
-  gaia_direct
-  gaia_se_client
-  gaia_payload_types
-  gaia_catalog
   gaia_system
-  flatbuffers
-  explain
   )
 
 # We should not need this right now because we are not pulling any headers that
