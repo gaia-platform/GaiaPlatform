@@ -6,10 +6,10 @@
 project(sdk)
 
 set(TEMP_PACKAGE_FOLDER "${CMAKE_CURRENT_BINARY_DIR}/tmp")
-set(PGSQL_PACKAGE_FOLDER "${TEMP_PACKAGE_FOLDER}/usr/local/lib/pgsql_ext")
+set(PGSQL_PACKAGE_FOLDER "${TEMP_PACKAGE_FOLDER}/opt/gaia/lib/pgsql_ext")
 set(GAIA_PACKAGE_VERSION "0.1.0")
 set(GAIA_DEB_PACKAGE_NAME "gaia_${GAIA_PACKAGE_VERSION}_amd64.deb")
-set(GAIA_LIBRARY_NAME "libgaia.${GAIA_PACKAGE_VERSION}.so")
+set(GAIA_LIBRARY_NAME "libgaia.so.${GAIA_PACKAGE_VERSION}")
 
 include(gaia)
 
@@ -51,18 +51,27 @@ if(BUILD_GAIA_RELEASE)
     COMMAND cmake -E copy_if_different ${PROJECT_SOURCE_DIR}/preinst ${TEMP_PACKAGE_FOLDER}/DEBIAN/preinst
     COMMAND cmake -E copy_if_different ${PROJECT_SOURCE_DIR}/postinst ${TEMP_PACKAGE_FOLDER}/DEBIAN/postinst
 
-    COMMAND cmake -E copy_directory ${GAIA_INC}/gaia ${TEMP_PACKAGE_FOLDER}/usr/local/include/gaia
-    COMMAND cmake -E copy_if_different ${FLATBUFFERS_INC}/flatbuffers/flatbuffers.h ${TEMP_PACKAGE_FOLDER}/usr/local/include/gaia/flatbuffers/flatbuffers.h
-    COMMAND cmake -E copy_if_different ${FLATBUFFERS_INC}/flatbuffers/base.h ${TEMP_PACKAGE_FOLDER}/usr/local/include/gaia/flatbuffers/base.h
-    COMMAND cmake -E copy_if_different ${FLATBUFFERS_INC}/flatbuffers/stl_emulation.h ${TEMP_PACKAGE_FOLDER}/usr/local/include/gaia/flatbuffers/stl_emulation.h
+    COMMAND cmake -E copy_directory ${GAIA_INC}/gaia ${TEMP_PACKAGE_FOLDER}/opt/gaia/include/gaia
+    COMMAND cmake -E copy_if_different ${FLATBUFFERS_INC}/flatbuffers/flatbuffers.h ${TEMP_PACKAGE_FOLDER}/opt/gaia/include/flatbuffers/flatbuffers.h
+    COMMAND cmake -E copy_if_different ${FLATBUFFERS_INC}/flatbuffers/base.h ${TEMP_PACKAGE_FOLDER}/opt/gaia/include/flatbuffers/base.h
+    COMMAND cmake -E copy_if_different ${FLATBUFFERS_INC}/flatbuffers/stl_emulation.h ${TEMP_PACKAGE_FOLDER}/opt/gaia/include/flatbuffers/stl_emulation.h
 
-    COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/storage_engine/gaia_se_server ${TEMP_PACKAGE_FOLDER}/usr/local/bin/gaia_se_server
-    COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${TEMP_PACKAGE_FOLDER}/usr/local/bin/gaiac
-    COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${TEMP_PACKAGE_FOLDER}/usr/local/bin/gaiat
+    COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/db/storage_engine/gaia_se_server ${TEMP_PACKAGE_FOLDER}/opt/gaia/bin/gaia_se_server
+    COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac ${TEMP_PACKAGE_FOLDER}/opt/gaia/bin/gaiac
+    COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat ${TEMP_PACKAGE_FOLDER}/opt/gaia/bin/gaiat
 
-    COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/rocksdb/librocksdb.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/librocksdb.so.6
+    COMMAND cmake -E copy_if_different ${GAIA_PROD_BUILD}/rocksdb/librocksdb.so ${TEMP_PACKAGE_FOLDER}/opt/gaia/lib/librocksdb.so.6
 
-    COMMAND cmake -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/libgaia.so ${TEMP_PACKAGE_FOLDER}/usr/local/lib/${GAIA_LIBRARY_NAME}
+    COMMAND cmake -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/libgaia.so ${TEMP_PACKAGE_FOLDER}/opt/gaia/lib/${GAIA_LIBRARY_NAME}
+
+    COMMAND cmake -E copy_if_different ${GAIA_REPO}/demos/incubator/demo_script.md ${TEMP_PACKAGE_FOLDER}/opt/gaia/examples/incubator_demo/demo_script.md
+    COMMAND cmake -E copy_if_different ${GAIA_REPO}/demos/incubator/gaia.conf ${TEMP_PACKAGE_FOLDER}/opt/gaia/examples/incubator_demo/gaia.conf
+    COMMAND cmake -E copy_if_different ${GAIA_REPO}/demos/incubator/gaia_log.conf ${TEMP_PACKAGE_FOLDER}/opt/gaia/examples/incubator_demo/gaia_log.conf
+    COMMAND cmake -E copy_if_different ${GAIA_REPO}/demos/incubator/incubator.ddl ${TEMP_PACKAGE_FOLDER}/opt/gaia/examples/incubator_demo/incubator.ddl
+    COMMAND cmake -E copy_if_different ${GAIA_REPO}/demos/incubator/incubator.ruleset ${TEMP_PACKAGE_FOLDER}/opt/gaia/examples/incubator_demo/incubator.ruleset
+    COMMAND cmake -E copy_if_different ${GAIA_REPO}/demos/incubator/main.cpp ${TEMP_PACKAGE_FOLDER}/opt/gaia/examples/incubator_demo/main.cpp
+    COMMAND cmake -E copy_if_different ${GAIA_REPO}/demos/incubator/README.md ${TEMP_PACKAGE_FOLDER}/opt/gaia/examples/incubator_demo/README.md
+    COMMAND cmake -E copy_if_different ${PROJECT_SOURCE_DIR}/CMakeLists-incubator.txt ${TEMP_PACKAGE_FOLDER}/opt/gaia/examples/incubator_demo/CMakeLists.txt
 
     COMMAND dpkg-deb --build ${TEMP_PACKAGE_FOLDER} ${CMAKE_CURRENT_BINARY_DIR}/${GAIA_DEB_PACKAGE_NAME}
 
@@ -76,7 +85,6 @@ if(BUILD_GAIA_RELEASE)
     DEPENDS gaiat
     DEPENDS gaia_se_server
     DEPENDS gaia_system
-    DEPENDS libclang
     DEPENDS ${PROJECT_SOURCE_DIR}/control
     DEPENDS ${PROJECT_SOURCE_DIR}/preinst
     DEPENDS ${PROJECT_SOURCE_DIR}/postinst

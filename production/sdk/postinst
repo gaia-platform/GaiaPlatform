@@ -1,1 +1,6 @@
 #!/bin/sh
+ln -s /opt/gaia/lib/libgaia.so.0.1.0 /usr/local/lib/libgaia.so
+ln -s /opt/gaia/lib/librocksdb.so.6 /usr/local/lib/librocksdb.so.6
+ln -s /opt/gaia/bin/gaiat /usr/local/bin/gaiat
+ln -s /opt/gaia/bin/gaiac /usr/local/bin/gaiac
+ln -s /opt/gaia/bin/gaia_se_server /usr/local/bin/gaia_se_server
