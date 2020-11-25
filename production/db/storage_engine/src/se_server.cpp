@@ -366,8 +366,8 @@ void server::init_shared_memory()
 // TXN_ABORTED, so we need 2 bits for each txn entry to represent all possible
 // states. Combined with the begin/commit bit, we need to reserve the 3 high
 // bits of each 64-bit entry for txn state, leaving 61 bits for other purposes.
-// The remaining bits are used as follows. In the TXN_NONE state, all bits are 0.
-// In the TXN_IN_PROGRESS state, the non-state bits are currently unused, but
+// The remaining bits are used as follows. In the TXN_NONE state, all bits are
+// 0. In the TXN_IN_PROGRESS state, the non-state bits are currently unused, but
 // they could be used for active txn information like session thread ID, session
 // socket, session userfaultfd, etc. In the TXN_SUBMITTED state, the remaining
 // bits always hold a commit timestamp (which is guaranteed to be at most 42
@@ -379,8 +379,8 @@ void server::init_shared_memory()
 // node is linked to its successor before its predecessor is linked to the new
 // node.) Our algorithms are tolerant to this transient inconsistency. A commit
 // timestamp entry always holds the submitted txn's log fd in the low 16 bits
-// (we assume that all log fds fit into 16 bits), and the txn's begin timestamp
-// in the 45 bits following the 3 high bits used for state.
+// following the 3 high bits used for state (we assume that all log fds fit into
+// 16 bits), and the txn's begin timestamp in the low 42 bits.
 
 // We can always find the watermark by just scanning the txn_info array until we
 // find the first begin timestamp entry in state TXN_IN_PROGRESS. However, we
@@ -398,7 +398,7 @@ void server::init_shared_memory()
 void server::init_txn_info()
 {
     // We reserve 2^45 bytes = 32TB of virtual address space. YOLO.
-    constexpr size_t c_size_in_bytes = 1ULL << c_txn_ts_bits;
+    constexpr size_t c_size_in_bytes = (1ULL << c_txn_ts_bits) * sizeof(*s_txn_info);
     // Create an anonymous private mapping with MAP_NORESERVE to indicate that
     // we don't care about reserving swap space.
     // REVIEW: If this causes problems on systems that disable overcommit, we
@@ -1000,7 +1000,7 @@ std::function<std::optional<gaia_id_t>()> server::get_id_generator_for_type(gaia
     };
 }
 
-char* server::status_to_str(uint64_t ts_entry)
+const char* server::status_to_str(uint64_t ts_entry)
 {
     retail_assert(
         (ts_entry != c_txn_entry_unknown) && (ts_entry != c_txn_entry_invalid),
@@ -1025,12 +1025,13 @@ char* server::status_to_str(uint64_t ts_entry)
         cerr << "Unknown status: " << status << endl;
         retail_assert(false, "Unexpected status flags!");
     }
+    return nullptr;
 }
 
 void server::dump_ts_entry(gaia_txn_id_t ts)
 {
     uint64_t entry = s_txn_info[ts];
-    std::bitset<64> entry_bits(entry);
+    std::bitset<c_txn_status_entry_bits> entry_bits(entry);
     cerr << "Timestamp entry for ts " << ts << ": " << entry_bits << endl;
     if (is_unknown_ts(ts))
     {
@@ -1050,7 +1051,7 @@ void server::dump_ts_entry(gaia_txn_id_t ts)
         // We can't recurse here since we'd just bounce back and forth between a
         // txn's begin_ts and commit_ts.
         uint64_t entry = s_txn_info[begin_ts];
-        std::bitset<64> entry_bits(entry);
+        std::bitset<c_txn_status_entry_bits> entry_bits(entry);
         cerr << "Timestamp entry for commit_ts entry's begin_ts " << begin_ts << ": " << entry_bits << endl;
         cerr << "Log FD for commit_ts entry: " << get_txn_log_fd(ts) << endl;
     }
@@ -1060,7 +1061,7 @@ void server::dump_ts_entry(gaia_txn_id_t ts)
         // We can't recurse here since we'd just bounce back and forth between a
         // txn's begin_ts and commit_ts.
         uint64_t entry = s_txn_info[commit_ts];
-        std::bitset<64> entry_bits(entry);
+        std::bitset<c_txn_status_entry_bits> entry_bits(entry);
         cerr << "Timestamp entry for begin_ts entry's commit_ts " << commit_ts << ": " << entry_bits << endl;
     }
 }
@@ -1105,21 +1106,14 @@ inline bool server::is_invalid_ts(gaia_txn_id_t ts)
 inline bool server::is_commit_ts(gaia_txn_id_t ts)
 {
     uint64_t ts_entry = s_txn_info[ts];
-    constexpr uint64_t c_commit_mask = c_txn_status_commit_ts << c_txn_status_flags_shift;
-    return ((ts_entry & c_commit_mask) == c_commit_mask);
-}
-
-inline bool server::is_txn_entry_submitted(uint64_t ts_entry)
-{
-    constexpr uint64_t c_submitted_mask = c_txn_status_submitted << c_txn_status_flags_shift;
-    return ((ts_entry & c_submitted_mask) == c_submitted_mask);
+    return ((ts_entry & c_txn_status_commit_mask) == c_txn_status_commit_mask);
 }
 
 inline bool server::is_txn_submitted(gaia_txn_id_t begin_ts)
 {
     retail_assert(!is_commit_ts(begin_ts), "Not a begin timestamp!");
     uint64_t begin_ts_entry = s_txn_info[begin_ts];
-    return is_txn_entry_submitted(begin_ts_entry);
+    return (get_status_from_entry(begin_ts_entry) == c_txn_status_submitted);
 }
 
 inline bool server::is_txn_validating(gaia_txn_id_t commit_ts)
@@ -1188,9 +1182,8 @@ inline gaia_txn_id_t server::get_begin_ts(gaia_txn_id_t commit_ts)
 {
     retail_assert(is_commit_ts(commit_ts), "Not a commit timestamp!");
     uint64_t commit_ts_entry = s_txn_info[commit_ts];
-    // The begin_ts is the low 45 bits of the ts entry.
-    constexpr uint64_t c_ts_mask = (1ULL << c_txn_ts_bits) - 1;
-    return static_cast<gaia_txn_id_t>(commit_ts_entry & c_ts_mask);
+    // The begin_ts is the low 42 bits of the ts entry.
+    return static_cast<gaia_txn_id_t>(commit_ts_entry & c_txn_ts_mask);
 }
 
 inline gaia_txn_id_t server::get_commit_ts(gaia_txn_id_t begin_ts)
@@ -1198,9 +1191,8 @@ inline gaia_txn_id_t server::get_commit_ts(gaia_txn_id_t begin_ts)
     retail_assert(!is_commit_ts(begin_ts), "Not a begin timestamp!");
     retail_assert(is_txn_submitted(begin_ts), "begin_ts must be submitted!");
     uint64_t begin_ts_entry = s_txn_info[begin_ts];
-    // The commit_ts is the low 45 bits of the ts entry.
-    constexpr uint64_t c_ts_mask = (1ULL << c_txn_ts_bits) - 1;
-    return static_cast<gaia_txn_id_t>(begin_ts_entry & c_ts_mask);
+    // The commit_ts is the low 42 bits of the ts entry.
+    return static_cast<gaia_txn_id_t>(begin_ts_entry & c_txn_ts_mask);
 }
 
 inline int server::get_txn_log_fd(gaia_txn_id_t commit_ts)
@@ -1208,20 +1200,19 @@ inline int server::get_txn_log_fd(gaia_txn_id_t commit_ts)
     retail_assert(is_commit_ts(commit_ts), "Not a commit timestamp!");
     uint64_t commit_ts_entry = s_txn_info[commit_ts];
     // The txn log fd is the 16 bits of the ts entry after the 3 status bits.
-    constexpr uint64_t c_fd_mask = ((1ULL << c_txn_log_fd_bits) - 1) << c_txn_ts_bits;
-    uint16_t fd = (commit_ts_entry & c_fd_mask) >> c_txn_ts_bits;
+    uint16_t fd = (commit_ts_entry & c_txn_log_fd_mask) >> c_txn_log_fd_shift;
     return static_cast<int>(fd);
 }
 
 bool server::register_txn_log(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts, int log_fd)
 {
-    // The begin_ts entry must fit in 45 bits.
-    retail_assert(begin_ts < (1ULL << c_txn_ts_bits), "begin_ts must fit in 45 bits!");
+    // The begin_ts entry must fit in 42 bits.
+    retail_assert(begin_ts < (1ULL << c_txn_ts_bits), "begin_ts must fit in 42 bits!");
     // We assume all our log fds are non-negative and fit into 16 bits.
     retail_assert(log_fd >= 0 && log_fd <= std::numeric_limits<uint16_t>::max(), "Transaction log fd is not between 0 and (2^16 - 1)!");
     // We construct the commit_ts entry by concatenating status flags (3 bits),
-    // txn log fd (16 bits), and begin_ts (45 bits).
-    uint64_t shifted_log_fd = static_cast<uint64_t>(log_fd) << c_txn_ts_bits;
+    // txn log fd (16 bits), reserved bits (3 bits), and begin_ts (42 bits).
+    uint64_t shifted_log_fd = static_cast<uint64_t>(log_fd) << c_txn_log_fd_shift;
     constexpr uint64_t c_shifted_status_flags = c_txn_status_validating << c_txn_status_flags_shift;
     uint64_t commit_ts_entry = c_shifted_status_flags | shifted_log_fd | begin_ts;
     // We're possibly racing another beginning or committing txn that wants to
@@ -1280,6 +1271,9 @@ gaia_txn_id_t server::submit_txn(gaia_txn_id_t begin_ts, int log_fd)
 {
     // Allocate a new commit timestamp.
     gaia_txn_id_t commit_ts = allocate_txn_id();
+
+    // The commit_ts entry must fit in 42 bits.
+    retail_assert(commit_ts < (1ULL << c_txn_ts_bits), "commit_ts must fit in 42 bits!");
 
     // Register the txn log under the commit timestamp.
     if (!register_txn_log(begin_ts, commit_ts, log_fd))
@@ -1547,17 +1541,17 @@ gaia_txn_id_t server::txn_begin()
     // Allocate a new begin timestamp.
     gaia_txn_id_t begin_ts = allocate_txn_id();
 
-    // The begin_ts entry must fit in 45 bits.
-    retail_assert(begin_ts < (1ULL << c_txn_ts_bits), "begin_ts must fit in 45 bits!");
+    // The begin_ts entry must fit in 42 bits.
+    retail_assert(begin_ts < (1ULL << c_txn_ts_bits), "begin_ts must fit in 42 bits!");
     // The begin_ts entry must have its status initialized to TXN_ACTIVE.
     // All other bits should be 0.
     constexpr uint64_t c_begin_ts_entry = c_txn_status_active << c_txn_status_flags_shift;
-    std::bitset<64> begin_ts_bits(c_begin_ts_entry);
+    std::bitset<c_txn_status_entry_bits> begin_ts_bits(c_begin_ts_entry);
     cerr << "begin_ts_entry: " << begin_ts_bits << endl;
     // We're possibly racing another beginning or committing txn that wants to
     // invalidate our begin_ts entry.
     uint64_t expected_entry = c_txn_entry_unknown;
-    std::bitset<64> expected_bits(expected_entry);
+    std::bitset<c_txn_status_entry_bits> expected_bits(expected_entry);
     cerr << "expected_entry: " << expected_bits << endl;
     bool set_new_entry = s_txn_info[begin_ts].compare_exchange_strong(expected_entry, c_begin_ts_entry);
 

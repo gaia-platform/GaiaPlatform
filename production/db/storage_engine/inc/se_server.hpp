@@ -68,12 +68,73 @@ private:
     thread_local static inline int s_session_shutdown_eventfd = -1;
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
     static inline bool s_disable_persistence = false;
+    // This is an "endless" array of timestamp entries, indexed by the txn
+    // timestamp counter and containing all information for every txn that has
+    // been submitted to the system. Entries may be "unknown" (uninitialized),
+    // "invalid" (initialized with a special "junk" value and forbidden to be
+    // used afterward), or initialized with txn information, consisting of 3
+    // status bits, 16 bits for a txn log fd, 3 reserved bits, and 42 bits for a
+    // timestamp reference (the begin timestamp of a submitted txn that
+    // allocated a commit timestamp, or the commit timestamp of a submitted txn
+    // that allocated a begin timestamp). The 3 status bits use the high bit to
+    // distinguish begin timestamps from commit timestamps, and 2 bits to store
+    // the state of an active or submitted txn. The array is always accessed
+    // without any locking, but its entries have read and write barriers (via
+    // std::atomic) that ensure a happens-before relationship between any
+    // threads that read or write the same entry. Any writes to entries that may
+    // be written by multiple threads use CAS operations (via
+    // std::atomic::compare_exchange_strong).
+    //
+    // The array's memory is managed via mmap(MAP_NORESERVE). We reserve 32TB of
+    // virtual address space (1/8 of the total virtual address space available
+    // to the process), but allocate physical pages only on first access. When a
+    // range of timestamp entries falls behind the watermark, its physical pages
+    // can be deallocated via madvise(MADV_FREE). Since we reserve 2^45 bytes of
+    // virtual address space and each array entry is 8 bytes, we can address the
+    // whole range using 2^42 timestamps. If we allocate 2^10 timestamps/second,
+    // we will use up all our timestamps in 2^32 seconds, or about 2^7 years. If
+    // we allocate 2^20 timestamps/second, we will use up all our timestamps in
+    // 2^22 seconds, or about a month and a half. If this is an issue, then we
+    // could treat the array as a circular buffer, using a separate wraparound
+    // counter to calculate the array offset from a timestamp, and we can use
+    // the 3 reserved bits in the timestamp entry to extend our range by a
+    // factor of 8, so we could allocate 2^20 timestamps/second for a full year.
+    // If we need a still larger timestamp range (say 64-bit timestamps, with
+    // wraparound), we could just store the difference between a commit
+    // timestamp and its txn's begin timestamp, which should be possible to
+    // bound to no more than half the bits we use for the full timestamp, so we
+    // would still need only 32 bits for a timestamp reference in the timestamp
+    // entry. (We could store the array offset instead, but that would be
+    // dangerous when we approach wraparound.)
     static inline std::atomic<uint64_t>* s_txn_info = nullptr;
+    // This is the "watermark": the begin timestamp of the oldest active txn.
+    // When a txn log's commit timestamp is older than the watermark, both the
+    // undo versions in the log and the log itself can be safely deallocated.
+    static inline std::atomic<gaia_txn_id_t> s_oldest_active_txn_begin_ts = c_invalid_gaia_txn_id;
+    // This is the commit timestamp of the latest txn known to have been fully
+    // applied to the shared locator view. Since the shared view is updated
+    // non-atomically, there may be later txns partially or fully applied to the
+    // log. But since log replay is idempotent, we can safely replay logs that
+    // have already been partially or fully applied to the shared view. We
+    // always apply a full prefix of committed txns to the shared view; there
+    // can be no gaps in the sequence of committed txns that have been applied
+    // to the view.
+    static inline std::atomic<gaia_txn_id_t> s_last_applied_txn_commit_ts = c_invalid_gaia_txn_id;
 
-    static constexpr uint64_t c_txn_status_flags_shift{61ULL};
-    static constexpr uint64_t c_txn_status_flags_mask{0b111ULL << c_txn_status_flags_shift};
-    static constexpr uint64_t c_txn_ts_bits{45ULL};
+    // Transaction timestamp entry constants.
+    static constexpr uint64_t c_txn_status_entry_bits{64ULL};
+    static constexpr uint64_t c_txn_status_flags_bits{3ULL};
+    static constexpr uint64_t c_txn_status_flags_shift{c_txn_status_entry_bits - c_txn_status_flags_bits};
+    static constexpr uint64_t c_txn_status_flags_mask{
+        ((1ULL << c_txn_status_flags_bits) - 1) << c_txn_status_flags_shift};
     static constexpr uint64_t c_txn_log_fd_bits{16ULL};
+    static constexpr uint64_t c_txn_log_fd_shift{
+        (c_txn_status_entry_bits - c_txn_log_fd_bits) - c_txn_status_flags_bits};
+    static constexpr uint64_t c_txn_log_fd_mask{
+        ((1ULL << c_txn_log_fd_bits) - 1) << c_txn_log_fd_shift};
+    static constexpr uint64_t c_txn_reserved_bits{3ULL};
+    static constexpr uint64_t c_txn_ts_bits{42ULL};
+    static constexpr uint64_t c_txn_ts_mask{(1ULL << c_txn_ts_bits) - 1};
 
     // Transaction status flags.
     static constexpr uint64_t c_txn_status_active{0b010ULL};
@@ -81,9 +142,13 @@ private:
     static constexpr uint64_t c_txn_status_terminated{0b001ULL};
     // This is a mask, not a value.
     static constexpr uint64_t c_txn_status_commit_ts{0b100ULL};
+    static constexpr uint64_t c_txn_status_commit_mask{
+        c_txn_status_commit_ts << c_txn_status_flags_shift};
     static constexpr uint64_t c_txn_status_validating{0b100ULL};
     // This is a mask, not a value.
     static constexpr uint64_t c_txn_status_decided{0b110ULL};
+    static constexpr uint64_t c_txn_status_decided_mask{
+        c_txn_status_decided << c_txn_status_flags_shift};
     static constexpr uint64_t c_txn_status_committed{0b111ULL};
     static constexpr uint64_t c_txn_status_aborted{0b110ULL};
 
@@ -241,7 +306,7 @@ private:
 
     static void dump_ts_entry(gaia_txn_id_t ts);
 
-    static char* status_to_str(uint64_t ts_entry);
+    static const char* status_to_str(uint64_t ts_entry);
 };
 
 } // namespace db
