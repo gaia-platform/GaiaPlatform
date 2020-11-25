@@ -107,17 +107,14 @@ private:
     void inline invoke_rule(invocation_t& invocation)
     {
         const char* rule_id = invocation.rule_id;
-        m_stats_manager.inc_executed(rule_id);
         if (invocation_type_t::rule == invocation.type)
         {
+            m_stats_manager.inc_executed(rule_id);
             invoke_user_rule(invocation);
         }
         else
         {
-            m_stats_manager.compute_rule_invocation_latency(rule_id, invocation.start_time);
-            auto fn_start = gaia::common::timer_t::get_time_point();
             log_events(invocation);
-            m_stats_manager.compute_rule_execution_time(rule_id, fn_start);
         }
     }
 

@@ -1205,10 +1205,13 @@ public:
         {
             return;
         }
+        if (g_current_rule_declaration)
+        {
+            g_current_ruleset_rule_number++;
+        }
         g_current_rule_declaration = rule_declaration;
         g_used_tables.clear();
         g_active_fields.clear();
-        g_current_ruleset_rule_number++;
         g_delete_operation_in_rule = false;
     }
 

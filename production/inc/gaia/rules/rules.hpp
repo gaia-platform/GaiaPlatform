@@ -200,7 +200,7 @@ public:
      * This method will return last_operation_t::none if this rule was not
      * invoked due to an operation on X.
      */
-    last_operation_t last_operation(common::gaia_type_t gaia_type) const;
+    last_operation_t last_operation(common::gaia_type_t other_gaia_type) const;
 
     direct_access::auto_transaction_t& txn;
     common::gaia_type_t gaia_type;
@@ -349,7 +349,7 @@ void list_subscribed_rules(
     const char* ruleset_name,
     const gaia::common::gaia_type_t* gaia_type,
     const gaia::db::triggers::event_type_t* event_type,
-    const uint16_t* field,
+    const common::field_position_t* field,
     subscription_list_t& subscriptions);
 
 /*@}*/

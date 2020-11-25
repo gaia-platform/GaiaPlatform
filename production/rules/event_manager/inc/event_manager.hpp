@@ -68,7 +68,8 @@ public:
     void list_subscribed_rules(
         const char* ruleset_name,
         const gaia::common::gaia_type_t* gaia_type,
-        const event_type_t* event_type, const uint16_t* field,
+        const event_type_t* event_type,
+        const field_position_t* field,
         subscription_list_t& subscriptions);
 
 private:
@@ -103,7 +104,7 @@ private:
     typedef std::list<const _rule_binding_t*> rule_list_t;
 
     // Map from a referenced column id to a rule_list.
-    typedef std::unordered_map<uint16_t, rule_list_t> fields_map_t;
+    typedef std::unordered_map<gaia::common::field_position_t, rule_list_t> fields_map_t;
 
     // An event can be bound because it changed a field that is referenced
     // or because the LastOperation system field was referenced.
@@ -159,7 +160,10 @@ private:
     const _rule_binding_t* find_rule(const rules::rule_binding_t& binding);
     void add_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
     bool remove_rule(rule_list_t& rules, const rules::rule_binding_t& binding);
-    void enqueue_invocation(const trigger_event_list_t& events, const std::vector<bool>& rules_invoked_list, std::chrono::steady_clock::time_point& start_time);
+    void enqueue_invocation(
+        const trigger_event_list_t& events,
+        const std::vector<bool>& rules_invoked_list,
+        std::chrono::steady_clock::time_point& start_time);
     void enqueue_invocation(
         const trigger_event_t& event,
         const _rule_binding_t* rule_binding,
@@ -179,7 +183,7 @@ private:
         const rule_list_t& rules,
         gaia::common::gaia_type_t gaia_type,
         event_type_t event_type,
-        uint16_t field,
+        gaia::common::field_position_t field,
         const char* ruleset_filter);
 };
 

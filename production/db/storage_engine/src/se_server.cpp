@@ -981,8 +981,15 @@ void server::run(bool disable_persistence)
         // We shouldn't get here unless the signal handler thread has caught a signal.
         retail_assert(caught_signal != 0, "A signal should have been caught!");
         // We special-case SIGHUP to force reinitialization of the server.
-        if (caught_signal != SIGHUP)
+        // This is only enabled if persistence is disabled, because otherwise
+        // data would disappear on reset, only to reappear when the database is
+        // restarted and recovers from the persistent store.
+        if (!(caught_signal == SIGHUP && s_disable_persistence))
         {
+            if (caught_signal == SIGHUP)
+            {
+                cerr << "Unable to reset the server because persistence is enabled, exiting." << endl;
+            }
             // To exit with the correct status (reflecting a caught signal),
             // we need to unblock blocked signals and re-raise the signal.
             // We may have already received other pending signals by the time
