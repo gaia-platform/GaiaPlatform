@@ -1,5 +1,5 @@
 # Editor files.
-.vscode/
+#.vscode/
 .idea/
 
 # Build files.
