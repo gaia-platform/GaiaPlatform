@@ -41,9 +41,9 @@ using namespace gaia::db::messages;
 using namespace gaia::common::iterators;
 using namespace gaia::common::scope_guard;
 
-void server::allocate_stack_allocators(std::vector<stack_allocator_t>* new_memory_allotment, bool on_connect = true)
+void server::allocate_stack_allocators(std::vector<stack_allocator_t>* new_memory_allotment)
 {
-    size_t allocation_count = on_connect ? STACK_ALLOCATOR_ALLOTMENT_COUNT : STACK_ALLOCATOR_ALLOTMENT_COUNT_TXN;
+    size_t allocation_count = STACK_ALLOCATOR_ALLOTMENT_COUNT_TXN;
     for (size_t i = 0; i < allocation_count; i++)
     {
         // Offset gets assigned; no need to set it.
@@ -55,7 +55,7 @@ void server::allocate_stack_allocators(std::vector<stack_allocator_t>* new_memor
         error = stack_allocator.initialize(reinterpret_cast<uint8_t*>(s_data->objects), stack_allocator_offset, STACK_ALLOCATOR_SIZE_BYTES);
         retail_assert(error == error_code_t::success, "SA init failure.");
         // Add created stack_allocator to the list of active stack allocators.
-        s_active_stack_allocators.insert(std::make_pair(stack_allocator_offset, stack_allocator));
+        s_active_stack_allocators.push_back(stack_allocator);
         new_memory_allotment->push_back(stack_allocator);
     }
 }
@@ -68,14 +68,10 @@ void server::handle_connect(
     retail_assert(
         old_state == session_state_t::DISCONNECTED && new_state == session_state_t::CONNECTED,
         "Current event is inconsistent with state transition!");
+
     // We need to reply to the client with the fds for the data/locator segments.
     FlatBufferBuilder builder;
     build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_txn_id);
-
-    retail_assert(s_active_stack_allocators.size() == 0, "List of active stack allocators should be empty on new connection");
-    std::vector<stack_allocator_t> new_memory_allotment;
-    allocate_stack_allocators(&new_memory_allotment);
-    build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_txn_id, &new_memory_allotment);
     int send_fds[] = {s_fd_data, s_fd_locators};
     send_msg_with_fds(s_session_socket, send_fds, std::size(send_fds), builder.GetBufferPointer(), builder.GetSize());
 }
@@ -88,6 +84,8 @@ void server::handle_begin_txn(
     retail_assert(
         old_state == session_state_t::CONNECTED && new_state == session_state_t::TXN_IN_PROGRESS,
         "Current event is inconsistent with state transition!");
+    // Validate that no memory is allocated for current transaction.
+    retail_assert(s_active_stack_allocators.empty(), "Stale memory allocations should not exist on current session.");
     // Currently we don't need to alter any server-side state for opening a transaction.
     FlatBufferBuilder builder;
     s_txn_id = allocate_txn_id();
@@ -97,7 +95,7 @@ void server::handle_begin_txn(
         && reinterpret_cast<const bool*>(request->data()))
     {
         std::vector<stack_allocator_t> new_memory_allotment;
-        allocate_stack_allocators(&new_memory_allotment, false);
+        allocate_stack_allocators(&new_memory_allotment);
         build_server_reply(builder, session_event_t::CONNECT, old_state, new_state, s_txn_id, &new_memory_allotment);
     }
     else
@@ -107,35 +105,26 @@ void server::handle_begin_txn(
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
 
-void server::get_memory_info_from_request_and_free(session_event_t event, const void* event_data, bool commit_success)
+void server::get_memory_info_from_request_and_free(session_event_t event, bool commit_success)
 {
     retail_assert(event == session_event_t::COMMIT_TXN || event == session_event_t::ROLLBACK_TXN, "Memory information from client received on commit/rollback only");
-    auto request = static_cast<const client_request_t*>(event_data);
-    retail_assert(request->data_type() == request_data_t::memory_info, "Client request should supply memory information.");
-    auto memory_info = static_cast<const memory_allocation_info_t*>(request->data());
-    auto stack_allocators = memory_info->stack_allocator_list();
 
-    if (stack_allocators)
+    for (int i = 0; i < s_active_stack_allocators.size(); i++)
     {
-        for (int i = 0; i < stack_allocators->size(); i++)
+        auto stack_allocator = s_active_stack_allocators[i];
+        if (!commit_success)
         {
-            auto offset = stack_allocators->Get(i)->stack_allocator_offset();
-            // What if SA not found? Assert.
-            auto stack_allocator = s_active_stack_allocators.find(offset)->second;
-            s_active_stack_allocators.erase(offset);
-            if (!commit_success)
-            {
-                // Rollback all allocations.
-                stack_allocator.deallocate(0);
-            }
-            // Free up unused space.
-            // memory_manager->free_stack_allocator(std::make_unique<stack_allocator_t>(stack_allocator));
+            // Rollback all allocations.
+            stack_allocator.deallocate(0);
         }
+        // Free up unused space.
+        // memory_manager->free_stack_allocator(std::make_unique<stack_allocator_t>(stack_allocator));
     }
+    s_active_stack_allocators.clear();
 }
 
 void server::handle_rollback_txn(
-    int*, size_t, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state)
+    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     retail_assert(event == session_event_t::ROLLBACK_TXN, "Unexpected event received!");
     // This message should only be received while a transaction is in progress.
@@ -144,11 +133,12 @@ void server::handle_rollback_txn(
         "Current event is inconsistent with state transition!");
     // We just need to reset the session thread's txn_id without replying to the client.
     s_txn_id = 0;
-    get_memory_info_from_request_and_free(event, event_data, false);
+
+    get_memory_info_from_request_and_free(event, false);
 }
 
 void server::handle_commit_txn(
-    int* fds, size_t fd_count, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state)
+    int* fds, size_t fd_count, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     retail_assert(event == session_event_t::COMMIT_TXN, "Unexpected event received!");
     // This message should only be received while a transaction is in progress.
@@ -176,7 +166,8 @@ void server::handle_commit_txn(
     bool success = txn_commit();
     session_event_t decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
 
-    get_memory_info_from_request_and_free(event, event_data, success);
+    get_memory_info_from_request_and_free(event, true);
+
     // Server-initiated state transition! (Any issues with reentrant handlers?)
     apply_transition(decision, nullptr, nullptr, 0);
 }
@@ -191,7 +182,7 @@ void server::handle_request_memory(
     FlatBufferBuilder builder;
     std::vector<stack_allocator_t> new_memory_allotment;
     // Only invoked mid transaction.
-    allocate_stack_allocators(&new_memory_allotment, false);
+    allocate_stack_allocators(&new_memory_allotment);
     build_server_reply(builder, session_event_t::REQUEST_MEMORY, old_state, new_state, s_txn_id, &new_memory_allotment);
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
@@ -228,10 +219,10 @@ void server::handle_client_shutdown(
     s_session_shutdown = true;
 
     // Free all unused or uncommitted session stack allocators.
-    for (auto const& [key, val] : s_active_stack_allocators)
+    for (auto stack_allocator : s_active_stack_allocators)
     {
-        val.deallocate(0);
-        memory_manager->free_stack_allocator(std::make_unique<stack_allocator_t>(val));
+        stack_allocator.deallocate(0);
+        memory_manager->free_stack_allocator(std::make_unique<stack_allocator_t>(stack_allocator));
     }
 }
 

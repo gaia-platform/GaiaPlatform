@@ -89,10 +89,6 @@ private:
     // This list is propagated to the server at the time of commit.
     thread_local static inline std::vector<memory_manager::stack_allocator_t> s_stack_allocators{};
 
-    // This value is used to decide whether the client should request
-    // additional memory during a begin_transaction call.
-    static constexpr size_t c_min_stack_allocators_per_client = 1;
-
     // Load server initialized stack allocators on the client.
     static void load_stack_allocators(const messages::memory_allocation_info_t* alloc, uint8_t* data_mapping_base_addr);
 

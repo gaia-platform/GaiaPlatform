@@ -58,8 +58,7 @@ private:
     // Hence allocate 128KB so each stack allocator is at least large enough to fit a gaia object of maximum size.
     // Or alternatively this could be 64KB + minimum size required by stack allocator metadata.
     static constexpr size_t STACK_ALLOCATOR_SIZE_BYTES = 128 * 1024;
-    static constexpr size_t STACK_ALLOCATOR_ALLOTMENT_COUNT = 0;
-    static constexpr size_t STACK_ALLOCATOR_ALLOTMENT_COUNT_TXN = 1;
+    static constexpr size_t STACK_ALLOCATOR_ALLOTMENT_COUNT_TXN = 32;
 
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t STREAM_BATCH_SIZE = 1 << 10;
@@ -81,12 +80,11 @@ private:
     static inline bool s_disable_persistence = false;
     static inline std::unique_ptr<memory_manager_t> memory_manager{};
 
-    // Keeps track of stack allocators belonging to a session.
+    // Keeps track of stack allocators belonging to the current transaction executing on this thread.
     // On commit/rollback, all stack allocators belonging to a transaction are removed from this list.
     // In case of receiving any of the following epoll events - [EPOLLRDHUP, EPOLLHUP, EPOLLERR] on the server_client socket fd
     // all unused/uncommitted stack allocators in this list will be purged before terminating the connection.
-    // The s_active_stack_allocators map key represents the starting offset of the stack allocator.
-    thread_local static inline std::map<address_offset_t, stack_allocator_t> s_active_stack_allocators{};
+    thread_local static inline std::vector<stack_allocator_t> s_active_stack_allocators{};
 
     // function pointer type that executes side effects of a state transition
     // REVIEW: replace void* with std::any?
@@ -154,13 +152,12 @@ private:
 
     static void clear_shared_memory();
 
-    static void allocate_stack_allocators(std::vector<stack_allocator_t>* new_memory_allotment, bool on_connect);
+    static void allocate_stack_allocators(std::vector<stack_allocator_t>* new_memory_allotment);
 
     static void init_memory_manager();
 
     static void get_memory_info_from_request_and_free(
         session_event_t event,
-        const void* event_data,
         bool commit_success);
 
     static void init_shared_memory();
