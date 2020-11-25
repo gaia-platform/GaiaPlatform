@@ -47,7 +47,12 @@ set(GAIA_CAMPUS_DEMO_INCLUDES
 )
 
 set(GAIA_GENERATE ${GAIA_BIN}/gaiac)                             
-set(GAIA_TRANSLATE ${GAIA_BIN}/gaiat)                             
+set(GAIA_TRANSLATE ${GAIA_BIN}/gaiat)    
+
+add_compile_definitions(MESSAGE_BUS_MONOLITH)
+#add_compile_definitions(MESSAGE_BUS_EDGE)
+#add_compile_definitions(MESSAGE_BUS_ROS1)
+#add_compile_definitions(MESSAGE_BUS_ROS2)
 
 # --- Generate ---
 

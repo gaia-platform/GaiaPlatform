@@ -28,11 +28,15 @@
  * file in the Edge SDK installation directory.
  */
 
-
 #include <iostream>
+#include <iomanip>
 #include <thread>
 #include <chrono>
+#include <future>
+#include <assert.h>
+#include <exception>
 
+#include <Dispatcher.hpp>
 #include <IoTDataThing.hpp>
 #include <JSonThingAPI.hpp>
 #include <thing_IoTData.h>
@@ -46,15 +50,13 @@ using namespace com::adlinktech::iot;
 #pragma warning(disable:4996)
 #endif
 
-#define SAMPLE_DELAY_MS 100
+#define READ_SAMPLE_DELAY 100
 
-class TemperatureSensor {
+class TemperatureDisplay {
 private:
     string m_thingPropertiesUri;
-    string m_personPropertiesUri;
     DataRiver m_dataRiver = createDataRiver();
-    Thing m_thing = createThing();    
-    Thing m_thing2 = createThing2();
+    Thing m_thing = createThing();
 
     DataRiver createDataRiver() {
         return DataRiver::getInstance();
@@ -68,66 +70,61 @@ private:
 
         // Create and Populate the ThingClass registry with JSON resource files.
         JSonThingClassRegistry tcr;
-        tcr.registerThingClassesFromURI("file://definitions/ThingClass/com.adlinktech.example/TemperatureSensorThingClass.json");
+        tcr.registerThingClassesFromURI("file://definitions/ThingClass/com.adlinktech.example/TemperatureDisplayThingClass.json");
         m_dataRiver.addThingClassRegistry(tcr);
 
         // Create a Thing based on properties specified in a JSON resource file.
         JSonThingProperties tp;
         tp.readPropertiesFromURI(m_thingPropertiesUri);
+
         return m_dataRiver.createThing(tp);
-    }
-
-    Thing createThing2() {
-        // Create and Populate the TagGroup registry with JSON resource files.
-        JSonTagGroupRegistry tgr;
-        tgr.registerTagGroupsFromURI("file://definitions/TagGroup/io.gaiaplatform.campus/PersonTagGroup.json");
-        m_dataRiver.addTagGroupRegistry(tgr);
-
-        // Create and Populate the ThingClass registry with JSON resource files.
-        JSonThingClassRegistry tcr;
-        tcr.registerThingClassesFromURI("file://definitions/ThingClass/io.gaiaplatform.campus/PersonThingClass.json");
-        m_dataRiver.addThingClassRegistry(tcr);
-
-        // Create a Thing based on properties specified in a JSON resource file.
-        JSonThingProperties tp;
-        tp.readPropertiesFromURI(m_personPropertiesUri);
-        return m_dataRiver.createThing(tp);
-    }
-
-    void writeSample(const float temperature) {
-        IOT_VALUE temperature_v;
-        temperature_v.iotv_float32(temperature);
-
-        IOT_NVP_SEQ sensorData = {
-            IOT_NVP(string("temperature"), temperature_v),
-        };
-
-        m_thing.write("temperature", sensorData);
     }
 
 public:
-    TemperatureSensor(string thingPropertiesUri, string personPropertiesUri) 
-        :m_thingPropertiesUri(thingPropertiesUri), m_personPropertiesUri(personPropertiesUri) {
-        cout << "Temperature Sensor started" << endl;
+    TemperatureDisplay(string thingPropertiesUri) : m_thingPropertiesUri(thingPropertiesUri) {
+        cout << "Temperature Display started" << endl;
     }
 
-    ~TemperatureSensor() {
+    ~TemperatureDisplay() {
         m_dataRiver.close();
-        cout << "Temperature Sensor stopped" << endl;
+        cout << "Temperature Display stopped" << endl;
     }
 
     int run(int runningTime) {
-        srand((unsigned int)time(NULL));
-        int sampleCount = (runningTime * 1000) / SAMPLE_DELAY_MS;
-        float actualTemperature = 21.5f;
+        auto start = chrono::steady_clock::now();
+        long long elapsedSeconds;
+        do {
+            // Read all data for input 'temperature'
+            vector<DataSample<IOT_NVP_SEQ> > msgs = m_thing.read<IOT_NVP_SEQ>("temperature");
 
-        while (sampleCount-- > 0) {
-            actualTemperature += (float)(rand() % 10 - 5) / 5.0f;
+            for (const DataSample<IOT_NVP_SEQ>& msg : msgs) {
+                auto flowState = msg.getFlowState();
+                if (flowState == FlowState::ALIVE) {
+                    const IOT_NVP_SEQ& dataSample = msg.getData();
+                    float temperature = 0.0f;
 
-            writeSample(actualTemperature);
+                    try {
+                        for (const IOT_NVP& nvp : dataSample) {
+                            if (nvp.name() == "temperature") {
+                                temperature = nvp.value().iotv_float32();
+                            }
+                        }
+                    }
+                    catch (exception& e) {
+                        cerr << "An unexpected error occured while processing data-sample: " << e.what() << endl;
+                        continue;
+                    }
 
-            this_thread::sleep_for(chrono::milliseconds(SAMPLE_DELAY_MS));
-        }
+                    cout << "Sensor data received: "
+                        << fixed << setw(5) << setprecision(1) << temperature << endl;
+                }
+            }
+
+            // Wait for some time before reading next samples
+            this_thread::sleep_for(chrono::milliseconds(READ_SAMPLE_DELAY));
+
+            elapsedSeconds = chrono::duration_cast<chrono::seconds>(chrono::steady_clock::now() - start).count();
+        } while (elapsedSeconds < runningTime);
 
         return 0;
     }
@@ -140,12 +137,10 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
     string thingPropertiesUri = string(argv[1]);
-    string personPropertiesUri = string(argv[2]);
-    int runningTime = atoi(argv[3]);
+    int runningTime = atoi(argv[2]);
 
     try {
-        // Create the Thing
-        TemperatureSensor(thingPropertiesUri,personPropertiesUri).run(runningTime);
+        TemperatureDisplay(thingPropertiesUri).run(runningTime);
     }
     catch (ThingAPIException& e) {
         cerr << "An unexpected error occurred: " << e.what() << endl;

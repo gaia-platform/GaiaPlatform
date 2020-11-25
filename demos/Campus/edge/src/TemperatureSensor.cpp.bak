@@ -51,10 +51,8 @@ using namespace com::adlinktech::iot;
 class TemperatureSensor {
 private:
     string m_thingPropertiesUri;
-    string m_personPropertiesUri;
     DataRiver m_dataRiver = createDataRiver();
-    Thing m_thing = createThing();    
-    Thing m_thing2 = createThing2();
+    Thing m_thing = createThing();
 
     DataRiver createDataRiver() {
         return DataRiver::getInstance();
@@ -77,23 +75,6 @@ private:
         return m_dataRiver.createThing(tp);
     }
 
-    Thing createThing2() {
-        // Create and Populate the TagGroup registry with JSON resource files.
-        JSonTagGroupRegistry tgr;
-        tgr.registerTagGroupsFromURI("file://definitions/TagGroup/io.gaiaplatform.campus/PersonTagGroup.json");
-        m_dataRiver.addTagGroupRegistry(tgr);
-
-        // Create and Populate the ThingClass registry with JSON resource files.
-        JSonThingClassRegistry tcr;
-        tcr.registerThingClassesFromURI("file://definitions/ThingClass/io.gaiaplatform.campus/PersonThingClass.json");
-        m_dataRiver.addThingClassRegistry(tcr);
-
-        // Create a Thing based on properties specified in a JSON resource file.
-        JSonThingProperties tp;
-        tp.readPropertiesFromURI(m_personPropertiesUri);
-        return m_dataRiver.createThing(tp);
-    }
-
     void writeSample(const float temperature) {
         IOT_VALUE temperature_v;
         temperature_v.iotv_float32(temperature);
@@ -106,8 +87,7 @@ private:
     }
 
 public:
-    TemperatureSensor(string thingPropertiesUri, string personPropertiesUri) 
-        :m_thingPropertiesUri(thingPropertiesUri), m_personPropertiesUri(personPropertiesUri) {
+    TemperatureSensor(string thingPropertiesUri) :m_thingPropertiesUri(thingPropertiesUri) {
         cout << "Temperature Sensor started" << endl;
     }
 
@@ -140,12 +120,11 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
     string thingPropertiesUri = string(argv[1]);
-    string personPropertiesUri = string(argv[2]);
-    int runningTime = atoi(argv[3]);
+    int runningTime = atoi(argv[2]);
 
     try {
         // Create the Thing
-        TemperatureSensor(thingPropertiesUri,personPropertiesUri).run(runningTime);
+        TemperatureSensor(thingPropertiesUri).run(runningTime);
     }
     catch (ThingAPIException& e) {
         cerr << "An unexpected error occurred: " << e.what() << endl;

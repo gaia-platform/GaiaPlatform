@@ -1,0 +1,10 @@
+{
+  "name": "Person",
+  "context": "io.gaiaplatform.campus",
+  "version": "v1.0",
+  "description": "Gaiaplatform Campus Demo Person",
+  "outputs": [{
+    "name": "isThreat",
+    "tagGroupId": "Person:io.gaiaplatform.campus:v1.0"
+  }]
+}

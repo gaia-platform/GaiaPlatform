@@ -1,0 +1,10 @@
+{
+  "name": "UI",
+  "context": "io.gaiaplatform.campus",
+  "version": "v1.0",
+  "description": "ADLINK Edge SDK Example Display that shows temperature sensor data",
+  "inputs": [{
+    "name": "isThreat",
+    "tagGroupId": "Person:io.gaiaplatform.campus:v1.0"
+  }]
+}

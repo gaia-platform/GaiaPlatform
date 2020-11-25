@@ -29,7 +29,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/temperaturesensor",
-            "args": ["file://./config/TemperatureSensorProperties.json","60"],
+            "args": ["file://./config/TemperatureSensorProperties.json","file://./config/PersonProperties.json","60"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build",
             "environment": [

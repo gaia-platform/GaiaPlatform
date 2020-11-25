@@ -12,7 +12,12 @@
 #include <string.h> 
 #include <functional>
 #include "../inc/campus_demo.hpp"
+
+#if defined MESSAGE_BUS_MONOLITH
 #include "../../monolith/inc/message_bus_monolith.hpp"
+#elif defined MESSAGE_BUS_EDGE
+#include "../../edge/inc/message_bus_edge.hpp"
+#endif
 
 // to supress unused-parameter build warnings
 #define UNUSED(...) (void)(__VA_ARGS__)
