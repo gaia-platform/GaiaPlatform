@@ -28,5 +28,8 @@ dist/
 # Mac OS index files.
 .DS_Store
 
-# Generaterd and Translated products
+# Generated and Translated products
 common/generated
+
+# Allow .vscode/launch.json
+!.vscode/launch.json
