@@ -27,6 +27,11 @@ namespace system
  */
 void initialize(const char* gaia_config_file = nullptr);
 
+/**
+ *  Shutdown the Gaia sub systems
+ */
+void shutdown();
+
 /*@}*/
 } // namespace system
 /*@}*/

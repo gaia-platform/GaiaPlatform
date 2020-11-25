@@ -41,7 +41,7 @@ public:
      */
     event_manager_t(event_manager_t&) = delete;
     void operator=(event_manager_t const&) = delete;
-    static event_manager_t& get(bool is_initializing = false);
+    static event_manager_t& get(bool require_initialized = true);
     static const char* s_gaia_log_event_rule;
 
     /**
@@ -91,9 +91,9 @@ private:
     std::atomic_bool m_is_initialized = false;
 
     // Protect initialization and shutdown from happening concurrently.
-    // Note, that the public rules engine APIs are not designed to be
+    // Note that the public rules engine APIs are not designed to be
     // thread safe.
-    std::mutex m_init_lock;
+    std::recursive_mutex m_init_lock;
 
     // Hash table of all rules registered with the system.
     // The key is the rulset_name::rule_name.

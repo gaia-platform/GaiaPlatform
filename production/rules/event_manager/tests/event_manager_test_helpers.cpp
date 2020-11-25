@@ -9,8 +9,8 @@
 
 void gaia::rules::test::initialize_rules_engine(event_manager_settings_t& settings)
 {
-    bool is_initializing = true;
-    event_manager_t::get(is_initializing).init(settings);
+    bool require_initialized = false;
+    event_manager_t::get(require_initialized).init(settings);
     initialize_rules();
 }
 

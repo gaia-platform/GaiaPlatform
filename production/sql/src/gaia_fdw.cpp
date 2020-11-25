@@ -304,21 +304,20 @@ extern "C" void gaia_begin_foreign_scan(ForeignScanState* node, int /*eflags*/)
 
         if (scan_state->set_field_index(attr_name, (size_t)i))
         {
-            elog(DEBUG1, "Set index of field '%s' to '%d'!", attr_name, i);
+            elog(DEBUG1, "Set index of field '%s' to '%d' for table '%s'!", attr_name, i, table_name);
         }
         else
         {
-            elog(ERROR, "Failed to set index of field '%s' to '%d'!", attr_name, i);
+            elog(ERROR, "Failed to set index of field '%s' to '%d' for table '%s'!", attr_name, i, table_name);
         }
     }
 
     node->fdw_state = scan_state;
 
-    // Retrieve the first node of the requested type
-    // (this can't currently throw).
+    // Retrieve the first node of the requested type.
     if (!scan_state->initialize_scan())
     {
-        elog(ERROR, "Failed to initialize scan for table '%s'.", table_name);
+        elog(ERROR, "Failed to initialize scan over table '%s'.", table_name);
     }
 }
 
@@ -373,8 +372,7 @@ extern "C" TupleTableSlot* gaia_iterate_foreign_scan(ForeignScanState* node)
     // Mark the slot as containing a virtual tuple.
     ExecStoreVirtualTuple(slot);
 
-    // Now advance the current node to the next node in the iteration
-    // (this can't currently throw).
+    // Now advance the current record to the next record in the iteration.
     scan_state->scan_forward();
 
     // Return the slot.
@@ -386,9 +384,17 @@ extern "C" TupleTableSlot* gaia_iterate_foreign_scan(ForeignScanState* node)
  * depends on may have changed value, so the new scan does not necessarily
  * return exactly the same rows.
  */
-extern "C" void gaia_rescan_foreign_scan(ForeignScanState* /*node*/)
+extern "C" void gaia_rescan_foreign_scan(ForeignScanState* node)
 {
     elog(DEBUG1, "Entering function '%s'...", __func__);
+
+    auto scan_state = reinterpret_cast<gaia::fdw::scan_state_t*>(node->fdw_state);
+
+    // Re-initialize scan over the table.
+    if (!scan_state->initialize_scan())
+    {
+        elog(ERROR, "Failed to re-initialize scan over table `%s`.", scan_state->get_table_name());
+    }
 }
 
 /**
@@ -609,11 +615,11 @@ extern "C" void gaia_begin_foreign_modify(
 
         if (modify_state->set_field_index(attr_name, (size_t)i))
         {
-            elog(DEBUG1, "Set index of field '%s' to '%d'!", attr_name, i);
+            elog(DEBUG1, "Set index of field '%s' to '%d' for table '%s'!", attr_name, i, table_name);
         }
         else
         {
-            elog(ERROR, "Failed to set index of field '%s' to '%d'!", attr_name, i);
+            elog(ERROR, "Failed to set index of field '%s' to '%d' for table '%s'!", attr_name, i, table_name);
         }
     }
 
@@ -679,7 +685,9 @@ extern "C" TupleTableSlot* gaia_exec_foreign_insert(
                 ereport(
                     ERROR,
                     (errcode(ERRCODE_FDW_ERROR),
-                     errmsg("gaia_id was unexpectedly set!")));
+                     errmsg(
+                         "gaia_id was unexpectedly set for an insert into table '%s'!",
+                         modify_state->get_table_name())));
             }
 
             gaia_id = gaia::fdw::adapter_t::get_new_gaia_id();
@@ -695,7 +703,9 @@ extern "C" TupleTableSlot* gaia_exec_foreign_insert(
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("Failed to determine gaia_id value for insert!")));
+             errmsg(
+                 "Failed to determine gaia_id value for inserting into table '%s'!",
+                 modify_state->get_table_name())));
     }
 
     if (!modify_state->insert_record(gaia_id))
@@ -763,7 +773,9 @@ extern "C" TupleTableSlot* gaia_exec_foreign_update(
                 ereport(
                     ERROR,
                     (errcode(ERRCODE_FDW_ERROR),
-                     errmsg("gaia_id was unexpectedly null!")));
+                     errmsg(
+                         "gaia_id was unexpectedly null for an update of table '%s'!",
+                         modify_state->get_table_name())));
             }
 
             gaia_id = DatumGetUInt64(attr_val.value);
@@ -779,7 +791,9 @@ extern "C" TupleTableSlot* gaia_exec_foreign_update(
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("Failed to determine gaia_id value for update!")));
+             errmsg(
+                 "Failed to determine gaia_id value for updating table '%s'!",
+                 modify_state->get_table_name())));
     }
 
     if (!modify_state->update_record(gaia_id))
@@ -830,7 +844,9 @@ extern "C" TupleTableSlot* gaia_exec_foreign_delete(
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("Plan slot should have only one attribute: gaia_id.")));
+             errmsg(
+                 "When deleting from table '%s', the plan slot should have only one attribute: gaia_id.",
+                 modify_state->get_table_name())));
     }
 
     Form_pg_attribute attr = TupleDescAttr(tuple_desc, 0);
@@ -841,7 +857,9 @@ extern "C" TupleTableSlot* gaia_exec_foreign_delete(
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("The name of the record identifier is not gaia_id!")));
+             errmsg(
+                 "When deleting from table '%s', the name of the record identifier is not gaia_id!",
+                 modify_state->get_table_name())));
     }
 
     bool is_null;
@@ -851,7 +869,9 @@ extern "C" TupleTableSlot* gaia_exec_foreign_delete(
         ereport(
             ERROR,
             (errcode(ERRCODE_FDW_ERROR),
-             errmsg("The value of the record identifier was found to be null!")));
+             errmsg(
+                 "When deleting from table '%s', the value of the record identifier was found to be null!",
+                 modify_state->get_table_name())));
     }
     gaia_id_t gaia_id = DatumGetUInt64(pk_val);
 
