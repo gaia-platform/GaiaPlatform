@@ -420,6 +420,13 @@ void client::begin_transaction()
     const server_reply_t* reply = msg->msg_as_reply();
     const transaction_info_t* txn_info = reply->data_as_transaction_info();
     s_txn_id = txn_info->transaction_id();
+    // If we receive c_invalid_gaia_txn_id as our begin timestamp, it means a
+    // nondeterministic concurrency failure on the server.
+    if (s_txn_id == c_invalid_gaia_txn_id)
+    {
+        throw transaction_concurrency_failure();
+    }
+
     // Save the log fd to send to the server on commit.
     s_fd_log = fd_log;
 
@@ -442,7 +449,7 @@ void client::rollback_transaction()
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Reset transaction id.
-    s_txn_id = 0;
+    s_txn_id = c_invalid_gaia_txn_id;
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
@@ -502,8 +509,15 @@ void client::commit_transaction()
     retail_assert(txn_info->transaction_id() == s_txn_id, "Unexpected transaction id!");
 
     // Throw an exception on server-side abort.
-    // REVIEW: We could include the gaia_ids of conflicting objects in transaction_update_conflict
+    // REVIEW: We could include the gaia_ids of conflicting objects in
+    // transaction_update_conflict
     // (https://gaiaplatform.atlassian.net/browse/GAIAPLAT-292).
+    // REVIEW: currently `DECIDE_TXN_ABORT` can mean either update conflict or
+    // failure to claim a commit timestamp entry (because it was invalidated by
+    // another beginning or committing txn). We handle this scenario in
+    // `begin_transaction()` by throwing `transaction_concurrency_failure`, and
+    // we should probably do the same here, unless there's no benefit to
+    // clients.
     if (event == session_event_t::DECIDE_TXN_ABORT)
     {
         throw transaction_update_conflict();
